@@ -1,0 +1,48 @@
+package se.partee71.dagboken.domain.model
+
+data class Medicin(
+    val id: String,
+    val timestamp: String,
+    val datum: String,
+    val tid: String,
+    val namn: String,
+    val dos: String,
+    val enhet: String,
+    val tidpunkt: String,        // "Morgon" | "Förmiddag" | ... | "Vid behov"
+    val tagen: Boolean,
+    val anteckning: String,
+    val receptId: String? = null,
+    val skipped: Boolean = false,
+)
+
+data class Recept(
+    val id: String,
+    val namn: String,
+    val dos: String,
+    val enhet: String,
+    val tidpunkter: List<String>,
+    val upprepning: String,      // "dagligen" | "vardagar" | "helger" | "anpassad" | "intervall"
+    val dagar: List<Int>,        // 0=Mon..6=Sun for "anpassad"
+    val intervalDagar: Int = 2,
+    val anteckning: String,
+    val aktiv: Boolean,
+    val skapad: String,          // YYYY-MM-DD
+)
+
+data class Favorit(
+    val id: String,
+    val namn: String,
+    val dos: String,
+    val enhet: String,
+    val tidpunkt: String,
+    val anteckning: String,
+    val minTidMellan: Int,       // hours cooldown
+    val dispenseringsTid: String = "",
+    val maxDoserPerDag: Int = 0, // 0 = no limit
+)
+
+// TIDP sort order — mirrors TIDP_ORDER in src/utils/storage.js
+val TIDP_ORDER = listOf("Morgon", "Förmiddag", "Lunch", "Eftermiddag", "Kväll", "Natt", "Vid behov")
+
+fun tidpunktSortIndex(tidpunkt: String): Int =
+    TIDP_ORDER.indexOf(tidpunkt).takeIf { it >= 0 } ?: TIDP_ORDER.size
