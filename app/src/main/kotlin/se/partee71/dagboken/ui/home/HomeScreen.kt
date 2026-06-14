@@ -158,8 +158,8 @@ fun HomeScreen(
                                 icon           = if (allTaken) Icons.Filled.CheckCircle else Icons.Filled.Medication,
                                 value          = "${uiState.tagenCount}/${uiState.todayMediciner.size}",
                                 label          = "mediciner",
-                                iconTint       = if (allTaken) cs.tertiary else cs.secondary,
                                 containerColor = if (allTaken) cs.tertiaryContainer else cs.secondaryContainer,
+                                contentColor   = if (allTaken) cs.onTertiaryContainer else cs.onSecondaryContainer,
                                 modifier       = Modifier.weight(1f),
                             )
                         }
@@ -169,8 +169,8 @@ fun HomeScreen(
                                 icon           = Icons.Filled.Bolt,
                                 value          = if (isPositive) "+${a.energy}" else "${a.energy}",
                                 label          = "energi",
-                                iconTint       = if (isPositive) cs.tertiary else cs.error,
                                 containerColor = if (isPositive) cs.tertiaryContainer else cs.errorContainer,
+                                contentColor   = if (isPositive) cs.onTertiaryContainer else cs.onErrorContainer,
                                 modifier       = Modifier.weight(1f),
                             )
                         }

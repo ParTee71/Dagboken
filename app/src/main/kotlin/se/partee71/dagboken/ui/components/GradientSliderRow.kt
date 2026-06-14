@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalDensity
@@ -43,9 +44,11 @@ fun GradientSliderRow(
     steps: Int = 9,
     startLabel: String = "",
     endLabel: String = "",
+    displayValue: String? = null,   // overrides the "N /10" header format (e.g. "+7" for −10..10 range)
+    accentColor: Color? = null,     // overrides the auto screeningEnergyColor (e.g. for activity energy scale)
 ) {
     val cs = MaterialTheme.colorScheme
-    val eColor = screeningEnergyColor(value.toInt(), cs)
+    val eColor = accentColor ?: screeningEnergyColor(value.toInt(), cs)
     val density = LocalDensity.current
     val rangeSize = valueRange.endInclusive - valueRange.start
 
@@ -65,23 +68,33 @@ fun GradientSliderRow(
                 fontWeight = FontWeight.SemiBold,
                 color      = cs.onSurface,
             )
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(1.dp),
-            ) {
+            if (displayValue != null) {
                 Text(
-                    text       = value.toInt().toString(),
+                    text       = displayValue,
                     fontSize   = 28.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color      = eColor,
                     lineHeight = 28.sp,
                 )
-                Text(
-                    text     = " /10",
-                    fontSize = 12.sp,
-                    color    = cs.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 3.dp),
-                )
+            } else {
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(1.dp),
+                ) {
+                    Text(
+                        text       = value.toInt().toString(),
+                        fontSize   = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color      = eColor,
+                        lineHeight = 28.sp,
+                    )
+                    Text(
+                        text     = " /10",
+                        fontSize = 12.sp,
+                        color    = cs.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 3.dp),
+                    )
+                }
             }
         }
 

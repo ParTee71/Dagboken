@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,24 +23,24 @@ fun StatPill(
     icon: ImageVector,
     value: String,
     label: String,
-    iconTint: Color,
     containerColor: Color,
+    contentColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        color    = containerColor,
-        shape    = MaterialTheme.shapes.large,
-        modifier = modifier,
+        color        = containerColor,
+        contentColor = contentColor,
+        shape        = MaterialTheme.shapes.large,
+        modifier     = modifier,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            modifier              = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Icon(
                 imageVector        = icon,
                 contentDescription = null,
-                tint               = iconTint,
                 modifier           = Modifier.size(22.dp),
             )
             Column {
@@ -47,12 +48,11 @@ fun StatPill(
                     text       = value,
                     style      = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color      = iconTint,
                 )
                 Text(
                     text  = label,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = LocalContentColor.current.copy(alpha = 0.7f),
                 )
             }
         }

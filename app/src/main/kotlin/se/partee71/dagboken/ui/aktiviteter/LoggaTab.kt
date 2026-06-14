@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,19 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.ui.components.Foldout
-import se.partee71.dagboken.ui.components.SliderRow
+import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.theme.energyColor
-
-@Composable
-private fun energyDescription(energy: Int): String = when {
-    energy >= 8  -> "Toppen! Superenergi"
-    energy >= 5  -> "Bra energi"
-    energy >= 2  -> "Okej, ganska bra"
-    energy >= 0  -> "Neutral"
-    energy >= -3 -> "Lite trött"
-    energy >= -6 -> "Ganska trött"
-    else         -> "Mycket trött"
-}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -65,7 +53,6 @@ fun LoggaTab(vm: AktiviteterViewModel) {
             .padding(top = 20.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Friendly heading
         Text(
             text = "Hur gick det?",
             style = MaterialTheme.typography.headlineSmall,
@@ -73,10 +60,7 @@ fun LoggaTab(vm: AktiviteterViewModel) {
         )
 
         // Activity type card
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-        ) {
+        ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "Aktivitetstyp",
@@ -104,11 +88,11 @@ fun LoggaTab(vm: AktiviteterViewModel) {
                 if (form.aktivitet == "Övrigt") {
                     Spacer(Modifier.height(10.dp))
                     OutlinedTextField(
-                        value = form.aktivitetAnnat,
+                        value         = form.aktivitetAnnat,
                         onValueChange = { vm.updateForm { copy(aktivitetAnnat = it) } },
-                        label = { Text("Beskriv aktivitet") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
+                        label         = { Text("Beskriv aktivitet") },
+                        modifier      = Modifier.fillMaxWidth(),
+                        singleLine    = true,
                     )
                 }
 
@@ -116,7 +100,7 @@ fun LoggaTab(vm: AktiviteterViewModel) {
 
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement   = Arrangement.spacedBy(6.dp),
                 ) {
                     InputChip(
                         selected = form.aterhamtande,
@@ -140,55 +124,29 @@ fun LoggaTab(vm: AktiviteterViewModel) {
                 onToggle = { vm.updateForm { copy(metricsExpanded = !metricsExpanded) } },
                 modifier = Modifier.padding(horizontal = 16.dp),
             ) {
-                SliderRow(
-                    label           = "Energi",
-                    value           = form.energy.toFloat(),
-                    onValueChange   = { vm.updateForm { copy(energy = it.toInt()) } },
-                    valueRange      = -10f..10f,
-                    steps           = 19,
-                    valueLabel      = "$eLabel  ${energyDescription(form.energy)}",
-                    valueLabelColor = eColor,
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        "😴 Trött",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    GradientSliderRow(
+                        label         = "Energi",
+                        emoji         = "⚡",
+                        value         = form.energy.toFloat(),
+                        onValueChange = { vm.updateForm { copy(energy = it.toInt()) } },
+                        valueRange    = -10f..10f,
+                        steps         = 19,
+                        startLabel    = "-10  😴",
+                        endLabel      = "+10  ⚡",
+                        displayValue  = eLabel,
+                        accentColor   = eColor,
                     )
-                    Text(
-                        "Energisk ⚡",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                SliderRow(
-                    label         = "Stress",
-                    value         = form.stress.toFloat(),
-                    onValueChange = { vm.updateForm { copy(stress = it.toInt()) } },
-                    valueRange    = 0f..10f,
-                    steps         = 9,
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        "😌 Lugn",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        "Stressad 😰",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    HorizontalDivider()
+                    GradientSliderRow(
+                        label         = "Stress",
+                        emoji         = "😰",
+                        value         = form.stress.toFloat(),
+                        onValueChange = { vm.updateForm { copy(stress = it.toInt()) } },
+                        valueRange    = 0f..10f,
+                        steps         = 9,
+                        startLabel    = "0  😌",
+                        endLabel      = "😰  10",
                     )
                 }
                 Spacer(Modifier.height(4.dp))
@@ -204,18 +162,21 @@ fun LoggaTab(vm: AktiviteterViewModel) {
                     onToggle = { vm.updateForm { copy(symptomsExpanded = !symptomsExpanded) } },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 ) {
-                    symptomOptions.forEach { symptom ->
-                        SliderRow(
-                            label         = symptom,
-                            value         = (form.symptomScores[symptom] ?: 0).toFloat(),
-                            onValueChange = { v ->
-                                vm.updateForm {
-                                    copy(symptomScores = symptomScores + (symptom to v.toInt()))
-                                }
-                            },
-                            valueRange = 0f..10f,
-                            steps      = 9,
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                        symptomOptions.forEachIndexed { index, symptom ->
+                            if (index > 0) HorizontalDivider()
+                            GradientSliderRow(
+                                label         = symptom,
+                                value         = (form.symptomScores[symptom] ?: 0).toFloat(),
+                                onValueChange = { v ->
+                                    vm.updateForm {
+                                        copy(symptomScores = symptomScores + (symptom to v.toInt()))
+                                    }
+                                },
+                                valueRange = 0f..10f,
+                                steps      = 9,
+                            )
+                        }
                     }
                     Spacer(Modifier.height(8.dp))
                 }
@@ -228,11 +189,7 @@ fun LoggaTab(vm: AktiviteterViewModel) {
             enabled  = form.aktivitet.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Icon(
-                imageVector = Icons.Default.Save,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
+            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.size(8.dp))
             Text("Spara aktivitet")
         }
