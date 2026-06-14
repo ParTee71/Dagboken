@@ -42,4 +42,7 @@ interface AktivitetDao {
 
     @Query("SELECT COUNT(*) FROM aktiviteter")
     suspend fun count(): Int
+
+    @Query("SELECT COUNT(*) FROM aktiviteter WHERE type = 'screening' AND datum = :datum")
+    suspend fun countScreeningToday(datum: String): Int
 }

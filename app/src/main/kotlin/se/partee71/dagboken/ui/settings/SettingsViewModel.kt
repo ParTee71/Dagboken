@@ -11,11 +11,18 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.notifications.AlarmScheduler
 import javax.inject.Inject
 
 data class SettingsUiState(
     val isDarkTheme: Boolean = true,
     val isDynamicColor: Boolean = true,
+    val themeMode: String = "auto",           // "light"|"dark"|"auto"
+    val themeLightStart: Int = 7,
+    val themeDarkStart: Int = 21,
+    val medsNotificationsEnabled: Boolean = false,
+    val screeningNotificationsEnabled: Boolean = false,
+    val screeningReminderHour: Int = 8,
     val aktivitetOptions: List<String> = emptyList(),
     val symptomOptions: List<String> = emptyList(),
     val newAktivitetOption: String = "",
@@ -30,6 +37,7 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val prefs: PreferencesRepository,
     private val authRepo: FirebaseAuthRepository,
+    private val alarmScheduler: AlarmScheduler,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
@@ -44,6 +52,36 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             prefs.dynamicColor.collectLatest { dynamic ->
                 _state.value = _state.value.copy(isDynamicColor = dynamic)
+            }
+        }
+        viewModelScope.launch {
+            prefs.themeMode.collectLatest { mode ->
+                _state.value = _state.value.copy(themeMode = mode)
+            }
+        }
+        viewModelScope.launch {
+            prefs.themeLightStart.collectLatest { hour ->
+                _state.value = _state.value.copy(themeLightStart = hour)
+            }
+        }
+        viewModelScope.launch {
+            prefs.themeDarkStart.collectLatest { hour ->
+                _state.value = _state.value.copy(themeDarkStart = hour)
+            }
+        }
+        viewModelScope.launch {
+            prefs.medsNotificationsEnabled.collectLatest { enabled ->
+                _state.value = _state.value.copy(medsNotificationsEnabled = enabled)
+            }
+        }
+        viewModelScope.launch {
+            prefs.screeningNotificationsEnabled.collectLatest { enabled ->
+                _state.value = _state.value.copy(screeningNotificationsEnabled = enabled)
+            }
+        }
+        viewModelScope.launch {
+            prefs.screeningReminderHour.collectLatest { hour ->
+                _state.value = _state.value.copy(screeningReminderHour = hour)
             }
         }
         viewModelScope.launch {
@@ -72,7 +110,6 @@ class SettingsViewModel @Inject constructor(
             val result = authRepo.signInWithGoogle(activityContext)
             _state.value = _state.value.copy(isSigningIn = false)
             result.onFailure { e ->
-                // Cancellations are silent; everything else shows an error
                 if (e.message?.contains("cancel", ignoreCase = true) != true) {
                     _state.value = _state.value.copy(signInError = e.message ?: "Inloggning misslyckades")
                 }
@@ -80,9 +117,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun clearSignInError() {
-        _state.value = _state.value.copy(signInError = null)
-    }
+    fun clearSignInError() { _state.value = _state.value.copy(signInError = null) }
 
     fun signOut() {
         viewModelScope.launch {
@@ -99,8 +134,46 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { prefs.setDynamicColor(!_state.value.isDynamicColor) }
     }
 
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch { prefs.setThemeMode(mode) }
+    }
+
+    fun setThemeLightStart(hour: Int) {
+        val clamped = hour.coerceIn(0, (_state.value.themeDarkStart - 1).coerceAtLeast(0))
+        viewModelScope.launch { prefs.setThemeLightStart(clamped) }
+    }
+
+    fun setThemeDarkStart(hour: Int) {
+        val clamped = hour.coerceIn((_state.value.themeLightStart + 1).coerceAtMost(23), 23)
+        viewModelScope.launch { prefs.setThemeDarkStart(clamped) }
+    }
+
+    fun toggleMedsNotifications() {
+        viewModelScope.launch {
+            prefs.setMedsNotificationsEnabled(!_state.value.medsNotificationsEnabled)
+            alarmScheduler.rescheduleAll()
+        }
+    }
+
+    fun toggleScreeningNotifications() {
+        viewModelScope.launch {
+            prefs.setScreeningNotificationsEnabled(!_state.value.screeningNotificationsEnabled)
+            alarmScheduler.rescheduleAll()
+        }
+    }
+
+    fun setScreeningReminderHour(hour: Int) {
+        val clamped = hour.coerceIn(6, 22)
+        viewModelScope.launch {
+            prefs.setScreeningReminderHour(clamped)
+            if (_state.value.screeningNotificationsEnabled) {
+                alarmScheduler.scheduleScreeningAlarm(clamped)
+            }
+        }
+    }
+
     fun setNewAktivitetOption(v: String) { _state.value = _state.value.copy(newAktivitetOption = v) }
-    fun setNewSymptomOption(v: String) { _state.value = _state.value.copy(newSymptomOption = v) }
+    fun setNewSymptomOption(v: String)   { _state.value = _state.value.copy(newSymptomOption = v) }
 
     fun addAktivitetOption() {
         val new = _state.value.newAktivitetOption.trim()

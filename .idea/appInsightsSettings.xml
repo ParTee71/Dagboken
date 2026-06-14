@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="se.partee71.dagboken" />
+                  <option name="mobileSdkAppId" value="1:715020161801:android:ef41f1b44303d8722779d8" />
+                  <option name="projectId" value="dagboken-711d2" />
+                  <option name="projectNumber" value="715020161801" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

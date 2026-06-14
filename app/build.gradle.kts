@@ -138,6 +138,9 @@ dependencies {
     implementation(libs.credentials.play.services)
     implementation(libs.googleid)
 
+    // Vico charts
+    implementation(libs.vico.compose.m3)
+
     // WorkManager + Hilt
     implementation(libs.work.runtime.ktx)
     implementation(libs.hilt.work)

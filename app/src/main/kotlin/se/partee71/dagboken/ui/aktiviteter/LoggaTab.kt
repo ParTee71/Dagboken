@@ -29,11 +29,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.SliderRow
+import se.partee71.dagboken.ui.theme.energyColor
 
 @Composable
 private fun energyDescription(energy: Int): String = when {
@@ -46,17 +46,6 @@ private fun energyDescription(energy: Int): String = when {
     else         -> "Mycket trött"
 }
 
-@Composable
-private fun energyColor(energy: Int): Color {
-    val cs = MaterialTheme.colorScheme
-    return when {
-        energy >= 5  -> cs.tertiary
-        energy >= 1  -> cs.secondary
-        energy >= -1 -> cs.onSurfaceVariant
-        else         -> cs.error
-    }
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LoggaTab(vm: AktiviteterViewModel) {
@@ -64,7 +53,8 @@ fun LoggaTab(vm: AktiviteterViewModel) {
     val aktivitetOptions by vm.aktivitetOptions.collectAsState()
     val symptomOptions by vm.symptomOptions.collectAsState()
 
-    val eColor = energyColor(form.energy)
+    val cs = MaterialTheme.colorScheme
+    val eColor = energyColor(form.energy, cs)
     val eLabel = if (form.energy > 0) "+${form.energy}" else "${form.energy}"
 
     Column(

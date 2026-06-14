@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.datastore.PreferencesRepository
@@ -44,6 +45,21 @@ class AktiviteterViewModel @Inject constructor(
 
     val all: StateFlow<List<Aktivitet>> = repo.all
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val historyFilter = MutableStateFlow(setOf("aktivitet", "screening"))
+
+    val filteredHistory: StateFlow<List<Aktivitet>> = combine(all, historyFilter) { list, filter ->
+        list.filter { it.type in filter }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun toggleHistoryFilter(type: String) {
+        val current = historyFilter.value
+        historyFilter.value = if (type in current) {
+            if (current.size > 1) current - type else current
+        } else {
+            current + type
+        }
+    }
 
     val aktivitetOptions: StateFlow<List<String>> = prefs.aktivitetOptions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -106,6 +122,7 @@ class AktiviteterViewModel @Inject constructor(
                 spentTime    = f.spentTimeHours * 60 + f.spentTimeMinutes,
             )
             repo.save(entry)
+            if (f.type == "screening") _snackbar.value = "Screening sparad ✓"
             resetForm()
             onDone()
         }

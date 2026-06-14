@@ -3,10 +3,14 @@ package se.partee71.dagboken
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import java.time.LocalTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -14,8 +18,28 @@ class MainViewModel @Inject constructor(
     prefs: PreferencesRepository,
 ) : ViewModel() {
 
-    val isDarkTheme = prefs.isDarkTheme
-        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    private val minuteTicker = flow {
+        while (true) {
+            emit(Unit)
+            delay(60_000L)
+        }
+    }
+
+    val isDarkTheme = combine(
+        prefs.themeMode,
+        prefs.themeLightStart,
+        prefs.themeDarkStart,
+        minuteTicker,
+    ) { mode, lightStart, darkStart, _ ->
+        when (mode) {
+            "light" -> false
+            "dark"  -> true
+            else    -> {
+                val h = LocalTime.now().hour
+                h < lightStart || h >= darkStart
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     val dynamicColor = prefs.dynamicColor
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)

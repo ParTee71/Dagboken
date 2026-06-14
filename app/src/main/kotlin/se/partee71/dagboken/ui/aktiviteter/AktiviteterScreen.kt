@@ -9,11 +9,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -39,8 +43,9 @@ private data class TabItem(
 )
 
 private val TABS = listOf(
-    TabItem("Logga",   Icons.Filled.Edit,    Icons.Outlined.Edit),
-    TabItem("Historik", Icons.Filled.History, Icons.Outlined.History),
+    TabItem("Logga",     Icons.Filled.Edit,        Icons.Outlined.Edit),
+    TabItem("Screening", Icons.Filled.MonitorHeart, Icons.Outlined.MonitorHeart),
+    TabItem("Historik",  Icons.Filled.History,      Icons.Outlined.History),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,6 +53,7 @@ private val TABS = listOf(
 fun AktiviteterScreen(
     onAddNew: () -> Unit,
     onEdit: (String) -> Unit,
+    onNavigateToDiagram: () -> Unit,
     snackbarHostState: SnackbarHostState,
     vm: AktiviteterViewModel = hiltViewModel(),
 ) {
@@ -66,12 +72,17 @@ fun AktiviteterScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
+                actions = {
+                    IconButton(onClick = onNavigateToDiagram) {
+                        Icon(Icons.Outlined.BarChart, contentDescription = "Diagram")
+                    }
+                },
             )
         },
         floatingActionButton = {
-            if (pagerState.currentPage == 1) {
+            if (pagerState.currentPage == 2) {
                 FloatingActionButton(
-                    onClick = onAddNew,
+                    onClick        = onAddNew,
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor   = MaterialTheme.colorScheme.onPrimary,
                 ) {
@@ -95,9 +106,9 @@ fun AktiviteterScreen(
                     Tab(
                         selected = selected,
                         onClick  = { scope.launch { pagerState.animateScrollToPage(index) } },
-                        icon = {
+                        icon     = {
                             Icon(
-                                imageVector = if (selected) tab.iconSelected else tab.iconUnselected,
+                                imageVector        = if (selected) tab.iconSelected else tab.iconUnselected,
                                 contentDescription = null,
                             )
                         },
@@ -107,12 +118,13 @@ fun AktiviteterScreen(
             }
 
             HorizontalPager(
-                state = pagerState,
+                state    = pagerState,
                 modifier = Modifier.fillMaxSize(),
             ) { page ->
                 when (page) {
                     0 -> LoggaTab(vm = vm)
-                    1 -> HistorikTab(vm = vm, onEdit = onEdit)
+                    1 -> ScreeningTab(vm = vm)
+                    2 -> HistorikTab(vm = vm, onEdit = onEdit)
                 }
             }
         }

@@ -1,11 +1,11 @@
 package se.partee71.dagboken.ui.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.outlined.Bolt
@@ -35,19 +35,19 @@ sealed class Screen(
         iconSelected   = Icons.Filled.Medication,
         iconUnselected = Icons.Outlined.Medication,
     )
-    object Diagram : Screen(
-        route          = "diagram",
-        label          = "Diagram",
-        iconSelected   = Icons.Filled.BarChart,
-        iconUnselected = Icons.Outlined.BarChart,
+    object SamsungHealth : Screen(
+        route          = "samsung_health",
+        label          = "Hälsa",
+        iconSelected   = Icons.Filled.FitnessCenter,
+        iconUnselected = Icons.Outlined.FitnessCenter,
     )
 
     companion object {
-        val bottomNavItems by lazy { listOf(Hem, Aktiviteter, Mediciner, Diagram) }
+        val bottomNavItems by lazy { listOf(Hem, Aktiviteter, Mediciner, SamsungHealth) }
     }
 }
 
-// Sub-routes for add/edit screens (not in bottom nav)
+// Sub-routes (not in bottom nav)
 object Routes {
     const val ADD_AKTIVITET  = "add_aktivitet"
     const val EDIT_AKTIVITET = "edit_aktivitet/{id}"
@@ -59,9 +59,11 @@ object Routes {
     const val EDIT_FAVORIT   = "edit_favorit/{id}"
     const val SETTINGS       = "settings"
     const val MIGRATION      = "migration"
+    const val DIAGRAM        = "diagram/{source}"
 
     fun editAktivitet(id: String) = "edit_aktivitet/$id"
     fun editMedicin(id: String)   = "edit_medicin/$id"
     fun editRecept(id: String)    = "edit_recept/$id"
     fun editFavorit(id: String)   = "edit_favorit/$id"
+    fun diagram(source: String)   = "diagram/$source"
 }

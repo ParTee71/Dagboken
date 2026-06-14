@@ -10,12 +10,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalPharmacy
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.LocalPharmacy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -55,6 +57,7 @@ fun MedicinerScreen(
     onEditRecept:  (String) -> Unit,
     onAddFavorit:  () -> Unit,
     onEditFavorit: (String) -> Unit,
+    onNavigateToDiagram: () -> Unit,
     snackbarHostState: SnackbarHostState,
     vm: MedicinerViewModel = hiltViewModel(),
 ) {
@@ -79,6 +82,11 @@ fun MedicinerScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
+                actions = {
+                    IconButton(onClick = onNavigateToDiagram) {
+                        Icon(Icons.Outlined.BarChart, contentDescription = "Diagram")
+                    }
+                },
             )
         },
         floatingActionButton = {

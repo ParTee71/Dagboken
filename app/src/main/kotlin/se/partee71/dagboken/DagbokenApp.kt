@@ -8,6 +8,12 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import se.partee71.dagboken.notifications.AlarmScheduler
+import se.partee71.dagboken.notifications.NotificationHelper
 import se.partee71.dagboken.worker.BackupWorker
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -18,6 +24,9 @@ class DagbokenApp : Application(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject
+    lateinit var alarmScheduler: AlarmScheduler
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -25,7 +34,11 @@ class DagbokenApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        NotificationHelper.createChannels(this)
         scheduleDailyBackup()
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            alarmScheduler.rescheduleAll()
+        }
     }
 
     private fun scheduleDailyBackup() {

@@ -1,0 +1,114 @@
+package se.partee71.dagboken.ui.aktiviteter
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.GradientSliderRow
+
+private data class ScreeningItem(val label: String, val emoji: String, val formKey: String)
+
+private val SCREENING_ITEMS = listOf(
+    ScreeningItem("Energi",   "⚡", "energy"),
+    ScreeningItem("Stress",   "😰", "stress"),
+)
+
+@Composable
+fun ScreeningTab(vm: AktiviteterViewModel) {
+    val form by vm.form.collectAsState()
+    val symptomOptions by vm.symptomOptions.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp)
+            .padding(top = 20.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text       = "Hur mår du nu?",
+            style      = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+        )
+
+        DagbokenCard(title = "Mätvärden 0–10") {
+            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                GradientSliderRow(
+                    label         = "Energi",
+                    emoji         = "⚡",
+                    value         = form.energy.coerceIn(0, 10).toFloat(),
+                    onValueChange = { vm.updateForm { copy(energy = it.toInt()) } },
+                    valueRange    = 0f..10f,
+                    steps         = 9,
+                    startLabel    = "0  😴",
+                    endLabel      = "😊  10",
+                )
+                HorizontalDivider()
+                GradientSliderRow(
+                    label         = "Stress",
+                    emoji         = "😰",
+                    value         = form.stress.toFloat(),
+                    onValueChange = { vm.updateForm { copy(stress = it.toInt()) } },
+                    valueRange    = 0f..10f,
+                    steps         = 9,
+                    startLabel    = "0  😌",
+                    endLabel      = "😰  10",
+                )
+            }
+        }
+
+        if (symptomOptions.isNotEmpty()) {
+            DagbokenCard(title = "Symptom") {
+                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    symptomOptions.forEachIndexed { index, symptom ->
+                        if (index > 0) HorizontalDivider()
+                        GradientSliderRow(
+                            label         = symptom,
+                            value         = (form.symptomScores[symptom] ?: 0).toFloat(),
+                            onValueChange = { v ->
+                                vm.updateForm {
+                                    copy(symptomScores = symptomScores + (symptom to v.toInt()))
+                                }
+                            },
+                            valueRange = 0f..10f,
+                            steps      = 9,
+                        )
+                    }
+                }
+            }
+        }
+
+        FilledTonalButton(
+            onClick = {
+                vm.updateForm { copy(aktivitet = "Screening", type = "screening") }
+                vm.save {}
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.size(8.dp))
+            Text("Spara screening")
+        }
+    }
+}

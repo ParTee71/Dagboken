@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -34,6 +35,7 @@ import se.partee71.dagboken.ui.mediciner.add.AddEditFavoritScreen
 import se.partee71.dagboken.ui.mediciner.add.AddEditMedicinScreen
 import se.partee71.dagboken.ui.mediciner.add.AddEditReceptScreen
 import se.partee71.dagboken.ui.migration.MigrationScreen
+import se.partee71.dagboken.ui.samsung.SamsungHealthPlaceholderScreen
 import se.partee71.dagboken.ui.settings.SettingsScreen
 
 @Composable
@@ -57,24 +59,34 @@ fun AppNavigation(
                     Screen.bottomNavItems.forEach { screen ->
                         val selected = currentDestination?.hierarchy
                             ?.any { it.route == screen.route } == true
+                        val isSamsungHealth = screen == Screen.SamsungHealth
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                                if (!isSamsungHealth) {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
+                                // SamsungHealth is a disabled placeholder — no navigation
                             },
                             icon = {
                                 Icon(
-                                    imageVector = if (selected) screen.iconSelected else screen.iconUnselected,
+                                    imageVector        = if (selected) screen.iconSelected else screen.iconUnselected,
                                     contentDescription = screen.label,
+                                    modifier           = if (isSamsungHealth) Modifier.alpha(0.4f) else Modifier,
                                 )
                             },
-                            label = { Text(screen.label) },
+                            label = {
+                                Text(
+                                    text     = screen.label,
+                                    modifier = if (isSamsungHealth) Modifier.alpha(0.4f) else Modifier,
+                                )
+                            },
                         )
                     }
                 }
@@ -110,20 +122,22 @@ fun AppNavigation(
                     onNavigateToAktiviteter = { navController.navigate(Screen.Aktiviteter.route) },
                     onNavigateToMediciner   = { navController.navigate(Screen.Mediciner.route) },
                     onNavigateToSettings    = { navController.navigate(Routes.SETTINGS) },
+                    onNavigateToDiagram     = { navController.navigate(Routes.diagram("hem")) },
                     snackbarHostState       = snackbarHostState,
                 )
             }
             composable(Screen.Aktiviteter.route) {
                 AktiviteterScreen(
-                    onAddNew = { navController.navigate(Routes.ADD_AKTIVITET) },
-                    onEdit   = { id -> navController.navigate(Routes.editAktivitet(id)) },
+                    onAddNew          = { navController.navigate(Routes.ADD_AKTIVITET) },
+                    onEdit            = { id -> navController.navigate(Routes.editAktivitet(id)) },
+                    onNavigateToDiagram = { navController.navigate(Routes.diagram("aktiviteter")) },
                     snackbarHostState = snackbarHostState,
                 )
             }
             composable(Routes.ADD_AKTIVITET) {
                 AddEditAktivitetScreen(
-                    editId   = null,
-                    onBack   = { navController.popBackStack() },
+                    editId = null,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(
@@ -137,12 +151,13 @@ fun AppNavigation(
             }
             composable(Screen.Mediciner.route) {
                 MedicinerScreen(
-                    onAddMedicin  = { navController.navigate(Routes.ADD_MEDICIN) },
-                    onEditMedicin = { id -> navController.navigate(Routes.editMedicin(id)) },
-                    onAddRecept   = { navController.navigate(Routes.ADD_RECEPT) },
-                    onEditRecept  = { id -> navController.navigate(Routes.editRecept(id)) },
-                    onAddFavorit  = { navController.navigate(Routes.ADD_FAVORIT) },
-                    onEditFavorit = { id -> navController.navigate(Routes.editFavorit(id)) },
+                    onAddMedicin      = { navController.navigate(Routes.ADD_MEDICIN) },
+                    onEditMedicin     = { id -> navController.navigate(Routes.editMedicin(id)) },
+                    onAddRecept       = { navController.navigate(Routes.ADD_RECEPT) },
+                    onEditRecept      = { id -> navController.navigate(Routes.editRecept(id)) },
+                    onAddFavorit      = { navController.navigate(Routes.ADD_FAVORIT) },
+                    onEditFavorit     = { id -> navController.navigate(Routes.editFavorit(id)) },
+                    onNavigateToDiagram = { navController.navigate(Routes.diagram("mediciner")) },
                     snackbarHostState = snackbarHostState,
                 )
             }
@@ -182,8 +197,18 @@ fun AppNavigation(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Screen.Diagram.route) {
-                DiagramScreen()
+            composable(Screen.SamsungHealth.route) {
+                SamsungHealthPlaceholderScreen()
+            }
+            composable(
+                route     = Routes.DIAGRAM,
+                arguments = listOf(navArgument("source") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val source = backStackEntry.arguments?.getString("source") ?: "hem"
+                DiagramScreen(
+                    source = source,
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable(Routes.SETTINGS) {
                 SettingsScreen(

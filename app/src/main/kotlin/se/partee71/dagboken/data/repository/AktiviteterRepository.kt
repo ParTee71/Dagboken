@@ -42,4 +42,9 @@ class AktiviteterRepository @Inject constructor(
         dao.upsertAll(entries.map { it.toEntity() })
 
     suspend fun isEmpty(): Boolean = dao.count() == 0
+
+    suspend fun hasScreeningToday(): Boolean {
+        val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        return dao.countScreeningToday(today) > 0
+    }
 }

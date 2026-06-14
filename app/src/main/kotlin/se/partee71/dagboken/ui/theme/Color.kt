@@ -14,6 +14,7 @@ val VioletCont   = Color(0xFFEDE9FE)
 val Amber300     = Color(0xFFFCD34D)
 val Amber400     = Color(0xFFFBBF24)
 val Amber600     = Color(0xFFD97706)
+val Amber700     = Color(0xFFB45309)
 val Amber900     = Color(0xFF451A03)
 val AmberCont    = Color(0xFFFEF3C7)
 
@@ -37,10 +38,10 @@ private val DarkOnSurfaceVar = Color(0xFFCDBAA6)
 private val DarkOutline      = Color(0xFF7B6655)
 private val DarkOutlineVar   = Color(0xFF3D2F24)
 
-// ─── Light backgrounds (warm cream) ───────────────────────────────────────────
-private val LightBg           = Color(0xFFFFF9F0)
-private val LightSurface      = Color(0xFFFFFEF9)
-private val LightSurfaceVar   = Color(0xFFF0EAE0)
+// ─── Light backgrounds (warm amber-cream) ─────────────────────────────────────
+private val LightBg           = Color(0xFFFFF7E8)   // deeper amber cream
+private val LightSurface      = Color(0xFFFFFBF2)   // warm ivory (amber tint vs cold white)
+private val LightSurfaceVar   = Color(0xFFF7EBD6)   // warm amber sand
 private val LightOnBg         = Color(0xFF1C1208)
 private val LightOnSurface    = Color(0xFF1C1208)
 private val LightOnSurfaceVar = Color(0xFF4F3D2C)
@@ -79,18 +80,18 @@ val DagbokenDarkColorScheme = darkColorScheme(
 )
 
 val DagbokenLightColorScheme = lightColorScheme(
-    primary              = Violet600,
+    primary              = Amber700,            // deep warm gold — no purple
     onPrimary            = Color.White,
-    primaryContainer     = VioletCont,
-    onPrimaryContainer   = Violet900,
-    secondary            = Amber600,
+    primaryContainer     = AmberCont,           // #FEF3C7 warm cream-yellow
+    onPrimaryContainer   = Amber900,            // #451A03 dark brown
+    secondary            = Emerald700,           // #047857 rich teal-green
     onSecondary          = Color.White,
-    secondaryContainer   = AmberCont,
-    onSecondaryContainer = Amber900,
-    tertiary             = Emerald700,
+    secondaryContainer   = EmeraldCont,          // #D1FAE5 pale mint
+    onSecondaryContainer = Emerald900,           // #022C22
+    tertiary             = Rose500,              // #F43F5E warm rose — meds/care accent
     onTertiary           = Color.White,
-    tertiaryContainer    = EmeraldCont,
-    onTertiaryContainer  = Emerald900,
+    tertiaryContainer    = RoseCont,             // #FFE4E6 pale rose
+    onTertiaryContainer  = Rose900,              // #4C0519
     error                = Rose500,
     onError              = Color.White,
     errorContainer       = RoseCont,
@@ -102,8 +103,8 @@ val DagbokenLightColorScheme = lightColorScheme(
     surfaceVariant       = LightSurfaceVar,
     onSurfaceVariant     = LightOnSurfaceVar,
     outline              = LightOutline,
-    outlineVariant       = Color(0xFFD4C0AD),
+    outlineVariant       = Color(0xFFD9BA96),
     inverseSurface       = DarkSurface,
     inverseOnSurface     = DarkOnSurface,
-    inversePrimary       = Violet500,
+    inversePrimary       = Amber300,             // #FCD34D light gold on dark surfaces
 )

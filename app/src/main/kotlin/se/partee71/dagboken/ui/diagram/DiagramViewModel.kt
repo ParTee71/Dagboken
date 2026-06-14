@@ -31,10 +31,10 @@ class DiagramViewModel @Inject constructor(
     private val repo: AktiviteterRepository,
 ) : ViewModel() {
 
-    private val _rangeDays = MutableStateFlow(14)
+    private val _rangeDays = MutableStateFlow(30)
     private val _selectedSeries = MutableStateFlow("Energi")
 
-    private val _state = MutableStateFlow(DiagramUiState())
+    private val _state = MutableStateFlow(DiagramUiState(rangeDays = 30))
     val state: StateFlow<DiagramUiState> = _state.asStateFlow()
 
     init {

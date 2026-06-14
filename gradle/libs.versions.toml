@@ -24,6 +24,7 @@ googleIdentity          = "1.1.1"
 workManager             = "2.10.0"
 hiltWork                = "1.2.0"
 googleServices          = "4.4.2"
+vico                    = "2.0.0-alpha.21"
 junit                   = "4.13.2"
 junitExt                = "1.2.1"
 espresso                = "3.6.1"
@@ -69,6 +70,8 @@ firebase-auth                        = { group = "com.google.firebase",         
 credentials                          = { group = "androidx.credentials",                             name = "credentials",                     version.ref = "credentialManager" }
 credentials-play-services            = { group = "androidx.credentials",                             name = "credentials-play-services-auth",  version.ref = "credentialManager" }
 googleid                             = { group = "com.google.android.libraries.identity.googleid",  name = "googleid",                        version.ref = "googleIdentity" }
+# Vico charts
+vico-compose-m3                      = { group = "com.patrykandpatrick.vico",                           name = "compose-m3",                      version.ref = "vico" }
 # WorkManager + Hilt
 work-runtime-ktx                     = { group = "androidx.work",                                    name = "work-runtime-ktx",                version.ref = "workManager" }
 hilt-work                            = { group = "androidx.hilt",                                    name = "hilt-work",                       version.ref = "hiltWork" }

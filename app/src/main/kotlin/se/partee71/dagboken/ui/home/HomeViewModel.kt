@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -26,6 +27,7 @@ data class HomeUiState(
     val googleEmail: String? = null,
     val googlePhotoUrl: String? = null,
     val googleDisplayName: String? = null,
+    val isSigningIn: Boolean = false,
 )
 
 @HiltViewModel
@@ -35,6 +37,8 @@ class HomeViewModel @Inject constructor(
     private val authRepo: FirebaseAuthRepository,
 ) : ViewModel() {
 
+    private val _isSigningIn = MutableStateFlow(false)
+
     init {
         viewModelScope.launch { medicinerRepo.ensureTodayEntries() }
     }
@@ -42,7 +46,8 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = combine(
         medicinerRepo.todayFlow(),
         authRepo.authStateFlow,
-    ) { today, user ->
+        _isSigningIn,
+    ) { today, user, signingIn ->
         val last7 = aktiviteterRepo.getRecent("screening", 7)
         val lastAktivitet = aktiviteterRepo.getRecent("aktivitet", 1).firstOrNull()
         HomeUiState(
@@ -53,6 +58,7 @@ class HomeViewModel @Inject constructor(
             googleEmail       = user?.email,
             googlePhotoUrl    = user?.photoUrl?.toString(),
             googleDisplayName = user?.displayName,
+            isSigningIn       = signingIn,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 
@@ -61,7 +67,14 @@ class HomeViewModel @Inject constructor(
     }
 
     fun signIn(activityContext: Context) {
-        viewModelScope.launch { authRepo.signInWithGoogle(activityContext) }
+        viewModelScope.launch {
+            _isSigningIn.value = true
+            try {
+                authRepo.signInWithGoogle(activityContext)
+            } finally {
+                _isSigningIn.value = false
+            }
+        }
     }
 
     fun signOut() {

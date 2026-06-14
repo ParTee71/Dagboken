@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -30,6 +31,14 @@ class PreferencesRepository @Inject constructor(
         val AKTIVITET_OPTIONS   = stringPreferencesKey("aktivitet_options")
         val SYMPTOM_OPTIONS     = stringPreferencesKey("symptom_options")
         val SHEETS_CONFIG       = stringPreferencesKey("sheets_config")
+        // Auto-theme
+        val THEME_MODE          = stringPreferencesKey("theme_mode")      // "light"|"dark"|"auto"
+        val THEME_LIGHT_START   = intPreferencesKey("theme_light_start")  // hour 0..23
+        val THEME_DARK_START    = intPreferencesKey("theme_dark_start")   // hour 0..23
+        // Notifications
+        val MEDS_NOTIFICATIONS  = booleanPreferencesKey("meds_notifications")
+        val SCREENING_NOTIFICATIONS = booleanPreferencesKey("screening_notifications")
+        val SCREENING_REMINDER_HOUR = intPreferencesKey("screening_reminder_hour")
     }
 
     val migrationDone: Flow<Boolean> = dataStore.data
@@ -58,6 +67,24 @@ class PreferencesRepository @Inject constructor(
     val sheetsConfig: Flow<String> = dataStore.data
         .map { it[Keys.SHEETS_CONFIG] ?: "" }
 
+    val themeMode: Flow<String> = dataStore.data
+        .map { it[Keys.THEME_MODE] ?: "auto" }
+
+    val themeLightStart: Flow<Int> = dataStore.data
+        .map { it[Keys.THEME_LIGHT_START] ?: 7 }
+
+    val themeDarkStart: Flow<Int> = dataStore.data
+        .map { it[Keys.THEME_DARK_START] ?: 21 }
+
+    val medsNotificationsEnabled: Flow<Boolean> = dataStore.data
+        .map { it[Keys.MEDS_NOTIFICATIONS] ?: false }
+
+    val screeningNotificationsEnabled: Flow<Boolean> = dataStore.data
+        .map { it[Keys.SCREENING_NOTIFICATIONS] ?: false }
+
+    val screeningReminderHour: Flow<Int> = dataStore.data
+        .map { it[Keys.SCREENING_REMINDER_HOUR] ?: 8 }
+
     suspend fun setMigrationDone(done: Boolean) {
         dataStore.edit { it[Keys.MIGRATION_DONE] = done }
     }
@@ -81,9 +108,32 @@ class PreferencesRepository @Inject constructor(
     suspend fun setSheetsConfig(url: String) {
         dataStore.edit { it[Keys.SHEETS_CONFIG] = url }
     }
+
+    suspend fun setThemeMode(mode: String) {
+        dataStore.edit { it[Keys.THEME_MODE] = mode }
+    }
+
+    suspend fun setThemeLightStart(hour: Int) {
+        dataStore.edit { it[Keys.THEME_LIGHT_START] = hour }
+    }
+
+    suspend fun setThemeDarkStart(hour: Int) {
+        dataStore.edit { it[Keys.THEME_DARK_START] = hour }
+    }
+
+    suspend fun setMedsNotificationsEnabled(enabled: Boolean) {
+        dataStore.edit { it[Keys.MEDS_NOTIFICATIONS] = enabled }
+    }
+
+    suspend fun setScreeningNotificationsEnabled(enabled: Boolean) {
+        dataStore.edit { it[Keys.SCREENING_NOTIFICATIONS] = enabled }
+    }
+
+    suspend fun setScreeningReminderHour(hour: Int) {
+        dataStore.edit { it[Keys.SCREENING_REMINDER_HOUR] = hour }
+    }
 }
 
-// Mirrors DEFAULT_AKTIVITET_OPTIONS in src/storage/keys.ts
 private val DEFAULT_AKTIVITET_OPTIONS = listOf(
     "Promenad", "Jobb", "Möte", "Träning", "Vila", "Mat", "Sällskap", "Läsning", "Övrigt",
 )

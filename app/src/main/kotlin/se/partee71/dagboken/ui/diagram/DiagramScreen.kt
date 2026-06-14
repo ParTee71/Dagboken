@@ -15,12 +15,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -33,19 +35,37 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun DiagramScreen(vm: DiagramViewModel = hiltViewModel()) {
+fun DiagramScreen(
+    source: String = "hem",
+    onBack: () -> Unit = {},
+    vm: DiagramViewModel = hiltViewModel(),
+) {
     val state by vm.state.collectAsState()
     val tabs = listOf("Energi", "Stress")
-    val ranges = listOf(7, 14, 30)
+    val ranges = listOf(7, 14, 30, 90)
+
+    val screenTitle = when (source) {
+        "aktiviteter" -> "Aktiviteter — Diagram"
+        "mediciner"   -> "Mediciner — Diagram"
+        else          -> "Diagram"
+    }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Diagram") }) },
+        topBar = {
+            TopAppBar(
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tillbaka")
+                    }
+                },
+                title = { Text(screenTitle) },
+            )
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -55,7 +75,7 @@ fun DiagramScreen(vm: DiagramViewModel = hiltViewModel()) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Series selector — SegmentedButton is correct M3 for binary choice
+            // Series selector
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 tabs.forEachIndexed { index, label ->
                     SegmentedButton(
@@ -89,10 +109,10 @@ fun DiagramScreen(vm: DiagramViewModel = hiltViewModel()) {
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = Icons.Outlined.BarChart,
+                                imageVector        = Icons.Outlined.BarChart,
                                 contentDescription = null,
-                                modifier = Modifier.size(40.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                modifier           = Modifier.size(40.dp),
+                                tint               = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                             )
                             Spacer(Modifier.height(8.dp))
                             Text(
@@ -140,18 +160,18 @@ fun DiagramScreen(vm: DiagramViewModel = hiltViewModel()) {
                 }
                 ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier            = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Text("Sammanfattning", style = MaterialTheme.typography.titleSmall)
                         HorizontalDivider()
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier              = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly,
                         ) {
                             StatItem(label = "Snitt", value = "%.1f".format(values.average()))
-                            StatItem(label = "Min", value = "%.1f".format(values.min()))
-                            StatItem(label = "Max", value = "%.1f".format(values.max()))
+                            StatItem(label = "Min",   value = "%.1f".format(values.min()))
+                            StatItem(label = "Max",   value = "%.1f".format(values.max()))
                             StatItem(label = "Dagar", value = values.size.toString())
                         }
                     }
@@ -165,12 +185,12 @@ fun DiagramScreen(vm: DiagramViewModel = hiltViewModel()) {
 private fun StatItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text = value,
+            text  = value,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
         )
         Text(
-            text = label,
+            text  = label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
