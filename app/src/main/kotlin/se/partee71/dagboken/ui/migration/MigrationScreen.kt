@@ -1,6 +1,7 @@
 package se.partee71.dagboken.ui.migration
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -30,18 +31,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.api.Scope
-import com.google.api.services.drive.DriveScopes
 
 @Composable
 fun MigrationScreen(
@@ -55,34 +50,20 @@ fun MigrationScreen(
         contract = ActivityResultContracts.GetContent(),
     ) { uri -> uri?.let { vm.importFromFile(it) } }
 
-    val signInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            task.getResult(ApiException::class.java)
-            vm.onSignedIn()
-        } catch (e: ApiException) {
-            val msg = when (e.statusCode) {
-                12501 -> null // user cancelled — silent
-                10    -> "Konfigureringsfel (SHA-1 ej registrerat i Cloud Console)"
-                else  -> "Inloggning misslyckades (kod: ${e.statusCode})"
-            }
-            if (msg != null) vm.onSignInFailed(msg)
-        }
-    }
-
-    val signInClient = remember(context) {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestEmail()
-            .requestScopes(Scope(DriveScopes.DRIVE_APPDATA))
-            .build()
-        GoogleSignIn.getClient(context, gso)
-    }
+    // Handles the Drive APPDATA scope authorization intent
+    val driveAuthLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult(),
+    ) { vm.startMigration() } // retry after user (possibly) granted Drive scope
 
     LaunchedEffect(state) {
-        if (state is MigrationState.Done) {
-            onMigrationComplete()
+        when (val s = state) {
+            is MigrationState.Done -> onMigrationComplete()
+            is MigrationState.NeedsAuthorization -> {
+                driveAuthLauncher.launch(
+                    IntentSenderRequest.Builder(s.pendingIntent.intentSender).build(),
+                )
+            }
+            else -> Unit
         }
     }
 
@@ -169,7 +150,7 @@ fun MigrationScreen(
                             )
                             Spacer(Modifier.height(8.dp))
                             Button(
-                                onClick = { signInLauncher.launch(signInClient.signInIntent) },
+                                onClick = { vm.signInAndMigrate(context) },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text("Logga in med Google")
@@ -180,6 +161,11 @@ fun MigrationScreen(
                             ) {
                                 Text("Fortsätt utan import")
                             }
+                        }
+
+                        is MigrationState.NeedsAuthorization -> {
+                            CircularProgressIndicator()
+                            Text("Begär åtkomst till Google Drive…")
                         }
 
                         is MigrationState.NoBackupFound -> {
@@ -240,11 +226,24 @@ fun MigrationScreen(
                                 color = MaterialTheme.colorScheme.error,
                                 textAlign = TextAlign.Center,
                             )
-                            Button(onClick = { signInLauncher.launch(signInClient.signInIntent) }) {
+                            Button(
+                                onClick = { vm.signInAndMigrate(context) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
                                 Text("Logga in med Google")
                             }
-                            OutlinedButton(onClick = vm::startMigration) { Text("Försök igen") }
-                            OutlinedButton(onClick = vm::skipMigration) { Text("Hoppa över") }
+                            OutlinedButton(
+                                onClick = vm::startMigration,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Försök igen")
+                            }
+                            OutlinedButton(
+                                onClick = vm::skipMigration,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Hoppa över")
+                            }
                         }
                     }
                 }

@@ -1,10 +1,13 @@
 package se.partee71.dagboken.ui.mediciner
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,8 +20,11 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -33,11 +39,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.model.TIDP_ORDER
 import se.partee71.dagboken.domain.model.tidpunktSortIndex
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun IdagTab(
     vm: MedicinerViewModel,
@@ -49,9 +58,7 @@ fun IdagTab(
 
     if (sorted.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            androidx.compose.foundation.layout.Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
                     imageVector = Icons.Outlined.Medication,
                     contentDescription = null,
@@ -75,58 +82,129 @@ fun IdagTab(
         return
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 88.dp),
-    ) {
-        items(sorted, key = { it.id }) { medicin ->
-            val dismissState = rememberSwipeToDismissBoxState(
-                confirmValueChange = { value ->
-                    if (value == SwipeToDismissBoxValue.EndToStart) {
-                        deleteTarget = medicin
-                    }
-                    false
-                },
+    // Adherence progress
+    val tagenCount = sorted.count { it.tagen }
+    val total = sorted.size
+    val progress = tagenCount.toFloat() / total.toFloat()
+
+    // Group by tidpunkt, preserving TIDP_ORDER sort
+    val grouped = sorted.groupBy { it.tidpunkt }
+    // Only iterate tidpunkter that have entries, in canonical order
+    val orderedGroups = TIDP_ORDER
+        .filter { grouped.containsKey(it) }
+        .map { it to grouped.getValue(it) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Adherence bar — always visible when list is non-empty
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Text(
+                text = "$tagenCount av $total tagna",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 6.dp),
             )
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
 
-            LaunchedEffect(deleteTarget) {
-                if (deleteTarget == null) dismissState.reset()
-            }
-
-            SwipeToDismissBox(
-                state = dismissState,
-                backgroundContent = {
-                    val isSwiping = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                if (isSwiping) MaterialTheme.colorScheme.errorContainer
-                                else MaterialTheme.colorScheme.surface,
-                            )
-                            .padding(end = 20.dp),
-                        contentAlignment = Alignment.CenterEnd,
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 88.dp),
+        ) {
+            orderedGroups.forEach { (tidpunkt, mediciner) ->
+                // Sticky tidpunkt section header
+                stickyHeader(key = "header_$tidpunkt") {
+                    Surface(
+                        color = MaterialTheme.colorScheme.background,
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        if (isSwiping) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Ta bort",
-                                tint = MaterialTheme.colorScheme.onErrorContainer,
-                            )
-                        }
-                    }
-                },
-            ) {
-                ListItem(
-                    headlineContent   = { Text(medicin.namn) },
-                    supportingContent = { Text("${medicin.dos} ${medicin.enhet}  •  ${medicin.tidpunkt}") },
-                    trailingContent   = {
-                        Checkbox(
-                            checked         = medicin.tagen,
-                            onCheckedChange = { vm.toggleTagen(medicin) },
+                        Text(
+                            text = tidpunkt.uppercase(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .padding(top = 12.dp, bottom = 4.dp),
                         )
-                    },
-                )
+                    }
+                }
+
+                items(mediciner, key = { it.id }) { medicin ->
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                deleteTarget = medicin
+                            }
+                            false
+                        },
+                    )
+
+                    LaunchedEffect(deleteTarget) {
+                        if (deleteTarget == null) dismissState.reset()
+                    }
+
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        backgroundContent = {
+                            val isSwiping =
+                                dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        if (isSwiping) MaterialTheme.colorScheme.errorContainer
+                                        else MaterialTheme.colorScheme.surface,
+                                    )
+                                    .padding(end = 20.dp),
+                                contentAlignment = Alignment.CenterEnd,
+                            ) {
+                                if (isSwiping) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Ta bort",
+                                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    )
+                                }
+                            }
+                        },
+                    ) {
+                        val isTagen = medicin.tagen
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = medicin.namn,
+                                    textDecoration = if (isTagen) TextDecoration.LineThrough else null,
+                                    modifier = if (isTagen) Modifier.alpha(0.5f) else Modifier,
+                                )
+                            },
+                            supportingContent = {
+                                Text(
+                                    text = "${medicin.dos} ${medicin.enhet}",
+                                    modifier = if (isTagen) Modifier.alpha(0.5f) else Modifier,
+                                )
+                            },
+                            trailingContent = {
+                                Checkbox(
+                                    checked = medicin.tagen,
+                                    onCheckedChange = { vm.toggleTagen(medicin) },
+                                )
+                            },
+                            colors = if (isTagen) {
+                                ListItemDefaults.colors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                )
+                            } else {
+                                ListItemDefaults.colors()
+                            },
+                        )
+                    }
+                }
             }
         }
     }

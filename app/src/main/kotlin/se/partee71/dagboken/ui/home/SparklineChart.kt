@@ -12,9 +12,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
-import se.partee71.dagboken.ui.theme.Green400
 import se.partee71.dagboken.ui.theme.Amber400
-import se.partee71.dagboken.ui.theme.Red400
+import se.partee71.dagboken.ui.theme.Emerald400
+import se.partee71.dagboken.ui.theme.Rose500
 
 /**
  * 7-day energy sparkline. Ports the SVG sparkline from Home.jsx to Compose Canvas.
@@ -55,9 +55,9 @@ fun SparklineChart(
         // Draw dots color-coded by energy zone
         points.forEachIndexed { i, v ->
             val dotColor = when {
-                v >= 7f -> Green400
+                v >= 7f -> Emerald400
                 v >= 5f -> Amber400
-                else    -> Red400
+                else    -> Rose500
             }
             drawCircle(
                 color  = dotColor,

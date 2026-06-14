@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.migration
 
+import android.app.PendingIntent
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.migration.BackupJson
 import se.partee71.dagboken.data.migration.BackupMapper
@@ -25,9 +27,10 @@ import javax.inject.Inject
 sealed class MigrationState {
     object Idle : MigrationState()
     object CheckingDrive : MigrationState()
-    object NoBackupFound : MigrationState()     // no backup on Drive — offer to skip
-    object NoAccountSignedIn : MigrationState() // not signed in to Google yet
+    object NoBackupFound : MigrationState()
+    object NoAccountSignedIn : MigrationState()
     object Downloading : MigrationState()
+    data class NeedsAuthorization(val pendingIntent: PendingIntent) : MigrationState()
     data class Importing(val progress: Float) : MigrationState()
     data class Done(val aktiviteter: Int, val mediciner: Int) : MigrationState()
     data class Error(val message: String) : MigrationState()
@@ -37,6 +40,7 @@ sealed class MigrationState {
 class MigrationViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val driveRepo: DriveBackupRepository,
+    private val authRepo: FirebaseAuthRepository,
     private val aktiviteterRepo: AktiviteterRepository,
     private val medicinerRepo: MedicinerRepository,
     private val prefs: PreferencesRepository,
@@ -52,9 +56,10 @@ class MigrationViewModel @Inject constructor(
             _state.value = MigrationState.CheckingDrive
 
             when (val listResult = driveRepo.listBackups()) {
-                is DriveResult.NoAccount      -> _state.value = MigrationState.NoAccountSignedIn
-                is DriveResult.NoBackupFound  -> _state.value = MigrationState.NoBackupFound
-                is DriveResult.Error          -> _state.value = MigrationState.Error(listResult.message)
+                is DriveResult.NoAccount           -> _state.value = MigrationState.NoAccountSignedIn
+                is DriveResult.NoBackupFound       -> _state.value = MigrationState.NoBackupFound
+                is DriveResult.NeedsAuthorization  -> _state.value = MigrationState.NeedsAuthorization(listResult.pendingIntent)
+                is DriveResult.Error               -> _state.value = MigrationState.Error(listResult.message)
                 is DriveResult.Success -> {
                     if (listResult.value.isEmpty()) {
                         _state.value = MigrationState.NoBackupFound
@@ -63,13 +68,28 @@ class MigrationViewModel @Inject constructor(
                     _state.value = MigrationState.Downloading
 
                     when (val dlResult = driveRepo.downloadLatestBackup()) {
-                        is DriveResult.Error  -> _state.value = MigrationState.Error(dlResult.message)
-                        is DriveResult.NoBackupFound -> _state.value = MigrationState.NoBackupFound
-                        is DriveResult.NoAccount -> _state.value = MigrationState.NoAccountSignedIn
-                        is DriveResult.Success -> {
-                            doImport(dlResult.value)
-                        }
+                        is DriveResult.Error              -> _state.value = MigrationState.Error(dlResult.message)
+                        is DriveResult.NoBackupFound      -> _state.value = MigrationState.NoBackupFound
+                        is DriveResult.NoAccount          -> _state.value = MigrationState.NoAccountSignedIn
+                        is DriveResult.NeedsAuthorization -> _state.value = MigrationState.NeedsAuthorization(dlResult.pendingIntent)
+                        is DriveResult.Success            -> doImport(dlResult.value)
                     }
+                }
+            }
+        }
+    }
+
+    fun signInAndMigrate(activityContext: Context) {
+        viewModelScope.launch {
+            val result = authRepo.signInWithGoogle(activityContext)
+            if (result.isSuccess) {
+                startMigration()
+            } else {
+                val msg = result.exceptionOrNull()?.message
+                if (msg != null && !msg.contains("cancel", ignoreCase = true)) {
+                    _state.value = MigrationState.Error(msg)
+                } else {
+                    _state.value = MigrationState.Idle
                 }
             }
         }
@@ -91,18 +111,8 @@ class MigrationViewModel @Inject constructor(
         }
     }
 
-    fun onSignedIn() {
-        startMigration()
-    }
-
-    fun onSignInFailed(message: String) {
-        _state.value = MigrationState.Error(message)
-    }
-
     fun skipMigration() {
-        viewModelScope.launch {
-            prefs.setMigrationDone(true)
-        }
+        viewModelScope.launch { prefs.setMigrationDone(true) }
     }
 
     private suspend fun doImport(backup: BackupJson) {

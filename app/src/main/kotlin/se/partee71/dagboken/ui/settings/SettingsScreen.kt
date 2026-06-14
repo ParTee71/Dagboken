@@ -1,19 +1,18 @@
 package se.partee71.dagboken.ui.settings
 
 import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +22,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -38,10 +38,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,11 +48,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.api.Scope
-import com.google.api.services.drive.DriveScopes
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -65,26 +58,6 @@ fun SettingsScreen(
 ) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
-
-    val signInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try { task.getResult(ApiException::class.java) } catch (_: ApiException) { }
-        vm.refreshGoogleAccount()
-    }
-
-    val signInClient = remember(context) {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestEmail()
-            .requestScopes(Scope(DriveScopes.DRIVE_APPDATA))
-            .build()
-        GoogleSignIn.getClient(context, gso)
-    }
-
-    LaunchedEffect(Unit) {
-        vm.refreshGoogleAccount()
-    }
 
     Scaffold(
         topBar = {
@@ -140,7 +113,7 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                                 Text(
-                                    text = "Inloggad",
+                                    text = "Inloggad — data säkerhetskopieras dagligen",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -148,7 +121,7 @@ fun SettingsScreen(
                         }
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         OutlinedButton(
-                            onClick = { vm.signOut { } },
+                            onClick = { vm.signOut() },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text("Logga ut")
@@ -172,11 +145,29 @@ fun SettingsScreen(
                                 modifier = Modifier.weight(1f),
                             )
                         }
+                        state.signInError?.let { err ->
+                            Text(
+                                text = err,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                            )
+                        }
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
                         Button(
-                            onClick = { signInLauncher.launch(signInClient.signInIntent) },
+                            onClick = { vm.signIn(context) },
                             modifier = Modifier.fillMaxWidth(),
+                            enabled = !state.isSigningIn,
                         ) {
+                            if (state.isSigningIn) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                                Spacer(Modifier.width(8.dp))
+                            }
                             Text("Logga in med Google")
                         }
                     }
@@ -240,7 +231,10 @@ fun SettingsScreen(
 
             // Aktivitet options
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Text("Aktivitetstyper", style = MaterialTheme.typography.titleSmall)
                     HorizontalDivider()
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -268,7 +262,10 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                         )
-                        IconButton(onClick = vm::addAktivitetOption, enabled = state.newAktivitetOption.isNotBlank()) {
+                        IconButton(
+                            onClick  = vm::addAktivitetOption,
+                            enabled  = state.newAktivitetOption.isNotBlank(),
+                        ) {
                             Icon(Icons.Default.Add, "Lägg till")
                         }
                     }
@@ -277,7 +274,10 @@ fun SettingsScreen(
 
             // Symptom options
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Text("Symptom", style = MaterialTheme.typography.titleSmall)
                     HorizontalDivider()
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -305,7 +305,10 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                         )
-                        IconButton(onClick = vm::addSymptomOption, enabled = state.newSymptomOption.isNotBlank()) {
+                        IconButton(
+                            onClick  = vm::addSymptomOption,
+                            enabled  = state.newSymptomOption.isNotBlank(),
+                        ) {
                             Icon(Icons.Default.Add, "Lägg till")
                         }
                     }

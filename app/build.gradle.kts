@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.google.services)
 }
 
 private val buildTimestamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
@@ -123,10 +124,24 @@ dependencies {
     // Image loading
     implementation(libs.coil.compose)
 
-    // Google Drive / Auth
+    // Google Drive / Auth (play-services-auth still needed for Identity.getAuthorizationClient)
     implementation(libs.google.auth.play.services)
     implementation(libs.google.api.client.android)
     implementation(libs.google.api.services.drive)
+
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+
+    // Credential Manager (modern Google Sign-In)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services)
+    implementation(libs.googleid)
+
+    // WorkManager + Hilt
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.work.compiler)
 
     // Debug
     debugImplementation(libs.androidx.compose.ui.tooling)

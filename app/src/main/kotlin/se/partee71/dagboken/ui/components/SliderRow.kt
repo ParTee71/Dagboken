@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /** Labeled M3 Slider. Mirrors SliderRow from src/components/UI.jsx. */
@@ -22,6 +23,7 @@ fun SliderRow(
     steps: Int = 9,
     modifier: Modifier = Modifier,
     valueLabel: String = value.toInt().toString(),
+    valueLabelColor: Color? = null,
 ) {
     Column(modifier = modifier.padding(vertical = 4.dp)) {
         Row(
@@ -36,7 +38,7 @@ fun SliderRow(
             Text(
                 text = valueLabel,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = valueLabelColor ?: MaterialTheme.colorScheme.primary,
             )
         }
         Slider(

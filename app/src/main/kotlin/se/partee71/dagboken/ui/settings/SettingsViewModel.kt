@@ -3,17 +3,13 @@ package se.partee71.dagboken.ui.settings
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.Scope
-import com.google.api.services.drive.DriveScopes
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import javax.inject.Inject
 
@@ -26,21 +22,18 @@ data class SettingsUiState(
     val newSymptomOption: String = "",
     val googleAccountEmail: String? = null,
     val googleAccountPhotoUrl: String? = null,
+    val signInError: String? = null,
+    val isSigningIn: Boolean = false,
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val prefs: PreferencesRepository,
-    @ApplicationContext private val context: Context,
+    private val authRepo: FirebaseAuthRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
-
-    private val signInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-        .requestEmail()
-        .requestScopes(Scope(DriveScopes.DRIVE_APPDATA))
-        .build()
 
     init {
         viewModelScope.launch {
@@ -63,34 +56,47 @@ class SettingsViewModel @Inject constructor(
                 _state.value = _state.value.copy(symptomOptions = opts)
             }
         }
-        refreshGoogleAccount()
+        viewModelScope.launch {
+            authRepo.authStateFlow.collectLatest { user ->
+                _state.value = _state.value.copy(
+                    googleAccountEmail    = user?.email,
+                    googleAccountPhotoUrl = user?.photoUrl?.toString(),
+                )
+            }
+        }
     }
 
-    fun refreshGoogleAccount() {
-        val account = GoogleSignIn.getLastSignedInAccount(context)
-        _state.value = _state.value.copy(
-            googleAccountEmail    = account?.email,
-            googleAccountPhotoUrl = account?.photoUrl?.toString(),
-        )
+    fun signIn(activityContext: Context) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isSigningIn = true, signInError = null)
+            val result = authRepo.signInWithGoogle(activityContext)
+            _state.value = _state.value.copy(isSigningIn = false)
+            result.onFailure { e ->
+                // Cancellations are silent; everything else shows an error
+                if (e.message?.contains("cancel", ignoreCase = true) != true) {
+                    _state.value = _state.value.copy(signInError = e.message ?: "Inloggning misslyckades")
+                }
+            }
+        }
     }
 
-    fun signOut(onComplete: () -> Unit) {
-        GoogleSignIn.getClient(context, signInOptions).signOut().addOnCompleteListener {
-            refreshGoogleAccount()
-            onComplete()
+    fun clearSignInError() {
+        _state.value = _state.value.copy(signInError = null)
+    }
+
+    fun signOut() {
+        viewModelScope.launch {
+            authRepo.clearCredentialState()
+            authRepo.signOut()
         }
     }
 
     fun toggleTheme() {
-        viewModelScope.launch {
-            prefs.setDarkTheme(!_state.value.isDarkTheme)
-        }
+        viewModelScope.launch { prefs.setDarkTheme(!_state.value.isDarkTheme) }
     }
 
     fun toggleDynamicColor() {
-        viewModelScope.launch {
-            prefs.setDynamicColor(!_state.value.isDynamicColor)
-        }
+        viewModelScope.launch { prefs.setDynamicColor(!_state.value.isDynamicColor) }
     }
 
     fun setNewAktivitetOption(v: String) { _state.value = _state.value.copy(newAktivitetOption = v) }
@@ -106,9 +112,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun removeAktivitetOption(opt: String) {
-        viewModelScope.launch {
-            prefs.setAktivitetOptions(_state.value.aktivitetOptions - opt)
-        }
+        viewModelScope.launch { prefs.setAktivitetOptions(_state.value.aktivitetOptions - opt) }
     }
 
     fun addSymptomOption() {
@@ -121,8 +125,6 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun removeSymptomOption(opt: String) {
-        viewModelScope.launch {
-            prefs.setSymptomOptions(_state.value.symptomOptions - opt)
-        }
+        viewModelScope.launch { prefs.setSymptomOptions(_state.value.symptomOptions - opt) }
     }
 }

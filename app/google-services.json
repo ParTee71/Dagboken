@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "715020161801",
+    "project_id": "dagboken-711d2",
+    "storage_bucket": "dagboken-711d2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:715020161801:android:ef41f1b44303d8722779d8",
+        "android_client_info": {
+          "package_name": "se.partee71.dagboken"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "715020161801-qcs6irot6t2k5b6c07ib9ucqgh6a0dvm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "se.partee71.dagboken",
+            "certificate_hash": "505bdc3bc949f5969184f2230fd1be251b107e59"
+          }
+        },
+        {
+          "client_id": "715020161801-vqb17m0tlq6ohu02bukj17afo4ad8t1i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCO0nXnQevg0lDL9vYcPrduQiIM4YUy2UE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "715020161801-vqb17m0tlq6ohu02bukj17afo4ad8t1i.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
