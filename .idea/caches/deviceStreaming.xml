@@ -1811,24 +1811,6 @@
               <option value="EULA_NOT_ACCEPTED" />
             </list>
           </option>
-          <option name="api" value="33" />
-          <option name="brand" value="samsung" />
-          <option name="codename" value="samsung_lab_gta9p" />
-          <option name="formFactor" value="Tablet" />
-          <option name="id" value="samsung_lab_gta9p" />
-          <option name="labId" value="samsung" />
-          <option name="manufacturer" value="Samsung" />
-          <option name="name" value="Galaxy Tab A9+ 5G" />
-          <option name="screenDensity" value="240" />
-          <option name="screenX" value="1200" />
-          <option name="screenY" value="1920" />
-        </PersistentDeviceSelectionData>
-        <PersistentDeviceSelectionData>
-          <option name="accessStatus">
-            <list>
-              <option value="EULA_NOT_ACCEPTED" />
-            </list>
-          </option>
           <option name="api" value="34" />
           <option name="brand" value="samsung" />
           <option name="codename" value="samsung_lab_gts9" />

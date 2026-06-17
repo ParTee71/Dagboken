@@ -20,7 +20,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class FirebaseAuthRepository @Inject constructor(
+open class FirebaseAuthRepository @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     private val auth = FirebaseAuth.getInstance()

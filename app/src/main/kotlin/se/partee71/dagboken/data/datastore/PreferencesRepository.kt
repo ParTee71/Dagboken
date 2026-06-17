@@ -38,7 +38,7 @@ class PreferencesRepository @Inject constructor(
         // Notifications
         val MEDS_NOTIFICATIONS  = booleanPreferencesKey("meds_notifications")
         val SCREENING_NOTIFICATIONS = booleanPreferencesKey("screening_notifications")
-        val SCREENING_REMINDER_HOUR = intPreferencesKey("screening_reminder_hour")
+        val SCREENING_REMINDER_TIMES = stringPreferencesKey("screening_reminder_times")
     }
 
     val migrationDone: Flow<Boolean> = dataStore.data
@@ -82,8 +82,12 @@ class PreferencesRepository @Inject constructor(
     val screeningNotificationsEnabled: Flow<Boolean> = dataStore.data
         .map { it[Keys.SCREENING_NOTIFICATIONS] ?: false }
 
-    val screeningReminderHour: Flow<Int> = dataStore.data
-        .map { it[Keys.SCREENING_REMINDER_HOUR] ?: 8 }
+    val screeningReminderTimes: Flow<List<String>> = dataStore.data
+        .map { prefs ->
+            prefs[Keys.SCREENING_REMINDER_TIMES]
+                ?.let { Json.decodeFromString<List<String>>(it) }
+                ?: listOf("08:00", "12:00", "16:00", "20:00")
+        }
 
     suspend fun setMigrationDone(done: Boolean) {
         dataStore.edit { it[Keys.MIGRATION_DONE] = done }
@@ -129,8 +133,8 @@ class PreferencesRepository @Inject constructor(
         dataStore.edit { it[Keys.SCREENING_NOTIFICATIONS] = enabled }
     }
 
-    suspend fun setScreeningReminderHour(hour: Int) {
-        dataStore.edit { it[Keys.SCREENING_REMINDER_HOUR] = hour }
+    suspend fun setScreeningReminderTimes(times: List<String>) {
+        dataStore.edit { it[Keys.SCREENING_REMINDER_TIMES] = Json.encodeToString(times) }
     }
 }
 

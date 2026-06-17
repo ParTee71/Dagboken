@@ -28,13 +28,13 @@ class AlarmScheduler @Inject constructor(
     suspend fun rescheduleAll() {
         val medsEnabled      = prefs.medsNotificationsEnabled.first()
         val screeningEnabled = prefs.screeningNotificationsEnabled.first()
-        val screeningHour    = prefs.screeningReminderHour.first()
+        val screeningTimes   = prefs.screeningReminderTimes.first()
 
         cancelAllMedAlarms()
-        cancelScreeningAlarm()
+        cancelAllScreeningAlarms()
 
         if (medsEnabled)      scheduleMedAlarms()
-        if (screeningEnabled) scheduleScreeningAlarm(screeningHour)
+        if (screeningEnabled) scheduleScreeningAlarms(screeningTimes)
     }
 
     suspend fun scheduleMedAlarms() {
@@ -81,30 +81,40 @@ class AlarmScheduler @Inject constructor(
         )?.also { alarmManager.cancel(it) }
     }
 
-    fun scheduleScreeningAlarm(hour: Int) {
-        cancelScreeningAlarm()
-        val now = LocalDateTime.now()
-        var alarmAt = now.withHour(hour).withMinute(0).withSecond(0).withNano(0)
+    fun scheduleScreeningAlarms(times: List<String>) {
+        cancelAllScreeningAlarms()
+        times.forEachIndexed { slot, time -> scheduleScreeningAlarm(slot, time) }
+    }
+
+    fun scheduleScreeningAlarm(slot: Int, time: String) {
+        val parts  = time.split(":")
+        val hour   = parts.getOrNull(0)?.toIntOrNull() ?: return
+        val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        val now    = LocalDateTime.now()
+        var alarmAt = now.withHour(hour).withMinute(minute).withSecond(0).withNano(0)
         if (!alarmAt.isAfter(now)) alarmAt = alarmAt.plusDays(1)
         val triggerMs = alarmAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val pending = PendingIntent.getBroadcast(
             context,
-            REQUEST_CODE_SCREENING,
+            REQUEST_CODE_SCREENING_BASE + slot,
             Intent(context, ScreeningReminderReceiver::class.java).apply {
-                putExtra(ScreeningReminderReceiver.EXTRA_HOUR, hour)
+                putExtra(ScreeningReminderReceiver.EXTRA_SLOT, slot)
+                putExtra(ScreeningReminderReceiver.EXTRA_TIME, time)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         scheduleExact(triggerMs, pending)
     }
 
-    fun cancelScreeningAlarm() {
-        PendingIntent.getBroadcast(
-            context,
-            REQUEST_CODE_SCREENING,
-            Intent(context, ScreeningReminderReceiver::class.java),
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
-        )?.also { alarmManager.cancel(it) }
+    fun cancelAllScreeningAlarms() {
+        repeat(4) { slot ->
+            PendingIntent.getBroadcast(
+                context,
+                REQUEST_CODE_SCREENING_BASE + slot,
+                Intent(context, ScreeningReminderReceiver::class.java),
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+            )?.also { alarmManager.cancel(it) }
+        }
     }
 
     private fun scheduleExact(triggerMs: Long, pending: PendingIntent) {
@@ -118,7 +128,7 @@ class AlarmScheduler @Inject constructor(
     private fun requestCode(medicinId: String) = medicinId.hashCode() and 0x7FFFFFFF
 
     companion object {
-        private const val REQUEST_CODE_SCREENING = 0x7FFF
+        private const val REQUEST_CODE_SCREENING_BASE = 0x7FF0
 
         fun tidpunktToHour(tidpunkt: String): Int? = when (tidpunkt) {
             "Morgon"      -> 7

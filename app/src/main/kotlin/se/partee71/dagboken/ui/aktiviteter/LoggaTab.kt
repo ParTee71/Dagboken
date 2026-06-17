@@ -27,12 +27,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.theme.energyColor
+import se.partee71.dagboken.ui.theme.energyLabel
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -43,7 +45,6 @@ fun LoggaTab(vm: AktiviteterViewModel) {
 
     val cs = MaterialTheme.colorScheme
     val eColor = energyColor(form.energy, cs)
-    val eLabel = if (form.energy > 0) "+${form.energy}" else "${form.energy}"
 
     Column(
         modifier = Modifier
@@ -72,7 +73,8 @@ fun LoggaTab(vm: AktiviteterViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    (aktivitetOptions + listOf("Övrigt")).forEach { opt ->
+                    val aktivitetItems = remember(aktivitetOptions) { aktivitetOptions + "Övrigt" }
+                    aktivitetItems.forEach { opt ->
                         FilterChip(
                             selected = form.aktivitet == opt,
                             onClick  = { vm.updateForm { copy(aktivitet = opt) } },
@@ -134,7 +136,7 @@ fun LoggaTab(vm: AktiviteterViewModel) {
                         steps         = 19,
                         startLabel    = "-10  😴",
                         endLabel      = "+10  ⚡",
-                        displayValue  = eLabel,
+                        displayValue  = energyLabel(form.energy),
                         accentColor   = eColor,
                     )
                     HorizontalDivider()
@@ -147,6 +149,7 @@ fun LoggaTab(vm: AktiviteterViewModel) {
                         steps         = 9,
                         startLabel    = "0  😌",
                         endLabel      = "😰  10",
+                        reverseColors = true,
                     )
                 }
                 Spacer(Modifier.height(4.dp))
@@ -173,9 +176,19 @@ fun LoggaTab(vm: AktiviteterViewModel) {
                                         copy(symptomScores = symptomScores + (symptom to v.toInt()))
                                     }
                                 },
-                                valueRange = 0f..10f,
-                                steps      = 9,
+                                valueRange    = 0f..10f,
+                                steps         = 9,
+                                reverseColors = true,
                             )
+                            if (symptom == "Övrigt" && (form.symptomScores["Övrigt"] ?: 0) > 0) {
+                                OutlinedTextField(
+                                    value         = form.ovrigtNote,
+                                    onValueChange = { vm.updateForm { copy(ovrigtNote = it) } },
+                                    label         = { Text("Beskriv") },
+                                    modifier      = Modifier.fillMaxWidth(),
+                                    singleLine    = true,
+                                )
+                            }
                         }
                     }
                     Spacer(Modifier.height(8.dp))

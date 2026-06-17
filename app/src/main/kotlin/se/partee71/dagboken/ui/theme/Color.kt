@@ -5,26 +5,16 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 // ─── Chrome blue family ───────────────────────────────────────────────────────
-val ChromeBlue300  = Color(0xFF93C5FD)   // light chrome blue
 val ChromeBlue400  = Color(0xFF60A5FA)   // electric chrome blue (dark primary)
-val ChromeBlue500  = Color(0xFF3B82F6)   // bright cobalt
 val ChromeBlue600  = Color(0xFF2563EB)   // rich cobalt
 val ChromeBlue700  = Color(0xFF1D4ED8)   // deep cobalt (light primary)
-val ChromeBlue800  = Color(0xFF1E40AF)
-val ChromeBlue900  = Color(0xFF1E3A8A)   // midnight steel
 
 // ─── Steel cyan (secondary) ───────────────────────────────────────────────────
-val CyanSteel300   = Color(0xFF67E8F9)   // light chrome cyan
 val CyanSteel400   = Color(0xFF22D3EE)   // bright chrome cyan (dark secondary)
 val CyanSteel600   = Color(0xFF0891B2)   // steel teal (light secondary)
-val CyanSteel700   = Color(0xFF0E7490)
 
-// ─── Violet / amethyst (backward-compat + dark tertiary) ─────────────────────
-val Violet300    = Color(0xFFC4B5FD)
+// ─── Violet / amethyst (dark tertiary) ───────────────────────────────────────
 val Violet400    = Color(0xFFA78BFA)   // chrome amethyst (dark tertiary)
-val Violet500    = Color(0xFF8B5CF6)   // kept for existing imports
-val Violet600    = Color(0xFF7C3AED)
-val Violet900    = Color(0xFF2E1065)
 
 // ─── Semantic / indicator colors (energy, gradient, error) ───────────────────
 val Amber300     = Color(0xFFFCD34D)
@@ -53,14 +43,22 @@ private val GunOutline      = Color(0xFF3A5070)
 private val GunOutlineVar   = Color(0xFF162033)
 
 // ─── Brushed steel surfaces (light theme) ─────────────────────────────────────
-private val SteelBg           = Color(0xFFF0F3F8)   // cool silver with blue tint
-private val SteelSurface      = Color(0xFFF5F8FD)   // near-white, faint blue
-private val SteelSurfaceVar   = Color(0xFFDDE4F0)   // brushed steel
-private val SteelOnBg         = Color(0xFF0A0E1A)   // near-black
-private val SteelOnSurface    = Color(0xFF0A0E1A)
-private val SteelOnSurfaceVar = Color(0xFF3D4E63)   // steel slate
-private val SteelOutline      = Color(0xFF7A90AA)
-private val SteelOutlineVar   = Color(0xFFC0CEDF)
+private val SteelBg                    = Color(0xFFD9E2F0)   // brushed steel plate — clearly cool-silver
+private val SteelSurface               = Color(0xFFECF2FF)   // polished chrome — light above steel bg
+private val SteelSurfaceVar            = Color(0xFFC1CEDF)   // anodized steel panel — visible depth layer
+private val SteelOnBg                  = Color(0xFF080C18)   // near-black
+private val SteelOnSurface             = Color(0xFF080C18)
+private val SteelOnSurfaceVar          = Color(0xFF354D66)   // steel-slate text
+private val SteelOutline               = Color(0xFF5F7C9A)   // stronger steel edge
+private val SteelOutlineVar            = Color(0xFFA4BBCE)   // crisp chrome border
+// Surface container tiers — prevents M3 baseline pink bleeding in (e.g. NavigationBar)
+private val SteelContainerLowest       = Color(0xFFF4F8FF)
+private val SteelContainerLow          = Color(0xFFECF2FF)   // = SteelSurface
+private val SteelContainer             = Color(0xFFE3EBF8)
+private val SteelContainerHigh         = Color(0xFFDAE3F2)
+private val SteelContainerHighest      = Color(0xFFD1DBEC)
+private val SteelSurfaceDim            = Color(0xFFC8D5E6)
+private val SteelSurfaceBright         = Color(0xFFF4F8FF)
 
 // ─── Color schemes ─────────────────────────────────────────────────────────────
 val DagbokenDarkColorScheme = darkColorScheme(
@@ -97,29 +95,36 @@ val DagbokenDarkColorScheme = darkColorScheme(
 val DagbokenLightColorScheme = lightColorScheme(
     primary              = ChromeBlue700,             // deep cobalt
     onPrimary            = Color.White,
-    primaryContainer     = Color(0xFF1A4D98),         // rich royal blue — light enough to gradient, dark enough to feel metallic
+    primaryContainer     = Color(0xFF1A4D98),         // rich royal blue
     onPrimaryContainer   = Color(0xFFDCEBFF),         // light chrome blue
     secondary            = CyanSteel600,              // steel teal
     onSecondary          = Color.White,
-    secondaryContainer   = Color(0xFF0C4A62),         // rich teal (not near-black)
+    secondaryContainer   = Color(0xFF0C4A62),         // rich teal
     onSecondaryContainer = Color(0xFFB8EEF8),         // light cyan
-    tertiary             = Crimson700,                // deep ruby (no purple, warm contrast)
+    tertiary             = Crimson700,                // deep ruby accent
     onTertiary           = Color.White,
-    tertiaryContainer    = Color(0xFF6B0F2A),         // deep crimson (brighter than near-black)
+    tertiaryContainer    = Color(0xFF6B0F2A),         // deep crimson
     onTertiaryContainer  = Color(0xFFFFCDD5),         // light rose
     error                = Color(0xFFDC2626),
     onError              = Color.White,
     errorContainer       = Color(0xFF450A0A),
     onErrorContainer     = Color(0xFFFFBFBF),
-    background           = SteelBg,                  // cool silver-blue
-    onBackground         = SteelOnBg,
-    surface              = SteelSurface,
-    onSurface            = SteelOnSurface,
-    surfaceVariant       = SteelSurfaceVar,
-    onSurfaceVariant     = SteelOnSurfaceVar,
-    outline              = SteelOutline,
-    outlineVariant       = SteelOutlineVar,
-    inverseSurface       = GunSurface,
-    inverseOnSurface     = GunOnSurface,
-    inversePrimary       = ChromeBlue400,
+    background              = SteelBg,
+    onBackground            = SteelOnBg,
+    surface                 = SteelSurface,
+    onSurface               = SteelOnSurface,
+    surfaceVariant          = SteelSurfaceVar,
+    onSurfaceVariant        = SteelOnSurfaceVar,
+    surfaceContainerLowest  = SteelContainerLowest,
+    surfaceContainerLow     = SteelContainerLow,
+    surfaceContainer        = SteelContainer,
+    surfaceContainerHigh    = SteelContainerHigh,
+    surfaceContainerHighest = SteelContainerHighest,
+    surfaceDim              = SteelSurfaceDim,
+    surfaceBright           = SteelSurfaceBright,
+    outline                 = SteelOutline,
+    outlineVariant          = SteelOutlineVar,
+    inverseSurface          = GunSurface,
+    inverseOnSurface        = GunOnSurface,
+    inversePrimary          = ChromeBlue400,
 )

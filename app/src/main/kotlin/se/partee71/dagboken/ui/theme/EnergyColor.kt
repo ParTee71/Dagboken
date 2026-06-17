@@ -19,3 +19,5 @@ fun screeningEnergyColor(value: Int, scheme: ColorScheme): Color = when {
 }
 
 fun gradientColors(): List<Color> = listOf(Rose500, Amber400, Emerald400)
+
+fun energyLabel(energy: Int): String = if (energy > 0) "+$energy" else "$energy"

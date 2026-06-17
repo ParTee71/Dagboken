@@ -22,7 +22,7 @@ data class SettingsUiState(
     val themeDarkStart: Int = 21,
     val medsNotificationsEnabled: Boolean = false,
     val screeningNotificationsEnabled: Boolean = false,
-    val screeningReminderHour: Int = 8,
+    val screeningReminderTimes: List<String> = listOf("08:00", "12:00", "16:00", "20:00"),
     val aktivitetOptions: List<String> = emptyList(),
     val symptomOptions: List<String> = emptyList(),
     val newAktivitetOption: String = "",
@@ -80,8 +80,8 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            prefs.screeningReminderHour.collectLatest { hour ->
-                _state.value = _state.value.copy(screeningReminderHour = hour)
+            prefs.screeningReminderTimes.collectLatest { times ->
+                _state.value = _state.value.copy(screeningReminderTimes = times)
             }
         }
         viewModelScope.launch {
@@ -162,12 +162,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setScreeningReminderHour(hour: Int) {
-        val clamped = hour.coerceIn(6, 22)
+    fun setScreeningReminderTime(index: Int, time: String) {
+        val updated = _state.value.screeningReminderTimes.toMutableList().also { it[index] = time }
         viewModelScope.launch {
-            prefs.setScreeningReminderHour(clamped)
+            prefs.setScreeningReminderTimes(updated)
             if (_state.value.screeningNotificationsEnabled) {
-                alarmScheduler.scheduleScreeningAlarm(clamped)
+                alarmScheduler.scheduleScreeningAlarms(updated)
             }
         }
     }

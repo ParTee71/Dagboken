@@ -20,7 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
@@ -41,10 +43,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.PaddingValues
@@ -295,16 +302,17 @@ fun SettingsScreen(
                         )
                     }
                     if (state.screeningNotificationsEnabled) {
-                        Spacer(Modifier.height(8.dp))
-                        TimeStepperRow(
-                            emoji          = "🌅",
-                            label          = "Tid för screening",
-                            hour           = state.screeningReminderHour,
-                            containerColor = cs.surfaceVariant,
-                            contentColor   = cs.onSurfaceVariant,
-                            onDecrement    = { vm.setScreeningReminderHour(state.screeningReminderHour - 1) },
-                            onIncrement    = { vm.setScreeningReminderHour(state.screeningReminderHour + 1) },
-                        )
+                        Spacer(Modifier.height(12.dp))
+                        state.screeningReminderTimes.forEachIndexed { index, time ->
+                            if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            ScreeningTimeRow(
+                                label    = "Påminnelse ${index + 1}",
+                                time     = time,
+                                onTimeSelected = { h, m ->
+                                    vm.setScreeningReminderTime(index, "%02d:%02d".format(h, m))
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -397,6 +405,53 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScreeningTimeRow(
+    label: String,
+    time: String,
+    onTimeSelected: (hour: Int, minute: Int) -> Unit,
+) {
+    val parts  = time.split(":")
+    val hour   = parts.getOrNull(0)?.toIntOrNull() ?: 8
+    val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+    var showPicker by remember { mutableStateOf(false) }
+
+    Row(
+        modifier          = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        TextButton(onClick = { showPicker = true }) {
+            Text(
+                text       = time,
+                style      = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.width(4.dp))
+            Icon(Icons.Default.Alarm, contentDescription = "Välj tid", modifier = Modifier.size(18.dp))
+        }
+    }
+
+    if (showPicker) {
+        val state = rememberTimePickerState(initialHour = hour, initialMinute = minute, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { showPicker = false },
+            title            = { Text(label) },
+            text             = { TimePicker(state = state) },
+            confirmButton    = {
+                TextButton(onClick = {
+                    onTimeSelected(state.hour, state.minute)
+                    showPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false }) { Text("Avbryt") }
+            },
+        )
     }
 }
 

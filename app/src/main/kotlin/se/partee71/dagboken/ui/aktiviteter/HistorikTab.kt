@@ -54,9 +54,7 @@ import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.usecase.SymptomUtils
 import se.partee71.dagboken.ui.theme.energyColor
-
-private fun energyLabel(energy: Int): String =
-    if (energy > 0) "+$energy" else "$energy"
+import se.partee71.dagboken.ui.theme.energyLabel
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable

@@ -1,11 +1,15 @@
 package se.partee71.dagboken.data.migration
 
+import android.accounts.Account
 import android.app.PendingIntent
 import android.content.Context
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
+import com.google.android.gms.auth.api.identity.AuthorizationResult
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.Scope
+import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.client.http.ByteArrayContent
+import com.google.api.client.http.HttpRequestInitializer
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
@@ -33,9 +37,10 @@ sealed class DriveResult<out T> {
     data class NeedsAuthorization(val pendingIntent: PendingIntent) : DriveResult<Nothing>()
 }
 
-private sealed class BuildResult {
-    data class Ok(val drive: Drive) : BuildResult()
-    data class Fail(val reason: DriveResult<Nothing>) : BuildResult()
+private sealed class AuthorizeResult {
+    data class Token(val accessToken: String) : AuthorizeResult()
+    data class NeedsAuthorization(val pendingIntent: PendingIntent) : AuthorizeResult()
+    data class Error(val message: String) : AuthorizeResult()
 }
 
 @Singleton
@@ -47,110 +52,110 @@ class DriveBackupRepository @Inject constructor(
     private val BACKUP_PREFIX = "dagboken-backup-"
     private val APP_NAME = "Dagboken"
 
-    private suspend fun buildDriveService(): BuildResult {
-        authRepo.currentUser ?: return BuildResult.Fail(DriveResult.NoAccount)
-
-        val authRequest = AuthorizationRequest.builder()
+    private suspend fun authorizeDrive(): AuthorizeResult {
+        val accountHint = authRepo.currentUser?.email?.let { Account(it, "com.google") }
+        val request = AuthorizationRequest.builder()
             .setRequestedScopes(listOf(Scope(DriveScopes.DRIVE_APPDATA)))
+            .apply { accountHint?.let { setAccount(it) } }
             .build()
 
         return suspendCancellableCoroutine { cont ->
             Identity.getAuthorizationClient(context)
-                .authorize(authRequest)
-                .addOnSuccessListener { result ->
-                    if (result.hasResolution()) {
-                        cont.resume(BuildResult.Fail(DriveResult.NeedsAuthorization(result.pendingIntent!!)))
-                    } else {
-                        val token = result.accessToken
-                        if (token == null) {
-                            cont.resume(BuildResult.Fail(DriveResult.Error("No access token received")))
-                        } else {
-                            val drive = Drive.Builder(
-                                NetHttpTransport(),
-                                GsonFactory.getDefaultInstance(),
-                            ) { request ->
-                                request.headers.authorization = "Bearer $token"
-                            }.setApplicationName(APP_NAME).build()
-                            cont.resume(BuildResult.Ok(drive))
-                        }
+                .authorize(request)
+                .addOnSuccessListener { result: AuthorizationResult ->
+                    when {
+                        result.hasResolution() ->
+                            cont.resume(AuthorizeResult.NeedsAuthorization(result.pendingIntent!!))
+                        result.accessToken != null ->
+                            cont.resume(AuthorizeResult.Token(result.accessToken!!))
+                        else ->
+                            cont.resume(AuthorizeResult.Error("Ingen åtkomsttoken returnerades"))
                     }
                 }
                 .addOnFailureListener { e ->
-                    cont.resume(BuildResult.Fail(DriveResult.Error(e.message ?: "Authorization failed")))
+                    cont.resume(AuthorizeResult.Error(e.message ?: "Auktorisering misslyckades"))
                 }
         }
     }
 
-    suspend fun listBackups(): DriveResult<List<DriveBackupFile>> {
-        return when (val build = buildDriveService()) {
-            is BuildResult.Fail -> build.reason
-            is BuildResult.Ok   -> withContext(Dispatchers.IO) {
-                runCatching {
-                    val files = build.drive.files().list()
-                        .setSpaces("appDataFolder")
-                        .setQ("name contains '$BACKUP_PREFIX'")
-                        .setOrderBy("createdTime desc")
-                        .setFields("files(id,name,createdTime)")
-                        .execute()
-                        .files ?: emptyList()
-                    DriveResult.Success(files.map {
-                        DriveBackupFile(it.id, it.name, it.createdTime?.toString() ?: "")
-                    })
-                }.getOrElse { DriveResult.Error(it.message ?: "Unknown error") }
+    private fun driveServiceFromToken(accessToken: String): Drive {
+        val requestInitializer = HttpRequestInitializer { request ->
+            request.headers.authorization = "Bearer $accessToken"
+        }
+        return Drive.Builder(NetHttpTransport(), GsonFactory.getDefaultInstance(), requestInitializer)
+            .setApplicationName(APP_NAME)
+            .build()
+    }
+
+    private fun jsonErrorMessage(e: GoogleJsonResponseException): String {
+        val reason = e.details?.errors?.firstOrNull()?.reason ?: "?"
+        return "Drive ${e.statusCode} ($reason): ${e.details?.errors?.firstOrNull()?.message ?: e.message}"
+    }
+
+    private suspend fun <T> withDrive(block: (Drive) -> DriveResult<T>): DriveResult<T> {
+        if (authRepo.currentUser == null) return DriveResult.NoAccount
+
+        return withContext(Dispatchers.IO) {
+            when (val auth = authorizeDrive()) {
+                is AuthorizeResult.NeedsAuthorization -> DriveResult.NeedsAuthorization(auth.pendingIntent)
+                is AuthorizeResult.Error -> DriveResult.Error(auth.message)
+                is AuthorizeResult.Token -> try {
+                    block(driveServiceFromToken(auth.accessToken))
+                } catch (e: GoogleJsonResponseException) {
+                    DriveResult.Error(jsonErrorMessage(e))
+                } catch (e: Exception) {
+                    DriveResult.Error(e.message ?: "Okänt fel")
+                }
             }
         }
     }
 
-    suspend fun downloadLatestBackup(): DriveResult<BackupJson> {
-        return when (val build = buildDriveService()) {
-            is BuildResult.Fail -> build.reason
-            is BuildResult.Ok   -> withContext(Dispatchers.IO) {
-                runCatching {
-                    val drive = build.drive
-                    val files = drive.files().list()
-                        .setSpaces("appDataFolder")
-                        .setQ("name contains '$BACKUP_PREFIX'")
-                        .setOrderBy("createdTime desc")
-                        .setPageSize(1)
-                        .setFields("files(id,name)")
-                        .execute()
-                        .files ?: emptyList()
-
-                    if (files.isEmpty()) return@withContext DriveResult.NoBackupFound
-
-                    val content = drive.files().get(files.first().id)
-                        .executeMediaAsInputStream()
-                        .bufferedReader()
-                        .readText()
-
-                    DriveResult.Success(json.decodeFromString<BackupJson>(content))
-                }.getOrElse { DriveResult.Error(it.message ?: "Download failed") }
-            }
-        }
+    suspend fun listBackups(): DriveResult<List<DriveBackupFile>> = withDrive { drive ->
+        val files = drive.files().list()
+            .setSpaces("appDataFolder")
+            .setQ("name contains '$BACKUP_PREFIX'")
+            .setOrderBy("createdTime desc")
+            .setFields("files(id,name,createdTime)")
+            .execute()
+            .files ?: emptyList()
+        DriveResult.Success(files.map {
+            DriveBackupFile(it.id, it.name, it.createdTime?.toString() ?: "")
+        })
     }
 
-    suspend fun uploadBackup(backupJson: BackupJson): DriveResult<String> {
-        return when (val build = buildDriveService()) {
-            is BuildResult.Fail -> build.reason
-            is BuildResult.Ok   -> withContext(Dispatchers.IO) {
-                runCatching {
-                    val drive = build.drive
-                    val timestamp = LocalDateTime.now()
-                        .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmm"))
-                    val content = json.encodeToString(BackupJson.serializer(), backupJson)
+    suspend fun downloadLatestBackup(): DriveResult<BackupJson> = withDrive { drive ->
+        val files = drive.files().list()
+            .setSpaces("appDataFolder")
+            .setQ("name contains '$BACKUP_PREFIX'")
+            .setOrderBy("createdTime desc")
+            .setPageSize(1)
+            .setFields("files(id,name)")
+            .execute()
+            .files ?: emptyList()
 
-                    val metadata = File().apply {
-                        name    = "$BACKUP_PREFIX$timestamp.json"
-                        parents = listOf("appDataFolder")
-                    }
-                    val media = ByteArrayContent("application/json", content.toByteArray())
-                    val file  = drive.files().create(metadata, media).setFields("id").execute()
+        if (files.isEmpty()) return@withDrive DriveResult.NoBackupFound
 
-                    pruneOldBackups(drive)
-                    DriveResult.Success(file.id)
-                }.getOrElse { DriveResult.Error(it.message ?: "Upload failed") }
-            }
+        val content = drive.files().get(files.first().id)
+            .executeMediaAsInputStream()
+            .bufferedReader()
+            .readText()
+
+        DriveResult.Success(json.decodeFromString<BackupJson>(content))
+    }
+
+    suspend fun uploadBackup(backupJson: BackupJson): DriveResult<String> = withDrive { drive ->
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmm"))
+        val content = json.encodeToString(BackupJson.serializer(), backupJson)
+
+        val metadata = File().apply {
+            name    = "$BACKUP_PREFIX$timestamp.json"
+            parents = listOf("appDataFolder")
         }
+        val media = ByteArrayContent("application/json", content.toByteArray())
+        val file  = drive.files().create(metadata, media).setFields("id").execute()
+
+        pruneOldBackups(drive)
+        DriveResult.Success(file.id)
     }
 
     private fun pruneOldBackups(drive: Drive) {

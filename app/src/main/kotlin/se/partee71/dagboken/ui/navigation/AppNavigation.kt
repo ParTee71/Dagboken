@@ -64,12 +64,13 @@ fun AppNavigation(
                             selected = selected,
                             onClick = {
                                 if (!isSamsungHealth) {
+                                    val isStartDest = screen.route == Screen.Hem.route
                                     navController.navigate(screen.route) {
                                         popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                                            saveState = !isStartDest
                                         }
                                         launchSingleTop = true
-                                        restoreState = true
+                                        restoreState = !isStartDest
                                     }
                                 }
                                 // SamsungHealth is a disabled placeholder — no navigation
@@ -128,10 +129,11 @@ fun AppNavigation(
             }
             composable(Screen.Aktiviteter.route) {
                 AktiviteterScreen(
-                    onAddNew          = { navController.navigate(Routes.ADD_AKTIVITET) },
-                    onEdit            = { id -> navController.navigate(Routes.editAktivitet(id)) },
-                    onNavigateToDiagram = { navController.navigate(Routes.diagram("aktiviteter")) },
-                    snackbarHostState = snackbarHostState,
+                    onAddNew             = { navController.navigate(Routes.ADD_AKTIVITET) },
+                    onEdit               = { id -> navController.navigate(Routes.editAktivitet(id)) },
+                    onNavigateToDiagram  = { navController.navigate(Routes.diagram("aktiviteter")) },
+                    onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
+                    snackbarHostState    = snackbarHostState,
                 )
             }
             composable(Routes.ADD_AKTIVITET) {
@@ -151,14 +153,15 @@ fun AppNavigation(
             }
             composable(Screen.Mediciner.route) {
                 MedicinerScreen(
-                    onAddMedicin      = { navController.navigate(Routes.ADD_MEDICIN) },
-                    onEditMedicin     = { id -> navController.navigate(Routes.editMedicin(id)) },
-                    onAddRecept       = { navController.navigate(Routes.ADD_RECEPT) },
-                    onEditRecept      = { id -> navController.navigate(Routes.editRecept(id)) },
-                    onAddFavorit      = { navController.navigate(Routes.ADD_FAVORIT) },
-                    onEditFavorit     = { id -> navController.navigate(Routes.editFavorit(id)) },
-                    onNavigateToDiagram = { navController.navigate(Routes.diagram("mediciner")) },
-                    snackbarHostState = snackbarHostState,
+                    onAddMedicin         = { navController.navigate(Routes.ADD_MEDICIN) },
+                    onEditMedicin        = { id -> navController.navigate(Routes.editMedicin(id)) },
+                    onAddRecept          = { navController.navigate(Routes.ADD_RECEPT) },
+                    onEditRecept         = { id -> navController.navigate(Routes.editRecept(id)) },
+                    onAddFavorit         = { navController.navigate(Routes.ADD_FAVORIT) },
+                    onEditFavorit        = { id -> navController.navigate(Routes.editFavorit(id)) },
+                    onNavigateToDiagram  = { navController.navigate(Routes.diagram("mediciner")) },
+                    onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
+                    snackbarHostState    = snackbarHostState,
                 )
             }
             composable(Routes.ADD_MEDICIN) {

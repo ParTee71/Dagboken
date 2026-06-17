@@ -16,6 +16,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -74,6 +75,7 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
                     steps         = 9,
                     startLabel    = "0  😌",
                     endLabel      = "😰  10",
+                    reverseColors = true,
                 )
             }
         }
@@ -91,9 +93,19 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
                                     copy(symptomScores = symptomScores + (symptom to v.toInt()))
                                 }
                             },
-                            valueRange = 0f..10f,
-                            steps      = 9,
+                            valueRange    = 0f..10f,
+                            steps         = 9,
+                            reverseColors = true,
                         )
+                        if (symptom == "Övrigt" && (form.symptomScores["Övrigt"] ?: 0) > 0) {
+                            OutlinedTextField(
+                                value         = form.ovrigtNote,
+                                onValueChange = { vm.updateForm { copy(ovrigtNote = it) } },
+                                label         = { Text("Beskriv") },
+                                modifier      = Modifier.fillMaxWidth(),
+                                singleLine    = true,
+                            )
+                        }
                     }
                 }
             }

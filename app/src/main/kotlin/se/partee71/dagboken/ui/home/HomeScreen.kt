@@ -63,6 +63,7 @@ import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.StatPill
 import se.partee71.dagboken.ui.theme.Emerald400
+import se.partee71.dagboken.ui.theme.energyLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,7 +168,7 @@ fun HomeScreen(
                             val isPositive = a.energy > 0
                             StatPill(
                                 icon           = Icons.Filled.Bolt,
-                                value          = if (isPositive) "+${a.energy}" else "${a.energy}",
+                                value          = energyLabel(a.energy),
                                 label          = "energi",
                                 containerColor = if (isPositive) cs.tertiaryContainer else cs.errorContainer,
                                 contentColor   = if (isPositive) cs.onTertiaryContainer else cs.onErrorContainer,

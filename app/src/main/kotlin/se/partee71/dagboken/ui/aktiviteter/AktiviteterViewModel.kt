@@ -32,6 +32,7 @@ data class AktivitetForm(
     val energy: Int = 0,
     val stress: Int = 0,
     val symptomScores: Map<String, Int> = emptyMap(),
+    val ovrigtNote: String = "",
     val metricsExpanded: Boolean = false,
     val symptomsExpanded: Boolean = false,
     val type: String = "aktivitet",
@@ -83,18 +84,27 @@ class AktiviteterViewModel @Inject constructor(
         viewModelScope.launch {
             val a = repo.getById(id) ?: return@launch
             _editId.value = id
+            val decoded = SymptomUtils.decode(a.symptom)
+            val ovrigtKey = decoded.keys.firstOrNull { it.startsWith("Övrigt") }
+            val ovrigtNote = if (ovrigtKey != null && ovrigtKey != "Övrigt") {
+                ovrigtKey.removePrefix("Övrigt").trim().removeSurrounding("(", ")")
+            } else ""
+            val normalizedScores = if (ovrigtKey != null && ovrigtKey != "Övrigt") {
+                decoded - ovrigtKey + ("Övrigt" to decoded[ovrigtKey]!!)
+            } else decoded
             _form.value = AktivitetForm(
-                aktivitet      = a.aktivitet,
-                aterhamtande   = a.aterhamtande,
-                energitjuv     = a.energitjuv,
-                datum          = a.datum,
-                tid            = a.tid,
-                spentTimeHours = (a.spentTime ?: 0) / 60,
+                aktivitet        = a.aktivitet,
+                aterhamtande     = a.aterhamtande,
+                energitjuv       = a.energitjuv,
+                datum            = a.datum,
+                tid              = a.tid,
+                spentTimeHours   = (a.spentTime ?: 0) / 60,
                 spentTimeMinutes = (a.spentTime ?: 0) % 60,
-                energy         = a.energy,
-                stress         = a.stress,
-                symptomScores  = SymptomUtils.decode(a.symptom),
-                type           = a.type,
+                energy           = a.energy,
+                stress           = a.stress,
+                symptomScores    = normalizedScores,
+                ovrigtNote       = ovrigtNote,
+                type             = a.type,
             )
         }
     }
@@ -105,7 +115,10 @@ class AktiviteterViewModel @Inject constructor(
         if (aktivitetName.isBlank()) return
 
         viewModelScope.launch {
-            val symptomStr = SymptomUtils.encode(f.symptomScores)
+            val scores = if (f.ovrigtNote.isNotBlank() && (f.symptomScores["Övrigt"] ?: 0) > 0) {
+                f.symptomScores - "Övrigt" + ("Övrigt (${f.ovrigtNote})" to f.symptomScores["Övrigt"]!!)
+            } else f.symptomScores
+            val symptomStr = SymptomUtils.encode(scores)
             val entry = Aktivitet(
                 id           = _editId.value ?: UUID.randomUUID().toString(),
                 timestamp    = "${f.datum}T${f.tid}:00.000Z",

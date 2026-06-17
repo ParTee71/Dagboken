@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -46,9 +47,15 @@ fun GradientSliderRow(
     endLabel: String = "",
     displayValue: String? = null,   // overrides the "N /10" header format (e.g. "+7" for −10..10 range)
     accentColor: Color? = null,     // overrides the auto screeningEnergyColor (e.g. for activity energy scale)
+    reverseColors: Boolean = false, // 0=green 10=red (symptoms/stress); default is 0=red 10=green (energy)
 ) {
     val cs = MaterialTheme.colorScheme
-    val eColor = accentColor ?: screeningEnergyColor(value.toInt(), cs)
+    val intValue = value.toInt()
+    val eColor = accentColor ?: if (reverseColors) when {
+        intValue >= 7 -> cs.error
+        intValue >= 4 -> cs.secondary
+        else          -> cs.tertiary
+    } else screeningEnergyColor(intValue, cs)
     val density = LocalDensity.current
     val rangeSize = valueRange.endInclusive - valueRange.start
 
@@ -56,7 +63,7 @@ fun GradientSliderRow(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        // Label + big value row (matches mockup Preview 8)
+        // Label + big value row
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Bottom,
@@ -68,26 +75,18 @@ fun GradientSliderRow(
                 fontWeight = FontWeight.SemiBold,
                 color      = cs.onSurface,
             )
-            if (displayValue != null) {
+            Row(
+                verticalAlignment     = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
                 Text(
-                    text       = displayValue,
+                    text       = displayValue ?: intValue.toString(),
                     fontSize   = 28.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color      = eColor,
                     lineHeight = 28.sp,
                 )
-            } else {
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(1.dp),
-                ) {
-                    Text(
-                        text       = value.toInt().toString(),
-                        fontSize   = 28.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color      = eColor,
-                        lineHeight = 28.sp,
-                    )
+                if (displayValue == null) {
                     Text(
                         text     = " /10",
                         fontSize = 12.sp,
@@ -110,6 +109,14 @@ fun GradientSliderRow(
             val fraction = (value - valueRange.start) / rangeSize
             val thumbOffsetX = (maxWidth - thumbSize) * fraction
             val fullWidthPx = with(density) { maxWidth.toPx() }
+            val trackColors = if (reverseColors) gradientColors().reversed() else gradientColors()
+            val gradientBrush = remember(fullWidthPx, reverseColors) {
+                Brush.horizontalGradient(
+                    colors = trackColors,
+                    startX = 0f,
+                    endX   = fullWidthPx,
+                )
+            }
 
             // Dim track background
             Box(
@@ -128,13 +135,7 @@ fun GradientSliderRow(
                     .height(10.dp)
                     .align(Alignment.CenterStart)
                     .clip(CircleShape)
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = gradientColors(),
-                            startX = 0f,
-                            endX   = fullWidthPx,
-                        )
-                    ),
+                    .background(gradientBrush),
             )
 
             // Thumb: surface circle with coloured border + value inside
@@ -148,7 +149,7 @@ fun GradientSliderRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text       = value.toInt().toString(),
+                    text       = intValue.toString(),
                     fontWeight = FontWeight.ExtraBold,
                     fontSize   = 15.sp,
                     color      = eColor,
@@ -174,8 +175,8 @@ fun GradientSliderRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(startLabel, style = MaterialTheme.typography.labelSmall, color = Rose500)
-                Text(endLabel,   style = MaterialTheme.typography.labelSmall, color = Emerald400)
+                Text(startLabel, style = MaterialTheme.typography.labelSmall, color = if (reverseColors) Emerald400 else Rose500)
+                Text(endLabel,   style = MaterialTheme.typography.labelSmall, color = if (reverseColors) Rose500 else Emerald400)
             }
         }
     }

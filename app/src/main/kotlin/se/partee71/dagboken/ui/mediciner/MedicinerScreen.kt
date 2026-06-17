@@ -30,11 +30,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.ui.components.AccountBottomSheet
+import se.partee71.dagboken.ui.components.AccountBubble
+import se.partee71.dagboken.ui.home.AccountViewModel
+import se.partee71.dagboken.ui.home.formattedDate
 
 private data class TabItem(
     val label: String,
@@ -43,28 +52,34 @@ private data class TabItem(
 )
 
 private val TABS = listOf(
-    TabItem("Idag",     Icons.Filled.CheckCircle,   Icons.Outlined.CheckCircle),
-    TabItem("Schema",   Icons.Filled.CalendarMonth,  Icons.Outlined.CalendarMonth),
-    TabItem("Vid behov", Icons.Filled.LocalPharmacy, Icons.Outlined.LocalPharmacy),
+    TabItem("Idag",      Icons.Filled.CheckCircle,   Icons.Outlined.CheckCircle),
+    TabItem("Schema",    Icons.Filled.CalendarMonth,  Icons.Outlined.CalendarMonth),
+    TabItem("Vid behov", Icons.Filled.LocalPharmacy,  Icons.Outlined.LocalPharmacy),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicinerScreen(
-    onAddMedicin:  () -> Unit,
-    onEditMedicin: (String) -> Unit,
-    onAddRecept:   () -> Unit,
-    onEditRecept:  (String) -> Unit,
-    onAddFavorit:  () -> Unit,
-    onEditFavorit: (String) -> Unit,
+    onAddMedicin:        () -> Unit,
+    onEditMedicin:       (String) -> Unit,
+    onAddRecept:         () -> Unit,
+    onEditRecept:        (String) -> Unit,
+    onAddFavorit:        () -> Unit,
+    onEditFavorit:       (String) -> Unit,
     onNavigateToDiagram: () -> Unit,
-    snackbarHostState: SnackbarHostState,
-    vm: MedicinerViewModel = hiltViewModel(),
+    onNavigateToSettings: () -> Unit,
+    snackbarHostState:   SnackbarHostState,
+    vm: MedicinerViewModel   = hiltViewModel(),
+    accountVm: AccountViewModel = hiltViewModel(),
 ) {
     val snackMsg by vm.snackbar.collectAsState()
     LaunchedEffect(snackMsg) {
         snackMsg?.let { snackbarHostState.showSnackbar(it); vm.clearSnackbar() }
     }
+
+    val accountState by accountVm.uiState.collectAsState()
+    var showAccountSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val pagerState = rememberPagerState(initialPage = 0) { TABS.size }
     val scope = rememberCoroutineScope()
@@ -78,20 +93,34 @@ fun MedicinerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mediciner") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+                navigationIcon = {
+                    AccountBubble(
+                        email       = accountState.googleEmail,
+                        photoUrl    = accountState.googlePhotoUrl,
+                        displayName = accountState.googleDisplayName,
+                        onClick     = { showAccountSheet = true },
+                    )
+                },
+                title = {},
                 actions = {
+                    Text(
+                        formattedDate(),
+                        style    = MaterialTheme.typography.labelMedium,
+                        color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
                     IconButton(onClick = onNavigateToDiagram) {
                         Icon(Icons.Outlined.BarChart, contentDescription = "Diagram")
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = fabAction,
+                onClick        = fabAction,
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor   = MaterialTheme.colorScheme.onSecondary,
             ) {
@@ -116,7 +145,7 @@ fun MedicinerScreen(
                         onClick  = { scope.launch { pagerState.animateScrollToPage(index) } },
                         icon = {
                             Icon(
-                                imageVector = if (selected) tab.iconSelected else tab.iconUnselected,
+                                imageVector        = if (selected) tab.iconSelected else tab.iconUnselected,
                                 contentDescription = null,
                             )
                         },
@@ -126,7 +155,7 @@ fun MedicinerScreen(
             }
 
             HorizontalPager(
-                state = pagerState,
+                state    = pagerState,
                 modifier = Modifier.fillMaxSize(),
             ) { page ->
                 when (page) {
@@ -136,5 +165,18 @@ fun MedicinerScreen(
                 }
             }
         }
+    }
+
+    if (showAccountSheet) {
+        AccountBottomSheet(
+            email                = accountState.googleEmail,
+            photoUrl             = accountState.googlePhotoUrl,
+            displayName          = accountState.googleDisplayName,
+            isSigningIn          = accountState.isSigningIn,
+            onDismiss            = { showAccountSheet = false },
+            onSignIn             = { accountVm.signIn(context) },
+            onSignOut            = { accountVm.signOut() },
+            onNavigateToSettings = { showAccountSheet = false; onNavigateToSettings() },
+        )
     }
 }

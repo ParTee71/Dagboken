@@ -17,6 +17,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -94,7 +95,7 @@ fun AddEditReceptScreen(
                     value = form.enhet, onValueChange = {}, readOnly = true,
                     label = { Text("Enhet") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(unitExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                 )
                 ExposedDropdownMenu(unitExpanded, { unitExpanded = false }) {
                     listOf("mg", "ml", "st", "g", "mcg", "IE", "dropp").forEach { u ->
@@ -126,7 +127,7 @@ fun AddEditReceptScreen(
                     onValueChange = {}, readOnly = true,
                     label = { Text("Upprepning") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(uppExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                 )
                 ExposedDropdownMenu(uppExpanded, { uppExpanded = false }) {
                     UPPREPNING_OPTIONS.forEach { opt ->
