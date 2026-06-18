@@ -47,4 +47,9 @@ class AktiviteterRepository @Inject constructor(
         val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
         return dao.countScreeningToday(today) > 0
     }
+
+    suspend fun getScreeningToday(): List<Aktivitet> {
+        val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        return dao.getScreeningToday(today).map { it.toDomain() }
+    }
 }

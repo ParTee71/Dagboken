@@ -113,4 +113,29 @@ class AktivitetDaoTest {
             cancel()
         }
     }
+
+    @Test fun getScreeningToday_returnsOnlyScreeningForDate() = runTest {
+        dao.upsert(entity(id = "s1", datum = "2026-06-18", type = "screening"))
+        dao.upsert(entity(id = "a1", datum = "2026-06-18", type = "aktivitet"))
+        dao.upsert(entity(id = "s2", datum = "2026-06-17", type = "screening"))
+        val result = dao.getScreeningToday("2026-06-18")
+        assertEquals(1, result.size)
+        assertEquals("s1", result[0].id)
+        assertEquals("screening", result[0].type)
+    }
+
+    @Test fun getScreeningToday_returnsEmptyWhenNoneForDate() = runTest {
+        dao.upsert(entity(id = "s1", datum = "2026-06-17", type = "screening"))
+        val result = dao.getScreeningToday("2026-06-18")
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun getScreeningToday_orderedByTidAscending() = runTest {
+        dao.upsert(entity(id = "s2", datum = "2026-06-18", tid = "14:00", type = "screening"))
+        dao.upsert(entity(id = "s1", datum = "2026-06-18", tid = "08:00", type = "screening"))
+        val result = dao.getScreeningToday("2026-06-18")
+        assertEquals(2, result.size)
+        assertEquals("s1", result[0].id)
+        assertEquals("s2", result[1].id)
+    }
 }

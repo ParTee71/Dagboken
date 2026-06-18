@@ -44,5 +44,22 @@ data class Favorit(
 // TIDP sort order — mirrors TIDP_ORDER in src/utils/storage.js
 val TIDP_ORDER = listOf("Morgon", "Förmiddag", "Lunch", "Eftermiddag", "Kväll", "Natt", "Vid behov")
 
+// Default clock times — single source of truth; mirrors TIDP_DEFAULT_TIMES in keys.ts
+val TIDP_DEFAULT_TIMES = mapOf(
+    "Morgon"       to "07:00",
+    "Förmiddag"    to "10:00",
+    "Lunch"        to "12:00",
+    "Eftermiddag"  to "15:00",
+    "Kväll"        to "19:00",
+    "Natt"         to "22:00",
+    "Vid behov"    to "12:00",
+)
+
 fun tidpunktSortIndex(tidpunkt: String): Int =
     TIDP_ORDER.indexOf(tidpunkt).takeIf { it >= 0 } ?: TIDP_ORDER.size
+
+/** Returns the clock hour for [tidpunkt], or null for "Vid behov" (no fixed time). */
+fun tidpunktToHour(tidpunkt: String): Int? {
+    if (tidpunkt == "Vid behov") return null
+    return TIDP_DEFAULT_TIMES[tidpunkt]?.substringBefore(":")?.toIntOrNull()
+}

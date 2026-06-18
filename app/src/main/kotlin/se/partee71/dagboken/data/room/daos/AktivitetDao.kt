@@ -19,6 +19,9 @@ interface AktivitetDao {
     @Query("SELECT * FROM aktiviteter WHERE datum = :datum ORDER BY tid ASC")
     suspend fun getByDate(datum: String): List<AktivitetEntity>
 
+    @Query("SELECT * FROM aktiviteter WHERE type = 'screening' AND datum = :datum ORDER BY tid ASC")
+    suspend fun getScreeningToday(datum: String): List<AktivitetEntity>
+
     @Query("SELECT * FROM aktiviteter WHERE type = :type ORDER BY datum DESC, tid DESC LIMIT :limit")
     suspend fun getRecent(type: String, limit: Int = 3): List<AktivitetEntity>
 

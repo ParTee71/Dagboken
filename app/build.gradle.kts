@@ -20,7 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "se.partee71.dagboken"
-        minSdk = 26
+        minSdk = 30
         targetSdk = 35
         versionCode = 1
         versionName = "2.0.0"

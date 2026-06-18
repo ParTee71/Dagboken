@@ -2,21 +2,11 @@ package se.partee71.dagboken.domain.usecase
 
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.domain.model.TIDP_DEFAULT_TIMES
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
-
-// Default clock times for each tidpunkt — mirrors TIDP_DEFAULT_TIMES in keys.ts
-val TIDP_DEFAULT_TIMES = mapOf(
-    "Morgon"       to "07:00",
-    "Förmiddag"    to "10:00",
-    "Lunch"        to "12:00",
-    "Eftermiddag"  to "15:00",
-    "Kväll"        to "19:00",
-    "Natt"         to "22:00",
-    "Vid behov"    to "12:00",
-)
 
 class EnsureTodayEntriesUseCase @Inject constructor() {
 

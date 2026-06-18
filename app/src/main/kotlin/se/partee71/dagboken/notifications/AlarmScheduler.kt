@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.first
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.model.tidpunktToHour
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -45,13 +46,7 @@ class AlarmScheduler @Inject constructor(
     }
 
     private fun scheduleMedAlarm(medicin: Medicin) {
-        val hour = tidpunktToHour(medicin.tidpunkt) ?: return
-        val triggerMs = LocalDateTime
-            .of(LocalDate.parse(medicin.datum), LocalTime.of(hour, 0))
-            .minusMinutes(15)
-            .atZone(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
+        val triggerMs = medAlarmTriggerMs(medicin.datum, medicin.tidpunkt) ?: return
         if (triggerMs <= System.currentTimeMillis()) return
 
         val intent = Intent(context, MedAlarmReceiver::class.java).apply {
@@ -90,10 +85,7 @@ class AlarmScheduler @Inject constructor(
         val parts  = time.split(":")
         val hour   = parts.getOrNull(0)?.toIntOrNull() ?: return
         val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
-        val now    = LocalDateTime.now()
-        var alarmAt = now.withHour(hour).withMinute(minute).withSecond(0).withNano(0)
-        if (!alarmAt.isAfter(now)) alarmAt = alarmAt.plusDays(1)
-        val triggerMs = alarmAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val triggerMs = screeningAlarmTriggerMs(hour, minute)
         val pending = PendingIntent.getBroadcast(
             context,
             REQUEST_CODE_SCREENING_BASE + slot,
@@ -129,15 +121,23 @@ class AlarmScheduler @Inject constructor(
 
     companion object {
         private const val REQUEST_CODE_SCREENING_BASE = 0x7FF0
-
-        fun tidpunktToHour(tidpunkt: String): Int? = when (tidpunkt) {
-            "Morgon"      -> 7
-            "Förmiddag"   -> 10
-            "Lunch"       -> 12
-            "Eftermiddag" -> 15
-            "Kväll"       -> 20
-            "Natt"        -> 22
-            else          -> null  // "Vid behov" has no fixed time
-        }
     }
+}
+
+/** Returns epoch-ms for the alarm trigger (tidpunkt hour minus 15 min), or null for "Vid behov". */
+internal fun medAlarmTriggerMs(datum: String, tidpunkt: String): Long? {
+    val hour = tidpunktToHour(tidpunkt) ?: return null
+    return LocalDateTime
+        .of(LocalDate.parse(datum), LocalTime.of(hour, 0))
+        .minusMinutes(15)
+        .atZone(ZoneId.systemDefault())
+        .toInstant()
+        .toEpochMilli()
+}
+
+/** Returns epoch-ms for the next occurrence of [hour]:[minute] at or after [now]. */
+internal fun screeningAlarmTriggerMs(hour: Int, minute: Int, now: LocalDateTime = LocalDateTime.now()): Long {
+    var alarmAt = now.withHour(hour).withMinute(minute).withSecond(0).withNano(0)
+    if (!alarmAt.isAfter(now)) alarmAt = alarmAt.plusDays(1)
+    return alarmAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 }

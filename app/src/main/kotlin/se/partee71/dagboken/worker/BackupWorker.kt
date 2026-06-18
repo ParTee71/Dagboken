@@ -52,8 +52,8 @@ class BackupWorker @AssistedInject constructor(
             )
 
             when (driveRepo.uploadBackup(backup)) {
-                is DriveResult.Success            -> Result.success()
-                is DriveResult.NeedsAuthorization -> Result.success() // can't show UI from worker
+                is DriveResult.Success            -> { prefs.setBackupNeedsAuth(false); Result.success() }
+                is DriveResult.NeedsAuthorization -> { prefs.setBackupNeedsAuth(true); Result.success() }
                 is DriveResult.NoAccount          -> Result.success()
                 is DriveResult.NoBackupFound      -> Result.success()
                 is DriveResult.Error              -> Result.retry()

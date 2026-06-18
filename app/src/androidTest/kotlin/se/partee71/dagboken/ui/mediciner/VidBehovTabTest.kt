@@ -1,0 +1,171 @@
+package se.partee71.dagboken.ui.mediciner
+
+import android.content.Context
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.room.AppDatabase
+import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
+import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
+import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+@RunWith(AndroidJUnit4::class)
+class VidBehovTabTest {
+
+    @get:Rule val composeRule = createComposeRule()
+
+    private lateinit var db: AppDatabase
+    private lateinit var repo: MedicinerRepository
+    private lateinit var vm: MedicinerViewModel
+
+    private val today get() = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+
+    @Before fun setUp() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        db   = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
+                   .allowMainThreadQueries().build()
+        repo = MedicinerRepository(
+            medicinDao         = db.medicinDao(),
+            receptDao          = db.receptDao(),
+            favoritDao         = db.favoritDao(),
+            ensureTodayEntries = EnsureTodayEntriesUseCase(),
+        )
+        vm = MedicinerViewModel(repo, CheckCooldownUseCase(), CheckDailyLimitUseCase())
+    }
+
+    @After fun tearDown() { db.close() }
+
+    private fun favorit(
+        id: String = "fav1",
+        namn: String = "Paracetamol",
+        dos: String = "500",
+        enhet: String = "mg",
+        maxDoserPerDag: Int = 0,
+        minTidMellan: Int = 0,
+    ) = Favorit(
+        id = id, namn = namn, dos = dos, enhet = enhet,
+        tidpunkt = "Vid behov", anteckning = "",
+        minTidMellan = minTidMellan, maxDoserPerDag = maxDoserPerDag,
+    )
+
+    private fun dosToday(namn: String, id: String = "dose1") = Medicin(
+        id = id, timestamp = "${today}T10:00:00.000Z",
+        datum = today, tid = "10:00",
+        namn = namn, dos = "500", enhet = "mg", tidpunkt = "Vid behov",
+        tagen = true, anteckning = "",
+    )
+
+    private fun setContent() {
+        composeRule.setContent {
+            MaterialTheme {
+                val snackbarState = remember { SnackbarHostState() }
+                Scaffold(snackbarHost = { SnackbarHost(snackbarState) }) { _ ->
+                    VidBehovTab(vm = vm, onEdit = {}, snackbarHostState = snackbarState)
+                }
+            }
+        }
+    }
+
+    // ─── Tomt tillstånd ───────────────────────────────────────────────────────
+
+    @Test fun `empty state shows Inga favoriter sparade`() {
+        setContent()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Inga favoriter sparade").assertIsDisplayed()
+    }
+
+    @Test fun `hint texts are shown when favorites exist`() {
+        runBlocking { repo.saveFavorit(favorit()) }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Tryck för att logga en dos").assertIsDisplayed()
+        composeRule.onNodeWithText("Håll inne för att redigera eller ta bort").assertIsDisplayed()
+    }
+
+    // ─── Tryck loggar dos ─────────────────────────────────────────────────────
+
+    @Test fun `tapping favorit card logs a dose when no limit or cooldown`() {
+        runBlocking { repo.saveFavorit(favorit(maxDoserPerDag = 0, minTidMellan = 0)) }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Paracetamol").performClick()
+        composeRule.waitUntil(3000) { vm.snackbar.value != null }
+        assertEquals("Paracetamol 500 mg loggad", vm.snackbar.value)
+    }
+
+    @Test fun `tapping favorit card saves dose to database`() {
+        runBlocking { repo.saveFavorit(favorit(namn = "Ibuprofen", maxDoserPerDag = 0, minTidMellan = 0)) }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Ibuprofen")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Ibuprofen").performClick()
+        composeRule.waitUntil(3000) { vm.snackbar.value != null }
+        val count = runBlocking { repo.countDailyDoses(today, "Ibuprofen") }
+        assertEquals(1, count)
+    }
+
+    // ─── Blockerad → snackbar ─────────────────────────────────────────────────
+
+    @Test fun `blocked by daily limit shows snackbar`() {
+        runBlocking {
+            repo.saveFavorit(favorit(namn = "Kodein", maxDoserPerDag = 1, minTidMellan = 0))
+            repo.saveMedicin(dosToday("Kodein"))
+        }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Kodein")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Kodein").performClick()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Max 1 doser/dag nådda för Kodein"))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Max 1 doser/dag nådda för Kodein").assertIsDisplayed()
+    }
+
+    // ─── Långtryck → meny ─────────────────────────────────────────────────────
+
+    @Test fun `long press on favorit card shows dropdown menu`() {
+        runBlocking { repo.saveFavorit(favorit()) }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Paracetamol").performTouchInput {
+            down(center)
+            advanceEventTime(600L)
+            up()
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Redigera").assertIsDisplayed()
+        composeRule.onNodeWithText("Ta bort").assertIsDisplayed()
+    }
+}

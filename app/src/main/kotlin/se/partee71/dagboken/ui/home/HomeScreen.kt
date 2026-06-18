@@ -17,16 +17,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -51,11 +49,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.ui.components.AccountBottomSheet
@@ -179,6 +177,96 @@ fun HomeScreen(
                 }
             }
 
+            // Overdue card — visas när meds eller screening passerat tiden
+            val overdueTotal = uiState.overdueMediciner.size + uiState.overdueScreeningTimes.size
+            if (overdueTotal > 0) {
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape    = MaterialTheme.shapes.large,
+                        color    = cs.errorContainer,
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment     = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier              = Modifier.padding(bottom = 8.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.Schedule,
+                                    contentDescription = null,
+                                    tint     = cs.error,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    "Försenat",
+                                    style      = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color      = cs.onErrorContainer,
+                                )
+                            }
+
+                            uiState.overdueMediciner.forEachIndexed { i, med ->
+                                if (i > 0) HorizontalDivider(color = cs.onErrorContainer.copy(alpha = 0.12f))
+                                ListItem(
+                                    headlineContent   = { Text(med.namn, color = cs.onErrorContainer) },
+                                    supportingContent = {
+                                        Text(
+                                            "${med.dos} ${med.enhet}  ·  ${med.tidpunkt}",
+                                            color = cs.onErrorContainer.copy(alpha = 0.7f),
+                                        )
+                                    },
+                                    leadingContent  = {
+                                        Icon(Icons.Filled.Medication, null, tint = cs.error)
+                                    },
+                                    trailingContent = {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(cs.onErrorContainer.copy(alpha = 0.15f))
+                                                .clickable { vm.toggleMedicinTagen(med) },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.CheckCircle,
+                                                contentDescription = null,
+                                                tint     = cs.onErrorContainer,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        }
+                                    },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                )
+                            }
+
+                            uiState.overdueScreeningTimes.forEachIndexed { i, time ->
+                                val showDivider = i > 0 || uiState.overdueMediciner.isNotEmpty()
+                                if (showDivider) HorizontalDivider(color = cs.onErrorContainer.copy(alpha = 0.12f))
+                                ListItem(
+                                    headlineContent   = { Text("Daglig screening", color = cs.onErrorContainer) },
+                                    supportingContent = {
+                                        Text(
+                                            "Påminnelse var: $time",
+                                            color = cs.onErrorContainer.copy(alpha = 0.7f),
+                                        )
+                                    },
+                                    leadingContent  = {
+                                        Icon(Icons.Filled.Bolt, null, tint = cs.error)
+                                    },
+                                    trailingContent = {
+                                        TextButton(onClick = onNavigateToAktiviteter) {
+                                            Text("Logga →", color = cs.onErrorContainer)
+                                        }
+                                    },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Mediciner idag card
             if (uiState.todayMediciner.isNotEmpty()) {
                 item {
@@ -231,24 +319,23 @@ fun HomeScreen(
             item {
                 DagbokenCard(title = "Energi senaste 7 dagarna") {
                     if (uiState.screeningPoints.size >= 2) {
-                        Row(
-                            modifier              = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            verticalAlignment     = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            uiState.screeningPoints.forEachIndexed { i, pt ->
-                                val fraction = pt / 10f
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height((20 + (40 * fraction)).dp)
-                                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                        .background(
-                                            Brush.verticalGradient(
-                                                colors = listOf(cs.primary, cs.primaryContainer),
-                                            )
-                                        ),
-                                )
+                        SparklineChart(
+                            points   = uiState.screeningPoints,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                        if (uiState.screeningLabels.isNotEmpty()) {
+                            Spacer(Modifier.height(4.dp))
+                            Row(
+                                modifier              = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                uiState.screeningLabels.forEach { label ->
+                                    Text(
+                                        text  = label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = cs.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                         Spacer(Modifier.height(4.dp))

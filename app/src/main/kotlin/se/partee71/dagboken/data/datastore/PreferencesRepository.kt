@@ -39,6 +39,8 @@ class PreferencesRepository @Inject constructor(
         val MEDS_NOTIFICATIONS  = booleanPreferencesKey("meds_notifications")
         val SCREENING_NOTIFICATIONS = booleanPreferencesKey("screening_notifications")
         val SCREENING_REMINDER_TIMES = stringPreferencesKey("screening_reminder_times")
+        // Backup
+        val BACKUP_NEEDS_AUTH   = booleanPreferencesKey("backup_needs_auth")
     }
 
     val migrationDone: Flow<Boolean> = dataStore.data
@@ -89,6 +91,9 @@ class PreferencesRepository @Inject constructor(
                 ?: listOf("08:00", "12:00", "16:00", "20:00")
         }
 
+    val backupNeedsAuth: Flow<Boolean> = dataStore.data
+        .map { it[Keys.BACKUP_NEEDS_AUTH] ?: false }
+
     suspend fun setMigrationDone(done: Boolean) {
         dataStore.edit { it[Keys.MIGRATION_DONE] = done }
     }
@@ -135,6 +140,10 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setScreeningReminderTimes(times: List<String>) {
         dataStore.edit { it[Keys.SCREENING_REMINDER_TIMES] = Json.encodeToString(times) }
+    }
+
+    suspend fun setBackupNeedsAuth(needsAuth: Boolean) {
+        dataStore.edit { it[Keys.BACKUP_NEEDS_AUTH] = needsAuth }
     }
 }
 

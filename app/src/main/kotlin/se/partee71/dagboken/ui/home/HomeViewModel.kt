@@ -11,17 +11,26 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
+import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.model.tidpunktSortIndex
+import se.partee71.dagboken.domain.model.tidpunktToHour
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.WeekFields
 import javax.inject.Inject
 
 data class HomeUiState(
     val todayMediciner: List<Medicin> = emptyList(),
     val screeningPoints: List<Float> = emptyList(),
+    val screeningLabels: List<String> = emptyList(),
+    val overdueMediciner: List<Medicin> = emptyList(),
+    val overdueScreeningTimes: List<String> = emptyList(),
     val lastAktivitet: Aktivitet? = null,
     val tagenCount: Int = 0,
     val googleEmail: String? = null,
@@ -35,9 +44,15 @@ class HomeViewModel @Inject constructor(
     private val aktiviteterRepo: AktiviteterRepository,
     private val medicinerRepo: MedicinerRepository,
     private val authRepo: FirebaseAuthRepository,
+    private val prefs: PreferencesRepository,
 ) : ViewModel() {
 
     private val _isSigningIn = MutableStateFlow(false)
+
+    private val activeScreeningTimes = combine(
+        prefs.screeningNotificationsEnabled,
+        prefs.screeningReminderTimes,
+    ) { enabled, times -> if (enabled) times else emptyList() }
 
     init {
         viewModelScope.launch { medicinerRepo.ensureTodayEntries() }
@@ -47,18 +62,41 @@ class HomeViewModel @Inject constructor(
         medicinerRepo.todayFlow(),
         authRepo.authStateFlow,
         _isSigningIn,
-    ) { today, user, signingIn ->
-        val last7 = aktiviteterRepo.getRecent("screening", 7)
-        val lastAktivitet = aktiviteterRepo.getRecent("aktivitet", 1).firstOrNull()
+        activeScreeningTimes,
+    ) { today, user, signingIn, activeTimes ->
+        val last7          = aktiviteterRepo.getRecent("screening", 7)
+        val lastAktivitet  = aktiviteterRepo.getRecent("aktivitet", 1).firstOrNull()
+        val screeningsToday = aktiviteterRepo.getScreeningToday()
+        val nowTime        = LocalTime.now()
+
+        val overdueMediciner = today
+            .filter { med ->
+                !med.tagen && !med.skipped &&
+                tidpunktToHour(med.tidpunkt)?.let { h -> nowTime.hour >= h } == true
+            }
+            .sortedBy { tidpunktSortIndex(it.tidpunkt) }
+
+        val overdueScreeningTimes = activeTimes.filter { timeStr ->
+            val h = timeStr.substringBefore(":").toIntOrNull() ?: return@filter false
+            val m = timeStr.substringAfter(":").toIntOrNull() ?: 0
+            val reminderTime = LocalTime.of(h, m)
+            nowTime.isAfter(reminderTime) && screeningsToday.none { s ->
+                try { !LocalTime.parse(s.tid).isBefore(reminderTime) } catch (_: Exception) { false }
+            }
+        }
+
         HomeUiState(
-            todayMediciner    = today.sortedBy { tidpunktSortIndex(it.tidpunkt) },
-            screeningPoints   = last7.map { it.energy.toFloat() },
-            lastAktivitet     = lastAktivitet,
-            tagenCount        = today.count { it.tagen },
-            googleEmail       = user?.email,
-            googlePhotoUrl    = user?.photoUrl?.toString(),
-            googleDisplayName = user?.displayName,
-            isSigningIn       = signingIn,
+            todayMediciner        = today.sortedBy { tidpunktSortIndex(it.tidpunkt) },
+            screeningPoints       = last7.map { it.energy.toFloat() },
+            screeningLabels       = last7.map { dayLabel(it.datum) },
+            overdueMediciner      = overdueMediciner,
+            overdueScreeningTimes = overdueScreeningTimes,
+            lastAktivitet         = lastAktivitet,
+            tagenCount            = today.count { it.tagen },
+            googleEmail           = user?.email,
+            googlePhotoUrl        = user?.photoUrl?.toString(),
+            googleDisplayName     = user?.displayName,
+            isSigningIn           = signingIn,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 
@@ -84,10 +122,21 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun tidpunktSortIndex(tidpunkt: String): Int {
-        val order = listOf("Morgon", "Förmiddag", "Lunch", "Eftermiddag", "Kväll", "Natt", "Vid behov")
-        return order.indexOf(tidpunkt).takeIf { it >= 0 } ?: order.size
+    private fun dayLabel(datum: String): String {
+        return try {
+            when (LocalDate.parse(datum).dayOfWeek) {
+                DayOfWeek.MONDAY    -> "Mån"
+                DayOfWeek.TUESDAY   -> "Tis"
+                DayOfWeek.WEDNESDAY -> "Ons"
+                DayOfWeek.THURSDAY  -> "Tor"
+                DayOfWeek.FRIDAY    -> "Fre"
+                DayOfWeek.SATURDAY  -> "Lör"
+                DayOfWeek.SUNDAY    -> "Sön"
+                else                -> ""
+            }
+        } catch (_: Exception) { "" }
     }
+
 }
 
 fun greeting(): String {
@@ -101,6 +150,8 @@ fun greeting(): String {
 }
 
 fun formattedDate(): String {
+    val date = LocalDate.now()
     val formatter = DateTimeFormatter.ofPattern("EEEE d MMMM", java.util.Locale("sv", "SE"))
-    return LocalDate.now().format(formatter).replaceFirstChar { it.uppercase() }
+    val weekNum = date.get(WeekFields.ISO.weekOfWeekBasedYear())
+    return "${date.format(formatter).replaceFirstChar { it.uppercase() }} · Vecka $weekNum"
 }

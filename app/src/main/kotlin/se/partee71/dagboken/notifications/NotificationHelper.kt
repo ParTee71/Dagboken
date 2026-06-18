@@ -42,7 +42,7 @@ object NotificationHelper {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .build()
-        manager.notify(namn.hashCode(), notification)
+        manager.notify("$namn-$tidpunkt".hashCode(), notification)
     }
 
     fun postScreeningReminder(context: Context) {
