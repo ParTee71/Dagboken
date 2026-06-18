@@ -19,9 +19,9 @@ fun SliderRow(
     label: String,
     value: Float,
     onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
     valueRange: ClosedFloatingPointRange<Float> = 0f..10f,
     steps: Int = 9,
-    modifier: Modifier = Modifier,
     valueLabel: String = value.toInt().toString(),
     valueLabelColor: Color? = null,
 ) {

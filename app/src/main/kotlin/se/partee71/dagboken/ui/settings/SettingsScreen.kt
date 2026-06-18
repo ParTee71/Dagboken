@@ -487,7 +487,7 @@ private fun TimeStepperRow(
                 Icon(Icons.Default.Remove, contentDescription = "Minska", tint = contentColor)
             }
             Text(
-                text      = String.format("%02d:00", hour),
+                text      = String.format(java.util.Locale.ROOT, "%02d:00", hour),
                 style     = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color     = contentColor,

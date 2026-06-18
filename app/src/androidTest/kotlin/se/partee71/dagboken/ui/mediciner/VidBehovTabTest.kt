@@ -1,11 +1,14 @@
 package se.partee71.dagboken.ui.mediciner
 
 import android.content.Context
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -82,8 +85,10 @@ class VidBehovTabTest {
         composeRule.setContent {
             MaterialTheme {
                 val snackbarState = remember { SnackbarHostState() }
-                Scaffold(snackbarHost = { SnackbarHost(snackbarState) }) { _ ->
-                    VidBehovTab(vm = vm, onEdit = {}, snackbarHostState = snackbarState)
+                Scaffold(snackbarHost = { SnackbarHost(snackbarState) }) { paddingValues ->
+                    Box(modifier = Modifier.padding(paddingValues)) {
+                        VidBehovTab(vm = vm, onEdit = {}, snackbarHostState = snackbarState)
+                    }
                 }
             }
         }

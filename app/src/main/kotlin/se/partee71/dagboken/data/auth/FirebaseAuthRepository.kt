@@ -5,6 +5,7 @@ import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
@@ -49,6 +50,8 @@ open class FirebaseAuthRepository @Inject constructor(
             val user = auth.signInWithCredential(firebaseCredential).await().user
                 ?: error("Firebase returnerade null user efter lyckad inloggning")
             Result.success(user)
+        } catch (e: NoCredentialException) {
+            Result.failure(e)
         } catch (e: GetCredentialCancellationException) {
             Result.failure(e)
         } catch (e: Exception) {

@@ -21,11 +21,9 @@ data class ChartSeries(
 @Composable
 fun LineChartCanvas(
     series: List<ChartSeries>,
+    modifier: Modifier = Modifier,
     minValue: Float = -10f,
     maxValue: Float = 10f,
-    modifier: Modifier = Modifier
-        .fillMaxWidth()
-        .height(180.dp),
 ) {
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
