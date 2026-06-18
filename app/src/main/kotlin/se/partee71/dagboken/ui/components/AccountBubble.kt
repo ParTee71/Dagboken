@@ -33,36 +33,41 @@ fun AccountBubble(
     Box(
         modifier = modifier
             .padding(start = 8.dp)
-            .size(36.dp)
-            .clip(CircleShape)
-            .border(1.5.dp, cs.outlineVariant, CircleShape)
-            .background(cs.surfaceVariant)
-            .clickable(onClick = onClick),
+            .size(40.dp),
         contentAlignment = Alignment.Center,
     ) {
-        if (email != null && photoUrl != null) {
-            AsyncImage(
-                model              = photoUrl,
-                contentDescription = displayName ?: "Profil",
-                modifier           = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop,
-            )
-        } else {
-            Icon(
-                imageVector        = Icons.Default.AccountCircle,
-                contentDescription = "Logga in",
-                modifier           = Modifier.size(20.dp),
-                tint               = cs.onSurfaceVariant.copy(alpha = 0.6f),
-            )
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .border(1.5.dp, cs.outlineVariant, CircleShape)
+                .background(cs.surfaceVariant)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (email != null && photoUrl != null) {
+                AsyncImage(
+                    model              = photoUrl,
+                    contentDescription = displayName ?: "Profil",
+                    modifier           = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Icon(
+                    imageVector        = Icons.Default.AccountCircle,
+                    contentDescription = "Logga in",
+                    modifier           = Modifier.size(20.dp),
+                    tint               = cs.onSurfaceVariant.copy(alpha = 0.6f),
+                )
+            }
         }
 
         if (email != null) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .offset(x = 2.dp, y = 2.dp)
                     .size(10.dp)
                     .background(cs.surface, CircleShape)
                     .padding(2.dp)
