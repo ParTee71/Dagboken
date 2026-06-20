@@ -197,7 +197,7 @@ fun HomeScreen(
                                         ) {
                                             Icon(
                                                 Icons.Filled.CheckCircle,
-                                                contentDescription = null,
+                                                contentDescription = "Markera ${med.namn} som tagen",
                                                 tint     = cs.onErrorContainer,
                                                 modifier = Modifier.size(20.dp),
                                             )

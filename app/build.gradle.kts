@@ -31,12 +31,6 @@ android {
         versionName = "2.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // Room schema export for migration tracking
-        ksp {
-            arg("room.schemaLocation", "$projectDir/schemas")
-            arg("room.incremental", "true")
-        }
     }
 
     signingConfigs {
@@ -108,6 +102,11 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.incremental", "true")
+}
+
 dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.ui.text.googlefonts)
@@ -158,9 +157,6 @@ dependencies {
     implementation(libs.credentials)
     implementation(libs.credentials.play.services)
     implementation(libs.googleid)
-
-    // Vico charts
-    implementation(libs.vico.compose.m3)
 
     // WorkManager + Hilt
     implementation(libs.work.runtime.ktx)
