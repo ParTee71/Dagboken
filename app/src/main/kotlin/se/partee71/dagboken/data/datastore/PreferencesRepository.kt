@@ -11,6 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -36,9 +37,8 @@ class PreferencesRepository @Inject constructor(
         val THEME_LIGHT_START   = intPreferencesKey("theme_light_start")  // hour 0..23
         val THEME_DARK_START    = intPreferencesKey("theme_dark_start")   // hour 0..23
         // Notifications
-        val MEDS_NOTIFICATIONS  = booleanPreferencesKey("meds_notifications")
-        val SCREENING_NOTIFICATIONS = booleanPreferencesKey("screening_notifications")
-        val SCREENING_REMINDER_TIMES = stringPreferencesKey("screening_reminder_times")
+        val MEDS_NOTIFICATIONS       = booleanPreferencesKey("meds_notifications")
+        val SCREENING_EVENT_CONFIGS  = stringPreferencesKey("screening_event_configs")
         // Backup
         val BACKUP_NEEDS_AUTH   = booleanPreferencesKey("backup_needs_auth")
     }
@@ -81,14 +81,11 @@ class PreferencesRepository @Inject constructor(
     val medsNotificationsEnabled: Flow<Boolean> = dataStore.data
         .map { it[Keys.MEDS_NOTIFICATIONS] ?: false }
 
-    val screeningNotificationsEnabled: Flow<Boolean> = dataStore.data
-        .map { it[Keys.SCREENING_NOTIFICATIONS] ?: false }
-
-    val screeningReminderTimes: Flow<List<String>> = dataStore.data
+    val screeningEventConfigs: Flow<List<ScreeningEventConfig>> = dataStore.data
         .map { prefs ->
-            prefs[Keys.SCREENING_REMINDER_TIMES]
-                ?.let { Json.decodeFromString<List<String>>(it) }
-                ?: listOf("08:00", "12:00", "16:00", "20:00")
+            prefs[Keys.SCREENING_EVENT_CONFIGS]
+                ?.let { Json.decodeFromString<List<ScreeningEventConfig>>(it) }
+                ?: DEFAULT_SCREENING_EVENTS
         }
 
     val backupNeedsAuth: Flow<Boolean> = dataStore.data
@@ -134,18 +131,26 @@ class PreferencesRepository @Inject constructor(
         dataStore.edit { it[Keys.MEDS_NOTIFICATIONS] = enabled }
     }
 
-    suspend fun setScreeningNotificationsEnabled(enabled: Boolean) {
-        dataStore.edit { it[Keys.SCREENING_NOTIFICATIONS] = enabled }
-    }
-
-    suspend fun setScreeningReminderTimes(times: List<String>) {
-        dataStore.edit { it[Keys.SCREENING_REMINDER_TIMES] = Json.encodeToString(times) }
+    suspend fun setScreeningEventConfigs(configs: List<ScreeningEventConfig>) {
+        dataStore.edit { it[Keys.SCREENING_EVENT_CONFIGS] = Json.encodeToString(configs) }
     }
 
     suspend fun setBackupNeedsAuth(needsAuth: Boolean) {
         dataStore.edit { it[Keys.BACKUP_NEEDS_AUTH] = needsAuth }
     }
 }
+
+@Serializable
+data class ScreeningEventConfig(val enabled: Boolean, val time: String)
+
+val SCREENING_EVENT_LABELS = listOf("Efter frukost", "Lunch", "Kvällsmat", "Läggdags")
+
+val DEFAULT_SCREENING_EVENTS = listOf(
+    ScreeningEventConfig(enabled = false, time = "08:00"),
+    ScreeningEventConfig(enabled = false, time = "12:00"),
+    ScreeningEventConfig(enabled = false, time = "17:00"),
+    ScreeningEventConfig(enabled = false, time = "21:00"),
+)
 
 private val DEFAULT_AKTIVITET_OPTIONS = listOf(
     "Promenad", "Jobb", "Möte", "Träning", "Vila", "Mat", "Sällskap", "Läsning", "Övrigt",

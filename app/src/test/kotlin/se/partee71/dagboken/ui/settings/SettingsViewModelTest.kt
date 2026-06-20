@@ -4,6 +4,8 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
+import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,8 +47,7 @@ class SettingsViewModelTest {
             every { themeLightStart } returns flowOf(7)
             every { themeDarkStart } returns flowOf(21)
             every { medsNotificationsEnabled } returns flowOf(false)
-            every { screeningNotificationsEnabled } returns flowOf(false)
-            every { screeningReminderTimes } returns flowOf(listOf("08:00", "12:00", "16:00", "20:00"))
+            every { screeningEventConfigs } returns flowOf(DEFAULT_SCREENING_EVENTS)
             every { aktivitetOptions } returns aktivitetOptionsFlow
             every { symptomOptions } returns symptomOptionsFlow
         }
@@ -143,16 +144,18 @@ class SettingsViewModelTest {
         coVerify { alarmScheduler.rescheduleAll() }
     }
 
-    @Test fun `toggleScreeningNotifications calls rescheduleAll`() = runTest {
-        viewModel.toggleScreeningNotifications()
+    @Test fun `toggleScreeningEvent calls rescheduleAll`() = runTest {
+        viewModel.toggleScreeningEvent(0)
         coVerify { alarmScheduler.rescheduleAll() }
     }
 
-    @Test fun `setScreeningReminderTime updates time list and reschedules when enabled`() = runTest {
-        every { prefs.screeningNotificationsEnabled } returns flowOf(true)
+    @Test fun `setScreeningEventTime reschedules when event is enabled`() = runTest {
+        val enabledConfigs = DEFAULT_SCREENING_EVENTS.toMutableList()
+            .also { it[0] = ScreeningEventConfig(enabled = true, time = "08:00") }
+        every { prefs.screeningEventConfigs } returns flowOf(enabledConfigs)
         viewModel = SettingsViewModel(prefs, authRepo, alarmScheduler)
 
-        viewModel.setScreeningReminderTime(0, "09:30")
-        coVerify { alarmScheduler.scheduleScreeningAlarms(any()) }
+        viewModel.setScreeningEventTime(0, "09:30")
+        coVerify { alarmScheduler.rescheduleAll() }
     }
 }

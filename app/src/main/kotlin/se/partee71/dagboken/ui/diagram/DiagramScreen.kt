@@ -12,11 +12,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -24,19 +29,22 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+
+private val ALL_SERIES = listOf("Energi", "Stress")
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -46,7 +54,6 @@ fun DiagramScreen(
     vm: DiagramViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
-    val tabs = listOf("Energi", "Stress")
     val ranges = listOf(7, 14, 30, 90)
 
     val screenTitle = when (source) {
@@ -75,15 +82,40 @@ fun DiagramScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Series selector
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                tabs.forEachIndexed { index, label ->
-                    SegmentedButton(
-                        selected = state.selectedSeries == label,
-                        onClick  = { vm.setSeries(label) },
-                        shape    = SegmentedButtonDefaults.itemShape(index = index, count = tabs.size),
-                        label    = { Text(label) },
-                    )
+            // Multi-select series filter
+            var showSeriesMenu by remember { mutableStateOf(false) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Visa:", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.width(8.dp))
+                Box {
+                    OutlinedButton(onClick = { showSeriesMenu = true }) {
+                        val label = ALL_SERIES
+                            .filter { it in state.visibleSeries }
+                            .joinToString(", ")
+                            .ifEmpty { "–" }
+                        Text(label)
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    DropdownMenu(
+                        expanded        = showSeriesMenu,
+                        onDismissRequest = { showSeriesMenu = false },
+                    ) {
+                        ALL_SERIES.forEach { series ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked        = series in state.visibleSeries,
+                                            onCheckedChange = { vm.toggleSeries(series) },
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(series)
+                                    }
+                                },
+                                onClick = { vm.toggleSeries(series) },
+                            )
+                        }
+                    }
                 }
             }
 
@@ -100,11 +132,29 @@ fun DiagramScreen(
 
             // Chart card
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                if (state.stats.isEmpty()) {
+                val chartSeries = buildList {
+                    if ("Energi" in state.visibleSeries) {
+                        add(ChartSeries(
+                            label  = "Energi",
+                            color  = MaterialTheme.colorScheme.primary,
+                            points = state.stats.map { it.avgEnergy },
+                        ))
+                    }
+                    if ("Stress" in state.visibleSeries) {
+                        add(ChartSeries(
+                            label  = "Stress",
+                            color  = MaterialTheme.colorScheme.secondary,
+                            points = state.stats.map { it.avgStress },
+                        ))
+                    }
+                }
+                val minV = if ("Energi" in state.visibleSeries) -10f else 0f
+
+                if (state.stats.isEmpty() || chartSeries.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp),
+                            .height(280.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -116,48 +166,28 @@ fun DiagramScreen(
                             )
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                "Ingen data för vald period",
+                                if (state.stats.isEmpty()) "Ingen data för vald period"
+                                else "Välj minst en dataserie",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
                 } else {
-                    val points = state.stats.map { s ->
-                        when (state.selectedSeries) {
-                            "Stress" -> s.avgStress
-                            else     -> s.avgEnergy
-                        }
-                    }
-                    val (minV, maxV) = when (state.selectedSeries) {
-                        "Stress" -> 0f to 10f
-                        else     -> -10f to 10f
-                    }
                     LineChartCanvas(
-                        series = listOf(
-                            ChartSeries(
-                                label  = state.selectedSeries,
-                                color  = if (state.selectedSeries == "Stress")
-                                    MaterialTheme.colorScheme.secondary
-                                else
-                                    MaterialTheme.colorScheme.primary,
-                                points = points,
-                            )
-                        ),
+                        series   = chartSeries,
                         minValue = minV,
-                        maxValue = maxV,
+                        maxValue = 10f,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(16.dp)
+                            .height(280.dp),
                     )
                 }
             }
 
-            // Stats summary
-            if (state.stats.isNotEmpty()) {
-                val values = state.stats.mapNotNull {
-                    if (state.selectedSeries == "Stress") it.avgStress else it.avgEnergy
-                }
+            // Stats summary — one block per visible series
+            if (state.stats.isNotEmpty() && state.visibleSeries.isNotEmpty()) {
                 ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier            = Modifier.padding(16.dp),
@@ -165,14 +195,24 @@ fun DiagramScreen(
                     ) {
                         Text("Sammanfattning", style = MaterialTheme.typography.titleSmall)
                         HorizontalDivider()
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                        ) {
-                            StatItem(label = "Snitt", value = "%.1f".format(values.average()))
-                            StatItem(label = "Min",   value = "%.1f".format(values.min()))
-                            StatItem(label = "Max",   value = "%.1f".format(values.max()))
-                            StatItem(label = "Dagar", value = values.size.toString())
+                        ALL_SERIES.filter { it in state.visibleSeries }.forEachIndexed { i, series ->
+                            if (i > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            val values = state.stats.mapNotNull {
+                                if (series == "Stress") it.avgStress else it.avgEnergy
+                            }
+                            if (values.isNotEmpty()) {
+                                Text(series, style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Row(
+                                    modifier              = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                ) {
+                                    StatItem(label = "Snitt", value = "%.1f".format(values.average()))
+                                    StatItem(label = "Min",   value = "%.1f".format(values.min()))
+                                    StatItem(label = "Max",   value = "%.1f".format(values.max()))
+                                    StatItem(label = "Dagar", value = values.size.toString())
+                                }
+                            }
                         }
                     }
                 }

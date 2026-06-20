@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.AktiviteterRepository
-import se.partee71.dagboken.domain.model.Aktivitet
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -22,8 +21,8 @@ data class DailyStats(
 
 data class DiagramUiState(
     val stats: List<DailyStats> = emptyList(),
-    val rangeDays: Int = 14,
-    val selectedSeries: String = "Energi",
+    val rangeDays: Int = 30,
+    val visibleSeries: Set<String> = setOf("Energi"),
 )
 
 @HiltViewModel
@@ -31,36 +30,43 @@ class DiagramViewModel @Inject constructor(
     private val repo: AktiviteterRepository,
 ) : ViewModel() {
 
-    private val _rangeDays = MutableStateFlow(30)
-    private val _selectedSeries = MutableStateFlow("Energi")
+    private val _rangeDays      = MutableStateFlow(30)
+    private val _visibleSeries  = MutableStateFlow(setOf("Energi"))
 
-    private val _state = MutableStateFlow(DiagramUiState(rangeDays = 30))
+    private val _state = MutableStateFlow(DiagramUiState())
     val state: StateFlow<DiagramUiState> = _state.asStateFlow()
 
     init {
         viewModelScope.launch {
-            combine(repo.all, _rangeDays, _selectedSeries) { entries, range, series ->
-                Triple(entries, range, series)
-            }.collectLatest { (entries, range, series) ->
-                val cutoff = LocalDate.now().minusDays(range.toLong()).toString()
-                val inRange = entries.filter { it.datum >= cutoff }
-                val stats = inRange
-                    .groupBy { it.datum }
-                    .entries
-                    .sortedBy { it.key }
-                    .map { (datum, group) ->
-                        DailyStats(
-                            datum      = datum,
-                            avgEnergy  = group.map { it.energy.toFloat() }.average().toFloat(),
-                            avgStress  = group.map { it.stress.toFloat() }.average().toFloat(),
-                        )
-                    }
-                _state.value = DiagramUiState(stats = stats, rangeDays = range, selectedSeries = series)
+            combine(repo.all, _rangeDays) { entries, range -> entries to range }
+                .collectLatest { (entries, range) ->
+                    val cutoff = LocalDate.now().minusDays(range.toLong()).toString()
+                    val stats = entries
+                        .filter { it.datum >= cutoff }
+                        .groupBy { it.datum }
+                        .entries
+                        .sortedBy { it.key }
+                        .map { (datum, group) ->
+                            DailyStats(
+                                datum     = datum,
+                                avgEnergy = group.map { it.energy.toFloat() }.average().toFloat(),
+                                avgStress = group.map { it.stress.toFloat() }.average().toFloat(),
+                            )
+                        }
+                    _state.value = _state.value.copy(stats = stats, rangeDays = range)
+                }
+        }
+        viewModelScope.launch {
+            _visibleSeries.collectLatest { visible ->
+                _state.value = _state.value.copy(visibleSeries = visible)
             }
         }
     }
 
     fun setRange(days: Int) { _rangeDays.value = days }
 
-    fun setSeries(series: String) { _selectedSeries.value = series }
+    fun toggleSeries(series: String) {
+        val current = _visibleSeries.value
+        _visibleSeries.value = if (series in current) current - series else current + series
+    }
 }

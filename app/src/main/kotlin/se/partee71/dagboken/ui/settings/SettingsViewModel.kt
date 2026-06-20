@@ -10,7 +10,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
+import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.notifications.AlarmScheduler
 import javax.inject.Inject
 
@@ -21,8 +23,7 @@ data class SettingsUiState(
     val themeLightStart: Int = 7,
     val themeDarkStart: Int = 21,
     val medsNotificationsEnabled: Boolean = false,
-    val screeningNotificationsEnabled: Boolean = false,
-    val screeningReminderTimes: List<String> = listOf("08:00", "12:00", "16:00", "20:00"),
+    val screeningEventConfigs: List<ScreeningEventConfig> = DEFAULT_SCREENING_EVENTS,
     val aktivitetOptions: List<String> = emptyList(),
     val symptomOptions: List<String> = emptyList(),
     val newAktivitetOption: String = "",
@@ -75,13 +76,8 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            prefs.screeningNotificationsEnabled.collectLatest { enabled ->
-                _state.value = _state.value.copy(screeningNotificationsEnabled = enabled)
-            }
-        }
-        viewModelScope.launch {
-            prefs.screeningReminderTimes.collectLatest { times ->
-                _state.value = _state.value.copy(screeningReminderTimes = times)
+            prefs.screeningEventConfigs.collectLatest { configs ->
+                _state.value = _state.value.copy(screeningEventConfigs = configs)
             }
         }
         viewModelScope.launch {
@@ -155,20 +151,21 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun toggleScreeningNotifications() {
+    fun toggleScreeningEvent(index: Int) {
+        val updated = _state.value.screeningEventConfigs.toMutableList()
+            .also { it[index] = it[index].copy(enabled = !it[index].enabled) }
         viewModelScope.launch {
-            prefs.setScreeningNotificationsEnabled(!_state.value.screeningNotificationsEnabled)
+            prefs.setScreeningEventConfigs(updated)
             alarmScheduler.rescheduleAll()
         }
     }
 
-    fun setScreeningReminderTime(index: Int, time: String) {
-        val updated = _state.value.screeningReminderTimes.toMutableList().also { it[index] = time }
+    fun setScreeningEventTime(index: Int, time: String) {
+        val updated = _state.value.screeningEventConfigs.toMutableList()
+            .also { it[index] = it[index].copy(time = time) }
         viewModelScope.launch {
-            prefs.setScreeningReminderTimes(updated)
-            if (_state.value.screeningNotificationsEnabled) {
-                alarmScheduler.scheduleScreeningAlarms(updated)
-            }
+            prefs.setScreeningEventConfigs(updated)
+            if (updated[index].enabled) alarmScheduler.rescheduleAll()
         }
     }
 

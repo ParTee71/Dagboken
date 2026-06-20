@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import se.partee71.dagboken.BuildConfig
 import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.components.DagbokenCard
@@ -82,7 +83,13 @@ fun HomeScreen(
                         onClick     = { showAccountSheet = true },
                     )
                 },
-                title = {},
+                title = {
+                    Text(
+                        text  = "v${BuildConfig.VERSION_NAME}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = cs.onSurfaceVariant.copy(alpha = 0.5f),
+                    )
+                },
                 actions = {
                     Text(
                         text     = formattedDate(),
@@ -131,39 +138,6 @@ fun HomeScreen(
                                 text  = uiState.googleDisplayName!!,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = cs.onPrimaryContainer.copy(alpha = 0.7f),
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Stat pills row
-            if (uiState.todayMediciner.isNotEmpty() || uiState.lastAktivitet != null) {
-                item {
-                    Row(
-                        modifier              = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        if (uiState.todayMediciner.isNotEmpty()) {
-                            val allTaken = uiState.tagenCount == uiState.todayMediciner.size
-                            StatPill(
-                                icon           = if (allTaken) Icons.Filled.CheckCircle else Icons.Filled.Medication,
-                                value          = "${uiState.tagenCount}/${uiState.todayMediciner.size}",
-                                label          = "mediciner",
-                                containerColor = if (allTaken) cs.tertiaryContainer else cs.secondaryContainer,
-                                contentColor   = if (allTaken) cs.onTertiaryContainer else cs.onSecondaryContainer,
-                                modifier       = Modifier.weight(1f),
-                            )
-                        }
-                        uiState.lastAktivitet?.let { a ->
-                            val isPositive = a.energy > 0
-                            StatPill(
-                                icon           = Icons.Filled.Bolt,
-                                value          = energyLabel(a.energy),
-                                label          = "energi",
-                                containerColor = if (isPositive) cs.tertiaryContainer else cs.errorContainer,
-                                contentColor   = if (isPositive) cs.onTertiaryContainer else cs.onErrorContainer,
-                                modifier       = Modifier.weight(1f),
                             )
                         }
                     }

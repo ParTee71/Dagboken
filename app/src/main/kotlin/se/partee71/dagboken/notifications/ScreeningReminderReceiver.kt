@@ -18,13 +18,14 @@ class ScreeningReminderReceiver : BroadcastReceiver() {
     @Inject lateinit var alarmScheduler: AlarmScheduler
 
     override fun onReceive(context: Context, intent: Intent) {
-        val slot = intent.getIntExtra(EXTRA_SLOT, 0)
-        val time = intent.getStringExtra(EXTRA_TIME) ?: "08:00"
+        val slot  = intent.getIntExtra(EXTRA_SLOT, 0)
+        val time  = intent.getStringExtra(EXTRA_TIME) ?: "08:00"
+        val label = intent.getStringExtra(EXTRA_LABEL) ?: "Screening"
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
                 if (!aktiviteterRepo.hasScreeningToday()) {
-                    NotificationHelper.postScreeningReminder(context)
+                    NotificationHelper.postScreeningReminder(context, label)
                 }
                 alarmScheduler.scheduleScreeningAlarm(slot, time)
             } finally {
@@ -34,7 +35,8 @@ class ScreeningReminderReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val EXTRA_SLOT = "extra_slot"
-        const val EXTRA_TIME = "extra_time"
+        const val EXTRA_SLOT  = "extra_slot"
+        const val EXTRA_TIME  = "extra_time"
+        const val EXTRA_LABEL = "extra_label"
     }
 }

@@ -66,6 +66,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import se.partee71.dagboken.data.datastore.ScreeningEventConfig
+import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -287,32 +289,26 @@ fun SettingsScreen(
                         )
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Screeningpåminnelse")
-                            Text(
-                                "Daglig notis om du inte loggat screening",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(
-                            checked         = state.screeningNotificationsEnabled,
-                            onCheckedChange = { vm.toggleScreeningNotifications() },
+                    Text(
+                        "Screeningpåminnelser",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        "Aktivera notis per måltidshändelse",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    state.screeningEventConfigs.forEachIndexed { index, config ->
+                        if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        ScreeningEventRow(
+                            label    = SCREENING_EVENT_LABELS[index],
+                            config   = config,
+                            onToggle = { vm.toggleScreeningEvent(index) },
+                            onTimeSelected = { h, m ->
+                                vm.setScreeningEventTime(index, "%02d:%02d".format(h, m))
+                            },
                         )
-                    }
-                    if (state.screeningNotificationsEnabled) {
-                        Spacer(Modifier.height(12.dp))
-                        state.screeningReminderTimes.forEachIndexed { index, time ->
-                            if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                            ScreeningTimeRow(
-                                label    = "Påminnelse ${index + 1}",
-                                time     = time,
-                                onTimeSelected = { h, m ->
-                                    vm.setScreeningReminderTime(index, "%02d:%02d".format(h, m))
-                                },
-                            )
-                        }
                     }
                 }
             }
@@ -410,12 +406,13 @@ fun SettingsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScreeningTimeRow(
+private fun ScreeningEventRow(
     label: String,
-    time: String,
+    config: ScreeningEventConfig,
+    onToggle: () -> Unit,
     onTimeSelected: (hour: Int, minute: Int) -> Unit,
 ) {
-    val parts  = time.split(":")
+    val parts  = config.time.split(":")
     val hour   = parts.getOrNull(0)?.toIntOrNull() ?: 8
     val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
     var showPicker by remember { mutableStateOf(false) }
@@ -425,15 +422,19 @@ private fun ScreeningTimeRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        TextButton(onClick = { showPicker = true }) {
+        TextButton(
+            onClick  = { showPicker = true },
+            enabled  = config.enabled,
+        ) {
             Text(
-                text       = time,
+                text       = config.time,
                 style      = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.width(4.dp))
             Icon(Icons.Default.Alarm, contentDescription = "Välj tid", modifier = Modifier.size(18.dp))
         }
+        Switch(checked = config.enabled, onCheckedChange = { onToggle() })
     }
 
     if (showPicker) {

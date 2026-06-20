@@ -55,8 +55,8 @@ class DiagramViewModelTest {
         assertEquals(30, viewModel.state.value.rangeDays)
     }
 
-    @Test fun `initial selectedSeries is Energi`() {
-        assertEquals("Energi", viewModel.state.value.selectedSeries)
+    @Test fun `initial visibleSeries contains Energi`() {
+        assertTrue(viewModel.state.value.visibleSeries.contains("Energi"))
     }
 
     @Test fun `initial stats are empty`() {
@@ -70,9 +70,14 @@ class DiagramViewModelTest {
         assertEquals(7, viewModel.state.value.rangeDays)
     }
 
-    @Test fun `setSeries updates selectedSeries in state`() = runTest {
-        viewModel.setSeries("Stress")
-        assertEquals("Stress", viewModel.state.value.selectedSeries)
+    @Test fun `toggleSeries adds series to visibleSeries`() = runTest {
+        viewModel.toggleSeries("Stress")
+        assertTrue(viewModel.state.value.visibleSeries.contains("Stress"))
+    }
+
+    @Test fun `toggleSeries removes series already in visibleSeries`() = runTest {
+        viewModel.toggleSeries("Energi")
+        assertTrue("Energi" !in viewModel.state.value.visibleSeries)
     }
 
     // ─── daily grouping and average ───────────────────────────────────────────

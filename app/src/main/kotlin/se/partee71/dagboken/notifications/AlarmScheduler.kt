@@ -8,6 +8,8 @@ import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
+import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.tidpunktToHour
@@ -27,15 +29,14 @@ class AlarmScheduler @Inject constructor(
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
 
     suspend fun rescheduleAll() {
-        val medsEnabled      = prefs.medsNotificationsEnabled.first()
-        val screeningEnabled = prefs.screeningNotificationsEnabled.first()
-        val screeningTimes   = prefs.screeningReminderTimes.first()
+        val medsEnabled    = prefs.medsNotificationsEnabled.first()
+        val eventConfigs   = prefs.screeningEventConfigs.first()
 
         cancelAllMedAlarms()
         cancelAllScreeningAlarms()
 
-        if (medsEnabled)      scheduleMedAlarms()
-        if (screeningEnabled) scheduleScreeningAlarms(screeningTimes)
+        if (medsEnabled) scheduleMedAlarms()
+        scheduleScreeningAlarms(eventConfigs)
     }
 
     suspend fun scheduleMedAlarms() {
@@ -76,9 +77,11 @@ class AlarmScheduler @Inject constructor(
         )?.also { alarmManager.cancel(it) }
     }
 
-    fun scheduleScreeningAlarms(times: List<String>) {
+    fun scheduleScreeningAlarms(configs: List<ScreeningEventConfig>) {
         cancelAllScreeningAlarms()
-        times.forEachIndexed { slot, time -> scheduleScreeningAlarm(slot, time) }
+        configs.forEachIndexed { slot, config ->
+            if (config.enabled) scheduleScreeningAlarm(slot, config.time)
+        }
     }
 
     fun scheduleScreeningAlarm(slot: Int, time: String) {
@@ -92,6 +95,7 @@ class AlarmScheduler @Inject constructor(
             Intent(context, ScreeningReminderReceiver::class.java).apply {
                 putExtra(ScreeningReminderReceiver.EXTRA_SLOT, slot)
                 putExtra(ScreeningReminderReceiver.EXTRA_TIME, time)
+                putExtra(ScreeningReminderReceiver.EXTRA_LABEL, SCREENING_EVENT_LABELS[slot])
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

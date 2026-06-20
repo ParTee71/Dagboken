@@ -48,13 +48,13 @@ class HomeViewModelTest {
         aktiviteterRepo = mockk(relaxed = true) {
             coEvery { getRecent(any(), any()) } returns emptyList()
             coEvery { getScreeningToday() } returns emptyList()
+            every { screeningFromDate(any()) } returns flowOf(emptyList())
         }
         authRepo = mockk(relaxed = true) {
             every { authStateFlow } returns MutableStateFlow(null)
         }
         prefs = mockk(relaxed = true) {
-            every { screeningNotificationsEnabled } returns flowOf(false)
-            every { screeningReminderTimes } returns flowOf(listOf("08:00"))
+            every { screeningEventConfigs } returns flowOf(emptyList())
         }
         viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs)
     }
@@ -178,9 +178,8 @@ class HomeViewModelTest {
 
     // ─── overdueScreeningTimes ────────────────────────────────────────────────
 
-    @Test fun `overdueScreeningTimes is empty when screening notifications are disabled`() = runTest {
-        every { prefs.screeningNotificationsEnabled } returns flowOf(false)
-        every { prefs.screeningReminderTimes } returns flowOf(listOf("07:00"))
+    @Test fun `overdueScreeningTimes is empty when no screening events are enabled`() = runTest {
+        every { prefs.screeningEventConfigs } returns flowOf(emptyList())
         viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs)
 
         viewModel.uiState.test {
@@ -191,7 +190,7 @@ class HomeViewModelTest {
 
     // ─── stat-pill: screeningPoints/Labels ───────────────────────────────────
 
-    @Test fun `screeningPoints and screeningLabels come from getRecent screening`() = runTest {
+    @Test fun `screeningPoints and screeningLabels have matching sizes`() = runTest {
         viewModel.uiState.test {
             val state = awaitItem()
             assertEquals(state.screeningPoints.size, state.screeningLabels.size)

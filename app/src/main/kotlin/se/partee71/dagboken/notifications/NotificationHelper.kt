@@ -45,12 +45,12 @@ object NotificationHelper {
         manager.notify("$namn-$tidpunkt".hashCode(), notification)
     }
 
-    fun postScreeningReminder(context: Context) {
+    fun postScreeningReminder(context: Context, eventLabel: String) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = NotificationCompat.Builder(context, CHANNEL_SCREENING)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Glöm inte din screening")
-            .setContentText("Hur mår du idag? Logga din dagliga screening.")
+            .setContentTitle("Dags för screening – $eventLabel")
+            .setContentText("Hur mår du? Logga din dagliga screening.")
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
             .build()

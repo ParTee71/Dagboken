@@ -54,11 +54,11 @@
 | ID | Krav |
 |----|------|
 | HEM-1 | Visa en **hälsningsbanner** baserad på tid på dygnet (God morgon/eftermiddag/kväll/natt) samt inloggat namn. |
-| HEM-2 | Visa aktuellt **datum och veckonummer** (svensk lokalisering, ISO-vecka). |
-| HEM-3 | Visa **stat-pills**: antal tagna/totala mediciner idag samt senaste aktivitetens energinivå. |
+| HEM-2 | Visa aktuellt **datum och veckonummer** (svensk lokalisering, ISO-vecka) samt **appversionen** (liten och diskret). |
+| HEM-3 | ~~Visa **stat-pills**: antal tagna/totala mediciner idag samt senaste aktivitetens energinivå.~~ *(borttaget)* |
 | HEM-4 | Visa ett **"Försenat"-kort** när medicintidpunkt passerats utan att vara tagen, eller screeningpåminnelse passerats utan loggning. |
 | HEM-5 | Från försenat-kortet ska medicin kunna markeras som tagen direkt, och screening kunna nås via "Logga". |
-| HEM-7 | Visa **sparkline-diagram** över energi senaste 7 dagarna (minst 2 datapunkter krävs, annars uppmaning att logga). |
+| HEM-7 | Visa **sparkline-diagram** över **genomsnittlig energi per dag** senaste 7 dagarna, baserat på screenings (minst 2 datapunkter krävs, annars uppmaning att logga). |
 | HEM-8 | Visa **snabbåtgärder**: "Logga aktivitet" och "Mediciner". |
 | HEM-9 | Visa **kontobubbla** (avatar/foto) som öppnar konto-bottensheet (logga in/ut, inställningar). |
 | HEM-10 | Säkerställa dagens medicinposter genereras vid skärmstart (`ensureTodayEntries`). |
@@ -96,6 +96,7 @@
 | HIS-1 | Historik ska visa loggade poster, **filtrerbara** på typ (aktivitet/screening). Minst en filtertyp måste vara aktiv. |
 | HIS-2 | Poster ska kunna **redigeras** och **tas bort** (med bekräftelse via snackbar). |
 | HIS-3 | Symptom lagras i wire-format `Namn:Poäng,Namn:Poäng` och summeras till `somatiska`. |
+| HIS-4 | Datumetiketter i historiken ska visas som **"Idag"** för dagens datum, **"Igår"** för gårdagens datum, och **"Veckodag D Månad"** för äldre datum. |
 
 ---
 
@@ -140,9 +141,10 @@
 | ID | Krav |
 |----|------|
 | DIA-1 | Visa trender över **genomsnittlig energi och stress per dag**. |
-| DIA-2 | Tidsintervall ska kunna väljas (t.ex. 14/30 dagar). |
-| DIA-3 | Serie ska kunna växlas (Energi/Stress). |
+| DIA-2 | Tidsintervall ska kunna väljas (7/14/30/90 dagar). |
+| DIA-3 | **Dataserier** (Energi, Stress) ska kunna visas och döljas individuellt via en **flervalsmeny**; båda kan visas simultant. |
 | DIA-4 | Diagram ska nås från Hem, Aktiviteter och Mediciner (källparameter styr vy). |
+| DIA-5 | Diagramhöjd ska vara minst **280dp** för god läsbarhet. |
 
 ---
 
@@ -181,7 +183,7 @@
 | NOT-1 | Två notifikationskanaler ska finnas: **Medicinpåminnelser** (default) och **Screeningpåminnelser** (low). |
 | NOT-2 | **Medicinpåminnelser** ska kunna aktiveras/avaktiveras; larm sätts **15 minuter före** medicinens tidpunkt. |
 | NOT-3 | Endast ej tagna/ej skippade mediciner ska generera larm. |
-| NOT-4 | **Screeningpåminnelser** ska kunna aktiveras med upp till **4 konfigurerbara tidpunkter** (default 08/12/16/20). |
+| NOT-4 | **Screeningpåminnelser** ska vara kopplade till fyra namngivna måltidshändelser: **Efter frukost, Lunch, Kvällsmat, Läggdags**. Varje händelse har ett eget på/av-reglage och en konfigurerbar tidpunkt. |
 | NOT-5 | Screeninglarm som passerat dagens tid ska schemaläggas till nästa dag. |
 | NOT-6 | Larm ska **återskapas efter omstart** av enheten (BOOT_COMPLETED). |
 | NOT-7 | Vid ändrade inställningar ska samtliga larm schemaläggas om. |
@@ -196,7 +198,7 @@
 | SET-1 | **Tema-läge** ska kunna väljas: ljust, mörkt eller **auto** (växlar på klockslag). |
 | SET-2 | Vid auto-tema ska **start-timme för ljust respektive mörkt** kunna ställas in (validerade så att ljus < mörk). |
 | SET-3 | **Dynamiska färger** (Material You) ska kunna slås på/av. |
-| SET-4 | Medicin- och screeningpåminnelser ska kunna slås på/av; screeningtider ska kunna redigeras. |
+| SET-4 | **Medicinpåminnelser** ska kunna slås på/av. **Screeningpåminnelser** ska ställas in per måltidshändelse (På/av + tid per händelse). |
 | SET-5 | **Aktivitetsalternativ** ska kunna läggas till och tas bort (inga dubbletter). |
 | SET-6 | **Symptomalternativ** ska kunna läggas till och tas bort (inga dubbletter). |
 | SET-7 | Konto (in-/utloggning) ska kunna hanteras från inställningar. |

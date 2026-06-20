@@ -8,10 +8,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.domain.model.Aktivitet
@@ -49,10 +52,8 @@ class HomeViewModel @Inject constructor(
 
     private val _isSigningIn = MutableStateFlow(false)
 
-    private val activeScreeningTimes = combine(
-        prefs.screeningNotificationsEnabled,
-        prefs.screeningReminderTimes,
-    ) { enabled, times -> if (enabled) times else emptyList() }
+    private val activeScreeningTimes = prefs.screeningEventConfigs
+        .map { configs: List<ScreeningEventConfig> -> configs.filter { it.enabled }.map { it.time } }
 
     init {
         viewModelScope.launch { medicinerRepo.ensureTodayEntries() }
@@ -64,9 +65,12 @@ class HomeViewModel @Inject constructor(
         _isSigningIn,
         activeScreeningTimes,
     ) { today, user, signingIn, activeTimes ->
-        val last7          = aktiviteterRepo.getRecent("screening", 7)
-        val lastAktivitet  = aktiviteterRepo.getRecent("aktivitet", 1).firstOrNull()
         val screeningsToday = aktiviteterRepo.getScreeningToday()
+        val screeningDailyAvg = aktiviteterRepo.screeningFromDate(7).first()
+            .groupBy { it.datum }
+            .entries
+            .sortedBy { it.key }
+            .map { (datum, entries) -> datum to entries.map { it.energy.toFloat() }.average().toFloat() }
         val nowTime        = LocalTime.now()
 
         val overdueMediciner = today
@@ -87,11 +91,11 @@ class HomeViewModel @Inject constructor(
 
         HomeUiState(
             todayMediciner        = today.sortedBy { tidpunktSortIndex(it.tidpunkt) },
-            screeningPoints       = last7.map { it.energy.toFloat() },
-            screeningLabels       = last7.map { dayLabel(it.datum) },
+            screeningPoints       = screeningDailyAvg.map { it.second },
+            screeningLabels       = screeningDailyAvg.map { dayLabel(it.first) },
             overdueMediciner      = overdueMediciner,
             overdueScreeningTimes = overdueScreeningTimes,
-            lastAktivitet         = lastAktivitet,
+            lastAktivitet         = null,
             tagenCount            = today.count { it.tagen },
             googleEmail           = user?.email,
             googlePhotoUrl        = user?.photoUrl?.toString(),
