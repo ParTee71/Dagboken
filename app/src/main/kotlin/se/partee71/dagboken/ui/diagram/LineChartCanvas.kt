@@ -65,20 +65,15 @@ fun LineChartCanvas(
                 val y = padT + chartH * (1f - (v - minValue) / range)
                 if (!started) { path.moveTo(x, y); started = true } else path.lineTo(x, y)
             }
-            drawPath(path, s.color, style = Stroke(width = 2.5f))
+            drawPath(path, s.color, style = Stroke(width = 4f))
 
-            // Dots
+            // Dots — use series color so multi-series charts remain readable
             s.points.forEachIndexed { i, v ->
                 if (v == null) return@forEachIndexed
                 val x = padL + i * step
                 val y = padT + chartH * (1f - (v - minValue) / range)
-                val dotColor = when {
-                    v >= 7f  -> Color(0xFF34d399)
-                    v >= 4f  -> Color(0xFFf97316)
-                    else     -> Color(0xFFf87171)
-                }
-                drawCircle(dotColor, radius = 4f, center = Offset(x, y))
-                drawCircle(Color.Black.copy(alpha = 0.4f), radius = 4f, center = Offset(x, y), style = Stroke(1f))
+                drawCircle(s.color, radius = 5f, center = Offset(x, y))
+                drawCircle(Color.Black.copy(alpha = 0.4f), radius = 5f, center = Offset(x, y), style = Stroke(1f))
             }
         }
     }

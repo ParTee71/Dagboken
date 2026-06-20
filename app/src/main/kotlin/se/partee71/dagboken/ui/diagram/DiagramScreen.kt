@@ -201,8 +201,12 @@ fun DiagramScreen(
                                 if (series == "Stress") it.avgStress else it.avgEnergy
                             }
                             if (values.isNotEmpty()) {
+                                val seriesColor = if (series == "Stress")
+                                    MaterialTheme.colorScheme.secondary
+                                else
+                                    MaterialTheme.colorScheme.primary
                                 Text(series, style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    color = seriesColor)
                                 Row(
                                     modifier              = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceEvenly,
