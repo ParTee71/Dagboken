@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -64,9 +63,11 @@ class HomeViewModel @Inject constructor(
         authRepo.authStateFlow,
         _isSigningIn,
         activeScreeningTimes,
-    ) { today, user, signingIn, activeTimes ->
-        val screeningsToday = aktiviteterRepo.getScreeningToday()
-        val screeningDailyAvg = aktiviteterRepo.screeningFromDate(7).first()
+        aktiviteterRepo.screeningFromDate(7),
+    ) { today, user, signingIn, activeTimes, recentScreenings ->
+        val todayStr = LocalDate.now().toString()
+        val screeningsToday = recentScreenings.filter { it.datum == todayStr }
+        val screeningDailyAvg = recentScreenings
             .groupBy { it.datum }
             .entries
             .sortedBy { it.key }
