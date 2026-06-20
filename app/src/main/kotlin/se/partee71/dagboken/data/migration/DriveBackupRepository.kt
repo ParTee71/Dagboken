@@ -16,11 +16,12 @@ import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
 import com.google.api.services.drive.model.File
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
+import se.partee71.dagboken.di.IoDispatcher
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -47,8 +48,9 @@ private sealed class AuthorizeResult {
 class DriveBackupRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val authRepo: FirebaseAuthRepository,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val json: Json,
 ) {
-    private val json = Json { ignoreUnknownKeys = true }
     private val BACKUP_PREFIX = "dagboken-backup-"
     private val APP_NAME = "Dagboken"
 
@@ -95,7 +97,7 @@ class DriveBackupRepository @Inject constructor(
     private suspend fun <T> withDrive(block: (Drive) -> DriveResult<T>): DriveResult<T> {
         if (authRepo.currentUser == null) return DriveResult.NoAccount
 
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             when (val auth = authorizeDrive()) {
                 is AuthorizeResult.NeedsAuthorization -> DriveResult.NeedsAuthorization(auth.pendingIntent)
                 is AuthorizeResult.Error -> DriveResult.Error(auth.message)

@@ -56,6 +56,7 @@ class VidBehovTabTest {
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
+            json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
         vm = MedicinerViewModel(repo, CheckCooldownUseCase(), CheckDailyLimitUseCase())
     }

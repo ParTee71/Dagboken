@@ -28,8 +28,8 @@ class MedicinerRepository @Inject constructor(
     private val receptDao: ReceptDao,
     private val favoritDao: FavoritDao,
     private val ensureTodayEntries: EnsureTodayEntriesUseCase,
+    private val json: Json,
 ) {
-    private val json = Json { ignoreUnknownKeys = true }
 
     // ─── Medicin ──────────────────────────────────────────────────────────────
     fun todayFlow(): Flow<List<Medicin>> {

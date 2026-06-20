@@ -48,6 +48,7 @@ class MigrationRoundTripTest {
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
+            json               = json,
         )
     }
 

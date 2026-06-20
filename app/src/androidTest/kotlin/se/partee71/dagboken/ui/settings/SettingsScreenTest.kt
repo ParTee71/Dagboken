@@ -48,6 +48,7 @@ class SettingsScreenTest {
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
+            json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
         val authRepo = FirebaseAuthRepository(ctx)
         prefs = PreferencesRepository(ctx)

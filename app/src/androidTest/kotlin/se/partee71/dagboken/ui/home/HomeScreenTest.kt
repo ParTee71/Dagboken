@@ -53,6 +53,7 @@ class HomeScreenTest {
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
+            json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
         authRepo = FirebaseAuthRepository(ctx)
         prefs    = PreferencesRepository(ctx)

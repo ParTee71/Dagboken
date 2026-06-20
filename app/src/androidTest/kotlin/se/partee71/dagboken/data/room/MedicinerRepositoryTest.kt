@@ -45,6 +45,7 @@ class MedicinerRepositoryTest {
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
+            json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
     }
 

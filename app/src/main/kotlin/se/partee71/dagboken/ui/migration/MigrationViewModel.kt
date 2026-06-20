@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 import androidx.room.withTransaction
+import kotlinx.serialization.json.Json
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.migration.BackupJson
@@ -47,9 +47,8 @@ class MigrationViewModel @Inject constructor(
     private val aktiviteterRepo: AktiviteterRepository,
     private val medicinerRepo: MedicinerRepository,
     private val prefs: PreferencesRepository,
+    private val json: Json,
 ) : ViewModel() {
-
-    private val json = Json { ignoreUnknownKeys = true }
 
     private val _state = MutableStateFlow<MigrationState>(MigrationState.Idle)
     val state: StateFlow<MigrationState> = _state.asStateFlow()

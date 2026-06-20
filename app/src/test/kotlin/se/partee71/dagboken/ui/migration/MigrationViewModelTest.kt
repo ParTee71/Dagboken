@@ -8,6 +8,7 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import androidx.room.withTransaction
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,7 +63,8 @@ class MigrationViewModelTest {
         coEvery { db.withTransaction<Unit>(any()) } coAnswers {
             secondArg<suspend () -> Unit>().invoke()
         }
-        viewModel = MigrationViewModel(context, db, driveRepo, authRepo, aktivRepo, medicRepo, prefs)
+        viewModel = MigrationViewModel(context, db, driveRepo, authRepo, aktivRepo, medicRepo, prefs,
+            Json { ignoreUnknownKeys = true })
     }
 
     @After fun tearDown() {
