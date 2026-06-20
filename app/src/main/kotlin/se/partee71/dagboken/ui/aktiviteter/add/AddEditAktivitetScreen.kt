@@ -38,12 +38,7 @@ fun AddEditAktivitetScreen(
         },
     ) { padding ->
         androidx.compose.foundation.layout.Box(Modifier.padding(padding)) {
-            LoggaTab(vm = vm) // reuse LoggaTab; save calls onBack via vm.save
+            LoggaTab(vm = vm, onSaved = onBack)
         }
-    }
-
-    // Navigate back after save
-    LaunchedEffect(Unit) {
-        // Override the save callback to navigate back
     }
 }

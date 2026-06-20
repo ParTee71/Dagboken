@@ -88,7 +88,7 @@ class VidBehovTabTest {
                 val snackbarState = remember { SnackbarHostState() }
                 Scaffold(snackbarHost = { SnackbarHost(snackbarState) }) { paddingValues ->
                     Box(modifier = Modifier.padding(paddingValues)) {
-                        VidBehovTab(vm = vm, onEdit = {}, snackbarHostState = snackbarState)
+                        VidBehovTab(vm = vm, onEdit = {})
                     }
                 }
             }

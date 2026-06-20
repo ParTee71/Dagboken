@@ -80,14 +80,14 @@ class MedicinerViewModel @Inject constructor(
         }
     }
 
-    fun quickDos(favorit: Favorit, onBlocked: (String) -> Unit) {
+    fun quickDos(favorit: Favorit) {
         viewModelScope.launch {
             val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
             // Check daily limit
             val takenToday = repo.countDailyDoses(today, favorit.namn)
             if (limitUseCase.limitReached(favorit.maxDoserPerDag, takenToday)) {
-                onBlocked("Max ${favorit.maxDoserPerDag} doser/dag nådda för ${favorit.namn}")
+                _snackbar.value = "Max ${favorit.maxDoserPerDag} doser/dag nådda för ${favorit.namn}"
                 return@launch
             }
 
@@ -97,7 +97,7 @@ class MedicinerViewModel @Inject constructor(
             if (remaining != null) {
                 val h = remaining.toInt()
                 val m = ((remaining - h) * 60).toInt()
-                onBlocked("Vänta ${h}h ${m}m innan nästa dos av ${favorit.namn}")
+                _snackbar.value = "Vänta ${h}h ${m}m innan nästa dos av ${favorit.namn}"
                 return@launch
             }
 

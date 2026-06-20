@@ -26,7 +26,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,13 +33,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import se.partee71.dagboken.domain.model.Favorit
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -48,10 +45,8 @@ import se.partee71.dagboken.domain.model.Favorit
 fun VidBehovTab(
     vm: MedicinerViewModel,
     onEdit: (String) -> Unit,
-    snackbarHostState: SnackbarHostState,
 ) {
     val favoriter by vm.allFavoriter.collectAsState()
-    val scope = rememberCoroutineScope()
     var deleteTarget by remember { mutableStateOf<Favorit?>(null) }
     val cs = MaterialTheme.colorScheme
 
@@ -108,11 +103,7 @@ fun VidBehovTab(
                 Box {
                     ElevatedCard(
                         modifier = Modifier.combinedClickable(
-                            onClick = {
-                                vm.quickDos(fav) { blockedMsg ->
-                                    scope.launch { snackbarHostState.showSnackbar(blockedMsg) }
-                                }
-                            },
+                            onClick = { vm.quickDos(fav) },
                             onLongClick = { menuExpanded = true },
                         ),
                         colors = CardDefaults.elevatedCardColors(

@@ -92,11 +92,11 @@ class MedicinerViewModelTest {
         every { limit.limitReached(3, any()) } returns true
         coEvery { repo.countDailyDoses(any(), any()) } returns 3
 
-        var blocked: String? = null
-        viewModel.quickDos(favorit(maxDoserPerDag = 3)) { blocked = it }
+        viewModel.quickDos(favorit(maxDoserPerDag = 3))
 
-        assertNotNull(blocked)
-        assertTrue("Expected limit message, got: $blocked", blocked!!.contains("Max 3"))
+        val msg = viewModel.snackbar.value
+        assertNotNull(msg)
+        assertTrue("Expected limit message, got: $msg", msg!!.contains("Max 3"))
         coVerify(exactly = 0) { repo.saveMedicin(any()) }
     }
 
@@ -106,11 +106,11 @@ class MedicinerViewModelTest {
         every { cooldown.remainingHours(any(), any(), any()) } returns 2.5
         coEvery { repo.countDailyDoses(any(), any()) } returns 0
 
-        var blocked: String? = null
-        viewModel.quickDos(favorit(minTidMellan = 6)) { blocked = it }
+        viewModel.quickDos(favorit(minTidMellan = 6))
 
-        assertNotNull(blocked)
-        assertTrue("Expected cooldown message, got: $blocked", blocked!!.contains("Vänta"))
+        val msg = viewModel.snackbar.value
+        assertNotNull(msg)
+        assertTrue("Expected cooldown message, got: $msg", msg!!.contains("Vänta"))
         coVerify(exactly = 0) { repo.saveMedicin(any()) }
     }
 
@@ -118,12 +118,12 @@ class MedicinerViewModelTest {
         every { cooldown.remainingHours(any(), any(), any()) } returns 1.5
         coEvery { repo.countDailyDoses(any(), any()) } returns 0
 
-        var blocked: String? = null
-        viewModel.quickDos(favorit(minTidMellan = 6)) { blocked = it }
+        viewModel.quickDos(favorit(minTidMellan = 6))
 
-        assertNotNull(blocked)
-        assertTrue(blocked!!.contains("1h"))
-        assertTrue(blocked.contains("30m"))
+        val msg = viewModel.snackbar.value
+        assertNotNull(msg)
+        assertTrue(msg!!.contains("1h"))
+        assertTrue(msg.contains("30m"))
     }
 
     // ─── quickDos – happy path ────────────────────────────────────────────────
@@ -132,10 +132,8 @@ class MedicinerViewModelTest {
         coEvery { repo.countDailyDoses(any(), any()) } returns 0
         coEvery { repo.getLastTaken(any()) } returns null
 
-        var blocked: String? = null
-        viewModel.quickDos(favorit()) { blocked = it }
+        viewModel.quickDos(favorit())
 
-        assertNull(blocked)
         coVerify { repo.saveMedicin(any()) }
         assertNotNull(viewModel.snackbar.value)
         assertTrue(viewModel.snackbar.value!!.contains("loggad"))
@@ -145,7 +143,7 @@ class MedicinerViewModelTest {
         coEvery { repo.countDailyDoses(any(), any()) } returns 0
         coEvery { repo.getLastTaken(any()) } returns null
 
-        viewModel.quickDos(favorit(namn = "Ipren")) {}
+        viewModel.quickDos(favorit(namn = "Ipren"))
 
         assertTrue(viewModel.snackbar.value?.contains("Ipren") == true)
     }

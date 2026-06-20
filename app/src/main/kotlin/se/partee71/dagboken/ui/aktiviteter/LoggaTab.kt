@@ -38,7 +38,7 @@ import se.partee71.dagboken.ui.theme.energyLabel
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun LoggaTab(vm: AktiviteterViewModel) {
+fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
     val form by vm.form.collectAsState()
     val aktivitetOptions by vm.aktivitetOptions.collectAsState()
     val symptomOptions by vm.symptomOptions.collectAsState()
@@ -198,7 +198,7 @@ fun LoggaTab(vm: AktiviteterViewModel) {
 
         // Save button
         FilledTonalButton(
-            onClick  = { vm.save { } },
+            onClick  = { vm.save { onSaved() } },
             enabled  = form.aktivitet.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         ) {

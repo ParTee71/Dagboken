@@ -161,7 +161,7 @@ fun MedicinerScreen(
                 when (page) {
                     0 -> IdagTab(vm = vm, onEdit = onEditMedicin)
                     1 -> SchemaTab(vm = vm, onEdit = onEditRecept)
-                    2 -> VidBehovTab(vm = vm, onEdit = onEditFavorit, snackbarHostState = snackbarHostState)
+                    2 -> VidBehovTab(vm = vm, onEdit = onEditFavorit)
                 }
             }
         }
