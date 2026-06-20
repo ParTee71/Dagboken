@@ -1,7 +1,5 @@
 package se.partee71.dagboken.ui.home
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +25,6 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -46,21 +43,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.StatPill
-import se.partee71.dagboken.ui.theme.Emerald400
 import se.partee71.dagboken.ui.theme.energyLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -267,54 +260,6 @@ fun HomeScreen(
                 }
             }
 
-            // Mediciner idag card
-            if (uiState.todayMediciner.isNotEmpty()) {
-                item {
-                    val allTaken      = uiState.tagenCount == uiState.todayMediciner.size
-                    val progressColor by animateColorAsState(
-                        targetValue = if (allTaken) cs.tertiary else cs.secondary,
-                        animationSpec = tween(600),
-                        label = "progress_color",
-                    )
-                    DagbokenCard(title = "Mediciner idag") {
-                        Row(
-                            modifier              = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment     = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text  = "${uiState.tagenCount} av ${uiState.todayMediciner.size} tagna",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = cs.onSurfaceVariant,
-                            )
-                        }
-                        LinearProgressIndicator(
-                            progress      = {
-                                if (uiState.todayMediciner.isEmpty()) 0f
-                                else uiState.tagenCount.toFloat() / uiState.todayMediciner.size
-                            },
-                            modifier      = Modifier.fillMaxWidth(),
-                            color         = progressColor,
-                            trackColor    = progressColor.copy(alpha = 0.2f),
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        HorizontalDivider()
-                        uiState.todayMediciner.take(3).forEach { medicin ->
-                            HomeMedicinRow(
-                                medicin  = medicin,
-                                onToggle = { vm.toggleMedicinTagen(medicin) },
-                            )
-                        }
-                        if (uiState.todayMediciner.size > 3) {
-                            TextButton(
-                                onClick  = onNavigateToMediciner,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) { Text("Visa alla ${uiState.todayMediciner.size} mediciner →") }
-                        }
-                    }
-                }
-            }
-
             // Diagram / Screening card
             item {
                 DagbokenCard(title = "Energi senaste 7 dagarna") {
@@ -414,48 +359,3 @@ fun HomeScreen(
     }
 }
 
-@Composable
-private fun HomeMedicinRow(medicin: Medicin, onToggle: () -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    ListItem(
-        headlineContent = {
-            Text(
-                text           = medicin.namn,
-                textDecoration = if (medicin.tagen) TextDecoration.LineThrough else null,
-                modifier       = if (medicin.tagen) Modifier.alpha(0.5f) else Modifier,
-            )
-        },
-        supportingContent = {
-            Text(
-                text     = "${medicin.dos} ${medicin.enhet}  •  ${medicin.tidpunkt}",
-                modifier = if (medicin.tagen) Modifier.alpha(0.5f) else Modifier,
-            )
-        },
-        trailingContent = {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (medicin.tagen) Emerald400 else cs.surfaceVariant
-                    )
-                    .clickable(onClick = onToggle),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (medicin.tagen) {
-                    Icon(
-                        Icons.Filled.CheckCircle,
-                        contentDescription = null,
-                        tint     = cs.surface,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-        },
-        colors = if (medicin.tagen) {
-            ListItemDefaults.colors(containerColor = cs.surfaceVariant.copy(alpha = 0.4f))
-        } else {
-            ListItemDefaults.colors()
-        },
-    )
-}

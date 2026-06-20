@@ -58,7 +58,6 @@
 | HEM-3 | Visa **stat-pills**: antal tagna/totala mediciner idag samt senaste aktivitetens energinivå. |
 | HEM-4 | Visa ett **"Försenat"-kort** när medicintidpunkt passerats utan att vara tagen, eller screeningpåminnelse passerats utan loggning. |
 | HEM-5 | Från försenat-kortet ska medicin kunna markeras som tagen direkt, och screening kunna nås via "Logga". |
-| HEM-6 | Visa **"Mediciner idag"-kort** med progressindikator och upp till 3 mediciner (med snabb-bockning). Fler än 3 → länk till medicinlistan. |
 | HEM-7 | Visa **sparkline-diagram** över energi senaste 7 dagarna (minst 2 datapunkter krävs, annars uppmaning att logga). |
 | HEM-8 | Visa **snabbåtgärder**: "Logga aktivitet" och "Mediciner". |
 | HEM-9 | Visa **kontobubbla** (avatar/foto) som öppnar konto-bottensheet (logga in/ut, inställningar). |
