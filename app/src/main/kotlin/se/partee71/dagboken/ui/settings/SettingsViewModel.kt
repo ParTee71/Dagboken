@@ -5,9 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
@@ -41,79 +42,71 @@ class SettingsViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SettingsUiState())
-    val state: StateFlow<SettingsUiState> = _state.asStateFlow()
+    private val _isSigningIn        = MutableStateFlow(false)
+    private val _signInError        = MutableStateFlow<String?>(null)
+    private val _newAktivitetOption = MutableStateFlow("")
+    private val _newSymptomOption   = MutableStateFlow("")
 
-    init {
-        viewModelScope.launch {
-            prefs.isDarkTheme.collectLatest { dark ->
-                _state.value = _state.value.copy(isDarkTheme = dark)
-            }
-        }
-        viewModelScope.launch {
-            prefs.dynamicColor.collectLatest { dynamic ->
-                _state.value = _state.value.copy(isDynamicColor = dynamic)
-            }
-        }
-        viewModelScope.launch {
-            prefs.themeMode.collectLatest { mode ->
-                _state.value = _state.value.copy(themeMode = mode)
-            }
-        }
-        viewModelScope.launch {
-            prefs.themeLightStart.collectLatest { hour ->
-                _state.value = _state.value.copy(themeLightStart = hour)
-            }
-        }
-        viewModelScope.launch {
-            prefs.themeDarkStart.collectLatest { hour ->
-                _state.value = _state.value.copy(themeDarkStart = hour)
-            }
-        }
-        viewModelScope.launch {
-            prefs.medsNotificationsEnabled.collectLatest { enabled ->
-                _state.value = _state.value.copy(medsNotificationsEnabled = enabled)
-            }
-        }
-        viewModelScope.launch {
-            prefs.screeningEventConfigs.collectLatest { configs ->
-                _state.value = _state.value.copy(screeningEventConfigs = configs)
-            }
-        }
-        viewModelScope.launch {
-            prefs.aktivitetOptions.collectLatest { opts ->
-                _state.value = _state.value.copy(aktivitetOptions = opts)
-            }
-        }
-        viewModelScope.launch {
-            prefs.symptomOptions.collectLatest { opts ->
-                _state.value = _state.value.copy(symptomOptions = opts)
-            }
-        }
-        viewModelScope.launch {
-            authRepo.authStateFlow.collectLatest { user ->
-                _state.value = _state.value.copy(
-                    googleAccountEmail    = user?.email,
-                    googleAccountPhotoUrl = user?.photoUrl?.toString(),
-                )
-            }
-        }
-    }
+    private data class ThemePrefs(
+        val dark: Boolean, val dynamic: Boolean, val mode: String,
+        val lightStart: Int, val darkStart: Int,
+    )
+    private data class NotifPrefs(
+        val medsEnabled: Boolean,
+        val screeningConfigs: List<ScreeningEventConfig>,
+        val aktivitetOpts: List<String>,
+        val symptomOpts: List<String>,
+    )
+
+    val state: StateFlow<SettingsUiState> = combine(
+        combine(prefs.isDarkTheme, prefs.dynamicColor, prefs.themeMode,
+                prefs.themeLightStart, prefs.themeDarkStart) { dark, dynamic, mode, light, darkS ->
+            ThemePrefs(dark, dynamic, mode, light, darkS)
+        },
+        combine(prefs.medsNotificationsEnabled, prefs.screeningEventConfigs,
+                prefs.aktivitetOptions, prefs.symptomOptions) { meds, screening, akt, symp ->
+            NotifPrefs(meds, screening, akt, symp)
+        },
+        combine(authRepo.authStateFlow, _isSigningIn, _signInError,
+                _newAktivitetOption, _newSymptomOption) { user, signing, err, newAkt, newSymp ->
+            SettingsUiState(
+                googleAccountEmail    = user?.email,
+                googleAccountPhotoUrl = user?.photoUrl?.toString(),
+                isSigningIn           = signing,
+                signInError           = err,
+                newAktivitetOption    = newAkt,
+                newSymptomOption      = newSymp,
+            )
+        },
+    ) { theme, notif, auth ->
+        auth.copy(
+            isDarkTheme              = theme.dark,
+            isDynamicColor           = theme.dynamic,
+            themeMode                = theme.mode,
+            themeLightStart          = theme.lightStart,
+            themeDarkStart           = theme.darkStart,
+            medsNotificationsEnabled = notif.medsEnabled,
+            screeningEventConfigs    = notif.screeningConfigs,
+            aktivitetOptions         = notif.aktivitetOpts,
+            symptomOptions           = notif.symptomOpts,
+        )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, SettingsUiState())
 
     fun signIn(activityContext: Context) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isSigningIn = true, signInError = null)
+            _isSigningIn.value = true
+            _signInError.value = null
             val result = authRepo.signInWithGoogle(activityContext)
-            _state.value = _state.value.copy(isSigningIn = false)
+            _isSigningIn.value = false
             result.onFailure { e ->
                 if (e.message?.contains("cancel", ignoreCase = true) != true) {
-                    _state.value = _state.value.copy(signInError = e.message ?: "Inloggning misslyckades")
+                    _signInError.value = e.message ?: "Inloggning misslyckades"
                 }
             }
         }
     }
 
-    fun clearSignInError() { _state.value = _state.value.copy(signInError = null) }
+    fun clearSignInError() { _signInError.value = null }
 
     fun signOut() {
         viewModelScope.launch {
@@ -123,11 +116,11 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun toggleTheme() {
-        viewModelScope.launch { prefs.setDarkTheme(!_state.value.isDarkTheme) }
+        viewModelScope.launch { prefs.setDarkTheme(!state.value.isDarkTheme) }
     }
 
     fun toggleDynamicColor() {
-        viewModelScope.launch { prefs.setDynamicColor(!_state.value.isDynamicColor) }
+        viewModelScope.launch { prefs.setDynamicColor(!state.value.isDynamicColor) }
     }
 
     fun setThemeMode(mode: String) {
@@ -135,24 +128,24 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setThemeLightStart(hour: Int) {
-        val clamped = hour.coerceIn(0, (_state.value.themeDarkStart - 1).coerceAtLeast(0))
+        val clamped = hour.coerceIn(0, (state.value.themeDarkStart - 1).coerceAtLeast(0))
         viewModelScope.launch { prefs.setThemeLightStart(clamped) }
     }
 
     fun setThemeDarkStart(hour: Int) {
-        val clamped = hour.coerceIn((_state.value.themeLightStart + 1).coerceAtMost(23), 23)
+        val clamped = hour.coerceIn((state.value.themeLightStart + 1).coerceAtMost(23), 23)
         viewModelScope.launch { prefs.setThemeDarkStart(clamped) }
     }
 
     fun toggleMedsNotifications() {
         viewModelScope.launch {
-            prefs.setMedsNotificationsEnabled(!_state.value.medsNotificationsEnabled)
+            prefs.setMedsNotificationsEnabled(!state.value.medsNotificationsEnabled)
             alarmScheduler.rescheduleAll()
         }
     }
 
     fun toggleScreeningEvent(index: Int) {
-        val updated = _state.value.screeningEventConfigs.toMutableList()
+        val updated = state.value.screeningEventConfigs.toMutableList()
             .also { it[index] = it[index].copy(enabled = !it[index].enabled) }
         viewModelScope.launch {
             prefs.setScreeningEventConfigs(updated)
@@ -161,7 +154,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setScreeningEventTime(index: Int, time: String) {
-        val updated = _state.value.screeningEventConfigs.toMutableList()
+        val updated = state.value.screeningEventConfigs.toMutableList()
             .also { it[index] = it[index].copy(time = time) }
         viewModelScope.launch {
             prefs.setScreeningEventConfigs(updated)
@@ -169,32 +162,32 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setNewAktivitetOption(v: String) { _state.value = _state.value.copy(newAktivitetOption = v) }
-    fun setNewSymptomOption(v: String)   { _state.value = _state.value.copy(newSymptomOption = v) }
+    fun setNewAktivitetOption(v: String) { _newAktivitetOption.value = v }
+    fun setNewSymptomOption(v: String)   { _newSymptomOption.value = v }
 
     fun addAktivitetOption() {
-        val new = _state.value.newAktivitetOption.trim()
-        if (new.isBlank() || _state.value.aktivitetOptions.contains(new)) return
+        val new = _newAktivitetOption.value.trim()
+        if (new.isBlank() || state.value.aktivitetOptions.contains(new)) return
         viewModelScope.launch {
-            prefs.setAktivitetOptions(_state.value.aktivitetOptions + new)
-            _state.value = _state.value.copy(newAktivitetOption = "")
+            prefs.setAktivitetOptions(state.value.aktivitetOptions + new)
+            _newAktivitetOption.value = ""
         }
     }
 
     fun removeAktivitetOption(opt: String) {
-        viewModelScope.launch { prefs.setAktivitetOptions(_state.value.aktivitetOptions - opt) }
+        viewModelScope.launch { prefs.setAktivitetOptions(state.value.aktivitetOptions - opt) }
     }
 
     fun addSymptomOption() {
-        val new = _state.value.newSymptomOption.trim()
-        if (new.isBlank() || _state.value.symptomOptions.contains(new)) return
+        val new = _newSymptomOption.value.trim()
+        if (new.isBlank() || state.value.symptomOptions.contains(new)) return
         viewModelScope.launch {
-            prefs.setSymptomOptions(_state.value.symptomOptions + new)
-            _state.value = _state.value.copy(newSymptomOption = "")
+            prefs.setSymptomOptions(state.value.symptomOptions + new)
+            _newSymptomOption.value = ""
         }
     }
 
     fun removeSymptomOption(opt: String) {
-        viewModelScope.launch { prefs.setSymptomOptions(_state.value.symptomOptions - opt) }
+        viewModelScope.launch { prefs.setSymptomOptions(state.value.symptomOptions - opt) }
     }
 }
