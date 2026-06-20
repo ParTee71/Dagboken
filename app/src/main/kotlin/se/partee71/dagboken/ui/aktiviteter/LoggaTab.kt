@@ -60,65 +60,18 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
             fontWeight = FontWeight.Bold,
         )
 
-        // Activity type card
-        ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Aktivitetstyp",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.height(10.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    val aktivitetItems = remember(aktivitetOptions) { aktivitetOptions + "Övrigt" }
-                    aktivitetItems.forEach { opt ->
-                        FilterChip(
-                            selected = form.aktivitet == opt,
-                            onClick  = { vm.updateForm { copy(aktivitet = opt) } },
-                            label    = { Text(opt) },
-                            colors   = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor     = MaterialTheme.colorScheme.onPrimaryContainer,
-                            ),
-                        )
-                    }
-                }
+        AktivitetCard(
+            selectedAktivitet  = form.aktivitet,
+            aktivitetAnnat     = form.aktivitetAnnat,
+            aterhamtande       = form.aterhamtande,
+            energitjuv         = form.energitjuv,
+            aktivitetOptions   = aktivitetOptions,
+            onSelectAktivitet  = { vm.updateForm { copy(aktivitet = it) } },
+            onChangeAnnat      = { vm.updateForm { copy(aktivitetAnnat = it) } },
+            onToggleAterham    = { vm.updateForm { copy(aterhamtande = !aterhamtande) } },
+            onToggleEnergiTjuv = { vm.updateForm { copy(energitjuv = !energitjuv) } },
+        )
 
-                if (form.aktivitet == "Övrigt") {
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value         = form.aktivitetAnnat,
-                        onValueChange = { vm.updateForm { copy(aktivitetAnnat = it) } },
-                        label         = { Text("Beskriv aktivitet") },
-                        modifier      = Modifier.fillMaxWidth(),
-                        singleLine    = true,
-                    )
-                }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement   = Arrangement.spacedBy(6.dp),
-                ) {
-                    InputChip(
-                        selected = form.aterhamtande,
-                        onClick  = { vm.updateForm { copy(aterhamtande = !aterhamtande) } },
-                        label    = { Text("Återhämtande") },
-                    )
-                    InputChip(
-                        selected = form.energitjuv,
-                        onClick  = { vm.updateForm { copy(energitjuv = !energitjuv) } },
-                        label    = { Text("Energitjuv") },
-                    )
-                }
-            }
-        }
-
-        // Metrics card
         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
             Foldout(
                 title    = "Mätvärden",
@@ -156,7 +109,6 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
             }
         }
 
-        // Symptoms card
         if (symptomOptions.isNotEmpty()) {
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Foldout(
@@ -196,7 +148,6 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
             }
         }
 
-        // Save button
         FilledTonalButton(
             onClick  = { vm.save { onSaved() } },
             enabled  = form.aktivitet.isNotBlank(),
@@ -205,6 +156,77 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
             Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.size(8.dp))
             Text("Spara aktivitet")
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AktivitetCard(
+    selectedAktivitet: String,
+    aktivitetAnnat: String,
+    aterhamtande: Boolean,
+    energitjuv: Boolean,
+    aktivitetOptions: List<String>,
+    onSelectAktivitet: (String) -> Unit,
+    onChangeAnnat: (String) -> Unit,
+    onToggleAterham: () -> Unit,
+    onToggleEnergiTjuv: () -> Unit,
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Aktivitetstyp",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.height(10.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                val items = remember(aktivitetOptions) { aktivitetOptions + "Övrigt" }
+                items.forEach { opt ->
+                    FilterChip(
+                        selected = selectedAktivitet == opt,
+                        onClick  = { onSelectAktivitet(opt) },
+                        label    = { Text(opt) },
+                        colors   = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor     = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                    )
+                }
+            }
+
+            if (selectedAktivitet == "Övrigt") {
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value         = aktivitetAnnat,
+                    onValueChange = onChangeAnnat,
+                    label         = { Text("Beskriv aktivitet") },
+                    modifier      = Modifier.fillMaxWidth(),
+                    singleLine    = true,
+                )
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement   = Arrangement.spacedBy(6.dp),
+            ) {
+                InputChip(
+                    selected = aterhamtande,
+                    onClick  = onToggleAterham,
+                    label    = { Text("Återhämtande") },
+                )
+                InputChip(
+                    selected = energitjuv,
+                    onClick  = onToggleEnergiTjuv,
+                    label    = { Text("Energitjuv") },
+                )
+            }
         }
     }
 }

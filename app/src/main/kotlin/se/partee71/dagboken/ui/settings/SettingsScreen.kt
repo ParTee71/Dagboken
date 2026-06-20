@@ -77,7 +77,6 @@ fun SettingsScreen(
 ) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
-    val cs = MaterialTheme.colorScheme
 
     Scaffold(
         topBar = {
@@ -99,277 +98,327 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Google Account / Backup
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Google-konto & säkerhetskopiering", style = MaterialTheme.typography.titleSmall)
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    if (state.googleAccountEmail != null) {
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            verticalAlignment     = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            if (state.googleAccountPhotoUrl != null) {
-                                AsyncImage(
-                                    model              = state.googleAccountPhotoUrl,
-                                    contentDescription = "Profilbild",
-                                    modifier           = Modifier.size(40.dp).clip(CircleShape),
-                                    contentScale       = ContentScale.Crop,
-                                )
-                            } else {
-                                Icon(
-                                    imageVector        = Icons.Default.AccountCircle,
-                                    contentDescription = null,
-                                    modifier           = Modifier.size(40.dp),
-                                    tint               = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = state.googleAccountEmail ?: "", style = MaterialTheme.typography.bodyMedium)
-                                Text(
-                                    text  = "Inloggad — data säkerhetskopieras dagligen",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        OutlinedButton(onClick = { vm.signOut() }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Logga ut")
-                        }
+            AccountCard(
+                email          = state.googleAccountEmail,
+                photoUrl       = state.googleAccountPhotoUrl,
+                isSigningIn    = state.isSigningIn,
+                signInError    = state.signInError,
+                onSignIn       = { vm.signIn(context) },
+                onSignOut      = { vm.signOut() },
+            )
+
+            ImportCard(onImport = onImport)
+
+            ThemeCard(
+                themeMode       = state.themeMode,
+                themeLightStart = state.themeLightStart,
+                themeDarkStart  = state.themeDarkStart,
+                onSetMode       = vm::setThemeMode,
+                onSetLightStart = { vm.setThemeLightStart(state.themeLightStart + it) },
+                onSetDarkStart  = { vm.setThemeDarkStart(state.themeDarkStart + it) },
+            )
+
+            NotificationsCard(
+                medsEnabled           = state.medsNotificationsEnabled,
+                screeningConfigs      = state.screeningEventConfigs,
+                onToggleMeds          = { vm.toggleMedsNotifications() },
+                onToggleScreening     = { vm.toggleScreeningEvent(it) },
+                onSetScreeningTime    = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
+            )
+
+            OptionListCard(
+                title         = "Aktivitetstyper",
+                options       = state.aktivitetOptions,
+                newOption     = state.newAktivitetOption,
+                newOptionLabel = "Ny typ",
+                onValueChange = vm::setNewAktivitetOption,
+                onAdd         = vm::addAktivitetOption,
+                onRemove      = vm::removeAktivitetOption,
+            )
+
+            OptionListCard(
+                title         = "Symptom",
+                options       = state.symptomOptions,
+                newOption     = state.newSymptomOption,
+                newOptionLabel = "Nytt symptom",
+                onValueChange = vm::setNewSymptomOption,
+                onAdd         = vm::addSymptomOption,
+                onRemove      = vm::removeSymptomOption,
+            )
+
+            AboutCard()
+        }
+    }
+}
+
+@Composable
+private fun AccountCard(
+    email: String?,
+    photoUrl: String?,
+    isSigningIn: Boolean,
+    signInError: String?,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Google-konto & säkerhetskopiering", style = MaterialTheme.typography.titleSmall)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            if (email != null) {
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (photoUrl != null) {
+                        AsyncImage(
+                            model              = photoUrl,
+                            contentDescription = "Profilbild",
+                            modifier           = Modifier.size(40.dp).clip(CircleShape),
+                            contentScale       = ContentScale.Crop,
+                        )
                     } else {
-                        Row(
-                            modifier              = Modifier.fillMaxWidth(),
-                            verticalAlignment     = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Icon(
-                                imageVector        = Icons.Default.AccountCircle,
-                                contentDescription = null,
-                                modifier           = Modifier.size(40.dp),
-                                tint               = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text     = "Inte inloggad",
-                                style    = MaterialTheme.typography.bodyMedium,
-                                color    = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        state.signInError?.let { err ->
-                            Text(
-                                text     = err,
-                                color    = MaterialTheme.colorScheme.error,
-                                style    = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-                            )
-                        }
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        Button(
-                            onClick  = { vm.signIn(context) },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled  = !state.isSigningIn,
-                        ) {
-                            if (state.isSigningIn) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                                Spacer(Modifier.width(8.dp))
+                        Icon(
+                            imageVector        = Icons.Default.AccountCircle,
+                            contentDescription = null,
+                            modifier           = Modifier.size(40.dp),
+                            tint               = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = email, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text  = "Inloggad — data säkerhetskopieras dagligen",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                OutlinedButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
+                    Text("Logga ut")
+                }
+            } else {
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Icon(
+                        imageVector        = Icons.Default.AccountCircle,
+                        contentDescription = null,
+                        modifier           = Modifier.size(40.dp),
+                        tint               = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text     = "Inte inloggad",
+                        style    = MaterialTheme.typography.bodyMedium,
+                        color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                signInError?.let { err ->
+                    Text(
+                        text     = err,
+                        color    = MaterialTheme.colorScheme.error,
+                        style    = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                    )
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Button(
+                    onClick  = onSignIn,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled  = !isSigningIn,
+                ) {
+                    if (isSigningIn) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text("Logga in med Google")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ImportCard(onImport: () -> Unit) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Importera data", style = MaterialTheme.typography.titleSmall)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Text(
+                "Hämta säkerhetskopia från Google Drive eller välj en JSON-fil.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
+                Text("Importera från säkerhetskopia")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeCard(
+    themeMode: String,
+    themeLightStart: Int,
+    themeDarkStart: Int,
+    onSetMode: (String) -> Unit,
+    onSetLightStart: (Int) -> Unit,
+    onSetDarkStart: (Int) -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Tema-schema", style = MaterialTheme.typography.titleSmall)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            val themeModes = listOf("light" to "Ljust", "dark" to "Mörkt", "auto" to "Auto")
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                themeModes.forEachIndexed { index, (mode, label) ->
+                    SegmentedButton(
+                        selected = themeMode == mode,
+                        onClick  = { onSetMode(mode) },
+                        shape    = SegmentedButtonDefaults.itemShape(index = index, count = themeModes.size),
+                        label    = { Text(label) },
+                    )
+                }
+            }
+            if (themeMode == "auto") {
+                Spacer(Modifier.height(12.dp))
+                TimeStepperRow(
+                    emoji          = "🌅",
+                    label          = "Ljust tema från",
+                    hour           = themeLightStart,
+                    containerColor = cs.primaryContainer,
+                    contentColor   = cs.onPrimaryContainer,
+                    onDecrement    = { onSetLightStart(-1) },
+                    onIncrement    = { onSetLightStart(+1) },
+                )
+                Spacer(Modifier.height(8.dp))
+                TimeStepperRow(
+                    emoji          = "🌙",
+                    label          = "Mörkt tema från",
+                    hour           = themeDarkStart,
+                    containerColor = cs.surfaceVariant,
+                    contentColor   = cs.onSurfaceVariant,
+                    onDecrement    = { onSetDarkStart(-1) },
+                    onIncrement    = { onSetDarkStart(+1) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationsCard(
+    medsEnabled: Boolean,
+    screeningConfigs: List<ScreeningEventConfig>,
+    onToggleMeds: () -> Unit,
+    onToggleScreening: (Int) -> Unit,
+    onSetScreeningTime: (Int, Int, Int) -> Unit,
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Påminnelser", style = MaterialTheme.typography.titleSmall)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Medicinpåminnelser")
+                    Text(
+                        "Notis 15 min innan varje tidpunkt",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked         = medsEnabled,
+                    onCheckedChange = { onToggleMeds() },
+                )
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Text("Screeningpåminnelser", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Aktivera notis per måltidshändelse",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            screeningConfigs.forEachIndexed { index, config ->
+                if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                ScreeningEventRow(
+                    label          = SCREENING_EVENT_LABELS[index],
+                    config         = config,
+                    onToggle       = { onToggleScreening(index) },
+                    onTimeSelected = { h, m -> onSetScreeningTime(index, h, m) },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OptionListCard(
+    title: String,
+    options: List<String>,
+    newOption: String,
+    newOptionLabel: String,
+    onValueChange: (String) -> Unit,
+    onAdd: () -> Unit,
+    onRemove: (String) -> Unit,
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            HorizontalDivider()
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                options.forEach { opt ->
+                    FilterChip(
+                        selected = true,
+                        onClick  = {},
+                        label    = { Text(opt) },
+                        trailingIcon = {
+                            IconButton(onClick = { onRemove(opt) }) {
+                                Icon(Icons.Default.Close, "Ta bort", modifier = Modifier.padding(2.dp))
                             }
-                            Text("Logga in med Google")
-                        }
-                    }
-                }
-            }
-
-            // Import
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Importera data", style = MaterialTheme.typography.titleSmall)
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    Text(
-                        "Hämta säkerhetskopia från Google Drive eller välj en JSON-fil.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Button(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
-                        Text("Importera från säkerhetskopia")
-                    }
-                }
-            }
-
-            // Tema-schema
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Tema-schema", style = MaterialTheme.typography.titleSmall)
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    val themeModes = listOf("light" to "Ljust", "dark" to "Mörkt", "auto" to "Auto")
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                        themeModes.forEachIndexed { index, (mode, label) ->
-                            SegmentedButton(
-                                selected = state.themeMode == mode,
-                                onClick  = { vm.setThemeMode(mode) },
-                                shape    = SegmentedButtonDefaults.itemShape(index = index, count = themeModes.size),
-                                label    = { Text(label) },
-                            )
-                        }
-                    }
-                    if (state.themeMode == "auto") {
-                        Spacer(Modifier.height(12.dp))
-                        TimeStepperRow(
-                            emoji          = "🌅",
-                            label          = "Ljust tema från",
-                            hour           = state.themeLightStart,
-                            containerColor = cs.primaryContainer,
-                            contentColor   = cs.onPrimaryContainer,
-                            onDecrement    = { vm.setThemeLightStart(state.themeLightStart - 1) },
-                            onIncrement    = { vm.setThemeLightStart(state.themeLightStart + 1) },
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        TimeStepperRow(
-                            emoji          = "🌙",
-                            label          = "Mörkt tema från",
-                            hour           = state.themeDarkStart,
-                            containerColor = cs.surfaceVariant,
-                            contentColor   = cs.onSurfaceVariant,
-                            onDecrement    = { vm.setThemeDarkStart(state.themeDarkStart - 1) },
-                            onIncrement    = { vm.setThemeDarkStart(state.themeDarkStart + 1) },
-                        )
-                    }
-                }
-            }
-
-            // Påminnelser
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Påminnelser", style = MaterialTheme.typography.titleSmall)
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Medicinpåminnelser")
-                            Text(
-                                "Notis 15 min innan varje tidpunkt",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(
-                            checked        = state.medsNotificationsEnabled,
-                            onCheckedChange = { vm.toggleMedsNotifications() },
-                        )
-                    }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    Text(
-                        "Screeningpåminnelser",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        "Aktivera notis per måltidshändelse",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    state.screeningEventConfigs.forEachIndexed { index, config ->
-                        if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                        ScreeningEventRow(
-                            label    = SCREENING_EVENT_LABELS[index],
-                            config   = config,
-                            onToggle = { vm.toggleScreeningEvent(index) },
-                            onTimeSelected = { h, m ->
-                                vm.setScreeningEventTime(index, "%02d:%02d".format(h, m))
-                            },
-                        )
-                    }
-                }
-            }
-
-            // Aktivitet options
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Aktivitetstyper", style = MaterialTheme.typography.titleSmall)
-                    HorizontalDivider()
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        state.aktivitetOptions.forEach { opt ->
-                            FilterChip(
-                                selected = true,
-                                onClick  = {},
-                                label    = { Text(opt) },
-                                trailingIcon = {
-                                    IconButton(onClick = { vm.removeAktivitetOption(opt) }) {
-                                        Icon(Icons.Default.Close, "Ta bort", modifier = Modifier.padding(2.dp))
-                                    }
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                ),
-                            )
-                        }
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            value         = state.newAktivitetOption,
-                            onValueChange = vm::setNewAktivitetOption,
-                            label         = { Text("Ny typ") },
-                            modifier      = Modifier.weight(1f),
-                            singleLine    = true,
-                        )
-                        IconButton(onClick = vm::addAktivitetOption, enabled = state.newAktivitetOption.isNotBlank()) {
-                            Icon(Icons.Default.Add, "Lägg till")
-                        }
-                    }
-                }
-            }
-
-            // Symptom options
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Symptom", style = MaterialTheme.typography.titleSmall)
-                    HorizontalDivider()
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        state.symptomOptions.forEach { opt ->
-                            FilterChip(
-                                selected = true,
-                                onClick  = {},
-                                label    = { Text(opt) },
-                                trailingIcon = {
-                                    IconButton(onClick = { vm.removeSymptomOption(opt) }) {
-                                        Icon(Icons.Default.Close, "Ta bort", modifier = Modifier.padding(2.dp))
-                                    }
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                ),
-                            )
-                        }
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            value         = state.newSymptomOption,
-                            onValueChange = vm::setNewSymptomOption,
-                            label         = { Text("Nytt symptom") },
-                            modifier      = Modifier.weight(1f),
-                            singleLine    = true,
-                        )
-                        IconButton(onClick = vm::addSymptomOption, enabled = state.newSymptomOption.isNotBlank()) {
-                            Icon(Icons.Default.Add, "Lägg till")
-                        }
-                    }
-                }
-            }
-
-            // About
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Om appen", style = MaterialTheme.typography.titleSmall)
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    Text("Dagboken", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        "se.partee71.dagboken",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        ),
                     )
                 }
             }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value         = newOption,
+                    onValueChange = onValueChange,
+                    label         = { Text(newOptionLabel) },
+                    modifier      = Modifier.weight(1f),
+                    singleLine    = true,
+                )
+                IconButton(onClick = onAdd, enabled = newOption.isNotBlank()) {
+                    Icon(Icons.Default.Add, "Lägg till")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AboutCard() {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Om appen", style = MaterialTheme.typography.titleSmall)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Text("Dagboken", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "se.partee71.dagboken",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -393,8 +442,8 @@ private fun ScreeningEventRow(
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         TextButton(
-            onClick  = { showPicker = true },
-            enabled  = config.enabled,
+            onClick = { showPicker = true },
+            enabled = config.enabled,
         ) {
             Text(
                 text       = config.time,
@@ -458,12 +507,12 @@ private fun TimeStepperRow(
                 Icon(Icons.Default.Remove, contentDescription = "Minska", tint = contentColor)
             }
             Text(
-                text      = String.format(java.util.Locale.ROOT, "%02d:00", hour),
-                style     = MaterialTheme.typography.bodyLarge,
+                text       = String.format(java.util.Locale.ROOT, "%02d:00", hour),
+                style      = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color     = contentColor,
-                textAlign = TextAlign.Center,
-                modifier  = Modifier.width(52.dp),
+                color      = contentColor,
+                textAlign  = TextAlign.Center,
+                modifier   = Modifier.width(52.dp),
             )
             IconButton(onClick = onIncrement) {
                 Icon(Icons.Default.Add, contentDescription = "Öka", tint = contentColor)
