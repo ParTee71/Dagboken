@@ -147,6 +147,16 @@ class PreferencesRepository @Inject constructor(
 @Serializable
 data class ScreeningEventConfig(val enabled: Boolean, val time: String)
 
+data class ScreeningTime(val hour: Int, val min: Int) {
+    companion object {
+        fun parse(s: String): ScreeningTime? {
+            val h = s.substringBefore(":").toIntOrNull() ?: return null
+            val m = s.substringAfter(":").toIntOrNull() ?: return null
+            return ScreeningTime(h, m)
+        }
+    }
+}
+
 val SCREENING_EVENT_LABELS = listOf("Efter frukost", "Lunch", "Kvällsmat", "Läggdags")
 
 val DEFAULT_SCREENING_EVENTS = listOf(

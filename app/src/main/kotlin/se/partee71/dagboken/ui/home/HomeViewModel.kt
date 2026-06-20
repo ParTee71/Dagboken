@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
+import se.partee71.dagboken.data.datastore.ScreeningTime
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.domain.model.Aktivitet
@@ -82,9 +83,8 @@ class HomeViewModel @Inject constructor(
             .sortedBy { tidpunktSortIndex(it.tidpunkt) }
 
         val overdueScreeningTimes = activeTimes.filter { timeStr ->
-            val h = timeStr.substringBefore(":").toIntOrNull() ?: return@filter false
-            val m = timeStr.substringAfter(":").toIntOrNull() ?: 0
-            val reminderTime = LocalTime.of(h, m)
+            val st = ScreeningTime.parse(timeStr) ?: return@filter false
+            val reminderTime = LocalTime.of(st.hour, st.min)
             nowTime.isAfter(reminderTime) && screeningsToday.none { s ->
                 try { !LocalTime.parse(s.tid).isBefore(reminderTime) } catch (_: Exception) { false }
             }

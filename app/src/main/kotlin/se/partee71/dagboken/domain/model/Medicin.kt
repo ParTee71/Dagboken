@@ -29,6 +29,20 @@ data class Recept(
     val skapad: String,          // YYYY-MM-DD
 )
 
+enum class Upprepning {
+    DAGLIGEN, VARDAGAR, HELGER, ANPASSAD, INTERVALL;
+
+    companion object {
+        fun fromString(s: String): Upprepning = when (s.lowercase()) {
+            "vardagar"                    -> VARDAGAR
+            "helger"                      -> HELGER
+            "anpassad", "specifika dagar" -> ANPASSAD
+            "intervall", "var x:e dag"    -> INTERVALL
+            else                          -> DAGLIGEN
+        }
+    }
+}
+
 data class Favorit(
     val id: String,
     val namn: String,
