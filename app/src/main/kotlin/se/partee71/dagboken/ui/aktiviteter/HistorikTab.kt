@@ -1,5 +1,7 @@
 package se.partee71.dagboken.ui.aktiviteter
 
+import se.partee71.dagboken.ui.formatDisplayDate
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -129,7 +131,7 @@ fun HistorikTab(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
-                                text       = datum.uppercase(),
+                                text       = formatDisplayDate(datum),
                                 style      = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color      = MaterialTheme.colorScheme.primary,
