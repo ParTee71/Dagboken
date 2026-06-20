@@ -1,6 +1,7 @@
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -13,6 +14,10 @@ plugins {
 }
 
 private val buildTimestamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
+
+private val localProps = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
 
 android {
     namespace = "se.partee71.dagboken"
@@ -37,9 +42,15 @@ android {
     signingConfigs {
         create("release") {
             storeFile     = file("dagboken.jks")
-            storePassword = "dagboken2026"
-            keyAlias      = "dagboken"
-            keyPassword   = "dagboken2026"
+            storePassword = localProps.getProperty("signing.storePassword")
+                ?: System.getenv("SIGNING_STORE_PASSWORD")
+                ?: error("signing.storePassword missing from local.properties and SIGNING_STORE_PASSWORD env var not set")
+            keyAlias      = localProps.getProperty("signing.keyAlias")
+                ?: System.getenv("SIGNING_KEY_ALIAS")
+                ?: "dagboken"
+            keyPassword   = localProps.getProperty("signing.keyPassword")
+                ?: System.getenv("SIGNING_KEY_PASSWORD")
+                ?: error("signing.keyPassword missing from local.properties and SIGNING_KEY_PASSWORD env var not set")
         }
     }
 

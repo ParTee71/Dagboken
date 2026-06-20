@@ -1,6 +1,7 @@
-# Signing keys — never commit
+# Signing keys and local config — never commit
 *.jks
 *.keystore
+local.properties
 
 # Project exclude paths
 /.gradle/
