@@ -1,6 +1,5 @@
 package se.partee71.dagboken.ui.settings
 
-import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -195,35 +194,6 @@ fun SettingsScreen(
                     Spacer(Modifier.height(8.dp))
                     Button(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
                         Text("Importera från säkerhetskopia")
-                    }
-                }
-            }
-
-            // Utseende
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Utseende", style = MaterialTheme.typography.titleSmall)
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Mörkt tema", modifier = Modifier.weight(1f))
-                        Switch(
-                            checked         = state.themeMode == "dark",
-                            onCheckedChange = { vm.setThemeMode(if (it) "dark" else "auto") },
-                        )
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Material You")
-                                Text(
-                                    "Färger anpassas efter din tapet",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Switch(checked = state.isDynamicColor, onCheckedChange = { vm.toggleDynamicColor() })
-                        }
                     }
                 }
             }

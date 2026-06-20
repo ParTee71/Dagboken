@@ -195,9 +195,9 @@
 
 | ID | Krav |
 |----|------|
-| SET-1 | **Tema-läge** ska kunna väljas: ljust, mörkt eller **auto** (växlar på klockslag). |
+| SET-1 | **Tema-läge** ska kunna väljas via segmenterad knapp: ljust, mörkt eller **auto** (växlar på klockslag). |
 | SET-2 | Vid auto-tema ska **start-timme för ljust respektive mörkt** kunna ställas in (validerade så att ljus < mörk). |
-| SET-3 | **Dynamiska färger** (Material You) ska kunna slås på/av. |
+| SET-3 | ~~**Dynamiska färger** (Material You) ska kunna slås på/av.~~ *(toggle borttaget; Material You alltid aktiverat på Android 12+)* |
 | SET-4 | **Medicinpåminnelser** ska kunna slås på/av. **Screeningpåminnelser** ska ställas in per måltidshändelse (På/av + tid per händelse). |
 | SET-5 | **Aktivitetsalternativ** ska kunna läggas till och tas bort (inga dubbletter). |
 | SET-6 | **Symptomalternativ** ska kunna läggas till och tas bort (inga dubbletter). |

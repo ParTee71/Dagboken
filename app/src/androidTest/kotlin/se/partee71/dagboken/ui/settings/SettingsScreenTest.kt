@@ -22,6 +22,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
+import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.room.AppDatabase
@@ -53,7 +54,7 @@ class SettingsScreenTest {
         prefs.setAktivitetOptions(emptyList())
         prefs.setSymptomOptions(emptyList())
         prefs.setMedsNotificationsEnabled(false)
-        prefs.setScreeningNotificationsEnabled(false)
+        prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
         prefs.setThemeMode("auto")
 
         val alarmScheduler = AlarmScheduler(ctx, medicRepo, prefs)
@@ -77,11 +78,10 @@ class SettingsScreenTest {
         }
     }
 
-    // ─── Toggla teman ────────────────────────────────────────────────────────
+    // ─── Tema-läge ────────────────────────────────────────────────────────────
 
-    @Test fun `dark theme row is displayed and starts with themeMode auto`() {
+    @Test fun `themeMode starts with auto`() {
         setContent()
-        composeRule.onNodeWithText("Mörkt tema").assertIsDisplayed()
         assert(vm.state.value.themeMode == "auto") {
             "Expected themeMode=auto but got ${vm.state.value.themeMode}"
         }
@@ -94,7 +94,6 @@ class SettingsScreenTest {
         assert(vm.state.value.themeMode == "dark") {
             "Expected themeMode=dark but got ${vm.state.value.themeMode}"
         }
-        composeRule.onNodeWithText("Mörkt tema").assertIsDisplayed()
     }
 
     // ─── Toggla notiser ───────────────────────────────────────────────────────

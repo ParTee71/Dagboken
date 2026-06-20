@@ -17,7 +17,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
+import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.room.AppDatabase
@@ -54,7 +56,7 @@ class HomeScreenTest {
         authRepo = FirebaseAuthRepository(ctx)
         prefs    = PreferencesRepository(ctx)
         runBlocking {
-            prefs.setScreeningNotificationsEnabled(false)
+            prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
             prefs.setMedsNotificationsEnabled(false)
         }
         vm = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs)
@@ -62,7 +64,7 @@ class HomeScreenTest {
 
     @After fun tearDown() {
         runBlocking {
-            prefs.setScreeningNotificationsEnabled(false)
+            prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
             prefs.setMedsNotificationsEnabled(false)
         }
         db.close()
@@ -96,8 +98,7 @@ class HomeScreenTest {
 
     @Test fun `Forsenat card shown when screening notification time has passed`() {
         runBlocking {
-            prefs.setScreeningNotificationsEnabled(true)
-            prefs.setScreeningReminderTimes(listOf("00:01"))
+            prefs.setScreeningEventConfigs(listOf(ScreeningEventConfig(enabled = true, time = "00:01")))
         }
         setContent()
         composeRule.waitUntil(5000) {
