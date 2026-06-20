@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "715020161801-p0jhhil61pm5lsgm66nfmpnk26552g8h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "se.partee71.dagboken",
+            "certificate_hash": "7693fb6eaf7f57009399707e6e4b841703619358"
+          }
+        },
+        {
           "client_id": "715020161801-qcs6irot6t2k5b6c07ib9ucqgh6a0dvm.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

@@ -23,7 +23,7 @@ android {
         minSdk = 30
         targetSdk = 35
         versionCode = 1
-        versionName = "2.0.0"
+        versionName = "2.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -34,10 +34,20 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile     = file("dagboken.jks")
+            storePassword = "dagboken2026"
+            keyAlias      = "dagboken"
+            keyPassword   = "dagboken2026"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
