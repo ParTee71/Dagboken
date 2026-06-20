@@ -58,7 +58,12 @@ class BackupWorker @AssistedInject constructor(
                 is DriveResult.NoBackupFound      -> Result.success()
                 is DriveResult.Error              -> Result.retry()
             }
+        } catch (e: SecurityException) {
+            // Permanent: user revoked Drive permission — surface via flag and stop retrying
+            prefs.setBackupNeedsAuth(true)
+            Result.failure()
         } catch (_: Exception) {
+            // Transient (network, IO) — retry
             Result.retry()
         }
     }

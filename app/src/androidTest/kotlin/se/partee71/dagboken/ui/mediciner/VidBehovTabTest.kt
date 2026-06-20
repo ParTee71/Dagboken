@@ -51,6 +51,7 @@ class VidBehovTabTest {
         db   = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                    .allowMainThreadQueries().build()
         repo = MedicinerRepository(
+            db                 = db,
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),

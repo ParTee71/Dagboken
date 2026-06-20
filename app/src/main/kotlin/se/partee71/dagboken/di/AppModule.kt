@@ -22,6 +22,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "dagboken.db")
+            .addMigrations(*AppDatabase.MIGRATIONS)
             .build()
 
     @Provides fun provideAktivitetDao(db: AppDatabase): AktivitetDao = db.aktivitetDao()

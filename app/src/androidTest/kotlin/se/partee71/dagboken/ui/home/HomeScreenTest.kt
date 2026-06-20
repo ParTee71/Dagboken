@@ -48,6 +48,7 @@ class HomeScreenTest {
                  .allowMainThreadQueries().build()
         aktivRepo = AktiviteterRepository(db.aktivitetDao())
         medicRepo = MedicinerRepository(
+            db                 = db,
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),

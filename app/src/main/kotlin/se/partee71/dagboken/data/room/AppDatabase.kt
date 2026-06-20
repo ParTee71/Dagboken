@@ -2,6 +2,7 @@ package se.partee71.dagboken.data.room
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import se.partee71.dagboken.data.room.daos.AktivitetDao
 import se.partee71.dagboken.data.room.daos.FavoritDao
 import se.partee71.dagboken.data.room.daos.MedicinDao
@@ -26,4 +27,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun medicinDao(): MedicinDao
     abstract fun receptDao(): ReceptDao
     abstract fun favoritDao(): FavoritDao
+
+    companion object {
+        val MIGRATIONS = emptyArray<Migration>()
+    }
 }

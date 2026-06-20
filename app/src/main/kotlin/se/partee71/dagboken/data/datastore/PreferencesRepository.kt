@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -58,6 +59,7 @@ class PreferencesRepository @Inject constructor(
                 ?.let { Json.decodeFromString<List<String>>(it) }
                 ?: DEFAULT_AKTIVITET_OPTIONS
         }
+        .catch { emit(DEFAULT_AKTIVITET_OPTIONS) }
 
     val symptomOptions: Flow<List<String>> = dataStore.data
         .map { prefs ->
@@ -65,6 +67,7 @@ class PreferencesRepository @Inject constructor(
                 ?.let { Json.decodeFromString<List<String>>(it) }
                 ?: DEFAULT_SYMPTOM_OPTIONS
         }
+        .catch { emit(DEFAULT_SYMPTOM_OPTIONS) }
 
     val sheetsConfig: Flow<String> = dataStore.data
         .map { it[Keys.SHEETS_CONFIG] ?: "" }
@@ -87,6 +90,7 @@ class PreferencesRepository @Inject constructor(
                 ?.let { Json.decodeFromString<List<ScreeningEventConfig>>(it) }
                 ?: DEFAULT_SCREENING_EVENTS
         }
+        .catch { emit(DEFAULT_SCREENING_EVENTS) }
 
     val backupNeedsAuth: Flow<Boolean> = dataStore.data
         .map { it[Keys.BACKUP_NEEDS_AUTH] ?: false }

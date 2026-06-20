@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import androidx.room.withTransaction
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.migration.BackupJson
@@ -22,6 +23,7 @@ import se.partee71.dagboken.data.migration.DriveBackupRepository
 import se.partee71.dagboken.data.migration.DriveResult
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.room.AppDatabase
 import javax.inject.Inject
 
 sealed class MigrationState {
@@ -39,6 +41,7 @@ sealed class MigrationState {
 @HiltViewModel
 class MigrationViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val db: AppDatabase,
     private val driveRepo: DriveBackupRepository,
     private val authRepo: FirebaseAuthRepository,
     private val aktiviteterRepo: AktiviteterRepository,
@@ -122,14 +125,12 @@ class MigrationViewModel @Inject constructor(
         val recept      = BackupMapper.toRecept(backup)
         val favoriter   = BackupMapper.toFavoriter(backup)
 
-        aktiviteterRepo.importAll(aktiviteter)
-        _state.value = MigrationState.Importing(0.33f)
-
-        medicinerRepo.importMediciner(mediciner)
-        _state.value = MigrationState.Importing(0.66f)
-
-        medicinerRepo.importRecept(recept)
-        medicinerRepo.importFavoriter(favoriter)
+        db.withTransaction {
+            aktiviteterRepo.importAll(aktiviteter)
+            medicinerRepo.importMediciner(mediciner)
+            medicinerRepo.importRecept(recept)
+            medicinerRepo.importFavoriter(favoriter)
+        }
 
         backup.aktiviteterOptions?.let { prefs.setAktivitetOptions(it) }
         backup.symptomOptions?.let { prefs.setSymptomOptions(it) }

@@ -43,6 +43,7 @@ class SettingsScreenTest {
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                  .allowMainThreadQueries().build()
         val medicRepo = MedicinerRepository(
+            db                 = db,
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),

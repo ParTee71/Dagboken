@@ -40,9 +40,10 @@ class MedicinerRepositoryTest {
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
         repo = MedicinerRepository(
-            medicinDao     = db.medicinDao(),
-            receptDao      = db.receptDao(),
-            favoritDao     = db.favoritDao(),
+            db                 = db,
+            medicinDao         = db.medicinDao(),
+            receptDao          = db.receptDao(),
+            favoritDao         = db.favoritDao(),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
         )
     }
