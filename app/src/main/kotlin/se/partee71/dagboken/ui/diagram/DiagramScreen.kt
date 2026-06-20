@@ -41,10 +41,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
-private val ALL_SERIES = listOf("Energi", "Stress")
+private val ALL_SERIES = listOf("Energi", "Stress", "Somatiska", "Återhämtande", "Energitjuv")
+
+private val SERIES_PALETTE = listOf(
+    Color(0xFF60a5fa),  // blue-400
+    Color(0xFFfb923c),  // orange-400
+    Color(0xFF4ade80),  // green-400
+    Color(0xFFa78bfa),  // violet-400
+    Color(0xFFf472b6),  // pink-400
+)
+
+private fun seriesColor(name: String): Color =
+    SERIES_PALETTE.getOrElse(ALL_SERIES.indexOf(name)) { SERIES_PALETTE.last() }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -132,23 +144,27 @@ fun DiagramScreen(
 
             // Chart card
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                val chartSeries = buildList {
-                    if ("Energi" in state.visibleSeries) {
-                        add(ChartSeries(
-                            label  = "Energi",
-                            color  = MaterialTheme.colorScheme.primary,
-                            points = state.stats.map { it.avgEnergy },
-                        ))
+                val chartSeries = ALL_SERIES
+                    .filter { it in state.visibleSeries }
+                    .map { name ->
+                        ChartSeries(
+                            label  = name,
+                            color  = seriesColor(name),
+                            points = state.stats.map { day ->
+                                when (name) {
+                                    "Energi"       -> day.avgEnergy
+                                    "Stress"       -> day.avgStress
+                                    "Somatiska"    -> day.avgSomatiska
+                                    "Återhämtande" -> day.avgAterhamtande
+                                    "Energitjuv"   -> day.avgEnergitjuv
+                                    else           -> null
+                                }
+                            },
+                        )
                     }
-                    if ("Stress" in state.visibleSeries) {
-                        add(ChartSeries(
-                            label  = "Stress",
-                            color  = MaterialTheme.colorScheme.secondary,
-                            points = state.stats.map { it.avgStress },
-                        ))
-                    }
-                }
                 val minV = if ("Energi" in state.visibleSeries) -10f else 0f
+                val maxV = chartSeries.flatMap { it.points }.filterNotNull()
+                    .maxOrNull()?.let { maxOf(it, 10f) } ?: 10f
 
                 if (state.stats.isEmpty() || chartSeries.isEmpty()) {
                     Box(
@@ -177,7 +193,7 @@ fun DiagramScreen(
                     LineChartCanvas(
                         series   = chartSeries,
                         minValue = minV,
-                        maxValue = 10f,
+                        maxValue = maxV,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp)
@@ -197,16 +213,19 @@ fun DiagramScreen(
                         HorizontalDivider()
                         ALL_SERIES.filter { it in state.visibleSeries }.forEachIndexed { i, series ->
                             if (i > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                            val values = state.stats.mapNotNull {
-                                if (series == "Stress") it.avgStress else it.avgEnergy
+                            val values = state.stats.mapNotNull { day ->
+                                when (series) {
+                                    "Energi"       -> day.avgEnergy
+                                    "Stress"       -> day.avgStress
+                                    "Somatiska"    -> day.avgSomatiska
+                                    "Återhämtande" -> day.avgAterhamtande
+                                    "Energitjuv"   -> day.avgEnergitjuv
+                                    else           -> null
+                                }
                             }
                             if (values.isNotEmpty()) {
-                                val seriesColor = if (series == "Stress")
-                                    MaterialTheme.colorScheme.secondary
-                                else
-                                    MaterialTheme.colorScheme.primary
                                 Text(series, style = MaterialTheme.typography.labelMedium,
-                                    color = seriesColor)
+                                    color = seriesColor(series))
                                 Row(
                                     modifier              = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceEvenly,

@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import kotlin.math.abs
 import org.junit.Before
 import org.junit.Test
 import se.partee71.dagboken.data.repository.AktiviteterRepository
@@ -43,10 +44,13 @@ class DiagramViewModelTest {
         datum: String,
         energy: Int = 5,
         stress: Int = 3,
+        somatiska: Int = 0,
+        aterhamtande: Boolean = false,
+        energitjuv: Boolean = false,
     ) = Aktivitet(
         id = id, timestamp = "${datum}T09:00:00.000Z", datum = datum, tid = "09:00",
-        aktivitet = "Promenad", energy = energy, stress = stress, somatiska = 0,
-        symptom = "", aterhamtande = false, energitjuv = false, type = "aktivitet", spentTime = 0,
+        aktivitet = "Promenad", energy = energy, stress = stress, somatiska = somatiska,
+        symptom = "", aterhamtande = aterhamtande, energitjuv = energitjuv, type = "aktivitet", spentTime = 0,
     )
 
     // ─── initial state ────────────────────────────────────────────────────────
@@ -135,6 +139,35 @@ class DiagramViewModelTest {
         val stats = viewModel.state.value.stats
         assertTrue(stats.none { it.datum == tenDaysAgo })
         assertTrue(stats.any  { it.datum == yesterday })
+    }
+
+    @Test fun `stats computes mean somatiska per day`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(
+            aktivitet("a1", today, somatiska = 2),
+            aktivitet("a2", today, somatiska = 6),
+        )
+        assertEquals(4.0f, viewModel.state.value.stats[0].avgSomatiska)
+    }
+
+    @Test fun `stats computes aterhamtande fraction scaled to 10`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(
+            aktivitet("a1", today, aterhamtande = true),
+            aktivitet("a2", today, aterhamtande = false),
+        )
+        assertEquals(5.0f, viewModel.state.value.stats[0].avgAterhamtande)
+    }
+
+    @Test fun `stats computes energitjuv fraction scaled to 10`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(
+            aktivitet("a1", today, energitjuv = true),
+            aktivitet("a2", today, energitjuv = false),
+            aktivitet("a3", today, energitjuv = true),
+        )
+        val result = viewModel.state.value.stats[0].avgEnergitjuv ?: 0f
+        assertTrue("Expected ~6.67 but got $result", abs(result - 6.667f) < 0.01f)
     }
 
     // ─── sort order ───────────────────────────────────────────────────────────

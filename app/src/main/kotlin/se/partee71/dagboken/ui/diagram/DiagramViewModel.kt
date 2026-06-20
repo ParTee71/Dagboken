@@ -17,6 +17,9 @@ data class DailyStats(
     val datum: String,
     val avgEnergy: Float?,
     val avgStress: Float?,
+    val avgSomatiska: Float?,
+    val avgAterhamtande: Float?,
+    val avgEnergitjuv: Float?,
 )
 
 data class DiagramUiState(
@@ -47,10 +50,14 @@ class DiagramViewModel @Inject constructor(
                         .entries
                         .sortedBy { it.key }
                         .map { (datum, group) ->
+                            val n = group.size.toFloat()
                             DailyStats(
-                                datum     = datum,
-                                avgEnergy = group.map { it.energy.toFloat() }.average().toFloat(),
-                                avgStress = group.map { it.stress.toFloat() }.average().toFloat(),
+                                datum           = datum,
+                                avgEnergy       = group.map { it.energy.toFloat() }.average().toFloat(),
+                                avgStress       = group.map { it.stress.toFloat() }.average().toFloat(),
+                                avgSomatiska    = group.map { it.somatiska.toFloat() }.average().toFloat(),
+                                avgAterhamtande = group.count { it.aterhamtande } / n * 10f,
+                                avgEnergitjuv   = group.count { it.energitjuv } / n * 10f,
                             )
                         }
                     _state.value = _state.value.copy(stats = stats, rangeDays = range)
