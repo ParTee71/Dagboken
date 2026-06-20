@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,7 +49,7 @@ fun AddEditFavoritScreen(
 ) {
     LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
 
-    val form by vm.form
+    val form by vm.form.collectAsState()
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -72,13 +73,13 @@ fun AddEditFavoritScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             OutlinedTextField(
-                form.namn, { vm.form.value = form.copy(namn = it) },
+                form.namn, { vm.updateForm { copy(namn = it) } },
                 label = { Text("Namn") }, modifier = Modifier.fillMaxWidth(),
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    form.dos, { vm.form.value = form.copy(dos = it) },
+                    form.dos, { vm.updateForm { copy(dos = it) } },
                     label = { Text("Dos") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
@@ -99,7 +100,7 @@ fun AddEditFavoritScreen(
                         listOf("mg", "ml", "st", "g", "mcg", "IE", "dropp").forEach { u ->
                             androidx.compose.material3.DropdownMenuItem(
                                 text = { Text(u) },
-                                onClick = { vm.form.value = form.copy(enhet = u); unitExpanded = false },
+                                onClick = { vm.updateForm { copy(enhet = u) }; unitExpanded = false },
                             )
                         }
                     }
@@ -118,7 +119,7 @@ fun AddEditFavoritScreen(
                 }
                 Slider(
                     value = form.minTidMellan.toFloat(),
-                    onValueChange = { vm.form.value = form.copy(minTidMellan = it.roundToInt()) },
+                    onValueChange = { vm.updateForm { copy(minTidMellan = it.roundToInt()) } },
                     valueRange = 0f..24f,
                     steps = 23,
                 )
@@ -136,7 +137,7 @@ fun AddEditFavoritScreen(
                 }
                 Slider(
                     value = form.maxDoserPerDag.toFloat(),
-                    onValueChange = { vm.form.value = form.copy(maxDoserPerDag = it.roundToInt()) },
+                    onValueChange = { vm.updateForm { copy(maxDoserPerDag = it.roundToInt()) } },
                     valueRange = 0f..10f,
                     steps = 9,
                 )

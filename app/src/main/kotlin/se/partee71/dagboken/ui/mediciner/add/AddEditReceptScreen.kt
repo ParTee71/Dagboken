@@ -13,7 +13,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -29,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +60,7 @@ fun AddEditReceptScreen(
 ) {
     LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
 
-    val form by vm.form
+    val form by vm.form.collectAsState()
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -83,9 +83,9 @@ fun AddEditReceptScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            OutlinedTextField(form.namn, { vm.form.value = form.copy(namn = it) },
+            OutlinedTextField(form.namn, { vm.updateForm { copy(namn = it) } },
                 label = { Text("Namn") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(form.dos, { vm.form.value = form.copy(dos = it) },
+            OutlinedTextField(form.dos, { vm.updateForm { copy(dos = it) } },
                 label = { Text("Dos") }, modifier = Modifier.fillMaxWidth())
 
             // Enhet dropdown
@@ -101,7 +101,7 @@ fun AddEditReceptScreen(
                     listOf("mg", "ml", "st", "g", "mcg", "IE", "dropp").forEach { u ->
                         androidx.compose.material3.DropdownMenuItem(
                             text = { Text(u) },
-                            onClick = { vm.form.value = form.copy(enhet = u); unitExpanded = false },
+                            onClick = { vm.updateForm { copy(enhet = u) }; unitExpanded = false },
                         )
                     }
                 }
@@ -133,7 +133,7 @@ fun AddEditReceptScreen(
                     UPPREPNING_OPTIONS.forEach { opt ->
                         androidx.compose.material3.DropdownMenuItem(
                             text = { Text(UPPREPNING_LABELS[opt] ?: opt) },
-                            onClick = { vm.form.value = form.copy(upprepning = opt); uppExpanded = false },
+                            onClick = { vm.updateForm { copy(upprepning = opt) }; uppExpanded = false },
                         )
                     }
                 }
@@ -158,19 +158,19 @@ fun AddEditReceptScreen(
                 OutlinedTextField(
                     value = form.intervalDagar.toString(),
                     onValueChange = { v ->
-                        v.toIntOrNull()?.let { vm.form.value = form.copy(intervalDagar = it) }
+                        v.toIntOrNull()?.let { vm.updateForm { copy(intervalDagar = it) } }
                     },
                     label = { Text("Var X:e dag") },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
 
-            OutlinedTextField(form.anteckning, { vm.form.value = form.copy(anteckning = it) },
+            OutlinedTextField(form.anteckning, { vm.updateForm { copy(anteckning = it) } },
                 label = { Text("Anteckning") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Aktiv", modifier = Modifier.weight(1f))
-                Switch(checked = form.aktiv, onCheckedChange = { vm.form.value = form.copy(aktiv = it) })
+                Switch(checked = form.aktiv, onCheckedChange = { vm.updateForm { copy(aktiv = it) } })
             }
 
             Button(

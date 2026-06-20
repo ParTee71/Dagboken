@@ -1,9 +1,11 @@
 package se.partee71.dagboken.ui.mediciner.add
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.domain.model.Recept
@@ -29,14 +31,17 @@ class AddEditReceptViewModel @Inject constructor(
     private val repo: MedicinerRepository,
 ) : ViewModel() {
 
-    val form = mutableStateOf(ReceptForm())
+    private val _form = MutableStateFlow(ReceptForm())
+    val form: StateFlow<ReceptForm> = _form.asStateFlow()
     private var editingId: String? = null
+
+    fun updateForm(update: ReceptForm.() -> ReceptForm) { _form.value = _form.value.update() }
 
     fun loadForEdit(id: String) {
         viewModelScope.launch {
             val r = repo.getReceptById(id) ?: return@launch
             editingId = id
-            form.value = ReceptForm(
+            _form.value = ReceptForm(
                 namn          = r.namn,
                 dos           = r.dos,
                 enhet         = r.enhet,
@@ -52,20 +57,20 @@ class AddEditReceptViewModel @Inject constructor(
     }
 
     fun toggleTidpunkt(t: String) {
-        val cur = form.value.tidpunkter.toMutableList()
+        val cur = _form.value.tidpunkter.toMutableList()
         if (cur.contains(t)) { if (cur.size > 1) cur.remove(t) } else cur.add(t)
-        form.value = form.value.copy(tidpunkter = cur)
+        _form.value = _form.value.copy(tidpunkter = cur)
     }
 
     fun toggleDag(dag: Int) {
-        val cur = form.value.dagar.toMutableList()
+        val cur = _form.value.dagar.toMutableList()
         if (cur.contains(dag)) cur.remove(dag) else cur.add(dag)
-        form.value = form.value.copy(dagar = cur.sorted())
+        _form.value = _form.value.copy(dagar = cur.sorted())
     }
 
     fun save() {
         viewModelScope.launch {
-            val f = form.value
+            val f = _form.value
             val recept = Recept(
                 id            = editingId ?: UUID.randomUUID().toString(),
                 namn          = f.namn.trim(),

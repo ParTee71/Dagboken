@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,7 +46,7 @@ fun AddEditMedicinScreen(
 ) {
     LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
 
-    val form by vm.form
+    val form by vm.form.collectAsState()
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -68,9 +69,9 @@ fun AddEditMedicinScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            OutlinedTextField(form.namn, { vm.form.value = form.copy(namn = it) },
+            OutlinedTextField(form.namn, { vm.updateForm { copy(namn = it) } },
                 label = { Text("Namn") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(form.dos, { vm.form.value = form.copy(dos = it) },
+            OutlinedTextField(form.dos, { vm.updateForm { copy(dos = it) } },
                 label = { Text("Dos") }, modifier = Modifier.fillMaxWidth())
 
             // Unit selector
@@ -88,7 +89,7 @@ fun AddEditMedicinScreen(
                     listOf("mg", "ml", "st", "g", "mcg", "IE", "dropp").forEach { unit ->
                         androidx.compose.material3.DropdownMenuItem(
                             text = { Text(unit) },
-                            onClick = { vm.form.value = form.copy(enhet = unit); unitExpanded = false },
+                            onClick = { vm.updateForm { copy(enhet = unit) }; unitExpanded = false },
                         )
                     }
                 }
@@ -100,13 +101,13 @@ fun AddEditMedicinScreen(
                 TIDP_ORDER.forEach { t ->
                     FilterChip(
                         selected = form.tidpunkt == t,
-                        onClick  = { vm.form.value = form.copy(tidpunkt = t) },
+                        onClick  = { vm.updateForm { copy(tidpunkt = t) } },
                         label    = { Text(t) },
                     )
                 }
             }
 
-            OutlinedTextField(form.anteckning, { vm.form.value = form.copy(anteckning = it) },
+            OutlinedTextField(form.anteckning, { vm.updateForm { copy(anteckning = it) } },
                 label = { Text("Anteckning") }, modifier = Modifier.fillMaxWidth(),
                 minLines = 2)
 

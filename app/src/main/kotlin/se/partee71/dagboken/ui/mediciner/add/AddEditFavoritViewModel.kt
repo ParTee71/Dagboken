@@ -1,9 +1,11 @@
 package se.partee71.dagboken.ui.mediciner.add
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.domain.model.Favorit
@@ -25,20 +27,23 @@ class AddEditFavoritViewModel @Inject constructor(
     private val repo: MedicinerRepository,
 ) : ViewModel() {
 
-    val form = mutableStateOf(FavoritForm())
+    private val _form = MutableStateFlow(FavoritForm())
+    val form: StateFlow<FavoritForm> = _form.asStateFlow()
     private var editingId: String? = null
+
+    fun updateForm(update: FavoritForm.() -> FavoritForm) { _form.value = _form.value.update() }
 
     fun loadForEdit(id: String) {
         viewModelScope.launch {
             val f = repo.getFavoritById(id) ?: return@launch
             editingId = id
-            form.value = FavoritForm(
-                namn          = f.namn,
-                dos           = f.dos,
-                enhet         = f.enhet,
-                tidpunkt      = f.tidpunkt,
-                anteckning    = f.anteckning,
-                minTidMellan  = f.minTidMellan,
+            _form.value = FavoritForm(
+                namn           = f.namn,
+                dos            = f.dos,
+                enhet          = f.enhet,
+                tidpunkt       = f.tidpunkt,
+                anteckning     = f.anteckning,
+                minTidMellan   = f.minTidMellan,
                 maxDoserPerDag = f.maxDoserPerDag,
             )
         }
@@ -46,7 +51,7 @@ class AddEditFavoritViewModel @Inject constructor(
 
     fun save() {
         viewModelScope.launch {
-            val f = form.value
+            val f = _form.value
             val favorit = Favorit(
                 id             = editingId ?: UUID.randomUUID().toString(),
                 namn           = f.namn.trim(),
