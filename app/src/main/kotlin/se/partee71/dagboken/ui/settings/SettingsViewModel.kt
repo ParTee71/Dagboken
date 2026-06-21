@@ -14,6 +14,7 @@ import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
+import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.notifications.AlarmScheduler
 import javax.inject.Inject
 
@@ -26,7 +27,7 @@ data class SettingsUiState(
     val medsNotificationsEnabled: Boolean = false,
     val screeningEventConfigs: List<ScreeningEventConfig> = DEFAULT_SCREENING_EVENTS,
     val aktivitetOptions: List<String> = emptyList(),
-    val symptomOptions: List<String> = emptyList(),
+    val symptomOptions: List<SymptomOption> = emptyList(),
     val newAktivitetOption: String = "",
     val newSymptomOption: String = "",
     val googleAccountEmail: String? = null,
@@ -55,7 +56,7 @@ class SettingsViewModel @Inject constructor(
         val medsEnabled: Boolean,
         val screeningConfigs: List<ScreeningEventConfig>,
         val aktivitetOpts: List<String>,
-        val symptomOpts: List<String>,
+        val symptomOpts: List<SymptomOption>,
     )
 
     val state: StateFlow<SettingsUiState> = combine(
@@ -180,14 +181,35 @@ class SettingsViewModel @Inject constructor(
 
     fun addSymptomOption() {
         val new = _newSymptomOption.value.trim()
-        if (new.isBlank() || state.value.symptomOptions.contains(new)) return
+        if (new.isBlank() || state.value.symptomOptions.any { it.name == new }) return
         viewModelScope.launch {
-            prefs.setSymptomOptions(state.value.symptomOptions + new)
+            prefs.setSymptomOptions(state.value.symptomOptions + SymptomOption(new))
             _newSymptomOption.value = ""
         }
     }
 
-    fun removeSymptomOption(opt: String) {
-        viewModelScope.launch { prefs.setSymptomOptions(state.value.symptomOptions - opt) }
+    fun deleteSymptomOption(name: String) {
+        viewModelScope.launch {
+            prefs.setSymptomOptions(state.value.symptomOptions.filter { it.name != name })
+        }
     }
+
+    fun toggleSymptomFavorite(name: String) {
+        viewModelScope.launch {
+            prefs.setSymptomOptions(state.value.symptomOptions.map {
+                if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it
+            })
+        }
+    }
+
+    fun renameSymptomOption(old: String, new: String) {
+        val trimmed = new.trim()
+        if (trimmed.isBlank() || trimmed == old || state.value.symptomOptions.any { it.name == trimmed }) return
+        viewModelScope.launch {
+            prefs.setSymptomOptions(state.value.symptomOptions.map {
+                if (it.name == old) it.copy(name = trimmed) else it
+            })
+        }
+    }
+
 }

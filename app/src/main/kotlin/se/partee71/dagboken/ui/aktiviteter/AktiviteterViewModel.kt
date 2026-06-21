@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.usecase.SymptomUtils
@@ -75,8 +76,9 @@ class AktiviteterViewModel @Inject constructor(
     val aktivitetOptions: StateFlow<List<String>> = prefs.aktivitetOptions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val symptomOptions: StateFlow<List<String>> = prefs.symptomOptions
+    val symptomOptions: StateFlow<List<SymptomOption>> = prefs.symptomOptions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
 
     private val _form = MutableStateFlow(AktivitetForm())
     val form: StateFlow<AktivitetForm> = _form.asStateFlow()
@@ -148,6 +150,14 @@ class AktiviteterViewModel @Inject constructor(
             if (f.type == "screening") _snackbar.value = "Screening sparad ✓"
             resetForm()
             onDone()
+        }
+    }
+
+    fun toggleSymptomFavorite(name: String) {
+        viewModelScope.launch {
+            prefs.setSymptomOptions(symptomOptions.value.map {
+                if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it
+            })
         }
     }
 

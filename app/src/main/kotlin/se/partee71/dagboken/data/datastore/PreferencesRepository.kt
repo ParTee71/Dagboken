@@ -61,10 +61,14 @@ class PreferencesRepository @Inject constructor(
         }
         .catch { emit(DEFAULT_AKTIVITET_OPTIONS) }
 
-    val symptomOptions: Flow<List<String>> = dataStore.data
+    val symptomOptions: Flow<List<SymptomOption>> = dataStore.data
         .map { prefs ->
             prefs[Keys.SYMPTOM_OPTIONS]
-                ?.let { Json.decodeFromString<List<String>>(it) }
+                ?.let { json ->
+                    // Try new format first; fall back to migrating old List<String>
+                    runCatching { Json.decodeFromString<List<SymptomOption>>(json) }.getOrNull()
+                        ?: Json.decodeFromString<List<String>>(json).map { SymptomOption(it) }
+                }
                 ?: DEFAULT_SYMPTOM_OPTIONS
         }
         .catch { emit(DEFAULT_SYMPTOM_OPTIONS) }
@@ -111,7 +115,7 @@ class PreferencesRepository @Inject constructor(
         dataStore.edit { it[Keys.AKTIVITET_OPTIONS] = Json.encodeToString(options) }
     }
 
-    suspend fun setSymptomOptions(options: List<String>) {
+    suspend fun setSymptomOptions(options: List<SymptomOption>) {
         dataStore.edit { it[Keys.SYMPTOM_OPTIONS] = Json.encodeToString(options) }
     }
 
@@ -145,6 +149,9 @@ class PreferencesRepository @Inject constructor(
 }
 
 @Serializable
+data class SymptomOption(val name: String, val isFavorite: Boolean = false)
+
+@Serializable
 data class ScreeningEventConfig(val enabled: Boolean, val time: String)
 
 data class ScreeningTime(val hour: Int, val min: Int) {
@@ -170,6 +177,11 @@ private val DEFAULT_AKTIVITET_OPTIONS = listOf(
     "Promenad", "Jobb", "Möte", "Träning", "Vila", "Mat", "Sällskap", "Läsning", "Övrigt",
 )
 
-private val DEFAULT_SYMPTOM_OPTIONS = listOf(
-    "Huvudvärk", "Trötthet", "Yrsel", "Smärta", "Illamående", "Övrigt",
+internal val DEFAULT_SYMPTOM_OPTIONS = listOf(
+    SymptomOption("Huvudvärk"),
+    SymptomOption("Trötthet"),
+    SymptomOption("Yrsel"),
+    SymptomOption("Smärta"),
+    SymptomOption("Illamående"),
+    SymptomOption("Övrigt"),
 )

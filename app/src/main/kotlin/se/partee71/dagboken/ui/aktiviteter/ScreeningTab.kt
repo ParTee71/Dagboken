@@ -4,21 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,6 +24,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.GradientSliderRow
+import se.partee71.dagboken.ui.components.SymptomLogCard
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -44,7 +38,7 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
-            .padding(top = 20.dp, bottom = 32.dp),
+            .padding(top = 20.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
@@ -95,47 +89,12 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
         }
 
         if (symptomOptions.isNotEmpty()) {
-            DagbokenCard(title = stringResource(R.string.label_symptom)) {
-                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    symptomOptions.forEachIndexed { index, symptom ->
-                        if (index > 0) HorizontalDivider()
-                        GradientSliderRow(
-                            label         = symptom,
-                            value         = (form.symptomScores[symptom] ?: 0).toFloat(),
-                            onValueChange = { v ->
-                                vm.updateForm {
-                                    copy(symptomScores = symptomScores + (symptom to v.toInt()))
-                                }
-                            },
-                            valueRange    = 0f..10f,
-                            steps         = 9,
-                            reverseColors = true,
-                        )
-                        if (symptom == "Övrigt" && (form.symptomScores["Övrigt"] ?: 0) > 0) {
-                            OutlinedTextField(
-                                value         = form.ovrigtNote,
-                                onValueChange = { vm.updateForm { copy(ovrigtNote = it) } },
-                                label         = { Text(stringResource(R.string.label_describe)) },
-                                modifier      = Modifier.fillMaxWidth(),
-                                singleLine    = true,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        FilledTonalButton(
-            onClick  = {
-                vm.updateForm { copy(type = "screening") }
-                vm.save {}
-            },
-            enabled  = form.aktivitet.isNotBlank(),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.size(8.dp))
-            Text(stringResource(R.string.save_screening))
+            SymptomLogCard(
+                symptomOptions   = symptomOptions,
+                scores           = form.symptomScores,
+                onScoresChange   = { vm.updateForm { copy(symptomScores = it) } },
+                onToggleFavorite = vm::toggleSymptomFavorite,
+            )
         }
     }
 }

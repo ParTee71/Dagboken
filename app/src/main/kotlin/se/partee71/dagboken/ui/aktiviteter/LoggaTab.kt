@@ -9,17 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -37,6 +32,7 @@ import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
 import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.GradientSliderRow
+import se.partee71.dagboken.ui.components.SymptomLogCard
 import se.partee71.dagboken.ui.theme.energyColor
 import se.partee71.dagboken.ui.theme.energyLabel
 
@@ -55,7 +51,7 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
-            .padding(top = 20.dp, bottom = 32.dp),
+            .padding(top = 20.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
@@ -128,52 +124,12 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
         }
 
         if (symptomOptions.isNotEmpty()) {
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Foldout(
-                    title    = stringResource(R.string.label_symptom),
-                    expanded = form.symptomsExpanded,
-                    onToggle = { vm.updateForm { copy(symptomsExpanded = !symptomsExpanded) } },
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                        symptomOptions.forEachIndexed { index, symptom ->
-                            if (index > 0) HorizontalDivider()
-                            GradientSliderRow(
-                                label         = symptom,
-                                value         = (form.symptomScores[symptom] ?: 0).toFloat(),
-                                onValueChange = { v ->
-                                    vm.updateForm {
-                                        copy(symptomScores = symptomScores + (symptom to v.toInt()))
-                                    }
-                                },
-                                valueRange    = 0f..10f,
-                                steps         = 9,
-                                reverseColors = true,
-                            )
-                            if (symptom == "Övrigt" && (form.symptomScores["Övrigt"] ?: 0) > 0) {
-                                OutlinedTextField(
-                                    value         = form.ovrigtNote,
-                                    onValueChange = { vm.updateForm { copy(ovrigtNote = it) } },
-                                    label         = { Text(stringResource(R.string.label_describe)) },
-                                    modifier      = Modifier.fillMaxWidth(),
-                                    singleLine    = true,
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                }
-            }
-        }
-
-        FilledTonalButton(
-            onClick  = { vm.save { onSaved() } },
-            enabled  = form.aktivitet.isNotBlank(),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.size(8.dp))
-            Text(stringResource(R.string.save_aktivitet))
+            SymptomLogCard(
+                symptomOptions   = symptomOptions,
+                scores           = form.symptomScores,
+                onScoresChange   = { vm.updateForm { copy(symptomScores = it) } },
+                onToggleFavorite = vm::toggleSymptomFavorite,
+            )
         }
     }
 }

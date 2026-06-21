@@ -48,6 +48,7 @@ fun GradientSliderRow(
     displayValue: String? = null,   // overrides the "N /10" header format (e.g. "+7" for −10..10 range)
     accentColor: Color? = null,     // overrides the auto screeningEnergyColor (e.g. for activity energy scale)
     reverseColors: Boolean = false, // 0=green 10=red (symptoms/stress); default is 0=red 10=green (energy)
+    enabled: Boolean = true,
 ) {
     val cs = MaterialTheme.colorScheme
     val intValue = value.toInt()
@@ -60,7 +61,7 @@ fun GradientSliderRow(
     val rangeSize = valueRange.endInclusive - valueRange.start
 
     Column(
-        modifier = modifier,
+        modifier = modifier.alpha(if (enabled) 1f else 0.38f),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         // Label + big value row
@@ -162,6 +163,7 @@ fun GradientSliderRow(
                 onValueChange = onValueChange,
                 valueRange    = valueRange,
                 steps         = steps,
+                enabled       = enabled,
                 modifier      = Modifier
                     .fillMaxWidth()
                     .align(Alignment.Center)

@@ -48,7 +48,7 @@ class BackupWorker @AssistedInject constructor(
                 medicinRecipes     = medicinerRepo.allRecept.first().map { it.toJson() },
                 medicinFavoriter   = medicinerRepo.allFavoriter.first().map { it.toJson() },
                 aktiviteterOptions = prefs.aktivitetOptions.first(),
-                symptomOptions     = prefs.symptomOptions.first(),
+                symptomOptions     = prefs.symptomOptions.first().map { it.name },
             )
 
             when (driveRepo.uploadBackup(backup)) {

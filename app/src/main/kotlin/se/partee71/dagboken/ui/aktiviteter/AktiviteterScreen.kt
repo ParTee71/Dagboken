@@ -2,6 +2,7 @@ package se.partee71.dagboken.ui.aktiviteter
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -14,6 +15,8 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MonitorHeart
+import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -111,16 +114,32 @@ fun AktiviteterScreen(
                 ),
             )
         },
-        floatingActionButton = {
-            if (pagerState.currentPage == 2) {
-                FloatingActionButton(
-                    onClick        = onAddNew,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor   = MaterialTheme.colorScheme.onPrimary,
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.fab_logga_aktivitet))
-                }
-            }
+        bottomBar = {
+            BottomAppBar(
+                actions = {
+                    when (pagerState.currentPage) {
+                        0 -> Button(
+                            onClick  = { vm.save {} },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        ) { Text(stringResource(R.string.save_aktivitet)) }
+                        1 -> Button(
+                            onClick  = { vm.updateForm { copy(type = "screening") }; vm.save {} },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        ) { Text(stringResource(R.string.save_screening)) }
+                    }
+                },
+                floatingActionButton = if (pagerState.currentPage == 2) {
+                    {
+                        FloatingActionButton(
+                            onClick        = onAddNew,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor   = MaterialTheme.colorScheme.onPrimary,
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.fab_logga_aktivitet))
+                        }
+                    }
+                } else null,
+            )
         },
     ) { padding ->
         Column(

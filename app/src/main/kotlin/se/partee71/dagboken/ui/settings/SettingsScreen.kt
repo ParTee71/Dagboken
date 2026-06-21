@@ -20,7 +20,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -67,6 +71,7 @@ import coil.compose.AsyncImage
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
+import se.partee71.dagboken.data.datastore.SymptomOption
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -136,14 +141,14 @@ fun SettingsScreen(
                 onRemove      = vm::removeAktivitetOption,
             )
 
-            OptionListCard(
-                title         = stringResource(R.string.label_symptom),
-                options       = state.symptomOptions,
-                newOption     = state.newSymptomOption,
-                newOptionLabel = stringResource(R.string.settings_new_symptom),
-                onValueChange = vm::setNewSymptomOption,
-                onAdd         = vm::addSymptomOption,
-                onRemove      = vm::removeSymptomOption,
+            SymptomSettingsCard(
+                symptomOptions   = state.symptomOptions,
+                newOption        = state.newSymptomOption,
+                onValueChange    = vm::setNewSymptomOption,
+                onAdd            = vm::addSymptomOption,
+                onDelete         = vm::deleteSymptomOption,
+                onToggleFavorite = vm::toggleSymptomFavorite,
+                onRename         = vm::renameSymptomOption,
             )
 
             AboutCard()
@@ -408,6 +413,121 @@ private fun OptionListCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SymptomSettingsCard(
+    symptomOptions: List<SymptomOption>,
+    newOption: String,
+    onValueChange: (String) -> Unit,
+    onAdd: () -> Unit,
+    onDelete: (String) -> Unit,
+    onToggleFavorite: (String) -> Unit,
+    onRename: (String, String) -> Unit,
+) {
+    var editingName  by remember { mutableStateOf<String?>(null) }
+    var editValue    by remember { mutableStateOf("") }
+    var deleteTarget by remember { mutableStateOf<String?>(null) }
+
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.label_symptom), style = MaterialTheme.typography.titleSmall)
+            HorizontalDivider()
+
+            symptomOptions.forEachIndexed { index, opt ->
+                if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                Row(
+                    modifier          = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(
+                        onClick  = { onToggleFavorite(opt.name) },
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = stringResource(R.string.symptom_favorite),
+                            tint = if (opt.isFavorite) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+
+                    if (editingName == opt.name) {
+                        OutlinedTextField(
+                            value         = editValue,
+                            onValueChange = { editValue = it },
+                            modifier      = Modifier.weight(1f),
+                            singleLine    = true,
+                        )
+                        IconButton(
+                            onClick  = { onRename(opt.name, editValue); editingName = null },
+                            enabled  = editValue.isNotBlank(),
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.ok), modifier = Modifier.size(20.dp))
+                        }
+                        IconButton(
+                            onClick  = { editingName = null },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel), modifier = Modifier.size(20.dp))
+                        }
+                    } else {
+                        Text(
+                            text     = opt.name,
+                            style    = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(
+                            onClick  = { editingName = opt.name; editValue = opt.name },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit), modifier = Modifier.size(20.dp))
+                        }
+                        IconButton(
+                            onClick  = { deleteTarget = opt.name },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value         = newOption,
+                    onValueChange = onValueChange,
+                    label         = { Text(stringResource(R.string.settings_new_symptom)) },
+                    modifier      = Modifier.weight(1f),
+                    singleLine    = true,
+                )
+                IconButton(onClick = onAdd, enabled = newOption.isNotBlank()) {
+                    Icon(Icons.Default.Add, stringResource(R.string.add))
+                }
+            }
+        }
+    }
+
+    deleteTarget?.let { name ->
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title            = { Text(stringResource(R.string.symptom_delete_confirm_title)) },
+            text             = { Text(stringResource(R.string.format_symptom_delete_confirm, name)) },
+            confirmButton = {
+                TextButton(onClick = { onDelete(name); deleteTarget = null }) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteTarget = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }
 

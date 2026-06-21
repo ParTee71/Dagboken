@@ -160,6 +160,11 @@
     <string name="settings_aktivitet_section">Aktivitetstyper</string>
     <string name="settings_new_aktivitet_type">Ny typ</string>
     <string name="settings_new_symptom">Nytt symptom</string>
+    <string name="symptom_pick_label">Välj symptom</string>
+    <string name="symptom_all_logged">Alla symptom tillagda</string>
+    <string name="symptom_favorite">Favorit</string>
+    <string name="symptom_delete_confirm_title">Ta bort symptom?</string>
+    <string name="format_symptom_delete_confirm">"%s" tas bort permanent.</string>
     <string name="settings_about_section">Om appen</string>
 
     <!-- Account bottom sheet -->

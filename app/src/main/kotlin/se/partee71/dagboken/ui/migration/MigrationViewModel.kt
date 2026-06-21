@@ -17,6 +17,7 @@ import androidx.room.withTransaction
 import kotlinx.serialization.json.Json
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.migration.BackupJson
 import se.partee71.dagboken.data.migration.BackupMapper
 import se.partee71.dagboken.data.migration.DriveBackupRepository
@@ -132,7 +133,7 @@ class MigrationViewModel @Inject constructor(
         }
 
         backup.aktiviteterOptions?.let { prefs.setAktivitetOptions(it) }
-        backup.symptomOptions?.let { prefs.setSymptomOptions(it) }
+        backup.symptomOptions?.let { prefs.setSymptomOptions(it.map { name -> SymptomOption(name) }) }
 
         _state.value = MigrationState.Importing(1f)
         prefs.setMigrationDone(true)

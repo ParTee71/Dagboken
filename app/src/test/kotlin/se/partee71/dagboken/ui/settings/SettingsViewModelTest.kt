@@ -6,6 +6,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
+import se.partee71.dagboken.data.datastore.SymptomOption
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +35,7 @@ class SettingsViewModelTest {
     private lateinit var alarmScheduler: AlarmScheduler
 
     private val aktivitetOptionsFlow = MutableStateFlow(listOf("Promenad", "Jobb"))
-    private val symptomOptionsFlow   = MutableStateFlow(listOf("Huvudvärk"))
+    private val symptomOptionsFlow   = MutableStateFlow(listOf(SymptomOption("Huvudvärk")))
 
     private lateinit var viewModel: SettingsViewModel
 
@@ -131,9 +132,9 @@ class SettingsViewModelTest {
     @Test fun `addSymptomOption saves new option and clears input field`() = runTest {
         viewModel.setNewSymptomOption("Illamående")
         viewModel.addSymptomOption()
-        val saved = slot<List<String>>()
+        val saved = slot<List<SymptomOption>>()
         coVerify { prefs.setSymptomOptions(capture(saved)) }
-        assertTrue(saved.captured.contains("Illamående"))
+        assertTrue(saved.captured.any { it.name == "Illamående" })
         assertEquals("", viewModel.state.value.newSymptomOption)
     }
 
