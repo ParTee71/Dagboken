@@ -1,6 +1,5 @@
 package se.partee71.dagboken.data.migration
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Mirrors BackupData from src/services/backup.ts */

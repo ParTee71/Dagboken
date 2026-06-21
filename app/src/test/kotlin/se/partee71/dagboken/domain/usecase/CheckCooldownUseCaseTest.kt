@@ -7,7 +7,6 @@ import org.junit.Before
 import org.junit.Test
 import se.partee71.dagboken.domain.model.Medicin
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 
 class CheckCooldownUseCaseTest {
 

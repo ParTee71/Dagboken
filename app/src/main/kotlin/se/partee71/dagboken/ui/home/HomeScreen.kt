@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -56,8 +55,6 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.components.DagbokenCard
-import se.partee71.dagboken.ui.components.StatPill
-import se.partee71.dagboken.ui.theme.energyLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

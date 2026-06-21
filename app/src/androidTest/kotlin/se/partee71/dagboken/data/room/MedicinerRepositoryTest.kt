@@ -6,7 +6,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -17,7 +16,6 @@ import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.room.entities.MedicinEntity
 import se.partee71.dagboken.data.room.entities.ReceptEntity
 import se.partee71.dagboken.data.room.entities.toDomain
-import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import kotlinx.serialization.json.Json
 import java.time.LocalDate

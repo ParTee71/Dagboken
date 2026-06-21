@@ -1,6 +1,7 @@
 package se.partee71.dagboken
 
 import android.app.Application
+import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.BackoffPolicy
 import androidx.work.Configuration
@@ -43,7 +44,16 @@ class DagbokenApp : Application(), Configuration.Provider {
         }
     }
 
+    private fun isEmulator(): Boolean =
+        Build.FINGERPRINT.startsWith("generic") ||
+        Build.FINGERPRINT.contains("emulator", ignoreCase = true) ||
+        Build.MODEL.contains("Emulator", ignoreCase = true) ||
+        Build.MODEL.contains("Android SDK built for x86", ignoreCase = true) ||
+        Build.HARDWARE.contains("goldfish") ||
+        Build.HARDWARE.contains("ranchu")
+
     private fun scheduleDailyBackup() {
+        if (isEmulator()) return
         val request = PeriodicWorkRequestBuilder<BackupWorker>(24, TimeUnit.HOURS)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
             .setConstraints(

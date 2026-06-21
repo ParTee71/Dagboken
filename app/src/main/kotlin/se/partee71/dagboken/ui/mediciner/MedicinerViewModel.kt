@@ -13,7 +13,6 @@ import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.Recept
-import se.partee71.dagboken.domain.model.tidpunktSortIndex
 import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
 import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
 import java.time.LocalDate

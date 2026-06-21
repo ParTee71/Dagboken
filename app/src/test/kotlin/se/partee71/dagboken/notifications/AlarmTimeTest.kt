@@ -3,9 +3,7 @@ package se.partee71.dagboken.notifications
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.ZoneId
 
 class AlarmTimeTest {

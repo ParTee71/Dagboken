@@ -1,7 +1,5 @@
 package se.partee71.dagboken.ui.aktiviteter
 
-import se.partee71.dagboken.ui.formatDisplayDate
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi

@@ -1,12 +1,10 @@
 package se.partee71.dagboken.ui.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.MonitorHeart
-import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.outlined.Bolt
