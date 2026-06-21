@@ -132,7 +132,7 @@ class MigrationViewModel @Inject constructor(
             medicinerRepo.importFavoriter(favoriter)
         }
 
-        backup.aktiviteterOptions?.let { prefs.setAktivitetOptions(it) }
+        backup.aktiviteterOptions?.let { prefs.setAktivitetOptions(it.map { name -> SymptomOption(name) }) }
         backup.symptomOptions?.let { prefs.setSymptomOptions(it.map { name -> SymptomOption(name) }) }
 
         _state.value = MigrationState.Importing(1f)

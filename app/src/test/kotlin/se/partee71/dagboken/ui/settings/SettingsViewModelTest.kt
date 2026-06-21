@@ -34,7 +34,7 @@ class SettingsViewModelTest {
     private lateinit var authRepo: FirebaseAuthRepository
     private lateinit var alarmScheduler: AlarmScheduler
 
-    private val aktivitetOptionsFlow = MutableStateFlow(listOf("Promenad", "Jobb"))
+    private val aktivitetOptionsFlow = MutableStateFlow(listOf(SymptomOption("Promenad"), SymptomOption("Jobb")))
     private val symptomOptionsFlow   = MutableStateFlow(listOf(SymptomOption("Huvudvärk")))
 
     private lateinit var viewModel: SettingsViewModel
@@ -102,17 +102,17 @@ class SettingsViewModelTest {
     @Test fun `addAktivitetOption saves new option and clears input field`() = runTest {
         viewModel.setNewAktivitetOption("Simning")
         viewModel.addAktivitetOption()
-        val saved = slot<List<String>>()
+        val saved = slot<List<SymptomOption>>()
         coVerify { prefs.setAktivitetOptions(capture(saved)) }
-        assertTrue(saved.captured.contains("Simning"))
+        assertTrue(saved.captured.any { it.name == "Simning" })
         assertEquals("", viewModel.state.value.newAktivitetOption)
     }
 
-    @Test fun `removeAktivitetOption saves list without removed option`() = runTest {
-        viewModel.removeAktivitetOption("Promenad")
-        val saved = slot<List<String>>()
+    @Test fun `deleteAktivitetOption saves list without removed option`() = runTest {
+        viewModel.deleteAktivitetOption("Promenad")
+        val saved = slot<List<SymptomOption>>()
         coVerify { prefs.setAktivitetOptions(capture(saved)) }
-        assertFalse(saved.captured.contains("Promenad"))
+        assertFalse(saved.captured.any { it.name == "Promenad" })
     }
 
     // ─── addSymptomOption ─────────────────────────────────────────────────────

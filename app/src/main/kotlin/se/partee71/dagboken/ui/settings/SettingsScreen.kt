@@ -131,18 +131,22 @@ fun SettingsScreen(
                 onSetScreeningTime    = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
             )
 
-            OptionListCard(
-                title         = stringResource(R.string.settings_aktivitet_section),
-                options       = state.aktivitetOptions,
-                newOption     = state.newAktivitetOption,
-                newOptionLabel = stringResource(R.string.settings_new_aktivitet_type),
-                onValueChange = vm::setNewAktivitetOption,
-                onAdd         = vm::addAktivitetOption,
-                onRemove      = vm::removeAktivitetOption,
+            OptionSettingsCard(
+                title            = stringResource(R.string.settings_aktivitet_section),
+                newOptionLabel   = stringResource(R.string.settings_new_aktivitet_type),
+                options          = state.aktivitetOptions,
+                newOption        = state.newAktivitetOption,
+                onValueChange    = vm::setNewAktivitetOption,
+                onAdd            = vm::addAktivitetOption,
+                onDelete         = vm::deleteAktivitetOption,
+                onToggleFavorite = vm::toggleAktivitetFavorite,
+                onRename         = vm::renameAktivitetOption,
             )
 
-            SymptomSettingsCard(
-                symptomOptions   = state.symptomOptions,
+            OptionSettingsCard(
+                title            = stringResource(R.string.label_symptom),
+                newOptionLabel   = stringResource(R.string.settings_new_symptom),
+                options          = state.symptomOptions,
                 newOption        = state.newSymptomOption,
                 onValueChange    = vm::setNewSymptomOption,
                 onAdd            = vm::addSymptomOption,
@@ -368,57 +372,11 @@ private fun NotificationsCard(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun OptionListCard(
+private fun OptionSettingsCard(
     title: String,
-    options: List<String>,
-    newOption: String,
     newOptionLabel: String,
-    onValueChange: (String) -> Unit,
-    onAdd: () -> Unit,
-    onRemove: (String) -> Unit,
-) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
-            HorizontalDivider()
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                options.forEach { opt ->
-                    FilterChip(
-                        selected = true,
-                        onClick  = {},
-                        label    = { Text(opt) },
-                        trailingIcon = {
-                            IconButton(onClick = { onRemove(opt) }) {
-                                Icon(Icons.Default.Close, stringResource(R.string.delete), modifier = Modifier.padding(2.dp))
-                            }
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        ),
-                    )
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value         = newOption,
-                    onValueChange = onValueChange,
-                    label         = { Text(newOptionLabel) },
-                    modifier      = Modifier.weight(1f),
-                    singleLine    = true,
-                )
-                IconButton(onClick = onAdd, enabled = newOption.isNotBlank()) {
-                    Icon(Icons.Default.Add, stringResource(R.string.add))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SymptomSettingsCard(
-    symptomOptions: List<SymptomOption>,
+    options: List<SymptomOption>,
     newOption: String,
     onValueChange: (String) -> Unit,
     onAdd: () -> Unit,
@@ -432,10 +390,10 @@ private fun SymptomSettingsCard(
 
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.label_symptom), style = MaterialTheme.typography.titleSmall)
+            Text(title, style = MaterialTheme.typography.titleSmall)
             HorizontalDivider()
 
-            symptomOptions.forEachIndexed { index, opt ->
+            options.forEachIndexed { index, opt ->
                 if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
                 Row(
                     modifier          = Modifier.fillMaxWidth(),
@@ -501,7 +459,7 @@ private fun SymptomSettingsCard(
                 OutlinedTextField(
                     value         = newOption,
                     onValueChange = onValueChange,
-                    label         = { Text(stringResource(R.string.settings_new_symptom)) },
+                    label         = { Text(newOptionLabel) },
                     modifier      = Modifier.weight(1f),
                     singleLine    = true,
                 )

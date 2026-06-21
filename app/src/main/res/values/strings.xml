@@ -158,6 +158,7 @@
     <string name="settings_screening_notifications_subtitle">Aktivera notis per måltidshändelse</string>
     <string name="settings_pick_time">Välj tid</string>
     <string name="settings_aktivitet_section">Aktivitetstyper</string>
+    <string name="aktivitet_more_types">Fler typer</string>
     <string name="settings_new_aktivitet_type">Ny typ</string>
     <string name="settings_new_symptom">Nytt symptom</string>
     <string name="symptom_pick_label">Välj symptom</string>

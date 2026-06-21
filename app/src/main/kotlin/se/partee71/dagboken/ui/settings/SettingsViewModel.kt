@@ -26,7 +26,7 @@ data class SettingsUiState(
     val themeDarkStart: Int = 21,
     val medsNotificationsEnabled: Boolean = false,
     val screeningEventConfigs: List<ScreeningEventConfig> = DEFAULT_SCREENING_EVENTS,
-    val aktivitetOptions: List<String> = emptyList(),
+    val aktivitetOptions: List<SymptomOption> = emptyList(),
     val symptomOptions: List<SymptomOption> = emptyList(),
     val newAktivitetOption: String = "",
     val newSymptomOption: String = "",
@@ -55,7 +55,7 @@ class SettingsViewModel @Inject constructor(
     private data class NotifPrefs(
         val medsEnabled: Boolean,
         val screeningConfigs: List<ScreeningEventConfig>,
-        val aktivitetOpts: List<String>,
+        val aktivitetOpts: List<SymptomOption>,
         val symptomOpts: List<SymptomOption>,
     )
 
@@ -168,15 +168,35 @@ class SettingsViewModel @Inject constructor(
 
     fun addAktivitetOption() {
         val new = _newAktivitetOption.value.trim()
-        if (new.isBlank() || state.value.aktivitetOptions.contains(new)) return
+        if (new.isBlank() || state.value.aktivitetOptions.any { it.name == new }) return
         viewModelScope.launch {
-            prefs.setAktivitetOptions(state.value.aktivitetOptions + new)
+            prefs.setAktivitetOptions(state.value.aktivitetOptions + SymptomOption(new))
             _newAktivitetOption.value = ""
         }
     }
 
-    fun removeAktivitetOption(opt: String) {
-        viewModelScope.launch { prefs.setAktivitetOptions(state.value.aktivitetOptions - opt) }
+    fun deleteAktivitetOption(name: String) {
+        viewModelScope.launch {
+            prefs.setAktivitetOptions(state.value.aktivitetOptions.filter { it.name != name })
+        }
+    }
+
+    fun toggleAktivitetFavorite(name: String) {
+        viewModelScope.launch {
+            prefs.setAktivitetOptions(state.value.aktivitetOptions.map {
+                if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it
+            })
+        }
+    }
+
+    fun renameAktivitetOption(old: String, new: String) {
+        val trimmed = new.trim()
+        if (trimmed.isBlank() || trimmed == old || state.value.aktivitetOptions.any { it.name == trimmed }) return
+        viewModelScope.launch {
+            prefs.setAktivitetOptions(state.value.aktivitetOptions.map {
+                if (it.name == old) it.copy(name = trimmed) else it
+            })
+        }
     }
 
     fun addSymptomOption() {

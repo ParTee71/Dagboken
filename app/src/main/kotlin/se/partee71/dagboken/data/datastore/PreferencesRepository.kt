@@ -53,10 +53,13 @@ class PreferencesRepository @Inject constructor(
     val dynamicColor: Flow<Boolean> = dataStore.data
         .map { it[Keys.DYNAMIC_COLOR] ?: true }
 
-    val aktivitetOptions: Flow<List<String>> = dataStore.data
+    val aktivitetOptions: Flow<List<SymptomOption>> = dataStore.data
         .map { prefs ->
             prefs[Keys.AKTIVITET_OPTIONS]
-                ?.let { Json.decodeFromString<List<String>>(it) }
+                ?.let { json ->
+                    runCatching { Json.decodeFromString<List<SymptomOption>>(json) }.getOrNull()
+                        ?: Json.decodeFromString<List<String>>(json).map { SymptomOption(it) }
+                }
                 ?: DEFAULT_AKTIVITET_OPTIONS
         }
         .catch { emit(DEFAULT_AKTIVITET_OPTIONS) }
@@ -111,7 +114,7 @@ class PreferencesRepository @Inject constructor(
         dataStore.edit { it[Keys.DYNAMIC_COLOR] = enabled }
     }
 
-    suspend fun setAktivitetOptions(options: List<String>) {
+    suspend fun setAktivitetOptions(options: List<SymptomOption>) {
         dataStore.edit { it[Keys.AKTIVITET_OPTIONS] = Json.encodeToString(options) }
     }
 
@@ -173,8 +176,10 @@ val DEFAULT_SCREENING_EVENTS = listOf(
     ScreeningEventConfig(enabled = false, time = "21:00"),
 )
 
-private val DEFAULT_AKTIVITET_OPTIONS = listOf(
-    "Promenad", "Jobb", "Möte", "Träning", "Vila", "Mat", "Sällskap", "Läsning", "Övrigt",
+internal val DEFAULT_AKTIVITET_OPTIONS = listOf(
+    SymptomOption("Promenad"), SymptomOption("Jobb"), SymptomOption("Möte"),
+    SymptomOption("Träning"), SymptomOption("Vila"), SymptomOption("Mat"),
+    SymptomOption("Sällskap"), SymptomOption("Läsning"),
 )
 
 internal val DEFAULT_SYMPTOM_OPTIONS = listOf(

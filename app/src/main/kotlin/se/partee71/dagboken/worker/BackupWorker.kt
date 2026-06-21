@@ -47,7 +47,7 @@ class BackupWorker @AssistedInject constructor(
                 mediciner          = medicinerRepo.allMediciner.first().map { it.toJson() },
                 medicinRecipes     = medicinerRepo.allRecept.first().map { it.toJson() },
                 medicinFavoriter   = medicinerRepo.allFavoriter.first().map { it.toJson() },
-                aktiviteterOptions = prefs.aktivitetOptions.first(),
+                aktiviteterOptions = prefs.aktivitetOptions.first().map { it.name },
                 symptomOptions     = prefs.symptomOptions.first().map { it.name },
             )
 

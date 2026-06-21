@@ -73,7 +73,7 @@ class AktiviteterViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    val aktivitetOptions: StateFlow<List<String>> = prefs.aktivitetOptions
+    val aktivitetOptions: StateFlow<List<SymptomOption>> = prefs.aktivitetOptions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val symptomOptions: StateFlow<List<SymptomOption>> = prefs.symptomOptions
@@ -150,6 +150,14 @@ class AktiviteterViewModel @Inject constructor(
             if (f.type == "screening") _snackbar.value = "Screening sparad ✓"
             resetForm()
             onDone()
+        }
+    }
+
+    fun toggleAktivitetFavorite(name: String) {
+        viewModelScope.launch {
+            prefs.setAktivitetOptions(aktivitetOptions.value.map {
+                if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it
+            })
         }
     }
 
