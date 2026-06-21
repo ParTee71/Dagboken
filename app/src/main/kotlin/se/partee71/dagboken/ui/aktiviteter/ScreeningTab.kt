@@ -2,10 +2,11 @@ package se.partee71.dagboken.ui.aktiviteter
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -13,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,9 +28,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
+import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.GradientSliderRow
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ScreeningTab(vm: AktiviteterViewModel) {
     val form by vm.form.collectAsState()
@@ -47,6 +51,18 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
             style      = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
+
+        DagbokenCard(title = stringResource(R.string.screening_event_label)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SCREENING_EVENT_LABELS.forEach { label ->
+                    FilterChip(
+                        selected = form.aktivitet == label,
+                        onClick  = { vm.updateForm { copy(aktivitet = label) } },
+                        label    = { Text(label) },
+                    )
+                }
+            }
+        }
 
         DagbokenCard(title = stringResource(R.string.screening_metrics_title)) {
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -107,10 +123,11 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
         }
 
         FilledTonalButton(
-            onClick = {
-                vm.updateForm { copy(aktivitet = "Screening", type = "screening") }
+            onClick  = {
+                vm.updateForm { copy(type = "screening") }
                 vm.save {}
             },
+            enabled  = form.aktivitet.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))

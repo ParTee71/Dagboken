@@ -106,6 +106,7 @@
 
     <!-- ScreeningTab -->
     <string name="screening_header">Hur mår du nu?</string>
+    <string name="screening_event_label">Välj tillfälle</string>
     <string name="screening_metrics_title">Mätvärden 0–10</string>
     <string name="save_screening">Spara screening</string>
 
