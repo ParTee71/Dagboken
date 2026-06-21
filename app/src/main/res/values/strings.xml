@@ -1,4 +1,187 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Dagboken</string>
+
+    <!-- Common actions -->
+    <string name="back">Tillbaka</string>
+    <string name="save">Spara</string>
+    <string name="delete">Ta bort</string>
+    <string name="cancel">Avbryt</string>
+    <string name="edit">Redigera</string>
+    <string name="add">Lägg till</string>
+    <string name="ok">OK</string>
+    <string name="sign_in_with_google">Logga in med Google</string>
+    <string name="sign_out">Logga ut</string>
+    <string name="settings">Inställningar</string>
+    <string name="decrease">Minska</string>
+    <string name="increase">Öka</string>
+    <string name="alternatives">Alternativ</string>
+
+    <!-- Common form labels -->
+    <string name="label_name">Namn</string>
+    <string name="label_dose">Dos</string>
+    <string name="label_unit">Enhet</string>
+    <string name="label_note">Anteckning</string>
+    <string name="label_energy">Energi</string>
+    <string name="label_stress">Stress</string>
+    <string name="label_symptom">Symptom</string>
+    <string name="label_describe">Beskriv</string>
+    <string name="label_metrics">Mätvärden</string>
+    <string name="label_time_slots">Tidpunkter</string>
+    <string name="label_time_slot">Tidpunkt</string>
+    <string name="label_recurrence">Upprepning</string>
+    <string name="label_days">Dagar</string>
+    <string name="label_interval_days">Var X:e dag</string>
+    <string name="label_active">Aktiv</string>
+    <string name="label_cooldown">Spärrtid</string>
+    <string name="label_no_limit">Ingen</string>
+    <string name="label_max_per_day">Max per dag</string>
+    <string name="label_unlimited">Obegränsat</string>
+
+    <!-- Format strings -->
+    <string name="format_hours">%d tim</string>
+    <string name="format_times">%d ggr</string>
+    <string name="format_adherence">%1$d av %2$d tagna</string>
+    <string name="format_delete_aktivitet_confirm">\"%s\" raderas permanent.</string>
+    <string name="format_delete_schema_confirm">\"%s\" raderas. Befintliga loggposter påverkas inte.</string>
+    <string name="format_delete_favorit_confirm">\"%s\" raderas.</string>
+    <string name="format_migration_done_counts">%1$d aktiviteter och %2$d medicinlogg importerade.</string>
+    <string name="format_migration_error">Fel: %s</string>
+    <string name="format_mark_as_taken">Markera %s som tagen</string>
+    <string name="format_range_days">%d dagar</string>
+
+    <!-- Home screen -->
+    <string name="home_overdue_title">Försenat</string>
+    <string name="home_daily_screening">Daglig screening</string>
+    <string name="format_home_screening_reminder">Påminnelse var: %s</string>
+    <string name="home_log_action">Logga →</string>
+    <string name="home_energy_chart_title">Energi senaste 7 dagarna</string>
+    <string name="home_no_screening_body">Logga din första screening för att se trender</string>
+    <string name="home_view_diagram">Visa diagram →</string>
+    <string name="home_quickaction_mediciner">Mediciner</string>
+
+    <!-- Migration screen -->
+    <string name="migration_welcome_title">Välkommen till Dagboken</string>
+    <string name="migration_welcome_body">Importera din data från en befintlig säkerhetskopia.</string>
+    <string name="migration_import_from_drive">Importera från Google Drive</string>
+    <string name="migration_choose_file">Välj säkerhetskopia från fil</string>
+    <string name="migration_start_fresh">Börja från början</string>
+    <string name="migration_checking">Söker efter säkerhetskopia…</string>
+    <string name="migration_needs_account_title">Logga in med Google</string>
+    <string name="migration_needs_account_body">För att importera din säkerhetskopia behöver appen komma åt Google Drive.</string>
+    <string name="migration_skip">Fortsätt utan import</string>
+    <string name="migration_requesting_access">Begär åtkomst till Google Drive…</string>
+    <string name="migration_no_backup">Ingen säkerhetskopia hittades på Google Drive.</string>
+    <string name="migration_downloading">Laddar ner säkerhetskopia…</string>
+    <string name="migration_importing">Importerar data…</string>
+    <string name="migration_done_title">Import klar!</string>
+    <string name="migration_retry">Försök igen</string>
+    <string name="migration_skip_error">Hoppa över</string>
+
+    <!-- Aktivitet screen -->
+    <string name="aktivitet_new">Ny aktivitet</string>
+    <string name="aktivitet_edit">Redigera aktivitet</string>
+    <string name="tab_logga">Logga</string>
+    <string name="tab_historik">Historik</string>
+    <string name="tab_idag">Idag</string>
+    <string name="tab_schema">Schema</string>
+    <string name="tab_vid_behov">Vid behov</string>
+    <string name="fab_logga_aktivitet">Logga aktivitet</string>
+    <string name="fab_new">Ny</string>
+
+    <!-- Aktiviteter / Historik -->
+    <string name="filter_aktivitet">Aktivitet</string>
+    <string name="filter_screening">Screening</string>
+    <string name="empty_history_title">Inga aktiviteter loggade</string>
+    <string name="empty_history_body">Logga din första aktivitet i fliken Logga</string>
+    <string name="delete_aktivitet_title">Ta bort aktivitet?</string>
+
+    <!-- LoggaTab -->
+    <string name="logga_header">Hur gick det?</string>
+    <string name="logga_type_title">Aktivitetstyp</string>
+    <string name="logga_type_custom_hint">Beskriv aktivitet</string>
+    <string name="tag_aterhamtande">Återhämtande</string>
+    <string name="tag_energitjuv">Energitjuv</string>
+    <string name="save_aktivitet">Spara aktivitet</string>
+
+    <!-- ScreeningTab -->
+    <string name="screening_header">Hur mår du nu?</string>
+    <string name="screening_metrics_title">Mätvärden 0–10</string>
+    <string name="save_screening">Spara screening</string>
+
+    <!-- Recept (schema) -->
+    <string name="recept_new">Nytt schema</string>
+    <string name="recept_edit">Redigera schema</string>
+    <string name="empty_schema_title">Inga scheman skapade</string>
+    <string name="empty_schema_body">Tryck + för att lägga till ett medicinschema</string>
+    <string name="delete_schema_title">Ta bort schema?</string>
+
+    <!-- Medicin (engångsdos) -->
+    <string name="medicin_new">Ny medicinlogg</string>
+
+    <!-- Favorit (vid behov) -->
+    <string name="favorit_new">Ny favorit</string>
+    <string name="favorit_edit">Redigera favorit</string>
+    <string name="empty_favoriter_title">Inga favoriter sparade</string>
+    <string name="empty_favoriter_body">Tryck + för att spara en vid-behov-medicin</string>
+    <string name="vid_behov_hint_tap">Tryck för att logga en dos</string>
+    <string name="vid_behov_hint_hold">Håll inne för att redigera eller ta bort</string>
+    <string name="delete_favorit_title">Ta bort favorit?</string>
+
+    <!-- Idag tab -->
+    <string name="empty_idag_title">Inga mediciner idag</string>
+    <string name="empty_idag_body">Lägg till ett schema eller logga en engångsdos</string>
+    <string name="idag_delete_confirm">Ta bort</string>
+    <string name="idag_skip_dose_title">Hoppa över dos?</string>
+    <string name="idag_delete_one_title">Ta bort?</string>
+    <string name="format_idag_skip_body">\"%s\" markeras som hoppad för idag.</string>
+    <string name="idag_skip_button">Hoppa över</string>
+
+    <!-- Settings -->
+    <string name="settings_account_section">Google-konto &amp; säkerhetskopiering</string>
+    <string name="settings_signed_in_subtitle">Inloggad — data säkerhetskopieras dagligen</string>
+    <string name="settings_not_signed_in">Inte inloggad</string>
+    <string name="settings_import_section">Importera data</string>
+    <string name="settings_import_body">Hämta säkerhetskopia från Google Drive eller välj en JSON-fil.</string>
+    <string name="settings_import_button">Importera från säkerhetskopia</string>
+    <string name="settings_theme_section">Tema-schema</string>
+    <string name="theme_light">Ljust</string>
+    <string name="theme_dark">Mörkt</string>
+    <string name="theme_auto">Auto</string>
+    <string name="settings_theme_light_from">Ljust tema från</string>
+    <string name="settings_theme_dark_from">Mörkt tema från</string>
+    <string name="settings_notifications_section">Påminnelser</string>
+    <string name="settings_meds_notifications">Medicinpåminnelser</string>
+    <string name="settings_meds_notifications_subtitle">Notis 15 min innan varje tidpunkt</string>
+    <string name="settings_screening_notifications">Screeningpåminnelser</string>
+    <string name="settings_screening_notifications_subtitle">Aktivera notis per måltidshändelse</string>
+    <string name="settings_pick_time">Välj tid</string>
+    <string name="settings_aktivitet_section">Aktivitetstyper</string>
+    <string name="settings_new_aktivitet_type">Ny typ</string>
+    <string name="settings_new_symptom">Nytt symptom</string>
+    <string name="settings_about_section">Om appen</string>
+
+    <!-- Account bottom sheet -->
+    <string name="account_title">Mitt konto</string>
+    <string name="account_sign_in_body">Logga in med Google för att säkerhetskopiera data dagligen till Google Drive.</string>
+    <string name="profile_photo">Profilbild</string>
+
+    <!-- Diagram screen -->
+    <string name="diagram_title">Diagram</string>
+    <string name="diagram_title_aktiviteter">Aktiviteter — Diagram</string>
+    <string name="diagram_title_mediciner">Mediciner — Diagram</string>
+    <string name="diagram_show_label">Visa:</string>
+    <string name="diagram_no_data">Ingen data för vald period</string>
+    <string name="diagram_no_series">Välj minst en dataserie</string>
+    <string name="diagram_summary">Sammanfattning</string>
+    <string name="diagram_stat_avg">Snitt</string>
+    <string name="diagram_stat_min">Min</string>
+    <string name="diagram_stat_max">Max</string>
+    <string name="diagram_stat_days">Dagar</string>
+
+    <!-- Samsung Health placeholder -->
+    <string name="samsung_health_title">Samsung Health</string>
+    <string name="samsung_health_coming_soon">Kommer snart</string>
+    <string name="samsung_health_body">Synkronisera din hälsodata från Samsung Health för en komplett bild av ditt välmående.</string>
+    <string name="samsung_health_connect_button">Anslut Samsung Health</string>
 </resources>

@@ -34,10 +34,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.R
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,10 +57,10 @@ fun AddEditFavoritScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (editId == null) "Ny favorit" else "Redigera favorit") },
+                title = { Text(stringResource(if (editId == null) R.string.favorit_new else R.string.favorit_edit)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tillbaka")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
             )
@@ -74,13 +76,13 @@ fun AddEditFavoritScreen(
         ) {
             OutlinedTextField(
                 form.namn, { vm.updateForm { copy(namn = it) } },
-                label = { Text("Namn") }, modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.label_name)) }, modifier = Modifier.fillMaxWidth(),
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     form.dos, { vm.updateForm { copy(dos = it) } },
-                    label = { Text("Dos") },
+                    label = { Text(stringResource(R.string.label_dose)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                 )
@@ -92,7 +94,7 @@ fun AddEditFavoritScreen(
                 ) {
                     OutlinedTextField(
                         value = form.enhet, onValueChange = {}, readOnly = true,
-                        label = { Text("Enhet") },
+                        label = { Text(stringResource(R.string.label_unit)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(unitExpanded) },
                         modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                     )
@@ -107,12 +109,12 @@ fun AddEditFavoritScreen(
                 }
             }
 
-            // Cooldown slider
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Spärrtid", modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.label_cooldown), modifier = Modifier.weight(1f))
                     Text(
-                        if (form.minTidMellan == 0) "Ingen" else "${form.minTidMellan} tim",
+                        if (form.minTidMellan == 0) stringResource(R.string.label_no_limit)
+                        else stringResource(R.string.format_hours, form.minTidMellan),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -125,12 +127,12 @@ fun AddEditFavoritScreen(
                 )
             }
 
-            // Daily limit slider
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Max per dag", modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.label_max_per_day), modifier = Modifier.weight(1f))
                     Text(
-                        if (form.maxDoserPerDag == 0) "Obegränsat" else "${form.maxDoserPerDag} ggr",
+                        if (form.maxDoserPerDag == 0) stringResource(R.string.label_unlimited)
+                        else stringResource(R.string.format_times, form.maxDoserPerDag),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -147,7 +149,7 @@ fun AddEditFavoritScreen(
                 onClick = { scope.launch { vm.save(); onBack() } },
                 enabled = form.namn.isNotBlank() && form.dos.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Spara") }
+            ) { Text(stringResource(R.string.save)) }
         }
     }
 }

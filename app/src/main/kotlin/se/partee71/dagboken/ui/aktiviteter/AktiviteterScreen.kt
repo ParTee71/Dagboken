@@ -34,27 +34,30 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.annotation.StringRes
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.home.AccountViewModel
 import se.partee71.dagboken.ui.home.formattedDate
 
 private data class TabItem(
-    val label: String,
+    @StringRes val labelRes: Int,
     val iconSelected: ImageVector,
     val iconUnselected: ImageVector,
 )
 
 private val TABS = listOf(
-    TabItem("Logga",     Icons.Filled.Edit,         Icons.Outlined.Edit),
-    TabItem("Screening", Icons.Filled.MonitorHeart,  Icons.Outlined.MonitorHeart),
-    TabItem("Historik",  Icons.Filled.History,       Icons.Outlined.History),
+    TabItem(R.string.tab_logga,     Icons.Filled.Edit,         Icons.Outlined.Edit),
+    TabItem(R.string.filter_screening, Icons.Filled.MonitorHeart,  Icons.Outlined.MonitorHeart),
+    TabItem(R.string.tab_historik,  Icons.Filled.History,       Icons.Outlined.History),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,7 +103,7 @@ fun AktiviteterScreen(
                         modifier = Modifier.padding(end = 8.dp),
                     )
                     IconButton(onClick = onNavigateToDiagram) {
-                        Icon(Icons.Outlined.BarChart, contentDescription = "Diagram")
+                        Icon(Icons.Outlined.BarChart, contentDescription = stringResource(R.string.diagram_title))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -115,7 +118,7 @@ fun AktiviteterScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor   = MaterialTheme.colorScheme.onPrimary,
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Logga aktivitet")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.fab_logga_aktivitet))
                 }
             }
         },
@@ -141,7 +144,7 @@ fun AktiviteterScreen(
                                 contentDescription = null,
                             )
                         },
-                        text = { Text(tab.label) },
+                        text = { Text(stringResource(tab.labelRes)) },
                     )
                 }
             }

@@ -12,7 +12,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.aktiviteter.AktiviteterViewModel
 import se.partee71.dagboken.ui.aktiviteter.LoggaTab
 
@@ -28,10 +30,10 @@ fun AddEditAktivitetScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (editId == null) "Ny aktivitet" else "Redigera aktivitet") },
+                title = { Text(stringResource(if (editId == null) R.string.aktivitet_new else R.string.aktivitet_edit)) },
                 navigationIcon = {
                     IconButton(onClick = { vm.resetForm(); onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tillbaka")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
             )

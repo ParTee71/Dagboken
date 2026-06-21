@@ -36,8 +36,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Favorit
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -61,13 +63,13 @@ fun VidBehovTab(
                 )
                 Spacer(Modifier.height(14.dp))
                 Text(
-                    "Inga favoriter sparade",
+                    stringResource(R.string.empty_favoriter_title),
                     style = MaterialTheme.typography.bodyLarge,
                     color = cs.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Tryck + för att spara en vid-behov-medicin",
+                    stringResource(R.string.empty_favoriter_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = cs.onSurfaceVariant.copy(alpha = 0.6f),
                 )
@@ -83,12 +85,12 @@ fun VidBehovTab(
             .padding(16.dp),
     ) {
         Text(
-            "Tryck för att logga en dos",
+            stringResource(R.string.vid_behov_hint_tap),
             style = MaterialTheme.typography.bodySmall,
             color = cs.onSurfaceVariant,
         )
         Text(
-            "Håll inne för att redigera eller ta bort",
+            stringResource(R.string.vid_behov_hint_hold),
             style = MaterialTheme.typography.bodySmall,
             color = cs.onSurfaceVariant.copy(alpha = 0.7f),
         )
@@ -134,12 +136,12 @@ fun VidBehovTab(
                         onDismissRequest = { menuExpanded = false },
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Redigera") },
+                            text = { Text(stringResource(R.string.edit)) },
                             leadingIcon = { Icon(Icons.Default.Edit, null) },
                             onClick = { menuExpanded = false; onEdit(fav.id) },
                         )
                         DropdownMenuItem(
-                            text = { Text("Ta bort", color = cs.error) },
+                            text = { Text(stringResource(R.string.delete), color = cs.error) },
                             leadingIcon = { Icon(Icons.Default.Delete, null, tint = cs.error) },
                             onClick = { menuExpanded = false; deleteTarget = fav },
                         )
@@ -152,15 +154,15 @@ fun VidBehovTab(
     deleteTarget?.let { target ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("Ta bort favorit?") },
-            text  = { Text("\"${target.namn}\" raderas.") },
+            title = { Text(stringResource(R.string.delete_favorit_title)) },
+            text  = { Text(stringResource(R.string.format_delete_favorit_confirm, target.namn)) },
             confirmButton = {
                 TextButton(onClick = { vm.deleteFavorit(target); deleteTarget = null }) {
-                    Text("Ta bort", color = cs.error)
+                    Text(stringResource(R.string.delete), color = cs.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text("Avbryt") }
+                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }

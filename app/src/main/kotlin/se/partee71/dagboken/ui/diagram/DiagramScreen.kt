@@ -42,8 +42,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import se.partee71.dagboken.R
 
 private val ALL_SERIES = listOf("Energi", "Stress", "Somatiska", "Återhämtande", "Energitjuv")
 
@@ -69,9 +71,9 @@ fun DiagramScreen(
     val ranges = listOf(7, 14, 30, 90)
 
     val screenTitle = when (source) {
-        "aktiviteter" -> "Aktiviteter — Diagram"
-        "mediciner"   -> "Mediciner — Diagram"
-        else          -> "Diagram"
+        "aktiviteter" -> stringResource(R.string.diagram_title_aktiviteter)
+        "mediciner"   -> stringResource(R.string.diagram_title_mediciner)
+        else          -> stringResource(R.string.diagram_title)
     }
 
     Scaffold(
@@ -79,7 +81,7 @@ fun DiagramScreen(
             TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tillbaka")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
                 title = { Text(screenTitle) },
@@ -97,7 +99,7 @@ fun DiagramScreen(
             // Multi-select series filter
             var showSeriesMenu by remember { mutableStateOf(false) }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Visa:", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.diagram_show_label), style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.width(8.dp))
                 Box {
                     OutlinedButton(onClick = { showSeriesMenu = true }) {
@@ -137,7 +139,7 @@ fun DiagramScreen(
                     FilterChip(
                         selected = state.rangeDays == d,
                         onClick  = { vm.setRange(d) },
-                        label    = { Text("$d dagar") },
+                        label    = { Text(stringResource(R.string.format_range_days, d)) },
                     )
                 }
             }
@@ -182,8 +184,8 @@ fun DiagramScreen(
                             )
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                if (state.stats.isEmpty()) "Ingen data för vald period"
-                                else "Välj minst en dataserie",
+                                if (state.stats.isEmpty()) stringResource(R.string.diagram_no_data)
+                                else stringResource(R.string.diagram_no_series),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -209,7 +211,7 @@ fun DiagramScreen(
                         modifier            = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text("Sammanfattning", style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.diagram_summary), style = MaterialTheme.typography.titleSmall)
                         HorizontalDivider()
                         ALL_SERIES.filter { it in state.visibleSeries }.forEachIndexed { i, series ->
                             if (i > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -230,10 +232,10 @@ fun DiagramScreen(
                                     modifier              = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceEvenly,
                                 ) {
-                                    StatItem(label = "Snitt", value = "%.1f".format(values.average()))
-                                    StatItem(label = "Min",   value = "%.1f".format(values.min()))
-                                    StatItem(label = "Max",   value = "%.1f".format(values.max()))
-                                    StatItem(label = "Dagar", value = values.size.toString())
+                                    StatItem(label = stringResource(R.string.diagram_stat_avg), value = "%.1f".format(values.average()))
+                                    StatItem(label = stringResource(R.string.diagram_stat_min), value = "%.1f".format(values.min()))
+                                    StatItem(label = stringResource(R.string.diagram_stat_max), value = "%.1f".format(values.max()))
+                                    StatItem(label = stringResource(R.string.diagram_stat_days), value = values.size.toString())
                                 }
                             }
                         }

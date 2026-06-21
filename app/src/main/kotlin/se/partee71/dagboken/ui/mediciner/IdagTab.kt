@@ -40,8 +40,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.TIDP_ORDER
 import se.partee71.dagboken.domain.model.tidpunktSortIndex
@@ -67,13 +69,13 @@ fun IdagTab(
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "Inga mediciner idag",
+                    stringResource(R.string.empty_idag_title),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Lägg till ett schema eller logga en engångsdos",
+                    stringResource(R.string.empty_idag_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 )
@@ -102,7 +104,7 @@ fun IdagTab(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Text(
-                text = "$tagenCount av $total tagna",
+                text = stringResource(R.string.format_adherence, tagenCount, total),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 6.dp),
@@ -167,7 +169,7 @@ fun IdagTab(
                                 if (isSwiping) {
                                     Icon(
                                         imageVector = Icons.Default.Delete,
-                                        contentDescription = "Ta bort",
+                                        contentDescription = stringResource(R.string.delete),
                                         tint = MaterialTheme.colorScheme.onErrorContainer,
                                     )
                                 }
@@ -212,25 +214,31 @@ fun IdagTab(
     deleteTarget?.let { target ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text(if (target.receptId != null) "Hoppa över dos?" else "Ta bort?") },
+            title = {
+                Text(
+                    if (target.receptId != null) stringResource(R.string.idag_skip_dose_title)
+                    else stringResource(R.string.idag_delete_one_title),
+                )
+            },
             text  = {
                 Text(
                     if (target.receptId != null)
-                        "\"${target.namn}\" markeras som hoppad för idag."
+                        stringResource(R.string.format_idag_skip_body, target.namn)
                     else
-                        "\"${target.namn}\" raderas permanent.",
+                        stringResource(R.string.format_delete_aktivitet_confirm, target.namn),
                 )
             },
             confirmButton = {
                 TextButton(onClick = { vm.deleteMedicin(target); deleteTarget = null }) {
                     Text(
-                        if (target.receptId != null) "Hoppa över" else "Ta bort",
+                        if (target.receptId != null) stringResource(R.string.idag_skip_button)
+                        else stringResource(R.string.delete),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text("Avbryt") }
+                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }

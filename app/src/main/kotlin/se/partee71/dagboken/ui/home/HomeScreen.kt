@@ -47,10 +47,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.BuildConfig
+import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.components.DagbokenCard
@@ -166,7 +168,7 @@ fun HomeScreen(
                                     modifier = Modifier.size(18.dp),
                                 )
                                 Text(
-                                    "Försenat",
+                                    stringResource(R.string.home_overdue_title),
                                     style      = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color      = cs.onErrorContainer,
@@ -197,7 +199,7 @@ fun HomeScreen(
                                         ) {
                                             Icon(
                                                 Icons.Filled.CheckCircle,
-                                                contentDescription = "Markera ${med.namn} som tagen",
+                                                contentDescription = stringResource(R.string.format_mark_as_taken, med.namn),
                                                 tint     = cs.onErrorContainer,
                                                 modifier = Modifier.size(20.dp),
                                             )
@@ -211,10 +213,10 @@ fun HomeScreen(
                                 val showDivider = i > 0 || uiState.overdueMediciner.isNotEmpty()
                                 if (showDivider) HorizontalDivider(color = cs.onErrorContainer.copy(alpha = 0.12f))
                                 ListItem(
-                                    headlineContent   = { Text("Daglig screening", color = cs.onErrorContainer) },
+                                    headlineContent   = { Text(stringResource(R.string.home_daily_screening), color = cs.onErrorContainer) },
                                     supportingContent = {
                                         Text(
-                                            "Påminnelse var: $time",
+                                            stringResource(R.string.format_home_screening_reminder, time),
                                             color = cs.onErrorContainer.copy(alpha = 0.7f),
                                         )
                                     },
@@ -223,7 +225,7 @@ fun HomeScreen(
                                     },
                                     trailingContent = {
                                         TextButton(onClick = onNavigateToAktiviteter) {
-                                            Text("Logga →", color = cs.onErrorContainer)
+                                            Text(stringResource(R.string.home_log_action), color = cs.onErrorContainer)
                                         }
                                     },
                                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
@@ -236,7 +238,7 @@ fun HomeScreen(
 
             // Diagram / Screening card
             item {
-                DagbokenCard(title = "Energi senaste 7 dagarna") {
+                DagbokenCard(title = stringResource(R.string.home_energy_chart_title)) {
                     if (uiState.screeningPoints.size >= 2) {
                         SparklineChart(
                             points   = uiState.screeningPoints,
@@ -260,7 +262,7 @@ fun HomeScreen(
                         Spacer(Modifier.height(4.dp))
                     } else {
                         Text(
-                            "Logga din första screening för att se trender",
+                            stringResource(R.string.home_no_screening_body),
                             style = MaterialTheme.typography.bodySmall,
                             color = cs.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 8.dp),
@@ -269,7 +271,7 @@ fun HomeScreen(
                     TextButton(
                         onClick  = onNavigateToDiagram,
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Visa diagram →") }
+                    ) { Text(stringResource(R.string.home_view_diagram)) }
                 }
             }
 
@@ -292,7 +294,7 @@ fun HomeScreen(
                             verticalArrangement   = Arrangement.spacedBy(6.dp),
                         ) {
                             Icon(Icons.Filled.Bolt, null, tint = cs.onPrimary, modifier = Modifier.size(28.dp))
-                            Text("Logga aktivitet", style = MaterialTheme.typography.titleSmall, color = cs.onPrimary)
+                            Text(stringResource(R.string.fab_logga_aktivitet), style = MaterialTheme.typography.titleSmall, color = cs.onPrimary)
                         }
                     }
                     ElevatedCard(
@@ -308,7 +310,7 @@ fun HomeScreen(
                             verticalArrangement   = Arrangement.spacedBy(6.dp),
                         ) {
                             Icon(Icons.Filled.Medication, null, tint = cs.onSecondary, modifier = Modifier.size(28.dp))
-                            Text("Mediciner", style = MaterialTheme.typography.titleSmall, color = cs.onSecondary)
+                            Text(stringResource(R.string.home_quickaction_mediciner), style = MaterialTheme.typography.titleSmall, color = cs.onSecondary)
                         }
                     }
                 }

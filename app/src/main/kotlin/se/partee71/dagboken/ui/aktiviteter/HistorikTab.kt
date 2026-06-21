@@ -51,8 +51,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.usecase.SymptomUtils
 import se.partee71.dagboken.ui.theme.energyColor
@@ -69,7 +71,6 @@ fun HistorikTab(
     var deleteTarget by remember { mutableStateOf<Aktivitet?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Filter bar
         FlowRow(
             modifier              = Modifier
                 .fillMaxWidth()
@@ -79,12 +80,12 @@ fun HistorikTab(
             FilterChip(
                 selected = "aktivitet" in filter,
                 onClick  = { vm.toggleHistoryFilter("aktivitet") },
-                label    = { Text("Aktivitet") },
+                label    = { Text(stringResource(R.string.filter_aktivitet)) },
             )
             FilterChip(
                 selected = "screening" in filter,
                 onClick  = { vm.toggleHistoryFilter("screening") },
-                label    = { Text("Screening") },
+                label    = { Text(stringResource(R.string.filter_screening)) },
             )
         }
         HorizontalDivider()
@@ -100,13 +101,13 @@ fun HistorikTab(
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "Inga aktiviteter loggade",
+                        stringResource(R.string.empty_history_title),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Logga din första aktivitet i fliken Logga",
+                        stringResource(R.string.empty_history_body),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     )
@@ -158,15 +159,17 @@ fun HistorikTab(
     deleteTarget?.let { target ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("Ta bort aktivitet?") },
-            text  = { Text("\"${target.aktivitet}\" raderas permanent.") },
+            title = { Text(stringResource(R.string.delete_aktivitet_title)) },
+            text  = { Text(stringResource(R.string.format_delete_aktivitet_confirm, target.aktivitet)) },
             confirmButton = {
                 TextButton(onClick = { vm.delete(target); deleteTarget = null }) {
-                    Text("Ta bort", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text("Avbryt") }
+                TextButton(onClick = { deleteTarget = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
             },
         )
     }
@@ -238,7 +241,7 @@ private fun AktivitetCard(
                         IconButton(onClick = { menuExpanded = true }) {
                             Icon(
                                 imageVector        = Icons.Default.MoreVert,
-                                contentDescription = "Alternativ",
+                                contentDescription = stringResource(R.string.alternatives),
                                 modifier           = Modifier.size(20.dp),
                             )
                         }
@@ -247,11 +250,11 @@ private fun AktivitetCard(
                             onDismissRequest = { menuExpanded = false },
                         ) {
                             DropdownMenuItem(
-                                text    = { Text("Redigera") },
+                                text    = { Text(stringResource(R.string.edit)) },
                                 onClick = { menuExpanded = false; onEdit() },
                             )
                             DropdownMenuItem(
-                                text = { Text("Ta bort", color = MaterialTheme.colorScheme.error) },
+                                text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
                                 leadingIcon = {
                                     Icon(
                                         Icons.Default.Delete,

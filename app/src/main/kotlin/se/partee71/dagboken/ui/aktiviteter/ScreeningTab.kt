@@ -22,17 +22,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.GradientSliderRow
-
-private data class ScreeningItem(val label: String, val emoji: String, val formKey: String)
-
-private val SCREENING_ITEMS = listOf(
-    ScreeningItem("Energi",   "⚡", "energy"),
-    ScreeningItem("Stress",   "😰", "stress"),
-)
 
 @Composable
 fun ScreeningTab(vm: AktiviteterViewModel) {
@@ -48,15 +43,15 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text       = "Hur mår du nu?",
+            text       = stringResource(R.string.screening_header),
             style      = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
 
-        DagbokenCard(title = "Mätvärden 0–10") {
+        DagbokenCard(title = stringResource(R.string.screening_metrics_title)) {
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 GradientSliderRow(
-                    label         = "Energi",
+                    label         = stringResource(R.string.label_energy),
                     emoji         = "⚡",
                     value         = form.energy.coerceIn(0, 10).toFloat(),
                     onValueChange = { vm.updateForm { copy(energy = it.toInt()) } },
@@ -67,7 +62,7 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
                 )
                 HorizontalDivider()
                 GradientSliderRow(
-                    label         = "Stress",
+                    label         = stringResource(R.string.label_stress),
                     emoji         = "😰",
                     value         = form.stress.toFloat(),
                     onValueChange = { vm.updateForm { copy(stress = it.toInt()) } },
@@ -81,7 +76,7 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
         }
 
         if (symptomOptions.isNotEmpty()) {
-            DagbokenCard(title = "Symptom") {
+            DagbokenCard(title = stringResource(R.string.label_symptom)) {
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     symptomOptions.forEachIndexed { index, symptom ->
                         if (index > 0) HorizontalDivider()
@@ -101,7 +96,7 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
                             OutlinedTextField(
                                 value         = form.ovrigtNote,
                                 onValueChange = { vm.updateForm { copy(ovrigtNote = it) } },
-                                label         = { Text("Beskriv") },
+                                label         = { Text(stringResource(R.string.label_describe)) },
                                 modifier      = Modifier.fillMaxWidth(),
                                 singleLine    = true,
                             )
@@ -120,7 +115,7 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
         ) {
             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.size(8.dp))
-            Text("Spara screening")
+            Text(stringResource(R.string.save_screening))
         }
     }
 }

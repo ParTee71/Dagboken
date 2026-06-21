@@ -36,9 +36,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.TIDP_ORDER
 
 private val UPPREPNING_OPTIONS = listOf("dagligen", "vardagar", "helger", "anpassad", "intervall")
@@ -66,10 +68,10 @@ fun AddEditReceptScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (editId == null) "Nytt schema" else "Redigera schema") },
+                title = { Text(stringResource(if (editId == null) R.string.recept_new else R.string.recept_edit)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tillbaka")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
             )
@@ -84,16 +86,15 @@ fun AddEditReceptScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             OutlinedTextField(form.namn, { vm.updateForm { copy(namn = it) } },
-                label = { Text("Namn") }, modifier = Modifier.fillMaxWidth())
+                label = { Text(stringResource(R.string.label_name)) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(form.dos, { vm.updateForm { copy(dos = it) } },
-                label = { Text("Dos") }, modifier = Modifier.fillMaxWidth())
+                label = { Text(stringResource(R.string.label_dose)) }, modifier = Modifier.fillMaxWidth())
 
-            // Enhet dropdown
             var unitExpanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(expanded = unitExpanded, onExpandedChange = { unitExpanded = it }) {
                 OutlinedTextField(
                     value = form.enhet, onValueChange = {}, readOnly = true,
-                    label = { Text("Enhet") },
+                    label = { Text(stringResource(R.string.label_unit)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(unitExpanded) },
                     modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                 )
@@ -107,8 +108,7 @@ fun AddEditReceptScreen(
                 }
             }
 
-            // Tidpunkter multi-select
-            Text("Tidpunkter", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.label_time_slots), style = MaterialTheme.typography.labelMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TIDP_ORDER.filter { it != "Vid behov" }.forEach { t ->
                     FilterChip(
@@ -119,13 +119,12 @@ fun AddEditReceptScreen(
                 }
             }
 
-            // Upprepning dropdown
             var uppExpanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(expanded = uppExpanded, onExpandedChange = { uppExpanded = it }) {
                 OutlinedTextField(
                     value = UPPREPNING_LABELS[form.upprepning] ?: form.upprepning,
                     onValueChange = {}, readOnly = true,
-                    label = { Text("Upprepning") },
+                    label = { Text(stringResource(R.string.label_recurrence)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(uppExpanded) },
                     modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                 )
@@ -139,9 +138,8 @@ fun AddEditReceptScreen(
                 }
             }
 
-            // Specifika dagar checkboxes
             if (form.upprepning == "anpassad") {
-                Text("Dagar", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.label_days), style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DAG_LABELS.forEachIndexed { index, label ->
                         FilterChip(
@@ -153,23 +151,22 @@ fun AddEditReceptScreen(
                 }
             }
 
-            // Intervall days
             if (form.upprepning == "intervall") {
                 OutlinedTextField(
                     value = form.intervalDagar.toString(),
                     onValueChange = { v ->
                         v.toIntOrNull()?.let { vm.updateForm { copy(intervalDagar = it) } }
                     },
-                    label = { Text("Var X:e dag") },
+                    label = { Text(stringResource(R.string.label_interval_days)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
 
             OutlinedTextField(form.anteckning, { vm.updateForm { copy(anteckning = it) } },
-                label = { Text("Anteckning") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                label = { Text(stringResource(R.string.label_note)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Aktiv", modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.label_active), modifier = Modifier.weight(1f))
                 Switch(checked = form.aktiv, onCheckedChange = { vm.updateForm { copy(aktiv = it) } })
             }
 
@@ -177,7 +174,7 @@ fun AddEditReceptScreen(
                 onClick = { scope.launch { vm.save(); onBack() } },
                 enabled = form.namn.isNotBlank() && form.dos.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Spara") }
+            ) { Text(stringResource(R.string.save)) }
         }
     }
 }

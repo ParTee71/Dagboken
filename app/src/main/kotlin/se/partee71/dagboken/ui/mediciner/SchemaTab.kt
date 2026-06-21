@@ -50,7 +50,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Recept
 
 private val UPPREPNING_LABELS = mapOf(
@@ -82,13 +84,13 @@ fun SchemaTab(
                 )
                 Spacer(Modifier.height(14.dp))
                 Text(
-                    "Inga scheman skapade",
+                    stringResource(R.string.empty_schema_title),
                     style = MaterialTheme.typography.bodyLarge,
                     color = cs.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Tryck + för att lägga till ett medicinschema",
+                    stringResource(R.string.empty_schema_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = cs.onSurfaceVariant.copy(alpha = 0.6f),
                 )
@@ -158,20 +160,20 @@ fun SchemaTab(
                             )
                             Box {
                                 IconButton(onClick = { menuExpanded = true }) {
-                                    Icon(Icons.Default.MoreVert, "Alternativ")
+                                    Icon(Icons.Default.MoreVert, stringResource(R.string.alternatives))
                                 }
                                 DropdownMenu(
                                     expanded = menuExpanded,
                                     onDismissRequest = { menuExpanded = false },
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("Redigera") },
+                                        text = { Text(stringResource(R.string.edit)) },
                                         leadingIcon = { Icon(Icons.Default.Edit, null) },
                                         onClick = { menuExpanded = false; onEdit(r.id) },
                                     )
                                     DropdownMenuItem(
                                         text = {
-                                            Text("Ta bort", color = cs.error)
+                                            Text(stringResource(R.string.delete), color = cs.error)
                                         },
                                         leadingIcon = {
                                             Icon(Icons.Default.Delete, null, tint = cs.error)
@@ -186,7 +188,7 @@ fun SchemaTab(
                             Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp)) {
                                 HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
                                 Text(
-                                    "Tidpunkter",
+                                    stringResource(R.string.label_time_slots),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = cs.onSurfaceVariant,
                                 )
@@ -217,15 +219,15 @@ fun SchemaTab(
     deleteTarget?.let { target ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("Ta bort schema?") },
-            text  = { Text("\"${target.namn}\" raderas. Befintliga loggposter påverkas inte.") },
+            title = { Text(stringResource(R.string.delete_schema_title)) },
+            text  = { Text(stringResource(R.string.format_delete_schema_confirm, target.namn)) },
             confirmButton = {
                 TextButton(onClick = { vm.deleteRecept(target); deleteTarget = null }) {
-                    Text("Ta bort", color = cs.error)
+                    Text(stringResource(R.string.delete), color = cs.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text("Avbryt") }
+                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }

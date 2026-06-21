@@ -34,27 +34,30 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.annotation.StringRes
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.home.AccountViewModel
 import se.partee71.dagboken.ui.home.formattedDate
 
 private data class TabItem(
-    val label: String,
+    @StringRes val labelRes: Int,
     val iconSelected: ImageVector,
     val iconUnselected: ImageVector,
 )
 
 private val TABS = listOf(
-    TabItem("Idag",      Icons.Filled.CheckCircle,   Icons.Outlined.CheckCircle),
-    TabItem("Schema",    Icons.Filled.CalendarMonth,  Icons.Outlined.CalendarMonth),
-    TabItem("Vid behov", Icons.Filled.LocalPharmacy,  Icons.Outlined.LocalPharmacy),
+    TabItem(R.string.tab_idag,      Icons.Filled.CheckCircle,   Icons.Outlined.CheckCircle),
+    TabItem(R.string.tab_schema,    Icons.Filled.CalendarMonth,  Icons.Outlined.CalendarMonth),
+    TabItem(R.string.tab_vid_behov, Icons.Filled.LocalPharmacy,  Icons.Outlined.LocalPharmacy),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -110,7 +113,7 @@ fun MedicinerScreen(
                         modifier = Modifier.padding(end = 8.dp),
                     )
                     IconButton(onClick = onNavigateToDiagram) {
-                        Icon(Icons.Outlined.BarChart, contentDescription = "Diagram")
+                        Icon(Icons.Outlined.BarChart, contentDescription = stringResource(R.string.diagram_title))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -124,7 +127,7 @@ fun MedicinerScreen(
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor   = MaterialTheme.colorScheme.onSecondary,
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Ny")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.fab_new))
             }
         },
     ) { padding ->
@@ -149,7 +152,7 @@ fun MedicinerScreen(
                                 contentDescription = null,
                             )
                         },
-                        text = { Text(tab.label) },
+                        text = { Text(stringResource(tab.labelRes)) },
                     )
                 }
             }

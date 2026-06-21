@@ -34,9 +34,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import se.partee71.dagboken.R
 
 @Composable
 fun MigrationScreen(
@@ -50,10 +52,9 @@ fun MigrationScreen(
         contract = ActivityResultContracts.GetContent(),
     ) { uri -> uri?.let { vm.importFromFile(it) } }
 
-    // Handles the Drive APPDATA scope authorization intent
     val driveAuthLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult(),
-    ) { vm.startMigration() } // retry after user (possibly) granted Drive scope
+    ) { vm.startMigration() }
 
     LaunchedEffect(state) {
         when (val s = state) {
@@ -94,12 +95,12 @@ fun MigrationScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                             Text(
-                                text = "Välkommen till Dagboken",
+                                text = stringResource(R.string.migration_welcome_title),
                                 style = MaterialTheme.typography.headlineSmall,
                                 textAlign = TextAlign.Center,
                             )
                             Text(
-                                text = "Importera din data från en befintlig säkerhetskopia.",
+                                text = stringResource(R.string.migration_welcome_body),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
@@ -109,25 +110,25 @@ fun MigrationScreen(
                                 onClick = vm::startMigration,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Importera från Google Drive")
+                                Text(stringResource(R.string.migration_import_from_drive))
                             }
                             OutlinedButton(
                                 onClick = { fileLauncher.launch("application/json") },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Välj säkerhetskopia från fil")
+                                Text(stringResource(R.string.migration_choose_file))
                             }
                             OutlinedButton(
                                 onClick = vm::skipMigration,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Börja från början")
+                                Text(stringResource(R.string.migration_start_fresh))
                             }
                         }
 
                         is MigrationState.CheckingDrive -> {
                             CircularProgressIndicator()
-                            Text("Söker efter säkerhetskopia…")
+                            Text(stringResource(R.string.migration_checking))
                         }
 
                         is MigrationState.NoAccountSignedIn -> {
@@ -138,12 +139,12 @@ fun MigrationScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                             )
                             Text(
-                                text = "Logga in med Google",
+                                text = stringResource(R.string.migration_needs_account_title),
                                 style = MaterialTheme.typography.titleLarge,
                                 textAlign = TextAlign.Center,
                             )
                             Text(
-                                text = "För att importera din säkerhetskopia behöver appen komma åt Google Drive.",
+                                text = stringResource(R.string.migration_needs_account_body),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
@@ -153,24 +154,24 @@ fun MigrationScreen(
                                 onClick = { vm.signInAndMigrate(context) },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Logga in med Google")
+                                Text(stringResource(R.string.sign_in_with_google))
                             }
                             OutlinedButton(
                                 onClick = vm::skipMigration,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Fortsätt utan import")
+                                Text(stringResource(R.string.migration_skip))
                             }
                         }
 
                         is MigrationState.NeedsAuthorization -> {
                             CircularProgressIndicator()
-                            Text("Begär åtkomst till Google Drive…")
+                            Text(stringResource(R.string.migration_requesting_access))
                         }
 
                         is MigrationState.NoBackupFound -> {
                             Text(
-                                "Ingen säkerhetskopia hittades på Google Drive.",
+                                stringResource(R.string.migration_no_backup),
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -178,23 +179,23 @@ fun MigrationScreen(
                                 onClick = { fileLauncher.launch("application/json") },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Välj säkerhetskopia från fil")
+                                Text(stringResource(R.string.migration_choose_file))
                             }
                             OutlinedButton(
                                 onClick = vm::skipMigration,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Fortsätt utan import")
+                                Text(stringResource(R.string.migration_skip))
                             }
                         }
 
                         is MigrationState.Downloading -> {
                             CircularProgressIndicator()
-                            Text("Laddar ner säkerhetskopia…")
+                            Text(stringResource(R.string.migration_downloading))
                         }
 
                         is MigrationState.Importing -> {
-                            Text("Importerar data…")
+                            Text(stringResource(R.string.migration_importing))
                             Spacer(Modifier.height(8.dp))
                             LinearProgressIndicator(
                                 progress = { s.progress },
@@ -210,11 +211,11 @@ fun MigrationScreen(
                                 tint = MaterialTheme.colorScheme.tertiary,
                             )
                             Text(
-                                "Import klar!",
+                                stringResource(R.string.migration_done_title),
                                 style = MaterialTheme.typography.headlineSmall,
                             )
                             Text(
-                                "${s.aktiviteter} aktiviteter och ${s.mediciner} medicinlogg importerade.",
+                                stringResource(R.string.format_migration_done_counts, s.aktiviteter, s.mediciner),
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -222,7 +223,7 @@ fun MigrationScreen(
 
                         is MigrationState.Error -> {
                             Text(
-                                "Fel: ${s.message}",
+                                stringResource(R.string.format_migration_error, s.message),
                                 color = MaterialTheme.colorScheme.error,
                                 textAlign = TextAlign.Center,
                             )
@@ -230,19 +231,19 @@ fun MigrationScreen(
                                 onClick = { vm.signInAndMigrate(context) },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Logga in med Google")
+                                Text(stringResource(R.string.sign_in_with_google))
                             }
                             OutlinedButton(
                                 onClick = vm::startMigration,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Försök igen")
+                                Text(stringResource(R.string.migration_retry))
                             }
                             OutlinedButton(
                                 onClick = vm::skipMigration,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Hoppa över")
+                                Text(stringResource(R.string.migration_skip_error))
                             }
                         }
                     }

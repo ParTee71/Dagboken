@@ -58,6 +58,7 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import se.partee71.dagboken.R
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 
@@ -81,10 +83,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Inställningar") },
+                title = { Text(stringResource(R.string.settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tillbaka")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
             )
@@ -127,20 +129,20 @@ fun SettingsScreen(
             )
 
             OptionListCard(
-                title         = "Aktivitetstyper",
+                title         = stringResource(R.string.settings_aktivitet_section),
                 options       = state.aktivitetOptions,
                 newOption     = state.newAktivitetOption,
-                newOptionLabel = "Ny typ",
+                newOptionLabel = stringResource(R.string.settings_new_aktivitet_type),
                 onValueChange = vm::setNewAktivitetOption,
                 onAdd         = vm::addAktivitetOption,
                 onRemove      = vm::removeAktivitetOption,
             )
 
             OptionListCard(
-                title         = "Symptom",
+                title         = stringResource(R.string.label_symptom),
                 options       = state.symptomOptions,
                 newOption     = state.newSymptomOption,
-                newOptionLabel = "Nytt symptom",
+                newOptionLabel = stringResource(R.string.settings_new_symptom),
                 onValueChange = vm::setNewSymptomOption,
                 onAdd         = vm::addSymptomOption,
                 onRemove      = vm::removeSymptomOption,
@@ -162,7 +164,7 @@ private fun AccountCard(
 ) {
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Google-konto & säkerhetskopiering", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.settings_account_section), style = MaterialTheme.typography.titleSmall)
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             if (email != null) {
                 Row(
@@ -173,7 +175,7 @@ private fun AccountCard(
                     if (photoUrl != null) {
                         AsyncImage(
                             model              = photoUrl,
-                            contentDescription = "Profilbild",
+                            contentDescription = stringResource(R.string.profile_photo),
                             modifier           = Modifier.size(40.dp).clip(CircleShape),
                             contentScale       = ContentScale.Crop,
                         )
@@ -188,7 +190,7 @@ private fun AccountCard(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(text = email, style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            text  = "Inloggad — data säkerhetskopieras dagligen",
+                            text  = stringResource(R.string.settings_signed_in_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -196,7 +198,7 @@ private fun AccountCard(
                 }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 OutlinedButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
-                    Text("Logga ut")
+                    Text(stringResource(R.string.sign_out))
                 }
             } else {
                 Row(
@@ -211,7 +213,7 @@ private fun AccountCard(
                         tint               = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text     = "Inte inloggad",
+                        text     = stringResource(R.string.settings_not_signed_in),
                         style    = MaterialTheme.typography.bodyMedium,
                         color    = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
@@ -235,7 +237,7 @@ private fun AccountCard(
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                         Spacer(Modifier.width(8.dp))
                     }
-                    Text("Logga in med Google")
+                    Text(stringResource(R.string.sign_in_with_google))
                 }
             }
         }
@@ -246,16 +248,16 @@ private fun AccountCard(
 private fun ImportCard(onImport: () -> Unit) {
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Importera data", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.settings_import_section), style = MaterialTheme.typography.titleSmall)
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Text(
-                "Hämta säkerhetskopia från Google Drive eller välj en JSON-fil.",
+                stringResource(R.string.settings_import_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(8.dp))
             Button(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
-                Text("Importera från säkerhetskopia")
+                Text(stringResource(R.string.settings_import_button))
             }
         }
     }
@@ -273,9 +275,13 @@ private fun ThemeCard(
     val cs = MaterialTheme.colorScheme
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Tema-schema", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.settings_theme_section), style = MaterialTheme.typography.titleSmall)
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            val themeModes = listOf("light" to "Ljust", "dark" to "Mörkt", "auto" to "Auto")
+            val themeModes = listOf(
+                "light" to stringResource(R.string.theme_light),
+                "dark"  to stringResource(R.string.theme_dark),
+                "auto"  to stringResource(R.string.theme_auto),
+            )
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 themeModes.forEachIndexed { index, (mode, label) ->
                     SegmentedButton(
@@ -290,7 +296,7 @@ private fun ThemeCard(
                 Spacer(Modifier.height(12.dp))
                 TimeStepperRow(
                     emoji          = "🌅",
-                    label          = "Ljust tema från",
+                    label          = stringResource(R.string.settings_theme_light_from),
                     hour           = themeLightStart,
                     containerColor = cs.primaryContainer,
                     contentColor   = cs.onPrimaryContainer,
@@ -300,7 +306,7 @@ private fun ThemeCard(
                 Spacer(Modifier.height(8.dp))
                 TimeStepperRow(
                     emoji          = "🌙",
-                    label          = "Mörkt tema från",
+                    label          = stringResource(R.string.settings_theme_dark_from),
                     hour           = themeDarkStart,
                     containerColor = cs.surfaceVariant,
                     contentColor   = cs.onSurfaceVariant,
@@ -322,13 +328,13 @@ private fun NotificationsCard(
 ) {
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Påminnelser", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.settings_notifications_section), style = MaterialTheme.typography.titleSmall)
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Medicinpåminnelser")
+                    Text(stringResource(R.string.settings_meds_notifications))
                     Text(
-                        "Notis 15 min innan varje tidpunkt",
+                        stringResource(R.string.settings_meds_notifications_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -339,9 +345,9 @@ private fun NotificationsCard(
                 )
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            Text("Screeningpåminnelser", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.settings_screening_notifications), style = MaterialTheme.typography.bodyMedium)
             Text(
-                "Aktivera notis per måltidshändelse",
+                stringResource(R.string.settings_screening_notifications_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -382,7 +388,7 @@ private fun OptionListCard(
                         label    = { Text(opt) },
                         trailingIcon = {
                             IconButton(onClick = { onRemove(opt) }) {
-                                Icon(Icons.Default.Close, "Ta bort", modifier = Modifier.padding(2.dp))
+                                Icon(Icons.Default.Close, stringResource(R.string.delete), modifier = Modifier.padding(2.dp))
                             }
                         },
                         colors = FilterChipDefaults.filterChipColors(
@@ -400,7 +406,7 @@ private fun OptionListCard(
                     singleLine    = true,
                 )
                 IconButton(onClick = onAdd, enabled = newOption.isNotBlank()) {
-                    Icon(Icons.Default.Add, "Lägg till")
+                    Icon(Icons.Default.Add, stringResource(R.string.add))
                 }
             }
         }
@@ -411,9 +417,9 @@ private fun OptionListCard(
 private fun AboutCard() {
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Om appen", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.settings_about_section), style = MaterialTheme.typography.titleSmall)
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            Text("Dagboken", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.bodyMedium)
             Text(
                 "se.partee71.dagboken",
                 style = MaterialTheme.typography.bodySmall,
@@ -451,7 +457,7 @@ private fun ScreeningEventRow(
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.width(4.dp))
-            Icon(Icons.Default.Alarm, contentDescription = "Välj tid", modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Alarm, contentDescription = stringResource(R.string.settings_pick_time), modifier = Modifier.size(18.dp))
         }
         Switch(checked = config.enabled, onCheckedChange = { onToggle() })
     }
@@ -466,10 +472,10 @@ private fun ScreeningEventRow(
                 TextButton(onClick = {
                     onTimeSelected(state.hour, state.minute)
                     showPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text("Avbryt") }
+                TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -504,7 +510,7 @@ private fun TimeStepperRow(
                 style    = MaterialTheme.typography.bodyMedium,
             )
             IconButton(onClick = onDecrement) {
-                Icon(Icons.Default.Remove, contentDescription = "Minska", tint = contentColor)
+                Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.decrease), tint = contentColor)
             }
             Text(
                 text       = String.format(java.util.Locale.ROOT, "%02d:00", hour),
@@ -515,7 +521,7 @@ private fun TimeStepperRow(
                 modifier   = Modifier.width(52.dp),
             )
             IconButton(onClick = onIncrement) {
-                Icon(Icons.Default.Add, contentDescription = "Öka", tint = contentColor)
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.increase), tint = contentColor)
             }
         }
     }

@@ -29,9 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import se.partee71.dagboken.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,13 +101,13 @@ fun AccountBottomSheet(
                 Spacer(Modifier.height(12.dp))
             } else {
                 Text(
-                    "Mitt konto",
+                    stringResource(R.string.account_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
                 Text(
-                    "Logga in med Google för att säkerhetskopiera data dagligen till Google Drive.",
+                    stringResource(R.string.account_sign_in_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = cs.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 16.dp),
@@ -115,7 +117,7 @@ fun AccountBottomSheet(
                     enabled  = !isSigningIn,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Logga in med Google")
+                    Text(stringResource(R.string.sign_in_with_google))
                 }
                 Spacer(Modifier.height(12.dp))
                 HorizontalDivider()
@@ -128,7 +130,7 @@ fun AccountBottomSheet(
             ) {
                 Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(10.dp))
-                Text("Inställningar", modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.settings), modifier = Modifier.weight(1f))
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
             }
 
@@ -140,7 +142,7 @@ fun AccountBottomSheet(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Logga ut")
+                    Text(stringResource(R.string.sign_out))
                 }
             }
         }

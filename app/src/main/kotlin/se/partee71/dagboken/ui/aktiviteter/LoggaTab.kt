@@ -29,8 +29,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.theme.energyColor
@@ -55,7 +57,7 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = "Hur gick det?",
+            text = stringResource(R.string.logga_header),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
@@ -74,14 +76,14 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
 
         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
             Foldout(
-                title    = "Mätvärden",
+                title    = stringResource(R.string.label_metrics),
                 expanded = form.metricsExpanded,
                 onToggle = { vm.updateForm { copy(metricsExpanded = !metricsExpanded) } },
                 modifier = Modifier.padding(horizontal = 16.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     GradientSliderRow(
-                        label         = "Energi",
+                        label         = stringResource(R.string.label_energy),
                         emoji         = "⚡",
                         value         = form.energy.toFloat(),
                         onValueChange = { vm.updateForm { copy(energy = it.toInt()) } },
@@ -94,7 +96,7 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
                     )
                     HorizontalDivider()
                     GradientSliderRow(
-                        label         = "Stress",
+                        label         = stringResource(R.string.label_stress),
                         emoji         = "😰",
                         value         = form.stress.toFloat(),
                         onValueChange = { vm.updateForm { copy(stress = it.toInt()) } },
@@ -112,7 +114,7 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
         if (symptomOptions.isNotEmpty()) {
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Foldout(
-                    title    = "Symptom",
+                    title    = stringResource(R.string.label_symptom),
                     expanded = form.symptomsExpanded,
                     onToggle = { vm.updateForm { copy(symptomsExpanded = !symptomsExpanded) } },
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -136,7 +138,7 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
                                 OutlinedTextField(
                                     value         = form.ovrigtNote,
                                     onValueChange = { vm.updateForm { copy(ovrigtNote = it) } },
-                                    label         = { Text("Beskriv") },
+                                    label         = { Text(stringResource(R.string.label_describe)) },
                                     modifier      = Modifier.fillMaxWidth(),
                                     singleLine    = true,
                                 )
@@ -155,7 +157,7 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
         ) {
             Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.size(8.dp))
-            Text("Spara aktivitet")
+            Text(stringResource(R.string.save_aktivitet))
         }
     }
 }
@@ -176,7 +178,7 @@ private fun AktivitetCard(
     ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Aktivitetstyp",
+                text = stringResource(R.string.logga_type_title),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -204,7 +206,7 @@ private fun AktivitetCard(
                 OutlinedTextField(
                     value         = aktivitetAnnat,
                     onValueChange = onChangeAnnat,
-                    label         = { Text("Beskriv aktivitet") },
+                    label         = { Text(stringResource(R.string.logga_type_custom_hint)) },
                     modifier      = Modifier.fillMaxWidth(),
                     singleLine    = true,
                 )
@@ -219,12 +221,12 @@ private fun AktivitetCard(
                 InputChip(
                     selected = aterhamtande,
                     onClick  = onToggleAterham,
-                    label    = { Text("Återhämtande") },
+                    label    = { Text(stringResource(R.string.tag_aterhamtande)) },
                 )
                 InputChip(
                     selected = energitjuv,
                     onClick  = onToggleEnergiTjuv,
-                    label    = { Text("Energitjuv") },
+                    label    = { Text(stringResource(R.string.tag_energitjuv)) },
                 )
             }
         }

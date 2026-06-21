@@ -32,9 +32,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.TIDP_ORDER
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -52,10 +54,10 @@ fun AddEditMedicinScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (editId == null) "Ny medicinlogg" else "Redigera") },
+                title = { Text(stringResource(if (editId == null) R.string.medicin_new else R.string.edit)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Tillbaka")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
             )
@@ -70,18 +72,17 @@ fun AddEditMedicinScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             OutlinedTextField(form.namn, { vm.updateForm { copy(namn = it) } },
-                label = { Text("Namn") }, modifier = Modifier.fillMaxWidth())
+                label = { Text(stringResource(R.string.label_name)) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(form.dos, { vm.updateForm { copy(dos = it) } },
-                label = { Text("Dos") }, modifier = Modifier.fillMaxWidth())
+                label = { Text(stringResource(R.string.label_dose)) }, modifier = Modifier.fillMaxWidth())
 
-            // Unit selector
             var unitExpanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(expanded = unitExpanded, onExpandedChange = { unitExpanded = it }) {
                 OutlinedTextField(
                     value = form.enhet,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Enhet") },
+                    label = { Text(stringResource(R.string.label_unit)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(unitExpanded) },
                     modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                 )
@@ -95,8 +96,7 @@ fun AddEditMedicinScreen(
                 }
             }
 
-            // Tidpunkt chips
-            Text("Tidpunkt")
+            Text(stringResource(R.string.label_time_slot))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TIDP_ORDER.forEach { t ->
                     FilterChip(
@@ -108,14 +108,14 @@ fun AddEditMedicinScreen(
             }
 
             OutlinedTextField(form.anteckning, { vm.updateForm { copy(anteckning = it) } },
-                label = { Text("Anteckning") }, modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.label_note)) }, modifier = Modifier.fillMaxWidth(),
                 minLines = 2)
 
             Button(
                 onClick = { scope.launch { vm.save(); onBack() } },
                 enabled = form.namn.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Spara") }
+            ) { Text(stringResource(R.string.save)) }
         }
     }
 }

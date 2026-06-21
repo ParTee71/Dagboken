@@ -23,10 +23,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import se.partee71.dagboken.R
 
 @Composable
 fun SamsungHealthPlaceholderScreen() {
@@ -65,7 +67,7 @@ fun SamsungHealthPlaceholderScreen() {
             shape = MaterialTheme.shapes.small,
         ) {
             Text(
-                text     = "Kommer snart",
+                text     = stringResource(R.string.samsung_health_coming_soon),
                 style    = MaterialTheme.typography.labelMedium,
                 color    = cs.onTertiaryContainer,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -75,7 +77,7 @@ fun SamsungHealthPlaceholderScreen() {
         Spacer(Modifier.height(16.dp))
 
         Text(
-            text       = "Samsung Health",
+            text       = stringResource(R.string.samsung_health_title),
             style      = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
@@ -83,7 +85,7 @@ fun SamsungHealthPlaceholderScreen() {
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text      = "Synkronisera din hälsodata från Samsung Health för en komplett bild av ditt välmående.",
+            text      = stringResource(R.string.samsung_health_body),
             style     = MaterialTheme.typography.bodyMedium,
             color     = cs.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -96,7 +98,7 @@ fun SamsungHealthPlaceholderScreen() {
             enabled  = false,
             modifier = Modifier.alpha(0.4f),
         ) {
-            Text("Anslut Samsung Health")
+            Text(stringResource(R.string.samsung_health_connect_button))
         }
     }
 }
