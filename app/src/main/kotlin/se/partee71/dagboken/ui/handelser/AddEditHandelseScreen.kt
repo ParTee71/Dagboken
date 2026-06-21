@@ -1,0 +1,201 @@
+package se.partee71.dagboken.ui.handelser
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.DateTimeRow
+import se.partee71.dagboken.ui.components.DurationRow
+import se.partee71.dagboken.ui.components.GradientSliderRow
+
+private val DEFAULT_TYPER = listOf(
+    "Blodtrycksfall",
+    "Ögonmigrän",
+    "Vita fingrar (Raynaud)",
+    "Plötslig huvudvärk",
+    "Allergisk reaktion",
+    "Yrsel",
+    "Hjärtklappning",
+    "Andnöd",
+)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun AddEditHandelseScreen(
+    editId: String?,
+    onBack: () -> Unit,
+    vm: HandelserViewModel = hiltViewModel(),
+) {
+    LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
+
+    val form  by vm.form.collectAsStateWithLifecycle()
+    val state by vm.state.collectAsStateWithLifecycle()
+
+    val suggestions = (DEFAULT_TYPER + state.allTyper).distinct().sorted()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(stringResource(if (editId == null) R.string.handelse_new else R.string.handelse_edit))
+                },
+                navigationIcon = {
+                    IconButton(onClick = { vm.resetForm(); onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
+                .padding(top = 16.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // Typ
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text       = stringResource(R.string.handelse_label_typ),
+                        style      = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    OutlinedTextField(
+                        value         = form.typ,
+                        onValueChange = { vm.updateForm { copy(typ = it) } },
+                        label         = { Text(stringResource(R.string.handelse_label_typ)) },
+                        modifier      = Modifier.fillMaxWidth(),
+                        singleLine    = true,
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement   = Arrangement.spacedBy(4.dp),
+                    ) {
+                        suggestions.forEach { typ ->
+                            FilterChip(
+                                selected = form.typ == typ,
+                                onClick  = { vm.updateForm { copy(typ = if (form.typ == typ) "" else typ) } },
+                                label    = { Text(typ) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Datum och tid — shared component
+            DateTimeRow(
+                datum         = form.datum,
+                tid           = form.tid,
+                onDatumChange = { vm.updateForm { copy(datum = it) } },
+                onTidChange   = { vm.updateForm { copy(tid = it) } },
+            )
+
+            // Svårighetsgrad — same GradientSliderRow as Aktivitet
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    GradientSliderRow(
+                        label         = stringResource(R.string.handelse_label_svarighetsgrad),
+                        value         = form.svarighetsgrad.toFloat(),
+                        onValueChange = { vm.updateForm { copy(svarighetsgrad = it.toInt()) } },
+                        valueRange    = 0f..10f,
+                        steps         = 9,
+                        startLabel    = "0  Ingen",
+                        endLabel      = "10  Extrem",
+                        reverseColors = true,
+                    )
+                }
+            }
+
+            // Varaktighet — shared component
+            DurationRow(
+                hours           = form.varaktighetTimmar,
+                minutes         = form.varaktighetMinuter,
+                onHoursChange   = { vm.updateForm { copy(varaktighetTimmar = it) } },
+                onMinutesChange = { vm.updateForm { copy(varaktighetMinuter = it) } },
+            )
+
+            // Triggers
+            OutlinedTextField(
+                value         = form.triggers,
+                onValueChange = { vm.updateForm { copy(triggers = it) } },
+                label         = { Text(stringResource(R.string.handelse_label_triggers)) },
+                placeholder   = { Text(stringResource(R.string.handelse_triggers_hint)) },
+                modifier      = Modifier.fillMaxWidth(),
+                minLines      = 2,
+                maxLines      = 4,
+            )
+
+            // Åtgärder
+            OutlinedTextField(
+                value         = form.atgarder,
+                onValueChange = { vm.updateForm { copy(atgarder = it) } },
+                label         = { Text(stringResource(R.string.handelse_label_atgarder)) },
+                placeholder   = { Text(stringResource(R.string.handelse_atgarder_hint)) },
+                modifier      = Modifier.fillMaxWidth(),
+                minLines      = 2,
+                maxLines      = 4,
+            )
+
+            // Anteckning
+            OutlinedTextField(
+                value         = form.anteckning,
+                onValueChange = { vm.updateForm { copy(anteckning = it) } },
+                label         = { Text(stringResource(R.string.label_note)) },
+                modifier      = Modifier.fillMaxWidth(),
+                minLines      = 3,
+                maxLines      = 6,
+            )
+
+            FilledTonalButton(
+                onClick  = { vm.save { onBack() } },
+                enabled  = form.typ.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.size(8.dp))
+                Text(stringResource(R.string.save))
+            }
+        }
+    }
+}

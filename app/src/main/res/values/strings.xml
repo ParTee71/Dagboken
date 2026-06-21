@@ -185,4 +185,21 @@
     <string name="samsung_health_coming_soon">Kommer snart</string>
     <string name="samsung_health_body">Synkronisera din hälsodata från Samsung Health för en komplett bild av ditt välmående.</string>
     <string name="samsung_health_connect_button">Anslut Samsung Health</string>
+
+    <!-- Händelser (health event log) -->
+    <string name="handelser_title">Händelser</string>
+    <string name="handelser_add">Ny händelse</string>
+    <string name="handelser_empty">Inga händelser loggade ännu.\nTryck + för att logga din första händelse.</string>
+    <string name="handelser_delete_confirm">\"%s\" raderas permanent.</string>
+    <string name="handelse_new">Ny händelse</string>
+    <string name="handelse_edit">Redigera händelse</string>
+    <string name="handelse_label_typ">Typ av händelse</string>
+    <string name="handelse_label_datum">Datum</string>
+    <string name="handelse_label_tid">Tid</string>
+    <string name="handelse_label_svarighetsgrad">Svårighetsgrad</string>
+    <string name="handelse_label_varaktighet">Varaktighet</string>
+    <string name="handelse_label_triggers">Möjliga triggers</string>
+    <string name="handelse_triggers_hint">T.ex. stress, kyla, måltid, medicin…</string>
+    <string name="handelse_label_atgarder">Åtgärder / medicinering</string>
+    <string name="handelse_atgarder_hint">Vad gjordes, vad togs…</string>
 </resources>

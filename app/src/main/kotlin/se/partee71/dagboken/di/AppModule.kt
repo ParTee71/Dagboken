@@ -13,6 +13,7 @@ import kotlinx.serialization.json.Json
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.data.room.daos.AktivitetDao
 import se.partee71.dagboken.data.room.daos.FavoritDao
+import se.partee71.dagboken.data.room.daos.HandelseDao
 import se.partee71.dagboken.data.room.daos.MedicinDao
 import se.partee71.dagboken.data.room.daos.ReceptDao
 import javax.inject.Singleton
@@ -45,4 +46,5 @@ object DatabaseModule {
     @Provides fun provideMedicinDao(db: AppDatabase): MedicinDao     = db.medicinDao()
     @Provides fun provideReceptDao(db: AppDatabase): ReceptDao       = db.receptDao()
     @Provides fun provideFavoritDao(db: AppDatabase): FavoritDao     = db.favoritDao()
+    @Provides fun provideHandelseDao(db: AppDatabase): HandelseDao   = db.handelseDao()
 }

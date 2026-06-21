@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -29,13 +28,14 @@ import androidx.navigation.navArgument
 import se.partee71.dagboken.ui.aktiviteter.AktiviteterScreen
 import se.partee71.dagboken.ui.aktiviteter.add.AddEditAktivitetScreen
 import se.partee71.dagboken.ui.diagram.DiagramScreen
+import se.partee71.dagboken.ui.handelser.AddEditHandelseScreen
+import se.partee71.dagboken.ui.handelser.HandelserScreen
 import se.partee71.dagboken.ui.home.HomeScreen
 import se.partee71.dagboken.ui.mediciner.MedicinerScreen
 import se.partee71.dagboken.ui.mediciner.add.AddEditFavoritScreen
 import se.partee71.dagboken.ui.mediciner.add.AddEditMedicinScreen
 import se.partee71.dagboken.ui.mediciner.add.AddEditReceptScreen
 import se.partee71.dagboken.ui.migration.MigrationScreen
-import se.partee71.dagboken.ui.samsung.SamsungHealthPlaceholderScreen
 import se.partee71.dagboken.ui.settings.SettingsScreen
 
 @Composable
@@ -59,35 +59,25 @@ fun AppNavigation(
                     Screen.bottomNavItems.forEach { screen ->
                         val selected = currentDestination?.hierarchy
                             ?.any { it.route == screen.route } == true
-                        val isSamsungHealth = screen == Screen.SamsungHealth
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
-                                if (!isSamsungHealth) {
-                                    val isStartDest = screen.route == Screen.Hem.route
-                                    navController.navigate(screen.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = !isStartDest
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = !isStartDest
+                                val isStartDest = screen.route == Screen.Hem.route
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = !isStartDest
                                     }
+                                    launchSingleTop = true
+                                    restoreState = !isStartDest
                                 }
-                                // SamsungHealth is a disabled placeholder — no navigation
                             },
                             icon = {
                                 Icon(
                                     imageVector        = if (selected) screen.iconSelected else screen.iconUnselected,
                                     contentDescription = screen.label,
-                                    modifier           = if (isSamsungHealth) Modifier.alpha(0.4f) else Modifier,
                                 )
                             },
-                            label = {
-                                Text(
-                                    text     = screen.label,
-                                    modifier = if (isSamsungHealth) Modifier.alpha(0.4f) else Modifier,
-                                )
-                            },
+                            label = { Text(screen.label) },
                         )
                     }
                 }
@@ -200,8 +190,28 @@ fun AppNavigation(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Screen.SamsungHealth.route) {
-                SamsungHealthPlaceholderScreen()
+            composable(Screen.Handelser.route) {
+                HandelserScreen(
+                    onAddNew             = { navController.navigate(Routes.ADD_HANDELSE) },
+                    onEdit               = { id -> navController.navigate(Routes.editHandelse(id)) },
+                    onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
+                    snackbarHostState    = snackbarHostState,
+                )
+            }
+            composable(Routes.ADD_HANDELSE) {
+                AddEditHandelseScreen(
+                    editId = null,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route     = Routes.EDIT_HANDELSE,
+                arguments = listOf(navArgument("id") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                AddEditHandelseScreen(
+                    editId = backStackEntry.arguments?.getString("id"),
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable(
                 route     = Routes.DIAGRAM,

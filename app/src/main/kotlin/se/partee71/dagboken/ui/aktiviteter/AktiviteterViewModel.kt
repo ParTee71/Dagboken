@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.datastore.PreferencesRepository
@@ -61,6 +62,15 @@ class AktiviteterViewModel @Inject constructor(
             current + type
         }
     }
+
+    val todaysScreenings: StateFlow<Set<String>> = all
+        .map { list ->
+            val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+            list.filter { it.type == "screening" && it.datum == today }
+                .map { it.aktivitet }
+                .toSet()
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     val aktivitetOptions: StateFlow<List<String>> = prefs.aktivitetOptions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

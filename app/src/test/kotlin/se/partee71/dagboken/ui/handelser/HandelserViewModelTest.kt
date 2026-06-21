@@ -1,0 +1,315 @@
+package se.partee71.dagboken.ui.handelser
+
+import app.cash.turbine.test
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.slot
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import se.partee71.dagboken.data.repository.HandelserRepository
+import se.partee71.dagboken.domain.model.Handelse
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class HandelserViewModelTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    private lateinit var repo: HandelserRepository
+    private lateinit var viewModel: HandelserViewModel
+
+    @Before fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        repo = mockk(relaxed = true) {
+            every { all } returns flowOf(emptyList())
+        }
+        viewModel = HandelserViewModel(repo)
+    }
+
+    @After fun tearDown() { Dispatchers.resetMain() }
+
+    private fun handelse(
+        id: String = "h1",
+        datum: String = "2026-06-21",
+        tid: String = "10:00",
+        typ: String = "Yrsel",
+        svarighetsgrad: Int = 5,
+        varaktighetMinuter: Int = 30,
+        triggers: String = "",
+        atgarder: String = "",
+        anteckning: String = "",
+    ) = Handelse(
+        id = id, timestamp = "${datum}T${tid}:00.000Z",
+        datum = datum, tid = tid, typ = typ,
+        svarighetsgrad = svarighetsgrad, varaktighetMinuter = varaktighetMinuter,
+        triggers = triggers, atgarder = atgarder, anteckning = anteckning,
+    )
+
+    // ─── form defaults ────────────────────────────────────────────────────────
+
+    @Test fun `initial form has blank typ`() {
+        assertEquals("", viewModel.form.value.typ)
+    }
+
+    @Test fun `initial form svarighetsgrad is 5`() {
+        assertEquals(5, viewModel.form.value.svarighetsgrad)
+    }
+
+    @Test fun `initial form duration is zero`() {
+        assertEquals(0, viewModel.form.value.varaktighetTimmar)
+        assertEquals(0, viewModel.form.value.varaktighetMinuter)
+    }
+
+    // ─── updateForm ───────────────────────────────────────────────────────────
+
+    @Test fun `updateForm changes the specified field`() {
+        viewModel.updateForm { copy(typ = "Blodtrycksfall") }
+        assertEquals("Blodtrycksfall", viewModel.form.value.typ)
+    }
+
+    // ─── save – guard ─────────────────────────────────────────────────────────
+
+    @Test fun `save does nothing when typ is blank`() = runTest {
+        viewModel.updateForm { copy(typ = "") }
+        var called = false
+        viewModel.save { called = true }
+        assertFalse(called)
+        coVerify(exactly = 0) { repo.save(any()) }
+    }
+
+    @Test fun `save does nothing when typ is whitespace only`() = runTest {
+        viewModel.updateForm { copy(typ = "   ") }
+        var called = false
+        viewModel.save { called = true }
+        assertFalse(called)
+    }
+
+    // ─── save – happy path ────────────────────────────────────────────────────
+
+    @Test fun `save calls repo and invokes onDone`() = runTest {
+        viewModel.updateForm { copy(typ = "Yrsel") }
+        var called = false
+        viewModel.save { called = true }
+        assertTrue(called)
+        coVerify { repo.save(any()) }
+    }
+
+    @Test fun `save stores combined hours and minutes as total minutes`() = runTest {
+        viewModel.updateForm { copy(typ = "Yrsel", varaktighetTimmar = 1, varaktighetMinuter = 30) }
+        val saved = slot<Handelse>()
+        coEvery { repo.save(capture(saved)) } returns Unit
+        viewModel.save {}
+        assertEquals(90, saved.captured.varaktighetMinuter)
+    }
+
+    @Test fun `save builds ISO timestamp from datum and tid`() = runTest {
+        viewModel.updateForm { copy(typ = "Yrsel", datum = "2026-06-21", tid = "14:30") }
+        val saved = slot<Handelse>()
+        coEvery { repo.save(capture(saved)) } returns Unit
+        viewModel.save {}
+        assertEquals("2026-06-21T14:30:00.000Z", saved.captured.timestamp)
+    }
+
+    @Test fun `save resets form to defaults after saving`() = runTest {
+        viewModel.updateForm { copy(typ = "Yrsel", svarighetsgrad = 9, triggers = "stress") }
+        viewModel.save {}
+        assertEquals("", viewModel.form.value.typ)
+        assertEquals(5, viewModel.form.value.svarighetsgrad)
+        assertEquals("", viewModel.form.value.triggers)
+    }
+
+    @Test fun `save preserves existing id when in edit mode`() = runTest {
+        coEvery { repo.getById("h1") } returns handelse(id = "h1")
+        viewModel.loadForEdit("h1")
+        viewModel.updateForm { copy(typ = "Yrsel") }
+        val saved = slot<Handelse>()
+        coEvery { repo.save(capture(saved)) } returns Unit
+        viewModel.save {}
+        assertEquals("h1", saved.captured.id)
+    }
+
+    // ─── loadForEdit ──────────────────────────────────────────────────────────
+
+    @Test fun `loadForEdit populates all form fields from domain model`() = runTest {
+        coEvery { repo.getById("h1") } returns handelse(
+            id = "h1", typ = "Blodtrycksfall", datum = "2026-06-20", tid = "09:30",
+            svarighetsgrad = 7, varaktighetMinuter = 90,
+            triggers = "stress", atgarder = "vila", anteckning = "notering",
+        )
+        viewModel.loadForEdit("h1")
+        val f = viewModel.form.value
+        assertEquals("Blodtrycksfall", f.typ)
+        assertEquals("2026-06-20", f.datum)
+        assertEquals("09:30", f.tid)
+        assertEquals(7, f.svarighetsgrad)
+        assertEquals(1, f.varaktighetTimmar)   // 90 / 60
+        assertEquals(30, f.varaktighetMinuter)  // 90 % 60
+        assertEquals("stress", f.triggers)
+        assertEquals("vila", f.atgarder)
+        assertEquals("notering", f.anteckning)
+    }
+
+    @Test fun `loadForEdit with zero duration sets both wheels to zero`() = runTest {
+        coEvery { repo.getById("h1") } returns handelse(id = "h1", varaktighetMinuter = 0)
+        viewModel.loadForEdit("h1")
+        assertEquals(0, viewModel.form.value.varaktighetTimmar)
+        assertEquals(0, viewModel.form.value.varaktighetMinuter)
+    }
+
+    @Test fun `loadForEdit with unknown id leaves form unchanged`() = runTest {
+        coEvery { repo.getById(any()) } returns null
+        val formBefore = viewModel.form.value
+        viewModel.loadForEdit("nonexistent")
+        assertEquals(formBefore, viewModel.form.value)
+    }
+
+    // ─── delete ───────────────────────────────────────────────────────────────
+
+    @Test fun `delete calls repo with the given handelse`() = runTest {
+        val h = handelse(typ = "Yrsel")
+        viewModel.delete(h)
+        coVerify { repo.delete(h) }
+    }
+
+    @Test fun `delete sets snackbar to typ plus borttagen`() = runTest {
+        viewModel.delete(handelse(typ = "Hjärtklappning"))
+        assertEquals("Hjärtklappning borttagen", viewModel.snackbar.value)
+    }
+
+    // ─── snackbar ─────────────────────────────────────────────────────────────
+
+    @Test fun `snackbar is null initially`() {
+        assertNull(viewModel.snackbar.value)
+    }
+
+    @Test fun `clearSnackbar nulls the message`() = runTest {
+        viewModel.delete(handelse())
+        viewModel.clearSnackbar()
+        assertNull(viewModel.snackbar.value)
+    }
+
+    // ─── resetForm ────────────────────────────────────────────────────────────
+
+    @Test fun `resetForm clears all form fields to defaults`() {
+        viewModel.updateForm { copy(typ = "Yrsel", svarighetsgrad = 9, triggers = "kyla") }
+        viewModel.resetForm()
+        val f = viewModel.form.value
+        assertEquals("", f.typ)
+        assertEquals(5, f.svarighetsgrad)
+        assertEquals("", f.triggers)
+    }
+
+    // ─── filter setters ───────────────────────────────────────────────────────
+
+    @Test fun `setDagFilter updates dagFilter in state`() = runTest {
+        viewModel.state.test {
+            awaitItem() // initial
+            viewModel.setDagFilter(7)
+            assertEquals(7, awaitItem().dagFilter)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `setDagFilter to null clears the filter`() = runTest {
+        viewModel.state.test {
+            awaitItem()
+            viewModel.setDagFilter(30)
+            awaitItem()
+            viewModel.setDagFilter(null)
+            assertNull(awaitItem().dagFilter)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `setTypFilter updates typFilter in state`() = runTest {
+        viewModel.state.test {
+            awaitItem()
+            viewModel.setTypFilter("Yrsel")
+            assertEquals("Yrsel", awaitItem().typFilter)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `setTypFilter to null clears the filter`() = runTest {
+        viewModel.state.test {
+            awaitItem()
+            viewModel.setTypFilter("Yrsel")
+            awaitItem()
+            viewModel.setTypFilter(null)
+            assertNull(awaitItem().typFilter)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ─── state filtering ──────────────────────────────────────────────────────
+
+    @Test fun `dag filter hides events older than the cutoff`() = runTest {
+        val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val oldDate = LocalDate.now().minusDays(100).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val vm = HandelserViewModel(mockk(relaxed = true) {
+            every { all } returns flowOf(listOf(
+                handelse(id = "recent", datum = today),
+                handelse(id = "old",    datum = oldDate),
+            ))
+        })
+        vm.state.onEach { }.launchIn(backgroundScope)
+        advanceUntilIdle()
+
+        vm.setDagFilter(30)
+        advanceUntilIdle()
+
+        val filtered = vm.state.value.filteredHandelser
+        assertTrue(filtered.any { it.id == "recent" })
+        assertTrue(filtered.none { it.id == "old" })
+    }
+
+    @Test fun `typ filter shows only matching events`() = runTest {
+        val vm = HandelserViewModel(mockk(relaxed = true) {
+            every { all } returns flowOf(listOf(
+                handelse(id = "h1", typ = "Yrsel"),
+                handelse(id = "h2", typ = "Blodtrycksfall"),
+            ))
+        })
+        vm.state.onEach { }.launchIn(backgroundScope)
+        advanceUntilIdle()
+
+        vm.setTypFilter("Yrsel")
+        advanceUntilIdle()
+
+        val filtered = vm.state.value.filteredHandelser
+        assertEquals(1, filtered.size)
+        assertEquals("Yrsel", filtered.single().typ)
+    }
+
+    @Test fun `allTyper contains distinct types in alphabetical order`() = runTest {
+        val vm = HandelserViewModel(mockk(relaxed = true) {
+            every { all } returns flowOf(listOf(
+                handelse(id = "h1", typ = "Yrsel"),
+                handelse(id = "h2", typ = "Blodtrycksfall"),
+                handelse(id = "h3", typ = "Yrsel"),
+            ))
+        })
+        vm.state.onEach { }.launchIn(backgroundScope)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Blodtrycksfall", "Yrsel"), vm.state.value.allTyper)
+    }
+}

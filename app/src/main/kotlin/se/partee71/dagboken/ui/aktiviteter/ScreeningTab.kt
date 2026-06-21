@@ -35,8 +35,9 @@ import se.partee71.dagboken.ui.components.GradientSliderRow
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ScreeningTab(vm: AktiviteterViewModel) {
-    val form by vm.form.collectAsState()
-    val symptomOptions by vm.symptomOptions.collectAsState()
+    val form             by vm.form.collectAsState()
+    val symptomOptions   by vm.symptomOptions.collectAsState()
+    val todaysScreenings by vm.todaysScreenings.collectAsState()
 
     Column(
         modifier = Modifier
@@ -55,9 +56,11 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
         DagbokenCard(title = stringResource(R.string.screening_event_label)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SCREENING_EVENT_LABELS.forEach { label ->
+                    val doneToday = label in todaysScreenings
                     FilterChip(
                         selected = form.aktivitet == label,
                         onClick  = { vm.updateForm { copy(aktivitet = label) } },
+                        enabled  = !doneToday,
                         label    = { Text(label) },
                     )
                 }

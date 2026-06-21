@@ -1,5 +1,7 @@
 package se.partee71.dagboken.ui.aktiviteter
 
+import se.partee71.dagboken.ui.formatDisplayDate
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -33,6 +35,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.DateTimeRow
+import se.partee71.dagboken.ui.components.DurationRow
 import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.theme.energyColor
@@ -62,6 +66,13 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
             fontWeight = FontWeight.Bold,
         )
 
+        DateTimeRow(
+            datum         = form.datum,
+            tid           = form.tid,
+            onDatumChange = { vm.updateForm { copy(datum = it) } },
+            onTidChange   = { vm.updateForm { copy(tid = it) } },
+        )
+
         AktivitetCard(
             selectedAktivitet  = form.aktivitet,
             aktivitetAnnat     = form.aktivitetAnnat,
@@ -72,6 +83,13 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
             onChangeAnnat      = { vm.updateForm { copy(aktivitetAnnat = it) } },
             onToggleAterham    = { vm.updateForm { copy(aterhamtande = !aterhamtande) } },
             onToggleEnergiTjuv = { vm.updateForm { copy(energitjuv = !energitjuv) } },
+        )
+
+        DurationRow(
+            hours          = form.spentTimeHours,
+            minutes        = form.spentTimeMinutes,
+            onHoursChange  = { vm.updateForm { copy(spentTimeHours = it) } },
+            onMinutesChange = { vm.updateForm { copy(spentTimeMinutes = it) } },
         )
 
         ElevatedCard(modifier = Modifier.fillMaxWidth()) {

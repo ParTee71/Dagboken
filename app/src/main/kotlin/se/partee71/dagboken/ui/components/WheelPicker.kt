@@ -1,11 +1,15 @@
 package se.partee71.dagboken.ui.components
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,10 +24,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.abs
 
-/**
- * Snap-scroll wheel picker. Mirrors WheelColumn from src/components/UI.jsx.
- * Items snap to center; selected item is full opacity, others fade by distance.
- */
 @Composable
 fun WheelPicker(
     items: List<String>,
@@ -33,7 +33,8 @@ fun WheelPicker(
     itemHeight: Dp = 44.dp,
     visibleItems: Int = 3,
 ) {
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = selectedIndex)
+    val listState    = rememberLazyListState(initialFirstVisibleItemIndex = selectedIndex)
+    val snapBehavior = rememberSnapFlingBehavior(lazyListState = listState)
 
     LaunchedEffect(selectedIndex) {
         if (listState.firstVisibleItemIndex != selectedIndex) {
@@ -59,37 +60,44 @@ fun WheelPicker(
         contentAlignment = Alignment.Center,
     ) {
         LazyColumn(
-            state = listState,
+            state               = listState,
+            flingBehavior       = snapBehavior,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Padding items so selected item centers
-            items((visibleItems / 2)) { Box(Modifier.height(itemHeight)) }
+            items(visibleItems / 2) { Box(Modifier.height(itemHeight)) }
 
             itemsIndexed(items) { index, item ->
                 val distance = abs(index - selectedIndex)
-                val alpha = when (distance) {
-                    0    -> 1f
-                    1    -> 0.55f
-                    else -> 0.25f
-                }
                 Box(
-                    modifier = Modifier
+                    modifier         = Modifier
                         .height(itemHeight)
-                        .alpha(alpha),
+                        .alpha(when (distance) { 0 -> 1f; 1 -> 0.35f; else -> 0.12f }),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = item,
-                        style = if (distance == 0) MaterialTheme.typography.titleMedium
-                                else MaterialTheme.typography.bodyMedium,
+                        text      = item,
+                        style     = if (distance == 0) MaterialTheme.typography.titleLarge
+                                    else MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        color = if (distance == 0) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color     = if (distance == 0) MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
-            items((visibleItems / 2)) { Box(Modifier.height(itemHeight)) }
+            items(visibleItems / 2) { Box(Modifier.height(itemHeight)) }
         }
+
+        // Selection indicator drawn on top — centred by contentAlignment
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(itemHeight)
+                .border(
+                    width = 1.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    shape = RoundedCornerShape(6.dp),
+                )
+        )
     }
 }
