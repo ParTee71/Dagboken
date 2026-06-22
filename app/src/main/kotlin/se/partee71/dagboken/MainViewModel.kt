@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -48,4 +51,10 @@ class MainViewModel @Inject constructor(
     val migrationDone = prefs.migrationDone
         .map { it as Boolean? }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val _pendingNavRoute = MutableStateFlow<String?>(null)
+    val pendingNavRoute: StateFlow<String?> = _pendingNavRoute.asStateFlow()
+
+    fun setPendingNavRoute(route: String) { _pendingNavRoute.value = route }
+    fun clearPendingNavRoute() { _pendingNavRoute.value = null }
 }

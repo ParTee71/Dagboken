@@ -13,9 +13,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import se.partee71.dagboken.MainViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -43,9 +47,21 @@ import se.partee71.dagboken.ui.settings.SettingsScreen
 fun AppNavigation(
     startDestination: String = Screen.Hem.route,
     navController: NavHostController = rememberNavController(),
+    mainVm: MainViewModel = hiltViewModel(),
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
+
+    val pendingNavRoute by mainVm.pendingNavRoute.collectAsState()
+    LaunchedEffect(pendingNavRoute) {
+        val route = pendingNavRoute ?: return@LaunchedEffect
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState   = true
+        }
+        mainVm.clearPendingNavRoute()
+    }
     val currentDestination = navBackStackEntry?.destination
 
     val showBottomBar = Screen.bottomNavItems.any { screen ->

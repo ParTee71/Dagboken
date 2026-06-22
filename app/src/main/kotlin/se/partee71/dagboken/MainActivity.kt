@@ -1,6 +1,7 @@
 package se.partee71.dagboken
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -12,6 +13,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import dagger.hilt.android.AndroidEntryPoint
+import se.partee71.dagboken.notifications.NotificationHelper
 import se.partee71.dagboken.ui.navigation.AppNavigation
 import se.partee71.dagboken.ui.navigation.Routes
 import se.partee71.dagboken.ui.navigation.Screen
@@ -21,6 +23,15 @@ import se.partee71.dagboken.ui.theme.DagbokenTheme
 class MainActivity : ComponentActivity() {
 
     private val vm: MainViewModel by viewModels()
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleNavIntent(intent)
+    }
+
+    private fun handleNavIntent(intent: Intent?) {
+        intent?.getStringExtra(NotificationHelper.EXTRA_NAV_ROUTE)?.let { vm.setPendingNavRoute(it) }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -34,6 +45,8 @@ class MainActivity : ComponentActivity() {
 
         // Hold splash until DataStore has emitted the real migrationDone value.
         splashScreen.setKeepOnScreenCondition { vm.migrationDone.value == null }
+
+        handleNavIntent(intent)
 
         enableEdgeToEdge()
         setContent {
