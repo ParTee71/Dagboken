@@ -67,7 +67,7 @@ private val TABS = listOf(
 @Composable
 fun AktiviteterScreen(
     onAddNew: () -> Unit,
-    onEdit: (String) -> Unit,
+    onEdit: (id: String, type: String) -> Unit,
     onNavigateToDiagram: () -> Unit,
     onNavigateToSettings: () -> Unit,
     snackbarHostState: SnackbarHostState,

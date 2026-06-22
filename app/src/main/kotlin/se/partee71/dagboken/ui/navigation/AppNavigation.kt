@@ -27,6 +27,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import se.partee71.dagboken.ui.aktiviteter.AktiviteterScreen
 import se.partee71.dagboken.ui.aktiviteter.add.AddEditAktivitetScreen
+import se.partee71.dagboken.ui.aktiviteter.add.AddEditScreeningScreen
 import se.partee71.dagboken.ui.diagram.DiagramScreen
 import se.partee71.dagboken.ui.handelser.AddEditHandelseScreen
 import se.partee71.dagboken.ui.handelser.HandelserScreen
@@ -120,7 +121,10 @@ fun AppNavigation(
             composable(Screen.Aktiviteter.route) {
                 AktiviteterScreen(
                     onAddNew             = { navController.navigate(Routes.ADD_AKTIVITET) },
-                    onEdit               = { id -> navController.navigate(Routes.editAktivitet(id)) },
+                    onEdit               = { id, type ->
+                        if (type == "screening") navController.navigate(Routes.editScreening(id))
+                        else navController.navigate(Routes.editAktivitet(id))
+                    },
                     onNavigateToDiagram  = { navController.navigate(Routes.diagram("aktiviteter")) },
                     onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
                     snackbarHostState    = snackbarHostState,
@@ -138,6 +142,15 @@ fun AppNavigation(
             ) { backStackEntry ->
                 AddEditAktivitetScreen(
                     editId = backStackEntry.arguments?.getString("id"),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route     = Routes.EDIT_SCREENING,
+                arguments = listOf(navArgument("id") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                AddEditScreeningScreen(
+                    editId = backStackEntry.arguments?.getString("id") ?: return@composable,
                     onBack = { navController.popBackStack() },
                 )
             }

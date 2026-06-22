@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.aktiviteter.add
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,26 +16,26 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.aktiviteter.AktiviteterViewModel
-import se.partee71.dagboken.ui.aktiviteter.LoggaTab
+import se.partee71.dagboken.ui.aktiviteter.ScreeningTab
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddEditAktivitetScreen(
-    editId: String?,
+fun AddEditScreeningScreen(
+    editId: String,
     onBack: () -> Unit,
     vm: AktiviteterViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
+    LaunchedEffect(editId) { vm.loadForEdit(editId) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(if (editId == null) R.string.aktivitet_new else R.string.aktivitet_edit)) },
+                title = { Text(stringResource(R.string.screening_edit)) },
                 navigationIcon = {
                     IconButton(onClick = { vm.resetForm(); onBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
@@ -47,12 +48,12 @@ fun AddEditAktivitetScreen(
                 Button(
                     onClick  = { vm.save { onBack() } },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                ) { Text(stringResource(R.string.save_aktivitet)) }
+                ) { Text(stringResource(R.string.save_screening)) }
             }
         },
     ) { padding ->
-        androidx.compose.foundation.layout.Box(Modifier.padding(padding)) {
-            LoggaTab(vm = vm, onSaved = onBack)
+        Box(Modifier.padding(padding)) {
+            ScreeningTab(vm = vm)
         }
     }
 }

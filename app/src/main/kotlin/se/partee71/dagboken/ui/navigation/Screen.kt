@@ -51,6 +51,7 @@ sealed class Screen(
 object Routes {
     const val ADD_AKTIVITET    = "add_aktivitet"
     const val EDIT_AKTIVITET   = "edit_aktivitet/{id}"
+    const val EDIT_SCREENING   = "edit_screening/{id}"
     const val ADD_MEDICIN      = "add_medicin"
     const val EDIT_MEDICIN     = "edit_medicin/{id}"
     const val ADD_RECEPT       = "add_recept"
@@ -63,7 +64,8 @@ object Routes {
     const val MIGRATION        = "migration"
     const val DIAGRAM          = "diagram/{source}"
 
-    fun editAktivitet(id: String) = "edit_aktivitet/$id"
+    fun editAktivitet(id: String)  = "edit_aktivitet/$id"
+    fun editScreening(id: String)  = "edit_screening/$id"
     fun editMedicin(id: String)   = "edit_medicin/$id"
     fun editRecept(id: String)    = "edit_recept/$id"
     fun editFavorit(id: String)   = "edit_favorit/$id"

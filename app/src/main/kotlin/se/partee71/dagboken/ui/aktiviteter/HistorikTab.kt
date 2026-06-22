@@ -64,7 +64,7 @@ import se.partee71.dagboken.ui.theme.energyLabel
 @Composable
 fun HistorikTab(
     vm: AktiviteterViewModel,
-    onEdit: (String) -> Unit,
+    onEdit: (id: String, type: String) -> Unit,
 ) {
     val entries by vm.filteredHistory.collectAsState()
     val filter by vm.historyFilter.collectAsState()
@@ -145,7 +145,7 @@ fun HistorikTab(
                     items(dayEntries, key = { it.id }) { aktivitet ->
                         AktivitetCard(
                             aktivitet = aktivitet,
-                            onEdit    = { onEdit(aktivitet.id) },
+                            onEdit    = { onEdit(aktivitet.id, aktivitet.type) },
                             onDelete  = { deleteTarget = aktivitet },
                             modifier  = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                         )

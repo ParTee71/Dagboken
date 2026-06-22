@@ -109,6 +109,7 @@
     <string name="screening_event_label">Välj tillfälle</string>
     <string name="screening_metrics_title">Mätvärden 0–10</string>
     <string name="save_screening">Spara screening</string>
+    <string name="screening_edit">Redigera screening</string>
 
     <!-- Recept (schema) -->
     <string name="recept_new">Nytt schema</string>

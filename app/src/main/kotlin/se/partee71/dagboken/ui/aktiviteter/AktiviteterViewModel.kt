@@ -64,14 +64,14 @@ class AktiviteterViewModel @Inject constructor(
         }
     }
 
-    val todaysScreenings: StateFlow<Set<String>> = all
-        .map { list ->
-            val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-            list.filter { it.type == "screening" && it.datum == today }
-                .map { it.aktivitet }
-                .toSet()
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+    private val _editId = MutableStateFlow<String?>(null)
+
+    val todaysScreenings: StateFlow<Set<String>> = combine(all, _editId) { list, editId ->
+        val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        list.filter { it.type == "screening" && it.datum == today && it.id != editId }
+            .map { it.aktivitet }
+            .toSet()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     val aktivitetOptions: StateFlow<List<SymptomOption>> = prefs.aktivitetOptions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -79,11 +79,8 @@ class AktiviteterViewModel @Inject constructor(
     val symptomOptions: StateFlow<List<SymptomOption>> = prefs.symptomOptions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-
     private val _form = MutableStateFlow(AktivitetForm())
     val form: StateFlow<AktivitetForm> = _form.asStateFlow()
-
-    private val _editId = MutableStateFlow<String?>(null)
 
     private val _snackbar = MutableStateFlow<String?>(null)
     val snackbar: StateFlow<String?> = _snackbar.asStateFlow()
