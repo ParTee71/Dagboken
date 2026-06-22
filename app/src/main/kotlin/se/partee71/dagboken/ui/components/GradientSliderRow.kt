@@ -14,6 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -26,9 +31,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.Emerald400
 import se.partee71.dagboken.ui.theme.Rose500
 import se.partee71.dagboken.ui.theme.gradientColors
@@ -59,6 +66,7 @@ fun GradientSliderRow(
     } else screeningEnergyColor(intValue, cs)
     val density = LocalDensity.current
     val rangeSize = valueRange.endInclusive - valueRange.start
+    val stepSize = if (steps > 0) rangeSize / (steps + 1) else rangeSize
 
     Column(
         modifier = modifier.alpha(if (enabled) 1f else 0.38f),
@@ -98,10 +106,23 @@ fun GradientSliderRow(
             }
         }
 
+        // ± step buttons flanking the custom track
+        Row(
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            IconButton(
+                onClick  = { onValueChange((value - stepSize).coerceAtLeast(valueRange.start)) },
+                enabled  = enabled && value > valueRange.start,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.decrease), modifier = Modifier.size(20.dp))
+            }
+
         // Custom track + invisible Slider for touch
         BoxWithConstraints(
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1f)
                 .height(48.dp),
         ) {
             if (rangeSize == 0f) return@BoxWithConstraints
@@ -170,6 +191,15 @@ fun GradientSliderRow(
                     .alpha(0f),
             )
         }
+
+            IconButton(
+                onClick  = { onValueChange((value + stepSize).coerceAtMost(valueRange.endInclusive)) },
+                enabled  = enabled && value < valueRange.endInclusive,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.increase), modifier = Modifier.size(20.dp))
+            }
+        } // end ± Row
 
         // Optional end labels (e.g. "0  😴" / "😊  10")
         if (startLabel.isNotEmpty() || endLabel.isNotEmpty()) {
