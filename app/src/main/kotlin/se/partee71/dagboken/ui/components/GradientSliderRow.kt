@@ -2,11 +2,15 @@ package se.partee71.dagboken.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -20,7 +24,6 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -30,11 +33,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.Emerald400
 import se.partee71.dagboken.ui.theme.Rose500
@@ -178,17 +183,33 @@ fun GradientSliderRow(
                 )
             }
 
-            // Invisible Slider handles all touch/drag events
-            Slider(
-                value         = value,
-                onValueChange = onValueChange,
-                valueRange    = valueRange,
-                steps         = steps,
-                enabled       = enabled,
-                modifier      = Modifier
+            // Full-area gesture handler: press anywhere to jump, drag to slide.
+            // Covers the entire 48 dp height so any touch on the track registers.
+            Box(
+                modifier = Modifier
                     .fillMaxWidth()
+                    .fillMaxHeight()
                     .align(Alignment.Center)
-                    .alpha(0f),
+                    .pointerInput(enabled, valueRange, stepSize) {
+                        if (!enabled) return@pointerInput
+                        val widthPx = size.width.toFloat()
+                        fun snap(x: Float): Float {
+                            val fraction = (x / widthPx).coerceIn(0f, 1f)
+                            val raw = valueRange.start + fraction * rangeSize
+                            val n = ((raw - valueRange.start) / stepSize).roundToInt()
+                            return (valueRange.start + n * stepSize)
+                                .coerceIn(valueRange.start, valueRange.endInclusive)
+                        }
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            down.consume()
+                            onValueChange(snap(down.position.x))
+                            drag(down.id) { change ->
+                                change.consume()
+                                onValueChange(snap(change.position.x))
+                            }
+                        }
+                    },
             )
         }
 
