@@ -1,20 +1,32 @@
 package se.partee71.dagboken.ui.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
@@ -23,7 +35,13 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.ImportExport
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -54,24 +72,29 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.data.datastore.SymptomOption
+
+private data class SectionDef(val icon: ImageVector, val title: String, val description: String)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -80,8 +103,21 @@ fun SettingsScreen(
     onImport: () -> Unit,
     vm: SettingsViewModel = hiltViewModel(),
 ) {
-    val state by vm.state.collectAsState()
-    val context = LocalContext.current
+    val state         by vm.state.collectAsState()
+    val context        = LocalContext.current
+    val lazyListState  = rememberLazyListState()
+    val scope          = rememberCoroutineScope()
+    val isLargeScreen  = LocalConfiguration.current.screenWidthDp >= 600
+
+    val sections = listOf(
+        SectionDef(Icons.Filled.AccountCircle, stringResource(R.string.settings_account_section),       "Google-konto och synk"),
+        SectionDef(Icons.Filled.ImportExport,  stringResource(R.string.settings_import_section),        "Importera data från JSON"),
+        SectionDef(Icons.Filled.Palette,       stringResource(R.string.settings_theme_section),         "Ljust, mörkt eller tidsbaserat"),
+        SectionDef(Icons.Filled.Notifications, stringResource(R.string.settings_notifications_section), "Medicin- och screeningnotiser"),
+        SectionDef(Icons.Filled.DirectionsRun, stringResource(R.string.settings_aktivitet_section),     "Hantera aktivitetstyper"),
+        SectionDef(Icons.Filled.Favorite,      stringResource(R.string.label_symptom),                  "Hantera symptomtyper"),
+        SectionDef(Icons.Filled.Info,          stringResource(R.string.settings_about_section),         "Version och appinfo"),
+    )
 
     Scaffold(
         topBar = {
@@ -95,67 +131,150 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(padding),
         ) {
-            AccountCard(
-                email          = state.googleAccountEmail,
-                photoUrl       = state.googleAccountPhotoUrl,
-                isSigningIn    = state.isSigningIn,
-                signInError    = state.signInError,
-                onSignIn       = { vm.signIn(context) },
-                onSignOut      = { vm.signOut() },
+            if (isLargeScreen) {
+                SettingsNavSidebar(
+                    sections       = sections,
+                    onSectionClick = { index -> scope.launch { lazyListState.animateScrollToItem(index) } },
+                )
+            }
+            LazyColumn(
+                state           = lazyListState,
+                modifier        = Modifier.weight(1f),
+                contentPadding  = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                item {
+                    AccountCard(
+                        email       = state.googleAccountEmail,
+                        photoUrl    = state.googleAccountPhotoUrl,
+                        isSigningIn = state.isSigningIn,
+                        signInError = state.signInError,
+                        onSignIn    = { vm.signIn(context) },
+                        onSignOut   = { vm.signOut() },
+                    )
+                }
+                item { ImportCard(onImport = onImport) }
+                item {
+                    ThemeCard(
+                        themeMode       = state.themeMode,
+                        themeLightStart = state.themeLightStart,
+                        themeDarkStart  = state.themeDarkStart,
+                        onSetMode       = vm::setThemeMode,
+                        onSetLightStart = vm::setThemeLightStart,
+                        onSetDarkStart  = vm::setThemeDarkStart,
+                    )
+                }
+                item {
+                    NotificationsCard(
+                        medsEnabled        = state.medsNotificationsEnabled,
+                        screeningConfigs   = state.screeningEventConfigs,
+                        onToggleMeds       = { vm.toggleMedsNotifications() },
+                        onToggleScreening  = { vm.toggleScreeningEvent(it) },
+                        onSetScreeningTime = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
+                    )
+                }
+                item {
+                    OptionSettingsCard(
+                        title            = stringResource(R.string.settings_aktivitet_section),
+                        newOptionLabel   = stringResource(R.string.settings_new_aktivitet_type),
+                        options          = state.aktivitetOptions,
+                        newOption        = state.newAktivitetOption,
+                        onValueChange    = vm::setNewAktivitetOption,
+                        onAdd            = vm::addAktivitetOption,
+                        onDelete         = vm::deleteAktivitetOption,
+                        onToggleFavorite = vm::toggleAktivitetFavorite,
+                        onRename         = vm::renameAktivitetOption,
+                    )
+                }
+                item {
+                    OptionSettingsCard(
+                        title            = stringResource(R.string.label_symptom),
+                        newOptionLabel   = stringResource(R.string.settings_new_symptom),
+                        options          = state.symptomOptions,
+                        newOption        = state.newSymptomOption,
+                        onValueChange    = vm::setNewSymptomOption,
+                        onAdd            = vm::addSymptomOption,
+                        onDelete         = vm::deleteSymptomOption,
+                        onToggleFavorite = vm::toggleSymptomFavorite,
+                        onRename         = vm::renameSymptomOption,
+                    )
+                }
+                item { AboutCard() }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsNavSidebar(
+    sections: List<SectionDef>,
+    onSectionClick: (Int) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxHeight()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        sections.forEachIndexed { index, section ->
+            SettingsRailItem(section = section, onClick = { onSectionClick(index) })
+        }
+    }
+}
+
+@Composable
+private fun SettingsRailItem(section: SectionDef, onClick: () -> Unit) {
+    var isFocused         by remember { mutableStateOf(false) }
+    val interactionSource  = remember { MutableInteractionSource() }
+    val isHovered         by interactionSource.collectIsHoveredAsState()
+    val expanded           = isHovered || isFocused
+
+    Surface(
+        onClick           = onClick,
+        shape             = MaterialTheme.shapes.medium,
+        color             = if (expanded) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+        modifier          = Modifier
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .hoverable(interactionSource)
+            .onFocusChanged { isFocused = it.isFocused },
+        interactionSource = interactionSource,
+    ) {
+        Row(
+            modifier          = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector        = section.icon,
+                contentDescription = section.title,
+                modifier           = Modifier.size(24.dp),
+                tint               = if (expanded) MaterialTheme.colorScheme.onSecondaryContainer
+                                     else MaterialTheme.colorScheme.onSurfaceVariant,
             )
-
-            ImportCard(onImport = onImport)
-
-            ThemeCard(
-                themeMode       = state.themeMode,
-                themeLightStart = state.themeLightStart,
-                themeDarkStart  = state.themeDarkStart,
-                onSetMode       = vm::setThemeMode,
-                onSetLightStart = { vm.setThemeLightStart(state.themeLightStart + it) },
-                onSetDarkStart  = { vm.setThemeDarkStart(state.themeDarkStart + it) },
-            )
-
-            NotificationsCard(
-                medsEnabled           = state.medsNotificationsEnabled,
-                screeningConfigs      = state.screeningEventConfigs,
-                onToggleMeds          = { vm.toggleMedsNotifications() },
-                onToggleScreening     = { vm.toggleScreeningEvent(it) },
-                onSetScreeningTime    = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
-            )
-
-            OptionSettingsCard(
-                title            = stringResource(R.string.settings_aktivitet_section),
-                newOptionLabel   = stringResource(R.string.settings_new_aktivitet_type),
-                options          = state.aktivitetOptions,
-                newOption        = state.newAktivitetOption,
-                onValueChange    = vm::setNewAktivitetOption,
-                onAdd            = vm::addAktivitetOption,
-                onDelete         = vm::deleteAktivitetOption,
-                onToggleFavorite = vm::toggleAktivitetFavorite,
-                onRename         = vm::renameAktivitetOption,
-            )
-
-            OptionSettingsCard(
-                title            = stringResource(R.string.label_symptom),
-                newOptionLabel   = stringResource(R.string.settings_new_symptom),
-                options          = state.symptomOptions,
-                newOption        = state.newSymptomOption,
-                onValueChange    = vm::setNewSymptomOption,
-                onAdd            = vm::addSymptomOption,
-                onDelete         = vm::deleteSymptomOption,
-                onToggleFavorite = vm::toggleSymptomFavorite,
-                onRename         = vm::renameSymptomOption,
-            )
-
-            AboutCard()
+            AnimatedVisibility(
+                visible = expanded,
+                enter   = fadeIn() + expandHorizontally(),
+                exit    = fadeOut() + shrinkHorizontally(),
+            ) {
+                Column(modifier = Modifier.padding(start = 12.dp).widthIn(max = 180.dp)) {
+                    Text(
+                        text       = section.title,
+                        style      = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                    Text(
+                        text  = section.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                    )
+                }
+            }
         }
     }
 }
@@ -270,6 +389,7 @@ private fun ImportCard(onImport: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ThemeCard(
     themeMode: String,
@@ -279,7 +399,9 @@ private fun ThemeCard(
     onSetLightStart: (Int) -> Unit,
     onSetDarkStart: (Int) -> Unit,
 ) {
-    val cs = MaterialTheme.colorScheme
+    var showLightPicker by remember { mutableStateOf(false) }
+    var showDarkPicker  by remember { mutableStateOf(false) }
+
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(stringResource(R.string.settings_theme_section), style = MaterialTheme.typography.titleSmall)
@@ -301,26 +423,71 @@ private fun ThemeCard(
             }
             if (themeMode == "auto") {
                 Spacer(Modifier.height(12.dp))
-                TimeStepperRow(
-                    emoji          = "🌅",
-                    label          = stringResource(R.string.settings_theme_light_from),
-                    hour           = themeLightStart,
-                    containerColor = cs.primaryContainer,
-                    contentColor   = cs.onPrimaryContainer,
-                    onDecrement    = { onSetLightStart(-1) },
-                    onIncrement    = { onSetLightStart(+1) },
+                ThemeTimeRow(
+                    label    = stringResource(R.string.settings_theme_light_from),
+                    hour     = themeLightStart,
+                    onClick  = { showLightPicker = true },
                 )
                 Spacer(Modifier.height(8.dp))
-                TimeStepperRow(
-                    emoji          = "🌙",
-                    label          = stringResource(R.string.settings_theme_dark_from),
-                    hour           = themeDarkStart,
-                    containerColor = cs.surfaceVariant,
-                    contentColor   = cs.onSurfaceVariant,
-                    onDecrement    = { onSetDarkStart(-1) },
-                    onIncrement    = { onSetDarkStart(+1) },
+                ThemeTimeRow(
+                    label    = stringResource(R.string.settings_theme_dark_from),
+                    hour     = themeDarkStart,
+                    onClick  = { showDarkPicker = true },
                 )
             }
+        }
+    }
+
+    if (showLightPicker) {
+        val state = rememberTimePickerState(initialHour = themeLightStart, initialMinute = 0, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { showLightPicker = false },
+            title            = { Text(stringResource(R.string.settings_theme_light_from)) },
+            text             = { TimePicker(state = state) },
+            confirmButton    = {
+                TextButton(onClick = { onSetLightStart(state.hour); showLightPicker = false }) {
+                    Text(stringResource(R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLightPicker = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+
+    if (showDarkPicker) {
+        val state = rememberTimePickerState(initialHour = themeDarkStart, initialMinute = 0, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { showDarkPicker = false },
+            title            = { Text(stringResource(R.string.settings_theme_dark_from)) },
+            text             = { TimePicker(state = state) },
+            confirmButton    = {
+                TextButton(onClick = { onSetDarkStart(state.hour); showDarkPicker = false }) {
+                    Text(stringResource(R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDarkPicker = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun ThemeTimeRow(label: String, hour: Int, onClick: () -> Unit) {
+    Row(
+        modifier          = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        TextButton(onClick = onClick) {
+            Text(
+                text       = String.format(java.util.Locale.ROOT, "%02d:00", hour),
+                style      = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.width(4.dp))
+            Icon(Icons.Default.Alarm, contentDescription = stringResource(R.string.settings_pick_time), modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -557,48 +724,3 @@ private fun ScreeningEventRow(
     }
 }
 
-@Composable
-private fun TimeStepperRow(
-    emoji: String,
-    label: String,
-    hour: Int,
-    containerColor: Color,
-    contentColor: Color,
-    onDecrement: () -> Unit,
-    onIncrement: () -> Unit,
-) {
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = containerColor,
-    ) {
-        Row(
-            modifier          = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(emoji, style = MaterialTheme.typography.bodyLarge)
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text     = label,
-                modifier = Modifier.weight(1f),
-                color    = contentColor,
-                style    = MaterialTheme.typography.bodyMedium,
-            )
-            IconButton(onClick = onDecrement) {
-                Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.decrease), tint = contentColor)
-            }
-            Text(
-                text       = String.format(java.util.Locale.ROOT, "%02d:00", hour),
-                style      = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color      = contentColor,
-                textAlign  = TextAlign.Center,
-                modifier   = Modifier.width(52.dp),
-            )
-            IconButton(onClick = onIncrement) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.increase), tint = contentColor)
-            }
-        }
-    }
-}

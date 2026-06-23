@@ -7,15 +7,10 @@ import android.content.Intent
 class MedAlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val namn     = intent.getStringExtra(EXTRA_NAMN)     ?: return
-        val dos      = intent.getStringExtra(EXTRA_DOS)      ?: ""
-        val tidpunkt = intent.getStringExtra(EXTRA_TIDPUNKT) ?: ""
-        NotificationHelper.postMedReminder(context, namn, dos, tidpunkt)
+        NotificationHelper.postMedReminder(context)
     }
 
     companion object {
-        const val EXTRA_NAMN     = "extra_namn"
-        const val EXTRA_DOS      = "extra_dos"
-        const val EXTRA_TIDPUNKT = "extra_tidpunkt"
+        const val EXTRA_SLOT = "extra_slot"
     }
 }

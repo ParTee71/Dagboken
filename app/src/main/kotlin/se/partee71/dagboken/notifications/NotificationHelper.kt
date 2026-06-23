@@ -17,6 +17,7 @@ object NotificationHelper {
     const val CHANNEL_SCREENING = "screening"
     const val EXTRA_NAV_ROUTE   = "extra_nav_route"
 
+    private const val NOTIFICATION_ID_MED       = 2
     private const val NOTIFICATION_ID_SCREENING = 1
 
     fun createChannels(context: Context) {
@@ -38,18 +39,17 @@ object NotificationHelper {
         )
     }
 
-    fun postMedReminder(context: Context, namn: String, dos: String, tidpunkt: String) {
-        val notificationId = "$namn-$tidpunkt".hashCode()
+    fun postMedReminder(context: Context) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = NotificationCompat.Builder(context, CHANNEL_MEDS)
             .setSmallIcon(R.drawable.ic_notification_med)
-            .setContentTitle("Dags för $namn")
-            .setContentText("$dos om 15 minuter ($tidpunkt)")
+            .setContentTitle("Dags för medicin")
+            .setContentText("Glöm inte att ta dina mediciner.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
-            .setContentIntent(buildIntent(context, Screen.Mediciner.route, notificationId))
+            .setContentIntent(buildIntent(context, Screen.Mediciner.route, NOTIFICATION_ID_MED))
             .build()
-        manager.notify(notificationId, notification)
+        manager.notify(NOTIFICATION_ID_MED, notification)
     }
 
     fun postScreeningReminder(context: Context, eventLabel: String) {

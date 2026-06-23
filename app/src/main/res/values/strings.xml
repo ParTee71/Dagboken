@@ -154,7 +154,7 @@
     <string name="settings_theme_dark_from">Mörkt tema från</string>
     <string name="settings_notifications_section">Påminnelser</string>
     <string name="settings_meds_notifications">Medicinpåminnelser</string>
-    <string name="settings_meds_notifications_subtitle">Notis 15 min innan varje tidpunkt</string>
+    <string name="settings_meds_notifications_subtitle">Påminner vid samma tider som screeningpåminnelserna</string>
     <string name="settings_screening_notifications">Screeningpåminnelser</string>
     <string name="settings_screening_notifications_subtitle">Aktivera notis per måltidshändelse</string>
     <string name="settings_pick_time">Välj tid</string>
