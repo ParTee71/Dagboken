@@ -107,7 +107,7 @@ fun SettingsScreen(
     val context        = LocalContext.current
     val lazyListState  = rememberLazyListState()
     val scope          = rememberCoroutineScope()
-    val isLargeScreen  = LocalConfiguration.current.screenWidthDp >= 600
+    val isLargeScreen  = LocalConfiguration.current.screenWidthDp >= 400
 
     val sections = listOf(
         SectionDef(Icons.Filled.AccountCircle, stringResource(R.string.settings_account_section),       "Google-konto och synk"),
