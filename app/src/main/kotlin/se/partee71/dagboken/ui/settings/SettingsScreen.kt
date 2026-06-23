@@ -1,9 +1,6 @@
 package se.partee71.dagboken.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -74,6 +71,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
@@ -287,13 +287,11 @@ private fun SettingsNavSidebar(
 
 @Composable
 private fun SettingsRailItem(section: SectionDef, isSelected: Boolean, onClick: () -> Unit) {
-    var isFocused         by remember { mutableStateOf(false) }
-    val interactionSource  = remember { MutableInteractionSource() }
-    val isHovered         by interactionSource.collectIsHoveredAsState()
-    val showPopup          = isHovered || isFocused
-    val cs                 = MaterialTheme.colorScheme
+    var isHovered by remember { mutableStateOf(false) }
+    var isFocused by remember { mutableStateOf(false) }
+    val showPopup  = isHovered || isFocused
+    val cs         = MaterialTheme.colorScheme
 
-    // Positions popup so its left edge starts at the anchor's right edge, vertically centred.
     val rightOfAnchor = remember {
         object : PopupPositionProvider {
             override fun calculatePosition(
@@ -308,16 +306,27 @@ private fun SettingsRailItem(section: SectionDef, isSelected: Boolean, onClick: 
         }
     }
 
-    Box {
+    Box(
+        modifier = Modifier.pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    when (event.type) {
+                        PointerEventType.Enter -> isHovered = true
+                        PointerEventType.Exit  -> isHovered = false
+                        else                   -> {}
+                    }
+                }
+            }
+        },
+    ) {
         Surface(
-            onClick           = onClick,
-            shape             = MaterialTheme.shapes.medium,
-            color             = if (isSelected) cs.primaryContainer else Color.Transparent,
-            modifier          = Modifier
+            onClick  = onClick,
+            shape    = MaterialTheme.shapes.medium,
+            color    = if (isSelected) cs.primaryContainer else Color.Transparent,
+            modifier = Modifier
                 .padding(horizontal = 8.dp, vertical = 2.dp)
-                .hoverable(interactionSource)
                 .onFocusChanged { isFocused = it.isFocused },
-            interactionSource = interactionSource,
         ) {
             Box(
                 modifier         = Modifier.size(48.dp),
