@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -24,8 +23,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -72,7 +71,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -103,11 +102,10 @@ fun SettingsScreen(
     onImport: () -> Unit,
     vm: SettingsViewModel = hiltViewModel(),
 ) {
-    val state         by vm.state.collectAsState()
-    val context        = LocalContext.current
-    val lazyListState  = rememberLazyListState()
-    val scope          = rememberCoroutineScope()
-    val isLargeScreen  = LocalConfiguration.current.screenWidthDp >= 400
+    val state          by vm.state.collectAsState()
+    val context         = LocalContext.current
+    val isLargeScreen   = LocalConfiguration.current.screenWidthDp >= 400
+    var selectedSection by remember { mutableIntStateOf(0) }
 
     val sections = listOf(
         SectionDef(Icons.Filled.AccountCircle, stringResource(R.string.settings_account_section),       "Google-konto och synk"),
@@ -131,80 +129,132 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            if (isLargeScreen) {
+        if (isLargeScreen) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+            ) {
                 SettingsNavSidebar(
-                    sections       = sections,
-                    onSectionClick = { index -> scope.launch { lazyListState.animateScrollToItem(index) } },
+                    sections        = sections,
+                    selectedIndex   = selectedSection,
+                    onSectionClick  = { selectedSection = it },
                 )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    when (selectedSection) {
+                        0 -> AccountCard(
+                            email       = state.googleAccountEmail,
+                            photoUrl    = state.googleAccountPhotoUrl,
+                            isSigningIn = state.isSigningIn,
+                            signInError = state.signInError,
+                            onSignIn    = { vm.signIn(context) },
+                            onSignOut   = { vm.signOut() },
+                        )
+                        1 -> ImportCard(onImport = onImport)
+                        2 -> ThemeCard(
+                            themeMode       = state.themeMode,
+                            themeLightStart = state.themeLightStart,
+                            themeDarkStart  = state.themeDarkStart,
+                            onSetMode       = vm::setThemeMode,
+                            onSetLightStart = vm::setThemeLightStart,
+                            onSetDarkStart  = vm::setThemeDarkStart,
+                        )
+                        3 -> NotificationsCard(
+                            medsEnabled        = state.medsNotificationsEnabled,
+                            screeningConfigs   = state.screeningEventConfigs,
+                            onToggleMeds       = { vm.toggleMedsNotifications() },
+                            onToggleScreening  = { vm.toggleScreeningEvent(it) },
+                            onSetScreeningTime = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
+                        )
+                        4 -> OptionSettingsCard(
+                            title            = stringResource(R.string.settings_aktivitet_section),
+                            newOptionLabel   = stringResource(R.string.settings_new_aktivitet_type),
+                            options          = state.aktivitetOptions,
+                            newOption        = state.newAktivitetOption,
+                            onValueChange    = vm::setNewAktivitetOption,
+                            onAdd            = vm::addAktivitetOption,
+                            onDelete         = vm::deleteAktivitetOption,
+                            onToggleFavorite = vm::toggleAktivitetFavorite,
+                            onRename         = vm::renameAktivitetOption,
+                        )
+                        5 -> OptionSettingsCard(
+                            title            = stringResource(R.string.label_symptom),
+                            newOptionLabel   = stringResource(R.string.settings_new_symptom),
+                            options          = state.symptomOptions,
+                            newOption        = state.newSymptomOption,
+                            onValueChange    = vm::setNewSymptomOption,
+                            onAdd            = vm::addSymptomOption,
+                            onDelete         = vm::deleteSymptomOption,
+                            onToggleFavorite = vm::toggleSymptomFavorite,
+                            onRename         = vm::renameSymptomOption,
+                        )
+                        6 -> AboutCard()
+                    }
+                }
             }
-            LazyColumn(
-                state           = lazyListState,
-                modifier        = Modifier.weight(1f),
-                contentPadding  = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                item {
-                    AccountCard(
-                        email       = state.googleAccountEmail,
-                        photoUrl    = state.googleAccountPhotoUrl,
-                        isSigningIn = state.isSigningIn,
-                        signInError = state.signInError,
-                        onSignIn    = { vm.signIn(context) },
-                        onSignOut   = { vm.signOut() },
-                    )
-                }
-                item { ImportCard(onImport = onImport) }
-                item {
-                    ThemeCard(
-                        themeMode       = state.themeMode,
-                        themeLightStart = state.themeLightStart,
-                        themeDarkStart  = state.themeDarkStart,
-                        onSetMode       = vm::setThemeMode,
-                        onSetLightStart = vm::setThemeLightStart,
-                        onSetDarkStart  = vm::setThemeDarkStart,
-                    )
-                }
-                item {
-                    NotificationsCard(
-                        medsEnabled        = state.medsNotificationsEnabled,
-                        screeningConfigs   = state.screeningEventConfigs,
-                        onToggleMeds       = { vm.toggleMedsNotifications() },
-                        onToggleScreening  = { vm.toggleScreeningEvent(it) },
-                        onSetScreeningTime = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
-                    )
-                }
-                item {
-                    OptionSettingsCard(
-                        title            = stringResource(R.string.settings_aktivitet_section),
-                        newOptionLabel   = stringResource(R.string.settings_new_aktivitet_type),
-                        options          = state.aktivitetOptions,
-                        newOption        = state.newAktivitetOption,
-                        onValueChange    = vm::setNewAktivitetOption,
-                        onAdd            = vm::addAktivitetOption,
-                        onDelete         = vm::deleteAktivitetOption,
-                        onToggleFavorite = vm::toggleAktivitetFavorite,
-                        onRename         = vm::renameAktivitetOption,
-                    )
-                }
-                item {
-                    OptionSettingsCard(
-                        title            = stringResource(R.string.label_symptom),
-                        newOptionLabel   = stringResource(R.string.settings_new_symptom),
-                        options          = state.symptomOptions,
-                        newOption        = state.newSymptomOption,
-                        onValueChange    = vm::setNewSymptomOption,
-                        onAdd            = vm::addSymptomOption,
-                        onDelete         = vm::deleteSymptomOption,
-                        onToggleFavorite = vm::toggleSymptomFavorite,
-                        onRename         = vm::renameSymptomOption,
-                    )
-                }
-                item { AboutCard() }
+                AccountCard(
+                    email       = state.googleAccountEmail,
+                    photoUrl    = state.googleAccountPhotoUrl,
+                    isSigningIn = state.isSigningIn,
+                    signInError = state.signInError,
+                    onSignIn    = { vm.signIn(context) },
+                    onSignOut   = { vm.signOut() },
+                )
+                ImportCard(onImport = onImport)
+                ThemeCard(
+                    themeMode       = state.themeMode,
+                    themeLightStart = state.themeLightStart,
+                    themeDarkStart  = state.themeDarkStart,
+                    onSetMode       = vm::setThemeMode,
+                    onSetLightStart = vm::setThemeLightStart,
+                    onSetDarkStart  = vm::setThemeDarkStart,
+                )
+                NotificationsCard(
+                    medsEnabled        = state.medsNotificationsEnabled,
+                    screeningConfigs   = state.screeningEventConfigs,
+                    onToggleMeds       = { vm.toggleMedsNotifications() },
+                    onToggleScreening  = { vm.toggleScreeningEvent(it) },
+                    onSetScreeningTime = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
+                )
+                OptionSettingsCard(
+                    title            = stringResource(R.string.settings_aktivitet_section),
+                    newOptionLabel   = stringResource(R.string.settings_new_aktivitet_type),
+                    options          = state.aktivitetOptions,
+                    newOption        = state.newAktivitetOption,
+                    onValueChange    = vm::setNewAktivitetOption,
+                    onAdd            = vm::addAktivitetOption,
+                    onDelete         = vm::deleteAktivitetOption,
+                    onToggleFavorite = vm::toggleAktivitetFavorite,
+                    onRename         = vm::renameAktivitetOption,
+                )
+                OptionSettingsCard(
+                    title            = stringResource(R.string.label_symptom),
+                    newOptionLabel   = stringResource(R.string.settings_new_symptom),
+                    options          = state.symptomOptions,
+                    newOption        = state.newSymptomOption,
+                    onValueChange    = vm::setNewSymptomOption,
+                    onAdd            = vm::addSymptomOption,
+                    onDelete         = vm::deleteSymptomOption,
+                    onToggleFavorite = vm::toggleSymptomFavorite,
+                    onRename         = vm::renameSymptomOption,
+                )
+                AboutCard()
             }
         }
     }
@@ -213,6 +263,7 @@ fun SettingsScreen(
 @Composable
 private fun SettingsNavSidebar(
     sections: List<SectionDef>,
+    selectedIndex: Int,
     onSectionClick: (Int) -> Unit,
 ) {
     Column(
@@ -223,22 +274,37 @@ private fun SettingsNavSidebar(
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         sections.forEachIndexed { index, section ->
-            SettingsRailItem(section = section, onClick = { onSectionClick(index) })
+            SettingsRailItem(
+                section    = section,
+                isSelected = index == selectedIndex,
+                onClick    = { onSectionClick(index) },
+            )
         }
     }
 }
 
 @Composable
-private fun SettingsRailItem(section: SectionDef, onClick: () -> Unit) {
+private fun SettingsRailItem(section: SectionDef, isSelected: Boolean, onClick: () -> Unit) {
     var isFocused         by remember { mutableStateOf(false) }
     val interactionSource  = remember { MutableInteractionSource() }
     val isHovered         by interactionSource.collectIsHoveredAsState()
-    val expanded           = isHovered || isFocused
+    val expanded           = isSelected || isHovered || isFocused
+
+    val bgColor = when {
+        isSelected          -> MaterialTheme.colorScheme.primaryContainer
+        isHovered || isFocused -> MaterialTheme.colorScheme.secondaryContainer
+        else                -> Color.Transparent
+    }
+    val contentColor = when {
+        isSelected             -> MaterialTheme.colorScheme.onPrimaryContainer
+        isHovered || isFocused -> MaterialTheme.colorScheme.onSecondaryContainer
+        else                   -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
     Surface(
         onClick           = onClick,
         shape             = MaterialTheme.shapes.medium,
-        color             = if (expanded) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+        color             = bgColor,
         modifier          = Modifier
             .padding(horizontal = 8.dp, vertical = 2.dp)
             .hoverable(interactionSource)
@@ -253,8 +319,7 @@ private fun SettingsRailItem(section: SectionDef, onClick: () -> Unit) {
                 imageVector        = section.icon,
                 contentDescription = section.title,
                 modifier           = Modifier.size(24.dp),
-                tint               = if (expanded) MaterialTheme.colorScheme.onSecondaryContainer
-                                     else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint               = contentColor,
             )
             AnimatedVisibility(
                 visible = expanded,
@@ -266,12 +331,12 @@ private fun SettingsRailItem(section: SectionDef, onClick: () -> Unit) {
                         text       = section.title,
                         style      = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color      = MaterialTheme.colorScheme.onSecondaryContainer,
+                        color      = contentColor,
                     )
                     Text(
                         text  = section.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                        color = contentColor.copy(alpha = 0.8f),
                     )
                 }
             }
