@@ -1,10 +1,5 @@
 package se.partee71.dagboken.ui.settings
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,6 +10,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,7 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -45,6 +40,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -79,6 +75,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -288,56 +286,55 @@ private fun SettingsRailItem(section: SectionDef, isSelected: Boolean, onClick: 
     var isFocused         by remember { mutableStateOf(false) }
     val interactionSource  = remember { MutableInteractionSource() }
     val isHovered         by interactionSource.collectIsHoveredAsState()
-    val expanded           = isSelected || isHovered || isFocused
+    val showPopup          = isHovered || isFocused
+    val cs                 = MaterialTheme.colorScheme
 
-    val bgColor = when {
-        isSelected          -> MaterialTheme.colorScheme.primaryContainer
-        isHovered || isFocused -> MaterialTheme.colorScheme.secondaryContainer
-        else                -> Color.Transparent
-    }
-    val contentColor = when {
-        isSelected             -> MaterialTheme.colorScheme.onPrimaryContainer
-        isHovered || isFocused -> MaterialTheme.colorScheme.onSecondaryContainer
-        else                   -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Surface(
-        onClick           = onClick,
-        shape             = MaterialTheme.shapes.medium,
-        color             = bgColor,
-        modifier          = Modifier
-            .padding(horizontal = 8.dp, vertical = 2.dp)
-            .hoverable(interactionSource)
-            .onFocusChanged { isFocused = it.isFocused },
-        interactionSource = interactionSource,
-    ) {
-        Row(
-            modifier          = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    Box {
+        Surface(
+            onClick           = onClick,
+            shape             = MaterialTheme.shapes.medium,
+            color             = if (isSelected) cs.primaryContainer else Color.Transparent,
+            modifier          = Modifier
+                .padding(horizontal = 8.dp, vertical = 2.dp)
+                .hoverable(interactionSource)
+                .onFocusChanged { isFocused = it.isFocused },
+            interactionSource = interactionSource,
         ) {
-            Icon(
-                imageVector        = section.icon,
-                contentDescription = section.title,
-                modifier           = Modifier.size(24.dp),
-                tint               = contentColor,
-            )
-            AnimatedVisibility(
-                visible = expanded,
-                enter   = fadeIn() + expandHorizontally(),
-                exit    = fadeOut() + shrinkHorizontally(),
+            Box(
+                modifier         = Modifier.size(48.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Column(modifier = Modifier.padding(start = 12.dp).widthIn(max = 180.dp)) {
-                    Text(
-                        text       = section.title,
-                        style      = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color      = contentColor,
-                    )
-                    Text(
-                        text  = section.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = contentColor.copy(alpha = 0.8f),
-                    )
+                Icon(
+                    imageVector        = section.icon,
+                    contentDescription = section.title,
+                    modifier           = Modifier.size(24.dp),
+                    tint               = if (isSelected) cs.onPrimaryContainer
+                                         else cs.onSurfaceVariant,
+                )
+            }
+        }
+
+        if (showPopup) {
+            Popup(
+                alignment  = Alignment.CenterEnd,
+                properties = PopupProperties(focusable = false),
+            ) {
+                ElevatedCard(
+                    modifier  = Modifier.padding(start = 4.dp),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        Text(
+                            text       = section.title,
+                            style      = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text  = section.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = cs.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
