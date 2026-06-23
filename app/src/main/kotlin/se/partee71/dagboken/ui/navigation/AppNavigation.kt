@@ -34,6 +34,7 @@ import se.partee71.dagboken.ui.aktiviteter.AktiviteterScreen
 import se.partee71.dagboken.ui.aktiviteter.add.AddEditAktivitetScreen
 import se.partee71.dagboken.ui.aktiviteter.add.AddEditScreeningScreen
 import se.partee71.dagboken.ui.diagram.DiagramScreen
+import se.partee71.dagboken.ui.diagram.SymptomDiagramScreen
 import se.partee71.dagboken.ui.handelser.AddEditHandelseScreen
 import se.partee71.dagboken.ui.handelser.HandelserScreen
 import se.partee71.dagboken.ui.home.HomeScreen
@@ -141,15 +142,19 @@ fun AppNavigation(
             }
             composable(Screen.Aktiviteter.route) {
                 AktiviteterScreen(
-                    onAddNew             = { navController.navigate(Routes.ADD_AKTIVITET) },
-                    onEdit               = { id, type ->
+                    onAddNew                    = { navController.navigate(Routes.ADD_AKTIVITET) },
+                    onEdit                      = { id, type ->
                         if (type == "screening") navController.navigate(Routes.editScreening(id))
                         else navController.navigate(Routes.editAktivitet(id))
                     },
-                    onNavigateToDiagram  = { navController.navigate(Routes.diagram("aktiviteter")) },
-                    onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
-                    snackbarHostState    = snackbarHostState,
+                    onNavigateToDiagram         = { navController.navigate(Routes.diagram("aktiviteter")) },
+                    onNavigateToSymptomDiagram  = { navController.navigate(Routes.SYMPTOM_DIAGRAM) },
+                    onNavigateToSettings        = { navController.navigate(Routes.SETTINGS) },
+                    snackbarHostState           = snackbarHostState,
                 )
+            }
+            composable(Routes.SYMPTOM_DIAGRAM) {
+                SymptomDiagramScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.ADD_AKTIVITET) {
                 AddEditAktivitetScreen(

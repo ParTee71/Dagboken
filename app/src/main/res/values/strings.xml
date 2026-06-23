@@ -187,6 +187,11 @@
     <string name="diagram_stat_max">Max</string>
     <string name="diagram_stat_days">Dagar</string>
 
+    <!-- Symptom diagram screen -->
+    <string name="symptom_diagram_title">Symptomöversikt</string>
+    <string name="symptom_diagram_no_data">Ingen symptomdata för vald period</string>
+    <string name="symptom_diagram_no_series">Välj minst ett symptom</string>
+
     <!-- Samsung Health placeholder -->
     <string name="samsung_health_title">Samsung Health</string>
     <string name="samsung_health_coming_soon">Kommer snart</string>

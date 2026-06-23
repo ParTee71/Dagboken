@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Healing
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MonitorHeart
@@ -69,6 +70,7 @@ fun AktiviteterScreen(
     onAddNew: () -> Unit,
     onEdit: (id: String, type: String) -> Unit,
     onNavigateToDiagram: () -> Unit,
+    onNavigateToSymptomDiagram: () -> Unit,
     onNavigateToSettings: () -> Unit,
     snackbarHostState: SnackbarHostState,
     vm: AktiviteterViewModel = hiltViewModel(),
@@ -107,6 +109,9 @@ fun AktiviteterScreen(
                     )
                     IconButton(onClick = onNavigateToDiagram) {
                         Icon(Icons.Outlined.BarChart, contentDescription = stringResource(R.string.diagram_title))
+                    }
+                    IconButton(onClick = onNavigateToSymptomDiagram) {
+                        Icon(Icons.Outlined.Healing, contentDescription = stringResource(R.string.symptom_diagram_title))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 
 data class ChartSeries(
     val label: String,
@@ -22,6 +23,7 @@ fun LineChartCanvas(
     modifier: Modifier = Modifier,
     minValue: Float = -10f,
     maxValue: Float = 10f,
+    gridValues: List<Float>? = null,
 ) {
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -35,19 +37,45 @@ fun LineChartCanvas(
         val chartH = size.height - padT - padB
         val range = maxValue - minValue
 
-        // Zero line
-        val zeroY = padT + chartH * (1f - (-minValue) / range)
-        drawLine(gridColor, Offset(padL, zeroY), Offset(padL + chartW, zeroY), strokeWidth = 1f)
+        if (gridValues != null) {
+            val labelPaint = android.graphics.Paint().apply {
+                textSize  = 28f
+                textAlign = android.graphics.Paint.Align.RIGHT
+                isAntiAlias = true
+                color = android.graphics.Color.argb(
+                    (labelColor.alpha * 200).toInt(),
+                    (labelColor.red   * 255).toInt(),
+                    (labelColor.green * 255).toInt(),
+                    (labelColor.blue  * 255).toInt(),
+                )
+            }
+            gridValues.forEach { v ->
+                val y = padT + chartH * (1f - (v - minValue) / range)
+                val isBaseline = v == minValue
+                drawLine(
+                    color       = gridColor.copy(alpha = if (isBaseline) 0.85f else 0.55f),
+                    start       = Offset(padL, y),
+                    end         = Offset(padL + chartW, y),
+                    strokeWidth = if (isBaseline) 1.5f else 0.9f,
+                )
+                val label = if (v == v.toLong().toFloat()) v.toLong().toString() else "%.1f".format(v)
+                drawContext.canvas.nativeCanvas.drawText(label, padL - 8f, y + 9f, labelPaint)
+            }
+        } else {
+            // Zero line
+            val zeroY = padT + chartH * (1f - (-minValue) / range)
+            drawLine(gridColor, Offset(padL, zeroY), Offset(padL + chartW, zeroY), strokeWidth = 1f)
 
-        // Grid lines at -10, -5, 0, 5, 10
-        listOf(minValue, minValue / 2, 0f, maxValue / 2, maxValue).forEach { v ->
-            val y = padT + chartH * (1f - (v - minValue) / range)
-            drawLine(
-                color = gridColor.copy(alpha = 0.3f),
-                start = Offset(padL, y),
-                end = Offset(padL + chartW, y),
-                strokeWidth = 0.5f,
-            )
+            // Grid lines at -10, -5, 0, 5, 10
+            listOf(minValue, minValue / 2, 0f, maxValue / 2, maxValue).forEach { v ->
+                val y = padT + chartH * (1f - (v - minValue) / range)
+                drawLine(
+                    color       = gridColor.copy(alpha = 0.3f),
+                    start       = Offset(padL, y),
+                    end         = Offset(padL + chartW, y),
+                    strokeWidth = 0.5f,
+                )
+            }
         }
 
         val count = series.firstOrNull()?.points?.size ?: return@Canvas

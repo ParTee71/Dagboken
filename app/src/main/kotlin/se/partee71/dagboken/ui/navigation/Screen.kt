@@ -63,6 +63,7 @@ object Routes {
     const val SETTINGS         = "settings"
     const val MIGRATION        = "migration"
     const val DIAGRAM          = "diagram/{source}"
+    const val SYMPTOM_DIAGRAM  = "symptom_diagram"
 
     fun editAktivitet(id: String)  = "edit_aktivitet/$id"
     fun editScreening(id: String)  = "edit_screening/$id"
