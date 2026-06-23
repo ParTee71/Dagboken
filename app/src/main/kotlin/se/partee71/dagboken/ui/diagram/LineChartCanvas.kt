@@ -37,44 +37,66 @@ fun LineChartCanvas(
         val chartH = size.height - padT - padB
         val range = maxValue - minValue
 
+        val labelPaint = android.graphics.Paint().apply {
+            textSize    = 28f
+            textAlign   = android.graphics.Paint.Align.RIGHT
+            isAntiAlias = true
+            color = android.graphics.Color.argb(
+                (labelColor.alpha * 200).toInt(),
+                (labelColor.red   * 255).toInt(),
+                (labelColor.green * 255).toInt(),
+                (labelColor.blue  * 255).toInt(),
+            )
+        }
+
         if (gridValues != null) {
-            val labelPaint = android.graphics.Paint().apply {
-                textSize  = 28f
-                textAlign = android.graphics.Paint.Align.RIGHT
-                isAntiAlias = true
-                color = android.graphics.Color.argb(
-                    (labelColor.alpha * 200).toInt(),
-                    (labelColor.red   * 255).toInt(),
-                    (labelColor.green * 255).toInt(),
-                    (labelColor.blue  * 255).toInt(),
+            // Minor lines between consecutive major values
+            gridValues.zipWithNext { a, b -> (a + b) / 2f }.forEach { v ->
+                val y = padT + chartH * (1f - (v - minValue) / range)
+                drawLine(
+                    color       = gridColor.copy(alpha = 0.25f),
+                    start       = Offset(padL, y),
+                    end         = Offset(padL + chartW, y),
+                    strokeWidth = 0.6f,
                 )
             }
+            // Major labeled lines
             gridValues.forEach { v ->
                 val y = padT + chartH * (1f - (v - minValue) / range)
                 val isBaseline = v == minValue
                 drawLine(
-                    color       = gridColor.copy(alpha = if (isBaseline) 0.85f else 0.55f),
+                    color       = gridColor.copy(alpha = if (isBaseline) 0.90f else 0.65f),
                     start       = Offset(padL, y),
                     end         = Offset(padL + chartW, y),
-                    strokeWidth = if (isBaseline) 1.5f else 0.9f,
+                    strokeWidth = if (isBaseline) 1.8f else 1.2f,
                 )
                 val label = if (v == v.toLong().toFloat()) v.toLong().toString() else "%.1f".format(v)
                 drawContext.canvas.nativeCanvas.drawText(label, padL - 8f, y + 9f, labelPaint)
             }
         } else {
-            // Zero line
-            val zeroY = padT + chartH * (1f - (-minValue) / range)
-            drawLine(gridColor, Offset(padL, zeroY), Offset(padL + chartW, zeroY), strokeWidth = 1f)
-
-            // Grid lines at -10, -5, 0, 5, 10
-            listOf(minValue, minValue / 2, 0f, maxValue / 2, maxValue).forEach { v ->
+            val majorLevels = listOf(minValue, minValue / 2, 0f, maxValue / 2, maxValue).distinct()
+            // Minor lines between consecutive major values
+            majorLevels.zipWithNext { a, b -> (a + b) / 2f }.forEach { v ->
                 val y = padT + chartH * (1f - (v - minValue) / range)
                 drawLine(
-                    color       = gridColor.copy(alpha = 0.3f),
+                    color       = gridColor.copy(alpha = 0.25f),
                     start       = Offset(padL, y),
                     end         = Offset(padL + chartW, y),
-                    strokeWidth = 0.5f,
+                    strokeWidth = 0.6f,
                 )
+            }
+            // Major labeled lines
+            majorLevels.forEach { v ->
+                val y      = padT + chartH * (1f - (v - minValue) / range)
+                val isZero = v == 0f
+                drawLine(
+                    color       = gridColor.copy(alpha = if (isZero) 0.90f else 0.65f),
+                    start       = Offset(padL, y),
+                    end         = Offset(padL + chartW, y),
+                    strokeWidth = if (isZero) 1.8f else 1.2f,
+                )
+                val label = if (v == v.toLong().toFloat()) v.toLong().toString() else "%.1f".format(v)
+                drawContext.canvas.nativeCanvas.drawText(label, padL - 8f, y + 9f, labelPaint)
             }
         }
 

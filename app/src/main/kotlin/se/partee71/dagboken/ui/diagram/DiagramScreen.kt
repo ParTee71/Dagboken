@@ -1,38 +1,30 @@
 package se.partee71.dagboken.ui.diagram
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -60,7 +53,6 @@ private val SERIES_PALETTE = listOf(
 private fun seriesColor(name: String): Color =
     SERIES_PALETTE.getOrElse(ALL_SERIES.indexOf(name)) { SERIES_PALETTE.last() }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun DiagramScreen(
     source: String = "hem",
@@ -76,33 +68,41 @@ fun DiagramScreen(
         else          -> stringResource(R.string.diagram_title)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
+    val chartSeries = ALL_SERIES
+        .filter { it in state.visibleSeries }
+        .map { name ->
+            ChartSeries(
+                label  = name,
+                color  = seriesColor(name),
+                points = state.stats.map { day ->
+                    when (name) {
+                        "Energi"       -> day.avgEnergy
+                        "Stress"       -> day.avgStress
+                        "Somatiska"    -> day.avgSomatiska
+                        "Återhämtande" -> day.avgAterhamtande
+                        "Energitjuv"   -> day.avgEnergitjuv
+                        else           -> null
                     }
                 },
-                title = { Text(screenTitle) },
             )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            // Multi-select series filter
-            var showSeriesMenu by remember { mutableStateOf(false) }
+        }
+    val allValues = chartSeries.flatMap { it.points }.filterNotNull()
+    val minV = if (allValues.isEmpty()) 0f
+               else minOf(0f, kotlin.math.floor(allValues.min().toDouble()).toFloat())
+    val maxV = if (allValues.isEmpty()) 10f
+               else maxOf(minV + 1f, kotlin.math.ceil(allValues.max().toDouble()).toFloat())
+    val intGridValues = (minV.toInt()..maxV.toInt()).map { it.toFloat() }
+
+    DiagramLayout(
+        title  = screenTitle,
+        onBack = onBack,
+        selector = {
+            var showMenu by remember { mutableStateOf(false) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.diagram_show_label), style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.width(8.dp))
                 Box {
-                    OutlinedButton(onClick = { showSeriesMenu = true }) {
+                    OutlinedButton(onClick = { showMenu = true }) {
                         val label = ALL_SERIES
                             .filter { it in state.visibleSeries }
                             .joinToString(", ")
@@ -110,16 +110,13 @@ fun DiagramScreen(
                         Text(label)
                         Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
                     }
-                    DropdownMenu(
-                        expanded        = showSeriesMenu,
-                        onDismissRequest = { showSeriesMenu = false },
-                    ) {
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                         ALL_SERIES.forEach { series ->
                             DropdownMenuItem(
                                 text = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Checkbox(
-                                            checked        = series in state.visibleSeries,
+                                            checked         = series in state.visibleSeries,
                                             onCheckedChange = { vm.toggleSeries(series) },
                                         )
                                         Spacer(Modifier.width(4.dp))
@@ -132,80 +129,63 @@ fun DiagramScreen(
                     }
                 }
             }
-
-            // Range chips
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ranges.forEach { d ->
-                    FilterChip(
-                        selected = state.rangeDays == d,
-                        onClick  = { vm.setRange(d) },
-                        label    = { Text(stringResource(R.string.format_range_days, d)) },
-                    )
-                }
+        },
+        rangeChips = {
+            ranges.forEach { d ->
+                FilterChip(
+                    selected = state.rangeDays == d,
+                    onClick  = { vm.setRange(d) },
+                    label    = { Text(stringResource(R.string.format_range_days, d)) },
+                )
             }
-
-            // Chart card
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                val chartSeries = ALL_SERIES
-                    .filter { it in state.visibleSeries }
-                    .map { name ->
-                        ChartSeries(
-                            label  = name,
-                            color  = seriesColor(name),
-                            points = state.stats.map { day ->
-                                when (name) {
-                                    "Energi"       -> day.avgEnergy
-                                    "Stress"       -> day.avgStress
-                                    "Somatiska"    -> day.avgSomatiska
-                                    "Återhämtande" -> day.avgAterhamtande
-                                    "Energitjuv"   -> day.avgEnergitjuv
-                                    else           -> null
-                                }
-                            },
+        },
+        chart = { chartModifier ->
+            if (state.stats.isEmpty() || chartSeries.isEmpty()) {
+                Box(modifier = chartModifier, contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector        = Icons.Outlined.BarChart,
+                            contentDescription = null,
+                            modifier           = Modifier.size(40.dp),
+                            tint               = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text  = if (state.stats.isEmpty()) stringResource(R.string.diagram_no_data)
+                                    else stringResource(R.string.diagram_no_series),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                val minV = if ("Energi" in state.visibleSeries) -10f else 0f
-                val maxV = chartSeries.flatMap { it.points }.filterNotNull()
-                    .maxOrNull()?.let { maxOf(it, 10f) } ?: 10f
-
-                if (state.stats.isEmpty() || chartSeries.isEmpty()) {
+                }
+            } else {
+                LineChartCanvas(
+                    series     = chartSeries,
+                    minValue   = minV,
+                    maxValue   = maxV,
+                    gridValues = intGridValues,
+                    modifier   = chartModifier,
+                )
+            }
+        },
+        legend = {
+            chartSeries.forEach { s ->
+                Row(
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(280.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector        = Icons.Outlined.BarChart,
-                                contentDescription = null,
-                                modifier           = Modifier.size(40.dp),
-                                tint               = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                if (state.stats.isEmpty()) stringResource(R.string.diagram_no_data)
-                                else stringResource(R.string.diagram_no_series),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                } else {
-                    LineChartCanvas(
-                        series   = chartSeries,
-                        minValue = minV,
-                        maxValue = maxV,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .height(280.dp),
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(s.color),
                     )
+                    Text(s.label, style = MaterialTheme.typography.labelSmall)
                 }
             }
-
-            // Stats summary — one block per visible series
-            if (state.stats.isNotEmpty() && state.visibleSeries.isNotEmpty()) {
+        },
+        portraitExtras = if (state.stats.isNotEmpty() && state.visibleSeries.isNotEmpty()) {
+            {
                 ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier            = Modifier.padding(16.dp),
@@ -226,38 +206,29 @@ fun DiagramScreen(
                                 }
                             }
                             if (values.isNotEmpty()) {
-                                Text(series, style = MaterialTheme.typography.labelMedium,
-                                    color = seriesColor(series))
+                                Text(series, style = MaterialTheme.typography.labelMedium, color = seriesColor(series))
                                 Row(
                                     modifier              = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceEvenly,
                                 ) {
-                                    StatItem(label = stringResource(R.string.diagram_stat_avg), value = "%.1f".format(values.average()))
-                                    StatItem(label = stringResource(R.string.diagram_stat_min), value = "%.1f".format(values.min()))
-                                    StatItem(label = stringResource(R.string.diagram_stat_max), value = "%.1f".format(values.max()))
-                                    StatItem(label = stringResource(R.string.diagram_stat_days), value = values.size.toString())
+                                    StatItem(stringResource(R.string.diagram_stat_avg), "%.1f".format(values.average()))
+                                    StatItem(stringResource(R.string.diagram_stat_min), "%.1f".format(values.min()))
+                                    StatItem(stringResource(R.string.diagram_stat_max), "%.1f".format(values.max()))
+                                    StatItem(stringResource(R.string.diagram_stat_days), values.size.toString())
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-    }
+        } else null,
+    )
 }
 
 @Composable
 private fun StatItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text  = value,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            text  = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Text(value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
