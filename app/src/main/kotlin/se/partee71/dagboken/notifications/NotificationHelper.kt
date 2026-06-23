@@ -42,7 +42,7 @@ object NotificationHelper {
         val notificationId = "$namn-$tidpunkt".hashCode()
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = NotificationCompat.Builder(context, CHANNEL_MEDS)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_notification_med)
             .setContentTitle("Dags för $namn")
             .setContentText("$dos om 15 minuter ($tidpunkt)")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -55,7 +55,7 @@ object NotificationHelper {
     fun postScreeningReminder(context: Context, eventLabel: String) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = NotificationCompat.Builder(context, CHANNEL_SCREENING)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_notification_screening)
             .setContentTitle("Dags för screening – $eventLabel")
             .setContentText("Hur mår du? Logga din dagliga screening.")
             .setPriority(NotificationCompat.PRIORITY_LOW)

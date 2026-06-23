@@ -3,8 +3,8 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Pencil / edit — matches the diary theme -->
+    <!-- Horizontal pill / capsule shape -->
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M3,17.25V21h3.75L17.81,9.94l-3.75,-3.75L3,17.25zM20.71,7.04c0.39,-0.39 0.39,-1.02 0,-1.41l-2.34,-2.34c-0.39,-0.39 -1.02,-0.39 -1.41,0l-1.83,1.83 3.75,3.75 1.83,-1.83z"/>
+        android:pathData="M17,9L7,9C5.34,9 4,10.34 4,12C4,13.66 5.34,15 7,15L17,15C18.66,15 20,13.66 20,12C20,10.34 18.66,9 17,9Z"/>
 </vector>

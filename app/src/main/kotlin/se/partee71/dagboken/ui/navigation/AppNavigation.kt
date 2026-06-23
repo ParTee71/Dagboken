@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.flow.first
 import se.partee71.dagboken.MainViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -55,6 +56,10 @@ fun AppNavigation(
     val pendingNavRoute by mainVm.pendingNavRoute.collectAsState()
     LaunchedEffect(pendingNavRoute) {
         val route = pendingNavRoute ?: return@LaunchedEffect
+        // Wait for the NavHost to finish its first composition and set up the graph.
+        // Without this, a cold start from a notification tapping can crash because
+        // findStartDestination() is called before setGraph() has run.
+        navController.currentBackStackEntryFlow.first()
         navController.navigate(route) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
