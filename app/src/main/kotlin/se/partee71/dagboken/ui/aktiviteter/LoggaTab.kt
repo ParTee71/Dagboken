@@ -103,20 +103,16 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     GradientSliderRow(
-                        label          = stringResource(R.string.label_energy),
-                        emoji          = "⚡",
-                        value          = form.energy.coerceIn(-5, 5).toFloat(),
-                        onValueChange  = { vm.updateForm { copy(energy = it.toInt()) } },
-                        valueRange     = -5f..5f,
-                        steps          = 9,
-                        startLabel     = "-5  😴",
-                        endLabel       = "+5  ⚡",
-                        displayValue   = energyLabel(form.energy),
-                        accentColor    = eColor,
-                        zoneLabelStart = "Kan sova",
-                        zoneLabelEnd   = "Kan jobba",
-                        zoneLowEnd     = -1f,
-                        zoneHighStart  = 2f,
+                        label         = stringResource(R.string.label_energy),
+                        emoji         = "⚡",
+                        value         = form.energy.coerceIn(-5, 5).toFloat(),
+                        onValueChange = { vm.updateForm { copy(energy = it.toInt()) } },
+                        valueRange    = -5f..5f,
+                        steps         = 9,
+                        startLabel    = "-5  😴",
+                        endLabel      = "+5  ⚡",
+                        displayValue  = energyLabel(form.energy),
+                        accentColor   = eColor,
                     )
                     HorizontalDivider()
                     GradientSliderRow(
