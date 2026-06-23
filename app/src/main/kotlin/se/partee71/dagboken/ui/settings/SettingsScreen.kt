@@ -75,7 +75,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -85,7 +90,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
@@ -289,6 +293,21 @@ private fun SettingsRailItem(section: SectionDef, isSelected: Boolean, onClick: 
     val showPopup          = isHovered || isFocused
     val cs                 = MaterialTheme.colorScheme
 
+    // Positions popup so its left edge starts at the anchor's right edge, vertically centred.
+    val rightOfAnchor = remember {
+        object : PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: IntRect,
+                windowSize: IntSize,
+                layoutDirection: LayoutDirection,
+                popupContentSize: IntSize,
+            ): IntOffset = IntOffset(
+                x = anchorBounds.right,
+                y = anchorBounds.top + (anchorBounds.height - popupContentSize.height) / 2,
+            )
+        }
+    }
+
     Box {
         Surface(
             onClick           = onClick,
@@ -316,8 +335,8 @@ private fun SettingsRailItem(section: SectionDef, isSelected: Boolean, onClick: 
 
         if (showPopup) {
             Popup(
-                alignment  = Alignment.CenterEnd,
-                properties = PopupProperties(focusable = false),
+                popupPositionProvider = rightOfAnchor,
+                properties            = PopupProperties(focusable = false),
             ) {
                 ElevatedCard(
                     modifier  = Modifier.padding(start = 4.dp),
