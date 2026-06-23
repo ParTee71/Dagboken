@@ -60,8 +60,10 @@ fun GradientSliderRow(
     displayValue: String? = null,   // overrides the "N /10" header format (e.g. "+7" for −10..10 range)
     accentColor: Color? = null,     // overrides the auto screeningEnergyColor (e.g. for activity energy scale)
     reverseColors: Boolean = false, // 0=green 10=red (symptoms/stress); default is 0=red 10=green (energy)
-    zoneLabelStart: String = "",  // label shown left of track, red (low-energy zone)
-    zoneLabelEnd: String = "",    // label shown right of track, green (high-energy zone)
+    zoneLabelStart: String = "",   // label shown left of track (low-energy zone)
+    zoneLabelEnd: String = "",     // label shown right of track (high-energy zone)
+    zoneLowEnd: Float? = null,     // values < this are "low zone"; divider drawn before this step
+    zoneHighStart: Float? = null,  // values >= this are "high zone"; divider drawn before this step
     enabled: Boolean = true,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -167,6 +169,23 @@ fun GradientSliderRow(
                     .background(gradientBrush),
             )
 
+            // Zone boundary dividers — drawn after the fill, under the thumb
+            listOfNotNull(
+                zoneLowEnd?.let  { (it - 0.5f - valueRange.start) / rangeSize },
+                zoneHighStart?.let { (it - 0.5f - valueRange.start) / rangeSize },
+            ).forEach { frac ->
+                val divX = maxWidth * frac.coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .offset(x = divX - 1.dp)
+                        .width(2.dp)
+                        .height(18.dp)
+                        .align(Alignment.CenterStart)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.85f)),
+                )
+            }
+
             // Thumb: surface circle with coloured border + value inside
             Box(
                 modifier = Modifier
@@ -224,21 +243,32 @@ fun GradientSliderRow(
             }
         } // end ± Row
 
-        // Zone labels padded to align with the track (36 dp button + 4 dp gap = 40 dp each side).
+        // Zone labels — highlighted when the current value is inside that zone.
         if (zoneLabelStart.isNotEmpty() || zoneLabelEnd.isNotEmpty()) {
+            val inLowZone  = zoneLowEnd   != null && value < zoneLowEnd
+            val inHighZone = zoneHighStart != null && value >= zoneHighStart
+            val zonesActive = zoneLowEnd != null || zoneHighStart != null
+
+            val startColor = (if (reverseColors) Emerald400 else Rose500)
+                .copy(alpha = if (!zonesActive || inLowZone) 1f else 0.3f)
+            val endColor = (if (reverseColors) Rose500 else Emerald400)
+                .copy(alpha = if (!zonesActive || inHighZone) 1f else 0.3f)
+
             Row(
                 modifier              = Modifier.fillMaxWidth().padding(horizontal = 40.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text  = zoneLabelStart,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (reverseColors) Emerald400 else Rose500,
+                    text       = zoneLabelStart,
+                    style      = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (inLowZone) FontWeight.Bold else FontWeight.Normal,
+                    color      = startColor,
                 )
                 Text(
-                    text  = zoneLabelEnd,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (reverseColors) Rose500 else Emerald400,
+                    text       = zoneLabelEnd,
+                    style      = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (inHighZone) FontWeight.Bold else FontWeight.Normal,
+                    color      = endColor,
                 )
             }
         }

@@ -64,14 +64,18 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
         DagbokenCard(title = stringResource(R.string.screening_metrics_title)) {
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 GradientSliderRow(
-                    label         = stringResource(R.string.label_energy),
-                    emoji         = "⚡",
-                    value         = form.energy.coerceIn(0, 10).toFloat(),
-                    onValueChange = { vm.updateForm { copy(energy = it.toInt()) } },
-                    valueRange    = 0f..10f,
-                    steps         = 9,
-                    startLabel    = "0  😴",
-                    endLabel      = "😊  10",
+                    label          = stringResource(R.string.label_energy),
+                    emoji          = "⚡",
+                    value          = form.energy.coerceIn(0, 10).toFloat(),
+                    onValueChange  = { vm.updateForm { copy(energy = it.toInt()) } },
+                    valueRange     = 0f..10f,
+                    steps          = 9,
+                    startLabel     = "0  😴",
+                    endLabel       = "😊  10",
+                    zoneLabelStart = "Kan sova",
+                    zoneLabelEnd   = "Kan jobba",
+                    zoneLowEnd     = 4f,
+                    zoneHighStart  = 7f,
                 )
                 HorizontalDivider()
                 GradientSliderRow(
