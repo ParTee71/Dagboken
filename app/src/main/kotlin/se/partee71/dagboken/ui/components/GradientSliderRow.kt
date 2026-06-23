@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -37,6 +38,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
@@ -60,6 +62,7 @@ fun GradientSliderRow(
     displayValue: String? = null,   // overrides the "N /10" header format (e.g. "+7" for −10..10 range)
     accentColor: Color? = null,     // overrides the auto screeningEnergyColor (e.g. for activity energy scale)
     reverseColors: Boolean = false, // 0=green 10=red (symptoms/stress); default is 0=red 10=green (energy)
+    showZoneLabels: Boolean = false, // show "Kan sova (0–3)" / "Kan jobba (7–10)" zone markers
     enabled: Boolean = true,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -221,6 +224,28 @@ fun GradientSliderRow(
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.increase), modifier = Modifier.size(20.dp))
             }
         } // end ± Row
+
+        // Zone labels: "Kan sova (0–3)" left in red, "Kan jobba (7–10)" right in green.
+        // Padded 40 dp each side (36 dp button + 4 dp gap) to align with the track.
+        // Weights 3 / 4 / 3 mirror the 0–3 / 4–6 / 7–10 proportions on a 0–10 track.
+        if (showZoneLabels) {
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp)) {
+                Text(
+                    text      = "Kan sova (0–3)",
+                    modifier  = Modifier.weight(3f),
+                    style     = MaterialTheme.typography.labelSmall,
+                    color     = Rose500,
+                )
+                Spacer(modifier = Modifier.weight(4f))
+                Text(
+                    text      = "Kan jobba (7–10)",
+                    modifier  = Modifier.weight(3f),
+                    style     = MaterialTheme.typography.labelSmall,
+                    color     = Emerald400,
+                    textAlign = TextAlign.End,
+                )
+            }
+        }
 
         // Optional end labels (e.g. "0  😴" / "😊  10")
         if (startLabel.isNotEmpty() || endLabel.isNotEmpty()) {
