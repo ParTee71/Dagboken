@@ -81,7 +81,7 @@ class VidBehovTabTest {
     )
 
     private fun dosToday(namn: String, id: String = "dose1") = Medicin(
-        id = id, timestamp = "${today}T10:00:00.000Z",
+        id = id, timestamp = java.time.Instant.now().toString(),
         datum = today, tid = "10:00",
         namn = namn, dos = "500", enhet = "mg", tidpunkt = "Vid behov",
         tagen = true, anteckning = "",
