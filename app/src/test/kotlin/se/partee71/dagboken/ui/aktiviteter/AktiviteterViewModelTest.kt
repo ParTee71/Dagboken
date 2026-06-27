@@ -22,6 +22,7 @@ import org.junit.Before
 import org.junit.Test
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Aktivitet
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -30,6 +31,7 @@ class AktiviteterViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private lateinit var repo: AktiviteterRepository
+    private lateinit var noteRepo: NoteRepository
     private lateinit var prefs: PreferencesRepository
     private lateinit var viewModel: AktiviteterViewModel
 
@@ -38,11 +40,14 @@ class AktiviteterViewModelTest {
         repo = mockk(relaxed = true) {
             every { all } returns flowOf(emptyList())
         }
+        noteRepo = mockk(relaxed = true) {
+            every { observe(any(), any()) } returns flowOf("")
+        }
         prefs = mockk(relaxed = true) {
             every { aktivitetOptions } returns flowOf(emptyList())
             every { symptomOptions } returns flowOf(emptyList())
         }
-        viewModel = AktiviteterViewModel(repo, prefs)
+        viewModel = AktiviteterViewModel(repo, noteRepo, prefs)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -120,6 +125,14 @@ class AktiviteterViewModelTest {
         viewModel.updateForm { copy(aktivitet = "Morgonscreening", type = "screening") }
         viewModel.save {}
         assertEquals("Screening sparad ✓", viewModel.snackbar.value)
+    }
+
+    @Test fun `save sets aktivitet snackbar containing name when type is aktivitet`() = runTest {
+        viewModel.updateForm { copy(aktivitet = "Promenad", type = "aktivitet") }
+        viewModel.save {}
+        val msg = viewModel.snackbar.value
+        assertNotNull(msg)
+        assertTrue("Expected snackbar to contain activity name, got: $msg", msg!!.contains("Promenad"))
     }
 
     @Test fun `save resets form after saving`() = runTest {

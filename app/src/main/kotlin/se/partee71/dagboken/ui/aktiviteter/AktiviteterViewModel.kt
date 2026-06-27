@@ -8,13 +8,16 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Aktivitet
+import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.usecase.SymptomUtils
 import java.time.LocalDate
 import java.time.LocalTime
@@ -35,6 +38,7 @@ data class AktivitetForm(
     val stress: Int = 0,
     val symptomScores: Map<String, Int> = emptyMap(),
     val ovrigtNote: String = "",
+    val note: String = "",
     val metricsExpanded: Boolean = false,
     val symptomsExpanded: Boolean = false,
     val type: String = "aktivitet",
@@ -43,6 +47,7 @@ data class AktivitetForm(
 @HiltViewModel
 class AktiviteterViewModel @Inject constructor(
     private val repo: AktiviteterRepository,
+    private val noteRepo: NoteRepository,
     private val prefs: PreferencesRepository,
 ) : ViewModel() {
 
@@ -101,6 +106,8 @@ class AktiviteterViewModel @Inject constructor(
             val normalizedScores = if (ovrigtKey != null && ovrigtKey != "Övrigt") {
                 decoded - ovrigtKey + ("Övrigt" to decoded[ovrigtKey]!!)
             } else decoded
+            val noteTarget = if (a.type == "screening") NoteTarget.SCREENING else NoteTarget.ACTIVITY
+            val note       = noteRepo.observe(noteTarget, id).first()
             _form.value = AktivitetForm(
                 aktivitet        = a.aktivitet,
                 aterhamtande     = a.aterhamtande,
@@ -113,6 +120,7 @@ class AktiviteterViewModel @Inject constructor(
                 stress           = a.stress,
                 symptomScores    = normalizedScores,
                 ovrigtNote       = ovrigtNote,
+                note             = note,
                 type             = a.type,
             )
         }
@@ -144,7 +152,9 @@ class AktiviteterViewModel @Inject constructor(
                 spentTime    = f.spentTimeHours * 60 + f.spentTimeMinutes,
             )
             repo.save(entry)
-            if (f.type == "screening") _snackbar.value = "Screening sparad ✓"
+            val noteTarget = if (f.type == "screening") NoteTarget.SCREENING else NoteTarget.ACTIVITY
+            noteRepo.save(noteTarget, entry.id, f.note)
+            _snackbar.value = if (f.type == "screening") "Screening sparad ✓" else "$aktivitetName sparad ✓"
             resetForm()
             onDone()
         }
@@ -169,6 +179,8 @@ class AktiviteterViewModel @Inject constructor(
     fun delete(aktivitet: Aktivitet) {
         viewModelScope.launch {
             repo.delete(aktivitet)
+            val noteTarget = if (aktivitet.type == "screening") NoteTarget.SCREENING else NoteTarget.ACTIVITY
+            noteRepo.delete(noteTarget, aktivitet.id)
             _snackbar.value = "${aktivitet.aktivitet} borttagen"
         }
     }

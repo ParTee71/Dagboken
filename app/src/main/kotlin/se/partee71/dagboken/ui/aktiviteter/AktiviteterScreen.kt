@@ -119,32 +119,34 @@ fun AktiviteterScreen(
                 ),
             )
         },
+        floatingActionButton = {
+            if (pagerState.currentPage == 2) {
+                FloatingActionButton(
+                    onClick        = onAddNew,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor   = MaterialTheme.colorScheme.onPrimary,
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.fab_logga_aktivitet))
+                }
+            }
+        },
         bottomBar = {
-            BottomAppBar(
-                actions = {
-                    when (pagerState.currentPage) {
-                        0 -> Button(
-                            onClick  = { vm.save {} },
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        ) { Text(stringResource(R.string.save_aktivitet)) }
-                        1 -> Button(
-                            onClick  = { vm.updateForm { copy(type = "screening") }; vm.save {} },
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        ) { Text(stringResource(R.string.save_screening)) }
-                    }
-                },
-                floatingActionButton = if (pagerState.currentPage == 2) {
-                    {
-                        FloatingActionButton(
-                            onClick        = onAddNew,
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor   = MaterialTheme.colorScheme.onPrimary,
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.fab_logga_aktivitet))
+            if (pagerState.currentPage < 2) {
+                BottomAppBar(
+                    actions = {
+                        when (pagerState.currentPage) {
+                            0 -> Button(
+                                onClick  = { vm.save {} },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            ) { Text(stringResource(R.string.save_aktivitet)) }
+                            1 -> Button(
+                                onClick  = { vm.updateForm { copy(type = "screening") }; vm.save {} },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            ) { Text(stringResource(R.string.save_screening)) }
                         }
-                    }
-                } else null,
-            )
+                    },
+                )
+            }
         },
     ) { padding ->
         Column(
