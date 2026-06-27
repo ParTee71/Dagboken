@@ -16,9 +16,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
@@ -30,6 +32,9 @@ class MedicinerViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private lateinit var repo: MedicinerRepository
+    private val noteRepo = mockk<NoteRepository>(relaxed = true) {
+        every { observe(any(), any()) } returns kotlinx.coroutines.flow.flowOf("")
+    }
     private val cooldown = mockk<CheckCooldownUseCase>()
     private val limit = mockk<CheckDailyLimitUseCase>()
 
@@ -44,7 +49,7 @@ class MedicinerViewModelTest {
         }
         every { limit.limitReached(any(), any()) } returns false
         every { cooldown.remainingHours(any(), any(), any()) } returns null
-        viewModel = MedicinerViewModel(repo, cooldown, limit)
+        viewModel = MedicinerViewModel(repo, noteRepo, cooldown, limit)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -102,28 +107,65 @@ class MedicinerViewModelTest {
 
     // ─── quickDos – cooldown ──────────────────────────────────────────────────
 
-    @Test fun `quickDos is blocked when cooldown is active`() = runTest {
+    @Test fun `quickDos sets cooldownWarning when cooldown is active`() = runTest {
         every { cooldown.remainingHours(any(), any(), any()) } returns 2.5
         coEvery { repo.countDailyDoses(any(), any()) } returns 0
 
         viewModel.quickDos(favorit(minTidMellan = 6))
 
-        val msg = viewModel.snackbar.value
-        assertNotNull(msg)
-        assertTrue("Expected cooldown message, got: $msg", msg!!.contains("Vänta"))
+        val warning = viewModel.cooldownWarning.value
+        assertNotNull(warning)
+        assertEquals(2.5, warning!!.remainingHours, 0.001)
+        assertNull("Snackbar should stay null for cooldown", viewModel.snackbar.value)
         coVerify(exactly = 0) { repo.saveMedicin(any()) }
     }
 
-    @Test fun `quickDos blocked message contains remaining hours and minutes`() = runTest {
+    @Test fun `quickDos cooldownWarning contains the favorit`() = runTest {
         every { cooldown.remainingHours(any(), any(), any()) } returns 1.5
         coEvery { repo.countDailyDoses(any(), any()) } returns 0
+        val fav = favorit(namn = "Ibuprofen", minTidMellan = 6)
 
-        viewModel.quickDos(favorit(minTidMellan = 6))
+        viewModel.quickDos(fav)
 
-        val msg = viewModel.snackbar.value
-        assertNotNull(msg)
-        assertTrue(msg!!.contains("1h"))
-        assertTrue(msg.contains("30m"))
+        assertEquals("Ibuprofen", viewModel.cooldownWarning.value?.favorit?.namn)
+    }
+
+    @Test fun `dismissCooldownWarning clears the warning`() = runTest {
+        every { cooldown.remainingHours(any(), any(), any()) } returns 1.0
+        coEvery { repo.countDailyDoses(any(), any()) } returns 0
+        viewModel.quickDos(favorit(minTidMellan = 4))
+        assertNotNull(viewModel.cooldownWarning.value)
+
+        viewModel.dismissCooldownWarning()
+
+        assertNull(viewModel.cooldownWarning.value)
+    }
+
+    @Test fun `forceDos saves dose and clears warning`() = runTest {
+        every { cooldown.remainingHours(any(), any(), any()) } returns 1.0
+        coEvery { repo.countDailyDoses(any(), any()) } returns 0
+        coEvery { repo.getLastTaken(any()) } returns null
+        val fav = favorit()
+        viewModel.quickDos(fav)
+        assertNotNull(viewModel.cooldownWarning.value)
+
+        viewModel.forceDos(fav)
+
+        assertNull(viewModel.cooldownWarning.value)
+        coVerify { repo.saveMedicin(any()) }
+        assertNotNull(viewModel.snackbar.value)
+        assertTrue(viewModel.snackbar.value!!.contains("loggad"))
+    }
+
+    @Test fun `forceDos still blocks when daily limit is reached`() = runTest {
+        every { limit.limitReached(2, any()) } returns true
+        coEvery { repo.countDailyDoses(any(), any()) } returns 2
+
+        viewModel.forceDos(favorit(maxDoserPerDag = 2))
+
+        coVerify(exactly = 0) { repo.saveMedicin(any()) }
+        assertNotNull(viewModel.snackbar.value)
+        assertTrue(viewModel.snackbar.value!!.contains("Max 2"))
     }
 
     // ─── quickDos – happy path ────────────────────────────────────────────────

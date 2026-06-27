@@ -22,6 +22,7 @@
     <string name="label_dose">Dos</string>
     <string name="label_unit">Enhet</string>
     <string name="label_note">Anteckning</string>
+    <string name="note_placeholder">Lägg till en anteckning…</string>
     <string name="label_energy">Energi</string>
     <string name="label_stress">Stress</string>
     <string name="label_symptom">Symptom</string>
@@ -129,6 +130,9 @@
     <string name="vid_behov_hint_tap">Tryck för att logga en dos</string>
     <string name="vid_behov_hint_hold">Håll inne för att redigera eller ta bort</string>
     <string name="delete_favorit_title">Ta bort favorit?</string>
+    <string name="cooldown_warning_title">För tidigt</string>
+    <string name="format_cooldown_warning_body">Du bör vänta %1$sh %2$sm till för %3$s. Vill du ta ändå?</string>
+    <string name="cooldown_take_anyway">Ta ändå</string>
 
     <!-- Idag tab -->
     <string name="empty_idag_title">Inga mediciner idag</string>

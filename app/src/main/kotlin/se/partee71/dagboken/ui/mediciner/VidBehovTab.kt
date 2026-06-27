@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Favorit
+import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -48,8 +49,9 @@ fun VidBehovTab(
     vm: MedicinerViewModel,
     onEdit: (String) -> Unit,
 ) {
-    val favoriter by vm.allFavoriter.collectAsState()
-    var deleteTarget by remember { mutableStateOf<Favorit?>(null) }
+    val favoriter       by vm.allFavoriter.collectAsState()
+    val cooldownWarning by vm.cooldownWarning.collectAsState()
+    var deleteTarget    by remember { mutableStateOf<Favorit?>(null) }
     val cs = MaterialTheme.colorScheme
 
     if (favoriter.isEmpty()) {
@@ -163,6 +165,35 @@ fun VidBehovTab(
             },
             dismissButton = {
                 TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+
+    cooldownWarning?.let { warning ->
+        val h = warning.remainingHours.toInt()
+        val m = ((warning.remainingHours - h) * 60).toInt()
+        AlertDialog(
+            onDismissRequest = { vm.dismissCooldownWarning() },
+            title = { Text(stringResource(R.string.cooldown_warning_title)) },
+            text  = {
+                Text(
+                    stringResource(
+                        R.string.format_cooldown_warning_body,
+                        String.format(Locale.ROOT, "%d", h),
+                        String.format(Locale.ROOT, "%02d", m),
+                        warning.favorit.namn,
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { vm.forceDos(warning.favorit) }) {
+                    Text(stringResource(R.string.cooldown_take_anyway))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { vm.dismissCooldownWarning() }) {
+                    Text(stringResource(R.string.cancel))
+                }
             },
         )
     }

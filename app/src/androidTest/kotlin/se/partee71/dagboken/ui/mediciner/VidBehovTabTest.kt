@@ -7,6 +7,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
@@ -26,6 +29,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
@@ -58,7 +62,7 @@ class VidBehovTabTest {
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
-        vm = MedicinerViewModel(repo, CheckCooldownUseCase(), CheckDailyLimitUseCase())
+        vm = MedicinerViewModel(repo, NoteRepository(db.noteDao()), CheckCooldownUseCase(), CheckDailyLimitUseCase())
     }
 
     @After fun tearDown() { db.close() }
@@ -87,6 +91,10 @@ class VidBehovTabTest {
         composeRule.setContent {
             MaterialTheme {
                 val snackbarState = remember { SnackbarHostState() }
+                val snackMsg by vm.snackbar.collectAsState()
+                LaunchedEffect(snackMsg) {
+                    snackMsg?.let { snackbarState.showSnackbar(it); vm.clearSnackbar() }
+                }
                 Scaffold(snackbarHost = { SnackbarHost(snackbarState) }) { paddingValues ->
                     Box(modifier = Modifier.padding(paddingValues)) {
                         VidBehovTab(vm = vm, onEdit = {})
@@ -137,6 +145,64 @@ class VidBehovTabTest {
         composeRule.waitUntil(3000) { vm.snackbar.value != null }
         val count = runBlocking { repo.countDailyDoses(today, "Ibuprofen") }
         assertEquals(1, count)
+    }
+
+    // ─── Cooldown → dialog ───────────────────────────────────────────────────
+
+    @Test fun `tapping favorit within cooldown shows warning dialog`() {
+        runBlocking {
+            // minTidMellan = 6 h; log a dose right now so cooldown is active
+            repo.saveFavorit(favorit(namn = "Tramadol", minTidMellan = 6))
+            repo.saveMedicin(dosToday("Tramadol"))
+        }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Tramadol")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Tramadol").performClick()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("För tidigt")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("För tidigt").assertIsDisplayed()
+        composeRule.onNodeWithText("Ta ändå").assertIsDisplayed()
+        composeRule.onNodeWithText("Avbryt").assertIsDisplayed()
+    }
+
+    @Test fun `cooldown dialog dismiss clears the warning`() {
+        runBlocking {
+            repo.saveFavorit(favorit(namn = "Morfin", minTidMellan = 8))
+            repo.saveMedicin(dosToday("Morfin"))
+        }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Morfin")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Morfin").performClick()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("För tidigt")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Avbryt").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("För tidigt").assertDoesNotExist()
+    }
+
+    @Test fun `cooldown dialog Ta anda logs dose`() {
+        runBlocking {
+            repo.saveFavorit(favorit(namn = "Ketamin", minTidMellan = 4))
+            repo.saveMedicin(dosToday("Ketamin"))
+        }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Ketamin")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Ketamin").performClick()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("För tidigt")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Ta ändå").performClick()
+        composeRule.waitUntil(3000) { vm.snackbar.value != null }
+        val count = runBlocking { repo.countDailyDoses(today, "Ketamin") }
+        assertEquals(2, count)
     }
 
     // ─── Blockerad → snackbar ─────────────────────────────────────────────────
