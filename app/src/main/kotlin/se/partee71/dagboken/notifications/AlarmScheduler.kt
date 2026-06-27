@@ -45,7 +45,7 @@ class AlarmScheduler @Inject constructor(
         val parts  = time.split(":")
         val hour   = parts.getOrNull(0)?.toIntOrNull() ?: return
         val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
-        val triggerMs = screeningAlarmTriggerMs(hour, minute)
+        val triggerMs = medAlarmTriggerMs(hour, minute)
         val pending = PendingIntent.getBroadcast(
             context,
             REQUEST_CODE_MED_BASE + slot,
@@ -121,6 +121,19 @@ class AlarmScheduler @Inject constructor(
 /** Returns epoch-ms for the next occurrence of [hour]:[minute] at or after [now]. */
 internal fun screeningAlarmTriggerMs(hour: Int, minute: Int, now: LocalDateTime = LocalDateTime.now()): Long {
     var alarmAt = now.withHour(hour).withMinute(minute).withSecond(0).withNano(0)
+    if (!alarmAt.isAfter(now)) alarmAt = alarmAt.plusDays(1)
+    return alarmAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+}
+
+/** Returns epoch-ms for [leadMinutes] before [hour]:[minute], rolling to next day if already past. */
+internal fun medAlarmTriggerMs(
+    hour: Int, minute: Int,
+    leadMinutes: Int = 15,
+    now: LocalDateTime = LocalDateTime.now(),
+): Long {
+    // Subtract lead inside LocalTime so midnight wraps cleanly (e.g. 00:00 - 15min = 23:45)
+    val alarmTime = java.time.LocalTime.of(hour, minute).minusMinutes(leadMinutes.toLong())
+    var alarmAt = now.with(alarmTime).withSecond(0).withNano(0)
     if (!alarmAt.isAfter(now)) alarmAt = alarmAt.plusDays(1)
     return alarmAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 }

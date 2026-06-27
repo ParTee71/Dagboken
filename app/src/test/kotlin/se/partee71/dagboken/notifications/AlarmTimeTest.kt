@@ -36,4 +36,30 @@ class AlarmTimeTest {
         val trigger = screeningAlarmTriggerMs(8, 30, now)
         assertEquals(epochMs(2026, 6, 18, 8, 30), trigger)
     }
+
+    // ─── medAlarmTriggerMs ────────────────────────────────────────────────────
+
+    @Test fun `medAlarmTriggerMs fires 15 min before scheduled time`() {
+        val now = LocalDateTime.of(2026, 6, 18, 7, 0)
+        val trigger = medAlarmTriggerMs(8, 0, now = now)
+        assertEquals(epochMs(2026, 6, 18, 7, 45), trigger)
+    }
+
+    @Test fun `medAlarmTriggerMs returns next day when lead time has already passed`() {
+        val now = LocalDateTime.of(2026, 6, 18, 8, 0)
+        val trigger = medAlarmTriggerMs(8, 0, now = now)
+        assertEquals(epochMs(2026, 6, 19, 7, 45), trigger)
+    }
+
+    @Test fun `medAlarmTriggerMs handles midnight rollover`() {
+        val now = LocalDateTime.of(2026, 6, 18, 23, 50)
+        val trigger = medAlarmTriggerMs(0, 0, now = now)
+        assertEquals(epochMs(2026, 6, 19, 23, 45), trigger)
+    }
+
+    @Test fun `medAlarmTriggerMs respects custom lead minutes`() {
+        val now = LocalDateTime.of(2026, 6, 18, 9, 0)
+        val trigger = medAlarmTriggerMs(10, 0, leadMinutes = 30, now = now)
+        assertEquals(epochMs(2026, 6, 18, 9, 30), trigger)
+    }
 }

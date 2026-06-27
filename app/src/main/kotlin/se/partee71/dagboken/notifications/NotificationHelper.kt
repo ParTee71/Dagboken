@@ -39,11 +39,12 @@ object NotificationHelper {
         )
     }
 
-    fun postMedReminder(context: Context) {
+    fun postMedReminder(context: Context, timeLabel: String = "") {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val title = if (timeLabel.isNotEmpty()) "Dags för medicin – $timeLabel" else "Dags för medicin"
         val notification = NotificationCompat.Builder(context, CHANNEL_MEDS)
             .setSmallIcon(R.drawable.ic_notification_med)
-            .setContentTitle("Dags för medicin")
+            .setContentTitle(title)
             .setContentText("Glöm inte att ta dina mediciner.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
