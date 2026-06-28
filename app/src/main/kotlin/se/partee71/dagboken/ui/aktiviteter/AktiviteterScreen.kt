@@ -179,7 +179,7 @@ fun AktiviteterScreen(
 
             HorizontalPager(
                 state    = pagerState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.weight(1f),
             ) { page ->
                 when (page) {
                     0 -> LoggaTab(vm = vm)
