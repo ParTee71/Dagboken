@@ -197,4 +197,38 @@ class MedicinerViewModelTest {
         viewModel.clearSnackbar()
         assertNull(viewModel.snackbar.value)
     }
+
+    // ─── logSingleDose ────────────────────────────────────────────────────────
+
+    @Test fun `openSingleDoseDialog sets showSingleDoseDialog true`() {
+        viewModel.openSingleDoseDialog()
+        assertTrue(viewModel.showSingleDoseDialog.value)
+    }
+
+    @Test fun `closeSingleDoseDialog sets showSingleDoseDialog false`() {
+        viewModel.openSingleDoseDialog()
+        viewModel.closeSingleDoseDialog()
+        assertFalse(viewModel.showSingleDoseDialog.value)
+    }
+
+    @Test fun `logSingleDose saves medicin and sets snackbar`() = runTest {
+        viewModel.logSingleDose("Aspirin", "500", "mg", "14:30")
+
+        coVerify { repo.saveMedicin(any()) }
+        assertNotNull(viewModel.snackbar.value)
+        assertTrue(viewModel.snackbar.value!!.contains("Aspirin"))
+        assertTrue(viewModel.snackbar.value!!.contains("loggad"))
+    }
+
+    @Test fun `logSingleDose closes dialog`() = runTest {
+        viewModel.openSingleDoseDialog()
+        viewModel.logSingleDose("Aspirin", "500", "mg", "14:30")
+        assertFalse(viewModel.showSingleDoseDialog.value)
+    }
+
+    @Test fun `logSingleDose trims whitespace from name`() = runTest {
+        viewModel.logSingleDose("  Ipren  ", "400", "mg", "08:00")
+        assertTrue(viewModel.snackbar.value?.contains("Ipren") == true)
+        assertFalse(viewModel.snackbar.value?.contains("  ") == true)
+    }
 }

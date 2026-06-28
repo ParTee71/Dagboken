@@ -121,6 +121,7 @@
 
     <!-- Medicin (engångsdos) -->
     <string name="medicin_new">Ny medicinlogg</string>
+    <string name="log_single_dose">Logga engångsdos</string>
 
     <!-- Favorit (vid behov) -->
     <string name="favorit_new">Ny favorit</string>

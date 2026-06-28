@@ -192,4 +192,33 @@ class MedicinerViewModel @Inject constructor(
     fun dismissCooldownWarning() {
         _cooldownWarning.value = null
     }
+
+    private val _showSingleDoseDialog = MutableStateFlow(false)
+    val showSingleDoseDialog: StateFlow<Boolean> = _showSingleDoseDialog.asStateFlow()
+
+    fun openSingleDoseDialog()  { _showSingleDoseDialog.value = true }
+    fun closeSingleDoseDialog() { _showSingleDoseDialog.value = false }
+
+    fun logSingleDose(namn: String, dos: String, enhet: String, tid: String) {
+        _showSingleDoseDialog.value = false
+        viewModelScope.launch {
+            val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+            repo.saveMedicin(
+                Medicin(
+                    id         = UUID.randomUUID().toString(),
+                    timestamp  = "${today}T${tid}:00.000Z",
+                    datum      = today,
+                    tid        = tid,
+                    namn       = namn.trim(),
+                    dos        = dos.trim(),
+                    enhet      = enhet.trim(),
+                    tidpunkt   = "Vid behov",
+                    tagen      = true,
+                    anteckning = "",
+                    receptId   = null,
+                )
+            )
+            _snackbar.value = "${namn.trim()} loggad"
+        }
+    }
 }

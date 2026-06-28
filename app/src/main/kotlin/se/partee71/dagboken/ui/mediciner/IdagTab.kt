@@ -2,6 +2,8 @@ package se.partee71.dagboken.ui.mediciner
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,11 +21,15 @@ import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -41,6 +47,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
@@ -54,7 +62,10 @@ fun IdagTab(
     vm: MedicinerViewModel,
     onEdit: (String) -> Unit,
 ) {
-    val today by vm.todayMediciner.collectAsState()
+    val today                by vm.todayMediciner.collectAsState()
+    val noteDialogMedicin    by vm.noteDialogMedicin.collectAsState()
+    val noteDialogText       by vm.noteDialogText.collectAsState()
+    val showSingleDoseDialog by vm.showSingleDoseDialog.collectAsState()
     val sorted = today.sortedBy { tidpunktSortIndex(it.tidpunkt) }
     var deleteTarget by remember { mutableStateOf<Medicin?>(null) }
 
@@ -79,136 +90,173 @@ fun IdagTab(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 )
+                Spacer(Modifier.height(16.dp))
+                TextButton(onClick = { vm.openSingleDoseDialog() }) {
+                    Text(stringResource(R.string.log_single_dose))
+                }
             }
         }
-        return
+    } else {
+        val tagenCount = sorted.count { it.tagen }
+        val total      = sorted.size
+        val progress   = tagenCount.toFloat() / total.toFloat()
+        val grouped    = sorted.groupBy { it.tidpunkt }
+        val orderedGroups = TIDP_ORDER
+            .filter { grouped.containsKey(it) }
+            .map { it to grouped.getValue(it) }
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.format_adherence, tagenCount, total),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 6.dp),
+                )
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 88.dp),
+            ) {
+                orderedGroups.forEach { (tidpunkt, mediciner) ->
+                    stickyHeader(key = "header_$tidpunkt") {
+                        Surface(
+                            color = MaterialTheme.colorScheme.background,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = tidpunkt.uppercase(),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 12.dp, bottom = 4.dp),
+                            )
+                        }
+                    }
+
+                    items(mediciner, key = { it.id }) { medicin ->
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { value ->
+                                if (value == SwipeToDismissBoxValue.EndToStart) {
+                                    deleteTarget = medicin
+                                }
+                                false
+                            },
+                        )
+
+                        LaunchedEffect(deleteTarget) {
+                            if (deleteTarget == null) dismissState.reset()
+                        }
+
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                val isSwiping =
+                                    dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            if (isSwiping) MaterialTheme.colorScheme.errorContainer
+                                            else MaterialTheme.colorScheme.surface,
+                                        )
+                                        .padding(end = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd,
+                                ) {
+                                    if (isSwiping) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = stringResource(R.string.delete),
+                                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                                        )
+                                    }
+                                }
+                            },
+                        ) {
+                            val isTagen = medicin.tagen
+                            ListItem(
+                                modifier = Modifier.clickable { vm.openNoteDialog(medicin) },
+                                headlineContent = {
+                                    Text(
+                                        text = medicin.namn,
+                                        textDecoration = if (isTagen) TextDecoration.LineThrough else null,
+                                        modifier = if (isTagen) Modifier.alpha(0.5f) else Modifier,
+                                    )
+                                },
+                                supportingContent = {
+                                    Text(
+                                        text = "${medicin.dos} ${medicin.enhet}",
+                                        modifier = if (isTagen) Modifier.alpha(0.5f) else Modifier,
+                                    )
+                                },
+                                trailingContent = {
+                                    Checkbox(
+                                        checked = medicin.tagen,
+                                        onCheckedChange = { vm.toggleTagen(medicin) },
+                                    )
+                                },
+                                colors = if (isTagen) {
+                                    ListItemDefaults.colors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    )
+                                } else {
+                                    ListItemDefaults.colors()
+                                },
+                            )
+                        }
+                    }
+                }
+
+                item("single_dose_btn") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        TextButton(onClick = { vm.openSingleDoseDialog() }) {
+                            Text(stringResource(R.string.log_single_dose))
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    // Adherence progress
-    val tagenCount = sorted.count { it.tagen }
-    val total = sorted.size
-    val progress = tagenCount.toFloat() / total.toFloat()
-
-    // Group by tidpunkt, preserving TIDP_ORDER sort
-    val grouped = sorted.groupBy { it.tidpunkt }
-    // Only iterate tidpunkter that have entries, in canonical order
-    val orderedGroups = TIDP_ORDER
-        .filter { grouped.containsKey(it) }
-        .map { it to grouped.getValue(it) }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Adherence bar — always visible when list is non-empty
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.format_adherence, tagenCount, total),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 6.dp),
-            )
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 88.dp),
-        ) {
-            orderedGroups.forEach { (tidpunkt, mediciner) ->
-                // Sticky tidpunkt section header
-                stickyHeader(key = "header_$tidpunkt") {
-                    Surface(
-                        color = MaterialTheme.colorScheme.background,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = tidpunkt.uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .padding(top = 12.dp, bottom = 4.dp),
-                        )
-                    }
+    noteDialogMedicin?.let { medicin ->
+        AlertDialog(
+            onDismissRequest = { vm.dismissNoteDialog() },
+            title   = { Text(medicin.namn) },
+            text    = {
+                OutlinedTextField(
+                    value         = noteDialogText,
+                    onValueChange = vm::updateNoteDialogText,
+                    modifier      = Modifier.fillMaxWidth(),
+                    minLines      = 3,
+                    placeholder   = { Text(stringResource(R.string.note_placeholder)) },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { vm.saveAndCloseNoteDialog() }) {
+                    Text(stringResource(R.string.save))
                 }
-
-                items(mediciner, key = { it.id }) { medicin ->
-                    val dismissState = rememberSwipeToDismissBoxState(
-                        confirmValueChange = { value ->
-                            if (value == SwipeToDismissBoxValue.EndToStart) {
-                                deleteTarget = medicin
-                            }
-                            false
-                        },
-                    )
-
-                    LaunchedEffect(deleteTarget) {
-                        if (deleteTarget == null) dismissState.reset()
-                    }
-
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        backgroundContent = {
-                            val isSwiping =
-                                dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        if (isSwiping) MaterialTheme.colorScheme.errorContainer
-                                        else MaterialTheme.colorScheme.surface,
-                                    )
-                                    .padding(end = 20.dp),
-                                contentAlignment = Alignment.CenterEnd,
-                            ) {
-                                if (isSwiping) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = stringResource(R.string.delete),
-                                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                                    )
-                                }
-                            }
-                        },
-                    ) {
-                        val isTagen = medicin.tagen
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    text = medicin.namn,
-                                    textDecoration = if (isTagen) TextDecoration.LineThrough else null,
-                                    modifier = if (isTagen) Modifier.alpha(0.5f) else Modifier,
-                                )
-                            },
-                            supportingContent = {
-                                Text(
-                                    text = "${medicin.dos} ${medicin.enhet}",
-                                    modifier = if (isTagen) Modifier.alpha(0.5f) else Modifier,
-                                )
-                            },
-                            trailingContent = {
-                                Checkbox(
-                                    checked = medicin.tagen,
-                                    onCheckedChange = { vm.toggleTagen(medicin) },
-                                )
-                            },
-                            colors = if (isTagen) {
-                                ListItemDefaults.colors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                )
-                            } else {
-                                ListItemDefaults.colors()
-                            },
-                        )
-                    }
+            },
+            dismissButton = {
+                TextButton(onClick = { vm.dismissNoteDialog() }) {
+                    Text(stringResource(R.string.cancel))
                 }
-            }
-        }
+            },
+        )
     }
 
     deleteTarget?.let { target ->
@@ -242,4 +290,97 @@ fun IdagTab(
             },
         )
     }
+
+    if (showSingleDoseDialog) {
+        SingleDoseDialog(
+            onDismiss = { vm.closeSingleDoseDialog() },
+            onConfirm = { namn, dos, enhet, tid -> vm.logSingleDose(namn, dos, enhet, tid) },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SingleDoseDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (namn: String, dos: String, enhet: String, tid: String) -> Unit,
+) {
+    val currentTime = remember {
+        java.time.LocalTime.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+    }
+    var namn          by remember { mutableStateOf("") }
+    var dos           by remember { mutableStateOf("") }
+    var enhet         by remember { mutableStateOf("mg") }
+    var tid           by remember { mutableStateOf(currentTime) }
+    var enhetExpanded by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.log_single_dose)) },
+        text  = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value         = namn,
+                    onValueChange = { namn = it },
+                    label         = { Text(stringResource(R.string.label_name)) },
+                    modifier      = Modifier.fillMaxWidth(),
+                    singleLine    = true,
+                )
+                OutlinedTextField(
+                    value          = dos,
+                    onValueChange  = { dos = it },
+                    label          = { Text(stringResource(R.string.label_dose)) },
+                    modifier       = Modifier.fillMaxWidth(),
+                    singleLine     = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                ExposedDropdownMenuBox(
+                    expanded        = enhetExpanded,
+                    onExpandedChange = { enhetExpanded = it },
+                ) {
+                    OutlinedTextField(
+                        value          = enhet,
+                        onValueChange  = {},
+                        readOnly       = true,
+                        label          = { Text(stringResource(R.string.label_unit)) },
+                        trailingIcon   = { ExposedDropdownMenuDefaults.TrailingIcon(enhetExpanded) },
+                        modifier       = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth(),
+                    )
+                    ExposedDropdownMenu(
+                        expanded        = enhetExpanded,
+                        onDismissRequest = { enhetExpanded = false },
+                    ) {
+                        listOf("mg", "ml", "g", "mcg", "st", "IE", "dropp").forEach { u ->
+                            androidx.compose.material3.DropdownMenuItem(
+                                text    = { Text(u) },
+                                onClick = { enhet = u; enhetExpanded = false },
+                            )
+                        }
+                    }
+                }
+                OutlinedTextField(
+                    value          = tid,
+                    onValueChange  = { tid = it },
+                    label          = { Text(stringResource(R.string.handelse_label_tid)) },
+                    modifier       = Modifier.fillMaxWidth(),
+                    singleLine     = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick  = { onConfirm(namn, dos, enhet, tid) },
+                enabled  = namn.isNotBlank() && dos.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
 }
