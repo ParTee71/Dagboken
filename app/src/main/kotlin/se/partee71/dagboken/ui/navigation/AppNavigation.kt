@@ -150,7 +150,6 @@ fun AppNavigation(
                     onNavigateToDiagram         = { navController.navigate(Routes.diagram("aktiviteter")) },
                     onNavigateToSymptomDiagram  = { navController.navigate(Routes.SYMPTOM_DIAGRAM) },
                     onNavigateToSettings        = { navController.navigate(Routes.SETTINGS) },
-                    snackbarHostState           = snackbarHostState,
                 )
             }
             composable(Routes.SYMPTOM_DIAGRAM) {

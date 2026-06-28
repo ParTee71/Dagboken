@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -72,13 +73,13 @@ fun AktiviteterScreen(
     onNavigateToDiagram: () -> Unit,
     onNavigateToSymptomDiagram: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    snackbarHostState: SnackbarHostState,
     vm: AktiviteterViewModel = hiltViewModel(),
     accountVm: AccountViewModel = hiltViewModel(),
 ) {
+    val localSnackbarHostState = remember { SnackbarHostState() }
     val snackMsg by vm.snackbar.collectAsState()
     LaunchedEffect(snackMsg) {
-        snackMsg?.let { snackbarHostState.showSnackbar(it); vm.clearSnackbar() }
+        snackMsg?.let { localSnackbarHostState.showSnackbar(it); vm.clearSnackbar() }
     }
 
     val accountState by accountVm.uiState.collectAsState()
@@ -89,6 +90,7 @@ fun AktiviteterScreen(
     val scope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(localSnackbarHostState) },
         topBar = {
             TopAppBar(
                 navigationIcon = {
