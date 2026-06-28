@@ -106,7 +106,7 @@ fun SettingsScreen(
 ) {
     val state          by vm.state.collectAsState()
     val context         = LocalContext.current
-    val isLargeScreen   = LocalConfiguration.current.screenWidthDp >= 400
+    val isLargeScreen   = LocalConfiguration.current.screenWidthDp >= 360
     var selectedSection by remember { mutableIntStateOf(0) }
 
     val sections = listOf(
