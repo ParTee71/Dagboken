@@ -49,6 +49,8 @@ Locate the parts of the app this issue would touch. This grounds the plan in rea
 - Is there an existing pattern for this kind of change? (See the `android-dev` skill's existing-pattern audit.)
 - Any data-model or migration impact (Room schema → migration required)?
 - Any auth (`FirebaseAuthRepository`), backup (`DriveBackupRepository`/`BackupWorker`), or DI (Hilt module) touchpoints?
+- **Which requirements** in `KRAVLISTA.md` does this touch? Find the relevant ID(s) (e.g. `ÖV-2`, `TP-4`) or note that a **new** requirement ID is needed.
+- **Which tests** cover the affected code today? Check both `app/src/test` (unit) and `app/src/androidTest` (instrumented) for existing files near the change.
 
 Note the concrete file paths you find — they go into the issue.
 
@@ -62,7 +64,18 @@ Draw the boundary explicitly:
 - **Out of scope / follow-ups** — what it deliberately does NOT include (prevents scope creep).
 - **Acceptance criteria** — a checklist of observable, testable outcomes. Each item should be verifiable by running the app or a test, e.g. `- [ ] Tapping Save persists the entry and it survives app restart`.
 
-If the work is large, propose splitting it into multiple issues and ask the user whether to file them as separate issues or a parent issue with sub-issues (`mcp__github__sub_issue_write`).
+### Definition of Done — always required
+
+Every issue this skill produces **must** include these in its acceptance criteria. Do not omit them — if one genuinely doesn't apply, state why in the issue rather than dropping it silently.
+
+1. **Requirements doc updated** — `KRAVLISTA.md` reflects the change. Add a new requirement row (next ID in the relevant section) for new behaviour, or amend the existing row(s) the change alters. Keep the table format and Swedish wording.
+2. **Tests updated at all levels** that the change touches:
+   - **Unit** (`app/src/test`) — ViewModel / domain / use-case / mapper logic. Required for any logic change.
+   - **Instrumented** (`app/src/androidTest`) — Compose UI behaviour and Room DAO/migration. Required for any UI or DB-schema change.
+   - A bug fix must add a **regression test** that fails before the fix and passes after.
+3. **`ATGARDSLISTA.md`** updated if the issue resolves or adds a tracked action item there.
+
+If the work is large, propose splitting it into multiple issues and ask the user whether to file them as separate issues or a parent issue with sub-issues (`mcp__github__sub_issue_write`). Each split issue still carries its own Definition of Done.
 
 ---
 
@@ -86,9 +99,19 @@ Assemble the body using this template. Fill every section; drop a section only i
 - `app/src/main/.../FooViewModel.kt`
 - `app/src/main/.../FooRepository.kt`
 
+## Requirements (KRAVLISTA.md)
+- <new or amended requirement ID(s) and the exact row text to add/change>
+
+## Test plan
+- **Unit** (`app/src/test`): <which test class(es), what cases>
+- **Instrumented** (`app/src/androidTest`): <which screen/DAO test(s), what cases>
+
 ## Acceptance criteria
 - [ ] …
 - [ ] …
+- [ ] `KRAVLISTA.md` updated (new/amended requirement row)
+- [ ] Unit tests added/updated and passing (`app/src/test`)
+- [ ] Instrumented tests added/updated and passing (`app/src/androidTest`)
 
 ## Out of scope
 - …
