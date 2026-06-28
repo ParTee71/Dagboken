@@ -15,7 +15,10 @@ import javax.inject.Inject
 
 data class DailyStats(
     val datum: String,
-    val avgEnergy: Float?,
+    val avgEnergyFrukost: Float?,
+    val avgEnergyLunch: Float?,
+    val avgEnergyKvallsmat: Float?,
+    val avgEnergyLaggdags: Float?,
     val avgStress: Float?,
     val avgSomatiska: Float?,
     val avgAterhamtande: Float?,
@@ -25,7 +28,7 @@ data class DailyStats(
 data class DiagramUiState(
     val stats: List<DailyStats> = emptyList(),
     val rangeDays: Int = 30,
-    val visibleSeries: Set<String> = setOf("Energi"),
+    val visibleSeries: Set<String> = setOf("Energi Frukost"),
 )
 
 @HiltViewModel
@@ -33,8 +36,8 @@ class DiagramViewModel @Inject constructor(
     private val repo: AktiviteterRepository,
 ) : ViewModel() {
 
-    private val _rangeDays      = MutableStateFlow(30)
-    private val _visibleSeries  = MutableStateFlow(setOf("Energi"))
+    private val _rangeDays     = MutableStateFlow(30)
+    private val _visibleSeries = MutableStateFlow(setOf("Energi Frukost"))
 
     private val _state = MutableStateFlow(DiagramUiState())
     val state: StateFlow<DiagramUiState> = _state.asStateFlow()
@@ -50,12 +53,21 @@ class DiagramViewModel @Inject constructor(
                         .entries
                         .sortedBy { it.key }
                         .map { (datum, group) ->
-                            val n = group.size.toFloat()
+                            val n          = group.size.toFloat()
+                            val screenings = group.filter { it.type == "screening" }
+                            fun slotEnergy(slot: String): Float? =
+                                screenings.filter { it.aktivitet == slot }
+                                    .map { it.energy.toFloat() }
+                                    .average().toFloat()
+                                    .takeIf { it.isFinite() }
                             DailyStats(
-                                datum           = datum,
-                                avgEnergy       = group.map { it.energy.toFloat() }.average().toFloat(),
-                                avgStress       = group.map { it.stress.toFloat() }.average().toFloat(),
-                                avgSomatiska    = group.map { it.somatiska.toFloat() }.average().toFloat(),
+                                datum              = datum,
+                                avgEnergyFrukost   = slotEnergy("Efter frukost"),
+                                avgEnergyLunch     = slotEnergy("Lunch"),
+                                avgEnergyKvallsmat = slotEnergy("Kvällsmat"),
+                                avgEnergyLaggdags  = slotEnergy("Läggdags"),
+                                avgStress       = group.map { it.stress.toFloat() }.average().toFloat().takeIf { it.isFinite() },
+                                avgSomatiska    = group.map { it.somatiska.toFloat() }.average().toFloat().takeIf { it.isFinite() },
                                 avgAterhamtande = group.count { it.aterhamtande } / n * 10f,
                                 avgEnergitjuv   = group.count { it.energitjuv } / n * 10f,
                             )

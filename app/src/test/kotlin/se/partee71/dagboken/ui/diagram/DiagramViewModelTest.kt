@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import kotlin.math.abs
 import org.junit.Before
@@ -53,14 +54,27 @@ class DiagramViewModelTest {
         symptom = "", aterhamtande = aterhamtande, energitjuv = energitjuv, type = "aktivitet", spentTime = 0,
     )
 
+    private fun screening(
+        id: String,
+        datum: String,
+        slot: String,
+        energy: Int = 5,
+        stress: Int = 3,
+        somatiska: Int = 0,
+    ) = Aktivitet(
+        id = id, timestamp = "${datum}T09:00:00.000Z", datum = datum, tid = "09:00",
+        aktivitet = slot, energy = energy, stress = stress, somatiska = somatiska,
+        symptom = "", aterhamtande = false, energitjuv = false, type = "screening", spentTime = 0,
+    )
+
     // ─── initial state ────────────────────────────────────────────────────────
 
     @Test fun `initial rangeDays is 30`() {
         assertEquals(30, viewModel.state.value.rangeDays)
     }
 
-    @Test fun `initial visibleSeries contains Energi`() {
-        assertTrue(viewModel.state.value.visibleSeries.contains("Energi"))
+    @Test fun `initial visibleSeries contains Energi Frukost`() {
+        assertTrue(viewModel.state.value.visibleSeries.contains("Energi Frukost"))
     }
 
     @Test fun `initial stats are empty`() {
@@ -80,22 +94,61 @@ class DiagramViewModelTest {
     }
 
     @Test fun `toggleSeries removes series already in visibleSeries`() = runTest {
-        viewModel.toggleSeries("Energi")
-        assertTrue("Energi" !in viewModel.state.value.visibleSeries)
+        viewModel.toggleSeries("Energi Frukost")
+        assertTrue("Energi Frukost" !in viewModel.state.value.visibleSeries)
     }
 
-    // ─── daily grouping and average ───────────────────────────────────────────
+    // ─── per-slot energy ──────────────────────────────────────────────────────
 
-    @Test fun `stats groups entries by date and computes mean energy`() = runTest {
+    @Test fun `stats computes avgEnergyFrukost from Efter frukost screenings only`() = runTest {
         val today = LocalDate.now().toString()
         allFlow.value = listOf(
-            aktivitet("a1", today, energy = 4),
-            aktivitet("a2", today, energy = 6),
+            screening("s1", today, "Efter frukost", energy = 4),
+            screening("s2", today, "Efter frukost", energy = 6),
+            screening("s3", today, "Lunch", energy = 10),
+            aktivitet("a1", today, energy = 2),
         )
-        val stats = viewModel.state.value.stats
-        assertEquals(1, stats.size)
-        assertEquals(5.0f, stats[0].avgEnergy)
+        assertEquals(5.0f, viewModel.state.value.stats[0].avgEnergyFrukost)
     }
+
+    @Test fun `single Frukost screening produces avgEnergyFrukost equal to its value`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(screening("s1", today, "Efter frukost", energy = 7))
+        assertEquals(7.0f, viewModel.state.value.stats[0].avgEnergyFrukost)
+    }
+
+    @Test fun `avgEnergyLunch null when no Lunch screening that day`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(screening("s1", today, "Efter frukost", energy = 5))
+        assertNull(viewModel.state.value.stats[0].avgEnergyLunch)
+    }
+
+    @Test fun `all four energy slots computed independently`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(
+            screening("s1", today, "Efter frukost", energy = 2),
+            screening("s2", today, "Lunch",         energy = 4),
+            screening("s3", today, "Kvällsmat",     energy = 6),
+            screening("s4", today, "Läggdags",      energy = 8),
+        )
+        val stats = viewModel.state.value.stats[0]
+        assertEquals(2.0f, stats.avgEnergyFrukost)
+        assertEquals(4.0f, stats.avgEnergyLunch)
+        assertEquals(6.0f, stats.avgEnergyKvallsmat)
+        assertEquals(8.0f, stats.avgEnergyLaggdags)
+    }
+
+    @Test fun `aktiviteter do not contribute to slot energy`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(aktivitet("a1", today, energy = 9))
+        val stats = viewModel.state.value.stats[0]
+        assertNull(stats.avgEnergyFrukost)
+        assertNull(stats.avgEnergyLunch)
+        assertNull(stats.avgEnergyKvallsmat)
+        assertNull(stats.avgEnergyLaggdags)
+    }
+
+    // ─── other series (unchanged) ─────────────────────────────────────────────
 
     @Test fun `stats computes mean stress per day`() = runTest {
         val today = LocalDate.now().toString()
@@ -103,42 +156,7 @@ class DiagramViewModelTest {
             aktivitet("a1", today, stress = 2),
             aktivitet("a2", today, stress = 8),
         )
-        val stats = viewModel.state.value.stats
-        assertEquals(5.0f, stats[0].avgStress)
-    }
-
-    @Test fun `single entry produces avgEnergy equal to its value`() = runTest {
-        val today = LocalDate.now().toString()
-        allFlow.value = listOf(aktivitet("a1", today, energy = 7))
-        assertEquals(7.0f, viewModel.state.value.stats[0].avgEnergy)
-    }
-
-    // ─── range cutoff ─────────────────────────────────────────────────────────
-
-    @Test fun `entries older than rangeDays are excluded`() = runTest {
-        val old    = LocalDate.now().minusDays(35).toString()
-        val recent = LocalDate.now().minusDays(1).toString()
-        allFlow.value = listOf(
-            aktivitet("old",    old),
-            aktivitet("recent", recent),
-        )
-        viewModel.setRange(30)
-        val stats = viewModel.state.value.stats
-        assertTrue(stats.none { it.datum == old })
-        assertTrue(stats.any  { it.datum == recent })
-    }
-
-    @Test fun `changing range to 7 days excludes entries from 10 days ago`() = runTest {
-        val tenDaysAgo = LocalDate.now().minusDays(10).toString()
-        val yesterday  = LocalDate.now().minusDays(1).toString()
-        allFlow.value = listOf(
-            aktivitet("a1", tenDaysAgo),
-            aktivitet("a2", yesterday),
-        )
-        viewModel.setRange(7)
-        val stats = viewModel.state.value.stats
-        assertTrue(stats.none { it.datum == tenDaysAgo })
-        assertTrue(stats.any  { it.datum == yesterday })
+        assertEquals(5.0f, viewModel.state.value.stats[0].avgStress)
     }
 
     @Test fun `stats computes mean somatiska per day`() = runTest {
@@ -168,6 +186,34 @@ class DiagramViewModelTest {
         )
         val result = viewModel.state.value.stats[0].avgEnergitjuv ?: 0f
         assertTrue("Expected ~6.67 but got $result", abs(result - 6.667f) < 0.01f)
+    }
+
+    // ─── range cutoff ─────────────────────────────────────────────────────────
+
+    @Test fun `entries older than rangeDays are excluded`() = runTest {
+        val old    = LocalDate.now().minusDays(35).toString()
+        val recent = LocalDate.now().minusDays(1).toString()
+        allFlow.value = listOf(
+            aktivitet("old",    old),
+            aktivitet("recent", recent),
+        )
+        viewModel.setRange(30)
+        val stats = viewModel.state.value.stats
+        assertTrue(stats.none { it.datum == old })
+        assertTrue(stats.any  { it.datum == recent })
+    }
+
+    @Test fun `changing range to 7 days excludes entries from 10 days ago`() = runTest {
+        val tenDaysAgo = LocalDate.now().minusDays(10).toString()
+        val yesterday  = LocalDate.now().minusDays(1).toString()
+        allFlow.value = listOf(
+            aktivitet("a1", tenDaysAgo),
+            aktivitet("a2", yesterday),
+        )
+        viewModel.setRange(7)
+        val stats = viewModel.state.value.stats
+        assertTrue(stats.none { it.datum == tenDaysAgo })
+        assertTrue(stats.any  { it.datum == yesterday })
     }
 
     // ─── sort order ───────────────────────────────────────────────────────────

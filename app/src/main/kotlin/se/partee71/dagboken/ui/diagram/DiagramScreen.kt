@@ -40,14 +40,20 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 
-private val ALL_SERIES = listOf("Energi", "Stress", "Somatiska", "Återhämtande", "Energitjuv")
+private val ALL_SERIES = listOf(
+    "Energi Frukost", "Energi Lunch", "Energi Kvällsmat", "Energi Läggdags",
+    "Stress", "Somatiska", "Återhämtande", "Energitjuv",
+)
 
 private val SERIES_PALETTE = listOf(
-    Color(0xFF60a5fa),  // blue-400
-    Color(0xFFfb923c),  // orange-400
-    Color(0xFF4ade80),  // green-400
-    Color(0xFFa78bfa),  // violet-400
-    Color(0xFFf472b6),  // pink-400
+    Color(0xFF60a5fa),  // blue-400      (Energi Frukost)
+    Color(0xFF34d399),  // emerald-400   (Energi Lunch)
+    Color(0xFFfbbf24),  // amber-400     (Energi Kvällsmat)
+    Color(0xFFa78bfa),  // violet-400    (Energi Läggdags)
+    Color(0xFFfb923c),  // orange-400    (Stress)
+    Color(0xFF4ade80),  // green-400     (Somatiska)
+    Color(0xFFe879f9),  // fuchsia-400   (Återhämtande)
+    Color(0xFFf472b6),  // pink-400      (Energitjuv)
 )
 
 private fun seriesColor(name: String): Color =
@@ -76,12 +82,15 @@ fun DiagramScreen(
                 color  = seriesColor(name),
                 points = state.stats.map { day ->
                     when (name) {
-                        "Energi"       -> day.avgEnergy
-                        "Stress"       -> day.avgStress
-                        "Somatiska"    -> day.avgSomatiska
-                        "Återhämtande" -> day.avgAterhamtande
-                        "Energitjuv"   -> day.avgEnergitjuv
-                        else           -> null
+                        "Energi Frukost"   -> day.avgEnergyFrukost
+                        "Energi Lunch"     -> day.avgEnergyLunch
+                        "Energi Kvällsmat" -> day.avgEnergyKvallsmat
+                        "Energi Läggdags"  -> day.avgEnergyLaggdags
+                        "Stress"           -> day.avgStress
+                        "Somatiska"        -> day.avgSomatiska
+                        "Återhämtande"     -> day.avgAterhamtande
+                        "Energitjuv"       -> day.avgEnergitjuv
+                        else               -> null
                     }
                 },
             )
@@ -197,12 +206,15 @@ fun DiagramScreen(
                             if (i > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                             val values = state.stats.mapNotNull { day ->
                                 when (series) {
-                                    "Energi"       -> day.avgEnergy
-                                    "Stress"       -> day.avgStress
-                                    "Somatiska"    -> day.avgSomatiska
-                                    "Återhämtande" -> day.avgAterhamtande
-                                    "Energitjuv"   -> day.avgEnergitjuv
-                                    else           -> null
+                                    "Energi Frukost"   -> day.avgEnergyFrukost
+                                    "Energi Lunch"     -> day.avgEnergyLunch
+                                    "Energi Kvällsmat" -> day.avgEnergyKvallsmat
+                                    "Energi Läggdags"  -> day.avgEnergyLaggdags
+                                    "Stress"           -> day.avgStress
+                                    "Somatiska"        -> day.avgSomatiska
+                                    "Återhämtande"     -> day.avgAterhamtande
+                                    "Energitjuv"       -> day.avgEnergitjuv
+                                    else               -> null
                                 }
                             }
                             if (values.isNotEmpty()) {
