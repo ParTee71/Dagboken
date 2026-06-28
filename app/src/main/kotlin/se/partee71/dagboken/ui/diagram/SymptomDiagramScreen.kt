@@ -124,6 +124,7 @@ fun SymptomDiagramScreen(
             } else {
                 LineChartCanvas(
                     series     = state.series,
+                    dates      = state.days,
                     minValue   = 0f,
                     maxValue   = 5f,
                     gridValues = SYMPTOM_GRID_VALUES,

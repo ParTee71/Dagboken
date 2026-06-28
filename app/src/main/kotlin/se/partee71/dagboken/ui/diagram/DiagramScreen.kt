@@ -39,6 +39,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private val ALL_SERIES = listOf(
     "Energi Frukost", "Energi Lunch", "Energi Kvällsmat", "Energi Läggdags",
@@ -101,6 +104,18 @@ fun DiagramScreen(
     val maxV = if (allValues.isEmpty()) 10f
                else maxOf(minV + 1f, kotlin.math.ceil(allValues.max().toDouble()).toFloat())
     val intGridValues = (minV.toInt()..maxV.toInt()).map { it.toFloat() }
+
+    val dates = state.stats.map { it.datum }
+    val periodText = remember(dates, state.rangeDays) {
+        if (dates.isEmpty()) null
+        else {
+            val fmt     = DateTimeFormatter.ofPattern("d MMM", Locale("sv", "SE"))
+            val fmtFull = DateTimeFormatter.ofPattern("d MMM yyyy", Locale("sv", "SE"))
+            val first   = LocalDate.parse(dates.first()).format(fmt)
+            val last    = LocalDate.parse(dates.last()).format(fmtFull)
+            "${state.rangeDays} dagar  ·  $first – $last"
+        }
+    }
 
     DiagramLayout(
         title  = screenTitle,
@@ -170,12 +185,16 @@ fun DiagramScreen(
             } else {
                 LineChartCanvas(
                     series     = chartSeries,
+                    dates      = dates,
                     minValue   = minV,
                     maxValue   = maxV,
                     gridValues = intGridValues,
                     modifier   = chartModifier,
                 )
             }
+        },
+        periodLabel = periodText?.let { text ->
+            { Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         },
         legend = {
             chartSeries.forEach { s ->

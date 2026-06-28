@@ -40,6 +40,7 @@ fun DiagramLayout(
     rangeChips: @Composable () -> Unit,
     chart: @Composable (chartModifier: Modifier) -> Unit,
     legend: @Composable () -> Unit,
+    periodLabel: (@Composable () -> Unit)? = null,
     portraitExtras: (@Composable () -> Unit)? = null,
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -47,7 +48,7 @@ fun DiagramLayout(
     if (isLandscape) {
         LandscapeLayout(onBack, selector, rangeChips, chart, legend)
     } else {
-        PortraitLayout(title, onBack, selector, rangeChips, chart, legend, portraitExtras)
+        PortraitLayout(title, onBack, selector, rangeChips, chart, legend, periodLabel, portraitExtras)
     }
 }
 
@@ -60,6 +61,7 @@ private fun PortraitLayout(
     rangeChips: @Composable () -> Unit,
     chart: @Composable (Modifier) -> Unit,
     legend: @Composable () -> Unit,
+    periodLabel: (@Composable () -> Unit)?,
     portraitExtras: (@Composable () -> Unit)?,
 ) {
     Scaffold(
@@ -86,12 +88,13 @@ private fun PortraitLayout(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 rangeChips()
             }
+            periodLabel?.invoke()
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    chart(Modifier.fillMaxWidth().height(260.dp))
+                    chart(Modifier.fillMaxWidth().height(280.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
