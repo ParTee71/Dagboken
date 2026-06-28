@@ -1,13 +1,19 @@
 ---
 name: refine-issue
-description: Turn a rough idea, bug report, or feature request into a well-refined, planned GitHub issue for Dagboken — clarify intent, research the codebase for affected areas, define scope and acceptance criteria, draft a technical plan, then create the issue on GitHub after confirmation. Use when the user wants to "create an issue", "plan a feature", "write up a bug", "refine this idea into a ticket", or similar.
+description: Turn a rough idea, bug report, or feature request into a well-refined, planned GitHub issue for Dagboken — clarify intent, research the codebase for affected areas, define scope and acceptance criteria, draft a technical plan, then create or update the issue on GitHub after confirmation. Use when the user wants to "create an issue", "update an issue", "plan a feature", "write up a bug", "refine this idea into a ticket", or similar.
 ---
 
 # Refine & Plan a New Issue
 
 Take a half-formed idea and turn it into a GitHub issue another contributor (or a future Claude session) could pick up and implement without further questions.
 
-Work through the steps in order. Keep the conversation tight — batch clarifying questions, don't interrogate. **Do not create the issue until Step 6.**
+Work through the steps in order. Keep the conversation tight — batch clarifying questions, don't interrogate. **Do not create or update the issue until Step 6.**
+
+### New vs existing issue
+
+At the very start, check if the user provided an issue number or URL:
+- **No number** → follow all steps, create a new issue at Step 6.
+- **Issue number given** (e.g. `/refine-issue #42`) → fetch it first with `mcp__github__issue_read`, show the current title/body, then work through the steps to refine and **update** it at Step 6 instead of creating.
 
 ---
 
@@ -128,13 +134,22 @@ Show the full drafted title and body to the user. Propose a concise title (`<are
 
 ---
 
-## Step 6 — Create the issue
+## Step 6 — Create or update the issue
 
 Only after confirmation:
+
+**New issue:**
 ```
 mcp__github__issue_write  (method: create, repo: partee71/dagboken,
                            title, body, labels?)
 ```
+
+**Existing issue:**
+```
+mcp__github__issue_write  (method: update, repo: partee71/dagboken,
+                           issue_number: <N>, title?, body?, labels?)
+```
+When updating, replace the full body with the refined version — do not append. Keep existing labels unless the user wants them changed.
 
 Report back the issue number and URL. If the user wants the work split, create the parent first, then each sub-issue with `mcp__github__sub_issue_write`.
 
