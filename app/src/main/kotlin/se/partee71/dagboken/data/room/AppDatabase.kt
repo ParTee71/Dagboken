@@ -26,7 +26,7 @@ import se.partee71.dagboken.data.room.entities.ReceptEntity
         HandelseEntity::class,
         NoteEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -76,6 +76,34 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        // Repairs databases that ended up at version 3 with the old notes schema
+        // (id INTEGER PK AUTOINCREMENT, target_type, target_id, text, updated_at)
+        // from intermediate dev builds between commits 309a2f4 and 9283f7c.
+        // Safe no-op for databases that already have the correct schema.
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                val cursor = db.query("PRAGMA table_info(notes)")
+                val hasOldSchema = cursor.use { c ->
+                    generateSequence { if (c.moveToNext()) c else null }
+                        .any { c.getString(c.getColumnIndexOrThrow("name")) == "id" }
+                }
+                if (hasOldSchema) {
+                    db.execSQL("DROP TABLE IF EXISTS notes")
+                    db.execSQL(
+                        """CREATE TABLE IF NOT EXISTS notes (
+                            target TEXT NOT NULL,
+                            entityId TEXT NOT NULL,
+                            text TEXT NOT NULL,
+                            PRIMARY KEY(target, entityId)
+                        )"""
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS index_notes_entityId ON notes (entityId)"
+                    )
+                }
+            }
+        }
+
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
     }
 }
