@@ -29,7 +29,7 @@ class LineChartCanvasTest {
 
     // ─── Legacy branch (gridValues = null) ────────────────────────────────────
 
-    @Test fun `legacy renders with symmetric range`() {
+    @Test fun legacy_renders_with_symmetric_range() {
         composeRule.setContent {
             MaterialTheme {
                 LineChartCanvas(series = series(2), minValue = -10f, maxValue = 10f, modifier = mod)
@@ -38,7 +38,7 @@ class LineChartCanvasTest {
         composeRule.waitForIdle()
     }
 
-    @Test fun `legacy renders with positive-only range`() {
+    @Test fun legacy_renders_with_positive_only_range() {
         composeRule.setContent {
             MaterialTheme {
                 LineChartCanvas(series = series(1), minValue = 0f, maxValue = 10f, modifier = mod)
@@ -47,7 +47,7 @@ class LineChartCanvasTest {
         composeRule.waitForIdle()
     }
 
-    @Test fun `legacy renders with empty series`() {
+    @Test fun legacy_renders_with_empty_series() {
         composeRule.setContent {
             MaterialTheme {
                 LineChartCanvas(series = emptyList(), minValue = -10f, maxValue = 10f, modifier = mod)
@@ -56,7 +56,7 @@ class LineChartCanvasTest {
         composeRule.waitForIdle()
     }
 
-    @Test fun `legacy renders with null gaps in series`() {
+    @Test fun legacy_renders_with_null_gaps_in_series() {
         composeRule.setContent {
             MaterialTheme {
                 LineChartCanvas(series = series(2, withGap = true), minValue = -10f, maxValue = 10f, modifier = mod)
@@ -65,7 +65,7 @@ class LineChartCanvasTest {
         composeRule.waitForIdle()
     }
 
-    @Test fun `legacy renders without crash when minValue is zero (deduplicated levels)`() {
+    @Test fun legacy_renders_without_crash_when_minValue_is_zero_deduplicated_levels() {
         // minValue=0 causes listOf(0,0,0,maxV/2,maxV) — distinct() must not crash
         composeRule.setContent {
             MaterialTheme {
@@ -75,7 +75,7 @@ class LineChartCanvasTest {
         composeRule.waitForIdle()
     }
 
-    @Test fun `legacy renders single-point series`() {
+    @Test fun legacy_renders_single_point_series() {
         composeRule.setContent {
             MaterialTheme {
                 LineChartCanvas(
@@ -91,7 +91,7 @@ class LineChartCanvasTest {
 
     // ─── gridValues branch ────────────────────────────────────────────────────
 
-    @Test fun `gridValues branch renders with data`() {
+    @Test fun gridValues_branch_renders_with_data() {
         composeRule.setContent {
             MaterialTheme {
                 LineChartCanvas(
@@ -106,7 +106,7 @@ class LineChartCanvasTest {
         composeRule.waitForIdle()
     }
 
-    @Test fun `gridValues branch renders with empty series`() {
+    @Test fun gridValues_branch_renders_with_empty_series() {
         composeRule.setContent {
             MaterialTheme {
                 LineChartCanvas(
@@ -121,7 +121,7 @@ class LineChartCanvasTest {
         composeRule.waitForIdle()
     }
 
-    @Test fun `gridValues branch renders with null gaps`() {
+    @Test fun gridValues_branch_renders_with_null_gaps() {
         composeRule.setContent {
             MaterialTheme {
                 LineChartCanvas(
@@ -136,7 +136,7 @@ class LineChartCanvasTest {
         composeRule.waitForIdle()
     }
 
-    @Test fun `gridValues branch renders single-value grid`() {
+    @Test fun gridValues_branch_renders_single_value_grid() {
         composeRule.setContent {
             MaterialTheme {
                 LineChartCanvas(

@@ -65,7 +65,7 @@ class MedicinerRepositoryTest {
 
     // ─── ensureTodayEntries – idempotency ─────────────────────────────────────
 
-    @Test fun `ensureTodayEntries is idempotent for active recept`() = runTest {
+    @Test fun ensureTodayEntries_is_idempotent_for_active_recept() = runTest {
         val today = LocalDate.now().toString()
         db.receptDao().upsert(ReceptEntity(
             id = "r1", namn = "Metformin", dos = "500", enhet = "mg",
@@ -84,7 +84,7 @@ class MedicinerRepositoryTest {
 
     // ─── countDailyDoses ──────────────────────────────────────────────────────
 
-    @Test fun `countDailyDoses counts taken non-skipped doses for today`() = runTest {
+    @Test fun countDailyDoses_counts_taken_non_skipped_doses_for_today() = runTest {
         val today = LocalDate.now().toString()
         db.medicinDao().upsert(medicinEntity(id = "m1", tagen = true, datum = today))
         db.medicinDao().upsert(medicinEntity(id = "m2", tagen = true, datum = today))
@@ -95,7 +95,7 @@ class MedicinerRepositoryTest {
         assertEquals("Expected 2 taken non-skipped doses", 2, count)
     }
 
-    @Test fun `countDailyDoses is case-insensitive for name`() = runTest {
+    @Test fun countDailyDoses_is_case_insensitive_for_name() = runTest {
         val today = LocalDate.now().toString()
         db.medicinDao().upsert(medicinEntity(id = "m1", namn = "IBUPROFEN", tagen = true, datum = today))
 
@@ -105,7 +105,7 @@ class MedicinerRepositoryTest {
 
     // ─── getLastTaken ─────────────────────────────────────────────────────────
 
-    @Test fun `getLastTaken returns most recent taken entry by timestamp`() = runTest {
+    @Test fun getLastTaken_returns_most_recent_taken_entry_by_timestamp() = runTest {
         db.medicinDao().upsert(medicinEntity(id = "m1", tagen = true,  tid = "08:00"))
         db.medicinDao().upsert(medicinEntity(id = "m2", tagen = true,  tid = "12:00"))
         db.medicinDao().upsert(medicinEntity(id = "m3", tagen = false, tid = "14:00"))
@@ -115,14 +115,14 @@ class MedicinerRepositoryTest {
         assertEquals("m2", last!!.id)
     }
 
-    @Test fun `getLastTaken returns null when no taken entries exist`() = runTest {
+    @Test fun getLastTaken_returns_null_when_no_taken_entries_exist() = runTest {
         db.medicinDao().upsert(medicinEntity(id = "m1", tagen = false))
         assertNull(repo.getLastTaken("Ibuprofen"))
     }
 
     // ─── skipMedicin vs deleteMedicin ─────────────────────────────────────────
 
-    @Test fun `skipMedicin sets skipped flag and keeps entry in DB`() = runTest {
+    @Test fun skipMedicin_sets_skipped_flag_and_keeps_entry_in_DB() = runTest {
         db.medicinDao().upsert(medicinEntity(id = "m1"))
         repo.skipMedicin("m1")
         val entry = db.medicinDao().getById("m1")
@@ -130,14 +130,14 @@ class MedicinerRepositoryTest {
         assertTrue(entry!!.skipped)
     }
 
-    @Test fun `deleteMedicin removes entry from DB`() = runTest {
+    @Test fun deleteMedicin_removes_entry_from_DB() = runTest {
         val entity = medicinEntity(id = "m1")
         db.medicinDao().upsert(entity)
         repo.deleteMedicin(entity.toDomain())
         assertNull(db.medicinDao().getById("m1"))
     }
 
-    @Test fun `skipped entry is excluded from todayFlow`() = runTest {
+    @Test fun skipped_entry_is_excluded_from_todayFlow() = runTest {
         val today = LocalDate.now().toString()
         db.medicinDao().upsert(medicinEntity(id = "m1", datum = today, skipped = true))
         db.medicinDao().upsert(medicinEntity(id = "m2", datum = today, skipped = false))

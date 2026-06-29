@@ -42,69 +42,69 @@ class DiagramLayoutTest {
 
     // ─── Portrait ──────────────────────────────────────────────────────────────
 
-    @Test fun `portrait shows title in TopAppBar`() {
+    @Test fun portrait_shows_title_in_TopAppBar() {
         setLayout(portrait)
         composeRule.onNodeWithText("Testdiagram").assertIsDisplayed()
     }
 
-    @Test fun `portrait shows selector`() {
+    @Test fun portrait_shows_selector() {
         setLayout(portrait)
         composeRule.onNodeWithText("Selektor").assertIsDisplayed()
     }
 
-    @Test fun `portrait shows range chips`() {
+    @Test fun portrait_shows_range_chips() {
         setLayout(portrait)
         composeRule.onNodeWithText("Chips").assertIsDisplayed()
     }
 
-    @Test fun `portrait shows chart content`() {
+    @Test fun portrait_shows_chart_content() {
         setLayout(portrait)
         composeRule.onNodeWithText("Diagram").assertIsDisplayed()
     }
 
-    @Test fun `portrait shows legend`() {
+    @Test fun portrait_shows_legend() {
         setLayout(portrait)
         composeRule.onNodeWithText("Legend").assertIsDisplayed()
     }
 
-    @Test fun `portrait shows portraitExtras when provided`() {
+    @Test fun portrait_shows_portraitExtras_when_provided() {
         setLayout(portrait, withExtras = true)
         composeRule.onNodeWithText("Extras").assertIsDisplayed()
     }
 
     // ─── Landscape ─────────────────────────────────────────────────────────────
 
-    @Test fun `landscape hides TopAppBar title`() {
+    @Test fun landscape_hides_TopAppBar_title() {
         setLayout(landscape)
         composeRule.onNodeWithText("Testdiagram").assertDoesNotExist()
     }
 
-    @Test fun `landscape shows selector in overlay`() {
+    @Test fun landscape_shows_selector_in_overlay() {
         setLayout(landscape)
         composeRule.onNodeWithText("Selektor").assertIsDisplayed()
     }
 
-    @Test fun `landscape shows range chips in overlay`() {
+    @Test fun landscape_shows_range_chips_in_overlay() {
         setLayout(landscape)
         composeRule.onNodeWithText("Chips").assertIsDisplayed()
     }
 
-    @Test fun `landscape shows chart content`() {
+    @Test fun landscape_shows_chart_content() {
         setLayout(landscape)
         composeRule.onNodeWithText("Diagram").assertIsDisplayed()
     }
 
-    @Test fun `landscape shows legend in bottom overlay`() {
+    @Test fun landscape_shows_legend_in_bottom_overlay() {
         setLayout(landscape)
         composeRule.onNodeWithText("Legend").assertIsDisplayed()
     }
 
-    @Test fun `landscape hides portraitExtras`() {
+    @Test fun landscape_hides_portraitExtras() {
         setLayout(landscape, withExtras = true)
         composeRule.onNodeWithText("Extras").assertDoesNotExist()
     }
 
-    @Test fun `landscape shows back button`() {
+    @Test fun landscape_shows_back_button() {
         setLayout(landscape)
         composeRule.onNodeWithContentDescription("Tillbaka").assertIsDisplayed()
     }

@@ -63,12 +63,12 @@ class LoggaTabTest {
 
     // ─── Spara inaktiverad utan typ ──────────────────────────────────────────
 
-    @Test fun `save button is disabled when no activity type is selected`() {
+    @Test fun save_button_is_disabled_when_no_activity_type_is_selected() {
         setContent()
         composeRule.onNodeWithText("Spara aktivitet").assertIsNotEnabled()
     }
 
-    @Test fun `save button is enabled after selecting an activity type`() {
+    @Test fun save_button_is_enabled_after_selecting_an_activity_type() {
         setContent()
         composeRule.onNodeWithText("Övrigt").performClick()
         vm.updateForm { copy(aktivitetAnnat = "Yoga") }
@@ -78,7 +78,7 @@ class LoggaTabTest {
 
     // ─── Snackbar after save ──────────────────────────────────────────────────
 
-    @Test fun `save fires snackbar with activity name`() {
+    @Test fun save_fires_snackbar_with_activity_name() {
         setContent()
         composeRule.onNodeWithText("Övrigt").performClick()
         vm.updateForm { copy(aktivitetAnnat = "Promenad") }
@@ -92,12 +92,12 @@ class LoggaTabTest {
 
     // ─── "Övrigt"-fält ───────────────────────────────────────────────────────
 
-    @Test fun `Ovrigt text field is hidden when Ovrigt chip is not selected`() {
+    @Test fun Ovrigt_text_field_is_hidden_when_Ovrigt_chip_is_not_selected() {
         setContent()
         composeRule.onNodeWithText("Beskriv aktivitet").assertDoesNotExist()
     }
 
-    @Test fun `Ovrigt text field appears when Ovrigt chip is selected`() {
+    @Test fun Ovrigt_text_field_appears_when_Ovrigt_chip_is_selected() {
         setContent()
         composeRule.onNodeWithText("Övrigt").performClick()
         composeRule.waitForIdle()
@@ -106,12 +106,12 @@ class LoggaTabTest {
 
     // ─── Chips ───────────────────────────────────────────────────────────────
 
-    @Test fun `Ovrigt chip is always shown`() {
+    @Test fun Ovrigt_chip_is_always_shown() {
         setContent()
         composeRule.onNodeWithText("Övrigt").assertIsDisplayed()
     }
 
-    @Test fun `predefined activity option chips are shown`() {
+    @Test fun predefined_activity_option_chips_are_shown() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val prefs = PreferencesRepository(ctx)
         runBlocking { prefs.setAktivitetOptions(listOf(SymptomOption("Promenad"), SymptomOption("Simning"))) }
@@ -131,13 +131,13 @@ class LoggaTabTest {
 
     // ─── InputChips ──────────────────────────────────────────────────────────
 
-    @Test fun `Aterhamtande and Energitjuv chips are shown`() {
+    @Test fun Aterhamtande_and_Energitjuv_chips_are_shown() {
         setContent()
         composeRule.onNodeWithText("Återhämtande").assertIsDisplayed()
         composeRule.onNodeWithText("Energitjuv").assertIsDisplayed()
     }
 
-    @Test fun `Aterhamtande chip toggles when clicked`() {
+    @Test fun Aterhamtande_chip_toggles_when_clicked() {
         setContent()
         assert(!vm.form.value.aterhamtande)
         composeRule.onNodeWithText("Återhämtande").performClick()

@@ -93,7 +93,7 @@ class MigrationRoundTripTest {
 
     // ─── round-trip ───────────────────────────────────────────────────────────
 
-    @Test fun `aktiviteter survive mapper and import and can be read back`() = runTest {
+    @Test fun aktiviteter_survive_mapper_and_import_and_can_be_read_back() = runTest {
         val backup = testBackup()
         val aktiviteter = BackupMapper.toAktiviteter(backup)
         aktivRepo.importAll(aktiviteter)
@@ -104,7 +104,7 @@ class MigrationRoundTripTest {
         assertEquals(5, fromDb.energy)
     }
 
-    @Test fun `screening aktivitet round-trips with correct type`() = runTest {
+    @Test fun screening_aktivitet_round_trips_with_correct_type() = runTest {
         val backup = testBackup()
         aktivRepo.importAll(BackupMapper.toAktiviteter(backup))
 
@@ -113,7 +113,7 @@ class MigrationRoundTripTest {
         assertEquals("screening", screening!!.type)
     }
 
-    @Test fun `mediciner survive mapper and import and can be read back`() = runTest {
+    @Test fun mediciner_survive_mapper_and_import_and_can_be_read_back() = runTest {
         val backup = testBackup()
         medicRepo.importMediciner(BackupMapper.toMediciner(backup))
 
@@ -123,7 +123,7 @@ class MigrationRoundTripTest {
         assertTrue(fromDb.tagen)
     }
 
-    @Test fun `recept survive mapper and import and can be read back`() = runTest {
+    @Test fun recept_survive_mapper_and_import_and_can_be_read_back() = runTest {
         val backup = testBackup()
         medicRepo.importRecept(BackupMapper.toRecept(backup))
 
@@ -133,7 +133,7 @@ class MigrationRoundTripTest {
         assertTrue(fromDb.aktiv)
     }
 
-    @Test fun `favoriter survive mapper and import and can be read back`() = runTest {
+    @Test fun favoriter_survive_mapper_and_import_and_can_be_read_back() = runTest {
         val backup = testBackup()
         medicRepo.importFavoriter(BackupMapper.toFavoriter(backup))
 
@@ -143,7 +143,7 @@ class MigrationRoundTripTest {
         assertEquals(4, fromDb.minTidMellan)
     }
 
-    @Test fun `full import preserves all entity counts`() = runTest {
+    @Test fun full_import_preserves_all_entity_counts() = runTest {
         val backup = testBackup()
         aktivRepo.importAll(BackupMapper.toAktiviteter(backup))
         medicRepo.importMediciner(BackupMapper.toMediciner(backup))
@@ -156,7 +156,7 @@ class MigrationRoundTripTest {
 
     // ─── upsert idempotency ───────────────────────────────────────────────────
 
-    @Test fun `importing same backup twice does not create duplicate entries`() = runTest {
+    @Test fun importing_same_backup_twice_does_not_create_duplicate_entries() = runTest {
         val backup = testBackup()
         repeat(2) {
             aktivRepo.importAll(BackupMapper.toAktiviteter(backup))

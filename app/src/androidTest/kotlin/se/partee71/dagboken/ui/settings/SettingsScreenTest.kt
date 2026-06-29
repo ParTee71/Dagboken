@@ -66,14 +66,14 @@ class SettingsScreenTest {
 
     // ─── Tema-läge ────────────────────────────────────────────────────────────
 
-    @Test fun `themeMode starts with auto`() {
+    @Test fun themeMode_starts_with_auto() {
         setContent()
         assert(vm.state.value.themeMode == "auto") {
             "Expected themeMode=auto but got ${vm.state.value.themeMode}"
         }
     }
 
-    @Test fun `setThemeMode dark updates ViewModel state`() {
+    @Test fun setThemeMode_dark_updates_ViewModel_state() {
         setContent()
         vm.setThemeMode("dark")
         composeRule.waitUntil(3000) { vm.state.value.themeMode == "dark" }
@@ -84,7 +84,7 @@ class SettingsScreenTest {
 
     // ─── Toggla notiser ───────────────────────────────────────────────────────
 
-    @Test fun `meds notifications row is displayed and starts disabled`() {
+    @Test fun meds_notifications_row_is_displayed_and_starts_disabled() {
         setContent()
         composeRule.onNodeWithText("Medicinpåminnelser").assertIsDisplayed()
         assert(!vm.state.value.medsNotificationsEnabled) {
@@ -92,7 +92,7 @@ class SettingsScreenTest {
         }
     }
 
-    @Test fun `toggleMedsNotifications enables meds notifications`() {
+    @Test fun toggleMedsNotifications_enables_meds_notifications() {
         setContent()
         vm.toggleMedsNotifications()
         composeRule.waitUntil(3000) { vm.state.value.medsNotificationsEnabled }
@@ -103,7 +103,7 @@ class SettingsScreenTest {
 
     // ─── Lägg till aktivitetstyp ─────────────────────────────────────────────
 
-    @Test fun `added aktivitet option chip appears in list`() {
+    @Test fun added_aktivitet_option_chip_appears_in_list() {
         setContent()
         // Type into aktivitetOptions text field ("Ny typ") — makes the first "Lägg till" enabled
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
@@ -116,7 +116,7 @@ class SettingsScreenTest {
         composeRule.onNodeWithText("Yoga").performScrollTo().assertIsDisplayed()
     }
 
-    @Test fun `duplicate aktivitet option is not added`() {
+    @Test fun duplicate_aktivitet_option_is_not_added() {
         setContent()
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
         composeRule.waitForIdle()
@@ -135,7 +135,7 @@ class SettingsScreenTest {
 
     // ─── Ta bort aktivitetstyp ───────────────────────────────────────────────
 
-    @Test fun `removed aktivitet option chip disappears from list`() {
+    @Test fun removed_aktivitet_option_chip_disappears_from_list() {
         runBlocking { prefs.setAktivitetOptions(listOf(SymptomOption("Simning"))) }
         setContent()
         composeRule.waitUntil(3000) {
