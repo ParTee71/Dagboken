@@ -28,30 +28,14 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Install emulator packages
-        run: |
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --install \
-            "emulator" \
-            "platform-tools" \
-            "system-images;android-34;google_apis;x86_64" \
-            "platforms;android-34"
-
-      - name: Create AVD
-        run: |
-          echo "no" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/avdmanager create avd \
-            --name test_avd \
-            --package "system-images;android-34;google_apis;x86_64" \
-            --device "pixel_6"
-
-      - name: Start emulator and run tests
-        run: |
-          $ANDROID_SDK_ROOT/emulator/emulator -avd test_avd \
-            -no-window -no-audio -no-snapshot \
-            -no-boot-anim -gpu swiftshader_indirect &
-          adb wait-for-device shell \
-            'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 2; done'
-          adb shell input keyevent 82
-          ./gradlew :app:connectedDebugAndroidTest
+      - name: Run instrumented tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          device: pixel_6
+          script: ./gradlew :app:connectedDebugAndroidTest
 
       - name: Upload test results
         if: always()

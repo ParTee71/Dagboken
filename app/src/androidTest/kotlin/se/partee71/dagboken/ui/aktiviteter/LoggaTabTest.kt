@@ -13,12 +13,16 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 
 @RunWith(AndroidJUnit4::class)
@@ -33,14 +37,15 @@ class LoggaTabTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db  = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                   .allowMainThreadQueries().build()
-        val repo  = AktiviteterRepository(db.aktivitetDao())
-        val prefs = PreferencesRepository(ctx)
+        val repo     = AktiviteterRepository(db.aktivitetDao())
+        val noteRepo = NoteRepository(db.noteDao())
+        val prefs    = PreferencesRepository(ctx)
         runBlocking {
             // Reset shared DataStore so no leftover options cause duplicate "Övrigt" chips
             prefs.setAktivitetOptions(emptyList())
             prefs.setSymptomOptions(emptyList())
         }
-        vm = AktiviteterViewModel(repo, prefs)
+        vm = AktiviteterViewModel(repo, noteRepo, prefs)
     }
 
     @After fun tearDown() {
@@ -58,28 +63,52 @@ class LoggaTabTest {
 
     // ─── Spara inaktiverad utan typ ──────────────────────────────────────────
 
-    @Test fun `save button is disabled when no activity type is selected`() {
+    @Test fun save_button_is_disabled_when_no_activity_type_is_selected() {
         setContent()
         composeRule.onNodeWithText("Spara aktivitet").assertIsNotEnabled()
     }
 
-    @Test fun `save button is enabled after selecting an activity type`() {
+    @Test fun save_button_is_enabled_after_selecting_an_activity_type() {
         setContent()
+        composeRule.onNodeWithText("Fler typer").performClick()
+        composeRule.waitForIdle()
         composeRule.onNodeWithText("Övrigt").performClick()
+        composeRule.waitForIdle()
         vm.updateForm { copy(aktivitetAnnat = "Yoga") }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Spara aktivitet").assertIsEnabled()
     }
 
+    // ─── Snackbar after save ──────────────────────────────────────────────────
+
+    @Test fun save_fires_snackbar_with_activity_name() {
+        setContent()
+        composeRule.onNodeWithText("Fler typer").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Övrigt").performClick()
+        composeRule.waitForIdle()
+        vm.updateForm { copy(aktivitetAnnat = "Promenad") }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Spara aktivitet").performClick()
+        // save() writes to the DB in a coroutine and only then sets the snackbar;
+        // waitForIdle() does not wait for that coroutine, so poll until it lands.
+        composeRule.waitUntil(3000) { vm.snackbar.value != null }
+        val msg = vm.snackbar.value
+        assertNotNull(msg)
+        assertTrue("Expected snackbar to contain activity name, got: $msg", msg!!.contains("Promenad"))
+    }
+
     // ─── "Övrigt"-fält ───────────────────────────────────────────────────────
 
-    @Test fun `Ovrigt text field is hidden when Ovrigt chip is not selected`() {
+    @Test fun Ovrigt_text_field_is_hidden_when_Ovrigt_chip_is_not_selected() {
         setContent()
         composeRule.onNodeWithText("Beskriv aktivitet").assertDoesNotExist()
     }
 
-    @Test fun `Ovrigt text field appears when Ovrigt chip is selected`() {
+    @Test fun Ovrigt_text_field_appears_when_Ovrigt_chip_is_selected() {
         setContent()
+        composeRule.onNodeWithText("Fler typer").performClick()
+        composeRule.waitForIdle()
         composeRule.onNodeWithText("Övrigt").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Beskriv aktivitet").assertIsDisplayed()
@@ -87,15 +116,15 @@ class LoggaTabTest {
 
     // ─── Chips ───────────────────────────────────────────────────────────────
 
-    @Test fun `Ovrigt chip is always shown`() {
+    @Test fun Ovrigt_chip_is_always_shown() {
         setContent()
-        composeRule.onNodeWithText("Övrigt").assertIsDisplayed()
+        composeRule.onNodeWithText("Fler typer").assertIsDisplayed()
     }
 
-    @Test fun `predefined activity option chips are shown`() {
+    @Test fun predefined_activity_option_chips_are_shown() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val prefs = PreferencesRepository(ctx)
-        runBlocking { prefs.setAktivitetOptions(listOf("Promenad", "Simning")) }
+        runBlocking { prefs.setAktivitetOptions(listOf(SymptomOption("Promenad", isFavorite = true), SymptomOption("Simning", isFavorite = true))) }
         try {
             composeRule.setContent { MaterialTheme { LoggaTab(vm) } }
             composeRule.waitUntil(3000) {
@@ -112,13 +141,13 @@ class LoggaTabTest {
 
     // ─── InputChips ──────────────────────────────────────────────────────────
 
-    @Test fun `Aterhamtande and Energitjuv chips are shown`() {
+    @Test fun Aterhamtande_and_Energitjuv_chips_are_shown() {
         setContent()
         composeRule.onNodeWithText("Återhämtande").assertIsDisplayed()
         composeRule.onNodeWithText("Energitjuv").assertIsDisplayed()
     }
 
-    @Test fun `Aterhamtande chip toggles when clicked`() {
+    @Test fun Aterhamtande_chip_toggles_when_clicked() {
         setContent()
         assert(!vm.form.value.aterhamtande)
         composeRule.onNodeWithText("Återhämtande").performClick()

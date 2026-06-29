@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,90 +55,105 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
     val cs = MaterialTheme.colorScheme
     val eColor = energyColor(form.energy, cs)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
-            .padding(top = 20.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.logga_header),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
+    val isSaveEnabled = if (form.aktivitet == "Övrigt") form.aktivitetAnnat.isNotBlank() else form.aktivitet.isNotBlank()
 
-        DateTimeRow(
-            datum         = form.datum,
-            tid           = form.tid,
-            onDatumChange = { vm.updateForm { copy(datum = it) } },
-            onTidChange   = { vm.updateForm { copy(tid = it) } },
-        )
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(top = 20.dp, bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.logga_header),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
 
-        AktivitetCard(
-            selectedAktivitet  = form.aktivitet,
-            aktivitetAnnat     = form.aktivitetAnnat,
-            aterhamtande       = form.aterhamtande,
-            energitjuv         = form.energitjuv,
-            aktivitetOptions   = aktivitetOptions,
-            onSelectAktivitet  = { vm.updateForm { copy(aktivitet = it) } },
-            onChangeAnnat      = { vm.updateForm { copy(aktivitetAnnat = it) } },
-            onToggleAterham    = { vm.updateForm { copy(aterhamtande = !aterhamtande) } },
-            onToggleEnergiTjuv = { vm.updateForm { copy(energitjuv = !energitjuv) } },
-        )
+            DateTimeRow(
+                datum         = form.datum,
+                tid           = form.tid,
+                onDatumChange = { vm.updateForm { copy(datum = it) } },
+                onTidChange   = { vm.updateForm { copy(tid = it) } },
+            )
 
-        DurationRow(
-            hours          = form.spentTimeHours,
-            minutes        = form.spentTimeMinutes,
-            onHoursChange  = { vm.updateForm { copy(spentTimeHours = it) } },
-            onMinutesChange = { vm.updateForm { copy(spentTimeMinutes = it) } },
-        )
+            AktivitetCard(
+                selectedAktivitet  = form.aktivitet,
+                aktivitetAnnat     = form.aktivitetAnnat,
+                aterhamtande       = form.aterhamtande,
+                energitjuv         = form.energitjuv,
+                aktivitetOptions   = aktivitetOptions,
+                onSelectAktivitet  = { vm.updateForm { copy(aktivitet = it) } },
+                onChangeAnnat      = { vm.updateForm { copy(aktivitetAnnat = it) } },
+                onToggleAterham    = { vm.updateForm { copy(aterhamtande = !aterhamtande) } },
+                onToggleEnergiTjuv = { vm.updateForm { copy(energitjuv = !energitjuv) } },
+            )
 
-        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-            Foldout(
-                title    = stringResource(R.string.label_metrics),
-                expanded = form.metricsExpanded,
-                onToggle = { vm.updateForm { copy(metricsExpanded = !metricsExpanded) } },
-                modifier = Modifier.padding(horizontal = 16.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    GradientSliderRow(
-                        label         = stringResource(R.string.label_energy),
-                        emoji         = "⚡",
-                        value         = form.energy.coerceIn(-5, 5).toFloat(),
-                        onValueChange = { vm.updateForm { copy(energy = it.toInt()) } },
-                        valueRange    = -5f..5f,
-                        steps         = 9,
-                        startLabel    = "-5  😴",
-                        endLabel      = "+5  ⚡",
-                        displayValue  = energyLabel(form.energy),
-                        accentColor   = eColor,
-                    )
-                    HorizontalDivider()
-                    GradientSliderRow(
-                        label         = stringResource(R.string.label_stress),
-                        emoji         = "😰",
-                        value         = form.stress.toFloat(),
-                        onValueChange = { vm.updateForm { copy(stress = it.toInt()) } },
-                        valueRange    = 0f..10f,
-                        steps         = 9,
-                        startLabel    = "0  😌",
-                        endLabel      = "😰  10",
-                        reverseColors = true,
-                    )
+            DurationRow(
+                hours          = form.spentTimeHours,
+                minutes        = form.spentTimeMinutes,
+                onHoursChange  = { vm.updateForm { copy(spentTimeHours = it) } },
+                onMinutesChange = { vm.updateForm { copy(spentTimeMinutes = it) } },
+            )
+
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Foldout(
+                    title    = stringResource(R.string.label_metrics),
+                    expanded = form.metricsExpanded,
+                    onToggle = { vm.updateForm { copy(metricsExpanded = !metricsExpanded) } },
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                        GradientSliderRow(
+                            label         = stringResource(R.string.label_energy),
+                            emoji         = "⚡",
+                            value         = form.energy.coerceIn(-5, 5).toFloat(),
+                            onValueChange = { vm.updateForm { copy(energy = it.toInt()) } },
+                            valueRange    = -5f..5f,
+                            steps         = 9,
+                            startLabel    = "-5  😴",
+                            endLabel      = "+5  ⚡",
+                            displayValue  = energyLabel(form.energy),
+                            accentColor   = eColor,
+                        )
+                        HorizontalDivider()
+                        GradientSliderRow(
+                            label         = stringResource(R.string.label_stress),
+                            emoji         = "😰",
+                            value         = form.stress.toFloat(),
+                            onValueChange = { vm.updateForm { copy(stress = it.toInt()) } },
+                            valueRange    = 0f..10f,
+                            steps         = 9,
+                            startLabel    = "0  😌",
+                            endLabel      = "😰  10",
+                            reverseColors = true,
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
                 }
-                Spacer(Modifier.height(4.dp))
+            }
+
+            if (symptomOptions.isNotEmpty()) {
+                SymptomLogCard(
+                    symptomOptions   = symptomOptions,
+                    scores           = form.symptomScores,
+                    onScoresChange   = { vm.updateForm { copy(symptomScores = it) } },
+                    onToggleFavorite = vm::toggleSymptomFavorite,
+                )
             }
         }
 
-        if (symptomOptions.isNotEmpty()) {
-            SymptomLogCard(
-                symptomOptions   = symptomOptions,
-                scores           = form.symptomScores,
-                onScoresChange   = { vm.updateForm { copy(symptomScores = it) } },
-                onToggleFavorite = vm::toggleSymptomFavorite,
-            )
+        HorizontalDivider()
+        Button(
+            onClick  = { vm.save { onSaved() } },
+            enabled  = isSaveEnabled,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Text(stringResource(R.string.save_aktivitet))
         }
     }
 }
