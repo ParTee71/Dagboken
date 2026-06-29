@@ -2,6 +2,7 @@ package se.partee71.dagboken.ui.aktiviteter
 
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -20,6 +21,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Aktivitet
 
@@ -37,8 +39,9 @@ class HistorikTabTest {
         db   = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                    .allowMainThreadQueries().build()
         repo = AktiviteterRepository(db.aktivitetDao())
-        val prefs = PreferencesRepository(ctx)
-        vm   = AktiviteterViewModel(repo, prefs)
+        val noteRepo = NoteRepository(db.noteDao())
+        val prefs    = PreferencesRepository(ctx)
+        vm   = AktiviteterViewModel(repo, noteRepo, prefs)
     }
 
     @After fun tearDown() { db.close() }
@@ -53,6 +56,15 @@ class HistorikTabTest {
 
     private fun setContent() {
         composeRule.setContent { MaterialTheme { HistorikTab(vm = vm, onEdit = {}) } }
+    }
+
+    // ─── No save bar on Historik tab ─────────────────────────────────────────
+
+    @Test fun `historik tab has no save button`() {
+        setContent()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Spara aktivitet").assertDoesNotExist()
+        composeRule.onNodeWithText("Spara screening").assertDoesNotExist()
     }
 
     // ─── Empty state ──────────────────────────────────────────────────────────

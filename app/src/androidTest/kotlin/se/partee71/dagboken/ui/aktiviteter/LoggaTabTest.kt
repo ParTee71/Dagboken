@@ -13,12 +13,15 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 
 @RunWith(AndroidJUnit4::class)
@@ -33,14 +36,15 @@ class LoggaTabTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db  = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                   .allowMainThreadQueries().build()
-        val repo  = AktiviteterRepository(db.aktivitetDao())
-        val prefs = PreferencesRepository(ctx)
+        val repo     = AktiviteterRepository(db.aktivitetDao())
+        val noteRepo = NoteRepository(db.noteDao())
+        val prefs    = PreferencesRepository(ctx)
         runBlocking {
             // Reset shared DataStore so no leftover options cause duplicate "Övrigt" chips
             prefs.setAktivitetOptions(emptyList())
             prefs.setSymptomOptions(emptyList())
         }
-        vm = AktiviteterViewModel(repo, prefs)
+        vm = AktiviteterViewModel(repo, noteRepo, prefs)
     }
 
     @After fun tearDown() {
@@ -69,6 +73,20 @@ class LoggaTabTest {
         vm.updateForm { copy(aktivitetAnnat = "Yoga") }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Spara aktivitet").assertIsEnabled()
+    }
+
+    // ─── Snackbar after save ──────────────────────────────────────────────────
+
+    @Test fun `save fires snackbar with activity name`() {
+        setContent()
+        composeRule.onNodeWithText("Övrigt").performClick()
+        vm.updateForm { copy(aktivitetAnnat = "Promenad") }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Spara aktivitet").performClick()
+        composeRule.waitForIdle()
+        val msg = vm.snackbar.value
+        assertNotNull(msg)
+        assertTrue("Expected snackbar to contain activity name, got: $msg", msg!!.contains("Promenad"))
     }
 
     // ─── "Övrigt"-fält ───────────────────────────────────────────────────────

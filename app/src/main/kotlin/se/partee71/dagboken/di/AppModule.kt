@@ -15,6 +15,7 @@ import se.partee71.dagboken.data.room.daos.AktivitetDao
 import se.partee71.dagboken.data.room.daos.FavoritDao
 import se.partee71.dagboken.data.room.daos.HandelseDao
 import se.partee71.dagboken.data.room.daos.MedicinDao
+import se.partee71.dagboken.data.room.daos.NoteDao
 import se.partee71.dagboken.data.room.daos.ReceptDao
 import javax.inject.Singleton
 
@@ -47,4 +48,5 @@ object DatabaseModule {
     @Provides fun provideReceptDao(db: AppDatabase): ReceptDao       = db.receptDao()
     @Provides fun provideFavoritDao(db: AppDatabase): FavoritDao     = db.favoritDao()
     @Provides fun provideHandelseDao(db: AppDatabase): HandelseDao   = db.handelseDao()
+    @Provides fun provideNoteDao(db: AppDatabase): NoteDao           = db.noteDao()
 }

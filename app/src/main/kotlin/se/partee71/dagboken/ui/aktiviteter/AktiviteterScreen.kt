@@ -2,7 +2,6 @@ package se.partee71.dagboken.ui.aktiviteter
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -16,14 +15,13 @@ import androidx.compose.material.icons.outlined.Healing
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MonitorHeart
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
@@ -31,6 +29,8 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Color
+import se.partee71.dagboken.ui.theme.Emerald700
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -90,7 +90,16 @@ fun AktiviteterScreen(
     val scope = rememberCoroutineScope()
 
     Scaffold(
-        snackbarHost = { SnackbarHost(localSnackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(localSnackbarHostState) { data ->
+                val isSuccess = data.visuals.message.contains("✓")
+                Snackbar(
+                    snackbarData   = data,
+                    containerColor = if (isSuccess) Emerald700 else MaterialTheme.colorScheme.inverseSurface,
+                    contentColor   = Color.White,
+                )
+            }
+        },
         topBar = {
             TopAppBar(
                 navigationIcon = {
@@ -130,24 +139,6 @@ fun AktiviteterScreen(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.fab_logga_aktivitet))
                 }
-            }
-        },
-        bottomBar = {
-            if (pagerState.currentPage < 2) {
-                BottomAppBar(
-                    actions = {
-                        when (pagerState.currentPage) {
-                            0 -> Button(
-                                onClick  = { vm.save {} },
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            ) { Text(stringResource(R.string.save_aktivitet)) }
-                            1 -> Button(
-                                onClick  = { vm.updateForm { copy(type = "screening") }; vm.save {} },
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            ) { Text(stringResource(R.string.save_screening)) }
-                        }
-                    },
-                )
             }
         },
     ) { padding ->
