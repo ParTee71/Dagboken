@@ -90,7 +90,9 @@ class LoggaTabTest {
         vm.updateForm { copy(aktivitetAnnat = "Promenad") }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Spara aktivitet").performClick()
-        composeRule.waitForIdle()
+        // save() writes to the DB in a coroutine and only then sets the snackbar;
+        // waitForIdle() does not wait for that coroutine, so poll until it lands.
+        composeRule.waitUntil(3000) { vm.snackbar.value != null }
         val msg = vm.snackbar.value
         assertNotNull(msg)
         assertTrue("Expected snackbar to contain activity name, got: $msg", msg!!.contains("Promenad"))
