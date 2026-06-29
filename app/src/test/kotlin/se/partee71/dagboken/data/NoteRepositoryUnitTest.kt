@@ -15,64 +15,57 @@ import se.partee71.dagboken.domain.model.NoteTarget
 class NoteRepositoryUnitTest {
 
     private inner class FakeNoteDao : NoteDao {
-        private val store = mutableMapOf<Pair<String, String>, NoteEntity>()
-        private val _flow = MutableStateFlow<Map<Pair<String, String>, NoteEntity>>(emptyMap())
+        private val store = mutableMapOf<Pair<String, String>, String>()
+        private val _flow = MutableStateFlow<Map<Pair<String, String>, String>>(emptyMap())
 
-        override fun observe(type: String, id: String): Flow<NoteEntity?> =
-            _flow.map { it[type to id] }
-
-        override suspend fun getByKey(type: String, id: String): NoteEntity? =
-            store[type to id]
+        override fun observe(target: String, entityId: String): Flow<String?> =
+            _flow.map { it[target to entityId] }
 
         override suspend fun upsert(note: NoteEntity) {
-            val key = note.targetType to note.targetId
-            store[key] = note
+            store[note.target to note.entityId] = note.text
             _flow.value = store.toMap()
         }
 
-        override suspend fun delete(type: String, id: String) {
-            store.remove(type to id)
+        override suspend fun delete(target: String, entityId: String) {
+            store.remove(target to entityId)
             _flow.value = store.toMap()
-        }
-
-        override fun observeAll(type: String): Flow<List<NoteEntity>> =
-            _flow.map { it.values.filter { e -> e.targetType == type } }
-
-        override fun observeAll(): Flow<List<NoteEntity>> =
-            _flow.map { it.values.toList() }
-
-        override suspend fun count(): Int = store.size
-
-        override suspend fun deleteAll() {
-            store.clear()
-            _flow.value = emptyMap()
         }
     }
 
     private fun repo() = NoteRepository(FakeNoteDao())
 
-    @Test fun `observe maps null entity to empty string`() = runTest {
-        repo().observe(NoteTarget.DAY, "2026-06-24").test {
+    @Test fun `observe maps null to empty string`() = runTest {
+        repo().observe(NoteTarget.ACTIVITY, "a1").test {
             assertEquals("", awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
-    @Test fun `save blank text calls delete`() = runTest {
+    @Test fun `save blank text deletes the entry`() = runTest {
         val r = repo()
-        r.save(NoteTarget.EVENT, "e1", "hello")
-        r.save(NoteTarget.EVENT, "e1", "  ")
-        r.observe(NoteTarget.EVENT, "e1").test {
+        r.save(NoteTarget.ACTIVITY, "a1", "hello")
+        r.save(NoteTarget.ACTIVITY, "a1", "  ")
+        r.observe(NoteTarget.ACTIVITY, "a1").test {
             assertEquals("", awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
-    @Test fun `save trims whitespace`() = runTest {
+    @Test fun `save stores text as provided`() = runTest {
         val r = repo()
-        r.save(NoteTarget.ACTIVITY, "a1", "  hello world  ")
+        r.save(NoteTarget.ACTIVITY, "a1", "hello world")
         r.observe(NoteTarget.ACTIVITY, "a1").test {
             assertEquals("hello world", awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `save then delete returns empty string`() = runTest {
+        val r = repo()
+        r.save(NoteTarget.MEDICATION, "m1", "anteckning")
+        r.delete(NoteTarget.MEDICATION, "m1")
+        r.observe(NoteTarget.MEDICATION, "m1").test {
+            assertEquals("", awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }

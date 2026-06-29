@@ -31,40 +31,52 @@ class NoteDaoTest {
     @After fun tearDown() { db.close() }
 
     @Test fun observe_returnsNullWhenNoRow() = runTest {
-        dao.observe("DAY", "2026-06-24").test {
+        dao.observe("ACTIVITY", "a1").test {
             assertNull(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test fun upsert_insertsRow() = runTest {
-        dao.upsert(NoteEntity(targetType = "DAY", targetId = "2026-06-24", text = "hello"))
-        val row = dao.getByKey("DAY", "2026-06-24")
-        assertEquals("hello", row?.text)
+        dao.upsert(NoteEntity(target = "ACTIVITY", entityId = "a1", text = "hello"))
+        dao.observe("ACTIVITY", "a1").test {
+            assertEquals("hello", awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test fun upsert_secondCallUpdatesText() = runTest {
-        dao.upsert(NoteEntity(targetType = "DAY", targetId = "2026-06-24", text = "v1"))
-        dao.upsert(NoteEntity(targetType = "DAY", targetId = "2026-06-24", text = "v2"))
-        assertEquals("v2", dao.getByKey("DAY", "2026-06-24")?.text)
-        assertEquals(1, dao.count())
+        dao.upsert(NoteEntity(target = "ACTIVITY", entityId = "a1", text = "v1"))
+        dao.upsert(NoteEntity(target = "ACTIVITY", entityId = "a1", text = "v2"))
+        dao.observe("ACTIVITY", "a1").test {
+            assertEquals("v2", awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test fun delete_removesCorrectRow() = runTest {
-        dao.upsert(NoteEntity(targetType = "EVENT", targetId = "e1", text = "note"))
-        dao.upsert(NoteEntity(targetType = "EVENT", targetId = "e2", text = "other"))
-        dao.delete("EVENT", "e1")
-        assertNull(dao.getByKey("EVENT", "e1"))
-        assertEquals("other", dao.getByKey("EVENT", "e2")?.text)
+        dao.upsert(NoteEntity(target = "MEDICATION", entityId = "m1", text = "note"))
+        dao.upsert(NoteEntity(target = "MEDICATION", entityId = "m2", text = "other"))
+        dao.delete("MEDICATION", "m1")
+        dao.observe("MEDICATION", "m1").test {
+            assertNull(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        dao.observe("MEDICATION", "m2").test {
+            assertEquals("other", awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
-    @Test fun observeAll_returnsOnlyMatchingType() = runTest {
-        dao.upsert(NoteEntity(targetType = "ACTIVITY", targetId = "a1", text = "act"))
-        dao.upsert(NoteEntity(targetType = "DAY",      targetId = "d1", text = "day"))
-        dao.observeAll("ACTIVITY").test {
-            val items = awaitItem()
-            assertEquals(1, items.size)
-            assertEquals("act", items.first().text)
+    @Test fun upsert_differentTargetsSameEntityId_areIndependent() = runTest {
+        dao.upsert(NoteEntity(target = "ACTIVITY",  entityId = "x", text = "activity note"))
+        dao.upsert(NoteEntity(target = "SCREENING", entityId = "x", text = "screening note"))
+        dao.observe("ACTIVITY", "x").test {
+            assertEquals("activity note", awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        dao.observe("SCREENING", "x").test {
+            assertEquals("screening note", awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }

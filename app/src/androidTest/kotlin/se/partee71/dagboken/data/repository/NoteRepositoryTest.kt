@@ -30,7 +30,7 @@ class NoteRepositoryTest {
     @After fun tearDown() { db.close() }
 
     @Test fun observe_emitsEmptyStringWhenNoRow() = runTest {
-        repo.observe(NoteTarget.DAY, "2026-06-24").test {
+        repo.observe(NoteTarget.ACTIVITY, "act-none").test {
             assertEquals("", awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -45,9 +45,9 @@ class NoteRepositoryTest {
     }
 
     @Test fun save_blankTextDeletesRow() = runTest {
-        repo.save(NoteTarget.EVENT, "e1", "some note")
-        repo.save(NoteTarget.EVENT, "e1", "   ")
-        repo.observe(NoteTarget.EVENT, "e1").test {
+        repo.save(NoteTarget.MEDICATION, "m1", "some note")
+        repo.save(NoteTarget.MEDICATION, "m1", "   ")
+        repo.observe(NoteTarget.MEDICATION, "m1").test {
             assertEquals("", awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -57,6 +57,15 @@ class NoteRepositoryTest {
         repo.save(NoteTarget.SCREENING, "2026-06-24", "  trimmed  ")
         repo.observe(NoteTarget.SCREENING, "2026-06-24").test {
             assertEquals("trimmed", awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun delete_removesRow() = runTest {
+        repo.save(NoteTarget.ACTIVITY, "a1", "note")
+        repo.delete(NoteTarget.ACTIVITY, "a1")
+        repo.observe(NoteTarget.ACTIVITY, "a1").test {
+            assertEquals("", awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
