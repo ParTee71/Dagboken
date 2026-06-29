@@ -2,6 +2,7 @@ package se.partee71.dagboken.ui.aktiviteter
 
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -20,6 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
@@ -113,7 +115,7 @@ class LoggaTabTest {
     @Test fun `predefined activity option chips are shown`() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val prefs = PreferencesRepository(ctx)
-        runBlocking { prefs.setAktivitetOptions(listOf("Promenad", "Simning")) }
+        runBlocking { prefs.setAktivitetOptions(listOf(SymptomOption("Promenad"), SymptomOption("Simning"))) }
         try {
             composeRule.setContent { MaterialTheme { LoggaTab(vm) } }
             composeRule.waitUntil(3000) {
