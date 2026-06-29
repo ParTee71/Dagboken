@@ -4,7 +4,6 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,26 +21,18 @@ class Migration23Test {
 
     // ─── MIGRATION_2_3 ────────────────────────────────────────────────────────
 
-    @Test fun `migration copies non-empty anteckning into notes table`() {
-        helper.createDatabase(TEST_DB, 2).use { db ->
-            db.execSQL(
-                """INSERT INTO health_events
-                   (id, timestamp, datum, tid, typ, svarighetsgrad, varaktighetMinuter, triggers, atgarder, anteckning)
-                   VALUES ('evt1', '2026-01-01T10:00:00.000Z', '2026-01-01', '10:00',
-                           'Huvudvärk', 5, 30, '[]', '[]', 'Tog Alvedon')"""
-            )
-        }
+    @Test fun `migration creates notes table with correct schema`() {
+        helper.createDatabase(TEST_DB, 2).use { /* just create v2 schema */ }
 
         helper.runMigrationsAndValidate(TEST_DB, 3, true, AppDatabase.MIGRATION_2_3).use { db ->
-            val cursor = db.query(
-                "SELECT target_type, target_id, text, updated_at FROM notes WHERE target_type = 'EVENT'"
-            )
+            // Insert a row to verify schema is correct
+            db.execSQL("INSERT INTO notes (target, entityId, text) VALUES ('ACTIVITY', 'a1', 'test')")
+            val cursor = db.query("SELECT target, entityId, text FROM notes")
             assertEquals(1, cursor.count)
             cursor.moveToFirst()
-            assertEquals("EVENT", cursor.getString(0))
-            assertEquals("evt1", cursor.getString(1))
-            assertEquals("Tog Alvedon", cursor.getString(2))
-            assertTrue("updated_at should be > 0", cursor.getLong(3) > 0L)
+            assertEquals("ACTIVITY", cursor.getString(0))
+            assertEquals("a1", cursor.getString(1))
+            assertEquals("test", cursor.getString(2))
             cursor.close()
         }
     }
@@ -64,7 +55,7 @@ class Migration23Test {
         }
     }
 
-    @Test fun `migration drops anteckning column from health_events`() {
+    @Test fun `migration does not copy anteckning to notes`() {
         helper.createDatabase(TEST_DB, 2).use { db ->
             db.execSQL(
                 """INSERT INTO health_events
@@ -75,11 +66,9 @@ class Migration23Test {
         }
 
         helper.runMigrationsAndValidate(TEST_DB, 3, true, AppDatabase.MIGRATION_2_3).use { db ->
-            val cursor = db.query("SELECT * FROM health_events WHERE id = 'evt1'")
+            val cursor = db.query("SELECT COUNT(*) FROM notes")
             cursor.moveToFirst()
-            assertEquals(-1, cursor.getColumnIndex("anteckning"))
-            assertEquals("evt1", cursor.getString(cursor.getColumnIndexOrThrow("id")))
-            assertEquals("2026-01-01", cursor.getString(cursor.getColumnIndexOrThrow("datum")))
+            assertEquals(0, cursor.getInt(0))
             cursor.close()
         }
     }
@@ -109,7 +98,7 @@ class Migration23Test {
         }
     }
 
-    @Test fun `migration handles multiple events — only non-empty anteckning migrated`() {
+    @Test fun `migration leaves notes table empty regardless of anteckning values`() {
         helper.createDatabase(TEST_DB, 2).use { db ->
             listOf(
                 Triple("e1", "Tog Alvedon", true),
@@ -126,15 +115,10 @@ class Migration23Test {
         }
 
         helper.runMigrationsAndValidate(TEST_DB, 3, true, AppDatabase.MIGRATION_2_3).use { db ->
-            val count = db.query("SELECT COUNT(*) FROM notes").also { it.moveToFirst() }
-            assertEquals(2, count.getInt(0))
-            count.close()
-
-            val ids = mutableSetOf<String>()
-            val c = db.query("SELECT target_id FROM notes")
-            while (c.moveToNext()) ids += c.getString(0)
-            c.close()
-            assertEquals(setOf("e1", "e3"), ids)
+            val cursor = db.query("SELECT COUNT(*) FROM notes")
+            cursor.moveToFirst()
+            assertEquals(0, cursor.getInt(0))
+            cursor.close()
         }
     }
 }

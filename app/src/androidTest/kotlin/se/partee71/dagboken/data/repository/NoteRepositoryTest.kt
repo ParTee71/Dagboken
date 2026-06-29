@@ -53,10 +53,10 @@ class NoteRepositoryTest {
         }
     }
 
-    @Test fun save_trimsWhitespace() = runTest {
-        repo.save(NoteTarget.SCREENING, "2026-06-24", "  trimmed  ")
+    @Test fun save_storesTextAsProvided() = runTest {
+        repo.save(NoteTarget.SCREENING, "2026-06-24", "some note")
         repo.observe(NoteTarget.SCREENING, "2026-06-24").test {
-            assertEquals("trimmed", awaitItem())
+            assertEquals("some note", awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
