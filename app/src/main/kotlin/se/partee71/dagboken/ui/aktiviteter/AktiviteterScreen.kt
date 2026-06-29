@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.Healing
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MonitorHeart
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -90,6 +91,7 @@ fun AktiviteterScreen(
     val scope = rememberCoroutineScope()
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         snackbarHost = {
             SnackbarHost(localSnackbarHostState) { data ->
                 val isSuccess = data.visuals.message.contains("✓")
