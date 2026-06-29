@@ -23,7 +23,6 @@ import org.junit.runner.RunWith
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
-import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.notifications.AlarmScheduler
 
 @RunWith(AndroidJUnit4::class)
@@ -155,9 +154,13 @@ class SettingsScreenTest {
     // ─── Ta bort aktivitetstyp ───────────────────────────────────────────────
 
     @Test fun removed_aktivitet_option_chip_disappears_from_list() {
-        runBlocking { prefs.setAktivitetOptions(listOf(SymptomOption("Simning"))) }
         setContent()
         navigateToAktivitetSection()
+        // Add option via ViewModel to avoid DataStore → Flow → recomposition timing race
+        composeRule.runOnUiThread {
+            vm.setNewAktivitetOption("Simning")
+            vm.addAktivitetOption()
+        }
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Simning")).fetchSemanticsNodes().isNotEmpty()
         }
