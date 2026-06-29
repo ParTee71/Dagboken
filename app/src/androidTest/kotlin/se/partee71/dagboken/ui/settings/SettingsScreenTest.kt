@@ -11,7 +11,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
-import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
@@ -23,9 +22,7 @@ import org.junit.runner.RunWith
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
-import se.partee71.dagboken.data.repository.MedicinerRepository
-import se.partee71.dagboken.data.room.AppDatabase
-import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
+import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.notifications.AlarmScheduler
 
 @RunWith(AndroidJUnit4::class)
@@ -33,22 +30,11 @@ class SettingsScreenTest {
 
     @get:Rule val composeRule = createComposeRule()
 
-    private lateinit var db: AppDatabase
     private lateinit var prefs: PreferencesRepository
     private lateinit var vm: SettingsViewModel
 
     @Before fun setUp() = runBlocking {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
-                 .allowMainThreadQueries().build()
-        val medicRepo = MedicinerRepository(
-            db                 = db,
-            medicinDao         = db.medicinDao(),
-            receptDao          = db.receptDao(),
-            favoritDao         = db.favoritDao(),
-            ensureTodayEntries = EnsureTodayEntriesUseCase(),
-            json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
-        )
         val authRepo = FirebaseAuthRepository(ctx)
         prefs = PreferencesRepository(ctx)
 
@@ -58,14 +44,13 @@ class SettingsScreenTest {
         prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
         prefs.setThemeMode("auto")
 
-        val alarmScheduler = AlarmScheduler(ctx, medicRepo, prefs)
+        val alarmScheduler = AlarmScheduler(ctx, prefs)
         vm = SettingsViewModel(prefs, authRepo, alarmScheduler)
     }
 
     @After fun tearDown() = runBlocking {
         prefs.setAktivitetOptions(emptyList())
         prefs.setSymptomOptions(emptyList())
-        db.close()
     }
 
     private fun setContent() {
@@ -136,14 +121,14 @@ class SettingsScreenTest {
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
         composeRule.waitForIdle()
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
-        composeRule.waitUntil(3000) { vm.state.value.aktivitetOptions.contains("Yoga") }
+        composeRule.waitUntil(3000) { vm.state.value.aktivitetOptions.any { it.name == "Yoga" } }
 
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
         composeRule.waitForIdle()
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
         composeRule.waitForIdle()
 
-        assert(vm.state.value.aktivitetOptions.count { it == "Yoga" } == 1) {
+        assert(vm.state.value.aktivitetOptions.count { it.name == "Yoga" } == 1) {
             "Expected exactly one Yoga but got: ${vm.state.value.aktivitetOptions}"
         }
     }
@@ -151,7 +136,7 @@ class SettingsScreenTest {
     // ─── Ta bort aktivitetstyp ───────────────────────────────────────────────
 
     @Test fun `removed aktivitet option chip disappears from list`() {
-        runBlocking { prefs.setAktivitetOptions(listOf("Simning")) }
+        runBlocking { prefs.setAktivitetOptions(listOf(SymptomOption("Simning"))) }
         setContent()
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Simning")).fetchSemanticsNodes().isNotEmpty()

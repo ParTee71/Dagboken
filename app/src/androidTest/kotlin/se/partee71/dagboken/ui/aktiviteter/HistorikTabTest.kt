@@ -2,7 +2,6 @@ package se.partee71.dagboken.ui.aktiviteter
 
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -55,7 +54,7 @@ class HistorikTabTest {
     )
 
     private fun setContent() {
-        composeRule.setContent { MaterialTheme { HistorikTab(vm = vm, onEdit = {}) } }
+        composeRule.setContent { MaterialTheme { HistorikTab(vm = vm, onEdit = { _, _ -> }) } }
     }
 
     // ─── No save bar on Historik tab ─────────────────────────────────────────
