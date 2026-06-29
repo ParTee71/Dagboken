@@ -43,7 +43,10 @@ class HistorikTabTest {
         vm   = AktiviteterViewModel(repo, noteRepo, prefs)
     }
 
-    @After fun tearDown() { db.close() }
+    @After fun tearDown() {
+        composeRule.waitForIdle()
+        db.close()
+    }
 
     private fun aktivitet(id: String, aktivitet: String, type: String) = Aktivitet(
         id = id, timestamp = "2026-01-15T09:00:00.000Z",

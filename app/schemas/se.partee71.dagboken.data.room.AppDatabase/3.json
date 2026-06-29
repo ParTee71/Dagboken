@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "44a5394a4a1e1166920b86a570904caa",
+    "identityHash": "7160c36a78ac88442d1dda61c0be13de",
     "entities": [
       {
         "tableName": "aktiviteter",
@@ -380,7 +380,7 @@
       },
       {
         "tableName": "health_events",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `timestamp` TEXT NOT NULL, `datum` TEXT NOT NULL, `tid` TEXT NOT NULL, `typ` TEXT NOT NULL, `svarighetsgrad` INTEGER NOT NULL, `varaktighetMinuter` INTEGER NOT NULL, `triggers` TEXT NOT NULL, `atgarder` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `timestamp` TEXT NOT NULL, `datum` TEXT NOT NULL, `tid` TEXT NOT NULL, `typ` TEXT NOT NULL, `svarighetsgrad` INTEGER NOT NULL, `varaktighetMinuter` INTEGER NOT NULL, `triggers` TEXT NOT NULL, `atgarder` TEXT NOT NULL, `anteckning` TEXT NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -435,6 +435,12 @@
             "columnName": "atgarder",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "anteckning",
+            "columnName": "anteckning",
+            "affinity": "TEXT",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -458,23 +464,17 @@
       },
       {
         "tableName": "notes",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `target_type` TEXT NOT NULL, `target_id` TEXT NOT NULL, `text` TEXT NOT NULL, `updated_at` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`target` TEXT NOT NULL, `entityId` TEXT NOT NULL, `text` TEXT NOT NULL, PRIMARY KEY(`target`, `entityId`))",
         "fields": [
           {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "targetType",
-            "columnName": "target_type",
+            "fieldPath": "target",
+            "columnName": "target",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "targetId",
-            "columnName": "target_id",
+            "fieldPath": "entityId",
+            "columnName": "entityId",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -483,30 +483,24 @@
             "columnName": "text",
             "affinity": "TEXT",
             "notNull": true
-          },
-          {
-            "fieldPath": "updatedAt",
-            "columnName": "updated_at",
-            "affinity": "INTEGER",
-            "notNull": true
           }
         ],
         "primaryKey": {
-          "autoGenerate": true,
+          "autoGenerate": false,
           "columnNames": [
-            "id"
+            "target",
+            "entityId"
           ]
         },
         "indices": [
           {
-            "name": "index_notes_target_type_target_id",
-            "unique": true,
+            "name": "index_notes_entityId",
+            "unique": false,
             "columnNames": [
-              "target_type",
-              "target_id"
+              "entityId"
             ],
             "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_notes_target_type_target_id` ON `${TABLE_NAME}` (`target_type`, `target_id`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notes_entityId` ON `${TABLE_NAME}` (`entityId`)"
           }
         ],
         "foreignKeys": []
@@ -515,7 +509,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '44a5394a4a1e1166920b86a570904caa')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7160c36a78ac88442d1dda61c0be13de')"
     ]
   }
 }
