@@ -16,12 +16,17 @@ import se.partee71.dagboken.data.migration.DriveResult
 import se.partee71.dagboken.data.migration.FavoritJson
 import se.partee71.dagboken.data.migration.MedicinJson
 import se.partee71.dagboken.data.migration.ReceptJson
+import se.partee71.dagboken.data.migration.SjukdomsEpisodJson
+import se.partee71.dagboken.data.migration.SjukdomsIncheckningJson
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.domain.model.SjukdomsEpisod
+import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -31,6 +36,7 @@ class BackupWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val aktiviteterRepo: AktiviteterRepository,
     private val medicinerRepo: MedicinerRepository,
+    private val sjukdomarRepo: SjukdomarRepository,
     private val driveRepo: DriveBackupRepository,
     private val authRepo: FirebaseAuthRepository,
     private val prefs: PreferencesRepository,
@@ -40,15 +46,22 @@ class BackupWorker @AssistedInject constructor(
         if (authRepo.currentUser == null) return Result.success()
 
         return try {
+            val episoder      = sjukdomarRepo.all.first()
+            val incheckningar = episoder.flatMap { ep ->
+                sjukdomarRepo.incheckningarForEpisod(ep.id).first()
+            }
+
             val backup = BackupJson(
-                version            = 1,
-                createdAt          = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                aktiviteter        = aktiviteterRepo.all.first().map { it.toJson() },
-                mediciner          = medicinerRepo.allMediciner.first().map { it.toJson() },
-                medicinRecipes     = medicinerRepo.allRecept.first().map { it.toJson() },
-                medicinFavoriter   = medicinerRepo.allFavoriter.first().map { it.toJson() },
-                aktiviteterOptions = prefs.aktivitetOptions.first().map { it.name },
-                symptomOptions     = prefs.symptomOptions.first().map { it.name },
+                version               = 1,
+                createdAt             = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                aktiviteter           = aktiviteterRepo.all.first().map { it.toJson() },
+                mediciner             = medicinerRepo.allMediciner.first().map { it.toJson() },
+                medicinRecipes        = medicinerRepo.allRecept.first().map { it.toJson() },
+                medicinFavoriter      = medicinerRepo.allFavoriter.first().map { it.toJson() },
+                aktiviteterOptions    = prefs.aktivitetOptions.first().map { it.name },
+                symptomOptions        = prefs.symptomOptions.first().map { it.name },
+                sjukdomsepisoder      = episoder.map { it.toJson() },
+                sjukdomsIncheckningar = incheckningar.map { it.toJson() },
             )
 
             when (driveRepo.uploadBackup(backup)) {
@@ -123,5 +136,24 @@ class BackupWorker @AssistedInject constructor(
         minTidMellan     = minTidMellan,
         dispenseringsTid = dispenseringsTid,
         maxDoserPerDag   = maxDoserPerDag,
+    )
+
+    private fun SjukdomsEpisod.toJson() = SjukdomsEpisodJson(
+        id         = id,
+        typ        = typ,
+        startDatum = startDatum,
+        slutDatum  = slutDatum,
+        anteckning = anteckning,
+    )
+
+    private fun SjukdomsIncheckning.toJson() = SjukdomsIncheckningJson(
+        id             = id,
+        episodId       = episodId,
+        datum          = datum,
+        tid            = tid,
+        svarighetsgrad = svarighetsgrad,
+        symptom        = symptom,
+        somatiska      = somatiska,
+        anteckning     = anteckning,
     )
 }

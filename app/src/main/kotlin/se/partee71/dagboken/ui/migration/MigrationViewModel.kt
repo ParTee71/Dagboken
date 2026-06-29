@@ -24,6 +24,7 @@ import se.partee71.dagboken.data.migration.DriveBackupRepository
 import se.partee71.dagboken.data.migration.DriveResult
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import javax.inject.Inject
 
@@ -47,6 +48,7 @@ class MigrationViewModel @Inject constructor(
     private val authRepo: FirebaseAuthRepository,
     private val aktiviteterRepo: AktiviteterRepository,
     private val medicinerRepo: MedicinerRepository,
+    private val sjukdomarRepo: SjukdomarRepository,
     private val prefs: PreferencesRepository,
     private val json: Json,
 ) : ViewModel() {
@@ -120,10 +122,12 @@ class MigrationViewModel @Inject constructor(
 
     private suspend fun doImport(backup: BackupJson) {
         _state.value = MigrationState.Importing(0f)
-        val aktiviteter = BackupMapper.toAktiviteter(backup)
-        val mediciner   = BackupMapper.toMediciner(backup)
-        val recept      = BackupMapper.toRecept(backup)
-        val favoriter   = BackupMapper.toFavoriter(backup)
+        val aktiviteter       = BackupMapper.toAktiviteter(backup)
+        val mediciner         = BackupMapper.toMediciner(backup)
+        val recept            = BackupMapper.toRecept(backup)
+        val favoriter         = BackupMapper.toFavoriter(backup)
+        val sjukdomsEpisoder  = BackupMapper.toSjukdomsEpisoder(backup)
+        val sjukdomsIncheckningar = BackupMapper.toSjukdomsIncheckningar(backup)
 
         db.withTransaction {
             aktiviteterRepo.importAll(aktiviteter)
@@ -131,6 +135,8 @@ class MigrationViewModel @Inject constructor(
             medicinerRepo.importRecept(recept)
             medicinerRepo.importFavoriter(favoriter)
         }
+        sjukdomarRepo.importEpisoder(sjukdomsEpisoder)
+        sjukdomarRepo.importIncheckningar(sjukdomsIncheckningar)
 
         backup.aktiviteterOptions?.let { prefs.setAktivitetOptions(it.map { name -> SymptomOption(name) }) }
         backup.symptomOptions?.let { prefs.setSymptomOptions(it.map { name -> SymptomOption(name) }) }
