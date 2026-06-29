@@ -23,6 +23,7 @@ import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.Medicin
 import java.time.LocalDate
 
@@ -35,6 +36,7 @@ class HomeViewModelTest {
     private lateinit var aktiviteterRepo: AktiviteterRepository
     private lateinit var authRepo: FirebaseAuthRepository
     private lateinit var prefs: PreferencesRepository
+    private lateinit var sjukdomarRepo: SjukdomarRepository
 
     private val todayFlow = MutableStateFlow<List<Medicin>>(emptyList())
 
@@ -56,7 +58,10 @@ class HomeViewModelTest {
         prefs = mockk(relaxed = true) {
             every { screeningEventConfigs } returns flowOf(emptyList())
         }
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs)
+        sjukdomarRepo = mockk(relaxed = true) {
+            every { pagaende } returns flowOf(null)
+        }
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -180,7 +185,7 @@ class HomeViewModelTest {
 
     @Test fun `overdueScreeningTimes is empty when no screening events are enabled`() = runTest {
         every { prefs.screeningEventConfigs } returns flowOf(emptyList())
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo)
 
         viewModel.uiState.test {
             assertTrue(awaitItem().overdueScreeningTimes.isEmpty())
