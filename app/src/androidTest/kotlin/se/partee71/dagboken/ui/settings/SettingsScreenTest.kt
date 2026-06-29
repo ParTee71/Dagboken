@@ -156,18 +156,18 @@ class SettingsScreenTest {
     @Test fun removed_aktivitet_option_chip_disappears_from_list() {
         setContent()
         navigateToAktivitetSection()
-        // Add option via ViewModel to avoid DataStore → Flow → recomposition timing race
-        composeRule.runOnUiThread {
-            vm.setNewAktivitetOption("Simning")
-            vm.addAktivitetOption()
-        }
+        // Add the option through the same UI path as the passing add-test
+        composeRule.onNodeWithText("Ny typ").performTextInput("Simning")
+        composeRule.waitForIdle()
+        composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Simning")).fetchSemanticsNodes().isNotEmpty()
         }
-        // Scroll the chip into view before clicking "Ta bort"
-        composeRule.onNode(hasContentDescription("Ta bort")).performScrollTo().let {
-            composeRule.onNode(hasContentDescription("Ta bort")).performClick()
-        }
+        // Tapping the delete icon opens a confirmation dialog; it does not delete directly
+        composeRule.onNode(hasContentDescription("Ta bort")).performScrollTo().performClick()
+        composeRule.waitForIdle()
+        // Confirm deletion in the AlertDialog (confirm button is labelled "Ta bort")
+        composeRule.onNodeWithText("Ta bort").performClick()
         composeRule.waitUntil(3000) { vm.state.value.aktivitetOptions.isEmpty() }
         assert(vm.state.value.aktivitetOptions.isEmpty()) {
             "Expected empty aktivitetOptions but got: ${vm.state.value.aktivitetOptions}"
