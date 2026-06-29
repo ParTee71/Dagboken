@@ -248,3 +248,17 @@
 | FUT-1 | **Samsung Health / Hälsa-fliken** är endast en inaktiverad platshållare (ej implementerad). |
 | FUT-2 | `sheetsConfig` (Google Sheets-koppling) finns i inställningslagret men är inte exponerat i UI. |
 | FUT-3 | Backup-worker kan inte hantera Drive-auktorisering som kräver UI (returnerar success utan att ladda upp). |
+
+---
+
+## 15. Sjukdomar (SJ)
+
+| ID | Krav |
+|----|------|
+| SJ-1 | Användaren kan logga en sjukdomsepisod med typ och startdatum. |
+| SJ-2 | Användaren kan lägga till löpande incheckningar under episoden med svårighetsgrad (0–10) och symptom (samma lista som screening). |
+| SJ-3 | Symptom i incheckning väljs och graderas 0–10 med SymptomLogCard (samma komponent som aktiviteter och screening). |
+| SJ-4 | Användaren kan markera en episod som avslutad (ange slutdatum). |
+| SJ-5 | Avslutade episoder visar varaktighet i dagar och senaste incheckningens svårighetsgrad. |
+| SJ-6 | En pågående episod syns som statuskort på Hem-skärmen. |
+| SJ-7 | Episoder och incheckningar ingår i backup och återställs vid restore. |

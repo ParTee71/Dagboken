@@ -63,12 +63,9 @@ class SjukdomsEpisodViewModel @Inject constructor(
 
     fun toggleSymptomFavorite(name: String) {
         viewModelScope.launch {
-            val current = prefs.symptomOptions
-            current.collect { options ->
-                val updated = options.map { if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it }
-                prefs.setSymptomOptions(updated)
-                return@collect
-            }
+            val options = symptomOptions.value
+            val updated = options.map { if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it }
+            prefs.setSymptomOptions(updated)
         }
     }
 
@@ -96,6 +93,14 @@ class SjukdomsEpisodViewModel @Inject constructor(
         viewModelScope.launch {
             repo.deleteIncheckning(incheckning)
             _snackbar.value = "Incheckning borttagen"
+        }
+    }
+
+    fun markFrisk(episod: SjukdomsEpisod) {
+        viewModelScope.launch {
+            val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+            repo.saveEpisod(episod.copy(slutDatum = today))
+            _snackbar.value = "Markerad som frisk ✓"
         }
     }
 

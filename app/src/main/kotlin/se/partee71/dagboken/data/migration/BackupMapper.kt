@@ -4,6 +4,8 @@ import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.domain.model.SjukdomsEpisod
+import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 
 object BackupMapper {
 
@@ -14,6 +16,12 @@ object BackupMapper {
     fun toRecept(json: BackupJson): List<Recept> = json.medicinRecipes.map { it.toDomain() }
 
     fun toFavoriter(json: BackupJson): List<Favorit> = json.medicinFavoriter.map { it.toDomain() }
+
+    fun toSjukdomsEpisoder(json: BackupJson): List<SjukdomsEpisod> =
+        json.sjukdomsepisoder.map { it.toDomain() }
+
+    fun toSjukdomsIncheckningar(json: BackupJson): List<SjukdomsIncheckning> =
+        json.sjukdomsIncheckningar.map { it.toDomain() }
 
     private fun AktivitetJson.toDomain() = Aktivitet(
         id           = id,
@@ -76,6 +84,25 @@ object BackupMapper {
         minTidMellan     = minTidMellan,
         dispenseringsTid = dispenseringsTid,
         maxDoserPerDag   = maxDoserPerDag,
+    )
+
+    private fun SjukdomsEpisodJson.toDomain() = SjukdomsEpisod(
+        id         = id,
+        typ        = typ,
+        startDatum = startDatum,
+        slutDatum  = slutDatum,
+        anteckning = anteckning,
+    )
+
+    private fun SjukdomsIncheckningJson.toDomain() = SjukdomsIncheckning(
+        id             = id,
+        episodId       = episodId,
+        datum          = datum,
+        tid            = tid,
+        svarighetsgrad = svarighetsgrad,
+        symptom        = symptom,
+        somatiska      = somatiska,
+        anteckning     = anteckning,
     )
 
     // Mirrors migrateAktiviteterTypes from src/storage/aktiviteter.ts

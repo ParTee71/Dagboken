@@ -44,6 +44,10 @@ import se.partee71.dagboken.ui.mediciner.add.AddEditMedicinScreen
 import se.partee71.dagboken.ui.mediciner.add.AddEditReceptScreen
 import se.partee71.dagboken.ui.migration.MigrationScreen
 import se.partee71.dagboken.ui.settings.SettingsScreen
+import se.partee71.dagboken.ui.sjukdomar.AddEditSjukdomScreen
+import se.partee71.dagboken.ui.sjukdomar.AddSjukdomsIncheckningScreen
+import se.partee71.dagboken.ui.sjukdomar.SjukdomarScreen
+import se.partee71.dagboken.ui.sjukdomar.SjukdomsEpisodDetailScreen
 
 @Composable
 fun AppNavigation(
@@ -137,6 +141,7 @@ fun AppNavigation(
                     onNavigateToMediciner   = { navController.navigate(Screen.Mediciner.route) },
                     onNavigateToSettings    = { navController.navigate(Routes.SETTINGS) },
                     onNavigateToDiagram     = { navController.navigate(Routes.diagram("hem")) },
+                    onNavigateToSjukdomar   = { navController.navigate(Screen.Sjukdomar.route) },
                     snackbarHostState       = snackbarHostState,
                 )
             }
@@ -265,6 +270,46 @@ fun AppNavigation(
                 SettingsScreen(
                     onBack   = { navController.popBackStack() },
                     onImport = { navController.navigate(Routes.MIGRATION) },
+                )
+            }
+            composable(Screen.Sjukdomar.route) {
+                SjukdomarScreen(
+                    onAddNew          = { navController.navigate(Routes.ADD_SJUKDOM) },
+                    onDetail          = { id -> navController.navigate(Routes.sjukdomEpisodDetail(id)) },
+                    snackbarHostState = snackbarHostState,
+                )
+            }
+            composable(Routes.ADD_SJUKDOM) {
+                AddEditSjukdomScreen(
+                    editId = null,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route     = Routes.EDIT_SJUKDOM,
+                arguments = listOf(navArgument("id") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                AddEditSjukdomScreen(
+                    editId = backStackEntry.arguments?.getString("id"),
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route     = Routes.SJUKDOM_EPISOD_DETAIL,
+                arguments = listOf(navArgument("episodId") { type = NavType.StringType }),
+            ) {
+                SjukdomsEpisodDetailScreen(
+                    onBack           = { navController.popBackStack() },
+                    onAddIncheckning = { id -> navController.navigate(Routes.addSjukdomsIncheckning(id)) },
+                    snackbarHostState = snackbarHostState,
+                )
+            }
+            composable(
+                route     = Routes.ADD_SJUKDOMS_INCHECKNING,
+                arguments = listOf(navArgument("episodId") { type = NavType.StringType }),
+            ) {
+                AddSjukdomsIncheckningScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
         }

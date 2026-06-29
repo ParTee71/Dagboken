@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
@@ -35,16 +36,13 @@ class AddEditSjukdomViewModel @Inject constructor(
 
     fun loadForEdit(id: String) {
         viewModelScope.launch {
-            val e = repo.all.collect { episoder ->
-                val episod = episoder.firstOrNull { it.id == id } ?: return@collect
-                editId = id
-                _form.value = SjukdomForm(
-                    typ        = episod.typ,
-                    startDatum = episod.startDatum,
-                    anteckning = episod.anteckning,
-                )
-                return@collect
-            }
+            val episod = repo.all.first().firstOrNull { it.id == id } ?: return@launch
+            editId = id
+            _form.value = SjukdomForm(
+                typ        = episod.typ,
+                startDatum = episod.startDatum,
+                anteckning = episod.anteckning,
+            )
         }
     }
 
