@@ -143,6 +143,10 @@
     <string name="idag_delete_one_title">Ta bort?</string>
     <string name="format_idag_skip_body">\"%s\" markeras som hoppad för idag.</string>
     <string name="idag_skip_button">Hoppa över</string>
+    <string name="idag_visa_tagna_count">Visa tagna (%1$d)</string>
+    <string name="idag_dolj_tagna">Dölj tagna</string>
+    <string name="idag_alla_tagna">Alla medicinerna för idag är tagna ✓</string>
+    <string name="format_mark_as_untaken">Markera %s som ej tagen</string>
 
     <!-- Settings -->
     <string name="settings_account_section">Google-konto &amp; säkerhetskopiering</string>

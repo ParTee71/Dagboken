@@ -97,60 +97,12 @@ fun VidBehovTab(
             color = cs.onSurfaceVariant.copy(alpha = 0.7f),
         )
         Spacer(Modifier.height(16.dp))
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            favoriter.forEach { fav ->
-                var menuExpanded by remember { mutableStateOf(false) }
-                Box {
-                    ElevatedCard(
-                        modifier = Modifier.combinedClickable(
-                            onClick = { vm.quickDos(fav) },
-                            onLongClick = { menuExpanded = true },
-                        ),
-                        colors = CardDefaults.elevatedCardColors(
-                            containerColor = cs.secondaryContainer,
-                        ),
-                        shape = MaterialTheme.shapes.large,
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Text(
-                                fav.namn,
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = cs.onSecondaryContainer,
-                            )
-                            Text(
-                                "${fav.dos} ${fav.enhet}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = cs.onSecondaryContainer.copy(alpha = 0.7f),
-                            )
-                        }
-                    }
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.edit)) },
-                            leadingIcon = { Icon(Icons.Default.Edit, null) },
-                            onClick = { menuExpanded = false; onEdit(fav.id) },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.delete), color = cs.error) },
-                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = cs.error) },
-                            onClick = { menuExpanded = false; deleteTarget = fav },
-                        )
-                    }
-                }
-            }
-        }
+        FavoriterRow(
+            favoriter = favoriter,
+            onTap     = { vm.quickDos(it) },
+            onEdit    = onEdit,
+            onDelete  = { deleteTarget = it },
+        )
     }
 
     deleteTarget?.let { target ->
@@ -196,5 +148,74 @@ fun VidBehovTab(
                 }
             },
         )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@Composable
+internal fun FavoriterRow(
+    favoriter: List<Favorit>,
+    onTap: (Favorit) -> Unit,
+    onEdit: (String) -> Unit,
+    onDelete: ((Favorit) -> Unit)? = null,
+) {
+    val cs = MaterialTheme.colorScheme
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        favoriter.forEach { fav ->
+            var menuExpanded by remember { mutableStateOf(false) }
+            Box {
+                ElevatedCard(
+                    modifier = Modifier.combinedClickable(
+                        onClick     = { onTap(fav) },
+                        onLongClick = {
+                            if (onDelete != null) menuExpanded = true else onEdit(fav.id)
+                        },
+                    ),
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = cs.secondaryContainer,
+                    ),
+                    shape = MaterialTheme.shapes.large,
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            fav.namn,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = cs.onSecondaryContainer,
+                        )
+                        Text(
+                            "${fav.dos} ${fav.enhet}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = cs.onSecondaryContainer.copy(alpha = 0.7f),
+                        )
+                    }
+                }
+                if (onDelete != null) {
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.edit)) },
+                            leadingIcon = { Icon(Icons.Default.Edit, null) },
+                            onClick = { menuExpanded = false; onEdit(fav.id) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete), color = cs.error) },
+                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = cs.error) },
+                            onClick = { menuExpanded = false; onDelete(fav) },
+                        )
+                    }
+                }
+            }
+        }
     }
 }
