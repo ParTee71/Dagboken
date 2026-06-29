@@ -33,18 +33,22 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    val releaseStorePassword = localProps.getProperty("signing.storePassword")
+        ?: System.getenv("SIGNING_STORE_PASSWORD")
+    val releaseKeyPassword = localProps.getProperty("signing.keyPassword")
+        ?: System.getenv("SIGNING_KEY_PASSWORD")
+    val hasSigningCredentials = releaseStorePassword != null && releaseKeyPassword != null
+
     signingConfigs {
-        create("release") {
-            storeFile     = file("dagboken.jks")
-            storePassword = localProps.getProperty("signing.storePassword")
-                ?: System.getenv("SIGNING_STORE_PASSWORD")
-                ?: error("signing.storePassword missing from local.properties and SIGNING_STORE_PASSWORD env var not set")
-            keyAlias      = localProps.getProperty("signing.keyAlias")
-                ?: System.getenv("SIGNING_KEY_ALIAS")
-                ?: "dagboken"
-            keyPassword   = localProps.getProperty("signing.keyPassword")
-                ?: System.getenv("SIGNING_KEY_PASSWORD")
-                ?: error("signing.keyPassword missing from local.properties and SIGNING_KEY_PASSWORD env var not set")
+        if (hasSigningCredentials) {
+            create("release") {
+                storeFile     = file("dagboken.jks")
+                storePassword = releaseStorePassword
+                keyAlias      = localProps.getProperty("signing.keyAlias")
+                    ?: System.getenv("SIGNING_KEY_ALIAS")
+                    ?: "dagboken"
+                keyPassword   = releaseKeyPassword
+            }
         }
     }
 
@@ -52,7 +56,9 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            if (hasSigningCredentials) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
