@@ -110,6 +110,9 @@
 | MED-2 | Varje medicin ska kunna markeras som **tagen/ej tagen**. |
 | MED-3 | Receptgenererade poster ska kunna **hoppas över** (skippas) i stället för att raderas; engångsposter raderas. |
 | MED-4 | Dagens receptposter ska genereras automatiskt och **idempotent** (stabilt ID `recept_{id}_{datum}_{tidpunkt}` förhindrar dubbletter). |
+| MED-5 | Tagna mediciner ska kunna **döljas** i Idag-fliken; en toggle-knapp visar antalet dolda poster och låter användaren visa dem igen. |
+| MED-6 | Kryssrutan för att markera tagen ersätts med en **animerad ikonknapp** (tomt cirkelkryss → fylld bockikon med färganimering). |
+| MED-7 | Favoriter (vid-behov-mediciner) ska visas som ett **snabbval** direkt i Idag-fliken, under progressbaren; tryck loggar en dos med befintlig cooldown-/gränslogik. |
 
 ### 6.2 Schema-flik (recept)
 

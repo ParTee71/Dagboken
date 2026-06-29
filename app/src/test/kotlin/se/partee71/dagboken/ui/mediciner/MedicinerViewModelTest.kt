@@ -73,6 +73,27 @@ class MedicinerViewModelTest {
         anteckning = "", minTidMellan = minTidMellan, maxDoserPerDag = maxDoserPerDag,
     )
 
+    // ─── toggleTagen ──────────────────────────────────────────────────────────
+
+    @Test fun `toggleTagen delegates to repo with inverted value`() = runTest {
+        val med = medicin() // tagen = false
+        viewModel.toggleTagen(med)
+        coVerify { repo.toggleTagen("m1", true) }
+    }
+
+    // ─── allFavoriter ─────────────────────────────────────────────────────────
+
+    @Test fun `allFavoriter emits list from repo`() = runTest {
+        val fav = favorit()
+        val repoWithFav = mockk<MedicinerRepository>(relaxed = true) {
+            every { todayFlow() } returns flowOf(emptyList())
+            every { allRecept } returns flowOf(emptyList())
+            every { allFavoriter } returns flowOf(listOf(fav))
+        }
+        val vm2 = MedicinerViewModel(repoWithFav, noteRepo, cooldown, limit)
+        assertEquals(listOf(fav), vm2.allFavoriter.value)
+    }
+
     // ─── deleteMedicin ────────────────────────────────────────────────────────
 
     @Test fun `deleteMedicin with receptId marks as skipped and sets snackbar`() = runTest {
