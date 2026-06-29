@@ -106,13 +106,13 @@ class VidBehovTabTest {
 
     // ─── Tomt tillstånd ───────────────────────────────────────────────────────
 
-    @Test fun `empty state shows Inga favoriter sparade`() {
+    @Test fun empty_state_shows_Inga_favoriter_sparade() {
         setContent()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Inga favoriter sparade").assertIsDisplayed()
     }
 
-    @Test fun `hint texts are shown when favorites exist`() {
+    @Test fun hint_texts_are_shown_when_favorites_exist() {
         runBlocking { repo.saveFavorit(favorit()) }
         setContent()
         composeRule.waitUntil(3000) {
@@ -124,7 +124,7 @@ class VidBehovTabTest {
 
     // ─── Tryck loggar dos ─────────────────────────────────────────────────────
 
-    @Test fun `tapping favorit card logs a dose when no limit or cooldown`() {
+    @Test fun tapping_favorit_card_logs_a_dose_when_no_limit_or_cooldown() {
         runBlocking { repo.saveFavorit(favorit(maxDoserPerDag = 0, minTidMellan = 0)) }
         setContent()
         composeRule.waitUntil(3000) {
@@ -135,7 +135,7 @@ class VidBehovTabTest {
         assertEquals("Paracetamol 500 mg loggad", vm.snackbar.value)
     }
 
-    @Test fun `tapping favorit card saves dose to database`() {
+    @Test fun tapping_favorit_card_saves_dose_to_database() {
         runBlocking { repo.saveFavorit(favorit(namn = "Ibuprofen", maxDoserPerDag = 0, minTidMellan = 0)) }
         setContent()
         composeRule.waitUntil(3000) {
@@ -149,7 +149,7 @@ class VidBehovTabTest {
 
     // ─── Cooldown → dialog ───────────────────────────────────────────────────
 
-    @Test fun `tapping favorit within cooldown shows warning dialog`() {
+    @Test fun tapping_favorit_within_cooldown_shows_warning_dialog() {
         runBlocking {
             // minTidMellan = 6 h; log a dose right now so cooldown is active
             repo.saveFavorit(favorit(namn = "Tramadol", minTidMellan = 6))
@@ -168,7 +168,7 @@ class VidBehovTabTest {
         composeRule.onNodeWithText("Avbryt").assertIsDisplayed()
     }
 
-    @Test fun `cooldown dialog dismiss clears the warning`() {
+    @Test fun cooldown_dialog_dismiss_clears_the_warning() {
         runBlocking {
             repo.saveFavorit(favorit(namn = "Morfin", minTidMellan = 8))
             repo.saveMedicin(dosToday("Morfin"))
@@ -186,7 +186,7 @@ class VidBehovTabTest {
         composeRule.onNodeWithText("För tidigt").assertDoesNotExist()
     }
 
-    @Test fun `cooldown dialog Ta anda logs dose`() {
+    @Test fun cooldown_dialog_Ta_anda_logs_dose() {
         runBlocking {
             repo.saveFavorit(favorit(namn = "Ketamin", minTidMellan = 4))
             repo.saveMedicin(dosToday("Ketamin"))
@@ -207,7 +207,7 @@ class VidBehovTabTest {
 
     // ─── Blockerad → snackbar ─────────────────────────────────────────────────
 
-    @Test fun `blocked by daily limit shows snackbar`() {
+    @Test fun blocked_by_daily_limit_shows_snackbar() {
         runBlocking {
             repo.saveFavorit(favorit(namn = "Kodein", maxDoserPerDag = 1, minTidMellan = 0))
             repo.saveMedicin(dosToday("Kodein"))
@@ -226,7 +226,7 @@ class VidBehovTabTest {
 
     // ─── Långtryck → meny ─────────────────────────────────────────────────────
 
-    @Test fun `long press on favorit card shows dropdown menu`() {
+    @Test fun long_press_on_favorit_card_shows_dropdown_menu() {
         runBlocking { repo.saveFavorit(favorit()) }
         setContent()
         composeRule.waitUntil(3000) {

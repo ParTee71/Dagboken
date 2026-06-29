@@ -6,6 +6,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -72,6 +73,28 @@ class MedicinerViewModelTest {
         id = "f1", namn = namn, dos = "500", enhet = "mg", tidpunkt = "Vid behov",
         anteckning = "", minTidMellan = minTidMellan, maxDoserPerDag = maxDoserPerDag,
     )
+
+    // ─── toggleTagen ──────────────────────────────────────────────────────────
+
+    @Test fun `toggleTagen delegates to repo with inverted value`() = runTest {
+        val med = medicin() // tagen = false
+        viewModel.toggleTagen(med)
+        coVerify { repo.toggleTagen("m1", true) }
+    }
+
+    // ─── allFavoriter ─────────────────────────────────────────────────────────
+
+    @Test fun `allFavoriter emits list from repo`() = runTest {
+        val fav = favorit()
+        val repoWithFav = mockk<MedicinerRepository>(relaxed = true) {
+            every { todayFlow() } returns flowOf(emptyList())
+            every { allRecept } returns flowOf(emptyList())
+            every { allFavoriter } returns flowOf(listOf(fav))
+        }
+        val vm2 = MedicinerViewModel(repoWithFav, noteRepo, cooldown, limit)
+        // WhileSubscribed won't start the upstream until collected; use first{} to subscribe and wait
+        assertEquals(listOf(fav), vm2.allFavoriter.first { it.isNotEmpty() })
+    }
 
     // ─── deleteMedicin ────────────────────────────────────────────────────────
 

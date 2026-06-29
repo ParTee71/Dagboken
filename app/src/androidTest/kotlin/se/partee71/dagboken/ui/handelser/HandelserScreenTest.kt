@@ -82,7 +82,7 @@ class HandelserScreenTest {
 
     // ─── empty state ─────────────────────────────────────────────────────────
 
-    @Test fun `empty state shows placeholder text`() {
+    @Test fun empty_state_shows_placeholder_text() {
         setContent()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Inga händelser loggade ännu.", substring = true)
@@ -91,7 +91,7 @@ class HandelserScreenTest {
 
     // ─── date filter chips ────────────────────────────────────────────────────
 
-    @Test fun `all date filter chips are displayed`() {
+    @Test fun all_date_filter_chips_are_displayed() {
         setContent()
         composeRule.waitForIdle()
         listOf("Allt", "7 dagar", "30 dagar", "90 dagar").forEach {
@@ -99,13 +99,13 @@ class HandelserScreenTest {
         }
     }
 
-    @Test fun `Allt chip is selected by default`() {
+    @Test fun Allt_chip_is_selected_by_default() {
         setContent()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Allt").assertIsSelected()
     }
 
-    @Test fun `clicking a day filter chip selects it`() {
+    @Test fun clicking_a_day_filter_chip_selects_it() {
         setContent()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("30 dagar").performClick()
@@ -115,7 +115,7 @@ class HandelserScreenTest {
 
     // ─── event card content ───────────────────────────────────────────────────
 
-    @Test fun `saved event shows its typ in the card`() {
+    @Test fun saved_event_shows_its_typ_in_the_card() {
         runBlocking { repo.save(handelse(id = "h1", typ = "Hjärtklappning")) }
         setContent()
         composeRule.waitUntil(3000) {
@@ -124,7 +124,7 @@ class HandelserScreenTest {
         composeRule.onNode(cardText("Hjärtklappning")).assertIsDisplayed()
     }
 
-    @Test fun `saved event shows severity chip with correct value`() {
+    @Test fun saved_event_shows_severity_chip_with_correct_value() {
         runBlocking { repo.save(handelse(id = "h1", svarighetsgrad = 7)) }
         setContent()
         composeRule.waitUntil(3000) {
@@ -133,7 +133,7 @@ class HandelserScreenTest {
         composeRule.onNodeWithText("7/10").assertIsDisplayed()
     }
 
-    @Test fun `multiple saved events are all displayed`() {
+    @Test fun multiple_saved_events_are_all_displayed() {
         runBlocking {
             repo.save(handelse(id = "h1", typ = "Yrsel"))
             repo.save(handelse(id = "h2", typ = "Blodtrycksfall"))
@@ -148,7 +148,7 @@ class HandelserScreenTest {
 
     // ─── type filter row ──────────────────────────────────────────────────────
 
-    @Test fun `type filter row shows Alla typer chip when events exist`() {
+    @Test fun type_filter_row_shows_Alla_typer_chip_when_events_exist() {
         runBlocking { repo.save(handelse(id = "h1", typ = "Yrsel")) }
         setContent()
         composeRule.waitUntil(3000) {
@@ -157,7 +157,7 @@ class HandelserScreenTest {
         composeRule.onNodeWithText("Alla typer").assertIsDisplayed()
     }
 
-    @Test fun `type filter row does not appear when no events exist`() {
+    @Test fun type_filter_row_does_not_appear_when_no_events_exist() {
         setContent()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Alla typer").assertDoesNotExist()
@@ -165,7 +165,7 @@ class HandelserScreenTest {
 
     // ─── FAB and navigation callbacks ─────────────────────────────────────────
 
-    @Test fun `tapping the FAB invokes onAddNew`() {
+    @Test fun tapping_the_FAB_invokes_onAddNew() {
         var called = false
         setContent(onAddNew = { called = true })
         composeRule.waitForIdle()
@@ -173,7 +173,7 @@ class HandelserScreenTest {
         assertTrue(called)
     }
 
-    @Test fun `tapping the settings icon invokes onNavigateToSettings`() {
+    @Test fun tapping_the_settings_icon_invokes_onNavigateToSettings() {
         var called = false
         setContent(onNavigateToSettings = { called = true })
         composeRule.waitForIdle()
@@ -183,7 +183,7 @@ class HandelserScreenTest {
 
     // ─── delete via ViewModel ─────────────────────────────────────────────────
 
-    @Test fun `deleting an event removes it from the list`() {
+    @Test fun deleting_an_event_removes_it_from_the_list() {
         val h = handelse(id = "h1", typ = "Andnöd")
         runBlocking { repo.save(h) }
         setContent()
@@ -201,7 +201,7 @@ class HandelserScreenTest {
             .assertIsDisplayed()
     }
 
-    @Test fun `deleting one event leaves others visible`() {
+    @Test fun deleting_one_event_leaves_others_visible() {
         val keep   = handelse(id = "h1", typ = "Yrsel")
         val remove = handelse(id = "h2", typ = "Blodtrycksfall")
         runBlocking { repo.save(keep); repo.save(remove) }

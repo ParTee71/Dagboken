@@ -7,11 +7,11 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
-import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
@@ -23,9 +23,6 @@ import org.junit.runner.RunWith
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
-import se.partee71.dagboken.data.repository.MedicinerRepository
-import se.partee71.dagboken.data.room.AppDatabase
-import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import se.partee71.dagboken.notifications.AlarmScheduler
 
 @RunWith(AndroidJUnit4::class)
@@ -33,22 +30,11 @@ class SettingsScreenTest {
 
     @get:Rule val composeRule = createComposeRule()
 
-    private lateinit var db: AppDatabase
     private lateinit var prefs: PreferencesRepository
     private lateinit var vm: SettingsViewModel
 
     @Before fun setUp() = runBlocking {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
-                 .allowMainThreadQueries().build()
-        val medicRepo = MedicinerRepository(
-            db                 = db,
-            medicinDao         = db.medicinDao(),
-            receptDao          = db.receptDao(),
-            favoritDao         = db.favoritDao(),
-            ensureTodayEntries = EnsureTodayEntriesUseCase(),
-            json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
-        )
         val authRepo = FirebaseAuthRepository(ctx)
         prefs = PreferencesRepository(ctx)
 
@@ -58,14 +44,13 @@ class SettingsScreenTest {
         prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
         prefs.setThemeMode("auto")
 
-        val alarmScheduler = AlarmScheduler(ctx, medicRepo, prefs)
+        val alarmScheduler = AlarmScheduler(ctx, prefs)
         vm = SettingsViewModel(prefs, authRepo, alarmScheduler)
     }
 
     @After fun tearDown() = runBlocking {
         prefs.setAktivitetOptions(emptyList())
         prefs.setSymptomOptions(emptyList())
-        db.close()
     }
 
     private fun setContent() {
@@ -81,14 +66,14 @@ class SettingsScreenTest {
 
     // ─── Tema-läge ────────────────────────────────────────────────────────────
 
-    @Test fun `themeMode starts with auto`() {
+    @Test fun themeMode_starts_with_auto() {
         setContent()
         assert(vm.state.value.themeMode == "auto") {
             "Expected themeMode=auto but got ${vm.state.value.themeMode}"
         }
     }
 
-    @Test fun `setThemeMode dark updates ViewModel state`() {
+    @Test fun setThemeMode_dark_updates_ViewModel_state() {
         setContent()
         vm.setThemeMode("dark")
         composeRule.waitUntil(3000) { vm.state.value.themeMode == "dark" }
@@ -99,15 +84,24 @@ class SettingsScreenTest {
 
     // ─── Toggla notiser ───────────────────────────────────────────────────────
 
-    @Test fun `meds notifications row is displayed and starts disabled`() {
+    @Test fun meds_notifications_row_is_displayed_and_starts_disabled() {
         setContent()
+        // On large-screen layout the sidebar is shown; navigate to the Notifications section.
+        // On small-screen layout all sections are in a scrollable column; scroll to the row.
+        val railNodes = composeRule.onAllNodes(hasContentDescription("Påminnelser"))
+        if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
+            railNodes.onFirst().performClick()
+            composeRule.waitForIdle()
+        } else {
+            composeRule.onNodeWithText("Medicinpåminnelser").performScrollTo()
+        }
         composeRule.onNodeWithText("Medicinpåminnelser").assertIsDisplayed()
         assert(!vm.state.value.medsNotificationsEnabled) {
             "Expected medsNotificationsEnabled=false initially"
         }
     }
 
-    @Test fun `toggleMedsNotifications enables meds notifications`() {
+    @Test fun toggleMedsNotifications_enables_meds_notifications() {
         setContent()
         vm.toggleMedsNotifications()
         composeRule.waitUntil(3000) { vm.state.value.medsNotificationsEnabled }
@@ -118,12 +112,20 @@ class SettingsScreenTest {
 
     // ─── Lägg till aktivitetstyp ─────────────────────────────────────────────
 
-    @Test fun `added aktivitet option chip appears in list`() {
+    private fun navigateToAktivitetSection() {
+        val railNodes = composeRule.onAllNodes(hasContentDescription("Aktivitetstyper"))
+        if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
+            railNodes.onFirst().performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
+    @Test fun added_aktivitet_option_chip_appears_in_list() {
         setContent()
+        navigateToAktivitetSection()
         // Type into aktivitetOptions text field ("Ny typ") — makes the first "Lägg till" enabled
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
         composeRule.waitForIdle()
-        // Two "Lägg till" buttons exist (aktivitet + symptom); click the enabled one (aktivitet)
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Yoga")).fetchSemanticsNodes().isNotEmpty()
@@ -131,35 +133,41 @@ class SettingsScreenTest {
         composeRule.onNodeWithText("Yoga").performScrollTo().assertIsDisplayed()
     }
 
-    @Test fun `duplicate aktivitet option is not added`() {
+    @Test fun duplicate_aktivitet_option_is_not_added() {
         setContent()
+        navigateToAktivitetSection()
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
         composeRule.waitForIdle()
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
-        composeRule.waitUntil(3000) { vm.state.value.aktivitetOptions.contains("Yoga") }
+        composeRule.waitUntil(3000) { vm.state.value.aktivitetOptions.any { it.name == "Yoga" } }
 
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
         composeRule.waitForIdle()
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
         composeRule.waitForIdle()
 
-        assert(vm.state.value.aktivitetOptions.count { it == "Yoga" } == 1) {
+        assert(vm.state.value.aktivitetOptions.count { it.name == "Yoga" } == 1) {
             "Expected exactly one Yoga but got: ${vm.state.value.aktivitetOptions}"
         }
     }
 
     // ─── Ta bort aktivitetstyp ───────────────────────────────────────────────
 
-    @Test fun `removed aktivitet option chip disappears from list`() {
-        runBlocking { prefs.setAktivitetOptions(listOf("Simning")) }
+    @Test fun removed_aktivitet_option_chip_disappears_from_list() {
         setContent()
+        navigateToAktivitetSection()
+        // Add the option through the same UI path as the passing add-test
+        composeRule.onNodeWithText("Ny typ").performTextInput("Simning")
+        composeRule.waitForIdle()
+        composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Simning")).fetchSemanticsNodes().isNotEmpty()
         }
-        // Scroll the chip into view before clicking "Ta bort"
-        composeRule.onNode(hasContentDescription("Ta bort")).performScrollTo().let {
-            composeRule.onNode(hasContentDescription("Ta bort")).performClick()
-        }
+        // Tapping the delete icon opens a confirmation dialog; it does not delete directly
+        composeRule.onNode(hasContentDescription("Ta bort")).performScrollTo().performClick()
+        composeRule.waitForIdle()
+        // Confirm deletion in the AlertDialog (confirm button is labelled "Ta bort")
+        composeRule.onNodeWithText("Ta bort").performClick()
         composeRule.waitUntil(3000) { vm.state.value.aktivitetOptions.isEmpty() }
         assert(vm.state.value.aktivitetOptions.isEmpty()) {
             "Expected empty aktivitetOptions but got: ${vm.state.value.aktivitetOptions}"

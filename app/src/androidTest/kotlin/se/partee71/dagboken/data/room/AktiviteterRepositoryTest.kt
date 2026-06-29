@@ -44,7 +44,7 @@ class AktiviteterRepositoryTest {
 
     // ─── getScreeningToday ────────────────────────────────────────────────────
 
-    @Test fun `getScreeningToday returns only screening entries for today`() = runTest {
+    @Test fun getScreeningToday_returns_only_screening_entries_for_today() = runTest {
         val today = LocalDate.now().toString()
         db.aktivitetDao().upsert(entity("s1", datum = today, type = "screening"))
         db.aktivitetDao().upsert(entity("a1", datum = today, type = "aktivitet"))
@@ -55,7 +55,7 @@ class AktiviteterRepositoryTest {
         assertEquals("s1", result[0].id)
     }
 
-    @Test fun `getScreeningToday returns empty when no screening logged today`() = runTest {
+    @Test fun getScreeningToday_returns_empty_when_no_screening_logged_today() = runTest {
         val yesterday = LocalDate.now().minusDays(1).toString()
         db.aktivitetDao().upsert(entity("s1", datum = yesterday, type = "screening"))
 
@@ -65,7 +65,7 @@ class AktiviteterRepositoryTest {
 
     // ─── getRecent ────────────────────────────────────────────────────────────
 
-    @Test fun `getRecent returns at most limit entries of the given type`() = runTest {
+    @Test fun getRecent_returns_at_most_limit_entries_of_the_given_type() = runTest {
         val today = LocalDate.now().toString()
         repeat(5) { db.aktivitetDao().upsert(entity("s$it", datum = today, type = "screening")) }
 
@@ -74,7 +74,7 @@ class AktiviteterRepositoryTest {
         assertTrue(result.all { it.type == "screening" })
     }
 
-    @Test fun `getRecent does not return entries of other type`() = runTest {
+    @Test fun getRecent_does_not_return_entries_of_other_type() = runTest {
         val today = LocalDate.now().toString()
         db.aktivitetDao().upsert(entity("a1", datum = today, type = "aktivitet"))
 
@@ -84,7 +84,7 @@ class AktiviteterRepositoryTest {
 
     // ─── screeningFromDate ────────────────────────────────────────────────────
 
-    @Test fun `screeningFromDate flow emits only screening entries on or after cutoff`() = runTest {
+    @Test fun screeningFromDate_flow_emits_only_screening_entries_on_or_after_cutoff() = runTest {
         val cutoff = LocalDate.now().minusDays(7).toString()
         val old    = LocalDate.now().minusDays(10).toString()
         val recent = LocalDate.now().minusDays(3).toString()
@@ -103,13 +103,13 @@ class AktiviteterRepositoryTest {
 
     // ─── hasScreeningToday ────────────────────────────────────────────────────
 
-    @Test fun `hasScreeningToday returns true when screening logged today`() = runTest {
+    @Test fun hasScreeningToday_returns_true_when_screening_logged_today() = runTest {
         val today = LocalDate.now().toString()
         db.aktivitetDao().upsert(entity("s1", datum = today, type = "screening"))
         assertTrue(repo.hasScreeningToday())
     }
 
-    @Test fun `hasScreeningToday returns false when no screening today`() = runTest {
+    @Test fun hasScreeningToday_returns_false_when_no_screening_today() = runTest {
         assertTrue(!repo.hasScreeningToday())
     }
 }

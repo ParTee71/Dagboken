@@ -20,6 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Aktivitet
 
@@ -37,8 +38,9 @@ class HistorikTabTest {
         db   = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                    .allowMainThreadQueries().build()
         repo = AktiviteterRepository(db.aktivitetDao())
-        val prefs = PreferencesRepository(ctx)
-        vm   = AktiviteterViewModel(repo, prefs)
+        val noteRepo = NoteRepository(db.noteDao())
+        val prefs    = PreferencesRepository(ctx)
+        vm   = AktiviteterViewModel(repo, noteRepo, prefs)
     }
 
     @After fun tearDown() { db.close() }
@@ -52,12 +54,21 @@ class HistorikTabTest {
     )
 
     private fun setContent() {
-        composeRule.setContent { MaterialTheme { HistorikTab(vm = vm, onEdit = {}) } }
+        composeRule.setContent { MaterialTheme { HistorikTab(vm = vm, onEdit = { _, _ -> }) } }
+    }
+
+    // ─── No save bar on Historik tab ─────────────────────────────────────────
+
+    @Test fun historik_tab_has_no_save_button() {
+        setContent()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Spara aktivitet").assertDoesNotExist()
+        composeRule.onNodeWithText("Spara screening").assertDoesNotExist()
     }
 
     // ─── Empty state ──────────────────────────────────────────────────────────
 
-    @Test fun `empty state shows placeholder text`() {
+    @Test fun empty_state_shows_placeholder_text() {
         setContent()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Inga aktiviteter loggade").assertIsDisplayed()
@@ -65,7 +76,7 @@ class HistorikTabTest {
 
     // ─── Filter chips toggle ──────────────────────────────────────────────────
 
-    @Test fun `deselecting Aktivitet chip hides aktivitet entries`() {
+    @Test fun deselecting_Aktivitet_chip_hides_aktivitet_entries() {
         runBlocking {
             repo.save(aktivitet("a1", "Promenad", "aktivitet"))
             repo.save(aktivitet("a2", "Morgonscreening", "screening"))
@@ -84,7 +95,7 @@ class HistorikTabTest {
         composeRule.onNodeWithText("Morgonscreening").assertIsDisplayed()
     }
 
-    @Test fun `reselecting Aktivitet chip shows aktivitet entries again`() {
+    @Test fun reselecting_Aktivitet_chip_shows_aktivitet_entries_again() {
         runBlocking { repo.save(aktivitet("b1", "Cykling", "aktivitet")) }
         setContent()
         composeRule.waitUntil(3000) {
@@ -101,7 +112,7 @@ class HistorikTabTest {
 
     // ─── Minst en typ kvar ────────────────────────────────────────────────────
 
-    @Test fun `Screening chip stays selected when it is the only remaining filter type`() {
+    @Test fun Screening_chip_stays_selected_when_it_is_the_only_remaining_filter_type() {
         // Use a name that doesn't clash with the "Screening" filter chip label
         runBlocking { repo.save(aktivitet("c1", "Morgonkontroll", "screening")) }
         setContent()

@@ -10,26 +10,18 @@ import javax.inject.Singleton
 
 @Singleton
 class NoteRepository @Inject constructor(private val dao: NoteDao) {
+    fun observe(target: NoteTarget, entityId: String): Flow<String> =
+        dao.observe(target.name, entityId).map { it ?: "" }
 
-    fun observe(target: NoteTarget, id: String): Flow<String> =
-        dao.observe(target.name, id).map { it?.text ?: "" }
-
-    suspend fun save(target: NoteTarget, id: String, text: String) {
-        if (text.isBlank()) dao.delete(target.name, id)
-        else dao.upsert(NoteEntity(targetType = target.name, targetId = id, text = text.trim()))
+    suspend fun save(target: NoteTarget, entityId: String, text: String) {
+        if (text.isBlank()) {
+            dao.delete(target.name, entityId)
+        } else {
+            dao.upsert(NoteEntity(target.name, entityId, text))
+        }
     }
 
-    fun observeAll(target: NoteTarget): Flow<List<NoteEntity>> =
-        dao.observeAll(target.name)
-
-    fun observeAll(): Flow<List<NoteEntity>> =
-        dao.observeAll()
-
-    suspend fun delete(target: NoteTarget, id: String) {
-        dao.delete(target.name, id)
-    }
-
-    suspend fun importAll(notes: List<NoteEntity>) {
-        notes.forEach { dao.upsert(it) }
+    suspend fun delete(target: NoteTarget, entityId: String) {
+        dao.delete(target.name, entityId)
     }
 }
