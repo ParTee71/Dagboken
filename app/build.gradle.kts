@@ -15,6 +15,8 @@ plugins {
 
 private val buildTimestamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
 
+private val versionNameOverride = findProperty("versionNameOverride") as String?
+
 private val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
@@ -28,7 +30,7 @@ android {
         minSdk = 30
         targetSdk = 35
         versionCode = 10
-        versionName = "2.6.1"
+        versionName = versionNameOverride ?: "2.6.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

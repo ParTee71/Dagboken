@@ -1,0 +1,54 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name (e.g. 2.6.1) — leave blank to use value in build.gradle.kts'
+        required: false
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 --decode > app/dagboken.jks
+
+      - name: Build release APK
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          if [ -n "${{ inputs.version_name }}" ]; then
+            ./gradlew :app:assembleRelease \
+              -PversionNameOverride="${{ inputs.version_name }}"
+          else
+            ./gradlew :app:assembleRelease
+          fi
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: dagboken-release
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f app/dagboken.jks
