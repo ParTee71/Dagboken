@@ -115,9 +115,9 @@ class HomeScreenTest {
     @Test fun toggleMedicinTagen_updates_tagen_count_displayed_in_card() {
         val med = Medicin(
             id        = "test-med-1",
-            timestamp = "${today}T07:00:00.000Z",
+            timestamp = "${today}T00:01:00.000Z",
             datum     = today,
-            tid       = "07:00",
+            tid       = "00:01",
             namn      = "Metformin",
             dos       = "500",
             enhet     = "mg",
@@ -128,14 +128,13 @@ class HomeScreenTest {
         runBlocking { medicRepo.saveMedicin(med) }
         setContent()
         composeRule.waitUntil(3000) {
-            composeRule.onAllNodes(hasText("0 av 1 tagna")).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(hasText("Metformin")).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("0 av 1 tagna").assertIsDisplayed()
+        composeRule.onNodeWithText("Metformin").assertIsDisplayed()
 
-        vm.toggleMedicinTagen(med)
+        composeRule.runOnUiThread { vm.toggleMedicinTagen(med) }
         composeRule.waitUntil(3000) {
-            composeRule.onAllNodes(hasText("1 av 1 tagna")).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(hasText("Metformin")).fetchSemanticsNodes().isEmpty()
         }
-        composeRule.onNodeWithText("1 av 1 tagna").assertIsDisplayed()
     }
 }

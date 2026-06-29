@@ -7,6 +7,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -86,6 +87,15 @@ class SettingsScreenTest {
 
     @Test fun meds_notifications_row_is_displayed_and_starts_disabled() {
         setContent()
+        // On large-screen layout the sidebar is shown; navigate to the Notifications section.
+        // On small-screen layout all sections are in a scrollable column; scroll to the row.
+        val railNodes = composeRule.onAllNodes(hasContentDescription("Påminnelser"))
+        if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
+            railNodes.onFirst().performClick()
+            composeRule.waitForIdle()
+        } else {
+            composeRule.onNodeWithText("Medicinpåminnelser").performScrollTo()
+        }
         composeRule.onNodeWithText("Medicinpåminnelser").assertIsDisplayed()
         assert(!vm.state.value.medsNotificationsEnabled) {
             "Expected medsNotificationsEnabled=false initially"
@@ -103,12 +113,20 @@ class SettingsScreenTest {
 
     // ─── Lägg till aktivitetstyp ─────────────────────────────────────────────
 
+    private fun navigateToAktivitetSection() {
+        val railNodes = composeRule.onAllNodes(hasContentDescription("Aktivitetstyper"))
+        if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
+            railNodes.onFirst().performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
     @Test fun added_aktivitet_option_chip_appears_in_list() {
         setContent()
+        navigateToAktivitetSection()
         // Type into aktivitetOptions text field ("Ny typ") — makes the first "Lägg till" enabled
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
         composeRule.waitForIdle()
-        // Two "Lägg till" buttons exist (aktivitet + symptom); click the enabled one (aktivitet)
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Yoga")).fetchSemanticsNodes().isNotEmpty()
@@ -118,6 +136,7 @@ class SettingsScreenTest {
 
     @Test fun duplicate_aktivitet_option_is_not_added() {
         setContent()
+        navigateToAktivitetSection()
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
         composeRule.waitForIdle()
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
@@ -138,6 +157,7 @@ class SettingsScreenTest {
     @Test fun removed_aktivitet_option_chip_disappears_from_list() {
         runBlocking { prefs.setAktivitetOptions(listOf(SymptomOption("Simning"))) }
         setContent()
+        navigateToAktivitetSection()
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Simning")).fetchSemanticsNodes().isNotEmpty()
         }

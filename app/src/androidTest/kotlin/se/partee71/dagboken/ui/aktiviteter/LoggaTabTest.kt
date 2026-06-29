@@ -70,7 +70,10 @@ class LoggaTabTest {
 
     @Test fun save_button_is_enabled_after_selecting_an_activity_type() {
         setContent()
+        composeRule.onNodeWithText("Fler typer").performClick()
+        composeRule.waitForIdle()
         composeRule.onNodeWithText("Övrigt").performClick()
+        composeRule.waitForIdle()
         vm.updateForm { copy(aktivitetAnnat = "Yoga") }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Spara aktivitet").assertIsEnabled()
@@ -80,7 +83,10 @@ class LoggaTabTest {
 
     @Test fun save_fires_snackbar_with_activity_name() {
         setContent()
+        composeRule.onNodeWithText("Fler typer").performClick()
+        composeRule.waitForIdle()
         composeRule.onNodeWithText("Övrigt").performClick()
+        composeRule.waitForIdle()
         vm.updateForm { copy(aktivitetAnnat = "Promenad") }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Spara aktivitet").performClick()
@@ -99,6 +105,8 @@ class LoggaTabTest {
 
     @Test fun Ovrigt_text_field_appears_when_Ovrigt_chip_is_selected() {
         setContent()
+        composeRule.onNodeWithText("Fler typer").performClick()
+        composeRule.waitForIdle()
         composeRule.onNodeWithText("Övrigt").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Beskriv aktivitet").assertIsDisplayed()
@@ -108,13 +116,13 @@ class LoggaTabTest {
 
     @Test fun Ovrigt_chip_is_always_shown() {
         setContent()
-        composeRule.onNodeWithText("Övrigt").assertIsDisplayed()
+        composeRule.onNodeWithText("Fler typer").assertIsDisplayed()
     }
 
     @Test fun predefined_activity_option_chips_are_shown() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val prefs = PreferencesRepository(ctx)
-        runBlocking { prefs.setAktivitetOptions(listOf(SymptomOption("Promenad"), SymptomOption("Simning"))) }
+        runBlocking { prefs.setAktivitetOptions(listOf(SymptomOption("Promenad", isFavorite = true), SymptomOption("Simning", isFavorite = true))) }
         try {
             composeRule.setContent { MaterialTheme { LoggaTab(vm) } }
             composeRule.waitUntil(3000) {
