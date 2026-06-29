@@ -45,7 +45,6 @@ jobs:
 
   instrumented-tests:
     runs-on: ubuntu-latest
-    # Only run on PRs and manual triggers — not on every push
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
 
     steps:
@@ -64,18 +63,33 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install emulator
+        run: |
+          sdkmanager --install "emulator" "platform-tools" \
+            "system-images;android-34;google_apis;x86_64" \
+            "platforms;android-34"
+
+      - name: Create AVD
+        run: |
+          echo "no" | avdmanager create avd \
+            --name test_avd \
+            --package "system-images;android-34;google_apis;x86_64" \
+            --device "pixel_6"
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run instrumented tests on emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          disk-size: 6144M
-          heap-size: 512M
-          script: ./gradlew :app:connectedDebugAndroidTest
+      - name: Start emulator and run tests
+        run: |
+          emulator -avd test_avd \
+            -no-window -no-audio -no-snapshot \
+            -no-boot-anim -gpu swiftshader_indirect &
+          adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 2; done'
+          adb shell input keyevent 82
+          ./gradlew :app:connectedDebugAndroidTest
 
       - name: Upload instrumented test results
         if: always()
