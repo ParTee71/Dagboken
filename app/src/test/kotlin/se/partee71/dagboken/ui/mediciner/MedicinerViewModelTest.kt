@@ -6,6 +6,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -91,7 +92,8 @@ class MedicinerViewModelTest {
             every { allFavoriter } returns flowOf(listOf(fav))
         }
         val vm2 = MedicinerViewModel(repoWithFav, noteRepo, cooldown, limit)
-        assertEquals(listOf(fav), vm2.allFavoriter.value)
+        // WhileSubscribed won't start the upstream until collected; use first{} to subscribe and wait
+        assertEquals(listOf(fav), vm2.allFavoriter.first { it.isNotEmpty() })
     }
 
     // ─── deleteMedicin ────────────────────────────────────────────────────────
