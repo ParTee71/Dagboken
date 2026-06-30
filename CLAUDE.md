@@ -99,6 +99,10 @@ Paket under `app/src/main/kotlin/se/partee71/dagboken/`:
 | `compose-expert` · `kotlin-coroutines` · `kotlin-flows` | Compose-, coroutine- och flow-detaljer. |
 | `firebase-auth` | Inloggning (Credential Manager + Firebase). |
 | `android-gradle-logic` | Gradle/version catalogs/build-konfiguration. |
+| `notifications-alarms` | Påminnelser/larm: exakta larm, notiskanaler, boot-omschemaläggning. |
+| `room-migrations` | Säkra Room-schemamigreringar utan dataförlust. |
+| `data-privacy-security` | Känslig hälsodata: loggning, Drive-scope, hemligheter, minify. |
+| `accessibility-compose` | Tillgänglighet: TalkBack, tryckytor, dynamisk text. |
 | **`data-safety-backup`** | Regel 1 — backup/restore och dess tester. |
 | **`testing-strategy`** | Regel 2 — tester på alla nivåer. |
 | **`requirements-kravlista`** | Regel 3 — hålla KRAVLISTA.md aktuell. |
