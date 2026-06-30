@@ -107,6 +107,8 @@ Paket under `app/src/main/kotlin/se/partee71/dagboken/`:
 | **`testing-strategy`** | Regel 2 — tester på alla nivåer. |
 | **`requirements-kravlista`** | Regel 3 — hålla KRAVLISTA.md aktuell. |
 | **`shared-ui-components`** | Regel 4 — återbruk av delade komponenter. |
+| `refine-issue` | Förfina en idé/bugg till ett planerat GitHub-issue (med DoD enligt de fyra reglerna). |
+| `implement-issue` | Genomför ett issue/bugg/feature hela vägen till PR enligt de fyra reglerna. |
 | `release` | Endast vid uttrycklig release. |
 
 > Reglerna gäller både i Claude Android-appen och i Claude inuti Android Studio —
