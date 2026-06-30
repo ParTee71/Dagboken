@@ -7,6 +7,7 @@ data class SjukdomsEpisod(
     val slutDatum: String,
     val anteckning: String,
     val incheckningar: List<SjukdomsIncheckning> = emptyList(),
+    val timestamp: Long = System.currentTimeMillis(),
 )
 
 val SjukdomsEpisod.pagaende: Boolean get() = slutDatum.isBlank()

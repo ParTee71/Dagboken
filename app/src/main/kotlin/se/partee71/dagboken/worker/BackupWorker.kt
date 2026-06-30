@@ -14,16 +14,23 @@ import se.partee71.dagboken.data.migration.BackupJson
 import se.partee71.dagboken.data.migration.DriveBackupRepository
 import se.partee71.dagboken.data.migration.DriveResult
 import se.partee71.dagboken.data.migration.FavoritJson
+import se.partee71.dagboken.data.migration.HandelseJson
 import se.partee71.dagboken.data.migration.MedicinJson
+import se.partee71.dagboken.data.migration.NoteJson
 import se.partee71.dagboken.data.migration.ReceptJson
+import se.partee71.dagboken.data.migration.ScreeningEventConfigJson
 import se.partee71.dagboken.data.migration.SjukdomsEpisodJson
 import se.partee71.dagboken.data.migration.SjukdomsIncheckningJson
 import se.partee71.dagboken.data.migration.SymptomOptionBackup
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
+import se.partee71.dagboken.data.room.entities.NoteEntity
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.domain.model.Handelse
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
@@ -38,6 +45,8 @@ class BackupWorker @AssistedInject constructor(
     private val aktiviteterRepo: AktiviteterRepository,
     private val medicinerRepo: MedicinerRepository,
     private val sjukdomarRepo: SjukdomarRepository,
+    private val handelserRepo: HandelserRepository,
+    private val noteRepo: NoteRepository,
     private val driveRepo: DriveBackupRepository,
     private val authRepo: FirebaseAuthRepository,
     private val prefs: PreferencesRepository,
@@ -65,6 +74,10 @@ class BackupWorker @AssistedInject constructor(
                 symptomOptionsV2      = prefs.symptomOptions.first().map { SymptomOptionBackup(it.name, it.isFavorite) },
                 sjukdomsepisoder      = episoder.map { it.toJson() },
                 sjukdomsIncheckningar = incheckningar.map { it.toJson() },
+                handelser             = handelserRepo.all.first().map { it.toJson() },
+                notes                 = noteRepo.getAll().map { it.toJson() },
+                screeningEventConfigs = prefs.screeningEventConfigs.first().map { ScreeningEventConfigJson(it.enabled, it.time) },
+                sheetsConfig          = prefs.sheetsConfig.first().takeIf { it.isNotBlank() },
             )
 
             when (driveRepo.uploadBackup(backup)) {
@@ -147,6 +160,26 @@ class BackupWorker @AssistedInject constructor(
         startDatum = startDatum,
         slutDatum  = slutDatum,
         anteckning = anteckning,
+        timestamp  = timestamp,
+    )
+
+    private fun NoteEntity.toJson() = NoteJson(
+        target   = target,
+        entityId = entityId,
+        text     = text,
+    )
+
+    private fun Handelse.toJson() = HandelseJson(
+        id                 = id,
+        timestamp          = timestamp,
+        datum              = datum,
+        tid                = tid,
+        typ                = typ,
+        svarighetsgrad     = svarighetsgrad,
+        varaktighetMinuter = varaktighetMinuter,
+        triggers           = triggers,
+        atgarder           = atgarder,
+        anteckning         = anteckning,
     )
 
     private fun SjukdomsIncheckning.toJson() = SjukdomsIncheckningJson(
@@ -158,5 +191,6 @@ class BackupWorker @AssistedInject constructor(
         symptom        = symptom,
         somatiska      = somatiska,
         anteckning     = anteckning,
+        timestamp      = timestamp,
     )
 }

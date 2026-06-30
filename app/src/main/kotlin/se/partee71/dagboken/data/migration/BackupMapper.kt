@@ -1,7 +1,9 @@
 package se.partee71.dagboken.data.migration
 
+import se.partee71.dagboken.data.room.entities.NoteEntity
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.domain.model.Handelse
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
@@ -22,6 +24,12 @@ object BackupMapper {
 
     fun toSjukdomsIncheckningar(json: BackupJson): List<SjukdomsIncheckning> =
         json.sjukdomsIncheckningar.map { it.toDomain() }
+
+    fun toHandelser(json: BackupJson): List<Handelse> = json.handelser.map { it.toDomain() }
+
+    fun toNotes(json: BackupJson): List<NoteEntity> = json.notes
+        .filter { it.target.isNotBlank() && it.entityId.isNotBlank() && it.text.isNotBlank() }
+        .map { NoteEntity(target = it.target, entityId = it.entityId, text = it.text) }
 
     private fun AktivitetJson.toDomain() = Aktivitet(
         id           = id,
@@ -92,6 +100,8 @@ object BackupMapper {
         startDatum = startDatum,
         slutDatum  = slutDatum,
         anteckning = anteckning,
+        // v1 backups didn't carry timestamp (0) — fall back to now so ordering stays sane
+        timestamp  = timestamp.takeIf { it != 0L } ?: System.currentTimeMillis(),
     )
 
     private fun SjukdomsIncheckningJson.toDomain() = SjukdomsIncheckning(
@@ -103,6 +113,20 @@ object BackupMapper {
         symptom        = symptom,
         somatiska      = somatiska,
         anteckning     = anteckning,
+        timestamp      = timestamp.takeIf { it != 0L } ?: System.currentTimeMillis(),
+    )
+
+    private fun HandelseJson.toDomain() = Handelse(
+        id                 = id,
+        timestamp          = timestamp,
+        datum              = datum,
+        tid                = tid,
+        typ                = typ,
+        svarighetsgrad     = svarighetsgrad,
+        varaktighetMinuter = varaktighetMinuter,
+        triggers           = triggers,
+        atgarder           = atgarder,
+        anteckning         = anteckning,
     )
 
     // Mirrors migrateAktiviteterTypes from src/storage/aktiviteter.ts

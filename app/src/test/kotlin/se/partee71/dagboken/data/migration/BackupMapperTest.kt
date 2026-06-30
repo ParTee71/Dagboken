@@ -12,11 +12,19 @@ class BackupMapperTest {
         mediciner: List<MedicinJson> = emptyList(),
         recept: List<ReceptJson> = emptyList(),
         favoriter: List<FavoritJson> = emptyList(),
+        handelser: List<HandelseJson> = emptyList(),
+        notes: List<NoteJson> = emptyList(),
+        sjukdomsepisoder: List<SjukdomsEpisodJson> = emptyList(),
+        sjukdomsIncheckningar: List<SjukdomsIncheckningJson> = emptyList(),
     ) = BackupJson(
         aktiviteter = aktiviteter,
         mediciner = mediciner,
         medicinRecipes = recept,
         medicinFavoriter = favoriter,
+        handelser = handelser,
+        notes = notes,
+        sjukdomsepisoder = sjukdomsepisoder,
+        sjukdomsIncheckningar = sjukdomsIncheckningar,
     )
 
     // ─── aktiviteter ──────────────────────────────────────────────────────────
@@ -141,5 +149,147 @@ class BackupMapperTest {
         assertEquals("f1", result[0].id)
         assertEquals(4, result[0].minTidMellan)
         assertEquals(2, result[0].maxDoserPerDag)
+    }
+
+    // ─── händelser ────────────────────────────────────────────────────────────
+
+    @Test fun `toHandelser maps all fields`() {
+        val json = backup(
+            handelser = listOf(HandelseJson(
+                id = "h1", timestamp = "2024-01-01T14:00:00.000Z",
+                datum = "2024-01-01", tid = "14:00", typ = "huvudvärk",
+                svarighetsgrad = 7, varaktighetMinuter = 120,
+                triggers = "[\"stress\"]", atgarder = "[\"vila\"]",
+                anteckning = "Jobbig dag",
+            ))
+        )
+        val result = BackupMapper.toHandelser(json)
+        assertEquals(1, result.size)
+        with(result[0]) {
+            assertEquals("h1", id)
+            assertEquals("2024-01-01T14:00:00.000Z", timestamp)
+            assertEquals("2024-01-01", datum)
+            assertEquals("14:00", tid)
+            assertEquals("huvudvärk", typ)
+            assertEquals(7, svarighetsgrad)
+            assertEquals(120, varaktighetMinuter)
+            assertEquals("[\"stress\"]", triggers)
+            assertEquals("[\"vila\"]", atgarder)
+            assertEquals("Jobbig dag", anteckning)
+        }
+    }
+
+    @Test fun `toHandelser returns empty for empty backup`() {
+        assertTrue(BackupMapper.toHandelser(backup()).isEmpty())
+    }
+
+    // ─── notes ────────────────────────────────────────────────────────────────
+
+    @Test fun `toNotes maps all fields`() {
+        val json = backup(
+            notes = listOf(NoteJson(target = "ACTIVITY", entityId = "a1", text = "Bra dag"))
+        )
+        val result = BackupMapper.toNotes(json)
+        assertEquals(1, result.size)
+        assertEquals("ACTIVITY", result[0].target)
+        assertEquals("a1", result[0].entityId)
+        assertEquals("Bra dag", result[0].text)
+    }
+
+    @Test fun `toNotes filters out entries with blank text`() {
+        val json = backup(
+            notes = listOf(
+                NoteJson(target = "ACTIVITY", entityId = "a1", text = ""),
+                NoteJson(target = "ACTIVITY", entityId = "a2", text = "  "),
+                NoteJson(target = "ACTIVITY", entityId = "a3", text = "Giltig"),
+            )
+        )
+        val result = BackupMapper.toNotes(json)
+        assertEquals(1, result.size)
+        assertEquals("a3", result[0].entityId)
+    }
+
+    @Test fun `toNotes filters out entries with blank target or entityId`() {
+        val json = backup(
+            notes = listOf(
+                NoteJson(target = "", entityId = "a1", text = "Text"),
+                NoteJson(target = "ACTIVITY", entityId = "", text = "Text"),
+                NoteJson(target = "ACTIVITY", entityId = "a3", text = "Giltig"),
+            )
+        )
+        val result = BackupMapper.toNotes(json)
+        assertEquals(1, result.size)
+    }
+
+    @Test fun `toNotes returns empty for empty backup`() {
+        assertTrue(BackupMapper.toNotes(backup()).isEmpty())
+    }
+
+    // ─── sjukdomar ────────────────────────────────────────────────────────────
+
+    @Test fun `toSjukdomsEpisoder maps all fields`() {
+        val json = backup(
+            sjukdomsepisoder = listOf(SjukdomsEpisodJson(
+                id = "e1", typ = "migrän", startDatum = "2024-01-01",
+                slutDatum = "2024-01-03", anteckning = "Svår period",
+                timestamp = 1_700_000_000_000L,
+            ))
+        )
+        val result = BackupMapper.toSjukdomsEpisoder(json)
+        assertEquals(1, result.size)
+        with(result[0]) {
+            assertEquals("e1", id)
+            assertEquals("migrän", typ)
+            assertEquals("2024-01-01", startDatum)
+            assertEquals("2024-01-03", slutDatum)
+            assertEquals("Svår period", anteckning)
+            assertEquals(1_700_000_000_000L, timestamp)
+        }
+    }
+
+    @Test fun `toSjukdomsEpisoder falls back to non-zero timestamp for legacy backup`() {
+        val json = backup(
+            sjukdomsepisoder = listOf(SjukdomsEpisodJson(id = "e1", typ = "migrän"))
+        )
+        // timestamp defaults to 0 in v1 backups; mapper must substitute a real time
+        assertTrue(BackupMapper.toSjukdomsEpisoder(json)[0].timestamp != 0L)
+    }
+
+    @Test fun `toSjukdomsEpisoder returns empty for empty backup`() {
+        assertTrue(BackupMapper.toSjukdomsEpisoder(backup()).isEmpty())
+    }
+
+    @Test fun `toSjukdomsIncheckningar maps all fields`() {
+        val json = backup(
+            sjukdomsIncheckningar = listOf(SjukdomsIncheckningJson(
+                id = "i1", episodId = "e1", datum = "2024-01-01", tid = "10:00",
+                svarighetsgrad = 8, symptom = "Yrsel:3", somatiska = 2,
+                anteckning = "Tog medicin", timestamp = 1_700_000_000_000L,
+            ))
+        )
+        val result = BackupMapper.toSjukdomsIncheckningar(json)
+        assertEquals(1, result.size)
+        with(result[0]) {
+            assertEquals("i1", id)
+            assertEquals("e1", episodId)
+            assertEquals("2024-01-01", datum)
+            assertEquals("10:00", tid)
+            assertEquals(8, svarighetsgrad)
+            assertEquals("Yrsel:3", symptom)
+            assertEquals(2, somatiska)
+            assertEquals("Tog medicin", anteckning)
+            assertEquals(1_700_000_000_000L, timestamp)
+        }
+    }
+
+    @Test fun `toSjukdomsIncheckningar falls back to non-zero timestamp for legacy backup`() {
+        val json = backup(
+            sjukdomsIncheckningar = listOf(SjukdomsIncheckningJson(id = "i1", episodId = "e1"))
+        )
+        assertTrue(BackupMapper.toSjukdomsIncheckningar(json)[0].timestamp != 0L)
+    }
+
+    @Test fun `toSjukdomsIncheckningar returns empty for empty backup`() {
+        assertTrue(BackupMapper.toSjukdomsIncheckningar(backup()).isEmpty())
     }
 }

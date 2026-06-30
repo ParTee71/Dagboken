@@ -19,9 +19,15 @@ interface SjukdomsEpisodDao {
     @Query("SELECT * FROM sjukdomsepisoder WHERE slut_datum = '' ORDER BY timestamp DESC LIMIT 1")
     fun pagaendeFlow(): Flow<SjukdomsEpisodEntity?>
 
+    @Query("SELECT * FROM sjukdomsepisoder")
+    suspend fun getAll(): List<SjukdomsEpisodEntity>
+
     @Upsert
     suspend fun save(episod: SjukdomsEpisodEntity)
 
     @Delete
     suspend fun delete(episod: SjukdomsEpisodEntity)
+
+    @Query("SELECT COUNT(*) FROM sjukdomsepisoder")
+    suspend fun count(): Int
 }

@@ -21,8 +21,16 @@ class NoteRepositoryUnitTest {
         override fun observe(target: String, entityId: String): Flow<String?> =
             _flow.map { it[target to entityId] }
 
+        override suspend fun getAll(): List<NoteEntity> =
+            store.map { (key, text) -> NoteEntity(key.first, key.second, text) }
+
         override suspend fun upsert(note: NoteEntity) {
             store[note.target to note.entityId] = note.text
+            _flow.value = store.toMap()
+        }
+
+        override suspend fun upsertAll(notes: List<NoteEntity>) {
+            notes.forEach { store[it.target to it.entityId] = it.text }
             _flow.value = store.toMap()
         }
 
@@ -30,6 +38,8 @@ class NoteRepositoryUnitTest {
             store.remove(target to entityId)
             _flow.value = store.toMap()
         }
+
+        override suspend fun count(): Int = store.size
     }
 
     private fun repo() = NoteRepository(FakeNoteDao())
@@ -68,5 +78,17 @@ class NoteRepositoryUnitTest {
             assertEquals("", awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test fun `importAll then getAll round-trips all notes`() = runTest {
+        val r = repo()
+        r.importAll(listOf(
+            NoteEntity("ACTIVITY", "a1", "första"),
+            NoteEntity("MEDICATION", "m1", "andra"),
+        ))
+        val all = r.getAll()
+        assertEquals(2, all.size)
+        assertEquals("första", all.find { it.entityId == "a1" }!!.text)
+        assertEquals("andra", all.find { it.entityId == "m1" }!!.text)
     }
 }

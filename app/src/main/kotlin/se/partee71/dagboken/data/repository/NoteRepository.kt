@@ -24,4 +24,8 @@ class NoteRepository @Inject constructor(private val dao: NoteDao) {
     suspend fun delete(target: NoteTarget, entityId: String) {
         dao.delete(target.name, entityId)
     }
+
+    suspend fun getAll(): List<NoteEntity> = dao.getAll()
+
+    suspend fun importAll(notes: List<NoteEntity>) = dao.upsertAll(notes)
 }

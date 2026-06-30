@@ -64,6 +64,7 @@ class SjukdomarRepository @Inject constructor(
         startDatum = startDatum,
         slutDatum  = slutDatum,
         anteckning = anteckning,
+        timestamp  = timestamp,
     )
 
     private fun SjukdomsEpisod.toEntity() = SjukdomsEpisodEntity(
@@ -72,6 +73,7 @@ class SjukdomarRepository @Inject constructor(
         startDatum = startDatum,
         slutDatum  = slutDatum,
         anteckning = anteckning,
+        timestamp  = timestamp,
     )
 
     private fun SjukdomsIncheckningEntity.toDomain() = SjukdomsIncheckning(
@@ -83,6 +85,7 @@ class SjukdomarRepository @Inject constructor(
         symptom        = symptom,
         somatiska      = somatiska,
         anteckning     = anteckning,
+        timestamp      = timestamp,
     )
 
     private fun SjukdomsIncheckning.toEntity() = SjukdomsIncheckningEntity(
@@ -94,5 +97,6 @@ class SjukdomarRepository @Inject constructor(
         symptom        = symptom,
         somatiska      = somatiska,
         anteckning     = anteckning,
+        timestamp      = timestamp,
     )
 }

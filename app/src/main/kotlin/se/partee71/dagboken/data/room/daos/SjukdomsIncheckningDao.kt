@@ -21,4 +21,7 @@ interface SjukdomsIncheckningDao {
 
     @Delete
     suspend fun delete(incheckning: SjukdomsIncheckningEntity)
+
+    @Query("SELECT COUNT(*) FROM sjukdoms_incheckningar")
+    suspend fun count(): Int
 }

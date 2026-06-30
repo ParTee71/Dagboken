@@ -164,7 +164,12 @@ class SettingsScreenTest {
             composeRule.onAllNodes(hasText("Simning")).fetchSemanticsNodes().isNotEmpty()
         }
         // Tapping the delete icon opens a confirmation dialog; it does not delete directly
-        composeRule.onNode(hasContentDescription("Ta bort"), useUnmergedTree = true).performScrollTo().performClick()
+        // useUnmergedTree is incompatible with performScrollTo (which needs the merged tree);
+        // wait for the button to be present in the merged tree, then scroll + click.
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasContentDescription("Ta bort")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNode(hasContentDescription("Ta bort")).performScrollTo().performClick()
         composeRule.waitForIdle()
         // Confirm deletion in the AlertDialog (confirm button is labelled "Ta bort")
         composeRule.onNodeWithText("Ta bort").performClick()
