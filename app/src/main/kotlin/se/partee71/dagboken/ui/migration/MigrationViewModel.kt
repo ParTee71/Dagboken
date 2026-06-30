@@ -17,6 +17,7 @@ import androidx.room.withTransaction
 import kotlinx.serialization.json.Json
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.migration.BackupJson
 import se.partee71.dagboken.data.migration.BackupMapper
@@ -25,7 +26,9 @@ import se.partee71.dagboken.data.migration.DriveResult
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
+import se.partee71.dagboken.data.room.entities.NoteEntity
 import se.partee71.dagboken.data.room.AppDatabase
 import javax.inject.Inject
 
@@ -51,6 +54,7 @@ class MigrationViewModel @Inject constructor(
     private val medicinerRepo: MedicinerRepository,
     private val sjukdomarRepo: SjukdomarRepository,
     private val handelserRepo: HandelserRepository,
+    private val noteRepo: NoteRepository,
     private val prefs: PreferencesRepository,
     private val json: Json,
 ) : ViewModel() {
@@ -131,6 +135,7 @@ class MigrationViewModel @Inject constructor(
         val sjukdomsEpisoder  = BackupMapper.toSjukdomsEpisoder(backup)
         val sjukdomsIncheckningar = BackupMapper.toSjukdomsIncheckningar(backup)
         val handelser         = BackupMapper.toHandelser(backup)
+        val notes             = BackupMapper.toNotes(backup)
 
         db.withTransaction {
             aktiviteterRepo.importAll(aktiviteter)
@@ -138,6 +143,7 @@ class MigrationViewModel @Inject constructor(
             medicinerRepo.importRecept(recept)
             medicinerRepo.importFavoriter(favoriter)
             handelserRepo.importAll(handelser)
+            noteRepo.importAll(notes)
         }
         sjukdomarRepo.importEpisoder(sjukdomsEpisoder)
         sjukdomarRepo.importIncheckningar(sjukdomsIncheckningar)
@@ -149,6 +155,12 @@ class MigrationViewModel @Inject constructor(
         val symptomOpts = backup.symptomOptionsV2?.map { SymptomOption(it.name, it.isFavorite) }
             ?: backup.symptomOptions?.map { SymptomOption(it) }
         symptomOpts?.let { prefs.setSymptomOptions(it) }
+
+        backup.screeningEventConfigs
+            ?.map { ScreeningEventConfig(it.enabled, it.time) }
+            ?.let { prefs.setScreeningEventConfigs(it) }
+
+        backup.sheetsConfig?.let { prefs.setSheetsConfig(it) }
 
         _state.value = MigrationState.Importing(1f)
         prefs.setMigrationDone(true)

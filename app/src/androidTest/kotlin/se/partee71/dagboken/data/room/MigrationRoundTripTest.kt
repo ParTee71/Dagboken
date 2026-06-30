@@ -18,10 +18,13 @@ import se.partee71.dagboken.data.migration.BackupMapper
 import se.partee71.dagboken.data.migration.FavoritJson
 import se.partee71.dagboken.data.migration.HandelseJson
 import se.partee71.dagboken.data.migration.MedicinJson
+import se.partee71.dagboken.data.migration.NoteJson
 import se.partee71.dagboken.data.migration.ReceptJson
+import se.partee71.dagboken.data.migration.ScreeningEventConfigJson
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 
 /**
@@ -34,6 +37,7 @@ class MigrationRoundTripTest {
     private lateinit var aktivRepo: AktiviteterRepository
     private lateinit var medicRepo: MedicinerRepository
     private lateinit var handelserRepo: HandelserRepository
+    private lateinit var noteRepo: NoteRepository
 
     private val json = Json { ignoreUnknownKeys = true }
     private fun decode(s: String)    = runCatching { json.decodeFromString<List<String>>(s) }.getOrDefault(emptyList())
@@ -46,6 +50,7 @@ class MigrationRoundTripTest {
         ).allowMainThreadQueries().build()
         aktivRepo = AktiviteterRepository(db.aktivitetDao())
         handelserRepo = HandelserRepository(db.handelseDao())
+        noteRepo = NoteRepository(db.noteDao())
         medicRepo = MedicinerRepository(
             db                 = db,
             medicinDao         = db.medicinDao(),
@@ -106,6 +111,15 @@ class MigrationRoundTripTest {
                 varaktighetMinuter = 240, triggers = "[]", atgarder = "[]",
             ),
         ),
+        notes = listOf(
+            NoteJson(target = "ACTIVITY", entityId = "a1", text = "Mådde bra efteråt"),
+            NoteJson(target = "MEDICATION", entityId = "m1", text = "Tog med mat"),
+        ),
+        screeningEventConfigs = listOf(
+            ScreeningEventConfigJson(enabled = true, time = "08:00"),
+            ScreeningEventConfigJson(enabled = false, time = "12:00"),
+        ),
+        sheetsConfig = "https://docs.google.com/spreadsheets/d/test123",
     )
 
     // ─── round-trip ───────────────────────────────────────────────────────────
@@ -160,6 +174,26 @@ class MigrationRoundTripTest {
         assertEquals(4, fromDb.minTidMellan)
     }
 
+    @Test fun notes_survive_mapper_and_import_and_can_be_read_back() = runTest {
+        val backup = testBackup()
+        noteRepo.importAll(BackupMapper.toNotes(backup))
+
+        val text = db.noteDao().getAll().find { it.target == "ACTIVITY" && it.entityId == "a1" }?.text
+        assertEquals("Mådde bra efteråt", text)
+    }
+
+    @Test fun notes_with_blank_text_are_filtered_out_during_import() = runTest {
+        val backup = testBackup().copy(
+            notes = listOf(
+                NoteJson(target = "ACTIVITY", entityId = "x1", text = ""),
+                NoteJson(target = "ACTIVITY", entityId = "x2", text = "  "),
+                NoteJson(target = "ACTIVITY", entityId = "x3", text = "Giltig"),
+            )
+        )
+        noteRepo.importAll(BackupMapper.toNotes(backup))
+        assertEquals(1, db.noteDao().count())
+    }
+
     @Test fun handelser_survive_mapper_and_import_and_can_be_read_back() = runTest {
         val backup = testBackup()
         handelserRepo.importAll(BackupMapper.toHandelser(backup))
@@ -192,10 +226,12 @@ class MigrationRoundTripTest {
         medicRepo.importRecept(BackupMapper.toRecept(backup))
         medicRepo.importFavoriter(BackupMapper.toFavoriter(backup))
         handelserRepo.importAll(BackupMapper.toHandelser(backup))
+        noteRepo.importAll(BackupMapper.toNotes(backup))
 
         assertEquals(2, db.aktivitetDao().count())
         assertEquals(1, db.medicinDao().count())
         assertEquals(2, db.handelseDao().count())
+        assertEquals(2, db.noteDao().count())
     }
 
     // ─── upsert idempotency ───────────────────────────────────────────────────
@@ -206,10 +242,12 @@ class MigrationRoundTripTest {
             aktivRepo.importAll(BackupMapper.toAktiviteter(backup))
             medicRepo.importMediciner(BackupMapper.toMediciner(backup))
             handelserRepo.importAll(BackupMapper.toHandelser(backup))
+            noteRepo.importAll(BackupMapper.toNotes(backup))
         }
         assertEquals(2, db.aktivitetDao().count())
         assertEquals(1, db.medicinDao().count())
         assertEquals(2, db.handelseDao().count())
+        assertEquals(2, db.noteDao().count())
     }
 
     @Test fun backup_without_handelser_field_imports_without_error() = runTest {
@@ -217,5 +255,16 @@ class MigrationRoundTripTest {
         val legacyBackup = testBackup().copy(handelser = emptyList())
         handelserRepo.importAll(BackupMapper.toHandelser(legacyBackup))
         assertEquals(0, db.handelseDao().count())
+    }
+
+    @Test fun backup_without_optional_fields_imports_without_error() = runTest {
+        // Simulates restoring a legacy backup missing notes/screeningEventConfigs/sheetsConfig
+        val legacyBackup = testBackup().copy(
+            notes = emptyList(),
+            screeningEventConfigs = null,
+            sheetsConfig = null,
+        )
+        noteRepo.importAll(BackupMapper.toNotes(legacyBackup))
+        assertEquals(0, db.noteDao().count())
     }
 }

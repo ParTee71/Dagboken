@@ -18,6 +18,9 @@ data class BackupJson(
     val sjukdomsepisoder: List<SjukdomsEpisodJson> = emptyList(),
     val sjukdomsIncheckningar: List<SjukdomsIncheckningJson> = emptyList(),
     val handelser: List<HandelseJson> = emptyList(),
+    val notes: List<NoteJson> = emptyList(),
+    val screeningEventConfigs: List<ScreeningEventConfigJson>? = null,
+    val sheetsConfig: String? = null,
 )
 
 @Serializable
@@ -117,6 +120,19 @@ data class HandelseJson(
     val triggers: String = "",
     val atgarder: String = "",
     val anteckning: String = "",
+)
+
+@Serializable
+data class NoteJson(
+    val target: String = "",
+    val entityId: String = "",
+    val text: String = "",
+)
+
+@Serializable
+data class ScreeningEventConfigJson(
+    val enabled: Boolean = false,
+    val time: String = "",
 )
 
 @Serializable

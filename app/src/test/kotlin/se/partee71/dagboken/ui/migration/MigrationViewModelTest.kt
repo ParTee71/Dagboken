@@ -32,6 +32,7 @@ import se.partee71.dagboken.data.migration.DriveResult
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.data.room.AppDatabase
 
@@ -54,6 +55,7 @@ class MigrationViewModelTest {
     private val medicRepo      = mockk<MedicinerRepository>(relaxed = true)
     private val sjukdomarRepo  = mockk<SjukdomarRepository>(relaxed = true)
     private val handelserRepo  = mockk<HandelserRepository>(relaxed = true)
+    private val noteRepo       = mockk<NoteRepository>(relaxed = true)
     private val prefs          = mockk<PreferencesRepository>(relaxed = true)
 
     private lateinit var viewModel: MigrationViewModel
@@ -67,7 +69,7 @@ class MigrationViewModelTest {
         coEvery { db.withTransaction<Unit>(any()) } coAnswers {
             secondArg<suspend () -> Unit>().invoke()
         }
-        viewModel = MigrationViewModel(context, db, driveRepo, authRepo, aktivRepo, medicRepo, sjukdomarRepo, handelserRepo, prefs,
+        viewModel = MigrationViewModel(context, db, driveRepo, authRepo, aktivRepo, medicRepo, sjukdomarRepo, handelserRepo, noteRepo, prefs,
             Json { ignoreUnknownKeys = true })
     }
 

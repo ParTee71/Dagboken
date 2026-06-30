@@ -1,5 +1,6 @@
 package se.partee71.dagboken.data.migration
 
+import se.partee71.dagboken.data.room.entities.NoteEntity
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Handelse
@@ -25,6 +26,10 @@ object BackupMapper {
         json.sjukdomsIncheckningar.map { it.toDomain() }
 
     fun toHandelser(json: BackupJson): List<Handelse> = json.handelser.map { it.toDomain() }
+
+    fun toNotes(json: BackupJson): List<NoteEntity> = json.notes
+        .filter { it.target.isNotBlank() && it.entityId.isNotBlank() && it.text.isNotBlank() }
+        .map { NoteEntity(target = it.target, entityId = it.entityId, text = it.text) }
 
     private fun AktivitetJson.toDomain() = Aktivitet(
         id           = id,
