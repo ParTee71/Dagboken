@@ -17,6 +17,8 @@ import se.partee71.dagboken.data.room.daos.HandelseDao
 import se.partee71.dagboken.data.room.daos.MedicinDao
 import se.partee71.dagboken.data.room.daos.NoteDao
 import se.partee71.dagboken.data.room.daos.ReceptDao
+import se.partee71.dagboken.data.room.daos.SjukdomsEpisodDao
+import se.partee71.dagboken.data.room.daos.SjukdomsIncheckningDao
 import javax.inject.Singleton
 
 @Module
@@ -43,10 +45,12 @@ object DatabaseModule {
             .addMigrations(*AppDatabase.MIGRATIONS)
             .build()
 
-    @Provides fun provideAktivitetDao(db: AppDatabase): AktivitetDao = db.aktivitetDao()
-    @Provides fun provideMedicinDao(db: AppDatabase): MedicinDao     = db.medicinDao()
-    @Provides fun provideReceptDao(db: AppDatabase): ReceptDao       = db.receptDao()
-    @Provides fun provideFavoritDao(db: AppDatabase): FavoritDao     = db.favoritDao()
-    @Provides fun provideHandelseDao(db: AppDatabase): HandelseDao   = db.handelseDao()
-    @Provides fun provideNoteDao(db: AppDatabase): NoteDao           = db.noteDao()
+    @Provides fun provideAktivitetDao(db: AppDatabase): AktivitetDao                   = db.aktivitetDao()
+    @Provides fun provideMedicinDao(db: AppDatabase): MedicinDao                       = db.medicinDao()
+    @Provides fun provideReceptDao(db: AppDatabase): ReceptDao                         = db.receptDao()
+    @Provides fun provideFavoritDao(db: AppDatabase): FavoritDao                       = db.favoritDao()
+    @Provides fun provideHandelseDao(db: AppDatabase): HandelseDao                     = db.handelseDao()
+    @Provides fun provideNoteDao(db: AppDatabase): NoteDao                             = db.noteDao()
+    @Provides fun provideSjukdomsEpisodDao(db: AppDatabase): SjukdomsEpisodDao         = db.sjukdomsEpisodDao()
+    @Provides fun provideSjukdomsIncheckningDao(db: AppDatabase): SjukdomsIncheckningDao = db.sjukdomsIncheckningDao()
 }

@@ -207,6 +207,33 @@
     <string name="samsung_health_body">Synkronisera din hälsodata från Samsung Health för en komplett bild av ditt välmående.</string>
     <string name="samsung_health_connect_button">Anslut Samsung Health</string>
 
+    <!-- Sjukdomar -->
+    <string name="sjukdomar_title">Sjukdomar</string>
+    <string name="sjukdomar_empty_title">Inga sjukdomsepisoder</string>
+    <string name="sjukdomar_empty_body">Tryck + för att logga en sjukdom</string>
+    <string name="sjukdom_add_title">Ny sjukdomsepisod</string>
+    <string name="sjukdom_edit_title">Redigera episode</string>
+    <string name="sjukdom_label_typ">Typ av sjukdom</string>
+    <string name="sjukdom_label_start">Startdatum</string>
+    <string name="sjukdom_label_slut">Slutdatum</string>
+    <string name="sjukdom_pagaende">Pågår</string>
+    <string name="sjukdom_avslutad">Avslutad</string>
+    <string name="sjukdom_markera_frisk">Markera frisk</string>
+    <string name="format_sjukdom_varaktighet">%1$d dag(ar)</string>
+    <string name="sjukdom_incheckning_title">Ny incheckning</string>
+    <string name="sjukdom_label_svarighetsgrad">Svårighetsgrad</string>
+    <string name="delete_sjukdom_title">Ta bort episod</string>
+    <string name="format_delete_sjukdom_confirm">Ta bort %1$s och alla incheckningar?</string>
+    <string name="delete_incheckning_title">Ta bort incheckning</string>
+    <string name="delete_incheckning_confirm">Ta bort denna incheckning?</string>
+    <string name="sjukdom_hem_card_pagaende">Pågående sjukdom</string>
+    <string name="format_sjukdom_hem_sedan">Sedan %1$s</string>
+    <string name="sjukdom_frisk_snackbar">Markerad som frisk ✓</string>
+    <string name="sjukdom_sparad_snackbar">Sjukdom sparad ✓</string>
+    <string name="incheckning_sparad_snackbar">Incheckning sparad ✓</string>
+    <string name="format_incheckning_deleted">Incheckning borttagen</string>
+    <string name="format_sjukdom_deleted">%1$s borttagen</string>
+
     <!-- Händelser (health event log) -->
     <string name="handelser_title">Händelser</string>
     <string name="handelser_add">Ny händelse</string>

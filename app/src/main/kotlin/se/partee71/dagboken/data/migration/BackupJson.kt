@@ -13,6 +13,8 @@ data class BackupJson(
     val medicinFavoriter: List<FavoritJson> = emptyList(),
     val aktiviteterOptions: List<String>? = null,
     val symptomOptions: List<String>? = null,
+    val sjukdomsepisoder: List<SjukdomsEpisodJson> = emptyList(),
+    val sjukdomsIncheckningar: List<SjukdomsIncheckningJson> = emptyList(),
 )
 
 @Serializable
@@ -75,4 +77,27 @@ data class FavoritJson(
     val minTidMellan: Int = 4,
     val dispenseringsTid: String = "",
     val maxDoserPerDag: Int = 0,
+)
+
+@Serializable
+data class SjukdomsEpisodJson(
+    val id: String = "",
+    val typ: String = "",
+    val startDatum: String = "",
+    val slutDatum: String = "",
+    val anteckning: String = "",
+    val timestamp: Long = 0,
+)
+
+@Serializable
+data class SjukdomsIncheckningJson(
+    val id: String = "",
+    val episodId: String = "",
+    val datum: String = "",
+    val tid: String = "",
+    val svarighetsgrad: Int = 0,
+    val symptom: String = "",
+    val somatiska: Int = 0,
+    val anteckning: String = "",
+    val timestamp: Long = 0,
 )

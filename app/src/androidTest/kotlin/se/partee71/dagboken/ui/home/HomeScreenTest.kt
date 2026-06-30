@@ -16,12 +16,14 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlinx.coroutines.Dispatchers
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
@@ -38,6 +40,7 @@ class HomeScreenTest {
     private lateinit var medicRepo: MedicinerRepository
     private lateinit var authRepo: FirebaseAuthRepository
     private lateinit var prefs: PreferencesRepository
+    private lateinit var sjukdomarRepo: SjukdomarRepository
     private lateinit var vm: HomeViewModel
 
     private val today get() = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
@@ -55,13 +58,14 @@ class HomeScreenTest {
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
-        authRepo = FirebaseAuthRepository(ctx)
-        prefs    = PreferencesRepository(ctx)
+        authRepo      = FirebaseAuthRepository(ctx)
+        prefs         = PreferencesRepository(ctx)
+        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), Dispatchers.IO)
         runBlocking {
             prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
             prefs.setMedsNotificationsEnabled(false)
         }
-        vm = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs)
+        vm = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo)
     }
 
     @After fun tearDown() {
@@ -80,6 +84,7 @@ class HomeScreenTest {
                     onNavigateToMediciner   = {},
                     onNavigateToSettings    = {},
                     onNavigateToDiagram     = {},
+                    onNavigateToSjukdomar   = {},
                     snackbarHostState       = SnackbarHostState(),
                     vm                      = vm,
                 )

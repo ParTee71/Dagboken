@@ -10,12 +10,16 @@ import se.partee71.dagboken.data.room.daos.HandelseDao
 import se.partee71.dagboken.data.room.daos.MedicinDao
 import se.partee71.dagboken.data.room.daos.NoteDao
 import se.partee71.dagboken.data.room.daos.ReceptDao
+import se.partee71.dagboken.data.room.daos.SjukdomsEpisodDao
+import se.partee71.dagboken.data.room.daos.SjukdomsIncheckningDao
 import se.partee71.dagboken.data.room.entities.AktivitetEntity
 import se.partee71.dagboken.data.room.entities.FavoritEntity
 import se.partee71.dagboken.data.room.entities.HandelseEntity
 import se.partee71.dagboken.data.room.entities.MedicinEntity
 import se.partee71.dagboken.data.room.entities.NoteEntity
 import se.partee71.dagboken.data.room.entities.ReceptEntity
+import se.partee71.dagboken.data.room.entities.SjukdomsEpisodEntity
+import se.partee71.dagboken.data.room.entities.SjukdomsIncheckningEntity
 
 @Database(
     entities = [
@@ -25,8 +29,10 @@ import se.partee71.dagboken.data.room.entities.ReceptEntity
         FavoritEntity::class,
         HandelseEntity::class,
         NoteEntity::class,
+        SjukdomsEpisodEntity::class,
+        SjukdomsIncheckningEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -36,6 +42,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun favoritDao(): FavoritDao
     abstract fun handelseDao(): HandelseDao
     abstract fun noteDao(): NoteDao
+    abstract fun sjukdomsEpisodDao(): SjukdomsEpisodDao
+    abstract fun sjukdomsIncheckningDao(): SjukdomsIncheckningDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -104,6 +112,32 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""CREATE TABLE IF NOT EXISTS sjukdomsepisoder (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    typ TEXT NOT NULL,
+                    start_datum TEXT NOT NULL,
+                    slut_datum TEXT NOT NULL DEFAULT '',
+                    anteckning TEXT NOT NULL DEFAULT '',
+                    timestamp INTEGER NOT NULL DEFAULT 0
+                )""")
+                db.execSQL("""CREATE TABLE IF NOT EXISTS sjukdoms_incheckningar (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    episod_id TEXT NOT NULL,
+                    datum TEXT NOT NULL,
+                    tid TEXT NOT NULL,
+                    svarighetsgrad INTEGER NOT NULL,
+                    symptom TEXT NOT NULL DEFAULT '',
+                    somatiska INTEGER NOT NULL DEFAULT 0,
+                    anteckning TEXT NOT NULL DEFAULT '',
+                    timestamp INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY(episod_id) REFERENCES sjukdomsepisoder(id) ON DELETE CASCADE
+                )""")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_sjukdoms_incheckningar_episod_id ON sjukdoms_incheckningar (episod_id)")
+            }
+        }
+
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
     }
 }

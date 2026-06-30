@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.CardDefaults
@@ -63,6 +64,7 @@ fun HomeScreen(
     onNavigateToMediciner: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToDiagram: () -> Unit,
+    onNavigateToSjukdomar: () -> Unit,
     snackbarHostState: SnackbarHostState,
     vm: HomeViewModel = hiltViewModel(),
 ) {
@@ -226,6 +228,50 @@ fun HomeScreen(
                                         }
                                     },
                                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Pågående sjukdom-kort
+            uiState.pagaendeSjukdom?.let { sjukdom ->
+                item {
+                    ElevatedCard(
+                        onClick  = onNavigateToSjukdomar,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors   = CardDefaults.elevatedCardColors(containerColor = cs.errorContainer),
+                    ) {
+                        Row(
+                            modifier          = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.LocalHospital,
+                                contentDescription = null,
+                                tint     = cs.error,
+                                modifier = Modifier.size(28.dp),
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    stringResource(R.string.sjukdom_hem_card_pagaende),
+                                    style      = MaterialTheme.typography.labelSmall,
+                                    color      = cs.onErrorContainer.copy(alpha = 0.7f),
+                                )
+                                Text(
+                                    sjukdom.typ,
+                                    style      = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color      = cs.onErrorContainer,
+                                )
+                                Text(
+                                    stringResource(R.string.format_sjukdom_hem_sedan, sjukdom.startDatum),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = cs.onErrorContainer.copy(alpha = 0.7f),
                                 )
                             }
                         }

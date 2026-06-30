@@ -17,8 +17,10 @@ import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.ScreeningTime
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.tidpunktSortIndex
 import se.partee71.dagboken.domain.model.tidpunktToHour
 import java.time.DayOfWeek
@@ -40,6 +42,7 @@ data class HomeUiState(
     val googlePhotoUrl: String? = null,
     val googleDisplayName: String? = null,
     val isSigningIn: Boolean = false,
+    val pagaendeSjukdom: SjukdomsEpisod? = null,
 )
 
 @HiltViewModel
@@ -48,6 +51,7 @@ class HomeViewModel @Inject constructor(
     private val medicinerRepo: MedicinerRepository,
     private val authRepo: FirebaseAuthRepository,
     private val prefs: PreferencesRepository,
+    private val sjukdomarRepo: SjukdomarRepository,
 ) : ViewModel() {
 
     private val _isSigningIn = MutableStateFlow(false)
@@ -64,8 +68,11 @@ class HomeViewModel @Inject constructor(
         authRepo.authStateFlow,
         _isSigningIn,
         activeScreeningTimes,
-        aktiviteterRepo.screeningFromDate(7),
-    ) { today, user, signingIn, activeTimes, recentScreenings ->
+        combine(
+            aktiviteterRepo.screeningFromDate(7),
+            sjukdomarRepo.pagaende,
+        ) { screenings, pagaende -> screenings to pagaende },
+    ) { today, user, signingIn, activeTimes, (recentScreenings, pagaendeSjukdom) ->
         val todayStr = LocalDate.now().toString()
         val screeningsToday = recentScreenings.filter { it.datum == todayStr }
         val screeningDailyAvg = recentScreenings
@@ -102,6 +109,7 @@ class HomeViewModel @Inject constructor(
             googlePhotoUrl        = user?.photoUrl?.toString(),
             googleDisplayName     = user?.displayName,
             isSigningIn           = signingIn,
+            pagaendeSjukdom       = pagaendeSjukdom,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 

@@ -162,7 +162,7 @@ fun MedicinerScreen(
                 modifier = Modifier.fillMaxSize(),
             ) { page ->
                 when (page) {
-                    0 -> IdagTab(vm = vm, onEdit = onEditMedicin)
+                    0 -> IdagTab(vm = vm, onEdit = onEditFavorit)
                     1 -> SchemaTab(vm = vm, onEdit = onEditRecept)
                     2 -> VidBehovTab(vm = vm, onEdit = onEditFavorit)
                 }
