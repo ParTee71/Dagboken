@@ -1,0 +1,102 @@
+# Dagboken – projektets grundregler
+
+> Hälsodagbok (Android/Kotlin · Compose · MVVM · Hilt · Room · DataStore · Firebase · Google Drive).
+> Kravspecifikation: [KRAVLISTA.md](KRAVLISTA.md) · Arkitektur: [README.md](README.md)
+
+Den här filen laddas automatiskt vid **varje** uppgift. Den gäller alltid, för alla
+ändringar, oavsett storlek. De detaljerade reglerna ligger som skills i
+`.claude/skills/` — den här filen är kontraktet som binder ihop dem.
+
+---
+
+## De fyra icke-förhandlingsbara reglerna
+
+Vid **varje** kodändring ska du, innan du anser arbetet klart, gå igenom alla fyra:
+
+### 1. Datasäkerhet — backup/restore får aldrig tappa data
+All användardata måste överleva en **backup → restore-rundtur** utan förlust.
+Lägger du till eller ändrar ett persisterat fält/en entitet ska det in i hela
+backup-kedjan *och* täckas av rundturstest.
+→ Skill: **data-safety-backup**. Krav: BCK-1…9, SJ-7, NFR-7, DAT-3.
+
+### 2. Tester på alla nivåer
+Ingen beteendeändring utan att tester läggs till eller uppdateras på rätt nivå
+(enhet / instrument / migrering). Befintliga tester som påverkas ska uppdateras,
+aldrig tas bort för att "bli gröna".
+→ Skill: **testing-strategy**. Krav: NFR-6.
+
+### 3. Kraven hålls aktuella
+Ändrar du synligt beteende ska [KRAVLISTA.md](KRAVLISTA.md) uppdateras i samma
+ändring — nytt krav läggs till, borttaget beteende stryks med
+`~~…~~ *(borttaget)*`. Versionstabellen i README och `versionName` följer med.
+→ Skill: **requirements-kravlista**.
+
+### 4. Återanvänd generiska komponenter
+Behöver du en sifferslider, ett diagram, ett kort, en datum/tid-rad, en
+symptomgradering osv. — använd den befintliga delade komponenten i
+`ui/components/` eller `ui/diagram/`. Bygg inte en ny variant av något som redan
+finns; utöka den delade komponenten i stället.
+→ Skill: **shared-ui-components**.
+
+---
+
+## Innan du skriver ny kod (snabb checklista)
+
+1. **Sök efter befintligt mönster.** Det finns nästan alltid en sibling-ViewModel,
+   en delad komponent eller en repository-metod som visar hur projektet gör.
+   `Grep`/läs grannfiler först (se skill `android-dev`).
+2. **Följ arkitekturen** även om en genväg vore enklare: MVVM, `StateFlow<UiState>`,
+   Repository som single source of truth, Hilt-DI, fel mappas i repository-lagret.
+3. **Svenska** i allt användarvänt: UI-strängar (i `strings.xml`), commit-meddelanden
+   får vara svenska, kod/identifierare på engelska enligt befintlig stil.
+
+## Innan du anser dig klar (slutkontroll)
+
+- [ ] **Datasäkerhet:** nya/ändrade persisterade fält finns i `BackupJson` + `BackupMapper` + assembly i `DriveBackupRepository`, och har rundturstest. (regel 1)
+- [ ] **Tester:** lagt till/uppdaterat på alla berörda nivåer; allt grönt lokalt. (regel 2)
+- [ ] **Krav:** KRAVLISTA.md (och ev. README/version) speglar ändringen. (regel 3)
+- [ ] **Återbruk:** ingen ny komponent som dubblerar en befintlig delad. (regel 4)
+- [ ] **Arkitektur:** följer projektets etablerade mönster (skill `android-dev`).
+
+---
+
+## Bygg & test (kommandon)
+
+```bash
+./gradlew :app:compileDebugKotlin            # kompilera
+./gradlew :app:testDebugUnitTest             # enhetstester (JUnit/MockK/Turbine)
+./gradlew :app:compileDebugAndroidTestKotlin # kompilera instrumenttester
+./gradlew :app:connectedDebugAndroidTest     # instrumenttester (kräver emulator/enhet)
+./gradlew :app:assembleDebug                 # debug-APK
+```
+
+CI (`.github/workflows/android.yml`) kör de tre första vid varje PR mot `master` —
+få dem gröna lokalt innan push.
+
+## Arkitektur i korthet
+
+`Compose → ViewModel (StateFlow<UiState>) → Repository → Room/DataStore/Drive`.
+Paket under `app/src/main/kotlin/se/partee71/dagboken/`:
+`data/` (auth, datastore, migration=backup, repository, room) · `di/` · `domain/`
+(model, usecase) · `notifications/` · `ui/<feature>/` + `ui/components/` +
+`ui/diagram/` · `worker/`. Detaljer i [README.md](README.md).
+
+---
+
+## Skills i detta repo (`.claude/skills/`)
+
+| Skill | När |
+|---|---|
+| `android-dev` | Baslinje för all Android/Kotlin-utveckling (ladda alltid). |
+| `android-data-layer` | Repository/Room/DAO/offline-först. |
+| `compose-expert` · `kotlin-coroutines` · `kotlin-flows` | Compose-, coroutine- och flow-detaljer. |
+| `firebase-auth` | Inloggning (Credential Manager + Firebase). |
+| `android-gradle-logic` | Gradle/version catalogs/build-konfiguration. |
+| **`data-safety-backup`** | Regel 1 — backup/restore och dess tester. |
+| **`testing-strategy`** | Regel 2 — tester på alla nivåer. |
+| **`requirements-kravlista`** | Regel 3 — hålla KRAVLISTA.md aktuell. |
+| **`shared-ui-components`** | Regel 4 — återbruk av delade komponenter. |
+| `release` | Endast vid uttrycklig release. |
+
+> Andra verktyg (Cursor, Codex, Copilot, Zed …): se [AGENTS.md](AGENTS.md). Skill-filerna
+> är vanlig Markdown och kan läsas direkt även utan Claude Code.
