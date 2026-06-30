@@ -17,6 +17,7 @@ data class BackupJson(
     val symptomOptionsV2: List<SymptomOptionBackup>? = null,
     val sjukdomsepisoder: List<SjukdomsEpisodJson> = emptyList(),
     val sjukdomsIncheckningar: List<SjukdomsIncheckningJson> = emptyList(),
+    val handelser: List<HandelseJson> = emptyList(),
 )
 
 @Serializable
@@ -102,6 +103,20 @@ data class SjukdomsIncheckningJson(
     val somatiska: Int = 0,
     val anteckning: String = "",
     val timestamp: Long = 0,
+)
+
+@Serializable
+data class HandelseJson(
+    val id: String = "",
+    val timestamp: String = "",
+    val datum: String = "",
+    val tid: String = "",
+    val typ: String = "",
+    val svarighetsgrad: Int = 0,
+    val varaktighetMinuter: Int = 0,
+    val triggers: String = "",
+    val atgarder: String = "",
+    val anteckning: String = "",
 )
 
 @Serializable

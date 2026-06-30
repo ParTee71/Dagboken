@@ -2,6 +2,7 @@ package se.partee71.dagboken.data.migration
 
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.domain.model.Handelse
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
@@ -22,6 +23,8 @@ object BackupMapper {
 
     fun toSjukdomsIncheckningar(json: BackupJson): List<SjukdomsIncheckning> =
         json.sjukdomsIncheckningar.map { it.toDomain() }
+
+    fun toHandelser(json: BackupJson): List<Handelse> = json.handelser.map { it.toDomain() }
 
     private fun AktivitetJson.toDomain() = Aktivitet(
         id           = id,
@@ -103,6 +106,19 @@ object BackupMapper {
         symptom        = symptom,
         somatiska      = somatiska,
         anteckning     = anteckning,
+    )
+
+    private fun HandelseJson.toDomain() = Handelse(
+        id                 = id,
+        timestamp          = timestamp,
+        datum              = datum,
+        tid                = tid,
+        typ                = typ,
+        svarighetsgrad     = svarighetsgrad,
+        varaktighetMinuter = varaktighetMinuter,
+        triggers           = triggers,
+        atgarder           = atgarder,
+        anteckning         = anteckning,
     )
 
     // Mirrors migrateAktiviteterTypes from src/storage/aktiviteter.ts

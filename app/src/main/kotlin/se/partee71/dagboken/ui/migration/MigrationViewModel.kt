@@ -23,6 +23,7 @@ import se.partee71.dagboken.data.migration.BackupMapper
 import se.partee71.dagboken.data.migration.DriveBackupRepository
 import se.partee71.dagboken.data.migration.DriveResult
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.data.room.AppDatabase
@@ -49,6 +50,7 @@ class MigrationViewModel @Inject constructor(
     private val aktiviteterRepo: AktiviteterRepository,
     private val medicinerRepo: MedicinerRepository,
     private val sjukdomarRepo: SjukdomarRepository,
+    private val handelserRepo: HandelserRepository,
     private val prefs: PreferencesRepository,
     private val json: Json,
 ) : ViewModel() {
@@ -128,12 +130,14 @@ class MigrationViewModel @Inject constructor(
         val favoriter         = BackupMapper.toFavoriter(backup)
         val sjukdomsEpisoder  = BackupMapper.toSjukdomsEpisoder(backup)
         val sjukdomsIncheckningar = BackupMapper.toSjukdomsIncheckningar(backup)
+        val handelser         = BackupMapper.toHandelser(backup)
 
         db.withTransaction {
             aktiviteterRepo.importAll(aktiviteter)
             medicinerRepo.importMediciner(mediciner)
             medicinerRepo.importRecept(recept)
             medicinerRepo.importFavoriter(favoriter)
+            handelserRepo.importAll(handelser)
         }
         sjukdomarRepo.importEpisoder(sjukdomsEpisoder)
         sjukdomarRepo.importIncheckningar(sjukdomsIncheckningar)
