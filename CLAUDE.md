@@ -98,5 +98,17 @@ Paket under `app/src/main/kotlin/se/partee71/dagboken/`:
 | **`shared-ui-components`** | Regel 4 — återbruk av delade komponenter. |
 | `release` | Endast vid uttrycklig release. |
 
-> Andra verktyg (Cursor, Codex, Copilot, Zed …): se [AGENTS.md](AGENTS.md). Skill-filerna
-> är vanlig Markdown och kan läsas direkt även utan Claude Code.
+> Reglerna gäller både i Claude Android-appen och i Claude inuti Android Studio —
+> båda läser denna fil och `.claude/`. Skill-filerna är vanlig Markdown och kan läsas
+> direkt.
+
+## Fjärrsessioner (Claude Android-appen)
+
+En SessionStart-hook (`.claude/hooks/session-start.sh`) provisionerar Android SDK i
+fjärrsessioner så att `./gradlew :app:testDebugUnitTest` kan köras. Den körs bara på
+webben/i appen (`CLAUDE_CODE_REMOTE=true`) och är en no-op lokalt i Android Studio.
+
+> **Kräver nätverkspolicy som tillåter `dl.google.com`** (Android SDK + Google Maven:
+> AndroidX/Compose/Hilt). Är värden blockerad kan Android-bygget inte hämta SDK eller
+> beroenden — vidga miljöns nätverkspolicy. Se
+> [Claude Code on the web](https://code.claude.com/docs/en/claude-code-on-the-web).
