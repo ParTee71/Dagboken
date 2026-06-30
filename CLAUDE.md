@@ -70,8 +70,15 @@ finns; utöka den delade komponenten i stället.
 ./gradlew :app:assembleDebug                 # debug-APK
 ```
 
-CI (`.github/workflows/android.yml`) kör de tre första vid varje PR mot `master` —
-få dem gröna lokalt innan push.
+**Tester körs i GitHub Actions** — inte i sessionen. Vid PR/push mot `master` kör
+`.github/workflows/android.yml` kompilering + enhetstester, och
+`.github/workflows/instrumented.yml` instrumenttester på emulator. Det är så testning
+sker när du arbetar från telefonen (Claude Android-appen): **pusha branchen och öppna
+en PR mot `master`** så kör Actions testerna.
+
+> I fjärr-/telefonsessioner finns ingen Android SDK och `dl.google.com` (Google Maven)
+> kan vara blockerad av nätverkspolicyn — försök därför **inte** köra `./gradlew` där.
+> Lita på CI. Kommandona ovan gäller lokal utveckling i Android Studio.
 
 ## Arkitektur i korthet
 
@@ -101,14 +108,3 @@ Paket under `app/src/main/kotlin/se/partee71/dagboken/`:
 > Reglerna gäller både i Claude Android-appen och i Claude inuti Android Studio —
 > båda läser denna fil och `.claude/`. Skill-filerna är vanlig Markdown och kan läsas
 > direkt.
-
-## Fjärrsessioner (Claude Android-appen)
-
-En SessionStart-hook (`.claude/hooks/session-start.sh`) provisionerar Android SDK i
-fjärrsessioner så att `./gradlew :app:testDebugUnitTest` kan köras. Den körs bara på
-webben/i appen (`CLAUDE_CODE_REMOTE=true`) och är en no-op lokalt i Android Studio.
-
-> **Kräver nätverkspolicy som tillåter `dl.google.com`** (Android SDK + Google Maven:
-> AndroidX/Compose/Hilt). Är värden blockerad kan Android-bygget inte hämta SDK eller
-> beroenden — vidga miljöns nätverkspolicy. Se
-> [Claude Code on the web](https://code.claude.com/docs/en/claude-code-on-the-web).
