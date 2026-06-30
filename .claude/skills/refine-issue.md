@@ -107,8 +107,8 @@ doesn't apply, say why in the issue rather than dropping it silently.
    variant. (`shared-ui-components`)
 
 Plus, where relevant: **privacy** (no health data in logs; storage only local/Drive
-appDataFolder — `data-privacy-security`), **accessibility** for new UI
-(`accessibility-compose`), and `ATGARDSLISTA.md` updated if it resolves a tracked item.
+appDataFolder — `data-privacy-security`) and **accessibility** for new UI
+(`accessibility-compose`).
 
 If the work is large, propose splitting it and ask whether to file separate issues or a
 parent with sub-issues (`mcp__github__sub_issue_write`). Each split keeps its own DoD.

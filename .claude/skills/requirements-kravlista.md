@@ -42,8 +42,6 @@ Exempel som redan finns i filen: `HEM-3`, `SET-3` (strukna med `~~…~~ *(bortta
 - **Version** — en ny funktion eller borttagning motiverar ofta en versionsbump.
   Själva releasen görs separat via skill `release` (bara på uttrycklig begäran), men
   notera i commit/PR att kravet ändrats.
-- **ATGARDSLISTA.md** — bocka av eller lägg till punkter om ändringen rör en pågående
-  åtgärdspunkt.
 
 ## Checklista
 
