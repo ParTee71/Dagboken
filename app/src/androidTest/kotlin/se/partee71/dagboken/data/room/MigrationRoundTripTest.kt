@@ -16,9 +16,11 @@ import se.partee71.dagboken.data.migration.AktivitetJson
 import se.partee71.dagboken.data.migration.BackupJson
 import se.partee71.dagboken.data.migration.BackupMapper
 import se.partee71.dagboken.data.migration.FavoritJson
+import se.partee71.dagboken.data.migration.HandelseJson
 import se.partee71.dagboken.data.migration.MedicinJson
 import se.partee71.dagboken.data.migration.ReceptJson
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 
@@ -31,6 +33,7 @@ class MigrationRoundTripTest {
     private lateinit var db: AppDatabase
     private lateinit var aktivRepo: AktiviteterRepository
     private lateinit var medicRepo: MedicinerRepository
+    private lateinit var handelserRepo: HandelserRepository
 
     private val json = Json { ignoreUnknownKeys = true }
     private fun decode(s: String)    = runCatching { json.decodeFromString<List<String>>(s) }.getOrDefault(emptyList())
@@ -42,6 +45,7 @@ class MigrationRoundTripTest {
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
         aktivRepo = AktiviteterRepository(db.aktivitetDao())
+        handelserRepo = HandelserRepository(db.handelseDao())
         medicRepo = MedicinerRepository(
             db                 = db,
             medicinDao         = db.medicinDao(),
@@ -87,6 +91,19 @@ class MigrationRoundTripTest {
             FavoritJson(
                 id = "f1", namn = "Paracetamol", dos = "500", enhet = "mg",
                 tidpunkt = "Vid behov", minTidMellan = 4,
+            ),
+        ),
+        handelser = listOf(
+            HandelseJson(
+                id = "h1", timestamp = "2026-01-15T14:30:00.000Z", datum = "2026-01-15",
+                tid = "14:30", typ = "huvudvärk", svarighetsgrad = 6,
+                varaktighetMinuter = 90, triggers = "[\"stress\"]",
+                atgarder = "[\"vila\"]", anteckning = "Kom efter möte",
+            ),
+            HandelseJson(
+                id = "h2", timestamp = "2026-01-16T10:00:00.000Z", datum = "2026-01-16",
+                tid = "10:00", typ = "migrän", svarighetsgrad = 9,
+                varaktighetMinuter = 240, triggers = "[]", atgarder = "[]",
             ),
         ),
     )
@@ -143,15 +160,42 @@ class MigrationRoundTripTest {
         assertEquals(4, fromDb.minTidMellan)
     }
 
+    @Test fun handelser_survive_mapper_and_import_and_can_be_read_back() = runTest {
+        val backup = testBackup()
+        handelserRepo.importAll(BackupMapper.toHandelser(backup))
+
+        val fromDb = db.handelseDao().getById("h1")
+        assertNotNull(fromDb)
+        assertEquals("huvudvärk", fromDb!!.typ)
+        assertEquals(6, fromDb.svarighetsgrad)
+        assertEquals(90, fromDb.varaktighetMinuter)
+        assertEquals("Kom efter möte", fromDb.anteckning)
+    }
+
+    @Test fun handelser_all_fields_survive_round_trip() = runTest {
+        val backup = testBackup()
+        handelserRepo.importAll(BackupMapper.toHandelser(backup))
+
+        val fromDb = db.handelseDao().getById("h1")
+        assertNotNull(fromDb)
+        assertEquals("2026-01-15T14:30:00.000Z", fromDb!!.timestamp)
+        assertEquals("2026-01-15", fromDb.datum)
+        assertEquals("14:30", fromDb.tid)
+        assertEquals("[\"stress\"]", fromDb.triggers)
+        assertEquals("[\"vila\"]", fromDb.atgarder)
+    }
+
     @Test fun full_import_preserves_all_entity_counts() = runTest {
         val backup = testBackup()
         aktivRepo.importAll(BackupMapper.toAktiviteter(backup))
         medicRepo.importMediciner(BackupMapper.toMediciner(backup))
         medicRepo.importRecept(BackupMapper.toRecept(backup))
         medicRepo.importFavoriter(BackupMapper.toFavoriter(backup))
+        handelserRepo.importAll(BackupMapper.toHandelser(backup))
 
         assertEquals(2, db.aktivitetDao().count())
         assertEquals(1, db.medicinDao().count())
+        assertEquals(2, db.handelseDao().count())
     }
 
     // ─── upsert idempotency ───────────────────────────────────────────────────
@@ -161,8 +205,17 @@ class MigrationRoundTripTest {
         repeat(2) {
             aktivRepo.importAll(BackupMapper.toAktiviteter(backup))
             medicRepo.importMediciner(BackupMapper.toMediciner(backup))
+            handelserRepo.importAll(BackupMapper.toHandelser(backup))
         }
         assertEquals(2, db.aktivitetDao().count())
         assertEquals(1, db.medicinDao().count())
+        assertEquals(2, db.handelseDao().count())
+    }
+
+    @Test fun backup_without_handelser_field_imports_without_error() = runTest {
+        // Simulates restoring an old backup (before händelser existed in backup format)
+        val legacyBackup = testBackup().copy(handelser = emptyList())
+        handelserRepo.importAll(BackupMapper.toHandelser(legacyBackup))
+        assertEquals(0, db.handelseDao().count())
     }
 }
