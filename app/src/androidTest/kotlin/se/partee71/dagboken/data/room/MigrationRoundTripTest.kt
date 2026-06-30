@@ -12,6 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlinx.coroutines.Dispatchers
 import se.partee71.dagboken.data.migration.AktivitetJson
 import se.partee71.dagboken.data.migration.BackupJson
 import se.partee71.dagboken.data.migration.BackupMapper
@@ -21,10 +22,13 @@ import se.partee71.dagboken.data.migration.MedicinJson
 import se.partee71.dagboken.data.migration.NoteJson
 import se.partee71.dagboken.data.migration.ReceptJson
 import se.partee71.dagboken.data.migration.ScreeningEventConfigJson
+import se.partee71.dagboken.data.migration.SjukdomsEpisodJson
+import se.partee71.dagboken.data.migration.SjukdomsIncheckningJson
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
+import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 
 /**
@@ -38,6 +42,7 @@ class MigrationRoundTripTest {
     private lateinit var medicRepo: MedicinerRepository
     private lateinit var handelserRepo: HandelserRepository
     private lateinit var noteRepo: NoteRepository
+    private lateinit var sjukdomarRepo: SjukdomarRepository
 
     private val json = Json { ignoreUnknownKeys = true }
     private fun decode(s: String)    = runCatching { json.decodeFromString<List<String>>(s) }.getOrDefault(emptyList())
@@ -51,6 +56,7 @@ class MigrationRoundTripTest {
         aktivRepo = AktiviteterRepository(db.aktivitetDao())
         handelserRepo = HandelserRepository(db.handelseDao())
         noteRepo = NoteRepository(db.noteDao())
+        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), Dispatchers.IO)
         medicRepo = MedicinerRepository(
             db                 = db,
             medicinDao         = db.medicinDao(),
@@ -96,6 +102,23 @@ class MigrationRoundTripTest {
             FavoritJson(
                 id = "f1", namn = "Paracetamol", dos = "500", enhet = "mg",
                 tidpunkt = "Vid behov", minTidMellan = 4,
+            ),
+        ),
+        sjukdomsepisoder = listOf(
+            SjukdomsEpisodJson(
+                id = "e1", typ = "migrän", startDatum = "2026-01-10",
+                slutDatum = "2026-01-12", anteckning = "Tung period",
+            ),
+        ),
+        sjukdomsIncheckningar = listOf(
+            SjukdomsIncheckningJson(
+                id = "i1", episodId = "e1", datum = "2026-01-10", tid = "10:00",
+                svarighetsgrad = 8, symptom = "Yrsel:3", somatiska = 2,
+                anteckning = "Tog medicin",
+            ),
+            SjukdomsIncheckningJson(
+                id = "i2", episodId = "e1", datum = "2026-01-11", tid = "08:00",
+                svarighetsgrad = 5, symptom = "", somatiska = 0,
             ),
         ),
         handelser = listOf(
@@ -174,6 +197,32 @@ class MigrationRoundTripTest {
         assertEquals(4, fromDb.minTidMellan)
     }
 
+    @Test fun sjukdomsepisoder_survive_mapper_and_import_and_can_be_read_back() = runTest {
+        val backup = testBackup()
+        sjukdomarRepo.importEpisoder(BackupMapper.toSjukdomsEpisoder(backup))
+
+        val fromDb = db.sjukdomsEpisodDao().getById("e1")
+        assertNotNull(fromDb)
+        assertEquals("migrän", fromDb!!.typ)
+        assertEquals("2026-01-10", fromDb.startDatum)
+        assertEquals("2026-01-12", fromDb.slutDatum)
+        assertEquals("Tung period", fromDb.anteckning)
+    }
+
+    @Test fun sjukdomsincheckningar_survive_mapper_and_import_and_can_be_read_back() = runTest {
+        val backup = testBackup()
+        sjukdomarRepo.importEpisoder(BackupMapper.toSjukdomsEpisoder(backup))
+        sjukdomarRepo.importIncheckningar(BackupMapper.toSjukdomsIncheckningar(backup))
+
+        val fromDb = db.sjukdomsIncheckningDao().getById("i1")
+        assertNotNull(fromDb)
+        assertEquals("e1", fromDb!!.episodId)
+        assertEquals(8, fromDb.svarighetsgrad)
+        assertEquals("Yrsel:3", fromDb.symptom)
+        assertEquals(2, fromDb.somatiska)
+        assertEquals("Tog medicin", fromDb.anteckning)
+    }
+
     @Test fun notes_survive_mapper_and_import_and_can_be_read_back() = runTest {
         val backup = testBackup()
         noteRepo.importAll(BackupMapper.toNotes(backup))
@@ -225,11 +274,15 @@ class MigrationRoundTripTest {
         medicRepo.importMediciner(BackupMapper.toMediciner(backup))
         medicRepo.importRecept(BackupMapper.toRecept(backup))
         medicRepo.importFavoriter(BackupMapper.toFavoriter(backup))
+        sjukdomarRepo.importEpisoder(BackupMapper.toSjukdomsEpisoder(backup))
+        sjukdomarRepo.importIncheckningar(BackupMapper.toSjukdomsIncheckningar(backup))
         handelserRepo.importAll(BackupMapper.toHandelser(backup))
         noteRepo.importAll(BackupMapper.toNotes(backup))
 
         assertEquals(2, db.aktivitetDao().count())
         assertEquals(1, db.medicinDao().count())
+        assertEquals(1, db.sjukdomsEpisodDao().count())
+        assertEquals(2, db.sjukdomsIncheckningDao().count())
         assertEquals(2, db.handelseDao().count())
         assertEquals(2, db.noteDao().count())
     }
@@ -241,11 +294,15 @@ class MigrationRoundTripTest {
         repeat(2) {
             aktivRepo.importAll(BackupMapper.toAktiviteter(backup))
             medicRepo.importMediciner(BackupMapper.toMediciner(backup))
+            sjukdomarRepo.importEpisoder(BackupMapper.toSjukdomsEpisoder(backup))
+            sjukdomarRepo.importIncheckningar(BackupMapper.toSjukdomsIncheckningar(backup))
             handelserRepo.importAll(BackupMapper.toHandelser(backup))
             noteRepo.importAll(BackupMapper.toNotes(backup))
         }
         assertEquals(2, db.aktivitetDao().count())
         assertEquals(1, db.medicinDao().count())
+        assertEquals(1, db.sjukdomsEpisodDao().count())
+        assertEquals(2, db.sjukdomsIncheckningDao().count())
         assertEquals(2, db.handelseDao().count())
         assertEquals(2, db.noteDao().count())
     }
