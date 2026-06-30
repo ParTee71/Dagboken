@@ -9,4 +9,5 @@ data class SjukdomsIncheckning(
     val symptom: String,
     val somatiska: Int,
     val anteckning: String,
+    val timestamp: Long = System.currentTimeMillis(),
 )

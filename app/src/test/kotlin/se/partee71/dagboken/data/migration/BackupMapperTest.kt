@@ -2,7 +2,6 @@ package se.partee71.dagboken.data.migration
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -233,6 +232,7 @@ class BackupMapperTest {
             sjukdomsepisoder = listOf(SjukdomsEpisodJson(
                 id = "e1", typ = "migrän", startDatum = "2024-01-01",
                 slutDatum = "2024-01-03", anteckning = "Svår period",
+                timestamp = 1_700_000_000_000L,
             ))
         )
         val result = BackupMapper.toSjukdomsEpisoder(json)
@@ -243,7 +243,16 @@ class BackupMapperTest {
             assertEquals("2024-01-01", startDatum)
             assertEquals("2024-01-03", slutDatum)
             assertEquals("Svår period", anteckning)
+            assertEquals(1_700_000_000_000L, timestamp)
         }
+    }
+
+    @Test fun `toSjukdomsEpisoder falls back to non-zero timestamp for legacy backup`() {
+        val json = backup(
+            sjukdomsepisoder = listOf(SjukdomsEpisodJson(id = "e1", typ = "migrän"))
+        )
+        // timestamp defaults to 0 in v1 backups; mapper must substitute a real time
+        assertTrue(BackupMapper.toSjukdomsEpisoder(json)[0].timestamp != 0L)
     }
 
     @Test fun `toSjukdomsEpisoder returns empty for empty backup`() {
@@ -255,7 +264,7 @@ class BackupMapperTest {
             sjukdomsIncheckningar = listOf(SjukdomsIncheckningJson(
                 id = "i1", episodId = "e1", datum = "2024-01-01", tid = "10:00",
                 svarighetsgrad = 8, symptom = "Yrsel:3", somatiska = 2,
-                anteckning = "Tog medicin",
+                anteckning = "Tog medicin", timestamp = 1_700_000_000_000L,
             ))
         )
         val result = BackupMapper.toSjukdomsIncheckningar(json)
@@ -269,7 +278,15 @@ class BackupMapperTest {
             assertEquals("Yrsel:3", symptom)
             assertEquals(2, somatiska)
             assertEquals("Tog medicin", anteckning)
+            assertEquals(1_700_000_000_000L, timestamp)
         }
+    }
+
+    @Test fun `toSjukdomsIncheckningar falls back to non-zero timestamp for legacy backup`() {
+        val json = backup(
+            sjukdomsIncheckningar = listOf(SjukdomsIncheckningJson(id = "i1", episodId = "e1"))
+        )
+        assertTrue(BackupMapper.toSjukdomsIncheckningar(json)[0].timestamp != 0L)
     }
 
     @Test fun `toSjukdomsIncheckningar returns empty for empty backup`() {

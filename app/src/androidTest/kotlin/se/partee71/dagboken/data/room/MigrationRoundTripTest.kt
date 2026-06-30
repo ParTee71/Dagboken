@@ -108,17 +108,19 @@ class MigrationRoundTripTest {
             SjukdomsEpisodJson(
                 id = "e1", typ = "migrän", startDatum = "2026-01-10",
                 slutDatum = "2026-01-12", anteckning = "Tung period",
+                timestamp = 1_700_000_000_000L,
             ),
         ),
         sjukdomsIncheckningar = listOf(
             SjukdomsIncheckningJson(
                 id = "i1", episodId = "e1", datum = "2026-01-10", tid = "10:00",
                 svarighetsgrad = 8, symptom = "Yrsel:3", somatiska = 2,
-                anteckning = "Tog medicin",
+                anteckning = "Tog medicin", timestamp = 1_700_000_111_000L,
             ),
             SjukdomsIncheckningJson(
                 id = "i2", episodId = "e1", datum = "2026-01-11", tid = "08:00",
                 svarighetsgrad = 5, symptom = "", somatiska = 0,
+                timestamp = 1_700_000_222_000L,
             ),
         ),
         handelser = listOf(
@@ -207,6 +209,7 @@ class MigrationRoundTripTest {
         assertEquals("2026-01-10", fromDb.startDatum)
         assertEquals("2026-01-12", fromDb.slutDatum)
         assertEquals("Tung period", fromDb.anteckning)
+        assertEquals(1_700_000_000_000L, fromDb.timestamp)
     }
 
     @Test fun sjukdomsincheckningar_survive_mapper_and_import_and_can_be_read_back() = runTest {
@@ -221,6 +224,7 @@ class MigrationRoundTripTest {
         assertEquals("Yrsel:3", fromDb.symptom)
         assertEquals(2, fromDb.somatiska)
         assertEquals("Tog medicin", fromDb.anteckning)
+        assertEquals(1_700_000_111_000L, fromDb.timestamp)
     }
 
     @Test fun notes_survive_mapper_and_import_and_can_be_read_back() = runTest {

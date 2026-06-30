@@ -100,6 +100,8 @@ object BackupMapper {
         startDatum = startDatum,
         slutDatum  = slutDatum,
         anteckning = anteckning,
+        // v1 backups didn't carry timestamp (0) — fall back to now so ordering stays sane
+        timestamp  = timestamp.takeIf { it != 0L } ?: System.currentTimeMillis(),
     )
 
     private fun SjukdomsIncheckningJson.toDomain() = SjukdomsIncheckning(
@@ -111,6 +113,7 @@ object BackupMapper {
         symptom        = symptom,
         somatiska      = somatiska,
         anteckning     = anteckning,
+        timestamp      = timestamp.takeIf { it != 0L } ?: System.currentTimeMillis(),
     )
 
     private fun HandelseJson.toDomain() = Handelse(

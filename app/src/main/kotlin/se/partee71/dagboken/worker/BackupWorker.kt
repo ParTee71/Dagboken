@@ -160,6 +160,7 @@ class BackupWorker @AssistedInject constructor(
         startDatum = startDatum,
         slutDatum  = slutDatum,
         anteckning = anteckning,
+        timestamp  = timestamp,
     )
 
     private fun NoteEntity.toJson() = NoteJson(
@@ -190,5 +191,6 @@ class BackupWorker @AssistedInject constructor(
         symptom        = symptom,
         somatiska      = somatiska,
         anteckning     = anteckning,
+        timestamp      = timestamp,
     )
 }

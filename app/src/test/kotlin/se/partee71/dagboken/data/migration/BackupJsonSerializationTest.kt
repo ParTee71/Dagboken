@@ -63,13 +63,14 @@ class BackupJsonSerializationTest {
             SjukdomsEpisodJson(
                 id = "e1", typ = "migrän", startDatum = "2026-01-10",
                 slutDatum = "2026-01-12", anteckning = "Svår vecka",
+                timestamp = 1_700_000_000_000L,
             ),
         ),
         sjukdomsIncheckningar = listOf(
             SjukdomsIncheckningJson(
                 id = "i1", episodId = "e1", datum = "2026-01-10", tid = "12:00",
                 svarighetsgrad = 8, symptom = "Yrsel:3", somatiska = 2,
-                anteckning = "Tog medicin",
+                anteckning = "Tog medicin", timestamp = 1_700_000_111_000L,
             ),
         ),
         handelser = listOf(
@@ -137,6 +138,7 @@ class BackupJsonSerializationTest {
             assertEquals("2026-01-10", startDatum)
             assertEquals("2026-01-12", slutDatum)
             assertEquals("Svår vecka", anteckning)
+            assertEquals(1_700_000_000_000L, timestamp)
         }
 
         assertEquals(1, result.sjukdomsIncheckningar.size)
@@ -145,6 +147,7 @@ class BackupJsonSerializationTest {
             assertEquals("e1", episodId)
             assertEquals(8, svarighetsgrad)
             assertEquals("Yrsel:3", symptom)
+            assertEquals(1_700_000_111_000L, timestamp)
         }
 
         assertEquals(1, result.handelser.size)
