@@ -71,7 +71,7 @@
 
 | ID | Krav |
 |----|------|
-| AKT-1 | Användaren ska kunna välja **aktivitetstyp** från konfigurerbara alternativ (default: Promenad, Jobb, Möte, Träning, Vila, Mat, Sällskap, Läsning, Övrigt). |
+| AKT-1 | Användaren ska kunna välja **aktivitetstyp** från konfigurerbara alternativ (default: Promenad, Jobb, Möte, Träning, Vila, Mat, Sällskap, Läsning, Övrigt). Ändringar gjorda i Inställningar ska synas direkt i loggningsformuläret utan omstart. |
 | AKT-2 | Vid valet "Övrigt" ska ett fritextfält visas för egen beskrivning. |
 | AKT-3 | Aktivitet ska kunna märkas som **Återhämtande** och/eller **Energitjuv**. |
 | AKT-4 | Användaren ska kunna sätta **energi** på skala **−10 till +10** (med beskrivande etikett och färg). |
@@ -168,7 +168,7 @@
 | ID | Krav |
 |----|------|
 | BCK-1 | Appen ska **automatiskt säkerhetskopiera** all data till Google Drive (appDataFolder) via WorkManager. |
-| BCK-2 | Backup ska omfatta aktiviteter, mediciner, recept, favoriter samt aktivitets-/symptomalternativ (versionerat JSON). |
+| BCK-2 | Backup ska omfatta aktiviteter, mediciner, recept, favoriter samt aktivitets-/symptomalternativ inklusive favoritstatus (versionerat JSON). |
 | BCK-3 | Endast de **5 senaste** backuperna ska behållas (äldre rensas). |
 | BCK-4 | Backup ska kräva inloggat konto och Drive-auktorisering (`DRIVE_APPDATA`-scope); auktorisering kan kräva användarsamtycke. |
 | BCK-5 | Användaren ska kunna **importera/migrera** data från senaste Drive-backup. |
@@ -202,7 +202,7 @@
 | SET-2 | Vid auto-tema ska **start-timme för ljust respektive mörkt** kunna ställas in (validerade så att ljus < mörk). |
 | SET-3 | ~~**Dynamiska färger** (Material You) ska kunna slås på/av.~~ *(toggle borttaget; Material You alltid aktiverat på Android 12+)* |
 | SET-4 | **Medicinpåminnelser** ska kunna slås på/av. **Screeningpåminnelser** ska ställas in per måltidshändelse (På/av + tid per händelse). |
-| SET-5 | **Aktivitetsalternativ** ska kunna läggas till och tas bort (inga dubbletter). |
+| SET-5 | **Aktivitetsalternativ** ska kunna läggas till, tas bort och stjärnmärkas som favoriter (inga dubbletter). Ändringar ska synas direkt i loggningsformuläret utan omstart. |
 | SET-6 | **Symptomalternativ** ska kunna läggas till och tas bort (inga dubbletter). |
 | SET-7 | Konto (in-/utloggning) ska kunna hanteras från inställningar. |
 | SET-8 | Import/migrering ska kunna startas från inställningar. |

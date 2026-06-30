@@ -79,10 +79,10 @@ class AktiviteterViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     val aktivitetOptions: StateFlow<List<SymptomOption>> = prefs.aktivitetOptions
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val symptomOptions: StateFlow<List<SymptomOption>> = prefs.symptomOptions
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _form = MutableStateFlow(AktivitetForm())
     val form: StateFlow<AktivitetForm> = _form.asStateFlow()

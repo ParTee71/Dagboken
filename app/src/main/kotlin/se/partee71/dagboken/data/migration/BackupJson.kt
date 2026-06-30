@@ -13,6 +13,8 @@ data class BackupJson(
     val medicinFavoriter: List<FavoritJson> = emptyList(),
     val aktiviteterOptions: List<String>? = null,
     val symptomOptions: List<String>? = null,
+    val aktiviteterOptionsV2: List<SymptomOptionBackup>? = null,
+    val symptomOptionsV2: List<SymptomOptionBackup>? = null,
     val sjukdomsepisoder: List<SjukdomsEpisodJson> = emptyList(),
     val sjukdomsIncheckningar: List<SjukdomsIncheckningJson> = emptyList(),
 )
@@ -101,3 +103,6 @@ data class SjukdomsIncheckningJson(
     val anteckning: String = "",
     val timestamp: Long = 0,
 )
+
+@Serializable
+data class SymptomOptionBackup(val name: String, val isFavorite: Boolean = false)

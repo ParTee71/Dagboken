@@ -138,8 +138,13 @@ class MigrationViewModel @Inject constructor(
         sjukdomarRepo.importEpisoder(sjukdomsEpisoder)
         sjukdomarRepo.importIncheckningar(sjukdomsIncheckningar)
 
-        backup.aktiviteterOptions?.let { prefs.setAktivitetOptions(it.map { name -> SymptomOption(name) }) }
-        backup.symptomOptions?.let { prefs.setSymptomOptions(it.map { name -> SymptomOption(name) }) }
+        val aktivitetOpts = backup.aktiviteterOptionsV2?.map { SymptomOption(it.name, it.isFavorite) }
+            ?: backup.aktiviteterOptions?.map { SymptomOption(it) }
+        aktivitetOpts?.let { prefs.setAktivitetOptions(it) }
+
+        val symptomOpts = backup.symptomOptionsV2?.map { SymptomOption(it.name, it.isFavorite) }
+            ?: backup.symptomOptions?.map { SymptomOption(it) }
+        symptomOpts?.let { prefs.setSymptomOptions(it) }
 
         _state.value = MigrationState.Importing(1f)
         prefs.setMigrationDone(true)

@@ -18,6 +18,7 @@ import se.partee71.dagboken.data.migration.MedicinJson
 import se.partee71.dagboken.data.migration.ReceptJson
 import se.partee71.dagboken.data.migration.SjukdomsEpisodJson
 import se.partee71.dagboken.data.migration.SjukdomsIncheckningJson
+import se.partee71.dagboken.data.migration.SymptomOptionBackup
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
@@ -60,6 +61,8 @@ class BackupWorker @AssistedInject constructor(
                 medicinFavoriter      = medicinerRepo.allFavoriter.first().map { it.toJson() },
                 aktiviteterOptions    = prefs.aktivitetOptions.first().map { it.name },
                 symptomOptions        = prefs.symptomOptions.first().map { it.name },
+                aktiviteterOptionsV2  = prefs.aktivitetOptions.first().map { SymptomOptionBackup(it.name, it.isFavorite) },
+                symptomOptionsV2      = prefs.symptomOptions.first().map { SymptomOptionBackup(it.name, it.isFavorite) },
                 sjukdomsepisoder      = episoder.map { it.toJson() },
                 sjukdomsIncheckningar = incheckningar.map { it.toJson() },
             )
