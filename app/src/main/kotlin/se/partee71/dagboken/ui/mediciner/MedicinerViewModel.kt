@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -17,6 +18,7 @@ import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.domain.model.medicinHistoryType
 import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
 import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
 import java.time.LocalDate
@@ -46,6 +48,24 @@ class MedicinerViewModel @Inject constructor(
 
     val allFavoriter: StateFlow<List<Favorit>> = repo.allFavoriter
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allMediciner: StateFlow<List<Medicin>> = repo.allMediciner
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val historyFilter = MutableStateFlow(setOf("recept", "vid_behov"))
+
+    val filteredHistory: StateFlow<List<Medicin>> = combine(allMediciner, historyFilter) { list, filter ->
+        list.filter { medicinHistoryType(it) in filter }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun toggleHistoryFilter(type: String) {
+        val current = historyFilter.value
+        historyFilter.value = if (type in current) {
+            if (current.size > 1) current - type else current
+        } else {
+            current + type
+        }
+    }
 
     private val _snackbar = MutableStateFlow<String?>(null)
     val snackbar: StateFlow<String?> = _snackbar.asStateFlow()

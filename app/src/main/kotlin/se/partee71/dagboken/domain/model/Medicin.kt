@@ -77,3 +77,10 @@ fun tidpunktToHour(tidpunkt: String): Int? {
     if (tidpunkt == "Vid behov") return null
     return TIDP_DEFAULT_TIMES[tidpunkt]?.substringBefore(":")?.toIntOrNull()
 }
+
+/**
+ * Historik-filtertyp för en medicinpost. Härleds från [Medicin.receptId] eftersom
+ * favorit-snabbval och engångsdoser inte skiljs åt i datamodellen (båda receptId == null).
+ */
+fun medicinHistoryType(medicin: Medicin): String =
+    if (medicin.receptId != null) "recept" else "vid_behov"

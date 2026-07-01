@@ -137,6 +137,14 @@
 | FAV-6 | Blockerad dos ska ge tydligt felmeddelande via snackbar. |
 | FAV-7 | Favorit ska kunna ha dispenseringstid (fält finns i modellen). |
 
+### 6.4 Historik-flik
+
+| ID | Krav |
+|----|------|
+| MED-8 | Mediciner-fliken ska ha en fjärde underflik, **Historik**, som visar tidigare loggade medicinposter grupperade per datum (senaste överst). |
+| MED-9 | Historik ska kunna **filtreras** på typ: **Recept** (schemalagda) och **Vid behov** (favoriter/engångsdoser); minst en filtertyp måste vara aktiv. |
+| MED-10 | Poster i Historik ska kunna **redigeras** (öppnar redigera medicin) och **tas bort** (med bekräftelse via dialog). |
+
 ---
 
 ## 7. Diagram

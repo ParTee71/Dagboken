@@ -30,14 +30,14 @@ class AddEditMedicinViewModel @Inject constructor(
 
     private val _form = MutableStateFlow(MedicinForm())
     val form: StateFlow<MedicinForm> = _form.asStateFlow()
-    private var editingId: String? = null
+    private var editingMedicin: Medicin? = null
 
     fun updateForm(update: MedicinForm.() -> MedicinForm) { _form.value = _form.value.update() }
 
     fun loadForEdit(id: String) {
         viewModelScope.launch {
             val m = repo.getMedicinById(id) ?: return@launch
-            editingId = id
+            editingMedicin = m
             _form.value = MedicinForm(
                 namn       = m.namn,
                 dos        = m.dos,
@@ -51,20 +51,31 @@ class AddEditMedicinViewModel @Inject constructor(
     fun save() {
         viewModelScope.launch {
             val f = _form.value
-            val now = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
-            val today = LocalDate.now().toString()
-            val medicin = Medicin(
-                id         = editingId ?: UUID.randomUUID().toString(),
-                timestamp  = System.currentTimeMillis().toString(),
-                datum      = today,
-                tid        = now,
-                namn       = f.namn.trim(),
-                dos        = f.dos.trim(),
-                enhet      = f.enhet,
-                tidpunkt   = f.tidpunkt,
-                tagen      = false,
-                anteckning = f.anteckning.trim(),
-            )
+            val original = editingMedicin
+            val medicin = if (original != null) {
+                original.copy(
+                    namn       = f.namn.trim(),
+                    dos        = f.dos.trim(),
+                    enhet      = f.enhet,
+                    tidpunkt   = f.tidpunkt,
+                    anteckning = f.anteckning.trim(),
+                )
+            } else {
+                val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+                val tid   = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+                Medicin(
+                    id         = UUID.randomUUID().toString(),
+                    timestamp  = "${today}T${tid}:00.000Z",
+                    datum      = today,
+                    tid        = tid,
+                    namn       = f.namn.trim(),
+                    dos        = f.dos.trim(),
+                    enhet      = f.enhet,
+                    tidpunkt   = f.tidpunkt,
+                    tagen      = false,
+                    anteckning = f.anteckning.trim(),
+                )
+            }
             repo.saveMedicin(medicin)
         }
     }

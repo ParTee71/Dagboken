@@ -9,10 +9,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocalPharmacy
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LocalPharmacy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -58,6 +60,7 @@ private val TABS = listOf(
     TabItem(R.string.tab_idag,      Icons.Filled.CheckCircle,   Icons.Outlined.CheckCircle),
     TabItem(R.string.tab_schema,    Icons.Filled.CalendarMonth,  Icons.Outlined.CalendarMonth),
     TabItem(R.string.tab_vid_behov, Icons.Filled.LocalPharmacy,  Icons.Outlined.LocalPharmacy),
+    TabItem(R.string.tab_historik,  Icons.Filled.History,        Icons.Outlined.History),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -165,6 +168,7 @@ fun MedicinerScreen(
                     0 -> IdagTab(vm = vm, onEdit = onEditFavorit)
                     1 -> SchemaTab(vm = vm, onEdit = onEditRecept)
                     2 -> VidBehovTab(vm = vm, onEdit = onEditFavorit)
+                    3 -> HistorikTab(vm = vm, onEdit = onEditMedicin)
                 }
             }
         }
