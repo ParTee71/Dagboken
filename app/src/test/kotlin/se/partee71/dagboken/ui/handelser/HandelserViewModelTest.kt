@@ -239,6 +239,50 @@ class HandelserViewModelTest {
         assertTrue(saved.captured.single { it.name == "Yrsel" }.isFavorite)
     }
 
+    // ─── typPickerOptions ─────────────────────────────────────────────────────
+
+    @Test fun `typPickerOptions splits favorites and non-favorites`() = runTest {
+        val prefsWithOptions = mockk<PreferencesRepository>(relaxed = true) {
+            every { handelseTypOptions } returns MutableStateFlow(listOf(
+                SymptomOption("Yrsel", isFavorite = true),
+                SymptomOption("Andnöd", isFavorite = false),
+            ))
+        }
+        val vm = HandelserViewModel(mockk(relaxed = true) { every { all } returns flowOf(emptyList()) }, prefsWithOptions)
+        vm.typPickerOptions.onEach { }.launchIn(backgroundScope)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Yrsel"), vm.typPickerOptions.value.favorites)
+        assertEquals(listOf("Andnöd"), vm.typPickerOptions.value.nonFavorites)
+    }
+
+    @Test fun `typPickerOptions includes custom db types not in the managed list`() = runTest {
+        val prefsWithOptions = mockk<PreferencesRepository>(relaxed = true) {
+            every { handelseTypOptions } returns MutableStateFlow(listOf(SymptomOption("Yrsel", isFavorite = true)))
+        }
+        val vm = HandelserViewModel(mockk(relaxed = true) {
+            every { all } returns flowOf(listOf(handelse(id = "h1", typ = "Egen typ")))
+        }, prefsWithOptions)
+        vm.typPickerOptions.onEach { }.launchIn(backgroundScope)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Egen typ"), vm.typPickerOptions.value.nonFavorites)
+    }
+
+    @Test fun `typPickerOptions does not duplicate managed types already logged in the db`() = runTest {
+        val prefsWithOptions = mockk<PreferencesRepository>(relaxed = true) {
+            every { handelseTypOptions } returns MutableStateFlow(listOf(SymptomOption("Yrsel", isFavorite = true)))
+        }
+        val vm = HandelserViewModel(mockk(relaxed = true) {
+            every { all } returns flowOf(listOf(handelse(id = "h1", typ = "Yrsel")))
+        }, prefsWithOptions)
+        vm.typPickerOptions.onEach { }.launchIn(backgroundScope)
+        advanceUntilIdle()
+
+        assertEquals(1, vm.typPickerOptions.value.favorites.count { it == "Yrsel" })
+        assertTrue(vm.typPickerOptions.value.nonFavorites.none { it == "Yrsel" })
+    }
+
     // ─── filter setters ───────────────────────────────────────────────────────
 
     @Test fun `setDagFilter updates dagFilter in state`() = runTest {

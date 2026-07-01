@@ -56,17 +56,9 @@ fun AddEditHandelseScreen(
     LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
 
     val form  by vm.form.collectAsStateWithLifecycle()
-    val state by vm.state.collectAsStateWithLifecycle()
-    val typOptions by vm.handelseTypOptions.collectAsStateWithLifecycle()
-
-    val managedNames = remember(typOptions) { typOptions.map { it.name }.toSet() }
-    val extraTyper   = remember(state.allTyper, managedNames) {
-        state.allTyper.filter { it !in managedNames }
-    }
-    val favorites    = remember(typOptions) { typOptions.filter { it.isFavorite }.map { it.name } }
-    val nonFavorites = remember(typOptions, extraTyper) {
-        typOptions.filter { !it.isFavorite }.map { it.name } + extraTyper
-    }
+    val typPicker by vm.typPickerOptions.collectAsStateWithLifecycle()
+    val favorites    = typPicker.favorites
+    val nonFavorites = typPicker.nonFavorites
 
     Scaffold(
         topBar = {

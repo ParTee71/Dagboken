@@ -62,6 +62,11 @@ class SettingsViewModel @Inject constructor(
         val symptomOpts: List<SymptomOption>,
         val handelseTypOpts: List<SymptomOption>,
     )
+    private data class NewOptionInputs(
+        val aktivitet: String,
+        val symptom: String,
+        val handelseTyp: String,
+    )
 
     val state: StateFlow<SettingsUiState> = combine(
         combine(prefs.isDarkTheme, prefs.dynamicColor, prefs.themeMode,
@@ -73,18 +78,20 @@ class SettingsViewModel @Inject constructor(
             NotifPrefs(meds, screening, akt, symp, handelseTyp)
         },
         combine(authRepo.authStateFlow, _isSigningIn, _signInError,
-                _newAktivitetOption, _newSymptomOption) { user, signing, err, newAkt, newSymp ->
+                combine(_newAktivitetOption, _newSymptomOption, _newHandelseTypOption) { newAkt, newSymp, newHandelseTyp ->
+                    NewOptionInputs(newAkt, newSymp, newHandelseTyp)
+                }) { user, signing, err, newOptions ->
             SettingsUiState(
                 googleAccountEmail    = user?.email,
                 googleAccountPhotoUrl = user?.photoUrl?.toString(),
                 isSigningIn           = signing,
                 signInError           = err,
-                newAktivitetOption    = newAkt,
-                newSymptomOption      = newSymp,
+                newAktivitetOption    = newOptions.aktivitet,
+                newSymptomOption      = newOptions.symptom,
+                newHandelseTypOption  = newOptions.handelseTyp,
             )
         },
-        _newHandelseTypOption,
-    ) { theme, notif, auth, newHandelseTyp ->
+    ) { theme, notif, auth ->
         auth.copy(
             isDarkTheme              = theme.dark,
             isDynamicColor           = theme.dynamic,
@@ -96,7 +103,6 @@ class SettingsViewModel @Inject constructor(
             aktivitetOptions         = notif.aktivitetOpts,
             symptomOptions           = notif.symptomOpts,
             handelseTypOptions       = notif.handelseTypOpts,
-            newHandelseTypOption     = newHandelseTyp,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, SettingsUiState())
 

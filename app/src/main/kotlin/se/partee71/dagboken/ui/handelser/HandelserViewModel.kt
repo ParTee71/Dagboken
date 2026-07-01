@@ -39,6 +39,11 @@ data class HandelserUiState(
     val allTyper: List<String> = emptyList(),
 )
 
+data class TypPickerOptions(
+    val favorites: List<String> = emptyList(),
+    val nonFavorites: List<String> = emptyList(),
+)
+
 @HiltViewModel
 class HandelserViewModel @Inject constructor(
     private val repo: HandelserRepository,
@@ -53,6 +58,17 @@ class HandelserViewModel @Inject constructor(
 
     private val _all = repo.all
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Favourites-first typ picker for Add/Edit Händelse: managed options plus any custom
+    // type already logged in the DB but not yet in the managed list.
+    val typPickerOptions: StateFlow<TypPickerOptions> = combine(handelseTypOptions, _all) { options, all ->
+        val managedNames = options.map { it.name }.toSet()
+        val extraTyper   = all.map { it.typ }.distinct().filter { it !in managedNames }.sorted()
+        TypPickerOptions(
+            favorites    = options.filter { it.isFavorite }.map { it.name },
+            nonFavorites = options.filter { !it.isFavorite }.map { it.name } + extraTyper,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TypPickerOptions())
 
     val state: StateFlow<HandelserUiState> = combine(_all, _dagFilter, _typFilter) { all, dag, typ ->
         val cutoff = dag?.let {
