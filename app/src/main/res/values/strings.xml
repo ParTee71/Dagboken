@@ -135,6 +135,15 @@
     <string name="format_cooldown_warning_body">Du bör vänta %1$sh %2$sm till för %3$s. Vill du ta ändå?</string>
     <string name="cooldown_take_anyway">Ta ändå</string>
 
+    <!-- Mediciner / Historik -->
+    <string name="filter_recept">Recept</string>
+    <string name="filter_vid_behov">Vid behov</string>
+    <string name="empty_medicin_history_title">Inga mediciner loggade</string>
+    <string name="empty_medicin_history_body">Loggade doser dyker upp här</string>
+    <string name="medicin_status_tagen">Tagen</string>
+    <string name="medicin_status_hoppad">Hoppad</string>
+    <string name="medicin_status_ej_tagen">Ej tagen</string>
+
     <!-- Idag tab -->
     <string name="empty_idag_title">Inga mediciner idag</string>
     <string name="empty_idag_body">Lägg till ett schema eller logga en engångsdos</string>

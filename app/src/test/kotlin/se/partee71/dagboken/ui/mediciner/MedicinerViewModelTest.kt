@@ -47,6 +47,7 @@ class MedicinerViewModelTest {
             every { todayFlow() } returns flowOf(emptyList())
             every { allRecept } returns flowOf(emptyList())
             every { allFavoriter } returns flowOf(emptyList())
+            every { allMediciner } returns flowOf(emptyList())
         }
         every { limit.limitReached(any(), any()) } returns false
         every { cooldown.remainingHours(any(), any(), any()) } returns null
@@ -94,6 +95,47 @@ class MedicinerViewModelTest {
         val vm2 = MedicinerViewModel(repoWithFav, noteRepo, cooldown, limit)
         // WhileSubscribed won't start the upstream until collected; use first{} to subscribe and wait
         assertEquals(listOf(fav), vm2.allFavoriter.first { it.isNotEmpty() })
+    }
+
+    // ─── historyFilter / filteredHistory ─────────────────────────────────────
+
+    @Test fun `historyFilter initial value contains both types`() {
+        assertTrue("recept" in viewModel.historyFilter.value)
+        assertTrue("vid_behov" in viewModel.historyFilter.value)
+    }
+
+    @Test fun `toggleHistoryFilter removes a type when another remains`() {
+        viewModel.toggleHistoryFilter("recept")
+        assertFalse("recept" in viewModel.historyFilter.value)
+    }
+
+    @Test fun `toggleHistoryFilter does not remove the last remaining type`() {
+        viewModel.toggleHistoryFilter("recept")     // leaves only vid_behov
+        viewModel.toggleHistoryFilter("vid_behov")  // should be blocked
+        assertTrue("vid_behov" in viewModel.historyFilter.value)
+    }
+
+    @Test fun `toggleHistoryFilter re-adds a type that was removed`() {
+        viewModel.toggleHistoryFilter("recept")
+        viewModel.toggleHistoryFilter("recept")
+        assertTrue("recept" in viewModel.historyFilter.value)
+    }
+
+    @Test fun `filteredHistory classifies entries with receptId as recept and others as vid_behov`() = runTest {
+        val schemalagd = medicin(id = "m1", namn = "Ibuprofen", receptId = "r1")
+        val engangs    = medicin(id = "m2", namn = "Paracetamol", receptId = null)
+        val repoWithHistory = mockk<MedicinerRepository>(relaxed = true) {
+            every { todayFlow() } returns flowOf(emptyList())
+            every { allRecept } returns flowOf(emptyList())
+            every { allFavoriter } returns flowOf(emptyList())
+            every { allMediciner } returns flowOf(listOf(schemalagd, engangs))
+        }
+        val vm2 = MedicinerViewModel(repoWithHistory, noteRepo, cooldown, limit)
+
+        assertEquals(listOf(schemalagd, engangs), vm2.filteredHistory.first { it.size == 2 })
+
+        vm2.toggleHistoryFilter("vid_behov")
+        assertEquals(listOf(schemalagd), vm2.filteredHistory.first { it.size == 1 })
     }
 
     // ─── deleteMedicin ────────────────────────────────────────────────────────
