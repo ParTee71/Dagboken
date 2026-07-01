@@ -1,5 +1,7 @@
 package se.partee71.dagboken.data.migration
 
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -302,8 +304,8 @@ class BackupMapperTest {
                 SymptomOptionBackup("Andnöd", isFavorite = false),
             ),
         )
-        val encoded = kotlinx.serialization.json.Json.encodeToString(json)
-        val decoded = kotlinx.serialization.json.Json.decodeFromString<BackupJson>(encoded)
+        val encoded = Json.encodeToString(json)
+        val decoded = Json.decodeFromString<BackupJson>(encoded)
         assertEquals(json.handelseTypOptions, decoded.handelseTypOptions)
     }
 
