@@ -23,6 +23,8 @@ import org.junit.Before
 import org.junit.Test
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.notifications.AlarmScheduler
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -33,9 +35,11 @@ class SettingsViewModelTest {
     private lateinit var prefs: PreferencesRepository
     private lateinit var authRepo: FirebaseAuthRepository
     private lateinit var alarmScheduler: AlarmScheduler
+    private lateinit var medicinerRepo: MedicinerRepository
 
     private val aktivitetOptionsFlow = MutableStateFlow(listOf(SymptomOption("Promenad"), SymptomOption("Jobb")))
     private val symptomOptionsFlow   = MutableStateFlow(listOf(SymptomOption("Huvudvärk")))
+    private val medicinFavoriterFlow = MutableStateFlow<List<Favorit>>(emptyList())
 
     private lateinit var viewModel: SettingsViewModel
 
@@ -56,7 +60,10 @@ class SettingsViewModelTest {
             every { authStateFlow } returns MutableStateFlow(null)
         }
         alarmScheduler = mockk(relaxed = true)
-        viewModel = SettingsViewModel(prefs, authRepo, alarmScheduler)
+        medicinerRepo = mockk(relaxed = true) {
+            every { allFavoriter } returns medicinFavoriterFlow
+        }
+        viewModel = SettingsViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -154,9 +161,31 @@ class SettingsViewModelTest {
         val enabledConfigs = DEFAULT_SCREENING_EVENTS.toMutableList()
             .also { it[0] = ScreeningEventConfig(enabled = true, time = "08:00") }
         every { prefs.screeningEventConfigs } returns flowOf(enabledConfigs)
-        viewModel = SettingsViewModel(prefs, authRepo, alarmScheduler)
+        viewModel = SettingsViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
 
         viewModel.setScreeningEventTime(0, "09:30")
         coVerify { alarmScheduler.rescheduleAll() }
+    }
+
+    // ─── medicinFavoriter / toggleMedicinFavorite ─────────────────────────────
+
+    private fun favorit(id: String = "f1", isFavorite: Boolean = false) = Favorit(
+        id = id, namn = "Paracetamol", dos = "500", enhet = "mg", tidpunkt = "Vid behov",
+        anteckning = "", minTidMellan = 0, maxDoserPerDag = 0, isFavorite = isFavorite,
+    )
+
+    @Test fun `medicinFavoriter emits list from MedicinerRepository`() = runTest {
+        medicinFavoriterFlow.value = listOf(favorit())
+        assertEquals(listOf(favorit()), viewModel.medicinFavoriter.value)
+    }
+
+    @Test fun `toggleMedicinFavorite marks a non-favorite entry as favorite`() = runTest {
+        viewModel.toggleMedicinFavorite(favorit(isFavorite = false))
+        coVerify { medicinerRepo.setFavoritFavorite("f1", true) }
+    }
+
+    @Test fun `toggleMedicinFavorite unmarks an already-favorite entry`() = runTest {
+        viewModel.toggleMedicinFavorite(favorit(isFavorite = true))
+        coVerify { medicinerRepo.setFavoritFavorite("f1", false) }
     }
 }

@@ -114,6 +114,9 @@ interface FavoritDao {
     @Delete
     suspend fun delete(entity: FavoritEntity)
 
+    @Query("UPDATE favoriter SET isFavorite = :isFavorite WHERE id = :id")
+    suspend fun updateFavorite(id: String, isFavorite: Boolean)
+
     @Query("DELETE FROM favoriter")
     suspend fun deleteAll()
 }

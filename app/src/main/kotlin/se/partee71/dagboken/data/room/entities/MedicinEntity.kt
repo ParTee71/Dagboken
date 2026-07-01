@@ -56,6 +56,7 @@ data class FavoritEntity(
     val minTidMellan: Int,
     val dispenseringsTid: String = "",
     val maxDoserPerDag: Int = 0,
+    val isFavorite: Boolean = false,
 )
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
@@ -133,6 +134,7 @@ fun FavoritEntity.toDomain() = Favorit(
     minTidMellan     = minTidMellan,
     dispenseringsTid = dispenseringsTid,
     maxDoserPerDag   = maxDoserPerDag,
+    isFavorite       = isFavorite,
 )
 
 fun Favorit.toEntity() = FavoritEntity(
@@ -145,4 +147,5 @@ fun Favorit.toEntity() = FavoritEntity(
     minTidMellan     = minTidMellan,
     dispenseringsTid = dispenseringsTid,
     maxDoserPerDag   = maxDoserPerDag,
+    isFavorite       = isFavorite,
 )

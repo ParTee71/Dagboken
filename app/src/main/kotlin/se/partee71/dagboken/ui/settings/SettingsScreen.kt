@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Star
@@ -94,6 +95,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.data.datastore.SymptomOption
+import se.partee71.dagboken.domain.model.Favorit
 
 private data class SectionDef(val icon: ImageVector, val title: String, val description: String)
 
@@ -105,6 +107,7 @@ fun SettingsScreen(
     vm: SettingsViewModel = hiltViewModel(),
 ) {
     val state          by vm.state.collectAsState()
+    val medicinFavoriter by vm.medicinFavoriter.collectAsState()
     val context         = LocalContext.current
     val isLargeScreen   = LocalConfiguration.current.screenWidthDp >= 360
     var selectedSection by remember { mutableIntStateOf(0) }
@@ -116,6 +119,7 @@ fun SettingsScreen(
         SectionDef(Icons.Filled.Notifications, stringResource(R.string.settings_notifications_section), "Medicin- och screeningnotiser"),
         SectionDef(Icons.Filled.DirectionsRun, stringResource(R.string.settings_aktivitet_section),     "Hantera aktivitetstyper"),
         SectionDef(Icons.Filled.Favorite,      stringResource(R.string.label_symptom),                  "Hantera symptomtyper"),
+        SectionDef(Icons.Filled.Medication,    stringResource(R.string.settings_vidbehov_section),      "Hantera favoritmarkerade vid behov-mediciner"),
         SectionDef(Icons.Filled.Info,          stringResource(R.string.settings_about_section),         "Version och appinfo"),
     )
 
@@ -197,7 +201,11 @@ fun SettingsScreen(
                             onToggleFavorite = vm::toggleSymptomFavorite,
                             onRename         = vm::renameSymptomOption,
                         )
-                        6 -> AboutCard()
+                        6 -> VidBehovFavoritSettingsCard(
+                            favoriter        = medicinFavoriter,
+                            onToggleFavorite = vm::toggleMedicinFavorite,
+                        )
+                        7 -> AboutCard()
                     }
                 }
             }
@@ -255,6 +263,10 @@ fun SettingsScreen(
                     onDelete         = vm::deleteSymptomOption,
                     onToggleFavorite = vm::toggleSymptomFavorite,
                     onRename         = vm::renameSymptomOption,
+                )
+                VidBehovFavoritSettingsCard(
+                    favoriter        = medicinFavoriter,
+                    onToggleFavorite = vm::toggleMedicinFavorite,
                 )
                 AboutCard()
             }
@@ -743,6 +755,56 @@ private fun OptionSettingsCard(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun VidBehovFavoritSettingsCard(
+    favoriter: List<Favorit>,
+    onToggleFavorite: (Favorit) -> Unit,
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.settings_vidbehov_section), style = MaterialTheme.typography.titleSmall)
+            HorizontalDivider()
+
+            if (favoriter.isEmpty()) {
+                Text(
+                    stringResource(R.string.settings_vidbehov_empty),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                favoriter.forEachIndexed { index, fav ->
+                    if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                    Row(
+                        modifier          = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(
+                            onClick  = { onToggleFavorite(fav) },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Star,
+                                contentDescription = stringResource(R.string.symptom_favorite),
+                                tint = if (fav.isFavorite) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(fav.namn, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                "${fav.dos} ${fav.enhet}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -31,12 +31,17 @@ class AddEditFavoritViewModel @Inject constructor(
     val form: StateFlow<FavoritForm> = _form.asStateFlow()
     private var editingId: String? = null
 
+    // Not editable from this screen (toggled via Settings/long-press menu instead) —
+    // carried through so save() doesn't silently reset an existing favorite's status.
+    private var editingIsFavorite: Boolean = false
+
     fun updateForm(update: FavoritForm.() -> FavoritForm) { _form.value = _form.value.update() }
 
     fun loadForEdit(id: String) {
         viewModelScope.launch {
             val f = repo.getFavoritById(id) ?: return@launch
             editingId = id
+            editingIsFavorite = f.isFavorite
             _form.value = FavoritForm(
                 namn           = f.namn,
                 dos            = f.dos,
@@ -61,6 +66,7 @@ class AddEditFavoritViewModel @Inject constructor(
                 anteckning     = f.anteckning.trim(),
                 minTidMellan   = f.minTidMellan,
                 maxDoserPerDag = f.maxDoserPerDag,
+                isFavorite     = editingIsFavorite,
             )
             repo.saveFavorit(favorit)
         }

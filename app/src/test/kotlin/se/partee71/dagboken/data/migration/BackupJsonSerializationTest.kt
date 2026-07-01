@@ -49,7 +49,7 @@ class BackupJsonSerializationTest {
             FavoritJson(
                 id = "f1", namn = "Paracetamol", dos = "500", enhet = "mg",
                 tidpunkt = "Vid behov", anteckning = "", minTidMellan = 4,
-                dispenseringsTid = "08:00", maxDoserPerDag = 3,
+                dispenseringsTid = "08:00", maxDoserPerDag = 3, isFavorite = true,
             ),
         ),
         aktiviteterOptionsV2 = listOf(
@@ -126,6 +126,7 @@ class BackupJsonSerializationTest {
             assertEquals("f1", id)
             assertEquals(4, minTidMellan)
             assertEquals(3, maxDoserPerDag)
+            assertTrue(isFavorite)
         }
 
         assertEquals(2, result.aktiviteterOptionsV2!!.size)

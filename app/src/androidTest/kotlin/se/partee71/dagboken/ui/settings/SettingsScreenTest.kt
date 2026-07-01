@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
@@ -23,6 +24,10 @@ import org.junit.runner.RunWith
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.room.AppDatabase
+import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import se.partee71.dagboken.notifications.AlarmScheduler
 
 @RunWith(AndroidJUnit4::class)
@@ -31,6 +36,8 @@ class SettingsScreenTest {
     @get:Rule val composeRule = createComposeRule()
 
     private lateinit var prefs: PreferencesRepository
+    private lateinit var db: AppDatabase
+    private lateinit var medicinerRepo: MedicinerRepository
     private lateinit var vm: SettingsViewModel
 
     @Before fun setUp() = runBlocking {
@@ -44,13 +51,25 @@ class SettingsScreenTest {
         prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
         prefs.setThemeMode("auto")
 
+        db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
+            .allowMainThreadQueries().build()
+        medicinerRepo = MedicinerRepository(
+            db                 = db,
+            medicinDao         = db.medicinDao(),
+            receptDao          = db.receptDao(),
+            favoritDao         = db.favoritDao(),
+            ensureTodayEntries = EnsureTodayEntriesUseCase(),
+            json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
+        )
+
         val alarmScheduler = AlarmScheduler(ctx, prefs)
-        vm = SettingsViewModel(prefs, authRepo, alarmScheduler)
+        vm = SettingsViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
     }
 
     @After fun tearDown() = runBlocking {
         prefs.setAktivitetOptions(emptyList())
         prefs.setSymptomOptions(emptyList())
+        db.close()
     }
 
     private fun setContent() {
@@ -176,6 +195,47 @@ class SettingsScreenTest {
         composeRule.waitUntil(3000) { vm.state.value.aktivitetOptions.isEmpty() }
         assert(vm.state.value.aktivitetOptions.isEmpty()) {
             "Expected empty aktivitetOptions but got: ${vm.state.value.aktivitetOptions}"
+        }
+    }
+
+    // ─── Vid behov-mediciner ─────────────────────────────────────────────────
+
+    private fun navigateToVidBehovSection() {
+        val railNodes = composeRule.onAllNodes(hasContentDescription("Vid behov-mediciner"))
+        if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
+            railNodes.onFirst().performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
+    @Test fun vidBehov_section_shows_empty_state_when_no_favoriter() {
+        setContent()
+        navigateToVidBehovSection()
+        composeRule.onNodeWithText("Inga vid behov-mediciner skapade ännu.").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun vidBehov_section_lists_existing_med_and_toggles_favorite() {
+        runBlocking {
+            medicinerRepo.saveFavorit(
+                Favorit(
+                    id = "fav1", namn = "Paracetamol", dos = "500", enhet = "mg",
+                    tidpunkt = "Vid behov", anteckning = "", minTidMellan = 0,
+                    isFavorite = false,
+                )
+            )
+        }
+        setContent()
+        navigateToVidBehovSection()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNode(hasContentDescription("Favorit")).performScrollTo().performClick()
+        composeRule.waitUntil(3000) {
+            runBlocking { medicinerRepo.getFavoritById("fav1")?.isFavorite == true }
+        }
+        val updated = runBlocking { medicinerRepo.getFavoritById("fav1") }
+        assert(updated?.isFavorite == true) {
+            "Expected isFavorite=true after toggling, got ${updated?.isFavorite}"
         }
     }
 }

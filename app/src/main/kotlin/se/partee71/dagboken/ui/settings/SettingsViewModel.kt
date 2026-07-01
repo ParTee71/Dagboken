@@ -15,6 +15,8 @@ import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SymptomOption
+import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.notifications.AlarmScheduler
 import javax.inject.Inject
 
@@ -41,7 +43,15 @@ class SettingsViewModel @Inject constructor(
     private val prefs: PreferencesRepository,
     private val authRepo: FirebaseAuthRepository,
     private val alarmScheduler: AlarmScheduler,
+    private val medicinerRepo: MedicinerRepository,
 ) : ViewModel() {
+
+    val medicinFavoriter: StateFlow<List<Favorit>> = medicinerRepo.allFavoriter
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    fun toggleMedicinFavorite(favorit: Favorit) {
+        viewModelScope.launch { medicinerRepo.setFavoritFavorite(favorit.id, !favorit.isFavorite) }
+    }
 
     private val _isSigningIn        = MutableStateFlow(false)
     private val _signInError        = MutableStateFlow<String?>(null)

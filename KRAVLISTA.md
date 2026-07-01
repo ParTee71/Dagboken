@@ -132,12 +132,13 @@
 | ID | Krav |
 |----|------|
 | FAV-1 | Användaren ska kunna skapa **favoriter** (vid-behov-mediciner) med namn, dos, enhet, tidpunkt och anteckning. |
-| FAV-2 | Favoriter ska visas som tryckbara kort; **tryck loggar en dos** direkt. |
+| FAV-2 | Endast **favoritmarkerade** favoriter visas som tryckbara kort (chips) i Vid behov-fliken och på Idag-fliken; **tryck loggar en dos** direkt. Icke-favoritmarkerade favoriter nås via en "Fler"-lista i Vid behov-fliken. |
 | FAV-3 | **Långtryck** öppnar meny för redigera/ta bort (med bekräftelsedialog). |
 | FAV-4 | Favorit ska kunna ha **minsta tid mellan doser** (kylperiod i timmar); dos blockeras med kvarvarande tid om för tidigt. |
 | FAV-5 | Favorit ska kunna ha **max antal doser per dag** (0 = obegränsat); dos blockeras vid uppnådd gräns. |
 | FAV-6 | Blockerad dos ska ge tydligt felmeddelande via snackbar. |
 | FAV-7 | Favorit ska kunna ha dispenseringstid (fält finns i modellen). |
+| FAV-8 | Långtrycksmenyn ska även kunna växla favoritmarkering, utöver redigera/ta bort. |
 
 ### 6.4 Historik-flik
 
@@ -178,7 +179,7 @@
 | ID | Krav |
 |----|------|
 | BCK-1 | Appen ska **automatiskt säkerhetskopiera** all data till Google Drive (appDataFolder) via WorkManager. |
-| BCK-2 | Backup ska omfatta aktiviteter, mediciner, recept, favoriter samt aktivitets-/symptomalternativ inklusive favoritstatus (versionerat JSON). |
+| BCK-2 | Backup ska omfatta aktiviteter, mediciner, recept, favoriter (inklusive favoritmarkering) samt aktivitets-/symptomalternativ inklusive favoritstatus (versionerat JSON). |
 | BCK-3 | Endast de **5 senaste** backuperna ska behållas (äldre rensas). |
 | BCK-4 | Backup ska kräva inloggat konto och Drive-auktorisering (`DRIVE_APPDATA`-scope); auktorisering kan kräva användarsamtycke. |
 | BCK-5 | Användaren ska kunna **importera/migrera** data från senaste Drive-backup. |
@@ -216,6 +217,7 @@
 | SET-6 | **Symptomalternativ** ska kunna läggas till och tas bort (inga dubbletter). |
 | SET-7 | Konto (in-/utloggning) ska kunna hanteras från inställningar. |
 | SET-8 | Import/migrering ska kunna startas från inställningar. |
+| SET-9 | **Vid behov-mediciner** ska kunna stjärnmärkas som favoriter i inställningar (analogt med SET-5); ändringar syns direkt i Vid behov- och Idag-flikarna. |
 
 ---
 
