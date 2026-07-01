@@ -2,7 +2,12 @@
 
 Hälsodagbok för att logga aktiviteter, daglig screening (energi, stress, symptom) och mediciner, med diagram, påminnelser och molnbackup via Google Drive.
 
-**Kravspecifikation:** [KRAVLISTA.md](KRAVLISTA.md)
+**Kravspecifikation:** [KRAVLISTA.md](KRAVLISTA.md) · **Utvecklingsregler:** [CLAUDE.md](CLAUDE.md)
+
+> **Bidrar du (eller en AI-assistent) med kod?** Läs [CLAUDE.md](CLAUDE.md) först. Den
+> samlar projektets fyra icke-förhandlingsbara regler som gäller vid varje ändring:
+> datasäkerhet (backup/restore), tester på alla nivåer, aktuell kravlista och återbruk
+> av delade UI-komponenter. Detaljer ligger som skills i [`.claude/skills/`](.claude/skills/).
 
 ---
 
