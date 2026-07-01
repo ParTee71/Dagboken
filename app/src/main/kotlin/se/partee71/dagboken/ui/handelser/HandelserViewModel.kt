@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.domain.model.Handelse
 import java.time.LocalDate
@@ -40,7 +42,11 @@ data class HandelserUiState(
 @HiltViewModel
 class HandelserViewModel @Inject constructor(
     private val repo: HandelserRepository,
+    private val prefs: PreferencesRepository,
 ) : ViewModel() {
+
+    val handelseTypOptions: StateFlow<List<SymptomOption>> = prefs.handelseTypOptions
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _dagFilter  = MutableStateFlow<Int?>(null)
     private val _typFilter  = MutableStateFlow<String?>(null)
@@ -129,5 +135,13 @@ class HandelserViewModel @Inject constructor(
     fun resetForm() {
         _editId.value = null
         _form.value   = HandelseForm()
+    }
+
+    fun toggleHandelseTypFavorite(name: String) {
+        viewModelScope.launch {
+            prefs.setHandelseTypOptions(handelseTypOptions.value.map {
+                if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it
+            })
+        }
     }
 }

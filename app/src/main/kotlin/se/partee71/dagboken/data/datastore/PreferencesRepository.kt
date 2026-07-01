@@ -32,6 +32,7 @@ class PreferencesRepository @Inject constructor(
         val DYNAMIC_COLOR       = booleanPreferencesKey("dynamic_color")
         val AKTIVITET_OPTIONS   = stringPreferencesKey("aktivitet_options")
         val SYMPTOM_OPTIONS     = stringPreferencesKey("symptom_options")
+        val HANDELSE_TYP_OPTIONS = stringPreferencesKey("handelse_typ_options")
         val SHEETS_CONFIG       = stringPreferencesKey("sheets_config")
         // Auto-theme
         val THEME_MODE          = stringPreferencesKey("theme_mode")      // "light"|"dark"|"auto"
@@ -75,6 +76,17 @@ class PreferencesRepository @Inject constructor(
                 ?: DEFAULT_SYMPTOM_OPTIONS
         }
         .catch { emit(DEFAULT_SYMPTOM_OPTIONS) }
+
+    val handelseTypOptions: Flow<List<SymptomOption>> = dataStore.data
+        .map { prefs ->
+            prefs[Keys.HANDELSE_TYP_OPTIONS]
+                ?.let { json ->
+                    runCatching { Json.decodeFromString<List<SymptomOption>>(json) }.getOrNull()
+                        ?: Json.decodeFromString<List<String>>(json).map { SymptomOption(it) }
+                }
+                ?: DEFAULT_HANDELSE_TYP_OPTIONS
+        }
+        .catch { emit(DEFAULT_HANDELSE_TYP_OPTIONS) }
 
     val sheetsConfig: Flow<String> = dataStore.data
         .map { it[Keys.SHEETS_CONFIG] ?: "" }
@@ -120,6 +132,10 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setSymptomOptions(options: List<SymptomOption>) {
         dataStore.edit { it[Keys.SYMPTOM_OPTIONS] = Json.encodeToString(options) }
+    }
+
+    suspend fun setHandelseTypOptions(options: List<SymptomOption>) {
+        dataStore.edit { it[Keys.HANDELSE_TYP_OPTIONS] = Json.encodeToString(options) }
     }
 
     suspend fun setSheetsConfig(url: String) {
@@ -189,4 +205,15 @@ internal val DEFAULT_SYMPTOM_OPTIONS = listOf(
     SymptomOption("Smärta"),
     SymptomOption("Illamående"),
     SymptomOption("Övrigt"),
+)
+
+internal val DEFAULT_HANDELSE_TYP_OPTIONS = listOf(
+    SymptomOption("Blodtrycksfall"),
+    SymptomOption("Ögonmigrän"),
+    SymptomOption("Vita fingrar (Raynaud)"),
+    SymptomOption("Plötslig huvudvärk"),
+    SymptomOption("Allergisk reaktion"),
+    SymptomOption("Yrsel"),
+    SymptomOption("Hjärtklappning"),
+    SymptomOption("Andnöd"),
 )

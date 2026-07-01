@@ -22,13 +22,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import io.mockk.slot
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.migration.AktivitetJson
 import se.partee71.dagboken.data.migration.BackupJson
 import se.partee71.dagboken.data.migration.DriveBackupFile
 import se.partee71.dagboken.data.migration.DriveBackupRepository
 import se.partee71.dagboken.data.migration.DriveResult
+import se.partee71.dagboken.data.migration.SymptomOptionBackup
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
@@ -166,5 +169,38 @@ class MigrationViewModelTest {
     @Test fun `skipMigration calls setMigrationDone`() = runTest {
         viewModel.skipMigration()
         coVerify { prefs.setMigrationDone(true) }
+    }
+
+    // ─── handelseTypOptions restore ──────────────────────────────────────────
+
+    @Test fun `import restores handelseTypOptions with favorite state`() = runTest {
+        val backup = BackupJson(
+            handelseTypOptions = listOf(
+                SymptomOptionBackup("Yrsel", isFavorite = true),
+                SymptomOptionBackup("Andnöd", isFavorite = false),
+            ),
+        )
+        val file = DriveBackupFile("id1", "backup.json", "2026-01-15T00:00:00")
+        coEvery { driveRepo.listBackups() } returns DriveResult.Success(listOf(file))
+        coEvery { driveRepo.downloadLatestBackup() } returns DriveResult.Success(backup)
+
+        viewModel.startMigration()
+
+        val saved = slot<List<SymptomOption>>()
+        coVerify { prefs.setHandelseTypOptions(capture(saved)) }
+        assertEquals(
+            listOf(SymptomOption("Yrsel", isFavorite = true), SymptomOption("Andnöd", isFavorite = false)),
+            saved.captured,
+        )
+    }
+
+    @Test fun `import with null handelseTypOptions leaves prefs unchanged`() = runTest {
+        val file = DriveBackupFile("id1", "backup.json", "2026-01-15T00:00:00")
+        coEvery { driveRepo.listBackups() } returns DriveResult.Success(listOf(file))
+        coEvery { driveRepo.downloadLatestBackup() } returns DriveResult.Success(emptyBackup())
+
+        viewModel.startMigration()
+
+        coVerify(exactly = 0) { prefs.setHandelseTypOptions(any()) }
     }
 }

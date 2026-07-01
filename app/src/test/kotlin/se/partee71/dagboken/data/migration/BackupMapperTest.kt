@@ -292,4 +292,22 @@ class BackupMapperTest {
     @Test fun `toSjukdomsIncheckningar returns empty for empty backup`() {
         assertTrue(BackupMapper.toSjukdomsIncheckningar(backup()).isEmpty())
     }
+
+    // ─── handelseTypOptions ───────────────────────────────────────────────────
+
+    @Test fun `handelseTypOptions round-trips through BackupJson with isFavorite preserved`() {
+        val json = backup().copy(
+            handelseTypOptions = listOf(
+                SymptomOptionBackup("Yrsel", isFavorite = true),
+                SymptomOptionBackup("Andnöd", isFavorite = false),
+            ),
+        )
+        val encoded = kotlinx.serialization.json.Json.encodeToString(json)
+        val decoded = kotlinx.serialization.json.Json.decodeFromString<BackupJson>(encoded)
+        assertEquals(json.handelseTypOptions, decoded.handelseTypOptions)
+    }
+
+    @Test fun `handelseTypOptions is null for a backup that predates the field`() {
+        assertEquals(null, backup().handelseTypOptions)
+    }
 }
