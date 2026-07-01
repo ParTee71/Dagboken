@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -74,9 +75,9 @@ class ScreeningTabTest {
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Morgonscreening")).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Senaste registreringar").assertIsDisplayed()
-        composeRule.onNodeWithText("Morgonscreening").assertIsDisplayed()
-        composeRule.onNodeWithText("Promenad").assertIsDisplayed()
+        composeRule.onNodeWithText("Senaste registreringar").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Morgonscreening").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Promenad").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun recent_entry_edit_menu_item_invokes_onEdit_with_id_and_type() {
@@ -89,7 +90,7 @@ class ScreeningTabTest {
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Morgonscreening")).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithContentDescription("Alternativ").performClick()
+        composeRule.onNodeWithContentDescription("Alternativ").performScrollTo().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Redigera").performClick()
         composeRule.waitForIdle()
@@ -104,7 +105,7 @@ class ScreeningTabTest {
             composeRule.onAllNodes(hasText("Morgonscreening")).fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithContentDescription("Alternativ").performClick()
+        composeRule.onNodeWithContentDescription("Alternativ").performScrollTo().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Ta bort").performClick()
         composeRule.waitForIdle()
