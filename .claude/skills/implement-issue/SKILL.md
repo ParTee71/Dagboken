@@ -7,7 +7,7 @@ description: Implement a GitHub issue, bug fix, feature, or chore in Dagboken en
 
 This is the "do the work" counterpart to `refine-issue`. It drives a change from a ticket
 or description all the way to a pushed branch with a PR, honouring the four non-negotiable
-rules in [CLAUDE.md](../../CLAUDE.md). Don't skip steps to "save time" — the rules are the
+rules in [CLAUDE.md](../../../CLAUDE.md). Don't skip steps to "save time" — the rules are the
 definition of done, not optional polish.
 
 > **Tests run in GitHub Actions, not in the session.** From the phone/web there is no

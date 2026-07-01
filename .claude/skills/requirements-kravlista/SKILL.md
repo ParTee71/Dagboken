@@ -6,7 +6,7 @@ description: Dagbokens kravregel (regel 3) — KRAVLISTA.md ska alltid spegla ap
 # Hålla kraven aktuella (KRAVLISTA.md)
 
 **Regel:** Varje ändring av användarsynligt beteende ska speglas i
-[KRAVLISTA.md](../../KRAVLISTA.md) i **samma** ändring/PR. Kraven är projektets
+[KRAVLISTA.md](../../../KRAVLISTA.md) i **samma** ändring/PR. Kraven är projektets
 sanning om vad appen ska göra — kod och krav får aldrig glida isär.
 
 ## Format och konventioner (följ exakt)

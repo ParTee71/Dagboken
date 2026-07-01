@@ -13,7 +13,7 @@ Work through the steps in order. Keep the conversation tight — batch clarifyin
 don't interrogate. **Do not create or update the issue until Step 6.**
 
 The Definition of Done (Step 4) is anchored in the four non-negotiable rules in
-[CLAUDE.md](../../CLAUDE.md). A refined issue must make those rules concrete for *this*
+[CLAUDE.md](../../../CLAUDE.md). A refined issue must make those rules concrete for *this*
 change — that is the main thing this skill adds over a plain bug report.
 
 ### New vs existing issue
