@@ -47,6 +47,7 @@ class SettingsScreenTest {
 
         prefs.setAktivitetOptions(emptyList())
         prefs.setSymptomOptions(emptyList())
+        prefs.setHandelseTypOptions(emptyList())
         prefs.setMedsNotificationsEnabled(false)
         prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
         prefs.setThemeMode("auto")
@@ -69,6 +70,7 @@ class SettingsScreenTest {
     @After fun tearDown() = runBlocking {
         prefs.setAktivitetOptions(emptyList())
         prefs.setSymptomOptions(emptyList())
+        prefs.setHandelseTypOptions(emptyList())
         db.close()
     }
 
@@ -236,6 +238,72 @@ class SettingsScreenTest {
         val updated = runBlocking { medicinerRepo.getFavoritById("fav1") }
         assert(updated?.isFavorite == true) {
             "Expected isFavorite=true after toggling, got ${updated?.isFavorite}"
+        }
+    }
+
+    // ─── Händelsetyper ────────────────────────────────────────────────────────
+
+    private fun navigateToHandelseTypSection() {
+        val railNodes = composeRule.onAllNodes(hasContentDescription("Händelsetyper"))
+        if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
+            railNodes.onFirst().performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
+    @Test fun handelsetyper_section_is_visible() {
+        setContent()
+        navigateToHandelseTypSection()
+        composeRule.onNodeWithText("Händelsetyper").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun added_handelse_typ_option_appears_in_list() {
+        setContent()
+        navigateToHandelseTypSection()
+        composeRule.onNodeWithText("Ny händelsetyp").performTextInput("Feberanfall")
+        composeRule.waitForIdle()
+        composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Feberanfall")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Feberanfall").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun removed_handelse_typ_option_disappears_from_list() {
+        setContent()
+        navigateToHandelseTypSection()
+        composeRule.onNodeWithText("Ny händelsetyp").performTextInput("Svimning")
+        composeRule.waitForIdle()
+        composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Svimning")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasContentDescription("Ta bort")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNode(hasContentDescription("Ta bort")).performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Ta bort").performClick()
+        composeRule.waitUntil(3000) { vm.state.value.handelseTypOptions.isEmpty() }
+        assert(vm.state.value.handelseTypOptions.isEmpty()) {
+            "Expected empty handelseTypOptions but got: ${vm.state.value.handelseTypOptions}"
+        }
+    }
+
+    @Test fun starred_handelse_typ_option_persists_as_favorite() {
+        setContent()
+        navigateToHandelseTypSection()
+        composeRule.onNodeWithText("Ny händelsetyp").performTextInput("Näsblod")
+        composeRule.waitForIdle()
+        composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
+        composeRule.waitUntil(3000) { vm.state.value.handelseTypOptions.any { it.name == "Näsblod" } }
+
+        composeRule.onAllNodes(hasContentDescription("Favorit")).onFirst().performScrollTo().performClick()
+        composeRule.waitUntil(3000) {
+            vm.state.value.handelseTypOptions.any { it.name == "Näsblod" && it.isFavorite }
+        }
+        assert(vm.state.value.handelseTypOptions.single { it.name == "Näsblod" }.isFavorite) {
+            "Expected Näsblod to be marked as favorite"
         }
     }
 }

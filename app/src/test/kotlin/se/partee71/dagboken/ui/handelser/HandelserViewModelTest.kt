@@ -8,6 +8,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -23,6 +24,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.domain.model.Handelse
 import java.time.LocalDate
@@ -34,14 +37,20 @@ class HandelserViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private lateinit var repo: HandelserRepository
+    private lateinit var prefs: PreferencesRepository
     private lateinit var viewModel: HandelserViewModel
+
+    private val handelseTypOptionsFlow = MutableStateFlow(listOf(SymptomOption("Yrsel")))
 
     @Before fun setUp() {
         Dispatchers.setMain(testDispatcher)
         repo = mockk(relaxed = true) {
             every { all } returns flowOf(emptyList())
         }
-        viewModel = HandelserViewModel(repo)
+        prefs = mockk(relaxed = true) {
+            every { handelseTypOptions } returns handelseTypOptionsFlow
+        }
+        viewModel = HandelserViewModel(repo, prefs)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -217,6 +226,63 @@ class HandelserViewModelTest {
         assertEquals("", f.triggers)
     }
 
+    // ─── handelseTypOptions ───────────────────────────────────────────────────
+
+    @Test fun `handelseTypOptions reflects prefs`() = runTest {
+        assertEquals(listOf(SymptomOption("Yrsel")), viewModel.handelseTypOptions.value)
+    }
+
+    @Test fun `toggleHandelseTypFavorite delegates to prefs setHandelseTypOptions`() = runTest {
+        viewModel.toggleHandelseTypFavorite("Yrsel")
+        val saved = slot<List<SymptomOption>>()
+        coVerify { prefs.setHandelseTypOptions(capture(saved)) }
+        assertTrue(saved.captured.single { it.name == "Yrsel" }.isFavorite)
+    }
+
+    // ─── typPickerOptions ─────────────────────────────────────────────────────
+
+    @Test fun `typPickerOptions splits favorites and non-favorites`() = runTest {
+        val prefsWithOptions = mockk<PreferencesRepository>(relaxed = true) {
+            every { handelseTypOptions } returns MutableStateFlow(listOf(
+                SymptomOption("Yrsel", isFavorite = true),
+                SymptomOption("Andnöd", isFavorite = false),
+            ))
+        }
+        val vm = HandelserViewModel(mockk(relaxed = true) { every { all } returns flowOf(emptyList()) }, prefsWithOptions)
+        vm.typPickerOptions.onEach { }.launchIn(backgroundScope)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Yrsel"), vm.typPickerOptions.value.favorites)
+        assertEquals(listOf("Andnöd"), vm.typPickerOptions.value.nonFavorites)
+    }
+
+    @Test fun `typPickerOptions includes custom db types not in the managed list`() = runTest {
+        val prefsWithOptions = mockk<PreferencesRepository>(relaxed = true) {
+            every { handelseTypOptions } returns MutableStateFlow(listOf(SymptomOption("Yrsel", isFavorite = true)))
+        }
+        val vm = HandelserViewModel(mockk(relaxed = true) {
+            every { all } returns flowOf(listOf(handelse(id = "h1", typ = "Egen typ")))
+        }, prefsWithOptions)
+        vm.typPickerOptions.onEach { }.launchIn(backgroundScope)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Egen typ"), vm.typPickerOptions.value.nonFavorites)
+    }
+
+    @Test fun `typPickerOptions does not duplicate managed types already logged in the db`() = runTest {
+        val prefsWithOptions = mockk<PreferencesRepository>(relaxed = true) {
+            every { handelseTypOptions } returns MutableStateFlow(listOf(SymptomOption("Yrsel", isFavorite = true)))
+        }
+        val vm = HandelserViewModel(mockk(relaxed = true) {
+            every { all } returns flowOf(listOf(handelse(id = "h1", typ = "Yrsel")))
+        }, prefsWithOptions)
+        vm.typPickerOptions.onEach { }.launchIn(backgroundScope)
+        advanceUntilIdle()
+
+        assertEquals(1, vm.typPickerOptions.value.favorites.count { it == "Yrsel" })
+        assertTrue(vm.typPickerOptions.value.nonFavorites.none { it == "Yrsel" })
+    }
+
     // ─── filter setters ───────────────────────────────────────────────────────
 
     @Test fun `setDagFilter updates dagFilter in state`() = runTest {
@@ -269,7 +335,7 @@ class HandelserViewModelTest {
                 handelse(id = "recent", datum = today),
                 handelse(id = "old",    datum = oldDate),
             ))
-        })
+        }, prefs)
         vm.state.onEach { }.launchIn(backgroundScope)
         advanceUntilIdle()
 
@@ -287,7 +353,7 @@ class HandelserViewModelTest {
                 handelse(id = "h1", typ = "Yrsel"),
                 handelse(id = "h2", typ = "Blodtrycksfall"),
             ))
-        })
+        }, prefs)
         vm.state.onEach { }.launchIn(backgroundScope)
         advanceUntilIdle()
 
@@ -306,7 +372,7 @@ class HandelserViewModelTest {
                 handelse(id = "h2", typ = "Blodtrycksfall"),
                 handelse(id = "h3", typ = "Yrsel"),
             ))
-        })
+        }, prefs)
         vm.state.onEach { }.launchIn(backgroundScope)
         advanceUntilIdle()
 

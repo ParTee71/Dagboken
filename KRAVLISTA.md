@@ -179,7 +179,7 @@
 | ID | Krav |
 |----|------|
 | BCK-1 | Appen ska **automatiskt säkerhetskopiera** all data till Google Drive (appDataFolder) via WorkManager. |
-| BCK-2 | Backup ska omfatta aktiviteter, mediciner, recept, favoriter (inklusive favoritmarkering) samt aktivitets-/symptomalternativ inklusive favoritstatus (versionerat JSON). |
+| BCK-2 | Backup ska omfatta aktiviteter, mediciner, recept, favoriter (inklusive favoritmarkering) samt aktivitets-/symptom-/händelsetypalternativ inklusive favoritstatus (versionerat JSON). |
 | BCK-3 | Endast de **5 senaste** backuperna ska behållas (äldre rensas). |
 | BCK-4 | Backup ska kräva inloggat konto och Drive-auktorisering (`DRIVE_APPDATA`-scope); auktorisering kan kräva användarsamtycke. |
 | BCK-5 | Användaren ska kunna **importera/migrera** data från senaste Drive-backup. |
@@ -217,7 +217,8 @@
 | SET-6 | **Symptomalternativ** ska kunna läggas till och tas bort (inga dubbletter). |
 | SET-7 | Konto (in-/utloggning) ska kunna hanteras från inställningar. |
 | SET-8 | Import/migrering ska kunna startas från inställningar. |
-| SET-9 | **Vid behov-mediciner** ska kunna stjärnmärkas som favoriter i inställningar (analogt med SET-5); ändringar syns direkt i Vid behov- och Idag-flikarna. |
+| SET-9 | **Händelsetypalternativ** ska kunna läggas till, tas bort och stjärnmärkas som favoriter (inga dubbletter). Favoritmarkerade typer visas som en-tryck-chips och övriga i en "Fler typer"-lista i Lägg till/Redigera händelse. |
+| SET-10 | **Vid behov-mediciner** ska kunna stjärnmärkas som favoriter i inställningar (analogt med SET-5); ändringar syns direkt i Vid behov- och Idag-flikarna. |
 
 ---
 

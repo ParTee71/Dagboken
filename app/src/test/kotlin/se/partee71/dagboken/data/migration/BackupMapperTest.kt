@@ -1,5 +1,7 @@
 package se.partee71.dagboken.data.migration
 
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -292,5 +294,23 @@ class BackupMapperTest {
 
     @Test fun `toSjukdomsIncheckningar returns empty for empty backup`() {
         assertTrue(BackupMapper.toSjukdomsIncheckningar(backup()).isEmpty())
+    }
+
+    // ─── handelseTypOptions ───────────────────────────────────────────────────
+
+    @Test fun `handelseTypOptions round-trips through BackupJson with isFavorite preserved`() {
+        val json = backup().copy(
+            handelseTypOptions = listOf(
+                SymptomOptionBackup("Yrsel", isFavorite = true),
+                SymptomOptionBackup("Andnöd", isFavorite = false),
+            ),
+        )
+        val encoded = Json.encodeToString(json)
+        val decoded = Json.decodeFromString<BackupJson>(encoded)
+        assertEquals(json.handelseTypOptions, decoded.handelseTypOptions)
+    }
+
+    @Test fun `handelseTypOptions is null for a backup that predates the field`() {
+        assertEquals(null, backup().handelseTypOptions)
     }
 }

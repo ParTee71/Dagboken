@@ -184,6 +184,9 @@
     <string name="aktivitet_more_types">Fler typer</string>
     <string name="settings_new_aktivitet_type">Ny typ</string>
     <string name="settings_new_symptom">Nytt symptom</string>
+    <string name="settings_handelse_typ_section">Händelsetyper</string>
+    <string name="settings_new_handelse_typ">Ny händelsetyp</string>
+    <string name="handelse_more_types">Fler typer</string>
     <string name="symptom_pick_label">Välj symptom</string>
     <string name="symptom_all_logged">Alla symptom tillagda</string>
     <string name="symptom_favorite">Favorit</string>

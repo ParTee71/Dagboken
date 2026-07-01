@@ -78,6 +78,7 @@ class BackupWorker @AssistedInject constructor(
                 notes                 = noteRepo.getAll().map { it.toJson() },
                 screeningEventConfigs = prefs.screeningEventConfigs.first().map { ScreeningEventConfigJson(it.enabled, it.time) },
                 sheetsConfig          = prefs.sheetsConfig.first().takeIf { it.isNotBlank() },
+                handelseTypOptions    = prefs.handelseTypOptions.first().map { SymptomOptionBackup(it.name, it.isFavorite) },
             )
 
             when (driveRepo.uploadBackup(backup)) {

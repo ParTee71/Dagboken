@@ -21,6 +21,7 @@ data class BackupJson(
     val notes: List<NoteJson> = emptyList(),
     val screeningEventConfigs: List<ScreeningEventConfigJson>? = null,
     val sheetsConfig: String? = null,
+    val handelseTypOptions: List<SymptomOptionBackup>? = null,
 )
 
 @Serializable

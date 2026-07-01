@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -120,6 +121,7 @@ fun SettingsScreen(
         SectionDef(Icons.Filled.DirectionsRun, stringResource(R.string.settings_aktivitet_section),     "Hantera aktivitetstyper"),
         SectionDef(Icons.Filled.Favorite,      stringResource(R.string.label_symptom),                  "Hantera symptomtyper"),
         SectionDef(Icons.Filled.Medication,    stringResource(R.string.settings_vidbehov_section),      "Hantera favoritmarkerade vid behov-mediciner"),
+        SectionDef(Icons.Filled.Bolt,          stringResource(R.string.settings_handelse_typ_section),  "Hantera händelsetyper"),
         SectionDef(Icons.Filled.Info,          stringResource(R.string.settings_about_section),         "Version och appinfo"),
     )
 
@@ -205,7 +207,18 @@ fun SettingsScreen(
                             favoriter        = medicinFavoriter,
                             onToggleFavorite = vm::toggleMedicinFavorite,
                         )
-                        7 -> AboutCard()
+                        7 -> OptionSettingsCard(
+                            title            = stringResource(R.string.settings_handelse_typ_section),
+                            newOptionLabel   = stringResource(R.string.settings_new_handelse_typ),
+                            options          = state.handelseTypOptions,
+                            newOption        = state.newHandelseTypOption,
+                            onValueChange    = vm::setNewHandelseTypOption,
+                            onAdd            = vm::addHandelseTypOption,
+                            onDelete         = vm::deleteHandelseTypOption,
+                            onToggleFavorite = vm::toggleHandelseTypFavorite,
+                            onRename         = vm::renameHandelseTypOption,
+                        )
+                        8 -> AboutCard()
                     }
                 }
             }
@@ -267,6 +280,17 @@ fun SettingsScreen(
                 VidBehovFavoritSettingsCard(
                     favoriter        = medicinFavoriter,
                     onToggleFavorite = vm::toggleMedicinFavorite,
+                )
+                OptionSettingsCard(
+                    title            = stringResource(R.string.settings_handelse_typ_section),
+                    newOptionLabel   = stringResource(R.string.settings_new_handelse_typ),
+                    options          = state.handelseTypOptions,
+                    newOption        = state.newHandelseTypOption,
+                    onValueChange    = vm::setNewHandelseTypOption,
+                    onAdd            = vm::addHandelseTypOption,
+                    onDelete         = vm::deleteHandelseTypOption,
+                    onToggleFavorite = vm::toggleHandelseTypFavorite,
+                    onRename         = vm::renameHandelseTypOption,
                 )
                 AboutCard()
             }

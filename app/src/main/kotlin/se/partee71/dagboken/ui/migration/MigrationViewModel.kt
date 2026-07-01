@@ -156,6 +156,10 @@ class MigrationViewModel @Inject constructor(
             ?: backup.symptomOptions?.map { SymptomOption(it) }
         symptomOpts?.let { prefs.setSymptomOptions(it) }
 
+        backup.handelseTypOptions
+            ?.map { SymptomOption(it.name, it.isFavorite) }
+            ?.let { prefs.setHandelseTypOptions(it) }
+
         backup.screeningEventConfigs
             ?.map { ScreeningEventConfig(it.enabled, it.time) }
             ?.let { prefs.setScreeningEventConfigs(it) }

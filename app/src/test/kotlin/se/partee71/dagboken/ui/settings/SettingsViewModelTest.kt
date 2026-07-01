@@ -39,6 +39,7 @@ class SettingsViewModelTest {
 
     private val aktivitetOptionsFlow = MutableStateFlow(listOf(SymptomOption("Promenad"), SymptomOption("Jobb")))
     private val symptomOptionsFlow   = MutableStateFlow(listOf(SymptomOption("Huvudvärk")))
+    private val handelseTypOptionsFlow = MutableStateFlow(listOf(SymptomOption("Yrsel")))
     private val medicinFavoriterFlow = MutableStateFlow<List<Favorit>>(emptyList())
 
     private lateinit var viewModel: SettingsViewModel
@@ -55,6 +56,7 @@ class SettingsViewModelTest {
             every { screeningEventConfigs } returns flowOf(DEFAULT_SCREENING_EVENTS)
             every { aktivitetOptions } returns aktivitetOptionsFlow
             every { symptomOptions } returns symptomOptionsFlow
+            every { handelseTypOptions } returns handelseTypOptionsFlow
         }
         authRepo = mockk(relaxed = true) {
             every { authStateFlow } returns MutableStateFlow(null)
@@ -143,6 +145,58 @@ class SettingsViewModelTest {
         coVerify { prefs.setSymptomOptions(capture(saved)) }
         assertTrue(saved.captured.any { it.name == "Illamående" })
         assertEquals("", viewModel.state.value.newSymptomOption)
+    }
+
+    // ─── addHandelseTypOption ─────────────────────────────────────────────────
+
+    @Test fun `addHandelseTypOption ignores blank input`() = runTest {
+        viewModel.setNewHandelseTypOption("   ")
+        viewModel.addHandelseTypOption()
+        coVerify(exactly = 0) { prefs.setHandelseTypOptions(any()) }
+    }
+
+    @Test fun `addHandelseTypOption ignores duplicate value`() = runTest {
+        viewModel.setNewHandelseTypOption("Yrsel")
+        viewModel.addHandelseTypOption()
+        coVerify(exactly = 0) { prefs.setHandelseTypOptions(any()) }
+    }
+
+    @Test fun `addHandelseTypOption saves new option and clears input field`() = runTest {
+        viewModel.setNewHandelseTypOption("Andnöd")
+        viewModel.addHandelseTypOption()
+        val saved = slot<List<SymptomOption>>()
+        coVerify { prefs.setHandelseTypOptions(capture(saved)) }
+        assertTrue(saved.captured.any { it.name == "Andnöd" })
+        assertEquals("", viewModel.state.value.newHandelseTypOption)
+    }
+
+    @Test fun `deleteHandelseTypOption saves list without removed option`() = runTest {
+        viewModel.deleteHandelseTypOption("Yrsel")
+        val saved = slot<List<SymptomOption>>()
+        coVerify { prefs.setHandelseTypOptions(capture(saved)) }
+        assertFalse(saved.captured.any { it.name == "Yrsel" })
+    }
+
+    @Test fun `toggleHandelseTypFavorite flips isFavorite for matching option`() = runTest {
+        viewModel.toggleHandelseTypFavorite("Yrsel")
+        val saved = slot<List<SymptomOption>>()
+        coVerify { prefs.setHandelseTypOptions(capture(saved)) }
+        assertTrue(saved.captured.single { it.name == "Yrsel" }.isFavorite)
+    }
+
+    @Test fun `renameHandelseTypOption ignores duplicate target name`() = runTest {
+        handelseTypOptionsFlow.value = listOf(SymptomOption("Yrsel"), SymptomOption("Andnöd"))
+        viewModel = SettingsViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        viewModel.renameHandelseTypOption("Yrsel", "Andnöd")
+        coVerify(exactly = 0) { prefs.setHandelseTypOptions(any()) }
+    }
+
+    @Test fun `renameHandelseTypOption saves list with renamed option`() = runTest {
+        viewModel.renameHandelseTypOption("Yrsel", "Hjärtklappning")
+        val saved = slot<List<SymptomOption>>()
+        coVerify { prefs.setHandelseTypOptions(capture(saved)) }
+        assertTrue(saved.captured.any { it.name == "Hjärtklappning" })
+        assertFalse(saved.captured.any { it.name == "Yrsel" })
     }
 
     // ─── notification toggles and rescheduling ────────────────────────────────

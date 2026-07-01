@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.domain.model.Handelse
 import java.time.LocalDate
@@ -37,16 +39,36 @@ data class HandelserUiState(
     val allTyper: List<String> = emptyList(),
 )
 
+data class TypPickerOptions(
+    val favorites: List<String> = emptyList(),
+    val nonFavorites: List<String> = emptyList(),
+)
+
 @HiltViewModel
 class HandelserViewModel @Inject constructor(
     private val repo: HandelserRepository,
+    private val prefs: PreferencesRepository,
 ) : ViewModel() {
+
+    val handelseTypOptions: StateFlow<List<SymptomOption>> = prefs.handelseTypOptions
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _dagFilter  = MutableStateFlow<Int?>(null)
     private val _typFilter  = MutableStateFlow<String?>(null)
 
     private val _all = repo.all
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Favourites-first typ picker for Add/Edit Händelse: managed options plus any custom
+    // type already logged in the DB but not yet in the managed list.
+    val typPickerOptions: StateFlow<TypPickerOptions> = combine(handelseTypOptions, _all) { options, all ->
+        val managedNames = options.map { it.name }.toSet()
+        val extraTyper   = all.map { it.typ }.distinct().filter { it !in managedNames }.sorted()
+        TypPickerOptions(
+            favorites    = options.filter { it.isFavorite }.map { it.name },
+            nonFavorites = options.filter { !it.isFavorite }.map { it.name } + extraTyper,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TypPickerOptions())
 
     val state: StateFlow<HandelserUiState> = combine(_all, _dagFilter, _typFilter) { all, dag, typ ->
         val cutoff = dag?.let {
@@ -129,5 +151,13 @@ class HandelserViewModel @Inject constructor(
     fun resetForm() {
         _editId.value = null
         _form.value   = HandelseForm()
+    }
+
+    fun toggleHandelseTypFavorite(name: String) {
+        viewModelScope.launch {
+            prefs.setHandelseTypOptions(handelseTypOptions.value.map {
+                if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it
+            })
+        }
     }
 }
