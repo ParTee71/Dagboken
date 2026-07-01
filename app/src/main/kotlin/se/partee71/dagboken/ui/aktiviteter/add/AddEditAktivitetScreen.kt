@@ -40,7 +40,7 @@ fun AddEditAktivitetScreen(
         },
     ) { padding ->
         androidx.compose.foundation.layout.Box(Modifier.padding(padding)) {
-            LoggaTab(vm = vm, onSaved = onBack)
+            LoggaTab(vm = vm, onSaved = onBack, showRecent = false)
         }
     }
 }

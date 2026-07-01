@@ -41,16 +41,23 @@ import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
 import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.GradientSliderRow
+import se.partee71.dagboken.ui.components.RecentAktiviteterSection
 import se.partee71.dagboken.ui.components.SymptomLogCard
 import se.partee71.dagboken.ui.theme.energyColor
 import se.partee71.dagboken.ui.theme.energyLabel
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
+fun LoggaTab(
+    vm: AktiviteterViewModel,
+    onSaved: () -> Unit = {},
+    onEdit: (id: String, type: String) -> Unit = { _, _ -> },
+    showRecent: Boolean = true,
+) {
     val form by vm.form.collectAsState()
     val aktivitetOptions by vm.aktivitetOptions.collectAsState()
     val symptomOptions by vm.symptomOptions.collectAsState()
+    val recentEntries by vm.recentEntries.collectAsState()
 
     val cs = MaterialTheme.colorScheme
     val eColor = energyColor(form.energy, cs)
@@ -141,6 +148,14 @@ fun LoggaTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
                     scores           = form.symptomScores,
                     onScoresChange   = { vm.updateForm { copy(symptomScores = it) } },
                     onToggleFavorite = vm::toggleSymptomFavorite,
+                )
+            }
+
+            if (showRecent) {
+                RecentAktiviteterSection(
+                    entries  = recentEntries,
+                    onEdit   = onEdit,
+                    onDelete = vm::delete,
                 )
             }
         }

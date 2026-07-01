@@ -175,8 +175,8 @@ fun AktiviteterScreen(
                 modifier = Modifier.weight(1f),
             ) { page ->
                 when (page) {
-                    0 -> LoggaTab(vm = vm)
-                    1 -> ScreeningTab(vm = vm)
+                    0 -> LoggaTab(vm = vm, onEdit = onEdit)
+                    1 -> ScreeningTab(vm = vm, onEdit = onEdit)
                     2 -> HistorikTab(vm = vm, onEdit = onEdit)
                 }
             }

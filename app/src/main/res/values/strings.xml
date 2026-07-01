@@ -96,6 +96,7 @@
     <string name="empty_history_title">Inga aktiviteter loggade</string>
     <string name="empty_history_body">Logga din första aktivitet i fliken Logga</string>
     <string name="delete_aktivitet_title">Ta bort aktivitet?</string>
+    <string name="recent_entries_title">Senaste registreringar</string>
 
     <!-- LoggaTab -->
     <string name="logga_header">Hur gick det?</string>
