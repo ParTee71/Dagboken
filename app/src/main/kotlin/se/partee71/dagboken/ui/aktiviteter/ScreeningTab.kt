@@ -29,7 +29,7 @@ import se.partee71.dagboken.ui.components.SymptomLogCard
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ScreeningTab(vm: AktiviteterViewModel) {
+fun ScreeningTab(vm: AktiviteterViewModel, onSaved: () -> Unit = {}) {
     val form             by vm.form.collectAsState()
     val symptomOptions   by vm.symptomOptions.collectAsState()
     val todaysScreenings by vm.todaysScreenings.collectAsState()
@@ -108,7 +108,7 @@ fun ScreeningTab(vm: AktiviteterViewModel) {
 
         HorizontalDivider()
         Button(
-            onClick  = { vm.updateForm { copy(type = "screening") }; vm.save {} },
+            onClick  = { vm.updateForm { copy(type = "screening") }; vm.save { onSaved() } },
             enabled  = isSaveEnabled,
             modifier = Modifier
                 .fillMaxWidth()
