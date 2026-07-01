@@ -14,13 +14,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,6 +32,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -39,17 +46,6 @@ import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
 import se.partee71.dagboken.ui.components.GradientSliderRow
 
-private val DEFAULT_TYPER = listOf(
-    "Blodtrycksfall",
-    "Ögonmigrän",
-    "Vita fingrar (Raynaud)",
-    "Plötslig huvudvärk",
-    "Allergisk reaktion",
-    "Yrsel",
-    "Hjärtklappning",
-    "Andnöd",
-)
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddEditHandelseScreen(
@@ -60,9 +56,9 @@ fun AddEditHandelseScreen(
     LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
 
     val form  by vm.form.collectAsStateWithLifecycle()
-    val state by vm.state.collectAsStateWithLifecycle()
-
-    val suggestions = (DEFAULT_TYPER + state.allTyper).distinct().sorted()
+    val typPicker by vm.typPickerOptions.collectAsStateWithLifecycle()
+    val favorites    = typPicker.favorites
+    val nonFavorites = typPicker.nonFavorites
 
     Scaffold(
         topBar = {
@@ -105,16 +101,52 @@ fun AddEditHandelseScreen(
                         modifier      = Modifier.fillMaxWidth(),
                         singleLine    = true,
                     )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement   = Arrangement.spacedBy(4.dp),
-                    ) {
-                        suggestions.forEach { typ ->
-                            FilterChip(
-                                selected = form.typ == typ,
-                                onClick  = { vm.updateForm { copy(typ = if (form.typ == typ) "" else typ) } },
-                                label    = { Text(typ) },
+                    if (favorites.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement   = Arrangement.spacedBy(4.dp),
+                        ) {
+                            favorites.forEach { typ ->
+                                FilterChip(
+                                    selected = form.typ == typ,
+                                    onClick  = { vm.updateForm { copy(typ = if (form.typ == typ) "" else typ) } },
+                                    label    = { Text(typ) },
+                                )
+                            }
+                        }
+                    }
+
+                    if (nonFavorites.isNotEmpty()) {
+                        var dropdownExpanded by remember { mutableStateOf(false) }
+                        val dropdownValue = if (form.typ in nonFavorites) form.typ else ""
+
+                        ExposedDropdownMenuBox(
+                            expanded         = dropdownExpanded,
+                            onExpandedChange = { dropdownExpanded = it },
+                        ) {
+                            OutlinedTextField(
+                                value         = dropdownValue,
+                                onValueChange = {},
+                                readOnly      = true,
+                                placeholder   = { Text(stringResource(R.string.handelse_more_types)) },
+                                trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
+                                modifier      = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                colors        = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                             )
+                            ExposedDropdownMenu(
+                                expanded         = dropdownExpanded,
+                                onDismissRequest = { dropdownExpanded = false },
+                            ) {
+                                nonFavorites.forEach { typ ->
+                                    DropdownMenuItem(
+                                        text           = { Text(typ) },
+                                        onClick        = { vm.updateForm { copy(typ = typ) }; dropdownExpanded = false },
+                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                                    )
+                                }
+                            }
                         }
                     }
                 }

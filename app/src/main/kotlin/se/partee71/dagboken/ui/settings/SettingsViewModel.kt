@@ -28,8 +28,10 @@ data class SettingsUiState(
     val screeningEventConfigs: List<ScreeningEventConfig> = DEFAULT_SCREENING_EVENTS,
     val aktivitetOptions: List<SymptomOption> = emptyList(),
     val symptomOptions: List<SymptomOption> = emptyList(),
+    val handelseTypOptions: List<SymptomOption> = emptyList(),
     val newAktivitetOption: String = "",
     val newSymptomOption: String = "",
+    val newHandelseTypOption: String = "",
     val googleAccountEmail: String? = null,
     val googleAccountPhotoUrl: String? = null,
     val signInError: String? = null,
@@ -47,6 +49,7 @@ class SettingsViewModel @Inject constructor(
     private val _signInError        = MutableStateFlow<String?>(null)
     private val _newAktivitetOption = MutableStateFlow("")
     private val _newSymptomOption   = MutableStateFlow("")
+    private val _newHandelseTypOption = MutableStateFlow("")
 
     private data class ThemePrefs(
         val dark: Boolean, val dynamic: Boolean, val mode: String,
@@ -57,6 +60,12 @@ class SettingsViewModel @Inject constructor(
         val screeningConfigs: List<ScreeningEventConfig>,
         val aktivitetOpts: List<SymptomOption>,
         val symptomOpts: List<SymptomOption>,
+        val handelseTypOpts: List<SymptomOption>,
+    )
+    private data class NewOptionInputs(
+        val aktivitet: String,
+        val symptom: String,
+        val handelseTyp: String,
     )
 
     val state: StateFlow<SettingsUiState> = combine(
@@ -65,18 +74,21 @@ class SettingsViewModel @Inject constructor(
             ThemePrefs(dark, dynamic, mode, light, darkS)
         },
         combine(prefs.medsNotificationsEnabled, prefs.screeningEventConfigs,
-                prefs.aktivitetOptions, prefs.symptomOptions) { meds, screening, akt, symp ->
-            NotifPrefs(meds, screening, akt, symp)
+                prefs.aktivitetOptions, prefs.symptomOptions, prefs.handelseTypOptions) { meds, screening, akt, symp, handelseTyp ->
+            NotifPrefs(meds, screening, akt, symp, handelseTyp)
         },
         combine(authRepo.authStateFlow, _isSigningIn, _signInError,
-                _newAktivitetOption, _newSymptomOption) { user, signing, err, newAkt, newSymp ->
+                combine(_newAktivitetOption, _newSymptomOption, _newHandelseTypOption) { newAkt, newSymp, newHandelseTyp ->
+                    NewOptionInputs(newAkt, newSymp, newHandelseTyp)
+                }) { user, signing, err, newOptions ->
             SettingsUiState(
                 googleAccountEmail    = user?.email,
                 googleAccountPhotoUrl = user?.photoUrl?.toString(),
                 isSigningIn           = signing,
                 signInError           = err,
-                newAktivitetOption    = newAkt,
-                newSymptomOption      = newSymp,
+                newAktivitetOption    = newOptions.aktivitet,
+                newSymptomOption      = newOptions.symptom,
+                newHandelseTypOption  = newOptions.handelseTyp,
             )
         },
     ) { theme, notif, auth ->
@@ -90,6 +102,7 @@ class SettingsViewModel @Inject constructor(
             screeningEventConfigs    = notif.screeningConfigs,
             aktivitetOptions         = notif.aktivitetOpts,
             symptomOptions           = notif.symptomOpts,
+            handelseTypOptions       = notif.handelseTypOpts,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, SettingsUiState())
 
@@ -227,6 +240,41 @@ class SettingsViewModel @Inject constructor(
         if (trimmed.isBlank() || trimmed == old || state.value.symptomOptions.any { it.name == trimmed }) return
         viewModelScope.launch {
             prefs.setSymptomOptions(state.value.symptomOptions.map {
+                if (it.name == old) it.copy(name = trimmed) else it
+            })
+        }
+    }
+
+    fun setNewHandelseTypOption(v: String) { _newHandelseTypOption.value = v }
+
+    fun addHandelseTypOption() {
+        val new = _newHandelseTypOption.value.trim()
+        if (new.isBlank() || state.value.handelseTypOptions.any { it.name == new }) return
+        viewModelScope.launch {
+            prefs.setHandelseTypOptions(state.value.handelseTypOptions + SymptomOption(new))
+            _newHandelseTypOption.value = ""
+        }
+    }
+
+    fun deleteHandelseTypOption(name: String) {
+        viewModelScope.launch {
+            prefs.setHandelseTypOptions(state.value.handelseTypOptions.filter { it.name != name })
+        }
+    }
+
+    fun toggleHandelseTypFavorite(name: String) {
+        viewModelScope.launch {
+            prefs.setHandelseTypOptions(state.value.handelseTypOptions.map {
+                if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it
+            })
+        }
+    }
+
+    fun renameHandelseTypOption(old: String, new: String) {
+        val trimmed = new.trim()
+        if (trimmed.isBlank() || trimmed == old || state.value.handelseTypOptions.any { it.name == trimmed }) return
+        viewModelScope.launch {
+            prefs.setHandelseTypOptions(state.value.handelseTypOptions.map {
                 if (it.name == old) it.copy(name = trimmed) else it
             })
         }

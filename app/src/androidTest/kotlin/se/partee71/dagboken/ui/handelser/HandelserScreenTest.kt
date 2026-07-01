@@ -21,6 +21,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Handelse
@@ -32,17 +33,23 @@ class HandelserScreenTest {
 
     private lateinit var db: AppDatabase
     private lateinit var repo: HandelserRepository
+    private lateinit var prefs: PreferencesRepository
     private lateinit var vm: HandelserViewModel
 
     @Before fun setUp() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db   = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                    .allowMainThreadQueries().build()
-        repo = HandelserRepository(db.handelseDao())
-        vm   = HandelserViewModel(repo)
+        repo  = HandelserRepository(db.handelseDao())
+        prefs = PreferencesRepository(ctx)
+        runBlocking { prefs.setHandelseTypOptions(emptyList()) }
+        vm    = HandelserViewModel(repo, prefs)
     }
 
-    @After fun tearDown() { db.close() }
+    @After fun tearDown() {
+        db.close()
+        runBlocking { prefs.setHandelseTypOptions(emptyList()) }
+    }
 
     private fun handelse(
         id: String,
