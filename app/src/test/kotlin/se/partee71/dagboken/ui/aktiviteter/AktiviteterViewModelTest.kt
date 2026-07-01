@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.aktiviteter
 
+import app.cash.turbine.test
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -7,6 +8,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -30,6 +32,8 @@ class AktiviteterViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
 
+    private val allFlow = MutableStateFlow<List<Aktivitet>>(emptyList())
+
     private lateinit var repo: AktiviteterRepository
     private lateinit var noteRepo: NoteRepository
     private lateinit var prefs: PreferencesRepository
@@ -38,7 +42,7 @@ class AktiviteterViewModelTest {
     @Before fun setUp() {
         Dispatchers.setMain(testDispatcher)
         repo = mockk(relaxed = true) {
-            every { all } returns flowOf(emptyList())
+            every { all } returns allFlow
         }
         noteRepo = mockk(relaxed = true) {
             every { observe(any(), any()) } returns flowOf("")
@@ -84,6 +88,41 @@ class AktiviteterViewModelTest {
         viewModel.toggleHistoryFilter("screening")
         viewModel.toggleHistoryFilter("screening")
         assertTrue("screening" in viewModel.historyFilter.value)
+    }
+
+    // ─── recentEntries ────────────────────────────────────────────────────────
+
+    @Test fun `recentEntries is empty when no entries exist`() = runTest {
+        viewModel.recentEntries.test {
+            assertEquals(emptyList<Aktivitet>(), awaitItem())
+        }
+    }
+
+    @Test fun `recentEntries returns at most 3 entries`() = runTest {
+        allFlow.value = listOf(
+            aktivitet(id = "a1"), aktivitet(id = "a2"), aktivitet(id = "a3"), aktivitet(id = "a4"),
+        )
+        viewModel.recentEntries.test {
+            assertEquals(listOf("a1", "a2", "a3"), awaitItem().map { it.id })
+        }
+    }
+
+    @Test fun `recentEntries mixes aktivitet and screening types`() = runTest {
+        allFlow.value = listOf(
+            aktivitet(id = "s1", type = "screening"),
+            aktivitet(id = "a1", type = "aktivitet"),
+        )
+        viewModel.recentEntries.test {
+            assertEquals(listOf("s1", "a1"), awaitItem().map { it.id })
+        }
+    }
+
+    @Test fun `recentEntries updates reactively when the underlying data changes`() = runTest {
+        viewModel.recentEntries.test {
+            assertEquals(emptyList<Aktivitet>(), awaitItem())
+            allFlow.value = listOf(aktivitet(id = "a1"))
+            assertEquals(listOf("a1"), awaitItem().map { it.id })
+        }
     }
 
     // ─── save – guard conditions ──────────────────────────────────────────────

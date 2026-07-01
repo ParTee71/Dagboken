@@ -5,14 +5,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -24,6 +28,7 @@ import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
+import se.partee71.dagboken.domain.model.Aktivitet
 
 @RunWith(AndroidJUnit4::class)
 class LoggaTabTest {
@@ -31,13 +36,14 @@ class LoggaTabTest {
     @get:Rule val composeRule = createComposeRule()
 
     private lateinit var db: AppDatabase
+    private lateinit var repo: AktiviteterRepository
     private lateinit var vm: AktiviteterViewModel
 
     @Before fun setUp() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db  = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                   .allowMainThreadQueries().build()
-        val repo     = AktiviteterRepository(db.aktivitetDao())
+        repo = AktiviteterRepository(db.aktivitetDao())
         val noteRepo = NoteRepository(db.noteDao())
         val prefs    = PreferencesRepository(ctx)
         runBlocking {
@@ -47,6 +53,12 @@ class LoggaTabTest {
         }
         vm = AktiviteterViewModel(repo, noteRepo, prefs)
     }
+
+    private fun aktivitet(id: String, aktivitet: String, type: String = "aktivitet") = Aktivitet(
+        id = id, timestamp = "2026-01-15T09:00:00.000Z", datum = "2026-01-15", tid = "09:00",
+        aktivitet = aktivitet, energy = 5, stress = 2, somatiska = 0,
+        symptom = "", aterhamtande = false, energitjuv = false, type = type, spentTime = null,
+    )
 
     @After fun tearDown() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
@@ -129,7 +141,7 @@ class LoggaTabTest {
             composeRule.setContent { MaterialTheme { LoggaTab(vm) } }
             composeRule.waitUntil(3000) {
                 composeRule.onAllNodes(
-                    androidx.compose.ui.test.hasText("Promenad")
+                    hasText("Promenad")
                 ).fetchSemanticsNodes().isNotEmpty()
             }
             composeRule.onNodeWithText("Promenad").assertIsDisplayed()
@@ -153,5 +165,61 @@ class LoggaTabTest {
         composeRule.onNodeWithText("Återhämtande").performClick()
         composeRule.waitForIdle()
         assert(vm.form.value.aterhamtande)
+    }
+
+    // ─── Senaste registreringar ──────────────────────────────────────────────
+
+    @Test fun recent_entries_section_is_hidden_when_no_entries_exist() {
+        setContent()
+        composeRule.onNodeWithText("Senaste registreringar").assertDoesNotExist()
+    }
+
+    @Test fun recent_entries_section_shows_saved_entries_mixed_by_type() {
+        runBlocking {
+            repo.save(aktivitet("a1", "Promenad", "aktivitet"))
+            repo.save(aktivitet("a2", "Morgonscreening", "screening"))
+        }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Senaste registreringar").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Promenad").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Morgonscreening").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun recent_entry_edit_menu_item_invokes_onEdit_with_id_and_type() {
+        runBlocking { repo.save(aktivitet("a1", "Promenad", "aktivitet")) }
+        var editedId: String? = null
+        var editedType: String? = null
+        composeRule.setContent {
+            MaterialTheme { LoggaTab(vm = vm, onEdit = { id, type -> editedId = id; editedType = type }) }
+        }
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithContentDescription("Alternativ").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Redigera").performClick()
+        composeRule.waitForIdle()
+        assertEquals("a1", editedId)
+        assertEquals("aktivitet", editedType)
+    }
+
+    @Test fun recent_entry_delete_removes_it_after_confirmation() {
+        runBlocking { repo.save(aktivitet("a1", "Promenad", "aktivitet")) }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithContentDescription("Alternativ").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Ta bort").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Ta bort").performClick()
+        composeRule.waitUntil(3000) { vm.recentEntries.value.none { it.id == "a1" } }
+
+        composeRule.onNodeWithText("Promenad").assertDoesNotExist()
     }
 }

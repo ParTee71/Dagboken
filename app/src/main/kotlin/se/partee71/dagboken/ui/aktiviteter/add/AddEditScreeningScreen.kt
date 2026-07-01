@@ -41,7 +41,7 @@ fun AddEditScreeningScreen(
         },
     ) { padding ->
         Box(Modifier.padding(padding)) {
-            ScreeningTab(vm = vm, onSaved = onBack)
+            ScreeningTab(vm = vm, onSaved = onBack, showRecent = false)
         }
     }
 }

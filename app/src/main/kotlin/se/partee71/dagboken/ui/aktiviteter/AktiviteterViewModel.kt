@@ -54,6 +54,10 @@ class AktiviteterViewModel @Inject constructor(
     val all: StateFlow<List<Aktivitet>> = repo.all
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val recentEntries: StateFlow<List<Aktivitet>> = all
+        .map { it.take(3) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val historyFilter = MutableStateFlow(setOf("aktivitet", "screening"))
 
     val filteredHistory: StateFlow<List<Aktivitet>> = combine(all, historyFilter) { list, filter ->
