@@ -241,7 +241,8 @@ class VidBehovTabTest {
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Redigera").assertIsDisplayed()
-        composeRule.onNodeWithText("Favoritmarkera").assertIsDisplayed()
+        // favorit() defaults to isFavorite = true, so the toggle offers to unmark it
+        composeRule.onNodeWithText("Ta bort favoritmarkering").assertIsDisplayed()
         composeRule.onNodeWithText("Ta bort").assertIsDisplayed()
     }
 
