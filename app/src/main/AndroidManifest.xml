@@ -7,6 +7,12 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Krävs för Samsung Health Data SDK (spike #56): utan paketsynlighet
+         misslyckas anslutningen till Samsung Health-appen på Android 11+. -->
+    <queries>
+        <package android:name="com.sec.android.app.shealth" />
+    </queries>
+
     <application
         android:name=".DagbokenApp"
         android:allowBackup="false"

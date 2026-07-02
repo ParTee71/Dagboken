@@ -33,6 +33,7 @@
 | TP-7 | Bakgrundsjobb via **WorkManager** (Hilt-integrerad worker). |
 | TP-8 | Påminnelser via **AlarmManager** + `BroadcastReceiver` + notifikationskanaler. |
 | TP-9 | Krävda behörigheter: `INTERNET`, `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED`. |
+| TP-10 | Hälsodata (steg, puls, sömn) läses via **Samsung Health Data SDK** (AAR, ej Maven-distribuerad — se `app/libs/README.md`); kräver Samsung Health-appen på enheten och paketsynlighet mot `com.sec.android.app.shealth`. Se sektion 16. |
 
 ---
 
@@ -275,3 +276,23 @@
 | SJ-5 | Avslutade episoder visar varaktighet i dagar och senaste incheckningens svårighetsgrad. |
 | SJ-6 | En pågående episod syns som statuskort på Hem-skärmen. |
 | SJ-7 | Episoder och incheckningar ingår i backup och återställs vid restore. |
+
+---
+
+## 16. Hälsa (Samsung Health) — utkast från spike
+
+> Utkast baserat på research i issue [#56](https://github.com/ParTee71/Dagboken/issues/56)
+> (sub-issue A i epic [#54](https://github.com/ParTee71/Dagboken/issues/54)). Fylls i
+> definitivt vid implementering i sub-issue [#57](https://github.com/ParTee71/Dagboken/issues/57)
+> (C). NAV-2 och FUT-1 uppdateras/tas bort i samband med C, inte här.
+
+| ID | Krav |
+|----|------|
+| HLS-1 | Hälsa-fliken ska läsa och visa **dagens stegräkning** från Samsung Health via Samsung Health Data SDK. |
+| HLS-2 | Hälsa-fliken ska läsa och visa **pulsdata** (senaste mätningar) från Samsung Health. |
+| HLS-3 | Hälsa-fliken ska läsa och visa **sömndata** (senaste sömnperiod: längd och sömnstadier) från Samsung Health. |
+| HLS-4 | Kalorier och aktiv tid är **avgränsat** från första implementeringen (C) — dessa härleds ur Exercise-sessioner i SDK:t vilket kräver mer tolkningslogik än stegräkning/puls/sömn. Kan läggas till i en senare iteration. |
+| HLS-5 | Läsning kräver att användaren **beviljar databehörighet per datatyp** i Samsung Health-appens egen samtyckesdialog (`HealthPermissionManager`); appen har endast läsrättigheter, aldrig skriv. |
+| HLS-6 | Om Samsung Health-appen saknas, är för gammal (< 6.30.2) eller anslutningen misslyckas ska Hälsa-fliken visa ett tydligt felmeddelande i stället för att krascha. |
+| HLS-7 | Hälsodata **cachas inte lokalt** (ingen Room-entitet) och ingår **inte** i backup/restore — Samsung Health äger och backar upp sin egen data (se epic #54, "Out of scope"). |
+| HLS-8 | Appen kräver `minSdk 30`, vilket redan överstiger SDK:ts krav (Android 10 / API 29+) och Samsung Health-appens krav på Android 11+ för paketsynlighet (`<queries>`). |

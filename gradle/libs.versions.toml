@@ -30,6 +30,7 @@ espresso                = "3.6.1"
 mockk                   = "1.13.13"
 turbine                 = "1.2.0"
 roomTesting             = "2.6.1"
+gson                    = "2.13.1"
 
 [libraries]
 androidx-core-ktx                    = { group = "androidx.core",                                    name = "core-ktx",                        version.ref = "coreKtx" }
@@ -82,6 +83,8 @@ androidx-compose-ui-tooling          = { group = "androidx.compose.ui",         
 androidx-compose-ui-test-manifest    = { group = "androidx.compose.ui",                              name = "ui-test-manifest" }
 mockk                                = { group = "io.mockk",                                         name = "mockk",                           version.ref = "mockk" }
 turbine                              = { group = "app.cash.turbine",                                 name = "turbine",                         version.ref = "turbine" }
+# Samsung Health Data SDK (spike #56) — SDK:t kräver gson, se app/libs/README.md
+gson                                  = { group = "com.google.code.gson",                             name = "gson",                            version.ref = "gson" }
 
 [plugins]
 android-application  = { id = "com.android.application",                     version.ref = "agp" }

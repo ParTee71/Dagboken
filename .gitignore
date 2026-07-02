@@ -3,6 +3,9 @@
 *.keystore
 local.properties
 
+# Samsung Health Data SDK AAR — hämtas manuellt, se app/libs/README.md
+/app/libs/*.aar
+
 # Project exclude paths
 /.gradle/
 /app/build/
