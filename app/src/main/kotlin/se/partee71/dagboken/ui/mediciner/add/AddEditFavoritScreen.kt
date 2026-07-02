@@ -21,7 +21,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -32,7 +31,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -40,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.GradientSliderRow
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -109,41 +108,29 @@ fun AddEditFavoritScreen(
                 }
             }
 
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.label_cooldown), modifier = Modifier.weight(1f))
-                    Text(
-                        if (form.minTidMellan == 0) stringResource(R.string.label_no_limit)
-                        else stringResource(R.string.format_hours, form.minTidMellan),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                Slider(
-                    value = form.minTidMellan.toFloat(),
-                    onValueChange = { vm.updateForm { copy(minTidMellan = it.roundToInt()) } },
-                    valueRange = 0f..24f,
-                    steps = 23,
-                )
-            }
+            GradientSliderRow(
+                label = stringResource(R.string.label_cooldown),
+                value = form.minTidMellan.toFloat(),
+                onValueChange = { vm.updateForm { copy(minTidMellan = it.roundToInt()) } },
+                valueRange = 0f..24f,
+                steps = 23,
+                displayValue = if (form.minTidMellan == 0) stringResource(R.string.label_no_limit)
+                    else stringResource(R.string.format_hours, form.minTidMellan),
+                accentColor = MaterialTheme.colorScheme.primary,
+                useGradient = false,
+            )
 
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.label_max_per_day), modifier = Modifier.weight(1f))
-                    Text(
-                        if (form.maxDoserPerDag == 0) stringResource(R.string.label_unlimited)
-                        else stringResource(R.string.format_times, form.maxDoserPerDag),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                Slider(
-                    value = form.maxDoserPerDag.toFloat(),
-                    onValueChange = { vm.updateForm { copy(maxDoserPerDag = it.roundToInt()) } },
-                    valueRange = 0f..10f,
-                    steps = 9,
-                )
-            }
+            GradientSliderRow(
+                label = stringResource(R.string.label_max_per_day),
+                value = form.maxDoserPerDag.toFloat(),
+                onValueChange = { vm.updateForm { copy(maxDoserPerDag = it.roundToInt()) } },
+                valueRange = 0f..10f,
+                steps = 9,
+                displayValue = if (form.maxDoserPerDag == 0) stringResource(R.string.label_unlimited)
+                    else stringResource(R.string.format_times, form.maxDoserPerDag),
+                accentColor = MaterialTheme.colorScheme.primary,
+                useGradient = false,
+            )
 
             Button(
                 onClick = { scope.launch { vm.save(); onBack() } },

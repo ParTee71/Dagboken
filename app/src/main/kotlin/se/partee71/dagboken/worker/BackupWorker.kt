@@ -153,6 +153,7 @@ class BackupWorker @AssistedInject constructor(
         minTidMellan     = minTidMellan,
         dispenseringsTid = dispenseringsTid,
         maxDoserPerDag   = maxDoserPerDag,
+        isFavorite       = isFavorite,
     )
 
     private fun SjukdomsEpisod.toJson() = SjukdomsEpisodJson(

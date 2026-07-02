@@ -18,13 +18,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,12 +52,14 @@ fun VidBehovTab(
     vm: MedicinerViewModel,
     onEdit: (String) -> Unit,
 ) {
-    val favoriter       by vm.allFavoriter.collectAsState()
+    val allFavoriter    by vm.allFavoriter.collectAsState()
+    val favoriter       by vm.favoriteFavoriter.collectAsState()
+    val others          by vm.otherFavoriter.collectAsState()
     val cooldownWarning by vm.cooldownWarning.collectAsState()
     var deleteTarget    by remember { mutableStateOf<Favorit?>(null) }
     val cs = MaterialTheme.colorScheme
 
-    if (favoriter.isEmpty()) {
+    if (allFavoriter.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
@@ -98,10 +103,12 @@ fun VidBehovTab(
         )
         Spacer(Modifier.height(16.dp))
         FavoriterRow(
-            favoriter = favoriter,
-            onTap     = { vm.quickDos(it) },
-            onEdit    = onEdit,
-            onDelete  = { deleteTarget = it },
+            favoriter        = favoriter,
+            others           = others,
+            onTap            = { vm.quickDos(it) },
+            onEdit           = onEdit,
+            onDelete         = { deleteTarget = it },
+            onToggleFavorite = { vm.toggleFavoritFavorite(it) },
         )
     }
 
@@ -155,9 +162,11 @@ fun VidBehovTab(
 @Composable
 internal fun FavoriterRow(
     favoriter: List<Favorit>,
+    others: List<Favorit> = emptyList(),
     onTap: (Favorit) -> Unit,
     onEdit: (String) -> Unit,
     onDelete: ((Favorit) -> Unit)? = null,
+    onToggleFavorite: ((Favorit) -> Unit)? = null,
 ) {
     val cs = MaterialTheme.colorScheme
     FlowRow(
@@ -208,10 +217,49 @@ internal fun FavoriterRow(
                             leadingIcon = { Icon(Icons.Default.Edit, null) },
                             onClick = { menuExpanded = false; onEdit(fav.id) },
                         )
+                        if (onToggleFavorite != null) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (fav.isFavorite) stringResource(R.string.favorit_unmark_favorite)
+                                        else stringResource(R.string.favorit_mark_favorite),
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = if (fav.isFavorite) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                                    )
+                                },
+                                onClick = { menuExpanded = false; onToggleFavorite(fav) },
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.delete), color = cs.error) },
                             leadingIcon = { Icon(Icons.Default.Delete, null, tint = cs.error) },
                             onClick = { menuExpanded = false; onDelete(fav) },
+                        )
+                    }
+                }
+            }
+        }
+
+        if (others.isNotEmpty()) {
+            var showMore by remember { mutableStateOf(false) }
+            Box {
+                AssistChip(
+                    onClick = { showMore = true },
+                    label   = { Text(stringResource(R.string.favorit_more_label, others.size)) },
+                )
+                DropdownMenu(
+                    expanded = showMore,
+                    onDismissRequest = { showMore = false },
+                ) {
+                    others.forEach { fav ->
+                        DropdownMenuItem(
+                            text = { Text("${fav.namn} — ${fav.dos} ${fav.enhet}") },
+                            onClick = { showMore = false; onTap(fav) },
                         )
                     }
                 }

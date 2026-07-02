@@ -115,4 +115,28 @@ class ReceptFavoritDaoTest {
         assertEquals(2, result.maxDoserPerDag)
         assertEquals("mg", result.enhet)
     }
+
+    @Test fun favorit_isFavorite_defaults_to_false() = runTest {
+        favoritDao.upsert(favoritEntity("f1"))
+        assertEquals(false, favoritDao.getById("f1")!!.isFavorite)
+    }
+
+    @Test fun favorit_updateFavorite_setsIsFavorite_withoutChangingOtherFields() = runTest {
+        favoritDao.upsert(favoritEntity("f1"))
+
+        favoritDao.updateFavorite("f1", true)
+
+        val result = favoritDao.getById("f1")!!
+        assertEquals(true, result.isFavorite)
+        assertEquals("mg", result.enhet)
+        assertEquals(4, result.minTidMellan)
+    }
+
+    @Test fun favorit_updateFavorite_canUnmark() = runTest {
+        favoritDao.upsert(favoritEntity("f1").copy(isFavorite = true))
+
+        favoritDao.updateFavorite("f1", false)
+
+        assertEquals(false, favoritDao.getById("f1")!!.isFavorite)
+    }
 }

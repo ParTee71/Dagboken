@@ -18,9 +18,11 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -65,7 +67,7 @@ class VidBehovTabTest {
         vm = MedicinerViewModel(repo, NoteRepository(db.noteDao()), CheckCooldownUseCase(), CheckDailyLimitUseCase())
     }
 
-    @After fun tearDown() { db.close() }
+    @After fun tearDown() { vm.viewModelScope.cancel(); db.close() }
 
     private fun favorit(
         id: String = "fav1",
@@ -74,10 +76,12 @@ class VidBehovTabTest {
         enhet: String = "mg",
         maxDoserPerDag: Int = 0,
         minTidMellan: Int = 0,
+        isFavorite: Boolean = true,
     ) = Favorit(
         id = id, namn = namn, dos = dos, enhet = enhet,
         tidpunkt = "Vid behov", anteckning = "",
         minTidMellan = minTidMellan, maxDoserPerDag = maxDoserPerDag,
+        isFavorite = isFavorite,
     )
 
     private fun dosToday(namn: String, id: String = "dose1") = Medicin(
@@ -239,6 +243,68 @@ class VidBehovTabTest {
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Redigera").assertIsDisplayed()
+        // favorit() defaults to isFavorite = true, so the toggle offers to unmark it
+        composeRule.onNodeWithText("Ta bort favoritmarkering").assertIsDisplayed()
         composeRule.onNodeWithText("Ta bort").assertIsDisplayed()
+    }
+
+    @Test fun long_press_menu_shows_unmark_label_for_favorite_med() {
+        runBlocking { repo.saveFavorit(favorit(isFavorite = true)) }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Paracetamol").performTouchInput {
+            down(center)
+            advanceEventTime(600L)
+            up()
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Ta bort favoritmarkering").assertIsDisplayed()
+    }
+
+    @Test fun tapping_favorite_toggle_in_menu_updates_repository() {
+        runBlocking { repo.saveFavorit(favorit(isFavorite = true)) }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Paracetamol").performTouchInput {
+            down(center)
+            advanceEventTime(600L)
+            up()
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Ta bort favoritmarkering").performClick()
+        composeRule.waitUntil(3000) {
+            runBlocking { repo.getFavoritById("fav1")?.isFavorite == false }
+        }
+        val updated = runBlocking { repo.getFavoritById("fav1") }
+        assertEquals(false, updated?.isFavorite)
+    }
+
+    // ─── Icke-favoriter → "Fler"-lista ────────────────────────────────────────
+
+    @Test fun non_favorite_med_is_not_shown_as_a_chip() {
+        runBlocking { repo.saveFavorit(favorit(isFavorite = false)) }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Fler (1)")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Paracetamol").assertDoesNotExist()
+        composeRule.onNodeWithText("Fler (1)").assertIsDisplayed()
+    }
+
+    @Test fun tapping_more_list_item_logs_a_dose() {
+        runBlocking { repo.saveFavorit(favorit(isFavorite = false)) }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Fler (1)")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Fler (1)").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Paracetamol — 500 mg").performClick()
+        composeRule.waitUntil(3000) { vm.snackbar.value != null }
+        assertEquals("Paracetamol 500 mg loggad", vm.snackbar.value)
     }
 }

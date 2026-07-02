@@ -53,6 +53,7 @@ data class Favorit(
     val minTidMellan: Int,       // hours cooldown
     val dispenseringsTid: String = "",
     val maxDoserPerDag: Int = 0, // 0 = no limit
+    val isFavorite: Boolean = false,
 )
 
 // TIDP sort order — mirrors TIDP_ORDER in src/utils/storage.js

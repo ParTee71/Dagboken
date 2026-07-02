@@ -101,7 +101,7 @@ class MigrationRoundTripTest {
         medicinFavoriter = listOf(
             FavoritJson(
                 id = "f1", namn = "Paracetamol", dos = "500", enhet = "mg",
-                tidpunkt = "Vid behov", minTidMellan = 4,
+                tidpunkt = "Vid behov", minTidMellan = 4, isFavorite = true,
             ),
         ),
         sjukdomsepisoder = listOf(
@@ -197,6 +197,7 @@ class MigrationRoundTripTest {
         assertNotNull(fromDb)
         assertEquals("Paracetamol", fromDb!!.namn)
         assertEquals(4, fromDb.minTidMellan)
+        assertTrue(fromDb.isFavorite)
     }
 
     @Test fun sjukdomsepisoder_survive_mapper_and_import_and_can_be_read_back() = runTest {

@@ -13,6 +13,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.room.entities.FavoritEntity
 import se.partee71.dagboken.data.room.entities.MedicinEntity
 import se.partee71.dagboken.data.room.entities.ReceptEntity
 import se.partee71.dagboken.data.room.entities.toDomain
@@ -146,5 +147,29 @@ class MedicinerRepositoryTest {
         val entries = db.medicinDao().getByDate(today).filter { !it.skipped }
         assertEquals(1, entries.size)
         assertEquals("m2", entries[0].id)
+    }
+
+    // ─── setFavoritFavorite ───────────────────────────────────────────────────
+
+    @Test fun setFavoritFavorite_marks_a_favorit_as_favorite() = runTest {
+        db.favoritDao().upsert(FavoritEntity(
+            id = "f1", namn = "Paracetamol", dos = "500", enhet = "mg",
+            tidpunkt = "Vid behov", anteckning = "", minTidMellan = 0,
+        ))
+
+        repo.setFavoritFavorite("f1", true)
+
+        assertTrue(db.favoritDao().getById("f1")!!.isFavorite)
+    }
+
+    @Test fun setFavoritFavorite_unmarks_a_favorit() = runTest {
+        db.favoritDao().upsert(FavoritEntity(
+            id = "f1", namn = "Paracetamol", dos = "500", enhet = "mg",
+            tidpunkt = "Vid behov", anteckning = "", minTidMellan = 0, isFavorite = true,
+        ))
+
+        repo.setFavoritFavorite("f1", false)
+
+        assertEquals(false, db.favoritDao().getById("f1")!!.isFavorite)
     }
 }

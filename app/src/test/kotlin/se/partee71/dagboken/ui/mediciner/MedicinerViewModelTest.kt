@@ -70,9 +70,11 @@ class MedicinerViewModelTest {
         namn: String = "Paracetamol",
         maxDoserPerDag: Int = 0,
         minTidMellan: Int = 0,
+        isFavorite: Boolean = false,
     ) = Favorit(
         id = "f1", namn = namn, dos = "500", enhet = "mg", tidpunkt = "Vid behov",
         anteckning = "", minTidMellan = minTidMellan, maxDoserPerDag = maxDoserPerDag,
+        isFavorite = isFavorite,
     )
 
     // ─── toggleTagen ──────────────────────────────────────────────────────────
@@ -95,6 +97,44 @@ class MedicinerViewModelTest {
         val vm2 = MedicinerViewModel(repoWithFav, noteRepo, cooldown, limit)
         // WhileSubscribed won't start the upstream until collected; use first{} to subscribe and wait
         assertEquals(listOf(fav), vm2.allFavoriter.first { it.isNotEmpty() })
+    }
+
+    // ─── favoriteFavoriter / otherFavoriter ──────────────────────────────────
+
+    @Test fun `favoriteFavoriter contains only isFavorite entries`() = runTest {
+        val fav1 = favorit(namn = "Paracetamol", isFavorite = true)
+        val fav2 = favorit(namn = "Ibuprofen", isFavorite = false)
+        val repoWithFavs = mockk<MedicinerRepository>(relaxed = true) {
+            every { todayFlow() } returns flowOf(emptyList())
+            every { allRecept } returns flowOf(emptyList())
+            every { allFavoriter } returns flowOf(listOf(fav1, fav2))
+        }
+        val vm2 = MedicinerViewModel(repoWithFavs, noteRepo, cooldown, limit)
+        assertEquals(listOf(fav1), vm2.favoriteFavoriter.first { it.isNotEmpty() })
+    }
+
+    @Test fun `otherFavoriter contains only non-favorite entries`() = runTest {
+        val fav1 = favorit(namn = "Paracetamol", isFavorite = true)
+        val fav2 = favorit(namn = "Ibuprofen", isFavorite = false)
+        val repoWithFavs = mockk<MedicinerRepository>(relaxed = true) {
+            every { todayFlow() } returns flowOf(emptyList())
+            every { allRecept } returns flowOf(emptyList())
+            every { allFavoriter } returns flowOf(listOf(fav1, fav2))
+        }
+        val vm2 = MedicinerViewModel(repoWithFavs, noteRepo, cooldown, limit)
+        assertEquals(listOf(fav2), vm2.otherFavoriter.first { it.isNotEmpty() })
+    }
+
+    // ─── toggleFavoritFavorite ────────────────────────────────────────────────
+
+    @Test fun `toggleFavoritFavorite flips isFavorite via repo`() = runTest {
+        viewModel.toggleFavoritFavorite(favorit(isFavorite = false))
+        coVerify { repo.setFavoritFavorite("f1", true) }
+    }
+
+    @Test fun `toggleFavoritFavorite unmarks an already-favorite entry`() = runTest {
+        viewModel.toggleFavoritFavorite(favorit(isFavorite = true))
+        coVerify { repo.setFavoritFavorite("f1", false) }
     }
 
     // ─── historyFilter / filteredHistory ─────────────────────────────────────

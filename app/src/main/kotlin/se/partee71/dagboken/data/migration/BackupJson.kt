@@ -84,6 +84,7 @@ data class FavoritJson(
     val minTidMellan: Int = 4,
     val dispenseringsTid: String = "",
     val maxDoserPerDag: Int = 0,
+    val isFavorite: Boolean = false,
 )
 
 @Serializable

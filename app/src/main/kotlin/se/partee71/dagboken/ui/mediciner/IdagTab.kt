@@ -70,7 +70,7 @@ fun IdagTab(
     val noteDialogMedicin    by vm.noteDialogMedicin.collectAsState()
     val noteDialogText       by vm.noteDialogText.collectAsState()
     val showSingleDoseDialog by vm.showSingleDoseDialog.collectAsState()
-    val allFavoriter         by vm.allFavoriter.collectAsState()
+    val favoriteFavoriter    by vm.favoriteFavoriter.collectAsState()
     val cooldownWarning      by vm.cooldownWarning.collectAsState()
     val sorted = today.sortedBy { tidpunktSortIndex(it.tidpunkt) }
     var deleteTarget by remember { mutableStateOf<Medicin?>(null) }
@@ -131,7 +131,7 @@ fun IdagTab(
                 )
             }
 
-            if (allFavoriter.isNotEmpty()) {
+            if (favoriteFavoriter.isNotEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -145,7 +145,7 @@ fun IdagTab(
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                     FavoriterRow(
-                        favoriter = allFavoriter,
+                        favoriter = favoriteFavoriter,
                         onTap     = { vm.quickDos(it) },
                         onEdit    = onEdit,
                         onDelete  = null,

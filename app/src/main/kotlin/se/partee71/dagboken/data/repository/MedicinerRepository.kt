@@ -82,6 +82,9 @@ class MedicinerRepository @Inject constructor(
 
     suspend fun deleteFavorit(favorit: Favorit) = favoritDao.delete(favorit.toEntity())
 
+    suspend fun setFavoritFavorite(id: String, isFavorite: Boolean) =
+        favoritDao.updateFavorite(id, isFavorite)
+
     // ─── ensureTodayEntries ───────────────────────────────────────────────────
     /**
      * Creates synthetic Medicin entries for all active Recept that should fire today.

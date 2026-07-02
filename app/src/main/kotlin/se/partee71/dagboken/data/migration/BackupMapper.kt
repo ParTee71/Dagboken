@@ -92,6 +92,7 @@ object BackupMapper {
         minTidMellan     = minTidMellan,
         dispenseringsTid = dispenseringsTid,
         maxDoserPerDag   = maxDoserPerDag,
+        isFavorite       = isFavorite,
     )
 
     private fun SjukdomsEpisodJson.toDomain() = SjukdomsEpisod(

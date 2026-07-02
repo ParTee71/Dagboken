@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -60,6 +61,7 @@ fun GradientSliderRow(
     displayValue: String? = null,   // overrides the "N /10" header format (e.g. "+7" for −10..10 range)
     accentColor: Color? = null,     // overrides the auto screeningEnergyColor (e.g. for activity energy scale)
     reverseColors: Boolean = false, // 0=green 10=red (symptoms/stress); default is 0=red 10=green (energy)
+    useGradient: Boolean = true,    // false = flat accentColor track fill instead of the rainbow gradient
     zoneLabelStart: String = "",   // label shown left of track (low-energy zone)
     zoneLabelEnd: String = "",     // label shown right of track (high-energy zone)
     zoneLowEnd: Float? = null,     // values < this are "low zone"; divider drawn before this step
@@ -141,12 +143,16 @@ fun GradientSliderRow(
             val thumbOffsetX = (maxWidth - thumbSize) * fraction
             val fullWidthPx = with(density) { maxWidth.toPx() }
             val trackColors = if (reverseColors) gradientColors().reversed() else gradientColors()
-            val gradientBrush = remember(fullWidthPx, reverseColors) {
-                Brush.horizontalGradient(
-                    colors = trackColors,
-                    startX = 0f,
-                    endX   = fullWidthPx,
-                )
+            val gradientBrush = remember(fullWidthPx, reverseColors, useGradient, eColor) {
+                if (useGradient) {
+                    Brush.horizontalGradient(
+                        colors = trackColors,
+                        startX = 0f,
+                        endX   = fullWidthPx,
+                    )
+                } else {
+                    SolidColor(eColor)
+                }
             }
 
             // Dim track background

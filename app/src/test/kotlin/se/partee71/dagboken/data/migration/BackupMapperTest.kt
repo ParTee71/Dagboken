@@ -143,7 +143,7 @@ class BackupMapperTest {
             favoriter = listOf(FavoritJson(
                 id = "f1", namn = "Ibuprofen", dos = "400", enhet = "mg",
                 tidpunkt = "Vid behov", anteckning = "", minTidMellan = 4,
-                dispenseringsTid = "", maxDoserPerDag = 2,
+                dispenseringsTid = "", maxDoserPerDag = 2, isFavorite = true,
             ))
         )
         val result = BackupMapper.toFavoriter(json)
@@ -151,6 +151,7 @@ class BackupMapperTest {
         assertEquals("f1", result[0].id)
         assertEquals(4, result[0].minTidMellan)
         assertEquals(2, result[0].maxDoserPerDag)
+        assertEquals(true, result[0].isFavorite)
     }
 
     // ─── händelser ────────────────────────────────────────────────────────────

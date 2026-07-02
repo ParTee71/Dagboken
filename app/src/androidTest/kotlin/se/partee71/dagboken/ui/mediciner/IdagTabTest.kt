@@ -19,9 +19,11 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -66,7 +68,7 @@ class IdagTabTest {
         vm = MedicinerViewModel(repo, NoteRepository(db.noteDao()), CheckCooldownUseCase(), CheckDailyLimitUseCase())
     }
 
-    @After fun tearDown() { db.close() }
+    @After fun tearDown() { vm.viewModelScope.cancel(); db.close() }
 
     private fun medicin(
         id: String = "m1",
@@ -84,10 +86,12 @@ class IdagTabTest {
         namn: String = "Paracetamol",
         minTidMellan: Int = 0,
         maxDoserPerDag: Int = 0,
+        isFavorite: Boolean = true,
     ) = Favorit(
         id = id, namn = namn, dos = "500", enhet = "mg",
         tidpunkt = "Vid behov", anteckning = "",
         minTidMellan = minTidMellan, maxDoserPerDag = maxDoserPerDag,
+        isFavorite = isFavorite,
     )
 
     private fun setContent(onEdit: (String) -> Unit = {}) {
@@ -213,6 +217,19 @@ class IdagTabTest {
             composeRule.onAllNodes(hasText("Ibuprofen")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Vid behov").assertDoesNotExist()
+    }
+
+    @Test fun favourites_row_hidden_when_favoriter_are_not_favorite_marked() {
+        runBlocking {
+            repo.saveMedicin(medicin())
+            repo.saveFavorit(favorit(isFavorite = false))
+        }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Ibuprofen")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Vid behov").assertDoesNotExist()
+        composeRule.onNodeWithText("Paracetamol").assertDoesNotExist()
     }
 
     @Test fun tapping_favourite_card_triggers_quickDos() {

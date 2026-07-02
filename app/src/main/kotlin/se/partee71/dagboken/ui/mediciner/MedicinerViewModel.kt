@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
@@ -47,6 +48,14 @@ class MedicinerViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val allFavoriter: StateFlow<List<Favorit>> = repo.allFavoriter
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val favoriteFavoriter: StateFlow<List<Favorit>> = repo.allFavoriter
+        .map { list -> list.filter { it.isFavorite } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val otherFavoriter: StateFlow<List<Favorit>> = repo.allFavoriter
+        .map { list -> list.filterNot { it.isFavorite } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val allMediciner: StateFlow<List<Medicin>> = repo.allMediciner
@@ -142,6 +151,10 @@ class MedicinerViewModel @Inject constructor(
             repo.deleteFavorit(favorit)
             _snackbar.value = "${favorit.namn} borttagen"
         }
+    }
+
+    fun toggleFavoritFavorite(favorit: Favorit) {
+        viewModelScope.launch { repo.setFavoritFavorite(favorit.id, !favorit.isFavorite) }
     }
 
     fun quickDos(favorit: Favorit) {
