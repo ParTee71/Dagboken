@@ -43,7 +43,7 @@ class MedicinDaoTest {
     ) = MedicinEntity(
         id = id, timestamp = timestamp, datum = datum, tid = "09:00",
         namn = namn, dos = "400", enhet = "mg", tidpunkt = "Morgon",
-        tagen = tagen, anteckning = "", receptId = receptId, skipped = skipped,
+        tagen = tagen, receptId = receptId, skipped = skipped,
     )
 
     @Test fun upsertAndGetById() = runTest {

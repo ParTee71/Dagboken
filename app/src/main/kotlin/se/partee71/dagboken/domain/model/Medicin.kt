@@ -10,7 +10,6 @@ data class Medicin(
     val enhet: String,
     val tidpunkt: String,        // "Morgon" | "Förmiddag" | ... | "Vid behov"
     val tagen: Boolean,
-    val anteckning: String,
     val receptId: String? = null,
     val skipped: Boolean = false,
 )
@@ -24,7 +23,6 @@ data class Recept(
     val upprepning: String,      // "dagligen" | "vardagar" | "helger" | "anpassad" | "intervall"
     val dagar: List<Int>,        // 0=Mon..6=Sun for "anpassad"
     val intervalDagar: Int = 2,
-    val anteckning: String,
     val aktiv: Boolean,
     val skapad: String,          // YYYY-MM-DD
 )
@@ -49,7 +47,6 @@ data class Favorit(
     val dos: String,
     val enhet: String,
     val tidpunkt: String,
-    val anteckning: String,
     val minTidMellan: Int,       // hours cooldown
     val dispenseringsTid: String = "",
     val maxDoserPerDag: Int = 0, // 0 = no limit

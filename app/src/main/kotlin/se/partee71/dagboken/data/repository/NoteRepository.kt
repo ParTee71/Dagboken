@@ -13,6 +13,10 @@ class NoteRepository @Inject constructor(private val dao: NoteDao) {
     fun observe(target: NoteTarget, entityId: String): Flow<String> =
         dao.observe(target.name, entityId).map { it ?: "" }
 
+    /** Live map of entityId → note text for every note under [target]. */
+    fun observeMap(target: NoteTarget): Flow<Map<String, String>> =
+        dao.observeAllForTarget(target.name).map { notes -> notes.associate { it.entityId to it.text } }
+
     suspend fun save(target: NoteTarget, entityId: String, text: String) {
         if (text.isBlank()) {
             dao.delete(target.name, entityId)

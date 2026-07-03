@@ -61,6 +61,7 @@ class VidBehovTabTest {
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
+            noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
@@ -79,7 +80,7 @@ class VidBehovTabTest {
         isFavorite: Boolean = true,
     ) = Favorit(
         id = id, namn = namn, dos = dos, enhet = enhet,
-        tidpunkt = "Vid behov", anteckning = "",
+        tidpunkt = "Vid behov",
         minTidMellan = minTidMellan, maxDoserPerDag = maxDoserPerDag,
         isFavorite = isFavorite,
     )
@@ -88,7 +89,7 @@ class VidBehovTabTest {
         id = id, timestamp = java.time.Instant.now().toString(),
         datum = today, tid = "10:00",
         namn = namn, dos = "500", enhet = "mg", tidpunkt = "Vid behov",
-        tagen = true, anteckning = "",
+        tagen = true,
     )
 
     private fun setContent() {

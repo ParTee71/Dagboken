@@ -11,6 +11,9 @@ interface NoteDao {
     @Query("SELECT text FROM notes WHERE target = :target AND entityId = :entityId")
     fun observe(target: String, entityId: String): Flow<String?>
 
+    @Query("SELECT * FROM notes WHERE target = :target")
+    fun observeAllForTarget(target: String): Flow<List<NoteEntity>>
+
     @Query("SELECT * FROM notes")
     suspend fun getAll(): List<NoteEntity>
 

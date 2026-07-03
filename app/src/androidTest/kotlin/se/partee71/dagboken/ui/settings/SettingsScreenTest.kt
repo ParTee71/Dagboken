@@ -27,6 +27,7 @@ import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
@@ -61,6 +62,7 @@ class SettingsScreenTest {
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
+            noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
@@ -224,7 +226,7 @@ class SettingsScreenTest {
             medicinerRepo.saveFavorit(
                 Favorit(
                     id = "fav1", namn = "Paracetamol", dos = "500", enhet = "mg",
-                    tidpunkt = "Vid behov", anteckning = "", minTidMellan = 0,
+                    tidpunkt = "Vid behov", minTidMellan = 0,
                     isFavorite = false,
                 )
             )

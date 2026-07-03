@@ -62,6 +62,7 @@ class MigrationRoundTripTest {
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
+            noteRepo           = noteRepo,
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = json,
         )
@@ -328,5 +329,37 @@ class MigrationRoundTripTest {
         )
         noteRepo.importAll(BackupMapper.toNotes(legacyBackup))
         assertEquals(0, db.noteDao().count())
+    }
+
+    // ─── legacy per-row anteckning → notes table (pre-MIGRATION_6_7 backups) ──
+
+    @Test fun legacy_medicin_recept_favorit_anteckning_is_migrated_into_notes_on_import() = runTest {
+        // Simulates restoring a backup created before Medicin/Recept/Favorit moved their
+        // anteckning column into the generic notes table.
+        val legacyBackup = testBackup().copy(
+            mediciner = listOf(MedicinJson(id = "m1", namn = "Metformin", anteckning = "Tas med mat")),
+            medicinRecipes = listOf(ReceptJson(id = "r1", namn = "Vitamin D", anteckning = "Kväll bäst")),
+            medicinFavoriter = listOf(FavoritJson(id = "f1", namn = "Paracetamol", anteckning = "Max 3/dag")),
+            notes = emptyList(),
+        )
+
+        noteRepo.importAll(BackupMapper.toNotes(legacyBackup))
+
+        val notes = db.noteDao().getAll()
+        assertEquals("Tas med mat", notes.find { it.target == "MEDICATION" && it.entityId == "m1" }?.text)
+        assertEquals("Kväll bäst", notes.find { it.target == "RECEPT" && it.entityId == "r1" }?.text)
+        assertEquals("Max 3/dag", notes.find { it.target == "FAVORIT" && it.entityId == "f1" }?.text)
+    }
+
+    @Test fun explicit_note_entry_wins_over_legacy_anteckning_for_the_same_row() = runTest {
+        val legacyBackup = testBackup().copy(
+            mediciner = listOf(MedicinJson(id = "m1", namn = "Metformin", anteckning = "Gammal (kolumn)")),
+            notes = listOf(NoteJson(target = "MEDICATION", entityId = "m1", text = "Ny (notes-tabell)")),
+        )
+
+        noteRepo.importAll(BackupMapper.toNotes(legacyBackup))
+
+        val text = db.noteDao().getAll().find { it.target == "MEDICATION" && it.entityId == "m1" }?.text
+        assertEquals("Ny (notes-tabell)", text)
     }
 }

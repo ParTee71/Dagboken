@@ -124,7 +124,6 @@ class BackupWorker @AssistedInject constructor(
         enhet      = enhet,
         tidpunkt   = tidpunkt,
         tagen      = tagen,
-        anteckning = anteckning,
         receptId   = receptId,
         skipped    = skipped,
     )
@@ -138,7 +137,6 @@ class BackupWorker @AssistedInject constructor(
         upprepning    = upprepning,
         dagar         = dagar,
         intervalDagar = intervalDagar,
-        anteckning    = anteckning,
         aktiv         = aktiv,
         skapad        = skapad,
     )
@@ -149,7 +147,6 @@ class BackupWorker @AssistedInject constructor(
         dos              = dos,
         enhet            = enhet,
         tidpunkt         = tidpunkt,
-        anteckning       = anteckning,
         minTidMellan     = minTidMellan,
         dispenseringsTid = dispenseringsTid,
         maxDoserPerDag   = maxDoserPerDag,

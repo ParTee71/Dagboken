@@ -13,6 +13,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.entities.FavoritEntity
 import se.partee71.dagboken.data.room.entities.MedicinEntity
 import se.partee71.dagboken.data.room.entities.ReceptEntity
@@ -43,6 +44,7 @@ class MedicinerRepositoryTest {
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
+            noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
@@ -61,7 +63,7 @@ class MedicinerRepositoryTest {
     ) = MedicinEntity(
         id = id, timestamp = "${datum}T${tid}:00.000Z", datum = datum, tid = tid,
         namn = namn, dos = "400", enhet = "mg", tidpunkt = "Morgon",
-        tagen = tagen, anteckning = "", receptId = receptId, skipped = skipped,
+        tagen = tagen, receptId = receptId, skipped = skipped,
     )
 
     // ─── ensureTodayEntries – idempotency ─────────────────────────────────────
@@ -71,7 +73,7 @@ class MedicinerRepositoryTest {
         db.receptDao().upsert(ReceptEntity(
             id = "r1", namn = "Metformin", dos = "500", enhet = "mg",
             tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
-            dagarJson = "[]", intervalDagar = 1, anteckning = "", aktiv = true, skapad = today,
+            dagarJson = "[]", intervalDagar = 1, aktiv = true, skapad = today,
         ))
 
         repo.ensureTodayEntries()
@@ -81,6 +83,35 @@ class MedicinerRepositoryTest {
         // countDailyDoses only counts tagen=1, but we can check total entries via getByDate
         val entries = db.medicinDao().getByDate(today)
         assertEquals("Idempotent: only one entry created", 1, entries.size)
+    }
+
+    @Test fun ensureTodayEntries_copies_the_recept_note_onto_the_generated_dose() = runTest {
+        val today = LocalDate.now().toString()
+        db.receptDao().upsert(ReceptEntity(
+            id = "r1", namn = "Metformin", dos = "500", enhet = "mg",
+            tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
+            dagarJson = "[]", intervalDagar = 1, aktiv = true, skapad = today,
+        ))
+        db.noteDao().upsert(se.partee71.dagboken.data.room.entities.NoteEntity("RECEPT", "r1", "Tas med mat"))
+
+        repo.ensureTodayEntries()
+
+        val entry = db.medicinDao().getByDate(today).single()
+        val note = db.noteDao().getAll().find { it.target == "MEDICATION" && it.entityId == entry.id }
+        assertEquals("Tas med mat", note?.text)
+    }
+
+    @Test fun ensureTodayEntries_does_not_create_a_note_when_the_recept_has_none() = runTest {
+        val today = LocalDate.now().toString()
+        db.receptDao().upsert(ReceptEntity(
+            id = "r1", namn = "Metformin", dos = "500", enhet = "mg",
+            tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
+            dagarJson = "[]", intervalDagar = 1, aktiv = true, skapad = today,
+        ))
+
+        repo.ensureTodayEntries()
+
+        assertEquals(0, db.noteDao().count())
     }
 
     // ─── countDailyDoses ──────────────────────────────────────────────────────
@@ -154,7 +185,7 @@ class MedicinerRepositoryTest {
     @Test fun setFavoritFavorite_marks_a_favorit_as_favorite() = runTest {
         db.favoritDao().upsert(FavoritEntity(
             id = "f1", namn = "Paracetamol", dos = "500", enhet = "mg",
-            tidpunkt = "Vid behov", anteckning = "", minTidMellan = 0,
+            tidpunkt = "Vid behov", minTidMellan = 0,
         ))
 
         repo.setFavoritFavorite("f1", true)
@@ -165,7 +196,7 @@ class MedicinerRepositoryTest {
     @Test fun setFavoritFavorite_unmarks_a_favorit() = runTest {
         db.favoritDao().upsert(FavoritEntity(
             id = "f1", namn = "Paracetamol", dos = "500", enhet = "mg",
-            tidpunkt = "Vid behov", anteckning = "", minTidMellan = 0, isFavorite = true,
+            tidpunkt = "Vid behov", minTidMellan = 0, isFavorite = true,
         ))
 
         repo.setFavoritFavorite("f1", false)

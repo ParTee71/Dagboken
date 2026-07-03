@@ -19,7 +19,7 @@ class CheckCooldownUseCaseTest {
         return Medicin(
             id = "x", timestamp = ts, datum = "2024-01-01", tid = "08:00",
             namn = namn, dos = "400", enhet = "mg", tidpunkt = "Morgon",
-            tagen = true, anteckning = "", skipped = skipped,
+            tagen = true, skipped = skipped,
         )
     }
 

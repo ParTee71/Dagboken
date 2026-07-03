@@ -70,6 +70,7 @@ fun SchemaTab(
     onEdit: (String) -> Unit,
 ) {
     val recept by vm.allRecept.collectAsState()
+    val receptNotes by vm.receptNotes.collectAsState()
     var deleteTarget by remember { mutableStateOf<Recept?>(null) }
     val cs = MaterialTheme.colorScheme
 
@@ -200,9 +201,10 @@ fun SchemaTab(
                                         AssistChip(onClick = {}, label = { Text(t) })
                                     }
                                 }
-                                if (r.anteckning.isNotBlank()) {
+                                val note = receptNotes[r.id].orEmpty()
+                                if (note.isNotBlank()) {
                                     Text(
-                                        r.anteckning,
+                                        note,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = cs.onSurfaceVariant,
                                         modifier = Modifier.padding(top = 8.dp),

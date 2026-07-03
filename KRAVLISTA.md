@@ -117,12 +117,13 @@
 | MED-5 | Tagna mediciner ska kunna **döljas** i Idag-fliken; en toggle-knapp visar antalet dolda poster och låter användaren visa dem igen. |
 | MED-6 | Kryssrutan för att markera tagen ersätts med en **animerad ikonknapp** (tomt cirkelkryss → fylld bockikon med färganimering). |
 | MED-7 | Favoriter (vid-behov-mediciner) ska visas som ett **snabbval** direkt i Idag-fliken, under progressbaren; tryck loggar en dos med befintlig cooldown-/gränslogik. |
+| MED-11 | Varje medicinpost (dos) ska kunna ha en anteckning, redigerbar via den delade `NoteField`-komponenten på redigeringsskärmen. Loggas en dos från en favorit ärvs favoritens anteckning som förvalt värde på dosen. |
 
 ### 6.2 Schema-flik (recept)
 
 | ID | Krav |
 |----|------|
-| REC-1 | Användaren ska kunna skapa/redigera **recept** med namn, dos, enhet, en eller flera tidpunkter och anteckning. |
+| REC-1 | Användaren ska kunna skapa/redigera **recept** med namn, dos, enhet, en eller flera tidpunkter och en anteckning (delad `NoteField`-komponent). Anteckningen ärvs som förval på varje dos receptet genererar. |
 | REC-2 | Recept ska stödja upprepningsmönster: **dagligen, vardagar, helger, anpassad (specifika veckodagar), intervall (var X:e dag)**. |
 | REC-3 | Vid "anpassad" ska specifika veckodagar (0=Mån … 6=Sön) kunna väljas. |
 | REC-4 | Vid "intervall" ska intervall i dagar anges; beräknas relativt receptets skapandedatum. |
@@ -133,7 +134,7 @@
 
 | ID | Krav |
 |----|------|
-| FAV-1 | Användaren ska kunna skapa **favoriter** (vid-behov-mediciner) med namn, dos, enhet, tidpunkt och anteckning. |
+| FAV-1 | Användaren ska kunna skapa **favoriter** (vid-behov-mediciner) med namn, dos, enhet, tidpunkt och en anteckning (delad `NoteField`-komponent). |
 | FAV-2 | Endast **favoritmarkerade** favoriter visas som tryckbara kort (chips) i Vid behov-fliken och på Idag-fliken; **tryck loggar en dos** direkt. Icke-favoritmarkerade favoriter nås via en "Fler"-lista i Vid behov-fliken. |
 | FAV-3 | **Långtryck** öppnar meny för redigera/ta bort (med bekräftelsedialog). |
 | FAV-4 | Favorit ska kunna ha **minsta tid mellan doser** (kylperiod i timmar); dos blockeras med kvarvarande tid om för tidigt. |
@@ -181,7 +182,7 @@
 | ID | Krav |
 |----|------|
 | BCK-1 | Appen ska **automatiskt säkerhetskopiera** all data till Google Drive (appDataFolder) via WorkManager. |
-| BCK-2 | Backup ska omfatta aktiviteter, mediciner, recept, favoriter (inklusive favoritmarkering) samt aktivitets-/symptom-/händelsetypalternativ inklusive favoritstatus (versionerat JSON). |
+| BCK-2 | Backup ska omfatta aktiviteter, mediciner, recept, favoriter (inklusive favoritmarkering), händelser, sjukdomar, anteckningar (generisk `notes`-tabell) samt aktivitets-/symptom-/händelsetypalternativ inklusive favoritstatus (versionerat JSON). |
 | BCK-3 | Endast de **5 senaste** backuperna ska behållas (äldre rensas). |
 | BCK-4 | Backup ska kräva inloggat konto och Drive-auktorisering (`DRIVE_APPDATA`-scope); auktorisering kan kräva användarsamtycke. |
 | BCK-5 | Användaren ska kunna **importera/migrera** data från senaste Drive-backup. |
@@ -229,9 +230,10 @@
 | Entitet | Nyckelfält |
 |---------|-----------|
 | **Aktivitet** | id, timestamp, datum, tid, aktivitet, energy (−10..10 / 1..10), stress (0..10), somatiska, symptom (wire), aterhamtande, energitjuv, type (`aktivitet`/`screening`), spentTime (min). |
-| **Medicin** | id, timestamp, datum, tid, namn, dos, enhet, tidpunkt, tagen, anteckning, receptId?, skipped. |
-| **Recept** | id, namn, dos, enhet, tidpunkter[], upprepning, dagar[], intervalDagar, anteckning, aktiv, skapad. |
-| **Favorit** | id, namn, dos, enhet, tidpunkt, anteckning, minTidMellan (h), dispenseringsTid, maxDoserPerDag. |
+| **Medicin** | id, timestamp, datum, tid, namn, dos, enhet, tidpunkt, tagen, receptId?, skipped. |
+| **Recept** | id, namn, dos, enhet, tidpunkter[], upprepning, dagar[], intervalDagar, aktiv, skapad. |
+| **Favorit** | id, namn, dos, enhet, tidpunkt, minTidMellan (h), dispenseringsTid, maxDoserPerDag, isFavorite. |
+| **Note** | target (`ACTIVITY`/`SCREENING`/`MEDICATION`/`RECEPT`/`FAVORIT`), entityId, text — generisk anteckning kopplad till valfri entitet ovan (ersätter tidigare `anteckning`-kolumner på Aktivitet/Medicin/Recept/Favorit). |
 
 | ID | Krav |
 |----|------|

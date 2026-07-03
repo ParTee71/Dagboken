@@ -6,9 +6,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.model.NoteTarget
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -26,6 +29,7 @@ data class MedicinForm(
 @HiltViewModel
 class AddEditMedicinViewModel @Inject constructor(
     private val repo: MedicinerRepository,
+    private val noteRepo: NoteRepository,
 ) : ViewModel() {
 
     private val _form = MutableStateFlow(MedicinForm())
@@ -38,12 +42,13 @@ class AddEditMedicinViewModel @Inject constructor(
         viewModelScope.launch {
             val m = repo.getMedicinById(id) ?: return@launch
             editingMedicin = m
+            val note = noteRepo.observe(NoteTarget.MEDICATION, id).first()
             _form.value = MedicinForm(
                 namn       = m.namn,
                 dos        = m.dos,
                 enhet      = m.enhet,
                 tidpunkt   = m.tidpunkt,
-                anteckning = m.anteckning,
+                anteckning = note,
             )
         }
     }
@@ -58,7 +63,6 @@ class AddEditMedicinViewModel @Inject constructor(
                     dos        = f.dos.trim(),
                     enhet      = f.enhet,
                     tidpunkt   = f.tidpunkt,
-                    anteckning = f.anteckning.trim(),
                 )
             } else {
                 val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
@@ -73,10 +77,10 @@ class AddEditMedicinViewModel @Inject constructor(
                     enhet      = f.enhet,
                     tidpunkt   = f.tidpunkt,
                     tagen      = false,
-                    anteckning = f.anteckning.trim(),
                 )
             }
             repo.saveMedicin(medicin)
+            noteRepo.save(NoteTarget.MEDICATION, medicin.id, f.anteckning.trim())
         }
     }
 }

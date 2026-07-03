@@ -228,6 +228,34 @@ class BackupMapperTest {
         assertTrue(BackupMapper.toNotes(backup()).isEmpty())
     }
 
+    @Test fun `toNotes synthesizes MEDICATION RECEPT FAVORIT notes from legacy anteckning columns`() {
+        val json = backup(
+            mediciner = listOf(MedicinJson(id = "m1", anteckning = "Tas med mat")),
+            recept = listOf(ReceptJson(id = "r1", anteckning = "Kväll bäst")),
+            favoriter = listOf(FavoritJson(id = "f1", anteckning = "Max 3/dag")),
+        )
+        val result = BackupMapper.toNotes(json)
+        assertEquals(3, result.size)
+        assertEquals("Tas med mat", result.find { it.target == "MEDICATION" && it.entityId == "m1" }?.text)
+        assertEquals("Kväll bäst", result.find { it.target == "RECEPT" && it.entityId == "r1" }?.text)
+        assertEquals("Max 3/dag", result.find { it.target == "FAVORIT" && it.entityId == "f1" }?.text)
+    }
+
+    @Test fun `toNotes ignores blank legacy anteckning columns`() {
+        val json = backup(mediciner = listOf(MedicinJson(id = "m1", anteckning = "  ")))
+        assertTrue(BackupMapper.toNotes(json).isEmpty())
+    }
+
+    @Test fun `toNotes prefers an explicit notes entry over the legacy anteckning column for the same row`() {
+        val json = backup(
+            mediciner = listOf(MedicinJson(id = "m1", anteckning = "Gammal (kolumn)")),
+            notes = listOf(NoteJson(target = "MEDICATION", entityId = "m1", text = "Ny (notes-tabell)")),
+        )
+        val result = BackupMapper.toNotes(json)
+        assertEquals(1, result.size)
+        assertEquals("Ny (notes-tabell)", result[0].text)
+    }
+
     // ─── sjukdomar ────────────────────────────────────────────────────────────
 
     @Test fun `toSjukdomsEpisoder maps all fields`() {

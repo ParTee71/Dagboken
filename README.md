@@ -130,6 +130,7 @@ Se [.github/workflows/android.yml](.github/workflows/android.yml).
 
 | Version | Innehåll |
 |---------|----------|
+| 2.11.0 | Medicin/Recept/Favorit-anteckning migrerad till det generiska anteckningssystemet (delad `NoteField`); Favorit-anteckning har nu ett UI-fält |
 | 2.10.0 | Anteckning (delad `NoteField`) på Screening- och Aktivitet-formulären |
 | 2.9.0 | Vid behov-mediciner kan favoritmarkeras (som aktivitetstyper); endast favoriter visas som chips, resten nås via "Fler"-lista; ny inställningssektion för favoritmarkering |
 | 2.2.1 | Symptomloggning med svårighetsgrad och favoriter; aktivitetstyper med favorit-chips och dropdown; OptionSettingsCard för full CRUD av båda listor |

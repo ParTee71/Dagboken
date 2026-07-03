@@ -76,7 +76,7 @@ class HomeViewModelTest {
     ) = Medicin(
         id = id, timestamp = "${datum}T07:00:00.000Z", datum = datum, tid = "07:00",
         namn = namn, dos = "400", enhet = "mg", tidpunkt = tidpunkt,
-        tagen = tagen, anteckning = "", receptId = null, skipped = skipped,
+        tagen = tagen, receptId = null, skipped = skipped,
     )
 
     // ─── tagenCount ───────────────────────────────────────────────────────────

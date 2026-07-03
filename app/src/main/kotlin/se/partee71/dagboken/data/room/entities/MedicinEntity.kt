@@ -25,7 +25,6 @@ data class MedicinEntity(
     val enhet: String,
     val tidpunkt: String,
     val tagen: Boolean,
-    val anteckning: String,
     val receptId: String? = null,
     val skipped: Boolean = false,
 )
@@ -40,7 +39,6 @@ data class ReceptEntity(
     val upprepning: String,
     val dagarJson: String,        // JSON array of ints
     val intervalDagar: Int = 2,
-    val anteckning: String,
     val aktiv: Boolean,
     val skapad: String,
 )
@@ -52,7 +50,6 @@ data class FavoritEntity(
     val dos: String,
     val enhet: String,
     val tidpunkt: String,
-    val anteckning: String,
     val minTidMellan: Int,
     val dispenseringsTid: String = "",
     val maxDoserPerDag: Int = 0,
@@ -70,7 +67,6 @@ fun MedicinEntity.toDomain() = Medicin(
     enhet      = enhet,
     tidpunkt   = tidpunkt,
     tagen      = tagen,
-    anteckning = anteckning,
     receptId   = receptId,
     skipped    = skipped,
 )
@@ -85,7 +81,6 @@ fun Medicin.toEntity() = MedicinEntity(
     enhet      = enhet,
     tidpunkt   = tidpunkt,
     tagen      = tagen,
-    anteckning = anteckning,
     receptId   = receptId,
     skipped    = skipped,
 )
@@ -102,7 +97,6 @@ fun ReceptEntity.toDomain(
     upprepning   = upprepning,
     dagar        = parseIntList(dagarJson),
     intervalDagar = intervalDagar,
-    anteckning   = anteckning,
     aktiv        = aktiv,
     skapad       = skapad,
 )
@@ -119,7 +113,6 @@ fun Recept.toEntity(
     upprepning      = upprepning,
     dagarJson       = serializeIntList(dagar),
     intervalDagar   = intervalDagar,
-    anteckning      = anteckning,
     aktiv           = aktiv,
     skapad          = skapad,
 )
@@ -130,7 +123,6 @@ fun FavoritEntity.toDomain() = Favorit(
     dos              = dos,
     enhet            = enhet,
     tidpunkt         = tidpunkt,
-    anteckning       = anteckning,
     minTidMellan     = minTidMellan,
     dispenseringsTid = dispenseringsTid,
     maxDoserPerDag   = maxDoserPerDag,
@@ -143,7 +135,6 @@ fun Favorit.toEntity() = FavoritEntity(
     dos              = dos,
     enhet            = enhet,
     tidpunkt         = tidpunkt,
-    anteckning       = anteckning,
     minTidMellan     = minTidMellan,
     dispenseringsTid = dispenseringsTid,
     maxDoserPerDag   = maxDoserPerDag,

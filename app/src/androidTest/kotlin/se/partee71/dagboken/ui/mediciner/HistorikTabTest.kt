@@ -48,6 +48,7 @@ class HistorikTabTest {
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
+            noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
@@ -69,7 +70,7 @@ class HistorikTabTest {
     ) = Medicin(
         id = id, timestamp = "${datum}T$tid:00.000Z", datum = datum, tid = tid,
         namn = namn, dos = "400", enhet = "mg", tidpunkt = "Morgon",
-        tagen = true, anteckning = "", receptId = receptId,
+        tagen = true, receptId = receptId,
     )
 
     private fun setContent() {

@@ -42,6 +42,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.TIDP_ORDER
+import se.partee71.dagboken.ui.components.NoteField
 
 private val UPPREPNING_OPTIONS = listOf("dagligen", "vardagar", "helger", "anpassad", "intervall")
 private val UPPREPNING_LABELS = mapOf(
@@ -162,8 +163,10 @@ fun AddEditReceptScreen(
                 )
             }
 
-            OutlinedTextField(form.anteckning, { vm.updateForm { copy(anteckning = it) } },
-                label = { Text(stringResource(R.string.label_note)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            NoteField(
+                text         = form.anteckning,
+                onTextChange = { vm.updateForm { copy(anteckning = it) } },
+            )
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.label_active), modifier = Modifier.weight(1f))

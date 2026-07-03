@@ -27,9 +27,36 @@ object BackupMapper {
 
     fun toHandelser(json: BackupJson): List<Handelse> = json.handelser.map { it.toDomain() }
 
-    fun toNotes(json: BackupJson): List<NoteEntity> = json.notes
-        .filter { it.target.isNotBlank() && it.entityId.isNotBlank() && it.text.isNotBlank() }
-        .map { NoteEntity(target = it.target, entityId = it.entityId, text = it.text) }
+    // Legacy backups (pre notes-table migration) carried Medicin/Recept/Favorit anteckning as a
+    // per-row column instead of a `notes` entry. Synthesize those into notes on import so
+    // restoring an old backup on the current schema doesn't lose them. An explicit `notes`
+    // entry for the same (target, entityId) always wins over the legacy column value.
+    fun toNotes(json: BackupJson): List<NoteEntity> {
+        val explicit = json.notes
+            .filter { it.target.isNotBlank() && it.entityId.isNotBlank() && it.text.isNotBlank() }
+            .map { NoteEntity(target = it.target, entityId = it.entityId, text = it.text) }
+        val explicitKeys = explicit.map { it.target to it.entityId }.toSet()
+
+        val legacy = buildList {
+            json.mediciner.forEach { m ->
+                if (m.anteckning.isNotBlank() && ("MEDICATION" to m.id) !in explicitKeys) {
+                    add(NoteEntity(target = "MEDICATION", entityId = m.id, text = m.anteckning))
+                }
+            }
+            json.medicinRecipes.forEach { r ->
+                if (r.anteckning.isNotBlank() && ("RECEPT" to r.id) !in explicitKeys) {
+                    add(NoteEntity(target = "RECEPT", entityId = r.id, text = r.anteckning))
+                }
+            }
+            json.medicinFavoriter.forEach { f ->
+                if (f.anteckning.isNotBlank() && ("FAVORIT" to f.id) !in explicitKeys) {
+                    add(NoteEntity(target = "FAVORIT", entityId = f.id, text = f.anteckning))
+                }
+            }
+        }
+
+        return explicit + legacy
+    }
 
     private fun AktivitetJson.toDomain() = Aktivitet(
         id           = id,
@@ -57,7 +84,6 @@ object BackupMapper {
         enhet      = enhet,
         tidpunkt   = tidpunkt,
         tagen      = tagen,
-        anteckning = anteckning,
         receptId   = receptId,
         skipped    = skipped,
     )
@@ -76,7 +102,6 @@ object BackupMapper {
             upprepning   = upprepning,
             dagar        = dagar,
             intervalDagar = intervalDagar,
-            anteckning   = anteckning,
             aktiv        = aktiv,
             skapad       = skapad,
         )
@@ -88,7 +113,6 @@ object BackupMapper {
         dos              = dos,
         enhet            = enhet,
         tidpunkt         = tidpunkt,
-        anteckning       = anteckning,
         minTidMellan     = minTidMellan,
         dispenseringsTid = dispenseringsTid,
         maxDoserPerDag   = maxDoserPerDag,

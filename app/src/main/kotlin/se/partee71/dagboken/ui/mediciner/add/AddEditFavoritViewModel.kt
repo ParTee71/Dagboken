@@ -6,9 +6,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.domain.model.NoteTarget
 import java.util.UUID
 import javax.inject.Inject
 
@@ -25,6 +28,7 @@ data class FavoritForm(
 @HiltViewModel
 class AddEditFavoritViewModel @Inject constructor(
     private val repo: MedicinerRepository,
+    private val noteRepo: NoteRepository,
 ) : ViewModel() {
 
     private val _form = MutableStateFlow(FavoritForm())
@@ -42,12 +46,13 @@ class AddEditFavoritViewModel @Inject constructor(
             val f = repo.getFavoritById(id) ?: return@launch
             editingId = id
             editingIsFavorite = f.isFavorite
+            val note = noteRepo.observe(NoteTarget.FAVORIT, id).first()
             _form.value = FavoritForm(
                 namn           = f.namn,
                 dos            = f.dos,
                 enhet          = f.enhet,
                 tidpunkt       = f.tidpunkt,
-                anteckning     = f.anteckning,
+                anteckning     = note,
                 minTidMellan   = f.minTidMellan,
                 maxDoserPerDag = f.maxDoserPerDag,
             )
@@ -63,12 +68,12 @@ class AddEditFavoritViewModel @Inject constructor(
                 dos            = f.dos.trim(),
                 enhet          = f.enhet,
                 tidpunkt       = f.tidpunkt,
-                anteckning     = f.anteckning.trim(),
                 minTidMellan   = f.minTidMellan,
                 maxDoserPerDag = f.maxDoserPerDag,
                 isFavorite     = editingIsFavorite,
             )
             repo.saveFavorit(favorit)
+            noteRepo.save(NoteTarget.FAVORIT, favorit.id, f.anteckning.trim())
         }
     }
 }

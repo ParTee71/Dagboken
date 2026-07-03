@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.GradientSliderRow
+import se.partee71.dagboken.ui.components.NoteField
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -130,6 +131,11 @@ fun AddEditFavoritScreen(
                     else stringResource(R.string.format_times, form.maxDoserPerDag),
                 accentColor = MaterialTheme.colorScheme.primary,
                 useGradient = false,
+            )
+
+            NoteField(
+                text         = form.anteckning,
+                onTextChange = { vm.updateForm { copy(anteckning = it) } },
             )
 
             Button(

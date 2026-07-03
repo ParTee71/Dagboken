@@ -2,10 +2,12 @@ package se.partee71.dagboken.ui.mediciner.add
 
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -16,19 +18,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.model.NoteTarget
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddEditMedicinViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var repo: MedicinerRepository
+    private lateinit var noteRepo: NoteRepository
     private lateinit var viewModel: AddEditMedicinViewModel
 
     @Before fun setUp() {
         Dispatchers.setMain(testDispatcher)
         repo = mockk(relaxed = true)
-        viewModel = AddEditMedicinViewModel(repo)
+        noteRepo = mockk(relaxed = true) {
+            every { observe(any(), any()) } returns flowOf("")
+        }
+        viewModel = AddEditMedicinViewModel(repo, noteRepo)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -40,7 +48,7 @@ class AddEditMedicinViewModelTest {
     ) = Medicin(
         id = id, timestamp = "2026-01-15T09:00:00.000Z", datum = "2026-01-15", tid = "09:00",
         namn = namn, dos = "400", enhet = "mg", tidpunkt = "Morgon",
-        tagen = true, anteckning = "Gammal anteckning", receptId = receptId, skipped = false,
+        tagen = true, receptId = receptId, skipped = false,
     )
 
     // ─── Ny medicinlogg ───────────────────────────────────────────────────────
@@ -87,6 +95,7 @@ class AddEditMedicinViewModelTest {
 
     @Test fun `loadForEdit populates form from existing entry`() = runTest {
         coEvery { repo.getMedicinById("m1") } returns medicin(namn = "Paracetamol")
+        every { noteRepo.observe(NoteTarget.MEDICATION, "m1") } returns flowOf("Gammal anteckning")
 
         viewModel.loadForEdit("m1")
 
@@ -95,5 +104,12 @@ class AddEditMedicinViewModelTest {
         assertEquals("mg", viewModel.form.value.enhet)
         assertEquals("Morgon", viewModel.form.value.tidpunkt)
         assertEquals("Gammal anteckning", viewModel.form.value.anteckning)
+    }
+
+    @Test fun `save persists the note under MEDICATION target`() = runTest {
+        viewModel.updateForm { copy(namn = "Aspirin", dos = "500", enhet = "mg", tidpunkt = "Kväll", anteckning = "Efter mat") }
+        viewModel.save()
+
+        coVerify { noteRepo.save(NoteTarget.MEDICATION, any(), "Efter mat") }
     }
 }
