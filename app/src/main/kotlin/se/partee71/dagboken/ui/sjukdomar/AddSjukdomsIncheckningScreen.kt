@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.GradientSliderRow
+import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.SymptomLogCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,13 +101,9 @@ fun AddSjukdomsIncheckningScreen(
                 onToggleFavorite = { vm.toggleSymptomFavorite(it) },
             )
 
-            OutlinedTextField(
-                value         = form.anteckning,
-                onValueChange = { vm.updateForm { copy(anteckning = it) } },
-                label         = { Text(stringResource(R.string.label_note)) },
-                modifier      = Modifier.fillMaxWidth(),
-                minLines      = 3,
-                maxLines      = 6,
+            NoteField(
+                text         = form.anteckning,
+                onTextChange = { vm.updateForm { copy(anteckning = it) } },
             )
 
             FilledTonalButton(

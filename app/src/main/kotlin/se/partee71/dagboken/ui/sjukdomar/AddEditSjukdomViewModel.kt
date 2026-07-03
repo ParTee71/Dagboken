@@ -12,7 +12,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SymptomOption
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
+import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 import se.partee71.dagboken.domain.usecase.SymptomUtils
@@ -33,6 +35,7 @@ data class SjukdomForm(
 @HiltViewModel
 class AddEditSjukdomViewModel @Inject constructor(
     private val repo: SjukdomarRepository,
+    private val noteRepo: NoteRepository,
     private val prefs: PreferencesRepository,
 ) : ViewModel() {
 
@@ -51,10 +54,11 @@ class AddEditSjukdomViewModel @Inject constructor(
         viewModelScope.launch {
             val episod = repo.all.first().firstOrNull { it.id == id } ?: return@launch
             editId = id
+            val note = noteRepo.observe(NoteTarget.SJUKDOM_EPISOD, id).first()
             _form.value = SjukdomForm(
                 typ        = episod.typ,
                 startDatum = episod.startDatum,
-                anteckning = episod.anteckning,
+                anteckning = note,
             )
         }
     }
@@ -82,9 +86,9 @@ class AddEditSjukdomViewModel @Inject constructor(
                 typ        = f.typ,
                 startDatum = f.startDatum,
                 slutDatum  = "",
-                anteckning = f.anteckning,
             )
             repo.saveEpisod(episod)
+            noteRepo.save(NoteTarget.SJUKDOM_EPISOD, episodId, f.anteckning.trim())
             if (editId == null) {
                 val symptomStr = SymptomUtils.encode(f.symptomScores)
                 val now = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
@@ -97,7 +101,6 @@ class AddEditSjukdomViewModel @Inject constructor(
                         svarighetsgrad = f.svarighetsgrad,
                         symptom        = symptomStr,
                         somatiska      = SymptomUtils.sum(symptomStr),
-                        anteckning     = "",
                     )
                 )
             }

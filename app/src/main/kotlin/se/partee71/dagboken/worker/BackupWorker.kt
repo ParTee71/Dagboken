@@ -158,7 +158,6 @@ class BackupWorker @AssistedInject constructor(
         typ        = typ,
         startDatum = startDatum,
         slutDatum  = slutDatum,
-        anteckning = anteckning,
         timestamp  = timestamp,
     )
 
@@ -188,7 +187,6 @@ class BackupWorker @AssistedInject constructor(
         svarighetsgrad = svarighetsgrad,
         symptom        = symptom,
         somatiska      = somatiska,
-        anteckning     = anteckning,
         timestamp      = timestamp,
     )
 }

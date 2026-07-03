@@ -234,7 +234,9 @@
 | **Recept** | id, namn, dos, enhet, tidpunkter[], upprepning, dagar[], intervalDagar, aktiv, skapad. |
 | **Favorit** | id, namn, dos, enhet, tidpunkt, minTidMellan (h), dispenseringsTid, maxDoserPerDag, isFavorite. |
 | **Händelse** | id, timestamp, datum, tid, typ, svarighetsgrad, varaktighetMinuter, triggers, atgarder. |
-| **Note** | target (`ACTIVITY`/`SCREENING`/`MEDICATION`/`RECEPT`/`FAVORIT`/`EVENT`), entityId, text — generisk anteckning kopplad till valfri entitet ovan (ersätter tidigare `anteckning`-kolumner på Aktivitet/Medicin/Recept/Favorit/Händelse). |
+| **SjukdomsEpisod** | id, typ, startDatum, slutDatum, timestamp. |
+| **SjukdomsIncheckning** | id, episodId, datum, tid, svarighetsgrad, symptom, somatiska, timestamp. |
+| **Note** | target (`ACTIVITY`/`SCREENING`/`MEDICATION`/`RECEPT`/`FAVORIT`/`EVENT`/`SJUKDOM_EPISOD`/`SJUKDOM_INCHECKNING`), entityId, text — generisk anteckning kopplad till valfri entitet ovan (ersätter tidigare `anteckning`-kolumner på Aktivitet/Medicin/Recept/Favorit/Händelse/Sjukdom). |
 
 | ID | Krav |
 |----|------|
@@ -280,3 +282,5 @@
 | SJ-5 | Avslutade episoder visar varaktighet i dagar och senaste incheckningens svårighetsgrad. |
 | SJ-6 | En pågående episod syns som statuskort på Hem-skärmen. |
 | SJ-7 | Episoder och incheckningar ingår i backup och återställs vid restore. |
+| SJ-8 | Både en episod och varje incheckning kan ha en anteckning, redigerbar via den delade `NoteField`-komponenten. |
+| SJ-9 | Tas en episod bort raderas även dess incheckningar (kaskad) och samtliga tillhörande anteckningar. |

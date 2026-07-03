@@ -210,7 +210,6 @@ class MigrationRoundTripTest {
         assertEquals("migrän", fromDb!!.typ)
         assertEquals("2026-01-10", fromDb.startDatum)
         assertEquals("2026-01-12", fromDb.slutDatum)
-        assertEquals("Tung period", fromDb.anteckning)
         assertEquals(1_700_000_000_000L, fromDb.timestamp)
     }
 
@@ -225,7 +224,6 @@ class MigrationRoundTripTest {
         assertEquals(8, fromDb.svarighetsgrad)
         assertEquals("Yrsel:3", fromDb.symptom)
         assertEquals(2, fromDb.somatiska)
-        assertEquals("Tog medicin", fromDb.anteckning)
         assertEquals(1_700_000_111_000L, fromDb.timestamp)
     }
 
@@ -289,8 +287,9 @@ class MigrationRoundTripTest {
         assertEquals(1, db.sjukdomsEpisodDao().count())
         assertEquals(2, db.sjukdomsIncheckningDao().count())
         assertEquals(2, db.handelseDao().count())
-        // ACTIVITY + MEDICATION explicit, plus EVENT synthesized from h1's legacy anteckning column
-        assertEquals(3, db.noteDao().count())
+        // ACTIVITY + MEDICATION explicit, plus EVENT/SJUKDOM_EPISOD/SJUKDOM_INCHECKNING
+        // synthesized from h1/e1/i1's legacy anteckning columns
+        assertEquals(5, db.noteDao().count())
     }
 
     // ─── upsert idempotency ───────────────────────────────────────────────────
@@ -310,7 +309,7 @@ class MigrationRoundTripTest {
         assertEquals(1, db.sjukdomsEpisodDao().count())
         assertEquals(2, db.sjukdomsIncheckningDao().count())
         assertEquals(2, db.handelseDao().count())
-        assertEquals(3, db.noteDao().count())
+        assertEquals(5, db.noteDao().count())
     }
 
     @Test fun backup_without_handelser_field_imports_without_error() = runTest {
@@ -361,5 +360,21 @@ class MigrationRoundTripTest {
 
         val text = db.noteDao().getAll().find { it.target == "MEDICATION" && it.entityId == "m1" }?.text
         assertEquals("Ny (notes-tabell)", text)
+    }
+
+    @Test fun legacy_sjukdom_anteckning_is_migrated_into_notes_on_import() = runTest {
+        val legacyBackup = testBackup().copy(
+            sjukdomsepisoder = listOf(SjukdomsEpisodJson(id = "e1", typ = "migrän", anteckning = "Svår period")),
+            sjukdomsIncheckningar = listOf(
+                SjukdomsIncheckningJson(id = "i1", episodId = "e1", anteckning = "Tog medicin"),
+            ),
+            notes = emptyList(),
+        )
+
+        noteRepo.importAll(BackupMapper.toNotes(legacyBackup))
+
+        val notes = db.noteDao().getAll()
+        assertEquals("Svår period", notes.find { it.target == "SJUKDOM_EPISOD" && it.entityId == "e1" }?.text)
+        assertEquals("Tog medicin", notes.find { it.target == "SJUKDOM_INCHECKNING" && it.entityId == "i1" }?.text)
     }
 }

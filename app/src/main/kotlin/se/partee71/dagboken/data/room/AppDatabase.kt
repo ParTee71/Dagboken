@@ -32,7 +32,7 @@ import se.partee71.dagboken.data.room.entities.SjukdomsIncheckningEntity
         SjukdomsEpisodEntity::class,
         SjukdomsIncheckningEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -270,9 +270,69 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Drops the per-row `anteckning` column from sjukdomsepisoder/sjukdoms_incheckningar —
+        // moved to the generic `notes` table (target=SJUKDOM_EPISOD/SJUKDOM_INCHECKNING).
+        // Foreign keys are disabled for the duration of the recreate since both the parent
+        // (sjukdomsepisoder) and child (sjukdoms_incheckningar) tables are rebuilt.
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("PRAGMA foreign_keys=OFF")
+
+                db.execSQL(
+                    """INSERT OR IGNORE INTO notes (target, entityId, text)
+                       SELECT 'SJUKDOM_EPISOD', id, anteckning FROM sjukdomsepisoder
+                       WHERE anteckning IS NOT NULL AND TRIM(anteckning) != ''"""
+                )
+                db.execSQL(
+                    """INSERT OR IGNORE INTO notes (target, entityId, text)
+                       SELECT 'SJUKDOM_INCHECKNING', id, anteckning FROM sjukdoms_incheckningar
+                       WHERE anteckning IS NOT NULL AND TRIM(anteckning) != ''"""
+                )
+
+                db.execSQL(
+                    """CREATE TABLE sjukdomsepisoder_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        typ TEXT NOT NULL,
+                        start_datum TEXT NOT NULL,
+                        slut_datum TEXT NOT NULL DEFAULT '',
+                        timestamp INTEGER NOT NULL DEFAULT 0
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO sjukdomsepisoder_new (id, typ, start_datum, slut_datum, timestamp)
+                       SELECT id, typ, start_datum, slut_datum, timestamp FROM sjukdomsepisoder"""
+                )
+                db.execSQL("DROP TABLE sjukdomsepisoder")
+                db.execSQL("ALTER TABLE sjukdomsepisoder_new RENAME TO sjukdomsepisoder")
+
+                db.execSQL(
+                    """CREATE TABLE sjukdoms_incheckningar_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        episod_id TEXT NOT NULL,
+                        datum TEXT NOT NULL,
+                        tid TEXT NOT NULL,
+                        svarighetsgrad INTEGER NOT NULL,
+                        symptom TEXT NOT NULL DEFAULT '',
+                        somatiska INTEGER NOT NULL DEFAULT 0,
+                        timestamp INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(episod_id) REFERENCES sjukdomsepisoder(id) ON DELETE CASCADE
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO sjukdoms_incheckningar_new (id, episod_id, datum, tid, svarighetsgrad, symptom, somatiska, timestamp)
+                       SELECT id, episod_id, datum, tid, svarighetsgrad, symptom, somatiska, timestamp FROM sjukdoms_incheckningar"""
+                )
+                db.execSQL("DROP TABLE sjukdoms_incheckningar")
+                db.execSQL("ALTER TABLE sjukdoms_incheckningar_new RENAME TO sjukdoms_incheckningar")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_sjukdoms_incheckningar_episod_id ON sjukdoms_incheckningar (episod_id)")
+
+                db.execSQL("PRAGMA foreign_keys=ON")
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
-            MIGRATION_7_8,
+            MIGRATION_7_8, MIGRATION_8_9,
         )
     }
 }

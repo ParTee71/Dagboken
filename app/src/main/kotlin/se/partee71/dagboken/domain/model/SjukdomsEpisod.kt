@@ -5,7 +5,6 @@ data class SjukdomsEpisod(
     val typ: String,
     val startDatum: String,
     val slutDatum: String,
-    val anteckning: String,
     val incheckningar: List<SjukdomsIncheckning> = emptyList(),
     val timestamp: Long = System.currentTimeMillis(),
 )

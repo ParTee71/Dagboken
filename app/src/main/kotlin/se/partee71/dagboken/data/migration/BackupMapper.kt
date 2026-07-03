@@ -58,6 +58,16 @@ object BackupMapper {
                     add(NoteEntity(target = "EVENT", entityId = h.id, text = h.anteckning))
                 }
             }
+            json.sjukdomsepisoder.forEach { e ->
+                if (e.anteckning.isNotBlank() && ("SJUKDOM_EPISOD" to e.id) !in explicitKeys) {
+                    add(NoteEntity(target = "SJUKDOM_EPISOD", entityId = e.id, text = e.anteckning))
+                }
+            }
+            json.sjukdomsIncheckningar.forEach { i ->
+                if (i.anteckning.isNotBlank() && ("SJUKDOM_INCHECKNING" to i.id) !in explicitKeys) {
+                    add(NoteEntity(target = "SJUKDOM_INCHECKNING", entityId = i.id, text = i.anteckning))
+                }
+            }
         }
 
         return explicit + legacy
@@ -129,7 +139,6 @@ object BackupMapper {
         typ        = typ,
         startDatum = startDatum,
         slutDatum  = slutDatum,
-        anteckning = anteckning,
         // v1 backups didn't carry timestamp (0) — fall back to now so ordering stays sane
         timestamp  = timestamp.takeIf { it != 0L } ?: System.currentTimeMillis(),
     )
@@ -142,7 +151,6 @@ object BackupMapper {
         svarighetsgrad = svarighetsgrad,
         symptom        = symptom,
         somatiska      = somatiska,
-        anteckning     = anteckning,
         timestamp      = timestamp.takeIf { it != 0L } ?: System.currentTimeMillis(),
     )
 

@@ -29,8 +29,8 @@ android {
         applicationId = "se.partee71.dagboken"
         minSdk = 30
         targetSdk = 35
-        versionCode = 20
-        versionName = versionNameOverride ?: "2.12.0"
+        versionCode = 21
+        versionName = versionNameOverride ?: "2.13.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -24,6 +24,5 @@ data class SjukdomsIncheckningEntity(
     val svarighetsgrad: Int,
     val symptom: String = "",
     val somatiska: Int = 0,
-    val anteckning: String = "",
     val timestamp: Long = System.currentTimeMillis(),
 )

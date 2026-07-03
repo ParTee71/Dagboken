@@ -226,19 +226,23 @@ class BackupMapperTest {
         assertTrue(BackupMapper.toNotes(backup()).isEmpty())
     }
 
-    @Test fun `toNotes synthesizes MEDICATION RECEPT FAVORIT EVENT notes from legacy anteckning columns`() {
+    @Test fun `toNotes synthesizes MEDICATION RECEPT FAVORIT EVENT SJUKDOM notes from legacy anteckning columns`() {
         val json = backup(
             mediciner = listOf(MedicinJson(id = "m1", anteckning = "Tas med mat")),
             recept = listOf(ReceptJson(id = "r1", anteckning = "Kväll bäst")),
             favoriter = listOf(FavoritJson(id = "f1", anteckning = "Max 3/dag")),
             handelser = listOf(HandelseJson(id = "h1", anteckning = "Kom efter möte")),
+            sjukdomsepisoder = listOf(SjukdomsEpisodJson(id = "e1", anteckning = "Svår period")),
+            sjukdomsIncheckningar = listOf(SjukdomsIncheckningJson(id = "i1", episodId = "e1", anteckning = "Tog medicin")),
         )
         val result = BackupMapper.toNotes(json)
-        assertEquals(4, result.size)
+        assertEquals(6, result.size)
         assertEquals("Tas med mat", result.find { it.target == "MEDICATION" && it.entityId == "m1" }?.text)
         assertEquals("Kväll bäst", result.find { it.target == "RECEPT" && it.entityId == "r1" }?.text)
         assertEquals("Max 3/dag", result.find { it.target == "FAVORIT" && it.entityId == "f1" }?.text)
         assertEquals("Kom efter möte", result.find { it.target == "EVENT" && it.entityId == "h1" }?.text)
+        assertEquals("Svår period", result.find { it.target == "SJUKDOM_EPISOD" && it.entityId == "e1" }?.text)
+        assertEquals("Tog medicin", result.find { it.target == "SJUKDOM_INCHECKNING" && it.entityId == "i1" }?.text)
     }
 
     @Test fun `toNotes ignores blank legacy anteckning columns`() {
@@ -273,7 +277,6 @@ class BackupMapperTest {
             assertEquals("migrän", typ)
             assertEquals("2024-01-01", startDatum)
             assertEquals("2024-01-03", slutDatum)
-            assertEquals("Svår period", anteckning)
             assertEquals(1_700_000_000_000L, timestamp)
         }
     }
@@ -308,7 +311,6 @@ class BackupMapperTest {
             assertEquals(8, svarighetsgrad)
             assertEquals("Yrsel:3", symptom)
             assertEquals(2, somatiska)
-            assertEquals("Tog medicin", anteckning)
             assertEquals(1_700_000_000_000L, timestamp)
         }
     }

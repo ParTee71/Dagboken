@@ -10,6 +10,5 @@ data class SjukdomsEpisodEntity(
     val typ: String,
     @ColumnInfo(name = "start_datum") val startDatum: String,
     @ColumnInfo(name = "slut_datum")  val slutDatum: String = "",
-    val anteckning: String = "",
     val timestamp: Long = System.currentTimeMillis(),
 )
