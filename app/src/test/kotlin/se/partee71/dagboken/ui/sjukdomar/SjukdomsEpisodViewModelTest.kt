@@ -1,6 +1,7 @@
 package se.partee71.dagboken.ui.sjukdomar
 
 import androidx.lifecycle.SavedStateHandle
+import app.cash.turbine.test
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -66,7 +67,10 @@ class SjukdomsEpisodViewModelTest {
             },
             prefs,
         )
-        assertEquals("Svår period", vm.episodNote.value)
+        vm.episodNote.test {
+            assertEquals("Svår period", awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     // ─── saveIncheckning ──────────────────────────────────────────────────────
