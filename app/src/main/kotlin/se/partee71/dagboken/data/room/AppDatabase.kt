@@ -32,7 +32,7 @@ import se.partee71.dagboken.data.room.entities.SjukdomsIncheckningEntity
         SjukdomsEpisodEntity::class,
         SjukdomsIncheckningEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -236,8 +236,43 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Drops the per-row `anteckning` column from health_events — moved to the generic
+        // `notes` table (target=EVENT, entityId=row id). Fulfills the plan from #31 that
+        // was never actually carried out for this entity.
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """INSERT OR IGNORE INTO notes (target, entityId, text)
+                       SELECT 'EVENT', id, anteckning FROM health_events
+                       WHERE anteckning IS NOT NULL AND TRIM(anteckning) != ''"""
+                )
+
+                db.execSQL(
+                    """CREATE TABLE health_events_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        timestamp TEXT NOT NULL,
+                        datum TEXT NOT NULL,
+                        tid TEXT NOT NULL,
+                        typ TEXT NOT NULL,
+                        svarighetsgrad INTEGER NOT NULL,
+                        varaktighetMinuter INTEGER NOT NULL,
+                        triggers TEXT NOT NULL,
+                        atgarder TEXT NOT NULL
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO health_events_new (id, timestamp, datum, tid, typ, svarighetsgrad, varaktighetMinuter, triggers, atgarder)
+                       SELECT id, timestamp, datum, tid, typ, svarighetsgrad, varaktighetMinuter, triggers, atgarder FROM health_events"""
+                )
+                db.execSQL("DROP TABLE health_events")
+                db.execSQL("ALTER TABLE health_events_new RENAME TO health_events")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_health_events_datum ON health_events (datum)")
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+            MIGRATION_7_8,
         )
     }
 }

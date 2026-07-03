@@ -63,6 +63,7 @@ fun HandelserScreen(
 ) {
     val state   by vm.state.collectAsStateWithLifecycle()
     val snackbar by vm.snackbar.collectAsStateWithLifecycle()
+    val notes    by vm.handelseNotes.collectAsStateWithLifecycle()
 
     LaunchedEffect(snackbar) {
         snackbar?.let { snackbarHostState.showSnackbar(it); vm.clearSnackbar() }
@@ -124,6 +125,7 @@ fun HandelserScreen(
                     items(state.filteredHandelser, key = { it.id }) { handelse ->
                         HandelseCard(
                             handelse = handelse,
+                            note     = notes[handelse.id].orEmpty(),
                             onEdit   = { onEdit(handelse.id) },
                             onDelete = { deleteTarget = handelse },
                         )
@@ -206,6 +208,7 @@ private fun TypFilterRow(
 @Composable
 private fun HandelseCard(
     handelse: Handelse,
+    note: String,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -242,9 +245,9 @@ private fun HandelseCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (handelse.anteckning.isNotBlank()) {
+                if (note.isNotBlank()) {
                     Text(
-                        text     = handelse.anteckning,
+                        text     = note,
                         style    = MaterialTheme.typography.bodySmall,
                         color    = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,

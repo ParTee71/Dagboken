@@ -53,6 +53,11 @@ object BackupMapper {
                     add(NoteEntity(target = "FAVORIT", entityId = f.id, text = f.anteckning))
                 }
             }
+            json.handelser.forEach { h ->
+                if (h.anteckning.isNotBlank() && ("EVENT" to h.id) !in explicitKeys) {
+                    add(NoteEntity(target = "EVENT", entityId = h.id, text = h.anteckning))
+                }
+            }
         }
 
         return explicit + legacy
@@ -151,7 +156,6 @@ object BackupMapper {
         varaktighetMinuter = varaktighetMinuter,
         triggers           = triggers,
         atgarder           = atgarder,
-        anteckning         = anteckning,
     )
 
     // Mirrors migrateAktiviteterTypes from src/storage/aktiviteter.ts

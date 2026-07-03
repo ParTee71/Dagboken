@@ -8,12 +8,15 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.HandelserRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Handelse
+import se.partee71.dagboken.domain.model.NoteTarget
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -47,11 +50,15 @@ data class TypPickerOptions(
 @HiltViewModel
 class HandelserViewModel @Inject constructor(
     private val repo: HandelserRepository,
+    private val noteRepo: NoteRepository,
     private val prefs: PreferencesRepository,
 ) : ViewModel() {
 
     val handelseTypOptions: StateFlow<List<SymptomOption>> = prefs.handelseTypOptions
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val handelseNotes: StateFlow<Map<String, String>> = noteRepo.observeMap(NoteTarget.EVENT)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     private val _dagFilter  = MutableStateFlow<Int?>(null)
     private val _typFilter  = MutableStateFlow<String?>(null)
@@ -103,6 +110,7 @@ class HandelserViewModel @Inject constructor(
         viewModelScope.launch {
             val h = repo.getById(id) ?: return@launch
             _editId.value = id
+            val note = noteRepo.observe(NoteTarget.EVENT, id).first()
             _form.value = HandelseForm(
                 typ                = h.typ,
                 datum              = h.datum,
@@ -112,7 +120,7 @@ class HandelserViewModel @Inject constructor(
                 varaktighetMinuter = h.varaktighetMinuter % 60,
                 triggers           = h.triggers,
                 atgarder           = h.atgarder,
-                anteckning         = h.anteckning,
+                anteckning         = note,
             )
         }
     }
@@ -131,9 +139,9 @@ class HandelserViewModel @Inject constructor(
                 varaktighetMinuter = f.varaktighetTimmar * 60 + f.varaktighetMinuter,
                 triggers           = f.triggers,
                 atgarder           = f.atgarder,
-                anteckning         = f.anteckning,
             )
             repo.save(entry)
+            noteRepo.save(NoteTarget.EVENT, entry.id, f.anteckning.trim())
             resetForm()
             onDone()
         }
@@ -142,6 +150,7 @@ class HandelserViewModel @Inject constructor(
     fun delete(handelse: Handelse) {
         viewModelScope.launch {
             repo.delete(handelse)
+            noteRepo.delete(NoteTarget.EVENT, handelse.id)
             _snackbar.value = "${handelse.typ} borttagen"
         }
     }

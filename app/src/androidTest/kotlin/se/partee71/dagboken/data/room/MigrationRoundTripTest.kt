@@ -258,7 +258,6 @@ class MigrationRoundTripTest {
         assertEquals("huvudvärk", fromDb!!.typ)
         assertEquals(6, fromDb.svarighetsgrad)
         assertEquals(90, fromDb.varaktighetMinuter)
-        assertEquals("Kom efter möte", fromDb.anteckning)
     }
 
     @Test fun handelser_all_fields_survive_round_trip() = runTest {
@@ -290,7 +289,8 @@ class MigrationRoundTripTest {
         assertEquals(1, db.sjukdomsEpisodDao().count())
         assertEquals(2, db.sjukdomsIncheckningDao().count())
         assertEquals(2, db.handelseDao().count())
-        assertEquals(2, db.noteDao().count())
+        // ACTIVITY + MEDICATION explicit, plus EVENT synthesized from h1's legacy anteckning column
+        assertEquals(3, db.noteDao().count())
     }
 
     // ─── upsert idempotency ───────────────────────────────────────────────────
@@ -310,7 +310,7 @@ class MigrationRoundTripTest {
         assertEquals(1, db.sjukdomsEpisodDao().count())
         assertEquals(2, db.sjukdomsIncheckningDao().count())
         assertEquals(2, db.handelseDao().count())
-        assertEquals(2, db.noteDao().count())
+        assertEquals(3, db.noteDao().count())
     }
 
     @Test fun backup_without_handelser_field_imports_without_error() = runTest {

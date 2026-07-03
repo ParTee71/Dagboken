@@ -233,7 +233,8 @@
 | **Medicin** | id, timestamp, datum, tid, namn, dos, enhet, tidpunkt, tagen, receptId?, skipped. |
 | **Recept** | id, namn, dos, enhet, tidpunkter[], upprepning, dagar[], intervalDagar, aktiv, skapad. |
 | **Favorit** | id, namn, dos, enhet, tidpunkt, minTidMellan (h), dispenseringsTid, maxDoserPerDag, isFavorite. |
-| **Note** | target (`ACTIVITY`/`SCREENING`/`MEDICATION`/`RECEPT`/`FAVORIT`), entityId, text — generisk anteckning kopplad till valfri entitet ovan (ersätter tidigare `anteckning`-kolumner på Aktivitet/Medicin/Recept/Favorit). |
+| **Händelse** | id, timestamp, datum, tid, typ, svarighetsgrad, varaktighetMinuter, triggers, atgarder. |
+| **Note** | target (`ACTIVITY`/`SCREENING`/`MEDICATION`/`RECEPT`/`FAVORIT`/`EVENT`), entityId, text — generisk anteckning kopplad till valfri entitet ovan (ersätter tidigare `anteckning`-kolumner på Aktivitet/Medicin/Recept/Favorit/Händelse). |
 
 | ID | Krav |
 |----|------|

@@ -163,7 +163,6 @@ class BackupMapperTest {
                 datum = "2024-01-01", tid = "14:00", typ = "huvudvärk",
                 svarighetsgrad = 7, varaktighetMinuter = 120,
                 triggers = "[\"stress\"]", atgarder = "[\"vila\"]",
-                anteckning = "Jobbig dag",
             ))
         )
         val result = BackupMapper.toHandelser(json)
@@ -178,7 +177,6 @@ class BackupMapperTest {
             assertEquals(120, varaktighetMinuter)
             assertEquals("[\"stress\"]", triggers)
             assertEquals("[\"vila\"]", atgarder)
-            assertEquals("Jobbig dag", anteckning)
         }
     }
 
@@ -228,17 +226,19 @@ class BackupMapperTest {
         assertTrue(BackupMapper.toNotes(backup()).isEmpty())
     }
 
-    @Test fun `toNotes synthesizes MEDICATION RECEPT FAVORIT notes from legacy anteckning columns`() {
+    @Test fun `toNotes synthesizes MEDICATION RECEPT FAVORIT EVENT notes from legacy anteckning columns`() {
         val json = backup(
             mediciner = listOf(MedicinJson(id = "m1", anteckning = "Tas med mat")),
             recept = listOf(ReceptJson(id = "r1", anteckning = "Kväll bäst")),
             favoriter = listOf(FavoritJson(id = "f1", anteckning = "Max 3/dag")),
+            handelser = listOf(HandelseJson(id = "h1", anteckning = "Kom efter möte")),
         )
         val result = BackupMapper.toNotes(json)
-        assertEquals(3, result.size)
+        assertEquals(4, result.size)
         assertEquals("Tas med mat", result.find { it.target == "MEDICATION" && it.entityId == "m1" }?.text)
         assertEquals("Kväll bäst", result.find { it.target == "RECEPT" && it.entityId == "r1" }?.text)
         assertEquals("Max 3/dag", result.find { it.target == "FAVORIT" && it.entityId == "f1" }?.text)
+        assertEquals("Kom efter möte", result.find { it.target == "EVENT" && it.entityId == "h1" }?.text)
     }
 
     @Test fun `toNotes ignores blank legacy anteckning columns`() {

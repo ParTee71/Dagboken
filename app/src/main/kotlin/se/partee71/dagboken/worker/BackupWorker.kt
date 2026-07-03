@@ -178,7 +178,6 @@ class BackupWorker @AssistedInject constructor(
         varaktighetMinuter = varaktighetMinuter,
         triggers           = triggers,
         atgarder           = atgarder,
-        anteckning         = anteckning,
     )
 
     private fun SjukdomsIncheckning.toJson() = SjukdomsIncheckningJson(

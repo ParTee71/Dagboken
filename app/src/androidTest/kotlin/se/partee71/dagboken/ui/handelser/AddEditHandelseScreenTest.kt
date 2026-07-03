@@ -21,6 +21,7 @@ import org.junit.runner.RunWith
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.HandelserRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Handelse
 
@@ -41,7 +42,7 @@ class AddEditHandelseScreenTest {
         repo  = HandelserRepository(db.handelseDao())
         prefs = PreferencesRepository(ctx)
         runBlocking { prefs.setHandelseTypOptions(emptyList()) }
-        vm    = HandelserViewModel(repo, prefs)
+        vm    = HandelserViewModel(repo, NoteRepository(db.noteDao()), prefs)
     }
 
     @After fun tearDown() {
@@ -102,7 +103,7 @@ class AddEditHandelseScreenTest {
                     id = "h1", timestamp = "2026-06-21T10:00:00.000Z",
                     datum = "2026-06-21", tid = "10:00", typ = "Egen typ",
                     svarighetsgrad = 5, varaktighetMinuter = 0,
-                    triggers = "", atgarder = "", anteckning = "",
+                    triggers = "", atgarder = "",
                 )
             )
         }
@@ -121,5 +122,15 @@ class AddEditHandelseScreenTest {
             .performTextInput("Helt ny typ")
         composeRule.waitUntil(3000) { vm.form.value.typ == "Helt ny typ" }
         assert(vm.form.value.typ == "Helt ny typ")
+    }
+
+    @Test fun note_field_is_shown_and_updates_form_state() {
+        setContent()
+        composeRule.onNodeWithText("Lägg till en anteckning…").assertIsDisplayed()
+        composeRule.onNodeWithText("Lägg till en anteckning…").performClick()
+        composeRule.onNode(hasText("Lägg till en anteckning…") and hasSetTextAction())
+            .performTextInput("Kom efter möte")
+        composeRule.waitUntil(3000) { vm.form.value.anteckning == "Kom efter möte" }
+        assert(vm.form.value.anteckning == "Kom efter möte")
     }
 }
