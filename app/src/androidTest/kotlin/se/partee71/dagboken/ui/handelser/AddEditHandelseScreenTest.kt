@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -126,8 +127,8 @@ class AddEditHandelseScreenTest {
 
     @Test fun note_field_is_shown_and_updates_form_state() {
         setContent()
-        composeRule.onNodeWithText("Lägg till en anteckning…").assertIsDisplayed()
-        composeRule.onNodeWithText("Lägg till en anteckning…").performClick()
+        composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
         composeRule.onNode(hasText("Lägg till en anteckning…") and hasSetTextAction())
             .performTextInput("Kom efter möte")
         composeRule.waitUntil(3000) { vm.form.value.anteckning == "Kom efter möte" }

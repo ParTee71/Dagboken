@@ -250,7 +250,10 @@ class LoggaTabTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
         composeRule.waitForIdle()
-        composeRule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Regnigt väder")
+        composeRule.onNode(
+            androidx.compose.ui.test.hasText("Lägg till en anteckning…")
+                and androidx.compose.ui.test.hasSetTextAction()
+        ).performTextInput("Regnigt väder")
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Spara aktivitet").performClick()
         composeRule.waitUntil(3000) { vm.snackbar.value != null }

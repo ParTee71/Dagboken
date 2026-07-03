@@ -241,7 +241,14 @@ class MigrationRoundTripTest {
                 NoteJson(target = "ACTIVITY", entityId = "x1", text = ""),
                 NoteJson(target = "ACTIVITY", entityId = "x2", text = "  "),
                 NoteJson(target = "ACTIVITY", entityId = "x3", text = "Giltig"),
-            )
+            ),
+            // Clear legacy anteckning-bearing collections so only the explicit notes
+            // list above is exercised — testBackup()'s h1/e1/i1 carry non-blank
+            // legacy anteckning columns that would otherwise be synthesized too.
+            mediciner = emptyList(),
+            handelser = emptyList(),
+            sjukdomsepisoder = emptyList(),
+            sjukdomsIncheckningar = emptyList(),
         )
         noteRepo.importAll(BackupMapper.toNotes(backup))
         assertEquals(1, db.noteDao().count())
@@ -325,6 +332,10 @@ class MigrationRoundTripTest {
             notes = emptyList(),
             screeningEventConfigs = null,
             sheetsConfig = null,
+            mediciner = emptyList(),
+            handelser = emptyList(),
+            sjukdomsepisoder = emptyList(),
+            sjukdomsIncheckningar = emptyList(),
         )
         noteRepo.importAll(BackupMapper.toNotes(legacyBackup))
         assertEquals(0, db.noteDao().count())
