@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -113,5 +114,36 @@ class ScreeningTabTest {
         composeRule.waitUntil(3000) { vm.recentEntries.value.none { it.id == "s1" } }
 
         composeRule.onNodeWithText("Morgonscreening").assertDoesNotExist()
+    }
+
+    // ─── Anteckning ──────────────────────────────────────────────────────────
+
+    @Test fun note_placeholder_is_shown_when_no_note_entered() {
+        setContent()
+        composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun typing_a_note_updates_the_form_state() {
+        setContent()
+        composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Yr och trött")
+        composeRule.waitForIdle()
+        assertEquals("Yr och trött", vm.form.value.note)
+    }
+
+    @Test fun saving_a_screening_persists_the_note_under_SCREENING_target() {
+        setContent()
+        composeRule.onNodeWithText("Efter frukost").performClick()
+        composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Yr och trött")
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Spara screening").performClick()
+        composeRule.waitUntil(3000) { vm.snackbar.value != null }
+        val saved = runBlocking { db.noteDao().getAll() }
+        assertEquals(1, saved.size)
+        assertEquals("SCREENING", saved.first().target)
+        assertEquals("Yr och trött", saved.first().text)
     }
 }

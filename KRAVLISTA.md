@@ -81,6 +81,7 @@
 | AKT-8 | Mätvärden och symptom ska kunna fällas ihop/ut (foldout). |
 | AKT-9 | Spara kräver att en aktivitetstyp valts (annars inaktiverad spara-knapp). |
 | AKT-10 | Under registreringsformuläret ska de tre senaste loggade posterna (aktivitet och screening blandat, sorterade på tid, nyast överst) visas i en lista; varje post ska kunna redigeras eller tas bort (samma flöde som Historik). |
+| AKT-11 | Användaren ska kunna lägga till, redigera och ta bort en fritextanteckning på en aktivitetsregistrering, via den delade anteckningskomponenten. |
 
 ### 5.2 Screening (dagligt mående)
 
@@ -90,6 +91,7 @@
 | SCR-2 | Screening ska kunna inkludera samma konfigurerbara **symptom** (0–10) som aktivitet. |
 | SCR-3 | Screening sparas som post av typ `screening` och bekräftas med snackbar ("Screening sparad ✓"). |
 | SCR-4 | Samma lista med de tre senaste registreringarna (se AKT-10) visas även under Screening-formuläret. |
+| SCR-5 | Användaren ska kunna lägga till, redigera och ta bort en fritextanteckning på en screening-registrering, via den delade anteckningskomponenten. |
 
 ### 5.3 Historik
 

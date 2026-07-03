@@ -41,6 +41,7 @@ import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
 import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.GradientSliderRow
+import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.RecentAktiviteterSection
 import se.partee71.dagboken.ui.components.SymptomLogCard
 import se.partee71.dagboken.ui.theme.energyColor
@@ -150,6 +151,11 @@ fun LoggaTab(
                     onToggleFavorite = vm::toggleSymptomFavorite,
                 )
             }
+
+            NoteField(
+                text         = form.note,
+                onTextChange = { vm.updateForm { copy(note = it) } },
+            )
 
             if (showRecent) {
                 RecentAktiviteterSection(

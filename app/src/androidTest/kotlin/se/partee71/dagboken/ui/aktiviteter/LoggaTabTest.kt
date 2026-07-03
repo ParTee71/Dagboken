@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -221,5 +222,41 @@ class LoggaTabTest {
         composeRule.waitUntil(3000) { vm.recentEntries.value.none { it.id == "a1" } }
 
         composeRule.onNodeWithText("Promenad").assertDoesNotExist()
+    }
+
+    // ─── Anteckning ──────────────────────────────────────────────────────────
+
+    @Test fun note_placeholder_is_shown_when_no_note_entered() {
+        setContent()
+        composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun typing_a_note_updates_the_form_state() {
+        setContent()
+        composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Regnigt väder")
+        composeRule.waitForIdle()
+        assertEquals("Regnigt väder", vm.form.value.note)
+    }
+
+    @Test fun saving_an_aktivitet_persists_the_note_under_ACTIVITY_target() {
+        setContent()
+        composeRule.onNodeWithText("Fler typer").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Övrigt").performClick()
+        composeRule.waitForIdle()
+        vm.updateForm { copy(aktivitetAnnat = "Yoga") }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Regnigt väder")
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Spara aktivitet").performClick()
+        composeRule.waitUntil(3000) { vm.snackbar.value != null }
+        val saved = runBlocking { db.noteDao().getAll() }
+        assertEquals(1, saved.size)
+        assertEquals("ACTIVITY", saved.first().target)
+        assertEquals("Regnigt väder", saved.first().text)
     }
 }

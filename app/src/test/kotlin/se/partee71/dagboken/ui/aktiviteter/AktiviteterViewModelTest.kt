@@ -26,6 +26,7 @@ import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Aktivitet
+import se.partee71.dagboken.domain.model.NoteTarget
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AktiviteterViewModelTest {
@@ -178,6 +179,34 @@ class AktiviteterViewModelTest {
         viewModel.updateForm { copy(aktivitet = "Promenad") }
         viewModel.save {}
         assertEquals("", viewModel.form.value.aktivitet)
+    }
+
+    // ─── note ─────────────────────────────────────────────────────────────────
+
+    @Test fun `save persists note under SCREENING target for screening entries`() = runTest {
+        viewModel.updateForm { copy(aktivitet = "Morgonscreening", type = "screening", note = "Kände mig yr") }
+        viewModel.save {}
+        coVerify { noteRepo.save(NoteTarget.SCREENING, any(), "Kände mig yr") }
+    }
+
+    @Test fun `save persists note under ACTIVITY target for aktivitet entries`() = runTest {
+        viewModel.updateForm { copy(aktivitet = "Promenad", type = "aktivitet", note = "Regnigt väder") }
+        viewModel.save {}
+        coVerify { noteRepo.save(NoteTarget.ACTIVITY, any(), "Regnigt väder") }
+    }
+
+    @Test fun `loadForEdit populates form note from noteRepo`() = runTest {
+        val a = aktivitet(id = "a1", type = "screening")
+        coEvery { repo.getById("a1") } returns a
+        every { noteRepo.observe(NoteTarget.SCREENING, "a1") } returns flowOf("Befintlig anteckning")
+        viewModel.loadForEdit("a1")
+        assertEquals("Befintlig anteckning", viewModel.form.value.note)
+    }
+
+    @Test fun `delete removes note under matching target`() = runTest {
+        val a = aktivitet(id = "a1", aktivitet = "Promenad", type = "aktivitet")
+        viewModel.delete(a)
+        coVerify { noteRepo.delete(NoteTarget.ACTIVITY, "a1") }
     }
 
     // ─── delete ───────────────────────────────────────────────────────────────
