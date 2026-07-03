@@ -25,6 +25,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.GradientSliderRow
+import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.RecentAktiviteterSection
 import se.partee71.dagboken.ui.components.SymptomLogCard
 
@@ -111,6 +112,11 @@ fun ScreeningTab(
                     onToggleFavorite = vm::toggleSymptomFavorite,
                 )
             }
+
+            NoteField(
+                text         = form.note,
+                onTextChange = { vm.updateForm { copy(note = it) } },
+            )
 
             if (showRecent) {
                 RecentAktiviteterSection(

@@ -63,7 +63,9 @@ fun SjukdomsEpisodDetailScreen(
     vm: SjukdomsEpisodViewModel = hiltViewModel(),
 ) {
     val episod       by vm.episod.collectAsStateWithLifecycle()
+    val episodNote   by vm.episodNote.collectAsStateWithLifecycle()
     val incheckningar by vm.incheckningar.collectAsStateWithLifecycle()
+    val incheckningNotes by vm.incheckningNotes.collectAsStateWithLifecycle()
     val snackbar     by vm.snackbar.collectAsStateWithLifecycle()
 
     LaunchedEffect(snackbar) {
@@ -126,8 +128,8 @@ fun SjukdomsEpisodDetailScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            if (ep.anteckning.isNotBlank()) {
-                                Text(ep.anteckning, style = MaterialTheme.typography.bodySmall)
+                            if (episodNote.isNotBlank()) {
+                                Text(episodNote, style = MaterialTheme.typography.bodySmall)
                             }
                             if (ep.pagaende) {
                                 Spacer(Modifier.height(4.dp))
@@ -164,6 +166,7 @@ fun SjukdomsEpisodDetailScreen(
                 items(incheckningar, key = { it.id }) { incheckning ->
                     IncheckningCardSwipeable(
                         incheckning = incheckning,
+                        note        = incheckningNotes[incheckning.id].orEmpty(),
                         onDelete    = { deleteInchTarget = incheckning },
                     )
                 }
@@ -233,6 +236,7 @@ private fun StatusChip(pagaende: Boolean) {
 @Composable
 private fun IncheckningCardSwipeable(
     incheckning: SjukdomsIncheckning,
+    note: String,
     onDelete: () -> Unit,
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
@@ -253,12 +257,12 @@ private fun IncheckningCardSwipeable(
             }
         },
     ) {
-        IncheckningCard(incheckning = incheckning)
+        IncheckningCard(incheckning = incheckning, note = note)
     }
 }
 
 @Composable
-private fun IncheckningCard(incheckning: SjukdomsIncheckning) {
+private fun IncheckningCard(incheckning: SjukdomsIncheckning, note: String) {
     val cs = MaterialTheme.colorScheme
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -285,9 +289,9 @@ private fun IncheckningCard(incheckning: SjukdomsIncheckning) {
                     color = cs.onSurfaceVariant,
                 )
             }
-            if (incheckning.anteckning.isNotBlank()) {
+            if (note.isNotBlank()) {
                 Text(
-                    text     = incheckning.anteckning,
+                    text     = note,
                     style    = MaterialTheme.typography.bodySmall,
                     maxLines = 2,
                 )

@@ -124,7 +124,6 @@ class BackupWorker @AssistedInject constructor(
         enhet      = enhet,
         tidpunkt   = tidpunkt,
         tagen      = tagen,
-        anteckning = anteckning,
         receptId   = receptId,
         skipped    = skipped,
     )
@@ -138,7 +137,6 @@ class BackupWorker @AssistedInject constructor(
         upprepning    = upprepning,
         dagar         = dagar,
         intervalDagar = intervalDagar,
-        anteckning    = anteckning,
         aktiv         = aktiv,
         skapad        = skapad,
     )
@@ -149,7 +147,6 @@ class BackupWorker @AssistedInject constructor(
         dos              = dos,
         enhet            = enhet,
         tidpunkt         = tidpunkt,
-        anteckning       = anteckning,
         minTidMellan     = minTidMellan,
         dispenseringsTid = dispenseringsTid,
         maxDoserPerDag   = maxDoserPerDag,
@@ -161,7 +158,6 @@ class BackupWorker @AssistedInject constructor(
         typ        = typ,
         startDatum = startDatum,
         slutDatum  = slutDatum,
-        anteckning = anteckning,
         timestamp  = timestamp,
     )
 
@@ -181,7 +177,6 @@ class BackupWorker @AssistedInject constructor(
         varaktighetMinuter = varaktighetMinuter,
         triggers           = triggers,
         atgarder           = atgarder,
-        anteckning         = anteckning,
     )
 
     private fun SjukdomsIncheckning.toJson() = SjukdomsIncheckningJson(
@@ -192,7 +187,6 @@ class BackupWorker @AssistedInject constructor(
         svarighetsgrad = svarighetsgrad,
         symptom        = symptom,
         somatiska      = somatiska,
-        anteckning     = anteckning,
         timestamp      = timestamp,
     )
 }

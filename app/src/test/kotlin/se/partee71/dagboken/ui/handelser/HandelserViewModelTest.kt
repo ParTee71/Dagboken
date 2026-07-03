@@ -27,7 +27,9 @@ import org.junit.Test
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.HandelserRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Handelse
+import se.partee71.dagboken.domain.model.NoteTarget
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -37,6 +39,7 @@ class HandelserViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private lateinit var repo: HandelserRepository
+    private lateinit var noteRepo: NoteRepository
     private lateinit var prefs: PreferencesRepository
     private lateinit var viewModel: HandelserViewModel
 
@@ -47,10 +50,14 @@ class HandelserViewModelTest {
         repo = mockk(relaxed = true) {
             every { all } returns flowOf(emptyList())
         }
+        noteRepo = mockk(relaxed = true) {
+            every { observe(any(), any()) } returns flowOf("")
+            every { observeMap(any()) } returns flowOf(emptyMap())
+        }
         prefs = mockk(relaxed = true) {
             every { handelseTypOptions } returns handelseTypOptionsFlow
         }
-        viewModel = HandelserViewModel(repo, prefs)
+        viewModel = HandelserViewModel(repo, noteRepo, prefs)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -64,12 +71,11 @@ class HandelserViewModelTest {
         varaktighetMinuter: Int = 30,
         triggers: String = "",
         atgarder: String = "",
-        anteckning: String = "",
     ) = Handelse(
         id = id, timestamp = "${datum}T${tid}:00.000Z",
         datum = datum, tid = tid, typ = typ,
         svarighetsgrad = svarighetsgrad, varaktighetMinuter = varaktighetMinuter,
-        triggers = triggers, atgarder = atgarder, anteckning = anteckning,
+        triggers = triggers, atgarder = atgarder,
     )
 
     // ─── form defaults ────────────────────────────────────────────────────────
@@ -161,8 +167,9 @@ class HandelserViewModelTest {
         coEvery { repo.getById("h1") } returns handelse(
             id = "h1", typ = "Blodtrycksfall", datum = "2026-06-20", tid = "09:30",
             svarighetsgrad = 7, varaktighetMinuter = 90,
-            triggers = "stress", atgarder = "vila", anteckning = "notering",
+            triggers = "stress", atgarder = "vila",
         )
+        every { noteRepo.observe(NoteTarget.EVENT, "h1") } returns flowOf("notering")
         viewModel.loadForEdit("h1")
         val f = viewModel.form.value
         assertEquals("Blodtrycksfall", f.typ)
@@ -174,6 +181,20 @@ class HandelserViewModelTest {
         assertEquals("stress", f.triggers)
         assertEquals("vila", f.atgarder)
         assertEquals("notering", f.anteckning)
+    }
+
+    // ─── anteckning ───────────────────────────────────────────────────────────
+
+    @Test fun `save persists the note under EVENT target`() = runTest {
+        viewModel.updateForm { copy(typ = "Yrsel", anteckning = "Kom efter möte") }
+        viewModel.save {}
+        coVerify { noteRepo.save(NoteTarget.EVENT, any(), "Kom efter möte") }
+    }
+
+    @Test fun `delete also deletes the note under EVENT target`() = runTest {
+        val h = handelse(id = "h1")
+        viewModel.delete(h)
+        coVerify { noteRepo.delete(NoteTarget.EVENT, "h1") }
     }
 
     @Test fun `loadForEdit with zero duration sets both wheels to zero`() = runTest {
@@ -248,7 +269,7 @@ class HandelserViewModelTest {
                 SymptomOption("Andnöd", isFavorite = false),
             ))
         }
-        val vm = HandelserViewModel(mockk(relaxed = true) { every { all } returns flowOf(emptyList()) }, prefsWithOptions)
+        val vm = HandelserViewModel(mockk(relaxed = true) { every { all } returns flowOf(emptyList()) }, noteRepo, prefsWithOptions)
         vm.typPickerOptions.onEach { }.launchIn(backgroundScope)
         advanceUntilIdle()
 
@@ -262,7 +283,7 @@ class HandelserViewModelTest {
         }
         val vm = HandelserViewModel(mockk(relaxed = true) {
             every { all } returns flowOf(listOf(handelse(id = "h1", typ = "Egen typ")))
-        }, prefsWithOptions)
+        }, noteRepo, prefsWithOptions)
         vm.typPickerOptions.onEach { }.launchIn(backgroundScope)
         advanceUntilIdle()
 
@@ -275,7 +296,7 @@ class HandelserViewModelTest {
         }
         val vm = HandelserViewModel(mockk(relaxed = true) {
             every { all } returns flowOf(listOf(handelse(id = "h1", typ = "Yrsel")))
-        }, prefsWithOptions)
+        }, noteRepo, prefsWithOptions)
         vm.typPickerOptions.onEach { }.launchIn(backgroundScope)
         advanceUntilIdle()
 
@@ -335,7 +356,7 @@ class HandelserViewModelTest {
                 handelse(id = "recent", datum = today),
                 handelse(id = "old",    datum = oldDate),
             ))
-        }, prefs)
+        }, noteRepo, prefs)
         vm.state.onEach { }.launchIn(backgroundScope)
         advanceUntilIdle()
 
@@ -353,7 +374,7 @@ class HandelserViewModelTest {
                 handelse(id = "h1", typ = "Yrsel"),
                 handelse(id = "h2", typ = "Blodtrycksfall"),
             ))
-        }, prefs)
+        }, noteRepo, prefs)
         vm.state.onEach { }.launchIn(backgroundScope)
         advanceUntilIdle()
 
@@ -372,7 +393,7 @@ class HandelserViewModelTest {
                 handelse(id = "h2", typ = "Blodtrycksfall"),
                 handelse(id = "h3", typ = "Yrsel"),
             ))
-        }, prefs)
+        }, noteRepo, prefs)
         vm.state.onEach { }.launchIn(backgroundScope)
         advanceUntilIdle()
 

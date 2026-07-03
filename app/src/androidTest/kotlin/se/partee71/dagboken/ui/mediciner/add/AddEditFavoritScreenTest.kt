@@ -3,20 +3,26 @@ package se.partee71.dagboken.ui.mediciner.add
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 
@@ -38,10 +44,11 @@ class AddEditFavoritScreenTest {
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
+            noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
-        vm = AddEditFavoritViewModel(repo)
+        vm = AddEditFavoritViewModel(repo, NoteRepository(db.noteDao()))
 
         composeRule.setContent {
             MaterialTheme {
@@ -62,5 +69,22 @@ class AddEditFavoritScreenTest {
             .performClick()
 
         composeRule.onNodeWithText("1 ggr").assertIsDisplayed()
+    }
+
+    @Test fun note_field_is_shown_and_persists_on_save() {
+        composeRule.onNode(hasText("Namn") and hasSetTextAction()).performTextInput("Paracetamol")
+        composeRule.onNode(hasText("Dos") and hasSetTextAction()).performTextInput("500")
+
+        composeRule.onNodeWithText("Lägg till en anteckning…").assertIsDisplayed()
+        composeRule.onNodeWithText("Lägg till en anteckning…").performClick()
+        composeRule.onNode(hasText("Lägg till en anteckning…") and hasSetTextAction())
+            .performTextInput("Max 3/dag")
+
+        composeRule.onNodeWithText("Spara").performClick()
+        composeRule.waitForIdle()
+
+        val notes = runBlocking { db.noteDao().getAll() }
+        assertEquals("FAVORIT", notes.single().target)
+        assertEquals("Max 3/dag", notes.single().text)
     }
 }

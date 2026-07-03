@@ -43,7 +43,7 @@ class HandelseDaoTest {
         id = id, timestamp = "${datum}T${tid}:00.000Z",
         datum = datum, tid = tid, typ = typ,
         svarighetsgrad = svarighetsgrad, varaktighetMinuter = varaktighetMinuter,
-        triggers = "", atgarder = "", anteckning = "",
+        triggers = "", atgarder = "",
     )
 
     // ─── basic CRUD ───────────────────────────────────────────────────────────

@@ -19,7 +19,6 @@ data class HandelseEntity(
     val varaktighetMinuter: Int,
     val triggers: String,
     val atgarder: String,
-    val anteckning: String,
 )
 
 fun HandelseEntity.toDomain() = Handelse(
@@ -32,7 +31,6 @@ fun HandelseEntity.toDomain() = Handelse(
     varaktighetMinuter = varaktighetMinuter,
     triggers           = triggers,
     atgarder           = atgarder,
-    anteckning         = anteckning,
 )
 
 fun Handelse.toEntity() = HandelseEntity(
@@ -45,5 +43,4 @@ fun Handelse.toEntity() = HandelseEntity(
     varaktighetMinuter = varaktighetMinuter,
     triggers           = triggers,
     atgarder           = atgarder,
-    anteckning         = anteckning,
 )

@@ -6,8 +6,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.NoteRepository
+import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.Recept
 import java.time.LocalDate
 import java.util.UUID
@@ -29,6 +32,7 @@ data class ReceptForm(
 @HiltViewModel
 class AddEditReceptViewModel @Inject constructor(
     private val repo: MedicinerRepository,
+    private val noteRepo: NoteRepository,
 ) : ViewModel() {
 
     private val _form = MutableStateFlow(ReceptForm())
@@ -41,6 +45,7 @@ class AddEditReceptViewModel @Inject constructor(
         viewModelScope.launch {
             val r = repo.getReceptById(id) ?: return@launch
             editingId = id
+            val note = noteRepo.observe(NoteTarget.RECEPT, id).first()
             _form.value = ReceptForm(
                 namn          = r.namn,
                 dos           = r.dos,
@@ -49,7 +54,7 @@ class AddEditReceptViewModel @Inject constructor(
                 upprepning    = r.upprepning,
                 dagar         = r.dagar,
                 intervalDagar = r.intervalDagar,
-                anteckning    = r.anteckning,
+                anteckning    = note,
                 aktiv         = r.aktiv,
                 skapad        = r.skapad,
             )
@@ -80,11 +85,11 @@ class AddEditReceptViewModel @Inject constructor(
                 upprepning    = f.upprepning,
                 dagar         = f.dagar,
                 intervalDagar = f.intervalDagar,
-                anteckning    = f.anteckning.trim(),
                 aktiv         = f.aktiv,
                 skapad        = f.skapad,
             )
             repo.saveRecept(recept)
+            noteRepo.save(NoteTarget.RECEPT, recept.id, f.anteckning.trim())
         }
     }
 }

@@ -50,7 +50,6 @@ class EnsureTodayEntriesUseCase @Inject constructor() {
                     enhet      = r.enhet,
                     tidpunkt   = tidpunkt,
                     tagen      = false,
-                    anteckning = r.anteckning,
                     receptId   = r.id,
                     skipped    = false,
                 )

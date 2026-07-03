@@ -52,7 +52,7 @@ class EnsureTodayEntriesIntegrationTest {
         receptDao.upsert(ReceptEntity(
             id = "r1", namn = "Metformin", dos = "500", enhet = "mg",
             tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
-            dagarJson = "[]", intervalDagar = 1, anteckning = "", aktiv = true,
+            dagarJson = "[]", intervalDagar = 1, aktiv = true,
             skapad = datum,
         ))
 
@@ -74,7 +74,7 @@ class EnsureTodayEntriesIntegrationTest {
         receptDao.upsert(ReceptEntity(
             id = "r1", namn = "Metformin", dos = "500", enhet = "mg",
             tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
-            dagarJson = "[]", intervalDagar = 1, anteckning = "", aktiv = true,
+            dagarJson = "[]", intervalDagar = 1, aktiv = true,
             skapad = datum,
         ))
 
@@ -94,7 +94,7 @@ class EnsureTodayEntriesIntegrationTest {
         receptDao.upsert(ReceptEntity(
             id = "r2", namn = "Vitamin D", dos = "1", enhet = "st",
             tidpunkterJson = """["Morgon","Kväll"]""", upprepning = "dagligen",
-            dagarJson = "[]", intervalDagar = 1, anteckning = "", aktiv = true,
+            dagarJson = "[]", intervalDagar = 1, aktiv = true,
             skapad = today.toString(),
         ))
 
@@ -112,7 +112,7 @@ class EnsureTodayEntriesIntegrationTest {
         receptDao.upsert(ReceptEntity(
             id = "r3", namn = "Inaktiv", dos = "10", enhet = "mg",
             tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
-            dagarJson = "[]", intervalDagar = 1, anteckning = "", aktiv = false,
+            dagarJson = "[]", intervalDagar = 1, aktiv = false,
             skapad = today.toString(),
         ))
 
@@ -126,5 +126,5 @@ class EnsureTodayEntriesIntegrationTest {
 private fun Medicin.toMedicinEntity() = MedicinEntity(
     id = id, timestamp = timestamp, datum = datum, tid = tid,
     namn = namn, dos = dos, enhet = enhet, tidpunkt = tidpunkt,
-    tagen = tagen, anteckning = anteckning, receptId = receptId, skipped = skipped,
+    tagen = tagen, receptId = receptId, skipped = skipped,
 )

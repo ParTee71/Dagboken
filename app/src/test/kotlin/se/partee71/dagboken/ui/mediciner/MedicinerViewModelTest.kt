@@ -63,7 +63,7 @@ class MedicinerViewModelTest {
     ) = Medicin(
         id = id, timestamp = "2026-01-15T07:00:00.000Z", datum = "2026-01-15", tid = "07:00",
         namn = namn, dos = "400", enhet = "mg", tidpunkt = "Morgon",
-        tagen = false, anteckning = "", receptId = receptId, skipped = false,
+        tagen = false, receptId = receptId, skipped = false,
     )
 
     private fun favorit(
@@ -73,7 +73,7 @@ class MedicinerViewModelTest {
         isFavorite: Boolean = false,
     ) = Favorit(
         id = "f1", namn = namn, dos = "500", enhet = "mg", tidpunkt = "Vid behov",
-        anteckning = "", minTidMellan = minTidMellan, maxDoserPerDag = maxDoserPerDag,
+        minTidMellan = minTidMellan, maxDoserPerDag = maxDoserPerDag,
         isFavorite = isFavorite,
     )
 
@@ -196,6 +196,17 @@ class MedicinerViewModelTest {
         assertEquals("Ibuprofen borttagen", viewModel.snackbar.value)
     }
 
+    @Test fun `deleteMedicin without receptId also deletes its note`() = runTest {
+        val med = medicin(id = "m1", receptId = null)
+        viewModel.deleteMedicin(med)
+        coVerify { noteRepo.delete(se.partee71.dagboken.domain.model.NoteTarget.MEDICATION, "m1") }
+    }
+
+    @Test fun `deleteFavorit also deletes its note`() = runTest {
+        viewModel.deleteFavorit(favorit())
+        coVerify { noteRepo.delete(se.partee71.dagboken.domain.model.NoteTarget.FAVORIT, "f1") }
+    }
+
     // ─── quickDos – daily limit ───────────────────────────────────────────────
 
     @Test fun `quickDos is blocked when daily limit is reached`() = runTest {
@@ -293,6 +304,31 @@ class MedicinerViewModelTest {
         viewModel.quickDos(favorit(namn = "Ipren"))
 
         assertTrue(viewModel.snackbar.value?.contains("Ipren") == true)
+    }
+
+    @Test fun `quickDos copies the favorit's note onto the logged dose`() = runTest {
+        coEvery { repo.countDailyDoses(any(), any()) } returns 0
+        coEvery { repo.getLastTaken(any()) } returns null
+        every {
+            noteRepo.observe(se.partee71.dagboken.domain.model.NoteTarget.FAVORIT, "f1")
+        } returns flowOf("Ta med mat")
+
+        viewModel.quickDos(favorit())
+
+        coVerify {
+            noteRepo.save(se.partee71.dagboken.domain.model.NoteTarget.MEDICATION, any(), "Ta med mat")
+        }
+    }
+
+    @Test fun `quickDos does not save a note when the favorit has none`() = runTest {
+        coEvery { repo.countDailyDoses(any(), any()) } returns 0
+        coEvery { repo.getLastTaken(any()) } returns null
+
+        viewModel.quickDos(favorit())
+
+        coVerify(exactly = 0) {
+            noteRepo.save(se.partee71.dagboken.domain.model.NoteTarget.MEDICATION, any(), any())
+        }
     }
 
     // ─── clearSnackbar ────────────────────────────────────────────────────────

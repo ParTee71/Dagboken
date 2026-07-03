@@ -21,6 +21,9 @@ class NoteRepositoryUnitTest {
         override fun observe(target: String, entityId: String): Flow<String?> =
             _flow.map { it[target to entityId] }
 
+        override fun observeAllForTarget(target: String): Flow<List<NoteEntity>> =
+            _flow.map { m -> m.filterKeys { it.first == target }.map { (k, v) -> NoteEntity(k.first, k.second, v) } }
+
         override suspend fun getAll(): List<NoteEntity> =
             store.map { (key, text) -> NoteEntity(key.first, key.second, text) }
 
@@ -76,6 +79,28 @@ class NoteRepositoryUnitTest {
         r.delete(NoteTarget.MEDICATION, "m1")
         r.observe(NoteTarget.MEDICATION, "m1").test {
             assertEquals("", awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `observeMap returns entityId to text for the given target only`() = runTest {
+        val r = repo()
+        r.save(NoteTarget.RECEPT, "r1", "Kväll bäst")
+        r.save(NoteTarget.RECEPT, "r2", "Med mat")
+        r.save(NoteTarget.FAVORIT, "f1", "Ignoreras")
+
+        r.observeMap(NoteTarget.RECEPT).test {
+            val map = awaitItem()
+            assertEquals(2, map.size)
+            assertEquals("Kväll bäst", map["r1"])
+            assertEquals("Med mat", map["r2"])
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `observeMap is empty when no notes exist for the target`() = runTest {
+        repo().observeMap(NoteTarget.EVENT).test {
+            assertEquals(emptyMap<String, String>(), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }

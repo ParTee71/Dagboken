@@ -225,7 +225,7 @@ class SettingsViewModelTest {
 
     private fun favorit(id: String = "f1", isFavorite: Boolean = false) = Favorit(
         id = id, namn = "Paracetamol", dos = "500", enhet = "mg", tidpunkt = "Vid behov",
-        anteckning = "", minTidMellan = 0, maxDoserPerDag = 0, isFavorite = isFavorite,
+        minTidMellan = 0, maxDoserPerDag = 0, isFavorite = isFavorite,
     )
 
     @Test fun `medicinFavoriter emits list from MedicinerRepository`() = runTest {

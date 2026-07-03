@@ -38,6 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.TIDP_ORDER
+import se.partee71.dagboken.ui.components.NoteField
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -107,9 +108,10 @@ fun AddEditMedicinScreen(
                 }
             }
 
-            OutlinedTextField(form.anteckning, { vm.updateForm { copy(anteckning = it) } },
-                label = { Text(stringResource(R.string.label_note)) }, modifier = Modifier.fillMaxWidth(),
-                minLines = 2)
+            NoteField(
+                text         = form.anteckning,
+                onTextChange = { vm.updateForm { copy(anteckning = it) } },
+            )
 
             Button(
                 onClick = { scope.launch { vm.save(); onBack() } },

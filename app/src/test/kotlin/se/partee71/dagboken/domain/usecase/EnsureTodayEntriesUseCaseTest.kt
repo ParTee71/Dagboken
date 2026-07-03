@@ -29,7 +29,7 @@ class EnsureTodayEntriesUseCaseTest {
         id = id, namn = namn, dos = "400", enhet = "mg",
         tidpunkter = tidpunkter, upprepning = upprepning,
         dagar = dagar, intervalDagar = intervalDagar,
-        anteckning = "", aktiv = aktiv, skapad = skapad,
+        aktiv = aktiv, skapad = skapad,
     )
 
     // ─── compute ──────────────────────────────────────────────────────────────

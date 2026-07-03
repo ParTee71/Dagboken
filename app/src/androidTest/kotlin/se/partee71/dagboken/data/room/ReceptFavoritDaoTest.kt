@@ -38,13 +38,13 @@ class ReceptFavoritDaoTest {
     private fun receptEntity(id: String = "r1", aktiv: Boolean = true) = ReceptEntity(
         id = id, namn = "Metformin", dos = "500", enhet = "mg",
         tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
-        dagarJson = "[]", intervalDagar = 1, anteckning = "", aktiv = aktiv,
+        dagarJson = "[]", intervalDagar = 1, aktiv = aktiv,
         skapad = "2026-01-01",
     )
 
     private fun favoritEntity(id: String = "f1") = FavoritEntity(
         id = id, namn = "Ibuprofen", dos = "400", enhet = "mg",
-        tidpunkt = "Vid behov", anteckning = "", minTidMellan = 4,
+        tidpunkt = "Vid behov", minTidMellan = 4,
         dispenseringsTid = "", maxDoserPerDag = 2,
     )
 

@@ -3,6 +3,7 @@ package se.partee71.dagboken.data.repository
 import android.util.Log
 import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -14,6 +15,7 @@ import se.partee71.dagboken.data.room.entities.toDomain
 import se.partee71.dagboken.data.room.entities.toEntity
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import java.time.LocalDate
@@ -27,6 +29,7 @@ class MedicinerRepository @Inject constructor(
     private val medicinDao: MedicinDao,
     private val receptDao: ReceptDao,
     private val favoritDao: FavoritDao,
+    private val noteRepo: NoteRepository,
     private val ensureTodayEntries: EnsureTodayEntriesUseCase,
     private val json: Json,
 ) {
@@ -93,13 +96,20 @@ class MedicinerRepository @Inject constructor(
     suspend fun ensureTodayEntries() {
         val today = LocalDate.now()
         val datum = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        db.withTransaction {
+        val newEntries = db.withTransaction {
             val recept   = receptDao.getActive().map { it.toDomain(::decodeStringList, ::decodeIntList) }
             val existing = medicinDao.getByDate(datum).map { it.toDomain() }
             val newEntries = ensureTodayEntries.compute(recept, existing, today)
             if (newEntries.isNotEmpty()) {
                 medicinDao.upsertAll(newEntries.map { it.toEntity() })
             }
+            newEntries
+        }
+        // A recept's note is a default carried forward onto each dose it generates for the day.
+        newEntries.forEach { entry ->
+            val receptId = entry.receptId ?: return@forEach
+            val receptNote = noteRepo.observe(NoteTarget.RECEPT, receptId).first()
+            if (receptNote.isNotBlank()) noteRepo.save(NoteTarget.MEDICATION, entry.id, receptNote)
         }
     }
 

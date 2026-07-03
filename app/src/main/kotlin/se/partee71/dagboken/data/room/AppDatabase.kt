@@ -32,7 +32,7 @@ import se.partee71.dagboken.data.room.entities.SjukdomsIncheckningEntity
         SjukdomsEpisodEntity::class,
         SjukdomsIncheckningEntity::class,
     ],
-    version = 6,
+    version = 9,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -144,6 +144,195 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        // Drops the per-row `anteckning` column from mediciner/recept/favoriter — anteckning
+        // now lives in the generic `notes` table (target=MEDICATION/RECEPT/FAVORIT, entityId=row id).
+        // SQLite can't DROP COLUMN on these versions, so each table is recreated without it.
+        // `INSERT OR IGNORE` into notes preserves any note already saved under MEDICATION via
+        // the IdagTab dose-note dialog (NoteTarget.MEDICATION was already in use for that,
+        // keyed by the same mediciner.id) instead of overwriting it with the column's value.
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """INSERT OR IGNORE INTO notes (target, entityId, text)
+                       SELECT 'MEDICATION', id, anteckning FROM mediciner
+                       WHERE anteckning IS NOT NULL AND TRIM(anteckning) != ''"""
+                )
+                db.execSQL(
+                    """INSERT OR IGNORE INTO notes (target, entityId, text)
+                       SELECT 'RECEPT', id, anteckning FROM recept
+                       WHERE anteckning IS NOT NULL AND TRIM(anteckning) != ''"""
+                )
+                db.execSQL(
+                    """INSERT OR IGNORE INTO notes (target, entityId, text)
+                       SELECT 'FAVORIT', id, anteckning FROM favoriter
+                       WHERE anteckning IS NOT NULL AND TRIM(anteckning) != ''"""
+                )
+
+                db.execSQL(
+                    """CREATE TABLE mediciner_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        timestamp TEXT NOT NULL,
+                        datum TEXT NOT NULL,
+                        tid TEXT NOT NULL,
+                        namn TEXT NOT NULL,
+                        dos TEXT NOT NULL,
+                        enhet TEXT NOT NULL,
+                        tidpunkt TEXT NOT NULL,
+                        tagen INTEGER NOT NULL,
+                        receptId TEXT,
+                        skipped INTEGER NOT NULL DEFAULT 0
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO mediciner_new (id, timestamp, datum, tid, namn, dos, enhet, tidpunkt, tagen, receptId, skipped)
+                       SELECT id, timestamp, datum, tid, namn, dos, enhet, tidpunkt, tagen, receptId, skipped FROM mediciner"""
+                )
+                db.execSQL("DROP TABLE mediciner")
+                db.execSQL("ALTER TABLE mediciner_new RENAME TO mediciner")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_mediciner_datum ON mediciner (datum)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_mediciner_namn_datum ON mediciner (namn, datum)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_mediciner_receptId ON mediciner (receptId)")
+
+                db.execSQL(
+                    """CREATE TABLE recept_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        namn TEXT NOT NULL,
+                        dos TEXT NOT NULL,
+                        enhet TEXT NOT NULL,
+                        tidpunkterJson TEXT NOT NULL,
+                        upprepning TEXT NOT NULL,
+                        dagarJson TEXT NOT NULL,
+                        intervalDagar INTEGER NOT NULL DEFAULT 2,
+                        aktiv INTEGER NOT NULL,
+                        skapad TEXT NOT NULL
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO recept_new (id, namn, dos, enhet, tidpunkterJson, upprepning, dagarJson, intervalDagar, aktiv, skapad)
+                       SELECT id, namn, dos, enhet, tidpunkterJson, upprepning, dagarJson, intervalDagar, aktiv, skapad FROM recept"""
+                )
+                db.execSQL("DROP TABLE recept")
+                db.execSQL("ALTER TABLE recept_new RENAME TO recept")
+
+                db.execSQL(
+                    """CREATE TABLE favoriter_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        namn TEXT NOT NULL,
+                        dos TEXT NOT NULL,
+                        enhet TEXT NOT NULL,
+                        tidpunkt TEXT NOT NULL,
+                        minTidMellan INTEGER NOT NULL,
+                        dispenseringsTid TEXT NOT NULL DEFAULT '',
+                        maxDoserPerDag INTEGER NOT NULL DEFAULT 0,
+                        isFavorite INTEGER NOT NULL DEFAULT 0
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO favoriter_new (id, namn, dos, enhet, tidpunkt, minTidMellan, dispenseringsTid, maxDoserPerDag, isFavorite)
+                       SELECT id, namn, dos, enhet, tidpunkt, minTidMellan, dispenseringsTid, maxDoserPerDag, isFavorite FROM favoriter"""
+                )
+                db.execSQL("DROP TABLE favoriter")
+                db.execSQL("ALTER TABLE favoriter_new RENAME TO favoriter")
+            }
+        }
+
+        // Drops the per-row `anteckning` column from health_events — moved to the generic
+        // `notes` table (target=EVENT, entityId=row id). Fulfills the plan from #31 that
+        // was never actually carried out for this entity.
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """INSERT OR IGNORE INTO notes (target, entityId, text)
+                       SELECT 'EVENT', id, anteckning FROM health_events
+                       WHERE anteckning IS NOT NULL AND TRIM(anteckning) != ''"""
+                )
+
+                db.execSQL(
+                    """CREATE TABLE health_events_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        timestamp TEXT NOT NULL,
+                        datum TEXT NOT NULL,
+                        tid TEXT NOT NULL,
+                        typ TEXT NOT NULL,
+                        svarighetsgrad INTEGER NOT NULL,
+                        varaktighetMinuter INTEGER NOT NULL,
+                        triggers TEXT NOT NULL,
+                        atgarder TEXT NOT NULL
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO health_events_new (id, timestamp, datum, tid, typ, svarighetsgrad, varaktighetMinuter, triggers, atgarder)
+                       SELECT id, timestamp, datum, tid, typ, svarighetsgrad, varaktighetMinuter, triggers, atgarder FROM health_events"""
+                )
+                db.execSQL("DROP TABLE health_events")
+                db.execSQL("ALTER TABLE health_events_new RENAME TO health_events")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_health_events_datum ON health_events (datum)")
+            }
+        }
+
+        // Drops the per-row `anteckning` column from sjukdomsepisoder/sjukdoms_incheckningar —
+        // moved to the generic `notes` table (target=SJUKDOM_EPISOD/SJUKDOM_INCHECKNING).
+        // Foreign keys are disabled for the duration of the recreate since both the parent
+        // (sjukdomsepisoder) and child (sjukdoms_incheckningar) tables are rebuilt.
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("PRAGMA foreign_keys=OFF")
+
+                db.execSQL(
+                    """INSERT OR IGNORE INTO notes (target, entityId, text)
+                       SELECT 'SJUKDOM_EPISOD', id, anteckning FROM sjukdomsepisoder
+                       WHERE anteckning IS NOT NULL AND TRIM(anteckning) != ''"""
+                )
+                db.execSQL(
+                    """INSERT OR IGNORE INTO notes (target, entityId, text)
+                       SELECT 'SJUKDOM_INCHECKNING', id, anteckning FROM sjukdoms_incheckningar
+                       WHERE anteckning IS NOT NULL AND TRIM(anteckning) != ''"""
+                )
+
+                db.execSQL(
+                    """CREATE TABLE sjukdomsepisoder_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        typ TEXT NOT NULL,
+                        start_datum TEXT NOT NULL,
+                        slut_datum TEXT NOT NULL DEFAULT '',
+                        timestamp INTEGER NOT NULL DEFAULT 0
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO sjukdomsepisoder_new (id, typ, start_datum, slut_datum, timestamp)
+                       SELECT id, typ, start_datum, slut_datum, timestamp FROM sjukdomsepisoder"""
+                )
+                db.execSQL("DROP TABLE sjukdomsepisoder")
+                db.execSQL("ALTER TABLE sjukdomsepisoder_new RENAME TO sjukdomsepisoder")
+
+                db.execSQL(
+                    """CREATE TABLE sjukdoms_incheckningar_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        episod_id TEXT NOT NULL,
+                        datum TEXT NOT NULL,
+                        tid TEXT NOT NULL,
+                        svarighetsgrad INTEGER NOT NULL,
+                        symptom TEXT NOT NULL DEFAULT '',
+                        somatiska INTEGER NOT NULL DEFAULT 0,
+                        timestamp INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(episod_id) REFERENCES sjukdomsepisoder(id) ON DELETE CASCADE
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO sjukdoms_incheckningar_new (id, episod_id, datum, tid, svarighetsgrad, symptom, somatiska, timestamp)
+                       SELECT id, episod_id, datum, tid, svarighetsgrad, symptom, somatiska, timestamp FROM sjukdoms_incheckningar"""
+                )
+                db.execSQL("DROP TABLE sjukdoms_incheckningar")
+                db.execSQL("ALTER TABLE sjukdoms_incheckningar_new RENAME TO sjukdoms_incheckningar")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_sjukdoms_incheckningar_episod_id ON sjukdoms_incheckningar (episod_id)")
+
+                db.execSQL("PRAGMA foreign_keys=ON")
+            }
+        }
+
+        val MIGRATIONS = arrayOf(
+            MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+            MIGRATION_7_8, MIGRATION_8_9,
+        )
     }
 }

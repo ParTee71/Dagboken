@@ -62,6 +62,7 @@ class MigrationRoundTripTest {
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
+            noteRepo           = noteRepo,
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = json,
         )
@@ -209,7 +210,6 @@ class MigrationRoundTripTest {
         assertEquals("migrän", fromDb!!.typ)
         assertEquals("2026-01-10", fromDb.startDatum)
         assertEquals("2026-01-12", fromDb.slutDatum)
-        assertEquals("Tung period", fromDb.anteckning)
         assertEquals(1_700_000_000_000L, fromDb.timestamp)
     }
 
@@ -224,7 +224,6 @@ class MigrationRoundTripTest {
         assertEquals(8, fromDb.svarighetsgrad)
         assertEquals("Yrsel:3", fromDb.symptom)
         assertEquals(2, fromDb.somatiska)
-        assertEquals("Tog medicin", fromDb.anteckning)
         assertEquals(1_700_000_111_000L, fromDb.timestamp)
     }
 
@@ -242,7 +241,14 @@ class MigrationRoundTripTest {
                 NoteJson(target = "ACTIVITY", entityId = "x1", text = ""),
                 NoteJson(target = "ACTIVITY", entityId = "x2", text = "  "),
                 NoteJson(target = "ACTIVITY", entityId = "x3", text = "Giltig"),
-            )
+            ),
+            // Clear legacy anteckning-bearing collections so only the explicit notes
+            // list above is exercised — testBackup()'s h1/e1/i1 carry non-blank
+            // legacy anteckning columns that would otherwise be synthesized too.
+            mediciner = emptyList(),
+            handelser = emptyList(),
+            sjukdomsepisoder = emptyList(),
+            sjukdomsIncheckningar = emptyList(),
         )
         noteRepo.importAll(BackupMapper.toNotes(backup))
         assertEquals(1, db.noteDao().count())
@@ -257,7 +263,6 @@ class MigrationRoundTripTest {
         assertEquals("huvudvärk", fromDb!!.typ)
         assertEquals(6, fromDb.svarighetsgrad)
         assertEquals(90, fromDb.varaktighetMinuter)
-        assertEquals("Kom efter möte", fromDb.anteckning)
     }
 
     @Test fun handelser_all_fields_survive_round_trip() = runTest {
@@ -289,7 +294,9 @@ class MigrationRoundTripTest {
         assertEquals(1, db.sjukdomsEpisodDao().count())
         assertEquals(2, db.sjukdomsIncheckningDao().count())
         assertEquals(2, db.handelseDao().count())
-        assertEquals(2, db.noteDao().count())
+        // ACTIVITY + MEDICATION explicit, plus EVENT/SJUKDOM_EPISOD/SJUKDOM_INCHECKNING
+        // synthesized from h1/e1/i1's legacy anteckning columns
+        assertEquals(5, db.noteDao().count())
     }
 
     // ─── upsert idempotency ───────────────────────────────────────────────────
@@ -309,7 +316,7 @@ class MigrationRoundTripTest {
         assertEquals(1, db.sjukdomsEpisodDao().count())
         assertEquals(2, db.sjukdomsIncheckningDao().count())
         assertEquals(2, db.handelseDao().count())
-        assertEquals(2, db.noteDao().count())
+        assertEquals(5, db.noteDao().count())
     }
 
     @Test fun backup_without_handelser_field_imports_without_error() = runTest {
@@ -325,8 +332,60 @@ class MigrationRoundTripTest {
             notes = emptyList(),
             screeningEventConfigs = null,
             sheetsConfig = null,
+            mediciner = emptyList(),
+            handelser = emptyList(),
+            sjukdomsepisoder = emptyList(),
+            sjukdomsIncheckningar = emptyList(),
         )
         noteRepo.importAll(BackupMapper.toNotes(legacyBackup))
         assertEquals(0, db.noteDao().count())
+    }
+
+    // ─── legacy per-row anteckning → notes table (pre-MIGRATION_6_7 backups) ──
+
+    @Test fun legacy_medicin_recept_favorit_anteckning_is_migrated_into_notes_on_import() = runTest {
+        // Simulates restoring a backup created before Medicin/Recept/Favorit moved their
+        // anteckning column into the generic notes table.
+        val legacyBackup = testBackup().copy(
+            mediciner = listOf(MedicinJson(id = "m1", namn = "Metformin", anteckning = "Tas med mat")),
+            medicinRecipes = listOf(ReceptJson(id = "r1", namn = "Vitamin D", anteckning = "Kväll bäst")),
+            medicinFavoriter = listOf(FavoritJson(id = "f1", namn = "Paracetamol", anteckning = "Max 3/dag")),
+            notes = emptyList(),
+        )
+
+        noteRepo.importAll(BackupMapper.toNotes(legacyBackup))
+
+        val notes = db.noteDao().getAll()
+        assertEquals("Tas med mat", notes.find { it.target == "MEDICATION" && it.entityId == "m1" }?.text)
+        assertEquals("Kväll bäst", notes.find { it.target == "RECEPT" && it.entityId == "r1" }?.text)
+        assertEquals("Max 3/dag", notes.find { it.target == "FAVORIT" && it.entityId == "f1" }?.text)
+    }
+
+    @Test fun explicit_note_entry_wins_over_legacy_anteckning_for_the_same_row() = runTest {
+        val legacyBackup = testBackup().copy(
+            mediciner = listOf(MedicinJson(id = "m1", namn = "Metformin", anteckning = "Gammal (kolumn)")),
+            notes = listOf(NoteJson(target = "MEDICATION", entityId = "m1", text = "Ny (notes-tabell)")),
+        )
+
+        noteRepo.importAll(BackupMapper.toNotes(legacyBackup))
+
+        val text = db.noteDao().getAll().find { it.target == "MEDICATION" && it.entityId == "m1" }?.text
+        assertEquals("Ny (notes-tabell)", text)
+    }
+
+    @Test fun legacy_sjukdom_anteckning_is_migrated_into_notes_on_import() = runTest {
+        val legacyBackup = testBackup().copy(
+            sjukdomsepisoder = listOf(SjukdomsEpisodJson(id = "e1", typ = "migrän", anteckning = "Svår period")),
+            sjukdomsIncheckningar = listOf(
+                SjukdomsIncheckningJson(id = "i1", episodId = "e1", anteckning = "Tog medicin"),
+            ),
+            notes = emptyList(),
+        )
+
+        noteRepo.importAll(BackupMapper.toNotes(legacyBackup))
+
+        val notes = db.noteDao().getAll()
+        assertEquals("Svår period", notes.find { it.target == "SJUKDOM_EPISOD" && it.entityId == "e1" }?.text)
+        assertEquals("Tog medicin", notes.find { it.target == "SJUKDOM_INCHECKNING" && it.entityId == "i1" }?.text)
     }
 }

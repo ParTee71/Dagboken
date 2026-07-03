@@ -11,9 +11,11 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertTrue
@@ -23,8 +25,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Handelse
+import se.partee71.dagboken.domain.model.NoteTarget
 
 @RunWith(AndroidJUnit4::class)
 class HandelserScreenTest {
@@ -33,6 +37,7 @@ class HandelserScreenTest {
 
     private lateinit var db: AppDatabase
     private lateinit var repo: HandelserRepository
+    private lateinit var noteRepo: NoteRepository
     private lateinit var prefs: PreferencesRepository
     private lateinit var vm: HandelserViewModel
 
@@ -40,13 +45,15 @@ class HandelserScreenTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db   = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                    .allowMainThreadQueries().build()
-        repo  = HandelserRepository(db.handelseDao())
+        repo     = HandelserRepository(db.handelseDao())
+        noteRepo = NoteRepository(db.noteDao())
         prefs = PreferencesRepository(ctx)
         runBlocking { prefs.setHandelseTypOptions(emptyList()) }
-        vm    = HandelserViewModel(repo, prefs)
+        vm    = HandelserViewModel(repo, noteRepo, prefs)
     }
 
     @After fun tearDown() {
+        vm.viewModelScope.cancel()
         db.close()
         runBlocking { prefs.setHandelseTypOptions(emptyList()) }
     }
@@ -61,7 +68,7 @@ class HandelserScreenTest {
         id = id, timestamp = "${datum}T${tid}:00.000Z",
         datum = datum, tid = tid, typ = typ,
         svarighetsgrad = svarighetsgrad, varaktighetMinuter = 0,
-        triggers = "", atgarder = "", anteckning = "",
+        triggers = "", atgarder = "",
     )
 
     private fun setContent(
@@ -138,6 +145,18 @@ class HandelserScreenTest {
             composeRule.onAllNodes(hasText("7/10")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("7/10").assertIsDisplayed()
+    }
+
+    @Test fun saved_event_note_is_shown_in_the_card() {
+        runBlocking {
+            repo.save(handelse(id = "h1", typ = "Migrän"))
+            noteRepo.save(NoteTarget.EVENT, "h1", "Kom efter möte")
+        }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Kom efter möte")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Kom efter möte").assertIsDisplayed()
     }
 
     @Test fun multiple_saved_events_are_all_displayed() {

@@ -47,6 +47,9 @@ class MedicinerViewModel @Inject constructor(
     val allRecept: StateFlow<List<Recept>> = repo.allRecept
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val receptNotes: StateFlow<Map<String, String>> = noteRepo.observeMap(NoteTarget.RECEPT)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     val allFavoriter: StateFlow<List<Favorit>> = repo.allFavoriter
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -130,6 +133,7 @@ class MedicinerViewModel @Inject constructor(
                 _snackbar.value = "${medicin.namn} markerad som hoppad"
             } else {
                 repo.deleteMedicin(medicin)
+                noteRepo.delete(NoteTarget.MEDICATION, medicin.id)
                 _snackbar.value = "${medicin.namn} borttagen"
             }
         }
@@ -142,6 +146,7 @@ class MedicinerViewModel @Inject constructor(
     fun deleteRecept(recept: Recept) {
         viewModelScope.launch {
             repo.deleteRecept(recept)
+            noteRepo.delete(NoteTarget.RECEPT, recept.id)
             _snackbar.value = "${recept.namn} borttagen"
         }
     }
@@ -149,6 +154,7 @@ class MedicinerViewModel @Inject constructor(
     fun deleteFavorit(favorit: Favorit) {
         viewModelScope.launch {
             repo.deleteFavorit(favorit)
+            noteRepo.delete(NoteTarget.FAVORIT, favorit.id)
             _snackbar.value = "${favorit.namn} borttagen"
         }
     }
@@ -179,8 +185,9 @@ class MedicinerViewModel @Inject constructor(
             // Log the dose
             val now = java.time.LocalTime.now()
             val tid = now.format(DateTimeFormatter.ofPattern("HH:mm"))
+            val medicinId = UUID.randomUUID().toString()
             repo.saveMedicin(Medicin(
-                id         = UUID.randomUUID().toString(),
+                id         = medicinId,
                 timestamp  = "${today}T${tid}:00.000Z",
                 datum      = today,
                 tid        = tid,
@@ -189,8 +196,8 @@ class MedicinerViewModel @Inject constructor(
                 enhet      = favorit.enhet,
                 tidpunkt   = favorit.tidpunkt,
                 tagen      = true,
-                anteckning = favorit.anteckning,
             ))
+            copyFavoritNoteToDose(favorit.id, medicinId)
             _snackbar.value = "${favorit.namn} ${favorit.dos} ${favorit.enhet} loggad"
         }
     }
@@ -206,8 +213,9 @@ class MedicinerViewModel @Inject constructor(
             }
             val now = java.time.LocalTime.now()
             val tid = now.format(DateTimeFormatter.ofPattern("HH:mm"))
+            val medicinId = UUID.randomUUID().toString()
             repo.saveMedicin(Medicin(
-                id         = UUID.randomUUID().toString(),
+                id         = medicinId,
                 timestamp  = "${today}T${tid}:00.000Z",
                 datum      = today,
                 tid        = tid,
@@ -216,9 +224,17 @@ class MedicinerViewModel @Inject constructor(
                 enhet      = favorit.enhet,
                 tidpunkt   = favorit.tidpunkt,
                 tagen      = true,
-                anteckning = favorit.anteckning,
             ))
+            copyFavoritNoteToDose(favorit.id, medicinId)
             _snackbar.value = "${favorit.namn} ${favorit.dos} ${favorit.enhet} loggad"
+        }
+    }
+
+    // A favorite's note is a default carried forward onto each dose logged from it.
+    private suspend fun copyFavoritNoteToDose(favoritId: String, medicinId: String) {
+        val favoritNote = noteRepo.observe(NoteTarget.FAVORIT, favoritId).first()
+        if (favoritNote.isNotBlank()) {
+            noteRepo.save(NoteTarget.MEDICATION, medicinId, favoritNote)
         }
     }
 
@@ -247,7 +263,6 @@ class MedicinerViewModel @Inject constructor(
                     enhet      = enhet.trim(),
                     tidpunkt   = "Vid behov",
                     tagen      = true,
-                    anteckning = "",
                     receptId   = null,
                 )
             )

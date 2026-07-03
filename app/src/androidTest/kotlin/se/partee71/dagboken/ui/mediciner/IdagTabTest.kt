@@ -62,6 +62,7 @@ class IdagTabTest {
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
+            noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
@@ -78,7 +79,7 @@ class IdagTabTest {
         id = id, timestamp = java.time.Instant.now().toString(),
         datum = today, tid = "07:00",
         namn = namn, dos = "400", enhet = "mg", tidpunkt = "Morgon",
-        tagen = tagen, anteckning = "",
+        tagen = tagen,
     )
 
     private fun favorit(
@@ -89,7 +90,7 @@ class IdagTabTest {
         isFavorite: Boolean = true,
     ) = Favorit(
         id = id, namn = namn, dos = "500", enhet = "mg",
-        tidpunkt = "Vid behov", anteckning = "",
+        tidpunkt = "Vid behov",
         minTidMellan = minTidMellan, maxDoserPerDag = maxDoserPerDag,
         isFavorite = isFavorite,
     )
@@ -255,7 +256,7 @@ class IdagTabTest {
                     id = "dose1", timestamp = java.time.Instant.now().toString(),
                     datum = today, tid = "10:00",
                     namn = "Tramadol", dos = "500", enhet = "mg", tidpunkt = "Vid behov",
-                    tagen = true, anteckning = "",
+                    tagen = true,
                 )
             )
         }

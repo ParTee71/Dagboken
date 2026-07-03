@@ -10,5 +10,4 @@ data class Handelse(
     val varaktighetMinuter: Int,
     val triggers: String,
     val atgarder: String,
-    val anteckning: String,
 )

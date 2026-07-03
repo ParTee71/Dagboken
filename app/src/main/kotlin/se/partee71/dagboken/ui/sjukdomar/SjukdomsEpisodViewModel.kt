@@ -13,7 +13,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SymptomOption
+import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
+import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 import se.partee71.dagboken.domain.usecase.SymptomUtils
@@ -35,6 +37,7 @@ data class IncheckningForm(
 class SjukdomsEpisodViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repo: SjukdomarRepository,
+    private val noteRepo: NoteRepository,
     private val prefs: PreferencesRepository,
 ) : ViewModel() {
 
@@ -47,6 +50,12 @@ class SjukdomsEpisodViewModel @Inject constructor(
     val episod: StateFlow<SjukdomsEpisod?> = repo.all
         .map { list -> list.firstOrNull { it.id == episodId } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val episodNote: StateFlow<String> = noteRepo.observe(NoteTarget.SJUKDOM_EPISOD, episodId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val incheckningNotes: StateFlow<Map<String, String>> = noteRepo.observeMap(NoteTarget.SJUKDOM_INCHECKNING)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val symptomOptions: StateFlow<List<SymptomOption>> = prefs.symptomOptions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -81,9 +90,9 @@ class SjukdomsEpisodViewModel @Inject constructor(
                 svarighetsgrad = f.svarighetsgrad,
                 symptom        = symptomStr,
                 somatiska      = SymptomUtils.sum(symptomStr),
-                anteckning     = f.anteckning,
             )
             repo.saveIncheckning(incheckning)
+            noteRepo.save(NoteTarget.SJUKDOM_INCHECKNING, incheckning.id, f.anteckning.trim())
             _incheckningForm.value = IncheckningForm()
             _snackbar.value = "Incheckning sparad ✓"
         }
@@ -92,6 +101,7 @@ class SjukdomsEpisodViewModel @Inject constructor(
     fun deleteIncheckning(incheckning: SjukdomsIncheckning) {
         viewModelScope.launch {
             repo.deleteIncheckning(incheckning)
+            noteRepo.delete(NoteTarget.SJUKDOM_INCHECKNING, incheckning.id)
             _snackbar.value = "Incheckning borttagen"
         }
     }
