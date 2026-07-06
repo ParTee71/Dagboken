@@ -51,6 +51,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.pagaende
 import se.partee71.dagboken.domain.model.varaktighetDagar
+import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +62,7 @@ fun SjukdomarScreen(
     vm: SjukdomarViewModel = hiltViewModel(),
 ) {
     val all     by vm.all.collectAsStateWithLifecycle()
+    val notes   by vm.episodNotes.collectAsStateWithLifecycle()
     val snackbar by vm.snackbar.collectAsStateWithLifecycle()
 
     LaunchedEffect(snackbar) {
@@ -129,6 +131,7 @@ fun SjukdomarScreen(
                     items(pagaende, key = { it.id }) { episod ->
                         EpisodCardSwipeable(
                             episod   = episod,
+                            note     = notes[episod.id].orEmpty(),
                             onClick  = { onDetail(episod.id) },
                             onDelete = { deleteTarget = episod },
                         )
@@ -147,6 +150,7 @@ fun SjukdomarScreen(
                     items(avslutade, key = { it.id }) { episod ->
                         EpisodCardSwipeable(
                             episod   = episod,
+                            note     = notes[episod.id].orEmpty(),
                             onClick  = { onDetail(episod.id) },
                             onDelete = { deleteTarget = episod },
                         )
@@ -181,6 +185,7 @@ private fun EpisodCardSwipeable(
     episod: SjukdomsEpisod,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    note: String = "",
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -200,7 +205,7 @@ private fun EpisodCardSwipeable(
             }
         },
     ) {
-        EpisodCard(episod = episod, onClick = onClick)
+        EpisodCard(episod = episod, onClick = onClick, note = note)
     }
 }
 
@@ -208,6 +213,7 @@ private fun EpisodCardSwipeable(
 private fun EpisodCard(
     episod: SjukdomsEpisod,
     onClick: () -> Unit,
+    note: String = "",
 ) {
     val cs = MaterialTheme.colorScheme
     ElevatedCard(
@@ -238,6 +244,7 @@ private fun EpisodCard(
                     color = cs.onSurfaceVariant,
                 )
             }
+            NoteIndicatorIcon(noteText = note, dialogTitle = episod.typ)
             if (!episod.pagaende) {
                 Icon(
                     Icons.Filled.CheckCircle,

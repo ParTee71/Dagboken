@@ -47,6 +47,7 @@ class AktiviteterViewModelTest {
         }
         noteRepo = mockk(relaxed = true) {
             every { observe(any(), any()) } returns flowOf("")
+            every { observeMap(any()) } returns flowOf(emptyMap())
         }
         prefs = mockk(relaxed = true) {
             every { aktivitetOptions } returns flowOf(emptyList())
@@ -123,6 +124,17 @@ class AktiviteterViewModelTest {
             assertEquals(emptyList<Aktivitet>(), awaitItem())
             allFlow.value = listOf(aktivitet(id = "a1"))
             assertEquals(listOf("a1"), awaitItem().map { it.id })
+        }
+    }
+
+    // ─── noteMap ──────────────────────────────────────────────────────────────
+
+    @Test fun `noteMap combines ACTIVITY and SCREENING note maps`() = runTest {
+        every { noteRepo.observeMap(NoteTarget.ACTIVITY) } returns flowOf(mapOf("a1" to "Regnigt"))
+        every { noteRepo.observeMap(NoteTarget.SCREENING) } returns flowOf(mapOf("s1" to "Yr"))
+        val vm = AktiviteterViewModel(repo, noteRepo, prefs)
+        vm.noteMap.test {
+            assertEquals(mapOf("a1" to "Regnigt", "s1" to "Yr"), awaitItem())
         }
     }
 

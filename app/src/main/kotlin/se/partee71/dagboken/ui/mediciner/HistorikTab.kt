@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -61,6 +62,7 @@ fun HistorikTab(
 ) {
     val entries by vm.filteredHistory.collectAsState()
     val filter by vm.historyFilter.collectAsState()
+    val notes by vm.medicationNotes.collectAsState()
     var deleteTarget by remember { mutableStateOf<Medicin?>(null) }
     val cs = MaterialTheme.colorScheme
 
@@ -142,6 +144,7 @@ fun HistorikTab(
                             onEdit   = { onEdit(medicin.id) },
                             onDelete = { deleteTarget = medicin },
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            noteText = notes[medicin.id].orEmpty(),
                         )
                     }
                     item(key = "spacer_$datum") { Spacer(Modifier.height(4.dp)) }
@@ -191,6 +194,7 @@ private fun MedicinHistorikCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    noteText: String = "",
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val cs = MaterialTheme.colorScheme
@@ -228,6 +232,8 @@ private fun MedicinHistorikCard(
                         color = cs.onSurfaceVariant,
                     )
                 }
+                NoteIndicatorIcon(noteText = noteText, dialogTitle = medicin.namn)
+
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(

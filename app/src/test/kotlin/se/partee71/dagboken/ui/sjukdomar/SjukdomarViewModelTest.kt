@@ -5,6 +5,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -68,5 +69,11 @@ class SjukdomarViewModelTest {
         every { repo.incheckningarForEpisod("e1") } returns flowOf(emptyList())
         viewModel.delete(episod())
         assert(viewModel.snackbar.value == "migrän borttagen")
+    }
+
+    @Test fun `episodNotes exposes NoteRepository observeMap for SJUKDOM_EPISOD`() = runTest {
+        every { noteRepo.observeMap(NoteTarget.SJUKDOM_EPISOD) } returns flowOf(mapOf("e1" to "Migrän efter stress"))
+        val vm2 = SjukdomarViewModel(repo, noteRepo)
+        assert(vm2.episodNotes.first { it.isNotEmpty() } == mapOf("e1" to "Migrän efter stress"))
     }
 }

@@ -50,6 +50,7 @@ fun AktivitetCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    noteText: String = "",
 ) {
     var expanded by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
@@ -105,6 +106,8 @@ fun AktivitetCard(
                         )
                         Spacer(Modifier.width(4.dp))
                     }
+
+                    NoteIndicatorIcon(noteText = noteText, dialogTitle = aktivitet.aktivitet)
 
                     Box {
                         IconButton(onClick = { menuExpanded = true }) {

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -58,6 +59,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.TIDP_ORDER
 import se.partee71.dagboken.domain.model.tidpunktSortIndex
+import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -67,6 +69,7 @@ fun IdagTab(
     onEdit: (String) -> Unit,
 ) {
     val today                by vm.todayMediciner.collectAsState()
+    val medicationNotes      by vm.medicationNotes.collectAsState()
     val noteDialogMedicin    by vm.noteDialogMedicin.collectAsState()
     val noteDialogText       by vm.noteDialogText.collectAsState()
     val showSingleDoseDialog by vm.showSingleDoseDialog.collectAsState()
@@ -259,16 +262,22 @@ fun IdagTab(
                                         )
                                     },
                                     trailingContent = {
-                                        IconButton(onClick = { vm.toggleTagen(medicin) }) {
-                                            Icon(
-                                                imageVector = if (isTagen) Icons.Filled.CheckCircle
-                                                              else Icons.Outlined.RadioButtonUnchecked,
-                                                contentDescription = if (isTagen)
-                                                    stringResource(R.string.format_mark_as_untaken, medicin.namn)
-                                                else
-                                                    stringResource(R.string.format_mark_as_taken, medicin.namn),
-                                                tint = iconColor,
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            NoteIndicatorIcon(
+                                                noteText    = medicationNotes[medicin.id].orEmpty(),
+                                                dialogTitle = medicin.namn,
                                             )
+                                            IconButton(onClick = { vm.toggleTagen(medicin) }) {
+                                                Icon(
+                                                    imageVector = if (isTagen) Icons.Filled.CheckCircle
+                                                                  else Icons.Outlined.RadioButtonUnchecked,
+                                                    contentDescription = if (isTagen)
+                                                        stringResource(R.string.format_mark_as_untaken, medicin.namn)
+                                                    else
+                                                        stringResource(R.string.format_mark_as_taken, medicin.namn),
+                                                    tint = iconColor,
+                                                )
+                                            }
                                         }
                                     },
                                     colors = if (isTagen) {
