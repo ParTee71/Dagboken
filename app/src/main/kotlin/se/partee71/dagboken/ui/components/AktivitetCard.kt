@@ -97,6 +97,8 @@ fun AktivitetCard(
                         )
                     }
 
+                    NoteIndicatorIcon(noteText = noteText, dialogTitle = aktivitet.aktivitet)
+
                     if (hasDetails) {
                         Icon(
                             imageVector        = Icons.Default.ExpandMore,
@@ -106,8 +108,6 @@ fun AktivitetCard(
                         )
                         Spacer(Modifier.width(4.dp))
                     }
-
-                    NoteIndicatorIcon(noteText = noteText, dialogTitle = aktivitet.aktivitet)
 
                     Box {
                         IconButton(onClick = { menuExpanded = true }) {
