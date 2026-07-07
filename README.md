@@ -130,6 +130,7 @@ Se [.github/workflows/android.yml](.github/workflows/android.yml).
 
 | Version | Innehåll |
 |---------|----------|
+| 2.14.0 | Info-ikon med läs-only anteckningsdialog på kort som saknade en synlig anteckningsindikator (Aktivitet/Screening, medicindos, favorit, sjukdomsepisod) |
 | 2.13.0 | Sjukdomsepisod- och incheckningsanteckning migrerad till det generiska anteckningssystemet (delad `NoteField`) |
 | 2.12.0 | Händelse-anteckning migrerad till det generiska anteckningssystemet (delad `NoteField`) |
 | 2.11.0 | Medicin/Recept/Favorit-anteckning migrerad till det generiska anteckningssystemet (delad `NoteField`); Favorit-anteckning har nu ett UI-fält |

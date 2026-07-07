@@ -50,6 +50,7 @@ fun HistorikTab(
 ) {
     val entries by vm.filteredHistory.collectAsState()
     val filter by vm.historyFilter.collectAsState()
+    val notes by vm.noteMap.collectAsState()
     var deleteTarget by remember { mutableStateOf<Aktivitet?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -130,6 +131,7 @@ fun HistorikTab(
                             onEdit    = { onEdit(aktivitet.id, aktivitet.type) },
                             onDelete  = { deleteTarget = aktivitet },
                             modifier  = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            noteText  = notes[aktivitet.id].orEmpty(),
                         )
                     }
                     item(key = "spacer_$datum") { Spacer(Modifier.height(4.dp)) }

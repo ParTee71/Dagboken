@@ -50,6 +50,12 @@ class MedicinerViewModel @Inject constructor(
     val receptNotes: StateFlow<Map<String, String>> = noteRepo.observeMap(NoteTarget.RECEPT)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
+    val medicationNotes: StateFlow<Map<String, String>> = noteRepo.observeMap(NoteTarget.MEDICATION)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val favoritNotes: StateFlow<Map<String, String>> = noteRepo.observeMap(NoteTarget.FAVORIT)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     val allFavoriter: StateFlow<List<Favorit>> = repo.allFavoriter
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

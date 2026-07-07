@@ -82,6 +82,13 @@ class AktiviteterViewModel @Inject constructor(
             .toSet()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
+    /** entityId → note text, for both aktivitet and screening entries (shown as a card indicator). */
+    val noteMap: StateFlow<Map<String, String>> = combine(
+        noteRepo.observeMap(NoteTarget.ACTIVITY),
+        noteRepo.observeMap(NoteTarget.SCREENING),
+    ) { activityNotes, screeningNotes -> activityNotes + screeningNotes }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     val aktivitetOptions: StateFlow<List<SymptomOption>> = prefs.aktivitetOptions
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 

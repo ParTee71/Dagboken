@@ -24,6 +24,7 @@ fun RecentAktiviteterSection(
     onEdit: (id: String, type: String) -> Unit,
     onDelete: (Aktivitet) -> Unit,
     modifier: Modifier = Modifier,
+    noteMap: Map<String, String> = emptyMap(),
 ) {
     if (entries.isEmpty()) return
 
@@ -40,6 +41,7 @@ fun RecentAktiviteterSection(
                 aktivitet = aktivitet,
                 onEdit    = { onEdit(aktivitet.id, aktivitet.type) },
                 onDelete  = { deleteTarget = aktivitet },
+                noteText  = noteMap[aktivitet.id].orEmpty(),
             )
         }
     }

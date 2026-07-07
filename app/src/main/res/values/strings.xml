@@ -10,6 +10,7 @@
     <string name="edit">Redigera</string>
     <string name="add">Lägg till</string>
     <string name="ok">OK</string>
+    <string name="close">Stäng</string>
     <string name="sign_in_with_google">Logga in med Google</string>
     <string name="sign_out">Logga ut</string>
     <string name="settings">Inställningar</string>
@@ -23,6 +24,7 @@
     <string name="label_unit">Enhet</string>
     <string name="label_note">Anteckning</string>
     <string name="note_placeholder">Lägg till en anteckning…</string>
+    <string name="show_note">Visa anteckning</string>
     <string name="label_energy">Energi</string>
     <string name="label_stress">Stress</string>
     <string name="label_symptom">Symptom</string>

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -55,6 +57,7 @@ fun VidBehovTab(
     val allFavoriter    by vm.allFavoriter.collectAsState()
     val favoriter       by vm.favoriteFavoriter.collectAsState()
     val others          by vm.otherFavoriter.collectAsState()
+    val favoritNotes    by vm.favoritNotes.collectAsState()
     val cooldownWarning by vm.cooldownWarning.collectAsState()
     var deleteTarget    by remember { mutableStateOf<Favorit?>(null) }
     val cs = MaterialTheme.colorScheme
@@ -109,6 +112,7 @@ fun VidBehovTab(
             onEdit           = onEdit,
             onDelete         = { deleteTarget = it },
             onToggleFavorite = { vm.toggleFavoritFavorite(it) },
+            notes            = favoritNotes,
         )
     }
 
@@ -167,6 +171,7 @@ internal fun FavoriterRow(
     onEdit: (String) -> Unit,
     onDelete: ((Favorit) -> Unit)? = null,
     onToggleFavorite: ((Favorit) -> Unit)? = null,
+    notes: Map<String, String> = emptyMap(),
 ) {
     val cs = MaterialTheme.colorScheme
     FlowRow(
@@ -189,22 +194,28 @@ internal fun FavoriterRow(
                     ),
                     shape = MaterialTheme.shapes.large,
                 ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    Row(
+                        modifier          = Modifier.padding(start = 16.dp, end = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            fav.namn,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = cs.onSecondaryContainer,
-                        )
-                        Text(
-                            "${fav.dos} ${fav.enhet}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = cs.onSecondaryContainer.copy(alpha = 0.7f),
-                        )
+                        Column(
+                            modifier = Modifier.padding(vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                fav.namn,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = cs.onSecondaryContainer,
+                            )
+                            Text(
+                                "${fav.dos} ${fav.enhet}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = cs.onSecondaryContainer.copy(alpha = 0.7f),
+                            )
+                        }
+                        NoteIndicatorIcon(noteText = notes[fav.id].orEmpty(), dialogTitle = fav.namn)
                     }
                 }
                 if (onDelete != null) {

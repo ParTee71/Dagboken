@@ -59,6 +59,7 @@ fun LoggaTab(
     val aktivitetOptions by vm.aktivitetOptions.collectAsState()
     val symptomOptions by vm.symptomOptions.collectAsState()
     val recentEntries by vm.recentEntries.collectAsState()
+    val noteMap by vm.noteMap.collectAsState()
 
     val cs = MaterialTheme.colorScheme
     val eColor = energyColor(form.energy, cs)
@@ -162,6 +163,7 @@ fun LoggaTab(
                     entries  = recentEntries,
                     onEdit   = onEdit,
                     onDelete = vm::delete,
+                    noteMap  = noteMap,
                 )
             }
         }

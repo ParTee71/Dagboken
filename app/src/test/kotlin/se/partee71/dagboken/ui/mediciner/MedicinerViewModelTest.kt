@@ -24,6 +24,7 @@ import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
 import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
 
@@ -35,6 +36,7 @@ class MedicinerViewModelTest {
     private lateinit var repo: MedicinerRepository
     private val noteRepo = mockk<NoteRepository>(relaxed = true) {
         every { observe(any(), any()) } returns kotlinx.coroutines.flow.flowOf("")
+        every { observeMap(any()) } returns kotlinx.coroutines.flow.flowOf(emptyMap())
     }
     private val cooldown = mockk<CheckCooldownUseCase>()
     private val limit = mockk<CheckDailyLimitUseCase>()
@@ -83,6 +85,20 @@ class MedicinerViewModelTest {
         val med = medicin() // tagen = false
         viewModel.toggleTagen(med)
         coVerify { repo.toggleTagen("m1", true) }
+    }
+
+    // ─── medicationNotes / favoritNotes ──────────────────────────────────────
+
+    @Test fun `medicationNotes exposes NoteRepository observeMap for MEDICATION`() = runTest {
+        every { noteRepo.observeMap(NoteTarget.MEDICATION) } returns flowOf(mapOf("m1" to "Tas med mat"))
+        val vm2 = MedicinerViewModel(repo, noteRepo, cooldown, limit)
+        assertEquals(mapOf("m1" to "Tas med mat"), vm2.medicationNotes.first { it.isNotEmpty() })
+    }
+
+    @Test fun `favoritNotes exposes NoteRepository observeMap for FAVORIT`() = runTest {
+        every { noteRepo.observeMap(NoteTarget.FAVORIT) } returns flowOf(mapOf("f1" to "Vid huvudvärk"))
+        val vm2 = MedicinerViewModel(repo, noteRepo, cooldown, limit)
+        assertEquals(mapOf("f1" to "Vid huvudvärk"), vm2.favoritNotes.first { it.isNotEmpty() })
     }
 
     // ─── allFavoriter ─────────────────────────────────────────────────────────

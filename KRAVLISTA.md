@@ -101,6 +101,7 @@
 | HIS-2 | Poster ska kunna **redigeras** och **tas bort** (med bekräftelse via snackbar). |
 | HIS-3 | Symptom lagras i wire-format `Namn:Poäng,Namn:Poäng` och summeras till `somatiska`. |
 | HIS-4 | Datumetiketter i historiken ska visas som **"Idag"** för dagens datum, **"Igår"** för gårdagens datum, och **"Veckodag D Månad"** för äldre datum. |
+| HIS-5 | Ett kort för en aktivitet eller screening som har en anteckning ska visa en liten info-ikon; tryck på ikonen visar anteckningen i en läs-only dialog med en Stäng-knapp. |
 
 ---
 
@@ -118,6 +119,7 @@
 | MED-6 | Kryssrutan för att markera tagen ersätts med en **animerad ikonknapp** (tomt cirkelkryss → fylld bockikon med färganimering). |
 | MED-7 | Favoriter (vid-behov-mediciner) ska visas som ett **snabbval** direkt i Idag-fliken, under progressbaren; tryck loggar en dos med befintlig cooldown-/gränslogik. |
 | MED-11 | Varje medicinpost (dos) ska kunna ha en anteckning, redigerbar via den delade `NoteField`-komponenten på redigeringsskärmen. Loggas en dos från en favorit ärvs favoritens anteckning som förvalt värde på dosen. |
+| MED-12 | En medicinrad (Idag- eller Historik-fliken) som har en anteckning ska visa en liten info-ikon; tryck på ikonen visar anteckningen i en läs-only dialog med en Stäng-knapp. |
 
 ### 6.2 Schema-flik (recept)
 
@@ -142,6 +144,7 @@
 | FAV-6 | Blockerad dos ska ge tydligt felmeddelande via snackbar. |
 | FAV-7 | Favorit ska kunna ha dispenseringstid (fält finns i modellen). |
 | FAV-8 | Långtrycksmenyn ska även kunna växla favoritmarkering, utöver redigera/ta bort. |
+| FAV-9 | En favorit-chip med anteckning ska visa en liten info-ikon; tryck på ikonen visar anteckningen i en läs-only dialog med en Stäng-knapp. |
 
 ### 6.4 Historik-flik
 
@@ -284,3 +287,4 @@
 | SJ-7 | Episoder och incheckningar ingår i backup och återställs vid restore. |
 | SJ-8 | Både en episod och varje incheckning kan ha en anteckning, redigerbar via den delade `NoteField`-komponenten. |
 | SJ-9 | Tas en episod bort raderas även dess incheckningar (kaskad) och samtliga tillhörande anteckningar. |
+| SJ-10 | Ett episodkort i listan som har en anteckning ska visa en liten info-ikon; tryck på ikonen visar anteckningen i en läs-only dialog med en Stäng-knapp. |

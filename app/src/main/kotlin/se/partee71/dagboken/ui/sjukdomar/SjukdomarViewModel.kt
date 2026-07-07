@@ -30,6 +30,9 @@ class SjukdomarViewModel @Inject constructor(
     val pagaende: StateFlow<SjukdomsEpisod?> = repo.pagaende
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val episodNotes: StateFlow<Map<String, String>> = noteRepo.observeMap(NoteTarget.SJUKDOM_EPISOD)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     private val _snackbar = MutableStateFlow<String?>(null)
     val snackbar: StateFlow<String?> = _snackbar.asStateFlow()
 
