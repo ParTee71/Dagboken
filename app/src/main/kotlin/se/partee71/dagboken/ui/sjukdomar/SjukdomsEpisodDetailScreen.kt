@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -53,6 +52,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 import se.partee71.dagboken.domain.model.pagaende
 import se.partee71.dagboken.domain.usecase.SymptomUtils
+import se.partee71.dagboken.ui.components.DagbokenCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,8 +106,8 @@ fun SjukdomsEpisodDetailScreen(
         ) {
             item {
                 episod?.let { ep ->
-                    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DagbokenCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(
                                 modifier              = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -264,9 +264,8 @@ private fun IncheckningCardSwipeable(
 @Composable
 private fun IncheckningCard(incheckning: SjukdomsIncheckning, note: String) {
     val cs = MaterialTheme.colorScheme
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+    DagbokenCard {
         Column(
-            modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(

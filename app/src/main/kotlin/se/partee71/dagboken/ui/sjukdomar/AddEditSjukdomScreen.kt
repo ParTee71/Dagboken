@@ -29,11 +29,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.SymptomLogCard
-import androidx.compose.material3.ElevatedCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,19 +86,17 @@ fun AddEditSjukdomScreen(
             )
 
             if (editId == null) {
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        GradientSliderRow(
-                            label         = stringResource(R.string.sjukdom_label_svarighetsgrad),
-                            value         = form.svarighetsgrad.toFloat(),
-                            onValueChange = { vm.updateForm { copy(svarighetsgrad = it.toInt()) } },
-                            valueRange    = 0f..10f,
-                            steps         = 9,
-                            startLabel    = "0  Ingen",
-                            endLabel      = "10  Extrem",
-                            reverseColors = true,
-                        )
-                    }
+                DagbokenCard {
+                    GradientSliderRow(
+                        label         = stringResource(R.string.sjukdom_label_svarighetsgrad),
+                        value         = form.svarighetsgrad.toFloat(),
+                        onValueChange = { vm.updateForm { copy(svarighetsgrad = it.toInt()) } },
+                        valueRange    = 0f..10f,
+                        steps         = 9,
+                        startLabel    = "0  Ingen",
+                        endLabel      = "10  Extrem",
+                        reverseColors = true,
+                    )
                 }
 
                 SymptomLogCard(

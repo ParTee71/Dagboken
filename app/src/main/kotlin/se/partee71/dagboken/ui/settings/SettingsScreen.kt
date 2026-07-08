@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Box
@@ -40,7 +41,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -97,6 +97,7 @@ import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.ui.components.DagbokenCard
 
 private data class SectionDef(val icon: ImageVector, val title: String, val description: String)
 
@@ -338,22 +339,22 @@ private fun SettingsRailItem(section: SectionDef, isSelected: Boolean, onClick: 
                 popupPositionProvider = rightOfAnchor,
                 properties            = PopupProperties(focusable = false),
             ) {
-                ElevatedCard(
-                    modifier  = Modifier.padding(start = 4.dp),
-                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
+                DagbokenCard(
+                    modifier       = Modifier.padding(start = 4.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    elevation      = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
+                    fillMaxWidth   = false,
                 ) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        Text(
-                            text       = section.title,
-                            style      = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text  = section.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = cs.onSurfaceVariant,
-                        )
-                    }
+                    Text(
+                        text       = section.title,
+                        style      = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text  = section.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = cs.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -369,8 +370,8 @@ private fun AccountCard(
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
 ) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    DagbokenCard {
+        Column {
             Text(stringResource(R.string.settings_account_section), style = MaterialTheme.typography.titleSmall)
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             if (email != null) {
@@ -453,8 +454,8 @@ private fun AccountCard(
 
 @Composable
 private fun ImportCard(onImport: () -> Unit) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    DagbokenCard {
+        Column {
             Text(stringResource(R.string.settings_import_section), style = MaterialTheme.typography.titleSmall)
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Text(
@@ -483,8 +484,8 @@ private fun ThemeCard(
     var showLightPicker by remember { mutableStateOf(false) }
     var showDarkPicker  by remember { mutableStateOf(false) }
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    DagbokenCard {
+        Column {
             Text(stringResource(R.string.settings_theme_section), style = MaterialTheme.typography.titleSmall)
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             val themeModes = listOf(
@@ -581,8 +582,8 @@ private fun NotificationsCard(
     onToggleScreening: (Int) -> Unit,
     onSetScreeningTime: (Int, Int, Int) -> Unit,
 ) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    DagbokenCard {
+        Column {
             Text(stringResource(R.string.settings_notifications_section), style = MaterialTheme.typography.titleSmall)
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -636,8 +637,8 @@ private fun OptionSettingsCard(
     var editValue    by remember { mutableStateOf("") }
     var deleteTarget by remember { mutableStateOf<String?>(null) }
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    DagbokenCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             HorizontalDivider()
 
@@ -742,8 +743,8 @@ private fun VidBehovFavoritSettingsCard(
     favoriter: List<Favorit>,
     onToggleFavorite: (Favorit) -> Unit,
 ) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    DagbokenCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.settings_vidbehov_section), style = MaterialTheme.typography.titleSmall)
             HorizontalDivider()
 
@@ -789,8 +790,8 @@ private fun VidBehovFavoritSettingsCard(
 
 @Composable
 private fun AboutCard() {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    DagbokenCard {
+        Column {
             Text(stringResource(R.string.settings_about_section), style = MaterialTheme.typography.titleSmall)
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.bodyMedium)

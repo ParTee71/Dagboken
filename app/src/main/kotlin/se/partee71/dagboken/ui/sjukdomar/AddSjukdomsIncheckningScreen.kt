@@ -12,7 +12,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.components.NoteField
@@ -79,19 +79,17 @@ fun AddSjukdomsIncheckningScreen(
                 onTidChange   = { vm.updateForm { copy(tid = it) } },
             )
 
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    GradientSliderRow(
-                        label         = stringResource(R.string.sjukdom_label_svarighetsgrad),
-                        value         = form.svarighetsgrad.toFloat(),
-                        onValueChange = { vm.updateForm { copy(svarighetsgrad = it.toInt()) } },
-                        valueRange    = 0f..10f,
-                        steps         = 9,
-                        startLabel    = "0  Ingen",
-                        endLabel      = "10  Extrem",
-                        reverseColors = true,
-                    )
-                }
+            DagbokenCard {
+                GradientSliderRow(
+                    label         = stringResource(R.string.sjukdom_label_svarighetsgrad),
+                    value         = form.svarighetsgrad.toFloat(),
+                    onValueChange = { vm.updateForm { copy(svarighetsgrad = it.toInt()) } },
+                    valueRange    = 0f..10f,
+                    steps         = 9,
+                    startLabel    = "0  Ingen",
+                    endLabel      = "10  Extrem",
+                    reverseColors = true,
+                )
             }
 
             SymptomLogCard(

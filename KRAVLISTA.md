@@ -261,6 +261,7 @@
 | NFR-6 | Koden ska ha **enhetstester** (JUnit, MockK, Turbine) och **instrumenttester** (Compose UI, Room). |
 | NFR-7 | Känslig data (backup) ska endast lagras i användarens privata Drive-appmapp. |
 | NFR-8 | Appstorlek/prestanda: listor ska använda lazy-rendering; tunga operationer på IO-dispatcher. |
+| NFR-9 | Appen använder ett enhetligt designsystem: kort, tomlägen, bekräftelsedialoger, sektionsrubriker och datum/tid-format byggs med delade komponenter i `ui/components/`, med konsekvent form, typografi och spacing. |
 
 ---
 

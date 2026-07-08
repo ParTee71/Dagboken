@@ -20,8 +20,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -238,15 +236,12 @@ fun HomeScreen(
             // Pågående sjukdom-kort
             uiState.pagaendeSjukdom?.let { sjukdom ->
                 item {
-                    ElevatedCard(
-                        onClick  = onNavigateToSjukdomar,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors   = CardDefaults.elevatedCardColors(containerColor = cs.errorContainer),
+                    DagbokenCard(
+                        onClick        = onNavigateToSjukdomar,
+                        containerColor = cs.errorContainer,
                     ) {
                         Row(
-                            modifier          = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier          = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
@@ -324,15 +319,14 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier              = Modifier.fillMaxWidth(),
                 ) {
-                    ElevatedCard(
-                        onClick  = onNavigateToAktiviteter,
-                        modifier = Modifier.weight(1f),
-                        colors   = CardDefaults.elevatedCardColors(containerColor = cs.primary),
+                    DagbokenCard(
+                        onClick        = onNavigateToAktiviteter,
+                        modifier       = Modifier.weight(1f),
+                        containerColor = cs.primary,
+                        contentPadding = PaddingValues(vertical = 18.dp),
                     ) {
                         Column(
-                            modifier              = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 18.dp),
+                            modifier              = Modifier.fillMaxWidth(),
                             horizontalAlignment   = Alignment.CenterHorizontally,
                             verticalArrangement   = Arrangement.spacedBy(6.dp),
                         ) {
@@ -340,15 +334,14 @@ fun HomeScreen(
                             Text(stringResource(R.string.fab_logga_aktivitet), style = MaterialTheme.typography.titleSmall, color = cs.onPrimary)
                         }
                     }
-                    ElevatedCard(
-                        onClick  = onNavigateToMediciner,
-                        modifier = Modifier.weight(1f),
-                        colors   = CardDefaults.elevatedCardColors(containerColor = cs.secondary),
+                    DagbokenCard(
+                        onClick        = onNavigateToMediciner,
+                        modifier       = Modifier.weight(1f),
+                        containerColor = cs.secondary,
+                        contentPadding = PaddingValues(vertical = 18.dp),
                     ) {
                         Column(
-                            modifier              = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 18.dp),
+                            modifier              = Modifier.fillMaxWidth(),
                             horizontalAlignment   = Alignment.CenterHorizontally,
                             verticalArrangement   = Arrangement.spacedBy(6.dp),
                         ) {

@@ -18,7 +18,6 @@ import androidx.compose.material.icons.outlined.Healing
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.DagbokenCard
 
 private val SYMPTOM_GRID_VALUES = listOf(0f, 1f, 2f, 3f, 4f, 5f)
 
@@ -150,9 +150,8 @@ fun SymptomDiagramScreen(
         },
         portraitExtras = if (state.series.isNotEmpty() && state.days.isNotEmpty()) {
             {
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                DagbokenCard {
                     Column(
-                        modifier            = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Text(stringResource(R.string.diagram_summary), style = MaterialTheme.typography.titleSmall)

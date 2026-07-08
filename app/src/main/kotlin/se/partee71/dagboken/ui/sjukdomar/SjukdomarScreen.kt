@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -51,6 +50,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.pagaende
 import se.partee71.dagboken.domain.model.varaktighetDagar
+import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -216,14 +216,9 @@ private fun EpisodCard(
     note: String = "",
 ) {
     val cs = MaterialTheme.colorScheme
-    ElevatedCard(
-        onClick  = onClick,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    DagbokenCard(onClick = onClick) {
         Row(
-            modifier          = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier          = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
