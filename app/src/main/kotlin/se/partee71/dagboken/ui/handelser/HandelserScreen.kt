@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.MonitorHeart
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,7 +32,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +48,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Handelse
+import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.formatDisplayDate
@@ -133,20 +132,11 @@ fun HandelserScreen(
     }
 
     deleteTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title            = { Text(stringResource(R.string.delete)) },
-            text             = { Text(stringResource(R.string.handelser_delete_confirm, target.typ)) },
-            confirmButton    = {
-                TextButton(onClick = { vm.delete(target); deleteTarget = null }) {
-                    Text(stringResource(R.string.delete))
-                }
-            },
-            dismissButton    = {
-                TextButton(onClick = { deleteTarget = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        ConfirmDialog(
+            title     = stringResource(R.string.delete),
+            text      = stringResource(R.string.handelser_delete_confirm, target.typ),
+            onConfirm = { vm.delete(target); deleteTarget = null },
+            onDismiss = { deleteTarget = null },
         )
     }
 }

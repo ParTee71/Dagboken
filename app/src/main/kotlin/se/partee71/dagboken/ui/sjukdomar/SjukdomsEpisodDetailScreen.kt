@@ -53,6 +53,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 import se.partee71.dagboken.domain.model.pagaende
 import se.partee71.dagboken.domain.usecase.SymptomUtils
+import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.EmptyState
 
@@ -171,20 +172,11 @@ fun SjukdomsEpisodDetailScreen(
     }
 
     deleteInchTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteInchTarget = null },
-            title            = { Text(stringResource(R.string.delete_incheckning_title)) },
-            text             = { Text(stringResource(R.string.delete_incheckning_confirm)) },
-            confirmButton    = {
-                TextButton(onClick = { vm.deleteIncheckning(target); deleteInchTarget = null }) {
-                    Text(stringResource(R.string.delete))
-                }
-            },
-            dismissButton    = {
-                TextButton(onClick = { deleteInchTarget = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        ConfirmDialog(
+            title     = stringResource(R.string.delete_incheckning_title),
+            text      = stringResource(R.string.delete_incheckning_confirm),
+            onConfirm = { vm.deleteIncheckning(target); deleteInchTarget = null },
+            onDismiss = { deleteInchTarget = null },
         )
     }
 

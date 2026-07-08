@@ -17,13 +17,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FitnessCenter
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.ui.components.AktivitetCard
+import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.EmptyState
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
@@ -121,20 +120,11 @@ fun HistorikTab(
     }
 
     deleteTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = { Text(stringResource(R.string.delete_aktivitet_title)) },
-            text  = { Text(stringResource(R.string.format_delete_aktivitet_confirm, target.aktivitet)) },
-            confirmButton = {
-                TextButton(onClick = { vm.delete(target); deleteTarget = null }) {
-                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        ConfirmDialog(
+            title     = stringResource(R.string.delete_aktivitet_title),
+            text      = stringResource(R.string.format_delete_aktivitet_confirm, target.aktivitet),
+            onConfirm = { vm.delete(target); deleteTarget = null },
+            onDismiss = { deleteTarget = null },
         )
     }
 }

@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Medication
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -33,7 +32,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
@@ -134,36 +133,15 @@ fun HistorikTab(
     }
 
     deleteTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = {
-                Text(
-                    if (target.receptId != null) stringResource(R.string.idag_skip_dose_title)
-                    else stringResource(R.string.idag_delete_one_title),
-                )
-            },
-            text  = {
-                Text(
-                    if (target.receptId != null)
-                        stringResource(R.string.format_idag_skip_body, target.namn)
-                    else
-                        stringResource(R.string.format_delete_aktivitet_confirm, target.namn),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { vm.deleteMedicin(target); deleteTarget = null }) {
-                    Text(
-                        if (target.receptId != null) stringResource(R.string.idag_skip_button)
-                        else stringResource(R.string.delete),
-                        color = cs.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        ConfirmDialog(
+            title        = if (target.receptId != null) stringResource(R.string.idag_skip_dose_title)
+                           else stringResource(R.string.idag_delete_one_title),
+            text         = if (target.receptId != null) stringResource(R.string.format_idag_skip_body, target.namn)
+                           else stringResource(R.string.format_delete_aktivitet_confirm, target.namn),
+            confirmLabel = if (target.receptId != null) stringResource(R.string.idag_skip_button)
+                           else stringResource(R.string.delete),
+            onConfirm    = { vm.deleteMedicin(target); deleteTarget = null },
+            onDismiss    = { deleteTarget = null },
         )
     }
 }

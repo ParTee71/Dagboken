@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
@@ -99,18 +100,11 @@ fun VidBehovTab(
     }
 
     deleteTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = { Text(stringResource(R.string.delete_favorit_title)) },
-            text  = { Text(stringResource(R.string.format_delete_favorit_confirm, target.namn)) },
-            confirmButton = {
-                TextButton(onClick = { vm.deleteFavorit(target); deleteTarget = null }) {
-                    Text(stringResource(R.string.delete), color = cs.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
-            },
+        ConfirmDialog(
+            title     = stringResource(R.string.delete_favorit_title),
+            text      = stringResource(R.string.format_delete_favorit_confirm, target.namn),
+            onConfirm = { vm.deleteFavorit(target); deleteTarget = null },
+            onDismiss = { deleteTarget = null },
         )
     }
 

@@ -57,6 +57,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.TIDP_ORDER
 import se.partee71.dagboken.domain.model.tidpunktSortIndex
+import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 import java.util.Locale
@@ -337,34 +338,15 @@ fun IdagTab(
     }
 
     deleteTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = {
-                Text(
-                    if (target.receptId != null) stringResource(R.string.idag_skip_dose_title)
-                    else stringResource(R.string.idag_delete_one_title),
-                )
-            },
-            text  = {
-                Text(
-                    if (target.receptId != null)
-                        stringResource(R.string.format_idag_skip_body, target.namn)
-                    else
-                        stringResource(R.string.format_delete_aktivitet_confirm, target.namn),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { vm.deleteMedicin(target); deleteTarget = null }) {
-                    Text(
-                        if (target.receptId != null) stringResource(R.string.idag_skip_button)
-                        else stringResource(R.string.delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
-            },
+        ConfirmDialog(
+            title        = if (target.receptId != null) stringResource(R.string.idag_skip_dose_title)
+                           else stringResource(R.string.idag_delete_one_title),
+            text         = if (target.receptId != null) stringResource(R.string.format_idag_skip_body, target.namn)
+                           else stringResource(R.string.format_delete_aktivitet_confirm, target.namn),
+            confirmLabel = if (target.receptId != null) stringResource(R.string.idag_skip_button)
+                           else stringResource(R.string.delete),
+            onConfirm    = { vm.deleteMedicin(target); deleteTarget = null },
+            onDismiss    = { deleteTarget = null },
         )
     }
 

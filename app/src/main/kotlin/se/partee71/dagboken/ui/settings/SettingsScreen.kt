@@ -97,6 +97,7 @@ import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 
 private data class SectionDef(val icon: ImageVector, val title: String, val description: String)
@@ -720,20 +721,11 @@ private fun OptionSettingsCard(
     }
 
     deleteTarget?.let { name ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title            = { Text(stringResource(R.string.symptom_delete_confirm_title)) },
-            text             = { Text(stringResource(R.string.format_symptom_delete_confirm, name)) },
-            confirmButton = {
-                TextButton(onClick = { onDelete(name); deleteTarget = null }) {
-                    Text(stringResource(R.string.delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        ConfirmDialog(
+            title     = stringResource(R.string.symptom_delete_confirm_title),
+            text      = stringResource(R.string.format_symptom_delete_confirm, name),
+            onConfirm = { onDelete(name); deleteTarget = null },
+            onDismiss = { deleteTarget = null },
         )
     }
 }

@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -33,7 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.EmptyState
 
@@ -185,18 +184,11 @@ fun SchemaTab(
     }
 
     deleteTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = { Text(stringResource(R.string.delete_schema_title)) },
-            text  = { Text(stringResource(R.string.format_delete_schema_confirm, target.namn)) },
-            confirmButton = {
-                TextButton(onClick = { vm.deleteRecept(target); deleteTarget = null }) {
-                    Text(stringResource(R.string.delete), color = cs.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
-            },
+        ConfirmDialog(
+            title     = stringResource(R.string.delete_schema_title),
+            text      = stringResource(R.string.format_delete_schema_confirm, target.namn),
+            onConfirm = { vm.deleteRecept(target); deleteTarget = null },
+            onDismiss = { deleteTarget = null },
         )
     }
 }

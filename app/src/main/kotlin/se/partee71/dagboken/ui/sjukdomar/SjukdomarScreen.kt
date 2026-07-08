@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -28,7 +27,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -48,6 +46,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.pagaende
 import se.partee71.dagboken.domain.model.varaktighetDagar
+import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
@@ -140,20 +139,11 @@ fun SjukdomarScreen(
     }
 
     deleteTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title            = { Text(stringResource(R.string.delete_sjukdom_title)) },
-            text             = { Text(stringResource(R.string.format_delete_sjukdom_confirm, target.typ)) },
-            confirmButton    = {
-                TextButton(onClick = { vm.delete(target); deleteTarget = null }) {
-                    Text(stringResource(R.string.delete))
-                }
-            },
-            dismissButton    = {
-                TextButton(onClick = { deleteTarget = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        ConfirmDialog(
+            title     = stringResource(R.string.delete_sjukdom_title),
+            text      = stringResource(R.string.format_delete_sjukdom_confirm, target.typ),
+            onConfirm = { vm.delete(target); deleteTarget = null },
+            onDismiss = { deleteTarget = null },
         )
     }
 }
