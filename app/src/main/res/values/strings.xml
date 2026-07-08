@@ -28,6 +28,7 @@
     <string name="label_energy">Energi</string>
     <string name="label_stress">Stress</string>
     <string name="label_symptom">Symptom</string>
+    <string name="settings_symptom_section_desc">Hantera symptomtyper</string>
     <string name="label_describe">Beskriv</string>
     <string name="label_metrics">Mätvärden</string>
     <string name="label_time_slots">Tidpunkter</string>
@@ -165,28 +166,34 @@
 
     <!-- Settings -->
     <string name="settings_account_section">Google-konto &amp; säkerhetskopiering</string>
+    <string name="settings_account_section_desc">Google-konto och synk</string>
     <string name="settings_signed_in_subtitle">Inloggad — data säkerhetskopieras dagligen</string>
     <string name="settings_not_signed_in">Inte inloggad</string>
     <string name="settings_import_section">Importera data</string>
+    <string name="settings_import_section_desc">Importera data från JSON</string>
     <string name="settings_import_body">Hämta säkerhetskopia från Google Drive eller välj en JSON-fil.</string>
     <string name="settings_import_button">Importera från säkerhetskopia</string>
     <string name="settings_theme_section">Tema-schema</string>
+    <string name="settings_theme_section_desc">Ljust, mörkt eller tidsbaserat</string>
     <string name="theme_light">Ljust</string>
     <string name="theme_dark">Mörkt</string>
     <string name="theme_auto">Auto</string>
     <string name="settings_theme_light_from">Ljust tema från</string>
     <string name="settings_theme_dark_from">Mörkt tema från</string>
     <string name="settings_notifications_section">Påminnelser</string>
+    <string name="settings_notifications_section_desc">Medicin- och screeningnotiser</string>
     <string name="settings_meds_notifications">Medicinpåminnelser</string>
     <string name="settings_meds_notifications_subtitle">Påminner vid samma tider som screeningpåminnelserna</string>
     <string name="settings_screening_notifications">Screeningpåminnelser</string>
     <string name="settings_screening_notifications_subtitle">Aktivera notis per måltidshändelse</string>
     <string name="settings_pick_time">Välj tid</string>
     <string name="settings_aktivitet_section">Aktivitetstyper</string>
+    <string name="settings_aktivitet_section_desc">Hantera aktivitetstyper</string>
     <string name="aktivitet_more_types">Fler typer</string>
     <string name="settings_new_aktivitet_type">Ny typ</string>
     <string name="settings_new_symptom">Nytt symptom</string>
     <string name="settings_handelse_typ_section">Händelsetyper</string>
+    <string name="settings_handelse_typ_section_desc">Hantera händelsetyper</string>
     <string name="settings_new_handelse_typ">Ny händelsetyp</string>
     <string name="handelse_more_types">Fler typer</string>
     <string name="symptom_pick_label">Välj symptom</string>
@@ -195,8 +202,10 @@
     <string name="symptom_delete_confirm_title">Ta bort symptom?</string>
     <string name="format_symptom_delete_confirm">"%s" tas bort permanent.</string>
     <string name="settings_vidbehov_section">Vid behov-mediciner</string>
+    <string name="settings_vidbehov_section_desc">Hantera favoritmarkerade vid behov-mediciner</string>
     <string name="settings_vidbehov_empty">Inga vid behov-mediciner skapade ännu.</string>
     <string name="settings_about_section">Om appen</string>
+    <string name="settings_about_section_desc">Version och appinfo</string>
 
     <!-- Account bottom sheet -->
     <string name="account_title">Mitt konto</string>
@@ -239,6 +248,7 @@
     <string name="sjukdom_pagaende">Pågår</string>
     <string name="sjukdom_avslutad">Avslutad</string>
     <string name="sjukdom_markera_frisk">Markera frisk</string>
+    <string name="sjukdom_markera_frisk_confirm">Markera episoden som avslutad idag?</string>
     <string name="format_sjukdom_varaktighet">%1$d dag(ar)</string>
     <string name="sjukdom_incheckning_title">Ny incheckning</string>
     <string name="sjukdom_label_svarighetsgrad">Svårighetsgrad</string>
@@ -256,6 +266,7 @@
 
     <!-- Händelser (health event log) -->
     <string name="handelser_title">Händelser</string>
+    <string name="handelser_filter_all_types">Alla typer</string>
     <string name="handelser_add">Ny händelse</string>
     <string name="handelser_empty">Inga händelser loggade ännu.\nTryck + för att logga din första händelse.</string>
     <string name="handelser_delete_confirm">\"%s\" raderas permanent.</string>
@@ -270,4 +281,20 @@
     <string name="handelse_triggers_hint">T.ex. stress, kyla, måltid, medicin…</string>
     <string name="handelse_label_atgarder">Åtgärder / medicinering</string>
     <string name="handelse_atgarder_hint">Vad gjordes, vad togs…</string>
+
+    <string name="notification_channel_meds_name">Medicinpåminnelser</string>
+    <string name="notification_channel_meds_description">Påminner om att ta mediciner i rätt tid</string>
+    <string name="notification_channel_screening_name">Screeningpåminnelser</string>
+    <string name="notification_channel_screening_description">Daglig påminnelse om att logga screening</string>
+    <string name="notification_med_title">Dags för medicin</string>
+    <string name="notification_med_title_with_time">Dags för medicin – %1$s</string>
+    <string name="notification_med_body">Glöm inte att ta dina mediciner.</string>
+    <string name="notification_screening_title">Dags för screening – %1$s</string>
+    <string name="notification_screening_body">Hur mår du? Logga din dagliga screening.</string>
+
+    <string name="nav_tab_hem">Hem</string>
+    <string name="nav_tab_aktivitet">Aktivitet</string>
+    <string name="nav_tab_mediciner">Mediciner</string>
+    <string name="nav_tab_handelser">Händelser</string>
+    <string name="nav_tab_sjukdomar">Sjukdomar</string>
 </resources>

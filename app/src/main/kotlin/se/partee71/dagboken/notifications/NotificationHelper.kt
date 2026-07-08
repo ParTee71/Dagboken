@@ -26,26 +26,30 @@ object NotificationHelper {
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_MEDS,
-                "Medicinpåminnelser",
+                context.getString(R.string.notification_channel_meds_name),
                 NotificationManager.IMPORTANCE_DEFAULT,
-            ).apply { description = "Påminner om att ta mediciner i rätt tid" }
+            ).apply { description = context.getString(R.string.notification_channel_meds_description) }
         )
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_SCREENING,
-                "Screeningpåminnelser",
+                context.getString(R.string.notification_channel_screening_name),
                 NotificationManager.IMPORTANCE_LOW,
-            ).apply { description = "Daglig påminnelse om att logga screening" }
+            ).apply { description = context.getString(R.string.notification_channel_screening_description) }
         )
     }
 
     fun postMedReminder(context: Context, timeLabel: String = "") {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val title = if (timeLabel.isNotEmpty()) "Dags för medicin – $timeLabel" else "Dags för medicin"
+        val title = if (timeLabel.isNotEmpty()) {
+            context.getString(R.string.notification_med_title_with_time, timeLabel)
+        } else {
+            context.getString(R.string.notification_med_title)
+        }
         val notification = NotificationCompat.Builder(context, CHANNEL_MEDS)
             .setSmallIcon(R.drawable.ic_notification_med)
             .setContentTitle(title)
-            .setContentText("Glöm inte att ta dina mediciner.")
+            .setContentText(context.getString(R.string.notification_med_body))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(buildIntent(context, Screen.Mediciner.route, NOTIFICATION_ID_MED))
@@ -57,8 +61,8 @@ object NotificationHelper {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = NotificationCompat.Builder(context, CHANNEL_SCREENING)
             .setSmallIcon(R.drawable.ic_notification_screening)
-            .setContentTitle("Dags för screening – $eventLabel")
-            .setContentText("Hur mår du? Logga din dagliga screening.")
+            .setContentTitle(context.getString(R.string.notification_screening_title, eventLabel))
+            .setContentText(context.getString(R.string.notification_screening_body))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
             .setContentIntent(buildIntent(context, Screen.Aktiviteter.route, NOTIFICATION_ID_SCREENING))

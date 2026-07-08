@@ -30,8 +30,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.formatDisplayDate
 import java.time.Instant
 import java.time.LocalDate
@@ -121,9 +123,9 @@ private fun DatePickerModal(
                         .toLocalDate()
                     onConfirm(date.format(DateTimeFormatter.ISO_LOCAL_DATE))
                 }
-            }) { Text("OK") }
+            }) { Text(stringResource(R.string.ok)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Avbryt") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     ) {
         DatePicker(state = state)
     }
@@ -145,13 +147,13 @@ private fun TimePickerModal(
     val state = rememberTimePickerState(initialHour = h, initialMinute = m, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title            = { Text("Välj tid") },
+        title            = { Text(stringResource(R.string.settings_pick_time)) },
         text             = { TimePicker(state = state) },
         confirmButton    = {
             TextButton(onClick = { onConfirm("%02d:%02d".format(state.hour, state.minute)) }) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         },
-        dismissButton    = { TextButton(onClick = onDismiss) { Text("Avbryt") } },
+        dismissButton    = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
