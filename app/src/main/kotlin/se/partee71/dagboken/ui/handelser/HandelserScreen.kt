@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -50,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Handelse
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.formatDisplayDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -107,16 +109,11 @@ fun HandelserScreen(
             }
 
             if (state.filteredHandelser.isEmpty()) {
-                Box(
-                    modifier           = Modifier.fillMaxSize(),
-                    contentAlignment   = Alignment.Center,
-                ) {
-                    Text(
-                        text  = stringResource(R.string.handelser_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                EmptyState(
+                    icon  = Icons.Outlined.MonitorHeart,
+                    title = stringResource(R.string.empty_handelser_title),
+                    body  = stringResource(R.string.empty_handelser_body),
+                )
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),

@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
@@ -83,28 +84,11 @@ fun HistorikTab(
         HorizontalDivider()
 
         if (entries.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector        = Icons.Outlined.Medication,
-                        contentDescription = null,
-                        modifier           = Modifier.size(48.dp),
-                        tint               = cs.onSurfaceVariant.copy(alpha = 0.4f),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        stringResource(R.string.empty_medicin_history_title),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = cs.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        stringResource(R.string.empty_medicin_history_body),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = cs.onSurfaceVariant.copy(alpha = 0.6f),
-                    )
-                }
-            }
+            EmptyState(
+                icon  = Icons.Outlined.Medication,
+                title = stringResource(R.string.empty_medicin_history_title),
+                body  = stringResource(R.string.empty_medicin_history_body),
+            )
         } else {
             val grouped = entries
                 .sortedByDescending { it.timestamp }

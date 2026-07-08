@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -53,6 +54,7 @@ import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 import se.partee71.dagboken.domain.model.pagaende
 import se.partee71.dagboken.domain.usecase.SymptomUtils
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EmptyState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,18 +151,12 @@ fun SjukdomsEpisodDetailScreen(
 
             if (incheckningar.isEmpty()) {
                 item {
-                    Box(
-                        modifier         = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            "Inga incheckningar ännu. Tryck + för att lägga till.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    EmptyState(
+                        icon     = Icons.Filled.Checklist,
+                        title    = stringResource(R.string.empty_incheckningar_title),
+                        body     = stringResource(R.string.empty_incheckningar_body),
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    )
                 }
             } else {
                 items(incheckningar, key = { it.id }) { incheckning ->

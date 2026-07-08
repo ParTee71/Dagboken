@@ -251,6 +251,8 @@
     <string name="sjukdom_markera_frisk_confirm">Markera episoden som avslutad idag?</string>
     <string name="format_sjukdom_varaktighet">%1$d dag(ar)</string>
     <string name="sjukdom_incheckning_title">Ny incheckning</string>
+    <string name="empty_incheckningar_title">Inga incheckningar ännu</string>
+    <string name="empty_incheckningar_body">Tryck + för att lägga till</string>
     <string name="sjukdom_label_svarighetsgrad">Svårighetsgrad</string>
     <string name="delete_sjukdom_title">Ta bort episod</string>
     <string name="format_delete_sjukdom_confirm">Ta bort %1$s och alla incheckningar?</string>
@@ -268,7 +270,8 @@
     <string name="handelser_title">Händelser</string>
     <string name="handelser_filter_all_types">Alla typer</string>
     <string name="handelser_add">Ny händelse</string>
-    <string name="handelser_empty">Inga händelser loggade ännu.\nTryck + för att logga din första händelse.</string>
+    <string name="empty_handelser_title">Inga händelser loggade ännu.</string>
+    <string name="empty_handelser_body">Tryck + för att logga din första händelse.</string>
     <string name="handelser_delete_confirm">\"%s\" raderas permanent.</string>
     <string name="handelse_new">Ny händelse</string>
     <string name="handelse_edit">Redigera händelse</string>

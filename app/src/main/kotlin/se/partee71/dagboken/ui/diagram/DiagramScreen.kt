@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -39,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EmptyState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -165,23 +165,12 @@ fun DiagramScreen(
         },
         chart = { chartModifier ->
             if (state.stats.isEmpty() || chartSeries.isEmpty()) {
-                Box(modifier = chartModifier, contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector        = Icons.Outlined.BarChart,
-                            contentDescription = null,
-                            modifier           = Modifier.size(40.dp),
-                            tint               = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text  = if (state.stats.isEmpty()) stringResource(R.string.diagram_no_data)
-                                    else stringResource(R.string.diagram_no_series),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                EmptyState(
+                    icon     = Icons.Outlined.BarChart,
+                    title    = if (state.stats.isEmpty()) stringResource(R.string.diagram_no_data)
+                               else stringResource(R.string.diagram_no_series),
+                    modifier = chartModifier,
+                )
             } else {
                 LineChartCanvas(
                     series     = chartSeries,

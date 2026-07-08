@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -38,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EmptyState
 
 private val SYMPTOM_GRID_VALUES = listOf(0f, 1f, 2f, 3f, 4f, 5f)
 
@@ -104,23 +104,12 @@ fun SymptomDiagramScreen(
         },
         chart = { chartModifier ->
             if (state.days.isEmpty() || state.selectedSymptoms.isEmpty()) {
-                Box(modifier = chartModifier, contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector        = Icons.Outlined.Healing,
-                            contentDescription = null,
-                            modifier           = Modifier.size(40.dp),
-                            tint               = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text  = if (state.days.isEmpty()) stringResource(R.string.symptom_diagram_no_data)
-                                    else stringResource(R.string.symptom_diagram_no_series),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                EmptyState(
+                    icon     = Icons.Outlined.Healing,
+                    title    = if (state.days.isEmpty()) stringResource(R.string.symptom_diagram_no_data)
+                               else stringResource(R.string.symptom_diagram_no_series),
+                    modifier = chartModifier,
+                )
             } else {
                 LineChartCanvas(
                     series     = state.series,

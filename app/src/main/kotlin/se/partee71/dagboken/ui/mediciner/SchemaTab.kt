@@ -10,10 +10,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -50,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EmptyState
 
 private val UPPREPNING_LABELS = mapOf(
     "dagligen"  to "Dagligen",
@@ -71,28 +70,11 @@ fun SchemaTab(
     val cs = MaterialTheme.colorScheme
 
     if (recept.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.EventNote,
-                    contentDescription = null,
-                    modifier = Modifier.size(56.dp),
-                    tint = cs.primary.copy(alpha = 0.3f),
-                )
-                Spacer(Modifier.height(14.dp))
-                Text(
-                    stringResource(R.string.empty_schema_title),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = cs.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    stringResource(R.string.empty_schema_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = cs.onSurfaceVariant.copy(alpha = 0.6f),
-                )
-            }
-        }
+        EmptyState(
+            icon  = Icons.AutoMirrored.Outlined.EventNote,
+            title = stringResource(R.string.empty_schema_title),
+            body  = stringResource(R.string.empty_schema_body),
+        )
         return
     }
 

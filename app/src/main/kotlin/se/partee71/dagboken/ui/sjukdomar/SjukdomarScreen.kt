@@ -5,10 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -51,6 +49,7 @@ import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.pagaende
 import se.partee71.dagboken.domain.model.varaktighetDagar
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,32 +82,12 @@ fun SjukdomarScreen(
         },
     ) { innerPadding ->
         if (all.isEmpty()) {
-            Box(
-                modifier         = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Filled.LocalHospital,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        stringResource(R.string.sjukdomar_empty_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        stringResource(R.string.sjukdomar_empty_body),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            EmptyState(
+                icon     = Icons.Filled.LocalHospital,
+                title    = stringResource(R.string.sjukdomar_empty_title),
+                body     = stringResource(R.string.sjukdomar_empty_body),
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+            )
         } else {
             val pagaende  = all.filter { it.pagaende }
             val avslutade = all.filter { !it.pagaende }
