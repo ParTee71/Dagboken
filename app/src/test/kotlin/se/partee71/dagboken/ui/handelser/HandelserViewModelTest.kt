@@ -28,6 +28,7 @@ import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.NoteRepository
+import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Handelse
 import se.partee71.dagboken.domain.model.NoteTarget
 import java.time.LocalDate
@@ -140,7 +141,7 @@ class HandelserViewModelTest {
         val saved = slot<Handelse>()
         coEvery { repo.save(capture(saved)) } returns Unit
         viewModel.save {}
-        assertEquals("2026-06-21T14:30:00.000Z", saved.captured.timestamp)
+        assertEquals(Timestamps.of("2026-06-21", "14:30"), saved.captured.timestamp)
     }
 
     @Test fun `save resets form to defaults after saving`() = runTest {

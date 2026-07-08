@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
+import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
 import java.time.LocalDate
@@ -69,7 +70,7 @@ class AddEditMedicinViewModel @Inject constructor(
                 val tid   = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
                 Medicin(
                     id         = UUID.randomUUID().toString(),
-                    timestamp  = "${today}T${tid}:00.000Z",
+                    timestamp  = Timestamps.of(today, tid),
                     datum      = today,
                     tid        = tid,
                     namn       = f.namn.trim(),
