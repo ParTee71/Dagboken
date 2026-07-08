@@ -29,15 +29,15 @@ Hälsodagbok för att logga aktiviteter, daglig screening (energi, stress, sympt
 
 ### Förutsättningar
 
-- Android Studio Hedgehog (2023.1) eller senare
+- Senaste Android Studio (stable channel)
 - JDK 17
 - Android SDK API 35 (compileSdk), minSdk 30
 
 ### Bygg och kör
 
 ```bash
-git clone https://github.com/partee71/dagboken-android.git
-cd dagboken-android
+git clone https://github.com/ParTee71/Dagboken.git
+cd Dagboken
 ./gradlew :app:assembleDebug
 ```
 
