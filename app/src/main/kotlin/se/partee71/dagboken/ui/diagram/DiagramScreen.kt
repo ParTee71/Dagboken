@@ -39,9 +39,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.dagboken.ui.formatShortDate
+import se.partee71.dagboken.ui.formatShortDateYear
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 private val ALL_SERIES = listOf(
     "Energi Frukost", "Energi Lunch", "Energi Kvällsmat", "Energi Läggdags",
@@ -109,10 +109,8 @@ fun DiagramScreen(
     val periodText = remember(dates, state.rangeDays) {
         if (dates.isEmpty()) null
         else {
-            val fmt     = DateTimeFormatter.ofPattern("d MMM", Locale("sv", "SE"))
-            val fmtFull = DateTimeFormatter.ofPattern("d MMM yyyy", Locale("sv", "SE"))
-            val first   = LocalDate.parse(dates.first()).format(fmt)
-            val last    = LocalDate.parse(dates.last()).format(fmtFull)
+            val first = formatShortDate(LocalDate.parse(dates.first()))
+            val last  = formatShortDateYear(LocalDate.parse(dates.last()))
             "${state.rangeDays} dagar  ·  $first – $last"
         }
     }

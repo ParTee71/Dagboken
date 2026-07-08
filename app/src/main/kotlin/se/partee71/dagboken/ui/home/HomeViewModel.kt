@@ -23,10 +23,10 @@ import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.tidpunktSortIndex
 import se.partee71.dagboken.domain.model.tidpunktToHour
+import se.partee71.dagboken.ui.formatDayDate
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 import java.time.temporal.WeekFields
 import javax.inject.Inject
 
@@ -164,7 +164,6 @@ fun greeting(): String {
 
 fun formattedDate(): String {
     val date = LocalDate.now()
-    val formatter = DateTimeFormatter.ofPattern("EEEE d MMMM", java.util.Locale("sv", "SE"))
     val weekNum = date.get(WeekFields.ISO.weekOfWeekBasedYear())
-    return "${date.format(formatter).replaceFirstChar { it.uppercase() }} · Vecka $weekNum"
+    return "${formatDayDate(date)} · Vecka $weekNum"
 }

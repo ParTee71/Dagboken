@@ -20,6 +20,7 @@ import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.usecase.SymptomUtils
+import se.partee71.dagboken.ui.formatTime
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -32,7 +33,7 @@ data class AktivitetForm(
     val aterhamtande: Boolean = false,
     val energitjuv: Boolean = false,
     val datum: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
-    val tid: String = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
+    val tid: String = formatTime(LocalTime.now()),
     val spentTimeHours: Int = 0,
     val spentTimeMinutes: Int = 0,
     val energy: Int = 0,

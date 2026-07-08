@@ -60,6 +60,7 @@ import se.partee71.dagboken.domain.model.tidpunktSortIndex
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
+import se.partee71.dagboken.ui.formatTime
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -393,10 +394,7 @@ private fun SingleDoseDialog(
     onDismiss: () -> Unit,
     onConfirm: (namn: String, dos: String, enhet: String, tid: String) -> Unit,
 ) {
-    val currentTime = remember {
-        java.time.LocalTime.now()
-            .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
-    }
+    val currentTime = remember { formatTime(java.time.LocalTime.now()) }
     var namn          by remember { mutableStateOf("") }
     var dos           by remember { mutableStateOf("") }
     var enhet         by remember { mutableStateOf("mg") }
