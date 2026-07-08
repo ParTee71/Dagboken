@@ -114,15 +114,15 @@ fun SettingsScreen(
     var selectedSection by remember { mutableIntStateOf(0) }
 
     val sections = listOf(
-        SectionDef(Icons.Filled.AccountCircle, stringResource(R.string.settings_account_section),       "Google-konto och synk"),
-        SectionDef(Icons.Filled.ImportExport,  stringResource(R.string.settings_import_section),        "Importera data från JSON"),
-        SectionDef(Icons.Filled.Palette,       stringResource(R.string.settings_theme_section),         "Ljust, mörkt eller tidsbaserat"),
-        SectionDef(Icons.Filled.Notifications, stringResource(R.string.settings_notifications_section), "Medicin- och screeningnotiser"),
-        SectionDef(Icons.Filled.DirectionsRun, stringResource(R.string.settings_aktivitet_section),     "Hantera aktivitetstyper"),
-        SectionDef(Icons.Filled.Favorite,      stringResource(R.string.label_symptom),                  "Hantera symptomtyper"),
-        SectionDef(Icons.Filled.Medication,    stringResource(R.string.settings_vidbehov_section),      "Hantera favoritmarkerade vid behov-mediciner"),
-        SectionDef(Icons.Filled.Bolt,          stringResource(R.string.settings_handelse_typ_section),  "Hantera händelsetyper"),
-        SectionDef(Icons.Filled.Info,          stringResource(R.string.settings_about_section),         "Version och appinfo"),
+        SectionDef(Icons.Filled.AccountCircle, stringResource(R.string.settings_account_section),       stringResource(R.string.settings_account_section_desc)),
+        SectionDef(Icons.Filled.ImportExport,  stringResource(R.string.settings_import_section),        stringResource(R.string.settings_import_section_desc)),
+        SectionDef(Icons.Filled.Palette,       stringResource(R.string.settings_theme_section),         stringResource(R.string.settings_theme_section_desc)),
+        SectionDef(Icons.Filled.Notifications, stringResource(R.string.settings_notifications_section), stringResource(R.string.settings_notifications_section_desc)),
+        SectionDef(Icons.Filled.DirectionsRun, stringResource(R.string.settings_aktivitet_section),     stringResource(R.string.settings_aktivitet_section_desc)),
+        SectionDef(Icons.Filled.Favorite,      stringResource(R.string.label_symptom),                  stringResource(R.string.settings_symptom_section_desc)),
+        SectionDef(Icons.Filled.Medication,    stringResource(R.string.settings_vidbehov_section),      stringResource(R.string.settings_vidbehov_section_desc)),
+        SectionDef(Icons.Filled.Bolt,          stringResource(R.string.settings_handelse_typ_section),  stringResource(R.string.settings_handelse_typ_section_desc)),
+        SectionDef(Icons.Filled.Info,          stringResource(R.string.settings_about_section),         stringResource(R.string.settings_about_section_desc)),
     )
 
     Scaffold(
@@ -137,6 +137,85 @@ fun SettingsScreen(
             )
         },
     ) { padding ->
+        val sectionContents: List<@Composable () -> Unit> = listOf(
+            {
+                AccountCard(
+                    email       = state.googleAccountEmail,
+                    photoUrl    = state.googleAccountPhotoUrl,
+                    isSigningIn = state.isSigningIn,
+                    signInError = state.signInError,
+                    onSignIn    = { vm.signIn(context) },
+                    onSignOut   = { vm.signOut() },
+                )
+            },
+            { ImportCard(onImport = onImport) },
+            {
+                ThemeCard(
+                    themeMode       = state.themeMode,
+                    themeLightStart = state.themeLightStart,
+                    themeDarkStart  = state.themeDarkStart,
+                    onSetMode       = vm::setThemeMode,
+                    onSetLightStart = vm::setThemeLightStart,
+                    onSetDarkStart  = vm::setThemeDarkStart,
+                )
+            },
+            {
+                NotificationsCard(
+                    medsEnabled        = state.medsNotificationsEnabled,
+                    screeningConfigs   = state.screeningEventConfigs,
+                    onToggleMeds       = { vm.toggleMedsNotifications() },
+                    onToggleScreening  = { vm.toggleScreeningEvent(it) },
+                    onSetScreeningTime = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
+                )
+            },
+            {
+                OptionSettingsCard(
+                    title            = stringResource(R.string.settings_aktivitet_section),
+                    newOptionLabel   = stringResource(R.string.settings_new_aktivitet_type),
+                    options          = state.aktivitetOptions,
+                    newOption        = state.newAktivitetOption,
+                    onValueChange    = vm::setNewAktivitetOption,
+                    onAdd            = vm::addAktivitetOption,
+                    onDelete         = vm::deleteAktivitetOption,
+                    onToggleFavorite = vm::toggleAktivitetFavorite,
+                    onRename         = vm::renameAktivitetOption,
+                )
+            },
+            {
+                OptionSettingsCard(
+                    title            = stringResource(R.string.label_symptom),
+                    newOptionLabel   = stringResource(R.string.settings_new_symptom),
+                    options          = state.symptomOptions,
+                    newOption        = state.newSymptomOption,
+                    onValueChange    = vm::setNewSymptomOption,
+                    onAdd            = vm::addSymptomOption,
+                    onDelete         = vm::deleteSymptomOption,
+                    onToggleFavorite = vm::toggleSymptomFavorite,
+                    onRename         = vm::renameSymptomOption,
+                )
+            },
+            {
+                VidBehovFavoritSettingsCard(
+                    favoriter        = medicinFavoriter,
+                    onToggleFavorite = vm::toggleMedicinFavorite,
+                )
+            },
+            {
+                OptionSettingsCard(
+                    title            = stringResource(R.string.settings_handelse_typ_section),
+                    newOptionLabel   = stringResource(R.string.settings_new_handelse_typ),
+                    options          = state.handelseTypOptions,
+                    newOption        = state.newHandelseTypOption,
+                    onValueChange    = vm::setNewHandelseTypOption,
+                    onAdd            = vm::addHandelseTypOption,
+                    onDelete         = vm::deleteHandelseTypOption,
+                    onToggleFavorite = vm::toggleHandelseTypFavorite,
+                    onRename         = vm::renameHandelseTypOption,
+                )
+            },
+            { AboutCard() },
+        )
+
         if (isLargeScreen) {
             Row(
                 modifier = Modifier
@@ -156,70 +235,7 @@ fun SettingsScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    when (selectedSection) {
-                        0 -> AccountCard(
-                            email       = state.googleAccountEmail,
-                            photoUrl    = state.googleAccountPhotoUrl,
-                            isSigningIn = state.isSigningIn,
-                            signInError = state.signInError,
-                            onSignIn    = { vm.signIn(context) },
-                            onSignOut   = { vm.signOut() },
-                        )
-                        1 -> ImportCard(onImport = onImport)
-                        2 -> ThemeCard(
-                            themeMode       = state.themeMode,
-                            themeLightStart = state.themeLightStart,
-                            themeDarkStart  = state.themeDarkStart,
-                            onSetMode       = vm::setThemeMode,
-                            onSetLightStart = vm::setThemeLightStart,
-                            onSetDarkStart  = vm::setThemeDarkStart,
-                        )
-                        3 -> NotificationsCard(
-                            medsEnabled        = state.medsNotificationsEnabled,
-                            screeningConfigs   = state.screeningEventConfigs,
-                            onToggleMeds       = { vm.toggleMedsNotifications() },
-                            onToggleScreening  = { vm.toggleScreeningEvent(it) },
-                            onSetScreeningTime = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
-                        )
-                        4 -> OptionSettingsCard(
-                            title            = stringResource(R.string.settings_aktivitet_section),
-                            newOptionLabel   = stringResource(R.string.settings_new_aktivitet_type),
-                            options          = state.aktivitetOptions,
-                            newOption        = state.newAktivitetOption,
-                            onValueChange    = vm::setNewAktivitetOption,
-                            onAdd            = vm::addAktivitetOption,
-                            onDelete         = vm::deleteAktivitetOption,
-                            onToggleFavorite = vm::toggleAktivitetFavorite,
-                            onRename         = vm::renameAktivitetOption,
-                        )
-                        5 -> OptionSettingsCard(
-                            title            = stringResource(R.string.label_symptom),
-                            newOptionLabel   = stringResource(R.string.settings_new_symptom),
-                            options          = state.symptomOptions,
-                            newOption        = state.newSymptomOption,
-                            onValueChange    = vm::setNewSymptomOption,
-                            onAdd            = vm::addSymptomOption,
-                            onDelete         = vm::deleteSymptomOption,
-                            onToggleFavorite = vm::toggleSymptomFavorite,
-                            onRename         = vm::renameSymptomOption,
-                        )
-                        6 -> VidBehovFavoritSettingsCard(
-                            favoriter        = medicinFavoriter,
-                            onToggleFavorite = vm::toggleMedicinFavorite,
-                        )
-                        7 -> OptionSettingsCard(
-                            title            = stringResource(R.string.settings_handelse_typ_section),
-                            newOptionLabel   = stringResource(R.string.settings_new_handelse_typ),
-                            options          = state.handelseTypOptions,
-                            newOption        = state.newHandelseTypOption,
-                            onValueChange    = vm::setNewHandelseTypOption,
-                            onAdd            = vm::addHandelseTypOption,
-                            onDelete         = vm::deleteHandelseTypOption,
-                            onToggleFavorite = vm::toggleHandelseTypFavorite,
-                            onRename         = vm::renameHandelseTypOption,
-                        )
-                        8 -> AboutCard()
-                    }
+                    sectionContents[selectedSection]()
                 }
             }
         } else {
@@ -231,68 +247,7 @@ fun SettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                AccountCard(
-                    email       = state.googleAccountEmail,
-                    photoUrl    = state.googleAccountPhotoUrl,
-                    isSigningIn = state.isSigningIn,
-                    signInError = state.signInError,
-                    onSignIn    = { vm.signIn(context) },
-                    onSignOut   = { vm.signOut() },
-                )
-                ImportCard(onImport = onImport)
-                ThemeCard(
-                    themeMode       = state.themeMode,
-                    themeLightStart = state.themeLightStart,
-                    themeDarkStart  = state.themeDarkStart,
-                    onSetMode       = vm::setThemeMode,
-                    onSetLightStart = vm::setThemeLightStart,
-                    onSetDarkStart  = vm::setThemeDarkStart,
-                )
-                NotificationsCard(
-                    medsEnabled        = state.medsNotificationsEnabled,
-                    screeningConfigs   = state.screeningEventConfigs,
-                    onToggleMeds       = { vm.toggleMedsNotifications() },
-                    onToggleScreening  = { vm.toggleScreeningEvent(it) },
-                    onSetScreeningTime = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
-                )
-                OptionSettingsCard(
-                    title            = stringResource(R.string.settings_aktivitet_section),
-                    newOptionLabel   = stringResource(R.string.settings_new_aktivitet_type),
-                    options          = state.aktivitetOptions,
-                    newOption        = state.newAktivitetOption,
-                    onValueChange    = vm::setNewAktivitetOption,
-                    onAdd            = vm::addAktivitetOption,
-                    onDelete         = vm::deleteAktivitetOption,
-                    onToggleFavorite = vm::toggleAktivitetFavorite,
-                    onRename         = vm::renameAktivitetOption,
-                )
-                OptionSettingsCard(
-                    title            = stringResource(R.string.label_symptom),
-                    newOptionLabel   = stringResource(R.string.settings_new_symptom),
-                    options          = state.symptomOptions,
-                    newOption        = state.newSymptomOption,
-                    onValueChange    = vm::setNewSymptomOption,
-                    onAdd            = vm::addSymptomOption,
-                    onDelete         = vm::deleteSymptomOption,
-                    onToggleFavorite = vm::toggleSymptomFavorite,
-                    onRename         = vm::renameSymptomOption,
-                )
-                VidBehovFavoritSettingsCard(
-                    favoriter        = medicinFavoriter,
-                    onToggleFavorite = vm::toggleMedicinFavorite,
-                )
-                OptionSettingsCard(
-                    title            = stringResource(R.string.settings_handelse_typ_section),
-                    newOptionLabel   = stringResource(R.string.settings_new_handelse_typ),
-                    options          = state.handelseTypOptions,
-                    newOption        = state.newHandelseTypOption,
-                    onValueChange    = vm::setNewHandelseTypOption,
-                    onAdd            = vm::addHandelseTypOption,
-                    onDelete         = vm::deleteHandelseTypOption,
-                    onToggleFavorite = vm::toggleHandelseTypFavorite,
-                    onRename         = vm::renameHandelseTypOption,
-                )
-                AboutCard()
+                sectionContents.forEach { it() }
             }
         }
     }
@@ -694,7 +649,7 @@ private fun OptionSettingsCard(
                 ) {
                     IconButton(
                         onClick  = { onToggleFavorite(opt.name) },
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(48.dp),
                     ) {
                         Icon(
                             Icons.Default.Star,
@@ -715,13 +670,13 @@ private fun OptionSettingsCard(
                         IconButton(
                             onClick  = { onRename(opt.name, editValue); editingName = null },
                             enabled  = editValue.isNotBlank(),
-                            modifier = Modifier.size(36.dp),
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Icon(Icons.Default.Check, contentDescription = stringResource(R.string.ok), modifier = Modifier.size(20.dp))
                         }
                         IconButton(
                             onClick  = { editingName = null },
-                            modifier = Modifier.size(36.dp),
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel), modifier = Modifier.size(20.dp))
                         }
@@ -733,13 +688,13 @@ private fun OptionSettingsCard(
                         )
                         IconButton(
                             onClick  = { editingName = opt.name; editValue = opt.name },
-                            modifier = Modifier.size(36.dp),
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit), modifier = Modifier.size(20.dp))
                         }
                         IconButton(
                             onClick  = { deleteTarget = opt.name },
-                            modifier = Modifier.size(36.dp),
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), modifier = Modifier.size(20.dp))
                         }
@@ -807,7 +762,7 @@ private fun VidBehovFavoritSettingsCard(
                     ) {
                         IconButton(
                             onClick  = { onToggleFavorite(fav) },
-                            modifier = Modifier.size(36.dp),
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Icon(
                                 Icons.Filled.Star,
