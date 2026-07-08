@@ -3,7 +3,7 @@
 > Hälsodagbok för att logga aktiviteter, daglig screening (energi, stress, symptom) och
 > mediciner, med diagram, påminnelser och molnbackup via Google Drive.
 >
-> Version: 2.14.0 · Paket: `se.partee71.dagboken` · Språk: Svenska
+> Version: 2.14.1 · Paket: `se.partee71.dagboken` · Språk: Svenska
 
 ---
 
