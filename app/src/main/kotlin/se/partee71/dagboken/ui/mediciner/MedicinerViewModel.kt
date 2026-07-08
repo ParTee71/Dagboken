@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
+import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
@@ -172,15 +173,8 @@ class MedicinerViewModel @Inject constructor(
     fun quickDos(favorit: Favorit) {
         viewModelScope.launch {
             val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+            if (dailyLimitReached(favorit, today)) return@launch
 
-            // Check daily limit
-            val takenToday = repo.countDailyDoses(today, favorit.namn)
-            if (limitUseCase.limitReached(favorit.maxDoserPerDag, takenToday)) {
-                _snackbar.value = "Max ${favorit.maxDoserPerDag} doser/dag nådda för ${favorit.namn}"
-                return@launch
-            }
-
-            // Check cooldown
             val lastTaken = repo.getLastTaken(favorit.namn)
             val remaining = cooldownUseCase.remainingHours(favorit.namn, favorit.minTidMellan, lastTaken)
             if (remaining != null) {
@@ -188,23 +182,7 @@ class MedicinerViewModel @Inject constructor(
                 return@launch
             }
 
-            // Log the dose
-            val now = java.time.LocalTime.now()
-            val tid = now.format(DateTimeFormatter.ofPattern("HH:mm"))
-            val medicinId = UUID.randomUUID().toString()
-            repo.saveMedicin(Medicin(
-                id         = medicinId,
-                timestamp  = "${today}T${tid}:00.000Z",
-                datum      = today,
-                tid        = tid,
-                namn       = favorit.namn,
-                dos        = favorit.dos,
-                enhet      = favorit.enhet,
-                tidpunkt   = favorit.tidpunkt,
-                tagen      = true,
-            ))
-            copyFavoritNoteToDose(favorit.id, medicinId)
-            _snackbar.value = "${favorit.namn} ${favorit.dos} ${favorit.enhet} loggad"
+            logDose(favorit, today)
         }
     }
 
@@ -212,28 +190,36 @@ class MedicinerViewModel @Inject constructor(
         _cooldownWarning.value = null
         viewModelScope.launch {
             val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-            val takenToday = repo.countDailyDoses(today, favorit.namn)
-            if (limitUseCase.limitReached(favorit.maxDoserPerDag, takenToday)) {
-                _snackbar.value = "Max ${favorit.maxDoserPerDag} doser/dag nådda för ${favorit.namn}"
-                return@launch
-            }
-            val now = java.time.LocalTime.now()
-            val tid = now.format(DateTimeFormatter.ofPattern("HH:mm"))
-            val medicinId = UUID.randomUUID().toString()
-            repo.saveMedicin(Medicin(
-                id         = medicinId,
-                timestamp  = "${today}T${tid}:00.000Z",
-                datum      = today,
-                tid        = tid,
-                namn       = favorit.namn,
-                dos        = favorit.dos,
-                enhet      = favorit.enhet,
-                tidpunkt   = favorit.tidpunkt,
-                tagen      = true,
-            ))
-            copyFavoritNoteToDose(favorit.id, medicinId)
-            _snackbar.value = "${favorit.namn} ${favorit.dos} ${favorit.enhet} loggad"
+            if (dailyLimitReached(favorit, today)) return@launch
+            logDose(favorit, today)
         }
+    }
+
+    private suspend fun dailyLimitReached(favorit: Favorit, today: String): Boolean {
+        val takenToday = repo.countDailyDoses(today, favorit.namn)
+        if (limitUseCase.limitReached(favorit.maxDoserPerDag, takenToday)) {
+            _snackbar.value = "Max ${favorit.maxDoserPerDag} doser/dag nådda för ${favorit.namn}"
+            return true
+        }
+        return false
+    }
+
+    private suspend fun logDose(favorit: Favorit, today: String) {
+        val tid = java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+        val medicinId = UUID.randomUUID().toString()
+        repo.saveMedicin(Medicin(
+            id         = medicinId,
+            timestamp  = Timestamps.of(today, tid),
+            datum      = today,
+            tid        = tid,
+            namn       = favorit.namn,
+            dos        = favorit.dos,
+            enhet      = favorit.enhet,
+            tidpunkt   = favorit.tidpunkt,
+            tagen      = true,
+        ))
+        copyFavoritNoteToDose(favorit.id, medicinId)
+        _snackbar.value = "${favorit.namn} ${favorit.dos} ${favorit.enhet} loggad"
     }
 
     // A favorite's note is a default carried forward onto each dose logged from it.
@@ -261,7 +247,7 @@ class MedicinerViewModel @Inject constructor(
             repo.saveMedicin(
                 Medicin(
                     id         = UUID.randomUUID().toString(),
-                    timestamp  = "${today}T${tid}:00.000Z",
+                    timestamp  = Timestamps.of(today, tid),
                     datum      = today,
                     tid        = tid,
                     namn       = namn.trim(),
