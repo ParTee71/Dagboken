@@ -109,7 +109,7 @@ fun HistorikTab(
                             aktivitet = aktivitet,
                             onEdit    = { onEdit(aktivitet.id, aktivitet.type) },
                             onDelete  = { deleteTarget = aktivitet },
-                            modifier  = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            modifier  = Modifier.animateItem().padding(horizontal = 16.dp, vertical = 4.dp),
                             noteText  = notes[aktivitet.id].orEmpty(),
                         )
                     }

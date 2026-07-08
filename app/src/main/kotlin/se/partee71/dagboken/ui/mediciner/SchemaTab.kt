@@ -2,6 +2,8 @@ package se.partee71.dagboken.ui.mediciner
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +50,7 @@ import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 
 private val UPPREPNING_LABELS = mapOf(
     "dagligen"  to "Dagligen",
@@ -87,11 +90,12 @@ fun SchemaTab(
             var menuExpanded by remember { mutableStateOf(false) }
             val chevron by animateFloatAsState(
                 targetValue = if (expanded) 180f else 0f,
+                animationSpec = DagbokenAnimSpec.springNormal,
                 label = "schema_chevron",
             )
             val activeColor = if (r.aktiv) cs.tertiary else cs.surfaceVariant
 
-            DagbokenCard(contentPadding = PaddingValues(0.dp), accentColor = activeColor) {
+            DagbokenCard(modifier = Modifier.animateItem(), contentPadding = PaddingValues(0.dp), accentColor = activeColor) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -152,7 +156,11 @@ fun SchemaTab(
                     }
                 }
 
-                AnimatedVisibility(visible = expanded) {
+                AnimatedVisibility(
+                    visible = expanded,
+                    enter = expandVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
+                    exit = shrinkVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
+                ) {
                     Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp)) {
                         HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
                         Text(

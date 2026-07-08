@@ -207,6 +207,7 @@ fun IdagTab(
 
                             SwipeToDismissBox(
                                 state = dismissState,
+                                modifier = Modifier.animateItem(),
                                 backgroundContent = {
                                     val isSwiping =
                                         dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart

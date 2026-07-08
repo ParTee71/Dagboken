@@ -284,7 +284,7 @@
 | SJ-3 | Symptom i incheckning väljs och graderas 0–10 med SymptomLogCard (samma komponent som aktiviteter och screening). |
 | SJ-4 | Användaren kan markera en episod som avslutad (ange slutdatum). |
 | SJ-5 | Avslutade episoder visar varaktighet i dagar och senaste incheckningens svårighetsgrad. |
-| SJ-6 | En pågående episod syns som statuskort på Hem-skärmen. |
+| SJ-6 | En pågående episod syns som statuskort på Hem-skärmen, med accentfärg via delad kortkomponent. |
 | SJ-7 | Episoder och incheckningar ingår i backup och återställs vid restore. |
 | SJ-8 | Både en episod och varje incheckning kan ha en anteckning, redigerbar via den delade `NoteField`-komponenten. |
 | SJ-9 | Tas en episod bort raderas även dess incheckningar (kaskad) och samtliga tillhörande anteckningar. |

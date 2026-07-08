@@ -2,6 +2,8 @@ package se.partee71.dagboken.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -36,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.usecase.SymptomUtils
+import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 import se.partee71.dagboken.ui.theme.energyColor
 import se.partee71.dagboken.ui.theme.energyLabel
 
@@ -54,6 +57,7 @@ fun AktivitetCard(
 
     val chevronAngle by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
+        animationSpec = DagbokenAnimSpec.springNormal,
         label = "chevron",
     )
 
@@ -127,7 +131,11 @@ fun AktivitetCard(
             }
         }
 
-        AnimatedVisibility(visible = expanded && hasDetails) {
+        AnimatedVisibility(
+            visible = expanded && hasDetails,
+            enter = expandVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
+            exit = shrinkVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
+        ) {
             Column {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 symptoms.entries.forEach { (name, score) ->

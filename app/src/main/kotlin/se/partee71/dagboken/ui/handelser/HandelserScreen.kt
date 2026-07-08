@@ -27,12 +27,10 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +48,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Handelse
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.formatDisplayDate
 
@@ -72,16 +71,12 @@ fun HandelserScreen(
 
     var deleteTarget by remember { mutableStateOf<Handelse?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.handelser_title)) },
-                actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
-                    }
-                },
-            )
+    DagbokenScaffold(
+        title   = stringResource(R.string.handelser_title),
+        actions = {
+            IconButton(onClick = onNavigateToSettings) {
+                Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
@@ -124,6 +119,7 @@ fun HandelserScreen(
                             note     = notes[handelse.id].orEmpty(),
                             onEdit   = { onEdit(handelse.id) },
                             onDelete = { deleteTarget = handelse },
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }
@@ -198,10 +194,11 @@ private fun HandelseCard(
     note: String,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    DagbokenCard(contentPadding = PaddingValues(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp)) {
+    DagbokenCard(modifier = modifier, contentPadding = PaddingValues(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp)) {
         Row(
             modifier            = Modifier.fillMaxWidth(),
             verticalAlignment   = Alignment.CenterVertically,

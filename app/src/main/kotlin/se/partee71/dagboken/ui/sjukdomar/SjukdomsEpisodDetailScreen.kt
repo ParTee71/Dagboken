@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Checklist
@@ -24,9 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -34,7 +31,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +51,7 @@ import se.partee71.dagboken.domain.model.pagaende
 import se.partee71.dagboken.domain.usecase.SymptomUtils
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.EmptyState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,17 +75,9 @@ fun SjukdomsEpisodDetailScreen(
     var deleteInchTarget by remember { mutableStateOf<SjukdomsIncheckning?>(null) }
     var showMarkFriskDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(episod?.typ ?: "") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
-                    }
-                },
-            )
-        },
+    DagbokenScaffold(
+        title        = episod?.typ ?: "",
+        onBack       = onBack,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             episod?.let { ep ->
@@ -165,6 +154,7 @@ fun SjukdomsEpisodDetailScreen(
                         incheckning = incheckning,
                         note        = incheckningNotes[incheckning.id].orEmpty(),
                         onDelete    = { deleteInchTarget = incheckning },
+                        modifier    = Modifier.animateItem(),
                     )
                 }
             }
@@ -226,6 +216,7 @@ private fun IncheckningCardSwipeable(
     incheckning: SjukdomsIncheckning,
     note: String,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -234,6 +225,7 @@ private fun IncheckningCardSwipeable(
     )
     SwipeToDismissBox(
         state             = dismissState,
+        modifier          = modifier,
         backgroundContent = {
             Box(
                 modifier         = Modifier

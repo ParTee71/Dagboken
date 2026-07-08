@@ -20,14 +20,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +46,7 @@ import se.partee71.dagboken.domain.model.pagaende
 import se.partee71.dagboken.domain.model.varaktighetDagar
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 
@@ -69,10 +68,8 @@ fun SjukdomarScreen(
 
     var deleteTarget by remember { mutableStateOf<SjukdomsEpisod?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.sjukdomar_title)) })
-        },
+    DagbokenScaffold(
+        title        = stringResource(R.string.sjukdomar_title),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddNew) {
@@ -112,6 +109,7 @@ fun SjukdomarScreen(
                             note     = notes[episod.id].orEmpty(),
                             onClick  = { onDetail(episod.id) },
                             onDelete = { deleteTarget = episod },
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }
@@ -131,6 +129,7 @@ fun SjukdomarScreen(
                             note     = notes[episod.id].orEmpty(),
                             onClick  = { onDetail(episod.id) },
                             onDelete = { deleteTarget = episod },
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }
@@ -155,6 +154,7 @@ private fun EpisodCardSwipeable(
     onClick: () -> Unit,
     onDelete: () -> Unit,
     note: String = "",
+    modifier: Modifier = Modifier,
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -163,6 +163,7 @@ private fun EpisodCardSwipeable(
     )
     SwipeToDismissBox(
         state              = dismissState,
+        modifier           = modifier,
         backgroundContent  = {
             Box(
                 modifier         = Modifier

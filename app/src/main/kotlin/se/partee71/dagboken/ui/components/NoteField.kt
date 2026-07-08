@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 
 @Composable
 fun NoteField(
@@ -44,6 +45,7 @@ fun NoteField(
     LaunchedEffect(text) { if (text.isBlank()) expanded = false }
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
+        animationSpec = DagbokenAnimSpec.springNormal,
         label = "note_chevron",
     )
 
@@ -76,8 +78,8 @@ fun NoteField(
             // Collapsed text preview — max 2 lines
             AnimatedVisibility(
                 visible = !expanded && hasText,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
+                enter = expandVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
+                exit = shrinkVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
             ) {
                 Column {
                     HorizontalDivider()
@@ -95,8 +97,8 @@ fun NoteField(
             // Expanded: full editable field
             AnimatedVisibility(
                 visible = expanded,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
+                enter = expandVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
+                exit = shrinkVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
             ) {
                 OutlinedTextField(
                     value = text,

@@ -20,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
@@ -50,7 +49,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -59,7 +57,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -99,6 +96,8 @@ import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.DagbokenScaffold
+import se.partee71.dagboken.ui.components.SectionHeader
 
 private data class SectionDef(val icon: ImageVector, val title: String, val description: String)
 
@@ -127,17 +126,9 @@ fun SettingsScreen(
         SectionDef(Icons.Filled.Info,          stringResource(R.string.settings_about_section),         stringResource(R.string.settings_about_section_desc)),
     )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
-                    }
-                },
-            )
-        },
+    DagbokenScaffold(
+        title  = stringResource(R.string.settings),
+        onBack = onBack,
     ) { padding ->
         val sectionContents: List<@Composable () -> Unit> = listOf(
             {
@@ -373,7 +364,7 @@ private fun AccountCard(
 ) {
     DagbokenCard {
         Column {
-            Text(stringResource(R.string.settings_account_section), style = MaterialTheme.typography.titleSmall)
+            SectionHeader(stringResource(R.string.settings_account_section))
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             if (email != null) {
                 Row(
@@ -457,7 +448,7 @@ private fun AccountCard(
 private fun ImportCard(onImport: () -> Unit) {
     DagbokenCard {
         Column {
-            Text(stringResource(R.string.settings_import_section), style = MaterialTheme.typography.titleSmall)
+            SectionHeader(stringResource(R.string.settings_import_section))
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Text(
                 stringResource(R.string.settings_import_body),
@@ -487,7 +478,7 @@ private fun ThemeCard(
 
     DagbokenCard {
         Column {
-            Text(stringResource(R.string.settings_theme_section), style = MaterialTheme.typography.titleSmall)
+            SectionHeader(stringResource(R.string.settings_theme_section))
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             val themeModes = listOf(
                 "light" to stringResource(R.string.theme_light),
@@ -585,7 +576,7 @@ private fun NotificationsCard(
 ) {
     DagbokenCard {
         Column {
-            Text(stringResource(R.string.settings_notifications_section), style = MaterialTheme.typography.titleSmall)
+            SectionHeader(stringResource(R.string.settings_notifications_section))
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -640,7 +631,7 @@ private fun OptionSettingsCard(
 
     DagbokenCard {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
+            SectionHeader(title)
             HorizontalDivider()
 
             options.forEachIndexed { index, opt ->
@@ -737,7 +728,7 @@ private fun VidBehovFavoritSettingsCard(
 ) {
     DagbokenCard {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.settings_vidbehov_section), style = MaterialTheme.typography.titleSmall)
+            SectionHeader(stringResource(R.string.settings_vidbehov_section))
             HorizontalDivider()
 
             if (favoriter.isEmpty()) {
@@ -784,7 +775,7 @@ private fun VidBehovFavoritSettingsCard(
 private fun AboutCard() {
     DagbokenCard {
         Column {
-            Text(stringResource(R.string.settings_about_section), style = MaterialTheme.typography.titleSmall)
+            SectionHeader(stringResource(R.string.settings_about_section))
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.bodyMedium)
             Text(

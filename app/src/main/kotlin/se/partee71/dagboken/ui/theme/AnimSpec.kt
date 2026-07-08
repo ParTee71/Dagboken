@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.theme
 
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TweenSpec
@@ -17,4 +18,14 @@ object DagbokenAnimSpec {
     )
     val tweenFast: TweenSpec<Float>   = tween(durationMillis = 150)
     val tweenNormal: TweenSpec<Float> = tween(durationMillis = 300)
+
+    /** Samma fjäderparametrar som [springNormal], typad för andra värden än Float
+     * (t.ex. `IntSize` i `expandVertically`/`shrinkVertically`, `IntOffset` i `animateItem`). */
+    fun <T> springNormalSpec(): FiniteAnimationSpec<T> = spring(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness    = Spring.StiffnessMedium,
+    )
+
+    /** Samma varaktighet som [tweenNormal], typad för andra värden än Float. */
+    fun <T> tweenNormalSpec(): FiniteAnimationSpec<T> = tween(durationMillis = 300)
 }

@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.formatShortDate
 import se.partee71.dagboken.ui.formatShortDateYear
 import java.time.LocalDate
@@ -205,7 +206,7 @@ fun DiagramScreen(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text(stringResource(R.string.diagram_summary), style = MaterialTheme.typography.titleSmall)
+                        SectionHeader(stringResource(R.string.diagram_summary))
                         HorizontalDivider()
                         ALL_SERIES.filter { it in state.visibleSeries }.forEachIndexed { i, series ->
                             if (i > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

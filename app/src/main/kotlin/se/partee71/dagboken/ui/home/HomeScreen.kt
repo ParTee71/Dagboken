@@ -20,19 +20,14 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -54,8 +49,8 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.DagbokenScaffold
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToAktiviteter: () -> Unit,
@@ -71,35 +66,28 @@ fun HomeScreen(
     val context = LocalContext.current
     var showAccountSheet by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    AccountBubble(
-                        email       = uiState.googleEmail,
-                        photoUrl    = uiState.googlePhotoUrl,
-                        displayName = uiState.googleDisplayName,
-                        onClick     = { showAccountSheet = true },
-                    )
-                },
-                title = {
-                    Text(
-                        text  = "v${BuildConfig.VERSION_NAME}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = cs.onSurfaceVariant.copy(alpha = 0.5f),
-                    )
-                },
-                actions = {
-                    Text(
-                        text     = formattedDate(),
-                        style    = MaterialTheme.typography.labelMedium,
-                        color    = cs.onSurfaceVariant,
-                        modifier = Modifier.padding(end = 16.dp),
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = cs.surface,
-                ),
+    DagbokenScaffold(
+        navigationIcon = {
+            AccountBubble(
+                email       = uiState.googleEmail,
+                photoUrl    = uiState.googlePhotoUrl,
+                displayName = uiState.googleDisplayName,
+                onClick     = { showAccountSheet = true },
+            )
+        },
+        titleContent = {
+            Text(
+                text  = "v${BuildConfig.VERSION_NAME}",
+                style = MaterialTheme.typography.labelSmall,
+                color = cs.onSurfaceVariant.copy(alpha = 0.5f),
+            )
+        },
+        actions = {
+            Text(
+                text     = formattedDate(),
+                style    = MaterialTheme.typography.labelMedium,
+                color    = cs.onSurfaceVariant,
+                modifier = Modifier.padding(end = 16.dp),
             )
         },
     ) { padding ->
@@ -147,87 +135,81 @@ fun HomeScreen(
             val overdueTotal = uiState.overdueMediciner.size + uiState.overdueScreeningTimes.size
             if (overdueTotal > 0) {
                 item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape    = MaterialTheme.shapes.large,
-                        color    = cs.errorContainer,
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                verticalAlignment     = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier              = Modifier.padding(bottom = 8.dp),
-                            ) {
-                                Icon(
-                                    Icons.Filled.Schedule,
-                                    contentDescription = null,
-                                    tint     = cs.error,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Text(
-                                    stringResource(R.string.home_overdue_title),
-                                    style      = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color      = cs.onErrorContainer,
-                                )
-                            }
+                    DagbokenCard(accentColor = cs.error) {
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier              = Modifier.padding(bottom = 8.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Schedule,
+                                contentDescription = null,
+                                tint     = cs.error,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                stringResource(R.string.home_overdue_title),
+                                style      = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = cs.onSurface,
+                            )
+                        }
 
-                            uiState.overdueMediciner.forEachIndexed { i, med ->
-                                if (i > 0) HorizontalDivider(color = cs.onErrorContainer.copy(alpha = 0.12f))
-                                ListItem(
-                                    headlineContent   = { Text(med.namn, color = cs.onErrorContainer) },
-                                    supportingContent = {
-                                        Text(
-                                            "${med.dos} ${med.enhet}  ·  ${med.tidpunkt}",
-                                            color = cs.onErrorContainer.copy(alpha = 0.7f),
+                        uiState.overdueMediciner.forEachIndexed { i, med ->
+                            if (i > 0) HorizontalDivider(color = cs.outlineVariant)
+                            ListItem(
+                                headlineContent   = { Text(med.namn, color = cs.onSurface) },
+                                supportingContent = {
+                                    Text(
+                                        "${med.dos} ${med.enhet}  ·  ${med.tidpunkt}",
+                                        color = cs.onSurfaceVariant,
+                                    )
+                                },
+                                leadingContent  = {
+                                    Icon(Icons.Filled.Medication, null, tint = cs.error)
+                                },
+                                trailingContent = {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(cs.error.copy(alpha = 0.12f))
+                                            .clickable { vm.toggleMedicinTagen(med) },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.CheckCircle,
+                                            contentDescription = stringResource(R.string.format_mark_as_taken, med.namn),
+                                            tint     = cs.error,
+                                            modifier = Modifier.size(20.dp),
                                         )
-                                    },
-                                    leadingContent  = {
-                                        Icon(Icons.Filled.Medication, null, tint = cs.error)
-                                    },
-                                    trailingContent = {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                                .clip(CircleShape)
-                                                .background(cs.onErrorContainer.copy(alpha = 0.15f))
-                                                .clickable { vm.toggleMedicinTagen(med) },
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Icon(
-                                                Icons.Filled.CheckCircle,
-                                                contentDescription = stringResource(R.string.format_mark_as_taken, med.namn),
-                                                tint     = cs.onErrorContainer,
-                                                modifier = Modifier.size(20.dp),
-                                            )
-                                        }
-                                    },
-                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                                )
-                            }
+                                    }
+                                },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            )
+                        }
 
-                            uiState.overdueScreeningTimes.forEachIndexed { i, time ->
-                                val showDivider = i > 0 || uiState.overdueMediciner.isNotEmpty()
-                                if (showDivider) HorizontalDivider(color = cs.onErrorContainer.copy(alpha = 0.12f))
-                                ListItem(
-                                    headlineContent   = { Text(stringResource(R.string.home_daily_screening), color = cs.onErrorContainer) },
-                                    supportingContent = {
-                                        Text(
-                                            stringResource(R.string.format_home_screening_reminder, time),
-                                            color = cs.onErrorContainer.copy(alpha = 0.7f),
-                                        )
-                                    },
-                                    leadingContent  = {
-                                        Icon(Icons.Filled.Bolt, null, tint = cs.error)
-                                    },
-                                    trailingContent = {
-                                        TextButton(onClick = onNavigateToAktiviteter) {
-                                            Text(stringResource(R.string.home_log_action), color = cs.onErrorContainer)
-                                        }
-                                    },
-                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                                )
-                            }
+                        uiState.overdueScreeningTimes.forEachIndexed { i, time ->
+                            val showDivider = i > 0 || uiState.overdueMediciner.isNotEmpty()
+                            if (showDivider) HorizontalDivider(color = cs.outlineVariant)
+                            ListItem(
+                                headlineContent   = { Text(stringResource(R.string.home_daily_screening), color = cs.onSurface) },
+                                supportingContent = {
+                                    Text(
+                                        stringResource(R.string.format_home_screening_reminder, time),
+                                        color = cs.onSurfaceVariant,
+                                    )
+                                },
+                                leadingContent  = {
+                                    Icon(Icons.Filled.Bolt, null, tint = cs.error)
+                                },
+                                trailingContent = {
+                                    TextButton(onClick = onNavigateToAktiviteter) {
+                                        Text(stringResource(R.string.home_log_action), color = cs.error)
+                                    }
+                                },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            )
                         }
                     }
                 }
@@ -237,8 +219,8 @@ fun HomeScreen(
             uiState.pagaendeSjukdom?.let { sjukdom ->
                 item {
                     DagbokenCard(
-                        onClick        = onNavigateToSjukdomar,
-                        containerColor = cs.errorContainer,
+                        onClick     = onNavigateToSjukdomar,
+                        accentColor = cs.error,
                     ) {
                         Row(
                             modifier          = Modifier.fillMaxWidth(),
@@ -255,18 +237,18 @@ fun HomeScreen(
                                 Text(
                                     stringResource(R.string.sjukdom_hem_card_pagaende),
                                     style      = MaterialTheme.typography.labelSmall,
-                                    color      = cs.onErrorContainer.copy(alpha = 0.7f),
+                                    color      = cs.onSurfaceVariant,
                                 )
                                 Text(
                                     sjukdom.typ,
                                     style      = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
-                                    color      = cs.onErrorContainer,
+                                    color      = cs.onSurface,
                                 )
                                 Text(
                                     stringResource(R.string.format_sjukdom_hem_sedan, sjukdom.startDatum),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = cs.onErrorContainer.copy(alpha = 0.7f),
+                                    color = cs.onSurfaceVariant,
                                 )
                             }
                         }

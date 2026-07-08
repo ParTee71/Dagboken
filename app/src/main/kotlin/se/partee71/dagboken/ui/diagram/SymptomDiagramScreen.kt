@@ -38,6 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.dagboken.ui.components.SectionHeader
 
 private val SYMPTOM_GRID_VALUES = listOf(0f, 1f, 2f, 3f, 4f, 5f)
 
@@ -143,7 +144,7 @@ fun SymptomDiagramScreen(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text(stringResource(R.string.diagram_summary), style = MaterialTheme.typography.titleSmall)
+                        SectionHeader(stringResource(R.string.diagram_summary))
                         HorizontalDivider()
                         state.series.forEachIndexed { index, s ->
                             if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
