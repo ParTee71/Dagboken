@@ -18,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.flow.first
 import se.partee71.dagboken.MainViewModel
@@ -101,10 +102,10 @@ fun AppNavigation(
                             icon = {
                                 Icon(
                                     imageVector        = if (selected) screen.iconSelected else screen.iconUnselected,
-                                    contentDescription = screen.label,
+                                    contentDescription = stringResource(screen.labelRes),
                                 )
                             },
-                            label = { Text(screen.label) },
+                            label = { Text(stringResource(screen.labelRes)) },
                         )
                     }
                 }

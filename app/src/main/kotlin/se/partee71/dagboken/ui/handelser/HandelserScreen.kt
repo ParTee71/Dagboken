@@ -193,7 +193,7 @@ private fun TypFilterRow(
         FilterChip(
             selected = selected == null,
             onClick  = { onSelect(null) },
-            label    = { Text("Alla typer") },
+            label    = { Text(stringResource(R.string.handelser_filter_all_types)) },
         )
         typer.forEach { typ ->
             FilterChip(

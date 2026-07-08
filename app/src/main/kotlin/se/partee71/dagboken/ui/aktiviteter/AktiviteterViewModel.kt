@@ -16,6 +16,7 @@ import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.NoteRepository
+import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.usecase.SymptomUtils
@@ -149,7 +150,7 @@ class AktiviteterViewModel @Inject constructor(
             val symptomStr = SymptomUtils.encode(scores)
             val entry = Aktivitet(
                 id           = _editId.value ?: UUID.randomUUID().toString(),
-                timestamp    = "${f.datum}T${f.tid}:00.000Z",
+                timestamp    = Timestamps.of(f.datum, f.tid),
                 datum        = f.datum,
                 tid          = f.tid,
                 aktivitet    = aktivitetName,

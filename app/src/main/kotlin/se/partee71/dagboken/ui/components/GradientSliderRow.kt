@@ -37,6 +37,11 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -125,7 +130,7 @@ fun GradientSliderRow(
             IconButton(
                 onClick  = { onValueChange((value - stepSize).coerceAtLeast(valueRange.start)) },
                 enabled  = enabled && value > valueRange.start,
-                modifier = Modifier.size(36.dp),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.decrease), modifier = Modifier.size(20.dp))
             }
@@ -134,7 +139,21 @@ fun GradientSliderRow(
         BoxWithConstraints(
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp),
+                .height(48.dp)
+                .semantics {
+                    contentDescription = label
+                    progressBarRangeInfo = ProgressBarRangeInfo(
+                        current = value,
+                        range   = valueRange,
+                        steps   = steps,
+                    )
+                    if (enabled) {
+                        setProgress { target ->
+                            onValueChange(target.coerceIn(valueRange.start, valueRange.endInclusive))
+                            true
+                        }
+                    }
+                },
         ) {
             if (rangeSize == 0f) return@BoxWithConstraints
 
@@ -188,7 +207,7 @@ fun GradientSliderRow(
                         .height(18.dp)
                         .align(Alignment.CenterStart)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.85f)),
+                        .background(cs.surface.copy(alpha = 0.85f)),
                 )
             }
 
@@ -243,7 +262,7 @@ fun GradientSliderRow(
             IconButton(
                 onClick  = { onValueChange((value + stepSize).coerceAtMost(valueRange.endInclusive)) },
                 enabled  = enabled && value < valueRange.endInclusive,
-                modifier = Modifier.size(36.dp),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.increase), modifier = Modifier.size(20.dp))
             }

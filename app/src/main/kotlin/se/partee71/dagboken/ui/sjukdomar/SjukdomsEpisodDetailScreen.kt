@@ -196,7 +196,7 @@ fun SjukdomsEpisodDetailScreen(
         AlertDialog(
             onDismissRequest = { showMarkFriskDialog = false },
             title            = { Text(stringResource(R.string.sjukdom_markera_frisk)) },
-            text             = { Text("Markera episoden som avslutad idag?") },
+            text             = { Text(stringResource(R.string.sjukdom_markera_frisk_confirm)) },
             confirmButton    = {
                 TextButton(onClick = {
                     episod?.let { vm.markFrisk(it) }

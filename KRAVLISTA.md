@@ -3,7 +3,7 @@
 > Hälsodagbok för att logga aktiviteter, daglig screening (energi, stress, symptom) och
 > mediciner, med diagram, påminnelser och molnbackup via Google Drive.
 >
-> Version: 2.0.0 · Paket: `se.partee71.dagboken` · Språk: Svenska
+> Version: 2.14.0 · Paket: `se.partee71.dagboken` · Språk: Svenska
 
 ---
 
@@ -24,7 +24,7 @@
 
 | ID | Krav |
 |----|------|
-| TP-1 | Android, **minSdk 26** (Android 8.0), targetSdk/compileSdk 35. |
+| TP-1 | Android, **minSdk 30** (Android 11), targetSdk/compileSdk 35. |
 | TP-2 | UI byggt med **Jetpack Compose** + Material 3. |
 | TP-3 | Arkitektur: **MVVM** med Hilt (DI), Repository-mönster, ViewModels med `StateFlow`. |
 | TP-4 | Lokal lagring i **Room**; inställningar i **DataStore (Preferences)**. |
@@ -40,8 +40,8 @@
 
 | ID | Krav |
 |----|------|
-| NAV-1 | Appen ska ha en **bottennavigering** med fyra flikar: Hem, Aktivitet, Mediciner, Hälsa. |
-| NAV-2 | Fliken **Hälsa** (Samsung Health) ska visas som inaktiverad platshållare (nedtonad, ej klickbar). |
+| NAV-1 | Appen ska ha en **bottennavigering** med fem flikar: Hem, Aktivitet, Mediciner, Händelser, Sjukdomar. |
+| NAV-2 | ~~Fliken **Hälsa** (Samsung Health) ska visas som inaktiverad platshållare (nedtonad, ej klickbar).~~ *(ej implementerad ännu — planeras i epic #54)* |
 | NAV-3 | Bottennavigeringen ska döljas på underliggande skärmar (lägg till/redigera, inställningar, diagram, migrering). |
 | NAV-4 | Navigering ska bevara och återställa fliktillstånd (`saveState`/`restoreState`). |
 | NAV-5 | Skärmövergångar ska animeras (slide + fade). |

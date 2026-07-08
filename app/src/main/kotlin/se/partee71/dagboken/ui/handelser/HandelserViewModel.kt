@@ -15,6 +15,7 @@ import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.NoteRepository
+import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Handelse
 import se.partee71.dagboken.domain.model.NoteTarget
 import java.time.LocalDate
@@ -131,7 +132,7 @@ class HandelserViewModel @Inject constructor(
         viewModelScope.launch {
             val entry = Handelse(
                 id                 = _editId.value ?: UUID.randomUUID().toString(),
-                timestamp          = "${f.datum}T${f.tid}:00.000Z",
+                timestamp          = Timestamps.of(f.datum, f.tid),
                 datum              = f.datum,
                 tid                = f.tid,
                 typ                = f.typ,

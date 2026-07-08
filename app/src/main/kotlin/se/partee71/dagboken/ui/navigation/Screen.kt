@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.navigation
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Home
@@ -12,40 +13,41 @@ import androidx.compose.material.icons.outlined.LocalHospital
 import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.ui.graphics.vector.ImageVector
+import se.partee71.dagboken.R
 
 sealed class Screen(
     val route: String,
-    val label: String,
+    @StringRes val labelRes: Int,
     val iconSelected: ImageVector,
     val iconUnselected: ImageVector,
 ) {
     object Hem : Screen(
         route          = "hem",
-        label          = "Hem",
+        labelRes       = R.string.nav_tab_hem,
         iconSelected   = Icons.Filled.Home,
         iconUnselected = Icons.Outlined.Home,
     )
     object Aktiviteter : Screen(
         route          = "aktiviteter",
-        label          = "Aktivitet",
+        labelRes       = R.string.nav_tab_aktivitet,
         iconSelected   = Icons.Filled.Bolt,
         iconUnselected = Icons.Outlined.Bolt,
     )
     object Mediciner : Screen(
         route          = "mediciner",
-        label          = "Mediciner",
+        labelRes       = R.string.nav_tab_mediciner,
         iconSelected   = Icons.Filled.Medication,
         iconUnselected = Icons.Outlined.Medication,
     )
     object Handelser : Screen(
         route          = "handelser",
-        label          = "Händelser",
+        labelRes       = R.string.nav_tab_handelser,
         iconSelected   = Icons.Filled.MonitorHeart,
         iconUnselected = Icons.Outlined.MonitorHeart,
     )
     object Sjukdomar : Screen(
         route          = "sjukdomar",
-        label          = "Sjukdomar",
+        labelRes       = R.string.nav_tab_sjukdomar,
         iconSelected   = Icons.Filled.LocalHospital,
         iconUnselected = Icons.Outlined.LocalHospital,
     )
