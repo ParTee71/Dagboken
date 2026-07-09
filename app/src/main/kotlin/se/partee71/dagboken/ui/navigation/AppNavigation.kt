@@ -139,10 +139,12 @@ fun AppNavigation(
             composable(Screen.Hem.route) {
                 HomeScreen(
                     onNavigateToAktiviteter = { navController.navigate(Screen.Aktiviteter.route) },
-                    onNavigateToMediciner   = { navController.navigate(Screen.Mediciner.route) },
                     onNavigateToSettings    = { navController.navigate(Routes.SETTINGS) },
                     onNavigateToDiagram     = { navController.navigate(Routes.diagram("hem")) },
                     onNavigateToSjukdomar   = { navController.navigate(Screen.Sjukdomar.route) },
+                    onAddAktivitet          = { navController.navigate(Routes.ADD_AKTIVITET) },
+                    onAddMedicin            = { navController.navigate(Routes.ADD_MEDICIN) },
+                    onAddHandelse           = { navController.navigate(Routes.ADD_HANDELSE) },
                     snackbarHostState       = snackbarHostState,
                 )
             }

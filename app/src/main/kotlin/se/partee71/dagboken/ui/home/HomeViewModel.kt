@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.ScreeningTime
 import se.partee71.dagboken.data.repository.AktiviteterRepository
@@ -30,12 +31,19 @@ import java.time.LocalTime
 import java.time.temporal.WeekFields
 import javax.inject.Inject
 
+data class ScreeningEventStatus(
+    val label: String,
+    val time: String,
+    val logged: Boolean,
+    val overdue: Boolean,
+)
+
 data class HomeUiState(
     val todayMediciner: List<Medicin> = emptyList(),
     val screeningPoints: List<Float> = emptyList(),
     val screeningLabels: List<String> = emptyList(),
     val overdueMediciner: List<Medicin> = emptyList(),
-    val overdueScreeningTimes: List<String> = emptyList(),
+    val screeningEvents: List<ScreeningEventStatus> = emptyList(),
     val lastAktivitet: Aktivitet? = null,
     val tagenCount: Int = 0,
     val googleEmail: String? = null,
@@ -56,8 +64,12 @@ class HomeViewModel @Inject constructor(
 
     private val _isSigningIn = MutableStateFlow(false)
 
-    private val activeScreeningTimes = prefs.screeningEventConfigs
-        .map { configs: List<ScreeningEventConfig> -> configs.filter { it.enabled }.map { it.time } }
+    private val activeScreeningEvents = prefs.screeningEventConfigs
+        .map { configs: List<ScreeningEventConfig> ->
+            configs.mapIndexedNotNull { i, c ->
+                if (c.enabled) SCREENING_EVENT_LABELS.getOrNull(i)?.let { label -> label to c.time } else null
+            }
+        }
 
     init {
         viewModelScope.launch { medicinerRepo.ensureTodayEntries() }
@@ -67,12 +79,12 @@ class HomeViewModel @Inject constructor(
         medicinerRepo.todayFlow(),
         authRepo.authStateFlow,
         _isSigningIn,
-        activeScreeningTimes,
+        activeScreeningEvents,
         combine(
             aktiviteterRepo.screeningFromDate(7),
             sjukdomarRepo.pagaende,
         ) { screenings, pagaende -> screenings to pagaende },
-    ) { today, user, signingIn, activeTimes, (recentScreenings, pagaendeSjukdom) ->
+    ) { today, user, signingIn, activeEvents, (recentScreenings, pagaendeSjukdom) ->
         val todayStr = LocalDate.now().toString()
         val screeningsToday = recentScreenings.filter { it.datum == todayStr }
         val screeningDailyAvg = recentScreenings
@@ -89,12 +101,12 @@ class HomeViewModel @Inject constructor(
             }
             .sortedBy { tidpunktSortIndex(it.tidpunkt) }
 
-        val overdueScreeningTimes = activeTimes.filter { timeStr ->
-            val st = ScreeningTime.parse(timeStr) ?: return@filter false
-            val reminderTime = LocalTime.of(st.hour, st.min)
-            nowTime.isAfter(reminderTime) && screeningsToday.none { s ->
-                try { !LocalTime.parse(s.tid).isBefore(reminderTime) } catch (_: Exception) { false }
-            }
+        val screeningEvents = activeEvents.map { (label, timeStr) ->
+            val st = ScreeningTime.parse(timeStr)
+            val reminderTime = st?.let { LocalTime.of(it.hour, it.min) }
+            val logged = screeningsToday.any { it.aktivitet == label }
+            val overdue = !logged && reminderTime != null && nowTime.isAfter(reminderTime)
+            ScreeningEventStatus(label = label, time = timeStr, logged = logged, overdue = overdue)
         }
 
         HomeUiState(
@@ -102,7 +114,7 @@ class HomeViewModel @Inject constructor(
             screeningPoints       = screeningDailyAvg.map { it.second },
             screeningLabels       = screeningDailyAvg.map { dayLabel(it.first) },
             overdueMediciner      = overdueMediciner,
-            overdueScreeningTimes = overdueScreeningTimes,
+            screeningEvents       = screeningEvents,
             lastAktivitet         = null,
             tagenCount            = today.count { it.tagen },
             googleEmail           = user?.email,

@@ -21,9 +21,11 @@ import org.junit.Before
 import org.junit.Test
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
+import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.Medicin
 import java.time.LocalDate
 
@@ -181,14 +183,52 @@ class HomeViewModelTest {
         coVerify { medicinerRepo.toggleTagen("m1", false) }
     }
 
-    // ─── overdueScreeningTimes ────────────────────────────────────────────────
+    // ─── screeningEvents ──────────────────────────────────────────────────────
 
-    @Test fun `overdueScreeningTimes is empty when no screening events are enabled`() = runTest {
+    @Test fun `screeningEvents is empty when no screening events are enabled`() = runTest {
         every { prefs.screeningEventConfigs } returns flowOf(emptyList())
         viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo)
 
         viewModel.uiState.test {
-            assertTrue(awaitItem().overdueScreeningTimes.isEmpty())
+            assertTrue(awaitItem().screeningEvents.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `screeningEvents maps enabled configs to labels by index`() = runTest {
+        every { prefs.screeningEventConfigs } returns flowOf(
+            listOf(
+                ScreeningEventConfig(enabled = true, time = "08:00"),
+                ScreeningEventConfig(enabled = false, time = "12:00"),
+            ),
+        )
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo)
+
+        viewModel.uiState.test {
+            val events = awaitItem().screeningEvents
+            assertEquals(1, events.size)
+            assertEquals("Efter frukost", events[0].label)
+            assertEquals("08:00", events[0].time)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `screeningEvents marks an event logged when a matching screening was saved today`() = runTest {
+        every { prefs.screeningEventConfigs } returns flowOf(
+            listOf(ScreeningEventConfig(enabled = true, time = "08:00")),
+        )
+        val loggedScreening = Aktivitet(
+            id = "s1", timestamp = "x", datum = LocalDate.now().toString(), tid = "08:05",
+            aktivitet = "Efter frukost", energy = 5, stress = 2, somatiska = 0, symptom = "",
+            type = "screening",
+        )
+        every { aktiviteterRepo.screeningFromDate(any()) } returns flowOf(listOf(loggedScreening))
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo)
+
+        viewModel.uiState.test {
+            val event = awaitItem().screeningEvents.first()
+            assertTrue(event.logged)
+            assertFalse(event.overdue)
             cancelAndIgnoreRemainingEvents()
         }
     }
