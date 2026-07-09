@@ -22,7 +22,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,7 +57,9 @@ fun StepwiseScreeningForm(
     val cs = MaterialTheme.colorScheme
     val hasSymptom = symptomOptions.isNotEmpty()
     val stepCount = if (hasSymptom) 3 else 2
-    val pagerState = rememberPagerState(pageCount = { stepCount })
+    // Re-key on stepCount so a late-loading symptomlista (2 → 3 steg) rebuilds the
+    // pager with the correct pageCount instead of a stale captured value.
+    val pagerState = key(stepCount) { rememberPagerState(pageCount = { stepCount }) }
     val scope = rememberCoroutineScope()
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
