@@ -41,12 +41,12 @@ class MainViewModelTest {
         assertNull(viewModel.pendingNavRoute.value)
     }
 
-    @Test fun `setPendingNavRoute stores the new bottom-nav route for Idag`() = runTest {
+    @Test fun `setPendingNavRoute stores the new bottom-nav route for Idag`() = runTest(testDispatcher) {
         viewModel.setPendingNavRoute(Screen.Idag.route)
         assertEquals(Screen.Idag.route, viewModel.pendingNavRoute.value)
     }
 
-    @Test fun `clearPendingNavRoute resets it to null`() = runTest {
+    @Test fun `clearPendingNavRoute resets it to null`() = runTest(testDispatcher) {
         viewModel.setPendingNavRoute(Screen.Idag.route)
         viewModel.clearPendingNavRoute()
         assertNull(viewModel.pendingNavRoute.value)
