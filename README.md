@@ -130,6 +130,7 @@ Se [.github/workflows/android.yml](.github/workflows/android.yml).
 
 | Version | Innehåll |
 |---------|----------|
+| 2.15.0 | Enhetligt designsystem: `DagbokenCard` enda kortbyggsten, delad `EmptyState`/`ConfirmDialog`, centraliserad datum/tid-formatering (`DateUtils`), gemensamt skärmramverk `DagbokenScaffold` + `SectionHeader`, konsekventa animationer (`DagbokenAnimSpec`, `animateItem()`), Hem-skärmens statuskort med accentfärg |
 | 2.14.1 | Tillgänglighetsfixar (48dp tryckytor, TalkBack-semantik på energireglaget), korrekt tidszonskonvertering för loggade tidsstämplar (medicinnedkylning kunde bli ~2h för lång), avkodad Settings-layout och medicindosloggning, borttagen död kod, städad KRAVLISTA/README |
 | 2.14.0 | Info-ikon med läs-only anteckningsdialog på kort som saknade en synlig anteckningsindikator (Aktivitet/Screening, medicindos, favorit, sjukdomsepisod) |
 | 2.13.0 | Sjukdomsepisod- och incheckningsanteckning migrerad till det generiska anteckningssystemet (delad `NoteField`) |
