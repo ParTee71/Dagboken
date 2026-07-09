@@ -44,12 +44,13 @@ import se.partee71.dagboken.ui.formatShortDate
 import se.partee71.dagboken.ui.formatShortDateYear
 import java.time.LocalDate
 
-private val ALL_SERIES = listOf(
+/** Reused by Trender-ytan (`ui/trender`) so serienamn/-färger inte dupliceras. */
+internal val ALL_SERIES = listOf(
     "Energi Frukost", "Energi Lunch", "Energi Kvällsmat", "Energi Läggdags",
     "Stress", "Somatiska", "Återhämtande", "Energitjuv",
 )
 
-private val SERIES_PALETTE = listOf(
+internal val SERIES_PALETTE = listOf(
     Color(0xFF60a5fa),  // blue-400      (Energi Frukost)
     Color(0xFF34d399),  // emerald-400   (Energi Lunch)
     Color(0xFFfbbf24),  // amber-400     (Energi Kvällsmat)
@@ -60,7 +61,7 @@ private val SERIES_PALETTE = listOf(
     Color(0xFFf472b6),  // pink-400      (Energitjuv)
 )
 
-private fun seriesColor(name: String): Color =
+internal fun seriesColor(name: String): Color =
     SERIES_PALETTE.getOrElse(ALL_SERIES.indexOf(name)) { SERIES_PALETTE.last() }
 
 @Composable
@@ -84,19 +85,7 @@ fun DiagramScreen(
             ChartSeries(
                 label  = name,
                 color  = seriesColor(name),
-                points = state.stats.map { day ->
-                    when (name) {
-                        "Energi Frukost"   -> day.avgEnergyFrukost
-                        "Energi Lunch"     -> day.avgEnergyLunch
-                        "Energi Kvällsmat" -> day.avgEnergyKvallsmat
-                        "Energi Läggdags"  -> day.avgEnergyLaggdags
-                        "Stress"           -> day.avgStress
-                        "Somatiska"        -> day.avgSomatiska
-                        "Återhämtande"     -> day.avgAterhamtande
-                        "Energitjuv"       -> day.avgEnergitjuv
-                        else               -> null
-                    }
-                },
+                points = state.stats.map { day -> day.valueFor(name) },
             )
         }
     val allValues = chartSeries.flatMap { it.points }.filterNotNull()
@@ -210,19 +199,7 @@ fun DiagramScreen(
                         HorizontalDivider()
                         ALL_SERIES.filter { it in state.visibleSeries }.forEachIndexed { i, series ->
                             if (i > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                            val values = state.stats.mapNotNull { day ->
-                                when (series) {
-                                    "Energi Frukost"   -> day.avgEnergyFrukost
-                                    "Energi Lunch"     -> day.avgEnergyLunch
-                                    "Energi Kvällsmat" -> day.avgEnergyKvallsmat
-                                    "Energi Läggdags"  -> day.avgEnergyLaggdags
-                                    "Stress"           -> day.avgStress
-                                    "Somatiska"        -> day.avgSomatiska
-                                    "Återhämtande"     -> day.avgAterhamtande
-                                    "Energitjuv"       -> day.avgEnergitjuv
-                                    else               -> null
-                                }
-                            }
+                            val values = state.stats.mapNotNull { day -> day.valueFor(series) }
                             if (values.isNotEmpty()) {
                                 Text(series, style = MaterialTheme.typography.labelMedium, color = seriesColor(series))
                                 Row(
