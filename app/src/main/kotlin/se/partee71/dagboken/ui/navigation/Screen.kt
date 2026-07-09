@@ -79,6 +79,7 @@ object Routes {
     const val SJUKDOM_EPISOD_DETAIL         = "sjukdom_episod/{episodId}"
     const val ADD_SJUKDOMS_INCHECKNING      = "add_sjukdoms_incheckning/{episodId}"
     const val HISTORIK                      = "historik"
+    const val TRENDER                       = "trender"
 
     fun editAktivitet(id: String)                = "edit_aktivitet/$id"
     fun editScreening(id: String)                = "edit_screening/$id"

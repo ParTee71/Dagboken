@@ -31,6 +31,19 @@ data class DiagramUiState(
     val visibleSeries: Set<String> = setOf("Energi Frukost"),
 )
 
+/** Reused by [DiagramScreen] and Trender-ytan (`ui/trender`) to read a named series off a day's stats. */
+internal fun DailyStats.valueFor(seriesName: String): Float? = when (seriesName) {
+    "Energi Frukost"   -> avgEnergyFrukost
+    "Energi Lunch"     -> avgEnergyLunch
+    "Energi Kvällsmat" -> avgEnergyKvallsmat
+    "Energi Läggdags"  -> avgEnergyLaggdags
+    "Stress"           -> avgStress
+    "Somatiska"        -> avgSomatiska
+    "Återhämtande"     -> avgAterhamtande
+    "Energitjuv"       -> avgEnergitjuv
+    else               -> null
+}
+
 @HiltViewModel
 class DiagramViewModel @Inject constructor(
     private val repo: AktiviteterRepository,

@@ -50,6 +50,7 @@ import se.partee71.dagboken.ui.sjukdomar.AddEditSjukdomScreen
 import se.partee71.dagboken.ui.sjukdomar.AddSjukdomsIncheckningScreen
 import se.partee71.dagboken.ui.sjukdomar.SjukdomarScreen
 import se.partee71.dagboken.ui.sjukdomar.SjukdomsEpisodDetailScreen
+import se.partee71.dagboken.ui.trender.TrenderScreen
 
 @Composable
 fun AppNavigation(
@@ -313,6 +314,11 @@ fun AppNavigation(
                 arguments = listOf(navArgument("episodId") { type = NavType.StringType }),
             ) {
                 AddSjukdomsIncheckningScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.TRENDER) {
+                TrenderScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

@@ -163,7 +163,7 @@
 | DIA-1 | Visa trender över **genomsnittlig energi och stress per dag**. |
 | DIA-2 | Tidsintervall ska kunna väljas (7/14/30/90 dagar). |
 | DIA-3 | **Dataserier** (Energi, Stress) ska kunna visas och döljas individuellt via en **flervalsmeny**; båda kan visas simultant. |
-| DIA-4 | Diagram ska nås från Hem, Aktiviteter och Mediciner (källparameter styr vy). |
+| DIA-4 | Diagram ska nås från Hem, Aktiviteter och Mediciner (källparameter styr vy). *(ersätts av Trender-ytan, §17, när navigationsbytet i #84 etapp 4 kopplar om till den — orört tills dess)* |
 | DIA-5 | Diagramhöjd ska vara minst **280dp** för god läsbarhet. |
 
 ---
@@ -305,3 +305,18 @@
 | HIST-2 | Poster kan filtreras per typ med filterchips; minst en typ måste vara aktiv (samma regel som HIS-1). |
 | HIST-3 | Tryck på en post navigerar till dess befintliga redigerings-/detaljskärm (ingen ny redigeringslogik i Historik-ytan själv). |
 | HIST-4 | Historik-ytan skriver inte till någon datakälla — ren läsvy över befintliga repositories. |
+
+---
+
+## 17. Trender-yta (enhetliga diagram, TRD)
+
+> Del av UX-omtaget #84 (etapp 3). Byggd och testad men **ännu inte nåbar via
+> bottennavigeringen** — kopplas in när navigationsbytet sker (#84 etapp 4). Fram tills
+> dess gäller `DiagramScreen`/`SymptomDiagramScreen` (DIA-1..5) som den nåbara vägen.
+
+| ID | Krav |
+|----|------|
+| TRD-1 | Trender-ytan slår ihop aktivitetsserierna (Energi Frukost/Lunch/Kvällsmat/Läggdags, Stress, Somatiska, Återhämtande, Energitjuv) och symptomserierna i en gemensam serieväljare. |
+| TRD-2 | Flera serier — oavsett ursprung (aktivitet eller symptom) — kan väljas och overlagras i samma diagram, på en gemensamt beräknad skala (samma princip som befintlig `DiagramScreen`, ingen separat y-axel per serie). |
+| TRD-3 | Gemensam periodväljare (7/14/30/90 dagar) gäller för alla serier oavsett ursprung. |
+| TRD-4 | Trender-ytan skriver inte till någon datakälla — ren läsvy. |
