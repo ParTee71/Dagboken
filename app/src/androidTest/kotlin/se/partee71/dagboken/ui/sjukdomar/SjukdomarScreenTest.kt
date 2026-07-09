@@ -29,7 +29,15 @@ import se.partee71.dagboken.domain.model.SjukdomsEpisod
 @RunWith(AndroidJUnit4::class)
 class SjukdomarScreenTest {
 
-    @get:Rule val composeRule = createComposeRule()
+    val composeRule = createComposeRule()
+
+    // Retry outermost so a swiftshader render-glitch flake re-runs with a
+    // fresh @Before/@After lifecycle instead of failing the build.
+    @get:Rule
+    val flakyRetry: org.junit.rules.RuleChain =
+        org.junit.rules.RuleChain
+            .outerRule(se.partee71.dagboken.util.RetryTestRule())
+            .around(composeRule)
 
     private lateinit var db: AppDatabase
     private lateinit var repo: SjukdomarRepository
