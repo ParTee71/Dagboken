@@ -23,6 +23,7 @@ import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.domain.model.medicinHistoryType
 import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
 import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
+import se.partee71.dagboken.ui.formatTime
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -205,7 +206,7 @@ class MedicinerViewModel @Inject constructor(
     }
 
     private suspend fun logDose(favorit: Favorit, today: String) {
-        val tid = java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+        val tid = formatTime(java.time.LocalTime.now())
         val medicinId = UUID.randomUUID().toString()
         repo.saveMedicin(Medicin(
             id         = medicinId,

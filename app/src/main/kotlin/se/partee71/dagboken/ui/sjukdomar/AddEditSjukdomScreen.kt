@@ -10,16 +10,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,13 +24,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.SymptomLogCard
-import androidx.compose.material3.ElevatedCard
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditSjukdomScreen(
     editId: String?,
@@ -47,19 +42,9 @@ fun AddEditSjukdomScreen(
     val form           by vm.form.collectAsStateWithLifecycle()
     val symptomOptions by vm.symptomOptions.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(stringResource(if (editId == null) R.string.sjukdom_add_title else R.string.sjukdom_edit_title))
-                },
-                navigationIcon = {
-                    IconButton(onClick = { vm.resetForm(); onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
-                    }
-                },
-            )
-        },
+    DagbokenScaffold(
+        title  = stringResource(if (editId == null) R.string.sjukdom_add_title else R.string.sjukdom_edit_title),
+        onBack = { vm.resetForm(); onBack() },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -86,19 +71,17 @@ fun AddEditSjukdomScreen(
             )
 
             if (editId == null) {
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        GradientSliderRow(
-                            label         = stringResource(R.string.sjukdom_label_svarighetsgrad),
-                            value         = form.svarighetsgrad.toFloat(),
-                            onValueChange = { vm.updateForm { copy(svarighetsgrad = it.toInt()) } },
-                            valueRange    = 0f..10f,
-                            steps         = 9,
-                            startLabel    = "0  Ingen",
-                            endLabel      = "10  Extrem",
-                            reverseColors = true,
-                        )
-                    }
+                DagbokenCard {
+                    GradientSliderRow(
+                        label         = stringResource(R.string.sjukdom_label_svarighetsgrad),
+                        value         = form.svarighetsgrad.toFloat(),
+                        onValueChange = { vm.updateForm { copy(svarighetsgrad = it.toInt()) } },
+                        valueRange    = 0f..10f,
+                        steps         = 9,
+                        startLabel    = "0  Ingen",
+                        endLabel      = "10  Extrem",
+                        reverseColors = true,
+                    )
                 }
 
                 SymptomLogCard(

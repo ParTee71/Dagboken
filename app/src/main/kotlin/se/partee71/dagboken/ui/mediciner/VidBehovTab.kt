@@ -1,12 +1,11 @@
 package se.partee71.dagboken.ui.mediciner
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,10 +22,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -45,10 +42,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.ui.components.ConfirmDialog
+import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 import java.util.Locale
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun VidBehovTab(
     vm: MedicinerViewModel,
@@ -63,28 +63,11 @@ fun VidBehovTab(
     val cs = MaterialTheme.colorScheme
 
     if (allFavoriter.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = Icons.Outlined.Favorite,
-                    contentDescription = null,
-                    modifier = Modifier.size(56.dp),
-                    tint = cs.secondary.copy(alpha = 0.3f),
-                )
-                Spacer(Modifier.height(14.dp))
-                Text(
-                    stringResource(R.string.empty_favoriter_title),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = cs.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    stringResource(R.string.empty_favoriter_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = cs.onSurfaceVariant.copy(alpha = 0.6f),
-                )
-            }
-        }
+        EmptyState(
+            icon  = Icons.Outlined.Favorite,
+            title = stringResource(R.string.empty_favoriter_title),
+            body  = stringResource(R.string.empty_favoriter_body),
+        )
         return
     }
 
@@ -117,18 +100,11 @@ fun VidBehovTab(
     }
 
     deleteTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = { Text(stringResource(R.string.delete_favorit_title)) },
-            text  = { Text(stringResource(R.string.format_delete_favorit_confirm, target.namn)) },
-            confirmButton = {
-                TextButton(onClick = { vm.deleteFavorit(target); deleteTarget = null }) {
-                    Text(stringResource(R.string.delete), color = cs.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
-            },
+        ConfirmDialog(
+            title     = stringResource(R.string.delete_favorit_title),
+            text      = stringResource(R.string.format_delete_favorit_confirm, target.namn),
+            onConfirm = { vm.deleteFavorit(target); deleteTarget = null },
+            onDismiss = { deleteTarget = null },
         )
     }
 
@@ -162,7 +138,7 @@ fun VidBehovTab(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun FavoriterRow(
     favoriter: List<Favorit>,
@@ -182,17 +158,12 @@ internal fun FavoriterRow(
         favoriter.forEach { fav ->
             var menuExpanded by remember { mutableStateOf(false) }
             Box {
-                ElevatedCard(
-                    modifier = Modifier.combinedClickable(
-                        onClick     = { onTap(fav) },
-                        onLongClick = {
-                            if (onDelete != null) menuExpanded = true else onEdit(fav.id)
-                        },
-                    ),
-                    colors = CardDefaults.elevatedCardColors(
-                        containerColor = cs.secondaryContainer,
-                    ),
-                    shape = MaterialTheme.shapes.large,
+                DagbokenCard(
+                    onClick        = { onTap(fav) },
+                    onLongClick    = { if (onDelete != null) menuExpanded = true else onEdit(fav.id) },
+                    containerColor = cs.secondaryContainer,
+                    contentPadding = PaddingValues(0.dp),
+                    fillMaxWidth   = false,
                 ) {
                     Row(
                         modifier          = Modifier.padding(start = 16.dp, end = 4.dp),

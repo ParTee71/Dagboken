@@ -13,6 +13,7 @@ import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
+import se.partee71.dagboken.ui.formatTime
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -67,7 +68,7 @@ class AddEditMedicinViewModel @Inject constructor(
                 )
             } else {
                 val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-                val tid   = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+                val tid   = formatTime(LocalTime.now())
                 Medicin(
                     id         = UUID.randomUUID().toString(),
                     timestamp  = Timestamps.of(today, tid),

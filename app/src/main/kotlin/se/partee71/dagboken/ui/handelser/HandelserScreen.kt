@@ -18,23 +18,19 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +46,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Handelse
+import se.partee71.dagboken.ui.components.ConfirmDialog
+import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.DagbokenScaffold
+import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.formatDisplayDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -71,16 +71,12 @@ fun HandelserScreen(
 
     var deleteTarget by remember { mutableStateOf<Handelse?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.handelser_title)) },
-                actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
-                    }
-                },
-            )
+    DagbokenScaffold(
+        title   = stringResource(R.string.handelser_title),
+        actions = {
+            IconButton(onClick = onNavigateToSettings) {
+                Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
@@ -107,16 +103,11 @@ fun HandelserScreen(
             }
 
             if (state.filteredHandelser.isEmpty()) {
-                Box(
-                    modifier           = Modifier.fillMaxSize(),
-                    contentAlignment   = Alignment.Center,
-                ) {
-                    Text(
-                        text  = stringResource(R.string.handelser_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                EmptyState(
+                    icon  = Icons.Outlined.MonitorHeart,
+                    title = stringResource(R.string.empty_handelser_title),
+                    body  = stringResource(R.string.empty_handelser_body),
+                )
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -128,6 +119,7 @@ fun HandelserScreen(
                             note     = notes[handelse.id].orEmpty(),
                             onEdit   = { onEdit(handelse.id) },
                             onDelete = { deleteTarget = handelse },
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }
@@ -136,20 +128,11 @@ fun HandelserScreen(
     }
 
     deleteTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title            = { Text(stringResource(R.string.delete)) },
-            text             = { Text(stringResource(R.string.handelser_delete_confirm, target.typ)) },
-            confirmButton    = {
-                TextButton(onClick = { vm.delete(target); deleteTarget = null }) {
-                    Text(stringResource(R.string.delete))
-                }
-            },
-            dismissButton    = {
-                TextButton(onClick = { deleteTarget = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        ConfirmDialog(
+            title     = stringResource(R.string.delete),
+            text      = stringResource(R.string.handelser_delete_confirm, target.typ),
+            onConfirm = { vm.delete(target); deleteTarget = null },
+            onDismiss = { deleteTarget = null },
         )
     }
 }
@@ -211,14 +194,13 @@ private fun HandelseCard(
     note: String,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+    DagbokenCard(modifier = modifier, contentPadding = PaddingValues(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp)) {
         Row(
-            modifier            = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
+            modifier            = Modifier.fillMaxWidth(),
             verticalAlignment   = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -18,7 +17,6 @@ import androidx.compose.material.icons.outlined.Healing
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,6 +36,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.dagboken.ui.components.SectionHeader
 
 private val SYMPTOM_GRID_VALUES = listOf(0f, 1f, 2f, 3f, 4f, 5f)
 
@@ -104,23 +105,12 @@ fun SymptomDiagramScreen(
         },
         chart = { chartModifier ->
             if (state.days.isEmpty() || state.selectedSymptoms.isEmpty()) {
-                Box(modifier = chartModifier, contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector        = Icons.Outlined.Healing,
-                            contentDescription = null,
-                            modifier           = Modifier.size(40.dp),
-                            tint               = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text  = if (state.days.isEmpty()) stringResource(R.string.symptom_diagram_no_data)
-                                    else stringResource(R.string.symptom_diagram_no_series),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                EmptyState(
+                    icon     = Icons.Outlined.Healing,
+                    title    = if (state.days.isEmpty()) stringResource(R.string.symptom_diagram_no_data)
+                               else stringResource(R.string.symptom_diagram_no_series),
+                    modifier = chartModifier,
+                )
             } else {
                 LineChartCanvas(
                     series     = state.series,
@@ -150,12 +140,11 @@ fun SymptomDiagramScreen(
         },
         portraitExtras = if (state.series.isNotEmpty() && state.days.isNotEmpty()) {
             {
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                DagbokenCard {
                     Column(
-                        modifier            = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text(stringResource(R.string.diagram_summary), style = MaterialTheme.typography.titleSmall)
+                        SectionHeader(stringResource(R.string.diagram_summary))
                         HorizontalDivider()
                         state.series.forEachIndexed { index, s ->
                             if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

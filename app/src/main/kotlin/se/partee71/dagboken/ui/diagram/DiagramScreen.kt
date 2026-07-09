@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -18,7 +17,6 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -39,9 +37,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.dagboken.ui.components.SectionHeader
+import se.partee71.dagboken.ui.formatShortDate
+import se.partee71.dagboken.ui.formatShortDateYear
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 private val ALL_SERIES = listOf(
     "Energi Frukost", "Energi Lunch", "Energi Kvällsmat", "Energi Läggdags",
@@ -109,10 +110,8 @@ fun DiagramScreen(
     val periodText = remember(dates, state.rangeDays) {
         if (dates.isEmpty()) null
         else {
-            val fmt     = DateTimeFormatter.ofPattern("d MMM", Locale("sv", "SE"))
-            val fmtFull = DateTimeFormatter.ofPattern("d MMM yyyy", Locale("sv", "SE"))
-            val first   = LocalDate.parse(dates.first()).format(fmt)
-            val last    = LocalDate.parse(dates.last()).format(fmtFull)
+            val first = formatShortDate(LocalDate.parse(dates.first()))
+            val last  = formatShortDateYear(LocalDate.parse(dates.last()))
             "${state.rangeDays} dagar  ·  $first – $last"
         }
     }
@@ -165,23 +164,12 @@ fun DiagramScreen(
         },
         chart = { chartModifier ->
             if (state.stats.isEmpty() || chartSeries.isEmpty()) {
-                Box(modifier = chartModifier, contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector        = Icons.Outlined.BarChart,
-                            contentDescription = null,
-                            modifier           = Modifier.size(40.dp),
-                            tint               = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text  = if (state.stats.isEmpty()) stringResource(R.string.diagram_no_data)
-                                    else stringResource(R.string.diagram_no_series),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                EmptyState(
+                    icon     = Icons.Outlined.BarChart,
+                    title    = if (state.stats.isEmpty()) stringResource(R.string.diagram_no_data)
+                               else stringResource(R.string.diagram_no_series),
+                    modifier = chartModifier,
+                )
             } else {
                 LineChartCanvas(
                     series     = chartSeries,
@@ -214,12 +202,11 @@ fun DiagramScreen(
         },
         portraitExtras = if (state.stats.isNotEmpty() && state.visibleSeries.isNotEmpty()) {
             {
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                DagbokenCard {
                     Column(
-                        modifier            = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text(stringResource(R.string.diagram_summary), style = MaterialTheme.typography.titleSmall)
+                        SectionHeader(stringResource(R.string.diagram_summary))
                         HorizontalDivider()
                         ALL_SERIES.filter { it in state.visibleSeries }.forEachIndexed { i, series ->
                             if (i > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

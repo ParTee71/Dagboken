@@ -18,6 +18,7 @@ import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Handelse
 import se.partee71.dagboken.domain.model.NoteTarget
+import se.partee71.dagboken.ui.formatTime
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -27,7 +28,7 @@ import javax.inject.Inject
 data class HandelseForm(
     val typ: String = "",
     val datum: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
-    val tid: String = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
+    val tid: String = formatTime(LocalTime.now()),
     val svarighetsgrad: Int = 5,
     val varaktighetTimmar: Int = 0,
     val varaktighetMinuter: Int = 0,

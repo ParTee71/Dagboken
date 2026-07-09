@@ -3,23 +3,19 @@ package se.partee71.dagboken.ui.mediciner
 import se.partee71.dagboken.ui.formatDisplayDate
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -27,10 +23,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Medication
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,7 +32,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -52,6 +45,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.ui.components.ConfirmDialog
+import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
@@ -87,28 +83,11 @@ fun HistorikTab(
         HorizontalDivider()
 
         if (entries.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector        = Icons.Outlined.Medication,
-                        contentDescription = null,
-                        modifier           = Modifier.size(48.dp),
-                        tint               = cs.onSurfaceVariant.copy(alpha = 0.4f),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        stringResource(R.string.empty_medicin_history_title),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = cs.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        stringResource(R.string.empty_medicin_history_body),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = cs.onSurfaceVariant.copy(alpha = 0.6f),
-                    )
-                }
-            }
+            EmptyState(
+                icon  = Icons.Outlined.Medication,
+                title = stringResource(R.string.empty_medicin_history_title),
+                body  = stringResource(R.string.empty_medicin_history_body),
+            )
         } else {
             val grouped = entries
                 .sortedByDescending { it.timestamp }
@@ -143,7 +122,7 @@ fun HistorikTab(
                             medicin  = medicin,
                             onEdit   = { onEdit(medicin.id) },
                             onDelete = { deleteTarget = medicin },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            modifier = Modifier.animateItem().padding(horizontal = 16.dp, vertical = 4.dp),
                             noteText = notes[medicin.id].orEmpty(),
                         )
                     }
@@ -154,36 +133,15 @@ fun HistorikTab(
     }
 
     deleteTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = {
-                Text(
-                    if (target.receptId != null) stringResource(R.string.idag_skip_dose_title)
-                    else stringResource(R.string.idag_delete_one_title),
-                )
-            },
-            text  = {
-                Text(
-                    if (target.receptId != null)
-                        stringResource(R.string.format_idag_skip_body, target.namn)
-                    else
-                        stringResource(R.string.format_delete_aktivitet_confirm, target.namn),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { vm.deleteMedicin(target); deleteTarget = null }) {
-                    Text(
-                        if (target.receptId != null) stringResource(R.string.idag_skip_button)
-                        else stringResource(R.string.delete),
-                        color = cs.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+        ConfirmDialog(
+            title        = if (target.receptId != null) stringResource(R.string.idag_skip_dose_title)
+                           else stringResource(R.string.idag_delete_one_title),
+            text         = if (target.receptId != null) stringResource(R.string.format_idag_skip_body, target.namn)
+                           else stringResource(R.string.format_delete_aktivitet_confirm, target.namn),
+            confirmLabel = if (target.receptId != null) stringResource(R.string.idag_skip_button)
+                           else stringResource(R.string.delete),
+            onConfirm    = { vm.deleteMedicin(target); deleteTarget = null },
+            onDismiss    = { deleteTarget = null },
         )
     }
 }
@@ -209,56 +167,50 @@ private fun MedicinHistorikCard(
         else            -> stringResource(R.string.medicin_status_ej_tagen)
     }
 
-    ElevatedCard(modifier = modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(statusColor),
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier          = Modifier
-                    .weight(1f)
-                    .padding(12.dp),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(medicin.namn, style = MaterialTheme.typography.titleSmall)
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text  = "${medicin.tid}  •  ${medicin.dos} ${medicin.enhet}  •  $statusText",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = cs.onSurfaceVariant,
+    DagbokenCard(
+        modifier       = modifier,
+        contentPadding = PaddingValues(12.dp),
+        accentColor    = statusColor,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier          = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(medicin.namn, style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text  = "${medicin.tid}  •  ${medicin.dos} ${medicin.enhet}  •  $statusText",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = cs.onSurfaceVariant,
+                )
+            }
+            NoteIndicatorIcon(noteText = noteText, dialogTitle = medicin.namn)
+
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(
+                        imageVector        = Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.alternatives),
+                        modifier           = Modifier.size(20.dp),
                     )
                 }
-                NoteIndicatorIcon(noteText = noteText, dialogTitle = medicin.namn)
-
-                Box {
-                    IconButton(onClick = { menuExpanded = true }) {
-                        Icon(
-                            imageVector        = Icons.Default.MoreVert,
-                            contentDescription = stringResource(R.string.alternatives),
-                            modifier           = Modifier.size(20.dp),
-                        )
-                    }
-                    DropdownMenu(
-                        expanded         = menuExpanded,
-                        onDismissRequest = { menuExpanded = false },
-                    ) {
-                        DropdownMenuItem(
-                            text        = { Text(stringResource(R.string.edit)) },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                            onClick     = { menuExpanded = false; onEdit() },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.delete), color = cs.error) },
-                            leadingIcon = {
-                                Icon(Icons.Default.Delete, contentDescription = null, tint = cs.error)
-                            },
-                            onClick = { menuExpanded = false; onDelete() },
-                        )
-                    }
+                DropdownMenu(
+                    expanded         = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text        = { Text(stringResource(R.string.edit)) },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                        onClick     = { menuExpanded = false; onEdit() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.delete), color = cs.error) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = cs.error)
+                        },
+                        onClick = { menuExpanded = false; onDelete() },
+                    )
                 }
             }
         }

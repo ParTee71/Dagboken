@@ -13,9 +13,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import se.partee71.dagboken.ui.formatShortDate
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 data class ChartSeries(
     val label: String,
@@ -38,10 +37,7 @@ fun LineChartCanvas(
 
     val dateLabels = remember(dates) {
         if (dates.isEmpty()) emptyList()
-        else {
-            val fmt = DateTimeFormatter.ofPattern("d MMM", Locale("sv", "SE"))
-            dates.map { runCatching { LocalDate.parse(it).format(fmt) }.getOrDefault("") }
-        }
+        else dates.map { runCatching { formatShortDate(LocalDate.parse(it)) }.getOrDefault("") }
     }
 
     val n = series.firstOrNull()?.points?.size ?: 0

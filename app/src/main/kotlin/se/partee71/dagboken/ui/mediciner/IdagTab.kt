@@ -9,10 +9,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -59,7 +57,10 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.TIDP_ORDER
 import se.partee71.dagboken.domain.model.tidpunktSortIndex
+import se.partee71.dagboken.ui.components.ConfirmDialog
+import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
+import se.partee71.dagboken.ui.formatTime
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -80,32 +81,16 @@ fun IdagTab(
     var showTaken    by remember { mutableStateOf(false) }
 
     if (sorted.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = Icons.Outlined.Medication,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                )
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    stringResource(R.string.empty_idag_title),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    stringResource(R.string.empty_idag_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                )
-                Spacer(Modifier.height(16.dp))
+        EmptyState(
+            icon  = Icons.Outlined.Medication,
+            title = stringResource(R.string.empty_idag_title),
+            body  = stringResource(R.string.empty_idag_body),
+            action = {
                 TextButton(onClick = { vm.openSingleDoseDialog() }) {
                     Text(stringResource(R.string.log_single_dose))
                 }
-            }
-        }
+            },
+        )
     } else {
         val tagenCount = sorted.count { it.tagen }
         val total      = sorted.size
@@ -222,6 +207,7 @@ fun IdagTab(
 
                             SwipeToDismissBox(
                                 state = dismissState,
+                                modifier = Modifier.animateItem(),
                                 backgroundContent = {
                                     val isSwiping =
                                         dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
@@ -354,34 +340,15 @@ fun IdagTab(
     }
 
     deleteTarget?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = {
-                Text(
-                    if (target.receptId != null) stringResource(R.string.idag_skip_dose_title)
-                    else stringResource(R.string.idag_delete_one_title),
-                )
-            },
-            text  = {
-                Text(
-                    if (target.receptId != null)
-                        stringResource(R.string.format_idag_skip_body, target.namn)
-                    else
-                        stringResource(R.string.format_delete_aktivitet_confirm, target.namn),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { vm.deleteMedicin(target); deleteTarget = null }) {
-                    Text(
-                        if (target.receptId != null) stringResource(R.string.idag_skip_button)
-                        else stringResource(R.string.delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
-            },
+        ConfirmDialog(
+            title        = if (target.receptId != null) stringResource(R.string.idag_skip_dose_title)
+                           else stringResource(R.string.idag_delete_one_title),
+            text         = if (target.receptId != null) stringResource(R.string.format_idag_skip_body, target.namn)
+                           else stringResource(R.string.format_delete_aktivitet_confirm, target.namn),
+            confirmLabel = if (target.receptId != null) stringResource(R.string.idag_skip_button)
+                           else stringResource(R.string.delete),
+            onConfirm    = { vm.deleteMedicin(target); deleteTarget = null },
+            onDismiss    = { deleteTarget = null },
         )
     }
 
@@ -428,10 +395,7 @@ private fun SingleDoseDialog(
     onDismiss: () -> Unit,
     onConfirm: (namn: String, dos: String, enhet: String, tid: String) -> Unit,
 ) {
-    val currentTime = remember {
-        java.time.LocalTime.now()
-            .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
-    }
+    val currentTime = remember { formatTime(java.time.LocalTime.now()) }
     var namn          by remember { mutableStateOf("") }
     var dos           by remember { mutableStateOf("") }
     var enhet         by remember { mutableStateOf("mg") }

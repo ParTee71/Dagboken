@@ -261,6 +261,7 @@
 | NFR-6 | Koden ska ha **enhetstester** (JUnit, MockK, Turbine) och **instrumenttester** (Compose UI, Room). |
 | NFR-7 | Känslig data (backup) ska endast lagras i användarens privata Drive-appmapp. |
 | NFR-8 | Appstorlek/prestanda: listor ska använda lazy-rendering; tunga operationer på IO-dispatcher. |
+| NFR-9 | Appen använder ett enhetligt designsystem: kort, tomlägen, bekräftelsedialoger, sektionsrubriker och datum/tid-format byggs med delade komponenter i `ui/components/`, med konsekvent form, typografi och spacing. |
 
 ---
 
@@ -283,7 +284,7 @@
 | SJ-3 | Symptom i incheckning väljs och graderas 0–10 med SymptomLogCard (samma komponent som aktiviteter och screening). |
 | SJ-4 | Användaren kan markera en episod som avslutad (ange slutdatum). |
 | SJ-5 | Avslutade episoder visar varaktighet i dagar och senaste incheckningens svårighetsgrad. |
-| SJ-6 | En pågående episod syns som statuskort på Hem-skärmen. |
+| SJ-6 | En pågående episod syns som statuskort på Hem-skärmen, med accentfärg via delad kortkomponent. |
 | SJ-7 | Episoder och incheckningar ingår i backup och återställs vid restore. |
 | SJ-8 | Både en episod och varje incheckning kan ha en anteckning, redigerbar via den delade `NoteField`-komponenten. |
 | SJ-9 | Tas en episod bort raderas även dess incheckningar (kaskad) och samtliga tillhörande anteckningar. |

@@ -16,18 +16,14 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LocalPharmacy
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -47,8 +43,10 @@ import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
+import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.home.AccountViewModel
 import se.partee71.dagboken.ui.home.formattedDate
+import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 
 private data class TabItem(
     @StringRes val labelRes: Int,
@@ -63,7 +61,6 @@ private val TABS = listOf(
     TabItem(R.string.tab_historik,  Icons.Filled.History,        Icons.Outlined.History),
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicinerScreen(
     onAddMedicin:        () -> Unit,
@@ -96,33 +93,25 @@ fun MedicinerScreen(
         else -> onAddMedicin
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    AccountBubble(
-                        email       = accountState.googleEmail,
-                        photoUrl    = accountState.googlePhotoUrl,
-                        displayName = accountState.googleDisplayName,
-                        onClick     = { showAccountSheet = true },
-                    )
-                },
-                title = {},
-                actions = {
-                    Text(
-                        formattedDate(),
-                        style    = MaterialTheme.typography.labelMedium,
-                        color    = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(end = 8.dp),
-                    )
-                    IconButton(onClick = onNavigateToDiagram) {
-                        Icon(Icons.Outlined.BarChart, contentDescription = stringResource(R.string.diagram_title))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+    DagbokenScaffold(
+        navigationIcon = {
+            AccountBubble(
+                email       = accountState.googleEmail,
+                photoUrl    = accountState.googlePhotoUrl,
+                displayName = accountState.googleDisplayName,
+                onClick     = { showAccountSheet = true },
             )
+        },
+        actions = {
+            Text(
+                formattedDate(),
+                style    = MaterialTheme.typography.labelMedium,
+                color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+            IconButton(onClick = onNavigateToDiagram) {
+                Icon(Icons.Outlined.BarChart, contentDescription = stringResource(R.string.diagram_title))
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -148,7 +137,7 @@ fun MedicinerScreen(
                     val selected = pagerState.currentPage == index
                     Tab(
                         selected = selected,
-                        onClick  = { scope.launch { pagerState.animateScrollToPage(index) } },
+                        onClick  = { scope.launch { pagerState.animateScrollToPage(index, animationSpec = DagbokenAnimSpec.tweenNormal) } },
                         icon = {
                             Icon(
                                 imageVector        = if (selected) tab.iconSelected else tab.iconUnselected,

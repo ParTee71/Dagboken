@@ -6,12 +6,12 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 
 @Composable
 fun NoteField(
@@ -44,10 +45,11 @@ fun NoteField(
     LaunchedEffect(text) { if (text.isBlank()) expanded = false }
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
+        animationSpec = DagbokenAnimSpec.springNormal,
         label = "note_chevron",
     )
 
-    ElevatedCard(modifier = modifier.fillMaxWidth()) {
+    DagbokenCard(modifier = modifier, contentPadding = PaddingValues(0.dp)) {
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             Row(
                 modifier = Modifier
@@ -76,8 +78,8 @@ fun NoteField(
             // Collapsed text preview — max 2 lines
             AnimatedVisibility(
                 visible = !expanded && hasText,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
+                enter = expandVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
+                exit = shrinkVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
             ) {
                 Column {
                     HorizontalDivider()
@@ -95,8 +97,8 @@ fun NoteField(
             // Expanded: full editable field
             AnimatedVisibility(
                 visible = expanded,
-                enter = expandVertically(),
-                exit = shrinkVertically(),
+                enter = expandVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
+                exit = shrinkVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
             ) {
                 OutlinedTextField(
                     value = text,

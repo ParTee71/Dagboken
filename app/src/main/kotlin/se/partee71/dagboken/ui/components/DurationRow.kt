@@ -7,6 +7,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 
 @Composable
 fun DurationRow(
@@ -51,10 +52,11 @@ fun DurationRow(
     var expanded by remember { mutableStateOf(false) }
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
+        animationSpec = DagbokenAnimSpec.springNormal,
         label = "duration_chevron",
     )
 
-    ElevatedCard(modifier = modifier.fillMaxWidth()) {
+    DagbokenCard(modifier = modifier, contentPadding = PaddingValues(0.dp)) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -94,8 +96,8 @@ fun DurationRow(
 
             AnimatedVisibility(
                 visible = expanded,
-                enter   = expandVertically(),
-                exit    = shrinkVertically(),
+                enter   = expandVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
+                exit    = shrinkVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
             ) {
                 Row(
                     modifier              = Modifier

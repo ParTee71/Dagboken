@@ -16,20 +16,16 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.graphics.Color
 import se.partee71.dagboken.ui.theme.Emerald700
 import androidx.compose.runtime.Composable
@@ -51,8 +47,10 @@ import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
+import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.home.AccountViewModel
 import se.partee71.dagboken.ui.home.formattedDate
+import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 
 private data class TabItem(
     @StringRes val labelRes: Int,
@@ -66,7 +64,6 @@ private val TABS = listOf(
     TabItem(R.string.tab_historik,  Icons.Filled.History,       Icons.Outlined.History),
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AktiviteterScreen(
     onAddNew: () -> Unit,
@@ -90,7 +87,7 @@ fun AktiviteterScreen(
     val pagerState = rememberPagerState(initialPage = 0) { TABS.size }
     val scope = rememberCoroutineScope()
 
-    Scaffold(
+    DagbokenScaffold(
         contentWindowInsets = WindowInsets(0),
         snackbarHost = {
             SnackbarHost(localSnackbarHostState) { data ->
@@ -102,35 +99,27 @@ fun AktiviteterScreen(
                 )
             }
         },
-        topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    AccountBubble(
-                        email       = accountState.googleEmail,
-                        photoUrl    = accountState.googlePhotoUrl,
-                        displayName = accountState.googleDisplayName,
-                        onClick     = { showAccountSheet = true },
-                    )
-                },
-                title = {},
-                actions = {
-                    Text(
-                        formattedDate(),
-                        style    = MaterialTheme.typography.labelMedium,
-                        color    = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(end = 8.dp),
-                    )
-                    IconButton(onClick = onNavigateToDiagram) {
-                        Icon(Icons.Outlined.BarChart, contentDescription = stringResource(R.string.diagram_title))
-                    }
-                    IconButton(onClick = onNavigateToSymptomDiagram) {
-                        Icon(Icons.Outlined.Healing, contentDescription = stringResource(R.string.symptom_diagram_title))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+        navigationIcon = {
+            AccountBubble(
+                email       = accountState.googleEmail,
+                photoUrl    = accountState.googlePhotoUrl,
+                displayName = accountState.googleDisplayName,
+                onClick     = { showAccountSheet = true },
             )
+        },
+        actions = {
+            Text(
+                formattedDate(),
+                style    = MaterialTheme.typography.labelMedium,
+                color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+            IconButton(onClick = onNavigateToDiagram) {
+                Icon(Icons.Outlined.BarChart, contentDescription = stringResource(R.string.diagram_title))
+            }
+            IconButton(onClick = onNavigateToSymptomDiagram) {
+                Icon(Icons.Outlined.Healing, contentDescription = stringResource(R.string.symptom_diagram_title))
+            }
         },
         floatingActionButton = {
             if (pagerState.currentPage == 2) {
@@ -158,7 +147,7 @@ fun AktiviteterScreen(
                     val selected = pagerState.currentPage == index
                     Tab(
                         selected = selected,
-                        onClick  = { scope.launch { pagerState.animateScrollToPage(index) } },
+                        onClick  = { scope.launch { pagerState.animateScrollToPage(index, animationSpec = DagbokenAnimSpec.tweenNormal) } },
                         icon     = {
                             Icon(
                                 imageVector        = if (selected) tab.iconSelected else tab.iconUnselected,
