@@ -88,6 +88,7 @@
 | AKT-9 | Spara kräver att en aktivitetstyp valts (annars inaktiverad spara-knapp). |
 | AKT-10 | Under registreringsformuläret ska de tre senaste loggade posterna (aktivitet och screening blandat, sorterade på tid, nyast överst) visas i en lista; varje post ska kunna redigeras eller tas bort (samma flöde som Historik). |
 | AKT-11 | Användaren ska kunna lägga till, redigera och ta bort en fritextanteckning på en aktivitetsregistrering, via den delade anteckningskomponenten. |
+| AKT-12 | När en **ny** aktivitet loggas via globala "+"-FAB:en ska formuläret förifyllas: tid = nu samt senaste aktivitetstyp och tidsåtgång från den senast loggade aktiviteten. Förvalen beräknas live från senaste post — inget cachas eller persisteras. |
 
 ### 5.2 Screening (dagligt mående)
 
