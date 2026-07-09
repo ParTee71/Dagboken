@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.trender
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,14 +12,65 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.domain.usecase.SymptomUtils
-import se.partee71.dagboken.ui.diagram.ALL_SERIES
 import se.partee71.dagboken.ui.diagram.ChartSeries
-import se.partee71.dagboken.ui.diagram.DailyStats
-import se.partee71.dagboken.ui.diagram.seriesColor
-import se.partee71.dagboken.ui.diagram.symptomColor
-import se.partee71.dagboken.ui.diagram.valueFor
 import java.time.LocalDate
 import javax.inject.Inject
+
+internal val ALL_SERIES = listOf(
+    "Energi Frukost", "Energi Lunch", "Energi Kvällsmat", "Energi Läggdags",
+    "Stress", "Somatiska", "Återhämtande", "Energitjuv",
+)
+
+private val SERIES_PALETTE = listOf(
+    Color(0xFF60a5fa),  // blue-400      (Energi Frukost)
+    Color(0xFF34d399),  // emerald-400   (Energi Lunch)
+    Color(0xFFfbbf24),  // amber-400     (Energi Kvällsmat)
+    Color(0xFFa78bfa),  // violet-400    (Energi Läggdags)
+    Color(0xFFfb923c),  // orange-400    (Stress)
+    Color(0xFF4ade80),  // green-400     (Somatiska)
+    Color(0xFFe879f9),  // fuchsia-400   (Återhämtande)
+    Color(0xFFf472b6),  // pink-400      (Energitjuv)
+)
+
+internal fun seriesColor(name: String): Color =
+    SERIES_PALETTE.getOrElse(ALL_SERIES.indexOf(name)) { SERIES_PALETTE.last() }
+
+private val SYMPTOM_PALETTE = listOf(
+    Color(0xFF60a5fa),  // blue
+    Color(0xFFfb923c),  // orange
+    Color(0xFF4ade80),  // green
+    Color(0xFFa78bfa),  // violet
+    Color(0xFFf472b6),  // pink
+    Color(0xFFfbbf24),  // amber
+    Color(0xFF34d399),  // teal
+)
+
+private fun symptomColor(name: String, allSymptoms: List<String>): Color =
+    SYMPTOM_PALETTE[allSymptoms.indexOf(name).coerceAtLeast(0) % SYMPTOM_PALETTE.size]
+
+internal data class DailyStats(
+    val datum: String,
+    val avgEnergyFrukost: Float?,
+    val avgEnergyLunch: Float?,
+    val avgEnergyKvallsmat: Float?,
+    val avgEnergyLaggdags: Float?,
+    val avgStress: Float?,
+    val avgSomatiska: Float?,
+    val avgAterhamtande: Float?,
+    val avgEnergitjuv: Float?,
+)
+
+private fun DailyStats.valueFor(seriesName: String): Float? = when (seriesName) {
+    "Energi Frukost"   -> avgEnergyFrukost
+    "Energi Lunch"     -> avgEnergyLunch
+    "Energi Kvällsmat" -> avgEnergyKvallsmat
+    "Energi Läggdags"  -> avgEnergyLaggdags
+    "Stress"           -> avgStress
+    "Somatiska"        -> avgSomatiska
+    "Återhämtande"     -> avgAterhamtande
+    "Energitjuv"       -> avgEnergitjuv
+    else               -> null
+}
 
 data class TrenderUiState(
     val rangeDays: Int = 30,

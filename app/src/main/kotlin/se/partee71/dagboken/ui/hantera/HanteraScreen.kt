@@ -1,4 +1,4 @@
-package se.partee71.dagboken.ui.settings
+package se.partee71.dagboken.ui.hantera
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,7 +32,9 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Star
@@ -103,10 +105,11 @@ private data class SectionDef(val icon: ImageVector, val title: String, val desc
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun SettingsScreen(
-    onBack: () -> Unit,
+fun HanteraScreen(
     onImport: () -> Unit,
-    vm: SettingsViewModel = hiltViewModel(),
+    onOpenSjukdomar: () -> Unit,
+    onOpenSchema: () -> Unit,
+    vm: HanteraViewModel = hiltViewModel(),
 ) {
     val state          by vm.state.collectAsState()
     val medicinFavoriter by vm.medicinFavoriter.collectAsState()
@@ -117,6 +120,8 @@ fun SettingsScreen(
     val sections = listOf(
         SectionDef(Icons.Filled.AccountCircle, stringResource(R.string.settings_account_section),       stringResource(R.string.settings_account_section_desc)),
         SectionDef(Icons.Filled.ImportExport,  stringResource(R.string.settings_import_section),        stringResource(R.string.settings_import_section_desc)),
+        SectionDef(Icons.Filled.LocalHospital, stringResource(R.string.hantera_sjukdomar_section),      stringResource(R.string.hantera_sjukdomar_section_desc)),
+        SectionDef(Icons.AutoMirrored.Outlined.EventNote, stringResource(R.string.hantera_schema_section), stringResource(R.string.hantera_schema_section_desc)),
         SectionDef(Icons.Filled.Palette,       stringResource(R.string.settings_theme_section),         stringResource(R.string.settings_theme_section_desc)),
         SectionDef(Icons.Filled.Notifications, stringResource(R.string.settings_notifications_section), stringResource(R.string.settings_notifications_section_desc)),
         SectionDef(Icons.Filled.DirectionsRun, stringResource(R.string.settings_aktivitet_section),     stringResource(R.string.settings_aktivitet_section_desc)),
@@ -127,8 +132,7 @@ fun SettingsScreen(
     )
 
     DagbokenScaffold(
-        title  = stringResource(R.string.settings),
-        onBack = onBack,
+        title  = stringResource(R.string.nav_tab_hantera),
     ) { padding ->
         val sectionContents: List<@Composable () -> Unit> = listOf(
             {
@@ -142,6 +146,24 @@ fun SettingsScreen(
                 )
             },
             { ImportCard(onImport = onImport) },
+            {
+                NavCard(
+                    icon        = Icons.Filled.LocalHospital,
+                    title       = stringResource(R.string.hantera_sjukdomar_section),
+                    description = stringResource(R.string.hantera_sjukdomar_section_desc),
+                    buttonLabel = stringResource(R.string.hantera_sjukdomar_open),
+                    onClick     = onOpenSjukdomar,
+                )
+            },
+            {
+                NavCard(
+                    icon        = Icons.AutoMirrored.Outlined.EventNote,
+                    title       = stringResource(R.string.hantera_schema_section),
+                    description = stringResource(R.string.hantera_schema_section_desc),
+                    buttonLabel = stringResource(R.string.hantera_schema_open),
+                    onClick     = onOpenSchema,
+                )
+            },
             {
                 ThemeCard(
                     themeMode       = state.themeMode,
@@ -458,6 +480,33 @@ private fun ImportCard(onImport: () -> Unit) {
             Spacer(Modifier.height(8.dp))
             Button(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.settings_import_button))
+            }
+        }
+    }
+}
+
+@Composable
+private fun NavCard(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    buttonLabel: String,
+    onClick: () -> Unit,
+) {
+    DagbokenCard {
+        Column {
+            SectionHeader(title)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(buttonLabel)
             }
         }
     }

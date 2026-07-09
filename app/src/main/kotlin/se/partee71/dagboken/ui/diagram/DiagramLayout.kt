@@ -31,7 +31,7 @@ import se.partee71.dagboken.ui.components.DagbokenScaffold
 @Composable
 fun DiagramLayout(
     title: String,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     selector: @Composable () -> Unit,
     rangeChips: @Composable () -> Unit,
     chart: @Composable (chartModifier: Modifier) -> Unit,
@@ -51,7 +51,7 @@ fun DiagramLayout(
 @Composable
 private fun PortraitLayout(
     title: String,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     selector: @Composable () -> Unit,
     rangeChips: @Composable () -> Unit,
     chart: @Composable (Modifier) -> Unit,
@@ -96,7 +96,7 @@ private fun PortraitLayout(
 
 @Composable
 private fun LandscapeLayout(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     selector: @Composable () -> Unit,
     rangeChips: @Composable () -> Unit,
     chart: @Composable (Modifier) -> Unit,
@@ -125,12 +125,14 @@ private fun LandscapeLayout(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.back),
-                    modifier = Modifier.size(20.dp),
-                )
+            if (onBack != null) {
+                IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.back),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
             selector()
             Row(

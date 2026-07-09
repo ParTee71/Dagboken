@@ -38,7 +38,7 @@ import se.partee71.dagboken.ui.diagram.LineChartCanvas
 
 @Composable
 fun TrenderScreen(
-    onBack: () -> Unit = {},
+    onBack: (() -> Unit)? = null,
     vm: TrenderViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()

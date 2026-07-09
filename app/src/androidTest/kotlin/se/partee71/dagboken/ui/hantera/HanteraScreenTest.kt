@@ -1,4 +1,4 @@
-package se.partee71.dagboken.ui.settings
+package se.partee71.dagboken.ui.hantera
 
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
@@ -34,14 +34,14 @@ import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import se.partee71.dagboken.notifications.AlarmScheduler
 
 @RunWith(AndroidJUnit4::class)
-class SettingsScreenTest {
+class HanteraScreenTest {
 
     @get:Rule val composeRule = createComposeRule()
 
     private lateinit var prefs: PreferencesRepository
     private lateinit var db: AppDatabase
     private lateinit var medicinerRepo: MedicinerRepository
-    private lateinit var vm: SettingsViewModel
+    private lateinit var vm: HanteraViewModel
 
     @Before fun setUp() = runBlocking {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
@@ -68,7 +68,7 @@ class SettingsScreenTest {
         )
 
         val alarmScheduler = AlarmScheduler(ctx, prefs)
-        vm = SettingsViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        vm = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
     }
 
     @After fun tearDown() = runBlocking {
@@ -82,11 +82,11 @@ class SettingsScreenTest {
     private fun setContent() {
         composeRule.setContent {
             MaterialTheme {
-                SettingsScreen(onBack = {}, onImport = {}, vm = vm)
+                HanteraScreen(onImport = {}, onOpenSjukdomar = {}, onOpenSchema = {}, vm = vm)
             }
         }
         composeRule.waitUntil(3000) {
-            composeRule.onAllNodes(hasText("Inställningar")).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodes(hasText("Hantera")).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
@@ -310,5 +310,45 @@ class SettingsScreenTest {
         assert(vm.state.value.handelseTypOptions.single { it.name == "Näsblod" }.isFavorite) {
             "Expected Näsblod to be marked as favorite"
         }
+    }
+
+    // ─── Sjukdomar & Recept/scheman nav-kort ─────────────────────────────────
+
+    private fun navigateToSection(title: String) {
+        val railNodes = composeRule.onAllNodes(hasContentDescription(title))
+        if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
+            railNodes.onFirst().performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
+    @Test fun sjukdomar_nav_card_opens_sjukdomar() {
+        var opened = false
+        composeRule.setContent {
+            MaterialTheme {
+                HanteraScreen(onImport = {}, onOpenSjukdomar = { opened = true }, onOpenSchema = {}, vm = vm)
+            }
+        }
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Hantera")).fetchSemanticsNodes().isNotEmpty()
+        }
+        navigateToSection("Sjukdomar")
+        composeRule.onNodeWithText("Öppna sjukdomar").performScrollTo().performClick()
+        assert(opened) { "Expected onOpenSjukdomar to be invoked" }
+    }
+
+    @Test fun schema_nav_card_opens_schema() {
+        var opened = false
+        composeRule.setContent {
+            MaterialTheme {
+                HanteraScreen(onImport = {}, onOpenSjukdomar = {}, onOpenSchema = { opened = true }, vm = vm)
+            }
+        }
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Hantera")).fetchSemanticsNodes().isNotEmpty()
+        }
+        navigateToSection("Recept & scheman")
+        composeRule.onNodeWithText("Öppna recept & scheman").performScrollTo().performClick()
+        assert(opened) { "Expected onOpenSchema to be invoked" }
     }
 }

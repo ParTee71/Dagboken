@@ -2,16 +2,14 @@ package se.partee71.dagboken.ui.navigation
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material.icons.filled.MonitorHeart
-import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.LocalHospital
-import androidx.compose.material.icons.outlined.Medication
-import androidx.compose.material.icons.outlined.MonitorHeart
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import se.partee71.dagboken.R
 
@@ -21,39 +19,33 @@ sealed class Screen(
     val iconSelected: ImageVector,
     val iconUnselected: ImageVector,
 ) {
-    object Hem : Screen(
-        route          = "hem",
-        labelRes       = R.string.nav_tab_hem,
+    object Idag : Screen(
+        route          = "idag",
+        labelRes       = R.string.nav_tab_idag,
         iconSelected   = Icons.Filled.Home,
         iconUnselected = Icons.Outlined.Home,
     )
-    object Aktiviteter : Screen(
-        route          = "aktiviteter",
-        labelRes       = R.string.nav_tab_aktivitet,
-        iconSelected   = Icons.Filled.Bolt,
-        iconUnselected = Icons.Outlined.Bolt,
+    object Historik : Screen(
+        route          = Routes.HISTORIK,
+        labelRes       = R.string.nav_tab_historik,
+        iconSelected   = Icons.Filled.History,
+        iconUnselected = Icons.Outlined.History,
     )
-    object Mediciner : Screen(
-        route          = "mediciner",
-        labelRes       = R.string.nav_tab_mediciner,
-        iconSelected   = Icons.Filled.Medication,
-        iconUnselected = Icons.Outlined.Medication,
+    object Trender : Screen(
+        route          = Routes.TRENDER,
+        labelRes       = R.string.nav_tab_trender,
+        iconSelected   = Icons.AutoMirrored.Filled.TrendingUp,
+        iconUnselected = Icons.AutoMirrored.Outlined.TrendingUp,
     )
-    object Handelser : Screen(
-        route          = "handelser",
-        labelRes       = R.string.nav_tab_handelser,
-        iconSelected   = Icons.Filled.MonitorHeart,
-        iconUnselected = Icons.Outlined.MonitorHeart,
-    )
-    object Sjukdomar : Screen(
-        route          = "sjukdomar",
-        labelRes       = R.string.nav_tab_sjukdomar,
-        iconSelected   = Icons.Filled.LocalHospital,
-        iconUnselected = Icons.Outlined.LocalHospital,
+    object Hantera : Screen(
+        route          = "hantera",
+        labelRes       = R.string.nav_tab_hantera,
+        iconSelected   = Icons.Filled.Settings,
+        iconUnselected = Icons.Outlined.Settings,
     )
 
     companion object {
-        val bottomNavItems by lazy { listOf(Hem, Aktiviteter, Mediciner, Handelser, Sjukdomar) }
+        val bottomNavItems by lazy { listOf(Idag, Historik, Trender, Hantera) }
     }
 }
 
@@ -70,14 +62,13 @@ object Routes {
     const val EDIT_FAVORIT                  = "edit_favorit/{id}"
     const val ADD_HANDELSE                  = "add_handelse"
     const val EDIT_HANDELSE                 = "edit_handelse/{id}"
-    const val SETTINGS                      = "settings"
     const val MIGRATION                     = "migration"
-    const val DIAGRAM                       = "diagram/{source}"
-    const val SYMPTOM_DIAGRAM               = "symptom_diagram"
+    const val SJUKDOMAR                     = "sjukdomar"
     const val ADD_SJUKDOM                   = "add_sjukdom"
     const val EDIT_SJUKDOM                  = "edit_sjukdom/{id}"
     const val SJUKDOM_EPISOD_DETAIL         = "sjukdom_episod/{episodId}"
     const val ADD_SJUKDOMS_INCHECKNING      = "add_sjukdoms_incheckning/{episodId}"
+    const val SCHEMA                        = "schema"
     const val HISTORIK                      = "historik"
     const val TRENDER                       = "trender"
 
@@ -87,7 +78,6 @@ object Routes {
     fun editRecept(id: String)                   = "edit_recept/$id"
     fun editFavorit(id: String)                  = "edit_favorit/$id"
     fun editHandelse(id: String)                 = "edit_handelse/$id"
-    fun diagram(source: String)                  = "diagram/$source"
     fun editSjukdom(id: String)                  = "edit_sjukdom/$id"
     fun sjukdomEpisodDetail(id: String)          = "sjukdom_episod/$id"
     fun addSjukdomsIncheckning(episodId: String) = "add_sjukdoms_incheckning/$episodId"

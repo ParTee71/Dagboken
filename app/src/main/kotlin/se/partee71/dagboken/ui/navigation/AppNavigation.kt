@@ -31,21 +31,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import se.partee71.dagboken.ui.aktiviteter.AktiviteterScreen
 import se.partee71.dagboken.ui.aktiviteter.add.AddEditAktivitetScreen
 import se.partee71.dagboken.ui.aktiviteter.add.AddEditScreeningScreen
-import se.partee71.dagboken.ui.diagram.DiagramScreen
-import se.partee71.dagboken.ui.diagram.SymptomDiagramScreen
 import se.partee71.dagboken.ui.handelser.AddEditHandelseScreen
-import se.partee71.dagboken.ui.handelser.HandelserScreen
+import se.partee71.dagboken.ui.hantera.HanteraScreen
 import se.partee71.dagboken.ui.historik.HistorikScreen
 import se.partee71.dagboken.ui.home.HomeScreen
-import se.partee71.dagboken.ui.mediciner.MedicinerScreen
+import se.partee71.dagboken.ui.mediciner.SchemaScreen
 import se.partee71.dagboken.ui.mediciner.add.AddEditFavoritScreen
 import se.partee71.dagboken.ui.mediciner.add.AddEditMedicinScreen
 import se.partee71.dagboken.ui.mediciner.add.AddEditReceptScreen
 import se.partee71.dagboken.ui.migration.MigrationScreen
-import se.partee71.dagboken.ui.settings.SettingsScreen
 import se.partee71.dagboken.ui.sjukdomar.AddEditSjukdomScreen
 import se.partee71.dagboken.ui.sjukdomar.AddSjukdomsIncheckningScreen
 import se.partee71.dagboken.ui.sjukdomar.SjukdomarScreen
@@ -54,7 +50,7 @@ import se.partee71.dagboken.ui.trender.TrenderScreen
 
 @Composable
 fun AppNavigation(
-    startDestination: String = Screen.Hem.route,
+    startDestination: String = Screen.Idag.route,
     navController: NavHostController = rememberNavController(),
     mainVm: MainViewModel = hiltViewModel(),
 ) {
@@ -92,7 +88,7 @@ fun AppNavigation(
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
-                                val isStartDest = screen.route == Screen.Hem.route
+                                val isStartDest = screen.route == Screen.Idag.route
                                 navController.navigate(screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = !isStartDest
@@ -132,38 +128,36 @@ fun AppNavigation(
             composable(Routes.MIGRATION) {
                 MigrationScreen(
                     onMigrationComplete = {
-                        navController.navigate(Screen.Hem.route) {
+                        navController.navigate(Screen.Idag.route) {
                             popUpTo(Routes.MIGRATION) { inclusive = true }
                         }
                     },
                 )
             }
-            composable(Screen.Hem.route) {
+            composable(Screen.Idag.route) {
                 HomeScreen(
-                    onNavigateToAktiviteter = { navController.navigate(Screen.Aktiviteter.route) },
-                    onNavigateToSettings    = { navController.navigate(Routes.SETTINGS) },
-                    onNavigateToDiagram     = { navController.navigate(Routes.diagram("hem")) },
-                    onNavigateToSjukdomar   = { navController.navigate(Screen.Sjukdomar.route) },
-                    onAddAktivitet          = { navController.navigate(Routes.ADD_AKTIVITET) },
-                    onAddMedicin            = { navController.navigate(Routes.ADD_MEDICIN) },
-                    onAddHandelse           = { navController.navigate(Routes.ADD_HANDELSE) },
-                    snackbarHostState       = snackbarHostState,
-                )
-            }
-            composable(Screen.Aktiviteter.route) {
-                AktiviteterScreen(
-                    onAddNew                    = { navController.navigate(Routes.ADD_AKTIVITET) },
-                    onEdit                      = { id, type ->
-                        if (type == "screening") navController.navigate(Routes.editScreening(id))
-                        else navController.navigate(Routes.editAktivitet(id))
+                    onNavigateToSettings  = {
+                        navController.navigate(Screen.Hantera.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     },
-                    onNavigateToDiagram         = { navController.navigate(Routes.diagram("aktiviteter")) },
-                    onNavigateToSymptomDiagram  = { navController.navigate(Routes.SYMPTOM_DIAGRAM) },
-                    onNavigateToSettings        = { navController.navigate(Routes.SETTINGS) },
+                    onNavigateToTrender   = {
+                        navController.navigate(Screen.Trender.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onNavigateToSjukdomar = { navController.navigate(Routes.SJUKDOMAR) },
+                    onAddAktivitet        = { navController.navigate(Routes.ADD_AKTIVITET) },
+                    onAddMedicin          = { navController.navigate(Routes.ADD_MEDICIN) },
+                    onAddHandelse         = { navController.navigate(Routes.ADD_HANDELSE) },
+                    onAddFavorit          = { navController.navigate(Routes.ADD_FAVORIT) },
+                    onEditFavorit         = { id -> navController.navigate(Routes.editFavorit(id)) },
+                    snackbarHostState     = snackbarHostState,
                 )
-            }
-            composable(Routes.SYMPTOM_DIAGRAM) {
-                SymptomDiagramScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.ADD_AKTIVITET) {
                 AddEditAktivitetScreen(
@@ -187,19 +181,6 @@ fun AppNavigation(
                 AddEditScreeningScreen(
                     editId = backStackEntry.arguments?.getString("id") ?: return@composable,
                     onBack = { navController.popBackStack() },
-                )
-            }
-            composable(Screen.Mediciner.route) {
-                MedicinerScreen(
-                    onAddMedicin         = { navController.navigate(Routes.ADD_MEDICIN) },
-                    onEditMedicin        = { id -> navController.navigate(Routes.editMedicin(id)) },
-                    onAddRecept          = { navController.navigate(Routes.ADD_RECEPT) },
-                    onEditRecept         = { id -> navController.navigate(Routes.editRecept(id)) },
-                    onAddFavorit         = { navController.navigate(Routes.ADD_FAVORIT) },
-                    onEditFavorit        = { id -> navController.navigate(Routes.editFavorit(id)) },
-                    onNavigateToDiagram  = { navController.navigate(Routes.diagram("mediciner")) },
-                    onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
-                    snackbarHostState    = snackbarHostState,
                 )
             }
             composable(Routes.ADD_MEDICIN) {
@@ -238,14 +219,6 @@ fun AppNavigation(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Screen.Handelser.route) {
-                HandelserScreen(
-                    onAddNew             = { navController.navigate(Routes.ADD_HANDELSE) },
-                    onEdit               = { id -> navController.navigate(Routes.editHandelse(id)) },
-                    onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
-                    snackbarHostState    = snackbarHostState,
-                )
-            }
             composable(Routes.ADD_HANDELSE) {
                 AddEditHandelseScreen(
                     editId = null,
@@ -261,27 +234,26 @@ fun AppNavigation(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(
-                route     = Routes.DIAGRAM,
-                arguments = listOf(navArgument("source") { type = NavType.StringType }),
-            ) { backStackEntry ->
-                val source = backStackEntry.arguments?.getString("source") ?: "hem"
-                DiagramScreen(
-                    source = source,
-                    onBack = { navController.popBackStack() },
+            composable(Screen.Hantera.route) {
+                HanteraScreen(
+                    onImport         = { navController.navigate(Routes.MIGRATION) },
+                    onOpenSjukdomar  = { navController.navigate(Routes.SJUKDOMAR) },
+                    onOpenSchema     = { navController.navigate(Routes.SCHEMA) },
                 )
             }
-            composable(Routes.SETTINGS) {
-                SettingsScreen(
-                    onBack   = { navController.popBackStack() },
-                    onImport = { navController.navigate(Routes.MIGRATION) },
-                )
-            }
-            composable(Screen.Sjukdomar.route) {
+            composable(Routes.SJUKDOMAR) {
                 SjukdomarScreen(
+                    onBack            = { navController.popBackStack() },
                     onAddNew          = { navController.navigate(Routes.ADD_SJUKDOM) },
                     onDetail          = { id -> navController.navigate(Routes.sjukdomEpisodDetail(id)) },
                     snackbarHostState = snackbarHostState,
+                )
+            }
+            composable(Routes.SCHEMA) {
+                SchemaScreen(
+                    onBack       = { navController.popBackStack() },
+                    onAddRecept  = { navController.navigate(Routes.ADD_RECEPT) },
+                    onEditRecept = { id -> navController.navigate(Routes.editRecept(id)) },
                 )
             }
             composable(Routes.ADD_SJUKDOM) {
@@ -317,14 +289,12 @@ fun AppNavigation(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.TRENDER) {
-                TrenderScreen(
-                    onBack = { navController.popBackStack() },
-                )
+            composable(Screen.Trender.route) {
+                TrenderScreen(onBack = null)
             }
-            composable(Routes.HISTORIK) {
+            composable(Screen.Historik.route) {
                 HistorikScreen(
-                    onBack               = { navController.popBackStack() },
+                    onBack               = null,
                     onEditAktivitet      = { id, type ->
                         if (type == "screening") navController.navigate(Routes.editScreening(id))
                         else navController.navigate(Routes.editAktivitet(id))

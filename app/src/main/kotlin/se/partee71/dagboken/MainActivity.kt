@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
 
             DagbokenTheme(darkTheme = isDarkTheme, dynamicColor = dynamicColor) {
                 AppNavigation(
-                    startDestination = if (migrationDone == true) Screen.Hem.route else Routes.MIGRATION,
+                    startDestination = if (migrationDone == true) Screen.Idag.route else Routes.MIGRATION,
                 )
             }
         }

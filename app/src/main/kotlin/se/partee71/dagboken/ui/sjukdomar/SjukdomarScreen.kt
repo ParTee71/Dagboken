@@ -53,6 +53,7 @@ import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SjukdomarScreen(
+    onBack: () -> Unit,
     onAddNew: () -> Unit,
     onDetail: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
@@ -70,6 +71,7 @@ fun SjukdomarScreen(
 
     DagbokenScaffold(
         title        = stringResource(R.string.sjukdomar_title),
+        onBack       = onBack,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddNew) {

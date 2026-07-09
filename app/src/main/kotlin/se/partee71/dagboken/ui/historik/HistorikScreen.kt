@@ -47,7 +47,7 @@ import se.partee71.dagboken.ui.formatDisplayDate
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun HistorikScreen(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     onEditAktivitet: (id: String, type: String) -> Unit,
     onEditMedicin: (id: String) -> Unit,
     onEditHandelse: (id: String) -> Unit,

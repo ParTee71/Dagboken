@@ -66,8 +66,9 @@
     <string name="home_checklist_mediciner_title">Dagens mediciner</string>
     <string name="home_checklist_screening_logged">Loggad</string>
     <string name="home_checklist_screening_upcoming">Kommande</string>
+    <string name="home_checklist_vidbehov_title">Vid behov</string>
     <string name="home_fab_add">Lägg till</string>
-    <string name="home_fab_log_screening">Logga screening</string>
+    <string name="home_fab_new_favorit">Ny vid behov-favorit</string>
 
     <!-- Migration screen -->
     <string name="migration_welcome_title">Välkommen till Dagboken</string>
@@ -307,9 +308,21 @@
     <string name="notification_screening_title">Dags för screening – %1$s</string>
     <string name="notification_screening_body">Hur mår du? Logga din dagliga screening.</string>
 
-    <string name="nav_tab_hem">Hem</string>
+    <string name="nav_tab_idag">Idag</string>
+    <string name="nav_tab_historik">Historik</string>
+    <string name="nav_tab_trender">Trender</string>
+    <string name="nav_tab_hantera">Hantera</string>
+    <!-- Reused by Historik-ytans typfilter (HistorikScreen.kt) -->
     <string name="nav_tab_aktivitet">Aktivitet</string>
     <string name="nav_tab_mediciner">Mediciner</string>
     <string name="nav_tab_handelser">Händelser</string>
     <string name="nav_tab_sjukdomar">Sjukdomar</string>
+
+    <string name="hantera_sjukdomar_section">Sjukdomar</string>
+    <string name="hantera_sjukdomar_section_desc">Hantera sjukdomsepisoder (pågående/avslutade)</string>
+    <string name="hantera_sjukdomar_open">Öppna sjukdomar</string>
+    <string name="hantera_schema_section">Recept &amp; scheman</string>
+    <string name="hantera_schema_section_desc">Hantera schemalagda recept och doseringstider</string>
+    <string name="hantera_schema_open">Öppna recept &amp; scheman</string>
+    <string name="hantera_schema_title">Recept &amp; scheman</string>
 </resources>
