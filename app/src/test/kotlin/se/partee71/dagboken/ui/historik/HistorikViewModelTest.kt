@@ -80,7 +80,7 @@ class HistorikViewModelTest {
         )
 
     private fun episod(id: String = "ep1", typ: String = "Förkylning") = SjukdomsEpisod(
-        id = id, typ = typ, startDatum = "2026-01-01", slutDatum = null, timestamp = "x",
+        id = id, typ = typ, startDatum = "2026-01-01", slutDatum = "",
     )
 
     // ─── Sammanslagning ───────────────────────────────────────────────────────

@@ -110,7 +110,7 @@ class HistorikScreenTest {
                 ),
             )
             sjukdomarRepo.saveEpisod(
-                SjukdomsEpisod(id = "ep1", typ = "Förkylning", startDatum = "2026-01-01", slutDatum = null, timestamp = "x"),
+                SjukdomsEpisod(id = "ep1", typ = "Förkylning", startDatum = "2026-01-01", slutDatum = ""),
             )
             sjukdomarRepo.saveIncheckning(
                 SjukdomsIncheckning(id = "i1", episodId = "ep1", datum = "2026-01-01", tid = "11:00", svarighetsgrad = 4, symptom = "", somatiska = 0),
