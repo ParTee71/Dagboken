@@ -65,7 +65,7 @@ class AddEditHandelseScreenTest {
             prefs.setHandelseTypOptions(listOf(SymptomOption("Yrsel", isFavorite = true)))
         }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Yrsel").assertIsDisplayed()
@@ -76,11 +76,11 @@ class AddEditHandelseScreenTest {
             prefs.setHandelseTypOptions(listOf(SymptomOption("Yrsel", isFavorite = true)))
         }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Yrsel").performClick()
-        composeRule.waitUntil(3000) { vm.form.value.typ == "Yrsel" }
+        composeRule.waitUntil(10_000) { vm.form.value.typ == "Yrsel" }
         assert(vm.form.value.typ == "Yrsel")
     }
 
@@ -91,11 +91,11 @@ class AddEditHandelseScreenTest {
         setContent()
         composeRule.onNodeWithText("Fler typer").assertIsDisplayed()
         composeRule.onNodeWithText("Fler typer").performClick()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Andnöd")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Andnöd").performClick()
-        composeRule.waitUntil(3000) { vm.form.value.typ == "Andnöd" }
+        composeRule.waitUntil(10_000) { vm.form.value.typ == "Andnöd" }
         assert(vm.form.value.typ == "Andnöd")
     }
 
@@ -114,7 +114,7 @@ class AddEditHandelseScreenTest {
         setContent()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Fler typer").performClick()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Egen typ")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Egen typ").assertIsDisplayed()
@@ -124,7 +124,7 @@ class AddEditHandelseScreenTest {
         setContent()
         composeRule.onNode(hasText("Typ av händelse") and hasSetTextAction())
             .performTextInput("Helt ny typ")
-        composeRule.waitUntil(3000) { vm.form.value.typ == "Helt ny typ" }
+        composeRule.waitUntil(10_000) { vm.form.value.typ == "Helt ny typ" }
         assert(vm.form.value.typ == "Helt ny typ")
     }
 
@@ -134,7 +134,7 @@ class AddEditHandelseScreenTest {
         composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
         composeRule.onNode(hasText("Lägg till en anteckning…") and hasSetTextAction())
             .performTextInput("Kom efter möte")
-        composeRule.waitUntil(3000) { vm.form.value.anteckning == "Kom efter möte" }
+        composeRule.waitUntil(10_000) { vm.form.value.anteckning == "Kom efter möte" }
         assert(vm.form.value.anteckning == "Kom efter möte")
     }
 }

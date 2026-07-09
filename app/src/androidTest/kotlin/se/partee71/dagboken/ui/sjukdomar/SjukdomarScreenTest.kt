@@ -9,10 +9,12 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -41,7 +43,13 @@ class SjukdomarScreenTest {
         vm = SjukdomarViewModel(repo, NoteRepository(db.noteDao()))
     }
 
-    @After fun tearDown() { db.close() }
+    @After fun tearDown() {
+        // Stop the ViewModel's Room-flow collectors (WhileSubscribed(5000))
+        // before closing the DB, or they query the closed in-memory DB and throw
+        // "attempt to re-open an already-closed SQLiteDatabase".
+        vm.viewModelScope.cancel()
+        db.close()
+    }
 
     private fun setContent(onBack: () -> Unit = {}) {
         composeRule.setContent {
