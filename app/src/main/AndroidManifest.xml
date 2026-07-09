@@ -34,6 +34,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".notifications.MedActionReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".notifications.ScreeningReminderReceiver"
             android:exported="false" />
 

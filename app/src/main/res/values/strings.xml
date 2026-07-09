@@ -307,6 +307,8 @@
     <string name="notification_med_body">Glöm inte att ta dina mediciner.</string>
     <string name="notification_screening_title">Dags för screening – %1$s</string>
     <string name="notification_screening_body">Hur mår du? Logga din dagliga screening.</string>
+    <string name="notification_med_action_mark_taken">Markera tagen</string>
+    <string name="notification_screening_action_log_now">Logga nu</string>
 
     <string name="nav_tab_idag">Idag</string>
     <string name="nav_tab_historik">Historik</string>

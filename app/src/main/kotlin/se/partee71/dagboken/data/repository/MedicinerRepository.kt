@@ -17,6 +17,7 @@ import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.domain.model.tidpunktToHour
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -50,6 +51,20 @@ class MedicinerRepository @Inject constructor(
     suspend fun deleteMedicin(medicin: Medicin) = medicinDao.delete(medicin.toEntity())
 
     suspend fun toggleTagen(id: String, tagen: Boolean) = medicinDao.updateTagen(id, tagen)
+
+    /**
+     * Marks every scheduled, still-pending dose for today as taken and returns the
+     * count. Backs the "Markera tagen"-notification action so a reminder can be
+     * cleared without opening the app. Vid behov-doser (no scheduled hour) are
+     * left untouched — those are logged explicitly from the Idag-checklist.
+     */
+    suspend fun markTodayDosesTaken(): Int {
+        val due = todayFlow().first().filter {
+            !it.tagen && !it.skipped && tidpunktToHour(it.tidpunkt) != null
+        }
+        due.forEach { medicinDao.updateTagen(it.id, true) }
+        return due.size
+    }
 
     suspend fun skipMedicin(id: String) = medicinDao.markSkipped(id)
 

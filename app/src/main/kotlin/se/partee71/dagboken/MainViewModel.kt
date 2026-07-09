@@ -57,4 +57,12 @@ class MainViewModel @Inject constructor(
 
     fun setPendingNavRoute(route: String) { _pendingNavRoute.value = route }
     fun clearPendingNavRoute() { _pendingNavRoute.value = null }
+
+    // Set from the screening "Logga nu"-notisåtgärd: Idag pre-expands this event's
+    // inline-screeningformulär so the user lands straight on the form to fill in.
+    private val _pendingScreeningLabel = MutableStateFlow<String?>(null)
+    val pendingScreeningLabel: StateFlow<String?> = _pendingScreeningLabel.asStateFlow()
+
+    fun setPendingScreeningLabel(label: String) { _pendingScreeningLabel.value = label }
+    fun clearPendingScreeningLabel() { _pendingScreeningLabel.value = null }
 }

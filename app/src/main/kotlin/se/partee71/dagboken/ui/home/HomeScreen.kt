@@ -94,6 +94,8 @@ fun HomeScreen(
     onAddFavorit: () -> Unit,
     onEditFavorit: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
+    initialExpandedScreeningLabel: String? = null,
+    onScreeningLabelConsumed: () -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
     screeningVm: AktiviteterViewModel = hiltViewModel(),
     medicinerVm: MedicinerViewModel = hiltViewModel(),
@@ -229,8 +231,10 @@ fun HomeScreen(
             if (uiState.screeningEvents.isNotEmpty()) {
                 item {
                     ScreeningChecklistCard(
-                        events = uiState.screeningEvents,
-                        vm     = screeningVm,
+                        events                = uiState.screeningEvents,
+                        vm                    = screeningVm,
+                        initialExpandedLabel  = initialExpandedScreeningLabel,
+                        onInitialConsumed     = onScreeningLabelConsumed,
                     )
                 }
             }
@@ -608,10 +612,21 @@ internal fun FavoriterRow(
 private fun ScreeningChecklistCard(
     events: List<ScreeningEventStatus>,
     vm: AktiviteterViewModel,
+    initialExpandedLabel: String? = null,
+    onInitialConsumed: () -> Unit = {},
 ) {
     val cs = MaterialTheme.colorScheme
     var expandedLabel by remember { mutableStateOf<String?>(null) }
     val hasOverdue = events.any { it.overdue }
+
+    // Pre-expand the event the screening "Logga nu"-notisåtgärd pointed at, once its
+    // (still-unlogged) card exists, then consume the signal so it fires only once.
+    LaunchedEffect(initialExpandedLabel, events) {
+        val label = initialExpandedLabel ?: return@LaunchedEffect
+        val target = events.firstOrNull { it.label == label } ?: return@LaunchedEffect
+        if (!target.logged) expandedLabel = label
+        onInitialConsumed()
+    }
 
     DagbokenCard(accentColor = if (hasOverdue) cs.error else null) {
         ChecklistCardHeader(

@@ -135,7 +135,10 @@ fun AppNavigation(
                 )
             }
             composable(Screen.Idag.route) {
+                val pendingScreeningLabel by mainVm.pendingScreeningLabel.collectAsState()
                 HomeScreen(
+                    initialExpandedScreeningLabel = pendingScreeningLabel,
+                    onScreeningLabelConsumed      = { mainVm.clearPendingScreeningLabel() },
                     onNavigateToSettings  = {
                         navController.navigate(Screen.Hantera.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
