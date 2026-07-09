@@ -289,3 +289,19 @@
 | SJ-8 | Både en episod och varje incheckning kan ha en anteckning, redigerbar via den delade `NoteField`-komponenten. |
 | SJ-9 | Tas en episod bort raderas även dess incheckningar (kaskad) och samtliga tillhörande anteckningar. |
 | SJ-10 | Ett episodkort i listan som har en anteckning ska visa en liten info-ikon; tryck på ikonen visar anteckningen i en läs-only dialog med en Stäng-knapp. |
+
+---
+
+## 16. Historik-yta (enhetlig tidslinje, HIST)
+
+> Del av UX-omtaget #84 (etapp 2). Byggd och testad men **ännu inte nåbar via
+> bottennavigeringen** — kopplas in när navigationsbytet till fyra uppgiftsflikar sker
+> (#84 etapp 4). Fram tills dess gäller de befintliga per-flik-historikerna (HIS-1..5 m.fl.)
+> som den nåbara vägen.
+
+| ID | Krav |
+|----|------|
+| HIST-1 | Historik-ytan visar alla fem posttyper (aktivitet, screening, medicindos, händelse, sjukdomsincheckning) i ett enda kronologiskt flöde, grupperat per dag. |
+| HIST-2 | Poster kan filtreras per typ med filterchips; minst en typ måste vara aktiv (samma regel som HIS-1). |
+| HIST-3 | Tryck på en post navigerar till dess befintliga redigerings-/detaljskärm (ingen ny redigeringslogik i Historik-ytan själv). |
+| HIST-4 | Historik-ytan skriver inte till någon datakälla — ren läsvy över befintliga repositories. |

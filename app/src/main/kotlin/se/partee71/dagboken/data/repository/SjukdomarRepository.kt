@@ -42,6 +42,9 @@ class SjukdomarRepository @Inject constructor(
     fun incheckningarForEpisod(episodId: String): Flow<List<SjukdomsIncheckning>> =
         incheckningDao.allForEpisodFlow(episodId).map { list -> list.map { it.toDomain() } }
 
+    val allIncheckningar: Flow<List<SjukdomsIncheckning>> =
+        incheckningDao.allFlow().map { list -> list.map { it.toDomain() } }
+
     suspend fun saveIncheckning(incheckning: SjukdomsIncheckning) = withContext(ioDispatcher) {
         incheckningDao.save(incheckning.toEntity())
     }

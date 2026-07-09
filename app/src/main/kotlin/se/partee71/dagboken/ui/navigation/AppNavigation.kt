@@ -38,6 +38,7 @@ import se.partee71.dagboken.ui.diagram.DiagramScreen
 import se.partee71.dagboken.ui.diagram.SymptomDiagramScreen
 import se.partee71.dagboken.ui.handelser.AddEditHandelseScreen
 import se.partee71.dagboken.ui.handelser.HandelserScreen
+import se.partee71.dagboken.ui.historik.HistorikScreen
 import se.partee71.dagboken.ui.home.HomeScreen
 import se.partee71.dagboken.ui.mediciner.MedicinerScreen
 import se.partee71.dagboken.ui.mediciner.add.AddEditFavoritScreen
@@ -313,6 +314,18 @@ fun AppNavigation(
             ) {
                 AddSjukdomsIncheckningScreen(
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.HISTORIK) {
+                HistorikScreen(
+                    onBack               = { navController.popBackStack() },
+                    onEditAktivitet      = { id, type ->
+                        if (type == "screening") navController.navigate(Routes.editScreening(id))
+                        else navController.navigate(Routes.editAktivitet(id))
+                    },
+                    onEditMedicin        = { id -> navController.navigate(Routes.editMedicin(id)) },
+                    onEditHandelse       = { id -> navController.navigate(Routes.editHandelse(id)) },
+                    onOpenSjukdomsEpisod = { episodId -> navController.navigate(Routes.sjukdomEpisodDetail(episodId)) },
                 )
             }
         }
