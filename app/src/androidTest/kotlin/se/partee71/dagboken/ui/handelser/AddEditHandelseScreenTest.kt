@@ -89,6 +89,11 @@ class AddEditHandelseScreenTest {
             prefs.setHandelseTypOptions(listOf(SymptomOption("Andnöd", isFavorite = false)))
         }
         setContent()
+        // "Fler typer" renders only once the cold WhileSubscribed typ-options flow
+        // emits, so poll for it instead of asserting on the first frame.
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Fler typer")).fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("Fler typer").assertIsDisplayed()
         composeRule.onNodeWithText("Fler typer").performClick()
         composeRule.waitUntil(10_000) {
@@ -112,7 +117,9 @@ class AddEditHandelseScreenTest {
             )
         }
         setContent()
-        composeRule.waitForIdle()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Fler typer")).fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("Fler typer").performClick()
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Egen typ")).fetchSemanticsNodes().isNotEmpty()

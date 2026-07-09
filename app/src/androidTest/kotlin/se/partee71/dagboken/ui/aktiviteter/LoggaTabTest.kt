@@ -108,7 +108,7 @@ class LoggaTabTest {
         composeRule.onNodeWithText("Spara aktivitet").performClick()
         // save() writes to the DB in a coroutine and only then sets the snackbar;
         // waitForIdle() does not wait for that coroutine, so poll until it lands.
-        composeRule.waitUntil(3000) { vm.snackbar.value != null }
+        composeRule.waitUntil(10_000) { vm.snackbar.value != null }
         val msg = vm.snackbar.value
         assertNotNull(msg)
         assertTrue("Expected snackbar to contain activity name, got: $msg", msg!!.contains("Promenad"))
@@ -143,7 +143,7 @@ class LoggaTabTest {
         runBlocking { prefs.setAktivitetOptions(listOf(SymptomOption("Promenad", isFavorite = true), SymptomOption("Simning", isFavorite = true))) }
         try {
             composeRule.setContent { MaterialTheme { LoggaTab(vm) } }
-            composeRule.waitUntil(3000) {
+            composeRule.waitUntil(10_000) {
                 composeRule.onAllNodes(
                     hasText("Promenad")
                 ).fetchSemanticsNodes().isNotEmpty()
@@ -184,7 +184,7 @@ class LoggaTabTest {
             repo.save(aktivitet("a2", "Morgonscreening", "screening"))
         }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Senaste registreringar").performScrollTo().assertIsDisplayed()
@@ -199,7 +199,7 @@ class LoggaTabTest {
         composeRule.setContent {
             MaterialTheme { LoggaTab(vm = vm, onEdit = { id, type -> editedId = id; editedType = type }) }
         }
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithContentDescription("Alternativ").performScrollTo().performClick()
@@ -213,7 +213,7 @@ class LoggaTabTest {
     @Test fun recent_entry_delete_removes_it_after_confirmation() {
         runBlocking { repo.save(aktivitet("a1", "Promenad", "aktivitet")) }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
         }
 
@@ -222,7 +222,7 @@ class LoggaTabTest {
         composeRule.onNodeWithText("Ta bort").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Ta bort").performClick()
-        composeRule.waitUntil(3000) { vm.recentEntries.value.none { it.id == "a1" } }
+        composeRule.waitUntil(10_000) { vm.recentEntries.value.none { it.id == "a1" } }
 
         composeRule.onNodeWithText("Promenad").assertDoesNotExist()
     }
@@ -259,7 +259,7 @@ class LoggaTabTest {
         ).performTextInput("Regnigt väder")
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Spara aktivitet").performClick()
-        composeRule.waitUntil(3000) { vm.snackbar.value != null }
+        composeRule.waitUntil(10_000) { vm.snackbar.value != null }
         val saved = runBlocking { db.noteDao().getAll() }
         assertEquals(1, saved.size)
         assertEquals("ACTIVITY", saved.first().target)

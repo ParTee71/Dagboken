@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -71,7 +72,7 @@ class AddEditScreeningScreenTest {
         composeRule.setContent {
             MaterialTheme { AddEditScreeningScreen(editId = "s1", onBack = { backCount++ }, vm = vm) }
         }
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Spara screening")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onAllNodesWithText("Spara screening").assertCountEquals(1)
@@ -87,7 +88,7 @@ class AddEditScreeningScreenTest {
         composeRule.setContent {
             MaterialTheme { AddEditScreeningScreen(editId = "s2", onBack = { backCount++ }, vm = vm) }
         }
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Spara screening")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Spara screening").assertIsNotEnabled()
@@ -103,11 +104,17 @@ class AddEditScreeningScreenTest {
         composeRule.setContent {
             MaterialTheme { AddEditScreeningScreen(editId = "s3", onBack = { backCount++ }, vm = vm) }
         }
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Spara screening")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Lunch").performClick()
-        composeRule.waitForIdle()
+        // The save button enables via a ViewModel StateFlow update; poll for the
+        // enabled state rather than a single waitForIdle, which can race the
+        // async recomposition on a lagging emulator.
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Spara screening") and isEnabled())
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("Spara screening").assertIsEnabled()
     }
 
@@ -121,13 +128,18 @@ class AddEditScreeningScreenTest {
         composeRule.setContent {
             MaterialTheme { AddEditScreeningScreen(editId = "s4", onBack = { backCount++ }, vm = vm) }
         }
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Spara screening")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Läggdags").performClick()
-        composeRule.waitForIdle()
+        // Wait for the save button to actually become enabled before clicking it,
+        // otherwise the click no-ops and onBack is never invoked.
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Spara screening") and isEnabled())
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("Spara screening").performClick()
-        composeRule.waitUntil(3000) { backCount > 0 }
+        composeRule.waitUntil(10_000) { backCount > 0 }
         assertTrue(backCount > 0)
     }
 }

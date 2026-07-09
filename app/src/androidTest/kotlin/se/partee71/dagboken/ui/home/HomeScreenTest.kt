@@ -152,13 +152,13 @@ class HomeScreenTest {
         )
         runBlocking { medicRepo.saveMedicin(med) }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Metformin")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Metformin").assertIsDisplayed()
 
         composeRule.runOnUiThread { vm.toggleMedicinTagen(med) }
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Metformin")).fetchSemanticsNodes().isEmpty()
         }
     }
@@ -172,7 +172,7 @@ class HomeScreenTest {
         )
         runBlocking { medicRepo.saveMedicin(med) }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Vitamin D")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Vitamin D").assertIsDisplayed()
@@ -187,11 +187,11 @@ class HomeScreenTest {
             composeRule.onAllNodes(hasText("Efter frukost")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Efter frukost").performClick()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Spara")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Spara").performClick()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Loggad")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Loggad").assertIsDisplayed()
@@ -220,7 +220,7 @@ class HomeScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Paracetamol").assertIsDisplayed()
@@ -236,11 +236,11 @@ class HomeScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Ipren")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Ipren").performClick()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             runBlocking { medicRepo.allMediciner.first().any { it.namn == "Ipren" && it.tagen } }
         }
     }

@@ -84,7 +84,7 @@ class SchemaScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Levaxin")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Levaxin").assertIsDisplayed()

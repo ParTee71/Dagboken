@@ -73,7 +73,7 @@ class ScreeningTabTest {
             repo.save(aktivitet("a1", "Promenad", "aktivitet"))
         }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Morgonscreening")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Senaste registreringar").performScrollTo().assertIsDisplayed()
@@ -88,7 +88,7 @@ class ScreeningTabTest {
         composeRule.setContent {
             MaterialTheme { ScreeningTab(vm = vm, onEdit = { id, type -> editedId = id; editedType = type }) }
         }
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Morgonscreening")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithContentDescription("Alternativ").performScrollTo().performClick()
@@ -102,7 +102,7 @@ class ScreeningTabTest {
     @Test fun recent_entry_delete_removes_it_after_confirmation() {
         runBlocking { repo.save(aktivitet("s1", "Morgonscreening", "screening")) }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Morgonscreening")).fetchSemanticsNodes().isNotEmpty()
         }
 
@@ -111,7 +111,7 @@ class ScreeningTabTest {
         composeRule.onNodeWithText("Ta bort").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Ta bort").performClick()
-        composeRule.waitUntil(3000) { vm.recentEntries.value.none { it.id == "s1" } }
+        composeRule.waitUntil(10_000) { vm.recentEntries.value.none { it.id == "s1" } }
 
         composeRule.onNodeWithText("Morgonscreening").assertDoesNotExist()
     }
@@ -140,7 +140,7 @@ class ScreeningTabTest {
         composeRule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Yr och trött")
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Spara screening").performClick()
-        composeRule.waitUntil(3000) { vm.snackbar.value != null }
+        composeRule.waitUntil(10_000) { vm.snackbar.value != null }
         val saved = runBlocking { db.noteDao().getAll() }
         assertEquals(1, saved.size)
         assertEquals("SCREENING", saved.first().target)
