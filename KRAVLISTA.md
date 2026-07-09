@@ -68,6 +68,7 @@
 | HEM-10 | Säkerställa dagens medicinposter genereras vid skärmstart (`ensureTodayEntries`). |
 | HEM-11 | Favoritmarkerade vid behov-mediciner ska visas som tryckbara snabbvalskort direkt i checklistan (samma beteende som tidigare MED-7); tryck loggar en dos med befintlig cooldown-/gränslogik, långtryck öppnar redigera/ta bort/favoritmarkera. Nya favoriter skapas via "+"-FAB. |
 | HEM-12 | Pågående sjukdomsepisod ska visas som ett accentmärkt kort som länkar till sjukdomsdetaljer (Hantera → Sjukdomar). |
+| HEM-13 | I början av veckan (söndag/måndag) ska ett **veckosammanfattningskort** visas överst på Idag: energitrend (senaste 7 dagarnas genomsnittliga screeningenergi jämfört med föregående 7 dagar, ↑/↓/oförändrad) och andel tagna av veckans schemalagda doser (%). Beräknas live från befintliga poster via delad `DagbokenCard` — ingen ny persisterad data. Döljs om underlag saknas. |
 
 ---
 

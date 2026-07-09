@@ -117,6 +117,7 @@ fun HomeScreen(
     }
     val allFavoriter by medicinerVm.allFavoriter.collectAsState()
     val cooldownWarning by medicinerVm.cooldownWarning.collectAsState()
+    val weekSummary by vm.weekSummary.collectAsState()
 
     DagbokenScaffold(
         navigationIcon = {
@@ -213,6 +214,11 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+
+            // Veckosammanfattning (visas i början av veckan, sön/mån)
+            weekSummary?.let { summary ->
+                item { WeekSummaryCard(summary) }
             }
 
             // Dagens checklista — mediciner (avbockningsbara direkt)
@@ -370,6 +376,24 @@ fun HomeScreen(
                     Text(stringResource(R.string.cancel))
                 }
             },
+        )
+    }
+}
+
+@Composable
+private fun WeekSummaryCard(summary: WeekSummary) {
+    val cs = MaterialTheme.colorScheme
+    val energyText = when (summary.energyTrend) {
+        EnergyTrend.UP   -> stringResource(R.string.home_week_energy_up)
+        EnergyTrend.DOWN -> stringResource(R.string.home_week_energy_down)
+        EnergyTrend.FLAT -> stringResource(R.string.home_week_energy_flat)
+    }
+    DagbokenCard(title = stringResource(R.string.home_week_summary_title)) {
+        Text(energyText, style = MaterialTheme.typography.bodyMedium, color = cs.onSurface)
+        Text(
+            stringResource(R.string.format_home_week_doses, summary.dosesTakenPercent),
+            style = MaterialTheme.typography.bodyMedium,
+            color = cs.onSurfaceVariant,
         )
     }
 }
