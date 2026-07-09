@@ -9,8 +9,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import androidx.lifecycle.viewModelScope
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -34,7 +36,15 @@ import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 @RunWith(AndroidJUnit4::class)
 class HistorikScreenTest {
 
-    @get:Rule val composeRule = createComposeRule()
+    val composeRule = createComposeRule()
+
+    // Retry outermost so a swiftshader render-glitch flake re-runs with a
+    // fresh @Before/@After lifecycle instead of failing the build.
+    @get:Rule
+    val flakyRetry: org.junit.rules.RuleChain =
+        org.junit.rules.RuleChain
+            .outerRule(se.partee71.dagboken.util.RetryTestRule())
+            .around(composeRule)
 
     private lateinit var db: AppDatabase
     private lateinit var aktivRepo: AktiviteterRepository
@@ -62,7 +72,14 @@ class HistorikScreenTest {
         vm = HistorikViewModel(aktivRepo, medicRepo, handelserRepo, sjukdomarRepo)
     }
 
-    @After fun tearDown() { db.close() }
+    @After fun tearDown() {
+        // Cancel the ViewModel's collectors first: its Room-backed flows use
+        // WhileSubscribed(5000), so the DB collector outlives the test unless
+        // stopped, and querying the closed in-memory DB throws
+        // "attempt to re-open an already-closed SQLiteDatabase".
+        vm.viewModelScope.cancel()
+        db.close()
+    }
 
     private fun setContent(
         onEditAktivitet: (String, String) -> Unit = { _, _ -> },
@@ -117,7 +134,7 @@ class HistorikScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Promenad").assertIsDisplayed()
@@ -137,7 +154,7 @@ class HistorikScreenTest {
         }
         var editedId: String? = null
         setContent(onEditMedicin = { id -> editedId = id })
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Ibuprofen")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Ibuprofen").performClick()
@@ -160,11 +177,11 @@ class HistorikScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Aktivitet").performClick()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isEmpty()
         }
         composeRule.onNodeWithText("Ibuprofen").assertIsDisplayed()

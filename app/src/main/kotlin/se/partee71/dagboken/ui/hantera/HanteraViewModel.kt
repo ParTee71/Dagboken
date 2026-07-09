@@ -1,4 +1,4 @@
-package se.partee71.dagboken.ui.settings
+package se.partee71.dagboken.ui.hantera
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -20,7 +20,7 @@ import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.notifications.AlarmScheduler
 import javax.inject.Inject
 
-data class SettingsUiState(
+data class HanteraUiState(
     val isDarkTheme: Boolean = true,
     val isDynamicColor: Boolean = true,
     val themeMode: String = "auto",           // "light"|"dark"|"auto"
@@ -41,7 +41,7 @@ data class SettingsUiState(
 )
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(
+class HanteraViewModel @Inject constructor(
     private val prefs: PreferencesRepository,
     private val authRepo: FirebaseAuthRepository,
     private val alarmScheduler: AlarmScheduler,
@@ -78,7 +78,7 @@ class SettingsViewModel @Inject constructor(
         val handelseTyp: String,
     )
 
-    val state: StateFlow<SettingsUiState> = combine(
+    val state: StateFlow<HanteraUiState> = combine(
         combine(prefs.isDarkTheme, prefs.dynamicColor, prefs.themeMode,
                 prefs.themeLightStart, prefs.themeDarkStart) { dark, dynamic, mode, light, darkS ->
             ThemePrefs(dark, dynamic, mode, light, darkS)
@@ -91,7 +91,7 @@ class SettingsViewModel @Inject constructor(
                 combine(_newAktivitetOption, _newSymptomOption, _newHandelseTypOption) { newAkt, newSymp, newHandelseTyp ->
                     NewOptionInputs(newAkt, newSymp, newHandelseTyp)
                 }) { user, signing, err, newOptions ->
-            SettingsUiState(
+            HanteraUiState(
                 googleAccountEmail    = user?.email,
                 googleAccountPhotoUrl = user?.photoUrl?.toString(),
                 isSigningIn           = signing,
@@ -114,7 +114,7 @@ class SettingsViewModel @Inject constructor(
             symptomOptions           = notif.symptomOpts,
             handelseTypOptions       = notif.handelseTypOpts,
         )
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, SettingsUiState())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, HanteraUiState())
 
     fun signIn(activityContext: Context) {
         viewModelScope.launch {

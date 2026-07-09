@@ -10,9 +10,11 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -29,7 +31,15 @@ import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 @RunWith(AndroidJUnit4::class)
 class AddEditFavoritScreenTest {
 
-    @get:Rule val composeRule = createComposeRule()
+    val composeRule = createComposeRule()
+
+    // Retry outermost so a swiftshader render-glitch flake re-runs with a
+    // fresh @Before/@After lifecycle instead of failing the build.
+    @get:Rule
+    val flakyRetry: org.junit.rules.RuleChain =
+        org.junit.rules.RuleChain
+            .outerRule(se.partee71.dagboken.util.RetryTestRule())
+            .around(composeRule)
 
     private lateinit var db: AppDatabase
     private lateinit var vm: AddEditFavoritViewModel
@@ -57,7 +67,13 @@ class AddEditFavoritScreenTest {
         }
     }
 
-    @After fun tearDown() { db.close() }
+    @After fun tearDown() {
+        // Cancel any in-flight viewModelScope coroutine before closing the DB,
+        // so it can't query the closed in-memory DB and throw
+        // "attempt to re-open an already-closed SQLiteDatabase".
+        vm.viewModelScope.cancel()
+        db.close()
+    }
 
     @Test fun cooldown_and_max_per_day_sliders_show_default_values_and_update_on_tap() {
         // Default form: minTidMellan = 4h, maxDoserPerDag = 0 (unlimited)

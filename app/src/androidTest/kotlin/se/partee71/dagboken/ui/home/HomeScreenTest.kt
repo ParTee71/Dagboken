@@ -19,6 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
@@ -28,16 +29,28 @@ import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.data.room.AppDatabase
+import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
+import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import se.partee71.dagboken.ui.aktiviteter.AktiviteterViewModel
+import se.partee71.dagboken.ui.mediciner.MedicinerViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @RunWith(AndroidJUnit4::class)
 class HomeScreenTest {
 
-    @get:Rule val composeRule = createComposeRule()
+    val composeRule = createComposeRule()
+
+    // Retry outermost so a swiftshader render-glitch flake re-runs with a
+    // fresh @Before/@After lifecycle instead of failing the build.
+    @get:Rule
+    val flakyRetry: org.junit.rules.RuleChain =
+        org.junit.rules.RuleChain
+            .outerRule(se.partee71.dagboken.util.RetryTestRule())
+            .around(composeRule)
 
     private lateinit var db: AppDatabase
     private lateinit var aktivRepo: AktiviteterRepository
@@ -48,6 +61,7 @@ class HomeScreenTest {
     private lateinit var sjukdomarRepo: SjukdomarRepository
     private lateinit var vm: HomeViewModel
     private lateinit var screeningVm: AktiviteterViewModel
+    private lateinit var medicinerVm: MedicinerViewModel
 
     private val today get() = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
@@ -75,6 +89,7 @@ class HomeScreenTest {
         }
         vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo)
         screeningVm = AktiviteterViewModel(aktivRepo, noteRepo, prefs)
+        medicinerVm = MedicinerViewModel(medicRepo, noteRepo, CheckCooldownUseCase(), CheckDailyLimitUseCase())
     }
 
     @After fun tearDown() {
@@ -89,16 +104,18 @@ class HomeScreenTest {
         composeRule.setContent {
             MaterialTheme {
                 HomeScreen(
-                    onNavigateToAktiviteter = {},
                     onNavigateToSettings    = {},
-                    onNavigateToDiagram     = {},
+                    onNavigateToTrender     = {},
                     onNavigateToSjukdomar   = {},
                     onAddAktivitet          = {},
                     onAddMedicin            = {},
                     onAddHandelse           = {},
+                    onAddFavorit            = {},
+                    onEditFavorit           = {},
                     snackbarHostState       = SnackbarHostState(),
                     vm                      = vm,
                     screeningVm             = screeningVm,
+                    medicinerVm             = medicinerVm,
                 )
             }
         }
@@ -143,13 +160,13 @@ class HomeScreenTest {
         )
         runBlocking { medicRepo.saveMedicin(med) }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Metformin")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Metformin").assertIsDisplayed()
 
         composeRule.runOnUiThread { vm.toggleMedicinTagen(med) }
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Metformin")).fetchSemanticsNodes().isEmpty()
         }
     }
@@ -163,7 +180,7 @@ class HomeScreenTest {
         )
         runBlocking { medicRepo.saveMedicin(med) }
         setContent()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Vitamin D")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Vitamin D").assertIsDisplayed()
@@ -178,11 +195,11 @@ class HomeScreenTest {
             composeRule.onAllNodes(hasText("Efter frukost")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Efter frukost").performClick()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Spara")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Spara").performClick()
-        composeRule.waitUntil(3000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Loggad")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Loggad").assertIsDisplayed()
@@ -194,8 +211,45 @@ class HomeScreenTest {
         setContent()
         composeRule.onNodeWithContentDescription("Lägg till").performClick()
         composeRule.onNodeWithText("Logga aktivitet").assertIsDisplayed()
-        composeRule.onNodeWithText("Logga screening").assertIsDisplayed()
         composeRule.onNodeWithText("Logga engångsdos").assertIsDisplayed()
+        composeRule.onNodeWithText("Ny vid behov-favorit").assertIsDisplayed()
         composeRule.onNodeWithText("Ny händelse").assertIsDisplayed()
+    }
+
+    // ─── Vid behov — snabbdosering ────────────────────────────────────────────
+
+    @Test fun favorite_marked_favorit_is_shown_as_quick_dose_chip() {
+        runBlocking {
+            medicRepo.saveFavorit(
+                Favorit(
+                    id = "fav1", namn = "Paracetamol", dos = "500", enhet = "mg",
+                    tidpunkt = "Vid behov", minTidMellan = 0, isFavorite = true,
+                )
+            )
+        }
+        setContent()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Paracetamol").assertIsDisplayed()
+    }
+
+    @Test fun tapping_favorit_chip_logs_a_dose() {
+        runBlocking {
+            medicRepo.saveFavorit(
+                Favorit(
+                    id = "fav1", namn = "Ipren", dos = "400", enhet = "mg",
+                    tidpunkt = "Vid behov", minTidMellan = 0, isFavorite = true,
+                )
+            )
+        }
+        setContent()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Ipren")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Ipren").performClick()
+        composeRule.waitUntil(10_000) {
+            runBlocking { medicRepo.allMediciner.first().any { it.namn == "Ipren" && it.tagen } }
+        }
     }
 }

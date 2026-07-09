@@ -52,7 +52,7 @@ object NotificationHelper {
             .setContentText(context.getString(R.string.notification_med_body))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
-            .setContentIntent(buildIntent(context, Screen.Mediciner.route, NOTIFICATION_ID_MED))
+            .setContentIntent(buildIntent(context, Screen.Idag.route, NOTIFICATION_ID_MED))
             .build()
         manager.notify(NOTIFICATION_ID_MED, notification)
     }
@@ -65,7 +65,7 @@ object NotificationHelper {
             .setContentText(context.getString(R.string.notification_screening_body))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
-            .setContentIntent(buildIntent(context, Screen.Aktiviteter.route, NOTIFICATION_ID_SCREENING))
+            .setContentIntent(buildIntent(context, Screen.Idag.route, NOTIFICATION_ID_SCREENING))
             .build()
         manager.notify(NOTIFICATION_ID_SCREENING, notification)
     }

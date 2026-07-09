@@ -1,4 +1,4 @@
-package se.partee71.dagboken.ui.settings
+package se.partee71.dagboken.ui.hantera
 
 import io.mockk.coVerify
 import io.mockk.every
@@ -28,7 +28,7 @@ import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.notifications.AlarmScheduler
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class SettingsViewModelTest {
+class HanteraViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
 
@@ -42,7 +42,7 @@ class SettingsViewModelTest {
     private val handelseTypOptionsFlow = MutableStateFlow(listOf(SymptomOption("Yrsel")))
     private val medicinFavoriterFlow = MutableStateFlow<List<Favorit>>(emptyList())
 
-    private lateinit var viewModel: SettingsViewModel
+    private lateinit var viewModel: HanteraViewModel
 
     @Before fun setUp() {
         Dispatchers.setMain(testDispatcher)
@@ -65,7 +65,7 @@ class SettingsViewModelTest {
         medicinerRepo = mockk(relaxed = true) {
             every { allFavoriter } returns medicinFavoriterFlow
         }
-        viewModel = SettingsViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -186,7 +186,7 @@ class SettingsViewModelTest {
 
     @Test fun `renameHandelseTypOption ignores duplicate target name`() = runTest {
         handelseTypOptionsFlow.value = listOf(SymptomOption("Yrsel"), SymptomOption("Andnöd"))
-        viewModel = SettingsViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
         viewModel.renameHandelseTypOption("Yrsel", "Andnöd")
         coVerify(exactly = 0) { prefs.setHandelseTypOptions(any()) }
     }
@@ -215,7 +215,7 @@ class SettingsViewModelTest {
         val enabledConfigs = DEFAULT_SCREENING_EVENTS.toMutableList()
             .also { it[0] = ScreeningEventConfig(enabled = true, time = "08:00") }
         every { prefs.screeningEventConfigs } returns flowOf(enabledConfigs)
-        viewModel = SettingsViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
 
         viewModel.setScreeningEventTime(0, "09:30")
         coVerify { alarmScheduler.rescheduleAll() }

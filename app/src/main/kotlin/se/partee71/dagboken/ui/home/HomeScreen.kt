@@ -9,6 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,13 +23,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -62,27 +69,34 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.BuildConfig
 import se.partee71.dagboken.R
+import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.ui.aktiviteter.AktiviteterViewModel
 import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
+import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.GradientSliderRow
+import se.partee71.dagboken.ui.components.NoteIndicatorIcon
+import se.partee71.dagboken.ui.mediciner.MedicinerViewModel
 import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
+import java.util.Locale
 
 @Composable
 fun HomeScreen(
-    onNavigateToAktiviteter: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToDiagram: () -> Unit,
+    onNavigateToTrender: () -> Unit,
     onNavigateToSjukdomar: () -> Unit,
     onAddAktivitet: () -> Unit,
     onAddMedicin: () -> Unit,
     onAddHandelse: () -> Unit,
+    onAddFavorit: () -> Unit,
+    onEditFavorit: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
     vm: HomeViewModel = hiltViewModel(),
     screeningVm: AktiviteterViewModel = hiltViewModel(),
+    medicinerVm: MedicinerViewModel = hiltViewModel(),
 ) {
     val uiState by vm.uiState.collectAsState()
     val cs = MaterialTheme.colorScheme
@@ -94,6 +108,13 @@ fun HomeScreen(
     LaunchedEffect(screeningSnackbar) {
         screeningSnackbar?.let { snackbarHostState.showSnackbar(it); screeningVm.clearSnackbar() }
     }
+
+    val medicinerSnackbar by medicinerVm.snackbar.collectAsState()
+    LaunchedEffect(medicinerSnackbar) {
+        medicinerSnackbar?.let { snackbarHostState.showSnackbar(it); medicinerVm.clearSnackbar() }
+    }
+    val allFavoriter by medicinerVm.allFavoriter.collectAsState()
+    val cooldownWarning by medicinerVm.cooldownWarning.collectAsState()
 
     DagbokenScaffold(
         navigationIcon = {
@@ -134,14 +155,14 @@ fun HomeScreen(
                         onClick     = { fabMenuExpanded = false; onAddAktivitet() },
                     )
                     DropdownMenuItem(
-                        text        = { Text(stringResource(R.string.home_fab_log_screening)) },
-                        leadingIcon = { Icon(Icons.Filled.MonitorHeart, contentDescription = null) },
-                        onClick     = { fabMenuExpanded = false; onNavigateToAktiviteter() },
-                    )
-                    DropdownMenuItem(
                         text        = { Text(stringResource(R.string.log_single_dose)) },
                         leadingIcon = { Icon(Icons.Filled.Medication, contentDescription = null) },
                         onClick     = { fabMenuExpanded = false; onAddMedicin() },
+                    )
+                    DropdownMenuItem(
+                        text        = { Text(stringResource(R.string.home_fab_new_favorit)) },
+                        leadingIcon = { Icon(Icons.Filled.Star, contentDescription = null) },
+                        onClick     = { fabMenuExpanded = false; onAddFavorit() },
                     )
                     DropdownMenuItem(
                         text        = { Text(stringResource(R.string.handelse_new)) },
@@ -211,6 +232,13 @@ fun HomeScreen(
                         events = uiState.screeningEvents,
                         vm     = screeningVm,
                     )
+                }
+            }
+
+            // Vid behov — favoritmarkerade mediciner (tryck loggar en dos direkt)
+            if (allFavoriter.isNotEmpty()) {
+                item {
+                    VidBehovChecklistCard(vm = medicinerVm, onEdit = onEditFavorit)
                 }
             }
 
@@ -288,7 +316,7 @@ fun HomeScreen(
                         )
                     }
                     TextButton(
-                        onClick  = onNavigateToDiagram,
+                        onClick  = onNavigateToTrender,
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.home_view_diagram)) }
                 }
@@ -308,6 +336,35 @@ fun HomeScreen(
             onNavigateToSettings = {
                 showAccountSheet = false
                 onNavigateToSettings()
+            },
+        )
+    }
+
+    cooldownWarning?.let { warning ->
+        val h = warning.remainingHours.toInt()
+        val m = ((warning.remainingHours - h) * 60).toInt()
+        AlertDialog(
+            onDismissRequest = { medicinerVm.dismissCooldownWarning() },
+            title = { Text(stringResource(R.string.cooldown_warning_title)) },
+            text  = {
+                Text(
+                    stringResource(
+                        R.string.format_cooldown_warning_body,
+                        String.format(Locale.ROOT, "%d", h),
+                        String.format(Locale.ROOT, "%02d", m),
+                        warning.favorit.namn,
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { medicinerVm.forceDos(warning.favorit) }) {
+                    Text(stringResource(R.string.cooldown_take_anyway))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { medicinerVm.dismissCooldownWarning() }) {
+                    Text(stringResource(R.string.cancel))
+                }
             },
         )
     }
@@ -397,6 +454,151 @@ private fun MedicinChecklistCard(
                     if (showTaken) stringResource(R.string.idag_dolj_tagna)
                     else stringResource(R.string.idag_visa_tagna_count, tagenCount),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VidBehovChecklistCard(
+    vm: MedicinerViewModel,
+    onEdit: (String) -> Unit,
+) {
+    val favoriter    by vm.favoriteFavoriter.collectAsState()
+    val others       by vm.otherFavoriter.collectAsState()
+    val favoritNotes by vm.favoritNotes.collectAsState()
+    var deleteTarget by remember { mutableStateOf<Favorit?>(null) }
+
+    DagbokenCard {
+        ChecklistCardHeader(title = stringResource(R.string.home_checklist_vidbehov_title), hasOverdue = false)
+        FavoriterRow(
+            favoriter        = favoriter,
+            others           = others,
+            onTap            = { vm.quickDos(it) },
+            onEdit           = onEdit,
+            onDelete         = { deleteTarget = it },
+            onToggleFavorite = { vm.toggleFavoritFavorite(it) },
+            notes            = favoritNotes,
+        )
+    }
+
+    deleteTarget?.let { target ->
+        ConfirmDialog(
+            title     = stringResource(R.string.delete_favorit_title),
+            text      = stringResource(R.string.format_delete_favorit_confirm, target.namn),
+            onConfirm = { vm.deleteFavorit(target); deleteTarget = null },
+            onDismiss = { deleteTarget = null },
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun FavoriterRow(
+    favoriter: List<Favorit>,
+    others: List<Favorit> = emptyList(),
+    onTap: (Favorit) -> Unit,
+    onEdit: (String) -> Unit,
+    onDelete: ((Favorit) -> Unit)? = null,
+    onToggleFavorite: ((Favorit) -> Unit)? = null,
+    notes: Map<String, String> = emptyMap(),
+) {
+    val cs = MaterialTheme.colorScheme
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        favoriter.forEach { fav ->
+            var menuExpanded by remember { mutableStateOf(false) }
+            Box {
+                DagbokenCard(
+                    onClick        = { onTap(fav) },
+                    onLongClick    = { if (onDelete != null) menuExpanded = true else onEdit(fav.id) },
+                    containerColor = cs.secondaryContainer,
+                    contentPadding = PaddingValues(0.dp),
+                    fillMaxWidth   = false,
+                ) {
+                    Row(
+                        modifier          = Modifier.padding(start = 16.dp, end = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                fav.namn,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = cs.onSecondaryContainer,
+                            )
+                            Text(
+                                "${fav.dos} ${fav.enhet}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = cs.onSecondaryContainer.copy(alpha = 0.7f),
+                            )
+                        }
+                        NoteIndicatorIcon(noteText = notes[fav.id].orEmpty(), dialogTitle = fav.namn)
+                    }
+                }
+                if (onDelete != null) {
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.edit)) },
+                            leadingIcon = { Icon(Icons.Default.Edit, null) },
+                            onClick = { menuExpanded = false; onEdit(fav.id) },
+                        )
+                        if (onToggleFavorite != null) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (fav.isFavorite) stringResource(R.string.favorit_unmark_favorite)
+                                        else stringResource(R.string.favorit_mark_favorite),
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = if (fav.isFavorite) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                                    )
+                                },
+                                onClick = { menuExpanded = false; onToggleFavorite(fav) },
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete), color = cs.error) },
+                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = cs.error) },
+                            onClick = { menuExpanded = false; onDelete(fav) },
+                        )
+                    }
+                }
+            }
+        }
+
+        if (others.isNotEmpty()) {
+            var showMore by remember { mutableStateOf(false) }
+            Box {
+                AssistChip(
+                    onClick = { showMore = true },
+                    label   = { Text(stringResource(R.string.favorit_more_label, others.size)) },
+                )
+                DropdownMenu(
+                    expanded = showMore,
+                    onDismissRequest = { showMore = false },
+                ) {
+                    others.forEach { fav ->
+                        DropdownMenuItem(
+                            text = { Text("${fav.namn} — ${fav.dos} ${fav.enhet}") },
+                            onClick = { showMore = false; onTap(fav) },
+                        )
+                    }
+                }
             }
         }
     }

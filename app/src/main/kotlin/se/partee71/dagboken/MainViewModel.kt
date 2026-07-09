@@ -42,7 +42,7 @@ class MainViewModel @Inject constructor(
                 h < lightStart || h >= darkStart
             }
         }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), true)
 
     val dynamicColor = prefs.dynamicColor
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
