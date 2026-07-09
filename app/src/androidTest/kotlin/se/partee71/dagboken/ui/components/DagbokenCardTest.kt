@@ -2,7 +2,6 @@ package se.partee71.dagboken.ui.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -76,7 +75,7 @@ class DagbokenCardTest {
                 }
             }
         }
-        composeRule.onNodeWithTag("content").performTouchInput {
+        composeRule.onNodeWithTag("content", useUnmergedTree = true).performTouchInput {
             down(center)
             advanceEventTime(600L)
             up()
@@ -88,7 +87,7 @@ class DagbokenCardTest {
         composeRule.setContent {
             MaterialTheme {
                 DagbokenCard(accentColor = Color.Red) {
-                    Box(modifier = Modifier.testTag("body").height(40.dp))
+                    Box(modifier = Modifier.testTag("body").size(40.dp))
                 }
             }
         }
