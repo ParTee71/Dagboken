@@ -56,10 +56,10 @@
 | HEM-1 | Visa en **hälsningsbanner** baserad på tid på dygnet (God morgon/eftermiddag/kväll/natt) samt inloggat namn. |
 | HEM-2 | Visa aktuellt **datum och veckonummer** (svensk lokalisering, ISO-vecka) samt **appversionen** (liten och diskret). |
 | HEM-3 | ~~Visa **stat-pills**: antal tagna/totala mediciner idag samt senaste aktivitetens energinivå.~~ *(borttaget)* |
-| HEM-4 | Visa ett **"Försenat"-kort** när medicintidpunkt passerats utan att vara tagen, eller screeningpåminnelse passerats utan loggning. |
-| HEM-5 | Från försenat-kortet ska medicin kunna markeras som tagen direkt, och screening kunna nås via "Logga". |
+| HEM-4 | Visa en **dagens checklista**: alla dagens mediciner (avbockningsbara direkt) och alla aktiverade screeningtillfällen (per måltidstillfälle), med status loggad/försenad/kommande. Kort med försenade poster märks med en textetikett ("Försenat") utöver accentfärg. |
+| HEM-5 | Mediciner ska kunna markeras som tagna direkt i checklistan utan navigering. Screening ska kunna loggas **inline**: expandera radens tillhörande måltidstillfälle och ange energi/stress direkt på Hem, utan att navigera bort. |
 | HEM-7 | Visa **sparkline-diagram** över **genomsnittlig energi per dag** senaste 7 dagarna, baserat på screenings (minst 2 datapunkter krävs, annars uppmaning att logga). |
-| HEM-8 | Visa **snabbåtgärder**: "Logga aktivitet" och "Mediciner". |
+| HEM-8 | ~~Visa **snabbåtgärder**: "Logga aktivitet" och "Mediciner".~~ *(ersatt av global "+"-FAB med snabbval: Aktivitet/Screening/Dos/Händelse)* |
 | HEM-9 | Visa **kontobubbla** (avatar/foto) som öppnar konto-bottensheet (logga in/ut, inställningar). |
 | HEM-10 | Säkerställa dagens medicinposter genereras vid skärmstart (`ensureTodayEntries`). |
 

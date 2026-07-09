@@ -6,7 +6,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -28,6 +30,7 @@ import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
+import se.partee71.dagboken.ui.aktiviteter.AktiviteterViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -39,10 +42,12 @@ class HomeScreenTest {
     private lateinit var db: AppDatabase
     private lateinit var aktivRepo: AktiviteterRepository
     private lateinit var medicRepo: MedicinerRepository
+    private lateinit var noteRepo: NoteRepository
     private lateinit var authRepo: FirebaseAuthRepository
     private lateinit var prefs: PreferencesRepository
     private lateinit var sjukdomarRepo: SjukdomarRepository
     private lateinit var vm: HomeViewModel
+    private lateinit var screeningVm: AktiviteterViewModel
 
     private val today get() = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
@@ -51,12 +56,13 @@ class HomeScreenTest {
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                  .allowMainThreadQueries().build()
         aktivRepo = AktiviteterRepository(db.aktivitetDao())
+        noteRepo  = NoteRepository(db.noteDao())
         medicRepo = MedicinerRepository(
             db                 = db,
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
-            noteRepo           = NoteRepository(db.noteDao()),
+            noteRepo           = noteRepo,
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
@@ -67,7 +73,8 @@ class HomeScreenTest {
             prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
             prefs.setMedsNotificationsEnabled(false)
         }
-        vm = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo)
+        vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo)
+        screeningVm = AktiviteterViewModel(aktivRepo, noteRepo, prefs)
     }
 
     @After fun tearDown() {
@@ -83,12 +90,15 @@ class HomeScreenTest {
             MaterialTheme {
                 HomeScreen(
                     onNavigateToAktiviteter = {},
-                    onNavigateToMediciner   = {},
                     onNavigateToSettings    = {},
                     onNavigateToDiagram     = {},
                     onNavigateToSjukdomar   = {},
+                    onAddAktivitet          = {},
+                    onAddMedicin            = {},
+                    onAddHandelse           = {},
                     snackbarHostState       = SnackbarHostState(),
                     vm                      = vm,
+                    screeningVm             = screeningVm,
                 )
             }
         }
@@ -114,7 +124,7 @@ class HomeScreenTest {
             composeRule.onAllNodes(hasText("Försenat")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Försenat").assertIsDisplayed()
-        composeRule.onNodeWithText("Daglig screening").assertIsDisplayed()
+        composeRule.onNodeWithText("Efter frukost").assertIsDisplayed()
     }
 
     // ─── Bock markerar tagen ──────────────────────────────────────────────────
@@ -142,5 +152,50 @@ class HomeScreenTest {
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Metformin")).fetchSemanticsNodes().isEmpty()
         }
+    }
+
+    // ─── Hela dagslistan visas, inte bara försenade ──────────────────────────
+
+    @Test fun non_overdue_medicine_is_shown_in_checklist() {
+        val med = Medicin(
+            id = "future-med", timestamp = "${today}T23:00:00.000Z", datum = today, tid = "23:00",
+            namn = "Vitamin D", dos = "1", enhet = "tablett", tidpunkt = "Kväll", tagen = false,
+        )
+        runBlocking { medicRepo.saveMedicin(med) }
+        setContent()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Vitamin D")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Vitamin D").assertIsDisplayed()
+    }
+
+    // ─── Inline screening-loggning ────────────────────────────────────────────
+
+    @Test fun tapping_screening_row_expands_inline_form_and_save_logs_it() {
+        runBlocking { prefs.setScreeningEventConfigs(listOf(ScreeningEventConfig(enabled = true, time = "08:00"))) }
+        setContent()
+        composeRule.waitUntil(5000) {
+            composeRule.onAllNodes(hasText("Efter frukost")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Efter frukost").performClick()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Spara")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Spara").performClick()
+        composeRule.waitUntil(3000) {
+            composeRule.onAllNodes(hasText("Loggad")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Loggad").assertIsDisplayed()
+    }
+
+    // ─── Global FAB ───────────────────────────────────────────────────────────
+
+    @Test fun fab_opens_menu_with_four_quick_add_options() {
+        setContent()
+        composeRule.onNodeWithContentDescription("Lägg till").performClick()
+        composeRule.onNodeWithText("Logga aktivitet").assertIsDisplayed()
+        composeRule.onNodeWithText("Logga screening").assertIsDisplayed()
+        composeRule.onNodeWithText("Logga engångsdos").assertIsDisplayed()
+        composeRule.onNodeWithText("Ny händelse").assertIsDisplayed()
     }
 }

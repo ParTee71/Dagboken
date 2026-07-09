@@ -63,6 +63,11 @@
     <string name="home_no_screening_body">Logga din första screening för att se trender</string>
     <string name="home_view_diagram">Visa diagram →</string>
     <string name="home_quickaction_mediciner">Mediciner</string>
+    <string name="home_checklist_mediciner_title">Dagens mediciner</string>
+    <string name="home_checklist_screening_logged">Loggad</string>
+    <string name="home_checklist_screening_upcoming">Kommande</string>
+    <string name="home_fab_add">Lägg till</string>
+    <string name="home_fab_log_screening">Logga screening</string>
 
     <!-- Migration screen -->
     <string name="migration_welcome_title">Välkommen till Dagboken</string>
