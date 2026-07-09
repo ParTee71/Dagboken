@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -60,7 +61,10 @@ fun TrenderScreen(
                 Text(stringResource(R.string.diagram_show_label), style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.width(8.dp))
                 Box {
-                    OutlinedButton(onClick = { showMenu = true }) {
+                    OutlinedButton(
+                        onClick  = { showMenu = true },
+                        modifier = Modifier.testTag("trender_series_selector"),
+                    ) {
                         val label = state.allSeriesLabels
                             .filter { it in state.selectedSeries }
                             .joinToString(", ")

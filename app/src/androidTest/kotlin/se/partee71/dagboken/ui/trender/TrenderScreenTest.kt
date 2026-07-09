@@ -5,8 +5,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -62,12 +64,13 @@ class TrenderScreenTest {
         }
         setContent()
         composeRule.onNodeWithText("Visa:").assertIsDisplayed()
-        // Opens the series dropdown — its trigger button shows the current selection label.
-        composeRule.onNodeWithText("Energi Frukost").performClick()
+        // Opens the series dropdown via its testTag — a text-based query on the button's
+        // current-selection label is ambiguous if a stray duplicate node exists in the tree.
+        composeRule.onNodeWithTag("trender_series_selector").performClick()
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Yrsel").assertIsDisplayed()
+        composeRule.onNodeWithText("Yrsel").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun selecting_a_symptom_series_adds_it_to_the_legend() {
@@ -85,7 +88,9 @@ class TrenderScreenTest {
         composeRule.waitUntil(3000) {
             composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Yrsel").assertIsDisplayed()
+        // The legend sits below the chart in a scrollable column — scroll it into view
+        // before asserting, since it can land below the fold on a small emulator viewport.
+        composeRule.onNodeWithText("Yrsel").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun range_chip_switches_selected_range() {
