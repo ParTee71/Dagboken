@@ -43,29 +43,3 @@ jobs:
         with:
           name: test-results
           path: app/build/reports/tests/testDebugUnitTest/
-
-  cancel-instrumented-on-failure:
-    needs: build-and-test
-    if: failure()
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - name: Cancel in-progress Instrumented Tests run
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              head_sha: context.sha,
-            });
-            for (const run of data.workflow_runs) {
-              if (run.name === 'Instrumented Tests' && ['queued', 'in_progress'].includes(run.status)) {
-                await github.rest.actions.cancelWorkflowRun({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  run_id: run.id,
-                });
-              }
-            }
