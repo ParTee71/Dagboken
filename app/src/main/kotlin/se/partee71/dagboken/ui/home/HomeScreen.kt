@@ -34,7 +34,6 @@ import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -77,8 +76,8 @@ import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
-import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
+import se.partee71.dagboken.ui.components.StepwiseScreeningForm
 import se.partee71.dagboken.ui.mediciner.MedicinerViewModel
 import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 import java.util.Locale
@@ -720,39 +719,24 @@ private fun InlineScreeningForm(
     onSaved: () -> Unit,
 ) {
     val form by vm.form.collectAsState()
+    val symptomOptions by vm.symptomOptions.collectAsState()
 
     LaunchedEffect(label) {
-        vm.updateForm { copy(aktivitet = label, type = "screening", energy = 0, stress = 0) }
+        vm.updateForm {
+            copy(aktivitet = label, type = "screening", energy = 0, stress = 0, symptomScores = emptyMap())
+        }
     }
 
-    Column(
-        modifier = Modifier.padding(bottom = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        GradientSliderRow(
-            label          = stringResource(R.string.label_energy),
-            emoji          = "⚡",
-            value          = form.energy.coerceIn(0, 10).toFloat(),
-            onValueChange  = { vm.updateForm { copy(energy = it.toInt()) } },
-            valueRange     = 0f..10f,
-            steps          = 9,
-            startLabel     = "0  😴",
-            endLabel       = "😊  10",
-        )
-        GradientSliderRow(
-            label         = stringResource(R.string.label_stress),
-            emoji         = "😰",
-            value         = form.stress.toFloat(),
-            onValueChange = { vm.updateForm { copy(stress = it.toInt()) } },
-            valueRange    = 0f..10f,
-            steps         = 9,
-            startLabel    = "0  😌",
-            endLabel      = "😰  10",
-            reverseColors = true,
-        )
-        Button(
-            onClick  = { vm.save(onSaved) },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(stringResource(R.string.save)) }
-    }
+    StepwiseScreeningForm(
+        energy                  = form.energy,
+        onEnergyChange          = { vm.updateForm { copy(energy = it) } },
+        stress                  = form.stress,
+        onStressChange          = { vm.updateForm { copy(stress = it) } },
+        symptomOptions          = symptomOptions,
+        symptomScores           = form.symptomScores,
+        onScoresChange          = { vm.updateForm { copy(symptomScores = it) } },
+        onToggleSymptomFavorite = vm::toggleSymptomFavorite,
+        onSave                  = { vm.save(onSaved) },
+        modifier                = Modifier.padding(bottom = 12.dp),
+    )
 }

@@ -315,6 +315,10 @@
     <string name="notification_med_action_mark_taken">Markera tagen</string>
     <string name="notification_screening_action_log_now">Logga nu</string>
 
+    <string name="screening_step_next">Nästa</string>
+    <string name="screening_step_prev">Föregående</string>
+    <string name="format_screening_step">Steg %1$d av %2$d</string>
+
     <string name="nav_tab_idag">Idag</string>
     <string name="nav_tab_historik">Historik</string>
     <string name="nav_tab_trender">Trender</string>
