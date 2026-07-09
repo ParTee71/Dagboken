@@ -156,6 +156,10 @@
     <string name="medicin_status_hoppad">Hoppad</string>
     <string name="medicin_status_ej_tagen">Ej tagen</string>
 
+    <!-- Historik-yta (enhetlig tidslinje) -->
+    <string name="empty_historik_title">Ingen historik ännu</string>
+    <string name="empty_historik_body">Loggade poster dyker upp här</string>
+
     <!-- Idag tab -->
     <string name="empty_idag_title">Inga mediciner idag</string>
     <string name="empty_idag_body">Lägg till ett schema eller logga en engångsdos</string>
