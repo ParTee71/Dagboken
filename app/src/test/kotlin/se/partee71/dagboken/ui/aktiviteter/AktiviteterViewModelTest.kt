@@ -315,7 +315,7 @@ class AktiviteterViewModelTest {
         viewModel.isDirty.test {
             assertEquals(true, awaitItem())
             viewModel.startScreening("Morgon")
-            expectNoEvents()
+            assertEquals(false, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals("Morgon", viewModel.form.value.aktivitet)
