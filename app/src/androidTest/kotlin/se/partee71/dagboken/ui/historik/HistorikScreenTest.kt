@@ -5,8 +5,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.lifecycle.viewModelScope
@@ -159,6 +161,31 @@ class HistorikScreenTest {
         }
         composeRule.onNodeWithText("Ibuprofen").performClick()
         assertEquals("m1", editedId)
+    }
+
+    @Test fun long_press_opens_delete_menu_and_confirm_removes_the_entry() {
+        runBlocking {
+            aktivRepo.save(
+                Aktivitet(
+                    id = "a1", timestamp = "x", datum = "2026-01-01", tid = "08:00",
+                    aktivitet = "Promenad", energy = 3, stress = 2, somatiska = 0, symptom = "",
+                ),
+            )
+        }
+        setContent()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithText("Promenad").performTouchInput { longClick() }
+        composeRule.onNodeWithText("Ta bort").performClick()
+
+        composeRule.onNodeWithText("Ta bort post?").assertIsDisplayed()
+        composeRule.onNodeWithText("Ta bort").performClick()
+
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isEmpty()
+        }
     }
 
     @Test fun toggling_a_filter_chip_hides_that_type() {

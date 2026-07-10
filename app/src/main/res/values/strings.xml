@@ -165,6 +165,8 @@
     <!-- Historik-yta (enhetlig tidslinje) -->
     <string name="empty_historik_title">Ingen historik ännu</string>
     <string name="empty_historik_body">Loggade poster dyker upp här</string>
+    <string name="historik_delete_title">Ta bort post?</string>
+    <string name="format_historik_delete_confirm">\"%s\" raderas permanent.</string>
 
     <!-- Idag tab -->
     <string name="empty_idag_title">Inga mediciner idag</string>

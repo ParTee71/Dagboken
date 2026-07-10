@@ -312,7 +312,8 @@
 | HIST-1 | Historik-ytan visar alla fem posttyper (aktivitet, screening, medicindos, händelse, sjukdomsincheckning) i ett enda kronologiskt flöde, grupperat per dag. |
 | HIST-2 | Poster kan filtreras per typ med filterchips; minst en typ måste vara aktiv (samma regel som HIS-1). |
 | HIST-3 | Tryck på en post navigerar till dess befintliga redigerings-/detaljskärm (ingen ny redigeringslogik i Historik-ytan själv). |
-| HIST-4 | Historik-ytan skriver inte till någon datakälla — ren läsvy över befintliga repositories. |
+| HIST-4 | ~~Historik-ytan skriver inte till någon datakälla — ren läsvy över befintliga repositories.~~ *(ändrat, se HIST-5 — #105)* |
+| HIST-5 | Långtryck på en post i Historik öppnar en meny med "Ta bort" (bekräftelsedialog krävs innan radering). Raderingen anropar samma repository-metod som respektive domänskärm redan använder. |
 
 ---
 
