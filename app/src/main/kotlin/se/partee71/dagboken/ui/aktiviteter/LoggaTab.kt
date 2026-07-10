@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,7 +14,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
 import se.partee71.dagboken.ui.components.Foldout
@@ -107,7 +108,7 @@ fun LoggaTab(
                 onMinutesChange = { vm.updateForm { copy(spentTimeMinutes = it) } },
             )
 
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            DagbokenCard {
                 Foldout(
                     title    = stringResource(R.string.label_metrics),
                     expanded = form.metricsExpanded,
@@ -209,9 +210,8 @@ private fun AktivitetCard(
     )
     val dropdownValue = if (selectedAktivitet in nonFavorites) selectedAktivitet else ""
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
+    DagbokenCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)) {
         Column(
-            modifier            = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(

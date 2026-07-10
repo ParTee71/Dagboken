@@ -12,23 +12,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
 import se.partee71.dagboken.ui.components.GradientSliderRow
@@ -61,19 +58,9 @@ fun AddEditHandelseScreen(
     val favorites    = typPicker.favorites
     val nonFavorites = typPicker.nonFavorites
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(stringResource(if (editId == null) R.string.handelse_new else R.string.handelse_edit))
-                },
-                navigationIcon = {
-                    IconButton(onClick = { vm.resetForm(); onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
-                    }
-                },
-            )
-        },
+    DagbokenScaffold(
+        title  = stringResource(if (editId == null) R.string.handelse_new else R.string.handelse_edit),
+        onBack = { vm.resetForm(); onBack() },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -85,9 +72,8 @@ fun AddEditHandelseScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Typ
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            DagbokenCard {
                 Column(
-                    modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
@@ -162,22 +148,17 @@ fun AddEditHandelseScreen(
             )
 
             // Svårighetsgrad — same GradientSliderRow as Aktivitet
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    GradientSliderRow(
-                        label         = stringResource(R.string.handelse_label_svarighetsgrad),
-                        value         = form.svarighetsgrad.toFloat(),
-                        onValueChange = { vm.updateForm { copy(svarighetsgrad = it.toInt()) } },
-                        valueRange    = 0f..10f,
-                        steps         = 9,
-                        startLabel    = "0  Ingen",
-                        endLabel      = "10  Extrem",
-                        reverseColors = true,
-                    )
-                }
+            DagbokenCard {
+                GradientSliderRow(
+                    label         = stringResource(R.string.handelse_label_svarighetsgrad),
+                    value         = form.svarighetsgrad.toFloat(),
+                    onValueChange = { vm.updateForm { copy(svarighetsgrad = it.toInt()) } },
+                    valueRange    = 0f..10f,
+                    steps         = 9,
+                    startLabel    = "0  Ingen",
+                    endLabel      = "10  Extrem",
+                    reverseColors = true,
+                )
             }
 
             // Varaktighet — shared component

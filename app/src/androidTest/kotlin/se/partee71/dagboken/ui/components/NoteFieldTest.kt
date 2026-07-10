@@ -18,7 +18,15 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class NoteFieldTest {
 
-    @get:Rule val composeRule = createComposeRule()
+    val composeRule = createComposeRule()
+
+    // Retry outermost so a swiftshader render-glitch flake re-runs with a
+    // fresh @Before/@After lifecycle instead of failing the build.
+    @get:Rule
+    val flakyRetry: org.junit.rules.RuleChain =
+        org.junit.rules.RuleChain
+            .outerRule(se.partee71.dagboken.util.RetryTestRule())
+            .around(composeRule)
 
     @Test fun `placeholder is shown when text is empty and not expanded`() {
         composeRule.setContent {

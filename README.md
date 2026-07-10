@@ -29,15 +29,15 @@ Hälsodagbok för att logga aktiviteter, daglig screening (energi, stress, sympt
 
 ### Förutsättningar
 
-- Android Studio Hedgehog (2023.1) eller senare
+- Senaste Android Studio (stable channel)
 - JDK 17
 - Android SDK API 35 (compileSdk), minSdk 30
 
 ### Bygg och kör
 
 ```bash
-git clone https://github.com/partee71/dagboken-android.git
-cd dagboken-android
+git clone https://github.com/ParTee71/Dagboken.git
+cd Dagboken
 ./gradlew :app:assembleDebug
 ```
 
@@ -130,6 +130,8 @@ Se [.github/workflows/android.yml](.github/workflows/android.yml).
 
 | Version | Innehåll |
 |---------|----------|
+| 3.0.0 | UX-omarbetning (#84): uppgiftsorienterad bottennavigering med fyra flikar **Idag / Historik / Trender / Hantera** (ersätter de fem entitetsflikarna). Idag-ytan som handlingsyta med checklistor, enhetlig Historik-yta för alla posttyper, Trender-ytan som slår ihop diagrammen, Hantera-ytan. Polish: notisåtgärder ("Markera tagen"/"Logga nu"), smarta FAB-förval, stegvis svepbar screening, veckosammanfattning på Idag |
+| 2.14.1 | Tillgänglighetsfixar (48dp tryckytor, TalkBack-semantik på energireglaget), korrekt tidszonskonvertering för loggade tidsstämplar (medicinnedkylning kunde bli ~2h för lång), avkodad Settings-layout och medicindosloggning, borttagen död kod, städad KRAVLISTA/README |
 | 2.14.0 | Info-ikon med läs-only anteckningsdialog på kort som saknade en synlig anteckningsindikator (Aktivitet/Screening, medicindos, favorit, sjukdomsepisod) |
 | 2.13.0 | Sjukdomsepisod- och incheckningsanteckning migrerad till det generiska anteckningssystemet (delad `NoteField`) |
 | 2.12.0 | Händelse-anteckning migrerad till det generiska anteckningssystemet (delad `NoteField`) |

@@ -13,6 +13,9 @@ interface SjukdomsIncheckningDao {
     @Query("SELECT * FROM sjukdoms_incheckningar WHERE episod_id = :episodId ORDER BY datum DESC, tid DESC")
     fun allForEpisodFlow(episodId: String): Flow<List<SjukdomsIncheckningEntity>>
 
+    @Query("SELECT * FROM sjukdoms_incheckningar ORDER BY datum DESC, tid DESC")
+    fun allFlow(): Flow<List<SjukdomsIncheckningEntity>>
+
     @Query("SELECT * FROM sjukdoms_incheckningar WHERE id = :id")
     suspend fun getById(id: String): SjukdomsIncheckningEntity?
 

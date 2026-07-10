@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleNavIntent(intent: Intent?) {
         intent?.getStringExtra(NotificationHelper.EXTRA_NAV_ROUTE)?.let { vm.setPendingNavRoute(it) }
+        intent?.getStringExtra(NotificationHelper.EXTRA_SCREENING_LABEL)?.let { vm.setPendingScreeningLabel(it) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +61,7 @@ class MainActivity : ComponentActivity() {
 
             DagbokenTheme(darkTheme = isDarkTheme, dynamicColor = dynamicColor) {
                 AppNavigation(
-                    startDestination = if (migrationDone == true) Screen.Hem.route else Routes.MIGRATION,
+                    startDestination = if (migrationDone == true) Screen.Idag.route else Routes.MIGRATION,
                 )
             }
         }

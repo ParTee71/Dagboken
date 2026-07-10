@@ -1,4 +1,5 @@
 import java.text.SimpleDateFormat
+import java.time.Duration
 import java.util.Date
 import java.util.Locale
 import java.util.Properties
@@ -29,8 +30,8 @@ android {
         applicationId = "se.partee71.dagboken"
         minSdk = 30
         targetSdk = 35
-        versionCode = 22
-        versionName = versionNameOverride ?: "2.14.0"
+        versionCode = 25
+        versionName = versionNameOverride ?: "3.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -119,6 +120,16 @@ kotlin {
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
     arg("room.incremental", "true")
+}
+
+tasks.withType<Test> {
+    // Bounds any single hanging test (e.g. a runBlocking call stuck on an
+    // unmocked network/IO call) instead of letting it silently eat the whole
+    // job's timeout budget with no indication of which test was responsible.
+    timeout.set(Duration.ofMinutes(3))
+    testLogging {
+        events("started", "passed", "skipped", "failed")
+    }
 }
 
 dependencies {

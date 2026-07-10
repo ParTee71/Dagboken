@@ -1,5 +1,6 @@
 package se.partee71.dagboken.domain.usecase
 
+import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.domain.model.TIDP_DEFAULT_TIMES
@@ -38,7 +39,7 @@ class EnsureTodayEntriesUseCase @Inject constructor() {
                 if (stableId in existingIds) continue
 
                 val tid = TIDP_DEFAULT_TIMES[tidpunkt] ?: "12:00"
-                val timestamp = "${datum}T${tid}:00.000Z"
+                val timestamp = Timestamps.of(datum, tid)
 
                 newEntries += Medicin(
                     id         = stableId,

@@ -16,9 +16,11 @@ import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.NoteRepository
+import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.usecase.SymptomUtils
+import se.partee71.dagboken.ui.formatTime
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -31,7 +33,7 @@ data class AktivitetForm(
     val aterhamtande: Boolean = false,
     val energitjuv: Boolean = false,
     val datum: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
-    val tid: String = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
+    val tid: String = formatTime(LocalTime.now()),
     val spentTimeHours: Int = 0,
     val spentTimeMinutes: Int = 0,
     val energy: Int = 0,
@@ -105,6 +107,25 @@ class AktiviteterViewModel @Inject constructor(
         _form.value = _form.value.update()
     }
 
+    /**
+     * Förbereder ett nytt aktivitetsformulär för globala FAB:ens "Logga aktivitet".
+     * Tid och datum sätts till nu (via [AktivitetForm]-defaults), och senaste
+     * aktivitetstyp + varaktighet förifylls från den senast loggade aktiviteten
+     * (ej screening) så återkommande loggning går snabbare. Beräknas live — inget
+     * cachas eller persisteras.
+     */
+    fun prefillNewAktivitet() {
+        viewModelScope.launch {
+            _editId.value = null
+            val last = repo.all.first().firstOrNull { it.type == "aktivitet" }
+            _form.value = AktivitetForm(
+                aktivitet        = last?.aktivitet.orEmpty(),
+                spentTimeHours   = (last?.spentTime ?: 0) / 60,
+                spentTimeMinutes = (last?.spentTime ?: 0) % 60,
+            )
+        }
+    }
+
     fun loadForEdit(id: String) {
         viewModelScope.launch {
             val a = repo.getById(id) ?: return@launch
@@ -149,7 +170,7 @@ class AktiviteterViewModel @Inject constructor(
             val symptomStr = SymptomUtils.encode(scores)
             val entry = Aktivitet(
                 id           = _editId.value ?: UUID.randomUUID().toString(),
-                timestamp    = "${f.datum}T${f.tid}:00.000Z",
+                timestamp    = Timestamps.of(f.datum, f.tid),
                 datum        = f.datum,
                 tid          = f.tid,
                 aktivitet    = aktivitetName,

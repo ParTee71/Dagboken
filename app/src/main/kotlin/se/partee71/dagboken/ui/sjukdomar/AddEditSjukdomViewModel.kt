@@ -18,6 +18,7 @@ import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 import se.partee71.dagboken.domain.usecase.SymptomUtils
+import se.partee71.dagboken.ui.formatTime
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -91,7 +92,7 @@ class AddEditSjukdomViewModel @Inject constructor(
             noteRepo.save(NoteTarget.SJUKDOM_EPISOD, episodId, f.anteckning.trim())
             if (editId == null) {
                 val symptomStr = SymptomUtils.encode(f.symptomScores)
-                val now = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+                val now = formatTime(LocalTime.now())
                 repo.saveIncheckning(
                     SjukdomsIncheckning(
                         id             = UUID.randomUUID().toString(),

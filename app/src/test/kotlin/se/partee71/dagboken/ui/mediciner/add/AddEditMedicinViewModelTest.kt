@@ -19,6 +19,7 @@ import org.junit.Before
 import org.junit.Test
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
+import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
 
@@ -63,9 +64,10 @@ class AddEditMedicinViewModelTest {
         assertEquals("Aspirin", saved.namn)
         assertEquals(false, saved.tagen)
         assertEquals(null, saved.receptId)
+        val expected = Timestamps.of(saved.datum, saved.tid)
         assertTrue(
-            "Expected ISO timestamp matching '${saved.datum}T${saved.tid}:00.000Z' but got ${saved.timestamp}",
-            saved.timestamp == "${saved.datum}T${saved.tid}:00.000Z",
+            "Expected ISO timestamp '$expected' but got ${saved.timestamp}",
+            saved.timestamp == expected,
         )
     }
 

@@ -180,6 +180,32 @@ class MedicinerRepositoryTest {
         assertEquals("m2", entries[0].id)
     }
 
+    // ─── markTodayDosesTaken (notisåtgärd "Markera tagen") ────────────────────
+
+    @Test fun markTodayDosesTaken_marks_pending_scheduled_doses_only() = runTest {
+        val today = LocalDate.now().toString()
+        db.medicinDao().upsert(medicinEntity(id = "m1", datum = today, tagen = false))
+        db.medicinDao().upsert(medicinEntity(id = "m2", datum = today, tagen = true))
+        db.medicinDao().upsert(medicinEntity(id = "m3", datum = today, skipped = true))
+        // Vid behov-dos har ingen schemalagd timme och ska lämnas orörd.
+        db.medicinDao().upsert(medicinEntity(id = "m4", datum = today).copy(tidpunkt = "Vid behov"))
+
+        val marked = repo.markTodayDosesTaken()
+
+        assertEquals("Only the one pending scheduled dose is marked", 1, marked)
+        assertTrue("Pending scheduled dose becomes taken", db.medicinDao().getById("m1")!!.tagen)
+        assertTrue("Already-taken dose stays taken", db.medicinDao().getById("m2")!!.tagen)
+        assertEquals("Skipped dose is left untaken", false, db.medicinDao().getById("m3")!!.tagen)
+        assertEquals("Vid behov-dos is left untaken", false, db.medicinDao().getById("m4")!!.tagen)
+    }
+
+    @Test fun markTodayDosesTaken_returns_zero_when_nothing_pending() = runTest {
+        val today = LocalDate.now().toString()
+        db.medicinDao().upsert(medicinEntity(id = "m1", datum = today, tagen = true))
+
+        assertEquals(0, repo.markTodayDosesTaken())
+    }
+
     // ─── setFavoritFavorite ───────────────────────────────────────────────────
 
     @Test fun setFavoritFavorite_marks_a_favorit_as_favorite() = runTest {

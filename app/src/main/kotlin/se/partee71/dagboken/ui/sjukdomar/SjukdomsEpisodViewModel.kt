@@ -19,6 +19,7 @@ import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 import se.partee71.dagboken.domain.usecase.SymptomUtils
+import se.partee71.dagboken.ui.formatTime
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -27,7 +28,7 @@ import javax.inject.Inject
 
 data class IncheckningForm(
     val datum: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
-    val tid: String = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
+    val tid: String = formatTime(LocalTime.now()),
     val svarighetsgrad: Int = 5,
     val symptomScores: Map<String, Int> = emptyMap(),
     val anteckning: String = "",

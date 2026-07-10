@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 
 /** Collapsible section. Mirrors Foldout from src/components/UI.jsx. */
 @Composable
@@ -31,8 +32,9 @@ fun Foldout(
     content: @Composable () -> Unit,
 ) {
     val rotation by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        label = "foldout_chevron",
+        targetValue  = if (expanded) 180f else 0f,
+        animationSpec = DagbokenAnimSpec.springNormal,
+        label         = "foldout_chevron",
     )
 
     Column(modifier = modifier) {
@@ -58,8 +60,8 @@ fun Foldout(
         }
         AnimatedVisibility(
             visible = expanded,
-            enter = expandVertically(),
-            exit = shrinkVertically(),
+            enter = expandVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
+            exit = shrinkVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
         ) {
             content()
         }

@@ -15,14 +15,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,12 +25,13 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.DagbokenScaffold
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiagramLayout(
     title: String,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     selector: @Composable () -> Unit,
     rangeChips: @Composable () -> Unit,
     chart: @Composable (chartModifier: Modifier) -> Unit,
@@ -52,11 +48,10 @@ fun DiagramLayout(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PortraitLayout(
     title: String,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     selector: @Composable () -> Unit,
     rangeChips: @Composable () -> Unit,
     chart: @Composable (Modifier) -> Unit,
@@ -64,17 +59,9 @@ private fun PortraitLayout(
     periodLabel: (@Composable () -> Unit)?,
     portraitExtras: (@Composable () -> Unit)?,
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
-                    }
-                },
-                title = { Text(title) },
-            )
-        },
+    DagbokenScaffold(
+        title  = title,
+        onBack = onBack,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -89,9 +76,8 @@ private fun PortraitLayout(
                 rangeChips()
             }
             periodLabel?.invoke()
-            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            DagbokenCard {
                 Column(
-                    modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     chart(Modifier.fillMaxWidth().height(280.dp))
@@ -110,7 +96,7 @@ private fun PortraitLayout(
 
 @Composable
 private fun LandscapeLayout(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     selector: @Composable () -> Unit,
     rangeChips: @Composable () -> Unit,
     chart: @Composable (Modifier) -> Unit,
@@ -139,12 +125,14 @@ private fun LandscapeLayout(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            IconButton(onClick = onBack, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.back),
-                    modifier = Modifier.size(20.dp),
-                )
+            if (onBack != null) {
+                IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.back),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
             selector()
             Row(
