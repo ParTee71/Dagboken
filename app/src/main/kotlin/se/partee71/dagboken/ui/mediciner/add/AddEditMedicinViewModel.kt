@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
@@ -38,6 +41,13 @@ class AddEditMedicinViewModel @Inject constructor(
     val form: StateFlow<MedicinForm> = _form.asStateFlow()
     private var editingMedicin: Medicin? = null
 
+    private var originalForm = _form.value
+    val isDirty: StateFlow<Boolean> = form
+        .map { it != originalForm }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun markClean() { originalForm = _form.value }
+
     fun updateForm(update: MedicinForm.() -> MedicinForm) { _form.value = _form.value.update() }
 
     fun loadForEdit(id: String) {
@@ -45,13 +55,15 @@ class AddEditMedicinViewModel @Inject constructor(
             val m = repo.getMedicinById(id) ?: return@launch
             editingMedicin = m
             val note = noteRepo.observe(NoteTarget.MEDICATION, id).first()
-            _form.value = MedicinForm(
+            val loaded = MedicinForm(
                 namn       = m.namn,
                 dos        = m.dos,
                 enhet      = m.enhet,
                 tidpunkt   = m.tidpunkt,
                 anteckning = note,
             )
+            originalForm = loaded
+            _form.value = loaded
         }
     }
 
@@ -83,6 +95,7 @@ class AddEditMedicinViewModel @Inject constructor(
             }
             repo.saveMedicin(medicin)
             noteRepo.save(NoteTarget.MEDICATION, medicin.id, f.anteckning.trim())
+            markClean()
         }
     }
 }

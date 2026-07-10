@@ -5,8 +5,11 @@
     <!-- Common actions -->
     <string name="back">Tillbaka</string>
     <string name="save">Spara</string>
+    <string name="discard">Kasta</string>
     <string name="delete">Ta bort</string>
     <string name="cancel">Avbryt</string>
+    <string name="unsaved_changes_title">Osparade ändringar</string>
+    <string name="unsaved_changes_body">Vill du spara innan du går vidare?</string>
     <string name="edit">Redigera</string>
     <string name="add">Lägg till</string>
     <string name="ok">OK</string>

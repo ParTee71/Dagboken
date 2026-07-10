@@ -237,6 +237,45 @@ class HandelserViewModelTest {
         assertNull(viewModel.snackbar.value)
     }
 
+    // ─── isDirty ──────────────────────────────────────────────────────────────
+
+    @Test fun `isDirty is false on a fresh form`() = runTest {
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isDirty becomes true after a field changes`() = runTest {
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.updateForm { copy(typ = "Yrsel") }
+            assertEquals(true, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isDirty is false right after loadForEdit`() = runTest {
+        coEvery { repo.getById("h1") } returns handelse(id = "h1", typ = "Yrsel")
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.loadForEdit("h1")
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isDirty is false again after save resets the form`() = runTest {
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.updateForm { copy(typ = "Yrsel") }
+            assertEquals(true, awaitItem())
+            viewModel.save {}
+            assertEquals(false, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     // ─── resetForm ────────────────────────────────────────────────────────────
 
     @Test fun `resetForm clears all form fields to defaults`() {

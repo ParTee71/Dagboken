@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.datastore.PreferencesRepository
@@ -97,6 +98,11 @@ class HandelserViewModel @Inject constructor(
     private val _form    = MutableStateFlow(HandelseForm())
     val form: StateFlow<HandelseForm> = _form.asStateFlow()
 
+    private var originalForm = _form.value
+    val isDirty: StateFlow<Boolean> = form
+        .map { it != originalForm }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private val _editId  = MutableStateFlow<String?>(null)
     private val _snackbar = MutableStateFlow<String?>(null)
     val snackbar: StateFlow<String?> = _snackbar.asStateFlow()
@@ -113,7 +119,7 @@ class HandelserViewModel @Inject constructor(
             val h = repo.getById(id) ?: return@launch
             _editId.value = id
             val note = noteRepo.observe(NoteTarget.EVENT, id).first()
-            _form.value = HandelseForm(
+            val loaded = HandelseForm(
                 typ                = h.typ,
                 datum              = h.datum,
                 tid                = h.tid,
@@ -124,6 +130,11 @@ class HandelserViewModel @Inject constructor(
                 atgarder           = h.atgarder,
                 anteckning         = note,
             )
+            // Set the dirty-state snapshot before publishing the new form value: a
+            // downstream collector on an immediate dispatcher can react to the
+            // form emission synchronously, before the next line would run.
+            originalForm = loaded
+            _form.value = loaded
         }
     }
 
@@ -161,7 +172,9 @@ class HandelserViewModel @Inject constructor(
 
     fun resetForm() {
         _editId.value = null
-        _form.value   = HandelseForm()
+        val blank = HandelseForm()
+        originalForm = blank
+        _form.value = blank
     }
 
     fun toggleHandelseTypFavorite(name: String) {

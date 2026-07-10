@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
@@ -39,6 +42,13 @@ class AddEditFavoritViewModel @Inject constructor(
     // carried through so save() doesn't silently reset an existing favorite's status.
     private var editingIsFavorite: Boolean = false
 
+    private var originalForm = _form.value
+    val isDirty: StateFlow<Boolean> = form
+        .map { it != originalForm }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun markClean() { originalForm = _form.value }
+
     fun updateForm(update: FavoritForm.() -> FavoritForm) { _form.value = _form.value.update() }
 
     fun loadForEdit(id: String) {
@@ -47,7 +57,7 @@ class AddEditFavoritViewModel @Inject constructor(
             editingId = id
             editingIsFavorite = f.isFavorite
             val note = noteRepo.observe(NoteTarget.FAVORIT, id).first()
-            _form.value = FavoritForm(
+            val loaded = FavoritForm(
                 namn           = f.namn,
                 dos            = f.dos,
                 enhet          = f.enhet,
@@ -56,6 +66,8 @@ class AddEditFavoritViewModel @Inject constructor(
                 minTidMellan   = f.minTidMellan,
                 maxDoserPerDag = f.maxDoserPerDag,
             )
+            originalForm = loaded
+            _form.value = loaded
         }
     }
 
@@ -74,6 +86,7 @@ class AddEditFavoritViewModel @Inject constructor(
             )
             repo.saveFavorit(favorit)
             noteRepo.save(NoteTarget.FAVORIT, favorit.id, f.anteckning.trim())
+            markClean()
         }
     }
 }

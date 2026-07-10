@@ -64,6 +64,11 @@ class SjukdomsEpisodViewModel @Inject constructor(
     private val _incheckningForm = MutableStateFlow(IncheckningForm())
     val incheckningForm: StateFlow<IncheckningForm> = _incheckningForm.asStateFlow()
 
+    private var originalIncheckningForm = _incheckningForm.value
+    val isIncheckningFormDirty: StateFlow<Boolean> = incheckningForm
+        .map { it != originalIncheckningForm }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private val _snackbar = MutableStateFlow<String?>(null)
     val snackbar: StateFlow<String?> = _snackbar.asStateFlow()
 
@@ -94,7 +99,9 @@ class SjukdomsEpisodViewModel @Inject constructor(
             )
             repo.saveIncheckning(incheckning)
             noteRepo.save(NoteTarget.SJUKDOM_INCHECKNING, incheckning.id, f.anteckning.trim())
-            _incheckningForm.value = IncheckningForm()
+            val blank = IncheckningForm()
+            originalIncheckningForm = blank
+            _incheckningForm.value = blank
             _snackbar.value = "Incheckning sparad ✓"
         }
     }

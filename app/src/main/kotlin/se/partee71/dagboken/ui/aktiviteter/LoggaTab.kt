@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -44,6 +43,7 @@ import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.RecentAktiviteterSection
+import se.partee71.dagboken.ui.components.SaveButton
 import se.partee71.dagboken.ui.components.SymptomLogCard
 import se.partee71.dagboken.ui.theme.energyColor
 import se.partee71.dagboken.ui.theme.energyLabel
@@ -61,11 +61,12 @@ fun LoggaTab(
     val symptomOptions by vm.symptomOptions.collectAsState()
     val recentEntries by vm.recentEntries.collectAsState()
     val noteMap by vm.noteMap.collectAsState()
+    val isDirty by vm.isDirty.collectAsState()
 
     val cs = MaterialTheme.colorScheme
     val eColor = energyColor(form.energy, cs)
 
-    val isSaveEnabled = if (form.aktivitet == "Övrigt") form.aktivitetAnnat.isNotBlank() else form.aktivitet.isNotBlank()
+    val isValid = if (form.aktivitet == "Övrigt") form.aktivitetAnnat.isNotBlank() else form.aktivitet.isNotBlank()
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -170,15 +171,12 @@ fun LoggaTab(
         }
 
         HorizontalDivider()
-        Button(
+        SaveButton(
+            enabled  = isDirty && isValid,
             onClick  = { vm.save { onSaved() } },
-            enabled  = isSaveEnabled,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Text(stringResource(R.string.save_aktivitet))
-        }
+            label    = stringResource(R.string.save_aktivitet),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        )
     }
 }
 

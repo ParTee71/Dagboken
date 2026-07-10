@@ -98,4 +98,33 @@ class SjukdomsEpisodViewModelTest {
         viewModel.deleteIncheckning(incheckning)
         coVerify { noteRepo.delete(NoteTarget.SJUKDOM_INCHECKNING, "i1") }
     }
+
+    // ─── isIncheckningFormDirty ───────────────────────────────────────────────
+
+    @Test fun `isIncheckningFormDirty is false on a fresh form`() = runTest {
+        viewModel.isIncheckningFormDirty.test {
+            assertEquals(false, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isIncheckningFormDirty becomes true after a field changes`() = runTest {
+        viewModel.isIncheckningFormDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.updateForm { copy(svarighetsgrad = 8) }
+            assertEquals(true, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isIncheckningFormDirty is false again after saveIncheckning resets the form`() = runTest {
+        viewModel.isIncheckningFormDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.updateForm { copy(anteckning = "Tog medicin") }
+            assertEquals(true, awaitItem())
+            viewModel.saveIncheckning()
+            assertEquals(false, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

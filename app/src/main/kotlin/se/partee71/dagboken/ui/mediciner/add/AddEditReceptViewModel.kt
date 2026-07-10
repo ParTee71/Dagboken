@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
@@ -39,6 +42,13 @@ class AddEditReceptViewModel @Inject constructor(
     val form: StateFlow<ReceptForm> = _form.asStateFlow()
     private var editingId: String? = null
 
+    private var originalForm = _form.value
+    val isDirty: StateFlow<Boolean> = form
+        .map { it != originalForm }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun markClean() { originalForm = _form.value }
+
     fun updateForm(update: ReceptForm.() -> ReceptForm) { _form.value = _form.value.update() }
 
     fun loadForEdit(id: String) {
@@ -46,7 +56,7 @@ class AddEditReceptViewModel @Inject constructor(
             val r = repo.getReceptById(id) ?: return@launch
             editingId = id
             val note = noteRepo.observe(NoteTarget.RECEPT, id).first()
-            _form.value = ReceptForm(
+            val loaded = ReceptForm(
                 namn          = r.namn,
                 dos           = r.dos,
                 enhet         = r.enhet,
@@ -58,6 +68,8 @@ class AddEditReceptViewModel @Inject constructor(
                 aktiv         = r.aktiv,
                 skapad        = r.skapad,
             )
+            originalForm = loaded
+            _form.value = loaded
         }
     }
 
@@ -90,6 +102,7 @@ class AddEditReceptViewModel @Inject constructor(
             )
             repo.saveRecept(recept)
             noteRepo.save(NoteTarget.RECEPT, recept.id, f.anteckning.trim())
+            markClean()
         }
     }
 }

@@ -4,22 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
@@ -30,6 +22,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +37,8 @@ import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
 import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.components.NoteField
+import se.partee71.dagboken.ui.components.SaveButton
+import se.partee71.dagboken.ui.components.UnsavedChangesBackHandler
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -55,12 +51,20 @@ fun AddEditHandelseScreen(
 
     val form  by vm.form.collectAsStateWithLifecycle()
     val typPicker by vm.typPickerOptions.collectAsStateWithLifecycle()
+    val isDirty by vm.isDirty.collectAsStateWithLifecycle()
     val favorites    = typPicker.favorites
     val nonFavorites = typPicker.nonFavorites
 
+    val guardedBack = UnsavedChangesBackHandler(
+        isDirty   = isDirty,
+        canSave   = form.typ.isNotBlank(),
+        onSave    = { vm.save { onBack() } },
+        onDiscard = { vm.resetForm(); onBack() },
+    )
+
     DagbokenScaffold(
         title  = stringResource(if (editId == null) R.string.handelse_new else R.string.handelse_edit),
-        onBack = { vm.resetForm(); onBack() },
+        onBack = guardedBack,
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -197,15 +201,10 @@ fun AddEditHandelseScreen(
                 onTextChange = { vm.updateForm { copy(anteckning = it) } },
             )
 
-            FilledTonalButton(
-                onClick  = { vm.save { onBack() } },
-                enabled  = form.typ.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.size(8.dp))
-                Text(stringResource(R.string.save))
-            }
+            SaveButton(
+                enabled = isDirty && form.typ.isNotBlank(),
+                onClick = { vm.save { onBack() } },
+            )
         }
     }
 }

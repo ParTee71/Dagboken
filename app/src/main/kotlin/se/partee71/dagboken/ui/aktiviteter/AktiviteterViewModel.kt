@@ -100,11 +100,28 @@ class AktiviteterViewModel @Inject constructor(
     private val _form = MutableStateFlow(AktivitetForm())
     val form: StateFlow<AktivitetForm> = _form.asStateFlow()
 
+    private var originalForm = _form.value
+    val isDirty: StateFlow<Boolean> = form
+        .map { it != originalForm }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private val _snackbar = MutableStateFlow<String?>(null)
     val snackbar: StateFlow<String?> = _snackbar.asStateFlow()
 
     fun updateForm(update: AktivitetForm.() -> AktivitetForm) {
         _form.value = _form.value.update()
+    }
+
+    /**
+     * Nollställer formuläret för en ny inline-screening på Idag-skärmen (per
+     * måltidstillfälle) och sätter dirty-state-baslinjen atomiskt, så
+     * spara-knappen är avstängd tills användaren faktiskt ändrar något.
+     */
+    fun startScreening(label: String) {
+        _editId.value = null
+        val fresh = AktivitetForm(aktivitet = label, type = "screening", energy = 0, stress = 0, symptomScores = emptyMap())
+        originalForm = fresh
+        _form.value = fresh
     }
 
     /**
@@ -118,11 +135,13 @@ class AktiviteterViewModel @Inject constructor(
         viewModelScope.launch {
             _editId.value = null
             val last = repo.all.first().firstOrNull { it.type == "aktivitet" }
-            _form.value = AktivitetForm(
+            val prefilled = AktivitetForm(
                 aktivitet        = last?.aktivitet.orEmpty(),
                 spentTimeHours   = (last?.spentTime ?: 0) / 60,
                 spentTimeMinutes = (last?.spentTime ?: 0) % 60,
             )
+            originalForm = prefilled
+            _form.value = prefilled
         }
     }
 
@@ -140,7 +159,7 @@ class AktiviteterViewModel @Inject constructor(
             } else decoded
             val noteTarget = if (a.type == "screening") NoteTarget.SCREENING else NoteTarget.ACTIVITY
             val note       = noteRepo.observe(noteTarget, id).first()
-            _form.value = AktivitetForm(
+            val loaded = AktivitetForm(
                 aktivitet        = a.aktivitet,
                 aterhamtande     = a.aterhamtande,
                 energitjuv       = a.energitjuv,
@@ -155,6 +174,8 @@ class AktiviteterViewModel @Inject constructor(
                 note             = note,
                 type             = a.type,
             )
+            originalForm = loaded
+            _form.value = loaded
         }
     }
 
@@ -221,6 +242,8 @@ class AktiviteterViewModel @Inject constructor(
 
     fun resetForm() {
         _editId.value = null
-        _form.value = AktivitetForm()
+        val blank = AktivitetForm()
+        originalForm = blank
+        _form.value = blank
     }
 }

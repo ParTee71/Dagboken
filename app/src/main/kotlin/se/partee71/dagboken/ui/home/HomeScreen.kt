@@ -720,12 +720,9 @@ private fun InlineScreeningForm(
 ) {
     val form by vm.form.collectAsState()
     val symptomOptions by vm.symptomOptions.collectAsState()
+    val isDirty by vm.isDirty.collectAsState()
 
-    LaunchedEffect(label) {
-        vm.updateForm {
-            copy(aktivitet = label, type = "screening", energy = 0, stress = 0, symptomScores = emptyMap())
-        }
-    }
+    LaunchedEffect(label) { vm.startScreening(label) }
 
     StepwiseScreeningForm(
         energy                  = form.energy,
@@ -736,6 +733,7 @@ private fun InlineScreeningForm(
         symptomScores           = form.symptomScores,
         onScoresChange          = { vm.updateForm { copy(symptomScores = it) } },
         onToggleSymptomFavorite = vm::toggleSymptomFavorite,
+        saveEnabled             = isDirty,
         onSave                  = { vm.save(onSaved) },
         modifier                = Modifier.padding(bottom = 12.dp),
     )
