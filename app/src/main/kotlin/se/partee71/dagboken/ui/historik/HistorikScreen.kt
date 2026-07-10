@@ -2,6 +2,7 @@ package se.partee71.dagboken.ui.historik
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -18,10 +19,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.outlined.MonitorHeart
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -31,6 +35,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -39,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.EmptyState
@@ -56,6 +64,7 @@ fun HistorikScreen(
 ) {
     val entries by vm.filteredEntries.collectAsState()
     val filter by vm.typeFilter.collectAsState()
+    var deleteTarget by remember { mutableStateOf<HistorikEntry?>(null) }
 
     DagbokenScaffold(
         title  = stringResource(R.string.tab_historik),
@@ -135,6 +144,7 @@ fun HistorikScreen(
                                             onOpenSjukdomsEpisod(entry.incheckning.episodId)
                                     }
                                 },
+                                onDelete = { deleteTarget = entry },
                             )
                         }
                         item(key = "spacer_$datum") { Spacer(Modifier.height(4.dp)) }
@@ -142,6 +152,15 @@ fun HistorikScreen(
                 }
             }
         }
+    }
+
+    deleteTarget?.let { target ->
+        ConfirmDialog(
+            title     = stringResource(R.string.historik_delete_title),
+            text      = stringResource(R.string.format_historik_delete_confirm, entryTitle(target)),
+            onConfirm = { vm.delete(target); deleteTarget = null },
+            onDismiss = { deleteTarget = null },
+        )
     }
 }
 
@@ -161,47 +180,68 @@ private fun iconFor(type: HistorikType): ImageVector = when (type) {
     HistorikType.SJUKDOM   -> Icons.Filled.LocalHospital
 }
 
+private fun entryTitle(entry: HistorikEntry): String = when (entry) {
+    is HistorikEntry.AktivitetEntry -> entry.aktivitet.aktivitet
+    is HistorikEntry.MedicinEntry -> entry.medicin.namn
+    is HistorikEntry.HandelseEntry -> entry.handelse.typ
+    is HistorikEntry.IncheckningEntry -> entry.episodTyp
+}
+
+private fun entrySubtitle(entry: HistorikEntry): String = when (entry) {
+    is HistorikEntry.AktivitetEntry ->
+        "${entry.aktivitet.tid}  •  ⚡ ${entry.aktivitet.energy}  •  😰 ${entry.aktivitet.stress}"
+    is HistorikEntry.MedicinEntry ->
+        "${entry.medicin.tid}  •  ${entry.medicin.dos} ${entry.medicin.enhet}"
+    is HistorikEntry.HandelseEntry -> entry.handelse.tid
+    is HistorikEntry.IncheckningEntry ->
+        "${entry.incheckning.tid}  •  Svårighetsgrad ${entry.incheckning.svarighetsgrad}"
+}
+
 @Composable
 private fun HistorikEntryCard(
     entry: HistorikEntry,
     onClick: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
-    val (title, subtitle) = when (entry) {
-        is HistorikEntry.AktivitetEntry ->
-            entry.aktivitet.aktivitet to "${entry.aktivitet.tid}  •  ⚡ ${entry.aktivitet.energy}  •  😰 ${entry.aktivitet.stress}"
-        is HistorikEntry.MedicinEntry ->
-            entry.medicin.namn to "${entry.medicin.tid}  •  ${entry.medicin.dos} ${entry.medicin.enhet}"
-        is HistorikEntry.HandelseEntry ->
-            entry.handelse.typ to entry.handelse.tid
-        is HistorikEntry.IncheckningEntry ->
-            entry.episodTyp to "${entry.incheckning.tid}  •  Svårighetsgrad ${entry.incheckning.svarighetsgrad}"
-    }
+    var menuExpanded by remember { mutableStateOf(false) }
 
-    DagbokenCard(
-        modifier       = modifier,
-        onClick        = onClick,
-        contentPadding = PaddingValues(12.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier          = Modifier.fillMaxWidth(),
+    Box(modifier = modifier) {
+        DagbokenCard(
+            onClick        = onClick,
+            onLongClick    = { menuExpanded = true },
+            contentPadding = PaddingValues(12.dp),
         ) {
-            Icon(
-                iconFor(entry.entryType),
-                contentDescription = null,
-                tint     = cs.onSurfaceVariant,
-                modifier = Modifier.size(24.dp).padding(end = 12.dp),
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    text  = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = cs.onSurfaceVariant,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier          = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    iconFor(entry.entryType),
+                    contentDescription = null,
+                    tint     = cs.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp).padding(end = 12.dp),
                 )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(entryTitle(entry), style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        text  = entrySubtitle(entry),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = cs.onSurfaceVariant,
+                    )
+                }
             }
+        }
+        DropdownMenu(
+            expanded         = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        ) {
+            DropdownMenuItem(
+                text        = { Text(stringResource(R.string.delete), color = cs.error) },
+                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = cs.error) },
+                onClick     = { menuExpanded = false; onDelete() },
+            )
         }
     }
 }

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
@@ -57,6 +58,17 @@ class HistorikViewModel @Inject constructor(
             if (current.size > 1) current - type else current
         } else {
             current + type
+        }
+    }
+
+    fun delete(entry: HistorikEntry) {
+        viewModelScope.launch {
+            when (entry) {
+                is HistorikEntry.AktivitetEntry -> aktiviteterRepo.delete(entry.aktivitet)
+                is HistorikEntry.MedicinEntry -> medicinerRepo.deleteMedicin(entry.medicin)
+                is HistorikEntry.HandelseEntry -> handelserRepo.delete(entry.handelse)
+                is HistorikEntry.IncheckningEntry -> sjukdomarRepo.deleteIncheckning(entry.incheckning)
+            }
         }
     }
 }

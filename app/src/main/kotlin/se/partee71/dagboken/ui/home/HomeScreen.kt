@@ -721,12 +721,11 @@ private fun InlineScreeningForm(
     val form by vm.form.collectAsState()
     val symptomOptions by vm.symptomOptions.collectAsState()
 
-    LaunchedEffect(label) {
-        vm.updateForm {
-            copy(aktivitet = label, type = "screening", energy = 0, stress = 0, symptomScores = emptyMap())
-        }
-    }
+    LaunchedEffect(label) { vm.startScreening(label) }
 
+    // saveEnabled is always true here: energy=0/stress=0 are legitimate values
+    // (not placeholders), so a fresh inline screening is already save-worthy —
+    // unlike text-entry forms, there's no "unsaved-from-blank" state to gate on.
     StepwiseScreeningForm(
         energy                  = form.energy,
         onEnergyChange          = { vm.updateForm { copy(energy = it) } },

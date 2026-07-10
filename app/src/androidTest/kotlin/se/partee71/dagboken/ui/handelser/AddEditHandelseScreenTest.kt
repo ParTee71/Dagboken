@@ -3,9 +3,14 @@ package se.partee71.dagboken.ui.handelser
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -15,6 +20,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -62,9 +68,9 @@ class AddEditHandelseScreenTest {
         runBlocking { prefs.setHandelseTypOptions(emptyList()) }
     }
 
-    private fun setContent() {
+    private fun setContent(onBack: () -> Unit = {}) {
         composeRule.setContent {
-            MaterialTheme { AddEditHandelseScreen(editId = null, onBack = {}, vm = vm) }
+            MaterialTheme { AddEditHandelseScreen(editId = null, onBack = onBack, vm = vm) }
         }
     }
 
@@ -151,5 +157,69 @@ class AddEditHandelseScreenTest {
             .performTextInput("Kom efter möte")
         composeRule.waitUntil(10_000) { vm.form.value.anteckning == "Kom efter möte" }
         assert(vm.form.value.anteckning == "Kom efter möte")
+    }
+
+    // ─── Spara-knapp (dirty-state) och osparade ändringar ────────────────────
+
+    @Test fun save_button_is_disabled_until_the_form_has_unsaved_changes() {
+        setContent()
+        composeRule.onNodeWithText("Spara").assertIsNotEnabled()
+        composeRule.onNode(hasText("Typ av händelse") and hasSetTextAction())
+            .performTextInput("Yrsel")
+        composeRule.waitUntil(10_000) { vm.isDirty.value }
+        composeRule.onNodeWithText("Spara").assertIsEnabled()
+    }
+
+    @Test fun back_with_unsaved_changes_shows_confirmation_dialog() {
+        setContent()
+        composeRule.onNode(hasText("Typ av händelse") and hasSetTextAction())
+            .performTextInput("Yrsel")
+        composeRule.waitUntil(10_000) { vm.isDirty.value }
+
+        composeRule.onNodeWithContentDescription("Tillbaka").performClick()
+
+        composeRule.onNodeWithText("Osparade ändringar").assertIsDisplayed()
+    }
+
+    @Test fun back_without_changes_navigates_immediately_without_a_dialog() {
+        var backCalled = false
+        setContent(onBack = { backCalled = true })
+
+        composeRule.onNodeWithContentDescription("Tillbaka").performClick()
+
+        assert(backCalled)
+        composeRule.onNodeWithText("Osparade ändringar").assertDoesNotExist()
+    }
+
+    @Test fun discarding_unsaved_changes_navigates_back_without_saving() {
+        var backCalled = false
+        setContent(onBack = { backCalled = true })
+        composeRule.onNode(hasText("Typ av händelse") and hasSetTextAction())
+            .performTextInput("Yrsel")
+        composeRule.waitUntil(10_000) { vm.isDirty.value }
+        composeRule.onNodeWithContentDescription("Tillbaka").performClick()
+        composeRule.onNodeWithText("Osparade ändringar").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Kasta").performClick()
+
+        assert(backCalled)
+        composeRule.waitUntil(10_000) { vm.form.value.typ.isEmpty() }
+    }
+
+    @Test fun saving_from_unsaved_changes_dialog_persists_and_navigates_back() {
+        var backCalled = false
+        setContent(onBack = { backCalled = true })
+        composeRule.onNode(hasText("Typ av händelse") and hasSetTextAction())
+            .performTextInput("Yrsel")
+        composeRule.waitUntil(10_000) { vm.isDirty.value }
+        composeRule.onNodeWithContentDescription("Tillbaka").performClick()
+        composeRule.onNodeWithText("Osparade ändringar").assertIsDisplayed()
+
+        composeRule.onNode(hasText("Spara") and hasAnyAncestor(isDialog())).performClick()
+
+        composeRule.waitUntil(10_000) { backCalled }
+        runBlocking {
+            assert(repo.all.first().any { it.typ == "Yrsel" })
+        }
     }
 }

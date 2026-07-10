@@ -19,8 +19,22 @@ import org.junit.runners.model.Statement
  * @Before/@After lifecycle and gets a fresh database, ViewModel and Compose
  * tree. A test that fails only on a bad frame passes on the retry; a test that
  * is genuinely broken fails every attempt and still fails the build.
+ *
+ * `composeRule`'s teardown (finishing its Activity, cancelling its internal
+ * MonotonicFrameClock coroutine) happens asynchronously after `base.evaluate()`
+ * throws. Retrying immediately can race that teardown: the next attempt calls
+ * `setContent`/re-enters the rule's coroutine test scope before the previous
+ * one has fully released it, which surfaces as
+ * `IllegalStateException: Only a single call to \`runTest\` can be performed
+ * during one test` (a known androidx.compose.ui.test limitation — see
+ * https://issuetracker.google.com/issues/235383900) instead of the original
+ * failure. [retryDelayMillis] gives teardown a window to finish before the
+ * next attempt starts.
  */
-class RetryTestRule(private val attempts: Int = 3) : TestRule {
+class RetryTestRule(
+    private val attempts: Int = 3,
+    private val retryDelayMillis: Long = 2000,
+) : TestRule {
 
     override fun apply(base: Statement, description: Description): Statement =
         object : Statement() {
@@ -37,6 +51,7 @@ class RetryTestRule(private val attempts: Int = 3) : TestRule {
                             "${description.displayName} failed on attempt $attempt/$attempts",
                             t,
                         )
+                        if (attempt < attempts) Thread.sleep(retryDelayMillis)
                     }
                 }
                 throw lastError!!

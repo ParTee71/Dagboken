@@ -43,6 +43,16 @@ class AddEditSjukdomViewModel @Inject constructor(
     private val _form = MutableStateFlow(SjukdomForm())
     val form: StateFlow<SjukdomForm> = _form.asStateFlow()
 
+    private var originalForm = _form.value
+    private val _isDirty = MutableStateFlow(false)
+    val isDirty: StateFlow<Boolean> = _isDirty.asStateFlow()
+
+    private fun setCleanForm(form: SjukdomForm) {
+        originalForm = form
+        _form.value = form
+        _isDirty.value = false
+    }
+
     val symptomOptions: StateFlow<List<SymptomOption>> = prefs.symptomOptions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -56,16 +66,19 @@ class AddEditSjukdomViewModel @Inject constructor(
             val episod = repo.all.first().firstOrNull { it.id == id } ?: return@launch
             editId = id
             val note = noteRepo.observe(NoteTarget.SJUKDOM_EPISOD, id).first()
-            _form.value = SjukdomForm(
-                typ        = episod.typ,
-                startDatum = episod.startDatum,
-                anteckning = note,
+            setCleanForm(
+                SjukdomForm(
+                    typ        = episod.typ,
+                    startDatum = episod.startDatum,
+                    anteckning = note,
+                ),
             )
         }
     }
 
     fun updateForm(update: SjukdomForm.() -> SjukdomForm) {
         _form.value = _form.value.update()
+        _isDirty.value = _form.value != originalForm
     }
 
     fun toggleSymptomFavorite(name: String) {
@@ -112,7 +125,7 @@ class AddEditSjukdomViewModel @Inject constructor(
 
     fun resetForm() {
         editId = null
-        _form.value = SjukdomForm()
+        setCleanForm(SjukdomForm())
     }
 
     fun clearSnackbar() { _snackbar.value = null }

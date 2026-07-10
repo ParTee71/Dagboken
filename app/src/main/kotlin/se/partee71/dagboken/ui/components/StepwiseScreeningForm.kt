@@ -53,6 +53,7 @@ fun StepwiseScreeningForm(
     onToggleSymptomFavorite: (String) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
+    saveEnabled: Boolean = true,
 ) {
     val cs = MaterialTheme.colorScheme
     val hasSymptom = symptomOptions.isNotEmpty()
@@ -151,10 +152,12 @@ fun StepwiseScreeningForm(
                     modifier = Modifier.testTag("screening_next"),
                 ) { Text(stringResource(R.string.screening_step_next)) }
             } else {
-                Button(
-                    onClick  = onSave,
-                    modifier = Modifier.testTag("screening_save"),
-                ) { Text(stringResource(R.string.save)) }
+                SaveButton(
+                    enabled      = saveEnabled,
+                    onClick      = onSave,
+                    modifier     = Modifier.testTag("screening_save"),
+                    fillMaxWidth = false,
+                )
             }
         }
     }

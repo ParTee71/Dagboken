@@ -39,24 +39,41 @@ class AddEditReceptViewModel @Inject constructor(
     val form: StateFlow<ReceptForm> = _form.asStateFlow()
     private var editingId: String? = null
 
-    fun updateForm(update: ReceptForm.() -> ReceptForm) { _form.value = _form.value.update() }
+    private var originalForm = _form.value
+    private val _isDirty = MutableStateFlow(false)
+    val isDirty: StateFlow<Boolean> = _isDirty.asStateFlow()
+
+    private fun setCleanForm(form: ReceptForm) {
+        originalForm = form
+        _form.value = form
+        _isDirty.value = false
+    }
+
+    private fun publish(form: ReceptForm) {
+        _form.value = form
+        _isDirty.value = form != originalForm
+    }
+
+    fun updateForm(update: ReceptForm.() -> ReceptForm) { publish(_form.value.update()) }
 
     fun loadForEdit(id: String) {
         viewModelScope.launch {
             val r = repo.getReceptById(id) ?: return@launch
             editingId = id
             val note = noteRepo.observe(NoteTarget.RECEPT, id).first()
-            _form.value = ReceptForm(
-                namn          = r.namn,
-                dos           = r.dos,
-                enhet         = r.enhet,
-                tidpunkter    = r.tidpunkter,
-                upprepning    = r.upprepning,
-                dagar         = r.dagar,
-                intervalDagar = r.intervalDagar,
-                anteckning    = note,
-                aktiv         = r.aktiv,
-                skapad        = r.skapad,
+            setCleanForm(
+                ReceptForm(
+                    namn          = r.namn,
+                    dos           = r.dos,
+                    enhet         = r.enhet,
+                    tidpunkter    = r.tidpunkter,
+                    upprepning    = r.upprepning,
+                    dagar         = r.dagar,
+                    intervalDagar = r.intervalDagar,
+                    anteckning    = note,
+                    aktiv         = r.aktiv,
+                    skapad        = r.skapad,
+                ),
             )
         }
     }
@@ -64,13 +81,13 @@ class AddEditReceptViewModel @Inject constructor(
     fun toggleTidpunkt(t: String) {
         val cur = _form.value.tidpunkter.toMutableList()
         if (cur.contains(t)) { if (cur.size > 1) cur.remove(t) } else cur.add(t)
-        _form.value = _form.value.copy(tidpunkter = cur)
+        publish(_form.value.copy(tidpunkter = cur))
     }
 
     fun toggleDag(dag: Int) {
         val cur = _form.value.dagar.toMutableList()
         if (cur.contains(dag)) cur.remove(dag) else cur.add(dag)
-        _form.value = _form.value.copy(dagar = cur.sorted())
+        publish(_form.value.copy(dagar = cur.sorted()))
     }
 
     fun save() {
@@ -90,6 +107,8 @@ class AddEditReceptViewModel @Inject constructor(
             )
             repo.saveRecept(recept)
             noteRepo.save(NoteTarget.RECEPT, recept.id, f.anteckning.trim())
+            originalForm = f
+            _isDirty.value = false
         }
     }
 }

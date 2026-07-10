@@ -1,6 +1,7 @@
 package se.partee71.dagboken.ui.historik
 
 import app.cash.turbine.test
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -161,5 +162,31 @@ class HistorikViewModelTest {
 
     @Test fun `initial filter includes all types`() {
         assertEquals(HistorikType.entries.toSet(), viewModel.typeFilter.value)
+    }
+
+    // ─── Radera ───────────────────────────────────────────────────────────────
+
+    @Test fun `delete on AktivitetEntry calls AktiviteterRepository delete`() = runTest {
+        val a = aktivitet("a1")
+        viewModel.delete(HistorikEntry.AktivitetEntry(a))
+        coVerify { aktiviteterRepo.delete(a) }
+    }
+
+    @Test fun `delete on MedicinEntry calls MedicinerRepository deleteMedicin`() = runTest {
+        val m = medicin("m1")
+        viewModel.delete(HistorikEntry.MedicinEntry(m))
+        coVerify { medicinerRepo.deleteMedicin(m) }
+    }
+
+    @Test fun `delete on HandelseEntry calls HandelserRepository delete`() = runTest {
+        val h = handelse("h1")
+        viewModel.delete(HistorikEntry.HandelseEntry(h))
+        coVerify { handelserRepo.delete(h) }
+    }
+
+    @Test fun `delete on IncheckningEntry calls SjukdomarRepository deleteIncheckning`() = runTest {
+        val i = incheckning("i1")
+        viewModel.delete(HistorikEntry.IncheckningEntry(i, episodTyp = "Migrän"))
+        coVerify { sjukdomarRepo.deleteIncheckning(i) }
     }
 }

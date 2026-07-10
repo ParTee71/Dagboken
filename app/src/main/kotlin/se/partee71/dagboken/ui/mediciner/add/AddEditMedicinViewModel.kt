@@ -38,19 +38,34 @@ class AddEditMedicinViewModel @Inject constructor(
     val form: StateFlow<MedicinForm> = _form.asStateFlow()
     private var editingMedicin: Medicin? = null
 
-    fun updateForm(update: MedicinForm.() -> MedicinForm) { _form.value = _form.value.update() }
+    private var originalForm = _form.value
+    private val _isDirty = MutableStateFlow(false)
+    val isDirty: StateFlow<Boolean> = _isDirty.asStateFlow()
+
+    private fun setCleanForm(form: MedicinForm) {
+        originalForm = form
+        _form.value = form
+        _isDirty.value = false
+    }
+
+    fun updateForm(update: MedicinForm.() -> MedicinForm) {
+        _form.value = _form.value.update()
+        _isDirty.value = _form.value != originalForm
+    }
 
     fun loadForEdit(id: String) {
         viewModelScope.launch {
             val m = repo.getMedicinById(id) ?: return@launch
             editingMedicin = m
             val note = noteRepo.observe(NoteTarget.MEDICATION, id).first()
-            _form.value = MedicinForm(
-                namn       = m.namn,
-                dos        = m.dos,
-                enhet      = m.enhet,
-                tidpunkt   = m.tidpunkt,
-                anteckning = note,
+            setCleanForm(
+                MedicinForm(
+                    namn       = m.namn,
+                    dos        = m.dos,
+                    enhet      = m.enhet,
+                    tidpunkt   = m.tidpunkt,
+                    anteckning = note,
+                ),
             )
         }
     }
@@ -83,6 +98,8 @@ class AddEditMedicinViewModel @Inject constructor(
             }
             repo.saveMedicin(medicin)
             noteRepo.save(NoteTarget.MEDICATION, medicin.id, f.anteckning.trim())
+            originalForm = f
+            _isDirty.value = false
         }
     }
 }

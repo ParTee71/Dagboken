@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -34,6 +33,8 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.TIDP_ORDER
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.NoteField
+import se.partee71.dagboken.ui.components.SaveButton
+import se.partee71.dagboken.ui.components.UnsavedChangesBackHandler
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -45,11 +46,19 @@ fun AddEditMedicinScreen(
     LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
 
     val form by vm.form.collectAsState()
+    val isDirty by vm.isDirty.collectAsState()
     val scope = rememberCoroutineScope()
+
+    val guardedBack = UnsavedChangesBackHandler(
+        isDirty   = isDirty,
+        canSave   = form.namn.isNotBlank(),
+        onSave    = { scope.launch { vm.save(); onBack() } },
+        onDiscard = onBack,
+    )
 
     DagbokenScaffold(
         title  = stringResource(if (editId == null) R.string.medicin_new else R.string.edit),
-        onBack = onBack,
+        onBack = guardedBack,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -100,11 +109,10 @@ fun AddEditMedicinScreen(
                 onTextChange = { vm.updateForm { copy(anteckning = it) } },
             )
 
-            Button(
+            SaveButton(
+                enabled = isDirty && form.namn.isNotBlank(),
                 onClick = { scope.launch { vm.save(); onBack() } },
-                enabled = form.namn.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.save)) }
+            )
         }
     }
 }

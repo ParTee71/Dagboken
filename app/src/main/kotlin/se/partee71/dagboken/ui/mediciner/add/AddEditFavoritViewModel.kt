@@ -39,7 +39,21 @@ class AddEditFavoritViewModel @Inject constructor(
     // carried through so save() doesn't silently reset an existing favorite's status.
     private var editingIsFavorite: Boolean = false
 
-    fun updateForm(update: FavoritForm.() -> FavoritForm) { _form.value = _form.value.update() }
+    private var originalForm = _form.value
+    private val _isDirty = MutableStateFlow(false)
+    val isDirty: StateFlow<Boolean> = _isDirty.asStateFlow()
+
+    /** Publicerar ett nytt formulär och sätter det som den rena dirty-state-baslinjen. */
+    private fun setCleanForm(form: FavoritForm) {
+        originalForm = form
+        _form.value = form
+        _isDirty.value = false
+    }
+
+    fun updateForm(update: FavoritForm.() -> FavoritForm) {
+        _form.value = _form.value.update()
+        _isDirty.value = _form.value != originalForm
+    }
 
     fun loadForEdit(id: String) {
         viewModelScope.launch {
@@ -47,14 +61,16 @@ class AddEditFavoritViewModel @Inject constructor(
             editingId = id
             editingIsFavorite = f.isFavorite
             val note = noteRepo.observe(NoteTarget.FAVORIT, id).first()
-            _form.value = FavoritForm(
-                namn           = f.namn,
-                dos            = f.dos,
-                enhet          = f.enhet,
-                tidpunkt       = f.tidpunkt,
-                anteckning     = note,
-                minTidMellan   = f.minTidMellan,
-                maxDoserPerDag = f.maxDoserPerDag,
+            setCleanForm(
+                FavoritForm(
+                    namn           = f.namn,
+                    dos            = f.dos,
+                    enhet          = f.enhet,
+                    tidpunkt       = f.tidpunkt,
+                    anteckning     = note,
+                    minTidMellan   = f.minTidMellan,
+                    maxDoserPerDag = f.maxDoserPerDag,
+                ),
             )
         }
     }
@@ -74,6 +90,8 @@ class AddEditFavoritViewModel @Inject constructor(
             )
             repo.saveFavorit(favorit)
             noteRepo.save(NoteTarget.FAVORIT, favorit.id, f.anteckning.trim())
+            originalForm = f
+            _isDirty.value = false
         }
     }
 }

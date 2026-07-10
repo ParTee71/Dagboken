@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -38,6 +37,8 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.TIDP_ORDER
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.NoteField
+import se.partee71.dagboken.ui.components.SaveButton
+import se.partee71.dagboken.ui.components.UnsavedChangesBackHandler
 
 private val UPPREPNING_OPTIONS = listOf("dagligen", "vardagar", "helger", "anpassad", "intervall")
 private val UPPREPNING_LABELS = mapOf(
@@ -59,11 +60,19 @@ fun AddEditReceptScreen(
     LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
 
     val form by vm.form.collectAsState()
+    val isDirty by vm.isDirty.collectAsState()
     val scope = rememberCoroutineScope()
+
+    val guardedBack = UnsavedChangesBackHandler(
+        isDirty   = isDirty,
+        canSave   = form.namn.isNotBlank() && form.dos.isNotBlank(),
+        onSave    = { scope.launch { vm.save(); onBack() } },
+        onDiscard = onBack,
+    )
 
     DagbokenScaffold(
         title  = stringResource(if (editId == null) R.string.recept_new else R.string.recept_edit),
-        onBack = onBack,
+        onBack = guardedBack,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -160,11 +169,10 @@ fun AddEditReceptScreen(
                 Switch(checked = form.aktiv, onCheckedChange = { vm.updateForm { copy(aktiv = it) } })
             }
 
-            Button(
+            SaveButton(
+                enabled = isDirty && form.namn.isNotBlank() && form.dos.isNotBlank(),
                 onClick = { scope.launch { vm.save(); onBack() } },
-                enabled = form.namn.isNotBlank() && form.dos.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.save)) }
+            )
         }
     }
 }

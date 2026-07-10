@@ -2,17 +2,10 @@ package se.partee71.dagboken.ui.sjukdomar
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,7 +22,9 @@ import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.components.NoteField
+import se.partee71.dagboken.ui.components.SaveButton
 import se.partee71.dagboken.ui.components.SymptomLogCard
+import se.partee71.dagboken.ui.components.UnsavedChangesBackHandler
 
 @Composable
 fun AddSjukdomsIncheckningScreen(
@@ -39,6 +34,7 @@ fun AddSjukdomsIncheckningScreen(
     val form          by vm.incheckningForm.collectAsStateWithLifecycle()
     val symptomOptions by vm.symptomOptions.collectAsStateWithLifecycle()
     val snackbar      by vm.snackbar.collectAsStateWithLifecycle()
+    val isDirty       by vm.isIncheckningFormDirty.collectAsStateWithLifecycle()
 
     LaunchedEffect(snackbar) {
         snackbar?.let {
@@ -46,9 +42,15 @@ fun AddSjukdomsIncheckningScreen(
         }
     }
 
+    val guardedBack = UnsavedChangesBackHandler(
+        isDirty   = isDirty,
+        onSave    = { vm.saveIncheckning() },
+        onDiscard = onBack,
+    )
+
     DagbokenScaffold(
         title  = stringResource(R.string.sjukdom_incheckning_title),
-        onBack = onBack,
+        onBack = guardedBack,
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -91,14 +93,10 @@ fun AddSjukdomsIncheckningScreen(
                 onTextChange = { vm.updateForm { copy(anteckning = it) } },
             )
 
-            FilledTonalButton(
-                onClick  = { vm.saveIncheckning() },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.size(8.dp))
-                Text(stringResource(R.string.save))
-            }
+            SaveButton(
+                enabled = isDirty,
+                onClick = { vm.saveIncheckning() },
+            )
         }
     }
 }

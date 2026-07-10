@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.sjukdomar
 
+import app.cash.turbine.test
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -81,5 +82,43 @@ class AddEditSjukdomViewModelTest {
         viewModel.updateForm { copy(typ = "Migrän") }
         viewModel.save {}
         coVerify { noteRepo.save(NoteTarget.SJUKDOM_EPISOD, "e1", any()) }
+    }
+
+    // ─── isDirty ──────────────────────────────────────────────────────────────
+
+    @Test fun `isDirty is false on a fresh form`() = runTest {
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isDirty becomes true after a field changes`() = runTest {
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.updateForm { copy(typ = "Migrän") }
+            assertEquals(true, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isDirty is false right after loadForEdit`() = runTest {
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.loadForEdit("e1")
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isDirty is false again after resetForm`() = runTest {
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.updateForm { copy(typ = "Migrän") }
+            assertEquals(true, awaitItem())
+            viewModel.resetForm()
+            assertEquals(false, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

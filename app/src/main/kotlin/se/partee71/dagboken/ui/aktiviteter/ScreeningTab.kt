@@ -5,11 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +25,7 @@ import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.RecentAktiviteterSection
+import se.partee71.dagboken.ui.components.SaveButton
 import se.partee71.dagboken.ui.components.SymptomLogCard
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -41,8 +40,9 @@ fun ScreeningTab(
     val symptomOptions   by vm.symptomOptions.collectAsState()
     val todaysScreenings by vm.todaysScreenings.collectAsState()
     val recentEntries    by vm.recentEntries.collectAsState()
+    val isDirty          by vm.isDirty.collectAsState()
 
-    val isSaveEnabled = form.aktivitet.isNotBlank()
+    val isValid = form.aktivitet.isNotBlank()
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -128,14 +128,11 @@ fun ScreeningTab(
         }
 
         HorizontalDivider()
-        Button(
+        SaveButton(
+            enabled  = isDirty && isValid,
             onClick  = { vm.updateForm { copy(type = "screening") }; vm.save { onSaved() } },
-            enabled  = isSaveEnabled,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Text(stringResource(R.string.save_screening))
-        }
+            label    = stringResource(R.string.save_screening),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        )
     }
 }

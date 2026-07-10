@@ -86,7 +86,7 @@
 | AKT-6 | Användaren ska kunna gradera **symptom** (konfigurerbara, 0–10 per symptom), med fritext vid "Övrigt". |
 | AKT-7 | Användaren ska kunna ange **tidsåtgång** (timmar + minuter). |
 | AKT-8 | Mätvärden och symptom ska kunna fällas ihop/ut (foldout). |
-| AKT-9 | Spara kräver att en aktivitetstyp valts (annars inaktiverad spara-knapp). |
+| AKT-9 | Spara-knappen (`SaveButton`, se NFR-10) kräver att en aktivitetstyp valts **och** att formuläret har osparade ändringar (dirty-state) — annars inaktiverad. |
 | AKT-10 | Under registreringsformuläret ska de tre senaste loggade posterna (aktivitet och screening blandat, sorterade på tid, nyast överst) visas i en lista; varje post ska kunna redigeras eller tas bort (samma flöde som Historik). |
 | AKT-11 | Användaren ska kunna lägga till, redigera och ta bort en fritextanteckning på en aktivitetsregistrering, via den delade anteckningskomponenten. |
 | AKT-12 | När en **ny** aktivitet loggas via globala "+"-FAB:en ska formuläret förifyllas: tid = nu samt senaste aktivitetstyp och tidsåtgång från den senast loggade aktiviteten. Förvalen beräknas live från senaste post — inget cachas eller persisteras. |
@@ -273,6 +273,7 @@
 | NFR-7 | Känslig data (backup) ska endast lagras i användarens privata Drive-appmapp. |
 | NFR-8 | Appstorlek/prestanda: listor ska använda lazy-rendering; tunga operationer på IO-dispatcher. |
 | NFR-9 | Appen använder ett enhetligt designsystem: kort, tomlägen, bekräftelsedialoger, sektionsrubriker och datum/tid-format byggs med delade komponenter i `ui/components/`, med konsekvent form, typografi och spacing. |
+| NFR-10 | Spara-knappar byggs med den delade komponenten `SaveButton` och är inaktiverade tills formuläret har osparade, giltiga ändringar (dirty-state — jämfört mot senast laddade/sparade värde, inte bara fältvalidering). Försök att navigera bort (tillbaka-knapp eller systemets back) med osparade ändringar visar en bekräftelsedialog (`UnsavedChangesBackHandler`) med möjlighet att spara, kasta ändringarna eller avbryta. |
 
 ---
 
@@ -312,7 +313,8 @@
 | HIST-1 | Historik-ytan visar alla fem posttyper (aktivitet, screening, medicindos, händelse, sjukdomsincheckning) i ett enda kronologiskt flöde, grupperat per dag. |
 | HIST-2 | Poster kan filtreras per typ med filterchips; minst en typ måste vara aktiv (samma regel som HIS-1). |
 | HIST-3 | Tryck på en post navigerar till dess befintliga redigerings-/detaljskärm (ingen ny redigeringslogik i Historik-ytan själv). |
-| HIST-4 | Historik-ytan skriver inte till någon datakälla — ren läsvy över befintliga repositories. |
+| HIST-4 | ~~Historik-ytan skriver inte till någon datakälla — ren läsvy över befintliga repositories.~~ *(ändrat, se HIST-5 — #105)* |
+| HIST-5 | Långtryck på en post i Historik öppnar en meny med "Ta bort" (bekräftelsedialog krävs innan radering). Raderingen anropar samma repository-metod som respektive domänskärm redan använder. |
 
 ---
 

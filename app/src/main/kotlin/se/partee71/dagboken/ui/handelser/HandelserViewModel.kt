@@ -97,6 +97,16 @@ class HandelserViewModel @Inject constructor(
     private val _form    = MutableStateFlow(HandelseForm())
     val form: StateFlow<HandelseForm> = _form.asStateFlow()
 
+    private var originalForm = _form.value
+    private val _isDirty = MutableStateFlow(false)
+    val isDirty: StateFlow<Boolean> = _isDirty.asStateFlow()
+
+    private fun setCleanForm(form: HandelseForm) {
+        originalForm = form
+        _form.value = form
+        _isDirty.value = false
+    }
+
     private val _editId  = MutableStateFlow<String?>(null)
     private val _snackbar = MutableStateFlow<String?>(null)
     val snackbar: StateFlow<String?> = _snackbar.asStateFlow()
@@ -106,6 +116,7 @@ class HandelserViewModel @Inject constructor(
 
     fun updateForm(update: HandelseForm.() -> HandelseForm) {
         _form.value = _form.value.update()
+        _isDirty.value = _form.value != originalForm
     }
 
     fun loadForEdit(id: String) {
@@ -113,16 +124,18 @@ class HandelserViewModel @Inject constructor(
             val h = repo.getById(id) ?: return@launch
             _editId.value = id
             val note = noteRepo.observe(NoteTarget.EVENT, id).first()
-            _form.value = HandelseForm(
-                typ                = h.typ,
-                datum              = h.datum,
-                tid                = h.tid,
-                svarighetsgrad     = h.svarighetsgrad,
-                varaktighetTimmar  = h.varaktighetMinuter / 60,
-                varaktighetMinuter = h.varaktighetMinuter % 60,
-                triggers           = h.triggers,
-                atgarder           = h.atgarder,
-                anteckning         = note,
+            setCleanForm(
+                HandelseForm(
+                    typ                = h.typ,
+                    datum              = h.datum,
+                    tid                = h.tid,
+                    svarighetsgrad     = h.svarighetsgrad,
+                    varaktighetTimmar  = h.varaktighetMinuter / 60,
+                    varaktighetMinuter = h.varaktighetMinuter % 60,
+                    triggers           = h.triggers,
+                    atgarder           = h.atgarder,
+                    anteckning         = note,
+                ),
             )
         }
     }
@@ -161,7 +174,7 @@ class HandelserViewModel @Inject constructor(
 
     fun resetForm() {
         _editId.value = null
-        _form.value   = HandelseForm()
+        setCleanForm(HandelseForm())
     }
 
     fun toggleHandelseTypFavorite(name: String) {

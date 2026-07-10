@@ -259,6 +259,70 @@ class AktiviteterViewModelTest {
         assertNull(viewModel.snackbar.value)
     }
 
+    // ─── isDirty ──────────────────────────────────────────────────────────────
+
+    @Test fun `isDirty is false on a fresh form`() = runTest {
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isDirty becomes true after a field changes`() = runTest {
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.updateForm { copy(aktivitet = "Promenad") }
+            assertEquals(true, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isDirty is false right after loadForEdit`() = runTest {
+        coEvery { repo.getById("a1") } returns aktivitet(id = "a1")
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.loadForEdit("a1")
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isDirty is false right after prefillNewAktivitet`() = runTest {
+        allFlow.value = listOf(aktivitet(id = "a1", aktivitet = "Löpning"))
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.prefillNewAktivitet()
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `isDirty is false again after save resets the form`() = runTest {
+        viewModel.isDirty.test {
+            assertEquals(false, awaitItem())
+            viewModel.updateForm { copy(aktivitet = "Promenad") }
+            assertEquals(true, awaitItem())
+            viewModel.save {}
+            assertEquals(false, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ─── startScreening (inline-screening på Idag) ───────────────────────────
+
+    @Test fun `startScreening resets form and dirty-state atomically`() = runTest {
+        viewModel.updateForm { copy(aktivitet = "Gammal", energy = 4) }
+        viewModel.isDirty.test {
+            assertEquals(true, awaitItem())
+            viewModel.startScreening("Morgon")
+            assertEquals(false, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals("Morgon", viewModel.form.value.aktivitet)
+        assertEquals("screening", viewModel.form.value.type)
+        assertEquals(0, viewModel.form.value.energy)
+    }
+
     // ─── resetForm ────────────────────────────────────────────────────────────
 
     @Test fun `resetForm clears form state`() = runTest {
