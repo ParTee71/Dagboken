@@ -26,7 +26,10 @@ backup-kedjan *och* täckas av rundturstest.
 ### 2. Tester på alla nivåer
 Ingen beteendeändring utan att tester läggs till eller uppdateras på rätt nivå
 (enhet / instrument / migrering). Befintliga tester som påverkas ska uppdateras,
-aldrig tas bort för att "bli gröna".
+aldrig tas bort för att "bli gröna". **Flaky tester är inte tillåtna** — kör aldrig
+bara om ett test som ibland faller för att få grönt. Hitta grundorsaken och åtgärda
+den så att testet blir deterministiskt. Ett test som ibland faller är en bugg som
+ska fixas, inte ignoreras.
 → Skill: **testing-strategy**. Krav: NFR-6.
 
 ### 3. Kraven hålls aktuella
