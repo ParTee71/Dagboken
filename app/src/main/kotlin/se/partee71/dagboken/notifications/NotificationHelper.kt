@@ -13,12 +13,16 @@ import se.partee71.dagboken.ui.navigation.Screen
 
 object NotificationHelper {
 
-    const val CHANNEL_MEDS      = "meds"
-    const val CHANNEL_SCREENING = "screening"
-    const val EXTRA_NAV_ROUTE   = "extra_nav_route"
+    const val CHANNEL_MEDS         = "meds"
+    const val CHANNEL_SCREENING    = "screening"
+    const val EXTRA_NAV_ROUTE      = "extra_nav_route"
+    const val EXTRA_SCREENING_LABEL = "extra_screening_label"
 
-    private const val NOTIFICATION_ID_MED       = 2
+    const val NOTIFICATION_ID_MED       = 2
     private const val NOTIFICATION_ID_SCREENING = 1
+
+    private const val REQUEST_MED_MARK_TAKEN = 20
+    private const val REQUEST_SCREENING_LOG  = 10
 
     fun createChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -53,6 +57,11 @@ object NotificationHelper {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(buildIntent(context, Screen.Idag.route, NOTIFICATION_ID_MED))
+            .addAction(
+                R.drawable.ic_notification_med,
+                context.getString(R.string.notification_med_action_mark_taken),
+                buildMarkTakenAction(context),
+            )
             .build()
         manager.notify(NOTIFICATION_ID_MED, notification)
     }
@@ -66,20 +75,43 @@ object NotificationHelper {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
             .setContentIntent(buildIntent(context, Screen.Idag.route, NOTIFICATION_ID_SCREENING))
+            .addAction(
+                R.drawable.ic_notification_screening,
+                context.getString(R.string.notification_screening_action_log_now),
+                buildIntent(context, Screen.Idag.route, REQUEST_SCREENING_LOG, screeningLabel = eventLabel),
+            )
             .build()
         manager.notify(NOTIFICATION_ID_SCREENING, notification)
     }
 
-    private fun buildIntent(context: Context, navRoute: String, requestCode: Int): PendingIntent {
+    private fun buildIntent(
+        context: Context,
+        navRoute: String,
+        requestCode: Int,
+        screeningLabel: String? = null,
+    ): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(EXTRA_NAV_ROUTE, navRoute)
+            screeningLabel?.let { putExtra(EXTRA_SCREENING_LABEL, it) }
         }
         return PendingIntent.getActivity(
             context,
             requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private fun buildMarkTakenAction(context: Context): PendingIntent {
+        val intent = Intent(context, MedActionReceiver::class.java).apply {
+            action = MedActionReceiver.ACTION_MARK_TAKEN
+        }
+        return PendingIntent.getBroadcast(
+            context,
+            REQUEST_MED_MARK_TAKEN,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

@@ -51,4 +51,19 @@ class MainViewModelTest {
         viewModel.clearPendingNavRoute()
         assertNull(viewModel.pendingNavRoute.value)
     }
+
+    @Test fun `pendingScreeningLabel is null initially`() {
+        assertNull(viewModel.pendingScreeningLabel.value)
+    }
+
+    @Test fun `setPendingScreeningLabel stores the screening event label`() = runTest(testDispatcher) {
+        viewModel.setPendingScreeningLabel("Efter frukost")
+        assertEquals("Efter frukost", viewModel.pendingScreeningLabel.value)
+    }
+
+    @Test fun `clearPendingScreeningLabel resets it to null`() = runTest(testDispatcher) {
+        viewModel.setPendingScreeningLabel("Efter frukost")
+        viewModel.clearPendingScreeningLabel()
+        assertNull(viewModel.pendingScreeningLabel.value)
+    }
 }

@@ -59,6 +59,11 @@
     <string name="home_daily_screening">Daglig screening</string>
     <string name="format_home_screening_reminder">Påminnelse var: %s</string>
     <string name="home_log_action">Logga →</string>
+    <string name="home_week_summary_title">Din vecka</string>
+    <string name="home_week_energy_up">Energi ↑ jämfört med förra veckan</string>
+    <string name="home_week_energy_down">Energi ↓ jämfört med förra veckan</string>
+    <string name="home_week_energy_flat">Energi oförändrad mot förra veckan</string>
+    <string name="format_home_week_doses">%1$d %% av veckans doser tagna</string>
     <string name="home_energy_chart_title">Energi senaste 7 dagarna</string>
     <string name="home_no_screening_body">Logga din första screening för att se trender</string>
     <string name="home_view_diagram">Visa diagram →</string>
@@ -307,6 +312,12 @@
     <string name="notification_med_body">Glöm inte att ta dina mediciner.</string>
     <string name="notification_screening_title">Dags för screening – %1$s</string>
     <string name="notification_screening_body">Hur mår du? Logga din dagliga screening.</string>
+    <string name="notification_med_action_mark_taken">Markera tagen</string>
+    <string name="notification_screening_action_log_now">Logga nu</string>
+
+    <string name="screening_step_next">Nästa</string>
+    <string name="screening_step_prev">Föregående</string>
+    <string name="format_screening_step">Steg %1$d av %2$d</string>
 
     <string name="nav_tab_idag">Idag</string>
     <string name="nav_tab_historik">Historik</string>

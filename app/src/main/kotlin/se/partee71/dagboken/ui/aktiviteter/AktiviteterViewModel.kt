@@ -107,6 +107,25 @@ class AktiviteterViewModel @Inject constructor(
         _form.value = _form.value.update()
     }
 
+    /**
+     * Förbereder ett nytt aktivitetsformulär för globala FAB:ens "Logga aktivitet".
+     * Tid och datum sätts till nu (via [AktivitetForm]-defaults), och senaste
+     * aktivitetstyp + varaktighet förifylls från den senast loggade aktiviteten
+     * (ej screening) så återkommande loggning går snabbare. Beräknas live — inget
+     * cachas eller persisteras.
+     */
+    fun prefillNewAktivitet() {
+        viewModelScope.launch {
+            _editId.value = null
+            val last = repo.all.first().firstOrNull { it.type == "aktivitet" }
+            _form.value = AktivitetForm(
+                aktivitet        = last?.aktivitet.orEmpty(),
+                spentTimeHours   = (last?.spentTime ?: 0) / 60,
+                spentTimeMinutes = (last?.spentTime ?: 0) % 60,
+            )
+        }
+    }
+
     fun loadForEdit(id: String) {
         viewModelScope.launch {
             val a = repo.getById(id) ?: return@launch

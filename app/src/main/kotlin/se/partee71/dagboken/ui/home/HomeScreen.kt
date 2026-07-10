@@ -34,7 +34,6 @@ import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -77,8 +76,8 @@ import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
-import se.partee71.dagboken.ui.components.GradientSliderRow
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
+import se.partee71.dagboken.ui.components.StepwiseScreeningForm
 import se.partee71.dagboken.ui.mediciner.MedicinerViewModel
 import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 import java.util.Locale
@@ -94,6 +93,8 @@ fun HomeScreen(
     onAddFavorit: () -> Unit,
     onEditFavorit: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
+    initialExpandedScreeningLabel: String? = null,
+    onScreeningLabelConsumed: () -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
     screeningVm: AktiviteterViewModel = hiltViewModel(),
     medicinerVm: MedicinerViewModel = hiltViewModel(),
@@ -115,6 +116,7 @@ fun HomeScreen(
     }
     val allFavoriter by medicinerVm.allFavoriter.collectAsState()
     val cooldownWarning by medicinerVm.cooldownWarning.collectAsState()
+    val weekSummary by vm.weekSummary.collectAsState()
 
     DagbokenScaffold(
         navigationIcon = {
@@ -213,6 +215,11 @@ fun HomeScreen(
                 }
             }
 
+            // Veckosammanfattning (visas i början av veckan, sön/mån)
+            weekSummary?.let { summary ->
+                item { WeekSummaryCard(summary) }
+            }
+
             // Dagens checklista — mediciner (avbockningsbara direkt)
             if (uiState.todayMediciner.isNotEmpty()) {
                 item {
@@ -229,8 +236,10 @@ fun HomeScreen(
             if (uiState.screeningEvents.isNotEmpty()) {
                 item {
                     ScreeningChecklistCard(
-                        events = uiState.screeningEvents,
-                        vm     = screeningVm,
+                        events                = uiState.screeningEvents,
+                        vm                    = screeningVm,
+                        initialExpandedLabel  = initialExpandedScreeningLabel,
+                        onInitialConsumed     = onScreeningLabelConsumed,
                     )
                 }
             }
@@ -366,6 +375,24 @@ fun HomeScreen(
                     Text(stringResource(R.string.cancel))
                 }
             },
+        )
+    }
+}
+
+@Composable
+private fun WeekSummaryCard(summary: WeekSummary) {
+    val cs = MaterialTheme.colorScheme
+    val energyText = when (summary.energyTrend) {
+        EnergyTrend.UP   -> stringResource(R.string.home_week_energy_up)
+        EnergyTrend.DOWN -> stringResource(R.string.home_week_energy_down)
+        EnergyTrend.FLAT -> stringResource(R.string.home_week_energy_flat)
+    }
+    DagbokenCard(title = stringResource(R.string.home_week_summary_title)) {
+        Text(energyText, style = MaterialTheme.typography.bodyMedium, color = cs.onSurface)
+        Text(
+            stringResource(R.string.format_home_week_doses, summary.dosesTakenPercent),
+            style = MaterialTheme.typography.bodyMedium,
+            color = cs.onSurfaceVariant,
         )
     }
 }
@@ -608,10 +635,21 @@ internal fun FavoriterRow(
 private fun ScreeningChecklistCard(
     events: List<ScreeningEventStatus>,
     vm: AktiviteterViewModel,
+    initialExpandedLabel: String? = null,
+    onInitialConsumed: () -> Unit = {},
 ) {
     val cs = MaterialTheme.colorScheme
     var expandedLabel by remember { mutableStateOf<String?>(null) }
     val hasOverdue = events.any { it.overdue }
+
+    // Pre-expand the event the screening "Logga nu"-notisåtgärd pointed at, once its
+    // (still-unlogged) card exists, then consume the signal so it fires only once.
+    LaunchedEffect(initialExpandedLabel, events) {
+        val label = initialExpandedLabel ?: return@LaunchedEffect
+        val target = events.firstOrNull { it.label == label } ?: return@LaunchedEffect
+        if (!target.logged) expandedLabel = label
+        onInitialConsumed()
+    }
 
     DagbokenCard(accentColor = if (hasOverdue) cs.error else null) {
         ChecklistCardHeader(
@@ -681,39 +719,24 @@ private fun InlineScreeningForm(
     onSaved: () -> Unit,
 ) {
     val form by vm.form.collectAsState()
+    val symptomOptions by vm.symptomOptions.collectAsState()
 
     LaunchedEffect(label) {
-        vm.updateForm { copy(aktivitet = label, type = "screening", energy = 0, stress = 0) }
+        vm.updateForm {
+            copy(aktivitet = label, type = "screening", energy = 0, stress = 0, symptomScores = emptyMap())
+        }
     }
 
-    Column(
-        modifier = Modifier.padding(bottom = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        GradientSliderRow(
-            label          = stringResource(R.string.label_energy),
-            emoji          = "⚡",
-            value          = form.energy.coerceIn(0, 10).toFloat(),
-            onValueChange  = { vm.updateForm { copy(energy = it.toInt()) } },
-            valueRange     = 0f..10f,
-            steps          = 9,
-            startLabel     = "0  😴",
-            endLabel       = "😊  10",
-        )
-        GradientSliderRow(
-            label         = stringResource(R.string.label_stress),
-            emoji         = "😰",
-            value         = form.stress.toFloat(),
-            onValueChange = { vm.updateForm { copy(stress = it.toInt()) } },
-            valueRange    = 0f..10f,
-            steps         = 9,
-            startLabel    = "0  😌",
-            endLabel      = "😰  10",
-            reverseColors = true,
-        )
-        Button(
-            onClick  = { vm.save(onSaved) },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(stringResource(R.string.save)) }
-    }
+    StepwiseScreeningForm(
+        energy                  = form.energy,
+        onEnergyChange          = { vm.updateForm { copy(energy = it) } },
+        stress                  = form.stress,
+        onStressChange          = { vm.updateForm { copy(stress = it) } },
+        symptomOptions          = symptomOptions,
+        symptomScores           = form.symptomScores,
+        onScoresChange          = { vm.updateForm { copy(symptomScores = it) } },
+        onToggleSymptomFavorite = vm::toggleSymptomFavorite,
+        onSave                  = { vm.save(onSaved) },
+        modifier                = Modifier.padding(bottom = 12.dp),
+    )
 }

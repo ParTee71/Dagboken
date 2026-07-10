@@ -61,13 +61,14 @@
 | HEM-2 | Visa aktuellt **datum och veckonummer** (svensk lokalisering, ISO-vecka) samt **appversionen** (liten och diskret). |
 | HEM-3 | ~~Visa **stat-pills**: antal tagna/totala mediciner idag samt senaste aktivitetens energinivå.~~ *(borttaget)* |
 | HEM-4 | Visa en **dagens checklista**: alla dagens mediciner (avbockningsbara direkt) och alla aktiverade screeningtillfällen (per måltidstillfälle), med status loggad/försenad/kommande. Kort med försenade poster märks med en textetikett ("Försenat") utöver accentfärg. |
-| HEM-5 | Mediciner ska kunna markeras som tagna direkt i checklistan utan navigering. Screening ska kunna loggas **inline**: expandera radens tillhörande måltidstillfälle och ange energi/stress direkt på Idag, utan att navigera bort. |
+| HEM-5 | Mediciner ska kunna markeras som tagna direkt i checklistan utan navigering. Screening ska kunna loggas **inline**: expandera radens tillhörande måltidstillfälle och fyll i direkt på Idag, utan att navigera bort. Inline-formuläret presenteras som **svepbara steg-kort** (energi → stress → symptom, där symptomsteget bara visas när symptom är konfigurerade) med stegindikator och Föregående/Nästa/Spara, via delad komponent `StepwiseScreeningForm`. |
 | HEM-7 | Visa **sparkline-diagram** över **genomsnittlig energi per dag** senaste 7 dagarna, baserat på screenings (minst 2 datapunkter krävs, annars uppmaning att logga); länk till Trender-ytan (§17) för fördjupning. |
 | HEM-8 | ~~Visa **snabbåtgärder**: "Logga aktivitet" och "Mediciner".~~ *(ersatt av global "+"-FAB med snabbval: Aktivitet/Engångsdos/Ny vid behov-favorit/Händelse)* |
 | HEM-9 | Visa **kontobubbla** (avatar/foto) som öppnar konto-bottensheet (logga in/ut, Hantera). |
 | HEM-10 | Säkerställa dagens medicinposter genereras vid skärmstart (`ensureTodayEntries`). |
 | HEM-11 | Favoritmarkerade vid behov-mediciner ska visas som tryckbara snabbvalskort direkt i checklistan (samma beteende som tidigare MED-7); tryck loggar en dos med befintlig cooldown-/gränslogik, långtryck öppnar redigera/ta bort/favoritmarkera. Nya favoriter skapas via "+"-FAB. |
 | HEM-12 | Pågående sjukdomsepisod ska visas som ett accentmärkt kort som länkar till sjukdomsdetaljer (Hantera → Sjukdomar). |
+| HEM-13 | I början av veckan (söndag/måndag) ska ett **veckosammanfattningskort** visas överst på Idag: energitrend (senaste 7 dagarnas genomsnittliga screeningenergi jämfört med föregående 7 dagar, ↑/↓/oförändrad) och andel tagna av veckans schemalagda doser (%). Beräknas live från befintliga poster via delad `DagbokenCard` — ingen ny persisterad data. Döljs om underlag saknas. |
 
 ---
 
@@ -88,6 +89,7 @@
 | AKT-9 | Spara kräver att en aktivitetstyp valts (annars inaktiverad spara-knapp). |
 | AKT-10 | Under registreringsformuläret ska de tre senaste loggade posterna (aktivitet och screening blandat, sorterade på tid, nyast överst) visas i en lista; varje post ska kunna redigeras eller tas bort (samma flöde som Historik). |
 | AKT-11 | Användaren ska kunna lägga till, redigera och ta bort en fritextanteckning på en aktivitetsregistrering, via den delade anteckningskomponenten. |
+| AKT-12 | När en **ny** aktivitet loggas via globala "+"-FAB:en ska formuläret förifyllas: tid = nu samt senaste aktivitetstyp och tidsåtgång från den senast loggade aktiviteten. Förvalen beräknas live från senaste post — inget cachas eller persisteras. |
 
 ### 5.2 Screening (dagligt mående)
 
@@ -215,6 +217,8 @@
 | NOT-7 | Vid ändrade inställningar ska samtliga larm schemaläggas om. |
 | NOT-8 | Exakta larm ska användas när tillåtet; annars falla tillbaka på inexakt schemaläggning (`canScheduleExactAlarms`). |
 | NOT-9 | Tryck på en medicin- eller screeningpåminnelse ska öppna appen på **Idag-skärmen** (tidigare Mediciner- respektive Aktivitet-fliken, uppdaterat sedan navigationsbytet i #84 etapp 4). |
+| NOT-10 | Medicinpåminnelsen ska ha en **"Markera tagen"**-åtgärd som markerar dagens schemalagda, ej tagna doser som tagna via repository-lagret och stänger notisen — utan att appen öppnas. Vid behov-doser lämnas orörda. |
+| NOT-11 | Screeningpåminnelsen ska ha en **"Logga nu"**-åtgärd som öppnar Idag-skärmen med det aktuella måltidstillfällets inline-screeningformulär förexpanderat. |
 
 ---
 

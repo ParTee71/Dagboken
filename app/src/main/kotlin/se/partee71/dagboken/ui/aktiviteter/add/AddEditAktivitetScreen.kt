@@ -17,7 +17,9 @@ fun AddEditAktivitetScreen(
     onBack: () -> Unit,
     vm: AktiviteterViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
+    LaunchedEffect(editId) {
+        if (editId != null) vm.loadForEdit(editId) else vm.prefillNewAktivitet()
+    }
 
     DagbokenScaffold(
         title  = stringResource(if (editId == null) R.string.aktivitet_new else R.string.aktivitet_edit),

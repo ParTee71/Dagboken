@@ -6,7 +6,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.room.Room
@@ -188,17 +190,26 @@ class HomeScreenTest {
 
     // ─── Inline screening-loggning ────────────────────────────────────────────
 
-    @Test fun tapping_screening_row_expands_inline_form_and_save_logs_it() {
-        runBlocking { prefs.setScreeningEventConfigs(listOf(ScreeningEventConfig(enabled = true, time = "08:00"))) }
+    @Test fun tapping_screening_row_expands_inline_stepwise_form_and_save_logs_it() {
+        runBlocking {
+            prefs.setScreeningEventConfigs(listOf(ScreeningEventConfig(enabled = true, time = "08:00")))
+            // Utan symptom blir det två steg (energi → stress); stresssteget visar Spara.
+            prefs.setSymptomOptions(emptyList())
+        }
         setContent()
-        composeRule.waitUntil(5000) {
+        composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Efter frukost")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Efter frukost").performClick()
+        // Steg 1 (energi) → Nästa → steg 2 (stress, sista) → Spara.
         composeRule.waitUntil(10_000) {
-            composeRule.onAllNodes(hasText("Spara")).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag("screening_next").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Spara").performClick()
+        composeRule.onNodeWithTag("screening_next").performClick()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("screening_save").performClick()
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Loggad")).fetchSemanticsNodes().isNotEmpty()
         }

@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleNavIntent(intent: Intent?) {
         intent?.getStringExtra(NotificationHelper.EXTRA_NAV_ROUTE)?.let { vm.setPendingNavRoute(it) }
+        intent?.getStringExtra(NotificationHelper.EXTRA_SCREENING_LABEL)?.let { vm.setPendingScreeningLabel(it) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

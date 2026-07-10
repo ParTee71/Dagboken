@@ -92,6 +92,29 @@ class AktiviteterViewModelTest {
         assertTrue("screening" in viewModel.historyFilter.value)
     }
 
+    // ─── prefillNewAktivitet (smarta FAB-förval) ─────────────────────────────
+
+    @Test fun `prefillNewAktivitet fills type and duration from the latest aktivitet`() = runTest {
+        allFlow.value = listOf(
+            aktivitet(id = "s1", type = "screening"),                   // newest, ignored
+            aktivitet(id = "a1", aktivitet = "Löpning").copy(spentTime = 90),
+        )
+        viewModel.prefillNewAktivitet()
+        val form = viewModel.form.value
+        assertEquals("Löpning", form.aktivitet)
+        assertEquals(1, form.spentTimeHours)
+        assertEquals(30, form.spentTimeMinutes)
+    }
+
+    @Test fun `prefillNewAktivitet leaves an empty form when there is no prior aktivitet`() = runTest {
+        allFlow.value = emptyList()
+        viewModel.prefillNewAktivitet()
+        val form = viewModel.form.value
+        assertEquals("", form.aktivitet)
+        assertEquals(0, form.spentTimeHours)
+        assertEquals(0, form.spentTimeMinutes)
+    }
+
     // ─── recentEntries ────────────────────────────────────────────────────────
 
     @Test fun `recentEntries is empty when no entries exist`() = runTest {

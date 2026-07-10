@@ -38,6 +38,59 @@ data class ScreeningEventStatus(
     val overdue: Boolean,
 )
 
+enum class EnergyTrend { UP, DOWN, FLAT }
+
+/** Veckosammanfattning som visas på Idag i början av veckan (sön/mån). */
+data class WeekSummary(
+    val energyTrend: EnergyTrend,
+    val dosesTakenPercent: Int,
+)
+
+/**
+ * Beräknar veckosammanfattningen från befintliga poster — ingen ny persisterad
+ * data. Energitrenden jämför senaste 7 dagarnas genomsnittliga screeningenergi
+ * mot de 7 dagarna dessförinnan; doskvoten är andelen tagna av veckans
+ * schemalagda (ej skippade) doser. Returnerar null om det saknas underlag.
+ * Ren funktion (tar [today] som parameter) för enkel enhetstestning.
+ */
+internal fun computeWeekSummary(
+    today: LocalDate,
+    screenings: List<Aktivitet>,
+    meds: List<Medicin>,
+): WeekSummary? {
+    val weekStart = today.minusDays(6)
+    val prevStart = today.minusDays(13)
+    val prevEnd   = today.minusDays(7)
+
+    fun parse(datum: String): LocalDate? = runCatching { LocalDate.parse(datum) }.getOrNull()
+    fun avgEnergy(from: LocalDate, to: LocalDate): Double? {
+        val values = screenings.mapNotNull { s ->
+            parse(s.datum)?.takeIf { !it.isBefore(from) && !it.isAfter(to) }?.let { s.energy }
+        }
+        return if (values.isEmpty()) null else values.average()
+    }
+
+    val thisAvg = avgEnergy(weekStart, today)
+    val prevAvg = avgEnergy(prevStart, prevEnd)
+    val trend = when {
+        thisAvg == null || prevAvg == null -> EnergyTrend.FLAT
+        thisAvg > prevAvg + 0.5            -> EnergyTrend.UP
+        thisAvg < prevAvg - 0.5            -> EnergyTrend.DOWN
+        else                               -> EnergyTrend.FLAT
+    }
+
+    val weekMeds = meds.filter { med ->
+        val d = parse(med.datum)
+        d != null && !d.isBefore(weekStart) && !d.isAfter(today) &&
+            !med.skipped && tidpunktToHour(med.tidpunkt) != null
+    }
+    val dosesPercent = if (weekMeds.isEmpty()) 0
+                       else (weekMeds.count { it.tagen } * 100) / weekMeds.size
+
+    val hasData = thisAvg != null || weekMeds.isNotEmpty()
+    return if (hasData) WeekSummary(trend, dosesPercent) else null
+}
+
 data class HomeUiState(
     val todayMediciner: List<Medicin> = emptyList(),
     val screeningPoints: List<Float> = emptyList(),
@@ -124,6 +177,19 @@ class HomeViewModel @Inject constructor(
             pagaendeSjukdom       = pagaendeSjukdom,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
+
+    // Visas bara i början av veckan (sön/mån), och bara när det finns underlag.
+    val weekSummary: StateFlow<WeekSummary?> = combine(
+        aktiviteterRepo.screeningFromDate(14),
+        medicinerRepo.allMediciner,
+    ) { screenings, meds ->
+        val today = LocalDate.now()
+        if (today.dayOfWeek != DayOfWeek.SUNDAY && today.dayOfWeek != DayOfWeek.MONDAY) {
+            null
+        } else {
+            computeWeekSummary(today, screenings, meds)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun toggleMedicinTagen(medicin: Medicin) {
         viewModelScope.launch { medicinerRepo.toggleTagen(medicin.id, !medicin.tagen) }
