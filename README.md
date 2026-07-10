@@ -130,6 +130,7 @@ Se [.github/workflows/android.yml](.github/workflows/android.yml).
 
 | Version | Innehåll |
 |---------|----------|
+| 3.1.0 | Historik: radera poster (aktivitet/screening/medicindos/händelse/sjukdomsincheckning) via långtryck (#105). Generaliserad spara-knapp (`SaveButton`) på alla formulär, inaktiverad tills osparade giltiga ändringar finns (dirty-state); bekräftelsedialog vid navigering bort med osparat (#104) |
 | 3.0.0 | UX-omarbetning (#84): uppgiftsorienterad bottennavigering med fyra flikar **Idag / Historik / Trender / Hantera** (ersätter de fem entitetsflikarna). Idag-ytan som handlingsyta med checklistor, enhetlig Historik-yta för alla posttyper, Trender-ytan som slår ihop diagrammen, Hantera-ytan. Polish: notisåtgärder ("Markera tagen"/"Logga nu"), smarta FAB-förval, stegvis svepbar screening, veckosammanfattning på Idag |
 | 2.14.1 | Tillgänglighetsfixar (48dp tryckytor, TalkBack-semantik på energireglaget), korrekt tidszonskonvertering för loggade tidsstämplar (medicinnedkylning kunde bli ~2h för lång), avkodad Settings-layout och medicindosloggning, borttagen död kod, städad KRAVLISTA/README |
 | 2.14.0 | Info-ikon med läs-only anteckningsdialog på kort som saknade en synlig anteckningsindikator (Aktivitet/Screening, medicindos, favorit, sjukdomsepisod) |
