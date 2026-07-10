@@ -33,7 +33,7 @@ import org.junit.runners.model.Statement
  */
 class RetryTestRule(
     private val attempts: Int = 3,
-    private val retryDelayMillis: Long = 500,
+    private val retryDelayMillis: Long = 2000,
 ) : TestRule {
 
     override fun apply(base: Statement, description: Description): Statement =
