@@ -4,12 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
@@ -43,13 +40,20 @@ class AddEditFavoritViewModel @Inject constructor(
     private var editingIsFavorite: Boolean = false
 
     private var originalForm = _form.value
-    val isDirty: StateFlow<Boolean> = form
-        .map { it != originalForm }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    private val _isDirty = MutableStateFlow(false)
+    val isDirty: StateFlow<Boolean> = _isDirty.asStateFlow()
 
-    fun markClean() { originalForm = _form.value }
+    /** Publicerar ett nytt formulär och sätter det som den rena dirty-state-baslinjen. */
+    private fun setCleanForm(form: FavoritForm) {
+        originalForm = form
+        _form.value = form
+        _isDirty.value = false
+    }
 
-    fun updateForm(update: FavoritForm.() -> FavoritForm) { _form.value = _form.value.update() }
+    fun updateForm(update: FavoritForm.() -> FavoritForm) {
+        _form.value = _form.value.update()
+        _isDirty.value = _form.value != originalForm
+    }
 
     fun loadForEdit(id: String) {
         viewModelScope.launch {
@@ -57,17 +61,17 @@ class AddEditFavoritViewModel @Inject constructor(
             editingId = id
             editingIsFavorite = f.isFavorite
             val note = noteRepo.observe(NoteTarget.FAVORIT, id).first()
-            val loaded = FavoritForm(
-                namn           = f.namn,
-                dos            = f.dos,
-                enhet          = f.enhet,
-                tidpunkt       = f.tidpunkt,
-                anteckning     = note,
-                minTidMellan   = f.minTidMellan,
-                maxDoserPerDag = f.maxDoserPerDag,
+            setCleanForm(
+                FavoritForm(
+                    namn           = f.namn,
+                    dos            = f.dos,
+                    enhet          = f.enhet,
+                    tidpunkt       = f.tidpunkt,
+                    anteckning     = note,
+                    minTidMellan   = f.minTidMellan,
+                    maxDoserPerDag = f.maxDoserPerDag,
+                ),
             )
-            originalForm = loaded
-            _form.value = loaded
         }
     }
 
@@ -86,7 +90,8 @@ class AddEditFavoritViewModel @Inject constructor(
             )
             repo.saveFavorit(favorit)
             noteRepo.save(NoteTarget.FAVORIT, favorit.id, f.anteckning.trim())
-            markClean()
+            originalForm = f
+            _isDirty.value = false
         }
     }
 }

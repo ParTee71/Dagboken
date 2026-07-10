@@ -4,12 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
@@ -43,46 +40,54 @@ class AddEditReceptViewModel @Inject constructor(
     private var editingId: String? = null
 
     private var originalForm = _form.value
-    val isDirty: StateFlow<Boolean> = form
-        .map { it != originalForm }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    private val _isDirty = MutableStateFlow(false)
+    val isDirty: StateFlow<Boolean> = _isDirty.asStateFlow()
 
-    fun markClean() { originalForm = _form.value }
+    private fun setCleanForm(form: ReceptForm) {
+        originalForm = form
+        _form.value = form
+        _isDirty.value = false
+    }
 
-    fun updateForm(update: ReceptForm.() -> ReceptForm) { _form.value = _form.value.update() }
+    private fun publish(form: ReceptForm) {
+        _form.value = form
+        _isDirty.value = form != originalForm
+    }
+
+    fun updateForm(update: ReceptForm.() -> ReceptForm) { publish(_form.value.update()) }
 
     fun loadForEdit(id: String) {
         viewModelScope.launch {
             val r = repo.getReceptById(id) ?: return@launch
             editingId = id
             val note = noteRepo.observe(NoteTarget.RECEPT, id).first()
-            val loaded = ReceptForm(
-                namn          = r.namn,
-                dos           = r.dos,
-                enhet         = r.enhet,
-                tidpunkter    = r.tidpunkter,
-                upprepning    = r.upprepning,
-                dagar         = r.dagar,
-                intervalDagar = r.intervalDagar,
-                anteckning    = note,
-                aktiv         = r.aktiv,
-                skapad        = r.skapad,
+            setCleanForm(
+                ReceptForm(
+                    namn          = r.namn,
+                    dos           = r.dos,
+                    enhet         = r.enhet,
+                    tidpunkter    = r.tidpunkter,
+                    upprepning    = r.upprepning,
+                    dagar         = r.dagar,
+                    intervalDagar = r.intervalDagar,
+                    anteckning    = note,
+                    aktiv         = r.aktiv,
+                    skapad        = r.skapad,
+                ),
             )
-            originalForm = loaded
-            _form.value = loaded
         }
     }
 
     fun toggleTidpunkt(t: String) {
         val cur = _form.value.tidpunkter.toMutableList()
         if (cur.contains(t)) { if (cur.size > 1) cur.remove(t) } else cur.add(t)
-        _form.value = _form.value.copy(tidpunkter = cur)
+        publish(_form.value.copy(tidpunkter = cur))
     }
 
     fun toggleDag(dag: Int) {
         val cur = _form.value.dagar.toMutableList()
         if (cur.contains(dag)) cur.remove(dag) else cur.add(dag)
-        _form.value = _form.value.copy(dagar = cur.sorted())
+        publish(_form.value.copy(dagar = cur.sorted()))
     }
 
     fun save() {
@@ -102,7 +107,8 @@ class AddEditReceptViewModel @Inject constructor(
             )
             repo.saveRecept(recept)
             noteRepo.save(NoteTarget.RECEPT, recept.id, f.anteckning.trim())
-            markClean()
+            originalForm = f
+            _isDirty.value = false
         }
     }
 }

@@ -65,15 +65,15 @@ class SjukdomsEpisodViewModel @Inject constructor(
     val incheckningForm: StateFlow<IncheckningForm> = _incheckningForm.asStateFlow()
 
     private var originalIncheckningForm = _incheckningForm.value
-    val isIncheckningFormDirty: StateFlow<Boolean> = incheckningForm
-        .map { it != originalIncheckningForm }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    private val _isIncheckningFormDirty = MutableStateFlow(false)
+    val isIncheckningFormDirty: StateFlow<Boolean> = _isIncheckningFormDirty.asStateFlow()
 
     private val _snackbar = MutableStateFlow<String?>(null)
     val snackbar: StateFlow<String?> = _snackbar.asStateFlow()
 
     fun updateForm(update: IncheckningForm.() -> IncheckningForm) {
         _incheckningForm.value = _incheckningForm.value.update()
+        _isIncheckningFormDirty.value = _incheckningForm.value != originalIncheckningForm
     }
 
     fun toggleSymptomFavorite(name: String) {
@@ -102,6 +102,7 @@ class SjukdomsEpisodViewModel @Inject constructor(
             val blank = IncheckningForm()
             originalIncheckningForm = blank
             _incheckningForm.value = blank
+            _isIncheckningFormDirty.value = false
             _snackbar.value = "Incheckning sparad ✓"
         }
     }
