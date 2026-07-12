@@ -67,6 +67,13 @@ finns; utöka den delade komponenten i stället.
 
 ---
 
+## PR-flöde
+
+**En PR i taget.** Öppna inte en ny PR förrän den föregående är mergad (eller uttryckligen
+stängd/pausad av användaren). Implementerar du flera issues i följd — vänta in merge av det
+första innan nästa branch/PR öppnas, även om de är oberoende. Gäller `implement-issue` och
+manuellt PR-arbete.
+
 ## Bygg & test (kommandon)
 
 ```bash
