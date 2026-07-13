@@ -7,6 +7,8 @@ import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 
 enum class HistorikType { AKTIVITET, SCREENING, MEDICIN, HANDELSE, SJUKDOM }
 
+enum class HistorikViewMode { LISTA, KALENDER }
+
 sealed class HistorikEntry {
     abstract val id: String
     abstract val datum: String

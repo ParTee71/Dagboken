@@ -170,6 +170,13 @@
     <string name="empty_historik_body">Loggade poster dyker upp här</string>
     <string name="historik_delete_title">Ta bort post?</string>
     <string name="format_historik_delete_confirm">\"%s\" raderas permanent.</string>
+    <string name="historik_view_lista">Lista</string>
+    <string name="historik_view_kalender">Kalender</string>
+    <string name="calendar_previous_month">Föregående månad</string>
+    <string name="calendar_next_month">Nästa månad</string>
+    <string name="format_calendar_select_day">Visa poster för dag %d</string>
+    <string name="empty_historik_calendar_no_selection">Välj en dag i kalendern för att se poster</string>
+    <string name="empty_historik_calendar_day_title">Inga poster denna dag</string>
 
     <!-- Idag tab -->
     <string name="empty_idag_title">Inga mediciner idag</string>

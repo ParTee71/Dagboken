@@ -169,6 +169,9 @@ dependencies {
     // Image loading
     implementation(libs.coil.compose)
 
+    // Historik kalendervy (HIST-6)
+    implementation(libs.kizitonwose.calendar.compose)
+
     // Google Drive / Auth (play-services-auth still needed for Identity.getAuthorizationClient)
     implementation(libs.google.auth.play.services)
     implementation(libs.google.api.client.android)

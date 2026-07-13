@@ -13,6 +13,7 @@ import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
@@ -24,6 +25,8 @@ class HistorikViewModel @Inject constructor(
 ) : ViewModel() {
 
     val typeFilter = MutableStateFlow(HistorikType.entries.toSet())
+    val viewMode = MutableStateFlow(HistorikViewMode.LISTA)
+    val selectedDate = MutableStateFlow<LocalDate?>(null)
 
     private val incheckningEntries = combine(
         sjukdomarRepo.allIncheckningar,
@@ -51,6 +54,15 @@ class HistorikViewModel @Inject constructor(
     ) { entries, filter ->
         entries.filter { it.entryType in filter }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setViewMode(mode: HistorikViewMode) {
+        viewMode.value = mode
+        if (mode == HistorikViewMode.LISTA) selectedDate.value = null
+    }
+
+    fun selectDate(date: LocalDate) {
+        selectedDate.value = if (selectedDate.value == date) null else date
+    }
 
     fun toggleFilter(type: HistorikType) {
         val current = typeFilter.value

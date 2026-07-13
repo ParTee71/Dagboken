@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -212,5 +213,51 @@ class HistorikScreenTest {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isEmpty()
         }
         composeRule.onNodeWithText("Ibuprofen").assertIsDisplayed()
+    }
+
+    // ─── Vy-läge / kalender (HIST-6) ────────────────────────────────────────────
+
+    @Test fun switching_to_calendar_view_hides_the_list_and_shows_the_calendar_empty_state() {
+        runBlocking {
+            aktivRepo.save(
+                Aktivitet(
+                    id = "a1", timestamp = "x", datum = "2026-01-01", tid = "08:00",
+                    aktivitet = "Promenad", energy = 3, stress = 2, somatiska = 0, symptom = "",
+                ),
+            )
+        }
+        setContent()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithContentDescription("Kalender").performClick()
+
+        composeRule.onNodeWithText("Välj en dag i kalendern för att se poster").assertIsDisplayed()
+        composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().let {
+            assertEquals(0, it.size)
+        }
+    }
+
+    @Test fun switching_back_to_list_view_restores_the_list() {
+        runBlocking {
+            aktivRepo.save(
+                Aktivitet(
+                    id = "a1", timestamp = "x", datum = "2026-01-01", tid = "08:00",
+                    aktivitet = "Promenad", energy = 3, stress = 2, somatiska = 0, symptom = "",
+                ),
+            )
+        }
+        setContent()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithContentDescription("Kalender").performClick()
+        composeRule.onNodeWithText("Välj en dag i kalendern för att se poster").assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Lista").performClick()
+
+        composeRule.onNodeWithText("Promenad").assertIsDisplayed()
     }
 }

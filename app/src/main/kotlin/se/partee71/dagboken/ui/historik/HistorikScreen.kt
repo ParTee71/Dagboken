@@ -17,8 +17,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
@@ -29,6 +31,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -47,10 +50,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.ConfirmDialog
+import se.partee71.dagboken.ui.components.DagbokenCalendar
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.formatDisplayDate
+import java.time.LocalDate
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -64,7 +69,22 @@ fun HistorikScreen(
 ) {
     val entries by vm.filteredEntries.collectAsState()
     val filter by vm.typeFilter.collectAsState()
+    val viewMode by vm.viewMode.collectAsState()
+    val selectedDate by vm.selectedDate.collectAsState()
     var deleteTarget by remember { mutableStateOf<HistorikEntry?>(null) }
+
+    val onEntryClick: (HistorikEntry) -> Unit = { entry ->
+        when (entry) {
+            is HistorikEntry.AktivitetEntry ->
+                onEditAktivitet(entry.aktivitet.id, entry.aktivitet.type)
+            is HistorikEntry.MedicinEntry ->
+                onEditMedicin(entry.medicin.id)
+            is HistorikEntry.HandelseEntry ->
+                onEditHandelse(entry.handelse.id)
+            is HistorikEntry.IncheckningEntry ->
+                onOpenSjukdomsEpisod(entry.incheckning.episodId)
+        }
+    }
 
     DagbokenScaffold(
         title  = stringResource(R.string.tab_historik),
@@ -75,6 +95,35 @@ fun HistorikScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            Row(
+                modifier              = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                IconButton(onClick = { vm.setViewMode(HistorikViewMode.LISTA) }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.List,
+                        contentDescription = stringResource(R.string.historik_view_lista),
+                        tint = if (viewMode == HistorikViewMode.LISTA) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
+                IconButton(onClick = { vm.setViewMode(HistorikViewMode.KALENDER) }) {
+                    Icon(
+                        Icons.Default.CalendarMonth,
+                        contentDescription = stringResource(R.string.historik_view_kalender),
+                        tint = if (viewMode == HistorikViewMode.KALENDER) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
+            }
             FlowRow(
                 modifier              = Modifier
                     .fillMaxWidth()
@@ -91,7 +140,50 @@ fun HistorikScreen(
             }
             HorizontalDivider()
 
-            if (entries.isEmpty()) {
+            if (viewMode == HistorikViewMode.KALENDER) {
+                val datesWithEntries = remember(entries) {
+                    entries.map { LocalDate.parse(it.datum) }.toSet()
+                }
+                DagbokenCalendar(
+                    datesWithEntries = datesWithEntries,
+                    selectedDate     = selectedDate,
+                    onDateClick      = { vm.selectDate(it) },
+                    modifier         = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                )
+                HorizontalDivider()
+
+                val dayEntries = remember(entries, selectedDate) {
+                    selectedDate?.let { date -> entries.filter { it.datum == date.toString() } }.orEmpty()
+                }
+                when {
+                    selectedDate == null -> EmptyState(
+                        icon  = Icons.AutoMirrored.Outlined.EventNote,
+                        title = stringResource(R.string.empty_historik_calendar_no_selection),
+                    )
+                    dayEntries.isEmpty() -> EmptyState(
+                        icon  = Icons.AutoMirrored.Outlined.EventNote,
+                        title = stringResource(R.string.empty_historik_calendar_day_title),
+                    )
+                    else -> LazyColumn(
+                        modifier            = Modifier.fillMaxSize(),
+                        contentPadding      = PaddingValues(bottom = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        items(dayEntries, key = { it.id }) { entry ->
+                            HistorikEntryCard(
+                                entry    = entry,
+                                modifier = Modifier
+                                    .animateItem()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                onClick  = { onEntryClick(entry) },
+                                onDelete = { deleteTarget = entry },
+                            )
+                        }
+                    }
+                }
+            } else if (entries.isEmpty()) {
                 EmptyState(
                     icon  = Icons.AutoMirrored.Outlined.EventNote,
                     title = stringResource(R.string.empty_historik_title),
@@ -132,18 +224,7 @@ fun HistorikScreen(
                                 modifier = Modifier
                                     .animateItem()
                                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                                onClick  = {
-                                    when (entry) {
-                                        is HistorikEntry.AktivitetEntry ->
-                                            onEditAktivitet(entry.aktivitet.id, entry.aktivitet.type)
-                                        is HistorikEntry.MedicinEntry ->
-                                            onEditMedicin(entry.medicin.id)
-                                        is HistorikEntry.HandelseEntry ->
-                                            onEditHandelse(entry.handelse.id)
-                                        is HistorikEntry.IncheckningEntry ->
-                                            onOpenSjukdomsEpisod(entry.incheckning.episodId)
-                                    }
-                                },
+                                onClick  = { onEntryClick(entry) },
                                 onDelete = { deleteTarget = entry },
                             )
                         }
