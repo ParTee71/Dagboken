@@ -28,12 +28,15 @@ import org.junit.runners.model.Statement
  * `IllegalStateException: Only a single call to \`runTest\` can be performed
  * during one test` (a known androidx.compose.ui.test limitation — see
  * https://issuetracker.google.com/issues/235383900) instead of the original
- * failure. [retryDelayMillis] gives teardown a window to finish before the
- * next attempt starts.
+ * failure. A fixed delay isn't reliable headroom under CI's variable emulator
+ * load (swiftshader GPU pressure — "Failed to find ColorBuffer: N" — slows
+ * teardown unpredictably), so the delay backs off linearly per attempt
+ * ([baseRetryDelayMillis] * attempt number) to give later attempts, which run
+ * under the worst load, the most headroom.
  */
 class RetryTestRule(
     private val attempts: Int = 3,
-    private val retryDelayMillis: Long = 2000,
+    private val baseRetryDelayMillis: Long = 2000,
 ) : TestRule {
 
     override fun apply(base: Statement, description: Description): Statement =
@@ -51,7 +54,7 @@ class RetryTestRule(
                             "${description.displayName} failed on attempt $attempt/$attempts",
                             t,
                         )
-                        if (attempt < attempts) Thread.sleep(retryDelayMillis)
+                        if (attempt < attempts) Thread.sleep(baseRetryDelayMillis * attempt)
                     }
                 }
                 throw lastError!!
