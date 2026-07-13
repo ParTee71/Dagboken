@@ -31,6 +31,7 @@ mockk                   = "1.13.13"
 turbine                 = "1.2.0"
 roomTesting             = "2.6.1"
 kizitonwoseCalendar     = "2.7.0"
+vico                    = "2.1.3"
 
 [libraries]
 androidx-core-ktx                    = { group = "androidx.core",                                    name = "core-ktx",                        version.ref = "coreKtx" }
@@ -64,6 +65,7 @@ androidx-core-splashscreen           = { group = "androidx.core",               
 androidx-compose-ui-text-googlefonts = { group = "androidx.compose.ui",                              name = "ui-text-google-fonts" }
 androidx-appcompat                   = { group = "androidx.appcompat",                               name = "appcompat",                       version = "1.7.0" }
 kizitonwose-calendar-compose         = { group = "com.kizitonwose.calendar",                          name = "compose",                         version.ref = "kizitonwoseCalendar" }
+vico-compose-m3                      = { group = "com.patrykandpatrick.vico",                         name = "compose-m3",                      version.ref = "vico" }
 # Firebase
 firebase-bom                         = { group = "com.google.firebase",                              name = "firebase-bom",                    version.ref = "firebaseBom" }
 firebase-auth                        = { group = "com.google.firebase",                              name = "firebase-auth" }

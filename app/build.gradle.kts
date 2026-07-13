@@ -172,6 +172,9 @@ dependencies {
     // Historik kalendervy (HIST-6)
     implementation(libs.kizitonwose.calendar.compose)
 
+    // Diagram (Trender + Home-sparkline), regel 4 (#110)
+    implementation(libs.vico.compose.m3)
+
     // Google Drive / Auth (play-services-auth still needed for Identity.getAuthorizationClient)
     implementation(libs.google.auth.play.services)
     implementation(libs.google.api.client.android)
