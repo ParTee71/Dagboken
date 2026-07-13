@@ -157,29 +157,34 @@ fun HistorikScreen(
                 val dayEntries = remember(entries, selectedDate) {
                     selectedDate?.let { date -> entries.filter { it.datum == date.toString() } }.orEmpty()
                 }
-                when {
-                    selectedDate == null -> EmptyState(
-                        icon  = Icons.AutoMirrored.Outlined.EventNote,
-                        title = stringResource(R.string.empty_historik_calendar_no_selection),
-                    )
-                    dayEntries.isEmpty() -> EmptyState(
-                        icon  = Icons.AutoMirrored.Outlined.EventNote,
-                        title = stringResource(R.string.empty_historik_calendar_day_title),
-                    )
-                    else -> LazyColumn(
-                        modifier            = Modifier.fillMaxSize(),
-                        contentPadding      = PaddingValues(bottom = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        items(dayEntries, key = { it.id }) { entry ->
-                            HistorikEntryCard(
-                                entry    = entry,
-                                modifier = Modifier
-                                    .animateItem()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                                onClick  = { onEntryClick(entry) },
-                                onDelete = { deleteTarget = entry },
-                            )
+                // weight(1f), not the default fillMaxSize() — the calendar above already
+                // consumes real column height, so fillMaxSize() here would size against the
+                // full column height and push centered content below the visible viewport.
+                Box(modifier = Modifier.weight(1f)) {
+                    when {
+                        selectedDate == null -> EmptyState(
+                            icon  = Icons.AutoMirrored.Outlined.EventNote,
+                            title = stringResource(R.string.empty_historik_calendar_no_selection),
+                        )
+                        dayEntries.isEmpty() -> EmptyState(
+                            icon  = Icons.AutoMirrored.Outlined.EventNote,
+                            title = stringResource(R.string.empty_historik_calendar_day_title),
+                        )
+                        else -> LazyColumn(
+                            modifier            = Modifier.fillMaxSize(),
+                            contentPadding      = PaddingValues(bottom = 24.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            items(dayEntries, key = { it.id }) { entry ->
+                                HistorikEntryCard(
+                                    entry    = entry,
+                                    modifier = Modifier
+                                        .animateItem()
+                                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                                    onClick  = { onEntryClick(entry) },
+                                    onDelete = { deleteTarget = entry },
+                                )
+                            }
                         }
                     }
                 }
