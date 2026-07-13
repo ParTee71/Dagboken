@@ -232,6 +232,10 @@ class HistorikScreenTest {
         }
 
         composeRule.onNodeWithContentDescription("Kalender").performClick()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Välj en dag i kalendern för att se poster"))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
 
         composeRule.onNodeWithText("Välj en dag i kalendern för att se poster").assertIsDisplayed()
         composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().let {
@@ -254,9 +258,16 @@ class HistorikScreenTest {
         }
 
         composeRule.onNodeWithContentDescription("Kalender").performClick()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Välj en dag i kalendern för att se poster"))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("Välj en dag i kalendern för att se poster").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Lista").performClick()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+        }
 
         composeRule.onNodeWithText("Promenad").assertIsDisplayed()
     }

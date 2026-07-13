@@ -36,7 +36,14 @@ jobs:
           target: google_apis
           arch: x86_64
           device: pixel_6
-          script: ./gradlew :app:connectedDebugAndroidTest
+          disable-animations: true
+          emulator-options: -no-window -no-boot-anim -no-snapshot -camera-back none -gpu swiftshader_indirect
+          script: |
+            set +e
+            ./gradlew :app:connectedDebugAndroidTest
+            GRADLE_EXIT=$?
+            adb logcat -d > "$GITHUB_WORKSPACE/logcat.txt" || true
+            exit $GRADLE_EXIT
 
       - name: Upload test results
         if: always()
@@ -44,3 +51,10 @@ jobs:
         with:
           name: instrumented-test-results
           path: app/build/reports/androidTests/connected/
+
+      - name: Upload logcat
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumented-logcat
+          path: logcat.txt
