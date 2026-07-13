@@ -20,41 +20,50 @@ import org.junit.runners.model.Statement
  * tree. A test that fails only on a bad frame passes on the retry; a test that
  * is genuinely broken fails every attempt and still fails the build.
  *
- * `composeRule`'s teardown (finishing its Activity, cancelling its internal
- * MonotonicFrameClock coroutine) happens asynchronously after `base.evaluate()`
- * throws. Retrying immediately can race that teardown: the next attempt calls
- * `setContent`/re-enters the rule's coroutine test scope before the previous
- * one has fully released it, which surfaces as
+ * `composeRule` is a single JUnit rule instance shared by every attempt (this
+ * rule only wraps it, per `RuleChain.outerRule(RetryTestRule()).around(
+ * composeRule)`), and its internal coroutine `TestScope` is single-use: once
+ * attempt 1's `runTest` finishes — pass *or* throw — the scope is spent, so
+ * attempt 2 re-entering it throws deterministically:
  * `IllegalStateException: Only a single call to \`runTest\` can be performed
  * during one test` (a known androidx.compose.ui.test limitation — see
- * https://issuetracker.google.com/issues/235383900) instead of the original
- * failure. [retryDelayMillis] gives teardown a window to finish before the
- * next attempt starts.
+ * https://issuetracker.google.com/issues/235383900). That means an in-process
+ * retry can never recover a failed attempt here — it can only ever mask the
+ * real first-attempt failure behind this exception. The real recovery for a
+ * genuine transient render glitch happens at the CI-job level (a full
+ * `connectedDebugAndroidTest` re-run gets a fresh process and a fresh rule
+ * instance); this rule's job is to surface what attempt 1 actually failed
+ * with, not to paper over it. So: report the FIRST error (with any later
+ * attempts' errors attached as suppressed, for visibility), not the last.
  */
 class RetryTestRule(
     private val attempts: Int = 3,
-    private val retryDelayMillis: Long = 2000,
+    private val baseRetryDelayMillis: Long = 2000,
 ) : TestRule {
 
     override fun apply(base: Statement, description: Description): Statement =
         object : Statement() {
             override fun evaluate() {
-                var lastError: Throwable? = null
+                var firstError: Throwable? = null
                 for (attempt in 1..attempts) {
                     try {
                         base.evaluate()
                         return
                     } catch (t: Throwable) {
-                        lastError = t
                         Log.w(
                             "RetryTestRule",
                             "${description.displayName} failed on attempt $attempt/$attempts",
                             t,
                         )
-                        if (attempt < attempts) Thread.sleep(retryDelayMillis)
+                        if (firstError == null) {
+                            firstError = t
+                        } else {
+                            firstError.addSuppressed(t)
+                        }
+                        if (attempt < attempts) Thread.sleep(baseRetryDelayMillis * attempt)
                     }
                 }
-                throw lastError!!
+                throw firstError!!
             }
         }
 }

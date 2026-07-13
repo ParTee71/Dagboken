@@ -25,6 +25,7 @@ import se.partee71.dagboken.domain.model.Handelse
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.SjukdomsIncheckning
+import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HistorikViewModelTest {
@@ -188,5 +189,40 @@ class HistorikViewModelTest {
         val i = incheckning("i1")
         viewModel.delete(HistorikEntry.IncheckningEntry(i, episodTyp = "Migrän"))
         coVerify { sjukdomarRepo.deleteIncheckning(i) }
+    }
+
+    // ─── Vy-läge / kalender (HIST-6) ────────────────────────────────────────────
+
+    @Test fun `initial view mode is LISTA with no selected date`() {
+        assertEquals(HistorikViewMode.LISTA, viewModel.viewMode.value)
+        assertEquals(null, viewModel.selectedDate.value)
+    }
+
+    @Test fun `setViewMode switches to KALENDER`() {
+        viewModel.setViewMode(HistorikViewMode.KALENDER)
+        assertEquals(HistorikViewMode.KALENDER, viewModel.viewMode.value)
+    }
+
+    @Test fun `setViewMode back to LISTA clears the selected date`() {
+        viewModel.setViewMode(HistorikViewMode.KALENDER)
+        viewModel.selectDate(LocalDate.of(2026, 1, 1))
+        assertEquals(LocalDate.of(2026, 1, 1), viewModel.selectedDate.value)
+
+        viewModel.setViewMode(HistorikViewMode.LISTA)
+
+        assertEquals(null, viewModel.selectedDate.value)
+    }
+
+    @Test fun `selectDate sets the selected date`() {
+        val date = LocalDate.of(2026, 3, 15)
+        viewModel.selectDate(date)
+        assertEquals(date, viewModel.selectedDate.value)
+    }
+
+    @Test fun `selectDate on an already-selected date deselects it`() {
+        val date = LocalDate.of(2026, 3, 15)
+        viewModel.selectDate(date)
+        viewModel.selectDate(date)
+        assertEquals(null, viewModel.selectedDate.value)
     }
 }
