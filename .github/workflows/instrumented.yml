@@ -42,7 +42,7 @@ jobs:
             set +e
             ./gradlew :app:connectedDebugAndroidTest
             GRADLE_EXIT=$?
-            adb logcat -d > "$GITHUB_WORKSPACE/logcat.txt" || true
+            adb logcat -d > logcat.txt || true
             exit $GRADLE_EXIT
 
       - name: Upload test results

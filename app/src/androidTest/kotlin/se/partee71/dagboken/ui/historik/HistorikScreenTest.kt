@@ -8,8 +8,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.printToLog
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.lifecycle.viewModelScope
@@ -237,6 +239,7 @@ class HistorikScreenTest {
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
+        composeRule.onRoot().printToLog("HISTORIK_DEBUG")
         composeRule.onNodeWithText("Välj en dag i kalendern för att se poster").assertIsDisplayed()
         composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().let {
             assertEquals(0, it.size)
@@ -262,6 +265,7 @@ class HistorikScreenTest {
             composeRule.onAllNodes(hasText("Välj en dag i kalendern för att se poster"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.onRoot().printToLog("HISTORIK_DEBUG")
         composeRule.onNodeWithText("Välj en dag i kalendern för att se poster").assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Lista").performClick()
