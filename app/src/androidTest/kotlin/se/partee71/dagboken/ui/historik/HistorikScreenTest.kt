@@ -8,10 +8,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.printToString
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.lifecycle.viewModelScope
@@ -239,12 +238,9 @@ class HistorikScreenTest {
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        val target = composeRule.onNodeWithText("Välj en dag i kalendern för att se poster")
-        try {
-            target.assertIsDisplayed()
-        } catch (e: AssertionError) {
-            throw AssertionError(composeRule.onRoot().printToString(maxDepth = 12), e)
-        }
+        composeRule.onNodeWithText("Välj en dag i kalendern för att se poster")
+            .performScrollTo()
+            .assertIsDisplayed()
         composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().let {
             assertEquals(0, it.size)
         }
@@ -269,7 +265,9 @@ class HistorikScreenTest {
             composeRule.onAllNodes(hasText("Välj en dag i kalendern för att se poster"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Välj en dag i kalendern för att se poster").assertIsDisplayed()
+        composeRule.onNodeWithText("Välj en dag i kalendern för att se poster")
+            .performScrollTo()
+            .assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Lista").performClick()
         composeRule.waitUntil(10_000) {

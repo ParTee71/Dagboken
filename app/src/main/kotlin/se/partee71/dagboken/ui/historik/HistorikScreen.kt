@@ -14,8 +14,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.EventNote
@@ -144,43 +147,51 @@ fun HistorikScreen(
                 val datesWithEntries = remember(entries) {
                     entries.map { LocalDate.parse(it.datum) }.toSet()
                 }
-                DagbokenCalendar(
-                    datesWithEntries = datesWithEntries,
-                    selectedDate     = selectedDate,
-                    onDateClick      = { vm.selectDate(it) },
-                    modifier         = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                )
-                HorizontalDivider()
-
                 val dayEntries = remember(entries, selectedDate) {
                     selectedDate?.let { date -> entries.filter { it.datum == date.toString() } }.orEmpty()
                 }
-                // weight(1f), not the default fillMaxSize() — the calendar above already
-                // consumes real column height, so fillMaxSize() here would size against the
-                // full column height and push centered content below the visible viewport.
-                Box(modifier = Modifier.weight(1f)) {
+                // The calendar's own size (6 possible week rows) plus the content below it
+                // can exceed a small device's available height — rather than force either
+                // one into a fragile "remaining space" split (which renders content with no
+                // visible area at all when that remaining space is squeezed to ~0), the whole
+                // region scrolls, weight(1f) only bounding the *scrollable viewport* itself.
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    DagbokenCalendar(
+                        datesWithEntries = datesWithEntries,
+                        selectedDate     = selectedDate,
+                        onDateClick      = { vm.selectDate(it) },
+                        modifier         = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                    )
+                    HorizontalDivider()
+
                     when {
                         selectedDate == null -> EmptyState(
-                            icon  = Icons.AutoMirrored.Outlined.EventNote,
-                            title = stringResource(R.string.empty_historik_calendar_no_selection),
+                            icon     = Icons.AutoMirrored.Outlined.EventNote,
+                            title    = stringResource(R.string.empty_historik_calendar_no_selection),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                                .padding(vertical = 24.dp),
                         )
                         dayEntries.isEmpty() -> EmptyState(
-                            icon  = Icons.AutoMirrored.Outlined.EventNote,
-                            title = stringResource(R.string.empty_historik_calendar_day_title),
+                            icon     = Icons.AutoMirrored.Outlined.EventNote,
+                            title    = stringResource(R.string.empty_historik_calendar_day_title),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                                .padding(vertical = 24.dp),
                         )
-                        else -> LazyColumn(
-                            modifier            = Modifier.fillMaxSize(),
-                            contentPadding      = PaddingValues(bottom = 24.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            items(dayEntries, key = { it.id }) { entry ->
+                        else -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            dayEntries.forEach { entry ->
                                 HistorikEntryCard(
                                     entry    = entry,
-                                    modifier = Modifier
-                                        .animateItem()
-                                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                                     onClick  = { onEntryClick(entry) },
                                     onDelete = { deleteTarget = entry },
                                 )
