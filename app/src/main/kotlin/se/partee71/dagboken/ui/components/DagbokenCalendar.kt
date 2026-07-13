@@ -4,10 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -69,49 +71,61 @@ fun DagbokenCalendar(
     val visibleMonth = calendarState.firstVisibleMonth.yearMonth
     val locale = Locale("sv")
 
-    Column(modifier = modifier) {
-        Row(
-            modifier              = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment     = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = {
-                coroutineScope.launch { calendarState.animateScrollToMonth(visibleMonth.minusMonths(1)) }
-            }) {
-                Icon(Icons.Default.ChevronLeft, contentDescription = stringResource(R.string.calendar_previous_month))
-            }
-            Text(
-                text  = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale)} ${visibleMonth.year}",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            IconButton(onClick = {
-                coroutineScope.launch { calendarState.animateScrollToMonth(visibleMonth.plusMonths(1)) }
-            }) {
-                Icon(Icons.Default.ChevronRight, contentDescription = stringResource(R.string.calendar_next_month))
-            }
-        }
-        Row(modifier = Modifier.fillMaxWidth()) {
-            weekDays.forEach { dow ->
+    // HorizontalCalendar is Pager-based and, given no explicit height, expands to
+    // fill all available height from its parent — fatal when it's not the only
+    // thing on screen (e.g. Historik's list-below-the-calendar). Day cells are
+    // aspectRatio(1f) (square, sized off available width), so deriving an exact
+    // height for 6 rows (the max a month grid needs) from the measured width
+    // keeps the grid tightly and correctly bounded instead of open-ended.
+    BoxWithConstraints(modifier = modifier) {
+        val cellSize = maxWidth / 7
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = {
+                    coroutineScope.launch { calendarState.animateScrollToMonth(visibleMonth.minusMonths(1)) }
+                }) {
+                    Icon(Icons.Default.ChevronLeft, contentDescription = stringResource(R.string.calendar_previous_month))
+                }
                 Text(
-                    text      = dow.getDisplayName(TextStyle.SHORT, locale),
-                    modifier  = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    style     = MaterialTheme.typography.labelSmall,
-                    color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text  = "${visibleMonth.month.getDisplayName(TextStyle.FULL, locale)} ${visibleMonth.year}",
+                    style = MaterialTheme.typography.titleMedium,
                 )
+                IconButton(onClick = {
+                    coroutineScope.launch { calendarState.animateScrollToMonth(visibleMonth.plusMonths(1)) }
+                }) {
+                    Icon(Icons.Default.ChevronRight, contentDescription = stringResource(R.string.calendar_next_month))
+                }
             }
+            Row(modifier = Modifier.fillMaxWidth()) {
+                weekDays.forEach { dow ->
+                    Text(
+                        text      = dow.getDisplayName(TextStyle.SHORT, locale),
+                        modifier  = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        style     = MaterialTheme.typography.labelSmall,
+                        color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            HorizontalCalendar(
+                state      = calendarState,
+                modifier   = Modifier
+                    .fillMaxWidth()
+                    .height(cellSize * 6),
+                dayContent = { day ->
+                    CalendarDayCell(
+                        day        = day,
+                        hasEntries = day.date in datesWithEntries,
+                        isSelected = day.date == selectedDate,
+                        onClick    = { onDateClick(day.date) },
+                    )
+                },
+            )
         }
-        HorizontalCalendar(
-            state      = calendarState,
-            dayContent = { day ->
-                CalendarDayCell(
-                    day        = day,
-                    hasEntries = day.date in datesWithEntries,
-                    isSelected = day.date == selectedDate,
-                    onClick    = { onDateClick(day.date) },
-                )
-            },
-        )
     }
 }
 
