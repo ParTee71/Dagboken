@@ -42,7 +42,7 @@ jobs:
             set +e
             ./gradlew :app:connectedDebugAndroidTest
             GRADLE_EXIT=$?
-            adb logcat -d > logcat.txt || true
+            adb -s emulator-5554 logcat -d > logcat.txt 2>&1 || touch logcat.txt
             exit $GRADLE_EXIT
 
       - name: Upload test results
