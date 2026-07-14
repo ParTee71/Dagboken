@@ -11,7 +11,9 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.printToString
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -208,8 +210,12 @@ class HomeScreenTest {
             composeRule.onAllNodesWithTag("screening_next").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("screening_next").performClick()
-        composeRule.waitUntil(10_000) {
-            composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
+        try {
+            composeRule.waitUntil(10_000) {
+                composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
+            }
+        } catch (e: androidx.compose.ui.test.ComposeTimeoutException) {
+            throw AssertionError(composeRule.onRoot().printToString(maxDepth = 15), e)
         }
         composeRule.onNodeWithTag("screening_save").performClick()
         composeRule.waitUntil(10_000) {
