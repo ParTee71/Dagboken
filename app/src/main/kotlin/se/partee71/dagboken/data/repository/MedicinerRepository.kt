@@ -36,9 +36,12 @@ class MedicinerRepository @Inject constructor(
 ) {
 
     // ─── Medicin ──────────────────────────────────────────────────────────────
-    fun todayFlow(): Flow<List<Medicin>> {
-        val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-        return medicinDao.getTodayFlow(today).map { list -> list.map { it.toDomain() } }
+    fun todayFlow(): Flow<List<Medicin>> = entriesForDate(LocalDate.now())
+
+    /** Same as [todayFlow] but for any date — backs Idag's datumnavigering (#114). */
+    fun entriesForDate(date: LocalDate): Flow<List<Medicin>> {
+        val datum = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        return medicinDao.getTodayFlow(datum).map { list -> list.map { it.toDomain() } }
     }
 
     val allMediciner: Flow<List<Medicin>> =
@@ -108,13 +111,19 @@ class MedicinerRepository @Inject constructor(
      * Creates synthetic Medicin entries for all active Recept that should fire today.
      * Idempotent — stable IDs prevent duplicates.
      */
-    suspend fun ensureTodayEntries() {
-        val today = LocalDate.now()
-        val datum = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+    suspend fun ensureTodayEntries() = ensureEntriesForDate(LocalDate.now())
+
+    /**
+     * Same as [ensureTodayEntries] but for any date — lets Idag's datumnavigering (#114)
+     * seed a past date's scheduled doses on demand (e.g. a date never opened while it was
+     * "today"). Idempotent for the same reason: stable, date-scoped IDs.
+     */
+    suspend fun ensureEntriesForDate(date: LocalDate) {
+        val datum = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val newEntries = db.withTransaction {
             val recept   = receptDao.getActive().map { it.toDomain(::decodeStringList, ::decodeIntList) }
             val existing = medicinDao.getByDate(datum).map { it.toDomain() }
-            val newEntries = ensureTodayEntries.compute(recept, existing, today)
+            val newEntries = ensureTodayEntries.compute(recept, existing, date)
             if (newEntries.isNotEmpty()) {
                 medicinDao.upsertAll(newEntries.map { it.toEntity() })
             }

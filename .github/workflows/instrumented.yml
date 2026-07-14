@@ -8,7 +8,7 @@ on:
 jobs:
   instrumented-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -37,6 +37,9 @@ jobs:
           arch: x86_64
           device: pixel_6
           disable-animations: true
+          cores: 4
+          ram-size: 4096M
+          heap-size: 2048M
           emulator-options: -no-window -no-boot-anim -no-snapshot -camera-back none -gpu swiftshader_indirect
           script: |
             set +e

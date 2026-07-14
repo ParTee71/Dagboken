@@ -3,6 +3,7 @@ package se.partee71.dagboken.data.room
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -228,5 +229,61 @@ class MedicinerRepositoryTest {
         repo.setFavoritFavorite("f1", false)
 
         assertEquals(false, db.favoritDao().getById("f1")!!.isFavorite)
+    }
+
+    // ─── entriesForDate / ensureEntriesForDate (#114 — Idag-datumnavigering) ──
+
+    @Test fun entriesForDate_returns_only_entries_for_that_date() = runTest {
+        val yesterday = LocalDate.now().minusDays(1).toString()
+        val today = LocalDate.now().toString()
+        db.medicinDao().upsert(medicinEntity(id = "y1", datum = yesterday))
+        db.medicinDao().upsert(medicinEntity(id = "t1", datum = today))
+
+        val yesterdayEntries = repo.entriesForDate(LocalDate.now().minusDays(1)).first()
+
+        assertEquals(listOf("y1"), yesterdayEntries.map { it.id })
+    }
+
+    @Test fun ensureEntriesForDate_seeds_a_past_dates_scheduled_doses() = runTest {
+        val yesterday = LocalDate.now().minusDays(1)
+        db.receptDao().upsert(ReceptEntity(
+            id = "r1", namn = "Metformin", dos = "500", enhet = "mg",
+            tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
+            dagarJson = "[]", intervalDagar = 1, aktiv = true, skapad = yesterday.toString(),
+        ))
+
+        repo.ensureEntriesForDate(yesterday)
+
+        val entries = db.medicinDao().getByDate(yesterday.toString())
+        assertEquals(1, entries.size)
+        assertEquals("Metformin", entries.single().namn)
+    }
+
+    @Test fun ensureEntriesForDate_is_idempotent_for_the_same_past_date() = runTest {
+        val yesterday = LocalDate.now().minusDays(1)
+        db.receptDao().upsert(ReceptEntity(
+            id = "r1", namn = "Metformin", dos = "500", enhet = "mg",
+            tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
+            dagarJson = "[]", intervalDagar = 1, aktiv = true, skapad = yesterday.toString(),
+        ))
+
+        repo.ensureEntriesForDate(yesterday)
+        repo.ensureEntriesForDate(yesterday)
+
+        assertEquals(1, db.medicinDao().getByDate(yesterday.toString()).size)
+    }
+
+    @Test fun ensureEntriesForDate_does_not_affect_todays_entries() = runTest {
+        val yesterday = LocalDate.now().minusDays(1)
+        val today = LocalDate.now().toString()
+        db.receptDao().upsert(ReceptEntity(
+            id = "r1", namn = "Metformin", dos = "500", enhet = "mg",
+            tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
+            dagarJson = "[]", intervalDagar = 1, aktiv = true, skapad = yesterday.toString(),
+        ))
+
+        repo.ensureEntriesForDate(yesterday)
+
+        assertTrue("ensuring a past date must not seed today", db.medicinDao().getByDate(today).isEmpty())
     }
 }

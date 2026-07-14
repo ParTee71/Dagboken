@@ -34,6 +34,7 @@ android {
         versionName = versionNameOverride ?: "3.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
 
     val releaseStorePassword = localProps.getProperty("signing.storePassword")
@@ -104,6 +105,10 @@ android {
         unitTests {
             isIncludeAndroidResources = true
         }
+        // Each test method runs in its own fresh instrumentation process, so
+        // process-wide state (DataStore file, leaked coroutine collectors) can't
+        // bleed between tests — see #112 for background on this class of flake.
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     sourceSets {
@@ -212,4 +217,5 @@ dependencies {
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.turbine)
+    androidTestUtil(libs.androidx.test.orchestrator)
 }

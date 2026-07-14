@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -11,11 +12,15 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -99,6 +104,12 @@ class HomeScreenTest {
             prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
             prefs.setMedsNotificationsEnabled(false)
         }
+        // Cancel before closing the DB, or a leaked viewModelScope coroutine (e.g.
+        // HomeViewModel's date-navigation collector) queries the closed in-memory
+        // DB and throws "attempt to re-open an already-closed SQLiteDatabase".
+        vm.viewModelScope.cancel()
+        screeningVm.viewModelScope.cancel()
+        medicinerVm.viewModelScope.cancel()
         db.close()
     }
 
@@ -162,13 +173,13 @@ class HomeScreenTest {
         )
         runBlocking { medicRepo.saveMedicin(med) }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Metformin")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Metformin").assertIsDisplayed()
 
         composeRule.runOnUiThread { vm.toggleMedicinTagen(med) }
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Metformin")).fetchSemanticsNodes().isEmpty()
         }
     }
@@ -182,7 +193,7 @@ class HomeScreenTest {
         )
         runBlocking { medicRepo.saveMedicin(med) }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Vitamin D")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Vitamin D").assertIsDisplayed()
@@ -197,20 +208,20 @@ class HomeScreenTest {
             prefs.setSymptomOptions(emptyList())
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Efter frukost")).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Efter frukost").performClick()
+        composeRule.onNodeWithText("Efter frukost").performScrollTo().performClick()
         // Steg 1 (energi) → Nästa → steg 2 (stress, sista) → Spara.
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodesWithTag("screening_next").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag("screening_next").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.onNodeWithTag("screening_next").performScrollTo().performClick()
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag("screening_save").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.onNodeWithTag("screening_save").performScrollTo().performClick()
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Loggad")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Loggad").assertIsDisplayed()
@@ -239,7 +250,7 @@ class HomeScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Paracetamol").assertIsDisplayed()
@@ -255,12 +266,96 @@ class HomeScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Ipren")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Ipren").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             runBlocking { medicRepo.allMediciner.first().any { it.namn == "Ipren" && it.tagen } }
         }
+    }
+
+    // ─── Datumnavigering (#114) ───────────────────────────────────────────────
+
+    @Test fun navigating_to_previous_day_shows_that_days_medicine_checklist() {
+        val yesterday = LocalDate.now().minusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val medYesterday = Medicin(
+            id = "y1", timestamp = "${yesterday}T08:00:00.000Z", datum = yesterday, tid = "08:00",
+            namn = "Levaxin", dos = "50", enhet = "mcg", tidpunkt = "Morgon", tagen = false,
+        )
+        runBlocking { medicRepo.saveMedicin(medYesterday) }
+        setContent()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Föregående dag").performClick()
+        composeRule.waitUntil(20_000) {
+            composeRule.onAllNodes(hasText("Levaxin")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Levaxin").assertIsDisplayed()
+    }
+
+    @Test fun next_day_button_is_disabled_when_viewing_today() {
+        setContent()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Nästa dag").assertIsNotEnabled()
+    }
+
+    @Test fun logging_a_screening_from_a_previous_day_saves_it_against_that_date() {
+        runBlocking {
+            prefs.setScreeningEventConfigs(listOf(ScreeningEventConfig(enabled = true, time = "08:00")))
+            prefs.setSymptomOptions(emptyList())
+        }
+        setContent()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Föregående dag").performClick()
+
+        composeRule.waitUntil(20_000) {
+            composeRule.onAllNodes(hasText("Efter frukost")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Efter frukost").performScrollTo().performClick()
+        composeRule.waitUntil(20_000) {
+            composeRule.onAllNodesWithTag("screening_next").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("screening_next").performScrollTo().performClick()
+        composeRule.waitUntil(20_000) {
+            composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("screening_save").performScrollTo().performClick()
+
+        val yesterday = LocalDate.now().minusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        composeRule.waitUntil(20_000) {
+            runBlocking { aktivRepo.all.first().any { it.datum == yesterday && it.type == "screening" } }
+        }
+    }
+
+    @Test fun new_handelse_fab_action_passes_the_currently_selected_date() {
+        var capturedDate: LocalDate? = null
+        composeRule.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    onNavigateToSettings  = {},
+                    onNavigateToTrender   = {},
+                    onNavigateToSjukdomar = {},
+                    onAddAktivitet        = {},
+                    onAddMedicin          = {},
+                    onAddHandelse         = { capturedDate = it },
+                    onAddFavorit          = {},
+                    onEditFavorit         = {},
+                    snackbarHostState     = SnackbarHostState(),
+                    vm                    = vm,
+                    screeningVm           = screeningVm,
+                    medicinerVm           = medicinerVm,
+                )
+            }
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Föregående dag").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Lägg till").performClick()
+        composeRule.onNodeWithText("Ny händelse").performClick()
+
+        composeRule.waitUntil(5000) { capturedDate != null }
+        assertEquals(LocalDate.now().minusDays(1), capturedDate)
     }
 }

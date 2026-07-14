@@ -47,7 +47,7 @@ class HomeViewModelTest {
     @Before fun setUp() {
         Dispatchers.setMain(testDispatcher)
         medicinerRepo = mockk(relaxed = true) {
-            every { todayFlow() } returns todayFlow
+            every { entriesForDate(any()) } returns todayFlow
         }
         aktiviteterRepo = mockk(relaxed = true) {
             coEvery { getRecent(any(), any()) } returns emptyList()
@@ -248,5 +248,60 @@ class HomeViewModelTest {
             assertFalse(awaitItem().isSigningIn)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ─── datumnavigering (#114) ───────────────────────────────────────────────
+
+    @Test fun `initial selectedDate is today and isToday is true`() = runTest {
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals(LocalDate.now(), state.selectedDate)
+            assertTrue(state.isToday)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `previousDay moves selectedDate back one day`() = runTest {
+        viewModel.previousDay()
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals(LocalDate.now().minusDays(1), state.selectedDate)
+            assertFalse(state.isToday)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `nextDay is a no-op when already viewing today`() = runTest {
+        viewModel.nextDay()
+        viewModel.uiState.test {
+            assertEquals(LocalDate.now(), awaitItem().selectedDate)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `nextDay moves forward when viewing a past day, but never past today`() = runTest {
+        viewModel.previousDay()
+        viewModel.previousDay()
+        viewModel.nextDay()
+        viewModel.uiState.test {
+            assertEquals(LocalDate.now().minusDays(1), awaitItem().selectedDate)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `overdueMediciner is empty when viewing a past day, even for an unmarked morning dose`() = runTest {
+        val yesterday = LocalDate.now().minusDays(1).toString()
+        todayFlow.value = listOf(medicin(id = "m1", tidpunkt = "Morgon", datum = yesterday))
+        viewModel.previousDay()
+
+        viewModel.uiState.test {
+            assertTrue(awaitItem().overdueMediciner.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `navigating to a new date ensures that date's scheduled doses are seeded`() = runTest {
+        viewModel.previousDay()
+        coVerify { medicinerRepo.ensureEntriesForDate(LocalDate.now().minusDays(1)) }
     }
 }

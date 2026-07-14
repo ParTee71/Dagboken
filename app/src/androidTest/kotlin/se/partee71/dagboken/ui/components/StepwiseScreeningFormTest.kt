@@ -60,7 +60,7 @@ class StepwiseScreeningFormTest {
     @Test fun next_advances_to_the_stress_step() {
         setContent()
         composeRule.onNodeWithTag("screening_next").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodesWithTag("screening_step_stress").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("screening_step_stress").assertIsDisplayed()
@@ -70,7 +70,7 @@ class StepwiseScreeningFormTest {
     @Test fun without_symptom_options_the_stress_step_is_last_and_shows_save() {
         setContent(symptomOptions = emptyList())
         composeRule.onNodeWithTag("screening_next").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("screening_save").assertIsDisplayed()
@@ -79,11 +79,11 @@ class StepwiseScreeningFormTest {
     @Test fun with_symptom_options_there_is_a_third_symptom_step() {
         setContent(symptomOptions = listOf(SymptomOption("Yrsel")))
         composeRule.onNodeWithTag("screening_next").performClick()   // energy -> stress
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodesWithTag("screening_step_stress").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("screening_next").performClick()   // stress -> symptom
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodesWithTag("screening_step_symptom").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("screening_save").assertIsDisplayed()
@@ -93,11 +93,11 @@ class StepwiseScreeningFormTest {
         var saved = false
         setContent(onSave = { saved = true })
         composeRule.onNodeWithTag("screening_next").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("screening_save").performClick()
-        composeRule.waitUntil(10_000) { saved }
+        composeRule.waitUntil(20_000) { saved }
         assert(saved)
     }
 }

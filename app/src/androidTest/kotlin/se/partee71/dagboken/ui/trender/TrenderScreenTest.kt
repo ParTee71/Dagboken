@@ -83,7 +83,7 @@ class TrenderScreenTest {
         // Opens the series dropdown via its testTag — a text-based query on the button's
         // current-selection label is ambiguous if a stray duplicate node exists in the tree.
         composeRule.onNodeWithTag("trender_series_selector").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Yrsel").performScrollTo().assertIsDisplayed()
@@ -101,7 +101,7 @@ class TrenderScreenTest {
         }
         setContent()
         composeRule.runOnUiThread { vm.toggleSeries("Yrsel") }
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
         }
         // The legend sits below the chart in a scrollable column — scroll it into view
@@ -112,7 +112,7 @@ class TrenderScreenTest {
     @Test fun range_chip_switches_selected_range() {
         setContent()
         composeRule.onNodeWithText("7 dagar").performClick()
-        composeRule.waitUntil(10_000) { vm.state.value.rangeDays == 7 }
+        composeRule.waitUntil(20_000) { vm.state.value.rangeDays == 7 }
     }
 
     @Test fun empty_state_shown_when_no_series_selected() {
