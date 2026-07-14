@@ -74,7 +74,7 @@ class AddEditScreeningScreenTest {
         scenario.close()
     }
 
-    private fun setContent(editId: String?) {
+    private fun setContent(editId: String) {
         scenario.onActivity {
             it.setContent { MaterialTheme { AddEditScreeningScreen(editId = editId, onBack = { backCount++ }, vm = vm) } }
         }
