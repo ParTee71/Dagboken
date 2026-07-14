@@ -11,9 +11,8 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.printToString
+import androidx.compose.ui.test.performScrollTo
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -204,20 +203,16 @@ class HomeScreenTest {
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Efter frukost")).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Efter frukost").performClick()
+        composeRule.onNodeWithText("Efter frukost").performScrollTo().performClick()
         // Steg 1 (energi) → Nästa → steg 2 (stress, sista) → Spara.
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithTag("screening_next").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag("screening_next").performClick()
-        try {
-            composeRule.waitUntil(10_000) {
-                composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
-            }
-        } catch (e: androidx.compose.ui.test.ComposeTimeoutException) {
-            throw AssertionError(composeRule.onRoot().printToString(maxDepth = 15), e)
+        composeRule.onNodeWithTag("screening_next").performScrollTo().performClick()
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag("screening_save").performClick()
+        composeRule.onNodeWithTag("screening_save").performScrollTo().performClick()
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Loggad")).fetchSemanticsNodes().isNotEmpty()
         }
@@ -309,15 +304,15 @@ class HomeScreenTest {
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodes(hasText("Efter frukost")).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Efter frukost").performClick()
+        composeRule.onNodeWithText("Efter frukost").performScrollTo().performClick()
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithTag("screening_next").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag("screening_next").performClick()
+        composeRule.onNodeWithTag("screening_next").performScrollTo().performClick()
         composeRule.waitUntil(10_000) {
             composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag("screening_save").performClick()
+        composeRule.onNodeWithTag("screening_save").performScrollTo().performClick()
 
         val yesterday = LocalDate.now().minusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
         composeRule.waitUntil(10_000) {
