@@ -68,9 +68,11 @@ class AddEditHandelseScreenTest {
         runBlocking { prefs.setHandelseTypOptions(emptyList()) }
     }
 
-    private fun setContent(onBack: () -> Unit = {}) {
+    private fun setContent(onBack: () -> Unit = {}, prefillDatum: String? = null) {
         composeRule.setContent {
-            MaterialTheme { AddEditHandelseScreen(editId = null, onBack = onBack, vm = vm) }
+            MaterialTheme {
+                AddEditHandelseScreen(editId = null, onBack = onBack, prefillDatum = prefillDatum, vm = vm)
+            }
         }
     }
 
@@ -221,5 +223,23 @@ class AddEditHandelseScreenTest {
         runBlocking {
             assert(repo.all.first().any { it.typ == "Yrsel" })
         }
+    }
+
+    // ─── prefillDatum (#114 — öppnad från en tidigare dags Idag-vy) ───────────
+
+    @Test fun prefillDatum_sets_the_date_row_to_the_given_date() {
+        val yesterday = java.time.LocalDate.now().minusDays(1).toString()
+        setContent(prefillDatum = yesterday)
+        composeRule.waitUntil(10_000) {
+            composeRule.onAllNodes(hasText("Igår")).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Igår").assertIsDisplayed()
+        assert(vm.form.value.datum == yesterday)
+    }
+
+    @Test fun prefillDatum_does_not_mark_the_form_as_dirty() {
+        setContent(prefillDatum = java.time.LocalDate.now().minusDays(1).toString())
+        composeRule.waitForIdle()
+        assert(!vm.isDirty.value)
     }
 }

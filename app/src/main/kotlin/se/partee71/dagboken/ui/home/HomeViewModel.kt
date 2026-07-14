@@ -4,10 +4,14 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -104,6 +108,9 @@ data class HomeUiState(
     val googleDisplayName: String? = null,
     val isSigningIn: Boolean = false,
     val pagaendeSjukdom: SjukdomsEpisod? = null,
+    // Datumnavigering (#114) — vilken dag checklistan (mediciner/screening) gäller.
+    val selectedDate: LocalDate = LocalDate.now(),
+    val isToday: Boolean = true,
 )
 
 @HiltViewModel
@@ -124,12 +131,35 @@ class HomeViewModel @Inject constructor(
             }
         }
 
+    // Datumnavigering (#114): vilken dag Idag-checklistan (mediciner/screening) visar.
+    // Default dagens datum. Kan inte navigeras in i framtiden — se [nextDay].
+    private val _selectedDate = MutableStateFlow(LocalDate.now())
+    val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
+
     init {
-        viewModelScope.launch { medicinerRepo.ensureTodayEntries() }
+        // Seedar (idempotent) den visade dagens schemalagda doser — körs om igen
+        // för varje nytt datum man bläddrar till, inklusive ett tidigare datum
+        // som aldrig var "idag" när appen senast var öppen.
+        viewModelScope.launch {
+            _selectedDate.collect { date -> medicinerRepo.ensureEntriesForDate(date) }
+        }
     }
 
+    fun previousDay() { _selectedDate.value = _selectedDate.value.minusDays(1) }
+
+    fun nextDay() {
+        val next = _selectedDate.value.plusDays(1)
+        if (!next.isAfter(LocalDate.now())) _selectedDate.value = next
+    }
+
+    // Selected date piggybacks on the meds flow (instead of a 6th separate combine
+    // source) so the transform below stays on the fully-typed 5-arg combine overload.
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val dayMedicinerForSelectedDate: Flow<Pair<LocalDate, List<Medicin>>> =
+        _selectedDate.flatMapLatest { date -> medicinerRepo.entriesForDate(date).map { date to it } }
+
     val uiState: StateFlow<HomeUiState> = combine(
-        medicinerRepo.todayFlow(),
+        dayMedicinerForSelectedDate,
         authRepo.authStateFlow,
         _isSigningIn,
         activeScreeningEvents,
@@ -137,17 +167,20 @@ class HomeViewModel @Inject constructor(
             aktiviteterRepo.screeningFromDate(7),
             sjukdomarRepo.pagaende,
         ) { screenings, pagaende -> screenings to pagaende },
-    ) { today, user, signingIn, activeEvents, (recentScreenings, pagaendeSjukdom) ->
-        val todayStr = LocalDate.now().toString()
-        val screeningsToday = recentScreenings.filter { it.datum == todayStr }
+    ) { (selectedDate, dayMediciner), user, signingIn, activeEvents, (recentScreenings, pagaendeSjukdom) ->
+        val isToday = selectedDate == LocalDate.now()
+        val selectedDateStr = selectedDate.toString()
+        val screeningsOnSelectedDate = recentScreenings.filter { it.datum == selectedDateStr }
         val screeningDailyAvg = recentScreenings
             .groupBy { it.datum }
             .entries
             .sortedBy { it.key }
             .map { (datum, entries) -> datum to entries.map { it.energy.toFloat() }.average().toFloat() }
-        val nowTime        = LocalTime.now()
+        val nowTime = LocalTime.now()
 
-        val overdueMediciner = today
+        // "Overdue" is a today-only concept — a past day's unmarked dose/screening is
+        // simply not logged, not "overdue" (that day's reminder window is long gone).
+        val overdueMediciner = if (!isToday) emptyList() else dayMediciner
             .filter { med ->
                 !med.tagen && !med.skipped &&
                 tidpunktToHour(med.tidpunkt)?.let { h -> nowTime.hour >= h } == true
@@ -157,19 +190,21 @@ class HomeViewModel @Inject constructor(
         val screeningEvents = activeEvents.map { (label, timeStr) ->
             val st = ScreeningTime.parse(timeStr)
             val reminderTime = st?.let { LocalTime.of(it.hour, it.min) }
-            val logged = screeningsToday.any { it.aktivitet == label }
-            val overdue = !logged && reminderTime != null && nowTime.isAfter(reminderTime)
+            val logged = screeningsOnSelectedDate.any { it.aktivitet == label }
+            val overdue = isToday && !logged && reminderTime != null && nowTime.isAfter(reminderTime)
             ScreeningEventStatus(label = label, time = timeStr, logged = logged, overdue = overdue)
         }
 
         HomeUiState(
-            todayMediciner        = today.sortedBy { tidpunktSortIndex(it.tidpunkt) },
+            todayMediciner        = dayMediciner.sortedBy { tidpunktSortIndex(it.tidpunkt) },
             screeningPoints       = screeningDailyAvg.map { it.second },
             screeningLabels       = screeningDailyAvg.map { dayLabel(it.first) },
             overdueMediciner      = overdueMediciner,
             screeningEvents       = screeningEvents,
             lastAktivitet         = null,
-            tagenCount            = today.count { it.tagen },
+            tagenCount            = dayMediciner.count { it.tagen },
+            selectedDate          = selectedDate,
+            isToday               = isToday,
             googleEmail           = user?.email,
             googlePhotoUrl        = user?.photoUrl?.toString(),
             googleDisplayName     = user?.displayName,

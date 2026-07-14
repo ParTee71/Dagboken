@@ -179,6 +179,8 @@
     <string name="empty_historik_calendar_day_title">Inga poster denna dag</string>
 
     <!-- Idag tab -->
+    <string name="home_previous_day">Föregående dag</string>
+    <string name="home_next_day">Nästa dag</string>
     <string name="empty_idag_title">Inga mediciner idag</string>
     <string name="empty_idag_body">Lägg till ett schema eller logga en engångsdos</string>
     <string name="idag_delete_confirm">Ta bort</string>

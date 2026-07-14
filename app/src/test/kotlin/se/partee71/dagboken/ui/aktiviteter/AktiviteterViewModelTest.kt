@@ -323,6 +323,17 @@ class AktiviteterViewModelTest {
         assertEquals(0, viewModel.form.value.energy)
     }
 
+    @Test fun `startScreening defaults to today's date`() = runTest {
+        viewModel.startScreening("Morgon")
+        assertEquals(java.time.LocalDate.now().toString(), viewModel.form.value.datum)
+    }
+
+    @Test fun `startScreening sets the form datum to the given date (#114)`() = runTest {
+        val yesterday = java.time.LocalDate.now().minusDays(1)
+        viewModel.startScreening("Morgon", yesterday)
+        assertEquals(yesterday.toString(), viewModel.form.value.datum)
+    }
+
     // ─── resetForm ────────────────────────────────────────────────────────────
 
     @Test fun `resetForm clears form state`() = runTest {

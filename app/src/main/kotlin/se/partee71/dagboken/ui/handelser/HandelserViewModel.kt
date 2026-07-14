@@ -177,6 +177,17 @@ class HandelserViewModel @Inject constructor(
         setCleanForm(HandelseForm())
     }
 
+    /**
+     * Nollställer formuläret för en ny händelse med [datum] förifyllt — t.ex. när
+     * "Logga händelse" öppnas från en tidigare dags Idag-vy (#114). Det förifyllda
+     * datumet blir dirty-state-baslinjen, precis som [resetForm], så spara-knappen
+     * inte aktiveras enbart av navigeringen.
+     */
+    fun startNewFor(datum: String) {
+        _editId.value = null
+        setCleanForm(HandelseForm(datum = datum))
+    }
+
     fun toggleHandelseTypFavorite(name: String) {
         viewModelScope.launch {
             prefs.setHandelseTypOptions(handelseTypOptions.value.map {

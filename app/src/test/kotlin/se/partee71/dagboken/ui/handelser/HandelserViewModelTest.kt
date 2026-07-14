@@ -439,4 +439,29 @@ class HandelserViewModelTest {
 
         assertEquals(listOf("Blodtrycksfall", "Yrsel"), vm.state.value.allTyper)
     }
+
+    // ─── startNewFor (#114) ───────────────────────────────────────────────────
+
+    @Test fun `startNewFor prefills the form with the given datum`() {
+        viewModel.startNewFor("2026-01-05")
+        assertEquals("2026-01-05", viewModel.form.value.datum)
+    }
+
+    @Test fun `startNewFor sets a clean baseline so the form is not dirty`() {
+        viewModel.startNewFor("2026-01-05")
+        assertFalse(viewModel.isDirty.value)
+    }
+
+    @Test fun `startNewFor clears any in-progress edit so save creates a fresh entry`() = runTest {
+        coEvery { repo.getById("h1") } returns handelse(id = "h1")
+        viewModel.loadForEdit("h1")
+
+        viewModel.startNewFor("2026-01-05")
+        viewModel.updateForm { copy(typ = "Yrsel") }
+        val saved = slot<Handelse>()
+        coEvery { repo.save(capture(saved)) } returns Unit
+        viewModel.save {}
+
+        assertTrue(saved.captured.id != "h1")
+    }
 }

@@ -45,9 +45,15 @@ import se.partee71.dagboken.ui.components.UnsavedChangesBackHandler
 fun AddEditHandelseScreen(
     editId: String?,
     onBack: () -> Unit,
+    prefillDatum: String? = null,
     vm: HandelserViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
+    LaunchedEffect(editId, prefillDatum) {
+        when {
+            editId != null -> vm.loadForEdit(editId)
+            prefillDatum != null -> vm.startNewFor(prefillDatum)
+        }
+    }
 
     val form  by vm.form.collectAsStateWithLifecycle()
     val typPicker by vm.typPickerOptions.collectAsStateWithLifecycle()

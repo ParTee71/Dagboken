@@ -156,7 +156,7 @@ fun AppNavigation(
                     onNavigateToSjukdomar = { navController.navigate(Routes.SJUKDOMAR) },
                     onAddAktivitet        = { navController.navigate(Routes.ADD_AKTIVITET) },
                     onAddMedicin          = { navController.navigate(Routes.ADD_MEDICIN) },
-                    onAddHandelse         = { navController.navigate(Routes.ADD_HANDELSE) },
+                    onAddHandelse         = { date -> navController.navigate(Routes.addHandelse(date.toString())) },
                     onAddFavorit          = { navController.navigate(Routes.ADD_FAVORIT) },
                     onEditFavorit         = { id -> navController.navigate(Routes.editFavorit(id)) },
                     snackbarHostState     = snackbarHostState,
@@ -222,10 +222,14 @@ fun AppNavigation(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.ADD_HANDELSE) {
+            composable(
+                route     = Routes.ADD_HANDELSE,
+                arguments = listOf(navArgument("datum") { type = NavType.StringType; nullable = true; defaultValue = null }),
+            ) { backStackEntry ->
                 AddEditHandelseScreen(
-                    editId = null,
-                    onBack = { navController.popBackStack() },
+                    editId       = null,
+                    prefillDatum = backStackEntry.arguments?.getString("datum"),
+                    onBack       = { navController.popBackStack() },
                 )
             }
             composable(

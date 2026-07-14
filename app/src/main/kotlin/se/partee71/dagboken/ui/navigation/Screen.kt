@@ -60,7 +60,7 @@ object Routes {
     const val EDIT_RECEPT                   = "edit_recept/{id}"
     const val ADD_FAVORIT                   = "add_favorit"
     const val EDIT_FAVORIT                  = "edit_favorit/{id}"
-    const val ADD_HANDELSE                  = "add_handelse"
+    const val ADD_HANDELSE                  = "add_handelse?datum={datum}"
     const val EDIT_HANDELSE                 = "edit_handelse/{id}"
     const val MIGRATION                     = "migration"
     const val SJUKDOMAR                     = "sjukdomar"
@@ -81,4 +81,5 @@ object Routes {
     fun editSjukdom(id: String)                  = "edit_sjukdom/$id"
     fun sjukdomEpisodDetail(id: String)          = "sjukdom_episod/$id"
     fun addSjukdomsIncheckning(episodId: String) = "add_sjukdoms_incheckning/$episodId"
+    fun addHandelse(datum: String)               = "add_handelse?datum=$datum"
 }

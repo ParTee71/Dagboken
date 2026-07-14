@@ -60,15 +60,16 @@
 | HEM-1 | Visa en **hälsningsbanner** baserad på tid på dygnet (God morgon/eftermiddag/kväll/natt) samt inloggat namn. |
 | HEM-2 | Visa aktuellt **datum och veckonummer** (svensk lokalisering, ISO-vecka) samt **appversionen** (liten och diskret). |
 | HEM-3 | ~~Visa **stat-pills**: antal tagna/totala mediciner idag samt senaste aktivitetens energinivå.~~ *(borttaget)* |
-| HEM-4 | Visa en **dagens checklista**: alla dagens mediciner (avbockningsbara direkt) och alla aktiverade screeningtillfällen (per måltidstillfälle), med status loggad/försenad/kommande. Kort med försenade poster märks med en textetikett ("Försenat") utöver accentfärg. |
-| HEM-5 | Mediciner ska kunna markeras som tagna direkt i checklistan utan navigering. Screening ska kunna loggas **inline**: expandera radens tillhörande måltidstillfälle och fyll i direkt på Idag, utan att navigera bort. Inline-formuläret presenteras som **svepbara steg-kort** (energi → stress → symptom, där symptomsteget bara visas när symptom är konfigurerade) med stegindikator och Föregående/Nästa/Spara, via delad komponent `StepwiseScreeningForm`. |
+| HEM-4 | Visa en **checklista för vald dag** (dagens datum eller en tidigare dag, se HEM-14): alla dagens mediciner (avbockningsbara direkt) och alla aktiverade screeningtillfällen (per måltidstillfälle), med status loggad/försenad/kommande. Kort med försenade poster märks med en textetikett ("Försenat") utöver accentfärg. "Försenat"-status gäller endast dagens datum — en tidigare dags ologgade post är bara ologgad, inte försenad. |
+| HEM-5 | Mediciner ska kunna markeras som tagna direkt i checklistan utan navigering. Screening ska kunna loggas **inline**: expandera radens tillhörande måltidstillfälle och fyll i direkt på Idag, utan att navigera bort. Inline-formuläret presenteras som **svepbara steg-kort** (energi → stress → symptom, där symptomsteget bara visas när symptom är konfigurerade) med stegindikator och Föregående/Nästa/Spara, via delad komponent `StepwiseScreeningForm`. Loggas mot den dag som visas i checklistan (HEM-14), inte alltid dagens datum. |
 | HEM-7 | Visa **sparkline-diagram** över **genomsnittlig energi per dag** senaste 7 dagarna, baserat på screenings (minst 2 datapunkter krävs, annars uppmaning att logga); länk till Trender-ytan (§17) för fördjupning. |
 | HEM-8 | ~~Visa **snabbåtgärder**: "Logga aktivitet" och "Mediciner".~~ *(ersatt av global "+"-FAB med snabbval: Aktivitet/Engångsdos/Ny vid behov-favorit/Händelse)* |
 | HEM-9 | Visa **kontobubbla** (avatar/foto) som öppnar konto-bottensheet (logga in/ut, Hantera). |
-| HEM-10 | Säkerställa dagens medicinposter genereras vid skärmstart (`ensureTodayEntries`). |
+| HEM-10 | Säkerställa vald dags medicinposter genereras (`ensureEntriesForDate`) — vid skärmstart för dagens datum, och på nytt varje gång användaren bläddrar till ett nytt datum (HEM-14), inklusive en tidigare dag som aldrig var "idag" senast appen var öppen. |
 | HEM-11 | Favoritmarkerade vid behov-mediciner ska visas som tryckbara snabbvalskort direkt i checklistan (samma beteende som tidigare MED-7); tryck loggar en dos med befintlig cooldown-/gränslogik, långtryck öppnar redigera/ta bort/favoritmarkera. Nya favoriter skapas via "+"-FAB. |
 | HEM-12 | Pågående sjukdomsepisod ska visas som ett accentmärkt kort som länkar till sjukdomsdetaljer (Hantera → Sjukdomar). |
 | HEM-13 | I början av veckan (söndag/måndag) ska ett **veckosammanfattningskort** visas överst på Idag: energitrend (senaste 7 dagarnas genomsnittliga screeningenergi jämfört med föregående 7 dagar, ↑/↓/oförändrad) och andel tagna av veckans schemalagda doser (%). Beräknas live från befintliga poster via delad `DagbokenCard` — ingen ny persisterad data. Döljs om underlag saknas. |
+| HEM-14 | Idag-checklistan (mediciner + screening) ska kunna bläddras till en **tidigare dag** via en datumnavigeringsrad ("< Föregående dag · [datum] · Nästa dag >"). Kan inte bläddra in i framtiden — "Nästa dag" är avstängd på dagens datum. Att öppna "Ny händelse" från en tidigare dags Idag-vy förifyller den nya händelsens datum med den visade dagen. |
 
 ---
 
@@ -100,6 +101,7 @@
 | SCR-3 | Screening sparas som post av typ `screening` och bekräftas med snackbar ("Screening sparad ✓"). |
 | SCR-4 | Samma lista med de tre senaste registreringarna (se AKT-10) visas även under Screening-formuläret. |
 | SCR-5 | Användaren ska kunna lägga till, redigera och ta bort en fritextanteckning på en screening-registrering, via den delade anteckningskomponenten. |
+| SCR-6 | En screening loggad från Idag-skärmens inline-formulär (HEM-5) sparas mot den dag som visas där, inte alltid dagens datum — se HEM-14. |
 
 ### 5.3 Historik ~~(per-flik)~~ *(ersatt av Historik-ytan, §16, sedan navigationsbytet i #84 etapp 4)*
 
@@ -119,10 +121,10 @@
 
 | ID | Krav |
 |----|------|
-| MED-1 | Visa dagens mediciner sorterade på tidpunkt (Morgon → Natt → Vid behov). |
+| MED-1 | Visa vald dags (se HEM-14) mediciner sorterade på tidpunkt (Morgon → Natt → Vid behov). |
 | MED-2 | Varje medicin ska kunna markeras som **tagen/ej tagen**. |
 | MED-3 | Receptgenererade poster ska kunna **hoppas över** (skippas) i stället för att raderas; engångsposter raderas. |
-| MED-4 | Dagens receptposter ska genereras automatiskt och **idempotent** (stabilt ID `recept_{id}_{datum}_{tidpunkt}` förhindrar dubbletter). |
+| MED-4 | Vald dags receptposter ska genereras automatiskt och **idempotent** (stabilt ID `recept_{id}_{datum}_{tidpunkt}` förhindrar dubbletter), inklusive en tidigare dag som bläddras till (HEM-14/HEM-10). |
 | MED-5 | Tagna mediciner ska kunna **döljas** i checklistan; en toggle-knapp visar antalet dolda poster och låter användaren visa dem igen. |
 | MED-6 | Kryssrutan för att markera tagen ersätts med en **animerad ikonknapp** (tomt cirkelkryss → fylld bockikon med färganimering). |
 | MED-7 | ~~Favoriter (vid-behov-mediciner) ska visas som ett **snabbval** direkt i Idag-fliken, under progressbaren; tryck loggar en dos med befintlig cooldown-/gränslogik.~~ *(se HEM-11, §4)* |

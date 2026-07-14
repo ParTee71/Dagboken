@@ -122,10 +122,22 @@ class AktiviteterViewModel @Inject constructor(
      * Nollställer formuläret för en ny inline-screening på Idag-skärmen (per
      * måltidstillfälle) och sätter dirty-state-baslinjen atomiskt, så
      * spara-knappen är avstängd tills användaren faktiskt ändrar något.
+     *
+     * [date] är den dag som visas i Idag-vyn (#114) — låter en screening loggas
+     * mot en tidigare dag, inte bara dagens datum.
      */
-    fun startScreening(label: String) {
+    fun startScreening(label: String, date: LocalDate = LocalDate.now()) {
         _editId.value = null
-        setCleanForm(AktivitetForm(aktivitet = label, type = "screening", energy = 0, stress = 0, symptomScores = emptyMap()))
+        setCleanForm(
+            AktivitetForm(
+                aktivitet     = label,
+                type          = "screening",
+                datum         = date.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                energy        = 0,
+                stress        = 0,
+                symptomScores = emptyMap(),
+            ),
+        )
     }
 
     /**

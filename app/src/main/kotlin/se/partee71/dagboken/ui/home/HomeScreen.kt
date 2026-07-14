@@ -23,6 +23,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandMore
@@ -78,8 +80,10 @@ import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 import se.partee71.dagboken.ui.components.StepwiseScreeningForm
+import se.partee71.dagboken.ui.formatDisplayDate
 import se.partee71.dagboken.ui.mediciner.MedicinerViewModel
 import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
+import java.time.LocalDate
 import java.util.Locale
 
 @Composable
@@ -89,7 +93,7 @@ fun HomeScreen(
     onNavigateToSjukdomar: () -> Unit,
     onAddAktivitet: () -> Unit,
     onAddMedicin: () -> Unit,
-    onAddHandelse: () -> Unit,
+    onAddHandelse: (LocalDate) -> Unit,
     onAddFavorit: () -> Unit,
     onEditFavorit: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
@@ -169,7 +173,7 @@ fun HomeScreen(
                     DropdownMenuItem(
                         text        = { Text(stringResource(R.string.handelse_new)) },
                         leadingIcon = { Icon(Icons.Outlined.MonitorHeart, contentDescription = null) },
-                        onClick     = { fabMenuExpanded = false; onAddHandelse() },
+                        onClick     = { fabMenuExpanded = false; onAddHandelse(uiState.selectedDate) },
                     )
                 }
             }
@@ -215,6 +219,16 @@ fun HomeScreen(
                 }
             }
 
+            // Datumnavigering (#114) — bläddra till en tidigare dags checklista
+            item {
+                DateNavRow(
+                    selectedDate = uiState.selectedDate,
+                    isToday      = uiState.isToday,
+                    onPrevious   = vm::previousDay,
+                    onNext       = vm::nextDay,
+                )
+            }
+
             // Veckosammanfattning (visas i början av veckan, sön/mån)
             weekSummary?.let { summary ->
                 item { WeekSummaryCard(summary) }
@@ -238,6 +252,7 @@ fun HomeScreen(
                     ScreeningChecklistCard(
                         events                = uiState.screeningEvents,
                         vm                    = screeningVm,
+                        selectedDate          = uiState.selectedDate,
                         initialExpandedLabel  = initialExpandedScreeningLabel,
                         onInitialConsumed     = onScreeningLabelConsumed,
                     )
@@ -376,6 +391,43 @@ fun HomeScreen(
                 }
             },
         )
+    }
+}
+
+/** Datumnavigering (#114) — bläddra Idag-checklistan till en tidigare dag. */
+@Composable
+private fun DateNavRow(
+    selectedDate: LocalDate,
+    isToday: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    Row(
+        modifier              = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment     = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onPrevious) {
+            Icon(
+                Icons.Filled.ChevronLeft,
+                contentDescription = stringResource(R.string.home_previous_day),
+                tint = cs.onSurfaceVariant,
+            )
+        }
+        Text(
+            text       = formatDisplayDate(selectedDate.toString()),
+            style      = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color      = cs.onSurface,
+        )
+        IconButton(onClick = onNext, enabled = !isToday) {
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = stringResource(R.string.home_next_day),
+                tint = if (isToday) cs.onSurfaceVariant.copy(alpha = 0.3f) else cs.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -635,6 +687,7 @@ internal fun FavoriterRow(
 private fun ScreeningChecklistCard(
     events: List<ScreeningEventStatus>,
     vm: AktiviteterViewModel,
+    selectedDate: LocalDate,
     initialExpandedLabel: String? = null,
     onInitialConsumed: () -> Unit = {},
 ) {
@@ -703,9 +756,10 @@ private fun ScreeningChecklistCard(
                 exit    = shrinkVertically(animationSpec = DagbokenAnimSpec.springNormalSpec()),
             ) {
                 InlineScreeningForm(
-                    label = event.label,
-                    vm    = vm,
-                    onSaved = { expandedLabel = null },
+                    label        = event.label,
+                    vm           = vm,
+                    selectedDate = selectedDate,
+                    onSaved      = { expandedLabel = null },
                 )
             }
         }
@@ -716,12 +770,13 @@ private fun ScreeningChecklistCard(
 private fun InlineScreeningForm(
     label: String,
     vm: AktiviteterViewModel,
+    selectedDate: LocalDate,
     onSaved: () -> Unit,
 ) {
     val form by vm.form.collectAsState()
     val symptomOptions by vm.symptomOptions.collectAsState()
 
-    LaunchedEffect(label) { vm.startScreening(label) }
+    LaunchedEffect(label, selectedDate) { vm.startScreening(label, selectedDate) }
 
     // saveEnabled is always true here: energy=0/stress=0 are legitimate values
     // (not placeholders), so a fresh inline screening is already save-worthy —
