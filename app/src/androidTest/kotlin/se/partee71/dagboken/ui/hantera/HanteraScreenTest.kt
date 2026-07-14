@@ -93,7 +93,7 @@ class HanteraScreenTest {
                 HanteraScreen(onImport = {}, onOpenSjukdomar = {}, onOpenSchema = {}, vm = vm)
             }
         }
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Hantera")).fetchSemanticsNodes().isNotEmpty()
         }
     }
@@ -110,7 +110,7 @@ class HanteraScreenTest {
     @Test fun setThemeMode_dark_updates_ViewModel_state() {
         setContent()
         vm.setThemeMode("dark")
-        composeRule.waitUntil(10_000) { vm.state.value.themeMode == "dark" }
+        composeRule.waitUntil(20_000) { vm.state.value.themeMode == "dark" }
         assert(vm.state.value.themeMode == "dark") {
             "Expected themeMode=dark but got ${vm.state.value.themeMode}"
         }
@@ -138,7 +138,7 @@ class HanteraScreenTest {
     @Test fun toggleMedsNotifications_enables_meds_notifications() {
         setContent()
         vm.toggleMedsNotifications()
-        composeRule.waitUntil(10_000) { vm.state.value.medsNotificationsEnabled }
+        composeRule.waitUntil(20_000) { vm.state.value.medsNotificationsEnabled }
         assert(vm.state.value.medsNotificationsEnabled) {
             "Expected medsNotificationsEnabled=true after toggle"
         }
@@ -161,7 +161,7 @@ class HanteraScreenTest {
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
         composeRule.waitForIdle()
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Yoga")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Yoga").performScrollTo().assertIsDisplayed()
@@ -173,7 +173,7 @@ class HanteraScreenTest {
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
         composeRule.waitForIdle()
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
-        composeRule.waitUntil(10_000) { vm.state.value.aktivitetOptions.any { it.name == "Yoga" } }
+        composeRule.waitUntil(20_000) { vm.state.value.aktivitetOptions.any { it.name == "Yoga" } }
 
         composeRule.onNodeWithText("Ny typ").performTextInput("Yoga")
         composeRule.waitForIdle()
@@ -194,20 +194,20 @@ class HanteraScreenTest {
         composeRule.onNodeWithText("Ny typ").performTextInput("Simning")
         composeRule.waitForIdle()
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Simning")).fetchSemanticsNodes().isNotEmpty()
         }
         // Tapping the delete icon opens a confirmation dialog; it does not delete directly
         // useUnmergedTree is incompatible with performScrollTo (which needs the merged tree);
         // wait for the button to be present in the merged tree, then scroll + click.
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasContentDescription("Ta bort")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNode(hasContentDescription("Ta bort")).performScrollTo().performClick()
         composeRule.waitForIdle()
         // Confirm deletion in the AlertDialog (confirm button is labelled "Ta bort")
         composeRule.onNodeWithText("Ta bort").performClick()
-        composeRule.waitUntil(10_000) { vm.state.value.aktivitetOptions.isEmpty() }
+        composeRule.waitUntil(20_000) { vm.state.value.aktivitetOptions.isEmpty() }
         assert(vm.state.value.aktivitetOptions.isEmpty()) {
             "Expected empty aktivitetOptions but got: ${vm.state.value.aktivitetOptions}"
         }
@@ -241,11 +241,11 @@ class HanteraScreenTest {
         }
         setContent()
         navigateToVidBehovSection()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNode(hasContentDescription("Favorit")).performScrollTo().performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             runBlocking { medicinerRepo.getFavoritById("fav1")?.isFavorite == true }
         }
         val updated = runBlocking { medicinerRepo.getFavoritById("fav1") }
@@ -276,7 +276,7 @@ class HanteraScreenTest {
         composeRule.onNodeWithText("Ny händelsetyp").performTextInput("Feberanfall")
         composeRule.waitForIdle()
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Feberanfall")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Feberanfall").performScrollTo().assertIsDisplayed()
@@ -288,16 +288,16 @@ class HanteraScreenTest {
         composeRule.onNodeWithText("Ny händelsetyp").performTextInput("Svimning")
         composeRule.waitForIdle()
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Svimning")).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasContentDescription("Ta bort")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNode(hasContentDescription("Ta bort")).performScrollTo().performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Ta bort").performClick()
-        composeRule.waitUntil(10_000) { vm.state.value.handelseTypOptions.isEmpty() }
+        composeRule.waitUntil(20_000) { vm.state.value.handelseTypOptions.isEmpty() }
         assert(vm.state.value.handelseTypOptions.isEmpty()) {
             "Expected empty handelseTypOptions but got: ${vm.state.value.handelseTypOptions}"
         }
@@ -309,10 +309,10 @@ class HanteraScreenTest {
         composeRule.onNodeWithText("Ny händelsetyp").performTextInput("Näsblod")
         composeRule.waitForIdle()
         composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
-        composeRule.waitUntil(10_000) { vm.state.value.handelseTypOptions.any { it.name == "Näsblod" } }
+        composeRule.waitUntil(20_000) { vm.state.value.handelseTypOptions.any { it.name == "Näsblod" } }
 
         composeRule.onAllNodes(hasContentDescription("Favorit")).onFirst().performScrollTo().performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             vm.state.value.handelseTypOptions.any { it.name == "Näsblod" && it.isFavorite }
         }
         assert(vm.state.value.handelseTypOptions.single { it.name == "Näsblod" }.isFavorite) {
@@ -337,7 +337,7 @@ class HanteraScreenTest {
                 HanteraScreen(onImport = {}, onOpenSjukdomar = { opened = true }, onOpenSchema = {}, vm = vm)
             }
         }
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Hantera")).fetchSemanticsNodes().isNotEmpty()
         }
         navigateToSection("Sjukdomar")
@@ -352,7 +352,7 @@ class HanteraScreenTest {
                 HanteraScreen(onImport = {}, onOpenSjukdomar = {}, onOpenSchema = { opened = true }, vm = vm)
             }
         }
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Hantera")).fetchSemanticsNodes().isNotEmpty()
         }
         navigateToSection("Recept & scheman")

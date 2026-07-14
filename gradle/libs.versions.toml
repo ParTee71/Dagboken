@@ -27,6 +27,7 @@ googleServices          = "4.4.2"
 junit                   = "4.13.2"
 junitExt                = "1.2.1"
 espresso                = "3.6.1"
+testOrchestrator        = "1.5.1"
 mockk                   = "1.13.13"
 turbine                 = "1.2.0"
 roomTesting             = "2.6.1"
@@ -86,6 +87,7 @@ androidx-compose-ui-tooling          = { group = "androidx.compose.ui",         
 androidx-compose-ui-test-manifest    = { group = "androidx.compose.ui",                              name = "ui-test-manifest" }
 mockk                                = { group = "io.mockk",                                         name = "mockk",                           version.ref = "mockk" }
 turbine                              = { group = "app.cash.turbine",                                 name = "turbine",                         version.ref = "turbine" }
+androidx-test-orchestrator           = { group = "androidx.test",                                    name = "orchestrator",                    version.ref = "testOrchestrator" }
 
 [plugins]
 android-application  = { id = "com.android.application",                     version.ref = "agp" }

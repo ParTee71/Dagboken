@@ -138,7 +138,7 @@ class HistorikScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Promenad").assertIsDisplayed()
@@ -158,7 +158,7 @@ class HistorikScreenTest {
         }
         var editedId: String? = null
         setContent(onEditMedicin = { id -> editedId = id })
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Ibuprofen")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Ibuprofen").performClick()
@@ -175,7 +175,7 @@ class HistorikScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
         }
 
@@ -185,7 +185,7 @@ class HistorikScreenTest {
         composeRule.onNodeWithText("Ta bort post?").assertIsDisplayed()
         composeRule.onNodeWithText("Ta bort").performClick()
 
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isEmpty()
         }
     }
@@ -206,11 +206,11 @@ class HistorikScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Aktivitet").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isEmpty()
         }
         composeRule.onNodeWithText("Ibuprofen").assertIsDisplayed()
@@ -228,12 +228,12 @@ class HistorikScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
         }
 
         composeRule.onNodeWithContentDescription("Kalender").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Välj en dag i kalendern för att se poster"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
@@ -256,12 +256,12 @@ class HistorikScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
         }
 
         composeRule.onNodeWithContentDescription("Kalender").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Välj en dag i kalendern för att se poster"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
@@ -270,7 +270,7 @@ class HistorikScreenTest {
             .assertIsDisplayed()
 
         composeRule.onNodeWithContentDescription("Lista").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
         }
 

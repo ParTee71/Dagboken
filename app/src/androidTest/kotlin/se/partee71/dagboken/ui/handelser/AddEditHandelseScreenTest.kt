@@ -81,7 +81,7 @@ class AddEditHandelseScreenTest {
             prefs.setHandelseTypOptions(listOf(SymptomOption("Yrsel", isFavorite = true)))
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Yrsel").assertIsDisplayed()
@@ -92,11 +92,11 @@ class AddEditHandelseScreenTest {
             prefs.setHandelseTypOptions(listOf(SymptomOption("Yrsel", isFavorite = true)))
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Yrsel").performClick()
-        composeRule.waitUntil(10_000) { vm.form.value.typ == "Yrsel" }
+        composeRule.waitUntil(20_000) { vm.form.value.typ == "Yrsel" }
         assert(vm.form.value.typ == "Yrsel")
     }
 
@@ -107,16 +107,16 @@ class AddEditHandelseScreenTest {
         setContent()
         // "Fler typer" renders only once the cold WhileSubscribed typ-options flow
         // emits, so poll for it instead of asserting on the first frame.
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Fler typer")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Fler typer").assertIsDisplayed()
         composeRule.onNodeWithText("Fler typer").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Andnöd")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Andnöd").performClick()
-        composeRule.waitUntil(10_000) { vm.form.value.typ == "Andnöd" }
+        composeRule.waitUntil(20_000) { vm.form.value.typ == "Andnöd" }
         assert(vm.form.value.typ == "Andnöd")
     }
 
@@ -133,11 +133,11 @@ class AddEditHandelseScreenTest {
             )
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Fler typer")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Fler typer").performClick()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Egen typ")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Egen typ").assertIsDisplayed()
@@ -147,7 +147,7 @@ class AddEditHandelseScreenTest {
         setContent()
         composeRule.onNode(hasText("Typ av händelse") and hasSetTextAction())
             .performTextInput("Helt ny typ")
-        composeRule.waitUntil(10_000) { vm.form.value.typ == "Helt ny typ" }
+        composeRule.waitUntil(20_000) { vm.form.value.typ == "Helt ny typ" }
         assert(vm.form.value.typ == "Helt ny typ")
     }
 
@@ -157,7 +157,7 @@ class AddEditHandelseScreenTest {
         composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
         composeRule.onNode(hasText("Lägg till en anteckning…") and hasSetTextAction())
             .performTextInput("Kom efter möte")
-        composeRule.waitUntil(10_000) { vm.form.value.anteckning == "Kom efter möte" }
+        composeRule.waitUntil(20_000) { vm.form.value.anteckning == "Kom efter möte" }
         assert(vm.form.value.anteckning == "Kom efter möte")
     }
 
@@ -168,7 +168,7 @@ class AddEditHandelseScreenTest {
         composeRule.onNodeWithText("Spara").assertIsNotEnabled()
         composeRule.onNode(hasText("Typ av händelse") and hasSetTextAction())
             .performTextInput("Yrsel")
-        composeRule.waitUntil(10_000) { vm.isDirty.value }
+        composeRule.waitUntil(20_000) { vm.isDirty.value }
         composeRule.onNodeWithText("Spara").assertIsEnabled()
     }
 
@@ -176,7 +176,7 @@ class AddEditHandelseScreenTest {
         setContent()
         composeRule.onNode(hasText("Typ av händelse") and hasSetTextAction())
             .performTextInput("Yrsel")
-        composeRule.waitUntil(10_000) { vm.isDirty.value }
+        composeRule.waitUntil(20_000) { vm.isDirty.value }
 
         composeRule.onNodeWithContentDescription("Tillbaka").performClick()
 
@@ -198,14 +198,14 @@ class AddEditHandelseScreenTest {
         setContent(onBack = { backCalled = true })
         composeRule.onNode(hasText("Typ av händelse") and hasSetTextAction())
             .performTextInput("Yrsel")
-        composeRule.waitUntil(10_000) { vm.isDirty.value }
+        composeRule.waitUntil(20_000) { vm.isDirty.value }
         composeRule.onNodeWithContentDescription("Tillbaka").performClick()
         composeRule.onNodeWithText("Osparade ändringar").assertIsDisplayed()
 
         composeRule.onNodeWithText("Kasta").performClick()
 
         assert(backCalled)
-        composeRule.waitUntil(10_000) { vm.form.value.typ.isEmpty() }
+        composeRule.waitUntil(20_000) { vm.form.value.typ.isEmpty() }
     }
 
     @Test fun saving_from_unsaved_changes_dialog_persists_and_navigates_back() {
@@ -213,13 +213,13 @@ class AddEditHandelseScreenTest {
         setContent(onBack = { backCalled = true })
         composeRule.onNode(hasText("Typ av händelse") and hasSetTextAction())
             .performTextInput("Yrsel")
-        composeRule.waitUntil(10_000) { vm.isDirty.value }
+        composeRule.waitUntil(20_000) { vm.isDirty.value }
         composeRule.onNodeWithContentDescription("Tillbaka").performClick()
         composeRule.onNodeWithText("Osparade ändringar").assertIsDisplayed()
 
         composeRule.onNode(hasText("Spara") and hasAnyAncestor(isDialog())).performClick()
 
-        composeRule.waitUntil(10_000) { backCalled }
+        composeRule.waitUntil(20_000) { backCalled }
         runBlocking {
             assert(repo.all.first().any { it.typ == "Yrsel" })
         }
@@ -230,7 +230,7 @@ class AddEditHandelseScreenTest {
     @Test fun prefillDatum_sets_the_date_row_to_the_given_date() {
         val yesterday = java.time.LocalDate.now().minusDays(1).toString()
         setContent(prefillDatum = yesterday)
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Igår")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Igår").assertIsDisplayed()

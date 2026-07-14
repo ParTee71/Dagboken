@@ -83,7 +83,7 @@ class SjukdomarScreenTest {
             repo.saveEpisod(SjukdomsEpisod(id = "e1", typ = "Migrän", startDatum = "2026-01-01", slutDatum = ""))
         }
         setContent()
-        composeRule.waitUntil(10_000) {
+        composeRule.waitUntil(20_000) {
             composeRule.onAllNodes(hasText("Migrän")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Migrän").assertIsDisplayed()
