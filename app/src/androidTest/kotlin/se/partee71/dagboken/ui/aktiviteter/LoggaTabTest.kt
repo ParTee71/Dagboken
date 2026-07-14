@@ -1,12 +1,14 @@
 package se.partee71.dagboken.ui.aktiviteter
 
 import android.content.Context
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -14,15 +16,14 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
+import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,37 +33,35 @@ import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Aktivitet
+import se.partee71.dagboken.util.retryOnRenderGlitch
 
+// Migrerad enligt POC i #112 — se SjukdomarScreenTest för fullständig förklaring.
 @RunWith(AndroidJUnit4::class)
 class LoggaTabTest {
 
-    val composeRule = createComposeRule()
-
-    // Retry outermost so a swiftshader render-glitch flake re-runs with a
-    // fresh @Before/@After lifecycle instead of failing the build.
     @get:Rule
-    val flakyRetry: org.junit.rules.RuleChain =
-        org.junit.rules.RuleChain
-            .outerRule(se.partee71.dagboken.util.RetryTestRule())
-            .around(composeRule)
+    val composeRule = createEmptyComposeRule()
 
     private lateinit var db: AppDatabase
     private lateinit var repo: AktiviteterRepository
     private lateinit var vm: AktiviteterViewModel
+    private lateinit var prefs: PreferencesRepository
+    private lateinit var scenario: ActivityScenario<ComponentActivity>
 
-    @Before fun setUp() {
+    private fun setUp() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db  = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                   .allowMainThreadQueries().build()
         repo = AktiviteterRepository(db.aktivitetDao())
         val noteRepo = NoteRepository(db.noteDao())
-        val prefs    = PreferencesRepository(ctx)
+        prefs = PreferencesRepository(ctx)
         runBlocking {
             // Reset shared DataStore so no leftover options cause duplicate "Övrigt" chips
             prefs.setAktivitetOptions(emptyList())
             prefs.setSymptomOptions(emptyList())
         }
         vm = AktiviteterViewModel(repo, noteRepo, prefs)
+        scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }
 
     private fun aktivitet(id: String, aktivitet: String, type: String = "aktivitet") = Aktivitet(
@@ -71,206 +70,278 @@ class LoggaTabTest {
         symptom = "", aterhamtande = false, energitjuv = false, type = type, spentTime = null,
     )
 
-    @After fun tearDown() {
-        val ctx = ApplicationProvider.getApplicationContext<Context>()
-        runBlocking {
-            PreferencesRepository(ctx).setAktivitetOptions(emptyList())
-        }
+    private fun tearDown() {
+        runBlocking { prefs.setAktivitetOptions(emptyList()) }
         vm.viewModelScope.cancel()
         db.close()
+        scenario.close()
     }
 
-    private fun setContent() {
-        composeRule.setContent { MaterialTheme { LoggaTab(vm) } }
+    private fun setContent(onEdit: (String, String) -> Unit = { _, _ -> }) {
+        scenario.onActivity { it.setContent { MaterialTheme { LoggaTab(vm = vm, onEdit = onEdit) } } }
         composeRule.waitForIdle()
     }
 
     // ─── Spara inaktiverad utan typ ──────────────────────────────────────────
 
-    @Test fun save_button_is_disabled_when_no_activity_type_is_selected() {
-        setContent()
-        composeRule.onNodeWithText("Spara aktivitet").assertIsNotEnabled()
+    @Test fun save_button_is_disabled_when_no_activity_type_is_selected() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Spara aktivitet").assertIsNotEnabled()
+        } finally {
+            tearDown()
+        }
     }
 
-    @Test fun save_button_is_enabled_after_selecting_an_activity_type() {
-        setContent()
-        composeRule.onNodeWithText("Fler typer").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Övrigt").performClick()
-        composeRule.waitForIdle()
-        vm.updateForm { copy(aktivitetAnnat = "Yoga") }
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Spara aktivitet").assertIsEnabled()
+    @Test fun save_button_is_enabled_after_selecting_an_activity_type() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Fler typer").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Övrigt").performClick()
+            composeRule.waitForIdle()
+            vm.updateForm { copy(aktivitetAnnat = "Yoga") }
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Spara aktivitet").assertIsEnabled()
+        } finally {
+            tearDown()
+        }
     }
 
     // ─── Snackbar after save ──────────────────────────────────────────────────
 
-    @Test fun save_fires_snackbar_with_activity_name() {
-        setContent()
-        composeRule.onNodeWithText("Fler typer").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Övrigt").performClick()
-        composeRule.waitForIdle()
-        vm.updateForm { copy(aktivitetAnnat = "Promenad") }
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Spara aktivitet").performClick()
-        // save() writes to the DB in a coroutine and only then sets the snackbar;
-        // waitForIdle() does not wait for that coroutine, so poll until it lands.
-        composeRule.waitUntil(20_000) { vm.snackbar.value != null }
-        val msg = vm.snackbar.value
-        assertNotNull(msg)
-        assertTrue("Expected snackbar to contain activity name, got: $msg", msg!!.contains("Promenad"))
+    @Test fun save_fires_snackbar_with_activity_name() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Fler typer").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Övrigt").performClick()
+            composeRule.waitForIdle()
+            vm.updateForm { copy(aktivitetAnnat = "Promenad") }
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Spara aktivitet").performClick()
+            // save() writes to the DB in a coroutine and only then sets the snackbar;
+            // waitForIdle() does not wait for that coroutine, so poll until it lands.
+            composeRule.waitUntil(20_000) { vm.snackbar.value != null }
+            val msg = vm.snackbar.value
+            assertNotNull(msg)
+            assertTrue("Expected snackbar to contain activity name, got: $msg", msg!!.contains("Promenad"))
+        } finally {
+            tearDown()
+        }
     }
 
     // ─── "Övrigt"-fält ───────────────────────────────────────────────────────
 
-    @Test fun Ovrigt_text_field_is_hidden_when_Ovrigt_chip_is_not_selected() {
-        setContent()
-        composeRule.onNodeWithText("Beskriv aktivitet").assertDoesNotExist()
+    @Test fun Ovrigt_text_field_is_hidden_when_Ovrigt_chip_is_not_selected() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Beskriv aktivitet").assertDoesNotExist()
+        } finally {
+            tearDown()
+        }
     }
 
-    @Test fun Ovrigt_text_field_appears_when_Ovrigt_chip_is_selected() {
-        setContent()
-        composeRule.onNodeWithText("Fler typer").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Övrigt").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Beskriv aktivitet").assertIsDisplayed()
+    @Test fun Ovrigt_text_field_appears_when_Ovrigt_chip_is_selected() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Fler typer").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Övrigt").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Beskriv aktivitet").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
     }
 
     // ─── Chips ───────────────────────────────────────────────────────────────
 
-    @Test fun Ovrigt_chip_is_always_shown() {
-        setContent()
-        composeRule.onNodeWithText("Fler typer").assertIsDisplayed()
+    @Test fun Ovrigt_chip_is_always_shown() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Fler typer").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
     }
 
-    @Test fun predefined_activity_option_chips_are_shown() {
-        val ctx = ApplicationProvider.getApplicationContext<Context>()
-        val prefs = PreferencesRepository(ctx)
-        runBlocking { prefs.setAktivitetOptions(listOf(SymptomOption("Promenad", isFavorite = true), SymptomOption("Simning", isFavorite = true))) }
+    @Test fun predefined_activity_option_chips_are_shown() = retryOnRenderGlitch {
+        setUp()
         try {
-            composeRule.setContent { MaterialTheme { LoggaTab(vm) } }
+            runBlocking {
+                prefs.setAktivitetOptions(
+                    listOf(SymptomOption("Promenad", isFavorite = true), SymptomOption("Simning", isFavorite = true)),
+                )
+            }
+            setContent()
             composeRule.waitUntil(20_000) {
-                composeRule.onAllNodes(
-                    hasText("Promenad")
-                ).fetchSemanticsNodes().isNotEmpty()
+                composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
             }
             composeRule.onNodeWithText("Promenad").assertIsDisplayed()
             composeRule.onNodeWithText("Simning").assertIsDisplayed()
         } finally {
-            runBlocking { prefs.setAktivitetOptions(emptyList()) }
+            tearDown()
         }
     }
 
     // ─── InputChips ──────────────────────────────────────────────────────────
 
-    @Test fun Aterhamtande_and_Energitjuv_chips_are_shown() {
-        setContent()
-        composeRule.onNodeWithText("Återhämtande").assertIsDisplayed()
-        composeRule.onNodeWithText("Energitjuv").assertIsDisplayed()
+    @Test fun Aterhamtande_and_Energitjuv_chips_are_shown() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Återhämtande").assertIsDisplayed()
+            composeRule.onNodeWithText("Energitjuv").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
     }
 
-    @Test fun Aterhamtande_chip_toggles_when_clicked() {
-        setContent()
-        assert(!vm.form.value.aterhamtande)
-        composeRule.onNodeWithText("Återhämtande").performClick()
-        composeRule.waitForIdle()
-        assert(vm.form.value.aterhamtande)
+    @Test fun Aterhamtande_chip_toggles_when_clicked() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            assert(!vm.form.value.aterhamtande)
+            composeRule.onNodeWithText("Återhämtande").performClick()
+            composeRule.waitForIdle()
+            assert(vm.form.value.aterhamtande)
+        } finally {
+            tearDown()
+        }
     }
 
     // ─── Senaste registreringar ──────────────────────────────────────────────
 
-    @Test fun recent_entries_section_is_hidden_when_no_entries_exist() {
-        setContent()
-        composeRule.onNodeWithText("Senaste registreringar").assertDoesNotExist()
+    @Test fun recent_entries_section_is_hidden_when_no_entries_exist() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Senaste registreringar").assertDoesNotExist()
+        } finally {
+            tearDown()
+        }
     }
 
-    @Test fun recent_entries_section_shows_saved_entries_mixed_by_type() {
-        runBlocking {
-            repo.save(aktivitet("a1", "Promenad", "aktivitet"))
-            repo.save(aktivitet("a2", "Morgonscreening", "screening"))
+    @Test fun recent_entries_section_shows_saved_entries_mixed_by_type() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                repo.save(aktivitet("a1", "Promenad", "aktivitet"))
+                repo.save(aktivitet("a2", "Morgonscreening", "screening"))
+            }
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText("Senaste registreringar").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Promenad").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Morgonscreening").performScrollTo().assertIsDisplayed()
+        } finally {
+            tearDown()
         }
-        setContent()
-        composeRule.waitUntil(20_000) {
-            composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithText("Senaste registreringar").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Promenad").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Morgonscreening").performScrollTo().assertIsDisplayed()
     }
 
-    @Test fun recent_entry_edit_menu_item_invokes_onEdit_with_id_and_type() {
-        runBlocking { repo.save(aktivitet("a1", "Promenad", "aktivitet")) }
-        var editedId: String? = null
-        var editedType: String? = null
-        composeRule.setContent {
-            MaterialTheme { LoggaTab(vm = vm, onEdit = { id, type -> editedId = id; editedType = type }) }
+    @Test fun recent_entry_edit_menu_item_invokes_onEdit_with_id_and_type() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking { repo.save(aktivitet("a1", "Promenad", "aktivitet")) }
+            var editedId: String? = null
+            var editedType: String? = null
+            setContent(onEdit = { id, type -> editedId = id; editedType = type })
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithContentDescription("Alternativ").performScrollTo().performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Redigera").performClick()
+            composeRule.waitForIdle()
+            assertEquals("a1", editedId)
+            assertEquals("aktivitet", editedType)
+        } finally {
+            tearDown()
         }
-        composeRule.waitUntil(20_000) {
-            composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithContentDescription("Alternativ").performScrollTo().performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Redigera").performClick()
-        composeRule.waitForIdle()
-        assertEquals("a1", editedId)
-        assertEquals("aktivitet", editedType)
     }
 
-    @Test fun recent_entry_delete_removes_it_after_confirmation() {
-        runBlocking { repo.save(aktivitet("a1", "Promenad", "aktivitet")) }
-        setContent()
-        composeRule.waitUntil(20_000) {
-            composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+    @Test fun recent_entry_delete_removes_it_after_confirmation() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking { repo.save(aktivitet("a1", "Promenad", "aktivitet")) }
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+            }
+
+            composeRule.onNodeWithContentDescription("Alternativ").performScrollTo().performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Ta bort").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Ta bort").performClick()
+            composeRule.waitUntil(20_000) { vm.recentEntries.value.none { it.id == "a1" } }
+
+            composeRule.onNodeWithText("Promenad").assertDoesNotExist()
+        } finally {
+            tearDown()
         }
-
-        composeRule.onNodeWithContentDescription("Alternativ").performScrollTo().performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Ta bort").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Ta bort").performClick()
-        composeRule.waitUntil(20_000) { vm.recentEntries.value.none { it.id == "a1" } }
-
-        composeRule.onNodeWithText("Promenad").assertDoesNotExist()
     }
 
     // ─── Anteckning ──────────────────────────────────────────────────────────
 
-    @Test fun note_placeholder_is_shown_when_no_note_entered() {
-        setContent()
-        composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().assertIsDisplayed()
+    @Test fun note_placeholder_is_shown_when_no_note_entered() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
     }
 
-    @Test fun typing_a_note_updates_the_form_state() {
-        setContent()
-        composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
-        composeRule.waitForIdle()
-        composeRule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Regnigt väder")
-        composeRule.waitForIdle()
-        assertEquals("Regnigt väder", vm.form.value.note)
+    @Test fun typing_a_note_updates_the_form_state() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
+            composeRule.waitForIdle()
+            composeRule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Regnigt väder")
+            composeRule.waitForIdle()
+            assertEquals("Regnigt väder", vm.form.value.note)
+        } finally {
+            tearDown()
+        }
     }
 
-    @Test fun saving_an_aktivitet_persists_the_note_under_ACTIVITY_target() {
-        setContent()
-        composeRule.onNodeWithText("Fler typer").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Övrigt").performClick()
-        composeRule.waitForIdle()
-        vm.updateForm { copy(aktivitetAnnat = "Yoga") }
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
-        composeRule.waitForIdle()
-        composeRule.onNode(
-            androidx.compose.ui.test.hasText("Lägg till en anteckning…")
-                and androidx.compose.ui.test.hasSetTextAction()
-        ).performTextInput("Regnigt väder")
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Spara aktivitet").performClick()
-        composeRule.waitUntil(20_000) { vm.snackbar.value != null }
-        val saved = runBlocking { db.noteDao().getAll() }
-        assertEquals(1, saved.size)
-        assertEquals("ACTIVITY", saved.first().target)
-        assertEquals("Regnigt väder", saved.first().text)
+    @Test fun saving_an_aktivitet_persists_the_note_under_ACTIVITY_target() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Fler typer").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Övrigt").performClick()
+            composeRule.waitForIdle()
+            vm.updateForm { copy(aktivitetAnnat = "Yoga") }
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Lägg till en anteckning…").performScrollTo().performClick()
+            composeRule.waitForIdle()
+            composeRule.onNode(
+                androidx.compose.ui.test.hasText("Lägg till en anteckning…")
+                    and androidx.compose.ui.test.hasSetTextAction()
+            ).performTextInput("Regnigt väder")
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Spara aktivitet").performClick()
+            composeRule.waitUntil(20_000) { vm.snackbar.value != null }
+            val saved = runBlocking { db.noteDao().getAll() }
+            assertEquals(1, saved.size)
+            assertEquals("ACTIVITY", saved.first().target)
+            assertEquals("Regnigt väder", saved.first().text)
+        } finally {
+            tearDown()
+        }
     }
 }
