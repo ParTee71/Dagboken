@@ -33,6 +33,7 @@
 | TP-7 | Bakgrundsjobb via **WorkManager** (Hilt-integrerad worker). |
 | TP-8 | Påminnelser via **AlarmManager** + `BroadcastReceiver` + notifikationskanaler. |
 | TP-9 | Krävda behörigheter: `INTERNET`, `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED`. |
+| TP-10 | Hälsodata läses från **Health Connect** (`androidx.health.connect:connect-client`); ingen egen lagring, ingen Samsung-partner krävs (read-only via sideload). Se §19. |
 
 ---
 
@@ -41,7 +42,7 @@
 | ID | Krav |
 |----|------|
 | NAV-1 | ~~Appen ska ha en **bottennavigering** med fem flikar: Hem, Aktivitet, Mediciner, Händelser, Sjukdomar.~~ *(ersatt av NAV-7 — se #84 etapp 4)* |
-| NAV-2 | ~~Fliken **Hälsa** (Samsung Health) ska visas som inaktiverad platshållare (nedtonad, ej klickbar).~~ *(ej implementerad ännu — planeras i epic #54)* |
+| NAV-2 | ~~Fliken **Hälsa** (Samsung Health) ska visas som inaktiverad platshållare (nedtonad, ej klickbar).~~ *(ej implementerad ännu — planeras i epic #54; hälsodata läses via **Health Connect**, inte Samsung Health Data SDK, efter spike #56. Se §19)* |
 | NAV-3 | Bottennavigeringen ska döljas på underliggande skärmar (lägg till/redigera, sjukdomar, recept & scheman, migrering). |
 | NAV-4 | Navigering ska bevara och återställa fliktillstånd (`saveState`/`restoreState`). |
 | NAV-5 | Skärmövergångar ska animeras (slide + fade). |
@@ -283,7 +284,7 @@
 
 | ID | Notering |
 |----|----------|
-| FUT-1 | **Samsung Health / Hälsa-fliken** är endast en inaktiverad platshållare (ej implementerad). |
+| FUT-1 | **Hälsa-fliken** är endast en inaktiverad platshållare (ej implementerad). Planerad integration läser hälsodata via **Health Connect** (se §19, epic #54); tas bort när #57 är klar. |
 | FUT-2 | `sheetsConfig` (Google Sheets-koppling) finns i inställningslagret men är inte exponerat i UI. |
 | FUT-3 | Backup-worker kan inte hantera Drive-auktorisering som kräver UI (returnerar success utan att ladda upp). |
 
@@ -350,3 +351,20 @@
 | HANT-3 | Ett nytt navigeringskort **Sjukdomar** öppnar sjukdomshantering (lista/avsluta episoder) som en underliggande skärm med tillbakapil. |
 | HANT-4 | Ett nytt navigeringskort **Recept & scheman** öppnar receptschemat (samma innehåll som tidigare Mediciner-flikens Schema-flik, §6.2) som en underliggande skärm med tillbakapil. |
 | HANT-5 | På bred skärm (≥360dp) visas sektionerna i en sidopanel; på smal skärm i en scrollbar kolumn — samma responsiva mönster som tidigare `Inställningar`. |
+
+---
+
+## 19. Hälsa (Health Connect, HLS)
+
+> **Utkast — planerad (epic #54).** Hälsodata från Galaxy Watch 7 synkas via Samsung Health till
+> **Health Connect** och läses read-only på telefonen. Spike #56 fastställde vägvalet: Health
+> Connect framför Samsung Health Data SDK (Maven-beroende som bygger i CI, leverantörsneutralt,
+> ingen Samsung-partner/-licens). Skärpta krav specificeras och implementeras i #57.
+
+| ID | Krav |
+|----|------|
+| HLS-1 | Hälsodata hämtas via **Health Connect** (`androidx.health.connect:connect-client`), read-only. Ingen Samsung-partner/-licens krävs vid sideload. |
+| HLS-2 | MVP-datapunkter: **steg** (`StepsRecord`), **puls** (`HeartRateRecord`) och **sömn** (`SleepSessionRecord`). Aktiva kalorier (`ActiveCaloriesBurnedRecord`) utreds i #57. |
+| HLS-3 | Läsbehörigheter är scopade hälsobehörigheter (`android.permission.health.READ_STEPS`, `READ_HEART_RATE`, `READ_SLEEP`) med runtime-samtycke via Health Connects behörighetsflöde. Nekad behörighet visar en tydlig vy utan krasch. |
+| HLS-4 | Saknas Health Connect på enheten (`HealthConnectClient.getSdkStatus()` = `UNAVAILABLE`/`UPDATE_REQUIRED`) visas en tydlig uppmaning (installera/uppdatera) i stället för hälsodata. |
+| HLS-5 | Hälsodata persisteras **inte** lokalt och ingår **inte** i Drive-backup — Health Connect/Samsung Health äger och backar upp datan; Dagboken läser live. |

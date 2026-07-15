@@ -180,6 +180,9 @@ dependencies {
     // Diagram (Trender + Home-sparkline), regel 4 (#110)
     implementation(libs.vico.compose.m3)
 
+    // Health Connect – hälsodata från Galaxy Watch via Samsung Health (epic #54, spike #56)
+    implementation(libs.androidx.health.connect)
+
     // Google Drive / Auth (play-services-auth still needed for Identity.getAuthorizationClient)
     implementation(libs.google.auth.play.services)
     implementation(libs.google.api.client.android)
