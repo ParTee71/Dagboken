@@ -45,7 +45,13 @@ fun SparklineChart(
         chart = rememberCartesianChart(
             rememberLineCartesianLayer(
                 lineProvider = LineCartesianLayer.LineProvider.series(
-                    listOf(LineCartesianLayer.rememberLine(fill = LineCartesianLayer.LineFill.single(fill(lineColor)))),
+                    listOf(
+                        LineCartesianLayer.rememberLine(
+                            fill = LineCartesianLayer.LineFill.single(fill(lineColor)),
+                            areaFill = LineCartesianLayer.AreaFill.single(fill = fill(lineColor.copy(alpha = 0.24f))),
+                            pointConnector = LineCartesianLayer.PointConnector.cubic(),
+                        ),
+                    ),
                 ),
             ),
         ),

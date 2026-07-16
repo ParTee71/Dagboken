@@ -3,6 +3,7 @@ package se.partee71.dagboken.ui.home
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
@@ -45,5 +46,23 @@ class SparklineChartTest {
 
     @Test fun renders_nothing_with_no_points() = renderAndRetry {
         SparklineChart(points = emptyList())
+    }
+
+    // ─── Mörkt tema (#123) ─────────────────────────────────────────────────────
+
+    @Test fun renders_without_crash_in_dark_theme() = retryOnRenderGlitch {
+        val scenario = ActivityScenario.launch(ComponentActivity::class.java)
+        try {
+            scenario.onActivity {
+                it.setContent {
+                    MaterialTheme(colorScheme = darkColorScheme()) {
+                        SparklineChart(points = List(7) { (it + 1).toFloat() })
+                    }
+                }
+            }
+            composeRule.waitForIdle()
+        } finally {
+            scenario.close()
+        }
     }
 }

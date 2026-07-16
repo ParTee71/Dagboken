@@ -5,6 +5,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -116,5 +117,29 @@ class LineChartCanvasTest {
             gridValues = listOf(0f),
             modifier   = mod,
         )
+    }
+
+    // ─── Mörkt tema (#123) ─────────────────────────────────────────────────────
+
+    @Test fun renders_without_crash_in_dark_theme() = retryOnRenderGlitch {
+        val scenario = ActivityScenario.launch(ComponentActivity::class.java)
+        try {
+            scenario.onActivity {
+                it.setContent {
+                    MaterialTheme(colorScheme = darkColorScheme()) {
+                        LineChartCanvas(
+                            series   = series(2),
+                            dates    = List(10) { "2026-01-${(it + 1).toString().padStart(2, '0')}" },
+                            minValue = -10f,
+                            maxValue = 10f,
+                            modifier = mod,
+                        )
+                    }
+                }
+            }
+            composeRule.waitForIdle()
+        } finally {
+            scenario.close()
+        }
     }
 }
