@@ -71,6 +71,7 @@ object Routes {
     const val SCHEMA                        = "schema"
     const val HISTORIK                      = "historik"
     const val TRENDER                       = "trender"
+    const val HALSA                         = "halsa"
 
     fun editAktivitet(id: String)                = "edit_aktivitet/$id"
     fun editScreening(id: String)                = "edit_screening/$id"

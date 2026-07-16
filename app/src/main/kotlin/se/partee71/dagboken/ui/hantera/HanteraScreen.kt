@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
@@ -109,6 +110,7 @@ fun HanteraScreen(
     onImport: () -> Unit,
     onOpenSjukdomar: () -> Unit,
     onOpenSchema: () -> Unit,
+    onOpenHalsa: () -> Unit,
     vm: HanteraViewModel = hiltViewModel(),
 ) {
     val state          by vm.state.collectAsState()
@@ -122,6 +124,7 @@ fun HanteraScreen(
         SectionDef(Icons.Filled.ImportExport,  stringResource(R.string.settings_import_section),        stringResource(R.string.settings_import_section_desc)),
         SectionDef(Icons.Filled.LocalHospital, stringResource(R.string.hantera_sjukdomar_section),      stringResource(R.string.hantera_sjukdomar_section_desc)),
         SectionDef(Icons.AutoMirrored.Outlined.EventNote, stringResource(R.string.hantera_schema_section), stringResource(R.string.hantera_schema_section_desc)),
+        SectionDef(Icons.Filled.MonitorHeart,  stringResource(R.string.hantera_halsa_section),          stringResource(R.string.hantera_halsa_section_desc)),
         SectionDef(Icons.Filled.Palette,       stringResource(R.string.settings_theme_section),         stringResource(R.string.settings_theme_section_desc)),
         SectionDef(Icons.Filled.Notifications, stringResource(R.string.settings_notifications_section), stringResource(R.string.settings_notifications_section_desc)),
         SectionDef(Icons.Filled.DirectionsRun, stringResource(R.string.settings_aktivitet_section),     stringResource(R.string.settings_aktivitet_section_desc)),
@@ -162,6 +165,15 @@ fun HanteraScreen(
                     description = stringResource(R.string.hantera_schema_section_desc),
                     buttonLabel = stringResource(R.string.hantera_schema_open),
                     onClick     = onOpenSchema,
+                )
+            },
+            {
+                NavCard(
+                    icon        = Icons.Filled.MonitorHeart,
+                    title       = stringResource(R.string.hantera_halsa_section),
+                    description = stringResource(R.string.hantera_halsa_section_desc),
+                    buttonLabel = stringResource(R.string.hantera_halsa_open),
+                    onClick     = onOpenHalsa,
                 )
             },
             {

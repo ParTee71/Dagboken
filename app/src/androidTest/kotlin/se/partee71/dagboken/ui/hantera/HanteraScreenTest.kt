@@ -86,11 +86,21 @@ class HanteraScreenTest {
         scenario.close()
     }
 
-    private fun setContent(onOpenSjukdomar: () -> Unit = {}, onOpenSchema: () -> Unit = {}) {
+    private fun setContent(
+        onOpenSjukdomar: () -> Unit = {},
+        onOpenSchema: () -> Unit = {},
+        onOpenHalsa: () -> Unit = {},
+    ) {
         scenario.onActivity {
             it.setContent {
                 MaterialTheme {
-                    HanteraScreen(onImport = {}, onOpenSjukdomar = onOpenSjukdomar, onOpenSchema = onOpenSchema, vm = vm)
+                    HanteraScreen(
+                        onImport = {},
+                        onOpenSjukdomar = onOpenSjukdomar,
+                        onOpenSchema = onOpenSchema,
+                        onOpenHalsa = onOpenHalsa,
+                        vm = vm,
+                    )
                 }
             }
         }
@@ -417,6 +427,19 @@ class HanteraScreenTest {
             navigateToSection("Recept & scheman")
             composeRule.onNodeWithText("Öppna recept & scheman").performScrollTo().performClick()
             assert(opened) { "Expected onOpenSchema to be invoked" }
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun halsa_nav_card_opens_halsa() = retryOnRenderGlitch {
+        setUp()
+        try {
+            var opened = false
+            setContent(onOpenHalsa = { opened = true })
+            navigateToSection("Hälsa")
+            composeRule.onNodeWithText("Öppna hälsa").performScrollTo().performClick()
+            assert(opened) { "Expected onOpenHalsa to be invoked" }
         } finally {
             tearDown()
         }
