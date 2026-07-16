@@ -45,4 +45,15 @@ class DateUtilsTest {
     @Test fun `formatShortDateYear formats as day, abbreviated month and year`() {
         assertEquals("15 jan. 2024", formatShortDateYear(LocalDate.of(2024, 1, 15)))
     }
+
+    @Test fun `formatWeekdayShort returns three-letter Swedish weekday abbreviation`() {
+        // 2024-01-15 is a Monday
+        assertEquals("Mån", formatWeekdayShort(LocalDate.of(2024, 1, 15)))
+        assertEquals("Tis", formatWeekdayShort(LocalDate.of(2024, 1, 16)))
+        assertEquals("Ons", formatWeekdayShort(LocalDate.of(2024, 1, 17)))
+        assertEquals("Tor", formatWeekdayShort(LocalDate.of(2024, 1, 18)))
+        assertEquals("Fre", formatWeekdayShort(LocalDate.of(2024, 1, 19)))
+        assertEquals("Lör", formatWeekdayShort(LocalDate.of(2024, 1, 20)))
+        assertEquals("Sön", formatWeekdayShort(LocalDate.of(2024, 1, 21)))
+    }
 }
