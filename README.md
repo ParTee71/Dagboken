@@ -130,6 +130,7 @@ Se [.github/workflows/android.yml](.github/workflows/android.yml).
 
 | Version | Innehåll |
 |---------|----------|
+| 3.3.1 | Fix: "Ge åtkomst" på Hälsa-skärmen öppnar nu Health Connects samtyckesdialog — appen deklarerar den behörighets-rationale-handler som Health Connect kräver (`SHOW_PERMISSIONS_RATIONALE` / `VIEW_PERMISSION_USAGE`), annars hände inget vid tryck (#128) |
 | 3.3.0 | **Hälsa (Health Connect):** ny Hälsa-skärm som läser steg, puls och sömn read-only via Health Connect, nås via kort i Hantera (#54/#56/#57); hälsokort på Idag med stegtrend (7 dagar, delad `SparklineChart`) och vilopuls (#124). Stabil `connect-client` 1.1.0, compileSdk 36 (#127). **Idag:** datumnavigering till tidigare dagar för mediciner/screening/händelser (#115). **Diagram:** bättre mörkt tema-kontrast samt mjuka kurvor med gradientfyllning (#125) |
 | 3.2.0 | Historik: kalendervy som växlingsbart komplement till listvyn (HIST-6, delad `DagbokenCalendar`-komponent). Trender- och Hem-diagrammen (`LineChartCanvas`, `SparklineChart`) byggs nu på Vico i stället för handrullad Canvas-kod. Spara-knappen (`SaveButton`) är nu grön (`Emerald400`) i stället för tonal (#107) |
 | 3.1.0 | Historik: radera poster (aktivitet/screening/medicindos/händelse/sjukdomsincheckning) via långtryck (#105). Generaliserad spara-knapp (`SaveButton`) på alla formulär, inaktiverad tills osparade giltiga ändringar finns (dirty-state); bekräftelsedialog vid navigering bort med osparat (#104) |
