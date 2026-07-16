@@ -473,6 +473,20 @@ internal fun HealthTrendCard(weekly: WeeklyHealth) {
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
+        if (weekly.hasRestingHeartRateTrend) {
+            val known = weekly.dailyRestingHeartRate.filter { it.bpm != null }
+            Spacer(Modifier.height(12.dp))
+            Text(
+                stringResource(R.string.home_health_resting_hr_trend),
+                style = MaterialTheme.typography.labelSmall,
+                color = cs.onSurfaceVariant,
+            )
+            SparklineChart(
+                points   = known.map { it.bpm!!.toFloat() },
+                xLabels  = known.map { formatWeekdayShort(it.date) },
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
     }
 }
 

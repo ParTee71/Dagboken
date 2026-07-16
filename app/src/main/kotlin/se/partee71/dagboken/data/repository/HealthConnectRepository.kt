@@ -7,10 +7,12 @@ import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import se.partee71.dagboken.domain.model.DailyRestingHeartRate
 import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.model.HealthData
 import se.partee71.dagboken.domain.model.WeeklyHealth
@@ -40,7 +42,7 @@ interface HealthConnectRepository {
     /** Läser dagens datapunkter. Kastar vid I/O- eller behörighetsfel (mappas i ViewModel). */
     suspend fun readToday(): HealthData
 
-    /** Stegtrend (7 dagar) + senaste vilopuls för Idag-kortet (HLS-7). Kastar vid fel. */
+    /** Steg- och vilopulstrend (7 dagar) + senaste vilopuls för Idag-kortet (HLS-7). Kastar vid fel. */
     suspend fun readWeeklyHealth(): WeeklyHealth
 }
 
@@ -80,10 +82,7 @@ class HealthConnectRepositoryImpl(
         val startOfDay = LocalDate.now(zone).atStartOfDay(zone).toInstant()
         val dayRange = TimeRangeFilter.between(startOfDay, now)
 
-        val steps = client
-            .readRecords(ReadRecordsRequest(StepsRecord::class, timeRangeFilter = dayRange))
-            .records
-            .sumOf { it.count }
+        val steps = client.aggregateSteps(dayRange)
 
         val bpm = client
             .readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = dayRange))
@@ -112,29 +111,44 @@ class HealthConnectRepositoryImpl(
         val today = LocalDate.now(zone)
         val now = Instant.now()
 
+        val weekStart = today.minusDays(6).atStartOfDay(zone).toInstant()
+        val weekRange = TimeRangeFilter.between(weekStart, now)
+        val restingHrRecords = client
+            .readRecords(ReadRecordsRequest(RestingHeartRateRecord::class, timeRangeFilter = weekRange))
+            .records
+
         val daily = (6L downTo 0L).map { back ->
             val day = today.minusDays(back)
             val start = day.atStartOfDay(zone).toInstant()
             val rawEnd = day.plusDays(1).atStartOfDay(zone).toInstant()
             val end = if (rawEnd.isAfter(now)) now else rawEnd
-            val steps = client
-                .readRecords(ReadRecordsRequest(StepsRecord::class, timeRangeFilter = TimeRangeFilter.between(start, end)))
-                .records
-                .sumOf { it.count }
-            DailySteps(day, steps)
+            val dayRange = TimeRangeFilter.between(start, end)
+
+            val steps = client.aggregateSteps(dayRange)
+
+            // Vilopuls för dagen till trenddiagrammet: senaste registrerade
+            // RestingHeartRateRecord den dagen, annars skattad från dagens egna
+            // HeartRateRecord-prover (samma fallback-princip som veckovärdet nedan,
+            // fast per dag — grövre med få prover men tillräckligt för en trendlinje).
+            val dayRestingHr = restingHrRecords
+                .filter { !it.time.isBefore(start) && it.time.isBefore(end) }
+                .maxByOrNull { it.time }
+                ?.beatsPerMinute
+                ?: estimateRestingHeartRate(
+                    client
+                        .readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = dayRange))
+                        .records
+                        .flatMap { it.samples }
+                        .map { it.beatsPerMinute },
+                )
+
+            DailySteps(day, steps) to DailyRestingHeartRate(day, dayRestingHr)
         }
 
-        // Vilopuls senaste 7 dagarna — ta det senaste registrerade värdet.
-        val weekStart = today.minusDays(6).atStartOfDay(zone).toInstant()
-        val weekRange = TimeRangeFilter.between(weekStart, now)
-        val restingHr = client
-            .readRecords(ReadRecordsRequest(RestingHeartRateRecord::class, timeRangeFilter = weekRange))
-            .records
-            .maxByOrNull { it.time }
-            ?.beatsPerMinute
-        // Fallback: många källor (t.ex. Galaxy Watch via Samsung Health) skriver
-        // aldrig RestingHeartRateRecord. Saknas den skattar vi vilopulsen från
-        // veckans pulsprover i stället för att visa "—".
+        // Vilopuls senaste 7 dagarna (kortets StatPill) — det senaste registrerade
+        // värdet, eller en skattning från hela veckans pulsprover om posten saknas
+        // (fler prover ger en säkrare percentil än en enskild dags).
+        val restingHr = restingHrRecords.maxByOrNull { it.time }?.beatsPerMinute
             ?: estimateRestingHeartRate(
                 client
                     .readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = weekRange))
@@ -143,9 +157,17 @@ class HealthConnectRepositoryImpl(
                     .map { it.beatsPerMinute },
             )
 
-        WeeklyHealth(dailySteps = daily, restingHeartRate = restingHr)
+        WeeklyHealth(
+            dailySteps = daily.map { it.first },
+            dailyRestingHeartRate = daily.map { it.second },
+            restingHeartRate = restingHr,
+        )
     }
 }
+
+/** Summerar stegen i [range] via Health Connects aggregeringsmotor. */
+private suspend fun HealthConnectClient.aggregateSteps(range: TimeRangeFilter): Long =
+    aggregate(AggregateRequest(metrics = setOf(StepsRecord.COUNT_TOTAL), timeRangeFilter = range))[StepsRecord.COUNT_TOTAL] ?: 0L
 
 /**
  * Skattar vilopuls från en samling pulsprover när Health Connect saknar en egen

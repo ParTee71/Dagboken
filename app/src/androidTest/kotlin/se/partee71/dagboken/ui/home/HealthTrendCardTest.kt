@@ -13,6 +13,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import se.partee71.dagboken.domain.model.DailyRestingHeartRate
 import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.model.WeeklyHealth
 import se.partee71.dagboken.util.retryOnRenderGlitch
@@ -52,6 +53,40 @@ class HealthTrendCardTest {
             composeRule.onNodeWithText("8200").assertIsDisplayed()
             composeRule.onNodeWithText("Vilopuls").assertIsDisplayed()
             composeRule.onNodeWithText("58 bpm").assertIsDisplayed()
+        },
+    )
+
+    @Test fun trend_card_shows_resting_heart_rate_trend_label_with_two_known_days() = render(
+        content = {
+            HealthTrendCard(
+                WeeklyHealth(
+                    dailyRestingHeartRate = listOf(
+                        DailyRestingHeartRate(LocalDate.now().minusDays(1), 60),
+                        DailyRestingHeartRate(LocalDate.now(), 58),
+                    ),
+                    restingHeartRate = 58,
+                ),
+            )
+        },
+        assertions = {
+            composeRule.onNodeWithText("Vilopuls senaste 7 dagarna").assertIsDisplayed()
+        },
+    )
+
+    @Test fun trend_card_hides_resting_heart_rate_trend_with_fewer_than_two_known_days() = render(
+        content = {
+            HealthTrendCard(
+                WeeklyHealth(
+                    dailyRestingHeartRate = listOf(
+                        DailyRestingHeartRate(LocalDate.now().minusDays(1), null),
+                        DailyRestingHeartRate(LocalDate.now(), 58),
+                    ),
+                    restingHeartRate = 58,
+                ),
+            )
+        },
+        assertions = {
+            composeRule.onNodeWithText("Vilopuls senaste 7 dagarna").assertDoesNotExist()
         },
     )
 

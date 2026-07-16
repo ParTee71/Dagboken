@@ -19,19 +19,26 @@ data class HealthData(
 /** Stegsumma för en enskild dag (HLS-7). */
 data class DailySteps(val date: LocalDate, val steps: Long)
 
+/** Vilopuls (bpm) för en enskild dag (HLS-7); null om varken uppmätt eller skattningsbar. */
+data class DailyRestingHeartRate(val date: LocalDate, val bpm: Long?)
+
 /**
- * Veckoöversikt för Idag-kortet (HLS-7): stegtrend för senaste 7 dagarna och
- * vilopuls (resting heart rate) senaste veckan, läst live från Health Connect.
+ * Veckoöversikt för Idag-kortet (HLS-7): stegtrend och vilopulstrend för senaste
+ * 7 dagarna, läst live från Health Connect.
  */
 data class WeeklyHealth(
-    val dailySteps: List<DailySteps> = emptyList(),  // äldst -> nyast
-    val restingHeartRate: Long? = null,              // senaste vilopulsen (bpm)
+    val dailySteps: List<DailySteps> = emptyList(),                        // äldst -> nyast
+    val dailyRestingHeartRate: List<DailyRestingHeartRate> = emptyList(),  // äldst -> nyast
+    val restingHeartRate: Long? = null,                                    // senaste vilopulsen (bpm)
 ) {
     /** Senaste dagens (idag) steg, eller null om noll/saknas. */
     val stepsToday: Long? get() = dailySteps.lastOrNull()?.steps?.takeIf { it > 0 }
 
     /** Sparkline kräver minst 2 dagar med data (HEM-7-mönstret). */
     val hasStepTrend: Boolean get() = dailySteps.count { it.steps > 0 } >= 2
+
+    /** Sparkline kräver minst 2 dagar med vilopulsvärde. */
+    val hasRestingHeartRateTrend: Boolean get() = dailyRestingHeartRate.count { it.bpm != null } >= 2
 
     val hasAnyData: Boolean get() = dailySteps.any { it.steps > 0 } || restingHeartRate != null
 }
