@@ -24,7 +24,7 @@
 
 | ID | Krav |
 |----|------|
-| TP-1 | Android, **minSdk 30** (Android 11), targetSdk/compileSdk 35. |
+| TP-1 | Android, **minSdk 30** (Android 11), targetSdk 35, compileSdk 36 (krävs av Health Connect `connect-client` 1.1.0). |
 | TP-2 | UI byggt med **Jetpack Compose** + Material 3. |
 | TP-3 | Arkitektur: **MVVM** med Hilt (DI), Repository-mönster, ViewModels med `StateFlow`. |
 | TP-4 | Lokal lagring i **Room**; inställningar i **DataStore (Preferences)**. |
