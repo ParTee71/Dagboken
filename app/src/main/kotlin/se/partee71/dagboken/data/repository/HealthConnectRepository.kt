@@ -126,12 +126,39 @@ class HealthConnectRepositoryImpl(
 
         // Vilopuls senaste 7 dagarna — ta det senaste registrerade värdet.
         val weekStart = today.minusDays(6).atStartOfDay(zone).toInstant()
+        val weekRange = TimeRangeFilter.between(weekStart, now)
         val restingHr = client
-            .readRecords(ReadRecordsRequest(RestingHeartRateRecord::class, timeRangeFilter = TimeRangeFilter.between(weekStart, now)))
+            .readRecords(ReadRecordsRequest(RestingHeartRateRecord::class, timeRangeFilter = weekRange))
             .records
             .maxByOrNull { it.time }
             ?.beatsPerMinute
+        // Fallback: många källor (t.ex. Galaxy Watch via Samsung Health) skriver
+        // aldrig RestingHeartRateRecord. Saknas den skattar vi vilopulsen från
+        // veckans pulsprover i stället för att visa "—".
+            ?: estimateRestingHeartRate(
+                client
+                    .readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = weekRange))
+                    .records
+                    .flatMap { it.samples }
+                    .map { it.beatsPerMinute },
+            )
 
         WeeklyHealth(dailySteps = daily, restingHeartRate = restingHr)
     }
+}
+
+/**
+ * Skattar vilopuls från en samling pulsprover när Health Connect saknar en egen
+ * [RestingHeartRateRecord]. Vilopulsen ligger nära den lägsta ihållande pulsen,
+ * så vi tar den 5:e percentilen — det fångar vilan utan att fastna på ett enstaka
+ * artefaktlågt prov. Med få prover (heltalspercentil = 0) faller den tillbaka på
+ * det lägsta värdet. Returnerar null om inga prover finns.
+ *
+ * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
+ */
+internal fun estimateRestingHeartRate(bpmSamples: List<Long>): Long? {
+    if (bpmSamples.isEmpty()) return null
+    val sorted = bpmSamples.sorted()
+    val index = ((sorted.size - 1) * 5) / 100
+    return sorted[index]
 }
