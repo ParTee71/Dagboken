@@ -1,6 +1,6 @@
 ---
 name: release
-description: Dagboken release workflow — propose a version bump, confirm, update build.gradle.kts, commit and tag, then let GitHub Actions build the signed APK and publish a GitHub Release, and finally upload the APK to Google Drive /Dagboken. CI-first (works from the phone); local Android Studio build is a documented fallback. Only use when the user explicitly asks to release or ship a new version.
+description: Dagboken release workflow — propose a version bump, confirm, update build.gradle.kts + README, commit the release on master and create the tag locally, then hand the tag push to the user (the tag push triggers GitHub Actions, which builds the signed APK and publishes a GitHub Release). CI-first (works from the phone); local Android Studio build is a documented fallback. Only use when the user explicitly asks to release or ship a new version.
 ---
 
 # Dagboken Release Workflow
@@ -15,7 +15,9 @@ anything fails. **Only run this when the user explicitly asks to release.**
   SDK. Building locally in Android Studio is a documented fallback (see end).
 - **Publish:** pushing a tag `vX.Y.Z` triggers `release.yml`, which builds the signed APK and
   **publishes a GitHub Release** (auto-generated changelog + APK attached).
-- **Distribute:** the signed APK is then **uploaded to Google Drive `/Dagboken`** (mandatory).
+- **Who pushes the tag:** this skill prepares everything and creates the tag **locally**, but
+  **does not push it** — it hands the exact push command to the user (and copies the tag to the
+  clipboard). The user pushing the tag is what kicks off the build.
 - **Tools:** use the **GitHub MCP** tools (`mcp__github__*`) — there is no `gh` CLI here.
   The build runs in Actions, not in the session — don't run `./gradlew` in a phone/web session.
 
@@ -35,7 +37,11 @@ mcp__github__list_tags        (owner: ParTee71, repo: Dagboken)   # newest vX.Y.
 mcp__github__get_latest_release (owner: ParTee71, repo: Dagboken)  # or the last published release
 ```
 List commits since that tag: `git log <last-tag>..HEAD --oneline --no-merges`
-(or all commits if there is no tag).
+(or all commits if there is no tag). PRs are normally **squash-merged**, so each line is one
+conventional-commit subject (`feat(...)`, `fix(...)`, `chore(...)`) ending in `(#NN)` — that is
+your changelog material. A multi-PR feature landed since the last tag (e.g. an epic split into
+spike + implementation + follow-up) is still assessed as a whole: the **highest-severity** commit
+across the whole range sets the bump (one `feat` → minor, even amid many `chore`/`fix`).
 
 Classify the highest-severity change present:
 
@@ -57,15 +63,22 @@ Proceed with v<new_name>, or a different version?
 
 ---
 
-## Step 3 — Update version in build.gradle.kts
+## Step 3 — Update version + README version history
 
-Edit `app/build.gradle.kts`: `versionCode = <new>` and `versionName = "<new>"`. Verify the
-edit before committing. (Confirm `KRAVLISTA.md`/README version table already reflect the
-shipped changes — see `requirements-kravlista`.)
+1. Edit `app/build.gradle.kts`: `versionCode = <new>` and `versionName = "<new>"`. Verify the
+   edit before committing.
+2. **Add a new row to the README "Versionshistorik" table** for `<new_name>`, summarising the
+   user-visible changes shipped since the last release (mirror the style of the existing rows:
+   one dense sentence per theme, with the `(#NN)` PR/issue refs). Feature PRs land throughout the
+   cycle **without** touching this table — so at release time the row is *written here*, not merely
+   "confirmed". Read the commits from Step 2 to compose it.
+3. Confirm `KRAVLISTA.md` already reflects the shipped behaviour (features update it as they land,
+   per `requirements-kravlista`) and that `TP-1`'s SDK levels still match `build.gradle.kts`
+   (e.g. `compileSdk`) — fix if a build-config change slipped through without a requirement update.
 
 ---
 
-## Step 4 — Land the release commit on master and tag it
+## Step 4 — Land the release commit on master and create the tag
 
 Releases are published from **master**. If you are on a feature branch, get the version bump
 onto master first (open/merge a PR), then tag the master commit. With explicit release intent
@@ -73,58 +86,52 @@ the user may approve committing the bump directly to master.
 
 ```
 git commit -am "Release v<new_name>"
-git tag v<new_name>
+git push origin master            # land the release commit (retry with backoff on network errors)
+git tag v<new_name>               # create the tag LOCALLY — do not push it
 ```
 
 ---
 
-## Step 5 — Push the tag → CI builds & publishes
+## Step 5 — Hand the tag push to the user
 
-Push master (if it has the new commit) and the tag. **The tag push triggers `release.yml`.**
-```
-git push origin master          # if the release commit isn't on origin/master yet
-git push origin v<new_name>      # triggers the Release Build workflow
-```
-(Retry pushes with backoff on network errors.)
+**Do not push the tag yourself.** The tag push is the user's action — it triggers `release.yml`.
 
-Watch the run and confirm the Release with GitHub MCP:
+Copy the tag to the clipboard (best effort — pick what fits the environment):
 ```
-mcp__github__actions_list   (owner: ParTee71, repo: Dagboken)        # find the run
-mcp__github__actions_get    (... run_id)                              # poll status
-mcp__github__get_job_logs   (... run_id, failed_only: true)          # on failure
-mcp__github__get_release_by_tag (owner: ParTee71, repo: Dagboken, tag: v<new_name>)
+# Windows / Android Studio terminal
+Set-Clipboard "v<new_name>"
+# macOS:  printf 'v<new_name>' | pbcopy
+# Linux:  printf 'v<new_name>' | xclip -selection clipboard   # or wl-copy
+```
+
+Then ask the user to push it:
+```
+Release v<new_name> is committed on master and tagged locally.
+Push the tag to build & publish (copied to clipboard):
+
+    git push origin v<new_name>
+```
+After the user confirms they pushed it, optionally follow the run and the published Release:
+```
+mcp__github__actions_list        (owner: ParTee71, repo: Dagboken)          # find the run
+mcp__github__actions_get         (... run_id)                                # poll status
+mcp__github__get_job_logs        (... run_id, failed_only: true)             # on failure
+mcp__github__get_release_by_tag  (owner: ParTee71, repo: Dagboken, tag: v<new_name>)
 ```
 The workflow builds the signed APK and publishes a GitHub Release (changelog + APK). If it
-fails, report the failing step/log and stop. (An artifact-only build without a Release can be
-triggered manually via `mcp__github__actions_run_trigger` with the `version_name` input.)
+fails, report the failing step/log. (An artifact-only build without a Release can be triggered
+manually via `mcp__github__actions_run_trigger` with the `version_name` input.)
 
 ---
 
-## Step 6 — Upload the APK to Google Drive (mandatory)
-
-Get the signed APK — download it from the GitHub Release assets (or the run's
-`dagboken-release` artifact). Then upload to Drive `/Dagboken` with the helper (PowerShell,
-runs locally / in Android Studio — not from the phone):
-```powershell
-.\.claude\scripts\drive-upload.ps1 `
-    -FilePath "<path-to-downloaded.apk>" `
-    -FileName "dagboken-v<new_name>.apk"
-```
-The script tries, in order: **rclone** (`gdrive` remote) → **Google Drive for Desktop** sync
-folder → **REST API** (`~/.dagboken-drive-config.json`), and reports which worked. If it exits
-1, no method worked — report its instructions and ask the user to confirm once uploaded
-manually. This step is **required** before the release is considered done.
-
----
-
-## Step 7 — Summary
+## Step 6 — Summary
 
 ```
 Released: Dagboken v<new_name>  (versionCode <new_code>)
-Tag:      v<new_name>  pushed → release.yml
-CI:       <run URL / status>
-GitHub:   <Release URL>  (signed APK attached)
-Drive:    <uploaded to /Dagboken | manual upload pending>
+Commit:   Release v<new_name>  on master
+Tag:      v<new_name>  created locally — user pushes `git push origin v<new_name>` to publish
+CI:       <run URL / status, once the user has pushed the tag>
+GitHub:   <Release URL>  (signed APK attached, once built)
 ```
 
 ---
@@ -137,14 +144,5 @@ When CI isn't an option and you have the SDK + keystore locally:
 ```
 APK lands in `app/build/outputs/apk/release/` (filename includes a build timestamp). Requires
 `dagboken.jks` in `app/` and signing passwords via `local.properties` or the
-`SIGNING_*` environment variables. Then continue with Step 6 (Drive upload) and, if you want a
-published Release, push the matching tag so `release.yml` attaches the cloud-built APK.
-
-## Drive upload — first-time setup
-
-If the upload script finds no working method, run the setup helper once:
-```powershell
-.\.claude\scripts\setup-drive-token.ps1
-```
-It walks an OAuth device-code flow and saves credentials to `~/.dagboken-drive-config.json`.
-Alternatively install rclone and configure a remote named `gdrive` (type `drive`).
+`SIGNING_*` environment variables. For a published Release, push the matching tag so `release.yml`
+attaches the cloud-built APK.
