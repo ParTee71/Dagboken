@@ -288,6 +288,7 @@
     <string name="home_health_steps_today">Steg idag</string>
     <string name="home_health_resting_hr">Vilopuls</string>
     <string name="home_health_steps_trend">Steg senaste 7 dagarna</string>
+    <string name="home_health_resting_hr_trend">Vilopuls senaste 7 dagarna</string>
     <string name="home_health_connect_title">Koppla hälsa</string>
     <string name="home_health_connect_body">Visa steg och vilopuls från din klocka via Health Connect.</string>
 
