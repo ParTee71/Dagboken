@@ -225,60 +225,31 @@ fun HomeScreen(
                 }
             }
 
-            // Datumnavigering (#114) — bläddra till en tidigare dags checklista
-            item {
-                DateNavRow(
-                    selectedDate = uiState.selectedDate,
-                    isToday      = uiState.isToday,
-                    onPrevious   = vm::previousDay,
-                    onNext       = vm::nextDay,
-                )
-            }
-
-            // Veckosammanfattning (visas i början av veckan, sön/mån)
+            // Veckosammanfattning (visas i början av veckan, sön/mån) — ovanför datumnavigeringen
             weekSummary?.let { summary ->
                 item { WeekSummaryCard(summary) }
             }
 
-            // Hälsokort (Health Connect: stegtrend 7 dagar + vilopuls) — HLS-7
-            when (val hc = healthCard) {
-                is HealthCardUiState.Data ->
-                    if (hc.weekly.hasAnyData) item { HealthTrendCard(hc.weekly) }
-                HealthCardUiState.NotConnected ->
-                    item { HealthConnectPrompt(onClick = onOpenHalsa) }
-                HealthCardUiState.Loading -> Unit
-            }
-
-            // Dagens checklista — mediciner (avbockningsbara direkt)
-            if (uiState.todayMediciner.isNotEmpty()) {
-                item {
-                    MedicinChecklistCard(
-                        mediciner = uiState.todayMediciner,
-                        tagenCount = uiState.tagenCount,
-                        hasOverdue = uiState.overdueMediciner.isNotEmpty(),
-                        onToggle = vm::toggleMedicinTagen,
-                    )
-                }
-            }
-
-            // Dagens checklista — screening (inline-loggning per måltidstillfälle)
-            if (uiState.screeningEvents.isNotEmpty()) {
-                item {
-                    ScreeningChecklistCard(
-                        events                = uiState.screeningEvents,
-                        vm                    = screeningVm,
-                        selectedDate          = uiState.selectedDate,
-                        initialExpandedLabel  = initialExpandedScreeningLabel,
-                        onInitialConsumed     = onScreeningLabelConsumed,
-                    )
-                }
-            }
-
-            // Vid behov — favoritmarkerade mediciner (tryck loggar en dos direkt)
-            if (allFavoriter.isNotEmpty()) {
-                item {
-                    VidBehovChecklistCard(vm = medicinerVm, onEdit = onEditFavorit)
-                }
+            // Idag-kortet — datumnavigering (#114) + dagens checklistor (mediciner, screening,
+            // vid behov), grupperade i ett gemensamt kort eftersom alla styrs av samma valda dag
+            item {
+                IdagChecklistCard(
+                    selectedDate                  = uiState.selectedDate,
+                    isToday                       = uiState.isToday,
+                    onPreviousDay                 = vm::previousDay,
+                    onNextDay                     = vm::nextDay,
+                    mediciner                     = uiState.todayMediciner,
+                    tagenCount                    = uiState.tagenCount,
+                    medicinerOverdue              = uiState.overdueMediciner.isNotEmpty(),
+                    onToggleMedicin               = vm::toggleMedicinTagen,
+                    screeningEvents               = uiState.screeningEvents,
+                    screeningVm                   = screeningVm,
+                    initialExpandedScreeningLabel = initialExpandedScreeningLabel,
+                    onScreeningLabelConsumed      = onScreeningLabelConsumed,
+                    allFavoriter                  = allFavoriter,
+                    medicinerVm                   = medicinerVm,
+                    onEditFavorit                 = onEditFavorit,
+                )
             }
 
             // Pågående sjukdom-kort
@@ -320,6 +291,17 @@ fun HomeScreen(
                         }
                     }
                 }
+            }
+
+            // Hälsokort (Health Connect: stegtrend 7 dagar + vilopuls) — HLS-7.
+            // Placerat här, direkt ovanför energidiagrammet, eftersom båda hör
+            // tematiskt ihop (trender över tid) snarare än med dagens checklistor.
+            when (val hc = healthCard) {
+                is HealthCardUiState.Data ->
+                    if (hc.weekly.hasAnyData) item { HealthTrendCard(hc.weekly) }
+                HealthCardUiState.NotConnected ->
+                    item { HealthConnectPrompt(onClick = onOpenHalsa) }
+                HealthCardUiState.Loading -> Unit
             }
 
             // Diagram / Screening card
@@ -575,8 +557,68 @@ private fun ChecklistCardHeader(title: String, hasOverdue: Boolean) {
     }
 }
 
+/**
+ * Idag-kortet (HEM-16): datumnavigering + dagens checklistor (mediciner, screening,
+ * vid behov) i ett gemensamt kort — allt styrs av samma valda dag (HEM-14), så de
+ * grupperas visuellt i stället för att visas som fristående kort.
+ */
 @Composable
-private fun MedicinChecklistCard(
+private fun IdagChecklistCard(
+    selectedDate: LocalDate,
+    isToday: Boolean,
+    onPreviousDay: () -> Unit,
+    onNextDay: () -> Unit,
+    mediciner: List<Medicin>,
+    tagenCount: Int,
+    medicinerOverdue: Boolean,
+    onToggleMedicin: (Medicin) -> Unit,
+    screeningEvents: List<ScreeningEventStatus>,
+    screeningVm: AktiviteterViewModel,
+    initialExpandedScreeningLabel: String?,
+    onScreeningLabelConsumed: () -> Unit,
+    allFavoriter: List<Favorit>,
+    medicinerVm: MedicinerViewModel,
+    onEditFavorit: (String) -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    val screeningOverdue = screeningEvents.any { it.overdue }
+    val hasOverdue = medicinerOverdue || screeningOverdue
+
+    DagbokenCard(accentColor = if (hasOverdue) cs.error else null) {
+        DateNavRow(
+            selectedDate = selectedDate,
+            isToday      = isToday,
+            onPrevious   = onPreviousDay,
+            onNext       = onNextDay,
+        )
+        if (mediciner.isNotEmpty()) {
+            HorizontalDivider(color = cs.outlineVariant, modifier = Modifier.padding(vertical = 16.dp))
+            MedicinChecklistSection(
+                mediciner  = mediciner,
+                tagenCount = tagenCount,
+                hasOverdue = medicinerOverdue,
+                onToggle   = onToggleMedicin,
+            )
+        }
+        if (screeningEvents.isNotEmpty()) {
+            HorizontalDivider(color = cs.outlineVariant, modifier = Modifier.padding(vertical = 16.dp))
+            ScreeningChecklistSection(
+                events               = screeningEvents,
+                vm                   = screeningVm,
+                selectedDate         = selectedDate,
+                initialExpandedLabel = initialExpandedScreeningLabel,
+                onInitialConsumed    = onScreeningLabelConsumed,
+            )
+        }
+        if (allFavoriter.isNotEmpty()) {
+            HorizontalDivider(color = cs.outlineVariant, modifier = Modifier.padding(vertical = 16.dp))
+            VidBehovChecklistSection(vm = medicinerVm, onEdit = onEditFavorit)
+        }
+    }
+}
+
+@Composable
+private fun MedicinChecklistSection(
     mediciner: List<Medicin>,
     tagenCount: Int,
     hasOverdue: Boolean,
@@ -586,7 +628,7 @@ private fun MedicinChecklistCard(
     var showTaken by remember { mutableStateOf(false) }
     val visible = mediciner.filter { !it.tagen || showTaken }
 
-    DagbokenCard(accentColor = if (hasOverdue) cs.error else null) {
+    Column {
         ChecklistCardHeader(
             title      = stringResource(R.string.home_checklist_mediciner_title),
             hasOverdue = hasOverdue,
@@ -634,7 +676,7 @@ private fun MedicinChecklistCard(
 }
 
 @Composable
-private fun VidBehovChecklistCard(
+private fun VidBehovChecklistSection(
     vm: MedicinerViewModel,
     onEdit: (String) -> Unit,
 ) {
@@ -643,7 +685,7 @@ private fun VidBehovChecklistCard(
     val favoritNotes by vm.favoritNotes.collectAsState()
     var deleteTarget by remember { mutableStateOf<Favorit?>(null) }
 
-    DagbokenCard {
+    Column {
         ChecklistCardHeader(title = stringResource(R.string.home_checklist_vidbehov_title), hasOverdue = false)
         FavoriterRow(
             favoriter        = favoriter,
@@ -779,7 +821,7 @@ internal fun FavoriterRow(
 }
 
 @Composable
-private fun ScreeningChecklistCard(
+private fun ScreeningChecklistSection(
     events: List<ScreeningEventStatus>,
     vm: AktiviteterViewModel,
     selectedDate: LocalDate,
@@ -799,7 +841,7 @@ private fun ScreeningChecklistCard(
         onInitialConsumed()
     }
 
-    DagbokenCard(accentColor = if (hasOverdue) cs.error else null) {
+    Column {
         ChecklistCardHeader(
             title      = stringResource(R.string.home_daily_screening),
             hasOverdue = hasOverdue,

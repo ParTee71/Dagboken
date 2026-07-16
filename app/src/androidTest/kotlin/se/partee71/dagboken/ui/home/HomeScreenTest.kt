@@ -389,6 +389,46 @@ class HomeScreenTest {
         }
     }
 
+    // ─── Idag-kortet: gruppering (#129) ───────────────────────────────────────
+
+    @Test fun date_nav_row_is_positioned_above_medicine_checklist_in_the_same_card() = retryOnRenderGlitch {
+        setUp()
+        try {
+            val med = Medicin(
+                id = "grouping-med", timestamp = "${today}T08:00:00.000Z", datum = today, tid = "08:00",
+                namn = "Levaxin", dos = "50", enhet = "mcg", tidpunkt = "Morgon", tagen = false,
+            )
+            runBlocking { medicRepo.saveMedicin(med) }
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Levaxin")).fetchSemanticsNodes().isNotEmpty()
+            }
+            val dateNavTop = composeRule.onNodeWithContentDescription("Föregående dag").fetchSemanticsNode().boundsInRoot.top
+            val medicinTop = composeRule.onNodeWithText("Levaxin").fetchSemanticsNode().boundsInRoot.top
+            assert(dateNavTop < medicinTop) {
+                "Datumnavigeringen ska ligga ovanför medicinchecklistan i samma kort ($dateNavTop < $medicinTop)"
+            }
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun health_prompt_is_positioned_directly_above_the_energy_diagram_card() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.waitForIdle()
+            // FakeHealthRepo() → HealthAvailability.NOT_INSTALLED → "Koppla hälsa"-raden visas.
+            val healthPromptTop = composeRule.onNodeWithText("Koppla hälsa").fetchSemanticsNode().boundsInRoot.top
+            val energyDiagramTop = composeRule.onNodeWithText("Energi senaste 7 dagarna").fetchSemanticsNode().boundsInRoot.top
+            assert(healthPromptTop < energyDiagramTop) {
+                "Hälsokortet ska ligga direkt ovanför energidiagrammet ($healthPromptTop < $energyDiagramTop)"
+            }
+        } finally {
+            tearDown()
+        }
+    }
+
     @Test fun new_handelse_fab_action_passes_the_currently_selected_date() = retryOnRenderGlitch {
         setUp()
         try {
