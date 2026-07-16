@@ -1,11 +1,13 @@
 package se.partee71.dagboken.ui.diagram
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
@@ -91,20 +93,30 @@ fun LineChartCanvas(
         }
     }
 
+    // Axeletiketterna följer temat explicit (i stället för Vicos inbyggda standardfärg)
+    // eftersom den inte har tillräcklig kontrast mot appens mörka bakgrund (#123).
+    val axisLabelColor = MaterialTheme.colorScheme.onSurface
+    val axisLabel = rememberAxisLabelComponent(color = axisLabelColor)
+
     CartesianChartHost(
         chart = rememberCartesianChart(
             rememberLineCartesianLayer(
                 lineProvider = LineCartesianLayer.LineProvider.series(
                     segments.map { seg ->
-                        LineCartesianLayer.rememberLine(fill = LineCartesianLayer.LineFill.single(fill(seg.color)))
+                        LineCartesianLayer.rememberLine(
+                            fill = LineCartesianLayer.LineFill.single(fill(seg.color)),
+                            areaFill = LineCartesianLayer.AreaFill.single(fill = fill(seg.color.copy(alpha = 0.24f))),
+                            pointConnector = LineCartesianLayer.PointConnector.cubic(),
+                        )
                     },
                 ),
                 rangeProvider = remember(minValue, maxValue) {
                     CartesianLayerRangeProvider.fixed(minY = minValue.toDouble(), maxY = maxValue.toDouble())
                 },
             ),
-            startAxis = VerticalAxis.rememberStart(),
+            startAxis = VerticalAxis.rememberStart(label = axisLabel),
             bottomAxis = HorizontalAxis.rememberBottom(
+                label = axisLabel,
                 valueFormatter = { _, value, _ -> dateLabels.getOrNull(value.toInt())?.ifEmpty { " " } ?: " " },
             ),
         ),

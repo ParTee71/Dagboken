@@ -63,7 +63,7 @@
 | HEM-3 | ~~Visa **stat-pills**: antal tagna/totala mediciner idag samt senaste aktivitetens energinivå.~~ *(borttaget)* |
 | HEM-4 | Visa en **checklista för vald dag** (dagens datum eller en tidigare dag, se HEM-14): alla dagens mediciner (avbockningsbara direkt) och alla aktiverade screeningtillfällen (per måltidstillfälle), med status loggad/försenad/kommande. Kort med försenade poster märks med en textetikett ("Försenat") utöver accentfärg. "Försenat"-status gäller endast dagens datum — en tidigare dags ologgade post är bara ologgad, inte försenad. |
 | HEM-5 | Mediciner ska kunna markeras som tagna direkt i checklistan utan navigering. Screening ska kunna loggas **inline**: expandera radens tillhörande måltidstillfälle och fyll i direkt på Idag, utan att navigera bort. Inline-formuläret presenteras som **svepbara steg-kort** (energi → stress → symptom, där symptomsteget bara visas när symptom är konfigurerade) med stegindikator och Föregående/Nästa/Spara, via delad komponent `StepwiseScreeningForm`. Loggas mot den dag som visas i checklistan (HEM-14), inte alltid dagens datum. |
-| HEM-7 | Visa **sparkline-diagram** över **genomsnittlig energi per dag** senaste 7 dagarna, baserat på screenings (minst 2 datapunkter krävs, annars uppmaning att logga); länk till Trender-ytan (§17) för fördjupning. |
+| HEM-7 | Visa **sparkline-diagram** över **genomsnittlig energi per dag** senaste 7 dagarna, baserat på screenings (minst 2 datapunkter krävs, annars uppmaning att logga); länk till Trender-ytan (§17) för fördjupning. Delar linjestil (mjuk kurva + gradientfyllning, TRD-6) med Trender-diagrammet för visuell konsekvens. |
 | HEM-8 | ~~Visa **snabbåtgärder**: "Logga aktivitet" och "Mediciner".~~ *(ersatt av global "+"-FAB med snabbval: Aktivitet/Engångsdos/Ny vid behov-favorit/Händelse)* |
 | HEM-9 | Visa **kontobubbla** (avatar/foto) som öppnar konto-bottensheet (logga in/ut, Hantera). |
 | HEM-10 | Säkerställa vald dags medicinposter genereras (`ensureEntriesForDate`) — vid skärmstart för dagens datum, och på nytt varje gång användaren bläddrar till ett nytt datum (HEM-14), inklusive en tidigare dag som aldrig var "idag" senast appen var öppen. |
@@ -335,6 +335,7 @@
 | TRD-3 | Gemensam periodväljare (7/14/30/90 dagar) gäller för alla serier oavsett ursprung. |
 | TRD-4 | Trender-ytan skriver inte till någon datakälla — ren läsvy. |
 | TRD-5 | Nås från bottennavigeringen samt via en genväg från Idag-skärmens energikort (§4, HEM-7). |
+| TRD-6 | Diagrammets linjer renderas som mjuka kurvor med en gradientfyllning under linjen i seriens färg; axeletiketterna följer appens ljusa/mörka tema (tillräcklig kontrast i båda lägena). |
 
 ---
 
