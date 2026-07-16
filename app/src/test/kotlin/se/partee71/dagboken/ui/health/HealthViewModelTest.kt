@@ -14,6 +14,7 @@ import org.junit.Test
 import se.partee71.dagboken.data.repository.HealthAvailability
 import se.partee71.dagboken.data.repository.HealthConnectRepository
 import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.WeeklyHealth
 import java.time.Duration
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -32,6 +33,8 @@ class HealthViewModelTest {
         override suspend fun hasAllPermissions() = granted
         override suspend fun readToday(): HealthData =
             if (throwOnRead) throw RuntimeException("boom") else data
+        override suspend fun readWeeklyHealth() =
+            if (throwOnRead) throw RuntimeException("boom") else WeeklyHealth()
     }
 
     @Before fun setUp() { Dispatchers.setMain(testDispatcher) }
