@@ -21,11 +21,14 @@ import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.ScreeningTime
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HealthAvailability
+import se.partee71.dagboken.data.repository.HealthConnectRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
+import se.partee71.dagboken.domain.model.WeeklyHealth
 import se.partee71.dagboken.domain.model.tidpunktSortIndex
 import se.partee71.dagboken.domain.model.tidpunktToHour
 import se.partee71.dagboken.ui.formatDayDate
@@ -113,6 +116,17 @@ data class HomeUiState(
     val isToday: Boolean = true,
 )
 
+/** Tillstånd för Idag-hälsokortet (HLS-7). */
+sealed interface HealthCardUiState {
+    data object Loading : HealthCardUiState
+
+    /** Health Connect saknas eller behörighet ej beviljad — visa diskret koppla-rad, ingen begäran här. */
+    data object NotConnected : HealthCardUiState
+
+    /** Veckodata inläst. */
+    data class Data(val weekly: WeeklyHealth) : HealthCardUiState
+}
+
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val aktiviteterRepo: AktiviteterRepository,
@@ -120,6 +134,7 @@ class HomeViewModel @Inject constructor(
     private val authRepo: FirebaseAuthRepository,
     private val prefs: PreferencesRepository,
     private val sjukdomarRepo: SjukdomarRepository,
+    private val healthRepo: HealthConnectRepository,
 ) : ViewModel() {
 
     private val _isSigningIn = MutableStateFlow(false)
@@ -225,6 +240,30 @@ class HomeViewModel @Inject constructor(
             computeWeekSummary(today, screenings, meds)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    // Idag-hälsokort (HLS-7): stegtrend + vilopuls. Laddas fristående (som weekSummary)
+    // för att inte blockera Idag-render eller röra det stora combine-flödet ovan.
+    private val _healthCard = MutableStateFlow<HealthCardUiState>(HealthCardUiState.Loading)
+    val healthCard: StateFlow<HealthCardUiState> = _healthCard.asStateFlow()
+
+    init { refreshHealthCard() }
+
+    /** Läser om hälsokortet — anropas vid start och när Idag återfår fokus. */
+    fun refreshHealthCard() {
+        viewModelScope.launch {
+            if (healthRepo.availability() != HealthAvailability.AVAILABLE) {
+                _healthCard.value = HealthCardUiState.NotConnected
+                return@launch
+            }
+            val granted = runCatching { healthRepo.hasAllPermissions() }.getOrDefault(false)
+            if (!granted) {
+                _healthCard.value = HealthCardUiState.NotConnected
+                return@launch
+            }
+            _healthCard.value = runCatching { HealthCardUiState.Data(healthRepo.readWeeklyHealth()) }
+                .getOrElse { HealthCardUiState.NotConnected }
+        }
+    }
 
     fun toggleMedicinTagen(medicin: Medicin) {
         viewModelScope.launch { medicinerRepo.toggleTagen(medicin.id, !medicin.tagen) }

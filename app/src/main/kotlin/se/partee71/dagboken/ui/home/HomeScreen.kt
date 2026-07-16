@@ -26,7 +26,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
@@ -76,7 +78,9 @@ import se.partee71.dagboken.ui.aktiviteter.AktiviteterViewModel
 import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.components.ConfirmDialog
+import se.partee71.dagboken.domain.model.WeeklyHealth
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.StatPill
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 import se.partee71.dagboken.ui.components.StepwiseScreeningForm
@@ -96,6 +100,7 @@ fun HomeScreen(
     onAddHandelse: (LocalDate) -> Unit,
     onAddFavorit: () -> Unit,
     onEditFavorit: (String) -> Unit,
+    onOpenHalsa: () -> Unit,
     snackbarHostState: SnackbarHostState,
     initialExpandedScreeningLabel: String? = null,
     onScreeningLabelConsumed: () -> Unit = {},
@@ -121,6 +126,7 @@ fun HomeScreen(
     val allFavoriter by medicinerVm.allFavoriter.collectAsState()
     val cooldownWarning by medicinerVm.cooldownWarning.collectAsState()
     val weekSummary by vm.weekSummary.collectAsState()
+    val healthCard by vm.healthCard.collectAsState()
 
     DagbokenScaffold(
         navigationIcon = {
@@ -232,6 +238,15 @@ fun HomeScreen(
             // Veckosammanfattning (visas i början av veckan, sön/mån)
             weekSummary?.let { summary ->
                 item { WeekSummaryCard(summary) }
+            }
+
+            // Hälsokort (Health Connect: stegtrend 7 dagar + vilopuls) — HLS-7
+            when (val hc = healthCard) {
+                is HealthCardUiState.Data ->
+                    if (hc.weekly.hasAnyData) item { HealthTrendCard(hc.weekly) }
+                HealthCardUiState.NotConnected ->
+                    item { HealthConnectPrompt(onClick = onOpenHalsa) }
+                HealthCardUiState.Loading -> Unit
             }
 
             // Dagens checklista — mediciner (avbockningsbara direkt)
@@ -446,6 +461,86 @@ private fun WeekSummaryCard(summary: WeekSummary) {
             style = MaterialTheme.typography.bodyMedium,
             color = cs.onSurfaceVariant,
         )
+    }
+}
+
+@Composable
+internal fun HealthTrendCard(weekly: WeeklyHealth) {
+    val cs = MaterialTheme.colorScheme
+    val dash = stringResource(R.string.halsa_no_value)
+
+    DagbokenCard(title = stringResource(R.string.home_health_title)) {
+        Row(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            StatPill(
+                icon           = Icons.Filled.DirectionsWalk,
+                value          = weekly.stepsToday?.toString() ?: dash,
+                label          = stringResource(R.string.home_health_steps_today),
+                containerColor = cs.primaryContainer,
+                contentColor   = cs.onPrimaryContainer,
+                modifier       = Modifier.weight(1f),
+            )
+            StatPill(
+                icon           = Icons.Filled.MonitorHeart,
+                value          = weekly.restingHeartRate?.let { stringResource(R.string.halsa_bpm, it) } ?: dash,
+                label          = stringResource(R.string.home_health_resting_hr),
+                containerColor = cs.secondaryContainer,
+                contentColor   = cs.onSecondaryContainer,
+                modifier       = Modifier.weight(1f),
+            )
+        }
+        if (weekly.hasStepTrend) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                stringResource(R.string.home_health_steps_trend),
+                style = MaterialTheme.typography.labelSmall,
+                color = cs.onSurfaceVariant,
+            )
+            SparklineChart(
+                points   = weekly.dailySteps.map { it.steps.toFloat() },
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun HealthConnectPrompt(onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    DagbokenCard(onClick = onClick) {
+        Row(
+            modifier              = Modifier.fillMaxWidth(),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                Icons.Filled.MonitorHeart,
+                contentDescription = null,
+                tint     = cs.primary,
+                modifier = Modifier.size(28.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.home_health_connect_title),
+                    style      = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = cs.onSurface,
+                )
+                Text(
+                    stringResource(R.string.home_health_connect_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = cs.onSurfaceVariant,
+                )
+            }
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint     = cs.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
+            )
+        }
     }
 }
 
