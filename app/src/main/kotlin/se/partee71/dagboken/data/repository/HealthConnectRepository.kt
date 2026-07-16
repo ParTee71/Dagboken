@@ -7,7 +7,6 @@ import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
-import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.CoroutineDispatcher
@@ -82,7 +81,7 @@ class HealthConnectRepositoryImpl(
         val startOfDay = LocalDate.now(zone).atStartOfDay(zone).toInstant()
         val dayRange = TimeRangeFilter.between(startOfDay, now)
 
-        val steps = client.aggregateSteps(dayRange)
+        val steps = client.stepsForRange(dayRange)
 
         val bpm = client
             .readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = dayRange))
@@ -124,7 +123,7 @@ class HealthConnectRepositoryImpl(
             val end = if (rawEnd.isAfter(now)) now else rawEnd
             val dayRange = TimeRangeFilter.between(start, end)
 
-            val steps = client.aggregateSteps(dayRange)
+            val steps = client.stepsForRange(dayRange)
 
             // Vilopuls för dagen till trenddiagrammet: senaste registrerade
             // RestingHeartRateRecord den dagen, annars skattad från dagens egna
@@ -165,22 +164,44 @@ class HealthConnectRepositoryImpl(
     }
 }
 
-/** Summerar stegen i [range] via Health Connects aggregeringsmotor. */
-private suspend fun HealthConnectClient.aggregateSteps(range: TimeRangeFilter): Long =
-    aggregate(AggregateRequest(metrics = setOf(StepsRecord.COUNT_TOTAL), timeRangeFilter = range))[StepsRecord.COUNT_TOTAL] ?: 0L
+/** Läser dagens/periodens steg ur Health Connect och väljer den mest kompletta källan. */
+private suspend fun HealthConnectClient.stepsForRange(range: TimeRangeFilter): Long {
+    val records = readRecords(ReadRecordsRequest(StepsRecord::class, timeRangeFilter = range)).records
+    return mostCompleteStepSum(records.map { OriginSteps(it.metadata.dataOrigin.packageName, it.count) })
+}
+
+/** En stegpost knuten till sin källa (dataOrigin-paketnamn). */
+internal data class OriginSteps(val origin: String, val count: Long)
+
+/**
+ * Väljer den mest kompletta stegsumman när flera källor skrivit steg för samma
+ * period. Health Connects `COUNT_TOTAL` de-dupliderar per tidslucka och kan då
+ * tappa steg när källorna (t.ex. telefonens pedometer + Galaxy Watch via Samsung
+ * Health) inte överlappar perfekt — appen visade då färre steg än den bärbara
+ * enheten. Vi summerar i stället per källa och tar den högsta summan; ingen
+ * dubbelräkning eftersom vi aldrig summerar över källor. Returnerar 0 om inga
+ * poster finns.
+ *
+ * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
+ */
+internal fun mostCompleteStepSum(records: List<OriginSteps>): Long =
+    records.groupBy { it.origin }
+        .values
+        .maxOfOrNull { origin -> origin.sumOf(OriginSteps::count) }
+        ?: 0L
 
 /**
  * Skattar vilopuls från en samling pulsprover när Health Connect saknar en egen
- * [RestingHeartRateRecord]. Vilopulsen ligger nära den lägsta ihållande pulsen,
- * så vi tar den 5:e percentilen — det fångar vilan utan att fastna på ett enstaka
- * artefaktlågt prov. Med få prover (heltalspercentil = 0) faller den tillbaka på
- * det lägsta värdet. Returnerar null om inga prover finns.
+ * [RestingHeartRateRecord]. Vilopulsen ≈ den lägsta ihållande pulsen (t.ex. under
+ * djupsömn), så vi tar medelvärdet av den lägsta 5-percentilen: det fångar den
+ * vilande (låga) änden utan att fastna på ett enda artefaktlågt prov (medelvärdet
+ * jämnar ut det). Minst ett prov används alltid. Returnerar null om inga prover finns.
  *
  * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
  */
 internal fun estimateRestingHeartRate(bpmSamples: List<Long>): Long? {
     if (bpmSamples.isEmpty()) return null
     val sorted = bpmSamples.sorted()
-    val index = ((sorted.size - 1) * 5) / 100
-    return sorted[index]
+    val count = (sorted.size / 20).coerceAtLeast(1)
+    return sorted.take(count).average().roundToLong()
 }
