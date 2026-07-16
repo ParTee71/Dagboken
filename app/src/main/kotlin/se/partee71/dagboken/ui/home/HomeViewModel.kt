@@ -32,6 +32,7 @@ import se.partee71.dagboken.domain.model.WeeklyHealth
 import se.partee71.dagboken.domain.model.tidpunktSortIndex
 import se.partee71.dagboken.domain.model.tidpunktToHour
 import se.partee71.dagboken.ui.formatDayDate
+import se.partee71.dagboken.ui.formatWeekdayShort
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -287,20 +288,8 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun dayLabel(datum: String): String {
-        return try {
-            when (LocalDate.parse(datum).dayOfWeek) {
-                DayOfWeek.MONDAY    -> "Mån"
-                DayOfWeek.TUESDAY   -> "Tis"
-                DayOfWeek.WEDNESDAY -> "Ons"
-                DayOfWeek.THURSDAY  -> "Tor"
-                DayOfWeek.FRIDAY    -> "Fre"
-                DayOfWeek.SATURDAY  -> "Lör"
-                DayOfWeek.SUNDAY    -> "Sön"
-                else                -> ""
-            }
-        } catch (_: Exception) { "" }
-    }
+    private fun dayLabel(datum: String): String =
+        try { formatWeekdayShort(LocalDate.parse(datum)) } catch (_: Exception) { "" }
 
 }
 

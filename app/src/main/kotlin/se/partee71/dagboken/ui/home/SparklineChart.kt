@@ -9,10 +9,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.fill
+import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
+import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
@@ -24,11 +29,14 @@ import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
  *
  * Minimigränsen på 2 datapunkter (HEM-7) hålls av anroparen (`HomeScreen`); denna
  * komponent skyddar sig ändå defensivt mot färre punkter.
+ *
+ * Ritar y-axel (värdeskala) och, när [xLabels] anges, x-axel (dagsetiketter) — se #132.
  */
 @Composable
 fun SparklineChart(
-    points: List<Float>,    // energy values 1..10
+    points: List<Float>,    // energy values 1..10, or step counts etc.
     modifier: Modifier = Modifier,
+    xLabels: List<String> = emptyList(),
 ) {
     if (points.size < 2) return
 
@@ -40,6 +48,10 @@ fun SparklineChart(
             lineSeries { series(y = points) }
         }
     }
+
+    // Axeletiketterna följer temat explicit (samma fix som LineChartCanvas, #123).
+    val axisLabelColor = MaterialTheme.colorScheme.onSurface
+    val axisLabel = rememberAxisLabelComponent(color = axisLabelColor)
 
     CartesianChartHost(
         chart = rememberCartesianChart(
@@ -54,10 +66,15 @@ fun SparklineChart(
                     ),
                 ),
             ),
+            startAxis = VerticalAxis.rememberStart(label = axisLabel),
+            bottomAxis = HorizontalAxis.rememberBottom(
+                label = axisLabel,
+                valueFormatter = { _, value, _ -> xLabels.getOrNull(value.toInt())?.ifEmpty { " " } ?: " " },
+            ),
         ),
         modelProducer = modelProducer,
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp),
+            .height(if (xLabels.isEmpty()) 60.dp else 76.dp),
     )
 }

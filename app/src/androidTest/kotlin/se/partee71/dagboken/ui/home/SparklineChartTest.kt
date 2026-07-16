@@ -48,6 +48,16 @@ class SparklineChartTest {
         SparklineChart(points = emptyList())
     }
 
+    // ─── Axlar (#132) ──────────────────────────────────────────────────────────
+
+    @Test fun renders_without_crash_with_x_labels() = renderAndRetry {
+        SparklineChart(points = List(7) { (it + 1).toFloat() }, xLabels = listOf("Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"))
+    }
+
+    @Test fun renders_without_crash_when_x_labels_shorter_than_points() = renderAndRetry {
+        SparklineChart(points = List(7) { (it + 1).toFloat() }, xLabels = listOf("Mån", "Tis"))
+    }
+
     // ─── Mörkt tema (#123) ─────────────────────────────────────────────────────
 
     @Test fun renders_without_crash_in_dark_theme() = retryOnRenderGlitch {

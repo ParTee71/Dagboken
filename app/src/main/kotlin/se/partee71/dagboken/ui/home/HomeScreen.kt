@@ -85,6 +85,7 @@ import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 import se.partee71.dagboken.ui.components.StepwiseScreeningForm
 import se.partee71.dagboken.ui.formatDisplayDate
+import se.partee71.dagboken.ui.formatWeekdayShort
 import se.partee71.dagboken.ui.mediciner.MedicinerViewModel
 import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 import java.time.LocalDate
@@ -310,23 +311,9 @@ fun HomeScreen(
                     if (uiState.screeningPoints.size >= 2) {
                         SparklineChart(
                             points   = uiState.screeningPoints,
+                            xLabels  = uiState.screeningLabels,
                             modifier = Modifier.padding(top = 8.dp),
                         )
-                        if (uiState.screeningLabels.isNotEmpty()) {
-                            Spacer(Modifier.height(4.dp))
-                            Row(
-                                modifier              = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                uiState.screeningLabels.forEach { label ->
-                                    Text(
-                                        text  = label,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = cs.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
                         Spacer(Modifier.height(4.dp))
                     } else {
                         Text(
@@ -482,6 +469,7 @@ internal fun HealthTrendCard(weekly: WeeklyHealth) {
             )
             SparklineChart(
                 points   = weekly.dailySteps.map { it.steps.toFloat() },
+                xLabels  = weekly.dailySteps.map { formatWeekdayShort(it.date) },
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
