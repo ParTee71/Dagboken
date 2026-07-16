@@ -130,6 +130,7 @@ Se [.github/workflows/android.yml](.github/workflows/android.yml).
 
 | Version | Innehåll |
 |---------|----------|
+| 3.5.1 | Fix: stegantalet på Idag/Hälsa visade färre steg än enheten — `COUNT_TOTAL` de-duplicerade per tidslucka och tappade steg när flera källor (telefon + klocka via Samsung Health) inte överlappade; summeras nu per källa och den mest kompletta källan väljs. Fix: vilopulsskattningen (när `RestingHeartRateRecord` saknas) låg för högt — skattas nu som medelvärdet av lägsta 5-percentilen ≈ lägsta ihållande pulsen (#135) |
 | 3.5.0 | Fix: stegantalet på Idag/Hälsa dubbelräknades när flera källor (t.ex. telefon och klocka) skrev överlappande stegposter — läses nu via Health Connects aggregeringsmotor i stället för en rå summering. Nytt: vilopulstrend för senaste 7 dagarna på Idag-hälsokortet, delad `SparklineChart` (#134) |
 | 3.4.1 | **Idag:** checklistan för mediciner/screening/vid behov-mediciner grupperas nu visuellt i ett gemensamt kort, hälsokortet flyttat till energisektionen (#130). Fix: vilopuls på Idag skattas från veckans pulsdata (5:e percentilen) när `RestingHeartRateRecord` saknas (t.ex. Galaxy Watch via Samsung Health) i stället för att visa "—" (#131). Fix: energidiagrammet (HEM-7) och stegtrenden (HLS-7) på Idag visar nu värden på både x- och y-axeln — delad `SparklineChart` fick riktiga axlar (#133) |
 | ~~3.4.0~~ | *(taggad felaktigt mot en gammal commit av misstag — samma innehåll som 3.4.1 ovan, inget APK publicerat)* |
