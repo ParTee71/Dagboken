@@ -160,6 +160,7 @@ fun AppNavigation(
                     onAddHandelse         = { date -> navController.navigate(Routes.addHandelse(date.toString())) },
                     onAddFavorit          = { navController.navigate(Routes.ADD_FAVORIT) },
                     onEditFavorit         = { id -> navController.navigate(Routes.editFavorit(id)) },
+                    onOpenHalsa           = { navController.navigate(Routes.HALSA) },
                     snackbarHostState     = snackbarHostState,
                 )
             }

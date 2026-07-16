@@ -10,6 +10,7 @@
     <!-- Health Connect: läsbehörigheter (runtime-samtycke via Health Connect), epic #54 / spike #56 -->
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
 
     <!-- Paketsynlighet (Android 11+) så appen kan upptäcka/öppna Health Connect -->

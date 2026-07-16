@@ -283,6 +283,13 @@
     <string name="halsa_error_title">Kunde inte läsa hälsodata</string>
     <string name="halsa_error_body">Något gick fel vid hämtning från Health Connect. Försök igen.</string>
     <string name="halsa_retry">Försök igen</string>
+    <!-- Idag-hälsokort (HLS-7) -->
+    <string name="home_health_title">Hälsa</string>
+    <string name="home_health_steps_today">Steg idag</string>
+    <string name="home_health_resting_hr">Vilopuls</string>
+    <string name="home_health_steps_trend">Steg senaste 7 dagarna</string>
+    <string name="home_health_connect_title">Koppla hälsa</string>
+    <string name="home_health_connect_body">Visa steg och vilopuls från din klocka via Health Connect.</string>
 
     <!-- Sjukdomar -->
     <string name="sjukdomar_title">Sjukdomar</string>

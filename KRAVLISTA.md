@@ -71,6 +71,7 @@
 | HEM-12 | Pågående sjukdomsepisod ska visas som ett accentmärkt kort som länkar till sjukdomsdetaljer (Hantera → Sjukdomar). |
 | HEM-13 | I början av veckan (söndag/måndag) ska ett **veckosammanfattningskort** visas överst på Idag: energitrend (senaste 7 dagarnas genomsnittliga screeningenergi jämfört med föregående 7 dagar, ↑/↓/oförändrad) och andel tagna av veckans schemalagda doser (%). Beräknas live från befintliga poster via delad `DagbokenCard` — ingen ny persisterad data. Döljs om underlag saknas. |
 | HEM-14 | Idag-checklistan (mediciner + screening) ska kunna bläddras till en **tidigare dag** via en datumnavigeringsrad ("< Föregående dag · [datum] · Nästa dag >"). Kan inte bläddra in i framtiden — "Nästa dag" är avstängd på dagens datum. Att öppna "Ny händelse" från en tidigare dags Idag-vy förifyller den nya händelsens datum med den visade dagen. |
+| HEM-15 | Idag visar ett **hälsokort** (Health Connect) med stegtrend för senaste 7 dagarna och vilopuls senaste veckan — se HLS-7 (§19). Döljs/ersätts av en diskret koppla-rad när data/behörighet saknas. |
 
 ---
 
@@ -365,8 +366,9 @@
 | ID | Krav |
 |----|------|
 | HLS-1 | Hälsodata hämtas via **Health Connect** (`androidx.health.connect:connect-client`), read-only. Ingen Samsung-partner/-licens krävs vid sideload. |
-| HLS-2 | MVP-datapunkter: **steg** (`StepsRecord`, dagens summa), **puls** (`HeartRateRecord`, dagens snitt) och **sömn** (`SleepSessionRecord`, senaste natten). Aktiva kalorier (`ActiveCaloriesBurnedRecord`) utreds senare. |
-| HLS-3 | Läsbehörigheter är scopade hälsobehörigheter (`android.permission.health.READ_STEPS`, `READ_HEART_RATE`, `READ_SLEEP`) med runtime-samtycke via Health Connects behörighetsflöde. Ej beviljad behörighet visar en tydlig vy med "Ge åtkomst"-knapp utan krasch. |
+| HLS-2 | MVP-datapunkter: **steg** (`StepsRecord`, dagens summa), **puls** (`HeartRateRecord`, dagens snitt), **sömn** (`SleepSessionRecord`, senaste natten) och **vilopuls** (`RestingHeartRateRecord`, senaste värdet). Aktiva kalorier (`ActiveCaloriesBurnedRecord`) utreds senare. |
+| HLS-3 | Läsbehörigheter är scopade hälsobehörigheter (`android.permission.health.READ_STEPS`, `READ_HEART_RATE`, `READ_RESTING_HEART_RATE`, `READ_SLEEP`) med runtime-samtycke via Health Connects behörighetsflöde. Ej beviljad behörighet visar en tydlig vy med "Ge åtkomst"-knapp utan krasch. |
 | HLS-4 | Saknas Health Connect på enheten (`HealthConnectClient.getSdkStatus()` = `SDK_UNAVAILABLE`/`SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED`) visas en tydlig uppmaning (installera/uppdatera) med knapp till Health Connect i stället för hälsodata. |
 | HLS-5 | Hälsodata persisteras **inte** lokalt och ingår **inte** i Drive-backup — Health Connect/Samsung Health äger och backar upp datan; Dagboken läser live. |
 | HLS-6 | Hälsa-skärmen nås via ett navigeringskort i **Hantera** (underskärm med tillbakapil), samma mönster som Sjukdomar (HANT-3) och Recept & scheman (HANT-4). Datapunkter visas som `StatPill` (regel 4); saknad datapunkt visar "—". |
+| HLS-7 | **Idag-skärmen** visar ett kompakt hälsokort med **stegtrend för senaste 7 dagarna** (delad `SparklineChart`, regel 4) och **vilopuls** (`RestingHeartRateRecord`) senaste veckan, när Health Connect är tillgängligt och behörighet beviljad. Saknas Health Connect eller behörighet visas en diskret "Koppla hälsa"-rad som djuplänkar till Hälsa-skärmen (§18) — **ingen** behörighetsbegäran sker på Idag. Kortet laddas fristående och blockerar inte Idag-renderingen. |

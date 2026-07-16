@@ -23,10 +23,14 @@ import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HealthAvailability
+import se.partee71.dagboken.data.repository.HealthConnectRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.Aktivitet
+import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.model.WeeklyHealth
 import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -39,6 +43,7 @@ class HomeViewModelTest {
     private lateinit var authRepo: FirebaseAuthRepository
     private lateinit var prefs: PreferencesRepository
     private lateinit var sjukdomarRepo: SjukdomarRepository
+    private lateinit var healthRepo: HealthConnectRepository
 
     private val todayFlow = MutableStateFlow<List<Medicin>>(emptyList())
 
@@ -63,7 +68,10 @@ class HomeViewModelTest {
         sjukdomarRepo = mockk(relaxed = true) {
             every { pagaende } returns flowOf(null)
         }
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo)
+        healthRepo = mockk(relaxed = true) {
+            every { availability() } returns HealthAvailability.NOT_INSTALLED
+        }
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -187,7 +195,7 @@ class HomeViewModelTest {
 
     @Test fun `screeningEvents is empty when no screening events are enabled`() = runTest {
         every { prefs.screeningEventConfigs } returns flowOf(emptyList())
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
 
         viewModel.uiState.test {
             assertTrue(awaitItem().screeningEvents.isEmpty())
@@ -202,7 +210,7 @@ class HomeViewModelTest {
                 ScreeningEventConfig(enabled = false, time = "12:00"),
             ),
         )
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
 
         viewModel.uiState.test {
             val events = awaitItem().screeningEvents
@@ -223,7 +231,7 @@ class HomeViewModelTest {
             type = "screening",
         )
         every { aktiviteterRepo.screeningFromDate(any()) } returns flowOf(listOf(loggedScreening))
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
 
         viewModel.uiState.test {
             val event = awaitItem().screeningEvents.first()
@@ -303,5 +311,43 @@ class HomeViewModelTest {
     @Test fun `navigating to a new date ensures that date's scheduled doses are seeded`() = runTest {
         viewModel.previousDay()
         coVerify { medicinerRepo.ensureEntriesForDate(LocalDate.now().minusDays(1)) }
+    }
+
+    // ─── hälsokort (HLS-7) ────────────────────────────────────────────────────
+
+    @Test fun `healthCard is NotConnected when Health Connect is unavailable`() = runTest {
+        every { healthRepo.availability() } returns HealthAvailability.NOT_INSTALLED
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        assertEquals(HealthCardUiState.NotConnected, viewModel.healthCard.value)
+    }
+
+    @Test fun `healthCard is NotConnected when permissions are not granted`() = runTest {
+        every { healthRepo.availability() } returns HealthAvailability.AVAILABLE
+        coEvery { healthRepo.hasAllPermissions() } returns false
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        assertEquals(HealthCardUiState.NotConnected, viewModel.healthCard.value)
+    }
+
+    @Test fun `healthCard exposes weekly data when available and granted`() = runTest {
+        val weekly = WeeklyHealth(
+            dailySteps = listOf(
+                DailySteps(LocalDate.now().minusDays(1), 5000),
+                DailySteps(LocalDate.now(), 8000),
+            ),
+            restingHeartRate = 58,
+        )
+        every { healthRepo.availability() } returns HealthAvailability.AVAILABLE
+        coEvery { healthRepo.hasAllPermissions() } returns true
+        coEvery { healthRepo.readWeeklyHealth() } returns weekly
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        assertEquals(HealthCardUiState.Data(weekly), viewModel.healthCard.value)
+    }
+
+    @Test fun `healthCard is NotConnected when weekly read throws`() = runTest {
+        every { healthRepo.availability() } returns HealthAvailability.AVAILABLE
+        coEvery { healthRepo.hasAllPermissions() } returns true
+        coEvery { healthRepo.readWeeklyHealth() } throws RuntimeException("boom")
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        assertEquals(HealthCardUiState.NotConnected, viewModel.healthCard.value)
     }
 }

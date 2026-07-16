@@ -4,13 +4,16 @@ import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.WeeklyHealth
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -36,6 +39,9 @@ interface HealthConnectRepository {
 
     /** Läser dagens datapunkter. Kastar vid I/O- eller behörighetsfel (mappas i ViewModel). */
     suspend fun readToday(): HealthData
+
+    /** Stegtrend (7 dagar) + senaste vilopuls för Idag-kortet (HLS-7). Kastar vid fel. */
+    suspend fun readWeeklyHealth(): WeeklyHealth
 }
 
 /** Health Connect-tillgänglighet, mappad från [HealthConnectClient.getSdkStatus]. */
@@ -50,6 +56,7 @@ class HealthConnectRepositoryImpl(
         HealthPermission.getReadPermission(StepsRecord::class),
         HealthPermission.getReadPermission(HeartRateRecord::class),
         HealthPermission.getReadPermission(SleepSessionRecord::class),
+        HealthPermission.getReadPermission(RestingHeartRateRecord::class),
     )
 
     // getOrCreate kastar om Health Connect saknas — skapa lazy och först efter
@@ -98,5 +105,33 @@ class HealthConnectRepositoryImpl(
             heartRateAvg = heartRateAvg,
             sleepDuration = sleepDuration,
         )
+    }
+
+    override suspend fun readWeeklyHealth(): WeeklyHealth = withContext(ioDispatcher) {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
+        val now = Instant.now()
+
+        val daily = (6L downTo 0L).map { back ->
+            val day = today.minusDays(back)
+            val start = day.atStartOfDay(zone).toInstant()
+            val rawEnd = day.plusDays(1).atStartOfDay(zone).toInstant()
+            val end = if (rawEnd.isAfter(now)) now else rawEnd
+            val steps = client
+                .readRecords(ReadRecordsRequest(StepsRecord::class, timeRangeFilter = TimeRangeFilter.between(start, end)))
+                .records
+                .sumOf { it.count }
+            DailySteps(day, steps)
+        }
+
+        // Vilopuls senaste 7 dagarna — ta det senaste registrerade värdet.
+        val weekStart = today.minusDays(6).atStartOfDay(zone).toInstant()
+        val restingHr = client
+            .readRecords(ReadRecordsRequest(RestingHeartRateRecord::class, timeRangeFilter = TimeRangeFilter.between(weekStart, now)))
+            .records
+            .maxByOrNull { it.time }
+            ?.beatsPerMinute
+
+        WeeklyHealth(dailySteps = daily, restingHeartRate = restingHr)
     }
 }

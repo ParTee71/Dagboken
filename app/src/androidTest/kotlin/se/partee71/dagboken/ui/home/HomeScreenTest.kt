@@ -33,9 +33,13 @@ import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HealthAvailability
+import se.partee71.dagboken.data.repository.HealthConnectRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
+import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.WeeklyHealth
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
@@ -91,7 +95,7 @@ class HomeScreenTest {
             prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
             prefs.setMedsNotificationsEnabled(false)
         }
-        vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo)
+        vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo, FakeHealthRepo())
         screeningVm = AktiviteterViewModel(aktivRepo, noteRepo, prefs)
         medicinerVm = MedicinerViewModel(medicRepo, noteRepo, CheckCooldownUseCase(), CheckDailyLimitUseCase())
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
@@ -125,6 +129,7 @@ class HomeScreenTest {
                         onAddHandelse           = onAddHandelse,
                         onAddFavorit            = {},
                         onEditFavorit           = {},
+                        onOpenHalsa             = {},
                         snackbarHostState       = SnackbarHostState(),
                         vm                      = vm,
                         screeningVm             = screeningVm,
@@ -405,4 +410,13 @@ class HomeScreenTest {
             tearDown()
         }
     }
+}
+
+/** Health Connect ej tillgängligt i emulator — fake så HomeScreen kan renderas. */
+private class FakeHealthRepo : HealthConnectRepository {
+    override val permissions: Set<String> = emptySet()
+    override fun availability() = HealthAvailability.NOT_INSTALLED
+    override suspend fun hasAllPermissions() = false
+    override suspend fun readToday() = HealthData()
+    override suspend fun readWeeklyHealth() = WeeklyHealth()
 }
