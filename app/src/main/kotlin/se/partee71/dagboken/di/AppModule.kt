@@ -10,6 +10,8 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
+import se.partee71.dagboken.data.repository.HealthConnectRepository
+import se.partee71.dagboken.data.repository.HealthConnectRepositoryImpl
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.data.room.daos.AktivitetDao
 import se.partee71.dagboken.data.room.daos.FavoritDao
@@ -32,6 +34,13 @@ object AppModule {
     @Provides
     @IoDispatcher
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    @Singleton
+    fun provideHealthConnectRepository(
+        @ApplicationContext context: Context,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): HealthConnectRepository = HealthConnectRepositoryImpl(context, ioDispatcher)
 }
 
 @Module

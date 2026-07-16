@@ -1,0 +1,102 @@
+package se.partee71.dagboken.data.repository
+
+import android.content.Context
+import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.SleepSessionRecord
+import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.request.ReadRecordsRequest
+import androidx.health.connect.client.time.TimeRangeFilter
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
+import se.partee71.dagboken.domain.model.HealthData
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import kotlin.math.roundToLong
+
+/**
+ * Läsyta mot **Health Connect** (§19 HLS, epic #54). Galaxy Watch synkar via
+ * Samsung Health till Health Connect; appen läser den aggregerade datan read-only.
+ *
+ * Interface så att [se.partee71.dagboken.ui.health.HealthViewModel] kan testas
+ * med en fake (regel 2) utan Android-/SDK-beroenden.
+ */
+interface HealthConnectRepository {
+    /** Läsbehörigheterna appen behöver (steg, puls, sömn) — begärs som runtime-samtycke. */
+    val permissions: Set<String>
+
+    /** Om Health Connect finns/kan användas på enheten. */
+    fun availability(): HealthAvailability
+
+    /** True om samtliga [permissions] är beviljade. */
+    suspend fun hasAllPermissions(): Boolean
+
+    /** Läser dagens datapunkter. Kastar vid I/O- eller behörighetsfel (mappas i ViewModel). */
+    suspend fun readToday(): HealthData
+}
+
+/** Health Connect-tillgänglighet, mappad från [HealthConnectClient.getSdkStatus]. */
+enum class HealthAvailability { AVAILABLE, NOT_INSTALLED, UPDATE_REQUIRED }
+
+class HealthConnectRepositoryImpl(
+    private val context: Context,
+    private val ioDispatcher: CoroutineDispatcher,
+) : HealthConnectRepository {
+
+    override val permissions: Set<String> = setOf(
+        HealthPermission.getReadPermission(StepsRecord::class),
+        HealthPermission.getReadPermission(HeartRateRecord::class),
+        HealthPermission.getReadPermission(SleepSessionRecord::class),
+    )
+
+    // getOrCreate kastar om Health Connect saknas — skapa lazy och först efter
+    // att availability() bekräftat AVAILABLE.
+    private val client: HealthConnectClient by lazy { HealthConnectClient.getOrCreate(context) }
+
+    override fun availability(): HealthAvailability =
+        when (HealthConnectClient.getSdkStatus(context)) {
+            HealthConnectClient.SDK_AVAILABLE -> HealthAvailability.AVAILABLE
+            HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> HealthAvailability.UPDATE_REQUIRED
+            else -> HealthAvailability.NOT_INSTALLED
+        }
+
+    override suspend fun hasAllPermissions(): Boolean = withContext(ioDispatcher) {
+        client.permissionController.getGrantedPermissions().containsAll(permissions)
+    }
+
+    override suspend fun readToday(): HealthData = withContext(ioDispatcher) {
+        val zone = ZoneId.systemDefault()
+        val now = Instant.now()
+        val startOfDay = LocalDate.now(zone).atStartOfDay(zone).toInstant()
+        val dayRange = TimeRangeFilter.between(startOfDay, now)
+
+        val steps = client
+            .readRecords(ReadRecordsRequest(StepsRecord::class, timeRangeFilter = dayRange))
+            .records
+            .sumOf { it.count }
+
+        val bpm = client
+            .readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = dayRange))
+            .records
+            .flatMap { it.samples }
+            .map { it.beatsPerMinute }
+        val heartRateAvg = if (bpm.isEmpty()) null else bpm.average().roundToLong()
+
+        // Sömn: titta 24h bakåt för att fånga senaste natten.
+        val sleepRange = TimeRangeFilter.between(now.minus(Duration.ofHours(24)), now)
+        val sleepDuration = client
+            .readRecords(ReadRecordsRequest(SleepSessionRecord::class, timeRangeFilter = sleepRange))
+            .records
+            .fold(Duration.ZERO) { acc, r -> acc.plus(Duration.between(r.startTime, r.endTime)) }
+            .takeIf { !it.isZero }
+
+        HealthData(
+            steps = steps.takeIf { it > 0 },
+            heartRateAvg = heartRateAvg,
+            sleepDuration = sleepDuration,
+        )
+    }
+}

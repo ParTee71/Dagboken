@@ -35,6 +35,7 @@ import se.partee71.dagboken.ui.aktiviteter.add.AddEditAktivitetScreen
 import se.partee71.dagboken.ui.aktiviteter.add.AddEditScreeningScreen
 import se.partee71.dagboken.ui.handelser.AddEditHandelseScreen
 import se.partee71.dagboken.ui.hantera.HanteraScreen
+import se.partee71.dagboken.ui.health.HealthScreen
 import se.partee71.dagboken.ui.historik.HistorikScreen
 import se.partee71.dagboken.ui.home.HomeScreen
 import se.partee71.dagboken.ui.mediciner.SchemaScreen
@@ -246,6 +247,12 @@ fun AppNavigation(
                     onImport         = { navController.navigate(Routes.MIGRATION) },
                     onOpenSjukdomar  = { navController.navigate(Routes.SJUKDOMAR) },
                     onOpenSchema     = { navController.navigate(Routes.SCHEMA) },
+                    onOpenHalsa      = { navController.navigate(Routes.HALSA) },
+                )
+            }
+            composable(Routes.HALSA) {
+                HealthScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.SJUKDOMAR) {

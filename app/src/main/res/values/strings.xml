@@ -263,10 +263,26 @@
     <string name="trender_title">Trender</string>
 
     <!-- Samsung Health placeholder -->
-    <string name="samsung_health_title">Samsung Health</string>
-    <string name="samsung_health_coming_soon">Kommer snart</string>
-    <string name="samsung_health_body">Synkronisera din hälsodata från Samsung Health för en komplett bild av ditt välmående.</string>
-    <string name="samsung_health_connect_button">Anslut Samsung Health</string>
+    <!-- Hälsa (Health Connect), §19 HLS -->
+    <string name="halsa_title">Hälsa</string>
+    <string name="halsa_steps">Steg idag</string>
+    <string name="halsa_heart_rate">Puls (snitt idag)</string>
+    <string name="halsa_sleep">Sömn senaste natten</string>
+    <string name="halsa_bpm">%1$d bpm</string>
+    <string name="halsa_duration_h_min">%1$d h %2$d min</string>
+    <string name="halsa_duration_min">%1$d min</string>
+    <string name="halsa_no_value">—</string>
+    <string name="halsa_hc_missing_title">Health Connect saknas</string>
+    <string name="halsa_hc_missing_body">Hälsodata läses via Health Connect. Installera Health Connect och synka din klocka via Samsung Health för att se steg, puls och sömn.</string>
+    <string name="halsa_hc_update_title">Uppdatera Health Connect</string>
+    <string name="halsa_hc_update_body">Health Connect behöver uppdateras innan hälsodata kan läsas.</string>
+    <string name="halsa_hc_open">Öppna Health Connect</string>
+    <string name="halsa_permission_title">Ge åtkomst till hälsodata</string>
+    <string name="halsa_permission_body">Dagboken behöver din tillåtelse att läsa steg, puls och sömn från Health Connect.</string>
+    <string name="halsa_permission_grant">Ge åtkomst</string>
+    <string name="halsa_error_title">Kunde inte läsa hälsodata</string>
+    <string name="halsa_error_body">Något gick fel vid hämtning från Health Connect. Försök igen.</string>
+    <string name="halsa_retry">Försök igen</string>
 
     <!-- Sjukdomar -->
     <string name="sjukdomar_title">Sjukdomar</string>
@@ -350,4 +366,7 @@
     <string name="hantera_schema_section_desc">Hantera schemalagda recept och doseringstider</string>
     <string name="hantera_schema_open">Öppna recept &amp; scheman</string>
     <string name="hantera_schema_title">Recept &amp; scheman</string>
+    <string name="hantera_halsa_section">Hälsa</string>
+    <string name="hantera_halsa_section_desc">Steg, puls och sömn från Health Connect</string>
+    <string name="hantera_halsa_open">Öppna hälsa</string>
 </resources>
