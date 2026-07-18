@@ -288,11 +288,14 @@
     <!-- Idag-hälsokort (HLS-7) -->
     <string name="home_health_title">Hälsa</string>
     <string name="home_health_steps_today">Steg idag</string>
+    <string name="home_health_steps_for_date">Steg %1$s</string>
     <string name="home_health_resting_hr">Vilopuls</string>
     <string name="home_health_steps_trend">Steg senaste 7 dagarna</string>
     <string name="home_health_resting_hr_trend">Vilopuls senaste 7 dagarna</string>
     <string name="home_health_connect_title">Koppla hälsa</string>
     <string name="home_health_connect_body">Visa steg och vilopuls från din klocka via Health Connect.</string>
+    <!-- Idag-diagramkort (HEM-17): steg-, vilopuls- och energitrend i ett gemensamt kort -->
+    <string name="home_trends_title">Trender senaste 7 dagarna</string>
 
     <!-- Sjukdomar -->
     <string name="sjukdomar_title">Sjukdomar</string>

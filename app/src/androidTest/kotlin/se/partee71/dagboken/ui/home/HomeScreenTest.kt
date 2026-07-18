@@ -41,6 +41,8 @@ import se.partee71.dagboken.data.repository.HealthConnectRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
+import se.partee71.dagboken.domain.model.DailyRestingHeartRate
+import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.model.HealthData
 import se.partee71.dagboken.domain.model.WeeklyHealth
 import se.partee71.dagboken.data.room.AppDatabase
@@ -78,7 +80,7 @@ class HomeScreenTest {
 
     private val today get() = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
-    private fun setUp() {
+    private fun setUp(healthRepo: HealthConnectRepository = FakeHealthRepo()) {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                  .allowMainThreadQueries().build()
@@ -100,7 +102,7 @@ class HomeScreenTest {
             prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
             prefs.setMedsNotificationsEnabled(false)
         }
-        vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo, FakeHealthRepo())
+        vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
         screeningVm = AktiviteterViewModel(aktivRepo, noteRepo, prefs)
         medicinerVm = MedicinerViewModel(medicRepo, noteRepo, CheckCooldownUseCase(), CheckDailyLimitUseCase())
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
@@ -440,6 +442,39 @@ class HomeScreenTest {
         }
     }
 
+    @Test fun navigating_to_previous_day_updates_health_stats_card_and_shows_merged_trends_card() = retryOnRenderGlitch {
+        val yesterday = LocalDate.now().minusDays(1)
+        val weekly = WeeklyHealth(
+            dailySteps = listOf(
+                DailySteps(yesterday, 4000),
+                DailySteps(LocalDate.now(), 9000),
+            ),
+            dailyRestingHeartRate = listOf(
+                DailyRestingHeartRate(yesterday, 55),
+                DailyRestingHeartRate(LocalDate.now(), 60),
+            ),
+            restingHeartRate = 60,
+        )
+        setUp(FakeHealthRepo(weekly))
+        try {
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("9000")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText("9000").assertIsDisplayed()
+            composeRule.onNodeWithText("Trender senaste 7 dagarna").assertIsDisplayed()
+
+            composeRule.onNodeWithContentDescription("Föregående dag").performClick()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("4000")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText("4000").assertIsDisplayed()
+            composeRule.onNodeWithText("55 bpm").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
     @Test fun health_prompt_is_positioned_directly_above_the_energy_diagram_card() = retryOnRenderGlitch {
         setUp()
         try {
@@ -479,11 +514,14 @@ class HomeScreenTest {
     }
 }
 
-/** Health Connect ej tillgängligt i emulator — fake så HomeScreen kan renderas. */
-private class FakeHealthRepo : HealthConnectRepository {
+/**
+ * Health Connect ej tillgängligt i emulator — fake så HomeScreen kan renderas. Med [weekly]
+ * satt simuleras i stället en kopplad källa med den datan (#138 — datumbunden hälsokort-test).
+ */
+private class FakeHealthRepo(private val weekly: WeeklyHealth? = null) : HealthConnectRepository {
     override val permissions: Set<String> = emptySet()
-    override fun availability() = HealthAvailability.NOT_INSTALLED
-    override suspend fun hasAllPermissions() = false
+    override fun availability() = if (weekly != null) HealthAvailability.AVAILABLE else HealthAvailability.NOT_INSTALLED
+    override suspend fun hasAllPermissions() = weekly != null
     override suspend fun readToday() = HealthData()
-    override suspend fun readWeeklyHealth() = WeeklyHealth()
+    override suspend fun readWeeklyHealth() = weekly ?: WeeklyHealth()
 }
