@@ -36,6 +36,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.diagram.DiagramLayout
 import se.partee71.dagboken.ui.diagram.LineChartCanvas
+import se.partee71.dagboken.ui.diagram.computeSmartYRange
 
 @Composable
 fun TrenderScreen(
@@ -46,11 +47,7 @@ fun TrenderScreen(
     val ranges = listOf(7, 14, 30, 90)
 
     val allValues = state.series.flatMap { it.points }.filterNotNull()
-    val minV = if (allValues.isEmpty()) 0f
-               else minOf(0f, kotlin.math.floor(allValues.min().toDouble()).toFloat())
-    val maxV = if (allValues.isEmpty()) 10f
-               else maxOf(minV + 1f, kotlin.math.ceil(allValues.max().toDouble()).toFloat())
-    val gridValues = (minV.toInt()..maxV.toInt()).map { it.toFloat() }
+    val yRange = computeSmartYRange(allValues)
 
     DiagramLayout(
         title  = stringResource(R.string.trender_title),
@@ -117,12 +114,11 @@ fun TrenderScreen(
                 )
             } else {
                 LineChartCanvas(
-                    series     = state.series,
-                    dates      = state.dates,
-                    minValue   = minV,
-                    maxValue   = maxV,
-                    gridValues = gridValues,
-                    modifier   = chartModifier,
+                    series   = state.series,
+                    dates    = state.dates,
+                    minValue = yRange.start,
+                    maxValue = yRange.endInclusive,
+                    modifier = chartModifier,
                 )
             }
         },

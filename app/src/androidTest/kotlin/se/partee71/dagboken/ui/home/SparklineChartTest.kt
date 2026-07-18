@@ -48,6 +48,21 @@ class SparklineChartTest {
         SparklineChart(points = emptyList())
     }
 
+    // ─── Smart y-axelskala (#136) ──────────────────────────────────────────────
+
+    @Test fun renders_without_crash_with_a_narrow_band_high_above_zero() = renderAndRetry {
+        SparklineChart(points = listOf(6f, 7f, 8f, 7f, 6f, 8f, 7f))
+    }
+
+    @Test fun renders_without_crash_with_values_far_from_zero() = renderAndRetry {
+        // t.ex. stegvärden
+        SparklineChart(points = listOf(5200f, 8800f, 6400f, 9100f, 7000f, 6100f, 8300f))
+    }
+
+    @Test fun renders_without_crash_with_all_equal_points() = renderAndRetry {
+        SparklineChart(points = List(7) { 5f })
+    }
+
     // ─── Axlar (#132) ──────────────────────────────────────────────────────────
 
     @Test fun renders_without_crash_with_x_labels() = renderAndRetry {

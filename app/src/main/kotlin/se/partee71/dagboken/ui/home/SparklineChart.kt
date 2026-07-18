@@ -19,8 +19,10 @@ import com.patrykandpatrick.vico.compose.common.fill
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.core.cartesian.data.CartesianLayerRangeProvider
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
+import se.partee71.dagboken.ui.diagram.computeSmartYRange
 
 /**
  * 7-day energy sparkline (HEM-7), Vico-baserat — delar renderingsmotor med
@@ -42,6 +44,7 @@ fun SparklineChart(
 
     val modelProducer = remember { CartesianChartModelProducer() }
     val lineColor = MaterialTheme.colorScheme.primary
+    val yRange = remember(points) { computeSmartYRange(points) }
 
     LaunchedEffect(points) {
         modelProducer.runTransaction {
@@ -65,6 +68,9 @@ fun SparklineChart(
                         ),
                     ),
                 ),
+                rangeProvider = remember(yRange) {
+                    CartesianLayerRangeProvider.fixed(minY = yRange.start.toDouble(), maxY = yRange.endInclusive.toDouble())
+                },
             ),
             startAxis = VerticalAxis.rememberStart(label = axisLabel),
             bottomAxis = HorizontalAxis.rememberBottom(
