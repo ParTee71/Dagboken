@@ -79,12 +79,14 @@ import se.partee71.dagboken.ui.components.AccountBottomSheet
 import se.partee71.dagboken.ui.components.AccountBubble
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.domain.model.WeeklyHealth
+import se.partee71.dagboken.domain.model.statsFor
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.StatPill
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 import se.partee71.dagboken.ui.components.StepwiseScreeningForm
 import se.partee71.dagboken.ui.formatDisplayDate
+import se.partee71.dagboken.ui.formatShortDate
 import se.partee71.dagboken.ui.formatWeekdayShort
 import se.partee71.dagboken.ui.mediciner.MedicinerViewModel
 import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
@@ -294,40 +296,27 @@ fun HomeScreen(
                 }
             }
 
-            // Hälsokort (Health Connect: stegtrend 7 dagar + vilopuls) — HLS-7.
-            // Placerat här, direkt ovanför energidiagrammet, eftersom båda hör
-            // tematiskt ihop (trender över tid) snarare än med dagens checklistor.
+            // Hälsokort (Health Connect: steg + vilopuls för vald dag) — HLS-7, HEM-15.
+            // Placerat här, direkt ovanför det gemensamma trenddiagrammet (HEM-17), eftersom
+            // båda hör tematiskt ihop (hälsa) snarare än med dagens checklistor.
             when (val hc = healthCard) {
                 is HealthCardUiState.Data ->
-                    if (hc.weekly.hasAnyData) item { HealthTrendCard(hc.weekly) }
+                    if (hc.weekly.hasAnyData) {
+                        item { HealthStatsCard(hc.weekly, uiState.selectedDate, uiState.isToday) }
+                    }
                 HealthCardUiState.NotConnected ->
                     item { HealthConnectPrompt(onClick = onOpenHalsa) }
                 HealthCardUiState.Loading -> Unit
             }
 
-            // Diagram / Screening card
+            // Gemensamt diagramkort (HEM-17): steg-, vilopuls- och energitrend, i den ordningen.
             item {
-                DagbokenCard(title = stringResource(R.string.home_energy_chart_title)) {
-                    if (uiState.screeningPoints.size >= 2) {
-                        SparklineChart(
-                            points   = uiState.screeningPoints,
-                            xLabels  = uiState.screeningLabels,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                        Spacer(Modifier.height(4.dp))
-                    } else {
-                        Text(
-                            stringResource(R.string.home_no_screening_body),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = cs.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp),
-                        )
-                    }
-                    TextButton(
-                        onClick  = onNavigateToTrender,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text(stringResource(R.string.home_view_diagram)) }
-                }
+                HealthTrendsCard(
+                    weekly              = (healthCard as? HealthCardUiState.Data)?.weekly,
+                    screeningPoints     = uiState.screeningPoints,
+                    screeningLabels     = uiState.screeningLabels,
+                    onNavigateToTrender = onNavigateToTrender,
+                )
             }
         }
     }
@@ -433,10 +422,21 @@ private fun WeekSummaryCard(summary: WeekSummary) {
     }
 }
 
+/**
+ * Idag-hälsokortet (HLS-7, HEM-15, #138): steg + vilopuls för [selectedDate] — bläddrar
+ * användaren till en annan dag (HEM-14) byter siffrorna med. Trenderna över tid ligger
+ * i stället i det gemensamma diagramkortet, se [HealthTrendsCard] (HEM-17).
+ */
 @Composable
-internal fun HealthTrendCard(weekly: WeeklyHealth) {
+internal fun HealthStatsCard(weekly: WeeklyHealth, selectedDate: LocalDate, isToday: Boolean) {
     val cs = MaterialTheme.colorScheme
     val dash = stringResource(R.string.halsa_no_value)
+    val stats = weekly.statsFor(selectedDate, isToday)
+    val stepsLabel = if (isToday) {
+        stringResource(R.string.home_health_steps_today)
+    } else {
+        stringResource(R.string.home_health_steps_for_date, formatShortDate(selectedDate))
+    }
 
     DagbokenCard(title = stringResource(R.string.home_health_title)) {
         Row(
@@ -445,23 +445,40 @@ internal fun HealthTrendCard(weekly: WeeklyHealth) {
         ) {
             StatPill(
                 icon           = Icons.Filled.DirectionsWalk,
-                value          = weekly.stepsToday?.toString() ?: dash,
-                label          = stringResource(R.string.home_health_steps_today),
+                value          = stats.steps?.toString() ?: dash,
+                label          = stepsLabel,
                 containerColor = cs.primaryContainer,
                 contentColor   = cs.onPrimaryContainer,
                 modifier       = Modifier.weight(1f),
             )
             StatPill(
                 icon           = Icons.Filled.MonitorHeart,
-                value          = weekly.restingHeartRate?.let { stringResource(R.string.halsa_bpm, it) } ?: dash,
+                value          = stats.restingHeartRate?.let { stringResource(R.string.halsa_bpm, it) } ?: dash,
                 label          = stringResource(R.string.home_health_resting_hr),
                 containerColor = cs.secondaryContainer,
                 contentColor   = cs.onSecondaryContainer,
                 modifier       = Modifier.weight(1f),
             )
         }
-        if (weekly.hasStepTrend) {
-            Spacer(Modifier.height(12.dp))
+    }
+}
+
+/**
+ * Gemensamt diagramkort (HEM-17, #138): stegtrend, vilopulstrend (HLS-7) och energitrend
+ * (HEM-7) för senaste 7 dagarna, i den ordningen — ersätter de tidigare separata korten.
+ * [weekly] är null när Health Connect saknas/ej kopplat, då visas bara energitrenden.
+ */
+@Composable
+internal fun HealthTrendsCard(
+    weekly: WeeklyHealth?,
+    screeningPoints: List<Float>,
+    screeningLabels: List<String>,
+    onNavigateToTrender: () -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+
+    DagbokenCard(title = stringResource(R.string.home_trends_title)) {
+        if (weekly?.hasStepTrend == true) {
             Text(
                 stringResource(R.string.home_health_steps_trend),
                 style = MaterialTheme.typography.labelSmall,
@@ -472,10 +489,10 @@ internal fun HealthTrendCard(weekly: WeeklyHealth) {
                 xLabels  = weekly.dailySteps.map { formatWeekdayShort(it.date) },
                 modifier = Modifier.padding(top = 4.dp),
             )
-        }
-        if (weekly.hasRestingHeartRateTrend) {
-            val known = weekly.dailyRestingHeartRate.filter { it.bpm != null }
             Spacer(Modifier.height(12.dp))
+        }
+        if (weekly?.hasRestingHeartRateTrend == true) {
+            val known = weekly.dailyRestingHeartRate.filter { it.bpm != null }
             Text(
                 stringResource(R.string.home_health_resting_hr_trend),
                 style = MaterialTheme.typography.labelSmall,
@@ -486,7 +503,32 @@ internal fun HealthTrendCard(weekly: WeeklyHealth) {
                 xLabels  = known.map { formatWeekdayShort(it.date) },
                 modifier = Modifier.padding(top = 4.dp),
             )
+            Spacer(Modifier.height(12.dp))
         }
+        Text(
+            stringResource(R.string.home_energy_chart_title),
+            style = MaterialTheme.typography.labelSmall,
+            color = cs.onSurfaceVariant,
+        )
+        if (screeningPoints.size >= 2) {
+            SparklineChart(
+                points   = screeningPoints,
+                xLabels  = screeningLabels,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            Spacer(Modifier.height(4.dp))
+        } else {
+            Text(
+                stringResource(R.string.home_no_screening_body),
+                style    = MaterialTheme.typography.bodySmall,
+                color    = cs.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+            )
+        }
+        TextButton(
+            onClick  = onNavigateToTrender,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text(stringResource(R.string.home_view_diagram)) }
     }
 }
 

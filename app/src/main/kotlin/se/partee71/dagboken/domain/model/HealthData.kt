@@ -42,3 +42,19 @@ data class WeeklyHealth(
 
     val hasAnyData: Boolean get() = dailySteps.any { it.steps > 0 } || restingHeartRate != null
 }
+
+/** Steg och vilopuls för en enskild dag i Idag-hälsokortet (#138). */
+data class DailyHealthStats(val steps: Long?, val restingHeartRate: Long?)
+
+/**
+ * Slår upp steg/vilopuls för [selectedDate] i stället för att alltid visa senaste dagen.
+ * [isToday] styr källan för dagens dag: [WeeklyHealth.stepsToday]/[WeeklyHealth.restingHeartRate]
+ * är "senaste"-fälten (vilopulsen kan vara skattad, se HLS-7) och mer tillförlitliga än att
+ * matcha dagens datum mot dagslistorna. Tidigare dagar läses direkt ur dagslistorna; en dag
+ * utanför det hämtade 7-dagarsfönstret ger null för båda (visas som "—" i UI).
+ */
+fun WeeklyHealth.statsFor(selectedDate: LocalDate, isToday: Boolean): DailyHealthStats = DailyHealthStats(
+    steps = if (isToday) stepsToday else dailySteps.find { it.date == selectedDate }?.steps?.takeIf { it > 0 },
+    restingHeartRate = if (isToday) restingHeartRate
+                        else dailyRestingHeartRate.find { it.date == selectedDate }?.bpm,
+)
