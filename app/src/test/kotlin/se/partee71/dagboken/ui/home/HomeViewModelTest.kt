@@ -32,6 +32,7 @@ import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.WeeklyHealth
 import java.time.LocalDate
+import java.time.LocalTime
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
@@ -167,6 +168,58 @@ class HomeViewModelTest {
         }
     }
 
+    // ─── kommandeMediciner ────────────────────────────────────────────────────
+
+    @Test fun `computeKommandeMediciner returns future dose not yet due`() {
+        val dose = medicin(id = "n", tidpunkt = "Natt") // 22:00
+        val result = computeKommandeMediciner(isToday = true, nowTime = LocalTime.of(8, 0), dayMediciner = listOf(dose))
+        assertEquals(listOf("n"), result.map { it.id })
+    }
+
+    @Test fun `computeKommandeMediciner excludes dose whose time has passed`() {
+        val dose = medicin(id = "m", tidpunkt = "Morgon") // 07:00
+        val result = computeKommandeMediciner(isToday = true, nowTime = LocalTime.of(8, 0), dayMediciner = listOf(dose))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun `computeKommandeMediciner excludes taken medicines`() {
+        val dose = medicin(id = "n", tidpunkt = "Natt", tagen = true)
+        val result = computeKommandeMediciner(isToday = true, nowTime = LocalTime.of(8, 0), dayMediciner = listOf(dose))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun `computeKommandeMediciner excludes skipped medicines`() {
+        val dose = medicin(id = "n", tidpunkt = "Natt", skipped = true)
+        val result = computeKommandeMediciner(isToday = true, nowTime = LocalTime.of(8, 0), dayMediciner = listOf(dose))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun `computeKommandeMediciner excludes Vid behov medicines`() {
+        val dose = medicin(id = "vb", tidpunkt = "Vid behov")
+        val result = computeKommandeMediciner(isToday = true, nowTime = LocalTime.of(8, 0), dayMediciner = listOf(dose))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun `computeKommandeMediciner is empty when not viewing today`() {
+        val dose = medicin(id = "n", tidpunkt = "Natt")
+        val result = computeKommandeMediciner(isToday = false, nowTime = LocalTime.of(8, 0), dayMediciner = listOf(dose))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun `computeKommandeMediciner is sorted by tidpunktSortIndex`() {
+        val doses = listOf(medicin(id = "n", tidpunkt = "Natt"), medicin(id = "e", tidpunkt = "Eftermiddag"))
+        val result = computeKommandeMediciner(isToday = true, nowTime = LocalTime.of(8, 0), dayMediciner = doses)
+        assertEquals(listOf("e", "n"), result.map { it.id })
+    }
+
+    @Test fun `kommandeMediciner is wired into uiState from the combine flow`() = runTest {
+        todayFlow.value = listOf(medicin(id = "vb", tidpunkt = "Vid behov"))
+        viewModel.uiState.test {
+            assertTrue(awaitItem().kommandeMediciner.none { it.id == "vb" })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     // ─── initial state ────────────────────────────────────────────────────────
 
     @Test fun `initial uiState has empty medicine lists and tagenCount zero`() = runTest {
@@ -174,6 +227,7 @@ class HomeViewModelTest {
             val state = awaitItem()
             assertTrue(state.todayMediciner.isEmpty())
             assertTrue(state.overdueMediciner.isEmpty())
+            assertTrue(state.kommandeMediciner.isEmpty())
             assertEquals(0, state.tagenCount)
             cancelAndIgnoreRemainingEvents()
         }
