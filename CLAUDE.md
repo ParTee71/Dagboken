@@ -74,6 +74,12 @@ stängd/pausad av användaren). Implementerar du flera issues i följd — vänt
 första innan nästa branch/PR öppnas, även om de är oberoende. Gäller `implement-issue` och
 manuellt PR-arbete.
 
+**Prenumeration på PR-aktivitet.** Så fort en PR skapas (i denna eller framtida sessioner) —
+prenumerera automatiskt på dess aktivitet (`subscribe_pr_activity`) utan att fråga användaren
+först. Bevaka den enligt standardflödet (autofixa CI-fel, hantera granskningskommentarer,
+schemalägg check-in) tills PR:en är mergad eller stängd, avsluta då prenumerationen
+(`unsubscribe_pr_activity`) automatiskt.
+
 ## Bygg & test (kommandon)
 
 ```bash

@@ -5,11 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -23,6 +25,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,6 +48,7 @@ import se.partee71.dagboken.domain.model.WeeklyHealth
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.model.TIDP_DEFAULT_TIMES
 import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
 import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
@@ -52,6 +56,7 @@ import se.partee71.dagboken.ui.aktiviteter.AktiviteterViewModel
 import se.partee71.dagboken.ui.mediciner.MedicinerViewModel
 import se.partee71.dagboken.util.retryOnRenderGlitch
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 // Migrerad enligt POC i #112 — se SjukdomarScreenTest för fullständig förklaring.
@@ -188,7 +193,9 @@ class HomeScreenTest {
                 namn      = "Metformin",
                 dos       = "500",
                 enhet     = "mg",
-                tidpunkt  = "Morgon",
+                // "Vid behov" har ingen fast schemalagd timme (tidpunktToHour == null) —
+                // aldrig "kommande" (MED-13), oavsett vilken klocktid testet körs vid.
+                tidpunkt  = "Vid behov",
                 tagen     = false,
             )
             runBlocking { medicRepo.saveMedicin(med) }
@@ -207,17 +214,36 @@ class HomeScreenTest {
         }
     }
 
-    // ─── Hela dagslistan visas, inte bara försenade ──────────────────────────
+    // ─── Kommande döljs bakom "Visa kommande" (analogt med tagna, se MED-13) ──
 
-    @Test fun non_overdue_medicine_is_shown_in_checklist() = retryOnRenderGlitch {
+    @Test fun kommande_medicine_is_hidden_until_visa_kommande_is_tapped() = retryOnRenderGlitch {
         setUp()
         try {
+            // Hittar en tidpunkt-etikett vars schemalagda timme ligger efter aktuell
+            // klocktid — deterministiskt kommande, oavsett när testet faktiskt körs.
+            // Finns ingen sådan etikett (körs efter 22:00) hoppas testet över i stället
+            // för att flaka.
+            val nowHour = LocalTime.now().hour
+            val futureLabel = TIDP_DEFAULT_TIMES.entries
+                .firstOrNull { it.key != "Vid behov" && it.value.substringBefore(":").toInt() > nowHour }
+                ?.key
+            assumeTrue(
+                "Ingen tidpunkt ligger i framtiden vid denna testkörningstid ($nowHour)",
+                futureLabel != null,
+            )
+
             val med = Medicin(
                 id = "future-med", timestamp = "${today}T23:00:00.000Z", datum = today, tid = "23:00",
-                namn = "Vitamin D", dos = "1", enhet = "tablett", tidpunkt = "Kväll", tagen = false,
+                namn = "Vitamin D", dos = "1", enhet = "tablett", tidpunkt = futureLabel!!, tagen = false,
             )
             runBlocking { medicRepo.saveMedicin(med) }
             setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Visa kommande", substring = true)).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onAllNodesWithText("Vitamin D").assertCountEquals(0)
+
+            composeRule.onNodeWithText("Visa kommande", substring = true).performScrollTo().performClick()
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("Vitamin D")).fetchSemanticsNodes().isNotEmpty()
             }
@@ -398,7 +424,8 @@ class HomeScreenTest {
         try {
             val med = Medicin(
                 id = "grouping-med", timestamp = "${today}T08:00:00.000Z", datum = today, tid = "08:00",
-                namn = "Levaxin", dos = "50", enhet = "mcg", tidpunkt = "Morgon", tagen = false,
+                // "Vid behov" är aldrig "kommande" (MED-13) — testet ska inte flaka pga klocktid.
+                namn = "Levaxin", dos = "50", enhet = "mcg", tidpunkt = "Vid behov", tagen = false,
             )
             runBlocking { medicRepo.saveMedicin(med) }
             setContent()

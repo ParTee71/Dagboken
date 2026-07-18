@@ -243,6 +243,7 @@ fun HomeScreen(
                     onNextDay                     = vm::nextDay,
                     mediciner                     = uiState.todayMediciner,
                     tagenCount                    = uiState.tagenCount,
+                    kommandeMediciner              = uiState.kommandeMediciner,
                     medicinerOverdue              = uiState.overdueMediciner.isNotEmpty(),
                     onToggleMedicin               = vm::toggleMedicinTagen,
                     screeningEvents               = uiState.screeningEvents,
@@ -614,6 +615,7 @@ private fun IdagChecklistCard(
     onNextDay: () -> Unit,
     mediciner: List<Medicin>,
     tagenCount: Int,
+    kommandeMediciner: List<Medicin>,
     medicinerOverdue: Boolean,
     onToggleMedicin: (Medicin) -> Unit,
     screeningEvents: List<ScreeningEventStatus>,
@@ -638,10 +640,11 @@ private fun IdagChecklistCard(
         if (mediciner.isNotEmpty()) {
             HorizontalDivider(color = cs.outlineVariant, modifier = Modifier.padding(vertical = 16.dp))
             MedicinChecklistSection(
-                mediciner  = mediciner,
-                tagenCount = tagenCount,
-                hasOverdue = medicinerOverdue,
-                onToggle   = onToggleMedicin,
+                mediciner         = mediciner,
+                tagenCount        = tagenCount,
+                kommandeMediciner = kommandeMediciner,
+                hasOverdue        = medicinerOverdue,
+                onToggle          = onToggleMedicin,
             )
         }
         if (screeningEvents.isNotEmpty()) {
@@ -665,12 +668,17 @@ private fun IdagChecklistCard(
 private fun MedicinChecklistSection(
     mediciner: List<Medicin>,
     tagenCount: Int,
+    kommandeMediciner: List<Medicin>,
     hasOverdue: Boolean,
     onToggle: (Medicin) -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
     var showTaken by remember { mutableStateOf(false) }
-    val visible = mediciner.filter { !it.tagen || showTaken }
+    var showKommande by remember { mutableStateOf(false) }
+    val kommandeIds = kommandeMediciner.mapTo(HashSet()) { it.id }
+    val visible = mediciner.filter { med ->
+        (!med.tagen || showTaken) && (showKommande || med.id !in kommandeIds)
+    }
 
     Column {
         ChecklistCardHeader(
@@ -713,6 +721,14 @@ private fun MedicinChecklistSection(
                 Text(
                     if (showTaken) stringResource(R.string.idag_dolj_tagna)
                     else stringResource(R.string.idag_visa_tagna_count, tagenCount),
+                )
+            }
+        }
+        if (kommandeMediciner.isNotEmpty()) {
+            TextButton(onClick = { showKommande = !showKommande }, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    if (showKommande) stringResource(R.string.idag_dolj_kommande)
+                    else stringResource(R.string.idag_visa_kommande_count, kommandeMediciner.size),
                 )
             }
         }

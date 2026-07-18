@@ -125,7 +125,7 @@
 
 | ID | Krav |
 |----|------|
-| MED-1 | Visa vald dags (se HEM-14) mediciner sorterade på tidpunkt (Morgon → Natt → Vid behov). |
+| MED-1 | Visa vald dags (se HEM-14) mediciner sorterade på tidpunkt (Morgon → Natt → Vid behov). Som standard visas endast **aktuella/försenade** poster (schemalagd tid nådd, eller "Vid behov") — tagna poster göms bakom MED-5, kommande poster (schemalagd tid ej nådd) göms bakom MED-13. Gäller endast för dagens datum; en tidigare dag har inga "kommande" poster. |
 | MED-2 | Varje medicin ska kunna markeras som **tagen/ej tagen**. |
 | MED-3 | Receptgenererade poster ska kunna **hoppas över** (skippas) i stället för att raderas; engångsposter raderas. |
 | MED-4 | Vald dags receptposter ska genereras automatiskt och **idempotent** (stabilt ID `recept_{id}_{datum}_{tidpunkt}` förhindrar dubbletter), inklusive en tidigare dag som bläddras till (HEM-14/HEM-10). |
@@ -134,6 +134,7 @@
 | MED-7 | ~~Favoriter (vid-behov-mediciner) ska visas som ett **snabbval** direkt i Idag-fliken, under progressbaren; tryck loggar en dos med befintlig cooldown-/gränslogik.~~ *(se HEM-11, §4)* |
 | MED-11 | Varje medicinpost (dos) ska kunna ha en anteckning, redigerbar via den delade `NoteField`-komponenten på redigeringsskärmen. Loggas en dos från en favorit ärvs favoritens anteckning som förvalt värde på dosen. |
 | MED-12 | En medicinrad (Idag-checklistan eller Historik-ytan) som har en anteckning ska visa en liten info-ikon; tryck på ikonen visar anteckningen i en läs-only dialog med en Stäng-knapp. |
+| MED-13 | Kommande mediciner (schemalagd tid ännu ej nådd, dagens datum) ska kunna **döljas** i checklistan; en toggle-knapp visar antalet dolda poster och låter användaren visa dem igen (analogt med MED-5). |
 
 ### 6.2 Schema-flik (recept) *(nås nu via Hantera → Recept & scheman, se §18, sedan navigationsbytet i #84 etapp 4)*
 

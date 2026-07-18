@@ -190,6 +190,8 @@
     <string name="idag_skip_button">Hoppa över</string>
     <string name="idag_visa_tagna_count">Visa tagna (%1$d)</string>
     <string name="idag_dolj_tagna">Dölj tagna</string>
+    <string name="idag_visa_kommande_count">Visa kommande (%1$d)</string>
+    <string name="idag_dolj_kommande">Dölj kommande</string>
     <string name="idag_alla_tagna">Alla medicinerna för idag är tagna ✓</string>
     <string name="format_mark_as_untaken">Markera %s som ej tagen</string>
 
