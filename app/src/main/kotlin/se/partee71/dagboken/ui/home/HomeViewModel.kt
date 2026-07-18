@@ -99,11 +99,32 @@ internal fun computeWeekSummary(
     return if (hasData) WeekSummary(trend, dosesPercent) else null
 }
 
+/**
+ * Kommande (ej förfallna) doser för [dayMediciner] — schemalagd tid ännu ej nådd.
+ * "Kommande" är endast ett dagens-datum-koncept (jfr. overdueMediciner); en tidigare
+ * dags ologgade dos är bara ologgad, aldrig "kommande". Ren funktion (tar [nowTime]
+ * som parameter) för enkel, deterministisk enhetstestning.
+ */
+internal fun computeKommandeMediciner(
+    isToday: Boolean,
+    nowTime: LocalTime,
+    dayMediciner: List<Medicin>,
+): List<Medicin> {
+    if (!isToday) return emptyList()
+    return dayMediciner
+        .filter { med ->
+            !med.tagen && !med.skipped &&
+            tidpunktToHour(med.tidpunkt)?.let { h -> nowTime.hour < h } == true
+        }
+        .sortedBy { tidpunktSortIndex(it.tidpunkt) }
+}
+
 data class HomeUiState(
     val todayMediciner: List<Medicin> = emptyList(),
     val screeningPoints: List<Float> = emptyList(),
     val screeningLabels: List<String> = emptyList(),
     val overdueMediciner: List<Medicin> = emptyList(),
+    val kommandeMediciner: List<Medicin> = emptyList(),
     val screeningEvents: List<ScreeningEventStatus> = emptyList(),
     val lastAktivitet: Aktivitet? = null,
     val tagenCount: Int = 0,
@@ -203,6 +224,8 @@ class HomeViewModel @Inject constructor(
             }
             .sortedBy { tidpunktSortIndex(it.tidpunkt) }
 
+        val kommandeMediciner = computeKommandeMediciner(isToday, nowTime, dayMediciner)
+
         val screeningEvents = activeEvents.map { (label, timeStr) ->
             val st = ScreeningTime.parse(timeStr)
             val reminderTime = st?.let { LocalTime.of(it.hour, it.min) }
@@ -216,6 +239,7 @@ class HomeViewModel @Inject constructor(
             screeningPoints       = screeningDailyAvg.map { it.second },
             screeningLabels       = screeningDailyAvg.map { dayLabel(it.first) },
             overdueMediciner      = overdueMediciner,
+            kommandeMediciner     = kommandeMediciner,
             screeningEvents       = screeningEvents,
             lastAktivitet         = null,
             tagenCount            = dayMediciner.count { it.tagen },
