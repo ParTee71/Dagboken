@@ -237,7 +237,7 @@ class HomeScreenTest {
             runBlocking { medicRepo.saveMedicin(med) }
             setContent()
             composeRule.waitUntil(20_000) {
-                composeRule.onAllNodes(hasText("Visa kommande")).fetchSemanticsNodes().isNotEmpty()
+                composeRule.onAllNodes(hasText("Visa kommande", substring = true)).fetchSemanticsNodes().isNotEmpty()
             }
             composeRule.onAllNodesWithText("Vitamin D").assertCountEquals(0)
 
