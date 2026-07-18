@@ -45,30 +45,27 @@ class LineChartCanvasTest {
         }
     }
 
-    // ─── Legacy branch (gridValues = null) ────────────────────────────────────
-
-    @Test fun legacy_renders_with_symmetric_range() = renderAndRetry {
+    @Test fun renders_with_symmetric_range() = renderAndRetry {
         LineChartCanvas(series = series(2), minValue = -10f, maxValue = 10f, modifier = mod)
     }
 
-    @Test fun legacy_renders_with_positive_only_range() = renderAndRetry {
+    @Test fun renders_with_positive_only_range() = renderAndRetry {
         LineChartCanvas(series = series(1), minValue = 0f, maxValue = 10f, modifier = mod)
     }
 
-    @Test fun legacy_renders_with_empty_series() = renderAndRetry {
+    @Test fun renders_with_empty_series() = renderAndRetry {
         LineChartCanvas(series = emptyList(), minValue = -10f, maxValue = 10f, modifier = mod)
     }
 
-    @Test fun legacy_renders_with_null_gaps_in_series() = renderAndRetry {
+    @Test fun renders_with_null_gaps_in_series() = renderAndRetry {
         LineChartCanvas(series = series(2, withGap = true), minValue = -10f, maxValue = 10f, modifier = mod)
     }
 
-    @Test fun legacy_renders_without_crash_when_minValue_is_zero_deduplicated_levels() = renderAndRetry {
-        // minValue=0 causes listOf(0,0,0,maxV/2,maxV) — distinct() must not crash
+    @Test fun renders_without_crash_when_minValue_is_zero() = renderAndRetry {
         LineChartCanvas(series = series(1), minValue = 0f, maxValue = 5f, modifier = mod)
     }
 
-    @Test fun legacy_renders_single_point_series() = renderAndRetry {
+    @Test fun renders_single_point_series() = renderAndRetry {
         LineChartCanvas(
             series   = listOf(ChartSeries("A", Color.Blue, listOf(3f))),
             minValue = -10f,
@@ -77,46 +74,16 @@ class LineChartCanvasTest {
         )
     }
 
-    // ─── gridValues branch ────────────────────────────────────────────────────
+    // ─── Smart y-axelskala (#136) ──────────────────────────────────────────────
 
-    @Test fun gridValues_branch_renders_with_data() = renderAndRetry {
-        LineChartCanvas(
-            series     = series(2),
-            minValue   = 0f,
-            maxValue   = 5f,
-            gridValues = listOf(0f, 1f, 2f, 3f, 4f, 5f),
-            modifier   = mod,
-        )
+    @Test fun renders_without_crash_with_a_narrow_non_zero_anchored_range() = renderAndRetry {
+        // t.ex. computeSmartYRange på ett symptomband 5..8
+        LineChartCanvas(series = series(1), minValue = 4.5f, maxValue = 8.5f, modifier = mod)
     }
 
-    @Test fun gridValues_branch_renders_with_empty_series() = renderAndRetry {
-        LineChartCanvas(
-            series     = emptyList(),
-            minValue   = 0f,
-            maxValue   = 5f,
-            gridValues = listOf(0f, 1f, 2f, 3f, 4f, 5f),
-            modifier   = mod,
-        )
-    }
-
-    @Test fun gridValues_branch_renders_with_null_gaps() = renderAndRetry {
-        LineChartCanvas(
-            series     = series(2, withGap = true),
-            minValue   = 0f,
-            maxValue   = 5f,
-            gridValues = listOf(0f, 1f, 2f, 3f, 4f, 5f),
-            modifier   = mod,
-        )
-    }
-
-    @Test fun gridValues_branch_renders_single_value_grid() = renderAndRetry {
-        LineChartCanvas(
-            series     = series(1),
-            minValue   = 0f,
-            maxValue   = 5f,
-            gridValues = listOf(0f),
-            modifier   = mod,
-        )
+    @Test fun renders_without_crash_with_a_range_far_from_zero() = renderAndRetry {
+        // t.ex. computeSmartYRange på stegvärden ~5000-9000
+        LineChartCanvas(series = series(1), minValue = 4500f, maxValue = 9500f, modifier = mod)
     }
 
     // ─── Mörkt tema (#123) ─────────────────────────────────────────────────────

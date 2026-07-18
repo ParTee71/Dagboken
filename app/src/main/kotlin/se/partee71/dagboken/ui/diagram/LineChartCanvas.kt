@@ -52,7 +52,6 @@ fun LineChartCanvas(
     modifier: Modifier = Modifier,
     minValue: Float = -10f,
     maxValue: Float = 10f,
-    gridValues: List<Float>? = null,
 ) {
     val modelProducer = remember { CartesianChartModelProducer() }
 
