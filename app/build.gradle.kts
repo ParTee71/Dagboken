@@ -31,7 +31,7 @@ android {
         minSdk = 30
         targetSdk = 35
         versionCode = 34
-        versionName = versionNameOverride ?: "3.5.2"
+        versionName = versionNameOverride ?: "3.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
