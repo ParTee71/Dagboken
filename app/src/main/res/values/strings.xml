@@ -55,7 +55,6 @@
     <string name="format_migration_done_counts">%1$d aktiviteter och %2$d medicinlogg importerade.</string>
     <string name="format_migration_error">Fel: %s</string>
     <string name="format_mark_as_taken">Markera %s som tagen</string>
-    <string name="format_range_days">%d dagar</string>
 
     <!-- Home screen -->
     <string name="home_overdue_title">Försenat</string>
@@ -268,6 +267,11 @@
     <string name="trender_section_stress">Stress &amp; belastning</string>
     <string name="trender_section_symptom">Symptom</string>
     <string name="trender_no_energy_data">Ingen loggad energi för vald period</string>
+    <string name="trender_range_7_days">7 dagar</string>
+    <string name="trender_range_14_days">14 dagar</string>
+    <string name="trender_range_month">Månad</string>
+    <string name="trender_range_3_months">3 månader</string>
+    <string name="trender_range_all">Allt</string>
 
     <!-- Samsung Health placeholder -->
     <!-- Hälsa (Health Connect), §19 HLS -->

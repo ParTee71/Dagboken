@@ -13,6 +13,8 @@ import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
+import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
 import com.patrykandpatrick.vico.compose.common.fill
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
@@ -123,6 +125,9 @@ fun LineChartCanvas(
             ),
         ),
         modelProducer = modelProducer,
+        // Tvåfingerzoom + panorering (#144) — samma känsla på alla diagram i appen.
+        scrollState = rememberVicoScrollState(scrollEnabled = true),
+        zoomState = rememberVicoZoomState(zoomEnabled = true),
         modifier = modifier,
     )
 }

@@ -40,7 +40,7 @@ data class DiagramSection(
 fun DiagramLayout(
     title: String,
     onBack: (() -> Unit)? = null,
-    rangeChips: @Composable () -> Unit,
+    periodSelector: @Composable () -> Unit,
     sections: List<DiagramSection>,
     periodLabel: (@Composable () -> Unit)? = null,
     portraitExtras: (@Composable () -> Unit)? = null,
@@ -57,9 +57,7 @@ fun DiagramLayout(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                rangeChips()
-            }
+            periodSelector()
             periodLabel?.invoke()
             sections.forEach { section ->
                 DagbokenCard(title = section.title) {
