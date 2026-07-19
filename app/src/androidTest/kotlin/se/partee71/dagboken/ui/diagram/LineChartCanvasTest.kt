@@ -7,6 +7,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -84,6 +89,26 @@ class LineChartCanvasTest {
     @Test fun renders_without_crash_with_a_range_far_from_zero() = renderAndRetry {
         // t.ex. computeSmartYRange på stegvärden ~5000-9000
         LineChartCanvas(series = series(1), minValue = 4500f, maxValue = 9500f, modifier = mod)
+    }
+
+    // ─── Tömd serie efter tidigare rendering (#141) ───────────────────────────
+
+    @Test fun `renders without crash when series goes from non-empty to empty`() = retryOnRenderGlitch {
+        val scenario = ActivityScenario.launch(ComponentActivity::class.java)
+        try {
+            scenario.onActivity {
+                it.setContent {
+                    var currentSeries by remember { mutableStateOf(series(2)) }
+                    MaterialTheme {
+                        LineChartCanvas(series = currentSeries, minValue = -10f, maxValue = 10f, modifier = mod)
+                    }
+                    LaunchedEffect(Unit) { currentSeries = emptyList() }
+                }
+            }
+            composeRule.waitForIdle()
+        } finally {
+            scenario.close()
+        }
     }
 
     // ─── Mörkt tema (#123) ─────────────────────────────────────────────────────

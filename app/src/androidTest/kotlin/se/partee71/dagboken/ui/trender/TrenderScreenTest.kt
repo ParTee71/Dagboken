@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -65,7 +67,36 @@ class TrenderScreenTest {
         }
     }
 
-    @Test fun selector_lists_both_aktivitet_and_symptom_series() = retryOnRenderGlitch {
+    @Test fun energy_slot_section_shows_its_title() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Energi per tillfälle").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun energy_daily_section_renders_with_logged_screenings() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                repo.save(
+                    Aktivitet(
+                        id = "s1", timestamp = "x", datum = today, tid = "09:00",
+                        aktivitet = "Lunch", energy = 6, stress = 3, somatiska = 0,
+                        symptom = "", type = "screening",
+                    ),
+                )
+            }
+            setContent()
+            composeRule.onNodeWithText("Energi (dag)").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun energy_slot_selector_does_not_list_discovered_symptoms() = retryOnRenderGlitch {
         setUp()
         try {
             runBlocking {
@@ -78,10 +109,33 @@ class TrenderScreenTest {
                 )
             }
             setContent()
-            composeRule.onNodeWithText("Visa:").assertIsDisplayed()
-            // Opens the series dropdown via its testTag — a text-based query on the button's
-            // current-selection label is ambiguous if a stray duplicate node exists in the tree.
-            composeRule.onNodeWithTag("trender_series_selector").performClick()
+            composeRule.onNodeWithTag("trender_series_selector_energy").performClick()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Energi Lunch")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText("Energi Lunch").assertIsDisplayed()
+            composeRule.onNodeWithText("Yrsel").assertDoesNotExist()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun symptom_selector_lists_discovered_symptom_series() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                repo.save(
+                    Aktivitet(
+                        id = "a1", timestamp = "x", datum = today, tid = "09:00",
+                        aktivitet = "Promenad", energy = 5, stress = 3, somatiska = 0,
+                        symptom = "Yrsel:4", type = "aktivitet",
+                    ),
+                )
+            }
+            setContent()
+            // testTag på knappen är ambiguös på grund av en text-baserad query mot
+            // knappens vald-etikett om det finns en avvikande dubblettnod i trädet.
+            composeRule.onNodeWithTag("trender_series_selector_symptom").performClick()
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
             }
@@ -108,8 +162,8 @@ class TrenderScreenTest {
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
             }
-            // The legend sits below the chart in a scrollable column — scroll it into view
-            // before asserting, since it can land below the fold on a small emulator viewport.
+            // Legenden ligger under diagrammet i en scrollbar kolumn — scrolla in den
+            // i vyn innan assertion, då den kan hamna under falsen på en liten emulator.
             composeRule.onNodeWithText("Yrsel").performScrollTo().assertIsDisplayed()
         } finally {
             tearDown()
@@ -127,12 +181,16 @@ class TrenderScreenTest {
         }
     }
 
-    @Test fun empty_state_shown_when_no_series_selected() = retryOnRenderGlitch {
+    @Test fun empty_state_shown_in_energy_slot_section_when_no_series_selected() = retryOnRenderGlitch {
         setUp()
         try {
             composeRule.runOnUiThread { vm.toggleSeries("Energi Frukost") }
             setContent()
-            composeRule.onNodeWithText("Välj minst en dataserie").assertIsDisplayed()
+            // Stress- och symptomdiagrammen har heller inget valt som standard, så
+            // samma tomlägestext kan visas i flera sektioner samtidigt.
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodesWithText("Välj minst en dataserie").fetchSemanticsNodes().isNotEmpty()
+            }
         } finally {
             tearDown()
         }

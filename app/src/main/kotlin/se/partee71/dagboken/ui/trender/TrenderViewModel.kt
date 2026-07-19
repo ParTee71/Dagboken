@@ -11,15 +11,33 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.domain.usecase.DailyEnergyStats
 import se.partee71.dagboken.domain.usecase.SymptomUtils
+import se.partee71.dagboken.domain.usecase.computeDailyEnergyStats
 import se.partee71.dagboken.ui.diagram.ChartSeries
 import java.time.LocalDate
 import javax.inject.Inject
 
-internal val ALL_SERIES = listOf(
+internal val ENERGY_SLOT_SERIES = listOf(
     "Energi Frukost", "Energi Lunch", "Energi Kvällsmat", "Energi Läggdags",
-    "Stress", "Somatiska", "Återhämtande", "Energitjuv",
 )
+internal val STRESS_SERIES = listOf("Stress", "Somatiska", "Återhämtande", "Energitjuv")
+
+internal val ALL_SERIES = ENERGY_SLOT_SERIES + STRESS_SERIES
+
+/**
+ * Trenders diagram delas upp per kategori (#141) — ett gemensamt diagram för alla
+ * serier ger en gemensam y-skala som gör enskilda serier oläsliga. "Energi (dag)"
+ * (TRD-8) hör inte hemma här — den är inte en väljbar [ChartSeries] utan ett eget
+ * intervalldiagram, se [TrenderUiState.dailyEnergy].
+ */
+internal enum class TrenderCategory { ENERGI_TILLFALLE, STRESS_BELASTNING, SYMPTOM }
+
+internal fun categoryOf(seriesName: String): TrenderCategory = when {
+    seriesName in ENERGY_SLOT_SERIES -> TrenderCategory.ENERGI_TILLFALLE
+    seriesName in STRESS_SERIES      -> TrenderCategory.STRESS_BELASTNING
+    else                             -> TrenderCategory.SYMPTOM
+}
 
 private val SERIES_PALETTE = listOf(
     Color(0xFF60a5fa),  // blue-400      (Energi Frukost)
@@ -79,11 +97,17 @@ data class TrenderUiState(
     val selectedSeries: Set<String> = setOf("Energi Frukost"),
     val series: List<ChartSeries> = emptyList(),
     val dates: List<String> = emptyList(),
+    /** Energi (dag), TRD-8 — alltid beräknad, oavsett [selectedSeries]. Delad uträkning med Idag (HEM-7). */
+    val dailyEnergy: List<DailyEnergyStats> = emptyList(),
 )
 
 /** Färg för valfri serie, oavsett om det är en fast aktivitetsserie eller en dynamisk symptomserie. */
 fun trenderSeriesColor(name: String, symptomLabels: List<String>) =
     if (name in ALL_SERIES) seriesColor(name) else symptomColor(name, symptomLabels)
+
+/** De valda och renderade [ChartSeries] som hör till [category] (#141). */
+internal fun TrenderUiState.seriesFor(category: TrenderCategory): List<ChartSeries> =
+    series.filter { s -> categoryOf(s.label) == category }
 
 @HiltViewModel
 class TrenderViewModel @Inject constructor(
@@ -172,6 +196,7 @@ class TrenderViewModel @Inject constructor(
                     selectedSeries  = effectiveSelected,
                     series          = series,
                     dates           = dates,
+                    dailyEnergy     = computeDailyEnergyStats(inRange),
                 )
             }
         }

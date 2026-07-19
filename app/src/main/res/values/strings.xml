@@ -263,6 +263,11 @@
 
     <!-- Trender-yta (enhetliga diagram) -->
     <string name="trender_title">Trender</string>
+    <string name="trender_section_energy_daily">Energi (dag)</string>
+    <string name="trender_section_energy_slots">Energi per tillfälle</string>
+    <string name="trender_section_stress">Stress &amp; belastning</string>
+    <string name="trender_section_symptom">Symptom</string>
+    <string name="trender_no_energy_data">Ingen loggad energi för vald period</string>
 
     <!-- Samsung Health placeholder -->
     <!-- Hälsa (Health Connect), §19 HLS -->

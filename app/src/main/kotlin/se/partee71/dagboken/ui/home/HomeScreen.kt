@@ -84,6 +84,7 @@ import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.StatPill
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
+import se.partee71.dagboken.ui.diagram.MinMaxCaption
 import se.partee71.dagboken.ui.components.StepwiseScreeningForm
 import se.partee71.dagboken.ui.formatDisplayDate
 import se.partee71.dagboken.ui.formatShortDate
@@ -485,11 +486,13 @@ internal fun HealthTrendsCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = cs.onSurfaceVariant,
             )
+            val stepsPoints = weekly.dailySteps.map { it.steps.toFloat() }
             SparklineChart(
-                points   = weekly.dailySteps.map { it.steps.toFloat() },
+                points   = stepsPoints,
                 xLabels  = weekly.dailySteps.map { formatWeekdayShort(it.date) },
                 modifier = Modifier.padding(top = 4.dp),
             )
+            MinMaxCaption(min = stepsPoints.min(), max = stepsPoints.max(), modifier = Modifier.padding(top = 2.dp))
             Spacer(Modifier.height(12.dp))
         }
         if (weekly?.hasRestingHeartRateTrend == true) {
@@ -499,11 +502,13 @@ internal fun HealthTrendsCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = cs.onSurfaceVariant,
             )
+            val bpmPoints = known.map { it.bpm!!.toFloat() }
             SparklineChart(
-                points   = known.map { it.bpm!!.toFloat() },
+                points   = bpmPoints,
                 xLabels  = known.map { formatWeekdayShort(it.date) },
                 modifier = Modifier.padding(top = 4.dp),
             )
+            MinMaxCaption(min = bpmPoints.min(), max = bpmPoints.max(), modifier = Modifier.padding(top = 2.dp))
             Spacer(Modifier.height(12.dp))
         }
         Text(
@@ -516,6 +521,11 @@ internal fun HealthTrendsCard(
                 points   = screeningPoints,
                 xLabels  = screeningLabels,
                 modifier = Modifier.padding(top = 4.dp),
+            )
+            MinMaxCaption(
+                min      = screeningPoints.min(),
+                max      = screeningPoints.max(),
+                modifier = Modifier.padding(top = 2.dp),
             )
             Spacer(Modifier.height(4.dp))
         } else {
