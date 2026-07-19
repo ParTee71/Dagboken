@@ -55,8 +55,8 @@ class TrenderViewModelTest {
 
     // ─── initial state ────────────────────────────────────────────────────────
 
-    @Test fun `initial rangeDays is 30`() {
-        assertEquals(30, viewModel.state.value.rangeDays)
+    @Test fun `initial range is MONTH`() {
+        assertEquals(TrenderRange.MONTH, viewModel.state.value.range)
     }
 
     @Test fun `initial selectedSeries contains Energi Frukost`() {
@@ -107,13 +107,20 @@ class TrenderViewModelTest {
 
     // ─── range cutoff ─────────────────────────────────────────────────────────
 
-    @Test fun `entries older than rangeDays are excluded`() = runTest {
+    @Test fun `entries older than the selected range are excluded`() = runTest {
         val old    = LocalDate.now().minusDays(35).toString()
         val recent = LocalDate.now().minusDays(1).toString()
         allFlow.value = listOf(aktivitet("old", old), aktivitet("recent", recent))
-        viewModel.setRange(30)
+        viewModel.setRange(TrenderRange.MONTH)
         assertTrue(viewModel.state.value.dates.none { it == old })
         assertTrue(viewModel.state.value.dates.any  { it == recent })
+    }
+
+    @Test fun `ALL range includes entries regardless of age`() = runTest {
+        val ancient = LocalDate.now().minusDays(400).toString()
+        allFlow.value = listOf(aktivitet("ancient", ancient))
+        viewModel.setRange(TrenderRange.ALL)
+        assertTrue(viewModel.state.value.dates.any { it == ancient })
     }
 
     // ─── toggleSeries ─────────────────────────────────────────────────────────
@@ -126,6 +133,11 @@ class TrenderViewModelTest {
     @Test fun `toggleSeries removes a series already selected`() {
         viewModel.toggleSeries("Energi Frukost")
         assertTrue("Energi Frukost" !in viewModel.state.value.selectedSeries)
+    }
+
+    @Test fun `setRange updates state range`() {
+        viewModel.setRange(TrenderRange.SEVEN_DAYS)
+        assertEquals(TrenderRange.SEVEN_DAYS, viewModel.state.value.range)
     }
 
     // ─── Energi (dag) — TRD-8, #141 ───────────────────────────────────────────
@@ -151,7 +163,7 @@ class TrenderViewModelTest {
     @Test fun `dailyEnergy respects the selected range cutoff`() = runTest {
         val old = LocalDate.now().minusDays(35).toString()
         allFlow.value = listOf(screening("s1", old, "Lunch"))
-        viewModel.setRange(30)
+        viewModel.setRange(TrenderRange.MONTH)
         assertTrue(viewModel.state.value.dailyEnergy.none { it.datum == old })
     }
 
