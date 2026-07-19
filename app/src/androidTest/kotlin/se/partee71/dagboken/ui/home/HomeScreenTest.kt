@@ -326,11 +326,14 @@ class HomeScreenTest {
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodesWithTag("screening_next").fetchSemanticsNodes().isNotEmpty()
             }
-            composeRule.onNodeWithTag("screening_next").performScrollTo().performClick()
+            // Formuläret ligger i en AlertDialog, inte i Idag-skärmens scrollbara
+            // huvudkolumn (till skillnad från checklistans inline-formulär) — ingen
+            // scrollbar förälder att performScrollTo() mot, så vi klickar direkt.
+            composeRule.onNodeWithTag("screening_next").performClick()
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
             }
-            composeRule.onNodeWithTag("screening_save").performScrollTo().performClick()
+            composeRule.onNodeWithTag("screening_save").performClick()
 
             composeRule.waitUntil(20_000) {
                 runBlocking {
