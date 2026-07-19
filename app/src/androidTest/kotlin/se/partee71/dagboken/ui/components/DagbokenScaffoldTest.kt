@@ -2,9 +2,13 @@ package se.partee71.dagboken.ui.components
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.union
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
@@ -12,6 +16,8 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
@@ -128,6 +134,59 @@ class DagbokenScaffoldTest {
                 }
             }
             composeRule.onNodeWithText("Skärminnehåll").assertIsDisplayed()
+        } finally {
+            scenario.close()
+        }
+    }
+
+    // ─── NFR-11: IME-inset förs in i innehållets padding ──────────────────────
+    // En faktisk tangentbords-ocklusion går inte att verifiera deterministiskt i
+    // instrumenttest (inget garanterat IME, mätning blir flaky). Vi testar i
+    // stället mekanismen fixen bygger på: contentWindowInsets (som defaultar till
+    // systemBars ∪ ime) flödar in i innehållets bottenpadding, vilket låter
+    // skrollbara skärmar rulla fram det fokuserade fältet ovanför tangentbordet.
+
+    @Test fun `contentWindowInsets are forwarded to content bottom padding`() = retryOnRenderGlitch {
+        val scenario = ActivityScenario.launch(ComponentActivity::class.java)
+        try {
+            var bottom: Dp = Dp.Unspecified
+            scenario.onActivity {
+                it.setContent {
+                    MaterialTheme {
+                        DagbokenScaffold(
+                            title               = "Titel",
+                            contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 123.dp),
+                        ) { padding -> bottom = padding.calculateBottomPadding() }
+                    }
+                }
+            }
+            composeRule.waitForIdle()
+            assert(bottom >= 123.dp) { "förväntade framförd botteninset ≥ 123.dp, fick $bottom" }
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Test fun `union keeps the larger bottom inset`() = retryOnRenderGlitch {
+        val scenario = ActivityScenario.launch(ComponentActivity::class.java)
+        try {
+            var bottom: Dp = Dp.Unspecified
+            scenario.onActivity {
+                it.setContent {
+                    MaterialTheme {
+                        // Samma union-mönster som scaffoldens default (systemBars ∪ ime),
+                        // här med en garanterat stor botten så testet blir deterministiskt.
+                        DagbokenScaffold(
+                            title               = "Titel",
+                            contentWindowInsets = ScaffoldDefaults.contentWindowInsets
+                                .union(WindowInsets(0.dp, 0.dp, 0.dp, 200.dp)),
+                        ) { padding -> bottom = padding.calculateBottomPadding() }
+                    }
+                }
+            }
+            composeRule.waitForIdle()
+            assert(bottom >= 200.dp) { "union ska ge minst 200.dp botten, fick $bottom" }
         } finally {
             scenario.close()
         }

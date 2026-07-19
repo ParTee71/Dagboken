@@ -281,6 +281,7 @@
 | NFR-8 | Appstorlek/prestanda: listor ska använda lazy-rendering; tunga operationer på IO-dispatcher. |
 | NFR-9 | Appen använder ett enhetligt designsystem: kort, tomlägen, bekräftelsedialoger, sektionsrubriker och datum/tid-format byggs med delade komponenter i `ui/components/`, med konsekvent form, typografi och spacing. |
 | NFR-10 | Spara-knappar byggs med den delade komponenten `SaveButton` och är inaktiverade tills formuläret har osparade, giltiga ändringar (dirty-state — jämfört mot senast laddade/sparade värde, inte bara fältvalidering). Försök att navigera bort (tillbaka-knapp eller systemets back) med osparade ändringar visar en bekräftelsedialog (`UnsavedChangesBackHandler`) med möjlighet att spara, kasta ändringarna eller avbryta. `SaveButton` använder appens gröna "positiv"-signal (Emerald400/900) som container-/textfärg i aktivt läge, samma i ljust och mörkt tema. |
+| NFR-11 | Skärmar med textinmatning ska hålla det fokuserade fältet synligt ovanför skärmtangentbordet — IME-inset hanteras centralt i den delade `DagbokenScaffold` (`contentWindowInsets` inkluderar `WindowInsets.ime`), så inget inmatningsfält skyms medan man skriver. |
 
 ---
 
