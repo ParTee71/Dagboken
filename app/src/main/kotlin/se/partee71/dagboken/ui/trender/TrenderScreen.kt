@@ -166,6 +166,10 @@ private fun categorySection(
                     Row(
                         verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        // Väljarknappens etikett kan sammanfalla textmässigt med legendens
+                        // (t.ex. exakt "Yrsel" i båda när det är den enda valda serien i
+                        // kategorin) — egen testTag så legendraden går att peka ut entydigt.
+                        modifier = Modifier.testTag("trender_legend_item_${s.label}"),
                     ) {
                         Box(
                             modifier = Modifier

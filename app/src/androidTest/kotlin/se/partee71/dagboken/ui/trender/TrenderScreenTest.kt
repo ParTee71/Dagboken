@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -108,7 +109,7 @@ class TrenderScreenTest {
                 )
             }
             setContent()
-            composeRule.onNodeWithTag("trender_series_selector_energy").performClick()
+            composeRule.onNodeWithTag("trender_series_selector_energy").performScrollTo().performClick()
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("Energi Lunch")).fetchSemanticsNodes().isNotEmpty()
             }
@@ -132,9 +133,9 @@ class TrenderScreenTest {
                 )
             }
             setContent()
-            // testTag på knappen är ambiguös på grund av en text-baserad query mot
-            // knappens vald-etikett om det finns en avvikande dubblettnod i trädet.
-            composeRule.onNodeWithTag("trender_series_selector_symptom").performClick()
+            // Symptom är den sista sektionen i den scrollbara kolumnen — scrolla in
+            // knappen innan klick, annars kan touch-injektionen missa den.
+            composeRule.onNodeWithTag("trender_series_selector_symptom").performScrollTo().performClick()
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
             }
@@ -159,11 +160,12 @@ class TrenderScreenTest {
             setContent()
             composeRule.runOnUiThread { vm.toggleSeries("Yrsel") }
             composeRule.waitUntil(20_000) {
-                composeRule.onAllNodes(hasText("Yrsel")).fetchSemanticsNodes().isNotEmpty()
+                composeRule.onAllNodes(hasTestTag("trender_legend_item_Yrsel")).fetchSemanticsNodes().isNotEmpty()
             }
-            // Legenden ligger under diagrammet i en scrollbar kolumn — scrolla in den
-            // i vyn innan assertion, då den kan hamna under falsen på en liten emulator.
-            composeRule.onNodeWithText("Yrsel").performScrollTo().assertIsDisplayed()
+            // Legenden ligger under diagrammet i en scrollbar kolumn — scrolla in den i
+            // vyn innan assertion. Egen testTag eftersom väljarknappens etikett också blir
+            // exakt "Yrsel" när det är den enda valda serien i symptomkategorin.
+            composeRule.onNodeWithTag("trender_legend_item_Yrsel").performScrollTo().assertIsDisplayed()
         } finally {
             tearDown()
         }
