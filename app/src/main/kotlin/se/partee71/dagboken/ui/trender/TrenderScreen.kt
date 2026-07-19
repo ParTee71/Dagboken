@@ -41,6 +41,7 @@ import se.partee71.dagboken.ui.diagram.IntervalBarChart
 import se.partee71.dagboken.ui.diagram.IntervalPoint
 import se.partee71.dagboken.ui.diagram.LineChartCanvas
 import se.partee71.dagboken.ui.diagram.MinMaxCaption
+import se.partee71.dagboken.ui.diagram.computeSmartYAxis
 import se.partee71.dagboken.ui.diagram.computeSmartYRange
 
 @Composable
@@ -103,12 +104,13 @@ private fun energyDailySection(state: TrenderUiState): DiagramSection {
                     modifier = chartModifier.height(200.dp),
                 )
             } else {
-                val yRange = remember(daily) { computeSmartYRange(daily.flatMap { listOf(it.min, it.max) }) }
+                val yAxis = remember(daily) { computeSmartYAxis(daily.flatMap { listOf(it.min, it.max) }) }
                 IntervalBarChart(
                     points   = daily.map { IntervalPoint(min = it.min, value = it.avg, max = it.max) },
                     dates    = daily.map { it.datum },
-                    minValue = yRange.start,
-                    maxValue = yRange.endInclusive,
+                    minValue = yAxis.range.start,
+                    maxValue = yAxis.range.endInclusive,
+                    gridStep = yAxis.step,
                     modifier = chartModifier,
                 )
             }

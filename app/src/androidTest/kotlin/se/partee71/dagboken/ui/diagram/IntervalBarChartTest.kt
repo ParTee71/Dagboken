@@ -112,4 +112,78 @@ class IntervalBarChartTest {
             "Dagsspann, 30 dagar, lägsta 1, högsta 10",
         ).assertIsDisplayed()
     }
+
+    // ─── Bezier-kurva + värdelinjer (#141) ─────────────────────────────────────
+
+    @Test fun `renders the value curve across multiple days without crashing`() = renderAndRetry(
+        content = {
+            IntervalBarChart(
+                points = listOf(
+                    IntervalPoint(min = 2f, value = 3f, max = 5f),
+                    IntervalPoint(min = 4f, value = 7f, max = 9f),
+                    IntervalPoint(min = 3f, value = 5f, max = 6f),
+                ),
+                dates    = listOf("2026-07-08", "2026-07-09", "2026-07-10"),
+                minValue = 0f,
+                maxValue = 10f,
+                modifier = mod,
+            )
+        },
+    ) {
+        composeRule.onNodeWithContentDescription(
+            "Dagsspann, 3 dagar, lägsta 2, högsta 9",
+        ).assertIsDisplayed()
+    }
+
+    @Test fun `curve breaks cleanly across a gap without crashing`() = renderAndRetry(
+        content = {
+            IntervalBarChart(
+                points = listOf(
+                    IntervalPoint(min = 2f, value = 4f, max = 6f),
+                    null,
+                    IntervalPoint(min = 3f, value = 5f, max = 9f),
+                ),
+                dates    = listOf("2026-07-08", "2026-07-09", "2026-07-10"),
+                minValue = 0f,
+                maxValue = 10f,
+                modifier = mod,
+            )
+        },
+    ) {
+        composeRule.onNodeWithContentDescription(
+            "Dagsspann, 2 dagar, lägsta 2, högsta 9",
+        ).assertIsDisplayed()
+    }
+
+    @Test fun `renders with an explicit gridStep without crashing`() = renderAndRetry(
+        content = {
+            IntervalBarChart(
+                points   = listOf(IntervalPoint(min = 2f, value = 5f, max = 8f)),
+                dates    = listOf("2026-07-10"),
+                minValue = 0f,
+                maxValue = 10f,
+                gridStep = 2f,
+                modifier = mod,
+            )
+        },
+    ) {
+        composeRule.onNodeWithContentDescription(
+            "Dagsspann, 1 dagar, lägsta 2, högsta 8",
+        ).assertIsDisplayed()
+    }
+
+    @Test fun `renders without crashing when maxValue equals minValue`() = renderAndRetry(
+        content = {
+            IntervalBarChart(
+                points   = listOf(IntervalPoint(min = 5f, value = 5f, max = 5f)),
+                minValue = 5f,
+                maxValue = 5f,
+                modifier = mod,
+            )
+        },
+    ) {
+        composeRule.onNodeWithContentDescription(
+            "Dagsspann, 1 dagar, lägsta 5, högsta 5",
+        ).assertIsDisplayed()
+    }
 }

@@ -8,7 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -25,19 +27,41 @@ import kotlin.math.max
 data class IntervalPoint(val min: Float, val value: Float, val max: Float)
 
 private const val MAX_DATE_LABELS = 6
+private const val MAX_GRID_LINES = 12
 private val AXIS_LABEL_SIZE = 11.sp
+
+/** Rutnätsvärden mellan [minValue] och [maxValue], jämnt fördelade med [step] mellanrum. */
+private fun gridValuesFor(minValue: Float, maxValue: Float, step: Float): List<Float> {
+    if (step <= 0f || maxValue <= minValue) return listOf(minValue, maxValue)
+    val values = mutableListOf<Float>()
+    var v = minValue
+    var guard = 0
+    while (v <= maxValue + step * 0.001f && guard < MAX_GRID_LINES) {
+        values += v
+        v += step
+        guard++
+    }
+    if (values.isEmpty() || values.last() < maxValue - step * 0.001f) values += maxValue
+    return values
+}
 
 /**
  * Generiskt intervall-/spannstapeldiagram (regel 4 — inte en Energi-specifik variant):
  * en lodrät stapel per dag från [IntervalPoint.min] till [IntervalPoint.max], med
- * [IntervalPoint.value] markerat som en punkt på stapeln. Används av Trenders
+ * [IntervalPoint.value] markerat som en punkt på stapeln och dagsvärdena förbundna med
+ * en mjuk kurva (samma bezier-stil som [LineChartCanvas], TRD-6). Används av Trenders
  * "Energi (dag)"-diagram (TRD-8) men är inte begränsad till energi.
  *
  * Byggd som en handrullad `Canvas` i stället för Vico (regel 4-avvägning): Vicos
  * `CandlestickCartesianLayer` är byggd för finansiella upp/ned-candlesticks (bullish/
  * bearish-färgning) — en semantisk missmatchning för ett hälsospann utan
  * uppåt/nedåt-koncept. `null`-punkter renderas som luckor (samma mönster som
- * [LineChartCanvas]/[ChartSeries]).
+ * [LineChartCanvas]/[ChartSeries]) — kurvan bryts vid en lucka.
+ *
+ * [gridStep] styr avståndet mellan de horisontella värdelinjerna (TRD-9); standardvärdet
+ * räknas fram från [minValue]/[maxValue], men anropare som redan har ett [SmartYAxis]
+ * (t.ex. via [computeSmartYAxis]) bör skicka in dess `step` så linjerna garanterat landar
+ * exakt på [minValue]/[maxValue].
  */
 @Composable
 fun IntervalBarChart(
@@ -46,10 +70,12 @@ fun IntervalBarChart(
     modifier: Modifier = Modifier,
     minValue: Float = -10f,
     maxValue: Float = 10f,
+    gridStep: Float = niceStep(maxValue - minValue),
 ) {
     val barColor = MaterialTheme.colorScheme.primary
     val rangeColor = barColor.copy(alpha = 0.35f)
     val axisLabelColor = MaterialTheme.colorScheme.onSurface
+    val gridLineColor = axisLabelColor.copy(alpha = 0.12f)
     val textMeasurer = rememberTextMeasurer()
 
     val dateLabels = remember(dates) {
@@ -57,6 +83,7 @@ fun IntervalBarChart(
         else dates.map { runCatching { formatShortDate(LocalDate.parse(it)) }.getOrDefault("") }
     }
     val labelStep = max(1, dateLabels.size / MAX_DATE_LABELS)
+    val gridValues = remember(minValue, maxValue, gridStep) { gridValuesFor(minValue, maxValue, gridStep) }
 
     val description = remember(points, minValue, maxValue) {
         val known = points.filterNotNull()
@@ -85,9 +112,17 @@ fun IntervalBarChart(
 
         fun yOf(v: Float) = plotBottom - ((v - minValue) / span) * plotHeight
 
-        // Axelgränser (min/max) — alltid synliga som y-axeletiketter (TRD-9), utöver
-        // MinMaxCaption-texten som visas under diagrammet.
-        listOf(minValue to plotBottom, maxValue to plotTop).forEach { (value, y) ->
+        // Värdelinjer (TRD-9) — horisontella rutnätslinjer + etiketter vid varje
+        // gridStep-multipel, så det går att avläsa energivärdet utan att gissa.
+        // min/max ingår alltid (gridValuesFor inkluderar alltid ändpunkterna).
+        gridValues.forEach { value ->
+            val y = yOf(value)
+            drawLine(
+                color = gridLineColor,
+                start = Offset(plotLeft, y),
+                end   = Offset(plotRight, y),
+                strokeWidth = 1.dp.toPx(),
+            )
             drawText(
                 textMeasurer = textMeasurer,
                 text         = formatChartValue(value),
@@ -101,10 +136,12 @@ fun IntervalBarChart(
         val slotWidth = (plotRight - plotLeft) / n
         val barWidth = (slotWidth * 0.35f).coerceAtLeast(2.dp.toPx())
 
+        fun xOf(i: Int) = plotLeft + slotWidth * (i + 0.5f)
+
+        // Spannstaplarna (min–max per dag) ritas under kurvan och prickarna.
         points.forEachIndexed { i, point ->
             if (point == null) return@forEachIndexed
-            val x = plotLeft + slotWidth * (i + 0.5f)
-
+            val x = xOf(i)
             drawLine(
                 color = rangeColor,
                 start = Offset(x, yOf(point.max)),
@@ -112,6 +149,41 @@ fun IntervalBarChart(
                 strokeWidth = barWidth,
                 cap = StrokeCap.Round,
             )
+        }
+
+        // Dagsvärdena förbundna med en mjuk kurva (samma S-kurve-bezier-teknik som
+        // Vicos PointConnector.cubic(), TRD-6) — bryts vid en lucka (null-punkt).
+        val curvePath = Path()
+        var curveOpen = false
+        var prevX = 0f
+        var prevY = 0f
+        points.forEachIndexed { i, point ->
+            if (point == null) {
+                curveOpen = false
+                return@forEachIndexed
+            }
+            val x = xOf(i)
+            val y = yOf(point.value)
+            if (!curveOpen) {
+                curvePath.moveTo(x, y)
+                curveOpen = true
+            } else {
+                val midX = (prevX + x) / 2f
+                curvePath.cubicTo(midX, prevY, midX, y, x, y)
+            }
+            prevX = x
+            prevY = y
+        }
+        drawPath(
+            path = curvePath,
+            color = barColor,
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
+        )
+
+        // Dagsvärdesprickar och x-axelns dagsetiketter — ritas sist, ovanpå kurvan.
+        points.forEachIndexed { i, point ->
+            if (point == null) return@forEachIndexed
+            val x = xOf(i)
             drawCircle(
                 color = barColor,
                 radius = (barWidth / 2 + 1.dp.toPx()),
