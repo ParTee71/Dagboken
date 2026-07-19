@@ -35,6 +35,8 @@ class HealthViewModelTest {
             if (throwOnRead) throw RuntimeException("boom") else data
         override suspend fun readWeeklyHealth() =
             if (throwOnRead) throw RuntimeException("boom") else WeeklyHealth()
+        override suspend fun readHealthRange(days: Int) =
+            if (throwOnRead) throw RuntimeException("boom") else WeeklyHealth()
     }
 
     @Before fun setUp() { Dispatchers.setMain(testDispatcher) }

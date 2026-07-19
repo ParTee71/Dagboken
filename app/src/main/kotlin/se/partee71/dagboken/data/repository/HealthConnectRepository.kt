@@ -43,6 +43,9 @@ interface HealthConnectRepository {
 
     /** Steg- och vilopulstrend (7 dagar) + senaste vilopuls för Idag-kortet (HLS-7). Kastar vid fel. */
     suspend fun readWeeklyHealth(): WeeklyHealth
+
+    /** Steg- och vilopulstrend för [days] dagar bakåt — Trender-diagrammen (TRD-10). Kastar vid fel. */
+    suspend fun readHealthRange(days: Int): WeeklyHealth
 }
 
 /** Health Connect-tillgänglighet, mappad från [HealthConnectClient.getSdkStatus]. */
@@ -105,18 +108,20 @@ class HealthConnectRepositoryImpl(
         )
     }
 
-    override suspend fun readWeeklyHealth(): WeeklyHealth = withContext(ioDispatcher) {
+    override suspend fun readWeeklyHealth(): WeeklyHealth = readHealthRange(7)
+
+    override suspend fun readHealthRange(days: Int): WeeklyHealth = withContext(ioDispatcher) {
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
         val now = Instant.now()
 
-        val weekStart = today.minusDays(6).atStartOfDay(zone).toInstant()
-        val weekRange = TimeRangeFilter.between(weekStart, now)
+        val rangeStart = today.minusDays((days - 1).toLong()).atStartOfDay(zone).toInstant()
+        val fullRange = TimeRangeFilter.between(rangeStart, now)
         val restingHrRecords = client
-            .readRecords(ReadRecordsRequest(RestingHeartRateRecord::class, timeRangeFilter = weekRange))
+            .readRecords(ReadRecordsRequest(RestingHeartRateRecord::class, timeRangeFilter = fullRange))
             .records
 
-        val daily = (6L downTo 0L).map { back ->
+        val daily = ((days - 1).toLong() downTo 0L).map { back ->
             val day = today.minusDays(back)
             val start = day.atStartOfDay(zone).toInstant()
             val rawEnd = day.plusDays(1).atStartOfDay(zone).toInstant()
@@ -127,7 +132,7 @@ class HealthConnectRepositoryImpl(
 
             // Vilopuls för dagen till trenddiagrammet: senaste registrerade
             // RestingHeartRateRecord den dagen, annars skattad från dagens egna
-            // HeartRateRecord-prover (samma fallback-princip som veckovärdet nedan,
+            // HeartRateRecord-prover (samma fallback-princip som periodvärdet nedan,
             // fast per dag — grövre med få prover men tillräckligt för en trendlinje).
             val dayRestingHr = restingHrRecords
                 .filter { !it.time.isBefore(start) && it.time.isBefore(end) }
@@ -144,13 +149,13 @@ class HealthConnectRepositoryImpl(
             DailySteps(day, steps) to DailyRestingHeartRate(day, dayRestingHr)
         }
 
-        // Vilopuls senaste 7 dagarna (kortets StatPill) — det senaste registrerade
-        // värdet, eller en skattning från hela veckans pulsprover om posten saknas
+        // Senaste vilopuls i perioden (Idag-kortets StatPill) — det senaste registrerade
+        // värdet, eller en skattning från periodens pulsprover om posten saknas
         // (fler prover ger en säkrare percentil än en enskild dags).
         val restingHr = restingHrRecords.maxByOrNull { it.time }?.beatsPerMinute
             ?: estimateRestingHeartRate(
                 client
-                    .readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = weekRange))
+                    .readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = fullRange))
                     .records
                     .flatMap { it.samples }
                     .map { it.beatsPerMinute },

@@ -105,6 +105,7 @@
     <string name="tab_schema">Schema</string>
     <string name="tab_vid_behov">Vid behov</string>
     <string name="fab_logga_aktivitet">Logga aktivitet</string>
+    <string name="fab_logga_screening">Logga screening</string>
     <string name="fab_new">Ny</string>
 
     <!-- Aktiviteter / Historik -->
@@ -268,6 +269,10 @@
     <string name="trender_section_stress">Stress &amp; belastning</string>
     <string name="trender_section_symptom">Symptom</string>
     <string name="trender_no_energy_data">Ingen loggad energi för vald period</string>
+    <string name="trender_section_steps">Steg</string>
+    <string name="trender_section_resting_hr">Vilopuls</string>
+    <string name="trender_no_steps_data">Ingen stegdata för vald period</string>
+    <string name="trender_no_resting_hr_data">Ingen vilopulsdata för vald period</string>
 
     <!-- Samsung Health placeholder -->
     <!-- Hälsa (Health Connect), §19 HLS -->

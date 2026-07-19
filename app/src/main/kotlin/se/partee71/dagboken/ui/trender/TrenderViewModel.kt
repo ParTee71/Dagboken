@@ -9,8 +9,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HealthAvailability
+import se.partee71.dagboken.data.repository.HealthConnectRepository
+import se.partee71.dagboken.domain.model.DailyRestingHeartRate
+import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.usecase.DailyEnergyStats
 import se.partee71.dagboken.domain.usecase.SymptomUtils
 import se.partee71.dagboken.domain.usecase.computeDailyEnergyStats
@@ -52,6 +57,10 @@ private val SERIES_PALETTE = listOf(
 
 internal fun seriesColor(name: String): Color =
     SERIES_PALETTE.getOrElse(ALL_SERIES.indexOf(name)) { SERIES_PALETTE.last() }
+
+/** Färger för Health Connect-diagrammen (TRD-10) — egna, utanför [SERIES_PALETTE]. */
+internal val HEALTH_STEPS_COLOR = Color(0xFF38bdf8)       // sky-400
+internal val HEALTH_RESTING_HR_COLOR = Color(0xFFf87171)  // red-400
 
 private val SYMPTOM_PALETTE = listOf(
     Color(0xFF60a5fa),  // blue
@@ -99,6 +108,10 @@ data class TrenderUiState(
     val dates: List<String> = emptyList(),
     /** Energi (dag), TRD-8 — alltid beräknad, oavsett [selectedSeries]. Delad uträkning med Idag (HEM-7). */
     val dailyEnergy: List<DailyEnergyStats> = emptyList(),
+    /** Steg per dag (TRD-10, Health Connect) för [rangeDays] — tom om ej kopplat/behörighet saknas. */
+    val dailySteps: List<DailySteps> = emptyList(),
+    /** Vilopuls per dag (TRD-10, Health Connect) för [rangeDays] — tom om ej kopplat/behörighet saknas. */
+    val dailyRestingHeartRate: List<DailyRestingHeartRate> = emptyList(),
 )
 
 /** Färg för valfri serie, oavsett om det är en fast aktivitetsserie eller en dynamisk symptomserie. */
@@ -112,6 +125,7 @@ internal fun TrenderUiState.seriesFor(category: TrenderCategory): List<ChartSeri
 @HiltViewModel
 class TrenderViewModel @Inject constructor(
     private val repo: AktiviteterRepository,
+    private val healthRepo: HealthConnectRepository,
 ) : ViewModel() {
 
     private val _rangeDays = MutableStateFlow(30)
@@ -121,6 +135,24 @@ class TrenderViewModel @Inject constructor(
     val state: StateFlow<TrenderUiState> = _state.asStateFlow()
 
     init {
+        // Steg/vilopuls (TRD-10) läses fristående från Health Connect, precis som Idag-kortet
+        // (HomeViewModel.refreshHealthCard) — ett separat flöde så en misslyckad/ej kopplad
+        // hälsokälla inte blockerar de egna loggade aktivitets-/screeningdiagrammen nedan.
+        viewModelScope.launch {
+            _rangeDays.collectLatest { days ->
+                val weekly = runCatching {
+                    if (healthRepo.availability() != HealthAvailability.AVAILABLE) return@runCatching null
+                    if (!healthRepo.hasAllPermissions()) return@runCatching null
+                    healthRepo.readHealthRange(days)
+                }.getOrNull()
+                _state.update {
+                    it.copy(
+                        dailySteps = weekly?.dailySteps.orEmpty(),
+                        dailyRestingHeartRate = weekly?.dailyRestingHeartRate.orEmpty(),
+                    )
+                }
+            }
+        }
         viewModelScope.launch {
             combine(repo.all, _rangeDays, _selectedSeries) { entries, range, selected ->
                 Triple(entries, range, selected)
@@ -189,15 +221,19 @@ class TrenderViewModel @Inject constructor(
                     }
                 }
 
-                _state.value = TrenderUiState(
-                    rangeDays       = range,
-                    allSeriesLabels = allLabels,
-                    symptomLabels   = allSymptoms,
-                    selectedSeries  = effectiveSelected,
-                    series          = series,
-                    dates           = dates,
-                    dailyEnergy     = computeDailyEnergyStats(inRange),
-                )
+                // .update { it.copy(...) } i stället för .value = — bevarar dailySteps/
+                // dailyRestingHeartRate som skrivs av det fristående Health Connect-flödet ovan.
+                _state.update {
+                    it.copy(
+                        rangeDays       = range,
+                        allSeriesLabels = allLabels,
+                        symptomLabels   = allSymptoms,
+                        selectedSeries  = effectiveSelected,
+                        series          = series,
+                        dates           = dates,
+                        dailyEnergy     = computeDailyEnergyStats(inRange),
+                    )
+                }
             }
         }
     }
