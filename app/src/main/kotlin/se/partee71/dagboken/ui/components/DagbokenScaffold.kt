@@ -3,6 +3,8 @@ package se.partee71.dagboken.ui.components
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.union
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,6 +23,11 @@ import se.partee71.dagboken.R
  * navigering. De flesta skärmar bara sätter [title] och [onBack]; skärmar
  * utan tillbaka-navigering (rot-flikarna) sätter [navigationIcon] i stället
  * (t.ex. en `AccountBubble`) och kan ersätta [title] med [titleContent].
+ *
+ * [contentWindowInsets] inkluderar `WindowInsets.ime` så att innehållsytan
+ * krymper när skärmtangentbordet fälls upp (edge-to-edge neutraliserar
+ * manifestets `adjustResize`). Det låter skrollbara redigeringsskärmar rulla
+ * fram det fokuserade fältet ovanför tangentbordet (NFR-11).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +39,7 @@ fun DagbokenScaffold(
     actions: @Composable RowScope.() -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
-    contentWindowInsets: WindowInsets = ScaffoldDefaults.contentWindowInsets,
+    contentWindowInsets: WindowInsets = ScaffoldDefaults.contentWindowInsets.union(WindowInsets.ime),
     content: @Composable (PaddingValues) -> Unit,
 ) {
     Scaffold(
