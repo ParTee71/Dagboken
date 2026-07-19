@@ -59,4 +59,30 @@ class SmartYAxisTest {
         assertTrue(42f in range)
         assertTrue(range.endInclusive > range.start)
     }
+
+    // ─── computeSmartYAxis step — #141, värdelinjer i IntervalBarChart ────────
+
+    @Test fun `computeSmartYAxis range matches computeSmartYRange for the same input`() {
+        val values = listOf(5f, 6f, 8f, 7f)
+        assertTrue(computeSmartYAxis(values).range == computeSmartYRange(values))
+    }
+
+    @Test fun `step is positive and range span is a whole multiple of step`() {
+        val values = listOf(5200f, 8800f, 6400f, 9100f)
+        val axis = computeSmartYAxis(values)
+        assertTrue("step should be positive, was ${axis.step}", axis.step > 0f)
+        val span = axis.range.endInclusive - axis.range.start
+        val multiples = span / axis.step
+        val nearestWhole = Math.round(multiples)
+        assertTrue(
+            "span $span should be a whole multiple of step ${axis.step}, got $multiples",
+            Math.abs(multiples - nearestWhole) < 0.01f,
+        )
+    }
+
+    @Test fun `empty values fall back to the default step`() {
+        val axis = computeSmartYAxis(emptyList())
+        assertTrue(axis.step > 0f)
+        assertTrue(axis.range == -10f..10f)
+    }
 }
