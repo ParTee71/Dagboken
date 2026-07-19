@@ -122,6 +122,41 @@ class HealthTrendsCardTest {
         },
     )
 
+    @Test fun trends_card_shows_min_max_caption_for_energy_trend() = render(
+        content = {
+            HealthTrendsCard(
+                weekly              = null,
+                screeningPoints     = listOf(3f, 8f, 5f),
+                screeningLabels     = listOf("Mån", "Tis", "Ons"),
+                onNavigateToTrender = {},
+            )
+        },
+        assertions = {
+            composeRule.onNodeWithText("Min: 3").assertIsDisplayed()
+            composeRule.onNodeWithText("Max: 8").assertIsDisplayed()
+        },
+    )
+
+    @Test fun trends_card_shows_min_max_caption_for_step_trend() = render(
+        content = {
+            HealthTrendsCard(
+                weekly = WeeklyHealth(
+                    dailySteps = listOf(
+                        DailySteps(LocalDate.now().minusDays(1), 5000),
+                        DailySteps(LocalDate.now(), 8200),
+                    ),
+                ),
+                screeningPoints     = emptyList(),
+                screeningLabels     = emptyList(),
+                onNavigateToTrender = {},
+            )
+        },
+        assertions = {
+            composeRule.onNodeWithText("Min: 5000").assertIsDisplayed()
+            composeRule.onNodeWithText("Max: 8200").assertIsDisplayed()
+        },
+    )
+
     @Test fun trends_card_view_diagram_button_invokes_callback() {
         var navigated = false
         render(

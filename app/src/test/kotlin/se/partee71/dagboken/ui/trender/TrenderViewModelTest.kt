@@ -127,4 +127,69 @@ class TrenderViewModelTest {
         viewModel.toggleSeries("Energi Frukost")
         assertTrue("Energi Frukost" !in viewModel.state.value.selectedSeries)
     }
+
+    // ─── Energi (dag) — TRD-8, #141 ───────────────────────────────────────────
+
+    @Test fun `dailyEnergy has min, avg and max for a day with multiple screenings`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(
+            screening("s1", today, "Efter frukost", energy = 2),
+            screening("s2", today, "Lunch", energy = 8),
+        )
+        val day = viewModel.state.value.dailyEnergy.first { it.datum == today }
+        assertEquals(2f, day.min)
+        assertEquals(5f, day.avg)
+        assertEquals(8f, day.max)
+    }
+
+    @Test fun `dailyEnergy ignores non-screening entries`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(aktivitet("a1", today))
+        assertTrue(viewModel.state.value.dailyEnergy.none { it.datum == today })
+    }
+
+    @Test fun `dailyEnergy respects the selected range cutoff`() = runTest {
+        val old = LocalDate.now().minusDays(35).toString()
+        allFlow.value = listOf(screening("s1", old, "Lunch"))
+        viewModel.setRange(30)
+        assertTrue(viewModel.state.value.dailyEnergy.none { it.datum == old })
+    }
+
+    // ─── Kategoriuppdelning — #141 ─────────────────────────────────────────────
+
+    @Test fun `seriesFor ENERGI_TILLFALLE only returns energy slot series`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(
+            screening("s1", today, "Efter frukost"),
+            aktivitet("a1", today, symptom = "Yrsel:3"),
+        )
+        viewModel.toggleSeries("Stress")
+        viewModel.toggleSeries("Yrsel")
+        val labels = viewModel.state.value.seriesFor(TrenderCategory.ENERGI_TILLFALLE).map { it.label }
+        assertEquals(listOf("Energi Frukost"), labels)
+    }
+
+    @Test fun `seriesFor STRESS_BELASTNING only returns stress and belastning series`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(aktivitet("a1", today, symptom = "Yrsel:3"))
+        viewModel.toggleSeries("Stress")
+        viewModel.toggleSeries("Yrsel")
+        val labels = viewModel.state.value.seriesFor(TrenderCategory.STRESS_BELASTNING).map { it.label }
+        assertEquals(listOf("Stress"), labels)
+    }
+
+    @Test fun `seriesFor SYMPTOM only returns discovered symptom series`() = runTest {
+        val today = LocalDate.now().toString()
+        allFlow.value = listOf(aktivitet("a1", today, symptom = "Yrsel:3"))
+        viewModel.toggleSeries("Stress")
+        viewModel.toggleSeries("Yrsel")
+        val labels = viewModel.state.value.seriesFor(TrenderCategory.SYMPTOM).map { it.label }
+        assertEquals(listOf("Yrsel"), labels)
+    }
+
+    @Test fun `categoryOf maps every fixed series and defaults symptoms to SYMPTOM`() {
+        ENERGY_SLOT_SERIES.forEach { assertEquals(TrenderCategory.ENERGI_TILLFALLE, categoryOf(it)) }
+        STRESS_SERIES.forEach { assertEquals(TrenderCategory.STRESS_BELASTNING, categoryOf(it)) }
+        assertEquals(TrenderCategory.SYMPTOM, categoryOf("Yrsel"))
+    }
 }

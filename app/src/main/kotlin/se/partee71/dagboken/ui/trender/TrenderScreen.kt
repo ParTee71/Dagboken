@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -35,7 +36,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.diagram.DiagramLayout
+import se.partee71.dagboken.ui.diagram.DiagramSection
+import se.partee71.dagboken.ui.diagram.IntervalBarChart
+import se.partee71.dagboken.ui.diagram.IntervalPoint
 import se.partee71.dagboken.ui.diagram.LineChartCanvas
+import se.partee71.dagboken.ui.diagram.MinMaxCaption
 import se.partee71.dagboken.ui.diagram.computeSmartYRange
 
 @Composable
@@ -46,56 +51,9 @@ fun TrenderScreen(
     val state by vm.state.collectAsState()
     val ranges = listOf(7, 14, 30, 90)
 
-    val allValues = state.series.flatMap { it.points }.filterNotNull()
-    val yRange = computeSmartYRange(allValues)
-
     DiagramLayout(
         title  = stringResource(R.string.trender_title),
         onBack = onBack,
-        selector = {
-            var showMenu by remember { mutableStateOf(false) }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.diagram_show_label), style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.width(8.dp))
-                Box {
-                    OutlinedButton(
-                        onClick  = { showMenu = true },
-                        modifier = Modifier.testTag("trender_series_selector"),
-                    ) {
-                        val label = state.allSeriesLabels
-                            .filter { it in state.selectedSeries }
-                            .joinToString(", ")
-                            .ifEmpty { "–" }
-                        Text(label, maxLines = 1)
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
-                    }
-                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        state.allSeriesLabels.forEach { name ->
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(
-                                            checked         = name in state.selectedSeries,
-                                            onCheckedChange = { vm.toggleSeries(name) },
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .size(8.dp)
-                                                .clip(CircleShape)
-                                                .background(trenderSeriesColor(name, state.symptomLabels)),
-                                        )
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(name)
-                                    }
-                                },
-                                onClick = { vm.toggleSeries(name) },
-                            )
-                        }
-                    }
-                }
-            }
-        },
         rangeChips = {
             ranges.forEach { d ->
                 FilterChip(
@@ -105,38 +63,179 @@ fun TrenderScreen(
                 )
             }
         },
+        sections = listOf(
+            energyDailySection(state),
+            categorySection(
+                title    = stringResource(R.string.trender_section_energy_slots),
+                category = TrenderCategory.ENERGI_TILLFALLE,
+                state    = state,
+                vm       = vm,
+                testTag  = "trender_series_selector_energy",
+            ),
+            categorySection(
+                title    = stringResource(R.string.trender_section_stress),
+                category = TrenderCategory.STRESS_BELASTNING,
+                state    = state,
+                vm       = vm,
+                testTag  = "trender_series_selector_stress",
+            ),
+            categorySection(
+                title    = stringResource(R.string.trender_section_symptom),
+                category = TrenderCategory.SYMPTOM,
+                state    = state,
+                vm       = vm,
+                testTag  = "trender_series_selector_symptom",
+            ),
+        ),
+    )
+}
+
+@Composable
+private fun energyDailySection(state: TrenderUiState): DiagramSection {
+    val daily = state.dailyEnergy
+    return DiagramSection(
+        title = stringResource(R.string.trender_section_energy_daily),
         chart = { chartModifier ->
-            if (state.series.isEmpty()) {
+            if (daily.isEmpty()) {
                 EmptyState(
                     icon     = Icons.Outlined.TrendingUp,
-                    title    = stringResource(R.string.diagram_no_series),
-                    modifier = chartModifier,
+                    title    = stringResource(R.string.trender_no_energy_data),
+                    modifier = chartModifier.height(200.dp),
                 )
             } else {
-                LineChartCanvas(
-                    series   = state.series,
-                    dates    = state.dates,
+                val yRange = remember(daily) { computeSmartYRange(daily.flatMap { listOf(it.min, it.max) }) }
+                IntervalBarChart(
+                    points   = daily.map { IntervalPoint(min = it.min, value = it.avg, max = it.max) },
+                    dates    = daily.map { it.datum },
                     minValue = yRange.start,
                     maxValue = yRange.endInclusive,
                     modifier = chartModifier,
                 )
             }
         },
-        legend = {
-            state.series.forEach { s ->
-                Row(
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(s.color),
-                    )
-                    Text(s.label, style = MaterialTheme.typography.labelSmall)
+        minMax = if (daily.isEmpty()) null else {
+            { MinMaxCaption(min = daily.minOf { it.min }, max = daily.maxOf { it.max }) }
+        },
+    )
+}
+
+@Composable
+private fun categorySection(
+    title: String,
+    category: TrenderCategory,
+    state: TrenderUiState,
+    vm: TrenderViewModel,
+    testTag: String,
+): DiagramSection {
+    val categoryLabels = state.allSeriesLabels.filter { categoryOf(it) == category }
+    val sectionSeries = state.seriesFor(category)
+    val allValues = sectionSeries.flatMap { it.points }.filterNotNull()
+
+    return DiagramSection(
+        title = title,
+        selector = {
+            SeriesSelector(
+                labels        = categoryLabels,
+                selected      = state.selectedSeries,
+                symptomLabels = state.symptomLabels,
+                onToggle      = vm::toggleSeries,
+                testTag       = testTag,
+            )
+        },
+        chart = { chartModifier ->
+            if (sectionSeries.isEmpty()) {
+                EmptyState(
+                    icon     = Icons.Outlined.TrendingUp,
+                    title    = stringResource(R.string.diagram_no_series),
+                    modifier = chartModifier.height(280.dp),
+                )
+            } else {
+                val yRange = remember(allValues) { computeSmartYRange(allValues) }
+                LineChartCanvas(
+                    series   = sectionSeries,
+                    dates    = state.dates,
+                    minValue = yRange.start,
+                    maxValue = yRange.endInclusive,
+                    modifier = chartModifier.height(280.dp),
+                )
+            }
+        },
+        legend = if (sectionSeries.isEmpty()) null else {
+            {
+                sectionSeries.forEach { s ->
+                    Row(
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        // Väljarknappens etikett kan sammanfalla textmässigt med legendens
+                        // (t.ex. exakt "Yrsel" i båda när det är den enda valda serien i
+                        // kategorin) — egen testTag så legendraden går att peka ut entydigt.
+                        modifier = Modifier.testTag("trender_legend_item_${s.label}"),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(s.color),
+                        )
+                        Text(s.label, style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
         },
+        minMax = if (allValues.isEmpty()) null else {
+            { MinMaxCaption(min = allValues.min(), max = allValues.max()) }
+        },
     )
+}
+
+@Composable
+private fun SeriesSelector(
+    labels: List<String>,
+    selected: Set<String>,
+    symptomLabels: List<String>,
+    onToggle: (String) -> Unit,
+    testTag: String,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(R.string.diagram_show_label), style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.width(8.dp))
+        Box {
+            OutlinedButton(
+                onClick  = { showMenu = true },
+                modifier = Modifier.testTag(testTag),
+            ) {
+                val label = labels
+                    .filter { it in selected }
+                    .joinToString(", ")
+                    .ifEmpty { "–" }
+                Text(label, maxLines = 1)
+                Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
+            }
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                labels.forEach { name ->
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked         = name in selected,
+                                    onCheckedChange = { onToggle(name) },
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(trenderSeriesColor(name, symptomLabels)),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(name)
+                            }
+                        },
+                        onClick = { onToggle(name) },
+                    )
+                }
+            }
+        }
+    }
 }

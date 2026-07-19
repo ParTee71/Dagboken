@@ -31,6 +31,7 @@ import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.WeeklyHealth
 import se.partee71.dagboken.domain.model.tidpunktSortIndex
 import se.partee71.dagboken.domain.model.tidpunktToHour
+import se.partee71.dagboken.domain.usecase.computeDailyEnergyStats
 import se.partee71.dagboken.ui.formatDayDate
 import se.partee71.dagboken.ui.formatWeekdayShort
 import java.time.DayOfWeek
@@ -208,11 +209,7 @@ class HomeViewModel @Inject constructor(
         val isToday = selectedDate == LocalDate.now()
         val selectedDateStr = selectedDate.toString()
         val screeningsOnSelectedDate = recentScreenings.filter { it.datum == selectedDateStr }
-        val screeningDailyAvg = recentScreenings
-            .groupBy { it.datum }
-            .entries
-            .sortedBy { it.key }
-            .map { (datum, entries) -> datum to entries.map { it.energy.toFloat() }.average().toFloat() }
+        val dailyEnergyStats = computeDailyEnergyStats(recentScreenings)
         val nowTime = LocalTime.now()
 
         // "Overdue" is a today-only concept — a past day's unmarked dose/screening is
@@ -236,8 +233,8 @@ class HomeViewModel @Inject constructor(
 
         HomeUiState(
             todayMediciner        = dayMediciner.sortedBy { tidpunktSortIndex(it.tidpunkt) },
-            screeningPoints       = screeningDailyAvg.map { it.second },
-            screeningLabels       = screeningDailyAvg.map { dayLabel(it.first) },
+            screeningPoints       = dailyEnergyStats.map { it.avg },
+            screeningLabels       = dailyEnergyStats.map { dayLabel(it.datum) },
             overdueMediciner      = overdueMediciner,
             kommandeMediciner     = kommandeMediciner,
             screeningEvents       = screeningEvents,

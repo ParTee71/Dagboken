@@ -82,9 +82,12 @@ fun LineChartCanvas(
         }
     }
 
+    // Kör transaktionen även när segments är tom, så en tidigare renderad linje
+    // faktiskt rensas (i stället för att stå kvar) om valet ändras till en serie
+    // utan datapunkter — #141.
     LaunchedEffect(segments) {
-        if (segments.isNotEmpty()) {
-            modelProducer.runTransaction {
+        modelProducer.runTransaction {
+            if (segments.isNotEmpty()) {
                 lineSeries {
                     segments.forEach { seg -> series(x = seg.xs, y = seg.ys) }
                 }
