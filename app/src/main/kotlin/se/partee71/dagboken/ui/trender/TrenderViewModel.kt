@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.trender
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.R
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HealthAvailability
 import se.partee71.dagboken.data.repository.HealthConnectRepository
@@ -22,6 +24,17 @@ import se.partee71.dagboken.domain.usecase.computeDailyEnergyStats
 import se.partee71.dagboken.ui.diagram.ChartSeries
 import java.time.LocalDate
 import javax.inject.Inject
+
+/**
+ * Trenders periodval (#144) — [days] `null` betyder "Allt" (ingen nedre datumgräns).
+ */
+enum class TrenderRange(@StringRes val labelRes: Int, val days: Int?) {
+    SEVEN_DAYS(R.string.trender_range_7_days, 7),
+    FOURTEEN_DAYS(R.string.trender_range_14_days, 14),
+    MONTH(R.string.trender_range_month, 30),
+    THREE_MONTHS(R.string.trender_range_3_months, 90),
+    ALL(R.string.trender_range_all, null),
+}
 
 internal val ENERGY_SLOT_SERIES = listOf(
     "Energi Frukost", "Energi Lunch", "Energi Kvällsmat", "Energi Läggdags",
@@ -58,7 +71,7 @@ private val SERIES_PALETTE = listOf(
 internal fun seriesColor(name: String): Color =
     SERIES_PALETTE.getOrElse(ALL_SERIES.indexOf(name)) { SERIES_PALETTE.last() }
 
-/** Färger för Health Connect-diagrammen (TRD-10) — egna, utanför [SERIES_PALETTE]. */
+/** Färger för Health Connect-diagrammen (TRD-11) — egna, utanför [SERIES_PALETTE]. */
 internal val HEALTH_STEPS_COLOR = Color(0xFF38bdf8)       // sky-400
 internal val HEALTH_RESTING_HR_COLOR = Color(0xFFf87171)  // red-400
 
@@ -100,7 +113,7 @@ private fun DailyStats.valueFor(seriesName: String): Float? = when (seriesName) 
 }
 
 data class TrenderUiState(
-    val rangeDays: Int = 30,
+    val range: TrenderRange = TrenderRange.MONTH,
     val allSeriesLabels: List<String> = ALL_SERIES,
     val symptomLabels: List<String> = emptyList(),
     val selectedSeries: Set<String> = setOf("Energi Frukost"),
@@ -108,9 +121,9 @@ data class TrenderUiState(
     val dates: List<String> = emptyList(),
     /** Energi (dag), TRD-8 — alltid beräknad, oavsett [selectedSeries]. Delad uträkning med Idag (HEM-7). */
     val dailyEnergy: List<DailyEnergyStats> = emptyList(),
-    /** Steg per dag (TRD-10, Health Connect) för [rangeDays] — tom om ej kopplat/behörighet saknas. */
+    /** Steg per dag (TRD-11, Health Connect) för vald [range] — tom om ej kopplat/behörighet saknas. */
     val dailySteps: List<DailySteps> = emptyList(),
-    /** Vilopuls per dag (TRD-10, Health Connect) för [rangeDays] — tom om ej kopplat/behörighet saknas. */
+    /** Vilopuls per dag (TRD-11, Health Connect) för vald [range] — tom om ej kopplat/behörighet saknas. */
     val dailyRestingHeartRate: List<DailyRestingHeartRate> = emptyList(),
 )
 
@@ -128,18 +141,22 @@ class TrenderViewModel @Inject constructor(
     private val healthRepo: HealthConnectRepository,
 ) : ViewModel() {
 
-    private val _rangeDays = MutableStateFlow(30)
+    private val _range = MutableStateFlow(TrenderRange.MONTH)
     private val _selectedSeries = MutableStateFlow(setOf("Energi Frukost"))
 
     private val _state = MutableStateFlow(TrenderUiState())
     val state: StateFlow<TrenderUiState> = _state.asStateFlow()
 
     init {
-        // Steg/vilopuls (TRD-10) läses fristående från Health Connect, precis som Idag-kortet
+        // Steg/vilopuls (TRD-11) läses fristående från Health Connect, precis som Idag-kortet
         // (HomeViewModel.refreshHealthCard) — ett separat flöde så en misslyckad/ej kopplad
         // hälsokälla inte blockerar de egna loggade aktivitets-/screeningdiagrammen nedan.
         viewModelScope.launch {
-            _rangeDays.collectLatest { days ->
+            _range.collectLatest { range ->
+                // Health Connect-läsningen tar ett fast antal dagar — "Allt" (range.days == null,
+                // TRD-3/#144) har ingen nedre datumgräns för de egna loggade serierna, men
+                // Health Connect-diagrammen begränsas ändå till ett år bakåt (pragmatisk cap).
+                val days = range.days ?: 365
                 val weekly = runCatching {
                     if (healthRepo.availability() != HealthAvailability.AVAILABLE) return@runCatching null
                     if (!healthRepo.hasAllPermissions()) return@runCatching null
@@ -154,11 +171,13 @@ class TrenderViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            combine(repo.all, _rangeDays, _selectedSeries) { entries, range, selected ->
+            combine(repo.all, _range, _selectedSeries) { entries, range, selected ->
                 Triple(entries, range, selected)
             }.collectLatest { (entries, range, selected) ->
-                val cutoff = LocalDate.now().minusDays(range.toLong()).toString()
-                val inRange = entries.filter { it.datum >= cutoff }
+                val inRange = range.days?.let { days ->
+                    val cutoff = LocalDate.now().minusDays(days.toLong()).toString()
+                    entries.filter { it.datum >= cutoff }
+                } ?: entries
 
                 val byDay = inRange
                     .groupBy { it.datum }
@@ -225,7 +244,7 @@ class TrenderViewModel @Inject constructor(
                 // dailyRestingHeartRate som skrivs av det fristående Health Connect-flödet ovan.
                 _state.update {
                     it.copy(
-                        rangeDays       = range,
+                        range           = range,
                         allSeriesLabels = allLabels,
                         symptomLabels   = allSymptoms,
                         selectedSeries  = effectiveSelected,
@@ -238,7 +257,7 @@ class TrenderViewModel @Inject constructor(
         }
     }
 
-    fun setRange(days: Int) { _rangeDays.value = days }
+    fun setRange(range: TrenderRange) { _range.value = range }
 
     fun toggleSeries(name: String) {
         val current = _selectedSeries.value

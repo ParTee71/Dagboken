@@ -40,7 +40,7 @@ class DiagramLayoutTest {
                             DiagramLayout(
                                 title          = "Testdiagram",
                                 onBack         = {},
-                                rangeChips     = { Text("Chips") },
+                                periodSelector = { Text("Period") },
                                 sections       = sections,
                                 portraitExtras = if (withExtras) ({ Text("Extras") }) else null,
                             )
@@ -57,8 +57,8 @@ class DiagramLayoutTest {
         composeRule.onNodeWithText("Testdiagram").assertIsDisplayed()
     }
 
-    @Test fun shows_range_chips() = layoutAndRetry(listOf(section("Sektion", "Diagram"))) {
-        composeRule.onNodeWithText("Chips").assertIsDisplayed()
+    @Test fun shows_period_selector() = layoutAndRetry(listOf(section("Sektion", "Diagram"))) {
+        composeRule.onNodeWithText("Period").assertIsDisplayed()
     }
 
     @Test fun shows_section_title_selector_and_chart() = layoutAndRetry(listOf(section("Sektion", "Diagram"))) {

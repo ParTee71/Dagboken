@@ -44,7 +44,7 @@ interface HealthConnectRepository {
     /** Steg- och vilopulstrend (7 dagar) + senaste vilopuls för Idag-kortet (HLS-7). Kastar vid fel. */
     suspend fun readWeeklyHealth(): WeeklyHealth
 
-    /** Steg- och vilopulstrend för [days] dagar bakåt — Trender-diagrammen (TRD-10). Kastar vid fel. */
+    /** Steg- och vilopulstrend för [days] dagar bakåt — Trender-diagrammen (TRD-11). Kastar vid fel. */
     suspend fun readHealthRange(days: Int): WeeklyHealth
 }
 

@@ -15,7 +15,6 @@ import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -51,19 +50,12 @@ fun TrenderScreen(
     vm: TrenderViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
-    val ranges = listOf(7, 14, 30, 90)
 
     DiagramLayout(
         title  = stringResource(R.string.trender_title),
         onBack = onBack,
-        rangeChips = {
-            ranges.forEach { d ->
-                FilterChip(
-                    selected = state.rangeDays == d,
-                    onClick  = { vm.setRange(d) },
-                    label    = { Text(stringResource(R.string.format_range_days, d)) },
-                )
-            }
+        periodSelector = {
+            RangeSelector(selected = state.range, onSelect = vm::setRange)
         },
         sections = listOf(
             energyDailySection(state),
@@ -94,7 +86,7 @@ fun TrenderScreen(
     )
 }
 
-/** Stegdiagram (TRD-10, Health Connect) — samma data som Idag-kortets sparkline, ingen väljare. */
+/** Stegdiagram (TRD-11, Health Connect) — samma data som Idag-kortets sparkline, ingen väljare. */
 @Composable
 private fun stepsSection(state: TrenderUiState): DiagramSection {
     val points = state.dailySteps.filter { it.steps > 0 }
@@ -131,7 +123,7 @@ private fun stepsSection(state: TrenderUiState): DiagramSection {
     )
 }
 
-/** Vilopulsdiagram (TRD-10, Health Connect) — samma data som Idag-kortets sparkline, ingen väljare. */
+/** Vilopulsdiagram (TRD-11, Health Connect) — samma data som Idag-kortets sparkline, ingen väljare. */
 @Composable
 private fun restingHeartRateSection(state: TrenderUiState): DiagramSection {
     val points = state.dailyRestingHeartRate.filter { it.bpm != null }
@@ -265,6 +257,34 @@ private fun categorySection(
             { MinMaxCaption(min = allValues.min(), max = allValues.max()) }
         },
     )
+}
+
+@Composable
+private fun RangeSelector(
+    selected: TrenderRange,
+    onSelect: (TrenderRange) -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    Box {
+        OutlinedButton(
+            onClick  = { showMenu = true },
+            modifier = Modifier.testTag("trender_range_selector"),
+        ) {
+            Text(stringResource(selected.labelRes), maxLines = 1)
+            Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
+        }
+        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+            TrenderRange.entries.forEach { range ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(range.labelRes)) },
+                    onClick = {
+                        onSelect(range)
+                        showMenu = false
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable

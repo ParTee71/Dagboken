@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -184,6 +186,39 @@ class IntervalBarChartTest {
     ) {
         composeRule.onNodeWithContentDescription(
             "Dagsspann, 1 dagar, lägsta 5, högsta 5",
+        ).assertIsDisplayed()
+    }
+
+    // ─── Tvåfingerzoom + panorering (#144) ─────────────────────────────────────
+
+    @Test fun `pinch-zoom gesture does not crash and chart stays rendered`() = renderAndRetry(
+        content = {
+            IntervalBarChart(
+                points = listOf(
+                    IntervalPoint(min = 2f, value = 4f, max = 6f),
+                    IntervalPoint(min = 3f, value = 5f, max = 9f),
+                    IntervalPoint(min = 1f, value = 3f, max = 7f),
+                ),
+                dates    = listOf("2026-07-08", "2026-07-09", "2026-07-10"),
+                minValue = 0f,
+                maxValue = 10f,
+                modifier = mod,
+            )
+        },
+    ) {
+        composeRule.onNodeWithContentDescription(
+            "Dagsspann, 3 dagar, lägsta 1, högsta 9",
+        ).performTouchInput {
+            // Två fingrar från mitten och utåt — nyp-zooma isär.
+            down(0, Offset(center.x - 20f, center.y))
+            down(1, Offset(center.x + 20f, center.y))
+            moveTo(0, Offset(center.x - 80f, center.y))
+            moveTo(1, Offset(center.x + 80f, center.y))
+            up(0)
+            up(1)
+        }
+        composeRule.onNodeWithContentDescription(
+            "Dagsspann, 3 dagar, lägsta 1, högsta 9",
         ).assertIsDisplayed()
     }
 }

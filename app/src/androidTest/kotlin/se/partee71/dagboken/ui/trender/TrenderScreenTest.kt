@@ -177,12 +177,31 @@ class TrenderScreenTest {
         }
     }
 
-    @Test fun range_chip_switches_selected_range() = retryOnRenderGlitch {
+    @Test fun range_selector_switches_selected_range() = retryOnRenderGlitch {
         setUp()
         try {
             setContent()
+            composeRule.onNodeWithTag("trender_range_selector").performClick()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("7 dagar")).fetchSemanticsNodes().isNotEmpty()
+            }
             composeRule.onNodeWithText("7 dagar").performClick()
-            composeRule.waitUntil(20_000) { vm.state.value.rangeDays == 7 }
+            composeRule.waitUntil(20_000) { vm.state.value.range == TrenderRange.SEVEN_DAYS }
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun range_selector_offers_an_all_time_option() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithTag("trender_range_selector").performClick()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Allt")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText("Allt").performClick()
+            composeRule.waitUntil(20_000) { vm.state.value.range == TrenderRange.ALL }
         } finally {
             tearDown()
         }
@@ -203,7 +222,7 @@ class TrenderScreenTest {
         }
     }
 
-    // ─── Steg/vilopuls (Health Connect) — TRD-10, #146 ────────────────────────
+    // ─── Steg/vilopuls (Health Connect) — TRD-11, #146 ────────────────────────
 
     @Test fun steps_and_resting_hr_sections_show_empty_state_when_health_connect_not_connected() = retryOnRenderGlitch {
         setUp(FakeHealthRepo(weekly = null))
