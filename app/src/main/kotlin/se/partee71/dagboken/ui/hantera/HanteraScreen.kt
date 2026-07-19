@@ -289,6 +289,7 @@ private fun SettingsNavSidebar(
     Column(
         modifier = Modifier
             .fillMaxHeight()
+            .verticalScroll(rememberScrollState())
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),

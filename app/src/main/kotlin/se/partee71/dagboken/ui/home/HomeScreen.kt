@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -72,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.BuildConfig
 import se.partee71.dagboken.R
+import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.ui.aktiviteter.AktiviteterViewModel
@@ -117,6 +119,8 @@ fun HomeScreen(
     val context = LocalContext.current
     var showAccountSheet by remember { mutableStateOf(false) }
     var fabMenuExpanded by remember { mutableStateOf(false) }
+    var showScreeningLabelPicker by remember { mutableStateOf(false) }
+    var adHocScreeningLabel by remember { mutableStateOf<String?>(null) }
 
     val screeningSnackbar by screeningVm.snackbar.collectAsState()
     LaunchedEffect(screeningSnackbar) {
@@ -169,6 +173,11 @@ fun HomeScreen(
                         text        = { Text(stringResource(R.string.fab_logga_aktivitet)) },
                         leadingIcon = { Icon(Icons.Filled.Bolt, contentDescription = null) },
                         onClick     = { fabMenuExpanded = false; onAddAktivitet() },
+                    )
+                    DropdownMenuItem(
+                        text        = { Text(stringResource(R.string.fab_logga_screening)) },
+                        leadingIcon = { Icon(Icons.Filled.Assignment, contentDescription = null) },
+                        onClick     = { fabMenuExpanded = false; showScreeningLabelPicker = true },
                     )
                     DropdownMenuItem(
                         text        = { Text(stringResource(R.string.log_single_dose)) },
@@ -364,6 +373,47 @@ fun HomeScreen(
                 TextButton(onClick = { medicinerVm.dismissCooldownWarning() }) {
                     Text(stringResource(R.string.cancel))
                 }
+            },
+        )
+    }
+
+    // Fristående screening-loggning från "+"-FAB (#146) — till skillnad från
+    // ScreeningChecklistSection kräver den inte att tillfället är schemalagt/
+    // ologgat, så användaren kan logga en extra eller ett tillfälle utan påminnelse.
+    if (showScreeningLabelPicker) {
+        AlertDialog(
+            onDismissRequest = { showScreeningLabelPicker = false },
+            title            = { Text(stringResource(R.string.fab_logga_screening)) },
+            text             = {
+                Column {
+                    SCREENING_EVENT_LABELS.forEach { label ->
+                        TextButton(
+                            onClick  = { showScreeningLabelPicker = false; adHocScreeningLabel = label },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text(label, modifier = Modifier.fillMaxWidth()) }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showScreeningLabelPicker = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+
+    adHocScreeningLabel?.let { label ->
+        AlertDialog(
+            onDismissRequest = { adHocScreeningLabel = null },
+            title            = { Text(label) },
+            text             = {
+                InlineScreeningForm(
+                    label        = label,
+                    vm           = screeningVm,
+                    selectedDate = uiState.selectedDate,
+                    onSaved      = { adHocScreeningLabel = null },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { adHocScreeningLabel = null }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }

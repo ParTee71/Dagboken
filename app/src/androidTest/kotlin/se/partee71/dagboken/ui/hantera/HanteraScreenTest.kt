@@ -444,4 +444,25 @@ class HanteraScreenTest {
             tearDown()
         }
     }
+
+    // ─── Sidopanelen är scrollbar (#146) ─────────────────────────────────────
+
+    @Test fun sidebar_last_section_icon_is_reachable_by_scrolling() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            // Rail-varianten visas bara på bred skärm (HANT-5); på smal skärm är hela
+            // huvudkolumnen redan scrollbar och det här scenariot är inte aktuellt.
+            val railNodes = composeRule.onAllNodes(hasContentDescription("Om appen"))
+            if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
+                // performScrollTo() kräver en scrollbar förälder — kastar om sidopanelens
+                // Column saknar verticalScroll, vilket är precis den bugg detta test vaktar mot.
+                railNodes.onFirst().performScrollTo().performClick()
+                composeRule.waitForIdle()
+                composeRule.onNodeWithText("Om appen").assertIsDisplayed()
+            }
+        } finally {
+            tearDown()
+        }
+    }
 }

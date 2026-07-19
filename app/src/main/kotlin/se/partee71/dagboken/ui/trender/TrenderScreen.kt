@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.dagboken.ui.diagram.ChartSeries
 import se.partee71.dagboken.ui.diagram.DiagramLayout
 import se.partee71.dagboken.ui.diagram.DiagramSection
 import se.partee71.dagboken.ui.diagram.IntervalBarChart
@@ -79,7 +80,83 @@ fun TrenderScreen(
                 vm       = vm,
                 testTag  = "trender_series_selector_symptom",
             ),
+            stepsSection(state),
+            restingHeartRateSection(state),
         ),
+    )
+}
+
+/** Stegdiagram (TRD-11, Health Connect) — samma data som Idag-kortets sparkline, ingen väljare. */
+@Composable
+private fun stepsSection(state: TrenderUiState): DiagramSection {
+    val points = state.dailySteps.filter { it.steps > 0 }
+    return DiagramSection(
+        title = stringResource(R.string.trender_section_steps),
+        chart = { chartModifier ->
+            if (points.size < 2) {
+                EmptyState(
+                    icon     = Icons.Outlined.TrendingUp,
+                    title    = stringResource(R.string.trender_no_steps_data),
+                    modifier = chartModifier.height(200.dp),
+                )
+            } else {
+                val values = points.map { it.steps.toFloat() }
+                val yRange = remember(values) { computeSmartYRange(values) }
+                LineChartCanvas(
+                    series = listOf(
+                        ChartSeries(
+                            label  = stringResource(R.string.trender_section_steps),
+                            color  = HEALTH_STEPS_COLOR,
+                            points = values,
+                        ),
+                    ),
+                    dates    = points.map { it.date.toString() },
+                    minValue = yRange.start,
+                    maxValue = yRange.endInclusive,
+                    modifier = chartModifier.height(200.dp),
+                )
+            }
+        },
+        minMax = if (points.isEmpty()) null else {
+            { MinMaxCaption(min = points.minOf { it.steps }.toFloat(), max = points.maxOf { it.steps }.toFloat()) }
+        },
+    )
+}
+
+/** Vilopulsdiagram (TRD-11, Health Connect) — samma data som Idag-kortets sparkline, ingen väljare. */
+@Composable
+private fun restingHeartRateSection(state: TrenderUiState): DiagramSection {
+    val points = state.dailyRestingHeartRate.filter { it.bpm != null }
+    return DiagramSection(
+        title = stringResource(R.string.trender_section_resting_hr),
+        chart = { chartModifier ->
+            if (points.size < 2) {
+                EmptyState(
+                    icon     = Icons.Outlined.TrendingUp,
+                    title    = stringResource(R.string.trender_no_resting_hr_data),
+                    modifier = chartModifier.height(200.dp),
+                )
+            } else {
+                val values = points.map { it.bpm!!.toFloat() }
+                val yRange = remember(values) { computeSmartYRange(values) }
+                LineChartCanvas(
+                    series = listOf(
+                        ChartSeries(
+                            label  = stringResource(R.string.trender_section_resting_hr),
+                            color  = HEALTH_RESTING_HR_COLOR,
+                            points = values,
+                        ),
+                    ),
+                    dates    = points.map { it.date.toString() },
+                    minValue = yRange.start,
+                    maxValue = yRange.endInclusive,
+                    modifier = chartModifier.height(200.dp),
+                )
+            }
+        },
+        minMax = if (points.isEmpty()) null else {
+            { MinMaxCaption(min = points.minOf { it.bpm!! }.toFloat(), max = points.maxOf { it.bpm!! }.toFloat()) }
+        },
     )
 }
 

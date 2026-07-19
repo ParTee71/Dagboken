@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.trender
 
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +16,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HealthAvailability
+import se.partee71.dagboken.data.repository.HealthConnectRepository
 import se.partee71.dagboken.domain.model.Aktivitet
+import se.partee71.dagboken.domain.model.DailyRestingHeartRate
+import se.partee71.dagboken.domain.model.DailySteps
+import se.partee71.dagboken.domain.model.WeeklyHealth
 import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -24,6 +30,7 @@ class TrenderViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private lateinit var repo: AktiviteterRepository
+    private lateinit var healthRepo: HealthConnectRepository
     private val allFlow = MutableStateFlow<List<Aktivitet>>(emptyList())
 
     private lateinit var viewModel: TrenderViewModel
@@ -31,7 +38,8 @@ class TrenderViewModelTest {
     @Before fun setUp() {
         Dispatchers.setMain(testDispatcher)
         repo = mockk(relaxed = true) { every { all } returns allFlow }
-        viewModel = TrenderViewModel(repo)
+        healthRepo = mockk(relaxed = true) { every { availability() } returns HealthAvailability.NOT_INSTALLED }
+        viewModel = TrenderViewModel(repo, healthRepo)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -203,5 +211,63 @@ class TrenderViewModelTest {
         ENERGY_SLOT_SERIES.forEach { assertEquals(TrenderCategory.ENERGI_TILLFALLE, categoryOf(it)) }
         STRESS_SERIES.forEach { assertEquals(TrenderCategory.STRESS_BELASTNING, categoryOf(it)) }
         assertEquals(TrenderCategory.SYMPTOM, categoryOf("Yrsel"))
+    }
+
+    // ─── Steg/vilopuls (Health Connect) — TRD-11, #146 ────────────────────────
+
+    @Test fun `dailySteps and dailyRestingHeartRate are empty when Health Connect is not available`() = runTest {
+        assertTrue(viewModel.state.value.dailySteps.isEmpty())
+        assertTrue(viewModel.state.value.dailyRestingHeartRate.isEmpty())
+    }
+
+    @Test fun `dailySteps and dailyRestingHeartRate are empty when permissions are not granted`() = runTest {
+        healthRepo = mockk(relaxed = true) {
+            every { availability() } returns HealthAvailability.AVAILABLE
+            coEvery { hasAllPermissions() } returns false
+        }
+        viewModel = TrenderViewModel(repo, healthRepo)
+        assertTrue(viewModel.state.value.dailySteps.isEmpty())
+    }
+
+    @Test fun `dailySteps and dailyRestingHeartRate expose Health Connect data for the selected range`() = runTest {
+        val today = LocalDate.now()
+        val weekly = WeeklyHealth(
+            dailySteps = listOf(DailySteps(today, 5000)),
+            dailyRestingHeartRate = listOf(DailyRestingHeartRate(today, 58)),
+        )
+        healthRepo = mockk(relaxed = true) {
+            every { availability() } returns HealthAvailability.AVAILABLE
+            coEvery { hasAllPermissions() } returns true
+            coEvery { readHealthRange(30) } returns weekly
+        }
+        viewModel = TrenderViewModel(repo, healthRepo)
+        assertEquals(listOf(DailySteps(today, 5000)), viewModel.state.value.dailySteps)
+        assertEquals(listOf(DailyRestingHeartRate(today, 58)), viewModel.state.value.dailyRestingHeartRate)
+    }
+
+    @Test fun `setRange re-reads Health Connect data for the new range`() = runTest {
+        val weekly7 = WeeklyHealth(dailySteps = listOf(DailySteps(LocalDate.now(), 1000)))
+        val weekly90 = WeeklyHealth(dailySteps = listOf(DailySteps(LocalDate.now(), 9000)))
+        healthRepo = mockk(relaxed = true) {
+            every { availability() } returns HealthAvailability.AVAILABLE
+            coEvery { hasAllPermissions() } returns true
+            coEvery { readHealthRange(30) } returns weekly7
+            coEvery { readHealthRange(90) } returns weekly90
+        }
+        viewModel = TrenderViewModel(repo, healthRepo)
+        assertEquals(1000L, viewModel.state.value.dailySteps.first().steps)
+
+        viewModel.setRange(TrenderRange.THREE_MONTHS)
+        assertEquals(9000L, viewModel.state.value.dailySteps.first().steps)
+    }
+
+    @Test fun `dailySteps stays empty when Health Connect read throws`() = runTest {
+        healthRepo = mockk(relaxed = true) {
+            every { availability() } returns HealthAvailability.AVAILABLE
+            coEvery { hasAllPermissions() } returns true
+            coEvery { readHealthRange(any()) } throws RuntimeException("boom")
+        }
+        viewModel = TrenderViewModel(repo, healthRepo)
+        assertTrue(viewModel.state.value.dailySteps.isEmpty())
     }
 }

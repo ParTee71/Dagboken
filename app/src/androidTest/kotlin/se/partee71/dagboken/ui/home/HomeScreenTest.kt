@@ -288,15 +288,58 @@ class HomeScreenTest {
 
     // ─── Global FAB ───────────────────────────────────────────────────────────
 
-    @Test fun fab_opens_menu_with_four_quick_add_options() = retryOnRenderGlitch {
+    @Test fun fab_opens_menu_with_five_quick_add_options() = retryOnRenderGlitch {
         setUp()
         try {
             setContent()
             composeRule.onNodeWithContentDescription("Lägg till").performClick()
             composeRule.onNodeWithText("Logga aktivitet").assertIsDisplayed()
+            composeRule.onNodeWithText("Logga screening").assertIsDisplayed()
             composeRule.onNodeWithText("Logga engångsdos").assertIsDisplayed()
             composeRule.onNodeWithText("Ny vid behov-favorit").assertIsDisplayed()
             composeRule.onNodeWithText("Ny händelse").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    // ─── Fristående screening från "+"-FAB (#146) ─────────────────────────────
+
+    @Test fun fab_logga_screening_picks_a_label_and_logs_it_against_the_selected_day() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                prefs.setSymptomOptions(emptyList())
+                // Säkerställer att checklistans egna "Lunch"-rad inte visas samtidigt som
+                // tillfällesväljarens — annars matchar onNodeWithText("Lunch") två noder.
+                prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
+            }
+            setContent()
+            composeRule.onNodeWithContentDescription("Lägg till").performClick()
+            composeRule.onNodeWithText("Logga screening").performClick()
+
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Lunch")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText("Lunch").performClick()
+
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodesWithTag("screening_next").fetchSemanticsNodes().isNotEmpty()
+            }
+            // Formuläret ligger i en AlertDialog, inte i Idag-skärmens scrollbara
+            // huvudkolumn (till skillnad från checklistans inline-formulär) — ingen
+            // scrollbar förälder att performScrollTo() mot, så vi klickar direkt.
+            composeRule.onNodeWithTag("screening_next").performClick()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodesWithTag("screening_save").fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithTag("screening_save").performClick()
+
+            composeRule.waitUntil(20_000) {
+                runBlocking {
+                    aktivRepo.all.first().any { it.datum == today && it.type == "screening" && it.aktivitet == "Lunch" }
+                }
+            }
         } finally {
             tearDown()
         }
@@ -524,4 +567,5 @@ private class FakeHealthRepo(private val weekly: WeeklyHealth? = null) : HealthC
     override suspend fun hasAllPermissions() = weekly != null
     override suspend fun readToday() = HealthData()
     override suspend fun readWeeklyHealth() = weekly ?: WeeklyHealth()
+    override suspend fun readHealthRange(days: Int) = weekly ?: WeeklyHealth()
 }
