@@ -17,6 +17,7 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
 import com.patrykandpatrick.vico.compose.common.fill
+import com.patrykandpatrick.vico.core.cartesian.Zoom
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
@@ -106,8 +107,16 @@ fun LineChartCanvas(
     // Tvåfingerzoom + panorering (#144), nollställd när diagrammets period byts (#149) —
     // nycklad på [dates] (byts alltid med perioden) i stället för ett bart `remember`,
     // annars låg gammal zoom/pan-position kvar när användaren bytte period.
+    //
+    // initialZoom = Zoom.Content åsidosätter Vicos standardvärde
+    // (Zoom.max(Zoom.fixed(), Zoom.Content), som väljer den STÖRRE — dvs. mer inzoomade —
+    // av de två): för en period med många datapunkter valde standardvärdet den fasta
+    // zoomen i stället för att zooma ut till att visa hela perioden (uppföljning till #149,
+    // som bara fixade att zoom/pan nollställs — inte vad de nollställs *till*). Content
+    // garanterar att diagrammet alltid startar helt utzoomat, oavsett antal datapunkter.
     val (scrollState, zoomState) = key(dates) {
-        rememberVicoScrollState(scrollEnabled = true) to rememberVicoZoomState(zoomEnabled = true)
+        rememberVicoScrollState(scrollEnabled = true) to
+            rememberVicoZoomState(zoomEnabled = true, initialZoom = Zoom.Content)
     }
 
     CartesianChartHost(

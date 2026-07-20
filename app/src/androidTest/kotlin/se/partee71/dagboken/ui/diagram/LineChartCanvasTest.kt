@@ -113,6 +113,24 @@ class LineChartCanvasTest {
 
     // ─── Zoom/pan nollställs vid periodbyte (#149) ────────────────────────────
 
+    @Test fun `renders without crash for a wide period with many data points`() = retryOnRenderGlitch {
+        // initialZoom = Zoom.Content (i stället för Vicos standard Zoom.max(fixed, Content),
+        // som väljer den mer inzoomade av de två) ska visa hela perioden direkt, oavsett
+        // hur många datapunkter den innehåller (uppföljning till #149). Pixel-exakt zoomnivå går inte att
+        // asserta via semantikträdet (Vico ritar rakt mot en Canvas); det här verifierar
+        // att ett brett dataset (t.ex. "Allt"/3 månader) inte kraschar renderingen.
+        val many = 90
+        renderAndRetry {
+            LineChartCanvas(
+                series = List(1) { ChartSeries("S", Color(0xFF60a5fa), List(many) { j -> (j % 5 + 1).toFloat() }) },
+                dates = List(many) { "2026-01-01" },
+                minValue = -10f,
+                maxValue = 10f,
+                modifier = mod,
+            )
+        }
+    }
+
     @Test fun `renders without crash when dates change and zoom pan state resets`() = retryOnRenderGlitch {
         // scrollState/zoomState nycklas på `dates` (key(dates) { ... }) så en ny
         // remember-instans skapas — och därmed nollställd zoom/pan — varje gång
