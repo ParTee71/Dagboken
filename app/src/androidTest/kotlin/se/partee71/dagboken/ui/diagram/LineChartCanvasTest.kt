@@ -111,6 +111,30 @@ class LineChartCanvasTest {
         }
     }
 
+    // ─── Zoom/pan nollställs vid periodbyte (#149) ────────────────────────────
+
+    @Test fun `renders without crash when dates change and zoom pan state resets`() = retryOnRenderGlitch {
+        // scrollState/zoomState nycklas på `dates` (key(dates) { ... }) så en ny
+        // remember-instans skapas — och därmed nollställd zoom/pan — varje gång
+        // diagrammets period byts. Pixel-exakt zoomnivå går inte att asserta via
+        // semantikträdet; det här verifierar att bytet inte kraschar renderingen.
+        val scenario = ActivityScenario.launch(ComponentActivity::class.java)
+        try {
+            scenario.onActivity {
+                it.setContent {
+                    var currentDates by remember { mutableStateOf(List(10) { "2026-01-${(it + 1).toString().padStart(2, '0')}" }) }
+                    MaterialTheme {
+                        LineChartCanvas(series = series(1), dates = currentDates, minValue = -10f, maxValue = 10f, modifier = mod)
+                    }
+                    LaunchedEffect(Unit) { currentDates = List(5) { "2026-02-${(it + 1).toString().padStart(2, '0')}" } }
+                }
+            }
+            composeRule.waitForIdle()
+        } finally {
+            scenario.close()
+        }
+    }
+
     // ─── Mörkt tema (#123) ─────────────────────────────────────────────────────
 
     @Test fun renders_without_crash_in_dark_theme() = retryOnRenderGlitch {

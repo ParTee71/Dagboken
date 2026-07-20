@@ -20,9 +20,11 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /**
@@ -34,6 +36,7 @@ import androidx.compose.ui.unit.dp
 fun DagbokenCard(
     modifier: Modifier = Modifier,
     title: String? = null,
+    titleTrailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     enabled: Boolean = true,
@@ -55,13 +58,34 @@ fun DagbokenCard(
 
     val titleSlot: @Composable ColumnScope.() -> Unit = {
         if (title != null) {
-            Text(
-                text       = title,
-                style      = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color      = MaterialTheme.colorScheme.onSurface,
-                modifier   = Modifier.padding(bottom = 12.dp),
-            )
+            if (titleTrailing != null) {
+                // Titel + trailing-innehåll (t.ex. en periodväljare, #149) i kortets övre
+                // högra hörn — titeln viker undan (weight + ellipsis) i stället för att
+                // tränga ut trailing-innehållet på smala skärmar.
+                Row(
+                    modifier          = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text       = title,
+                        style      = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = MaterialTheme.colorScheme.onSurface,
+                        maxLines   = 1,
+                        overflow   = TextOverflow.Ellipsis,
+                        modifier   = Modifier.weight(1f),
+                    )
+                    titleTrailing()
+                }
+            } else {
+                Text(
+                    text       = title,
+                    style      = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = MaterialTheme.colorScheme.onSurface,
+                    modifier   = Modifier.padding(bottom = 12.dp),
+                )
+            }
         }
     }
 

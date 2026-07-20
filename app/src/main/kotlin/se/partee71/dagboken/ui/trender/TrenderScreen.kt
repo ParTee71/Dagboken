@@ -10,14 +10,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -35,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.diagram.ChartSeries
+import se.partee71.dagboken.ui.diagram.CompactDropdownButton
 import se.partee71.dagboken.ui.diagram.DiagramLayout
 import se.partee71.dagboken.ui.diagram.DiagramSection
 import se.partee71.dagboken.ui.diagram.IntervalBarChart
@@ -54,14 +52,12 @@ fun TrenderScreen(
     DiagramLayout(
         title  = stringResource(R.string.trender_title),
         onBack = onBack,
-        periodSelector = {
-            RangeSelector(selected = state.range, onSelect = vm::setRange)
-        },
         sections = listOf(
-            energyDailySection(state),
+            energyDailySection(state, vm),
             categorySection(
                 title    = stringResource(R.string.trender_section_energy_slots),
                 category = TrenderCategory.ENERGI_TILLFALLE,
+                section  = TrenderSection.ENERGI_TILLFALLE,
                 state    = state,
                 vm       = vm,
                 testTag  = "trender_series_selector_energy",
@@ -69,6 +65,7 @@ fun TrenderScreen(
             categorySection(
                 title    = stringResource(R.string.trender_section_stress),
                 category = TrenderCategory.STRESS_BELASTNING,
+                section  = TrenderSection.STRESS_BELASTNING,
                 state    = state,
                 vm       = vm,
                 testTag  = "trender_series_selector_stress",
@@ -76,22 +73,24 @@ fun TrenderScreen(
             categorySection(
                 title    = stringResource(R.string.trender_section_symptom),
                 category = TrenderCategory.SYMPTOM,
+                section  = TrenderSection.SYMPTOM,
                 state    = state,
                 vm       = vm,
                 testTag  = "trender_series_selector_symptom",
             ),
-            stepsSection(state),
-            restingHeartRateSection(state),
+            stepsSection(state, vm),
+            restingHeartRateSection(state, vm),
         ),
     )
 }
 
-/** Stegdiagram (TRD-11, Health Connect) — samma data som Idag-kortets sparkline, ingen väljare. */
+/** Stegdiagram (TRD-11, Health Connect) — samma data som Idag-kortets sparkline, ingen serieväljare. */
 @Composable
-private fun stepsSection(state: TrenderUiState): DiagramSection {
+private fun stepsSection(state: TrenderUiState, vm: TrenderViewModel): DiagramSection {
     val points = state.dailySteps.filter { it.steps > 0 }
     return DiagramSection(
         title = stringResource(R.string.trender_section_steps),
+        periodSelector = { sectionRangeSelector(TrenderSection.STEG, state, vm) },
         chart = { chartModifier ->
             if (points.size < 2) {
                 EmptyState(
@@ -123,12 +122,13 @@ private fun stepsSection(state: TrenderUiState): DiagramSection {
     )
 }
 
-/** Vilopulsdiagram (TRD-11, Health Connect) — samma data som Idag-kortets sparkline, ingen väljare. */
+/** Vilopulsdiagram (TRD-11, Health Connect) — samma data som Idag-kortets sparkline, ingen serieväljare. */
 @Composable
-private fun restingHeartRateSection(state: TrenderUiState): DiagramSection {
+private fun restingHeartRateSection(state: TrenderUiState, vm: TrenderViewModel): DiagramSection {
     val points = state.dailyRestingHeartRate.filter { it.bpm != null }
     return DiagramSection(
         title = stringResource(R.string.trender_section_resting_hr),
+        periodSelector = { sectionRangeSelector(TrenderSection.VILOPULS, state, vm) },
         chart = { chartModifier ->
             if (points.size < 2) {
                 EmptyState(
@@ -161,10 +161,11 @@ private fun restingHeartRateSection(state: TrenderUiState): DiagramSection {
 }
 
 @Composable
-private fun energyDailySection(state: TrenderUiState): DiagramSection {
+private fun energyDailySection(state: TrenderUiState, vm: TrenderViewModel): DiagramSection {
     val daily = state.dailyEnergy
     return DiagramSection(
         title = stringResource(R.string.trender_section_energy_daily),
+        periodSelector = { sectionRangeSelector(TrenderSection.ENERGI_DAG, state, vm) },
         chart = { chartModifier ->
             if (daily.isEmpty()) {
                 EmptyState(
@@ -194,27 +195,29 @@ private fun energyDailySection(state: TrenderUiState): DiagramSection {
 private fun categorySection(
     title: String,
     category: TrenderCategory,
+    section: TrenderSection,
     state: TrenderUiState,
     vm: TrenderViewModel,
     testTag: String,
 ): DiagramSection {
-    val categoryLabels = state.allSeriesLabels.filter { categoryOf(it) == category }
-    val sectionSeries = state.seriesFor(category)
-    val allValues = sectionSeries.flatMap { it.points }.filterNotNull()
+    val trend = state.categoryTrends[category] ?: CategoryTrend()
+    val symptomLabels = state.categoryTrends[TrenderCategory.SYMPTOM]?.labels.orEmpty()
+    val allValues = trend.series.flatMap { it.points }.filterNotNull()
 
     return DiagramSection(
         title = title,
+        periodSelector = { sectionRangeSelector(section, state, vm) },
         selector = {
             SeriesSelector(
-                labels        = categoryLabels,
+                labels        = trend.labels,
                 selected      = state.selectedSeries,
-                symptomLabels = state.symptomLabels,
+                symptomLabels = symptomLabels,
                 onToggle      = vm::toggleSeries,
                 testTag       = testTag,
             )
         },
         chart = { chartModifier ->
-            if (sectionSeries.isEmpty()) {
+            if (trend.series.isEmpty()) {
                 EmptyState(
                     icon     = Icons.Outlined.TrendingUp,
                     title    = stringResource(R.string.diagram_no_series),
@@ -223,17 +226,17 @@ private fun categorySection(
             } else {
                 val yRange = remember(allValues) { computeSmartYRange(allValues) }
                 LineChartCanvas(
-                    series   = sectionSeries,
-                    dates    = state.dates,
+                    series   = trend.series,
+                    dates    = trend.dates,
                     minValue = yRange.start,
                     maxValue = yRange.endInclusive,
                     modifier = chartModifier.height(280.dp),
                 )
             }
         },
-        legend = if (sectionSeries.isEmpty()) null else {
+        legend = if (trend.series.isEmpty()) null else {
             {
-                sectionSeries.forEach { s ->
+                trend.series.forEach { s ->
                     Row(
                         verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -259,20 +262,29 @@ private fun categorySection(
     )
 }
 
+/** Periodväljare för en enskild diagramsektion (#149) — visas i kortets övre högra hörn. */
+@Composable
+private fun sectionRangeSelector(section: TrenderSection, state: TrenderUiState, vm: TrenderViewModel) {
+    RangeSelector(
+        selected = state.ranges.getValue(section),
+        onSelect = { vm.setRange(section, it) },
+        testTag  = "trender_range_selector_${section.name.lowercase()}",
+    )
+}
+
 @Composable
 private fun RangeSelector(
     selected: TrenderRange,
     onSelect: (TrenderRange) -> Unit,
+    testTag: String,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     Box {
-        OutlinedButton(
+        CompactDropdownButton(
+            label    = stringResource(selected.labelRes),
             onClick  = { showMenu = true },
-            modifier = Modifier.testTag("trender_range_selector"),
-        ) {
-            Text(stringResource(selected.labelRes), maxLines = 1)
-            Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
-        }
+            modifier = Modifier.testTag(testTag),
+        )
         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
             TrenderRange.entries.forEach { range ->
                 DropdownMenuItem(
@@ -300,17 +312,15 @@ private fun SeriesSelector(
         Text(stringResource(R.string.diagram_show_label), style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.width(8.dp))
         Box {
-            OutlinedButton(
+            val label = labels
+                .filter { it in selected }
+                .joinToString(", ")
+                .ifEmpty { "–" }
+            CompactDropdownButton(
+                label    = label,
                 onClick  = { showMenu = true },
                 modifier = Modifier.testTag(testTag),
-            ) {
-                val label = labels
-                    .filter { it in selected }
-                    .joinToString(", ")
-                    .ifEmpty { "–" }
-                Text(label, maxLines = 1)
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
+            )
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 labels.forEach { name ->
                     DropdownMenuItem(
