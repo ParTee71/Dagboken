@@ -75,7 +75,7 @@ internal val ALL_SERIES = ENERGY_SLOT_SERIES + STRESS_SERIES
  * (TRD-8) hör inte hemma här — den är inte en väljbar [ChartSeries] utan ett eget
  * intervalldiagram, se [TrenderUiState.dailyEnergy].
  */
-internal enum class TrenderCategory { ENERGI_TILLFALLE, STRESS_BELASTNING, SYMPTOM }
+enum class TrenderCategory { ENERGI_TILLFALLE, STRESS_BELASTNING, SYMPTOM }
 
 internal fun categoryOf(seriesName: String): TrenderCategory = when {
     seriesName in ENERGY_SLOT_SERIES -> TrenderCategory.ENERGI_TILLFALLE
