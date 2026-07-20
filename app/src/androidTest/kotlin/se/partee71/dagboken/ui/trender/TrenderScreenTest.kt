@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -20,6 +21,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -177,16 +180,18 @@ class TrenderScreenTest {
         }
     }
 
-    @Test fun range_selector_switches_selected_range() = retryOnRenderGlitch {
+    @Test fun range_selector_switches_the_selected_diagrams_range() = retryOnRenderGlitch {
         setUp()
         try {
             setContent()
-            composeRule.onNodeWithTag("trender_range_selector").performClick()
+            composeRule.onNodeWithTag("trender_range_selector_symptom").performScrollTo().performClick()
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("7 dagar")).fetchSemanticsNodes().isNotEmpty()
             }
             composeRule.onNodeWithText("7 dagar").performClick()
-            composeRule.waitUntil(20_000) { vm.state.value.range == TrenderRange.SEVEN_DAYS }
+            composeRule.waitUntil(20_000) {
+                vm.state.value.ranges.getValue(TrenderSection.SYMPTOM) == TrenderRange.SEVEN_DAYS
+            }
         } finally {
             tearDown()
         }
@@ -196,12 +201,72 @@ class TrenderScreenTest {
         setUp()
         try {
             setContent()
-            composeRule.onNodeWithTag("trender_range_selector").performClick()
+            composeRule.onNodeWithTag("trender_range_selector_symptom").performScrollTo().performClick()
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("Allt")).fetchSemanticsNodes().isNotEmpty()
             }
             composeRule.onNodeWithText("Allt").performClick()
-            composeRule.waitUntil(20_000) { vm.state.value.range == TrenderRange.ALL }
+            composeRule.waitUntil(20_000) {
+                vm.state.value.ranges.getValue(TrenderSection.SYMPTOM) == TrenderRange.ALL
+            }
+        } finally {
+            tearDown()
+        }
+    }
+
+    // ─── Periodväljare per diagram, övre högra hörnet — #149 ──────────────────
+
+    @Test fun every_diagram_has_its_own_period_selector() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            listOf(
+                "trender_range_selector_energi_dag",
+                "trender_range_selector_energi_tillfalle",
+                "trender_range_selector_stress_belastning",
+                "trender_range_selector_symptom",
+                "trender_range_selector_steg",
+                "trender_range_selector_vilopuls",
+            ).forEach { tag ->
+                composeRule.onNodeWithTag(tag).performScrollTo().assertIsDisplayed()
+            }
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun changing_one_diagrams_period_leaves_another_diagrams_period_label_unchanged() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithTag("trender_range_selector_symptom").performScrollTo().performClick()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("7 dagar")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText("7 dagar").performClick()
+            composeRule.waitUntil(20_000) {
+                vm.state.value.ranges.getValue(TrenderSection.SYMPTOM) == TrenderRange.SEVEN_DAYS
+            }
+            // Stress & belastning-diagrammets period ska fortfarande vara oförändrad (Månad).
+            assertEquals(TrenderRange.MONTH, vm.state.value.ranges.getValue(TrenderSection.STRESS_BELASTNING))
+            composeRule.onNodeWithTag("trender_range_selector_stress_belastning").performScrollTo()
+                .assertTextEquals("Månad")
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun period_selector_is_positioned_to_the_right_of_the_diagram_title() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            val titleLeft = composeRule.onNodeWithText("Symptom").fetchSemanticsNode().boundsInRoot.left
+            val selectorLeft = composeRule.onNodeWithTag("trender_range_selector_symptom").performScrollTo()
+                .fetchSemanticsNode().boundsInRoot.left
+            assertTrue(
+                "Förväntade periodväljaren till höger om titeln ($selectorLeft > $titleLeft)",
+                selectorLeft > titleLeft,
+            )
         } finally {
             tearDown()
         }

@@ -3,6 +3,7 @@ package se.partee71.dagboken.ui.diagram
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -102,6 +103,13 @@ fun LineChartCanvas(
     val axisLabelColor = MaterialTheme.colorScheme.onSurface
     val axisLabel = rememberAxisLabelComponent(color = axisLabelColor)
 
+    // Tvåfingerzoom + panorering (#144), nollställd när diagrammets period byts (#149) —
+    // nycklad på [dates] (byts alltid med perioden) i stället för ett bart `remember`,
+    // annars låg gammal zoom/pan-position kvar när användaren bytte period.
+    val (scrollState, zoomState) = key(dates) {
+        rememberVicoScrollState(scrollEnabled = true) to rememberVicoZoomState(zoomEnabled = true)
+    }
+
     CartesianChartHost(
         chart = rememberCartesianChart(
             rememberLineCartesianLayer(
@@ -125,9 +133,8 @@ fun LineChartCanvas(
             ),
         ),
         modelProducer = modelProducer,
-        // Tvåfingerzoom + panorering (#144) — samma känsla på alla diagram i appen.
-        scrollState = rememberVicoScrollState(scrollEnabled = true),
-        zoomState = rememberVicoZoomState(zoomEnabled = true),
+        scrollState = scrollState,
+        zoomState = zoomState,
         modifier = modifier,
     )
 }

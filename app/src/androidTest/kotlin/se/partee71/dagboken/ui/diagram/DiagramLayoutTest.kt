@@ -23,11 +23,17 @@ class DiagramLayoutTest {
     @get:Rule
     val composeRule = createEmptyComposeRule()
 
-    private fun section(title: String, chartText: String, legendText: String? = null) = DiagramSection(
-        title    = title,
-        selector = { Text("Selektor $title") },
-        chart    = { Text(chartText) },
-        legend   = legendText?.let { { Text(it) } },
+    private fun section(
+        title: String,
+        chartText: String,
+        legendText: String? = null,
+        periodSelectorText: String? = null,
+    ) = DiagramSection(
+        title          = title,
+        periodSelector = periodSelectorText?.let { { Text(it) } },
+        selector       = { Text("Selektor $title") },
+        chart          = { Text(chartText) },
+        legend         = legendText?.let { { Text(it) } },
     )
 
     private fun layoutAndRetry(sections: List<DiagramSection>, withExtras: Boolean = false, assertions: () -> Unit) =
@@ -40,7 +46,6 @@ class DiagramLayoutTest {
                             DiagramLayout(
                                 title          = "Testdiagram",
                                 onBack         = {},
-                                periodSelector = { Text("Period") },
                                 sections       = sections,
                                 portraitExtras = if (withExtras) ({ Text("Extras") }) else null,
                             )
@@ -57,8 +62,20 @@ class DiagramLayoutTest {
         composeRule.onNodeWithText("Testdiagram").assertIsDisplayed()
     }
 
-    @Test fun shows_period_selector() = layoutAndRetry(listOf(section("Sektion", "Diagram"))) {
+    @Test fun shows_sections_own_period_selector() = layoutAndRetry(
+        listOf(section("Sektion", "Diagram", periodSelectorText = "Period")),
+    ) {
         composeRule.onNodeWithText("Period").assertIsDisplayed()
+    }
+
+    @Test fun period_selector_is_positioned_to_the_right_of_the_section_title() = layoutAndRetry(
+        listOf(section("Sektion", "Diagram", periodSelectorText = "Period")),
+    ) {
+        val titleLeft = composeRule.onNodeWithText("Sektion").fetchSemanticsNode().boundsInRoot.left
+        val periodLeft = composeRule.onNodeWithText("Period").fetchSemanticsNode().boundsInRoot.left
+        assert(periodLeft > titleLeft) {
+            "Förväntade periodväljaren till höger om titeln ($periodLeft > $titleLeft)"
+        }
     }
 
     @Test fun shows_section_title_selector_and_chart() = layoutAndRetry(listOf(section("Sektion", "Diagram"))) {

@@ -16,12 +16,15 @@ import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 
 /**
- * Ett diagram inom Trender-ytan (#141): egen väljare, eget diagram med egen
- * y-skala, egen legend och egen [MinMaxCaption]. [selector] utelämnas för diagram
- * utan serieval (t.ex. Energi (dag), som alltid visas).
+ * Ett diagram inom Trender-ytan (#141): egen periodväljare (#149, visas i kortets övre
+ * högra hörn via [DagbokenCard.titleTrailing]), egen serieväljare, eget diagram med egen
+ * y-skala, egen legend och egen [MinMaxCaption]. [selector] utelämnas för diagram utan
+ * serieval (t.ex. Energi (dag), som alltid visas). [periodSelector] är valfri för
+ * konsumenter som inte behöver periodstyrning per diagram.
  */
 data class DiagramSection(
     val title: String,
+    val periodSelector: (@Composable () -> Unit)? = null,
     val selector: (@Composable () -> Unit)? = null,
     val chart: @Composable (chartModifier: Modifier) -> Unit,
     val legend: (@Composable () -> Unit)? = null,
@@ -29,20 +32,19 @@ data class DiagramSection(
 )
 
 /**
- * Scaffold för Trender: titel/tillbaka, gemensam periodväljare, och en eller flera
- * [DiagramSection] staplade i ett scrollbart innehåll. Ersätter (#141) den tidigare
- * varianten med ett enda chart/legend-par samt landskapsägnad helskärmsoverlay —
- * den specialbehandlingen gav inte mening längre då flera oberoende diagram (olika
- * skalor, en av dem ett intervalldiagram) inte kan visas som en enda fullskärmslinje.
- * Portratt- och landskapsläge visar därför samma staplade, scrollbara innehåll.
+ * Scaffold för Trender: titel/tillbaka och en eller flera [DiagramSection] staplade i ett
+ * scrollbart innehåll — varje sektion styr sin egen period (#149, [DiagramSection.periodSelector])
+ * i stället för en gemensam periodväljare för hela ytan. Ersätter (#141) den tidigare varianten
+ * med ett enda chart/legend-par samt landskapsägnad helskärmsoverlay — den specialbehandlingen
+ * gav inte mening längre då flera oberoende diagram (olika skalor, en av dem ett
+ * intervalldiagram) inte kan visas som en enda fullskärmslinje. Portratt- och landskapsläge
+ * visar därför samma staplade, scrollbara innehåll.
  */
 @Composable
 fun DiagramLayout(
     title: String,
     onBack: (() -> Unit)? = null,
-    periodSelector: @Composable () -> Unit,
     sections: List<DiagramSection>,
-    periodLabel: (@Composable () -> Unit)? = null,
     portraitExtras: (@Composable () -> Unit)? = null,
 ) {
     DagbokenScaffold(
@@ -57,10 +59,8 @@ fun DiagramLayout(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            periodSelector()
-            periodLabel?.invoke()
             sections.forEach { section ->
-                DagbokenCard(title = section.title) {
+                DagbokenCard(title = section.title, titleTrailing = section.periodSelector) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         section.selector?.invoke()
                         section.chart(Modifier.fillMaxWidth())

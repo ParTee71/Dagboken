@@ -10,12 +10,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HealthAvailability
 import se.partee71.dagboken.data.repository.HealthConnectRepository
+import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.DailyRestingHeartRate
 import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.usecase.DailyEnergyStats
@@ -35,6 +38,29 @@ enum class TrenderRange(@StringRes val labelRes: Int, val days: Int?) {
     THREE_MONTHS(R.string.trender_range_3_months, 90),
     ALL(R.string.trender_range_all, null),
 }
+
+/**
+ * Trenders sex diagram (#149) — vart och ett med en egen [TrenderRange], i stället för en
+ * gemensam period som styr alla samtidigt. Tre av dem ([ENERGI_TILLFALLE]/[STRESS_BELASTNING]/
+ * [SYMPTOM]) motsvarar en [TrenderCategory] (serieval); de övriga tre har inget serieval.
+ */
+enum class TrenderSection {
+    ENERGI_DAG,
+    ENERGI_TILLFALLE,
+    STRESS_BELASTNING,
+    SYMPTOM,
+    STEG,
+    VILOPULS,
+}
+
+private val DEFAULT_RANGES: Map<TrenderSection, TrenderRange> =
+    TrenderSection.entries.associateWith { TrenderRange.MONTH }
+
+/** De fyra sektioner vars data kommer från loggade aktiviteter/screeningar (inte Health Connect). */
+private val CATEGORY_SECTIONS = setOf(
+    TrenderSection.ENERGI_DAG, TrenderSection.ENERGI_TILLFALLE,
+    TrenderSection.STRESS_BELASTNING, TrenderSection.SYMPTOM,
+)
 
 internal val ENERGY_SLOT_SERIES = listOf(
     "Energi Frukost", "Energi Lunch", "Energi Kvällsmat", "Energi Läggdags",
@@ -112,18 +138,90 @@ private fun DailyStats.valueFor(seriesName: String): Float? = when (seriesName) 
     else               -> null
 }
 
-data class TrenderUiState(
-    val range: TrenderRange = TrenderRange.MONTH,
-    val allSeriesLabels: List<String> = ALL_SERIES,
-    val symptomLabels: List<String> = emptyList(),
-    val selectedSeries: Set<String> = setOf("Energi Frukost"),
+/** Ett kategoridiagrams renderade data (#149) — [dates] är kategorins egna, beroende av dess [TrenderRange]. */
+data class CategoryTrend(
+    val labels: List<String> = emptyList(),
     val series: List<ChartSeries> = emptyList(),
     val dates: List<String> = emptyList(),
+)
+
+/** Kategorins rådata innan serieval tillämpas — separat steg så [TrenderViewModel] kan
+ * räkna fram den korrigerade [TrenderUiState.selectedSeries] innan [ChartSeries] byggs. */
+private data class CategoryData(
+    val labels: List<String>,
+    val dates: List<String>,
+    val pointsByLabel: Map<String, List<Float?>>,
+    val colorByLabel: Map<String, Color>,
+)
+
+private fun filterByRange(entries: List<Aktivitet>, range: TrenderRange): List<Aktivitet> =
+    range.days?.let { days ->
+        val cutoff = LocalDate.now().minusDays(days.toLong()).toString()
+        entries.filter { it.datum >= cutoff }
+    } ?: entries
+
+private fun computeCategoryData(entries: List<Aktivitet>, range: TrenderRange, category: TrenderCategory): CategoryData {
+    val inRange = filterByRange(entries, range)
+    val byDay = inRange.groupBy { it.datum }.entries.sortedBy { it.key }
+    val dates = byDay.map { it.key }
+
+    if (category == TrenderCategory.SYMPTOM) {
+        val symptomScoresByDay = byDay.map { (_, group) ->
+            val accumulated = mutableMapOf<String, MutableList<Int>>()
+            group.forEach { entry ->
+                SymptomUtils.decode(entry.symptom).forEach { (name, score) ->
+                    accumulated.getOrPut(name) { mutableListOf() }.add(score)
+                }
+            }
+            accumulated.mapValues { (_, scores) -> scores.average().toFloat() }
+        }
+        val allSymptoms = symptomScoresByDay.flatMap { it.keys }.distinct().sorted()
+        return CategoryData(
+            labels = allSymptoms,
+            dates = dates,
+            pointsByLabel = allSymptoms.associateWith { name -> symptomScoresByDay.map { it[name] } },
+            colorByLabel = allSymptoms.associateWith { name -> symptomColor(name, allSymptoms) },
+        )
+    }
+
+    val fixedLabels = if (category == TrenderCategory.ENERGI_TILLFALLE) ENERGY_SLOT_SERIES else STRESS_SERIES
+    val dailyStats = byDay.map { (datum, group) ->
+        val n          = group.size.toFloat()
+        val screenings = group.filter { it.type == "screening" }
+        fun slotEnergy(slot: String): Float? =
+            screenings.filter { it.aktivitet == slot }
+                .map { it.energy.toFloat() }
+                .average().toFloat()
+                .takeIf { it.isFinite() }
+        DailyStats(
+            datum              = datum,
+            avgEnergyFrukost   = slotEnergy("Efter frukost"),
+            avgEnergyLunch     = slotEnergy("Lunch"),
+            avgEnergyKvallsmat = slotEnergy("Kvällsmat"),
+            avgEnergyLaggdags  = slotEnergy("Läggdags"),
+            avgStress       = group.map { it.stress.toFloat() }.average().toFloat().takeIf { it.isFinite() },
+            avgSomatiska    = group.map { it.somatiska.toFloat() }.average().toFloat().takeIf { it.isFinite() },
+            avgAterhamtande = group.count { it.aterhamtande } / n * 10f,
+            avgEnergitjuv   = group.count { it.energitjuv } / n * 10f,
+        )
+    }
+    return CategoryData(
+        labels = fixedLabels,
+        dates = dates,
+        pointsByLabel = fixedLabels.associateWith { name -> dailyStats.map { it.valueFor(name) } },
+        colorByLabel = fixedLabels.associateWith { name -> seriesColor(name) },
+    )
+}
+
+data class TrenderUiState(
+    val ranges: Map<TrenderSection, TrenderRange> = DEFAULT_RANGES,
+    val selectedSeries: Set<String> = setOf("Energi Frukost"),
+    val categoryTrends: Map<TrenderCategory, CategoryTrend> = emptyMap(),
     /** Energi (dag), TRD-8 — alltid beräknad, oavsett [selectedSeries]. Delad uträkning med Idag (HEM-7). */
     val dailyEnergy: List<DailyEnergyStats> = emptyList(),
-    /** Steg per dag (TRD-11, Health Connect) för vald [range] — tom om ej kopplat/behörighet saknas. */
+    /** Steg per dag (TRD-11, Health Connect) för [TrenderSection.STEG]s egna period. */
     val dailySteps: List<DailySteps> = emptyList(),
-    /** Vilopuls per dag (TRD-11, Health Connect) för vald [range] — tom om ej kopplat/behörighet saknas. */
+    /** Vilopuls per dag (TRD-11, Health Connect) för [TrenderSection.VILOPULS]s egna period. */
     val dailyRestingHeartRate: List<DailyRestingHeartRate> = emptyList(),
 )
 
@@ -131,133 +229,96 @@ data class TrenderUiState(
 fun trenderSeriesColor(name: String, symptomLabels: List<String>) =
     if (name in ALL_SERIES) seriesColor(name) else symptomColor(name, symptomLabels)
 
-/** De valda och renderade [ChartSeries] som hör till [category] (#141). */
-internal fun TrenderUiState.seriesFor(category: TrenderCategory): List<ChartSeries> =
-    series.filter { s -> categoryOf(s.label) == category }
-
 @HiltViewModel
 class TrenderViewModel @Inject constructor(
     private val repo: AktiviteterRepository,
     private val healthRepo: HealthConnectRepository,
 ) : ViewModel() {
 
-    private val _range = MutableStateFlow(TrenderRange.MONTH)
+    private val _ranges = MutableStateFlow(DEFAULT_RANGES)
     private val _selectedSeries = MutableStateFlow(setOf("Energi Frukost"))
 
     private val _state = MutableStateFlow(TrenderUiState())
     val state: StateFlow<TrenderUiState> = _state.asStateFlow()
 
     init {
-        // Steg/vilopuls (TRD-11) läses fristående från Health Connect, precis som Idag-kortet
-        // (HomeViewModel.refreshHealthCard) — ett separat flöde så en misslyckad/ej kopplad
-        // hälsokälla inte blockerar de egna loggade aktivitets-/screeningdiagrammen nedan.
+        // Speglar hela periodkartan till state (#149) — billigt, oberoende av vilken
+        // sektion som ändrades, så RangeSelector-knapparna alltid visar rätt val.
         viewModelScope.launch {
-            _range.collectLatest { range ->
-                // Health Connect-läsningen tar ett fast antal dagar — "Allt" (range.days == null,
-                // TRD-3/#144) har ingen nedre datumgräns för de egna loggade serierna, men
-                // Health Connect-diagrammen begränsas ändå till ett år bakåt (pragmatisk cap).
-                val days = range.days ?: 365
-                val weekly = runCatching {
-                    if (healthRepo.availability() != HealthAvailability.AVAILABLE) return@runCatching null
-                    if (!healthRepo.hasAllPermissions()) return@runCatching null
-                    healthRepo.readHealthRange(days)
-                }.getOrNull()
-                _state.update {
-                    it.copy(
-                        dailySteps = weekly?.dailySteps.orEmpty(),
-                        dailyRestingHeartRate = weekly?.dailyRestingHeartRate.orEmpty(),
-                    )
-                }
-            }
+            _ranges.collectLatest { ranges -> _state.update { it.copy(ranges = ranges) } }
         }
+
+        // Energi (dag) + de tre kategoridiagrammen: var och en filtreras nu på sin
+        // egen period (#149) i stället för en delad — smalnas av till just dessa fyra
+        // sektioners perioder så ett Steg-/Vilopuls-periodbyte inte triggar om räkningen.
         viewModelScope.launch {
-            combine(repo.all, _range, _selectedSeries) { entries, range, selected ->
-                Triple(entries, range, selected)
-            }.collectLatest { (entries, range, selected) ->
-                val inRange = range.days?.let { days ->
-                    val cutoff = LocalDate.now().minusDays(days.toLong()).toString()
-                    entries.filter { it.datum >= cutoff }
-                } ?: entries
+            combine(
+                repo.all,
+                _ranges.map { it.filterKeys { s -> s in CATEGORY_SECTIONS } }.distinctUntilChanged(),
+                _selectedSeries,
+            ) { entries, ranges, selected -> Triple(entries, ranges, selected) }
+                .collectLatest { (entries, ranges, selected) ->
+                    val energiTillfalle = computeCategoryData(entries, ranges.getValue(TrenderSection.ENERGI_TILLFALLE), TrenderCategory.ENERGI_TILLFALLE)
+                    val stressBelastning = computeCategoryData(entries, ranges.getValue(TrenderSection.STRESS_BELASTNING), TrenderCategory.STRESS_BELASTNING)
+                    val symptom = computeCategoryData(entries, ranges.getValue(TrenderSection.SYMPTOM), TrenderCategory.SYMPTOM)
 
-                val byDay = inRange
-                    .groupBy { it.datum }
-                    .entries
-                    .sortedBy { it.key }
-                val dates = byDay.map { it.key }
+                    val allLabels = energiTillfalle.labels + stressBelastning.labels + symptom.labels
+                    val effectiveSelected = selected.intersect(allLabels.toSet())
+                    if (effectiveSelected != selected) _selectedSeries.value = effectiveSelected
 
-                val dailyStats = byDay.map { (datum, group) ->
-                    val n          = group.size.toFloat()
-                    val screenings = group.filter { it.type == "screening" }
-                    fun slotEnergy(slot: String): Float? =
-                        screenings.filter { it.aktivitet == slot }
-                            .map { it.energy.toFloat() }
-                            .average().toFloat()
-                            .takeIf { it.isFinite() }
-                    DailyStats(
-                        datum              = datum,
-                        avgEnergyFrukost   = slotEnergy("Efter frukost"),
-                        avgEnergyLunch     = slotEnergy("Lunch"),
-                        avgEnergyKvallsmat = slotEnergy("Kvällsmat"),
-                        avgEnergyLaggdags  = slotEnergy("Läggdags"),
-                        avgStress       = group.map { it.stress.toFloat() }.average().toFloat().takeIf { it.isFinite() },
-                        avgSomatiska    = group.map { it.somatiska.toFloat() }.average().toFloat().takeIf { it.isFinite() },
-                        avgAterhamtande = group.count { it.aterhamtande } / n * 10f,
-                        avgEnergitjuv   = group.count { it.energitjuv } / n * 10f,
+                    fun buildTrend(data: CategoryData) = CategoryTrend(
+                        labels = data.labels,
+                        dates  = data.dates,
+                        series = effectiveSelected.filter { it in data.labels }.map { name ->
+                            ChartSeries(label = name, color = data.colorByLabel.getValue(name), points = data.pointsByLabel.getValue(name))
+                        },
                     )
-                }
 
-                val symptomScoresByDay = byDay.map { (_, group) ->
-                    val accumulated = mutableMapOf<String, MutableList<Int>>()
-                    group.forEach { entry ->
-                        SymptomUtils.decode(entry.symptom).forEach { (name, score) ->
-                            accumulated.getOrPut(name) { mutableListOf() }.add(score)
-                        }
-                    }
-                    accumulated.mapValues { (_, scores) -> scores.average().toFloat() }
-                }
-                val allSymptoms = symptomScoresByDay
-                    .flatMap { it.keys }
-                    .distinct()
-                    .sorted()
+                    val dailyEnergy = computeDailyEnergyStats(filterByRange(entries, ranges.getValue(TrenderSection.ENERGI_DAG)))
 
-                val allLabels = ALL_SERIES + allSymptoms
-                val effectiveSelected = selected.intersect(allLabels.toSet())
-                if (effectiveSelected != selected) _selectedSeries.value = effectiveSelected
-
-                val series = effectiveSelected.mapNotNull { name ->
-                    when {
-                        name in ALL_SERIES -> ChartSeries(
-                            label  = name,
-                            color  = seriesColor(name),
-                            points = dailyStats.map { it.valueFor(name) },
+                    _state.update {
+                        it.copy(
+                            selectedSeries = effectiveSelected,
+                            categoryTrends = mapOf(
+                                TrenderCategory.ENERGI_TILLFALLE to buildTrend(energiTillfalle),
+                                TrenderCategory.STRESS_BELASTNING to buildTrend(stressBelastning),
+                                TrenderCategory.SYMPTOM to buildTrend(symptom),
+                            ),
+                            dailyEnergy = dailyEnergy,
                         )
-                        name in allSymptoms -> ChartSeries(
-                            label  = name,
-                            color  = symptomColor(name, allSymptoms),
-                            points = symptomScoresByDay.map { it[name] },
-                        )
-                        else -> null
                     }
                 }
+        }
 
-                // .update { it.copy(...) } i stället för .value = — bevarar dailySteps/
-                // dailyRestingHeartRate som skrivs av det fristående Health Connect-flödet ovan.
-                _state.update {
-                    it.copy(
-                        range           = range,
-                        allSeriesLabels = allLabels,
-                        symptomLabels   = allSymptoms,
-                        selectedSeries  = effectiveSelected,
-                        series          = series,
-                        dates           = dates,
-                        dailyEnergy     = computeDailyEnergyStats(inRange),
-                    )
-                }
-            }
+        // Steg och vilopuls (TRD-11) läses fristående från Health Connect, var och en med
+        // sin egen period (#149) — ett separat flöde per sektion så en misslyckad/ej kopplad
+        // hälsokälla inte blockerar de egna loggade diagrammen ovan, och så en period ändrad
+        // på det ena inte läser om det andra.
+        viewModelScope.launch { collectHealthSection(TrenderSection.STEG) { steps, _ -> _state.update { it.copy(dailySteps = steps) } } }
+        viewModelScope.launch { collectHealthSection(TrenderSection.VILOPULS) { _, hr -> _state.update { it.copy(dailyRestingHeartRate = hr) } } }
+    }
+
+    private suspend fun collectHealthSection(
+        section: TrenderSection,
+        onResult: (steps: List<DailySteps>, restingHr: List<DailyRestingHeartRate>) -> Unit,
+    ) {
+        _ranges.map { it.getValue(section) }.distinctUntilChanged().collectLatest { range ->
+            // Health Connect-läsningen tar ett fast antal dagar — "Allt" (range.days == null,
+            // TRD-3/#144) har ingen nedre datumgräns för de egna loggade serierna, men
+            // Health Connect-diagrammen begränsas ändå till ett år bakåt (pragmatisk cap).
+            val days = range.days ?: 365
+            val weekly = runCatching {
+                if (healthRepo.availability() != HealthAvailability.AVAILABLE) return@runCatching null
+                if (!healthRepo.hasAllPermissions()) return@runCatching null
+                healthRepo.readHealthRange(days)
+            }.getOrNull()
+            onResult(weekly?.dailySteps.orEmpty(), weekly?.dailyRestingHeartRate.orEmpty())
         }
     }
 
-    fun setRange(range: TrenderRange) { _range.value = range }
+    fun setRange(section: TrenderSection, range: TrenderRange) {
+        _ranges.update { it + (section to range) }
+    }
 
     fun toggleSeries(name: String) {
         val current = _selectedSeries.value

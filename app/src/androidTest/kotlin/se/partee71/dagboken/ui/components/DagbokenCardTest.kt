@@ -129,6 +129,49 @@ class DagbokenCardTest {
         }
     }
 
+    // ─── titleTrailing — #149 (Trenders periodväljare i övre högra hörnet) ──────
+
+    @Test fun `titleTrailing is shown alongside the title when provided`() = retryOnRenderGlitch {
+        val scenario = ActivityScenario.launch(ComponentActivity::class.java)
+        try {
+            scenario.onActivity {
+                it.setContent {
+                    MaterialTheme {
+                        DagbokenCard(title = "En titel", titleTrailing = { Text("Trailing") }) {
+                            Text("Innehåll")
+                        }
+                    }
+                }
+            }
+            composeRule.onNodeWithText("En titel").assertIsDisplayed()
+            composeRule.onNodeWithText("Trailing").assertIsDisplayed()
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test fun `titleTrailing is positioned to the right of the title`() = retryOnRenderGlitch {
+        val scenario = ActivityScenario.launch(ComponentActivity::class.java)
+        try {
+            scenario.onActivity {
+                it.setContent {
+                    MaterialTheme {
+                        DagbokenCard(title = "En titel", titleTrailing = { Text("Trailing") }) {
+                            Text("Innehåll")
+                        }
+                    }
+                }
+            }
+            val titleLeft = composeRule.onNodeWithText("En titel").fetchSemanticsNode().boundsInRoot.left
+            val trailingLeft = composeRule.onNodeWithText("Trailing").fetchSemanticsNode().boundsInRoot.left
+            assert(trailingLeft > titleLeft) {
+                "Förväntade titleTrailing till höger om titeln ($trailingLeft > $titleLeft)"
+            }
+        } finally {
+            scenario.close()
+        }
+    }
+
     @Test fun `contentPadding of zero removes default card padding`() = retryOnRenderGlitch {
         val scenario = ActivityScenario.launch(ComponentActivity::class.java)
         try {
