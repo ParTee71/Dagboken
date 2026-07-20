@@ -113,7 +113,7 @@ class LineChartCanvasTest {
 
     // ─── Zoom/pan nollställs vid periodbyte (#149) ────────────────────────────
 
-    @Test fun `renders without crash when dates change, resetting zoom-pan state`() = retryOnRenderGlitch {
+    @Test fun `renders without crash when dates change and zoom pan state resets`() = retryOnRenderGlitch {
         // scrollState/zoomState nycklas på `dates` (key(dates) { ... }) så en ny
         // remember-instans skapas — och därmed nollställd zoom/pan — varje gång
         // diagrammets period byts. Pixel-exakt zoomnivå går inte att asserta via
