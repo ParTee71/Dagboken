@@ -364,7 +364,7 @@ class MedicinerViewModelTest {
 
         viewModel.quickDos(favorit())
 
-        coVerify { repo.saveMedicin(io.mockk.capture(slot)) }
+        coVerify { repo.saveMedicin(capture(slot)) }
         assertEquals(slot.captured.tid, slot.captured.tagenTid)
         assertNotNull(slot.captured.tagenTid)
     }
