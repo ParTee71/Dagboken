@@ -52,7 +52,7 @@ class MedicinerViewModelTest {
             every { allMediciner } returns flowOf(emptyList())
         }
         every { limit.limitReached(any(), any()) } returns false
-        every { cooldown.remainingHours(any(), any(), any()) } returns null
+        every { cooldown.remainingHours(any(), any(), any(), any()) } returns null
         viewModel = MedicinerViewModel(repo, noteRepo, cooldown, limit)
     }
 
@@ -240,7 +240,7 @@ class MedicinerViewModelTest {
     // ─── quickDos – cooldown ──────────────────────────────────────────────────
 
     @Test fun `quickDos sets cooldownWarning when cooldown is active`() = runTest {
-        every { cooldown.remainingHours(any(), any(), any()) } returns 2.5
+        every { cooldown.remainingHours(any(), any(), any(), any()) } returns 2.5
         coEvery { repo.countDailyDoses(any(), any()) } returns 0
 
         viewModel.quickDos(favorit(minTidMellan = 6))
@@ -253,7 +253,7 @@ class MedicinerViewModelTest {
     }
 
     @Test fun `quickDos cooldownWarning contains the favorit`() = runTest {
-        every { cooldown.remainingHours(any(), any(), any()) } returns 1.5
+        every { cooldown.remainingHours(any(), any(), any(), any()) } returns 1.5
         coEvery { repo.countDailyDoses(any(), any()) } returns 0
         val fav = favorit(namn = "Ibuprofen", minTidMellan = 6)
 
@@ -263,7 +263,7 @@ class MedicinerViewModelTest {
     }
 
     @Test fun `dismissCooldownWarning clears the warning`() = runTest {
-        every { cooldown.remainingHours(any(), any(), any()) } returns 1.0
+        every { cooldown.remainingHours(any(), any(), any(), any()) } returns 1.0
         coEvery { repo.countDailyDoses(any(), any()) } returns 0
         viewModel.quickDos(favorit(minTidMellan = 4))
         assertNotNull(viewModel.cooldownWarning.value)
@@ -274,7 +274,7 @@ class MedicinerViewModelTest {
     }
 
     @Test fun `forceDos saves dose and clears warning`() = runTest {
-        every { cooldown.remainingHours(any(), any(), any()) } returns 1.0
+        every { cooldown.remainingHours(any(), any(), any(), any()) } returns 1.0
         coEvery { repo.countDailyDoses(any(), any()) } returns 0
         coEvery { repo.getLastTaken(any()) } returns null
         val fav = favorit()
@@ -355,37 +355,17 @@ class MedicinerViewModelTest {
         assertNull(viewModel.snackbar.value)
     }
 
-    // ─── logSingleDose ────────────────────────────────────────────────────────
+    // ─── quickDos sets tagenTid (MED-14) ──────────────────────────────────────
 
-    @Test fun `openSingleDoseDialog sets showSingleDoseDialog true`() {
-        viewModel.openSingleDoseDialog()
-        assertTrue(viewModel.showSingleDoseDialog.value)
-    }
+    @Test fun `quickDos sets tagenTid equal to the logged tid`() = runTest {
+        coEvery { repo.countDailyDoses(any(), any()) } returns 0
+        coEvery { repo.getLastTaken(any()) } returns null
+        val slot = io.mockk.slot<Medicin>()
 
-    @Test fun `closeSingleDoseDialog sets showSingleDoseDialog false`() {
-        viewModel.openSingleDoseDialog()
-        viewModel.closeSingleDoseDialog()
-        assertFalse(viewModel.showSingleDoseDialog.value)
-    }
+        viewModel.quickDos(favorit())
 
-    @Test fun `logSingleDose saves medicin and sets snackbar`() = runTest {
-        viewModel.logSingleDose("Aspirin", "500", "mg", "14:30")
-
-        coVerify { repo.saveMedicin(any()) }
-        assertNotNull(viewModel.snackbar.value)
-        assertTrue(viewModel.snackbar.value!!.contains("Aspirin"))
-        assertTrue(viewModel.snackbar.value!!.contains("loggad"))
-    }
-
-    @Test fun `logSingleDose closes dialog`() = runTest {
-        viewModel.openSingleDoseDialog()
-        viewModel.logSingleDose("Aspirin", "500", "mg", "14:30")
-        assertFalse(viewModel.showSingleDoseDialog.value)
-    }
-
-    @Test fun `logSingleDose trims whitespace from name`() = runTest {
-        viewModel.logSingleDose("  Ipren  ", "400", "mg", "08:00")
-        assertTrue(viewModel.snackbar.value?.contains("Ipren") == true)
-        assertFalse(viewModel.snackbar.value?.contains("  ") == true)
+        coVerify { repo.saveMedicin(io.mockk.capture(slot)) }
+        assertEquals(slot.captured.tid, slot.captured.tagenTid)
+        assertNotNull(slot.captured.tagenTid)
     }
 }

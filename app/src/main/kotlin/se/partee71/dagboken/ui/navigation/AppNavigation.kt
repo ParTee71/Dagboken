@@ -160,6 +160,7 @@ fun AppNavigation(
                     onAddHandelse         = { date -> navController.navigate(Routes.addHandelse(date.toString())) },
                     onAddFavorit          = { navController.navigate(Routes.ADD_FAVORIT) },
                     onEditFavorit         = { id -> navController.navigate(Routes.editFavorit(id)) },
+                    onLogEfterhand        = { favoritId -> navController.navigate(Routes.addMedicinFromFavorit(favoritId)) },
                     onOpenHalsa           = { navController.navigate(Routes.HALSA) },
                     snackbarHostState     = snackbarHostState,
                 )
@@ -188,8 +189,15 @@ fun AppNavigation(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(Routes.ADD_MEDICIN) {
-                AddEditMedicinScreen(editId = null, onBack = { navController.popBackStack() })
+            composable(
+                route     = Routes.ADD_MEDICIN,
+                arguments = listOf(navArgument("favoritId") { type = NavType.StringType; nullable = true; defaultValue = null }),
+            ) { backStackEntry ->
+                AddEditMedicinScreen(
+                    editId    = null,
+                    favoritId = backStackEntry.arguments?.getString("favoritId"),
+                    onBack    = { navController.popBackStack() },
+                )
             }
             composable(
                 route     = Routes.EDIT_MEDICIN,

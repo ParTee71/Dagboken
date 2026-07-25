@@ -218,6 +218,7 @@ class MedicinerViewModel @Inject constructor(
             enhet      = favorit.enhet,
             tidpunkt   = favorit.tidpunkt,
             tagen      = true,
+            tagenTid   = tid,
         ))
         copyFavoritNoteToDose(favorit.id, medicinId)
         _snackbar.value = "${favorit.namn} ${favorit.dos} ${favorit.enhet} loggad"
@@ -233,33 +234,5 @@ class MedicinerViewModel @Inject constructor(
 
     fun dismissCooldownWarning() {
         _cooldownWarning.value = null
-    }
-
-    private val _showSingleDoseDialog = MutableStateFlow(false)
-    val showSingleDoseDialog: StateFlow<Boolean> = _showSingleDoseDialog.asStateFlow()
-
-    fun openSingleDoseDialog()  { _showSingleDoseDialog.value = true }
-    fun closeSingleDoseDialog() { _showSingleDoseDialog.value = false }
-
-    fun logSingleDose(namn: String, dos: String, enhet: String, tid: String) {
-        _showSingleDoseDialog.value = false
-        viewModelScope.launch {
-            val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-            repo.saveMedicin(
-                Medicin(
-                    id         = UUID.randomUUID().toString(),
-                    timestamp  = Timestamps.of(today, tid),
-                    datum      = today,
-                    tid        = tid,
-                    namn       = namn.trim(),
-                    dos        = dos.trim(),
-                    enhet      = enhet.trim(),
-                    tidpunkt   = "Vid behov",
-                    tagen      = true,
-                    receptId   = null,
-                )
-            )
-            _snackbar.value = "${namn.trim()} loggad"
-        }
     }
 }

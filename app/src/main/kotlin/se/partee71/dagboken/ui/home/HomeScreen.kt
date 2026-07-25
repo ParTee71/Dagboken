@@ -106,6 +106,7 @@ fun HomeScreen(
     onAddHandelse: (LocalDate) -> Unit,
     onAddFavorit: () -> Unit,
     onEditFavorit: (String) -> Unit,
+    onLogEfterhand: (String) -> Unit,
     onOpenHalsa: () -> Unit,
     snackbarHostState: SnackbarHostState,
     initialExpandedScreeningLabel: String? = null,
@@ -263,6 +264,7 @@ fun HomeScreen(
                     allFavoriter                  = allFavoriter,
                     medicinerVm                   = medicinerVm,
                     onEditFavorit                 = onEditFavorit,
+                    onLogEfterhand                = onLogEfterhand,
                 )
             }
 
@@ -685,6 +687,7 @@ private fun IdagChecklistCard(
     allFavoriter: List<Favorit>,
     medicinerVm: MedicinerViewModel,
     onEditFavorit: (String) -> Unit,
+    onLogEfterhand: (String) -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
     val screeningOverdue = screeningEvents.any { it.overdue }
@@ -719,7 +722,7 @@ private fun IdagChecklistCard(
         }
         if (allFavoriter.isNotEmpty()) {
             HorizontalDivider(color = cs.outlineVariant, modifier = Modifier.padding(vertical = 16.dp))
-            VidBehovChecklistSection(vm = medicinerVm, onEdit = onEditFavorit)
+            VidBehovChecklistSection(vm = medicinerVm, onEdit = onEditFavorit, onLogEfterhand = onLogEfterhand)
         }
     }
 }
@@ -799,6 +802,7 @@ private fun MedicinChecklistSection(
 private fun VidBehovChecklistSection(
     vm: MedicinerViewModel,
     onEdit: (String) -> Unit,
+    onLogEfterhand: (String) -> Unit,
 ) {
     val favoriter    by vm.favoriteFavoriter.collectAsState()
     val others       by vm.otherFavoriter.collectAsState()
@@ -814,6 +818,7 @@ private fun VidBehovChecklistSection(
             onEdit           = onEdit,
             onDelete         = { deleteTarget = it },
             onToggleFavorite = { vm.toggleFavoritFavorite(it) },
+            onLogEfterhand   = { onLogEfterhand(it.id) },
             notes            = favoritNotes,
         )
     }
@@ -837,6 +842,7 @@ internal fun FavoriterRow(
     onEdit: (String) -> Unit,
     onDelete: ((Favorit) -> Unit)? = null,
     onToggleFavorite: ((Favorit) -> Unit)? = null,
+    onLogEfterhand: ((Favorit) -> Unit)? = null,
     notes: Map<String, String> = emptyMap(),
 ) {
     val cs = MaterialTheme.colorScheme
@@ -905,6 +911,13 @@ internal fun FavoriterRow(
                                     )
                                 },
                                 onClick = { menuExpanded = false; onToggleFavorite(fav) },
+                            )
+                        }
+                        if (onLogEfterhand != null) {
+                            DropdownMenuItem(
+                                text        = { Text(stringResource(R.string.medicin_log_efterhand)) },
+                                leadingIcon = { Icon(Icons.Filled.Schedule, contentDescription = null) },
+                                onClick     = { menuExpanded = false; onLogEfterhand(fav) },
                             )
                         }
                         DropdownMenuItem(
