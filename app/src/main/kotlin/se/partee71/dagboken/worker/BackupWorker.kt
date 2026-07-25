@@ -126,6 +126,7 @@ class BackupWorker @AssistedInject constructor(
         tagen      = tagen,
         receptId   = receptId,
         skipped    = skipped,
+        tagenTid   = tagenTid,
     )
 
     private fun Recept.toJson() = ReceptJson(

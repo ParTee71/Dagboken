@@ -101,6 +101,7 @@ object BackupMapper {
         tagen      = tagen,
         receptId   = receptId,
         skipped    = skipped,
+        tagenTid   = tagenTid,
     )
 
     private fun ReceptJson.toDomain(): Recept {

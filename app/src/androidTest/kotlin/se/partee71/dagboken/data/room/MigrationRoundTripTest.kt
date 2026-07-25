@@ -89,7 +89,7 @@ class MigrationRoundTripTest {
             MedicinJson(
                 id = "m1", timestamp = "2026-01-15T07:00:00.000Z", datum = "2026-01-15",
                 tid = "07:00", namn = "Metformin", dos = "500", enhet = "mg",
-                tidpunkt = "Morgon", tagen = true,
+                tidpunkt = "Morgon", tagen = true, tagenTid = "07:03",
             ),
         ),
         medicinRecipes = listOf(
@@ -178,6 +178,7 @@ class MigrationRoundTripTest {
         assertNotNull(fromDb)
         assertEquals("Metformin", fromDb!!.namn)
         assertTrue(fromDb.tagen)
+        assertEquals("07:03", fromDb.tagenTid)
     }
 
     @Test fun recept_survive_mapper_and_import_and_can_be_read_back() = runTest {

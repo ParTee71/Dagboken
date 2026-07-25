@@ -20,6 +20,7 @@ import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.domain.model.tidpunktToHour
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -47,13 +48,19 @@ class MedicinerRepository @Inject constructor(
     val allMediciner: Flow<List<Medicin>> =
         medicinDao.getAllFlow().map { list -> list.map { it.toDomain() } }
 
+    /** Historik (HIST-7) — endast faktiskt tagna, ej överhoppade doser. */
+    val takenMediciner: Flow<List<Medicin>> =
+        medicinDao.getTakenFlow().map { list -> list.map { it.toDomain() } }
+
     suspend fun getMedicinById(id: String): Medicin? = medicinDao.getById(id)?.toDomain()
 
     suspend fun saveMedicin(medicin: Medicin) = medicinDao.upsert(medicin.toEntity())
 
     suspend fun deleteMedicin(medicin: Medicin) = medicinDao.delete(medicin.toEntity())
 
-    suspend fun toggleTagen(id: String, tagen: Boolean) = medicinDao.updateTagen(id, tagen)
+    /** Sätter/nollställer tagningstidpunkten (MED-14) tillsammans med tagen-flaggan. */
+    suspend fun toggleTagen(id: String, tagen: Boolean) =
+        medicinDao.updateTagen(id, tagen, if (tagen) nowTid() else null)
 
     /**
      * Marks every scheduled, still-pending dose for today as taken and returns the
@@ -65,13 +72,21 @@ class MedicinerRepository @Inject constructor(
         val due = todayFlow().first().filter {
             !it.tagen && !it.skipped && tidpunktToHour(it.tidpunkt) != null
         }
-        due.forEach { medicinDao.updateTagen(it.id, true) }
+        val tagenTid = nowTid()
+        due.forEach { medicinDao.updateTagen(it.id, true, tagenTid) }
         return due.size
     }
 
     suspend fun skipMedicin(id: String) = medicinDao.markSkipped(id)
 
     suspend fun getLastTaken(namn: String): Medicin? = medicinDao.getLastTaken(namn)?.toDomain()
+
+    /** Senaste tagna dosen vid eller före [beforeTimestamp] — cooldown för efterhandsloggning (MED-16). */
+    suspend fun getLastTakenBefore(namn: String, beforeTimestamp: String): Medicin? =
+        medicinDao.getLastTakenBefore(namn, beforeTimestamp)?.toDomain()
+
+    private fun nowTid(): String =
+        LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
 
     suspend fun countDailyDoses(datum: String, namn: String): Int =
         medicinDao.countDailyDoses(datum, namn)

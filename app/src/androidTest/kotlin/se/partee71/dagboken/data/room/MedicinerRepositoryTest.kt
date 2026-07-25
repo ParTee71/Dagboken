@@ -61,11 +61,63 @@ class MedicinerRepositoryTest {
         skipped: Boolean = false,
         receptId: String? = null,
         tid: String = "07:00",
+        tagenTid: String? = null,
     ) = MedicinEntity(
         id = id, timestamp = "${datum}T${tid}:00.000Z", datum = datum, tid = tid,
         namn = namn, dos = "400", enhet = "mg", tidpunkt = "Morgon",
-        tagen = tagen, receptId = receptId, skipped = skipped,
+        tagen = tagen, receptId = receptId, skipped = skipped, tagenTid = tagenTid,
     )
+
+    // ─── takenMediciner (HIST-7) ──────────────────────────────────────────────
+
+    @Test fun takenMediciner_excludes_untaken_and_skipped_doses() = runTest {
+        db.medicinDao().upsert(medicinEntity(id = "m1", tagen = true, skipped = false))
+        db.medicinDao().upsert(medicinEntity(id = "m2", tagen = false, skipped = false))
+        db.medicinDao().upsert(medicinEntity(id = "m3", tagen = true, skipped = true))
+
+        val taken = repo.takenMediciner.first()
+
+        assertEquals(listOf("m1"), taken.map { it.id })
+    }
+
+    // ─── toggleTagen / markTodayDosesTaken sets tagenTid (MED-14) ────────────
+
+    @Test fun toggleTagen_sets_tagenTid_when_marking_taken() = runTest {
+        db.medicinDao().upsert(medicinEntity(id = "m1", tagen = false))
+
+        repo.toggleTagen("m1", true)
+
+        assertNotNull(db.medicinDao().getById("m1")!!.tagenTid)
+    }
+
+    @Test fun toggleTagen_clears_tagenTid_when_unmarking() = runTest {
+        db.medicinDao().upsert(medicinEntity(id = "m1", tagen = true, tagenTid = "08:00"))
+
+        repo.toggleTagen("m1", false)
+
+        assertNull(db.medicinDao().getById("m1")!!.tagenTid)
+    }
+
+    @Test fun markTodayDosesTaken_sets_tagenTid_on_marked_doses() = runTest {
+        val today = LocalDate.now().toString()
+        db.medicinDao().upsert(medicinEntity(id = "m1", datum = today, tagen = false))
+
+        repo.markTodayDosesTaken()
+
+        assertNotNull(db.medicinDao().getById("m1")!!.tagenTid)
+    }
+
+    // ─── getLastTakenBefore (MED-16 — cooldown för efterhandsloggning) ───────
+
+    @Test fun getLastTakenBefore_returns_the_dose_at_or_before_the_given_timestamp() = runTest {
+        db.medicinDao().upsert(medicinEntity(id = "early", tagen = true, tid = "08:00"))
+        db.medicinDao().upsert(medicinEntity(id = "late", tagen = true, tid = "20:00"))
+
+        val today = LocalDate.now().toString()
+        val last = repo.getLastTakenBefore("Ibuprofen", "${today}T12:00:00.000Z")
+
+        assertEquals("early", last?.id)
+    }
 
     // ─── ensureTodayEntries – idempotency ─────────────────────────────────────
 
