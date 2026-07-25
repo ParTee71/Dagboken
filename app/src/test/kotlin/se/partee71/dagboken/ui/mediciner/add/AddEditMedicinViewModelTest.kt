@@ -118,8 +118,8 @@ class AddEditMedicinViewModelTest {
         assertEquals(original.tid, saved.tid)
         assertEquals(original.receptId, saved.receptId)
         assertEquals(original.skipped, saved.skipped)
-        assertEquals("Ibuprofen", saved.namn, "namn must stay the recept's, not the form's edited value")
-        assertEquals("Morgon", saved.tidpunkt, "tidpunkt slot must stay the recept's")
+        assertEquals("namn must stay the recept's, not the form's edited value", "Ibuprofen", saved.namn)
+        assertEquals("tidpunkt slot must stay the recept's", "Morgon", saved.tidpunkt)
         assertEquals("600", saved.dos)
         assertEquals("st", saved.enhet)
     }
@@ -148,7 +148,7 @@ class AddEditMedicinViewModelTest {
         coVerify { repo.saveMedicin(capture(slot)) }
         assertTrue(slot.captured.tagen)
         assertEquals("10:30", slot.captured.tagenTid)
-        assertEquals("09:00", slot.captured.tid, "the scheduled tid is untouched")
+        assertEquals("the scheduled tid is untouched", "09:00", slot.captured.tid)
     }
 
     @Test fun `moving a recept dose to another date saves under a new id, keeps receptId, and deletes the original`() = runTest {
@@ -166,7 +166,7 @@ class AddEditMedicinViewModelTest {
         assertTrue("New row must get a fresh id", saved.id != "m1")
         assertEquals("r1", saved.receptId)
         assertEquals("2026-01-16", saved.datum)
-        assertEquals("09:00", saved.tid, "the scheduled tid is carried over unchanged")
+        assertEquals("the scheduled tid is carried over unchanged", "09:00", saved.tid)
 
         coVerify { repo.deleteMedicin(original) }
         coVerify { noteRepo.delete(NoteTarget.MEDICATION, "m1") }
@@ -198,7 +198,7 @@ class AddEditMedicinViewModelTest {
         val slot = slot<Medicin>()
         coVerify { repo.saveMedicin(capture(slot)) }
         val saved = slot.captured
-        assertEquals("m2", saved.id, "non-recept doses keep their id even when moved")
+        assertEquals("non-recept doses keep their id even when moved", "m2", saved.id)
         assertEquals("Paracetamol", saved.namn)
         assertEquals("2026-01-16", saved.datum)
         assertEquals("11:15", saved.tid)
