@@ -27,6 +27,7 @@ data class MedicinEntity(
     val tagen: Boolean,
     val receptId: String? = null,
     val skipped: Boolean = false,
+    val tagenTid: String? = null,
 )
 
 @Entity(tableName = "recept")
@@ -69,6 +70,7 @@ fun MedicinEntity.toDomain() = Medicin(
     tagen      = tagen,
     receptId   = receptId,
     skipped    = skipped,
+    tagenTid   = tagenTid,
 )
 
 fun Medicin.toEntity() = MedicinEntity(
@@ -83,6 +85,7 @@ fun Medicin.toEntity() = MedicinEntity(
     tagen      = tagen,
     receptId   = receptId,
     skipped    = skipped,
+    tagenTid   = tagenTid,
 )
 
 fun ReceptEntity.toDomain(

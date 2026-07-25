@@ -48,7 +48,7 @@ class HistorikViewModelTest {
     @Before fun setUp() {
         Dispatchers.setMain(testDispatcher)
         aktiviteterRepo = mockk(relaxed = true) { every { all } returns aktiviteterFlow }
-        medicinerRepo = mockk(relaxed = true) { every { allMediciner } returns medicinerFlow }
+        medicinerRepo = mockk(relaxed = true) { every { takenMediciner } returns medicinerFlow }
         handelserRepo = mockk(relaxed = true) { every { all } returns handelserFlow }
         sjukdomarRepo = mockk(relaxed = true) {
             every { allIncheckningar } returns incheckningarFlow
@@ -65,9 +65,9 @@ class HistorikViewModelTest {
             energy = 3, stress = 2, somatiska = 0, symptom = "", type = type,
         )
 
-    private fun medicin(id: String, datum: String = "2026-01-01", tid: String = "09:00") = Medicin(
+    private fun medicin(id: String, datum: String = "2026-01-01", tid: String = "09:00", tagenTid: String? = null) = Medicin(
         id = id, timestamp = "x", datum = datum, tid = tid, namn = "Ibuprofen",
-        dos = "400", enhet = "mg", tidpunkt = "Morgon", tagen = true,
+        dos = "400", enhet = "mg", tidpunkt = "Morgon", tagen = true, tagenTid = tagenTid,
     )
 
     private fun handelse(id: String, datum: String = "2026-01-01", tid: String = "10:00") = Handelse(
@@ -130,6 +130,28 @@ class HistorikViewModelTest {
 
         viewModel.filteredEntries.test {
             assertEquals(HistorikType.AKTIVITET, awaitItem().first().entryType)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ─── MedicinEntry.tid (HIST-7 / MED-14 — tagningstid, inte schemalagd tid) ─
+
+    @Test fun `MedicinEntry tid shows the tagenTid when set`() = runTest {
+        medicinerFlow.value = listOf(medicin("m1", tid = "22:00", tagenTid = "21:15"))
+
+        viewModel.filteredEntries.test {
+            val entry = awaitItem().first() as HistorikEntry.MedicinEntry
+            assertEquals("21:15", entry.tid)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `MedicinEntry tid falls back to the scheduled tid when tagenTid is absent`() = runTest {
+        medicinerFlow.value = listOf(medicin("m1", tid = "22:00", tagenTid = null))
+
+        viewModel.filteredEntries.test {
+            val entry = awaitItem().first() as HistorikEntry.MedicinEntry
+            assertEquals("22:00", entry.tid)
             cancelAndIgnoreRemainingEvents()
         }
     }

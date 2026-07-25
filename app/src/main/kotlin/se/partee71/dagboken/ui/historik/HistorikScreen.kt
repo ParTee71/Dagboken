@@ -288,7 +288,7 @@ private fun entrySubtitle(entry: HistorikEntry): String = when (entry) {
     is HistorikEntry.AktivitetEntry ->
         "${entry.aktivitet.tid}  •  ⚡ ${entry.aktivitet.energy}  •  😰 ${entry.aktivitet.stress}"
     is HistorikEntry.MedicinEntry ->
-        "${entry.medicin.tid}  •  ${entry.medicin.dos} ${entry.medicin.enhet}"
+        "${entry.tid}  •  ${entry.medicin.dos} ${entry.medicin.enhet}"
     is HistorikEntry.HandelseEntry -> entry.handelse.tid
     is HistorikEntry.IncheckningEntry ->
         "${entry.incheckning.tid}  •  Svårighetsgrad ${entry.incheckning.svarighetsgrad}"

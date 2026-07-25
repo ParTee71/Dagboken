@@ -75,6 +75,7 @@ class BackupMapperTest {
                 datum = "2024-01-01", tid = "09:00", namn = "Ibuprofen",
                 dos = "400", enhet = "mg", tidpunkt = "Morgon",
                 tagen = true, anteckning = "test", receptId = "r1", skipped = false,
+                tagenTid = "09:05",
             ))
         )
         val result = BackupMapper.toMediciner(json)
@@ -83,6 +84,15 @@ class BackupMapperTest {
         assertEquals("Ibuprofen", result[0].namn)
         assertEquals("r1", result[0].receptId)
         assertTrue(result[0].tagen)
+        assertEquals("09:05", result[0].tagenTid)
+    }
+
+    @Test fun `toMediciner maps a null tagenTid for legacy backups`() {
+        val json = backup(
+            mediciner = listOf(MedicinJson(id = "m1", tagen = true))
+        )
+        val result = BackupMapper.toMediciner(json)
+        assertEquals(null, result[0].tagenTid)
     }
 
     // ─── recept ───────────────────────────────────────────────────────────────

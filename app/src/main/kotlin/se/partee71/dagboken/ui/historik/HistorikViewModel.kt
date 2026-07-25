@@ -38,7 +38,7 @@ class HistorikViewModel @Inject constructor(
 
     private val allEntries = combine(
         aktiviteterRepo.all,
-        medicinerRepo.allMediciner,
+        medicinerRepo.takenMediciner,
         handelserRepo.all,
         incheckningEntries,
     ) { aktiviteter, mediciner, handelser, incheckningar ->

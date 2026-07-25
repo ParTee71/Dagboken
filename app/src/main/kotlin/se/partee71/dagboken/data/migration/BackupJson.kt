@@ -55,6 +55,7 @@ data class MedicinJson(
     val anteckning: String = "",
     val receptId: String? = null,
     val skipped: Boolean = false,
+    val tagenTid: String? = null,
 )
 
 @Serializable

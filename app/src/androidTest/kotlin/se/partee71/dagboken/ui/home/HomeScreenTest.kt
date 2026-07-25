@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ActivityScenario
@@ -123,7 +125,10 @@ class HomeScreenTest {
         scenario.close()
     }
 
-    private fun setContent(onAddHandelse: (LocalDate) -> Unit = {}) {
+    private fun setContent(
+        onAddHandelse: (LocalDate) -> Unit = {},
+        onLogEfterhand: (String) -> Unit = {},
+    ) {
         scenario.onActivity {
             it.setContent {
                 MaterialTheme {
@@ -136,6 +141,7 @@ class HomeScreenTest {
                         onAddHandelse           = onAddHandelse,
                         onAddFavorit            = {},
                         onEditFavorit           = {},
+                        onLogEfterhand          = onLogEfterhand,
                         onOpenHalsa             = {},
                         snackbarHostState       = SnackbarHostState(),
                         vm                      = vm,
@@ -387,6 +393,32 @@ class HomeScreenTest {
             composeRule.waitUntil(20_000) {
                 runBlocking { medicRepo.allMediciner.first().any { it.namn == "Ipren" && it.tagen } }
             }
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun long_pressing_a_favorit_chip_opens_menu_with_logga_i_efterhand() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                medicRepo.saveFavorit(
+                    Favorit(
+                        id = "fav1", namn = "Ipren", dos = "400", enhet = "mg",
+                        tidpunkt = "Vid behov", minTidMellan = 0, isFavorite = true,
+                    )
+                )
+            }
+            var loggedFavoritId: String? = null
+            setContent(onLogEfterhand = { loggedFavoritId = it })
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Ipren")).fetchSemanticsNodes().isNotEmpty()
+            }
+
+            composeRule.onNodeWithText("Ipren").performTouchInput { longClick() }
+            composeRule.onNodeWithText("Logga i efterhand").performClick()
+
+            assertEquals("fav1", loggedFavoritId)
         } finally {
             tearDown()
         }

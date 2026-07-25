@@ -26,7 +26,9 @@ sealed class HistorikEntry {
     data class MedicinEntry(val medicin: Medicin) : HistorikEntry() {
         override val id = medicin.id
         override val datum = medicin.datum
-        override val tid = medicin.tid
+        // Tagningstiden (MED-14) om den finns — annars den schemalagda tiden, för
+        // doser loggade innan tagenTid infördes.
+        override val tid = medicin.tagenTid ?: medicin.tid
         override val entryType = HistorikType.MEDICIN
     }
 

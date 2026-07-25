@@ -12,6 +12,7 @@ data class Medicin(
     val tagen: Boolean,
     val receptId: String? = null,
     val skipped: Boolean = false,
+    val tagenTid: String? = null, // "HH:mm" — faktisk tagningstid, skild från schemalagda tid (MED-14)
 )
 
 data class Recept(

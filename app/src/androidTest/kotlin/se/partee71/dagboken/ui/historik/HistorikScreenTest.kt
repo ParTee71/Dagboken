@@ -158,6 +158,42 @@ class HistorikScreenTest {
         }
     }
 
+    @Test fun untaken_and_skipped_medicin_doses_do_not_appear_in_historik() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                medicRepo.saveMedicin(
+                    Medicin(
+                        id = "planned", timestamp = "x", datum = "2026-01-01", tid = "22:00",
+                        namn = "Melatonin", dos = "3", enhet = "mg", tidpunkt = "Natt", tagen = false,
+                    ),
+                )
+                medicRepo.saveMedicin(
+                    Medicin(
+                        id = "skipped", timestamp = "x", datum = "2026-01-01", tid = "07:00",
+                        namn = "Vitamin D", dos = "1", enhet = "st", tidpunkt = "Morgon",
+                        tagen = true, skipped = true,
+                    ),
+                )
+                medicRepo.saveMedicin(
+                    Medicin(
+                        id = "taken", timestamp = "x", datum = "2026-01-01", tid = "09:00",
+                        namn = "Ibuprofen", dos = "400", enhet = "mg", tidpunkt = "Morgon", tagen = true,
+                    ),
+                )
+            }
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Ibuprofen")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText("Ibuprofen").assertIsDisplayed()
+            assertEquals(0, composeRule.onAllNodes(hasText("Melatonin")).fetchSemanticsNodes().size)
+            assertEquals(0, composeRule.onAllNodes(hasText("Vitamin D")).fetchSemanticsNodes().size)
+        } finally {
+            tearDown()
+        }
+    }
+
     @Test fun tapping_a_medicin_entry_invokes_onEditMedicin() = retryOnRenderGlitch {
         setUp()
         try {

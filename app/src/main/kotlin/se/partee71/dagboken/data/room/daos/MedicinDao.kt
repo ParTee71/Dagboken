@@ -19,6 +19,10 @@ interface MedicinDao {
     @Query("SELECT * FROM mediciner ORDER BY datum DESC, tid DESC")
     fun getAllFlow(): Flow<List<MedicinEntity>>
 
+    // Historik (HIST-7) — endast doser som faktiskt tagits, aldrig planerade/överhoppade.
+    @Query("SELECT * FROM mediciner WHERE tagen = 1 AND skipped = 0 ORDER BY datum DESC, tid DESC")
+    fun getTakenFlow(): Flow<List<MedicinEntity>>
+
     @Query("SELECT * FROM mediciner WHERE datum = :datum ORDER BY tid ASC")
     suspend fun getByDate(datum: String): List<MedicinEntity>
 
@@ -28,6 +32,15 @@ interface MedicinDao {
         ORDER BY timestamp DESC LIMIT 1
     """)
     suspend fun getLastTaken(namn: String): MedicinEntity?
+
+    // Cooldown för efterhandsloggning (MED-16) — senaste tagna dosen vid eller före
+    // den valda tidpunkten, så en senare dos inte felaktigt spärrar en tidigare.
+    @Query("""
+        SELECT * FROM mediciner
+        WHERE LOWER(namn) = LOWER(:namn) AND tagen = 1 AND skipped = 0 AND timestamp <= :beforeTimestamp
+        ORDER BY timestamp DESC LIMIT 1
+    """)
+    suspend fun getLastTakenBefore(namn: String, beforeTimestamp: String): MedicinEntity?
 
     @Query("""
         SELECT COUNT(*) FROM mediciner
@@ -50,8 +63,8 @@ interface MedicinDao {
     @Delete
     suspend fun delete(entity: MedicinEntity)
 
-    @Query("UPDATE mediciner SET tagen = :tagen WHERE id = :id")
-    suspend fun updateTagen(id: String, tagen: Boolean)
+    @Query("UPDATE mediciner SET tagen = :tagen, tagenTid = :tagenTid WHERE id = :id")
+    suspend fun updateTagen(id: String, tagen: Boolean, tagenTid: String? = null)
 
     @Query("UPDATE mediciner SET skipped = 1 WHERE id = :id")
     suspend fun markSkipped(id: String)

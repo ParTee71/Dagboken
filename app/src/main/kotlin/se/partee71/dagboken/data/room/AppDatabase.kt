@@ -32,7 +32,7 @@ import se.partee71.dagboken.data.room.entities.SjukdomsIncheckningEntity
         SjukdomsEpisodEntity::class,
         SjukdomsIncheckningEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -330,9 +330,18 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Adds the tagningstidpunkt column (MED-14) — the time a dose was actually marked
+        // taken, kept separate from `tid` (the scheduled slot time) so Historik can show
+        // when a dose really happened. Nullable: existing rows fall back to `tid` in the UI.
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE mediciner ADD COLUMN tagenTid TEXT")
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
-            MIGRATION_7_8, MIGRATION_8_9,
+            MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
         )
     }
 }

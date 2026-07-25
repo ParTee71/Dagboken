@@ -34,7 +34,7 @@ class BackupJsonSerializationTest {
                 id = "m1", timestamp = "2026-01-15T07:00:00.000Z", datum = "2026-01-15",
                 tid = "07:00", namn = "Metformin", dos = "500", enhet = "mg",
                 tidpunkt = "Morgon", tagen = true, anteckning = "Med mat",
-                receptId = "r1", skipped = false,
+                receptId = "r1", skipped = false, tagenTid = "07:04",
             ),
         ),
         medicinRecipes = listOf(
@@ -112,6 +112,7 @@ class BackupJsonSerializationTest {
             assertEquals("Metformin", namn)
             assertEquals("r1", receptId)
             assertTrue(tagen)
+            assertEquals("07:04", tagenTid)
         }
 
         assertEquals(1, result.medicinRecipes.size)

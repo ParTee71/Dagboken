@@ -9,18 +9,22 @@ class CheckCooldownUseCase @Inject constructor() {
 
     /**
      * Returns remaining cooldown in hours (fractional), or null if no cooldown active.
+     * [reference] is the point in time to check the cooldown against — defaults to now
+     * for the normal quick-log flow, but a retroactive dose log (MED-16) passes the
+     * chosen timestamp instead so an earlier-in-the-day dose isn't blocked by one
+     * logged later.
      * Ports checkMedicinCooldown() from src/storage/mediciner.ts.
      */
     fun remainingHours(
         namn: String,
         minTidMellan: Int,
         lastTaken: Medicin?,
+        reference: Instant = Instant.now(),
     ): Double? {
         if (minTidMellan <= 0 || lastTaken == null) return null
         return try {
             val lastTime = Instant.parse(lastTaken.timestamp)
-            val now      = Instant.now()
-            val elapsed  = ChronoUnit.SECONDS.between(lastTime, now) / 3600.0
+            val elapsed  = ChronoUnit.SECONDS.between(lastTime, reference) / 3600.0
             val remaining = minTidMellan - elapsed
             if (remaining > 0) remaining else null
         } catch (_: Exception) {

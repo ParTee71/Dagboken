@@ -50,6 +50,32 @@ class CheckCooldownUseCaseTest {
         // May be null or very small positive — just verify it's not a large value
         if (result != null) assertTrue(result < 0.01)
     }
+
+    // ─── reference (MED-16 — efterhandsloggning) ─────────────────────────────
+
+    @Test fun `remainingHours computed against an explicit reference instant, not now`() {
+        // Dose taken at T; checking cooldown as of T+1h (a retroactive log earlier
+        // than "now") must not be affected by wall-clock time.
+        val takenAt = Instant.now().minusSeconds(10 * 3600)
+        val m = Medicin(
+            id = "x", timestamp = takenAt.toString(), datum = "2024-01-01", tid = "08:00",
+            namn = "Ibuprofen", dos = "400", enhet = "mg", tidpunkt = "Morgon", tagen = true,
+        )
+        val reference = takenAt.plusSeconds(2 * 3600) // 2h after the dose, regardless of now
+        val result = useCase.remainingHours("Ibuprofen", 4, m, reference)
+        assertNotNull(result)
+        assertTrue("remaining ~2h", result!! > 1.9 && result < 2.1)
+    }
+
+    @Test fun `remainingHours is null when reference is beyond the cooldown window`() {
+        val takenAt = Instant.now().minusSeconds(100 * 3600)
+        val m = Medicin(
+            id = "x", timestamp = takenAt.toString(), datum = "2024-01-01", tid = "08:00",
+            namn = "Ibuprofen", dos = "400", enhet = "mg", tidpunkt = "Morgon", tagen = true,
+        )
+        val reference = takenAt.plusSeconds(6 * 3600)
+        assertNull(useCase.remainingHours("Ibuprofen", 4, m, reference))
+    }
 }
 
 class CheckDailyLimitUseCaseTest {

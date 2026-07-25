@@ -140,6 +140,10 @@
     <!-- Medicin (engångsdos) -->
     <string name="medicin_new">Ny medicinlogg</string>
     <string name="log_single_dose">Logga engångsdos</string>
+    <string name="medicin_edit_tagning">Redigera tagning</string>
+    <string name="medicin_log_efterhand">Logga i efterhand</string>
+    <string name="label_taken">Tagen</string>
+    <string name="medicin_recept_readonly_hint">Namn och tidpunkt styrs av receptet. Ändra dem i Hantera → Recept &amp; scheman.</string>
 
     <!-- Favorit (vid behov) -->
     <string name="favorit_new">Ny favorit</string>
