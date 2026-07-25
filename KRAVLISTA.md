@@ -68,7 +68,7 @@
 | HEM-8b | "+"-FAB-snabbvalet **"Logga screening"** öppnar en tillfällesväljare (Efter frukost/Lunch/Kvällsmat/Läggdags) och sedan samma stegvisa screeningformulär som checklistan (`StepwiseScreeningForm`, regel 4), sparat mot vald dag (HEM-14) — oberoende av om tillfället är schemalagt/redan loggat i checklistan (SCR-6, HEM-4), så en extra eller ett icke-påmint tillfälle går att logga (#146). |
 | HEM-9 | Visa **kontobubbla** (avatar/foto) som öppnar konto-bottensheet (logga in/ut, Hantera). |
 | HEM-10 | Säkerställa vald dags medicinposter genereras (`ensureEntriesForDate`) — vid skärmstart för dagens datum, och på nytt varje gång användaren bläddrar till ett nytt datum (HEM-14), inklusive en tidigare dag som aldrig var "idag" senast appen var öppen. |
-| HEM-11 | Favoritmarkerade vid behov-mediciner ska visas som tryckbara snabbvalskort direkt i checklistan (samma beteende som tidigare MED-7); tryck loggar en dos med befintlig cooldown-/gränslogik, långtryck öppnar redigera/ta bort/favoritmarkera. Nya favoriter skapas via "+"-FAB. |
+| HEM-11 | Favoritmarkerade vid behov-mediciner ska visas som tryckbara snabbvalskort direkt i checklistan (samma beteende som tidigare MED-7); tryck loggar en dos med befintlig cooldown-/gränslogik, långtryck öppnar redigera/ta bort/favoritmarkera/logga i efterhand (FAV-10, MED-16). Nya favoriter skapas via "+"-FAB. |
 | HEM-12 | Pågående sjukdomsepisod ska visas som ett accentmärkt kort som länkar till sjukdomsdetaljer (Hantera → Sjukdomar). |
 | HEM-13 | I början av veckan (söndag/måndag) ska ett **veckosammanfattningskort** visas överst på Idag, ovanför datumnavigeringsraden (HEM-14): energitrend (senaste 7 dagarnas genomsnittliga screeningenergi jämfört med föregående 7 dagar, ↑/↓/oförändrad) och andel tagna av veckans schemalagda doser (%). Beräknas live från befintliga poster via delad `DagbokenCard` — ingen ny persisterad data. Döljs om underlag saknas. |
 | HEM-14 | Idag-checklistan (mediciner + screening) ska kunna bläddras till en **tidigare dag** via en datumnavigeringsrad ("< Föregående dag · [datum] · Nästa dag >"). Kan inte bläddra in i framtiden — "Nästa dag" är avstängd på dagens datum. Att öppna "Ny händelse" från en tidigare dags Idag-vy förifyller den nya händelsens datum med den visade dagen. Datumnavigeringsraden är den översta sektionen i samlingskortet, se HEM-16. |
@@ -127,7 +127,7 @@
 | ID | Krav |
 |----|------|
 | MED-1 | Visa vald dags (se HEM-14) mediciner sorterade på tidpunkt (Morgon → Natt → Vid behov). Som standard visas endast **aktuella/försenade** poster (schemalagd tid nådd, eller "Vid behov") — tagna poster göms bakom MED-5, kommande poster (schemalagd tid ej nådd) göms bakom MED-13. Gäller endast för dagens datum; en tidigare dag har inga "kommande" poster. |
-| MED-2 | Varje medicin ska kunna markeras som **tagen/ej tagen**. |
+| MED-2 | Varje medicin ska kunna markeras som **tagen/ej tagen**. Tagningstidpunkten sparas separat från den schemalagda tiden (se MED-14). |
 | MED-3 | Receptgenererade poster ska kunna **hoppas över** (skippas) i stället för att raderas; engångsposter raderas. |
 | MED-4 | Vald dags receptposter ska genereras automatiskt och **idempotent** (stabilt ID `recept_{id}_{datum}_{tidpunkt}` förhindrar dubbletter), inklusive en tidigare dag som bläddras till (HEM-14/HEM-10). |
 | MED-5 | Tagna mediciner ska kunna **döljas** i checklistan; en toggle-knapp visar antalet dolda poster och låter användaren visa dem igen. |
@@ -136,6 +136,9 @@
 | MED-11 | Varje medicinpost (dos) ska kunna ha en anteckning, redigerbar via den delade `NoteField`-komponenten på redigeringsskärmen. Loggas en dos från en favorit ärvs favoritens anteckning som förvalt värde på dosen. |
 | MED-12 | En medicinrad (Idag-checklistan eller Historik-ytan) som har en anteckning ska visa en liten info-ikon; tryck på ikonen visar anteckningen i en läs-only dialog med en Stäng-knapp. |
 | MED-13 | Kommande mediciner (schemalagd tid ännu ej nådd, dagens datum) ska kunna **döljas** i checklistan; en toggle-knapp visar antalet dolda poster och låter användaren visa dem igen (analogt med MED-5). |
+| MED-14 | När en dos markeras som tagen sparas **tagningstidpunkten** separat från den schemalagda tiden (`tagenTid`). Historik (§16) visar tagningstidpunkten; doser loggade före denna funktion faller tillbaka på den schemalagda tiden. Ångrad avbockning nollställer tagningstidpunkten. |
+| MED-15 | Redigering av en medicinpost från Historik (HIST-3, §16) redigerar **endast den enskilda dosen**: datum, tagningstid, dos, enhet, tagen-status och anteckning. Namn och tidpunktsslot visas som read-only kontext för receptgenererade doser (hänvisning till Hantera → Recept & scheman) — receptet eller favoriten den härstammar från ändras aldrig. Flyttas en receptgenererad dos till ett annat datum får den ett nytt id (receptkopplingen behålls); ursprungsdagens schemalagda dos genereras på nytt som otagen vid nästa dosgenerering (MED-4). |
+| MED-16 | En vid behov-dos ska kunna loggas **i efterhand** med valfritt datum och klockslag (ej i framtiden) — från "Ny medicin" och från en favorits långtrycksmeny på Idag (se FAV-10). Cooldown (FAV-4) och dagsgräns (FAV-5) utvärderas mot den valda tidpunkten, inte mot aktuell tid. |
 
 ### 6.2 Schema-flik (recept) *(nås nu via Hantera → Recept & scheman, se §18, sedan navigationsbytet i #84 etapp 4)*
 
@@ -161,6 +164,7 @@
 | FAV-7 | Favorit ska kunna ha dispenseringstid (fält finns i modellen). |
 | FAV-8 | Långtrycksmenyn ska även kunna växla favoritmarkering, utöver redigera/ta bort. |
 | FAV-9 | En favorit-chip med anteckning ska visa en liten info-ikon; tryck på ikonen visar anteckningen i en läs-only dialog med en Stäng-knapp. |
+| FAV-10 | Långtrycksmenyn ska även innehålla **"Logga i efterhand"**, som öppnar dosformuläret förifyllt från favoriten med redigerbart datum och klockslag (MED-16). |
 
 ### 6.4 Historik-flik ~~(per-flik)~~ *(ersatt av Historik-ytan, §16, sedan navigationsbytet i #84 etapp 4)*
 
@@ -252,7 +256,7 @@
 | Entitet | Nyckelfält |
 |---------|-----------|
 | **Aktivitet** | id, timestamp, datum, tid, aktivitet, energy (−10..10 / 1..10), stress (0..10), somatiska, symptom (wire), aterhamtande, energitjuv, type (`aktivitet`/`screening`), spentTime (min). |
-| **Medicin** | id, timestamp, datum, tid, namn, dos, enhet, tidpunkt, tagen, receptId?, skipped. |
+| **Medicin** | id, timestamp, datum, tid, namn, dos, enhet, tidpunkt, tagen, receptId?, skipped, tagenTid? (faktisk tagningstidpunkt, MED-14). |
 | **Recept** | id, namn, dos, enhet, tidpunkter[], upprepning, dagar[], intervalDagar, aktiv, skapad. |
 | **Favorit** | id, namn, dos, enhet, tidpunkt, minTidMellan (h), dispenseringsTid, maxDoserPerDag, isFavorite. |
 | **Händelse** | id, timestamp, datum, tid, typ, svarighetsgrad, varaktighetMinuter, triggers, atgarder. |
@@ -319,12 +323,13 @@
 
 | ID | Krav |
 |----|------|
-| HIST-1 | Historik-ytan visar alla fem posttyper (aktivitet, screening, medicindos, händelse, sjukdomsincheckning) i ett enda kronologiskt flöde, grupperat per dag. |
+| HIST-1 | Historik-ytan visar alla fem posttyper (aktivitet, screening, medicindos, händelse, sjukdomsincheckning) i ett enda kronologiskt flöde, grupperat per dag. En medicinpost är en faktiskt **tagen** dos (se HIST-7) — inte en planerad/schemalagd post. |
 | HIST-2 | Poster kan filtreras per typ med filterchips; minst en typ måste vara aktiv (samma regel som HIS-1). |
-| HIST-3 | Tryck på en post navigerar till dess befintliga redigerings-/detaljskärm (ingen ny redigeringslogik i Historik-ytan själv). |
+| HIST-3 | Tryck på en post navigerar till dess befintliga redigerings-/detaljskärm (ingen ny redigeringslogik i Historik-ytan själv). För en medicinpost redigerar detta endast den enskilda tagningen (MED-15), inte receptet eller favoriten. |
 | HIST-4 | ~~Historik-ytan skriver inte till någon datakälla — ren läsvy över befintliga repositories.~~ *(ändrat, se HIST-5 — #105)* |
 | HIST-5 | Långtryck på en post i Historik öppnar en meny med "Ta bort" (bekräftelsedialog krävs innan radering). Raderingen anropar samma repository-metod som respektive domänskärm redan använder. |
 | HIST-6 | Historik kan växlas mellan listvy och kalendervy (delad komponent `DagbokenCalendar`). I kalendervyn markeras dagar med minst en post; tryck på en dag visar postens/posternas för det datumet. Långtryck-radering (HIST-5) fungerar identiskt i båda vyerna. |
+| HIST-7 | Historik-ytans medicinposter visar endast doser som faktiskt är **tagna** (`tagen`, ej överhoppad). Planerade/kommande, aldrig tagna och överhoppade doser (MED-3) visas inte — de hör hemma i Idag-checklistan (MED-1/MED-13). Tidsetiketten är tagningstidpunkten (MED-14), inte den schemalagda tiden. |
 
 ---
 
