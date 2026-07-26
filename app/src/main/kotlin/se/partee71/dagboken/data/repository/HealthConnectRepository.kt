@@ -121,6 +121,20 @@ class HealthConnectRepositoryImpl(
             .readRecords(ReadRecordsRequest(RestingHeartRateRecord::class, timeRangeFilter = fullRange))
             .records
 
+        // Sömnfönstren för hela perioden läses en gång och används för att sålla bort
+        // nattens pulsprover ur vilopulsskattningen (se estimateRestingHeartRate).
+        // Startgränsen backas ett dygn så att en session som börjar kvällen före
+        // periodens start — eller korsar midnatt inne i perioden — täcker båda dygnen.
+        val sleepWindows = client
+            .readRecords(
+                ReadRecordsRequest(
+                    SleepSessionRecord::class,
+                    timeRangeFilter = TimeRangeFilter.between(rangeStart.minus(Duration.ofHours(24)), now),
+                ),
+            )
+            .records
+            .map { SleepWindow(it.startTime, it.endTime) }
+
         val daily = ((days - 1).toLong() downTo 0L).map { back ->
             val day = today.minusDays(back)
             val start = day.atStartOfDay(zone).toInstant()
@@ -139,11 +153,8 @@ class HealthConnectRepositoryImpl(
                 .maxByOrNull { it.time }
                 ?.beatsPerMinute
                 ?: estimateRestingHeartRate(
-                    client
-                        .readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = dayRange))
-                        .records
-                        .flatMap { it.samples }
-                        .map { it.beatsPerMinute },
+                    client.timedBpmForRange(dayRange),
+                    sleepWindows,
                 )
 
             DailySteps(day, steps) to DailyRestingHeartRate(day, dayRestingHr)
@@ -153,13 +164,7 @@ class HealthConnectRepositoryImpl(
         // värdet, eller en skattning från periodens pulsprover om posten saknas
         // (fler prover ger en säkrare percentil än en enskild dags).
         val restingHr = restingHrRecords.maxByOrNull { it.time }?.beatsPerMinute
-            ?: estimateRestingHeartRate(
-                client
-                    .readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = fullRange))
-                    .records
-                    .flatMap { it.samples }
-                    .map { it.beatsPerMinute },
-            )
+            ?: estimateRestingHeartRate(client.timedBpmForRange(fullRange), sleepWindows)
 
         WeeklyHealth(
             dailySteps = daily.map { it.first },
@@ -174,6 +179,12 @@ private suspend fun HealthConnectClient.stepsForRange(range: TimeRangeFilter): L
     val records = readRecords(ReadRecordsRequest(StepsRecord::class, timeRangeFilter = range)).records
     return mostCompleteStepSum(records.map { OriginSteps(it.metadata.dataOrigin.packageName, it.count) })
 }
+
+/** Läser periodens pulsprover med tidsstämpel — underlag för vilopulsskattningen. */
+private suspend fun HealthConnectClient.timedBpmForRange(range: TimeRangeFilter): List<TimedBpm> =
+    readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = range))
+        .records
+        .flatMap { record -> record.samples.map { TimedBpm(it.time, it.beatsPerMinute) } }
 
 /** En stegpost knuten till sin källa (dataOrigin-paketnamn). */
 internal data class OriginSteps(val origin: String, val count: Long)
@@ -195,18 +206,43 @@ internal fun mostCompleteStepSum(records: List<OriginSteps>): Long =
         .maxOfOrNull { origin -> origin.sumOf(OriginSteps::count) }
         ?: 0L
 
+/** Ett pulsprov med sin tidpunkt — underlag för vilopulsskattningen. */
+internal data class TimedBpm(val time: Instant, val bpm: Long)
+
+/** Ett sömnfönster (halvöppet `[start, end)`) från en [SleepSessionRecord]. */
+internal data class SleepWindow(val start: Instant, val end: Instant) {
+    /** True om [time] ligger i fönstret. Halvöppet så angränsande sessioner inte överlappar. */
+    fun contains(time: Instant): Boolean = !time.isBefore(start) && time.isBefore(end)
+}
+
 /**
  * Skattar vilopuls från en samling pulsprover när Health Connect saknar en egen
- * [RestingHeartRateRecord]. Vilopulsen ≈ den lägsta ihållande pulsen (t.ex. under
- * djupsömn), så vi tar medelvärdet av den lägsta 5-percentilen: det fångar den
+ * [RestingHeartRateRecord] (t.ex. Galaxy Watch via Samsung Health, som inte skriver
+ * posten).
+ *
+ * Prover som ligger inom ett [sleepWindows]-fönster sållas bort först: sömnpulsen —
+ * särskilt under djupsömn — ligger klart under den verkliga vilopulsen, och när
+ * klockan bärs på natten består annars hela lågänden av nattprover. Skattningen blev
+ * då flera slag lägre än Health Connects egen vilopuls.
+ *
+ * På de vakna proverna gäller samma princip som tidigare: vilopulsen ≈ den lägsta
+ * ihållande pulsen, så vi tar medelvärdet av den lägsta 5-percentilen. Det fångar den
  * vilande (låga) änden utan att fastna på ett enda artefaktlågt prov (medelvärdet
- * jämnar ut det). Minst ett prov används alltid. Returnerar null om inga prover finns.
+ * jämnar ut det). Minst ett prov används alltid.
+ *
+ * Saknas vakna prover helt (t.ex. ett dygn där klockan bara bars under natten) faller
+ * vi tillbaka på hela provmängden — en grov skattning är bättre än "—".
+ * Returnerar null endast om [samples] är tom.
  *
  * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
  */
-internal fun estimateRestingHeartRate(bpmSamples: List<Long>): Long? {
-    if (bpmSamples.isEmpty()) return null
-    val sorted = bpmSamples.sorted()
+internal fun estimateRestingHeartRate(
+    samples: List<TimedBpm>,
+    sleepWindows: List<SleepWindow> = emptyList(),
+): Long? {
+    if (samples.isEmpty()) return null
+    val awake = samples.filterNot { sample -> sleepWindows.any { it.contains(sample.time) } }
+    val sorted = awake.ifEmpty { samples }.map { it.bpm }.sorted()
     val count = (sorted.size / 20).coerceAtLeast(1)
     return sorted.take(count).average().roundToLong()
 }
