@@ -19,6 +19,7 @@ import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.NoteTarget
+import se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase
 import se.partee71.dagboken.domain.usecase.SymptomUtils
 import se.partee71.dagboken.ui.formatTime
 import java.time.LocalDate
@@ -51,6 +52,7 @@ class AktiviteterViewModel @Inject constructor(
     private val repo: AktiviteterRepository,
     private val noteRepo: NoteRepository,
     private val prefs: PreferencesRepository,
+    private val buildScreeningAktivitet: BuildScreeningAktivitetUseCase,
 ) : ViewModel() {
 
     val all: StateFlow<List<Aktivitet>> = repo.all
@@ -204,22 +206,34 @@ class AktiviteterViewModel @Inject constructor(
             val scores = if (f.ovrigtNote.isNotBlank() && (f.symptomScores["Övrigt"] ?: 0) > 0) {
                 f.symptomScores - "Övrigt" + ("Övrigt (${f.ovrigtNote})" to f.symptomScores["Övrigt"]!!)
             } else f.symptomScores
-            val symptomStr = SymptomUtils.encode(scores)
-            val entry = Aktivitet(
-                id           = _editId.value ?: UUID.randomUUID().toString(),
-                timestamp    = Timestamps.of(f.datum, f.tid),
-                datum        = f.datum,
-                tid          = f.tid,
-                aktivitet    = aktivitetName,
-                energy       = f.energy,
-                stress       = f.stress,
-                somatiska    = SymptomUtils.sum(symptomStr),
-                symptom      = symptomStr,
-                aterhamtande = f.aterhamtande,
-                energitjuv   = f.energitjuv,
-                type         = f.type,
-                spentTime    = f.spentTimeHours * 60 + f.spentTimeMinutes,
-            )
+            val entry = if (f.type == "screening") {
+                buildScreeningAktivitet.build(
+                    aktivitetName = aktivitetName,
+                    datum         = f.datum,
+                    tid           = f.tid,
+                    energy        = f.energy,
+                    stress        = f.stress,
+                    symptomScores = scores,
+                    editId        = _editId.value,
+                )
+            } else {
+                val symptomStr = SymptomUtils.encode(scores)
+                Aktivitet(
+                    id           = _editId.value ?: UUID.randomUUID().toString(),
+                    timestamp    = Timestamps.of(f.datum, f.tid),
+                    datum        = f.datum,
+                    tid          = f.tid,
+                    aktivitet    = aktivitetName,
+                    energy       = f.energy,
+                    stress       = f.stress,
+                    somatiska    = SymptomUtils.sum(symptomStr),
+                    symptom      = symptomStr,
+                    aterhamtande = f.aterhamtande,
+                    energitjuv   = f.energitjuv,
+                    type         = f.type,
+                    spentTime    = f.spentTimeHours * 60 + f.spentTimeMinutes,
+                )
+            }
             repo.save(entry)
             val noteTarget = if (f.type == "screening") NoteTarget.SCREENING else NoteTarget.ACTIVITY
             noteRepo.save(noteTarget, entry.id, f.note)

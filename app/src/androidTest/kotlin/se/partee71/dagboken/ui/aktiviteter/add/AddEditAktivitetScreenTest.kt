@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.aktiviteter.add
 
+import se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -57,7 +58,7 @@ class AddEditAktivitetScreenTest {
             prefs.setAktivitetOptions(emptyList())
             prefs.setSymptomOptions(emptyList())
         }
-        vm = AktiviteterViewModel(repo, noteRepo, prefs)
+        vm = AktiviteterViewModel(repo, noteRepo, prefs, BuildScreeningAktivitetUseCase())
         backCount = 0
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }

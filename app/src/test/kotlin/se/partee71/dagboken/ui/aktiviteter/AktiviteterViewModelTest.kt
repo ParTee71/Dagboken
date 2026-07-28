@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.aktiviteter
 
+import se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase
 import app.cash.turbine.test
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -53,7 +54,7 @@ class AktiviteterViewModelTest {
             every { aktivitetOptions } returns flowOf(emptyList())
             every { symptomOptions } returns flowOf(emptyList())
         }
-        viewModel = AktiviteterViewModel(repo, noteRepo, prefs)
+        viewModel = AktiviteterViewModel(repo, noteRepo, prefs, BuildScreeningAktivitetUseCase())
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -155,7 +156,7 @@ class AktiviteterViewModelTest {
     @Test fun `noteMap combines ACTIVITY and SCREENING note maps`() = runTest {
         every { noteRepo.observeMap(NoteTarget.ACTIVITY) } returns flowOf(mapOf("a1" to "Regnigt"))
         every { noteRepo.observeMap(NoteTarget.SCREENING) } returns flowOf(mapOf("s1" to "Yr"))
-        val vm = AktiviteterViewModel(repo, noteRepo, prefs)
+        val vm = AktiviteterViewModel(repo, noteRepo, prefs, BuildScreeningAktivitetUseCase())
         vm.noteMap.test {
             assertEquals(mapOf("a1" to "Regnigt", "s1" to "Yr"), awaitItem())
         }

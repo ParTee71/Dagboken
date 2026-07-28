@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.home
 
+import se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -105,7 +106,7 @@ class HomeScreenTest {
             prefs.setMedsNotificationsEnabled(false)
         }
         vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo, healthRepo, ctx)
-        screeningVm = AktiviteterViewModel(aktivRepo, noteRepo, prefs)
+        screeningVm = AktiviteterViewModel(aktivRepo, noteRepo, prefs, BuildScreeningAktivitetUseCase())
         medicinerVm = MedicinerViewModel(medicRepo, noteRepo, CheckCooldownUseCase(), CheckDailyLimitUseCase())
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }
