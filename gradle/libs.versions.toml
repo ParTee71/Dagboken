@@ -71,7 +71,6 @@ kizitonwose-calendar-compose         = { group = "com.kizitonwose.calendar",    
 vico-compose-m3                      = { group = "com.patrykandpatrick.vico",                         name = "compose-m3",                      version.ref = "vico" }
 # Glance (hemskärmswidget, #120)
 androidx-glance-appwidget            = { group = "androidx.glance",                                   name = "glance-appwidget",                version.ref = "glance" }
-androidx-glance-material3            = { group = "androidx.glance",                                   name = "glance-material3",                version.ref = "glance" }
 # Firebase
 firebase-bom                         = { group = "com.google.firebase",                              name = "firebase-bom",                    version.ref = "firebaseBom" }
 firebase-auth                        = { group = "com.google.firebase",                              name = "firebase-auth" }

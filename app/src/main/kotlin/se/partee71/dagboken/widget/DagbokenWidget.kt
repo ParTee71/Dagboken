@@ -12,12 +12,10 @@ import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
-import androidx.glance.background
 import androidx.glance.layout.Column
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
-import androidx.glance.material3.GlanceTheme
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -45,9 +43,7 @@ class DagbokenWidget : GlanceAppWidget() {
         )
 
         provideContent {
-            GlanceTheme {
-                WidgetContent(items, strings)
-            }
+            WidgetContent(items, strings)
         }
     }
 }
@@ -61,26 +57,15 @@ private data class WidgetStrings(
 
 @Composable
 private fun WidgetContent(items: List<Medicin>, strings: WidgetStrings) {
-    Column(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .background(GlanceTheme.colors.background)
-            .padding(12.dp),
-    ) {
+    Column(modifier = GlanceModifier.fillMaxSize().padding(12.dp)) {
         Text(
             text = strings.title,
-            style = TextStyle(color = GlanceTheme.colors.onBackground, fontWeight = FontWeight.Bold),
+            style = TextStyle(fontWeight = FontWeight.Bold),
         )
 
         when {
-            items.isEmpty() -> Text(
-                text = strings.emptyState,
-                style = TextStyle(color = GlanceTheme.colors.onBackground),
-            )
-            items.all { it.tagen } -> Text(
-                text = strings.allDone,
-                style = TextStyle(color = GlanceTheme.colors.onBackground),
-            )
+            items.isEmpty() -> Text(text = strings.emptyState)
+            items.all { it.tagen } -> Text(text = strings.allDone)
             else -> LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
                 items(items, itemId = { it.id.hashCode().toLong() }) { medicin ->
                     MedicinRow(medicin, strings.doseLabelFormat)

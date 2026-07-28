@@ -182,7 +182,6 @@ dependencies {
 
     // Glance – hemskärmswidget (#120)
     implementation(libs.androidx.glance.appwidget)
-    implementation(libs.androidx.glance.material3)
 
     // Health Connect – hälsodata från Galaxy Watch via Samsung Health (epic #54, spike #56)
     implementation(libs.androidx.health.connect)
