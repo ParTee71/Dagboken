@@ -408,4 +408,16 @@
     <string name="widget_empty_state">Inga mediciner idag</string>
     <string name="widget_all_done">Allt klart för idag ✓</string>
     <string name="widget_dose_label">%1$s, %2$s %3$s – %4$s</string>
+
+    <!-- Hemskärmswidget: screeningguide (WID-3), #157 -->
+    <string name="widget_screening_name">Screening</string>
+    <string name="widget_screening_logged">Screening loggad ✓ idag</string>
+    <string name="widget_screening_start">Logga screening</string>
+    <string name="widget_screening_energy_title">Energi</string>
+    <string name="widget_screening_stress_title">Stress</string>
+    <string name="widget_screening_symptom_title">Symptom</string>
+    <string name="widget_screening_next">Nästa</string>
+    <string name="widget_screening_back">Föregående</string>
+    <string name="widget_screening_save">Spara</string>
+    <string name="widget_screening_cancel">Avbryt</string>
 </resources>

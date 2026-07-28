@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.aktiviteter
 
+import se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -60,7 +61,7 @@ class LoggaTabTest {
             prefs.setAktivitetOptions(emptyList())
             prefs.setSymptomOptions(emptyList())
         }
-        vm = AktiviteterViewModel(repo, noteRepo, prefs)
+        vm = AktiviteterViewModel(repo, noteRepo, prefs, BuildScreeningAktivitetUseCase())
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }
 

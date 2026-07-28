@@ -1,11 +1,14 @@
 package se.partee71.dagboken.widget
 
+import android.content.Context
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import android.content.Context
+import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase
 
 /**
  * Glance instantiates [DagbokenWidget]/[ToggleMedicinAction] via reflection, not through
@@ -17,6 +20,9 @@ import se.partee71.dagboken.data.repository.MedicinerRepository
 @InstallIn(SingletonComponent::class)
 interface DagbokenWidgetEntryPoint {
     fun medicinerRepository(): MedicinerRepository
+    fun aktiviteterRepository(): AktiviteterRepository
+    fun preferencesRepository(): PreferencesRepository
+    fun buildScreeningAktivitetUseCase(): BuildScreeningAktivitetUseCase
 }
 
 fun Context.widgetEntryPoint(): DagbokenWidgetEntryPoint =

@@ -393,19 +393,20 @@
 
 ## 20. Widget (WID)
 
-> Hemskärmswidget byggd med `androidx.glance` (#120). Del 1 av utvärderingsissuet #92
-> (Glance, prioritet 2 där; Calendar-delen levererades i #109) — infrastruktur och
-> medicinavbockning i denna leverans; screening-loggning (WID-3) är en uppföljande leverans.
-> Widgeten läser/skriver via samma repositories som appen (`MedicinerRepository`) — ingen ny
-> persisterad datamodell, backup-kedjan är oförändrad.
+> Hemskärmswidget byggd med `androidx.glance` (#120, #157). Del 1 (#120/#156) levererade
+> infrastruktur och medicinavbockning; screening-loggningen (WID-3) levererades i #157.
+> Widgeten läser/skriver via samma repositories som appen (`MedicinerRepository`,
+> `AktiviteterRepository`) — ingen ny persisterad datamodell, backup-kedjan är oförändrad.
+> Screeningguidens steg-state (energi/stress/symptom under pågående loggning) är flyktig
+> per-widgetinstans-state (`PreferencesGlanceStateDefinition`), inte i backupen.
 
 | ID | Krav |
 |----|------|
 | WID-1 | En hemskärmswidget visar dagens medicinchecklista (schemalagda doser, exkl. vid behov-doser och överhoppade doser) med tagen/ej tagen-status, sorterad i samma tidpunktsordning som Idag-vyn. |
 | WID-2 | En medicindos kan bockas av/på direkt från widgeten — samma skrivväg (`MedicinerRepository.toggleTagen`) som Idag-checklistans avbockning (HEM-4), ingen duplicerad logik. |
+| WID-3 | Screening kan loggas stegvis från widgeten (energi → stress → symptom, SCR-1..3-semantik) via samma mappning som appen (`BuildScreeningAktivitetUseCase`, ingen duplicerad save-väg). Symptomsteget visar endast favoritmarkerade symptom och hoppas över helt om inga är favoritmarkerade. Redan loggad screening idag visas som en bekräftelse i stället för startknappen. |
 | WID-4 | Widgeten uppdateras dels efter sina egna skrivningar, dels när appen ändrar dagens doser (Idag-checklistan, "Markera tagen"-notisåtgärden) — aldrig inaktuellt läge. |
 | WID-5 | Widgeten är på svenska (ÖV-6). |
-| ~~WID-3~~ | ~~Screening ska kunna loggas stegvis från widgeten~~ *(borttaget — flyttat till uppföljande leverans av #120)* |
 
 Fungerar vid kallstart (enhet omstartad, appen aldrig öppnad) — widgeten säkrar själv dagens
 dosgenerering (`ensureTodayEntries`) innan den ritar checklistan. Ingen `android:process` i
