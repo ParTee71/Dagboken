@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,6 +35,7 @@ import se.partee71.dagboken.domain.model.tidpunktToHour
 import se.partee71.dagboken.domain.usecase.computeDailyEnergyStats
 import se.partee71.dagboken.ui.formatDayDate
 import se.partee71.dagboken.ui.formatWeekdayShort
+import se.partee71.dagboken.widget.WidgetUpdater
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -158,6 +160,7 @@ class HomeViewModel @Inject constructor(
     private val prefs: PreferencesRepository,
     private val sjukdomarRepo: SjukdomarRepository,
     private val healthRepo: HealthConnectRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _isSigningIn = MutableStateFlow(false)
@@ -288,7 +291,10 @@ class HomeViewModel @Inject constructor(
     }
 
     fun toggleMedicinTagen(medicin: Medicin) {
-        viewModelScope.launch { medicinerRepo.toggleTagen(medicin.id, !medicin.tagen) }
+        viewModelScope.launch {
+            medicinerRepo.toggleTagen(medicin.id, !medicin.tagen)
+            WidgetUpdater.requestUpdate(appContext)
+        }
     }
 
     fun signIn(activityContext: Context) {
