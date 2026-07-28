@@ -1,6 +1,6 @@
 ---
 name: release
-description: Dagboken release workflow — propose a version bump, confirm, update build.gradle.kts + README, commit the release on master and create the tag locally, then hand the tag push to the user (the tag push triggers GitHub Actions, which builds the signed APK and publishes a GitHub Release). CI-first (works from the phone); local Android Studio build is a documented fallback. Only use when the user explicitly asks to release or ship a new version.
+description: Dagboken release workflow — propose a version bump, confirm, update build.gradle.kts + README, commit the release on master, then trigger release.yml via workflow_dispatch so GitHub Actions creates the tag, builds the signed APK and publishes a GitHub Release. CI-first (works from the phone); local Android Studio build is a documented fallback. Only use when the user explicitly asks to release or ship a new version.
 ---
 
 # Dagboken Release Workflow
@@ -13,11 +13,16 @@ anything fails. **Only run this when the user explicitly asks to release.**
 - **Build & sign:** GitHub Actions `release.yml` (canonical) — decodes the keystore from
   secrets and builds the signed APK in the cloud, so this works from the phone with no local
   SDK. Building locally in Android Studio is a documented fallback (see end).
-- **Publish:** pushing a tag `vX.Y.Z` triggers `release.yml`, which builds the signed APK and
-  **publishes a GitHub Release** (auto-generated changelog + APK attached).
-- **Who pushes the tag:** this skill prepares everything and creates the tag **locally**, but
-  **does not push it** — it hands the exact push command to the user (and copies the tag to the
-  clipboard). The user pushing the tag is what kicks off the build.
+- **Publish:** `release.yml` builds the signed APK and **publishes a GitHub Release**
+  (auto-generated changelog + APK attached). It has two triggers:
+  - pushing a tag `vX.Y.Z`, or
+  - `workflow_dispatch` on `master` with `version_name` set and `publish_release` ticked —
+    the workflow then **creates the tag itself** (via `action-gh-release`, on the dispatched
+    commit) and publishes the Release.
+- **Who creates the tag:** use the dispatch path. **Never try to `git push` a tag from an
+  agent session** — the network policy blocks `refs/tags/*` and the push fails with
+  `error: RPC failed; HTTP 403`. Branch pushes are unaffected. Pushing the tag from the
+  user's own machine still works and is a valid manual fallback.
 - **Tools:** use the **GitHub MCP** tools (`mcp__github__*`) — there is no `gh` CLI here.
   The build runs in Actions, not in the session — don't run `./gradlew` in a phone/web session.
 
@@ -78,40 +83,37 @@ Proceed with v<new_name>, or a different version?
 
 ---
 
-## Step 4 — Land the release commit on master and create the tag
+## Step 4 — Land the release commit on master
 
 Releases are published from **master**. If you are on a feature branch, get the version bump
-onto master first (open/merge a PR), then tag the master commit. With explicit release intent
-the user may approve committing the bump directly to master.
+onto master first (open/merge a PR), then release from the master commit. With explicit release
+intent the user may approve committing the bump directly to master.
 
 ```
 git commit -am "Release v<new_name>"
 git push origin master            # land the release commit (retry with backoff on network errors)
-git tag v<new_name>               # create the tag LOCALLY — do not push it
 ```
+
+Do **not** create or push a tag here — the workflow creates it in Step 5. A tag push from an
+agent session fails with `error: RPC failed; HTTP 403` (the network policy blocks `refs/tags/*`).
 
 ---
 
-## Step 5 — Hand the tag push to the user
+## Step 5 — Trigger the release build
 
-**Do not push the tag yourself.** The tag push is the user's action — it triggers `release.yml`.
+Dispatch `release.yml` on `master`, which creates the tag and publishes the Release:
+```
+mcp__github__actions_run_trigger
+  owner: ParTee71, repo: Dagboken
+  workflow_id: release.yml
+  ref: master
+  inputs: { version_name: "<new_name>", publish_release: "true" }
+```
+`version_name` is **without** the leading `v` (the workflow tags `v<new_name>`); `publish_release`
+must be the *string* `"true"` — `workflow_dispatch` inputs are sent as strings. The workflow fails
+fast if the tag already exists, so a repeated dispatch never overwrites a published Release.
 
-Copy the tag to the clipboard (best effort — pick what fits the environment):
-```
-# Windows / Android Studio terminal
-Set-Clipboard "v<new_name>"
-# macOS:  printf 'v<new_name>' | pbcopy
-# Linux:  printf 'v<new_name>' | xclip -selection clipboard   # or wl-copy
-```
-
-Then ask the user to push it:
-```
-Release v<new_name> is committed on master and tagged locally.
-Push the tag to build & publish (copied to clipboard):
-
-    git push origin v<new_name>
-```
-After the user confirms they pushed it, optionally follow the run and the published Release:
+Then follow the run and the published Release:
 ```
 mcp__github__actions_list        (owner: ParTee71, repo: Dagboken)          # find the run
 mcp__github__actions_get         (... run_id)                                # poll status
@@ -119,8 +121,11 @@ mcp__github__get_job_logs        (... run_id, failed_only: true)             # o
 mcp__github__get_release_by_tag  (owner: ParTee71, repo: Dagboken, tag: v<new_name>)
 ```
 The workflow builds the signed APK and publishes a GitHub Release (changelog + APK). If it
-fails, report the failing step/log. (An artifact-only build without a Release can be triggered
-manually via `mcp__github__actions_run_trigger` with the `version_name` input.)
+fails, report the failing step/log. (An artifact-only build without a Release: dispatch the same
+workflow with `version_name` only, leaving `publish_release` off.)
+
+**Manual fallback:** from the user's own machine `git tag v<new_name> && git push origin v<new_name>`
+triggers the exact same workflow. Only offer this if the dispatch path is unavailable.
 
 ---
 
@@ -129,8 +134,8 @@ manually via `mcp__github__actions_run_trigger` with the `version_name` input.)
 ```
 Released: Dagboken v<new_name>  (versionCode <new_code>)
 Commit:   Release v<new_name>  on master
-Tag:      v<new_name>  created locally — user pushes `git push origin v<new_name>` to publish
-CI:       <run URL / status, once the user has pushed the tag>
+Tag:      v<new_name>  created by release.yml on the master commit
+CI:       <run URL / status>
 GitHub:   <Release URL>  (signed APK attached, once built)
 ```
 
@@ -144,5 +149,5 @@ When CI isn't an option and you have the SDK + keystore locally:
 ```
 APK lands in `app/build/outputs/apk/release/` (filename includes a build timestamp). Requires
 `dagboken.jks` in `app/` and signing passwords via `local.properties` or the
-`SIGNING_*` environment variables. For a published Release, push the matching tag so `release.yml`
+`SIGNING_*` environment variables. For a published Release, run Step 5 so `release.yml`
 attaches the cloud-built APK.
