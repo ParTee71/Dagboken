@@ -5,8 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.action.Action
 import androidx.glance.action.actionParametersOf
-import androidx.glance.appwidget.Button
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.CheckBox
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionRunCallback
@@ -87,6 +88,16 @@ private data class WidgetStrings(
     val cancel: String,
 )
 
+/**
+ * Glances base-modul saknar en kompositbar "Button" (till skillnad från CheckBox/Switch/
+ * RadioButton, som motsvarar riktiga RemoteViews-compound-views) — en klickbar [Text] är det
+ * vedertagna sättet att bygga en knapp.
+ */
+@Composable
+private fun WidgetButton(text: String, action: Action, modifier: GlanceModifier = GlanceModifier) {
+    Text(text = text, modifier = modifier.clickable(action).padding(8.dp))
+}
+
 @Composable
 private fun WidgetContent(
     items: List<Medicin>,
@@ -128,16 +139,16 @@ private fun ScreeningPrompt(screeningLoggedToday: Boolean, strings: WidgetString
     if (screeningLoggedToday) {
         Text(text = strings.screeningLogged)
     } else {
-        Button(text = strings.screeningStart, onClick = actionRunCallback<StartScreeningAction>())
+        WidgetButton(strings.screeningStart, actionRunCallback<StartScreeningAction>())
     }
 }
 
 @Composable
 private fun ValueStepperRow(value: Int, field: String) {
     Row(modifier = GlanceModifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Button(
-            text = "–",
-            onClick = actionRunCallback<AdjustScreeningValueAction>(
+        WidgetButton(
+            "–",
+            actionRunCallback<AdjustScreeningValueAction>(
                 actionParametersOf(
                     AdjustScreeningValueAction.KEY_FIELD to field,
                     AdjustScreeningValueAction.KEY_DELTA to -1,
@@ -145,9 +156,9 @@ private fun ValueStepperRow(value: Int, field: String) {
             ),
         )
         Text(text = value.toString(), modifier = GlanceModifier.padding(horizontal = 12.dp))
-        Button(
-            text = "+",
-            onClick = actionRunCallback<AdjustScreeningValueAction>(
+        WidgetButton(
+            "+",
+            actionRunCallback<AdjustScreeningValueAction>(
                 actionParametersOf(
                     AdjustScreeningValueAction.KEY_FIELD to field,
                     AdjustScreeningValueAction.KEY_DELTA to 1,
@@ -162,15 +173,15 @@ private fun EnergyStep(value: Int, strings: WidgetStrings) {
     Text(text = strings.energyTitle, style = TextStyle(fontWeight = FontWeight.Bold))
     ValueStepperRow(value, AdjustScreeningValueAction.FIELD_ENERGY)
     Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 8.dp)) {
-        Button(
-            text = strings.cancel,
-            onClick = actionRunCallback<ScreeningNavAction>(
+        WidgetButton(
+            strings.cancel,
+            actionRunCallback<ScreeningNavAction>(
                 actionParametersOf(ScreeningNavAction.KEY_DIRECTION to "cancel"),
             ),
         )
-        Button(
-            text = strings.next,
-            onClick = actionRunCallback<ScreeningNavAction>(
+        WidgetButton(
+            strings.next,
+            actionRunCallback<ScreeningNavAction>(
                 actionParametersOf(ScreeningNavAction.KEY_DIRECTION to "next"),
             ),
         )
@@ -182,21 +193,21 @@ private fun StressStep(value: Int, hasFavoriteSymptoms: Boolean, strings: Widget
     Text(text = strings.stressTitle, style = TextStyle(fontWeight = FontWeight.Bold))
     ValueStepperRow(value, AdjustScreeningValueAction.FIELD_STRESS)
     Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 8.dp)) {
-        Button(
-            text = strings.back,
-            onClick = actionRunCallback<ScreeningNavAction>(
+        WidgetButton(
+            strings.back,
+            actionRunCallback<ScreeningNavAction>(
                 actionParametersOf(ScreeningNavAction.KEY_DIRECTION to "back"),
             ),
         )
         if (hasFavoriteSymptoms) {
-            Button(
-                text = strings.next,
-                onClick = actionRunCallback<ScreeningNavAction>(
+            WidgetButton(
+                strings.next,
+                actionRunCallback<ScreeningNavAction>(
                     actionParametersOf(ScreeningNavAction.KEY_DIRECTION to "next"),
                 ),
             )
         } else {
-            Button(text = strings.save, onClick = actionRunCallback<SaveScreeningAction>())
+            WidgetButton(strings.save, actionRunCallback<SaveScreeningAction>())
         }
     }
 }
@@ -213,22 +224,22 @@ private fun SymptomStep(favoriteSymptoms: List<SymptomOption>, scores: Map<Strin
         }
     }
     Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 8.dp)) {
-        Button(
-            text = strings.back,
-            onClick = actionRunCallback<ScreeningNavAction>(
+        WidgetButton(
+            strings.back,
+            actionRunCallback<ScreeningNavAction>(
                 actionParametersOf(ScreeningNavAction.KEY_DIRECTION to "back"),
             ),
         )
-        Button(text = strings.save, onClick = actionRunCallback<SaveScreeningAction>())
+        WidgetButton(strings.save, actionRunCallback<SaveScreeningAction>())
     }
 }
 
 @Composable
 private fun SymptomStepperRow(name: String, value: Int) {
     Row(modifier = GlanceModifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Button(
-            text = "–",
-            onClick = actionRunCallback<AdjustSymptomScoreAction>(
+        WidgetButton(
+            "–",
+            actionRunCallback<AdjustSymptomScoreAction>(
                 actionParametersOf(
                     AdjustSymptomScoreAction.KEY_SYMPTOM_NAME to name,
                     AdjustSymptomScoreAction.KEY_DELTA to -1,
@@ -236,9 +247,9 @@ private fun SymptomStepperRow(name: String, value: Int) {
             ),
         )
         Text(text = value.toString(), modifier = GlanceModifier.padding(horizontal = 12.dp))
-        Button(
-            text = "+",
-            onClick = actionRunCallback<AdjustSymptomScoreAction>(
+        WidgetButton(
+            "+",
+            actionRunCallback<AdjustSymptomScoreAction>(
                 actionParametersOf(
                     AdjustSymptomScoreAction.KEY_SYMPTOM_NAME to name,
                     AdjustSymptomScoreAction.KEY_DELTA to 1,
