@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.home
 
+import android.content.Context
 import app.cash.turbine.test
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -45,6 +46,7 @@ class HomeViewModelTest {
     private lateinit var prefs: PreferencesRepository
     private lateinit var sjukdomarRepo: SjukdomarRepository
     private lateinit var healthRepo: HealthConnectRepository
+    private val appContext: Context = mockk(relaxed = true)
 
     private val todayFlow = MutableStateFlow<List<Medicin>>(emptyList())
 
@@ -72,7 +74,7 @@ class HomeViewModelTest {
         healthRepo = mockk(relaxed = true) {
             every { availability() } returns HealthAvailability.NOT_INSTALLED
         }
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo, appContext)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -249,7 +251,7 @@ class HomeViewModelTest {
 
     @Test fun `screeningEvents is empty when no screening events are enabled`() = runTest {
         every { prefs.screeningEventConfigs } returns flowOf(emptyList())
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo, appContext)
 
         viewModel.uiState.test {
             assertTrue(awaitItem().screeningEvents.isEmpty())
@@ -264,7 +266,7 @@ class HomeViewModelTest {
                 ScreeningEventConfig(enabled = false, time = "12:00"),
             ),
         )
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo, appContext)
 
         viewModel.uiState.test {
             val events = awaitItem().screeningEvents
@@ -285,7 +287,7 @@ class HomeViewModelTest {
             type = "screening",
         )
         every { aktiviteterRepo.screeningFromDate(any()) } returns flowOf(listOf(loggedScreening))
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo, appContext)
 
         viewModel.uiState.test {
             val event = awaitItem().screeningEvents.first()
@@ -371,14 +373,14 @@ class HomeViewModelTest {
 
     @Test fun `healthCard is NotConnected when Health Connect is unavailable`() = runTest {
         every { healthRepo.availability() } returns HealthAvailability.NOT_INSTALLED
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo, appContext)
         assertEquals(HealthCardUiState.NotConnected, viewModel.healthCard.value)
     }
 
     @Test fun `healthCard is NotConnected when permissions are not granted`() = runTest {
         every { healthRepo.availability() } returns HealthAvailability.AVAILABLE
         coEvery { healthRepo.hasAllPermissions() } returns false
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo, appContext)
         assertEquals(HealthCardUiState.NotConnected, viewModel.healthCard.value)
     }
 
@@ -393,7 +395,7 @@ class HomeViewModelTest {
         every { healthRepo.availability() } returns HealthAvailability.AVAILABLE
         coEvery { healthRepo.hasAllPermissions() } returns true
         coEvery { healthRepo.readWeeklyHealth() } returns weekly
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo, appContext)
         assertEquals(HealthCardUiState.Data(weekly), viewModel.healthCard.value)
     }
 
@@ -401,7 +403,7 @@ class HomeViewModelTest {
         every { healthRepo.availability() } returns HealthAvailability.AVAILABLE
         coEvery { healthRepo.hasAllPermissions() } returns true
         coEvery { healthRepo.readWeeklyHealth() } throws RuntimeException("boom")
-        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo, appContext)
         assertEquals(HealthCardUiState.NotConnected, viewModel.healthCard.value)
     }
 }

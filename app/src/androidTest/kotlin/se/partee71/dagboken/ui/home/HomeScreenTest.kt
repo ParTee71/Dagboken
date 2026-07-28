@@ -104,7 +104,7 @@ class HomeScreenTest {
             prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
             prefs.setMedsNotificationsEnabled(false)
         }
-        vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
+        vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo, healthRepo, ctx)
         screeningVm = AktiviteterViewModel(aktivRepo, noteRepo, prefs)
         medicinerVm = MedicinerViewModel(medicRepo, noteRepo, CheckCooldownUseCase(), CheckDailyLimitUseCase())
         scenario = ActivityScenario.launch(ComponentActivity::class.java)

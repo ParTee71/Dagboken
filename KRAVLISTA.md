@@ -388,3 +388,25 @@
 | HLS-5 | Hälsodata persisteras **inte** lokalt och ingår **inte** i Drive-backup — Health Connect/Samsung Health äger och backar upp datan; Dagboken läser live. |
 | HLS-6 | Hälsa-skärmen nås via ett navigeringskort i **Hantera** (underskärm med tillbakapil), samma mönster som Sjukdomar (HANT-3) och Recept & scheman (HANT-4). Datapunkter visas som `StatPill` (regel 4); saknad datapunkt visar "—". |
 | HLS-7 | **Idag-skärmen** visar ett kompakt hälsokort med **steg** och **vilopuls** som `StatPill` (regel 4) för den dag som är vald i Idag-checklistans datumnavigering (HEM-14) — byter värde när användaren bläddrar till en annan dag, "—" om Health Connect saknar data för den dagen (t.ex. utanför det hämtade 7-dagarsfönstret), när Health Connect är tillgängligt och behörighet beviljad. Vilopulsen (både dagens och tidigare dagars) tas i första hand från senaste `RestingHeartRateRecord`; saknas den (t.ex. Galaxy Watch via Samsung Health som inte skriver posten) **skattas** den i stället från periodens `HeartRateRecord`-prover så att kortet visar en vilopuls i stället för "—". Skattningen görs enbart på de **vakna** proverna: prover som ligger inom en `SleepSessionRecord` sållas bort först (sömnfönstren läses för hela perioden med startgränsen ett dygn bakåt, så att en session som korsar midnatt exkluderas från båda dygnen), eftersom sömnpulsen ligger under den verkliga vilopulsen och annars utgjorde hela lågänden när klockan bars på natten — appen visade då flera slag lägre vilopuls än Health Connect (#154). På de vakna proverna tas medelvärdet av den lägsta 5-percentilen ≈ den lägsta ihållande pulsen; ett enda artefaktlågt prov drar inte ner värdet. Saknas vakna prover helt (klockan bars bara under natten) används hela provmängden hellre än "—". Vilopulsen persisteras inte utan räknas om vid varje läsning (HLS-5), så en ändrad skattning rättar även redan visade historiska dagar så långt Health Connects rådata räcker. Stegtrend och vilopulstrend för senaste 7 dagarna visas i stället i det gemensamma trenddiagrammet, se HEM-17. Saknas Health Connect eller behörighet visas en diskret "Koppla hälsa"-rad som djuplänkar till Hälsa-skärmen (§18) — **ingen** behörighetsbegäran sker på Idag. Kortet laddas fristående och blockerar inte Idag-renderingen. |
+
+---
+
+## 20. Widget (WID)
+
+> Hemskärmswidget byggd med `androidx.glance` (#120). Del 1 av utvärderingsissuet #92
+> (Glance, prioritet 2 där; Calendar-delen levererades i #109) — infrastruktur och
+> medicinavbockning i denna leverans; screening-loggning (WID-3) är en uppföljande leverans.
+> Widgeten läser/skriver via samma repositories som appen (`MedicinerRepository`) — ingen ny
+> persisterad datamodell, backup-kedjan är oförändrad.
+
+| ID | Krav |
+|----|------|
+| WID-1 | En hemskärmswidget visar dagens medicinchecklista (schemalagda doser, exkl. vid behov-doser och överhoppade doser) med tagen/ej tagen-status, sorterad i samma tidpunktsordning som Idag-vyn. |
+| WID-2 | En medicindos kan bockas av/på direkt från widgeten — samma skrivväg (`MedicinerRepository.toggleTagen`) som Idag-checklistans avbockning (HEM-4), ingen duplicerad logik. |
+| WID-4 | Widgeten uppdateras dels efter sina egna skrivningar, dels när appen ändrar dagens doser (Idag-checklistan, "Markera tagen"-notisåtgärden) — aldrig inaktuellt läge. |
+| WID-5 | Widgeten är på svenska (ÖV-6). |
+| ~~WID-3~~ | ~~Screening ska kunna loggas stegvis från widgeten~~ *(borttaget — flyttat till uppföljande leverans av #120)* |
+
+Fungerar vid kallstart (enhet omstartad, appen aldrig öppnad) — widgeten säkrar själv dagens
+dosgenerering (`ensureTodayEntries`) innan den ritar checklistan. Ingen `android:process` i
+manifestet — widgeten körs i appens huvudprocess mot samma `AppDatabase`-singleton.
