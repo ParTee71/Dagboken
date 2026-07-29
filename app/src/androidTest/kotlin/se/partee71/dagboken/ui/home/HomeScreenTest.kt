@@ -54,6 +54,7 @@ import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.TIDP_DEFAULT_TIMES
 import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
 import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
+import se.partee71.dagboken.domain.usecase.LogVidBehovDosUseCase
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import se.partee71.dagboken.ui.aktiviteter.AktiviteterViewModel
 import se.partee71.dagboken.ui.mediciner.MedicinerViewModel
@@ -107,7 +108,10 @@ class HomeScreenTest {
         }
         vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo, healthRepo, ctx)
         screeningVm = AktiviteterViewModel(aktivRepo, noteRepo, prefs, BuildScreeningAktivitetUseCase())
-        medicinerVm = MedicinerViewModel(medicRepo, noteRepo, CheckCooldownUseCase(), CheckDailyLimitUseCase())
+        medicinerVm = MedicinerViewModel(
+            medicRepo, noteRepo,
+            LogVidBehovDosUseCase(medicRepo, noteRepo, CheckCooldownUseCase(), CheckDailyLimitUseCase()),
+        )
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }
 

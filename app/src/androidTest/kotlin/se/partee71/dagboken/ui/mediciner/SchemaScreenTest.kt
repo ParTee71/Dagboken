@@ -27,6 +27,7 @@ import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
 import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
+import se.partee71.dagboken.domain.usecase.LogVidBehovDosUseCase
 import se.partee71.dagboken.util.retryOnRenderGlitch
 
 // Migrerad enligt POC i #112 — se SjukdomarScreenTest för fullständig förklaring.
@@ -54,7 +55,11 @@ class SchemaScreenTest {
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
-        vm = MedicinerViewModel(repo, NoteRepository(db.noteDao()), CheckCooldownUseCase(), CheckDailyLimitUseCase())
+        val noteRepo = NoteRepository(db.noteDao())
+        vm = MedicinerViewModel(
+            repo, noteRepo,
+            LogVidBehovDosUseCase(repo, noteRepo, CheckCooldownUseCase(), CheckDailyLimitUseCase()),
+        )
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }
 

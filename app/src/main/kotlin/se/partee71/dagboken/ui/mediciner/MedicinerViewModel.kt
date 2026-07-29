@@ -15,18 +15,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
-import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.domain.model.medicinHistoryType
-import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
-import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
-import se.partee71.dagboken.ui.formatTime
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.UUID
+import se.partee71.dagboken.domain.usecase.LogVidBehovDosUseCase
+import se.partee71.dagboken.domain.usecase.VidBehovLogResult
 import javax.inject.Inject
 
 data class CooldownWarning(val favorit: Favorit, val remainingHours: Double)
@@ -35,8 +30,7 @@ data class CooldownWarning(val favorit: Favorit, val remainingHours: Double)
 class MedicinerViewModel @Inject constructor(
     private val repo: MedicinerRepository,
     private val noteRepo: NoteRepository,
-    private val cooldownUseCase: CheckCooldownUseCase,
-    private val limitUseCase: CheckDailyLimitUseCase,
+    private val logVidBehovDos: LogVidBehovDosUseCase,
 ) : ViewModel() {
 
     init {
@@ -173,62 +167,27 @@ class MedicinerViewModel @Inject constructor(
 
     fun quickDos(favorit: Favorit) {
         viewModelScope.launch {
-            val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-            if (dailyLimitReached(favorit, today)) return@launch
-
-            val lastTaken = repo.getLastTaken(favorit.namn)
-            val remaining = cooldownUseCase.remainingHours(favorit.namn, favorit.minTidMellan, lastTaken)
-            if (remaining != null) {
-                _cooldownWarning.value = CooldownWarning(favorit, remaining)
-                return@launch
+            when (val result = logVidBehovDos.logDose(favorit)) {
+                is VidBehovLogResult.CooldownWarning ->
+                    _cooldownWarning.value = CooldownWarning(favorit, result.remainingHours)
+                VidBehovLogResult.DailyLimitReached ->
+                    _snackbar.value = "Max ${favorit.maxDoserPerDag} doser/dag nådda för ${favorit.namn}"
+                VidBehovLogResult.Logged ->
+                    _snackbar.value = "${favorit.namn} ${favorit.dos} ${favorit.enhet} loggad"
             }
-
-            logDose(favorit, today)
         }
     }
 
     fun forceDos(favorit: Favorit) {
         _cooldownWarning.value = null
         viewModelScope.launch {
-            val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-            if (dailyLimitReached(favorit, today)) return@launch
-            logDose(favorit, today)
-        }
-    }
-
-    private suspend fun dailyLimitReached(favorit: Favorit, today: String): Boolean {
-        val takenToday = repo.countDailyDoses(today, favorit.namn)
-        if (limitUseCase.limitReached(favorit.maxDoserPerDag, takenToday)) {
-            _snackbar.value = "Max ${favorit.maxDoserPerDag} doser/dag nådda för ${favorit.namn}"
-            return true
-        }
-        return false
-    }
-
-    private suspend fun logDose(favorit: Favorit, today: String) {
-        val tid = formatTime(java.time.LocalTime.now())
-        val medicinId = UUID.randomUUID().toString()
-        repo.saveMedicin(Medicin(
-            id         = medicinId,
-            timestamp  = Timestamps.of(today, tid),
-            datum      = today,
-            tid        = tid,
-            namn       = favorit.namn,
-            dos        = favorit.dos,
-            enhet      = favorit.enhet,
-            tidpunkt   = favorit.tidpunkt,
-            tagen      = true,
-            tagenTid   = tid,
-        ))
-        copyFavoritNoteToDose(favorit.id, medicinId)
-        _snackbar.value = "${favorit.namn} ${favorit.dos} ${favorit.enhet} loggad"
-    }
-
-    // A favorite's note is a default carried forward onto each dose logged from it.
-    private suspend fun copyFavoritNoteToDose(favoritId: String, medicinId: String) {
-        val favoritNote = noteRepo.observe(NoteTarget.FAVORIT, favoritId).first()
-        if (favoritNote.isNotBlank()) {
-            noteRepo.save(NoteTarget.MEDICATION, medicinId, favoritNote)
+            when (val result = logVidBehovDos.logDose(favorit, force = true)) {
+                VidBehovLogResult.DailyLimitReached ->
+                    _snackbar.value = "Max ${favorit.maxDoserPerDag} doser/dag nådda för ${favorit.namn}"
+                VidBehovLogResult.Logged ->
+                    _snackbar.value = "${favorit.namn} ${favorit.dos} ${favorit.enhet} loggad"
+                is VidBehovLogResult.CooldownWarning -> Unit // force=true kringgår cooldown, når aldrig hit
+            }
         }
     }
 
