@@ -411,7 +411,7 @@
 
     <!-- Hemskärmswidget: screeningguide (WID-3), #157 -->
     <string name="widget_screening_name">Screening</string>
-    <string name="widget_screening_logged">Screening loggad ✓ idag</string>
+    <string name="widget_screening_logged_format">Screening loggad ✓ %1$s (energi %2$d, stress %3$d)</string>
     <string name="widget_screening_start">Logga screening</string>
     <string name="widget_screening_energy_title">Energi</string>
     <string name="widget_screening_stress_title">Stress</string>
@@ -420,4 +420,10 @@
     <string name="widget_screening_back">Föregående</string>
     <string name="widget_screening_save">Spara</string>
     <string name="widget_screening_cancel">Avbryt</string>
+
+    <!-- Hemskärmswidget: kompakt framsida, läsbarhet (#159) -->
+    <string name="widget_meds_summary_format">Mediciner · %1$d/%2$d tagna</string>
+    <string name="widget_meds_overdue_one">1 försenad</string>
+    <string name="widget_meds_overdue_many">%1$d försenade</string>
+    <string name="widget_back_to_front">◀ Idag</string>
 </resources>

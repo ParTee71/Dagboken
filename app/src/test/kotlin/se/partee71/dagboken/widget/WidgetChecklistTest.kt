@@ -43,4 +43,39 @@ class WidgetChecklistTest {
         val items = widgetChecklistItems(listOf(medicin(id = "m1", tagen = true), medicin(id = "m2", tagen = false)))
         assertEquals(2, items.size)
     }
+
+    // ─── widgetMedsSummary (#159) ─────────────────────────────────────────────
+
+    @Test fun `widgetMedsSummary counts taken doses out of total`() {
+        val items = listOf(
+            medicin(id = "m1", tidpunkt = "Morgon", tagen = true),
+            medicin(id = "m2", tidpunkt = "Lunch", tagen = false),
+            medicin(id = "m3", tidpunkt = "Kväll", tagen = false),
+        )
+        val summary = widgetMedsSummary(items, nowHour = 8)
+        assertEquals(1, summary.taken)
+        assertEquals(3, summary.total)
+    }
+
+    @Test fun `widgetMedsSummary counts untaken doses whose scheduled hour has passed as overdue`() {
+        val items = listOf(
+            medicin(id = "m1", tidpunkt = "Morgon", tagen = false),  // 07:00, passed
+            medicin(id = "m2", tidpunkt = "Kväll", tagen = false),   // 19:00, not yet
+        )
+        val summary = widgetMedsSummary(items, nowHour = 12)
+        assertEquals(1, summary.overdue)
+    }
+
+    @Test fun `widgetMedsSummary does not count taken doses as overdue`() {
+        val items = listOf(medicin(id = "m1", tidpunkt = "Morgon", tagen = true))
+        val summary = widgetMedsSummary(items, nowHour = 12)
+        assertEquals(0, summary.overdue)
+    }
+
+    @Test fun `widgetMedsSummary is zero for an empty list`() {
+        val summary = widgetMedsSummary(emptyList(), nowHour = 12)
+        assertEquals(0, summary.taken)
+        assertEquals(0, summary.total)
+        assertEquals(0, summary.overdue)
+    }
 }
