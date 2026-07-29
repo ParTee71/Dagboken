@@ -6,17 +6,23 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.state.updateAppWidgetState
 
-/** Startar screeningguiden i widgeten: nollställer draft-state och visar energisteget. */
+/** Startar screeningguiden: nollställer draft-state och visar energisteget. */
 class StartScreeningAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val label = parameters[KEY_LABEL] ?: ""
         updateAppWidgetState(context, glanceId) { prefs ->
             prefs.toMutablePreferences().apply {
                 this[ScreeningWidgetKeys.STEP] = SCREENING_STEP_ENERGY
                 this[ScreeningWidgetKeys.ENERGY] = 5
                 this[ScreeningWidgetKeys.STRESS] = 5
                 this[ScreeningWidgetKeys.SYMPTOM_SCORES] = ""
+                this[ScreeningWidgetKeys.LABEL] = label
             }
         }
-        DagbokenWidget().update(context, glanceId)
+        ScreeningWidget().update(context, glanceId)
+    }
+
+    companion object {
+        val KEY_LABEL: ActionParameters.Key<String> = ActionParameters.Key("label")
     }
 }

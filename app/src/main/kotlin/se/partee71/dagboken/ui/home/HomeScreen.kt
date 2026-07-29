@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.home
 
+import se.partee71.dagboken.domain.usecase.ScreeningEventStatus
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically

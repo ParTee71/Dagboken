@@ -19,7 +19,7 @@ class ScreeningNavAction : ActionCallback {
                 this[ScreeningWidgetKeys.STEP] = nextScreeningStep(current, direction, hasFavoriteSymptoms)
             }
         }
-        DagbokenWidget().update(context, glanceId)
+        ScreeningWidget().update(context, glanceId)
     }
 
     companion object {

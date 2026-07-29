@@ -15,6 +15,8 @@ object ScreeningWidgetKeys {
     val ENERGY = intPreferencesKey("screening_energy")
     val STRESS = intPreferencesKey("screening_stress")
     val SYMPTOM_SCORES = stringPreferencesKey("screening_symptom_scores")
+    /** Vilket screeningtillfälle (t.ex. "Lunch") som loggas — tomt för en fristående screening. */
+    val LABEL = stringPreferencesKey("screening_label")
 }
 
 data class ScreeningDraft(
@@ -22,6 +24,7 @@ data class ScreeningDraft(
     val energy: Int,
     val stress: Int,
     val symptomScores: Map<String, Int>,
+    val label: String,
 )
 
 fun Preferences.toScreeningDraft(): ScreeningDraft = ScreeningDraft(
@@ -29,4 +32,5 @@ fun Preferences.toScreeningDraft(): ScreeningDraft = ScreeningDraft(
     energy = this[ScreeningWidgetKeys.ENERGY] ?: 5,
     stress = this[ScreeningWidgetKeys.STRESS] ?: 5,
     symptomScores = SymptomUtils.decode(this[ScreeningWidgetKeys.SYMPTOM_SCORES] ?: ""),
+    label = this[ScreeningWidgetKeys.LABEL] ?: "",
 )

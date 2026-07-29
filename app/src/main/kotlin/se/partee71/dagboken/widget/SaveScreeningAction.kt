@@ -14,8 +14,10 @@ import java.time.format.DateTimeFormatter
 
 /**
  * Sparar dagens screening från widgetens draft-state via samma mappning som appen
- * ([se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase]), sen återgår
- * widgeten till checklistan — som nu visar screeningen som loggad (bekräftelse, WID-4).
+ * ([se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase]). Namnges efter
+ * det screeningtillfälle guiden startades för ([ScreeningDraft.label]) så widgetens
+ * screening markerar rätt tillfälle som klart i appens Idag-vy (#161) — en fristående
+ * screening (inga tillfällen aktiverade) faller tillbaka på ett neutralt namn.
  */
 class SaveScreeningAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
@@ -23,8 +25,9 @@ class SaveScreeningAction : ActionCallback {
         if (draft.step == SCREENING_STEP_INACTIVE) return
 
         val entryPoint = context.widgetEntryPoint()
+        val aktivitetName = draft.label.ifBlank { context.getString(R.string.widget_screening_name) }
         val entry = entryPoint.buildScreeningAktivitetUseCase().build(
-            aktivitetName = context.getString(R.string.widget_screening_name),
+            aktivitetName = aktivitetName,
             datum = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
             tid = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
             energy = draft.energy,
@@ -39,8 +42,9 @@ class SaveScreeningAction : ActionCallback {
                 remove(ScreeningWidgetKeys.ENERGY)
                 remove(ScreeningWidgetKeys.STRESS)
                 remove(ScreeningWidgetKeys.SYMPTOM_SCORES)
+                remove(ScreeningWidgetKeys.LABEL)
             }
         }
-        DagbokenWidget().update(context, glanceId)
+        ScreeningWidget().update(context, glanceId)
     }
 }

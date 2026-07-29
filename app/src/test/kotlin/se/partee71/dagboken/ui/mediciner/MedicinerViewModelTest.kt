@@ -27,6 +27,7 @@ import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
 import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
+import se.partee71.dagboken.domain.usecase.LogVidBehovDosUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MedicinerViewModelTest {
@@ -53,7 +54,7 @@ class MedicinerViewModelTest {
         }
         every { limit.limitReached(any(), any()) } returns false
         every { cooldown.remainingHours(any(), any(), any(), any()) } returns null
-        viewModel = MedicinerViewModel(repo, noteRepo, cooldown, limit)
+        viewModel = MedicinerViewModel(repo, noteRepo, LogVidBehovDosUseCase(repo, noteRepo, cooldown, limit))
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -91,13 +92,13 @@ class MedicinerViewModelTest {
 
     @Test fun `medicationNotes exposes NoteRepository observeMap for MEDICATION`() = runTest {
         every { noteRepo.observeMap(NoteTarget.MEDICATION) } returns flowOf(mapOf("m1" to "Tas med mat"))
-        val vm2 = MedicinerViewModel(repo, noteRepo, cooldown, limit)
+        val vm2 = MedicinerViewModel(repo, noteRepo, LogVidBehovDosUseCase(repo, noteRepo, cooldown, limit))
         assertEquals(mapOf("m1" to "Tas med mat"), vm2.medicationNotes.first { it.isNotEmpty() })
     }
 
     @Test fun `favoritNotes exposes NoteRepository observeMap for FAVORIT`() = runTest {
         every { noteRepo.observeMap(NoteTarget.FAVORIT) } returns flowOf(mapOf("f1" to "Vid huvudvärk"))
-        val vm2 = MedicinerViewModel(repo, noteRepo, cooldown, limit)
+        val vm2 = MedicinerViewModel(repo, noteRepo, LogVidBehovDosUseCase(repo, noteRepo, cooldown, limit))
         assertEquals(mapOf("f1" to "Vid huvudvärk"), vm2.favoritNotes.first { it.isNotEmpty() })
     }
 
@@ -110,7 +111,7 @@ class MedicinerViewModelTest {
             every { allRecept } returns flowOf(emptyList())
             every { allFavoriter } returns flowOf(listOf(fav))
         }
-        val vm2 = MedicinerViewModel(repoWithFav, noteRepo, cooldown, limit)
+        val vm2 = MedicinerViewModel(repoWithFav, noteRepo, LogVidBehovDosUseCase(repoWithFav, noteRepo, cooldown, limit))
         // WhileSubscribed won't start the upstream until collected; use first{} to subscribe and wait
         assertEquals(listOf(fav), vm2.allFavoriter.first { it.isNotEmpty() })
     }
@@ -125,7 +126,7 @@ class MedicinerViewModelTest {
             every { allRecept } returns flowOf(emptyList())
             every { allFavoriter } returns flowOf(listOf(fav1, fav2))
         }
-        val vm2 = MedicinerViewModel(repoWithFavs, noteRepo, cooldown, limit)
+        val vm2 = MedicinerViewModel(repoWithFavs, noteRepo, LogVidBehovDosUseCase(repoWithFavs, noteRepo, cooldown, limit))
         assertEquals(listOf(fav1), vm2.favoriteFavoriter.first { it.isNotEmpty() })
     }
 
@@ -137,7 +138,7 @@ class MedicinerViewModelTest {
             every { allRecept } returns flowOf(emptyList())
             every { allFavoriter } returns flowOf(listOf(fav1, fav2))
         }
-        val vm2 = MedicinerViewModel(repoWithFavs, noteRepo, cooldown, limit)
+        val vm2 = MedicinerViewModel(repoWithFavs, noteRepo, LogVidBehovDosUseCase(repoWithFavs, noteRepo, cooldown, limit))
         assertEquals(listOf(fav2), vm2.otherFavoriter.first { it.isNotEmpty() })
     }
 
@@ -186,7 +187,7 @@ class MedicinerViewModelTest {
             every { allFavoriter } returns flowOf(emptyList())
             every { allMediciner } returns flowOf(listOf(schemalagd, engangs))
         }
-        val vm2 = MedicinerViewModel(repoWithHistory, noteRepo, cooldown, limit)
+        val vm2 = MedicinerViewModel(repoWithHistory, noteRepo, LogVidBehovDosUseCase(repoWithHistory, noteRepo, cooldown, limit))
 
         assertEquals(listOf(schemalagd, engangs), vm2.filteredHistory.first { it.size == 2 })
 

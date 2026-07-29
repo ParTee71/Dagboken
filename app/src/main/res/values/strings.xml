@@ -401,17 +401,24 @@
     <string name="hantera_halsa_section_desc">Steg, puls och sömn från Health Connect</string>
     <string name="hantera_halsa_open">Öppna hälsa</string>
 
-    <!-- Hemskärmswidget (Glance) — dagens checklista, #120 -->
-    <string name="widget_label">Dagboken – Idag</string>
-    <string name="widget_description">Visar dagens checklista (mediciner) och låter dig bocka av doser direkt från hemskärmen.</string>
-    <string name="widget_title">Idag</string>
+    <!-- Hemskärmswidget: mediciner (Glance), #120/#156, #159, #161 -->
+    <string name="widget_label">Dagboken – Mediciner</string>
+    <string name="widget_description">Visar dagens schemalagda medicinchecklista och låter dig bocka av doser direkt från hemskärmen.</string>
+    <string name="widget_title">Mediciner</string>
     <string name="widget_empty_state">Inga mediciner idag</string>
     <string name="widget_all_done">Allt klart för idag ✓</string>
     <string name="widget_dose_label">%1$s, %2$s %3$s – %4$s</string>
+    <string name="widget_meds_summary_format">%1$d/%2$d tagna</string>
+    <string name="widget_meds_overdue_one">1 försenad</string>
+    <string name="widget_meds_overdue_many">%1$d försenade</string>
 
-    <!-- Hemskärmswidget: screeningguide (WID-3), #157 -->
+    <!-- Hemskärmswidget: screening (Glance), #157/#158, #161 -->
+    <string name="widget_screening_label">Dagboken – Screening</string>
+    <string name="widget_screening_description">Logga dagens screening steg för steg direkt från hemskärmen.</string>
+    <string name="widget_screening_title">Screening</string>
     <string name="widget_screening_name">Screening</string>
-    <string name="widget_screening_logged_format">Screening loggad ✓ %1$s (energi %2$d, stress %3$d)</string>
+    <string name="widget_screening_all_logged">Screening klar ✓</string>
+    <string name="widget_screening_start_format">%1$s %2$s · Logga</string>
     <string name="widget_screening_start">Logga screening</string>
     <string name="widget_screening_energy_title">Energi</string>
     <string name="widget_screening_stress_title">Stress</string>
@@ -421,9 +428,13 @@
     <string name="widget_screening_save">Spara</string>
     <string name="widget_screening_cancel">Avbryt</string>
 
-    <!-- Hemskärmswidget: kompakt framsida, läsbarhet (#159) -->
-    <string name="widget_meds_summary_format">Mediciner · %1$d/%2$d tagna</string>
-    <string name="widget_meds_overdue_one">1 försenad</string>
-    <string name="widget_meds_overdue_many">%1$d försenade</string>
-    <string name="widget_back_to_front">◀ Idag</string>
+    <!-- Hemskärmswidget: vid behov (Glance), #162 -->
+    <string name="widget_vidbehov_label">Dagboken – Vid behov</string>
+    <string name="widget_vidbehov_description">Logga en favoritmarkerad vid behov-dos direkt från hemskärmen.</string>
+    <string name="widget_vidbehov_title">Vid behov</string>
+    <string name="widget_vidbehov_empty">Inga favoritmarkerade vid behov-mediciner</string>
+    <string name="widget_vidbehov_confirm_format">%1$s: väntar fortfarande %2$.1f h. Logga ändå?</string>
+    <string name="widget_vidbehov_log_anyway">Logga ändå</string>
+    <string name="widget_vidbehov_logged_format">%1$s loggad ✓</string>
+    <string name="widget_vidbehov_limit_format">Max %1$d doser/dag nådda för %2$s</string>
 </resources>

@@ -393,23 +393,26 @@
 
 ## 20. Widget (WID)
 
-> Hemskärmswidget byggd med `androidx.glance` (#120, #157, #159). Del 1 (#120/#156) levererade
-> infrastruktur och medicinavbockning; screening-loggningen (WID-3) levererades i #157/#158;
-> #159 gjorde widgeten läsbar mot valfri tapet och lade om framsidan till en kompakt statusvy.
-> Widgeten läser/skriver via samma repositories som appen (`MedicinerRepository`,
-> `AktiviteterRepository`) — ingen ny persisterad datamodell, backup-kedjan är oförändrad.
-> Screeningguidens steg-state och vald widgetsida (framsida/checklista) är flyktig
-> per-widgetinstans-state (`PreferencesGlanceStateDefinition`), inte i backupen.
+> Tre hemskärmswidgets byggda med `androidx.glance` — en per interaktionsmodell (#161):
+> **mediciner** (`DagbokenWidget`, #120/#156, #159), **screening** (`ScreeningWidget`,
+> #157/#158) och **vid behov** (`VidBehovWidget`, #162). Varje widget kan läggas till
+> oberoende av de andra. Alla tre läser/skriver via samma repositories/usecase som appen
+> (`MedicinerRepository`, `AktiviteterRepository`, `LogVidBehovDosUseCase`) — ingen ny
+> persisterad datamodell, backup-kedjan är oförändrad. Screeningguidens steg-state och vid
+> behov-widgetens cooldown-bekräftelse är flyktig per-widgetinstans-state
+> (`PreferencesGlanceStateDefinition`), inte i backupen.
 
 | ID | Krav |
 |----|------|
-| WID-1 | Widgetens framsida visar dagens *status*: screeningstatus (WID-3) samt en kompakt medicinsammanfattning (antal tagna av totalt, antal försenade doser). Ett tryck på medicinsammanfattningen öppnar den fullständiga checklistan (schemalagda doser, exkl. vid behov-doser och överhoppade doser, sorterad i samma tidpunktsordning som Idag-vyn) med en väg tillbaka till framsidan. |
-| WID-2 | En medicindos kan bockas av/på direkt från checklistan i widgeten — samma skrivväg (`MedicinerRepository.toggleTagen`) som Idag-checklistans avbockning (HEM-4), ingen duplicerad logik. |
-| WID-3 | Screening kan loggas stegvis från widgeten (energi → stress → symptom, SCR-1..3-semantik) via samma mappning som appen (`BuildScreeningAktivitetUseCase`, ingen duplicerad save-väg). Symptomsteget visar endast favoritmarkerade symptom och hoppas över helt om inga är favoritmarkerade. Redan loggad screening idag visas på framsidan som en bekräftelse (tid, energi, stress) i stället för startknappen. |
-| WID-4 | Widgeten uppdateras dels efter sina egna skrivningar, dels när appen ändrar dagens doser (Idag-checklistan, "Markera tagen"-notisåtgärden) — aldrig inaktuellt läge. |
-| WID-5 | Widgeten är på svenska (ÖV-6). |
-| WID-6 | Widgeten ritar en egen opak bakgrund och använder explicita textfärger på allt innehåll, så texten är läsbar oavsett hemskärmstapet. |
+| WID-1 | Medicinwidgeten visar dagens schemalagda checklista (exkl. vid behov-doser och överhoppade doser, sorterad i samma tidpunktsordning som Idag-vyn) med en sammanfattningsrubrik (antal tagna av totalt, antal försenade doser). |
+| WID-2 | En medicindos kan bockas av/på direkt från medicinwidgeten — samma skrivväg (`MedicinerRepository.toggleTagen`) som Idag-checklistans avbockning (HEM-4), ingen duplicerad logik. |
+| WID-3 | Screening kan loggas stegvis från en egen widget (energi → stress → symptom, SCR-1..3-semantik) via samma mappning som appen (`BuildScreeningAktivitetUseCase`, ingen duplicerad save-väg), namngiven efter det screeningtillfälle guiden startades för så det markeras som klart i Idag-vyn. Widgeten visar nästa ej loggade aktiverade tillfälle; är alla loggade visas en bekräftelse i stället för startknappen. Symptomsteget visar endast favoritmarkerade symptom och hoppas över helt om inga är favoritmarkerade. |
+| WID-4 | Widgetarna uppdateras dels efter sina egna skrivningar, dels när appen ändrar dagens data (Idag-checklistan, "Markera tagen"-notisåtgärden) — aldrig inaktuellt läge. |
+| WID-5 | Widgetarna är på svenska (ÖV-6). |
+| WID-6 | Varje widget ritar en egen opak bakgrund och använder explicita textfärger på allt innehåll, så texten är läsbar oavsett hemskärmstapet. |
+| WID-7 | Appens widgets är uppdelade per handling — en widget per interaktionsmodell (mediciner/screening/vid behov) — och kan läggas till oberoende av varandra i widgetväljaren. |
+| WID-8 | En favoritmarkerad vid behov-dos kan loggas som tagen direkt från vid behov-widgeten, samma väg som appens "Ta dos" (FAV-2) inklusive cooldown (FAV-4/MED-16-semantik, bekräftas i widgeten eftersom Glance inte har dialoger) och dagsgräns. |
 
-Fungerar vid kallstart (enhet omstartad, appen aldrig öppnad) — widgeten säkrar själv dagens
-dosgenerering (`ensureTodayEntries`) innan den ritar checklistan. Ingen `android:process` i
-manifestet — widgeten körs i appens huvudprocess mot samma `AppDatabase`-singleton.
+Fungerar vid kallstart (enhet omstartad, appen aldrig öppnad) — medicinwidgeten säkrar själv
+dagens dosgenerering (`ensureTodayEntries`) innan den ritar checklistan. Ingen `android:process`
+i manifestet — alla tre widgets körs i appens huvudprocess mot samma `AppDatabase`-singleton.
