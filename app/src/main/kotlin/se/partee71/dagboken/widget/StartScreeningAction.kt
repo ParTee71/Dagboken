@@ -9,6 +9,7 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 /** Startar screeningguiden: nollställer draft-state och visar energisteget. */
 class StartScreeningAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        recordWidgetTap(context, glanceId)
         val label = parameters[KEY_LABEL] ?: ""
         updateAppWidgetState(context, glanceId) { prefs ->
             prefs.toMutablePreferences().apply {

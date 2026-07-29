@@ -16,6 +16,7 @@ import se.partee71.dagboken.domain.usecase.VidBehovLogResult
  */
 class LogVidBehovAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        recordWidgetTap(context, glanceId)
         val favoritId = parameters[KEY_FAVORIT_ID] ?: return
         val force = parameters[KEY_FORCE] ?: false
         val entryPoint = context.widgetEntryPoint()
