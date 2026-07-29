@@ -18,9 +18,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
-import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
-import se.partee71.dagboken.data.datastore.ScreeningTime
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HealthAvailability
 import se.partee71.dagboken.data.repository.HealthConnectRepository
@@ -32,7 +30,10 @@ import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.WeeklyHealth
 import se.partee71.dagboken.domain.model.tidpunktSortIndex
 import se.partee71.dagboken.domain.model.tidpunktToHour
+import se.partee71.dagboken.domain.usecase.ScreeningEventStatus
+import se.partee71.dagboken.domain.usecase.activeScreeningEventLabels
 import se.partee71.dagboken.domain.usecase.computeDailyEnergyStats
+import se.partee71.dagboken.domain.usecase.computeScreeningEvents
 import se.partee71.dagboken.ui.formatDayDate
 import se.partee71.dagboken.ui.formatWeekdayShort
 import se.partee71.dagboken.widget.WidgetUpdater
@@ -41,13 +42,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.WeekFields
 import javax.inject.Inject
-
-data class ScreeningEventStatus(
-    val label: String,
-    val time: String,
-    val logged: Boolean,
-    val overdue: Boolean,
-)
 
 enum class EnergyTrend { UP, DOWN, FLAT }
 
@@ -166,11 +160,7 @@ class HomeViewModel @Inject constructor(
     private val _isSigningIn = MutableStateFlow(false)
 
     private val activeScreeningEvents = prefs.screeningEventConfigs
-        .map { configs: List<ScreeningEventConfig> ->
-            configs.mapIndexedNotNull { i, c ->
-                if (c.enabled) SCREENING_EVENT_LABELS.getOrNull(i)?.let { label -> label to c.time } else null
-            }
-        }
+        .map { configs: List<ScreeningEventConfig> -> activeScreeningEventLabels(configs) }
 
     // Datumnavigering (#114): vilken dag Idag-checklistan (mediciner/screening) visar.
     // Default dagens datum. Kan inte navigeras in i framtiden — se [nextDay].
@@ -226,13 +216,7 @@ class HomeViewModel @Inject constructor(
 
         val kommandeMediciner = computeKommandeMediciner(isToday, nowTime, dayMediciner)
 
-        val screeningEvents = activeEvents.map { (label, timeStr) ->
-            val st = ScreeningTime.parse(timeStr)
-            val reminderTime = st?.let { LocalTime.of(it.hour, it.min) }
-            val logged = screeningsOnSelectedDate.any { it.aktivitet == label }
-            val overdue = isToday && !logged && reminderTime != null && nowTime.isAfter(reminderTime)
-            ScreeningEventStatus(label = label, time = timeStr, logged = logged, overdue = overdue)
-        }
+        val screeningEvents = computeScreeningEvents(activeEvents, screeningsOnSelectedDate, nowTime, isToday)
 
         HomeUiState(
             todayMediciner        = dayMediciner.sortedBy { tidpunktSortIndex(it.tidpunkt) },
