@@ -18,7 +18,7 @@ class AdjustScreeningValueAction : ActionCallback {
                 this[key] = clampStepperValue(current, delta)
             }
         }
-        DagbokenWidget().update(context, glanceId)
+        ScreeningWidget().update(context, glanceId)
     }
 
     companion object {

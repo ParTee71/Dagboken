@@ -19,7 +19,7 @@ class AdjustSymptomScoreAction : ActionCallback {
                 this[ScreeningWidgetKeys.SYMPTOM_SCORES] = SymptomUtils.encode(updated)
             }
         }
-        DagbokenWidget().update(context, glanceId)
+        ScreeningWidget().update(context, glanceId)
     }
 
     companion object {
