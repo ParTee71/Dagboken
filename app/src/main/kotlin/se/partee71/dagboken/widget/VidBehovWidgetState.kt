@@ -1,23 +1,27 @@
 package se.partee71.dagboken.widget
 
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import se.partee71.dagboken.domain.model.Favorit
 
 /**
  * Per-widgetinstans-state för vid behov-widgeten (#162): väntar på bekräftelse av en
- * cooldown-varning (Glance har inga dialoger, se `LogVidBehovAction`), eller ett
- * meddelande (loggad/dagsgräns nådd) som visas en gång. Flyktig UI-state, inte i backupen.
+ * cooldown-varning (Glance har inga dialoger, se `LogVidBehovAction`), ett meddelande
+ * (loggad/dagsgräns nådd) som visas en gång, eller om listan är expanderad till alla vid
+ * behov-mediciner i stället för bara favoriter (#164). Flyktig UI-state, inte i backupen.
  */
 object VidBehovWidgetKeys {
     val PENDING_FAVORIT_ID = stringPreferencesKey("vidbehov_pending_favorit_id")
     val PENDING_REMAINING_HOURS = doublePreferencesKey("vidbehov_pending_remaining_hours")
     val MESSAGE = stringPreferencesKey("vidbehov_message")
+    val SHOW_ALL = booleanPreferencesKey("vidbehov_show_all")
 }
 
 data class VidBehovPendingConfirm(val favoritId: String, val remainingHours: Double)
 
-data class VidBehovDraft(val pending: VidBehovPendingConfirm?, val message: String?)
+data class VidBehovDraft(val pending: VidBehovPendingConfirm?, val message: String?, val showAll: Boolean)
 
 fun Preferences.toVidBehovDraft(): VidBehovDraft {
     val favoritId = this[VidBehovWidgetKeys.PENDING_FAVORIT_ID]
@@ -27,5 +31,20 @@ fun Preferences.toVidBehovDraft(): VidBehovDraft {
     } else {
         null
     }
-    return VidBehovDraft(pending = pending, message = this[VidBehovWidgetKeys.MESSAGE])
+    return VidBehovDraft(
+        pending = pending,
+        message = this[VidBehovWidgetKeys.MESSAGE],
+        showAll = this[VidBehovWidgetKeys.SHOW_ALL] ?: false,
+    )
 }
+
+/** Favoritmarkerade vid behov-mediciner, för widgetens första nivå (#162). */
+fun favoriteVidBehov(all: List<Favorit>): List<Favorit> =
+    all.filter { it.isFavorite }.sortedBy { it.namn }
+
+/**
+ * Alla vid behov-mediciner, favoritmarkerade först — sedan bokstavsordning inom varje
+ * grupp — för widgetens expanderade "Fler"-läge (#164).
+ */
+fun allVidBehovSorted(all: List<Favorit>): List<Favorit> =
+    all.sortedWith(compareByDescending<Favorit> { it.isFavorite }.thenBy { it.namn })

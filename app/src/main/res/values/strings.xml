@@ -432,9 +432,12 @@
     <string name="widget_vidbehov_label">Dagboken – Vid behov</string>
     <string name="widget_vidbehov_description">Logga en favoritmarkerad vid behov-dos direkt från hemskärmen.</string>
     <string name="widget_vidbehov_title">Vid behov</string>
-    <string name="widget_vidbehov_empty">Inga favoritmarkerade vid behov-mediciner</string>
+    <string name="widget_vidbehov_empty">Inga vid behov-mediciner</string>
+    <string name="widget_vidbehov_empty_favorites">Inga favoritmarkerade</string>
     <string name="widget_vidbehov_confirm_format">%1$s: väntar fortfarande %2$.1f h. Logga ändå?</string>
     <string name="widget_vidbehov_log_anyway">Logga ändå</string>
     <string name="widget_vidbehov_logged_format">%1$s loggad ✓</string>
     <string name="widget_vidbehov_limit_format">Max %1$d doser/dag nådda för %2$s</string>
+    <string name="widget_vidbehov_show_more">Fler</string>
+    <string name="widget_vidbehov_show_favorites">Visa favoriter</string>
 </resources>
