@@ -393,20 +393,22 @@
 
 ## 20. Widget (WID)
 
-> Hemskärmswidget byggd med `androidx.glance` (#120, #157). Del 1 (#120/#156) levererade
-> infrastruktur och medicinavbockning; screening-loggningen (WID-3) levererades i #157.
+> Hemskärmswidget byggd med `androidx.glance` (#120, #157, #159). Del 1 (#120/#156) levererade
+> infrastruktur och medicinavbockning; screening-loggningen (WID-3) levererades i #157/#158;
+> #159 gjorde widgeten läsbar mot valfri tapet och lade om framsidan till en kompakt statusvy.
 > Widgeten läser/skriver via samma repositories som appen (`MedicinerRepository`,
 > `AktiviteterRepository`) — ingen ny persisterad datamodell, backup-kedjan är oförändrad.
-> Screeningguidens steg-state (energi/stress/symptom under pågående loggning) är flyktig
+> Screeningguidens steg-state och vald widgetsida (framsida/checklista) är flyktig
 > per-widgetinstans-state (`PreferencesGlanceStateDefinition`), inte i backupen.
 
 | ID | Krav |
 |----|------|
-| WID-1 | En hemskärmswidget visar dagens medicinchecklista (schemalagda doser, exkl. vid behov-doser och överhoppade doser) med tagen/ej tagen-status, sorterad i samma tidpunktsordning som Idag-vyn. |
-| WID-2 | En medicindos kan bockas av/på direkt från widgeten — samma skrivväg (`MedicinerRepository.toggleTagen`) som Idag-checklistans avbockning (HEM-4), ingen duplicerad logik. |
-| WID-3 | Screening kan loggas stegvis från widgeten (energi → stress → symptom, SCR-1..3-semantik) via samma mappning som appen (`BuildScreeningAktivitetUseCase`, ingen duplicerad save-väg). Symptomsteget visar endast favoritmarkerade symptom och hoppas över helt om inga är favoritmarkerade. Redan loggad screening idag visas som en bekräftelse i stället för startknappen. |
+| WID-1 | Widgetens framsida visar dagens *status*: screeningstatus (WID-3) samt en kompakt medicinsammanfattning (antal tagna av totalt, antal försenade doser). Ett tryck på medicinsammanfattningen öppnar den fullständiga checklistan (schemalagda doser, exkl. vid behov-doser och överhoppade doser, sorterad i samma tidpunktsordning som Idag-vyn) med en väg tillbaka till framsidan. |
+| WID-2 | En medicindos kan bockas av/på direkt från checklistan i widgeten — samma skrivväg (`MedicinerRepository.toggleTagen`) som Idag-checklistans avbockning (HEM-4), ingen duplicerad logik. |
+| WID-3 | Screening kan loggas stegvis från widgeten (energi → stress → symptom, SCR-1..3-semantik) via samma mappning som appen (`BuildScreeningAktivitetUseCase`, ingen duplicerad save-väg). Symptomsteget visar endast favoritmarkerade symptom och hoppas över helt om inga är favoritmarkerade. Redan loggad screening idag visas på framsidan som en bekräftelse (tid, energi, stress) i stället för startknappen. |
 | WID-4 | Widgeten uppdateras dels efter sina egna skrivningar, dels när appen ändrar dagens doser (Idag-checklistan, "Markera tagen"-notisåtgärden) — aldrig inaktuellt läge. |
 | WID-5 | Widgeten är på svenska (ÖV-6). |
+| WID-6 | Widgeten ritar en egen opak bakgrund och använder explicita textfärger på allt innehåll, så texten är läsbar oavsett hemskärmstapet. |
 
 Fungerar vid kallstart (enhet omstartad, appen aldrig öppnad) — widgeten säkrar själv dagens
 dosgenerering (`ensureTodayEntries`) innan den ritar checklistan. Ingen `android:process` i
