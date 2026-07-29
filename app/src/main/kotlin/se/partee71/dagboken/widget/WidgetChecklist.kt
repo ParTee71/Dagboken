@@ -29,3 +29,9 @@ fun widgetMedsSummary(items: List<Medicin>, nowHour: Int): WidgetMedsSummary {
     }
     return WidgetMedsSummary(taken = taken, total = items.size, overdue = overdue)
 }
+
+/**
+ * Doser som fortfarande är aktuella att bocka av (#164) — en avbockad dos försvinner ur
+ * widgeten direkt i stället för att ligga kvar avbockad i listan.
+ */
+fun widgetActionableItems(items: List<Medicin>): List<Medicin> = items.filterNot { it.tagen }

@@ -29,9 +29,11 @@ import se.partee71.dagboken.domain.model.Favorit
 import java.util.Locale
 
 /**
- * Hemskärmswidget för att logga en favoritmarkerad vid behov-dos direkt (#162) — samma
- * skrivväg som appens "Ta dos" ([se.partee71.dagboken.domain.usecase.LogVidBehovDosUseCase]).
- * Cooldown-träffar visas som ett bekräftelsesteg i widgeten eftersom Glance inte har dialoger.
+ * Hemskärmswidget för att logga en vid behov-dos direkt (#162) — samma skrivväg som appens
+ * "Ta dos" ([se.partee71.dagboken.domain.usecase.LogVidBehovDosUseCase]). Visar
+ * favoritmarkerade mediciner direkt; en "Fler"-rad expanderar till alla vid behov-mediciner
+ * (favoriter först, sedan bokstavsordning), #164. Cooldown-träffar visas som ett
+ * bekräftelsesteg i widgeten eftersom Glance inte har dialoger.
  */
 class VidBehovWidget : GlanceAppWidget() {
 
@@ -39,7 +41,7 @@ class VidBehovWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val entryPoint = context.widgetEntryPoint()
-        val favoriter = entryPoint.medicinerRepository().allFavoriter.first().filter { it.isFavorite }
+        val allFavoriter = entryPoint.medicinerRepository().allFavoriter.first()
 
         val widgetPrefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
         val draft = widgetPrefs.toVidBehovDraft()
@@ -49,18 +51,25 @@ class VidBehovWidget : GlanceAppWidget() {
                 prefs.toMutablePreferences().apply { remove(VidBehovWidgetKeys.MESSAGE) }
             }
         }
-        val pendingFavorit = draft.pending?.let { pending -> favoriter.find { it.id == pending.favoritId } }
+        val displayed = if (draft.showAll) allVidBehovSorted(allFavoriter) else favoriteVidBehov(allFavoriter)
+        val pendingFavorit = draft.pending?.let { pending -> allFavoriter.find { it.id == pending.favoritId } }
 
         val strings = VidBehovWidgetStrings(
             title = context.getString(R.string.widget_vidbehov_title),
             empty = context.getString(R.string.widget_vidbehov_empty),
+            emptyFavorites = context.getString(R.string.widget_vidbehov_empty_favorites),
             confirmFormat = context.getString(R.string.widget_vidbehov_confirm_format),
             logAnyway = context.getString(R.string.widget_vidbehov_log_anyway),
             cancel = context.getString(R.string.widget_screening_cancel),
+            showMore = context.getString(R.string.widget_vidbehov_show_more),
+            showFavorites = context.getString(R.string.widget_vidbehov_show_favorites),
         )
 
         provideContent {
-            VidBehovWidgetContent(favoriter, draft.pending, pendingFavorit, draft.message, strings)
+            VidBehovWidgetContent(
+                displayed, draft.showAll, allFavoriter.isNotEmpty(), draft.pending, pendingFavorit, draft.message,
+                strings,
+            )
         }
     }
 }
@@ -68,14 +77,19 @@ class VidBehovWidget : GlanceAppWidget() {
 private data class VidBehovWidgetStrings(
     val title: String,
     val empty: String,
+    val emptyFavorites: String,
     val confirmFormat: String,
     val logAnyway: String,
     val cancel: String,
+    val showMore: String,
+    val showFavorites: String,
 )
 
 @Composable
 private fun VidBehovWidgetContent(
     favoriter: List<Favorit>,
+    showAll: Boolean,
+    hasAnyMedicine: Boolean,
     pending: VidBehovPendingConfirm?,
     pendingFavorit: Favorit?,
     message: String?,
@@ -95,7 +109,7 @@ private fun VidBehovWidgetContent(
         if (pending != null && pendingFavorit != null) {
             ConfirmCooldown(pending, pendingFavorit, strings)
         } else {
-            FavoritList(favoriter, strings)
+            FavoritList(favoriter, showAll, hasAnyMedicine, strings)
         }
     }
 }
@@ -121,23 +135,36 @@ private fun ConfirmCooldown(pending: VidBehovPendingConfirm, favorit: Favorit, s
 }
 
 @Composable
-private fun FavoritList(favoriter: List<Favorit>, strings: VidBehovWidgetStrings) {
-    if (favoriter.isEmpty()) {
+private fun FavoritList(favoriter: List<Favorit>, showAll: Boolean, hasAnyMedicine: Boolean, strings: VidBehovWidgetStrings) {
+    if (!hasAnyMedicine) {
         Text(text = strings.empty, style = TextStyle(color = WidgetOnBackground))
         return
     }
-    LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-        items(favoriter, itemId = { it.id.hashCode().toLong() }) { favorit ->
-            WidgetButton(
-                "${favorit.namn} ${favorit.dos} ${favorit.enhet}",
-                actionRunCallback<LogVidBehovAction>(
-                    actionParametersOf(
-                        LogVidBehovAction.KEY_FAVORIT_ID to favorit.id,
-                        LogVidBehovAction.KEY_FORCE to false,
+    if (favoriter.isEmpty()) {
+        Text(text = strings.emptyFavorites, style = TextStyle(color = WidgetOnBackground))
+    } else {
+        LazyColumn(modifier = GlanceModifier.fillMaxWidth()) {
+            items(favoriter, itemId = { it.id.hashCode().toLong() }) { favorit ->
+                WidgetButton(
+                    "${favorit.namn} ${favorit.dos} ${favorit.enhet}",
+                    actionRunCallback<LogVidBehovAction>(
+                        actionParametersOf(
+                            LogVidBehovAction.KEY_FAVORIT_ID to favorit.id,
+                            LogVidBehovAction.KEY_FORCE to false,
+                        ),
                     ),
-                ),
-                modifier = GlanceModifier.fillMaxWidth().padding(vertical = 2.dp),
-            )
+                    modifier = GlanceModifier.fillMaxWidth().padding(vertical = 2.dp),
+                )
+            }
         }
     }
+    // Alltid tillgänglig när det finns någon vid behov-medicin, även om just den valda
+    // vyn (favoriter) råkar vara tom — annars finns ingen väg till de icke-favoriserade.
+    WidgetButton(
+        if (showAll) strings.showFavorites else strings.showMore,
+        actionRunCallback<SetVidBehovShowAllAction>(
+            actionParametersOf(SetVidBehovShowAllAction.KEY_SHOW_ALL to !showAll),
+        ),
+        modifier = GlanceModifier.fillMaxWidth().padding(top = 4.dp),
+    )
 }

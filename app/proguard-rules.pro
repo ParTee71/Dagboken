@@ -20,3 +20,11 @@
 -dontwarn javax.naming.**
 -dontwarn org.ietf.jgss.**
 -dontwarn org.apache.http.**
+
+# Glance widgets/actions are instantiated by the Glance runtime via reflection
+# (GlanceAppWidgetReceiver by manifest class name, ActionCallback subclasses by
+# actionRunCallback<T>()'s stored class name). Only referenced via generic type
+# parameters or manifest strings, R8 has no other reason to keep them — without
+# this rule they get renamed/stripped in release builds, so a widget tap silently
+# does nothing (no crash, no log) instead of running the action (#164).
+-keep class se.partee71.dagboken.widget.** { *; }

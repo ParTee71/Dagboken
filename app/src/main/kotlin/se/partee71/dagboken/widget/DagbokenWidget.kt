@@ -86,11 +86,12 @@ private fun MedsWidgetContent(items: List<Medicin>, strings: MedsWidgetStrings, 
         )
         Text(text = summaryLabel, style = TextStyle(color = WidgetOnBackground))
 
+        val actionable = widgetActionableItems(items)
         when {
             items.isEmpty() -> Text(text = strings.emptyState, style = TextStyle(color = WidgetOnBackground))
-            items.all { it.tagen } -> Text(text = strings.allDone, style = TextStyle(color = WidgetOnBackground))
+            actionable.isEmpty() -> Text(text = strings.allDone, style = TextStyle(color = WidgetOnBackground))
             else -> LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-                items(items, itemId = { it.id.hashCode().toLong() }) { medicin ->
+                items(actionable, itemId = { it.id.hashCode().toLong() }) { medicin ->
                     MedicinRow(medicin, strings.doseLabelFormat)
                 }
             }

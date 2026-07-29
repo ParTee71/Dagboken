@@ -78,4 +78,18 @@ class WidgetChecklistTest {
         assertEquals(0, summary.total)
         assertEquals(0, summary.overdue)
     }
+
+    // ─── widgetActionableItems (#164) ──────────────────────────────────────────
+
+    @Test fun `widgetActionableItems excludes taken doses`() {
+        val items = widgetActionableItems(
+            listOf(medicin(id = "m1", tagen = true), medicin(id = "m2", tagen = false)),
+        )
+        assertEquals(listOf("m2"), items.map { it.id })
+    }
+
+    @Test fun `widgetActionableItems is empty when all doses are taken`() {
+        val items = widgetActionableItems(listOf(medicin(id = "m1", tagen = true), medicin(id = "m2", tagen = true)))
+        assertEquals(0, items.size)
+    }
 }
