@@ -37,15 +37,7 @@ class SaveScreeningAction : ActionCallback {
         )
         entryPoint.aktiviteterRepository().save(entry)
 
-        updateAppWidgetState(context, glanceId) { prefs ->
-            prefs.toMutablePreferences().apply {
-                this[ScreeningWidgetKeys.STEP] = SCREENING_STEP_INACTIVE
-                remove(ScreeningWidgetKeys.ENERGY)
-                remove(ScreeningWidgetKeys.STRESS)
-                remove(ScreeningWidgetKeys.SYMPTOM_SCORES)
-                remove(ScreeningWidgetKeys.LABEL)
-            }
-        }
+        updateAppWidgetState(context, glanceId) { prefs -> prefs.clearScreeningDraft() }
         ScreeningWidget().update(context, glanceId)
     }
 }

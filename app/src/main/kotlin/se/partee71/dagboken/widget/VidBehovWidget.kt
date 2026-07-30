@@ -45,9 +45,7 @@ class VidBehovWidget : GlanceAppWidget() {
         val draft = widgetPrefs.toVidBehovDraft()
         // Meddelandet (loggad/dagsgräns) ska bara synas en gång — nollställs direkt efter läsning.
         if (draft.message != null) {
-            updateAppWidgetState(context, id) { prefs ->
-                prefs.toMutablePreferences().apply { remove(VidBehovWidgetKeys.MESSAGE) }
-            }
+            updateAppWidgetState(context, id) { prefs -> prefs.clearVidBehovMessage() }
         }
         val displayed = if (draft.showAll) allVidBehovSorted(allFavoriter) else favoriteVidBehov(allFavoriter)
         val pendingFavorit = draft.pending?.let { pending -> allFavoriter.find { it.id == pending.favoritId } }

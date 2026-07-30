@@ -11,11 +11,7 @@ class SetVidBehovShowAllAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         recordWidgetTap(context, glanceId)
         val showAll = parameters[KEY_SHOW_ALL] ?: return
-        updateAppWidgetState(context, glanceId) { prefs ->
-            prefs.toMutablePreferences().apply {
-                this[VidBehovWidgetKeys.SHOW_ALL] = showAll
-            }
-        }
+        updateAppWidgetState(context, glanceId) { prefs -> prefs.setVidBehovShowAll(showAll) }
         VidBehovWidget().update(context, glanceId)
     }
 

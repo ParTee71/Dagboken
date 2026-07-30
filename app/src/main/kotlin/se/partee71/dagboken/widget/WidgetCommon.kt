@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -56,11 +57,13 @@ fun WidgetButton(text: String, action: Action, modifier: GlanceModifier = Glance
  */
 val WIDGET_TAP_COUNT = intPreferencesKey("widget_tap_count")
 
+/** Muterar mottagaren direkt — se resonemanget i `ScreeningWidgetState`. */
+fun MutablePreferences.incrementWidgetTapCount() {
+    this[WIDGET_TAP_COUNT] = (this[WIDGET_TAP_COUNT] ?: 0) + 1
+}
+
 suspend fun recordWidgetTap(context: Context, glanceId: GlanceId) {
     runCatching {
-        updateAppWidgetState(context, glanceId) { prefs ->
-            val current = prefs[WIDGET_TAP_COUNT] ?: 0
-            prefs.toMutablePreferences().apply { this[WIDGET_TAP_COUNT] = current + 1 }
-        }
+        updateAppWidgetState(context, glanceId) { prefs -> prefs.incrementWidgetTapCount() }
     }
 }

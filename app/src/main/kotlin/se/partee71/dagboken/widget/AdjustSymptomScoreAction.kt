@@ -5,7 +5,6 @@ import androidx.glance.GlanceId
 import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.state.updateAppWidgetState
-import se.partee71.dagboken.domain.usecase.SymptomUtils
 
 /** +/- stepper (0..10) för ett enskilt favoritsymptom i screeningguidens symptomsteg. */
 class AdjustSymptomScoreAction : ActionCallback {
@@ -14,11 +13,7 @@ class AdjustSymptomScoreAction : ActionCallback {
         val name = parameters[KEY_SYMPTOM_NAME] ?: return
         val delta = parameters[KEY_DELTA] ?: return
         updateAppWidgetState(context, glanceId) { prefs ->
-            val scores = SymptomUtils.decode(prefs[ScreeningWidgetKeys.SYMPTOM_SCORES] ?: "")
-            val updated = adjustSymptomScore(scores, name, delta)
-            prefs.toMutablePreferences().apply {
-                this[ScreeningWidgetKeys.SYMPTOM_SCORES] = SymptomUtils.encode(updated)
-            }
+            prefs.adjustScreeningSymptomScore(name, delta)
         }
         ScreeningWidget().update(context, glanceId)
     }

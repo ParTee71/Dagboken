@@ -406,9 +406,18 @@
 > klassnamn, och utan keep-regler gjorde R8 tryck overksamma utan krasch (#164). Widgetarnas
 > listor använder vanlig `Column`, inte `LazyColumn`: i en RemoteViews-collection krävs
 > PendingIntent-template för per-rad-klick, och bara första raden reagerade på tryck.
-> Alla tryckbara ytor byggs på `CheckBox` (en RemoteViews-compound-button) — mätningar med
-> en tryckräknare visade att `GlanceModifier.clickable` aldrig nådde fram till någon
-> `ActionCallback` i release-bygget, medan `CheckBox` alltid gjorde det.
+> Alla tryckbara ytor byggs på `CheckBox` (en RemoteViews-compound-button).
+>
+> **Skrivningar till widget-state muterar alltid mottagaren.** `updateAppWidgetState(context,
+> glanceId) { prefs -> … }` är Preferences-överlagringen med signaturen
+> `suspend (MutablePreferences) -> Unit`: `prefs` *är* objektet som sparas. Att i stället
+> göra `prefs.toMutablePreferences().apply { … }` muterar en kopia som slängs (lambdans
+> returvärde coercas till `Unit`) — det kompilerar utan varning och ingen skrivning når disk.
+> Det var den faktiska orsaken till att inget hände vid tryck i screening-/vid behov-widgeten
+> (#164): `ActionCallback`-erna körde hela tiden, men varje `updateAppWidgetState` var en
+> no-op, och tryckräknaren som skulle mäta saken använde samma trasiga mönster. Varje
+> mutation ligger därför som en ren extension på `MutablePreferences` i
+> `ScreeningWidgetState`/`VidBehovWidgetState`, enhetstestad mot `mutablePreferencesOf()`.
 
 | ID | Krav |
 |----|------|
