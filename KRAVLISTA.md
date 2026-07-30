@@ -406,6 +406,9 @@
 > klassnamn, och utan keep-regler gjorde R8 tryck overksamma utan krasch (#164). Widgetarnas
 > listor använder vanlig `Column`, inte `LazyColumn`: i en RemoteViews-collection krävs
 > PendingIntent-template för per-rad-klick, och bara första raden reagerade på tryck.
+> Alla tryckbara ytor byggs på `CheckBox` (en RemoteViews-compound-button) — mätningar med
+> en tryckräknare visade att `GlanceModifier.clickable` aldrig nådde fram till någon
+> `ActionCallback` i release-bygget, medan `CheckBox` alltid gjorde det.
 
 | ID | Krav |
 |----|------|

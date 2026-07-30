@@ -30,8 +30,8 @@ android {
         applicationId = "se.partee71.dagboken"
         minSdk = 30
         targetSdk = 35
-        versionCode = 49
-        versionName = versionNameOverride ?: "3.15.2"
+        versionCode = 50
+        versionName = versionNameOverride ?: "3.15.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
