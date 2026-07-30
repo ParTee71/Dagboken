@@ -11,15 +11,7 @@ class StartScreeningAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         recordWidgetTap(context, glanceId)
         val label = parameters[KEY_LABEL] ?: ""
-        updateAppWidgetState(context, glanceId) { prefs ->
-            prefs.toMutablePreferences().apply {
-                this[ScreeningWidgetKeys.STEP] = SCREENING_STEP_ENERGY
-                this[ScreeningWidgetKeys.ENERGY] = 5
-                this[ScreeningWidgetKeys.STRESS] = 5
-                this[ScreeningWidgetKeys.SYMPTOM_SCORES] = ""
-                this[ScreeningWidgetKeys.LABEL] = label
-            }
-        }
+        updateAppWidgetState(context, glanceId) { prefs -> prefs.startScreeningDraft(label) }
         ScreeningWidget().update(context, glanceId)
     }
 

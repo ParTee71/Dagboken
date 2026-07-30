@@ -1,5 +1,6 @@
 package se.partee71.dagboken.widget
 
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
@@ -36,6 +37,39 @@ fun Preferences.toVidBehovDraft(): VidBehovDraft {
         message = this[VidBehovWidgetKeys.MESSAGE],
         showAll = this[VidBehovWidgetKeys.SHOW_ALL] ?: false,
     )
+}
+
+/*
+ * Skrivningarna nedan muterar mottagaren direkt — se resonemanget i `ScreeningWidgetState`
+ * om varför `prefs.toMutablePreferences()` inuti `updateAppWidgetState` aldrig sparades.
+ */
+
+/** Visar ett engångsmeddelande (loggad/dagsgräns) och avslutar ev. bekräftelsesteg. */
+fun MutablePreferences.setVidBehovMessage(message: String) {
+    clearVidBehovPendingConfirm()
+    this[VidBehovWidgetKeys.MESSAGE] = message
+}
+
+/** Kvitterar meddelandet, så det bara visas en gång. */
+fun MutablePreferences.clearVidBehovMessage() {
+    remove(VidBehovWidgetKeys.MESSAGE)
+}
+
+/** Ber om bekräftelse av en cooldown-träff innan dosen loggas. */
+fun MutablePreferences.setVidBehovPendingConfirm(favoritId: String, remainingHours: Double) {
+    this[VidBehovWidgetKeys.PENDING_FAVORIT_ID] = favoritId
+    this[VidBehovWidgetKeys.PENDING_REMAINING_HOURS] = remainingHours
+}
+
+/** Avbryter en väntande cooldown-bekräftelse. */
+fun MutablePreferences.clearVidBehovPendingConfirm() {
+    remove(VidBehovWidgetKeys.PENDING_FAVORIT_ID)
+    remove(VidBehovWidgetKeys.PENDING_REMAINING_HOURS)
+}
+
+/** Växlar mellan favoriter och alla vid behov-mediciner (#164). */
+fun MutablePreferences.setVidBehovShowAll(showAll: Boolean) {
+    this[VidBehovWidgetKeys.SHOW_ALL] = showAll
 }
 
 /** Favoritmarkerade vid behov-mediciner, för widgetens första nivå (#162). */

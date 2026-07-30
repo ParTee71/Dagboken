@@ -13,12 +13,7 @@ class AdjustScreeningValueAction : ActionCallback {
         val field = parameters[KEY_FIELD] ?: return
         val delta = parameters[KEY_DELTA] ?: return
         val key = if (field == FIELD_ENERGY) ScreeningWidgetKeys.ENERGY else ScreeningWidgetKeys.STRESS
-        updateAppWidgetState(context, glanceId) { prefs ->
-            val current = prefs[key] ?: 5
-            prefs.toMutablePreferences().apply {
-                this[key] = clampStepperValue(current, delta)
-            }
-        }
+        updateAppWidgetState(context, glanceId) { prefs -> prefs.adjustScreeningValue(key, delta) }
         ScreeningWidget().update(context, glanceId)
     }
 

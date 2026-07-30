@@ -15,10 +15,7 @@ class ScreeningNavAction : ActionCallback {
         val hasFavoriteSymptoms = context.widgetEntryPoint().preferencesRepository()
             .symptomOptions.first().any { it.isFavorite }
         updateAppWidgetState(context, glanceId) { prefs ->
-            val current = prefs[ScreeningWidgetKeys.STEP] ?: SCREENING_STEP_INACTIVE
-            prefs.toMutablePreferences().apply {
-                this[ScreeningWidgetKeys.STEP] = nextScreeningStep(current, direction, hasFavoriteSymptoms)
-            }
+            prefs.stepScreeningDraft(direction, hasFavoriteSymptoms)
         }
         ScreeningWidget().update(context, glanceId)
     }

@@ -10,12 +10,7 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 class CancelVidBehovConfirmAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         recordWidgetTap(context, glanceId)
-        updateAppWidgetState(context, glanceId) { prefs ->
-            prefs.toMutablePreferences().apply {
-                remove(VidBehovWidgetKeys.PENDING_FAVORIT_ID)
-                remove(VidBehovWidgetKeys.PENDING_REMAINING_HOURS)
-            }
-        }
+        updateAppWidgetState(context, glanceId) { prefs -> prefs.clearVidBehovPendingConfirm() }
         VidBehovWidget().update(context, glanceId)
     }
 }

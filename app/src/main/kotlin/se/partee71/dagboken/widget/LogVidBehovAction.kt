@@ -24,27 +24,19 @@ class LogVidBehovAction : ActionCallback {
 
         when (val result = entryPoint.logVidBehovDosUseCase().logDose(favorit, force)) {
             VidBehovLogResult.Logged -> updateAppWidgetState(context, glanceId) { prefs ->
-                prefs.toMutablePreferences().apply {
-                    remove(VidBehovWidgetKeys.PENDING_FAVORIT_ID)
-                    remove(VidBehovWidgetKeys.PENDING_REMAINING_HOURS)
-                    this[VidBehovWidgetKeys.MESSAGE] =
-                        context.getString(R.string.widget_vidbehov_logged_format, favorit.namn)
-                }
+                prefs.setVidBehovMessage(
+                    context.getString(R.string.widget_vidbehov_logged_format, favorit.namn),
+                )
             }
             is VidBehovLogResult.CooldownWarning -> updateAppWidgetState(context, glanceId) { prefs ->
-                prefs.toMutablePreferences().apply {
-                    this[VidBehovWidgetKeys.PENDING_FAVORIT_ID] = favoritId
-                    this[VidBehovWidgetKeys.PENDING_REMAINING_HOURS] = result.remainingHours
-                }
+                prefs.setVidBehovPendingConfirm(favoritId, result.remainingHours)
             }
             VidBehovLogResult.DailyLimitReached -> updateAppWidgetState(context, glanceId) { prefs ->
-                prefs.toMutablePreferences().apply {
-                    remove(VidBehovWidgetKeys.PENDING_FAVORIT_ID)
-                    remove(VidBehovWidgetKeys.PENDING_REMAINING_HOURS)
-                    this[VidBehovWidgetKeys.MESSAGE] = context.getString(
+                prefs.setVidBehovMessage(
+                    context.getString(
                         R.string.widget_vidbehov_limit_format, favorit.maxDoserPerDag, favorit.namn,
-                    )
-                }
+                    ),
+                )
             }
         }
         VidBehovWidget().update(context, glanceId)
