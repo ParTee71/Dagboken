@@ -8,8 +8,6 @@ import androidx.glance.GlanceModifier
 import androidx.glance.action.actionParametersOf
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.lazy.LazyColumn
-import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.background
@@ -229,8 +227,10 @@ private fun SymptomStep(
     strings: ScreeningWidgetStrings,
 ) {
     Text(text = strings.symptomTitle, style = TextStyle(color = WidgetOnBackground, fontWeight = FontWeight.Bold))
-    LazyColumn(modifier = GlanceModifier.fillMaxWidth()) {
-        items(favoriteSymptoms, itemId = { it.name.hashCode().toLong() }) { option ->
+    // Vanlig Column, inte LazyColumn — se kommentaren i DagbokenWidget om per-rad-klick i
+    // RemoteViews-collections.
+    Column(modifier = GlanceModifier.fillMaxWidth()) {
+        favoriteSymptoms.forEach { option ->
             Column(modifier = GlanceModifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Text(text = option.name, style = TextStyle(color = WidgetOnBackground))
                 SymptomStepperRow(option.name, scores[option.name] ?: 0, strings)
