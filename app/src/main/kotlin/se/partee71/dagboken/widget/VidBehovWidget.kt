@@ -53,6 +53,7 @@ class VidBehovWidget : GlanceAppWidget() {
         }
         val displayed = if (draft.showAll) allVidBehovSorted(allFavoriter) else favoriteVidBehov(allFavoriter)
         val pendingFavorit = draft.pending?.let { pending -> allFavoriter.find { it.id == pending.favoritId } }
+        val tapCount = widgetPrefs[WIDGET_TAP_COUNT] ?: 0
 
         val strings = VidBehovWidgetStrings(
             title = context.getString(R.string.widget_vidbehov_title),
@@ -68,7 +69,7 @@ class VidBehovWidget : GlanceAppWidget() {
         provideContent {
             VidBehovWidgetContent(
                 displayed, draft.showAll, allFavoriter.isNotEmpty(), draft.pending, pendingFavorit, draft.message,
-                strings,
+                strings, tapCount,
             )
         }
     }
@@ -94,6 +95,7 @@ private fun VidBehovWidgetContent(
     pendingFavorit: Favorit?,
     message: String?,
     strings: VidBehovWidgetStrings,
+    tapCount: Int,
 ) {
     Column(
         modifier = GlanceModifier
@@ -101,7 +103,11 @@ private fun VidBehovWidgetContent(
             .background(WidgetBackground)
             .padding(12.dp),
     ) {
-        Text(text = strings.title, style = TextStyle(color = WidgetOnBackground, fontWeight = FontWeight.Bold))
+        // Diagnostik (tillfällig, se recordWidgetTap).
+        Text(
+            text = "${strings.title} · tryck: $tapCount",
+            style = TextStyle(color = WidgetOnBackground, fontWeight = FontWeight.Bold),
+        )
         if (message != null) {
             Text(text = message, style = TextStyle(color = WidgetOnBackground))
         }

@@ -50,7 +50,9 @@ class ScreeningWidget : GlanceAppWidget() {
         val allLogged = events.isNotEmpty() && nextEvent == null
 
         val favoriteSymptoms = prefsRepo.symptomOptions.first().filter { it.isFavorite }
-        val draft = getAppWidgetState(context, PreferencesGlanceStateDefinition, id).toScreeningDraft()
+        val widgetPrefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
+        val draft = widgetPrefs.toScreeningDraft()
+        val tapCount = widgetPrefs[WIDGET_TAP_COUNT] ?: 0
 
         val strings = ScreeningWidgetStrings(
             title = context.getString(R.string.widget_screening_title),
@@ -69,7 +71,7 @@ class ScreeningWidget : GlanceAppWidget() {
         )
 
         provideContent {
-            ScreeningWidgetContent(strings, events, nextEvent, allLogged, favoriteSymptoms, draft)
+            ScreeningWidgetContent(strings, events, nextEvent, allLogged, favoriteSymptoms, draft, tapCount)
         }
     }
 }
@@ -98,6 +100,7 @@ private fun ScreeningWidgetContent(
     allLogged: Boolean,
     favoriteSymptoms: List<SymptomOption>,
     draft: ScreeningDraft,
+    tapCount: Int,
 ) {
     Column(
         modifier = GlanceModifier
@@ -105,7 +108,12 @@ private fun ScreeningWidgetContent(
             .background(WidgetBackground)
             .padding(12.dp),
     ) {
-        Text(text = strings.title, style = TextStyle(color = WidgetOnBackground, fontWeight = FontWeight.Bold))
+        // Diagnostik (tillfällig, se recordWidgetTap): visar hur många gånger en
+        // ActionCallback faktiskt körts från den här widgeten.
+        Text(
+            text = "${strings.title} · tryck: $tapCount",
+            style = TextStyle(color = WidgetOnBackground, fontWeight = FontWeight.Bold),
+        )
 
         when (draft.step) {
             SCREENING_STEP_ENERGY -> EnergyStep(draft.energy, strings)
