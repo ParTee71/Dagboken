@@ -180,6 +180,38 @@ class TrenderScreenTest {
         }
     }
 
+    // ─── Trendlinje per dataserie — TRD-13, #170 ──────────────────────────────
+
+    @Test fun selecting_a_series_with_at_least_two_points_shows_the_trend_legend() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                repo.save(
+                    Aktivitet(
+                        id = "a1", timestamp = "x", datum = today, tid = "09:00",
+                        aktivitet = "Promenad", energy = 5, stress = 3, somatiska = 0,
+                        symptom = "Yrsel:4", type = "aktivitet",
+                    ),
+                )
+                repo.save(
+                    Aktivitet(
+                        id = "a2", timestamp = "x", datum = LocalDate.now().minusDays(1).toString(), tid = "09:00",
+                        aktivitet = "Promenad", energy = 5, stress = 3, somatiska = 0,
+                        symptom = "Yrsel:6", type = "aktivitet",
+                    ),
+                )
+            }
+            setContent()
+            composeRule.runOnUiThread { vm.toggleSeries("Yrsel") }
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasTestTag("trender_legend_item_trend")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithTag("trender_legend_item_trend").performScrollTo().assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
     @Test fun range_selector_switches_the_selected_diagrams_range() = retryOnRenderGlitch {
         setUp()
         try {

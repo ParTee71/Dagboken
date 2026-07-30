@@ -259,6 +259,7 @@
     <string name="diagram_stat_min">Min</string>
     <string name="diagram_stat_max">Max</string>
     <string name="diagram_stat_days">Dagar</string>
+    <string name="diagram_legend_trend">Trend (streckad)</string>
 
     <!-- Symptom diagram screen -->
     <string name="symptom_diagram_title">Symptomöversikt</string>

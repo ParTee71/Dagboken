@@ -20,9 +20,12 @@ import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianLayerRangeProvider
+import com.patrykandpatrick.vico.core.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
-import se.partee71.dagboken.ui.diagram.computeSmartYRange
+import se.partee71.dagboken.ui.diagram.computeSmartYAxis
+import se.partee71.dagboken.ui.diagram.computeTrendLine
+import se.partee71.dagboken.ui.diagram.formatChartValue
 
 /**
  * 7-day energy sparkline (HEM-7), Vico-baserat — delar renderingsmotor med
@@ -44,11 +47,19 @@ fun SparklineChart(
 
     val modelProducer = remember { CartesianChartModelProducer() }
     val lineColor = MaterialTheme.colorScheme.primary
-    val yRange = remember(points) { computeSmartYRange(points) }
+    // Trendlinjen (TRD-13) räknas in i axelspannet så den aldrig hamnar utanför.
+    val trend = remember(points) { computeTrendLine(points) }
+    val yAxis = remember(points, trend) {
+        val trendValues = trend?.let { listOf(it.valueAt(0f), it.valueAt((points.size - 1).toFloat())) }.orEmpty()
+        computeSmartYAxis(points + trendValues)
+    }
 
-    LaunchedEffect(points) {
+    LaunchedEffect(points, trend) {
         modelProducer.runTransaction {
-            lineSeries { series(y = points) }
+            lineSeries {
+                series(y = points)
+                trend?.let { series(x = listOf(0, points.size - 1), y = listOf(it.valueAt(0f), it.valueAt((points.size - 1).toFloat()))) }
+            }
         }
     }
 
@@ -56,23 +67,41 @@ fun SparklineChart(
     val axisLabelColor = MaterialTheme.colorScheme.onSurface
     val axisLabel = rememberAxisLabelComponent(color = axisLabelColor)
 
+    // Y-axeln ska alltid visa heltal (#170), samma mönster som LineChartCanvas.
+    val yValueFormatter = remember { CartesianValueFormatter { _, value, _ -> formatChartValue(value.toFloat()) } }
+    val yItemPlacer = remember(yAxis.step) { VerticalAxis.ItemPlacer.step(step = { yAxis.step.toDouble() }) }
+
     CartesianChartHost(
         chart = rememberCartesianChart(
             rememberLineCartesianLayer(
                 lineProvider = LineCartesianLayer.LineProvider.series(
-                    listOf(
-                        LineCartesianLayer.rememberLine(
-                            fill = LineCartesianLayer.LineFill.single(fill(lineColor)),
-                            areaFill = LineCartesianLayer.AreaFill.single(fill = fill(lineColor.copy(alpha = 0.24f))),
-                            pointConnector = LineCartesianLayer.PointConnector.cubic(),
-                        ),
-                    ),
+                    buildList {
+                        add(
+                            LineCartesianLayer.rememberLine(
+                                fill = LineCartesianLayer.LineFill.single(fill(lineColor)),
+                                areaFill = LineCartesianLayer.AreaFill.single(fill = fill(lineColor.copy(alpha = 0.24f))),
+                                pointConnector = LineCartesianLayer.PointConnector.cubic(),
+                            ),
+                        )
+                        if (trend != null) {
+                            add(
+                                LineCartesianLayer.rememberLine(
+                                    fill = LineCartesianLayer.LineFill.single(fill(lineColor)),
+                                    stroke = LineCartesianLayer.LineStroke.Dashed(),
+                                ),
+                            )
+                        }
+                    },
                 ),
-                rangeProvider = remember(yRange) {
-                    CartesianLayerRangeProvider.fixed(minY = yRange.start.toDouble(), maxY = yRange.endInclusive.toDouble())
+                rangeProvider = remember(yAxis.range) {
+                    CartesianLayerRangeProvider.fixed(minY = yAxis.range.start.toDouble(), maxY = yAxis.range.endInclusive.toDouble())
                 },
             ),
-            startAxis = VerticalAxis.rememberStart(label = axisLabel),
+            startAxis = VerticalAxis.rememberStart(
+                label = axisLabel,
+                valueFormatter = yValueFormatter,
+                itemPlacer = yItemPlacer,
+            ),
             bottomAxis = HorizontalAxis.rememberBottom(
                 label = axisLabel,
                 valueFormatter = { _, value, _ -> xLabels.getOrNull(value.toInt())?.ifEmpty { " " } ?: " " },

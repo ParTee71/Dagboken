@@ -82,13 +82,30 @@ class LineChartCanvasTest {
     // ─── Smart y-axelskala (#136) ──────────────────────────────────────────────
 
     @Test fun renders_without_crash_with_a_narrow_non_zero_anchored_range() = renderAndRetry {
-        // t.ex. computeSmartYRange på ett symptomband 5..8
-        LineChartCanvas(series = series(1), minValue = 4.5f, maxValue = 8.5f, modifier = mod)
+        // t.ex. computeSmartYAxis på ett symptomband 5..8 — heltaligt sedan #170
+        // (var tidigare 4.5..8.5 med steg 0.5).
+        LineChartCanvas(series = series(1), minValue = 4f, maxValue = 9f, gridStep = 1f, modifier = mod)
     }
 
     @Test fun renders_without_crash_with_a_range_far_from_zero() = renderAndRetry {
         // t.ex. computeSmartYRange på stegvärden ~5000-9000
         LineChartCanvas(series = series(1), minValue = 4500f, maxValue = 9500f, modifier = mod)
+    }
+
+    // ─── Heltaliga y-axlar + explicit gridStep (#170) ──────────────────────────
+
+    @Test fun renders_without_crash_with_an_explicit_gridStep() = renderAndRetry {
+        LineChartCanvas(series = series(2), minValue = 0f, maxValue = 10f, gridStep = 2f, modifier = mod)
+    }
+
+    // ─── Trendlinje per serie (#170) ────────────────────────────────────────────
+
+    @Test fun renders_a_dashed_trend_line_for_multiple_series_without_crashing() = renderAndRetry {
+        LineChartCanvas(series = series(2), minValue = -10f, maxValue = 10f, modifier = mod)
+    }
+
+    @Test fun renders_a_trend_line_for_a_series_with_a_gap_without_crashing() = renderAndRetry {
+        LineChartCanvas(series = series(1, withGap = true), minValue = -10f, maxValue = 10f, modifier = mod)
     }
 
     // ─── Tömd serie efter tidigare rendering (#141) ───────────────────────────
