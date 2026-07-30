@@ -10,6 +10,7 @@ private val FALLBACK_RANGE = -10f..10f
 private const val FALLBACK_STEP = 5f
 private const val MARGIN_FRACTION = 0.1f
 private val NICE_FRACTIONS = floatArrayOf(1f, 2f, 5f, 10f)
+internal const val MAX_GRID_LINES = 12
 
 /**
  * [range] — se [computeSmartYRange]. [step] — avståndet mellan varje "snygg" gridlinje;
@@ -50,11 +51,30 @@ private fun roundOutward(min: Float, max: Float): SmartYAxis {
     return SmartYAxis(roundedMin..roundedMax, step)
 }
 
-/** Rundar [rawSpan] upp till närmaste "snygga" steg (1/2/5 × 10^n) för läsbara axelgränser. */
+/**
+ * Rundar [rawSpan] upp till närmaste "snygga" steg (1/2/5 × 10^n), lägst **1** — axelns
+ * gränser och gridlinjer ska alltid vara heltal, även för ett smalt värdeband (t.ex.
+ * symptomgradering 1–10) där den obegränsade formeln annars ger 0,5/0,2/0,1.
+ */
 internal fun niceStep(rawSpan: Float): Float {
     if (rawSpan <= 0f) return 1f
     val magnitude = 10.0.pow(floor(log10(rawSpan.toDouble()))).toFloat()
     val normalized = rawSpan / magnitude
     val niceFraction = NICE_FRACTIONS.firstOrNull { normalized <= it } ?: NICE_FRACTIONS.last()
-    return niceFraction * magnitude / 10f
+    return (niceFraction * magnitude / 10f).coerceAtLeast(1f)
+}
+
+/** Rutnätsvärden mellan [minValue] och [maxValue], jämnt fördelade med [step] mellanrum. */
+internal fun gridValuesFor(minValue: Float, maxValue: Float, step: Float): List<Float> {
+    if (step <= 0f || maxValue <= minValue) return listOf(minValue, maxValue)
+    val values = mutableListOf<Float>()
+    var v = minValue
+    var guard = 0
+    while (v <= maxValue + step * 0.001f && guard < MAX_GRID_LINES) {
+        values += v
+        v += step
+        guard++
+    }
+    if (values.isEmpty() || values.last() < maxValue - step * 0.001f) values += maxValue
+    return values
 }

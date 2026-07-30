@@ -87,7 +87,7 @@ class IntervalBarChartTest {
         },
     ) {
         composeRule.onNodeWithContentDescription(
-            "Dagsspann, 2 dagar, lägsta 2, högsta 9",
+            "Dagsspann, 2 dagar, lägsta 2, högsta 9, trend stigande",
         ).assertIsDisplayed()
     }
 
@@ -111,7 +111,7 @@ class IntervalBarChartTest {
         },
     ) {
         composeRule.onNodeWithContentDescription(
-            "Dagsspann, 30 dagar, lägsta 1, högsta 10",
+            "Dagsspann, 30 dagar, lägsta 1, högsta 10, trend stigande",
         ).assertIsDisplayed()
     }
 
@@ -133,7 +133,7 @@ class IntervalBarChartTest {
         },
     ) {
         composeRule.onNodeWithContentDescription(
-            "Dagsspann, 3 dagar, lägsta 2, högsta 9",
+            "Dagsspann, 3 dagar, lägsta 2, högsta 9, trend stigande",
         ).assertIsDisplayed()
     }
 
@@ -153,7 +153,7 @@ class IntervalBarChartTest {
         },
     ) {
         composeRule.onNodeWithContentDescription(
-            "Dagsspann, 2 dagar, lägsta 2, högsta 9",
+            "Dagsspann, 2 dagar, lägsta 2, högsta 9, trend stigande",
         ).assertIsDisplayed()
     }
 
@@ -171,6 +171,25 @@ class IntervalBarChartTest {
     ) {
         composeRule.onNodeWithContentDescription(
             "Dagsspann, 1 dagar, lägsta 2, högsta 8",
+        ).assertIsDisplayed()
+    }
+
+    // ─── Heltaliga y-axlar (#170) ───────────────────────────────────────────────
+
+    @Test fun `default gridStep for a narrow span is a whole number`() = renderAndRetry(
+        content = {
+            // span 0..3 skulle innan #170 ge ett default-gridStep under 1 (0.5) via niceStep.
+            IntervalBarChart(
+                points   = listOf(IntervalPoint(min = 1f, value = 2f, max = 3f)),
+                dates    = listOf("2026-07-10"),
+                minValue = 0f,
+                maxValue = 3f,
+                modifier = mod,
+            )
+        },
+    ) {
+        composeRule.onNodeWithContentDescription(
+            "Dagsspann, 1 dagar, lägsta 1, högsta 3",
         ).assertIsDisplayed()
     }
 
@@ -207,7 +226,7 @@ class IntervalBarChartTest {
         },
     ) {
         composeRule.onNodeWithContentDescription(
-            "Dagsspann, 3 dagar, lägsta 1, högsta 9",
+            "Dagsspann, 3 dagar, lägsta 1, högsta 9, trend fallande",
         ).performTouchInput {
             // Två fingrar från mitten och utåt — nyp-zooma isär.
             down(0, Offset(center.x - 20f, center.y))
@@ -218,7 +237,7 @@ class IntervalBarChartTest {
             up(1)
         }
         composeRule.onNodeWithContentDescription(
-            "Dagsspann, 3 dagar, lägsta 1, högsta 9",
+            "Dagsspann, 3 dagar, lägsta 1, högsta 9, trend fallande",
         ).assertIsDisplayed()
     }
 }

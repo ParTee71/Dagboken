@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -36,23 +37,7 @@ private const val MAX_ZOOM = 6f
 data class IntervalPoint(val min: Float, val value: Float, val max: Float)
 
 private const val MAX_DATE_LABELS = 6
-private const val MAX_GRID_LINES = 12
 private val AXIS_LABEL_SIZE = 11.sp
-
-/** Rutnätsvärden mellan [minValue] och [maxValue], jämnt fördelade med [step] mellanrum. */
-private fun gridValuesFor(minValue: Float, maxValue: Float, step: Float): List<Float> {
-    if (step <= 0f || maxValue <= minValue) return listOf(minValue, maxValue)
-    val values = mutableListOf<Float>()
-    var v = minValue
-    var guard = 0
-    while (v <= maxValue + step * 0.001f && guard < MAX_GRID_LINES) {
-        values += v
-        v += step
-        guard++
-    }
-    if (values.isEmpty() || values.last() < maxValue - step * 0.001f) values += maxValue
-    return values
-}
 
 /**
  * Generiskt intervall-/spannstapeldiagram (regel 4 — inte en Energi-specifik variant):
@@ -101,13 +86,24 @@ fun IntervalBarChart(
     var scale by remember(points) { mutableFloatStateOf(1f) }
     var offsetX by remember(points) { mutableFloatStateOf(0f) }
 
-    val description = remember(points, minValue, maxValue) {
+    // Trendlinje (TRD-13) över dagsvärdena — riktningen läggs även i beskrivningen
+    // nedan så TalkBack inte tappar information som annars bara syns visuellt.
+    val trend = remember(points) { computeTrendLine(points.map { it?.value }) }
+
+    val description = remember(points, minValue, maxValue, trend) {
         val known = points.filterNotNull()
         if (known.isEmpty()) {
             "Inga dagar med data"
         } else {
+            val trendText = trend?.let {
+                ", trend " + when {
+                    it.slope > 0f -> "stigande"
+                    it.slope < 0f -> "fallande"
+                    else -> "oförändrad"
+                }
+            }.orEmpty()
             "Dagsspann, ${known.size} dagar, lägsta ${formatChartValue(known.minOf { it.min })}, " +
-                "högsta ${formatChartValue(known.maxOf { it.max })}"
+                "högsta ${formatChartValue(known.maxOf { it.max })}$trendText"
         }
     }
 
@@ -211,6 +207,20 @@ fun IntervalBarChart(
                 color = barColor,
                 style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
             )
+
+            // Trendlinjen (TRD-13) — streckad, ritad ovanpå kurvan i samma färg.
+            trend?.let {
+                val firstIndex = points.indexOfFirst { p -> p != null }
+                val lastIndex = points.indexOfLast { p -> p != null }
+                drawLine(
+                    color = barColor,
+                    start = Offset(xOf(firstIndex), yOf(it.valueAt(firstIndex.toFloat()))),
+                    end   = Offset(xOf(lastIndex), yOf(it.valueAt(lastIndex.toFloat()))),
+                    strokeWidth = 2.dp.toPx(),
+                    cap = StrokeCap.Round,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f),
+                )
+            }
 
             // Dagsvärdesprickar och x-axelns dagsetiketter — ritas sist, ovanpå kurvan.
             points.forEachIndexed { i, point ->

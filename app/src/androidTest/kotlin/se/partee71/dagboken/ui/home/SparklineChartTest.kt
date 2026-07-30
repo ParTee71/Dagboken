@@ -30,6 +30,8 @@ class SparklineChartTest {
         }
     }
 
+    // Minimigränsen (2 punkter, HEM-7) är samtidigt minimigränsen för att rita en
+    // trendlinje (TRD-13) — det här verifierar att båda ryms utan att krascha.
     @Test fun renders_without_crash_with_two_points() = renderAndRetry {
         SparklineChart(points = listOf(3f, 7f))
     }

@@ -40,7 +40,7 @@ import se.partee71.dagboken.ui.diagram.IntervalPoint
 import se.partee71.dagboken.ui.diagram.LineChartCanvas
 import se.partee71.dagboken.ui.diagram.MinMaxCaption
 import se.partee71.dagboken.ui.diagram.computeSmartYAxis
-import se.partee71.dagboken.ui.diagram.computeSmartYRange
+import se.partee71.dagboken.ui.diagram.computeTrendLine
 
 @Composable
 fun TrenderScreen(
@@ -100,7 +100,7 @@ private fun stepsSection(state: TrenderUiState, vm: TrenderViewModel): DiagramSe
                 )
             } else {
                 val values = points.map { it.steps.toFloat() }
-                val yRange = remember(values) { computeSmartYRange(values) }
+                val yAxis = remember(values) { computeSmartYAxis(values) }
                 LineChartCanvas(
                     series = listOf(
                         ChartSeries(
@@ -110,8 +110,9 @@ private fun stepsSection(state: TrenderUiState, vm: TrenderViewModel): DiagramSe
                         ),
                     ),
                     dates    = points.map { it.date.toString() },
-                    minValue = yRange.start,
-                    maxValue = yRange.endInclusive,
+                    minValue = yAxis.range.start,
+                    maxValue = yAxis.range.endInclusive,
+                    gridStep = yAxis.step,
                     modifier = chartModifier.height(200.dp),
                 )
             }
@@ -138,7 +139,7 @@ private fun restingHeartRateSection(state: TrenderUiState, vm: TrenderViewModel)
                 )
             } else {
                 val values = points.map { it.bpm!!.toFloat() }
-                val yRange = remember(values) { computeSmartYRange(values) }
+                val yAxis = remember(values) { computeSmartYAxis(values) }
                 LineChartCanvas(
                     series = listOf(
                         ChartSeries(
@@ -148,8 +149,9 @@ private fun restingHeartRateSection(state: TrenderUiState, vm: TrenderViewModel)
                         ),
                     ),
                     dates    = points.map { it.date.toString() },
-                    minValue = yRange.start,
-                    maxValue = yRange.endInclusive,
+                    minValue = yAxis.range.start,
+                    maxValue = yAxis.range.endInclusive,
+                    gridStep = yAxis.step,
                     modifier = chartModifier.height(200.dp),
                 )
             }
@@ -224,12 +226,13 @@ private fun categorySection(
                     modifier = chartModifier.height(280.dp),
                 )
             } else {
-                val yRange = remember(allValues) { computeSmartYRange(allValues) }
+                val yAxis = remember(allValues) { computeSmartYAxis(allValues) }
                 LineChartCanvas(
                     series   = trend.series,
                     dates    = trend.dates,
-                    minValue = yRange.start,
-                    maxValue = yRange.endInclusive,
+                    minValue = yAxis.range.start,
+                    maxValue = yAxis.range.endInclusive,
+                    gridStep = yAxis.step,
                     modifier = chartModifier.height(280.dp),
                 )
             }
@@ -252,6 +255,21 @@ private fun categorySection(
                                 .background(s.color),
                         )
                         Text(s.label, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                // Trendlinjen (TRD-13) ritas i varje serie som har minst 2 kända
+                // punkter — en gemensam legendrad räcker för att förklara den streckade linjen.
+                if (trend.series.any { computeTrendLine(it.points) != null }) {
+                    Row(
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.testTag("trender_legend_item_trend"),
+                    ) {
+                        Text(
+                            stringResource(R.string.diagram_legend_trend),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }

@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.diagram
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -84,5 +85,87 @@ class SmartYAxisTest {
         val axis = computeSmartYAxis(emptyList())
         assertTrue(axis.step > 0f)
         assertTrue(axis.range == -10f..10f)
+    }
+
+    // ─── Heltaliga y-axlar (#170) ──────────────────────────────────────────────
+
+    private val bands = listOf(
+        listOf(5f, 6f, 8f, 7f), // symptomband/energiband 5..8
+        listOf(58f, 61f, 55f, 65f), // vilopuls
+        listOf(5200f, 8800f, 6400f, 9100f), // stegtrend
+        listOf(5f, 5f, 5f), // enda distinkta värdet
+        listOf(0f, 0f),
+        listOf(-8f, -5f, -3f),
+        listOf(42f),
+    )
+
+    @Test fun `step is always a whole number and at least 1`() {
+        bands.forEach { values ->
+            val axis = computeSmartYAxis(values)
+            assertTrue(
+                "step for $values should be >= 1, was ${axis.step}",
+                axis.step >= 1f,
+            )
+            assertEquals("step for $values should be a whole number", axis.step, Math.round(axis.step).toFloat())
+        }
+    }
+
+    @Test fun `range endpoints are always whole numbers`() {
+        bands.forEach { values ->
+            val axis = computeSmartYAxis(values)
+            assertEquals(
+                "range.start for $values should be a whole number",
+                axis.range.start,
+                Math.round(axis.range.start).toFloat(),
+            )
+            assertEquals(
+                "range.endInclusive for $values should be a whole number",
+                axis.range.endInclusive,
+                Math.round(axis.range.endInclusive).toFloat(),
+            )
+        }
+    }
+
+    @Test fun `step is a 1, 2 or 5 times a power of ten`() {
+        bands.forEach { values ->
+            val axis = computeSmartYAxis(values)
+            val magnitude = Math.pow(10.0, Math.floor(Math.log10(axis.step.toDouble())))
+            val normalized = axis.step / magnitude
+            assertTrue(
+                "step ${axis.step} for $values should normalize to 1, 2, 5 or 10, was $normalized",
+                listOf(1.0, 2.0, 5.0, 10.0).any { Math.abs(normalized - it) < 0.01 },
+            )
+        }
+    }
+
+    @Test fun `grid line count stays within the max for narrow and wide spans`() {
+        bands.forEach { values ->
+            val axis = computeSmartYAxis(values)
+            val values2 = gridValuesFor(axis.range.start, axis.range.endInclusive, axis.step)
+            assertTrue(
+                "grid line count for $values was ${values2.size}",
+                values2.size <= 12,
+            )
+        }
+    }
+
+    @Test fun `symptom band 5 to 8 no longer produces a half-step axis`() {
+        // regression för #136/#141: innan #170 gav detta 4.5..8.5 med steg 0.5.
+        val axis = computeSmartYAxis(listOf(5f, 6f, 8f, 7f))
+        assertTrue("expected step >= 1, was ${axis.step}", axis.step >= 1f)
+        assertEquals(axis.range.start, Math.round(axis.range.start).toFloat())
+        assertEquals(axis.range.endInclusive, Math.round(axis.range.endInclusive).toFloat())
+    }
+
+    @Test fun `gridValuesFor includes the endpoints and only whole numbers for a whole step`() {
+        val values = gridValuesFor(0f, 10f, 2f)
+        assertEquals(0f, values.first())
+        assertEquals(10f, values.last())
+        values.forEach { assertEquals(it, Math.round(it).toFloat()) }
+    }
+
+    @Test fun `formatChartValue renders whole numbers without a decimal`() {
+        assertEquals("5", formatChartValue(5f))
+        assertEquals("5.5", formatChartValue(5.5f))
     }
 }
