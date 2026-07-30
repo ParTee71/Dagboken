@@ -8,8 +8,6 @@ import androidx.glance.GlanceModifier
 import androidx.glance.action.actionParametersOf
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.lazy.LazyColumn
-import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.appwidget.state.updateAppWidgetState
@@ -149,8 +147,11 @@ private fun FavoritList(favoriter: List<Favorit>, showAll: Boolean, hasAnyMedici
     if (favoriter.isEmpty()) {
         Text(text = strings.emptyFavorites, style = TextStyle(color = WidgetOnBackground))
     } else {
-        LazyColumn(modifier = GlanceModifier.fillMaxWidth()) {
-            items(favoriter, itemId = { it.id.hashCode().toLong() }) { favorit ->
+        // Vanlig Column, inte LazyColumn — se kommentaren i DagbokenWidget: per-rad-klick i
+        // en RemoteViews-collection kräver PendingIntent-template och fungerade bara för
+        // första raden.
+        Column(modifier = GlanceModifier.fillMaxWidth()) {
+            favoriter.forEach { favorit ->
                 WidgetButton(
                     "${favorit.namn} ${favorit.dos} ${favorit.enhet}",
                     actionRunCallback<LogVidBehovAction>(

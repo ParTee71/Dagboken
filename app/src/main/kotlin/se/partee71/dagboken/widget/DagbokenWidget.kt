@@ -9,8 +9,6 @@ import androidx.glance.action.actionParametersOf
 import androidx.glance.appwidget.CheckBox
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.lazy.LazyColumn
-import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Column
@@ -90,10 +88,13 @@ private fun MedsWidgetContent(items: List<Medicin>, strings: MedsWidgetStrings, 
         when {
             items.isEmpty() -> Text(text = strings.emptyState, style = TextStyle(color = WidgetOnBackground))
             actionable.isEmpty() -> Text(text = strings.allDone, style = TextStyle(color = WidgetOnBackground))
-            else -> LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-                items(actionable, itemId = { it.id.hashCode().toLong() }) { medicin ->
-                    MedicinRow(medicin, strings.doseLabelFormat)
-                }
+            // Vanlig Column, inte LazyColumn: i en LazyColumn blir varje rad ett
+            // RemoteViews-collection-item, där per-rad-klick kräver PendingIntent-template
+            // + fill-in-intents — och bara den första radens kryssruta reagerade på tryck.
+            // En Column ger varje rad en egen vanlig PendingIntent. Listan är kort (tagna
+            // doser döljs, #164) så den saknade scrollningen är inte ett problem i praktiken.
+            else -> Column(modifier = GlanceModifier.fillMaxWidth()) {
+                actionable.forEach { medicin -> MedicinRow(medicin, strings.doseLabelFormat) }
             }
         }
     }

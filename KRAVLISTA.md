@@ -401,8 +401,11 @@
 > persisterad datamodell, backup-kedjan är oförändrad. Screeningguidens steg-state och vid
 > behov-widgetens cooldown-bekräftelse är flyktig per-widgetinstans-state
 > (`PreferencesGlanceStateDefinition`), inte i backupen. `proguard-rules.pro` behåller
-> hela `widget`-paketet — Glance instansierar widget-/action-klasserna via reflektion i
-> release-builden, och utan keep-regel gjorde R8 tryck overksamma utan krasch (#164).
+> både appens `widget`-paket **och** `androidx.glance.**` — Glance instansierar såväl våra
+> widget-/action-klasser som sina egna trampolin-komponenter via reflektion/manifest-
+> klassnamn, och utan keep-regler gjorde R8 tryck overksamma utan krasch (#164). Widgetarnas
+> listor använder vanlig `Column`, inte `LazyColumn`: i en RemoteViews-collection krävs
+> PendingIntent-template för per-rad-klick, och bara första raden reagerade på tryck.
 
 | ID | Krav |
 |----|------|
