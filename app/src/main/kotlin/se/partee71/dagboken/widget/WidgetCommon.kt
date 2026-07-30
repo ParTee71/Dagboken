@@ -8,13 +8,9 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.action.Action
-import androidx.glance.action.clickable
+import androidx.glance.appwidget.CheckBox
 import androidx.glance.appwidget.state.updateAppWidgetState
-import androidx.glance.background
-import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
 import androidx.glance.layout.padding
-import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 
@@ -25,34 +21,37 @@ import androidx.glance.unit.ColorProvider
  */
 val WidgetBackground = ColorProvider(Color(0xFF15151B))
 val WidgetOnBackground = ColorProvider(Color(0xFFF2F2F5))
-val WidgetButtonBackground = ColorProvider(Color(0xFF2A2A34))
 
 /**
- * Glances base-modul saknar en egen "Button", så knappen byggs av en klickbar container.
+ * Widgetens tryckbara "knapp", byggd på [CheckBox].
  *
- * Klicket sitter på en [Box] och `clickable` appliceras **först** i modifier-kedjan. Tidigare
- * satt `clickable` mitt i kedjan på en `Text` (`background().clickable().padding()`), och då
- * reagerade knapparna inte på tryck alls i screening-/vid behov-widgeten medan
- * medicinwidgetens `CheckBox` (en riktig RemoteViews-compound-knapp) fungerade — enda
- * strukturella skillnaden mellan dem.
+ * Det ser inte ut som en knapp — det är en kryssruta med etikett — men det är den enda
+ * tryckmekanism som **bevisligen** fungerar i appens release-bygge. Vi mätte det: en
+ * tryckräknare som skrivs allra först i varje `ActionCallback` rörde sig aldrig för knappar
+ * byggda på `GlanceModifier.clickable(...)` (varken på `Text` eller på en `Box`, varken före
+ * eller efter keep-regler för `androidx.glance.**`), medan medicinchecklistans `CheckBox`
+ * körde sin action direkt. `CheckBox`/`Switch` är riktiga RemoteViews-compound-buttons och
+ * går en annan väg internt än `clickable`.
+ *
+ * `checked` är alltid `false`: kryssrutan används som en momentan avtryckare, inte som en
+ * tillståndsvisning. Utseendet får vika för att flödena faktiskt går att använda; en
+ * snyggare primitiv kan införas när den är verifierad på samma sätt.
  */
 @Composable
 fun WidgetButton(text: String, action: Action, modifier: GlanceModifier = GlanceModifier) {
-    Box(
-        modifier = modifier
-            .clickable(action)
-            .background(WidgetButtonBackground)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = text, style = TextStyle(color = WidgetOnBackground))
-    }
+    CheckBox(
+        checked = false,
+        onCheckedChange = action,
+        text = text,
+        style = TextStyle(color = WidgetOnBackground),
+        modifier = modifier.padding(vertical = 4.dp),
+    )
 }
 
 /**
  * Diagnostik (tillfällig): räknar varje gång en `ActionCallback` faktiskt körs, oavsett om
- * dess kropp lyckas. Widgeten visar räknaren, så nästa build skiljer "trycket når aldrig
- * fram" från "trycket når fram men åtgärden misslyckas" — utan att behöva logcat på telefon.
+ * dess kropp lyckas. Widgeten visar räknaren, så vi kan skilja "trycket når aldrig fram"
+ * från "trycket når fram men åtgärden misslyckas" — utan att behöva logcat på telefon.
  * Tas bort när screening-/vid behov-trycken är verifierade.
  */
 val WIDGET_TAP_COUNT = intPreferencesKey("widget_tap_count")
