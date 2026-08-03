@@ -14,6 +14,7 @@ import org.junit.runner.RunWith
 import se.partee71.dagboken.data.room.entities.MedicinEntity
 import se.partee71.dagboken.data.room.entities.ReceptEntity
 import se.partee71.dagboken.data.room.entities.toDomain
+import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import java.time.LocalDate
@@ -33,6 +34,8 @@ class EnsureTodayEntriesIntegrationTest {
         runCatching { json.decodeFromString<List<String>>(s) }.getOrDefault(emptyList())
     private fun decodeInt(s: String): List<Int> =
         runCatching { json.decodeFromString<List<Int>>(s) }.getOrDefault(emptyList())
+    private fun decodeDosperioder(s: String): List<Dosperiod> =
+        runCatching { json.decodeFromString<List<Dosperiod>>(s) }.getOrDefault(emptyList())
 
     @Before fun setUp() {
         db = Room.inMemoryDatabaseBuilder(
@@ -56,7 +59,7 @@ class EnsureTodayEntriesIntegrationTest {
             skapad = datum,
         ))
 
-        val recept = receptDao.getActive().map { it.toDomain(::decode, ::decodeInt) }
+        val recept = receptDao.getActive().map { it.toDomain(::decode, ::decodeInt, ::decodeDosperioder) }
         val existing = medicinDao.getByDate(datum).map { it.toDomain() }
         val newEntries = useCase.compute(recept, existing, today)
 
@@ -78,7 +81,7 @@ class EnsureTodayEntriesIntegrationTest {
             skapad = datum,
         ))
 
-        val recept = receptDao.getActive().map { it.toDomain(::decode, ::decodeInt) }
+        val recept = receptDao.getActive().map { it.toDomain(::decode, ::decodeInt, ::decodeDosperioder) }
         val first = useCase.compute(recept, emptyList(), today)
         medicinDao.upsertAll(first.map { it.toMedicinEntity() })
 
@@ -98,7 +101,7 @@ class EnsureTodayEntriesIntegrationTest {
             skapad = today.toString(),
         ))
 
-        val recept = receptDao.getActive().map { it.toDomain(::decode, ::decodeInt) }
+        val recept = receptDao.getActive().map { it.toDomain(::decode, ::decodeInt, ::decodeDosperioder) }
         val entries = useCase.compute(recept, emptyList(), today)
         assertEquals(2, entries.size)
         assertTrue(entries.any { it.tidpunkt == "Morgon" })
@@ -117,9 +120,47 @@ class EnsureTodayEntriesIntegrationTest {
         ))
 
         // getActive() returns only aktiv=1
-        val recept = receptDao.getActive().map { it.toDomain(::decode, ::decodeInt) }
+        val recept = receptDao.getActive().map { it.toDomain(::decode, ::decodeInt, ::decodeDosperioder) }
         val entries = useCase.compute(recept, emptyList(), today)
         assertTrue(entries.isEmpty())
+    }
+
+    @Test fun noEntriesAfterPeriodEnd() = runTest {
+        val today = LocalDate.now()
+        val receptDao = db.receptDao()
+
+        receptDao.upsert(ReceptEntity(
+            id = "r4", namn = "Amoxicillin", dos = "500", enhet = "mg",
+            tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
+            dagarJson = "[]", intervalDagar = 1, aktiv = true,
+            skapad = today.minusDays(10).toString(),
+            startDatum = today.minusDays(10).toString(),
+            slutDatum = today.minusDays(1).toString(),
+        ))
+
+        val recept = receptDao.getActive().map { it.toDomain(::decode, ::decodeInt, ::decodeDosperioder) }
+        assertTrue(useCase.compute(recept, emptyList(), today).isEmpty())
+        // Sista dagen i perioden genererar fortfarande en dos
+        assertEquals(1, useCase.compute(recept, emptyList(), today.minusDays(1)).size)
+    }
+
+    @Test fun dosperiodOverridesBaseDose() = runTest {
+        val today = LocalDate.now()
+        val receptDao = db.receptDao()
+
+        receptDao.upsert(ReceptEntity(
+            id = "r5", namn = "Prednisolon", dos = "5", enhet = "mg",
+            tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
+            dagarJson = "[]", intervalDagar = 1, aktiv = true,
+            skapad = today.toString(),
+            startDatum = today.toString(),
+            slutDatum = today.plusDays(9).toString(),
+            dosperioderJson = """[{"id":"d1","startDatum":"$today","slutDatum":"$today","dos":"20","enhet":"mg"}]""",
+        ))
+
+        val recept = receptDao.getActive().map { it.toDomain(::decode, ::decodeInt, ::decodeDosperioder) }
+        assertEquals("20", useCase.compute(recept, emptyList(), today)[0].dos)
+        assertEquals("5", useCase.compute(recept, emptyList(), today.plusDays(1))[0].dos)
     }
 }
 

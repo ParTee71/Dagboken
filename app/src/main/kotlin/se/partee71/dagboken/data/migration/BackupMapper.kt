@@ -2,6 +2,7 @@ package se.partee71.dagboken.data.migration
 
 import se.partee71.dagboken.data.room.entities.NoteEntity
 import se.partee71.dagboken.domain.model.Aktivitet
+import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Handelse
 import se.partee71.dagboken.domain.model.Medicin
@@ -120,8 +121,19 @@ object BackupMapper {
             intervalDagar = intervalDagar,
             aktiv        = aktiv,
             skapad       = skapad,
+            startDatum   = startDatum.ifBlank { skapad },
+            slutDatum    = slutDatum?.takeIf { it.isNotBlank() },
+            dosperioder  = dosperioder.map { it.toDomain() },
         )
     }
+
+    private fun DosperiodJson.toDomain() = Dosperiod(
+        id         = id,
+        startDatum = startDatum,
+        slutDatum  = slutDatum?.takeIf { it.isNotBlank() },
+        dos        = dos,
+        enhet      = enhet,
+    )
 
     private fun FavoritJson.toDomain() = Favorit(
         id               = id,

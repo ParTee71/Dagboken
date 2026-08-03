@@ -190,9 +190,11 @@ fun HanteraScreen(
                 NotificationsCard(
                     medsEnabled        = state.medsNotificationsEnabled,
                     screeningConfigs   = state.screeningEventConfigs,
+                    periodReminderTime = state.periodReminderTime,
                     onToggleMeds       = { vm.toggleMedsNotifications() },
                     onToggleScreening  = { vm.toggleScreeningEvent(it) },
                     onSetScreeningTime = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
+                    onSetPeriodTime    = { h, m -> vm.setPeriodReminderTime("%02d:%02d".format(h, m)) },
                 )
             },
             {
@@ -632,9 +634,11 @@ private fun ThemeTimeRow(label: String, hour: Int, onClick: () -> Unit) {
 private fun NotificationsCard(
     medsEnabled: Boolean,
     screeningConfigs: List<ScreeningEventConfig>,
+    periodReminderTime: String,
     onToggleMeds: () -> Unit,
     onToggleScreening: (Int) -> Unit,
     onSetScreeningTime: (Int, Int, Int) -> Unit,
+    onSetPeriodTime: (Int, Int) -> Unit,
 ) {
     DagbokenCard {
         Column {
@@ -671,7 +675,70 @@ private fun NotificationsCard(
                     onTimeSelected = { h, m -> onSetScreeningTime(index, h, m) },
                 )
             }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Text(stringResource(R.string.settings_period_reminder), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                stringResource(R.string.settings_period_reminder_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            PeriodReminderRow(
+                time           = periodReminderTime,
+                onTimeSelected = onSetPeriodTime,
+            )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PeriodReminderRow(
+    time: String,
+    onTimeSelected: (hour: Int, minute: Int) -> Unit,
+) {
+    val parts  = time.split(":")
+    val hour   = parts.getOrNull(0)?.toIntOrNull() ?: 9
+    val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+    var showPicker by remember { mutableStateOf(false) }
+    val label = stringResource(R.string.settings_period_reminder_time)
+
+    Row(
+        modifier          = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        TextButton(onClick = { showPicker = true }) {
+            Text(
+                text       = time,
+                style      = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.width(4.dp))
+            Icon(
+                Icons.Default.Alarm,
+                contentDescription = stringResource(R.string.settings_pick_time),
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+
+    if (showPicker) {
+        val state = rememberTimePickerState(initialHour = hour, initialMinute = minute, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { showPicker = false },
+            title            = { Text(label) },
+            text             = { TimePicker(state = state) },
+            confirmButton    = {
+                TextButton(onClick = {
+                    onTimeSelected(state.hour, state.minute)
+                    showPicker = false
+                }) { Text(stringResource(R.string.ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
     }
 }
 

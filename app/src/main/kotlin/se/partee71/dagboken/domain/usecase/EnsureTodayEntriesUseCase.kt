@@ -5,6 +5,9 @@ import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.Recept
 import se.partee71.dagboken.domain.model.TIDP_DEFAULT_TIMES
 import se.partee71.dagboken.domain.model.Upprepning
+import se.partee71.dagboken.domain.model.coversDate
+import se.partee71.dagboken.domain.model.dosFor
+import se.partee71.dagboken.domain.model.periodStart
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -40,6 +43,7 @@ class EnsureTodayEntriesUseCase @Inject constructor() {
 
                 val tid = TIDP_DEFAULT_TIMES[tidpunkt] ?: "12:00"
                 val timestamp = Timestamps.of(datum, tid)
+                val (dos, enhet) = r.dosFor(today)
 
                 newEntries += Medicin(
                     id         = stableId,
@@ -47,8 +51,8 @@ class EnsureTodayEntriesUseCase @Inject constructor() {
                     datum      = datum,
                     tid        = tid,
                     namn       = r.namn,
-                    dos        = r.dos,
-                    enhet      = r.enhet,
+                    dos        = dos,
+                    enhet      = enhet,
                     tidpunkt   = tidpunkt,
                     tagen      = false,
                     receptId   = r.id,
@@ -61,10 +65,12 @@ class EnsureTodayEntriesUseCase @Inject constructor() {
     }
 
     /**
-     * Ports shouldTakeToday() from src/storage/mediciner.ts exactly.
+     * Ports shouldTakeToday() from src/storage/mediciner.ts exactly, utökad med
+     * periodgrindningen (REC-7): utanför receptets period genereras inga doser.
      * dayIdx: 0=Monday … 6=Sunday (JS getDay() adjusted)
      */
     fun shouldTakeToday(recept: Recept, today: LocalDate = LocalDate.now()): Boolean {
+        if (!recept.coversDate(today)) return false
         // Java DayOfWeek: MONDAY=1 … SUNDAY=7; convert to 0-based Mon=0
         val dayIdx = today.dayOfWeek.value - 1
         return when (Upprepning.fromString(recept.upprepning)) {
@@ -73,8 +79,10 @@ class EnsureTodayEntriesUseCase @Inject constructor() {
             Upprepning.ANPASSAD -> dayIdx in recept.dagar
             Upprepning.INTERVALL -> {
                 val n = recept.intervalDagar.takeIf { it > 1 } ?: return true
+                // Räknas från periodens startdatum (REC-4/REC-7); för recept utan eget
+                // startdatum är det skapandedatumet, exakt som före periodstödet.
                 val start = runCatching {
-                    LocalDate.parse(recept.skapad, DateTimeFormatter.ISO_LOCAL_DATE)
+                    LocalDate.parse(recept.periodStart, DateTimeFormatter.ISO_LOCAL_DATE)
                 }.getOrDefault(today)
                 val diffDays = ChronoUnit.DAYS.between(start, today)
                 diffDays % n == 0L

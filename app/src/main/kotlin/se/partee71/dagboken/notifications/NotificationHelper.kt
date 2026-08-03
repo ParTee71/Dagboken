@@ -9,6 +9,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import se.partee71.dagboken.MainActivity
 import se.partee71.dagboken.R
+import se.partee71.dagboken.domain.usecase.PeriodSlut
+import se.partee71.dagboken.ui.navigation.Routes
 import se.partee71.dagboken.ui.navigation.Screen
 
 object NotificationHelper {
@@ -19,6 +21,7 @@ object NotificationHelper {
     const val EXTRA_SCREENING_LABEL = "extra_screening_label"
 
     const val NOTIFICATION_ID_MED       = 2
+    const val NOTIFICATION_ID_PERIOD    = 3
     private const val NOTIFICATION_ID_SCREENING = 1
 
     private const val REQUEST_MED_MARK_TAKEN = 20
@@ -82,6 +85,44 @@ object NotificationHelper {
             )
             .build()
         manager.notify(NOTIFICATION_ID_SCREENING, notification)
+    }
+
+    /**
+     * Påminnelse dagen innan en receptperiod eller dosperiod tar slut (NOT-12). Flera
+     * samtidiga periodslut slås ihop till en notis; en tom lista postar ingenting.
+     */
+    fun postPeriodReminder(context: Context, endings: List<PeriodSlut>) {
+        if (endings.isEmpty()) return
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val title: String
+        val body: String
+        if (endings.size == 1) {
+            when (val ending = endings.first()) {
+                is PeriodSlut.ReceptSlut -> {
+                    title = context.getString(R.string.notification_period_recept_title, ending.receptNamn)
+                    body  = context.getString(R.string.notification_period_recept_body)
+                }
+                is PeriodSlut.DosperiodSlut -> {
+                    title = context.getString(R.string.notification_period_dos_title, ending.receptNamn)
+                    body  = context.getString(R.string.notification_period_dos_body, ending.nyDos)
+                }
+            }
+        } else {
+            title = context.getString(R.string.notification_period_multi_title, endings.size)
+            body  = endings.joinToString(", ") { it.receptNamn }
+        }
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_MEDS)
+            .setSmallIcon(R.drawable.ic_notification_med)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .setContentIntent(buildIntent(context, Routes.SCHEMA, NOTIFICATION_ID_PERIOD))
+            .build()
+        manager.notify(NOTIFICATION_ID_PERIOD, notification)
     }
 
     private fun buildIntent(

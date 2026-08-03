@@ -41,6 +41,7 @@ class PreferencesRepository @Inject constructor(
         // Notifications
         val MEDS_NOTIFICATIONS       = booleanPreferencesKey("meds_notifications")
         val SCREENING_EVENT_CONFIGS  = stringPreferencesKey("screening_event_configs")
+        val PERIOD_REMINDER_TIME     = stringPreferencesKey("period_reminder_time")
         // Backup
         val BACKUP_NEEDS_AUTH   = booleanPreferencesKey("backup_needs_auth")
     }
@@ -111,6 +112,10 @@ class PreferencesRepository @Inject constructor(
         }
         .catch { emit(DEFAULT_SCREENING_EVENTS) }
 
+    /** Klockslag för påminnelsen dagen innan en receptperiod tar slut (NOT-13). */
+    val periodReminderTime: Flow<String> = dataStore.data
+        .map { it[Keys.PERIOD_REMINDER_TIME] ?: DEFAULT_PERIOD_REMINDER_TIME }
+
     val backupNeedsAuth: Flow<Boolean> = dataStore.data
         .map { it[Keys.BACKUP_NEEDS_AUTH] ?: false }
 
@@ -162,6 +167,10 @@ class PreferencesRepository @Inject constructor(
         dataStore.edit { it[Keys.SCREENING_EVENT_CONFIGS] = Json.encodeToString(configs) }
     }
 
+    suspend fun setPeriodReminderTime(time: String) {
+        dataStore.edit { it[Keys.PERIOD_REMINDER_TIME] = time }
+    }
+
     suspend fun setBackupNeedsAuth(needsAuth: Boolean) {
         dataStore.edit { it[Keys.BACKUP_NEEDS_AUTH] = needsAuth }
     }
@@ -184,6 +193,8 @@ data class ScreeningTime(val hour: Int, val min: Int) {
 }
 
 val SCREENING_EVENT_LABELS = listOf("Efter frukost", "Lunch", "Kvällsmat", "Läggdags")
+
+const val DEFAULT_PERIOD_REMINDER_TIME = "09:00"
 
 val DEFAULT_SCREENING_EVENTS = listOf(
     ScreeningEventConfig(enabled = false, time = "08:00"),

@@ -43,6 +43,13 @@ class BackupJsonSerializationTest {
                 tidpunkter = listOf("Morgon", "Kväll"), upprepning = "dagligen",
                 dagar = listOf(1, 3, 5), intervalDagar = 2, anteckning = "Med mat",
                 aktiv = true, skapad = "2026-01-01",
+                startDatum = "2026-01-02", slutDatum = "2026-01-16",
+                dosperioder = listOf(
+                    DosperiodJson(
+                        id = "d1", startDatum = "2026-01-02", slutDatum = "2026-01-08",
+                        dos = "2", enhet = "st",
+                    ),
+                ),
             ),
         ),
         medicinFavoriter = listOf(
@@ -90,6 +97,7 @@ class BackupJsonSerializationTest {
             ScreeningEventConfigJson(enabled = false, time = "21:00"),
         ),
         sheetsConfig = "https://docs.google.com/spreadsheets/d/abc123",
+        periodReminderTime = "08:30",
     )
 
     // ─── full round-trip ──────────────────────────────────────────────────────
@@ -120,7 +128,19 @@ class BackupJsonSerializationTest {
             assertEquals("r1", id)
             assertEquals(listOf("Morgon", "Kväll"), tidpunkter)
             assertEquals(listOf(1, 3, 5), dagar)
+            assertEquals("2026-01-02", startDatum)
+            assertEquals("2026-01-16", slutDatum)
+            assertEquals(1, dosperioder.size)
+            with(dosperioder[0]) {
+                assertEquals("d1", id)
+                assertEquals("2026-01-02", startDatum)
+                assertEquals("2026-01-08", slutDatum)
+                assertEquals("2", dos)
+                assertEquals("st", enhet)
+            }
         }
+
+        assertEquals("08:30", result.periodReminderTime)
 
         assertEquals(1, result.medicinFavoriter.size)
         with(result.medicinFavoriter[0]) {

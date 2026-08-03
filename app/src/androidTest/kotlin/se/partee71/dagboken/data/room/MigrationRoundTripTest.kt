@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import se.partee71.dagboken.data.migration.AktivitetJson
 import se.partee71.dagboken.data.migration.BackupJson
 import se.partee71.dagboken.data.migration.BackupMapper
+import se.partee71.dagboken.data.migration.DosperiodJson
 import se.partee71.dagboken.data.migration.FavoritJson
 import se.partee71.dagboken.data.migration.HandelseJson
 import se.partee71.dagboken.data.migration.MedicinJson
@@ -95,6 +96,18 @@ class MigrationRoundTripTest {
         medicinRecipes = listOf(
             ReceptJson(
                 id = "r1", namn = "Vitamin D", dos = "1", enhet = "st",
+                tidpunkter = listOf("Morgon"), upprepning = "dagligen",
+                aktiv = true, skapad = "2026-01-01",
+                startDatum = "2026-01-02", slutDatum = "2026-01-16",
+                dosperioder = listOf(
+                    DosperiodJson(
+                        id = "d1", startDatum = "2026-01-02", slutDatum = "2026-01-08",
+                        dos = "2", enhet = "st",
+                    ),
+                ),
+            ),
+            ReceptJson(
+                id = "r2", namn = "Metformin", dos = "500", enhet = "mg",
                 tidpunkter = listOf("Morgon"), upprepning = "dagligen",
                 aktiv = true, skapad = "2026-01-01",
             ),
@@ -189,6 +202,35 @@ class MigrationRoundTripTest {
         assertNotNull(fromDb)
         assertEquals("Vitamin D", fromDb!!.namn)
         assertTrue(fromDb.aktiv)
+    }
+
+    @Test fun recept_period_and_dosperioder_survive_the_round_trip() = runTest {
+        val backup = testBackup()
+        medicRepo.importRecept(BackupMapper.toRecept(backup))
+
+        val fromDb = medicRepo.getReceptById("r1")
+        assertNotNull(fromDb)
+        assertEquals("2026-01-02", fromDb!!.startDatum)
+        assertEquals("2026-01-16", fromDb.slutDatum)
+        assertEquals(1, fromDb.dosperioder.size)
+        with(fromDb.dosperioder[0]) {
+            assertEquals("d1", id)
+            assertEquals("2026-01-02", startDatum)
+            assertEquals("2026-01-08", slutDatum)
+            assertEquals("2", dos)
+            assertEquals("st", enhet)
+        }
+    }
+
+    @Test fun recept_without_period_fields_falls_back_to_skapad_on_import() = runTest {
+        val backup = testBackup()
+        medicRepo.importRecept(BackupMapper.toRecept(backup))
+
+        val fromDb = medicRepo.getReceptById("r2")
+        assertNotNull(fromDb)
+        assertEquals("2026-01-01", fromDb!!.startDatum)
+        assertEquals(null, fromDb.slutDatum)
+        assertTrue(fromDb.dosperioder.isEmpty())
     }
 
     @Test fun favoriter_survive_mapper_and_import_and_can_be_read_back() = runTest {

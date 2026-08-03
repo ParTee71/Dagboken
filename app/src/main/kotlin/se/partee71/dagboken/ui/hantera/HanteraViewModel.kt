@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
+import se.partee71.dagboken.data.datastore.DEFAULT_PERIOD_REMINDER_TIME
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
@@ -28,6 +29,7 @@ data class HanteraUiState(
     val themeDarkStart: Int = 21,
     val medsNotificationsEnabled: Boolean = false,
     val screeningEventConfigs: List<ScreeningEventConfig> = DEFAULT_SCREENING_EVENTS,
+    val periodReminderTime: String = DEFAULT_PERIOD_REMINDER_TIME,
     val aktivitetOptions: List<SymptomOption> = emptyList(),
     val symptomOptions: List<SymptomOption> = emptyList(),
     val handelseTypOptions: List<SymptomOption> = emptyList(),
@@ -68,9 +70,15 @@ class HanteraViewModel @Inject constructor(
     private data class NotifPrefs(
         val medsEnabled: Boolean,
         val screeningConfigs: List<ScreeningEventConfig>,
+        val periodReminderTime: String,
         val aktivitetOpts: List<SymptomOption>,
         val symptomOpts: List<SymptomOption>,
         val handelseTypOpts: List<SymptomOption>,
+    )
+    private data class ReminderPrefs(
+        val medsEnabled: Boolean,
+        val screeningConfigs: List<ScreeningEventConfig>,
+        val periodReminderTime: String,
     )
     private data class NewOptionInputs(
         val aktivitet: String,
@@ -83,9 +91,17 @@ class HanteraViewModel @Inject constructor(
                 prefs.themeLightStart, prefs.themeDarkStart) { dark, dynamic, mode, light, darkS ->
             ThemePrefs(dark, dynamic, mode, light, darkS)
         },
-        combine(prefs.medsNotificationsEnabled, prefs.screeningEventConfigs,
-                prefs.aktivitetOptions, prefs.symptomOptions, prefs.handelseTypOptions) { meds, screening, akt, symp, handelseTyp ->
-            NotifPrefs(meds, screening, akt, symp, handelseTyp)
+        combine(
+            combine(prefs.medsNotificationsEnabled, prefs.screeningEventConfigs,
+                    prefs.periodReminderTime) { meds, screening, periodTime ->
+                ReminderPrefs(meds, screening, periodTime)
+            },
+            prefs.aktivitetOptions, prefs.symptomOptions, prefs.handelseTypOptions,
+        ) { reminders, akt, symp, handelseTyp ->
+            NotifPrefs(
+                reminders.medsEnabled, reminders.screeningConfigs, reminders.periodReminderTime,
+                akt, symp, handelseTyp,
+            )
         },
         combine(authRepo.authStateFlow, _isSigningIn, _signInError,
                 combine(_newAktivitetOption, _newSymptomOption, _newHandelseTypOption) { newAkt, newSymp, newHandelseTyp ->
@@ -110,6 +126,7 @@ class HanteraViewModel @Inject constructor(
             themeDarkStart           = theme.darkStart,
             medsNotificationsEnabled = notif.medsEnabled,
             screeningEventConfigs    = notif.screeningConfigs,
+            periodReminderTime       = notif.periodReminderTime,
             aktivitetOptions         = notif.aktivitetOpts,
             symptomOptions           = notif.symptomOpts,
             handelseTypOptions       = notif.handelseTypOpts,
@@ -183,6 +200,14 @@ class HanteraViewModel @Inject constructor(
         viewModelScope.launch {
             prefs.setScreeningEventConfigs(updated)
             if (updated[index].enabled) alarmScheduler.rescheduleAll()
+        }
+    }
+
+    /** Klockslag för periodpåminnelsen (NOT-13) — larmet flyttas direkt. */
+    fun setPeriodReminderTime(time: String) {
+        viewModelScope.launch {
+            prefs.setPeriodReminderTime(time)
+            alarmScheduler.schedulePeriodReminder(time)
         }
     }
 

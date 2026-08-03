@@ -40,6 +40,29 @@
     <string name="label_days">Dagar</string>
     <string name="label_interval_days">Var X:e dag</string>
     <string name="label_active">Aktiv</string>
+
+    <!-- Receptperiod och dosperioder (REC-7…REC-10) -->
+    <string name="label_period">Period</string>
+    <string name="label_start_date">Startdatum</string>
+    <string name="label_end_date">Slutdatum</string>
+    <string name="label_period_length_days">Antal dagar</string>
+    <string name="period_mode_until_further">Tills vidare</string>
+    <string name="period_mode_length">Längd</string>
+    <string name="period_mode_end_date">T.o.m.</string>
+    <string name="period_until_further_summary">Ingen slutdag — receptet fortsätter tills du inaktiverar det.</string>
+    <string name="format_period_summary">T.o.m. %1$s — %2$d dagar</string>
+    <string name="label_dose_changes">Dosändringar</string>
+    <string name="dose_changes_subtitle">Tillfälliga doser som gäller före grunddosen, t.ex. vid nedtrappning.</string>
+    <string name="dose_change_add">Lägg till dosperiod</string>
+    <string name="dose_change_remove">Ta bort dosperiod</string>
+    <string name="dose_change_until_period_end">Periodens slut</string>
+    <string name="format_schema_period">%1$s – %2$s</string>
+    <string name="format_schema_period_ended">Avslutat %1$s</string>
+    <string name="format_schema_dosperiod">%1$s – %2$s: %3$s</string>
+    <string name="error_period_end_before_start">Slutdatumet kan inte vara före startdatumet.</string>
+    <string name="error_dosperiod_end_before_start">En dosperiods slutdatum kan inte vara före dess startdatum.</string>
+    <string name="error_dosperiod_overlap">Dosperioder får inte överlappa varandra.</string>
+    <string name="error_dosperiod_missing_dose">Varje dosperiod måste ha en dos.</string>
     <string name="label_cooldown">Spärrtid</string>
     <string name="label_no_limit">Ingen</string>
     <string name="label_max_per_day">Max per dag</string>
@@ -222,6 +245,9 @@
     <string name="settings_screening_notifications">Screeningpåminnelser</string>
     <string name="settings_screening_notifications_subtitle">Aktivera notis per måltidshändelse</string>
     <string name="settings_pick_time">Välj tid</string>
+    <string name="settings_period_reminder">Periodpåminnelser</string>
+    <string name="settings_period_reminder_subtitle">Notis dagen innan ett recepts period eller en dosändring tar slut</string>
+    <string name="settings_period_reminder_time">Påminnelse kl</string>
     <string name="settings_aktivitet_section">Aktivitetstyper</string>
     <string name="settings_aktivitet_section_desc">Hantera aktivitetstyper</string>
     <string name="aktivitet_more_types">Fler typer</string>
@@ -374,6 +400,11 @@
     <string name="notification_med_body">Glöm inte att ta dina mediciner.</string>
     <string name="notification_screening_title">Dags för screening – %1$s</string>
     <string name="notification_screening_body">Hur mår du? Logga din dagliga screening.</string>
+    <string name="notification_period_recept_title">Sista dagen med %1$s är imorgon</string>
+    <string name="notification_period_recept_body">Imorgon tas den sista dosen i perioden.</string>
+    <string name="notification_period_dos_title">Dosändringen för %1$s upphör imorgon</string>
+    <string name="notification_period_dos_body">Från och med imorgon gäller %1$s.</string>
+    <string name="notification_period_multi_title">%1$d medicinperioder tar slut imorgon</string>
     <string name="notification_med_action_mark_taken">Markera tagen</string>
     <string name="notification_screening_action_log_now">Logga nu</string>
 

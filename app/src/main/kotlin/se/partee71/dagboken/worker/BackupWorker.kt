@@ -12,6 +12,7 @@ import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.migration.AktivitetJson
 import se.partee71.dagboken.data.migration.BackupJson
 import se.partee71.dagboken.data.migration.DriveBackupRepository
+import se.partee71.dagboken.data.migration.DosperiodJson
 import se.partee71.dagboken.data.migration.DriveResult
 import se.partee71.dagboken.data.migration.FavoritJson
 import se.partee71.dagboken.data.migration.HandelseJson
@@ -29,6 +30,7 @@ import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.data.room.entities.NoteEntity
 import se.partee71.dagboken.domain.model.Aktivitet
+import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Handelse
 import se.partee71.dagboken.domain.model.Medicin
@@ -79,6 +81,7 @@ class BackupWorker @AssistedInject constructor(
                 screeningEventConfigs = prefs.screeningEventConfigs.first().map { ScreeningEventConfigJson(it.enabled, it.time) },
                 sheetsConfig          = prefs.sheetsConfig.first().takeIf { it.isNotBlank() },
                 handelseTypOptions    = prefs.handelseTypOptions.first().map { SymptomOptionBackup(it.name, it.isFavorite) },
+                periodReminderTime    = prefs.periodReminderTime.first(),
             )
 
             when (driveRepo.uploadBackup(backup)) {
@@ -140,6 +143,17 @@ class BackupWorker @AssistedInject constructor(
         intervalDagar = intervalDagar,
         aktiv         = aktiv,
         skapad        = skapad,
+        startDatum    = startDatum.ifBlank { skapad },
+        slutDatum     = slutDatum,
+        dosperioder   = dosperioder.map { it.toJson() },
+    )
+
+    private fun Dosperiod.toJson() = DosperiodJson(
+        id         = id,
+        startDatum = startDatum,
+        slutDatum  = slutDatum,
+        dos        = dos,
+        enhet      = enhet,
     )
 
     private fun Favorit.toJson() = FavoritJson(
