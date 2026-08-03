@@ -30,6 +30,7 @@ import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
+import se.partee71.dagboken.domain.model.periodStart
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 
 /**
@@ -222,13 +223,14 @@ class MigrationRoundTripTest {
         }
     }
 
-    @Test fun recept_without_period_fields_falls_back_to_skapad_on_import() = runTest {
+    @Test fun recept_without_period_fields_stays_ungated_on_import() = runTest {
         val backup = testBackup()
         medicRepo.importRecept(BackupMapper.toRecept(backup))
 
         val fromDb = medicRepo.getReceptById("r2")
         assertNotNull(fromDb)
-        assertEquals("2026-01-01", fromDb!!.startDatum)
+        assertEquals("", fromDb!!.startDatum)
+        assertEquals("2026-01-01", fromDb.periodStart)
         assertEquals(null, fromDb.slutDatum)
         assertTrue(fromDb.dosperioder.isEmpty())
     }

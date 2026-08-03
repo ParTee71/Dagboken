@@ -121,7 +121,7 @@ object BackupMapper {
             intervalDagar = intervalDagar,
             aktiv        = aktiv,
             skapad       = skapad,
-            startDatum   = startDatum.ifBlank { skapad },
+            startDatum   = startDatum,
             slutDatum    = slutDatum?.takeIf { it.isNotBlank() },
             dosperioder  = dosperioder.map { it.toDomain() },
         )

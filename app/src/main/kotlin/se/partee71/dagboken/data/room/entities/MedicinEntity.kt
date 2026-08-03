@@ -127,7 +127,7 @@ fun Recept.toEntity(
     intervalDagar   = intervalDagar,
     aktiv           = aktiv,
     skapad          = skapad,
-    startDatum      = startDatum.ifBlank { skapad },
+    startDatum      = startDatum,
     slutDatum       = slutDatum,
     dosperioderJson = serializeDosperioder(dosperioder),
 )

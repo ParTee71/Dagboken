@@ -11,8 +11,9 @@ import org.junit.runner.RunWith
 
 /**
  * Periodstödet (REC-7…REC-9) lägger till startDatum/slutDatum/dosperioderJson på recept.
- * Befintliga recept ska behålla alla fält och få startDatum = skapad, så att
- * intervallberäkningen (REC-4) ger samma utfall som före migreringen.
+ * Befintliga recept ska behålla alla fält och få tomma periodvärden — de saknar alltså
+ * periodgräns och faller tillbaka på `skapad` för intervallberäkningen (REC-4), precis
+ * som före migreringen.
  */
 @RunWith(AndroidJUnit4::class)
 class Migration1011Test {
@@ -25,7 +26,7 @@ class Migration1011Test {
         AppDatabase::class.java,
     )
 
-    @Test fun `migration backfills startDatum from skapad and preserves the recept`() {
+    @Test fun `migration adds empty period columns and preserves the recept`() {
         helper.createDatabase(TEST_DB, 10).use { db ->
             db.execSQL(
                 """INSERT INTO recept (id, namn, dos, enhet, tidpunkterJson, upprepning, dagarJson, intervalDagar, aktiv, skapad)
@@ -43,7 +44,7 @@ class Migration1011Test {
                 assertEquals("intervall", c.getString(2))
                 assertEquals(2, c.getInt(3))
                 assertEquals("2026-01-05", c.getString(4))
-                assertEquals("2026-01-05", c.getString(5))
+                assertEquals("", c.getString(5))
                 assertNull(c.getString(6))
                 assertEquals("[]", c.getString(7))
             }
@@ -67,10 +68,11 @@ class Migration1011Test {
                 c.moveToFirst()
                 assertEquals(2, c.getInt(0))
             }
-            db.query("SELECT startDatum, dagarJson FROM recept WHERE id = 'r2'").use { c ->
+            db.query("SELECT skapad, startDatum, dagarJson FROM recept WHERE id = 'r2'").use { c ->
                 c.moveToFirst()
                 assertEquals("2026-02-01", c.getString(0))
-                assertEquals("[0,2,4]", c.getString(1))
+                assertEquals("", c.getString(1))
+                assertEquals("[0,2,4]", c.getString(2))
             }
         }
     }

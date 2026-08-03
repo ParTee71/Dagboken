@@ -178,6 +178,14 @@ class EnsureTodayEntriesUseCaseTest {
         assertFalse(useCase.shouldTakeToday(r, slut.plusDays(1)))
     }
 
+    @Test fun `a recept without an explicit startDatum has no lower bound`() {
+        // Bakåtbläddring i Idag (HEM-14) ska fortsätta seeda doser för dagar före
+        // receptet skapades — periodgrindningen gäller bara ett uttalat startdatum.
+        val r = recept(skapad = "2026-08-01", startDatum = "")
+        assertTrue(useCase.shouldTakeToday(r, LocalDate.of(2026, 1, 15)))
+        assertEquals(1, useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 1, 15)).size)
+    }
+
     @Test fun `no slutDatum means tills vidare`() {
         val r = recept(startDatum = LocalDate.of(2020, 1, 1).toString(), slutDatum = null)
         assertTrue(useCase.shouldTakeToday(r, LocalDate.of(2030, 1, 1)))

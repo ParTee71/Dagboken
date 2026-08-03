@@ -143,7 +143,7 @@ class BackupWorker @AssistedInject constructor(
         intervalDagar = intervalDagar,
         aktiv         = aktiv,
         skapad        = skapad,
-        startDatum    = startDatum.ifBlank { skapad },
+        startDatum    = startDatum,
         slutDatum     = slutDatum,
         dosperioder   = dosperioder.map { it.toJson() },
     )

@@ -340,14 +340,14 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         // Periodstöd för recept (REC-7…REC-9): startdatum, slutdatum och tillfälliga
-        // dosperioder. `startDatum` backfillas från `skapad` så att intervallberäkningen
-        // (REC-4) ger exakt samma utfall som före migreringen för befintliga recept.
+        // dosperioder. Befintliga recept får tomt startDatum — alltså ingen periodgräns
+        // bakåt — och faller tillbaka på `skapad` för intervallberäkningen (REC-4), exakt
+        // som före migreringen.
         val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE recept ADD COLUMN startDatum TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE recept ADD COLUMN slutDatum TEXT")
                 db.execSQL("ALTER TABLE recept ADD COLUMN dosperioderJson TEXT NOT NULL DEFAULT '[]'")
-                db.execSQL("UPDATE recept SET startDatum = skapad WHERE startDatum = ''")
             }
         }
 

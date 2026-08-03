@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import se.partee71.dagboken.domain.model.periodStart
 
 class BackupMapperTest {
 
@@ -153,7 +154,7 @@ class BackupMapperTest {
         assertEquals("2026-05-05", result[0].dosperioder[0].slutDatum)
     }
 
-    @Test fun `toRecept falls back to skapad as startDatum for older backups`() {
+    @Test fun `toRecept leaves older backups without a period gate`() {
         val json = backup(
             recept = listOf(ReceptJson(
                 id = "r1", namn = "Metformin", dos = "500", enhet = "mg",
@@ -162,7 +163,8 @@ class BackupMapperTest {
             ))
         )
         val result = BackupMapper.toRecept(json)
-        assertEquals("2024-01-01", result[0].startDatum)
+        assertEquals("", result[0].startDatum)
+        assertEquals("2024-01-01", result[0].periodStart)
         assertEquals(null, result[0].slutDatum)
         assertEquals(emptyList<Any>(), result[0].dosperioder)
     }

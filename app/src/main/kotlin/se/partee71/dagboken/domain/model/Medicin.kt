@@ -30,7 +30,7 @@ data class Recept(
     val intervalDagar: Int = 2,
     val aktiv: Boolean,
     val skapad: String,          // YYYY-MM-DD
-    val startDatum: String = "", // YYYY-MM-DD; "" = faller tillbaka på skapad (recept från före REC-7)
+    val startDatum: String = "", // YYYY-MM-DD; "" = ingen uttalad periodstart (recept från före REC-7)
     val slutDatum: String? = null, // YYYY-MM-DD; null = tills vidare
     val dosperioder: List<Dosperiod> = emptyList(),
 )
@@ -53,12 +53,19 @@ private fun parseIsoDate(value: String?): LocalDate? =
         runCatching { LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE) }.getOrNull()
     }
 
-/** Periodens startdatum (REC-7) — skapandedatumet för recept som saknar eget startdatum. */
+/**
+ * Periodens startdatum för visning och intervallberäkning (REC-4/REC-7) — skapandedatumet
+ * för recept som saknar ett uttalat startdatum.
+ */
 val Recept.periodStart: String get() = startDatum.ifBlank { skapad }
 
-/** True om [date] ligger inom receptets period (REC-7). Saknat slutdatum = tills vidare. */
+/**
+ * True om [date] ligger inom receptets period (REC-7). Saknat slutdatum = tills vidare.
+ * Ett recept utan uttalat [Recept.startDatum] har ingen bakre gräns — annars skulle
+ * bakåtbläddring i Idag (HEM-14) sluta seeda doser för dagar före receptet skapades.
+ */
 fun Recept.coversDate(date: LocalDate): Boolean {
-    val start = parseIsoDate(periodStart)
+    val start = parseIsoDate(startDatum)
     if (start != null && date.isBefore(start)) return false
     val end = parseIsoDate(slutDatum) ?: return true
     return !date.isAfter(end)
