@@ -273,4 +273,60 @@ class HanteraViewModelTest {
         viewModel.toggleMedicinFavorite(favorit(isFavorite = true))
         coVerify { medicinerRepo.setFavoritFavorite("f1", false) }
     }
+
+    // ─── namnbyte migrerar loggad data (HAN-9) ────────────────────────────────
+
+    @Test fun `renameAktivitetOption also renames already logged aktiviteter`() = runTest {
+        viewModel.renameAktivitetOption("Promenad", "Långpromenad")
+        coVerify { aktiviteterRepo.renameAktivitet("Promenad", "Långpromenad") }
+    }
+
+    @Test fun `renameSymptomOption renames the symptom in both aktiviteter and incheckningar`() = runTest {
+        viewModel.renameSymptomOption("Huvudvärk", "Migrän")
+        coVerify { aktiviteterRepo.renameSymptom("Huvudvärk", "Migrän") }
+        coVerify { sjukdomarRepo.renameSymptom("Huvudvärk", "Migrän") }
+    }
+
+    @Test fun `renameHandelseTypOption also renames already logged handelser`() = runTest {
+        viewModel.renameHandelseTypOption("Yrsel", "Ostadighet")
+        coVerify { handelserRepo.renameTyp("Yrsel", "Ostadighet") }
+    }
+
+    @Test fun `a rejected rename does not touch logged data`() = runTest {
+        // Samma namn som redan finns i listan avvisas.
+        viewModel.renameAktivitetOption("Promenad", "Jobb")
+        coVerify(exactly = 0) { aktiviteterRepo.renameAktivitet(any(), any()) }
+    }
+
+    // ─── behörighetsläge för påminnelser (NOT-16) ─────────────────────────────
+
+    @Test fun `refreshPermissionState reports blocked notifications`() = runTest {
+        every { alarmScheduler.canPostNotifications() } returns false
+        every { alarmScheduler.canScheduleExactAlarms() } returns true
+
+        viewModel.refreshPermissionState()
+
+        assertTrue(viewModel.state.value.notificationsBlocked)
+        assertFalse(viewModel.state.value.exactAlarmsBlocked)
+    }
+
+    @Test fun `refreshPermissionState reports blocked exact alarms`() = runTest {
+        every { alarmScheduler.canPostNotifications() } returns true
+        every { alarmScheduler.canScheduleExactAlarms() } returns false
+
+        viewModel.refreshPermissionState()
+
+        assertFalse(viewModel.state.value.notificationsBlocked)
+        assertTrue(viewModel.state.value.exactAlarmsBlocked)
+    }
+
+    @Test fun `refreshPermissionState reports nothing blocked when both are granted`() = runTest {
+        every { alarmScheduler.canPostNotifications() } returns true
+        every { alarmScheduler.canScheduleExactAlarms() } returns true
+
+        viewModel.refreshPermissionState()
+
+        assertFalse(viewModel.state.value.notificationsBlocked)
+        assertFalse(viewModel.state.value.exactAlarmsBlocked)
+    }
 }

@@ -33,7 +33,6 @@ import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS

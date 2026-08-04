@@ -256,7 +256,7 @@ class MedicinerRepository @Inject constructor(
     private fun encodeStringList(list: List<String>): String = json.encodeToString(list)
     private fun encodeIntList(list: List<Int>): String = json.encodeToString(list)
     // Loggar aldrig `raw` — det är persisterad användardata och loggning sker även i
-    // releasebygget. Fältnamnet räcker för att felsöka (NFR-8).
+    // releasebygget. Fältnamnet räcker för att felsöka (NFR-13).
     private fun decodeStringList(raw: String): List<String> =
         runCatching { json.decodeFromString<List<String>>(raw) }
             .onFailure { Log.w("MedicinerRepo", "decodeStringList failed") }

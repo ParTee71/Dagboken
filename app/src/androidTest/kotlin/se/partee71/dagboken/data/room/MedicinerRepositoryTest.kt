@@ -20,6 +20,7 @@ import se.partee71.dagboken.data.room.entities.MedicinEntity
 import se.partee71.dagboken.data.room.entities.ReceptEntity
 import se.partee71.dagboken.data.room.entities.toDomain
 import se.partee71.dagboken.domain.model.Dosperiod
+import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
@@ -29,6 +30,7 @@ class MedicinerRepositoryTest {
 
     private lateinit var db: AppDatabase
     private lateinit var repo: MedicinerRepository
+    private lateinit var noteRepo: NoteRepository
     private val json = Json { ignoreUnknownKeys = true }
 
     private fun decode(s: String): List<String> =
@@ -41,12 +43,13 @@ class MedicinerRepositoryTest {
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
+        noteRepo = NoteRepository(db.noteDao())
         repo = MedicinerRepository(
             db                 = db,
             medicinDao         = db.medicinDao(),
             receptDao          = db.receptDao(),
             favoritDao         = db.favoritDao(),
-            noteRepo           = NoteRepository(db.noteDao()),
+            noteRepo           = noteRepo,
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
             appContext         = ApplicationProvider.getApplicationContext(),
@@ -493,5 +496,58 @@ class MedicinerRepositoryTest {
         repo.saveRecept(recept.copy(dos = "15"))
 
         assertEquals("5", db.medicinDao().getById(old.id)!!.dos)
+    }
+
+    @Test fun saveRecept_removes_pending_doses_whose_tidpunkt_was_removed() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(
+            receptEntity(startDatum = today.toString())
+                .copy(tidpunkterJson = """["Morgon","Kväll"]"""),
+        )
+        repo.ensureTodayEntries()
+        assertEquals(2, db.medicinDao().getByDate(today.toString()).size)
+
+        // Tidpunkten tas bort ur receptet — den otagna dosen för den tidpunkten ska
+        // försvinna. Receptet gäller fortfarande dagen, så periodkontrollen ensam
+        // fångade inte det här fallet.
+        val recept = repo.getReceptById("r1")!!
+        repo.saveRecept(recept.copy(tidpunkter = listOf("Morgon")))
+
+        val kvar = db.medicinDao().getByDate(today.toString())
+        assertEquals(1, kvar.size)
+        assertEquals("Morgon", kvar.single().tidpunkt)
+    }
+
+    @Test fun saveRecept_keeps_a_taken_dose_even_when_its_tidpunkt_was_removed() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(
+            receptEntity(startDatum = today.toString())
+                .copy(tidpunkterJson = """["Morgon","Kväll"]"""),
+        )
+        repo.ensureTodayEntries()
+        val kvall = db.medicinDao().getByDate(today.toString()).single { it.tidpunkt == "Kväll" }
+        repo.toggleTagen(kvall.id, true)
+
+        val recept = repo.getReceptById("r1")!!
+        repo.saveRecept(recept.copy(tidpunkter = listOf("Morgon")))
+
+        // En tagen dos är loggad historik och får aldrig försvinna.
+        assertNotNull(db.medicinDao().getById(kvall.id))
+    }
+
+    @Test fun saveRecept_removes_the_note_of_a_dose_it_deletes() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(
+            receptEntity(startDatum = today.toString())
+                .copy(tidpunkterJson = """["Morgon","Kväll"]"""),
+        )
+        repo.ensureTodayEntries()
+        val kvall = db.medicinDao().getByDate(today.toString()).single { it.tidpunkt == "Kväll" }
+        noteRepo.save(NoteTarget.MEDICATION, kvall.id, "Ta med mat")
+
+        val recept = repo.getReceptById("r1")!!
+        repo.saveRecept(recept.copy(tidpunkter = listOf("Morgon")))
+
+        assertEquals("", noteRepo.observe(NoteTarget.MEDICATION, kvall.id).first())
     }
 }

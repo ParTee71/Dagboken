@@ -193,7 +193,7 @@ class AddEditReceptViewModel @Inject constructor(
     /**
      * [onDone] anropas först när skrivningen är klar. Skärmen navigerade tidigare
      * tillbaka direkt efter anropet, vilket rensade ViewModel:en och därmed kunde
-     * cancellera viewModelScope mitt i Room-skrivningen (NFR-9).
+     * cancellera viewModelScope mitt i Room-skrivningen (NFR-12).
      */
     fun save(onDone: () -> Unit = {}) {
         viewModelScope.launch {

@@ -68,6 +68,28 @@ fun MigrationScreen(
         }
     }
 
+    MigrationContent(
+        state          = state,
+        onStart        = vm::startMigration,
+        onChooseFile   = { fileLauncher.launch("application/json") },
+        onSkip         = vm::skipMigration,
+        onSignIn       = { vm.signInAndMigrate(context) },
+    )
+}
+
+/**
+ * Tillståndslös del av migreringsskärmen. Utbruten så den går att Compose-testa utan en
+ * riktig [MigrationViewModel] (som kräver Drive- och auth-beroenden) — skärmen var
+ * tidigare helt otestad.
+ */
+@Composable
+fun MigrationContent(
+    state: MigrationState,
+    onStart: () -> Unit,
+    onChooseFile: () -> Unit,
+    onSkip: () -> Unit,
+    onSignIn: () -> Unit,
+) {
     Scaffold { padding ->
         Column(
             modifier = Modifier
@@ -107,19 +129,19 @@ fun MigrationScreen(
                             )
                             Spacer(Modifier.height(8.dp))
                             Button(
-                                onClick = vm::startMigration,
+                                onClick = onStart,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(stringResource(R.string.migration_import_from_drive))
                             }
                             OutlinedButton(
-                                onClick = { fileLauncher.launch("application/json") },
+                                onClick = onChooseFile,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(stringResource(R.string.migration_choose_file))
                             }
                             OutlinedButton(
-                                onClick = vm::skipMigration,
+                                onClick = onSkip,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(stringResource(R.string.migration_start_fresh))
@@ -151,13 +173,13 @@ fun MigrationScreen(
                             )
                             Spacer(Modifier.height(8.dp))
                             Button(
-                                onClick = { vm.signInAndMigrate(context) },
+                                onClick = onSignIn,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(stringResource(R.string.sign_in_with_google))
                             }
                             OutlinedButton(
-                                onClick = vm::skipMigration,
+                                onClick = onSkip,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(stringResource(R.string.migration_skip))
@@ -176,13 +198,13 @@ fun MigrationScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             OutlinedButton(
-                                onClick = { fileLauncher.launch("application/json") },
+                                onClick = onChooseFile,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(stringResource(R.string.migration_choose_file))
                             }
                             OutlinedButton(
-                                onClick = vm::skipMigration,
+                                onClick = onSkip,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(stringResource(R.string.migration_skip))
@@ -228,19 +250,19 @@ fun MigrationScreen(
                                 textAlign = TextAlign.Center,
                             )
                             Button(
-                                onClick = { vm.signInAndMigrate(context) },
+                                onClick = onSignIn,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(stringResource(R.string.sign_in_with_google))
                             }
                             OutlinedButton(
-                                onClick = vm::startMigration,
+                                onClick = onStart,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(stringResource(R.string.migration_retry))
                             }
                             OutlinedButton(
-                                onClick = vm::skipMigration,
+                                onClick = onSkip,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(stringResource(R.string.migration_skip_error))

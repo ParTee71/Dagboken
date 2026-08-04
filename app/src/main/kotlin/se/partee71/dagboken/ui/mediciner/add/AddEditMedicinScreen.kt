@@ -64,7 +64,7 @@ fun AddEditMedicinScreen(
     // Navigeringen sker alltid först när save() faktiskt skrivit klart: efterhands-
     // loggning (MED-16) kan blockeras av cooldown/dagsgräns, och i övriga lägen skulle
     // ett omedelbart onBack() rensa ViewModel:en och kunna cancellera skrivningen
-    // mitt i (NFR-9).
+    // mitt i (NFR-12).
     LaunchedEffect(saveCompleted) { if (saveCompleted > 0) onBack() }
 
     val onSave: () -> Unit = { vm.save() }

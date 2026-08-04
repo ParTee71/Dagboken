@@ -41,7 +41,7 @@
 -dontwarn androidx.glance.**
 
 # Strippa loggning ur releasebygget. Appen hanterar känslig hälsodata och ska aldrig
-# skriva något till logcat i release (NFR-8).
+# skriva något till logcat i release (NFR-13).
 -assumenosideeffects class android.util.Log {
     public static int v(...);
     public static int d(...);
