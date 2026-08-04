@@ -239,10 +239,13 @@ class AktiviteterViewModelTest {
         assertEquals("Befintlig anteckning", viewModel.form.value.note)
     }
 
-    @Test fun `delete removes note under matching target`() = runTest {
+    // Anteckningen raderas numera av AktiviteterRepository i samma anrop (DAT-4) — se
+    // NoteCleanupOnDeleteTest. Här verifieras att raderingen delegeras dit.
+    @Test fun `delete delegates to the repository, which also removes the note`() = runTest {
         val a = aktivitet(id = "a1", aktivitet = "Promenad", type = "aktivitet")
         viewModel.delete(a)
-        coVerify { noteRepo.delete(NoteTarget.ACTIVITY, "a1") }
+        coVerify { repo.delete(a) }
+        coVerify(exactly = 0) { noteRepo.delete(any(), any()) }
     }
 
     // ─── delete ───────────────────────────────────────────────────────────────

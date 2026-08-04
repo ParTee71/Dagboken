@@ -201,12 +201,17 @@ class BackupRoundTripTest {
     }
 
     /**
-     * Vaktpost mot glömda fält: varje persisterat fältnamn i domänmodellerna ska synas i
-     * den utskrivna JSON-texten. Läggs ett nytt fält till i en entitet men inte i
-     * exportmappningen faller det här testet, inte först vid en verklig återställning.
+     * Vaktpost mot fält som tappas ur själva backupformatet: varje persisterat fältnamn
+     * ska finnas i den utskrivna JSON-texten. Kodas med `encodeDefaults = true` — utan
+     * det utelämnar kotlinx fält vars värde råkar vara lika med standardvärdet (t.ex.
+     * `skipped = false`), och testet skulle då falla på fullt korrekt data.
+     *
+     * Att varje fält också *fylls i* av mappningen garanteras av rundturstesterna ovan,
+     * som jämför hela domänobjekt fält för fält.
      */
     @Test fun `every persisted field name appears in the encoded backup`() {
-        val encoded = json.encodeToString(BackupJson.serializer(), assemble())
+        val encoded = Json { encodeDefaults = true }
+            .encodeToString(BackupJson.serializer(), assemble())
 
         val expectedFields = listOf(
             // Aktivitet
