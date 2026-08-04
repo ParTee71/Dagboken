@@ -66,6 +66,7 @@ class MigrationRoundTripTest {
             noteRepo           = noteRepo,
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = json,
+            appContext         = ApplicationProvider.getApplicationContext(),
         )
     }
 
