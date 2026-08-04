@@ -6,8 +6,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
@@ -15,6 +17,9 @@ import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
 import java.time.LocalDate
 import javax.inject.Inject
+
+/** Standardfönster för historiken — cirka ett år bakåt. */
+private const val DEFAULT_RANGE_DAYS = 365
 
 @HiltViewModel
 class HistorikViewModel @Inject constructor(
@@ -24,9 +29,24 @@ class HistorikViewModel @Inject constructor(
     private val sjukdomarRepo: SjukdomarRepository,
 ) : ViewModel() {
 
-    val typeFilter = MutableStateFlow(HistorikType.entries.toSet())
-    val viewMode = MutableStateFlow(HistorikViewMode.LISTA)
-    val selectedDate = MutableStateFlow<LocalDate?>(null)
+    private val _typeFilter = MutableStateFlow(HistorikType.entries.toSet())
+    val typeFilter: StateFlow<Set<HistorikType>> = _typeFilter.asStateFlow()
+
+    private val _viewMode = MutableStateFlow(HistorikViewMode.LISTA)
+    val viewMode: StateFlow<HistorikViewMode> = _viewMode.asStateFlow()
+
+    private val _selectedDate = MutableStateFlow<LocalDate?>(null)
+    val selectedDate: StateFlow<LocalDate?> = _selectedDate.asStateFlow()
+
+    /**
+     * Hur långt bakåt historiken läses. Utan gräns lästes hela databasen in i minnet och
+     * byggdes om vid varje emission — det växer obegränsat i en dagbok som fylls på varje
+     * dag. [loadMore] utökar fönstret när användaren vill längre bak (HIST-9).
+     */
+    private val _rangeDays = MutableStateFlow(DEFAULT_RANGE_DAYS)
+    val rangeDays: StateFlow<Int> = _rangeDays.asStateFlow()
+
+    fun loadMore() { _rangeDays.value += DEFAULT_RANGE_DAYS }
 
     private val incheckningEntries = combine(
         sjukdomarRepo.allIncheckningar,
@@ -50,26 +70,29 @@ class HistorikViewModel @Inject constructor(
 
     val filteredEntries: StateFlow<List<HistorikEntry>> = combine(
         allEntries,
-        typeFilter,
-    ) { entries, filter ->
-        entries.filter { it.entryType in filter }
+        _typeFilter,
+        _rangeDays,
+    ) { entries, filter, days ->
+        val from = LocalDate.now().minusDays(days.toLong()).toString()
+        entries.filter { it.entryType in filter && it.datum >= from }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setViewMode(mode: HistorikViewMode) {
-        viewMode.value = mode
-        if (mode == HistorikViewMode.LISTA) selectedDate.value = null
+        _viewMode.value = mode
+        if (mode == HistorikViewMode.LISTA) _selectedDate.value = null
     }
 
     fun selectDate(date: LocalDate) {
-        selectedDate.value = if (selectedDate.value == date) null else date
+        _selectedDate.update { if (it == date) null else date }
     }
 
     fun toggleFilter(type: HistorikType) {
-        val current = typeFilter.value
-        typeFilter.value = if (type in current) {
-            if (current.size > 1) current - type else current
-        } else {
-            current + type
+        _typeFilter.update { current ->
+            when {
+                type !in current      -> current + type
+                current.size > 1      -> current - type
+                else                  -> current
+            }
         }
     }
 

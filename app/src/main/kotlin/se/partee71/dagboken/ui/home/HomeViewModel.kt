@@ -1,11 +1,12 @@
 package se.partee71.dagboken.ui.home
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,9 +14,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.R
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
@@ -34,14 +37,15 @@ import se.partee71.dagboken.domain.usecase.ScreeningEventStatus
 import se.partee71.dagboken.domain.usecase.activeScreeningEventLabels
 import se.partee71.dagboken.domain.usecase.computeDailyEnergyStats
 import se.partee71.dagboken.domain.usecase.computeScreeningEvents
-import se.partee71.dagboken.ui.formatDayDate
 import se.partee71.dagboken.ui.formatWeekdayShort
-import se.partee71.dagboken.widget.WidgetUpdater
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.WeekFields
 import javax.inject.Inject
+
+/** Hur ofta klockberoende tillstånd räknas om medan Idag är öppen. */
+private const val CLOCK_TICK_MS = 60_000L
 
 enum class EnergyTrend { UP, DOWN, FLAT }
 
@@ -123,7 +127,6 @@ data class HomeUiState(
     val overdueMediciner: List<Medicin> = emptyList(),
     val kommandeMediciner: List<Medicin> = emptyList(),
     val screeningEvents: List<ScreeningEventStatus> = emptyList(),
-    val lastAktivitet: Aktivitet? = null,
     val tagenCount: Int = 0,
     val googleEmail: String? = null,
     val googlePhotoUrl: String? = null,
@@ -154,7 +157,6 @@ class HomeViewModel @Inject constructor(
     private val prefs: PreferencesRepository,
     private val sjukdomarRepo: SjukdomarRepository,
     private val healthRepo: HealthConnectRepository,
-    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _isSigningIn = MutableStateFlow(false)
@@ -189,6 +191,19 @@ class HomeViewModel @Inject constructor(
     private val dayMedicinerForSelectedDate: Flow<Pair<LocalDate, List<Medicin>>> =
         _selectedDate.flatMapLatest { date -> medicinerRepo.entriesForDate(date).map { date to it } }
 
+    /**
+     * Minuttickare så att klockberoende tillstånd (förfallna/kommande doser, om vald
+     * dag fortfarande är "idag") räknas om medan appen är öppen. `LocalTime.now()`
+     * läses inne i combine-blocket, som annars bara körs när ett datakällflöde emitterar
+     * — en dos blev därför aldrig förfallen förrän något annat råkade ändras.
+     */
+    private val clockTicker: Flow<Unit> = flow {
+        while (true) {
+            emit(Unit)
+            delay(CLOCK_TICK_MS)
+        }
+    }
+
     val uiState: StateFlow<HomeUiState> = combine(
         dayMedicinerForSelectedDate,
         authRepo.authStateFlow,
@@ -197,7 +212,8 @@ class HomeViewModel @Inject constructor(
         combine(
             aktiviteterRepo.screeningFromDate(7),
             sjukdomarRepo.pagaende,
-        ) { screenings, pagaende -> screenings to pagaende },
+            clockTicker,
+        ) { screenings, pagaende, _ -> screenings to pagaende },
     ) { (selectedDate, dayMediciner), user, signingIn, activeEvents, (recentScreenings, pagaendeSjukdom) ->
         val isToday = selectedDate == LocalDate.now()
         val selectedDateStr = selectedDate.toString()
@@ -225,7 +241,6 @@ class HomeViewModel @Inject constructor(
             overdueMediciner      = overdueMediciner,
             kommandeMediciner     = kommandeMediciner,
             screeningEvents       = screeningEvents,
-            lastAktivitet         = null,
             tagenCount            = dayMediciner.count { it.tagen },
             selectedDate          = selectedDate,
             isToday               = isToday,
@@ -275,10 +290,8 @@ class HomeViewModel @Inject constructor(
     }
 
     fun toggleMedicinTagen(medicin: Medicin) {
-        viewModelScope.launch {
-            medicinerRepo.toggleTagen(medicin.id, !medicin.tagen)
-            WidgetUpdater.requestUpdate(appContext)
-        }
+        // Widgetuppdateringen ligger i repositoryt, så alla skrivvägar täcks (WID-4).
+        viewModelScope.launch { medicinerRepo.toggleTagen(medicin.id, !medicin.tagen) }
     }
 
     fun signIn(activityContext: Context) {
@@ -304,18 +317,15 @@ class HomeViewModel @Inject constructor(
 
 }
 
-fun greeting(): String {
-    return when (java.time.LocalTime.now().hour) {
-        in 0..4   -> "God natt"
-        in 5..11  -> "God morgon"
-        in 12..16 -> "God eftermiddag"
-        in 17..20 -> "God kväll"
-        else      -> "God natt"
-    }
+/** Strängresursen för tidsanpassad hälsning — texterna ligger i strings.xml. */
+@StringRes
+fun greetingRes(hour: Int = LocalTime.now().hour): Int = when (hour) {
+    in 5..11  -> R.string.greeting_morning
+    in 12..16 -> R.string.greeting_afternoon
+    in 17..20 -> R.string.greeting_evening
+    else      -> R.string.greeting_night
 }
 
-fun formattedDate(): String {
-    val date = LocalDate.now()
-    val weekNum = date.get(WeekFields.ISO.weekOfWeekBasedYear())
-    return "${formatDayDate(date)} · Vecka $weekNum"
-}
+/** Veckonummer enligt ISO för [date] — formateras med strängresurs i UI-lagret. */
+fun isoWeekNumber(date: LocalDate = LocalDate.now()): Int =
+    date.get(WeekFields.ISO.weekOfWeekBasedYear())

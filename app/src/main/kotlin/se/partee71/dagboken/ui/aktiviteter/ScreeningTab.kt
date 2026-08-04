@@ -13,7 +13,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -36,11 +36,11 @@ fun ScreeningTab(
     onEdit: (id: String, type: String) -> Unit = { _, _ -> },
     showRecent: Boolean = true,
 ) {
-    val form             by vm.form.collectAsState()
-    val symptomOptions   by vm.symptomOptions.collectAsState()
-    val todaysScreenings by vm.todaysScreenings.collectAsState()
-    val recentEntries    by vm.recentEntries.collectAsState()
-    val isDirty          by vm.isDirty.collectAsState()
+    val form             by vm.form.collectAsStateWithLifecycle()
+    val symptomOptions   by vm.symptomOptions.collectAsStateWithLifecycle()
+    val todaysScreenings by vm.todaysScreenings.collectAsStateWithLifecycle()
+    val recentEntries    by vm.recentEntries.collectAsStateWithLifecycle()
+    val isDirty          by vm.isDirty.collectAsStateWithLifecycle()
 
     val isValid = form.aktivitet.isNotBlank()
 

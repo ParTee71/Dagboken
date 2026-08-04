@@ -1,38 +1,42 @@
 package se.partee71.dagboken.ui.home
 
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
+import se.partee71.dagboken.R
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 
 class DateFormatTest {
 
-    // ─── formattedDate ────────────────────────────────────────────────────────
+    // ─── isoWeekNumber ────────────────────────────────────────────────────────
 
-    @Test fun `formattedDate contains Vecka followed by current week number`() {
-        val weekNum = LocalDate.now().get(WeekFields.ISO.weekOfWeekBasedYear())
-        val result = formattedDate()
-        assertTrue("Expected 'Vecka $weekNum' in '$result'", result.contains("Vecka $weekNum"))
+    @Test fun `isoWeekNumber matches ISO week of the given date`() {
+        val date = LocalDate.of(2026, 1, 15)
+        assertEquals(date.get(WeekFields.ISO.weekOfWeekBasedYear()), isoWeekNumber(date))
     }
 
-    @Test fun `formattedDate starts with capitalised weekday`() {
-        val result = formattedDate()
-        assertTrue(result[0].isUpperCase())
+    @Test fun `isoWeekNumber defaults to today`() {
+        val today = LocalDate.now()
+        assertEquals(today.get(WeekFields.ISO.weekOfWeekBasedYear()), isoWeekNumber())
     }
 
-    @Test fun `formattedDate contains day-of-month number`() {
-        val dayOfMonth = LocalDate.now().dayOfMonth.toString()
-        val result = formattedDate()
-        assertTrue("Expected day '$dayOfMonth' in '$result'", result.contains(dayOfMonth))
+    // ─── greetingRes ──────────────────────────────────────────────────────────
+    // Hälsningen ligger som strängresurs (svenska i strings.xml), så testet
+    // verifierar vilken resurs varje tid på dygnet väljer — inte texten i sig.
+
+    @Test fun `greetingRes picks morning between 5 and 11`() {
+        listOf(5, 8, 11).forEach { assertEquals(R.string.greeting_morning, greetingRes(it)) }
     }
 
-    // ─── greeting ─────────────────────────────────────────────────────────────
-
-    @Test fun `greeting returns a non-blank string`() {
-        assertTrue(greeting().isNotBlank())
+    @Test fun `greetingRes picks afternoon between 12 and 16`() {
+        listOf(12, 14, 16).forEach { assertEquals(R.string.greeting_afternoon, greetingRes(it)) }
     }
 
-    @Test fun `greeting starts with God`() {
-        assertTrue("Expected greeting to start with 'God'", greeting().startsWith("God"))
+    @Test fun `greetingRes picks evening between 17 and 20`() {
+        listOf(17, 19, 20).forEach { assertEquals(R.string.greeting_evening, greetingRes(it)) }
+    }
+
+    @Test fun `greetingRes picks night for late and early hours`() {
+        listOf(0, 3, 4, 21, 23).forEach { assertEquals(R.string.greeting_night, greetingRes(it)) }
     }
 }

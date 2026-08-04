@@ -109,9 +109,14 @@ class AddEditReceptViewModel @Inject constructor(
 
     fun updateForm(update: ReceptForm.() -> ReceptForm) { publish(_form.value.update()) }
 
+    /** Sätts när [loadForEdit] inte hittar posten — skärmen stänger sig då i stället för
+     *  att låta nästa "Spara" skapa en ny post av misstag. */
+    private val _loadFailed = MutableStateFlow(false)
+    val loadFailed: StateFlow<Boolean> = _loadFailed.asStateFlow()
+
     fun loadForEdit(id: String) {
         viewModelScope.launch {
-            val r = repo.getReceptById(id) ?: return@launch
+            val r = repo.getReceptById(id) ?: run { _loadFailed.value = true; return@launch }
             editingId = id
             val note = noteRepo.observe(NoteTarget.RECEPT, id).first()
             val start = r.startDatum.ifBlank { r.skapad }
@@ -144,16 +149,15 @@ class AddEditReceptViewModel @Inject constructor(
         return (ChronoUnit.DAYS.between(s, e) + 1).toInt().takeIf { it >= 1 }
     }
 
-    fun toggleTidpunkt(t: String) {
-        val cur = _form.value.tidpunkter.toMutableList()
-        if (cur.contains(t)) { if (cur.size > 1) cur.remove(t) } else cur.add(t)
-        publish(_form.value.copy(tidpunkter = cur))
+    // Läser och skriver formuläret i ett svep — två snabba tryck kunde annars läsa
+    // samma utgångsvärde och tappa den ena ändringen.
+    fun toggleTidpunkt(t: String) = updateForm {
+        val cur = tidpunkter
+        copy(tidpunkter = if (t in cur) cur.takeIf { it.size <= 1 } ?: (cur - t) else cur + t)
     }
 
-    fun toggleDag(dag: Int) {
-        val cur = _form.value.dagar.toMutableList()
-        if (cur.contains(dag)) cur.remove(dag) else cur.add(dag)
-        publish(_form.value.copy(dagar = cur.sorted()))
+    fun toggleDag(dag: Int) = updateForm {
+        copy(dagar = (if (dag in dagar) dagar - dag else dagar + dag).sorted())
     }
 
     fun setPeriodMode(mode: PeriodMode) { publish(_form.value.copy(periodMode = mode)) }
@@ -186,7 +190,12 @@ class AddEditReceptViewModel @Inject constructor(
         publish(_form.value.copy(dosperioder = _form.value.dosperioder.filterNot { it.id == id }))
     }
 
-    fun save() {
+    /**
+     * [onDone] anropas först när skrivningen är klar. Skärmen navigerade tidigare
+     * tillbaka direkt efter anropet, vilket rensade ViewModel:en och därmed kunde
+     * cancellera viewModelScope mitt i Room-skrivningen (NFR-12).
+     */
+    fun save(onDone: () -> Unit = {}) {
         viewModelScope.launch {
             val f = _form.value
             if (f.validate() != null) return@launch
@@ -209,6 +218,7 @@ class AddEditReceptViewModel @Inject constructor(
             noteRepo.save(NoteTarget.RECEPT, recept.id, f.anteckning.trim())
             originalForm = f
             _isDirty.value = false
+            onDone()
         }
     }
 }

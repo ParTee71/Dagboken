@@ -77,7 +77,12 @@ fun Recept.hasExpiredOn(today: LocalDate): Boolean {
     return today.isAfter(end)
 }
 
-/** Dosperioden som gäller för [date], eller null om grunddosen gäller (REC-9). */
+/**
+ * Dosperioden som gäller för [date], eller null om grunddosen gäller (REC-9).
+ * Formuläret hindrar överlappande dosperioder, men äldre eller importerad data kan
+ * innehålla dem — då vinner den senast påbörjade, alltså den mest specifika (en
+ * nedtrappning som lagts in ovanpå en längre period ska gälla, inte tvärtom).
+ */
 fun Recept.dosperiodFor(date: LocalDate): Dosperiod? =
     dosperioder
         .filter { p ->
@@ -86,7 +91,7 @@ fun Recept.dosperiodFor(date: LocalDate): Dosperiod? =
             val end = parseIsoDate(p.slutDatum) ?: return@filter true
             !date.isAfter(end)
         }
-        .minByOrNull { it.startDatum }
+        .maxByOrNull { it.startDatum }
 
 /** Dos och enhet som gäller för [date] — dosperiod före grunddos (REC-9). */
 fun Recept.dosFor(date: LocalDate): Pair<String, String> =

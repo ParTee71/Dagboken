@@ -110,7 +110,6 @@ class SjukdomsEpisodViewModel @Inject constructor(
     fun deleteIncheckning(incheckning: SjukdomsIncheckning) {
         viewModelScope.launch {
             repo.deleteIncheckning(incheckning)
-            noteRepo.delete(NoteTarget.SJUKDOM_INCHECKNING, incheckning.id)
             _snackbar.value = "Incheckning borttagen"
         }
     }

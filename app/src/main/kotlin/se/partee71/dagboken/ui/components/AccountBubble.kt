@@ -12,11 +12,14 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.R
 import coil.compose.AsyncImage
 import se.partee71.dagboken.ui.theme.Emerald400
 
@@ -29,10 +32,20 @@ fun AccountBubble(
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
+    // Hela ytan är minst 48 dp och annonseras som knapp — tidigare låg klicket på en
+    // 36 dp-ruta utan roll, alltså både för liten och otydlig för skärmläsare.
     Box(
         modifier = modifier
             .padding(start = 8.dp)
-            .size(40.dp),
+            .size(MIN_TOUCH_TARGET)
+            .clip(CircleShape)
+            .clickable(
+                onClick = onClick,
+                role = Role.Button,
+                onClickLabel = stringResource(
+                    if (email != null) R.string.account_open_menu else R.string.account_sign_in,
+                ),
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -40,14 +53,13 @@ fun AccountBubble(
                 .size(36.dp)
                 .clip(CircleShape)
                 .border(1.5.dp, cs.outlineVariant, CircleShape)
-                .background(cs.surfaceVariant)
-                .clickable(onClick = onClick),
+                .background(cs.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             if (email != null && photoUrl != null) {
                 AsyncImage(
                     model              = photoUrl,
-                    contentDescription = displayName ?: "Profil",
+                    contentDescription = displayName ?: stringResource(R.string.account_profile_picture),
                     modifier           = Modifier
                         .size(36.dp)
                         .clip(CircleShape),
@@ -56,7 +68,7 @@ fun AccountBubble(
             } else {
                 Icon(
                     imageVector        = Icons.Default.AccountCircle,
-                    contentDescription = "Logga in",
+                    contentDescription = null,
                     modifier           = Modifier.size(20.dp),
                     tint               = cs.onSurfaceVariant.copy(alpha = 0.6f),
                 )

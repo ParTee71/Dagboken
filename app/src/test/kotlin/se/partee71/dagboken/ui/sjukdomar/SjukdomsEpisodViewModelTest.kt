@@ -90,13 +90,15 @@ class SjukdomsEpisodViewModelTest {
 
     // ─── deleteIncheckning ────────────────────────────────────────────────────
 
-    @Test fun `deleteIncheckning also deletes its note`() = runTest {
+    // Anteckningen raderas av SjukdomarRepository.deleteIncheckning (DAT-4).
+    @Test fun `deleteIncheckning delegates the deletion to the repository`() = runTest {
         val incheckning = SjukdomsIncheckning(
             id = "i1", episodId = "e1", datum = "2026-01-10", tid = "10:00",
             svarighetsgrad = 5, symptom = "", somatiska = 0,
         )
         viewModel.deleteIncheckning(incheckning)
-        coVerify { noteRepo.delete(NoteTarget.SJUKDOM_INCHECKNING, "i1") }
+        coVerify { repo.deleteIncheckning(incheckning) }
+        coVerify(exactly = 0) { noteRepo.delete(any(), any()) }
     }
 
     // ─── isIncheckningFormDirty ───────────────────────────────────────────────

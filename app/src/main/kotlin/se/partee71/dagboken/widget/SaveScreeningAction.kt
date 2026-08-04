@@ -21,7 +21,6 @@ import java.time.format.DateTimeFormatter
  */
 class SaveScreeningAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        recordWidgetTap(context, glanceId)
         val draft = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId).toScreeningDraft()
         if (draft.step == SCREENING_STEP_INACTIVE) return
 

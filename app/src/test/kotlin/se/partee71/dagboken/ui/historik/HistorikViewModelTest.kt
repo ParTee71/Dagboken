@@ -59,30 +59,33 @@ class HistorikViewModelTest {
 
     @After fun tearDown() { Dispatchers.resetMain() }
 
-    private fun aktivitet(id: String, type: String = "aktivitet", datum: String = "2026-01-01", tid: String = "08:00") =
+    /** Fast referenspunkt inom historikens fönster, oavsett när testet körs. */
+    private val idag = LocalDate.now().toString()
+
+    private fun aktivitet(id: String, type: String = "aktivitet", datum: String = idag, tid: String = "08:00") =
         Aktivitet(
             id = id, timestamp = "x", datum = datum, tid = tid, aktivitet = "Promenad",
             energy = 3, stress = 2, somatiska = 0, symptom = "", type = type,
         )
 
-    private fun medicin(id: String, datum: String = "2026-01-01", tid: String = "09:00", tagenTid: String? = null) = Medicin(
+    private fun medicin(id: String, datum: String = idag, tid: String = "09:00", tagenTid: String? = null) = Medicin(
         id = id, timestamp = "x", datum = datum, tid = tid, namn = "Ibuprofen",
         dos = "400", enhet = "mg", tidpunkt = "Morgon", tagen = true, tagenTid = tagenTid,
     )
 
-    private fun handelse(id: String, datum: String = "2026-01-01", tid: String = "10:00") = Handelse(
+    private fun handelse(id: String, datum: String = idag, tid: String = "10:00") = Handelse(
         id = id, timestamp = "x", datum = datum, tid = tid, typ = "Migrän",
         svarighetsgrad = 5, varaktighetMinuter = 30, triggers = "", atgarder = "",
     )
 
-    private fun incheckning(id: String, episodId: String = "ep1", datum: String = "2026-01-01", tid: String = "11:00") =
+    private fun incheckning(id: String, episodId: String = "ep1", datum: String = idag, tid: String = "11:00") =
         SjukdomsIncheckning(
             id = id, episodId = episodId, datum = datum, tid = tid,
             svarighetsgrad = 4, symptom = "", somatiska = 0,
         )
 
     private fun episod(id: String = "ep1", typ: String = "Förkylning") = SjukdomsEpisod(
-        id = id, typ = typ, startDatum = "2026-01-01", slutDatum = "",
+        id = id, typ = typ, startDatum = idag, slutDatum = "",
     )
 
     // ─── Sammanslagning ───────────────────────────────────────────────────────
@@ -246,5 +249,45 @@ class HistorikViewModelTest {
         viewModel.selectDate(date)
         viewModel.selectDate(date)
         assertEquals(null, viewModel.selectedDate.value)
+    }
+
+    // ─── Fönster bakåt (HIST-9) ─────────────────────────────────────────────────
+    // Historiken läste tidigare in hela databasen utan gräns; nu läses ett fönster
+    // bakåt som användaren kan utöka.
+
+    @Test fun `entries inside the default window are included`() = runTest {
+        aktiviteterFlow.value = listOf(aktivitet("a1", datum = LocalDate.now().minusDays(30).toString()))
+
+        viewModel.filteredEntries.test {
+            assertEquals(1, awaitItem().size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `entries older than the window are excluded`() = runTest {
+        aktiviteterFlow.value = listOf(
+            aktivitet("nyligen", datum = LocalDate.now().minusDays(10).toString()),
+            aktivitet("gammal", datum = LocalDate.now().minusYears(3).toString()),
+        )
+
+        viewModel.filteredEntries.test {
+            val ids = awaitItem().map { it.id }
+            assertTrue("nyligen" in ids)
+            assertTrue("gammal" !in ids)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun `loadMore widens the window so older entries appear`() = runTest {
+        aktiviteterFlow.value = listOf(aktivitet("gammal", datum = LocalDate.now().minusDays(400).toString()))
+
+        viewModel.filteredEntries.test {
+            assertEquals(0, awaitItem().size)
+
+            viewModel.loadMore()
+
+            assertEquals(1, awaitItem().size)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

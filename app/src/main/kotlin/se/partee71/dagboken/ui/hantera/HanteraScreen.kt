@@ -1,5 +1,13 @@
 package se.partee71.dagboken.ui.hantera
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -62,7 +70,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,6 +96,9 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -104,6 +116,22 @@ import se.partee71.dagboken.ui.components.SectionHeader
 
 private data class SectionDef(val icon: ImageVector, val title: String, val description: String)
 
+/**
+ * Begär POST_NOTIFICATIONS (Android 13+). På äldre versioner finns ingen körtidsbehörighet
+ * och anropet är en no-op.
+ */
+private fun requestNotificationPermission(launcher: ManagedActivityResultLauncher<String, Boolean>) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+}
+
+/** Systemets notisinställningar för appen — dit användaren skickas när notiser är avstängda. */
+private fun appNotificationSettingsIntent(context: Context): Intent =
+    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun HanteraScreen(
@@ -113,8 +141,18 @@ fun HanteraScreen(
     onOpenHalsa: () -> Unit,
     vm: HanteraViewModel = hiltViewModel(),
 ) {
-    val state          by vm.state.collectAsState()
-    val medicinFavoriter by vm.medicinFavoriter.collectAsState()
+    val state          by vm.state.collectAsStateWithLifecycle()
+    val medicinFavoriter by vm.medicinFavoriter.collectAsStateWithLifecycle()
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { vm.refreshPermissionState() }
+
+    // Behörigheterna kan ändras utanför appen, så läget läses om varje gång skärmen visas.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) { vm.refreshPermissionState() }
+    }
     val context         = LocalContext.current
     val isLargeScreen   = LocalConfiguration.current.screenWidthDp >= 360
     var selectedSection by remember { mutableIntStateOf(0) }
@@ -143,7 +181,7 @@ fun HanteraScreen(
                     email       = state.googleAccountEmail,
                     photoUrl    = state.googleAccountPhotoUrl,
                     isSigningIn = state.isSigningIn,
-                    signInError = state.signInError,
+                    signInFailed = state.signInFailed,
                     onSignIn    = { vm.signIn(context) },
                     onSignOut   = { vm.signOut() },
                 )
@@ -188,10 +226,19 @@ fun HanteraScreen(
             },
             {
                 NotificationsCard(
-                    medsEnabled        = state.medsNotificationsEnabled,
+                    medsEnabled          = state.medsNotificationsEnabled,
+                    notificationsBlocked = state.notificationsBlocked,
+                    exactAlarmsBlocked   = state.exactAlarmsBlocked,
+                    onOpenSystemSettings = { context.startActivity(appNotificationSettingsIntent(context)) },
                     screeningConfigs   = state.screeningEventConfigs,
                     periodReminderTime = state.periodReminderTime,
-                    onToggleMeds       = { vm.toggleMedsNotifications() },
+                    onToggleMeds         = {
+                        // Behörigheten begärs här — när användaren faktiskt slår på en
+                        // påminnelse — i stället för vid appens första start, då frågan
+                        // saknade sammanhang (NOT-16).
+                        if (!state.medsNotificationsEnabled) requestNotificationPermission(permissionLauncher)
+                        vm.toggleMedsNotifications()
+                    },
                     onToggleScreening  = { vm.toggleScreeningEvent(it) },
                     onSetScreeningTime = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
                     onSetPeriodTime    = { h, m -> vm.setPeriodReminderTime("%02d:%02d".format(h, m)) },
@@ -395,7 +442,7 @@ private fun AccountCard(
     email: String?,
     photoUrl: String?,
     isSigningIn: Boolean,
-    signInError: String?,
+    signInFailed: Boolean,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
 ) {
@@ -456,9 +503,9 @@ private fun AccountCard(
                         modifier = Modifier.weight(1f),
                     )
                 }
-                signInError?.let { err ->
+                if (signInFailed) {
                     Text(
-                        text     = err,
+                        text     = stringResource(R.string.sign_in_failed),
                         color    = MaterialTheme.colorScheme.error,
                         style    = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
@@ -633,6 +680,9 @@ private fun ThemeTimeRow(label: String, hour: Int, onClick: () -> Unit) {
 @Composable
 private fun NotificationsCard(
     medsEnabled: Boolean,
+    notificationsBlocked: Boolean,
+    exactAlarmsBlocked: Boolean,
+    onOpenSystemSettings: () -> Unit,
     screeningConfigs: List<ScreeningEventConfig>,
     periodReminderTime: String,
     onToggleMeds: () -> Unit,
@@ -644,6 +694,22 @@ private fun NotificationsCard(
         Column {
             SectionHeader(stringResource(R.string.settings_notifications_section))
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            // Reglagen nedan kan stå på "på" utan att någon notis kan visas, så
+            // systemets faktiska läge måste synas här (NOT-16).
+            if (notificationsBlocked || exactAlarmsBlocked) {
+                Text(
+                    text  = stringResource(
+                        if (notificationsBlocked) R.string.notifications_blocked_warning
+                        else R.string.exact_alarms_blocked_warning,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                TextButton(onClick = onOpenSystemSettings) {
+                    Text(stringResource(R.string.open_system_settings))
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.settings_meds_notifications))

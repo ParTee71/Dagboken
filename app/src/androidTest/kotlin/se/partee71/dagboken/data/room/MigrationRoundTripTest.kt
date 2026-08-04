@@ -12,7 +12,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlinx.coroutines.Dispatchers
 import se.partee71.dagboken.data.migration.AktivitetJson
 import se.partee71.dagboken.data.migration.BackupJson
 import se.partee71.dagboken.data.migration.BackupMapper
@@ -55,10 +54,10 @@ class MigrationRoundTripTest {
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
-        aktivRepo = AktiviteterRepository(db.aktivitetDao())
-        handelserRepo = HandelserRepository(db.handelseDao())
+        aktivRepo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
+        handelserRepo = HandelserRepository(db.handelseDao(), NoteRepository(db.noteDao()))
         noteRepo = NoteRepository(db.noteDao())
-        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), Dispatchers.IO)
+        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), NoteRepository(db.noteDao()))
         medicRepo = MedicinerRepository(
             db                 = db,
             medicinDao         = db.medicinDao(),
@@ -67,6 +66,7 @@ class MigrationRoundTripTest {
             noteRepo           = noteRepo,
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = json,
+            appContext         = ApplicationProvider.getApplicationContext(),
         )
     }
 

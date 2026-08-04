@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.aktiviteter
 
+import se.partee71.dagboken.di.dagbokenJson
 import se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase
 import android.content.Context
 import androidx.activity.ComponentActivity
@@ -47,9 +48,9 @@ class ScreeningTabTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db  = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                   .allowMainThreadQueries().build()
-        repo = AktiviteterRepository(db.aktivitetDao())
+        repo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
         val noteRepo = NoteRepository(db.noteDao())
-        val prefs    = PreferencesRepository(ctx)
+        val prefs    = PreferencesRepository(ctx, dagbokenJson())
         vm = AktiviteterViewModel(repo, noteRepo, prefs, BuildScreeningAktivitetUseCase())
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }

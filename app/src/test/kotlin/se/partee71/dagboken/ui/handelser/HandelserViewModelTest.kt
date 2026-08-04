@@ -192,10 +192,16 @@ class HandelserViewModelTest {
         coVerify { noteRepo.save(NoteTarget.EVENT, any(), "Kom efter möte") }
     }
 
-    @Test fun `delete also deletes the note under EVENT target`() = runTest {
+    /**
+     * Anteckningen raderas numera av HandelserRepository i samma anrop (DAT-4), så att
+     * även raderingsvägar utan ViewModel städar efter sig. Testet verifierar därför att
+     * ViewModel:en delegerar dit; själva städningen täcks av NoteCleanupOnDeleteTest.
+     */
+    @Test fun `delete delegates to the repository, which also removes the note`() = runTest {
         val h = handelse(id = "h1")
         viewModel.delete(h)
-        coVerify { noteRepo.delete(NoteTarget.EVENT, "h1") }
+        coVerify { repo.delete(h) }
+        coVerify(exactly = 0) { noteRepo.delete(any(), any()) }
     }
 
     @Test fun `loadForEdit with zero duration sets both wheels to zero`() = runTest {

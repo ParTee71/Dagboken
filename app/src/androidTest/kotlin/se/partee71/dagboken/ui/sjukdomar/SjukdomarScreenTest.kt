@@ -16,7 +16,6 @@ import androidx.room.Room
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -47,7 +46,7 @@ class SjukdomarScreenTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
             .allowMainThreadQueries().build()
-        repo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), Dispatchers.IO)
+        repo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), NoteRepository(db.noteDao()))
         vm = SjukdomarViewModel(repo, NoteRepository(db.noteDao()))
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }

@@ -55,7 +55,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -89,6 +89,7 @@ import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 import se.partee71.dagboken.ui.diagram.MinMaxCaption
 import se.partee71.dagboken.ui.components.StepwiseScreeningForm
+import se.partee71.dagboken.ui.formatDayDate
 import se.partee71.dagboken.ui.formatDisplayDate
 import se.partee71.dagboken.ui.formatShortDate
 import se.partee71.dagboken.ui.formatWeekdayShort
@@ -116,7 +117,7 @@ fun HomeScreen(
     screeningVm: AktiviteterViewModel = hiltViewModel(),
     medicinerVm: MedicinerViewModel = hiltViewModel(),
 ) {
-    val uiState by vm.uiState.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
     val cs = MaterialTheme.colorScheme
     val context = LocalContext.current
     var showAccountSheet by remember { mutableStateOf(false) }
@@ -124,19 +125,19 @@ fun HomeScreen(
     var showScreeningLabelPicker by remember { mutableStateOf(false) }
     var adHocScreeningLabel by remember { mutableStateOf<String?>(null) }
 
-    val screeningSnackbar by screeningVm.snackbar.collectAsState()
+    val screeningSnackbar by screeningVm.snackbar.collectAsStateWithLifecycle()
     LaunchedEffect(screeningSnackbar) {
         screeningSnackbar?.let { snackbarHostState.showSnackbar(it); screeningVm.clearSnackbar() }
     }
 
-    val medicinerSnackbar by medicinerVm.snackbar.collectAsState()
+    val medicinerSnackbar by medicinerVm.snackbar.collectAsStateWithLifecycle()
     LaunchedEffect(medicinerSnackbar) {
         medicinerSnackbar?.let { snackbarHostState.showSnackbar(it); medicinerVm.clearSnackbar() }
     }
-    val allFavoriter by medicinerVm.allFavoriter.collectAsState()
-    val cooldownWarning by medicinerVm.cooldownWarning.collectAsState()
-    val weekSummary by vm.weekSummary.collectAsState()
-    val healthCard by vm.healthCard.collectAsState()
+    val allFavoriter by medicinerVm.allFavoriter.collectAsStateWithLifecycle()
+    val cooldownWarning by medicinerVm.cooldownWarning.collectAsStateWithLifecycle()
+    val weekSummary by vm.weekSummary.collectAsStateWithLifecycle()
+    val healthCard by vm.healthCard.collectAsStateWithLifecycle()
 
     DagbokenScaffold(
         navigationIcon = {
@@ -156,7 +157,11 @@ fun HomeScreen(
         },
         actions = {
             Text(
-                text     = formattedDate(),
+                text     = stringResource(
+                    R.string.format_home_date_week,
+                    formatDayDate(LocalDate.now()),
+                    isoWeekNumber(),
+                ),
                 style    = MaterialTheme.typography.labelMedium,
                 color    = cs.onSurfaceVariant,
                 modifier = Modifier.padding(end = 16.dp),
@@ -224,7 +229,7 @@ fun HomeScreen(
                 ) {
                     Column {
                         Text(
-                            text       = greeting(),
+                            text       = stringResource(greetingRes()),
                             style      = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color      = cs.onPrimaryContainer,
@@ -805,9 +810,9 @@ private fun VidBehovChecklistSection(
     onEdit: (String) -> Unit,
     onLogEfterhand: (String) -> Unit,
 ) {
-    val favoriter    by vm.favoriteFavoriter.collectAsState()
-    val others       by vm.otherFavoriter.collectAsState()
-    val favoritNotes by vm.favoritNotes.collectAsState()
+    val favoriter    by vm.favoriteFavoriter.collectAsStateWithLifecycle()
+    val others       by vm.otherFavoriter.collectAsStateWithLifecycle()
+    val favoritNotes by vm.favoritNotes.collectAsStateWithLifecycle()
     var deleteTarget by remember { mutableStateOf<Favorit?>(null) }
 
     Column {
@@ -1044,8 +1049,8 @@ private fun InlineScreeningForm(
     selectedDate: LocalDate,
     onSaved: () -> Unit,
 ) {
-    val form by vm.form.collectAsState()
-    val symptomOptions by vm.symptomOptions.collectAsState()
+    val form by vm.form.collectAsStateWithLifecycle()
+    val symptomOptions by vm.symptomOptions.collectAsStateWithLifecycle()
 
     LaunchedEffect(label, selectedDate) { vm.startScreening(label, selectedDate) }
 

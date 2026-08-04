@@ -157,12 +157,4 @@ class WidgetStateWritesTest {
         assertEquals(false, prefs.toVidBehovDraft().showAll)
     }
 
-    @Test fun `incrementWidgetTapCount counts up from an empty state`() {
-        val prefs = mutablePreferencesOf()
-
-        prefs.incrementWidgetTapCount()
-        prefs.incrementWidgetTapCount()
-
-        assertEquals(2, prefs[WIDGET_TAP_COUNT])
-    }
 }

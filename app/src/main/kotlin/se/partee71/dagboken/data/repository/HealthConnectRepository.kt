@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
@@ -20,6 +21,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.math.roundToLong
+import kotlin.reflect.KClass
 
 /**
  * Läsyta mot **Health Connect** (§19 HLS, epic #54). Galaxy Watch synkar via
@@ -78,26 +80,55 @@ class HealthConnectRepositoryImpl(
         client.permissionController.getGrantedPermissions().containsAll(permissions)
     }
 
+    /**
+     * Läser *alla* poster i intervallet genom att följa Health Connects `pageToken`.
+     * `readRecords` returnerar en sida i taget (1000 poster som standard); utan den här
+     * loopen tappades allt utöver första sidan tyst, vilket slog hårdast mot pulsprover
+     * över långa perioder i Trender (TRD-11).
+     */
+    private suspend fun <T : Record> readAllRecords(
+        recordType: KClass<T>,
+        range: TimeRangeFilter,
+    ): List<T> {
+        val all = mutableListOf<T>()
+        var token: String? = null
+        do {
+            val response = client.readRecords(
+                ReadRecordsRequest(recordType, timeRangeFilter = range, pageToken = token),
+            )
+            all += response.records
+            token = response.pageToken
+        } while (token != null)
+        return all
+    }
+
+    /** Läser periodens steg och väljer den mest kompletta källan. */
+    private suspend fun stepsForRange(range: TimeRangeFilter): Long {
+        val records = readAllRecords(StepsRecord::class, range)
+        return mostCompleteStepSum(records.map { OriginSteps(it.metadata.dataOrigin.packageName, it.count) })
+    }
+
+    /** Läser periodens pulsprover med tidsstämpel — underlag för vilopulsskattningen. */
+    private suspend fun timedBpmForRange(range: TimeRangeFilter): List<TimedBpm> =
+        readAllRecords(HeartRateRecord::class, range)
+            .flatMap { record -> record.samples.map { TimedBpm(it.time, it.beatsPerMinute) } }
+
     override suspend fun readToday(): HealthData = withContext(ioDispatcher) {
         val zone = ZoneId.systemDefault()
         val now = Instant.now()
         val startOfDay = LocalDate.now(zone).atStartOfDay(zone).toInstant()
         val dayRange = TimeRangeFilter.between(startOfDay, now)
 
-        val steps = client.stepsForRange(dayRange)
+        val steps = stepsForRange(dayRange)
 
-        val bpm = client
-            .readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = dayRange))
-            .records
+        val bpm = readAllRecords(HeartRateRecord::class, dayRange)
             .flatMap { it.samples }
             .map { it.beatsPerMinute }
         val heartRateAvg = if (bpm.isEmpty()) null else bpm.average().roundToLong()
 
         // Sömn: titta 24h bakåt för att fånga senaste natten.
         val sleepRange = TimeRangeFilter.between(now.minus(Duration.ofHours(24)), now)
-        val sleepDuration = client
-            .readRecords(ReadRecordsRequest(SleepSessionRecord::class, timeRangeFilter = sleepRange))
-            .records
+        val sleepDuration = readAllRecords(SleepSessionRecord::class, sleepRange)
             .fold(Duration.ZERO) { acc, r -> acc.plus(Duration.between(r.startTime, r.endTime)) }
             .takeIf { !it.isZero }
 
@@ -117,23 +148,16 @@ class HealthConnectRepositoryImpl(
 
         val rangeStart = today.minusDays((days - 1).toLong()).atStartOfDay(zone).toInstant()
         val fullRange = TimeRangeFilter.between(rangeStart, now)
-        val restingHrRecords = client
-            .readRecords(ReadRecordsRequest(RestingHeartRateRecord::class, timeRangeFilter = fullRange))
-            .records
+        val restingHrRecords = readAllRecords(RestingHeartRateRecord::class, fullRange)
 
         // Sömnfönstren för hela perioden läses en gång och används för att sålla bort
         // nattens pulsprover ur vilopulsskattningen (se estimateRestingHeartRate).
         // Startgränsen backas ett dygn så att en session som börjar kvällen före
         // periodens start — eller korsar midnatt inne i perioden — täcker båda dygnen.
-        val sleepWindows = client
-            .readRecords(
-                ReadRecordsRequest(
-                    SleepSessionRecord::class,
-                    timeRangeFilter = TimeRangeFilter.between(rangeStart.minus(Duration.ofHours(24)), now),
-                ),
-            )
-            .records
-            .map { SleepWindow(it.startTime, it.endTime) }
+        val sleepWindows = readAllRecords(
+            SleepSessionRecord::class,
+            TimeRangeFilter.between(rangeStart.minus(Duration.ofHours(24)), now),
+        ).map { SleepWindow(it.startTime, it.endTime) }
 
         val daily = ((days - 1).toLong() downTo 0L).map { back ->
             val day = today.minusDays(back)
@@ -142,7 +166,7 @@ class HealthConnectRepositoryImpl(
             val end = if (rawEnd.isAfter(now)) now else rawEnd
             val dayRange = TimeRangeFilter.between(start, end)
 
-            val steps = client.stepsForRange(dayRange)
+            val steps = stepsForRange(dayRange)
 
             // Vilopuls för dagen till trenddiagrammet: senaste registrerade
             // RestingHeartRateRecord den dagen, annars skattad från dagens egna
@@ -153,7 +177,7 @@ class HealthConnectRepositoryImpl(
                 .maxByOrNull { it.time }
                 ?.beatsPerMinute
                 ?: estimateRestingHeartRate(
-                    client.timedBpmForRange(dayRange),
+                    timedBpmForRange(dayRange),
                     sleepWindows,
                 )
 
@@ -164,7 +188,7 @@ class HealthConnectRepositoryImpl(
         // värdet, eller en skattning från periodens pulsprover om posten saknas
         // (fler prover ger en säkrare percentil än en enskild dags).
         val restingHr = restingHrRecords.maxByOrNull { it.time }?.beatsPerMinute
-            ?: estimateRestingHeartRate(client.timedBpmForRange(fullRange), sleepWindows)
+            ?: estimateRestingHeartRate(timedBpmForRange(fullRange), sleepWindows)
 
         WeeklyHealth(
             dailySteps = daily.map { it.first },
@@ -173,18 +197,6 @@ class HealthConnectRepositoryImpl(
         )
     }
 }
-
-/** Läser dagens/periodens steg ur Health Connect och väljer den mest kompletta källan. */
-private suspend fun HealthConnectClient.stepsForRange(range: TimeRangeFilter): Long {
-    val records = readRecords(ReadRecordsRequest(StepsRecord::class, timeRangeFilter = range)).records
-    return mostCompleteStepSum(records.map { OriginSteps(it.metadata.dataOrigin.packageName, it.count) })
-}
-
-/** Läser periodens pulsprover med tidsstämpel — underlag för vilopulsskattningen. */
-private suspend fun HealthConnectClient.timedBpmForRange(range: TimeRangeFilter): List<TimedBpm> =
-    readRecords(ReadRecordsRequest(HeartRateRecord::class, timeRangeFilter = range))
-        .records
-        .flatMap { record -> record.samples.map { TimedBpm(it.time, it.beatsPerMinute) } }
 
 /** En stegpost knuten till sin källa (dataOrigin-paketnamn). */
 internal data class OriginSteps(val origin: String, val count: Long)

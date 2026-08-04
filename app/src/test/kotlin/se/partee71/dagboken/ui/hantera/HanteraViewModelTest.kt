@@ -24,7 +24,10 @@ import org.junit.Before
 import org.junit.Test
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.notifications.AlarmScheduler
 
@@ -43,6 +46,9 @@ class HanteraViewModelTest {
     private val handelseTypOptionsFlow = MutableStateFlow(listOf(SymptomOption("Yrsel")))
     private val medicinFavoriterFlow = MutableStateFlow<List<Favorit>>(emptyList())
 
+    private lateinit var aktiviteterRepo: AktiviteterRepository
+    private lateinit var handelserRepo: HandelserRepository
+    private lateinit var sjukdomarRepo: SjukdomarRepository
     private lateinit var viewModel: HanteraViewModel
 
     @Before fun setUp() {
@@ -67,7 +73,10 @@ class HanteraViewModelTest {
         medicinerRepo = mockk(relaxed = true) {
             every { allFavoriter } returns medicinFavoriterFlow
         }
-        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        aktiviteterRepo = mockk(relaxed = true)
+        handelserRepo   = mockk(relaxed = true)
+        sjukdomarRepo   = mockk(relaxed = true)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo, aktiviteterRepo, handelserRepo, sjukdomarRepo)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -188,7 +197,7 @@ class HanteraViewModelTest {
 
     @Test fun `renameHandelseTypOption ignores duplicate target name`() = runTest {
         handelseTypOptionsFlow.value = listOf(SymptomOption("Yrsel"), SymptomOption("Andnöd"))
-        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo, aktiviteterRepo, handelserRepo, sjukdomarRepo)
         viewModel.renameHandelseTypOption("Yrsel", "Andnöd")
         coVerify(exactly = 0) { prefs.setHandelseTypOptions(any()) }
     }
@@ -217,7 +226,7 @@ class HanteraViewModelTest {
         val enabledConfigs = DEFAULT_SCREENING_EVENTS.toMutableList()
             .also { it[0] = ScreeningEventConfig(enabled = true, time = "08:00") }
         every { prefs.screeningEventConfigs } returns flowOf(enabledConfigs)
-        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo, aktiviteterRepo, handelserRepo, sjukdomarRepo)
 
         viewModel.setScreeningEventTime(0, "09:30")
         coVerify { alarmScheduler.rescheduleAll() }
@@ -238,7 +247,7 @@ class HanteraViewModelTest {
 
     @Test fun `periodReminderTime from prefs reaches the ui state`() = runTest {
         every { prefs.periodReminderTime } returns flowOf("18:45")
-        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo, aktiviteterRepo, handelserRepo, sjukdomarRepo)
 
         assertEquals("18:45", viewModel.state.value.periodReminderTime)
     }
@@ -263,5 +272,61 @@ class HanteraViewModelTest {
     @Test fun `toggleMedicinFavorite unmarks an already-favorite entry`() = runTest {
         viewModel.toggleMedicinFavorite(favorit(isFavorite = true))
         coVerify { medicinerRepo.setFavoritFavorite("f1", false) }
+    }
+
+    // ─── namnbyte migrerar loggad data (HAN-9) ────────────────────────────────
+
+    @Test fun `renameAktivitetOption also renames already logged aktiviteter`() = runTest {
+        viewModel.renameAktivitetOption("Promenad", "Långpromenad")
+        coVerify { aktiviteterRepo.renameAktivitet("Promenad", "Långpromenad") }
+    }
+
+    @Test fun `renameSymptomOption renames the symptom in both aktiviteter and incheckningar`() = runTest {
+        viewModel.renameSymptomOption("Huvudvärk", "Migrän")
+        coVerify { aktiviteterRepo.renameSymptom("Huvudvärk", "Migrän") }
+        coVerify { sjukdomarRepo.renameSymptom("Huvudvärk", "Migrän") }
+    }
+
+    @Test fun `renameHandelseTypOption also renames already logged handelser`() = runTest {
+        viewModel.renameHandelseTypOption("Yrsel", "Ostadighet")
+        coVerify { handelserRepo.renameTyp("Yrsel", "Ostadighet") }
+    }
+
+    @Test fun `a rejected rename does not touch logged data`() = runTest {
+        // Samma namn som redan finns i listan avvisas.
+        viewModel.renameAktivitetOption("Promenad", "Jobb")
+        coVerify(exactly = 0) { aktiviteterRepo.renameAktivitet(any(), any()) }
+    }
+
+    // ─── behörighetsläge för påminnelser (NOT-16) ─────────────────────────────
+
+    @Test fun `refreshPermissionState reports blocked notifications`() = runTest {
+        every { alarmScheduler.canPostNotifications() } returns false
+        every { alarmScheduler.canScheduleExactAlarms() } returns true
+
+        viewModel.refreshPermissionState()
+
+        assertTrue(viewModel.state.value.notificationsBlocked)
+        assertFalse(viewModel.state.value.exactAlarmsBlocked)
+    }
+
+    @Test fun `refreshPermissionState reports blocked exact alarms`() = runTest {
+        every { alarmScheduler.canPostNotifications() } returns true
+        every { alarmScheduler.canScheduleExactAlarms() } returns false
+
+        viewModel.refreshPermissionState()
+
+        assertFalse(viewModel.state.value.notificationsBlocked)
+        assertTrue(viewModel.state.value.exactAlarmsBlocked)
+    }
+
+    @Test fun `refreshPermissionState reports nothing blocked when both are granted`() = runTest {
+        every { alarmScheduler.canPostNotifications() } returns true
+        every { alarmScheduler.canScheduleExactAlarms() } returns true
+
+        viewModel.refreshPermissionState()
+
+        assertFalse(viewModel.state.value.notificationsBlocked)
+        assertFalse(viewModel.state.value.exactAlarmsBlocked)
     }
 }

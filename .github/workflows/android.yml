@@ -37,6 +37,21 @@ jobs:
       - name: Run unit tests
         run: ./gradlew :app:testDebugUnitTest
 
+      # Lint och ett minifierat releasebygge kördes tidigare inte alls i CI, så
+      # R8-problem och lint-varningar upptäcktes först vid en faktisk release.
+      - name: Run Android Lint
+        run: ./gradlew :app:lintDebug
+
+      - name: Assemble minified release
+        run: ./gradlew :app:assembleRelease
+
+      - name: Upload lint results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results
+          path: app/build/reports/lint-results-debug.html
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

@@ -25,6 +25,9 @@ interface SjukdomsEpisodDao {
     @Upsert
     suspend fun save(episod: SjukdomsEpisodEntity)
 
+    @Upsert
+    suspend fun saveAll(episoder: List<SjukdomsEpisodEntity>)
+
     @Delete
     suspend fun delete(episod: SjukdomsEpisodEntity)
 

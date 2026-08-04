@@ -16,11 +16,20 @@ interface SjukdomsIncheckningDao {
     @Query("SELECT * FROM sjukdoms_incheckningar ORDER BY datum DESC, tid DESC")
     fun allFlow(): Flow<List<SjukdomsIncheckningEntity>>
 
+    @Query("SELECT id FROM sjukdoms_incheckningar WHERE episod_id = :episodId")
+    suspend fun idsForEpisod(episodId: String): List<String>
+
     @Query("SELECT * FROM sjukdoms_incheckningar WHERE id = :id")
     suspend fun getById(id: String): SjukdomsIncheckningEntity?
 
+    @Query("SELECT * FROM sjukdoms_incheckningar WHERE symptom LIKE '%' || :name || '%'")
+    suspend fun withSymptomContaining(name: String): List<SjukdomsIncheckningEntity>
+
     @Upsert
     suspend fun save(incheckning: SjukdomsIncheckningEntity)
+
+    @Upsert
+    suspend fun saveAll(incheckningar: List<SjukdomsIncheckningEntity>)
 
     @Delete
     suspend fun delete(incheckning: SjukdomsIncheckningEntity)

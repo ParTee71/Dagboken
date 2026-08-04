@@ -55,6 +55,7 @@ class AddEditMedicinScreenTest {
             noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
+            appContext         = ApplicationProvider.getApplicationContext(),
         )
         vm = AddEditMedicinViewModel(repo, NoteRepository(db.noteDao()), CheckCooldownUseCase(), CheckDailyLimitUseCase())
         scenario = ActivityScenario.launch(ComponentActivity::class.java)

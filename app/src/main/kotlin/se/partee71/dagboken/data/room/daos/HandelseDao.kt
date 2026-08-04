@@ -19,6 +19,10 @@ interface HandelseDao {
     @Query("SELECT * FROM health_events WHERE id = :id")
     suspend fun getById(id: String): HandelseEntity?
 
+    /** Namnbyte på en händelsetyp (HAN-9) — se AktivitetDao.renameAktivitet. */
+    @Query("UPDATE health_events SET typ = :nyttNamn WHERE typ = :gammaltNamn")
+    suspend fun renameTyp(gammaltNamn: String, nyttNamn: String)
+
     @Upsert
     suspend fun upsert(entity: HandelseEntity)
 

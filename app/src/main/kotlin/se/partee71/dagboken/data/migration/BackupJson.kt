@@ -23,6 +23,26 @@ data class BackupJson(
     val sheetsConfig: String? = null,
     val handelseTypOptions: List<SymptomOptionBackup>? = null,
     val periodReminderTime: String? = null,
+    // Appinställningar (BCK-10). Saknas i äldre backupar — null betyder "rör inte
+    // den inställningen vid återställning", så en gammal backup aldrig nollställer
+    // något som användaren redan ställt in på den nya enheten.
+    val settings: SettingsBackup? = null,
+)
+
+/**
+ * Inställningar som inte är dagboksdata men som användaren ändå förlorar vid byte av
+ * enhet om de inte följer med backupen (BCK-10). Notistiderna låg redan i backupen —
+ * huvudreglaget för medicinpåminnelser gjorde det inte, så påminnelser blev tysta
+ * efter en återställning trots att tiderna kom med.
+ */
+@Serializable
+data class SettingsBackup(
+    val medsNotificationsEnabled: Boolean? = null,
+    val themeMode: String? = null,
+    val themeLightStart: Int? = null,
+    val themeDarkStart: Int? = null,
+    val isDarkTheme: Boolean? = null,
+    val dynamicColor: Boolean? = null,
 )
 
 @Serializable

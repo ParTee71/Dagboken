@@ -30,6 +30,7 @@ import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.data.room.entities.NoteEntity
 import se.partee71.dagboken.data.room.AppDatabase
+import se.partee71.dagboken.notifications.AlarmScheduler
 import javax.inject.Inject
 
 sealed class MigrationState {
@@ -56,6 +57,7 @@ class MigrationViewModel @Inject constructor(
     private val handelserRepo: HandelserRepository,
     private val noteRepo: NoteRepository,
     private val prefs: PreferencesRepository,
+    private val alarmScheduler: AlarmScheduler,
     private val json: Json,
 ) : ViewModel() {
 
@@ -137,6 +139,8 @@ class MigrationViewModel @Inject constructor(
         val handelser         = BackupMapper.toHandelser(backup)
         val notes             = BackupMapper.toNotes(backup)
 
+        // Allt i en transaktion — sjukdomsdatan låg tidigare utanför, så ett fel där
+        // lämnade en halvfärdig återställning bakom sig med resten redan committad.
         db.withTransaction {
             aktiviteterRepo.importAll(aktiviteter)
             medicinerRepo.importMediciner(mediciner)
@@ -144,9 +148,9 @@ class MigrationViewModel @Inject constructor(
             medicinerRepo.importFavoriter(favoriter)
             handelserRepo.importAll(handelser)
             noteRepo.importAll(notes)
+            sjukdomarRepo.importEpisoder(sjukdomsEpisoder)
+            sjukdomarRepo.importIncheckningar(sjukdomsIncheckningar)
         }
-        sjukdomarRepo.importEpisoder(sjukdomsEpisoder)
-        sjukdomarRepo.importIncheckningar(sjukdomsIncheckningar)
 
         val aktivitetOpts = backup.aktiviteterOptionsV2?.map { SymptomOption(it.name, it.isFavorite) }
             ?: backup.aktiviteterOptions?.map { SymptomOption(it) }
@@ -169,6 +173,21 @@ class MigrationViewModel @Inject constructor(
         backup.periodReminderTime
             ?.takeIf { it.isNotBlank() }
             ?.let { prefs.setPeriodReminderTime(it) }
+
+        // Appinställningar (BCK-10). Varje fält är null i äldre backupar och lämnas då
+        // orört, så en gammal backup aldrig nollställer något användaren redan ställt in.
+        backup.settings?.let { settings ->
+            settings.medsNotificationsEnabled?.let { prefs.setMedsNotificationsEnabled(it) }
+            settings.themeMode?.takeIf { it.isNotBlank() }?.let { prefs.setThemeMode(it) }
+            settings.themeLightStart?.let { prefs.setThemeLightStart(it) }
+            settings.themeDarkStart?.let { prefs.setThemeDarkStart(it) }
+            settings.isDarkTheme?.let { prefs.setDarkTheme(it) }
+            settings.dynamicColor?.let { prefs.setDynamicColor(it) }
+        }
+
+        // Larmen sattes vid appstart, innan de återställda tiderna fanns — utan detta
+        // fick de återställda påminnelserna effekt först vid nästa processtart (NOT-15).
+        alarmScheduler.rescheduleAll()
 
         _state.value = MigrationState.Importing(1f)
         prefs.setMigrationDone(true)

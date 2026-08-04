@@ -6,7 +6,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
@@ -23,6 +26,8 @@ import com.patrykandpatrick.vico.core.cartesian.data.CartesianLayerRangeProvider
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
+import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.diagram.chartContentDescription
 import se.partee71.dagboken.ui.diagram.computeSmartYAxis
 import se.partee71.dagboken.ui.diagram.computeTrendLine
 import se.partee71.dagboken.ui.diagram.formatChartValue
@@ -42,8 +47,12 @@ fun SparklineChart(
     points: List<Float>,    // energy values 1..10, or step counts etc.
     modifier: Modifier = Modifier,
     xLabels: List<String> = emptyList(),
+    contentLabel: String = stringResource(R.string.diagram_a11y_default_label),
 ) {
     if (points.size < 2) return
+
+    // Se LineChartCanvas — sparklinen behöver samma talbara sammanfattning (a11y).
+    val description = chartContentDescription(contentLabel, points)
 
     val modelProducer = remember { CartesianChartModelProducer() }
     val lineColor = MaterialTheme.colorScheme.primary
@@ -108,7 +117,7 @@ fun SparklineChart(
             ),
         ),
         modelProducer = modelProducer,
-        modifier = modifier
+        modifier = modifier.semantics { contentDescription = description }
             .fillMaxWidth()
             .height(if (xLabels.isEmpty()) 60.dp else 76.dp),
     )

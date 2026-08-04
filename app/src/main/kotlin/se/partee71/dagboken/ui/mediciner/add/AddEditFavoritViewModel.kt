@@ -75,7 +75,8 @@ class AddEditFavoritViewModel @Inject constructor(
         }
     }
 
-    fun save() {
+    /** [onDone] anropas först när skrivningen är klar — se AddEditReceptViewModel.save. */
+    fun save(onDone: () -> Unit = {}) {
         viewModelScope.launch {
             val f = _form.value
             val favorit = Favorit(
@@ -92,6 +93,7 @@ class AddEditFavoritViewModel @Inject constructor(
             noteRepo.save(NoteTarget.FAVORIT, favorit.id, f.anteckning.trim())
             originalForm = f
             _isDirty.value = false
+            onDone()
         }
     }
 }

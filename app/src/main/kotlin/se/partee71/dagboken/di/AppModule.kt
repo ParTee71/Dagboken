@@ -23,13 +23,20 @@ import se.partee71.dagboken.data.room.daos.SjukdomsEpisodDao
 import se.partee71.dagboken.data.room.daos.SjukdomsIncheckningDao
 import javax.inject.Singleton
 
+/**
+ * Appens JSON-konfiguration, som en fristående funktion så att tester kan bygga exakt
+ * samma instans som Hilt injicerar (i stället för kotlinx globala `Json`, som saknar
+ * `ignoreUnknownKeys` och därför avkodar redan sparade värden annorlunda) — BCK-9.
+ */
+fun dagbokenJson(): Json = Json { ignoreUnknownKeys = true }
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
     @Provides
     @Singleton
-    fun provideJson(): Json = Json { ignoreUnknownKeys = true }
+    fun provideJson(): Json = dagbokenJson()
 
     @Provides
     @IoDispatcher

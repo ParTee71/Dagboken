@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.handelser
 
+import se.partee71.dagboken.di.dagbokenJson
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -53,8 +54,8 @@ class AddEditHandelseScreenTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db    = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                     .allowMainThreadQueries().build()
-        repo  = HandelserRepository(db.handelseDao())
-        prefs = PreferencesRepository(ctx)
+        repo  = HandelserRepository(db.handelseDao(), NoteRepository(db.noteDao()))
+        prefs = PreferencesRepository(ctx, dagbokenJson())
         runBlocking { prefs.setHandelseTypOptions(emptyList()) }
         vm    = HandelserViewModel(repo, NoteRepository(db.noteDao()), prefs)
         scenario = ActivityScenario.launch(ComponentActivity::class.java)

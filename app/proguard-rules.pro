@@ -39,3 +39,13 @@
 -keep class androidx.glance.** { *; }
 -keep class androidx.glance.appwidget.** { *; }
 -dontwarn androidx.glance.**
+
+# Strippa loggning ur releasebygget. Appen hanterar känslig hälsodata och ska aldrig
+# skriva något till logcat i release (NFR-13).
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+    public static int e(...);
+}

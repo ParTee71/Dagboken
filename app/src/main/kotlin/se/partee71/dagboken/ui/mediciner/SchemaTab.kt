@@ -35,7 +35,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,8 +71,8 @@ fun SchemaTab(
     vm: MedicinerViewModel,
     onEdit: (String) -> Unit,
 ) {
-    val recept by vm.allRecept.collectAsState()
-    val receptNotes by vm.receptNotes.collectAsState()
+    val recept by vm.allRecept.collectAsStateWithLifecycle()
+    val receptNotes by vm.receptNotes.collectAsStateWithLifecycle()
     var deleteTarget by remember { mutableStateOf<Recept?>(null) }
     val cs = MaterialTheme.colorScheme
     val today = remember { LocalDate.now() }

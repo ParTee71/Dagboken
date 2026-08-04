@@ -153,7 +153,8 @@
 | REC-7 | Ett recept ska kunna ges en **period** — startdatum plus antingen längd i dagar eller ett t.o.m.-datum, eller *tills vidare* (inget slutdatum). Doser genereras endast inom perioden. Recept utan uttalat startdatum (skapade före periodstödet) har ingen bakre gräns, så bakåtbläddring i Idag (HEM-14) fortsätter seeda deras doser som förut. |
 | REC-8 | När perioden passerats slutar receptet generera doser och markeras automatiskt som **avslutat** (`aktiv = false`). Receptet raderas aldrig och kan tas i bruk igen genom att perioden förlängs och receptet aktiveras. Recept & scheman visar "Avslutat" med slutdatum. |
 | REC-9 | Ett recept ska kunna ha en eller flera **dosperioder** (startdatum, slutdatum eller periodens slut, dos, enhet) som tillfälligt ersätter grunddosen — t.ex. nedtrappning i flera steg. Överlappande dosperioder kan inte sparas; när en dosperiod löper ut återgår receptet till grunddosen. |
-| REC-10 | När ett recept sparas uppdateras **otagna, ej överhoppade** receptgenererade doser för idag och framåt: dos/enhet och namn följer den nya perioden och dosperioderna, och doser som hamnat utanför perioden eller upprepningsmönstret tas bort. Tagna och överhoppade doser ändras aldrig. |
+| REC-10 | När ett recept sparas uppdateras **otagna, ej överhoppade** receptgenererade doser för idag och framåt: dos/enhet och namn följer den nya perioden och dosperioderna, och doser som hamnat utanför perioden, upprepningsmönstret **eller receptets aktuella tidpunkter** tas bort (tillsammans med sina anteckningar). Tagna och överhoppade doser ändras aldrig. |
+| REC-11 | Vid överlappande dosperioder (t.ex. i importerad eller äldre data, som formuläret inte längre tillåter) gäller den **senast påbörjade** — den mer specifika dosändringen vinner över en längre period den ligger inuti. |
 
 ### 6.3 Vid behov-flik (favoriter) *(snabbvalet flyttat till Idag-skärmen, se HEM-11 §4; favoritmarkering hanteras i Hantera, se §18, sedan navigationsbytet i #84 etapp 4)*
 
@@ -217,6 +218,7 @@
 | BCK-7 | Migrering ska visa tydliga tillstånd (kontrollerar, laddar ner, importerar med progress, klar/fel). |
 | BCK-8 | Användaren ska kunna **hoppa över** migrering; status ska sparas så att den inte upprepas. |
 | BCK-9 | Import ska vara robust mot okända JSON-fält (`ignoreUnknownKeys`). |
+| BCK-10 | Backupen ska även innehålla appinställningar: huvudreglaget för medicinpåminnelser samt temainställningar (läge, ljus-/mörkerstart, mörkt tema, dynamisk färg). Inställningar som saknas i en äldre backup lämnas orörda vid återställning. |
 
 ---
 
@@ -237,6 +239,9 @@
 | NOT-11 | Screeningpåminnelsen ska ha en **"Logga nu"**-åtgärd som öppnar Idag-skärmen med det aktuella måltidstillfällets inline-screeningformulär förexpanderat. |
 | NOT-12 | Dagen innan ett recepts period (REC-7) eller en dosperiod (REC-9) tar slut ska en påminnelse visas i kanalen **Medicinpåminnelser**. Flera samtidiga periodslut slås ihop till en notis; tar inget slut visas ingen notis. Tryck öppnar Hantera → Recept & scheman. |
 | NOT-13 | Tidpunkten för periodpåminnelsen (NOT-12) ska vara konfigurerbar under Hantera → Notifikationer (standard 09:00), ingå i backup och schemaläggas om vid ändring och efter omstart. |
+| NOT-14 | Varje påminnelse ska schemalägga om sig själv till nästa dag när den utlösts, och alla larm ska sättas om både efter omstart (`BOOT_COMPLETED`) och efter appuppdatering (`MY_PACKAGE_REPLACED`) — påminnelserna får aldrig tystna för att appen inte startats om. |
+| NOT-15 | Efter en återställning från backup ska larmen schemaläggas om direkt, så återställda påminnelsetider gäller utan att appen behöver startas om. |
+| NOT-16 | Notisbehörigheten ska begäras när användaren aktiverar en påminnelse, inte vid appens första start. Saknas behörighet att visa notiser eller att ställa exakta larm ska Hantera → Notifikationer visa det, med genväg till systeminställningarna. |
 
 ---
 
@@ -254,6 +259,7 @@
 | SET-8 | Import/migrering ska kunna startas från Hantera. |
 | SET-9 | **Händelsetypalternativ** ska kunna läggas till, tas bort och stjärnmärkas som favoriter (inga dubbletter). Favoritmarkerade typer visas som en-tryck-chips och övriga i en "Fler typer"-lista i Lägg till/Redigera händelse. |
 | SET-10 | **Vid behov-mediciner** ska kunna stjärnmärkas som favoriter i Hantera (analogt med SET-5); ändringar syns direkt i Idag-skärmens vid behov-kort (HEM-11, §4). |
+| SET-11 | Byte av namn på ett aktivitets-, symptom- eller händelsetypalternativ ska följa med till **redan loggade poster** — aktiviteter, screeningar, händelser och sjukdomsincheckningar — så historiken aldrig visar ett namn som inte längre finns i listan. |
 
 ---
 
@@ -276,6 +282,7 @@
 | DAT-1 | Tidpunkter ska sorteras enligt fast ordning: Morgon, Förmiddag, Lunch, Eftermiddag, Kväll, Natt, Vid behov. |
 | DAT-2 | Datum ska lagras som `YYYY-MM-DD`, tid som `HH:MM`. |
 | DAT-3 | Room-schema ska exporteras för migreringsspårning. |
+| DAT-4 | När en post raderas ska dess anteckning i den generiska `notes`-tabellen raderas i samma repository-anrop, oavsett vilken skärm raderingen görs från. Raderas en sjukdomsepisod försvinner även anteckningarna för dess incheckningar. |
 
 ---
 
@@ -293,6 +300,9 @@
 | NFR-8 | Appstorlek/prestanda: listor ska använda lazy-rendering; tunga operationer på IO-dispatcher. |
 | NFR-9 | Appen använder ett enhetligt designsystem: kort, tomlägen, bekräftelsedialoger, sektionsrubriker och datum/tid-format byggs med delade komponenter i `ui/components/`, med konsekvent form, typografi och spacing. |
 | NFR-10 | Spara-knappar byggs med den delade komponenten `SaveButton` och är inaktiverade tills formuläret har osparade, giltiga ändringar (dirty-state — jämfört mot senast laddade/sparade värde, inte bara fältvalidering). Försök att navigera bort (tillbaka-knapp eller systemets back) med osparade ändringar visar en bekräftelsedialog (`UnsavedChangesBackHandler`) med möjlighet att spara, kasta ändringarna eller avbryta. `SaveButton` använder appens gröna "positiv"-signal (Emerald400/900) som container-/textfärg i aktivt läge, samma i ljust och mörkt tema. |
+| NFR-12 | Ett formulär ska navigera vidare först när sparandet är **klart** — aldrig starta en skrivning och stänga skärmen samtidigt, eftersom ViewModel:ens scope då kan avbryta skrivningen mitt i. |
+| NFR-13 | Släppt app ska inte logga något till logcat (loggning strippas i release), och persisterad användardata får aldrig ingå i ett loggmeddelande. |
+| NFR-14 | Diagram ska ha en talbar sammanfattning för skärmläsare, och interaktiva ytor ska hålla minst 48 dp i båda riktningarna. |
 | NFR-11 | Skärmar med textinmatning ska hålla det fokuserade fältet synligt ovanför skärmtangentbordet — IME-inset hanteras centralt i den delade `DagbokenScaffold` (`contentWindowInsets` inkluderar `WindowInsets.ime`), så inget inmatningsfält skyms medan man skriver. |
 
 ---
@@ -336,6 +346,7 @@
 | HIST-4 | ~~Historik-ytan skriver inte till någon datakälla — ren läsvy över befintliga repositories.~~ *(ändrat, se HIST-5 — #105)* |
 | HIST-5 | Långtryck på en post i Historik öppnar en meny med "Ta bort" (bekräftelsedialog krävs innan radering). Raderingen anropar samma repository-metod som respektive domänskärm redan använder. |
 | HIST-6 | Historik kan växlas mellan listvy och kalendervy (delad komponent `DagbokenCalendar`). I kalendervyn markeras dagar med minst en post; tryck på en dag visar postens/posternas för det datumet. Långtryck-radering (HIST-5) fungerar identiskt i båda vyerna. |
+| HIST-8 | Historik läser ett begränsat fönster bakåt (ett år) i stället för hela databasen. En "Visa äldre poster"-rad längst ned utökar fönstret med ytterligare ett år i taget. |
 | HIST-7 | Historik-ytans medicinposter visar endast doser som faktiskt är **tagna** (`tagen`, ej överhoppad). Planerade/kommande, aldrig tagna och överhoppade doser (MED-3) visas inte — de hör hemma i Idag-checklistan (MED-1/MED-13). Tidsetiketten är tagningstidpunkten (MED-14), inte den schemalagda tiden. |
 
 ---
@@ -432,9 +443,9 @@
 | WID-1 | Medicinwidgeten visar direkt (utan tryck) dagens **återstående** schemalagda doser (exkl. vid behov-doser och överhoppade doser, sorterad i samma tidpunktsordning som Idag-vyn) med en sammanfattningsrubrik (antal tagna av totalt, antal försenade doser). En avbockad dos försvinner ur listan omedelbart — bara aktuella/otagna doser syns; är alla tagna visas en bekräftelse i stället för listan. |
 | WID-2 | En medicindos kan bockas av/på direkt från medicinwidgeten — samma skrivväg (`MedicinerRepository.toggleTagen`) som Idag-checklistans avbockning (HEM-4), ingen duplicerad logik. |
 | WID-3 | Screening kan loggas stegvis från en egen widget (energi → stress → symptom, SCR-1..3-semantik) via samma mappning som appen (`BuildScreeningAktivitetUseCase`, ingen duplicerad save-väg), namngiven efter det screeningtillfälle guiden startades för så det markeras som klart i Idag-vyn. Widgeten visar nästa ej loggade aktiverade tillfälle; är alla loggade visas en bekräftelse i stället för startknappen. Symptomsteget visar endast favoritmarkerade symptom och hoppas över helt om inga är favoritmarkerade. |
-| WID-4 | Widgetarna uppdateras dels efter sina egna skrivningar, dels när appen ändrar dagens data (Idag-checklistan, "Markera tagen"-notisåtgärden) — aldrig inaktuellt läge. |
+| WID-4 | Widgetarna uppdateras dels efter sina egna skrivningar, dels efter **varje** skrivning i appen som kan ändra dagens vyer (doser sparas/ändras/hoppas över/raderas, nya schemalagda doser, sparad screening, "Markera tagen"-notisåtgärden) — uppdateringen ligger i repository-lagret så ingen skrivväg kan glömmas bort. |
 | WID-5 | Widgetarna är på svenska (ÖV-6). |
-| WID-6 | Varje widget ritar en egen opak bakgrund och använder explicita textfärger på allt innehåll, så texten är läsbar oavsett hemskärmstapet. |
+| WID-6 | Varje widget ritar en egen opak bakgrund och använder explicita textfärger på allt innehåll, så texten är läsbar oavsett hemskärmstapet. Färgerna följer systemets ljusa/mörka läge. |
 | WID-7 | Appens widgets är uppdelade per handling — en widget per interaktionsmodell (mediciner/screening/vid behov) — och kan läggas till oberoende av varandra i widgetväljaren. |
 | WID-8 | En vid behov-dos kan loggas som tagen direkt från vid behov-widgeten, samma väg som appens "Ta dos" (FAV-2) inklusive cooldown (FAV-4/MED-16-semantik, bekräftas i widgeten eftersom Glance inte har dialoger) och dagsgräns. Widgeten visar favoritmarkerade mediciner direkt; en "Fler"-rad expanderar till samtliga vid behov-mediciner (favoriter först, sedan bokstavsordning) — alltid tillgänglig så länge minst en vid behov-medicin finns, även om just favoritvyn råkar vara tom. |
 

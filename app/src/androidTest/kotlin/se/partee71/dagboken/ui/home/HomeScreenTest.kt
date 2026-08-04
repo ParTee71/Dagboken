@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.home
 
+import se.partee71.dagboken.di.dagbokenJson
 import se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase
 import android.content.Context
 import androidx.activity.ComponentActivity
@@ -32,7 +33,6 @@ import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
@@ -88,7 +88,7 @@ class HomeScreenTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                  .allowMainThreadQueries().build()
-        aktivRepo = AktiviteterRepository(db.aktivitetDao())
+        aktivRepo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
         noteRepo  = NoteRepository(db.noteDao())
         medicRepo = MedicinerRepository(
             db                 = db,
@@ -98,15 +98,16 @@ class HomeScreenTest {
             noteRepo           = noteRepo,
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
+            appContext         = ApplicationProvider.getApplicationContext(),
         )
         authRepo      = FirebaseAuthRepository(ctx)
-        prefs         = PreferencesRepository(ctx)
-        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), Dispatchers.IO)
+        prefs         = PreferencesRepository(ctx, dagbokenJson())
+        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), NoteRepository(db.noteDao()))
         runBlocking {
             prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
             prefs.setMedsNotificationsEnabled(false)
         }
-        vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo, healthRepo, ctx)
+        vm          = HomeViewModel(aktivRepo, medicRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
         screeningVm = AktiviteterViewModel(aktivRepo, noteRepo, prefs, BuildScreeningAktivitetUseCase())
         medicinerVm = MedicinerViewModel(
             medicRepo, noteRepo,

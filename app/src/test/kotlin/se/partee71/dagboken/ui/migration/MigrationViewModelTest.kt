@@ -25,9 +25,11 @@ import org.junit.Test
 import io.mockk.slot
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.notifications.AlarmScheduler
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.migration.AktivitetJson
 import se.partee71.dagboken.data.migration.BackupJson
+import se.partee71.dagboken.data.migration.SettingsBackup
 import se.partee71.dagboken.data.migration.DriveBackupFile
 import se.partee71.dagboken.data.migration.DriveBackupRepository
 import se.partee71.dagboken.data.migration.DriveResult
@@ -60,6 +62,7 @@ class MigrationViewModelTest {
     private val handelserRepo  = mockk<HandelserRepository>(relaxed = true)
     private val noteRepo       = mockk<NoteRepository>(relaxed = true)
     private val prefs          = mockk<PreferencesRepository>(relaxed = true)
+    private val alarmScheduler = mockk<AlarmScheduler>(relaxed = true)
 
     private lateinit var viewModel: MigrationViewModel
 
@@ -73,7 +76,7 @@ class MigrationViewModelTest {
             secondArg<suspend () -> Unit>().invoke()
         }
         viewModel = MigrationViewModel(context, db, driveRepo, authRepo, aktivRepo, medicRepo, sjukdomarRepo, handelserRepo, noteRepo, prefs,
-            Json { ignoreUnknownKeys = true })
+            alarmScheduler, Json { ignoreUnknownKeys = true })
     }
 
     @After fun tearDown() {
@@ -82,6 +85,8 @@ class MigrationViewModelTest {
     }
 
     private fun emptyBackup() = BackupJson()
+
+    private fun driveFile() = DriveBackupFile("id1", "backup.json", "2026-01-15T00:00:00")
 
     private fun backupWith(aktiviteter: Int = 1) = BackupJson(
         aktiviteter = List(aktiviteter) {
@@ -202,5 +207,65 @@ class MigrationViewModelTest {
         viewModel.startMigration()
 
         coVerify(exactly = 0) { prefs.setHandelseTypOptions(any()) }
+    }
+
+    // ─── återställning av inställningar och larm ──────────────────────────────
+
+    @Test fun `import restores the meds reminder toggle from the backup settings`() = runTest {
+        coEvery { driveRepo.listBackups() } returns DriveResult.Success(listOf(driveFile()))
+        coEvery { driveRepo.downloadLatestBackup() } returns DriveResult.Success(
+            BackupJson(settings = SettingsBackup(medsNotificationsEnabled = true)),
+        )
+
+        viewModel.startMigration()
+
+        coVerify { prefs.setMedsNotificationsEnabled(true) }
+    }
+
+    @Test fun `import restores theme settings from the backup`() = runTest {
+        coEvery { driveRepo.listBackups() } returns DriveResult.Success(listOf(driveFile()))
+        coEvery { driveRepo.downloadLatestBackup() } returns DriveResult.Success(
+            BackupJson(
+                settings = SettingsBackup(
+                    themeMode = "dark", themeLightStart = 6, themeDarkStart = 22,
+                    isDarkTheme = true, dynamicColor = false,
+                ),
+            ),
+        )
+
+        viewModel.startMigration()
+
+        coVerify { prefs.setThemeMode("dark") }
+        coVerify { prefs.setThemeLightStart(6) }
+        coVerify { prefs.setThemeDarkStart(22) }
+        coVerify { prefs.setDarkTheme(true) }
+        coVerify { prefs.setDynamicColor(false) }
+    }
+
+    /** Äldre backupar saknar settings — då ska inget skrivas över. */
+    @Test fun `import without settings leaves existing preferences untouched`() = runTest {
+        coEvery { driveRepo.listBackups() } returns DriveResult.Success(listOf(driveFile()))
+        coEvery { driveRepo.downloadLatestBackup() } returns DriveResult.Success(BackupJson())
+
+        viewModel.startMigration()
+
+        coVerify(exactly = 0) { prefs.setMedsNotificationsEnabled(any()) }
+        coVerify(exactly = 0) { prefs.setThemeMode(any()) }
+    }
+
+    /**
+     * Larmen sattes vid appstart, innan de återställda tiderna fanns — utan detta fick
+     * de importerade påminnelserna effekt först vid nästa processtart (NOT-15).
+     */
+    @Test fun `import reschedules alarms so restored reminder times take effect`() = runTest {
+        coEvery { driveRepo.listBackups() } returns DriveResult.Success(listOf(driveFile()))
+        coEvery { driveRepo.downloadLatestBackup() } returns DriveResult.Success(
+            BackupJson(periodReminderTime = "07:30"),
+        )
+
+        viewModel.startMigration()
+
+        coVerify { prefs.setPeriodReminderTime("07:30") }
+        coVerify { alarmScheduler.rescheduleAll() }
     }
 }

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
@@ -16,7 +17,10 @@ import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SymptomOption
+import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.notifications.AlarmScheduler
 import javax.inject.Inject
@@ -36,9 +40,13 @@ data class HanteraUiState(
     val newAktivitetOption: String = "",
     val newSymptomOption: String = "",
     val newHandelseTypOption: String = "",
+    /** Notiser är avstängda i systeminställningarna — påminnelser kan inte visas (NOT-16). */
+    val notificationsBlocked: Boolean = false,
+    /** Exakta larm är inte tillåtna — påminnelser kan komma försenade (NOT-16). */
+    val exactAlarmsBlocked: Boolean = false,
     val googleAccountEmail: String? = null,
     val googleAccountPhotoUrl: String? = null,
-    val signInError: String? = null,
+    val signInFailed: Boolean = false,
     val isSigningIn: Boolean = false,
 )
 
@@ -48,6 +56,9 @@ class HanteraViewModel @Inject constructor(
     private val authRepo: FirebaseAuthRepository,
     private val alarmScheduler: AlarmScheduler,
     private val medicinerRepo: MedicinerRepository,
+    private val aktiviteterRepo: AktiviteterRepository,
+    private val handelserRepo: HandelserRepository,
+    private val sjukdomarRepo: SjukdomarRepository,
 ) : ViewModel() {
 
     val medicinFavoriter: StateFlow<List<Favorit>> = medicinerRepo.allFavoriter
@@ -58,7 +69,11 @@ class HanteraViewModel @Inject constructor(
     }
 
     private val _isSigningIn        = MutableStateFlow(false)
-    private val _signInError        = MutableStateFlow<String?>(null)
+    // Bara "misslyckades" — inte SDK:ns råa (engelska, tekniska) meddelande. UI-lagret
+    // visar en svensk strängresurs i stället.
+    private val _signInError        = MutableStateFlow(false)
+    private val _notificationsBlocked = MutableStateFlow(false)
+    private val _exactAlarmsBlocked   = MutableStateFlow(false)
     private val _newAktivitetOption = MutableStateFlow("")
     private val _newSymptomOption   = MutableStateFlow("")
     private val _newHandelseTypOption = MutableStateFlow("")
@@ -106,12 +121,16 @@ class HanteraViewModel @Inject constructor(
         combine(authRepo.authStateFlow, _isSigningIn, _signInError,
                 combine(_newAktivitetOption, _newSymptomOption, _newHandelseTypOption) { newAkt, newSymp, newHandelseTyp ->
                     NewOptionInputs(newAkt, newSymp, newHandelseTyp)
-                }) { user, signing, err, newOptions ->
+                },
+                combine(_notificationsBlocked, _exactAlarmsBlocked) { notif, exact -> notif to exact },
+        ) { user, signing, err, newOptions, (notifBlocked, exactBlocked) ->
             HanteraUiState(
+                notificationsBlocked  = notifBlocked,
+                exactAlarmsBlocked    = exactBlocked,
                 googleAccountEmail    = user?.email,
                 googleAccountPhotoUrl = user?.photoUrl?.toString(),
                 isSigningIn           = signing,
-                signInError           = err,
+                signInFailed          = err,
                 newAktivitetOption    = newOptions.aktivitet,
                 newSymptomOption      = newOptions.symptom,
                 newHandelseTypOption  = newOptions.handelseTyp,
@@ -136,18 +155,18 @@ class HanteraViewModel @Inject constructor(
     fun signIn(activityContext: Context) {
         viewModelScope.launch {
             _isSigningIn.value = true
-            _signInError.value = null
+            _signInError.value = false
             val result = authRepo.signInWithGoogle(activityContext)
             _isSigningIn.value = false
             result.onFailure { e ->
                 if (e.message?.contains("cancel", ignoreCase = true) != true) {
-                    _signInError.value = e.message ?: "Inloggning misslyckades"
+                    _signInError.value = true
                 }
             }
         }
     }
 
-    fun clearSignInError() { _signInError.value = null }
+    fun clearSignInError() { _signInError.value = false }
 
     fun signOut() {
         viewModelScope.launch {
@@ -185,6 +204,16 @@ class HanteraViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Uppdaterar bilden av vilka systembehörigheter påminnelserna faktiskt har (NOT-16).
+     * Utan detta kunde reglagen stå på "på" medan notiser var blockerade, helt tyst.
+     * Anropas när Hantera visas, eftersom behörigheterna kan ändras utanför appen.
+     */
+    fun refreshPermissionState() {
+        _notificationsBlocked.value = !alarmScheduler.canPostNotifications()
+        _exactAlarmsBlocked.value = !alarmScheduler.canScheduleExactAlarms()
+    }
+
     fun toggleScreeningEvent(index: Int) {
         val updated = state.value.screeningEventConfigs.toMutableList()
             .also { it[index] = it[index].copy(enabled = !it[index].enabled) }
@@ -218,32 +247,38 @@ class HanteraViewModel @Inject constructor(
         val new = _newAktivitetOption.value.trim()
         if (new.isBlank() || state.value.aktivitetOptions.any { it.name == new }) return
         viewModelScope.launch {
-            prefs.setAktivitetOptions(state.value.aktivitetOptions + SymptomOption(new))
+            prefs.setAktivitetOptions(prefs.aktivitetOptions.first() + SymptomOption(new))
             _newAktivitetOption.value = ""
         }
     }
 
     fun deleteAktivitetOption(name: String) {
         viewModelScope.launch {
-            prefs.setAktivitetOptions(state.value.aktivitetOptions.filter { it.name != name })
+            prefs.setAktivitetOptions(prefs.aktivitetOptions.first().filter { it.name != name })
         }
     }
 
     fun toggleAktivitetFavorite(name: String) {
         viewModelScope.launch {
-            prefs.setAktivitetOptions(state.value.aktivitetOptions.map {
+            prefs.setAktivitetOptions(prefs.aktivitetOptions.first().map {
                 if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it
             })
         }
     }
 
+    /**
+     * Namnbytet gäller även redan loggade poster (HAN-9). Tidigare ändrades bara listan,
+     * så historiken låg kvar på det gamla namnet och visades som ett alternativ utanför
+     * den aktuella listan.
+     */
     fun renameAktivitetOption(old: String, new: String) {
         val trimmed = new.trim()
         if (trimmed.isBlank() || trimmed == old || state.value.aktivitetOptions.any { it.name == trimmed }) return
         viewModelScope.launch {
-            prefs.setAktivitetOptions(state.value.aktivitetOptions.map {
+            prefs.setAktivitetOptions(prefs.aktivitetOptions.first().map {
                 if (it.name == old) it.copy(name = trimmed) else it
             })
+            aktiviteterRepo.renameAktivitet(old, trimmed)
         }
     }
 
@@ -251,32 +286,36 @@ class HanteraViewModel @Inject constructor(
         val new = _newSymptomOption.value.trim()
         if (new.isBlank() || state.value.symptomOptions.any { it.name == new }) return
         viewModelScope.launch {
-            prefs.setSymptomOptions(state.value.symptomOptions + SymptomOption(new))
+            prefs.setSymptomOptions(prefs.symptomOptions.first() + SymptomOption(new))
             _newSymptomOption.value = ""
         }
     }
 
     fun deleteSymptomOption(name: String) {
         viewModelScope.launch {
-            prefs.setSymptomOptions(state.value.symptomOptions.filter { it.name != name })
+            prefs.setSymptomOptions(prefs.symptomOptions.first().filter { it.name != name })
         }
     }
 
     fun toggleSymptomFavorite(name: String) {
         viewModelScope.launch {
-            prefs.setSymptomOptions(state.value.symptomOptions.map {
+            prefs.setSymptomOptions(prefs.symptomOptions.first().map {
                 if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it
             })
         }
     }
 
+    /** Se [renameAktivitetOption] — symptomnamn ligger kodade i både aktiviteter och
+     *  sjukdomsincheckningar och byts därför på båda ställena. */
     fun renameSymptomOption(old: String, new: String) {
         val trimmed = new.trim()
         if (trimmed.isBlank() || trimmed == old || state.value.symptomOptions.any { it.name == trimmed }) return
         viewModelScope.launch {
-            prefs.setSymptomOptions(state.value.symptomOptions.map {
+            prefs.setSymptomOptions(prefs.symptomOptions.first().map {
                 if (it.name == old) it.copy(name = trimmed) else it
             })
+            aktiviteterRepo.renameSymptom(old, trimmed)
+            sjukdomarRepo.renameSymptom(old, trimmed)
         }
     }
 
@@ -286,32 +325,34 @@ class HanteraViewModel @Inject constructor(
         val new = _newHandelseTypOption.value.trim()
         if (new.isBlank() || state.value.handelseTypOptions.any { it.name == new }) return
         viewModelScope.launch {
-            prefs.setHandelseTypOptions(state.value.handelseTypOptions + SymptomOption(new))
+            prefs.setHandelseTypOptions(prefs.handelseTypOptions.first() + SymptomOption(new))
             _newHandelseTypOption.value = ""
         }
     }
 
     fun deleteHandelseTypOption(name: String) {
         viewModelScope.launch {
-            prefs.setHandelseTypOptions(state.value.handelseTypOptions.filter { it.name != name })
+            prefs.setHandelseTypOptions(prefs.handelseTypOptions.first().filter { it.name != name })
         }
     }
 
     fun toggleHandelseTypFavorite(name: String) {
         viewModelScope.launch {
-            prefs.setHandelseTypOptions(state.value.handelseTypOptions.map {
+            prefs.setHandelseTypOptions(prefs.handelseTypOptions.first().map {
                 if (it.name == name) it.copy(isFavorite = !it.isFavorite) else it
             })
         }
     }
 
+    /** Se [renameAktivitetOption]. */
     fun renameHandelseTypOption(old: String, new: String) {
         val trimmed = new.trim()
         if (trimmed.isBlank() || trimmed == old || state.value.handelseTypOptions.any { it.name == trimmed }) return
         viewModelScope.launch {
-            prefs.setHandelseTypOptions(state.value.handelseTypOptions.map {
+            prefs.setHandelseTypOptions(prefs.handelseTypOptions.first().map {
                 if (it.name == old) it.copy(name = trimmed) else it
             })
+            handelserRepo.renameTyp(old, trimmed)
         }
     }
 

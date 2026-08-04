@@ -52,6 +52,9 @@ class DriveBackupRepository @Inject constructor(
     private val json: Json,
 ) {
     private val BACKUP_PREFIX = "dagboken-backup-"
+    // Papperskorgade filer ligger kvar i appDataFolder och matchar annars namnfrågan,
+    // så en raderad backup kunde annars räknas som "senaste" (BCK-3/BCK-5).
+    private val BACKUP_QUERY = "name contains 'dagboken-backup-' and trashed = false"
     private val APP_NAME = "Dagboken"
 
     private suspend fun authorizeDrive(): AuthorizeResult {
@@ -115,7 +118,7 @@ class DriveBackupRepository @Inject constructor(
     suspend fun listBackups(): DriveResult<List<DriveBackupFile>> = withDrive { drive ->
         val files = drive.files().list()
             .setSpaces("appDataFolder")
-            .setQ("name contains '$BACKUP_PREFIX'")
+            .setQ(BACKUP_QUERY)
             .setOrderBy("createdTime desc")
             .setFields("files(id,name,createdTime)")
             .execute()
@@ -128,7 +131,7 @@ class DriveBackupRepository @Inject constructor(
     suspend fun downloadLatestBackup(): DriveResult<BackupJson> = withDrive { drive ->
         val files = drive.files().list()
             .setSpaces("appDataFolder")
-            .setQ("name contains '$BACKUP_PREFIX'")
+            .setQ(BACKUP_QUERY)
             .setOrderBy("createdTime desc")
             .setPageSize(1)
             .setFields("files(id,name)")
@@ -164,7 +167,7 @@ class DriveBackupRepository @Inject constructor(
         runCatching {
             val files = drive.files().list()
                 .setSpaces("appDataFolder")
-                .setQ("name contains '$BACKUP_PREFIX'")
+                .setQ(BACKUP_QUERY)
                 .setOrderBy("createdTime desc")
                 .setFields("files(id)")
                 .execute()

@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.hantera
 
+import se.partee71.dagboken.di.dagbokenJson
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,7 +28,10 @@ import org.junit.runner.RunWith
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Favorit
@@ -51,7 +55,7 @@ class HanteraScreenTest {
     private fun setUp() = runBlocking {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val authRepo = FirebaseAuthRepository(ctx)
-        prefs = PreferencesRepository(ctx)
+        prefs = PreferencesRepository(ctx, dagbokenJson())
 
         prefs.setAktivitetOptions(emptyList())
         prefs.setSymptomOptions(emptyList())
@@ -70,10 +74,17 @@ class HanteraScreenTest {
             noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
+            appContext         = ApplicationProvider.getApplicationContext(),
         )
 
         val alarmScheduler = AlarmScheduler(ctx, prefs)
-        vm = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        val noteRepo = NoteRepository(db.noteDao())
+        vm = HanteraViewModel(
+            prefs, authRepo, alarmScheduler, medicinerRepo,
+            AktiviteterRepository(db.aktivitetDao(), noteRepo, ctx),
+            HandelserRepository(db.handelseDao(), noteRepo),
+            SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), noteRepo),
+        )
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }
 
