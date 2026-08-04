@@ -46,11 +46,16 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
+import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.domain.model.hasExpiredOn
+import se.partee71.dagboken.domain.model.periodStart
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.dagboken.ui.formatDisplayDate
 import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
+import java.time.LocalDate
 
 private val UPPREPNING_LABELS = mapOf(
     "dagligen"  to "Dagligen",
@@ -70,6 +75,7 @@ fun SchemaTab(
     val receptNotes by vm.receptNotes.collectAsState()
     var deleteTarget by remember { mutableStateOf<Recept?>(null) }
     val cs = MaterialTheme.colorScheme
+    val today = remember { LocalDate.now() }
 
     if (recept.isEmpty()) {
         EmptyState(
@@ -114,6 +120,13 @@ fun SchemaTab(
                             style = MaterialTheme.typography.bodySmall,
                             color = cs.onSurfaceVariant.copy(alpha = if (r.aktiv) 1f else 0.5f),
                         )
+                        periodLabel(r, today)?.let { label ->
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (r.hasExpiredOn(today)) cs.error else cs.onSurfaceVariant,
+                            )
+                        }
                     }
                     Icon(
                         Icons.Default.ExpandMore,
@@ -176,6 +189,21 @@ fun SchemaTab(
                                 AssistChip(onClick = {}, label = { Text(t) })
                             }
                         }
+                        if (r.dosperioder.isNotEmpty()) {
+                            Text(
+                                stringResource(R.string.label_dose_changes),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = cs.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                            r.dosperioder.sortedBy { it.startDatum }.forEach { p ->
+                                Text(
+                                    dosperiodLabel(p),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = cs.onSurfaceVariant,
+                                )
+                            }
+                        }
                         val note = receptNotes[r.id].orEmpty()
                         if (note.isNotBlank()) {
                             Text(
@@ -199,4 +227,36 @@ fun SchemaTab(
             onDismiss = { deleteTarget = null },
         )
     }
+}
+
+/** Datumtext som tål ett trasigt datum från t.ex. en gammal backup. */
+private fun safeDisplayDate(datum: String): String =
+    runCatching { formatDisplayDate(datum) }.getOrDefault(datum)
+
+/** Periodtext för ett recept (REC-7/REC-8) — null när receptet gäller tills vidare. */
+@Composable
+private fun periodLabel(recept: Recept, today: LocalDate): String? {
+    val slut = recept.slutDatum?.takeIf { it.isNotBlank() } ?: return null
+    return if (recept.hasExpiredOn(today)) {
+        stringResource(R.string.format_schema_period_ended, safeDisplayDate(slut))
+    } else {
+        stringResource(
+            R.string.format_schema_period,
+            safeDisplayDate(recept.periodStart),
+            safeDisplayDate(slut),
+        )
+    }
+}
+
+@Composable
+private fun dosperiodLabel(dosperiod: Dosperiod): String {
+    val slut = dosperiod.slutDatum?.takeIf { it.isNotBlank() }
+        ?.let { safeDisplayDate(it) }
+        ?: stringResource(R.string.dose_change_until_period_end)
+    return stringResource(
+        R.string.format_schema_dosperiod,
+        safeDisplayDate(dosperiod.startDatum),
+        slut,
+        "${dosperiod.dos} ${dosperiod.enhet}",
+    )
 }

@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.model.Recept
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -25,11 +26,15 @@ class EnsureTodayEntriesUseCaseTest {
         intervalDagar: Int = 2,
         skapad: String = LocalDate.now().toString(),
         aktiv: Boolean = true,
+        startDatum: String = "",
+        slutDatum: String? = null,
+        dosperioder: List<Dosperiod> = emptyList(),
     ) = Recept(
         id = id, namn = namn, dos = "400", enhet = "mg",
         tidpunkter = tidpunkter, upprepning = upprepning,
         dagar = dagar, intervalDagar = intervalDagar,
         aktiv = aktiv, skapad = skapad,
+        startDatum = startDatum, slutDatum = slutDatum, dosperioder = dosperioder,
     )
 
     // ─── compute ──────────────────────────────────────────────────────────────
@@ -142,5 +147,116 @@ class EnsureTodayEntriesUseCaseTest {
         val twoDaysAgo = LocalDate.now().minusDays(2)
         val r = recept(upprepning = "intervall", intervalDagar = 2, skapad = twoDaysAgo.toString())
         assertTrue(useCase.shouldTakeToday(r, LocalDate.now()))
+    }
+
+    @Test fun `intervall counts from startDatum when the recept has one`() {
+        val today = LocalDate.now()
+        // skapad ligger en dag fel jämfört med startDatum — startDatum ska vinna (REC-4/REC-7)
+        val r = recept(
+            upprepning = "intervall", intervalDagar = 2,
+            skapad = today.minusDays(1).toString(),
+            startDatum = today.minusDays(2).toString(),
+        )
+        assertTrue(useCase.shouldTakeToday(r, today))
+    }
+
+    // ─── period (REC-7) ───────────────────────────────────────────────────────
+
+    @Test fun `period fires on first and last day`() {
+        val start = LocalDate.of(2026, 5, 1)
+        val slut  = LocalDate.of(2026, 5, 10)
+        val r = recept(startDatum = start.toString(), slutDatum = slut.toString())
+        assertTrue(useCase.shouldTakeToday(r, start))
+        assertTrue(useCase.shouldTakeToday(r, slut))
+    }
+
+    @Test fun `period does not fire before start or after end`() {
+        val start = LocalDate.of(2026, 5, 1)
+        val slut  = LocalDate.of(2026, 5, 10)
+        val r = recept(startDatum = start.toString(), slutDatum = slut.toString())
+        assertFalse(useCase.shouldTakeToday(r, start.minusDays(1)))
+        assertFalse(useCase.shouldTakeToday(r, slut.plusDays(1)))
+    }
+
+    @Test fun `a recept without an explicit startDatum has no lower bound`() {
+        // Bakåtbläddring i Idag (HEM-14) ska fortsätta seeda doser för dagar före
+        // receptet skapades — periodgrindningen gäller bara ett uttalat startdatum.
+        val r = recept(skapad = "2026-08-01", startDatum = "")
+        assertTrue(useCase.shouldTakeToday(r, LocalDate.of(2026, 1, 15)))
+        assertEquals(1, useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 1, 15)).size)
+    }
+
+    @Test fun `no slutDatum means tills vidare`() {
+        val r = recept(startDatum = LocalDate.of(2020, 1, 1).toString(), slutDatum = null)
+        assertTrue(useCase.shouldTakeToday(r, LocalDate.of(2030, 1, 1)))
+    }
+
+    @Test fun `compute generates nothing outside the period`() {
+        val r = recept(
+            startDatum = LocalDate.of(2026, 5, 1).toString(),
+            slutDatum  = LocalDate.of(2026, 5, 10).toString(),
+        )
+        assertTrue(useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 11)).isEmpty())
+        assertEquals(1, useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 10)).size)
+    }
+
+    // ─── dosperioder (REC-9) ──────────────────────────────────────────────────
+
+    @Test fun `compute uses the dosperiod dose inside its range`() {
+        val r = recept(
+            startDatum  = "2026-05-01",
+            slutDatum   = "2026-05-14",
+            dosperioder = listOf(
+                Dosperiod("d1", "2026-05-01", "2026-05-05", "800", "mg"),
+            ),
+        )
+        val inside = useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 3))
+        assertEquals("800", inside[0].dos)
+        assertEquals("mg", inside[0].enhet)
+    }
+
+    @Test fun `compute falls back to the base dose after the dosperiod ends`() {
+        val r = recept(
+            startDatum  = "2026-05-01",
+            slutDatum   = "2026-05-14",
+            dosperioder = listOf(
+                Dosperiod("d1", "2026-05-01", "2026-05-05", "800", "mg"),
+            ),
+        )
+        val after = useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 6))
+        assertEquals("400", after[0].dos)
+    }
+
+    @Test fun `dosperiod boundaries are inclusive`() {
+        val r = recept(
+            startDatum  = "2026-05-01",
+            dosperioder = listOf(Dosperiod("d1", "2026-05-02", "2026-05-04", "800", "mg")),
+        )
+        assertEquals("400", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 1))[0].dos)
+        assertEquals("800", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 2))[0].dos)
+        assertEquals("800", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 4))[0].dos)
+        assertEquals("400", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 5))[0].dos)
+    }
+
+    @Test fun `two dosperioder in sequence pick the right dose each`() {
+        val r = recept(
+            startDatum  = "2026-05-01",
+            slutDatum   = "2026-05-10",
+            dosperioder = listOf(
+                Dosperiod("d1", "2026-05-01", "2026-05-05", "800", "mg"),
+                Dosperiod("d2", "2026-05-06", "2026-05-10", "600", "mg"),
+            ),
+        )
+        assertEquals("800", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 5))[0].dos)
+        assertEquals("600", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 6))[0].dos)
+    }
+
+    @Test fun `dosperiod without slutDatum runs to the end of the recept period`() {
+        val r = recept(
+            startDatum  = "2026-05-01",
+            slutDatum   = "2026-05-10",
+            dosperioder = listOf(Dosperiod("d1", "2026-05-04", null, "800", "mg")),
+        )
+        assertEquals("800", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 10))[0].dos)
     }
 }

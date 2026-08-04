@@ -29,6 +29,7 @@ import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import se.partee71.dagboken.domain.usecase.LogVidBehovDosUseCase
 import se.partee71.dagboken.util.retryOnRenderGlitch
+import java.time.LocalDate
 
 // Migrerad enligt POC i #112 — se SjukdomarScreenTest för fullständig förklaring.
 @RunWith(AndroidJUnit4::class)
@@ -109,6 +110,55 @@ class SchemaScreenTest {
                 composeRule.onAllNodes(hasText("Levaxin")).fetchSemanticsNodes().isNotEmpty()
             }
             composeRule.onNodeWithText("Levaxin").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun ended_recept_shows_its_end_date_as_avslutat() = retryOnRenderGlitch {
+        setUp()
+        try {
+            val slut = LocalDate.now().minusDays(2)
+            runBlocking {
+                repo.saveRecept(
+                    Recept(
+                        id = "r1", namn = "Amoxicillin", dos = "500", enhet = "mg",
+                        tidpunkter = listOf("Morgon"), upprepning = "dagligen", dagar = emptyList(),
+                        aktiv = false, skapad = slut.minusDays(9).toString(),
+                        startDatum = slut.minusDays(9).toString(), slutDatum = slut.toString(),
+                    )
+                )
+            }
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Avslutat", substring = true)).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNode(hasText("Avslutat", substring = true)).assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun running_period_is_shown_on_the_recept_card() = retryOnRenderGlitch {
+        setUp()
+        try {
+            val start = LocalDate.now()
+            val slut  = start.plusDays(9)
+            runBlocking {
+                repo.saveRecept(
+                    Recept(
+                        id = "r2", namn = "Prednisolon", dos = "5", enhet = "mg",
+                        tidpunkter = listOf("Morgon"), upprepning = "dagligen", dagar = emptyList(),
+                        aktiv = true, skapad = start.toString(),
+                        startDatum = start.toString(), slutDatum = slut.toString(),
+                    )
+                )
+            }
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Prednisolon")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNode(hasText(" – ", substring = true)).assertIsDisplayed()
         } finally {
             tearDown()
         }

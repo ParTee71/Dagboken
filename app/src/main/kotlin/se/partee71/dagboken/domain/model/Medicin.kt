@@ -1,5 +1,9 @@
 package se.partee71.dagboken.domain.model
 
+import kotlinx.serialization.Serializable
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 data class Medicin(
     val id: String,
     val timestamp: String,
@@ -26,7 +30,71 @@ data class Recept(
     val intervalDagar: Int = 2,
     val aktiv: Boolean,
     val skapad: String,          // YYYY-MM-DD
+    val startDatum: String = "", // YYYY-MM-DD; "" = ingen uttalad periodstart (recept från före REC-7)
+    val slutDatum: String? = null, // YYYY-MM-DD; null = tills vidare
+    val dosperioder: List<Dosperiod> = emptyList(),
 )
+
+/**
+ * En tillfällig dosändring inom ett recepts period (REC-9) — t.ex. nedtrappning.
+ * Persisteras som JSON i `recept.dosperioderJson`, samma mönster som tidpunkter/dagar.
+ */
+@Serializable
+data class Dosperiod(
+    val id: String,
+    val startDatum: String,        // YYYY-MM-DD
+    val slutDatum: String? = null, // null = till receptets slut
+    val dos: String,
+    val enhet: String,
+)
+
+private fun parseIsoDate(value: String?): LocalDate? =
+    value?.takeIf { it.isNotBlank() }?.let {
+        runCatching { LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE) }.getOrNull()
+    }
+
+/**
+ * Periodens startdatum för visning och intervallberäkning (REC-4/REC-7) — skapandedatumet
+ * för recept som saknar ett uttalat startdatum.
+ */
+val Recept.periodStart: String get() = startDatum.ifBlank { skapad }
+
+/**
+ * True om [date] ligger inom receptets period (REC-7). Saknat slutdatum = tills vidare.
+ * Ett recept utan uttalat [Recept.startDatum] har ingen bakre gräns — annars skulle
+ * bakåtbläddring i Idag (HEM-14) sluta seeda doser för dagar före receptet skapades.
+ */
+fun Recept.coversDate(date: LocalDate): Boolean {
+    val start = parseIsoDate(startDatum)
+    if (start != null && date.isBefore(start)) return false
+    val end = parseIsoDate(slutDatum) ?: return true
+    return !date.isAfter(end)
+}
+
+/** True om receptets period redan har passerats sett från [today] (REC-8). */
+fun Recept.hasExpiredOn(today: LocalDate): Boolean {
+    val end = parseIsoDate(slutDatum) ?: return false
+    return today.isAfter(end)
+}
+
+/** Dosperioden som gäller för [date], eller null om grunddosen gäller (REC-9). */
+fun Recept.dosperiodFor(date: LocalDate): Dosperiod? =
+    dosperioder
+        .filter { p ->
+            val start = parseIsoDate(p.startDatum) ?: return@filter false
+            if (date.isBefore(start)) return@filter false
+            val end = parseIsoDate(p.slutDatum) ?: return@filter true
+            !date.isAfter(end)
+        }
+        .minByOrNull { it.startDatum }
+
+/** Dos och enhet som gäller för [date] — dosperiod före grunddos (REC-9). */
+fun Recept.dosFor(date: LocalDate): Pair<String, String> =
+    dosperiodFor(date)?.let { it.dos to it.enhet } ?: (dos to enhet)
+
+/** Sista dagen för [Dosperiod], begränsad av receptets egen period. */
+fun Recept.dosperiodEnd(dosperiod: Dosperiod): LocalDate? =
+    parseIsoDate(dosperiod.slutDatum) ?: parseIsoDate(slutDatum)
 
 enum class Upprepning {
     DAGLIGEN, VARDAGAR, HELGER, ANPASSAD, INTERVALL;

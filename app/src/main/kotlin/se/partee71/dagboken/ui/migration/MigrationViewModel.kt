@@ -166,6 +166,10 @@ class MigrationViewModel @Inject constructor(
 
         backup.sheetsConfig?.let { prefs.setSheetsConfig(it) }
 
+        backup.periodReminderTime
+            ?.takeIf { it.isNotBlank() }
+            ?.let { prefs.setPeriodReminderTime(it) }
+
         _state.value = MigrationState.Importing(1f)
         prefs.setMigrationDone(true)
         _state.value = MigrationState.Done(aktiviteter.size, mediciner.size)

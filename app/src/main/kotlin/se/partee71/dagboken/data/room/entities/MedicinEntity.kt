@@ -3,6 +3,7 @@ package se.partee71.dagboken.data.room.entities
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.Recept
@@ -42,6 +43,9 @@ data class ReceptEntity(
     val intervalDagar: Int = 2,
     val aktiv: Boolean,
     val skapad: String,
+    val startDatum: String = "",      // "" = faller tillbaka på skapad (REC-7)
+    val slutDatum: String? = null,    // null = tills vidare
+    val dosperioderJson: String = "[]", // JSON array of Dosperiod
 )
 
 @Entity(tableName = "favoriter")
@@ -91,6 +95,7 @@ fun Medicin.toEntity() = MedicinEntity(
 fun ReceptEntity.toDomain(
     parseList: (String) -> List<String>,
     parseIntList: (String) -> List<Int>,
+    parseDosperioder: (String) -> List<Dosperiod>,
 ) = Recept(
     id           = id,
     namn         = namn,
@@ -102,11 +107,15 @@ fun ReceptEntity.toDomain(
     intervalDagar = intervalDagar,
     aktiv        = aktiv,
     skapad       = skapad,
+    startDatum   = startDatum,
+    slutDatum    = slutDatum,
+    dosperioder  = parseDosperioder(dosperioderJson),
 )
 
 fun Recept.toEntity(
     serializeList: (List<String>) -> String,
     serializeIntList: (List<Int>) -> String,
+    serializeDosperioder: (List<Dosperiod>) -> String,
 ) = ReceptEntity(
     id              = id,
     namn            = namn,
@@ -118,6 +127,9 @@ fun Recept.toEntity(
     intervalDagar   = intervalDagar,
     aktiv           = aktiv,
     skapad          = skapad,
+    startDatum      = startDatum,
+    slutDatum       = slutDatum,
+    dosperioderJson = serializeDosperioder(dosperioder),
 )
 
 fun FavoritEntity.toDomain() = Favorit(

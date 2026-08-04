@@ -22,6 +22,7 @@ data class BackupJson(
     val screeningEventConfigs: List<ScreeningEventConfigJson>? = null,
     val sheetsConfig: String? = null,
     val handelseTypOptions: List<SymptomOptionBackup>? = null,
+    val periodReminderTime: String? = null,
 )
 
 @Serializable
@@ -72,6 +73,20 @@ data class ReceptJson(
     val anteckning: String = "",
     val aktiv: Boolean = true,
     val skapad: String = "",
+    // Periodstöd (REC-7…REC-9). Saknas i äldre backupar — startDatum faller då tillbaka
+    // på skapad, slutDatum på "tills vidare" och dosperioder på tom lista.
+    val startDatum: String = "",
+    val slutDatum: String? = null,
+    val dosperioder: List<DosperiodJson> = emptyList(),
+)
+
+@Serializable
+data class DosperiodJson(
+    val id: String = "",
+    val startDatum: String = "",
+    val slutDatum: String? = null,
+    val dos: String = "",
+    val enhet: String = "",
 )
 
 @Serializable

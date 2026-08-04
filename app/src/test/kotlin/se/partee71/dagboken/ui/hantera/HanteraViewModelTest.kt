@@ -4,6 +4,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import se.partee71.dagboken.data.datastore.DEFAULT_PERIOD_REMINDER_TIME
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SymptomOption
@@ -54,6 +55,7 @@ class HanteraViewModelTest {
             every { themeDarkStart } returns flowOf(21)
             every { medsNotificationsEnabled } returns flowOf(false)
             every { screeningEventConfigs } returns flowOf(DEFAULT_SCREENING_EVENTS)
+            every { periodReminderTime } returns flowOf(DEFAULT_PERIOD_REMINDER_TIME)
             every { aktivitetOptions } returns aktivitetOptionsFlow
             every { symptomOptions } returns symptomOptionsFlow
             every { handelseTypOptions } returns handelseTypOptionsFlow
@@ -219,6 +221,26 @@ class HanteraViewModelTest {
 
         viewModel.setScreeningEventTime(0, "09:30")
         coVerify { alarmScheduler.rescheduleAll() }
+    }
+
+    // ─── periodpåminnelse (NOT-13) ────────────────────────────────────────────
+
+    @Test fun `periodReminderTime defaults to nine`() = runTest {
+        assertEquals(DEFAULT_PERIOD_REMINDER_TIME, viewModel.state.value.periodReminderTime)
+    }
+
+    @Test fun `setPeriodReminderTime persists and reschedules the alarm`() = runTest {
+        viewModel.setPeriodReminderTime("07:15")
+
+        coVerify { prefs.setPeriodReminderTime("07:15") }
+        coVerify { alarmScheduler.schedulePeriodReminder("07:15") }
+    }
+
+    @Test fun `periodReminderTime from prefs reaches the ui state`() = runTest {
+        every { prefs.periodReminderTime } returns flowOf("18:45")
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+
+        assertEquals("18:45", viewModel.state.value.periodReminderTime)
     }
 
     // ─── medicinFavoriter / toggleMedicinFavorite ─────────────────────────────

@@ -19,6 +19,7 @@ import se.partee71.dagboken.data.room.entities.FavoritEntity
 import se.partee71.dagboken.data.room.entities.MedicinEntity
 import se.partee71.dagboken.data.room.entities.ReceptEntity
 import se.partee71.dagboken.data.room.entities.toDomain
+import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
@@ -337,5 +338,159 @@ class MedicinerRepositoryTest {
         repo.ensureEntriesForDate(yesterday)
 
         assertTrue("ensuring a past date must not seed today", db.medicinDao().getByDate(today).isEmpty())
+    }
+
+    // ─── period (REC-7/REC-8) ─────────────────────────────────────────────────
+
+    private fun receptEntity(
+        id: String = "r1",
+        namn: String = "Prednisolon",
+        dos: String = "5",
+        aktiv: Boolean = true,
+        skapad: String = LocalDate.now().toString(),
+        startDatum: String = LocalDate.now().toString(),
+        slutDatum: String? = null,
+        dosperioderJson: String = "[]",
+    ) = ReceptEntity(
+        id = id, namn = namn, dos = dos, enhet = "mg",
+        tidpunkterJson = """["Morgon"]""", upprepning = "dagligen",
+        dagarJson = "[]", intervalDagar = 1, aktiv = aktiv, skapad = skapad,
+        startDatum = startDatum, slutDatum = slutDatum, dosperioderJson = dosperioderJson,
+    )
+
+    @Test fun ensureTodayEntries_generates_nothing_after_the_period_ended() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(receptEntity(
+            startDatum = today.minusDays(10).toString(),
+            slutDatum  = today.minusDays(1).toString(),
+        ))
+
+        repo.ensureTodayEntries()
+
+        assertTrue(db.medicinDao().getByDate(today.toString()).isEmpty())
+    }
+
+    @Test fun ensureTodayEntries_marks_an_expired_recept_as_ended_without_deleting_it() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(receptEntity(
+            startDatum = today.minusDays(10).toString(),
+            slutDatum  = today.minusDays(1).toString(),
+        ))
+
+        repo.ensureTodayEntries()
+
+        val fromDb = db.receptDao().getById("r1")
+        assertNotNull(fromDb)
+        assertEquals(false, fromDb!!.aktiv)
+    }
+
+    @Test fun ensureTodayEntries_keeps_a_running_period_active() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(receptEntity(
+            startDatum = today.toString(),
+            slutDatum  = today.plusDays(5).toString(),
+        ))
+
+        repo.ensureTodayEntries()
+
+        assertEquals(true, db.receptDao().getById("r1")!!.aktiv)
+        assertEquals(1, db.medicinDao().getByDate(today.toString()).size)
+    }
+
+    @Test fun ensureTodayEntries_uses_the_dosperiod_dose() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(receptEntity(
+            startDatum      = today.toString(),
+            slutDatum       = today.plusDays(9).toString(),
+            dosperioderJson = """[{"id":"d1","startDatum":"$today","slutDatum":"$today","dos":"20","enhet":"mg"}]""",
+        ))
+
+        repo.ensureTodayEntries()
+
+        assertEquals("20", db.medicinDao().getByDate(today.toString()).single().dos)
+    }
+
+    // ─── dossynk vid sparat recept (REC-10) ───────────────────────────────────
+
+    @Test fun saveRecept_updates_pending_doses_to_the_new_dose() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(receptEntity(startDatum = today.toString()))
+        repo.ensureTodayEntries()
+        val existing = db.medicinDao().getByDate(today.toString()).single()
+        assertEquals("5", existing.dos)
+
+        val recept = repo.getReceptById("r1")!!
+        repo.saveRecept(recept.copy(dos = "15"))
+
+        assertEquals("15", db.medicinDao().getById(existing.id)!!.dos)
+    }
+
+    @Test fun saveRecept_applies_a_new_dosperiod_to_todays_pending_dose() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(receptEntity(startDatum = today.toString()))
+        repo.ensureTodayEntries()
+        val existing = db.medicinDao().getByDate(today.toString()).single()
+
+        val recept = repo.getReceptById("r1")!!
+        repo.saveRecept(
+            recept.copy(
+                dosperioder = listOf(
+                    Dosperiod(
+                        id = "d1", startDatum = today.toString(),
+                        slutDatum = today.plusDays(4).toString(), dos = "20", enhet = "mg",
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals("20", db.medicinDao().getById(existing.id)!!.dos)
+    }
+
+    @Test fun saveRecept_never_touches_a_taken_dose() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(receptEntity(startDatum = today.toString()))
+        repo.ensureTodayEntries()
+        val existing = db.medicinDao().getByDate(today.toString()).single()
+        repo.toggleTagen(existing.id, true)
+
+        val recept = repo.getReceptById("r1")!!
+        repo.saveRecept(recept.copy(dos = "15"))
+
+        val after = db.medicinDao().getById(existing.id)!!
+        assertEquals("5", after.dos)
+        assertTrue(after.tagen)
+    }
+
+    @Test fun saveRecept_removes_pending_doses_that_fall_outside_a_shortened_period() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(receptEntity(
+            startDatum = today.toString(),
+            slutDatum  = today.plusDays(5).toString(),
+        ))
+        repo.ensureTodayEntries()
+        repo.ensureEntriesForDate(today.plusDays(2))
+        assertEquals(1, db.medicinDao().getByDate(today.plusDays(2).toString()).size)
+
+        val recept = repo.getReceptById("r1")!!
+        repo.saveRecept(recept.copy(slutDatum = today.toString()))
+
+        assertTrue(db.medicinDao().getByDate(today.plusDays(2).toString()).isEmpty())
+        assertEquals(1, db.medicinDao().getByDate(today.toString()).size)
+    }
+
+    @Test fun saveRecept_keeps_doses_from_earlier_days_untouched() = runTest {
+        val today = LocalDate.now()
+        val yesterday = today.minusDays(1)
+        db.receptDao().upsert(receptEntity(
+            skapad     = yesterday.toString(),
+            startDatum = yesterday.toString(),
+        ))
+        repo.ensureEntriesForDate(yesterday)
+        val old = db.medicinDao().getByDate(yesterday.toString()).single()
+
+        val recept = repo.getReceptById("r1")!!
+        repo.saveRecept(recept.copy(dos = "15"))
+
+        assertEquals("5", db.medicinDao().getById(old.id)!!.dos)
     }
 }

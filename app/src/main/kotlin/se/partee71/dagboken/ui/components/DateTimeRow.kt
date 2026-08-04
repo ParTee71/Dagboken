@@ -101,9 +101,13 @@ fun DateTimeRow(
     }
 }
 
+/**
+ * Delad datumväljardialog — används av [DateTimeRow] och av skärmar som bara behöver ett
+ * datum (t.ex. receptets period, REC-7). Bygg inte en egen variant.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DatePickerModal(
+fun DatePickerModal(
     initialDatum: String,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,

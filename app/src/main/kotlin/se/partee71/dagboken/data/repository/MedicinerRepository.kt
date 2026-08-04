@@ -13,10 +13,13 @@ import se.partee71.dagboken.data.room.daos.MedicinDao
 import se.partee71.dagboken.data.room.daos.ReceptDao
 import se.partee71.dagboken.data.room.entities.toDomain
 import se.partee71.dagboken.data.room.entities.toEntity
+import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.domain.model.dosFor
+import se.partee71.dagboken.domain.model.hasExpiredOn
 import se.partee71.dagboken.domain.model.tidpunktToHour
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import java.time.LocalDate
@@ -93,17 +96,52 @@ class MedicinerRepository @Inject constructor(
 
     // ─── Recept ───────────────────────────────────────────────────────────────
     val allRecept: Flow<List<Recept>> = receptDao.getAllFlow().map { list ->
-        list.map { it.toDomain(::decodeStringList, ::decodeIntList) }
+        list.map { it.toDomain(::decodeStringList, ::decodeIntList, ::decodeDosperioder) }
     }
 
     suspend fun getReceptById(id: String): Recept? =
-        receptDao.getById(id)?.toDomain(::decodeStringList, ::decodeIntList)
+        receptDao.getById(id)?.toDomain(::decodeStringList, ::decodeIntList, ::decodeDosperioder)
 
-    suspend fun saveRecept(recept: Recept) =
-        receptDao.upsert(recept.toEntity(::encodeStringList, ::encodeIntList))
+    suspend fun saveRecept(recept: Recept) {
+        receptDao.upsert(recept.toEntity(::encodeStringList, ::encodeIntList, ::encodeDosperioder))
+        syncPendingDoses(recept)
+    }
+
+    /**
+     * REC-10 — otagna, ej överhoppade doser från och med idag följer receptets nya period
+     * och dosperioder: doser utanför perioden (eller utanför upprepningsmönstret) tas bort,
+     * övriga får rätt dos/enhet. Tagna och överhoppade doser rörs aldrig.
+     */
+    private suspend fun syncPendingDoses(recept: Recept, today: LocalDate = LocalDate.now()) {
+        val fromDatum = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val pending = medicinDao.getPendingByReceptFrom(recept.id, fromDatum)
+        if (pending.isEmpty()) return
+
+        val (obsolete, kept) = pending.partition { entry ->
+            val date = runCatching {
+                LocalDate.parse(entry.datum, DateTimeFormatter.ISO_LOCAL_DATE)
+            }.getOrNull() ?: return@partition false
+            !ensureTodayEntries.shouldTakeToday(recept, date)
+        }
+
+        obsolete.forEach {
+            medicinDao.delete(it)
+            noteRepo.delete(NoteTarget.MEDICATION, it.id)
+        }
+
+        val updated = kept.mapNotNull { entry ->
+            val date = runCatching {
+                LocalDate.parse(entry.datum, DateTimeFormatter.ISO_LOCAL_DATE)
+            }.getOrNull() ?: return@mapNotNull null
+            val (dos, enhet) = recept.dosFor(date)
+            entry.takeIf { it.dos != dos || it.enhet != enhet || it.namn != recept.namn }
+                ?.copy(dos = dos, enhet = enhet, namn = recept.namn)
+        }
+        if (updated.isNotEmpty()) medicinDao.upsertAll(updated)
+    }
 
     suspend fun deleteRecept(recept: Recept) =
-        receptDao.delete(recept.toEntity(::encodeStringList, ::encodeIntList))
+        receptDao.delete(recept.toEntity(::encodeStringList, ::encodeIntList, ::encodeDosperioder))
 
     suspend fun toggleReceptAktiv(id: String, aktiv: Boolean) =
         receptDao.updateAktiv(id, aktiv)
@@ -136,7 +174,14 @@ class MedicinerRepository @Inject constructor(
     suspend fun ensureEntriesForDate(date: LocalDate) {
         val datum = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val newEntries = db.withTransaction {
-            val recept   = receptDao.getActive().map { it.toDomain(::decodeStringList, ::decodeIntList) }
+            val active = receptDao.getActive()
+                .map { it.toDomain(::decodeStringList, ::decodeIntList, ::decodeDosperioder) }
+            // REC-8 — recept vars period passerats markeras som avslutade (aldrig raderade).
+            // Utvärderas mot dagens datum, inte mot [date], så att bläddring bakåt i
+            // Idag-vyn (HEM-14) inte återuppväcker eller avslutar något felaktigt.
+            val today = LocalDate.now()
+            val (expired, recept) = active.partition { it.hasExpiredOn(today) }
+            expired.forEach { receptDao.updateAktiv(it.id, false) }
             val existing = medicinDao.getByDate(datum).map { it.toDomain() }
             val newEntries = ensureTodayEntries.compute(recept, existing, date)
             if (newEntries.isNotEmpty()) {
@@ -157,7 +202,9 @@ class MedicinerRepository @Inject constructor(
         medicinDao.upsertAll(entries.map { it.toEntity() })
 
     suspend fun importRecept(entries: List<Recept>) =
-        receptDao.upsertAll(entries.map { it.toEntity(::encodeStringList, ::encodeIntList) })
+        receptDao.upsertAll(entries.map {
+            it.toEntity(::encodeStringList, ::encodeIntList, ::encodeDosperioder)
+        })
 
     suspend fun importFavoriter(entries: List<Favorit>) =
         favoritDao.upsertAll(entries.map { it.toEntity() })
@@ -175,5 +222,12 @@ class MedicinerRepository @Inject constructor(
     private fun decodeIntList(raw: String): List<Int> =
         runCatching { json.decodeFromString<List<Int>>(raw) }
             .onFailure { Log.w("MedicinerRepo", "decodeIntList failed for: $raw", it) }
+            .getOrDefault(emptyList())
+
+    private fun encodeDosperioder(list: List<Dosperiod>): String = json.encodeToString(list)
+
+    private fun decodeDosperioder(raw: String): List<Dosperiod> =
+        runCatching { json.decodeFromString<List<Dosperiod>>(raw) }
+            .onFailure { Log.w("MedicinerRepo", "decodeDosperioder failed", it) }
             .getOrDefault(emptyList())
 }

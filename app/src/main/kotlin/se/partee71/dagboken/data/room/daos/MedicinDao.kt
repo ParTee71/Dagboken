@@ -54,6 +54,15 @@ interface MedicinDao {
     @Query("SELECT id FROM mediciner WHERE datum = :datum AND receptId IS NOT NULL")
     suspend fun getReceptEntryIdsForDate(datum: String): List<String>
 
+    // Otagna, ej överhoppade doser från och med ett datum — underlag för REC-10 när ett
+    // recepts period eller dosperioder ändras.
+    @Query("""
+        SELECT * FROM mediciner
+        WHERE receptId = :receptId AND datum >= :fromDatum AND tagen = 0 AND skipped = 0
+        ORDER BY datum ASC
+    """)
+    suspend fun getPendingByReceptFrom(receptId: String, fromDatum: String): List<MedicinEntity>
+
     @Upsert
     suspend fun upsert(entity: MedicinEntity)
 

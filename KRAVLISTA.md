@@ -147,9 +147,13 @@
 | REC-1 | Användaren ska kunna skapa/redigera **recept** med namn, dos, enhet, en eller flera tidpunkter och en anteckning (delad `NoteField`-komponent). Anteckningen ärvs som förval på varje dos receptet genererar. |
 | REC-2 | Recept ska stödja upprepningsmönster: **dagligen, vardagar, helger, anpassad (specifika veckodagar), intervall (var X:e dag)**. |
 | REC-3 | Vid "anpassad" ska specifika veckodagar (0=Mån … 6=Sön) kunna väljas. |
-| REC-4 | Vid "intervall" ska intervall i dagar anges; beräknas relativt receptets skapandedatum. |
+| REC-4 | Vid "intervall" ska intervall i dagar anges; beräknas relativt receptets **startdatum** (REC-7), vilket för recept skapade före periodstödet är skapandedatumet. |
 | REC-5 | Recept ska kunna **aktiveras/inaktiveras** utan att raderas. |
 | REC-6 | Standardklockslag per tidpunkt: Morgon 07, Förmiddag 10, Lunch 12, Eftermiddag 15, Kväll 19, Natt 22, Vid behov 12. |
+| REC-7 | Ett recept ska kunna ges en **period** — startdatum plus antingen längd i dagar eller ett t.o.m.-datum, eller *tills vidare* (inget slutdatum). Doser genereras endast inom perioden. Recept utan uttalat startdatum (skapade före periodstödet) har ingen bakre gräns, så bakåtbläddring i Idag (HEM-14) fortsätter seeda deras doser som förut. |
+| REC-8 | När perioden passerats slutar receptet generera doser och markeras automatiskt som **avslutat** (`aktiv = false`). Receptet raderas aldrig och kan tas i bruk igen genom att perioden förlängs och receptet aktiveras. Recept & scheman visar "Avslutat" med slutdatum. |
+| REC-9 | Ett recept ska kunna ha en eller flera **dosperioder** (startdatum, slutdatum eller periodens slut, dos, enhet) som tillfälligt ersätter grunddosen — t.ex. nedtrappning i flera steg. Överlappande dosperioder kan inte sparas; när en dosperiod löper ut återgår receptet till grunddosen. |
+| REC-10 | När ett recept sparas uppdateras **otagna, ej överhoppade** receptgenererade doser för idag och framåt: dos/enhet och namn följer den nya perioden och dosperioderna, och doser som hamnat utanför perioden eller upprepningsmönstret tas bort. Tagna och överhoppade doser ändras aldrig. |
 
 ### 6.3 Vid behov-flik (favoriter) *(snabbvalet flyttat till Idag-skärmen, se HEM-11 §4; favoritmarkering hanteras i Hantera, se §18, sedan navigationsbytet i #84 etapp 4)*
 
@@ -231,6 +235,8 @@
 | NOT-9 | Tryck på en medicin- eller screeningpåminnelse ska öppna appen på **Idag-skärmen** (tidigare Mediciner- respektive Aktivitet-fliken, uppdaterat sedan navigationsbytet i #84 etapp 4). |
 | NOT-10 | Medicinpåminnelsen ska ha en **"Markera tagen"**-åtgärd som markerar dagens schemalagda, ej tagna doser som tagna via repository-lagret och stänger notisen — utan att appen öppnas. Vid behov-doser lämnas orörda. |
 | NOT-11 | Screeningpåminnelsen ska ha en **"Logga nu"**-åtgärd som öppnar Idag-skärmen med det aktuella måltidstillfällets inline-screeningformulär förexpanderat. |
+| NOT-12 | Dagen innan ett recepts period (REC-7) eller en dosperiod (REC-9) tar slut ska en påminnelse visas i kanalen **Medicinpåminnelser**. Flera samtidiga periodslut slås ihop till en notis; tar inget slut visas ingen notis. Tryck öppnar Hantera → Recept & scheman. |
+| NOT-13 | Tidpunkten för periodpåminnelsen (NOT-12) ska vara konfigurerbar under Hantera → Notifikationer (standard 09:00), ingå i backup och schemaläggas om vid ändring och efter omstart. |
 
 ---
 
@@ -257,7 +263,8 @@
 |---------|-----------|
 | **Aktivitet** | id, timestamp, datum, tid, aktivitet, energy (−10..10 / 1..10), stress (0..10), somatiska, symptom (wire), aterhamtande, energitjuv, type (`aktivitet`/`screening`), spentTime (min). |
 | **Medicin** | id, timestamp, datum, tid, namn, dos, enhet, tidpunkt, tagen, receptId?, skipped, tagenTid? (faktisk tagningstidpunkt, MED-14). |
-| **Recept** | id, namn, dos, enhet, tidpunkter[], upprepning, dagar[], intervalDagar, aktiv, skapad. |
+| **Recept** | id, namn, dos, enhet, tidpunkter[], upprepning, dagar[], intervalDagar, aktiv, skapad, startDatum, slutDatum? (null = tills vidare, REC-7), dosperioder[] (REC-9). |
+| **Dosperiod** | id, startDatum, slutDatum? (null = receptets slut), dos, enhet — persisteras som JSON på receptet. |
 | **Favorit** | id, namn, dos, enhet, tidpunkt, minTidMellan (h), dispenseringsTid, maxDoserPerDag, isFavorite. |
 | **Händelse** | id, timestamp, datum, tid, typ, svarighetsgrad, varaktighetMinuter, triggers, atgarder. |
 | **SjukdomsEpisod** | id, typ, startDatum, slutDatum, timestamp. |

@@ -32,7 +32,7 @@ import se.partee71.dagboken.data.room.entities.SjukdomsIncheckningEntity
         SjukdomsEpisodEntity::class,
         SjukdomsIncheckningEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -339,9 +339,21 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Periodstöd för recept (REC-7…REC-9): startdatum, slutdatum och tillfälliga
+        // dosperioder. Befintliga recept får tomt startDatum — alltså ingen periodgräns
+        // bakåt — och faller tillbaka på `skapad` för intervallberäkningen (REC-4), exakt
+        // som före migreringen.
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE recept ADD COLUMN startDatum TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE recept ADD COLUMN slutDatum TEXT")
+                db.execSQL("ALTER TABLE recept ADD COLUMN dosperioderJson TEXT NOT NULL DEFAULT '[]'")
+            }
+        }
+
         val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
-            MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
+            MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
         )
     }
 }

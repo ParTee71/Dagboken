@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import se.partee71.dagboken.domain.model.periodStart
 
 class BackupMapperTest {
 
@@ -131,6 +132,41 @@ class BackupMapperTest {
         )
         val result = BackupMapper.toRecept(json)
         assertEquals(listOf("Morgon"), result[0].tidpunkter)
+    }
+
+    @Test fun `toRecept maps period and dosperioder`() {
+        val json = backup(
+            recept = listOf(ReceptJson(
+                id = "r1", namn = "Prednisolon", dos = "5", enhet = "mg",
+                tidpunkter = listOf("Morgon"), upprepning = "dagligen",
+                aktiv = true, skapad = "2024-01-01",
+                startDatum = "2026-05-01", slutDatum = "2026-05-14",
+                dosperioder = listOf(
+                    DosperiodJson("d1", "2026-05-01", "2026-05-05", "10", "mg"),
+                ),
+            ))
+        )
+        val result = BackupMapper.toRecept(json)
+        assertEquals("2026-05-01", result[0].startDatum)
+        assertEquals("2026-05-14", result[0].slutDatum)
+        assertEquals(1, result[0].dosperioder.size)
+        assertEquals("10", result[0].dosperioder[0].dos)
+        assertEquals("2026-05-05", result[0].dosperioder[0].slutDatum)
+    }
+
+    @Test fun `toRecept leaves older backups without a period gate`() {
+        val json = backup(
+            recept = listOf(ReceptJson(
+                id = "r1", namn = "Metformin", dos = "500", enhet = "mg",
+                tidpunkter = listOf("Morgon"), upprepning = "dagligen",
+                aktiv = true, skapad = "2024-01-01",
+            ))
+        )
+        val result = BackupMapper.toRecept(json)
+        assertEquals("", result[0].startDatum)
+        assertEquals("2024-01-01", result[0].periodStart)
+        assertEquals(null, result[0].slutDatum)
+        assertEquals(emptyList<Any>(), result[0].dosperioder)
     }
 
     @Test fun `toRecept preserves anpassad dagar`() {

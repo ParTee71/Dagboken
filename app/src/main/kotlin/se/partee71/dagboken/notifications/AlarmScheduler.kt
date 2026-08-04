@@ -26,12 +26,41 @@ class AlarmScheduler @Inject constructor(
     suspend fun rescheduleAll() {
         val medsEnabled  = prefs.medsNotificationsEnabled.first()
         val eventConfigs = prefs.screeningEventConfigs.first()
+        val periodTime   = prefs.periodReminderTime.first()
 
         cancelAllMedAlarms()
         cancelAllScreeningAlarms()
 
         if (medsEnabled) scheduleMedAlarms(eventConfigs)
         scheduleScreeningAlarms(eventConfigs)
+        schedulePeriodReminder(periodTime)
+    }
+
+    /**
+     * Ett dagligt larm som kollar om någon receptperiod eller dosperiod tar slut imorgon
+     * (NOT-12). Alltid schemalagt — notisen postas bara när något faktiskt tar slut, så
+     * det ger inget brus.
+     */
+    fun schedulePeriodReminder(time: String) {
+        val parts  = time.split(":")
+        val hour   = parts.getOrNull(0)?.toIntOrNull() ?: return
+        val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        val pending = PendingIntent.getBroadcast(
+            context,
+            REQUEST_CODE_PERIOD,
+            Intent(context, PeriodReminderReceiver::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        scheduleExact(screeningAlarmTriggerMs(hour, minute), pending)
+    }
+
+    fun cancelPeriodReminder() {
+        PendingIntent.getBroadcast(
+            context,
+            REQUEST_CODE_PERIOD,
+            Intent(context, PeriodReminderReceiver::class.java),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+        )?.also { alarmManager.cancel(it) }
     }
 
     fun scheduleMedAlarms(configs: List<ScreeningEventConfig>) {
@@ -115,6 +144,7 @@ class AlarmScheduler @Inject constructor(
     companion object {
         private const val REQUEST_CODE_SCREENING_BASE = 0x7FF0
         private const val REQUEST_CODE_MED_BASE       = 0x7FE0
+        private const val REQUEST_CODE_PERIOD         = 0x7FD0
     }
 }
 
