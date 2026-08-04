@@ -1,7 +1,6 @@
 package se.partee71.dagboken.widget
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
 import androidx.glance.action.Action
@@ -9,18 +8,19 @@ import androidx.glance.appwidget.CheckBox
 import androidx.glance.layout.padding
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import se.partee71.dagboken.R
 
 /**
  * Delat mellan appens tre hemskärmswidgets (medicin, screening, vid behov, #161/#162).
  *
  * `androidx.glance.material3.GlanceTheme` gick inte att använda ("Unresolved reference"
  * i CI, #156), men färgerna behöver ändå följa ljust/mörkt läge — widgetarna var
- * tidigare alltid mörka oavsett systemets och appens tema (WID-5). `ColorProvider` med
- * ett dag- och ett nattvärde löser det utan GlanceTheme: systemet väljer rätt variant
- * när widgeten ritas.
+ * tidigare alltid mörka oavsett systemets och appens tema (WID-6). Lösningen är vanliga
+ * färgresurser med en `values-night`-variant: Glance slår upp resursen när widgeten
+ * ritas, så systemet väljer rätt variant utan GlanceTheme.
  */
-val WidgetBackground = ColorProvider(day = Color(0xFFF7F7FA), night = Color(0xFF15151B))
-val WidgetOnBackground = ColorProvider(day = Color(0xFF1B1B20), night = Color(0xFFF2F2F5))
+val WidgetBackground = ColorProvider(R.color.widget_background)
+val WidgetOnBackground = ColorProvider(R.color.widget_on_background)
 
 /**
  * Widgetens tryckbara "knapp", byggd på [CheckBox].

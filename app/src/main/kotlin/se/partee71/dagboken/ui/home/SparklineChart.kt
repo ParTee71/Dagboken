@@ -27,6 +27,7 @@ import com.patrykandpatrick.vico.core.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.diagram.chartContentDescription
 import se.partee71.dagboken.ui.diagram.computeSmartYAxis
 import se.partee71.dagboken.ui.diagram.computeTrendLine
 import se.partee71.dagboken.ui.diagram.formatChartValue

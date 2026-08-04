@@ -79,7 +79,11 @@ fun LineChartCanvas(
 
     // Diagrammet är en rityta utan text — utan detta finns ingenting för TalkBack att
     // läsa upp. Beskrivningen sammanfattar varje serie (a11y).
-    val description = series.joinToString(". ") { chartContentDescription(it.label, it.points) }
+    // Byggs med en for-loop, inte joinToString/buildString: chartContentDescription är
+    // @Composable och kan inte anropas ur en vanlig lambda.
+    val parts = ArrayList<String>(series.size)
+    for (s in series) parts += chartContentDescription(s.label, s.points)
+    val description = parts.joinToString(". ")
 
     val dateLabels = remember(dates) {
         if (dates.isEmpty()) emptyList()

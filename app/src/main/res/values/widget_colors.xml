@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Hemskärmswidgetarnas färger (WID-6). Ligger som resurser i stället för fasta
+        värden i koden, så systemets mörka läge kan välja values-night-varianten —
+        Glance i den här versionen har ingen ColorProvider som tar ett dag/natt-par.
+    -->
+    <color name="widget_background">#FFF7F7FA</color>
+    <color name="widget_on_background">#FF1B1B20</color>
+</resources>
