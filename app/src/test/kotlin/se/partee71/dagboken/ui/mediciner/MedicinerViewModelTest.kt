@@ -213,15 +213,20 @@ class MedicinerViewModelTest {
         assertEquals("Ibuprofen borttagen", viewModel.snackbar.value)
     }
 
-    @Test fun `deleteMedicin without receptId also deletes its note`() = runTest {
+    // Anteckningsstädningen ligger numera i MedicinerRepository (DAT-4) — se
+    // NoteCleanupOnDeleteTest. Här verifieras bara att raderingen delegeras dit.
+    @Test fun `deleteMedicin without receptId delegates the deletion to the repository`() = runTest {
         val med = medicin(id = "m1", receptId = null)
         viewModel.deleteMedicin(med)
-        coVerify { noteRepo.delete(se.partee71.dagboken.domain.model.NoteTarget.MEDICATION, "m1") }
+        coVerify { repo.deleteMedicin(med) }
+        coVerify(exactly = 0) { noteRepo.delete(any(), any()) }
     }
 
-    @Test fun `deleteFavorit also deletes its note`() = runTest {
-        viewModel.deleteFavorit(favorit())
-        coVerify { noteRepo.delete(se.partee71.dagboken.domain.model.NoteTarget.FAVORIT, "f1") }
+    @Test fun `deleteFavorit delegates the deletion to the repository`() = runTest {
+        val fav = favorit()
+        viewModel.deleteFavorit(fav)
+        coVerify { repo.deleteFavorit(fav) }
+        coVerify(exactly = 0) { noteRepo.delete(any(), any()) }
     }
 
     // ─── quickDos – daily limit ───────────────────────────────────────────────
