@@ -8,7 +8,8 @@ import javax.inject.Inject
 /**
  * Bygger en screening-[Aktivitet] från energi/stress/symptom — samma mappning som
  * [se.partee71.dagboken.ui.aktiviteter.AktiviteterViewModel.save] använder för
- * `type == "screening"`, delad så appen och widgeten (#157) inte kan divergera.
+ * `type == "screening"`. Delad mappning så screeningloggningens olika ingångar inte
+ * kan divergera (ursprungligen app + widget, #157; widgetarna borttagna i #177).
  */
 class BuildScreeningAktivitetUseCase @Inject constructor() {
     fun build(

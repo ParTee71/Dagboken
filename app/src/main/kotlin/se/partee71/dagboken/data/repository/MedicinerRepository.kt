@@ -1,9 +1,7 @@
 package se.partee71.dagboken.data.repository
 
-import android.content.Context
 import android.util.Log
 import androidx.room.withTransaction
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -24,7 +22,6 @@ import se.partee71.dagboken.domain.model.dosFor
 import se.partee71.dagboken.domain.model.hasExpiredOn
 import se.partee71.dagboken.domain.model.tidpunktToHour
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
-import se.partee71.dagboken.widget.WidgetUpdater
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -40,16 +37,7 @@ class MedicinerRepository @Inject constructor(
     private val noteRepo: NoteRepository,
     private val ensureTodayEntries: EnsureTodayEntriesUseCase,
     private val json: Json,
-    @ApplicationContext private val appContext: Context,
 ) {
-
-    /**
-     * WID-4: hemskärmswidgetarna ska aldrig visa inaktuellt läge. Uppdateringen låg
-     * tidigare bara på två anropsplatser i UI-lagret, så de flesta skrivvägar (spara,
-     * hoppa över, radera, nya schemalagda doser) lämnade widgetarna med gammal data.
-     * Här ligger den i stället intill själva skrivningen, så alla vägar täcks.
-     */
-    private fun refreshWidgets() = WidgetUpdater.requestUpdate(appContext)
 
     // ─── Medicin ──────────────────────────────────────────────────────────────
     fun todayFlow(): Flow<List<Medicin>> = entriesForDate(LocalDate.now())
@@ -71,20 +59,17 @@ class MedicinerRepository @Inject constructor(
 
     suspend fun saveMedicin(medicin: Medicin) {
         medicinDao.upsert(medicin.toEntity())
-        refreshWidgets()
     }
 
     /** Raderar dosen och dess anteckning tillsammans (DAT-4). */
     suspend fun deleteMedicin(medicin: Medicin) {
         medicinDao.delete(medicin.toEntity())
         noteRepo.delete(NoteTarget.MEDICATION, medicin.id)
-        refreshWidgets()
     }
 
     /** Sätter/nollställer tagningstidpunkten (MED-14) tillsammans med tagen-flaggan. */
     suspend fun toggleTagen(id: String, tagen: Boolean) {
         medicinDao.updateTagen(id, tagen, if (tagen) nowTid() else null)
-        refreshWidgets()
     }
 
     /**
@@ -99,13 +84,11 @@ class MedicinerRepository @Inject constructor(
         }
         val tagenTid = nowTid()
         due.forEach { medicinDao.updateTagen(it.id, true, tagenTid) }
-        refreshWidgets()
         return due.size
     }
 
     suspend fun skipMedicin(id: String) {
         medicinDao.markSkipped(id)
-        refreshWidgets()
     }
 
     suspend fun getLastTaken(namn: String): Medicin? = medicinDao.getLastTaken(namn)?.toDomain()
@@ -131,7 +114,6 @@ class MedicinerRepository @Inject constructor(
     suspend fun saveRecept(recept: Recept) {
         receptDao.upsert(recept.toEntity(::encodeStringList, ::encodeIntList, ::encodeDosperioder))
         syncPendingDoses(recept)
-        refreshWidgets()
     }
 
     /**
@@ -187,13 +169,11 @@ class MedicinerRepository @Inject constructor(
 
     suspend fun saveFavorit(favorit: Favorit) {
         favoritDao.upsert(favorit.toEntity())
-        refreshWidgets()
     }
 
     suspend fun deleteFavorit(favorit: Favorit) {
         favoritDao.delete(favorit.toEntity())
         noteRepo.delete(NoteTarget.FAVORIT, favorit.id)
-        refreshWidgets()
     }
 
     suspend fun setFavoritFavorite(id: String, isFavorite: Boolean) =
@@ -235,7 +215,6 @@ class MedicinerRepository @Inject constructor(
             val receptNote = noteRepo.observe(NoteTarget.RECEPT, receptId).first()
             if (receptNote.isNotBlank()) noteRepo.save(NoteTarget.MEDICATION, entry.id, receptNote)
         }
-        if (newEntries.isNotEmpty()) refreshWidgets()
     }
 
     // ─── Import (migration) ───────────────────────────────────────────────────

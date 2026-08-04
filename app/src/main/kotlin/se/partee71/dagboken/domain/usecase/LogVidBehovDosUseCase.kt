@@ -22,9 +22,9 @@ sealed interface VidBehovLogResult {
 
 /**
  * Loggar en vid behov-dos som tagen — samma väg som appens "Ta dos"
- * (`MedicinerViewModel.quickDos`/`forceDos`), delad med vid behov-widgeten (#162) så det
- * inte finns två skrivvägar (regel 4). Dagsgräns kollas alltid; cooldown kan förbigås med
- * [force] (efter att appen/widgeten visat en bekräftelse för användaren).
+ * (`MedicinerViewModel.quickDos`/`forceDos`) — en enda skrivväg för vid behov-doser
+ * (regel 4; delades tidigare med vid behov-widgeten, #162, borttagen i #177). Dagsgräns
+ * kollas alltid; cooldown kan förbigås med [force], efter att användaren bekräftat.
  */
 class LogVidBehovDosUseCase @Inject constructor(
     private val repo: MedicinerRepository,

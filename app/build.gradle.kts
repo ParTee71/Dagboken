@@ -30,8 +30,8 @@ android {
         applicationId = "se.partee71.dagboken"
         minSdk = 30
         targetSdk = 35
-        versionCode = 54
-        versionName = versionNameOverride ?: "3.18.0"
+        versionCode = 55
+        versionName = versionNameOverride ?: "3.19.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
@@ -180,8 +180,6 @@ dependencies {
     // Diagram (Trender + Home-sparkline), regel 4 (#110)
     implementation(libs.vico.compose.m3)
 
-    // Glance – hemskärmswidget (#120)
-    implementation(libs.androidx.glance.appwidget)
 
     // Health Connect – hälsodata från Galaxy Watch via Samsung Health (epic #54, spike #56)
     implementation(libs.androidx.health.connect)

@@ -27,7 +27,7 @@ class AktiviteterRepositoryTest {
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
-        repo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
+        repo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()))
     }
 
     @After fun tearDown() { db.close() }

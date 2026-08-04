@@ -24,7 +24,8 @@ fun activeScreeningEventLabels(configs: List<ScreeningEventConfig>): List<Pair<S
 
 /**
  * Status för dagens aktiverade screeningtillfällen. Ren funktion, delad mellan
- * `HomeViewModel` (Idag-vyn) och screeningwidgeten (#161) så de aldrig kan divergera.
+ * `HomeViewModel` (Idag-vyn); delades tidigare även med screeningwidgeten (#161,
+ * borttagen i #177).
  */
 fun computeScreeningEvents(
     activeEvents: List<Pair<String, String>>,

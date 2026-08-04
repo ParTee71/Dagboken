@@ -88,7 +88,7 @@ class HomeScreenTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                  .allowMainThreadQueries().build()
-        aktivRepo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
+        aktivRepo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()))
         noteRepo  = NoteRepository(db.noteDao())
         medicRepo = MedicinerRepository(
             db                 = db,
@@ -98,7 +98,6 @@ class HomeScreenTest {
             noteRepo           = noteRepo,
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
-            appContext         = ApplicationProvider.getApplicationContext(),
         )
         authRepo      = FirebaseAuthRepository(ctx)
         prefs         = PreferencesRepository(ctx, dagbokenJson())

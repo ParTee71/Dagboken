@@ -37,7 +37,7 @@ class RenameOptionMigrationTest {
         db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries().build()
         val notes = NoteRepository(db.noteDao())
-        aktiviteter = AktiviteterRepository(db.aktivitetDao(), notes, context)
+        aktiviteter = AktiviteterRepository(db.aktivitetDao(), notes)
         handelser = HandelserRepository(db.handelseDao(), notes)
         sjukdomar = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), notes)
     }
