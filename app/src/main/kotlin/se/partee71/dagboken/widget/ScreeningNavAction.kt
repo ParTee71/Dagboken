@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.first
 /** Steg fram/tillbaka/avbryt i screeningguiden — se [nextScreeningStep]. */
 class ScreeningNavAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        recordWidgetTap(context, glanceId)
         val direction = parameters[KEY_DIRECTION] ?: return
         val hasFavoriteSymptoms = context.widgetEntryPoint().preferencesRepository()
             .symptomOptions.first().any { it.isFavorite }

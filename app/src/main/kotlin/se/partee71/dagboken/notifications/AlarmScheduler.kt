@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.core.app.NotificationManagerCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import se.partee71.dagboken.data.datastore.PreferencesRepository
@@ -22,6 +23,18 @@ class AlarmScheduler @Inject constructor(
     private val prefs: PreferencesRepository,
 ) {
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
+
+    /**
+     * True om appen får posta notiser. Påminnelser kunde tidigare slås på i Hantera
+     * medan notiser var blockerade i systemet — reglaget stod på "på" och ingenting
+     * hände (NOT-16).
+     */
+    fun canPostNotifications(): Boolean =
+        NotificationManagerCompat.from(context).areNotificationsEnabled()
+
+    /** True om appen får ställa exakta larm; annars blir påminnelserna ungefärliga. */
+    fun canScheduleExactAlarms(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
 
     suspend fun rescheduleAll() {
         val medsEnabled  = prefs.medsNotificationsEnabled.first()
@@ -135,7 +148,7 @@ class AlarmScheduler @Inject constructor(
     }
 
     private fun scheduleExact(triggerMs: Long, pending: PendingIntent) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+        if (!canScheduleExactAlarms()) {
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pending)
         } else {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pending)

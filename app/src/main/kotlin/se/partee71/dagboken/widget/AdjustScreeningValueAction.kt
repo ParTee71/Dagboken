@@ -9,7 +9,6 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 /** +/- stepper (0..10) för energi/stress-steget i screeningguiden. */
 class AdjustScreeningValueAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        recordWidgetTap(context, glanceId)
         val field = parameters[KEY_FIELD] ?: return
         val delta = parameters[KEY_DELTA] ?: return
         val key = if (field == FIELD_ENERGY) ScreeningWidgetKeys.ENERGY else ScreeningWidgetKeys.STRESS

@@ -55,10 +55,10 @@ class MigrationRoundTripTest {
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
-        aktivRepo = AktiviteterRepository(db.aktivitetDao())
-        handelserRepo = HandelserRepository(db.handelseDao())
+        aktivRepo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
+        handelserRepo = HandelserRepository(db.handelseDao(), NoteRepository(db.noteDao()))
         noteRepo = NoteRepository(db.noteDao())
-        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao())
+        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), NoteRepository(db.noteDao()))
         medicRepo = MedicinerRepository(
             db                 = db,
             medicinDao         = db.medicinDao(),

@@ -14,7 +14,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -55,10 +55,12 @@ fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     mainVm: MainViewModel = hiltViewModel(),
 ) {
+    // launchSingleTop på varje navigering: utan den lade ett snabbt dubbeltryck två
+    // kopior av samma skärm på backstacken.
     val snackbarHostState = remember { SnackbarHostState() }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
-    val pendingNavRoute by mainVm.pendingNavRoute.collectAsState()
+    val pendingNavRoute by mainVm.pendingNavRoute.collectAsStateWithLifecycle()
     LaunchedEffect(pendingNavRoute) {
         val route = pendingNavRoute ?: return@LaunchedEffect
         // Wait for the NavHost to finish its first composition and set up the graph.
@@ -136,7 +138,7 @@ fun AppNavigation(
                 )
             }
             composable(Screen.Idag.route) {
-                val pendingScreeningLabel by mainVm.pendingScreeningLabel.collectAsState()
+                val pendingScreeningLabel by mainVm.pendingScreeningLabel.collectAsStateWithLifecycle()
                 HomeScreen(
                     initialExpandedScreeningLabel = pendingScreeningLabel,
                     onScreeningLabelConsumed      = { mainVm.clearPendingScreeningLabel() },
@@ -154,14 +156,14 @@ fun AppNavigation(
                             restoreState = true
                         }
                     },
-                    onNavigateToSjukdomar = { navController.navigate(Routes.SJUKDOMAR) },
-                    onAddAktivitet        = { navController.navigate(Routes.ADD_AKTIVITET) },
-                    onAddMedicin          = { navController.navigate(Routes.ADD_MEDICIN) },
-                    onAddHandelse         = { date -> navController.navigate(Routes.addHandelse(date.toString())) },
-                    onAddFavorit          = { navController.navigate(Routes.ADD_FAVORIT) },
-                    onEditFavorit         = { id -> navController.navigate(Routes.editFavorit(id)) },
-                    onLogEfterhand        = { favoritId -> navController.navigate(Routes.addMedicinFromFavorit(favoritId)) },
-                    onOpenHalsa           = { navController.navigate(Routes.HALSA) },
+                    onNavigateToSjukdomar = { navController.navigate(Routes.SJUKDOMAR) { launchSingleTop = true } },
+                    onAddAktivitet        = { navController.navigate(Routes.ADD_AKTIVITET) { launchSingleTop = true } },
+                    onAddMedicin          = { navController.navigate(Routes.ADD_MEDICIN) { launchSingleTop = true } },
+                    onAddHandelse         = { date -> navController.navigate(Routes.addHandelse(date.toString())) { launchSingleTop = true } },
+                    onAddFavorit          = { navController.navigate(Routes.ADD_FAVORIT) { launchSingleTop = true } },
+                    onEditFavorit         = { id -> navController.navigate(Routes.editFavorit(id)) { launchSingleTop = true } },
+                    onLogEfterhand        = { favoritId -> navController.navigate(Routes.addMedicinFromFavorit(favoritId)) { launchSingleTop = true } },
+                    onOpenHalsa           = { navController.navigate(Routes.HALSA) { launchSingleTop = true } },
                     snackbarHostState     = snackbarHostState,
                 )
             }
@@ -253,10 +255,10 @@ fun AppNavigation(
             }
             composable(Screen.Hantera.route) {
                 HanteraScreen(
-                    onImport         = { navController.navigate(Routes.MIGRATION) },
-                    onOpenSjukdomar  = { navController.navigate(Routes.SJUKDOMAR) },
-                    onOpenSchema     = { navController.navigate(Routes.SCHEMA) },
-                    onOpenHalsa      = { navController.navigate(Routes.HALSA) },
+                    onImport         = { navController.navigate(Routes.MIGRATION) { launchSingleTop = true } },
+                    onOpenSjukdomar  = { navController.navigate(Routes.SJUKDOMAR) { launchSingleTop = true } },
+                    onOpenSchema     = { navController.navigate(Routes.SCHEMA) { launchSingleTop = true } },
+                    onOpenHalsa      = { navController.navigate(Routes.HALSA) { launchSingleTop = true } },
                 )
             }
             composable(Routes.HALSA) {
@@ -267,16 +269,16 @@ fun AppNavigation(
             composable(Routes.SJUKDOMAR) {
                 SjukdomarScreen(
                     onBack            = { navController.popBackStack() },
-                    onAddNew          = { navController.navigate(Routes.ADD_SJUKDOM) },
-                    onDetail          = { id -> navController.navigate(Routes.sjukdomEpisodDetail(id)) },
+                    onAddNew          = { navController.navigate(Routes.ADD_SJUKDOM) { launchSingleTop = true } },
+                    onDetail          = { id -> navController.navigate(Routes.sjukdomEpisodDetail(id)) { launchSingleTop = true } },
                     snackbarHostState = snackbarHostState,
                 )
             }
             composable(Routes.SCHEMA) {
                 SchemaScreen(
                     onBack       = { navController.popBackStack() },
-                    onAddRecept  = { navController.navigate(Routes.ADD_RECEPT) },
-                    onEditRecept = { id -> navController.navigate(Routes.editRecept(id)) },
+                    onAddRecept  = { navController.navigate(Routes.ADD_RECEPT) { launchSingleTop = true } },
+                    onEditRecept = { id -> navController.navigate(Routes.editRecept(id)) { launchSingleTop = true } },
                 )
             }
             composable(Routes.ADD_SJUKDOM) {
@@ -300,7 +302,7 @@ fun AppNavigation(
             ) {
                 SjukdomsEpisodDetailScreen(
                     onBack           = { navController.popBackStack() },
-                    onAddIncheckning = { id -> navController.navigate(Routes.addSjukdomsIncheckning(id)) },
+                    onAddIncheckning = { id -> navController.navigate(Routes.addSjukdomsIncheckning(id)) { launchSingleTop = true } },
                     snackbarHostState = snackbarHostState,
                 )
             }
@@ -319,12 +321,13 @@ fun AppNavigation(
                 HistorikScreen(
                     onBack               = null,
                     onEditAktivitet      = { id, type ->
-                        if (type == "screening") navController.navigate(Routes.editScreening(id))
-                        else navController.navigate(Routes.editAktivitet(id))
+                        val route = if (type == "screening") Routes.editScreening(id)
+                                    else Routes.editAktivitet(id)
+                        navController.navigate(route) { launchSingleTop = true }
                     },
-                    onEditMedicin        = { id -> navController.navigate(Routes.editMedicin(id)) },
-                    onEditHandelse       = { id -> navController.navigate(Routes.editHandelse(id)) },
-                    onOpenSjukdomsEpisod = { episodId -> navController.navigate(Routes.sjukdomEpisodDetail(episodId)) },
+                    onEditMedicin        = { id -> navController.navigate(Routes.editMedicin(id)) { launchSingleTop = true } },
+                    onEditHandelse       = { id -> navController.navigate(Routes.editHandelse(id)) { launchSingleTop = true } },
+                    onOpenSjukdomsEpisod = { episodId -> navController.navigate(Routes.sjukdomEpisodDetail(episodId)) { launchSingleTop = true } },
                 )
             }
         }

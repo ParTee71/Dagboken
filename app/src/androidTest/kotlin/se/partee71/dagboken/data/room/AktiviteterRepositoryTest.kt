@@ -1,5 +1,6 @@
 package se.partee71.dagboken.data.room
 
+import se.partee71.dagboken.data.repository.NoteRepository
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -26,7 +27,7 @@ class AktiviteterRepositoryTest {
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
-        repo = AktiviteterRepository(db.aktivitetDao())
+        repo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
     }
 
     @After fun tearDown() { db.close() }

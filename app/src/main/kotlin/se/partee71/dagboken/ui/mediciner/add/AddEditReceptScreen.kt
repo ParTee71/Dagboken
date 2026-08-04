@@ -36,11 +36,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,7 +52,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.navigation.compose.hiltViewModel
-import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.model.TIDP_ORDER
@@ -89,17 +87,22 @@ fun AddEditReceptScreen(
 ) {
     LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
 
-    val form by vm.form.collectAsState()
-    val isDirty by vm.isDirty.collectAsState()
-    val validationError by vm.validationError.collectAsState()
-    val scope = rememberCoroutineScope()
+    // Posten kan ha raderats någon annanstans medan skärmen öppnades. Utan detta stod
+    // formuläret tomt och nästa "Spara" skapade ett nytt recept i stället för att
+    // redigera det som skulle öppnas.
+    val loadFailed by vm.loadFailed.collectAsStateWithLifecycle()
+    LaunchedEffect(loadFailed) { if (loadFailed) onBack() }
+
+    val form by vm.form.collectAsStateWithLifecycle()
+    val isDirty by vm.isDirty.collectAsStateWithLifecycle()
+    val validationError by vm.validationError.collectAsStateWithLifecycle()
 
     val canSave = form.namn.isNotBlank() && form.dos.isNotBlank() && validationError == null
 
     val guardedBack = UnsavedChangesBackHandler(
         isDirty   = isDirty,
         canSave   = canSave,
-        onSave    = { scope.launch { vm.save(); onBack() } },
+        onSave    = { vm.save(onDone = onBack) },
         onDiscard = onBack,
     )
 
@@ -203,7 +206,7 @@ fun AddEditReceptScreen(
 
             SaveButton(
                 enabled = isDirty && canSave,
-                onClick = { scope.launch { vm.save(); onBack() } },
+                onClick = { vm.save(onDone = onBack) },
             )
         }
     }

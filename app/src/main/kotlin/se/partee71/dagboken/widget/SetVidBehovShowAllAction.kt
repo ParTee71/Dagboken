@@ -9,7 +9,6 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 /** Växlar vid behov-widgeten mellan favoriter och alla vid behov-mediciner (#164). */
 class SetVidBehovShowAllAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        recordWidgetTap(context, glanceId)
         val showAll = parameters[KEY_SHOW_ALL] ?: return
         updateAppWidgetState(context, glanceId) { prefs -> prefs.setVidBehovShowAll(showAll) }
         VidBehovWidget().update(context, glanceId)

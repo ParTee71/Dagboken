@@ -38,8 +38,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,10 +71,10 @@ fun HistorikScreen(
     onOpenSjukdomsEpisod: (episodId: String) -> Unit,
     vm: HistorikViewModel = hiltViewModel(),
 ) {
-    val entries by vm.filteredEntries.collectAsState()
-    val filter by vm.typeFilter.collectAsState()
-    val viewMode by vm.viewMode.collectAsState()
-    val selectedDate by vm.selectedDate.collectAsState()
+    val entries by vm.filteredEntries.collectAsStateWithLifecycle()
+    val filter by vm.typeFilter.collectAsStateWithLifecycle()
+    val viewMode by vm.viewMode.collectAsStateWithLifecycle()
+    val selectedDate by vm.selectedDate.collectAsStateWithLifecycle()
     var deleteTarget by remember { mutableStateOf<HistorikEntry?>(null) }
 
     val onEntryClick: (HistorikEntry) -> Unit = { entry ->
@@ -206,11 +207,15 @@ fun HistorikScreen(
                     body  = stringResource(R.string.empty_historik_body),
                 )
             } else {
-                val grouped = entries
-                    .sortedByDescending { "${it.datum}T${it.tid}" }
-                    .groupBy { it.datum }
-                    .entries
-                    .sortedByDescending { it.key }
+                // Sorteringen och grupperingen räknades tidigare om vid varje
+                // omkomposition, över hela datamängden.
+                val grouped = remember(entries) {
+                    entries
+                        .sortedByDescending { "${it.datum}T${it.tid}" }
+                        .groupBy { it.datum }
+                        .entries
+                        .sortedByDescending { it.key }
+                }
 
                 LazyColumn(
                     modifier            = Modifier.fillMaxSize(),
@@ -245,6 +250,18 @@ fun HistorikScreen(
                             )
                         }
                         item(key = "spacer_$datum") { Spacer(Modifier.height(4.dp)) }
+                    }
+                    // Historiken läser ett begränsat fönster bakåt (HIST-9); här kan
+                    // användaren hämta in en period till.
+                    item(key = "load_more") {
+                        TextButton(
+                            onClick  = vm::loadMore,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                        ) {
+                            Text(stringResource(R.string.historik_load_more))
+                        }
                     }
                 }
             }

@@ -25,7 +25,7 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,12 +56,12 @@ fun LoggaTab(
     onEdit: (id: String, type: String) -> Unit = { _, _ -> },
     showRecent: Boolean = true,
 ) {
-    val form by vm.form.collectAsState()
-    val aktivitetOptions by vm.aktivitetOptions.collectAsState()
-    val symptomOptions by vm.symptomOptions.collectAsState()
-    val recentEntries by vm.recentEntries.collectAsState()
-    val noteMap by vm.noteMap.collectAsState()
-    val isDirty by vm.isDirty.collectAsState()
+    val form by vm.form.collectAsStateWithLifecycle()
+    val aktivitetOptions by vm.aktivitetOptions.collectAsStateWithLifecycle()
+    val symptomOptions by vm.symptomOptions.collectAsStateWithLifecycle()
+    val recentEntries by vm.recentEntries.collectAsStateWithLifecycle()
+    val noteMap by vm.noteMap.collectAsStateWithLifecycle()
+    val isDirty by vm.isDirty.collectAsStateWithLifecycle()
 
     val cs = MaterialTheme.colorScheme
     val eColor = energyColor(form.energy, cs)

@@ -58,7 +58,7 @@ class HistorikScreenTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                  .allowMainThreadQueries().build()
-        aktivRepo = AktiviteterRepository(db.aktivitetDao())
+        aktivRepo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
         medicRepo = MedicinerRepository(
             db                 = db,
             medicinDao         = db.medicinDao(),
@@ -67,9 +67,10 @@ class HistorikScreenTest {
             noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
+            appContext         = ApplicationProvider.getApplicationContext(),
         )
-        handelserRepo = HandelserRepository(db.handelseDao())
-        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao())
+        handelserRepo = HandelserRepository(db.handelseDao(), NoteRepository(db.noteDao()))
+        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), NoteRepository(db.noteDao()))
         vm = HistorikViewModel(aktivRepo, medicRepo, handelserRepo, sjukdomarRepo)
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }

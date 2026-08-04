@@ -31,6 +31,14 @@ interface AktivitetDao {
     @Query("SELECT * FROM aktiviteter WHERE id = :id")
     suspend fun getById(id: String): AktivitetEntity?
 
+    // Namnbyte på ett alternativ (HAN-9): redan loggade poster lagrar namnet som text
+    // och måste följa med, annars pekar historiken på ett namn som inte längre finns.
+    @Query("UPDATE aktiviteter SET aktivitet = :new WHERE aktivitet = :old")
+    suspend fun renameAktivitet(old: String, new: String)
+
+    @Query("SELECT * FROM aktiviteter WHERE symptom LIKE '%' || :name || '%'")
+    suspend fun withSymptomContaining(name: String): List<AktivitetEntity>
+
     @Upsert
     suspend fun upsert(entity: AktivitetEntity)
 

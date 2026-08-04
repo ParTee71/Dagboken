@@ -22,6 +22,9 @@ interface SjukdomsIncheckningDao {
     @Query("SELECT * FROM sjukdoms_incheckningar WHERE id = :id")
     suspend fun getById(id: String): SjukdomsIncheckningEntity?
 
+    @Query("SELECT * FROM sjukdoms_incheckningar WHERE symptom LIKE '%' || :name || '%'")
+    suspend fun withSymptomContaining(name: String): List<SjukdomsIncheckningEntity>
+
     @Upsert
     suspend fun save(incheckning: SjukdomsIncheckningEntity)
 

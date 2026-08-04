@@ -54,7 +54,7 @@ class AddEditHandelseScreenTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db    = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                     .allowMainThreadQueries().build()
-        repo  = HandelserRepository(db.handelseDao())
+        repo  = HandelserRepository(db.handelseDao(), NoteRepository(db.noteDao()))
         prefs = PreferencesRepository(ctx, dagbokenJson())
         runBlocking { prefs.setHandelseTypOptions(emptyList()) }
         vm    = HandelserViewModel(repo, NoteRepository(db.noteDao()), prefs)

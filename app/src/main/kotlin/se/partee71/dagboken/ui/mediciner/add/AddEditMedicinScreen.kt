@@ -23,18 +23,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.TIDP_ORDER
 import se.partee71.dagboken.ui.components.DagbokenScaffold
@@ -57,23 +55,19 @@ fun AddEditMedicinScreen(
         favoritId?.let { vm.loadForFavorit(it) }
     }
 
-    val form by vm.form.collectAsState()
-    val isDirty by vm.isDirty.collectAsState()
-    val cooldownWarning by vm.cooldownWarning.collectAsState()
-    val blockedMessage by vm.blockedMessage.collectAsState()
-    val saveCompleted by vm.saveCompleted.collectAsState()
-    val scope = rememberCoroutineScope()
+    val form by vm.form.collectAsStateWithLifecycle()
+    val isDirty by vm.isDirty.collectAsStateWithLifecycle()
+    val cooldownWarning by vm.cooldownWarning.collectAsStateWithLifecycle()
+    val blockedMessage by vm.blockedMessage.collectAsStateWithLifecycle()
+    val saveCompleted by vm.saveCompleted.collectAsStateWithLifecycle()
 
-    // Efterhandsloggning (MED-16) kan blockeras av cooldown/dagsgräns, så Save
-    // navigerar inte förrän save() faktiskt lyckats — till skillnad från ny/redigera-
-    // lägena nedan, som aldrig blockeras och kan navigera direkt.
-    if (favoritId != null) {
-        LaunchedEffect(saveCompleted) { if (saveCompleted > 0) onBack() }
-    }
+    // Navigeringen sker alltid först när save() faktiskt skrivit klart: efterhands-
+    // loggning (MED-16) kan blockeras av cooldown/dagsgräns, och i övriga lägen skulle
+    // ett omedelbart onBack() rensa ViewModel:en och kunna cancellera skrivningen
+    // mitt i (NFR-9).
+    LaunchedEffect(saveCompleted) { if (saveCompleted > 0) onBack() }
 
-    val onSave: () -> Unit = {
-        if (favoritId != null) vm.save() else scope.launch { vm.save(); onBack() }
-    }
+    val onSave: () -> Unit = { vm.save() }
 
     val guardedBack = UnsavedChangesBackHandler(
         isDirty   = isDirty,

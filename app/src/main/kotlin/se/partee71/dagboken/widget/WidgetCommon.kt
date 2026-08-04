@@ -1,27 +1,26 @@
 package se.partee71.dagboken.widget
 
-import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.datastore.preferences.core.MutablePreferences
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.action.Action
 import androidx.glance.appwidget.CheckBox
-import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.layout.padding
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 
 /**
- * Delat mellan appens tre hemskärmswidgets (medicin, screening, vid behov, #161/#162):
- * fasta färger i stället för `GlanceTheme` (ett försök att använda
- * `androidx.glance.material3.GlanceTheme` gav "Unresolved reference" i CI, #156).
+ * Delat mellan appens tre hemskärmswidgets (medicin, screening, vid behov, #161/#162).
+ *
+ * `androidx.glance.material3.GlanceTheme` gick inte att använda ("Unresolved reference"
+ * i CI, #156), men färgerna behöver ändå följa ljust/mörkt läge — widgetarna var
+ * tidigare alltid mörka oavsett systemets och appens tema (WID-5). `ColorProvider` med
+ * ett dag- och ett nattvärde löser det utan GlanceTheme: systemet väljer rätt variant
+ * när widgeten ritas.
  */
-val WidgetBackground = ColorProvider(Color(0xFF15151B))
-val WidgetOnBackground = ColorProvider(Color(0xFFF2F2F5))
+val WidgetBackground = ColorProvider(day = Color(0xFFF7F7FA), night = Color(0xFF15151B))
+val WidgetOnBackground = ColorProvider(day = Color(0xFF1B1B20), night = Color(0xFFF2F2F5))
 
 /**
  * Widgetens tryckbara "knapp", byggd på [CheckBox].
@@ -49,21 +48,3 @@ fun WidgetButton(text: String, action: Action, modifier: GlanceModifier = Glance
     )
 }
 
-/**
- * Diagnostik (tillfällig): räknar varje gång en `ActionCallback` faktiskt körs, oavsett om
- * dess kropp lyckas. Widgeten visar räknaren, så vi kan skilja "trycket når aldrig fram"
- * från "trycket når fram men åtgärden misslyckas" — utan att behöva logcat på telefon.
- * Tas bort när screening-/vid behov-trycken är verifierade.
- */
-val WIDGET_TAP_COUNT = intPreferencesKey("widget_tap_count")
-
-/** Muterar mottagaren direkt — se resonemanget i `ScreeningWidgetState`. */
-fun MutablePreferences.incrementWidgetTapCount() {
-    this[WIDGET_TAP_COUNT] = (this[WIDGET_TAP_COUNT] ?: 0) + 1
-}
-
-suspend fun recordWidgetTap(context: Context, glanceId: GlanceId) {
-    runCatching {
-        updateAppWidgetState(context, glanceId) { prefs -> prefs.incrementWidgetTapCount() }
-    }
-}

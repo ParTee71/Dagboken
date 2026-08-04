@@ -54,6 +54,7 @@ class AddEditFavoritScreenTest {
             noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
+            appContext         = ApplicationProvider.getApplicationContext(),
         )
         vm = AddEditFavoritViewModel(repo, NoteRepository(db.noteDao()))
 

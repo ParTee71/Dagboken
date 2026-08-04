@@ -55,6 +55,7 @@ class SchemaScreenTest {
             noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
+            appContext         = ApplicationProvider.getApplicationContext(),
         )
         val noteRepo = NoteRepository(db.noteDao())
         vm = MedicinerViewModel(

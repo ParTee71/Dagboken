@@ -39,6 +39,9 @@ class HandelserRepository @Inject constructor(
         noteRepo.delete(NoteTarget.EVENT, handelse.id)
     }
 
+    /** Byter namn på en händelsetyp i redan loggade händelser (HAN-9). */
+    suspend fun renameTyp(old: String, new: String) = dao.renameTyp(old, new)
+
     suspend fun importAll(entries: List<Handelse>) =
         dao.upsertAll(entries.map { it.toEntity() })
 

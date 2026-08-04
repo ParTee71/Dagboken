@@ -18,18 +18,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.GradientSliderRow
@@ -47,14 +45,13 @@ fun AddEditFavoritScreen(
 ) {
     LaunchedEffect(editId) { editId?.let { vm.loadForEdit(it) } }
 
-    val form by vm.form.collectAsState()
-    val isDirty by vm.isDirty.collectAsState()
-    val scope = rememberCoroutineScope()
+    val form by vm.form.collectAsStateWithLifecycle()
+    val isDirty by vm.isDirty.collectAsStateWithLifecycle()
 
     val guardedBack = UnsavedChangesBackHandler(
         isDirty   = isDirty,
         canSave   = form.namn.isNotBlank() && form.dos.isNotBlank(),
-        onSave    = { scope.launch { vm.save(); onBack() } },
+        onSave    = { vm.save(onDone = onBack) },
         onDiscard = onBack,
     )
 
@@ -136,7 +133,7 @@ fun AddEditFavoritScreen(
 
             SaveButton(
                 enabled = isDirty && form.namn.isNotBlank() && form.dos.isNotBlank(),
-                onClick = { scope.launch { vm.save(); onBack() } },
+                onClick = { vm.save(onDone = onBack) },
             )
         }
     }

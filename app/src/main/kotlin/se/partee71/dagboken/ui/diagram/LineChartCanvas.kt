@@ -7,6 +7,8 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
@@ -74,6 +76,10 @@ fun LineChartCanvas(
     gridStep: Float = niceStep(maxValue - minValue),
 ) {
     val modelProducer = remember { CartesianChartModelProducer() }
+
+    // Diagrammet är en rityta utan text — utan detta finns ingenting för TalkBack att
+    // läsa upp. Beskrivningen sammanfattar varje serie (a11y).
+    val description = series.joinToString(". ") { chartContentDescription(it.label, it.points) }
 
     val dateLabels = remember(dates) {
         if (dates.isEmpty()) emptyList()
@@ -178,6 +184,6 @@ fun LineChartCanvas(
         modelProducer = modelProducer,
         scrollState = scrollState,
         zoomState = zoomState,
-        modifier = modifier,
+        modifier = modifier.semantics { contentDescription = description },
     )
 }

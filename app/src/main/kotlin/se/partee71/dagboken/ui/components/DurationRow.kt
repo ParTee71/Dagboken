@@ -25,9 +25,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 
 @Composable
@@ -70,7 +72,7 @@ fun DurationRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text       = "Varaktighet",
+                    text       = stringResource(R.string.duration_label),
                     style      = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -114,7 +116,7 @@ fun DurationRow(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text  = "tim",
+                        text  = stringResource(R.string.duration_hours_short),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -127,7 +129,7 @@ fun DurationRow(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text  = "min",
+                        text  = stringResource(R.string.duration_minutes_short),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

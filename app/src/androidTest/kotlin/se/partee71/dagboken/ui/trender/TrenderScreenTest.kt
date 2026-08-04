@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.trender
 
+import se.partee71.dagboken.data.repository.NoteRepository
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -56,7 +57,7 @@ class TrenderScreenTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                  .allowMainThreadQueries().build()
-        repo = AktiviteterRepository(db.aktivitetDao())
+        repo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
         vm = TrenderViewModel(repo, healthRepo)
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }

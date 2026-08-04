@@ -24,7 +24,10 @@ import org.junit.Before
 import org.junit.Test
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
+import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
+import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.notifications.AlarmScheduler
 
@@ -43,6 +46,9 @@ class HanteraViewModelTest {
     private val handelseTypOptionsFlow = MutableStateFlow(listOf(SymptomOption("Yrsel")))
     private val medicinFavoriterFlow = MutableStateFlow<List<Favorit>>(emptyList())
 
+    private lateinit var aktiviteterRepo: AktiviteterRepository
+    private lateinit var handelserRepo: HandelserRepository
+    private lateinit var sjukdomarRepo: SjukdomarRepository
     private lateinit var viewModel: HanteraViewModel
 
     @Before fun setUp() {
@@ -67,7 +73,10 @@ class HanteraViewModelTest {
         medicinerRepo = mockk(relaxed = true) {
             every { allFavoriter } returns medicinFavoriterFlow
         }
-        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        aktiviteterRepo = mockk(relaxed = true)
+        handelserRepo   = mockk(relaxed = true)
+        sjukdomarRepo   = mockk(relaxed = true)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo, aktiviteterRepo, handelserRepo, sjukdomarRepo)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -188,7 +197,7 @@ class HanteraViewModelTest {
 
     @Test fun `renameHandelseTypOption ignores duplicate target name`() = runTest {
         handelseTypOptionsFlow.value = listOf(SymptomOption("Yrsel"), SymptomOption("Andnöd"))
-        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo, aktiviteterRepo, handelserRepo, sjukdomarRepo)
         viewModel.renameHandelseTypOption("Yrsel", "Andnöd")
         coVerify(exactly = 0) { prefs.setHandelseTypOptions(any()) }
     }
@@ -217,7 +226,7 @@ class HanteraViewModelTest {
         val enabledConfigs = DEFAULT_SCREENING_EVENTS.toMutableList()
             .also { it[0] = ScreeningEventConfig(enabled = true, time = "08:00") }
         every { prefs.screeningEventConfigs } returns flowOf(enabledConfigs)
-        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo, aktiviteterRepo, handelserRepo, sjukdomarRepo)
 
         viewModel.setScreeningEventTime(0, "09:30")
         coVerify { alarmScheduler.rescheduleAll() }
@@ -238,7 +247,7 @@ class HanteraViewModelTest {
 
     @Test fun `periodReminderTime from prefs reaches the ui state`() = runTest {
         every { prefs.periodReminderTime } returns flowOf("18:45")
-        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo, aktiviteterRepo, handelserRepo, sjukdomarRepo)
 
         assertEquals("18:45", viewModel.state.value.periodReminderTime)
     }

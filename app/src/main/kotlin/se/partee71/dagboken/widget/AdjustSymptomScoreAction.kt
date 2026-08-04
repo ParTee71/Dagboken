@@ -9,7 +9,6 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 /** +/- stepper (0..10) för ett enskilt favoritsymptom i screeningguidens symptomsteg. */
 class AdjustSymptomScoreAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        recordWidgetTap(context, glanceId)
         val name = parameters[KEY_SYMPTOM_NAME] ?: return
         val delta = parameters[KEY_DELTA] ?: return
         updateAppWidgetState(context, glanceId) { prefs ->

@@ -47,7 +47,7 @@ class SjukdomarScreenTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
             .allowMainThreadQueries().build()
-        repo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao())
+        repo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), NoteRepository(db.noteDao()))
         vm = SjukdomarViewModel(repo, NoteRepository(db.noteDao()))
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }

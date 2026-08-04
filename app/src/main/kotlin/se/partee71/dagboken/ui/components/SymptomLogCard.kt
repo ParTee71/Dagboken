@@ -182,9 +182,11 @@ fun SymptomLogCard(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment     = Alignment.CenterVertically,
                             ) {
+                                // Minst 48 dp tryckyta (Material/a11y) — raden har tre
+                                // intilliggande knappar och en av dem raderar posten.
                                 IconButton(
                                     onClick  = { onToggleFavorite(name) },
-                                    modifier = Modifier.size(36.dp),
+                                    modifier = Modifier.size(MIN_TOUCH_TARGET),
                                 ) {
                                     Icon(
                                         Icons.Default.Star,
@@ -206,7 +208,7 @@ fun SymptomLogCard(
                                 )
                                 IconButton(
                                     onClick  = { pending = name; strength = score },
-                                    modifier = Modifier.size(36.dp),
+                                    modifier = Modifier.size(MIN_TOUCH_TARGET),
                                 ) {
                                     Icon(
                                         Icons.Default.Edit,
@@ -219,7 +221,7 @@ fun SymptomLogCard(
                                         if (pending == name) { pending = null; strength = 0 }
                                         onScoresChange(scores - name)
                                     },
-                                    modifier = Modifier.size(36.dp),
+                                    modifier = Modifier.size(MIN_TOUCH_TARGET),
                                 ) {
                                     Icon(
                                         Icons.Default.Close,

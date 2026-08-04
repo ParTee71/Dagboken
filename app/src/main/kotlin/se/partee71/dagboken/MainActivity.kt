@@ -1,15 +1,12 @@
 package se.partee71.dagboken
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import dagger.hilt.android.AndroidEntryPoint
@@ -38,12 +35,6 @@ class MainActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
-        }
-
         // Hold splash until DataStore has emitted the real migrationDone value.
         splashScreen.setKeepOnScreenCondition { vm.migrationDone.value == null }
 
@@ -51,9 +42,9 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val isDarkTheme by vm.isDarkTheme.collectAsState()
-            val dynamicColor by vm.dynamicColor.collectAsState()
-            val migrationDone by vm.migrationDone.collectAsState()
+            val isDarkTheme by vm.isDarkTheme.collectAsStateWithLifecycle()
+            val dynamicColor by vm.dynamicColor.collectAsStateWithLifecycle()
+            val migrationDone by vm.migrationDone.collectAsStateWithLifecycle()
 
             // Don't render until we know the real value — prevents NavHost from
             // locking in the wrong startDestination before DataStore loads.

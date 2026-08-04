@@ -9,6 +9,7 @@ import se.partee71.dagboken.data.room.entities.SjukdomsIncheckningEntity
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.SjukdomsIncheckning
+import se.partee71.dagboken.domain.usecase.SymptomUtils
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -55,6 +56,16 @@ class SjukdomarRepository @Inject constructor(
     suspend fun deleteIncheckning(incheckning: SjukdomsIncheckning) {
         incheckningDao.delete(incheckning.toEntity())
         noteRepo.delete(NoteTarget.SJUKDOM_INCHECKNING, incheckning.id)
+    }
+
+    /** Byter namn på ett symptom i incheckningarnas kodade symptomsträng (HAN-9). */
+    suspend fun renameSymptom(old: String, new: String) {
+        val updated = incheckningDao.withSymptomContaining(old).mapNotNull { entity ->
+            val scores = SymptomUtils.decode(entity.symptom)
+            if (old !in scores) return@mapNotNull null
+            entity.copy(symptom = SymptomUtils.encode(scores.mapKeys { (n, _) -> if (n == old) new else n }))
+        }
+        if (updated.isNotEmpty()) incheckningDao.saveAll(updated)
     }
 
     // Batch-upsert — en sats i stället för en per rad.
