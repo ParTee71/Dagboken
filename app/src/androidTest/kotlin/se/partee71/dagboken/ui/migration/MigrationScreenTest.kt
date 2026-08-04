@@ -4,6 +4,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -92,7 +94,9 @@ class MigrationScreenTest {
         val actions = Actions()
         val scenario = launch(MigrationState.NoAccountSignedIn, actions)
         try {
-            composeRule.onNodeWithText("Logga in med Google").performClick()
+            // Rubriken och knappen har samma text ("Logga in med Google"), så klicket
+            // måste peka ut den klickbara noden.
+            composeRule.onNode(hasText("Logga in med Google") and hasClickAction()).performClick()
             composeRule.waitForIdle()
             assertEquals(1, actions.signIn)
         } finally {
