@@ -33,8 +33,10 @@ interface AktivitetDao {
 
     // Namnbyte på ett alternativ (HAN-9): redan loggade poster lagrar namnet som text
     // och måste följa med, annars pekar historiken på ett namn som inte längre finns.
-    @Query("UPDATE aktiviteter SET aktivitet = :new WHERE aktivitet = :old")
-    suspend fun renameAktivitet(old: String, new: String)
+    // Parametrarna heter medvetet inte `new`: Room genererar Java, där `new` är ett
+    // reserverat ord och den genererade koden inte kompilerar.
+    @Query("UPDATE aktiviteter SET aktivitet = :nyttNamn WHERE aktivitet = :gammaltNamn")
+    suspend fun renameAktivitet(gammaltNamn: String, nyttNamn: String)
 
     @Query("SELECT * FROM aktiviteter WHERE symptom LIKE '%' || :name || '%'")
     suspend fun withSymptomContaining(name: String): List<AktivitetEntity>
