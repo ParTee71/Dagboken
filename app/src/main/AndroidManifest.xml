@@ -68,42 +68,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- Hemskärmswidgets (Glance) — en per handling (#120/#156, #157/#158, #161/#162) -->
-        <receiver
-            android:name=".widget.DagbokenWidgetReceiver"
-            android:exported="true"
-            android:label="@string/widget_label">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/dagboken_widget_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widget.ScreeningWidgetReceiver"
-            android:exported="true"
-            android:label="@string/widget_screening_label">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/dagboken_screening_widget_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widget.VidBehovWidgetReceiver"
-            android:exported="true"
-            android:label="@string/widget_vidbehov_label">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/dagboken_vidbehov_widget_info" />
-        </receiver>
 
         <activity
             android:name=".MainActivity"

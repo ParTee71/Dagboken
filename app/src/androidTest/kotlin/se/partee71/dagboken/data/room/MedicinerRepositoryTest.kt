@@ -52,7 +52,6 @@ class MedicinerRepositoryTest {
             noteRepo           = noteRepo,
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
-            appContext         = ApplicationProvider.getApplicationContext(),
         )
     }
 

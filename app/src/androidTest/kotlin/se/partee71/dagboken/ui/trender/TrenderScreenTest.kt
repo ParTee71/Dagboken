@@ -57,7 +57,7 @@ class TrenderScreenTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                  .allowMainThreadQueries().build()
-        repo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
+        repo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()))
         vm = TrenderViewModel(repo, healthRepo)
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }

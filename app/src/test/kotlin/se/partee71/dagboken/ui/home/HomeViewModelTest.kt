@@ -1,6 +1,5 @@
 package se.partee71.dagboken.ui.home
 
-import android.content.Context
 import app.cash.turbine.test
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -46,7 +45,6 @@ class HomeViewModelTest {
     private lateinit var prefs: PreferencesRepository
     private lateinit var sjukdomarRepo: SjukdomarRepository
     private lateinit var healthRepo: HealthConnectRepository
-    private val appContext: Context = mockk(relaxed = true)
 
     private val todayFlow = MutableStateFlow<List<Medicin>>(emptyList())
 

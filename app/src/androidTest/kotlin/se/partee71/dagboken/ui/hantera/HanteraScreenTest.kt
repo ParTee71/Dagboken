@@ -74,14 +74,13 @@ class HanteraScreenTest {
             noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
-            appContext         = ApplicationProvider.getApplicationContext(),
         )
 
         val alarmScheduler = AlarmScheduler(ctx, prefs)
         val noteRepo = NoteRepository(db.noteDao())
         vm = HanteraViewModel(
             prefs, authRepo, alarmScheduler, medicinerRepo,
-            AktiviteterRepository(db.aktivitetDao(), noteRepo, ctx),
+            AktiviteterRepository(db.aktivitetDao(), noteRepo),
             HandelserRepository(db.handelseDao(), noteRepo),
             SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), noteRepo),
         )

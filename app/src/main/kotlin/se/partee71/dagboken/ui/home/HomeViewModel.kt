@@ -290,7 +290,6 @@ class HomeViewModel @Inject constructor(
     }
 
     fun toggleMedicinTagen(medicin: Medicin) {
-        // Widgetuppdateringen ligger i repositoryt, så alla skrivvägar täcks (WID-4).
         viewModelScope.launch { medicinerRepo.toggleTagen(medicin.id, !medicin.tagen) }
     }
 

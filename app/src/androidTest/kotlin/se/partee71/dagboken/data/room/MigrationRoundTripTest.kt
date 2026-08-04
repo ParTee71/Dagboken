@@ -54,7 +54,7 @@ class MigrationRoundTripTest {
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
-        aktivRepo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
+        aktivRepo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()))
         handelserRepo = HandelserRepository(db.handelseDao(), NoteRepository(db.noteDao()))
         noteRepo = NoteRepository(db.noteDao())
         sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), NoteRepository(db.noteDao()))
@@ -66,7 +66,6 @@ class MigrationRoundTripTest {
             noteRepo           = noteRepo,
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = json,
-            appContext         = ApplicationProvider.getApplicationContext(),
         )
     }
 

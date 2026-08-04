@@ -53,7 +53,7 @@ class AddEditScreeningScreenTest {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db   = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                    .allowMainThreadQueries().build()
-        repo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()), ApplicationProvider.getApplicationContext())
+        repo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()))
         val noteRepo = NoteRepository(db.noteDao())
         val prefs    = PreferencesRepository(ctx, dagbokenJson())
         runBlocking {

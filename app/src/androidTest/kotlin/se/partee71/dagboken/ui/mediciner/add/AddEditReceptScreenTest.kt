@@ -50,7 +50,6 @@ class AddEditReceptScreenTest {
             noteRepo           = NoteRepository(db.noteDao()),
             ensureTodayEntries = EnsureTodayEntriesUseCase(),
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
-            appContext         = ApplicationProvider.getApplicationContext(),
         )
         vm = AddEditReceptViewModel(repo, NoteRepository(db.noteDao()))
 

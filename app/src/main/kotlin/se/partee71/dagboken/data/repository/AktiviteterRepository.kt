@@ -8,11 +8,8 @@ import se.partee71.dagboken.data.room.daos.AktivitetDao
 import se.partee71.dagboken.data.room.entities.toDomain
 import se.partee71.dagboken.data.room.entities.toEntity
 import se.partee71.dagboken.domain.model.Aktivitet
-import android.content.Context
-import dagger.hilt.android.qualifiers.ApplicationContext
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.usecase.SymptomUtils
-import se.partee71.dagboken.widget.WidgetUpdater
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -22,7 +19,6 @@ import javax.inject.Singleton
 class AktiviteterRepository @Inject constructor(
     private val dao: AktivitetDao,
     private val noteRepo: NoteRepository,
-    @ApplicationContext private val appContext: Context,
 ) {
     val all: Flow<List<Aktivitet>> = dao.getAllFlow().map { list -> list.map { it.toDomain() } }
 
@@ -45,32 +41,24 @@ class AktiviteterRepository @Inject constructor(
     suspend fun getRecent(type: String, limit: Int = 3): List<Aktivitet> =
         dao.getRecent(type, limit).map { it.toDomain() }
 
-    suspend fun save(aktivitet: Aktivitet) {
-        dao.upsert(aktivitet.toEntity())
-        // Screeningwidgeten visar dagens screeningstatus (WID-4).
-        WidgetUpdater.requestUpdate(appContext)
-    }
+    suspend fun save(aktivitet: Aktivitet) = dao.upsert(aktivitet.toEntity())
 
     /**
      * Raderar posten och dess anteckning i samma anrop. Anteckningsstädningen låg
      * tidigare i varje ViewModel, vilket gjorde att raderingsvägar utan ViewModel
-     * (Historik, widget, framtida use case) lämnade föräldralösa `notes`-rader kvar
+     * (Historik, framtida use case) lämnade föräldralösa `notes`-rader kvar
      * som följde med i varje backup (DAT-4).
      */
     suspend fun delete(aktivitet: Aktivitet) {
         dao.delete(aktivitet.toEntity())
         noteRepo.delete(NoteTarget.forAktivitet(aktivitet.type), aktivitet.id)
-        WidgetUpdater.requestUpdate(appContext)
     }
 
     /**
      * Byter namn på ett aktivitetsalternativ i redan loggade poster (HAN-9). Utan detta
      * blev historiken kvar på det gamla namnet medan listan visade det nya.
      */
-    suspend fun renameAktivitet(old: String, new: String) {
-        dao.renameAktivitet(old, new)
-        WidgetUpdater.requestUpdate(appContext)
-    }
+    suspend fun renameAktivitet(old: String, new: String) = dao.renameAktivitet(old, new)
 
     /**
      * Byter namn på ett symptom inuti den kodade `symptom`-strängen. Strängen är ett

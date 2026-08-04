@@ -410,45 +410,23 @@
 
 ---
 
-## 20. Widget (WID)
+## 20. Widget (WID) *(hela avsnittet borttaget, #177)*
 
-> Tre hemskärmswidgets byggda med `androidx.glance` — en per interaktionsmodell (#161):
-> **mediciner** (`DagbokenWidget`, #120/#156, #159), **screening** (`ScreeningWidget`,
-> #157/#158) och **vid behov** (`VidBehovWidget`, #162). Varje widget kan läggas till
-> oberoende av de andra. Alla tre läser/skriver via samma repositories/usecase som appen
-> (`MedicinerRepository`, `AktiviteterRepository`, `LogVidBehovDosUseCase`) — ingen ny
-> persisterad datamodell, backup-kedjan är oförändrad. Screeningguidens steg-state och vid
-> behov-widgetens cooldown-bekräftelse är flyktig per-widgetinstans-state
-> (`PreferencesGlanceStateDefinition`), inte i backupen. `proguard-rules.pro` behåller
-> både appens `widget`-paket **och** `androidx.glance.**` — Glance instansierar såväl våra
-> widget-/action-klasser som sina egna trampolin-komponenter via reflektion/manifest-
-> klassnamn, och utan keep-regler gjorde R8 tryck overksamma utan krasch (#164). Widgetarnas
-> listor använder vanlig `Column`, inte `LazyColumn`: i en RemoteViews-collection krävs
-> PendingIntent-template för per-rad-klick, och bara första raden reagerade på tryck.
-> Alla tryckbara ytor byggs på `CheckBox` (en RemoteViews-compound-button).
->
-> **Skrivningar till widget-state muterar alltid mottagaren.** `updateAppWidgetState(context,
-> glanceId) { prefs -> … }` är Preferences-överlagringen med signaturen
-> `suspend (MutablePreferences) -> Unit`: `prefs` *är* objektet som sparas. Att i stället
-> göra `prefs.toMutablePreferences().apply { … }` muterar en kopia som slängs (lambdans
-> returvärde coercas till `Unit`) — det kompilerar utan varning och ingen skrivning når disk.
-> Det var den faktiska orsaken till att inget hände vid tryck i screening-/vid behov-widgeten
-> (#164): `ActionCallback`-erna körde hela tiden, men varje `updateAppWidgetState` var en
-> no-op, och tryckräknaren som skulle mäta saken använde samma trasiga mönster. Varje
-> mutation ligger därför som en ren extension på `MutablePreferences` i
-> `ScreeningWidgetState`/`VidBehovWidgetState`, enhetstestad mot `mutablePreferencesOf()`.
+> Appen hade tre hemskärmswidgets byggda med `androidx.glance` — mediciner, screening och
+> vid behov. De togs bort i sin helhet tillsammans med Glance-beroendet: tryckmekaniken
+> krävde flera omtag (3.15.0–3.15.4) och landade i att knapparna byggdes på `CheckBox`
+> eftersom det var den enda mekanism som mätbart fungerade i releasebygget, och Glance gick
+> inte att använda som avsett (`GlanceTheme` olöslig, #156; `ColorProvider(resId)` ett
+> internt API som lint underkänner, #175). Underhållskostnaden stod inte i proportion till
+> nyttan. All loggning sker numera i appen.
 
 | ID | Krav |
 |----|------|
-| WID-1 | Medicinwidgeten visar direkt (utan tryck) dagens **återstående** schemalagda doser (exkl. vid behov-doser och överhoppade doser, sorterad i samma tidpunktsordning som Idag-vyn) med en sammanfattningsrubrik (antal tagna av totalt, antal försenade doser). En avbockad dos försvinner ur listan omedelbart — bara aktuella/otagna doser syns; är alla tagna visas en bekräftelse i stället för listan. |
-| WID-2 | En medicindos kan bockas av/på direkt från medicinwidgeten — samma skrivväg (`MedicinerRepository.toggleTagen`) som Idag-checklistans avbockning (HEM-4), ingen duplicerad logik. |
-| WID-3 | Screening kan loggas stegvis från en egen widget (energi → stress → symptom, SCR-1..3-semantik) via samma mappning som appen (`BuildScreeningAktivitetUseCase`, ingen duplicerad save-väg), namngiven efter det screeningtillfälle guiden startades för så det markeras som klart i Idag-vyn. Widgeten visar nästa ej loggade aktiverade tillfälle; är alla loggade visas en bekräftelse i stället för startknappen. Symptomsteget visar endast favoritmarkerade symptom och hoppas över helt om inga är favoritmarkerade. |
-| WID-4 | Widgetarna uppdateras dels efter sina egna skrivningar, dels efter **varje** skrivning i appen som kan ändra dagens vyer (doser sparas/ändras/hoppas över/raderas, nya schemalagda doser, sparad screening, "Markera tagen"-notisåtgärden) — uppdateringen ligger i repository-lagret så ingen skrivväg kan glömmas bort. |
-| WID-5 | Widgetarna är på svenska (ÖV-6). |
-| WID-6 | Varje widget ritar en egen opak bakgrund och använder explicita textfärger på allt innehåll, så texten är läsbar oavsett hemskärmstapet. Färgerna följer systemets ljusa/mörka läge. |
-| WID-7 | Appens widgets är uppdelade per handling — en widget per interaktionsmodell (mediciner/screening/vid behov) — och kan läggas till oberoende av varandra i widgetväljaren. |
-| WID-8 | En vid behov-dos kan loggas som tagen direkt från vid behov-widgeten, samma väg som appens "Ta dos" (FAV-2) inklusive cooldown (FAV-4/MED-16-semantik, bekräftas i widgeten eftersom Glance inte har dialoger) och dagsgräns. Widgeten visar favoritmarkerade mediciner direkt; en "Fler"-rad expanderar till samtliga vid behov-mediciner (favoriter först, sedan bokstavsordning) — alltid tillgänglig så länge minst en vid behov-medicin finns, även om just favoritvyn råkar vara tom. |
-
-Fungerar vid kallstart (enhet omstartad, appen aldrig öppnad) — medicinwidgeten säkrar själv
-dagens dosgenerering (`ensureTodayEntries`) innan den ritar checklistan. Ingen `android:process`
-i manifestet — alla tre widgets körs i appens huvudprocess mot samma `AppDatabase`-singleton.
+| WID-1 | ~~Medicinwidgeten visar dagens återstående schemalagda doser med sammanfattningsrubrik.~~ *(borttaget, #177)* |
+| WID-2 | ~~En medicindos kan bockas av/på direkt från medicinwidgeten.~~ *(borttaget, #177)* |
+| WID-3 | ~~Screening kan loggas stegvis från en egen widget (energi → stress → symptom).~~ *(borttaget, #177)* |
+| WID-4 | ~~Widgetarna uppdateras efter varje skrivning som kan ändra dagens vyer.~~ *(borttaget, #177)* |
+| WID-5 | ~~Widgetarna är på svenska (ÖV-6).~~ *(borttaget, #177)* |
+| WID-6 | ~~Varje widget ritar en egen opak bakgrund med explicita textfärger som följer systemets ljusa/mörka läge.~~ *(borttaget, #177)* |
+| WID-7 | ~~Appens widgets är uppdelade per handling och kan läggas till oberoende av varandra.~~ *(borttaget, #177)* |
+| WID-8 | ~~En vid behov-dos kan loggas som tagen direkt från vid behov-widgeten.~~ *(borttaget, #177)* |

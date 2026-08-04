@@ -10,7 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.MedicinerRepository
-import se.partee71.dagboken.widget.WidgetUpdater
 import javax.inject.Inject
 
 /**
@@ -32,7 +31,6 @@ class MedActionReceiver : BroadcastReceiver() {
                 medicinerRepo.markTodayDosesTaken()
                 NotificationManagerCompat.from(context)
                     .cancel(NotificationHelper.NOTIFICATION_ID_MED)
-                WidgetUpdater.requestUpdate(context)
             } finally {
                 pendingResult.finish()
             }
