@@ -9,34 +9,15 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
 import se.partee71.dagboken.data.datastore.PreferencesRepository
-import se.partee71.dagboken.data.migration.AktivitetJson
-import se.partee71.dagboken.data.migration.BackupJson
+import se.partee71.dagboken.data.migration.BackupAssembler
 import se.partee71.dagboken.data.migration.DriveBackupRepository
-import se.partee71.dagboken.data.migration.DosperiodJson
 import se.partee71.dagboken.data.migration.DriveResult
-import se.partee71.dagboken.data.migration.FavoritJson
-import se.partee71.dagboken.data.migration.HandelseJson
-import se.partee71.dagboken.data.migration.MedicinJson
-import se.partee71.dagboken.data.migration.NoteJson
-import se.partee71.dagboken.data.migration.ReceptJson
-import se.partee71.dagboken.data.migration.ScreeningEventConfigJson
-import se.partee71.dagboken.data.migration.SjukdomsEpisodJson
-import se.partee71.dagboken.data.migration.SjukdomsIncheckningJson
-import se.partee71.dagboken.data.migration.SymptomOptionBackup
+import se.partee71.dagboken.data.migration.SettingsBackup
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
-import se.partee71.dagboken.data.room.entities.NoteEntity
-import se.partee71.dagboken.domain.model.Aktivitet
-import se.partee71.dagboken.domain.model.Dosperiod
-import se.partee71.dagboken.domain.model.Favorit
-import se.partee71.dagboken.domain.model.Handelse
-import se.partee71.dagboken.domain.model.Medicin
-import se.partee71.dagboken.domain.model.Recept
-import se.partee71.dagboken.domain.model.SjukdomsEpisod
-import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -58,30 +39,34 @@ class BackupWorker @AssistedInject constructor(
         if (authRepo.currentUser == null) return Result.success()
 
         return try {
-            val episoder      = sjukdomarRepo.all.first()
-            val incheckningar = episoder.flatMap { ep ->
-                sjukdomarRepo.incheckningarForEpisod(ep.id).first()
-            }
+            val aktivitetOptions   = prefs.aktivitetOptions.first()
+            val symptomOptions     = prefs.symptomOptions.first()
 
-            val backup = BackupJson(
-                version               = 1,
+            val backup = BackupAssembler.assemble(
                 createdAt             = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                aktiviteter           = aktiviteterRepo.all.first().map { it.toJson() },
-                mediciner             = medicinerRepo.allMediciner.first().map { it.toJson() },
-                medicinRecipes        = medicinerRepo.allRecept.first().map { it.toJson() },
-                medicinFavoriter      = medicinerRepo.allFavoriter.first().map { it.toJson() },
-                aktiviteterOptions    = prefs.aktivitetOptions.first().map { it.name },
-                symptomOptions        = prefs.symptomOptions.first().map { it.name },
-                aktiviteterOptionsV2  = prefs.aktivitetOptions.first().map { SymptomOptionBackup(it.name, it.isFavorite) },
-                symptomOptionsV2      = prefs.symptomOptions.first().map { SymptomOptionBackup(it.name, it.isFavorite) },
-                sjukdomsepisoder      = episoder.map { it.toJson() },
-                sjukdomsIncheckningar = incheckningar.map { it.toJson() },
-                handelser             = handelserRepo.all.first().map { it.toJson() },
-                notes                 = noteRepo.getAll().map { it.toJson() },
-                screeningEventConfigs = prefs.screeningEventConfigs.first().map { ScreeningEventConfigJson(it.enabled, it.time) },
-                sheetsConfig          = prefs.sheetsConfig.first().takeIf { it.isNotBlank() },
-                handelseTypOptions    = prefs.handelseTypOptions.first().map { SymptomOptionBackup(it.name, it.isFavorite) },
+                aktiviteter           = aktiviteterRepo.all.first(),
+                mediciner             = medicinerRepo.allMediciner.first(),
+                recept                = medicinerRepo.allRecept.first(),
+                favoriter             = medicinerRepo.allFavoriter.first(),
+                handelser             = handelserRepo.all.first(),
+                episoder              = sjukdomarRepo.all.first(),
+                // En fråga för alla incheckningar i stället för en per episod.
+                incheckningar         = sjukdomarRepo.allIncheckningar.first(),
+                notes                 = noteRepo.getAll(),
+                aktivitetOptions      = aktivitetOptions,
+                symptomOptions        = symptomOptions,
+                handelseTypOptions    = prefs.handelseTypOptions.first(),
+                screeningEventConfigs = prefs.screeningEventConfigs.first(),
+                sheetsConfig          = prefs.sheetsConfig.first(),
                 periodReminderTime    = prefs.periodReminderTime.first(),
+                settings              = SettingsBackup(
+                    medsNotificationsEnabled = prefs.medsNotificationsEnabled.first(),
+                    themeMode                = prefs.themeMode.first(),
+                    themeLightStart          = prefs.themeLightStart.first(),
+                    themeDarkStart           = prefs.themeDarkStart.first(),
+                    isDarkTheme              = prefs.isDarkTheme.first(),
+                    dynamicColor             = prefs.dynamicColor.first(),
+                ),
             )
 
             when (driveRepo.uploadBackup(backup)) {
@@ -100,108 +85,4 @@ class BackupWorker @AssistedInject constructor(
             Result.retry()
         }
     }
-
-    private fun Aktivitet.toJson() = AktivitetJson(
-        id           = id,
-        timestamp    = timestamp,
-        datum        = datum,
-        tid          = tid,
-        aktivitet    = aktivitet,
-        energy       = energy,
-        stress       = stress,
-        somatiska    = somatiska,
-        symptom      = symptom,
-        aterhamtande = aterhamtande,
-        energitjuv   = energitjuv,
-        type         = type,
-        spentTime    = spentTime,
-    )
-
-    private fun Medicin.toJson() = MedicinJson(
-        id         = id,
-        timestamp  = timestamp,
-        datum      = datum,
-        tid        = tid,
-        namn       = namn,
-        dos        = dos,
-        enhet      = enhet,
-        tidpunkt   = tidpunkt,
-        tagen      = tagen,
-        receptId   = receptId,
-        skipped    = skipped,
-        tagenTid   = tagenTid,
-    )
-
-    private fun Recept.toJson() = ReceptJson(
-        id            = id,
-        namn          = namn,
-        dos           = dos,
-        enhet         = enhet,
-        tidpunkter    = tidpunkter,
-        upprepning    = upprepning,
-        dagar         = dagar,
-        intervalDagar = intervalDagar,
-        aktiv         = aktiv,
-        skapad        = skapad,
-        startDatum    = startDatum,
-        slutDatum     = slutDatum,
-        dosperioder   = dosperioder.map { it.toJson() },
-    )
-
-    private fun Dosperiod.toJson() = DosperiodJson(
-        id         = id,
-        startDatum = startDatum,
-        slutDatum  = slutDatum,
-        dos        = dos,
-        enhet      = enhet,
-    )
-
-    private fun Favorit.toJson() = FavoritJson(
-        id               = id,
-        namn             = namn,
-        dos              = dos,
-        enhet            = enhet,
-        tidpunkt         = tidpunkt,
-        minTidMellan     = minTidMellan,
-        dispenseringsTid = dispenseringsTid,
-        maxDoserPerDag   = maxDoserPerDag,
-        isFavorite       = isFavorite,
-    )
-
-    private fun SjukdomsEpisod.toJson() = SjukdomsEpisodJson(
-        id         = id,
-        typ        = typ,
-        startDatum = startDatum,
-        slutDatum  = slutDatum,
-        timestamp  = timestamp,
-    )
-
-    private fun NoteEntity.toJson() = NoteJson(
-        target   = target,
-        entityId = entityId,
-        text     = text,
-    )
-
-    private fun Handelse.toJson() = HandelseJson(
-        id                 = id,
-        timestamp          = timestamp,
-        datum              = datum,
-        tid                = tid,
-        typ                = typ,
-        svarighetsgrad     = svarighetsgrad,
-        varaktighetMinuter = varaktighetMinuter,
-        triggers           = triggers,
-        atgarder           = atgarder,
-    )
-
-    private fun SjukdomsIncheckning.toJson() = SjukdomsIncheckningJson(
-        id             = id,
-        episodId       = episodId,
-        datum          = datum,
-        tid            = tid,
-        svarighetsgrad = svarighetsgrad,
-        symptom        = symptom,
-        somatiska      = somatiska,
-        timestamp      = timestamp,
-    )
 }

@@ -135,7 +135,6 @@ class MedicinerViewModel @Inject constructor(
                 _snackbar.value = "${medicin.namn} markerad som hoppad"
             } else {
                 repo.deleteMedicin(medicin)
-                noteRepo.delete(NoteTarget.MEDICATION, medicin.id)
                 _snackbar.value = "${medicin.namn} borttagen"
             }
         }
@@ -148,7 +147,6 @@ class MedicinerViewModel @Inject constructor(
     fun deleteRecept(recept: Recept) {
         viewModelScope.launch {
             repo.deleteRecept(recept)
-            noteRepo.delete(NoteTarget.RECEPT, recept.id)
             _snackbar.value = "${recept.namn} borttagen"
         }
     }
@@ -156,7 +154,6 @@ class MedicinerViewModel @Inject constructor(
     fun deleteFavorit(favorit: Favorit) {
         viewModelScope.launch {
             repo.deleteFavorit(favorit)
-            noteRepo.delete(NoteTarget.FAVORIT, favorit.id)
             _snackbar.value = "${favorit.namn} borttagen"
         }
     }

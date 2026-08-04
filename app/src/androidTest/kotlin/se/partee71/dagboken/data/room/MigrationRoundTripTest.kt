@@ -58,7 +58,7 @@ class MigrationRoundTripTest {
         aktivRepo = AktiviteterRepository(db.aktivitetDao())
         handelserRepo = HandelserRepository(db.handelseDao())
         noteRepo = NoteRepository(db.noteDao())
-        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), Dispatchers.IO)
+        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao())
         medicRepo = MedicinerRepository(
             db                 = db,
             medicinDao         = db.medicinDao(),

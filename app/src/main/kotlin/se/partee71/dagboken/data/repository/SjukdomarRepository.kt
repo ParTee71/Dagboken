@@ -1,14 +1,12 @@
 package se.partee71.dagboken.data.repository
 
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
 import se.partee71.dagboken.data.room.daos.SjukdomsEpisodDao
 import se.partee71.dagboken.data.room.daos.SjukdomsIncheckningDao
 import se.partee71.dagboken.data.room.entities.SjukdomsEpisodEntity
 import se.partee71.dagboken.data.room.entities.SjukdomsIncheckningEntity
-import se.partee71.dagboken.di.IoDispatcher
+import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.SjukdomsIncheckning
 import javax.inject.Inject
@@ -18,7 +16,7 @@ import javax.inject.Singleton
 class SjukdomarRepository @Inject constructor(
     private val episodDao: SjukdomsEpisodDao,
     private val incheckningDao: SjukdomsIncheckningDao,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val noteRepo: NoteRepository,
 ) {
     val all: Flow<List<SjukdomsEpisod>> = episodDao.allFlow().map { list ->
         list.map { it.toDomain() }
@@ -26,17 +24,23 @@ class SjukdomarRepository @Inject constructor(
 
     val pagaende: Flow<SjukdomsEpisod?> = episodDao.pagaendeFlow().map { it?.toDomain() }
 
-    suspend fun getEpisodWithIncheckningar(id: String): SjukdomsEpisod? = withContext(ioDispatcher) {
-        val entity = episodDao.getById(id) ?: return@withContext null
-        entity.toDomain()
-    }
+    // Room flyttar själv suspend-DAO-anrop från huvudtråden, så repositoryt lindar dem
+    // inte i withContext (samma som övriga repositories i appen).
+    suspend fun getEpisodWithIncheckningar(id: String): SjukdomsEpisod? =
+        episodDao.getById(id)?.toDomain()
 
-    suspend fun saveEpisod(episod: SjukdomsEpisod) = withContext(ioDispatcher) {
-        episodDao.save(episod.toEntity())
-    }
+    suspend fun saveEpisod(episod: SjukdomsEpisod) = episodDao.save(episod.toEntity())
 
-    suspend fun deleteEpisod(episod: SjukdomsEpisod) = withContext(ioDispatcher) {
+    /**
+     * Raderar episoden, dess incheckningar (FK ON DELETE CASCADE) och alla tillhörande
+     * anteckningar. Incheckningarnas anteckningar måste läsas ut före raderingen —
+     * efteråt finns inga rader kvar att härleda id:n från (DAT-4).
+     */
+    suspend fun deleteEpisod(episod: SjukdomsEpisod) {
+        val incheckningIds = incheckningDao.idsForEpisod(episod.id)
         episodDao.delete(episod.toEntity())
+        incheckningIds.forEach { noteRepo.delete(NoteTarget.SJUKDOM_INCHECKNING, it) }
+        noteRepo.delete(NoteTarget.SJUKDOM_EPISOD, episod.id)
     }
 
     fun incheckningarForEpisod(episodId: String): Flow<List<SjukdomsIncheckning>> =
@@ -45,21 +49,20 @@ class SjukdomarRepository @Inject constructor(
     val allIncheckningar: Flow<List<SjukdomsIncheckning>> =
         incheckningDao.allFlow().map { list -> list.map { it.toDomain() } }
 
-    suspend fun saveIncheckning(incheckning: SjukdomsIncheckning) = withContext(ioDispatcher) {
+    suspend fun saveIncheckning(incheckning: SjukdomsIncheckning) =
         incheckningDao.save(incheckning.toEntity())
-    }
 
-    suspend fun deleteIncheckning(incheckning: SjukdomsIncheckning) = withContext(ioDispatcher) {
+    suspend fun deleteIncheckning(incheckning: SjukdomsIncheckning) {
         incheckningDao.delete(incheckning.toEntity())
+        noteRepo.delete(NoteTarget.SJUKDOM_INCHECKNING, incheckning.id)
     }
 
-    suspend fun importEpisoder(episoder: List<SjukdomsEpisod>) = withContext(ioDispatcher) {
-        episoder.forEach { episodDao.save(it.toEntity()) }
-    }
+    // Batch-upsert — en sats i stället för en per rad.
+    suspend fun importEpisoder(episoder: List<SjukdomsEpisod>) =
+        episodDao.saveAll(episoder.map { it.toEntity() })
 
-    suspend fun importIncheckningar(incheckningar: List<SjukdomsIncheckning>) = withContext(ioDispatcher) {
-        incheckningar.forEach { incheckningDao.save(it.toEntity()) }
-    }
+    suspend fun importIncheckningar(incheckningar: List<SjukdomsIncheckning>) =
+        incheckningDao.saveAll(incheckningar.map { it.toEntity() })
 
     private fun SjukdomsEpisodEntity.toDomain() = SjukdomsEpisod(
         id         = id,

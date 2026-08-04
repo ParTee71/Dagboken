@@ -165,7 +165,6 @@ class HandelserViewModel @Inject constructor(
     fun delete(handelse: Handelse) {
         viewModelScope.launch {
             repo.delete(handelse)
-            noteRepo.delete(NoteTarget.EVENT, handelse.id)
             _snackbar.value = "${handelse.typ} borttagen"
         }
     }

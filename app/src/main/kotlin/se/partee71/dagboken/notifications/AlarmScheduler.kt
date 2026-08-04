@@ -70,7 +70,8 @@ class AlarmScheduler @Inject constructor(
         }
     }
 
-    private fun scheduleMedAlarm(slot: Int, time: String) {
+    /** Publik så [MedAlarmReceiver] kan schemalägga om sin egen tidpunkt till nästa dag. */
+    fun scheduleMedAlarm(slot: Int, time: String) {
         val parts  = time.split(":")
         val hour   = parts.getOrNull(0)?.toIntOrNull() ?: return
         val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0

@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.aktiviteter.add
 
+import se.partee71.dagboken.di.dagbokenJson
 import se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase
 import android.content.Context
 import androidx.activity.ComponentActivity
@@ -54,7 +55,7 @@ class AddEditScreeningScreenTest {
                    .allowMainThreadQueries().build()
         repo = AktiviteterRepository(db.aktivitetDao())
         val noteRepo = NoteRepository(db.noteDao())
-        val prefs    = PreferencesRepository(ctx)
+        val prefs    = PreferencesRepository(ctx, dagbokenJson())
         runBlocking {
             prefs.setAktivitetOptions(emptyList())
             prefs.setSymptomOptions(emptyList())
@@ -66,7 +67,7 @@ class AddEditScreeningScreenTest {
 
     private fun tearDown() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
-        runBlocking { PreferencesRepository(ctx).setAktivitetOptions(emptyList()) }
+        runBlocking { PreferencesRepository(ctx, dagbokenJson()).setAktivitetOptions(emptyList()) }
         // Stop the ViewModel's Room-flow collectors before closing the DB, or they
         // query the closed in-memory DB and throw "attempt to re-open an already-closed
         // SQLiteDatabase" on a retry attempt.

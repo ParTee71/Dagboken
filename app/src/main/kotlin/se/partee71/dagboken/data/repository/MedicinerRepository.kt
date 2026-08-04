@@ -59,7 +59,11 @@ class MedicinerRepository @Inject constructor(
 
     suspend fun saveMedicin(medicin: Medicin) = medicinDao.upsert(medicin.toEntity())
 
-    suspend fun deleteMedicin(medicin: Medicin) = medicinDao.delete(medicin.toEntity())
+    /** Raderar dosen och dess anteckning tillsammans (DAT-4). */
+    suspend fun deleteMedicin(medicin: Medicin) {
+        medicinDao.delete(medicin.toEntity())
+        noteRepo.delete(NoteTarget.MEDICATION, medicin.id)
+    }
 
     /** Sätter/nollställer tagningstidpunkten (MED-14) tillsammans med tagen-flaggan. */
     suspend fun toggleTagen(id: String, tagen: Boolean) =
@@ -117,11 +121,15 @@ class MedicinerRepository @Inject constructor(
         val pending = medicinDao.getPendingByReceptFrom(recept.id, fromDatum)
         if (pending.isEmpty()) return
 
+        // Doser blir obsoleta både när dagen faller utanför receptets period/upprepning
+        // och när själva tidpunkten tagits bort ur receptet — det senare missades förut,
+        // så en borttagen tidpunkt lämnade sin otagna dos kvar i checklistan för alltid.
+        val aktivaTidpunkter = recept.tidpunkter.ifEmpty { listOf("Morgon") }.toSet()
         val (obsolete, kept) = pending.partition { entry ->
             val date = runCatching {
                 LocalDate.parse(entry.datum, DateTimeFormatter.ISO_LOCAL_DATE)
             }.getOrNull() ?: return@partition false
-            !ensureTodayEntries.shouldTakeToday(recept, date)
+            !ensureTodayEntries.shouldTakeToday(recept, date) || entry.tidpunkt !in aktivaTidpunkter
         }
 
         obsolete.forEach {
@@ -140,8 +148,10 @@ class MedicinerRepository @Inject constructor(
         if (updated.isNotEmpty()) medicinDao.upsertAll(updated)
     }
 
-    suspend fun deleteRecept(recept: Recept) =
+    suspend fun deleteRecept(recept: Recept) {
         receptDao.delete(recept.toEntity(::encodeStringList, ::encodeIntList, ::encodeDosperioder))
+        noteRepo.delete(NoteTarget.RECEPT, recept.id)
+    }
 
     suspend fun toggleReceptAktiv(id: String, aktiv: Boolean) =
         receptDao.updateAktiv(id, aktiv)
@@ -154,7 +164,10 @@ class MedicinerRepository @Inject constructor(
 
     suspend fun saveFavorit(favorit: Favorit) = favoritDao.upsert(favorit.toEntity())
 
-    suspend fun deleteFavorit(favorit: Favorit) = favoritDao.delete(favorit.toEntity())
+    suspend fun deleteFavorit(favorit: Favorit) {
+        favoritDao.delete(favorit.toEntity())
+        noteRepo.delete(NoteTarget.FAVORIT, favorit.id)
+    }
 
     suspend fun setFavoritFavorite(id: String, isFavorite: Boolean) =
         favoritDao.updateFavorite(id, isFavorite)
@@ -214,20 +227,22 @@ class MedicinerRepository @Inject constructor(
     // ─── JSON type converters for ReceptEntity ────────────────────────────────
     private fun encodeStringList(list: List<String>): String = json.encodeToString(list)
     private fun encodeIntList(list: List<Int>): String = json.encodeToString(list)
+    // Loggar aldrig `raw` — det är persisterad användardata och loggning sker även i
+    // releasebygget. Fältnamnet räcker för att felsöka (NFR-8).
     private fun decodeStringList(raw: String): List<String> =
         runCatching { json.decodeFromString<List<String>>(raw) }
-            .onFailure { Log.w("MedicinerRepo", "decodeStringList failed for: $raw", it) }
+            .onFailure { Log.w("MedicinerRepo", "decodeStringList failed") }
             .getOrDefault(emptyList())
 
     private fun decodeIntList(raw: String): List<Int> =
         runCatching { json.decodeFromString<List<Int>>(raw) }
-            .onFailure { Log.w("MedicinerRepo", "decodeIntList failed for: $raw", it) }
+            .onFailure { Log.w("MedicinerRepo", "decodeIntList failed") }
             .getOrDefault(emptyList())
 
     private fun encodeDosperioder(list: List<Dosperiod>): String = json.encodeToString(list)
 
     private fun decodeDosperioder(raw: String): List<Dosperiod> =
         runCatching { json.decodeFromString<List<Dosperiod>>(raw) }
-            .onFailure { Log.w("MedicinerRepo", "decodeDosperioder failed", it) }
+            .onFailure { Log.w("MedicinerRepo", "decodeDosperioder failed") }
             .getOrDefault(emptyList())
 }

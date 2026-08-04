@@ -56,11 +56,15 @@
             android:name=".notifications.PeriodReminderReceiver"
             android:exported="false" />
 
+        <!-- MY_PACKAGE_REPLACED behövs utöver BOOT_COMPLETED: systemet rensar appens
+             larm vid en appuppdatering utan att skicka BOOT_COMPLETED, så utan detta
+             filter var alla påminnelser borta efter varje uppdatering (NOT-14). -->
         <receiver
             android:name=".notifications.BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 

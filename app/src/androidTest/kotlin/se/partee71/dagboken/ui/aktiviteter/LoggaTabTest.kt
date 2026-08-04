@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.aktiviteter
 
+import se.partee71.dagboken.di.dagbokenJson
 import se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase
 import android.content.Context
 import androidx.activity.ComponentActivity
@@ -55,7 +56,7 @@ class LoggaTabTest {
                   .allowMainThreadQueries().build()
         repo = AktiviteterRepository(db.aktivitetDao())
         val noteRepo = NoteRepository(db.noteDao())
-        prefs = PreferencesRepository(ctx)
+        prefs = PreferencesRepository(ctx, dagbokenJson())
         runBlocking {
             // Reset shared DataStore so no leftover options cause duplicate "Övrigt" chips
             prefs.setAktivitetOptions(emptyList())

@@ -69,7 +69,7 @@ class HistorikScreenTest {
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
         handelserRepo = HandelserRepository(db.handelseDao())
-        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), Dispatchers.IO)
+        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao())
         vm = HistorikViewModel(aktivRepo, medicRepo, handelserRepo, sjukdomarRepo)
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }

@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.hantera
 
+import se.partee71.dagboken.di.dagbokenJson
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -51,7 +52,7 @@ class HanteraScreenTest {
     private fun setUp() = runBlocking {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val authRepo = FirebaseAuthRepository(ctx)
-        prefs = PreferencesRepository(ctx)
+        prefs = PreferencesRepository(ctx, dagbokenJson())
 
         prefs.setAktivitetOptions(emptyList())
         prefs.setSymptomOptions(emptyList())

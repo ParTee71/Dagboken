@@ -175,7 +175,7 @@ class AktiviteterViewModel @Inject constructor(
             val normalizedScores = if (ovrigtKey != null && ovrigtKey != "Övrigt") {
                 decoded - ovrigtKey + ("Övrigt" to decoded[ovrigtKey]!!)
             } else decoded
-            val noteTarget = if (a.type == "screening") NoteTarget.SCREENING else NoteTarget.ACTIVITY
+            val noteTarget = NoteTarget.forAktivitet(a.type)
             val note       = noteRepo.observe(noteTarget, id).first()
             setCleanForm(
                 AktivitetForm(
@@ -235,7 +235,7 @@ class AktiviteterViewModel @Inject constructor(
                 )
             }
             repo.save(entry)
-            val noteTarget = if (f.type == "screening") NoteTarget.SCREENING else NoteTarget.ACTIVITY
+            val noteTarget = NoteTarget.forAktivitet(f.type)
             noteRepo.save(noteTarget, entry.id, f.note)
             _snackbar.value = if (f.type == "screening") "Screening sparad ✓" else "$aktivitetName sparad ✓"
             resetForm()
@@ -262,8 +262,6 @@ class AktiviteterViewModel @Inject constructor(
     fun delete(aktivitet: Aktivitet) {
         viewModelScope.launch {
             repo.delete(aktivitet)
-            val noteTarget = if (aktivitet.type == "screening") NoteTarget.SCREENING else NoteTarget.ACTIVITY
-            noteRepo.delete(noteTarget, aktivitet.id)
             _snackbar.value = "${aktivitet.aktivitet} borttagen"
         }
     }

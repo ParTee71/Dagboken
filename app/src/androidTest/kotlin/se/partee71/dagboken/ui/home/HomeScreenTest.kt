@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.home
 
+import se.partee71.dagboken.di.dagbokenJson
 import se.partee71.dagboken.domain.usecase.BuildScreeningAktivitetUseCase
 import android.content.Context
 import androidx.activity.ComponentActivity
@@ -100,8 +101,8 @@ class HomeScreenTest {
             json               = kotlinx.serialization.json.Json { ignoreUnknownKeys = true },
         )
         authRepo      = FirebaseAuthRepository(ctx)
-        prefs         = PreferencesRepository(ctx)
-        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao(), Dispatchers.IO)
+        prefs         = PreferencesRepository(ctx, dagbokenJson())
+        sjukdomarRepo = SjukdomarRepository(db.sjukdomsEpisodDao(), db.sjukdomsIncheckningDao())
         runBlocking {
             prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
             prefs.setMedsNotificationsEnabled(false)

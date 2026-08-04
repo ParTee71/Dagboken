@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.NoteRepository
@@ -38,12 +37,9 @@ class SjukdomarViewModel @Inject constructor(
 
     fun delete(episod: SjukdomsEpisod) {
         viewModelScope.launch {
-            // Room cascades the DB rows for the episode's incheckningar, but the generic
-            // notes table has no FK to them — clean up their notes explicitly first.
-            val incheckningar = repo.incheckningarForEpisod(episod.id).first()
-            incheckningar.forEach { noteRepo.delete(NoteTarget.SJUKDOM_INCHECKNING, it.id) }
+            // Repositoryt raderar episoden, dess incheckningar och alla tillhörande
+            // anteckningar — se SjukdomarRepository.deleteEpisod (DAT-4).
             repo.deleteEpisod(episod)
-            noteRepo.delete(NoteTarget.SJUKDOM_EPISOD, episod.id)
             _snackbar.value = "${episod.typ} borttagen"
         }
     }

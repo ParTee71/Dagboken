@@ -8,12 +8,12 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,8 +23,30 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 @Singleton
 class PreferencesRepository @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val json: Json,
 ) {
     private val dataStore = context.dataStore
+
+    /**
+     * Avkodar en sparad alternativlista. Den injicerade [json] har `ignoreUnknownKeys`,
+     * så ett nytt fält i [SymptomOption] gör inte redan sparade värden oläsbara —
+     * tidigare användes kotlinx globala `Json`, och då föll en misslyckad avkodning
+     * tillbaka på standardlistan. Användarens egna alternativ försvann då både ur
+     * appen och ur nästa backup, utan felmeddelande.
+     *
+     * Vid ett verkligt trasigt värde behålls [fallback], men felet loggas (utan
+     * innehållet) så det inte passerar helt tyst.
+     */
+    private fun decodeOptions(raw: String?, fallback: List<SymptomOption>, key: String): List<SymptomOption> {
+        if (raw == null) return fallback
+        runCatching { json.decodeFromString<List<SymptomOption>>(raw) }
+            .onSuccess { return it }
+        // Äldre format: en ren List<String> utan favoritmarkering.
+        runCatching { json.decodeFromString<List<String>>(raw).map { SymptomOption(it) } }
+            .onSuccess { return it }
+        Log.w("PreferencesRepo", "Kunde inte avkoda $key — behåller standardlistan")
+        return fallback
+    }
 
     private object Keys {
         val MIGRATION_DONE      = booleanPreferencesKey("migration_done")
@@ -56,37 +78,15 @@ class PreferencesRepository @Inject constructor(
         .map { it[Keys.DYNAMIC_COLOR] ?: true }
 
     val aktivitetOptions: Flow<List<SymptomOption>> = dataStore.data
-        .map { prefs ->
-            prefs[Keys.AKTIVITET_OPTIONS]
-                ?.let { json ->
-                    runCatching { Json.decodeFromString<List<SymptomOption>>(json) }.getOrNull()
-                        ?: Json.decodeFromString<List<String>>(json).map { SymptomOption(it) }
-                }
-                ?: DEFAULT_AKTIVITET_OPTIONS
-        }
+        .map { prefs -> decodeOptions(prefs[Keys.AKTIVITET_OPTIONS], DEFAULT_AKTIVITET_OPTIONS, "aktivitet_options") }
         .catch { emit(DEFAULT_AKTIVITET_OPTIONS) }
 
     val symptomOptions: Flow<List<SymptomOption>> = dataStore.data
-        .map { prefs ->
-            prefs[Keys.SYMPTOM_OPTIONS]
-                ?.let { json ->
-                    // Try new format first; fall back to migrating old List<String>
-                    runCatching { Json.decodeFromString<List<SymptomOption>>(json) }.getOrNull()
-                        ?: Json.decodeFromString<List<String>>(json).map { SymptomOption(it) }
-                }
-                ?: DEFAULT_SYMPTOM_OPTIONS
-        }
+        .map { prefs -> decodeOptions(prefs[Keys.SYMPTOM_OPTIONS], DEFAULT_SYMPTOM_OPTIONS, "symptom_options") }
         .catch { emit(DEFAULT_SYMPTOM_OPTIONS) }
 
     val handelseTypOptions: Flow<List<SymptomOption>> = dataStore.data
-        .map { prefs ->
-            prefs[Keys.HANDELSE_TYP_OPTIONS]
-                ?.let { json ->
-                    runCatching { Json.decodeFromString<List<SymptomOption>>(json) }.getOrNull()
-                        ?: Json.decodeFromString<List<String>>(json).map { SymptomOption(it) }
-                }
-                ?: DEFAULT_HANDELSE_TYP_OPTIONS
-        }
+        .map { prefs -> decodeOptions(prefs[Keys.HANDELSE_TYP_OPTIONS], DEFAULT_HANDELSE_TYP_OPTIONS, "handelse_typ_options") }
         .catch { emit(DEFAULT_HANDELSE_TYP_OPTIONS) }
 
     val sheetsConfig: Flow<String> = dataStore.data
@@ -106,9 +106,11 @@ class PreferencesRepository @Inject constructor(
 
     val screeningEventConfigs: Flow<List<ScreeningEventConfig>> = dataStore.data
         .map { prefs ->
-            prefs[Keys.SCREENING_EVENT_CONFIGS]
-                ?.let { Json.decodeFromString<List<ScreeningEventConfig>>(it) }
-                ?: DEFAULT_SCREENING_EVENTS
+            prefs[Keys.SCREENING_EVENT_CONFIGS]?.let { raw ->
+                runCatching { json.decodeFromString<List<ScreeningEventConfig>>(raw) }
+                    .onFailure { Log.w("PreferencesRepo", "Kunde inte avkoda screening_event_configs") }
+                    .getOrDefault(DEFAULT_SCREENING_EVENTS)
+            } ?: DEFAULT_SCREENING_EVENTS
         }
         .catch { emit(DEFAULT_SCREENING_EVENTS) }
 
@@ -132,15 +134,15 @@ class PreferencesRepository @Inject constructor(
     }
 
     suspend fun setAktivitetOptions(options: List<SymptomOption>) {
-        dataStore.edit { it[Keys.AKTIVITET_OPTIONS] = Json.encodeToString(options) }
+        dataStore.edit { it[Keys.AKTIVITET_OPTIONS] = json.encodeToString(options) }
     }
 
     suspend fun setSymptomOptions(options: List<SymptomOption>) {
-        dataStore.edit { it[Keys.SYMPTOM_OPTIONS] = Json.encodeToString(options) }
+        dataStore.edit { it[Keys.SYMPTOM_OPTIONS] = json.encodeToString(options) }
     }
 
     suspend fun setHandelseTypOptions(options: List<SymptomOption>) {
-        dataStore.edit { it[Keys.HANDELSE_TYP_OPTIONS] = Json.encodeToString(options) }
+        dataStore.edit { it[Keys.HANDELSE_TYP_OPTIONS] = json.encodeToString(options) }
     }
 
     suspend fun setSheetsConfig(url: String) {
@@ -164,7 +166,7 @@ class PreferencesRepository @Inject constructor(
     }
 
     suspend fun setScreeningEventConfigs(configs: List<ScreeningEventConfig>) {
-        dataStore.edit { it[Keys.SCREENING_EVENT_CONFIGS] = Json.encodeToString(configs) }
+        dataStore.edit { it[Keys.SCREENING_EVENT_CONFIGS] = json.encodeToString(configs) }
     }
 
     suspend fun setPeriodReminderTime(time: String) {
