@@ -279,7 +279,7 @@ class HomeViewModel @Inject constructor(
                 _healthCard.value = HealthCardUiState.NotConnected
                 return@launch
             }
-            val granted = runCatching { healthRepo.hasAllPermissions() }.getOrDefault(false)
+            val granted = runCatching { healthRepo.hasRequiredPermissions() }.getOrDefault(false)
             if (!granted) {
                 _healthCard.value = HealthCardUiState.NotConnected
                 return@launch

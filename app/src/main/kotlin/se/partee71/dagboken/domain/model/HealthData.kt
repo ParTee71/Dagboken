@@ -6,15 +6,43 @@ import java.time.LocalDate
 /**
  * Dagens hälsodata läst från Health Connect (epic #54, §19 HLS).
  * Samtliga fält är nullbara — en datapunkt kan saknas om användaren inte har
- * någon inloggad källa (t.ex. Galaxy Watch) som skrivit den till Health Connect.
+ * någon inloggad källa (t.ex. Galaxy Watch) som skrivit den till Health Connect,
+ * eller om just den läsbehörigheten inte beviljats (HLS-8).
  */
 data class HealthData(
     val steps: Long? = null,
     val heartRateAvg: Long? = null,
     val sleepDuration: Duration? = null,
+    val sleepStages: SleepStages = SleepStages(),
+    val exerciseSessions: Int = 0,
+    val exerciseDuration: Duration? = null,
+    val activeEnergyKcal: Double? = null,
+    val distanceMeters: Double? = null,
+    val oxygenSaturationAvg: Double? = null,
+    val bloodPressure: BloodPressure? = null,
 ) {
-    val isEmpty: Boolean get() = steps == null && heartRateAvg == null && sleepDuration == null
+    val isEmpty: Boolean
+        get() = steps == null && heartRateAvg == null && sleepDuration == null &&
+            sleepStages.isEmpty && exerciseDuration == null && activeEnergyKcal == null &&
+            distanceMeters == null && oxygenSaturationAvg == null && bloodPressure == null
 }
+
+/**
+ * Sömnstadier för senaste natten (HLS-8). Samsung Health skriver stadier inuti
+ * `SleepSessionRecord`; saknas de (t.ex. natt utan klocka på armen) är fälten null
+ * och sömnen visas bara som total längd.
+ */
+data class SleepStages(
+    val deep: Duration? = null,
+    val rem: Duration? = null,
+    val light: Duration? = null,
+    val awake: Duration? = null,
+) {
+    val isEmpty: Boolean get() = deep == null && rem == null && light == null && awake == null
+}
+
+/** Senaste blodtrycksmätningen (mmHg), HLS-8. */
+data class BloodPressure(val systolic: Int, val diastolic: Int)
 
 /** Stegsumma för en enskild dag (HLS-7). */
 data class DailySteps(val date: LocalDate, val steps: Long)

@@ -309,7 +309,7 @@ class TrenderViewModel @Inject constructor(
             val days = range.days ?: 365
             val weekly = runCatching {
                 if (healthRepo.availability() != HealthAvailability.AVAILABLE) return@runCatching null
-                if (!healthRepo.hasAllPermissions()) return@runCatching null
+                if (!healthRepo.hasRequiredPermissions()) return@runCatching null
                 healthRepo.readHealthRange(days)
             }.getOrNull()
             onResult(weekly?.dailySteps.orEmpty(), weekly?.dailyRestingHeartRate.orEmpty())

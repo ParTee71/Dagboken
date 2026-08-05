@@ -362,8 +362,9 @@ class TrenderScreenTest {
 /** Health Connect ej tillgängligt i emulator — fake så Trender-skärmen kan renderas (analog med HomeScreenTest). */
 private class FakeHealthRepo(private val weekly: WeeklyHealth? = null) : HealthConnectRepository {
     override val permissions: Set<String> = emptySet()
+    override val requiredPermissions: Set<String> = emptySet()
     override fun availability() = if (weekly != null) HealthAvailability.AVAILABLE else HealthAvailability.NOT_INSTALLED
-    override suspend fun hasAllPermissions() = weekly != null
+    override suspend fun hasRequiredPermissions() = weekly != null
     override suspend fun readToday() = HealthData()
     override suspend fun readWeeklyHealth() = weekly ?: WeeklyHealth()
     override suspend fun readHealthRange(days: Int) = weekly ?: WeeklyHealth()

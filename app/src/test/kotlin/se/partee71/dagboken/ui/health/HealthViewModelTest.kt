@@ -28,9 +28,10 @@ class HealthViewModelTest {
         var data: HealthData = HealthData(steps = 100, heartRateAvg = 60, sleepDuration = Duration.ofHours(7)),
         var throwOnRead: Boolean = false,
     ) : HealthConnectRepository {
-        override val permissions: Set<String> = setOf("read_steps", "read_hr", "read_sleep")
+        override val requiredPermissions: Set<String> = setOf("read_steps", "read_hr", "read_sleep")
+        override val permissions: Set<String> = requiredPermissions + setOf("read_exercise", "read_spo2")
         override fun availability() = availability
-        override suspend fun hasAllPermissions() = granted
+        override suspend fun hasRequiredPermissions() = granted
         override suspend fun readToday(): HealthData =
             if (throwOnRead) throw RuntimeException("boom") else data
         override suspend fun readWeeklyHealth() =
@@ -83,5 +84,21 @@ class HealthViewModelTest {
         val repo = FakeHealthRepo()
         val vm = HealthViewModel(repo)
         assertEquals(repo.permissions, vm.permissions)
+    }
+
+    @Test fun `the launcher asks for the optional permissions too, not just the required ones`() {
+        // HLS-8: de valfria typerna måste ingå i behörighetsdialogen, annars kan
+        // användaren aldrig ge åtkomst till träning, sträcka, syremättnad m.m.
+        val repo = FakeHealthRepo()
+        val vm = HealthViewModel(repo)
+        assertTrue(vm.permissions.containsAll(repo.requiredPermissions))
+        assertTrue(vm.permissions.size > repo.requiredPermissions.size)
+    }
+
+    @Test fun `only the required permissions gate the screen`() {
+        // Nekad valfri behörighet får inte låsa skärmen i behörighetsläge — repot
+        // svarar utifrån kärnbehörigheterna, och skärmen visar data ändå.
+        val vm = HealthViewModel(FakeHealthRepo(granted = true))
+        assertTrue(vm.state.value is HealthUiState.Data)
     }
 }

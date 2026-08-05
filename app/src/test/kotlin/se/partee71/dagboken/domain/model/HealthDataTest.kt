@@ -4,12 +4,35 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Duration
 import java.time.LocalDate
 
 /** Enhetstest för [WeeklyHealth]s beräknade fält (HLS-7, §19). */
 class HealthDataTest {
 
     private val today = LocalDate.now()
+
+    // ─── HealthData.isEmpty (HLS-8 — nya datapunkter räknas med) ─────────────
+
+    @Test fun `isEmpty is true for a completely empty reading`() {
+        assertTrue(HealthData().isEmpty)
+    }
+
+    @Test fun `isEmpty is false when only an HLS-8 data point is present`() {
+        // Regression: isEmpty tittade tidigare bara på steg, puls och sömnlängd, så
+        // ett dygn med enbart träning eller blodtryck såg tomt ut.
+        assertFalse(HealthData(exerciseDuration = Duration.ofMinutes(30)).isEmpty)
+        assertFalse(HealthData(activeEnergyKcal = 250.0).isEmpty)
+        assertFalse(HealthData(distanceMeters = 3400.0).isEmpty)
+        assertFalse(HealthData(oxygenSaturationAvg = 96.0).isEmpty)
+        assertFalse(HealthData(bloodPressure = BloodPressure(118, 76)).isEmpty)
+        assertFalse(HealthData(sleepStages = SleepStages(deep = Duration.ofMinutes(45))).isEmpty)
+    }
+
+    @Test fun `an exercise session count alone does not count as data`() {
+        // Antalet pass visas bara som etikett till passtiden — utan tid finns inget att visa.
+        assertTrue(HealthData(exerciseSessions = 2).isEmpty)
+    }
 
     @Test fun `hasRestingHeartRateTrend is false with fewer than two known values`() {
         val weekly = WeeklyHealth(
