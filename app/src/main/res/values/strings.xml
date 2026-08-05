@@ -331,23 +331,39 @@
     <string name="trender_range_3_months">3 månader</string>
     <string name="trender_range_all">Allt</string>
 
-    <!-- Samsung Health placeholder -->
     <!-- Hälsa (Health Connect), §19 HLS -->
     <string name="halsa_title">Hälsa</string>
+    <string name="halsa_section_today">Idag</string>
+    <string name="halsa_section_sleep">Sömn senaste natten</string>
+    <string name="halsa_section_exercise">Träning idag</string>
+    <string name="halsa_section_vitals">Vitalvärden</string>
     <string name="halsa_steps">Steg idag</string>
     <string name="halsa_heart_rate">Puls (snitt idag)</string>
-    <string name="halsa_sleep">Sömn senaste natten</string>
+    <string name="halsa_sleep_total">Total sömn</string>
+    <string name="halsa_sleep_deep">Djupsömn</string>
+    <string name="halsa_sleep_rem">REM-sömn</string>
+    <string name="halsa_sleep_light">Lätt sömn</string>
+    <string name="halsa_sleep_awake">Vaken</string>
+    <string name="halsa_exercise">Träningspass (%1$d st)</string>
+    <string name="halsa_active_energy">Aktiva kalorier</string>
+    <string name="halsa_distance">Sträcka idag</string>
+    <string name="halsa_oxygen_saturation">Syremättnad (snitt senaste dygnet)</string>
+    <string name="halsa_blood_pressure">Blodtryck (senaste mätningen)</string>
     <string name="halsa_bpm">%1$d bpm</string>
+    <string name="halsa_kcal">%1$d kcal</string>
+    <string name="halsa_km">%1$s km</string>
+    <string name="halsa_percent">%1$d %%</string>
+    <string name="halsa_mmhg">%1$d/%2$d mmHg</string>
     <string name="halsa_duration_h_min">%1$d h %2$d min</string>
     <string name="halsa_duration_min">%1$d min</string>
     <string name="halsa_no_value">—</string>
     <string name="halsa_hc_missing_title">Health Connect saknas</string>
-    <string name="halsa_hc_missing_body">Hälsodata läses via Health Connect. Installera Health Connect och synka din klocka via Samsung Health för att se steg, puls och sömn.</string>
+    <string name="halsa_hc_missing_body">Hälsodata läses via Health Connect. Installera Health Connect och synka din klocka via Samsung Health för att se steg, puls, sömn, träning och vitalvärden.</string>
     <string name="halsa_hc_update_title">Uppdatera Health Connect</string>
     <string name="halsa_hc_update_body">Health Connect behöver uppdateras innan hälsodata kan läsas.</string>
     <string name="halsa_hc_open">Öppna Health Connect</string>
     <string name="halsa_permission_title">Ge åtkomst till hälsodata</string>
-    <string name="halsa_permission_body">Dagboken behöver din tillåtelse att läsa steg, puls och sömn från Health Connect.</string>
+    <string name="halsa_permission_body">Dagboken behöver din tillåtelse att läsa steg, puls och sömn från Health Connect. Träning, kalorier, sträcka, syremättnad och blodtryck är valfria — nekar du någon av dem visas den datapunkten som ”—”, resten fungerar ändå.</string>
     <string name="halsa_permission_grant">Ge åtkomst</string>
     <string name="halsa_error_title">Kunde inte läsa hälsodata</string>
     <string name="halsa_error_body">Något gick fel vid hämtning från Health Connect. Försök igen.</string>

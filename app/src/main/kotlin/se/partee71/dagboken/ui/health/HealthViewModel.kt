@@ -57,7 +57,7 @@ class HealthViewModel @Inject constructor(
                 HealthAvailability.AVAILABLE -> Unit
             }
 
-            val granted = runCatching { repo.hasAllPermissions() }.getOrDefault(false)
+            val granted = runCatching { repo.hasRequiredPermissions() }.getOrDefault(false)
             if (!granted) {
                 _state.value = HealthUiState.PermissionsRequired
                 return@launch

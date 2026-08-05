@@ -377,7 +377,7 @@ class HomeViewModelTest {
 
     @Test fun `healthCard is NotConnected when permissions are not granted`() = runTest {
         every { healthRepo.availability() } returns HealthAvailability.AVAILABLE
-        coEvery { healthRepo.hasAllPermissions() } returns false
+        coEvery { healthRepo.hasRequiredPermissions() } returns false
         viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
         assertEquals(HealthCardUiState.NotConnected, viewModel.healthCard.value)
     }
@@ -391,7 +391,7 @@ class HomeViewModelTest {
             restingHeartRate = 58,
         )
         every { healthRepo.availability() } returns HealthAvailability.AVAILABLE
-        coEvery { healthRepo.hasAllPermissions() } returns true
+        coEvery { healthRepo.hasRequiredPermissions() } returns true
         coEvery { healthRepo.readWeeklyHealth() } returns weekly
         viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
         assertEquals(HealthCardUiState.Data(weekly), viewModel.healthCard.value)
@@ -399,7 +399,7 @@ class HomeViewModelTest {
 
     @Test fun `healthCard is NotConnected when weekly read throws`() = runTest {
         every { healthRepo.availability() } returns HealthAvailability.AVAILABLE
-        coEvery { healthRepo.hasAllPermissions() } returns true
+        coEvery { healthRepo.hasRequiredPermissions() } returns true
         coEvery { healthRepo.readWeeklyHealth() } throws RuntimeException("boom")
         viewModel = HomeViewModel(aktiviteterRepo, medicinerRepo, authRepo, prefs, sjukdomarRepo, healthRepo)
         assertEquals(HealthCardUiState.NotConnected, viewModel.healthCard.value)

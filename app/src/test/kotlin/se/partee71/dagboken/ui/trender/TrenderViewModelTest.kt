@@ -238,7 +238,7 @@ class TrenderViewModelTest {
     @Test fun `dailySteps and dailyRestingHeartRate are empty when permissions are not granted`() = runTest {
         healthRepo = mockk(relaxed = true) {
             every { availability() } returns HealthAvailability.AVAILABLE
-            coEvery { hasAllPermissions() } returns false
+            coEvery { hasRequiredPermissions() } returns false
         }
         viewModel = TrenderViewModel(repo, healthRepo)
         assertTrue(viewModel.state.value.dailySteps.isEmpty())
@@ -252,7 +252,7 @@ class TrenderViewModelTest {
         )
         healthRepo = mockk(relaxed = true) {
             every { availability() } returns HealthAvailability.AVAILABLE
-            coEvery { hasAllPermissions() } returns true
+            coEvery { hasRequiredPermissions() } returns true
             coEvery { readHealthRange(30) } returns weekly
         }
         viewModel = TrenderViewModel(repo, healthRepo)
@@ -268,7 +268,7 @@ class TrenderViewModelTest {
         val weeklyThreeMonths = WeeklyHealth(dailySteps = listOf(DailySteps(LocalDate.now(), 9000)))
         healthRepo = mockk(relaxed = true) {
             every { availability() } returns HealthAvailability.AVAILABLE
-            coEvery { hasAllPermissions() } returns true
+            coEvery { hasRequiredPermissions() } returns true
             coEvery { readHealthRange(30) } returns weeklyMonth
             coEvery { readHealthRange(90) } returns weeklyThreeMonths
         }
@@ -285,7 +285,7 @@ class TrenderViewModelTest {
     @Test fun `dailySteps stays empty when Health Connect read throws`() = runTest {
         healthRepo = mockk(relaxed = true) {
             every { availability() } returns HealthAvailability.AVAILABLE
-            coEvery { hasAllPermissions() } returns true
+            coEvery { hasRequiredPermissions() } returns true
             coEvery { readHealthRange(any()) } throws RuntimeException("boom")
         }
         viewModel = TrenderViewModel(repo, healthRepo)

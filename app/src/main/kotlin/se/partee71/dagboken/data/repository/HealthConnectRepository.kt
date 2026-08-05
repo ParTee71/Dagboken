@@ -3,7 +3,12 @@ package se.partee71.dagboken.data.repository
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.BloodPressureRecord
+import androidx.health.connect.client.records.DistanceRecord
+import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
@@ -12,14 +17,17 @@ import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import se.partee71.dagboken.domain.model.BloodPressure
 import se.partee71.dagboken.domain.model.DailyRestingHeartRate
 import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.SleepStages
 import se.partee71.dagboken.domain.model.WeeklyHealth
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlin.reflect.KClass
 
@@ -31,14 +39,26 @@ import kotlin.reflect.KClass
  * med en fake (regel 2) utan Android-/SDK-beroenden.
  */
 interface HealthConnectRepository {
-    /** Läsbehörigheterna appen behöver (steg, puls, sömn) — begärs som runtime-samtycke. */
+    /**
+     * Samtliga läsbehörigheter appen begär som runtime-samtycke. Utöver kärnan
+     * (se [requiredPermissions]) ingår de valfria typerna från HLS-8 — sömnstadier
+     * ryms i `READ_SLEEP`, medan träning, aktiva kalorier, sträcka, syremättnad och
+     * blodtryck har egna behörigheter — samt historikbehörigheten (se HLS-9).
+     */
     val permissions: Set<String>
+
+    /**
+     * Kärnbehörigheterna (steg, puls, vilopuls, sömn) som Hälsa-skärmen kräver för att
+     * visa data alls. Övriga [permissions] är valfria: nekas de saknas bara den
+     * datapunkten, i stället för att låsa hela skärmen i behörighetsläge.
+     */
+    val requiredPermissions: Set<String>
 
     /** Om Health Connect finns/kan användas på enheten. */
     fun availability(): HealthAvailability
 
-    /** True om samtliga [permissions] är beviljade. */
-    suspend fun hasAllPermissions(): Boolean
+    /** True om samtliga [requiredPermissions] är beviljade. */
+    suspend fun hasRequiredPermissions(): Boolean
 
     /** Läser dagens datapunkter. Kastar vid I/O- eller behörighetsfel (mappas i ViewModel). */
     suspend fun readToday(): HealthData
@@ -58,11 +78,20 @@ class HealthConnectRepositoryImpl(
     private val ioDispatcher: CoroutineDispatcher,
 ) : HealthConnectRepository {
 
-    override val permissions: Set<String> = setOf(
+    override val requiredPermissions: Set<String> = setOf(
         HealthPermission.getReadPermission(StepsRecord::class),
         HealthPermission.getReadPermission(HeartRateRecord::class),
         HealthPermission.getReadPermission(SleepSessionRecord::class),
         HealthPermission.getReadPermission(RestingHeartRateRecord::class),
+    )
+
+    override val permissions: Set<String> = requiredPermissions + setOf(
+        HealthPermission.getReadPermission(ExerciseSessionRecord::class),
+        HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
+        HealthPermission.getReadPermission(DistanceRecord::class),
+        HealthPermission.getReadPermission(OxygenSaturationRecord::class),
+        HealthPermission.getReadPermission(BloodPressureRecord::class),
+        HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY,
     )
 
     // getOrCreate kastar om Health Connect saknas — skapa lazy och först efter
@@ -76,8 +105,8 @@ class HealthConnectRepositoryImpl(
             else -> HealthAvailability.NOT_INSTALLED
         }
 
-    override suspend fun hasAllPermissions(): Boolean = withContext(ioDispatcher) {
-        client.permissionController.getGrantedPermissions().containsAll(permissions)
+    override suspend fun hasRequiredPermissions(): Boolean = withContext(ioDispatcher) {
+        client.permissionController.getGrantedPermissions().containsAll(requiredPermissions)
     }
 
     /**
@@ -102,6 +131,23 @@ class HealthConnectRepositoryImpl(
         return all
     }
 
+    /**
+     * Som [readAllRecords], men hoppar över typer vars läsbehörighet inte är beviljad.
+     * Health Connect kastar `SecurityException` vid läsning utan behörighet, och de
+     * valfria typerna i HLS-8 får inte kunna fälla hela skärmen om användaren nekar
+     * en enskild av dem i samtyckesdialogen.
+     */
+    private suspend fun <T : Record> readIfGranted(
+        recordType: KClass<T>,
+        range: TimeRangeFilter,
+        granted: Set<String>,
+    ): List<T> =
+        if (HealthPermission.getReadPermission(recordType) in granted) {
+            readAllRecords(recordType, range)
+        } else {
+            emptyList()
+        }
+
     /** Läser periodens steg och väljer den mest kompletta källan. */
     private suspend fun stepsForRange(range: TimeRangeFilter): Long {
         val records = readAllRecords(StepsRecord::class, range)
@@ -119,6 +165,10 @@ class HealthConnectRepositoryImpl(
         val startOfDay = LocalDate.now(zone).atStartOfDay(zone).toInstant()
         val dayRange = TimeRangeFilter.between(startOfDay, now)
 
+        // De valfria typerna (HLS-8) läses bara om behörigheten faktiskt beviljats.
+        val granted = runCatching { client.permissionController.getGrantedPermissions() }
+            .getOrDefault(emptySet())
+
         val steps = stepsForRange(dayRange)
 
         val bpm = readAllRecords(HeartRateRecord::class, dayRange)
@@ -127,15 +177,66 @@ class HealthConnectRepositoryImpl(
         val heartRateAvg = if (bpm.isEmpty()) null else bpm.average().roundToLong()
 
         // Sömn: titta 24h bakåt för att fånga senaste natten.
-        val sleepRange = TimeRangeFilter.between(now.minus(Duration.ofHours(24)), now)
-        val sleepDuration = readAllRecords(SleepSessionRecord::class, sleepRange)
+        val nightRange = TimeRangeFilter.between(now.minus(Duration.ofHours(24)), now)
+        val sleepSessions = readAllRecords(SleepSessionRecord::class, nightRange)
+        val sleepDuration = sleepSessions
             .fold(Duration.ZERO) { acc, r -> acc.plus(Duration.between(r.startTime, r.endTime)) }
             .takeIf { !it.isZero }
+        val sleepStages = summarizeSleepStages(
+            sleepSessions.flatMap { session ->
+                session.stages.map { StageSlice(it.stage, Duration.between(it.startTime, it.endTime)) }
+            },
+        )
+
+        val exercise = mostCompleteExercise(
+            readIfGranted(ExerciseSessionRecord::class, dayRange, granted).map {
+                OriginSession(it.metadata.dataOrigin.packageName, Duration.between(it.startTime, it.endTime))
+            },
+        )
+
+        val activeEnergy = mostCompleteSum(
+            readIfGranted(ActiveCaloriesBurnedRecord::class, dayRange, granted).map {
+                OriginAmount(it.metadata.dataOrigin.packageName, it.energy.inKilocalories)
+            },
+        )
+
+        val distance = mostCompleteSum(
+            readIfGranted(DistanceRecord::class, dayRange, granted).map {
+                OriginAmount(it.metadata.dataOrigin.packageName, it.distance.inMeters)
+            },
+        )
+
+        // Syremättnaden mäts framför allt under sömnen, så samma 24-timmarsfönster
+        // som sömnen används i stället för dygnet från midnatt.
+        val spo2 = readIfGranted(OxygenSaturationRecord::class, nightRange, granted)
+            .map { it.percentage.value }
+            .takeIf { it.isNotEmpty() }
+            ?.average()
+
+        // Blodtryck mäts sporadiskt (Samsung Health Monitor) — visa den senaste
+        // mätningen inom en vecka i stället för bara dagens.
+        val bloodPressure = readIfGranted(
+            BloodPressureRecord::class,
+            TimeRangeFilter.between(now.minus(Duration.ofDays(7)), now),
+            granted,
+        ).maxByOrNull { it.time }?.let {
+            BloodPressure(
+                systolic = it.systolic.inMillimetersOfMercury.roundToInt(),
+                diastolic = it.diastolic.inMillimetersOfMercury.roundToInt(),
+            )
+        }
 
         HealthData(
             steps = steps.takeIf { it > 0 },
             heartRateAvg = heartRateAvg,
             sleepDuration = sleepDuration,
+            sleepStages = sleepStages,
+            exerciseSessions = exercise?.sessions ?: 0,
+            exerciseDuration = exercise?.duration,
+            activeEnergyKcal = activeEnergy,
+            distanceMeters = distance,
+            oxygenSaturationAvg = spo2,
+            bloodPressure = bloodPressure,
         )
     }
 
@@ -213,10 +314,83 @@ internal data class OriginSteps(val origin: String, val count: Long)
  * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
  */
 internal fun mostCompleteStepSum(records: List<OriginSteps>): Long =
+    mostCompleteSum(records.map { OriginAmount(it.origin, it.count.toDouble()) })
+        ?.roundToLong()
+        ?: 0L
+
+/** Ett mätvärde knutet till sin källa (dataOrigin-paketnamn). */
+internal data class OriginAmount(val origin: String, val amount: Double)
+
+/**
+ * Samma per-källa-princip som [mostCompleteStepSum], generaliserad till de övriga
+ * summerbara måtten i HLS-8 (aktiva kalorier, sträcka): telefonen och Galaxy Watch
+ * skriver båda dagsvärden till Health Connect, och en summering över källor skulle
+ * dubbelräkna. Returnerar null om inga poster finns.
+ *
+ * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
+ */
+internal fun mostCompleteSum(records: List<OriginAmount>): Double? =
     records.groupBy { it.origin }
         .values
-        .maxOfOrNull { origin -> origin.sumOf(OriginSteps::count) }
-        ?: 0L
+        .maxOfOrNull { origin -> origin.sumOf(OriginAmount::amount) }
+
+/** Ett träningspass knutet till sin källa. */
+internal data class OriginSession(val origin: String, val duration: Duration)
+
+/** Antal träningspass och deras sammanlagda längd för dagen (HLS-8). */
+internal data class ExerciseTotals(val sessions: Int, val duration: Duration)
+
+/**
+ * Väljer den mest kompletta källans träningspass, av samma skäl som
+ * [mostCompleteStepSum]: samma pass kan skrivas både av telefonen och av klockan via
+ * Samsung Health, och en sammanslagning skulle räkna det två gånger. Källan med längst
+ * sammanlagd passtid vinner. Returnerar null om inga pass finns.
+ *
+ * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
+ */
+internal fun mostCompleteExercise(sessions: List<OriginSession>): ExerciseTotals? =
+    sessions.groupBy { it.origin }
+        .values
+        .map { origin ->
+            ExerciseTotals(
+                sessions = origin.size,
+                duration = origin.fold(Duration.ZERO) { acc, s -> acc.plus(s.duration) },
+            )
+        }
+        .maxByOrNull { it.duration }
+
+/** Ett sömnstadium med sin längd, hämtat ur en `SleepSessionRecord.Stage`. */
+internal data class StageSlice(val stage: Int, val duration: Duration)
+
+/**
+ * Summerar nattens sömnstadier per kategori (HLS-8). Health Connect har fler
+ * stadiekoder än de fyra vi visar: `AWAKE_IN_BED` och `OUT_OF_BED` räknas som vaken
+ * tid, medan `SLEEPING` (ospecificerad sömn) räknas som lätt sömn — Samsung skriver
+ * den när stadieindelningen saknas, och att tappa den skulle få nätter att se
+ * tommare ut än de är. `UNKNOWN` ignoreras.
+ *
+ * En kategori utan tid blir null i stället för `Duration.ZERO` så att UI visar "—"
+ * i stället för "0 min" när stadier saknas helt.
+ *
+ * Ren funktion (inga SDK-beroenden utöver stadiekonstanterna) för enhetstestning (regel 2).
+ */
+internal fun summarizeSleepStages(slices: List<StageSlice>): SleepStages {
+    fun sum(vararg stages: Int): Duration? = slices
+        .filter { it.stage in stages }
+        .fold(Duration.ZERO) { acc, slice -> acc.plus(slice.duration) }
+        .takeIf { !it.isZero && !it.isNegative }
+
+    return SleepStages(
+        deep = sum(SleepSessionRecord.STAGE_TYPE_DEEP),
+        rem = sum(SleepSessionRecord.STAGE_TYPE_REM),
+        light = sum(SleepSessionRecord.STAGE_TYPE_LIGHT, SleepSessionRecord.STAGE_TYPE_SLEEPING),
+        awake = sum(
+            SleepSessionRecord.STAGE_TYPE_AWAKE,
+            SleepSessionRecord.STAGE_TYPE_AWAKE_IN_BED,
+            SleepSessionRecord.STAGE_TYPE_OUT_OF_BED,
+        ),
+    )
+}
 
 /** Ett pulsprov med sin tidpunkt — underlag för vilopulsskattningen. */
 internal data class TimedBpm(val time: Instant, val bpm: Long)

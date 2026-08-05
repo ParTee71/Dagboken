@@ -5,7 +5,10 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
@@ -13,7 +16,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import se.partee71.dagboken.domain.model.BloodPressure
 import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.SleepStages
 import se.partee71.dagboken.util.retryOnRenderGlitch
 import java.time.Duration
 
@@ -48,6 +53,88 @@ class HealthScreenTest {
             composeRule.onNodeWithText("4200").assertIsDisplayed()
             composeRule.onNodeWithText("72 bpm").assertIsDisplayed()
             composeRule.onNodeWithText("7 h 30 min").assertIsDisplayed()
+        },
+    )
+
+    // ─── HLS-8: sömnstadier, träning och vitalvärden ─────────────────────────
+
+    @Test fun data_state_shows_sleep_stages_when_present() = render(
+        content = {
+            HealthScreenContent(
+                state = HealthUiState.Data(
+                    HealthData(
+                        sleepDuration = Duration.ofMinutes(450),
+                        sleepStages = SleepStages(
+                            deep  = Duration.ofMinutes(75),
+                            rem   = Duration.ofMinutes(90),
+                            light = Duration.ofMinutes(273),
+                            awake = Duration.ofMinutes(12),
+                        ),
+                    ),
+                ),
+                onBack = {}, onGrantPermissions = {}, onRetry = {}, onOpenHealthConnect = {},
+            )
+        },
+        assertions = {
+            composeRule.onNodeWithText("Djupsömn").assertIsDisplayed()
+            composeRule.onNodeWithText("1 h 15 min").assertIsDisplayed()
+            composeRule.onNodeWithText("REM-sömn").assertIsDisplayed()
+            composeRule.onNodeWithText("1 h 30 min").assertIsDisplayed()
+            composeRule.onNodeWithText("Vaken").assertIsDisplayed()
+            composeRule.onNodeWithText("12 min").assertIsDisplayed()
+        },
+    )
+
+    @Test fun data_state_hides_sleep_stage_rows_when_the_night_has_no_stages() = render(
+        content = {
+            HealthScreenContent(
+                state = HealthUiState.Data(HealthData(sleepDuration = Duration.ofMinutes(450))),
+                onBack = {}, onGrantPermissions = {}, onRetry = {}, onOpenHealthConnect = {},
+            )
+        },
+        assertions = {
+            composeRule.onNodeWithText("Total sömn").assertIsDisplayed()
+            composeRule.onNodeWithText("Djupsömn").assertDoesNotExist()
+        },
+    )
+
+    @Test fun data_state_shows_exercise_and_vitals() = render(
+        content = {
+            HealthScreenContent(
+                state = HealthUiState.Data(
+                    HealthData(
+                        exerciseSessions    = 2,
+                        exerciseDuration    = Duration.ofMinutes(65),
+                        activeEnergyKcal    = 431.4,
+                        distanceMeters      = 5234.0,
+                        oxygenSaturationAvg = 96.4,
+                        bloodPressure       = BloodPressure(systolic = 118, diastolic = 76),
+                    ),
+                ),
+                onBack = {}, onGrantPermissions = {}, onRetry = {}, onOpenHealthConnect = {},
+            )
+        },
+        assertions = {
+            composeRule.onNodeWithText("Träningspass (2 st)").assertIsDisplayed()
+            composeRule.onNodeWithText("1 h 5 min").assertIsDisplayed()
+            composeRule.onNodeWithText("431 kcal").assertIsDisplayed()
+            composeRule.onNodeWithText("${formatKilometers(5234.0)} km").assertIsDisplayed()
+            composeRule.onNodeWithText("96 %").assertIsDisplayed()
+            composeRule.onNodeWithText("118/76 mmHg").assertIsDisplayed()
+        },
+    )
+
+    @Test fun missing_optional_values_render_as_a_dash_instead_of_failing() = render(
+        content = {
+            HealthScreenContent(
+                state = HealthUiState.Data(HealthData(steps = 4200)),
+                onBack = {}, onGrantPermissions = {}, onRetry = {}, onOpenHealthConnect = {},
+            )
+        },
+        assertions = {
+            // Nekad valfri behörighet (HLS-8) ska visa "—", inte fälla skärmen.
+            composeRule.onNodeWithText("Blodtryck (senaste mätningen)").assertIsDisplayed()
+            composeRule.onAllNodesWithText("—").onFirst().assertIsDisplayed()
         },
     )
 

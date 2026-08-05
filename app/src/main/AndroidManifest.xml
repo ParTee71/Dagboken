@@ -8,10 +8,20 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Health Connect: läsbehörigheter (runtime-samtycke via Health Connect), epic #54 / spike #56 -->
+    <!-- Kärnan (HLS-3) — Hälsa-skärmen kräver samtliga för att visa data. -->
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <!-- Valfria typer (HLS-8) — nekad behörighet döljer bara den datapunkten. -->
+    <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_DISTANCE" />
+    <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION" />
+    <uses-permission android:name="android.permission.health.READ_BLOOD_PRESSURE" />
+    <!-- Historik (HLS-9): utan den lämnar Health Connect bara ut 30 dagar bakåt,
+         vilket tystade Trenders steg-/vilopulsdiagram för längre perioder. -->
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
 
     <!-- Paketsynlighet (Android 11+) så appen kan upptäcka/öppna Health Connect -->
     <queries>
