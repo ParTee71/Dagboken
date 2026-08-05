@@ -89,6 +89,79 @@ class SleepQualityTest {
         assertEquals(deepSleepBand(60, Sex.MAN).start, deepSleepBand(80, Sex.MAN).start, 0.001)
     }
 
+    // ─── Skalans nedre svansar ───────────────────────────────────────────────
+
+    @Test fun `deep sleep far below the norm scores near zero, not half marks`() {
+        // Nollpunkten ligger på halva normens nedre gräns (3,5 % vid 55 år). Med 0 %
+        // som nollpunkt gav 3,9 % djupsömn — en tydligt dålig natt — fortfarande 55 p.
+        val quality = scoreSleepQuality(
+            // 17 min av 440 min sömn ≈ 3,9 %.
+            idealNight().copy(
+                timeInBed = Duration.ofMinutes(500),
+                awake = Duration.ofMinutes(60),
+                deep = Duration.ofMinutes(17),
+            ),
+            age55,
+            Sex.MAN,
+        )!!
+        val deep = quality.components.first { it.kind == SleepQualityKind.DEEP }
+        assertTrue("Förväntade låg poäng, fick ${deep.score}", deep.score <= 15)
+    }
+
+    @Test fun `deep sleep at half the norm is the zero point`() {
+        val band = deepSleepBand(age55, Sex.MAN)
+        val sleepMinutes = 480.0
+        val quality = scoreSleepQuality(
+            idealNight().copy(
+                timeInBed = Duration.ofMinutes(480),
+                awake = Duration.ZERO,
+                deep = Duration.ofMinutes((band.start / 2.0 / 100.0 * sleepMinutes).toLong()),
+            ),
+            age55,
+            Sex.MAN,
+        )!!
+        assertEquals(0, quality.components.first { it.kind == SleepQualityKind.DEEP }.score)
+    }
+
+    @Test fun `an hour and a half awake scores zero regardless of age`() {
+        val quality = scoreSleepQuality(
+            idealNight().copy(timeInBed = Duration.ofHours(9), awake = Duration.ofMinutes(90)),
+            age55,
+            Sex.MAN,
+        )!!
+        assertEquals(0, quality.components.first { it.kind == SleepQualityKind.WASO }.score)
+    }
+
+    @Test fun `the clinical efficiency threshold no longer scores high`() {
+        // 85 % är gränsen för kliniskt störd sömn — den ska inte ge 75 p som förut.
+        val quality = scoreSleepQuality(
+            // 408 av 480 min = 85 %.
+            idealNight().copy(timeInBed = Duration.ofMinutes(480), awake = Duration.ofMinutes(72)),
+            age55,
+            Sex.MAN,
+        )!!
+        val efficiency = quality.components.first { it.kind == SleepQualityKind.EFFICIENCY }
+        assertEquals(67, efficiency.score)
+    }
+
+    @Test fun `a real mediocre night lands in the low eighties, not near ninety`() {
+        // Regression mot den natt som avslöjade att svansarna var för snälla:
+        // 7 h 20 min sömn, 88 % effektivitet, 60 min vaken, 3,9 % djupsömn, 21 % REM,
+        // 32 min spridning. Gav 89 p innan svansarna skärptes.
+        val quality = scoreSleepQuality(
+            SleepMeasurements(
+                timeInBed = Duration.ofMinutes(500),
+                awake = Duration.ofMinutes(60),
+                deep = Duration.ofMinutes(17),
+                rem = Duration.ofMinutes(92),
+                midpointSdMinutes = 32.0,
+            ),
+            age55,
+            Sex.MAN,
+        )!!
+        assertEquals(81, quality.score)
+    }
+
     @Test fun `deep sleep above the band is not penalised`() {
         // Mer djupsömn än normen är inget problem — bara mindre är det.
         val quality = scoreSleepQuality(idealNight().copy(deep = Duration.ofMinutes(140)), age55, Sex.MAN)!!
