@@ -175,10 +175,10 @@ class BackupRoundTripTest {
     }
 
     @Test fun `a backup written before the profile fields still decodes`() {
-        val encoded = json.encodeToString(assemble())
+        val encoded = json.encodeToString(BackupJson.serializer(), assemble())
             .replace(Regex(",\"birthYear\":\\d+"), "")
             .replace(Regex(",\"sex\":\"[^\"]*\""), "")
-        val restored = json.decodeFromString<BackupJson>(encoded)
+        val restored = json.decodeFromString(BackupJson.serializer(), encoded)
         assertEquals(null, restored.settings?.birthYear)
         assertEquals(null, restored.settings?.sex)
     }
