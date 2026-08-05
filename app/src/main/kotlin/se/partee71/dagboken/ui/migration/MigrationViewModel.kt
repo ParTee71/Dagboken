@@ -30,6 +30,7 @@ import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.data.room.entities.NoteEntity
 import se.partee71.dagboken.data.room.AppDatabase
+import se.partee71.dagboken.domain.model.Sex
 import se.partee71.dagboken.notifications.AlarmScheduler
 import javax.inject.Inject
 
@@ -183,6 +184,8 @@ class MigrationViewModel @Inject constructor(
             settings.themeDarkStart?.let { prefs.setThemeDarkStart(it) }
             settings.isDarkTheme?.let { prefs.setDarkTheme(it) }
             settings.dynamicColor?.let { prefs.setDynamicColor(it) }
+            settings.birthYear?.let { prefs.setBirthYear(it) }
+            settings.sex?.takeIf { it.isNotBlank() }?.let { prefs.setSex(Sex.fromStorageKey(it)) }
         }
 
         // Larmen sattes vid appstart, innan de återställda tiderna fanns — utan detta

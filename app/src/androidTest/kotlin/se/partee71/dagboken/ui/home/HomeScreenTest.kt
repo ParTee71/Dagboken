@@ -606,4 +606,5 @@ private class FakeHealthRepo(private val weekly: WeeklyHealth? = null) : HealthC
     override suspend fun readToday() = HealthData()
     override suspend fun readWeeklyHealth() = weekly ?: WeeklyHealth()
     override suspend fun readHealthRange(days: Int) = weekly ?: WeeklyHealth()
+    override suspend fun readSleepMeasurements(nights: Int) = null
 }

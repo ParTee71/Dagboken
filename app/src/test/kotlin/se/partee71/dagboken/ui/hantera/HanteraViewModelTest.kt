@@ -29,6 +29,7 @@ import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.domain.model.Sex
 import se.partee71.dagboken.notifications.AlarmScheduler
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -45,6 +46,8 @@ class HanteraViewModelTest {
     private val symptomOptionsFlow   = MutableStateFlow(listOf(SymptomOption("Huvudvärk")))
     private val handelseTypOptionsFlow = MutableStateFlow(listOf(SymptomOption("Yrsel")))
     private val medicinFavoriterFlow = MutableStateFlow<List<Favorit>>(emptyList())
+    private val birthYearFlow = MutableStateFlow<Int?>(null)
+    private val sexFlow = MutableStateFlow(Sex.EJ_ANGIVET)
 
     private lateinit var aktiviteterRepo: AktiviteterRepository
     private lateinit var handelserRepo: HandelserRepository
@@ -65,6 +68,8 @@ class HanteraViewModelTest {
             every { aktivitetOptions } returns aktivitetOptionsFlow
             every { symptomOptions } returns symptomOptionsFlow
             every { handelseTypOptions } returns handelseTypOptionsFlow
+            every { birthYear } returns birthYearFlow
+            every { sex } returns sexFlow
         }
         authRepo = mockk(relaxed = true) {
             every { authStateFlow } returns MutableStateFlow(null)
@@ -243,6 +248,44 @@ class HanteraViewModelTest {
 
         coVerify { prefs.setPeriodReminderTime("07:15") }
         coVerify { alarmScheduler.schedulePeriodReminder("07:15") }
+    }
+
+    // ─── Profil (HLS-11) ─────────────────────────────────────────────────────
+
+    @Test fun `a plausible birth year is saved`() = runTest(testDispatcher) {
+        viewModel.setBirthYear(1971)
+        coVerify { prefs.setBirthYear(1971) }
+    }
+
+    @Test fun `an implausible birth year clears the value instead of storing nonsense`() = runTest(testDispatcher) {
+        // Ett orimligt årtal skulle ge en ålder som tyst mäter sömnen mot fel norm.
+        viewModel.setBirthYear(1200)
+        coVerify { prefs.setBirthYear(null) }
+    }
+
+    @Test fun `clearing the birth year is passed through`() = runTest(testDispatcher) {
+        viewModel.setBirthYear(null)
+        coVerify { prefs.setBirthYear(null) }
+    }
+
+    @Test fun `sex is saved`() = runTest(testDispatcher) {
+        viewModel.setSex(Sex.MAN)
+        coVerify { prefs.setSex(Sex.MAN) }
+    }
+
+    @Test fun `profile values from prefs reach the ui state`() = runTest {
+        every { prefs.birthYear } returns flowOf(1971)
+        every { prefs.sex } returns flowOf(Sex.MAN)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo, aktiviteterRepo, handelserRepo, sjukdomarRepo)
+
+        assertEquals(1971, viewModel.state.value.birthYear)
+        assertEquals(Sex.MAN, viewModel.state.value.sex)
+    }
+
+    @Test fun `an unset profile leaves the state at its neutral defaults`() = runTest {
+        // Appen ska fungera utan att något uppges — normen faller tillbaka på mellanvärdet.
+        assertEquals(null, viewModel.state.value.birthYear)
+        assertEquals(Sex.EJ_ANGIVET, viewModel.state.value.sex)
     }
 
     @Test fun `periodReminderTime from prefs reaches the ui state`() = runTest {

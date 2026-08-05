@@ -21,7 +21,9 @@ import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
 import se.partee71.dagboken.data.repository.MedicinerRepository
 import se.partee71.dagboken.data.repository.SjukdomarRepository
+import se.partee71.dagboken.domain.model.BIRTH_YEAR_RANGE
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.domain.model.Sex
 import se.partee71.dagboken.notifications.AlarmScheduler
 import javax.inject.Inject
 
@@ -48,6 +50,9 @@ data class HanteraUiState(
     val googleAccountPhotoUrl: String? = null,
     val signInFailed: Boolean = false,
     val isSigningIn: Boolean = false,
+    /** Profil (HLS-11) — styr åldersnormerna för sömnkvaliteten. Null = inte angivet. */
+    val birthYear: Int? = null,
+    val sex: Sex = Sex.EJ_ANGIVET,
 )
 
 @HiltViewModel
@@ -136,8 +141,11 @@ class HanteraViewModel @Inject constructor(
                 newHandelseTypOption  = newOptions.handelseTyp,
             )
         },
-    ) { theme, notif, auth ->
+        combine(prefs.birthYear, prefs.sex) { year, sex -> year to sex },
+    ) { theme, notif, auth, (birthYear, sex) ->
         auth.copy(
+            birthYear                = birthYear,
+            sex                      = sex,
             isDarkTheme              = theme.dark,
             isDynamicColor           = theme.dynamic,
             themeMode                = theme.mode,
@@ -233,6 +241,17 @@ class HanteraViewModel @Inject constructor(
     }
 
     /** Klockslag för periodpåminnelsen (NOT-13) — larmet flyttas direkt. */
+    /** Sparar födelseåret; ogiltiga eller tomma värden rensar det (HLS-11). */
+    fun setBirthYear(year: Int?) {
+        viewModelScope.launch {
+            prefs.setBirthYear(year?.takeIf { it in BIRTH_YEAR_RANGE })
+        }
+    }
+
+    fun setSex(sex: Sex) {
+        viewModelScope.launch { prefs.setSex(sex) }
+    }
+
     fun setPeriodReminderTime(time: String) {
         viewModelScope.launch {
             prefs.setPeriodReminderTime(time)
