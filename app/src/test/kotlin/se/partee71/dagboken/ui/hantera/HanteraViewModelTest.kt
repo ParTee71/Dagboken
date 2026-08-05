@@ -247,6 +247,7 @@ class HanteraViewModelTest {
         viewModel.setPeriodReminderTime("07:15")
 
         coVerify { prefs.setPeriodReminderTime("07:15") }
+        coVerify { alarmScheduler.schedulePeriodReminder("07:15") }
     }
 
     // ─── Profil (HLS-11) ─────────────────────────────────────────────────────
@@ -272,12 +273,19 @@ class HanteraViewModelTest {
         coVerify { prefs.setSex(Sex.MAN) }
     }
 
-    @Test fun `profile values reach the ui state`() = runTest(testDispatcher) {
-        birthYearFlow.value = 1971
-        sexFlow.value = Sex.MAN
+    @Test fun `profile values from prefs reach the ui state`() = runTest {
+        every { prefs.birthYear } returns flowOf(1971)
+        every { prefs.sex } returns flowOf(Sex.MAN)
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo, aktiviteterRepo, handelserRepo, sjukdomarRepo)
+
         assertEquals(1971, viewModel.state.value.birthYear)
         assertEquals(Sex.MAN, viewModel.state.value.sex)
-        coVerify { alarmScheduler.schedulePeriodReminder("07:15") }
+    }
+
+    @Test fun `an unset profile leaves the state at its neutral defaults`() = runTest {
+        // Appen ska fungera utan att något uppges — normen faller tillbaka på mellanvärdet.
+        assertEquals(null, viewModel.state.value.birthYear)
+        assertEquals(Sex.EJ_ANGIVET, viewModel.state.value.sex)
     }
 
     @Test fun `periodReminderTime from prefs reaches the ui state`() = runTest {
