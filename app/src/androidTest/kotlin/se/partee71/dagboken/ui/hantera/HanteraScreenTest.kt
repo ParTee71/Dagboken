@@ -35,6 +35,7 @@ import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.domain.model.Sex
 import se.partee71.dagboken.domain.usecase.EnsureTodayEntriesUseCase
 import se.partee71.dagboken.notifications.AlarmScheduler
 import se.partee71.dagboken.util.retryOnRenderGlitch
@@ -327,6 +328,46 @@ class HanteraScreenTest {
         if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
             railNodes.onFirst().performClick()
             composeRule.waitForIdle()
+        }
+    }
+
+    // ─── Profil (HLS-11) ──────────────────────────────────────────────────────
+
+    private fun navigateToProfileSection() {
+        val railNodes = composeRule.onAllNodes(hasContentDescription("Profil"))
+        if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
+            railNodes.onFirst().performClick()
+            composeRule.waitForIdle()
+        }
+    }
+
+    @Test fun profile_section_saves_a_plausible_birth_year() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            navigateToProfileSection()
+            composeRule.onNodeWithText("Födelseår").performScrollTo().performTextInput("1971")
+            composeRule.waitForIdle()
+            assert(vm.state.value.birthYear == 1971) {
+                "Expected birthYear=1971 but got ${vm.state.value.birthYear}"
+            }
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun profile_section_sets_sex() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            navigateToProfileSection()
+            composeRule.onNodeWithText("Man").performScrollTo().performClick()
+            composeRule.waitForIdle()
+            assert(vm.state.value.sex == Sex.MAN) {
+                "Expected sex=MAN but got ${vm.state.value.sex}"
+            }
+        } finally {
+            tearDown()
         }
     }
 

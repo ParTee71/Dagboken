@@ -21,11 +21,14 @@ import se.partee71.dagboken.domain.model.BloodPressure
 import se.partee71.dagboken.domain.model.DailyRestingHeartRate
 import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.SleepMeasurements
 import se.partee71.dagboken.domain.model.SleepStages
 import se.partee71.dagboken.domain.model.WeeklyHealth
+import se.partee71.dagboken.domain.model.sleepMidpointSdMinutes
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -68,7 +71,19 @@ interface HealthConnectRepository {
 
     /** Steg- och vilopulstrend för [days] dagar bakåt — Trender-diagrammen (TRD-11). Kastar vid fel. */
     suspend fun readHealthRange(days: Int): WeeklyHealth
+
+    /**
+     * Underlaget för sömnkvaliteten (HLS-10): senaste nattens sömn plus de rullande
+     * måtten som kräver flera nätter (regelbundenhet, pulsbaslinje). [nights] styr hur
+     * långt bakåt regelbundenheten och baslinjen räknas.
+     *
+     * Returnerar null om ingen sömnsession finns för senaste dygnet. Kastar vid fel.
+     */
+    suspend fun readSleepMeasurements(nights: Int = DEFAULT_SLEEP_QUALITY_NIGHTS): SleepMeasurements?
 }
+
+/** Fönstret för regelbundenhet och pulsbaslinje i sömnkvaliteten (HLS-10). */
+const val DEFAULT_SLEEP_QUALITY_NIGHTS = 14
 
 /** Health Connect-tillgänglighet, mappad från [HealthConnectClient.getSdkStatus]. */
 enum class HealthAvailability { AVAILABLE, NOT_INSTALLED, UPDATE_REQUIRED }
@@ -297,7 +312,90 @@ class HealthConnectRepositoryImpl(
             restingHeartRate = restingHr,
         )
     }
+
+    override suspend fun readSleepMeasurements(nights: Int): SleepMeasurements? = withContext(ioDispatcher) {
+        val now = Instant.now()
+        val periodStart = now.minus(Duration.ofDays(nights.toLong()))
+
+        // Startgränsen backas ett dygn så en session som börjar kvällen före perioden
+        // ändå kommer med i sin helhet (samma princip som vilopulsskattningen).
+        val sessions = readAllRecords(
+            SleepSessionRecord::class,
+            TimeRangeFilter.between(periodStart.minus(Duration.ofHours(24)), now),
+        )
+        // Senaste natten: den sömnsession som slutade senast inom det senaste dygnet.
+        val lastNight = sessions
+            .filter { it.endTime.isAfter(now.minus(Duration.ofHours(24))) }
+            .maxByOrNull { it.endTime }
+            ?: return@withContext null
+
+        val stages = lastNight.stages.map { StageSlice(it.stage, Duration.between(it.startTime, it.endTime)) }
+        val summary = summarizeSleepStages(stages)
+
+        val zone = ZoneId.systemDefault()
+        val midpointSd = sleepMidpointSdMinutes(
+            nightlyMidpoints(
+                sessions
+                    .filter { !it.endTime.isBefore(periodStart) }
+                    .map { SleepWindow(it.startTime, it.endTime) },
+                zone,
+            ),
+        )
+
+        // Ett svep över periodens pulsprover räcker till båda måtten: nattens sovpuls
+        // och den vakna baslinjen som den jämförs mot.
+        val sleepWindows = sessions.map { SleepWindow(it.startTime, it.endTime) }
+        val samples = timedBpmForRange(TimeRangeFilter.between(periodStart, now))
+        val lastNightWindow = SleepWindow(lastNight.startTime, lastNight.endTime)
+        val sleepingHr = samples
+            .filter { lastNightWindow.contains(it.time) }
+            .map { it.bpm }
+            .takeIf { it.isNotEmpty() }
+            ?.average()
+            ?.roundToLong()
+        val baselineHr = estimateRestingHeartRate(samples, sleepWindows)
+
+        val granted = runCatching { client.permissionController.getGrantedPermissions() }
+            .getOrDefault(emptySet())
+        val spo2 = readIfGranted(
+            OxygenSaturationRecord::class,
+            TimeRangeFilter.between(lastNight.startTime, lastNight.endTime),
+            granted,
+        ).map { it.percentage.value }
+            .takeIf { it.isNotEmpty() }
+            ?.average()
+
+        SleepMeasurements(
+            timeInBed = Duration.between(lastNight.startTime, lastNight.endTime),
+            awake = summary.awake,
+            deep = summary.deep,
+            rem = summary.rem,
+            midpointSdMinutes = midpointSd,
+            meanOxygenSaturation = spo2,
+            sleepingHeartRate = sleepingHr,
+            baselineRestingHeartRate = baselineHr,
+        )
+    }
 }
+
+/**
+ * En sömnmittpunkt per natt, som klockslag. Flera sessioner samma natt (t.ex. en
+ * avbruten sömn som Samsung delar i två) skulle annars räknas som två olika
+ * läggtider och blåsa upp spridningen — därför väljs den längsta sessionen per natt.
+ * Natten dateras efter sessionens **slut**, så en session som korsar midnatt hamnar
+ * på morgonens datum i stället för att bli en egen natt.
+ *
+ * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
+ */
+internal fun nightlyMidpoints(windows: List<SleepWindow>, zone: ZoneId): List<LocalTime> =
+    windows
+        .groupBy { it.end.atZone(zone).toLocalDate() }
+        .values
+        .mapNotNull { night -> night.maxByOrNull { Duration.between(it.start, it.end) } }
+        .map { window ->
+            val middle = window.start.plus(Duration.between(window.start, window.end).dividedBy(2))
+            middle.atZone(zone).toLocalTime()
+        }
 
 /** En stegpost knuten till sin källa (dataOrigin-paketnamn). */
 internal data class OriginSteps(val origin: String, val count: Long)

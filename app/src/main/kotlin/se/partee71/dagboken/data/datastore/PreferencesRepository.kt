@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import se.partee71.dagboken.domain.model.Sex
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -67,6 +68,9 @@ class PreferencesRepository @Inject constructor(
         val PERIOD_REMINDER_TIME     = stringPreferencesKey("period_reminder_time")
         // Backup
         val BACKUP_NEEDS_AUTH   = booleanPreferencesKey("backup_needs_auth")
+        // Profil (HLS-11) — åldersnormerna för sömnkvalitet
+        val BIRTH_YEAR          = intPreferencesKey("birth_year")
+        val SEX                 = stringPreferencesKey("sex")
     }
 
     val migrationDone: Flow<Boolean> = dataStore.data
@@ -122,6 +126,14 @@ class PreferencesRepository @Inject constructor(
     val backupNeedsAuth: Flow<Boolean> = dataStore.data
         .map { it[Keys.BACKUP_NEEDS_AUTH] ?: false }
 
+    /** Födelseår för sömnkvalitetens åldersnormer (HLS-11). Null = inte angivet. */
+    val birthYear: Flow<Int?> = dataStore.data
+        .map { it[Keys.BIRTH_YEAR] }
+
+    /** Kön för sömnkvalitetens normer (HLS-11). Saknas värdet gäller [Sex.EJ_ANGIVET]. */
+    val sex: Flow<Sex> = dataStore.data
+        .map { Sex.fromStorageKey(it[Keys.SEX]) }
+
     suspend fun setMigrationDone(done: Boolean) {
         dataStore.edit { it[Keys.MIGRATION_DONE] = done }
     }
@@ -176,6 +188,17 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setBackupNeedsAuth(needsAuth: Boolean) {
         dataStore.edit { it[Keys.BACKUP_NEEDS_AUTH] = needsAuth }
+    }
+
+    /** Sparar födelseåret, eller rensar det när [year] är null. */
+    suspend fun setBirthYear(year: Int?) {
+        dataStore.edit { prefs ->
+            if (year == null) prefs.remove(Keys.BIRTH_YEAR) else prefs[Keys.BIRTH_YEAR] = year
+        }
+    }
+
+    suspend fun setSex(sex: Sex) {
+        dataStore.edit { it[Keys.SEX] = sex.storageKey }
     }
 }
 

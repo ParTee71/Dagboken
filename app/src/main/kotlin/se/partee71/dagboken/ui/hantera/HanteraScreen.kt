@@ -59,7 +59,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -108,7 +111,9 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.data.datastore.SymptomOption
+import se.partee71.dagboken.domain.model.BIRTH_YEAR_RANGE
 import se.partee71.dagboken.domain.model.Favorit
+import se.partee71.dagboken.domain.model.Sex
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
@@ -163,6 +168,7 @@ fun HanteraScreen(
         SectionDef(Icons.Filled.LocalHospital, stringResource(R.string.hantera_sjukdomar_section),      stringResource(R.string.hantera_sjukdomar_section_desc)),
         SectionDef(Icons.AutoMirrored.Outlined.EventNote, stringResource(R.string.hantera_schema_section), stringResource(R.string.hantera_schema_section_desc)),
         SectionDef(Icons.Filled.MonitorHeart,  stringResource(R.string.hantera_halsa_section),          stringResource(R.string.hantera_halsa_section_desc)),
+        SectionDef(Icons.Filled.Person,        stringResource(R.string.settings_profile_section),       stringResource(R.string.settings_profile_section_desc)),
         SectionDef(Icons.Filled.Palette,       stringResource(R.string.settings_theme_section),         stringResource(R.string.settings_theme_section_desc)),
         SectionDef(Icons.Filled.Notifications, stringResource(R.string.settings_notifications_section), stringResource(R.string.settings_notifications_section_desc)),
         SectionDef(Icons.Filled.DirectionsRun, stringResource(R.string.settings_aktivitet_section),     stringResource(R.string.settings_aktivitet_section_desc)),
@@ -212,6 +218,14 @@ fun HanteraScreen(
                     description = stringResource(R.string.hantera_halsa_section_desc),
                     buttonLabel = stringResource(R.string.hantera_halsa_open),
                     onClick     = onOpenHalsa,
+                )
+            },
+            {
+                ProfileCard(
+                    birthYear      = state.birthYear,
+                    sex            = state.sex,
+                    onSetBirthYear = vm::setBirthYear,
+                    onSetSex       = vm::setSex,
                 )
             },
             {
@@ -569,6 +583,73 @@ private fun NavCard(
                 Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(buttonLabel)
+            }
+        }
+    }
+}
+
+/**
+ * Profil (HLS-11): födelseår och kön. Enda syftet är åldersnormerna som sömnkvaliteten
+ * jämförs mot (HLS-10) — därför säger kortet det rakt ut, så fälten inte ser ut som
+ * insamling utan ändamål.
+ */
+@Composable
+internal fun ProfileCard(
+    birthYear: Int?,
+    sex: Sex,
+    onSetBirthYear: (Int?) -> Unit,
+    onSetSex: (Sex) -> Unit,
+) {
+    // Egen textredigering så ett halvskrivet årtal inte sparas vid varje tangenttryck.
+    var input by remember(birthYear) { mutableStateOf(birthYear?.toString() ?: "") }
+    val parsed = input.toIntOrNull()
+    val isInvalid = input.isNotBlank() && (parsed == null || parsed !in BIRTH_YEAR_RANGE)
+
+    DagbokenCard {
+        Column {
+            SectionHeader(stringResource(R.string.settings_profile_section))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Text(
+                stringResource(R.string.settings_profile_section_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = input,
+                onValueChange = { raw ->
+                    input = raw.filter { it.isDigit() }.take(4)
+                    val year = input.toIntOrNull()
+                    // Tomt fält rensar värdet; ogiltigt årtal sparas inte alls.
+                    if (input.isBlank()) onSetBirthYear(null)
+                    else if (year != null && year in BIRTH_YEAR_RANGE) onSetBirthYear(year)
+                },
+                label = { Text(stringResource(R.string.settings_profile_birth_year)) },
+                isError = isInvalid,
+                supportingText = if (isInvalid) {
+                    { Text(stringResource(R.string.settings_profile_birth_year_invalid)) }
+                } else {
+                    null
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(12.dp))
+            val options = listOf(
+                Sex.MAN to stringResource(R.string.settings_profile_sex_man),
+                Sex.KVINNA to stringResource(R.string.settings_profile_sex_woman),
+                Sex.EJ_ANGIVET to stringResource(R.string.settings_profile_sex_unspecified),
+            )
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                options.forEachIndexed { index, (value, label) ->
+                    SegmentedButton(
+                        selected = sex == value,
+                        onClick  = { onSetSex(value) },
+                        shape    = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                        label    = { Text(label) },
+                    )
+                }
             }
         }
     }

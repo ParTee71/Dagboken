@@ -43,6 +43,9 @@ data class SettingsBackup(
     val themeDarkStart: Int? = null,
     val isDarkTheme: Boolean? = null,
     val dynamicColor: Boolean? = null,
+    // Profil (HLS-11) — styr åldersnormerna för sömnkvalitet. Null i äldre backupar.
+    val birthYear: Int? = null,
+    val sex: String? = null,
 )
 
 @Serializable

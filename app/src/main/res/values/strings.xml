@@ -253,6 +253,14 @@
     <string name="settings_import_section_desc">Importera data från JSON</string>
     <string name="settings_import_body">Hämta säkerhetskopia från Google Drive eller välj en JSON-fil.</string>
     <string name="settings_import_button">Importera från säkerhetskopia</string>
+    <!-- Profil (HLS-11) — enda syftet är åldersnormerna för sömnkvalitet -->
+    <string name="settings_profile_section">Profil</string>
+    <string name="settings_profile_section_desc">Födelseår och kön</string>
+    <string name="settings_profile_birth_year">Födelseår</string>
+    <string name="settings_profile_birth_year_invalid">Ange ett rimligt födelseår</string>
+    <string name="settings_profile_sex_man">Man</string>
+    <string name="settings_profile_sex_woman">Kvinna</string>
+    <string name="settings_profile_sex_unspecified">Ej angivet</string>
     <string name="settings_theme_section">Tema-schema</string>
     <string name="settings_theme_section_desc">Ljust, mörkt eller tidsbaserat</string>
     <string name="theme_light">Ljust</string>
@@ -339,6 +347,19 @@
     <string name="halsa_section_vitals">Vitalvärden</string>
     <string name="halsa_steps">Steg idag</string>
     <string name="halsa_heart_rate">Puls (snitt idag)</string>
+    <string name="halsa_sleep_quality">Sömnkvalitet (0–100)</string>
+    <string name="halsa_sleep_quality_needs_profile">Ange födelseår under Hantera → Profil för att få sömnkvalitet</string>
+    <string name="halsa_sleep_quality_breakdown">Så räknas poängen</string>
+    <string name="halsa_sleep_quality_component_value">%1$d p (vikt %2$d %%)</string>
+    <string name="halsa_sleep_quality_disclaimer">Poängen väger sömnlängd, effektivitet, regelbundenhet, djupsömn, REM och vaken tid mot åldersnormer. Den är ett hälsomått för egen uppföljning — inte en medicinsk bedömning.</string>
+    <string name="halsa_component_duration">Sömnlängd</string>
+    <string name="halsa_component_efficiency">Sömneffektivitet</string>
+    <string name="halsa_component_regularity">Regelbundenhet</string>
+    <string name="halsa_component_deep">Djupsömn mot åldersnorm</string>
+    <string name="halsa_component_rem">REM mot åldersnorm</string>
+    <string name="halsa_component_waso">Vaken tid efter insomnande</string>
+    <string name="halsa_flag_low_spo2">Låg syremättnad under natten — ta upp det med vården</string>
+    <string name="halsa_flag_high_sleeping_hr">Sovpulsen ligger över din vanliga nivå</string>
     <string name="halsa_sleep_total">Total sömn</string>
     <string name="halsa_sleep_deep">Djupsömn</string>
     <string name="halsa_sleep_rem">REM-sömn</string>

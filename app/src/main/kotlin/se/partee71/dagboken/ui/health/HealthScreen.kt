@@ -17,15 +17,20 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,8 +44,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.SleepFlag
+import se.partee71.dagboken.domain.model.SleepQualityKind
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.components.StatPill
 import java.time.Duration
@@ -136,14 +144,15 @@ internal fun HealthScreenContent(
                     },
                 )
 
-                is HealthUiState.Data -> HealthDataContent(state.health)
+                is HealthUiState.Data -> HealthDataContent(state)
             }
         }
     }
 }
 
 @Composable
-private fun HealthDataContent(health: HealthData) {
+private fun HealthDataContent(state: HealthUiState.Data) {
+    val health = state.health
     val cs = MaterialTheme.colorScheme
 
     Column(
@@ -170,6 +179,7 @@ private fun HealthDataContent(health: HealthData) {
         )
 
         SectionHeader(stringResource(R.string.halsa_section_sleep))
+        SleepQualitySection(state)
         HealthPill(
             icon  = Icons.Filled.Bedtime,
             value = health.sleepDuration?.let { formatDuration(it) },
@@ -226,6 +236,86 @@ private fun HealthDataContent(health: HealthData) {
             containerColor = cs.secondaryContainer,
             contentColor   = cs.onSecondaryContainer,
         )
+    }
+}
+
+/**
+ * Sömnkvalitet (HLS-10): poängen som `StatPill`, delkomponenterna i en [Foldout]
+ * (båda delade komponenter, regel 4) och eventuella varningar som egna rader.
+ * Saknas födelseår visas i stället en uppmaning — poängen är åldersjusterad och blir
+ * missvisande mot fel norm.
+ */
+@Composable
+private fun SleepQualitySection(state: HealthUiState.Data) {
+    val cs = MaterialTheme.colorScheme
+
+    if (state.birthYearMissing) {
+        HealthPill(
+            icon  = Icons.Filled.Insights,
+            value = null,
+            label = stringResource(R.string.halsa_sleep_quality_needs_profile),
+            containerColor = cs.surfaceVariant,
+            contentColor   = cs.onSurfaceVariant,
+        )
+        return
+    }
+
+    val quality = state.sleepQuality ?: return
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    HealthPill(
+        icon  = Icons.Filled.Insights,
+        value = quality.score.toString(),
+        label = stringResource(R.string.halsa_sleep_quality),
+        containerColor = cs.primaryContainer,
+        contentColor   = cs.onPrimaryContainer,
+    )
+
+    quality.flags.forEach { flag ->
+        HealthPill(
+            icon  = Icons.Filled.Warning,
+            value = null,
+            label = stringResource(
+                when (flag) {
+                    SleepFlag.LOW_OXYGEN_SATURATION -> R.string.halsa_flag_low_spo2
+                    SleepFlag.ELEVATED_SLEEPING_HEART_RATE -> R.string.halsa_flag_high_sleeping_hr
+                },
+            ),
+            containerColor = cs.errorContainer,
+            contentColor   = cs.onErrorContainer,
+        )
+    }
+
+    Foldout(
+        title    = stringResource(R.string.halsa_sleep_quality_breakdown),
+        expanded = expanded,
+        onToggle = { expanded = !expanded },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            quality.components.forEach { part ->
+                HealthPill(
+                    icon  = Icons.Filled.Insights,
+                    value = stringResource(R.string.halsa_sleep_quality_component_value, part.score, part.weight),
+                    label = stringResource(
+                        when (part.kind) {
+                            SleepQualityKind.DURATION -> R.string.halsa_component_duration
+                            SleepQualityKind.EFFICIENCY -> R.string.halsa_component_efficiency
+                            SleepQualityKind.REGULARITY -> R.string.halsa_component_regularity
+                            SleepQualityKind.DEEP -> R.string.halsa_component_deep
+                            SleepQualityKind.REM -> R.string.halsa_component_rem
+                            SleepQualityKind.WASO -> R.string.halsa_component_waso
+                        },
+                    ),
+                    containerColor = cs.surfaceVariant,
+                    contentColor   = cs.onSurfaceVariant,
+                )
+            }
+            Text(
+                text  = stringResource(R.string.halsa_sleep_quality_disclaimer),
+                style = MaterialTheme.typography.bodySmall,
+                color = cs.onSurfaceVariant,
+            )
+        }
     }
 }
 

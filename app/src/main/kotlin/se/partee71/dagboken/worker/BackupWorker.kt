@@ -66,6 +66,8 @@ class BackupWorker @AssistedInject constructor(
                     themeDarkStart           = prefs.themeDarkStart.first(),
                     isDarkTheme              = prefs.isDarkTheme.first(),
                     dynamicColor             = prefs.dynamicColor.first(),
+                    birthYear                = prefs.birthYear.first(),
+                    sex                      = prefs.sex.first().storageKey,
                 ),
             )
 

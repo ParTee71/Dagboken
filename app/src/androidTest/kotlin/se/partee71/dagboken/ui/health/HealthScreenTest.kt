@@ -18,6 +18,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.domain.model.BloodPressure
 import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.SleepFlag
+import se.partee71.dagboken.domain.model.SleepQuality
+import se.partee71.dagboken.domain.model.SleepQualityComponent
+import se.partee71.dagboken.domain.model.SleepQualityKind
 import se.partee71.dagboken.domain.model.SleepStages
 import se.partee71.dagboken.util.retryOnRenderGlitch
 import java.time.Duration
@@ -139,6 +143,76 @@ class HealthScreenTest {
             composeRule.onNodeWithText("Blodtryck (senaste mätningen)")
                 .performScrollTo()
                 .assertIsDisplayed()
+        },
+    )
+
+    // ─── HLS-10: sömnkvalitet ────────────────────────────────────────────────
+
+    @Test fun sleep_quality_score_and_breakdown_are_shown() = render(
+        content = {
+            HealthScreenContent(
+                state = HealthUiState.Data(
+                    health = HealthData(sleepDuration = Duration.ofMinutes(450)),
+                    sleepQuality = SleepQuality(
+                        score = 82,
+                        components = listOf(
+                            SleepQualityComponent(SleepQualityKind.DURATION, score = 100, weight = 25, measured = 7.6),
+                            SleepQualityComponent(SleepQualityKind.REGULARITY, score = 60, weight = 20, measured = 54.0),
+                        ),
+                    ),
+                ),
+                onBack = {}, onGrantPermissions = {}, onRetry = {}, onOpenHealthConnect = {},
+            )
+        },
+        assertions = {
+            composeRule.onNodeWithText("Sömnkvalitet (0–100)").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("82").assertIsDisplayed()
+            // Delkomponenterna ligger bakom en Foldout och syns först när den fällts ut.
+            composeRule.onNodeWithText("Sömnlängd").assertDoesNotExist()
+            composeRule.onNodeWithText("Så räknas poängen").performScrollTo().performClick()
+            composeRule.onNodeWithText("Sömnlängd").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Regelbundenhet").performScrollTo().assertIsDisplayed()
+        },
+    )
+
+    @Test fun sleep_quality_flags_are_shown_next_to_the_score() = render(
+        content = {
+            HealthScreenContent(
+                state = HealthUiState.Data(
+                    health = HealthData(sleepDuration = Duration.ofMinutes(450)),
+                    sleepQuality = SleepQuality(
+                        score = 74,
+                        components = listOf(
+                            SleepQualityComponent(SleepQualityKind.DURATION, score = 100, weight = 25, measured = 7.6),
+                        ),
+                        flags = listOf(SleepFlag.LOW_OXYGEN_SATURATION),
+                    ),
+                ),
+                onBack = {}, onGrantPermissions = {}, onRetry = {}, onOpenHealthConnect = {},
+            )
+        },
+        assertions = {
+            composeRule.onNodeWithText("Låg syremättnad under natten — ta upp det med vården")
+                .performScrollTo()
+                .assertIsDisplayed()
+        },
+    )
+
+    @Test fun without_a_birth_year_the_screen_asks_for_it_instead_of_a_score() = render(
+        content = {
+            HealthScreenContent(
+                state = HealthUiState.Data(
+                    health = HealthData(sleepDuration = Duration.ofMinutes(450)),
+                    birthYearMissing = true,
+                ),
+                onBack = {}, onGrantPermissions = {}, onRetry = {}, onOpenHealthConnect = {},
+            )
+        },
+        assertions = {
+            composeRule.onNodeWithText("Ange födelseår under Hantera → Profil för att få sömnkvalitet")
+                .performScrollTo()
+                .assertIsDisplayed()
+            composeRule.onNodeWithText("Sömnkvalitet (0–100)").assertDoesNotExist()
         },
     )
 

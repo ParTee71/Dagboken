@@ -90,6 +90,8 @@ class BackupRoundTripTest {
         themeDarkStart = 22,
         isDarkTheme = false,
         dynamicColor = false,
+        birthYear = 1971,
+        sex = "man",
     )
 
     private fun assemble(): BackupJson = BackupAssembler.assemble(
@@ -164,6 +166,23 @@ class BackupRoundTripTest {
         assertEquals(settings, restored.settings)
     }
 
+    @Test fun `profile settings survive the round trip`() {
+        // HLS-11: födelseår och kön styr sömnkvalitetens åldersnormer. Tappas de vid
+        // enhetsbyte mäts nätterna plötsligt mot fel norm, utan att något syns.
+        val restored = roundTrip(assemble()).settings!!
+        assertEquals(1971, restored.birthYear)
+        assertEquals("man", restored.sex)
+    }
+
+    @Test fun `a backup written before the profile fields still decodes`() {
+        val encoded = json.encodeToString(assemble())
+            .replace(Regex(",\"birthYear\":\\d+"), "")
+            .replace(Regex(",\"sex\":\"[^\"]*\""), "")
+        val restored = json.decodeFromString<BackupJson>(encoded)
+        assertEquals(null, restored.settings?.birthYear)
+        assertEquals(null, restored.settings?.sex)
+    }
+
     @Test fun `v1 options list is still written so older app versions can read the backup`() {
         val restored = roundTrip(assemble())
         assertEquals(listOf("Promenad", "Jobb"), restored.aktiviteterOptions)
@@ -228,6 +247,8 @@ class BackupRoundTripTest {
             "episodId", "svarighetsgrad",
             // Notes + inställningar
             "notes", "entityId", "settings", "medsNotificationsEnabled",
+            // Profil (HLS-11) — utan dessa tappas åldersnormerna vid enhetsbyte
+            "birthYear", "sex",
         )
         expectedFields.forEach { field ->
             assertTrue("Fältet '$field' saknas i den utskrivna backupen", encoded.contains("\"$field\""))
