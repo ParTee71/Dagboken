@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
@@ -75,11 +76,12 @@ class HealthScreenTest {
             )
         },
         assertions = {
-            composeRule.onNodeWithText("Djupsömn").assertIsDisplayed()
+            // Skärmen är längre än vyn — skrolla fram varje rad innan den mäts.
+            composeRule.onNodeWithText("Djupsömn").performScrollTo().assertIsDisplayed()
             composeRule.onNodeWithText("1 h 15 min").assertIsDisplayed()
-            composeRule.onNodeWithText("REM-sömn").assertIsDisplayed()
+            composeRule.onNodeWithText("REM-sömn").performScrollTo().assertIsDisplayed()
             composeRule.onNodeWithText("1 h 30 min").assertIsDisplayed()
-            composeRule.onNodeWithText("Vaken").assertIsDisplayed()
+            composeRule.onNodeWithText("Vaken").performScrollTo().assertIsDisplayed()
             composeRule.onNodeWithText("12 min").assertIsDisplayed()
         },
     )
@@ -114,12 +116,12 @@ class HealthScreenTest {
             )
         },
         assertions = {
-            composeRule.onNodeWithText("Träningspass (2 st)").assertIsDisplayed()
+            composeRule.onNodeWithText("Träningspass (2 st)").performScrollTo().assertIsDisplayed()
             composeRule.onNodeWithText("1 h 5 min").assertIsDisplayed()
-            composeRule.onNodeWithText("431 kcal").assertIsDisplayed()
-            composeRule.onNodeWithText("${formatKilometers(5234.0)} km").assertIsDisplayed()
-            composeRule.onNodeWithText("96 %").assertIsDisplayed()
-            composeRule.onNodeWithText("118/76 mmHg").assertIsDisplayed()
+            composeRule.onNodeWithText("431 kcal").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("${formatKilometers(5234.0)} km").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("96 %").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("118/76 mmHg").performScrollTo().assertIsDisplayed()
         },
     )
 
@@ -132,8 +134,11 @@ class HealthScreenTest {
         },
         assertions = {
             // Nekad valfri behörighet (HLS-8) ska visa "—", inte fälla skärmen.
-            composeRule.onNodeWithText("Blodtryck (senaste mätningen)").assertIsDisplayed()
+            // Pulsraden ligger ovanför vikningen och visar "—" direkt.
             composeRule.onAllNodesWithText("—").onFirst().assertIsDisplayed()
+            composeRule.onNodeWithText("Blodtryck (senaste mätningen)")
+                .performScrollTo()
+                .assertIsDisplayed()
         },
     )
 
