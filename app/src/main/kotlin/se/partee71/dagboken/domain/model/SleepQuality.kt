@@ -101,6 +101,19 @@ private const val ELEVATED_SLEEPING_HR_DELTA = 5
 private const val LOW_SPO2_THRESHOLD = 90.0
 
 /**
+ * Nollpunkten för sömneffektiviteten. Låg nog att 85 % — gränsen för kliniskt störd
+ * sömn — inte hamnar högt på skalan, men inte så låg att skalan blir tandlös.
+ */
+private const val EFFICIENCY_ZERO_PERCENT = 75.0
+
+/**
+ * Vaken tid som ger noll poäng. En timme och en halv vaken mitt i natten är en dålig
+ * natt oavsett ålder; åldersjusteringen sitter i var full poäng slutar
+ * ([wasoTargetMinutes]), inte i var skalan bottnar.
+ */
+private const val WASO_ZERO_MINUTES = 90.0
+
+/**
  * Räknar ut sömnkvaliteten för en natt (HLS-10).
  *
  * [age] och [sex] styr normerna för djupsömn och vaken tid — båda ändras systematiskt
@@ -144,14 +157,20 @@ fun scoreSleepQuality(
                 component(
                     kind = SleepQualityKind.EFFICIENCY,
                     measured = efficiency,
-                    score = rampUp(efficiency, zeroAt = 70.0, fullAt = 90.0),
+                    // Noll vid 75 %: 85 % är gränsen för kliniskt störd sömn och ska
+                    // inte hamna högt upp på skalan.
+                    score = rampUp(efficiency, zeroAt = EFFICIENCY_ZERO_PERCENT, fullAt = 90.0),
                 ),
             )
             add(
                 component(
                     kind = SleepQualityKind.WASO,
                     measured = awakeMinutes,
-                    score = rampDown(awakeMinutes, fullAt = wasoTargetMinutes(age), zeroAt = 120.0),
+                    score = rampDown(
+                        awakeMinutes,
+                        fullAt = wasoTargetMinutes(age),
+                        zeroAt = WASO_ZERO_MINUTES,
+                    ),
                 ),
             )
         }
@@ -174,9 +193,12 @@ fun scoreSleepQuality(
                     kind = SleepQualityKind.DEEP,
                     measured = percent,
                     // Ingen övre bestraffning: mer djupsömn än normen är inget problem.
+                    // Nollpunkten ligger på halva normens nedre gräns — 0 % vore en
+                    // orimlig nollpunkt, ingen med fungerande sensor hamnar där, och
+                    // en natt långt under normen fick då fortfarande halva poängen.
                     score = plateau(
                         percent,
-                        zeroLow = 0.0,
+                        zeroLow = band.start / 2.0,
                         fullLow = band.start,
                         fullHigh = band.endInclusive,
                         zeroHigh = Double.MAX_VALUE,
