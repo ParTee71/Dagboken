@@ -55,6 +55,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.model.TIDP_ORDER
+import se.partee71.dagboken.domain.model.formatDos
+import se.partee71.dagboken.domain.model.parseDos
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.DatePickerModal
@@ -218,6 +220,8 @@ private fun ReceptFormError.messageRes(): Int = when (this) {
     ReceptFormError.DOSPERIOD_SLUT_FORE_START  -> R.string.error_dosperiod_end_before_start
     ReceptFormError.DOSPERIOD_OVERLAPP         -> R.string.error_dosperiod_overlap
     ReceptFormError.DOSPERIOD_UTAN_DOS         -> R.string.error_dosperiod_missing_dose
+    ReceptFormError.DOSPERIOD_OGILTIG_HOJNING  -> R.string.error_dosperiod_invalid_increase
+    ReceptFormError.GRUNDDOS_EJ_NUMERISK       -> R.string.error_base_dose_not_numeric
 }
 
 /** Receptets period (REC-7) — startdatum plus tills vidare, längd eller t.o.m.-datum. */
@@ -305,7 +309,7 @@ private fun PeriodSummary(form: ReceptForm) {
     )
 }
 
-/** Tillfälliga dosändringar inom perioden (REC-9). */
+/** Tillfälliga doshöjningar inom perioden (REC-9). */
 @Composable
 private fun DosperiodSection(form: ReceptForm, vm: AddEditReceptViewModel) {
     DagbokenCard(modifier = Modifier.fillMaxWidth()) {
@@ -320,6 +324,8 @@ private fun DosperiodSection(form: ReceptForm, vm: AddEditReceptViewModel) {
             form.dosperioder.forEach { dosperiod ->
                 DosperiodRow(
                     dosperiod = dosperiod,
+                    grunddos  = form.dos,
+                    enhet     = form.enhet,
                     onUpdate  = { update -> vm.updateDosperiod(dosperiod.id) { update() } },
                     onRemove  = { vm.removeDosperiod(dosperiod.id) },
                 )
@@ -337,6 +343,8 @@ private fun DosperiodSection(form: ReceptForm, vm: AddEditReceptViewModel) {
 @Composable
 private fun DosperiodRow(
     dosperiod: Dosperiod,
+    grunddos: String,
+    enhet: String,
     onUpdate: (Dosperiod.() -> Dosperiod) -> Unit,
     onRemove: () -> Unit,
 ) {
@@ -347,16 +355,15 @@ private fun DosperiodRow(
             modifier              = Modifier.fillMaxWidth(),
         ) {
             OutlinedTextField(
-                value         = dosperiod.dos,
-                onValueChange = { v -> onUpdate { copy(dos = v) } },
-                label         = { Text(stringResource(R.string.label_dose)) },
-                singleLine    = true,
-                modifier      = Modifier.weight(1f),
-            )
-            EnhetDropdown(
-                enhet    = dosperiod.enhet,
-                onSelect = { u -> onUpdate { copy(enhet = u) } },
-                modifier = Modifier.width(120.dp),
+                value           = dosperiod.dos,
+                onValueChange   = { v -> onUpdate { copy(dos = v) } },
+                label           = { Text(stringResource(R.string.label_dose_increase)) },
+                // Enheten är låst till receptets (REC-9) och visas därför som suffix
+                // i stället för som en egen väljare.
+                suffix          = { Text(enhet) },
+                singleLine      = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier        = Modifier.weight(1f),
             )
             IconButton(onClick = onRemove) {
                 Icon(
@@ -365,6 +372,15 @@ private fun DosperiodRow(
                     tint = MaterialTheme.colorScheme.error,
                 )
             }
+        }
+        val bas   = parseDos(grunddos)
+        val extra = parseDos(dosperiod.dos)
+        if (bas != null && extra != null && extra > 0.0) {
+            Text(
+                stringResource(R.string.format_dose_increase_total, formatDos(bas + extra), enhet),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),

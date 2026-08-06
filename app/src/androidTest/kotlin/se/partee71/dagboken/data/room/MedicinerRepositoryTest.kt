@@ -343,6 +343,31 @@ class MedicinerRepositoryTest {
         assertTrue("ensuring a past date must not seed today", db.medicinDao().getByDate(today).isEmpty())
     }
 
+    // ─── underlag för medicinpåminnelsen (NOT-17) ─────────────────────────────
+
+    @Test fun pendingScheduledDosesToday_lists_only_untaken_scheduled_doses() = runTest {
+        val today = LocalDate.now().toString()
+        db.medicinDao().upsert(medicinEntity(id = "m1", datum = today, tagen = false))
+        db.medicinDao().upsert(medicinEntity(id = "m2", datum = today, tagen = true))
+        db.medicinDao().upsert(medicinEntity(id = "m3", datum = today, skipped = true))
+
+        assertEquals(listOf("m1"), repo.pendingScheduledDosesToday().map { it.id })
+    }
+
+    @Test fun pendingScheduledDosesToday_carries_the_dose_that_applies_today() = runTest {
+        val today = LocalDate.now()
+        db.receptDao().upsert(receptEntity(
+            startDatum      = today.toString(),
+            slutDatum       = today.plusDays(9).toString(),
+            dosperioderJson = """[{"id":"d1","startDatum":"$today","slutDatum":"$today","dos":"20","enhet":"mg"}]""",
+        ))
+        repo.ensureTodayEntries()
+
+        val dose = repo.pendingScheduledDosesToday().single()
+        assertEquals("25", dose.dos)
+        assertEquals("mg", dose.enhet)
+    }
+
     // ─── period (REC-7/REC-8) ─────────────────────────────────────────────────
 
     private fun receptEntity(
@@ -400,7 +425,7 @@ class MedicinerRepositoryTest {
         assertEquals(1, db.medicinDao().getByDate(today.toString()).size)
     }
 
-    @Test fun ensureTodayEntries_uses_the_dosperiod_dose() = runTest {
+    @Test fun ensureTodayEntries_adds_the_increase_to_the_base_dose() = runTest {
         val today = LocalDate.now()
         db.receptDao().upsert(receptEntity(
             startDatum      = today.toString(),
@@ -410,7 +435,8 @@ class MedicinerRepositoryTest {
 
         repo.ensureTodayEntries()
 
-        assertEquals("20", db.medicinDao().getByDate(today.toString()).single().dos)
+        // Grunddos 5 mg + höjning 20 mg = 25 mg (REC-9/REC-12)
+        assertEquals("25", db.medicinDao().getByDate(today.toString()).single().dos)
     }
 
     // ─── dossynk vid sparat recept (REC-10) ───────────────────────────────────
@@ -428,7 +454,7 @@ class MedicinerRepositoryTest {
         assertEquals("15", db.medicinDao().getById(existing.id)!!.dos)
     }
 
-    @Test fun saveRecept_applies_a_new_dosperiod_to_todays_pending_dose() = runTest {
+    @Test fun saveRecept_applies_a_new_increase_to_todays_pending_dose() = runTest {
         val today = LocalDate.now()
         db.receptDao().upsert(receptEntity(startDatum = today.toString()))
         repo.ensureTodayEntries()
@@ -446,7 +472,7 @@ class MedicinerRepositoryTest {
             ),
         )
 
-        assertEquals("20", db.medicinDao().getById(existing.id)!!.dos)
+        assertEquals("25", db.medicinDao().getById(existing.id)!!.dos)
     }
 
     @Test fun saveRecept_never_touches_a_taken_dose() = runTest {

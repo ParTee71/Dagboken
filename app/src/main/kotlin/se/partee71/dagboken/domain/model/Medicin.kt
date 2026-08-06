@@ -36,7 +36,9 @@ data class Recept(
 )
 
 /**
- * En tillfällig dosändring inom ett recepts period (REC-9) — t.ex. nedtrappning.
+ * En tillfällig **doshöjning** inom ett recepts period (REC-9) — t.ex. en kortare kur
+ * med dubbel dos. [dos] är det som läggs *till* grunddosen, inte den nya totalen, och
+ * anges alltid i receptets egen enhet ([enhet] speglar därför receptets).
  * Persisteras som JSON i `recept.dosperioderJson`, samma mönster som tidpunkter/dagar.
  */
 @Serializable
@@ -44,7 +46,7 @@ data class Dosperiod(
     val id: String,
     val startDatum: String,        // YYYY-MM-DD
     val slutDatum: String? = null, // null = till receptets slut
-    val dos: String,
+    val dos: String,               // höjningen, i receptets enhet
     val enhet: String,
 )
 
@@ -93,9 +95,36 @@ fun Recept.dosperiodFor(date: LocalDate): Dosperiod? =
         }
         .maxByOrNull { it.startDatum }
 
-/** Dos och enhet som gäller för [date] — dosperiod före grunddos (REC-9). */
-fun Recept.dosFor(date: LocalDate): Pair<String, String> =
-    dosperiodFor(date)?.let { it.dos to it.enhet } ?: (dos to enhet)
+/**
+ * Läser en dos som tal. Accepterar både punkt och komma som decimaltecken, eftersom
+ * doser skrivs in för hand ("0,5", "1.5"). Null när dosen inte är ett tal ("1 tablett").
+ */
+fun parseDos(value: String?): Double? =
+    value?.trim()?.replace(',', '.')?.toDoubleOrNull()
+
+/** Formaterar en uträknad dos för visning: heltal utan decimaler, annars svenskt komma. */
+fun formatDos(value: Double): String =
+    if (value % 1.0 == 0.0) value.toLong().toString()
+    else value.toString().trimEnd('0').trimEnd('.').replace('.', ',')
+
+/**
+ * Total dos och enhet som gäller för [date] (REC-9/REC-12) — grunddosen plus den
+ * doshöjning som eventuellt gäller den dagen. Enheten är alltid receptets.
+ * Går grunddosen eller höjningen inte att räkna med som tal används grunddosen oförändrad.
+ */
+fun Recept.dosFor(date: LocalDate): Pair<String, String> {
+    val hojning = dosperiodFor(date) ?: return dos to enhet
+    val bas = parseDos(dos) ?: return dos to enhet
+    val extra = parseDos(hojning.dos) ?: return dos to enhet
+    return formatDos(bas + extra) to enhet
+}
+
+/** Doshöjningen som gäller för [date], formaterad med tecken ("+2 mg"), eller null. */
+fun Recept.hojningFor(date: LocalDate): String? {
+    val hojning = dosperiodFor(date) ?: return null
+    val extra = parseDos(hojning.dos) ?: return null
+    return "+${formatDos(extra)} $enhet"
+}
 
 /** Sista dagen för [Dosperiod], begränsad av receptets egen period. */
 fun Recept.dosperiodEnd(dosperiod: Dosperiod): LocalDate? =

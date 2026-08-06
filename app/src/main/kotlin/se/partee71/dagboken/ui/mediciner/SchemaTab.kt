@@ -48,7 +48,11 @@ import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.domain.model.dosFor
+import se.partee71.dagboken.domain.model.formatDos
 import se.partee71.dagboken.domain.model.hasExpiredOn
+import se.partee71.dagboken.domain.model.hojningFor
+import se.partee71.dagboken.domain.model.parseDos
 import se.partee71.dagboken.domain.model.periodStart
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
@@ -127,6 +131,16 @@ fun SchemaTab(
                                 color = if (r.hasExpiredOn(today)) cs.error else cs.onSurfaceVariant,
                             )
                         }
+                        // Gäller en doshöjning idag visas den totala dosen, inte grunddosen
+                        // som står på raden ovanför (REC-12).
+                        r.hojningFor(today)?.let { hojning ->
+                            val (dos, enhet) = r.dosFor(today)
+                            Text(
+                                stringResource(R.string.format_schema_dose_today, "$dos $enhet", hojning),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = cs.tertiary,
+                            )
+                        }
                     }
                     Icon(
                         Icons.Default.ExpandMore,
@@ -198,7 +212,7 @@ fun SchemaTab(
                             )
                             r.dosperioder.sortedBy { it.startDatum }.forEach { p ->
                                 Text(
-                                    dosperiodLabel(p),
+                                    dosperiodLabel(r, p),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = cs.onSurfaceVariant,
                                 )
@@ -248,15 +262,23 @@ private fun periodLabel(recept: Recept, today: LocalDate): String? {
     }
 }
 
+/**
+ * "1 maj – 5 maj: +5 mg (totalt 10 mg)" — höjningen och den totala dosen den ger
+ * (REC-9/REC-12). Går dosen inte att räkna med som tal visas bara höjningen.
+ */
 @Composable
-private fun dosperiodLabel(dosperiod: Dosperiod): String {
+private fun dosperiodLabel(recept: Recept, dosperiod: Dosperiod): String {
     val slut = dosperiod.slutDatum?.takeIf { it.isNotBlank() }
         ?.let { safeDisplayDate(it) }
         ?: stringResource(R.string.dose_change_until_period_end)
+    val bas   = parseDos(recept.dos)
+    val extra = parseDos(dosperiod.dos)
+    val total = if (bas != null && extra != null) "${formatDos(bas + extra)} ${recept.enhet}" else "—"
     return stringResource(
         R.string.format_schema_dosperiod,
         safeDisplayDate(dosperiod.startDatum),
         slut,
-        "${dosperiod.dos} ${dosperiod.enhet}",
+        "${dosperiod.dos} ${recept.enhet}",
+        total,
     )
 }

@@ -95,12 +95,12 @@ class AddEditReceptScreenTest {
         }
     }
 
-    @Test fun add_dosperiod_shows_a_dosperiod_row() = retryOnRenderGlitch {
+    @Test fun add_dosperiod_shows_a_dose_increase_row() = retryOnRenderGlitch {
         setUp()
         try {
-            composeRule.onNodeWithText("Lägg till dosperiod").performScrollTo().performClick()
+            composeRule.onNodeWithText("Lägg till doshöjning").performScrollTo().performClick()
             composeRule.waitUntil(20_000) { vm.form.value.dosperioder.size == 1 }
-            composeRule.onNodeWithContentDescription("Ta bort dosperiod")
+            composeRule.onNodeWithContentDescription("Ta bort doshöjning")
                 .performScrollTo()
                 .assertIsDisplayed()
         } finally {

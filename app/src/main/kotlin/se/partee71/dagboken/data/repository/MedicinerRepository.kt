@@ -78,10 +78,18 @@ class MedicinerRepository @Inject constructor(
      * cleared without opening the app. Vid behov-doser (no scheduled hour) are
      * left untouched — those are logged explicitly from the Idag-checklist.
      */
-    suspend fun markTodayDosesTaken(): Int {
-        val due = todayFlow().first().filter {
+    /**
+     * Dagens schemalagda, ännu ej tagna doser — underlaget både för "Markera tagen"
+     * (NOT-10) och för dosraden i medicinpåminnelsen (NOT-17). Vid behov-doser (utan
+     * schemalagd tid) räknas inte med.
+     */
+    suspend fun pendingScheduledDosesToday(): List<Medicin> =
+        todayFlow().first().filter {
             !it.tagen && !it.skipped && tidpunktToHour(it.tidpunkt) != null
         }
+
+    suspend fun markTodayDosesTaken(): Int {
+        val due = pendingScheduledDosesToday()
         val tagenTid = nowTid()
         due.forEach { medicinDao.updateTagen(it.id, true, tagenTid) }
         return due.size
