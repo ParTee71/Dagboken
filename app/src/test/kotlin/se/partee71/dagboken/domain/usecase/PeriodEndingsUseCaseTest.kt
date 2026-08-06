@@ -50,7 +50,7 @@ class PeriodEndingsUseCaseTest {
         assertTrue(useCase.endingOn(listOf(r), imorgon).isEmpty())
     }
 
-    @Test fun `dosperiod ending that day reports the dose that takes over`() {
+    @Test fun `an increase ending that day reports the base dose that takes over`() {
         val r = recept(
             dos         = "5",
             slutDatum   = "2026-05-20",
@@ -59,16 +59,17 @@ class PeriodEndingsUseCaseTest {
         assertEquals(listOf(PeriodSlut.DosperiodSlut("Prednisolon", "5 mg")), useCase.endingOn(listOf(r), imorgon))
     }
 
-    @Test fun `dosperiod handing over to the next dosperiod reports that dose`() {
+    @Test fun `an increase handing over to the next increase reports that total`() {
         val r = recept(
             dos         = "5",
             slutDatum   = "2026-05-20",
             dosperioder = listOf(
                 Dosperiod("d1", "2026-05-01", imorgon.toString(), "10", "mg"),
-                Dosperiod("d2", imorgon.plusDays(1).toString(), "2026-05-20", "7.5", "mg"),
+                Dosperiod("d2", imorgon.plusDays(1).toString(), "2026-05-20", "2,5", "mg"),
             ),
         )
-        assertEquals(listOf(PeriodSlut.DosperiodSlut("Prednisolon", "7.5 mg")), useCase.endingOn(listOf(r), imorgon))
+        // Grunddos 5 mg + höjning 2,5 mg = 7,5 mg från och med dagen efter (REC-12).
+        assertEquals(listOf(PeriodSlut.DosperiodSlut("Prednisolon", "7,5 mg")), useCase.endingOn(listOf(r), imorgon))
     }
 
     @Test fun `dosperiod ending together with the recept only reports the recept ending`() {

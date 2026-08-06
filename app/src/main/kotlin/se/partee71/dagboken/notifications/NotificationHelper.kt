@@ -46,17 +46,25 @@ object NotificationHelper {
         )
     }
 
-    fun postMedReminder(context: Context, timeLabel: String = "") {
+    /**
+     * [doses] listar dagens ej tagna schemalagda doser som "Namn dos enhet" (NOT-17).
+     * Dosen är den som faktiskt gäller idag, alltså inklusive en eventuell doshöjning
+     * (REC-9/REC-12). Är listan tom faller notisen tillbaka på den allmänna texten.
+     */
+    fun postMedReminder(context: Context, timeLabel: String = "", doses: List<String> = emptyList()) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val title = if (timeLabel.isNotEmpty()) {
             context.getString(R.string.notification_med_title_with_time, timeLabel)
         } else {
             context.getString(R.string.notification_med_title)
         }
+        val body = doses.takeIf { it.isNotEmpty() }?.joinToString("\n")
+            ?: context.getString(R.string.notification_med_body)
         val notification = NotificationCompat.Builder(context, CHANNEL_MEDS)
             .setSmallIcon(R.drawable.ic_notification_med)
             .setContentTitle(title)
-            .setContentText(context.getString(R.string.notification_med_body))
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(buildIntent(context, Screen.Idag.route, NOTIFICATION_ID_MED))

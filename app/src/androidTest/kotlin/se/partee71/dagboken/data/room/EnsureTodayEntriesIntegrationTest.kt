@@ -144,7 +144,7 @@ class EnsureTodayEntriesIntegrationTest {
         assertEquals(1, useCase.compute(recept, emptyList(), today.minusDays(1)).size)
     }
 
-    @Test fun dosperiodOverridesBaseDose() = runTest {
+    @Test fun dosperiodAddsToBaseDose() = runTest {
         val today = LocalDate.now()
         val receptDao = db.receptDao()
 
@@ -159,7 +159,7 @@ class EnsureTodayEntriesIntegrationTest {
         ))
 
         val recept = receptDao.getActive().map { it.toDomain(::decode, ::decodeInt, ::decodeDosperioder) }
-        assertEquals("20", useCase.compute(recept, emptyList(), today)[0].dos)
+        assertEquals("25", useCase.compute(recept, emptyList(), today)[0].dos)
         assertEquals("5", useCase.compute(recept, emptyList(), today.plusDays(1))[0].dos)
     }
 }

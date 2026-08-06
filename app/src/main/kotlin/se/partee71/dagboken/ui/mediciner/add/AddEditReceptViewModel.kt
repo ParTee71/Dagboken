@@ -13,6 +13,7 @@ import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Dosperiod
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.domain.model.parseDos
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -55,7 +56,14 @@ private fun parseDate(value: String?): LocalDate? =
     }
 
 /** Valideringsfel som blockerar spara — null = giltigt formulär. */
-enum class ReceptFormError { SLUT_FORE_START, DOSPERIOD_SLUT_FORE_START, DOSPERIOD_OVERLAPP, DOSPERIOD_UTAN_DOS }
+enum class ReceptFormError {
+    SLUT_FORE_START,
+    DOSPERIOD_SLUT_FORE_START,
+    DOSPERIOD_OVERLAPP,
+    DOSPERIOD_UTAN_DOS,
+    DOSPERIOD_OGILTIG_HOJNING,
+    GRUNDDOS_EJ_NUMERISK,
+}
 
 fun ReceptForm.validate(): ReceptFormError? {
     val start = parseDate(startDatum)
@@ -63,6 +71,10 @@ fun ReceptForm.validate(): ReceptFormError? {
     if (start != null && slut != null && slut.isBefore(start)) return ReceptFormError.SLUT_FORE_START
 
     if (dosperioder.any { it.dos.isBlank() }) return ReceptFormError.DOSPERIOD_UTAN_DOS
+
+    // En höjning läggs till grunddosen (REC-9), så båda måste gå att räkna med.
+    if (dosperioder.isNotEmpty() && parseDos(dos) == null) return ReceptFormError.GRUNDDOS_EJ_NUMERISK
+    if (dosperioder.any { (parseDos(it.dos) ?: 0.0) <= 0.0 }) return ReceptFormError.DOSPERIOD_OGILTIG_HOJNING
 
     val ranges = dosperioder.map { p ->
         val pStart = parseDate(p.startDatum) ?: LocalDate.MIN
@@ -162,7 +174,10 @@ class AddEditReceptViewModel @Inject constructor(
 
     fun setPeriodMode(mode: PeriodMode) { publish(_form.value.copy(periodMode = mode)) }
 
-    /** Ny dosperiod (REC-9) — startar dagen efter den sista befintliga, eller på periodstart. */
+    /**
+     * Ny doshöjning (REC-9) — startar dagen efter den sista befintliga, eller på
+     * periodstart. Höjningen lämnas tom så användaren får ange den själv.
+     */
     fun addDosperiod() {
         val f = _form.value
         val start = f.dosperioder
@@ -175,14 +190,18 @@ class AddEditReceptViewModel @Inject constructor(
             id         = UUID.randomUUID().toString(),
             startDatum = start.format(DateTimeFormatter.ISO_LOCAL_DATE),
             slutDatum  = start.plusDays(6).format(DateTimeFormatter.ISO_LOCAL_DATE),
-            dos        = f.dos,
+            dos        = "",
             enhet      = f.enhet,
         )
         publish(f.copy(dosperioder = f.dosperioder + nyPeriod))
     }
 
     fun updateDosperiod(id: String, update: Dosperiod.() -> Dosperiod) {
-        val updated = _form.value.dosperioder.map { if (it.id == id) it.update() else it }
+        // Enheten följer alltid receptet (REC-9) — en höjning kan bara anges i samma
+        // enhet som grunddosen, annars går den inte att lägga ihop.
+        val updated = _form.value.dosperioder.map {
+            if (it.id == id) it.update().copy(enhet = _form.value.enhet) else it
+        }
         publish(_form.value.copy(dosperioder = updated))
     }
 
@@ -212,7 +231,7 @@ class AddEditReceptViewModel @Inject constructor(
                 skapad        = f.skapad,
                 startDatum    = f.startDatum,
                 slutDatum     = f.resolvedSlutDatum(),
-                dosperioder   = f.dosperioder.map { it.copy(dos = it.dos.trim()) },
+                dosperioder   = f.dosperioder.map { it.copy(dos = it.dos.trim(), enhet = f.enhet) },
             )
             repo.saveRecept(recept)
             noteRepo.save(NoteTarget.RECEPT, recept.id, f.anteckning.trim())

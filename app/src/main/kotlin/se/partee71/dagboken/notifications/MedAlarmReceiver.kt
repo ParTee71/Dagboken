@@ -9,8 +9,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.R
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
+import se.partee71.dagboken.data.repository.MedicinerRepository
 import javax.inject.Inject
 
 /**
@@ -23,16 +25,23 @@ import javax.inject.Inject
 class MedAlarmReceiver : BroadcastReceiver() {
 
     @Inject lateinit var prefs: PreferencesRepository
+    @Inject lateinit var medicinerRepo: MedicinerRepository
     @Inject lateinit var alarmScheduler: AlarmScheduler
 
     override fun onReceive(context: Context, intent: Intent) {
         val slot  = intent.getIntExtra(EXTRA_SLOT, -1)
         val label = if (slot in SCREENING_EVENT_LABELS.indices) SCREENING_EVENT_LABELS[slot] else ""
-        NotificationHelper.postMedReminder(context, label)
 
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
+                // Doserna läses först så notisen kan lista vad som ska tas, med den dos
+                // som gäller idag — alltså inklusive en eventuell doshöjning (NOT-17).
+                val doses = medicinerRepo.pendingScheduledDosesToday().map {
+                    context.getString(R.string.format_notification_med_dose, it.namn, it.dos, it.enhet)
+                }
+                NotificationHelper.postMedReminder(context, label, doses)
+
                 // Konfigurationen läses om i stället för att återanvända intentets extras:
                 // tiden kan ha ändrats sedan larmet sattes, och påminnelser kan ha stängts
                 // av — då ska inget nytt larm sättas.

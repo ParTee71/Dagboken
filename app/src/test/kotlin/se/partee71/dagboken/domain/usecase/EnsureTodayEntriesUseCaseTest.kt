@@ -200,14 +200,14 @@ class EnsureTodayEntriesUseCaseTest {
         assertEquals(1, useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 10)).size)
     }
 
-    // ─── dosperioder (REC-9) ──────────────────────────────────────────────────
+    // ─── doshöjningar (REC-9) ─────────────────────────────────────────────────
 
-    @Test fun `compute uses the dosperiod dose inside its range`() {
+    @Test fun `compute adds the increase to the base dose inside its range`() {
         val r = recept(
             startDatum  = "2026-05-01",
             slutDatum   = "2026-05-14",
             dosperioder = listOf(
-                Dosperiod("d1", "2026-05-01", "2026-05-05", "800", "mg"),
+                Dosperiod("d1", "2026-05-01", "2026-05-05", "400", "mg"),
             ),
         )
         val inside = useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 3))
@@ -215,22 +215,22 @@ class EnsureTodayEntriesUseCaseTest {
         assertEquals("mg", inside[0].enhet)
     }
 
-    @Test fun `compute falls back to the base dose after the dosperiod ends`() {
+    @Test fun `compute falls back to the base dose after the increase ends`() {
         val r = recept(
             startDatum  = "2026-05-01",
             slutDatum   = "2026-05-14",
             dosperioder = listOf(
-                Dosperiod("d1", "2026-05-01", "2026-05-05", "800", "mg"),
+                Dosperiod("d1", "2026-05-01", "2026-05-05", "400", "mg"),
             ),
         )
         val after = useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 6))
         assertEquals("400", after[0].dos)
     }
 
-    @Test fun `dosperiod boundaries are inclusive`() {
+    @Test fun `increase boundaries are inclusive`() {
         val r = recept(
             startDatum  = "2026-05-01",
-            dosperioder = listOf(Dosperiod("d1", "2026-05-02", "2026-05-04", "800", "mg")),
+            dosperioder = listOf(Dosperiod("d1", "2026-05-02", "2026-05-04", "400", "mg")),
         )
         assertEquals("400", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 1))[0].dos)
         assertEquals("800", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 2))[0].dos)
@@ -238,24 +238,24 @@ class EnsureTodayEntriesUseCaseTest {
         assertEquals("400", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 5))[0].dos)
     }
 
-    @Test fun `two dosperioder in sequence pick the right dose each`() {
+    @Test fun `two increases in sequence give their own totals`() {
         val r = recept(
             startDatum  = "2026-05-01",
             slutDatum   = "2026-05-10",
             dosperioder = listOf(
-                Dosperiod("d1", "2026-05-01", "2026-05-05", "800", "mg"),
-                Dosperiod("d2", "2026-05-06", "2026-05-10", "600", "mg"),
+                Dosperiod("d1", "2026-05-01", "2026-05-05", "400", "mg"),
+                Dosperiod("d2", "2026-05-06", "2026-05-10", "200", "mg"),
             ),
         )
         assertEquals("800", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 5))[0].dos)
         assertEquals("600", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 6))[0].dos)
     }
 
-    @Test fun `dosperiod without slutDatum runs to the end of the recept period`() {
+    @Test fun `increase without slutDatum runs to the end of the recept period`() {
         val r = recept(
             startDatum  = "2026-05-01",
             slutDatum   = "2026-05-10",
-            dosperioder = listOf(Dosperiod("d1", "2026-05-04", null, "800", "mg")),
+            dosperioder = listOf(Dosperiod("d1", "2026-05-04", null, "400", "mg")),
         )
         assertEquals("800", useCase.compute(listOf(r), emptyList(), LocalDate.of(2026, 5, 10))[0].dos)
     }

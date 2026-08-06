@@ -196,15 +196,71 @@ class AddEditReceptViewModelTest {
 
     // ─── dosperioder (REC-9) ──────────────────────────────────────────────────
 
-    @Test fun `addDosperiod seeds from the base dose`() = runTest {
+    @Test fun `addDosperiod starts empty in the recept unit`() = runTest {
         viewModel.updateForm { copy(namn = "Prednisolon", dos = "10", enhet = "mg", startDatum = "2026-05-01") }
 
         viewModel.addDosperiod()
 
         val p = viewModel.form.value.dosperioder.single()
-        assertEquals("10", p.dos)
+        assertEquals("", p.dos)
         assertEquals("mg", p.enhet)
         assertEquals("2026-05-01", p.startDatum)
+    }
+
+    @Test fun `updateDosperiod keeps the recept unit even if another is passed`() = runTest {
+        viewModel.updateForm { copy(namn = "Prednisolon", dos = "10", enhet = "mg") }
+        viewModel.addDosperiod()
+        val id = viewModel.form.value.dosperioder.single().id
+
+        viewModel.updateDosperiod(id) { copy(dos = "5", enhet = "st") }
+
+        assertEquals("mg", viewModel.form.value.dosperioder.single().enhet)
+    }
+
+    @Test fun `a non numeric increase is a validation error`() = runTest {
+        viewModel.updateForm {
+            copy(
+                namn = "Prednisolon", dos = "10",
+                dosperioder = listOf(Dosperiod("d1", "2026-05-01", "2026-05-05", "en till", "mg")),
+            )
+        }
+
+        assertEquals(ReceptFormError.DOSPERIOD_OGILTIG_HOJNING, viewModel.validationError.value)
+    }
+
+    @Test fun `a zero increase is a validation error`() = runTest {
+        viewModel.updateForm {
+            copy(
+                namn = "Prednisolon", dos = "10",
+                dosperioder = listOf(Dosperiod("d1", "2026-05-01", "2026-05-05", "0", "mg")),
+            )
+        }
+
+        assertEquals(ReceptFormError.DOSPERIOD_OGILTIG_HOJNING, viewModel.validationError.value)
+    }
+
+    @Test fun `an increase on a non numeric base dose is a validation error`() = runTest {
+        viewModel.updateForm {
+            copy(
+                namn = "Alvedon", dos = "en tablett",
+                dosperioder = listOf(Dosperiod("d1", "2026-05-01", "2026-05-05", "1", "st")),
+            )
+        }
+
+        assertEquals(ReceptFormError.GRUNDDOS_EJ_NUMERISK, viewModel.validationError.value)
+        viewModel.save()
+        coVerify(exactly = 0) { repo.saveRecept(any()) }
+    }
+
+    @Test fun `a decimal increase is valid`() = runTest {
+        viewModel.updateForm {
+            copy(
+                namn = "Prednisolon", dos = "5",
+                dosperioder = listOf(Dosperiod("d1", "2026-05-01", "2026-05-05", "2,5", "mg")),
+            )
+        }
+
+        assertNull(viewModel.validationError.value)
     }
 
     @Test fun `a second dosperiod starts after the first one ends`() = runTest {
@@ -285,11 +341,11 @@ class AddEditReceptViewModelTest {
         assertEquals(listOf("d2"), viewModel.form.value.dosperioder.map { it.id })
     }
 
-    @Test fun `save persists dosperioder on the recept`() = runTest {
+    @Test fun `save persists dosperioder on the recept in the recept unit`() = runTest {
         viewModel.updateForm {
             copy(
-                namn = "Prednisolon", dos = "10",
-                dosperioder = listOf(Dosperiod("d1", "2026-05-01", "2026-05-05", " 20 ", "mg")),
+                namn = "Prednisolon", dos = "10", enhet = "mg",
+                dosperioder = listOf(Dosperiod("d1", "2026-05-01", "2026-05-05", " 20 ", "st")),
             )
         }
 
@@ -298,5 +354,6 @@ class AddEditReceptViewModelTest {
         val saved = slot<Recept>()
         coVerify { repo.saveRecept(capture(saved)) }
         assertEquals("20", saved.captured.dosperioder.single().dos)
+        assertEquals("mg", saved.captured.dosperioder.single().enhet)
     }
 }

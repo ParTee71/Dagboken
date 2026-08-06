@@ -152,8 +152,9 @@
 | REC-6 | Standardklockslag per tidpunkt: Morgon 07, Förmiddag 10, Lunch 12, Eftermiddag 15, Kväll 19, Natt 22, Vid behov 12. |
 | REC-7 | Ett recept ska kunna ges en **period** — startdatum plus antingen längd i dagar eller ett t.o.m.-datum, eller *tills vidare* (inget slutdatum). Doser genereras endast inom perioden. Recept utan uttalat startdatum (skapade före periodstödet) har ingen bakre gräns, så bakåtbläddring i Idag (HEM-14) fortsätter seeda deras doser som förut. |
 | REC-8 | När perioden passerats slutar receptet generera doser och markeras automatiskt som **avslutat** (`aktiv = false`). Receptet raderas aldrig och kan tas i bruk igen genom att perioden förlängs och receptet aktiveras. Recept & scheman visar "Avslutat" med slutdatum. |
-| REC-9 | Ett recept ska kunna ha en eller flera **dosperioder** (startdatum, slutdatum eller periodens slut, dos, enhet) som tillfälligt ersätter grunddosen — t.ex. nedtrappning i flera steg. Överlappande dosperioder kan inte sparas; när en dosperiod löper ut återgår receptet till grunddosen. |
+| REC-9 | Ett recept ska kunna ha en eller flera **doshöjningar** (startdatum, slutdatum eller periodens slut, höjning) som gäller under en del av perioden — t.ex. dubbel dos i fem dagar. Höjningen **läggs till grunddosen** och anges alltid i receptets egen enhet; enheten kan inte väljas separat. Höjningen måste vara ett tal större än 0 och grunddosen ett tal, annars går den inte att spara. Överlappande höjningar kan inte sparas; när en höjning löper ut återgår receptet till grunddosen. |
 | REC-10 | När ett recept sparas uppdateras **otagna, ej överhoppade** receptgenererade doser för idag och framåt: dos/enhet och namn följer den nya perioden och dosperioderna, och doser som hamnat utanför perioden, upprepningsmönstret **eller receptets aktuella tidpunkter** tas bort (tillsammans med sina anteckningar). Tagna och överhoppade doser ändras aldrig. |
+| REC-12 | Där en dos visas ska den **totala dosen för dagen** visas, alltså grunddos plus eventuell höjning (REC-9): Idag-checklistan, medicinpåminnelsen (NOT-17) och Recept & scheman, som utöver grunddosen visar dagens gällande dos med höjningen inom parentes när en höjning pågår. |
 | REC-11 | Vid överlappande dosperioder (t.ex. i importerad eller äldre data, som formuläret inte längre tillåter) gäller den **senast påbörjade** — den mer specifika dosändringen vinner över en längre period den ligger inuti. |
 
 ### 6.3 Vid behov-flik (favoriter) *(snabbvalet flyttat till Idag-skärmen, se HEM-11 §4; favoritmarkering hanteras i Hantera, se §18, sedan navigationsbytet i #84 etapp 4)*
@@ -241,6 +242,7 @@
 | NOT-13 | Tidpunkten för periodpåminnelsen (NOT-12) ska vara konfigurerbar under Hantera → Notifikationer (standard 09:00), ingå i backup och schemaläggas om vid ändring och efter omstart. |
 | NOT-14 | Varje påminnelse ska schemalägga om sig själv till nästa dag när den utlösts, och alla larm ska sättas om både efter omstart (`BOOT_COMPLETED`) och efter appuppdatering (`MY_PACKAGE_REPLACED`) — påminnelserna får aldrig tystna för att appen inte startats om. |
 | NOT-15 | Efter en återställning från backup ska larmen schemaläggas om direkt, så återställda påminnelsetider gäller utan att appen behöver startas om. |
+| NOT-17 | Medicinpåminnelsen ska lista dagens ej tagna schemalagda doser med namn och dos (den totala dosen enligt REC-12). Finns ingen sådan dos visas den allmänna texten. Vid behov-doser listas inte. |
 | NOT-16 | Notisbehörigheten ska begäras när användaren aktiverar en påminnelse, inte vid appens första start. Saknas behörighet att visa notiser eller att ställa exakta larm ska Hantera → Notifikationer visa det, med genväg till systeminställningarna. |
 
 ---
