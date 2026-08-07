@@ -20,6 +20,9 @@ data class BackupJson(
     val handelser: List<HandelseJson> = emptyList(),
     val notes: List<NoteJson> = emptyList(),
     val screeningEventConfigs: List<ScreeningEventConfigJson>? = null,
+    // Medicinpåminnelsernas egna tider (NOT-18). Null i äldre backupar — då lämnas
+    // inställningen orörd vid återställning.
+    val medNotificationConfigs: List<MedNotificationConfigJson>? = null,
     val sheetsConfig: String? = null,
     val handelseTypOptions: List<SymptomOptionBackup>? = null,
     val periodReminderTime: String? = null,
@@ -172,6 +175,18 @@ data class NoteJson(
 
 @Serializable
 data class ScreeningEventConfigJson(
+    val enabled: Boolean = false,
+    val time: String = "",
+)
+
+/**
+ * En medicinpåminnelses tid (NOT-18). Tidpunkten skrivs med namn i stället för att
+ * förlita sig på listans ordning, så en framtida omordning av tidpunkterna inte flyttar
+ * användarens tider till fel rad vid återställning.
+ */
+@Serializable
+data class MedNotificationConfigJson(
+    val tidpunkt: String = "",
     val enabled: Boolean = false,
     val time: String = "",
 )

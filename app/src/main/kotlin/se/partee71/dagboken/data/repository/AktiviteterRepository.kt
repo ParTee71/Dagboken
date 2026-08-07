@@ -80,11 +80,12 @@ class AktiviteterRepository @Inject constructor(
 
     suspend fun isEmpty(): Boolean = dao.count() == 0
 
-    suspend fun hasScreeningToday(): Boolean {
-        val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-        return dao.countScreeningToday(today) > 0
-    }
-
+    /**
+     * Dagens screeningposter. Screeningpåminnelsen frågar efter dem för att se om just
+     * dess måltidshändelse redan är loggad (NOT-19); tidigare fanns en `hasScreeningToday`
+     * som bara räknade dagens screeningar, och den tystade alla påminnelser efter den
+     * första.
+     */
     suspend fun getScreeningToday(): List<Aktivitet> {
         val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
         return dao.getScreeningToday(today).map { it.toDomain() }

@@ -23,6 +23,14 @@ fun activeScreeningEventLabels(configs: List<ScreeningEventConfig>): List<Pair<S
     }
 
 /**
+ * True om måltidshändelsen [label] redan är screenad i [screeningsForDate] (NOT-19).
+ * Påminnelsen kollade tidigare bara om *någon* screening fanns samma dag, så en
+ * morgonscreening tystade lunch-, kvällsmats- och läggdagspåminnelsen.
+ */
+fun isScreeningLoggedFor(label: String, screeningsForDate: List<Aktivitet>): Boolean =
+    screeningsForDate.any { it.aktivitet == label }
+
+/**
  * Status för dagens aktiverade screeningtillfällen. Ren funktion, delad mellan
  * `HomeViewModel` (Idag-vyn); delades tidigare även med screeningwidgeten (#161,
  * borttagen i #177).
@@ -35,7 +43,7 @@ fun computeScreeningEvents(
 ): List<ScreeningEventStatus> = activeEvents.map { (label, timeStr) ->
     val st = ScreeningTime.parse(timeStr)
     val reminderTime = st?.let { LocalTime.of(it.hour, it.min) }
-    val logged = screeningsForDate.any { it.aktivitet == label }
+    val logged = isScreeningLoggedFor(label, screeningsForDate)
     val overdue = isToday && !logged && reminderTime != null && nowTime.isAfter(reminderTime)
     ScreeningEventStatus(label = label, time = timeStr, logged = logged, overdue = overdue)
 }

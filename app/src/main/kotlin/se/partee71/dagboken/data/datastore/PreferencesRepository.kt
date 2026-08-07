@@ -17,6 +17,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import se.partee71.dagboken.domain.model.Sex
+import se.partee71.dagboken.domain.model.TIDP_DEFAULT_TIMES
+import se.partee71.dagboken.domain.model.TIDP_ORDER
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -64,6 +66,7 @@ class PreferencesRepository @Inject constructor(
         val THEME_DARK_START    = intPreferencesKey("theme_dark_start")   // hour 0..23
         // Notifications
         val MEDS_NOTIFICATIONS       = booleanPreferencesKey("meds_notifications")
+        val MED_NOTIFICATION_CONFIGS = stringPreferencesKey("med_notification_configs")
         val SCREENING_EVENT_CONFIGS  = stringPreferencesKey("screening_event_configs")
         val PERIOD_REMINDER_TIME     = stringPreferencesKey("period_reminder_time")
         // Backup
@@ -108,6 +111,21 @@ class PreferencesRepository @Inject constructor(
 
     val medsNotificationsEnabled: Flow<Boolean> = dataStore.data
         .map { it[Keys.MEDS_NOTIFICATIONS] ?: false }
+
+    /**
+     * Tid och på/av per medicintidpunkt (NOT-18). Medicinlarmen hämtade tidigare sina
+     * tider ur [screeningEventConfigs], så en medicinpåminnelse kom när det var dags för
+     * screening — och försvann när screeningtillfället stängdes av.
+     */
+    val medNotificationConfigs: Flow<List<MedNotificationConfig>> = dataStore.data
+        .map { prefs ->
+            prefs[Keys.MED_NOTIFICATION_CONFIGS]?.let { raw ->
+                runCatching { json.decodeFromString<List<MedNotificationConfig>>(raw) }
+                    .onFailure { Log.w("PreferencesRepo", "Kunde inte avkoda med_notification_configs") }
+                    .getOrDefault(DEFAULT_MED_NOTIFICATIONS)
+            } ?: DEFAULT_MED_NOTIFICATIONS
+        }
+        .catch { emit(DEFAULT_MED_NOTIFICATIONS) }
 
     val screeningEventConfigs: Flow<List<ScreeningEventConfig>> = dataStore.data
         .map { prefs ->
@@ -178,6 +196,10 @@ class PreferencesRepository @Inject constructor(
         dataStore.edit { it[Keys.MEDS_NOTIFICATIONS] = enabled }
     }
 
+    suspend fun setMedNotificationConfigs(configs: List<MedNotificationConfig>) {
+        dataStore.edit { it[Keys.MED_NOTIFICATION_CONFIGS] = json.encodeToString(configs) }
+    }
+
     suspend fun setScreeningEventConfigs(configs: List<ScreeningEventConfig>) {
         dataStore.edit { it[Keys.SCREENING_EVENT_CONFIGS] = json.encodeToString(configs) }
     }
@@ -208,6 +230,10 @@ data class SymptomOption(val name: String, val isFavorite: Boolean = false)
 @Serializable
 data class ScreeningEventConfig(val enabled: Boolean, val time: String)
 
+/** På/av och klockslag för medicinpåminnelsen vid en av dagens tidpunkter (NOT-18). */
+@Serializable
+data class MedNotificationConfig(val enabled: Boolean, val time: String)
+
 data class ScreeningTime(val hour: Int, val min: Int) {
     companion object {
         fun parse(s: String): ScreeningTime? {
@@ -219,6 +245,16 @@ data class ScreeningTime(val hour: Int, val min: Int) {
 }
 
 val SCREENING_EVENT_LABELS = listOf("Efter frukost", "Lunch", "Kvällsmat", "Läggdags")
+
+/**
+ * Medicintidpunkterna som kan påminna (NOT-18) — "Vid behov" saknar klockslag och
+ * påminner därför inte. Index i listan är slot-index för medicinlarmen.
+ */
+val MED_NOTIFICATION_TIDPUNKTER = TIDP_ORDER.filter { it != "Vid behov" }
+
+val DEFAULT_MED_NOTIFICATIONS = MED_NOTIFICATION_TIDPUNKTER.map { tidpunkt ->
+    MedNotificationConfig(enabled = true, time = TIDP_DEFAULT_TIMES[tidpunkt] ?: "08:00")
+}
 
 const val DEFAULT_PERIOD_REMINDER_TIME = "09:00"
 

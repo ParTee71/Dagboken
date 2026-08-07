@@ -1,5 +1,7 @@
 package se.partee71.dagboken.data.migration
 
+import se.partee71.dagboken.data.datastore.MED_NOTIFICATION_TIDPUNKTER
+import se.partee71.dagboken.data.datastore.MedNotificationConfig
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.room.entities.NoteEntity
@@ -41,6 +43,7 @@ object BackupAssembler {
         symptomOptions: List<SymptomOption>,
         handelseTypOptions: List<SymptomOption>,
         screeningEventConfigs: List<ScreeningEventConfig>,
+        medNotificationConfigs: List<MedNotificationConfig>,
         sheetsConfig: String,
         periodReminderTime: String,
         settings: SettingsBackup,
@@ -61,6 +64,13 @@ object BackupAssembler {
         handelser             = handelser.map { it.toJson() },
         notes                 = notes.map { it.toJson() },
         screeningEventConfigs = screeningEventConfigs.map { ScreeningEventConfigJson(it.enabled, it.time) },
+        medNotificationConfigs = medNotificationConfigs.mapIndexed { slot, config ->
+            MedNotificationConfigJson(
+                tidpunkt = MED_NOTIFICATION_TIDPUNKTER.getOrNull(slot).orEmpty(),
+                enabled  = config.enabled,
+                time     = config.time,
+            )
+        },
         sheetsConfig          = sheetsConfig.takeIf { it.isNotBlank() },
         handelseTypOptions    = handelseTypOptions.map { SymptomOptionBackup(it.name, it.isFavorite) },
         periodReminderTime    = periodReminderTime,

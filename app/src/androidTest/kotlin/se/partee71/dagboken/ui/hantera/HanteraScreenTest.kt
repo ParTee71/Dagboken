@@ -26,7 +26,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
+import se.partee71.dagboken.data.datastore.DEFAULT_MED_NOTIFICATIONS
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
+import se.partee71.dagboken.data.datastore.MED_NOTIFICATION_TIDPUNKTER
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HandelserRepository
@@ -62,6 +64,7 @@ class HanteraScreenTest {
         prefs.setSymptomOptions(emptyList())
         prefs.setHandelseTypOptions(emptyList())
         prefs.setMedsNotificationsEnabled(false)
+        prefs.setMedNotificationConfigs(DEFAULT_MED_NOTIFICATIONS)
         prefs.setScreeningEventConfigs(DEFAULT_SCREENING_EVENTS)
         prefs.setThemeMode("auto")
 
@@ -120,6 +123,20 @@ class HanteraScreenTest {
         }
     }
 
+    /**
+     * På stor skärm ligger sektionerna bakom en sidomeny, på liten skärm i en scrollbar
+     * kolumn. Öppnar Påminnelser i båda fallen.
+     */
+    private fun openNotificationsSection() {
+        val railNodes = composeRule.onAllNodes(hasContentDescription("Påminnelser"))
+        if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
+            railNodes.onFirst().performClick()
+            composeRule.waitForIdle()
+        } else {
+            composeRule.onNodeWithText("Medicinpåminnelser").performScrollTo()
+        }
+    }
+
     // ─── Tema-läge ────────────────────────────────────────────────────────────
 
     @Test fun themeMode_starts_with_auto() = retryOnRenderGlitch {
@@ -154,15 +171,7 @@ class HanteraScreenTest {
         setUp()
         try {
             setContent()
-            // On large-screen layout the sidebar is shown; navigate to the Notifications section.
-            // On small-screen layout all sections are in a scrollable column; scroll to the row.
-            val railNodes = composeRule.onAllNodes(hasContentDescription("Påminnelser"))
-            if (railNodes.fetchSemanticsNodes().isNotEmpty()) {
-                railNodes.onFirst().performClick()
-                composeRule.waitForIdle()
-            } else {
-                composeRule.onNodeWithText("Medicinpåminnelser").performScrollTo()
-            }
+            openNotificationsSection()
             composeRule.onNodeWithText("Medicinpåminnelser").assertIsDisplayed()
             assert(!vm.state.value.medsNotificationsEnabled) {
                 "Expected medsNotificationsEnabled=false initially"
@@ -180,6 +189,47 @@ class HanteraScreenTest {
             composeRule.waitUntil(20_000) { vm.state.value.medsNotificationsEnabled }
             assert(vm.state.value.medsNotificationsEnabled) {
                 "Expected medsNotificationsEnabled=true after toggle"
+            }
+        } finally {
+            tearDown()
+        }
+    }
+
+    // ─── Medicintider (NOT-18) ────────────────────────────────────────────────
+
+    @Test fun each_medicine_time_has_its_own_row() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            openNotificationsSection()
+            // Tidpunktens namn står på raden — tidigare fanns bara screeningens
+            // måltidsetiketter, och medicinlarmen följde dem. "Lunch" finns i båda
+            // listorna, så första träffen räcker.
+            MED_NOTIFICATION_TIDPUNKTER.forEach { tidpunkt ->
+                composeRule.onAllNodes(hasText(tidpunkt)).onFirst()
+                    .performScrollTo().assertIsDisplayed()
+            }
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun setMedNotificationTime_persists_only_that_time() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            vm.setMedNotificationTime(0, "06:30")
+            composeRule.waitUntil(20_000) {
+                vm.state.value.medNotificationConfigs[0].time == "06:30"
+            }
+            val configs = vm.state.value.medNotificationConfigs
+            assert(configs[0].time == "06:30") { "Expected 06:30 but got ${configs[0].time}" }
+            assert(configs[1].time == DEFAULT_MED_NOTIFICATIONS[1].time) {
+                "Expected other times untouched but got ${configs[1].time}"
+            }
+            // Screeningtiderna ska inte påverkas av en medicinändring.
+            assert(vm.state.value.screeningEventConfigs == DEFAULT_SCREENING_EVENTS) {
+                "Expected screening configs untouched"
             }
         } finally {
             tearDown()

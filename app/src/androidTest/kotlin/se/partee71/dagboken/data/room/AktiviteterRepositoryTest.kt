@@ -14,6 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.room.entities.AktivitetEntity
+import se.partee71.dagboken.domain.usecase.isScreeningLoggedFor
 import java.time.LocalDate
 
 @RunWith(AndroidJUnit4::class)
@@ -102,15 +103,26 @@ class AktiviteterRepositoryTest {
         }
     }
 
-    // ─── hasScreeningToday ────────────────────────────────────────────────────
+    // ─── screeningpåminnelse per måltidshändelse (NOT-19) ─────────────────────
 
-    @Test fun hasScreeningToday_returns_true_when_screening_logged_today() = runTest {
+    @Test fun loggedScreening_only_marks_its_own_meal_event_as_done() = runTest {
         val today = LocalDate.now().toString()
-        db.aktivitetDao().upsert(entity("s1", datum = today, type = "screening"))
-        assertTrue(repo.hasScreeningToday())
+        db.aktivitetDao().upsert(
+            entity("s1", datum = today, type = "screening").copy(aktivitet = "Efter frukost"),
+        )
+
+        val screenings = repo.getScreeningToday()
+        assertTrue(isScreeningLoggedFor("Efter frukost", screenings))
+        // Lunchpåminnelsen ska fortfarande komma — det var den som tystnade tidigare.
+        assertTrue(!isScreeningLoggedFor("Lunch", screenings))
     }
 
-    @Test fun hasScreeningToday_returns_false_when_no_screening_today() = runTest {
-        assertTrue(!repo.hasScreeningToday())
+    @Test fun no_screening_today_means_no_meal_event_is_marked_as_done() = runTest {
+        val yesterday = LocalDate.now().minusDays(1).toString()
+        db.aktivitetDao().upsert(
+            entity("s1", datum = yesterday, type = "screening").copy(aktivitet = "Efter frukost"),
+        )
+
+        assertTrue(!isScreeningLoggedFor("Efter frukost", repo.getScreeningToday()))
     }
 }
