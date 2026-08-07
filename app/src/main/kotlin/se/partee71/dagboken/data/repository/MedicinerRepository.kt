@@ -82,10 +82,14 @@ class MedicinerRepository @Inject constructor(
      * Dagens schemalagda, ännu ej tagna doser — underlaget både för "Markera tagen"
      * (NOT-10) och för dosraden i medicinpåminnelsen (NOT-17). Vid behov-doser (utan
      * schemalagd tid) räknas inte med.
+     *
+     * Anges [tidpunkt] begränsas listan till den tidpunkten, så en påminnelse bara
+     * handlar om de doser den faktiskt gäller.
      */
-    suspend fun pendingScheduledDosesToday(): List<Medicin> =
+    suspend fun pendingScheduledDosesToday(tidpunkt: String? = null): List<Medicin> =
         todayFlow().first().filter {
-            !it.tagen && !it.skipped && tidpunktToHour(it.tidpunkt) != null
+            !it.tagen && !it.skipped && tidpunktToHour(it.tidpunkt) != null &&
+                (tidpunkt.isNullOrBlank() || it.tidpunkt == tidpunkt)
         }
 
     suspend fun markTodayDosesTaken(): Int {

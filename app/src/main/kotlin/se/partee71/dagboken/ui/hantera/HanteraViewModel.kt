@@ -12,8 +12,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.auth.FirebaseAuthRepository
+import se.partee71.dagboken.data.datastore.DEFAULT_MED_NOTIFICATIONS
 import se.partee71.dagboken.data.datastore.DEFAULT_PERIOD_REMINDER_TIME
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
+import se.partee71.dagboken.data.datastore.MedNotificationConfig
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SymptomOption
@@ -34,6 +36,8 @@ data class HanteraUiState(
     val themeLightStart: Int = 7,
     val themeDarkStart: Int = 21,
     val medsNotificationsEnabled: Boolean = false,
+    /** Tid och på/av per medicintidpunkt (NOT-18). */
+    val medNotificationConfigs: List<MedNotificationConfig> = DEFAULT_MED_NOTIFICATIONS,
     val screeningEventConfigs: List<ScreeningEventConfig> = DEFAULT_SCREENING_EVENTS,
     val periodReminderTime: String = DEFAULT_PERIOD_REMINDER_TIME,
     val aktivitetOptions: List<SymptomOption> = emptyList(),
@@ -88,15 +92,14 @@ class HanteraViewModel @Inject constructor(
         val lightStart: Int, val darkStart: Int,
     )
     private data class NotifPrefs(
-        val medsEnabled: Boolean,
-        val screeningConfigs: List<ScreeningEventConfig>,
-        val periodReminderTime: String,
+        val reminders: ReminderPrefs,
         val aktivitetOpts: List<SymptomOption>,
         val symptomOpts: List<SymptomOption>,
         val handelseTypOpts: List<SymptomOption>,
     )
     private data class ReminderPrefs(
         val medsEnabled: Boolean,
+        val medConfigs: List<MedNotificationConfig>,
         val screeningConfigs: List<ScreeningEventConfig>,
         val periodReminderTime: String,
     )
@@ -112,16 +115,13 @@ class HanteraViewModel @Inject constructor(
             ThemePrefs(dark, dynamic, mode, light, darkS)
         },
         combine(
-            combine(prefs.medsNotificationsEnabled, prefs.screeningEventConfigs,
-                    prefs.periodReminderTime) { meds, screening, periodTime ->
-                ReminderPrefs(meds, screening, periodTime)
+            combine(prefs.medsNotificationsEnabled, prefs.medNotificationConfigs,
+                    prefs.screeningEventConfigs, prefs.periodReminderTime) { meds, medConfigs, screening, periodTime ->
+                ReminderPrefs(meds, medConfigs, screening, periodTime)
             },
             prefs.aktivitetOptions, prefs.symptomOptions, prefs.handelseTypOptions,
         ) { reminders, akt, symp, handelseTyp ->
-            NotifPrefs(
-                reminders.medsEnabled, reminders.screeningConfigs, reminders.periodReminderTime,
-                akt, symp, handelseTyp,
-            )
+            NotifPrefs(reminders, akt, symp, handelseTyp)
         },
         combine(authRepo.authStateFlow, _isSigningIn, _signInError,
                 combine(_newAktivitetOption, _newSymptomOption, _newHandelseTypOption) { newAkt, newSymp, newHandelseTyp ->
@@ -151,9 +151,10 @@ class HanteraViewModel @Inject constructor(
             themeMode                = theme.mode,
             themeLightStart          = theme.lightStart,
             themeDarkStart           = theme.darkStart,
-            medsNotificationsEnabled = notif.medsEnabled,
-            screeningEventConfigs    = notif.screeningConfigs,
-            periodReminderTime       = notif.periodReminderTime,
+            medsNotificationsEnabled = notif.reminders.medsEnabled,
+            medNotificationConfigs   = notif.reminders.medConfigs,
+            screeningEventConfigs    = notif.reminders.screeningConfigs,
+            periodReminderTime       = notif.reminders.periodReminderTime,
             aktivitetOptions         = notif.aktivitetOpts,
             symptomOptions           = notif.symptomOpts,
             handelseTypOptions       = notif.handelseTypOpts,
@@ -220,6 +221,26 @@ class HanteraViewModel @Inject constructor(
     fun refreshPermissionState() {
         _notificationsBlocked.value = !alarmScheduler.canPostNotifications()
         _exactAlarmsBlocked.value = !alarmScheduler.canScheduleExactAlarms()
+    }
+
+    /** På/av för medicinpåminnelsen vid en tidpunkt (NOT-18). */
+    fun toggleMedNotificationTime(index: Int) {
+        val updated = state.value.medNotificationConfigs.toMutableList()
+            .also { it[index] = it[index].copy(enabled = !it[index].enabled) }
+        viewModelScope.launch {
+            prefs.setMedNotificationConfigs(updated)
+            alarmScheduler.rescheduleAll()
+        }
+    }
+
+    /** Klockslag för medicinpåminnelsen vid en tidpunkt (NOT-18). */
+    fun setMedNotificationTime(index: Int, time: String) {
+        val updated = state.value.medNotificationConfigs.toMutableList()
+            .also { it[index] = it[index].copy(time = time) }
+        viewModelScope.launch {
+            prefs.setMedNotificationConfigs(updated)
+            if (updated[index].enabled) alarmScheduler.rescheduleAll()
+        }
     }
 
     fun toggleScreeningEvent(index: Int) {

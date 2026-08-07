@@ -32,6 +32,25 @@ class ScreeningEventsTest {
         assertTrue(activeScreeningEventLabels(configs).isEmpty())
     }
 
+    // ─── isScreeningLoggedFor (NOT-19) ────────────────────────────────────────
+
+    /**
+     * Regression: påminnelsen kollade bara om *någon* screening fanns samma dag, så
+     * morgonens screening tystade lunch-, kvällsmats- och läggdagspåminnelsen.
+     */
+    @Test fun `a logged breakfast screening does not count as the lunch screening`() {
+        val screenings = listOf(aktivitet("Efter frukost"))
+
+        assertTrue(isScreeningLoggedFor("Efter frukost", screenings))
+        assertFalse(isScreeningLoggedFor("Lunch", screenings))
+        assertFalse(isScreeningLoggedFor("Kvällsmat", screenings))
+        assertFalse(isScreeningLoggedFor("Läggdags", screenings))
+    }
+
+    @Test fun `no screenings at all means no event is logged`() {
+        assertFalse(isScreeningLoggedFor("Lunch", emptyList()))
+    }
+
     // ─── computeScreeningEvents ───────────────────────────────────────────────
 
     @Test fun `computeScreeningEvents marks an event as logged when a matching aktivitet exists`() {

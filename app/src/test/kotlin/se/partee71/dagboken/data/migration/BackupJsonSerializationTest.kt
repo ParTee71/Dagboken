@@ -96,6 +96,10 @@ class BackupJsonSerializationTest {
             ScreeningEventConfigJson(enabled = true, time = "08:00"),
             ScreeningEventConfigJson(enabled = false, time = "21:00"),
         ),
+        medNotificationConfigs = listOf(
+            MedNotificationConfigJson(tidpunkt = "Morgon", enabled = true, time = "06:45"),
+            MedNotificationConfigJson(tidpunkt = "Natt", enabled = false, time = "22:30"),
+        ),
         sheetsConfig = "https://docs.google.com/spreadsheets/d/abc123",
         periodReminderTime = "08:30",
     )
@@ -188,6 +192,11 @@ class BackupJsonSerializationTest {
         assertTrue(result.screeningEventConfigs!![0].enabled)
         assertEquals("08:00", result.screeningEventConfigs!![0].time)
 
+        assertEquals(2, result.medNotificationConfigs!!.size)
+        assertEquals("Morgon", result.medNotificationConfigs!![0].tidpunkt)
+        assertEquals("06:45", result.medNotificationConfigs!![0].time)
+        assertTrue(result.medNotificationConfigs!![0].enabled)
+
         assertEquals("https://docs.google.com/spreadsheets/d/abc123", result.sheetsConfig)
     }
 
@@ -203,6 +212,12 @@ class BackupJsonSerializationTest {
         val oldJson = """{"version":1,"createdAt":"2025-01-01","aktiviteter":[],"mediciner":[]}"""
         val result = json.decodeFromString<BackupJson>(oldJson)
         assertTrue(result.notes.isEmpty())
+    }
+
+    @Test fun `old backup without medNotificationConfigs deserializes to null`() {
+        val oldJson = """{"version":1,"createdAt":"2025-01-01","aktiviteter":[],"mediciner":[]}"""
+        val result = json.decodeFromString<BackupJson>(oldJson)
+        assertNull(result.medNotificationConfigs)
     }
 
     @Test fun `old backup without screeningEventConfigs deserializes to null`() {

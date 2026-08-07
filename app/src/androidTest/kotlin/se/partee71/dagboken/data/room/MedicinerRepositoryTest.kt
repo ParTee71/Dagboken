@@ -354,6 +354,36 @@ class MedicinerRepositoryTest {
         assertEquals(listOf("m1"), repo.pendingScheduledDosesToday().map { it.id })
     }
 
+    @Test fun pendingScheduledDosesToday_filters_on_the_given_tidpunkt() = runTest {
+        // NOT-18: läggdagspåminnelsen ska inte lista morgondosen.
+        val today = LocalDate.now().toString()
+        db.medicinDao().upsert(medicinEntity(id = "morgon", datum = today))
+        db.medicinDao().upsert(
+            medicinEntity(id = "natt", datum = today, tid = "22:00").copy(tidpunkt = "Natt"),
+        )
+
+        assertEquals(listOf("morgon"), repo.pendingScheduledDosesToday("Morgon").map { it.id })
+        assertEquals(listOf("natt"), repo.pendingScheduledDosesToday("Natt").map { it.id })
+    }
+
+    @Test fun pendingScheduledDosesToday_without_tidpunkt_still_lists_every_pending_dose() = runTest {
+        // "Markera tagen" (NOT-10) gäller hela dagen och får inte begränsas av filtret.
+        val today = LocalDate.now().toString()
+        db.medicinDao().upsert(medicinEntity(id = "morgon", datum = today))
+        db.medicinDao().upsert(
+            medicinEntity(id = "natt", datum = today, tid = "22:00").copy(tidpunkt = "Natt"),
+        )
+
+        assertEquals(setOf("morgon", "natt"), repo.pendingScheduledDosesToday().map { it.id }.toSet())
+    }
+
+    @Test fun pendingScheduledDosesToday_is_empty_when_the_tidpunkt_has_nothing_left() = runTest {
+        val today = LocalDate.now().toString()
+        db.medicinDao().upsert(medicinEntity(id = "morgon", datum = today, tagen = true))
+
+        assertTrue(repo.pendingScheduledDosesToday("Morgon").isEmpty())
+    }
+
     @Test fun pendingScheduledDosesToday_carries_the_dose_that_applies_today() = runTest {
         val today = LocalDate.now()
         db.receptDao().upsert(receptEntity(

@@ -57,6 +57,7 @@ class BackupWorker @AssistedInject constructor(
                 symptomOptions        = symptomOptions,
                 handelseTypOptions    = prefs.handelseTypOptions.first(),
                 screeningEventConfigs = prefs.screeningEventConfigs.first(),
+                medNotificationConfigs = prefs.medNotificationConfigs.first(),
                 sheetsConfig          = prefs.sheetsConfig.first(),
                 periodReminderTime    = prefs.periodReminderTime.first(),
                 settings              = SettingsBackup(

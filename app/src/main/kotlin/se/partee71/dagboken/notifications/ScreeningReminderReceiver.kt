@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.repository.AktiviteterRepository
+import se.partee71.dagboken.domain.usecase.isScreeningLoggedFor
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -24,7 +25,9 @@ class ScreeningReminderReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
-                if (!aktiviteterRepo.hasScreeningToday()) {
+                // Bara den egna måltidshändelsen får tysta påminnelsen (NOT-19) —
+                // tidigare räckte en enda screening samma dag för att tysta resten.
+                if (!isScreeningLoggedFor(label, aktiviteterRepo.getScreeningToday())) {
                     NotificationHelper.postScreeningReminder(context, label)
                 }
                 alarmScheduler.scheduleScreeningAlarm(slot, time)

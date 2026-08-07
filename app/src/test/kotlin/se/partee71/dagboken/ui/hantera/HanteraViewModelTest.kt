@@ -4,8 +4,11 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import se.partee71.dagboken.data.datastore.DEFAULT_MED_NOTIFICATIONS
 import se.partee71.dagboken.data.datastore.DEFAULT_PERIOD_REMINDER_TIME
 import se.partee71.dagboken.data.datastore.DEFAULT_SCREENING_EVENTS
+import se.partee71.dagboken.data.datastore.MED_NOTIFICATION_TIDPUNKTER
+import se.partee71.dagboken.data.datastore.MedNotificationConfig
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SymptomOption
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +66,7 @@ class HanteraViewModelTest {
             every { themeLightStart } returns flowOf(7)
             every { themeDarkStart } returns flowOf(21)
             every { medsNotificationsEnabled } returns flowOf(false)
+            every { medNotificationConfigs } returns flowOf(DEFAULT_MED_NOTIFICATIONS)
             every { screeningEventConfigs } returns flowOf(DEFAULT_SCREENING_EVENTS)
             every { periodReminderTime } returns flowOf(DEFAULT_PERIOD_REMINDER_TIME)
             every { aktivitetOptions } returns aktivitetOptionsFlow
@@ -220,6 +224,55 @@ class HanteraViewModelTest {
     @Test fun `toggleMedsNotifications calls rescheduleAll`() = runTest {
         viewModel.toggleMedsNotifications()
         coVerify { alarmScheduler.rescheduleAll() }
+    }
+
+    // ─── medicintider (NOT-18) ────────────────────────────────────────────────
+
+    @Test fun `medicine reminder times default to the medicine clock times`() = runTest {
+        val configs = viewModel.state.value.medNotificationConfigs
+
+        assertEquals(MED_NOTIFICATION_TIDPUNKTER.size, configs.size)
+        assertEquals("07:00", configs[0].time)
+        // Screeningtiderna (08:00, 12:00, 17:00, 21:00) ska inte längre styra medicinerna.
+        assertEquals("19:00", configs[MED_NOTIFICATION_TIDPUNKTER.indexOf("Kväll")].time)
+    }
+
+    @Test fun `toggleMedNotificationTime persists only that time and reschedules`() = runTest {
+        viewModel.toggleMedNotificationTime(0)
+
+        val saved = slot<List<MedNotificationConfig>>()
+        coVerify { prefs.setMedNotificationConfigs(capture(saved)) }
+        assertFalse(saved.captured[0].enabled)
+        assertTrue(saved.captured[1].enabled)
+        coVerify { alarmScheduler.rescheduleAll() }
+        // Screeningkonfigurationen ska inte röras av en medicinändring.
+        coVerify(exactly = 0) { prefs.setScreeningEventConfigs(any()) }
+    }
+
+    @Test fun `setMedNotificationTime reschedules when the time is enabled`() = runTest {
+        viewModel.setMedNotificationTime(2, "12:30")
+
+        val saved = slot<List<MedNotificationConfig>>()
+        coVerify { prefs.setMedNotificationConfigs(capture(saved)) }
+        assertEquals("12:30", saved.captured[2].time)
+        coVerify { alarmScheduler.rescheduleAll() }
+    }
+
+    @Test fun `setMedNotificationTime on a disabled time does not reschedule`() = runTest {
+        every { prefs.medNotificationConfigs } returns
+            flowOf(DEFAULT_MED_NOTIFICATIONS.map { it.copy(enabled = false) })
+        viewModel = HanteraViewModel(prefs, authRepo, alarmScheduler, medicinerRepo, aktiviteterRepo, handelserRepo, sjukdomarRepo)
+
+        viewModel.setMedNotificationTime(0, "06:30")
+
+        coVerify { prefs.setMedNotificationConfigs(any()) }
+        coVerify(exactly = 0) { alarmScheduler.rescheduleAll() }
+    }
+
+    @Test fun `toggleScreeningEvent does not touch the medicine times`() = runTest {
+        viewModel.toggleScreeningEvent(0)
+
+        coVerify(exactly = 0) { prefs.setMedNotificationConfigs(any()) }
     }
 
     @Test fun `toggleScreeningEvent calls rescheduleAll`() = runTest {

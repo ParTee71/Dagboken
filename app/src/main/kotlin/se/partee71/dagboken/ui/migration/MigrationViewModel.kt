@@ -169,6 +169,10 @@ class MigrationViewModel @Inject constructor(
             ?.map { ScreeningEventConfig(it.enabled, it.time) }
             ?.let { prefs.setScreeningEventConfigs(it) }
 
+        // Medicinpåminnelsernas egna tider (NOT-18). Null i äldre backupar — då lämnas
+        // användarens nuvarande tider orörda.
+        BackupMapper.toMedNotificationConfigs(backup)?.let { prefs.setMedNotificationConfigs(it) }
+
         backup.sheetsConfig?.let { prefs.setSheetsConfig(it) }
 
         backup.periodReminderTime

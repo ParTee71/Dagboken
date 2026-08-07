@@ -1,5 +1,8 @@
 package se.partee71.dagboken.data.migration
 
+import se.partee71.dagboken.data.datastore.DEFAULT_MED_NOTIFICATIONS
+import se.partee71.dagboken.data.datastore.MED_NOTIFICATION_TIDPUNKTER
+import se.partee71.dagboken.data.datastore.MedNotificationConfig
 import se.partee71.dagboken.data.room.entities.NoteEntity
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.Dosperiod
@@ -27,6 +30,26 @@ object BackupMapper {
         json.sjukdomsIncheckningar.map { it.toDomain() }
 
     fun toHandelser(json: BackupJson): List<Handelse> = json.handelser.map { it.toDomain() }
+
+    /**
+     * Medicinpåminnelsernas tider (NOT-18), alltid i [MED_NOTIFICATION_TIDPUNKTER]-ordning.
+     * Poster matchas i första hand på tidpunktens namn och först därefter på position, så en
+     * backup skriven med en annan ordning ändå hamnar rätt. En tidpunkt som saknas i backupen
+     * behåller sitt standardvärde. Saknas fältet helt (äldre backup) returneras null — då ska
+     * inställningen lämnas orörd.
+     */
+    fun toMedNotificationConfigs(json: BackupJson): List<MedNotificationConfig>? {
+        val backed = json.medNotificationConfigs ?: return null
+        return MED_NOTIFICATION_TIDPUNKTER.mapIndexed { slot, tidpunkt ->
+            val match = backed.firstOrNull { it.tidpunkt == tidpunkt }
+                ?: backed.getOrNull(slot)?.takeIf { it.tidpunkt.isBlank() }
+            val default = DEFAULT_MED_NOTIFICATIONS[slot]
+            MedNotificationConfig(
+                enabled = match?.enabled ?: default.enabled,
+                time    = match?.time?.takeIf { it.isNotBlank() } ?: default.time,
+            )
+        }
+    }
 
     // Legacy backups (pre notes-table migration) carried Medicin/Recept/Favorit anteckning as a
     // per-row column instead of a `notes` entry. Synthesize those into notes on import so

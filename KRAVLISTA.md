@@ -228,8 +228,8 @@
 | ID | Krav |
 |----|------|
 | NOT-1 | Två notifikationskanaler ska finnas: **Medicinpåminnelser** (default) och **Screeningpåminnelser** (low). |
-| NOT-2 | **Medicinpåminnelser** ska kunna aktiveras/avaktiveras; larm sätts **15 minuter före** medicinens tidpunkt. |
-| NOT-3 | Endast ej tagna/ej skippade mediciner ska generera larm. |
+| NOT-2 | **Medicinpåminnelser** ska kunna aktiveras/avaktiveras; larm sätts **15 minuter före medicinens egen tidpunkt** (Morgon, Förmiddag, Lunch, Eftermiddag, Kväll, Natt) — aldrig utifrån screeningtiderna (NOT-4). |
+| NOT-3 | Endast ej tagna/ej skippade mediciner ska generera larm. Finns ingen otagen schemalagd dos vid tidpunkten postas **ingen notis alls**. |
 | NOT-4 | **Screeningpåminnelser** ska vara kopplade till fyra namngivna måltidshändelser: **Efter frukost, Lunch, Kvällsmat, Läggdags**. Varje händelse har ett eget på/av-reglage och en konfigurerbar tidpunkt. |
 | NOT-5 | Screeninglarm som passerat dagens tid ska schemaläggas till nästa dag. |
 | NOT-6 | Larm ska **återskapas efter omstart** av enheten (BOOT_COMPLETED). |
@@ -242,8 +242,10 @@
 | NOT-13 | Tidpunkten för periodpåminnelsen (NOT-12) ska vara konfigurerbar under Hantera → Notifikationer (standard 09:00), ingå i backup och schemaläggas om vid ändring och efter omstart. |
 | NOT-14 | Varje påminnelse ska schemalägga om sig själv till nästa dag när den utlösts, och alla larm ska sättas om både efter omstart (`BOOT_COMPLETED`) och efter appuppdatering (`MY_PACKAGE_REPLACED`) — påminnelserna får aldrig tystna för att appen inte startats om. |
 | NOT-15 | Efter en återställning från backup ska larmen schemaläggas om direkt, så återställda påminnelsetider gäller utan att appen behöver startas om. |
-| NOT-17 | Medicinpåminnelsen ska lista dagens ej tagna schemalagda doser med namn och dos (den totala dosen enligt REC-12). Finns ingen sådan dos visas den allmänna texten. Vid behov-doser listas inte. |
+| NOT-17 | Medicinpåminnelsen ska lista dagens ej tagna schemalagda doser med namn och dos (den totala dosen enligt REC-12) **för den tidpunkt larmet gäller**, och ha tidpunktens namn i rubriken. Vid behov-doser listas inte. |
 | NOT-16 | Notisbehörigheten ska begäras när användaren aktiverar en påminnelse, inte vid appens första start. Saknas behörighet att visa notiser eller att ställa exakta larm ska Hantera → Notifikationer visa det, med genväg till systeminställningarna. |
+| NOT-18 | Varje medicintidpunkt ska ha ett eget på/av-reglage och en konfigurerbar tidpunkt under Hantera → Notifikationer (standard enligt tidpunkternas klockslag: 07:00, 10:00, 12:00, 15:00, 19:00, 22:00). Inställningen ingår i backup och schemaläggs om vid ändring, efter omstart och efter återställning. "Vid behov" saknar klockslag och påminner inte. |
+| NOT-19 | Screeningpåminnelsen ska undertryckas **endast för den måltidshändelse som redan loggats** samma dag; övriga händelser påminner som vanligt. |
 
 ---
 

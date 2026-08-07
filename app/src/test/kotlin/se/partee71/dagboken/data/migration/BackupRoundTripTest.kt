@@ -5,6 +5,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import se.partee71.dagboken.data.datastore.DEFAULT_MED_NOTIFICATIONS
+import se.partee71.dagboken.data.datastore.MED_NOTIFICATION_TIDPUNKTER
+import se.partee71.dagboken.data.datastore.MedNotificationConfig
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SymptomOption
 import se.partee71.dagboken.data.room.entities.NoteEntity
@@ -83,6 +86,11 @@ class BackupRoundTripTest {
         NoteEntity(target = "SJUKDOM_EPISOD", entityId = "e1", text = "Feber första dagen"),
     )
 
+    // NOT-18: egna tider per medicintidpunkt, alla skilda från standardvärdena.
+    private val medNotificationConfigs = DEFAULT_MED_NOTIFICATIONS.mapIndexed { i, config ->
+        config.copy(enabled = i != 1, time = "0%d:45".format(i + 1))
+    }
+
     private val settings = SettingsBackup(
         medsNotificationsEnabled = true,
         themeMode = "dark",
@@ -108,6 +116,7 @@ class BackupRoundTripTest {
         symptomOptions        = listOf(SymptomOption("Huvudvärk", isFavorite = true)),
         handelseTypOptions    = listOf(SymptomOption("Ögonmigrän")),
         screeningEventConfigs = listOf(ScreeningEventConfig(enabled = true, time = "08:30")),
+        medNotificationConfigs = medNotificationConfigs,
         sheetsConfig          = "https://example.test/sheet",
         periodReminderTime    = "10:15",
         settings              = settings,
@@ -166,6 +175,43 @@ class BackupRoundTripTest {
         assertEquals(settings, restored.settings)
     }
 
+    @Test fun `medicine reminder times survive the round trip`() {
+        // NOT-18: tapras tiderna vid enhetsbyte påminner medicinerna plötsligt vid
+        // standardtiderna igen, utan att något syns.
+        val restored = BackupMapper.toMedNotificationConfigs(roundTrip(assemble()))
+        assertEquals(medNotificationConfigs, restored)
+    }
+
+    @Test fun `a backup written before the medicine reminder times leaves them untouched`() {
+        val old = roundTrip(assemble()).copy(medNotificationConfigs = null)
+        assertEquals(null, BackupMapper.toMedNotificationConfigs(old))
+    }
+
+    @Test fun `a medicine reminder time missing from the backup keeps its default`() {
+        // Bara Lunch finns med — övriga tidpunkter ska falla tillbaka på standard.
+        val partial = roundTrip(assemble()).copy(
+            medNotificationConfigs = listOf(MedNotificationConfigJson("Lunch", enabled = false, time = "13:37")),
+        )
+
+        val restored = BackupMapper.toMedNotificationConfigs(partial)!!
+        val lunchIndex = MED_NOTIFICATION_TIDPUNKTER.indexOf("Lunch")
+        assertEquals(MedNotificationConfig(enabled = false, time = "13:37"), restored[lunchIndex])
+        assertEquals(DEFAULT_MED_NOTIFICATIONS[0], restored[0])
+    }
+
+    @Test fun `medicine reminder times are restored by name even if the backup lists them in another order`() {
+        val reordered = roundTrip(assemble()).copy(
+            medNotificationConfigs = listOf(
+                MedNotificationConfigJson("Natt", enabled = false, time = "23:00"),
+                MedNotificationConfigJson("Morgon", enabled = true, time = "06:30"),
+            ),
+        )
+
+        val restored = BackupMapper.toMedNotificationConfigs(reordered)!!
+        assertEquals("06:30", restored[MED_NOTIFICATION_TIDPUNKTER.indexOf("Morgon")].time)
+        assertEquals("23:00", restored[MED_NOTIFICATION_TIDPUNKTER.indexOf("Natt")].time)
+    }
+
     @Test fun `profile settings survive the round trip`() {
         // HLS-11: födelseår och kön styr sömnkvalitetens åldersnormer. Tappas de vid
         // enhetsbyte mäts nätterna plötsligt mot fel norm, utan att något syns.
@@ -197,6 +243,7 @@ class BackupRoundTripTest {
             incheckningar = emptyList(), notes = emptyList(),
             aktivitetOptions = emptyList(), symptomOptions = emptyList(),
             handelseTypOptions = emptyList(), screeningEventConfigs = emptyList(),
+            medNotificationConfigs = emptyList(),
             sheetsConfig = "  ", periodReminderTime = "09:00", settings = SettingsBackup(),
         )
         assertEquals(null, roundTrip(backup).sheetsConfig)

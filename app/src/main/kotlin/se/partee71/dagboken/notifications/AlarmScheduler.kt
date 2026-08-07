@@ -8,6 +8,8 @@ import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
+import se.partee71.dagboken.data.datastore.MED_NOTIFICATION_TIDPUNKTER
+import se.partee71.dagboken.data.datastore.MedNotificationConfig
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
@@ -38,13 +40,16 @@ class AlarmScheduler @Inject constructor(
 
     suspend fun rescheduleAll() {
         val medsEnabled  = prefs.medsNotificationsEnabled.first()
+        val medConfigs   = prefs.medNotificationConfigs.first()
         val eventConfigs = prefs.screeningEventConfigs.first()
         val periodTime   = prefs.periodReminderTime.first()
 
         cancelAllMedAlarms()
         cancelAllScreeningAlarms()
 
-        if (medsEnabled) scheduleMedAlarms(eventConfigs)
+        // Medicinlarmen har egna tider (NOT-18) — de hämtades tidigare ur
+        // screeningkonfigurationen, så påminnelsen kom när det var dags för screening.
+        if (medsEnabled) scheduleMedAlarms(medConfigs)
         scheduleScreeningAlarms(eventConfigs)
         schedulePeriodReminder(periodTime)
     }
@@ -76,10 +81,10 @@ class AlarmScheduler @Inject constructor(
         )?.also { alarmManager.cancel(it) }
     }
 
-    fun scheduleMedAlarms(configs: List<ScreeningEventConfig>) {
+    fun scheduleMedAlarms(configs: List<MedNotificationConfig>) {
         cancelAllMedAlarms()
-        configs.forEachIndexed { slot, config ->
-            if (config.enabled) scheduleMedAlarm(slot, config.time)
+        medAlarmPlans(configs).forEach { plan ->
+            scheduleMedAlarm(plan.slot, plan.time)
         }
     }
 
@@ -94,6 +99,7 @@ class AlarmScheduler @Inject constructor(
             REQUEST_CODE_MED_BASE + slot,
             Intent(context, MedAlarmReceiver::class.java).apply {
                 putExtra(MedAlarmReceiver.EXTRA_SLOT, slot)
+                putExtra(MedAlarmReceiver.EXTRA_TIDPUNKT, MED_NOTIFICATION_TIDPUNKTER.getOrNull(slot).orEmpty())
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -101,7 +107,7 @@ class AlarmScheduler @Inject constructor(
     }
 
     fun cancelAllMedAlarms() {
-        repeat(4) { slot ->
+        repeat(MED_NOTIFICATION_TIDPUNKTER.size) { slot ->
             PendingIntent.getBroadcast(
                 context,
                 REQUEST_CODE_MED_BASE + slot,
@@ -156,11 +162,27 @@ class AlarmScheduler @Inject constructor(
     }
 
     companion object {
+        // Baserna ligger 16 isär: en slot per medicintidpunkt respektive screeninghändelse
+        // ryms mellan dem. Fler än 16 slots i en grupp skulle skriva över nästa grupps larm.
         private const val REQUEST_CODE_SCREENING_BASE = 0x7FF0
         private const val REQUEST_CODE_MED_BASE       = 0x7FE0
         private const val REQUEST_CODE_PERIOD         = 0x7FD0
     }
 }
+
+/** Ett medicinlarm som ska sättas: [slot] är index i [MED_NOTIFICATION_TIDPUNKTER]. */
+internal data class MedAlarmPlan(val slot: Int, val tidpunkt: String, val time: String)
+
+/**
+ * Vilka medicinlarm [configs] ger upphov till (NOT-18). Ren funktion så mappningen
+ * tidpunkt→tid går att testa utan Android — det var just den mappningen som var fel när
+ * medicinlarmen hämtade sina tider ur screeningkonfigurationen.
+ */
+internal fun medAlarmPlans(configs: List<MedNotificationConfig>): List<MedAlarmPlan> =
+    configs.mapIndexedNotNull { slot, config ->
+        val tidpunkt = MED_NOTIFICATION_TIDPUNKTER.getOrNull(slot) ?: return@mapIndexedNotNull null
+        if (config.enabled) MedAlarmPlan(slot, tidpunkt, config.time) else null
+    }
 
 /** Returns epoch-ms for the next occurrence of [hour]:[minute] at or after [now]. */
 internal fun screeningAlarmTriggerMs(hour: Int, minute: Int, now: LocalDateTime = LocalDateTime.now()): Long {

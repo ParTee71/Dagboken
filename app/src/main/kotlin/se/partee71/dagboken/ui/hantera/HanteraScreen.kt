@@ -108,6 +108,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import se.partee71.dagboken.R
+import se.partee71.dagboken.data.datastore.MED_NOTIFICATION_TIDPUNKTER
+import se.partee71.dagboken.data.datastore.MedNotificationConfig
 import se.partee71.dagboken.data.datastore.ScreeningEventConfig
 import se.partee71.dagboken.data.datastore.SCREENING_EVENT_LABELS
 import se.partee71.dagboken.data.datastore.SymptomOption
@@ -117,6 +119,7 @@ import se.partee71.dagboken.domain.model.Sex
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
+import se.partee71.dagboken.ui.components.ReminderTimeRow
 import se.partee71.dagboken.ui.components.SectionHeader
 
 private data class SectionDef(val icon: ImageVector, val title: String, val description: String)
@@ -244,6 +247,7 @@ fun HanteraScreen(
                     notificationsBlocked = state.notificationsBlocked,
                     exactAlarmsBlocked   = state.exactAlarmsBlocked,
                     onOpenSystemSettings = { context.startActivity(appNotificationSettingsIntent(context)) },
+                    medConfigs         = state.medNotificationConfigs,
                     screeningConfigs   = state.screeningEventConfigs,
                     periodReminderTime = state.periodReminderTime,
                     onToggleMeds         = {
@@ -253,6 +257,8 @@ fun HanteraScreen(
                         if (!state.medsNotificationsEnabled) requestNotificationPermission(permissionLauncher)
                         vm.toggleMedsNotifications()
                     },
+                    onToggleMedTime    = { vm.toggleMedNotificationTime(it) },
+                    onSetMedTime       = { i, h, m -> vm.setMedNotificationTime(i, "%02d:%02d".format(h, m)) },
                     onToggleScreening  = { vm.toggleScreeningEvent(it) },
                     onSetScreeningTime = { i, h, m -> vm.setScreeningEventTime(i, "%02d:%02d".format(h, m)) },
                     onSetPeriodTime    = { h, m -> vm.setPeriodReminderTime("%02d:%02d".format(h, m)) },
@@ -764,9 +770,12 @@ private fun NotificationsCard(
     notificationsBlocked: Boolean,
     exactAlarmsBlocked: Boolean,
     onOpenSystemSettings: () -> Unit,
+    medConfigs: List<MedNotificationConfig>,
     screeningConfigs: List<ScreeningEventConfig>,
     periodReminderTime: String,
     onToggleMeds: () -> Unit,
+    onToggleMedTime: (Int) -> Unit,
+    onSetMedTime: (Int, Int, Int) -> Unit,
     onToggleScreening: (Int) -> Unit,
     onSetScreeningTime: (Int, Int, Int) -> Unit,
     onSetPeriodTime: (Int, Int) -> Unit,
@@ -805,6 +814,19 @@ private fun NotificationsCard(
                     onCheckedChange = { onToggleMeds() },
                 )
             }
+            // Medicinpåminnelsernas egna tider (NOT-18) — larmet går 15 minuter före
+            // respektive tidpunkt, oberoende av screeningtiderna nedan.
+            Spacer(Modifier.height(8.dp))
+            medConfigs.forEachIndexed { index, config ->
+                if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                ReminderTimeRow(
+                    label          = MED_NOTIFICATION_TIDPUNKTER[index],
+                    time           = config.time,
+                    enabled        = config.enabled,
+                    onToggle       = { onToggleMedTime(index) },
+                    onTimeSelected = { h, m -> onSetMedTime(index, h, m) },
+                )
+            }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Text(stringResource(R.string.settings_screening_notifications), style = MaterialTheme.typography.bodyMedium)
             Text(
@@ -815,9 +837,10 @@ private fun NotificationsCard(
             Spacer(Modifier.height(8.dp))
             screeningConfigs.forEachIndexed { index, config ->
                 if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                ScreeningEventRow(
+                ReminderTimeRow(
                     label          = SCREENING_EVENT_LABELS[index],
-                    config         = config,
+                    time           = config.time,
+                    enabled        = config.enabled,
                     onToggle       = { onToggleScreening(index) },
                     onTimeSelected = { h, m -> onSetScreeningTime(index, h, m) },
                 )
@@ -830,62 +853,13 @@ private fun NotificationsCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(8.dp))
-            PeriodReminderRow(
+            ReminderTimeRow(
+                label          = stringResource(R.string.settings_period_reminder_time),
                 time           = periodReminderTime,
                 onTimeSelected = onSetPeriodTime,
+                defaultHour    = 9,
             )
         }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PeriodReminderRow(
-    time: String,
-    onTimeSelected: (hour: Int, minute: Int) -> Unit,
-) {
-    val parts  = time.split(":")
-    val hour   = parts.getOrNull(0)?.toIntOrNull() ?: 9
-    val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
-    var showPicker by remember { mutableStateOf(false) }
-    val label = stringResource(R.string.settings_period_reminder_time)
-
-    Row(
-        modifier          = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        TextButton(onClick = { showPicker = true }) {
-            Text(
-                text       = time,
-                style      = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.width(4.dp))
-            Icon(
-                Icons.Default.Alarm,
-                contentDescription = stringResource(R.string.settings_pick_time),
-                modifier = Modifier.size(18.dp),
-            )
-        }
-    }
-
-    if (showPicker) {
-        val state = rememberTimePickerState(initialHour = hour, initialMinute = minute, is24Hour = true)
-        AlertDialog(
-            onDismissRequest = { showPicker = false },
-            title            = { Text(label) },
-            text             = { TimePicker(state = state) },
-            confirmButton    = {
-                TextButton(onClick = {
-                    onTimeSelected(state.hour, state.minute)
-                    showPicker = false
-                }) { Text(stringResource(R.string.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.cancel)) }
-            },
-        )
     }
 }
 
@@ -1060,58 +1034,6 @@ private fun AboutCard() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ScreeningEventRow(
-    label: String,
-    config: ScreeningEventConfig,
-    onToggle: () -> Unit,
-    onTimeSelected: (hour: Int, minute: Int) -> Unit,
-) {
-    val parts  = config.time.split(":")
-    val hour   = parts.getOrNull(0)?.toIntOrNull() ?: 8
-    val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
-    var showPicker by remember { mutableStateOf(false) }
-
-    Row(
-        modifier          = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        TextButton(
-            onClick = { showPicker = true },
-            enabled = config.enabled,
-        ) {
-            Text(
-                text       = config.time,
-                style      = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.width(4.dp))
-            Icon(Icons.Default.Alarm, contentDescription = stringResource(R.string.settings_pick_time), modifier = Modifier.size(18.dp))
-        }
-        Switch(checked = config.enabled, onCheckedChange = { onToggle() })
-    }
-
-    if (showPicker) {
-        val state = rememberTimePickerState(initialHour = hour, initialMinute = minute, is24Hour = true)
-        AlertDialog(
-            onDismissRequest = { showPicker = false },
-            title            = { Text(label) },
-            text             = { TimePicker(state = state) },
-            confirmButton    = {
-                TextButton(onClick = {
-                    onTimeSelected(state.hour, state.minute)
-                    showPicker = false
-                }) { Text(stringResource(R.string.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.cancel)) }
-            },
-        )
     }
 }
 
