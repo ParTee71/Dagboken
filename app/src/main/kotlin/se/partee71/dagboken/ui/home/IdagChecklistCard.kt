@@ -35,6 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -208,7 +211,24 @@ private fun MedicinChecklistSection(
         visible.forEachIndexed { i, med ->
             if (i > 0) HorizontalDivider(color = cs.outlineVariant)
             val isTagen = med.tagen
+            val tagenState = if (isTagen) {
+                stringResource(R.string.label_taken)
+            } else {
+                stringResource(R.string.state_not_taken)
+            }
             ListItem(
+                // Hela raden är tryckytan (NFR-17) — tidigare var bara den lilla
+                // ikonknappen klickbar, trots att raden ser tryckbar ut.
+                modifier = Modifier
+                    .clickable(
+                        role           = Role.Checkbox,
+                        onClickLabel   = if (isTagen) {
+                            stringResource(R.string.format_mark_as_untaken, med.namn)
+                        } else {
+                            stringResource(R.string.format_mark_as_taken, med.namn)
+                        },
+                    ) { onToggle(med) }
+                    .semantics { stateDescription = tagenState },
                 headlineContent = {
                     Text(
                         text           = med.namn,
@@ -223,16 +243,14 @@ private fun MedicinChecklistSection(
                     Icon(Icons.Filled.Medication, contentDescription = null, tint = cs.onSurfaceVariant)
                 },
                 trailingContent = {
-                    IconButton(onClick = { onToggle(med) }) {
-                        Icon(
-                            imageVector = if (isTagen) Icons.Filled.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
-                            contentDescription = if (isTagen)
-                                stringResource(R.string.format_mark_as_untaken, med.namn)
-                            else
-                                stringResource(R.string.format_mark_as_taken, med.namn),
-                            tint = if (isTagen) cs.primary else cs.onSurfaceVariant,
-                        )
-                    }
+                    // Ren tillståndsindikator: raden äger åtgärden och dess etikett, så
+                    // ikonen ska inte läsas upp en gång till av skärmläsaren (NFR-17).
+                    Icon(
+                        imageVector        = if (isTagen) Icons.Filled.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                        contentDescription = null,
+                        tint               = if (isTagen) cs.primary else cs.onSurfaceVariant,
+                        modifier           = Modifier.padding(12.dp),
+                    )
                 },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
@@ -319,12 +337,18 @@ private fun ScreeningChecklistSection(
                 label         = "screening_chevron_${event.label}",
             )
 
+            val loggadState = if (event.logged) {
+                stringResource(R.string.home_checklist_screening_logged)
+            } else {
+                stringResource(R.string.state_not_logged)
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = !event.logged) {
+                    .clickable(enabled = !event.logged, role = Role.Button) {
                         expandedLabel = if (expanded) null else event.label
                     }
+                    .semantics { stateDescription = loggadState }
                     .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

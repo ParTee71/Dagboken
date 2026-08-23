@@ -9,6 +9,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -245,12 +248,24 @@ class IdagChecklistCardTest {
             ),
             assertions = {
                 toggled = null
-                composeRule.onNodeWithContentDescription("Markera Levaxin som tagen")
+                // Hela raden är tryckytan sedan #203 — ikonen är bara indikator.
+                composeRule.onNodeWithText("Levaxin")
                     .performScrollTo().performClick()
                 composeRule.waitUntil(5000) { toggled != null }
             },
         )
         assertEquals(levaxin, toggled)
+    }
+
+    @Test fun medicin_row_exposes_its_taken_state_to_screen_readers() {
+        render(
+            content = card(mediciner = listOf(medicin("Levaxin"))),
+            assertions = {
+                composeRule.onNodeWithText("Levaxin")
+                    .performScrollTo()
+                    .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Ej tagen"))
+            },
+        )
     }
 
     @Test fun tapping_a_vid_behov_favorit_reports_it() {
