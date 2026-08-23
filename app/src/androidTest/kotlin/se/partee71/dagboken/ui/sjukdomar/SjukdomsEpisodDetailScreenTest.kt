@@ -200,10 +200,12 @@ class SjukdomsEpisodDetailScreenTest {
             var editedId: String? = null
             setContent(onEditEpisod = { id -> editedId = id })
             composeRule.waitUntil(20_000) {
-                composeRule.onAllNodes(hasText("Migrän")).fetchSemanticsNodes().isNotEmpty()
+                composeRule.onAllNodes(hasText("Startdatum: 2026-01-10")).fetchSemanticsNodes().isNotEmpty()
             }
 
-            composeRule.onNodeWithText("Migrän").performClick()
+            // Titeln "Migrän" står både i toppfältet och på kortet — sikta på kortets
+            // egen undertitel, som bara finns på kortet.
+            composeRule.onNodeWithText("Startdatum: 2026-01-10").performClick()
             assertEquals("e1", editedId)
         } finally {
             tearDown()
@@ -216,7 +218,7 @@ class SjukdomsEpisodDetailScreenTest {
             seed(medIncheckning = false)
             setContent()
             composeRule.waitUntil(20_000) {
-                composeRule.onAllNodes(hasText("Migrän")).fetchSemanticsNodes().isNotEmpty()
+                composeRule.onAllNodes(hasText("Startdatum: 2026-01-10")).fetchSemanticsNodes().isNotEmpty()
             }
 
             // Episoden raderas från listan (SjukdomarScreen), inte inifrån sin egen detaljvy.
