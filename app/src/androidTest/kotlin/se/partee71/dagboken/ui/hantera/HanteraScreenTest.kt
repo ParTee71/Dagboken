@@ -385,7 +385,8 @@ class HanteraScreenTest {
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
             }
-            composeRule.onNode(hasContentDescription("Favorit")).performScrollTo().performClick()
+            // Hela raden växlar favoritmarkeringen sedan #203 — stjärnan är indikator.
+            composeRule.onNodeWithText("Paracetamol").performScrollTo().performClick()
             composeRule.waitUntil(20_000) {
                 runBlocking { medicinerRepo.getFavoritById("fav1")?.isFavorite == true }
             }
@@ -487,10 +488,13 @@ class HanteraScreenTest {
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("Svimning")).fetchSemanticsNodes().isNotEmpty()
             }
+            // Ta bort ligger i radens kontextmeny sedan #203 (radstandarden).
             composeRule.waitUntil(20_000) {
-                composeRule.onAllNodes(hasContentDescription("Ta bort")).fetchSemanticsNodes().isNotEmpty()
+                composeRule.onAllNodes(hasContentDescription("Alternativ")).fetchSemanticsNodes().isNotEmpty()
             }
-            composeRule.onNode(hasContentDescription("Ta bort")).performScrollTo().performClick()
+            composeRule.onNode(hasContentDescription("Alternativ")).performScrollTo().performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Ta bort").performClick()
             composeRule.waitForIdle()
             composeRule.onNodeWithText("Ta bort").performClick()
             composeRule.waitUntil(20_000) { vm.state.value.handelseTypOptions.isEmpty() }
