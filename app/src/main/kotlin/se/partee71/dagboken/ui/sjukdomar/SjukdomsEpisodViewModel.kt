@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -71,6 +72,33 @@ class SjukdomsEpisodViewModel @Inject constructor(
     private val _snackbar = MutableStateFlow<String?>(null)
     val snackbar: StateFlow<String?> = _snackbar.asStateFlow()
 
+    private var editIncheckningId: String? = null
+
+    /**
+     * Laddar en befintlig incheckning för redigering (SJ-11). Formuläret sätts som
+     * "rent" så att SaveButton förblir inaktiv tills något faktiskt ändras (NFR-10).
+     */
+    fun loadIncheckningForEdit(id: String) {
+        viewModelScope.launch {
+            val incheckning = repo.getIncheckning(id) ?: return@launch
+            val note = noteRepo.observe(NoteTarget.SJUKDOM_INCHECKNING, id).first()
+            editIncheckningId = id
+            originalTimestamp = incheckning.timestamp
+            val form = IncheckningForm(
+                datum          = incheckning.datum,
+                tid            = incheckning.tid,
+                svarighetsgrad = incheckning.svarighetsgrad,
+                symptomScores  = SymptomUtils.decode(incheckning.symptom),
+                anteckning     = note,
+            )
+            originalIncheckningForm = form
+            _incheckningForm.value = form
+            _isIncheckningFormDirty.value = false
+        }
+    }
+
+    private var originalTimestamp: Long? = null
+
     fun updateForm(update: IncheckningForm.() -> IncheckningForm) {
         _incheckningForm.value = _incheckningForm.value.update()
         _isIncheckningFormDirty.value = _incheckningForm.value != originalIncheckningForm
@@ -88,14 +116,17 @@ class SjukdomsEpisodViewModel @Inject constructor(
         val f = _incheckningForm.value
         viewModelScope.launch {
             val symptomStr = SymptomUtils.encode(f.symptomScores)
+            // Vid redigering behålls postens id och ursprungliga timestamp, så att den
+            // förblir samma post i backup-kedjan (SJ-7) i stället för att bli en ny.
             val incheckning = SjukdomsIncheckning(
-                id             = UUID.randomUUID().toString(),
+                id             = editIncheckningId ?: UUID.randomUUID().toString(),
                 episodId       = episodId,
                 datum          = f.datum,
                 tid            = f.tid,
                 svarighetsgrad = f.svarighetsgrad,
                 symptom        = symptomStr,
                 somatiska      = SymptomUtils.sum(symptomStr),
+                timestamp      = originalTimestamp ?: System.currentTimeMillis(),
             )
             repo.saveIncheckning(incheckning)
             noteRepo.save(NoteTarget.SJUKDOM_INCHECKNING, incheckning.id, f.anteckning.trim())
@@ -103,6 +134,8 @@ class SjukdomsEpisodViewModel @Inject constructor(
             originalIncheckningForm = blank
             _incheckningForm.value = blank
             _isIncheckningFormDirty.value = false
+            editIncheckningId = null
+            originalTimestamp = null
             _snackbar.value = "Incheckning sparad ✓"
         }
     }

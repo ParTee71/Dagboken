@@ -271,6 +271,7 @@ fun AppNavigation(
                     onBack            = { navController.popBackStack() },
                     onAddNew          = { navController.navigate(Routes.ADD_SJUKDOM) { launchSingleTop = true } },
                     onDetail          = { id -> navController.navigate(Routes.sjukdomEpisodDetail(id)) { launchSingleTop = true } },
+                    onEdit            = { id -> navController.navigate(Routes.editSjukdom(id)) { launchSingleTop = true } },
                     snackbarHostState = snackbarHostState,
                 )
             }
@@ -301,8 +302,14 @@ fun AppNavigation(
                 arguments = listOf(navArgument("episodId") { type = NavType.StringType }),
             ) {
                 SjukdomsEpisodDetailScreen(
-                    onBack           = { navController.popBackStack() },
-                    onAddIncheckning = { id -> navController.navigate(Routes.addSjukdomsIncheckning(id)) { launchSingleTop = true } },
+                    onBack            = { navController.popBackStack() },
+                    onAddIncheckning  = { id -> navController.navigate(Routes.addSjukdomsIncheckning(id)) { launchSingleTop = true } },
+                    onEditEpisod      = { id -> navController.navigate(Routes.editSjukdom(id)) { launchSingleTop = true } },
+                    onEditIncheckning = { episodId, incheckningId ->
+                        navController.navigate(Routes.editSjukdomsIncheckning(episodId, incheckningId)) {
+                            launchSingleTop = true
+                        }
+                    },
                     snackbarHostState = snackbarHostState,
                 )
             }
@@ -312,6 +319,18 @@ fun AppNavigation(
             ) {
                 AddSjukdomsIncheckningScreen(
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route     = Routes.EDIT_SJUKDOMS_INCHECKNING,
+                arguments = listOf(
+                    navArgument("episodId") { type = NavType.StringType },
+                    navArgument("incheckningId") { type = NavType.StringType },
+                ),
+            ) { backStackEntry ->
+                AddSjukdomsIncheckningScreen(
+                    onBack = { navController.popBackStack() },
+                    editId = backStackEntry.arguments?.getString("incheckningId"),
                 )
             }
             composable(Screen.Trender.route) {

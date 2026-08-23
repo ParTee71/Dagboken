@@ -29,12 +29,17 @@ import se.partee71.dagboken.ui.components.UnsavedChangesBackHandler
 @Composable
 fun AddSjukdomsIncheckningScreen(
     onBack: () -> Unit,
+    editId: String? = null,
     vm: SjukdomsEpisodViewModel = hiltViewModel(),
 ) {
     val form          by vm.incheckningForm.collectAsStateWithLifecycle()
     val symptomOptions by vm.symptomOptions.collectAsStateWithLifecycle()
     val snackbar      by vm.snackbar.collectAsStateWithLifecycle()
     val isDirty       by vm.isIncheckningFormDirty.collectAsStateWithLifecycle()
+
+    LaunchedEffect(editId) {
+        if (editId != null) vm.loadIncheckningForEdit(editId)
+    }
 
     LaunchedEffect(snackbar) {
         snackbar?.let {
@@ -49,7 +54,10 @@ fun AddSjukdomsIncheckningScreen(
     )
 
     DagbokenScaffold(
-        title  = stringResource(R.string.sjukdom_incheckning_title),
+        title  = stringResource(
+            if (editId == null) R.string.sjukdom_incheckning_title
+            else R.string.sjukdom_incheckning_edit_title,
+        ),
         onBack = guardedBack,
     ) { innerPadding ->
         Column(

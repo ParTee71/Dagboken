@@ -1,39 +1,29 @@
 package se.partee71.dagboken.ui.sjukdomar
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,17 +35,17 @@ import se.partee71.dagboken.domain.model.SjukdomsEpisod
 import se.partee71.dagboken.domain.model.pagaende
 import se.partee71.dagboken.domain.model.varaktighetDagar
 import se.partee71.dagboken.ui.components.ConfirmDialog
-import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.DagbokenEntryCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.EmptyState
-import se.partee71.dagboken.ui.components.NoteIndicatorIcon
+import se.partee71.dagboken.ui.components.EntryAction
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SjukdomarScreen(
     onBack: () -> Unit,
     onAddNew: () -> Unit,
     onDetail: (String) -> Unit,
+    onEdit: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
     vm: SjukdomarViewModel = hiltViewModel(),
 ) {
@@ -110,6 +100,7 @@ fun SjukdomarScreen(
                             episod   = episod,
                             note     = notes[episod.id].orEmpty(),
                             onClick  = { onDetail(episod.id) },
+                            onEdit   = { onEdit(episod.id) },
                             onDelete = { deleteTarget = episod },
                             modifier = Modifier.animateItem(),
                         )
@@ -130,6 +121,7 @@ fun SjukdomarScreen(
                             episod   = episod,
                             note     = notes[episod.id].orEmpty(),
                             onClick  = { onDetail(episod.id) },
+                            onEdit   = { onEdit(episod.id) },
                             onDelete = { deleteTarget = episod },
                             modifier = Modifier.animateItem(),
                         )
@@ -149,90 +141,52 @@ fun SjukdomarScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EpisodCardSwipeable(
     episod: SjukdomsEpisod,
     onClick: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
     note: String = "",
     modifier: Modifier = Modifier,
 ) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) { onDelete(); true } else false
-        }
+    val cs = MaterialTheme.colorScheme
+    DagbokenEntryCard(
+        title        = episod.typ,
+        onClick      = onClick,
+        modifier     = modifier,
+        subtitle     = buildStatusText(episod),
+        leadingIcon  = Icons.Filled.LocalHospital,
+        accentColor  = if (episod.pagaende) cs.error else null,
+        trailingChip = { StatusChip(pagaende = episod.pagaende) },
+        noteText     = note,
+        actions      = listOf(
+            EntryAction(
+                label   = stringResource(R.string.edit),
+                icon    = Icons.Filled.Edit,
+                onClick = onEdit,
+            ),
+        ),
+        onDelete     = onDelete,
     )
-    SwipeToDismissBox(
-        state              = dismissState,
-        modifier           = modifier,
-        backgroundContent  = {
-            Box(
-                modifier         = Modifier
-                    .fillMaxSize()
-                    .padding(end = 16.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-            }
-        },
-    ) {
-        EpisodCard(episod = episod, onClick = onClick, note = note)
-    }
 }
 
+/** Statuschip för en episod — "Pågår" respektive "Avslutad" (SJ-5). */
 @Composable
-private fun EpisodCard(
-    episod: SjukdomsEpisod,
-    onClick: () -> Unit,
-    note: String = "",
-) {
+private fun StatusChip(pagaende: Boolean) {
     val cs = MaterialTheme.colorScheme
-    DagbokenCard(onClick = onClick) {
-        Row(
-            modifier          = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Filled.LocalHospital,
-                contentDescription = null,
-                tint     = if (episod.pagaende) cs.error else cs.onSurfaceVariant,
-                modifier = Modifier.size(24.dp),
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 12.dp),
-            ) {
-                Text(episod.typ, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(
-                    text  = buildStatusText(episod),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = cs.onSurfaceVariant,
-                )
-            }
-            NoteIndicatorIcon(noteText = note, dialogTitle = episod.typ)
-            if (!episod.pagaende) {
-                Icon(
-                    Icons.Filled.CheckCircle,
-                    contentDescription = null,
-                    tint     = cs.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-            } else {
-                Surface(
-                    color = cs.errorContainer,
-                    shape = MaterialTheme.shapes.small,
-                ) {
-                    Text(
-                        text     = stringResource(R.string.sjukdom_pagaende),
-                        style    = MaterialTheme.typography.labelSmall,
-                        color    = cs.onErrorContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                    )
-                }
-            }
-        }
+    val (containerColor, labelColor, text) = if (pagaende) {
+        Triple(cs.errorContainer, cs.onErrorContainer, stringResource(R.string.sjukdom_pagaende))
+    } else {
+        Triple(cs.primaryContainer, cs.onPrimaryContainer, stringResource(R.string.sjukdom_avslutad))
+    }
+    Surface(color = containerColor, shape = MaterialTheme.shapes.small) {
+        Text(
+            text     = text,
+            style    = MaterialTheme.typography.labelSmall,
+            color    = labelColor,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+        )
     }
 }
 
