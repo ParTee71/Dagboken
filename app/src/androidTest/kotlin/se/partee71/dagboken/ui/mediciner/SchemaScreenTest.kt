@@ -4,12 +4,15 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.TouchInjectionScope
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ActivityScenario
@@ -17,6 +20,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -73,11 +77,15 @@ class SchemaScreenTest {
         scenario.close()
     }
 
-    private fun setContent(onBack: () -> Unit = {}, onAddRecept: () -> Unit = {}) {
+    private fun setContent(
+        onBack: () -> Unit = {},
+        onAddRecept: () -> Unit = {},
+        onEditRecept: (String) -> Unit = {},
+    ) {
         scenario.onActivity {
             it.setContent {
                 MaterialTheme {
-                    SchemaScreen(onBack = onBack, onAddRecept = onAddRecept, onEditRecept = {}, vm = vm)
+                    SchemaScreen(onBack = onBack, onAddRecept = onAddRecept, onEditRecept = onEditRecept, vm = vm)
                 }
             }
         }
@@ -183,6 +191,114 @@ class SchemaScreenTest {
             setContent(onBack = { backCalled = true })
             composeRule.onNodeWithContentDescription("Tillbaka").performClick()
             assert(backCalled) { "Expected onBack to be invoked" }
+        } finally {
+            tearDown()
+        }
+    }
+\n
+    // ─── Kortstandarden (NFR-15/NFR-16, #201) ──────────────────────────────────
+
+    /** Långsamt svep förbi den positionella tröskeln — se DagbokenEntryCardTest. */
+    private fun TouchInjectionScope.slowSwipeLeft() {
+        down(centerRight)
+        var x = right
+        repeat(10) {
+            advanceEventTime(16)
+            x -= width / 12f
+            moveTo(Offset(x, center.y))
+        }
+        advanceEventTime(16)
+        up()
+    }
+
+    private fun saveLevaxin(aktiv: Boolean = true) = runBlocking {
+        repo.saveRecept(
+            Recept(
+                id = "r1", namn = "Levaxin", dos = "50", enhet = "mcg",
+                tidpunkter = listOf("Morgon"), upprepning = "dagligen", dagar = emptyList(),
+                aktiv = aktiv, skapad = "2026-01-01",
+            )
+        )
+    }
+
+    private fun awaitLevaxin() = composeRule.waitUntil(20_000) {
+        composeRule.onAllNodes(hasText("Levaxin")).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    @Test fun tapping_a_recept_card_invokes_onEditRecept() = retryOnRenderGlitch {
+        setUp()
+        try {
+            saveLevaxin()
+            var editedId: String? = null
+            setContent(onEditRecept = { id -> editedId = id })
+            awaitLevaxin()
+
+            composeRule.onNodeWithText("Levaxin").performClick()
+            assertEquals("r1", editedId)
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun chevron_expands_the_time_slots_without_editing() = retryOnRenderGlitch {
+        setUp()
+        try {
+            saveLevaxin()
+            var editedId: String? = null
+            setContent(onEditRecept = { id -> editedId = id })
+            awaitLevaxin()
+
+            composeRule.onNodeWithText("Tidpunkter").assertDoesNotExist()
+            composeRule.onNodeWithContentDescription("Visa mer").performClick()
+            composeRule.onNodeWithText("Tidpunkter").assertIsDisplayed()
+            assertEquals(null, editedId)
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun overflow_menu_offers_edit_deactivate_and_delete() = retryOnRenderGlitch {
+        setUp()
+        try {
+            saveLevaxin()
+            setContent()
+            awaitLevaxin()
+
+            composeRule.onNodeWithContentDescription("Alternativ").performClick()
+            composeRule.onNodeWithText("Redigera").assertIsDisplayed()
+            composeRule.onNodeWithText("Avaktivera").assertIsDisplayed()
+            composeRule.onNodeWithText("Ta bort").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun inactive_recept_offers_activate_in_the_menu() = retryOnRenderGlitch {
+        setUp()
+        try {
+            saveLevaxin(aktiv = false)
+            setContent()
+            awaitLevaxin()
+
+            composeRule.onNodeWithContentDescription("Alternativ").performClick()
+            composeRule.onNodeWithText("Aktivera").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun swipe_left_asks_for_confirmation_and_cancelling_keeps_the_recept() = retryOnRenderGlitch {
+        setUp()
+        try {
+            saveLevaxin()
+            setContent()
+            awaitLevaxin()
+
+            composeRule.onNodeWithText("Levaxin").performTouchInput { slowSwipeLeft() }
+            composeRule.onNodeWithText("Ta bort schema?").assertIsDisplayed()
+            composeRule.onNodeWithText("Avbryt").performClick()
+
+            composeRule.onNodeWithText("Levaxin").assertIsDisplayed()
         } finally {
             tearDown()
         }

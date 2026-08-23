@@ -398,4 +398,48 @@ class DagbokenEntryCardTest {
             scenario.close()
         }
     }
+
+    // ─── supportingContent och dimmed (#201) ───────────────────────────────────
+
+    @Test fun `supporting content is shown under the subtitle`() = retryOnRenderGlitch {
+        val scenario = launch {
+            DagbokenEntryCard(
+                title             = "Levaxin",
+                onClick           = {},
+                subtitle          = "50 mcg",
+                supportingContent = { Text("Avslutat 1 januari") },
+            )
+        }
+        try {
+            composeRule.onNodeWithText("Avslutat 1 januari").assertIsDisplayed()
+            val subtitle  = composeRule.onNodeWithText("50 mcg", useUnmergedTree = true)
+                .fetchSemanticsNode().boundsInRoot.top
+            val supporting = composeRule.onNodeWithText("Avslutat 1 januari", useUnmergedTree = true)
+                .fetchSemanticsNode().boundsInRoot.top
+            assert(supporting > subtitle) {
+                "Förväntade stödraden under undertiteln ($supporting > $subtitle)"
+            }
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test fun `dimmed keeps the title readable but toned down`() = retryOnRenderGlitch {
+        val scenario = launch {
+            DagbokenEntryCard(
+                title    = "Levaxin",
+                onClick  = {},
+                subtitle = "50 mcg",
+                dimmed   = true,
+                modifier = Modifier.testTag("card"),
+            )
+        }
+        try {
+            // Nedtoningen är visuell — posten ska fortfarande finnas och gå att öppna.
+            composeRule.onNodeWithText("Levaxin").assertIsDisplayed()
+            composeRule.onNodeWithTag("card").assertHasClickAction()
+        } finally {
+            scenario.close()
+        }
+    }
 }
