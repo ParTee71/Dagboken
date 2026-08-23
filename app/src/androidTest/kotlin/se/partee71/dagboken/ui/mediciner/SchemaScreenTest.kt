@@ -195,7 +195,7 @@ class SchemaScreenTest {
             tearDown()
         }
     }
-\n
+
     // ─── Kortstandarden (NFR-15/NFR-16, #201) ──────────────────────────────────
 
     /** Långsamt svep förbi den positionella tröskeln — se DagbokenEntryCardTest. */
