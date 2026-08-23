@@ -101,6 +101,7 @@ class IdagChecklistCardTest {
         mediciner: List<Medicin> = emptyList(),
         tagenCount: Int = 0,
         kommandeMediciner: List<Medicin> = emptyList(),
+        snartMediciner: List<Medicin> = emptyList(),
         medicinerOverdue: Boolean = false,
         onToggleMedicin: (Medicin) -> Unit = {},
         screeningEvents: List<ScreeningEventStatus> = emptyList(),
@@ -115,6 +116,7 @@ class IdagChecklistCardTest {
             mediciner                     = mediciner,
             tagenCount                    = tagenCount,
             kommandeMediciner             = kommandeMediciner,
+            snartMediciner                = snartMediciner,
             medicinerOverdue              = medicinerOverdue,
             onToggleMedicin               = onToggleMedicin,
             screeningEvents               = screeningEvents,
@@ -165,6 +167,34 @@ class IdagChecklistCardTest {
             composeRule.onNodeWithText("Ipren").performScrollTo().assertIsDisplayed()
         },
     )
+
+    // MED-13: en dos inom horisonten ligger i listan men märks "Snart"; en dos bortom
+    // horisonten göms bakom "Visa kommande".
+
+    @Test fun dose_inside_the_horizon_is_listed_and_marked_snart() {
+        val near = medicin("Kvällsvitamin")
+        render(
+            content = card(mediciner = listOf(near), snartMediciner = listOf(near)),
+            assertions = {
+                composeRule.onNodeWithText("Kvällsvitamin").assertIsDisplayed()
+                composeRule.onNodeWithText("Snart", substring = true).assertIsDisplayed()
+                composeRule.onAllNodesWithText("Visa kommande", substring = true).assertCountEquals(0)
+            },
+        )
+    }
+
+    @Test fun dose_beyond_the_horizon_is_hidden_and_not_marked_snart() {
+        val far = medicin("Nattvitamin")
+        render(
+            content = card(mediciner = listOf(far), kommandeMediciner = listOf(far)),
+            assertions = {
+                composeRule.onAllNodesWithText("Nattvitamin").assertCountEquals(0)
+                composeRule.onAllNodesWithText("Snart", substring = true).assertCountEquals(0)
+                composeRule.onNodeWithText("Visa kommande", substring = true).performScrollTo().performClick()
+                composeRule.onNodeWithText("Nattvitamin").performScrollTo().assertIsDisplayed()
+            },
+        )
+    }
 
     @Test fun sections_without_content_are_omitted_entirely() = render(
         content = card(mediciner = listOf(medicin("Levaxin"))),

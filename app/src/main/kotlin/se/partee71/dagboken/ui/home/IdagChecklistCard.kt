@@ -134,6 +134,7 @@ internal fun IdagChecklistCard(
     mediciner: List<Medicin>,
     tagenCount: Int,
     kommandeMediciner: List<Medicin>,
+    snartMediciner: List<Medicin>,
     medicinerOverdue: Boolean,
     onToggleMedicin: (Medicin) -> Unit,
     screeningEvents: List<ScreeningEventStatus>,
@@ -159,6 +160,7 @@ internal fun IdagChecklistCard(
                 mediciner         = mediciner,
                 tagenCount        = tagenCount,
                 kommandeMediciner = kommandeMediciner,
+                snartMediciner    = snartMediciner,
                 hasOverdue        = medicinerOverdue,
                 onToggle          = onToggleMedicin,
             )
@@ -185,6 +187,7 @@ private fun MedicinChecklistSection(
     mediciner: List<Medicin>,
     tagenCount: Int,
     kommandeMediciner: List<Medicin>,
+    snartMediciner: List<Medicin>,
     hasOverdue: Boolean,
     onToggle: (Medicin) -> Unit,
 ) {
@@ -192,6 +195,7 @@ private fun MedicinChecklistSection(
     var showTaken by remember { mutableStateOf(false) }
     var showKommande by remember { mutableStateOf(false) }
     val kommandeIds = kommandeMediciner.mapTo(HashSet()) { it.id }
+    val snartIds = snartMediciner.mapTo(HashSet()) { it.id }
     val visible = mediciner.filter { med ->
         (!med.tagen || showTaken) && (showKommande || med.id !in kommandeIds)
     }
@@ -212,7 +216,8 @@ private fun MedicinChecklistSection(
                     )
                 },
                 supportingContent = {
-                    Text("${med.dos} ${med.enhet}  ·  ${med.tidpunkt}")
+                    val suffix = if (med.id in snartIds) "  ·  ${stringResource(R.string.idag_snart)}" else ""
+                    Text("${med.dos} ${med.enhet}  ·  ${med.tidpunkt}$suffix")
                 },
                 leadingContent  = {
                     Icon(Icons.Filled.Medication, contentDescription = null, tint = cs.onSurfaceVariant)

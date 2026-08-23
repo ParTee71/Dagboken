@@ -227,19 +227,37 @@ class HomeScreenTest {
 
     // ─── Kommande döljs bakom "Visa kommande" (analogt med tagna, se MED-13) ──
 
+    /**
+     * Etiketten vars schemalagda timme ligger mer än [KOMMANDE_HORIZON_HOURS] timmar
+     * fram — deterministiskt "kommande" (dold), oavsett när testet faktiskt körs.
+     */
+    private fun labelBeyondHorizon(nowHour: Int): String? = TIDP_DEFAULT_TIMES.entries
+        .firstOrNull {
+            it.key != "Vid behov" &&
+                it.value.substringBefore(":").toInt() - nowHour > KOMMANDE_HORIZON_HOURS
+        }
+        ?.key
+
+    /**
+     * Etiketten som ligger inom horisonten — ännu ej förfallen men synlig i listan
+     * och märkt "Snart" (MED-13).
+     */
+    private fun labelInsideHorizon(nowHour: Int): String? = TIDP_DEFAULT_TIMES.entries
+        .firstOrNull {
+            val h = it.value.substringBefore(":").toInt()
+            it.key != "Vid behov" && h > nowHour && h - nowHour <= KOMMANDE_HORIZON_HOURS
+        }
+        ?.key
+
     @Test fun kommande_medicine_is_hidden_until_visa_kommande_is_tapped() = retryOnRenderGlitch {
         setUp()
         try {
-            // Hittar en tidpunkt-etikett vars schemalagda timme ligger efter aktuell
-            // klocktid — deterministiskt kommande, oavsett när testet faktiskt körs.
-            // Finns ingen sådan etikett (körs efter 22:00) hoppas testet över i stället
-            // för att flaka.
+            // Finns ingen tidpunkt bortom horisonten (testet körs sent på dagen) hoppas
+            // testet över i stället för att flaka.
             val nowHour = LocalTime.now().hour
-            val futureLabel = TIDP_DEFAULT_TIMES.entries
-                .firstOrNull { it.key != "Vid behov" && it.value.substringBefore(":").toInt() > nowHour }
-                ?.key
+            val futureLabel = labelBeyondHorizon(nowHour)
             assumeTrue(
-                "Ingen tidpunkt ligger i framtiden vid denna testkörningstid ($nowHour)",
+                "Ingen tidpunkt ligger bortom horisonten vid denna testkörningstid ($nowHour)",
                 futureLabel != null,
             )
 
@@ -259,6 +277,33 @@ class HomeScreenTest {
                 composeRule.onAllNodes(hasText("Vitamin D")).fetchSemanticsNodes().isNotEmpty()
             }
             composeRule.onNodeWithText("Vitamin D").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun dose_inside_the_horizon_is_visible_without_tapping_visa_kommande() = retryOnRenderGlitch {
+        setUp()
+        try {
+            val nowHour = LocalTime.now().hour
+            val nearLabel = labelInsideHorizon(nowHour)
+            assumeTrue(
+                "Ingen tidpunkt ligger inom horisonten vid denna testkörningstid ($nowHour)",
+                nearLabel != null,
+            )
+
+            val med = Medicin(
+                id = "near-med", timestamp = "${today}T23:00:00.000Z", datum = today, tid = "23:00",
+                namn = "Kvällsvitamin", dos = "1", enhet = "tablett", tidpunkt = nearLabel!!, tagen = false,
+            )
+            runBlocking { medicRepo.saveMedicin(med) }
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Kvällsvitamin")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText("Kvällsvitamin").performScrollTo().assertIsDisplayed()
+            // Raden är synlig men ännu inte att ta — märkt "Snart".
+            composeRule.onNodeWithText("Snart", substring = true).assertExists()
         } finally {
             tearDown()
         }

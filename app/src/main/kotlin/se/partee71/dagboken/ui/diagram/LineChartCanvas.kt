@@ -152,6 +152,17 @@ fun LineChartCanvas(
             rememberVicoZoomState(zoomEnabled = true, initialZoom = Zoom.Content)
     }
 
+    // Vicos LineProvider slår upp linjen för varje serie i modellen med `getRepeating()`,
+    // som kastar `IllegalStateException` på en tom lista. Modellen töms i en
+    // LaunchedEffect, alltså *efter* kompositionen: en omritning däremellan ser den
+    // föregående modellens serier tillsammans med en redan tömd linjelista och kraschar
+    // (#141, sporadiskt fallerande instrumenttest). Reservlinjen gör uppslaget säkert;
+    // den är genomskinlig och syns aldrig, eftersom den bara kan nås under den
+    // omritningen — när transaktionen har landat finns ingen serie kvar att rita.
+    val fallbackLine = LineCartesianLayer.rememberLine(
+        fill = LineCartesianLayer.LineFill.single(fill(Color.Transparent)),
+    )
+
     CartesianChartHost(
         chart = rememberCartesianChart(
             rememberLineCartesianLayer(
@@ -169,7 +180,7 @@ fun LineChartCanvas(
                                 pointConnector = LineCartesianLayer.PointConnector.cubic(),
                             )
                         }
-                    },
+                    }.ifEmpty { listOf(fallbackLine) },
                 ),
                 rangeProvider = remember(minValue, maxValue) {
                     CartesianLayerRangeProvider.fixed(minY = minValue.toDouble(), maxY = maxValue.toDouble())
