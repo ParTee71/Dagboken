@@ -474,6 +474,36 @@ class HomeScreenTest {
         }
     }
 
+    @Test fun favorit_chip_menu_lists_edit_first_and_delete_last() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                medicRepo.saveFavorit(
+                    Favorit(
+                        id = "fav1", namn = "Ipren", dos = "400", enhet = "mg",
+                        tidpunkt = "Vid behov", minTidMellan = 0, isFavorite = true,
+                    )
+                )
+            }
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Ipren")).fetchSemanticsNodes().isNotEmpty()
+            }
+
+            composeRule.onNodeWithText("Ipren").performTouchInput { longClick() }
+
+            // Samma ordning som postkortens meny (NFR-16): Redigera först, Ta bort sist.
+            val edit    = composeRule.onNodeWithText("Redigera").fetchSemanticsNode().boundsInRoot.top
+            val efterhand = composeRule.onNodeWithText("Logga i efterhand").fetchSemanticsNode().boundsInRoot.top
+            val delete  = composeRule.onNodeWithText("Ta bort").fetchSemanticsNode().boundsInRoot.top
+            assert(edit < efterhand && efterhand < delete) {
+                "Förväntade Redigera → kontextval → Ta bort (fick $edit, $efterhand, $delete)"
+            }
+        } finally {
+            tearDown()
+        }
+    }
+
     // ─── Datumnavigering (#114) ───────────────────────────────────────────────
 
     @Test fun navigating_to_previous_day_shows_that_days_medicine_checklist() = retryOnRenderGlitch {
