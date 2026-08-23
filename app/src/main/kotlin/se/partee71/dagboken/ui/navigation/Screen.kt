@@ -68,6 +68,7 @@ object Routes {
     const val EDIT_SJUKDOM                  = "edit_sjukdom/{id}"
     const val SJUKDOM_EPISOD_DETAIL         = "sjukdom_episod/{episodId}"
     const val ADD_SJUKDOMS_INCHECKNING      = "add_sjukdoms_incheckning/{episodId}"
+    const val EDIT_SJUKDOMS_INCHECKNING     = "edit_sjukdoms_incheckning/{episodId}/{incheckningId}"
     const val SCHEMA                        = "schema"
     const val HISTORIK                      = "historik"
     const val TRENDER                       = "trender"
@@ -83,5 +84,7 @@ object Routes {
     fun editSjukdom(id: String)                  = "edit_sjukdom/$id"
     fun sjukdomEpisodDetail(id: String)          = "sjukdom_episod/$id"
     fun addSjukdomsIncheckning(episodId: String) = "add_sjukdoms_incheckning/$episodId"
+    fun editSjukdomsIncheckning(episodId: String, incheckningId: String) =
+        "edit_sjukdoms_incheckning/$episodId/$incheckningId"
     fun addHandelse(datum: String)               = "add_handelse?datum=$datum"
 }

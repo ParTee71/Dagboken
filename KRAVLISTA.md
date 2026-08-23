@@ -338,6 +338,9 @@
 | SJ-8 | Både en episod och varje incheckning kan ha en anteckning, redigerbar via den delade `NoteField`-komponenten. |
 | SJ-9 | Tas en episod bort raderas även dess incheckningar (kaskad) och samtliga tillhörande anteckningar. |
 | SJ-10 | Ett episodkort i listan som har en anteckning ska visa en liten info-ikon; tryck på ikonen visar anteckningen i en läs-only dialog med en Stäng-knapp. |
+| SJ-11 | En incheckning kan **redigeras** i efterhand — tryck på incheckningskortet öppnar samma formulär förifyllt (datum, tid, svårighetsgrad, symptom, anteckning). Ändringen skriver över samma post: `id` och ursprunglig `timestamp` bevaras, och `somatiska` räknas om från de redigerade symptomen. |
+| SJ-12 | Episodkortet på detaljskärmen kan **redigeras** — tryck på kortet öppnar redigering av typ, startdatum och anteckning. Redigering skapar ingen ny incheckning. Episoden raderas från listan, inte inifrån detaljvyn. |
+| SJ-13 | Sjukdomsytans kort följer kortstandarden (NFR-15/NFR-16): episodkortet i listan öppnar detaljskärmen vid tryck och har Redigera i sin meny, incheckningskorten öppnar redigering, och svep från höger till vänster raderar efter bekräftelse. Anteckningar visas med anteckningsikonen och status med chip ("Pågår"/"Avslutad"). |
 
 ---
 

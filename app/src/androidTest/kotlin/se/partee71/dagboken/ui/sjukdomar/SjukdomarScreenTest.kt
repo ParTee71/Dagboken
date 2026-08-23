@@ -18,6 +18,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,7 +61,7 @@ class SjukdomarScreenTest {
         scenario.close()
     }
 
-    private fun setContent(onBack: () -> Unit = {}) {
+    private fun setContent(onBack: () -> Unit = {}, onEdit: (String) -> Unit = {}) {
         scenario.onActivity { activity ->
             activity.setContent {
                 MaterialTheme {
@@ -68,6 +69,7 @@ class SjukdomarScreenTest {
                         onBack            = onBack,
                         onAddNew          = {},
                         onDetail          = {},
+                        onEdit            = onEdit,
                         snackbarHostState = SnackbarHostState(),
                         vm                = vm,
                     )
@@ -109,6 +111,31 @@ class SjukdomarScreenTest {
             setContent(onBack = { backCalled = true })
             composeRule.onNodeWithContentDescription("Tillbaka").performClick()
             assert(backCalled) { "Expected onBack to be invoked" }
+        } finally {
+            tearDown()
+        }
+    }
+
+    // ─── Kortstandarden (NFR-15/NFR-16, #192) ──────────────────────────────────
+
+    @Test fun overflow_menu_offers_edit_and_delete_on_an_episode() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                repo.saveEpisod(
+                    SjukdomsEpisod(id = "e1", typ = "Migrän", startDatum = "2026-01-10", slutDatum = ""),
+                )
+            }
+            var editedId: String? = null
+            setContent(onEdit = { id -> editedId = id })
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Migrän")).fetchSemanticsNodes().isNotEmpty()
+            }
+
+            composeRule.onNodeWithContentDescription("Alternativ").performClick()
+            composeRule.onNodeWithText("Ta bort").assertIsDisplayed()
+            composeRule.onNodeWithText("Redigera").performClick()
+            assertEquals("e1", editedId)
         } finally {
             tearDown()
         }
