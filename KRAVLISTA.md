@@ -350,7 +350,7 @@
 | HIST-2 | Poster kan filtreras per typ med filterchips; minst en typ måste vara aktiv (samma regel som HIS-1). |
 | HIST-3 | Tryck på en post navigerar till dess befintliga redigerings-/detaljskärm (ingen ny redigeringslogik i Historik-ytan själv). För en medicinpost redigerar detta endast den enskilda tagningen (MED-15), inte receptet eller favoriten. |
 | HIST-4 | ~~Historik-ytan skriver inte till någon datakälla — ren läsvy över befintliga repositories.~~ *(ändrat, se HIST-5 — #105)* |
-| HIST-5 | Långtryck på en post i Historik öppnar en meny med "Ta bort" (bekräftelsedialog krävs innan radering). Raderingen anropar samma repository-metod som respektive domänskärm redan använder. |
+| HIST-5 | En post i Historik följer kortstandarden (NFR-15): långtryck och `⋮` öppnar samma meny med **Redigera** och **Ta bort**, och svep från höger till vänster begär radering. Radering kräver alltid bekräftelsedialog och anropar samma repository-metod som respektive domänskärm redan använder. |
 | HIST-6 | Historik kan växlas mellan listvy och kalendervy (delad komponent `DagbokenCalendar`). I kalendervyn markeras dagar med minst en post; tryck på en dag visar postens/posternas för det datumet. Långtryck-radering (HIST-5) fungerar identiskt i båda vyerna. |
 | HIST-8 | Historik läser ett begränsat fönster bakåt (ett år) i stället för hela databasen. En "Visa äldre poster"-rad längst ned utökar fönstret med ytterligare ett år i taget. |
 | HIST-7 | Historik-ytans medicinposter visar endast doser som faktiskt är **tagna** (`tagen`, ej överhoppad). Planerade/kommande, aldrig tagna och överhoppade doser (MED-3) visas inte — de hör hemma i Idag-checklistan (MED-1/MED-13). Tidsetiketten är tagningstidpunkten (MED-14), inte den schemalagda tiden. |
