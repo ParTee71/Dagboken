@@ -2,7 +2,6 @@ package se.partee71.dagboken.ui.historik
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,13 +22,11 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.outlined.MonitorHeart
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -45,7 +41,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -55,9 +50,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCalendar
-import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.DagbokenEntryCard
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.dagboken.ui.components.EntryAction
 import se.partee71.dagboken.ui.formatDisplayDate
 import java.time.LocalDate
 
@@ -318,44 +314,19 @@ private fun HistorikEntryCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val cs = MaterialTheme.colorScheme
-    var menuExpanded by remember { mutableStateOf(false) }
-
-    Box(modifier = modifier) {
-        DagbokenCard(
-            onClick        = onClick,
-            onLongClick    = { menuExpanded = true },
-            contentPadding = PaddingValues(12.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier          = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    iconFor(entry.entryType),
-                    contentDescription = null,
-                    tint     = cs.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp).padding(end = 12.dp),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(entryTitle(entry), style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        text  = entrySubtitle(entry),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = cs.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-        DropdownMenu(
-            expanded         = menuExpanded,
-            onDismissRequest = { menuExpanded = false },
-        ) {
-            DropdownMenuItem(
-                text        = { Text(stringResource(R.string.delete), color = cs.error) },
-                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = cs.error) },
-                onClick     = { menuExpanded = false; onDelete() },
-            )
-        }
-    }
+    DagbokenEntryCard(
+        title       = entryTitle(entry),
+        onClick     = onClick,
+        modifier    = modifier,
+        subtitle    = entrySubtitle(entry),
+        leadingIcon = iconFor(entry.entryType),
+        actions     = listOf(
+            EntryAction(
+                label   = stringResource(R.string.edit),
+                icon    = Icons.Default.Edit,
+                onClick = onClick,
+            ),
+        ),
+        onDelete    = onDelete,
+    )
 }

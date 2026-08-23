@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.TouchInjectionScope
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -343,6 +345,105 @@ class HistorikScreenTest {
             }
 
             composeRule.onNodeWithText("Promenad").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    // ─── Kortstandarden (NFR-15/NFR-16, #197) ──────────────────────────────────
+
+    /** Långsamt svep förbi den positionella tröskeln — se DagbokenEntryCardTest. */
+    private fun TouchInjectionScope.slowSwipeLeft() {
+        down(centerRight)
+        var x = right
+        repeat(10) {
+            advanceEventTime(16)
+            x -= width / 12f
+            moveTo(Offset(x, center.y))
+        }
+        advanceEventTime(16)
+        up()
+    }
+
+    @Test fun overflow_menu_offers_edit_and_delete() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                aktivRepo.save(
+                    Aktivitet(
+                        id = "a1", timestamp = "x", datum = "2026-01-01", tid = "08:00",
+                        aktivitet = "Promenad", energy = 3, stress = 2, somatiska = 0, symptom = "",
+                    ),
+                )
+            }
+            var editedId: String? = null
+            setContent(onEditAktivitet = { id, _ -> editedId = id })
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+            }
+
+            composeRule.onNodeWithContentDescription("Alternativ").performClick()
+            composeRule.onNodeWithText("Redigera").assertIsDisplayed()
+            composeRule.onNodeWithText("Ta bort").assertIsDisplayed()
+
+            composeRule.onNodeWithText("Redigera").performClick()
+            assertEquals("a1", editedId)
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun swipe_left_asks_for_confirmation_and_cancelling_keeps_the_entry() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                aktivRepo.save(
+                    Aktivitet(
+                        id = "a1", timestamp = "x", datum = "2026-01-01", tid = "08:00",
+                        aktivitet = "Promenad", energy = 3, stress = 2, somatiska = 0, symptom = "",
+                    ),
+                )
+            }
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+            }
+
+            composeRule.onNodeWithText("Promenad").performTouchInput { slowSwipeLeft() }
+            composeRule.onNodeWithText("Ta bort post?").assertIsDisplayed()
+            composeRule.onNodeWithText("Avbryt").performClick()
+
+            // Posten ska vara kvar *och* synlig — svepet får inte lämna ett
+            // osynligt "spökkort" när bekräftelsen avbryts.
+            composeRule.onNodeWithText("Promenad").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun swipe_left_and_confirm_removes_the_entry() = retryOnRenderGlitch {
+        setUp()
+        try {
+            runBlocking {
+                aktivRepo.save(
+                    Aktivitet(
+                        id = "a1", timestamp = "x", datum = "2026-01-01", tid = "08:00",
+                        aktivitet = "Promenad", energy = 3, stress = 2, somatiska = 0, symptom = "",
+                    ),
+                )
+            }
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isNotEmpty()
+            }
+
+            composeRule.onNodeWithText("Promenad").performTouchInput { slowSwipeLeft() }
+            composeRule.onNodeWithText("Ta bort post?").assertIsDisplayed()
+            composeRule.onNodeWithText("Ta bort").performClick()
+
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Promenad")).fetchSemanticsNodes().isEmpty()
+            }
         } finally {
             tearDown()
         }
