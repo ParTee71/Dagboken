@@ -101,7 +101,18 @@ internal fun computeWeekSummary(
 }
 
 /**
- * Kommande (ej förfallna) doser för [dayMediciner] — schemalagd tid ännu ej nådd.
+ * Hur långt fram en ännu ej förfallen dos får ligga och ändå räknas som *aktuell*
+ * (MED-13). Doser inom fönstret visas direkt i checklistan tillsammans med de
+ * förfallna — annars var kvälls- och nattmedicinen osynlig hela dagen, ända fram
+ * till 19:00 respektive 22:00, och gick inte att bocka av i förväg.
+ */
+internal const val KOMMANDE_HORIZON_HOURS = 3
+
+/**
+ * Kommande (dolda) doser för [dayMediciner] — schemalagd tid ligger mer än
+ * [KOMMANDE_HORIZON_HOURS] timmar fram. Doser vars tid närmar sig hör till den
+ * synliga listan och räknas därför inte som "kommande" (MED-13).
+ *
  * "Kommande" är endast ett dagens-datum-koncept (jfr. overdueMediciner); en tidigare
  * dags ologgade dos är bara ologgad, aldrig "kommande". Ren funktion (tar [nowTime]
  * som parameter) för enkel, deterministisk enhetstestning.
@@ -115,7 +126,28 @@ internal fun computeKommandeMediciner(
     return dayMediciner
         .filter { med ->
             !med.tagen && !med.skipped &&
-            tidpunktToHour(med.tidpunkt)?.let { h -> nowTime.hour < h } == true
+            tidpunktToHour(med.tidpunkt)?.let { h -> h - nowTime.hour > KOMMANDE_HORIZON_HOURS } == true
+        }
+        .sortedBy { tidpunktSortIndex(it.tidpunkt) }
+}
+
+/**
+ * Doser som ännu inte förfallit men som ligger inom [KOMMANDE_HORIZON_HOURS] — de visas
+ * i checklistan i stället för att gömmas (MED-13), men är inte att ta ännu och märks
+ * därför "Snart" så att en kvällsdos inte förväxlas med en som redan är aktuell.
+ */
+internal fun computeSnartMediciner(
+    isToday: Boolean,
+    nowTime: LocalTime,
+    dayMediciner: List<Medicin>,
+): List<Medicin> {
+    if (!isToday) return emptyList()
+    return dayMediciner
+        .filter { med ->
+            !med.tagen && !med.skipped &&
+            tidpunktToHour(med.tidpunkt)?.let { h ->
+                h > nowTime.hour && h - nowTime.hour <= KOMMANDE_HORIZON_HOURS
+            } == true
         }
         .sortedBy { tidpunktSortIndex(it.tidpunkt) }
 }
@@ -126,6 +158,7 @@ data class HomeUiState(
     val screeningLabels: List<String> = emptyList(),
     val overdueMediciner: List<Medicin> = emptyList(),
     val kommandeMediciner: List<Medicin> = emptyList(),
+    val snartMediciner: List<Medicin> = emptyList(),
     val screeningEvents: List<ScreeningEventStatus> = emptyList(),
     val tagenCount: Int = 0,
     val googleEmail: String? = null,
@@ -231,6 +264,7 @@ class HomeViewModel @Inject constructor(
             .sortedBy { tidpunktSortIndex(it.tidpunkt) }
 
         val kommandeMediciner = computeKommandeMediciner(isToday, nowTime, dayMediciner)
+        val snartMediciner = computeSnartMediciner(isToday, nowTime, dayMediciner)
 
         val screeningEvents = computeScreeningEvents(activeEvents, screeningsOnSelectedDate, nowTime, isToday)
 
@@ -240,6 +274,7 @@ class HomeViewModel @Inject constructor(
             screeningLabels       = dailyEnergyStats.map { dayLabel(it.datum) },
             overdueMediciner      = overdueMediciner,
             kommandeMediciner     = kommandeMediciner,
+            snartMediciner        = snartMediciner,
             screeningEvents       = screeningEvents,
             tagenCount            = dayMediciner.count { it.tagen },
             selectedDate          = selectedDate,

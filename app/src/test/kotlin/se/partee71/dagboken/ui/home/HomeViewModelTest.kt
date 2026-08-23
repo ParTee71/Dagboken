@@ -30,6 +30,7 @@ import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.model.Medicin
+import se.partee71.dagboken.domain.model.TIDP_ORDER
 import se.partee71.dagboken.domain.model.WeeklyHealth
 import java.time.LocalDate
 import java.time.LocalTime
@@ -170,10 +171,30 @@ class HomeViewModelTest {
 
     // ─── kommandeMediciner ────────────────────────────────────────────────────
 
-    @Test fun `computeKommandeMediciner returns future dose not yet due`() {
+    @Test fun `computeKommandeMediciner returns dose beyond the horizon`() {
         val dose = medicin(id = "n", tidpunkt = "Natt") // 22:00
         val result = computeKommandeMediciner(isToday = true, nowTime = LocalTime.of(8, 0), dayMediciner = listOf(dose))
         assertEquals(listOf("n"), result.map { it.id })
+    }
+
+    // MED-13: doser inom horisonten göms inte — de visas i checklistan i förväg.
+
+    @Test fun `computeKommandeMediciner excludes dose exactly at the horizon`() {
+        val dose = medicin(id = "k", tidpunkt = "Kväll") // 19:00
+        val result = computeKommandeMediciner(isToday = true, nowTime = LocalTime.of(16, 0), dayMediciner = listOf(dose))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun `computeKommandeMediciner excludes dose inside the horizon`() {
+        val dose = medicin(id = "k", tidpunkt = "Kväll") // 19:00
+        val result = computeKommandeMediciner(isToday = true, nowTime = LocalTime.of(17, 30), dayMediciner = listOf(dose))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun `computeKommandeMediciner includes dose just outside the horizon`() {
+        val dose = medicin(id = "k", tidpunkt = "Kväll") // 19:00
+        val result = computeKommandeMediciner(isToday = true, nowTime = LocalTime.of(15, 59), dayMediciner = listOf(dose))
+        assertEquals(listOf("k"), result.map { it.id })
     }
 
     @Test fun `computeKommandeMediciner excludes dose whose time has passed`() {
@@ -220,6 +241,52 @@ class HomeViewModelTest {
         }
     }
 
+    // ─── snartMediciner ───────────────────────────────────────────────────────
+
+    @Test fun `computeSnartMediciner returns dose inside the horizon`() {
+        val dose = medicin(id = "k", tidpunkt = "Kväll") // 19:00
+        val result = computeSnartMediciner(isToday = true, nowTime = LocalTime.of(17, 0), dayMediciner = listOf(dose))
+        assertEquals(listOf("k"), result.map { it.id })
+    }
+
+    @Test fun `computeSnartMediciner excludes dose beyond the horizon`() {
+        val dose = medicin(id = "k", tidpunkt = "Kväll") // 19:00
+        val result = computeSnartMediciner(isToday = true, nowTime = LocalTime.of(14, 0), dayMediciner = listOf(dose))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun `computeSnartMediciner excludes dose whose time has passed`() {
+        val dose = medicin(id = "m", tidpunkt = "Morgon") // 07:00
+        val result = computeSnartMediciner(isToday = true, nowTime = LocalTime.of(8, 0), dayMediciner = listOf(dose))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun `computeSnartMediciner excludes taken skipped and Vid behov doses`() {
+        val doses = listOf(
+            medicin(id = "t", tidpunkt = "Kväll", tagen = true),
+            medicin(id = "s", tidpunkt = "Kväll", skipped = true),
+            medicin(id = "vb", tidpunkt = "Vid behov"),
+        )
+        val result = computeSnartMediciner(isToday = true, nowTime = LocalTime.of(17, 0), dayMediciner = doses)
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun `computeSnartMediciner is empty when not viewing today`() {
+        val dose = medicin(id = "k", tidpunkt = "Kväll")
+        val result = computeSnartMediciner(isToday = false, nowTime = LocalTime.of(17, 0), dayMediciner = listOf(dose))
+        assertTrue(result.isEmpty())
+    }
+
+    @Test fun `snartMediciner and kommandeMediciner never overlap`() {
+        val doses = TIDP_ORDER.mapIndexed { i, tidpunkt -> medicin(id = "d$i", tidpunkt = tidpunkt) }
+        for (hour in 0..23) {
+            val now = LocalTime.of(hour, 0)
+            val kommande = computeKommandeMediciner(true, now, doses).map { it.id }.toSet()
+            val snart = computeSnartMediciner(true, now, doses).map { it.id }.toSet()
+            assertTrue("överlapp kl. $hour", (kommande intersect snart).isEmpty())
+        }
+    }
+
     // ─── initial state ────────────────────────────────────────────────────────
 
     @Test fun `initial uiState has empty medicine lists and tagenCount zero`() = runTest {
@@ -228,6 +295,7 @@ class HomeViewModelTest {
             assertTrue(state.todayMediciner.isEmpty())
             assertTrue(state.overdueMediciner.isEmpty())
             assertTrue(state.kommandeMediciner.isEmpty())
+            assertTrue(state.snartMediciner.isEmpty())
             assertEquals(0, state.tagenCount)
             cancelAndIgnoreRemainingEvents()
         }
