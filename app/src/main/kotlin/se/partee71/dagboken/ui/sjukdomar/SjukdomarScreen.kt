@@ -40,7 +40,6 @@ import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.EntryAction
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SjukdomarScreen(
     onBack: () -> Unit,
