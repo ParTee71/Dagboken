@@ -17,8 +17,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EntryAction
+import se.partee71.dagboken.ui.components.EntryActionMenu
 import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -56,13 +56,60 @@ internal fun FavoriterRow(
     ) {
         favoriter.forEach { fav ->
             var menuExpanded by remember { mutableStateOf(false) }
+            // Chip-kort (NFR-15): tryck loggar en dos, så hela kontextmenyn ligger på
+            // långtryck — och den byggs av samma EntryAction-lista som postkortens, så
+            // ordning, ikoner och färger inte kan glida isär.
+            val actions = buildList {
+                add(
+                    EntryAction(
+                        label   = stringResource(R.string.edit),
+                        icon    = Icons.Default.Edit,
+                        onClick = { onEdit(fav.id) },
+                    ),
+                )
+                if (onToggleFavorite != null) {
+                    add(
+                        EntryAction(
+                            label   = if (fav.isFavorite) {
+                                stringResource(R.string.favorit_unmark_favorite)
+                            } else {
+                                stringResource(R.string.favorit_mark_favorite)
+                            },
+                            icon    = Icons.Default.Star,
+                            onClick = { onToggleFavorite(fav) },
+                        ),
+                    )
+                }
+                if (onLogEfterhand != null) {
+                    add(
+                        EntryAction(
+                            label   = stringResource(R.string.medicin_log_efterhand),
+                            icon    = Icons.Filled.Schedule,
+                            onClick = { onLogEfterhand(fav) },
+                        ),
+                    )
+                }
+                if (onDelete != null) {
+                    add(
+                        EntryAction(
+                            label       = stringResource(R.string.delete),
+                            icon        = Icons.Default.Delete,
+                            destructive = true,
+                            onClick     = { onDelete(fav) },
+                        ),
+                    )
+                }
+            }
+
             Box {
                 DagbokenCard(
-                    onClick        = { onTap(fav) },
-                    onLongClick    = { if (onDelete != null) menuExpanded = true else onEdit(fav.id) },
-                    containerColor = cs.secondaryContainer,
-                    contentPadding = PaddingValues(0.dp),
-                    fillMaxWidth   = false,
+                    onClick          = { onTap(fav) },
+                    onLongClick      = { menuExpanded = true },
+                    onClickLabel     = stringResource(R.string.favorit_log_dose),
+                    onLongClickLabel = stringResource(R.string.alternatives),
+                    containerColor   = cs.secondaryContainer,
+                    contentPadding   = PaddingValues(0.dp),
+                    fillMaxWidth     = false,
                 ) {
                     Row(
                         modifier          = Modifier.padding(start = 16.dp, end = 4.dp),
@@ -88,48 +135,11 @@ internal fun FavoriterRow(
                         NoteIndicatorIcon(noteText = notes[fav.id].orEmpty(), dialogTitle = fav.namn)
                     }
                 }
-                if (onDelete != null) {
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.edit)) },
-                            leadingIcon = { Icon(Icons.Default.Edit, null) },
-                            onClick = { menuExpanded = false; onEdit(fav.id) },
-                        )
-                        if (onToggleFavorite != null) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        if (fav.isFavorite) stringResource(R.string.favorit_unmark_favorite)
-                                        else stringResource(R.string.favorit_mark_favorite),
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Star,
-                                        contentDescription = null,
-                                        tint = if (fav.isFavorite) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                                    )
-                                },
-                                onClick = { menuExpanded = false; onToggleFavorite(fav) },
-                            )
-                        }
-                        if (onLogEfterhand != null) {
-                            DropdownMenuItem(
-                                text        = { Text(stringResource(R.string.medicin_log_efterhand)) },
-                                leadingIcon = { Icon(Icons.Filled.Schedule, contentDescription = null) },
-                                onClick     = { menuExpanded = false; onLogEfterhand(fav) },
-                            )
-                        }
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.delete), color = cs.error) },
-                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = cs.error) },
-                            onClick = { menuExpanded = false; onDelete(fav) },
-                        )
-                    }
-                }
+                EntryActionMenu(
+                    expanded  = menuExpanded,
+                    actions   = actions,
+                    onDismiss = { menuExpanded = false },
+                )
             }
         }
 

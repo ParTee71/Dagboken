@@ -208,6 +208,7 @@
     <string name="vid_behov_hint_tap">Tryck för att logga en dos</string>
     <string name="vid_behov_hint_hold">Håll inne för att redigera eller ta bort</string>
     <string name="delete_favorit_title">Ta bort favorit?</string>
+    <string name="favorit_log_dose">Logga en dos</string>
     <string name="favorit_mark_favorite">Favoritmarkera</string>
     <string name="favorit_unmark_favorite">Ta bort favoritmarkering</string>
     <string name="favorit_more_label">Fler (%1$d)</string>

@@ -66,6 +66,40 @@ data class EntryAction(
 )
 
 /**
+ * Kontextmenyn för en post — samma innehåll och ordning oavsett om den öppnas via `⋮`,
+ * långtryck eller (för chip-kort som vid behov-favoriterna) enbart långtryck.
+ * Anroparen placerar den i en [Box] tillsammans med sitt eget ankare.
+ */
+@Composable
+internal fun EntryActionMenu(
+    expanded: Boolean,
+    actions: List<EntryAction>,
+    onDismiss: () -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        actions.forEach { action ->
+            DropdownMenuItem(
+                text        = {
+                    Text(
+                        text  = action.label,
+                        color = if (action.destructive) cs.error else Color.Unspecified,
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector        = action.icon,
+                        contentDescription = null,
+                        tint               = if (action.destructive) cs.error else LocalContentColor.current,
+                    )
+                },
+                onClick     = { onDismiss(); action.onClick() },
+            )
+        }
+    }
+}
+
+/**
  * Appens **postkort** (NFR-15/NFR-16) — kortet som representerar en sparad post
  * (historikpost, aktivitet, dos, incheckning, episod, recept). Komponenten äger
  * hela interaktionsmönstret så att det blir lika överallt:
@@ -215,29 +249,11 @@ fun DagbokenEntryCard(
                                 modifier           = Modifier.size(20.dp),
                             )
                         }
-                        DropdownMenu(
-                            expanded         = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                        ) {
-                            menuActions.forEach { action ->
-                                DropdownMenuItem(
-                                    text        = {
-                                        Text(
-                                            text  = action.label,
-                                            color = if (action.destructive) cs.error else Color.Unspecified,
-                                        )
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector        = action.icon,
-                                            contentDescription = null,
-                                            tint               = if (action.destructive) cs.error else LocalContentColor.current,
-                                        )
-                                    },
-                                    onClick     = { menuExpanded = false; action.onClick() },
-                                )
-                            }
-                        }
+                        EntryActionMenu(
+                            expanded  = menuExpanded,
+                            actions   = menuActions,
+                            onDismiss = { menuExpanded = false },
+                        )
                     }
                 }
             }
