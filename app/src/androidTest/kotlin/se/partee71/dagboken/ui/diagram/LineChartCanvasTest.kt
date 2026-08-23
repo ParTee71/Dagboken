@@ -110,18 +110,39 @@ class LineChartCanvasTest {
 
     // ─── Tömd serie efter tidigare rendering (#141) ───────────────────────────
 
+    /**
+     * Modellen töms i en `LaunchedEffect`, alltså efter kompositionen: en omritning
+     * däremellan ser föregående modells serier tillsammans med en redan tömd linjelista.
+     * Utan reservlinjen i [LineChartCanvas] slog Vicos `getRepeating()` då till på en tom
+     * lista ("Cannot get repeated item from empty collection") — sporadiskt, beroende på
+     * var omritningen råkade hamna. Tillståndet hålls utanför kompositionen och växlas
+     * flera gånger, ett steg i taget, så fönstret öppnas om och om igen i stället för att
+     * bero på turen i en enda övergång (#141).
+     */
     @Test fun `renders without crash when series goes from non-empty to empty`() = retryOnRenderGlitch {
+        val currentSeries = mutableStateOf(series(2))
         val scenario = ActivityScenario.launch(ComponentActivity::class.java)
         try {
             scenario.onActivity {
                 it.setContent {
-                    var currentSeries by remember { mutableStateOf(series(2)) }
                     MaterialTheme {
-                        LineChartCanvas(series = currentSeries, minValue = -10f, maxValue = 10f, modifier = mod)
+                        LineChartCanvas(
+                            series   = currentSeries.value,
+                            minValue = -10f,
+                            maxValue = 10f,
+                            modifier = mod,
+                        )
                     }
-                    LaunchedEffect(Unit) { currentSeries = emptyList() }
                 }
             }
+            composeRule.waitForIdle()
+            repeat(3) {
+                scenario.onActivity { currentSeries.value = emptyList() }
+                composeRule.waitForIdle()
+                scenario.onActivity { currentSeries.value = series(2) }
+                composeRule.waitForIdle()
+            }
+            scenario.onActivity { currentSeries.value = emptyList() }
             composeRule.waitForIdle()
         } finally {
             scenario.close()
