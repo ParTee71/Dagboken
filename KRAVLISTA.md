@@ -127,7 +127,7 @@
 | ID | Krav |
 |----|------|
 | MED-1 | Visa vald dags (se HEM-14) mediciner sorterade på tidpunkt (Morgon → Natt → Vid behov). Som standard visas **aktuella/försenade** poster (schemalagd tid nådd, eller "Vid behov") **och poster vars tid närmar sig** (inom 3 timmar, se MED-13) — tagna poster göms bakom MED-5, poster längre fram göms bakom MED-13. Gäller endast för dagens datum; en tidigare dag har inga "kommande" poster. |
-| MED-2 | Varje medicin ska kunna markeras som **tagen/ej tagen**. Tagningstidpunkten sparas separat från den schemalagda tiden (se MED-14). |
+| MED-2 | Varje medicin ska kunna markeras som **tagen/ej tagen** genom tryck var som helst på raden (NFR-17); ikonen till höger visar tillståndet. Tagningstidpunkten sparas separat från den schemalagda tiden (se MED-14). |
 | MED-3 | Receptgenererade poster ska kunna **hoppas över** (skippas) i stället för att raderas; engångsposter raderas. |
 | MED-4 | Vald dags receptposter ska genereras automatiskt och **idempotent** (stabilt ID `recept_{id}_{datum}_{tidpunkt}` förhindrar dubbletter), inklusive en tidigare dag som bläddras till (HEM-14/HEM-10). |
 | MED-5 | Tagna mediciner ska kunna **döljas** i checklistan; en toggle-knapp visar antalet dolda poster och låter användaren visa dem igen. |
@@ -311,6 +311,7 @@
 | NFR-11 | Skärmar med textinmatning ska hålla det fokuserade fältet synligt ovanför skärmtangentbordet — IME-inset hanteras centralt i den delade `DagbokenScaffold` (`contentWindowInsets` inkluderar `WindowInsets.ime`), så inget inmatningsfält skyms medan man skriver. |
 | NFR-15 | Ett **postkort** — ett kort som representerar en sparad post (historikpost, aktivitet, dos, incheckning, episod, recept) — byggs med den delade `DagbokenEntryCard` och har ett enhetligt gestmönster: **tryck** öppnar posten (detaljskärm om posten har en, annars redigering) och expanderar aldrig; **långtryck** visar samma kontextmeny som `⋮`; **svep från höger till vänster** begär radering, som alltid bekräftas med den delade `ConfirmDialog` — kortet fjädrar tillbaka tills dialogen svarat; **svep från vänster till höger** är oanvänd, reserverad riktning. Ingen åtgärd får vara nåbar enbart via svep. **Sektionskort** (panel, formulär, diagram) och **navigationskort** har varken svep, långtryck eller kontextmeny. Ytorna migreras stegvis till komponenten; tills en yta är migrerad gäller beteendet som beskrivs i dess eget avsnitt. **Undantag:** ett chip-kort som är en loggningsknapp (vid behov-favoriterna, HEM-11) behåller tryck = utför åtgärden, och exponerar hela kontextmenyn via långtryck. |
 | NFR-16 | Ett postkorts trailing-innehåll renderas i ordningen status-/värdechip, anteckningsikon, expandera-chevron, kontextmeny (`⋮`) — varje del utelämnas när den saknas, men ordningen är fast. Kontextmenyn följer ordningen Redigera, kontextspecifika val, Ta bort (sist, i error-färg), och varje menypost har en ikon. Expandering av detaljer sker via chevron-knappen, aldrig genom tryck på kortet. Ett korts vänsteraccent är reserverad för status (energifärg, aktiv/inaktiv, pågående) — aldrig dekoration. Ett postkort får ha **en** direktkontroll i trailing-läget för en tillståndsväxling som används ofta (t.ex. receptets aktiv-reglage); den placeras först av trailing-innehållet och dubbleras som menyval. |
+| NFR-17 | **Listrader** inuti ett sektionskort (checklistrader, inställningsrader) är inte kort och följer en egen radstandard: tryck på **hela raden** utför radens primära åtgärd (markera tagen/otagen, öppna screeningformuläret, byt namn, favoritmarkera) — inte bara en liten ikon; en trailing-ikon som speglar tillståndet är en ren indikator och läses inte upp separat, och radens tillstånd exponeras med `Role` och `stateDescription`. Har raden fler åtgärder än den primära ligger de i en kontextmeny på långtryck och `⋮`, byggd med samma menykomponent och ordning som kortens. Högst **en** inline-direktkontroll per rad. Svep används aldrig på rader — det är förbehållet postkort. |
 
 ---
 
@@ -398,6 +399,7 @@
 | HANT-3 | Ett nytt navigeringskort **Sjukdomar** öppnar sjukdomshantering (lista/avsluta episoder) som en underliggande skärm med tillbakapil. |
 | HANT-4 | Ett nytt navigeringskort **Recept & scheman** öppnar receptschemat (samma innehåll som tidigare Mediciner-flikens Schema-flik, §6.2) som en underliggande skärm med tillbakapil. |
 | HANT-5 | På bred skärm (≥360dp) visas sektionerna i en sidopanel; på smal skärm i en scrollbar kolumn — samma responsiva mönster som tidigare `Inställningar`. Sidopanelen är själv vertikalt scrollbar så samtliga sektionsikoner går att nå oavsett skärmhöjd (#146). |
+| HANT-6 | Rader i Hantera följer radstandarden (NFR-17): på en alternativ-/symptomrad byter tryck namn på alternativet, och långtryck eller `⋮` ger menyn (Byt namn, Ta bort); stjärnan är radens enda inline-direktkontroll. På en vid behov-rad växlar tryck var som helst på raden favoritmarkeringen. |
 
 ---
 

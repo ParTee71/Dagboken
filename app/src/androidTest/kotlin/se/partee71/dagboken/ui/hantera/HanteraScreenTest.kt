@@ -301,13 +301,16 @@ class HanteraScreenTest {
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("Simning")).fetchSemanticsNodes().isNotEmpty()
             }
-            // Tapping the delete icon opens a confirmation dialog; it does not delete directly
+            // Ta bort ligger i radens kontextmeny sedan #203 (radstandarden), och öppnar
+            // en bekräftelsedialog — den raderar inte direkt.
             // useUnmergedTree is incompatible with performScrollTo (which needs the merged tree);
             // wait for the button to be present in the merged tree, then scroll + click.
             composeRule.waitUntil(20_000) {
-                composeRule.onAllNodes(hasContentDescription("Ta bort")).fetchSemanticsNodes().isNotEmpty()
+                composeRule.onAllNodes(hasContentDescription("Alternativ")).fetchSemanticsNodes().isNotEmpty()
             }
-            composeRule.onNode(hasContentDescription("Ta bort")).performScrollTo().performClick()
+            composeRule.onNode(hasContentDescription("Alternativ")).performScrollTo().performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText("Ta bort").performClick()
             composeRule.waitForIdle()
             // Confirm deletion in the AlertDialog (confirm button is labelled "Ta bort")
             composeRule.onNodeWithText("Ta bort").performClick()
@@ -315,6 +318,30 @@ class HanteraScreenTest {
             assert(vm.state.value.aktivitetOptions.isEmpty()) {
                 "Expected empty aktivitetOptions but got: ${vm.state.value.aktivitetOptions}"
             }
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun option_row_menu_offers_rename_and_delete() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            navigateToAktivitetSection()
+            composeRule.onNodeWithText("Ny typ").performTextInput("Simning")
+            composeRule.waitForIdle()
+            composeRule.onNode(hasContentDescription("Lägg till") and isEnabled()).performClick()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasContentDescription("Alternativ")).fetchSemanticsNodes().isNotEmpty()
+            }
+
+            composeRule.onNode(hasContentDescription("Alternativ")).performScrollTo().performClick()
+            composeRule.waitForIdle()
+
+            // Radstandarden: Byt namn först, Ta bort sist (NFR-17 + NFR-16:s menyordning).
+            val rename = composeRule.onNodeWithText("Byt namn").fetchSemanticsNode().boundsInRoot.top
+            val delete = composeRule.onNodeWithText("Ta bort").fetchSemanticsNode().boundsInRoot.top
+            assert(rename < delete) { "Förväntade Byt namn före Ta bort (fick $rename, $delete)" }
         } finally {
             tearDown()
         }

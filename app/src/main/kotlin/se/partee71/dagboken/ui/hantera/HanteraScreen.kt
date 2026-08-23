@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,6 +40,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Info
@@ -82,6 +86,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -118,6 +125,8 @@ import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Sex
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenCard
+import se.partee71.dagboken.ui.components.EntryAction
+import se.partee71.dagboken.ui.components.EntryActionMenu
 import se.partee71.dagboken.ui.components.DagbokenScaffold
 import se.partee71.dagboken.ui.components.ReminderTimeRow
 import se.partee71.dagboken.ui.components.SectionHeader
@@ -863,6 +872,7 @@ private fun NotificationsCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun OptionSettingsCard(
     title: String,
@@ -886,8 +896,33 @@ private fun OptionSettingsCard(
 
             options.forEachIndexed { index, opt ->
                 if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                var menuExpanded by remember { mutableStateOf(false) }
+                // Radstandarden (NFR-17): tryck = radens primära åtgärd (byt namn),
+                // långtryck = menyn. Stjärnan är radens enda inline-direktkontroll.
+                val startRename = { editingName = opt.name; editValue = opt.name }
+                val actions = listOf(
+                    EntryAction(
+                        label   = stringResource(R.string.symptom_rename),
+                        icon    = Icons.Default.Edit,
+                        onClick = startRename,
+                    ),
+                    EntryAction(
+                        label       = stringResource(R.string.delete),
+                        icon        = Icons.Default.Delete,
+                        destructive = true,
+                        onClick     = { deleteTarget = opt.name },
+                    ),
+                )
                 Row(
-                    modifier          = Modifier.fillMaxWidth(),
+                    modifier          = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            enabled          = editingName != opt.name,
+                            onClickLabel     = stringResource(R.string.symptom_rename),
+                            onLongClickLabel = stringResource(R.string.alternatives),
+                            onLongClick      = { menuExpanded = true },
+                            onClick          = startRename,
+                        ),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(
@@ -929,17 +964,22 @@ private fun OptionSettingsCard(
                             style    = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f),
                         )
-                        IconButton(
-                            onClick  = { editingName = opt.name; editValue = opt.name },
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit), modifier = Modifier.size(20.dp))
-                        }
-                        IconButton(
-                            onClick  = { deleteTarget = opt.name },
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), modifier = Modifier.size(20.dp))
+                        Box {
+                            IconButton(
+                                onClick  = { menuExpanded = true },
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.MoreVert,
+                                    contentDescription = stringResource(R.string.alternatives),
+                                    modifier           = Modifier.size(20.dp),
+                                )
+                            }
+                            EntryActionMenu(
+                                expanded  = menuExpanded,
+                                actions   = actions,
+                                onDismiss = { menuExpanded = false },
+                            )
                         }
                     }
                 }
@@ -990,22 +1030,29 @@ private fun VidBehovFavoritSettingsCard(
             } else {
                 favoriter.forEachIndexed { index, fav ->
                     if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                    val favoritState = if (fav.isFavorite) {
+                        stringResource(R.string.favorit_unmark_favorite)
+                    } else {
+                        stringResource(R.string.favorit_mark_favorite)
+                    }
                     Row(
-                        modifier          = Modifier.fillMaxWidth(),
+                        modifier          = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                role         = Role.Checkbox,
+                                onClickLabel = favoritState,
+                            ) { onToggleFavorite(fav) }
+                            .semantics { stateDescription = favoritState },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        IconButton(
-                            onClick  = { onToggleFavorite(fav) },
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(
-                                Icons.Filled.Star,
-                                contentDescription = stringResource(R.string.symptom_favorite),
-                                tint = if (fav.isFavorite) MaterialTheme.colorScheme.primary
-                                       else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
+                        // Stjärnan är indikator; hela raden äger åtgärden (NFR-17).
+                        Icon(
+                            Icons.Filled.Star,
+                            contentDescription = null,
+                            tint = if (fav.isFavorite) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                            modifier = Modifier.padding(14.dp).size(20.dp),
+                        )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(fav.namn, style = MaterialTheme.typography.bodyMedium)
                             Text(
