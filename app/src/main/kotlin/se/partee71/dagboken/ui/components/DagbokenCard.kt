@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,6 +40,8 @@ fun DagbokenCard(
     titleTrailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
+    onLongClickLabel: String? = null,
     enabled: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     accentColor: Color? = null,
@@ -112,11 +115,17 @@ fun DagbokenCard(
     }
 
     when {
-        onLongClick != null -> ElevatedCard(
+        // Etiketterna (skärmläsarens "dubbeltryck för att …") kan bara sättas via
+        // combinedClickable, så en anropare som skickar dem hamnar här även utan
+        // långtryck. Anropare utan etiketter går som förut.
+        onLongClick != null || onClickLabel != null || onLongClickLabel != null -> ElevatedCard(
             modifier = sizedModifier.combinedClickable(
-                enabled     = enabled,
-                onClick     = onClick ?: {},
-                onLongClick = onLongClick,
+                enabled          = enabled,
+                onClickLabel     = onClickLabel,
+                role             = Role.Button,
+                onLongClickLabel = onLongClickLabel,
+                onClick          = onClick ?: {},
+                onLongClick      = onLongClick,
             ),
             colors    = colors,
             elevation = cardElevation,
