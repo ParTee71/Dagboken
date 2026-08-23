@@ -329,7 +329,7 @@ class DagbokenEntryCardTest {
         }
     }
 
-    @Test fun `trailing content follows chip, note, chevron, menu order`() = retryOnRenderGlitch {
+    @Test fun `trailing content follows chip then note then chevron then menu`() = retryOnRenderGlitch {
         val scenario = launch {
             DagbokenEntryCard(
                 title           = "Löprunda",
