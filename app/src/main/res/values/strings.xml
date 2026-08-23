@@ -20,6 +20,9 @@
     <string name="decrease">Minska</string>
     <string name="increase">Öka</string>
     <string name="alternatives">Alternativ</string>
+    <string name="entry_card_open">Öppna</string>
+    <string name="expand">Visa mer</string>
+    <string name="collapse">Visa mindre</string>
 
     <!-- Common form labels -->
     <string name="label_name">Namn</string>
