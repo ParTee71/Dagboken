@@ -93,7 +93,7 @@
 | AKT-7 | Användaren ska kunna ange **tidsåtgång** (timmar + minuter). |
 | AKT-8 | Mätvärden och symptom ska kunna fällas ihop/ut (foldout). |
 | AKT-9 | Spara-knappen (`SaveButton`, se NFR-10) kräver att en aktivitetstyp valts **och** att formuläret har osparade ändringar (dirty-state) — annars inaktiverad. |
-| AKT-10 | Under registreringsformuläret ska de tre senaste loggade posterna (aktivitet och screening blandat, sorterade på tid, nyast överst) visas i en lista; varje post ska kunna redigeras eller tas bort (samma flöde som Historik). |
+| AKT-10 | Under registreringsformuläret ska de tre senaste loggade posterna (aktivitet och screening blandat, sorterade på tid, nyast överst) visas i en lista. Korten följer kortstandarden (NFR-15): tryck öppnar posten för redigering, chevron-knappen fäller ut symptomen, långtryck och `⋮` ger samma meny (Redigera, Ta bort) och svep från höger till vänster raderar efter bekräftelse. Energifärgen visas som accent på kortets vänsterkant. |
 | AKT-11 | Användaren ska kunna lägga till, redigera och ta bort en fritextanteckning på en aktivitetsregistrering, via den delade anteckningskomponenten. |
 | AKT-12 | När en **ny** aktivitet loggas via globala "+"-FAB:en ska formuläret förifyllas: tid = nu samt senaste aktivitetstyp och tidsåtgång från den senast loggade aktiviteten. Förvalen beräknas live från senaste post — inget cachas eller persisteras. |
 
