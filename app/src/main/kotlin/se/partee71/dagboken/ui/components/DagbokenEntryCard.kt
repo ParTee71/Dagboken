@@ -49,6 +49,9 @@ import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.DagbokenAnimSpec
 
+/** Nedtoning av ett inaktivt/avslutat postkorts text (t.ex. ett avaktiverat recept). */
+private const val DIMMED_ALPHA = 0.5f
+
 /**
  * En åtgärd i ett postkorts kontextmeny. Menyn är densamma oavsett om den öppnas
  * via `⋮` eller långtryck (NFR-15). [destructive] färgar posten i error-färg —
@@ -78,6 +81,10 @@ data class EntryAction(
  * `[trailingChip] [anteckningsikon] [chevron] [⋮]`, där varje del hoppas över när den
  * saknas. Bygg inte en egen kortvariant med samma innehåll — utöka den här (regel 4).
  *
+ * [supportingContent] är en valfri rad-slot under undertiteln för status som behöver
+ * egen färg (t.ex. ett recepts periodetikett i error-färg). [dimmed] tonar ned titel och
+ * undertitel för en post som är avaktiverad eller avslutad.
+ *
  * Sektions- och navigationskort är *inte* postkort och ska fortsätta använda
  * [DagbokenCard] direkt.
  */
@@ -87,6 +94,8 @@ fun DagbokenEntryCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    supportingContent: (@Composable ColumnScope.() -> Unit)? = null,
+    dimmed: Boolean = false,
     leadingIcon: ImageVector? = null,
     accentColor: Color? = null,
     trailingChip: (@Composable () -> Unit)? = null,
@@ -150,6 +159,7 @@ fun DagbokenEntryCard(
                         Text(
                             text     = title,
                             style    = MaterialTheme.typography.titleSmall,
+                            color    = if (dimmed) cs.onSurface.copy(alpha = DIMMED_ALPHA) else cs.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -157,11 +167,14 @@ fun DagbokenEntryCard(
                             Text(
                                 text     = subtitle,
                                 style    = MaterialTheme.typography.bodySmall,
-                                color    = cs.onSurfaceVariant,
+                                color    = cs.onSurfaceVariant.copy(
+                                    alpha = if (dimmed) DIMMED_ALPHA else 1f,
+                                ),
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
+                        supportingContent?.invoke(this)
                     }
                 }
 

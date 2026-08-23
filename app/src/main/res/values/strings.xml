@@ -37,6 +37,8 @@
     <string name="settings_symptom_section_desc">Hantera symptomtyper</string>
     <string name="label_describe">Beskriv</string>
     <string name="label_metrics">Mätvärden</string>
+    <string name="schema_activate">Aktivera</string>
+    <string name="schema_deactivate">Avaktivera</string>
     <string name="label_time_slots">Tidpunkter</string>
     <string name="label_time_slot">Tidpunkt</string>
     <string name="label_recurrence">Upprepning</string>
