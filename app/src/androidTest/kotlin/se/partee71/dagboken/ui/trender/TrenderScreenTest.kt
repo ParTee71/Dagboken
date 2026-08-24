@@ -512,6 +512,63 @@ class TrenderScreenTest {
         }
     }
 
+    // ─── Period mot period — TRD-18, #195 ────────────────────────────────────
+
+    @Test fun a_line_diagram_offers_the_previous_period_toggle() = retryOnRenderGlitch {
+        setUp()
+        try {
+            expand(TrenderSection.STEG)
+            setContent()
+            composeRule.onNodeWithTag("trender_compare_previous_steg")
+                .performScrollTo().assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun the_bar_diagrams_do_not_offer_a_previous_period() = retryOnRenderGlitch {
+        setUp()
+        try {
+            expand(TrenderSection.ENERGI_DAG, TrenderSection.SOMNSTADIER, TrenderSection.JAMFOR)
+            setContent()
+            // Två uppsättningar staplar i samma x-position går inte att läsa av, och
+            // jämförelsediagrammet överlagrar redan flera serier (TRD-18).
+            composeRule.onNodeWithTag("trender_compare_previous_energi_dag").assertDoesNotExist()
+            composeRule.onNodeWithTag("trender_compare_previous_somnstadier").assertDoesNotExist()
+            composeRule.onNodeWithTag("trender_compare_previous_jamfor").assertDoesNotExist()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun the_all_time_range_hides_the_previous_period_toggle() = retryOnRenderGlitch {
+        setUp()
+        try {
+            expand(TrenderSection.STEG)
+            composeRule.runOnUiThread { vm.setRange(TrenderSection.STEG, TrenderRange.ALL) }
+            setContent()
+            // "Allt" har ingen föregående period — knappen visas inte alls hellre än död.
+            composeRule.onNodeWithTag("trender_compare_previous_steg").assertDoesNotExist()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun tapping_the_toggle_turns_the_comparison_on_for_that_diagram_only() = retryOnRenderGlitch {
+        setUp()
+        try {
+            expand(TrenderSection.STEG, TrenderSection.VILOPULS)
+            setContent()
+            composeRule.onNodeWithTag("trender_compare_previous_steg").performScrollTo().performClick()
+            composeRule.waitUntil(20_000) {
+                vm.state.value.compareWithPrevious.getValue(TrenderSection.STEG)
+            }
+            assertEquals(false, vm.state.value.compareWithPrevious.getValue(TrenderSection.VILOPULS))
+        } finally {
+            tearDown()
+        }
+    }
+
     // ─── Jämförelsediagram — TRD-17, #194 ────────────────────────────────────
 
     @Test fun the_comparison_section_asks_for_two_series_before_it_draws_anything() = retryOnRenderGlitch {

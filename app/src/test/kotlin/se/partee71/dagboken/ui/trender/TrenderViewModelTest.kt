@@ -614,6 +614,126 @@ class TrenderViewModelTest {
         coVerify(exactly = 1) { healthRepo.readSleepMeasurementsHistory(any()) }
     }
 
+    // ─── Period mot period — TRD-18, #195 ────────────────────────────────────
+
+    @Test fun `period comparison is off for every diagram to begin with`() {
+        assertTrue(
+            "Nuläget ska synas först",
+            TrenderSection.entries.all { viewModel.state.value.compareWithPrevious[it] == false },
+        )
+    }
+
+    @Test fun `setCompareWithPrevious affects only the given diagram`() {
+        viewModel.setCompareWithPrevious(TrenderSection.STEG, true)
+        assertEquals(true, viewModel.state.value.compareWithPrevious.getValue(TrenderSection.STEG))
+        assertTrue(
+            TrenderSection.entries.filter { it != TrenderSection.STEG }
+                .all { viewModel.state.value.compareWithPrevious[it] == false },
+        )
+    }
+
+    @Test fun `comparing reads both periods in a single sweep`() = runTest {
+        healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 100)))
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.STEG)
+        coVerify(exactly = 1) { healthRepo.readHealthHistory(30) }
+
+        viewModel.setCompareWithPrevious(TrenderSection.STEG, true)
+        // Dubbla perioden i en läsning — inte två läsningar (TRD-18).
+        coVerify(exactly = 1) { healthRepo.readHealthHistory(60) }
+    }
+
+    @Test fun `the previous period becomes its own dimmed series on the same x-index`() = runTest {
+        val today = LocalDate.now()
+        // Fjorton dagar: de sju äldsta är föregående period, de sju nyaste den nuvarande.
+        val days = (13L downTo 0L).mapIndexed { index, back ->
+            DailyHealth(today.minusDays(back), steps = (index + 1) * 1000L)
+        }
+        healthRepo = mockk(relaxed = true) {
+            every { availability() } returns HealthAvailability.AVAILABLE
+            coEvery { hasRequiredPermissions() } returns true
+            coEvery { readHealthHistory(any()) } returns HealthHistory(days)
+            coEvery { readSleepMeasurementsHistory(any()) } returns emptyList()
+        }
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        viewModel.setRange(TrenderSection.STEG, TrenderRange.SEVEN_DAYS)
+        viewModel.setCompareWithPrevious(TrenderSection.STEG, true)
+        expand(TrenderSection.STEG)
+
+        val trend = viewModel.state.value.healthTrends.getValue(TrenderSection.STEG)
+        val current = trend.series.first { it.label == "Steg" }
+        val previous = trend.series.first { it.label == "Steg (föregående)" }
+        // Båda serierna är lika långa — samma x-index, dag 1 mot dag 1.
+        assertEquals(7, current.points.size)
+        assertEquals(7, previous.points.size)
+        // Den nuvarande perioden är den nyare halvan av svepet.
+        assertEquals(14000f, current.points.last())
+        assertEquals(7000f, previous.points.last())
+        assertTrue("Föregående period ska vara nedtonad", previous.color.alpha < current.color.alpha)
+    }
+
+    @Test fun `turning the comparison off removes the previous series again`() = runTest {
+        healthRepo = healthRepoWith(
+            history(
+                DailyHealth(LocalDate.now().minusDays(1), steps = 4000),
+                DailyHealth(LocalDate.now(), steps = 9000),
+            ),
+        )
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.STEG)
+        viewModel.setCompareWithPrevious(TrenderSection.STEG, true)
+        assertTrue(
+            viewModel.state.value.healthTrends.getValue(TrenderSection.STEG)
+                .series.any { it.label.contains("föregående") },
+        )
+
+        viewModel.setCompareWithPrevious(TrenderSection.STEG, false)
+        assertTrue(
+            viewModel.state.value.healthTrends.getValue(TrenderSection.STEG)
+                .series.none { it.label.contains("föregående") },
+        )
+    }
+
+    @Test fun `the all-time range has no previous period to compare against`() = runTest {
+        healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 100)))
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        viewModel.setRange(TrenderSection.STEG, TrenderRange.ALL)
+        viewModel.setCompareWithPrevious(TrenderSection.STEG, true)
+        expand(TrenderSection.STEG)
+
+        // "Allt" har ingen nedre gräns — ingen föregående period finns att rita.
+        assertTrue(
+            viewModel.state.value.healthTrends.getValue(TrenderSection.STEG)
+                .series.none { it.label.contains("föregående") },
+        )
+        coVerify(exactly = 1) { healthRepo.readHealthHistory(365) }
+    }
+
+    @Test fun `a logged category diagram also gets a previous period`() = runTest {
+        val today = LocalDate.now()
+        allFlow.value = listOf(
+            screening("s1", today.toString(), "Efter frukost", energy = 6),
+            screening("s2", today.minusDays(40).toString(), "Efter frukost", energy = 2),
+        )
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        viewModel.setCompareWithPrevious(TrenderSection.ENERGI_TILLFALLE, true)
+
+        val trend = viewModel.state.value.categoryTrends.getValue(TrenderCategory.ENERGI_TILLFALLE)
+        assertTrue(
+            "Den loggade dagen 40 dagar bak hör till föregående månad",
+            trend.series.any { it.label == "Energi Frukost (föregående)" },
+        )
+    }
+
+    @Test fun `the diagrams whose shape cannot carry a second period are excluded`() {
+        // Två stapeldiagram och det redan överlagrade jämförelsediagrammet (TRD-18).
+        assertTrue(TrenderSection.ENERGI_DAG !in PERIOD_COMPARABLE_SECTIONS)
+        assertTrue(TrenderSection.SOMNSTADIER !in PERIOD_COMPARABLE_SECTIONS)
+        assertTrue(TrenderSection.JAMFOR !in PERIOD_COMPARABLE_SECTIONS)
+        assertTrue(TrenderSection.STEG in PERIOD_COMPARABLE_SECTIONS)
+        assertTrue(TrenderSection.SYMPTOM in PERIOD_COMPARABLE_SECTIONS)
+    }
+
     @Test fun `the all-time range caps the health read at one year`() = runTest {
         healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 100)))
         viewModel = TrenderViewModel(repo, healthRepo, prefs)
