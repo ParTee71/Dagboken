@@ -58,6 +58,7 @@ enum class TrenderSection {
     STEG,
     VILOPULS,
     SOMN,
+    SOMNSTADIER,
     SOMNKVALITET,
     TRANING,
     KALORIER,
@@ -75,6 +76,7 @@ internal val HEALTH_SECTIONS: Set<TrenderSection> = setOf(
     TrenderSection.STEG,
     TrenderSection.VILOPULS,
     TrenderSection.SOMN,
+    TrenderSection.SOMNSTADIER,
     TrenderSection.SOMNKVALITET,
     TrenderSection.TRANING,
     TrenderSection.KALORIER,
@@ -194,6 +196,17 @@ internal val SLEEP_SERIES: List<HealthSeriesSpec> = listOf(
     HealthSeriesSpec("Vaken", SLEEP_STAGE_COLORS.getValue("Vaken")) { hours(it.sleepStages.awake) },
 )
 
+/**
+ * Sömnstadierna som staplas per natt (TRD-16), nedifrån och upp. Delar färger med
+ * Sömn-diagrammets linjeserier, så samma stadium ser likadant ut i båda.
+ */
+internal val SLEEP_STAGE_SERIES: List<HealthSeriesSpec> = listOf(
+    HealthSeriesSpec("Djup", SLEEP_STAGE_COLORS.getValue("Djup")) { hours(it.sleepStages.deep) },
+    HealthSeriesSpec("REM", SLEEP_STAGE_COLORS.getValue("REM")) { hours(it.sleepStages.rem) },
+    HealthSeriesSpec("Lätt", SLEEP_STAGE_COLORS.getValue("Lätt")) { hours(it.sleepStages.light) },
+    HealthSeriesSpec("Vaken", SLEEP_STAGE_COLORS.getValue("Vaken")) { hours(it.sleepStages.awake) },
+)
+
 /** Pulsdiagrammets serier i bpm (TRD-11, utökat med dygnssnittet). */
 internal val HEART_RATE_SERIES: List<HealthSeriesSpec> = listOf(
     HealthSeriesSpec("Vilopuls", HEALTH_RESTING_HR_COLOR) { it.restingHeartRate?.toFloat() },
@@ -260,6 +273,7 @@ internal fun healthSeriesFor(section: TrenderSection): List<HealthSeriesSpec> = 
     TrenderSection.STEG -> STEPS_SERIES
     TrenderSection.VILOPULS -> HEART_RATE_SERIES
     TrenderSection.SOMN -> SLEEP_SERIES
+    TrenderSection.SOMNSTADIER -> SLEEP_STAGE_SERIES
     TrenderSection.TRANING -> EXERCISE_SERIES
     TrenderSection.KALORIER -> KCAL_SERIES
     TrenderSection.STRACKA -> DISTANCE_SERIES
@@ -267,6 +281,12 @@ internal fun healthSeriesFor(section: TrenderSection): List<HealthSeriesSpec> = 
     TrenderSection.BLODTRYCK -> BLOOD_PRESSURE_SERIES
     else -> emptyList()
 }
+
+/**
+ * Diagram vars serier alltid visas allihop — sammansättningen *är* diagrammet, så en
+ * serieväljare vore meningslös (TRD-16).
+ */
+private val SECTIONS_WITHOUT_SERIES_PICKER = setOf(TrenderSection.SOMNSTADIER)
 
 /** Serier som är valda från början i varje hälsodiagram med serieväljare. */
 private val DEFAULT_HEALTH_SERIES: Map<TrenderSection, Set<String>> = mapOf(
@@ -590,15 +610,17 @@ class TrenderViewModel @Inject constructor(
 
         val history = historyCache[range] ?: HealthHistory()
         val specs = healthSeriesFor(section)
-        // Diagram med en enda serie har ingen väljare — serien visas alltid.
-        val active = if (specs.size == 1) {
+        // Diagram med en enda serie — eller där alla serier hör ihop (TRD-16) — har ingen
+        // väljare; serierna visas alltid.
+        val alwaysAll = specs.size == 1 || section in SECTIONS_WITHOUT_SERIES_PICKER
+        val active = if (alwaysAll) {
             specs
         } else {
             val chosen = selected[section].orEmpty()
             specs.filter { it.label in chosen }
         }
         return HealthTrend(
-            labels = if (specs.size == 1) emptyList() else specs.map { it.label },
+            labels = if (alwaysAll) emptyList() else specs.map { it.label },
             dates  = history.dates.map { it.toString() },
             series = active.map { spec ->
                 ChartSeries(spec.label, spec.color, history.days.map { spec.value(it) })

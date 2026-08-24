@@ -41,6 +41,10 @@ import se.partee71.dagboken.ui.diagram.IntervalBarChart
 import se.partee71.dagboken.ui.diagram.IntervalPoint
 import se.partee71.dagboken.ui.diagram.LineChartCanvas
 import se.partee71.dagboken.ui.diagram.MinMaxCaption
+import se.partee71.dagboken.ui.diagram.StackSegment
+import se.partee71.dagboken.ui.diagram.StackedBarChart
+import se.partee71.dagboken.ui.diagram.StackedPoint
+import se.partee71.dagboken.ui.diagram.stackTotals
 import se.partee71.dagboken.ui.diagram.computeSmartYAxis
 import se.partee71.dagboken.ui.diagram.computeTrendLine
 
@@ -85,6 +89,7 @@ fun TrenderScreen(
             healthSection(TrenderSection.STEG, R.string.trender_section_steps, R.string.trender_no_steps_data, state, vm),
             healthSection(TrenderSection.VILOPULS, R.string.trender_section_resting_hr, R.string.trender_no_resting_hr_data, state, vm),
             healthSection(TrenderSection.SOMN, R.string.trender_section_sleep, R.string.trender_no_sleep_data, state, vm),
+            sleepStagesSection(state, vm),
             healthSection(TrenderSection.SOMNKVALITET, R.string.trender_section_sleep_quality, R.string.trender_no_sleep_quality_data, state, vm),
             healthSection(TrenderSection.TRANING, R.string.trender_section_exercise, R.string.trender_no_exercise_data, state, vm),
             healthSection(TrenderSection.KALORIER, R.string.trender_section_kcal, R.string.trender_no_kcal_data, state, vm),
@@ -182,6 +187,87 @@ private fun healthSection(
         },
         minMax = if (values.isEmpty() || loading) null else {
             { MinMaxCaption(min = values.min(), max = values.max()) }
+        },
+    )
+}
+
+/**
+ * Sömnstadier som staplat diagram (TRD-16) — en stapel per natt, delad i djup, REM, lätt och
+ * vaken. Egen byggare i stället för [healthSection], eftersom sammansättningen kräver en
+ * staplad stapel och inte överlagrade linjer: två lika långa nätter kan ha helt olika
+ * arkitektur, och det syns i stapeln men inte i fyra linjer ovanpå varandra.
+ *
+ * Datat kommer från samma [HealthTrend] som övriga hälsodiagram — de fyra stadieserierna
+ * transponeras till en [StackedPoint] per natt. Stapelns total är därmed **tiden i säng**
+ * (vaken tid ingår), medan Sömn-diagrammets "Total" är sömnlängden.
+ */
+@Composable
+private fun sleepStagesSection(state: TrenderUiState, vm: TrenderViewModel): DiagramSection {
+    val section = TrenderSection.SOMNSTADIER
+    val trend = state.healthTrends[section] ?: HealthTrend()
+    val loading = section in state.healthLoading
+
+    val nights = remember(trend) {
+        trend.dates.indices.map { i -> StackedPoint(trend.series.map { it.points.getOrNull(i) }) }
+    }
+    val segments = remember(trend) { trend.series.map { StackSegment(it.label, it.color) } }
+    val totals = remember(nights) { stackTotals(nights).filterNotNull() }
+    val title = stringResource(R.string.trender_section_sleep_stages)
+
+    return DiagramSection(
+        title = title,
+        expanded = state.expanded.getValue(section),
+        onToggleExpanded = { vm.setExpanded(section, !state.expanded.getValue(section)) },
+        periodSelector = { sectionRangeSelector(section, state, vm) },
+        chart = { chartModifier ->
+            when {
+                loading -> Box(
+                    modifier = chartModifier.height(200.dp),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator() }
+
+                totals.size < 2 -> EmptyState(
+                    icon     = Icons.Outlined.TrendingUp,
+                    title    = stringResource(R.string.trender_no_sleep_stages_data),
+                    modifier = chartModifier.height(200.dp),
+                )
+
+                else -> {
+                    val yAxis = remember(totals) { computeSmartYAxis(totals) }
+                    StackedBarChart(
+                        points   = nights,
+                        segments = segments,
+                        dates    = trend.dates,
+                        label    = title,
+                        minValue = yAxis.range.start,
+                        maxValue = yAxis.range.endInclusive,
+                        gridStep = yAxis.step,
+                        modifier = chartModifier,
+                    )
+                }
+            }
+        },
+        legend = if (segments.isEmpty() || loading) null else {
+            {
+                segments.forEach { segment ->
+                    Row(
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.testTag("trender_stage_legend_item_${segment.label}"),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(segment.color),
+                        )
+                        Text(segment.label, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        },
+        minMax = if (totals.isEmpty() || loading) null else {
+            { MinMaxCaption(min = totals.min(), max = totals.max()) }
         },
     )
 }
