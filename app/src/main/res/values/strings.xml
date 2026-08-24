@@ -429,6 +429,17 @@
     <string name="halsa_permission_title">Ge åtkomst till hälsodata</string>
     <string name="halsa_permission_body">Dagboken behöver din tillåtelse att läsa steg, puls och sömn från Health Connect. Träning, kalorier, sträcka, syremättnad och blodtryck är valfria — nekar du någon av dem visas den datapunkten som ”—”, resten fungerar ändå.</string>
     <string name="halsa_permission_grant">Ge åtkomst</string>
+
+    <!-- HLS-14: valfria mått vars åtkomst saknas, med väg tillbaka till samtyckesdialogen -->
+    <string name="halsa_permissions_missing_action">Ge åtkomst</string>
+    <string name="halsa_permissions_missing">%1$s saknar åtkomst till Health Connect och visas som ”—”. Tryck för att ge åtkomst.</string>
+    <string name="halsa_permissions_missing_click_label">Begär åtkomst</string>
+    <string name="halsa_metric_exercise">Träning</string>
+    <string name="halsa_metric_active_energy">Aktiva kalorier</string>
+    <string name="halsa_metric_distance">Sträcka</string>
+    <string name="halsa_metric_oxygen_saturation">Syremättnad</string>
+    <string name="halsa_metric_blood_pressure">Blodtryck</string>
+    <string name="halsa_metric_history">Historik längre bak än 30 dagar</string>
     <string name="halsa_error_title">Kunde inte läsa hälsodata</string>
     <string name="halsa_error_body">Något gick fel vid hämtning från Health Connect. Försök igen.</string>
     <string name="halsa_retry">Försök igen</string>

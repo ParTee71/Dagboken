@@ -67,6 +67,20 @@ interface HealthConnectRepository {
     /** True om samtliga [requiredPermissions] är beviljade. */
     suspend fun hasRequiredPermissions(): Boolean
 
+    /**
+     * De valfria måtten (HLS-8, HLS-9) vars läsbehörighet **inte** är beviljad (HLS-14).
+     *
+     * Utan detta går en nekad — eller aldrig begärd — valfri behörighet inte att skilja
+     * från saknad data: båda visas som "—". Den som gav samtycke innan en behörighet
+     * fanns hamnar annars i ett läge appen aldrig tar sig ur.
+     *
+     * Tom mängd när allt är beviljat **eller** när behörigheterna inte gick att läsa — en
+     * varning om åtkomst ska aldrig bygga på en gissning. Standardimplementationen
+     * rapporterar ingenting saknat, så fakes som inte bryr sig om åtkomst slipper
+     * implementera den.
+     */
+    suspend fun missingOptionalMetrics(): Set<OptionalHealthMetric> = emptySet()
+
     /** Läser dagens datapunkter. Kastar vid I/O- eller behörighetsfel (mappas i ViewModel). */
     suspend fun readToday(): HealthData
 
@@ -115,6 +129,23 @@ const val DEFAULT_SLEEP_QUALITY_NIGHTS = 14
 /** Health Connect-tillgänglighet, mappad från [HealthConnectClient.getSdkStatus]. */
 enum class HealthAvailability { AVAILABLE, NOT_INSTALLED, UPDATE_REQUIRED }
 
+/**
+ * De **valfria** datapunkterna (HLS-8, HLS-9), som domänbegrepp i stället för
+ * behörighetssträngar. Hälsa-skärmen ska kunna säga *vilka mått* som saknar åtkomst
+ * (HLS-14) utan att känna till Health Connects behörighetsnamn.
+ *
+ * Sömnstadierna saknas här med flit: de ryms i kärnans `READ_SLEEP` och kan inte nekas
+ * separat.
+ */
+enum class OptionalHealthMetric {
+    EXERCISE,
+    ACTIVE_ENERGY,
+    DISTANCE,
+    OXYGEN_SATURATION,
+    BLOOD_PRESSURE,
+    HISTORY,
+}
+
 class HealthConnectRepositoryImpl(
     private val context: Context,
     private val ioDispatcher: CoroutineDispatcher,
@@ -127,14 +158,26 @@ class HealthConnectRepositoryImpl(
         HealthPermission.getReadPermission(RestingHeartRateRecord::class),
     )
 
-    override val permissions: Set<String> = requiredPermissions + setOf(
-        HealthPermission.getReadPermission(ExerciseSessionRecord::class),
-        HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
-        HealthPermission.getReadPermission(DistanceRecord::class),
-        HealthPermission.getReadPermission(OxygenSaturationRecord::class),
-        HealthPermission.getReadPermission(BloodPressureRecord::class),
-        HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY,
+    /**
+     * De valfria måtten och deras läsbehörigheter (HLS-8, HLS-9). Kartan är enda stället
+     * listan står, så [permissions] och [missingOptionalMetrics] inte kan glida isär.
+     */
+    private val optionalPermissions: Map<OptionalHealthMetric, String> = mapOf(
+        OptionalHealthMetric.EXERCISE to
+            HealthPermission.getReadPermission(ExerciseSessionRecord::class),
+        OptionalHealthMetric.ACTIVE_ENERGY to
+            HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
+        OptionalHealthMetric.DISTANCE to
+            HealthPermission.getReadPermission(DistanceRecord::class),
+        OptionalHealthMetric.OXYGEN_SATURATION to
+            HealthPermission.getReadPermission(OxygenSaturationRecord::class),
+        OptionalHealthMetric.BLOOD_PRESSURE to
+            HealthPermission.getReadPermission(BloodPressureRecord::class),
+        OptionalHealthMetric.HISTORY to
+            HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY,
     )
+
+    override val permissions: Set<String> = requiredPermissions + optionalPermissions.values
 
     // getOrCreate kastar om Health Connect saknas — skapa lazy och först efter
     // att availability() bekräftat AVAILABLE.
@@ -150,6 +193,17 @@ class HealthConnectRepositoryImpl(
     override suspend fun hasRequiredPermissions(): Boolean = withContext(ioDispatcher) {
         client.permissionController.getGrantedPermissions().containsAll(requiredPermissions)
     }
+
+    override suspend fun missingOptionalMetrics(): Set<OptionalHealthMetric> =
+        withContext(ioDispatcher) {
+            // Går behörigheterna inte att läsa rapporteras ingenting saknat — hellre ingen
+            // varning än en varning som inte stämmer.
+            val granted = runCatching { client.permissionController.getGrantedPermissions() }
+                .getOrNull()
+            // En tom mängd beviljade och ett misslyckat anrop är inte samma sak: det
+            // förra betyder "allt saknas", det senare "vi vet inte".
+            if (granted == null) emptySet() else missingMetrics(granted, optionalPermissions)
+        }
 
     /**
      * Läser *alla* poster i intervallet genom att följa Health Connects `pageToken`.
@@ -693,6 +747,16 @@ internal fun longestNightPerDay(sessions: List<NightSession>, zone: ZoneId): Map
     sessions
         .groupBy { it.end.atZone(zone).toLocalDate() }
         .mapValues { (_, night) -> night.maxBy { it.duration } }
+
+/**
+ * De mått i [permissions] vars behörighet saknas i [granted] (HLS-14).
+ *
+ * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
+ */
+internal fun missingMetrics(
+    granted: Set<String>,
+    permissions: Map<OptionalHealthMetric, String>,
+): Set<OptionalHealthMetric> = permissions.filterValues { it !in granted }.keys
 
 /** En stegpost knuten till sin källa (dataOrigin-paketnamn). */
 internal data class OriginSteps(val origin: String, val count: Long)

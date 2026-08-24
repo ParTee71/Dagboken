@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.HealthAvailability
 import se.partee71.dagboken.data.repository.HealthConnectRepository
+import se.partee71.dagboken.data.repository.OptionalHealthMetric
 import se.partee71.dagboken.domain.model.HealthData
 import se.partee71.dagboken.domain.model.SleepQuality
 import se.partee71.dagboken.domain.model.ageFromBirthYear
@@ -34,11 +35,16 @@ sealed interface HealthUiState {
      * användaren inte angett något födelseår — då går sömnkvaliteten inte att
      * åldersjustera (HLS-10/HLS-11) och skärmen uppmanar till att fylla i det i stället
      * för att visa en poäng mot fel norm.
+     *
+     * [missingMetrics] är de valfria mått vars åtkomst saknas (HLS-14). De visas som "—"
+     * precis som ett mått utan data, så skärmen måste kunna säga att det beror på åtkomst
+     * och erbjuda att begära den.
      */
     data class Data(
         val health: HealthData,
         val sleepQuality: SleepQuality? = null,
         val birthYearMissing: Boolean = false,
+        val missingMetrics: Set<OptionalHealthMetric> = emptySet(),
     ) : HealthUiState
 
     /** I/O- eller behörighetsfel vid läsning. */
@@ -96,6 +102,10 @@ class HealthViewModel @Inject constructor(
                     health = health,
                     sleepQuality = quality,
                     birthYearMissing = age == null,
+                    // Åtkomstläget får inte fälla skärmen: kan det inte läsas visas
+                    // datan utan varningsraden.
+                    missingMetrics = runCatching { repo.missingOptionalMetrics() }
+                        .getOrDefault(emptySet()),
                 )
             }.getOrElse { HealthUiState.Error }
         }
