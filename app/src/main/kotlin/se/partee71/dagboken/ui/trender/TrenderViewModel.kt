@@ -65,6 +65,7 @@ enum class TrenderSection {
     STRACKA,
     SYREMATTNAD,
     BLODTRYCK,
+    JAMFOR,
 }
 
 /**
@@ -288,6 +289,85 @@ internal fun healthSeriesFor(section: TrenderSection): List<HealthSeriesSpec> = 
  */
 private val SECTIONS_WITHOUT_SERIES_PICKER = setOf(TrenderSection.SOMNSTADIER)
 
+/**
+ * Var ett jämförbart måtts värden kommer ifrån (TRD-17). Jämförelsediagrammet blandar
+ * klockdata och loggade dagboksserier, och de hämtas på olika sätt.
+ */
+internal sealed interface ComparisonSource {
+    /** Ett mått ur klockans dagshistorik (HLS-12). */
+    data class Health(val value: (DailyHealth) -> Float?) : ComparisonSource
+
+    /** Nattens sömnkvalitetspoäng (HLS-13). */
+    data object SleepQuality : ComparisonSource
+
+    /** En loggad serie ur kategoridatan, identifierad med sitt namn. */
+    data class Diary(val name: String) : ComparisonSource
+
+    /** Energi (dag) — samma dagsgenomsnitt som TRD-8. */
+    data object DailyEnergy : ComparisonSource
+}
+
+/**
+ * Ett mått som går att välja i jämförelsediagrammet (TRD-17). [label] är kvalificerad så den
+ * står för sig själv utanför sitt eget diagram ("Sömnlängd", inte "Total"), och [unit] visas
+ * i legenden tillsammans med seriens **verkliga** min/max — indexeringen får aldrig dölja
+ * vad kurvan faktiskt betyder.
+ */
+internal data class ComparableSpec(
+    val label: String,
+    val unit: String,
+    val color: Color,
+    val source: ComparisonSource,
+)
+
+/** Klockmåtten som går att jämföra (TRD-17). */
+internal val COMPARABLE_HEALTH: List<ComparableSpec> = listOf(
+    ComparableSpec("Steg", "steg", HEALTH_STEPS_COLOR, ComparisonSource.Health { it.steps?.toFloat() }),
+    ComparableSpec("Vilopuls", "bpm", HEALTH_RESTING_HR_COLOR, ComparisonSource.Health { it.restingHeartRate?.toFloat() }),
+    ComparableSpec("Dygnssnittspuls", "bpm", HEALTH_HEART_RATE_COLOR, ComparisonSource.Health { it.heartRateAvg?.toFloat() }),
+    ComparableSpec("Sömnlängd", "h", SLEEP_TOTAL_COLOR, ComparisonSource.Health { hours(it.sleepDuration) }),
+    ComparableSpec("Djupsömn", "h", SLEEP_STAGE_COLORS.getValue("Djup"), ComparisonSource.Health { hours(it.sleepStages.deep) }),
+    ComparableSpec("REM-sömn", "h", SLEEP_STAGE_COLORS.getValue("REM"), ComparisonSource.Health { hours(it.sleepStages.rem) }),
+    ComparableSpec("Sömnkvalitet", "poäng", SLEEP_QUALITY_COLOR, ComparisonSource.SleepQuality),
+    ComparableSpec("Träning", "min", HEALTH_EXERCISE_COLOR, ComparisonSource.Health { it.exerciseDuration?.toMinutes()?.toFloat() }),
+    ComparableSpec("Aktiva kalorier", "kcal", HEALTH_KCAL_COLOR, ComparisonSource.Health { it.activeEnergyKcal?.toFloat() }),
+    ComparableSpec("Sträcka", "km", HEALTH_DISTANCE_COLOR, ComparisonSource.Health { it.distanceMeters?.let { m -> (m / 1000.0).toFloat() } }),
+    ComparableSpec("Syremättnad", "%", HEALTH_SPO2_COLOR, ComparisonSource.Health { it.oxygenSaturationAvg?.toFloat() }),
+    ComparableSpec("Systoliskt", "mmHg", BLOOD_PRESSURE_COLORS.getValue("Systoliskt"), ComparisonSource.Health { it.bloodPressure?.systolic?.toFloat() }),
+    ComparableSpec("Diastoliskt", "mmHg", BLOOD_PRESSURE_COLORS.getValue("Diastoliskt"), ComparisonSource.Health { it.bloodPressure?.diastolic?.toFloat() }),
+)
+
+/** Energi (dag) har ingen egen plats i seriepaletten — egen färg, utanför [SERIES_PALETTE]. */
+internal val DAILY_ENERGY_COLOR = Color(0xFF14b8a6)  // teal-500
+
+/** De loggade serierna som går att jämföra — de fasta plus periodens upptäckta symptom. */
+internal fun comparableDiary(symptomLabels: List<String>): List<ComparableSpec> =
+    listOf(ComparableSpec("Energi (dag)", "skala", DAILY_ENERGY_COLOR, ComparisonSource.DailyEnergy)) +
+        ALL_SERIES.map { ComparableSpec(it, "skala", seriesColor(it), ComparisonSource.Diary(it)) } +
+        symptomLabels.map {
+            ComparableSpec(it, "skala", trenderSeriesColor(it, symptomLabels), ComparisonSource.Diary(it))
+        }
+
+/**
+ * Indexerar en serie **0–100 mot sina egna** min/max i perioden (TRD-17). Utan det plattar
+ * den största serien ut de andra: steg ligger runt 10 000 och energi på 0–10, så energin
+ * skulle bli en rak linje längs botten.
+ *
+ * En serie vars värden är konstanta i perioden får mittlinjen (50) i stället för en division
+ * med noll, och luckor förblir luckor — aldrig 0, som vore ett påstående om en dag utan
+ * mätning.
+ *
+ * Ren funktion utan SDK-beroenden, för enhetstestning (regel 2).
+ */
+internal fun normalizeSeries(points: List<Float?>): List<Float?> {
+    val known = points.filterNotNull()
+    if (known.isEmpty()) return points
+    val min = known.min()
+    val max = known.max()
+    if (max - min < 1e-6f) return points.map { value -> value?.let { 50f } }
+    return points.map { value -> value?.let { (it - min) / (max - min) * 100f } }
+}
+
 /** Serier som är valda från början i varje hälsodiagram med serieväljare. */
 private val DEFAULT_HEALTH_SERIES: Map<TrenderSection, Set<String>> = mapOf(
     TrenderSection.SOMN to setOf("Total"),
@@ -419,6 +499,26 @@ data class HealthTrend(
     val dates: List<String> = emptyList(),
 )
 
+/** En serie i jämförelsediagrammet med sitt **verkliga** intervall (TRD-17). */
+data class ComparisonLegendItem(
+    val label: String,
+    val unit: String,
+    val color: Color,
+    val min: Float,
+    val max: Float,
+)
+
+/**
+ * Jämförelsediagrammets renderade data (TRD-17). [series] är **indexerade** 0–100;
+ * [legend] bär de verkliga värdena med enhet, så indexeringen inte döljer vad kurvorna betyder.
+ */
+data class ComparisonTrend(
+    val labels: List<String> = emptyList(),
+    val series: List<ChartSeries> = emptyList(),
+    val legend: List<ComparisonLegendItem> = emptyList(),
+    val dates: List<String> = emptyList(),
+)
+
 data class TrenderUiState(
     val ranges: Map<TrenderSection, TrenderRange> = DEFAULT_RANGES,
     /** Utfällt läge per diagramkort (TRD-14) — alla stängda som standard. */
@@ -433,6 +533,8 @@ data class TrenderUiState(
     val selectedHealthSeries: Map<TrenderSection, Set<String>> = DEFAULT_HEALTH_SERIES,
     /** True medan ett utfällt hälsodiagram väntar på sin läsning från Health Connect. */
     val healthLoading: Set<TrenderSection> = emptySet(),
+    /** Jämförelsediagrammets data (TRD-17) — tom tills kortet fällts ut. */
+    val comparison: ComparisonTrend = ComparisonTrend(),
 )
 
 /** Färg för valfri serie, oavsett om det är en fast aktivitetsserie eller en dynamisk symptomserie. */
@@ -547,6 +649,114 @@ class TrenderViewModel @Inject constructor(
                 }
             }
         }
+
+        // Jämförelsediagrammet (TRD-17) blandar klockdata och loggade serier, så det behöver
+        // både historiken och aktivitetsflödet. Egen collector så det inte drar med sig de
+        // andra diagrammen — och som de läser det först när kortet fällts ut.
+        viewModelScope.launch {
+            combine(_expanded, _ranges, _selectedHealthSeries, repo.all) { expanded, ranges, selected, entries ->
+                ComparisonInput(
+                    open     = expanded[TrenderSection.JAMFOR] == true,
+                    range    = ranges.getValue(TrenderSection.JAMFOR),
+                    selected = selected[TrenderSection.JAMFOR].orEmpty(),
+                    entries  = entries,
+                )
+            }.distinctUntilChanged().collectLatest { input ->
+                if (!input.open) return@collectLatest
+                ensureComparisonLoaded(input)
+                _state.update { it.copy(comparison = buildComparison(input)) }
+            }
+        }
+    }
+
+    /** Underlaget som jämförelsediagrammet behöver för en omräkning. */
+    private data class ComparisonInput(
+        val open: Boolean,
+        val range: TrenderRange,
+        val selected: Set<String>,
+        val entries: List<Aktivitet>,
+    )
+
+    private suspend fun ensureComparisonLoaded(input: ComparisonInput) {
+        val specs = comparableSpecs(input.entries, input.range).filter { it.label in input.selected }
+        if (specs.any { it.source is ComparisonSource.Health }) {
+            ensureLoaded(TrenderSection.STEG, input.range)
+        }
+        // Sömnkvaliteten är en egen, tyngre läsning — hämta den bara om någon valt den.
+        if (specs.any { it.source is ComparisonSource.SleepQuality }) {
+            ensureLoaded(TrenderSection.SOMNKVALITET, input.range)
+        }
+    }
+
+    /** Samtliga valbara mått för perioden — klockan först, sedan dagbokens egna serier. */
+    private fun comparableSpecs(entries: List<Aktivitet>, range: TrenderRange): List<ComparableSpec> {
+        val symptoms = computeCategoryData(entries, range, TrenderCategory.SYMPTOM).labels
+        return COMPARABLE_HEALTH + comparableDiary(symptoms)
+    }
+
+    private fun buildComparison(input: ComparisonInput): ComparisonTrend {
+        val specs = comparableSpecs(input.entries, input.range)
+        val chosen = specs.filter { it.label in input.selected }
+
+        // Gemensam, sammanhängande datumaxel för perioden — dagboksserierna finns bara för
+        // loggade dagar, och de dagarna ska bli luckor i kurvan, inte en hoptryckt x-axel.
+        val dates = comparisonDates(input.range)
+        val byDate = historyCache[input.range]?.days.orEmpty().associateBy { it.date }
+        val qualityByDate = sleepQualityCache[input.range].orEmpty().associateBy { it.date }
+        val diary = diaryValuesByDate(input.entries, input.range)
+        val energyByDate = computeDailyEnergyStats(filterByRange(input.entries, input.range))
+            .associate { it.datum to it.avg }
+
+        val raw = chosen.map { spec ->
+            spec to dates.map { date ->
+                when (val source = spec.source) {
+                    is ComparisonSource.Health -> byDate[date]?.let(source.value)
+                    is ComparisonSource.SleepQuality -> qualityByDate[date]?.quality?.score?.toFloat()
+                    is ComparisonSource.Diary -> diary[source.name]?.get(date.toString())
+                    is ComparisonSource.DailyEnergy -> energyByDate[date.toString()]
+                }
+            }
+        }
+
+        return ComparisonTrend(
+            labels = specs.map { it.label },
+            dates  = dates.map { it.toString() },
+            series = raw.map { (spec, points) ->
+                ChartSeries(label = spec.label, color = spec.color, points = normalizeSeries(points))
+            },
+            // Legenden bär de verkliga värdena — ett indexerat diagram utan dem vore
+            // missvisande, och det här är hälsodata (TRD-17).
+            legend = raw.mapNotNull { (spec, points) ->
+                val known = points.filterNotNull()
+                if (known.isEmpty()) {
+                    null
+                } else {
+                    ComparisonLegendItem(spec.label, spec.unit, spec.color, known.min(), known.max())
+                }
+            },
+        )
+    }
+
+    /** Periodens sammanhängande datum, äldst → nyast. "Allt" kapas som hälsoläsningen. */
+    private fun comparisonDates(range: TrenderRange): List<LocalDate> {
+        val days = range.healthDays()
+        val today = LocalDate.now()
+        return ((days - 1).toLong() downTo 0L).map { today.minusDays(it) }
+    }
+
+    /** De loggade seriernas dagsvärden, uppslagbara per datum. */
+    private fun diaryValuesByDate(
+        entries: List<Aktivitet>,
+        range: TrenderRange,
+    ): Map<String, Map<String, Float>> {
+        val data = TrenderCategory.entries.map { computeCategoryData(entries, range, it) }
+        return data.flatMap { category ->
+            category.pointsByLabel.map { (label, points) ->
+                label to category.dates.zip(points)
+                    .mapNotNull { (date, value) -> value?.let { date to it } }
+                    .toMap()
+            }
+        }.toMap()
     }
 
     /** Perioden "Allt" (TRD-3) har ingen nedre gräns; hälsoläsningen kapas ändå vid ett år. */

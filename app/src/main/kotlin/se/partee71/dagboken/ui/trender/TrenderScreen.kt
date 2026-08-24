@@ -96,6 +96,7 @@ fun TrenderScreen(
             healthSection(TrenderSection.STRACKA, R.string.trender_section_distance, R.string.trender_no_distance_data, state, vm),
             healthSection(TrenderSection.SYREMATTNAD, R.string.trender_section_spo2, R.string.trender_no_spo2_data, state, vm),
             healthSection(TrenderSection.BLODTRYCK, R.string.trender_section_blood_pressure, R.string.trender_no_blood_pressure_data, state, vm),
+            comparisonSection(state, vm),
         ),
     )
 }
@@ -190,6 +191,100 @@ private fun healthSection(
         },
     )
 }
+
+/**
+ * Jämförelsediagrammet (TRD-17) — två eller flera valfria serier ur hela appen i samma
+ * diagram, klockdata och dagboksserier om vartannat.
+ *
+ * Serierna har olika enheter, så var och en **indexeras 0–100 mot sitt eget** min/max i
+ * perioden; en rak överlagring skulle platta ut den mindre serien mot botten. Y-axeln visar
+ * index, men legenden bär varje series **verkliga** lägsta och högsta värde med enhet — ett
+ * indexerat diagram som inte visar vad kurvorna betyder vore missvisande, och det här är
+ * hälsodata.
+ */
+@Composable
+private fun comparisonSection(state: TrenderUiState, vm: TrenderViewModel): DiagramSection {
+    val section = TrenderSection.JAMFOR
+    val comparison = state.comparison
+    val selected = state.selectedHealthSeries[section].orEmpty()
+
+    return DiagramSection(
+        title = stringResource(R.string.trender_section_compare),
+        expanded = state.expanded.getValue(section),
+        onToggleExpanded = { vm.setExpanded(section, !state.expanded.getValue(section)) },
+        periodSelector = { sectionRangeSelector(section, state, vm) },
+        selector = {
+            HealthSeriesSelector(
+                labels   = comparison.labels,
+                selected = selected,
+                onToggle = { vm.toggleHealthSeries(section, it) },
+                colorOf  = { label -> comparison.colorFor(label) },
+                testTag  = "trender_series_selector_jamfor",
+            )
+        },
+        chart = { chartModifier ->
+            if (comparison.series.count { it.points.any { point -> point != null } } < 2) {
+                EmptyState(
+                    icon     = Icons.Outlined.TrendingUp,
+                    title    = stringResource(R.string.trender_compare_pick_two),
+                    modifier = chartModifier.height(280.dp),
+                )
+            } else {
+                LineChartCanvas(
+                    series   = comparison.series,
+                    dates    = comparison.dates,
+                    // Fast 0–100: axeln visar index, inte enheter. Att smart-skala den vore
+                    // meningslöst när varje serie redan är indexerad mot sitt eget spann.
+                    minValue = 0f,
+                    maxValue = 100f,
+                    gridStep = 25f,
+                    modifier = chartModifier.height(280.dp),
+                )
+            }
+        },
+        legend = if (comparison.legend.size < 2) null else {
+            {
+                comparison.legend.forEach { item ->
+                    Row(
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.testTag("trender_compare_legend_${item.label}"),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(item.color),
+                        )
+                        Text(
+                            text  = stringResource(
+                                R.string.trender_compare_legend_range,
+                                item.label,
+                                formatCompareValue(item.min),
+                                formatCompareValue(item.max),
+                                item.unit,
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            }
+        },
+    )
+}
+
+/** "5" för heltal, annars en decimal — samma format som diagrammens övriga etiketter. */
+private fun formatCompareValue(value: Float): String =
+    if (value == value.toInt().toFloat()) {
+        value.toInt().toString()
+    } else {
+        String.format(java.util.Locale.ROOT, "%.1f", value)
+    }
+
+private fun ComparisonTrend.colorFor(label: String): Color =
+    series.firstOrNull { it.label == label }?.color
+        ?: legend.firstOrNull { it.label == label }?.color
+        ?: Color.Gray
 
 /**
  * Sömnstadier som staplat diagram (TRD-16) — en stapel per natt, delad i djup, REM, lätt och

@@ -291,6 +291,8 @@ class TrenderViewModelTest {
             if (available) HealthAvailability.AVAILABLE else HealthAvailability.NOT_INSTALLED
         coEvery { hasRequiredPermissions() } returns granted
         coEvery { readHealthHistory(any()) } returns history
+        // Explicit tomt hellre än relaxed mock — en mockad lista beter sig inte som en lista.
+        coEvery { readSleepMeasurementsHistory(any()) } returns emptyList()
     }
 
     @Test fun `no health diagram is read while every card is collapsed`() = runTest {
@@ -528,6 +530,88 @@ class TrenderViewModelTest {
         expand(TrenderSection.SOMNSTADIER)
         assertEquals(listOf(1f), seriesFor(TrenderSection.SOMNSTADIER, "Djup")?.points)
         assertEquals(listOf(null), seriesFor(TrenderSection.SOMNSTADIER, "REM")?.points)
+    }
+
+    // ─── Jämförelsediagram — TRD-17, #194 ────────────────────────────────────
+
+    @Test fun `normalising maps the lowest value to zero and the highest to a hundred`() {
+        assertEquals(listOf(0f, 50f, 100f), normalizeSeries(listOf(10f, 20f, 30f)))
+    }
+
+    @Test fun `a constant series becomes a middle line instead of a division by zero`() {
+        val normalised = normalizeSeries(listOf(60f, 60f, 60f))
+        assertEquals(listOf(50f, 50f, 50f), normalised)
+        assertTrue("Inga NaN", normalised.filterNotNull().none { it.isNaN() })
+    }
+
+    @Test fun `gaps survive normalising and never become zero`() {
+        // En nolla vore ett påstående om en dag utan mätning.
+        assertEquals(listOf(0f, null, 100f), normalizeSeries(listOf(4f, null, 8f)))
+    }
+
+    @Test fun `a series with a single known point does not crash`() {
+        assertEquals(listOf(null, 50f, null), normalizeSeries(listOf(null, 7f, null)))
+    }
+
+    @Test fun `an empty series normalises to itself`() {
+        assertEquals(emptyList<Float?>(), normalizeSeries(emptyList()))
+        assertEquals(listOf(null, null), normalizeSeries(listOf(null, null)))
+    }
+
+    @Test fun `the comparison offers both watch metrics and diary series`() = runTest {
+        allFlow.value = listOf(screening("s1", LocalDate.now().toString(), "Lunch"))
+        healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 5000)))
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.JAMFOR)
+
+        val labels = viewModel.state.value.comparison.labels
+        assertTrue("Klockmått ska gå att välja", "Steg" in labels)
+        assertTrue("Dagboksserier ska gå att välja", "Stress" in labels)
+        assertTrue("Energi (dag) ska gå att välja", "Energi (dag)" in labels)
+    }
+
+    @Test fun `comparison series are indexed while the legend keeps the real values`() = runTest {
+        val today = LocalDate.now()
+        healthRepo = healthRepoWith(
+            history(
+                DailyHealth(today.minusDays(1), steps = 4000, restingHeartRate = 50),
+                DailyHealth(today, steps = 12000, restingHeartRate = 60),
+            ),
+        )
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.JAMFOR)
+        viewModel.toggleHealthSeries(TrenderSection.JAMFOR, "Steg")
+        viewModel.toggleHealthSeries(TrenderSection.JAMFOR, "Vilopuls")
+
+        val comparison = viewModel.state.value.comparison
+        val steps = comparison.series.first { it.label == "Steg" }.points.filterNotNull()
+        val hr = comparison.series.first { it.label == "Vilopuls" }.points.filterNotNull()
+        // Båda indexeras 0–100 mot sitt eget spann — annars vore vilopulsen en platt linje.
+        assertEquals(listOf(0f, 100f), steps)
+        assertEquals(listOf(0f, 100f), hr)
+
+        val stepsLegend = comparison.legend.first { it.label == "Steg" }
+        assertEquals(4000f, stepsLegend.min, 0.001f)
+        assertEquals(12000f, stepsLegend.max, 0.001f)
+        assertEquals("steg", stepsLegend.unit)
+    }
+
+    @Test fun `nothing is compared while the card is collapsed`() = runTest {
+        healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 100)))
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        assertTrue(viewModel.state.value.comparison.series.isEmpty())
+        coVerify(exactly = 0) { healthRepo.readHealthHistory(any()) }
+    }
+
+    @Test fun `sleep quality is only read when it is actually selected`() = runTest {
+        healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 100)))
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.JAMFOR)
+        viewModel.toggleHealthSeries(TrenderSection.JAMFOR, "Steg")
+        coVerify(exactly = 0) { healthRepo.readSleepMeasurementsHistory(any()) }
+
+        viewModel.toggleHealthSeries(TrenderSection.JAMFOR, "Sömnkvalitet")
+        coVerify(exactly = 1) { healthRepo.readSleepMeasurementsHistory(any()) }
     }
 
     @Test fun `the all-time range caps the health read at one year`() = runTest {
