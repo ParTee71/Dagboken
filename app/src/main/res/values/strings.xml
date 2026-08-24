@@ -103,6 +103,12 @@
     <string name="diagram_a11y_default_label">Diagram</string>
     <string name="diagram_a11y_empty">%1$s: inga värden</string>
     <string name="diagram_a11y_summary">%1$s: %2$d värden, lägsta %3$s, högsta %4$s, senaste %5$s</string>
+    <string name="diagram_a11y_stacked_summary">%1$s: %2$d staplar, lägsta %3$s, högsta %4$s, mest %5$s, %6$s</string>
+    <string name="diagram_a11y_no_dominant">ingen kategori</string>
+    <string name="diagram_a11y_trend_rising">stigande trend</string>
+    <string name="diagram_a11y_trend_falling">fallande trend</string>
+    <string name="diagram_a11y_trend_flat">oförändrad trend</string>
+    <string name="diagram_a11y_trend_unknown">ingen trend</string>
     <string name="account_open_menu">Öppna kontomenyn</string>
     <string name="account_sign_in">Logga in</string>
     <string name="account_profile_picture">Profilbild</string>
@@ -354,6 +360,8 @@
     <string name="trender_no_sleep_data">Ingen sömndata för vald period</string>
     <string name="trender_section_sleep_quality">Sömnkvalitet</string>
     <string name="trender_no_sleep_quality_data">Ingen sömnkvalitet för vald period</string>
+    <string name="trender_section_sleep_stages">Sömnstadier</string>
+    <string name="trender_no_sleep_stages_data">Inga sömnstadier för vald period</string>
     <string name="trender_section_exercise">Träning</string>
     <string name="trender_no_exercise_data">Ingen träningsdata för vald period</string>
     <string name="trender_section_kcal">Aktiva kalorier</string>

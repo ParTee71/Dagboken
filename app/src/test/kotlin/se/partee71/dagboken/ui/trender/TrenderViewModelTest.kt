@@ -26,6 +26,7 @@ import se.partee71.dagboken.domain.model.HealthHistory
 import se.partee71.dagboken.domain.model.NightlySleepMeasurements
 import se.partee71.dagboken.domain.model.Sex
 import se.partee71.dagboken.domain.model.SleepMeasurements
+import se.partee71.dagboken.domain.model.SleepStages
 import java.time.Duration
 import java.time.LocalDate
 
@@ -488,6 +489,45 @@ class TrenderViewModelTest {
 
         // Poängen är åldersjusterad (HLS-11) — utan födelseår en lucka, inte en nolla.
         assertEquals(listOf(null), seriesFor(TrenderSection.SOMNKVALITET, "Poäng")?.points)
+    }
+
+    @Test fun `the sleep stage diagram always shows all four stages and offers no picker`() = runTest {
+        val today = LocalDate.now()
+        healthRepo = healthRepoWith(
+            history(
+                DailyHealth(
+                    today,
+                    sleepStages = SleepStages(
+                        deep = Duration.ofMinutes(90),
+                        rem = Duration.ofMinutes(90),
+                        light = Duration.ofMinutes(240),
+                        awake = Duration.ofMinutes(30),
+                    ),
+                ),
+            ),
+        )
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.SOMNSTADIER)
+
+        val trend = viewModel.state.value.healthTrends.getValue(TrenderSection.SOMNSTADIER)
+        // Sammansättningen är hela poängen — ingen serieväljare, alla stadier alltid med.
+        assertTrue("Ingen serieväljare för stadierna", trend.labels.isEmpty())
+        assertEquals(listOf("Djup", "REM", "Lätt", "Vaken"), trend.series.map { it.label })
+        assertEquals(listOf(1.5f), seriesFor(TrenderSection.SOMNSTADIER, "Djup")?.points)
+        assertEquals(listOf(4f), seriesFor(TrenderSection.SOMNSTADIER, "Lätt")?.points)
+    }
+
+    @Test fun `a night without a stage leaves that stage as a gap`() = runTest {
+        val today = LocalDate.now()
+        healthRepo = healthRepoWith(
+            history(
+                DailyHealth(today, sleepStages = SleepStages(deep = Duration.ofMinutes(60))),
+            ),
+        )
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.SOMNSTADIER)
+        assertEquals(listOf(1f), seriesFor(TrenderSection.SOMNSTADIER, "Djup")?.points)
+        assertEquals(listOf(null), seriesFor(TrenderSection.SOMNSTADIER, "REM")?.points)
     }
 
     @Test fun `the all-time range caps the health read at one year`() = runTest {

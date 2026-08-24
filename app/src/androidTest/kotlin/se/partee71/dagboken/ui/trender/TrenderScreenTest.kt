@@ -38,6 +38,7 @@ import se.partee71.dagboken.di.dagbokenJson
 import se.partee71.dagboken.domain.model.Aktivitet
 import se.partee71.dagboken.domain.model.DailyHealth
 import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.SleepStages
 import se.partee71.dagboken.domain.model.HealthHistory
 import se.partee71.dagboken.domain.model.NightlySleepMeasurements
 import se.partee71.dagboken.domain.model.WeeklyHealth
@@ -439,7 +440,7 @@ class TrenderScreenTest {
         try {
             setContent()
             listOf(
-                "Steg", "Vilopuls", "Sömn", "Sömnkvalitet",
+                "Steg", "Vilopuls", "Sömn", "Sömnstadier", "Sömnkvalitet",
                 "Träning", "Aktiva kalorier", "Sträcka", "Syremättnad", "Blodtryck",
             ).forEach { title ->
                 composeRule.onNodeWithText(title).performScrollTo().assertIsDisplayed()
@@ -506,6 +507,51 @@ class TrenderScreenTest {
                 composeRule.onAllNodes(hasText("Dygnssnitt")).fetchSemanticsNodes().isNotEmpty()
             }
             composeRule.onNodeWithText("Dygnssnitt").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun the_sleep_stages_section_stacks_the_stages_per_night() = retryOnRenderGlitch {
+        val today = LocalDate.now()
+        setUp(
+            FakeHealthRepo(
+                history = HealthHistory(
+                    listOf(
+                        DailyHealth(
+                            today.minusDays(1),
+                            sleepStages = SleepStages(
+                                deep = Duration.ofMinutes(90),
+                                rem = Duration.ofMinutes(90),
+                                light = Duration.ofMinutes(240),
+                                awake = Duration.ofMinutes(30),
+                            ),
+                        ),
+                        DailyHealth(
+                            today,
+                            sleepStages = SleepStages(
+                                deep = Duration.ofMinutes(60),
+                                rem = Duration.ofMinutes(120),
+                                light = Duration.ofMinutes(270),
+                                awake = Duration.ofMinutes(30),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        try {
+            expand(TrenderSection.SOMNSTADIER)
+            setContent()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Inga sömnstadier för vald period"))
+                    .fetchSemanticsNodes().isEmpty()
+            }
+            // Alla fyra stadier visas alltid — sammansättningen är hela poängen (TRD-16).
+            listOf("Djup", "REM", "Lätt", "Vaken").forEach { stage ->
+                composeRule.onNodeWithTag("trender_stage_legend_item_$stage")
+                    .performScrollTo().assertIsDisplayed()
+            }
         } finally {
             tearDown()
         }
