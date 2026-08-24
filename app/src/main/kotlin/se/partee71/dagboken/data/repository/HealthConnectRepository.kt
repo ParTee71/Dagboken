@@ -286,7 +286,11 @@ class HealthConnectRepositoryImpl(
 
         val exercise = mostCompleteExercise(
             readIfGranted(ExerciseSessionRecord::class, dayRange, granted).map {
-                OriginSession(it.metadata.dataOrigin.packageName, Duration.between(it.startTime, it.endTime))
+                OriginSession(
+                    origin   = it.metadata.dataOrigin.packageName,
+                    start    = it.startTime,
+                    duration = Duration.between(it.startTime, it.endTime),
+                )
             },
         )
 
@@ -682,9 +686,12 @@ internal fun mostCompleteSumByDay(samples: List<OriginSample>, zone: ZoneId): Ma
         .toMap()
 
 /**
- * Som [mostCompleteSumByDay], fast för träningspass: den källa som har längst sammanlagd
- * passtid det dygnet vinner, så ett pass som både telefonen och klockan skrivit inte
- * räknas två gånger (HLS-8).
+ * Som [mostCompleteSumByDay], fast för träningspass: dygnets pass dedupliceras på
+ * **tidsöverlapp** via [mostCompleteExercise], så ett pass som både telefonen och klockan
+ * skrivit räknas en gång — utan att den enas övriga pass kastas (HLS-8, HLS-12).
+ *
+ * Passen fördelas per dygn efter starttid, precis som de summerbara måtten. Ett pass som
+ * korsar midnatt hör alltså till dygnet det började på.
  *
  * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
  */
@@ -695,7 +702,9 @@ internal fun mostCompleteExerciseByDay(
     sessions
         .groupBy { it.time.atZone(zone).toLocalDate() }
         .mapNotNull { (date, day) ->
-            mostCompleteExercise(day.map { OriginSession(it.origin, it.duration) })?.let { date to it }
+            mostCompleteExercise(
+                day.map { OriginSession(it.origin, it.time, it.duration) },
+            )?.let { date to it }
         }
         .toMap()
 
@@ -793,30 +802,60 @@ internal fun mostCompleteSum(records: List<OriginAmount>): Double? =
         .values
         .maxOfOrNull { origin -> origin.sumOf(OriginAmount::amount) }
 
-/** Ett träningspass knutet till sin källa. */
-internal data class OriginSession(val origin: String, val duration: Duration)
+/** Ett träningspass knutet till sin källa och sin plats i tiden. */
+internal data class OriginSession(val origin: String, val start: Instant, val duration: Duration) {
+    val endsAt: Instant get() = start.plus(duration)
+}
 
 /** Antal träningspass och deras sammanlagda längd för dagen (HLS-8). */
 internal data class ExerciseTotals(val sessions: Int, val duration: Duration)
 
 /**
- * Väljer den mest kompletta källans träningspass, av samma skäl som
- * [mostCompleteStepSum]: samma pass kan skrivas både av telefonen och av klockan via
- * Samsung Health, och en sammanslagning skulle räkna det två gånger. Källan med längst
- * sammanlagd passtid vinner. Returnerar null om inga pass finns.
+ * Slår ihop träningspass som är **samma händelse** skriven av mer än en källa, och räknar
+ * resten var för sig. Returnerar null om inga pass finns.
+ *
+ * Till skillnad från [mostCompleteStepSum] och [mostCompleteSum] går det **inte** att välja
+ * en vinnande källa här. Steg och kalorier är löpande dygnssummor av samma underliggande
+ * aktivitet, så den mest kompletta källan är hela sanningen. Träningspass är diskreta,
+ * tidsstämplade händelser: två källor kan mycket väl hålla *olika* pass, och att välja en
+ * källa för hela dygnet kastade då bort den andras pass helt (#220).
+ *
+ * Dubbelräkningen som ska undvikas är "samma pass skrivet två gånger", och det avgörs av att
+ * passen **överlappar i tid** — inte av vilken källa som råkar ha mest den dagen. Överlappande
+ * pass reduceras till det längsta av dem, som representant för händelsen; två pass som inte
+ * överlappar räknas båda oavsett källa.
+ *
+ * Ingen tolerans behövs kring kanterna: två inspelningar av samma promenad överlappar med
+ * marginal, och två skilda promenader gör det inte alls.
  *
  * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
  */
-internal fun mostCompleteExercise(sessions: List<OriginSession>): ExerciseTotals? =
-    sessions.groupBy { it.origin }
-        .values
-        .map { origin ->
-            ExerciseTotals(
-                sessions = origin.size,
-                duration = origin.fold(Duration.ZERO) { acc, s -> acc.plus(s.duration) },
-            )
+internal fun mostCompleteExercise(sessions: List<OriginSession>): ExerciseTotals? {
+    if (sessions.isEmpty()) return null
+
+    val sorted = sessions.sortedBy { it.start }
+    val events = mutableListOf<OriginSession>()
+    var longest = sorted.first()
+    var groupEnd = longest.endsAt
+
+    for (session in sorted.drop(1)) {
+        if (session.start < groupEnd) {
+            // Överlappar den pågående gruppen — samma händelse.
+            if (session.duration > longest.duration) longest = session
+            if (session.endsAt > groupEnd) groupEnd = session.endsAt
+        } else {
+            events += longest
+            longest = session
+            groupEnd = session.endsAt
         }
-        .maxByOrNull { it.duration }
+    }
+    events += longest
+
+    return ExerciseTotals(
+        sessions = events.size,
+        duration = events.fold(Duration.ZERO) { acc, s -> acc.plus(s.duration) },
+    )
+}
 
 /** Ett sömnstadium med sin längd, hämtat ur en `SleepSessionRecord.Stage`. */
 internal data class StageSlice(val stage: Int, val duration: Duration)
