@@ -7,6 +7,9 @@ import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
@@ -159,6 +162,52 @@ class SharedComponentsTest {
             composeRule.onNodeWithText("Mer").performClick()
             composeRule.waitForIdle()
             assertEquals(1, toggles)
+        } finally {
+            scenario.close()
+        }
+    }
+
+    // Titelraden bär både åtgärden och tillståndet (NFR-18) — chevronen är en ren
+    // indikator, så utan detta har TalkBack inget som säger om sektionen är öppen.
+
+    @Test fun `Foldout header is a full touch target and reports the collapsed state`() = retryOnRenderGlitch {
+        val scenario = launch {
+            Foldout(title = "Mer", expanded = false, onToggle = {}) { Text("X") }
+        }
+        try {
+            composeRule.onNodeWithText("Mer")
+                .assertHasClickAction()
+                .assertHeightIsAtLeast(48.dp)
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Ihopfälld"))
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test fun `Foldout header reports the expanded state when open`() = retryOnRenderGlitch {
+        val scenario = launch {
+            Foldout(title = "Mer", expanded = true, onToggle = {}) { Text("X") }
+        }
+        try {
+            composeRule.onNodeWithText("Mer")
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Utfälld"))
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test fun `Foldout renders trailing content in the header while collapsed`() = retryOnRenderGlitch {
+        val scenario = launch {
+            Foldout(
+                title    = "Mer",
+                expanded = false,
+                onToggle = {},
+                trailing = { Text("Månad") },
+            ) { Text("Dolt innehåll") }
+        }
+        try {
+            composeRule.onNodeWithText("Månad", useUnmergedTree = true).assertIsDisplayed()
+            composeRule.onNodeWithText("Dolt innehåll").assertDoesNotExist()
         } finally {
             scenario.close()
         }

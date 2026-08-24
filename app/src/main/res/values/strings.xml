@@ -200,6 +200,8 @@
     <string name="label_taken">Tagen</string>
     <string name="state_not_taken">Ej tagen</string>
     <string name="state_not_logged">Ej loggad</string>
+    <string name="state_expanded">Utfälld</string>
+    <string name="state_collapsed">Ihopfälld</string>
     <string name="symptom_rename">Byt namn</string>
     <string name="medicin_recept_readonly_hint">Namn och tidpunkt styrs av receptet. Ändra dem i Hantera → Recept &amp; scheman.</string>
 

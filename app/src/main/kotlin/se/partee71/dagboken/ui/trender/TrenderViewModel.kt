@@ -56,6 +56,13 @@ enum class TrenderSection {
 private val DEFAULT_RANGES: Map<TrenderSection, TrenderRange> =
     TrenderSection.entries.associateWith { TrenderRange.MONTH }
 
+/**
+ * Samtliga diagramkort är stängda när Trender öppnas (TRD-14) — ytan rymmer ett tiotal
+ * diagram och ett utfällt kort kostar en full diagramkomposition.
+ */
+private val DEFAULT_EXPANDED: Map<TrenderSection, Boolean> =
+    TrenderSection.entries.associateWith { false }
+
 /** De fyra sektioner vars data kommer från loggade aktiviteter/screeningar (inte Health Connect). */
 private val CATEGORY_SECTIONS = setOf(
     TrenderSection.ENERGI_DAG, TrenderSection.ENERGI_TILLFALLE,
@@ -215,6 +222,8 @@ private fun computeCategoryData(entries: List<Aktivitet>, range: TrenderRange, c
 
 data class TrenderUiState(
     val ranges: Map<TrenderSection, TrenderRange> = DEFAULT_RANGES,
+    /** Utfällt läge per diagramkort (TRD-14) — alla stängda som standard. */
+    val expanded: Map<TrenderSection, Boolean> = DEFAULT_EXPANDED,
     val selectedSeries: Set<String> = setOf("Energi Frukost"),
     val categoryTrends: Map<TrenderCategory, CategoryTrend> = emptyMap(),
     /** Energi (dag), TRD-8 — alltid beräknad, oavsett [selectedSeries]. Delad uträkning med Idag (HEM-7). */
@@ -236,6 +245,7 @@ class TrenderViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _ranges = MutableStateFlow(DEFAULT_RANGES)
+    private val _expanded = MutableStateFlow(DEFAULT_EXPANDED)
     private val _selectedSeries = MutableStateFlow(setOf("Energi Frukost"))
 
     private val _state = MutableStateFlow(TrenderUiState())
@@ -246,6 +256,12 @@ class TrenderViewModel @Inject constructor(
         // sektion som ändrades, så RangeSelector-knapparna alltid visar rätt val.
         viewModelScope.launch {
             _ranges.collectLatest { ranges -> _state.update { it.copy(ranges = ranges) } }
+        }
+
+        // Utfällningen (TRD-14) speglas på samma sätt som perioderna. Den styr bara
+        // rendering — dataflödena nedan läser oberoende av om kortet är utfällt.
+        viewModelScope.launch {
+            _expanded.collectLatest { expanded -> _state.update { it.copy(expanded = expanded) } }
         }
 
         // Energi (dag) + de tre kategoridiagrammen: var och en filtreras nu på sin
@@ -318,6 +334,11 @@ class TrenderViewModel @Inject constructor(
 
     fun setRange(section: TrenderSection, range: TrenderRange) {
         _ranges.update { it + (section to range) }
+    }
+
+    /** Fäller ut/ihop ett enskilt diagramkort (TRD-14) utan att röra de andras läge. */
+    fun setExpanded(section: TrenderSection, expanded: Boolean) {
+        _expanded.update { it + (section to expanded) }
     }
 
     fun toggleSeries(name: String) {
