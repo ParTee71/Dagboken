@@ -157,6 +157,39 @@ class TrenderViewModelTest {
         assertTrue("Energi Frukost" !in viewModel.state.value.selectedSeries)
     }
 
+    // ─── Ihopfällbara diagramkort — TRD-14, #189 ──────────────────────────────
+
+    @Test fun `every section starts collapsed`() {
+        assertTrue(
+            "Trender ska öppna med samtliga diagramkort stängda",
+            TrenderSection.entries.all { viewModel.state.value.expanded.getValue(it) == false },
+        )
+    }
+
+    @Test fun `setExpanded expands only the given section`() {
+        viewModel.setExpanded(TrenderSection.STEG, true)
+        assertEquals(true, viewModel.state.value.expanded.getValue(TrenderSection.STEG))
+        assertTrue(
+            "Övriga kort ska förbli stängda",
+            TrenderSection.entries.filter { it != TrenderSection.STEG }
+                .all { viewModel.state.value.expanded.getValue(it) == false },
+        )
+    }
+
+    @Test fun `setExpanded can collapse a section again`() {
+        viewModel.setExpanded(TrenderSection.SYMPTOM, true)
+        viewModel.setExpanded(TrenderSection.SYMPTOM, false)
+        assertEquals(false, viewModel.state.value.expanded.getValue(TrenderSection.SYMPTOM))
+    }
+
+    @Test fun `setExpanded leaves ranges and selected series untouched`() {
+        val rangesBefore = viewModel.state.value.ranges
+        val seriesBefore = viewModel.state.value.selectedSeries
+        viewModel.setExpanded(TrenderSection.VILOPULS, true)
+        assertEquals(rangesBefore, viewModel.state.value.ranges)
+        assertEquals(seriesBefore, viewModel.state.value.selectedSeries)
+    }
+
     @Test fun `setRange updates only the given section's range`() {
         viewModel.setRange(TrenderSection.SYMPTOM, TrenderRange.SEVEN_DAYS)
         assertEquals(TrenderRange.SEVEN_DAYS, viewModel.state.value.ranges.getValue(TrenderSection.SYMPTOM))

@@ -90,6 +90,8 @@ private fun stepsSection(state: TrenderUiState, vm: TrenderViewModel): DiagramSe
     val points = state.dailySteps.filter { it.steps > 0 }
     return DiagramSection(
         title = stringResource(R.string.trender_section_steps),
+        expanded = state.expanded.getValue(TrenderSection.STEG),
+        onToggleExpanded = { vm.setExpanded(TrenderSection.STEG, !state.expanded.getValue(TrenderSection.STEG)) },
         periodSelector = { sectionRangeSelector(TrenderSection.STEG, state, vm) },
         chart = { chartModifier ->
             if (points.size < 2) {
@@ -129,6 +131,8 @@ private fun restingHeartRateSection(state: TrenderUiState, vm: TrenderViewModel)
     val points = state.dailyRestingHeartRate.filter { it.bpm != null }
     return DiagramSection(
         title = stringResource(R.string.trender_section_resting_hr),
+        expanded = state.expanded.getValue(TrenderSection.VILOPULS),
+        onToggleExpanded = { vm.setExpanded(TrenderSection.VILOPULS, !state.expanded.getValue(TrenderSection.VILOPULS)) },
         periodSelector = { sectionRangeSelector(TrenderSection.VILOPULS, state, vm) },
         chart = { chartModifier ->
             if (points.size < 2) {
@@ -167,6 +171,8 @@ private fun energyDailySection(state: TrenderUiState, vm: TrenderViewModel): Dia
     val daily = state.dailyEnergy
     return DiagramSection(
         title = stringResource(R.string.trender_section_energy_daily),
+        expanded = state.expanded.getValue(TrenderSection.ENERGI_DAG),
+        onToggleExpanded = { vm.setExpanded(TrenderSection.ENERGI_DAG, !state.expanded.getValue(TrenderSection.ENERGI_DAG)) },
         periodSelector = { sectionRangeSelector(TrenderSection.ENERGI_DAG, state, vm) },
         chart = { chartModifier ->
             if (daily.isEmpty()) {
@@ -208,6 +214,8 @@ private fun categorySection(
 
     return DiagramSection(
         title = title,
+        expanded = state.expanded.getValue(section),
+        onToggleExpanded = { vm.setExpanded(section, !state.expanded.getValue(section)) },
         periodSelector = { sectionRangeSelector(section, state, vm) },
         selector = {
             SeriesSelector(

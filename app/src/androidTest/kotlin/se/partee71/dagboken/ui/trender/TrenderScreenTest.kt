@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
@@ -23,6 +24,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -77,6 +79,15 @@ class TrenderScreenTest {
         }
     }
 
+    /**
+     * Diagramkorten är stängda som standard (TRD-14) — allt utom titeln ligger bakom en
+     * utfällning. Testerna nedan fäller ut via ViewModel:en i stället för via ett klick,
+     * så att de testar sitt eget beteende och inte utfällningsgesten; den har egna tester.
+     */
+    private fun expand(vararg sections: TrenderSection) {
+        composeRule.runOnUiThread { sections.forEach { vm.setExpanded(it, true) } }
+    }
+
     @Test fun energy_slot_section_shows_its_title() = retryOnRenderGlitch {
         setUp()
         try {
@@ -118,6 +129,7 @@ class TrenderScreenTest {
                     ),
                 )
             }
+            expand(TrenderSection.ENERGI_TILLFALLE)
             setContent()
             composeRule.onNodeWithTag("trender_series_selector_energy").performScrollTo().performClick()
             composeRule.waitUntil(20_000) {
@@ -142,6 +154,7 @@ class TrenderScreenTest {
                     ),
                 )
             }
+            expand(TrenderSection.SYMPTOM)
             setContent()
             // Symptom är den sista sektionen i den scrollbara kolumnen — scrolla in
             // knappen innan klick, annars kan touch-injektionen missa den.
@@ -167,6 +180,7 @@ class TrenderScreenTest {
                     ),
                 )
             }
+            expand(TrenderSection.SYMPTOM)
             setContent()
             composeRule.runOnUiThread { vm.toggleSeries("Yrsel") }
             composeRule.waitUntil(20_000) {
@@ -202,6 +216,7 @@ class TrenderScreenTest {
                     ),
                 )
             }
+            expand(TrenderSection.SYMPTOM)
             setContent()
             composeRule.runOnUiThread { vm.toggleSeries("Yrsel") }
             composeRule.waitUntil(20_000) {
@@ -216,6 +231,7 @@ class TrenderScreenTest {
     @Test fun range_selector_switches_the_selected_diagrams_range() = retryOnRenderGlitch {
         setUp()
         try {
+            expand(TrenderSection.SYMPTOM)
             setContent()
             composeRule.onNodeWithTag("trender_range_selector_symptom").performScrollTo().performClick()
             composeRule.waitUntil(20_000) {
@@ -233,6 +249,7 @@ class TrenderScreenTest {
     @Test fun range_selector_offers_an_all_time_option() = retryOnRenderGlitch {
         setUp()
         try {
+            expand(TrenderSection.SYMPTOM)
             setContent()
             composeRule.onNodeWithTag("trender_range_selector_symptom").performScrollTo().performClick()
             composeRule.waitUntil(20_000) {
@@ -252,6 +269,7 @@ class TrenderScreenTest {
     @Test fun every_diagram_has_its_own_period_selector() = retryOnRenderGlitch {
         setUp()
         try {
+            expand(*TrenderSection.entries.toTypedArray())
             setContent()
             listOf(
                 "trender_range_selector_energi_dag",
@@ -271,6 +289,7 @@ class TrenderScreenTest {
     @Test fun changing_one_diagrams_period_leaves_another_diagrams_period_label_unchanged() = retryOnRenderGlitch {
         setUp()
         try {
+            expand(TrenderSection.SYMPTOM, TrenderSection.STRESS_BELASTNING)
             setContent()
             composeRule.onNodeWithTag("trender_range_selector_symptom").performScrollTo().performClick()
             composeRule.waitUntil(20_000) {
@@ -292,8 +311,10 @@ class TrenderScreenTest {
     @Test fun period_selector_is_positioned_to_the_right_of_the_diagram_title() = retryOnRenderGlitch {
         setUp()
         try {
+            expand(TrenderSection.SYMPTOM)
             setContent()
-            val titleLeft = composeRule.onNodeWithText("Symptom").fetchSemanticsNode().boundsInRoot.left
+            val titleLeft = composeRule.onNodeWithText("Symptom", useUnmergedTree = true)
+                .fetchSemanticsNode().boundsInRoot.left
             val selectorLeft = composeRule.onNodeWithTag("trender_range_selector_symptom").performScrollTo()
                 .fetchSemanticsNode().boundsInRoot.left
             assertTrue(
@@ -309,6 +330,7 @@ class TrenderScreenTest {
         setUp()
         try {
             composeRule.runOnUiThread { vm.toggleSeries("Energi Frukost") }
+            expand(TrenderSection.ENERGI_TILLFALLE, TrenderSection.STRESS_BELASTNING, TrenderSection.SYMPTOM)
             setContent()
             // Stress- och symptomdiagrammen har heller inget valt som standard, så
             // samma tomlägestext kan visas i flera sektioner samtidigt.
@@ -320,11 +342,98 @@ class TrenderScreenTest {
         }
     }
 
+    // ─── Ihopfällbara diagramkort — TRD-14/NFR-18, #189 ───────────────────────
+
+    @Test fun all_diagram_cards_are_collapsed_when_the_screen_opens() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            // Titlarna syns...
+            composeRule.onNodeWithText("Symptom").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Steg").performScrollTo().assertIsDisplayed()
+            // ...men allt bakom utfällningen finns inte ens i trädet.
+            composeRule.onNodeWithTag("trender_range_selector_symptom").assertDoesNotExist()
+            composeRule.onNodeWithTag("trender_series_selector_symptom").assertDoesNotExist()
+            composeRule.onNodeWithTag("trender_range_selector_steg").assertDoesNotExist()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun tapping_a_card_title_expands_only_that_card() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            composeRule.onNodeWithText("Symptom").performScrollTo().performClick()
+            composeRule.waitUntil(20_000) {
+                vm.state.value.expanded.getValue(TrenderSection.SYMPTOM)
+            }
+            assertTrue(
+                "Övriga diagramkort ska förbli stängda",
+                TrenderSection.entries.filter { it != TrenderSection.SYMPTOM }
+                    .all { vm.state.value.expanded.getValue(it) == false },
+            )
+            composeRule.onNodeWithTag("trender_range_selector_symptom").performScrollTo().assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun tapping_an_expanded_card_title_collapses_it_again() = retryOnRenderGlitch {
+        setUp()
+        try {
+            expand(TrenderSection.SYMPTOM)
+            setContent()
+            composeRule.onNodeWithText("Symptom").performScrollTo().performClick()
+            composeRule.waitUntil(20_000) {
+                vm.state.value.expanded.getValue(TrenderSection.SYMPTOM) == false
+            }
+            composeRule.onNodeWithTag("trender_range_selector_symptom").assertDoesNotExist()
+        } finally {
+            tearDown()
+        }
+    }
+
+    /** Diagramkort är sektionskort (NFR-15) — aldrig långtryck, kontextmeny eller svep. */
+    @Test fun a_diagram_card_has_no_long_press_action() = retryOnRenderGlitch {
+        setUp()
+        try {
+            setContent()
+            val header = composeRule.onNodeWithText("Steg").performScrollTo().fetchSemanticsNode()
+            assertTrue(
+                "Titelraden ska växla utfällning vid tryck",
+                header.config.contains(SemanticsActions.OnClick),
+            )
+            assertFalse(
+                "Ett sektionskort ska inte ha någon långtrycksåtgärd (NFR-15)",
+                header.config.contains(SemanticsActions.OnLongClick),
+            )
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun expanded_state_survives_a_recomposition_from_scratch() = retryOnRenderGlitch {
+        setUp()
+        try {
+            expand(TrenderSection.SYMPTOM)
+            setContent()
+            composeRule.onNodeWithTag("trender_range_selector_symptom").performScrollTo().assertIsDisplayed()
+            // Tillståndet ligger i ViewModel:en, inte i kompositionen — en ny komposition
+            // (t.ex. efter en rotation) ska därför visa samma utfällda kort.
+            setContent()
+            composeRule.onNodeWithTag("trender_range_selector_symptom").performScrollTo().assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
     // ─── Steg/vilopuls (Health Connect) — TRD-11, #146 ────────────────────────
 
     @Test fun steps_and_resting_hr_sections_show_empty_state_when_health_connect_not_connected() = retryOnRenderGlitch {
         setUp(FakeHealthRepo(weekly = null))
         try {
+            expand(TrenderSection.STEG, TrenderSection.VILOPULS)
             setContent()
             composeRule.onNodeWithText("Steg").performScrollTo().assertIsDisplayed()
             composeRule.onNodeWithText("Vilopuls").performScrollTo().assertIsDisplayed()
@@ -347,6 +456,7 @@ class TrenderScreenTest {
         )
         setUp(FakeHealthRepo(weekly))
         try {
+            expand(TrenderSection.STEG, TrenderSection.VILOPULS)
             setContent()
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("Ingen stegdata för vald period")).fetchSemanticsNodes().isEmpty()
