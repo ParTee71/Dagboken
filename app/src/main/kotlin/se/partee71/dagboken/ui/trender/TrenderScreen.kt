@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.trender
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -25,13 +27,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.EmptyState
-import se.partee71.dagboken.ui.diagram.ChartSeries
 import se.partee71.dagboken.ui.diagram.CompactDropdownButton
 import se.partee71.dagboken.ui.diagram.DiagramLayout
 import se.partee71.dagboken.ui.diagram.DiagramSection
@@ -78,92 +80,164 @@ fun TrenderScreen(
                 vm       = vm,
                 testTag  = "trender_series_selector_symptom",
             ),
-            stepsSection(state, vm),
-            restingHeartRateSection(state, vm),
+            // Hälsodiagrammen (TRD-11/TRD-15) sist — ett diagram per enhet, så serier med
+            // olika enheter aldrig delar y-skala och plattar ut varandra.
+            healthSection(TrenderSection.STEG, R.string.trender_section_steps, R.string.trender_no_steps_data, state, vm),
+            healthSection(TrenderSection.VILOPULS, R.string.trender_section_resting_hr, R.string.trender_no_resting_hr_data, state, vm),
+            healthSection(TrenderSection.SOMN, R.string.trender_section_sleep, R.string.trender_no_sleep_data, state, vm),
+            healthSection(TrenderSection.SOMNKVALITET, R.string.trender_section_sleep_quality, R.string.trender_no_sleep_quality_data, state, vm),
+            healthSection(TrenderSection.TRANING, R.string.trender_section_exercise, R.string.trender_no_exercise_data, state, vm),
+            healthSection(TrenderSection.KALORIER, R.string.trender_section_kcal, R.string.trender_no_kcal_data, state, vm),
+            healthSection(TrenderSection.STRACKA, R.string.trender_section_distance, R.string.trender_no_distance_data, state, vm),
+            healthSection(TrenderSection.SYREMATTNAD, R.string.trender_section_spo2, R.string.trender_no_spo2_data, state, vm),
+            healthSection(TrenderSection.BLODTRYCK, R.string.trender_section_blood_pressure, R.string.trender_no_blood_pressure_data, state, vm),
         ),
     )
 }
 
-/** Stegdiagram (TRD-11, Health Connect) — samma data som Idag-kortets sparkline, ingen serieväljare. */
+/**
+ * Ett hälsodiagram (TRD-11/TRD-15). Alla nio delar samma byggare — de skiljer sig bara i
+ * vilka serier de visar, och den skillnaden bor i [TrenderViewModel]s [HealthTrend]. Formen
+ * är densamma som dagboksdiagrammens: egen periodväljare (TRD-3), serieväljare när
+ * diagrammet har flera serier, smart y-axel (TRD-7), min/max (TRD-9), trendlinje (TRD-13)
+ * och tomläge när perioden saknar data (#146).
+ */
 @Composable
-private fun stepsSection(state: TrenderUiState, vm: TrenderViewModel): DiagramSection {
-    val points = state.dailySteps.filter { it.steps > 0 }
+private fun healthSection(
+    section: TrenderSection,
+    @StringRes titleRes: Int,
+    @StringRes emptyRes: Int,
+    state: TrenderUiState,
+    vm: TrenderViewModel,
+): DiagramSection {
+    val trend = state.healthTrends[section] ?: HealthTrend()
+    val values = trend.series.flatMap { it.points }.filterNotNull()
+    val loading = section in state.healthLoading
+    val tag = section.name.lowercase()
+
     return DiagramSection(
-        title = stringResource(R.string.trender_section_steps),
-        expanded = state.expanded.getValue(TrenderSection.STEG),
-        onToggleExpanded = { vm.setExpanded(TrenderSection.STEG, !state.expanded.getValue(TrenderSection.STEG)) },
-        periodSelector = { sectionRangeSelector(TrenderSection.STEG, state, vm) },
-        chart = { chartModifier ->
-            if (points.size < 2) {
-                EmptyState(
-                    icon     = Icons.Outlined.TrendingUp,
-                    title    = stringResource(R.string.trender_no_steps_data),
-                    modifier = chartModifier.height(200.dp),
-                )
-            } else {
-                val values = points.map { it.steps.toFloat() }
-                val yAxis = remember(values) { computeSmartYAxis(values) }
-                LineChartCanvas(
-                    series = listOf(
-                        ChartSeries(
-                            label  = stringResource(R.string.trender_section_steps),
-                            color  = HEALTH_STEPS_COLOR,
-                            points = values,
-                        ),
-                    ),
-                    dates    = points.map { it.date.toString() },
-                    minValue = yAxis.range.start,
-                    maxValue = yAxis.range.endInclusive,
-                    gridStep = yAxis.step,
-                    modifier = chartModifier.height(200.dp),
+        title = stringResource(titleRes),
+        expanded = state.expanded.getValue(section),
+        onToggleExpanded = { vm.setExpanded(section, !state.expanded.getValue(section)) },
+        periodSelector = { sectionRangeSelector(section, state, vm) },
+        selector = if (trend.labels.isEmpty()) {
+            null
+        } else {
+            {
+                HealthSeriesSelector(
+                    labels   = trend.labels,
+                    selected = state.selectedHealthSeries[section].orEmpty(),
+                    onToggle = { vm.toggleHealthSeries(section, it) },
+                    colorOf  = { label -> trend.colorFor(label, section) },
+                    testTag  = "trender_series_selector_$tag",
                 )
             }
         },
-        minMax = if (points.isEmpty()) null else {
-            { MinMaxCaption(min = points.minOf { it.steps }.toFloat(), max = points.maxOf { it.steps }.toFloat()) }
+        chart = { chartModifier ->
+            when {
+                loading -> Box(
+                    modifier = chartModifier.height(200.dp),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator() }
+
+                values.size < 2 -> EmptyState(
+                    icon     = Icons.Outlined.TrendingUp,
+                    title    = stringResource(emptyRes),
+                    modifier = chartModifier.height(200.dp),
+                )
+
+                else -> {
+                    val yAxis = remember(values) { computeSmartYAxis(values) }
+                    LineChartCanvas(
+                        series   = trend.series,
+                        dates    = trend.dates,
+                        minValue = yAxis.range.start,
+                        maxValue = yAxis.range.endInclusive,
+                        gridStep = yAxis.step,
+                        modifier = chartModifier.height(if (trend.labels.isEmpty()) 200.dp else 280.dp),
+                    )
+                }
+            }
+        },
+        legend = if (trend.series.size < 2) {
+            null
+        } else {
+            {
+                trend.series.forEach { serie ->
+                    Row(
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.testTag("trender_legend_item_${serie.label}"),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(serie.color),
+                        )
+                        Text(serie.label, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        },
+        minMax = if (values.isEmpty() || loading) null else {
+            { MinMaxCaption(min = values.min(), max = values.max()) }
         },
     )
 }
 
-/** Vilopulsdiagram (TRD-11, Health Connect) — samma data som Idag-kortets sparkline, ingen serieväljare. */
+/** Färgen för en etikett i väljaren — vald serie har sin egen, ovald tar seriedefinitionens. */
+private fun HealthTrend.colorFor(label: String, section: TrenderSection): Color =
+    series.firstOrNull { it.label == label }?.color
+        ?: healthSeriesFor(section).firstOrNull { it.label == label }?.color
+        ?: sleepQualitySeriesColor(label)
+
+/**
+ * Serieväljare för ett hälsodiagram — samma kompakta dropdown och kryssrutor som
+ * dagboksdiagrammens (TRD-12), fast med sitt eget val per diagram i stället för Trenders
+ * gemensamma serieurval (som hör ihop med de loggade kategorierna och deras symptomserier).
+ */
 @Composable
-private fun restingHeartRateSection(state: TrenderUiState, vm: TrenderViewModel): DiagramSection {
-    val points = state.dailyRestingHeartRate.filter { it.bpm != null }
-    return DiagramSection(
-        title = stringResource(R.string.trender_section_resting_hr),
-        expanded = state.expanded.getValue(TrenderSection.VILOPULS),
-        onToggleExpanded = { vm.setExpanded(TrenderSection.VILOPULS, !state.expanded.getValue(TrenderSection.VILOPULS)) },
-        periodSelector = { sectionRangeSelector(TrenderSection.VILOPULS, state, vm) },
-        chart = { chartModifier ->
-            if (points.size < 2) {
-                EmptyState(
-                    icon     = Icons.Outlined.TrendingUp,
-                    title    = stringResource(R.string.trender_no_resting_hr_data),
-                    modifier = chartModifier.height(200.dp),
-                )
-            } else {
-                val values = points.map { it.bpm!!.toFloat() }
-                val yAxis = remember(values) { computeSmartYAxis(values) }
-                LineChartCanvas(
-                    series = listOf(
-                        ChartSeries(
-                            label  = stringResource(R.string.trender_section_resting_hr),
-                            color  = HEALTH_RESTING_HR_COLOR,
-                            points = values,
-                        ),
-                    ),
-                    dates    = points.map { it.date.toString() },
-                    minValue = yAxis.range.start,
-                    maxValue = yAxis.range.endInclusive,
-                    gridStep = yAxis.step,
-                    modifier = chartModifier.height(200.dp),
-                )
+private fun HealthSeriesSelector(
+    labels: List<String>,
+    selected: Set<String>,
+    onToggle: (String) -> Unit,
+    colorOf: (String) -> Color,
+    testTag: String,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(R.string.diagram_show_label), style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.width(8.dp))
+        Box {
+            CompactDropdownButton(
+                label    = labels.filter { it in selected }.joinToString(", ").ifEmpty { "–" },
+                onClick  = { showMenu = true },
+                modifier = Modifier.testTag(testTag),
+            )
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                labels.forEach { name ->
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = name in selected, onCheckedChange = { onToggle(name) })
+                                Spacer(Modifier.width(4.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(colorOf(name)),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(name)
+                            }
+                        },
+                        onClick = { onToggle(name) },
+                    )
+                }
             }
-        },
-        minMax = if (points.isEmpty()) null else {
-            { MinMaxCaption(min = points.minOf { it.bpm!! }.toFloat(), max = points.maxOf { it.bpm!! }.toFloat()) }
-        },
-    )
+        }
+    }
 }
 
 @Composable

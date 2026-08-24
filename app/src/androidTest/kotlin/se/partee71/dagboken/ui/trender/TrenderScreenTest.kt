@@ -29,18 +29,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HealthAvailability
 import se.partee71.dagboken.data.repository.HealthConnectRepository
 import se.partee71.dagboken.data.room.AppDatabase
+import se.partee71.dagboken.di.dagbokenJson
 import se.partee71.dagboken.domain.model.Aktivitet
-import se.partee71.dagboken.domain.model.DailyRestingHeartRate
-import se.partee71.dagboken.domain.model.DailySteps
+import se.partee71.dagboken.domain.model.DailyHealth
 import se.partee71.dagboken.domain.model.HealthData
 import se.partee71.dagboken.domain.model.HealthHistory
 import se.partee71.dagboken.domain.model.NightlySleepMeasurements
 import se.partee71.dagboken.domain.model.WeeklyHealth
 import se.partee71.dagboken.util.retryOnRenderGlitch
+import java.time.Duration
 import java.time.LocalDate
 
 // Migrerad enligt POC i #112 — se SjukdomarScreenTest för fullständig förklaring.
@@ -62,7 +64,7 @@ class TrenderScreenTest {
         db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java)
                  .allowMainThreadQueries().build()
         repo = AktiviteterRepository(db.aktivitetDao(), NoteRepository(db.noteDao()))
-        vm = TrenderViewModel(repo, healthRepo)
+        vm = TrenderViewModel(repo, healthRepo, PreferencesRepository(ctx, dagbokenJson()))
         scenario = ActivityScenario.launch(ComponentActivity::class.java)
     }
 
@@ -430,56 +432,120 @@ class TrenderScreenTest {
         }
     }
 
-    // ─── Steg/vilopuls (Health Connect) — TRD-11, #146 ────────────────────────
+    // ─── Hälsodiagram (Health Connect) — TRD-11/TRD-15, #191 ─────────────────
 
-    @Test fun steps_and_resting_hr_sections_show_empty_state_when_health_connect_not_connected() = retryOnRenderGlitch {
-        setUp(FakeHealthRepo(weekly = null))
+    @Test fun every_health_section_shows_its_title() = retryOnRenderGlitch {
+        setUp()
         try {
-            expand(TrenderSection.STEG, TrenderSection.VILOPULS)
             setContent()
-            composeRule.onNodeWithText("Steg").performScrollTo().assertIsDisplayed()
-            composeRule.onNodeWithText("Vilopuls").performScrollTo().assertIsDisplayed()
-            composeRule.onNodeWithText("Ingen stegdata för vald period").performScrollTo().assertIsDisplayed()
+            listOf(
+                "Steg", "Vilopuls", "Sömn", "Sömnkvalitet",
+                "Träning", "Aktiva kalorier", "Sträcka", "Syremättnad", "Blodtryck",
+            ).forEach { title ->
+                composeRule.onNodeWithText(title).performScrollTo().assertIsDisplayed()
+            }
         } finally {
             tearDown()
         }
     }
 
-    @Test fun steps_and_resting_hr_sections_render_when_health_connect_data_available() = retryOnRenderGlitch {
-        val weekly = WeeklyHealth(
-            dailySteps = listOf(
-                DailySteps(LocalDate.now().minusDays(1), 4000),
-                DailySteps(LocalDate.now(), 9000),
-            ),
-            dailyRestingHeartRate = listOf(
-                DailyRestingHeartRate(LocalDate.now().minusDays(1), 55),
-                DailyRestingHeartRate(LocalDate.now(), 60),
+    @Test fun health_sections_show_empty_state_when_health_connect_not_connected() = retryOnRenderGlitch {
+        setUp(FakeHealthRepo())
+        try {
+            expand(TrenderSection.STEG, TrenderSection.SOMN)
+            setContent()
+            composeRule.onNodeWithText("Ingen stegdata för vald period").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Ingen sömndata för vald period").performScrollTo().assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun step_section_renders_when_health_connect_data_available() = retryOnRenderGlitch {
+        val today = LocalDate.now()
+        setUp(
+            FakeHealthRepo(
+                history = HealthHistory(
+                    listOf(
+                        DailyHealth(today.minusDays(1), steps = 4000, restingHeartRate = 55),
+                        DailyHealth(today, steps = 9000, restingHeartRate = 60),
+                    ),
+                ),
             ),
         )
-        setUp(FakeHealthRepo(weekly))
         try {
-            expand(TrenderSection.STEG, TrenderSection.VILOPULS)
+            expand(TrenderSection.STEG)
             setContent()
             composeRule.waitUntil(20_000) {
                 composeRule.onAllNodes(hasText("Ingen stegdata för vald period")).fetchSemanticsNodes().isEmpty()
             }
             composeRule.onNodeWithText("Steg").performScrollTo().assertIsDisplayed()
-            composeRule.onNodeWithText("Vilopuls").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithTag("trender_range_selector_steg").performScrollTo().assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun the_resting_hr_section_offers_both_heart_rate_series() = retryOnRenderGlitch {
+        val today = LocalDate.now()
+        setUp(
+            FakeHealthRepo(
+                history = HealthHistory(
+                    listOf(
+                        DailyHealth(today.minusDays(1), restingHeartRate = 55, heartRateAvg = 70),
+                        DailyHealth(today, restingHeartRate = 60, heartRateAvg = 74),
+                    ),
+                ),
+            ),
+        )
+        try {
+            expand(TrenderSection.VILOPULS)
+            setContent()
+            composeRule.onNodeWithTag("trender_series_selector_vilopuls").performScrollTo().performClick()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Dygnssnitt")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText("Dygnssnitt").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun the_sleep_section_offers_its_stage_series() = retryOnRenderGlitch {
+        val today = LocalDate.now()
+        setUp(
+            FakeHealthRepo(
+                history = HealthHistory(
+                    listOf(
+                        DailyHealth(today.minusDays(1), sleepDuration = Duration.ofHours(7)),
+                        DailyHealth(today, sleepDuration = Duration.ofHours(8)),
+                    ),
+                ),
+            ),
+        )
+        try {
+            expand(TrenderSection.SOMN)
+            setContent()
+            composeRule.onNodeWithTag("trender_series_selector_somn").performScrollTo().performClick()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Djup")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onNodeWithText("REM").assertIsDisplayed()
         } finally {
             tearDown()
         }
     }
 }
 
-/** Health Connect ej tillgängligt i emulator — fake så Trender-skärmen kan renderas (analog med HomeScreenTest). */
 private class FakeHealthRepo(
     private val weekly: WeeklyHealth? = null,
     private val history: HealthHistory? = null,
 ) : HealthConnectRepository {
+    private val connected = weekly != null || history != null
     override val permissions: Set<String> = emptySet()
     override val requiredPermissions: Set<String> = emptySet()
-    override fun availability() = if (weekly != null) HealthAvailability.AVAILABLE else HealthAvailability.NOT_INSTALLED
-    override suspend fun hasRequiredPermissions() = weekly != null
+    override fun availability() = if (connected) HealthAvailability.AVAILABLE else HealthAvailability.NOT_INSTALLED
+    override suspend fun hasRequiredPermissions() = connected
     override suspend fun readToday() = HealthData()
     override suspend fun readWeeklyHealth() = weekly ?: WeeklyHealth()
     override suspend fun readHealthRange(days: Int) = weekly ?: WeeklyHealth()
