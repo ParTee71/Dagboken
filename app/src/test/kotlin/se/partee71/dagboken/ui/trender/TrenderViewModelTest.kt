@@ -1,6 +1,7 @@
 package se.partee71.dagboken.ui.trender
 
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -15,13 +16,17 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.AktiviteterRepository
 import se.partee71.dagboken.data.repository.HealthAvailability
 import se.partee71.dagboken.data.repository.HealthConnectRepository
 import se.partee71.dagboken.domain.model.Aktivitet
-import se.partee71.dagboken.domain.model.DailyRestingHeartRate
-import se.partee71.dagboken.domain.model.DailySteps
-import se.partee71.dagboken.domain.model.WeeklyHealth
+import se.partee71.dagboken.domain.model.DailyHealth
+import se.partee71.dagboken.domain.model.HealthHistory
+import se.partee71.dagboken.domain.model.NightlySleepMeasurements
+import se.partee71.dagboken.domain.model.Sex
+import se.partee71.dagboken.domain.model.SleepMeasurements
+import java.time.Duration
 import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -31,6 +36,7 @@ class TrenderViewModelTest {
 
     private lateinit var repo: AktiviteterRepository
     private lateinit var healthRepo: HealthConnectRepository
+    private lateinit var prefs: PreferencesRepository
     private val allFlow = MutableStateFlow<List<Aktivitet>>(emptyList())
 
     private lateinit var viewModel: TrenderViewModel
@@ -39,8 +45,18 @@ class TrenderViewModelTest {
         Dispatchers.setMain(testDispatcher)
         repo = mockk(relaxed = true) { every { all } returns allFlow }
         healthRepo = mockk(relaxed = true) { every { availability() } returns HealthAvailability.NOT_INSTALLED }
-        viewModel = TrenderViewModel(repo, healthRepo)
+        prefs = mockk(relaxed = true) {
+            every { birthYear } returns MutableStateFlow(1971)
+            every { sex } returns MutableStateFlow(Sex.MAN)
+        }
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
     }
+
+    /** Hälsodiagrammen läser först när kortet fällts ut (TRD-14/TRD-15). */
+    private fun expand(section: TrenderSection) = viewModel.setExpanded(section, true)
+
+    private fun seriesFor(section: TrenderSection, label: String) =
+        viewModel.state.value.healthTrends[section]?.series?.firstOrNull { it.label == label }
 
     @After fun tearDown() { Dispatchers.resetMain() }
 
@@ -261,67 +277,224 @@ class TrenderViewModelTest {
         assertEquals(TrenderCategory.SYMPTOM, categoryOf("Yrsel"))
     }
 
-    // ─── Steg/vilopuls (Health Connect) — TRD-11, #146/#149 ───────────────────
+    // ─── Hälsodiagram (Health Connect) — TRD-11/TRD-15, #191 ─────────────────
 
-    @Test fun `dailySteps and dailyRestingHeartRate are empty when Health Connect is not available`() = runTest {
-        assertTrue(viewModel.state.value.dailySteps.isEmpty())
-        assertTrue(viewModel.state.value.dailyRestingHeartRate.isEmpty())
+    private fun history(vararg days: DailyHealth) = HealthHistory(days.toList())
+
+    private fun healthRepoWith(
+        history: HealthHistory = HealthHistory(),
+        available: Boolean = true,
+        granted: Boolean = true,
+    ): HealthConnectRepository = mockk(relaxed = true) {
+        every { availability() } returns
+            if (available) HealthAvailability.AVAILABLE else HealthAvailability.NOT_INSTALLED
+        coEvery { hasRequiredPermissions() } returns granted
+        coEvery { readHealthHistory(any()) } returns history
     }
 
-    @Test fun `dailySteps and dailyRestingHeartRate are empty when permissions are not granted`() = runTest {
-        healthRepo = mockk(relaxed = true) {
-            every { availability() } returns HealthAvailability.AVAILABLE
-            coEvery { hasRequiredPermissions() } returns false
-        }
-        viewModel = TrenderViewModel(repo, healthRepo)
-        assertTrue(viewModel.state.value.dailySteps.isEmpty())
+    @Test fun `no health diagram is read while every card is collapsed`() = runTest {
+        healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 5000)))
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        // Stängda kort ska inte kosta någon Health Connect-läsning alls (TRD-15).
+        assertTrue(viewModel.state.value.healthTrends.isEmpty())
+        coVerify(exactly = 0) { healthRepo.readHealthHistory(any()) }
     }
 
-    @Test fun `dailySteps and dailyRestingHeartRate expose Health Connect data for their own sections' ranges`() = runTest {
+    @Test fun `expanding a health card reads its history`() = runTest {
         val today = LocalDate.now()
-        val weekly = WeeklyHealth(
-            dailySteps = listOf(DailySteps(today, 5000)),
-            dailyRestingHeartRate = listOf(DailyRestingHeartRate(today, 58)),
+        healthRepo = healthRepoWith(
+            history(
+                DailyHealth(today.minusDays(1), steps = 4000),
+                DailyHealth(today, steps = 9000),
+            ),
         )
-        healthRepo = mockk(relaxed = true) {
-            every { availability() } returns HealthAvailability.AVAILABLE
-            coEvery { hasRequiredPermissions() } returns true
-            coEvery { readHealthRange(30) } returns weekly
-        }
-        viewModel = TrenderViewModel(repo, healthRepo)
-        assertEquals(listOf(DailySteps(today, 5000)), viewModel.state.value.dailySteps)
-        assertEquals(listOf(DailyRestingHeartRate(today, 58)), viewModel.state.value.dailyRestingHeartRate)
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.STEG)
+        assertEquals(listOf(4000f, 9000f), seriesFor(TrenderSection.STEG, "Steg")?.points)
     }
 
-    @Test fun `setRange on STEG re-reads Health Connect steps without affecting VILOPULS`() = runTest {
-        val weeklyMonth = WeeklyHealth(
-            dailySteps = listOf(DailySteps(LocalDate.now(), 1000)),
-            dailyRestingHeartRate = listOf(DailyRestingHeartRate(LocalDate.now(), 55)),
-        )
-        val weeklyThreeMonths = WeeklyHealth(dailySteps = listOf(DailySteps(LocalDate.now(), 9000)))
-        healthRepo = mockk(relaxed = true) {
-            every { availability() } returns HealthAvailability.AVAILABLE
-            coEvery { hasRequiredPermissions() } returns true
-            coEvery { readHealthRange(30) } returns weeklyMonth
-            coEvery { readHealthRange(90) } returns weeklyThreeMonths
-        }
-        viewModel = TrenderViewModel(repo, healthRepo)
-        assertEquals(1000L, viewModel.state.value.dailySteps.first().steps)
-        assertEquals(55L, viewModel.state.value.dailyRestingHeartRate.first().bpm)
+    @Test fun `two diagrams with the same period share one read`() = runTest {
+        healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 100)))
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.STEG)
+        expand(TrenderSection.TRANING)
+        // Båda har standardperioden Månad — en läsning räcker för båda.
+        coVerify(exactly = 1) { healthRepo.readHealthHistory(30) }
+    }
 
+    @Test fun `changing one diagram's period does not re-read another's`() = runTest {
+        healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 100)))
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.STEG)
         viewModel.setRange(TrenderSection.STEG, TrenderRange.THREE_MONTHS)
-        assertEquals(9000L, viewModel.state.value.dailySteps.first().steps)
-        // VILOPULS läste inte om — dess period (MONTH) är oförändrad, så den behåller sitt värde.
-        assertEquals(55L, viewModel.state.value.dailyRestingHeartRate.first().bpm)
+        coVerify(exactly = 1) { healthRepo.readHealthHistory(30) }
+        coVerify(exactly = 1) { healthRepo.readHealthHistory(90) }
     }
 
-    @Test fun `dailySteps stays empty when Health Connect read throws`() = runTest {
+    @Test fun `a collapsed card keeps its data and is not read again`() = runTest {
+        healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 100)))
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.STEG)
+        viewModel.setExpanded(TrenderSection.STEG, false)
+        expand(TrenderSection.STEG)
+        coVerify(exactly = 1) { healthRepo.readHealthHistory(30) }
+    }
+
+    @Test fun `a day without a measurement stays a gap, never a zero`() = runTest {
+        val today = LocalDate.now()
+        healthRepo = healthRepoWith(
+            history(
+                DailyHealth(today.minusDays(1), steps = 4000),
+                DailyHealth(today.minusDays(0), steps = null),
+            ),
+        )
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.STEG)
+        assertEquals(listOf(4000f, null), seriesFor(TrenderSection.STEG, "Steg")?.points)
+    }
+
+    @Test fun `health trends stay empty when Health Connect is not available`() = runTest {
+        healthRepo = healthRepoWith(available = false)
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.STEG)
+        assertTrue(viewModel.state.value.healthTrends.getValue(TrenderSection.STEG).series.all { it.points.isEmpty() })
+    }
+
+    @Test fun `health trends stay empty when permissions are not granted`() = runTest {
+        healthRepo = healthRepoWith(granted = false)
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.STEG)
+        assertTrue(viewModel.state.value.healthTrends.getValue(TrenderSection.STEG).series.all { it.points.isEmpty() })
+    }
+
+    @Test fun `a failing read leaves the diagram empty without touching the logged diagrams`() = runTest {
+        allFlow.value = listOf(screening("s1", LocalDate.now().toString(), "Lunch"))
         healthRepo = mockk(relaxed = true) {
             every { availability() } returns HealthAvailability.AVAILABLE
             coEvery { hasRequiredPermissions() } returns true
-            coEvery { readHealthRange(any()) } throws RuntimeException("boom")
+            coEvery { readHealthHistory(any()) } throws RuntimeException("boom")
         }
-        viewModel = TrenderViewModel(repo, healthRepo)
-        assertTrue(viewModel.state.value.dailySteps.isEmpty())
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.STEG)
+        assertTrue(viewModel.state.value.healthTrends.getValue(TrenderSection.STEG).series.all { it.points.isEmpty() })
+        // Dagboksdiagrammen påverkas inte av en trasig hälsokälla.
+        assertTrue(viewModel.state.value.dailyEnergy.isNotEmpty())
+    }
+
+    @Test fun `the resting heart rate diagram offers both resting and average heart rate`() = runTest {
+        val today = LocalDate.now()
+        healthRepo = healthRepoWith(
+            history(
+                DailyHealth(today.minusDays(1), restingHeartRate = 55, heartRateAvg = 70),
+                DailyHealth(today, restingHeartRate = 58, heartRateAvg = 74),
+            ),
+        )
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.VILOPULS)
+
+        val trend = viewModel.state.value.healthTrends.getValue(TrenderSection.VILOPULS)
+        assertEquals(listOf("Vilopuls", "Dygnssnitt"), trend.labels)
+        // Bara vilopulsen är vald från början (TRD-11).
+        assertEquals(listOf("Vilopuls"), trend.series.map { it.label })
+
+        viewModel.toggleHealthSeries(TrenderSection.VILOPULS, "Dygnssnitt")
+        assertEquals(
+            listOf(70f, 74f),
+            seriesFor(TrenderSection.VILOPULS, "Dygnssnitt")?.points,
+        )
+    }
+
+    @Test fun `toggling a series in one health diagram leaves the others alone`() = runTest {
+        healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 100)))
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.VILOPULS)
+        expand(TrenderSection.SOMN)
+
+        viewModel.toggleHealthSeries(TrenderSection.SOMN, "Djup")
+        assertEquals(
+            setOf("Total", "Djup"),
+            viewModel.state.value.selectedHealthSeries.getValue(TrenderSection.SOMN),
+        )
+        assertEquals(
+            setOf("Vilopuls"),
+            viewModel.state.value.selectedHealthSeries.getValue(TrenderSection.VILOPULS),
+        )
+    }
+
+    @Test fun `sleep series are exposed in hours`() = runTest {
+        val today = LocalDate.now()
+        healthRepo = healthRepoWith(
+            history(
+                DailyHealth(today.minusDays(1), sleepDuration = Duration.ofMinutes(450)),
+                DailyHealth(today, sleepDuration = Duration.ofHours(8)),
+            ),
+        )
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.SOMN)
+        assertEquals(listOf(7.5f, 8f), seriesFor(TrenderSection.SOMN, "Total")?.points)
+    }
+
+    @Test fun `distance is exposed in kilometres`() = runTest {
+        val today = LocalDate.now()
+        healthRepo = healthRepoWith(
+            history(
+                DailyHealth(today.minusDays(1), distanceMeters = 5200.0),
+                DailyHealth(today, distanceMeters = 1000.0),
+            ),
+        )
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.STRACKA)
+        assertEquals(listOf(5.2f, 1f), seriesFor(TrenderSection.STRACKA, "Sträcka")?.points)
+    }
+
+    @Test fun `sleep quality is scored per night for its own period`() = runTest {
+        val today = LocalDate.now()
+        healthRepo = mockk(relaxed = true) {
+            every { availability() } returns HealthAvailability.AVAILABLE
+            coEvery { hasRequiredPermissions() } returns true
+            coEvery { readSleepMeasurementsHistory(any()) } returns listOf(
+                NightlySleepMeasurements(
+                    date = today,
+                    measurements = SleepMeasurements(
+                        timeInBed = Duration.ofHours(8),
+                        awake = Duration.ofMinutes(20),
+                    ),
+                ),
+            )
+        }
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.SOMNKVALITET)
+
+        val points = seriesFor(TrenderSection.SOMNKVALITET, "Poäng")?.points
+        assertEquals(1, points?.size)
+        assertTrue("En åtta timmars natt ska ge en poäng", points?.first() != null)
+    }
+
+    @Test fun `sleep quality is a gap when the birth year is missing`() = runTest {
+        val today = LocalDate.now()
+        prefs = mockk(relaxed = true) {
+            every { birthYear } returns MutableStateFlow<Int?>(null)
+            every { sex } returns MutableStateFlow(Sex.MAN)
+        }
+        healthRepo = mockk(relaxed = true) {
+            every { availability() } returns HealthAvailability.AVAILABLE
+            coEvery { hasRequiredPermissions() } returns true
+            coEvery { readSleepMeasurementsHistory(any()) } returns listOf(
+                NightlySleepMeasurements(today, SleepMeasurements(timeInBed = Duration.ofHours(8))),
+            )
+        }
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        expand(TrenderSection.SOMNKVALITET)
+
+        // Poängen är åldersjusterad (HLS-11) — utan födelseår en lucka, inte en nolla.
+        assertEquals(listOf(null), seriesFor(TrenderSection.SOMNKVALITET, "Poäng")?.points)
+    }
+
+    @Test fun `the all-time range caps the health read at one year`() = runTest {
+        healthRepo = healthRepoWith(history(DailyHealth(LocalDate.now(), steps = 100)))
+        viewModel = TrenderViewModel(repo, healthRepo, prefs)
+        viewModel.setRange(TrenderSection.STEG, TrenderRange.ALL)
+        expand(TrenderSection.STEG)
+        coVerify { healthRepo.readHealthHistory(365) }
     }
 }
