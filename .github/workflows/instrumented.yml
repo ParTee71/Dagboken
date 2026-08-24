@@ -3,6 +3,22 @@ name: Instrumented Tests
 on:
   pull_request:
     branches: [ master ]
+    # Emulatorkörningen tar ~25-30 minuter. En PR som bara rör dokumentation innehåller
+    # ingen kod att instrumenttesta och behöver inte betala den tiden. Filtret slår bara
+    # till när *samtliga* ändrade filer matchar - rör PR:en även en enda kodfil körs
+    # testerna som vanligt.
+    #
+    # build.gradle.kts står medvetet inte här. En releases versionshöjning rör den och
+    # kör alltså fortfarande emulatorn, men filen bär också beroenden, minSdk och
+    # testkörarkonfiguration - sådant som mycket väl kan fälla instrumenttesterna.
+    #
+    # Obs: en hoppad körning rapporterar ingen status alls. Görs instrumented-tests
+    # någon gång till ett obligatoriskt statuskrav i grenskyddet måste filtret bort,
+    # annars fastnar dokumentations-PR:er i väntan på en körning som aldrig startar.
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
   workflow_dispatch:
 
 jobs:
