@@ -70,9 +70,11 @@ class HealthHistoryBucketingTest {
         assertEquals(2500.0, byDay.getValue(day2), 0.001)
     }
 
-    @Test fun `exercise picks the source with the longest total per day`() {
+    @Test fun `exercise sessions written by two sources are deduplicated per day`() {
         val byDay = mostCompleteExerciseByDay(
             listOf(
+                // Morgonpasset ligger i båda källorna — klockans inspelning är den
+                // längsta och får representera händelsen. Eftermiddagspasset är eget.
                 OriginDaySession("phone", at(day1, "07:00"), Duration.ofMinutes(20)),
                 OriginDaySession("watch", at(day1, "07:00"), Duration.ofMinutes(45)),
                 OriginDaySession("watch", at(day1, "17:00"), Duration.ofMinutes(30)),
@@ -84,6 +86,20 @@ class HealthHistoryBucketingTest {
         assertEquals(Duration.ofMinutes(75), byDay.getValue(day1).duration)
         assertEquals(1, byDay.getValue(day2).sessions)
         assertFalse(byDay.containsKey(day3))
+    }
+
+    @Test fun `complementary sessions from two sources are both kept for the day`() {
+        // Regression för #220: det gamla urvalet valde en källa per dygn, så telefonens
+        // promenad försvann helt när klockan hade längst sammanlagd tid den dagen.
+        val byDay = mostCompleteExerciseByDay(
+            listOf(
+                OriginDaySession("watch", at(day1, "07:00"), Duration.ofMinutes(45)),
+                OriginDaySession("phone", at(day1, "12:00"), Duration.ofMinutes(25)),
+            ),
+            zone,
+        )
+        assertEquals(2, byDay.getValue(day1).sessions)
+        assertEquals(Duration.ofMinutes(70), byDay.getValue(day1).duration)
     }
 
     // ─── Puls per dygn ────────────────────────────────────────────────────────
