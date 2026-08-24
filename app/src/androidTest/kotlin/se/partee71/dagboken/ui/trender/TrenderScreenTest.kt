@@ -441,7 +441,7 @@ class TrenderScreenTest {
             setContent()
             listOf(
                 "Steg", "Vilopuls", "Sömn", "Sömnstadier", "Sömnkvalitet",
-                "Träning", "Aktiva kalorier", "Sträcka", "Syremättnad", "Blodtryck",
+                "Träning", "Aktiva kalorier", "Sträcka", "Syremättnad", "Blodtryck", "Jämför",
             ).forEach { title ->
                 composeRule.onNodeWithText(title).performScrollTo().assertIsDisplayed()
             }
@@ -507,6 +507,51 @@ class TrenderScreenTest {
                 composeRule.onAllNodes(hasText("Dygnssnitt")).fetchSemanticsNodes().isNotEmpty()
             }
             composeRule.onNodeWithText("Dygnssnitt").assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    // ─── Jämförelsediagram — TRD-17, #194 ────────────────────────────────────
+
+    @Test fun the_comparison_section_asks_for_two_series_before_it_draws_anything() = retryOnRenderGlitch {
+        setUp()
+        try {
+            expand(TrenderSection.JAMFOR)
+            setContent()
+            composeRule.onNodeWithText("Välj minst två serier att jämföra")
+                .performScrollTo().assertIsDisplayed()
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun the_comparison_legend_shows_each_series_real_range_with_its_unit() = retryOnRenderGlitch {
+        val today = LocalDate.now()
+        setUp(
+            FakeHealthRepo(
+                history = HealthHistory(
+                    listOf(
+                        DailyHealth(today.minusDays(1), steps = 4000, restingHeartRate = 50),
+                        DailyHealth(today, steps = 12000, restingHeartRate = 60),
+                    ),
+                ),
+            ),
+        )
+        try {
+            expand(TrenderSection.JAMFOR)
+            setContent()
+            composeRule.runOnUiThread {
+                vm.toggleHealthSeries(TrenderSection.JAMFOR, "Steg")
+                vm.toggleHealthSeries(TrenderSection.JAMFOR, "Vilopuls")
+            }
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasTestTag("trender_compare_legend_Steg"))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            // Y-axeln visar index, så legenden måste bära de verkliga värdena (TRD-17).
+            composeRule.onNodeWithText("Steg 4000–12000 steg").performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Vilopuls 50–60 bpm").performScrollTo().assertIsDisplayed()
         } finally {
             tearDown()
         }
