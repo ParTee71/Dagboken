@@ -103,6 +103,56 @@ class SharedComponentsTest {
         }
     }
 
+    @Test fun `StatPill without onClick is not clickable`() = retryOnRenderGlitch {
+        // De allra flesta brickorna är ren avläsning — de ska inte annonsera en åtgärd
+        // som inte finns för skärmläsaren.
+        val scenario = launch {
+            StatPill(
+                icon           = Icons.Filled.DirectionsWalk,
+                value          = "8 431",
+                label          = "steg",
+                containerColor = Color.DarkGray,
+                contentColor   = Color.White,
+            )
+        }
+        try {
+            composeRule.onNodeWithText("steg").assert(hasClickAction().not())
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test fun `StatPill with onClick is a button that holds the touch target`() = retryOnRenderGlitch {
+        var clicks = 0
+        val scenario = launch {
+            StatPill(
+                icon           = Icons.Filled.DirectionsWalk,
+                value          = "Ge åtkomst",
+                label          = "Träning saknar åtkomst",
+                containerColor = Color.DarkGray,
+                contentColor   = Color.White,
+                onClick        = { clicks++ },
+                onClickLabel   = "Begär åtkomst",
+            )
+        }
+        try {
+            composeRule.onNodeWithText("Ge åtkomst")
+                .assertHasClickAction()
+                .assertHeightIsAtLeast(48.dp)
+                .assert(
+                    SemanticsMatcher.expectValue(
+                        SemanticsProperties.Role,
+                        androidx.compose.ui.semantics.Role.Button,
+                    ),
+                )
+                .performClick()
+            composeRule.waitForIdle()
+            assertEquals(1, clicks)
+        } finally {
+            scenario.close()
+        }
+    }
+
     // ─── SliderRow ────────────────────────────────────────────────────────────
 
     @Test fun `SliderRow shows its label and current value`() = retryOnRenderGlitch {

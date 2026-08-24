@@ -4,6 +4,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -11,11 +13,13 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import se.partee71.dagboken.data.repository.OptionalHealthMetric
 import se.partee71.dagboken.domain.model.BloodPressure
 import se.partee71.dagboken.domain.model.HealthData
 import se.partee71.dagboken.domain.model.SleepFlag
@@ -262,6 +266,75 @@ class HealthScreenTest {
                 composeRule.onNodeWithText("Kunde inte läsa hälsodata").assertIsDisplayed()
                 composeRule.onNodeWithText("Försök igen").assertIsDisplayed().performClick()
                 assert(retried) { "Expected onRetry to be invoked" }
+            },
+        )
+    }
+
+    // ─── HLS-14: valfria mått utan åtkomst ───────────────────────────────────
+
+    @Test fun data_state_shows_missing_permission_row_and_grants() {
+        var granted = false
+        render(
+            content = {
+                HealthScreenContent(
+                    state = HealthUiState.Data(
+                        HealthData(steps = 4200),
+                        missingMetrics = setOf(OptionalHealthMetric.EXERCISE),
+                    ),
+                    onBack = {}, onGrantPermissions = { granted = true },
+                    onRetry = {}, onOpenHealthConnect = {},
+                )
+            },
+            assertions = {
+                // Utan den här raden går "—" på grund av saknad åtkomst inte att skilja
+                // från "—" på grund av saknad data (#219).
+                composeRule.onNodeWithText("Träning saknar åtkomst", substring = true)
+                    .performScrollTo()
+                    .assertIsDisplayed()
+                    .assertHasClickAction()
+                    .assertHeightIsAtLeast(48.dp)
+                    .performClick()
+                assert(granted) { "Expected onGrantPermissions to be invoked" }
+            },
+        )
+    }
+
+    @Test fun data_state_hides_missing_permission_row_when_everything_is_granted() {
+        render(
+            content = {
+                HealthScreenContent(
+                    state = HealthUiState.Data(HealthData(steps = 4200)),
+                    onBack = {}, onGrantPermissions = {}, onRetry = {}, onOpenHealthConnect = {},
+                )
+            },
+            assertions = {
+                composeRule.onNodeWithText("saknar åtkomst", substring = true).assertDoesNotExist()
+            },
+        )
+    }
+
+    @Test fun missing_permission_row_lists_the_metrics_in_a_stable_order() {
+        render(
+            content = {
+                HealthScreenContent(
+                    state = HealthUiState.Data(
+                        HealthData(steps = 4200),
+                        // Mängden har ingen ordning — raden ska ändå räknas upp likadant
+                        // varje gång, i enumets ordning.
+                        missingMetrics = setOf(
+                            OptionalHealthMetric.HISTORY,
+                            OptionalHealthMetric.EXERCISE,
+                            OptionalHealthMetric.DISTANCE,
+                        ),
+                    ),
+                    onBack = {}, onGrantPermissions = {}, onRetry = {}, onOpenHealthConnect = {},
+                )
+            },
+            assertions = {
+                composeRule.onNodeWithText(
+                    "Träning, Sträcka, Historik längre bak än 30 dagar",
+                    substring = true,
+                ).performScrollTo().assertIsDisplayed()
             },
         )
     }

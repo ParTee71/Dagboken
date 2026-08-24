@@ -17,6 +17,7 @@ import org.junit.Test
 import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.HealthAvailability
 import se.partee71.dagboken.data.repository.HealthConnectRepository
+import se.partee71.dagboken.data.repository.OptionalHealthMetric
 import se.partee71.dagboken.domain.model.HealthData
 import se.partee71.dagboken.domain.model.HealthHistory
 import se.partee71.dagboken.domain.model.NightlySleepMeasurements
@@ -36,11 +37,15 @@ class HealthViewModelTest {
         var data: HealthData = HealthData(steps = 100, heartRateAvg = 60, sleepDuration = Duration.ofHours(7)),
         var throwOnRead: Boolean = false,
         var sleep: SleepMeasurements? = null,
+        var missingMetrics: Set<OptionalHealthMetric> = emptySet(),
+        var throwOnMissingMetrics: Boolean = false,
     ) : HealthConnectRepository {
         override val requiredPermissions: Set<String> = setOf("read_steps", "read_hr", "read_sleep")
         override val permissions: Set<String> = requiredPermissions + setOf("read_exercise", "read_spo2")
         override fun availability() = availability
         override suspend fun hasRequiredPermissions() = granted
+        override suspend fun missingOptionalMetrics(): Set<OptionalHealthMetric> =
+            if (throwOnMissingMetrics) throw RuntimeException("boom") else missingMetrics
         override suspend fun readToday(): HealthData =
             if (throwOnRead) throw RuntimeException("boom") else data
         override suspend fun readWeeklyHealth() =
@@ -159,5 +164,60 @@ class HealthViewModelTest {
         // svarar utifrån kärnbehörigheterna, och skärmen visar data ändå.
         val vm = HealthViewModel(FakeHealthRepo(granted = true), fakePrefs())
         assertTrue(vm.state.value is HealthUiState.Data)
+    }
+
+    // ─── HLS-14: valfria mått utan åtkomst ───────────────────────────────────
+
+    @Test fun `missing optional metrics reach the screen`() = runTest(testDispatcher) {
+        // Regression för #219: ett träningspass som finns i Health Connect visades aldrig
+        // när READ_EXERCISE inte var beviljad, och skärmen hade inget sätt att säga det.
+        val repo = FakeHealthRepo(
+            missingMetrics = setOf(OptionalHealthMetric.EXERCISE, OptionalHealthMetric.DISTANCE),
+        )
+        val vm = HealthViewModel(repo, fakePrefs())
+
+        val state = vm.state.value as HealthUiState.Data
+        assertEquals(
+            setOf(OptionalHealthMetric.EXERCISE, OptionalHealthMetric.DISTANCE),
+            state.missingMetrics,
+        )
+    }
+
+    @Test fun `nothing is flagged when every optional permission is granted`() = runTest(testDispatcher) {
+        val state = HealthViewModel(FakeHealthRepo(), fakePrefs()).state.value as HealthUiState.Data
+        assertTrue(state.missingMetrics.isEmpty())
+    }
+
+    @Test fun `a granted exercise permission gives the sessions to the screen`() = runTest(testDispatcher) {
+        // Andra halvan av regressionen: med åtkomst ska passet faktiskt nå tillståndet.
+        val repo = FakeHealthRepo(
+            data = HealthData(exerciseSessions = 1, exerciseDuration = Duration.ofMinutes(42)),
+        )
+        val state = HealthViewModel(repo, fakePrefs()).state.value as HealthUiState.Data
+        assertEquals(1, state.health.exerciseSessions)
+        assertEquals(Duration.ofMinutes(42), state.health.exerciseDuration)
+        assertTrue(state.missingMetrics.isEmpty())
+    }
+
+    @Test fun `a failing permission read leaves the data intact without a warning`() = runTest(testDispatcher) {
+        // Åtkomstläget får inte fälla skärmen — hellre ingen varning än ingen data.
+        val repo = FakeHealthRepo(throwOnMissingMetrics = true)
+        val state = HealthViewModel(repo, fakePrefs()).state.value as HealthUiState.Data
+        assertTrue(state.missingMetrics.isEmpty())
+        assertEquals(100L, state.health.steps)
+    }
+
+    @Test fun `refresh picks up a newly granted optional permission`() = runTest(testDispatcher) {
+        val repo = FakeHealthRepo(missingMetrics = setOf(OptionalHealthMetric.EXERCISE))
+        val vm = HealthViewModel(repo, fakePrefs())
+        assertEquals(
+            setOf(OptionalHealthMetric.EXERCISE),
+            (vm.state.value as HealthUiState.Data).missingMetrics,
+        )
+
+        repo.missingMetrics = emptySet()
+        vm.refresh()
+
+        assertTrue((vm.state.value as HealthUiState.Data).missingMetrics.isEmpty())
     }
 }

@@ -43,6 +43,7 @@ import androidx.health.connect.client.PermissionController
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
+import se.partee71.dagboken.data.repository.OptionalHealthMetric
 import se.partee71.dagboken.domain.model.HealthData
 import se.partee71.dagboken.domain.model.SleepFlag
 import se.partee71.dagboken.domain.model.SleepQualityKind
@@ -144,14 +145,14 @@ internal fun HealthScreenContent(
                     },
                 )
 
-                is HealthUiState.Data -> HealthDataContent(state)
+                is HealthUiState.Data -> HealthDataContent(state, onGrantPermissions)
             }
         }
     }
 }
 
 @Composable
-private fun HealthDataContent(state: HealthUiState.Data) {
+private fun HealthDataContent(state: HealthUiState.Data, onGrantPermissions: () -> Unit) {
     val health = state.health
     val cs = MaterialTheme.colorScheme
 
@@ -162,6 +163,8 @@ private fun HealthDataContent(state: HealthUiState.Data) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        MissingPermissionsRow(state.missingMetrics, onGrantPermissions)
+
         SectionHeader(stringResource(R.string.halsa_section_today))
         HealthPill(
             icon  = Icons.Filled.DirectionsWalk,
@@ -238,6 +241,52 @@ private fun HealthDataContent(state: HealthUiState.Data) {
         )
     }
 }
+
+/**
+ * Varningsrad för valfria mått vars åtkomst saknas (HLS-14). Ett mått utan behörighet
+ * visas som "—" precis som ett mått utan data, så utan den här raden går de två inte att
+ * skilja åt — och den som gav samtycke innan en behörighet fanns har ingen väg tillbaka
+ * till samtyckesdialogen.
+ *
+ * Raden är en klickbar [StatPill] (regel 4) och begär **hela** behörighetsuppsättningen,
+ * eftersom Health Connect visar en dialog för allt som ännu inte besvarats.
+ * Renderas inte alls när ingenting saknas.
+ */
+@Composable
+private fun MissingPermissionsRow(missing: Set<OptionalHealthMetric>, onGrantPermissions: () -> Unit) {
+    if (missing.isEmpty()) return
+    val cs = MaterialTheme.colorScheme
+
+    // Måtten i enumets ordning, inte mängdens — samma uppräkning varje gång.
+    // Namnen hämtas i ett inline-map: stringResource går inte att anropa i
+    // joinToStrings transform-lambda, som inte är inline.
+    val names = OptionalHealthMetric.entries
+        .filter { it in missing }
+        .map { stringResource(it.labelRes) }
+        .joinToString(", ")
+
+    StatPill(
+        icon           = Icons.Filled.Warning,
+        value          = stringResource(R.string.halsa_permissions_missing_action),
+        label          = stringResource(R.string.halsa_permissions_missing, names),
+        containerColor = cs.errorContainer,
+        contentColor   = cs.onErrorContainer,
+        modifier       = Modifier.fillMaxWidth(),
+        onClick        = onGrantPermissions,
+        onClickLabel   = stringResource(R.string.halsa_permissions_missing_click_label),
+    )
+}
+
+/** Måttets namn i UI:t. Här, inte i datalagret — repositoryt ska inte känna till R. */
+private val OptionalHealthMetric.labelRes: Int
+    @StringRes get() = when (this) {
+        OptionalHealthMetric.EXERCISE -> R.string.halsa_metric_exercise
+        OptionalHealthMetric.ACTIVE_ENERGY -> R.string.halsa_metric_active_energy
+        OptionalHealthMetric.DISTANCE -> R.string.halsa_metric_distance
+        OptionalHealthMetric.OXYGEN_SATURATION -> R.string.halsa_metric_oxygen_saturation
+        OptionalHealthMetric.BLOOD_PRESSURE -> R.string.halsa_metric_blood_pressure
+        OptionalHealthMetric.HISTORY -> R.string.halsa_metric_history
+    }
 
 /**
  * Sömnkvalitet (HLS-10): poängen som `StatPill`, delkomponenterna i en [Foldout]
