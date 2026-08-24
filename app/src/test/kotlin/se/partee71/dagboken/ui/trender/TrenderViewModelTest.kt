@@ -291,6 +291,8 @@ class TrenderViewModelTest {
             if (available) HealthAvailability.AVAILABLE else HealthAvailability.NOT_INSTALLED
         coEvery { hasRequiredPermissions() } returns granted
         coEvery { readHealthHistory(any()) } returns history
+        // Explicit tomt hellre än relaxed mock — en mockad lista beter sig inte som en lista.
+        coEvery { readSleepMeasurementsHistory(any()) } returns emptyList()
     }
 
     @Test fun `no health diagram is read while every card is collapsed`() = runTest {

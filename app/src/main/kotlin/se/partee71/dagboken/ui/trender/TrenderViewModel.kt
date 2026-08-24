@@ -649,7 +649,6 @@ class TrenderViewModel @Inject constructor(
                 }
             }
         }
-    }
 
         // Jämförelsediagrammet (TRD-17) blandar klockdata och loggade serier, så det behöver
         // både historiken och aktivitetsflödet. Egen collector så det inte drar med sig de
@@ -758,6 +757,8 @@ class TrenderViewModel @Inject constructor(
                     .toMap()
             }
         }.toMap()
+    }
+
     /** Perioden "Allt" (TRD-3) har ingen nedre gräns; hälsoläsningen kapas ändå vid ett år. */
     private fun TrenderRange.healthDays(): Int = days ?: HEALTH_HISTORY_MAX_DAYS
 
