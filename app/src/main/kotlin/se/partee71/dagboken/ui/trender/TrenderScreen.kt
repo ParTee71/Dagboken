@@ -2,11 +2,13 @@ package se.partee71.dagboken.ui.trender
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -30,10 +32,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.dagboken.ui.components.MIN_TOUCH_TARGET
 import se.partee71.dagboken.ui.diagram.CompactDropdownButton
 import se.partee71.dagboken.ui.diagram.DiagramLayout
 import se.partee71.dagboken.ui.diagram.DiagramSection
@@ -126,17 +130,21 @@ private fun healthSection(
         expanded = state.expanded.getValue(section),
         onToggleExpanded = { vm.setExpanded(section, !state.expanded.getValue(section)) },
         periodSelector = { sectionRangeSelector(section, state, vm) },
-        selector = if (trend.labels.isEmpty()) {
-            null
-        } else {
-            {
-                HealthSeriesSelector(
-                    labels   = trend.labels,
-                    selected = state.selectedHealthSeries[section].orEmpty(),
-                    onToggle = { vm.toggleHealthSeries(section, it) },
-                    colorOf  = { label -> trend.colorFor(label, section) },
-                    testTag  = "trender_series_selector_$tag",
-                )
+        selector = {
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (trend.labels.isNotEmpty()) {
+                    HealthSeriesSelector(
+                        labels   = trend.labels,
+                        selected = state.selectedHealthSeries[section].orEmpty(),
+                        onToggle = { vm.toggleHealthSeries(section, it) },
+                        colorOf  = { label -> trend.colorFor(label, section) },
+                        testTag  = "trender_series_selector_$tag",
+                    )
+                }
+                PeriodCompareToggle(section, state, vm)
             }
         },
         chart = { chartModifier ->
@@ -367,6 +375,39 @@ private fun sleepStagesSection(state: TrenderUiState, vm: TrenderViewModel): Dia
     )
 }
 
+/**
+ * Tillvalet "Jämför med föregående period" (TRD-18). Av som standard — nuläget är det som ska
+ * synas först. Vid periodvalet "Allt" finns ingen föregående period, så knappen utelämnas
+ * hellre än att visas som en död kontroll.
+ */
+@Composable
+private fun PeriodCompareToggle(section: TrenderSection, state: TrenderUiState, vm: TrenderViewModel) {
+    if (section !in PERIOD_COMPARABLE_SECTIONS) return
+    if (state.ranges.getValue(section).days == null) return
+
+    val enabled = state.compareWithPrevious[section] == true
+    // Samma kryssruta + etikett som seriepickarnas menyrader (regel 4), som en egen
+    // växlingsbar rad: hela raden är tryckytan och bär tillståndet (NFR-17-principen).
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .heightIn(min = MIN_TOUCH_TARGET)
+            .toggleable(
+                value = enabled,
+                role  = Role.Checkbox,
+                onValueChange = { vm.setCompareWithPrevious(section, it) },
+            )
+            .testTag("trender_compare_previous_${section.name.lowercase()}"),
+    ) {
+        Checkbox(checked = enabled, onCheckedChange = null)
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text  = stringResource(R.string.trender_compare_previous),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
 /** Färgen för en etikett i väljaren — vald serie har sin egen, ovald tar seriedefinitionens. */
 private fun HealthTrend.colorFor(label: String, section: TrenderSection): Color =
     series.firstOrNull { it.label == label }?.color
@@ -473,13 +514,19 @@ private fun categorySection(
         onToggleExpanded = { vm.setExpanded(section, !state.expanded.getValue(section)) },
         periodSelector = { sectionRangeSelector(section, state, vm) },
         selector = {
-            SeriesSelector(
-                labels        = trend.labels,
-                selected      = state.selectedSeries,
-                symptomLabels = symptomLabels,
-                onToggle      = vm::toggleSeries,
-                testTag       = testTag,
-            )
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                SeriesSelector(
+                    labels        = trend.labels,
+                    selected      = state.selectedSeries,
+                    symptomLabels = symptomLabels,
+                    onToggle      = vm::toggleSeries,
+                    testTag       = testTag,
+                )
+                PeriodCompareToggle(section, state, vm)
+            }
         },
         chart = { chartModifier ->
             if (trend.series.isEmpty()) {

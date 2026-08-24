@@ -373,6 +373,7 @@
     <string name="trender_section_blood_pressure">Blodtryck</string>
     <string name="trender_no_blood_pressure_data">Inga blodtrycksmätningar för vald period</string>
     <string name="trender_section_compare">Jämför</string>
+    <string name="trender_compare_previous">Föregående period</string>
     <string name="trender_compare_pick_two">Välj minst två serier att jämföra</string>
     <string name="trender_compare_legend_range">%1$s %2$s–%3$s %4$s</string>
     <string name="trender_range_7_days">7 dagar</string>

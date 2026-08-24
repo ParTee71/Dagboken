@@ -103,6 +103,10 @@ private const val HEALTH_HISTORY_MAX_DAYS = 365
 private val DEFAULT_EXPANDED: Map<TrenderSection, Boolean> =
     TrenderSection.entries.associateWith { false }
 
+/** Periodjämförelsen är av som standard (TRD-18) — nuläget är det som ska synas först. */
+private val DEFAULT_COMPARE_PREVIOUS: Map<TrenderSection, Boolean> =
+    TrenderSection.entries.associateWith { false }
+
 /** De fyra sektioner vars data kommer från loggade aktiviteter/screeningar (inte Health Connect). */
 private val CATEGORY_SECTIONS = setOf(
     TrenderSection.ENERGI_DAG, TrenderSection.ENERGI_TILLFALLE,
@@ -123,6 +127,13 @@ internal val ALL_SERIES = ENERGY_SLOT_SERIES + STRESS_SERIES
  * intervalldiagram, se [TrenderUiState.dailyEnergy].
  */
 enum class TrenderCategory { ENERGI_TILLFALLE, STRESS_BELASTNING, SYMPTOM }
+
+/** Kategorin ett kategoridiagram visar — spegelbilden av [TrenderSection]. */
+internal fun categoryOfSection(section: TrenderSection): TrenderCategory = when (section) {
+    TrenderSection.ENERGI_TILLFALLE -> TrenderCategory.ENERGI_TILLFALLE
+    TrenderSection.STRESS_BELASTNING -> TrenderCategory.STRESS_BELASTNING
+    else -> TrenderCategory.SYMPTOM
+}
 
 internal fun categoryOf(seriesName: String): TrenderCategory = when {
     seriesName in ENERGY_SLOT_SERIES -> TrenderCategory.ENERGI_TILLFALLE
@@ -368,6 +379,25 @@ internal fun normalizeSeries(points: List<Float?>): List<Float?> {
     return points.map { value -> value?.let { (it - min) / (max - min) * 100f } }
 }
 
+/**
+ * Diagram som kan jämföra period mot period (TRD-18). Undantagna är de tre vars form gör en
+ * andra period oläslig: **Energi (dag)** och **Sömnstadier** ritar staplar, och två
+ * uppsättningar staplar i samma x-position går inte att läsa av; **Jämför** överlagrar redan
+ * flera indexerade serier, och en dubblering av dem gör diagrammet till gröt.
+ */
+internal val PERIOD_COMPARABLE_SECTIONS: Set<TrenderSection> =
+    TrenderSection.entries.toSet() - setOf(
+        TrenderSection.ENERGI_DAG,
+        TrenderSection.SOMNSTADIER,
+        TrenderSection.JAMFOR,
+    )
+
+/** Föregående periods kurva ritas nedtonad, så nuläget förblir det som syns först (TRD-18). */
+internal const val PREVIOUS_PERIOD_ALPHA = 0.35f
+
+/** Etiketten för en series föregående period — legenden ska säga vilken kurva som är vilken. */
+internal fun previousPeriodLabel(label: String): String = "$label (föregående)"
+
 /** Serier som är valda från början i varje hälsodiagram med serieväljare. */
 private val DEFAULT_HEALTH_SERIES: Map<TrenderSection, Set<String>> = mapOf(
     TrenderSection.SOMN to setOf("Total"),
@@ -435,8 +465,22 @@ private fun filterByRange(entries: List<Aktivitet>, range: TrenderRange): List<A
         entries.filter { it.datum >= cutoff }
     } ?: entries
 
-private fun computeCategoryData(entries: List<Aktivitet>, range: TrenderRange, category: TrenderCategory): CategoryData {
-    val inRange = filterByRange(entries, range)
+/**
+ * De lika många dagarna **omedelbart före** [range] (TRD-18). Perioden "Allt" har ingen nedre
+ * gräns och därmed ingen föregående period — den ger en tom lista.
+ */
+private fun filterByPreviousRange(entries: List<Aktivitet>, range: TrenderRange): List<Aktivitet> {
+    val days = range.days ?: return emptyList()
+    val today = LocalDate.now()
+    val end = today.minusDays(days.toLong()).toString()
+    val start = today.minusDays(2L * days).toString()
+    return entries.filter { it.datum >= start && it.datum < end }
+}
+
+private fun computeCategoryData(entries: List<Aktivitet>, range: TrenderRange, category: TrenderCategory): CategoryData =
+    computeCategoryDataFor(filterByRange(entries, range), category)
+
+private fun computeCategoryDataFor(inRange: List<Aktivitet>, category: TrenderCategory): CategoryData {
     val byDay = inRange.groupBy { it.datum }.entries.sortedBy { it.key }
     val dates = byDay.map { it.key }
 
@@ -535,6 +579,8 @@ data class TrenderUiState(
     val healthLoading: Set<TrenderSection> = emptySet(),
     /** Jämförelsediagrammets data (TRD-17) — tom tills kortet fällts ut. */
     val comparison: ComparisonTrend = ComparisonTrend(),
+    /** Vilka diagram som visar föregående period som nedtonat överlägg (TRD-18). */
+    val compareWithPrevious: Map<TrenderSection, Boolean> = DEFAULT_COMPARE_PREVIOUS,
 )
 
 /** Färg för valfri serie, oavsett om det är en fast aktivitetsserie eller en dynamisk symptomserie. */
@@ -552,12 +598,13 @@ class TrenderViewModel @Inject constructor(
     private val _expanded = MutableStateFlow(DEFAULT_EXPANDED)
     private val _selectedSeries = MutableStateFlow(setOf("Energi Frukost"))
     private val _selectedHealthSeries = MutableStateFlow(DEFAULT_HEALTH_SERIES)
+    private val _comparePrevious = MutableStateFlow(DEFAULT_COMPARE_PREVIOUS)
 
     // Läst historik per period. Två diagram som visar samma period delar en läsning, och
     // ett kort som fällts ihop behåller sin data — hälsodata persisteras inte (HLS-5), men
     // att läsa om samma period medan skärmen är öppen vore rent slöseri.
-    private val historyCache = mutableMapOf<TrenderRange, HealthHistory>()
-    private val sleepQualityCache = mutableMapOf<TrenderRange, List<NightlySleepQuality>>()
+    private val historyCache = mutableMapOf<Int, HealthHistory>()
+    private val sleepQualityCache = mutableMapOf<Int, List<NightlySleepQuality>>()
 
     private val _state = MutableStateFlow(TrenderUiState())
     val state: StateFlow<TrenderUiState> = _state.asStateFlow()
@@ -581,6 +628,12 @@ class TrenderViewModel @Inject constructor(
             }
         }
 
+        viewModelScope.launch {
+            _comparePrevious.collectLatest { compare ->
+                _state.update { it.copy(compareWithPrevious = compare) }
+            }
+        }
+
         // Energi (dag) + de tre kategoridiagrammen: var och en filtreras nu på sin
         // egen period (#149) i stället för en delad — smalnas av till just dessa fyra
         // sektioners perioder så ett Steg-/Vilopuls-periodbyte inte triggar om räkningen.
@@ -589,8 +642,9 @@ class TrenderViewModel @Inject constructor(
                 repo.all,
                 _ranges.map { it.filterKeys { s -> s in CATEGORY_SECTIONS } }.distinctUntilChanged(),
                 _selectedSeries,
-            ) { entries, ranges, selected -> Triple(entries, ranges, selected) }
-                .collectLatest { (entries, ranges, selected) ->
+                _comparePrevious.map { it.filterKeys { s -> s in CATEGORY_SECTIONS } }.distinctUntilChanged(),
+            ) { entries, ranges, selected, compare -> CategoryInput(entries, ranges, selected, compare) }
+                .collectLatest { (entries, ranges, selected, compare) ->
                     val energiTillfalle = computeCategoryData(entries, ranges.getValue(TrenderSection.ENERGI_TILLFALLE), TrenderCategory.ENERGI_TILLFALLE)
                     val stressBelastning = computeCategoryData(entries, ranges.getValue(TrenderSection.STRESS_BELASTNING), TrenderCategory.STRESS_BELASTNING)
                     val symptom = computeCategoryData(entries, ranges.getValue(TrenderSection.SYMPTOM), TrenderCategory.SYMPTOM)
@@ -599,13 +653,36 @@ class TrenderViewModel @Inject constructor(
                     val effectiveSelected = selected.intersect(allLabels.toSet())
                     if (effectiveSelected != selected) _selectedSeries.value = effectiveSelected
 
-                    fun buildTrend(data: CategoryData) = CategoryTrend(
-                        labels = data.labels,
-                        dates  = data.dates,
-                        series = effectiveSelected.filter { it in data.labels }.map { name ->
-                            ChartSeries(label = name, color = data.colorByLabel.getValue(name), points = data.pointsByLabel.getValue(name))
-                        },
-                    )
+                    fun buildTrend(section: TrenderSection, data: CategoryData): CategoryTrend {
+                        val active = effectiveSelected.filter { it in data.labels }
+                        val current = active.map { name ->
+                            ChartSeries(
+                                label  = name,
+                                color  = data.colorByLabel.getValue(name),
+                                points = data.pointsByLabel.getValue(name),
+                            )
+                        }
+                        // Föregående period (TRD-18) läggs på samma x-index som den nuvarande —
+                        // det är formerna som jämförs, inte datumen.
+                        val previous = if (compare[section] != true) {
+                            emptyList()
+                        } else {
+                            val before = computeCategoryDataFor(
+                                filterByPreviousRange(entries, ranges.getValue(section)),
+                                categoryOfSection(section),
+                            )
+                            active.mapNotNull { name ->
+                                before.pointsByLabel[name]?.let { points ->
+                                    ChartSeries(
+                                        label  = previousPeriodLabel(name),
+                                        color  = data.colorByLabel.getValue(name).copy(alpha = PREVIOUS_PERIOD_ALPHA),
+                                        points = points,
+                                    )
+                                }
+                            }
+                        }
+                        return CategoryTrend(labels = data.labels, dates = data.dates, series = current + previous)
+                    }
 
                     val dailyEnergy = computeDailyEnergyStats(filterByRange(entries, ranges.getValue(TrenderSection.ENERGI_DAG)))
 
@@ -613,9 +690,11 @@ class TrenderViewModel @Inject constructor(
                         it.copy(
                             selectedSeries = effectiveSelected,
                             categoryTrends = mapOf(
-                                TrenderCategory.ENERGI_TILLFALLE to buildTrend(energiTillfalle),
-                                TrenderCategory.STRESS_BELASTNING to buildTrend(stressBelastning),
-                                TrenderCategory.SYMPTOM to buildTrend(symptom),
+                                TrenderCategory.ENERGI_TILLFALLE to
+                                    buildTrend(TrenderSection.ENERGI_TILLFALLE, energiTillfalle),
+                                TrenderCategory.STRESS_BELASTNING to
+                                    buildTrend(TrenderSection.STRESS_BELASTNING, stressBelastning),
+                                TrenderCategory.SYMPTOM to buildTrend(TrenderSection.SYMPTOM, symptom),
                             ),
                             dailyEnergy = dailyEnergy,
                         )
@@ -628,21 +707,24 @@ class TrenderViewModel @Inject constructor(
         // sker först när ett kort fällts ut (TRD-14) — med ett tiotal diagram på ytan vore
         // det slöseri att läsa allt som ingen tittar på.
         viewModelScope.launch {
-            combine(_expanded, _ranges, _selectedHealthSeries) { expanded, ranges, selected ->
-                Triple(expanded, ranges, selected)
-            }.collectLatest { (expanded, ranges, selected) ->
+            combine(_expanded, _ranges, _selectedHealthSeries, _comparePrevious) { expanded, ranges, selected, compare ->
+                HealthInput(expanded, ranges, selected, compare)
+            }.collectLatest { (expanded, ranges, selected, compare) ->
                 val open = HEALTH_SECTIONS.filter { expanded[it] == true }
                 if (open.isEmpty()) return@collectLatest
 
-                val pending = open.filter { !isLoaded(it, ranges.getValue(it)) }.toSet()
+                fun daysFor(section: TrenderSection): Int =
+                    readDays(ranges.getValue(section), compare[section] == true)
+
+                val pending = open.filter { !isLoaded(it, daysFor(it)) }.toSet()
                 if (pending.isNotEmpty()) _state.update { it.copy(healthLoading = pending) }
 
-                open.forEach { section -> ensureLoaded(section, ranges.getValue(section)) }
+                open.forEach { section -> ensureLoaded(section, daysFor(section)) }
 
                 _state.update { current ->
                     current.copy(
                         healthTrends = current.healthTrends + open.associateWith {
-                            buildHealthTrend(it, ranges.getValue(it), selected)
+                            buildHealthTrend(it, ranges.getValue(it), selected, compare[it] == true)
                         },
                         healthLoading = emptySet(),
                     )
@@ -669,6 +751,22 @@ class TrenderViewModel @Inject constructor(
         }
     }
 
+    /** Underlaget hälsodiagrammen räknas om från. */
+    private data class HealthInput(
+        val expanded: Map<TrenderSection, Boolean>,
+        val ranges: Map<TrenderSection, TrenderRange>,
+        val selected: Map<TrenderSection, Set<String>>,
+        val compare: Map<TrenderSection, Boolean>,
+    )
+
+    /** Underlaget de loggade kategoridiagrammen räknas om från. */
+    private data class CategoryInput(
+        val entries: List<Aktivitet>,
+        val ranges: Map<TrenderSection, TrenderRange>,
+        val selected: Set<String>,
+        val compare: Map<TrenderSection, Boolean>,
+    )
+
     /** Underlaget som jämförelsediagrammet behöver för en omräkning. */
     private data class ComparisonInput(
         val open: Boolean,
@@ -680,11 +778,11 @@ class TrenderViewModel @Inject constructor(
     private suspend fun ensureComparisonLoaded(input: ComparisonInput) {
         val specs = comparableSpecs(input.entries, input.range).filter { it.label in input.selected }
         if (specs.any { it.source is ComparisonSource.Health }) {
-            ensureLoaded(TrenderSection.STEG, input.range)
+            ensureLoaded(TrenderSection.STEG, input.range.healthDays())
         }
         // Sömnkvaliteten är en egen, tyngre läsning — hämta den bara om någon valt den.
         if (specs.any { it.source is ComparisonSource.SleepQuality }) {
-            ensureLoaded(TrenderSection.SOMNKVALITET, input.range)
+            ensureLoaded(TrenderSection.SOMNKVALITET, input.range.healthDays())
         }
     }
 
@@ -701,8 +799,8 @@ class TrenderViewModel @Inject constructor(
         // Gemensam, sammanhängande datumaxel för perioden — dagboksserierna finns bara för
         // loggade dagar, och de dagarna ska bli luckor i kurvan, inte en hoptryckt x-axel.
         val dates = comparisonDates(input.range)
-        val byDate = historyCache[input.range]?.days.orEmpty().associateBy { it.date }
-        val qualityByDate = sleepQualityCache[input.range].orEmpty().associateBy { it.date }
+        val byDate = historyCache[input.range.healthDays()]?.days.orEmpty().associateBy { it.date }
+        val qualityByDate = sleepQualityCache[input.range.healthDays()].orEmpty().associateBy { it.date }
         val diary = diaryValuesByDate(input.entries, input.range)
         val energyByDate = computeDailyEnergyStats(filterByRange(input.entries, input.range))
             .associate { it.datum to it.avg }
@@ -762,31 +860,39 @@ class TrenderViewModel @Inject constructor(
     /** Perioden "Allt" (TRD-3) har ingen nedre gräns; hälsoläsningen kapas ändå vid ett år. */
     private fun TrenderRange.healthDays(): Int = days ?: HEALTH_HISTORY_MAX_DAYS
 
-    private fun isLoaded(section: TrenderSection, range: TrenderRange): Boolean =
+    /**
+     * Hur många dagar som behöver läsas: perioden själv, eller **dubbla** perioden när
+     * föregående period ska visas (TRD-18). En läsning täcker då båda — den äldre halvan är
+     * föregående period, den nyare är den nuvarande.
+     */
+    private fun readDays(range: TrenderRange, compare: Boolean): Int =
+        range.healthDays().let { if (compare && range.days != null) it * 2 else it }
+
+    private fun isLoaded(section: TrenderSection, days: Int): Boolean =
         if (section == TrenderSection.SOMNKVALITET) {
-            sleepQualityCache.containsKey(range)
+            sleepQualityCache.containsKey(days)
         } else {
-            historyCache.containsKey(range)
+            historyCache.containsKey(days)
         }
 
-    private suspend fun ensureLoaded(section: TrenderSection, range: TrenderRange) {
-        if (isLoaded(section, range)) return
+    private suspend fun ensureLoaded(section: TrenderSection, days: Int) {
+        if (isLoaded(section, days)) return
         if (section == TrenderSection.SOMNKVALITET) {
             // Poängen är åldersjusterad (HLS-11) — utan födelseår ger scoreNightlySleep
             // luckor i stället för en poäng mot fel norm.
-            val nights = readHealth { healthRepo.readSleepMeasurementsHistory(range.healthDays()) }
+            val nights = readHealth { healthRepo.readSleepMeasurementsHistory(days) }
             if (nights != null) {
-                sleepQualityCache[range] = scoreNightlySleep(
+                sleepQualityCache[days] = scoreNightlySleep(
                     nights = nights,
                     age    = ageFromBirthYear(prefs.birthYear.first()),
                     sex    = prefs.sex.first(),
                 )
             }
         } else {
-            val history = readHealth { healthRepo.readHealthHistory(range.healthDays()) }
+            val history = readHealth { healthRepo.readHealthHistory(days) }
             // En misslyckad läsning cachas inte — då visas tomläget, och nästa periodbyte
             // eller utfällning försöker igen i stället för att fastna i tomt läge.
-            if (history != null) historyCache[range] = history
+            if (history != null) historyCache[days] = history
         }
     }
 
@@ -801,24 +907,43 @@ class TrenderViewModel @Inject constructor(
         section: TrenderSection,
         range: TrenderRange,
         selected: Map<TrenderSection, Set<String>>,
+        compare: Boolean,
     ): HealthTrend {
+        // Periodjämförelsen läser dubbla perioden i ett svep: den nyare halvan är den
+        // nuvarande perioden, den äldre är föregående (TRD-18).
+        val showPrevious = compare && section in PERIOD_COMPARABLE_SECTIONS && range.days != null
+        val days = range.healthDays()
+        val cacheKey = readDays(range, compare)
+
         if (section == TrenderSection.SOMNKVALITET) {
-            val nights = sleepQualityCache[range].orEmpty()
+            val all = sleepQualityCache[cacheKey].orEmpty()
+            val current = if (showPrevious) all.takeLast(days) else all
+            val previous = if (showPrevious) all.dropLast(days).takeLast(days) else emptyList()
             val chosen = selected[section].orEmpty()
+            val labels = SLEEP_QUALITY_SERIES.filter { it in chosen }
             return HealthTrend(
                 labels = SLEEP_QUALITY_SERIES,
-                dates  = nights.map { it.date.toString() },
-                series = SLEEP_QUALITY_SERIES.filter { it in chosen }.map { label ->
-                    ChartSeries(
-                        label  = label,
-                        color  = sleepQualitySeriesColor(label),
-                        points = nights.map { sleepQualityValue(it, label) },
-                    )
+                dates  = current.map { it.date.toString() },
+                series = labels.map { label ->
+                    ChartSeries(label, sleepQualitySeriesColor(label), current.map { sleepQualityValue(it, label) })
+                } + if (!showPrevious) {
+                    emptyList()
+                } else {
+                    labels.map { label ->
+                        ChartSeries(
+                            label  = previousPeriodLabel(label),
+                            color  = sleepQualitySeriesColor(label).copy(alpha = PREVIOUS_PERIOD_ALPHA),
+                            points = previous.map { sleepQualityValue(it, label) },
+                        )
+                    }
                 },
             )
         }
 
-        val history = historyCache[range] ?: HealthHistory()
+        val all = (historyCache[cacheKey] ?: HealthHistory()).days
+        val current = if (showPrevious) all.takeLast(days) else all
+        val previous = if (showPrevious) all.dropLast(days).takeLast(days) else emptyList()
+
         val specs = healthSeriesFor(section)
         // Diagram med en enda serie — eller där alla serier hör ihop (TRD-16) — har ingen
         // väljare; serierna visas alltid.
@@ -831,9 +956,19 @@ class TrenderViewModel @Inject constructor(
         }
         return HealthTrend(
             labels = if (alwaysAll) emptyList() else specs.map { it.label },
-            dates  = history.dates.map { it.toString() },
+            dates  = current.map { it.date.toString() },
             series = active.map { spec ->
-                ChartSeries(spec.label, spec.color, history.days.map { spec.value(it) })
+                ChartSeries(spec.label, spec.color, current.map { spec.value(it) })
+            } + if (!showPrevious) {
+                emptyList()
+            } else {
+                active.map { spec ->
+                    ChartSeries(
+                        label  = previousPeriodLabel(spec.label),
+                        color  = spec.color.copy(alpha = PREVIOUS_PERIOD_ALPHA),
+                        points = previous.map { spec.value(it) },
+                    )
+                }
             },
         )
     }
@@ -851,6 +986,11 @@ class TrenderViewModel @Inject constructor(
     /** Fäller ut/ihop ett enskilt diagramkort (TRD-14) utan att röra de andras läge. */
     fun setExpanded(section: TrenderSection, expanded: Boolean) {
         _expanded.update { it + (section to expanded) }
+    }
+
+    /** Slår på/av föregående periods överlägg för ett diagram (TRD-18). */
+    fun setCompareWithPrevious(section: TrenderSection, enabled: Boolean) {
+        _comparePrevious.update { it + (section to enabled) }
     }
 
     /** Väljer till/från en serie i ett hälsodiagram (TRD-15), oberoende av de andra diagrammen. */
