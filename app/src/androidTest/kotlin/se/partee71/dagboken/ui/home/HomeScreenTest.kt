@@ -47,6 +47,8 @@ import se.partee71.dagboken.data.repository.SjukdomarRepository
 import se.partee71.dagboken.domain.model.DailyRestingHeartRate
 import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.HealthHistory
+import se.partee71.dagboken.domain.model.NightlySleepMeasurements
 import se.partee71.dagboken.domain.model.WeeklyHealth
 import se.partee71.dagboken.data.room.AppDatabase
 import se.partee71.dagboken.domain.model.Favorit
@@ -673,7 +675,10 @@ class HomeScreenTest {
  * Health Connect ej tillgängligt i emulator — fake så HomeScreen kan renderas. Med [weekly]
  * satt simuleras i stället en kopplad källa med den datan (#138 — datumbunden hälsokort-test).
  */
-private class FakeHealthRepo(private val weekly: WeeklyHealth? = null) : HealthConnectRepository {
+private class FakeHealthRepo(
+    private val weekly: WeeklyHealth? = null,
+    private val history: HealthHistory? = null,
+) : HealthConnectRepository {
     override val permissions: Set<String> = emptySet()
     override val requiredPermissions: Set<String> = emptySet()
     override fun availability() = if (weekly != null) HealthAvailability.AVAILABLE else HealthAvailability.NOT_INSTALLED
@@ -681,5 +686,7 @@ private class FakeHealthRepo(private val weekly: WeeklyHealth? = null) : HealthC
     override suspend fun readToday() = HealthData()
     override suspend fun readWeeklyHealth() = weekly ?: WeeklyHealth()
     override suspend fun readHealthRange(days: Int) = weekly ?: WeeklyHealth()
+    override suspend fun readHealthHistory(days: Int) = history ?: HealthHistory()
     override suspend fun readSleepMeasurements(nights: Int) = null
+    override suspend fun readSleepMeasurementsHistory(nights: Int) = emptyList<NightlySleepMeasurements>()
 }

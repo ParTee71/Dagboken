@@ -18,6 +18,8 @@ import se.partee71.dagboken.data.datastore.PreferencesRepository
 import se.partee71.dagboken.data.repository.HealthAvailability
 import se.partee71.dagboken.data.repository.HealthConnectRepository
 import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.HealthHistory
+import se.partee71.dagboken.domain.model.NightlySleepMeasurements
 import se.partee71.dagboken.domain.model.Sex
 import se.partee71.dagboken.domain.model.SleepMeasurements
 import se.partee71.dagboken.domain.model.WeeklyHealth
@@ -45,8 +47,12 @@ class HealthViewModelTest {
             if (throwOnRead) throw RuntimeException("boom") else WeeklyHealth()
         override suspend fun readHealthRange(days: Int) =
             if (throwOnRead) throw RuntimeException("boom") else WeeklyHealth()
+        override suspend fun readHealthHistory(days: Int) =
+            if (throwOnRead) throw RuntimeException("boom") else HealthHistory()
         override suspend fun readSleepMeasurements(nights: Int) =
             if (throwOnRead) throw RuntimeException("boom") else sleep
+        override suspend fun readSleepMeasurementsHistory(nights: Int) =
+            if (throwOnRead) throw RuntimeException("boom") else emptyList<NightlySleepMeasurements>()
     }
 
     /** Profil med angivet födelseår/kön — sömnkvaliteten kräver en ålder (HLS-10). */

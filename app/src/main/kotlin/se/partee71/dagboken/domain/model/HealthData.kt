@@ -71,6 +71,54 @@ data class WeeklyHealth(
     val hasAnyData: Boolean get() = dailySteps.any { it.steps > 0 } || restingHeartRate != null
 }
 
+/**
+ * Ett dygns hälsodata (HLS-12) — samma datapunkter som [HealthData], fast knutna till
+ * ett datum så de går att rita över tid. Alla mått är nullbara: en dag utan mätning ger
+ * **ingen** datapunkt, aldrig en nolla. En nolla vore ett påstående om ett dygn vi inte
+ * mätt, och skulle dra ner varje trendlinje den hamnar i.
+ *
+ * Nattens värden ([sleepDuration], [sleepStages]) hör till det dygn sömnsessionen
+ * **slutade** — en natt som korsar midnatt hamnar på morgonens datum, samma regel som
+ * regelbundenhetsmåttet redan använder.
+ */
+data class DailyHealth(
+    val date: LocalDate,
+    val steps: Long? = null,
+    val restingHeartRate: Long? = null,
+    val heartRateAvg: Long? = null,
+    val sleepDuration: Duration? = null,
+    val sleepStages: SleepStages = SleepStages(),
+    val exerciseSessions: Int = 0,
+    val exerciseDuration: Duration? = null,
+    val activeEnergyKcal: Double? = null,
+    val distanceMeters: Double? = null,
+    val oxygenSaturationAvg: Double? = null,
+    val bloodPressure: BloodPressure? = null,
+) {
+    val isEmpty: Boolean
+        get() = steps == null && restingHeartRate == null && heartRateAvg == null &&
+            sleepDuration == null && sleepStages.isEmpty && exerciseDuration == null &&
+            activeEnergyKcal == null && distanceMeters == null && oxygenSaturationAvg == null &&
+            bloodPressure == null
+}
+
+/**
+ * Hälsohistorik för en period (HLS-12), en post per dygn, **äldst → nyast**. Perioden är
+ * sammanhängande: dygn utan någon mätning finns med som tomma [DailyHealth] så att en
+ * lucka i datan blir en lucka i diagrammet i stället för en hoptryckt x-axel.
+ */
+data class HealthHistory(val days: List<DailyHealth> = emptyList()) {
+
+    val dates: List<LocalDate> get() = days.map { it.date }
+
+    /** Ett måtts dygnsvärden som diagramserie — `null` där måttet saknas den dagen. */
+    fun series(value: (DailyHealth) -> Number?): List<Float?> =
+        days.map { day -> value(day)?.toFloat() }
+
+    /** True när minst ett dygn har någon mätning alls. */
+    val hasAnyData: Boolean get() = days.any { !it.isEmpty }
+}
+
 /** Steg och vilopuls för en enskild dag i Idag-hälsokortet (#138). */
 data class DailyHealthStats(val steps: Long?, val restingHeartRate: Long?)
 

@@ -1,6 +1,7 @@
 package se.partee71.dagboken.domain.model
 
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.math.abs
 import kotlin.math.cos
@@ -93,6 +94,37 @@ data class SleepMeasurements(
     val sleepingHeartRate: Long? = null,
     val baselineRestingHeartRate: Long? = null,
 )
+
+/**
+ * En natts [SleepMeasurements] knuten till sitt datum (HLS-13). Natten dateras efter
+ * sömnsessionens **slut**, så en session över midnatt hör till morgonens datum.
+ */
+data class NightlySleepMeasurements(val date: LocalDate, val measurements: SleepMeasurements)
+
+/** En natts sömnkvalitet (HLS-13). [quality] är null när natten inte gick att bedöma. */
+data class NightlySleepQuality(val date: LocalDate, val quality: SleepQuality?)
+
+/**
+ * Sömnkvalitet per natt över en period (HLS-13) — samma uträkning som för senaste natten
+ * (HLS-10), tillämpad på varje natt i [nights].
+ *
+ * Saknas födelseår är [age] null och **ingen** natt får en poäng: poängen är
+ * åldersjusterad och blir missvisande mot fel norm (HLS-11). Nätter som inte går att
+ * bedöma ger en lucka, aldrig en nolla — en nolla vore ett påstående om en natt vi inte
+ * kunde mäta.
+ *
+ * Ren funktion utan SDK-beroenden, för enhetstestning (regel 2).
+ */
+fun scoreNightlySleep(
+    nights: List<NightlySleepMeasurements>,
+    age: Int?,
+    sex: Sex,
+): List<NightlySleepQuality> = nights.map { night ->
+    NightlySleepQuality(
+        date    = night.date,
+        quality = age?.let { scoreSleepQuality(night.measurements, it, sex) },
+    )
+}
 
 /** Skillnaden mot baslinjen (bpm) som flaggar bristande återhämtning. */
 private const val ELEVATED_SLEEPING_HR_DELTA = 5
@@ -306,6 +338,22 @@ internal fun sleepMidpointSdMinutes(midpoints: List<LocalTime>): Double? {
     val circularSdRadians = sqrt(-2.0 * ln(resultant))
     return circularSdRadians / radiansPerMinute
 }
+
+/**
+ * Regelbundenheten **per natt** (HLS-13): varje natt bedöms mot spridningen över de
+ * [window] nätter som slutar med den natten, i stället för mot ett enda värde för hela
+ * perioden. En natt i mars ska inte bedömas mot hur regelbunden sömnen var i augusti.
+ *
+ * [midpoints] ska vara sorterade äldst → nyast. Element *i* är null när fönstret fram
+ * till natt *i* har färre än [MIN_NIGHTS_FOR_REGULARITY] nätter — då faller
+ * regelbundenhetskomponenten bort och vikterna normaliseras om (HLS-10).
+ *
+ * Ren funktion utan SDK-beroenden, för enhetstestning (regel 2).
+ */
+internal fun rollingMidpointSdMinutes(midpoints: List<LocalTime>, window: Int): List<Double?> =
+    midpoints.indices.map { i ->
+        sleepMidpointSdMinutes(midpoints.subList(maxOf(0, i - window + 1), i + 1))
+    }
 
 /** Färre nätter än så ger ingen meningsfull spridning. */
 internal const val MIN_NIGHTS_FOR_REGULARITY = 4

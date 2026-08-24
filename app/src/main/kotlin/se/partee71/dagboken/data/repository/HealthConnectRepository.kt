@@ -18,12 +18,16 @@ import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import se.partee71.dagboken.domain.model.BloodPressure
+import se.partee71.dagboken.domain.model.DailyHealth
 import se.partee71.dagboken.domain.model.DailyRestingHeartRate
 import se.partee71.dagboken.domain.model.DailySteps
 import se.partee71.dagboken.domain.model.HealthData
+import se.partee71.dagboken.domain.model.HealthHistory
+import se.partee71.dagboken.domain.model.NightlySleepMeasurements
 import se.partee71.dagboken.domain.model.SleepMeasurements
 import se.partee71.dagboken.domain.model.SleepStages
 import se.partee71.dagboken.domain.model.WeeklyHealth
+import se.partee71.dagboken.domain.model.rollingMidpointSdMinutes
 import se.partee71.dagboken.domain.model.sleepMidpointSdMinutes
 import java.time.Duration
 import java.time.Instant
@@ -73,6 +77,17 @@ interface HealthConnectRepository {
     suspend fun readHealthRange(days: Int): WeeklyHealth
 
     /**
+     * **Dagshistorik** för samtliga datapunkter i HLS-2/HLS-8 — ett [DailyHealth] per dygn
+     * i perioden, äldst → nyast (HLS-12). Underlaget till Trenders hälsodiagram.
+     *
+     * Till skillnad från [readHealthRange], som bara ger steg och vilopuls, läses här även
+     * sömn, sömnstadier, träning, aktiva kalorier, sträcka, syremättnad och blodtryck. Varje
+     * posttyp läses **en gång** över hela perioden och fördelas per dygn i efterhand — en
+     * läsning per dag och typ blir tusentals anrop över ett år. Kastar vid fel.
+     */
+    suspend fun readHealthHistory(days: Int): HealthHistory
+
+    /**
      * Underlaget för sömnkvaliteten (HLS-10): senaste nattens sömn plus de rullande
      * måtten som kräver flera nätter (regelbundenhet, pulsbaslinje). [nights] styr hur
      * långt bakåt regelbundenheten och baslinjen räknas.
@@ -80,6 +95,18 @@ interface HealthConnectRepository {
      * Returnerar null om ingen sömnsession finns för senaste dygnet. Kastar vid fel.
      */
     suspend fun readSleepMeasurements(nights: Int = DEFAULT_SLEEP_QUALITY_NIGHTS): SleepMeasurements?
+
+    /**
+     * Samma underlag som [readSleepMeasurements], fast **per natt** över [nights] nätter
+     * (HLS-13) — så sömnkvaliteten går att räkna bakåt i tiden och inte bara för senaste
+     * natten. Regelbundenheten är rullande: varje natt bär spridningen över de nätter som
+     * slutar med den (se `rollingMidpointSdMinutes`).
+     *
+     * Returnerar en tom lista när perioden saknar sömnsessioner. Kastar vid fel.
+     */
+    suspend fun readSleepMeasurementsHistory(
+        nights: Int = DEFAULT_SLEEP_QUALITY_NIGHTS,
+    ): List<NightlySleepMeasurements>
 }
 
 /** Fönstret för regelbundenhet och pulsbaslinje i sömnkvaliteten (HLS-10). */
@@ -258,60 +285,162 @@ class HealthConnectRepositoryImpl(
     override suspend fun readWeeklyHealth(): WeeklyHealth = readHealthRange(7)
 
     override suspend fun readHealthRange(days: Int): WeeklyHealth = withContext(ioDispatcher) {
+        val core = readCoreHistory(days)
+        WeeklyHealth(
+            dailySteps            = core.days.map { DailySteps(it.date, it.steps ?: 0L) },
+            dailyRestingHeartRate = core.days.map { DailyRestingHeartRate(it.date, it.restingHeartRate) },
+            restingHeartRate      = core.periodRestingHeartRate,
+        )
+    }
+
+    override suspend fun readHealthHistory(days: Int): HealthHistory = withContext(ioDispatcher) {
         val zone = ZoneId.systemDefault()
+        val core = readCoreHistory(days)
+        val range = periodRange(days, zone)
+
+        // De valfria typerna (HLS-8) läses bara om behörigheten faktiskt beviljats — en
+        // nekad valfri behörighet ska ge en lucka i just det diagrammet, inte ett fel.
+        val granted = runCatching { client.permissionController.getGrantedPermissions() }
+            .getOrDefault(emptySet())
+
+        val exercise = mostCompleteExerciseByDay(
+            readIfGranted(ExerciseSessionRecord::class, range.filter, granted).map {
+                OriginDaySession(
+                    origin   = it.metadata.dataOrigin.packageName,
+                    time     = it.startTime,
+                    duration = Duration.between(it.startTime, it.endTime),
+                )
+            },
+            zone,
+        )
+        val activeEnergy = mostCompleteSumByDay(
+            readIfGranted(ActiveCaloriesBurnedRecord::class, range.filter, granted).map {
+                OriginSample(it.metadata.dataOrigin.packageName, it.startTime, it.energy.inKilocalories)
+            },
+            zone,
+        )
+        val distance = mostCompleteSumByDay(
+            readIfGranted(DistanceRecord::class, range.filter, granted).map {
+                OriginSample(it.metadata.dataOrigin.packageName, it.startTime, it.distance.inMeters)
+            },
+            zone,
+        )
+        // Syremättnaden mäts framför allt under sömnen; provets egen tidpunkt daterar det,
+        // vilket ger samma datum som natten (som dateras efter sitt slut).
+        val oxygen = averageByDay(
+            readIfGranted(OxygenSaturationRecord::class, range.filter, granted)
+                .map { TimedValue(it.time, it.percentage.value) },
+            zone,
+        )
+        // Blodtryck mäts sporadiskt — dygnets senaste mätning, ingen utfyllnad mellan
+        // dagarna. Serien blir mest luckor, och det är den korrekta bilden.
+        val bloodPressure = readIfGranted(BloodPressureRecord::class, range.filter, granted)
+            .groupBy { it.time.atZone(zone).toLocalDate() }
+            .mapValues { (_, day) ->
+                day.maxBy { it.time }.let {
+                    BloodPressure(
+                        systolic  = it.systolic.inMillimetersOfMercury.roundToInt(),
+                        diastolic = it.diastolic.inMillimetersOfMercury.roundToInt(),
+                    )
+                }
+            }
+
+        HealthHistory(
+            days = core.days.map { day ->
+                day.copy(
+                    exerciseSessions    = exercise[day.date]?.sessions ?: 0,
+                    exerciseDuration    = exercise[day.date]?.duration,
+                    activeEnergyKcal    = activeEnergy[day.date],
+                    distanceMeters      = distance[day.date],
+                    oxygenSaturationAvg = oxygen[day.date],
+                    bloodPressure       = bloodPressure[day.date],
+                )
+            },
+        )
+    }
+
+    /** Perioden som både ett datumintervall och Health Connects eget filter. */
+    private data class PeriodRange(val dates: List<LocalDate>, val filter: TimeRangeFilter)
+
+    private fun periodRange(days: Int, zone: ZoneId): PeriodRange {
         val today = LocalDate.now(zone)
+        val dates = ((days - 1).toLong() downTo 0L).map { today.minusDays(it) }
+        return PeriodRange(
+            dates  = dates,
+            filter = TimeRangeFilter.between(dates.first().atStartOfDay(zone).toInstant(), Instant.now()),
+        )
+    }
+
+    /** Kärnhistoriken plus periodens vilopuls — se [readCoreHistory]. */
+    private data class CoreHistory(val days: List<DailyHealth>, val periodRestingHeartRate: Long?)
+
+    /**
+     * Kärndatapunkterna (HLS-2) per dygn: steg, dygnssnittspuls, vilopuls, sömnlängd och
+     * sömnstadier. Varje posttyp läses **en gång** över hela perioden och fördelas per dygn
+     * av rena funktioner — den gamla varianten gjorde en läsning per dag och typ, vilket
+     * blev tusentals anrop över ett år (HLS-12).
+     *
+     * Delas av [readHealthRange] (TRD-11) och [readHealthHistory], så steg och vilopuls
+     * aldrig kan skilja sig mellan Trenders diagram och hälsohistoriken.
+     */
+    private suspend fun readCoreHistory(days: Int): CoreHistory {
+        val zone = ZoneId.systemDefault()
+        val range = periodRange(days, zone)
+        val rangeStart = range.dates.first().atStartOfDay(zone).toInstant()
         val now = Instant.now()
 
-        val rangeStart = today.minusDays((days - 1).toLong()).atStartOfDay(zone).toInstant()
-        val fullRange = TimeRangeFilter.between(rangeStart, now)
-        val restingHrRecords = readAllRecords(RestingHeartRateRecord::class, fullRange)
+        val steps = mostCompleteSumByDay(
+            readAllRecords(StepsRecord::class, range.filter).map {
+                OriginSample(it.metadata.dataOrigin.packageName, it.startTime, it.count.toDouble())
+            },
+            zone,
+        )
 
-        // Sömnfönstren för hela perioden läses en gång och används för att sålla bort
-        // nattens pulsprover ur vilopulsskattningen (se estimateRestingHeartRate).
-        // Startgränsen backas ett dygn så att en session som börjar kvällen före
-        // periodens start — eller korsar midnatt inne i perioden — täcker båda dygnen.
-        val sleepWindows = readAllRecords(
+        val bpm = timedBpmForRange(range.filter)
+        val recordedRestingHr = readAllRecords(RestingHeartRateRecord::class, range.filter)
+            .map { TimedBpm(it.time, it.beatsPerMinute) }
+
+        // Sömnfönstren för hela perioden läses en gång och används både till nattens
+        // längd/stadier och till att sålla bort nattens pulsprover ur vilopulsskattningen
+        // (se estimateRestingHeartRate). Startgränsen backas ett dygn så att en session som
+        // börjar kvällen före periodens start — eller korsar midnatt inne i perioden —
+        // täcker båda dygnen.
+        val sessions = readAllRecords(
             SleepSessionRecord::class,
             TimeRangeFilter.between(rangeStart.minus(Duration.ofHours(24)), now),
-        ).map { SleepWindow(it.startTime, it.endTime) }
+        )
+        val sleepWindows = sessions.map { SleepWindow(it.startTime, it.endTime) }
+        val nights = longestNightPerDay(sessions.map { it.toNightSession() }, zone)
 
-        val daily = ((days - 1).toLong() downTo 0L).map { back ->
-            val day = today.minusDays(back)
-            val start = day.atStartOfDay(zone).toInstant()
-            val rawEnd = day.plusDays(1).atStartOfDay(zone).toInstant()
-            val end = if (rawEnd.isAfter(now)) now else rawEnd
-            val dayRange = TimeRangeFilter.between(start, end)
+        val restingHr = restingHeartRateByDay(recordedRestingHr, bpm, sleepWindows, zone)
+        val heartRateAvg = averageBpmByDay(bpm, zone)
 
-            val steps = stepsForRange(dayRange)
-
-            // Vilopuls för dagen till trenddiagrammet: senaste registrerade
-            // RestingHeartRateRecord den dagen, annars skattad från dagens egna
-            // HeartRateRecord-prover (samma fallback-princip som periodvärdet nedan,
-            // fast per dag — grövre med få prover men tillräckligt för en trendlinje).
-            val dayRestingHr = restingHrRecords
-                .filter { !it.time.isBefore(start) && it.time.isBefore(end) }
-                .maxByOrNull { it.time }
-                ?.beatsPerMinute
-                ?: estimateRestingHeartRate(
-                    timedBpmForRange(dayRange),
-                    sleepWindows,
-                )
-
-            DailySteps(day, steps) to DailyRestingHeartRate(day, dayRestingHr)
+        val days = range.dates.map { date ->
+            val night = nights[date]
+            DailyHealth(
+                date             = date,
+                steps            = steps[date]?.roundToLong()?.takeIf { it > 0 },
+                restingHeartRate = restingHr[date],
+                heartRateAvg     = heartRateAvg[date],
+                sleepDuration    = night?.duration?.takeIf { !it.isZero },
+                sleepStages      = night?.let { summarizeSleepStages(it.stages) } ?: SleepStages(),
+            )
         }
 
         // Senaste vilopuls i perioden (Idag-kortets StatPill) — det senaste registrerade
-        // värdet, eller en skattning från periodens pulsprover om posten saknas
-        // (fler prover ger en säkrare percentil än en enskild dags).
-        val restingHr = restingHrRecords.maxByOrNull { it.time }?.beatsPerMinute
-            ?: estimateRestingHeartRate(timedBpmForRange(fullRange), sleepWindows)
+        // värdet, eller en skattning från periodens pulsprover om posten saknas (fler prover
+        // ger en säkrare percentil än en enskild dags).
+        val periodRestingHr = recordedRestingHr.maxByOrNull { it.time }?.bpm
+            ?: estimateRestingHeartRate(bpm, sleepWindows)
 
-        WeeklyHealth(
-            dailySteps = daily.map { it.first },
-            dailyRestingHeartRate = daily.map { it.second },
-            restingHeartRate = restingHr,
-        )
+        return CoreHistory(days = days, periodRestingHeartRate = periodRestingHr)
     }
+
+    private fun SleepSessionRecord.toNightSession() = NightSession(
+        start  = startTime,
+        end    = endTime,
+        stages = this.stages.map { StageSlice(it.stage, Duration.between(it.startTime, it.endTime)) },
+    )
 
     override suspend fun readSleepMeasurements(nights: Int): SleepMeasurements? = withContext(ioDispatcher) {
         val now = Instant.now()
@@ -376,6 +505,72 @@ class HealthConnectRepositoryImpl(
             baselineRestingHeartRate = baselineHr,
         )
     }
+
+    override suspend fun readSleepMeasurementsHistory(nights: Int): List<NightlySleepMeasurements> =
+        withContext(ioDispatcher) {
+            val zone = ZoneId.systemDefault()
+            val now = Instant.now()
+            val periodStart = now.minus(Duration.ofDays(nights.toLong()))
+
+            // Startgränsen backas ett dygn så en session som börjar kvällen före perioden
+            // ändå kommer med i sin helhet (samma princip som vilopulsskattningen).
+            val sessions = readAllRecords(
+                SleepSessionRecord::class,
+                TimeRangeFilter.between(periodStart.minus(Duration.ofHours(24)), now),
+            )
+            val nightsByDay = longestNightPerDay(sessions.map { it.toNightSession() }, zone)
+                .filterValues { !it.end.isBefore(periodStart) }
+            if (nightsByDay.isEmpty()) return@withContext emptyList()
+
+            val ordered = nightsByDay.entries.sortedBy { it.key }
+            // Regelbundenheten är rullande (HLS-13): varje natt bär spridningen över de
+            // nätter som slutar med den, inte ett gemensamt värde för hela perioden.
+            val rollingSd = rollingMidpointSdMinutes(
+                ordered.map { midpointOf(SleepWindow(it.value.start, it.value.end), zone) },
+                DEFAULT_SLEEP_QUALITY_NIGHTS,
+            )
+
+            // Ett svep över periodens pulsprover räcker till både varje natts sovpuls och
+            // den gemensamma vakna baslinjen som de jämförs mot.
+            val sleepWindows = sessions.map { SleepWindow(it.startTime, it.endTime) }
+            val samples = timedBpmForRange(TimeRangeFilter.between(periodStart, now))
+            val baselineHr = estimateRestingHeartRate(samples, sleepWindows)
+
+            val granted = runCatching { client.permissionController.getGrantedPermissions() }
+                .getOrDefault(emptySet())
+            val spo2 = readIfGranted(
+                OxygenSaturationRecord::class,
+                TimeRangeFilter.between(periodStart, now),
+                granted,
+            ).map { TimedValue(it.time, it.percentage.value) }
+
+            ordered.mapIndexed { index, (date, night) ->
+                val window = SleepWindow(night.start, night.end)
+                val summary = summarizeSleepStages(night.stages)
+                NightlySleepMeasurements(
+                    date = date,
+                    measurements = SleepMeasurements(
+                        timeInBed = Duration.between(night.start, night.end),
+                        awake = summary.awake,
+                        deep = summary.deep,
+                        rem = summary.rem,
+                        midpointSdMinutes = rollingSd[index],
+                        meanOxygenSaturation = spo2
+                            .filter { window.contains(it.time) }
+                            .map { it.value }
+                            .takeIf { it.isNotEmpty() }
+                            ?.average(),
+                        sleepingHeartRate = samples
+                            .filter { window.contains(it.time) }
+                            .map { it.bpm }
+                            .takeIf { it.isNotEmpty() }
+                            ?.average()
+                            ?.roundToLong(),
+                        baselineRestingHeartRate = baselineHr,
+                    ),
+                )
+            }
+        }
 }
 
 /**
@@ -392,10 +587,112 @@ internal fun nightlyMidpoints(windows: List<SleepWindow>, zone: ZoneId): List<Lo
         .groupBy { it.end.atZone(zone).toLocalDate() }
         .values
         .mapNotNull { night -> night.maxByOrNull { Duration.between(it.start, it.end) } }
-        .map { window ->
-            val middle = window.start.plus(Duration.between(window.start, window.end).dividedBy(2))
-            middle.atZone(zone).toLocalTime()
+        .map { midpointOf(it, zone) }
+
+/** Sömnfönstrets mittpunkt som klockslag — delas av regelbundenhetsmåtten (HLS-10/HLS-13). */
+internal fun midpointOf(window: SleepWindow, zone: ZoneId): LocalTime =
+    window.start
+        .plus(Duration.between(window.start, window.end).dividedBy(2))
+        .atZone(zone)
+        .toLocalTime()
+
+/** Ett tidsstämplat mätvärde utan källa (syremättnad, blodtryck). */
+internal data class TimedValue(val time: Instant, val value: Double)
+
+/** En tidsstämplad mängd knuten till sin källa — underlag för dygnsfördelningen (HLS-12). */
+internal data class OriginSample(val origin: String, val time: Instant, val amount: Double)
+
+/** Ett träningspass knutet till sin källa och sin tidpunkt. */
+internal data class OriginDaySession(val origin: String, val time: Instant, val duration: Duration)
+
+/**
+ * En sömnsession reducerad till det historiken behöver, utan SDK-typer (regel 2).
+ */
+internal data class NightSession(val start: Instant, val end: Instant, val stages: List<StageSlice>) {
+    val duration: Duration get() = Duration.between(start, end)
+}
+
+/**
+ * Fördelar [samples] per dygn efter postens **starttid** och väljer den mest kompletta
+ * källan för varje dygn — samma per-källa-princip som [mostCompleteSum] (HLS-2/HLS-8),
+ * fast tillämpad dag för dag. Dygn utan poster saknas i kartan i stället för att bli 0.
+ *
+ * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
+ */
+internal fun mostCompleteSumByDay(samples: List<OriginSample>, zone: ZoneId): Map<LocalDate, Double> =
+    samples
+        .groupBy { it.time.atZone(zone).toLocalDate() }
+        .mapNotNull { (date, day) ->
+            mostCompleteSum(day.map { OriginAmount(it.origin, it.amount) })?.let { date to it }
         }
+        .toMap()
+
+/**
+ * Som [mostCompleteSumByDay], fast för träningspass: den källa som har längst sammanlagd
+ * passtid det dygnet vinner, så ett pass som både telefonen och klockan skrivit inte
+ * räknas två gånger (HLS-8).
+ *
+ * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
+ */
+internal fun mostCompleteExerciseByDay(
+    sessions: List<OriginDaySession>,
+    zone: ZoneId,
+): Map<LocalDate, ExerciseTotals> =
+    sessions
+        .groupBy { it.time.atZone(zone).toLocalDate() }
+        .mapNotNull { (date, day) ->
+            mostCompleteExercise(day.map { OriginSession(it.origin, it.duration) })?.let { date to it }
+        }
+        .toMap()
+
+/** Dygnets medelvärde av ett tidsstämplat mätvärde (t.ex. syremättnad). */
+internal fun averageByDay(values: List<TimedValue>, zone: ZoneId): Map<LocalDate, Double> =
+    values
+        .groupBy { it.time.atZone(zone).toLocalDate() }
+        .mapValues { (_, day) -> day.map { it.value }.average() }
+
+/** Dygnets snittpuls, avrundad till heltal (HLS-12). */
+internal fun averageBpmByDay(samples: List<TimedBpm>, zone: ZoneId): Map<LocalDate, Long> =
+    samples
+        .groupBy { it.time.atZone(zone).toLocalDate() }
+        .mapValues { (_, day) -> day.map { it.bpm }.average().roundToLong() }
+
+/**
+ * Vilopuls per dygn (HLS-7, per dag): dygnets senast registrerade [RestingHeartRateRecord]
+ * i första hand, annars en skattning från dygnets egna pulsprover. Samma fallback-princip
+ * som periodvärdet, fast per dag — grövre med få prover, men tillräckligt för en trendlinje.
+ *
+ * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
+ */
+internal fun restingHeartRateByDay(
+    recorded: List<TimedBpm>,
+    samples: List<TimedBpm>,
+    sleepWindows: List<SleepWindow>,
+    zone: ZoneId,
+): Map<LocalDate, Long> {
+    val estimated = samples
+        .groupBy { it.time.atZone(zone).toLocalDate() }
+        .mapNotNull { (date, day) -> estimateRestingHeartRate(day, sleepWindows)?.let { date to it } }
+        .toMap()
+    val measured = recorded
+        .groupBy { it.time.atZone(zone).toLocalDate() }
+        .mapValues { (_, day) -> day.maxBy { it.time }.bpm }
+    // Ett registrerat värde slår alltid skattningen för samma dygn.
+    return estimated + measured
+}
+
+/**
+ * En natt per dygn, daterad efter sessionens **slut** — en session som korsar midnatt hör
+ * till morgonens datum, samma regel som [nightlyMidpoints]. Flera sessioner samma natt
+ * (Samsung delar ibland en avbruten sömn i två) reduceras till den längsta, så natten inte
+ * räknas som två kortare.
+ *
+ * Ren funktion (inga SDK-beroenden) för enhetstestning (regel 2).
+ */
+internal fun longestNightPerDay(sessions: List<NightSession>, zone: ZoneId): Map<LocalDate, NightSession> =
+    sessions
+        .groupBy { it.end.atZone(zone).toLocalDate() }
+        .mapValues { (_, night) -> night.maxBy { it.duration } }
 
 /** En stegpost knuten till sin källa (dataOrigin-paketnamn). */
 internal data class OriginSteps(val origin: String, val count: Long)
