@@ -283,6 +283,7 @@ private fun VidBehovChecklistSection(vidBehov: VidBehovBinding) {
         FavoriterRow(
             favoriter        = vidBehov.favoriter,
             others           = vidBehov.others,
+            recept           = vidBehov.recept,
             onTap            = vidBehov.onTap,
             onEdit           = vidBehov.onEdit,
             onDelete         = { deleteTarget = it },

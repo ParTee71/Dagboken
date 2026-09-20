@@ -19,9 +19,11 @@ import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
 import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.domain.model.asVidBehovFavorit
 import se.partee71.dagboken.domain.model.medicinHistoryType
 import se.partee71.dagboken.domain.usecase.LogVidBehovDosUseCase
 import se.partee71.dagboken.domain.usecase.VidBehovLogResult
+import java.time.LocalDate
 import javax.inject.Inject
 
 data class CooldownWarning(val favorit: Favorit, val remainingHours: Double)
@@ -62,6 +64,21 @@ class MedicinerViewModel @Inject constructor(
     val otherFavoriter: StateFlow<List<Favorit>> = repo.allFavoriter
         .map { list -> list.filterNot { it.isFavorite } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * Aktiva recept som vid behov-snabbval (FAV-11) — "Fler"-listan på Idag ska nå alla
+     * mediciner, inte bara dem som lagts upp som favoriter. Ett recept vars namn redan
+     * finns som favorit utelämnas, annars skulle samma medicin stå två gånger i listan.
+     */
+    val receptVidBehov: StateFlow<List<Favorit>> =
+        combine(repo.allRecept, repo.allFavoriter) { recept, favoriter ->
+            val favoritNamn = favoriter.mapTo(HashSet()) { it.namn.lowercase() }
+            val today = LocalDate.now()
+            recept
+                .filter { it.aktiv && it.namn.lowercase() !in favoritNamn }
+                .map { it.asVidBehovFavorit(today) }
+                .sortedBy { it.namn.lowercase() }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val allMediciner: StateFlow<List<Medicin>> = repo.allMediciner
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

@@ -83,10 +83,12 @@ class IdagChecklistCardTest {
 
     private fun vidBehovBinding(
         favoriter: List<Favorit> = emptyList(),
+        recept: List<Favorit> = emptyList(),
         onTap: (Favorit) -> Unit = {},
     ) = VidBehovBinding(
         favoriter        = favoriter,
         others           = emptyList(),
+        recept           = recept,
         notes            = emptyMap(),
         onTap            = onTap,
         onEdit           = {},
@@ -280,6 +282,32 @@ class IdagChecklistCardTest {
             },
         )
         assertEquals(ipren, tapped)
+    }
+
+    // ─── Recept i "Fler"-listan (FAV-11) ──────────────────────────────────────
+
+    @Test fun tapping_a_recept_in_the_more_list_logs_a_vid_behov_dose() {
+        var tapped: Favorit? = null
+        val metformin = favorit("Metformin").copy(id = "recept:r1", isFavorite = false)
+        render(
+            content = card(
+                vidBehov = vidBehovBinding(
+                    favoriter = listOf(favorit("Ipren")),
+                    recept    = listOf(metformin),
+                    onTap     = { tapped = it },
+                ),
+            ),
+            assertions = {
+                tapped = null
+                composeRule.onNodeWithText("Fler (1)").performScrollTo().performClick()
+                composeRule.waitUntil(5000) {
+                    composeRule.onAllNodesWithText("Metformin — 400 mg").fetchSemanticsNodes().isNotEmpty()
+                }
+                composeRule.onNodeWithText("Metformin — 400 mg").performClick()
+                composeRule.waitUntil(5000) { tapped != null }
+            },
+        )
+        assertEquals(metformin, tapped)
     }
 
     // ─── Datumnavigering (#114) ───────────────────────────────────────────────

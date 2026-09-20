@@ -7,6 +7,7 @@ import se.partee71.dagboken.domain.Timestamps
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
+import se.partee71.dagboken.domain.model.RECEPT_VIDBEHOV_ID_PREFIX
 import se.partee71.dagboken.ui.formatTime
 import java.time.LocalDate
 import java.time.LocalTime
@@ -62,10 +63,17 @@ class LogVidBehovDosUseCase @Inject constructor(
                 tagenTid = tid,
             ),
         )
-        // En favorits anteckning är ett standardvärde som förs vidare till varje dos som loggas från den.
-        val favoritNote = noteRepo.observe(NoteTarget.FAVORIT, favorit.id).first()
-        if (favoritNote.isNotBlank()) {
-            noteRepo.save(NoteTarget.MEDICATION, medicinId, favoritNote)
+        // Källans anteckning är ett standardvärde som förs vidare till varje dos som loggas
+        // från den (MED-11/REC-1) — favoritens, eller receptets när dosen loggas från ett
+        // receptsnabbval (FAV-11), vars id bär receptets id bakom prefixet.
+        val (noteTarget, noteId) = if (favorit.id.startsWith(RECEPT_VIDBEHOV_ID_PREFIX)) {
+            NoteTarget.RECEPT to favorit.id.removePrefix(RECEPT_VIDBEHOV_ID_PREFIX)
+        } else {
+            NoteTarget.FAVORIT to favorit.id
+        }
+        val kallansNote = noteRepo.observe(noteTarget, noteId).first()
+        if (kallansNote.isNotBlank()) {
+            noteRepo.save(NoteTarget.MEDICATION, medicinId, kallansNote)
         }
         return VidBehovLogResult.Logged
     }

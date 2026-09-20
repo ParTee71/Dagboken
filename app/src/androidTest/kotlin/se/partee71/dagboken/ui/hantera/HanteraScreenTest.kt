@@ -11,6 +11,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -104,6 +105,8 @@ class HanteraScreenTest {
         onOpenSjukdomar: () -> Unit = {},
         onOpenSchema: () -> Unit = {},
         onOpenHalsa: () -> Unit = {},
+        onAddFavorit: () -> Unit = {},
+        onEditFavorit: (String) -> Unit = {},
     ) {
         scenario.onActivity {
             it.setContent {
@@ -113,6 +116,8 @@ class HanteraScreenTest {
                         onOpenSjukdomar = onOpenSjukdomar,
                         onOpenSchema = onOpenSchema,
                         onOpenHalsa = onOpenHalsa,
+                        onAddFavorit = onAddFavorit,
+                        onEditFavorit = onEditFavorit,
                         vm = vm,
                     )
                 }
@@ -368,25 +373,32 @@ class HanteraScreenTest {
         }
     }
 
+    private fun saveParacetamol() = runBlocking {
+        medicinerRepo.saveFavorit(
+            Favorit(
+                id = "fav1", namn = "Paracetamol", dos = "500", enhet = "mg",
+                tidpunkt = "Vid behov", minTidMellan = 0,
+                isFavorite = false,
+            )
+        )
+    }
+
+    private fun awaitVidBehovRow(namn: String) {
+        composeRule.waitUntil(20_000) {
+            composeRule.onAllNodes(hasText(namn)).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
     @Test fun vidBehov_section_lists_existing_med_and_toggles_favorite() = retryOnRenderGlitch {
         setUp()
         try {
-            runBlocking {
-                medicinerRepo.saveFavorit(
-                    Favorit(
-                        id = "fav1", namn = "Paracetamol", dos = "500", enhet = "mg",
-                        tidpunkt = "Vid behov", minTidMellan = 0,
-                        isFavorite = false,
-                    )
-                )
-            }
+            saveParacetamol()
             setContent()
             navigateToVidBehovSection()
-            composeRule.waitUntil(20_000) {
-                composeRule.onAllNodes(hasText("Paracetamol")).fetchSemanticsNodes().isNotEmpty()
-            }
-            // Hela raden växlar favoritmarkeringen sedan #203 — stjärnan är indikator.
-            composeRule.onNodeWithText("Paracetamol").performScrollTo().performClick()
+            awaitVidBehovRow("Paracetamol")
+            // Stjärnan är radens inline-direktkontroll; tryck på raden öppnar redigering (SET-10).
+            composeRule.onAllNodes(hasContentDescription("Favoritmarkera")).onFirst()
+                .performScrollTo().performClick()
             composeRule.waitUntil(20_000) {
                 runBlocking { medicinerRepo.getFavoritById("fav1")?.isFavorite == true }
             }
@@ -394,6 +406,63 @@ class HanteraScreenTest {
             assert(updated?.isFavorite == true) {
                 "Expected isFavorite=true after toggling, got ${updated?.isFavorite}"
             }
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun vidBehov_row_tap_opens_the_med_for_editing() = retryOnRenderGlitch {
+        setUp()
+        try {
+            saveParacetamol()
+            var edited: String? = null
+            setContent(onEditFavorit = { edited = it })
+            navigateToVidBehovSection()
+            awaitVidBehovRow("Paracetamol")
+            composeRule.onNodeWithText("Paracetamol").performScrollTo().performClick()
+            composeRule.waitUntil(20_000) { edited != null }
+            assert(edited == "fav1") { "Expected edit of fav1, got $edited" }
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun vidBehov_section_has_an_add_button() = retryOnRenderGlitch {
+        setUp()
+        try {
+            var added = false
+            setContent(onAddFavorit = { added = true })
+            navigateToVidBehovSection()
+            composeRule.onNodeWithText("Ny vid behov-medicin").performScrollTo().performClick()
+            composeRule.waitUntil(20_000) { added }
+            assert(added) { "Expected onAddFavorit to be called" }
+        } finally {
+            tearDown()
+        }
+    }
+
+    @Test fun vidBehov_row_menu_deletes_the_med_after_confirmation() = retryOnRenderGlitch {
+        setUp()
+        try {
+            saveParacetamol()
+            setContent()
+            navigateToVidBehovSection()
+            awaitVidBehovRow("Paracetamol")
+            composeRule.onAllNodes(hasContentDescription("Alternativ")).onFirst()
+                .performScrollTo().performClick()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Ta bort")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onAllNodes(hasText("Ta bort")).onFirst().performClick()
+            composeRule.waitUntil(20_000) {
+                composeRule.onAllNodes(hasText("Ta bort favorit?")).fetchSemanticsNodes().isNotEmpty()
+            }
+            composeRule.onAllNodes(hasText("Ta bort") and isEnabled()).onLast().performClick()
+            composeRule.waitUntil(20_000) {
+                runBlocking { medicinerRepo.getFavoritById("fav1") == null }
+            }
+            val removed = runBlocking { medicinerRepo.getFavoritById("fav1") }
+            assert(removed == null) { "Expected favorit to be deleted, got $removed" }
         } finally {
             tearDown()
         }

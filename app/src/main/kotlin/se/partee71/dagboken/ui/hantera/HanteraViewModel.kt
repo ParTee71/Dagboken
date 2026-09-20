@@ -77,6 +77,11 @@ class HanteraViewModel @Inject constructor(
         viewModelScope.launch { medicinerRepo.setFavoritFavorite(favorit.id, !favorit.isFavorite) }
     }
 
+    /** Tar bort en vid behov-medicin från Hantera (SET-10). */
+    fun deleteMedicinFavorit(favorit: Favorit) {
+        viewModelScope.launch { medicinerRepo.deleteFavorit(favorit) }
+    }
+
     private val _isSigningIn        = MutableStateFlow(false)
     // Bara "misslyckades" — inte SDK:ns råa (engelska, tekniska) meddelande. UI-lagret
     // visar en svensk strängresurs i stället.

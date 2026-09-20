@@ -259,6 +259,8 @@ fun AppNavigation(
                     onOpenSjukdomar  = { navController.navigate(Routes.SJUKDOMAR) { launchSingleTop = true } },
                     onOpenSchema     = { navController.navigate(Routes.SCHEMA) { launchSingleTop = true } },
                     onOpenHalsa      = { navController.navigate(Routes.HALSA) { launchSingleTop = true } },
+                    onAddFavorit     = { navController.navigate(Routes.ADD_FAVORIT) { launchSingleTop = true } },
+                    onEditFavorit    = { id -> navController.navigate(Routes.editFavorit(id)) { launchSingleTop = true } },
                 )
             }
             composable(Routes.HALSA) {

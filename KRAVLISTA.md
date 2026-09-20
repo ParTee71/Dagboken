@@ -163,7 +163,7 @@
 | ID | Krav |
 |----|------|
 | FAV-1 | Användaren ska kunna skapa **favoriter** (vid-behov-mediciner) med namn, dos, enhet, tidpunkt och en anteckning (delad `NoteField`-komponent), via "+"-FAB på Idag-skärmen. |
-| FAV-2 | Endast **favoritmarkerade** favoriter visas som tryckbara kort (chips) i Idag-skärmens vid behov-kort; **tryck loggar en dos** direkt. Icke-favoritmarkerade favoriter nås via en "Fler"-lista i samma kort. |
+| FAV-2 | Endast **favoritmarkerade** favoriter visas som tryckbara kort (chips) i Idag-skärmens vid behov-kort; **tryck loggar en dos** direkt. Icke-favoritmarkerade favoriter nås via en "Fler"-lista i samma kort, tillsammans med receptens mediciner (FAV-11). |
 | FAV-3 | **Långtryck** öppnar meny för redigera/ta bort (med bekräftelsedialog). |
 | FAV-4 | Favorit ska kunna ha **minsta tid mellan doser** (kylperiod i timmar); dos blockeras med kvarvarande tid om för tidigt. |
 | FAV-5 | Favorit ska kunna ha **max antal doser per dag** (0 = obegränsat); dos blockeras vid uppnådd gräns. |
@@ -172,6 +172,7 @@
 | FAV-8 | Långtrycksmenyn ska även kunna växla favoritmarkering, utöver redigera/ta bort. |
 | FAV-9 | En favorit-chip med anteckning ska visa en liten info-ikon; tryck på ikonen visar anteckningen i en läs-only dialog med en Stäng-knapp. |
 | FAV-10 | Långtrycksmenyn ska även innehålla **"Logga i efterhand"**, som öppnar dosformuläret förifyllt från favoriten med redigerbart datum och klockslag (MED-16). |
+| FAV-11 | "Fler"-listan (FAV-2) ska lista **alla** mediciner — utöver de icke favoritmarkerade favoriterna även **de aktiva receptens** mediciner, i en egen avdelning märkt "Recept" — så att en extrados av en receptmedicin går att logga direkt från Idag. Receptets dos visas som den gällande dosen för dagen (REC-12). Ett recept vars namn redan finns som favorit utelämnas, så samma medicin aldrig står två gånger. Dosen loggas som en **vid behov-dos** (tidpunkt "Vid behov", utan receptkoppling) — den är en extrados vid sidan av schemat och ska kunna raderas, inte hoppas över (MED-3). Receptets anteckning ärvs som förval på dosen, på samma sätt som favoritens gör (MED-11/REC-1). Kylperiod (FAV-4) och dagsgräns (FAV-5) hör till favoriten och gäller inte för receptsnabbvalen. |
 
 ### 6.4 Historik-flik ~~(per-flik)~~ *(ersatt av Historik-ytan, §16, sedan navigationsbytet i #84 etapp 4)*
 
@@ -263,7 +264,7 @@
 | SET-7 | Konto (in-/utloggning) ska kunna hanteras från Hantera. |
 | SET-8 | Import/migrering ska kunna startas från Hantera. |
 | SET-9 | **Händelsetypalternativ** ska kunna läggas till, tas bort och stjärnmärkas som favoriter (inga dubbletter). Favoritmarkerade typer visas som en-tryck-chips och övriga i en "Fler typer"-lista i Lägg till/Redigera händelse. |
-| SET-10 | **Vid behov-mediciner** ska kunna stjärnmärkas som favoriter i Hantera (analogt med SET-5); ändringar syns direkt i Idag-skärmens vid behov-kort (HEM-11, §4). |
+| SET-10 | **Vid behov-mediciner** ska kunna **läggas till, ändras, tas bort och stjärnmärkas** som favoriter i Hantera (analogt med SET-5); ändringar syns direkt i Idag-skärmens vid behov-kort (HEM-11, §4). Raden följer radstandarden (NFR-17): tryck öppnar medicinen för redigering i det delade favoritformuläret (FAV-1), långtryck och `⋮` ger menyn (Redigera, favoritmarkering, Ta bort med bekräftelsedialog) och stjärnan är radens inline-direktkontroll. Nya läggs till via sektionens "Ny vid behov-medicin", som öppnar samma formulär — en vid behov-medicin har fler fält än ett namn och skapas därför inte på en inline-rad som alternativlistorna (SET-5/SET-6/SET-9). |
 | SET-11 | Byte av namn på ett aktivitets-, symptom- eller händelsetypalternativ ska följa med till **redan loggade poster** — aktiviteter, screeningar, händelser och sjukdomsincheckningar — så historiken aldrig visar ett namn som inte längre finns i listan. |
 
 ---

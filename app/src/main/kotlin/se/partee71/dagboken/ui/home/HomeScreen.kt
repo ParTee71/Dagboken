@@ -114,10 +114,12 @@ fun HomeScreen(
 
     val favoriteFavoriter by medicinerVm.favoriteFavoriter.collectAsStateWithLifecycle()
     val otherFavoriter by medicinerVm.otherFavoriter.collectAsStateWithLifecycle()
+    val receptVidBehov by medicinerVm.receptVidBehov.collectAsStateWithLifecycle()
     val favoritNotes by medicinerVm.favoritNotes.collectAsStateWithLifecycle()
     val vidBehov = VidBehovBinding(
         favoriter        = favoriteFavoriter,
         others           = otherFavoriter,
+        recept           = receptVidBehov,
         notes            = favoritNotes,
         onTap            = medicinerVm::quickDos,
         onEdit           = onEditFavorit,

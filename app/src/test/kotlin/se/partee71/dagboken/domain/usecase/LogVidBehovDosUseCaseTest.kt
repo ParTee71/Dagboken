@@ -16,6 +16,7 @@ import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
+import se.partee71.dagboken.domain.model.RECEPT_VIDBEHOV_ID_PREFIX
 
 class LogVidBehovDosUseCaseTest {
 
@@ -103,5 +104,14 @@ class LogVidBehovDosUseCaseTest {
         useCase.logDose(favorit())
 
         coVerify(exactly = 0) { noteRepo.save(NoteTarget.MEDICATION, any(), any()) }
+    }
+
+    @Test fun `logDose from a recept quick pick copies the recept's note (FAV-11)`() = runTest {
+        every { noteRepo.observe(NoteTarget.RECEPT, "r1") } returns flowOf("Tas med mat")
+        val receptSnabbval = favorit().copy(id = "${RECEPT_VIDBEHOV_ID_PREFIX}r1")
+
+        useCase.logDose(receptSnabbval)
+
+        coVerify { noteRepo.save(NoteTarget.MEDICATION, any(), "Tas med mat") }
     }
 }

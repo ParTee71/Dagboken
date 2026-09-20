@@ -370,6 +370,12 @@ class HanteraViewModelTest {
         coVerify { medicinerRepo.setFavoritFavorite("f1", false) }
     }
 
+    @Test fun `deleteMedicinFavorit removes the favorit via the repository (SET-10)`() = runTest {
+        val fav = favorit()
+        viewModel.deleteMedicinFavorit(fav)
+        coVerify { medicinerRepo.deleteFavorit(fav) }
+    }
+
     // ─── namnbyte migrerar loggad data (HAN-9) ────────────────────────────────
 
     @Test fun `renameAktivitetOption also renames already logged aktiviteter`() = runTest {
