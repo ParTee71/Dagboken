@@ -34,6 +34,8 @@ data class ScreeningFormBinding(
 data class VidBehovBinding(
     val favoriter: List<Favorit>,
     val others: List<Favorit>,
+    /** Aktiva recept som snabbval i "Fler"-listan (FAV-11). */
+    val recept: List<Favorit> = emptyList(),
     val notes: Map<String, String>,
     val onTap: (Favorit) -> Unit,
     val onEdit: (String) -> Unit,
@@ -42,5 +44,5 @@ data class VidBehovBinding(
     val onLogEfterhand: (String) -> Unit,
 ) {
     /** True när det finns någon vid behov-medicin alls att visa. */
-    val hasAny: Boolean get() = favoriter.isNotEmpty() || others.isNotEmpty()
+    val hasAny: Boolean get() = favoriter.isNotEmpty() || others.isNotEmpty() || recept.isNotEmpty()
 }

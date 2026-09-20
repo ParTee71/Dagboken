@@ -185,3 +185,30 @@ fun tidpunktToHour(tidpunkt: String): Int? {
  */
 fun medicinHistoryType(medicin: Medicin): String =
     if (medicin.receptId != null) "recept" else "vid_behov"
+
+/** Id-prefix för ett recept som visas som vid behov-snabbval (FAV-11). */
+const val RECEPT_VIDBEHOV_ID_PREFIX = "recept:"
+
+/**
+ * Receptet som ett vid behov-snabbval (FAV-11) — så att "Fler"-listan på Idag når även
+ * de mediciner som har ett recept, inte bara de som lagts upp som favoriter.
+ *
+ * Dosen är receptets gällande dos för [date] (REC-12), alltså grunddos plus eventuell
+ * doshöjning. Snabbvalet har varken kylperiod (FAV-4) eller dagsgräns (FAV-5) — de hör
+ * till favoriten, inte receptet — och dosen loggas som "Vid behov" utan `receptId`,
+ * eftersom det är en extrados vid sidan av schemat och inte en av receptets egna doser
+ * (en dos med `receptId` skulle hoppas över i stället för att raderas, MED-3).
+ */
+fun Recept.asVidBehovFavorit(date: LocalDate): Favorit {
+    val (dosForDate, enhetForDate) = dosFor(date)
+    return Favorit(
+        id             = "$RECEPT_VIDBEHOV_ID_PREFIX$id",
+        namn           = namn,
+        dos            = dosForDate,
+        enhet          = enhetForDate,
+        tidpunkt       = "Vid behov",
+        minTidMellan   = 0,
+        maxDoserPerDag = 0,
+        isFavorite     = false,
+    )
+}

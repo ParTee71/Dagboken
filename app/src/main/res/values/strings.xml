@@ -223,6 +223,7 @@
     <string name="favorit_mark_favorite">Favoritmarkera</string>
     <string name="favorit_unmark_favorite">Ta bort favoritmarkering</string>
     <string name="favorit_more_label">Fler (%1$d)</string>
+    <string name="favorit_more_recept_header">Recept</string>
     <string name="cooldown_warning_title">För tidigt</string>
     <string name="format_cooldown_warning_body">Du bör vänta %1$sh %2$sm till för %3$s. Vill du ta ändå?</string>
     <string name="cooldown_take_anyway">Ta ändå</string>
@@ -316,8 +317,9 @@
     <string name="symptom_delete_confirm_title">Ta bort symptom?</string>
     <string name="format_symptom_delete_confirm">"%s" tas bort permanent.</string>
     <string name="settings_vidbehov_section">Vid behov-mediciner</string>
-    <string name="settings_vidbehov_section_desc">Hantera favoritmarkerade vid behov-mediciner</string>
+    <string name="settings_vidbehov_section_desc">Lägg till, ändra och ta bort vid behov-mediciner</string>
     <string name="settings_vidbehov_empty">Inga vid behov-mediciner skapade ännu.</string>
+    <string name="settings_vidbehov_add">Ny vid behov-medicin</string>
     <string name="settings_about_section">Om appen</string>
     <string name="settings_about_section_desc">Version och appinfo</string>
 

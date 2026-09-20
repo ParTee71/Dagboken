@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +42,7 @@ import se.partee71.dagboken.ui.components.NoteIndicatorIcon
 internal fun FavoriterRow(
     favoriter: List<Favorit>,
     others: List<Favorit> = emptyList(),
+    recept: List<Favorit> = emptyList(),
     onTap: (Favorit) -> Unit,
     onEdit: (String) -> Unit,
     onDelete: ((Favorit) -> Unit)? = null,
@@ -143,12 +145,15 @@ internal fun FavoriterRow(
             }
         }
 
-        if (others.isNotEmpty()) {
+        // "Fler"-listan rymmer både de icke favoritmarkerade favoriterna (FAV-2) och
+        // receptens mediciner (FAV-11), så varje medicin går att logga som vid behov-dos
+        // härifrån — inte bara de som lagts upp som favoriter.
+        if (others.isNotEmpty() || recept.isNotEmpty()) {
             var showMore by remember { mutableStateOf(false) }
             Box {
                 AssistChip(
                     onClick = { showMore = true },
-                    label   = { Text(stringResource(R.string.favorit_more_label, others.size)) },
+                    label   = { Text(stringResource(R.string.favorit_more_label, others.size + recept.size)) },
                 )
                 DropdownMenu(
                     expanded = showMore,
@@ -159,6 +164,21 @@ internal fun FavoriterRow(
                             text = { Text("${fav.namn} — ${fav.dos} ${fav.enhet}") },
                             onClick = { showMore = false; onTap(fav) },
                         )
+                    }
+                    if (recept.isNotEmpty()) {
+                        if (others.isNotEmpty()) HorizontalDivider()
+                        Text(
+                            text     = stringResource(R.string.favorit_more_recept_header),
+                            style    = MaterialTheme.typography.labelSmall,
+                            color    = cs.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        )
+                        recept.forEach { fav ->
+                            DropdownMenuItem(
+                                text = { Text("${fav.namn} — ${fav.dos} ${fav.enhet}") },
+                                onClick = { showMore = false; onTap(fav) },
+                            )
+                        }
                     }
                 }
             }

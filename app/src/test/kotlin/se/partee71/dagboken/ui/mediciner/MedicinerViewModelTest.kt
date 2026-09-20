@@ -25,6 +25,9 @@ import se.partee71.dagboken.data.repository.NoteRepository
 import se.partee71.dagboken.domain.model.Favorit
 import se.partee71.dagboken.domain.model.Medicin
 import se.partee71.dagboken.domain.model.NoteTarget
+import se.partee71.dagboken.domain.model.RECEPT_VIDBEHOV_ID_PREFIX
+import se.partee71.dagboken.domain.model.Recept
+import se.partee71.dagboken.domain.model.asVidBehovFavorit
 import se.partee71.dagboken.domain.usecase.CheckCooldownUseCase
 import se.partee71.dagboken.domain.usecase.CheckDailyLimitUseCase
 import se.partee71.dagboken.domain.usecase.LogVidBehovDosUseCase
@@ -373,5 +376,71 @@ class MedicinerViewModelTest {
         coVerify { repo.saveMedicin(capture(slot)) }
         assertEquals(slot.captured.tid, slot.captured.tagenTid)
         assertNotNull(slot.captured.tagenTid)
+    }
+
+    // ─── receptVidBehov (FAV-11) ──────────────────────────────────────────────
+
+    private fun recept(
+        id: String = "r1",
+        namn: String = "Metformin",
+        aktiv: Boolean = true,
+    ) = Recept(
+        id = id, namn = namn, dos = "500", enhet = "mg",
+        tidpunkter = listOf("Morgon"), upprepning = "dagligen", dagar = emptyList(),
+        aktiv = aktiv, skapad = "2026-01-01", startDatum = "2026-01-01",
+    )
+
+    private fun vmWith(recept: List<Recept>, favoriter: List<Favorit>): MedicinerViewModel {
+        val r = mockk<MedicinerRepository>(relaxed = true) {
+            every { todayFlow() } returns flowOf(emptyList())
+            every { allRecept } returns flowOf(recept)
+            every { allFavoriter } returns flowOf(favoriter)
+            every { allMediciner } returns flowOf(emptyList())
+        }
+        return MedicinerViewModel(r, noteRepo, LogVidBehovDosUseCase(r, noteRepo, cooldown, limit))
+    }
+
+    @Test fun `receptVidBehov exposes active recept as vid behov quick picks`() = runTest {
+        val vm2 = vmWith(listOf(recept()), emptyList())
+        val list = vm2.receptVidBehov.first { it.isNotEmpty() }
+        assertEquals(1, list.size)
+        assertEquals("Metformin", list.single().namn)
+        assertEquals("${RECEPT_VIDBEHOV_ID_PREFIX}r1", list.single().id)
+        assertEquals("Vid behov", list.single().tidpunkt)
+    }
+
+    @Test fun `receptVidBehov leaves out inactive recept`() = runTest {
+        val vm2 = vmWith(listOf(recept(id = "r1", namn = "Metformin", aktiv = false), recept(id = "r2", namn = "Levaxin")), emptyList())
+        val list = vm2.receptVidBehov.first { it.isNotEmpty() }
+        assertEquals(listOf("Levaxin"), list.map { it.namn })
+    }
+
+    @Test fun `receptVidBehov leaves out a recept whose name is already a favorit`() = runTest {
+        val vm2 = vmWith(
+            listOf(recept(namn = "Paracetamol"), recept(id = "r2", namn = "Levaxin")),
+            listOf(favorit(namn = "paracetamol")),
+        )
+        val list = vm2.receptVidBehov.first { it.isNotEmpty() }
+        assertEquals(listOf("Levaxin"), list.map { it.namn })
+    }
+
+    @Test fun `receptVidBehov is sorted by name`() = runTest {
+        val vm2 = vmWith(listOf(recept(id = "r1", namn = "Omeprazol"), recept(id = "r2", namn = "Levaxin")), emptyList())
+        val list = vm2.receptVidBehov.first { it.size == 2 }
+        assertEquals(listOf("Levaxin", "Omeprazol"), list.map { it.namn })
+    }
+
+    @Test fun `quickDos on a recept quick pick logs a vid behov dose without receptId`() = runTest {
+        coEvery { repo.countDailyDoses(any(), any()) } returns 0
+        coEvery { repo.getLastTaken(any()) } returns null
+        val slot = io.mockk.slot<Medicin>()
+
+        viewModel.quickDos(recept().asVidBehovFavorit(java.time.LocalDate.now()))
+
+        coVerify { repo.saveMedicin(capture(slot)) }
+        assertEquals("Metformin", slot.captured.namn)
+        assertEquals("Vid behov", slot.captured.tidpunkt)
+        assertNull(slot.captured.receptId)
+        assertTrue(slot.captured.tagen)
     }
 }

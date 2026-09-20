@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -86,9 +85,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -156,6 +152,8 @@ fun HanteraScreen(
     onOpenSjukdomar: () -> Unit,
     onOpenSchema: () -> Unit,
     onOpenHalsa: () -> Unit,
+    onAddFavorit: () -> Unit = {},
+    onEditFavorit: (String) -> Unit = {},
     vm: HanteraViewModel = hiltViewModel(),
 ) {
     val state          by vm.state.collectAsStateWithLifecycle()
@@ -303,6 +301,9 @@ fun HanteraScreen(
                 VidBehovFavoritSettingsCard(
                     favoriter        = medicinFavoriter,
                     onToggleFavorite = vm::toggleMedicinFavorite,
+                    onAdd            = onAddFavorit,
+                    onEdit           = onEditFavorit,
+                    onDelete         = vm::deleteMedicinFavorit,
                 )
             },
             {
@@ -1011,11 +1012,17 @@ private fun OptionSettingsCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun VidBehovFavoritSettingsCard(
     favoriter: List<Favorit>,
     onToggleFavorite: (Favorit) -> Unit,
+    onAdd: () -> Unit,
+    onEdit: (String) -> Unit,
+    onDelete: (Favorit) -> Unit,
 ) {
+    var deleteTarget by remember { mutableStateOf<Favorit?>(null) }
+
     DagbokenCard {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SectionHeader(stringResource(R.string.settings_vidbehov_section))
@@ -1030,29 +1037,59 @@ private fun VidBehovFavoritSettingsCard(
             } else {
                 favoriter.forEachIndexed { index, fav ->
                     if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-                    val favoritState = if (fav.isFavorite) {
-                        stringResource(R.string.favorit_unmark_favorite)
-                    } else {
-                        stringResource(R.string.favorit_mark_favorite)
-                    }
+                    var menuExpanded by remember { mutableStateOf(false) }
+                    // Radstandarden (NFR-17), samma som alternativlistorna ovan: tryck =
+                    // radens primära åtgärd (ändra medicinen), långtryck/⋮ = menyn,
+                    // stjärnan är radens enda inline-direktkontroll.
+                    val actions = listOf(
+                        EntryAction(
+                            label   = stringResource(R.string.edit),
+                            icon    = Icons.Default.Edit,
+                            onClick = { onEdit(fav.id) },
+                        ),
+                        EntryAction(
+                            label   = if (fav.isFavorite) {
+                                stringResource(R.string.favorit_unmark_favorite)
+                            } else {
+                                stringResource(R.string.favorit_mark_favorite)
+                            },
+                            icon    = Icons.Default.Star,
+                            onClick = { onToggleFavorite(fav) },
+                        ),
+                        EntryAction(
+                            label       = stringResource(R.string.delete),
+                            icon        = Icons.Default.Delete,
+                            destructive = true,
+                            onClick     = { deleteTarget = fav },
+                        ),
+                    )
                     Row(
                         modifier          = Modifier
                             .fillMaxWidth()
-                            .clickable(
-                                role         = Role.Checkbox,
-                                onClickLabel = favoritState,
-                            ) { onToggleFavorite(fav) }
-                            .semantics { stateDescription = favoritState },
+                            .combinedClickable(
+                                onClickLabel     = stringResource(R.string.edit),
+                                onLongClickLabel = stringResource(R.string.alternatives),
+                                onLongClick      = { menuExpanded = true },
+                                onClick          = { onEdit(fav.id) },
+                            ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Stjärnan är indikator; hela raden äger åtgärden (NFR-17).
-                        Icon(
-                            Icons.Filled.Star,
-                            contentDescription = null,
-                            tint = if (fav.isFavorite) MaterialTheme.colorScheme.primary
-                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                            modifier = Modifier.padding(14.dp).size(20.dp),
-                        )
+                        IconButton(
+                            onClick  = { onToggleFavorite(fav) },
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Star,
+                                contentDescription = if (fav.isFavorite) {
+                                    stringResource(R.string.favorit_unmark_favorite)
+                                } else {
+                                    stringResource(R.string.favorit_mark_favorite)
+                                },
+                                tint = if (fav.isFavorite) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(fav.namn, style = MaterialTheme.typography.bodyMedium)
                             Text(
@@ -1061,10 +1098,46 @@ private fun VidBehovFavoritSettingsCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        Box {
+                            IconButton(
+                                onClick  = { menuExpanded = true },
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Icon(
+                                    Icons.Default.MoreVert,
+                                    contentDescription = stringResource(R.string.alternatives),
+                                    modifier           = Modifier.size(20.dp),
+                                )
+                            }
+                            EntryActionMenu(
+                                expanded  = menuExpanded,
+                                actions   = actions,
+                                onDismiss = { menuExpanded = false },
+                            )
+                        }
                     }
                 }
             }
+
+            HorizontalDivider()
+            // En vid behov-medicin har fler fält än ett namn (dos, enhet, kylperiod,
+            // dagsgräns), så nya läggs till i det delade formuläret i stället för på en
+            // inline-rad som alternativlistorna ovan.
+            TextButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.settings_vidbehov_add))
+            }
         }
+    }
+
+    deleteTarget?.let { target ->
+        ConfirmDialog(
+            title     = stringResource(R.string.delete_favorit_title),
+            text      = stringResource(R.string.format_delete_favorit_confirm, target.namn),
+            onConfirm = { onDelete(target); deleteTarget = null },
+            onDismiss = { deleteTarget = null },
+        )
     }
 }
 
