@@ -1,5 +1,6 @@
 package se.partee71.dagboken.core.schema
 
+import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -12,42 +13,11 @@ import org.junit.Test
 /** Appens export skrivs i samma format som `tools/db export` (SET-5, BCK-1). */
 class ExportFormatTest {
 
-    /**
-     * Alla fälttyper i exportformatet (text, tal, decimaltal, bool, null, lista, nästlad map,
-     * tidsstämpel, skyddad `__ts`-map). Ersätts av tools/db:s egen testdata när den finns i
-     * Dagboken (etapp 2), så att appen och verktyget bevisligen läser samma fil.
-     */
-    private val fixture = """
-        {
-          "exportedAt": "2026-10-04T10:00:00.000Z",
-          "schemaVersion": 1,
-          "documents": [
-            {
-              "path": "users/uid-test",
-              "data": {
-                "schemaVersion": 1,
-                "createdAt": { "__ts": "2026-09-01T08:15:30.123456000Z" },
-                "framtidaFält": { "okänd": true, "andel": 0.25, "lista": [1, "två", null] }
-              }
-            },
-            {
-              "path": "users/uid-test/options/promenad",
-              "data": {
-                "kind": "activity",
-                "name": "Promenad",
-                "favorite": false,
-                "sortOrder": 3,
-                "note": null,
-                "skyddad": { "__map": { "__ts": "inte en tid" } },
-                "liten": 1.5e-7
-              }
-            }
-          ]
-        }
-    """.trimIndent()
+    /** tools/db:s egen testdata – alla samlingar och fälttyper, exporterad och importerad där. */
+    private val fixture = File("../tools/db/test/fixtures/user.json").readText()
 
     @Test
-    fun `varje dokument i fixturen kommer tillbaka exakt likadant`() {
+    fun `varje dokument i tools-db-testdatan kommer tillbaka exakt likadant`() {
         val documents = Json.parseToJsonElement(fixture).jsonObject.getValue("documents").jsonArray
         val roundTripped = ExportFormat.decode(fixture).map { ExportFormat.document(it) }
         assertEquals(documents.toList(), roundTripped)

@@ -7,9 +7,10 @@ rules_version = '2';
 // (annars nekas den). Deploy från GitHub Actions efter rules-testerna: rules.yml (på begäran)
 // och release.yml (README → Firebase-setup).
 //
-// Etapp 2: fältvalidering per samling (typer per fält, enum-värden, listlängder) läggs till i
-// valid…-funktionerna nedan när codecs och modeller finns i :core – i samma PR som codecen och
-// med rules-test per fält (skill data-safety-backup). Till dess gäller bara de generiska gränserna.
+// Fältvalidering per samling i valid…-funktionerna nedan speglar codecarna i :core
+// (core/schema/*Codecs.kt, ARKITEKTUR.md → Datamodell): typer, intervall, enum-listor och
+// listlängder, med rules-test per fält (tools/db/test/rules.test.mjs). Enum-listorna jämförs med
+// Kotlins WireEnum av RulesEnumsTest i :core.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -30,17 +31,22 @@ service cloud.firestore {
     // Fälttyper. Bara fält som skrivningen ändrar kontrolleras (vid create: alla) – ett värde som
     // redan ligger lagrat med fel typ får inte göra dokumentet omöjligt att spara. Saknat fält
     // eller null är tillåtet (codecen har ett standardvärde) och okända fält får finnas (nyare appar).
+    // Mönstret per fält är `(!('fält' in w) || nullOr…(d.get('fält', null)))` med w = written(),
+    // beräknad en gång i valid…-funktionen (`let w = written()`). Rules räknar högst 1 000 uttryck
+    // per skrivning, så kontrollerna är skrivna så platt som möjligt.
     function written() {
       return resource == null ? request.resource.data.keys().toSet() : request.resource.data.diff(resource.data).affectedKeys();
     }
-    function unchecked(d, k) { return !(k in written()) || d.get(k, null) == null; }
-    function optInt(d, k) { return unchecked(d, k) || d[k] is int; }
-    function optNumber(d, k) { return unchecked(d, k) || d[k] is number; }
-    function optString(d, k) { return unchecked(d, k) || d[k] is string; }
-    function optBool(d, k) { return unchecked(d, k) || d[k] is bool; }
-    function optMap(d, k) { return unchecked(d, k) || d[k] is map; }
-    function optList(d, k) { return unchecked(d, k) || d[k] is list; }
-    function optTime(d, k) { return unchecked(d, k) || d[k] is timestamp; }
+    function nullOrInt(v) { return v == null || v is int; }
+    function nullOrBool(v) { return v == null || v is bool; }
+    function nullOrTime(v) { return v == null || v is timestamp; }
+    function nullOrShort(v) { return v == null || (v is string && v.size() <= maxShort()); }
+    function nullOrLong(v) { return v == null || (v is string && v.size() <= maxLong()); }
+    function nullOrRange(v, lo, hi) { return v == null || (v is int && v >= lo && v <= hi); }
+    function nullOrMin(v, lo) { return v == null || (v is int && v >= lo); }
+    function nullOrIn(v, values) { return v == null || v in values; }
+    function nullOrDate(v) { return v == null || isDate(v); }
+    function nullOrClock(v) { return v == null || isClock(v); }
 
     // Storleksgränser (TP-12) – skyddar kvoten. Som typerna kontrolleras de bara på fält som
     // skrivs, så att ett redan lagrat för stort värde inte låser dokumentet.
@@ -48,11 +54,106 @@ service cloud.firestore {
     function maxShort() { return 200; }
     function maxLong() { return 2000; }
     function maxFields() { return 40; }
-    function shortText(d, k) { return optString(d, k) && (unchecked(d, k) || d[k].size() <= maxShort()); }
-    function longText(d, k) { return optString(d, k) && (unchecked(d, k) || d[k].size() <= maxLong()); }
-    function shortList(d, k, n) { return optList(d, k) && (unchecked(d, k) || d[k].size() <= n); }
     // Fler fält än maxFields() bara om dokumentet redan hade så många (från en nyare app eller verktygen).
     function fieldCount(d) { return d.size() <= maxFields() || (resource != null && d.size() <= resource.data.size()); }
+
+    // Värden. `none(m, k)`: fältet i ett nästlat objekt saknas eller är null – nästlade objekt
+    // kontrolleras i sin helhet när de skrivs.
+    function none(m, k) { return m.get(k, null) == null; }
+    function isShort(v) { return v is string && v.size() <= maxShort(); }
+    function isLong(v) { return v is string && v.size() <= maxLong(); }
+    function inRange(v, lo, hi) { return v is int && v >= lo && v <= hi; }
+    function atLeast(v, lo) { return v is int && v >= lo; }
+    // Datum `yyyy-MM-dd` och klockslag `HH:mm` som text (DAT-2), som codecarna skriver dem.
+    function isDate(v) { return v is string && v.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'); }
+    function isClock(v) { return v is string && v.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'); }
+    function isEnumList(v, values, n) { return v is list && v.size() <= n && v.hasOnly(values); }
+
+    // Enum-värdena (WireEnum.wire i :core; RulesEnumsTest håller dem lika). Ett nytt värde kräver
+    // höjd schemaVersion (skill data-safety-backup).
+    function optionKinds() { return ['activity', 'symptom', 'event']; }
+    function slots() { return ['morning', 'midmorning', 'lunch', 'afternoon', 'evening', 'night', 'asNeeded']; }
+    function scheduledSlots() { return ['morning', 'midmorning', 'lunch', 'afternoon', 'evening', 'night']; }
+    function doseStatuses() { return ['planned', 'taken', 'skipped']; }
+    function occasions() { return ['breakfast', 'lunch', 'dinner', 'bedtime']; }
+    function repeats() { return ['daily', 'weekdays', 'weekends', 'custom', 'interval']; }
+    function themeModes() { return ['light', 'dark', 'auto']; }
+    function sexes() { return ['male', 'female', 'unspecified']; }
+
+    // Listor av objekt. Rules kan inte loopa och räknar högst 1 000 uttryck per skrivning, så hela
+    // listan kontrolleras som lista med tak, men elementen bara upp till det tionde (nästlat, så att
+    // resten hoppas över när listan tar slut). Taket är generöst så att en 3.x-post aldrig nekas;
+    // codecen läser trasiga element tolerant (skill data-safety-backup). Elementkontrollen kräver
+    // alla fält, som codecen alltid skriver.
+    function maxSymptoms() { return 50; }
+    function maxBoosts() { return 50; }
+
+    // Ett symptom (DAT-6): {optionId, score 0–10, customText}.
+    function isSymptom(s) {
+      return s.optionId is string && s.score is int && s.score >= 0 && s.score <= 10
+        && (s.customText == null || s.customText is string);
+    }
+    function isSymptoms(l) {
+      let n = l is list ? l.size() : maxSymptoms() + 1;
+      return n <= maxSymptoms()
+        && (n <= 0 || (isSymptom(l[0]) && (n <= 1 || (isSymptom(l[1]) && (n <= 2 || (isSymptom(l[2]) && (n <= 3 ||
+        (isSymptom(l[3]) && (n <= 4 || (isSymptom(l[4]) && (n <= 5 || (isSymptom(l[5]) && (n <= 6 || (isSymptom(l[6])
+        && (n <= 7 || (isSymptom(l[7]) && (n <= 8 || (isSymptom(l[8]) && (n <= 9 ||
+        (isSymptom(l[9])))))))))))))))))))));
+    }
+
+    // En doshöjning (REC-9): {id, start, end, dose, unit}.
+    function isBoost(b) {
+      return b.id is string && (b.start == null || isDate(b.start)) && (b.end == null || isDate(b.end))
+        && b.dose is string && b.unit is string;
+    }
+    function isBoosts(l) {
+      let n = l is list ? l.size() : maxBoosts() + 1;
+      return n <= maxBoosts()
+        && (n <= 0 || (isBoost(l[0]) && (n <= 1 || (isBoost(l[1]) && (n <= 2 || (isBoost(l[2]) && (n <= 3 ||
+        (isBoost(l[3]) && (n <= 4 || (isBoost(l[4]) && (n <= 5 || (isBoost(l[5]) && (n <= 6 || (isBoost(l[6]) && (n <=
+        7 || (isBoost(l[7]) && (n <= 8 || (isBoost(l[8]) && (n <= 9 || (isBoost(l[9])))))))))))))))))))));
+    }
+
+    // Receptets upprepning {repeat, days ISO 1–7, intervalDays} och period {start?, end?}.
+    function isSchedule(m) {
+      return m is map && (none(m, 'repeat') || m.repeat in repeats())
+        && (none(m, 'days') || isEnumList(m.days, [1, 2, 3, 4, 5, 6, 7], 7))
+        && (none(m, 'intervalDays') || atLeast(m.intervalDays, 0));
+    }
+    function isPeriod(m) {
+      return m is map && (none(m, 'start') || isDate(m.start)) && (none(m, 'end') || isDate(m.end));
+    }
+
+    // Inställningarnas grupper (DAT-11). Påminnelseraderna har sin nyckel (`slot`, `occasion`).
+    function isTheme(m) {
+      return m is map && (none(m, 'mode') || m.mode in themeModes())
+        && (none(m, 'lightStartHour') || inRange(m.lightStartHour, 0, 23))
+        && (none(m, 'darkStartHour') || inRange(m.darkStartHour, 0, 23))
+        && (none(m, 'isDarkTheme') || m.isDarkTheme is bool);
+    }
+    // En påminnelserad {nyckel, enabled, time}; codecen skriver alltid alla rader och alla fält.
+    function isReminder(r, key, values) {
+      return r is map && r.get(key, null) in values && r.get('enabled', null) is bool && isClock(r.get('time', null));
+    }
+    function isMedSlots(l) {
+      return l is list && l.size() == 6 && isReminder(l[0], 'slot', scheduledSlots()) && isReminder(l[1], 'slot', scheduledSlots())
+        && isReminder(l[2], 'slot', scheduledSlots()) && isReminder(l[3], 'slot', scheduledSlots())
+        && isReminder(l[4], 'slot', scheduledSlots()) && isReminder(l[5], 'slot', scheduledSlots());
+    }
+    function isOccasions(l) {
+      return l is list && l.size() == 4 && isReminder(l[0], 'occasion', occasions()) && isReminder(l[1], 'occasion', occasions())
+        && isReminder(l[2], 'occasion', occasions()) && isReminder(l[3], 'occasion', occasions());
+    }
+    function isReminders(m) {
+      return m is map && (none(m, 'medsEnabled') || m.medsEnabled is bool)
+        && (none(m, 'medSlots') || isMedSlots(m.medSlots))
+        && (none(m, 'screeningOccasions') || isOccasions(m.screeningOccasions))
+        && (none(m, 'periodReminderTime') || isClock(m.periodReminderTime));
+    }
+    function isProfile(m) {
+      return m is map && (none(m, 'birthYear') || m.birthYear is int) && (none(m, 'sex') || m.sex in sexes());
+    }
 
     // Den lagrade versionen; saknas den eller är den inget heltal gäller den första (BCK-15).
     function storedVersion() {
@@ -60,9 +161,124 @@ service cloud.firestore {
     }
 
     // Gemensamt för alla dokument under users/{uid}: antal fält, anteckningen (`note`, finns på
-    // varje posttyp) och namn som kort text. Fältvalidering per samling kommer i etapp 2.
-    function validEntry(d) {
-      return fieldCount(d) && longText(d, 'note') && shortText(d, 'name');
+    // varje posttyp) och namn som kort text.
+    function validEntry(d, w) {
+      return fieldCount(d) && (!('note' in w) || nullOrLong(d.get('note', null))) && (!('name' in w) || nullOrShort(d.get('name', null)));
+    }
+
+    // Gemensamt för dagbokens poster: dag, klockslag och när de skapades.
+    function validPost(d, w) {
+      return validEntry(d, w)
+        && (!('date' in w) || nullOrDate(d.get('date', null)))
+        && (!('time' in w) || nullOrClock(d.get('time', null)))
+        && (!('createdAt' in w) || nullOrTime(d.get('createdAt', null)));
+    }
+
+    // Fältvalidering per samling – samma fält och typer som codecarna i :core.
+    function validSettings(d) {
+      let w = written();
+      return validEntry(d, w)
+        && (!('theme' in w) || d.get('theme', null) == null || isTheme(d.theme))
+        && (!('reminders' in w) || d.get('reminders', null) == null || isReminders(d.reminders))
+        && (!('profile' in w) || d.get('profile', null) == null || isProfile(d.profile));
+    }
+
+    function validOption(d) {
+      let w = written();
+      return validEntry(d, w)
+        && (!('kind' in w) || nullOrIn(d.get('kind', null), optionKinds()))
+        && (!('favorite' in w) || nullOrBool(d.get('favorite', null)))
+        && (!('sortOrder' in w) || nullOrInt(d.get('sortOrder', null)))
+        && (!('archived' in w) || nullOrBool(d.get('archived', null)));
+    }
+
+    function validPrescription(d) {
+      let w = written();
+      return validEntry(d, w)
+        && (!('dose' in w) || nullOrShort(d.get('dose', null)))
+        && (!('unit' in w) || nullOrShort(d.get('unit', null)))
+        && (!('slots' in w) || d.get('slots', null) == null || isEnumList(d.slots, slots(), 7))
+        && (!('schedule' in w) || d.get('schedule', null) == null || isSchedule(d.schedule))
+        && (!('period' in w) || d.get('period', null) == null || isPeriod(d.period))
+        && (!('boosts' in w) || d.get('boosts', null) == null || isBoosts(d.boosts))
+        && (!('active' in w) || nullOrBool(d.get('active', null)))
+        && (!('createdAt' in w) || nullOrTime(d.get('createdAt', null)));
+    }
+
+    function validPrnMedicine(d) {
+      let w = written();
+      return validEntry(d, w)
+        && (!('dose' in w) || nullOrShort(d.get('dose', null)))
+        && (!('unit' in w) || nullOrShort(d.get('unit', null)))
+        && (!('slot' in w) || nullOrIn(d.get('slot', null), slots()))
+        && (!('minHoursBetween' in w) || nullOrMin(d.get('minHoursBetween', null), 0))
+        && (!('dispensingTime' in w) || nullOrShort(d.get('dispensingTime', null)))
+        && (!('maxPerDay' in w) || nullOrMin(d.get('maxPerDay', null), 0))
+        && (!('favorite' in w) || nullOrBool(d.get('favorite', null)));
+    }
+
+    function validDose(d) {
+      let w = written();
+      return validEntry(d, w)
+        && (!('date' in w) || nullOrDate(d.get('date', null)))
+        && (!('slot' in w) || nullOrIn(d.get('slot', null), slots()))
+        && (!('dose' in w) || nullOrShort(d.get('dose', null)))
+        && (!('unit' in w) || nullOrShort(d.get('unit', null)))
+        && (!('status' in w) || nullOrIn(d.get('status', null), doseStatuses()))
+        && (!('plannedTime' in w) || nullOrClock(d.get('plannedTime', null)))
+        && (!('takenAt' in w) || nullOrTime(d.get('takenAt', null)))
+        && (!('prescriptionId' in w) || nullOrShort(d.get('prescriptionId', null)))
+        && (!('prnId' in w) || nullOrShort(d.get('prnId', null)))
+        && (!('createdAt' in w) || nullOrTime(d.get('createdAt', null)));
+    }
+
+    function validScreening(d) {
+      let w = written();
+      return validPost(d, w)
+        && (!('occasion' in w) || nullOrIn(d.get('occasion', null), occasions()))
+        && (!('customText' in w) || nullOrShort(d.get('customText', null)))
+        && (!('energy' in w) || nullOrRange(d.get('energy', null), 0, 10))
+        && (!('stress' in w) || nullOrRange(d.get('stress', null), 0, 10))
+        && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms));
+    }
+
+    function validActivity(d) {
+      let w = written();
+      return validPost(d, w)
+        && (!('optionId' in w) || nullOrShort(d.get('optionId', null)))
+        && (!('customText' in w) || nullOrShort(d.get('customText', null)))
+        && (!('energy' in w) || nullOrRange(d.get('energy', null), -10, 10))
+        && (!('stress' in w) || nullOrRange(d.get('stress', null), 0, 10))
+        && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms))
+        && (!('recovering' in w) || nullOrBool(d.get('recovering', null)))
+        && (!('drain' in w) || nullOrBool(d.get('drain', null)))
+        && (!('minutes' in w) || nullOrMin(d.get('minutes', null), 0));
+    }
+
+    function validEvent(d) {
+      let w = written();
+      return validPost(d, w)
+        && (!('optionId' in w) || nullOrShort(d.get('optionId', null)))
+        && (!('severity' in w) || nullOrRange(d.get('severity', null), 0, 10))
+        && (!('durationMinutes' in w) || nullOrMin(d.get('durationMinutes', null), 0))
+        && (!('triggers' in w) || nullOrLong(d.get('triggers', null)))
+        && (!('actions' in w) || nullOrLong(d.get('actions', null)));
+    }
+
+    function validEpisode(d) {
+      let w = written();
+      return validEntry(d, w)
+        && (!('type' in w) || nullOrShort(d.get('type', null)))
+        && (!('start' in w) || nullOrDate(d.get('start', null)))
+        && (!('end' in w) || nullOrDate(d.get('end', null)))
+        && (!('createdAt' in w) || nullOrTime(d.get('createdAt', null)));
+    }
+
+    function validCheckin(d) {
+      let w = written();
+      return validPost(d, w)
+        && (!('severity' in w) || nullOrRange(d.get('severity', null), 0, 10))
+        && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms));
     }
 
     // Användardokumentet: schemaVersion är ett heltal från 1 (BCK-15).
@@ -70,7 +286,7 @@ service cloud.firestore {
       return fieldCount(d)
         && d.schemaVersion is int
         && d.schemaVersion >= 1
-        && optTime(d, 'createdAt');
+        && (!('createdAt' in written()) || nullOrTime(d.get('createdAt', null)));
     }
 
     match /users/{uid} {
@@ -94,53 +310,58 @@ service cloud.firestore {
       // samling skulle stoppa backupen (BCK-16), så den kan inte skapas från en klient.
       // Uttryckliga match-rader, aldrig jokertecken – ett rekursivt jokertecken (document=**)
       // matchar även noll segment och skulle ge underreglerna makt över användardokumentet.
+      // Inställningarna är ett enda dokument, settings/app (DAT-11).
       match /settings/{id} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+        allow create, update: if isOwner(uid) && id == 'app' && validSettings(request.resource.data);
       }
 
       match /options/{id} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+        allow create, update: if isOwner(uid) && validOption(request.resource.data);
       }
 
       match /prescriptions/{id} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+        allow create, update: if isOwner(uid) && validPrescription(request.resource.data);
       }
 
       match /prnMedicines/{id} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+        allow create, update: if isOwner(uid) && validPrnMedicine(request.resource.data);
       }
 
       match /doses/{id} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+        allow create, update: if isOwner(uid) && validDose(request.resource.data);
       }
 
       match /screenings/{id} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+        allow create, update: if isOwner(uid) && validScreening(request.resource.data);
       }
 
       match /activities/{id} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+        allow create, update: if isOwner(uid) && validActivity(request.resource.data);
       }
 
       match /events/{id} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+        allow create, update: if isOwner(uid) && validEvent(request.resource.data);
       }
 
       match /illnessEpisodes/{eid} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+        allow create, update: if isOwner(uid) && validEpisode(request.resource.data);
 
+        // En incheckning skrivs bara under en episod som finns efter skrivningen – även när episoden
+        // skapas i samma batch (importen från 3.x). Radering är alltid tillåten, så att en
+        // föräldralös incheckning (från verktygen) går att städa bort.
         match /checkins/{id} {
           allow read, delete: if isOwner(uid);
-          allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+          allow create, update: if isOwner(uid) && validCheckin(request.resource.data)
+            && existsAfter(/databases/$(database)/documents/users/$(uid)/illnessEpisodes/$(eid));
         }
       }
     }

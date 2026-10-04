@@ -80,32 +80,184 @@ en backstack per flik (`AppBackStack`), skärmbyten i `navigation/Transitions`.
 
 ## Datamodell (Firestore)
 
-Allt under `users/{uid}`; dokumentet bär `schemaVersion` och `createdAt`.
+Allt under `users/{uid}`; dokumentet bär `schemaVersion` och `createdAt`. Modeller och codecs i
+`:core` (`core/model`, `core/schema/*Codecs.kt`); KDoc på varje fält.
 
 | Samling / dokument | Nyckelfält | Ersätter 3.x |
 |---|---|---|
-| `settings` (ett dokument) | tema (läge, ljus-/mörkstart), medicinpåminnelser (6 slots: enabled, time), måendepåminnelser (4 tillfällen), periodpåminnelse, profil (födelseår, kön) | DataStore + `SettingsBackup` |
+| `settings` (ett dokument, `settings/app`) | theme {mode `light` \| `dark` \| `auto`, lightStartHour, darkStartHour, isDarkTheme}, reminders {medsEnabled, medSlots[6] {slot, enabled, time}, screeningOccasions[4] {occasion, enabled, time}, periodReminderTime}, profile {birthYear?, sex `male` \| `female` \| `unspecified`} | DataStore + `SettingsBackup` |
 | `options` | kind (`activity` \| `symptom` \| `event`), name, favorite, sortOrder, archived | DataStore-listorna |
-| `prescriptions` | name, dose, unit, slots[], schedule (daily \| weekdays \| weekends \| custom(days[]) \| interval(n)), period (start, end?), boosts[] (start, end?, amount), active, note | `recept` + `dosperioderJson` |
-| `prnMedicines` | name, dose, unit, slot, minHoursBetween, maxPerDay, dispensingTime, favorite, note | `favoriter` |
-| `doses` | date, slot, name, dose, unit, status (`planned` \| `taken` \| `skipped`), plannedAt, takenAt?, prescriptionId?, prnId?, note | `mediciner` (tagen + skipped + tagenTid) |
-| `screenings` | date, time, occasion (`breakfast` \| `lunch` \| `dinner` \| `bedtime`), energy 0–10, stress, symptoms[] {optionId, score}, note | `aktiviteter` med type=screening |
-| `activities` | date, time, optionId, customText?, energy −10..10, stress, symptoms[], recovering, drain, minutes, note | `aktiviteter` med type=aktivitet |
-| `events` | date, time, optionId, severity, minutes, triggers, actions, note | `health_events` |
-| `illnessEpisodes` | type, start, end?, note | `sjukdomsepisoder` |
-| `illnessEpisodes/{id}/checkins` | date, time, severity, symptoms[], note | `sjukdoms_incheckningar` |
+| `prescriptions` | name, dose (text), unit, slots[], schedule {repeat `daily` \| `weekdays` \| `weekends` \| `custom` \| `interval`, days[], intervalDays}, period {start?, end?}, boosts[] {id, start, end?, dose, unit}, active, createdAt, note | `recept` + `dosperioderJson` |
+| `prnMedicines` | name, dose (text), unit, slot, minHoursBetween, dispensingTime, maxPerDay, favorite, note | `favoriter` |
+| `doses` | date, slot, name, dose (text), unit, status (`planned` \| `taken` \| `skipped`), plannedTime, takenAt?, prescriptionId?, prnId?, createdAt, note | `mediciner` (tagen + skipped + tagenTid) |
+| `screenings` | date, time, occasion? (`breakfast` \| `lunch` \| `dinner` \| `bedtime`), customText?, energy 0–10, stress, symptoms[] {optionId, score, customText?}, createdAt, note | `aktiviteter` med type=screening |
+| `activities` | date, time, optionId, customText?, energy −10..10, stress, symptoms[], recovering, drain, minutes?, createdAt, note | `aktiviteter` med type=aktivitet |
+| `events` | date, time, optionId, severity, durationMinutes, triggers, actions, createdAt, note | `health_events` |
+| `illnessEpisodes` | type, start, end?, createdAt, note | `sjukdomsepisoder` |
+| `illnessEpisodes/{id}/checkins` | date, time, severity, symptoms[], createdAt, note | `sjukdoms_incheckningar` |
+
+**Värden:** datum som text `yyyy-MM-dd`, klockslag som text `HH:mm` (DAT-2); ögonblick
+(`createdAt`, `takenAt`) som tidsstämpel. Enum lagras med engelska namn ur `WireEnum.wire` –
+samma listor i `firestore.rules` (ett test jämför). Doser är text, som i 3.x (`"0,5"`, `"1 tablett"`).
+Stress, svårighetsgrad, mående-energi och symptompoäng är heltal 0–10, aktivitetens energi −10..10.
+Valfri fritext (`note`, `customText`, `triggers`, `actions`, `dispensingTime`) är `null` när den saknas.
 
 Fyra förenklingar: anteckningen är fältet `note` på varje dokument (notes-tabellen och
-kaskadraderingen försvinner); symptom lagras som `[{optionId, score}]` (summan `somatiska`
-räknas i `:core`); poster refererar alternativ via `optionId` så namnbyte aldrig behöver
-skriva om historiken (SET-11 blir gratis); dosen har en `status` i stället för två booleaner.
-Receptgenererade doser behåller stabilt id `rx_{prescriptionId}_{date}_{slot}` (MED-4).
+kaskadraderingen försvinner); symptom lagras som `[{optionId, score, customText?}]` (summan
+`somatiska` räknas i `:core`, fritexten vid "Övrigt" ligger i `customText`, AKT-6); poster
+refererar alternativ via `optionId` så namnbyte aldrig behöver skriva om historiken (SET-11 blir
+gratis); dosen har en `status` i stället för två booleaner.
+
+**Id:n bevaras från 3.x** (DAT-13): poster, recept, vid behov-mediciner, episoder och
+incheckningar behåller sina 3.x-id:n (UUID-strängar). Receptgenererade doser behåller 3.x-schemat
+`recept_{prescriptionId}_{date}_{tidpunkt}` med tidpunktens 3.x-namn (`Morgon`, `Förmiddag` …,
+`DoseIds.prescribed`), så att 4.0:s idempotenta generering (MED-4) träffar redan migrerade doser
+och en upprepad import aldrig dubblerar (DAT-8). Alternativen hade inga id:n i 3.x; konverteraren
+ger dem deterministiska id:n ur kind och namn (fastställs med konverteraren).
+
+**Måltidstillfället** (`screenings.occasion`) fanns inte som fält i 3.x och härleds av
+`Occasion.derive` (DAT-12): 3.x-screeningens namn (`aktivitet`) när det är ett av de fyra
+tillfällenas namn (`SCREENING_EVENT_LABELS`, samma jämförelse som `isScreeningLoggedFor`), annars
+tillfället vars påminnelsetid ligger närmast klockslaget räknat runt dygnet; namnet bevaras då i
+`customText`.
 
 Alla codecs ligger i `:core` (`DocCodec<T>` + `Doc.*`-läsare), toleranta mot okända fält
 och äldre `schemaVersion`. Samlingslistan i `tools/db/lib/collections.mjs` speglar `Paths.kt`
 och kontrolleras av test.
 
----
+### Fältparitet 3.x → 4.0
+
+Varje fält i 3.x `BackupJson` (v1 och v2) och dess klasser har en plats nedan (ADR-001, beslut 11;
+OMB-3). Tabellen är kontrollerad: `ParityTableTest` i `:core` kräver att varje 3.x-fält finns som rad,
+att varje 4.0-fält i kolumn två finns i samlingens codec, att varje codec-fält finns i tabellen eller
+bland de nya fälten nedan, och att exakt två rader är *utelämnas*. Kolumn två anger samling och fältväg
+(`[]` = element i en lista); *beräknas*, *sökväg* och *metadata* betyder att värdet bevaras utan eget
+fält. Room-entiteterna (v11) bär samma fält som `BackupJson` (listorna som JSON-text i `recept`); de
+enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är inte användardata.
+
+| 3.x | 4.0 | Anmärkning |
+|---|---|---|
+| `BackupJson.version` | *metadata* | Väljer v1- eller v2-tolkning i konverteraren; ingen användardata. |
+| `BackupJson.createdAt` | *metadata* | Backupens tidpunkt; visas i importens sammanfattning, ingen användardata. |
+| `BackupJson.aktiviteter` | `activities`, `screenings` | Delas på `AktivitetJson.type`. |
+| `BackupJson.mediciner` | `doses` | |
+| `BackupJson.medicinRecipes` | `prescriptions` | |
+| `BackupJson.medicinFavoriter` | `prnMedicines` | |
+| `BackupJson.aktiviteterOptions` | `options.kind`, `options.name`, `options.sortOrder` | v1 (lista av namn): kind `activity`, ordningen = listans. |
+| `BackupJson.symptomOptions` | `options.kind`, `options.name`, `options.sortOrder` | v1: kind `symptom`. |
+| `BackupJson.aktiviteterOptionsV2` | `options.kind`, `options.name`, `options.favorite`, `options.sortOrder` | v2: kind `activity`; går före v1 när båda finns. |
+| `BackupJson.symptomOptionsV2` | `options.kind`, `options.name`, `options.favorite`, `options.sortOrder` | v2: kind `symptom`; går före v1. |
+| `BackupJson.handelseTypOptions` | `options.kind`, `options.name`, `options.favorite`, `options.sortOrder` | kind `event`. |
+| `BackupJson.sjukdomsepisoder` | `illnessEpisodes` | |
+| `BackupJson.sjukdomsIncheckningar` | `checkins` | Under sin episod. |
+| `BackupJson.handelser` | `events` | |
+| `BackupJson.notes` | `activities.note`, `screenings.note`, `doses.note`, `prescriptions.note`, `prnMedicines.note`, `events.note`, `illnessEpisodes.note`, `checkins.note` | Se `NoteJson`. |
+| `BackupJson.screeningEventConfigs` | `settings.reminders.screeningOccasions`, `settings.reminders.screeningOccasions[].occasion` | Positionen 0–3 = Efter frukost, Lunch, Kvällsmat, Läggdags (`SCREENING_EVENT_LABELS`) blir radens `occasion`. |
+| `BackupJson.medNotificationConfigs` | `settings.reminders.medSlots` | |
+| `BackupJson.sheetsConfig` | *utelämnas* | Sheets-exporten användes aldrig och kommer inte i 4.0 (FUT-2). |
+| `BackupJson.periodReminderTime` | `settings.reminders.periodReminderTime` | `HH:mm`. |
+| `BackupJson.settings` | `settings` | `null` i ett fält = "rör inte": konverteraren skriver då inte fältet (merge). |
+| `SettingsBackup.medsNotificationsEnabled` | `settings.reminders.medsEnabled` | |
+| `SettingsBackup.themeMode` | `settings.theme.mode` | Samma strängar `light`/`dark`/`auto`. |
+| `SettingsBackup.themeLightStart` | `settings.theme.lightStartHour` | |
+| `SettingsBackup.themeDarkStart` | `settings.theme.darkStartHour` | |
+| `SettingsBackup.isDarkTheme` | `settings.theme.isDarkTheme` | Bevaras fast 4.0 bara läser `mode`. |
+| `SettingsBackup.dynamicColor` | *utelämnas* | Reglaget finns inte i 4.0 (SET-3 struket); Papper och teal har fasta färger. |
+| `SettingsBackup.birthYear` | `settings.profile.birthYear` | |
+| `SettingsBackup.sex` | `settings.profile.sex` | `man`/`kvinna`/`ej_angivet` → `male`/`female`/`unspecified`. |
+| `AktivitetJson.id` | `activities.id`, `screenings.id` | Dokument-id, bevaras (DAT-13). |
+| `AktivitetJson.timestamp` | `activities.createdAt`, `screenings.createdAt` | ISO-ögonblick → tidsstämpel; tomt eller ogiltigt → datum + tid i Europe/Stockholm. |
+| `AktivitetJson.datum` | `activities.date`, `screenings.date` | |
+| `AktivitetJson.tid` | `activities.time`, `screenings.time` | |
+| `AktivitetJson.aktivitet` | `activities.optionId`, `activities.customText`, `screenings.occasion`, `screenings.customText` | Aktivitet: namn bland aktivitetsalternativen → `optionId`; annat namn (fritext vid "Övrigt", AKT-2) → `customText` med alternativet "Övrigt". Screening: tillfällets namn → `occasion`; annat namn → `customText` och `occasion` ur klockslaget (DAT-12). |
+| `AktivitetJson.energy` | `activities.energy`, `screenings.energy` | −10..10 respektive 0–10. |
+| `AktivitetJson.stress` | `activities.stress`, `screenings.stress` | |
+| `AktivitetJson.somatiska` | *beräknas* | Summan av `symptoms[].score` (DAT-6). En 3.x-post där summan avviker rapporteras av konverteraren. |
+| `AktivitetJson.symptom` | `activities.symptoms[].optionId`, `activities.symptoms[].score`, `activities.symptoms[].customText`, `screenings.symptoms[].optionId`, `screenings.symptoms[].score`, `screenings.symptoms[].customText` | `Namn:Poäng,…` → symptomalternativ på namnet; `Övrigt (fritext)` → "Övrigt" + `customText`; okänt namn → arkiverat alternativ. |
+| `AktivitetJson.aterhamtande` | `activities.recovering` | Screening: alltid `false` i 3.x; annat värde stoppar konverteringen i stället för att tappas. |
+| `AktivitetJson.energitjuv` | `activities.drain` | Som `aterhamtande`. |
+| `AktivitetJson.type` | `activities`, `screenings` | `aktivitet`/`screening`; tomt → ur namnet som 3.x `BackupMapper.inferType`. |
+| `AktivitetJson.spentTime` | `activities.minutes` | `null` bevaras. Screening: alltid `null` i 3.x; annat värde stoppar konverteringen. |
+| `MedicinJson.id` | `doses.id` | Bevaras; `recept_…`-id:n oförändrade (DAT-8). |
+| `MedicinJson.timestamp` | `doses.createdAt` | Som `AktivitetJson.timestamp`. |
+| `MedicinJson.datum` | `doses.date` | |
+| `MedicinJson.tid` | `doses.plannedTime` | Schemalagt klockslag. |
+| `MedicinJson.namn` | `doses.name` | |
+| `MedicinJson.dos` | `doses.dose` | Text. |
+| `MedicinJson.enhet` | `doses.unit` | |
+| `MedicinJson.tidpunkt` | `doses.slot` | `Slot.fromLegacyName`; okänt namn stoppar konverteringen. |
+| `MedicinJson.tagen` | `doses.status` | `true` → `taken`. |
+| `MedicinJson.skipped` | `doses.status` | `true` → `skipped`; varken eller → `planned`; båda (ogiltigt i 3.x) → `taken`. |
+| `MedicinJson.tagenTid` | `doses.takenAt` | `HH:mm` på dosens datum i Europe/Stockholm → tidsstämpel. |
+| `MedicinJson.anteckning` | `doses.note` | Arvsfält från före notes-tabellen; en `notes`-post för samma post går före (som 3.x `BackupMapper.toNotes`). |
+| `MedicinJson.receptId` | `doses.prescriptionId` | |
+| `ReceptJson.id` | `prescriptions.id` | Bevaras. |
+| `ReceptJson.namn` | `prescriptions.name` | |
+| `ReceptJson.dos` | `prescriptions.dose` | Text. |
+| `ReceptJson.enhet` | `prescriptions.unit` | |
+| `ReceptJson.tidpunkter` | `prescriptions.slots` | |
+| `ReceptJson.tidpunkt` | `prescriptions.slots` | v1: en tidpunkt när `tidpunkter` är tom; båda tomma → `[Morgon]` som 3.x. |
+| `ReceptJson.upprepning` | `prescriptions.schedule.repeat` | `dagligen`, `vardagar`, `helger`, `anpassad` (även "specifika dagar"), `intervall` (även "var x:e dag"); okänt → `daily` som 3.x `Upprepning.fromString`. |
+| `ReceptJson.dagar` | `prescriptions.schedule.days` | 0 = måndag … 6 = söndag → ISO 1…7. Bevaras oavsett upprepning. |
+| `ReceptJson.intervalDagar` | `prescriptions.schedule.intervalDays` | Bevaras oavsett upprepning. |
+| `ReceptJson.anteckning` | `prescriptions.note` | Arvsfält, som `MedicinJson.anteckning`. |
+| `ReceptJson.aktiv` | `prescriptions.active` | |
+| `ReceptJson.skapad` | `prescriptions.createdAt` | Datum → midnatt Europe/Stockholm (dagen går att läsa tillbaka exakt). |
+| `ReceptJson.startDatum` | `prescriptions.period.start` | `""` → `null`: ingen bakre gräns, intervallet räknas från skapandedagen (REC-4, REC-7). |
+| `ReceptJson.slutDatum` | `prescriptions.period.end` | `null`/`""` → `null` (tills vidare). |
+| `ReceptJson.dosperioder` | `prescriptions.boosts` | |
+| `DosperiodJson.id` | `prescriptions.boosts[].id` | |
+| `DosperiodJson.startDatum` | `prescriptions.boosts[].start` | |
+| `DosperiodJson.slutDatum` | `prescriptions.boosts[].end` | `null`/`""` → `null` (till periodens slut). |
+| `DosperiodJson.dos` | `prescriptions.boosts[].dose` | Text. |
+| `DosperiodJson.enhet` | `prescriptions.boosts[].unit` | Bevaras fast den speglar receptets enhet. |
+| `FavoritJson.id` | `prnMedicines.id` | Bevaras. |
+| `FavoritJson.namn` | `prnMedicines.name` | |
+| `FavoritJson.dos` | `prnMedicines.dose` | Text. |
+| `FavoritJson.enhet` | `prnMedicines.unit` | |
+| `FavoritJson.tidpunkt` | `prnMedicines.slot` | Som `MedicinJson.tidpunkt`. |
+| `FavoritJson.anteckning` | `prnMedicines.note` | Arvsfält. |
+| `FavoritJson.minTidMellan` | `prnMedicines.minHoursBetween` | |
+| `FavoritJson.dispenseringsTid` | `prnMedicines.dispensingTime` | Fritext; `""` → `null`. Visas inte i UI:t men bevaras. |
+| `FavoritJson.maxDoserPerDag` | `prnMedicines.maxPerDay` | 0 = obegränsat. |
+| `FavoritJson.isFavorite` | `prnMedicines.favorite` | |
+| `SjukdomsEpisodJson.id` | `illnessEpisodes.id` | Bevaras. |
+| `SjukdomsEpisodJson.typ` | `illnessEpisodes.type` | |
+| `SjukdomsEpisodJson.startDatum` | `illnessEpisodes.start` | |
+| `SjukdomsEpisodJson.slutDatum` | `illnessEpisodes.end` | `""` → `null` (pågående). |
+| `SjukdomsEpisodJson.anteckning` | `illnessEpisodes.note` | Arvsfält. |
+| `SjukdomsEpisodJson.timestamp` | `illnessEpisodes.createdAt` | Epok-ms; 0 (v1) → `null`, aldrig "nu". |
+| `SjukdomsIncheckningJson.id` | `checkins.id` | Bevaras. |
+| `SjukdomsIncheckningJson.episodId` | *sökväg* | `illnessEpisodes/{episodId}/checkins/{id}`. |
+| `SjukdomsIncheckningJson.datum` | `checkins.date` | |
+| `SjukdomsIncheckningJson.tid` | `checkins.time` | |
+| `SjukdomsIncheckningJson.svarighetsgrad` | `checkins.severity` | |
+| `SjukdomsIncheckningJson.symptom` | `checkins.symptoms[].optionId`, `checkins.symptoms[].score`, `checkins.symptoms[].customText` | Som `AktivitetJson.symptom`. |
+| `SjukdomsIncheckningJson.somatiska` | *beräknas* | Som `AktivitetJson.somatiska`. |
+| `SjukdomsIncheckningJson.anteckning` | `checkins.note` | Arvsfält. |
+| `SjukdomsIncheckningJson.timestamp` | `checkins.createdAt` | Som episodens. |
+| `HandelseJson.id` | `events.id` | Bevaras. |
+| `HandelseJson.timestamp` | `events.createdAt` | Som `AktivitetJson.timestamp`. |
+| `HandelseJson.datum` | `events.date` | |
+| `HandelseJson.tid` | `events.time` | |
+| `HandelseJson.typ` | `events.optionId` | Namn → händelsetypsalternativ; okänt namn → arkiverat alternativ. |
+| `HandelseJson.svarighetsgrad` | `events.severity` | |
+| `HandelseJson.varaktighetMinuter` | `events.durationMinutes` | |
+| `HandelseJson.triggers` | `events.triggers` | `""` → `null`. |
+| `HandelseJson.atgarder` | `events.actions` | `""` → `null`. |
+| `HandelseJson.anteckning` | `events.note` | Arvsfält. |
+| `NoteJson.target` | `activities`, `screenings`, `doses`, `prescriptions`, `prnMedicines`, `events`, `illnessEpisodes`, `checkins` | `ACTIVITY`, `SCREENING`, `MEDICATION`, `RECEPT`, `FAVORIT`, `EVENT`, `SJUKDOM_EPISOD`, `SJUKDOM_INCHECKNING` i den ordningen. |
+| `NoteJson.entityId` | *sökväg* | Dokumentets id. En anteckning utan sin post rapporteras av konverteraren. |
+| `NoteJson.text` | `activities.note`, `screenings.note`, `doses.note`, `prescriptions.note`, `prnMedicines.note`, `events.note`, `illnessEpisodes.note`, `checkins.note` | Tom text → `null`. |
+| `ScreeningEventConfigJson.enabled` | `settings.reminders.screeningOccasions[].enabled` | |
+| `ScreeningEventConfigJson.time` | `settings.reminders.screeningOccasions[].time` | |
+| `MedNotificationConfigJson.tidpunkt` | `settings.reminders.medSlots[].slot` | Matchas på namnet, annars på positionen, som 3.x `toMedNotificationConfigs`. |
+| `MedNotificationConfigJson.enabled` | `settings.reminders.medSlots[].enabled` | |
+| `MedNotificationConfigJson.time` | `settings.reminders.medSlots[].time` | |
+| `SymptomOptionBackup.name` | `options.name` | |
+| `SymptomOptionBackup.isFavorite` | `options.favorite` | |
+
+Nya fält i 4.0 utan 3.x-motsvarighet: `doses.prnId`, `options.archived`.
 
 ## Designspråk · I "Papper och teal"
 
@@ -273,6 +425,7 @@ PR-beskrivningen, `granskare` + `/code-review` före push, en PR i taget.
 | Risk | Hantering |
 |---|---|
 | Fält tappas i konverteringen | Fixtur med alla fält, rundtur, grind OMB-4 med riktig backup, Room-filen behålls. |
+| Rules nekar riktig 3.x-data vid importen på enheten | Rules räknar högst 1 000 uttryck och 20 dokumentuppslag per skrivning: listor av objekt har generösa tak (50 symptom, 50 doshöjningar) och elementen kontrolleras upp till det tionde; incheckningar kräver sin episod (`existsAfter`) och en batch får slå upp högst 20 befintliga episoder, så importen skriver episoderna i samma batch som sina incheckningar eller delar upp per högst 20 episoder. Rules-testerna täcker gränserna; grinden OMB-4 går via `tools/db` (admin, förbi rules), så importen på enheten (etapp 3) prövar rules mot riktig data. |
 | Spark-planens läsbudget vid första synk | Engångskostnad; cache därefter; "Allt"-perioden i Trender räknas ur cachen i `:core`. |
 | Hälsodata i molnet | EU-region, rules bara för ägaren, krypterad export, ingen PII i loggar (skill `data-privacy-security`). |
 | Larm tystnar när schemat ligger i cachen | Omschemaläggning vid synk, boot och appuppdatering (NOT-14); test mot `FakeCollection`. |

@@ -77,9 +77,10 @@ fält den inte känner till. Den får aldrig radera dem när den sparar:
 - **Codecens `encode` skriver alla fält den känner till – även de utan värde, som `null`.**
   Annars skulle ett fält som användaren tömt (t.ex. receptets `period.end` eller `note`) ligga kvar vid merge.
   `decode` behandlar `null` och saknat fält likadant (default).
-- **Nästlade objekt** (`schedule`, `period`, `boosts`, inställningarnas grupper) skrivs med alla
-  varianters fält; fält som inte gäller den valda varianten skrivs som `null`, så att byte av
-  upprepning (t.ex. veckodagar → intervall) inte lämnar gamla värden kvar.
+- **Nästlade objekt** (`schedule`, `period`, `boosts`, `symptoms`, inställningarnas grupper) skrivs
+  alltid med alla sina fält. Receptets `schedule` är platt (`repeat`, `days`, `intervalDays`) och
+  bevarar dagar och intervall oavsett upprepning, som 3.x; en nästlad codec med varianter skriver
+  i stället varje variants fält med `null` för det som inte gäller.
 - **Radering av ett helt dokument** görs bara via `delete(id)`, aldrig genom att skriva om det.
 - Test: `CollectionContract` har fallen "okänt fält bevaras vid upsert" och "tömt valfritt
   fält försvinner vid upsert" (skill `firestore-data-layer`).
@@ -91,7 +92,7 @@ fält den inte känner till. Den får aldrig radera dem när den sparar:
    `encode` skriver fältet även när det saknar värde (`null`).
 3. Tolka äldre dokument medvetet: saknas fältet → default. Behöver det härledas från
    andra fält, gör det i `decode` och testa det.
-4. Fältets typ i samlingens `valid…`-funktion i `firestore.rules` (`optInt`, `optString` …)
+4. Fältets typ i samlingens `valid…`-funktion i `firestore.rules` (`nullOrInt`, `nullOrShort` …)
    + rules-test; påverkar det vem som får läsa/skriva, även den regeln.
 5. Tester (nedan). Uppdatera rundturstestets seed så att fältet har ett icke-default-värde.
 6. **3.x-paritet:** motsvarar fältet något i 3.x (`BackupJson`, Room-entitet, DataStore)? Då
@@ -152,9 +153,11 @@ ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här ä
    sina källor till `BackupJson`-form och kör samma konverterare – aldrig en egen mappning.
 2. **Varje fält har en plats.** Ett 3.x-fält utan motsvarighet i 4.0-modellen är en blockerare,
    inte en förenkling. De fyra förenklingarna i ARKITEKTUR.md (anteckningen som `note`, symptom
-   som `[{optionId, score}]`, `optionId` i stället för namn, dosens `status`) är de enda.
-3. **Stabila id:n.** Receptgenererade doser får `rx_{prescriptionId}_{date}_{slot}` (MED-4, DAT-8);
-   samma källa ger samma id vid ny import, så att en upprepad import inte dubblerar.
+   som `[{optionId, score, customText}]`, `optionId` i stället för namn, dosens `status`) är de enda.
+   Paritetstabellen (ARKITEKTUR.md → Datamodell → Fältparitet) är kontrollerad av `ParityTableTest`.
+3. **Stabila id:n.** 3.x-id:n bevaras (DAT-13), och receptgenererade doser behåller 3.x-schemat
+   `recept_{prescriptionId}_{date}_{tidpunkt}` (`DoseIds.prescribed`, MED-4, DAT-8); samma källa ger
+   samma id vid ny import, så att en upprepad import inte dubblerar.
 4. **Bevis före användning:** fixturtestet (OMB-3), rundturen mot emulatorn (BCK-16) och grinden
    OMB-4 – en riktig 3.x-backup konverteras, importeras med `tools/db import.mjs`, exporteras och
    jämförs fältvis med noll skillnader – innan etapp 3 och innan första release.
@@ -168,8 +171,9 @@ ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här ä
 - **Egen parsning i en codec** i stället för fälthjälparna → toleransen skiljer sig mellan
   modeller och `cpdCheck` slår till.
 - **`Timestamp` vs `Long` vs ISO-sträng:** datum lagras som ISO-sträng (`yyyy-MM-dd`) och
-  klockslag som `HH:mm` (DAT-2); `Timestamp` bara för ögonblick (`createdAt`, `updatedAt`, dosens
-  `plannedAt`/`takenAt`). 3.x-epoker (`timestamp`, `tagenTid`) konverteras medvetet – tidszonen
+  klockslag som `HH:mm` (DAT-2), även dosens `plannedTime`; `Timestamp` bara för ögonblick
+  (`createdAt`, `updatedAt`, dosens `takenAt`). 3.x-tider (`timestamp` som ISO-text eller epok-ms,
+  `tagenTid` som `HH:mm` på dosens dag, receptets `skapad` som datum) konverteras medvetet – tidszonen
   är `Europe/Stockholm` om inget annat sägs, och konverterarens test täcker sommartidsbytet.
   `tools/db` serialiserar `Timestamp` som `{ "__ts": iso }`.
 - **`null` vs saknat fält:** codecen skriver alla kända fält, även `null`, och `decode`
