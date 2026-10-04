@@ -77,8 +77,14 @@ class FirebaseEmulator : ExternalResource() {
         closed.firstOrNull { it.isFailure }?.getOrThrow()
     }
 
-    /** En ny anonym användare, inloggad i auth-emulatorn, utan `users/{uid}`. */
-    suspend fun newSignedInUser(): EmulatorUser {
+    /**
+     * En ny anonym användare, inloggad i auth-emulatorn, utan `users/{uid}`. Med
+     * [firestorePort] = [OFFLINE_PORT] pekar användarens Firestore på en port utan lyssnare, så
+     * varje serveranrop får anslutningen vägrad (UNAVAILABLE → [se.partee71.dagboken.data.common.DataError.Offline]).
+     * `disableNetwork()` räcker inte för att simulera det: transaktioner går via en egen gRPC-kanal
+     * och lyckas ändå mot emulatorn.
+     */
+    suspend fun newSignedInUser(firestorePort: Int = FIRESTORE_PORT): EmulatorUser {
         check(active) { "FirebaseEmulator används som @get:Rule – annars stängs apparna aldrig" }
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val app = FirebaseApp.initializeApp(context, OPTIONS, "emulator-$RUN-${counter.incrementAndGet()}")
@@ -87,7 +93,7 @@ class FirebaseEmulator : ExternalResource() {
         val uid = step("Anonym inloggning i auth-emulatorn (:$AUTH_PORT)") {
             checkNotNull(auth.signInAnonymously().await().user) { "Auth-emulatorn gav ingen användare" }.uid
         }
-        return EmulatorUser(uid, firestoreOf(app))
+        return EmulatorUser(uid, firestoreOf(app, firestorePort))
     }
 
     /**
@@ -106,6 +112,9 @@ class FirebaseEmulator : ExternalResource() {
         private const val HOST = "10.0.2.2"
         private const val PROJECT = "demo-dagboken"
         private const val FIRESTORE_PORT = 8080
+
+        /** En port ingen lyssnar på – för att framkalla offline deterministiskt (se [newSignedInUser]). */
+        const val OFFLINE_PORT = 1
         private const val AUTH_PORT = 9099
         private const val HTTP_TIMEOUT_MS = 5_000
 
@@ -123,10 +132,10 @@ class FirebaseEmulator : ExternalResource() {
             .build()
 
         /** Som appens: en ny instans mot emulatorn även efter att cachen tömts (AUTH-6). */
-        private fun firestoreOf(app: FirebaseApp) = FirestoreInstance {
+        private fun firestoreOf(app: FirebaseApp, port: Int) = FirestoreInstance {
             FirebaseFirestore.getInstance(app).apply {
-                useEmulator(HOST, FIRESTORE_PORT)
-                check(firestoreSettings.host == "$HOST:$FIRESTORE_PORT") { "Testerna får bara köras mot emulatorn" }
+                useEmulator(HOST, port)
+                check(firestoreSettings.host == "$HOST:$port") { "Testerna får bara köras mot emulatorn" }
             }
         }
 

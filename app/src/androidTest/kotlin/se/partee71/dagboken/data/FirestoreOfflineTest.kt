@@ -82,12 +82,9 @@ class FirestoreOfflineTest {
 
     @Test
     fun forsta_inloggningen_utan_nat_ger_Offline() = test {
-        val user = emulator.newSignedInUser()
-        user.db.disableNetwork().await()
-        try {
-            assertEquals(DataError.Offline, EnsureUserUseCase(user.directory(), FixedClock())(user.uid).dataError())
-        } finally {
-            user.db.enableNetwork().await()
-        }
+        // Firestore pekad mot en port utan lyssnare: anslutningen vägras och transaktionen kan
+        // aldrig nå servern. disableNetwork() duger inte – transaktioner går via egen gRPC-kanal.
+        val user = emulator.newSignedInUser(firestorePort = FirebaseEmulator.OFFLINE_PORT)
+        assertEquals(DataError.Offline, EnsureUserUseCase(user.directory(), FixedClock())(user.uid).dataError())
     }
 }
