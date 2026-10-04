@@ -13,6 +13,7 @@ import se.partee71.dagboken.core.model.OptionIds
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Repeat
 import se.partee71.dagboken.core.model.Schedule
+import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.ExportFormat
@@ -241,5 +242,15 @@ class BackupJsonConverterTest {
     private companion object {
         /** Nya fält i 4.0 utan 3.x-motsvarighet (ARKITEKTUR.md → Fältparitet). */
         val NEW_IN_4_0 = setOf("prnId")
+    }
+
+    @Test
+    fun `kön - alla tre 3x-värden får sitt 4-punkt-0-namn i både modell och dokument`() {
+        for ((legacy, expected) in listOf("man" to Sex.MALE, "kvinna" to Sex.FEMALE, "ej_angivet" to Sex.UNSPECIFIED)) {
+            val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(BackupJson(settings = SettingsBackup(sex = legacy)), "u"))
+            assertEquals(expected, result.data.settings?.profile?.sex, legacy)
+            val settings = result.documents.single { it.path.endsWith("/${CollectionNames.SETTINGS}/app") }.data
+            assertEquals(expected.wire, (settings["profile"] as Map<*, *>)["sex"], legacy)
+        }
     }
 }

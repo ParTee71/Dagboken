@@ -188,7 +188,7 @@ class DocumentRulesTest {
     fun `inställningar och recept - nästlade brott och enum-värden`() {
         val settings = Samples.entry(CollectionNames.SETTINGS).encoded()
         fun settingsWith(group: String, change: Pair<String, Any?>) = DocumentRules.validate(CollectionNames.SETTINGS, settings + (group to asDoc(settings[group]) + change))
-        assertEquals(listOf(DocumentRules.Violation("theme.mode", "okänt värde: sepia")), settingsWith("theme", "mode" to "sepia"))
+        assertEquals(listOf(DocumentRules.Violation("theme.mode", "okänt värde (5 tecken)")), settingsWith("theme", "mode" to "sepia"))
         assertEquals(listOf(DocumentRules.Violation("theme.lightStartHour", "utanför intervallet 0..23: 24")), settingsWith("theme", "lightStartHour" to 24))
         assertEquals(listOf(DocumentRules.Violation("reminders.medSlots", "fel antal element: 5 (ska vara 6)")), settingsWith("reminders", "medSlots" to asDoc(settings["reminders"]).docs("medSlots").take(5)))
         val rows = asDoc(settings["reminders"]).docs("screeningOccasions").mapIndexed { i, row -> if (i == 2) row - "time" else row }
@@ -198,10 +198,10 @@ class DocumentRulesTest {
 
         val prescription = Samples.entry(CollectionNames.PRESCRIPTIONS).encoded()
         fun prescriptionWith(vararg changes: Pair<String, Any?>) = DocumentRules.validate(CollectionNames.PRESCRIPTIONS, prescription + changes)
-        assertEquals(listOf(DocumentRules.Violation("slots[1]", "okänt värde: brunch")), prescriptionWith("slots" to listOf("morning", "brunch")))
+        assertEquals(listOf(DocumentRules.Violation("slots[1]", "okänt värde (6 tecken)")), prescriptionWith("slots" to listOf("morning", "brunch")))
         assertEquals(listOf(DocumentRules.Violation("slots", "för många element: 8 (högst 7)")), prescriptionWith("slots" to List(8) { "morning" }))
         assertEquals(listOf(DocumentRules.Violation("schedule.days[0]", "utanför intervallet 1..7: 0")), prescriptionWith("schedule" to asDoc(prescription["schedule"]) + ("days" to listOf(0))))
-        assertEquals(listOf(DocumentRules.Violation("schedule.repeat", "okänt värde: monthly")), prescriptionWith("schedule" to asDoc(prescription["schedule"]) + ("repeat" to "monthly")))
+        assertEquals(listOf(DocumentRules.Violation("schedule.repeat", "okänt värde (7 tecken)")), prescriptionWith("schedule" to asDoc(prescription["schedule"]) + ("repeat" to "monthly")))
         assertEquals(listOf(DocumentRules.Violation("boosts[0].end", "ogiltigt datum")), prescriptionWith("boosts" to listOf(mapOf("id" to "b", "start" to null, "end" to "igår", "dose" to "1", "unit" to "mg"))))
         assertEquals(listOf(DocumentRules.Violation("boosts[0].dose", "saknas")), prescriptionWith("boosts" to listOf(mapOf("id" to "b", "unit" to "mg"))))
         assertEquals(emptyList(), prescriptionWith("createdAt" to Instant.parse("2026-01-01T00:00:00Z"), "schedule" to null, "period" to null))
@@ -235,7 +235,7 @@ class DocumentRulesTest {
         )
         val settings = Samples.entry(CollectionNames.SETTINGS).encoded()
         assertEquals(
-            listOf(DocumentRules.Violation("theme.mode", "okänt värde: sepia"), DocumentRules.Violation("theme.darkStartHour", "utanför intervallet 0..23: 24")),
+            listOf(DocumentRules.Violation("theme.mode", "okänt värde (5 tecken)"), DocumentRules.Violation("theme.darkStartHour", "utanför intervallet 0..23: 24")),
             DocumentRules.validate(CollectionNames.SETTINGS, settings + ("theme" to asDoc(settings["theme"]) + mapOf("mode" to "sepia", "darkStartHour" to 24))),
         )
     }

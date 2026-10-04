@@ -266,7 +266,7 @@ object DocumentRules {
             Check.ClockText -> if (value is String) (if (parseClock(value) == null) "ogiltigt klockslag" else null) else type(value, "klockslag")
             is Check.Range -> whole(value) ?: (value as Number).toLong().let { if (it in check.range) null else "utanför intervallet ${check.range}: $it" }
             is Check.Min -> whole(value) ?: (value as Number).toLong().let { if (it >= check.min) null else "under ${check.min}: $it" }
-            is Check.OneOf -> if (value is String) (if (value in check.values) null else "okänt värde: $value") else type(value, "enum")
+            is Check.OneOf -> if (value is String) (if (value in check.values) null else "okänt värde (${value.length} tecken)") else type(value, "enum")
             is Check.IntList -> list(value, check.max) ?: return elements(value, path) { i, v -> check(Check.Range(check.range), v, "$path[$i]") }
             is Check.EnumList -> list(value, check.max) ?: return elements(value, path) { i, v -> check(Check.OneOf(check.values), v, "$path[$i]") }
             is Check.Nested -> if (value is Map<*, *>) return check(check.shape, asDoc(value), "$path.") else type(value, "objekt")

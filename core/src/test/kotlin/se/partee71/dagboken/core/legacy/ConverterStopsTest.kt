@@ -187,6 +187,26 @@ class ConverterStopsTest {
     }
 
     @Test
+    fun `okänt target och ogiltigt id i en anteckning rapporteras bara med längd - aldrig värdet`() {
+        val backup = BackupJson(
+            notes = listOf(
+                NoteJson(target = "HEMLIGT", entityId = "a/b", text = "Dold"),
+                NoteJson(target = "HEMLIGT", entityId = "a/b", text = "Dold igen"),
+            ),
+        )
+        val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u"))
+        assertEquals(
+            listOf(
+                Warning("notes", "två anteckningar för okänt target (7 tecken) (ogiltigt id, 3 tecken) med olika text – den första gäller"),
+                Warning("notes", "1 anteckning(ar) med target okänt target (7 tecken) utan sin post – kan inte placeras"),
+            ),
+            result.report.warnings,
+        )
+        val rendered = result.report.render()
+        assertFalse("HEMLIGT" in rendered || "a/b" in rendered || "Dold" in rendered, rendered)
+    }
+
+    @Test
     fun `tagenTid i sommartidsbytet varnas i rapporten - luckan och överlappningen`() {
         val backup = BackupJson(
             mediciner = listOf(

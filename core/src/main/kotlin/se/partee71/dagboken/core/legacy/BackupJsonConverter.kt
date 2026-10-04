@@ -99,7 +99,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         val episodeIds = episodes.map { it.id }.toSet()
         val checkins = backup.sjukdomsIncheckningar.filter { checkinHasEpisode(it, episodeIds) }
             .groupBy({ it.episodId }, ::checkin)
-        notes.orphans().forEach { (target, count) -> warn("notes", "$count anteckning(ar) med target $target utan sin post – kan inte placeras") }
+        notes.orphans().forEach { (target, count) -> warn("notes", "$count anteckning(ar) med target ${targetLabel(target)} utan sin post – kan inte placeras") }
         if (notes.incomplete > 0) warn("notes", "${notes.incomplete} anteckning(ar) utan target eller id – kan inte placeras")
 
         add(CollectionNames.user(uid), CollectionNames.USERS, CollectionNames.USERS, mapOf(SCHEMA_VERSION to Schema.CURRENT_VERSION))
@@ -154,8 +154,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
      * Postens sökväg i rapporten: 3.x-id:t när det duger som dokument-id (UUID eller `recept_…`), annars
      * dess längd – ett ogiltigt id kan vara vad som helst. Rapporterar det ogiltiga id:t en gång per post.
      */
-    private fun entityPath(collection: String, id: String): String =
-        if (DocumentRules.isValidId(id)) "$collection/$id" else "$collection/(ogiltigt id, ${id.length} tecken)"
+    private fun entityPath(collection: String, id: String): String = "$collection/${idLabel(id)}"
 
     private fun checkinPath(episodeId: String, id: String) = entityPath("${entityPath(CollectionNames.ILLNESS_EPISODES, episodeId)}/${CollectionNames.CHECKINS}", id)
 
@@ -605,7 +604,7 @@ private class NoteIndex(notes: List<NoteJson>, private val warn: (String, String
             val existing = texts[key]
             when {
                 existing == null -> texts[key] = note.text
-                existing != note.text -> warn("notes", "två anteckningar för ${note.target} ${note.entityId} med olika text – den första gäller")
+                existing != note.text -> warn("notes", "två anteckningar för ${targetLabel(note.target)} ${idLabel(note.entityId)} med olika text – den första gäller")
             }
         }
     }
@@ -621,3 +620,11 @@ private class NoteIndex(notes: List<NoteJson>, private val warn: (String, String
     /** Antal anteckningar utan post, per target. */
     fun orphans(): Map<String, Int> = texts.keys.filterNot { it in used }.groupingBy { it.first }.eachCount()
 }
+
+/** Ett `target` i rapporten: 3.x-konstanten när den är känd, annars bara längden – det kan vara vad som helst. */
+private fun targetLabel(target: String): String =
+    if (target in LegacyDefaults.NOTE_TARGETS) target else "okänt target (${target.length} tecken)"
+
+/** Ett post-id i rapporten: id:t när det duger som dokument-id (UUID eller `recept_…`), annars bara längden. */
+private fun idLabel(id: String): String =
+    if (DocumentRules.isValidId(id)) id else "(ogiltigt id, ${id.length} tecken)"
