@@ -3,9 +3,15 @@
 > Hälsodagbok för att logga aktiviteter, daglig screening (energi, stress, symptom) och
 > mediciner, med diagram, påminnelser och molnbackup via Google Drive.
 >
-> Version: 2.15.0 · Paket: `se.partee71.dagboken` · Språk: Svenska
+> Version: 3.27.0 (`legacy`) → **4.0 under ombyggnad** · Paket: `se.partee71.dagboken` · Språk: Svenska
 
 ---
+
+> **Ombyggnad 4.0.** Sedan [ARKITEKTUR.md](ARKITEKTUR.md) (ADR-001) beskriver kravlistan på
+> `master` appen 4.0 som byggs där. Krav som ändras i ombyggnaden märks *(4.0)*; 3.x-lydelsen
+> står kvar struken med hänvisning, så ID:n förblir spårbara. Appen 3.27.0 ligger på branchen
+> `legacy` med sin egen kravlista. Nya områden: §21 Mediciner-flik (MEDF), §22 Ombyggnad och
+> migrering (OMB), §23 Designspråk (DSN).
 
 ## 1. Översikt och syfte
 
@@ -24,16 +30,18 @@
 
 | ID | Krav |
 |----|------|
-| TP-1 | Android, **minSdk 30** (Android 11), targetSdk 35, compileSdk 36 (krävs av Health Connect `connect-client` 1.1.0). |
-| TP-2 | UI byggt med **Jetpack Compose** + Material 3. |
-| TP-3 | Arkitektur: **MVVM** med Hilt (DI), Repository-mönster, ViewModels med `StateFlow`. |
-| TP-4 | Lokal lagring i **Room**; inställningar i **DataStore (Preferences)**. |
-| TP-5 | Inloggning via **Firebase Auth + Google Credential Manager**. |
-| TP-6 | Molnbackup via **Google Drive (appDataFolder)**. |
-| TP-7 | Bakgrundsjobb via **WorkManager** (Hilt-integrerad worker). |
+| TP-1 | Android, **minSdk 30** (Android 11), targetSdk 35, compileSdk 37; AGP 9, Kotlin 2.4, Gradle 9 *(4.0 – 3.x: compileSdk 36)*. |
+| TP-2 | UI byggt med **Jetpack Compose** + **Material 3 Expressive** (`MaterialExpressiveTheme`, `MotionScheme.expressive()`) och **Navigation 3** med en backstack per flik *(4.0 – 3.x: Material 3 + navigation-compose med strängrutter)*. |
+| TP-3 | Arkitektur: **MVVM** med Hilt (DI), repository som single source of truth ovanpå generisk `FirestoreCollection<T>` + `DocCodec<T>`, ViewModels med `StateFlow<UiState>`. Två moduler: `:core` (ren Kotlin/JVM: modeller, codecs, motorer) och `:app` *(4.0)*. |
+| TP-4 | Lagring i **Firestore offline-först** (persistent cache, molnet är källan) under `users/{uid}`; inställningar i dokumentet `settings`. DataStore används bara för enhetslokalt tillstånd (migreringsflagga, senast valda flik) *(4.0 – 3.x: Room + DataStore)*. |
+| TP-5 | Inloggning via **Firebase Auth + Google Credential Manager**; inloggning krävs (AUTH-5). |
+| TP-6 | ~~Molnbackup via **Google Drive (appDataFolder)**.~~ *(borttaget 4.0 – Drive-backupen ersätts av BCK-11…BCK-16)* |
+| TP-7 | Bakgrundsjobb via **WorkManager** (Hilt-integrerad worker) där något måste köras utan att appen är öppen *(4.0: ingen backup-worker längre)*. |
 | TP-8 | Påminnelser via **AlarmManager** + `BroadcastReceiver` + notifikationskanaler. |
 | TP-9 | Krävda behörigheter: `INTERNET`, `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED`. |
 | TP-10 | Hälsodata läses från **Health Connect** (`androidx.health.connect:connect-client`); ingen egen lagring, ingen Samsung-partner krävs (read-only via sideload). Se §19. |
+| TP-11 | Databasen nås från Claude-sessioner (telefon/webb) med `tools/db` (Node ≥ 22, firebase-admin): `query`, `get`, `stats`, `export` läser; `import` och `migrate` skriver bara på uttrycklig begäran. Service account läses ur miljövariabeln `FIREBASE_SERVICE_ACCOUNT`, aldrig ur chatten *(4.0)*. |
+| TP-12 | `firestore.rules` släpper bara in dokumentets ägare (`request.auth.uid == uid`), validerar typer och textlängder, nekar okända samlingar och tillåter aldrig att `schemaVersion` sänks. Reglerna testas mot Firebase-emulatorn i CI *(4.0)*. |
 
 ---
 
@@ -47,7 +55,11 @@
 | NAV-4 | Navigering ska bevara och återställa fliktillstånd (`saveState`/`restoreState`). |
 | NAV-5 | Skärmövergångar ska animeras (slide + fade). |
 | NAV-6 | Vid första start utan migrering ska **migreringsskärmen** kunna visas som startdestination. |
-| NAV-7 | Appen ska ha en **bottennavigering** med fyra flikar: **Idag** (dagens checklista, se §4), **Historik** (§16), **Trender** (§17) och **Hantera** (bibliotek/konfiguration, se §18). |
+| NAV-7 | ~~Appen ska ha en **bottennavigering** med fyra flikar: **Idag** (dagens checklista, se §4), **Historik** (§16), **Trender** (§17) och **Hantera** (bibliotek/konfiguration, se §18).~~ *(ersatt av NAV-8, 4.0)* |
+| NAV-8 | Appen har en **bottennavigering** med fyra flikar: **Idag** (dagens checklista, §4), **Dagbok** (tidslinje och kalender över allt loggat, §16), **Trender** (§17) och **Mediciner** (recept, vid behov, perioder, §21). Hantera-fliken finns inte; dess innehåll ligger i inställningsarket (NAV-9), Mediciner (§21), Dagbok (HIST-9) och Trender (TRD-20) *(4.0)*. |
+| NAV-9 | Avataren uppe till höger på alla flikar öppnar **inställningsarket** (bottom sheet) med Konto, Profil, Påminnelser, Tema, Listor (aktivitetstyper, symptom, händelsetyper), Export och import samt Om Dagboken. Varje rad öppnar en underskärm med tillbakapil *(4.0)*. |
+| NAV-10 | **Plusknappen** finns på alla flikar och öppnar en loggmeny med exakt fem val: **Mående, Aktivitet, Dos, Händelse, Sjukdom** (ny episod eller incheckning på pågående). Allt loggas mot den dag som visas i Idag (HEM-14). Recept och vid behov-mediciner skapas aldrig härifrån utan under Mediciner (MEDF-4) *(4.0)*. |
+| NAV-11 | Varje flik har sin egen backstack som bevaras vid flikbyte (Navigation 3, `AppBackStack`); skärmbyten delar en rörelse definierad i `navigation/Transitions` *(4.0, ersätter mekaniken bakom NAV-4/NAV-5 utan att ändra beteendet)*. |
 
 ---
 
@@ -62,7 +74,7 @@
 | HEM-2 | Visa aktuellt **datum och veckonummer** (svensk lokalisering, ISO-vecka) samt **appversionen** (liten och diskret). |
 | HEM-3 | ~~Visa **stat-pills**: antal tagna/totala mediciner idag samt senaste aktivitetens energinivå.~~ *(borttaget)* |
 | HEM-4 | Visa en **checklista för vald dag** (dagens datum eller en tidigare dag, se HEM-14): alla dagens mediciner (avbockningsbara direkt) och alla aktiverade screeningtillfällen (per måltidstillfälle), med status loggad/försenad/kommande. Kort med försenade poster märks med en textetikett ("Försenat") utöver accentfärg. "Försenat"-status gäller endast dagens datum — en tidigare dags ologgade post är bara ologgad, inte försenad. |
-| HEM-5 | Mediciner ska kunna markeras som tagna direkt i checklistan utan navigering. Screening ska kunna loggas **inline**: expandera radens tillhörande måltidstillfälle och fyll i direkt på Idag, utan att navigera bort. Inline-formuläret presenteras som **svepbara steg-kort** (energi → stress → symptom, där symptomsteget bara visas när symptom är konfigurerade) med stegindikator och Föregående/Nästa/Spara, via delad komponent `StepwiseScreeningForm`. Loggas mot den dag som visas i checklistan (HEM-14), inte alltid dagens datum. |
+| HEM-5 | Mediciner markeras som tagna direkt i checklistan utan navigering. Mående visas som en **tillfällesrad** per måltidstillfälle (Efter frukost, Lunch, Kvällsmat, Läggdags) med status och loggade värden som chips; **Logga nu** på raden öppnar det stegvisa måendeformuläret (energi → stress → symptom, `StepwiseScreeningForm`) som ett ark över skärmen och sparar mot den dag som visas (HEM-14) *(4.0 – 3.x: formuläret expanderades inline i listan)*. |
 | HEM-7 | Visa **sparkline-diagram** över **genomsnittlig energi per dag** senaste 7 dagarna, baserat på screenings (minst 2 datapunkter krävs, annars uppmaning att logga); länk till Trender-ytan (§17) för fördjupning. Dagsvärdet beräknas av delad `computeDailyEnergyStats` (regel 4) — samma uträkning som Trenders "Energi (dag)" (TRD-8), så de två aldrig kan visa olika värden för samma dag. Delar linjestil (mjuk kurva + gradientfyllning, TRD-6) med Trender-diagrammet för visuell konsekvens. Diagrammet visar värden på **båda axlarna**: y-axel med energiskala, x-axel med veckodagsetiketter, samt lägsta/högsta värde som text under diagrammet (TRD-9). Y-axeln skalas smart efter de faktiska värdenas min/max (TRD-7), inte alltid nollankrad. Ingår i det gemensamma trenddiagrammet på Idag tillsammans med steg- och vilopulstrend, se HEM-17. |
 | HEM-8 | ~~Visa **snabbåtgärder**: "Logga aktivitet" och "Mediciner".~~ *(ersatt av global "+"-FAB med snabbval: Aktivitet/Screening/Engångsdos/Ny vid behov-favorit/Händelse)* |
 | HEM-8b | "+"-FAB-snabbvalet **"Logga screening"** öppnar en tillfällesväljare (Efter frukost/Lunch/Kvällsmat/Läggdags) och sedan samma stegvisa screeningformulär som checklistan (`StepwiseScreeningForm`, regel 4), sparat mot vald dag (HEM-14) — oberoende av om tillfället är schemalagt/redan loggat i checklistan (SCR-6, HEM-4), så en extra eller ett icke-påmint tillfälle går att logga (#146). |
@@ -71,10 +83,12 @@
 | HEM-11 | Favoritmarkerade vid behov-mediciner ska visas som tryckbara snabbvalskort direkt i checklistan (samma beteende som tidigare MED-7); tryck loggar en dos med befintlig cooldown-/gränslogik. **Långtryck öppnar alltid** kontextmenyn — Redigera, favoritmarkering, Logga i efterhand (FAV-10, MED-16) och Ta bort — byggd med samma menykomponent och ordning som postkortens (NFR-16). Nya favoriter skapas via "+"-FAB. |
 | HEM-12 | Pågående sjukdomsepisod ska visas som ett accentmärkt kort som länkar till sjukdomsdetaljer (Hantera → Sjukdomar). |
 | HEM-13 | I början av veckan (söndag/måndag) ska ett **veckosammanfattningskort** visas överst på Idag, ovanför datumnavigeringsraden (HEM-14): energitrend (senaste 7 dagarnas genomsnittliga screeningenergi jämfört med föregående 7 dagar, ↑/↓/oförändrad) och andel tagna av veckans schemalagda doser (%). Beräknas live från befintliga poster via delad `DagbokenCard` — ingen ny persisterad data. Döljs om underlag saknas. |
-| HEM-14 | Idag-checklistan (mediciner + screening) ska kunna bläddras till en **tidigare dag** via en datumnavigeringsrad ("< Föregående dag · [datum] · Nästa dag >"). Kan inte bläddra in i framtiden — "Nästa dag" är avstängd på dagens datum. Att öppna "Ny händelse" från en tidigare dags Idag-vy förifyller den nya händelsens datum med den visade dagen. Datumnavigeringsraden är den översta sektionen i samlingskortet, se HEM-16. |
+| HEM-14 | Idag kan bläddras till en **tidigare dag** via en **datumremsa** med veckans sju dagar: dagens datum markerat, en punkt under dagar som har poster, svep åt höger för äldre veckor. Framtida dagar kan inte väljas. Att öppna "Ny händelse" från en tidigare dag förifyller datumet med den visade dagen. Datumremsan ligger direkt under rubriken, ovanför framstegsraden (HEM-18) *(4.0 – 3.x: "< Föregående dag · [datum] · Nästa dag >")*. |
 | HEM-15 | Idag visar ett **hälsokort** (Health Connect) med **steg och vilopuls för vald dag** (HEM-14, se HLS-7 §19) — byter siffror när användaren bläddrar till en annan dag. Döljs/ersätts av en diskret koppla-rad när data/behörighet saknas. Kortet visas längst ner på Idag, direkt ovanför det gemensamma trenddiagrammet (HEM-17), eftersom båda är hälsorelaterat innehåll snarare än dagens checklistor. |
-| HEM-16 | Datumnavigeringsraden (HEM-14) och checklistorna för **mediciner**, **screening** och **vid behov**-mediciner visas grupperade i **ett gemensamt kort** på Idag (sektioner separerade med avdelare), eftersom alla styrs av samma valda dag. |
+| HEM-16 | Under datumremsan visas **tre separata kort** för vald dag – **Mediciner**, **Mående** och **Vid behov** – följda av pågående sjukdom (HEM-12), Hälsa idag (HEM-15) och trenddiagrammet (HEM-17) *(4.0 – 3.x: ett gemensamt kort med avdelare)*. |
 | HEM-17 | Stegtrend, vilopulstrend (HLS-7) och energitrend (HEM-7) för senaste 7 dagarna visas i **ett gemensamt diagramkort** på Idag i stället för separata kort — varje trend en egen `SparklineChart`-rad (regel 4), i ordningen **steg → vilopuls → energi**, var och en med lägsta/högsta värde som text under diagrammet (TRD-9). Steg-/vilopulstrenden visas bara när Health Connect är tillgängligt och har minst 2 dagar med värde; energitrenden kräver minst 2 loggade screeningdagar, annars en uppmaning att logga. Kortet har en länk till Trender-ytan (§17). |
+| HEM-18 | En **framstegsrad** under datumremsan visar hur många av dagens poster (doser + måendetillfällen) som är klara, t.ex. "4 av 9", och fylls animerat när något bockas av *(4.0)*. |
+| HEM-19 | **Belöningsläge:** när alla dagens doser är tagna eller överhoppade och alla aktiverade måendetillfällen loggade byter rubriken till "Allt klart för idag", framstegsraden blir solgul, konfetti (delad `Confetti`) faller **en gång** och ett grönt sammanfattningskort visar snittenergi för dagen, jämförelse med igår och antal dagar i rad. Dagens punkt i datumremsan blir en bock. Gäller bara dagens datum *(4.0)*. |
 
 ---
 
@@ -140,7 +154,7 @@
 | MED-15 | Redigering av en medicinpost från Historik (HIST-3, §16) redigerar **endast den enskilda dosen**: datum, tagningstid, dos, enhet, tagen-status och anteckning. Namn och tidpunktsslot visas som read-only kontext för receptgenererade doser (hänvisning till Hantera → Recept & scheman) — receptet eller favoriten den härstammar från ändras aldrig. Flyttas en receptgenererad dos till ett annat datum får den ett nytt id (receptkopplingen behålls); ursprungsdagens schemalagda dos genereras på nytt som otagen vid nästa dosgenerering (MED-4). |
 | MED-16 | En vid behov-dos ska kunna loggas **i efterhand** med valfritt datum och klockslag (ej i framtiden) — från "Ny medicin" och från en favorits långtrycksmeny på Idag (se FAV-10). Cooldown (FAV-4) och dagsgräns (FAV-5) utvärderas mot den valda tidpunkten, inte mot aktuell tid. |
 
-### 6.2 Schema-flik (recept) *(nås nu via Hantera → Recept & scheman, se §18, sedan navigationsbytet i #84 etapp 4)*
+### 6.2 Recept och scheman *(4.0: fliken Mediciner, §21 – 3.x: Hantera → Recept & scheman, HANT-4)*
 
 | ID | Krav |
 |----|------|
@@ -158,7 +172,7 @@
 | REC-13 | Receptkorten i Recept & scheman följer kortstandarden (NFR-15): tryck öppnar receptet för redigering, chevron-knappen fäller ut tidpunkter och dosperioder, långtryck och `⋮` ger samma meny (Redigera, Aktivera/Avaktivera, Ta bort) och svep från höger till vänster raderar efter bekräftelse. Aktiv-reglaget ligger kvar som direktkontroll på kortet, och en anteckning visas med anteckningsikonen (samma mönster som MED-12/SJ-10) i stället för som text i det utfällda innehållet. |
 | REC-11 | Vid överlappande dosperioder (t.ex. i importerad eller äldre data, som formuläret inte längre tillåter) gäller den **senast påbörjade** — den mer specifika dosändringen vinner över en längre period den ligger inuti. |
 
-### 6.3 Vid behov-flik (favoriter) *(snabbvalet flyttat till Idag-skärmen, se HEM-11 §4; favoritmarkering hanteras i Hantera, se §18, sedan navigationsbytet i #84 etapp 4)*
+### 6.3 Vid behov-mediciner (favoriter) *(4.0: snabbvalet på Idag HEM-11, hanteringen i fliken Mediciner MEDF-3 – 3.x: Hantera)*
 
 | ID | Krav |
 |----|------|
@@ -204,7 +218,8 @@
 | AUTH-2 | Användaren ska kunna **logga ut** och rensa credential-state. |
 | AUTH-3 | Inloggad användares **namn, e-post och profilfoto** ska visas (kontobubbla/sheet/inställningar). |
 | AUTH-4 | Inloggningsfel ska visas, men **avbruten inloggning** ska inte behandlas som fel. |
-| AUTH-5 | Appen ska fungera utan inloggning; konto krävs endast för molnbackup/migrering. |
+| AUTH-5 | ~~Appen ska fungera utan inloggning; konto krävs endast för molnbackup/migrering.~~ *(borttaget 4.0 – inloggning krävs, se AUTH-6)* |
+| AUTH-6 | Appen kräver inloggning: utan inloggad användare visas en inloggningsskärm och ingen dagbok. All data ligger under `users/{uid}`; utloggning stänger synken, rensar den lokala Firestore-cachen och återgår till inloggningsskärmen *(4.0)*. |
 
 ---
 
@@ -212,16 +227,22 @@
 
 | ID | Krav |
 |----|------|
-| BCK-1 | Appen ska **automatiskt säkerhetskopiera** all data till Google Drive (appDataFolder) via WorkManager. |
-| BCK-2 | Backup ska omfatta aktiviteter, mediciner, recept, favoriter (inklusive favoritmarkering), händelser, sjukdomar, anteckningar (generisk `notes`-tabell) samt aktivitets-/symptom-/händelsetypalternativ inklusive favoritstatus (versionerat JSON). |
-| BCK-3 | Endast de **5 senaste** backuperna ska behållas (äldre rensas). |
-| BCK-4 | Backup ska kräva inloggat konto och Drive-auktorisering (`DRIVE_APPDATA`-scope); auktorisering kan kräva användarsamtycke. |
-| BCK-5 | Användaren ska kunna **importera/migrera** data från senaste Drive-backup. |
-| BCK-6 | Användaren ska kunna **importera från lokal fil** (JSON via dokumentväljare). |
-| BCK-7 | Migrering ska visa tydliga tillstånd (kontrollerar, laddar ner, importerar med progress, klar/fel). |
-| BCK-8 | Användaren ska kunna **hoppa över** migrering; status ska sparas så att den inte upprepas. |
-| BCK-9 | Import ska vara robust mot okända JSON-fält (`ignoreUnknownKeys`). |
-| BCK-10 | Backupen ska även innehålla appinställningar: huvudreglaget för medicinpåminnelser samt temainställningar (läge, ljus-/mörkerstart, mörkt tema, dynamisk färg). Inställningar som saknas i en äldre backup lämnas orörda vid återställning. |
+| BCK-1 | ~~Appen ska **automatiskt säkerhetskopiera** all data till Google Drive (appDataFolder) via WorkManager.~~ *(borttaget 4.0 – Drive-backupen ersätts av BCK-11…BCK-16)* |
+| BCK-2 | ~~Backup ska omfatta aktiviteter, mediciner, recept, favoriter (inklusive favoritmarkering), händelser, sjukdomar, anteckningar (generisk `notes`-tabell) samt aktivitets-/symptom-/händelsetypalternativ inklusive favoritstatus (versionerat JSON).~~ *(borttaget 4.0 – Drive-backupen ersätts av BCK-11…BCK-16)* |
+| BCK-3 | ~~Endast de **5 senaste** backuperna ska behållas (äldre rensas).~~ *(borttaget 4.0 – Drive-backupen ersätts av BCK-11…BCK-16)* |
+| BCK-4 | ~~Backup ska kräva inloggat konto och Drive-auktorisering (`DRIVE_APPDATA`-scope); auktorisering kan kräva användarsamtycke.~~ *(borttaget 4.0 – Drive-backupen ersätts av BCK-11…BCK-16)* |
+| BCK-5 | ~~Användaren ska kunna **importera/migrera** data från senaste Drive-backup.~~ *(borttaget 4.0 – Drive-backupen ersätts av BCK-11…BCK-16)* |
+| BCK-6 | Användaren ska kunna **importera från lokal fil** (JSON via dokumentväljare) – i 4.0 en 3.x-backupfil eller en 4.0-export, via Inställningar → Export och import (BCK-13, BCK-14). |
+| BCK-7 | ~~Migrering ska visa tydliga tillstånd (kontrollerar, laddar ner, importerar med progress, klar/fel).~~ *(borttaget 4.0 – Drive-backupen ersätts av BCK-11…BCK-16)* |
+| BCK-8 | ~~Användaren ska kunna **hoppa över** migrering; status ska sparas så att den inte upprepas.~~ *(borttaget 4.0 – Drive-backupen ersätts av BCK-11…BCK-16)* |
+| BCK-9 | Import ska vara robust mot okända JSON-fält (`ignoreUnknownKeys`) och äldre `schemaVersion`; okända fält kastas aldrig vid export → import-rundtur (BCK-16). |
+| BCK-10 | ~~Backupen ska även innehålla appinställningar: huvudreglaget för medicinpåminnelser samt temainställningar (läge, ljus-/mörkerstart, mörkt tema, dynamisk färg). Inställningar som saknas i en äldre backup lämnas orörda vid återställning.~~ *(borttaget 4.0 – Drive-backupen ersätts av BCK-11…BCK-16)* |
+| BCK-11 | **Firestore är molnkopian.** All data skrivs offline-först till den lokala cachen och synkas till `users/{uid}` när nätet finns; ingen separat Drive-backup *(4.0)*. |
+| BCK-12 | **Veckovis krypterad export** i GitHub Actions (`backup.yml`): `tools/db export` → `import --dry-run` som validering → `gpg --symmetric` AES-256 med lösenfras ur en secret → dekryptering och `cmp` som bevis → artefakt med 90 dagars retention. Klartexten raderas alltid; fel i schemalagd körning öppnar ett issue. Återställning med `tools/db import.mjs` *(4.0)*. |
+| BCK-13 | **Manuell export** från Inställningar → Export och import: hela dagboken som JSON (4.0-format med `schemaVersion`) till en fil via dokumentväljare *(4.0)*. |
+| BCK-14 | **Legacyimport:** en 3.x Drive-backup (`BackupJson` v1 och v2) eller lokal 3.x-JSON kan importeras i 4.0 via konverteraren i `:core` (OMB-3). Behålls minst en version efter 4.0 *(4.0)*. |
+| BCK-15 | `users/{uid}` bär `schemaVersion`. Appen tolererar okända fält och äldre version men vägrar skriva mot en okänd **högre** version; migreringar görs av `SchemaMigrator` i `:core` och `tools/db migrate.mjs` *(4.0)*. |
+| BCK-16 | **Rundturstest** mot Firebase-emulatorn: export → radera → import → export ger identiskt innehåll för alla samlingar i `tools/db/lib/collections.mjs`; listan speglar `Paths.kt` och kontrolleras av test *(4.0)*. |
 
 ---
 
@@ -261,11 +282,11 @@
 | SET-4 | **Medicinpåminnelser** ska kunna slås på/av. **Screeningpåminnelser** ska ställas in per måltidshändelse (På/av + tid per händelse). |
 | SET-5 | **Aktivitetsalternativ** ska kunna läggas till, tas bort och stjärnmärkas som favoriter (inga dubbletter). Ändringar ska synas direkt i loggningsformuläret utan omstart. |
 | SET-6 | **Symptomalternativ** ska kunna läggas till och tas bort (inga dubbletter). |
-| SET-7 | Konto (in-/utloggning) ska kunna hanteras från Hantera. |
-| SET-8 | Import/migrering ska kunna startas från Hantera. |
+| SET-7 | Konto (in-/utloggning) hanteras från inställningsarket (NAV-9) *(4.0 – 3.x: Hantera)*. |
+| SET-8 | Export och import (BCK-13, BCK-14) startas från inställningsarket (NAV-9) *(4.0 – 3.x: Hantera)*. |
 | SET-9 | **Händelsetypalternativ** ska kunna läggas till, tas bort och stjärnmärkas som favoriter (inga dubbletter). Favoritmarkerade typer visas som en-tryck-chips och övriga i en "Fler typer"-lista i Lägg till/Redigera händelse. |
-| SET-10 | **Vid behov-mediciner** ska kunna **läggas till, ändras, tas bort och stjärnmärkas** som favoriter i Hantera (analogt med SET-5); ändringar syns direkt i Idag-skärmens vid behov-kort (HEM-11, §4). Raden följer radstandarden (NFR-17): tryck öppnar medicinen för redigering i det delade favoritformuläret (FAV-1), långtryck och `⋮` ger menyn (Redigera, favoritmarkering, Ta bort med bekräftelsedialog) och stjärnan är radens inline-direktkontroll. Nya läggs till via sektionens "Ny vid behov-medicin", som öppnar samma formulär — en vid behov-medicin har fler fält än ett namn och skapas därför inte på en inline-rad som alternativlistorna (SET-5/SET-6/SET-9). |
-| SET-11 | Byte av namn på ett aktivitets-, symptom- eller händelsetypalternativ ska följa med till **redan loggade poster** — aktiviteter, screeningar, händelser och sjukdomsincheckningar — så historiken aldrig visar ett namn som inte längre finns i listan. |
+| SET-10 | **Vid behov-mediciner** läggs till, ändras, tas bort och stjärnmärks i fliken **Mediciner** (MEDF-3); ändringar syns direkt i Idag-skärmens vid behov-kort (HEM-11). Raden följer radstandarden (NFR-17): tryck öppnar medicinen för redigering, långtryck och `⋮` ger menyn, stjärnan är radens inline-direktkontroll *(4.0 – 3.x: Hantera)*. |
+| SET-11 | Byte av namn på ett aktivitets-, symptom- eller händelsetypalternativ syns i **redan loggade poster**, eftersom posterna refererar alternativet via `optionId` (DAT-9) – ingen uppdatering av historiken behövs *(4.0 – 3.x: UPDATE av namnet i alla tabeller)*. |
 
 ---
 
@@ -287,8 +308,14 @@
 |----|------|
 | DAT-1 | Tidpunkter ska sorteras enligt fast ordning: Morgon, Förmiddag, Lunch, Eftermiddag, Kväll, Natt, Vid behov. |
 | DAT-2 | Datum ska lagras som `YYYY-MM-DD`, tid som `HH:MM`. |
-| DAT-3 | Room-schema ska exporteras för migreringsspårning. |
-| DAT-4 | När en post raderas ska dess anteckning i den generiska `notes`-tabellen raderas i samma repository-anrop, oavsett vilken skärm raderingen görs från. Raderas en sjukdomsepisod försvinner även anteckningarna för dess incheckningar. |
+| DAT-3 | ~~Room-schema ska exporteras för migreringsspårning.~~ *(borttaget 4.0 – ingen Room; dokumentmodellen i DAT-5)* |
+| DAT-4 | ~~När en post raderas ska dess anteckning i den generiska `notes`-tabellen raderas i samma repository-anrop, oavsett vilken skärm raderingen görs från. Raderas en sjukdomsepisod försvinner även anteckningarna för dess incheckningar.~~ *(borttaget 4.0 – anteckningen är fältet `note` på dokumentet, DAT-7)* |
+| DAT-5 | **Dokumentmodell 4.0** under `users/{uid}`: `settings` (ett dokument), `options`, `prescriptions`, `prnMedicines`, `doses`, `screenings`, `activities`, `events`, `illnessEpisodes` med undersamlingen `checkins`. Fältlistan står i ARKITEKTUR.md → Datamodell; varje fält i 3.x-tabellen ovan har en plats där *(4.0)*. |
+| DAT-6 | Symptom lagras strukturerat som `symptoms: [{optionId, score}]`; summan (`somatiska`) beräknas i `:core` och persisteras inte *(4.0 – ersätter wire-formatet i HIS-3)*. |
+| DAT-7 | Anteckningen är fältet `note` på varje dokument (post, recept, vid behov-medicin, episod, incheckning). Ingen separat notes-samling; raderas dokumentet följer anteckningen med *(4.0)*. |
+| DAT-8 | En dos har `status` ∈ {`planned`, `taken`, `skipped`} samt `plannedAt` och `takenAt?`; receptgenererade doser har stabilt id `rx_{prescriptionId}_{date}_{slot}` (MED-4) *(4.0 – ersätter `tagen`/`skipped`/`tagenTid`)*. |
+| DAT-9 | Alternativlistorna är dokument i `options` med `kind` (`activity` | `symptom` | `event`), `name`, `favorite`, `sortOrder`, `archived`; poster refererar dem via `optionId`. Ett alternativ som används arkiveras i stället för att raderas *(4.0)*. |
+| DAT-10 | Alla codecs ligger i `:core` som `DocCodec<T>` med defaultvärden för saknade fält; okända fält bevaras vid läs–skriv *(4.0)*. |
 
 ---
 
@@ -301,10 +328,10 @@
 | NFR-3 | Release-bygge ska använda **R8/ProGuard** (minify + resource shrinking). |
 | NFR-4 | Appen ska stödja **RTL** och systemets **predictive back**. |
 | NFR-5 | Splash screen ska visas vid uppstart. |
-| NFR-6 | Koden ska ha **enhetstester** (JUnit, MockK, Turbine) och **instrumenttester** (Compose UI, Room). |
+| NFR-6 | Tester på alla nivåer: `:core` (ren JUnit – codecs, konverterare, motorer, diagrammatematik), ViewModel (Fake-repositories + Turbine), Compose via Robolectric i JVM, Roborazzi-skärmdumpar ljust + mörkt, Konsist (`UiConsistencyTest`), `cpdCheck`, rules- och rundturstester mot Firebase-emulatorn, samt instrumenttester bara när berörd kod ändrats *(4.0 – 3.x: JUnit/MockK/Turbine + instrumenttester vid varje PR)*. |
 | NFR-7 | Känslig data (backup) ska endast lagras i användarens privata Drive-appmapp. |
 | NFR-8 | Appstorlek/prestanda: listor ska använda lazy-rendering; tunga operationer på IO-dispatcher. |
-| NFR-9 | Appen använder ett enhetligt designsystem: kort, tomlägen, bekräftelsedialoger, sektionsrubriker och datum/tid-format byggs med delade komponenter i `ui/components/`, med konsekvent form, typografi och spacing. |
+| NFR-9 | Appen använder ett enhetligt designsystem: varje elementtyp har **exakt en** komponent i `ui/components/`, feature-kod anropar aldrig Material 3 direkt och hårdkodar aldrig färg, form eller typografi; allt kommer från `ui/theme`. Kontrolleras av hooken `regel4-check`, `UiConsistencyTest` och `cpdCheck`, undantag bara via `ui-allowlist.txt` *(4.0 – 3.x: delade komponenter för kort, tomlägen, dialoger, rubriker)*. |
 | NFR-10 | Spara-knappar byggs med den delade komponenten `SaveButton` och är inaktiverade tills formuläret har osparade, giltiga ändringar (dirty-state — jämfört mot senast laddade/sparade värde, inte bara fältvalidering). Försök att navigera bort (tillbaka-knapp eller systemets back) med osparade ändringar visar en bekräftelsedialog (`UnsavedChangesBackHandler`) med möjlighet att spara, kasta ändringarna eller avbryta. `SaveButton` använder appens gröna "positiv"-signal (Emerald400/900) som container-/textfärg i aktivt läge, samma i ljust och mörkt tema. |
 | NFR-12 | Ett formulär ska navigera vidare först när sparandet är **klart** — aldrig starta en skrivning och stänga skärmen samtidigt, eftersom ViewModel:ens scope då kan avbryta skrivningen mitt i. |
 | NFR-13 | Släppt app ska inte logga något till logcat (loggning strippas i release), och persisterad användardata får aldrig ingå i ett loggmeddelande. |
@@ -314,6 +341,8 @@
 | NFR-16 | Ett postkorts trailing-innehåll renderas i ordningen status-/värdechip, anteckningsikon, expandera-chevron, kontextmeny (`⋮`) — varje del utelämnas när den saknas, men ordningen är fast. Kontextmenyn följer ordningen Redigera, kontextspecifika val, Ta bort (sist, i error-färg), och varje menypost har en ikon. Expandering av detaljer sker via chevron-knappen, aldrig genom tryck på kortet. Ett korts vänsteraccent är reserverad för status (energifärg, aktiv/inaktiv, pågående) — aldrig dekoration. Ett postkort får ha **en** direktkontroll i trailing-läget för en tillståndsväxling som används ofta (t.ex. receptets aktiv-reglage); den placeras först av trailing-innehållet och dubbleras som menyval. |
 | NFR-17 | **Listrader** inuti ett sektionskort (checklistrader, inställningsrader) är inte kort och följer en egen radstandard: tryck på **hela raden** utför radens primära åtgärd (markera tagen/otagen, öppna screeningformuläret, byt namn, favoritmarkera) — inte bara en liten ikon; en trailing-ikon som speglar tillståndet är en ren indikator och läses inte upp separat, och radens tillstånd exponeras med `Role` och `stateDescription`. Har raden fler åtgärder än den primära ligger de i en kontextmeny på långtryck och `⋮`, byggd med samma menykomponent och ordning som kortens. Högst **en** inline-direktkontroll per rad. Svep används aldrig på rader — det är förbehållet postkort. |
 | NFR-18 | Ett **sektionskort** (NFR-15) får vara **ihopfällbart** och byggs då med den delade `Foldout` (regel 4): **hela titelraden** växlar utfällt läge, med en chevron som roterar som tillståndsindikator. Att tryck expanderar är tillåtet här — till skillnad från postkortet (NFR-16) — eftersom sektionskortet inte har någon konkurrerande primär åtgärd; samma princip som listradens "tryck på hela raden" (NFR-17). Titelraden håller minst `MIN_TOUCH_TARGET` i höjd och exponeras med `Role` och `stateDescription` (utfälld/ihopfälld); chevronen är en ren indikator och läses inte upp separat. Åtgärdsetiketten delas med postkortets chevron, så samma gest heter samma sak i hela appen. Innehåll som saknar mening utan kortets innehåll — t.ex. en periodväljare — visas först i utfällt läge. |
+| NFR-19 | **CI-budget:** en PR kostar högst ca 8 Actions-minuter; tester körs bara när koden de testar ändrats (paths-filter), lint och release-bygge körs veckovis och vid release, instrumenttester på emulator bara när berörda sökvägar ändrats. Enda obligatoriska statuskontrollen är `ci-ok` *(4.0)*. |
+| NFR-20 | Nytt synligt utseende eller beteende visas som **mockup** i Design-canvasen och godkänns innan kod skrivs; PR:en visar Roborazzi-skärmdumpar bredvid mockupen *(4.0)*. |
 
 ---
 
@@ -327,7 +356,7 @@
 
 ---
 
-## 15. Sjukdomar (SJ) *(nås nu via Hantera → Sjukdomar, se HANT-3 §18, sedan navigationsbytet i #84 etapp 4)*
+## 15. Sjukdomar (SJ) *(4.0: nås via Dagbok – filtret Sjukdom och episoddetaljen, HIST-9 – samt kortet på Idag, HEM-12; 3.x: Hantera → Sjukdomar, HANT-3)*
 
 | ID | Krav |
 |----|------|
@@ -347,13 +376,13 @@
 
 ---
 
-## 16. Historik-yta (enhetlig tidslinje, HIST)
+## 16. Dagbok-flik (enhetlig tidslinje, HIST) *(4.0: fliken heter Dagbok; 3.x: Historik)*
 
 > Del av UX-omtaget #84 (etapp 2, nåbar via bottennavigeringen sedan etapp 4 — se §3 NAV-7).
 
 | ID | Krav |
 |----|------|
-| HIST-1 | Historik-ytan visar alla fem posttyper (aktivitet, screening, medicindos, händelse, sjukdomsincheckning) i ett enda kronologiskt flöde, grupperat per dag. En medicinpost är en faktiskt **tagen** dos (se HIST-7) — inte en planerad/schemalagd post. |
+| HIST-1 | Dagbok-fliken visar alla posttyper (mående, aktivitet, tagen dos, händelse, sjukdomsincheckning samt episodens start och slut) i ett enda kronologiskt flöde, grupperat per dag med etiketterna Idag, Igår och veckodag + datum. En dospost är en faktiskt **tagen** dos (HIST-7) *(4.0 – 3.x: fem posttyper utan episodens start/slut)*. |
 | HIST-2 | Poster kan filtreras per typ med filterchips; minst en typ måste vara aktiv (samma regel som HIS-1). |
 | HIST-3 | Tryck på en post navigerar till dess befintliga redigerings-/detaljskärm (ingen ny redigeringslogik i Historik-ytan själv). För en medicinpost redigerar detta endast den enskilda tagningen (MED-15), inte receptet eller favoriten. |
 | HIST-4 | ~~Historik-ytan skriver inte till någon datakälla — ren läsvy över befintliga repositories.~~ *(ändrat, se HIST-5 — #105)* |
@@ -361,6 +390,7 @@
 | HIST-6 | Historik kan växlas mellan listvy och kalendervy (delad komponent `DagbokenCalendar`). I kalendervyn markeras dagar med minst en post; tryck på en dag visar postens/posternas för det datumet. Långtryck-radering (HIST-5) fungerar identiskt i båda vyerna. |
 | HIST-8 | Historik läser ett begränsat fönster bakåt (ett år) i stället för hela databasen. En "Visa äldre poster"-rad längst ned utökar fönstret med ytterligare ett år i taget. |
 | HIST-7 | Historik-ytans medicinposter visar endast doser som faktiskt är **tagna** (`tagen`, ej överhoppad). Planerade/kommande, aldrig tagna och överhoppade doser (MED-3) visas inte — de hör hemma i Idag-checklistan (MED-1/MED-13). Tidsetiketten är tagningstidpunkten (MED-14), inte den schemalagda tiden. |
+| HIST-9 | Filtret **Sjukdom** visar episoder och incheckningar; tryck på en episod öppnar episoddetaljen (SJ-11–SJ-13) som underskärm. Det är sjukdomsytans hem i 4.0 – ingen separat sjukdomslista *(4.0)*. |
 
 ---
 
@@ -390,10 +420,12 @@
 | TRD-16 | **Sömnstadier** visas som ett eget **staplat stapeldiagram** (delad `StackedBarChart` i `ui/diagram/`, regel 4): en stapel per natt, delad nedifrån och upp i djupsömn, REM, lätt sömn och vaken tid, så nätternas **sammansättning** går att jämföra och inte bara deras längd — två lika långa nätter kan ha helt olika arkitektur, vilket syns i stapeln men inte i fyra överlagrade linjer. Diagrammet har ingen serieväljare; segmenten är hela poängen. Y-axeln skalas över staplarnas **totalhöjd** (TRD-7) med värdelinjer vid varje jämnt steg (TRD-9), och trendlinjen (TRD-13) ritas över totalen. Ett stadium som saknas en natt tar **ingen höjd** i stapeln och skjuter inte upp stadierna ovanför — annars skulle en natt utan REM-mätning se ut att ha mer djupsömn än den hade. Stapelns total är **tiden i säng** (vaken tid ingår), medan Sömn-diagrammets "Total" är sömnlängden. Stadiernas färger är desamma som i Sömn-diagrammets linjeserier (TRD-15). Skärmläsarbeskrivningen anger antal nätter, kortaste och längsta natt, dominerande stadium och trendens riktning. Zoom och panorering som övriga diagram (TRD-10). |
 | TRD-17 | Trender har ett **jämförelsediagram** ("Jämför") där två eller flera valfria serier ur hela appen kan överlagras i samma diagram — klockdata (HLS-12/HLS-13) och loggade dagboksserier om vartannat, t.ex. sömnkvalitet mot energi eller vilopuls mot stress. Eftersom serierna har olika enheter **indexeras varje serie 0–100 mot sitt eget min/max inom perioden**; en rak överlagring skulle platta ut den mindre serien mot botten (steg ligger runt 10 000, energi på 0–10). Y-axeln visar index, inte enheter. De verkliga värdena får inte gömmas: legenden anger varje series faktiska lägsta och högsta värde **med enhet** för perioden. En serie med konstanta värden ritas som mittlinje i stället för att divideras med noll, och dagar utan data förblir luckor — aldrig nollor. Serierna behåller sina färger från sina egna diagram, och etiketterna är kvalificerade så de står för sig själva utanför sitt eget diagram ("Sömnlängd", inte "Total"). Datumaxeln är gemensam och sammanhängande för perioden, så en gles dagboksserie blir luckor och inte en hoptryckt axel. Diagrammet visar tomläge tills minst två serier med data valts. Data läses först när kortet fälls ut (TRD-14), och sömnkvaliteten bara när någon valt den. Diagrammet gör **ingen** statistisk korrelation och drar inga slutsatser om orsakssamband — det visar två kurvor bredvid varandra, tolkningen är användarens. Övrigt följer TRD-3/6/10/12/13/14. |
 | TRD-18 | Varje linjediagram i Trender har ett tillval **"Föregående period"** som lägger den föregående, lika långa perioden som en **nedtonad** kurva i samma färg ovanpå den nuvarande. Punkterna placeras på samma x-index som den nuvarande perioden (dag 1 mot dag 1), eftersom det är formerna och inte datumen som jämförs. Legenden får en rad per period — föregående märks "(föregående)" — och trendlinjen (TRD-13) ritas för båda, så lutningsskillnaden går att avläsa; `MinMaxCaption` och skärmläsarbeskrivningen täcker båda periodernas värden. Tillvalet är **av som standard**: nuläget är det som ska synas först. Vid periodvalet "Allt" (TRD-3) finns ingen föregående period och tillvalet visas inte alls, hellre än som en död kontroll. För hälsodiagrammen läses båda perioderna i **ett** svep (dubbla periodens längd), så jämförelsen inte kostar en andra läsning. **Undantagna är tre diagram**: Energi (dag) (TRD-8) och Sömnstadier (TRD-16) ritar staplar, och två uppsättningar staplar i samma x-position går inte att läsa av; Jämför (TRD-17) överlagrar redan flera indexerade serier, och en dubblering av dem gör diagrammet oläsligt. |
+| TRD-19 | Trender delar diagrammen i tre **grupper** valda med segmentknapp högst upp: **Mående** (Energi per dag, Energi per tillfälle, Stress och belastning, Symptom, Händelser och sjukdom), **Klocka** (Steg, Vilopuls, Sömn, Sömnstadier, Sömnkvalitet, Träning, Kalorier, Sträcka, Syremättnad, Blodtryck) och **Jämför** (TRD-17). Inom en grupp gäller TRD-14 (ihopfällbara kort, stängda som standard) *(4.0 – 3.x: alla kort i en lista)*. |
+| TRD-20 | Under **Klocka** finns Health Connect-statusen: kopplad/ej kopplad, saknade behörigheter (HLS-14) och Hälsa idag med klockans alla mått (HLS-8). Det ersätter Hälsa-skärmen under Hantera (HLS-6) *(4.0)*. |
 
 ---
 
-## 18. Hantera-yta (bibliotek/konfiguration, HANT)
+## 18. Hantera-yta (bibliotek/konfiguration, HANT) *(hela avsnittet borttaget 4.0 – ersatt av inställningsarket NAV-9, fliken Mediciner §21, Dagbok HIST-9 och Trender TRD-20)*
 
 > Del av UX-omtaget #84 (etapp 4). Fjärde bottennavflik — samlar tidigare `Inställningar`
 > (sektionerna nedan återanvänds oförändrade) med två nya navigeringskort till
@@ -401,12 +433,12 @@
 
 | ID | Krav |
 |----|------|
-| HANT-1 | Hantera-ytan nås som fjärde bottennavflik (se NAV-7, §3) — visar inte tillbakapil, till skillnad från tidigare `Inställningar` som var en underliggande skärm. |
-| HANT-2 | Sektionerna Konto, Import, Tema, Notiser, Aktivitetstyper, Symptom, Vid behov-mediciner, Händelsetyper och Om appen återanvänds oförändrade från tidigare `Inställningar` (samma `DagbokenCard`/`SectionHeader`-uppbyggnad). |
-| HANT-3 | Ett nytt navigeringskort **Sjukdomar** öppnar sjukdomshantering (lista/avsluta episoder) som en underliggande skärm med tillbakapil. |
-| HANT-4 | Ett nytt navigeringskort **Recept & scheman** öppnar receptschemat (samma innehåll som tidigare Mediciner-flikens Schema-flik, §6.2) som en underliggande skärm med tillbakapil. |
-| HANT-5 | På bred skärm (≥360dp) visas sektionerna i en sidopanel; på smal skärm i en scrollbar kolumn — samma responsiva mönster som tidigare `Inställningar`. Sidopanelen är själv vertikalt scrollbar så samtliga sektionsikoner går att nå oavsett skärmhöjd (#146). |
-| HANT-6 | Rader i Hantera följer radstandarden (NFR-17): på en alternativ-/symptomrad byter tryck namn på alternativet, och långtryck eller `⋮` ger menyn (Byt namn, Ta bort); stjärnan är radens enda inline-direktkontroll. På en vid behov-rad växlar tryck var som helst på raden favoritmarkeringen. |
+| HANT-1 | ~~Hantera-ytan nås som fjärde bottennavflik (se NAV-7, §3) — visar inte tillbakapil, till skillnad från tidigare `Inställningar` som var en underliggande skärm.~~ *(borttaget 4.0 – NAV-8/NAV-9)* |
+| HANT-2 | ~~Sektionerna Konto, Import, Tema, Notiser, Aktivitetstyper, Symptom, Vid behov-mediciner, Händelsetyper och Om appen återanvänds oförändrade från tidigare `Inställningar` (samma `DagbokenCard`/`SectionHeader`-uppbyggnad).~~ *(borttaget 4.0 – sektionerna ligger i inställningsarket NAV-9, vid behov-mediciner i MEDF-3)* |
+| HANT-3 | ~~Ett nytt navigeringskort **Sjukdomar** öppnar sjukdomshantering (lista/avsluta episoder) som en underliggande skärm med tillbakapil.~~ *(borttaget 4.0 – HIST-9)* |
+| HANT-4 | ~~Ett nytt navigeringskort **Recept & scheman** öppnar receptschemat (samma innehåll som tidigare Mediciner-flikens Schema-flik, §6.2) som en underliggande skärm med tillbakapil.~~ *(borttaget 4.0 – MEDF-1)* |
+| HANT-5 | ~~På bred skärm (≥360dp) visas sektionerna i en sidopanel; på smal skärm i en scrollbar kolumn — samma responsiva mönster som tidigare `Inställningar`. Sidopanelen är själv vertikalt scrollbar så samtliga sektionsikoner går att nå oavsett skärmhöjd (#146).~~ *(borttaget 4.0 – arket är en kolumn; bred skärm hanteras av ramarna)* |
+| HANT-6 | ~~Rader i Hantera följer radstandarden (NFR-17): på en alternativ-/symptomrad byter tryck namn på alternativet, och långtryck eller `⋮` ger menyn (Byt namn, Ta bort); stjärnan är radens enda inline-direktkontroll. På en vid behov-rad växlar tryck var som helst på raden favoritmarkeringen.~~ *(borttaget 4.0 – radstandarden NFR-17 gäller i inställningsarkets listor och i Mediciner)* |
 
 ---
 
@@ -426,8 +458,8 @@
 | HLS-2 | Kärndatapunkter: **steg** (`StepsRecord`, dagens summa — när flera källor skrivit steg, t.ex. telefonens pedometer och Galaxy Watch via Samsung Health, summeras stegen **per källa** och den mest kompletta (högsta) källans summa väljs; aldrig en summering över källor (dubbelräkning) eller `COUNT_TOTAL`s per-tidslucke-dedup, som tappade steg när källorna inte överlappade och gjorde att appen visade färre steg än den bärbara enheten), **puls** (`HeartRateRecord`, dagens snitt), **sömn** (`SleepSessionRecord`, senaste natten — används dessutom som filter för vilopulsskattningen, se HLS-7) och **vilopuls** (`RestingHeartRateRecord`, senaste värdet). Övriga datapunkter, inklusive aktiva kalorier, se HLS-8. |
 | HLS-3 | Kärnläsbehörigheterna är scopade hälsobehörigheter (`android.permission.health.READ_STEPS`, `READ_HEART_RATE`, `READ_RESTING_HEART_RATE`, `READ_SLEEP`) med runtime-samtycke via Health Connects behörighetsflöde. Ej beviljad behörighet visar en tydlig vy med "Ge åtkomst"-knapp utan krasch. Appen deklarerar en behörighets-rationale-handler i manifestet (`SHOW_PERMISSIONS_RATIONALE` för Android ≤13, `VIEW_PERMISSION_USAGE`-alias med hälso-kategorin för Android 14+) — annars visar Health Connect ingen samtyckesdialog. |
 | HLS-4 | Saknas Health Connect på enheten (`HealthConnectClient.getSdkStatus()` = `SDK_UNAVAILABLE`/`SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED`) visas en tydlig uppmaning (installera/uppdatera) med knapp till Health Connect i stället för hälsodata. |
-| HLS-5 | Hälsodata persisteras **inte** lokalt och ingår **inte** i Drive-backup — Health Connect/Samsung Health äger och backar upp datan; Dagboken läser live. |
-| HLS-6 | Hälsa-skärmen nås via ett navigeringskort i **Hantera** (underskärm med tillbakapil), samma mönster som Sjukdomar (HANT-3) och Recept & scheman (HANT-4). Datapunkter visas som `StatPill` (regel 4); saknad datapunkt visar "—". |
+| HLS-5 | Hälsodata persisteras **inte** – varken i Firestore eller i exporten (BCK-12/BCK-13) – Health Connect/Samsung Health äger och backar upp datan; Dagboken läser live *(4.0 – 3.x: inte i Drive-backup)*. |
+| HLS-6 | Hälsa idag med klockans alla mått nås under **Trender → Klocka** (TRD-20), med Health Connect-status och behörighetsrad (HLS-14) överst. Datapunkter visas som `StatPill` (regel 4); saknad datapunkt visar "—" *(4.0 – 3.x: navigeringskort i Hantera, HANT)*. |
 | HLS-7 | **Idag-skärmen** visar ett kompakt hälsokort med **steg** och **vilopuls** som `StatPill` (regel 4) för den dag som är vald i Idag-checklistans datumnavigering (HEM-14) — byter värde när användaren bläddrar till en annan dag, "—" om Health Connect saknar data för den dagen (t.ex. utanför det hämtade 7-dagarsfönstret), när Health Connect är tillgängligt och behörighet beviljad. Vilopulsen (både dagens och tidigare dagars) tas i första hand från senaste `RestingHeartRateRecord`; saknas den (t.ex. Galaxy Watch via Samsung Health som inte skriver posten) **skattas** den i stället från periodens `HeartRateRecord`-prover så att kortet visar en vilopuls i stället för "—". Skattningen görs enbart på de **vakna** proverna: prover som ligger inom en `SleepSessionRecord` sållas bort först (sömnfönstren läses för hela perioden med startgränsen ett dygn bakåt, så att en session som korsar midnatt exkluderas från båda dygnen), eftersom sömnpulsen ligger under den verkliga vilopulsen och annars utgjorde hela lågänden när klockan bars på natten — appen visade då flera slag lägre vilopuls än Health Connect (#154). På de vakna proverna tas medelvärdet av den lägsta 5-percentilen ≈ den lägsta ihållande pulsen; ett enda artefaktlågt prov drar inte ner värdet. Saknas vakna prover helt (klockan bars bara under natten) används hela provmängden hellre än "—". Vilopulsen persisteras inte utan räknas om vid varje läsning (HLS-5), så en ändrad skattning rättar även redan visade historiska dagar så långt Health Connects rådata räcker. Stegtrend och vilopulstrend för senaste 7 dagarna visas i stället i det gemensamma trenddiagrammet, se HEM-17. Saknas Health Connect eller behörighet visas en diskret "Koppla hälsa"-rad som djuplänkar till Hälsa-skärmen (§18) — **ingen** behörighetsbegäran sker på Idag. Kortet laddas fristående och blockerar inte Idag-renderingen. |
 | HLS-8 | Hälsa-skärmen visar utöver kärndatapunkterna, grupperade under `SectionHeader` (regel 4): **sömnstadier** för senaste natten (`SleepSessionRecord.stages` — djupsömn, REM, lätt sömn och vaken tid; `STAGE_TYPE_SLEEPING` räknas som lätt sömn och `AWAKE_IN_BED`/`OUT_OF_BED` som vaken, `UNKNOWN` ignoreras; stadieraderna visas bara när natten faktiskt har stadier), **träning idag** (`ExerciseSessionRecord` — antal pass och sammanlagd tid), **aktiva kalorier** (`ActiveCaloriesBurnedRecord`), **sträcka idag** (`DistanceRecord`, kilometer med en decimal i användarens talformat), **syremättnad** (`OxygenSaturationRecord`, snitt över samma 24-timmarsfönster som sömnen eftersom SpO2 mäts under natten) och **blodtryck** (`BloodPressureRecord`, senaste mätningen inom sju dagar — mäts sporadiskt). Kalorier och sträcka väljs **per källa** enligt samma princip som stegen i HLS-2, eftersom telefonen och klockan skriver samma dygn var för sig. **Träningspass** följer inte den regeln: de är diskreta händelser, inte dygnssummor, så två källor kan hålla olika pass. De dedupliceras därför på **tidsöverlapp** — överlappande pass är samma händelse och reduceras till det längsta av dem, medan pass som inte överlappar räknas var för sig oavsett källa. Ett källval per dygn kastade i stället bort allt utom en källas pass. Dessa behörigheter (`READ_EXERCISE`, `READ_ACTIVE_CALORIES_BURNED`, `READ_DISTANCE`, `READ_OXYGEN_SATURATION`, `READ_BLOOD_PRESSURE`) är **valfria**: bara kärnbehörigheterna i HLS-3 avgör om skärmen visar data, och en nekad valfri behörighet gör att just den datapunkten visas som "—" utan att låsa skärmen eller ge felvy — men skärmen säger då **vilka** mått det gäller och erbjuder att begära åtkomsten, se HLS-14. Datapunkter Samsung Health inte skriver till Health Connect (HRV, stress, hudtemperatur, EKG, VO2max) ingår inte — de går inte att nå via något Samsung-API, se spike #56. |
 | HLS-9 | Appen begär `android.permission.health.READ_HEALTH_DATA_HISTORY`. Utan den lämnar Health Connect bara ut data från de 30 dagarna före att behörigheten beviljades, vilket tystade Trenders steg- och vilopulsdiagram (TRD-11) för längre perioder trots att perioderna går upp till ett år. Behörigheten är valfri på samma sätt som HLS-8: nekas den fungerar appen som förut med 30 dagars fönster, och att den saknas syns på Hälsa-skärmen enligt HLS-14. |
@@ -459,3 +491,51 @@
 | WID-6 | ~~Varje widget ritar en egen opak bakgrund med explicita textfärger som följer systemets ljusa/mörka läge.~~ *(borttaget, #177)* |
 | WID-7 | ~~Appens widgets är uppdelade per handling och kan läggas till oberoende av varandra.~~ *(borttaget, #177)* |
 | WID-8 | ~~En vid behov-dos kan loggas som tagen direkt från vid behov-widgeten.~~ *(borttaget, #177)* |
+
+
+---
+
+## 21. Mediciner-flik (MEDF) *(4.0)*
+
+> Fjärde bottennavflik (NAV-8). Samlar allt som rör medicinbiblioteket; själva dagens
+> doser bockas av på Idag (§4, §6.1) och loggade doser läses i Dagbok (§16).
+
+| ID | Krav |
+|----|------|
+| MEDF-1 | Fliken visar **Recept och scheman**: aktiva recept som postkort (NFR-15) med namn, dos, tidpunkter, upprepning och period, aktiv-reglaget som direktkontroll (REC-5), dagens gällande dos med höjning inom parentes (REC-12) och periodetikett (REC-7/REC-8). Innehållet motsvarar 3.x Recept & scheman (§6.2). |
+| MEDF-2 | En **banner** överst visar periodslut som inträffar idag eller i morgon (NOT-12) och pågående doshöjningar som tar slut, med genväg till receptet. |
+| MEDF-3 | Sektionen **Vid behov-mediciner** listar alla vid behov-mediciner med kylperiod och dagsgräns som undertext och stjärnan som inline-direktkontroll för favoritmarkering (FAV-2, SET-10). |
+| MEDF-4 | Knapparna **Nytt recept** och **Ny vid behov-medicin** finns bara här (NAV-10) och öppnar respektive formulär (REC-1, FAV-1) på `EntityEditScreen`. |
+| MEDF-5 | **Avslutade recept** (REC-8) ligger ihopfällda längst ned med antal; utfällda visar de slutdatum och kan förlängas och återaktiveras. |
+| MEDF-6 | Länken **Logga en dos i efterhand** öppnar dosformuläret med valfritt datum och klockslag (MED-16, FAV-10). |
+
+---
+
+## 22. Ombyggnad och migrering (OMB) *(4.0)*
+
+> Villkor nummer ett för ombyggnaden: **ingen data får tappas.** Se ARKITEKTUR.md → Migrering.
+
+| ID | Krav |
+|----|------|
+| OMB-1 | Appen 3.27.0 fryses som tagg och branch `legacy`. 4.0 byggs på `master` med samma `applicationId`, så den installeras som uppdatering och Room-filen finns kvar på enheten. |
+| OMB-2 | Vid **första start** av 4.0 på en enhet med en 3.x-databas läser appen Room-filen (read-only legacy-läsare) och skriver alla poster till Firestore i batchar. Skärmen visar antal per entitet före och efter och användaren bekräftar innan appen öppnas. Room-filen raderas **aldrig** automatiskt. |
+| OMB-3 | Konverteraren `BackupJson` (v1 och v2, inklusive arvsfälten `anteckning` på posterna och `tidpunkt` på receptet) → 4.0-dokument ligger i `:core` och täcks av en fixtur där **varje** fält är satt. Test: konvertera → exportera → fältvis jämförelse. Samma mappning används av legacy-läsaren (OMB-2) och legacyimporten (BCK-14). |
+| OMB-4 | **Grind före etapp 3 och före första release:** en riktig 3.x-backup importeras via `tools/db import.mjs`, exporteras igen och jämförs fältvis med originalet. Noll skillnader krävs. |
+| OMB-5 | Saknas Room-fil (ny enhet) erbjuder första starten import från en 3.x Drive-backup eller en lokal JSON (BCK-14), eller att börja tomt. Migreringsskärmen kan vara startdestination (NAV-6). |
+| OMB-6 | Varje krav i denna lista som inte är struket är **paritetschecklista**: första release av 4.0 görs först när alla är uppfyllda och bockade av i PR-beskrivningarna. |
+
+---
+
+## 23. Designspråk (DSN) *(4.0)*
+
+> Vald känsla **I · Papper och teal** (canvas, rad 2d). Tokens i `ui/theme`; värden och motiv i
+> ARKITEKTUR.md → Designspråk och skill `ui-style`.
+
+| ID | Krav |
+|----|------|
+| DSN-1 | Ljust tema: pappersyta, vita kort utan kantlinje, **teal** som primärfärg (kryss, knappar, aktiv flik), **solgul** som gör-något-färg (plusknapp, "Snart", dagens punkt, framstegsraden när dagen är klar), **terrakotta** för varning (försenat, periodslut). Varje textbärande färg klarar 4,5:1 mot sin bakgrund. |
+| DSN-2 | Typografi: **Fraunces** (serif) för rubriker, **Figtree** för brödtext; typsnitten bundlas i appen (OFL) och laddas aldrig ned. Namngivna stilar i `AppTypography`; aldrig `fontSize` i feature-kod. |
+| DSN-3 | Form och avstånd: kort 22 dp, chips och knappar helt rundade, ark 28 dp upptill; avstånd bara ur `Spacing`; tryckytor minst 48 dp. |
+| DSN-4 | Rörelse: fjädrande kryss som tonar raden, framstegsrad som fylls animerat, delad skärmövergång; belöningsläget enligt HEM-19. Rörelse förstärker och blockerar aldrig. |
+| DSN-5 | Mörkt tema härleds med samma roller på djup skogsgrön botten; kontrast kontrolleras i båda lägena och varje komponent har Roborazzi-referens ljust + mörkt. Teman: ljust, mörkt, auto (SET-1). |
+| DSN-6 | Designspråket skiljer sig avsiktligt från ReseApotekets (ingen korall/aprikos, ingen Nunito, serif-rubriker, luftigare kort) även om komponentkatalogen delas. |
