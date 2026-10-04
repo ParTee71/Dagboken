@@ -1,6 +1,7 @@
 package se.partee71.dagboken.data
 
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
@@ -9,6 +10,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
@@ -38,7 +40,7 @@ import se.partee71.dagboken.data.firestore.Paths
  * Firestore får ett byte asynkront via auth-lyssnaren; en skrivning direkt efter `signOut` +
  * `signInAnonymously` på samma app kunde hamna i förra användarens kö och aldrig kvitteras, och
  * testet hängde tills CI-jobbets gräns. Behöver ett test två användare skapas två. [after]
- * raderar testets appar, vilket avslutar deras Firestore och Auth.
+ * avslutar testets Firestore-instanser och loggar ut deras användare (apparna lever kvar, se [after]).
  *
  * ```
  * @get:Rule val emulator = FirebaseEmulator()
@@ -60,14 +62,24 @@ class FirebaseEmulator : ExternalResource() {
 
     override fun after() {
         active = false
-        val deleted = apps.map { app -> runCatching { app.delete() } }
+        // Apparna raderas inte: Firebase Auths interna register pekar på den app som skapade den
+        // första FirebaseAuth-instansen, och `FirebaseApp.delete()` ger därefter
+        // "FirebaseApp was deleted" i `useEmulator` för alla senare appar i samma process (CI-run
+        // 37217695837). Firestore avslutas och användaren loggas ut; apparna är unika per körning
+        // och processen avslutas efter sviten, så de kostar bara lite minne.
+        val closed = apps.map { app ->
+            runCatching {
+                Tasks.await(FirebaseFirestore.getInstance(app).terminate(), 10, TimeUnit.SECONDS)
+                FirebaseAuth.getInstance(app).signOut()
+            }
+        }
         apps.clear()
-        deleted.firstOrNull { it.isFailure }?.getOrThrow()
+        closed.firstOrNull { it.isFailure }?.getOrThrow()
     }
 
     /** En ny anonym användare, inloggad i auth-emulatorn, utan `users/{uid}`. */
     suspend fun newSignedInUser(): EmulatorUser {
-        check(active) { "FirebaseEmulator används som @get:Rule – annars raderas apparna aldrig" }
+        check(active) { "FirebaseEmulator används som @get:Rule – annars stängs apparna aldrig" }
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val app = FirebaseApp.initializeApp(context, OPTIONS, "emulator-$RUN-${counter.incrementAndGet()}")
         apps += app

@@ -97,7 +97,7 @@ miljön får aldrig köra dem utan emulator (skill `data-safety-backup`).
 Instrumenttesterna får sina användare från regeln `FirebaseEmulator` (`@get:Rule val emulator =
 FirebaseEmulator()`). Varje användare har en **egen FirebaseApp** – egen Auth, egen
 Firestore-instans och egen cache – och är inloggad innan Firestore-instansen skapas; regeln
-raderar apparna efter testet. Byt **aldrig** användare med `signOut`/`signInAnonymously` under en
+avslutar deras Firestore och loggar ut efter testet (apparna raderas aldrig: `FirebaseApp.delete()` bryter Firebase Auths interna register för alla senare appar i processen). Byt **aldrig** användare med `signOut`/`signInAnonymously` under en
 levande Firestore-instans: Firestore får bytet asynkront, och en skrivning direkt efteråt kan
 hamna i förra användarens kö och aldrig kvitteras (CI hängde så, ungefär var 19:e byte). Behövs
 två användare i ett test skapas två (`FirestoreOfflineTest`). Varje steg mot emulatorn har en
