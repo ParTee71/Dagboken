@@ -66,8 +66,10 @@ node tools/db/migrate.mjs --to <N>                        # schemamigrering (BCK
   `./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <uid>"`
   (från repots rot; rapporten med antal, varningar och stopp skrivs utan innehåll, exitkod 1 = stopp).
   Grinden OMB-4 är just den vägen: konvertera → `import --dry-run` → importera → exportera → jämför
-  fältvis, noll skillnader (ARKITEKTUR.md → Migrering, punkt 3). Både backupen och exporten ligger i
-  `tools/db/` och raderas efteråt.
+  fältvis, noll skillnader (ARKITEKTUR.md → Migrering, punkt 3). **Alltid mot ett tomt scratch-uid**:
+  `import` skriver dokumenten som de är (ingen merge) och skulle mot ett befintligt konto radera
+  `createdAt` och inställningar som backupen saknade. Backupen, exporten och scratch-användaren raderas
+  efteråt.
 - Aldrig ad hoc-skrivningar med egna skript eller `node -e`.
 
 ## Integritet (skill `data-privacy-security`)

@@ -57,11 +57,14 @@ data class BackupJson(
          */
         fun parse(text: String): BackupJson = try {
             json.decodeFromString(serializer(), text)
-        } catch (e: SerializationException) {
-            throw IllegalArgumentException("Filen är inte en 3.x-backup (BackupJson) – innehållet visas inte", e)
-        } catch (e: IllegalArgumentException) {
-            throw IllegalArgumentException("Filen är inte en 3.x-backup (BackupJson) – innehållet visas inte", e)
+        } catch (_: SerializationException) {
+            // Utan cause: kotlinx:s meddelande citerar innehållet och får inte följa med till loggar.
+            throw IllegalArgumentException(NOT_A_BACKUP)
+        } catch (_: IllegalArgumentException) {
+            throw IllegalArgumentException(NOT_A_BACKUP)
         }
+
+        private const val NOT_A_BACKUP = "Filen är inte en 3.x-backup (BackupJson) – innehållet visas inte"
     }
 }
 

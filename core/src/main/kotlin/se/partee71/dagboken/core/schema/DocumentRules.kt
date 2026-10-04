@@ -229,12 +229,13 @@ object DocumentRules {
 
     /**
      * Om [id] går att använda som Firestore-dokument-id: inte tomt, inte `.`/`..`, inte reserverat
-     * `__…__`, inget `/` och högst 1 500 byte – samma kontroll som `hasValidIds` i tools/db gör före en import.
+     * `__…__`, inget `/` och högst 1 500 byte – samma kontroll som `hasValidIds` i tools/db gör före en import
+     * (båda körs mot `tools/db/test/fixtures/ids.json`).
      */
     fun isValidId(id: String): Boolean =
         id.isNotEmpty() && id != "." && id != ".." && !RESERVED_ID.matches(id) && '/' !in id && id.toByteArray(Charsets.UTF_8).size <= MAX_ID_BYTES
 
-    /** Alla brott i [doc] mot [collection]s regler, i fältordning; tom lista = rules godtar dokumentet vid `create`. */
+    /** **Alla** brott i [doc] mot [collection]s regler (även i nästlade objekt och varje listelement), i fältordning; tom lista = rules godtar dokumentet vid `create`. */
     fun validate(collection: String, doc: Doc): List<Violation> {
         val fields = requireNotNull(FIELDS[collection]) { "okänd samling $collection" }
         val violations = mutableListOf<Violation>()
@@ -243,17 +244,17 @@ object DocumentRules {
         return violations
     }
 
-    private fun check(shape: Shape, doc: Doc, prefix: String): List<Violation> = shape.fields.mapNotNull { (key, check) ->
+    private fun check(shape: Shape, doc: Doc, prefix: String): List<Violation> = shape.fields.flatMap { (key, check) ->
         val value = doc[key]
         when {
             value != null -> check(check, value, "$prefix$key")
-            key in shape.required -> Violation("$prefix$key", "saknas")
-            else -> null
+            key in shape.required -> listOf(Violation("$prefix$key", "saknas"))
+            else -> emptyList()
         }
     }
 
-    /** Skälet om [value] (aldrig `null`) bryter mot [check], annars `null`; nästlade fel får sin egen fältväg. */
-    private fun check(check: Check, value: Any, path: String): Violation? {
+    /** Alla brott i [value] (aldrig `null`) mot [check]; nästlade fel får sin egen fältväg (`symptoms[3].score`). */
+    private fun check(check: Check, value: Any, path: String): List<Violation> {
         val reason: String? = when (check) {
             Check.IntField -> whole(value)
             Check.BoolField -> if (value is Boolean) null else type(value, "sant/falskt")
@@ -268,17 +269,17 @@ object DocumentRules {
             is Check.OneOf -> if (value is String) (if (value in check.values) null else "okänt värde: $value") else type(value, "enum")
             is Check.IntList -> list(value, check.max) ?: return elements(value, path) { i, v -> check(Check.Range(check.range), v, "$path[$i]") }
             is Check.EnumList -> list(value, check.max) ?: return elements(value, path) { i, v -> check(Check.OneOf(check.values), v, "$path[$i]") }
-            is Check.Nested -> if (value is Map<*, *>) return check(check.shape, asDoc(value), "$path.").firstOrNull() else type(value, "objekt")
+            is Check.Nested -> if (value is Map<*, *>) return check(check.shape, asDoc(value), "$path.") else type(value, "objekt")
             is Check.ListOf -> list(value, check.max, check.exact) ?: return elements(value, path) { i, element ->
-                if (element is Map<*, *>) check(check.shape, asDoc(element), "$path[$i].").firstOrNull() else Violation("$path[$i]", type(element, "objekt"))
+                if (element is Map<*, *>) check(check.shape, asDoc(element), "$path[$i].") else listOf(Violation("$path[$i]", type(element, "objekt")))
             }
         }
-        return reason?.let { Violation(path, it) }
+        return listOfNotNull(reason?.let { Violation(path, it) })
     }
 
-    /** Första brottet bland listans element; ett `null`-element saknas (rules läser elementen utan `none`). */
-    private fun elements(list: Any, path: String, check: (Int, Any) -> Violation?): Violation? =
-        (list as List<*>).withIndex().firstNotNullOfOrNull { (i, element) -> if (element == null) Violation("$path[$i]", "saknas") else check(i, element) }
+    /** Brotten i varje element; ett `null`-element saknas (rules läser elementen utan `none`). */
+    private fun elements(list: Any, path: String, check: (Int, Any) -> List<Violation>): List<Violation> =
+        (list as List<*>).withIndex().flatMap { (i, element) -> if (element == null) listOf(Violation("$path[$i]", "saknas")) else check(i, element) }
 
     private fun whole(value: Any): String? = if (value is Int || value is Long) null else type(value, "heltal")
 

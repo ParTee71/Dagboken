@@ -38,6 +38,15 @@ class LegacyTimeTest {
     }
 
     @Test
+    fun `shift - luckan, överlappningen och vanliga klockslag`() {
+        assertEquals(LegacyTime.Shift.GAP, LegacyTime.shift(LocalDate(2026, 3, 29), LocalTime(2, 30)))
+        assertEquals(LegacyTime.Shift.OVERLAP, LegacyTime.shift(LocalDate(2026, 10, 25), LocalTime(2, 30)))
+        assertNull(LegacyTime.shift(LocalDate(2026, 10, 25), LocalTime(3, 0)))
+        assertNull(LegacyTime.shift(LocalDate(2026, 3, 29), LocalTime(1, 59)))
+        assertNull(LegacyTime.shift(LocalDate(2026, 1, 15), LocalTime(2, 30)))
+    }
+
+    @Test
     fun `midnatt för receptets skapandedag - dagen går att läsa tillbaka exakt`() {
         assertEquals(Instant.parse("2025-12-31T23:00:00Z"), LegacyTime.midnight(LocalDate(2026, 1, 1)))
         assertEquals(Instant.parse("2025-05-31T22:00:00Z"), LegacyTime.midnight(LocalDate(2025, 6, 1)))

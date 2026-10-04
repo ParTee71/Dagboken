@@ -79,7 +79,9 @@ sealed interface ConversionResult {
     /**
      * Lyckad konvertering. [documents] är sorterade på sökväg och färdiga för `tools/db import.mjs`
      * ([exportJson]) eller för batchskrivning; inställningsdokumentet innehåller bara de fält backupen
-     * hade (merge, ARKITEKTUR.md → Fältparitet, `BackupJson.settings`).
+     * hade (ARKITEKTUR.md → Fältparitet, `BackupJson.settings`). Legacy-läsaren på enheten skriver det med
+     * merge (etapp 3); `tools/db import.mjs` skriver dokumenten som de är och körs därför mot ett tomt
+     * scratch-uid (ARKITEKTUR.md → Migrering, punkt 3).
      */
     data class Converted(
         val data: ConvertedData,

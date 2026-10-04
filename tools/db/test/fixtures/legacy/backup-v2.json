@@ -157,6 +157,6 @@
   "periodReminderTime": "08:45",
   "settings": {
     "medsNotificationsEnabled": true, "themeMode": "dark", "themeLightStart": 6, "themeDarkStart": 22, "isDarkTheme": false,
-    "dynamicColor": false, "birthYear": 1971, "sex": "kvinna", "framtidaInstallning": "okänd i 3.x"
+    "dynamicColor": false, "birthYear": 1985, "sex": "man", "framtidaInstallning": "okänd i 3.x"
   }
 }

@@ -29,7 +29,7 @@ class ConvertBackupCliTest {
 
     @Test
     fun `konverterar fixturen till exakt den förväntade exportfilen och skriver rapporten`() {
-        val output = folder.newFile("export.json")
+        val output = File(folder.root, "export.json")
         val run = run("--in", fixture, "--out", output.path, "--user", LegacyFixtures.UID)
         assertEquals(ConvertBackupCli.EXIT_OK, run.exit, run.err)
         assertEquals(LegacyFixtures.expectedText("backup-v2"), output.readText())
@@ -44,8 +44,9 @@ class ConvertBackupCliTest {
         val run = run("--in", input.path, "--out", output.path, "--user", "u")
         assertEquals(ConvertBackupCli.EXIT_STOPPED, run.exit)
         assertFalse(output.exists())
-        assertTrue("Stopp: 1 fel" in run.out && "doses/m1 · tidpunkt: okänd tidpunkt: Brunch" in run.out, run.out)
+        assertTrue("Stopp: 1 fel" in run.out && "doses/m1 · tidpunkt: okänd tidpunkt okänt värde (6 tecken)" in run.out, run.out)
         assertFalse("HEMLIGT" in run.out + run.err)
+        assertFalse("Brunch" in run.out + run.err, "råvärdet skrivs inte")
     }
 
     @Test
@@ -67,5 +68,28 @@ class ConvertBackupCliTest {
         val missing = run("--in", File(folder.root, "finns-inte.json").path, "--out", "x", "--user", "u")
         assertEquals(ConvertBackupCli.EXIT_USAGE, missing.exit)
         assertTrue("finns inte" in missing.err)
+    }
+
+    @Test
+    fun `ett uid som inte duger som dokument-id vägras`() {
+        for (uid in listOf("", "a/b", "..", "__x__")) {
+            val run = run("--in", fixture, "--out", File(folder.root, "x.json").path, "--user", uid)
+            assertEquals(ConvertBackupCli.EXIT_USAGE, run.exit, uid)
+            assertTrue("--user är inte ett giltigt dokument-id" in run.err, run.err)
+        }
+        assertFalse(File(folder.root, "x.json").exists())
+    }
+
+    @Test
+    fun `en befintlig utfil skrivs bara över med --force`() {
+        val output = folder.newFile("export.json").apply { writeText("gammalt innehåll") }
+        val refused = run("--in", fixture, "--out", output.path, "--user", LegacyFixtures.UID)
+        assertEquals(ConvertBackupCli.EXIT_USAGE, refused.exit)
+        assertTrue("finns redan" in refused.err && "--force" in refused.err, refused.err)
+        assertEquals("gammalt innehåll", output.readText())
+        val forced = run("--force", "--in", fixture, "--out", output.path, "--user", LegacyFixtures.UID)
+        assertEquals(ConvertBackupCli.EXIT_OK, forced.exit, forced.err)
+        assertEquals(LegacyFixtures.expectedText("backup-v2"), output.readText())
+        assertEquals(ConvertBackupCli.EXIT_USAGE, run("--force", "--force", "--in", fixture, "--out", output.path, "--user", "u").exit, "dubbel flagga")
     }
 }

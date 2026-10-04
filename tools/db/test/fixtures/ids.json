@@ -1,0 +1,22 @@
+{
+  "_kommentar": "Dokument-id som Firestore godtar respektive vägrar – delad fixtur för DocumentRules.isValidId i :core (DocumentRulesTest) och hasValidIds i tools/db (backup.test.mjs). Ett värde är en text, eller { text, times } för en upprepad text.",
+  "valid": [
+    "recept_6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a_2026-10-04_Förmiddag",
+    "6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a",
+    "a:b",
+    "activity-promenad-c78928",
+    "_x_",
+    { "text": "x", "times": 1500 },
+    { "text": "å", "times": 750 }
+  ],
+  "invalid": [
+    "",
+    ".",
+    "..",
+    "__x__",
+    "a/b",
+    "users/u/doses/x",
+    { "text": "x", "times": 1501 },
+    { "text": "å", "times": 751 }
+  ]
+}

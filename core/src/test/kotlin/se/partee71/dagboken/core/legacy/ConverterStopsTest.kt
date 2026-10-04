@@ -84,9 +84,9 @@ class ConverterStopsTest {
 
     @Test
     fun `okänd tidpunkt stoppar - dos, recept och vid behov-medicin`() {
-        assertStops(dose(tidpunkt = "Brunch"), "doses/m1", "tidpunkt", "okänd tidpunkt: Brunch")
-        assertStops(dose(tidpunkt = ""), "doses/m1", "tidpunkt", "okänd tidpunkt")
-        assertStops(BackupJson(medicinRecipes = listOf(ReceptJson(id = "r1", tidpunkter = listOf("Morgon", "Brunch")))), "prescriptions/r1", "tidpunkter", "Brunch")
+        assertStops(dose(tidpunkt = "Brunch"), "doses/m1", "tidpunkt", "okänd tidpunkt okänt värde (6 tecken)")
+        assertStops(dose(tidpunkt = ""), "doses/m1", "tidpunkt", "okänd tidpunkt okänt värde (0 tecken)")
+        assertStops(BackupJson(medicinRecipes = listOf(ReceptJson(id = "r1", tidpunkter = listOf("Morgon", "Brunch")))), "prescriptions/r1", "tidpunkter", "(6 tecken)")
         assertStops(BackupJson(medicinFavoriter = listOf(FavoritJson(id = "f1", tidpunkt = ""))), "prnMedicines/f1", "tidpunkt", "okänd tidpunkt")
     }
 
@@ -118,9 +118,10 @@ class ConverterStopsTest {
 
     @Test
     fun `ett id som Firestore inte godtar stoppar`() {
-        assertStops(dose(id = "a/b"), "doses/a/b", "id", "ogiltigt dokument-id (3 tecken)")
-        assertStops(dose(id = ""), "doses/", "id", "ogiltigt dokument-id")
-        assertStops(dose(id = ".."), "doses/..", "id", "ogiltigt dokument-id")
+        // Ett ogiltigt id kan vara vad som helst – rapporten anger längden, inte id:t.
+        assertStops(dose(id = "a/b"), "doses/(ogiltigt id, 3 tecken)", "id", "ogiltigt dokument-id (3 tecken)")
+        assertStops(dose(id = ""), "doses/(ogiltigt id, 0 tecken)", "id", "ogiltigt dokument-id")
+        assertStops(dose(id = ".."), "doses/(ogiltigt id, 2 tecken)", "id", "ogiltigt dokument-id")
     }
 
     @Test
@@ -140,14 +141,73 @@ class ConverterStopsTest {
     @Test
     fun `inställningar - okänt tema, kön eller timme och påminnelserader utan plats stoppar`() {
         val path = "settings/app"
-        assertStops(BackupJson(settings = SettingsBackup(themeMode = "sepia")), path, "themeMode", "okänt värde: sepia")
-        assertStops(BackupJson(settings = SettingsBackup(sex = "annat")), path, "sex", "okänt värde: annat")
+        assertStops(BackupJson(settings = SettingsBackup(themeMode = "sepia")), path, "themeMode", "okänt värde (5 tecken)")
+        assertStops(BackupJson(settings = SettingsBackup(sex = "annat")), path, "sex", "okänt värde (5 tecken)")
         assertStops(BackupJson(settings = SettingsBackup(themeLightStart = 24)), path, "theme.lightStartHour", "utanför intervallet 0..23: 24")
         assertStops(BackupJson(periodReminderTime = "9:00"), path, "periodReminderTime", "ogiltigt klockslag")
         assertStops(BackupJson(screeningEventConfigs = List(5) { ScreeningEventConfigJson(true, "08:00") }), path, "screeningEventConfigs", "fler tillfällen än de fyra: 5")
         assertStops(BackupJson(screeningEventConfigs = listOf(ScreeningEventConfigJson(true, "8:00"))), path, "screeningEventConfigs[0].time", "ogiltigt klockslag")
-        assertStops(BackupJson(medNotificationConfigs = listOf(MedNotificationConfigJson("Vid behov", true, "12:00"))), path, "medNotificationConfigs[0].tidpunkt", "okänd tidpunkt: Vid behov")
+        assertStops(BackupJson(medNotificationConfigs = listOf(MedNotificationConfigJson("Vid behov", true, "12:00"))), path, "medNotificationConfigs[0].tidpunkt", "okänd tidpunkt okänt värde (9 tecken)")
         assertStops(BackupJson(medNotificationConfigs = listOf(MedNotificationConfigJson("Morgon", true, "25:00"))), path, "medNotificationConfigs[0].time", "ogiltigt klockslag")
+    }
+
+    @Test
+    fun `rapporten innehåller varken alternativens namn eller slug, inte heller råa enum- eller tidpunktsvärden`() {
+        val backup = BackupJson(
+            aktiviteterOptionsV2 = listOf(SymptomOptionBackup("Hemligt Besök"), SymptomOptionBackup("Hemligt Besök", isFavorite = true)),
+            symptomOptionsV2 = listOf(SymptomOptionBackup("Hemlig Diagnos ".repeat(20))),
+            mediciner = listOf(MedicinJson(id = "m1", tidpunkt = "Hemligtid", datum = "2026-01-15")),
+            settings = SettingsBackup(themeMode = "hemligtema", sex = "hemligkon"),
+        )
+        val result = assertIs<ConversionResult.Stopped>(BackupJsonConverter.convert(backup, "u"))
+        val rendered = result.report.render()
+        for (secret in listOf("Hemlig", "hemlig", "Besök", "besok", "Diagnos", "diagnos", "Hemligtid", "hemligtema", "hemligkon")) {
+            assertFalse(secret in rendered, "rapporten får inte innehålla '$secret':\n$rendered")
+        }
+        assertEquals(listOf(Warning("options/activity#1", "namnet finns två gånger i activity-listan – det första gäller")), result.report.warnings)
+        assertEquals(
+            listOf(
+                Problem("doses/m1", "tidpunkt", "okänd tidpunkt okänt värde (9 tecken)"),
+                Problem("options/symptom#0", "name", "för lång text: 300 tecken (högst ${TextLimits.SHORT})"),
+                Problem("settings/app", "themeMode", "okänt värde (10 tecken)"),
+                Problem("settings/app", "sex", "okänt värde (9 tecken)"),
+            ),
+            result.report.problems.sortedBy { it.path },
+        )
+    }
+
+    @Test
+    fun `anteckningar med text men utan target eller id räknas i rapporten - inte tyst bort`() {
+        val backup = BackupJson(
+            notes = listOf(NoteJson(target = "", entityId = "x", text = "Hemlig text"), NoteJson(target = "EVENT", entityId = "", text = "Annan"), NoteJson(target = "", entityId = "", text = "")),
+        )
+        val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u"))
+        assertEquals(listOf(Warning("notes", "2 anteckning(ar) utan target eller id – kan inte placeras")), result.report.warnings)
+        assertFalse("Hemlig" in result.report.render())
+    }
+
+    @Test
+    fun `tagenTid i sommartidsbytet varnas i rapporten - luckan och överlappningen`() {
+        val backup = BackupJson(
+            mediciner = listOf(
+                MedicinJson(id = "m1", datum = "2026-03-29", tid = "02:30", tidpunkt = "Natt", tagen = true, tagenTid = "02:30", timestamp = ""),
+                MedicinJson(id = "m2", datum = "2026-10-25", tid = "01:00", tidpunkt = "Natt", tagen = true, tagenTid = "02:30"),
+                MedicinJson(id = "m3", datum = "2026-10-25", tid = "01:00", tidpunkt = "Natt", tagen = true, tagenTid = "03:30"),
+            ),
+        )
+        val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u"))
+        assertEquals(
+            listOf(
+                Warning("doses/m1", "tagenTid ligger i luckan vid sommartidsbytet – flyttat fram med luckans längd"),
+                Warning("doses/m1", "timestamp ligger i luckan vid sommartidsbytet – flyttat fram med luckans längd"),
+                Warning("doses/m2", "tagenTid ligger i överlappningen vid sommartidsbytet – första förekomsten (sommartid) gäller"),
+            ),
+            result.report.warnings,
+        )
+        val doses = result.data.doses.associateBy { it.id }
+        assertEquals(kotlin.time.Instant.parse("2026-03-29T01:30:00Z"), doses.getValue("m1").takenAt)
+        assertEquals(kotlin.time.Instant.parse("2026-10-25T00:30:00Z"), doses.getValue("m2").takenAt)
+        assertEquals(kotlin.time.Instant.parse("2026-10-25T02:30:00Z"), doses.getValue("m3").takenAt)
     }
 
     @Test

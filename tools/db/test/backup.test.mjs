@@ -5,6 +5,8 @@ import { GeoPoint, Timestamp } from 'firebase-admin/firestore';
 import { prepareImport } from '../lib/backup.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
 import { fromJson, toJson } from '../lib/serialize.mjs';
+import { hasValidIds } from '../lib/walk.mjs';
+import { readRepoFile } from './helpers/repo.mjs';
 
 const user = { path: 'users/u', data: { schemaVersion: 1 } };
 
@@ -23,11 +25,22 @@ test('import vägrar okända sökvägar och filer som inte är exporter', () => 
   assert.throws(() => prepareImport({ documents: [user] }, { user: 'annan' }), /finns inte i filen/);
 });
 
+/** Den delade id-fixturen (samma i DocumentRulesTest i :core); `{ text, times }` är en upprepad text. */
+const ids = JSON.parse(readRepoFile('tools/db/test/fixtures/ids.json'));
+const idText = (v) => (typeof v === 'string' ? v : v.text.repeat(v.times));
+
+test('hasValidIds godtar och vägrar samma id som DocumentRules.isValidId i :core (fixtures/ids.json)', () => {
+  for (const id of ids.valid.map(idText)) assert.ok(hasValidIds(`users/u/doses/${id}`), JSON.stringify(id));
+  // Ett `/` i ett id byter sökväg – hasValidIds ser bara led, prepareImport vägrar den som okänd sökväg (testet nedan).
+  for (const id of ids.invalid.map(idText).filter((id) => !id.includes('/'))) assert.ok(!hasValidIds(`users/u/doses/${id}`), JSON.stringify(id));
+});
+
 test('import vägrar ogiltiga och dubbla ID:n innan något skrivs (BCK-16)', () => {
   const doc = (path) => ({ path, data: {} });
   for (const path of ['users//doses/x', 'users/./doses/x', 'users/u/doses/..', 'users/__x__', `users/${'å'.repeat(751)}`]) {
     assert.throws(() => prepareImport({ documents: [user, doc(path)] }), /Ogiltigt ID/, path);
   }
+  assert.throws(() => prepareImport({ documents: [user, doc('users/u/doses/a/b')] }), /Okänd sökväg/, 'ett / i id:t byter sökväg');
   assert.throws(() => prepareImport({ documents: [user, user] }), /users\/u finns två gånger/);
   assert.equal(prepareImport({ documents: [user, doc('users/u/doses/recept_a-1_2026-09-21_Morgon')] }).length, 2);
   assert.equal(prepareImport({ documents: [user, doc('users/u/illnessEpisodes/e/checkins/c')] }).length, 2);

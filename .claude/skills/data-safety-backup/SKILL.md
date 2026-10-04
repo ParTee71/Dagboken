@@ -37,7 +37,7 @@ OMB-2–5). Villkor nummer ett för ombyggnaden: **ingen data får tappas** (ADR
 | Appens export | `core/.../schema/ExportFormat.kt` + `RawDocuments` (`data/firestore/`) | Export i inställningsarket (BCK-13): samma format som `tools/db export` (`serialize.mjs`, `backup.mjs`), läser dokumenten rått längs `Paths` – aldrig via codecarna, så att okända fält följer med |
 | Konverterare 3.x → 4.0 | `core/.../legacy/BackupJsonConverter.kt` (3.x-klasserna i `legacy/BackupJson.kt`) | `BackupJson` v1 och v2 (inkl. arvsfälten `anteckning` på posterna och `tidpunkt` på receptet) → 4.0-dokument; **enda** mappningen, delad av legacy-läsaren (OMB-2), legacyimporten (BCK-14) och grinden OMB-4. Utfall `Converted` (dokument + rapport) eller `Stopped` (alla fel) |
 | Rules-gränserna i `:core` | `core/.../schema/DocumentRules.kt` | Fält för fält per samling som `valid…` i rules (textgränser, intervall, listtak, enum, datum/klockslag); `DocumentRulesTest` läser rules och kräver likhet. Konverteraren validerar varje dokument mot den |
-| Grinden OMB-4 | `core/.../legacy/ConvertBackupMain.kt`, task `:core:convertLegacyBackup` | `./gradlew :core:convertLegacyBackup --args="--in <3.x-backup.json> --out <export.json> --user <uid>"` → fil för `tools/db import.mjs`; rapport (antal, varningar, stopp) på stdout utan innehåll |
+| Grinden OMB-4 | `core/.../legacy/ConvertBackupMain.kt`, task `:core:convertLegacyBackup` | 3.x-backup → fil för `tools/db import.mjs`, rapport (antal, varningar, stopp) på stdout utan innehåll; kommandot i CLAUDE.md → Bygg & test och skill `db-access` |
 | Legacy-läsare | `app/.../data/legacy/` | Läser Room-filen read-only vid första start (OMB-2) med samma mappning som konverteraren; raderar aldrig filen |
 
 ## Schemaversion
@@ -169,15 +169,11 @@ ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här ä
    `recept_{prescriptionId}_{date}_{tidpunkt}` (`DoseIds.prescribed`, MED-4, DAT-8; bara schemalagda
    tidpunkter). Alternativen får `OptionIds.of(kind, name)` (regeln i DAT-13). Samma källa ger samma
    id vid ny import, så att en upprepad import inte dubblerar.
-4. **Validera, kapa aldrig.** 3.x hade inga längdgränser. Konverteraren validerar varje genererat
-   dokument mot `DocumentRules` (= `TextLimits` och intervallen, listtaken, enum-listorna och mönstren i
-   `firestore.rules`, hållna lika av `DocumentRulesTest`) och stoppar med en rapport över **alla** fel (dokument,
-   fält och värdets längd, tal eller enum-namn – aldrig innehållet) om något inte ryms – den kapar, avrundar
-   eller hoppar aldrig över ett värde, och lämnar aldrig ut en del av dokumenten. `tools/db import.mjs` går
-   förbi rules, så grinden OMB-4 kräver att valideringen passerar; `legacy.test.mjs` skriver de förväntade
-   exporterna genom rules som bevis. Valen som paritetstabellen inte täcker (tider och sommartid, anteckningar
-   utan post, incheckningar utan episod, alternativ, symptomsträngen, inställningar) står i ARKITEKTUR.md →
-   Migrering, punkt 1 – ändra dem där först.
+4. **Validera, kapa aldrig.** Konverteraren validerar varje dokument mot `DocumentRules` (= rules,
+   `DocumentRulesTest`) och stoppar med en rapport över alla fel utan innehåll – kapar, avrundar eller hoppar
+   aldrig över ett värde. Valen utanför paritetstabellen (tider och sommartid, anteckningar utan post,
+   alternativ, symptomsträngen, inställningar) och grinden OMB-4 står i ARKITEKTUR.md → Migrering, punkt 1
+   och 3 – ändra dem där först.
 5. **Bevis före användning:** fixturtestet (OMB-3), rundturen mot emulatorn (BCK-16) och grinden
    OMB-4 – en riktig 3.x-backup konverteras, importeras med `tools/db import.mjs`, exporteras och
    jämförs fältvis med noll skillnader – innan etapp 3 och innan första release.

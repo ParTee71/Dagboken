@@ -7,6 +7,8 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration.Companion.hours
 
 /**
  * 3.x:s tider → 4.0:s ögonblick (ARKITEKTUR.md → Migrering, punkt 1). Tidszonen är alltid
@@ -27,6 +29,22 @@ internal object LegacyTime {
 
     /** Dag och klockslag i Europe/Stockholm (3.x `tagenTid` på dosens dag; reservvärde för `timestamp`). */
     fun at(date: LocalDate, time: LocalTime): Instant = LocalDateTime(date, time).toInstant(ZONE)
+
+    /** Vad sommartidsbytet gör med ett klockslag som ligger i det. */
+    enum class Shift { GAP, OVERLAP }
+
+    /**
+     * `null` när [time] på [date] finns exakt en gång; [Shift.GAP] när det inte finns (läses tillbaka som ett
+     * senare klockslag), [Shift.OVERLAP] när det finns två gånger (en timme senare ger samma klockslag).
+     */
+    fun shift(date: LocalDate, time: LocalTime): Shift? {
+        val instant = at(date, time)
+        return when {
+            instant.toLocalDateTime(ZONE).time != time -> Shift.GAP
+            (instant + 1.hours).toLocalDateTime(ZONE).time == time -> Shift.OVERLAP
+            else -> null
+        }
+    }
 
     /** Midnatt i Europe/Stockholm (receptets `skapad`); dagen går att läsa tillbaka exakt. */
     fun midnight(date: LocalDate): Instant = date.atStartOfDayIn(ZONE)

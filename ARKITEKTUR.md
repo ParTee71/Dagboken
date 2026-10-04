@@ -373,7 +373,8 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
    (`BackupJsonConverterTest`); varje 3.x-fält har ett icke-default-värde i fixturen (`BackupJsonTest`) och varje
    4.0-fält får ett värde ur den. Utfallet är antingen alla dokument (`ConversionResult.Converted`, sorterade på
    sökväg, med en rapport: antal per samling och varningar) eller ett **stopp** (`Stopped`) med **alla** fel –
-   aldrig en del. Deterministisk: ingen klocka, samma backup ger samma dokument överallt; alternativ-id ur
+   aldrig en del. Rapporten pekar på 3.x-id:n (UUID, `recept_…`) och fält; alternativ anges som lista och
+   plats (`options/symptom#3`, id:t bär namnet), okända värden och ogiltiga id:n med sin längd. Deterministisk: ingen klocka, samma backup ger samma dokument överallt; alternativ-id ur
    `OptionIds.of`.
    **Validering mot rules-gränserna:** 3.x hade inga längdgränser eller intervall i lagringen, men
    4.0:s rules har det (`TextLimits.SHORT` 200 tecken för namn och korta texter, `TextLimits.LONG`
@@ -392,11 +393,11 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
      reservvärdet för ett tomt eller ogiltigt `timestamp` (dag + klockslag; utan klockslag midnatt) följer
      sommartidsregeln: i luckan när klockan ställs fram (sista söndagen i mars, 02:00–03:00 finns inte) flyttas
      klockslaget fram med luckans längd (`02:30` → `03:30` sommartid); vid överlappningen när klockan ställs
-     tillbaka (sista söndagen i oktober) gäller den **första** förekomsten (sommartid, UTC+2). Ögonblicket läses
-     tillbaka till samma dag; ett ogiltigt `timestamp` ersätts med varning. Exportfilens `exportedAt` är
+     tillbaka (sista söndagen i oktober) gäller den **första** förekomsten (sommartid, UTC+2). Båda fallen ger
+     en varning i rapporten. Ögonblicket läses tillbaka till samma dag; ett ogiltigt `timestamp` ersätts med varning. Exportfilens `exportedAt` är
      backupens `createdAt` (3.x lokal tid utan zon, tolkad i Stockholm), saknas den epoken.
-   - *Anteckning utan sin post* (`notes` vars `entityId` inte finns, eller okänt `target`): **varning** med
-     antal per target, inte stopp. Posten var redan borta i 3.x (anteckningar visades bara genom sin post, och
+   - *Anteckning utan sin post* (`notes` vars `entityId` inte finns, eller okänt `target`) och anteckning med
+     text men utan `target` eller `entityId`: **varning** med antal, inte stopp. Posten var redan borta i 3.x (anteckningar visades bara genom sin post, och
      före DAT-4 kunde raderingar lämna dem kvar), så inget användaren kunde se tappas, och ett stopp hade
      ingen åtgärd – backupen går inte att laga. Räknas i rapporten så att grinden OMB-4 ser antalet.
      Finns både en `notes`-post och arvsfältet med olika text går `notes` före (som 3.x) med varning.
@@ -429,16 +430,22 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
 2. **Rundtur mot emulatorn** (`tools/db/test/roundtrip.test.mjs`): import → export identiskt.
 3. **Grind före etapp 3:** en riktig Drive-backup konverteras (med valideringen i punkt 1 – noll
    stopp), importeras via `tools/db import.mjs`, exporteras och jämförs med originalet. Noll
-   skillnader krävs (OMB-4). Körningen, från repots rot och med backupen i den git-ignorerade `tools/db/`:
+   skillnader krävs (OMB-4). **Mot ett tomt scratch-uid**, aldrig användarens riktiga uid: `import.mjs`
+   skriver dokumenten som de är (`set` utan merge), så mot ett befintligt konto skulle `users/{uid}.createdAt`
+   och inställningsfält som backupen saknade försvinna – "`null` = rör inte" gäller bara legacy-läsaren på
+   enheten, som skriver med merge (etapp 3). Körningen, från repots rot och med backupen i den
+   git-ignorerade `tools/db/`:
    ```bash
-   ./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <uid>"
+   ./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <scratch-uid>"
    node tools/db/import.mjs --in tools/db/export-4.json --dry-run      # kontroll, skriver inget
    node tools/db/import.mjs --in tools/db/export-4.json                # skrivande nyckel, uttrycklig begäran
-   node tools/db/export.mjs --user <uid> --out tools/db/export-igen.json && cmp tools/db/export-4.json tools/db/export-igen.json
+   node tools/db/export.mjs --user <scratch-uid> --out tools/db/export-igen.json && cmp tools/db/export-4.json tools/db/export-igen.json
    ```
-   Konverteraren skriver rapporten (antal per samling, varningar, stopp) till stdout utan något innehåll;
-   exitkod 0 = filen skrevs, 1 = stopp (ingen fil), 2 = fel argument. Rapportens varningar granskas av
-   användaren innan importen; filerna raderas efteråt (skill `data-privacy-security`).
+   Konverteraren skriver rapporten (antal per samling, varningar – även klockslag som flyttats av
+   sommartidsbytet – och stopp) till stdout utan något innehåll; exitkod 0 = filen skrevs, 1 = stopp (ingen
+   fil), 2 = fel argument, ogiltigt uid, saknad infil eller befintlig utfil (skrivs över bara med `--force`).
+   Rapportens varningar granskas av användaren innan importen; scratch-användaren raderas efter grinden och
+   filerna raderas (skill `data-privacy-security`).
 4. **På enheten** (etapp 3): första start av 4.0 hittar Room-filen, läser den med legacy-läsaren
    (samma mappning som konverteraren), skriver till Firestore i batchar, visar antal per entitet
    före och efter och låter användaren bekräfta. Fallback: Drive-backup eller lokal JSON.

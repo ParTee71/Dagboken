@@ -100,10 +100,12 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         val checkins = backup.sjukdomsIncheckningar.filter { checkinHasEpisode(it, episodeIds) }
             .groupBy({ it.episodId }, ::checkin)
         notes.orphans().forEach { (target, count) -> warn("notes", "$count anteckning(ar) med target $target utan sin post – kan inte placeras") }
+        if (notes.incomplete > 0) warn("notes", "${notes.incomplete} anteckning(ar) utan target eller id – kan inte placeras")
 
-        add(CollectionNames.user(uid), CollectionNames.USERS, mapOf(SCHEMA_VERSION to Schema.CURRENT_VERSION))
-        settings?.let { (_, doc) -> add(CollectionNames.document(uid, CollectionNames.SETTINGS, Settings.ID), CollectionNames.SETTINGS, doc) }
-        addAll(CollectionNames.OPTIONS, options.all(), OptionCodec)
+        add(CollectionNames.user(uid), CollectionNames.USERS, CollectionNames.USERS, mapOf(SCHEMA_VERSION to Schema.CURRENT_VERSION))
+        settings?.let { (_, doc) -> add(CollectionNames.document(uid, CollectionNames.SETTINGS, Settings.ID), SETTINGS_PATH, CollectionNames.SETTINGS, doc) }
+        // Alternativens id bär namnet (slug) – rapporten pekar på lista och plats i stället.
+        addAll(CollectionNames.OPTIONS, options.all(), OptionCodec) { OptionRegistry.reportPath(it.kind, it.sortOrder) }
         addAll(CollectionNames.PRESCRIPTIONS, prescriptions, PrescriptionCodec)
         addAll(CollectionNames.PRN_MEDICINES, prnMedicines, PrnMedicineCodec)
         addAll(CollectionNames.DOSES, doses, DoseCodec)
@@ -112,7 +114,9 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         addAll(CollectionNames.EVENTS, events, EventCodec)
         addAll(CollectionNames.ILLNESS_EPISODES, episodes, IllnessEpisodeCodec)
         for ((episodeId, rows) in checkins) {
-            for (checkin in rows) add(CollectionNames.checkin(uid, episodeId, checkin.id), CollectionNames.CHECKINS, CheckinCodec.encode(checkin))
+            for (checkin in rows) {
+                add(CollectionNames.checkin(uid, episodeId, checkin.id), checkinPath(episodeId, checkin.id), CollectionNames.CHECKINS, CheckinCodec.encode(checkin))
+            }
         }
         documents.sortBy { it.path }
 
@@ -131,20 +135,29 @@ private class Conversion(private val backup: BackupJson, private val uid: String
 
     // ── Dokument ─────────────────────────────────────────────────────────────────────────────────
 
-    private fun <T : Identified> addAll(collection: String, items: List<T>, codec: DocCodec<T>) {
-        for (item in items) add(CollectionNames.document(uid, collection, item.id), collection, codec.encode(item))
+    /** [reportPath] är sökvägen i rapporten – 3.x-id:n (UUID, `recept_…`) får stå, annat ersätts. */
+    private fun <T : Identified> addAll(collection: String, items: List<T>, codec: DocCodec<T>, reportPath: (T) -> String = { entityPath(collection, it.id) }) {
+        for (item in items) add(CollectionNames.document(uid, collection, item.id), reportPath(item), collection, codec.encode(item))
     }
 
     /** Lägger till ett dokument efter dubblettkontroll och validering mot rules-gränserna. */
-    private fun add(path: String, collection: String, doc: Doc) {
-        val relative = path.removePrefix("${CollectionNames.user(uid)}/")
+    private fun add(path: String, reportPath: String, collection: String, doc: Doc) {
         if (!paths.add(path)) {
-            problem(relative, "id", "dubblett: två poster med samma id")
+            problem(reportPath, "id", "dubblett: två poster med samma id")
             return
         }
-        for (violation in DocumentRules.validate(collection, doc)) problem(relative, violation.field, violation.reason)
+        for (violation in DocumentRules.validate(collection, doc)) problem(reportPath, violation.field, violation.reason)
         documents += ExportFormat.Document(path, doc)
     }
+
+    /**
+     * Postens sökväg i rapporten: 3.x-id:t när det duger som dokument-id (UUID eller `recept_…`), annars
+     * dess längd – ett ogiltigt id kan vara vad som helst. Rapporterar det ogiltiga id:t en gång per post.
+     */
+    private fun entityPath(collection: String, id: String): String =
+        if (DocumentRules.isValidId(id)) "$collection/$id" else "$collection/(ogiltigt id, ${id.length} tecken)"
+
+    private fun checkinPath(episodeId: String, id: String) = entityPath("${entityPath(CollectionNames.ILLNESS_EPISODES, episodeId)}/${CollectionNames.CHECKINS}", id)
 
     // ── Inställningar ────────────────────────────────────────────────────────────────────────────
 
@@ -153,7 +166,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
      * de fält backupen hade (`null` = "rör inte", merge). `null` när backupen inte bar några inställningar.
      */
     private fun settings(): Pair<Settings, Doc>? {
-        val path = "${CollectionNames.SETTINGS}/${Settings.ID}"
+        val path = SETTINGS_PATH
         val present = mutableSetOf<String>()
         fun <T> field(fieldPath: String, value: T?, apply: (T) -> Unit) {
             if (value != null) {
@@ -196,13 +209,13 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     }.toMap()
 
     private fun themeMode(path: String, raw: String): ThemeMode =
-        wireValue<ThemeMode>(raw) ?: ThemeMode.AUTO.also { problem(path, "themeMode", "okänt värde: $raw") }
+        wireValue<ThemeMode>(raw) ?: ThemeMode.AUTO.also { problem(path, "themeMode", unknown(raw)) }
 
     private fun sex(path: String, raw: String): Sex = when (raw) {
         LegacyDefaults.SEX_MALE -> Sex.MALE
         LegacyDefaults.SEX_FEMALE -> Sex.FEMALE
         LegacyDefaults.SEX_UNSPECIFIED -> Sex.UNSPECIFIED
-        else -> Sex.UNSPECIFIED.also { problem(path, "sex", "okänt värde: $raw") }
+        else -> Sex.UNSPECIFIED.also { problem(path, "sex", unknown(raw)) }
     }
 
     /**
@@ -211,7 +224,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
      * standardvärdet. En rad som inte hör till någon tidpunkt har ingen plats och stoppar.
      */
     private fun medSlots(configs: List<MedNotificationConfigJson>): List<SlotReminder> {
-        val path = "${CollectionNames.SETTINGS}/${Settings.ID}"
+        val path = SETTINGS_PATH
         val used = mutableSetOf<Int>()
         val rows = Slot.SCHEDULED.mapIndexed { index, slot ->
             val match = configs.indexOfFirst { it.tidpunkt == slot.legacyName }.takeIf { it >= 0 }
@@ -224,13 +237,13 @@ private class Conversion(private val backup: BackupJson, private val uid: String
                 time = config?.time?.takeIf { it.isNotBlank() }?.let { clock(path, "medNotificationConfigs[$match].time", it) } ?: default.time,
             )
         }
-        configs.indices.filterNot { it in used }.forEach { problem(path, "medNotificationConfigs[$it].tidpunkt", "okänd tidpunkt: ${configs[it].tidpunkt}") }
+        configs.indices.filterNot { it in used }.forEach { problem(path, "medNotificationConfigs[$it].tidpunkt", "okänd tidpunkt ${unknown(configs[it].tidpunkt)}") }
         return rows
     }
 
     /** Måendepåminnelserna: position 0–3 = tillfällena i ordning; fler än fyra har ingen plats och stoppar. */
     private fun occasionRows(configs: List<ScreeningEventConfigJson>?): List<OccasionReminder> {
-        val path = "${CollectionNames.SETTINGS}/${Settings.ID}"
+        val path = SETTINGS_PATH
         if (configs != null && configs.size > Occasion.entries.size) {
             problem(path, "screeningEventConfigs", "fler tillfällen än de fyra: ${configs.size}")
         }
@@ -248,7 +261,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     // ── Mediciner ────────────────────────────────────────────────────────────────────────────────
 
     private fun prescription(r: ReceptJson): Prescription {
-        val path = "${CollectionNames.PRESCRIPTIONS}/${r.id}"
+        val path = entityPath(CollectionNames.PRESCRIPTIONS, r.id)
         id(path, r.id)
         // v1 hade en enda `tidpunkt`; båda tomma → Morgon, som 3.x BackupMapper.
         val names = r.tidpunkter.ifEmpty { listOfNotNull(r.tidpunkt?.takeIf { it.isNotBlank() }).ifEmpty { listOf(Slot.MORNING.legacyName) } }
@@ -284,7 +297,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         if (day in 0..6) DayOfWeek(day + 1) else null.also { problem(path, "dagar", "ingen veckodag: $day (0–6)") }
 
     private fun prnMedicine(f: FavoritJson): PrnMedicine {
-        val path = "${CollectionNames.PRN_MEDICINES}/${f.id}"
+        val path = entityPath(CollectionNames.PRN_MEDICINES, f.id)
         id(path, f.id)
         return PrnMedicine(
             id = f.id,
@@ -301,7 +314,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     }
 
     private fun dose(m: MedicinJson): Dose {
-        val path = "${CollectionNames.DOSES}/${m.id}"
+        val path = entityPath(CollectionNames.DOSES, m.id)
         id(path, m.id)
         val date = date(path, "datum", m.datum)
         val time = clock(path, "tid", m.tid)
@@ -317,7 +330,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             // Båda sanna är ogiltigt i 3.x; tagen går före.
             status = if (m.tagen) DoseStatus.TAKEN else if (m.skipped) DoseStatus.SKIPPED else DoseStatus.PLANNED,
             plannedTime = time,
-            takenAt = if (takenTime != null && date != null) LegacyTime.at(date, takenTime) else null,
+            takenAt = if (takenTime != null && date != null) at(path, "tagenTid", date, takenTime) else null,
             prescriptionId = m.receptId,
             createdAt = createdAt(path, m.timestamp, date, time),
             note = notes.note(LegacyDefaults.NOTE_MEDICATION, m.id, m.anteckning, path),
@@ -327,10 +340,10 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     // ── Poster ───────────────────────────────────────────────────────────────────────────────────
 
     /** 3.x `BackupMapper.inferType`: tomt `type` är en screening om namnet är ett av tillfällena. */
-    private fun inferType(name: String): String = if (Occasion.fromLegacyName(name) != null) LegacyDefaults.TYPE_SCREENING else "aktivitet"
+    private fun inferType(name: String): String = if (Occasion.isLegacyName(name)) LegacyDefaults.TYPE_SCREENING else "aktivitet"
 
     private fun screening(a: AktivitetJson): Screening {
-        val path = "${CollectionNames.SCREENINGS}/${a.id}"
+        val path = entityPath(CollectionNames.SCREENINGS, a.id)
         id(path, a.id)
         val date = date(path, "datum", a.datum)
         val time = clock(path, "tid", a.tid)
@@ -343,7 +356,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             date = date,
             time = time,
             occasion = Occasion.derive(a.aktivitet, time, reminderTimes),
-            customText = if (Occasion.fromLegacyName(a.aktivitet) != null) null else a.aktivitet.ifBlank { null },
+            customText = if (Occasion.isLegacyName(a.aktivitet)) null else a.aktivitet.ifBlank { null },
             energy = a.energy,
             stress = a.stress,
             symptoms = symptoms(path, a.symptom, a.somatiska),
@@ -353,14 +366,14 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     }
 
     private fun activity(a: AktivitetJson): Activity {
-        val path = "${CollectionNames.ACTIVITIES}/${a.id}"
+        val path = entityPath(CollectionNames.ACTIVITIES, a.id)
         id(path, a.id)
         val date = date(path, "datum", a.datum)
         val time = clock(path, "tid", a.tid)
         // Namn bland alternativen → optionId; annat namn är fritexten vid "Övrigt" (AKT-2).
         val option = options.find(OptionKind.ACTIVITY, a.aktivitet)
         // Saknat `type` är "aktivitet" i 3.x (klassens default) – bara ett tomt härleds ur namnet.
-        if (Occasion.fromLegacyName(a.aktivitet) != null) warn(path, "heter som ett måendetillfälle men har type aktivitet – konverteras som aktivitet, som i 3.x")
+        if (Occasion.isLegacyName(a.aktivitet)) warn(path, "heter som ett måendetillfälle men har type aktivitet – konverteras som aktivitet, som i 3.x")
         return Activity(
             id = a.id,
             date = date,
@@ -379,7 +392,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     }
 
     private fun event(h: HandelseJson): Event {
-        val path = "${CollectionNames.EVENTS}/${h.id}"
+        val path = entityPath(CollectionNames.EVENTS, h.id)
         id(path, h.id)
         val date = date(path, "datum", h.datum)
         val time = clock(path, "tid", h.tid)
@@ -398,7 +411,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     }
 
     private fun episode(e: SjukdomsEpisodJson): IllnessEpisode {
-        val path = "${CollectionNames.ILLNESS_EPISODES}/${e.id}"
+        val path = entityPath(CollectionNames.ILLNESS_EPISODES, e.id)
         id(path, e.id)
         return IllnessEpisode(
             id = e.id,
@@ -413,11 +426,11 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     /** En incheckning utan sin episod har ingen sökväg (3.x hade en främmande nyckel) och stoppar. */
     private fun checkinHasEpisode(i: SjukdomsIncheckningJson, episodeIds: Set<String>): Boolean =
         (i.episodId in episodeIds).also { found ->
-            if (!found) problem("${CollectionNames.ILLNESS_EPISODES}/${i.episodId}/${CollectionNames.CHECKINS}/${i.id}", "episodId", "episoden finns inte i backupen")
+            if (!found) problem(checkinPath(i.episodId, i.id), "episodId", "episoden finns inte i backupen")
         }
 
     private fun checkin(i: SjukdomsIncheckningJson): Checkin {
-        val path = "${CollectionNames.ILLNESS_EPISODES}/${i.episodId}/${CollectionNames.CHECKINS}/${i.id}"
+        val path = checkinPath(i.episodId, i.id)
         id(path, i.id)
         val date = date(path, "datum", i.datum)
         val time = clock(path, "tid", i.tid)
@@ -490,7 +503,10 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         raw.takeIf { it.isNotBlank() }?.let { parseClock(it) ?: null.also { problem(path, field, "ogiltigt klockslag") } }
 
     private fun slot(path: String, field: String, raw: String): Slot =
-        Slot.fromLegacyName(raw) ?: Slot.AS_NEEDED.also { problem(path, field, "okänd tidpunkt: $raw") }
+        Slot.fromLegacyName(raw) ?: Slot.AS_NEEDED.also { problem(path, field, "okänd tidpunkt ${unknown(raw)}") }
+
+    /** Ett värde utanför de kända – bara längden, aldrig värdet (det kan vara vad som helst). */
+    private fun unknown(raw: String) = "okänt värde (${raw.length} tecken)"
 
     /**
      * 3.x `timestamp` som ISO-ögonblick; tomt eller ogiltigt → dag och klockslag i Europe/Stockholm
@@ -499,7 +515,17 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     private fun createdAt(path: String, iso: String, date: LocalDate?, time: LocalTime?): Instant? {
         LegacyTime.instant(iso)?.let { return it }
         if (iso.isNotBlank()) warn(path, "timestamp är inte ett giltigt ögonblick (${iso.length} tecken) – datum och klockslag i Europe/Stockholm används")
-        return date?.let { LegacyTime.at(it, time ?: LocalTime(0, 0)) }
+        return date?.let { at(path, "timestamp", it, time ?: LocalTime(0, 0)) }
+    }
+
+    /** Dag + klockslag i Europe/Stockholm; ligger klockslaget i sommartidsbytet syns det i rapporten (OMB-4). */
+    private fun at(path: String, field: String, date: LocalDate, time: LocalTime): Instant {
+        when (LegacyTime.shift(date, time)) {
+            LegacyTime.Shift.GAP -> warn(path, "$field ligger i luckan vid sommartidsbytet – flyttat fram med luckans längd")
+            LegacyTime.Shift.OVERLAP -> warn(path, "$field ligger i överlappningen vid sommartidsbytet – första förekomsten (sommartid) gäller")
+            null -> Unit
+        }
+        return LegacyTime.at(date, time)
     }
 
     private fun problem(path: String, field: String, reason: String) {
@@ -512,6 +538,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
 
     private companion object {
         const val SCHEMA_VERSION = "schemaVersion"
+        val SETTINGS_PATH = "${CollectionNames.SETTINGS}/${Settings.ID}"
     }
 }
 
@@ -533,7 +560,7 @@ private class OptionRegistry(backup: BackupJson, private val warn: (String, Stri
     private fun seed(kind: OptionKind, rows: List<SymptomOptionBackup>): MutableMap<String, Option> {
         val options = linkedMapOf<String, Option>()
         rows.forEachIndexed { index, row ->
-            if (row.name in options) warn("${CollectionNames.OPTIONS}/${OptionIds.of(kind, row.name)}", "namnet finns två gånger i ${kind.wire}-listan – det första gäller")
+            if (row.name in options) warn(reportPath(kind, index), "namnet finns två gånger i ${kind.wire}-listan – det första gäller")
             else options[row.name] = Option(OptionIds.of(kind, row.name), kind, row.name, favorite = row.isFavorite, sortOrder = index)
         }
         return options
@@ -553,6 +580,11 @@ private class OptionRegistry(backup: BackupJson, private val warn: (String, Stri
     }
 
     fun all(): List<Option> = byKind.values.flatMap { it.values }
+
+    companion object {
+        /** Alternativets plats i rapporten: lista och position – id:t bär namnet och får inte stå där. */
+        fun reportPath(kind: OptionKind, index: Int) = "${CollectionNames.OPTIONS}/${kind.wire}#$index"
+    }
 }
 
 /**
@@ -563,6 +595,9 @@ private class OptionRegistry(backup: BackupJson, private val warn: (String, Stri
 private class NoteIndex(notes: List<NoteJson>, private val warn: (String, String) -> Unit) {
     private val texts = linkedMapOf<Pair<String, String>, String>()
     private val used = mutableSetOf<Pair<String, String>>()
+
+    /** Anteckningar med text men utan target eller id – kan inte placeras, räknas i rapporten. */
+    val incomplete: Int = notes.count { it.text.isNotBlank() && (it.target.isBlank() || it.entityId.isBlank()) }
 
     init {
         for (note in notes.filter { it.target.isNotBlank() && it.entityId.isNotBlank() && it.text.isNotBlank() }) {

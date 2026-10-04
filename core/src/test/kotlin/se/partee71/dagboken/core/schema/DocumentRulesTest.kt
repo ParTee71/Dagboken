@@ -5,6 +5,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
 import se.partee71.dagboken.core.schema.DocumentRules.Check
 
@@ -202,8 +208,35 @@ class DocumentRulesTest {
     }
 
     @Test
-    fun `dokument-id som Firestore godtar`() {
-        for (id in listOf("recept_6f1c_2026-10-04_Förmiddag", "a:b", "x".repeat(1500), "6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a")) assertTrue(DocumentRules.isValidId(id), id)
-        for (id in listOf("", ".", "..", "__x__", "a/b", "å".repeat(751))) assertFalse(DocumentRules.isValidId(id), id)
+    fun `dokument-id som Firestore godtar - samma fixtur som hasValidIds i tools-db (fixtures ids_json)`() {
+        val ids = Json.parseToJsonElement(File("../tools/db/test/fixtures/ids.json").readText()).jsonObject
+        fun texts(key: String) = ids.getValue(key).jsonArray.map { element ->
+            if (element is JsonObject) element.getValue("text").jsonPrimitive.content.repeat(element.getValue("times").jsonPrimitive.int) else element.jsonPrimitive.content
+        }
+        val valid = texts("valid")
+        val invalid = texts("invalid")
+        assertTrue(valid.size >= 5 && invalid.size >= 5)
+        for (id in valid) assertTrue(DocumentRules.isValidId(id), id)
+        for (id in invalid) assertFalse(DocumentRules.isValidId(id), id)
+    }
+
+    @Test
+    fun `alla brott rapporteras - även flera i samma nästlade objekt och i flera listelement`() {
+        val activity = Samples.entry(CollectionNames.ACTIVITIES).encoded()
+        val symptoms = listOf(mapOf("optionId" to "s", "score" to 11, "customText" to 3), mapOf("score" to 1.5, "customText" to null))
+        assertEquals(
+            listOf(
+                DocumentRules.Violation("symptoms[0].score", "utanför intervallet 0..10: 11"),
+                DocumentRules.Violation("symptoms[0].customText", "fel typ: Int (väntat text)"),
+                DocumentRules.Violation("symptoms[1].optionId", "saknas"),
+                DocumentRules.Violation("symptoms[1].score", "fel typ: Double (väntat heltal)"),
+            ),
+            DocumentRules.validate(CollectionNames.ACTIVITIES, activity + ("symptoms" to symptoms)),
+        )
+        val settings = Samples.entry(CollectionNames.SETTINGS).encoded()
+        assertEquals(
+            listOf(DocumentRules.Violation("theme.mode", "okänt värde: sepia"), DocumentRules.Violation("theme.darkStartHour", "utanför intervallet 0..23: 24")),
+            DocumentRules.validate(CollectionNames.SETTINGS, settings + ("theme" to asDoc(settings["theme"]) + mapOf("mode" to "sepia", "darkStartHour" to 24))),
+        )
     }
 }

@@ -27,7 +27,7 @@ object Paths {
     /** Undersamlingar per föräldersamling. */
     val SUBCOLLECTIONS: Map<String, List<String>> = mapOf(ILLNESS_EPISODES to listOf(CHECKINS))
 
-    fun user(uid: String) = "$USERS/$uid"
+    fun user(uid: String) = CollectionNames.user(uid)
 
     /** En samling direkt under användaren, t.ex. `users/{uid}/doses`. */
     fun collection(uid: String, name: String) = "${user(uid)}/$name"
@@ -50,5 +50,5 @@ object Paths {
 
     fun illnessEpisodes(uid: String) = collection(uid, ILLNESS_EPISODES)
 
-    fun checkins(uid: String, episodeId: String) = "${illnessEpisodes(uid)}/$episodeId/$CHECKINS"
+    fun checkins(uid: String, episodeId: String) = CollectionNames.checkins(uid, episodeId)
 }

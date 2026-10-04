@@ -30,8 +30,11 @@ object CollectionNames {
     /** Ett dokument i en samling direkt under användaren, t.ex. `users/{uid}/doses/{id}`. */
     fun document(uid: String, collection: String, id: String) = "${user(uid)}/$collection/$id"
 
+    /** Incheckningarna under en episod, `users/{uid}/illnessEpisodes/{eid}/checkins`. */
+    fun checkins(uid: String, episodeId: String) = "${document(uid, ILLNESS_EPISODES, episodeId)}/$CHECKINS"
+
     /** En incheckning under sin episod (3.x `episodId` är sökvägen). */
-    fun checkin(uid: String, episodeId: String, id: String) = "${document(uid, ILLNESS_EPISODES, episodeId)}/$CHECKINS/$id"
+    fun checkin(uid: String, episodeId: String, id: String) = "${checkins(uid, episodeId)}/$id"
 
     /** Samlingens namn ur en dokumentsökväg (näst sista ledet); `users/{uid}` → [USERS]. */
     fun collectionOf(path: String): String = path.split('/').let { it[it.size - 2] }

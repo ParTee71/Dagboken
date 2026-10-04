@@ -77,7 +77,7 @@ class BackupJsonConverterTest {
             report.warnings.map { it.path to it.message.substringBefore(" (").substringBefore(" –") },
         )
         val rendered = report.render()
-        for (secret in listOf("Regn", "Med frukost", "Med mat", "Hela familjen", "Feber", "veckovis", "Anteckning utan post", "Svamplockning")) {
+        for (secret in listOf("Regn", "Med frukost", "Med mat", "Hela familjen", "Feber", "veckovis", "Anteckning utan post", "Svamplockning", "Nackspärr", "nacksparr", "Hosta")) {
             assertTrue(secret !in rendered, "rapporten får inte innehålla texten '$secret'")
         }
         assertTrue("Inga fel" in rendered)
