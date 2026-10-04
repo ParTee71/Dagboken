@@ -55,7 +55,8 @@ anger sökväg eller fält, aldrig värdet) och GitHub Actions-loggar.
   En ny telefon hämtar datan från Firestore efter inloggning.
 
 - Dekrypterade backuper och exporter läggs bara i `tools/db/` (git-ignorerad) och raderas
-  efter användning. `.gitignore` fångar dessutom `backup*.json` och `export*.json` överallt.
+  efter användning. `.gitignore` fångar dessutom `backup*.json` och `export*.json` överallt – enda
+  undantaget är konverterarens syntetiska fixturer i `tools/db/test/fixtures/legacy/`.
 - **Tester rör aldrig den riktiga databasen** – bara Firebase-emulatorn med projekt-ID
   `demo-dagboken` (skill `data-safety-backup`). Fixturer är syntetiska, aldrig utdrag ur en
   riktig backup – inte heller ur den backup som används för grinden OMB-4 (den hanteras bara i

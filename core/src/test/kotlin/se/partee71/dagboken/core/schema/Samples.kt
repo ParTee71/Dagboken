@@ -135,18 +135,18 @@ object Samples {
         createdAt = created, note = "Feber på kvällen",
     )
 
-    /** Alla samlingar i `Paths.USER_COLLECTIONS` + `checkins`. */
+    /** Alla samlingar i `CollectionNames.USER_COLLECTIONS` + `checkins`. */
     val all: List<Entry<*>> = listOf(
-        Entry("settings", SettingsCodec, settings, Settings()),
-        Entry("options", OptionCodec, option, Option(option.id)),
-        Entry("prescriptions", PrescriptionCodec, prescription, Prescription(prescription.id)),
-        Entry("prnMedicines", PrnMedicineCodec, prnMedicine, PrnMedicine(prnMedicine.id)),
-        Entry("doses", DoseCodec, dose, Dose(dose.id)),
-        Entry("screenings", ScreeningCodec, screening, Screening(screening.id)),
-        Entry("activities", ActivityCodec, activity, Activity(activity.id)),
-        Entry("events", EventCodec, event, Event(event.id)),
-        Entry("illnessEpisodes", IllnessEpisodeCodec, episode, IllnessEpisode(episode.id)),
-        Entry("checkins", CheckinCodec, checkin, Checkin(checkin.id)),
+        Entry(CollectionNames.SETTINGS, SettingsCodec, settings, Settings()),
+        Entry(CollectionNames.OPTIONS, OptionCodec, option, Option(option.id)),
+        Entry(CollectionNames.PRESCRIPTIONS, PrescriptionCodec, prescription, Prescription(prescription.id)),
+        Entry(CollectionNames.PRN_MEDICINES, PrnMedicineCodec, prnMedicine, PrnMedicine(prnMedicine.id)),
+        Entry(CollectionNames.DOSES, DoseCodec, dose, Dose(dose.id)),
+        Entry(CollectionNames.SCREENINGS, ScreeningCodec, screening, Screening(screening.id)),
+        Entry(CollectionNames.ACTIVITIES, ActivityCodec, activity, Activity(activity.id)),
+        Entry(CollectionNames.EVENTS, EventCodec, event, Event(event.id)),
+        Entry(CollectionNames.ILLNESS_EPISODES, IllnessEpisodeCodec, episode, IllnessEpisode(episode.id)),
+        Entry(CollectionNames.CHECKINS, CheckinCodec, checkin, Checkin(checkin.id)),
     )
 
     fun entry(collection: String): Entry<*> = all.single { it.collection == collection }

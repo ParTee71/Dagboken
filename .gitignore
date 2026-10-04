@@ -16,6 +16,8 @@ keystore.properties
 # Hälsodata: backup- och exportfiler var de än hamnar (skill data-privacy-security)
 backup*.json
 export*.json
+# Undantag: konverterarens syntetiska 3.x-fixturer och förväntade exporter (OMB-3) – aldrig riktig data
+!tools/db/test/fixtures/legacy/backup-*.json
 
 # tools/db – beroenden och exporter (innehåller hälsodata)
 tools/db/node_modules/

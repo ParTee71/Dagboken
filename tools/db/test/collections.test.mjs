@@ -1,16 +1,23 @@
-// Samlingslistan i tools/db = Paths.kt i appen = security rules (skill data-safety-backup, BCK-16).
+// Samlingslistan i tools/db = Paths.kt i appen = CollectionNames.kt i :core = security rules
+// (skill data-safety-backup, BCK-16).
 // En samling som saknas här backas aldrig upp. Behöver ingen emulator.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { COLLECTIONS } from '../lib/collections.mjs';
 import { readRepoFile as read } from './helpers/repo.mjs';
 const pathsKt = read('app/src/main/kotlin/se/partee71/dagboken/data/firestore/Paths.kt');
+const coreNamesKt = read('core/src/main/kotlin/se/partee71/dagboken/core/schema/CollectionNames.kt');
 
 /** Platshållare ({uid}, $episodeId …) jämförs bara till sin position. */
 const normalize = (p) => p.replace(/\$\{?\w+\}?|\{\w+\}/g, '{}');
 
-/** `const val NAMN = "värde"` i Paths.kt. */
-const constants = Object.fromEntries([...pathsKt.matchAll(/const val (\w+) = "([^"]+)"/g)].map((m) => [m[1], m[2]]));
+/** `const val NAMN = "värde"` i CollectionNames.kt (:core) – enda stället namnen står. */
+const coreConstants = Object.fromEntries([...coreNamesKt.matchAll(/const val (\w+) = "([^"]+)"/g)].map((m) => [m[1], m[2]]));
+
+/** `const val NAMN = CollectionNames.NAMN` i Paths.kt, upplöst mot :core (regel 4: inga egna namn i appen). */
+const constants = Object.fromEntries(
+  [...pathsKt.matchAll(/const val (\w+) = (?:CollectionNames\.(\w+)|"([^"]+)")/g)].map((m) => [m[1], m[2] ? coreConstants[m[2]] : m[3]]),
+);
 
 /** `fun namn(a: String, …) = <uttryck>` i Paths.kt – uttrycket är en sträng eller ett anrop. */
 const functions = Object.fromEntries(
@@ -43,6 +50,13 @@ function evaluate(expression, env) {
 
 test('samlingsnamnen är desamma som konstanterna i Paths.kt', () => {
   assert.deepEqual(Object.values(constants).sort(), COLLECTIONS.map((c) => c.name).sort());
+});
+
+test('samlingsnamnen är desamma som CollectionNames i :core, och Paths.kt tar dem därifrån', () => {
+  assert.deepEqual(Object.values(coreConstants).sort(), COLLECTIONS.map((c) => c.name).sort());
+  assert.deepEqual(Object.keys(coreConstants).sort(), Object.keys(constants).sort(), 'samma konstantnamn som Paths.kt');
+  assert.ok(Object.values(constants).every((v) => typeof v === 'string'), 'varje konstant i Paths.kt pekar på en som finns i :core');
+  assert.doesNotMatch(pathsKt, /const val \w+ = "/, 'Paths.kt har inga egna namn');
 });
 
 test('sökvägarna är desamma som i Paths.kt', () => {

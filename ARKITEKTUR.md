@@ -194,7 +194,7 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `AktivitetJson.symptom` | `activities.symptoms[].optionId`, `activities.symptoms[].score`, `activities.symptoms[].customText`, `screenings.symptoms[].optionId`, `screenings.symptoms[].score`, `screenings.symptoms[].customText` | `Namn:Poäng,…` → symptomalternativ på namnet; `Övrigt (fritext)` → "Övrigt" + `customText`; okänt namn → arkiverat alternativ. |
 | `AktivitetJson.aterhamtande` | `activities.recovering` | Screening: alltid `false` i 3.x; annat värde stoppar konverteringen i stället för att tappas. |
 | `AktivitetJson.energitjuv` | `activities.drain` | Som `aterhamtande`. |
-| `AktivitetJson.type` | `activities`, `screenings` | `aktivitet`/`screening`; tomt → ur namnet som 3.x `BackupMapper.inferType`. |
+| `AktivitetJson.type` | `activities`, `screenings` | `aktivitet`/`screening`; tomt → ur namnet som 3.x `BackupMapper.inferType`; saknat är `aktivitet` (klassens default, som 3.x). |
 | `AktivitetJson.spentTime` | `activities.minutes` | `null` bevaras. Screening: alltid `null` i 3.x; annat värde stoppar konverteringen. |
 | `MedicinJson.id` | `doses.id` | Bevaras; `recept_…`-id:n oförändrade (DAT-8). |
 | `MedicinJson.timestamp` | `doses.createdAt` | Som `AktivitetJson.timestamp`. |
@@ -206,7 +206,7 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `MedicinJson.tidpunkt` | `doses.slot` | `Slot.fromLegacyName`; okänt namn stoppar konverteringen. |
 | `MedicinJson.tagen` | `doses.status` | `true` → `taken`. |
 | `MedicinJson.skipped` | `doses.status` | `true` → `skipped`; varken eller → `planned`; båda (ogiltigt i 3.x) → `taken`. |
-| `MedicinJson.tagenTid` | `doses.takenAt` | `HH:mm` på dosens datum i Europe/Stockholm → tidsstämpel. |
+| `MedicinJson.tagenTid` | `doses.takenAt` | `HH:mm` på dosens datum i Europe/Stockholm → tidsstämpel (sommartidsregeln i Migrering, punkt 1). |
 | `MedicinJson.anteckning` | `doses.note` | Arvsfält från före notes-tabellen; en `notes`-post för samma post går före (som 3.x `BackupMapper.toNotes`). |
 | `MedicinJson.receptId` | `doses.prescriptionId` | |
 | `ReceptJson.id` | `prescriptions.id` | Bevaras. |
@@ -246,7 +246,7 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `SjukdomsEpisodJson.anteckning` | `illnessEpisodes.note` | Arvsfält. |
 | `SjukdomsEpisodJson.timestamp` | `illnessEpisodes.createdAt` | Epok-ms; 0 (v1) → `null`, aldrig "nu". |
 | `SjukdomsIncheckningJson.id` | `checkins.id` | Bevaras. |
-| `SjukdomsIncheckningJson.episodId` | *sökväg* | `illnessEpisodes/{episodId}/checkins/{id}`. |
+| `SjukdomsIncheckningJson.episodId` | *sökväg* | `illnessEpisodes/{episodId}/checkins/{id}`; saknas episoden i backupen stoppar konverteraren. |
 | `SjukdomsIncheckningJson.datum` | `checkins.date` | |
 | `SjukdomsIncheckningJson.tid` | `checkins.time` | |
 | `SjukdomsIncheckningJson.svarighetsgrad` | `checkins.severity` | |
@@ -265,7 +265,7 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `HandelseJson.atgarder` | `events.actions` | `""` → `null`. |
 | `HandelseJson.anteckning` | `events.note` | Arvsfält. |
 | `NoteJson.target` | `activities`, `screenings`, `doses`, `prescriptions`, `prnMedicines`, `events`, `illnessEpisodes`, `checkins` | `ACTIVITY`, `SCREENING`, `MEDICATION`, `RECEPT`, `FAVORIT`, `EVENT`, `SJUKDOM_EPISOD`, `SJUKDOM_INCHECKNING` i den ordningen. |
-| `NoteJson.entityId` | *sökväg* | Dokumentets id. En anteckning utan sin post rapporteras av konverteraren. |
+| `NoteJson.entityId` | *sökväg* | Dokumentets id. En anteckning utan sin post rapporteras av konverteraren som varning med antal (Migrering, punkt 1). |
 | `NoteJson.text` | `activities.note`, `screenings.note`, `doses.note`, `prescriptions.note`, `prnMedicines.note`, `events.note`, `illnessEpisodes.note`, `checkins.note` | Tom text → `null`. |
 | `ScreeningEventConfigJson.enabled` | `settings.reminders.screeningOccasions[].enabled` | |
 | `ScreeningEventConfigJson.time` | `settings.reminders.screeningOccasions[].time` | |
@@ -332,7 +332,8 @@ rad i skill `shared-ui-components`. Diagrammatematik (`computeSmartYAxis`, `comp
 ```
 :core  (ren Kotlin/JVM)   model/ · schema/ (DocCodec, Fields, Schema, SchemaMigrator) · codecs ·
                           engine/ (EnsureDoses, Cooldown, PeriodEndings, DailyEnergyStats,
-                          SleepQuality, chart math) · legacy/ (BackupJson → 4.0-konverterare)
+                          SleepQuality, chart math) · legacy/ (BackupJson → 4.0-konverterare, validering
+                          mot DocumentRules, ConvertBackupMain för grinden OMB-4)
 :app   (Android)          data/common · data/firestore · data/auth · data/health (Health Connect,
                           read-only) · data/legacy (Room-läsare för migrering) · reminders/ ·
                           ui/theme · ui/components · ui/common · ui/<flik> · navigation/
@@ -365,22 +366,79 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
 ## Migrering – ingen data får tappas
 
 1. **Konverterare i `:core`** (`legacy/BackupJsonConverter`): 3.x `BackupJson` (v1 och v2, inklusive
-   arvsfälten `anteckning` på posterna och `tidpunkt` på receptet) → 4.0-dokument. Fixtur med
-   **varje** fält satt. Test: konvertera → exportera → fältvis jämförelse mot förväntat.
+   arvsfälten `anteckning` på posterna och `tidpunkt` på receptet; klasserna i `legacy/BackupJson.kt` speglar
+   3.x fält för fält) → 4.0-dokument enligt paritetstabellen. Fixtur med **varje** fält satt
+   (`tools/db/test/fixtures/legacy/backup-v2.json`, plus `backup-v1.json`) och förväntad export
+   (`*.expected.json`). Test: konvertera → exportera → fältvis jämförelse mot förväntat
+   (`BackupJsonConverterTest`); varje 3.x-fält har ett icke-default-värde i fixturen (`BackupJsonTest`) och varje
+   4.0-fält får ett värde ur den. Utfallet är antingen alla dokument (`ConversionResult.Converted`, sorterade på
+   sökväg, med en rapport: antal per samling och varningar) eller ett **stopp** (`Stopped`) med **alla** fel –
+   aldrig en del. Deterministisk: ingen klocka, samma backup ger samma dokument överallt; alternativ-id ur
+   `OptionIds.of`.
    **Validering mot rules-gränserna:** 3.x hade inga längdgränser eller intervall i lagringen, men
    4.0:s rules har det (`TextLimits.SHORT` 200 tecken för namn och korta texter, `TextLimits.LONG`
    5 000 för anteckningar och fritext; heltalsintervallen som 0–10, −10..10, 0–23 och ≥ 0; listtaken 50
-   symptom och 50 doshöjningar; giltiga datum och klockslag; enumvärdena). Konverteraren validerar **varje genererat
-   dokument** mot `TextLimits` och samma intervall som `firestore.rules` och **stoppar med en rapport**
-   (dokument, fält, värdets längd eller värde – aldrig innehållet) om något inte ryms. Den kapar,
-   avrundar eller hoppar aldrig över ett värde; beslutet om en gräns ska höjas tas här och i rules,
-   inte i datan. Valideringen behövs även där rules inte gäller: `tools/db import.mjs` skriver med
-   admin-SDK förbi rules, så utan den kunde grinden OMB-4 släppa igenom data som appen sedan inte
-   kan spara om.
+   symptom och 50 doshöjningar; giltiga datum och klockslag; enumvärdena). Gränserna står på **ett** ställe i
+   `:core`, `schema/DocumentRules` (fält för fält per samling som `valid…`-funktionerna i rules;
+   `DocumentRulesTest` läser rules och kräver likhet). Konverteraren validerar **varje genererat
+   dokument** mot den och **stoppar med en rapport** (dokument, fält, värdets längd, tal eller enum-namn – aldrig
+   innehållet) om något inte ryms. Den kapar, avrundar eller hoppar aldrig över ett värde; beslutet om en gräns
+   ska höjas tas här och i rules, inte i datan. Valideringen behövs även där rules inte gäller: `tools/db
+   import.mjs` skriver med admin-SDK förbi rules, så utan den kunde grinden OMB-4 släppa igenom data som appen
+   sedan inte kan spara om. `tools/db/test/legacy.test.mjs` skriver dessutom varje dokument i de förväntade
+   exporterna som ägaren genom rules, så att valideringen bevisligen motsvarar dem.
+   **Val som inte står i paritetstabellen** (alla deterministiska, inga "nu"):
+   - *Tider.* Tidszonen är alltid Europe/Stockholm (`legacy/LegacyTime`), aldrig enhetens. `tagenTid` och
+     reservvärdet för ett tomt eller ogiltigt `timestamp` (dag + klockslag; utan klockslag midnatt) följer
+     sommartidsregeln: i luckan när klockan ställs fram (sista söndagen i mars, 02:00–03:00 finns inte) flyttas
+     klockslaget fram med luckans längd (`02:30` → `03:30` sommartid); vid överlappningen när klockan ställs
+     tillbaka (sista söndagen i oktober) gäller den **första** förekomsten (sommartid, UTC+2). Ögonblicket läses
+     tillbaka till samma dag; ett ogiltigt `timestamp` ersätts med varning. Exportfilens `exportedAt` är
+     backupens `createdAt` (3.x lokal tid utan zon, tolkad i Stockholm), saknas den epoken.
+   - *Anteckning utan sin post* (`notes` vars `entityId` inte finns, eller okänt `target`): **varning** med
+     antal per target, inte stopp. Posten var redan borta i 3.x (anteckningar visades bara genom sin post, och
+     före DAT-4 kunde raderingar lämna dem kvar), så inget användaren kunde se tappas, och ett stopp hade
+     ingen åtgärd – backupen går inte att laga. Räknas i rapporten så att grinden OMB-4 ser antalet.
+     Finns både en `notes`-post och arvsfältet med olika text går `notes` före (som 3.x) med varning.
+   - *Incheckning utan sin episod:* **stopp** – det finns ingen sökväg, och 3.x hade en främmande nyckel som
+     gjorde en sådan backup omöjlig att återställa. En episod skapas aldrig på gissning.
+   - *Alternativ.* V2-listorna går före v1; saknas listan (`null`) gäller 3.x standardlista
+     (`DEFAULT_AKTIVITET_OPTIONS`, `DEFAULT_SYMPTOM_OPTIONS`, `DEFAULT_HANDELSE_TYP_OPTIONS`), en tom lista
+     förblir tom. Aktivitetsnamn utanför listan är fritexten vid "Övrigt" → `customText` + alternativet "Övrigt"
+     (skapas synligt, sist, om listan saknar det – 3.x hade det alltid som fast sentinel). Symptomnamn och
+     händelsetyper utanför listan blir nya **arkiverade** alternativ; `Övrigt (fritext)` (även utan parenteser:
+     allt efter "Övrigt") → "Övrigt" + `customText`. Dubbletter i en lista är samma alternativ (det första
+     gäller, varning). `sortOrder` är listans ordning, skapade alternativ fortsätter numreringen.
+   - *Symptomsträngen* tolkas som 3.x `SymptomUtils.decode` (sista kolonet skiljer namn och poäng, dubbla namn
+     samlas och den sista poängen gäller – med varning); en del utan kolon, utan namn eller med en poäng som
+     inte är ett heltal kunde 3.x inte läsa och **stoppar**. Avviker `somatiska` från summan: varning.
+   - *Poster.* Saknat `type` är "aktivitet" (klassens default, som 3.x); bara tomt `type` härleds ur namnet
+     (`inferType`). En aktivitet vars namn är ett måendetillfälles får en varning. En screening med
+     `aterhamtande`/`energitjuv` sant eller `spentTime` satt **stoppar** (ingen plats). Blank `datum`/`tid` →
+     `null`; ogiltigt **stoppar** (även ett datum som inte finns, `2026-02-30`, fast rules mönster godtar det).
+     Dubbla id:n i en samling och id:n Firestore inte godtar stoppar. Tagen och överhoppad samtidigt → `taken`.
+   - *Recept.* Okänd `upprepning` → `daily` (som 3.x `Upprepning.fromString`) med varning; `dagar` utanför 0–6
+     stoppar; blank `tidpunkt` räknas som saknad (båda tomma → Morgon). `skapad` → midnatt Stockholm.
+   - *Inställningar.* Dokumentet innehåller **bara** de fält backupen hade (`null` = "rör inte"; v1 ger inget
+     dokument alls); de typade modellerna får 3.x-defaults i övrigt. `medNotificationConfigs` matchas på
+     namn, annars på position för rader utan namn (3.x `toMedNotificationConfigs`); en rad utan tidpunkt att
+     höra till stoppar, liksom ett femte `screeningEventConfigs`-element, okänt `themeMode`/`sex` och
+     ogiltiga klockslag. Tomt klockslag → standardtiden.
+   - *Användardokumentet* `users/{uid}` skrivs med `schemaVersion = Schema.CURRENT_VERSION` och inget mer
+     (`createdAt` sätts aldrig på gissning; `EnsureUserUseCase` skriver inte över ett befintligt dokument).
 2. **Rundtur mot emulatorn** (`tools/db/test/roundtrip.test.mjs`): import → export identiskt.
 3. **Grind före etapp 3:** en riktig Drive-backup konverteras (med valideringen i punkt 1 – noll
    stopp), importeras via `tools/db import.mjs`, exporteras och jämförs med originalet. Noll
-   skillnader krävs (OMB-4).
+   skillnader krävs (OMB-4). Körningen, från repots rot och med backupen i den git-ignorerade `tools/db/`:
+   ```bash
+   ./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <uid>"
+   node tools/db/import.mjs --in tools/db/export-4.json --dry-run      # kontroll, skriver inget
+   node tools/db/import.mjs --in tools/db/export-4.json                # skrivande nyckel, uttrycklig begäran
+   node tools/db/export.mjs --user <uid> --out tools/db/export-igen.json && cmp tools/db/export-4.json tools/db/export-igen.json
+   ```
+   Konverteraren skriver rapporten (antal per samling, varningar, stopp) till stdout utan något innehåll;
+   exitkod 0 = filen skrevs, 1 = stopp (ingen fil), 2 = fel argument. Rapportens varningar granskas av
+   användaren innan importen; filerna raderas efteråt (skill `data-privacy-security`).
 4. **På enheten** (etapp 3): första start av 4.0 hittar Room-filen, läser den med legacy-läsaren
    (samma mappning som konverteraren), skriver till Firestore i batchar, visar antal per entitet
    före och efter och låter användaren bekräfta. Fallback: Drive-backup eller lokal JSON.
@@ -458,7 +516,7 @@ PR-beskrivningen, `granskare` + `/code-review` före push, en PR i taget.
 
 | Risk | Hantering |
 |---|---|
-| Fält tappas i konverteringen | Fixtur med alla fält, rundtur, grind OMB-4 med riktig backup, Room-filen behålls. |
+| Fält tappas i konverteringen | Fixtur med alla fält (varje 3.x-fält icke-default, varje 4.0-fält fyllt), fältvis jämförelse mot förväntad export, rundtur och rules-skrivning av den i emulatorn, grind OMB-4 med riktig backup, Room-filen behålls. Anteckningar utan sin post är det enda som inte får plats – de räknas i rapporten (Migrering, punkt 1). |
 | 3.x-text längre än rules-gränserna (3.x hade inga) | `TextLimits.LONG` är 5 000 tecken för anteckningar, det enda 3.x-fältet som rimligen kan vara långt. Konverteraren validerar varje dokument mot `TextLimits` och rules-intervallen och stoppar med rapport – kapar aldrig (Migrering, punkt 1). Grinden OMB-4 omfattar valideringen, eftersom admin-importen går förbi rules. Visar en riktig backup längre text höjs gränsen i `TextLimits` och rules i samma PR. |
 | Rules nekar riktig 3.x-data vid importen på enheten | Rules räknar högst 1 000 uttryck och 20 dokumentuppslag per skrivning: listor av objekt har generösa tak (50 symptom, 50 doshöjningar) och elementen kontrolleras upp till det tionde; incheckningar kräver sin episod (`existsAfter`) och en batch får slå upp högst 20 befintliga episoder, så importen skriver episoderna i samma batch som sina incheckningar eller delar upp per högst 20 episoder. Rules-testerna täcker gränserna; grinden OMB-4 går via `tools/db` (admin, förbi rules), så importen på enheten (etapp 3) prövar rules mot riktig data. |
 | Spark-planens läsbudget vid första synk | Engångskostnad; cache därefter; "Allt"-perioden i Trender räknas ur cachen i `:core`. |

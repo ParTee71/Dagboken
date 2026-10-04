@@ -48,17 +48,24 @@ inline fun <reified E> Doc.wireList(key: String): List<E> where E : Enum<E>, E :
     (this[key] as? List<*>)?.mapNotNull { wireValue<E>(it) }.orEmpty()
 
 /** Datum utan tid lagras som ISO-sträng (`yyyy-MM-dd`); ogiltigt → `null`. */
-fun Doc.localDate(key: String): LocalDate? =
-    (this[key] as? String)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+fun Doc.localDate(key: String): LocalDate? = (this[key] as? String)?.let(::parseDate)
 
 /**
  * Klockslag lagras som `HH:mm`; ogiltigt, saknat eller i annat format (även från en nyare app)
  * → `null`, som skrivs vid nästa sparning (skill data-safety-backup).
  */
-fun Doc.localTime(key: String): LocalTime? =
-    (this[key] as? String)?.takeIf { TIME_PATTERN.matches(it) }?.let { LocalTime(it.take(2).toInt(), it.takeLast(2).toInt()) }
+fun Doc.localTime(key: String): LocalTime? = (this[key] as? String)?.let(::parseClock)
 
-private val TIME_PATTERN = Regex("([01][0-9]|2[0-3]):[0-5][0-9]")
+/**
+ * `yyyy-MM-dd` → datum; `null` om texten inte är ett giltigt datum (även `2024-02-30`, som rules
+ * datummönster godtar men som inte finns). Enda datumtolkningen – codecs och konverteraren delar den.
+ */
+fun parseDate(text: String): LocalDate? =
+    text.takeIf { DocumentRules.DATE.matches(it) }?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+
+/** `HH:mm` → klockslag; `null` för allt annat (även `9:00` och `09:00:30`). Samma mönster som rules. */
+fun parseClock(text: String): LocalTime? =
+    text.takeIf { DocumentRules.CLOCK.matches(it) }?.let { LocalTime(it.take(2).toInt(), it.takeLast(2).toInt()) }
 
 fun LocalTime?.encodeTime(): String? = this?.let { "%02d:%02d".format(java.util.Locale.ROOT, it.hour, it.minute) }
 
