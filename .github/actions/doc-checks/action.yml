@@ -1,0 +1,21 @@
+name: Dokumentkontroller
+description: >-
+  Node 22 och testkommandona som alltid körs (sekunder, inga beroenden):
+  dokumentkontrollerna i .github/scripts (CI-tabellen mot filtren, länkar och
+  namn) och hooktestet. Kräver att repot redan är utcheckat.
+
+runs:
+  using: composite
+  steps:
+    - name: Node 22 (globmönster i node --test kräver Node 21+)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Dokumentkontroller
+      shell: bash
+      run: node --test '.github/scripts/*.test.mjs'
+
+    - name: Hooktest (regel4-check)
+      shell: bash
+      run: node --test '.claude/hooks/test/*.test.mjs'

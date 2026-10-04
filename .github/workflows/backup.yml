@@ -1,0 +1,77 @@
+# Veckobackup av Firestore (BCK-12, skill data-safety-backup): export med tools/db,
+# krypterad med gpg (AES-256, integritetskontroll), sparad som artifact i 90 dagar.
+# Klartexten lämnar aldrig jobbet. Återställning: README → Backup och återställning.
+name: Backup
+
+on:
+  schedule:
+    - cron: '0 3 * * 1' # måndagar 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # Bara firebase-admin: inga utvecklingsverktyg i jobbet som har nyckel och lösenfras.
+      - uses: ./.github/actions/setup-tools-db
+        with:
+          omit-dev: 'true'
+
+      - name: Hemligheter finns
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          for name in FIREBASE_SERVICE_ACCOUNT BACKUP_PASSPHRASE; do
+            if [ -z "${!name}" ]; then echo "::error::Secret $name saknas (README → Firebase-setup)"; exit 1; fi
+          done
+
+      - name: Export
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          node tools/db/export.mjs --out tools/db/backup.json
+          # Samma kontroll som en återställning gör, utan databas: filen går att importera.
+          node tools/db/import.mjs --in tools/db/backup.json --dry-run
+
+      - name: Kryptera och kontrollera
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 --s2k-digest-algo SHA512 --s2k-count 65011712 \
+            --output backup.json.gpg tools/db/backup.json
+          # Beviset att filen går att öppna med lösenfrasen – innan klartexten raderas.
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --quiet --pinentry-mode loopback --passphrase-fd 0 \
+            --decrypt backup.json.gpg | cmp - tools/db/backup.json
+
+      - name: Radera klartext
+        if: always()
+        run: rm -f tools/db/backup.json
+
+      - name: Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_number }}
+          path: backup.json.gpg
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Issue vid fel
+        if: failure() && github.event_name == 'schedule'
+        uses: ./.github/actions/open-issue-on-failure
+        with:
+          title: 'Backup: veckobackupen fallerar'

@@ -1,0 +1,97 @@
+package se.partee71.dagboken.ui.components
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import se.partee71.dagboken.R
+import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.ui.common.DetailUiState
+import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.Spacing
+
+/** Huvudet överst i en detaljskärm: bild (t.ex. [PersonAvatar]), namn och en rad under. */
+data class DetailHeader(val title: String, val subtitle: String? = null)
+
+/**
+ * Den enda detaljskärmen (skill shared-ui-components): toppbar med tillbaka, "Redigera" och
+ * meny; laddning → [AppLoading]; fel → läsfel med "Försök igen"; innehåll → ett centrerat
+ * huvud ([leading], [DetailHeader]) och sektioner i kort ([content]). Ett fel från en åtgärd
+ * (t.ex. arkivera i menyn, [error]) visas som meddelande.
+ *
+ * @param header vad huvudet visar för ett laddat värde.
+ * @param menu valen i "Fler val" (arkivera/återställ m.m.) för ett laddat värde.
+ */
+@Composable
+fun <T> EntityDetailScreen(
+    state: DetailUiState<T>,
+    header: (T) -> DetailHeader,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    onEdit: (() -> Unit)? = null,
+    menu: (T) -> List<AppMenuItem> = { emptyList() },
+    onRetry: () -> Unit = {},
+    error: DataError? = null,
+    onErrorShown: () -> Unit = {},
+    leading: @Composable (T) -> Unit = {},
+    content: @Composable ColumnScope.(T) -> Unit,
+) {
+    val snackbar = remember { SnackbarHostState() }
+    ErrorSnackbar(error, snackbar, onShown = onErrorShown)
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { AppSnackbarHost(snackbar) },
+        topBar = {
+            AppTopBar("", size = TopBarSize.Small, onBack = onBack) {
+                if (state is DetailUiState.Content) {
+                    onEdit?.let { AppIconButton(R.drawable.ic_edit, stringResource(R.string.edit), it) }
+                    val items = menu(state.value)
+                    if (items.isNotEmpty()) AppMenu(items)
+                }
+            }
+        },
+    ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when (state) {
+                DetailUiState.Loading -> AppLoading()
+                is DetailUiState.Error -> LoadErrorState(stringResource(R.string.load_error_title), state.error, onRetry)
+                is DetailUiState.Content -> Column(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.l, vertical = Spacing.s),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.m),
+                ) {
+                    val top = header(state.value)
+                    Column(
+                        Modifier.fillMaxWidth().padding(bottom = Spacing.s),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    ) {
+                        leading(state.value)
+                        Text(top.title, style = AppTypography.screenTitle, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
+                        top.subtitle?.let {
+                            Text(it, style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                        }
+                    }
+                    content(state.value)
+                }
+            }
+        }
+    }
+}

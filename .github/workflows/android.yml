@@ -1,86 +1,221 @@
-name: Android CI
+# PR-flödet (regel 5, skill ci-budget – tabellen där är facit för filtren nedan och
+# kontrolleras av .github/scripts/check-ci-table.mjs). Jobbet `changes` startar alltid och
+# avgör vad som körs; `ci-ok` är det enda obligatoriska statuskravet.
+name: CI
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
-    branches: [ master ]
+    branches: [master]
+  push:
+    branches: [master]
   workflow_dispatch:
 
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+permissions:
+  contents: read
+  pull-requests: read # dorny/paths-filter läser PR:ens ändrade filer
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run_core: ${{ steps.decide.outputs.run_core }}
+      run_app: ${{ steps.decide.outputs.run_app }}
+      run_tools: ${{ steps.decide.outputs.run_tools }}
+      run_instrumented: ${{ steps.decide.outputs.run_instrumented }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Ändrade sökvägar
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v3
         with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
+          filters: |
+            core:
+              - 'core/**'
+              - 'tools/db/test/fixtures/**'
+            app:
+              - 'app/**'
+              - '.claude/skills/shared-ui-components/**'
+            tools:
+              - 'firestore.rules'
+              - 'firestore.indexes.json'
+              - 'firebase.json'
+              - 'tools/db/**'
+              - 'app/src/main/kotlin/se/partee71/dagboken/data/firestore/Paths.kt'
+            build:
+              - '*.gradle.kts'
+              - 'gradle/**'
+              - 'gradle.properties'
+              - 'build-logic/**'
+              - '.github/**'
+            instrumented:
+              - 'app/src/**'
+              - 'core/src/**'
+              - '*.gradle.kts'
+              - 'app/build.gradle.kts'
+              - 'core/build.gradle.kts'
+              - 'gradle/**'
+              - 'gradle.properties'
+              - 'build-logic/**'
+              - 'firestore.rules'
+              - 'firebase.json'
+              - 'tools/db/package-lock.json'
+              - '.github/workflows/instrumented.yml'
+              - '.github/actions/setup-android/**'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Vad körs
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          CORE: ${{ steps.filter.outputs.core }}
+          APP: ${{ steps.filter.outputs.app }}
+          TOOLS: ${{ steps.filter.outputs.tools }}
+          BUILD: ${{ steps.filter.outputs.build }}
+          INSTRUMENTED: ${{ steps.filter.outputs.instrumented }}
+        run: |
+          set -euo pipefail
+          # Instrumenttesterna (Android-emulator) bara i PR:er som rör koden de testar – inte på
+          # master: PR:en har redan kört dem, och release.yml hoppar över oförändrad kod.
+          instrumented=false
+          if [ "$EVENT" != "pull_request" ]; then
+            core=true; app=true; tools=true; why="$EVENT – allt körs utom instrumenttesterna (baslinje och cache)"
+          else
+            core=false; app=false; tools=false
+            if [ "$INSTRUMENTED" = true ]; then instrumented=true; fi
+            if [ "$CORE" = true ] || [ "$BUILD" = true ]; then core=true; fi
+            if [ "$CORE" = true ] || [ "$APP" = true ] || [ "$BUILD" = true ]; then app=true; fi
+            if [ "$TOOLS" = true ] || [ "$BUILD" = true ]; then tools=true; fi
+            why="PR – filter: core=$CORE app=$APP tools=$TOOLS build=$BUILD instrumented=$INSTRUMENTED"
+          fi
+          {
+            echo "run_core=$core"
+            echo "run_app=$app"
+            echo "run_tools=$tools"
+            echo "run_instrumented=$instrumented"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### Vad körs"
+            echo "$why"
+            echo ""
+            echo "| Del | Körs |"
+            echo "|---|---|"
+            echo "| \`:core:test\` | $core |"
+            echo "| app-tester, skärmdumpar, \`cpdCheck\` | $app |"
+            echo "| rules/rundtur mot Firebase-emulatorn | $tools |"
+            echo "| instrumenttester på Android-emulator | $instrumented |"
+            echo "| dokumentkontroller | true |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Compile debug Kotlin
-        run: ./gradlew :app:compileDebugKotlin
+      - uses: ./.github/actions/doc-checks
 
-      - name: Compile debug unit test Kotlin
-        run: ./gradlew :app:compileDebugUnitTestKotlin
-
-      - name: Compile debug Android test Kotlin
-        run: ./gradlew :app:compileDebugAndroidTestKotlin
-
-      - name: Run unit tests
-        run: ./gradlew :app:testDebugUnitTest
-
-      # Lint och ett minifierat releasebygge kördes tidigare inte alls i CI, så
-      # R8-problem och lint-varningar upptäcktes först vid en faktisk release.
-      - name: Run Android Lint
-        run: ./gradlew :app:lintDebug
-
-      - name: Assemble minified release
-        run: ./gradlew :app:assembleRelease
-
-      - name: Upload lint results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-results
-          path: app/build/reports/lint-results-debug.html
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: app/build/reports/tests/testDebugUnitTest/
-
-  cancel-instrumented-on-failure:
-    needs: build-and-test
-    if: failure() || cancelled()
+  gradle:
+    name: gradle
+    needs: changes
+    if: needs.changes.outputs.run_core == 'true' || needs.changes.outputs.run_app == 'true'
     runs-on: ubuntu-latest
-    permissions:
-      actions: write
+    timeout-minutes: 15
     steps:
-      - name: Cancel in-progress Instrumented Tests run
-        uses: actions/github-script@v7
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-android
+
+      - name: Bygg och testa
+        env:
+          RUN_CORE: ${{ needs.changes.outputs.run_core }}
+          RUN_APP: ${{ needs.changes.outputs.run_app }}
+          RUN_INSTRUMENTED: ${{ needs.changes.outputs.run_instrumented }}
+        run: |
+          set -euo pipefail
+          tasks=(cpdCheck)
+          if [ "$RUN_CORE" = true ]; then tasks+=(:core:test); fi
+          if [ "$RUN_APP" = true ]; then tasks+=(:app:testDebugUnitTest :app:verifyRoborazziDebug); fi
+          # Kompilera instrumenttesterna bara när jobbet instrumented inte redan bygger och kör dem.
+          if [ "$RUN_APP" = true ] && [ "$RUN_INSTRUMENTED" != true ]; then tasks+=(:app:assembleDebugAndroidTest); fi
+          echo "### Gradle" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`./gradlew ${tasks[*]}\`" >> "$GITHUB_STEP_SUMMARY"
+          ./gradlew --configuration-cache --continue "${tasks[@]}"
+
+      - name: Testrapporter
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          script: |
-            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              head_sha: context.sha,
-            });
-            for (const run of data.workflow_runs) {
-              if (run.name === 'Instrumented Tests' && ['queued', 'in_progress'].includes(run.status)) {
-                await github.rest.actions.cancelWorkflowRun({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  run_id: run.id,
-                });
-              }
-            }
+          name: testrapporter
+          path: |
+            core/build/reports/tests/
+            app/build/reports/tests/
+          if-no-files-found: ignore
+
+      - name: Skärmdumpsdiffar och CPD-rapport
+        id: failure-artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diffar-och-cpd
+          path: |
+            app/build/outputs/roborazzi/
+            build/reports/cpd/
+          if-no-files-found: ignore
+
+      - name: Länk till diffar
+        if: failure()
+        env:
+          URL: ${{ steps.failure-artifacts.outputs.artifact-url }}
+        run: |
+          {
+            echo "### Felsökning"
+            echo "Roborazzi-diffar (\`*_compare.png\`) och CPD-rapporten: ${URL:-inga filer}"
+            echo "Testrapporter: artifact \`testrapporter\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  rules:
+    name: rules
+    needs: changes
+    if: needs.changes.outputs.run_tools == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Finns tools/db?
+        id: present
+        run: |
+          if [ -f tools/db/package.json ] && [ -f firebase.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::tools/db/package.json eller firebase.json saknas – inga rules-tester att köra."
+          fi
+
+      - name: Rules- och rundturstester mot emulatorn
+        if: steps.present.outputs.present == 'true'
+        uses: ./.github/actions/rules-tests
+
+  instrumented:
+    needs: changes
+    if: needs.changes.outputs.run_instrumented == 'true'
+    uses: ./.github/workflows/instrumented.yml
+
+  ci-ok:
+    name: ci-ok
+    needs: [changes, gradle, rules, instrumented]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Alla körda jobb gröna
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Resultat: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::Ett jobb blev $r"; exit 1 ;;
+            esac
+          done

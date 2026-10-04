@@ -100,54 +100,56 @@ When helping with Compose code:
 
 5. **Side effects exist to bridge Compose's declarative world with imperative APIs**. Use the right one for the job — misusing them causes bugs that are hard to trace.
 
-## Critical Patterns for This Project
+## Critical Patterns for This Project (Dagboken 4.0)
+
+The project rules go before any generic Compose advice here: skill `shared-ui-components`
+(rule 4 – which component or frame, forbidden raw M3 calls), skill `ui-style` (Papper och teal),
+skill `accessibility-compose` and, for Navigation 3 recipes, Google's skill `navigation-3`.
 
 This project uses:
-- **Material 3** with a warm "Sunrise Garden" palette (Amber, Rose, Emerald color tokens)
-- **Navigation Compose** with type-safe `@Serializable` routes
-- **MVVM** with `StateFlow<UiState>` + `collectAsStateWithLifecycle()`
-- **Hilt** for DI, `hiltViewModel()` in composables
-- **Coil** for image loading (`AsyncImage`)
-- **`collectAsState()`** — prefer `collectAsStateWithLifecycle()` for lifecycle safety
+- **Material 3 Expressive** via `ui/theme` (`MaterialExpressiveTheme`, `MotionScheme.expressive()`, `AppColors`, `AppTypography`, `AppShapes`, `Spacing`) in the "Papper och teal" look. No colours, shapes, text styles or corner/height dp in feature code. (The 3.x "Sunrise Garden" palette is gone.)
+- **Navigation 3**: `@Serializable` `NavKey`, one back stack per tab (`AppBackStack`), `NavDisplay` + `entryProvider`, transitions defined once in `navigation/Transitions`. No `NavHost`/`NavController` (the 3.x navigation-compose string routes are gone).
+- **MVVM** with `StateFlow<UiState>` + `collectAsStateWithLifecycle()` and sealed events (`vm.onEvent(...)`).
+- **Hilt**: `hiltViewModel()` at screen level; ViewModel scope per nav entry via `lifecycle-viewmodel-navigation3`.
+- **No image library** in the UI – icons are line icons in `res/drawable`.
+
+> Expressive and Nav3 APIs are new. Use only names and signatures verified in `VerifiedApisTest`
+> (`app/src/test`); never guess an API name.
 
 ### State hoisting rule
-Screen-level composables (`HomeScreen`, `SettingsScreen`, etc.) take `vm: ViewModel = hiltViewModel()`. Child composables take typed state/callback params — never the ViewModel itself.
+Screen-level composables take `vm: XViewModel = hiltViewModel()` and hand state to a shared
+frame. Child composables take typed state/callback params — never the ViewModel itself.
 
-### Error display pattern
+### Screen structure
 ```kotlin
-state.errorMessage?.let { err ->
-    Text(text = err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+@Composable
+fun PrescriptionsScreen(vm: PrescriptionsViewModel = hiltViewModel(), onOpen: (String) -> Unit) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    EntityListScreen(
+        title = stringResource(R.string.prescriptions_title),
+        state = state.list,                                   // ListUiState<Prescription>
+        row = { rx -> PausableRow(rx.name, rx.detail, kind = null, active = rx.active, onClick = { onOpen(rx.id) }) },
+        onAdd = { vm.onEvent(PrescriptionsEvent.Add) },
+    )
 }
 ```
+Loading, empty, error, add and undo are handled by the frame, not by the screen.
 
-### Loading button pattern
-```kotlin
-Button(onClick = { vm.doAction() }, enabled = !state.isLoading) {
-    if (state.isLoading) {
-        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-        Spacer(Modifier.width(8.dp))
-    }
-    Text("Label")
-}
-```
+### Errors, loading and buttons
+Handled by the shared parts: `DataError.toMessage()` in a snackbar, `AppLoading`,
+`AppButton(loading = …)`. Never a hand-rolled `CircularProgressIndicator` in a button or an
+error text coloured with `colorScheme.error`.
 
-### Card sections pattern (used throughout this app)
-```kotlin
-ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Section title", style = MaterialTheme.typography.titleSmall)
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-        // content
-    }
-}
-```
+### Cards and sections
+`AppCard` + `SectionHeader` for section cards; post cards follow NFR-15/16 (the shared post card
+is ported in etapp 4). Never `Card`/`ElevatedCard` + `HorizontalDivider` with own padding.
 
 ## Anti-Patterns to Avoid
 
 - Never call `remember` inside conditional blocks or loops
 - Never read `StateFlow.value` in a composable — always use `collectAsStateWithLifecycle()`
 - Never pass `Context` to a ViewModel constructor — use `@ApplicationContext` or `activityContext` passed from the composable for operations that need it
-- Never put navigation logic inside the ViewModel — use callbacks or effects
+- Never mutate the Navigation 3 back stack from a ViewModel — use callbacks or effects
 - `LaunchedEffect(Unit)` for one-time setup; `LaunchedEffect(key)` when the effect should re-run on key change
 - `DisposableEffect` for resources that need cleanup (listeners, subscriptions)
 - Use `rememberLauncherForActivityResult` for Activity Result API — never call `startActivityForResult` directly

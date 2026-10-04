@@ -1,0 +1,3 @@
+# Undantag från regel 4 (skill shared-ui-components).
+# Format: <sökväg relativt repots rot>:<symbol> – <motivering>
+# Tom som standard. Varje ny rad kräver användarens uttryckliga ok i PR:en.

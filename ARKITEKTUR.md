@@ -132,6 +132,8 @@ hårdkodar aldrig. Värdena nedan är mockupens approximation – kontrast räkn
   sammanfattar dagen (snittenergi, jämförelse med igår, dagar i rad). Rörelse blockerar aldrig.
 - **Mörkt tema** härleds med samma roller (djup skogsgrön botten); kontrast kontrolleras i båda.
 - **Ikoner:** linjeikoner 24 dp i kontroller, aldrig emoji som knappikon.
+- **Appikon "Bladet" (DSN-7):** adaptiv – teal bakgrund, pappersark med tre grå textrader och en
+  solgul trendkurva; enfärgat lager för temaikoner. Färgerna är resurser i `values/colors.xml` som speglar `AppColors`.
 - **Skillnad mot ReseApoteket:** inget korall/aprikos, ingen Nunito, serif-rubriker, luftigare kort.
 
 ---
@@ -142,7 +144,7 @@ hårdkodar aldrig. Värdena nedan är mockupens approximation – kontrast räkn
 |---|---|
 | **Från ReseApoteket (G, nästan rakt av)** | `EntityListScreen`, `EntityEditScreen`, `EntityDetailScreen`, `EditorState`, `ListUiState`, `AppButton`, `AppIconButton`, `AppTextField`, `AppTopBar`, `AppBottomSheet`, `AppMenu`, `AppSegmentedChoice`, `AppFilterChip`, `ChipRow`, `ChoiceChips`, `CheckRow`, `SwitchRow`, `ItemRow`, `SectionHeader`, `GroupLabel`, `InfoPill`, `EmptyState`, `LoadErrorState`, `AppLoading`, `ConfirmDialog`, `UndoSnackbar`, `ErrorSnackbar`, `SwipeToHide`, `DateField`, `TimeField`, `PickerField`, `QuantityStepper`, `Confetti`, `ComponentGallery` |
 | **Från Dagboken 3.x (portas till katalogen)** | `DagbokenEntryCard` → postkortet (NFR-15/16), `Foldout`, `SliderRow`, `GradientSliderRow`, `WheelPicker`, `DagbokenCalendar`, `StepwiseScreeningForm`, `SymptomLogCard`, `NoteField`, `StatPill`, `DateTimeRow`, `DurationRow`, `ReminderTimeRow`, hela `ui/diagram` (`LineChartCanvas`, `IntervalBarChart`, `StackedBarChart`, `SmartYAxis`, `TrendLine`, `MinMaxCaption`, `CompactDropdownButton`, `ChartSemantics`), `SparklineChart` |
-| **Nya (NY KOMPONENT i mockupen)** | `DateStrip` (datumremsa), `OccasionRow` (tillfällesrad för mående), `ProgressBar` (framstegsrad), `DayDoneCard` (dagen klar), `ChartGroupTabs` (Mående · Klocka · Jämför), `SettingsSheet`, `LogMenu` (plusknappens ark) |
+| **Nya (NY KOMPONENT i mockupen)** | `DateStrip` (datumremsa), `OccasionRow` (tillfällesrad för mående), `ProgressBar` (framstegsrad), `DayDoneCard` (dagen klar), `ChartGroupTabs` (Mående · Klocka · Jämför), `AccountSheet` (inställningsarket), `LogMenuSheet` (plusknappens ark) |
 
 Varje komponent: en fil i `ui/components/`, Roborazzi ljust + mörkt, plats i `ComponentGallery`,
 rad i skill `shared-ui-components`. Diagrammatematik (`computeSmartYAxis`, `computeTrendLine`,
@@ -164,6 +166,24 @@ tools/db                  query · get · stats · export · import · migrate �
 
 Compose → ViewModel (`StateFlow<UiState>`) → Repository → `FirestoreCollection<T>` → Firestore.
 Fel mappas en gång i `data/common/DataError`. Ingen Room i 4.0 utom den läsande legacy-modulen.
+
+---
+
+## Byggkonfiguration
+
+| Inställning | Värde | Var |
+|---|---|---|
+| compileSdk / targetSdk / minSdk | 37 / 35 / 30 | `app/build.gradle.kts` |
+| AGP · Kotlin · Gradle | 9.x · 2.4 · 9.8 | `gradle/libs.versions.toml`, `gradle/wrapper` |
+| Compose BOM · Material 3 | 2026.09 · 1.5 (Expressive, pinnad) | version catalog |
+| Java/JVM | 17 | rotens `build.gradle.kts` (`subprojects`) |
+| Testtimeout per task | 4 min | rotens `build.gradle.kts` |
+| cpdCheck-tröskel | 80 tokens, `*Preview.kt` undantas | rotens `build.gradle.kts` |
+| Version | `version.properties` (versionCode, versionName) | höjs bara vid release |
+| google-services | `app/google-services.json` (incheckad); `src/authStub` när den saknas | `app/build.gradle.kts` |
+| Signering | `local.properties` eller env `SIGNING_*` | `app/build.gradle.kts` |
+
+Trösklar och versioner ändras bara här och i filen de pekar på, med motivering i PR:en.
 
 ---
 

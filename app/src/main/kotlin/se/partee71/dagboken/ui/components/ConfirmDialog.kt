@@ -1,54 +1,43 @@
 package se.partee71.dagboken.ui.components
 
-import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.theme.AppColors
+import se.partee71.dagboken.ui.theme.AppShapes
+import se.partee71.dagboken.ui.theme.AppTypography
 
 /**
- * Appens enda bekräftelsedialog för radera-liknande åtgärder (regel 4).
- * Alla radera-bekräftelser ska använda denna i stället för en egen AlertDialog.
- * Informationsdialoger (utan en åtgärd att bekräfta) omfattas inte.
- *
- * [neutralLabel]/[onNeutral] lägger till en tredje knapp (t.ex. "Spara") bredvid
- * Avbryt — används av [UnsavedChangesBackHandler].
+ * Bekräftelse. Permanent radering bekräftas alltid här med [destructive] = true – aldrig med
+ * svep (skill shared-ui-components). [onDecline] är nej-knappen när den betyder något annat än
+ * att stänga (t.ex. "Behåll listan" – spara utan att räkna om); tryck utanför är alltid [onDismiss].
  */
 @Composable
 fun ConfirmDialog(
     title: String,
-    text: String,
-    confirmLabel: String = stringResource(R.string.delete),
-    dismissLabel: String = stringResource(R.string.cancel),
-    destructive: Boolean = true,
-    neutralLabel: String? = null,
-    onNeutral: (() -> Unit)? = null,
+    message: String,
+    confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    destructive: Boolean = false,
+    dismissLabel: String = stringResource(R.string.cancel),
+    onDecline: () -> Unit = onDismiss,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title            = { Text(title) },
-        text             = { Text(text) },
-        confirmButton    = {
-            TextButton(onClick = onConfirm) {
-                Text(
-                    text  = confirmLabel,
-                    color = if (destructive) MaterialTheme.colorScheme.error else Color.Unspecified,
-                )
-            }
+        confirmButton = {
+            AppButton(confirmLabel, onConfirm, variant = if (destructive) ButtonVariant.Destructive else ButtonVariant.Primary)
         },
-        dismissButton    = {
-            Row {
-                if (neutralLabel != null && onNeutral != null) {
-                    TextButton(onClick = onNeutral) { Text(neutralLabel) }
-                }
-                TextButton(onClick = onDismiss) { Text(dismissLabel) }
-            }
-        },
+        modifier = modifier,
+        dismissButton = { AppButton(dismissLabel, onDecline, variant = ButtonVariant.Text) },
+        title = { Text(title, style = AppTypography.headline) },
+        text = { Text(message, style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+        shape = AppShapes.card,
+        containerColor = AppColors.extended.card,
     )
 }

@@ -3,6 +3,11 @@
     "allow": [
       "mcp__github__subscribe_pr_activity",
       "mcp__github__unsubscribe_pr_activity",
+      "mcp__github__pull_request_read",
+      "mcp__github__get_check_run",
+      "mcp__github__get_job_logs",
+      "mcp__github__actions_get",
+      "mcp__github__actions_list",
       "mcp__Claude_Code_Remote__send_later",
       "mcp__Claude_Code_Remote__create_trigger",
       "mcp__Claude_Code_Remote__update_trigger",
@@ -11,11 +16,11 @@
       "mcp__Claude_Code_Remote__fire_trigger",
       "mcp__Claude_Code_Remote__subscribe_pr_activity",
       "mcp__Claude_Code_Remote__unsubscribe_pr_activity",
-      "mcp__github__pull_request_read",
-      "mcp__github__get_check_run",
-      "mcp__github__get_job_logs",
-      "mcp__github__actions_get",
-      "mcp__github__actions_list"
+      "Bash(node tools/db/query.mjs:*)",
+      "Bash(node tools/db/get.mjs:*)",
+      "Bash(node tools/db/stats.mjs:*)",
+      "Bash(node --test '.claude/hooks/test/*.test.mjs')",
+      "Bash(node --test '.github/scripts/*.test.mjs')"
     ]
   },
   "hooks": {
@@ -24,7 +29,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+            "command": "f=$(ls \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/regel4-check.mjs \"$CLAUDE_PROJECT_DIR\"/*/.claude/hooks/regel4-check.mjs 2>/dev/null | head -n1); [ -z \"$f\" ] || \"$(dirname \"$f\")/session-start.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(ls \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/regel4-check.mjs \"$CLAUDE_PROJECT_DIR\"/*/.claude/hooks/regel4-check.mjs 2>/dev/null | head -n1); [ -z \"$f\" ] || node \"$f\"",
+            "timeout": 10
           }
         ]
       }

@@ -1,0 +1,26 @@
+name: Rules- och rundturstester
+description: >-
+  Node 22, Java 21 och tools/db:s tester mot Firebase-emulatorn med ett demo-projekt – inga
+  riktiga Firebase-hemligheter (skill data-safety-backup). Kräver att repot redan är utcheckat.
+
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/setup-tools-db
+
+    - name: Java 21 (firebase-tools 15 kräver minst 21 för emulatorn)
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    - name: Cache för Firebase-emulatorn
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/firebase/emulators
+        key: firebase-emulators-${{ hashFiles('tools/db/package-lock.json') }}
+
+    # emulators:exec sätter FIRESTORE_EMULATOR_HOST.
+    - name: Rules- och rundturstester mot emulatorn
+      shell: bash
+      run: npx --prefix tools/db firebase emulators:exec --only firestore --project demo-dagboken "npm --prefix tools/db test"

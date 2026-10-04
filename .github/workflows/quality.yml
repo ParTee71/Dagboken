@@ -1,0 +1,62 @@
+# Dyra kontroller som hålls utanför PR-flödet (skill ci-budget): lint och minifierat
+# release-bygge. Veckovis – men bara om master har ändrats sedan förra gröna körningen eller
+# releasen (release.yml kör samma kontroller på sin commit) – och på begäran.
+name: Kvalitet
+
+on:
+  schedule:
+    - cron: '17 4 * * 1' # måndagar 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Schemalagd körning på en commit som redan klarat kvalitet eller en release: inget att göra.
+      - name: Ny kod sedan förra kontrollen?
+        id: fresh
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for workflow in quality.yml release.yml; do
+            done_sha="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs?status=success&per_page=1" \
+              --jq '.workflow_runs[0].head_sha // ""')"
+            if [ "$done_sha" = "$GITHUB_SHA" ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "Master oförändrad sedan senaste gröna $workflow – inget att kontrollera." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          done
+
+      - uses: actions/checkout@v4
+        if: steps.fresh.outputs.skip != 'true'
+      - uses: ./.github/actions/setup-android
+        if: steps.fresh.outputs.skip != 'true'
+
+      - name: Lint och minifierat release-bygge
+        if: steps.fresh.outputs.skip != 'true'
+        run: ./gradlew --configuration-cache --continue :app:lintDebug :app:assembleRelease
+
+      - name: Lintrapport
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint
+          path: app/build/reports/lint-results-debug.*
+          if-no-files-found: ignore
+
+      # Schemalagda körningar ser ingen – då blir ett fel ett issue.
+      - name: Issue vid fel
+        if: failure() && github.event_name == 'schedule'
+        uses: ./.github/actions/open-issue-on-failure
+        with:
+          title: 'Kvalitet: lint eller release-bygge fallerar'

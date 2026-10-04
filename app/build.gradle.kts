@@ -1,57 +1,60 @@
-import java.text.SimpleDateFormat
-import java.time.Duration
-import java.util.Date
-import java.util.Locale
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.google.services)
+    alias(libs.plugins.roborazzi)
 }
 
-private val buildTimestamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
+// google-services.json är incheckad i Dagboken (sedan 3.x) och ger den riktiga Firebase-
+// konfigurationen. Saknas den ändå (t.ex. i en gaffel) byggs appen med stubbad konfiguration
+// (demo-projekt) från src/authStub (se android.sourceSets), så att appen kompilerar och startar –
+// inloggning fungerar inte där.
+private val hasGoogleServices = file("google-services.json").exists()
+if (hasGoogleServices) {
+    apply(plugin = libs.plugins.google.services.get().pluginId)
+}
 
-private val versionNameOverride = findProperty("versionNameOverride") as String?
+private val appVersion = Properties().apply {
+    rootProject.file("version.properties").inputStream().use { load(it) }
+}
 
 private val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
 
+private fun signingValue(key: String) =
+    localProps.getProperty("signing.$key") ?: providers.environmentVariable("SIGNING_${key.toScreamingSnake()}").orNull
+
+private fun String.toScreamingSnake() = replace(Regex("([a-z])([A-Z])"), "$1_$2").uppercase()
+
 android {
     namespace = "se.partee71.dagboken"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "se.partee71.dagboken"
         minSdk = 30
         targetSdk = 35
-        versionCode = 72
-        versionName = versionNameOverride ?: "3.27.0"
-
+        versionCode = appVersion.getProperty("versionCode").toInt()
+        versionName = appVersion.getProperty("versionName")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
 
-    val releaseStorePassword = localProps.getProperty("signing.storePassword")
-        ?: System.getenv("SIGNING_STORE_PASSWORD")
-    val releaseKeyPassword = localProps.getProperty("signing.keyPassword")
-        ?: System.getenv("SIGNING_KEY_PASSWORD")
-    val hasSigningCredentials = releaseStorePassword != null && releaseKeyPassword != null
+    val storePassword = signingValue("storePassword")
+    val keyPassword = signingValue("keyPassword")
+    val hasSigning = storePassword != null && keyPassword != null
 
     signingConfigs {
-        if (hasSigningCredentials) {
+        if (hasSigning) {
             create("release") {
-                storeFile     = file("dagboken.jks")
-                storePassword = releaseStorePassword
-                keyAlias      = localProps.getProperty("signing.keyAlias")
-                    ?: System.getenv("SIGNING_KEY_ALIAS")
-                    ?: "dagboken"
-                keyPassword   = releaseKeyPassword
+                storeFile = file("dagboken.jks")
+                this.storePassword = storePassword
+                keyAlias = signingValue("keyAlias") ?: "dagboken"
+                this.keyPassword = keyPassword
             }
         }
     }
@@ -60,166 +63,94 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            if (hasSigningCredentials) {
-                signingConfig = signingConfigs.getByName("release")
-            }
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            if (hasSigning) signingConfig = signingConfigs.getByName("release")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
-    applicationVariants.all {
-        val variant = this
-        variant.outputs
-            .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
-            .forEach { output ->
-                output.outputFileName =
-                    "dagboken-${variant.versionName}-${buildTimestamp}.apk"
-            }
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+    sourceSets {
+        if (!hasGoogleServices) {
+            getByName("debug").res.directories += "src/authStub/res"
+            getByName("release").res.directories += "src/authStub/res"
+        }
+        // Kontraktstester som körs både i JVM (mot fakes) och på enhet (mot Firebase-emulatorn).
+        getByName("test").kotlin.directories += "src/sharedTest/kotlin"
+        getByName("androidTest").kotlin.directories += "src/sharedTest/kotlin"
     }
 
     buildFeatures {
         compose = true
-        buildConfig = true
-    }
-
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            excludes += "META-INF/DEPENDENCIES"
-            excludes += "META-INF/INDEX.LIST"
-            excludes += "META-INF/*.SF"
-            excludes += "META-INF/*.DSA"
-            excludes += "META-INF/*.RSA"
-        }
+        buildConfig = true // VERSION_NAME i Om Dagboken, DEBUG för komponentgalleriet
     }
 
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            all { it.systemProperty("robolectric.graphicsMode", "NATIVE") }
         }
-        // Each test method runs in its own fresh instrumentation process, so
-        // process-wide state (DataStore file, leaked coroutine collectors) can't
-        // bleed between tests — see #112 for background on this class of flake.
-        execution = "ANDROIDX_TEST_ORCHESTRATOR"
-    }
-
-    sourceSets {
-        getByName("androidTest").assets.srcDir("$projectDir/schemas")
     }
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-    }
-}
-
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
-    arg("room.incremental", "true")
-}
-
-tasks.withType<Test> {
-    // Bounds any single hanging test (e.g. a runBlocking call stuck on an
-    // unmocked network/IO call) instead of letting it silently eat the whole
-    // job's timeout budget with no indication of which test was responsible.
-    timeout.set(Duration.ofMinutes(3))
-    testLogging {
-        events("started", "passed", "skipped", "failed")
-    }
+roborazzi {
+    outputDir.set(file("src/test/screenshots"))
 }
 
 dependencies {
-    implementation(libs.androidx.core.splashscreen)
-    implementation(libs.androidx.compose.ui.text.googlefonts)
-    implementation(libs.androidx.appcompat)
+    implementation(project(":core"))
+
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.core.splashscreen) // NFR-5
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
     implementation(libs.kotlinx.serialization.json)
 
-    // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // Room
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
-
-    // DataStore
-    implementation(libs.androidx.datastore.preferences)
-
-    // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.lifecycle.viewmodel.compose)
 
-    // Image loading
-    implementation(libs.coil.compose)
-
-    // Historik kalendervy (HIST-6)
-    implementation(libs.kizitonwose.calendar.compose)
-
-    // Diagram (Trender + Home-sparkline), regel 4 (#110)
-    implementation(libs.vico.compose.m3)
-
-
-    // Health Connect – hälsodata från Galaxy Watch via Samsung Health (epic #54, spike #56)
-    implementation(libs.androidx.health.connect)
-
-    // Google Drive / Auth (play-services-auth still needed for Identity.getAuthorizationClient)
-    implementation(libs.google.auth.play.services)
-    implementation(libs.google.api.client.android)
-    implementation(libs.google.api.services.drive)
-
-    // Firebase
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
-
-    // Credential Manager (modern Google Sign-In)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.auth) // inloggning (AUTH-1, TP-5)
     implementation(libs.credentials)
     implementation(libs.credentials.play.services)
     implementation(libs.googleid)
+    implementation(libs.kotlinx.coroutines.play.services)
 
-    // WorkManager + Hilt
-    implementation(libs.work.runtime.ktx)
-    implementation(libs.hilt.work)
-    ksp(libs.hilt.work.compiler)
-
-    // Debug
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-
-    // Unit tests
     testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
+    testImplementation(libs.konsist)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.mockk)
     testImplementation(libs.turbine)
 
-    // Instrumented tests
-    androidTestImplementation(libs.androidx.junit.ext)
-    androidTestImplementation(libs.androidx.espresso.core)
+    constraints {
+        // AGP låser androidTest till appens versioner. När ett testberoende kräver en nyare
+        // version än appen löser, höjs den här (skill android-gradle-logic).
+        implementation(libs.androidx.concurrent.futures) // androidx.test.ext:junit
+        implementation(libs.errorprone.annotations) // espresso via compose ui-test
+    }
+
+    // Instrumenttester: bara på begäran och i release (skill ci-budget); kompileras i PR.
     androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.kotlin.test)
     androidTestImplementation(libs.kotlinx.coroutines.test)
-    androidTestImplementation(libs.turbine)
-    androidTestUtil(libs.androidx.test.orchestrator)
 }

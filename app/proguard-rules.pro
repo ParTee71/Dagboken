@@ -1,28 +1,8 @@
-# Keep Room entities and DAOs
--keep class se.partee71.dagboken.data.room.** { *; }
+# Keep-regler för release-minify (skill data-privacy-security, NFR-3).
+# Hilt och Compose har egna konsumentregler. Regler för kotlinx.serialization och
+# Firestore-modeller läggs till här när de börjar användas (etapp 2).
 
-# Keep domain models for serialization
--keep class se.partee71.dagboken.domain.model.** { *; }
-
-# kotlinx.serialization
--keepattributes *Annotation*, InnerClasses
--dontnote kotlinx.serialization.AnnotationsKt
--keepclassmembers class kotlinx.serialization.json.** { *** Companion; }
--keepclasseswithmembers class **$$serializer { *; }
-
-# Google API client
--keep class com.google.api.** { *; }
--keep class com.google.apis.** { *; }
--dontwarn com.google.api.**
--dontwarn com.google.apis.**
-
-# Apache HTTP client (transitively pulled in by Google API client)
--dontwarn javax.naming.**
--dontwarn org.ietf.jgss.**
--dontwarn org.apache.http.**
-
-# Strippa loggning ur releasebygget. Appen hanterar känslig hälsodata och ska aldrig
-# skriva något till logcat i release (NFR-13).
+# Strippa loggning ur releasebygget – appen hanterar hälsodata (NFR-13).
 -assumenosideeffects class android.util.Log {
     public static int v(...);
     public static int d(...);

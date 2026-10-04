@@ -1,6 +1,6 @@
 ---
 name: kotlin-flows
-description: Use when working with Flow, StateFlow, SharedFlow, or Channel in Kotlin — including cold vs hot stream decisions, operator chains, lifecycle-safe collection, UI state management, callback bridging, or Channel migration in Android or KMP projects.
+description: Use when working with Flow, StateFlow, SharedFlow, or Channel in Kotlin — including cold vs hot stream decisions, operator chains, lifecycle-safe collection, UI state management, callback bridging, or Channel migration in Android or KMP projects. Svenska trigger-ord: flöde, flow, StateFlow, tillstånd, UiState, kombinera, uppdateras inte, lyssnare, snapshot, realtid.
 ---
 
 # Kotlin Flows
@@ -202,9 +202,12 @@ class SearchViewModel : ViewModel() {
 }
 ```
 
-## This Project's Flow Usage
+## This Project's Flow Usage (Dagboken 4.0)
 
-- `authStateFlow: Flow<FirebaseUser?>` — `callbackFlow` + `FirebaseAuth.AuthStateListener` in `FirebaseAuthRepository`
-- `combine()` in `HomeViewModel` to merge `todayFlow()` + `authStateFlow`
-- `prefs.isDarkTheme`, `prefs.dynamicColor`, etc. — DataStore `Flow` collected with `collectLatest` in SettingsViewModel
-- `AktiviteterRepository.all`, `MedicinerRepository.allMediciner` — Room DAO `Flow` properties
+- `AuthRepository.authState: Flow<AuthUser?>` – `callbackFlow` + `FirebaseAuth.AuthStateListener` in `GoogleAuthRepository`.
+- `UserSession.uid: StateFlow<String?>` and `schemaVersion` – `flatMapLatest` on the uid when the signed-in user changes; signed out → collections emit nothing.
+- `FirestoreCollection<T>.observe(): Flow<List<T>>` – Firestore `snapshots()` mapped via `DocCodec<T>`; the only source of data flows (replaces the 3.x Room DAO flows such as `AktiviteterRepository.all`). Repositories pass these on, unchanged or combined.
+- `SyncStatus.syncing` – `hasPendingWrites`, drives the app's single "synkas…" indicator.
+- `Flow<List<T>>.asListUiState()` – the shared conversion to `ListUiState<T>` for every list screen; never write your own variant.
+- Settings come from the Firestore document `settings` (theme, reminders, profile) via its repository; DataStore holds only device-local state (migration flag, last tab, TP-4) – the 3.x DataStore flows (`prefs.isDarkTheme`, `prefs.dynamicColor`) are gone.
+- ViewModels expose `StateFlow<UiState>` via `stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), …)`; one-off effects via `Channel(BUFFERED).receiveAsFlow()`.

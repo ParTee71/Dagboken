@@ -20,9 +20,9 @@ de delade komponenterna (skill `shared-ui-components`) så blir a11y konsekvent.
 - Upprepa inte synlig text i `contentDescription` på samma nod (dubbelläsning).
 
 ### 2. Tryckytor minst 48dp
-Alla klickbara element ska ha minst **48×48dp** tryckyta (Material-riktlinje). Små ikoner
-ska använda `IconButton`/`Modifier.minimumInteractiveComponentSize()` eller padding —
-inte en naken 24dp-ikon med `clickable`.
+Alla klickbara element ska ha minst **48×48dp** tryckyta (Material-riktlinje, NFR-14, DSN-3).
+Små ikoner ska använda den delade `AppIconButton` (eller, inne i `ui/components`,
+`Modifier.minimumInteractiveComponentSize()`) — inte en naken 24dp-ikon med `clickable`.
 
 ### 3. Stöd dynamisk textstorlek
 Text och `lineHeight` i **`sp`**, inte `dp`. Lås inte höjder så att förstorad text
@@ -31,14 +31,15 @@ klipps. Testa layouten med stor systemtextstorlek.
 ### 4. Gruppera och semantik
 - Sammansatta kort/rader som är **en** logisk enhet: `Modifier.semantics(mergeDescendants = true)`
   så TalkBack läser dem i ett svep.
-- Ge tillstånd semantik: t.ex. `stateDescription` ("tagen"/"ej tagen") för medicin-toggeln,
-  `Role.Button`/`Role.Checkbox` där det är otydligt.
+- Ge tillstånd semantik: t.ex. `stateDescription` ("tagen"/"ej tagen") för dosens kryssrad,
+  `Role.Button`/`Role.Checkbox` där det är otydligt. Listrader och ihopfällbara sektionskort
+  följer NFR-17/NFR-18 (hela raden är tryckytan, chevronen är en ren indikator).
 - Sliders/graderingar (`SliderRow`, `SymptomLogCard`) ska kommunicera värde och etikett —
   utöka den delade komponenten om semantiken saknas, fixa inte per anropare.
 
 ### 5. Färg är aldrig ensam bärare av information
-Energifärg, "försenat"-status osv. ska också ha text/ikon — färgblinda och skärmläsare
-ska få samma information. Säkra rimlig kontrast mot bakgrund i båda teman (ljust/mörkt).
+Energifärg, "försenat"-status, solgul "gör något" osv. ska också ha text/ikon — färgblinda
+och skärmläsare ska få samma information. Diagram har en talbar sammanfattning (NFR-14). Säkra rimlig kontrast mot bakgrund i båda teman (ljust/mörkt).
 
 ## Tester (regel 2)
 

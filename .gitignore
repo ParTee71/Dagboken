@@ -1,11 +1,44 @@
-# Signing keys and local config — never commit
+# Hemligheter och lokal konfiguration – checkas aldrig in.
+# Undantag: app/google-services.json är incheckad i Dagboken sedan 3.x och ignoreras därför inte.
 *.jks
 *.keystore
 local.properties
+keystore.properties
+*service-account*.json
+*serviceAccount*.json
+*adminsdk*.json
+.env
+.env.*
+*.enc
+*.gpg
+.claude/settings.local.json
 
-# Project exclude paths
-/.gradle/
+# Hälsodata: backup- och exportfiler var de än hamnar (skill data-privacy-security)
+backup*.json
+export*.json
+
+# tools/db – beroenden och exporter (innehåller hälsodata)
+tools/db/node_modules/
+tools/db/*.json
+!tools/db/package.json
+!tools/db/package-lock.json
+
+# Node
+node_modules/
+
+# Gradle och byggutdata
+.gradle/
+.kotlin/
+build/
 /app/build/
-/app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/
-/app/build/intermediates/javac/debugAndroidTest/compileDebugAndroidTestJavaWithJavac/classes/
-/build/
+/core/build/
+/build-logic/build/
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+captures/
+
+# Firebase-emulatorns loggar
+*-debug.log

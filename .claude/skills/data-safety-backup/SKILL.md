@@ -1,83 +1,189 @@
 ---
 name: data-safety-backup
-description: Dagbokens datasäkerhetsregel (regel 1) — backup och restore får ALDRIG tappa användardata. Ladda denna ALLTID när du lägger till, ändrar eller tar bort persisterad data: en Room-entitet eller -kolumn, ett DataStore-värde, en domänmodell som sparas, en ny lista som loggas, eller något som rör backup/restore/migrering/Drive/export/import/JSON. Trigger-ord: backup, restore, återställ, migrering, BackupJson, BackupMapper, DriveBackupRepository, BackupWorker, Room migration, entity, @Entity, DataStore, exportSchema, round-trip, rundtur.
+description: Dagbokens datasäkerhetsregel (regel 1) — export/import, schemaändringar och migreringen från 3.x får ALDRIG tappa användardata. Ladda denna ALLTID när du lägger till, ändrar eller tar bort persisterad data: ett fält på en modell, en ny Firestore-samling, en DocCodec, schemaVersion, SchemaMigrator, firestore.rules, tools/db (export, import, migrate), backup.yml, konverteraren från 3.x BackupJson, legacy-läsaren för Room eller legacyimporten. Trigger-ord: backup, säkerhetskopia, restore, återställ, export, import, migrering, legacy, 3.x, BackupJson, BackupMapper, konverterare, Room-fil, Drive-backup, schemaversion, schemaVersion, DocCodec, codec, fält, ny samling, collection, Firestore, rundtur, round-trip, datamodell, tools/db, dataförlust, OMB.
 ---
 
-# Datasäkerhet: backup & restore
+# Datasäkerhet: codecs, schemaversion, export/import
 
-**Invariant:** All användardata måste överleva en **backup → restore-rundtur** med
-identiskt innehåll. En ändring som lägger till persisterad data utan att föra in den
-i backup-kedjan är en regression även om appen kompilerar och alla gamla tester är
-gröna — datan tappas tyst vid nästa enhetsbyte eller ominstallation.
+**Invariant:** all data i Firestore överlever en **`tools/db export → import`-rundtur**
+med identiskt innehåll, och appen läser både äldre och okända dokument utan att krascha
+eller skriva sönder dem. En ändring som lägger till persisterad data utan att föra in den
+i hela kedjan är en regression även om allt kompilerar – datan kan tappas vid nästa
+återställning eller skrivas över av en äldre appversion.
 
-Relaterade krav: **BCK-1…9**, **SJ-7**, **NFR-7**, **DAT-3**.
+Krav: DAT-, BCK- och OMB-serierna i KRAVLISTA.md (särskilt BCK-9, BCK-11–16, DAT-5–10,
+OMB-2–5). Villkor nummer ett för ombyggnaden: **ingen data får tappas** (ADR-001, beslut 11).
 
-## Backup-kedjan (var datan passerar)
+## Kedjan (var datan passerar)
 
 ```
-Room/DataStore  →  domänmodell  →  *Json (BackupJson.kt)  →  serialiserad JSON  →  Drive (appDataFolder)
-       ▲                                                              │
-       └──────────────  BackupMapper.toX(json)  ←  parsa JSON  ←──────┘
+:core-modell ⇄ DocCodec<T> ⇄ Map<String, Any?> ⇄ FirestoreCollection<T> ⇄ Firestore
+                                                                            │
+          tools/db import  ←  backup (gpg-krypterad i Actions)  ←  tools/db export
+
+3.x (Room-fil på enheten / Drive-backup / lokal JSON = BackupJson v1, v2)
+          → legacy/BackupJsonConverter (:core) → 4.0-dokument → batchar → Firestore
 ```
 
-Filer:
-- `data/migration/BackupJson.kt` — `@Serializable`-DTO:er. `BackupJson` är rotobjektet;
-  varje datatyp är ett fält med en `*Json`-klass.
-- `data/migration/BackupMapper.kt` — `*Json.toDomain()` + `toX(json)`-funktioner.
-- `data/migration/DriveBackupRepository.kt` — bygger ihop `BackupJson` (export) och
-  skriver tillbaka via repositories (import). Här samlas alla flöden in.
-- `worker/BackupWorker.kt` — schemalagd daglig Drive-backup (WorkManager).
-- `ui/migration/MigrationViewModel.kt` — import-/migreringsflödet i UI.
-
-## Checklista: lägga till ett fält på en befintlig entitet
-
-1. Lägg fältet på Room-entiteten **och** skriv en Room-migration (höj `version`,
-   `exportSchema = true` — se skill `android-data-layer`). Lägg ett
-   `MigrationXYTest` (instrument).
-2. Lägg fältet på domänmodellen.
-3. Lägg fältet i motsvarande `*Json` i `BackupJson.kt`. **Ge det ett default-värde**
-   (`= ""`, `= 0`, `= false`, `= null`) — annars går gamla backuper sönder.
-4. Mappa fältet i `BackupMapper.kt` (`toDomain()`) och i export-hopbyggnaden i
-   `DriveBackupRepository`.
-5. Bevara semantik vid äldre backuper (jfr `timestamp.takeIf { it != 0L } ?: now`,
-   `tidpunkter.ifEmpty { … }` i `BackupMapper`).
-6. **Tester:** utöka rundturs- och serialiseringstest så det nya fältet ingår
-   (se nedan).
-
-## Checklista: lägga till en HELT NY datatyp som ska backas upp
-
-1. Ny `@Serializable data class XJson(...)` i `BackupJson.kt` med default-värden, och
-   ett nytt fält `val xs: List<XJson> = emptyList()` på `BackupJson`.
-2. `XJson.toDomain()` + `fun toX(json): List<X>` i `BackupMapper.kt`.
-3. Export: fyll `xs` i `DriveBackupRepository` när `BackupJson` byggs.
-4. Import: skriv tillbaka via rätt repository i `DriveBackupRepository`/
-   `MigrationViewModel`.
-5. Uppdatera **BCK-2** i KRAVLISTA.md (regel 3) så att datatypen listas som
-   "ingår i backup", och lägg ett SJ-7-liknande krav om datatypen är en egen domän.
-6. **Tester** enligt nedan.
-
-## Tester som ALLTID krävs för backup-data
-
-| Test | Plats | Vad det skyddar |
+| Led | Fil | Ansvar |
 |---|---|---|
-| Serialisering | `test/.../data/migration/BackupJsonSerializationTest.kt` | JSON ↔ DTO; okända fält ignoreras (`ignoreUnknownKeys`, BCK-9); gamla backuper utan nya fält parsas. |
-| Mapper | `test/.../data/migration/BackupMapperTest.kt` | `*Json.toDomain()` mappar alla fält; fallback-logik för v1-backuper. |
-| Rundtur (round-trip) | `androidTest/.../data/room/MigrationRoundTripTest.kt` | DB → backup → DB ger identisk data, inkl. nya fält. |
-| Room-migration | `androidTest/.../data/room/MigrationXYTest.kt` | Schemaändring migrerar utan dataförlust. |
+| Modell | `core/.../model/` | `data class` med **default på alla icke-obligatoriska fält**; `Identified`, `Sortable`, `Archivable` där det passar |
+| Codec | `core/.../schema/*Codec.kt` | `encode`/`decode` byggda **enbart** av de delade fälthjälparna (`map.string`, `map.int`, `map.enum`, `map.localDate`, `map.nested`, `map.stringList` …) |
+| Schema | `core/.../schema/Schema.kt`, `SchemaMigrator.kt` | `Schema.CURRENT_VERSION`; migreringssteg per version |
+| Åtkomst | `app/.../data/firestore/FirestoreCollection.kt`, `Paths.kt` | Enda stället som talar med Firestore; sökvägar på ett ställe |
+| Regler | `firestore.rules` | Bara samlingarna i `collections.mjs`, alla bara för ägaren (`request.auth.uid == uid`), med generiska gränser och (från etapp 2) typkontroll av kända fält; `schemaVersion` minst 1, kan inte sänkas och höjs högst till `maxSchemaVersion()` |
+| Samlingslista | `tools/db/lib/collections.mjs` | Enda listan export/import/query går igenom; testad mot `Paths` och rules |
+| Backup | `.github/workflows/backup.yml` | Veckovis export, krypterad artifact, 90 dagar (BCK-12) |
+| Appens export | `core/.../schema/ExportFormat.kt` + `RawDocuments` (`data/firestore/`) | Export i inställningsarket (BCK-13): samma format som `tools/db export` (`serialize.mjs`, `backup.mjs`), läser dokumenten rått längs `Paths` – aldrig via codecarna, så att okända fält följer med |
+| Konverterare 3.x → 4.0 | `core/.../legacy/BackupJsonConverter.kt` | `BackupJson` v1 och v2 (inkl. arvsfälten `anteckning` på posterna och `tidpunkt` på receptet) → 4.0-dokument; **enda** mappningen, delad av legacy-läsaren (OMB-2), legacyimporten (BCK-14) och grinden OMB-4 |
+| Legacy-läsare | `app/.../data/legacy/` | Läser Room-filen read-only vid första start (OMB-2) med samma mappning som konverteraren; raderar aldrig filen |
 
-Regel: **varje** persisterat fält ska kunna spåras till minst ett rundturs- eller
-serialiseringstest som faktiskt asserterar på fältet. Lägg inte ett fält som bara
-finns i `*Json` men aldrig assertas.
+## Schemaversion
 
-## Vanliga fallgropar
+- `users/{uid}.schemaVersion` anger dataformatet. 4.0 börjar på **1** (`Schema.CURRENT_VERSION`,
+  `lib/schema.mjs`, `maxSchemaVersion()` i rules – ett test håller dem lika). 3.x-formatet
+  (`BackupJson` v1/v2) är inte en schemaVersion: det går bara in via konverteraren.
+- **Högre än `Schema.CURRENT_VERSION`** → appen visar "Uppdatera appen" och skriver
+  ingenting (en gammal app får aldrig skriva över nyare data).
+- **Lägre** → `SchemaMigrator` lyfter dokumenten vid läsning; skrivning sker i nytt format.
+  Versionen hör till användaren, inte till varje dokument, så **varje steg är idempotent** och
+  användarens `schemaVersion` höjs av en fullständig migrering av alla dess dokument
+  (`tools/db/migrate.mjs`, i release-ordningen i skill `release`) – aldrig av en vanlig skrivning.
+  Ändrar inget steg dit några dokument (`SchemaMigrator.canStamp`) stämplar appen själv
+  användaren när den öppnas (`UserSession`), så att en äldre app genast ber om uppdatering.
+  Ett steg som ändrar data kräver `migrate.mjs`.
+- Saknas `schemaVersion`, eller är den under `Schema.FIRST_VERSION` (trasigt värde), gäller
+  `Schema.FIRST_VERSION` (`Schema.versionOf`, `versionOf` i `lib/schema.mjs`), aldrig "senaste".
+- Höjs versionen: nytt steg i `SchemaMigrator` **och** spegling i `tools/db/migrate.mjs`,
+  test per steg, och `lib/schema.mjs` samt `maxSchemaVersion()` i `firestore.rules` följer med
+  (ett test jämför konstanterna). De nya rules deployas **före** appen (`rules.yml`, och
+  `release.yml` före publiceringen) – annars nekas migreringens stämpling.
+- De flesta ändringar kräver **ingen** versionshöjning: ett nytt valfritt fält med default
+  läses redan av gamla dokument. Höj bara vid betydelseändring (omdöpt fält, ändrad enhet,
+  ändrad struktur) **och vid ett nytt enum-värde eller en ny variant** (dosens `status`,
+  alternativets `kind`, receptets `schedule`, måendetillfällets `occasion`) – en äldre app tolkar
+  okända enum-värden som default och skulle skriva tillbaka fel värde.
+- Okänd `schedule`-typ blir `Unknown(raw)` och skrivs tillbaka oförändrad.
+- Modellens defaults = vad ett tomt dokument betyder; `assertToleratesMissingFields`
+  kontrollerar det.
 
-- **Default-värde saknas på ett `*Json`-fält** → äldre backup utan fältet kraschar
-  deserialiseringen. Alla `*Json`-fält ska ha default.
-- **Fält tillagt i entitet men glömt i `BackupJson`** → datan backas aldrig upp.
-  Detta är den klassiska tysta dataförlusten — fånga den med rundturstest.
-- **Timestamp/ordning tappas** (jfr commit "bevara timestamp för sjukdomsepisoder").
-  Bevara tidsstämplar; faller du tillbaka på `now` ska det vara medvetet.
-- **Privacy (NFR-7):** backup får bara till användarens privata Drive `appDataFolder`.
-  Logga aldrig backup-innehåll. Lägg inte data någon annanstans.
-- **Retention (BCK-3):** endast de 5 senaste backuperna behålls — rör inte den logiken
-  utan att uppdatera testet.
+## Skrivningar bevarar okända fält
+
+Eftersom nya fält inte höjer `schemaVersion` kan en äldre appversion läsa ett dokument med
+fält den inte känner till. Den får aldrig radera dem när den sparar:
+
+- **`FirestoreCollection.upsert` skriver med `set(…, SetOptions.merge())`**, aldrig ett helt
+  dokument. Fält som inte finns i codecen lämnas orörda i Firestore.
+- **Codecens `encode` skriver alla fält den känner till – även de utan värde, som `null`.**
+  Annars skulle ett fält som användaren tömt (t.ex. receptets `period.end` eller `note`) ligga kvar vid merge.
+  `decode` behandlar `null` och saknat fält likadant (default).
+- **Nästlade objekt** (`schedule`, `period`, `boosts`, inställningarnas grupper) skrivs med alla
+  varianters fält; fält som inte gäller den valda varianten skrivs som `null`, så att byte av
+  upprepning (t.ex. veckodagar → intervall) inte lämnar gamla värden kvar.
+- **Radering av ett helt dokument** görs bara via `delete(id)`, aldrig genom att skriva om det.
+- Test: `CollectionContract` har fallen "okänt fält bevaras vid upsert" och "tömt valfritt
+  fält försvinner vid upsert" (skill `firestore-data-layer`).
+
+## Checklista: nytt fält på en befintlig modell
+
+1. Fältet på `:core`-modellen **med default** (`= ""`, `= 0`, `= false`, `= null`, `= emptyList()`).
+2. Fältet i codecens `encode` och `decode` via fälthjälparna – aldrig egen parsning.
+   `encode` skriver fältet även när det saknar värde (`null`).
+3. Tolka äldre dokument medvetet: saknas fältet → default. Behöver det härledas från
+   andra fält, gör det i `decode` och testa det.
+4. Fältets typ i samlingens `valid…`-funktion i `firestore.rules` (`optInt`, `optString` …)
+   + rules-test; påverkar det vem som får läsa/skriva, även den regeln.
+5. Tester (nedan). Uppdatera rundturstestets seed så att fältet har ett icke-default-värde.
+6. **3.x-paritet:** motsvarar fältet något i 3.x (`BackupJson`, Room-entitet, DataStore)? Då
+   ska konverteraren fylla det och konverterarens fixtur asserta på det (OMB-3).
+7. KRAVLISTA: DAT-raden för modellen (regel 3).
+
+## Checklista: ny samling
+
+1. Modell + `DocCodec` i `:core`.
+2. En rad i `Paths` och en `FirestoreCollection<T>` via `CollectionFactory` – ingen ny
+   repository-mekanik (skill `firestore-data-layer`).
+3. Egen `match` med `valid…`-funktion i `firestore.rules` + rules-test – en samling utan
+   regel nekas (och skulle annars stoppa backupen, BCK-16).
+4. En rad i `tools/db/lib/collections.mjs` och i `ARKITEKTUR.md` → Datamodell (testet
+   `collections.test.mjs` jämför alla tre med `Paths`).
+5. Fixturen (`tools/db/test/fixtures/user.json`) får minst ett dokument i samlingen.
+6. Appens export och legacyimporten tar med samlingen.
+7. KRAVLISTA: DAT-5 (samlingslistan) och ny DAT-rad för modellen.
+
+## Tester som ALLTID krävs
+
+| Test | Var | Skyddar |
+|---|---|---|
+| Hela codec-kontraktet | `core/src/test/.../schema/CodecsTest.kt` via `assertCodecContract(codec, sample, defaults)` – en rad per codec; nästlade via `assertVariantCodecContract` | provet har icke-default-värde i **varje** fält (kontrolleras med reflektion), rundtur, tolerans, okända fält och fullständig skrivning |
+| Codec-rundtur | ingår i kontraktet: `assertCodecRoundTrip(codec, sample)` | modell → map → modell identisk, inklusive nya fält |
+| Tolerans | samma test via `assertToleratesMissingFields` + `assertIgnoresUnknownFields` | äldre och nyare dokument |
+| Fullständig skrivning | samma test via `assertEncodesAllFields(codec, sampleWithNulls)` | `encode` skriver varje känt fält, även `null`, så att merge tömmer och bevarar rätt |
+| Migrering | `core/src/test/.../schema/SchemaMigratorTest.kt` | varje versionssteg |
+| Rundtur end-to-end | `tools/db/test/roundtrip.test.mjs` **endast mot emulatorn** | seed → export → radera → import → export identisk |
+| Samlingslistan | `tools/db/test/collections.test.mjs` | `collections.mjs` = `Paths` = rules |
+| Appens export = tools/db-formatet | `core/.../schema/ExportFormatTest.kt` och appens exporttest mot `tools/db/test/fixtures/user.json` | varje dokument och värde i rundturens testdata kommer ut exakt som `tools/db export` skriver det, alltså läsbart för `tools/db import` |
+| Konverteraren (OMB-3) | `core/src/test/.../legacy/BackupJsonConverterTest.kt` mot en 3.x-fixtur där **varje** fält är satt (v1 och v2) | konvertera → exportformat → fältvis jämförelse mot förväntat; inget 3.x-fält utan plats i 4.0 |
+| Legacy-läsaren (OMB-2) | instrumenttest mot en Room-fil i 3.x-schemat (v11) | samma dokument som konverteraren ger för samma data; antal per entitet före och efter |
+
+Varje persisterat fält ska kunna spåras till minst ett test som **asserterar på fältet**
+med ett icke-default-värde.
+
+### Tester rör aldrig den riktiga databasen
+
+Rundturstestet raderar och importerar data. Därför:
+- Alla tester i `tools/db/test/` går via en gemensam testhjälpare som **avbryter direkt om
+  `FIRESTORE_EMULATOR_HOST` saknas**, och som använder projekt-ID:t `demo-dagboken`
+  (Firebase-emulatorn behandlar `demo-*` som ett projekt utan koppling till molnet).
+- `tools/db/lib/admin.mjs` i testläge godkänner **bara** `FIRESTORE_EMULATOR_HOST` satt och
+  ett projekt-ID som börjar med `demo-` – oavsett hur testet startats. Testläge är när
+  `NODE_TEST_CONTEXT` är satt eller när anroparen uttryckligen begär det; testhjälparen
+  begär det alltid.
+- Krav: BCK-16.
+- Testdata (`tools/db/test/fixtures/user.json` och konverterarens 3.x-fixtur) är **syntetisk**
+  – aldrig utdrag ur den riktiga databasen eller en riktig backup.
+
+## Migreringen från 3.x (OMB)
+
+ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här är reglerna.
+
+1. **En mappning.** `legacy/BackupJsonConverter` i `:core` är enda stället som översätter 3.x till
+   4.0. Legacy-läsaren (Room-filen på enheten) och legacyimporten (Drive-backup/lokal JSON) läser
+   sina källor till `BackupJson`-form och kör samma konverterare – aldrig en egen mappning.
+2. **Varje fält har en plats.** Ett 3.x-fält utan motsvarighet i 4.0-modellen är en blockerare,
+   inte en förenkling. De fyra förenklingarna i ARKITEKTUR.md (anteckningen som `note`, symptom
+   som `[{optionId, score}]`, `optionId` i stället för namn, dosens `status`) är de enda.
+3. **Stabila id:n.** Receptgenererade doser får `rx_{prescriptionId}_{date}_{slot}` (MED-4, DAT-8);
+   samma källa ger samma id vid ny import, så att en upprepad import inte dubblerar.
+4. **Bevis före användning:** fixturtestet (OMB-3), rundturen mot emulatorn (BCK-16) och grinden
+   OMB-4 – en riktig 3.x-backup konverteras, importeras med `tools/db import.mjs`, exporteras och
+   jämförs fältvis med noll skillnader – innan etapp 3 och innan första release.
+5. **Room-filen raderas aldrig automatiskt** (OMB-2). Migreringsskärmen visar antal per entitet
+   före och efter och användaren bekräftar.
+6. **Legacyimporten** (BCK-14) behålls minst en version efter 4.0.
+
+## Fallgropar
+
+- **Default saknas** på modellfältet → gamla dokument kraschar `decode`.
+- **Egen parsning i en codec** i stället för fälthjälparna → toleransen skiljer sig mellan
+  modeller och `cpdCheck` slår till.
+- **`Timestamp` vs `Long` vs ISO-sträng:** datum lagras som ISO-sträng (`yyyy-MM-dd`) och
+  klockslag som `HH:mm` (DAT-2); `Timestamp` bara för ögonblick (`createdAt`, `updatedAt`, dosens
+  `plannedAt`/`takenAt`). 3.x-epoker (`timestamp`, `tagenTid`) konverteras medvetet – tidszonen
+  är `Europe/Stockholm` om inget annat sägs, och konverterarens test täcker sommartidsbytet.
+  `tools/db` serialiserar `Timestamp` som `{ "__ts": iso }`.
+- **`null` vs saknat fält:** codecen skriver alla kända fält, även `null`, och `decode`
+  behandlar `null` som saknat. Se *Skrivningar bevarar okända fält*.
+- **Klockslag** (`time`, påminnelsernas `time`) lagras som `HH:mm`. Byts formatet: höj
+  `schemaVersion` och migrera, ändra aldrig formatet tyst.
+- **Listor** (`slots`, `symptoms`, `boosts`) – ordningen bevaras i rundturen.
+- **Tidsstämplar och ordning från 3.x** (jfr 3.x-buggen "bevara timestamp för sjukdomsepisoder"):
+  faller konverteraren tillbaka på "nu" ska det vara medvetet och testat.
+- **Heltal vs decimaltal:** JSON skiljer dem inte åt – ett decimaltal med heltalsvärde (`2.0`)
+  kommer tillbaka från en rundtur som heltal (`2`). Fälthjälparna i `:core` läser alla `Number`,
+  så det är ofarligt; låt aldrig en codec bero på den skillnaden.
+- **Batch-storlek:** Firestore tillåter 500 skrivningar per batch; import delar upp.
+- **Samlingen glömd i `collections.mjs`** → den backas aldrig upp. Testet mot `Paths`
+  fångar det; ta aldrig bort det testet.
+- **Integritet:** logga aldrig dokumentinnehåll; backup krypteras alltid (skill
+  `data-privacy-security`).

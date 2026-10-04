@@ -1,34 +1,30 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package se.partee71.dagboken.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
 
+/**
+ * Appens tema: Material 3 Expressive med fjädrande rörelse, [AppColors] och [AppTypography]
+ * (skill `ui-style`, TP-2, DSN-1–5). Ingen dynamic color. Ljust, mörkt eller auto väljs i
+ * inställningsarket (SET-1, etapp 5); tills dess följer appen systemet.
+ */
 @Composable
 fun DagbokenTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color (Android 12+) is disabled by default to preserve brand palette
-    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context)
-            else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DagbokenDarkColorScheme
-        else      -> DagbokenLightColorScheme
+    CompositionLocalProvider(LocalExtendedColors provides if (darkTheme) AppColors.darkExtended else AppColors.lightExtended) {
+        MaterialExpressiveTheme(
+            colorScheme = if (darkTheme) AppColors.dark else AppColors.light,
+            motionScheme = MotionScheme.expressive(),
+            typography = AppTypeScale,
+            content = content,
+        )
     }
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography  = DagbokenTypography,
-        shapes      = DagbokenShapes,
-        content     = content,
-    )
 }

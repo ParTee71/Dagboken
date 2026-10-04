@@ -1,6 +1,6 @@
 ---
 name: android-dev
-description: Use this skill as the baseline for ALL Android and Kotlin Multiplatform (KMP) work — whenever the user mentions Android, Kotlin (in an Android context), KMP, CMP, commonMain, androidMain, iosMain, AndroidManifest, Gradle, build.gradle, Hilt, Dagger, Room, Retrofit, Ktor, ViewModel, LiveData, StateFlow, SharedFlow, Compose, Activity, Fragment, Intent, ADB, Logcat, MVVM, MVI, repository pattern, or any Android SDK / Jetpack / AndroidX API. Always load this skill alongside more specific skills (android-skills:compose, android-skills:kotlin-flows, android-skills:kmp-ktor, android-skills:android-retrofit, etc.) — it provides the architectural baseline, existing-pattern audit, and project-adaptability rules those skills defer to. Casual mentions like "fix this bug in my Android app," "refactor this ViewModel," "my KMP project," or any work inside an Android project directory should trigger this skill.
+description: Use this skill as the baseline for ALL Android and Kotlin Multiplatform (KMP) work — whenever the user mentions Android, Kotlin (in an Android context), KMP, CMP, commonMain, androidMain, iosMain, AndroidManifest, Gradle, build.gradle, Hilt, Dagger, Firestore, Retrofit, Ktor, ViewModel, LiveData, StateFlow, SharedFlow, Compose, Activity, Fragment, Intent, ADB, Logcat, MVVM, MVI, repository pattern, or any Android SDK / Jetpack / AndroidX API. Always load this skill alongside more specific skills (android-skills:compose, android-skills:kotlin-flows, android-skills:kmp-ktor, android-skills:android-retrofit, etc.) — it provides the architectural baseline, existing-pattern audit, and project-adaptability rules those skills defer to. Casual mentions like "fix this bug in my Android app," "refactor this ViewModel," "my KMP project," or any work inside an Android project directory should trigger this skill. In Dagboken this includes any work on Idag, Dagbok, Trender, Mediciner, mående, doser, recept, sjukdomar, Health Connect, påminnelser, Firestore, `:core`, the 3.x migration or Navigation 3.
 ---
 
 # Senior Android Development Skills
@@ -10,17 +10,18 @@ You are a senior Android engineer. Apply the following guidelines to all Android
 ## Architecture
 
 - Use clean architecture with repository pattern for data persistence.
-- Ask the user whether they prefer MVVM or MVI. If they have no preference, default to MVVM for simpler screens (few state-changing interactions) and MVI for screens with many interactions that change state.
+- **MVVM** with `StateFlow<UiState>` and sealed events (CLAUDE.md, ARKITEKTUR.md) – do not ask or switch to MVI.
 - Use Compose for all new UI. For legacy interop use `AndroidView` / `ComposeView`.
 - Use `collectAsStateWithLifecycle` to observe state from ViewModels in composables.
 - Use `StateFlow` / `State` to manage UI state.
-- Use Material 3 for the UI.
+- Use Material 3 for the UI (in this project: Material 3 Expressive via `ui/theme` – see skill `ui-style`).
 - Use Hilt for DI with KSP.
 - Use Coil for image loading.
 - Use `kotlinx.serialization` for network model serialization.
 
-**Android-only projects:**
-- Room for local caching, Retrofit + OkHttp for network.
+**This project (Dagboken 4.0):**
+- Cloud Firestore with offline persistence is the primary storage under `users/{uid}` (ADR-001); Room is **not** used except by the read-only legacy reader for the 3.x migration (`data/legacy`). All Firestore access goes through `FirestoreCollection<T>` + `DocCodec<T>` (skill `firestore-data-layer`).
+- Pure domain logic (models, codecs, engines, chart math, the 3.x converter) lives in the `:core` JVM module without Android dependencies.
 
 ## Existing-pattern check (before designing new mechanisms)
 
@@ -84,16 +85,15 @@ For one-shot UI effects from a ViewModel (snack messages, navigation triggers, h
 ## Gradle
 
 - Use version catalogs (`libs.versions.toml`) and Kotlin script (`.kts`) for all Gradle files.
-- Target Java 21 via `jvmToolchain(21)` (fallback: 17).
+- This project targets Java 17 (no toolchain, same as CI). Shared build settings live in one place (skill `android-gradle-logic`).
 - Keep ProGuard/R8 rules updated when adding libraries.
 
-## Package Structure (Single-module apps)
+## Package Structure
 
-- Prefer vertical feature packages (`feature/data`, `feature/domain`, `feature/presentation`) over horizontal shared packages.
-- `data/`: repositories, data sources, Room DAOs, network clients.
-- `ui/<feature>/`: composables, ViewModels, UiState per feature screen.
-- `worker/`: WorkManager workers.
-- `di/`: Hilt modules.
+`:core` (pure Kotlin/JVM) + `:app`. The package tree is defined **only** in `ARKITEKTUR.md`
+→ "Lager och moduler"; read it there. Key rule: look and shared behaviour live only in
+`ui/theme`, `ui/components` and `ui/common`; Firestore only in `data/firestore`; errors are
+mapped once in `data/common`.
 
 ## Data Flow
 
@@ -112,32 +112,35 @@ Compose → ViewModel → Repository → Data sources
 
 **Error propagation by layer:**
 
-1. **Data sources** — throw platform/library exceptions (`IOException`, `HttpException`, `SQLiteException`).
-2. **Repositories** — catch platform exceptions and remap to domain error types. Never let raw data-layer exceptions leak past this boundary.
-3. **ViewModels** — handle `Result<T>` and map to UI state.
+1. **Platform APIs** (Firestore, Credential Manager, Firebase Auth, Health Connect) throw their own exceptions.
+2. **The single access point maps them once** to `DataError` via `suspendRunCatching` (both in `data/common/`): `FirestoreCollection` for all Firestore access, `AuthRepository` for sign-in. Repositories built on `FirestoreCollection` do **not** catch or remap again – they pass `Result<T>` through.
+3. **ViewModels** handle `Result<T>` and put the `DataError` in UI state; screens show it with `DataError.toMessage()`. `DataError.Cancelled` is silent.
 
 ## Navigation
 
-- Use `navigation-compose 2.8+` with type-safe `@Serializable` route objects (not string routes).
-- Single Activity host (`MainActivity`). Navigate via `NavController` — never from the ViewModel directly.
+- This project uses **Navigation 3** (TP-2): `@Serializable` `NavKey` objects, one back stack per tab (`AppBackStack`), `NavDisplay` with `entryProvider`, ViewModel scoping via `lifecycle-viewmodel-navigation3`. Navigation 2 (`navigation-compose`/`NavController`, the 3.x string routes) is not used.
+- Single Activity host (`MainActivity`). The back stack is plain state in `navigation/` — never mutated from a ViewModel directly.
+- Screen transitions are defined once in `navigation/Transitions`.
 - For one-time navigation/UI events from the ViewModel, use `Channel` + `receiveAsFlow()` for exactly-once delivery.
 
 ## Background Work
 
-- Use **WorkManager** for deferrable background tasks that must survive process death (sync, upload, periodic jobs).
+- Use **WorkManager** for deferrable background tasks that must survive process death (TP-7). There is no backup worker in 4.0: Firestore syncs itself and the weekly backup runs in GitHub Actions (`tools/db`, BCK-12). Reminders use AlarmManager (skill `notifications-alarms`).
 - Use `CoroutineWorker` for suspend-friendly workers.
 - Constrain work with `Constraints` (network, charging) rather than implementing retry logic manually.
 - With Hilt: use `@HiltWorker` + `@AssistedInject`. App must implement `Configuration.Provider` with injected `HiltWorkerFactory`. AndroidManifest must disable default `WorkManagerInitializer`.
 
 ## This Project's Conventions
 
-- **Architecture**: MVVM with `StateFlow<UiState>` — each screen has a `*ViewModel` + `*UiState` data class
-- **DI**: Hilt, `@HiltViewModel` on all ViewModels
-- **State exposure**: `private val _state = MutableStateFlow(...)`, `val state = _state.asStateFlow()`
-- **State updates**: `_state.value = _state.value.copy(...)` (acceptable in this project since it's single-threaded by viewModelScope)
-- **Auth**: `FirebaseAuthRepository` wraps Firebase Auth + Credential Manager — never call Firebase directly from UI
-- **Backup**: `DriveBackupRepository` + `BackupWorker` (daily via WorkManager)
-- **Local DB**: Room with `AktiviteterRepository`, `MedicinerRepository`, `PreferencesRepository`
+- **Rules first:** the five non-negotiable rules in `CLAUDE.md` override anything generic here.
+- **Architecture**: MVVM with `StateFlow<UiState>` and sealed events — each screen has a `*ViewModel` + `*UiState`.
+- **DI**: Hilt, `@HiltViewModel` on all ViewModels.
+- **State exposure**: `private val _state = MutableStateFlow(...)`, `val state = _state.asStateFlow()`; `_state.update { it.copy(...) }`.
+- **Shared frames (rule 4)**: list screens use `EntityListScreen` + `asListUiState()`, edit screens use `EntityEditScreen` + `EditorState<T>`. Never hand-roll these.
+- **Auth**: `AuthRepository` (`GoogleAuthRepository`) wraps Firebase Auth + Credential Manager — never call Firebase directly from UI; sign-in is required (AUTH-6).
+- **Data**: repositories are thin facades over `FirestoreCollection<T>` under `users/{uid}` (`UserSession`); errors are mapped to `DataError` once.
+- **Backup**: Firestore is the cloud copy; weekly encrypted `tools/db` export in GitHub Actions and manual JSON export in the app (BCK-11–13). The 3.x Drive backup (`DriveBackupRepository`, `BackupWorker`) is retired; Drive is only read by the legacy import (BCK-14).
+- **Tests**: JVM first (JUnit, Turbine, Robolectric, Roborazzi); fakes built on `FakeCollection<T>`.
 
 ## Adaptability
 

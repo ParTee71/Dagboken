@@ -1,72 +1,43 @@
 package se.partee71.dagboken.di
 
-import android.content.Context
-import androidx.room.Room
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
-import kotlinx.serialization.json.Json
-import se.partee71.dagboken.data.repository.HealthConnectRepository
-import se.partee71.dagboken.data.repository.HealthConnectRepositoryImpl
-import se.partee71.dagboken.data.room.AppDatabase
-import se.partee71.dagboken.data.room.daos.AktivitetDao
-import se.partee71.dagboken.data.room.daos.FavoritDao
-import se.partee71.dagboken.data.room.daos.HandelseDao
-import se.partee71.dagboken.data.room.daos.MedicinDao
-import se.partee71.dagboken.data.room.daos.NoteDao
-import se.partee71.dagboken.data.room.daos.ReceptDao
-import se.partee71.dagboken.data.room.daos.SjukdomsEpisodDao
-import se.partee71.dagboken.data.room.daos.SjukdomsIncheckningDao
+import javax.inject.Qualifier
 import javax.inject.Singleton
+import kotlin.time.Clock
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.datetime.TimeZone
+import se.partee71.dagboken.data.common.UserScope
+import se.partee71.dagboken.data.user.UserSession
 
-/**
- * Appens JSON-konfiguration, som en fristående funktion så att tester kan bygga exakt
- * samma instans som Hilt injicerar (i stället för kotlinx globala `Json`, som saknar
- * `ignoreUnknownKeys` och därför avkodar redan sparade värden annorlunda) — BCK-9.
- */
-fun dagbokenJson(): Json = Json { ignoreUnknownKeys = true }
-
-@Module
-@InstallIn(SingletonComponent::class)
-object AppModule {
-
-    @Provides
-    @Singleton
-    fun provideJson(): Json = dagbokenJson()
-
-    @Provides
-    @IoDispatcher
-    fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
-
-    @Provides
-    @Singleton
-    fun provideHealthConnectRepository(
-        @ApplicationContext context: Context,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): HealthConnectRepository = HealthConnectRepositoryImpl(context, ioDispatcher)
-}
+/** Scope som lever lika länge som appen – för delade StateFlows. */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ApplicationScope
 
 @Module
 @InstallIn(SingletonComponent::class)
-object DatabaseModule {
+abstract class AppModule {
 
-    @Provides
-    @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "dagboken.db")
-            .addMigrations(*AppDatabase.MIGRATIONS)
-            .build()
+    @Binds
+    abstract fun userScope(session: UserSession): UserScope
 
-    @Provides fun provideAktivitetDao(db: AppDatabase): AktivitetDao                   = db.aktivitetDao()
-    @Provides fun provideMedicinDao(db: AppDatabase): MedicinDao                       = db.medicinDao()
-    @Provides fun provideReceptDao(db: AppDatabase): ReceptDao                         = db.receptDao()
-    @Provides fun provideFavoritDao(db: AppDatabase): FavoritDao                       = db.favoritDao()
-    @Provides fun provideHandelseDao(db: AppDatabase): HandelseDao                     = db.handelseDao()
-    @Provides fun provideNoteDao(db: AppDatabase): NoteDao                             = db.noteDao()
-    @Provides fun provideSjukdomsEpisodDao(db: AppDatabase): SjukdomsEpisodDao         = db.sjukdomsEpisodDao()
-    @Provides fun provideSjukdomsIncheckningDao(db: AppDatabase): SjukdomsIncheckningDao = db.sjukdomsIncheckningDao()
+    companion object {
+        @Provides
+        @Singleton
+        @ApplicationScope
+        fun applicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+        @Provides
+        fun clock(): Clock = Clock.System
+
+        /** Enhetens tidszon – vad "i dag" är (HEM-14). */
+        @Provides
+        fun timeZone(): TimeZone = TimeZone.currentSystemDefault()
+    }
 }

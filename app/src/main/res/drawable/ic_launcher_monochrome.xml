@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Appikonen "Bladet" som temaikon (Android 13+): samma motiv i en färg. Systemet färgar efter
+     alfa, så arket ritas som kontur och rader och kurva ligger fritt i det. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M40,24h28a8,8 0 0,1 8,8v44a8,8 0 0,1 -8,8h-28a8,8 0 0,1 -8,-8v-44a8,8 0 0,1 8,-8z"
+        android:fillColor="#00000000"
+        android:strokeColor="@color/ic_launcher_paper"
+        android:strokeWidth="4" />
+    <path
+        android:pathData="M40,40h28M40,50h18M40,60h22"
+        android:strokeColor="@color/ic_launcher_paper"
+        android:strokeWidth="4"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M38,78c8,-2 12,-12 18,-12s8,6 16,-8"
+        android:fillColor="#00000000"
+        android:strokeColor="@color/ic_launcher_paper"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
