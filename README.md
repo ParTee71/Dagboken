@@ -4,6 +4,10 @@ Hälsodagbok för att logga aktiviteter, daglig screening (energi, stress, sympt
 
 **Kravspecifikation:** [KRAVLISTA.md](KRAVLISTA.md) · **Utvecklingsregler:** [CLAUDE.md](CLAUDE.md)
 
+> **Ombyggnad 4.0 pågår på `master`.** Besluten (Firestore offline-först, fyra flikar, nytt
+> designspråk, migrering utan dataförlust) och etappplanen står i [ARKITEKTUR.md](ARKITEKTUR.md)
+> (ADR-001). Appen 3.27.0 som beskrivs nedan ligger på branchen `legacy` tills 4.0 släpps.
+
 > **Bidrar du (eller en AI-assistent) med kod?** Läs [CLAUDE.md](CLAUDE.md) först. Den
 > samlar projektets fyra icke-förhandlingsbara regler som gäller vid varje ändring:
 > datasäkerhet (backup/restore), tester på alla nivåer, aktuell kravlista och återbruk
