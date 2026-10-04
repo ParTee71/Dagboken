@@ -1,6 +1,6 @@
 ---
 name: kotlin-coroutines
-description: Use when writing, reviewing, or debugging coroutine code in Kotlin — including dispatcher selection, scope management, structured concurrency, cancellation, exception handling, or async patterns in Android or KMP projects.
+description: Use when writing, reviewing, or debugging coroutine code in Kotlin — including dispatcher selection, scope management, structured concurrency, cancellation, exception handling, or async patterns in Android or KMP projects. Svenska trigger-ord: coroutine, suspend, dispatcher, avbrytning, scope, viewModelScope, await, parallellt, hänger sig, fryser, ANR.
 ---
 
 # Kotlin Coroutines

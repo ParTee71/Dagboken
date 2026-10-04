@@ -1,0 +1,41 @@
+name: Förbered Android-bygge
+description: >-
+  Java 17, Gradle med build cache (skrivs bara från master), Android-plattformen som
+  compileSdk kräver och cache för Robolectrics SDK-jar. Enda stället för dessa steg
+  (skill ci-budget). Kräver att repot redan är utcheckat.
+
+runs:
+  using: composite
+  steps:
+    - name: Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+
+    - name: Gradle (cache skrivs från master, läses i PR)
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        cache-read-only: ${{ github.ref != 'refs/heads/master' }}
+
+    - name: Android-plattform för compileSdk
+      shell: bash
+      run: |
+        set -euo pipefail
+        sdk="$(grep -oE 'compileSdk = [0-9]+' app/build.gradle.kts | grep -oE '[0-9]+')"
+        if [ ! -d "$ANDROID_HOME/platforms/android-$sdk" ] && [ ! -d "$ANDROID_HOME/platforms/android-$sdk.0" ]; then
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          "$sdkmanager" "platforms;android-$sdk.0" > /dev/null || "$sdkmanager" "platforms;android-$sdk" > /dev/null
+        fi
+
+    - name: Cache för Robolectrics SDK-jar
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository/org/robolectric
+        key: robolectric-${{ hashFiles('gradle/libs.versions.toml', 'app/src/test/resources/robolectric.properties') }}
+
+    - name: UTF-8 (svenska testnamn i testrapporten)
+      shell: bash
+      run: |
+        echo "LC_ALL=C.UTF-8" >> "$GITHUB_ENV"
+        echo "LANG=C.UTF-8" >> "$GITHUB_ENV"

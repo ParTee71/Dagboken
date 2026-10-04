@@ -1,0 +1,57 @@
+name: Deploya firestore.rules
+description: >-
+  Deployar firestore.rules till Dagbokens Firebase-projekt (dagboken-711d2) med service-kontot i
+  FIREBASE_RULES_DEPLOYER (bara Firebase Rules Admin + Service Usage Consumer). Nyckeln måste
+  höra till projektet, skrivs till en temporär fil och tas bort i samma steg. En riktig deploy
+  kräver att firestore.rules är samma som på master. Kör efter
+  rules-testerna. Kräver att repot är utcheckat och att setup-tools-db (eller rules-tests, som
+  använder den) redan körts i jobbet (skill release).
+
+inputs:
+  credentials:
+    description: secrets.FIREBASE_RULES_DEPLOYER – rå JSON eller base64
+    required: true
+  dry-run:
+    description: "true: bara kontrollera mot projektet, ändra ingenting"
+    required: false
+    default: 'true'
+  project:
+    description: Firebase-projektets ID
+    required: false
+    default: dagboken-711d2
+
+runs:
+  using: composite
+  steps:
+    - name: Deploya rules
+      shell: bash
+      env:
+        FIREBASE_RULES_DEPLOYER: ${{ inputs.credentials }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        PROJECT: ${{ inputs.project }}
+      run: |
+        set -euo pipefail
+        if [ -z "$FIREBASE_RULES_DEPLOYER" ]; then
+          echo "::error::Secret FIREBASE_RULES_DEPLOYER saknas (README → Firebase-setup)."
+          exit 1
+        fi
+        # Bara rules som finns på master når projektet – inte en featurebranch eller en gammal tagg
+        # (äldre rules kan ha lägre maxSchemaVersion() och neka redan stämplade användare, BCK-15).
+        if [ "$DRY_RUN" != "true" ]; then
+          git fetch --no-tags --quiet --depth=1 origin master
+          if ! git diff --quiet FETCH_HEAD -- firestore.rules; then
+            echo "::error::firestore.rules skiljer sig från master – rules deployas bara från master."
+            exit 1
+          fi
+        fi
+        key="$RUNNER_TEMP/rules-deployer.json"
+        trap 'rm -f "$key"' EXIT
+        node tools/db/write-credentials.mjs --env FIREBASE_RULES_DEPLOYER --project "$PROJECT" --out "$key"
+        flags=(--only firestore:rules --project "$PROJECT" --non-interactive)
+        if [ "$DRY_RUN" = "true" ]; then flags+=(--dry-run); fi
+        GOOGLE_APPLICATION_CREDENTIALS="$key" npx --prefix tools/db firebase deploy "${flags[@]}"
+        if [ "$DRY_RUN" = "true" ]; then
+          echo "Rules för $PROJECT kontrollerade (--dry-run) – inget deployat." >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "Rules deployade till $PROJECT." >> "$GITHUB_STEP_SUMMARY"
+        fi

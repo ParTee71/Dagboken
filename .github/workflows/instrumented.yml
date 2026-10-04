@@ -1,79 +1,98 @@
-name: Instrumented Tests
+# Instrumenttester på Android-emulator (skill ci-budget): i PR:er som rör koden de testar
+# (android.yml, filtret instrumented), på begäran, och i release.yml när koden inte redan
+# testats grönt i en PR.
+name: Instrumenttester
 
 on:
-  pull_request:
-    branches: [ master ]
-    # Emulatorkörningen tar ~25-30 minuter. En PR som bara rör dokumentation innehåller
-    # ingen kod att instrumenttesta och behöver inte betala den tiden. Filtret slår bara
-    # till när *samtliga* ändrade filer matchar - rör PR:en även en enda kodfil körs
-    # testerna som vanligt.
-    #
-    # build.gradle.kts står medvetet inte här. En releases versionshöjning rör den och
-    # kör alltså fortfarande emulatorn, men filen bär också beroenden, minSdk och
-    # testkörarkonfiguration - sådant som mycket väl kan fälla instrumenttesterna.
-    #
-    # Obs: en hoppad körning rapporterar ingen status alls. Görs instrumented-tests
-    # någon gång till ett obligatoriskt statuskrav i grenskyddet måste filtret bort,
-    # annars fastnar dokumentations-PR:er i väntan på en körning som aldrig startar.
-    paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - '.gitignore'
   workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
-  instrumented-tests:
+  instrumented:
+    name: instrumented
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
-      - uses: actions/checkout@v4
+      # Emulatorn behöver ~7 GB för sin datadisk; runnern har för lite kvar när Firebase-
+      # emulatorn också ligger på den. Ta bort förinstallerade verktyg vi aldrig använder.
+      - name: Frigör disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL \
+            /usr/local/lib/android/sdk/ndk /usr/local/share/boost
+          df -h / | tail -n1
 
-      - name: Set up JDK 17
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-android
+
+      # Kontraktstestet för FirestoreCollection kör mot Firebase-emulatorerna (firestore + auth)
+      # på värddatorn – aldrig mot den riktiga databasen.
+      - name: Node 22 för Firebase-emulatorn
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tools/db/package-lock.json
+
+      - name: Java 21 (firebase-tools 15 kräver minst 21; bygger även appen)
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
+          distribution: temurin
+          java-version: '21'
 
-      - name: Enable KVM
+      - name: firebase-tools
+        run: npm ci --prefix tools/db --ignore-scripts
+
+      - name: Cache för Firebase-emulatorn
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('tools/db/package-lock.json') }}
+
+      - name: KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Run instrumented tests
-        uses: reactivecircus/android-emulator-runner@v2
+      - name: Instrumenttester (API 35, samma som targetSdk)
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
-          api-level: 34
+          api-level: 35
           target: google_apis
           arch: x86_64
-          device: pixel_6
           disable-animations: true
-          cores: 4
-          ram-size: 4096M
-          heap-size: 2048M
+          disk-size: 4G
           emulator-options: -no-window -no-boot-anim -no-snapshot -camera-back none -gpu swiftshader_indirect
-          script: |
-            set +e
-            ./gradlew :app:connectedDebugAndroidTest
-            GRADLE_EXIT=$?
-            adb -s emulator-5554 logcat -d > logcat.txt 2>&1 || touch logcat.txt
-            exit $GRADLE_EXIT
+          script: npx --prefix tools/db firebase emulators:exec --only firestore,auth --project demo-dagboken "./gradlew --configuration-cache :app:connectedDebugAndroidTest"
 
-      - name: Upload test results
+      # connectedDebugAndroidTest skriver inga testnamn i loggen – fallerade tester och deras första
+      # rader syns här och i jobbsammanfattningen, utan att artifacten behöver laddas ner.
+      - name: Fallerade tester
+        if: failure()
+        shell: python3 {0}
+        run: |
+          import glob, os, xml.etree.ElementTree as ET
+          lines = []
+          for path in glob.glob('app/build/outputs/androidTest-results/connected/**/*.xml', recursive=True):
+              for case in ET.parse(path).iter('testcase'):
+                  for bad in case.findall('failure') + case.findall('error'):
+                      name = f"{case.get('classname')}.{case.get('name')}"
+                      print(f"::error title=Instrumenttest::{name}")
+                      detail = (bad.text or bad.get('message') or '').strip().splitlines()[:25]
+                      print('\n'.join(detail))
+                      lines += [f"### {name}", "```", *detail, "```"]
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('\n'.join(lines or ['Inga testresultat hittades.']) + '\n')
+
+      - name: Testrapport
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: instrumented-test-results
-          path: app/build/reports/androidTests/connected/
-
-      - name: Upload logcat
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: instrumented-logcat
-          path: logcat.txt
+          name: instrumenttester
+          path: |
+            app/build/reports/androidTests/connected/
+            app/build/outputs/androidTest-results/connected/
+          if-no-files-found: ignore

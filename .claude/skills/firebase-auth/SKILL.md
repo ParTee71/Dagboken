@@ -1,105 +1,74 @@
 ---
 name: firebase-auth
-description: Use when working with Firebase Authentication, Google Sign-In via Credential Manager, FirebaseUser, auth state listeners, or sign-out/credential clearing in this Android project. Covers the CredentialManager + GetSignInWithGoogleOption pattern (replaces deprecated GoogleSignIn).
+description: Use when working with Firebase Authentication, Google Sign-In via Credential Manager, FirebaseUser, auth state listeners, or sign-out/credential clearing in Dagboken. Covers the CredentialManager + GetSignInWithGoogleOption pattern (replaces deprecated GoogleSignIn), the required sign-in gate in 4.0 and the users/{uid} bootstrap. Svenska trigger-ord: inloggning, logga in, logga ut, konto, Google-konto, användare, uid, EnsureUserUseCase, UserSession, SignInScreen, AuthGate.
 ---
 
 # Firebase Auth — Credential Manager Pattern
 
 This project uses **Firebase Auth + Android Credential Manager** (not the deprecated `GoogleSignIn` API).
 
+**Dagboken 4.0 requires sign-in** (AUTH-6, TP-5; the 3.x requirement AUTH-5 "works without an
+account" is struck – ADR-001, beslut 3). The app shows `SignInScreen` until a user is signed in;
+after sign-in `EnsureUserUseCase` makes sure `users/{uid}` exists and `UserSession` follows the
+uid. Firestore rules depend on `request.auth.uid == uid`, so nothing is readable signed out.
+There is no household and no sharing – one account, one diary.
+
 ## Architecture
 
 ```
-UI (SettingsScreen)
-  → SettingsViewModel.signIn(activityContext)
-    → FirebaseAuthRepository.signInWithGoogle(activityContext): Result<FirebaseUser>
-      → CredentialManager.getCredential() — shows Google account picker
-      → GoogleIdTokenCredential.createFrom() — extracts ID token
-      → FirebaseAuth.signInWithCredential() — exchanges token for Firebase session
+AppRoot → AuthViewModel.state.gate: Loading | SignedOut | NeedsUser | UpdateRequired | Ready
+  SignInScreen → AuthEvent.SignIn(activityContext)
+    → AuthRepository.signInWithGoogle(activityContext): Result<AuthUser>   (GoogleAuthRepository)
+      → CredentialManager.getCredential() — Google account picker
+      → GoogleIdTokenCredential.createFrom() — ID token
+      → FirebaseAuth.signInWithCredential() — Firebase session
+  authState = user && users/{uid} missing on the server
+    → EnsureUserUseCase(uid) — UserDirectory.createIfMissing (server, atomic) with schemaVersion + createdAt
 ```
 
 ## Key Classes
 
-- **`FirebaseAuthRepository`** (`data/auth/`) — singleton, inject with `@Inject` constructor
-- **`CredentialManager`** — created from `ApplicationContext` at repository construction time
-- **`GetSignInWithGoogleOption`** — use this (not `GetGoogleIdOption`) — opens full-page Google account picker
-- **`R.string.default_web_client_id`** — auto-generated from `google-services.json` by `google-services` plugin. Requires `client_type: 3` in `google-services.json`.
+- **`AuthRepository`** (`data/auth/`) — interface; `GoogleAuthRepository` is the only implementation (bound in `di/AuthModule`). Tests use a fake.
+- **`AuthUser(uid, name?, email?)`** — all the app keeps of the user. Name and email are only shown in the settings sheet (Konto, SET-7) and are never stored or logged; never the photo (skill `data-privacy-security`).
+- **`AuthErrors`** (`data/auth/`) — the one mapping to `DataError`.
+- **`AuthViewModel`** (`ui/auth/`) — decides what `AppRoot` shows (`AuthGate`); sign-out lives in the settings sheet (NAV-9).
+- **`UserSession`** (`data/user/`, implements `UserScope`) + **`EnsureUserUseCase`** + **`UserDirectory`** (Firestore implementation `FirestoreUserDirectory` in `data/firestore/`) — skill `firestore-data-layer`.
+- **`GetSignInWithGoogleOption`** — use this (not `GetGoogleIdOption`) — opens full-page Google account picker.
+- **`R.string.default_web_client_id`** — auto-generated from `google-services.json` by the `google-services` plugin. Requires `client_type: 3`. If the file were missing, a stub resource (`app/src/authStub`) provides it so the code compiles (skill `android-gradle-logic`).
 
-## `FirebaseAuthRepository` API
+## `AuthRepository` API
 
 ```kotlin
-@Singleton
-class FirebaseAuthRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
-    val currentUser: FirebaseUser? get() = auth.currentUser
-
-    // Hot flow — emits on every auth state change (sign in, sign out, token refresh)
-    val authStateFlow: Flow<FirebaseUser?> = callbackFlow {
-        val listener = FirebaseAuth.AuthStateListener { trySend(it.currentUser) }
-        auth.addAuthStateListener(listener)
-        awaitClose { auth.removeAuthStateListener(listener) }
-    }
-
-    // Needs activityContext (not ApplicationContext) for the Credential Manager UI
-    suspend fun signInWithGoogle(activityContext: Context): Result<FirebaseUser>
-
-    fun signOut()
-    suspend fun clearCredentialState() // call before signOut() for clean sign-out
+interface AuthRepository {
+    val authState: Flow<AuthUser?>                                            // null = signed out
+    suspend fun signInWithGoogle(activityContext: Context): Result<AuthUser> // Activity context for the picker
+    suspend fun signOut(): Result<Unit> // clears Credential Manager state and the Firebase session
 }
 ```
 
-## Sign-In Flow
+## Sign-In Flow (as built)
 
-```kotlin
-// In ViewModel
-fun signIn(activityContext: Context) {
-    viewModelScope.launch {
-        _state.value = _state.value.copy(isSigningIn = true, signInError = null)
-        val result = authRepo.signInWithGoogle(activityContext)
-        _state.value = _state.value.copy(isSigningIn = false)
-        result.onFailure { e ->
-            // GetCredentialCancellationException = user dismissed picker → silent
-            if (e.message?.contains("cancel", ignoreCase = true) != true) {
-                _state.value = _state.value.copy(signInError = e.message ?: "Inloggning misslyckades")
-            }
-        }
-    }
-}
+- One button, one event: `AuthEvent.SignIn(context)`. Signed out → sign in. Signed in but
+  `users/{uid}` not yet on the server (the bootstrap failed, e.g. offline) → `gate = NeedsUser`,
+  and the same button retries `EnsureUserUseCase` without a new sign-in.
+- `UserDirectory.createIfMissing` talks to the **server** only and is atomic: an existing
+  document (from another device, or migrated data) is never overwritten. Offline → nothing is
+  created (`Offline` after the timeout).
+- `gate = Loading` until the user's `schemaVersion` is known – the app is never shown before
+  "Uppdatera appen" could apply; `gate = UpdateRequired` when it is newer than the app
+  (`UpdateRequiredScreen`, BCK-15).
+- Errors arrive already mapped; `Cancelled` is silent (AUTH-4), anything else is shown once via
+  `AppSnackbarHost` and cleared with `AuthEvent.ErrorShown`.
+- First start of 4.0 on a device with 3.x data: sign-in comes first, then the migration screen
+  (OMB-2, OMB-5) writes the old data under the new `users/{uid}`.
 
-// In Composable — pass LocalContext.current (which is the Activity context in Compose)
-val context = LocalContext.current
-Button(onClick = { vm.signIn(context) }) { Text("Logga in med Google") }
-```
+## Sign-Out
 
-## Sign-Out Flow
-
-```kotlin
-// Always clear credential state before signing out
-fun signOut() {
-    viewModelScope.launch {
-        authRepo.clearCredentialState() // removes cached credential from Credential Manager
-        authRepo.signOut()              // signs out from Firebase
-    }
-}
-```
-
-## Observing Auth State
-
-```kotlin
-// In ViewModel init — collect authStateFlow to sync UI
-viewModelScope.launch {
-    authRepo.authStateFlow.collectLatest { user ->
-        _state.value = _state.value.copy(
-            googleAccountEmail = user?.email,
-            googleAccountPhotoUrl = user?.photoUrl?.toString(),
-            googleDisplayName = user?.displayName,
-        )
-    }
-}
-
-// Null user = signed out; non-null = signed in
-```
+`AuthRepository.signOut()` (settings sheet → Konto, behind `ConfirmDialog`) clears the cached
+credential and the Firebase session; `UserSession` follows `authState` to `null`, so the
+collections show nothing and the next account never sees the previous one's diary.
+Reminders read the schedule through the same repositories and therefore follow the signed-in
+user (skill `notifications-alarms`).
 
 ## google-services.json Requirements
 
@@ -107,7 +76,9 @@ For Google Sign-In to work, `app/google-services.json` must contain:
 - `client_type: 1` — Android OAuth client (requires the app's SHA-1 fingerprint registered in Firebase/Google Cloud)
 - `client_type: 3` — Web OAuth client (generates `R.string.default_web_client_id`)
 
-The debug SHA-1 for this project: `50:5B:DC:3B:C9:49:F5:96:91:84:F2:23:0F:D1:BE:25:1B:10:7E:59`
+The file is **checked in** in Dagboken (project `dagboken-711d2`; client config, not a secret). The
+debug SHA-1 for this project: `50:5B:DC:3B:C9:49:F5:96:91:84:F2:23:0F:D1:BE:25:1B:10:7E:59`. The
+release keystore's SHA-1 must be registered too (README → Firebase-setup).
 
 If `client_type: 1` is missing:
 1. Go to Firebase Console → Project Settings → Your Android app
@@ -124,31 +95,28 @@ If `client_type: 1` is missing:
 
 Always use `GetSignInWithGoogleOption` for first-time sign-in flows.
 
-## WorkManager Integration
+## Background work and receivers
 
-`BackupWorker` checks `authRepo.currentUser` before doing work:
-
-```kotlin
-override suspend fun doWork(): Result {
-    if (authRepo.currentUser == null) return Result.success() // skip if not signed in
-    // ... perform backup
-}
-```
+Workers and alarm receivers check the signed-in user before touching data; signed out they do
+nothing (no backup worker exists in 4.0 – backup runs in GitHub Actions, BCK-12).
 
 ## Error Categories
 
-| Exception | Meaning | Handle |
-|---|---|---|
-| `GetCredentialCancellationException` | User dismissed picker | Silent — no error shown |
-| `GetCredentialException` | No Google accounts on device, API not available | Show error |
-| `FirebaseAuthException` | Firebase rejected the token | Show error + log |
-| Generic `Exception` | Network issue, other | Show error |
+`AuthRepository` maps every exception to `DataError` once, with `suspendRunCatching` (in
+`data/common/`), exactly like `FirestoreCollection` does for data:
 
-## Dependencies (already in project)
+| Exception | Meaning | `DataError` | Handle |
+|---|---|---|---|
+| `GetCredentialCancellationException` | User dismissed picker | `Cancelled` | Silent — not an error (AUTH-4) |
+| `GetCredentialException` | No Google accounts on device, API not available | `Unknown` | Show error |
+| `FirebaseAuthException` | Firebase rejected the token | `SignInRejected` | Show error; log only the exception class, never email/uid (skill `data-privacy-security`) |
+| `FirebaseNetworkException`, `IOException` | No network | `Offline` | Show error |
+
+## Dependencies
 
 ```toml
 # libs.versions.toml
-firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }  # version from Firebase BOM
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentialManager" }
 credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentialManager" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleIdentity" }

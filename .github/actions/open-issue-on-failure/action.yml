@@ -1,0 +1,30 @@
+name: Öppna issue vid fel
+description: >-
+  Öppnar ett issue (eller kommenterar ett öppet med samma titel) med länk till körningen.
+  Används av schemalagda flöden (quality.yml, backup.yml) som ingen annars tittar på.
+  Kräver permissions: issues: write.
+
+inputs:
+  title:
+    description: Issuets titel – samma titel återanvänds så att fel inte ger dubbletter.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Issue
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TITLE: ${{ inputs.title }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        set -euo pipefail
+        body="Körningen misslyckades: $RUN_URL"
+        existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$TITLE\" in:title" --json number,title \
+          --jq ".[] | select(.title == env.TITLE) | .number" | head -n1)"
+        if [ -n "$existing" ]; then
+          gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
+        else
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "$body"
+        fi

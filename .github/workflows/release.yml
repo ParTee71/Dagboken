@@ -1,14 +1,22 @@
-name: Release Build
+# Release (skill release), byggd för få Actions-minuter (skill ci-budget):
+# - gate (sekunder): master, version, secrets och att CI redan är grönt på commiten – master-
+#   pushen har kört alla tester och dokumentkontroller; de körs inte om här. Fel stoppar allt.
+# - build: lint och det signerade, minifierade bygget i samma Gradle-körning – parallellt med
+# - instrumented: instrumenttesterna på emulator – bara om koden de testar inte redan testats
+#   grönt i en PR (filtret instrumented i android.yml, oförändrat sedan PR:ens commit).
+# - publish: när båda är gröna – deployar firestore.rules bara om de ändrats sedan förra
+#   releasen, skapar taggen och GitHub Release.
+# Taggen skapas här – en agentsession kan inte pusha taggar.
+name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       version_name:
-        description: 'Version name (e.g. 2.6.1) — leave blank to use value in build.gradle.kts'
-        required: false
+        description: 'Version utan v, t.ex. 4.0.0 – måste vara samma som versionName i version.properties'
+        required: true
         type: string
       publish_release:
         description: 'Skapa taggen v<version_name> och publicera en GitHub Release'
@@ -17,103 +25,265 @@ on:
         type: boolean
 
 permissions:
-  contents: write   # required to create a GitHub Release on tag push
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  release:
+  gate:
+    name: gate
     runs-on: ubuntu-latest
-
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      checks: read
+      actions: read # PR-körningarnas resultat (instrumenttester)
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      publish: ${{ steps.version.outputs.publish }}
+      run_instrumented: ${{ steps.instrumented.outputs.run }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # En release startas antingen genom att pusha taggen vX.Y.Z, eller — när
-      # tag-push inte är möjlig (agentsessioner får HTTP 403 på refs/tags/*) —
-      # genom workflow_dispatch med publish_release ikryssad. I det senare fallet
-      # skapas taggen av action-gh-release på den utcheckade committen.
-      - name: Resolve release tag
-        id: release_tag
+      - name: Version och tagg
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version_name }}
+          PUBLISH: ${{ inputs.publish_release }}
+        run: |
+          set -euo pipefail
+          # Release bara från master: dispatch på master, eller en tagg på en commit i master.
+          git fetch --no-tags --quiet origin master
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::Commiten $GITHUB_SHA ligger inte på master – release görs bara från master (skill release)."
+            exit 1
+          fi
+          in_build="$(sed -n 's/^versionName=//p' version.properties)"
+          if [ "$EVENT" = "push" ]; then
+            version="${REF_NAME#v}"; publish=true
+          else
+            version="$INPUT_VERSION"; publish="$PUBLISH"
+          fi
+          if [ "$version" != "$in_build" ]; then
+            echo "::error::Versionen $version skiljer sig från versionName $in_build i version.properties – gör release-commiten först (skill release)."
+            exit 1
+          fi
+          tag="v$version"
+          if [ "$EVENT" != "push" ] && [ "$publish" = "true" ] && gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" > /dev/null 2>&1; then
+            echo "::error::Taggen $tag finns redan – välj en ny version."
+            exit 1
+          fi
+          {
+            echo "tag=$tag"
+            echo "publish=$publish"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Secrets finns
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          FIREBASE_RULES_DEPLOYER: ${{ secrets.FIREBASE_RULES_DEPLOYER }}
+        run: |
+          for name in SIGNING_KEYSTORE_BASE64 SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD FIREBASE_RULES_DEPLOYER; do
+            if [ -z "${!name}" ]; then echo "::error::Secret $name saknas – krävs för en release."; exit 1; fi
+          done
+
+      # Tester, cpdCheck, rules-tester och dokumentkontroller har redan körts av CI på samma
+      # commit (master-pushen) – kontrollera resultatet i stället för att köra om dem. Starta
+      # releasen först när CI på master är klart (skill release); annars stannar den här.
+      - name: CI grönt på commiten
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "push" ]; then
-            tag="${{ github.ref_name }}"
-          elif [ "${{ inputs.publish_release }}" = "true" ]; then
-            if [ -z "${{ inputs.version_name }}" ]; then
-              echo "::error::version_name måste anges när publish_release är ikryssad"
-              exit 1
-            fi
-            tag="v${{ inputs.version_name }}"
-            if gh api "repos/${{ github.repository }}/git/ref/tags/$tag" >/dev/null 2>&1; then
-              echo "::error::Taggen $tag finns redan — välj en ny version"
-              exit 1
-            fi
-          else
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          result="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?check_name=ci-ok" \
+            --jq '[.check_runs[] | select(.app.slug == "github-actions")][0] | "\(.status) \(.conclusion)"')"
+          if [ "$result" != "completed success" ]; then
+            echo "::error::CI på $GITHUB_SHA är inte grönt ($result). Vänta tills CI på master är klart och starta releasen igen."
+            exit 1
           fi
-          echo "publish=true" >> "$GITHUB_OUTPUT"
-          echo "name=$tag" >> "$GITHUB_OUTPUT"
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Decode keystore
-        run: |
-          echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 --decode > app/dagboken.jks
-
-      - name: Convert keystore to legacy PKCS12
-        run: |
-          keytool -importkeystore \
-            -srckeystore app/dagboken.jks \
-            -srcstorepass "${{ secrets.SIGNING_STORE_PASSWORD }}" \
-            -destkeystore app/dagboken-legacy.jks \
-            -deststorepass "${{ secrets.SIGNING_STORE_PASSWORD }}" \
-            -deststoretype pkcs12 \
-            -J-Dkeystore.pkcs12.legacy \
-            -noprompt
-          mv app/dagboken-legacy.jks app/dagboken.jks
-
-      - name: Build release APK
+      # Instrumenttesterna körs i PR:en; samma kod behöver inte testas igen. Jämför bara de
+      # sökvägar som startar dem (en källa: filtret instrumented i android.yml).
+      - name: Redan instrumenttestat i en PR?
+        id: instrumented
         env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mapfile -t paths < <(node .github/scripts/instrumented-paths.mjs)
+          run=true
+          shas="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/android.yml/runs?event=pull_request&status=success&per_page=15" \
+            --jq '.workflow_runs[].head_sha')" || { echo "::warning::Kunde inte läsa PR-körningarna – instrumenttesterna körs."; shas=""; }
+          for sha in $shas; do
+            git cat-file -e "$sha^{commit}" 2>/dev/null || continue
+            green="$(gh api -X GET "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs" -f check_name='instrumented / instrumented' \
+              --jq '[.check_runs[] | select(.conclusion == "success")] | length')"
+            [ "$green" -gt 0 ] || continue
+            if git diff --quiet "$sha" "$GITHUB_SHA" -- "${paths[@]}"; then
+              run=false
+              echo "Instrumenttesterna var gröna i PR-commiten $sha och koden är oförändrad – körs inte igen." >> "$GITHUB_STEP_SUMMARY"
+              break
+            fi
+          done
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: build
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      apk: ${{ steps.apk.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-android
+
+      # app/google-services.json är incheckad i Dagboken (Firebase-klientkonfiguration, ingen
+      # hemlighet) – bara keystoren kommer från secrets.
+      - name: Keystore till fil
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
-          if [ -n "${{ inputs.version_name }}" ]; then
-            ./gradlew :app:assembleRelease \
-              -PversionNameOverride="${{ inputs.version_name }}"
-          else
-            ./gradlew :app:assembleRelease
-          fi
+          set -euo pipefail
+          for name in SIGNING_KEYSTORE_BASE64 SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name saknas – krävs för en release."
+              exit 1
+            fi
+          done
+          printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 --decode > app/dagboken.jks
+          # Äldre PKCS12-format, som AGP:s signering läser utan problem.
+          keytool -importkeystore -noprompt \
+            -srckeystore app/dagboken.jks -srcstorepass "$SIGNING_STORE_PASSWORD" \
+            -destkeystore app/dagboken-legacy.jks -deststorepass "$SIGNING_STORE_PASSWORD" \
+            -deststoretype pkcs12 -J-Dkeystore.pkcs12.legacy > /dev/null
+          mv app/dagboken-legacy.jks app/dagboken.jks
 
-      - name: Upload APK artifact
+      # Lint på release-varianten återanvänder bygget i samma körning; det minifierade bygget
+      # är samtidigt beviset att R8 fungerar (NFR-3) – inget eget kvalitetsbygge vid release.
+      - name: Lint och signerat release-bygge
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: ./gradlew --continue :app:lintRelease :app:assembleRelease
+
+      - name: Lintrapport
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: dagboken-release
-          path: app/build/outputs/apk/release/*.apk
-          retention-days: 30
+          name: lint
+          path: app/build/reports/lint-results-release.*
+          if-no-files-found: ignore
 
-      # Publish a GitHub Release with the signed APK + auto-generated changelog.
-      # Vid tag-push, och vid workflow_dispatch med publish_release ikryssad
-      # (taggen skapas då här). Övriga dispatch-körningar är artifact-only.
-      - name: Publish GitHub Release
-        if: steps.release_tag.outputs.publish == 'true'
-        uses: softprops/action-gh-release@v2
+      # Byggfilen signerar bara när alla uppgifter finns – publicera aldrig en osignerad APK.
+      - name: Kontrollera signaturen
+        run: |
+          set -euo pipefail
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n1)apksigner"
+          for apk in app/build/outputs/apk/release/*.apk; do
+            case "$apk" in *unsigned*) echo "::error::$apk är osignerad"; exit 1 ;; esac
+            "$apksigner" verify "$apk"
+          done
+
+      # Appens namn, version och byggtid (UTC) i filnamnet.
+      - name: Namnge APK:n
+        id: apk
+        env:
+          TAG: ${{ needs.gate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          apks=(app/build/outputs/apk/release/*.apk)
+          if [ "${#apks[@]}" -ne 1 ]; then echo "::error::Väntade en APK, fick ${#apks[@]}"; exit 1; fi
+          name="Dagboken-${TAG#v}-$(date -u +%Y%m%d-%H%M).apk"
+          cp "${apks[0]}" "$RUNNER_TEMP/$name"
+          {
+            echo "path=$RUNNER_TEMP/$name"
+            echo "name=$name"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: APK som artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: Dagboken ${{ steps.release_tag.outputs.name }}
-          tag_name: ${{ steps.release_tag.outputs.name }}
-          target_commitish: ${{ github.sha }}
-          generate_release_notes: true
-          files: app/build/outputs/apk/release/*.apk
+          name: dagboken-${{ needs.gate.outputs.tag }}
+          path: ${{ steps.apk.outputs.path }}
+          retention-days: 7
+          if-no-files-found: error
 
-      - name: Remove keystore
+      - name: Ta bort keystoren
         if: always()
         run: rm -f app/dagboken.jks
+
+  instrumented:
+    needs: gate
+    if: needs.gate.outputs.run_instrumented == 'true'
+    uses: ./.github/workflows/instrumented.yml
+
+  publish:
+    name: publish
+    needs: [gate, build, instrumented]
+    # Hoppade instrumenttester (redan gröna i PR:en) stoppar inte publiceringen; fallerade gör det.
+    if: >-
+      !cancelled() && needs.gate.outputs.publish == 'true'
+      && needs.build.result == 'success'
+      && (needs.instrumented.result == 'success' || needs.instrumented.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # skapa taggen och GitHub Release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Rules före appen (BCK-15), men bara när de ändrats sedan förra releasen.
+      - name: Ändrade rules?
+        id: rules
+        env:
+          TAG: ${{ needs.gate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          prev="$(git describe --tags --abbrev=0 --match 'v*' --exclude "$TAG" 2>/dev/null || true)"
+          if [ -n "$prev" ] && git diff --quiet "$prev" HEAD -- firestore.rules; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "firestore.rules oförändrade sedan $prev – ingen deploy." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.rules.outputs.changed == 'true'
+        uses: ./.github/actions/setup-tools-db
+
+      - if: steps.rules.outputs.changed == 'true'
+        uses: ./.github/actions/deploy-rules
+        with:
+          credentials: ${{ secrets.FIREBASE_RULES_DEPLOYER }}
+          dry-run: 'false'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dagboken-${{ needs.gate.outputs.tag }}
+          path: ${{ runner.temp }}/apk
+
+      - name: GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2 – pinnad: körs med contents: write
+        with:
+          name: Dagboken ${{ needs.gate.outputs.tag }}
+          tag_name: ${{ needs.gate.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: ${{ runner.temp }}/apk/${{ needs.build.outputs.apk }}

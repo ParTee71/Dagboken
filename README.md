@@ -1,139 +1,256 @@
 # Dagboken – Android
 
-Hälsodagbok för att logga aktiviteter, daglig screening (energi, stress, symptom) och mediciner, med diagram, påminnelser och molnbackup via Google Drive.
+Hälsodagbok för att logga mående (energi, stress, symptom), aktiviteter, händelser, mediciner och
+sjukdomar – med en dagsvy att bocka av, en tidslinje över allt loggat, trender med klockans
+data och påminnelser. **Version 4.0 byggs om på `master`.**
 
-**Kravspecifikation:** [KRAVLISTA.md](KRAVLISTA.md) · **Utvecklingsregler:** [CLAUDE.md](CLAUDE.md)
+**Kravspecifikation:** [KRAVLISTA.md](KRAVLISTA.md) · **Arkitektur och ombyggnadsplan:** [ARKITEKTUR.md](ARKITEKTUR.md) · **Utvecklingsregler:** [CLAUDE.md](CLAUDE.md)
 
-> **Ombyggnad 4.0 pågår på `master`.** Besluten (Firestore offline-först, fyra flikar, nytt
-> designspråk, migrering utan dataförlust) och etappplanen står i [ARKITEKTUR.md](ARKITEKTUR.md)
-> (ADR-001). Appen 3.27.0 som beskrivs nedan ligger på branchen `legacy` tills 4.0 släpps.
+> **Ombyggnad 4.0 pågår.** Dagboken byggs om på ReseApotekets grund: Firestore offline-först
+> under `users/{uid}` i stället för Room och Drive-backup, fyra flikar, designspråket
+> "Papper och teal", `:core` + `:app`, paths-filtrerad CI på ca 8 Actions-minuter och
+> databasåtkomst från Claude-sessionen med `tools/db`. Villkor nummer ett: **ingen data får
+> tappas** – 3.x-datan migreras på enheten och bevisas med fixtur, rundtur och en riktig backup
+> (KRAVLISTA §22). Besluten och etapperna står i [ARKITEKTUR.md](ARKITEKTUR.md) (ADR-001).
+> Appen 3.27.0 ligger på branchen `legacy` (och taggen `v3.27.0`) tills 4.0 släpps.
 
 > **Bidrar du (eller en AI-assistent) med kod?** Läs [CLAUDE.md](CLAUDE.md) först. Den
-> samlar projektets fyra icke-förhandlingsbara regler som gäller vid varje ändring:
-> datasäkerhet (backup/restore), tester på alla nivåer, aktuell kravlista och återbruk
-> av delade UI-komponenter. Detaljer ligger som skills i [`.claude/skills/`](.claude/skills/).
+> samlar projektets fem icke-förhandlingsbara regler: datasäkerhet (ingen data får tappas),
+> tester på alla nivåer, aktuell kravlista, enhetligt utan dubbelkod och CI-budget – plus
+> regeln om mockup före ny GUI. Detaljer ligger som skills i [`.claude/skills/`](.claude/skills/).
 
 ---
 
-## Funktioner
+## Funktioner (4.0)
 
-- **Aktivitetsloggning** — välj aktivitetstyp (favoriter som chips, övriga via dropdown), tagga som återhämtande/energitjuv, logga energi, stress och duration
-- **Daglig screening** — energi- och stressnivåer (0–10), symptomloggning med svårighetsgrad, koppling till måltidshändelse
-- **Symptom & aktivitetstyper** — konfigurerbara listor med favoriter, döp om och ta bort; favoriter visas framträdande i loggvyn
-- **Mediciner** — schemalagda doser (dagliga, veckodagar, intervall), engångsdoser, vid-behovs-favoriter med kyldownregler och maxdos per dag
-- **Händelselogg** — logga hälsohändelser med typ, svårighetsgrad, varaktighet, triggers och åtgärder
-- **Diagram** — energi- och stresstrender över valbar tidsperiod
-- **Påminnelser** — medicinnotiser 15 min i förväg, konfigurerbara screeningpåminnelser per måltidstillfälle
-- **Backup** — automatisk daglig säkerhetskopiering till Google Drive, import från backup-fil eller Drive
-- **Tema** — mörkt/ljust/auto med konfigurerbar dag- och kvällstid
+Fyra flikar, ett inställningsark bakom avataren och en plusknapp som loggar mot visad dag
+(KRAVLISTA §3):
+
+- **Idag** – datumremsa, framstegsrad, dagens mediciner som checklista, mående per tillfälle
+  (frukost, lunch, middag, kväll) med "Logga nu", vid behov-mediciner som snabbval, pågående
+  sjukdom, Hälsa idag från klockan och en 7-dagarstrend. När allt är klart: "Allt klart för
+  idag", konfetti en gång och ett sammanfattningskort (HEM).
+- **Dagbok** – tidslinje över alla posttyper per dag med filter (Mående, Aktiviteter, Doser,
+  Händelser, Sjukdom), kalendervy, "Visa äldre" ett år i taget och sjukdomsepisoder med
+  incheckningar (HIST, SJ).
+- **Trender** – diagram i grupperna Mående · Klocka · Jämför, var och en med egen period;
+  Health Connect-status och klockans alla mått under Klocka (TRD, HLS).
+- **Mediciner** – recept och scheman med doshöjningar och perioder, vid behov-mediciner med
+  kylperiod och dagsgräns, avslutade recept och "Logga en dos i efterhand" (MEDF, REC, FAV).
+- **Logga** (plusknappen) – Mående, Aktivitet, Dos, Händelse, Sjukdom.
+- **Inställningar** (avataren) – konto, profil, påminnelser, tema (ljust, mörkt, auto), listor
+  över aktivitetstyper, symptom och händelsetyper, export och import, om appen.
+- **Påminnelser** – medicin, mående och periodslut via exakta larm som överlever omstart (NOT).
+- **Data** – inloggning med Google krävs; all data ligger offline-först i Firestore och synkas
+  när nätet finns; veckovis krypterad backup i GitHub Actions; export till fil och import av
+  en 3.x-backup (BCK-11–16).
+
+Funktionerna i 3.27.0 beskrivs i versionshistoriken nedan och i kravlistan på branchen `legacy`.
 
 ---
 
-## Kom igång
+## Kom igång (Android Studio)
 
-### Förutsättningar
-
-- Senaste Android Studio (stable channel)
-- JDK 17
-- Android SDK API 35 (compileSdk), minSdk 30
-
-### Bygg och kör
+1. Android Studio (senaste stabila) med JDK 17 och Android SDK-plattform 37 (`compileSdk`, TP-1).
+2. Klona repot och öppna det. `app/google-services.json` (Firebase-projektet `dagboken-711d2`) är
+   incheckad – inloggning fungerar för nycklar vars SHA-1 är registrerad (se [Firebase-setup](#firebase-setup)).
+3. Byggkommandon och vilka tester som finns: [CLAUDE.md → Bygg & test](CLAUDE.md#bygg--test).
+   Moduler, lager och datamodell: [ARKITEKTUR.md](ARKITEKTUR.md).
 
 ```bash
 git clone https://github.com/ParTee71/Dagboken.git
 cd Dagboken
+./gradlew :core:test :app:testDebugUnitTest
 ./gradlew :app:assembleDebug
 ```
 
-Öppna projektet i Android Studio och kör på en enhet eller emulator (API 30+).
+### Releasebygge och signering
 
-### Google Services
+Releasen byggs och signeras av GitHub Actions (`release.yml`, skill
+[`release`](.claude/skills/release/SKILL.md)) med keystoren och lösenorden från secrets
+(`SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`).
+Lokalt kräver releasebygget `dagboken.jks` i `app/` (git-ignorerad) och lösenorden i
+`local.properties` (git-ignorerad) eller som miljövariabler:
 
-Appen kräver en `google-services.json` från Firebase Console (Firebase Auth + Google Sign-In). Placera filen i `app/`. Filen är git-ignorerad och delas inte i repot.
-
----
-
-## Releasebygge och signering
-
-Releasebygget kräver en keystore och lösenord via `local.properties` (git-ignorerad) eller miljövariabler:
-
-**local.properties:**
 ```properties
 signing.storePassword=<lösenord>
 signing.keyAlias=dagboken
 signing.keyPassword=<lösenord>
 ```
 
-**Miljövariabler (CI):**
-```
-SIGNING_STORE_PASSWORD
-SIGNING_KEY_ALIAS
-SIGNING_KEY_PASSWORD
-```
+### Arkitektur
 
-Keystorefilen `dagboken.jks` placeras i `app/` och är git-ignorerad.
+`:core` (ren Kotlin/JVM: modeller, codecs, motorer, 3.x-konverteraren) + `:app` (Compose,
+Navigation 3, Hilt, Firestore). `Compose → ViewModel (StateFlow<UiState>) → Repository →
+FirestoreCollection<T> → Firestore`. Struktur, datamodell, lager, migrering och etapper:
+[ARKITEKTUR.md](ARKITEKTUR.md). 3.x-strukturen (Room, DataStore, Drive) finns på branchen `legacy`.
 
 ---
 
-## Arkitektur
+## Utveckling via Claude
 
+Utvecklingen sker mest från telefonen. Claude-sessionen har allt som behövs för att bygga, testa
+och läsa databasen – utan att nycklar någonsin klistras in i chatten.
+
+### Det som ligger i repot
+- `CLAUDE.md`, skills och agenter i `.claude/` (agenterna `byggare`, `arkitekt`, `testskrivare`,
+  `granskare`, `ci-doktor` och `db-inspektor` med modell i frontmatter, ARKITEKTUR.md → Agenter).
+- `.claude/settings.json` förhandsgodkänner utan fråga:
+  - läsning av PR:er, CI-status och jobbloggar, och bevakning av PR-aktivitet;
+  - schemalagda check-ins och triggers (skapa, ändra, ta bort, köra), så att Claude kan följa
+    upp PR:er utan att du behöver svara;
+  - läsande databaskommandon (`tools/db` query, get, stats);
+  - hooktestet och dokumentkontrollerna (`node --test` på de två testkatalogerna).
+  Skrivande databaskommandon (`import`, `migrate`) kräver alltid bekräftelse.
+- Hooken `session-start.sh` installerar `tools/db` (utan livscykelskript), talar om ifall
+  databasnyckeln finns och om Android SDK finns i sessionen (då kan Gradle köras där).
+- Hooken `regel4-check.mjs` kontrollerar regel 4 direkt efter varje filändring, med samma
+  mönster som bygget (`app/src/test/resources/ui-forbidden.txt`).
+- Hookarna hittar repot både när det är sessionens projektrot och när sessionen har flera
+  repon under en gemensam katalog.
+
+### Det du ställer in i Claude-miljön (en gång)
+Görs i Claude-appen: miljömenyn i sessionens titelrad → **Edit**. Nya inställningar gäller
+från nästa session.
+
+**Miljövariabler**
+
+| Variabel | Innehåll | När |
+|---|---|---|
+| `FIREBASE_SERVICE_ACCOUNT` | service-account-JSON (rå eller base64) för projektet `dagboken-711d2` med rollen **Cloud Datastore Viewer** (läs) | för att läsa databasen från sessionen |
+| `FIREBASE_SERVICE_ACCOUNT_RW` | samma, men rollen **Cloud Datastore User** | bara när du uttryckligen vill att Claude ska kunna importera/migrera (t.ex. grinden OMB-4) |
+| `FIREBASE_PROJECT_ID` | projekt-ID som nyckeln måste höra till | bara om det inte är projektet i `app/google-services.json` (`dagboken-711d2`) |
+
+Nyckeln skapas i Google Cloud Console → IAM → Service accounts → Keys. Filens innehåll kan
+läggas in som det är eller base64-kodat (`base64 -w0 nyckel.json`). **Klistra aldrig in en
+nyckel i chatten**, och checka aldrig in den – den hör bara hemma i miljöns inställningar och i
+GitHub-secrets.
+
+**Nätverk** – tillåt dessa värdar:
+`firestore.googleapis.com`, `oauth2.googleapis.com`, `www.googleapis.com`,
+`registry.npmjs.org`, `dl.google.com`, `maven.google.com`, `services.gradle.org`,
+`plugins.gradle.org`, `repo.maven.apache.org`, och för Firebase-emulatorn (rules- och
+rundturstesterna) `storage.googleapis.com`.
+
+### Läsa databasen från sessionen
+1. Skapa en läsnyckel (rollen **Cloud Datastore Viewer**, Firebase-setup steg 3) och lägg den
+   som miljövariabeln `FIREBASE_SERVICE_ACCOUNT` (tabellen ovan).
+2. Tillåt nätverksvärdarna ovan och starta en **ny** session – hooken installerar `tools/db`
+   och talar om att nyckeln är satt.
+3. Fråga Claude ("hur många mående-loggar finns från september?") – agenten `db-inspektor`
+   använder `tools/db` och visar bara det du frågat om. Själv kan du köra
+   `node tools/db/stats.mjs`, `query.mjs <samling>` och `get.mjs <sökväg>` (alla har `--help`).
+
+Verktygen läser bara och sparar inget på disk. Se skill
+[`db-access`](.claude/skills/db-access/SKILL.md).
+
+### Tester och CI
+Claude kör testerna lokalt i sessionen före push; GitHub Actions bekräftar när en PR öppnas.
+Bara det som berörs av ändringen körs (`android.yml` med paths-filter: `core`, `app`, `tools`,
+`build`, `instrumented`). Lint och minifierat release-bygge körs måndagar (`quality.yml`),
+backupen måndagar (`backup.yml`), rules-deploy på begäran (`rules.yml`) och vid release
+(`release.yml`). Vad som körs när står i skill [`ci-budget`](.claude/skills/ci-budget/SKILL.md).
+
+**Grenskydd (en gång, i GitHub):** Settings → Branches → `master` → kräv statuskontrollen
+`ci-ok`. Gör inte `gradle` eller `rules` obligatoriska – hoppade jobb rapporterar ingen status.
+
+Dokumentkontrollerna och hooktestet kan köras lokalt:
+
+```bash
+node --test '.github/scripts/*.test.mjs'
+node --test '.claude/hooks/test/*.test.mjs'
 ```
-app/
-├── data/
-│   ├── auth/          FirebaseAuthRepository – Google Sign-In via Credential Manager
-│   ├── datastore/     PreferencesRepository – inställningar, teman, screeningtider, symptom/aktivitetstyper
-│   ├── migration/     DriveBackupRepository – import/export mot Google Drive
-│   ├── repository/    AktiviteterRepository, MedicinerRepository, HandelserRepository
-│   └── room/          Room-databas, DAOs, entiteter
-├── di/                Hilt-moduler (AppModule, DatabaseModule, …)
-├── domain/
-│   ├── model/         Domänmodeller (Aktivitet, Medicin, Recept, Favorit, Handelse, …)
-│   └── usecase/       EnsureTodayEntriesUseCase, DosLimitUseCase, CheckCooldownUseCase, …
-├── notifications/     AlarmScheduler, påminnelsemottagare (medicin + screening)
-├── ui/
-│   ├── aktiviteter/   LoggaTab, ScreeningTab, HistorikTab – loggning och screening
-│   ├── components/    Delade komponenter: SymptomLogCard, Foldout, GradientSliderRow, DateTimeRow, …
-│   ├── diagram/       Trenddiagram (LineChartCanvas)
-│   ├── handelser/     Händelselogg – logga hälsohändelser med triggers och åtgärder
-│   ├── home/          Hemskärm med dagens mediciner och screeningstatus
-│   ├── mediciner/     Mediciner, recept, favoriter och vid-behov-doser
-│   ├── migration/     Importguide från Google Drive-backup
-│   ├── settings/      Inställningar, tema, notiser, symptomtyper, aktivitetstyper
-│   └── theme/         Material 3-tema (färger, typografi, animationer)
-└── worker/            BackupWorker – schemalagd Drive-backup
-```
-
-**Stack:** Kotlin · Jetpack Compose + Material 3 · MVVM · Hilt · Room · DataStore · Firebase Auth · Google Drive API · WorkManager · kotlinx.serialization
-
-### Datamodell: SymptomOption
-
-Symptom och aktivitetstyper lagras som `List<SymptomOption>` i DataStore med stöd för favoriter:
-
-```kotlin
-@Serializable
-data class SymptomOption(val name: String, val isFavorite: Boolean = false)
-```
-
-DataStore-migrering hanteras transparent: befintliga `List<String>`-värden migreras automatiskt till det nya formatet vid läsning.
 
 ---
 
-## CI
+## Firebase-setup
 
-GitHub Actions kör vid push/PR mot `master`:
-- `:app:compileDebugKotlin`
-- `:app:compileDebugUnitTestKotlin`
-- `:app:compileDebugAndroidTestKotlin`
-- `:app:testDebugUnitTest`
+Görs en gång av dig i Firebase- och GitHub-konsolerna. Inga nycklar hör hemma i repot eller i
+chatten (skill [`data-privacy-security`](.claude/skills/data-privacy-security/SKILL.md)).
 
-Se [.github/workflows/android.yml](.github/workflows/android.yml).
+1. **Projekt:** Firebase-projektet `dagboken-711d2` finns sedan 3.x. Aktivera
+   **Authentication → Google** (redan på för 3.x-inloggningen) och skapa **Firestore** i
+   production mode i en EU-region (`europe-west`, ARKITEKTUR.md → Konsekvenser). Spark-planen räcker.
+2. **Android-app:** appen `se.partee71.dagboken` finns; registrera SHA-1 för både debug- och
+   release-nyckeln. `app/google-services.json` är incheckad – ladda ner en ny och ersätt filen
+   om SHA-1 eller OAuth-klienter ändras. Ingen GitHub-secret behövs för den.
+3. **Service accounts** (Google Cloud Console → IAM → Service accounts):
+   - `dagboken-backup` med rollen **Cloud Datastore Viewer** (backupen läser bara) →
+     nyckeln som GitHub-secret `FIREBASE_SERVICE_ACCOUNT` (veckobackupen).
+   - `dagboken-rules` med rollerna **Firebase Rules Admin** och **Service Usage Consumer**
+     (får bara ändra security rules, inte läsa data) → nyckeln som GitHub-secret
+     `FIREBASE_RULES_DEPLOYER`.
+   - en läsnyckel med rollen **Cloud Datastore Viewer** → miljövariabeln
+     `FIREBASE_SERVICE_ACCOUNT` i Claude-miljön (se ovan).
+
+   Nyckelfilens innehåll läggs in som det är (eller base64-kodat). `tools/db` och deploysteget
+   stoppar en nyckel som hör till ett annat projekt än `dagboken-711d2`.
+4. **Security rules:** `firestore.rules` släpper bara in ägaren (`users/{uid}`, TP-12) och
+   deployas av GitHub Actions, alltid efter rules-testerna mot emulatorn och aldrig från en PR:
+   - **Actions → Rules → Run workflow** (`rules.yml`): provkör (`--dry-run`) som
+     standard; kryssa i **deploy** för att deploya på riktigt (bara från `master`).
+   - **Release** (`release.yml`) deployar rules före publiceringen när de ändrats sedan förra
+     releasen, så att appen aldrig släpps före sina rules.
+
+   Reservväg, och för `firestore.indexes.json` (deploynyckeln får inte ändra index): från din
+   egen dator, inloggad med `npx --prefix tools/db firebase login`:
+   ```bash
+   npm ci --prefix tools/db
+   npx --prefix tools/db firebase deploy --only firestore:rules,firestore:indexes --project dagboken-711d2
+   ```
+5. **GitHub-secrets för release:** `SIGNING_KEYSTORE_BASE64` (`base64 -w0 dagboken.jks`),
+   `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD` – samma som i 3.x.
+
+**Testa reglerna lokalt** (kräver Java 21; startar Firebase-emulatorn med ett demo-projekt och rör
+aldrig den riktiga databasen):
+```bash
+npm ci --prefix tools/db
+npx --prefix tools/db firebase emulators:exec --only firestore --project demo-dagboken "npm --prefix tools/db test"
+```
+
+## Backup och återställning
+
+Firestore är molnkopian (BCK-11). Dessutom exporterar `backup.yml` all data varje måndag
+03:00 UTC (och på begäran: Actions → Backup → Run workflow), krypterar den med gpg och sparar
+`backup.json.gpg` som artifact i 90 dagar (BCK-12). Drive-backupen från 3.x är pensionerad;
+en 3.x-backup kan fortfarande importeras i appen (BCK-14).
+
+**Inställning (en gång):** skapa en lång lösenfras och lägg den som GitHub-secret
+`BACKUP_PASSPHRASE` **och** i din lösenordshanterare – utan den går backupen inte att öppna.
+`FIREBASE_SERVICE_ACCOUNT` enligt Firebase-setup ovan.
+
+**Återställning** (från din dator eller en Claude-session med skrivnyckel):
+1. Ladda ner artifact `backup-<nr>` från körningen och packa upp `backup.json.gpg`.
+2. Dekryptera till den git-ignorerade katalogen `tools/db/` – lösenfrasen skriver du själv,
+   aldrig i chatten:
+   ```bash
+   gpg --decrypt --output tools/db/backup.json backup.json.gpg
+   ```
+   gpg kontrollerar integriteten: en trasig eller ändrad fil ger fel i stället för fel data.
+3. Kontrollera och skriv:
+   ```bash
+   node tools/db/import.mjs --in tools/db/backup.json --dry-run
+   node tools/db/import.mjs --in tools/db/backup.json
+   ```
+   Importen kontrollerar hela filen innan något skrivs och vägrar användare med nyare
+   `schemaVersion` än verktyget. En enda användare: `--user <uid>`. Utan `--replace` ligger
+   dokument som tillkommit efter backupen kvar; med `--replace` blir användarens data exakt som
+   i backupen (torrkörningen visar vad som skulle tas bort).
+   Kör när appen inte används: importen skriver över dokument som ändrats under tiden.
+4. Radera `tools/db/backup.json`.
+
+**Egen export:** Inställningar → Export och import sparar hela dagboken som JSON i samma format
+(BCK-13).
 
 ---
 
 ## Versionshistorik
 
+Versionen höjs bara vid release (skill [`release`](.claude/skills/release/SKILL.md)); den står i `version.properties`.
+
 | Version | Innehåll |
 |---|---|
+| 4.0.0 | *Under ombyggnad på `master`* – ny kodbas på ReseApotekets grund: Firestore offline-först under `users/{uid}`, inloggning krävs, fyra flikar (Idag · Dagbok · Trender · Mediciner), designspråket Papper och teal, migrering av 3.x-datan utan förlust, veckovis krypterad backup i GitHub Actions och CI på ca 8 Actions-minuter per PR ([ARKITEKTUR.md](ARKITEKTUR.md), KRAVLISTA §21–23). |
 | 3.27.0 | Vid behov-mediciner når nu alla mediciner, och hanteras fullt ut från Hantera. "Fler"-listan i Idag-skärmens vid behov-kort listar utöver de icke favoritmarkerade favoriterna även **de aktiva receptens** mediciner i en egen avdelning — så en extrados av en receptmedicin går att logga direkt från Idag, med receptets gällande dos för dagen (REC-12) och loggad som en vid behov-dos utan receptkoppling, alltså en extrados vid sidan av schemat som går att radera i stället för att hoppas över (FAV-11). I Hantera → Vid behov-mediciner går det nu att **lägga till, ändra och ta bort** en medicin, inte bara stjärnmärka den: raden öppnar det delade favoritformuläret vid tryck, menyn ger Redigera/favoritmarkering/Ta bort och sektionen har en "Ny vid behov-medicin"-knapp (SET-10, NFR-17) |
 | 3.26.1 | Klockans träningspass syntes inte. Två fel: dels visades ett pass aldrig när den valfria behörigheten `READ_EXERCISE` inte var beviljad — vilket den inte var för den som gav sitt samtycke före 3.20.0, då behörigheten ännu inte fanns — och appen hade ingen väg tillbaka till samtyckesdialogen, eftersom den bara nåddes från behörighetsläget som kärnbehörigheterna styr. Måttet visades som ”—”, omöjligt att skilja från ett dygn utan pass. Detsamma gällde aktiva kalorier, sträcka, syremättnad, blodtryck och historiken bortom 30 dagar. Hälsa-skärmen räknar nu upp vilka mått som saknar åtkomst och öppnar dialogen vid tryck (#219, HLS-14). Dels valdes **en enda källa** per dygn för träningspassen — den med längst sammanlagd passtid — varpå övriga källors pass kastades. Passen dedupliceras nu på **tidsöverlapp** i stället: överlappande pass är samma händelse och räknas en gång, medan två pass som inte överlappar räknas var för sig oavsett källa (#220). Per-källa-urvalet är kvar för steg, kalorier och sträcka, där varje källa är en dygnssumma av samma aktivitet och en summering vore dubbelräkning |
 | 3.26.0 | **Klockdatan får historik och jämförelser i Trender** (#188). Appen läser nu ett värde per dygn för samtliga Health Connect-mått över hela den valda perioden — sömnlängd och sömnstadier, dygnssnitts- och vilopuls, träningspass, aktiva kalorier, sträcka, syremättnad och blodtryck — med ett enda svep per posttyp i stället för en läsning per dag, så en årsperiod inte blir tusentals anrop (#190, HLS-12). Per-källa-principen tillämpas per dygn, så telefonen och klockan aldrig summeras ihop, och sömnkvalitetspoängen räknas per natt med rullande regelbundenhet i stället för ett enda värde för hela perioden (HLS-13). Ovanpå det ligger fyra nya sätt att läsa datan: **egna historikdiagram** för sömn, sömnkvalitet, träning, kalorier, sträcka, syremättnad och blodtryck (#191, TRD-15), **sömnstadier som staplat stapeldiagram** — en stapel per natt delad i djup, REM, lätt och vaken, så nätternas sammansättning går att jämföra och inte bara deras längd (#193, TRD-16), ett **jämförelsediagram** där klockdata och loggade dagboksserier kan överlagras med varje serie indexerad 0–100 mot sitt eget min/max, eftersom en rak överlagring av poäng och timmar inte säger något (#194, TRD-15/TRD-17), och tillvalet **Föregående period** som lägger den föregående lika långa perioden som en nedtonad kurva på samma x-index — det är formerna och inte datumen som jämförs (#195, TRD-18). Trenders diagramkort är dessutom **ihopfällbara och stängda som standard** (#189, TRD-14, NFR-18): ett stängt kort komponerar inte sitt diagram alls, så skärmen inte längre ritar upp ett dussin diagram man ändå ska scrolla förbi, och hela titelraden växlar utfällt läge — tillåtet på ett sektionskort, till skillnad från postkortet (NFR-16), eftersom det inte har någon konkurrerande primär åtgärd |

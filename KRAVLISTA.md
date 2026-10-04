@@ -1,7 +1,7 @@
 # Kravlista – Dagboken (Android)
 
-> Hälsodagbok för att logga aktiviteter, daglig screening (energi, stress, symptom) och
-> mediciner, med diagram, påminnelser och molnbackup via Google Drive.
+> Hälsodagbok för att logga mående (energi, stress, symptom), aktiviteter, mediciner,
+> händelser och sjukdomar, med diagram, klockdata, påminnelser och synk via Firestore.
 >
 > Version: 3.27.0 (`legacy`) → **4.0 under ombyggnad** · Paket: `se.partee71.dagboken` · Språk: Svenska
 

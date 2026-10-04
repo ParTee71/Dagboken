@@ -1,0 +1,2 @@
+# Framåtreferenser som check-links.mjs godtar tills målet byggs – töms allteftersom.
+# Format per rad: <fil>:<länkmål eller namn> – <issue som bygger det>

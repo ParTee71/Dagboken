@@ -1,0 +1,148 @@
+rules_version = '2';
+
+// Security rules för Dagboken 4.0 (skill firestore-data-layer, data-privacy-security, TP-12).
+// All data ligger under users/{uid} och är bara åtkomlig för ägaren: request.auth.uid == uid.
+// Ingen delning, inga medlemslistor (ARKITEKTUR.md → ADR-001, beslut 2).
+// Ny samling = ny match-regel + rad i tools/db/lib/collections.mjs + rules-test i samma PR
+// (annars nekas den). Deploy från GitHub Actions efter rules-testerna: rules.yml (på begäran)
+// och release.yml (README → Firebase-setup).
+//
+// Etapp 2: fältvalidering per samling (typer per fält, enum-värden, listlängder) läggs till i
+// valid…-funktionerna nedan när codecs och modeller finns i :core – i samma PR som codecen och
+// med rules-test per fält (skill data-safety-backup). Till dess gäller bara de generiska gränserna.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Högsta schemaVersion som finns – speglar Schema.CURRENT_VERSION (test/schema.test.mjs håller
+    // dem lika). Höjs formatet deployas rules med den nya versionen före appen (skill release).
+    function maxSchemaVersion() {
+      return 1;
+    }
+
+    // Fälttyper. Bara fält som skrivningen ändrar kontrolleras (vid create: alla) – ett värde som
+    // redan ligger lagrat med fel typ får inte göra dokumentet omöjligt att spara. Saknat fält
+    // eller null är tillåtet (codecen har ett standardvärde) och okända fält får finnas (nyare appar).
+    function written() {
+      return resource == null ? request.resource.data.keys().toSet() : request.resource.data.diff(resource.data).affectedKeys();
+    }
+    function unchecked(d, k) { return !(k in written()) || d.get(k, null) == null; }
+    function optInt(d, k) { return unchecked(d, k) || d[k] is int; }
+    function optNumber(d, k) { return unchecked(d, k) || d[k] is number; }
+    function optString(d, k) { return unchecked(d, k) || d[k] is string; }
+    function optBool(d, k) { return unchecked(d, k) || d[k] is bool; }
+    function optMap(d, k) { return unchecked(d, k) || d[k] is map; }
+    function optList(d, k) { return unchecked(d, k) || d[k] is list; }
+    function optTime(d, k) { return unchecked(d, k) || d[k] is timestamp; }
+
+    // Storleksgränser (TP-12) – skyddar kvoten. Som typerna kontrolleras de bara på fält som
+    // skrivs, så att ett redan lagrat för stort värde inte låser dokumentet.
+    // maxShort/maxLong är TextLimits.SHORT/LONG i :core (test/schema.test.mjs håller dem lika).
+    function maxShort() { return 200; }
+    function maxLong() { return 2000; }
+    function maxFields() { return 40; }
+    function shortText(d, k) { return optString(d, k) && (unchecked(d, k) || d[k].size() <= maxShort()); }
+    function longText(d, k) { return optString(d, k) && (unchecked(d, k) || d[k].size() <= maxLong()); }
+    function shortList(d, k, n) { return optList(d, k) && (unchecked(d, k) || d[k].size() <= n); }
+    // Fler fält än maxFields() bara om dokumentet redan hade så många (från en nyare app eller verktygen).
+    function fieldCount(d) { return d.size() <= maxFields() || (resource != null && d.size() <= resource.data.size()); }
+
+    // Den lagrade versionen; saknas den eller är den inget heltal gäller den första (BCK-15).
+    function storedVersion() {
+      return resource.data.get('schemaVersion', 1) is int ? resource.data.get('schemaVersion', 1) : 1;
+    }
+
+    // Gemensamt för alla dokument under users/{uid}: antal fält, anteckningen (`note`, finns på
+    // varje posttyp) och namn som kort text. Fältvalidering per samling kommer i etapp 2.
+    function validEntry(d) {
+      return fieldCount(d) && longText(d, 'note') && shortText(d, 'name');
+    }
+
+    // Användardokumentet: schemaVersion är ett heltal från 1 (BCK-15).
+    function validUser(d) {
+      return fieldCount(d)
+        && d.schemaVersion is int
+        && d.schemaVersion >= 1
+        && optTime(d, 'createdAt');
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      // Ett nytt användardokument skapas i 4.0:s första format (version 1) – ett tomt konto har
+      // inget att migrera. Ses över i samma PR som höjer schemaVersion (skill data-safety-backup).
+      allow create: if isOwner(uid)
+        && validUser(request.resource.data)
+        && request.resource.data.schemaVersion == 1;
+      // schemaVersion står kvar eller höjs av en migrering till högst den högsta som finns – aldrig
+      // sänkt (en äldre app får inte låtsas att nyare data är i dess format) och aldrig uppskruvad
+      // förbi maxSchemaVersion() (BCK-15).
+      allow update: if isOwner(uid)
+        && validUser(request.resource.data)
+        && (request.resource.data.schemaVersion == storedVersion()
+          || (request.resource.data.schemaVersion > storedVersion()
+            && request.resource.data.schemaVersion <= maxSchemaVersion()));
+      allow delete: if false; // användardokumentet raderas aldrig från appen
+
+      // Bara samlingarna i tools/db/lib/collections.mjs (ARKITEKTUR.md → Datamodell): en okänd
+      // samling skulle stoppa backupen (BCK-16), så den kan inte skapas från en klient.
+      // Uttryckliga match-rader, aldrig jokertecken – ett rekursivt jokertecken (document=**)
+      // matchar även noll segment och skulle ge underreglerna makt över användardokumentet.
+      match /settings/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+      }
+
+      match /options/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+      }
+
+      match /prescriptions/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+      }
+
+      match /prnMedicines/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+      }
+
+      match /doses/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+      }
+
+      match /screenings/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+      }
+
+      match /activities/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+      }
+
+      match /events/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+      }
+
+      match /illnessEpisodes/{eid} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+
+        match /checkins/{id} {
+          allow read, delete: if isOwner(uid);
+          allow create, update: if isOwner(uid) && validEntry(request.resource.data);
+        }
+      }
+    }
+  }
+}

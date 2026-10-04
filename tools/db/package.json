@@ -1,0 +1,20 @@
+{
+  "name": "dagboken-db",
+  "private": true,
+  "description": "Dagbokens databasverktyg (skill db-access) och tester mot Firebase-emulatorn.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 'test/*.test.mjs'"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.2",
+    "firebase": "12.19.0",
+    "firebase-tools": "15.32.0"
+  },
+  "dependencies": {
+    "firebase-admin": "14.5.0"
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "_kommentar": "Syntetisk testdata (BCK-16) – aldrig utdrag ur den riktiga databasen. Ett användardokument (schemaVersion 1) och ett minimalt dokument per samling i ARKITEKTUR.md → Datamodell, så att rundturen täcker alla samlingar. Fälten är preliminära tills codecs och fältvalidering kommer i etapp 2 – då utökas fixturen så att varje fält har ett icke-default-värde. Täcker redan fälttyperna text, heltal (även negativa), decimaltal, sant/falskt, null, listor, nästlade objekt, tidsstämplar med mikrosekunder (Firestores precision), datum och klockslag som text, ett okänt fält och en incheckning under en episod utan eget dokument.",
+  "documents": [
+    {
+      "path": "users/uid-test",
+      "data": {
+        "schemaVersion": 1,
+        "createdAt": { "__ts": "2026-09-01T08:15:30.123456000Z" },
+        "framtidaFält": { "okänd": true, "andel": 0.25, "lista": [1, "två", null] }
+      }
+    },
+    {
+      "path": "users/uid-test/settings/app",
+      "data": {
+        "theme": { "mode": "auto", "lightStart": "07:00", "darkStart": "21:30" },
+        "medicineReminders": [
+          { "enabled": true, "time": "08:00" },
+          { "enabled": false, "time": "12:00" }
+        ],
+        "moodReminders": [{ "occasion": "breakfast", "enabled": true, "time": "08:30" }],
+        "periodReminder": { "enabled": true, "time": "09:00" },
+        "profile": { "birthYear": 1971, "sex": null }
+      }
+    },
+    {
+      "path": "users/uid-test/options/promenad",
+      "data": { "kind": "activity", "name": "Promenad", "favorite": true, "sortOrder": 0, "archived": false }
+    },
+    {
+      "path": "users/uid-test/options/huvudvark",
+      "data": { "kind": "symptom", "name": "Huvudvärk", "favorite": false, "sortOrder": 1, "archived": false }
+    },
+    {
+      "path": "users/uid-test/options/yrsel",
+      "data": { "kind": "event", "name": "Yrsel", "favorite": false, "sortOrder": 2, "archived": true }
+    },
+    {
+      "path": "users/uid-test/prescriptions/levaxin",
+      "data": {
+        "name": "Levaxin", "dose": 50, "unit": "µg", "slots": ["morning"],
+        "schedule": { "type": "daily", "days": null, "intervalDays": null },
+        "period": { "start": "2026-01-01", "end": null },
+        "boosts": [{ "start": "2026-09-01", "end": "2026-09-14", "amount": 25 }],
+        "active": true, "note": "På fastande mage"
+      }
+    },
+    {
+      "path": "users/uid-test/prnMedicines/alvedon",
+      "data": {
+        "name": "Alvedon", "dose": 500, "unit": "mg", "slot": "any", "minHoursBetween": 4, "maxPerDay": 4,
+        "dispensingTime": "00:30", "favorite": true, "note": ""
+      }
+    },
+    {
+      "path": "users/uid-test/doses/rx_levaxin_2026-09-21_morning",
+      "data": {
+        "date": "2026-09-21", "slot": "morning", "name": "Levaxin", "dose": 50, "unit": "µg", "status": "taken",
+        "plannedAt": { "__ts": "2026-09-21T06:00:00.000000000Z" }, "takenAt": { "__ts": "2026-09-21T06:12:45.000001000Z" },
+        "prescriptionId": "levaxin", "prnId": null, "note": ""
+      }
+    },
+    {
+      "path": "users/uid-test/doses/rx_levaxin_2026-09-22_morning",
+      "data": {
+        "date": "2026-09-22", "slot": "morning", "name": "Levaxin", "dose": 50, "unit": "µg", "status": "skipped",
+        "plannedAt": { "__ts": "2026-09-22T06:00:00.000000000Z" }, "takenAt": null,
+        "prescriptionId": "levaxin", "prnId": null, "note": "Glömde"
+      }
+    },
+    {
+      "path": "users/uid-test/doses/prn-1",
+      "data": {
+        "date": "2026-09-22", "slot": "any", "name": "Alvedon", "dose": 500, "unit": "mg", "status": "taken",
+        "plannedAt": { "__ts": "2026-09-22T13:40:00.000000000Z" }, "takenAt": { "__ts": "2026-09-22T13:40:00.500000000Z" },
+        "prescriptionId": null, "prnId": "alvedon", "note": ""
+      }
+    },
+    {
+      "path": "users/uid-test/screenings/s-1",
+      "data": {
+        "date": "2026-09-21", "time": "08:15", "occasion": "breakfast", "energy": 6, "stress": 3,
+        "symptoms": [{ "optionId": "huvudvark", "score": 4 }], "note": "Sov dåligt"
+      }
+    },
+    {
+      "path": "users/uid-test/activities/a-1",
+      "data": {
+        "date": "2026-09-21", "time": "17:00", "optionId": "promenad", "customText": null, "energy": -2, "stress": 1,
+        "symptoms": [], "recovering": false, "drain": 2, "minutes": 45, "note": ""
+      }
+    },
+    {
+      "path": "users/uid-test/events/ev-1",
+      "data": {
+        "date": "2026-09-21", "time": "10:05", "optionId": "yrsel", "severity": 5, "minutes": 10,
+        "triggers": "Snabb uppresning", "actions": "Satte mig ner", "note": ""
+      }
+    },
+    {
+      "path": "users/uid-test/illnessEpisodes/forkylning",
+      "data": { "type": "Förkylning", "start": "2026-09-10", "end": null, "note": "" }
+    },
+    {
+      "path": "users/uid-test/illnessEpisodes/forkylning/checkins/c-1",
+      "data": { "date": "2026-09-11", "time": "19:00", "severity": 4, "symptoms": [{ "optionId": "huvudvark", "score": 2 }], "note": "" }
+    },
+    {
+      "path": "users/uid-test/illnessEpisodes/utan-dokument/checkins/c-2",
+      "data": { "date": "2026-08-02", "time": "09:00", "severity": 2, "symptoms": [], "note": "Kvar fast episoden saknas" }
+    }
+  ]
+}
