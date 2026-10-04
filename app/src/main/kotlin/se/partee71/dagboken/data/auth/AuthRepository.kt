@@ -17,6 +17,9 @@ interface AuthRepository {
     /** Visar Googles kontoväljare – kräver aktivitetens kontext. Avbrott ger `DataError.Cancelled`. */
     suspend fun signInWithGoogle(activityContext: Context): Result<AuthUser>
 
-    /** Loggar ut ur Firebase och rensar Credential Managers sparade inloggning (AUTH-3). */
+    /**
+     * Loggar ut ur Firebase och rensar Credential Managers sparade inloggning (AUTH-2). Appen loggar
+     * ut via [SignOutUseCase], som dessutom tömmer den lokala cachen (AUTH-6).
+     */
     suspend fun signOut(): Result<Unit>
 }

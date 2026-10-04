@@ -2,6 +2,7 @@ package se.partee71.dagboken
 
 import android.content.Context
 import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.ColorDrawable
 import android.widget.ImageView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,8 +26,8 @@ import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.Spacing
 
 /**
- * Appikonen: adaptiv och satt i manifestet. Ikonen är 3.x-ikonen (ur `assets/icon.png`) tills en
- * ikon i Papper och teal har mockats – den har därför ingen enfärgad temaikon än.
+ * Appikonen "Bladet" (DSN-7): adaptiv med enfärgat temalager, satt i manifestet, och med färger
+ * som är resurser lika med temat – inga färgvärden i Kotlin.
  */
 @RunWith(RobolectricTestRunner::class)
 class AppIconTest {
@@ -34,13 +35,21 @@ class AppIconTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @Test
-    fun `appikonen är adaptiv och används av appen`() {
+    fun `appikonen är adaptiv med temaikon och används av appen`() {
         for (icon in listOf(R.mipmap.ic_launcher, R.mipmap.ic_launcher_round)) {
             val drawable = context.getDrawable(icon) as AdaptiveIconDrawable
             assertNotNull(drawable.foreground)
-            assertNotNull(drawable.background)
+            assertNotNull(drawable.monochrome, "Temaikonen (Android 13+) saknas")
+            assertEquals(context.getColor(R.color.ic_launcher_background), (drawable.background as ColorDrawable).color)
         }
         assertEquals(R.mipmap.ic_launcher, context.applicationInfo.icon)
+    }
+
+    @Test
+    fun `appikonens färger är temats – en källa (DSN-7)`() {
+        assertEquals(AppColors.light.primary.toArgb(), context.getColor(R.color.ic_launcher_background))
+        assertEquals(AppColors.light.background.toArgb(), context.getColor(R.color.ic_launcher_paper))
+        assertEquals(AppColors.light.secondary.toArgb(), context.getColor(R.color.ic_launcher_sun))
     }
 
     @Test
@@ -63,6 +72,13 @@ class AppIconTest {
             for (size in listOf(108.dp, 48.dp)) {
                 AndroidView({ ImageView(it).apply { setImageResource(R.mipmap.ic_launcher) } }, Modifier.size(size))
             }
+            // Temaikonen färgas av systemet efter alfa – här med temats textfärg, så att den syns i båda lägena.
+            val tint = MaterialTheme.colorScheme.onBackground.toArgb()
+            AndroidView(
+                { ImageView(it).apply { setImageResource(R.drawable.ic_launcher_monochrome) } },
+                Modifier.size(48.dp),
+                update = { it.setColorFilter(tint) },
+            )
         }
     }
 }

@@ -33,7 +33,7 @@ import se.partee71.dagboken.data.common.writeBlocker
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FirestoreCollection<T : Identified>(
-    private val db: FirebaseFirestore,
+    private val firestore: FirestoreInstance,
     private val scope: UserScope,
     private val sync: FirestoreSyncStatus,
     private val clock: Clock,
@@ -41,6 +41,8 @@ class FirestoreCollection<T : Identified>(
     private val name: String,
     private val path: (uid: String?) -> String,
 ) : EntityCollection<T> {
+    /** Hämtas vid varje anrop – instansen byts när cachen tömts (AUTH-6). */
+    private val db: FirebaseFirestore get() = firestore.db
 
     override fun observe(): Flow<List<T>> = scope.uid.flatMapLatest { uid ->
         val ref = refOrNull(uid) ?: return@flatMapLatest emptyFlow()

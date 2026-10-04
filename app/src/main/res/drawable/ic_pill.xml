@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Kapsel – Dos – linjeikon 24 dp, stroke 2 -->
+<!-- Kapsel snett 45° med delningslinje – fliken Mediciner och loggvalet Dos – linjeikon 24 dp, stroke 2 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"

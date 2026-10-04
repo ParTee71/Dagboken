@@ -8,13 +8,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
+import kotlin.time.Duration
 import se.partee71.dagboken.core.schema.Doc
 import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.FakeStore
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.auth.AuthRepository
 import se.partee71.dagboken.data.auth.AuthUser
+import se.partee71.dagboken.data.auth.SignOutUseCase
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.common.LocalCacheCleaner
 import se.partee71.dagboken.data.common.UserVersionSource
 import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.user.EnsureUserUseCase
@@ -55,6 +58,8 @@ class UserFixture(scope: CoroutineScope, val auth: FakeAuthRepository = FakeAuth
     val session = UserSession(auth, versions, scope)
     val directory = FakeUserDirectory(store)
     val ensureUser = EnsureUserUseCase(directory, clock)
+    val cache = FakeLocalCacheCleaner(auth)
+    val signOut = SignOutUseCase(auth, cache)
 
     /** Lägger ett användardokument direkt i den fejkade databasen, som om en annan enhet skapat det. */
     fun storeUser(uid: String, doc: Doc = mapOf(EnsureUserUseCase.SCHEMA_VERSION to Schema.CURRENT_VERSION)) =
@@ -103,4 +108,28 @@ class FakeAuthRepository(initial: AuthUser? = null) : AuthRepository {
         signOutCalls++
         return nextSignOut.onSuccess { authState.value = null }
     }
+}
+
+/**
+ * Cachen utan Firestore: [synced] = `false` som när skrivningar väntar utan nät, [nextClear] styr
+ * utfallet. Varje anrop loggas i [calls] tillsammans med om någon då var inloggad, så att testerna
+ * ser ordningen mot utloggningen.
+ */
+class FakeLocalCacheCleaner(private val auth: FakeAuthRepository) : LocalCacheCleaner {
+    var synced = true
+    var nextClear: Result<Unit> = Result.success(Unit)
+    val calls = mutableListOf<String>()
+    val clearCalls get() = calls.count { it.startsWith("clear") }
+
+    override suspend fun awaitPendingWrites(timeout: Duration): Boolean {
+        calls += "await" + state()
+        return synced
+    }
+
+    override suspend fun clear(): Result<Unit> {
+        calls += "clear" + state()
+        return nextClear
+    }
+
+    private fun state() = if (auth.authState.value == null) " utloggad" else " inloggad"
 }

@@ -1,6 +1,5 @@
 package se.partee71.dagboken.data.firestore
 
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException.Code
 import com.google.firebase.firestore.snapshots
 import javax.inject.Inject
@@ -22,9 +21,9 @@ import se.partee71.dagboken.data.user.EnsureUserUseCase
  * `PERMISSION_DENIED` räknas: ett tillfälligt `UNAUTHENTICATED` (token som förnyas) och alla andra
  * fel försöker igen, så att versionen aldrig blir okänd för gott.
  */
-class FirestoreUserVersions @Inject constructor(private val db: FirebaseFirestore) : UserVersionSource {
+class FirestoreUserVersions @Inject constructor(private val firestore: FirestoreInstance) : UserVersionSource {
     override fun schemaVersion(uid: String): Flow<Int?> =
-        db.document(Paths.user(uid)).snapshots()
+        firestore.db.document(Paths.user(uid)).snapshots()
             .map { doc -> if (doc.exists()) Schema.versionOf(doc.get(EnsureUserUseCase.SCHEMA_VERSION)) else null }
             .catch { error ->
                 throw if (error.firestoreCode() == Code.PERMISSION_DENIED) DataError.PermissionDenied else error
@@ -33,6 +32,6 @@ class FirestoreUserVersions @Inject constructor(private val db: FirebaseFirestor
 
     /** `update`, inte `set`: bara versionen ändras, och ett dokument som inte finns skapas inte. */
     override fun stamp(uid: String, version: Int) {
-        db.document(Paths.user(uid)).update(EnsureUserUseCase.SCHEMA_VERSION, version)
+        firestore.db.document(Paths.user(uid)).update(EnsureUserUseCase.SCHEMA_VERSION, version)
     }
 }

@@ -132,6 +132,8 @@ hårdkodar aldrig. Värdena nedan är mockupens approximation – kontrast räkn
   sammanfattar dagen (snittenergi, jämförelse med igår, dagar i rad). Rörelse blockerar aldrig.
 - **Mörkt tema** härleds med samma roller (djup skogsgrön botten); kontrast kontrolleras i båda.
 - **Ikoner:** linjeikoner 24 dp i kontroller, aldrig emoji som knappikon.
+- **Appikon "Bladet" (DSN-7):** adaptiv – teal bakgrund, pappersark med tre grå textrader och en
+  solgul trendkurva; enfärgat lager för temaikoner. Färgerna är resurser i `values/colors.xml` som speglar `AppColors`.
 - **Skillnad mot ReseApoteket:** inget korall/aprikos, ingen Nunito, serif-rubriker, luftigare kort.
 
 ---

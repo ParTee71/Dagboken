@@ -71,7 +71,7 @@ class CatalogScreenshotTest {
         captureLightAndDark("AppCard_rader") {
             Sheet {
                 AppCard {
-                    SectionHeader("Mediciner", icon = R.drawable.ic_medication, count = "2 / 3")
+                    SectionHeader("Mediciner", icon = R.drawable.ic_pill, count = "2 / 3")
                     ItemRow("Levaxin 50 µg", subtitle = "07:00 · 1 tablett")
                     AppDivider()
                     ItemRow("D-vitamin", subtitle = "08:00 · 1 kapsel")
@@ -108,7 +108,7 @@ class CatalogScreenshotTest {
         }
         captureLightAndDark("SectionHeader_toner") {
             Sheet {
-                SectionHeader("Mediciner", icon = R.drawable.ic_medication, count = "2 / 3")
+                SectionHeader("Mediciner", icon = R.drawable.ic_pill, count = "2 / 3")
                 SectionHeader("Mående", icon = R.drawable.ic_mood, count = "4 / 4", tone = Tone.Positive)
                 SectionHeader("Pågående sjukdom", count = "1", tone = Tone.Warning)
             }
@@ -247,7 +247,7 @@ class CatalogScreenshotTest {
             ToolbarItem("Idag", R.drawable.ic_sun),
             ToolbarItem("Dagbok", R.drawable.ic_book),
             ToolbarItem("Trender", R.drawable.ic_trend),
-            ToolbarItem("Mediciner", R.drawable.ic_medication),
+            ToolbarItem("Mediciner", R.drawable.ic_pill),
         )
         captureLightAndDark("AppFloatingToolbar_flikar") {
             Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.l)) {

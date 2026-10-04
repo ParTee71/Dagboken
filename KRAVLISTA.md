@@ -219,7 +219,7 @@
 | AUTH-3 | Inloggad användares **namn, e-post och profilfoto** ska visas (kontobubbla/sheet/inställningar). |
 | AUTH-4 | Inloggningsfel ska visas, men **avbruten inloggning** ska inte behandlas som fel. |
 | AUTH-5 | ~~Appen ska fungera utan inloggning; konto krävs endast för molnbackup/migrering.~~ *(borttaget 4.0 – inloggning krävs, se AUTH-6)* |
-| AUTH-6 | Appen kräver inloggning: utan inloggad användare visas en inloggningsskärm och ingen dagbok. All data ligger under `users/{uid}`; utloggning stänger synken, rensar den lokala Firestore-cachen och återgår till inloggningsskärmen *(4.0)*. |
+| AUTH-6 | Appen kräver inloggning: utan inloggad användare visas en inloggningsskärm och ingen dagbok. All data ligger under `users/{uid}`; utloggning stänger synken, rensar den lokala Firestore-cachen och återgår till inloggningsskärmen *(4.0)*. Skrivningar som inte nått servern töms aldrig: utan synk inom några sekunder loggas användaren ut men cachen behålls tills samma konto loggar in igen och synkar – ingen data tappas. |
 
 ---
 
@@ -539,3 +539,4 @@
 | DSN-4 | Rörelse: fjädrande kryss som tonar raden, framstegsrad som fylls animerat, delad skärmövergång; belöningsläget enligt HEM-19. Rörelse förstärker och blockerar aldrig. |
 | DSN-5 | Mörkt tema härleds med samma roller på djup skogsgrön botten; kontrast kontrolleras i båda lägena och varje komponent har Roborazzi-referens ljust + mörkt. Teman: ljust, mörkt, auto (SET-1). |
 | DSN-6 | Designspråket skiljer sig avsiktligt från ReseApotekets (ingen korall/aprikos, ingen Nunito, serif-rubriker, luftigare kort) även om komponentkatalogen delas. |
+| DSN-7 | Appikonen **"Bladet"**: adaptiv ikon med teal bakgrund och ett pappersark med tre textrader och en solgul trendkurva; ett enfärgat lager för temaikoner (Android 13+). Ikonens färger är resurser lika med temats *(4.0, ersätter 3.x-ikonen)*. |

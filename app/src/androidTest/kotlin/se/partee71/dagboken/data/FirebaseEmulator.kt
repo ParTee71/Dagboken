@@ -13,6 +13,7 @@ import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.firestore.FirestoreCollection
+import se.partee71.dagboken.data.firestore.FirestoreInstance
 import se.partee71.dagboken.data.firestore.FirestoreSyncStatus
 import se.partee71.dagboken.data.firestore.FirestoreUserDirectory
 import se.partee71.dagboken.data.firestore.FirestoreUserVersions
@@ -35,12 +36,15 @@ object FirebaseEmulator {
         FirebaseApp.initializeApp(context, options, "emulator")
     }
 
-    val db: FirebaseFirestore by lazy {
+    /** Som appens: en ny instans mot emulatorn även efter att cachen tömts (AUTH-6). */
+    val firestore = FirestoreInstance {
         FirebaseFirestore.getInstance(app).apply {
             useEmulator(HOST, 8080)
             check(firestoreSettings.host == "$HOST:8080") { "Testerna får bara köras mot emulatorn" }
         }
     }
+
+    val db: FirebaseFirestore get() = firestore.db
 
     val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance(app).apply { useEmulator(HOST, 9099) } }
 
@@ -64,11 +68,11 @@ object FirebaseEmulator {
         path: (uid: String?) -> String,
         clock: FixedClock = FixedClock(),
         sync: FirestoreSyncStatus = sync(),
-    ): EntityCollection<T> = FirestoreCollection(db, scope, sync, clock, codec, name, path)
+    ): EntityCollection<T> = FirestoreCollection(firestore, scope, sync, clock, codec, name, path)
 
-    fun versions() = FirestoreUserVersions(db)
+    fun versions() = FirestoreUserVersions(firestore)
 
-    fun directory() = FirestoreUserDirectory(db)
+    fun directory() = FirestoreUserDirectory(firestore)
 
     fun sync() = FirestoreSyncStatus(CoroutineScope(Dispatchers.Default))
 }

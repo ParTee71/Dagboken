@@ -108,7 +108,7 @@ private fun Rows() {
     var taken by remember { mutableStateOf(false) }
     var reminders by remember { mutableStateOf(true) }
     AppCard {
-        SectionHeader("Mediciner", icon = R.drawable.ic_medication, count = "2 / 3")
+        SectionHeader("Mediciner", icon = R.drawable.ic_pill, count = "2 / 3")
         ItemRow(
             "Promenad",
             subtitle = "08:30 · 45 min · energi +3",
@@ -198,7 +198,7 @@ private fun Progress() {
             ToolbarItem("Idag", R.drawable.ic_sun),
             ToolbarItem("Dagbok", R.drawable.ic_book),
             ToolbarItem("Trender", R.drawable.ic_trend),
-            ToolbarItem("Mediciner", R.drawable.ic_medication),
+            ToolbarItem("Mediciner", R.drawable.ic_pill),
         ),
         selectedIndex = tab,
         onSelect = { tab = it },
@@ -282,7 +282,7 @@ private fun Frames(onBack: () -> Unit) {
         EntityListScreen<String>(
             title = "Recept",
             state = ListUiState.Error(DataError.Offline),
-            empty = EmptyContent(R.drawable.ic_medication, "Inga recept än", "", "Nytt recept"),
+            empty = EmptyContent(R.drawable.ic_pill, "Inga recept än", "", "Nytt recept"),
             onAdd = {},
             key = { it },
         ) {}
@@ -296,7 +296,7 @@ private fun Frames(onBack: () -> Unit) {
             title = "Mediciner",
             subtitle = "sön 4 okt",
             state = ListUiState.Content(grouped),
-            empty = EmptyContent(R.drawable.ic_medication, "", "", ""),
+            empty = EmptyContent(R.drawable.ic_pill, "", "", ""),
             onAdd = {},
             key = { it.second },
             onBack = {},

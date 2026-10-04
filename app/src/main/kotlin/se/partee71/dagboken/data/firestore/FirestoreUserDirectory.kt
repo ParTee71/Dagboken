@@ -1,6 +1,5 @@
 package se.partee71.dagboken.data.firestore
 
-import com.google.firebase.firestore.FirebaseFirestore
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.tasks.await
@@ -15,9 +14,10 @@ import se.partee71.dagboken.data.user.UserDirectory
  * saknas, så att ett befintligt dokument aldrig skrivs över – och den kräver nät, så att ett tomt
  * svar betyder att dokumentet verkligen saknas.
  */
-class FirestoreUserDirectory @Inject constructor(private val db: FirebaseFirestore) : UserDirectory {
+class FirestoreUserDirectory @Inject constructor(private val firestore: FirestoreInstance) : UserDirectory {
 
     override suspend fun createIfMissing(uid: String, initial: Doc): Result<Doc> = suspendRunCatching(::firestoreError) {
+        val db = firestore.db
         val ref = db.document(Paths.user(uid))
         val data = toFirestore(initial)
         // Utan svar i tid räknas det som offline; nästa försök gör samma sak, så det blir aldrig två.

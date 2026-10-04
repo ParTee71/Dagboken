@@ -27,7 +27,7 @@ enum class TabInfo(val key: TopLevelKey, @StringRes val title: Int, @DrawableRes
     Today(TodayKey, R.string.tab_today, R.drawable.ic_sun, R.string.tab_today_upcoming),
     Diary(DiaryKey, R.string.tab_diary, R.drawable.ic_book, R.string.tab_diary_upcoming),
     Trends(TrendsKey, R.string.tab_trends, R.drawable.ic_trend, R.string.tab_trends_upcoming),
-    Medicines(MedicinesKey, R.string.tab_medicines, R.drawable.ic_medication, R.string.tab_medicines_upcoming),
+    Medicines(MedicinesKey, R.string.tab_medicines, R.drawable.ic_pill, R.string.tab_medicines_upcoming),
     ;
 
     companion object {

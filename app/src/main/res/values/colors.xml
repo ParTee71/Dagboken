@@ -3,6 +3,11 @@
      Resurser måste vara XML; AppIconTest håller dem lika med temat. -->
 <resources>
     <color name="window_background">#FBF7EE</color>
-    <!-- Appikonens bakgrund – samma som i 3.x, så att ikonen känns igen efter uppdateringen. -->
-    <color name="ic_launcher_background">#0F0F14</color>
+
+    <!-- Appikonen "Bladet" (DSN-7). Speglar AppColors.light: teal = primary, papper = background,
+         solgul = secondary – AppIconTest håller dem lika. Radernas grå finns bara i ikonen. -->
+    <color name="ic_launcher_background">#0B6E66</color>
+    <color name="ic_launcher_paper">#FBF7EE</color>
+    <color name="ic_launcher_sun">#F5B631</color>
+    <color name="ic_launcher_lines">#C9C2B4</color>
 </resources>

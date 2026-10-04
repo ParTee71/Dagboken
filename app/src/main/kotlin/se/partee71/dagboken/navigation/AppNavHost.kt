@@ -136,5 +136,5 @@ private fun toolbarItems(): List<ToolbarItem> = listOf(
     ToolbarItem(stringResource(R.string.tab_today), R.drawable.ic_sun),
     ToolbarItem(stringResource(R.string.tab_diary), R.drawable.ic_book),
     ToolbarItem(stringResource(R.string.tab_trends), R.drawable.ic_trend),
-    ToolbarItem(stringResource(R.string.tab_medicines), R.drawable.ic_medication),
+    ToolbarItem(stringResource(R.string.tab_medicines), R.drawable.ic_pill),
 )

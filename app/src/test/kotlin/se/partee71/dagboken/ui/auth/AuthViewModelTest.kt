@@ -31,7 +31,7 @@ class AuthViewModelTest {
     private val context: Context = RuntimeEnvironment.getApplication()
 
     private fun TestScope.viewModel(fixture: UserFixture = UserFixture(backgroundScope)) =
-        fixture to AuthViewModel(fixture.auth, fixture.session, fixture.ensureUser)
+        fixture to AuthViewModel(fixture.auth, fixture.session, fixture.ensureUser, fixture.signOut)
 
     private suspend fun AuthViewModel.awaitGate(gate: AuthGate) = state.first { it.gate == gate && !it.busy }
 
@@ -117,6 +117,8 @@ class AuthViewModelTest {
         vm.onEvent(AuthEvent.SignOut)
         vm.awaitGate(AuthGate.SignedOut)
         assertEquals(1, fixture.auth.signOutCalls)
+        // AUTH-6: cachen töms efter utloggningen, så att nästa konto börjar tomt.
+        assertEquals(listOf("await inloggad", "clear utloggad"), fixture.cache.calls)
         fixture.auth.nextSignIn = Result.success(AuthUser("uid-erik"))
         vm.onEvent(AuthEvent.SignIn(context))
 
@@ -137,6 +139,7 @@ class AuthViewModelTest {
         vm.onEvent(AuthEvent.SignOut)
 
         assertEquals(AuthUiState(AuthGate.Ready, error = DataError.Unknown), vm.state.first { it.error != null })
+        assertEquals(0, fixture.cache.clearCalls)
     }
 
     @Test

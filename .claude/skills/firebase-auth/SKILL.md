@@ -42,7 +42,7 @@ AppRoot → AuthViewModel.state.gate: Loading | SignedOut | NeedsUser | UpdateRe
 interface AuthRepository {
     val authState: Flow<AuthUser?>                                            // null = signed out
     suspend fun signInWithGoogle(activityContext: Context): Result<AuthUser> // Activity context for the picker
-    suspend fun signOut(): Result<Unit> // clears Credential Manager state and the Firebase session
+    suspend fun signOut(): Result<Unit> // Firebase session + Credential Manager state; the app signs out via SignOutUseCase
 }
 ```
 
@@ -64,9 +64,21 @@ interface AuthRepository {
 
 ## Sign-Out
 
-`AuthRepository.signOut()` (settings sheet → Konto, behind `ConfirmDialog`) clears the cached
-credential and the Firebase session; `UserSession` follows `authState` to `null`, so the
-collections show nothing and the next account never sees the previous one's diary.
+`SignOutUseCase` in `data/auth/` (settings sheet → Konto, behind `ConfirmDialog`; called by
+`AuthViewModel`) is the only sign-out path (AUTH-2, AUTH-6):
+
+1. `LocalCacheCleaner.awaitPendingWrites(3 s)` – writes not yet on the server live only in the
+   cache, and after sign-out the server rejects them.
+2. `AuthRepository.signOut()` – Firebase session, then Credential Manager state.
+3. Only if step 1 confirmed everything synced: `LocalCacheCleaner.clear()` – `FirestoreInstance`
+   runs `terminate()` + `clearPersistence()` and hands out a fresh, empty instance on next use, so
+   the next account starts with an empty cache. Unsynced writes keep the cache (data safety, rule 1);
+   Firestore syncs them when the same account signs in again.
+
+`UserSession` follows `authState` to `null`, so the collections show nothing and the next
+account never sees the previous one's diary. Never call `AuthRepository.signOut()` directly
+from UI code. Tests: `SignOutUseCaseTest` and `AuthViewModelTest` with `FakeLocalCacheCleaner`
+(`testing/UserFixture.kt`); `FirestoreLocalCacheTest` against the emulator.
 Reminders read the schedule through the same repositories and therefore follow the signed-in
 user (skill `notifications-alarms`).
 

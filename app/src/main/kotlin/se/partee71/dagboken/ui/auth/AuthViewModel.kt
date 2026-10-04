@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.auth.AuthRepository
 import se.partee71.dagboken.data.auth.AuthUser
+import se.partee71.dagboken.data.auth.SignOutUseCase
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.UserScope
 import se.partee71.dagboken.data.common.UserVersion
@@ -42,7 +43,7 @@ sealed interface AuthEvent {
     /** Knappen "Logga in med Google" – loggar in, eller försöker igen med användardokumentet om användaren redan är inloggad. */
     data class SignIn(val activityContext: Context) : AuthEvent
 
-    /** "Logga ut" i inställningsarket (AUTH-3). */
+    /** "Logga ut" i inställningsarket (AUTH-2): loggar ut och tömmer den lokala cachen (AUTH-6). */
     data object SignOut : AuthEvent
 
     data object ErrorShown : AuthEvent
@@ -53,6 +54,7 @@ class AuthViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val session: UserScope,
     private val ensureUser: EnsureUserUseCase,
+    private val signOutUser: SignOutUseCase,
 ) : ViewModel() {
 
     private val user: StateFlow<AuthUser?> = auth.authState.stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -111,7 +113,7 @@ class AuthViewModel @Inject constructor(
     }
 
     private fun signOut() {
-        viewModelScope.launch { auth.signOut().dataError()?.let { error.value = it } }
+        viewModelScope.launch { signOutUser().dataError()?.let { error.value = it } }
     }
 
     /**

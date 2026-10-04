@@ -136,7 +136,8 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 | Ordning för något nytt | `upsertPlaced`/`nextSortOrder` i `data/common/` – ur cachen, väntar inte på nätet |
 | Resultat av suspend-anrop | `suspendRunCatching` i `data/common/` (används av `FirestoreCollection` och `AuthRepository`) |
 | Läs- och skrivregler för dokument | `prepareForWrite`, `readDocument`, `sortForList` i `data/common/DocumentRules.kt` och `writeBlocker` i `UserScope.kt` – används av både `FirestoreCollection` och `FakeCollection` |
-| Firestore-instans | `FirestoreModule` (Hilt) i `data/firestore/` |
+| Firestore-instans | `FirestoreInstance` (`.db` vid varje anrop) från `FirestoreModule` (Hilt) i `data/firestore/` |
+| Töm lokala cachen | `LocalCacheCleaner` i `data/common/` (Firestore: `FirestoreInstance`), anropas bara av `SignOutUseCase` |
 | Inloggad användare | `UserSession` i `data/user/` (`UserScope`), `EnsureUserUseCase` vid inloggning |
 | Synkläge | `SyncStatus` i `data/common/`; för UI:t `SyncViewModel` (`ui/sync/`) |
 | Export | `RawDocuments` + `ExportFormat` (`:core`) – samma format som `tools/db export` (skill `firestore-data-layer`) |

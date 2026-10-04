@@ -31,7 +31,7 @@ ViewModel
   → XRepository (interface, data/repository)          domänfrågor, inget Firestore
     → EntityCollection<X> (data/common)               från CollectionFactory
       → FirestoreCollection<X>                        enda Firestore-koden (data/firestore)
-        → FirebaseFirestore (PersistentCacheSettings, 100 MB)
+        → FirestoreInstance → FirebaseFirestore (PersistentCacheSettings, 100 MB)
 ```
 
 ### `DocCodec<T>` (`:core`)
@@ -98,8 +98,13 @@ Vid inloggning skapar `EnsureUserUseCase` användardokumentet på **servern** vi
 
 ### DI
 `FirestoreModule` ligger i **`data/firestore/`** (inte i `di/`), eftersom `FirebaseFirestore`
-bara får förekomma där. Den ger `FirebaseFirestore` med `PersistentCacheSettings` och binder
-`CollectionFactory`, `SyncStatus`, `UserVersionSource`, `UserDirectory` och `RawDocuments`.
+bara får förekomma där. Den ger `FirestoreInstance` – som skapar `FirebaseFirestore` med
+`PersistentCacheSettings` – och binder `CollectionFactory`, `SyncStatus`, `UserVersionSource`,
+`UserDirectory`, `RawDocuments` och `LocalCacheCleaner`. Klasserna i `data/firestore/` hämtar
+`firestore.db` vid varje anrop och håller aldrig en egen `FirebaseFirestore`: utloggningen
+(`SignOutUseCase`, AUTH-6) avslutar instansen och tömmer cachen (`terminate` + `clearPersistence`),
+och nästa anrop får en ny, tom instans med samma inställningar. Osynkade skrivningar töms aldrig –
+då behålls cachen (skill `firebase-auth`).
 Övriga moduler i `di/` (`AppModule`: app-scope, klocka, DataStore för enhetslokalt tillstånd;
 `AuthModule`).
 
