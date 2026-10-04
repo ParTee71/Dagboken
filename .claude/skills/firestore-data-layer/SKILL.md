@@ -103,7 +103,9 @@ bara får förekomma där. Den ger `FirestoreInstance` – som skapar `FirebaseF
 `UserDirectory`, `RawDocuments` och `LocalCacheCleaner`. Klasserna i `data/firestore/` hämtar
 `firestore.db` vid varje anrop och håller aldrig en egen `FirebaseFirestore`: utloggningen
 (`SignOutUseCase`, AUTH-6) avslutar instansen och tömmer cachen (`terminate` + `clearPersistence`),
-och nästa anrop får en ny, tom instans med samma inställningar. Osynkade skrivningar töms aldrig –
+och nästa anrop får en ny, tom instans med samma inställningar. Låset i `FirestoreInstance` hålls
+under tömningen (ingen ny instans får öppna filerna medan de raderas), men varje steg har en
+tidsgräns på 10 s – hänger Firestore blir det ett fel i stället för en `db` som låser för alltid. Osynkade skrivningar töms aldrig –
 då behålls cachen (skill `firebase-auth`).
 Övriga moduler i `di/` (`AppModule`: app-scope, klocka, DataStore för enhetslokalt tillstånd;
 `AuthModule`).
@@ -163,7 +165,7 @@ cachen och synkas när nätet finns; larmen schemaläggs om vid synk, omstart oc
 |---|---|
 | Codec-rundtur och tolerans | `core/src/test/.../schema/` (hjälparna i skill `testing-strategy`) |
 | `CollectionContract` (i `app/src/sharedTest`) mot `FakeCollection` | `FakeCollectionContractTest`, JVM, varje PR när `app/` ändras |
-| `CollectionContract` mot riktig `FirestoreCollection` + Firebase-emulatorn (firestore + auth, rules aktiva) | `FirestoreCollectionContractTest` i `app/src/androidTest` (instrumenttest: i PR:er som rör koden, skill `ci-budget`) |
+| `CollectionContract` mot riktig `FirestoreCollection` + Firebase-emulatorn (firestore + auth, rules aktiva) | `FirestoreCollectionContractTest` i `app/src/androidTest` (instrumenttest: i PR:er som rör koden, skill `ci-budget`); användare och Firestore-instans per test från regeln `FirebaseEmulator` (skill `testing-strategy`) |
 | Offline först och användarens version mot riktig Firestore | `FirestoreOfflineTest` i `app/src/androidTest` (`disableNetwork` → skrivning lyckas, syns lokalt, synkas efter `enableNetwork`) |
 | Rules-test | `tools/db/test/rules.test.mjs` |
 | `Paths` = `collections.mjs` = rules | `tools/db/test/collections.test.mjs` |

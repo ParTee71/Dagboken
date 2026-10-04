@@ -11,37 +11,45 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import se.partee71.dagboken.data.firestore.Paths
+import se.partee71.dagboken.testing.StuckTestTimeout
 
 /** Utloggningens tömning av cachen (AUTH-6) mot riktig Firestore i emulatorn. */
 @RunWith(AndroidJUnit4::class)
 class FirestoreLocalCacheTest {
 
+    @get:Rule(order = StuckTestTimeout.OUTERMOST)
+    val timeout = StuckTestTimeout.rule()
+
+    @get:Rule
+    val emulator = FirebaseEmulator()
+
     private fun test(block: suspend () -> Unit) = runBlocking { withTimeout(20_000) { block() } }
 
     @Test
     fun tomd_cache_saknar_lokala_dokument_och_nya_instansen_fungerar_mot_servern() = test {
-        val uid = FirebaseEmulator.newUser()
-        val doc = FirebaseEmulator.db.collection(Paths.options(uid)).document("a")
+        val user = emulator.newUser()
+        val doc = user.db.collection(Paths.options(user.uid)).document("a")
         doc.set(mapOf("name" to "Promenad")).await()
         assertEquals("Promenad", doc.get(Source.CACHE).await().getString("name"))
 
-        FirebaseEmulator.firestore.clear().getOrThrow()
+        user.firestore.clear().getOrThrow()
 
-        val fresh = FirebaseEmulator.db.collection(Paths.options(uid)).document("a")
+        val fresh = user.db.collection(Paths.options(user.uid)).document("a")
         assertFailsWith<FirebaseFirestoreException> { fresh.get(Source.CACHE).await() }
         assertEquals("Promenad", fresh.get(Source.SERVER).await().getString("name"))
     }
 
     @Test
     fun osynkad_skrivning_halls_kvar_tills_den_natt_servern() = test {
-        val uid = FirebaseEmulator.newUser()
-        val firestore = FirebaseEmulator.firestore
+        val user = emulator.newUser()
+        val firestore = user.firestore
         firestore.db.disableNetwork().await()
         try {
-            firestore.db.collection(Paths.options(uid)).document("b").set(mapOf("name" to "Yoga"))
+            firestore.db.collection(Paths.options(user.uid)).document("b").set(mapOf("name" to "Yoga"))
             assertFalse(firestore.awaitPendingWrites(1.seconds))
         } finally {
             firestore.db.enableNetwork().await()

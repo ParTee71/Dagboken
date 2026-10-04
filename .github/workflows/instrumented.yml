@@ -57,7 +57,10 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # Egen gräns under jobbets 30 minuter: ett test som hänger fäller steget i stället för jobbet,
+      # så att "Fallerade tester" och testrapporten hinner köras.
       - name: Instrumenttester (API 35, samma som targetSdk)
+        timeout-minutes: 15
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 35

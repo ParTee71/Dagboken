@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.schema.Doc
@@ -20,6 +21,7 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.common.dataError
 import se.partee71.dagboken.data.firestore.Paths
+import se.partee71.dagboken.testing.StuckTestTimeout
 
 /**
  * Kontraktet för `EntityCollection` (skill firestore-data-layer). Körs mot `FakeCollection` i
@@ -51,6 +53,13 @@ abstract class CollectionContract {
         /** Ingen användare är inloggad. */
         fun signOut()
     }
+
+    /**
+     * Uppställningen i [createEnvironment] blockerar (mot emulatorn: inloggning och första
+     * skrivningen); regeln fäller ett test som fastnar där eller i `@After`, i JVM och på enhet.
+     */
+    @get:Rule(order = StuckTestTimeout.OUTERMOST)
+    val stuckTestTimeout = StuckTestTimeout.rule()
 
     protected abstract fun createEnvironment(): Environment
 

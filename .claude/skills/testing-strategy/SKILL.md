@@ -59,6 +59,8 @@ hjälparna och testar bara det som är unikt för funktionen:
 |---|---|---|
 | `FakeCollection<T>`, `FakeCollectionFactory`, `FakeStore` | `app/src/test/.../data/` | egna in-memory-fakes per repository |
 | `CollectionContract`, `TestUserScope`, `FixedClock` | `app/src/sharedTest/.../data/` (JVM mot fake, enhet mot Firebase-emulatorn) | separata tester per repository-implementation |
+| `StuckTestTimeout.rule()` som yttersta regel (`@get:Rule(order = StuckTestTimeout.OUTERMOST)`) | `app/src/sharedTest/.../testing/` (redan i `CollectionContract`) | egna `Timeout`-regler; ett hängande test äter annars CI-jobbets gräns |
+| `FirebaseEmulator` (JUnit-regel) → `newUser()`/`newSignedInUser()` ger en `EmulatorUser` med egen FirebaseApp, Auth och Firestore | `app/src/androidTest/.../data/` | egen inloggning, `signOut`/`signIn` eller delad Firestore-instans i instrumenttester |
 | `assertCodecContract` (samlar `assertEveryFieldDiffersFromDefault`, `assertCodecRoundTrip`, `assertToleratesMissingFields`, `assertIgnoresUnknownFields`, `assertEncodesAllFields`), `assertVariantCodecContract` | `core/src/test/.../schema/CodecAssertions.kt` | egna codec-asserts |
 | `MainDispatcherRule` | `app/src/test/.../testing/` | egen `Dispatchers.setMain` per test |
 | `UserFixture` (riktig `UserSession` + fejkad Firestore + fejkad `UserDirectory`, `EnsureUserUseCase`) | `app/src/test/.../testing/` | egen uppställning av användare och session per test |
@@ -91,6 +93,17 @@ Tester i `tools/db/test/` och instrumenttester mot Firestore körs **endast mot 
 via den gemensamma testhjälparen som avbryter om `FIRESTORE_EMULATOR_HOST` saknas och
 använder projekt-ID:t `demo-dagboken`. En session med `FIREBASE_SERVICE_ACCOUNT` i
 miljön får aldrig köra dem utan emulator (skill `data-safety-backup`).
+
+Instrumenttesterna får sina användare från regeln `FirebaseEmulator` (`@get:Rule val emulator =
+FirebaseEmulator()`). Varje användare har en **egen FirebaseApp** – egen Auth, egen
+Firestore-instans och egen cache – och är inloggad innan Firestore-instansen skapas; regeln
+raderar apparna efter testet. Byt **aldrig** användare med `signOut`/`signInAnonymously` under en
+levande Firestore-instans: Firestore får bytet asynkront, och en skrivning direkt efteråt kan
+hamna i förra användarens kö och aldrig kvitteras (CI hängde så, ungefär var 19:e byte). Behövs
+två användare i ett test skapas två (`FirestoreOfflineTest`). Varje steg mot emulatorn har en
+tidsgräns med ett felmeddelande som säger vilket steg som inte svarade, och varje testklass har
+`StuckTestTimeout` som yttersta regel. `FirebaseEmulatorTest` kör regelns livscykel 50 gånger i
+rad som regressionstest.
 
 ## Dokumentdrift-kontrollen
 
@@ -131,6 +144,8 @@ säg det i PR:en. Vid rött CI – låt agenten `ci-doktor` diagnostisera.
 
 - Ta bort, `@Ignore`:a eller försvaga ett rött test för att bli klar.
 - Köra om ett test tills det blir grönt.
+- Blockera utan tidsgräns i en uppställning (`runBlocking`, `Tasks.await`, lås) – en hängning ska
+  bli ett rött test med stackar, inte ett CI-jobb som når sin gräns.
 - Testa implementation (interna anrop) i stället för beteende.
 - Skriva om ramens beteende-tester i varje feature i stället för att köra kontraktet.
 - Spela in nya referensbilder för att tysta en diff du inte förstår.

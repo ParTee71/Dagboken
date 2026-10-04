@@ -9,10 +9,14 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import se.partee71.dagboken.testing.StuckTestTimeout
 
 /** Appen startar på en riktig enhet med Hilt, startskärmen och Expressive-temat (NFR-5). */
 @RunWith(AndroidJUnit4::class)
 class AppLaunchTest {
+
+    @get:Rule(order = StuckTestTimeout.OUTERMOST)
+    val timeout = StuckTestTimeout.rule()
 
     @get:Rule
     val compose = createAndroidComposeRule<MainActivity>()
