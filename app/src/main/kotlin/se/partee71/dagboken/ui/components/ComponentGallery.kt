@@ -209,10 +209,14 @@ private fun Progress() {
     }
 }
 
+/** Appens fasta ark som galleriet kan öppna. */
+private enum class AppSheet { Account, LogMenu }
+
 @Composable
 private fun Overlays() {
     var dialog by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf(false) }
+    var appSheet by remember { mutableStateOf<AppSheet?>(null) }
     var celebrate by remember { mutableStateOf(false) }
     var archived by remember { mutableStateOf<UndoRequest?>(null) }
     val snackbar = remember { SnackbarHostState() }
@@ -221,6 +225,11 @@ private fun Overlays() {
         AppButton("Dialog", { dialog = true }, variant = ButtonVariant.Secondary)
         AppButton("Sheet", { sheet = true }, variant = ButtonVariant.Secondary)
         AppButton("Snackbar", { scope.launch { snackbar.showSnackbar("Ingen anslutning just nu.") } }, variant = ButtonVariant.Secondary)
+    }
+    Label("AccountSheet · LogMenuSheet")
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+        AppButton("Inställningsark", { appSheet = AppSheet.Account }, variant = ButtonVariant.Secondary)
+        AppButton("Loggmeny", { appSheet = AppSheet.LogMenu }, variant = ButtonVariant.Secondary)
     }
     AppButton("Arkivera Yoga", { archived = UndoRequest("yoga", "Yoga") }, variant = ButtonVariant.Text)
     UndoSnackbar(archived, snackbar, onUndo = { archived = null }, onDismissed = { archived = null })
@@ -232,6 +241,11 @@ private fun Overlays() {
             QuantityStepper(45, {}, "minuter")
             AppButton("Spara", {}, variant = ButtonVariant.Text)
         }
+    }
+    when (appSheet) {
+        AppSheet.Account -> AccountSheet(onDismiss = { appSheet = null }, onSignOut = { appSheet = null }, onOpenGallery = { appSheet = null })
+        AppSheet.LogMenu -> LogMenuSheet(onDismiss = { appSheet = null }, onPick = { appSheet = null })
+        null -> Unit
     }
     EmptyState(R.drawable.ic_book, "Inget loggat än", "Det du loggar med plusknappen hamnar här, dag för dag.") {
         AppButton("Logga", {}, Modifier.fillMaxWidth(), icon = R.drawable.ic_add)

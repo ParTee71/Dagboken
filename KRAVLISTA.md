@@ -34,7 +34,7 @@
 | TP-2 | UI byggt med **Jetpack Compose** + **Material 3 Expressive** (`MaterialExpressiveTheme`, `MotionScheme.expressive()`) och **Navigation 3** med en backstack per flik *(4.0 – 3.x: Material 3 + navigation-compose med strängrutter)*. |
 | TP-3 | Arkitektur: **MVVM** med Hilt (DI), repository som single source of truth ovanpå generisk `FirestoreCollection<T>` + `DocCodec<T>`, ViewModels med `StateFlow<UiState>`. Två moduler: `:core` (ren Kotlin/JVM: modeller, codecs, motorer) och `:app` *(4.0)*. |
 | TP-4 | Lagring i **Firestore offline-först** (persistent cache, molnet är källan) under `users/{uid}`; inställningar i dokumentet `settings`. DataStore används bara för enhetslokalt tillstånd (migreringsflagga, senast valda flik) *(4.0 – 3.x: Room + DataStore)*. |
-| TP-5 | Inloggning via **Firebase Auth + Google Credential Manager**; inloggning krävs (AUTH-5). |
+| TP-5 | Inloggning via **Firebase Auth + Google Credential Manager**; inloggning krävs (AUTH-6). |
 | TP-6 | ~~Molnbackup via **Google Drive (appDataFolder)**.~~ *(borttaget 4.0 – Drive-backupen ersätts av BCK-11…BCK-16)* |
 | TP-7 | Bakgrundsjobb via **WorkManager** (Hilt-integrerad worker) där något måste köras utan att appen är öppen *(4.0: ingen backup-worker längre)*. |
 | TP-8 | Påminnelser via **AlarmManager** + `BroadcastReceiver` + notifikationskanaler. |

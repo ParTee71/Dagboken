@@ -13,10 +13,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.entryProvider
 import se.partee71.dagboken.BuildConfig
-import se.partee71.dagboken.ui.AccountSheet
-import se.partee71.dagboken.ui.LogMenuSheet
 import se.partee71.dagboken.ui.TabPlaceholderScreen
+import se.partee71.dagboken.ui.components.AccountSheet
 import se.partee71.dagboken.ui.components.ComponentGallery
+import se.partee71.dagboken.ui.components.LogMenuSheet
 import se.partee71.dagboken.ui.sync.SyncViewModel
 
 /** Arken som ligger över flikarna: inställningsarket bakom avataren (NAV-9) och loggmenyn bakom plusknappen (NAV-10). */

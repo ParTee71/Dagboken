@@ -1,4 +1,4 @@
-package se.partee71.dagboken.ui
+package se.partee71.dagboken.ui.components
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -8,8 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.components.AppBottomSheet
-import se.partee71.dagboken.ui.components.ItemRow
 
 /** De fem loggvalen bakom plusknappen, i ordning (NAV-10). */
 enum class LogChoice(@StringRes val label: Int, @DrawableRes val icon: Int) {
@@ -21,7 +19,8 @@ enum class LogChoice(@StringRes val label: Int, @DrawableRes val icon: Int) {
 }
 
 /**
- * Inställningsarket bakom avataren (NAV-9). Etapp 1 har bara "Logga ut" och, i debug-bygget,
+ * Inställningsarket bakom avataren (NAV-9) – ett av appens två fasta ark, som [LogMenuSheet] byggt
+ * på [AppBottomSheet] med en [ItemRow] per val. Etapp 1 har bara "Logga ut" och, i debug-bygget,
  * komponentgalleriet ([onOpenGallery] = `null` i release); resten av arket kommer i etapp 5.
  */
 @Composable

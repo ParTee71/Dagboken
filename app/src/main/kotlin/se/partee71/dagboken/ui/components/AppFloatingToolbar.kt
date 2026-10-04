@@ -45,10 +45,13 @@ data class ToolbarAction(val label: String, @DrawableRes val icon: Int, val onCl
  * Hur mycket plats den flytande verktygsraden tar längst ned. Navigationen sätter värdet när
  * raden syns; ramarna lägger till det under listan, knappen och snackbaren.
  */
-val LocalBottomClearance = compositionLocalOf { 0.dp }
+val LocalBottomClearance = compositionLocalOf { NoBottomClearance }
 
 /** Plats som verktygsraden tar inklusive marginal. */
 val FloatingToolbarClearance: Dp = 96.dp
+
+/** Ingen plats längst ned – verktygsraden syns inte (undersidor, NAV-3). */
+val NoBottomClearance: Dp = 0.dp
 
 /**
  * Toppnivånavigeringen (NAV-8): en flytande verktygsrad där vald flik visar ikon och namn och

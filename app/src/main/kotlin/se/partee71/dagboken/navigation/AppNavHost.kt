@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -32,6 +31,7 @@ import se.partee71.dagboken.ui.components.AppFloatingToolbar
 import se.partee71.dagboken.ui.components.AppSnackbarHost
 import se.partee71.dagboken.ui.components.ErrorSnackbar
 import se.partee71.dagboken.ui.components.FloatingToolbarClearance
+import se.partee71.dagboken.ui.components.NoBottomClearance
 import se.partee71.dagboken.ui.components.LocalBottomClearance
 import se.partee71.dagboken.ui.components.LocalSyncIndicator
 import se.partee71.dagboken.ui.components.SyncIndicator
@@ -61,7 +61,7 @@ fun AppNavHost(
     val toolbar = toolbarItems()
     val logLabel = stringResource(R.string.log_menu_open)
     val action = onLog?.let { ToolbarAction(logLabel, R.drawable.ic_add, it) }
-    val clearance = if (backStack.atTopLevel) FloatingToolbarClearance else 0.dp
+    val clearance = if (backStack.atTopLevel) FloatingToolbarClearance else NoBottomClearance
     val messages = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val resources = LocalResources.current

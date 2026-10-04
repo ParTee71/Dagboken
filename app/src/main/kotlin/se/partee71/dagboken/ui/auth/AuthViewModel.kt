@@ -27,7 +27,7 @@ import se.partee71.dagboken.data.common.dataError
 import se.partee71.dagboken.data.user.EnsureUserUseCase
 
 /**
- * Vad appen visar (AUTH-1, AUTH-5): inloggning, "Uppdatera appen" eller innehållet.
+ * Vad appen visar (AUTH-1, AUTH-6): inloggning, "Uppdatera appen" eller innehållet.
  * [NeedsUser] = inloggad men `users/{uid}` finns inte (än) på servern eller går inte att läsa.
  */
 enum class AuthGate { Loading, SignedOut, NeedsUser, UpdateRequired, Ready }
@@ -107,7 +107,7 @@ class AuthViewModel @Inject constructor(
             error.value = null
             val result = auth.signInWithGoogle(activityContext)
             signingIn.value = false
-            // Avbruten inloggning är inget fel (AUTH-2).
+            // Avbruten inloggning är inget fel (AUTH-4).
             result.dataError()?.takeIf { it != DataError.Cancelled }?.let { error.value = it }
         }
     }

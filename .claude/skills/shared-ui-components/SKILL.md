@@ -50,6 +50,8 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Tomt tillstånd / läsfel | `EmptyState` | ikon + text + `AppButton`; `isError` för läsfel (internt `LoadErrorState` med "Försök igen") |
 | Bekräftelse | `ConfirmDialog` | M3 dialog, `destructive`-parameter |
 | Bottom sheet | `AppBottomSheet` | M3 modal sheet, `AppShapes.sheet` (28 dp upptill) |
+| Inställningsark | `AccountSheet` | `AppBottomSheet` + en `ItemRow` per val bakom avataren (NAV-9); "Komponentgalleri" bara i debug |
+| Plusknappens loggmeny | `LogMenuSheet` | `AppBottomSheet` + en `ItemRow` per `LogChoice` – exakt fem val i ordning (NAV-10) |
 | Meddelande | `AppSnackbarHost` | M3 snackbar; ett pågående meddelande ersätts aldrig av ett annat; fel via internt `ErrorSnackbar` |
 | Firande | `Confetti` | egen `Canvas`, inget bibliotek; faller en gång (HEM-19) |
 | Avdelare | `AppDivider` | M3-avdelare med temats färg och tjocklek |
@@ -112,8 +114,6 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 | Framstegsrad | `ProgressBar` | ny – fylls animerat, solgul när dagen är klar |
 | Dagen klar | `DayDoneCard` | ny – sammanfattningskortet i belöningsläget (HEM-19) |
 | Diagramgrupper | `ChartGroupTabs` | ny – Mående · Klocka · Jämför (TRD-20) |
-| Inställningsark | `SettingsSheet` | ny – bakom avataren (NAV-9) |
-| Plusknappens loggmeny | `LogMenu` | ny – exakt fem val (NAV-10) |
 
 ## Kod: delade byggstenar i andra lager
 

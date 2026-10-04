@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name" translatable="false">Dagboken</string>
 
-    <!-- Inloggning (AUTH-1–3, AUTH-5) -->
+    <!-- Inloggning (AUTH-1, AUTH-2, AUTH-4, AUTH-6) -->
     <string name="sign_in_welcome">Din hälsodagbok – mediciner, mående och aktiviteter på ett ställe</string>
     <string name="sign_in_google">Logga in med Google</string>
     <string name="sign_in_busy">Loggar in …</string>
@@ -78,7 +78,7 @@
     <string name="tab_diary">Dagbok</string>
     <string name="tab_trends">Trender</string>
     <string name="tab_medicines">Mediciner</string>
-    <string name="tab_upcoming_title">Kommer i etapp 5</string>
+    <string name="tab_upcoming_title">Snart här</string>
     <string name="tab_today_upcoming">Här samlas dagens mediciner, mående, vid behov och hälsa.</string>
     <string name="tab_diary_upcoming">Här visas allt du loggat, dag för dag, med kalender och filter.</string>
     <string name="tab_trends_upcoming">Här följer du mående, klockans mått och jämförelser över tid.</string>

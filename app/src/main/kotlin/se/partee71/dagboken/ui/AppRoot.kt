@@ -18,7 +18,7 @@ import se.partee71.dagboken.ui.auth.SignInScreen
 import se.partee71.dagboken.ui.auth.UpdateRequiredScreen
 import se.partee71.dagboken.ui.components.AppLoading
 
-/** Appens rot: inloggningen styr vad som visas (AUTH-1, AUTH-5). */
+/** Appens rot: inloggningen styr vad som visas (AUTH-1, AUTH-6). */
 @Composable
 fun AppRoot(modifier: Modifier = Modifier, viewModel: AuthViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()

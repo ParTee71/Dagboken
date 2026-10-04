@@ -3,7 +3,6 @@ package se.partee71.dagboken.consistency
 import com.lemonappdev.konsist.api.Konsist
 import com.lemonappdev.konsist.api.ext.list.withNameEndingWith
 import java.io.File
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -138,30 +137,25 @@ class UiConsistencyTest {
     private fun galleryText(): String =
         checkNotNull(production.files.firstOrNull { it.name == "ComponentGallery" }?.text) { "ComponentGallery saknas i ui/components" }
 
-    /** Publika composables i `ui.components`; hoppar över testet (med orsak i loggen) så länge det inte finns några. */
-    private fun publicComponents(check: String): Set<String> {
+    /** Publika composables i `ui.components`; inga alls betyder att sökningen gått fel och fäller testet. */
+    private fun publicComponents(checkName: String): Set<String> {
         val names = production.functions()
             .filter { it.resideInPackage("..ui.components..") && it.hasPublicOrDefaultModifier }
             .filter { it.hasAnnotationWithName("Composable") }
             .map { it.name }
             .toSet()
-        val reason = "$check: hoppar över – ui.components saknar publika composables"
-        if (names.isEmpty()) println(reason)
-        assumeTrue(reason, names.isNotEmpty())
+        check(names.isNotEmpty()) { "$checkName: ui.components saknar publika composables" }
         return names
     }
 
     /**
-     * Komponentnamnen i kolumn två i tabellerna "Utseende" och "Beteende". Hoppar över testet (med
-     * orsak i loggen) så länge skillen saknar tabellerna – den skrivs om för Dagboken 4.0 i etapp 1
-     * i samma PR som skelettet; därefter håller testet tabellen och koden lika.
+     * Komponentnamnen i kolumn två i tabellerna "Utseende" och "Beteende". Saknas tabellerna fäller
+     * testet – annars skulle dokumentdriften tyst sluta kontrolleras.
      */
     private fun documentedComponents(): Set<String> {
         val skill = File(repoRoot, ".claude/skills/shared-ui-components/SKILL.md").readText()
-        val reason = "Dokumentdrift: hoppar över – shared-ui-components saknar tabellerna \"Utseende\" och \"Beteende\""
-        val hasTables = Regex("""^## (Utseende|Beteende)""", RegexOption.MULTILINE).containsMatchIn(skill)
-        if (!hasTables) println(reason)
-        assumeTrue(reason, hasTables)
+        val hasTables = Regex("""^## (Utseende|Beteende)""", RegexOption.MULTILINE).findAll(skill).count() == 2
+        check(hasTables) { "Dokumentdrift: shared-ui-components saknar tabellerna \"Utseende\" och \"Beteende\"" }
         val tables = Regex("""## (Utseende|Beteende)[^\n]*\n(.*?)(?=\n## )""", RegexOption.DOT_MATCHES_ALL)
             .findAll(skill)
             .joinToString("\n") { it.groupValues[2] }

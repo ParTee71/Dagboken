@@ -10,7 +10,7 @@ import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
-/** Omförsök för flöden som appen följer hela tiden (hushållets version, inställningarna). */
+/** Omförsök för flöden som appen följer hela tiden (användarens version, inställningarna). */
 class FlowRetryTest {
 
     @Test

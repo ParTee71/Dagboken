@@ -16,6 +16,7 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.dataError
 import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.user.EnsureUserUseCase
+import se.partee71.dagboken.data.user.UserStatus
 
 /** Offline först, användarens version och första inloggningen, mot riktig Firestore i emulatorn (NFR-1). */
 @RunWith(AndroidJUnit4::class)
@@ -42,12 +43,15 @@ class FirestoreOfflineTest {
     }
 
     @Test
-    fun anvandarens_version_lases_ur_dokumentet_och_saknat_dokument_ger_null() = test {
+    fun anvandarens_version_lases_ur_dokumentet_nyare_kraver_uppdatering_och_saknat_dokument_ger_null() = test {
         val versions = FirebaseEmulator.versions()
         val current = FirebaseEmulator.newUser()
-        assertEquals(Schema.CURRENT_VERSION, versions.schemaVersion(current).first())
-        val newer = FirebaseEmulator.newUser(version = Schema.CURRENT_VERSION + 1)
+        assertEquals(Schema.FIRST_VERSION, versions.schemaVersion(current).first())
+        val newer = FirebaseEmulator.newUid()
+        FirebaseEmulator.seedUserBypassingRules(newer, version = Schema.CURRENT_VERSION + 1)
         assertEquals(Schema.CURRENT_VERSION + 1, versions.schemaVersion(newer).first())
+        val status = EnsureUserUseCase(FirebaseEmulator.directory(), FixedClock())(newer).getOrThrow()
+        assertEquals(UserStatus.RequiresUpdate(newer), status, "en nyare version kräver uppdatering")
         val fresh = FirebaseEmulator.newUid()
         assertNull(versions.schemaVersion(fresh).first())
     }

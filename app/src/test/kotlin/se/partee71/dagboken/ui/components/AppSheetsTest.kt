@@ -1,8 +1,7 @@
-package se.partee71.dagboken.ui
+package se.partee71.dagboken.ui.components
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import kotlin.test.assertEquals
@@ -10,18 +9,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import se.partee71.dagboken.navigation.DiaryKey
-import se.partee71.dagboken.navigation.MedicinesKey
 import se.partee71.dagboken.navigation.RootSheet
 import se.partee71.dagboken.navigation.RootSheets
-import se.partee71.dagboken.navigation.TodayKey
-import se.partee71.dagboken.navigation.TOP_LEVEL
-import se.partee71.dagboken.navigation.TrendsKey
-import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 
-/** Flikarnas platshållare, inställningsarket bakom avataren (NAV-9) och loggmenyn bakom plusknappen (NAV-10). */
+/** Appens fasta ark: inställningsarket bakom avataren (NAV-9) och loggmenyn bakom plusknappen (NAV-10). */
 @RunWith(RobolectricTestRunner::class)
 class AppSheetsTest {
 
@@ -42,7 +35,7 @@ class AppSheetsTest {
     }
 
     @Test
-    fun `inställningsarket loggar ut och stänger sig (NAV-9, AUTH-3)`() {
+    fun `inställningsarket loggar ut och stänger sig (NAV-9, AUTH-2)`() {
         var signedOut = 0
         var dismissed = 0
         show(RootSheet.Account, onSignOut = { signedOut++ }, onDismiss = { dismissed++ })
@@ -67,17 +60,6 @@ class AppSheetsTest {
     }
 
     @Test
-    fun `varje flik visar Kommer i etapp 5 och avataren öppnar arket`() {
-        assertEquals(TOP_LEVEL, TabInfo.entries.map { it.key })
-        var opened = 0
-        rule.setContent { DagbokenTheme { TabPlaceholderScreen(MedicinesKey, onAccount = { opened++ }) } }
-        rule.onNodeWithText("Mediciner").assertIsDisplayed()
-        rule.onNodeWithText("Kommer i etapp 5").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Konto och inställningar").performClick()
-        assertEquals(1, opened)
-    }
-
-    @Test
     fun `AccountSheet - debug`() = rule.captureScreenLightAndDark("AccountSheet_debug") {
         AccountSheet(onDismiss = {}, onSignOut = {}, onOpenGallery = {})
     }
@@ -85,13 +67,6 @@ class AppSheetsTest {
     @Test
     fun `LogMenuSheet - fem val`() = rule.captureScreenLightAndDark("LogMenuSheet_val") {
         LogMenuSheet(onDismiss = {}, onPick = {})
-    }
-
-    @Test
-    fun `TabPlaceholderScreen - alla flikar`() {
-        listOf(TodayKey to "Idag", DiaryKey to "Dagbok", TrendsKey to "Trender", MedicinesKey to "Mediciner").forEach { (key, name) ->
-            captureLightAndDark("TabPlaceholderScreen_$name") { TabPlaceholderScreen(key, onAccount = {}) }
-        }
     }
 }
 
