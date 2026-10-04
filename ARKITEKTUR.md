@@ -85,7 +85,7 @@ Allt under `users/{uid}`; dokumentet bär `schemaVersion` och `createdAt`. Model
 
 | Samling / dokument | Nyckelfält | Ersätter 3.x |
 |---|---|---|
-| `settings` (ett dokument, `settings/app`) | theme {mode `light` \| `dark` \| `auto`, lightStartHour, darkStartHour, isDarkTheme}, reminders {medsEnabled, medSlots[6] {slot, enabled, time}, screeningOccasions[4] {occasion, enabled, time}, periodReminderTime}, profile {birthYear?, sex `male` \| `female` \| `unspecified`} | DataStore + `SettingsBackup` |
+| `settings` (ett dokument, `settings/app`) | theme {mode `light` \| `dark` \| `auto`, lightStartHour, darkStartHour, isDarkTheme}, reminders {medsEnabled, medSlots[6] {slot, enabled, time}, screeningOccasions[4] {occasion, enabled, time}, periodReminderTime}, profile {birthYear?, sex `male` \| `female` \| `unspecified`}, legacy {dynamicColor?, sheetsConfig?} (bara bevarade 3.x-värden) | DataStore + `SettingsBackup` + `BackupJson.sheetsConfig` |
 | `options` | kind (`activity` \| `symptom` \| `event`), name, favorite, sortOrder, archived | DataStore-listorna |
 | `prescriptions` | name, dose (text), unit, slots[], schedule {repeat `daily` \| `weekdays` \| `weekends` \| `custom` \| `interval`, days[], intervalDays}, period {start?, end?}, boosts[] {id, start, end?, dose, unit}, active, createdAt, note | `recept` + `dosperioderJson` |
 | `prnMedicines` | name, dose (text), unit, slot, minHoursBetween, dispensingTime, maxPerDay, favorite, note | `favoriter` |
@@ -101,6 +101,17 @@ Allt under `users/{uid}`; dokumentet bär `schemaVersion` och `createdAt`. Model
 samma listor i `firestore.rules` (ett test jämför). Doser är text, som i 3.x (`"0,5"`, `"1 tablett"`).
 Stress, svårighetsgrad, mående-energi och symptompoäng är heltal 0–10, aktivitetens energi −10..10.
 Valfri fritext (`note`, `customText`, `triggers`, `actions`, `dispensingTime`) är `null` när den saknas.
+Textgränser (`TextLimits`, samma i rules): 200 tecken för namn och korta texter, 5 000 för anteckningar,
+`triggers`, `actions` och `settings.legacy.sheetsConfig`.
+
+**Tolerans** (DAT-10): saknat fält → modellens default; okänt enumvärde → default, som skrivs vid
+nästa sparning – utom `screenings.occasion`, som blir `null`, och påminnelserader och tidpunkter med
+okänd nyckel, som hoppas över. Okända fält på toppnivå och i nästlade objekt överlever eftersom
+codecen skriver med merge, men **okända fält i ett listelement** (`symptoms[]`, `boosts[]`,
+`medSlots[]`, `screeningOccasions[]`) bevaras inte: listor skrivs alltid hela ur modellen. Ett nytt
+fält i ett listelement kräver därför höjd `schemaVersion`. En okänd upprepning på ett recept
+(`Schedule.Unknown`) skrivs tillbaka oförändrad och kan uppdateras, men rules nekar att ett dokument
+skapas med den (inte heller återskapas efter radering) tills `schemaVersion` och rules höjs.
 
 Fyra förenklingar: anteckningen är fältet `note` på varje dokument (notes-tabellen och
 kaskadraderingen försvinner); symptom lagras som `[{optionId, score, customText?}]` (summan
@@ -112,8 +123,14 @@ gratis); dosen har en `status` i stället för två booleaner.
 incheckningar behåller sina 3.x-id:n (UUID-strängar). Receptgenererade doser behåller 3.x-schemat
 `recept_{prescriptionId}_{date}_{tidpunkt}` med tidpunktens 3.x-namn (`Morgon`, `Förmiddag` …,
 `DoseIds.prescribed`), så att 4.0:s idempotenta generering (MED-4) träffar redan migrerade doser
-och en upprepad import aldrig dubblerar (DAT-8). Alternativen hade inga id:n i 3.x; konverteraren
-ger dem deterministiska id:n ur kind och namn (fastställs med konverteraren).
+och en upprepad import aldrig dubblerar (DAT-8). Alternativen hade inga id:n i 3.x; de får
+deterministiska id:n ur lista och namn med `OptionIds.of(kind, name)` i `:core`, samma regel i
+konverteraren och i 4.0: `"${kind.wire}-${slug}-${hash}"`, där *slug* är namnet NFD-normaliserat utan
+kombinerande tecken (å/ä/ö → a/a/o), gement, varje tecken utom `a–z` och `0–9` ersatt med `-`, bindestreck hopslagna och trimmade, högst 32
+tecken (`Huvudvärk` → `huvudvark`), och *hash* är de 6 första hex-tecknen av SHA-256 över UTF-8-byten i
+det **exakta** namnet – `Promenad`, `promenad` och `Promenad ` har samma slug men olika id
+(`activity-promenad-c78928`, `activity-promenad-3f4216`, `activity-promenad-967bbc`). Ett nytt
+alternativ i 4.0 får id enligt samma regel; ett namnbyte ändrar inte id:t (SET-11).
 
 **Måltidstillfället** (`screenings.occasion`) fanns inte som fält i 3.x och härleds av
 `Occasion.derive` (DAT-12): 3.x-screeningens namn (`aktivitet`) när det är ett av de fyra
@@ -130,15 +147,16 @@ och kontrolleras av test.
 Varje fält i 3.x `BackupJson` (v1 och v2) och dess klasser har en plats nedan (ADR-001, beslut 11;
 OMB-3). Tabellen är kontrollerad: `ParityTableTest` i `:core` kräver att varje 3.x-fält finns som rad,
 att varje 4.0-fält i kolumn två finns i samlingens codec, att varje codec-fält finns i tabellen eller
-bland de nya fälten nedan, och att exakt två rader är *utelämnas*. Kolumn två anger samling och fältväg
-(`[]` = element i en lista); *beräknas*, *sökväg* och *metadata* betyder att värdet bevaras utan eget
-fält. Room-entiteterna (v11) bär samma fält som `BackupJson` (listorna som JSON-text i `recept`); de
+bland de nya fälten nedan, och att **ingen** rad är *utelämnas*. Kolumn två anger samling och fältväg
+(`[]` = element i en lista); *beräknas* och *sökväg* betyder att värdet bevaras utan eget fält. 3.x-värden
+utan funktion i 4.0 (`dynamicColor`, `sheetsConfig`) bevaras i `settings.legacy` och används aldrig.
+Room-entiteterna (v11) bär samma fält som `BackupJson` (listorna som JSON-text i `recept`); de
 enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är inte användardata.
 
 | 3.x | 4.0 | Anmärkning |
 |---|---|---|
-| `BackupJson.version` | *metadata* | Väljer v1- eller v2-tolkning i konverteraren; ingen användardata. |
-| `BackupJson.createdAt` | *metadata* | Backupens tidpunkt; visas i importens sammanfattning, ingen användardata. |
+| `BackupJson.version` | *metadata* | Backupfilens formatversion\*; väljer v1- eller v2-tolkning i konverteraren. |
+| `BackupJson.createdAt` | *metadata* | När backupfilen skrevs\*; visas i importens sammanfattning. |
 | `BackupJson.aktiviteter` | `activities`, `screenings` | Delas på `AktivitetJson.type`. |
 | `BackupJson.mediciner` | `doses` | |
 | `BackupJson.medicinRecipes` | `prescriptions` | |
@@ -154,7 +172,7 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `BackupJson.notes` | `activities.note`, `screenings.note`, `doses.note`, `prescriptions.note`, `prnMedicines.note`, `events.note`, `illnessEpisodes.note`, `checkins.note` | Se `NoteJson`. |
 | `BackupJson.screeningEventConfigs` | `settings.reminders.screeningOccasions`, `settings.reminders.screeningOccasions[].occasion` | Positionen 0–3 = Efter frukost, Lunch, Kvällsmat, Läggdags (`SCREENING_EVENT_LABELS`) blir radens `occasion`. |
 | `BackupJson.medNotificationConfigs` | `settings.reminders.medSlots` | |
-| `BackupJson.sheetsConfig` | *utelämnas* | Sheets-exporten användes aldrig och kommer inte i 4.0 (FUT-2). |
+| `BackupJson.sheetsConfig` | `settings.legacy.sheetsConfig` | Bevaras bara: Sheets-exporten finns inte i 4.0 (FUT-2) och värdet används aldrig. Text upp till `TextLimits.LONG`; `null` = fanns inte. |
 | `BackupJson.periodReminderTime` | `settings.reminders.periodReminderTime` | `HH:mm`. |
 | `BackupJson.settings` | `settings` | `null` i ett fält = "rör inte": konverteraren skriver då inte fältet (merge). |
 | `SettingsBackup.medsNotificationsEnabled` | `settings.reminders.medsEnabled` | |
@@ -162,7 +180,7 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `SettingsBackup.themeLightStart` | `settings.theme.lightStartHour` | |
 | `SettingsBackup.themeDarkStart` | `settings.theme.darkStartHour` | |
 | `SettingsBackup.isDarkTheme` | `settings.theme.isDarkTheme` | Bevaras fast 4.0 bara läser `mode`. |
-| `SettingsBackup.dynamicColor` | *utelämnas* | Reglaget finns inte i 4.0 (SET-3 struket); Papper och teal har fasta färger. |
+| `SettingsBackup.dynamicColor` | `settings.legacy.dynamicColor` | Bevaras bara: Papper och teal har fasta färger (SET-3) och värdet används aldrig. `null` = fanns inte. |
 | `SettingsBackup.birthYear` | `settings.profile.birthYear` | |
 | `SettingsBackup.sex` | `settings.profile.sex` | `man`/`kvinna`/`ej_angivet` → `male`/`female`/`unspecified`. |
 | `AktivitetJson.id` | `activities.id`, `screenings.id` | Dokument-id, bevaras (DAT-13). |
@@ -259,6 +277,11 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 
 Nya fält i 4.0 utan 3.x-motsvarighet: `doses.prnId`, `options.archived`.
 
+\* *metadata* (bara `BackupJson.version` och `BackupJson.createdAt`): **backupfilens** metadata, inte
+användarens data – de beskriver filen (formatversion och när den skrevs), inte något användaren har
+loggat eller ställt in. `version` väljer v1- eller v2-tolkning i konverteraren och `createdAt` visas i
+importens sammanfattning; ingen av dem har eller behöver en plats i Firestore.
+
 ## Designspråk · I "Papper och teal"
 
 Lugn dagbokskänsla med luft, en tydlig gör-något-färg och belöning när dagen är klar.
@@ -344,9 +367,20 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
 1. **Konverterare i `:core`** (`legacy/BackupJsonConverter`): 3.x `BackupJson` (v1 och v2, inklusive
    arvsfälten `anteckning` på posterna och `tidpunkt` på receptet) → 4.0-dokument. Fixtur med
    **varje** fält satt. Test: konvertera → exportera → fältvis jämförelse mot förväntat.
+   **Validering mot rules-gränserna:** 3.x hade inga längdgränser eller intervall i lagringen, men
+   4.0:s rules har det (`TextLimits.SHORT` 200 tecken för namn och korta texter, `TextLimits.LONG`
+   5 000 för anteckningar och fritext; heltalsintervallen som 0–10, −10..10, 0–23 och ≥ 0; listtaken 50
+   symptom och 50 doshöjningar; giltiga datum och klockslag; enumvärdena). Konverteraren validerar **varje genererat
+   dokument** mot `TextLimits` och samma intervall som `firestore.rules` och **stoppar med en rapport**
+   (dokument, fält, värdets längd eller värde – aldrig innehållet) om något inte ryms. Den kapar,
+   avrundar eller hoppar aldrig över ett värde; beslutet om en gräns ska höjas tas här och i rules,
+   inte i datan. Valideringen behövs även där rules inte gäller: `tools/db import.mjs` skriver med
+   admin-SDK förbi rules, så utan den kunde grinden OMB-4 släppa igenom data som appen sedan inte
+   kan spara om.
 2. **Rundtur mot emulatorn** (`tools/db/test/roundtrip.test.mjs`): import → export identiskt.
-3. **Grind före etapp 3:** en riktig Drive-backup importeras via `tools/db import.mjs`, exporteras
-   och jämförs med originalet. Noll skillnader krävs (OMB-4).
+3. **Grind före etapp 3:** en riktig Drive-backup konverteras (med valideringen i punkt 1 – noll
+   stopp), importeras via `tools/db import.mjs`, exporteras och jämförs med originalet. Noll
+   skillnader krävs (OMB-4).
 4. **På enheten** (etapp 3): första start av 4.0 hittar Room-filen, läser den med legacy-läsaren
    (samma mappning som konverteraren), skriver till Firestore i batchar, visar antal per entitet
    före och efter och låter användaren bekräfta. Fallback: Drive-backup eller lokal JSON.
@@ -425,6 +459,7 @@ PR-beskrivningen, `granskare` + `/code-review` före push, en PR i taget.
 | Risk | Hantering |
 |---|---|
 | Fält tappas i konverteringen | Fixtur med alla fält, rundtur, grind OMB-4 med riktig backup, Room-filen behålls. |
+| 3.x-text längre än rules-gränserna (3.x hade inga) | `TextLimits.LONG` är 5 000 tecken för anteckningar, det enda 3.x-fältet som rimligen kan vara långt. Konverteraren validerar varje dokument mot `TextLimits` och rules-intervallen och stoppar med rapport – kapar aldrig (Migrering, punkt 1). Grinden OMB-4 omfattar valideringen, eftersom admin-importen går förbi rules. Visar en riktig backup längre text höjs gränsen i `TextLimits` och rules i samma PR. |
 | Rules nekar riktig 3.x-data vid importen på enheten | Rules räknar högst 1 000 uttryck och 20 dokumentuppslag per skrivning: listor av objekt har generösa tak (50 symptom, 50 doshöjningar) och elementen kontrolleras upp till det tionde; incheckningar kräver sin episod (`existsAfter`) och en batch får slå upp högst 20 befintliga episoder, så importen skriver episoderna i samma batch som sina incheckningar eller delar upp per högst 20 episoder. Rules-testerna täcker gränserna; grinden OMB-4 går via `tools/db` (admin, förbi rules), så importen på enheten (etapp 3) prövar rules mot riktig data. |
 | Spark-planens läsbudget vid första synk | Engångskostnad; cache därefter; "Allt"-perioden i Trender räknas ur cachen i `:core`. |
 | Hälsodata i molnet | EU-region, rules bara för ägaren, krypterad export, ingen PII i loggar (skill `data-privacy-security`). |

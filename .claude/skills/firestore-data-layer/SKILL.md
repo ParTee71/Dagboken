@@ -36,7 +36,18 @@ ViewModel
 
 ### `DocCodec<T>` (`:core`)
 Se skill `data-safety-backup` och `ARKITEKTUR.md` → "Datamodell". Byggs enbart av
-fälthjälparna; toleranta mot saknade och okända fält.
+fälthjälparna; toleranta mot saknade och okända fält (DAT-10):
+
+- **Saknat fält** eller `null` → modellens default.
+- **Okänt enumvärde** (från en nyare app) → modellens default, som skrivs vid nästa sparning –
+  utom `screenings.occasion`, som blir `null`, och påminnelserader och receptets tidpunkter med
+  okänd nyckel, som hoppas över.
+- **Okända fält** på toppnivå och i nästlade objekt bevaras (merge-skrivning). **Okända fält i ett
+  listelement** (`symptoms[]`, `boosts[]`, `medSlots[]`, `screeningOccasions[]`) bevaras **inte** –
+  listor skrivs alltid hela ur modellen; ett nytt fält där kräver höjd `schemaVersion`.
+- **Okänt recept-schema** (`Schedule.Unknown(raw)`) skrivs tillbaka oförändrat. Rules godtar bara
+  kända scheman i fält som skrivs, så ett sådant recept kan **uppdateras** (schemat orört) men inte
+  skapas eller återskapas efter radering förrän `schemaVersion` och rules höjs.
 
 ### `EntityCollection<T>` (`data/common/`) – ett kontrakt, två implementationer
 | Medlem | Beteende |
@@ -152,7 +163,7 @@ cachen och synkas när nätet finns; larmen schemaläggs om vid synk, omstart oc
   importen skriver episoderna med sina incheckningar eller delar upp per högst 20 episoder.
 - Ny samling = ny `match` med `valid…`-funktion + rules-test + rad i `collections.mjs` i samma PR.
 - **Storlek (TP-12):** text via `nullOrShort`/`nullOrLong` (tak `maxShort()`/`maxLong()` = `TextLimits`
-  i `:core`, hålls lika av `schema.test.mjs`), listor med tak, antal fält via `fieldCount` –
+  i `:core`, 200/5 000, hålls lika av `schema.test.mjs`), listor med tak, antal fält via `fieldCount` –
   som typerna bara på fält som skrivs. `AppTextField` har samma tak.
 - Varje rules-ändring granskas med Googles skill `firebase-security-rules-auditor` (rättigheter,
   create mot update, typer, storlek, `hasOnly`); dess fynd blir rules-tester. Våra regler ovan går före.

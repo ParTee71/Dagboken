@@ -45,8 +45,12 @@ object DoseIds {
     /**
      * Receptgenererad dos: `recept_{prescriptionId}_{date}_{tidpunkt}` med tidpunktens 3.x-namn –
      * exakt 3.x-schemat (MED-4), så att genereringen i 4.0 träffar redan migrerade doser och en
-     * upprepad import aldrig dubblerar.
+     * upprepad import aldrig dubblerar. Bara schemalagda tidpunkter ([Slot.SCHEDULED]): ett recept
+     * genererar aldrig vid behov-doser (3.x erbjöd inte "Vid behov" på recept), och en vid
+     * behov-dos får ett vanligt id – "Vid behov" har dessutom ett mellanslag som dokument-id inte tål.
      */
-    fun prescribed(prescriptionId: String, date: LocalDate, slot: Slot): String =
-        "recept_${prescriptionId}_${date}_${slot.legacyName}"
+    fun prescribed(prescriptionId: String, date: LocalDate, slot: Slot): String {
+        require(slot != Slot.AS_NEEDED) { "Receptdoser har en schemalagd tidpunkt, inte ${slot.legacyName}" }
+        return "recept_${prescriptionId}_${date}_${slot.legacyName}"
+    }
 }

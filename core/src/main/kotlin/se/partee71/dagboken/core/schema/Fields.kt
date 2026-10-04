@@ -30,9 +30,8 @@ internal fun Number.toIntClamped(): Int = toLong().coerceIn(Int.MIN_VALUE.toLong
 
 fun Doc.bool(key: String, default: Boolean = false): Boolean = this[key] as? Boolean ?: default
 
-/** Okänt eller saknat värde → [default]. */
-inline fun <reified E : Enum<E>> Doc.enum(key: String, default: E): E =
-    (this[key] as? String)?.let { name -> enumValues<E>().firstOrNull { it.name == name } } ?: default
+/** Valfritt sant/falskt; saknat eller annan typ → `null`. */
+fun Doc.boolOrNull(key: String): Boolean? = this[key] as? Boolean
 
 /** Enum med lagrat namn ([WireEnum.wire]); okänt eller saknat → `null`. */
 inline fun <reified E> wireValue(raw: Any?): E? where E : Enum<E>, E : WireEnum =
@@ -88,8 +87,6 @@ fun asDoc(value: Any?): Doc =
 fun LocalDate?.encodeDate(): String? = this?.toString()
 
 fun Set<DayOfWeek>.encodeWeekdays(): List<Int> = map { it.isoDayNumber }.sorted()
-
-fun Enum<*>.encodeEnum(): String = name
 
 fun WireEnum?.encodeWire(): String? = this?.wire
 

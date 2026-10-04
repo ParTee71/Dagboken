@@ -12,20 +12,20 @@ beforeEach(() => seed(database()));
 test('en enda användare väljs automatiskt; relativa samlingar tolkas i den', async () => {
   const rows = await queryCollection(database(), 'options', { fields: ['name'] });
   assert.deepEqual(rows, [
-    { id: 'activity-ovrigt', name: 'Övrigt' },
-    { id: 'activity-promenad', name: 'Promenad' },
-    { id: 'event-yrsel', name: 'Yrsel' },
-    { id: 'symptom-huvudvark', name: 'Huvudvärk' },
-    { id: 'symptom-ovrigt', name: 'Övrigt' },
+    { id: 'activity-ovrigt-c067e8', name: 'Övrigt' },
+    { id: 'activity-promenad-c78928', name: 'Promenad' },
+    { id: 'event-yrsel-6db696', name: 'Yrsel' },
+    { id: 'symptom-huvudvark-d55e7d', name: 'Huvudvärk' },
+    { id: 'symptom-ovrigt-c067e8', name: 'Övrigt' },
   ]);
   assert.deepEqual((await queryCollection(database(), 'illnessEpisodes/8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a/checkins')).map((r) => r.id), ['a0b1c2d3-e4f5-4a6b-8c7d-9e0f1a2b3c4d']);
 });
 
 test('--where filtrerar på likhet med tolkade värden, --limit begränsar', async () => {
   const db = database();
-  assert.deepEqual((await queryCollection(db, 'options', { where: [parseWhere('kind=symptom')] })).map((r) => r.id), ['symptom-huvudvark', 'symptom-ovrigt']);
+  assert.deepEqual((await queryCollection(db, 'options', { where: [parseWhere('kind=symptom')] })).map((r) => r.id), ['symptom-huvudvark-d55e7d', 'symptom-ovrigt-c067e8']);
   assert.deepEqual((await queryCollection(db, 'doses', { where: [parseWhere('status=taken')] })).map((r) => r.id), ['3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f', 'recept_6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a_2026-09-21_Förmiddag']);
-  assert.deepEqual((await queryCollection(db, 'options', { where: [parseWhere('archived=true')] })).map((r) => r.id), ['event-yrsel', 'symptom-huvudvark']);
+  assert.deepEqual((await queryCollection(db, 'options', { where: [parseWhere('archived=true')] })).map((r) => r.id), ['event-yrsel-6db696', 'symptom-huvudvark-d55e7d']);
   assert.deepEqual((await queryCollection(db, 'doses', { where: [parseWhere('dose="500"')] })).map((r) => r.id), ['3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f']);
   assert.deepEqual((await queryCollection(db, 'activities', { where: [parseWhere('energy=-2')] })).map((r) => r.id), ['5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d']);
   assert.deepEqual((await queryCollection(db, 'doses', { where: [parseWhere('takenAt=null')] })).map((r) => r.id), ['recept_6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a_2026-09-21_Kväll']);
@@ -55,7 +55,7 @@ test('ett datafält som heter id skriver inte över dokument-ID:t', async () => 
 test('--user som inte finns, eller som inte matchar en full sökväg, ger fel', async () => {
   const db = database();
   await assert.rejects(queryCollection(db, 'doses', { user: 'finns-inte' }), /Användaren finns-inte finns inte/);
-  await assert.rejects(getDocument(db, `users/${UID}/options/activity-promenad`, { user: 'annan' }), /annan användare/);
+  await assert.rejects(getDocument(db, `users/${UID}/options/activity-promenad-c78928`, { user: 'annan' }), /annan användare/);
 });
 
 test('flera användare kräver --user; users listar alla', async () => {

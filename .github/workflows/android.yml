@@ -40,6 +40,8 @@ jobs:
             core:
               - 'core/**'
               - 'tools/db/test/fixtures/**'
+              - 'firestore.rules'
+              - 'ARKITEKTUR.md'
             app:
               - 'app/**'
               - '.claude/skills/shared-ui-components/**'

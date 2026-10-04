@@ -7,8 +7,12 @@ import { Timestamp, collection, collectionGroup, deleteDoc, deleteField, doc, ge
 import { COLLECTIONS } from '../lib/collections.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
 import { rulesTestEnvironment } from './helpers/emulator.mjs';
+import { textLimits } from './helpers/repo.mjs';
 
 const OWNER = 'anna';
+/** Textgränserna (TextLimits i :core = maxShort/maxLong i rules) och en text med [n] tecken. */
+const LIMIT = textLimits();
+const text = (n) => 'x'.repeat(n);
 const user = { schemaVersion: 1, createdAt: Timestamp.fromDate(new Date('2026-09-01T08:00:00Z')) };
 
 /**
@@ -177,11 +181,10 @@ test('okända samlingar och djup nekas – bara samlingarna i collections.mjs (B
 });
 
 test('för långa texter och för många fält nekas (TP-12)', async () => {
-  const long = (n) => 'x'.repeat(n);
   for (const path of subPaths) {
-    await assertSucceeds(setDoc(mine(...path), { note: long(2000), name: long(200) }));
-    await assertFails(setDoc(mine(...path), { note: long(2001) }));
-    await assertFails(setDoc(mine(...path), { name: long(201) }));
+    await assertSucceeds(setDoc(mine(...path), { note: text(LIMIT.long), name: text(LIMIT.short) }));
+    await assertFails(setDoc(mine(...path), { note: text(LIMIT.long + 1) }));
+    await assertFails(setDoc(mine(...path), { name: text(LIMIT.short + 1) }));
     await assertFails(setDoc(mine(...path), { note: 42 }), 'note ska vara text');
   }
   const fields = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`f${i}`, i]));
@@ -201,11 +204,11 @@ test('null, saknade och okända fält är tillåtna (codecens defaults, nyare ap
 test('ett lagrat för stort värde eller många fält hindrar inte att andra fält sparas', async () => {
   const fields = Object.fromEntries(Array.from({ length: 45 }, (_, i) => [`f${i}`, i]));
   await env.withSecurityRulesDisabled(async (ctx) => {
-    await setDoc(doc(ctx.firestore(), 'users', OWNER, 'prescriptions', 'gammal'), { name: 'Gammal', note: 'x'.repeat(5000), active: false, ...fields });
+    await setDoc(doc(ctx.firestore(), 'users', OWNER, 'prescriptions', 'gammal'), { name: 'Gammal', note: text(LIMIT.long * 2), active: false, ...fields });
   });
   const ref = mine('prescriptions', 'gammal');
   await assertSucceeds(setDoc(ref, { active: true }, { merge: true }));
-  await assertFails(setDoc(ref, { note: 'x'.repeat(2001) }, { merge: true }));
+  await assertFails(setDoc(ref, { note: text(LIMIT.long + 1) }, { merge: true }));
   await assertFails(setDoc(ref, { nyttFalt: 1 }, { merge: true }), 'fler fält än förut');
 });
 
@@ -252,13 +255,17 @@ const invalid = {
     ['reminders.periodReminderTime', '25:00', 'klockslag'],
     ['profile.birthYear', '1971', 'år som text'],
     ['profile.sex', 'annat', 'okänt kön'],
+    ['legacy', 'material-you', 'grupp som text'],
+    ['legacy.dynamicColor', 'ja', 'bool som text'],
+    ['legacy.sheetsConfig', 42, 'adress som tal'],
+    ['legacy.sheetsConfig', text(LIMIT.long + 1), 'för lång adress'],
   ],
   options: [
     ['kind', 'plant', 'okänd lista'],
     ['favorite', 'ja', 'bool som text'],
     ['sortOrder', 1.5, 'decimaltal'],
     ['archived', 1, 'bool som tal'],
-    ['name', 'x'.repeat(201), 'för långt namn'],
+    ['name', text(LIMIT.short + 1), 'för långt namn'],
   ],
   prescriptions: [
     ['dose', 50, 'dosen är text'],
@@ -280,7 +287,7 @@ const invalid = {
     ['boosts.1.unit', ['mg'], 'enheten är text'],
     ['active', 'true', 'bool som text'],
     ['createdAt', '2026-01-01', 'tidsstämpel som text'],
-    ['note', 'x'.repeat(2001), 'för lång anteckning'],
+    ['note', text(LIMIT.long + 1), 'för lång anteckning'],
   ],
   prnMedicines: [
     ['slot', 'brunch', 'okänd tidpunkt'],
@@ -307,7 +314,7 @@ const invalid = {
     ['energy', 5.5, 'energi som decimaltal'],
     ['stress', 11, 'stress över 10'],
     ['occasion', 'fika', 'okänt tillfälle'],
-    ['customText', 'x'.repeat(201), 'för lång fritext'],
+    ['customText', text(LIMIT.short + 1), 'för lång fritext'],
     ['time', '24:00', 'klockslag efter 23:59'],
     ['symptoms', ['huvudvärk'], 'symptom som text'],
     ['symptoms', 'huvudvärk', 'symptomlista som text'],
@@ -336,7 +343,7 @@ const invalid = {
     ['severity', -1, 'svårighetsgrad under 0'],
     ['durationMinutes', -1, 'negativ varaktighet'],
     ['triggers', 3, 'fritext som tal'],
-    ['actions', 'x'.repeat(2001), 'för lång fritext'],
+    ['actions', text(LIMIT.long + 1), 'för lång fritext'],
     ['date', '2026-9-21', 'datum utan inledande nolla'],
   ],
   illnessEpisodes: [
@@ -385,6 +392,9 @@ test('gränsvärdena i intervallen godtas', async () => {
     ['prescriptions', 'schedule.days', [1, 2, 3, 4, 5, 6, 7]],
     ['prescriptions', 'slots', ['morning', 'midmorning', 'lunch', 'afternoon', 'evening', 'night', 'asNeeded']],
     ['doses', 'status', 'planned'], ['doses', 'slot', 'asNeeded'], ['activities', 'minutes', 0],
+    ['settings', 'legacy', null], ['settings', 'legacy.dynamicColor', null], ['settings', 'legacy.sheetsConfig', null],
+    ['settings', 'legacy.dynamicColor', false], ['settings', 'legacy.sheetsConfig', text(LIMIT.long)],
+    ['prescriptions', 'note', text(LIMIT.long)], ['prescriptions', 'schedule', null],
   ];
   for (const [collection, path, value] of cases) {
     await assertSucceeds(setDoc(mine(...docPath[collection]), toClient(withField(base(collection), path, value))), `${collection}.${path} = ${JSON.stringify(value)}`);
@@ -447,9 +457,28 @@ test('en uppdatering av ett nästlat fält (punktnotation) kontrollerar hela obj
   await assertFails(updateDoc(mine('settings', 'app'), { 'theme.mode': 'sepia' }));
   await assertFails(updateDoc(mine('settings', 'app'), { 'reminders.periodReminderTime': '9:00' }));
   await assertFails(updateDoc(mine('settings', 'app'), { 'profile.sex': 'annat' }));
+  await assertFails(updateDoc(mine('settings', 'app'), { 'legacy.dynamicColor': 'ja' }));
+  await assertFails(updateDoc(mine('settings', 'app'), { 'legacy.sheetsConfig': text(LIMIT.long + 1) }));
   await assertSucceeds(updateDoc(mine('settings', 'app'), { 'theme.mode': 'light', 'profile.birthYear': 1980 }));
   await assertSucceeds(setDoc(mine(...docPath.prescriptions), toClient(base('prescriptions'))));
   await assertFails(updateDoc(mine(...docPath.prescriptions), { 'schedule.repeat': 'monthly' }));
   await assertFails(updateDoc(mine(...docPath.prescriptions), { 'period.end': '31/12' }));
   await assertSucceeds(updateDoc(mine(...docPath.prescriptions), { 'period.end': null }));
+});
+
+test('ett recept med okänt schema (Schedule.Unknown från en nyare app) kan uppdateras men inte skapas på nytt', async () => {
+  // Codecen skriver tillbaka ett okänt schema oförändrat (DAT-10). Rules kontrollerar bara fält som
+  // ändras, så en skrivning som lämnar schemat orört går igenom – men ett nytt dokument med ett
+  // schema som rules inte känner nekas tills schemaVersion höjs (skill firestore-data-layer).
+  const unknown = { repeat: 'monthly', dayOfMonth: 15 };
+  const ref = mine('prescriptions', 'nyare');
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users', OWNER, 'prescriptions', 'nyare'), toClient(withField(base('prescriptions'), 'schedule', unknown)));
+  });
+  await assertSucceeds(updateDoc(ref, { active: true, note: 'Ändrad i 4.0' }));
+  await assertSucceeds(setDoc(ref, toClient(withField(base('prescriptions'), 'schedule', unknown))), 'hela dokumentet skrivet med schemat orört');
+  await assertFails(updateDoc(ref, { schedule: { ...unknown, dayOfMonth: 16 } }), 'ändrat okänt schema');
+  await deleteDoc(ref);
+  await assertFails(setDoc(ref, toClient(withField(base('prescriptions'), 'schedule', unknown))), 'återskapat');
+  await assertFails(setDoc(mine('prescriptions', 'ny'), toClient(withField(base('prescriptions'), 'schedule', unknown))), 'nytt');
 });

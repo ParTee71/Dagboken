@@ -3,15 +3,16 @@ package se.partee71.dagboken.core.model
 import kotlinx.datetime.LocalTime
 
 /**
- * `users/{uid}/settings/app` – användarens enda inställningsdokument (DAT-11): tema, påminnelser
- * och profil. Defaults är 3.x-appens standardvärden, så ett saknat dokument beter sig som en ny
- * installation av 3.x.
+ * `users/{uid}/settings/app` – användarens enda inställningsdokument (DAT-11): tema, påminnelser,
+ * profil och de 3.x-värden som bara bevaras ([legacy]). Defaults är 3.x-appens standardvärden, så
+ * ett saknat dokument beter sig som en ny installation av 3.x.
  */
 data class Settings(
     override val id: String = ID,
     val theme: ThemeSettings = ThemeSettings(),
     val reminders: ReminderSettings = ReminderSettings(),
     val profile: Profile = Profile(),
+    val legacy: LegacySettings = LegacySettings(),
 ) : Identified {
     companion object {
         /** Dokumentets enda tillåtna id (även i `firestore.rules`). */
@@ -75,3 +76,15 @@ enum class Sex(override val wire: String) : WireEnum {
     FEMALE("female"),
     UNSPECIFIED("unspecified"),
 }
+
+/**
+ * 3.x-inställningar utan funktion i 4.0 som **bara bevaras** (ADR-001, beslut 11: varje 3.x-fält
+ * har en plats). 4.0 läser dem aldrig för att styra något och visar dem inte; konverteraren skriver
+ * dem och codecen skriver tillbaka dem oförändrade. `null` = värdet fanns inte i 3.x-datan.
+ */
+data class LegacySettings(
+    /** 3.x `SettingsBackup.dynamicColor` (Material You av/på). 4.0 har fasta färger (SET-3). */
+    val dynamicColor: Boolean? = null,
+    /** 3.x `BackupJson.sheetsConfig` – adressen till Sheets-exporten, som inte finns i 4.0 (FUT-2). */
+    val sheetsConfig: String? = null,
+)

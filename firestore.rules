@@ -52,7 +52,7 @@ service cloud.firestore {
     // skrivs, så att ett redan lagrat för stort värde inte låser dokumentet.
     // maxShort/maxLong är TextLimits.SHORT/LONG i :core (test/schema.test.mjs håller dem lika).
     function maxShort() { return 200; }
-    function maxLong() { return 2000; }
+    function maxLong() { return 5000; }
     function maxFields() { return 40; }
     // Fler fält än maxFields() bara om dokumentet redan hade så många (från en nyare app eller verktygen).
     function fieldCount(d) { return d.size() <= maxFields() || (resource != null && d.size() <= resource.data.size()); }
@@ -60,8 +60,6 @@ service cloud.firestore {
     // Värden. `none(m, k)`: fältet i ett nästlat objekt saknas eller är null – nästlade objekt
     // kontrolleras i sin helhet när de skrivs.
     function none(m, k) { return m.get(k, null) == null; }
-    function isShort(v) { return v is string && v.size() <= maxShort(); }
-    function isLong(v) { return v is string && v.size() <= maxLong(); }
     function inRange(v, lo, hi) { return v is int && v >= lo && v <= hi; }
     function atLeast(v, lo) { return v is int && v >= lo; }
     // Datum `yyyy-MM-dd` och klockslag `HH:mm` som text (DAT-2), som codecarna skriver dem.
@@ -154,6 +152,10 @@ service cloud.firestore {
     function isProfile(m) {
       return m is map && (none(m, 'birthYear') || m.birthYear is int) && (none(m, 'sex') || m.sex in sexes());
     }
+    // 3.x-värden som bara bevaras (Settings.legacy): valfria, men med rätt typ när de finns.
+    function isLegacy(m) {
+      return m is map && nullOrBool(m.get('dynamicColor', null)) && nullOrLong(m.get('sheetsConfig', null));
+    }
 
     // Den lagrade versionen; saknas den eller är den inget heltal gäller den första (BCK-15).
     function storedVersion() {
@@ -180,7 +182,8 @@ service cloud.firestore {
       return validEntry(d, w)
         && (!('theme' in w) || d.get('theme', null) == null || isTheme(d.theme))
         && (!('reminders' in w) || d.get('reminders', null) == null || isReminders(d.reminders))
-        && (!('profile' in w) || d.get('profile', null) == null || isProfile(d.profile));
+        && (!('profile' in w) || d.get('profile', null) == null || isProfile(d.profile))
+        && (!('legacy' in w) || d.get('legacy', null) == null || isLegacy(d.legacy));
     }
 
     function validOption(d) {

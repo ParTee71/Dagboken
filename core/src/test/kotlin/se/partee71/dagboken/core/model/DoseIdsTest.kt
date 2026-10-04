@@ -1,6 +1,7 @@
 package se.partee71.dagboken.core.model
 
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
 import org.junit.Test
@@ -27,5 +28,10 @@ class DoseIdsTest {
         for (slot in Slot.SCHEDULED) {
             assertTrue(DocumentIds.isValid(DoseIds.prescribed("6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a", LocalDate(2026, 12, 31), slot)), slot.name)
         }
+    }
+
+    @Test
+    fun `vid behov ger inget receptdos-id - vid behov-doser får vanliga id`() {
+        assertFailsWith<IllegalArgumentException> { DoseIds.prescribed("6f1c2a9e", LocalDate(2026, 9, 21), Slot.AS_NEEDED) }
     }
 }

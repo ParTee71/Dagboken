@@ -8,7 +8,8 @@ import org.junit.Test
 /**
  * Paritetstabellen i ARKITEKTUR.md → Datamodell → "Fältparitet 3.x → 4.0" är kontrollerad
  * (ADR-001, beslut 11; OMB-3): inget 3.x-fält saknar rad, inget 4.0-fält i tabellen saknas i sin
- * codec, inget codec-fält saknas i tabellen, och bara de två beslutade fälten är utelämnade.
+ * codec, inget codec-fält saknas i tabellen, och inget fält är utelämnat. *metadata* är reserverat för
+ * backupfilens egna fält (`version`, `createdAt`), som beskriver filen och inte användarens data.
  */
 class ParityTableTest {
 
@@ -43,11 +44,13 @@ class ParityTableTest {
     }
 
     @Test
-    fun `exakt två fält är utelämnade - dynamicColor och sheetsConfig`() {
-        assertEquals(
-            listOf("BackupJson.sheetsConfig", "SettingsBackup.dynamicColor"),
-            rows.filter { "utelämnas" in it.markers }.map { it.legacy }.sorted(),
-        )
+    fun `inget 3x-fält är utelämnat`() {
+        assertEquals(emptyList(), rows.filter { "utelämnas" in it.markers }.map { it.legacy })
+    }
+
+    @Test
+    fun `bara backupfilens egna fält är metadata`() {
+        assertEquals(listOf("BackupJson.createdAt", "BackupJson.version"), rows.filter { "metadata" in it.markers }.map { it.legacy }.sorted())
     }
 
     @Test

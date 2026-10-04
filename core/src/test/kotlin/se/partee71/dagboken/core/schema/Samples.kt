@@ -13,9 +13,11 @@ import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.IllnessEpisode
+import se.partee71.dagboken.core.model.LegacySettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.OptionIds
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
@@ -63,9 +65,10 @@ object Samples {
             periodReminderTime = LocalTime(8, 30),
         ),
         profile = Profile(birthYear = 1971, sex = Sex.FEMALE),
+        legacy = LegacySettings(dynamicColor = false, sheetsConfig = "https://docs.google.com/spreadsheets/d/exempel/edit"),
     )
 
-    val option = Option("huvudvark", kind = OptionKind.SYMPTOM, name = "Huvudvärk", favorite = true, sortOrder = 3, archived = true)
+    val option = Option(OptionIds.of(OptionKind.SYMPTOM, "Huvudvärk"), kind = OptionKind.SYMPTOM, name = "Huvudvärk", favorite = true, sortOrder = 3, archived = true)
 
     val boost = Boost("b1", start = LocalDate(2026, 9, 1), end = LocalDate(2026, 9, 14), dose = "25", unit = "µg")
 

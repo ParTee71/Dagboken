@@ -29,7 +29,7 @@ test('import vägrar ogiltiga och dubbla ID:n innan något skrivs (BCK-16)', () 
     assert.throws(() => prepareImport({ documents: [user, doc(path)] }), /Ogiltigt ID/, path);
   }
   assert.throws(() => prepareImport({ documents: [user, user] }), /users\/u finns två gånger/);
-  assert.equal(prepareImport({ documents: [user, doc('users/u/doses/rx_a-1_2026-09-21_morning')] }).length, 2);
+  assert.equal(prepareImport({ documents: [user, doc('users/u/doses/recept_a-1_2026-09-21_Morgon')] }).length, 2);
   assert.equal(prepareImport({ documents: [user, doc('users/u/illnessEpisodes/e/checkins/c')] }).length, 2);
 });
 

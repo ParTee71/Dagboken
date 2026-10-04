@@ -13,6 +13,7 @@ import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.IllnessEpisode
+import se.partee71.dagboken.core.model.LegacySettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Option
@@ -43,6 +44,7 @@ class CodecsTest {
         assertEveryFieldDiffersFromDefault(Samples.settings.theme, ThemeSettings())
         assertEveryFieldDiffersFromDefault(Samples.settings.reminders, ReminderSettings())
         assertEveryFieldDiffersFromDefault(Samples.settings.profile, Profile())
+        assertEveryFieldDiffersFromDefault(Samples.settings.legacy, LegacySettings())
         Samples.settings.reminders.medSlots.forEach {
             assertNotEquals(SlotReminder(it.slot).enabled, it.enabled)
             assertNotEquals(SlotReminder(it.slot).time, it.time)
@@ -168,5 +170,32 @@ class CodecsTest {
         assertNull(encoded["date"])
         assertNull(encoded["plannedTime"])
         assertEquals(mapOf("start" to null, "end" to null), PrescriptionCodec.encode(Prescription("r"))["period"])
+    }
+
+    @Test
+    fun `3x-värdena i legacy bevaras exakt, och saknade eller felaktiga blir null`() {
+        val stored = SettingsCodec.encode(Samples.settings)
+        assertEquals(mapOf("dynamicColor" to false, "sheetsConfig" to "https://docs.google.com/spreadsheets/d/exempel/edit"), stored["legacy"])
+        assertEquals(LegacySettings(), SettingsCodec.decode("app", emptyMap()).legacy)
+        assertEquals(LegacySettings(), SettingsCodec.decode("app", mapOf("legacy" to mapOf("dynamicColor" to "ja", "sheetsConfig" to 3))).legacy)
+        assertEquals(mapOf("dynamicColor" to null, "sheetsConfig" to null), SettingsCodec.encode(Settings())["legacy"])
+    }
+
+    @Test
+    fun `okända fält i ett listelement bevaras inte - listor skrivs hela (DAT-10)`() {
+        // Dokumenterat beteende: okända toppfält och okända fält i nästlade objekt utanför listor
+        // överlever en merge-skrivning av andra fält, men en lista skrivs alltid hel ur modellen.
+        // Ett nytt fält i ett listelement kräver därför höjd schemaVersion (skill data-safety-backup).
+        val stored = mapOf(
+            "symptoms" to listOf(mapOf("optionId" to "yrsel", "score" to 2L, "customText" to null, "framtida" to "x")),
+            "framtidaToppfalt" to 1,
+        )
+        val written = ActivityCodec.encode(ActivityCodec.decode("a", stored))
+        assertEquals(listOf(mapOf("optionId" to "yrsel", "score" to 2, "customText" to null)), written["symptoms"])
+        assertEquals(null, written["framtidaToppfalt"], "okända toppfält skrivs inte av codecen – merge lämnar dem orörda")
+        val boosts = PrescriptionCodec.encode(PrescriptionCodec.decode("r", mapOf("boosts" to listOf(BoostCodec.encode(Samples.boost) + ("framtida" to 1)))))
+        assertEquals(listOf(BoostCodec.encode(Samples.boost)), boosts["boosts"])
+        val rows = SettingsCodec.encode(SettingsCodec.decode("app", mapOf("reminders" to mapOf("medSlots" to listOf(mapOf("slot" to "night", "enabled" to false, "time" to "23:10", "framtida" to true))))))
+        assertEquals(mapOf("slot" to "night", "enabled" to false, "time" to "23:10"), (asDoc(rows["reminders"])["medSlots"] as List<*>).last())
     }
 }

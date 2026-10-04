@@ -4,6 +4,7 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.Test
+import se.partee71.dagboken.core.model.OptionIds
 
 /**
  * tools/db:s testdata (`tools/db/test/fixtures/user.json`) – samma dokument som rundturen mot
@@ -53,6 +54,14 @@ class FixtureCodecsTest {
             val entry = Samples.entry(collection)
             val differing = docs.flatMap { entry.fieldsDifferingFromDefault(it.path.substringAfterLast('/'), it.data) }.toSet()
             assertEquals(entry.fieldNames(), differing, "$collection: fält som bara har default-värdet i fixturen")
+        }
+    }
+
+    @Test
+    fun `alternativens id följer id-regeln OptionIds (DAT-13)`() {
+        for (doc in byCollection.getValue("options")) {
+            val option = OptionCodec.decode(doc.path.substringAfterLast('/'), doc.data)
+            assertEquals(OptionIds.of(option.kind, option.name), option.id, doc.path)
         }
     }
 

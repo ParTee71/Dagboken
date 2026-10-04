@@ -1,5 +1,5 @@
 {
-  "_kommentar": "Syntetisk testdata (BCK-16) – aldrig utdrag ur den riktiga databasen. Ett användardokument (schemaVersion 1) och dokument i varje samling i ARKITEKTUR.md → Datamodell där varje fält i codecarna är satt i minst ett dokument (FixtureCodecsTest i :core), med 3.x-id:n (UUID och receptdosens recept_{id}_{datum}_{tidpunkt}). Täcker även fälttyperna text, heltal (även negativa), decimaltal, sant/falskt, null, listor, nästlade objekt, tidsstämplar med mikrosekunder (Firestores precision), datum och klockslag som text, okända fält, en skyddad __ts-map och en incheckning under en episod utan eget dokument.",
+  "_kommentar": "Syntetisk testdata (BCK-16) – aldrig utdrag ur den riktiga databasen. Ett användardokument (schemaVersion 1) och dokument i varje samling i ARKITEKTUR.md → Datamodell där varje fält i codecarna är satt i minst ett dokument (FixtureCodecsTest i :core), med 3.x-id:n (UUID och receptdosens recept_{id}_{datum}_{tidpunkt}) och alternativ-id:n enligt OptionIds.of (DAT-13). Täcker även fälttyperna text, heltal (även negativa), decimaltal, sant/falskt, null, listor, nästlade objekt, tidsstämplar med mikrosekunder (Firestores precision), datum och klockslag som text, okända fält, en skyddad __ts-map och en incheckning under en episod utan eget dokument.",
   "documents": [
     {
       "path": "users/uid-test",
@@ -34,27 +34,28 @@
           "periodReminderTime": "08:30"
         },
         "profile": { "birthYear": 1971, "sex": "female" },
+        "legacy": { "dynamicColor": true, "sheetsConfig": "https://docs.google.com/spreadsheets/d/syntetiskt-exempel/edit" },
         "framtidaInställning": "från en nyare app"
       }
     },
     {
-      "path": "users/uid-test/options/activity-promenad",
+      "path": "users/uid-test/options/activity-promenad-c78928",
       "data": { "kind": "activity", "name": "Promenad", "favorite": true, "sortOrder": 0, "archived": false }
     },
     {
-      "path": "users/uid-test/options/activity-ovrigt",
+      "path": "users/uid-test/options/activity-ovrigt-c067e8",
       "data": { "kind": "activity", "name": "Övrigt", "favorite": false, "sortOrder": 1, "archived": false }
     },
     {
-      "path": "users/uid-test/options/symptom-huvudvark",
+      "path": "users/uid-test/options/symptom-huvudvark-d55e7d",
       "data": { "kind": "symptom", "name": "Huvudvärk", "favorite": true, "sortOrder": 2, "archived": true }
     },
     {
-      "path": "users/uid-test/options/symptom-ovrigt",
+      "path": "users/uid-test/options/symptom-ovrigt-c067e8",
       "data": { "kind": "symptom", "name": "Övrigt", "favorite": false, "sortOrder": 3, "archived": false }
     },
     {
-      "path": "users/uid-test/options/event-yrsel",
+      "path": "users/uid-test/options/event-yrsel-6db696",
       "data": { "kind": "event", "name": "Yrsel", "favorite": false, "sortOrder": 4, "archived": true }
     },
     {
@@ -117,8 +118,8 @@
       "data": {
         "date": "2026-09-21", "time": "08:15", "occasion": "breakfast", "customText": null, "energy": 6, "stress": 3,
         "symptoms": [
-          { "optionId": "symptom-huvudvark", "score": 4, "customText": null },
-          { "optionId": "symptom-ovrigt", "score": 2, "customText": "Stel nacke" }
+          { "optionId": "symptom-huvudvark-d55e7d", "score": 4, "customText": null },
+          { "optionId": "symptom-ovrigt-c067e8", "score": 2, "customText": "Stel nacke" }
         ],
         "createdAt": { "__ts": "2026-09-21T06:15:00.000000000Z" }, "note": "Sov dåligt"
       }
@@ -133,10 +134,10 @@
     {
       "path": "users/uid-test/activities/5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
       "data": {
-        "date": "2026-09-21", "time": "17:00", "optionId": "activity-ovrigt", "customText": "Svamplockning", "energy": -2, "stress": 1,
+        "date": "2026-09-21", "time": "17:00", "optionId": "activity-ovrigt-c067e8", "customText": "Svamplockning", "energy": -2, "stress": 1,
         "symptoms": [
-          { "optionId": "symptom-huvudvark", "score": 1, "customText": null },
-          { "optionId": "symptom-ovrigt", "score": 5, "customText": "Myggbett" }
+          { "optionId": "symptom-huvudvark-d55e7d", "score": 1, "customText": null },
+          { "optionId": "symptom-ovrigt-c067e8", "score": 5, "customText": "Myggbett" }
         ],
         "recovering": true, "drain": true, "minutes": 45,
         "createdAt": { "__ts": "2026-09-21T15:00:00.000000000Z" }, "note": "Regn hela vägen"
@@ -145,7 +146,7 @@
     {
       "path": "users/uid-test/activities/6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e",
       "data": {
-        "date": "2026-09-22", "time": "07:30", "optionId": "activity-promenad", "customText": null, "energy": 4, "stress": 0,
+        "date": "2026-09-22", "time": "07:30", "optionId": "activity-promenad-c78928", "customText": null, "energy": 4, "stress": 0,
         "symptoms": [], "recovering": false, "drain": false, "minutes": null,
         "createdAt": { "__ts": "2026-09-22T05:30:00.000000000Z" }, "note": null
       }
@@ -153,7 +154,7 @@
     {
       "path": "users/uid-test/events/7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
       "data": {
-        "date": "2026-09-21", "time": "10:05", "optionId": "event-yrsel", "severity": 5, "durationMinutes": 10,
+        "date": "2026-09-21", "time": "10:05", "optionId": "event-yrsel-6db696", "severity": 5, "durationMinutes": 10,
         "triggers": "Snabb uppresning", "actions": "Satte mig ner",
         "createdAt": { "__ts": "2026-09-21T08:05:00.000000000Z" }, "note": "Första gången i höst"
       }
@@ -173,7 +174,7 @@
       "path": "users/uid-test/illnessEpisodes/8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a/checkins/a0b1c2d3-e4f5-4a6b-8c7d-9e0f1a2b3c4d",
       "data": {
         "date": "2026-09-11", "time": "19:00", "severity": 4,
-        "symptoms": [{ "optionId": "symptom-ovrigt", "score": 3, "customText": "Ont i halsen" }],
+        "symptoms": [{ "optionId": "symptom-ovrigt-c067e8", "score": 3, "customText": "Ont i halsen" }],
         "createdAt": { "__ts": "2026-09-11T17:00:00.000000000Z" }, "note": "Feber på kvällen"
       }
     },
