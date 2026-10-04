@@ -1,0 +1,162 @@
+{
+  "_kommentar": "Syntetisk 3.x-backup i format v2 (BackupAssembler.BACKUP_FORMAT_VERSION) för konverteraren (OMB-3) – aldrig utdrag ur en riktig backup. Varje fält i 3.x BackupJson och dess klasser har ett icke-default-värde i minst en post (BackupJsonTest). Innehåller varningsfallen: somatiska som avviker från summan, notes-post som går före arvsfältet anteckning, ogiltig timestamp, okänd upprepning och en anteckning utan post; samt okända fält, v1-listor som V2-listorna går före, en tidpunktsrad utan namn (matchas på position), tomt type som härleds, Övrigt med fritext och okända symptom-/händelsenamn som blir arkiverade alternativ.",
+  "version": 2,
+  "createdAt": "2026-01-15T21:00:00",
+  "aktiviteter": [
+    {
+      "id": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d", "timestamp": "2026-01-15T16:00:00Z", "datum": "2026-01-15", "tid": "17:00",
+      "aktivitet": "Promenad", "energy": 7, "stress": 3, "somatiska": 6, "symptom": "Huvudvärk:4,Övrigt (Stel nacke):2",
+      "aterhamtande": true, "energitjuv": false, "type": "aktivitet", "spentTime": 45, "framtidaFalt": "okänt i 3.x"
+    },
+    {
+      "id": "6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e", "timestamp": "", "datum": "2026-01-16", "tid": "09:30",
+      "aktivitet": "Svamplockning", "energy": -2, "stress": 1, "somatiska": 5, "symptom": "Nackspärr:3",
+      "aterhamtande": false, "energitjuv": true, "type": "", "spentTime": null
+    },
+    {
+      "id": "0d4f6a2c-7b1e-4c3a-9f5d-2e8b1a6c3d70", "timestamp": "2026-01-15T07:15:00Z", "datum": "2026-01-15", "tid": "08:15",
+      "aktivitet": "Efter frukost", "energy": 6, "stress": 2, "somatiska": 3, "symptom": "Trötthet:3",
+      "aterhamtande": false, "energitjuv": false, "type": "screening", "spentTime": null
+    },
+    {
+      "id": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b", "timestamp": "igår", "datum": "2026-01-14", "tid": "21:50",
+      "aktivitet": "Kvällskoll", "energy": 2, "stress": 7, "somatiska": 0, "symptom": "",
+      "aterhamtande": false, "energitjuv": false, "type": "screening", "spentTime": null
+    },
+    {
+      "id": "1f2e3d4c-5b6a-4798-8a9b-0c1d2e3f4a5b", "timestamp": "2026-01-16T11:05:00.000Z", "datum": "2026-01-16", "tid": "12:05",
+      "aktivitet": "Lunch", "energy": 1, "stress": 0, "somatiska": 2, "symptom": "Övrigt:2",
+      "aterhamtande": false, "energitjuv": false, "type": "", "spentTime": null
+    }
+  ],
+  "mediciner": [
+    {
+      "id": "recept_6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a_2026-01-15_Morgon", "timestamp": "2026-01-15T06:00:00Z", "datum": "2026-01-15", "tid": "07:00",
+      "namn": "Levaxin", "dos": "0,5", "enhet": "mg", "tidpunkt": "Morgon", "tagen": true, "anteckning": "Med mat",
+      "receptId": "6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a", "skipped": false, "tagenTid": "07:04"
+    },
+    {
+      "id": "recept_6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a_2026-01-15_Kväll", "timestamp": "2026-01-15T18:00:00Z", "datum": "2026-01-15", "tid": "19:00",
+      "namn": "Levaxin", "dos": "0,5", "enhet": "mg", "tidpunkt": "Kväll", "tagen": false, "anteckning": "",
+      "receptId": "6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a", "skipped": true, "tagenTid": null
+    },
+    {
+      "id": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f", "timestamp": "2026-01-16T12:40:00Z", "datum": "2026-01-16", "tid": "13:40",
+      "namn": "Alvedon", "dos": "500", "enhet": "mg", "tidpunkt": "Vid behov", "tagen": true, "anteckning": "Huvudvärk efter mötet",
+      "receptId": null, "skipped": false, "tagenTid": "13:40"
+    },
+    {
+      "id": "recept_1b2c3d4e-5f60-4718-8293-a4b5c6d7e8f9_2026-01-16_Förmiddag", "timestamp": "", "datum": "2026-01-16", "tid": "10:00",
+      "namn": "D-vitamin", "dos": "1 tablett", "enhet": "st", "tidpunkt": "Förmiddag", "tagen": true, "anteckning": "",
+      "receptId": "1b2c3d4e-5f60-4718-8293-a4b5c6d7e8f9", "skipped": true, "tagenTid": "10:12"
+    }
+  ],
+  "medicinRecipes": [
+    {
+      "id": "6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a", "namn": "Levaxin", "dos": "0,5", "enhet": "mg",
+      "tidpunkter": ["Morgon", "Kväll"], "tidpunkt": null, "upprepning": "intervall", "dagar": [0, 2, 4], "intervalDagar": 3,
+      "anteckning": "På fastande mage", "aktiv": true, "skapad": "2026-01-01", "startDatum": "2026-01-10", "slutDatum": "2026-03-01",
+      "dosperioder": [
+        { "id": "b-1", "startDatum": "2026-02-01", "slutDatum": "2026-02-07", "dos": "0,25", "enhet": "mg" },
+        { "id": "b-2", "startDatum": "2026-02-20", "slutDatum": null, "dos": "1", "enhet": "mg" }
+      ]
+    },
+    {
+      "id": "1b2c3d4e-5f60-4718-8293-a4b5c6d7e8f9", "namn": "D-vitamin", "dos": "1 tablett", "enhet": "st",
+      "tidpunkter": [], "tidpunkt": "Förmiddag", "upprepning": "specifika dagar", "dagar": [5, 6], "intervalDagar": 2,
+      "anteckning": "", "aktiv": false, "skapad": "2025-06-01", "startDatum": "", "slutDatum": null, "dosperioder": []
+    },
+    {
+      "id": "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e60", "namn": "Magnesium", "dos": "300", "enhet": "mg",
+      "tidpunkter": [], "tidpunkt": null, "upprepning": "veckovis", "dagar": [], "intervalDagar": 2,
+      "anteckning": "", "aktiv": true, "skapad": "2025-11-20", "startDatum": "", "slutDatum": "", "dosperioder": []
+    }
+  ],
+  "medicinFavoriter": [
+    {
+      "id": "a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d", "namn": "Alvedon", "dos": "500", "enhet": "mg", "tidpunkt": "Vid behov",
+      "anteckning": "Max 3 g per dygn", "minTidMellan": 6, "dispenseringsTid": "30 min", "maxDoserPerDag": 3, "isFavorite": true
+    },
+    {
+      "id": "b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e", "namn": "Ipren", "dos": "400", "enhet": "mg", "tidpunkt": "Kväll",
+      "anteckning": "", "minTidMellan": 0, "dispenseringsTid": "", "maxDoserPerDag": 0, "isFavorite": false
+    }
+  ],
+  "aktiviteterOptions": ["Gammal v1-lista"],
+  "symptomOptions": ["Gammal v1-lista"],
+  "aktiviteterOptionsV2": [
+    { "name": "Promenad", "isFavorite": true },
+    { "name": "Jobb", "isFavorite": false }
+  ],
+  "symptomOptionsV2": [
+    { "name": "Huvudvärk", "isFavorite": true },
+    { "name": "Trötthet", "isFavorite": false },
+    { "name": "Övrigt", "isFavorite": false }
+  ],
+  "sjukdomsepisoder": [
+    {
+      "id": "8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a", "typ": "Förkylning", "startDatum": "2026-01-10", "slutDatum": "2026-01-18",
+      "anteckning": "Feber första dagen", "timestamp": 1768032000000
+    },
+    {
+      "id": "9e0f1a2b-3c4d-4e5f-8a6b-7c8d9e0f1a2b", "typ": "Migrän", "startDatum": "2026-01-20", "slutDatum": "",
+      "anteckning": "", "timestamp": 0
+    }
+  ],
+  "sjukdomsIncheckningar": [
+    {
+      "id": "a0b1c2d3-e4f5-4a6b-8c7d-9e0f1a2b3c4d", "episodId": "8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a", "datum": "2026-01-11", "tid": "19:00",
+      "svarighetsgrad": 5, "symptom": "Hosta:3,Övrigt (Ont i halsen):2", "somatiska": 5, "anteckning": "Feber på kvällen", "timestamp": 1768158000000
+    },
+    {
+      "id": "b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d5e", "episodId": "9e0f1a2b-3c4d-4e5f-8a6b-7c8d9e0f1a2b", "datum": "2026-01-20", "tid": "08:00",
+      "svarighetsgrad": 7, "symptom": "", "somatiska": 0, "anteckning": "", "timestamp": 0
+    }
+  ],
+  "handelser": [
+    {
+      "id": "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f", "timestamp": "2026-01-15T09:05:00Z", "datum": "2026-01-15", "tid": "10:05",
+      "typ": "Ögonmigrän", "svarighetsgrad": 6, "varaktighetMinuter": 30, "triggers": "Skärmtid", "atgarder": "Vila", "anteckning": "Första gången i år"
+    },
+    {
+      "id": "8e9f0a1b-2c3d-4e4f-9a5b-6c7d8e9f0a1b", "timestamp": "2026-01-16T14:00:00Z", "datum": "2026-01-16", "tid": "15:00",
+      "typ": "Hjärtklappning", "svarighetsgrad": 3, "varaktighetMinuter": 5, "triggers": "", "atgarder": "", "anteckning": ""
+    }
+  ],
+  "notes": [
+    { "target": "ACTIVITY", "entityId": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d", "text": "Regn hela vägen" },
+    { "target": "SCREENING", "entityId": "0d4f6a2c-7b1e-4c3a-9f5d-2e8b1a6c3d70", "text": "Sov dåligt" },
+    { "target": "MEDICATION", "entityId": "recept_6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a_2026-01-15_Morgon", "text": "Med frukost" },
+    { "target": "RECEPT", "entityId": "1b2c3d4e-5f60-4718-8293-a4b5c6d7e8f9", "text": "Pausad över sommaren" },
+    { "target": "FAVORIT", "entityId": "b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e", "text": "Bara vid kraftig värk" },
+    { "target": "EVENT", "entityId": "8e9f0a1b-2c3d-4e4f-9a5b-6c7d8e9f0a1b", "text": "Efter kaffet" },
+    { "target": "SJUKDOM_EPISOD", "entityId": "8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a", "text": "Hela familjen" },
+    { "target": "SJUKDOM_INCHECKNING", "entityId": "b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d5e", "text": "Ljuskänslig" },
+    { "target": "ACTIVITY", "entityId": "finns-inte-i-backupen", "text": "Anteckning utan post" },
+    { "target": "MEDICATION", "entityId": "recept_6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a_2026-01-15_Kväll", "text": "" }
+  ],
+  "screeningEventConfigs": [
+    { "enabled": true, "time": "08:30" },
+    { "enabled": true, "time": "12:15" },
+    { "enabled": false, "time": "17:45" },
+    { "enabled": true, "time": "21:30" }
+  ],
+  "medNotificationConfigs": [
+    { "tidpunkt": "Morgon", "enabled": false, "time": "06:45" },
+    { "tidpunkt": "Förmiddag", "enabled": true, "time": "09:45" },
+    { "tidpunkt": "Lunch", "enabled": true, "time": "12:30" },
+    { "tidpunkt": "", "enabled": false, "time": "15:30" },
+    { "tidpunkt": "Kväll", "enabled": true, "time": "19:15" },
+    { "tidpunkt": "Natt", "enabled": true, "time": "22:30" }
+  ],
+  "sheetsConfig": "https://docs.google.com/spreadsheets/d/syntetiskt-exempel/edit",
+  "handelseTypOptions": [
+    { "name": "Ögonmigrän", "isFavorite": true },
+    { "name": "Yrsel", "isFavorite": false }
+  ],
+  "periodReminderTime": "08:45",
+  "settings": {
+    "medsNotificationsEnabled": true, "themeMode": "dark", "themeLightStart": 6, "themeDarkStart": 22, "isDarkTheme": false,
+    "dynamicColor": false, "birthYear": 1985, "sex": "man", "framtidaInstallning": "okänd i 3.x"
+  }
+}

@@ -62,8 +62,14 @@ node tools/db/migrate.mjs --to <N>                        # schemamigrering (BCK
 - `import --replace` tar bort dokument under filens användare som inte finns i filen (exakt
   återställning); visa alltid torrkörningens "Skulle ta bort" först.
 - `import` läser bara 4.0-formatet (`tools/db export`). En 3.x Drive-backup (`BackupJson`)
-  konverteras först av konverteraren i `:core` (OMB-3, BCK-14) – grinden OMB-4 är just den
-  vägen: konvertera → importera → exportera → jämför fältvis, noll skillnader.
+  konverteras först av konverteraren i `:core` (OMB-3, BCK-14):
+  `./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <uid>"`
+  (från repots rot; rapporten med antal, varningar och stopp skrivs utan innehåll, exitkod 1 = stopp).
+  Grinden OMB-4 är just den vägen: konvertera → `import --dry-run` → importera → exportera → jämför
+  fältvis, noll skillnader (ARKITEKTUR.md → Migrering, punkt 3). **Alltid mot ett tomt scratch-uid**:
+  `import` skriver dokumenten som de är (ingen merge) och skulle mot ett befintligt konto radera
+  `createdAt` och inställningar som backupen saknade. Backupen, exporten och scratch-användaren raderas
+  efteråt.
 - Aldrig ad hoc-skrivningar med egna skript eller `node -e`.
 
 ## Integritet (skill `data-privacy-security`)

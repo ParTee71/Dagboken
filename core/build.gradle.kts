@@ -11,6 +11,17 @@ dependencies {
     testImplementation(libs.kotlin.test)
 }
 
+// Grinden OMB-4 (ARKITEKTUR.md → Migrering, punkt 3): konverterar en 3.x-backup till en fil som
+// `node tools/db/import.mjs --dry-run` godtar. Rapporten skrivs till stdout utan innehåll.
+//   ./gradlew :core:convertLegacyBackup --args="--in <3.x-backup.json> --out <export.json> --user <uid>"
+tasks.register<JavaExec>("convertLegacyBackup") {
+    group = "migration"
+    description = "Konverterar en 3.x-backup (BackupJson) till 4.0-exportformat (OMB-3, OMB-4)."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("se.partee71.dagboken.core.legacy.ConvertBackupMainKt")
+    workingDir = rootDir // sökvägarna i --args anges från repots rot
+}
+
 // ExportFormatTest och FixtureCodecsTest läser tools/db:s testdata, ParityTableTest paritetstabellen i
 // ARKITEKTUR.md – en ändring där ska köra om testerna, även när de annars hämtas ur byggcachen.
 tasks.withType<Test>().configureEach {

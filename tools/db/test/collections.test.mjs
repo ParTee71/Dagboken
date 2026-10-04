@@ -1,40 +1,53 @@
-// Samlingslistan i tools/db = Paths.kt i appen = security rules (skill data-safety-backup, BCK-16).
+// Samlingslistan i tools/db = Paths.kt i appen = CollectionNames.kt i :core = security rules
+// (skill data-safety-backup, BCK-16).
 // En samling som saknas här backas aldrig upp. Behöver ingen emulator.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { COLLECTIONS } from '../lib/collections.mjs';
 import { readRepoFile as read } from './helpers/repo.mjs';
 const pathsKt = read('app/src/main/kotlin/se/partee71/dagboken/data/firestore/Paths.kt');
+const coreNamesKt = read('core/src/main/kotlin/se/partee71/dagboken/core/schema/CollectionNames.kt');
 
 /** Platshållare ({uid}, $episodeId …) jämförs bara till sin position. */
 const normalize = (p) => p.replace(/\$\{?\w+\}?|\{\w+\}/g, '{}');
 
-/** `const val NAMN = "värde"` i Paths.kt. */
-const constants = Object.fromEntries([...pathsKt.matchAll(/const val (\w+) = "([^"]+)"/g)].map((m) => [m[1], m[2]]));
+/** `const val NAMN = "värde"` i CollectionNames.kt (:core) – enda stället namnen står. */
+const coreConstants = Object.fromEntries([...coreNamesKt.matchAll(/const val (\w+) = "([^"]+)"/g)].map((m) => [m[1], m[2]]));
 
-/** `fun namn(a: String, …) = <uttryck>` i Paths.kt – uttrycket är en sträng eller ett anrop. */
-const functions = Object.fromEntries(
-  [...pathsKt.matchAll(/fun (\w+)\(([^)]*)\) = (.+)$/gm)].map((m) => [
-    m[1],
-    { params: m[2].split(',').map((p) => p.split(':')[0].trim()).filter(Boolean), body: m[3].trim() },
-  ]),
+/** `const val NAMN = CollectionNames.NAMN` i Paths.kt, upplöst mot :core (regel 4: inga egna namn i appen). */
+const constants = Object.fromEntries(
+  [...pathsKt.matchAll(/const val (\w+) = (?:CollectionNames\.(\w+)|"([^"]+)")/g)].map((m) => [m[1], m[2] ? coreConstants[m[2]] : m[3]]),
 );
+
+/** `fun namn(a: String, …) = <uttryck>` – uttrycket är en sträng eller ett anrop. */
+const parseFunctions = (kt) =>
+  Object.fromEntries(
+    [...kt.matchAll(/fun (\w+)\(([^)]*)\) = (.+)$/gm)].map((m) => [
+      m[1],
+      { params: m[2].split(',').map((p) => p.split(':')[0].trim()).filter(Boolean), body: m[3].trim() },
+    ]),
+  );
+/** Funktionerna i Paths.kt (appen) och i CollectionNames.kt (:core); Paths.kt delegerar dit med `CollectionNames.`-prefix. */
+const pathFunctions = parseFunctions(pathsKt);
+const coreFunctions = parseFunctions(coreNamesKt);
 
 /**
  * Sökvägen en funktion i Paths.kt ger, med parametrarna som `{}` – så att testet förstår både
  * strängmallar (`"users/$uid/doses"`) och anrop till andra funktioner (`collection(uid, DOSES)`).
  */
-function evaluate(expression, env) {
+function evaluate(expression, env, scope = pathFunctions) {
   const expr = expression.trim();
   if (expr.startsWith('"')) {
-    return expr.slice(1, -1).replace(/\$\{([^}]+)\}|\$(\w+)/g, (_, inner, name) => evaluate(inner ?? name, env));
+    return expr.slice(1, -1).replace(/\$\{([^}]+)\}|\$(\w+)/g, (_, inner, name) => evaluate(inner ?? name, env, scope));
   }
-  const call = /^(\w+)\((.*)\)$/.exec(expr);
+  // `CollectionNames.x(…)` är :core:s funktion; ett anrop utan prefix hör till samma fil som anroparen.
+  const call = /^(CollectionNames\.)?(\w+)\((.*)\)$/.exec(expr);
   if (call) {
-    const fn = functions[call[1]];
-    if (!fn) throw new Error(`Paths.kt: okänd funktion ${call[1]}`);
-    const args = call[2].split(',').map((a) => a.trim()).filter(Boolean).map((a) => evaluate(a, env));
-    return evaluate(fn.body, Object.fromEntries(fn.params.map((p, i) => [p, args[i]])));
+    const target = call[1] ? coreFunctions : scope;
+    const fn = target[call[2]];
+    if (!fn) throw new Error(`Paths.kt/CollectionNames.kt: okänd funktion ${call[2]}`);
+    const args = call[3].split(',').map((a) => a.trim()).filter(Boolean).map((a) => evaluate(a, env, scope));
+    return evaluate(fn.body, Object.fromEntries(fn.params.map((p, i) => [p, args[i]])), target);
   }
   if (expr in env) return env[expr];
   if (expr in constants) return constants[expr];
@@ -45,8 +58,15 @@ test('samlingsnamnen är desamma som konstanterna i Paths.kt', () => {
   assert.deepEqual(Object.values(constants).sort(), COLLECTIONS.map((c) => c.name).sort());
 });
 
+test('samlingsnamnen är desamma som CollectionNames i :core, och Paths.kt tar dem därifrån', () => {
+  assert.deepEqual(Object.values(coreConstants).sort(), COLLECTIONS.map((c) => c.name).sort());
+  assert.deepEqual(Object.keys(coreConstants).sort(), Object.keys(constants).sort(), 'samma konstantnamn som Paths.kt');
+  assert.ok(Object.values(constants).every((v) => typeof v === 'string'), 'varje konstant i Paths.kt pekar på en som finns i :core');
+  assert.doesNotMatch(pathsKt, /const val \w+ = "/, 'Paths.kt har inga egna namn');
+});
+
 test('sökvägarna är desamma som i Paths.kt', () => {
-  const paths = Object.values(functions).map((fn) => evaluate(fn.body, Object.fromEntries(fn.params.map((p) => [p, '{}']))));
+  const paths = Object.values(pathFunctions).map((fn) => evaluate(fn.body, Object.fromEntries(fn.params.map((p) => [p, '{}']))));
   // user(uid) pekar på ett dokument och generiska hjälpare (collection(uid, name)) på vad som
   // helst – en samlingssökväg slutar alltid med samlingens namn.
   const collectionPaths = paths.map(normalize).filter((p) => !p.endsWith('{}'));

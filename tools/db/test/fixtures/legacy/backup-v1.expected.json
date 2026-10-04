@@ -1,0 +1,323 @@
+{
+  "exportedAt": "1970-01-01T00:00:00.000Z",
+  "schemaVersion": 1,
+  "documents": [
+    {
+      "path": "users/uid-legacy",
+      "data": {
+        "schemaVersion": 1
+      }
+    },
+    {
+      "path": "users/uid-legacy/activities/c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+      "data": {
+        "date": "2024-03-01",
+        "time": "09:00",
+        "createdAt": {
+          "__ts": "2024-03-01T08:00:00.000000000Z"
+        },
+        "note": null,
+        "optionId": "activity-promenad-c78928",
+        "customText": null,
+        "energy": 5,
+        "stress": 2,
+        "symptoms": [
+          {
+            "optionId": "symptom-huvudvark-d55e7d",
+            "score": 2,
+            "customText": null
+          }
+        ],
+        "recovering": true,
+        "drain": false,
+        "minutes": null
+      }
+    },
+    {
+      "path": "users/uid-legacy/activities/e3f4a5b6-c7d8-4e9f-8a1b-2c3d4e5f6a7b",
+      "data": {
+        "date": "2024-03-01",
+        "time": "21:00",
+        "createdAt": {
+          "__ts": "2024-03-01T20:00:00.000000000Z"
+        },
+        "note": null,
+        "optionId": "activity-ovrigt-c067e8",
+        "customText": "Läggdags",
+        "energy": 4,
+        "stress": 1,
+        "symptoms": [],
+        "recovering": false,
+        "drain": false,
+        "minutes": null
+      }
+    },
+    {
+      "path": "users/uid-legacy/doses/a5b6c7d8-e9f0-4a1b-8c3d-4e5f6a7b8c9d",
+      "data": {
+        "date": "2024-03-01",
+        "slot": "asNeeded",
+        "name": "Ibuprofen",
+        "dose": "400",
+        "unit": "mg",
+        "status": "taken",
+        "plannedTime": "16:30",
+        "takenAt": null,
+        "prescriptionId": null,
+        "prnId": null,
+        "createdAt": {
+          "__ts": "2024-03-01T15:30:00.000000000Z"
+        },
+        "note": null
+      }
+    },
+    {
+      "path": "users/uid-legacy/doses/recept_f4a5b6c7-d8e9-4f0a-9b2c-3d4e5f6a7b8c_2024-03-01_Morgon",
+      "data": {
+        "date": "2024-03-01",
+        "slot": "morning",
+        "name": "Metformin",
+        "dose": "500",
+        "unit": "mg",
+        "status": "taken",
+        "plannedTime": "07:00",
+        "takenAt": null,
+        "prescriptionId": "f4a5b6c7-d8e9-4f0a-9b2c-3d4e5f6a7b8c",
+        "prnId": null,
+        "createdAt": {
+          "__ts": "2024-03-01T06:00:00.000000000Z"
+        },
+        "note": "Med mat"
+      }
+    },
+    {
+      "path": "users/uid-legacy/events/e9f0a1b2-c3d4-4e5f-8a7b-8c9d0e1f2a3b",
+      "data": {
+        "date": "2024-02-20",
+        "time": "14:00",
+        "createdAt": {
+          "__ts": "2024-02-20T13:00:00.000000000Z"
+        },
+        "note": "Första gången",
+        "optionId": "event-ogonmigran-bbed3a",
+        "severity": 4,
+        "durationMinutes": 20,
+        "triggers": "Stress",
+        "actions": "Mörkt rum"
+      }
+    },
+    {
+      "path": "users/uid-legacy/illnessEpisodes/c7d8e9f0-a1b2-4c3d-8e5f-6a7b8c9d0e1f",
+      "data": {
+        "type": "Influensa",
+        "start": "2024-02-10",
+        "end": "2024-02-17",
+        "createdAt": null,
+        "note": null
+      }
+    },
+    {
+      "path": "users/uid-legacy/illnessEpisodes/c7d8e9f0-a1b2-4c3d-8e5f-6a7b8c9d0e1f/checkins/d8e9f0a1-b2c3-4d4e-9f6a-7b8c9d0e1f2a",
+      "data": {
+        "date": "2024-02-11",
+        "time": "20:00",
+        "createdAt": null,
+        "note": null,
+        "severity": 6,
+        "symptoms": [
+          {
+            "optionId": "symptom-huvudvark-d55e7d",
+            "score": 3,
+            "customText": null
+          }
+        ]
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/activity-jobb-7bbf62",
+      "data": {
+        "kind": "activity",
+        "name": "Jobb",
+        "favorite": false,
+        "sortOrder": 1,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/activity-ovrigt-c067e8",
+      "data": {
+        "kind": "activity",
+        "name": "Övrigt",
+        "favorite": false,
+        "sortOrder": 2,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/activity-promenad-c78928",
+      "data": {
+        "kind": "activity",
+        "name": "Promenad",
+        "favorite": false,
+        "sortOrder": 0,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/event-allergisk-reaktion-2cfa9f",
+      "data": {
+        "kind": "event",
+        "name": "Allergisk reaktion",
+        "favorite": false,
+        "sortOrder": 4,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/event-andnod-bf75d9",
+      "data": {
+        "kind": "event",
+        "name": "Andnöd",
+        "favorite": false,
+        "sortOrder": 7,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/event-blodtrycksfall-cc1579",
+      "data": {
+        "kind": "event",
+        "name": "Blodtrycksfall",
+        "favorite": false,
+        "sortOrder": 0,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/event-hjartklappning-07bb34",
+      "data": {
+        "kind": "event",
+        "name": "Hjärtklappning",
+        "favorite": false,
+        "sortOrder": 6,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/event-ogonmigran-bbed3a",
+      "data": {
+        "kind": "event",
+        "name": "Ögonmigrän",
+        "favorite": false,
+        "sortOrder": 1,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/event-plotslig-huvudvark-d05014",
+      "data": {
+        "kind": "event",
+        "name": "Plötslig huvudvärk",
+        "favorite": false,
+        "sortOrder": 3,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/event-vita-fingrar-raynaud-98fa7a",
+      "data": {
+        "kind": "event",
+        "name": "Vita fingrar (Raynaud)",
+        "favorite": false,
+        "sortOrder": 2,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/event-yrsel-6db696",
+      "data": {
+        "kind": "event",
+        "name": "Yrsel",
+        "favorite": false,
+        "sortOrder": 5,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/symptom-huvudvark-d55e7d",
+      "data": {
+        "kind": "symptom",
+        "name": "Huvudvärk",
+        "favorite": false,
+        "sortOrder": 0,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/symptom-ovrigt-c067e8",
+      "data": {
+        "kind": "symptom",
+        "name": "Övrigt",
+        "favorite": false,
+        "sortOrder": 1,
+        "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/prescriptions/f4a5b6c7-d8e9-4f0a-9b2c-3d4e5f6a7b8c",
+      "data": {
+        "name": "Metformin",
+        "dose": "500",
+        "unit": "mg",
+        "slots": [
+          "morning"
+        ],
+        "schedule": {
+          "repeat": "daily",
+          "days": [],
+          "intervalDays": 2
+        },
+        "period": {
+          "start": null,
+          "end": null
+        },
+        "boosts": [],
+        "active": true,
+        "createdAt": {
+          "__ts": "2023-12-31T23:00:00.000000000Z"
+        },
+        "note": "Till frukost"
+      }
+    },
+    {
+      "path": "users/uid-legacy/prnMedicines/b6c7d8e9-f0a1-4b2c-9d4e-5f6a7b8c9d0e",
+      "data": {
+        "name": "Ibuprofen",
+        "dose": "400",
+        "unit": "mg",
+        "slot": "asNeeded",
+        "minHoursBetween": 6,
+        "dispensingTime": null,
+        "maxPerDay": 0,
+        "favorite": false,
+        "note": null
+      }
+    },
+    {
+      "path": "users/uid-legacy/screenings/d2e3f4a5-b6c7-4d8e-9f0a-1b2c3d4e5f6a",
+      "data": {
+        "date": "2024-03-01",
+        "time": "12:00",
+        "createdAt": {
+          "__ts": "2024-03-01T11:00:00.000000000Z"
+        },
+        "note": null,
+        "occasion": "lunch",
+        "customText": null,
+        "energy": 6,
+        "stress": 3,
+        "symptoms": []
+      }
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { Timestamp, collection, collectionGroup, deleteDoc, deleteField, doc, getDoc, getDocs, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { COLLECTIONS } from '../lib/collections.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
+import { toClient } from './helpers/client.mjs';
 import { rulesTestEnvironment } from './helpers/emulator.mjs';
 import { textLimits } from './helpers/repo.mjs';
 
@@ -14,21 +15,6 @@ const OWNER = 'anna';
 const LIMIT = textLimits();
 const text = (n) => 'x'.repeat(n);
 const user = { schemaVersion: 1, createdAt: Timestamp.fromDate(new Date('2026-09-01T08:00:00Z')) };
-
-/**
- * Exportens JSON som klientens värden, som appen skriver dem: `{ __ts }` blir en tidsstämpel och
- * en skyddad `{ __map }` sin egen map (lib/serialize.mjs).
- */
-const toClient = (value) => {
-  if (Array.isArray(value)) return value.map(toClient);
-  if (value && typeof value === 'object') {
-    const keys = Object.keys(value);
-    if (keys.length === 1 && keys[0] === '__ts') return Timestamp.fromDate(new Date(value.__ts));
-    const map = keys.length === 1 && keys[0] === '__map' ? value.__map : value;
-    return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, keys[0] === '__map' ? v : toClient(v)]));
-  }
-  return value;
-};
 
 /** Den syntetiska fixturen (alla samlingar, varje fält satt). */
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/user.json', import.meta.url), 'utf8'));

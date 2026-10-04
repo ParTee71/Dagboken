@@ -51,6 +51,7 @@ jobs:
               - 'firebase.json'
               - 'tools/db/**'
               - 'app/src/main/kotlin/se/partee71/dagboken/data/firestore/Paths.kt'
+              - 'core/src/main/kotlin/se/partee71/dagboken/core/schema/CollectionNames.kt'
             build:
               - '*.gradle.kts'
               - 'gradle/**'

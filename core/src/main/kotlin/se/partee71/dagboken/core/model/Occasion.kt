@@ -17,6 +17,9 @@ enum class Occasion(override val wire: String, val legacyName: String, val defau
         /** 3.x-namnet → tillfället; okänt namn → `null`. */
         fun fromLegacyName(name: String): Occasion? = entries.firstOrNull { it.legacyName == name }
 
+        /** Om [name] är ett av de fyra tillfällenas 3.x-namn (3.x `SCREENING_EVENT_LABELS`). */
+        fun isLegacyName(name: String): Boolean = fromLegacyName(name) != null
+
         /**
          * Tillfället för en screening från 3.x, som inte hade fältet (DAT-12):
          * 1. Är [legacyName] (3.x-screeningens `aktivitet`) ett av de fyra tillfällenas namn gäller
