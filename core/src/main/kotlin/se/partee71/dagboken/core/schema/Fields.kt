@@ -5,6 +5,7 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.isoDayNumber
+import se.partee71.dagboken.core.model.WireEnum
 
 // Delade fälthjälpare – det ENDA stället där ett dokuments värden tolkas och skrivs.
 // Tolerans mot saknade, felaktiga och okända värden finns därmed på ett ställe (regel 1, 4).
@@ -29,9 +30,22 @@ internal fun Number.toIntClamped(): Int = toLong().coerceIn(Int.MIN_VALUE.toLong
 
 fun Doc.bool(key: String, default: Boolean = false): Boolean = this[key] as? Boolean ?: default
 
-/** Okänt eller saknat värde → [default]. */
-inline fun <reified E : Enum<E>> Doc.enum(key: String, default: E): E =
-    (this[key] as? String)?.let { name -> enumValues<E>().firstOrNull { it.name == name } } ?: default
+/** Valfritt sant/falskt; saknat eller annan typ → `null`. */
+fun Doc.boolOrNull(key: String): Boolean? = this[key] as? Boolean
+
+/** Enum med lagrat namn ([WireEnum.wire]); okänt eller saknat → `null`. */
+inline fun <reified E> wireValue(raw: Any?): E? where E : Enum<E>, E : WireEnum =
+    (raw as? String)?.let { name -> enumValues<E>().firstOrNull { it.wire == name } }
+
+/** Enum med lagrat namn; okänt eller saknat värde (t.ex. från en nyare app) → [default]. */
+inline fun <reified E> Doc.wire(key: String, default: E): E where E : Enum<E>, E : WireEnum =
+    wireValue<E>(this[key]) ?: default
+
+inline fun <reified E> Doc.wireOrNull(key: String): E? where E : Enum<E>, E : WireEnum = wireValue<E>(this[key])
+
+/** Lista av enum med lagrade namn, i lagrad ordning; okända värden hoppas över. */
+inline fun <reified E> Doc.wireList(key: String): List<E> where E : Enum<E>, E : WireEnum =
+    (this[key] as? List<*>)?.mapNotNull { wireValue<E>(it) }.orEmpty()
 
 /** Datum utan tid lagras som ISO-sträng (`yyyy-MM-dd`); ogiltigt → `null`. */
 fun Doc.localDate(key: String): LocalDate? =
@@ -42,9 +56,9 @@ fun Doc.localDate(key: String): LocalDate? =
  * → `null`, som skrivs vid nästa sparning (skill data-safety-backup).
  */
 fun Doc.localTime(key: String): LocalTime? =
-    (this[key] as? String)?.takeIf { TIME.matches(it) }?.let { LocalTime(it.take(2).toInt(), it.takeLast(2).toInt()) }
+    (this[key] as? String)?.takeIf { TIME_PATTERN.matches(it) }?.let { LocalTime(it.take(2).toInt(), it.takeLast(2).toInt()) }
 
-private val TIME = Regex("([01][0-9]|2[0-3]):[0-5][0-9]")
+private val TIME_PATTERN = Regex("([01][0-9]|2[0-3]):[0-5][0-9]")
 
 fun LocalTime?.encodeTime(): String? = this?.let { "%02d:%02d".format(java.util.Locale.ROOT, it.hour, it.minute) }
 
@@ -57,6 +71,9 @@ fun Doc.stringList(key: String): List<String> = (this[key] as? List<*>)?.filterI
 fun Doc.weekdays(key: String): Set<DayOfWeek> =
     (this[key] as? List<*>)?.filterIsInstance<Number>()?.map { it.toIntClamped() }
         ?.filter { it in 1..7 }?.map { DayOfWeek(it) }?.toSet().orEmpty()
+
+/** Lista av nästlade objekt, i lagrad ordning; element som inte är objekt hoppas över. */
+fun Doc.docs(key: String): List<Doc> = (this[key] as? List<*>)?.filterIsInstance<Map<*, *>>()?.map(::asDoc).orEmpty()
 
 /** Nästlat objekt; [codec] får det råa värdet och avgör vad saknat eller okänt betyder. */
 fun <T> Doc.nested(key: String, codec: ValueCodec<T>): T = codec.decode(this[key])
@@ -71,4 +88,6 @@ fun LocalDate?.encodeDate(): String? = this?.toString()
 
 fun Set<DayOfWeek>.encodeWeekdays(): List<Int> = map { it.isoDayNumber }.sorted()
 
-fun Enum<*>.encodeEnum(): String = name
+fun WireEnum?.encodeWire(): String? = this?.wire
+
+fun List<WireEnum>.encodeWires(): List<String> = map { it.wire }

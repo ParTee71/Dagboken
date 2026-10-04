@@ -42,6 +42,13 @@ fun <T : Any> assertEveryFieldDiffersFromDefault(sample: T, defaults: T) {
     }
 }
 
+/** Namnen på fälten där [value] har ett annat värde än [defaults]. */
+fun fieldsDifferingFromDefault(value: Any, defaults: Any): Set<String> =
+    persistedFields(value).filter { it.get(value) != it.get(defaults) }.map { it.name }.toSet()
+
+/** Modellens persisterade fält (alla utom `id`). */
+fun persistedFieldNames(value: Any): Set<String> = persistedFields(value).map { it.name }.toSet()
+
 /** Hela kontraktet för en dokument-codec: [sample] med icke-default-värden, [defaults] = modellens defaults. */
 fun <T : Identified> assertCodecContract(codec: DocCodec<T>, sample: T, defaults: T) {
     assertEveryFieldDiffersFromDefault(sample, defaults)
@@ -66,9 +73,38 @@ fun <T : Any> assertVariantCodecContract(codec: ValueCodec<T>, variants: List<Pa
     }
 }
 
+/**
+ * Fältvägarna i ett kodat dokument, även de nästlade: `theme.mode`, `boosts[].unit` (element i en
+ * lista av objekt). Samma notation som paritetstabellen i ARKITEKTUR.md → Datamodell.
+ */
+fun fieldPaths(doc: Doc, prefix: String = ""): Set<String> = doc.flatMap { (key, value) ->
+    val path = prefix + key
+    when {
+        value is Map<*, *> -> fieldPaths(asDoc(value), "$path.") + path
+        value is List<*> && value.any { it is Map<*, *> } ->
+            value.filterIsInstance<Map<*, *>>().flatMap { fieldPaths(asDoc(it), "$path[].") } + path
+        else -> listOf(path)
+    }
+}.toSet()
+
+/** Fältvägar utan värde – `null`, tom text eller tom lista – på alla nivåer. */
+fun emptyFieldPaths(doc: Doc, prefix: String = ""): Set<String> = doc.flatMap { (key, value) ->
+    val path = prefix + key
+    when (value) {
+        null -> listOf(path)
+        is String -> if (value.isEmpty()) listOf(path) else emptyList()
+        is Map<*, *> -> emptyFieldPaths(asDoc(value), "$path.")
+        is List<*> -> if (value.isEmpty()) listOf(path) else value.filterIsInstance<Map<*, *>>().flatMap { emptyFieldPaths(asDoc(it), "$path[].") }
+        else -> emptyList()
+    }
+}.toSet()
+
+/** Varje fält i [doc] har ett värde, även i nästlade objekt och listor (prov och fixtur, OMB-3). */
+fun assertEveryFieldSet(doc: Doc, what: String) {
+    assertEquals(emptySet(), emptyFieldPaths(doc), "$what ska ha ett värde i varje fält")
+}
+
 private fun persistedFields(value: Any) =
     value::class.java.declaredFields
         .filterNot { Modifier.isStatic(it.modifiers) || it.name == "id" }
         .onEach { it.isAccessible = true }
-
-private fun persistedFieldNames(value: Any) = persistedFields(value).map { it.name }.toSet()

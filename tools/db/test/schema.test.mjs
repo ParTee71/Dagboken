@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CURRENT_VERSION, FIRST_VERSION, versionOf } from '../lib/schema.mjs';
 import { STEPS } from '../lib/migrate.mjs';
-import { readRepoFile } from './helpers/repo.mjs';
+import { readRepoFile, textLimits } from './helpers/repo.mjs';
 
 const schemaDir = 'core/src/main/kotlin/se/partee71/dagboken/core/schema';
 const schemaKt = readRepoFile(`${schemaDir}/Schema.kt`);
@@ -36,10 +36,9 @@ test('versionOf: saknad eller trasig version (under den första) är den första
 });
 
 test('textgränserna i rules är desamma som TextLimits i :core', () => {
-  const limitsKt = readRepoFile(`${schemaDir}/TextLimits.kt`);
-  const kotlin = (name) => Number(limitsKt.match(new RegExp(`const val ${name} = (\\d+)`))[1]);
+  const limits = textLimits();
   const rules = readRepoFile('firestore.rules');
   const rule = (name) => Number(rules.match(new RegExp(`function ${name}\\(\\) \\{ return (\\d+); \\}`))[1]);
-  assert.equal(rule('maxShort'), kotlin('SHORT'));
-  assert.equal(rule('maxLong'), kotlin('LONG'));
+  assert.equal(rule('maxShort'), limits.short);
+  assert.equal(rule('maxLong'), limits.long);
 });

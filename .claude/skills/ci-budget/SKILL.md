@@ -22,12 +22,12 @@ resten med `dorny/paths-filter`.
 <!-- ci-table:start -->
 | Filter | Sökvägar | Körs |
 |---|---|---|
-| `core` | `core/**`, `tools/db/test/fixtures/**` | `:core:test` + allt i raden `app` (appen beror på `:core`; exportformatets och konverterarens tester läser tools/db:s testdata) |
+| `core` | `core/**`, `tools/db/test/fixtures/**`, `firestore.rules`, `ARKITEKTUR.md` | `:core:test` + allt i raden `app` (appen beror på `:core`; exportformatets och konverterarens tester läser tools/db:s testdata, `RulesEnumsTest` läser `firestore.rules` och `ParityTableTest` paritetstabellen i `ARKITEKTUR.md`) |
 | `app` | `app/**`, `.claude/skills/shared-ui-components/**` | `:app:testDebugUnitTest` (inkl. `UiConsistencyTest`) + `verifyRoborazziDebug` + `cpdCheck` + `:app:assembleDebugAndroidTest` (kompilerar och dexar instrumenttesterna utan att köra dem – utom när filtret `instrumented` kör dem) |
 | `tools` | `firestore.rules`, `firestore.indexes.json`, `firebase.json`, `tools/db/**`, `app/src/main/kotlin/se/partee71/dagboken/data/firestore/Paths.kt` | rules- och rundturstester (Node) mot Firebase-emulatorn, och samlingslistan mot `Paths.kt` |
 | `build` | `*.gradle.kts`, `gradle/**`, `gradle.properties`, `build-logic/**`, `.github/**` | allt ovan utom instrumenttesterna (de har egna sökvägar) |
 | `instrumented` | `app/src/**`, `core/src/**`, `*.gradle.kts`, `app/build.gradle.kts`, `core/build.gradle.kts`, `gradle/**`, `gradle.properties`, `build-logic/**`, `firestore.rules`, `firebase.json`, `tools/db/package-lock.json`, `.github/workflows/instrumented.yml`, `.github/actions/setup-android/**` | instrumenttesterna på Android-emulator (`instrumented.yml`), bara i PR; då hoppar `gradle` över `assembleDebugAndroidTest`. `release.yml` kör dem inte igen om dessa sökvägar är oförändrade sedan en PR där de var gröna |
-| – | allt annat (`*.md`, `.claude/**`) | bara `changes` med dokumentkontroller |
+| – | allt annat (`*.md` utom `ARKITEKTUR.md`, `.claude/**`) | bara `changes` med dokumentkontroller |
 <!-- ci-table:end -->
 
 - **Dokumentkontrollerna körs alltid** i `changes` (denna tabell mot filtren, länkar och

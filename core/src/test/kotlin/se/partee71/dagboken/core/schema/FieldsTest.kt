@@ -6,16 +6,18 @@ import kotlinx.datetime.LocalDate
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import se.partee71.dagboken.core.model.WireEnum
 
-/** Ett enum som i en modell; `SPRUTA` finns bara i en "nyare app". */
-private enum class ItemUnit { ST, KAPSEL }
+/** Ett enum som i en modell, med lagrat namn; `spruta` finns bara i en "nyare app". */
+private enum class ItemUnit(override val wire: String) : WireEnum { ST("st"), KAPSEL("kapsel") }
 
 /** Fälthjälparna testas grundligt här, en gång – codec-testerna förutsätter dem. */
 class FieldsTest {
 
     private val doc: Doc = mapOf(
         "text" to "hej", "long" to 42L, "double" to 2.9, "bool" to true, "nothing" to null,
-        "unit" to "KAPSEL", "futureUnit" to "SPRUTA", "date" to "2026-07-04", "badDate" to "4/7",
+        "unit" to "kapsel", "futureUnit" to "spruta", "kotlinName" to "KAPSEL",
+        "units" to listOf("st", "spruta", 3, "kapsel"), "date" to "2026-07-04", "badDate" to "4/7",
         "instant" to Instant.fromEpochSeconds(10), "list" to listOf("a", 1, "b", null),
         "days" to listOf(1L, 7, 0, 8, "3"), "nested" to mapOf("x" to 1, 2 to "icke-sträng-nyckel"),
     )
@@ -51,13 +53,21 @@ class FieldsTest {
         assertEquals(true, doc.bool("bool"))
         assertEquals(true, doc.bool("saknas", default = true))
         assertEquals(false, doc.bool("text"))
+        assertEquals(true, doc.boolOrNull("bool"))
+        assertNull(doc.boolOrNull("text"))
+        assertNull(doc.boolOrNull("saknas"))
     }
 
     @Test
-    fun `enum - okänt värde från en nyare app ger default`() {
-        assertEquals(ItemUnit.KAPSEL, doc.enum("unit", ItemUnit.ST))
-        assertEquals(ItemUnit.ST, doc.enum("futureUnit", ItemUnit.ST))
-        assertEquals(ItemUnit.ST, doc.enum("saknas", ItemUnit.ST))
+    fun `enum - lagrat namn, okänt värde från en nyare app ger default`() {
+        assertEquals(ItemUnit.KAPSEL, doc.wire("unit", ItemUnit.ST))
+        assertEquals(ItemUnit.ST, doc.wire("futureUnit", ItemUnit.ST))
+        assertEquals(ItemUnit.ST, doc.wire("kotlinName", ItemUnit.ST), "Kotlin-namnet är inte det lagrade namnet")
+        assertEquals(ItemUnit.ST, doc.wire("saknas", ItemUnit.ST))
+        assertNull(doc.wireOrNull<ItemUnit>("futureUnit"))
+        assertEquals(listOf(ItemUnit.ST, ItemUnit.KAPSEL), doc.wireList<ItemUnit>("units"))
+        assertEquals("kapsel", ItemUnit.KAPSEL.encodeWire())
+        assertEquals(listOf("kapsel", "st"), listOf(ItemUnit.KAPSEL, ItemUnit.ST).encodeWires())
     }
 
     @Test
@@ -82,6 +92,5 @@ class FieldsTest {
     fun `nästlade objekt - bara strängnycklar`() {
         assertEquals(mapOf("x" to 1), asDoc(doc["nested"]))
         assertEquals(emptyMap(), asDoc("inte en map"))
-        assertEquals("KAPSEL", ItemUnit.KAPSEL.encodeEnum())
     }
 }

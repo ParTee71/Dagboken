@@ -36,7 +36,18 @@ ViewModel
 
 ### `DocCodec<T>` (`:core`)
 Se skill `data-safety-backup` och `ARKITEKTUR.md` → "Datamodell". Byggs enbart av
-fälthjälparna; toleranta mot saknade och okända fält.
+fälthjälparna; toleranta mot saknade och okända fält (DAT-10):
+
+- **Saknat fält** eller `null` → modellens default.
+- **Okänt enumvärde** (från en nyare app) → modellens default, som skrivs vid nästa sparning –
+  utom `screenings.occasion`, som blir `null`, och påminnelserader och receptets tidpunkter med
+  okänd nyckel, som hoppas över.
+- **Okända fält** på toppnivå och i nästlade objekt bevaras (merge-skrivning). **Okända fält i ett
+  listelement** (`symptoms[]`, `boosts[]`, `medSlots[]`, `screeningOccasions[]`) bevaras **inte** –
+  listor skrivs alltid hela ur modellen; ett nytt fält där kräver höjd `schemaVersion`.
+- **Okänt recept-schema** (`Schedule.Unknown(raw)`) skrivs tillbaka oförändrat. Rules godtar bara
+  kända scheman i fält som skrivs, så ett sådant recept kan **uppdateras** (schemat orört) men inte
+  skapas eller återskapas efter radering förrän `schemaVersion` och rules höjs.
 
 ### `EntityCollection<T>` (`data/common/`) – ett kontrakt, två implementationer
 | Medlem | Beteende |
@@ -81,7 +92,7 @@ jämför dem.
 ### Repositories (`data/repository/`)
 Interface + `Default…Repository`. Enkla samlingar är bara delegering
 (`OptionRepository : EntityCollection<Option>`, `… by collections.options()`); egen kod finns
-bara för domänfrågor (t.ex. dagens doser ur recepten med stabila id:n `rx_{prescriptionId}_{date}_{slot}`,
+bara för domänfrågor (t.ex. dagens doser ur recepten med stabila 3.x-id:n `recept_{prescriptionId}_{date}_{tidpunkt}`,
 DAT-8; incheckningar per episod; importen från 3.x via `batch`). Ingen `FirebaseFirestore`, ingen
 felmappning, ingen codec-logik. Domänlogik (dosgenerering, kylperiod, periodslut, dagens
 energisnitt, diagrammatematik) ligger i `:core` (ARKITEKTUR.md → Lager och moduler).
@@ -136,18 +147,23 @@ cachen och synkas när nätet finns; larmen schemaläggs om vid synk, omstart oc
   format); det raderas aldrig från appen. `schemaVersion` skrivs som heltal, kan inte sänkas och
   höjs högst till `maxSchemaVersion()` (saknad lagrad version räknas som 1, BCK-15).
 - Bara samlingarna i `collections.mjs` har regler; allt annat under användaren nekas (en okänd
-  samling skulle stoppa backupen, BCK-16). Kontrollerna görs med de generiska hjälparna
-  (`optInt`, `optString`, `optNumber`, `optBool`, `optMap`, `optList`, `optTime`) – men bara på de
-  fält skrivningen ändrar, så att ett redan lagrat felaktigt värde inte låser dokumentet. Saknat
-  eller `null` är tillåtet, okända fält får finnas (BCK-9, DAT-10).
-- **Etapp 1:** varje samling har bara de gemensamma gränserna (`validEntry`: `fieldCount`, `note`
-  som `longText`, `name` som `shortText`). **Etapp 2** lägger fältvalidering per samling i egna
-  `valid…`-funktioner i samma PR som codecen, med rules-test per fält. Rules-testet "fixturens
-  dokument godtas" skriver `tools/db`:s fixtur genom klientens SDK och fångar drift mellan
-  codecs och rules.
+  samling skulle stoppa backupen, BCK-16). Varje samling har en `valid…`-funktion med codecens
+  fält, typer, intervall och enum-listor, i mönstret `(!('fält' in w) || nullOr…(d.get('fält', null)))`
+  med `w = written()` (`let`, en gång per skrivning) – bara fält skrivningen ändrar kontrolleras, så
+  att ett redan lagrat felaktigt värde inte låser dokumentet. Saknat eller `null` är tillåtet, okända
+  fält får finnas (BCK-9, DAT-10). Enum-listorna (`slots()`, `doseStatuses()` …) jämförs med
+  `WireEnum` av `RulesEnumsTest` i `:core`. Rules-testet "fixturens dokument godtas" skriver
+  `tools/db`:s fixtur genom klientens SDK och fångar drift mellan codecs och rules; varje fält har
+  minst ett ogiltigt fall.
+- **Uttrycksbudget:** rules räknar högst 1 000 uttryck per skrivning. Listor av objekt (`symptoms`,
+  `boosts`) kontrolleras därför som lista med tak (50), men elementen bara upp till det tionde;
+  håll kontrollerna platta och mät med emulatorns `ruleCoverage` vid ändring.
+- **Incheckningar** skrivs bara under en episod som finns efter skrivningen (`existsAfter`); en
+  batch får slå upp högst 20 befintliga episoder (episoder som skapas i samma batch räknas inte), så
+  importen skriver episoderna med sina incheckningar eller delar upp per högst 20 episoder.
 - Ny samling = ny `match` med `valid…`-funktion + rules-test + rad i `collections.mjs` i samma PR.
-- **Storlek (TP-12):** text via `shortText`/`longText` (tak `maxShort()`/`maxLong()` = `TextLimits`
-  i `:core`, hålls lika av `schema.test.mjs`), listor via `shortList`, antal fält via `fieldCount` –
+- **Storlek (TP-12):** text via `nullOrShort`/`nullOrLong` (tak `maxShort()`/`maxLong()` = `TextLimits`
+  i `:core`, 200/5 000, hålls lika av `schema.test.mjs`), listor med tak, antal fält via `fieldCount` –
   som typerna bara på fält som skrivs. `AppTextField` har samma tak.
 - Varje rules-ändring granskas med Googles skill `firebase-security-rules-auditor` (rättigheter,
   create mot update, typer, storlek, `hasOnly`); dess fynd blir rules-tester. Våra regler ovan går före.

@@ -9,6 +9,7 @@ import org.junit.Test
 import se.partee71.dagboken.core.model.Archivable
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.Sortable
+import se.partee71.dagboken.core.model.WireEnum
 
 /**
  * Kontraktet för en dokument-codec ([assertCodecContract]) bevisat med en provmodell, så att de
@@ -16,7 +17,7 @@ import se.partee71.dagboken.core.model.Sortable
  */
 class DocCodecTest {
 
-    private enum class Kind { ACTIVITY, SYMPTOM }
+    private enum class Kind(override val wire: String) : WireEnum { ACTIVITY("activity"), SYMPTOM("symptom") }
 
     private data class Sample(
         override val id: String,
@@ -34,7 +35,7 @@ class DocCodecTest {
     private object SampleCodec : DocCodec<Sample> {
         override fun encode(value: Sample): Map<String, Any?> = mapOf(
             "name" to value.name,
-            "kind" to value.kind.encodeEnum(),
+            "kind" to value.kind.encodeWire(),
             "date" to value.date.encodeDate(),
             "time" to value.time.encodeTime(),
             "note" to value.note,
@@ -47,7 +48,7 @@ class DocCodecTest {
         override fun decode(id: String, map: Map<String, Any?>) = Sample(
             id = id,
             name = map.string("name"),
-            kind = map.enum("kind", Kind.ACTIVITY),
+            kind = map.wire("kind", Kind.ACTIVITY),
             date = map.localDate("date"),
             time = map.localTime("time"),
             note = map.stringOrNull("note"),
