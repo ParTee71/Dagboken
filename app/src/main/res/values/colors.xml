@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fönstrets och startskärmens bakgrund: temats background (papper) i ui/theme/AppColors.
+     Resurser måste vara XML; AppIconTest håller dem lika med temat. -->
+<resources>
+    <color name="window_background">#FBF7EE</color>
+    <!-- Appikonens bakgrund – samma som i 3.x, så att ikonen känns igen efter uppdateringen. -->
+    <color name="ic_launcher_background">#0F0F14</color>
+</resources>

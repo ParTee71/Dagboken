@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fönstrets tema före Compose; allt utseende i appen kommer från ui/theme. -->
+    <style name="Theme.Dagboken" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+
+    <!-- Startskärmen (NFR-5): appikonen på pappersytan, sedan appens tema. -->
+    <style name="Theme.Dagboken.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/window_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.Dagboken</item>
+    </style>
+</resources>

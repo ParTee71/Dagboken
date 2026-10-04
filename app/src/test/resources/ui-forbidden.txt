@@ -1,0 +1,56 @@
+# Förbjudna mönster för regel 4 – enda källan.
+# Läses av hooken .claude/hooks/regel4-check.mjs och av UiConsistencyTest.
+# Format per rad: <regex><TAB><vad som ska användas i stället>
+# [feature]   = Kotlin i ett ui-paket under app/src/main utom ui/components, ui/theme, ui/common
+#               (även filer direkt under ui/)
+# [firestore] = all Kotlin under app/src/main utom data/firestore/
+# [expressive] = all Kotlin under app/src/main utom ui/theme/ och ui/components/
+# Tillåtet i feature-kod: Text (med AppTypography-stil), Icon (appens ikoner i res/drawable),
+# Column, Row, Box, Spacer med Spacing, samt allt i ui/components och ui/common.
+# Regexarna ska fungera både i JavaScript och Kotlin (ingen lookbehind).
+
+[feature]
+\bColor\(	MaterialTheme.colorScheme / AppColors
+\bColor\.[A-Z][A-Za-z]*	MaterialTheme.colorScheme / AppColors
+\bRoundedCornerShape\(	AppShapes
+\bCutCornerShape\(	AppShapes
+\bTextStyle\(	AppTypography
+\bMaterialTheme\.typography\b	AppTypography
+\b(fontSize|fontWeight|lineHeight|letterSpacing)\s*=	AppTypography
+\.shadow\(	AppCard eller komponentens parametrar
+\.(height|width|size|clip|requiredHeight|requiredWidth|requiredSize)\(\s*[0-9]+(\.[0-9]+)?\.dp	komponentens parametrar eller Spacing
+\bpadding\([^)]*[0-9]+(\.[0-9]+)?\.dp	Spacing
+\bSurface\s*[({]	AppCard
+\b(Elevated|Outlined)?Card\s*[({]	AppCard
+\b(Filled|FilledTonal|Outlined|Elevated|Text)?Button\s*[({]	AppButton
+\b(Filled|FilledTonal|Outlined)?IconButton\s*[({]	AppIconButton
+\b(Small|Large|Extended)?FloatingActionButton\s*[({]	AddSplitButton / AppFloatingToolbar
+\bCheckbox\s*[({]	CheckRow
+\bSwitch\s*[({]	SwitchRow
+\bRadioButton\s*[({]	AppSegmentedChoice
+\b[A-Za-z]*SegmentedButton[A-Za-z]*\s*[({]	AppSegmentedChoice
+\bSlider\s*[({]	QuantityStepper
+\b(Outlined)?TextField\s*[({]	AppTextField
+\b[A-Za-z]*DatePicker[A-Za-z]*\s*[({]	DateField
+\bDropdownMenu(Item)?\s*[({]	AppMenu
+\b[A-Za-z]*TopAppBar\s*[({]	AppTopBar
+\bNavigation(Bar|Rail)\s*[({]	AppFloatingToolbar
+\b(Filter|Assist|Suggestion|Input)Chip\s*[({]	AppFilterChip / ChoiceChips
+\bBadge\s*[({]	InfoPill
+\b(Horizontal|Vertical)?Divider\s*[({]	AppDivider
+\bAlertDialog\s*[({]	ConfirmDialog
+\bModalBottomSheet\s*[({]	AppBottomSheet
+\b[A-Za-z]*ProgressIndicator\s*[({]	AppLoading
+\bSnackbar(Host)?\s*[({]	AppSnackbarHost / UndoSnackbar
+\bLazyColumn\s*[({]	EntityListScreen
+\bLazy(Row|VerticalGrid|HorizontalGrid|VerticalStaggeredGrid)\s*[({]	EntityListScreen (gruppering, columns) / ChipRow
+\bScaffold\s*[({]	EntityListScreen / EntityEditScreen
+\bSwipeToDismissBox\s*[({]	SwipeToHide
+
+[firestore]
+\bFirebaseFirestore\b	FirestoreCollection<T> i data/firestore/ (Hilt-modulen ligger också där)
+\bCollectionReference\b	FirestoreCollection<T> i data/firestore/
+\bDocumentReference\b	FirestoreCollection<T> i data/firestore/
+
+[expressive]
+\bExperimentalMaterial3ExpressiveApi\b	en delad komponent i ui/components (Expressive-opt-in bara i ui/theme och ui/components)

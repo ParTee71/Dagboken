@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Dagboken</string>
+
+    <!-- Inloggning (AUTH-1–3, AUTH-5) -->
+    <string name="sign_in_welcome">Din hälsodagbok – mediciner, mående och aktiviteter på ett ställe</string>
+    <string name="sign_in_google">Logga in med Google</string>
+    <string name="sign_in_busy">Loggar in …</string>
+    <string name="sign_in_note">Du loggar in med ditt Google-konto. Dagboken sparas i molnet och fungerar även utan nät.</string>
+
+    <!-- Uppdatera appen (nyare dataformat än appen) -->
+    <string name="update_required_title">Uppdatera appen</string>
+    <string name="update_required_message">Din dagbok har sparats med en nyare version av Dagboken. Installera den senaste versionen för att fortsätta.</string>
+    <string name="update_required_note">Ingenting i din dagbok ändras förrän appen är uppdaterad.</string>
+    <string name="update_required_action">Hämta senaste versionen</string>
+    <string name="releases_url" translatable="false">https://github.com/ParTee71/Dagboken/releases/latest</string>
+
+    <!-- Felmeddelanden – enda stället (DataError.toMessage) -->
+    <string name="error_offline">Ingen anslutning just nu. Det du sparar skickas när nätet är tillbaka.</string>
+    <string name="error_permission_denied">Du har inte behörighet till de här uppgifterna.</string>
+    <string name="error_cancelled">Åtgärden avbröts.</string>
+    <string name="error_update_required">Din dagbok är sparad med en nyare version av appen. Uppdatera appen för att kunna ändra.</string>
+    <string name="error_sign_in_rejected">Inloggningen godkändes inte. Försök igen.</string>
+    <string name="error_not_signed_in">Du är inte inloggad.</string>
+    <string name="error_not_found">Det finns inte längre – det kan ha raderats på en annan enhet.</string>
+    <string name="error_unknown">Något gick fel. Försök igen.</string>
+
+    <!-- Återkommande texter – används av ramarna och komponenterna, en gång (regel 4) -->
+    <string name="save">Spara</string>
+    <string name="cancel">Avbryt</string>
+    <string name="ok">OK</string>
+    <string name="back">Tillbaka</string>
+    <string name="more_options">Fler val</string>
+    <string name="archive">Arkivera</string>
+    <string name="restore">Återställ</string>
+    <string name="edit">Redigera</string>
+    <string name="delete">Radera</string>
+    <string name="undo">Ångra</string>
+    <string name="archived_format">%s arkiverad</string>
+    <string name="retry">Försök igen</string>
+    <string name="loading">Laddar</string>
+    <string name="show_archived">Visa arkiverade</string>
+    <string name="hide_archived">Dölj arkiverade</string>
+    <string name="list_error_title">Kunde inte hämta listan</string>
+    <string name="load_error_title">Kunde inte hämta uppgifterna</string>
+    <string name="discard_title">Släng ändringar?</string>
+    <string name="discard_message">Det du ändrat sparas inte.</string>
+    <string name="discard_confirm">Släng</string>
+    <string name="keep_editing">Fortsätt redigera</string>
+    <string name="decrease_format">Minska %s</string>
+    <string name="increase_format">Öka %s</string>
+    <string name="pick_date">Välj datum</string>
+    <string name="pick_time">Välj tid</string>
+    <string name="expanded">Utfälld</string>
+    <string name="collapsed">Hopfälld</string>
+    <string name="paused">Pausat</string>
+    <string name="paused_note">Pausat – räknas inte med</string>
+    <plurals name="suggestions_count">
+        <item quantity="one">%d förslag</item>
+        <item quantity="other">%d förslag</item>
+    </plurals>
+
+    <!-- Färgval (ColorSwatchPicker) – samma ordning som AppColors.SWATCH_HEX -->
+    <string name="color_format">Färg: %s</string>
+    <string-array name="swatch_color_names">
+        <item>teal</item>
+        <item>solgul</item>
+        <item>terrakotta</item>
+        <item>grön</item>
+        <item>blå</item>
+        <item>lila</item>
+        <item>senap</item>
+        <item>röd</item>
+    </string-array>
+
+    <!-- Navigering (NAV-8–11) -->
+    <string name="tab_today">Idag</string>
+    <string name="tab_diary">Dagbok</string>
+    <string name="tab_trends">Trender</string>
+    <string name="tab_medicines">Mediciner</string>
+    <string name="tab_upcoming_title">Kommer i etapp 5</string>
+    <string name="tab_today_upcoming">Här samlas dagens mediciner, mående, vid behov och hälsa.</string>
+    <string name="tab_diary_upcoming">Här visas allt du loggat, dag för dag, med kalender och filter.</string>
+    <string name="tab_trends_upcoming">Här följer du mående, klockans mått och jämförelser över tid.</string>
+    <string name="tab_medicines_upcoming">Här hanterar du recept, scheman och vid behov-mediciner.</string>
+
+    <!-- Inställningsarket bakom avataren (NAV-9) -->
+    <string name="account_open">Konto och inställningar</string>
+    <string name="account_title">Inställningar</string>
+    <string name="sign_out">Logga ut</string>
+    <string name="component_gallery">Komponentgalleri</string>
+
+    <!-- Plusknappens loggmeny (NAV-10) -->
+    <string name="log_menu_open">Logga</string>
+    <string name="log_menu_title">Logga</string>
+    <string name="log_mood">Mående</string>
+    <string name="log_activity">Aktivitet</string>
+    <string name="log_dose">Dos</string>
+    <string name="log_event">Händelse</string>
+    <string name="log_illness">Sjukdom</string>
+
+    <!-- Synk (NFR-1) -->
+    <string name="sync_pending">Väntar på synk</string>
+    <string name="sync_pending_description">Ändringar väntar på att synkas</string>
+    <string name="sync_pending_explained">Ändringarna är sparade på telefonen och skickas när det finns nät.</string>
+    <string name="sync_write_rejected">En ändring kunde inte sparas och har ångrats. %1$s</string>
+</resources>

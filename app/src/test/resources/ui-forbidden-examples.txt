@@ -1,0 +1,101 @@
+# Exempel på hur ui-forbidden.txt och ui-allowlist.txt ska tolkas – körs av BÅDE hooktestet
+# (.claude/hooks/test/regel4-check.test.mjs) och UiConsistencyTest, så att hooken och
+# bygget alltid tolkar filerna likadant. Lägg till ett exempel här när ett mönster ändras.
+# Allt körs med tom allowlist utom sektionen allowlist.
+#
+# ok            = rader som är tillåtna i feature-kod (app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt)
+# stopp         = rader som ska stoppas i feature-kod
+# komponent-ok  = rader som är tillåtna i en delad komponent (app/src/main/kotlin/se/partee71/dagboken/ui/components/X.kt)
+# scope         = <sökväg><TAB><scope, kommaseparerade; tomt = inga>
+# allowlist     = <allowlist-rad><TAB><kodrad i TodayRow.kt><TAB><ok|stopp>
+# allowlist-fel = allowlist-rader som ska avvisas (saknar symbol eller motivering)
+
+[ok]
+AppCard { }
+AppButton(onClick = {})
+AppIconButton(onClick = {})
+AddSplitButton()
+AppTextField(value = "")
+AppTopBar(title = "")
+AppFilterChip(selected = true)
+ChoiceChips()
+AppSnackbarHost(state)
+UndoSnackbar()
+CheckRow(checked = true)
+SwitchRow(checked = true)
+AppSegmentedChoice()
+AppMenu()
+DateField(value)
+AppDivider()
+ChipRow { }
+InfoPill()
+AppFloatingToolbar()
+QuantityStepper()
+Text("Hej", style = AppTypography.itemTitle)
+color = MaterialTheme.colorScheme.onBackground
+Icon(Icons.Rounded.Luggage, null)
+Spacer(Modifier.height(Spacing.l))
+Modifier.padding(Spacing.m)
+Modifier.background(MaterialTheme.colorScheme.background)
+import androidx.compose.material3.Card
+// Card(modifier) i en kommentar
+ * Card(modifier) i en KDoc
+
+[stopp]
+val c = Color(0xFFC8502F)
+tint = Color.Red
+shape = RoundedCornerShape(12.dp)
+Text("x", fontSize = 14.sp)
+lineHeight = 20.sp
+style = MaterialTheme.typography.titleLarge
+Modifier.height(48.dp)
+Modifier.width(120.dp)
+Modifier.padding(16.dp)
+Modifier.padding(horizontal = 16.dp)
+Card(modifier = Modifier) { }
+LazyColumn { }
+LazyRow { }
+Scaffold(topBar = {})
+AlertDialog(onDismissRequest = {})
+SwipeToDismissBox(state) { }
+FloatingActionButton(onClick = {})
+Switch(checked = true)
+SingleChoiceSegmentedButtonRow { }
+DropdownMenu(expanded = true)
+DatePicker(state)
+HorizontalDivider()
+Surface(color = x)
+Badge { }
+NavigationBar { }
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
+[komponent-ok]
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+Card(modifier = modifier) { content() }
+style = MaterialTheme.typography.titleLarge
+
+[scope]
+README.md	
+app/src/main/kotlin/se/partee71/dagboken/ui/diary/notes.md	
+app/src/test/kotlin/X.kt	
+app/src/main/kotlin/se/partee71/dagboken/data/firestore/FirestoreCollection.kt	expressive
+app/src/main/kotlin/se/partee71/dagboken/ui/theme/Theme.kt	firestore
+app/src/main/kotlin/se/partee71/dagboken/ui/common/EditorState.kt	firestore,expressive
+app/src/main/kotlin/se/partee71/dagboken/ui/components/screens/EntityListScreen.kt	firestore
+app/src/main/kotlin/se/partee71/dagboken/ui/diary/DiaryScreen.kt	feature,firestore,expressive
+app/src/main/kotlin/se/partee71/dagboken/ui/AppRoot.kt	feature,firestore,expressive
+app/src/main/kotlin/se/partee71/dagboken/di/AppModule.kt	firestore,expressive
+app/src/main/kotlin/se/partee71/dagboken/data/repository/DoseRepository.kt	firestore,expressive
+
+[allowlist]
+app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card( – test	Card(modifier) { }	ok
+app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card( – test	Card(colors = CardDefaults.cardColors(Color.Red)) { }	stopp
+app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card( – test	Button(onClick = {})	stopp
+app/src/main/kotlin/se/partee71/dagboken/ui/diary/DiaryRow.kt:Card( – annan fil	Card(modifier) { }	stopp
+app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Color.Red – test	tint = Color.Red	ok
+
+[allowlist-fel]
+app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt – saknar symbol
+app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card(
+app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card( – 
