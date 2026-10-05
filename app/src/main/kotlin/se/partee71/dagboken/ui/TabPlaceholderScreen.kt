@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
+import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.navigation.DiaryKey
 import se.partee71.dagboken.navigation.MedicinesKey
 import se.partee71.dagboken.navigation.TodayKey
@@ -35,17 +36,17 @@ enum class TabInfo(val key: TopLevelKey, @StringRes val title: Int, @DrawableRes
 }
 
 /**
- * En flik innan den byggts (etapp 5): rubriken med avataren uppe till höger (NAV-9) och ett tomt
- * tillstånd som säger vad som kommer. [onAccount] öppnar inställningsarket.
+ * En flik innan den byggts (etapp 5): rubriken med avataren uppe till höger (NAV-9) – [account]s
+ * initialer och foto (AUTH-3) – och ett tomt tillstånd som säger vad som kommer. [onAccount] öppnar
+ * inställningsarket.
  */
 @Composable
-fun TabPlaceholderScreen(tab: TopLevelKey, onAccount: () -> Unit, modifier: Modifier = Modifier) {
+fun TabPlaceholderScreen(tab: TopLevelKey, account: AuthUser? = null, onAccount: () -> Unit, modifier: Modifier = Modifier) {
     val info = TabInfo.of(tab)
     Column(modifier.fillMaxSize()) {
         AppTopBar(
             stringResource(info.title),
-            // Namn och foto kopplas in när kontot visas i flikarna (#234); tills dess person-ikonen.
-            actions = { AccountAvatar(name = null, onClick = onAccount) },
+            actions = { AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl) },
         )
         Box(Modifier.fillMaxSize().padding(bottom = LocalBottomClearance.current), contentAlignment = Alignment.Center) {
             EmptyState(info.icon, stringResource(R.string.tab_upcoming_title), stringResource(info.upcoming))

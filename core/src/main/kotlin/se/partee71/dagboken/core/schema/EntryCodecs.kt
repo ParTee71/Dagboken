@@ -37,23 +37,26 @@ internal fun List<SymptomScore>.encodeSymptoms(): List<Doc> =
     map { mapOf("optionId" to it.optionId, "score" to it.score, "customText" to it.customText) }
 
 object OptionCodec : DocCodec<Option> {
+    const val NAME = "name"
+    const val KIND = "kind"
+    const val SORT_ORDER = "sortOrder"
     const val FAVORITE = "favorite"
     const val ARCHIVED = "archived"
 
     override fun encode(value: Option): Doc = mapOf(
-        "kind" to value.kind.encodeWire(),
-        "name" to value.name,
+        KIND to value.kind.encodeWire(),
+        NAME to value.name,
         FAVORITE to value.favorite,
-        "sortOrder" to value.sortOrder,
+        SORT_ORDER to value.sortOrder,
         ARCHIVED to value.archived,
     )
 
     override fun decode(id: String, map: Doc) = Option(
         id = id,
-        kind = map.wire("kind", OptionKind.ACTIVITY),
-        name = map.string("name"),
+        kind = map.wire(KIND, OptionKind.ACTIVITY),
+        name = map.string(NAME),
         favorite = map.bool(FAVORITE),
-        sortOrder = map.int("sortOrder"),
+        sortOrder = map.int(SORT_ORDER),
         archived = map.bool(ARCHIVED),
     )
 }

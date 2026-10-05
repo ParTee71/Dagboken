@@ -38,8 +38,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
-import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.ArchiveEvent
+import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
@@ -79,14 +79,14 @@ data class ListSubgroup(val title: String, val color: Color)
 
 /**
  * Arkivering i en lista (NFR-3), där den finns: "Visa arkiverade" i menyn ([showing]), Ångra
- * efter svep ([undo]) och ett misslyckat arkivera/ångra som meddelande ([error]). Händelserna
+ * efter svep ([undo]) och ett misslyckat arkivera/ångra som meddelande ([failure]). Händelserna
  * går till `ArchiveActions` i ViewModeln; `collectAsListArchive()` bygger den. [showToggle] =
  * false när dolda rader visas på annat sätt (t.ex. "Avslutade").
  */
 data class ListArchive(
     val showing: Boolean = false,
     val undo: UndoRequest? = null,
-    val error: DataError? = null,
+    val failure: Failure? = null,
     val showToggle: Boolean = true,
     val onEvent: (ArchiveEvent) -> Unit = {},
 ) {
@@ -104,6 +104,8 @@ data class ListArchive(
  *
  * En undersida har [onBack], [subtitle], egna [actions] i rubrikraden och ett
  * [header] överst i listan; `ListArchive.showToggle` = false tar bort "Visa arkiverade".
+ * [filter] står fast under rubriken i alla lägen – även tomt och fel – för ett val av vilken lista
+ * som visas (t.ex. `AppSegmentedChoice` Aktiviteter · Symptom · Händelser i Listor).
  *
  * @param group grupp för en rad; grupperna visas i den ordning de först förekommer.
  * @param subgroup undergrupp för en rad inom gruppen (person), i den ordning de förekommer.
@@ -125,10 +127,12 @@ fun <T> EntityListScreen(
     actions: @Composable RowScope.() -> Unit = {},
     header: (@Composable () -> Unit)? = null,
     subgroup: ((T) -> ListSubgroup?)? = null,
+    filter: (@Composable () -> Unit)? = null,
     row: @Composable (T) -> Unit,
 ) {
     val snackbar = remember { SnackbarHostState() }
-    ErrorSnackbar(archive?.error, snackbar) { archive?.onEvent(ArchiveEvent.ErrorShown) }
+    val failure = archive?.failure
+    ErrorSnackbar(failure?.error, snackbar, message = failure?.message, key = failure) { archive?.onEvent(ArchiveEvent.ErrorShown) }
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val clearance = LocalBottomClearance.current
     UndoSnackbar(archive?.undo, snackbar, { archive?.onEvent(ArchiveEvent.Undo) }, { archive?.onEvent(ArchiveEvent.UndoDismissed) })
@@ -151,26 +155,29 @@ fun <T> EntityListScreen(
             }
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            when (state) {
-                ListUiState.Loading -> AppLoading()
-                ListUiState.Empty -> EmptyState(
-                    icon = empty.icon,
-                    title = empty.title,
-                    message = empty.message,
-                    modifier = Modifier.padding(bottom = clearance),
-                    action = {
-                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.l)) {
-                            if (empty.examples.isNotEmpty()) {
-                                ExampleChips(empty.examples, { it.onClick() }, label = { it.label })
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            filter?.let { Box(Modifier.padding(start = Spacing.l, end = Spacing.l, bottom = Spacing.m)) { it() } }
+            Box(Modifier.fillMaxWidth().weight(1f)) {
+                when (state) {
+                    ListUiState.Loading -> AppLoading()
+                    ListUiState.Empty -> EmptyState(
+                        icon = empty.icon,
+                        title = empty.title,
+                        message = empty.message,
+                        modifier = Modifier.padding(bottom = clearance),
+                        action = {
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.l)) {
+                                if (empty.examples.isNotEmpty()) {
+                                    ExampleChips(empty.examples, { it.onClick() }, label = { it.label })
+                                }
+                                AppButton(empty.actionLabel, onAdd, Modifier.fillMaxWidth(), icon = R.drawable.ic_add)
                             }
-                            AppButton(empty.actionLabel, onAdd, Modifier.fillMaxWidth(), icon = R.drawable.ic_add)
-                        }
-                    },
-                )
-                is ListUiState.Error ->
-                    LoadErrorState(stringResource(R.string.list_error_title), state.error, onRetry, Modifier.padding(bottom = clearance))
-                is ListUiState.Content -> ListContent(state.items, key, group, subgroup, header, clearance, row)
+                        },
+                    )
+                    is ListUiState.Error ->
+                        LoadErrorState(stringResource(R.string.list_error_title), state.error, onRetry, Modifier.padding(bottom = clearance))
+                    is ListUiState.Content -> ListContent(state.items, key, group, subgroup, header, clearance, row)
+                }
             }
         }
     }

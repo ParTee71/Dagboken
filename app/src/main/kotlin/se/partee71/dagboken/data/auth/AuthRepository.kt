@@ -4,10 +4,14 @@ import android.content.Context
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Den inloggade användaren – bara det appen behöver. Namn och e-post visas i inställningsarket
- * (Konto, NAV-9) men loggas eller sparas aldrig.
+ * Den inloggade användaren – bara det appen behöver. Namn, e-post och profilfotots adress
+ * ([photoUrl]) visas i inställningsarket och avataren (AUTH-3, NAV-9) men hålls bara i minnet:
+ * de loggas, sparas och cachas aldrig på disk.
  */
-data class AuthUser(val uid: String, val name: String? = null, val email: String? = null)
+data class AuthUser(val uid: String, val name: String? = null, val email: String? = null, val photoUrl: String? = null) {
+    /** Inga värden – uid, namn, e-post och foto får aldrig hamna i en logg eller ett felmeddelande (AUTH-3, NFR-13). */
+    override fun toString(): String = "AuthUser(***)"
+}
 
 /** Inloggning med Google (skill firebase-auth). Alla fel kommer som `DataError`, mappade en gång. */
 interface AuthRepository {

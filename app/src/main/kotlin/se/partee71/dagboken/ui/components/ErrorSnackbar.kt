@@ -22,14 +22,17 @@ internal fun ErrorSnackbar(
     hostState: SnackbarHostState,
     @StringRes template: Int? = null,
     duration: SnackbarDuration = SnackbarDuration.Short,
+    @StringRes message: Int? = null,
+    key: Any? = error,
     onShown: () -> Unit,
 ) {
     val resources = LocalResources.current
     val shown by rememberUpdatedState(onShown)
-    LaunchedEffect(error) {
+    // [key]: ett nytt fel (även samma sort igen) visas på nytt.
+    LaunchedEffect(key) {
         if (error == null) return@LaunchedEffect
-        val message = resources.getString(error.toMessage())
-        hostState.showSnackbar(template?.let { resources.getString(it, message) } ?: message, duration = duration)
+        val text = resources.getString(message ?: error.toMessage())
+        hostState.showSnackbar(template?.let { resources.getString(it, text) } ?: text, duration = duration)
         shown()
     }
 }

@@ -29,6 +29,7 @@ import se.partee71.dagboken.testing.captureLightAndDarkPaused
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.common.ArchiveEvent
+import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.common.EditorState
@@ -128,6 +129,41 @@ class FramesTest {
         rule.onNodeWithText("D1").assertIsDisplayed()
         restore.emulateSavedInstanceStateRestore()
         rule.onNodeWithText("D1").assertIsDisplayed()
+    }
+
+    @Test
+    fun `filter står fast under rubriken i alla lägen`() {
+        var state by mutableStateOf<ListUiState<String>>(ListUiState.Empty)
+        rule.setContent {
+            DagbokenTheme {
+                EntityListScreen("Listor", state, empty, {}, key = { it }, filter = { ItemRow("Filterrad") }) { ItemRow(it) }
+            }
+        }
+        rule.onNodeWithText("Filterrad").assertIsDisplayed()
+        state = ListUiState.Error(DataError.Offline)
+        rule.onNodeWithText("Filterrad").assertIsDisplayed()
+        state = ListUiState.Content(listOf("Promenad"))
+        rule.onNodeWithText("Filterrad").assertIsDisplayed()
+        rule.onNodeWithText("Promenad").assertIsDisplayed()
+    }
+
+    @Test
+    fun `samma fel två gånger i rad visas två gånger`() {
+        var archive by mutableStateOf(ListArchive())
+        var shown = 0
+        rule.setContent {
+            DagbokenTheme {
+                EntityListScreen("Listor", ListUiState.Content(listOf("Promenad")), empty, {}, key = { it }, archive = archive.copy(onEvent = { if (it == ArchiveEvent.ErrorShown) shown++ })) { ItemRow(it) }
+            }
+        }
+        repeat(2) {
+            archive = ListArchive(failure = Failure(DataError.Offline))
+            rule.waitForIdle()
+            rule.onNodeWithText(string(R.string.error_offline)).assertIsDisplayed()
+            rule.mainClock.advanceTimeBy(SNACKBAR_GONE_MILLIS)
+            rule.waitForIdle()
+        }
+        assertEquals(2, shown, "samma sorts fel igen visas igen")
     }
 
     @Test
@@ -279,6 +315,20 @@ class FramesTest {
     }
 
     @Test
+    fun `EntityDetailScreen med titel i toppraden har inget centrerat huvud`() {
+        var back = 0
+        rule.setContent {
+            DagbokenTheme {
+                EntityDetailScreen(DetailUiState.Content("Förkylning"), header = null, onBack = { back++ }, title = "Tema") { ItemRow(it) }
+            }
+        }
+        rule.onNodeWithText("Tema").assertIsDisplayed()
+        rule.onNodeWithText("Förkylning").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Tillbaka").performClick()
+        assertEquals(1, back)
+    }
+
+    @Test
     fun `EntityDetailScreen - innehåll och fel`() {
         captureLightAndDark("EntityDetailScreen_innehall") {
             EntityDetailScreen(
@@ -334,3 +384,6 @@ class FramesTest {
         }
     }
 }
+
+/** Längre än en kort snackbar står kvar. */
+private const val SNACKBAR_GONE_MILLIS = 10_000L

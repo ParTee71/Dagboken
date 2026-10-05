@@ -9,17 +9,21 @@ import kotlinx.coroutines.launch
 /**
  * Läser det lagrade värdet in i ett formulär – en gång för alla formulär (skill
  * shared-ui-components): läser direkt, [retry] ("Försök igen") läser om, och [stored] är det lagrade
- * värdet – det som raderas, arkiveras eller återställs, oavsett vad som ändrats i fälten. Utan
- * [read] (något nytt) finns inget att läsa. [prepare] fyller i förval för det som saknas.
+ * värdet – det som raderas, arkiveras, återställs eller som en sparning jämförs mot, oavsett vad som
+ * ändrats i fälten. Utan [read] (något nytt) finns inget att läsa. [project] gör formulärets värde av
+ * det lagrade (t.ex. bara namnet ur ett alternativ, eller en grupp ur inställningarna); [prepare] fyller
+ * i förval för det som saknas; [showInvalid] visar fel i det lagrade direkt (`EditorState.load`).
  */
-class EditorLoader<T>(
+class EditorLoader<T, S>(
     private val editor: EditorState<T>,
     private val scope: CoroutineScope,
-    private val read: (suspend () -> Result<T?>)?,
+    private val read: (suspend () -> Result<S?>)?,
+    private val project: (S) -> T,
     private val prepare: (T) -> T = { it },
+    private val showInvalid: Boolean = false,
 ) {
-    private val _stored = MutableStateFlow<T?>(null)
-    val stored: StateFlow<T?> = _stored.asStateFlow()
+    private val _stored = MutableStateFlow<S?>(null)
+    val stored: StateFlow<S?> = _stored.asStateFlow()
 
     init {
         load()
@@ -34,6 +38,17 @@ class EditorLoader<T>(
 
     private fun load() {
         val read = read ?: return
-        scope.launch { editor.loadFrom(read) { stored -> _stored.value = stored; prepare(stored) } }
+        scope.launch {
+            editor.loadFrom({ read().map { stored -> stored?.also { _stored.value = it }?.let(project) } }, showInvalid, prepare)
+        }
     }
 }
+
+/** [EditorLoader] där formulärets värde är det lagrade självt – det vanliga fallet. */
+fun <T> EditorLoader(
+    editor: EditorState<T>,
+    scope: CoroutineScope,
+    read: (suspend () -> Result<T?>)?,
+    prepare: (T) -> T = { it },
+    showInvalid: Boolean = false,
+): EditorLoader<T, T> = EditorLoader(editor, scope, read, project = { it }, prepare = prepare, showInvalid = showInvalid)

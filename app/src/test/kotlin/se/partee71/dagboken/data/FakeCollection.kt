@@ -16,6 +16,11 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.common.UserScope
 import se.partee71.dagboken.data.common.currentVersion
+import se.partee71.dagboken.data.common.FieldPath
+import se.partee71.dagboken.data.common.Snapshot
+import se.partee71.dagboken.data.common.fieldsForMerge
+import se.partee71.dagboken.data.common.firstFromCache
+import se.partee71.dagboken.data.common.isDocumentAnswer
 import se.partee71.dagboken.data.common.fieldsForUpdate
 import se.partee71.dagboken.data.common.prepareForWrite
 import se.partee71.dagboken.data.common.readDocument
@@ -86,7 +91,7 @@ class FakeCollection<T : Identified>(
 
     override fun observe(): Flow<List<T>> = scope.uid.flatMapLatest { uid ->
         val p = pathOrNull(uid) ?: return@flatMapLatest emptyFlow()
-        store.collection(p).map { docs -> sortForList(docs.map { (id, doc) -> decode(id, doc) }) }
+        store.collection(p).map(::decodeList)
     }
 
     override fun observe(id: String): Flow<T?> = scope.uid.flatMapLatest { uid ->
@@ -99,6 +104,19 @@ class FakeCollection<T : Identified>(
     override suspend fun getAll() = run { store.documents.value[path()].orEmpty().map { (id, doc) -> decode(id, doc) } }
 
     override suspend fun upsert(item: T) = write { store.set(path(), item.id, encode(item), merge = true) }
+
+    override suspend fun merge(item: T, fields: Set<FieldPath>) = write {
+        store.set(path(), item.id, fieldsForMerge(encode(item), fields), merge = true)
+    }
+
+    /** Fejken är cache och server i ett: varje svar är bekräftat (`fromCache = false`). */
+    override suspend fun cached() = firstFromCache({ DataError.Unknown }) {
+        store.collection(path()).map { Snapshot(decodeList(it), fromCache = false) }
+    }
+
+    override suspend fun cached(id: String) = firstFromCache<T?>({ DataError.Unknown }, { it.isDocumentAnswer() }) {
+        store.collection(path()).map { docs -> Snapshot(docs[id]?.let { decode(id, it) }, fromCache = false) }
+    }
 
     override suspend fun delete(id: String) = write { store.delete(path(), id) }
 
@@ -121,6 +139,8 @@ class FakeCollection<T : Identified>(
     override fun newId(): String = "id-" + nextId++
 
     private fun encode(item: T) = prepareForWrite(codec.encode(item), clock.now())
+
+    private fun decodeList(docs: Map<String, Doc>) = sortForList(docs.map { (id, doc) -> decode(id, doc) })
 
     private fun decode(id: String, doc: Doc) = readDocument(codec, name, scope.currentVersion(), id, doc)
 

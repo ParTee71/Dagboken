@@ -394,6 +394,19 @@ test('inställningarna är ett enda dokument: settings/app', async () => {
   await assertSucceeds(getDoc(mine('settings', 'app')));
 });
 
+test('inställningarna skapas och ändras gruppvis med merge (SettingsRepository.update, DAT-11)', async () => {
+  // Ny användare offline: dokumentet saknas och skapas med bara det ändrade fältet.
+  await env.withSecurityRulesDisabled((ctx) => deleteDoc(doc(ctx.firestore(), 'users', OWNER, 'settings', 'app')));
+  await assertSucceeds(setDoc(mine('settings', 'app'), { theme: { mode: 'dark' } }, { merge: true }));
+  // En annan grupp läggs till utan att den första rörs; okända fält får stå kvar.
+  await assertSucceeds(setDoc(mine('settings', 'app'), { profile: { birthYear: 1979 }, futureGroup: { x: 1 } }, { merge: true }));
+  const stored = (await getDoc(mine('settings', 'app'))).data();
+  assert.equal(stored.theme.mode, 'dark');
+  assert.equal(stored.profile.birthYear, 1979);
+  // Ett ogiltigt värde i en delvis grupp nekas fortfarande.
+  await assertFails(setDoc(mine('settings', 'app'), { theme: { darkStartHour: 24 } }, { merge: true }));
+});
+
 test('en incheckning skrivs bara under en episod som finns – även en som skapas i samma batch', async () => {
   const checkin = toClient(base('checkins'));
   await assertFails(setDoc(mine('illnessEpisodes', 'finns-inte', 'checkins', 'c1'), checkin));

@@ -77,14 +77,16 @@ fun <T> ComposeContentTestRule.runListScreenContract(
  * sparfel som snackbar och tillbaka efter lyckad sparning.
  *
  * @param editor formulärets tillstånd; [makeInvalid] och [makeValid] ändrar det som användaren skulle.
+ *   Ett formulär där varje värde är giltigt (t.ex. Påminnelser) har ingen [makeInvalid]; då prövas bara
+ *   att "Spara" följer ändrat-läget.
  * @param invalidMessage felet som ska synas efter [makeInvalid].
  * @param screen skärmen; `onSave` sparar via [editor] med ett resultat som kontraktet styr.
  */
 fun <T> ComposeContentTestRule.runEditScreenContract(
     editor: EditorState<T>,
-    makeInvalid: EditorState<T>.() -> Unit,
+    makeInvalid: (EditorState<T>.() -> Unit)?,
     makeValid: EditorState<T>.() -> Unit,
-    invalidMessage: String,
+    invalidMessage: String?,
     screen: @Composable (state: EditorUiState<T>, effects: Flow<EditorEffect>, onSave: () -> Unit, onClose: () -> Unit) -> Unit,
 ) {
     var saveResult: Result<Unit> = Result.failure(DataError.Offline)
@@ -101,9 +103,11 @@ fun <T> ComposeContentTestRule.runEditScreenContract(
     val saveButton = onNodeWithText(text(R.string.save))
     saveButton.assertIsNotEnabled()
 
-    runOnIdle { editor.makeInvalid() }
-    onNodeWithText(invalidMessage).assertIsDisplayed()
-    saveButton.assertIsNotEnabled()
+    if (makeInvalid != null) {
+        runOnIdle { editor.makeInvalid() }
+        onNodeWithText(checkNotNull(invalidMessage) { "ett ogiltigt värde behöver sitt felmeddelande" }).assertIsDisplayed()
+        saveButton.assertIsNotEnabled()
+    }
 
     runOnIdle { editor.makeValid() }
     saveButton.assertIsEnabled()

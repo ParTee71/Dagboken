@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.common
 
+import app.cash.turbine.test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
@@ -50,10 +51,28 @@ class ArchiveActionsTest {
         val archive = actions()
         result = Result.failure(DataError.PermissionDenied)
         archive.onEvent(ArchiveEvent.Archive("a", "Promenad"))
-        assertEquals(DataError.PermissionDenied, archive.error.value)
+        assertEquals(DataError.PermissionDenied, archive.failure.value?.error)
+        assertEquals(R.string.error_permission_denied, archive.failure.value?.message)
         assertNull(archive.undo.value)
         archive.onEvent(ArchiveEvent.ErrorShown)
-        assertNull(archive.error.value)
+        assertNull(archive.failure.value)
+    }
+
+    @Test
+    fun `två fel i rad är två händelser, med egen text där den finns`() = runTest {
+        val archive = ArchiveActions(CoroutineScope(main.dispatcher), { _, _ -> result }, errorMessage = { if (it is IllegalStateException) R.string.option_name_duplicate else null })
+        archive.failure.test {
+            assertNull(awaitItem())
+            result = Result.failure(DataError.Offline)
+            archive.onEvent(ArchiveEvent.Archive("a", "Promenad"))
+            archive.onEvent(ArchiveEvent.Archive("b", "Yoga"))
+            assertEquals(DataError.Offline, awaitItem()?.error)
+            assertEquals(DataError.Offline, awaitItem()?.error, "samma fel igen visas igen")
+            result = Result.failure(IllegalStateException("dubblett"))
+            archive.onEvent(ArchiveEvent.Archive("c", "Simning"))
+            val custom = awaitItem()
+            assertEquals(DataError.Unknown to R.string.option_name_duplicate, custom?.error to custom?.message)
+        }
     }
 
     @Test
@@ -75,6 +94,6 @@ class ArchiveActionsTest {
         hiding.onEvent(ArchiveEvent.Archive("p", "Städning"))
         assertEquals(UndoRequest("p", "Städning", R.string.color_format), hiding.undo.value)
         hiding.report(DataError.Offline)
-        assertEquals(DataError.Offline, hiding.error.value)
+        assertEquals(DataError.Offline, hiding.failure.value?.error)
     }
 }

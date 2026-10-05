@@ -59,6 +59,8 @@ fälthjälparna; toleranta mot saknade och okända fält (DAT-10):
 | `delete(id)` | permanent radering |
 | `setArchived(id, archived)` | ändrar bara `archived` via `update` – ett raderat dokument återuppstår inte |
 | `update(item, fields)`, `updateAll(items, fields)` | Firestores `update` (i en batch): bara [fields] plus `updatedAt` (`fieldsForUpdate`), varje fält ersätts helt (en map slås inte ihop), okänt fält är fel, ett dokument som inte finns skapas inte; atomärt inom bitar om 500. Fältnamnen som konstanter i codecen (t.ex. dosens `status`) |
+| `merge(item, fields)` | `set(…, merge)` av bara [fields] (`FieldPath` = lista av segment, t.ex. `listOf("theme", "mode")` – en punkt i en nyckel är aldrig en väg) plus `updatedAt` (`fieldsForMerge`): djup merge, så andra fält, andra nycklar i samma map och okända fält står kvar; dokumentet skapas om det saknas; ingen läsning. Med `changedFields(före, efter)` skrivs bara det som ändrats – så sparar inställningarna (`SettingsRepository.save/update`) |
+| `cached()`, `cached(id)` | läsning inför en skrivning (`firstFromCache`): första ögonblicksbilden – direkt ur cachen när den kan svara (lyssnaren delas av Firestore med skärmar som följer samma fråga), annars från servern när nätet finns. Ett dokument som saknas i cachen medan servern inte nås (`isFromCache`) ger `Offline` direkt; `null` bara när det bekräftat saknas. `NotSignedIn` direkt utloggad; 15 s skyddsnät om ingen ögonblicksbild kommer |
 | `batch(upserts, deletes)` | i bitar om 500 – atomärt inom varje bit, inte över bitar |
 | `newId()` | slumpat klient-ID – fungerar offline |
 
@@ -138,6 +140,19 @@ cachen och synkas när nätet finns; larmen schemaläggs om vid synk, omstart oc
 - Firestore-cachen är källan för UI; väntar aldrig på nätverket.
 - Skrivningar lyckas lokalt direkt och synkas senare; `syncing` visar läget.
 - ID:n skapas på klienten med `newId()`.
+- **Inställningar utan underlag:** `SettingsRepository.get()` ger standardvärdena bara när
+  dokumentet bekräftat saknas (ny användare). Finns det inte i cachen och servern inte nås blir det
+  `Offline` – formuläret visar laddfel med Försök igen, och `update` skriver ingenting; standardvärden
+  visas aldrig som om de vore lagrade. Formulär sparar med `save(laddat, redigerat)`, som bara
+  skriver ändrade fält (`merge`), så ett fält som en annan enhet ändrat efter att formuläret laddades
+  inte skrivs tillbaka. Nycklade listor (`KeyedList`, t.ex. påminnelseraderna på `slot`/`occasion`,
+  fasta uppsättningar) byggs rad för rad på det lagrade värdet (`withChangedRows`); finns inget
+  lagrat att bygga på skrivs listorna inte – vid `Offline` skrivs övriga ändringar, vid annat fel
+  ingenting.
+- **Accepterad risk:** att lägga till ett alternativ kontrollerar id-kollision mot cachen; är den
+  ofullständig (första synken inte klar) kan ett omdöpt alternativ på samma id få tillbaka namnet
+  och en ny plats och blir aktivt; stjärna och okända fält står kvar (`add` skriver bara `name`,
+  `kind`, `sortOrder` och `archived = false` med `merge`).
 
 ## Security rules
 

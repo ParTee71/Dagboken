@@ -43,13 +43,27 @@ class AuthViewModelTest {
     }
 
     @Test
+    fun `kontot med namn, e-post och foto följer inloggningen och släpps vid utloggning (AUTH-3)`() = runTest(main.dispatcher) {
+        val fixture = UserFixture(backgroundScope)
+        fixture.storeUser("uid-anna")
+        val anna = AuthUser("uid-anna", "Anna Berg", "anna.berg@exempel.se", "https://exempel.se/anna.jpg")
+        fixture.auth.authState.value = anna
+        val (_, vm) = viewModel(fixture)
+
+        assertEquals(anna, vm.awaitGate(AuthGate.Ready).account)
+
+        vm.onEvent(AuthEvent.SignOut)
+        assertEquals(null, vm.awaitGate(AuthGate.SignedOut).account)
+    }
+
+    @Test
     fun `första inloggningen skapar användardokumentet och släpper in användaren`() = runTest(main.dispatcher) {
         val (fixture, vm) = viewModel()
         vm.awaitGate(AuthGate.SignedOut)
 
         vm.onEvent(AuthEvent.SignIn(context))
 
-        assertEquals(AuthUiState(AuthGate.Ready), vm.awaitGate(AuthGate.Ready))
+        assertEquals(AuthUiState(AuthGate.Ready, account = AuthUser("uid-anna")), vm.awaitGate(AuthGate.Ready))
         assertEquals(Schema.CURRENT_VERSION.toLong(), fixture.user("uid-anna")?.get("schemaVersion"))
         assertEquals(1, fixture.auth.signInCalls)
     }
@@ -138,7 +152,7 @@ class AuthViewModelTest {
 
         vm.onEvent(AuthEvent.SignOut)
 
-        assertEquals(AuthUiState(AuthGate.Ready, error = DataError.Unknown), vm.state.first { it.error != null })
+        assertEquals(AuthUiState(AuthGate.Ready, error = DataError.Unknown, account = AuthUser("uid-anna")), vm.state.first { it.error != null })
         assertEquals(0, fixture.cache.clearCalls)
     }
 
@@ -170,7 +184,7 @@ class AuthViewModelTest {
         vm.state.first { it.gate == AuthGate.NeedsUser }
         hold.complete(Unit)
 
-        assertEquals(AuthUiState(AuthGate.Ready), vm.awaitGate(AuthGate.Ready))
+        assertEquals(AuthUiState(AuthGate.Ready, account = AuthUser("uid-erik")), vm.awaitGate(AuthGate.Ready))
         assertEquals("uid-erik", fixture.session.uid.value)
     }
 

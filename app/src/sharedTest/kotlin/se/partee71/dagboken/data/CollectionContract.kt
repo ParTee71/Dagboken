@@ -154,6 +154,55 @@ abstract class CollectionContract {
     }
 
     @Test
+    fun merge_skriver_bara_valda_falt_pa_djupet_och_bevarar_resten() = contract {
+        val newer = mapOf("type" to "DAILY", "times" to 2L, "framtidaNyckel" to "grön")
+        env.writeRaw(itemsPath, "a", mapOf("name" to "Promenad", "kind" to "activity", "schedule" to newer, "framtidaFält" to "kvar"))
+        // En äldre kopia med andra namn och sort: bara schemats `times` och sorten skrivs.
+        items.merge(ContractItem("a", "Gammalt namn", kind = "event", schedule = ContractSchedule.Daily(3)), setOf(listOf("schedule", "times"), listOf(ContractItemCodec.KIND)))
+            .getOrThrow()
+        items.observe("a").awaitMatching { it?.kind == "event" }
+        val raw = env.readRaw(itemsPath, "a")!!
+        assertEquals("Promenad", raw["name"])
+        assertEquals("kvar", raw["framtidaFält"], "okänt toppfält")
+        assertEquals(mapOf("type" to "DAILY", "times" to 3L, "framtidaNyckel" to "grön"), raw["schedule"], "okänd nyckel i samma map")
+        assertEquals(env.now, raw["updatedAt"], "updatedAt skrivs alltid")
+    }
+
+    @Test
+    fun merge_skapar_dokumentet_med_bara_de_valda_falten() = contract {
+        items.merge(ContractItem("ny", "Yoga", kind = "event", schedule = ContractSchedule.Interval(4)), setOf(listOf("schedule", "days"))).getOrThrow()
+        items.observe("ny").awaitMatching { it != null }
+        assertEquals(mapOf("schedule" to mapOf("days" to 4L), "updatedAt" to env.now), env.readRaw(itemsPath, "ny"))
+    }
+
+    @Test
+    fun merge_med_okant_falt_ar_ett_fel_och_vagras_nar_datan_ar_nyare() = contract {
+        assertTrue(items.merge(ContractItem("a", "Promenad"), setOf(listOf("finnsInte"))).isFailure)
+        assertTrue(items.merge(ContractItem("a", "Promenad"), setOf(listOf("name", "inuti"))).isFailure, "name är ingen map")
+        assertTrue(items.merge(ContractItem("a", "Promenad"), setOf(listOf("schedule.times"))).isFailure, "en punkt är ingen väg")
+        assertNull(env.readRaw(itemsPath, "a"))
+        env.makeUserNewerThanApp()
+        assertEquals(DataError.UpdateRequired, items.merge(ContractItem("a", "Promenad"), setOf(listOf(ContractItemCodec.NAME))).dataError())
+        assertNull(env.readRaw(itemsPath, "a"))
+    }
+
+    @Test
+    fun cached_ger_listan_och_dokumentet_ur_cachen_och_null_for_okant_id() = contract {
+        items.upsert(ContractItem("b", "Yoga", sortOrder = 2)).getOrThrow()
+        items.upsert(ContractItem("a", "Promenad", sortOrder = 1)).getOrThrow()
+        assertEquals(listOf("a", "b"), items.cached().getOrThrow().map { it.id })
+        assertEquals("Yoga", items.cached("b").getOrThrow()?.name)
+        assertNull(items.cached("finns-inte").getOrThrow())
+    }
+
+    @Test
+    fun cached_utloggad_ger_NotSignedIn_direkt() = contract {
+        env.signOut()
+        assertEquals(DataError.NotSignedIn, items.cached().dataError())
+        assertEquals(DataError.NotSignedIn, items.cached("a").dataError())
+    }
+
+    @Test
     fun setArchived_vaxlar_arkiverat_utan_att_rora_andra_falt() = contract {
         items.upsert(ContractItem("a", "Promenad")).getOrThrow()
         items.setArchived("a", true).getOrThrow()

@@ -11,8 +11,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 
 /**
  * Appens tema: Material 3 Expressive med fjädrande rörelse, [AppColors] och [AppTypography]
- * (skill `ui-style`, TP-2, DSN-1–5). Ingen dynamic color. Ljust, mörkt eller auto väljs i
- * inställningsarket (SET-1, etapp 5); tills dess följer appen systemet.
+ * (skill `ui-style`, TP-2, DSN-1–5). Ingen dynamic color. [darkTheme] kommer från temavalet i
+ * inställningsarket – ljust, mörkt eller auto på klockslag (SET-1, `AppThemeViewModel` i `MainActivity`);
+ * utan val (utloggad) följer appen systemet.
  */
 @Composable
 fun DagbokenTheme(
