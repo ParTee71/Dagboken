@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.IconSize
 
 /** Valchip: bock och korallton när det är valt. Används ensamt eller i en [ChipRow]. */
 @Composable
@@ -34,7 +35,7 @@ fun AppFilterChip(
         label = { Text(label, style = AppTypography.pill) },
         modifier = modifier.heightIn(min = CHIP_HEIGHT),
         enabled = enabled,
-        leadingIcon = leading?.let { { Icon(painterResource(it), contentDescription = null, modifier = Modifier.size(ICON)) } },
+        leadingIcon = leading?.let { { Icon(painterResource(it), contentDescription = null, modifier = Modifier.size(IconSize.tile)) } },
         shape = AppShapes.pill,
         colors = chipColors(),
     )
@@ -50,4 +51,3 @@ internal fun chipColors(): SelectableChipColors = FilterChipDefaults.filterChipC
 )
 
 private val CHIP_HEIGHT = 36.dp
-private val ICON = 18.dp

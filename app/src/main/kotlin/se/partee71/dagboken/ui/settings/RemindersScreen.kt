@@ -25,7 +25,7 @@ import se.partee71.dagboken.ui.common.Validator
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.AppCard
 import se.partee71.dagboken.ui.components.EntityEditScreen
-import se.partee71.dagboken.ui.components.GroupLabel
+import se.partee71.dagboken.ui.components.LabeledGroup
 import se.partee71.dagboken.ui.components.ReminderTimeRow
 import se.partee71.dagboken.ui.components.SwitchRow
 
@@ -86,7 +86,8 @@ fun RemindersRoute(onClose: () -> Unit, viewModel: RemindersEditViewModel = hilt
 /**
  * Påminnelser på `EntityEditScreen` (NFR-10): huvudreglaget, en `ReminderTimeRow` per medicintidpunkt
  * (07/10/12/15/19/22 – "Vid behov" har ingen tid) och per måendetillfälle, och periodslutets klockslag
- * utan reglage.
+ * utan reglage – varje grupp som `LabeledGroup`. En avslagen påminnelse tonas ned, och medicintiderna
+ * när huvudreglaget är av.
  */
 @Composable
 fun RemindersScreen(state: EditorUiState<ReminderSettings>, effects: Flow<EditorEffect>, onEvent: (RemindersEvent) -> Unit, onClose: () -> Unit) {
@@ -107,33 +108,38 @@ fun RemindersScreen(state: EditorUiState<ReminderSettings>, effects: Flow<Editor
                 subtitle = stringResource(R.string.reminders_meds_subtitle),
             )
         }
-        GroupLabel(stringResource(R.string.reminders_med_times))
-        AppCard {
-            reminders.medSlots.forEach { row ->
-                ReminderTimeRow(
-                    stringResource(row.slot.label()),
-                    row.time,
-                    { onEvent(RemindersEvent.SlotChanged(row.copy(time = it))) },
-                    enabled = row.enabled,
-                    onEnabledChange = { onEvent(RemindersEvent.SlotChanged(row.copy(enabled = it))) },
-                )
+        LabeledGroup(stringResource(R.string.reminders_med_times)) {
+            AppCard {
+                reminders.medSlots.forEach { row ->
+                    ReminderTimeRow(
+                        stringResource(row.slot.label()),
+                        row.time,
+                        { onEvent(RemindersEvent.SlotChanged(row.copy(time = it))) },
+                        enabled = row.enabled,
+                        onEnabledChange = { onEvent(RemindersEvent.SlotChanged(row.copy(enabled = it))) },
+                        // Medicintiderna går att ställa även när medicinpåminnelserna är av, men tonas ned.
+                        inactive = !reminders.medsEnabled,
+                    )
+                }
             }
         }
-        GroupLabel(stringResource(R.string.log_mood))
-        AppCard {
-            reminders.screeningOccasions.forEach { row ->
-                ReminderTimeRow(
-                    stringResource(row.occasion.label()),
-                    row.time,
-                    { onEvent(RemindersEvent.OccasionChanged(row.copy(time = it))) },
-                    enabled = row.enabled,
-                    onEnabledChange = { onEvent(RemindersEvent.OccasionChanged(row.copy(enabled = it))) },
-                )
+        LabeledGroup(stringResource(R.string.log_mood)) {
+            AppCard {
+                reminders.screeningOccasions.forEach { row ->
+                    ReminderTimeRow(
+                        stringResource(row.occasion.label()),
+                        row.time,
+                        { onEvent(RemindersEvent.OccasionChanged(row.copy(time = it))) },
+                        enabled = row.enabled,
+                        onEnabledChange = { onEvent(RemindersEvent.OccasionChanged(row.copy(enabled = it))) },
+                    )
+                }
             }
         }
-        GroupLabel(stringResource(R.string.reminders_period))
-        AppCard {
-            ReminderTimeRow(stringResource(R.string.reminders_period_time), reminders.periodReminderTime, { onEvent(RemindersEvent.PeriodTimeChanged(it)) })
+        LabeledGroup(stringResource(R.string.reminders_period)) {
+            AppCard {
+                ReminderTimeRow(stringResource(R.string.reminders_period_time), reminders.periodReminderTime, { onEvent(RemindersEvent.PeriodTimeChanged(it)) })
+            }
         }
     }
 }

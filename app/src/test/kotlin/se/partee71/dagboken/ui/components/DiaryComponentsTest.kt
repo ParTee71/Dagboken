@@ -266,6 +266,13 @@ class DiaryComponentsTest {
         assertEquals(LocalDate(2026, 9, 1), month)
     }
 
+    @Test
+    fun `kalendern läser idag och poster som datumremsan (HIST-6, HEM-14)`() {
+        show { DagbokenCalendar(LocalDate(2026, 10, 1), {}, setOf(LocalDate(2026, 10, 5)), LocalDate(2026, 10, 4), {}, today = LocalDate(2026, 10, 5)) }
+        rule.onNodeWithContentDescription("mån 5 okt 2026, idag, har poster").assertExists()
+        rule.onNodeWithContentDescription("sön 4 okt 2026").assertIsSelected()
+    }
+
     private val symptoms = listOf(
         Option("huvudvark", OptionKind.SYMPTOM, "Huvudvärk"),
         Option("yrsel", OptionKind.SYMPTOM, "Yrsel", sortOrder = 1),
@@ -449,5 +456,27 @@ class DiaryComponentsTest {
             (0 until map.width).minOf { x -> (0 until map.height).minOf { y -> map[x, y].red } }
         }
         assertTrue(darkest("Simning") > darkest("Pilates") + 0.2f, "inaktiv titel ska vara nedtonad")
+    }
+
+    @Test
+    fun `en nedtonad påminnelse tonar texten men inte reglaget, som går att slå på (NOT-18)`() {
+        var on by mutableStateOf(false)
+        show {
+            Column {
+                ReminderTimeRow("Natt", LocalTime(22, 0), {}, enabled = on, onEnabledChange = { on = it })
+                ReminderTimeRow("Kväll", LocalTime(19, 0), {}, enabled = true, onEnabledChange = {})
+                ReminderTimeRow("Morgon", LocalTime(7, 0), {}, enabled = true, onEnabledChange = {}, inactive = true)
+            }
+        }
+        fun darkest(text: String) = rule.onNodeWithText(text, useUnmergedTree = true).captureToImage().toPixelMap().let { map ->
+            (0 until map.width).minOf { x -> (0 until map.height).minOf { y -> map[x, y].red } }
+        }
+        assertTrue(darkest("Natt") > darkest("Kväll") + 0.2f, "avslagen påminnelse: texten nedtonad")
+        assertTrue(darkest("Morgon") > darkest("Kväll") + 0.2f, "gruppen av: texten nedtonad")
+        // Reglaget har full kontrast: samma bild som ett reglage i en vanlig rad.
+        val switch = { name: String -> rule.onNodeWithContentDescription(name).captureToImage().toPixelMap().let { m -> List(m.width * m.height) { m[it % m.width, it / m.width] } } }
+        assertEquals(switch("Kväll"), switch("Morgon"), "reglaget tonas inte ned")
+        rule.onNodeWithContentDescription("Natt").assertHasClickAction().performClick()
+        assertEquals(true, on)
     }
 }

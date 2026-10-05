@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.IconSize
 import se.partee71.dagboken.ui.theme.Spacing
 
 /**
@@ -52,7 +53,7 @@ fun AddSplitButton(
         SplitButtonLayout(
             leadingButton = {
                 SplitButtonDefaults.LeadingButton(onClick = onClick, modifier = Modifier.heightIn(min = HEIGHT), colors = colors) {
-                    Icon(painterResource(R.drawable.ic_add), contentDescription = null, modifier = Modifier.size(ICON))
+                    Icon(painterResource(R.drawable.ic_add), contentDescription = null, modifier = Modifier.size(IconSize.button))
                     Spacer(Modifier.width(Spacing.s))
                     Text(label, style = AppTypography.button)
                 }
@@ -67,7 +68,7 @@ fun AddSplitButton(
                     Icon(
                         painterResource(R.drawable.ic_expand_more),
                         contentDescription = menuDescription,
-                        modifier = Modifier.size(ICON).rotate(rotation),
+                        modifier = Modifier.size(IconSize.button).rotate(rotation),
                     )
                 }
             },
@@ -77,4 +78,3 @@ fun AddSplitButton(
 }
 
 private val HEIGHT = 56.dp
-private val ICON = 20.dp

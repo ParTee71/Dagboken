@@ -68,7 +68,7 @@ fun ItemRow(
     }
     ItemRowLayout(
         title = title,
-        modifier = if (inactive) modifier.alpha(INACTIVE_ALPHA) else modifier,
+        modifier = modifier.inactive(inactive),
         interaction = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
         subtitle = subtitle,
         leading = leading,
@@ -81,7 +81,10 @@ fun ItemRow(
     )
 }
 
-/** Gemensam layout för [ItemRow], `CheckRow` och `SwitchRow` – de skiljer sig bara i [interaction]. */
+/**
+ * Gemensam layout för [ItemRow], `CheckRow` och `SwitchRow` – de skiljer sig bara i [interaction].
+ * [textInactive] tonar ned bara titel och undertext, så att en kontroll i [trailing] behåller full kontrast.
+ */
 @Composable
 internal fun ItemRowLayout(
     title: String,
@@ -95,9 +98,9 @@ internal fun ItemRowLayout(
     accent: Color? = null,
     below: (@Composable () -> Unit)? = null,
     titleHighlight: IntRange? = null,
+    textInactive: Boolean = false,
 ) {
     val tint = AppColors.extended.rowTint
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier
             .fillMaxWidth()
@@ -111,21 +114,38 @@ internal fun ItemRowLayout(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.m)) {
             leading?.invoke()
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                val decoration = if (done) TextDecoration.LineThrough else null
-                Text(
-                    highlighted(title, titleHighlight),
-                    style = AppTypography.itemTitle,
-                    color = if (done) muted else MaterialTheme.colorScheme.onSurface,
-                    textDecoration = decoration,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                subtitle?.let { Text(it, style = AppTypography.itemSubtitle, color = muted, textDecoration = decoration) }
-            }
+            RowText(title, subtitle, Modifier.weight(1f).inactive(textInactive), done = done, titleHighlight = titleHighlight)
             trailing?.invoke()
         }
         below?.invoke()
+    }
+}
+
+/**
+ * Titel och undertext i en listrad och ett postkort – en gång (regel 4, NFR-17): titeln högst två
+ * rader, undertexten hela, med samma avstånd. [done] stryker över och dämpar (avbockad), [titleHighlight]
+ * färgmarkerar en del av titeln.
+ */
+@Composable
+internal fun RowText(
+    title: String,
+    subtitle: String?,
+    modifier: Modifier = Modifier,
+    done: Boolean = false,
+    titleHighlight: IntRange? = null,
+) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val decoration = if (done) TextDecoration.LineThrough else null
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(
+            highlighted(title, titleHighlight),
+            style = AppTypography.itemTitle,
+            color = if (done) muted else MaterialTheme.colorScheme.onSurface,
+            textDecoration = decoration,
+            maxLines = TITLE_MAX_LINES,
+            overflow = TextOverflow.Ellipsis,
+        )
+        subtitle?.let { Text(it, style = AppTypography.itemSubtitle, color = muted, textDecoration = decoration) }
     }
 }
 
@@ -138,9 +158,16 @@ internal fun Modifier.accentBar(color: Color?): Modifier = if (color == null) th
 
 private val MIN_HEIGHT = 56.dp
 private val ACCENT_WIDTH = 4.dp
+private const val TITLE_MAX_LINES = 2
 
-/** Nedtoning för det som finns men inte räknas med (pausat recept, avslutad post). */
+/**
+ * Den enda nedtoningen (skill `ui-style`): det som finns men inte räknas med (pausat recept, avslutad
+ * post), det som inte går att välja (framtida dag i datumremsan) och en avstängd kontroll (`ValueSlider`).
+ */
 internal const val INACTIVE_ALPHA = 0.55f
+
+/** Tonar ned med [INACTIVE_ALPHA] när [inactive] – samma nedtoning överallt. */
+internal fun Modifier.inactive(inactive: Boolean): Modifier = if (inactive) alpha(INACTIVE_ALPHA) else this
 
 /** [text] med [range] i primärfärgen; utan (eller med ett ogiltigt) intervall bara texten. */
 @Composable

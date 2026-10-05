@@ -105,7 +105,8 @@ data class ListArchive(
  * En undersida har [onBack], [subtitle], egna [actions] i rubrikraden och ett
  * [header] överst i listan; `ListArchive.showToggle` = false tar bort "Visa arkiverade".
  * [filter] står fast under rubriken i alla lägen – även tomt och fel – för ett val av vilken lista
- * som visas (t.ex. `AppSegmentedChoice` Aktiviteter · Symptom · Händelser i Listor).
+ * som visas (t.ex. `AppSegmentedChoice` Aktiviteter · Symptom · Händelser i Listor). [topBarSize] =
+ * `TopBarSize.Small` för en underskärm i inställningsarket, med samma lilla topprad som formulären.
  *
  * @param group grupp för en rad; grupperna visas i den ordning de först förekommer.
  * @param subgroup undergrupp för en rad inom gruppen (person), i den ordning de förekommer.
@@ -128,6 +129,7 @@ fun <T> EntityListScreen(
     header: (@Composable () -> Unit)? = null,
     subgroup: ((T) -> ListSubgroup?)? = null,
     filter: (@Composable () -> Unit)? = null,
+    topBarSize: TopBarSize = TopBarSize.Large,
     row: @Composable (T) -> Unit,
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -140,7 +142,7 @@ fun <T> EntityListScreen(
         modifier = modifier.fillMaxSize().nestedScroll(scroll.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            AppTopBar(title, subtitle = subtitle, onBack = onBack, scrollBehavior = scroll) {
+            AppTopBar(title, size = topBarSize, subtitle = subtitle, onBack = onBack, scrollBehavior = scroll) {
                 actions()
                 archive?.takeIf { it.showToggle }?.let {
                     val label = stringResource(if (it.showing) R.string.hide_archived else R.string.show_archived)
@@ -156,7 +158,7 @@ fun <T> EntityListScreen(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            filter?.let { Box(Modifier.padding(start = Spacing.l, end = Spacing.l, bottom = Spacing.m)) { it() } }
+            filter?.let { Box(Modifier.padding(start = SCREEN_MARGIN, end = SCREEN_MARGIN, bottom = Spacing.m)) { it() } }
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 when (state) {
                     ListUiState.Loading -> AppLoading()
@@ -199,7 +201,7 @@ private fun <T> ListContent(
     // Varje rad är ett eget listobjekt (lat inläsning, animering per rad); korten byggs av bitar.
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = Spacing.l, end = Spacing.l, top = Spacing.xs, bottom = clearance + ADD_BUTTON_CLEARANCE),
+        contentPadding = PaddingValues(start = SCREEN_MARGIN, end = SCREEN_MARGIN, top = Spacing.xs, bottom = clearance + ADD_BUTTON_CLEARANCE),
     ) {
         header?.let { item(key = "list-header") { Box(Modifier.padding(bottom = Spacing.m)) { it() } } }
         groups.forEachIndexed { index, (head, rows) ->

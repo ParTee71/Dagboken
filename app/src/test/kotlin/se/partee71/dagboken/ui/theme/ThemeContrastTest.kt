@@ -58,6 +58,7 @@ class ThemeContrastTest {
         "Snart (solgul ton)" to (extended.sunTone.content to extended.sunTone.container),
         "Försenat (terrakottaton)" to (extended.warningTone.content to extended.warningTone.container),
         "Allt klart för idag (grön ton)" to (extended.positiveTone.content to extended.positiveTone.container),
+        "rubriken på det gröna kortet (SectionHeader)" to (scheme.onSurface to extended.positiveTone.container),
         "Logga nu (primär knapp)" to (scheme.onPrimary to scheme.primary),
         "valt datumchip" to (scheme.onPrimary to scheme.primary),
         "veckodag på datumchip" to (scheme.onSurfaceVariant to extended.card),
@@ -69,7 +70,8 @@ class ThemeContrastTest {
         "punkt och bock på datumchip" to (scheme.primary to extended.card),
         "punkt, bock och idag-ring på valt datumchip" to (scheme.onPrimary to scheme.primary),
         "idag-ringen kring solgul punkt mot kortet" to (extended.sunTone.content to extended.card),
-        "framstegsradens fyllnad mot spåret" to (scheme.primary to scheme.primaryContainer),
+        "framstegsradens fyllnad och aktiv stegprick mot spåret" to (scheme.primary to extended.track),
+        "valmarkeringen i färg- och emojivalet mot kortet" to (scheme.primary to extended.card),
         "framstegsradens kontur vid klart mot kortet" to (extended.sunTone.content to extended.card),
         "framstegsradens kontur vid klart mot bakgrunden" to (extended.sunTone.content to scheme.background),
     )

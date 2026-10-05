@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.IconSize
 import se.partee71.dagboken.ui.theme.Spacing
 
 /** En flik i [AppFloatingToolbar]. */
@@ -111,10 +112,9 @@ private fun ToolbarTab(item: ToolbarItem, selected: Boolean, onClick: () -> Unit
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
     ) {
-        Icon(painterResource(item.icon), contentDescription = null, tint = content, modifier = Modifier.size(ICON))
+        Icon(painterResource(item.icon), contentDescription = null, tint = content, modifier = Modifier.size(IconSize.row))
         if (selected) Text(item.label, style = AppTypography.button, color = content, maxLines = 1)
     }
 }
 
 private val TAB_HEIGHT = 48.dp
-private val ICON = 22.dp

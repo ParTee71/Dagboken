@@ -1,19 +1,15 @@
 package se.partee71.dagboken.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,12 +32,14 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.common.DateFormat
+import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
 
 /**
- * Månadskalender (HIST-6): månaden som innehåller [month], veckan börjar på måndag. Dagar i
- * [datesWithEntries] får en prick, [selectedDate] en fylld teal cirkel och [today] en ring. Pilarna
+ * Månadskalender (HIST-6): månaden som innehåller [month], veckan börjar på måndag. Markeringarna är
+ * datumremsans ([DayMarkerDot]): dagar i [datesWithEntries] får en punkt och [today] den solgula punkten
+ * med ring; [selectedDate] är fylld teal i `AppShapes.row`. Pilarna
  * byter månad via [onMonthChange] (första dagen i den nya månaden). Varje dag är en knapp som TalkBack
  * läser med datum och "har poster"; dagar utanför månaden visas inte.
  */
@@ -97,13 +95,18 @@ fun DagbokenCalendar(
 @Composable
 private fun DayCell(day: LocalDate, hasEntries: Boolean, selected: Boolean, isToday: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    val description = listOfNotNull(DateFormat.display(day), stringResource(R.string.calendar_has_entries).takeIf { hasEntries }).joinToString(", ")
+    // Samma uppläsning som datumremsan: datum, "idag", "har poster".
+    val description = listOfNotNull(
+        DateFormat.display(day),
+        stringResource(R.string.date_strip_today).takeIf { isToday },
+        stringResource(R.string.calendar_has_entries).takeIf { hasEntries },
+    ).joinToString(", ")
     // Tryckytan är hela cellen (kolumnens bredd × 48 dp). I en smal kolumn (under 48 dp, t.ex. på
     // 360 dp breda skärmar) utvidgar Compose tryckytan till 48 dp åt sidorna (NFR-14).
     Box(
         Modifier
             .fillMaxSize()
-            .clip(CircleShape)
+            .clip(AppShapes.row)
             .clickable(role = Role.Button, onClick = onClick)
             .clearAndSetSemantics {
                 contentDescription = description
@@ -113,18 +116,14 @@ private fun DayCell(day: LocalDate, hasEntries: Boolean, selected: Boolean, isTo
     ) {
         Column(
             Modifier
-                .size(CIRCLE)
-                .then(if (selected) Modifier.background(colors.primary, CircleShape) else Modifier)
-                .then(if (isToday && !selected) Modifier.border(TODAY_RING, colors.primary, CircleShape) else Modifier),
+                .size(CELL)
+                .clip(AppShapes.row)
+                .then(if (selected) Modifier.background(colors.primary) else Modifier),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.spacedBy(DAY_MARKER_GAP, Alignment.CenterVertically),
         ) {
             Text(day.day.toString(), style = AppTypography.body, color = if (selected) colors.onPrimary else colors.onSurface)
-            if (hasEntries) {
-                Box(Modifier.padding(top = DOT_GAP).size(DOT).background(if (selected) colors.onPrimary else colors.primary, CircleShape))
-            } else {
-                Spacer(Modifier.padding(top = DOT_GAP).size(DOT))
-            }
+            DayMarkerDot(isToday, hasEntries, selected)
         }
     }
 }
@@ -140,11 +139,6 @@ private fun monthGrid(first: LocalDate): List<List<LocalDate>> {
 }
 
 private val ONE_MONTH = DatePeriod(months = 1)
-private val ONE_WEEK = DatePeriod(days = 7)
-private const val DAYS_PER_WEEK = 7
-private val DOT = 5.dp
 
-/** Den synliga cirkeln – ryms i kolumnen även på 360 dp breda skärmar. */
-private val CIRCLE = 40.dp
-private val DOT_GAP = 2.dp
-private val TODAY_RING = 1.5.dp
+/** Den synliga dagen – ryms i kolumnen även på 360 dp breda skärmar. */
+private val CELL = 40.dp

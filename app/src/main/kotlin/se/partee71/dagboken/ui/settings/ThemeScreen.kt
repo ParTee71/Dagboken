@@ -1,7 +1,5 @@
 package se.partee71.dagboken.ui.settings
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
@@ -29,11 +27,10 @@ import se.partee71.dagboken.ui.common.DetailLoader
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.failureOrNull
-import se.partee71.dagboken.ui.components.AppCard
 import se.partee71.dagboken.ui.components.AppSegmentedChoice
 import se.partee71.dagboken.ui.components.EntityDetailScreen
+import se.partee71.dagboken.ui.components.LabeledGroup
 import se.partee71.dagboken.ui.components.TimeField
-import se.partee71.dagboken.ui.theme.AppTypography
 
 /**
  * Det temaskärmen visar: läget och starttimmarna – de lagrade, eller de användaren just valt när
@@ -120,7 +117,11 @@ fun ThemeRoute(onBack: () -> Unit, viewModel: ThemeViewModel = hiltViewModel()) 
     ThemeScreen(state, failure, viewModel::onEvent, onBack)
 }
 
-/** Tema som detaljskärm med titeln i toppraden (som formulären): Ljust · Mörkt · Auto med direktverkan, vid Auto starttimmarna med `TimeField`. */
+/**
+ * Tema som detaljskärm med titeln i toppraden (som formulären): läget Ljust · Mörkt · Auto som
+ * `LabeledGroup` med hjälptexten under (som Profilens kön), med direktverkan; vid Auto starttimmarna
+ * med `TimeField`.
+ */
 @Composable
 fun ThemeScreen(state: DetailUiState<ThemeForm>, failure: Failure?, onEvent: (ThemeEvent) -> Unit, onBack: () -> Unit) {
     val title = stringResource(R.string.settings_theme)
@@ -136,18 +137,17 @@ fun ThemeScreen(state: DetailUiState<ThemeForm>, failure: Failure?, onEvent: (Th
         onErrorShown = { onEvent(ThemeEvent.ErrorShown) },
     ) { form ->
         val theme = form.theme
-        AppCard {
+        LabeledGroup(stringResource(R.string.theme_mode), helper = note) {
             AppSegmentedChoice(modes, ThemeMode.entries.indexOf(theme.mode), { onEvent(ThemeEvent.ModeChosen(ThemeMode.entries[it])) })
-            Text(note, style = AppTypography.itemSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (theme.mode == ThemeMode.AUTO) {
-                TimeField(stringResource(R.string.theme_light_from), hourTime(theme.lightStartHour), { onEvent(ThemeEvent.LightFromChanged(it.hour)) })
-                TimeField(
-                    stringResource(R.string.theme_dark_from),
-                    hourTime(theme.darkStartHour),
-                    { onEvent(ThemeEvent.DarkFromChanged(it.hour)) },
-                    error = if (form.hoursInvalid) stringResource(R.string.theme_hours_invalid) else null,
-                )
-            }
+        }
+        if (theme.mode == ThemeMode.AUTO) {
+            TimeField(stringResource(R.string.theme_light_from), hourTime(theme.lightStartHour), { onEvent(ThemeEvent.LightFromChanged(it.hour)) })
+            TimeField(
+                stringResource(R.string.theme_dark_from),
+                hourTime(theme.darkStartHour),
+                { onEvent(ThemeEvent.DarkFromChanged(it.hour)) },
+                error = if (form.hoursInvalid) stringResource(R.string.theme_hours_invalid) else null,
+            )
         }
     }
 }

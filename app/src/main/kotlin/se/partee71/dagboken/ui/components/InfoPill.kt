@@ -17,10 +17,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.IconSize
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
@@ -48,10 +48,8 @@ fun InfoPill(
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        icon?.let { Icon(painterResource(it), contentDescription = null, tint = colors.content, modifier = Modifier.size(ICON)) }
+        icon?.let { Icon(painterResource(it), contentDescription = null, tint = colors.content, modifier = Modifier.size(IconSize.pill)) }
         Text(text, style = AppTypography.pill, color = colors.content, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        trailingIcon?.let { Icon(painterResource(it), contentDescription = null, tint = colors.content, modifier = Modifier.size(ICON)) }
+        trailingIcon?.let { Icon(painterResource(it), contentDescription = null, tint = colors.content, modifier = Modifier.size(IconSize.pill)) }
     }
 }
-
-private val ICON = 16.dp

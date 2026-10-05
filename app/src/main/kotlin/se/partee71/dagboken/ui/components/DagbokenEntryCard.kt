@@ -24,7 +24,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -33,8 +32,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppShapes
@@ -146,17 +143,12 @@ private fun EntryCardBody(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
             Row(
-                Modifier.weight(1f).alpha(if (inactive) INACTIVE_ALPHA else 1f).padding(start = Spacing.xs),
+                Modifier.weight(1f).inactive(inactive).padding(start = Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.m),
             ) {
                 leading?.invoke()
-                Column(verticalArrangement = Arrangement.spacedBy(TEXT_GAP)) {
-                    Text(title, style = AppTypography.itemTitle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    subtitle?.let {
-                        Text(it, style = AppTypography.itemSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
-                }
+                RowText(title, subtitle)
             }
             status?.invoke()
             NoteIndicator(note, title)
@@ -225,4 +217,3 @@ private fun SwipeToDelete(onRequest: () -> Unit, modifier: Modifier, content: @C
     )
 }
 
-private val TEXT_GAP = 2.dp

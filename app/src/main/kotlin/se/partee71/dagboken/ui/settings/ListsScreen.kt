@@ -32,9 +32,12 @@ import se.partee71.dagboken.ui.components.AppIconButton
 import se.partee71.dagboken.ui.components.AppSegmentedChoice
 import se.partee71.dagboken.ui.components.EmptyContent
 import se.partee71.dagboken.ui.components.EntityListScreen
+import se.partee71.dagboken.ui.components.InfoPill
 import se.partee71.dagboken.ui.components.ItemRow
 import se.partee71.dagboken.ui.components.ListArchive
 import se.partee71.dagboken.ui.components.SwipeToHide
+import se.partee71.dagboken.ui.components.TopBarSize
+import se.partee71.dagboken.ui.theme.Tone
 
 sealed interface ListsEvent {
     /** Vilken lista som visas: Aktiviteter · Symptom · Händelser. */
@@ -102,8 +105,10 @@ private enum class ListTexts(
 internal fun OptionKind.newLabel(): Int = ListTexts.of(this).add
 
 /**
- * Listor på `EntityListScreen` med valet av lista (`AppSegmentedChoice`) fast under rubriken, svep
- * som arkiverar (`SwipeToHide` + `UndoSnackbar`) och stjärnan som direktkontroll (NFR-17).
+ * Listor på `EntityListScreen` (liten topprad som de andra underskärmarna) med valet av lista
+ * (`AppSegmentedChoice`) fast under rubriken, svep som arkiverar (`SwipeToHide` + `UndoSnackbar`),
+ * stjärnan som direktkontroll och pil till formuläret (NFR-17); en arkiverad rad är nedtonad med
+ * "Arkiverad" som pill, som en pausad rad.
  */
 @Composable
 fun ListsScreen(
@@ -128,15 +133,20 @@ fun ListsScreen(
         archive = archive,
         onBack = onBack,
         filter = { AppSegmentedChoice(labels, kinds.indexOf(kind), { onEvent(ListsEvent.KindChosen(kinds[it])) }) },
+        topBarSize = TopBarSize.Small,
     ) { option ->
         SwipeToHide(onHide = { archive.archive(option.id, option.name) }, enabled = !option.archived) { swipe ->
             ItemRow(
                 option.name,
                 swipe,
-                subtitle = if (option.archived) stringResource(R.string.option_archived) else null,
                 onClick = { onOpen(option) },
+                navigates = true,
                 inactive = option.archived,
-                trailing = { FavoriteStar(option) { onEvent(ListsEvent.FavoriteToggled(option)) } },
+                trailing = {
+                    // Som "Pausat" i PausableRow: läget som pill, raden nedtonad.
+                    if (option.archived) InfoPill(stringResource(R.string.option_archived), tone = Tone.Neutral)
+                    FavoriteStar(option) { onEvent(ListsEvent.FavoriteToggled(option)) }
+                },
             )
         }
     }

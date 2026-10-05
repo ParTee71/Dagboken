@@ -23,7 +23,6 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -70,10 +69,11 @@ fun ValueSlider(
     val span = (valueRange.last - valueRange.first).coerceAtLeast(1)
     val fraction = (value.coerceIn(valueRange) - valueRange.first).toFloat() / span
     val anchor = if (valueRange.first < 0 && valueRange.last > 0) -valueRange.first.toFloat() / span else 0f
-    Column(modifier.fillMaxWidth().alpha(if (enabled) 1f else DISABLED_ALPHA), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Column(modifier.fillMaxWidth().inactive(!enabled), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         // Det synliga huvudet läses inte separat – reglaget bär etikett, värde och nivå.
         Row(Modifier.clearAndSetSemantics {}, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-            Text(label, style = AppTypography.itemTitle, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+            // Etiketten över en formulärkontroll har en stil överallt: GroupLabel, som i LabeledGroup.
+            GroupLabel(label, Modifier.weight(1f))
             Text(shown, style = AppTypography.quantity, color = MaterialTheme.colorScheme.onSurface)
             InfoPill(levelText, tone = level.tone)
         }
@@ -133,4 +133,3 @@ private val THUMB_BORDER = 4.dp
 private val TRACK = 8.dp
 private val ZERO_MARK = 2.dp
 private const val TRACK_ALPHA = 0.3f
-private const val DISABLED_ALPHA = 0.38f

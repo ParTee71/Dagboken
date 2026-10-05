@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.IconSize
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
@@ -41,7 +42,7 @@ fun SectionHeader(
     ) {
         if (icon != null) {
             Box(Modifier.size(TILE).background(colors.container, AppShapes.smallTile), contentAlignment = Alignment.Center) {
-                Icon(painterResource(icon), contentDescription = null, tint = colors.content, modifier = Modifier.size(ICON))
+                Icon(painterResource(icon), contentDescription = null, tint = colors.content, modifier = Modifier.size(IconSize.tile))
             }
         }
         Text(
@@ -55,4 +56,3 @@ fun SectionHeader(
 }
 
 private val TILE = 32.dp
-private val ICON = 18.dp
