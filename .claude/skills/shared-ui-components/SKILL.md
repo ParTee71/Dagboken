@@ -50,7 +50,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Tomt tillstånd / läsfel | `EmptyState` | ikon + text + `AppButton`; `isError` för läsfel (internt `LoadErrorState` med "Försök igen") |
 | Bekräftelse | `ConfirmDialog` | M3 dialog, `destructive`-parameter |
 | Bottom sheet | `AppBottomSheet` | M3 modal sheet, `AppShapes.sheet` (28 dp upptill) |
-| Inställningsark | `AccountSheet` | `AppBottomSheet` + en `ItemRow` per val bakom avataren (NAV-9); "Komponentgalleri" bara i debug |
+| Inställningsark | `AccountSheet` | `AppBottomSheet` + en `ItemRow` per val bakom avataren (NAV-9): kontot överst (tonad `ItemRow` med `AccountAvatar`, namn, e-post, "Inloggad med Google"), en rad per `SettingsPage` med pil, "Komponentgalleri" bara i debug, "Logga ut" sist |
 | Plusknappens loggmeny | `LogMenuSheet` | `AppBottomSheet` + en `ItemRow` per `LogChoice` – exakt fem val i ordning (NAV-10) |
 | Meddelande | `AppSnackbarHost` | M3 snackbar; ett pågående meddelande ersätts aldrig av ett annat; fel via internt `ErrorSnackbar` |
 | Firande | `Confetti` | egen `Canvas`, inget bibliotek; faller en gång (HEM-19) |
@@ -70,7 +70,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Tillfällesrad för mående | `OccasionRow` | `ItemRow` + `InfoPill` + `AppButton`: Efter frukost · Lunch · Kvällsmat · Läggdags (namnet från anroparen); `OccasionStatus` loggad (avbockad stil, "Loggad", värdechips i `scaleLevel`-ton), "Försenat" (varningston, bara `isToday`, annars "Ej loggad") och "Snart" (solgul) med "Logga nu" (primär `AppButton`, compact), "Kommande" dämpad (HEM-4, HEM-5) |
 | Framstegsrad | `ProgressBar` | spår i pill-form som fylls animerat i teal ("4 av 9 klara"), solgul med mörk kontur och "9 av 9 · allt klart" när allt är klart; TalkBack läser "x av y klara" (HEM-18) |
 | Dagen klar | `DayDoneCard` | `AppCard(tone = Tone.Positive)` med bock, "Allt klart för idag" och tre nyckeltal (snittenergi, mot igår, dagar i rad; `null` → "—", samma `value_missing` som `StatPill`) + `Confetti` en gång per `play` som anroparen äger (HEM-19) |
-| Kontoavatar | `AccountAvatar` | foto-slot, annars initialer ur namnet, utloggad person-ikon; 48 dp, läses "Konto och inställningar"; i `AppTopBar(actions)` (NAV-9) |
+| Kontoavatar | `AccountAvatar` | foto-slot eller `photoUrl` (Coil, bara minnescache – AUTH-3) ovanpå initialerna ur namnet, utloggad person-ikon; 48 dp, läses "Konto och inställningar"; i `AppTopBar(actions)` (NAV-9); utan `onClick` en ren bild (kontokortet i arket) |
 | Mående i steg | `StepwiseScreeningForm` | pager energi → stress → symptom med "Steg 1 av 3", fjädrande stegprickar och `AppButton` (HEM-5) |
 | Symptom med gradering | `SymptomLogCard` | `AppCard` + `Foldout`: `AppFilterChip` per symptom, ett `ValueSlider` (högre är sämre) per valt, `AppTextField` för "Övrigt", summan under (AKT-6, SJ-3) |
 | Anteckning | `NoteField` | `Foldout` med textens början i stängt läge och ett flerradigt `AppTextField` (DAT-7) |
@@ -89,7 +89,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 
 | Mönster | Ram | Beteende (identiskt överallt) |
 |---|---|---|
-| Listskärm | `EntityListScreen` | Arkivering via `archive: ListArchive` ("Visa arkiverade" i menyn, Ångra, fel som meddelande); laddning → `AppLoading`; tomt → `EmptyState` med primärknapp och valfria exempel (`ExampleChips`); fel → läsfel med "Försök igen"; rader (`ItemRow`) i kort; valfri gruppering (`SectionHeader` med antal, `collapsible` = hopfälld) och undergrupper; lägg till (`AddSplitButton`); för en undersida `onBack`, `subtitle`, `actions` och `header` överst i listan |
+| Listskärm | `EntityListScreen` | Arkivering via `archive: ListArchive` ("Visa arkiverade" i menyn, Ångra, fel som meddelande); laddning → `AppLoading`; tomt → `EmptyState` med primärknapp och valfria exempel (`ExampleChips`); fel → läsfel med "Försök igen"; rader (`ItemRow`) i kort; valfri gruppering (`SectionHeader` med antal, `collapsible` = hopfälld) och undergrupper; lägg till (`AddSplitButton`); för en undersida `onBack`, `subtitle`, `actions` och `header` överst i listan; `filter` fast under rubriken i alla lägen (t.ex. `AppSegmentedChoice` Aktiviteter · Symptom · Händelser i Listor) |
 | Redigeraskärm | `EntityEditScreen` | Tillsammans med `EditorState<T>`: "Spara" aktiv först när giltig **och** ändrad (NFR-10); fältfel visas när fältet ändrats eller efter ett sparförsök; läsfel → "Försök igen"; bakåt med osparat → "Släng ändringar?"; sparfel → snackbar; navigerar först när sparandet är klart (NFR-12); IME-inset hanteras i ramen (NFR-11); arkivera/återställ/radera i menyn |
 | Detaljskärm | `EntityDetailScreen` | Tillsammans med `DetailUiState`/`DetailLoader`: toppbar med tillbaka, "Redigera" och meny; laddning → `AppLoading`; fel → läsfel med "Försök igen"; innehåll → huvud och sektioner i `AppCard` med `SectionHeader` (t.ex. sjukdomsepisoden med incheckningar, HIST-9) |
 | Arkivera/dölj listobjekt | `SwipeToHide` | Svep → dolt direkt → `UndoSnackbar` "%s arkiverad · Ångra" i 5 s; `enabled = false` för en redan arkiverad rad. Används för listobjekt som alternativen i Listor – **inte** för postkort: postkortets svep begär radering med `ConfirmDialog` (NFR-15, `DagbokenEntryCard`) |
@@ -119,11 +119,17 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 | Firestore-CRUD | `EntityCollection<T>` från `CollectionFactory` (`data/common/`); enda implementationen `FirestoreCollection<T>` i `data/firestore/`, i test `FakeCollection<T>` |
 | Sökvägar, codecs per samling | `Paths` och `CollectionTable` i `data/firestore/` (speglade i `tools/db/lib/collections.mjs`) |
 | Map ↔ modell | `DocCodec<T>` + fälthjälpare (`Fields`) i `:core` |
-| Formulär | `EditorState<T>` + `Validator<T>` i `ui/common/` (fel per fält visas efter ändring eller sparförsök; `EditorEffect` till ramen) |
+| Formulär | `EditorState<T>` + `Validator<T>` i `ui/common/` (fel per fält visas efter ändring eller sparförsök; `load(…, showInvalid = true)` visar dessutom fel i det lagrade värdet direkt, även sådana som uppstår vid `revalidate()`; `revalidate()` när det valideringen läser har kommit, utan att läsfel försvinner; `clearLoadError()` när ett läsfel åtgärdats utan ny läsning; `errorMessage` ger egen text för ett fel som inte är ett `DataError`; `EditorEffect` till ramen) |
+| Läsa in ett formulär | `EditorLoader` i `ui/common/` ("Försök igen", `stored` = det lagrade); `project` gör formulärets värde av det lagrade (t.ex. en grupp ur inställningarna), `showInvalid` som i `EditorState.load` |
+| Fel till det som visas | `toFailure`/`failureOrNull` → `Failure` (`DataError` + text) i `ui/common/DataErrorMessage.kt` – används av `EditorState`, `ArchiveActions` och Tema (`EntityDetailScreen(failure)`); två fel i rad är två händelser |
+| Spara ett inställningsformulär | `SettingsDifference` i `ui/settings/` – skriver bara skillnaden mot det laddade eller senast sparade (`SettingsRepository.save`) |
 | Listtillstånd | `Flow<List<T>>.asListUiState()` → `ListUiState<T>`, och `ListLoader` (med "Försök igen") i `ui/common/` |
 | Svep-arkivera, Ångra, "Visa arkiverade" i en lista | `ArchiveActions` + `ArchiveEvent` i `ui/common/`; skärmen skickar `archive.collectAsListArchive()` till `EntityListScreen` |
 | Detaljtillstånd | `DetailUiState<T>` och `DetailLoader` (med "Försök igen") i `ui/common/` |
 | Datum i UI | `DateFormat` i `ui/common/` ("lör 4 okt 2026", millis för datumväljaren) |
+| Namn på modellens val (tidpunkt, måendetillfälle, kön, alternativlista) | `label()` i `ui/common/ModelLabels.kt` |
+| Inställningar och alternativlistor | `SettingsRepository` (`update` läser det lagrade och skriver med merge – `legacy` och okända fält bevaras, DAT-11) och `OptionsRepository` (nytt med `OptionIds.of`, namnbyte behåller id) i `data/repository/` |
+| Temats och listornas regler | `isDarkAt`/`hasValidHours` (SET-1, SET-2) och `hasActiveName` (inga dubbletter) i `:core/engine/SettingsRules.kt` |
 | Skalans nivå (etikett, ton och färg) för reglage, chips och postkortets accent | `scaleLevel` → `ScaleLevel` (`label`, `tone`, `color`) och `scaleValueText` i `ui/common/EnergyLabel.kt` – båda riktningarna (`higherIsBetter`) |
 | Tidsåtgång i text ("1 tim 30 min") | `durationText` i `ui/common/DateFormat.kt` |
 | Visa först efter en fördröjning | `Flow<Boolean>.shownAfter(delay)` i `ui/common/` |

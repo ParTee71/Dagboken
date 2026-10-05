@@ -29,7 +29,7 @@ AppRoot → AuthViewModel.state.gate: Loading | SignedOut | NeedsUser | UpdateRe
 ## Key Classes
 
 - **`AuthRepository`** (`data/auth/`) — interface; `GoogleAuthRepository` is the only implementation (bound in `di/AuthModule`). Tests use a fake.
-- **`AuthUser(uid, name?, email?)`** — all the app keeps of the user. Name and email are only shown in the settings sheet (Konto, SET-7) and are never stored or logged; never the photo (skill `data-privacy-security`).
+- **`AuthUser(uid, name?, email?, photoUrl?)`** — all the app keeps of the user. Name, email and photo are shown in the avatar and the settings sheet (AUTH-3, SET-7) and held in memory only: never stored, logged or disk-cached (the photo is loaded by Coil with the disk cache disabled; skill `data-privacy-security`).
 - **`AuthErrors`** (`data/auth/`) — the one mapping to `DataError`.
 - **`AuthViewModel`** (`ui/auth/`) — decides what `AppRoot` shows (`AuthGate`); sign-out lives in the settings sheet (NAV-9).
 - **`UserSession`** (`data/user/`, implements `UserScope`) + **`EnsureUserUseCase`** + **`UserDirectory`** (Firestore implementation `FirestoreUserDirectory` in `data/firestore/`) — skill `firestore-data-layer`.

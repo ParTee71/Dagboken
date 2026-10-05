@@ -108,8 +108,9 @@ Utvecklingen sker mest från telefonen, och en release för att "se hur det blev
   och vänta på ok innan koden skrivs (NFR-20).
 - Mockupen byggs av **katalogens komponenter och mönster** (regel 4), i appens designspråk,
   med riktiga svenska texter och realistisk men påhittad data – aldrig användarens riktiga
-  hälsodata. Öppen fråga → två varianter sida vid sida. Något som saknas i katalogen märks
-  "NY KOMPONENT".
+  hälsodata. Ett element som redan används i appen återanvänds på samma sätt som tidigare –
+  det är ingen designfråga. Bara en verklig öppen fråga om något helt nytt → två varianter
+  sida vid sida. Något som saknas i katalogen märks "NY KOMPONENT".
 - Länken läggs i issuet under rubriken **Design**.
 - I PR:en visas resultatet med **Roborazzi-skärmdumpar** (ljust + mörkt) bredvid mockupen.
 - Tumregel: syns förändringen i en tumnagel → mockup först. Padding, ordval eller

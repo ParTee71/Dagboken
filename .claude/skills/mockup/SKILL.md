@@ -47,8 +47,11 @@ När katalogen ändras uppdateras mallen i samma PR som komponenten.
    tillfällen, mående-loggar med energi och symptom, en promenad, en pågående förkylning,
    verkliga medicinnamn och doser, en vecka i datumremsan. Inga platshållartexter och aldrig
    användarens riktiga hälsodata.
-5. Öppen designfråga → två artboards sida vid sida (som B/C-jämförelsen) och en kort
-   beskrivning av skillnaden.
+5. **Finns elementet redan i appen** (katalogen, en byggd skärm eller 3.x-förlagan) → återanvänd
+   det på samma sätt som tidigare: samma komponent, samma utseende, samma beteende. Det är
+   ingen designfråga och ställs inte som en (användarens regel – samma look and feel överallt).
+   Bara för det som är **helt nytt** och har en verklig öppen fråga → två artboards sida vid
+   sida (som B/C-jämförelsen) och en kort beskrivning av skillnaden.
 6. Allt som saknas i katalogen märks tydligt **"NY KOMPONENT"** eller **"NYTT MÖNSTER"** –
    det byggs då som delad del (regel 4), aldrig lokalt i featuren.
 7. Visa de tillstånd som betyder något: tomt, fyllt, fel, avprickat – och för Idag även
