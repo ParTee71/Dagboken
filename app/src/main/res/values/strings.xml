@@ -83,6 +83,33 @@
     <string name="calendar_next_month">Nästa månad</string>
     <string name="calendar_has_entries">har poster</string>
 
+    <!-- Datumremsa (HEM-14, HEM-19) -->
+    <string name="date_strip_today">idag</string>
+    <string name="date_strip_done">Klar</string>
+    <string name="date_strip_previous_week">Föregående vecka</string>
+    <string name="date_strip_next_week">Nästa vecka</string>
+
+    <!-- Framstegsrad (HEM-18, HEM-19) -->
+    <string name="progress_format">%1$d av %2$d klara</string>
+    <string name="progress_done_format">%1$d av %2$d · allt klart</string>
+    <string name="progress_done_description">%1$d av %2$d klara, allt klart</string>
+
+    <!-- Tillfällesrad för mående (HEM-4, HEM-5) -->
+    <string name="occasion_log_now">Logga nu</string>
+    <string name="occasion_logged">Loggad</string>
+    <string name="occasion_late">Försenat</string>
+    <string name="occasion_not_logged">Ej loggad</string>
+    <string name="occasion_soon">Snart</string>
+    <string name="occasion_upcoming">Kommande</string>
+    <string name="occasion_value_format">%1$s %2$d</string>
+
+    <!-- Dagen klar (HEM-19) -->
+    <string name="day_done_title">Allt klart för idag</string>
+    <string name="day_done_average_energy">Snittenergi</string>
+    <string name="day_done_vs_yesterday">Mot igår</string>
+    <string name="day_done_streak">Dagar i rad</string>
+    <string name="value_missing">—</string>
+
     <!-- Mående i steg och symptom (HEM-5, SCR-1, SCR-2, AKT-6, SJ-3) -->
     <string name="step_format">Steg %1$d av %2$d</string>
     <string name="energy">Energi</string>

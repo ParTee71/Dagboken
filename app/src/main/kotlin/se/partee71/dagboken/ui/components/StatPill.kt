@@ -27,7 +27,7 @@ import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
 /**
- * Mätvärde (HLS-6): ikon, värde ("7 842", "—" när datapunkten saknas) och etikett ("Steg") i en tonad
+ * Mätvärde (HLS-6): ikon, värde ("7 842", `R.string.value_missing` "—" när datapunkten saknas – samma tecken överallt) och etikett ("Steg") i en tonad
  * yta ([tone]). Läses som en enhet. Med [onClick] är hela ytan en knapp med minst 48 dp och
  * [onClickLabel] beskriver åtgärden ("Begär åtkomst"); utan är den ren avläsning.
  */

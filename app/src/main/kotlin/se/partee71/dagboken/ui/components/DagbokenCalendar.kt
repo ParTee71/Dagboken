@@ -131,7 +131,7 @@ private fun DayCell(day: LocalDate, hasEntries: Boolean, selected: Boolean, isTo
 
 /** Veckorna (måndag–söndag) som täcker månaden som börjar på [first]. */
 private fun monthGrid(first: LocalDate): List<List<LocalDate>> {
-    val start = first.minus(DatePeriod(days = first.dayOfWeek.ordinal))
+    val start = first.weekMonday()
     val next = first.plus(ONE_MONTH)
     return generateSequence(start) { it.plus(ONE_WEEK) }
         .takeWhile { it < next }
