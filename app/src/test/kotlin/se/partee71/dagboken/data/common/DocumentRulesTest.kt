@@ -96,4 +96,21 @@ class DocumentRulesTest {
         assertEquals(1, suspendRunCatching({ DataError.Unknown }) { 1 }.getOrThrow())
         assertNull(Result.success(1).dataError())
     }
+
+    @Test
+    fun `nycklade listor – bara ändrade rader läggs på det lagrade, matchade på nyckeln`() {
+        val rows = KeyedList(listOf("reminders", "slots"), key = "slot")
+        fun doc(vararg slots: Pair<String, String>, extra: Any = "x") =
+            mapOf("reminders" to mapOf("slots" to slots.map { (slot, time) -> mapOf("slot" to slot, "time" to time) }, "on" to extra))
+        val before = doc("morning" to "07:00", "evening" to "19:00")
+        val after = doc("morning" to "06:15", "evening" to "19:00", extra = "y")
+        val stored = doc("evening" to "20:30", "morning" to "07:00")
+
+        val rebased = withChangedRows(before, after, stored, setOf(rows))
+
+        assertEquals(doc("evening" to "20:30", "morning" to "06:15", extra = "y"), rebased, "lagrad ordning och rad, ändringen ovanpå, övrigt från after")
+        assertEquals(after, withChangedRows(before, after, stored, emptySet()))
+        val newRow = withChangedRows(doc("night" to "22:00"), doc("night" to "23:00"), stored, setOf(rows))
+        assertEquals(stored, newRow, "en rad vars nyckel inte är lagrad läggs inte till (fast uppsättning)")
+    }
 }

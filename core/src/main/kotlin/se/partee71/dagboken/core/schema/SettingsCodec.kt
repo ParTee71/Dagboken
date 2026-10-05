@@ -26,6 +26,10 @@ object SettingsCodec : DocCodec<Settings> {
     const val PROFILE = "profile"
     const val LEGACY = "legacy"
 
+    /** Påminnelseradernas listor i `reminders`, med radernas nyckel (`slot`, `occasion`). */
+    const val MED_SLOTS = "medSlots"
+    const val SCREENING_OCCASIONS = "screeningOccasions"
+
     override fun encode(value: Settings): Doc = mapOf(
         THEME to value.theme.let {
             mapOf(
@@ -72,8 +76,6 @@ object SettingsCodec : DocCodec<Settings> {
         )
     }
 
-    private const val MED_SLOTS = "medSlots"
-    private const val SCREENING_OCCASIONS = "screeningOccasions"
     private const val DYNAMIC_COLOR = "dynamicColor"
     private const val SHEETS_CONFIG = "sheetsConfig"
 

@@ -57,4 +57,5 @@ class GoogleAuthRepository @Inject constructor(
     }
 }
 
-private fun FirebaseUser.toAuthUser() = AuthUser(uid, displayName?.takeIf { it.isNotBlank() }, email?.takeIf { it.isNotBlank() })
+private fun FirebaseUser.toAuthUser() =
+    AuthUser(uid, displayName?.takeIf { it.isNotBlank() }, email?.takeIf { it.isNotBlank() }, photoUrl?.toString()?.takeIf { it.isNotBlank() })

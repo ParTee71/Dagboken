@@ -2,7 +2,9 @@ package se.partee71.dagboken.data.firestore
 
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.CollectionReference
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.WriteBatch
 import com.google.firebase.firestore.snapshots
@@ -20,6 +22,11 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.common.UserScope
 import se.partee71.dagboken.data.common.currentVersion
+import se.partee71.dagboken.data.common.FieldPath
+import se.partee71.dagboken.data.common.Snapshot
+import se.partee71.dagboken.data.common.fieldsForMerge
+import se.partee71.dagboken.data.common.firstFromCache
+import se.partee71.dagboken.data.common.isDocumentAnswer
 import se.partee71.dagboken.data.common.fieldsForUpdate
 import se.partee71.dagboken.data.common.prepareForWrite
 import se.partee71.dagboken.data.common.readDocument
@@ -46,19 +53,16 @@ class FirestoreCollection<T : Identified>(
 
     override fun observe(): Flow<List<T>> = scope.uid.flatMapLatest { uid ->
         val ref = refOrNull(uid) ?: return@flatMapLatest emptyFlow()
-        ref.snapshots().map { snapshot ->
-            sortForList(snapshot.documents.map { decode(it.id, it.data.orEmpty()) })
-        }
+        ref.snapshots().map(::decodeList)
     }.catch { throw firestoreError(it) }
 
     override fun observe(id: String): Flow<T?> = scope.uid.flatMapLatest { uid ->
         val ref = refOrNull(uid) ?: return@flatMapLatest emptyFlow()
-        ref.document(id).snapshots().map { doc -> doc.data?.let { decode(doc.id, it) } }
+        ref.document(id).snapshots().map(::decodeDocument)
     }.catch { throw firestoreError(it) }
 
     override suspend fun get(id: String): Result<T?> = suspendRunCatching(::firestoreError) {
-        val doc = ref().document(id).get().await()
-        doc.data?.let { decode(doc.id, it) }
+        decodeDocument(ref().document(id).get().await())
     }
 
     override suspend fun getAll(): Result<List<T>> = suspendRunCatching(::firestoreError) {
@@ -67,6 +71,19 @@ class FirestoreCollection<T : Identified>(
 
     override suspend fun upsert(item: T): Result<Unit> = write { ref ->
         ref.document(item.id).set(encode(item), SetOptions.merge())
+    }
+
+    /** `set` med merge av bara [fields]: djup merge, skapar dokumentet om det saknas, läser inget. */
+    override suspend fun merge(item: T, fields: Set<FieldPath>): Result<Unit> = write { ref ->
+        ref.document(item.id).set(fieldsForMerge(encode(item), fields), SetOptions.merge())
+    }
+
+    override suspend fun cached(): Result<List<T>> = firstFromCache(::firestoreError) {
+        ref().snapshots().map { Snapshot(decodeList(it), it.metadata.isFromCache) }
+    }
+
+    override suspend fun cached(id: String): Result<T?> = firstFromCache(::firestoreError, { it.isDocumentAnswer() }) {
+        ref().document(id).snapshots().map { Snapshot(decodeDocument(it), it.metadata.isFromCache) }
     }
 
     override suspend fun delete(id: String): Result<Unit> = write { ref -> ref.document(id).delete() }
@@ -98,6 +115,10 @@ class FirestoreCollection<T : Identified>(
     override fun newId(): String = db.collection(Paths.USERS).document().id
 
     private fun encode(item: T) = toFirestore(prepareForWrite(codec.encode(item), clock.now()))
+
+    private fun decodeList(snapshot: QuerySnapshot) = sortForList(snapshot.documents.map { decode(it.id, it.data.orEmpty()) })
+
+    private fun decodeDocument(doc: DocumentSnapshot) = doc.data?.let { decode(doc.id, it) }
 
     private fun decode(id: String, data: Map<String, Any?>) =
         readDocument(codec, name, scope.currentVersion(), id, fromFirestore(data))
