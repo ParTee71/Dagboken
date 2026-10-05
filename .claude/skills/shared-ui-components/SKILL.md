@@ -61,6 +61,18 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Datumfält | `DateField` | internt `PickerField` (samma yta som `AppTextField`) + M3 datumväljare |
 | Tidsfält | `TimeField` | samma yta som `DateField` + M3 tidsväljare (24 timmar) |
 | Horisontell rad av chips | `ChipRow` | horisontell lista av `AppFilterChip` |
+| Postkort (sparad post: dos, aktivitet, mående, händelse, incheckning, episod, recept) | `DagbokenEntryCard` | `AppCard` + menyn från `AppMenu` + `AppIconButton`; tryck öppnar, långtryck = samma meny som `⋮` (Redigera, `actions`, Radera sist), svep höger→vänster begär radering via `ConfirmDialog` och fjädrar tillbaka (NFR-15); trailing i fast ordning `status`, anteckningsikon (`note`), chevron (`expandedContent`), `⋮` (NFR-16); `accent` statusfärg, `inactive` nedtonad |
+| Ihopfällbart sektionskort | `Foldout` | hela titelraden växlar, minst 48 dp, `Role.Button` + `stateDescription`, fjädrande chevron (NFR-18); `trailing` före chevronen, `summary` i stängt läge; samma titelrad som `EntityListScreen`s hopfällbara grupper |
+| Reglage (alla skalor: energi, stress, symptom, −10…+10) | `ValueSlider` | M3 `Slider(state)` med eget spår i energiskalan (`AppColors.extended.energy`): `higherIsBetter` rött→grönt, annars grönt→rött; nolla i mitten under noll; värdet som text och nivån (`scaleLevel`) som `InfoPill` |
+| Hjulväljare | `WheelPicker` | lat kolumn som snäpper; TalkBack läser valt värde och kan öka/minska |
+| Kalender | `DagbokenCalendar` | månadsrutnät (måndag först) med `AppIconButton` för månadsbyte; prick = dag med poster, fylld cirkel = vald, ring = idag; varje dag 48 dp (HIST-6) |
+| Mående i steg | `StepwiseScreeningForm` | pager energi → stress → symptom med "Steg 1 av 3", fjädrande stegprickar och `AppButton` (HEM-5) |
+| Symptom med gradering | `SymptomLogCard` | `AppCard` + `Foldout`: `AppFilterChip` per symptom, ett `ValueSlider` (högre är sämre) per valt, `AppTextField` för "Övrigt", summan under (AKT-6, SJ-3) |
+| Anteckning | `NoteField` | `Foldout` med textens början i stängt läge och ett flerradigt `AppTextField` (DAT-7) |
+| Mätvärde | `StatPill` | ikon, värde och etikett i en `Tone`-yta; `onClick` gör den till en knapp med 48 dp (HLS-6) |
+| Datum + tid | `DateTimeRow` | `DateField` + `TimeField` på en rad |
+| Tidsåtgång | `DurationRow` | `LabeledGroup` + `QuantityStepper` i minuter (`step`) + snabbval som `AppFilterChip` (AKT-7) |
+| Påminnelsetid | `ReminderTimeRow` | `SwitchRow` med `onClick` (raden öppnar tidsväljaren, reglaget slår av/på) eller `ItemRow` utan reglage (NOT-18) |
 
 ## Beteende: interaktionsmönster → enda tillåtna ram
 
@@ -69,7 +81,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Listskärm | `EntityListScreen` | Arkivering via `archive: ListArchive` ("Visa arkiverade" i menyn, Ångra, fel som meddelande); laddning → `AppLoading`; tomt → `EmptyState` med primärknapp och valfria exempel (`ExampleChips`); fel → läsfel med "Försök igen"; rader (`ItemRow`) i kort; valfri gruppering (`SectionHeader` med antal, `collapsible` = hopfälld) och undergrupper; lägg till (`AddSplitButton`); för en undersida `onBack`, `subtitle`, `actions` och `header` överst i listan |
 | Redigeraskärm | `EntityEditScreen` | Tillsammans med `EditorState<T>`: "Spara" aktiv först när giltig **och** ändrad (NFR-10); fältfel visas när fältet ändrats eller efter ett sparförsök; läsfel → "Försök igen"; bakåt med osparat → "Släng ändringar?"; sparfel → snackbar; navigerar först när sparandet är klart (NFR-12); IME-inset hanteras i ramen (NFR-11); arkivera/återställ/radera i menyn |
 | Detaljskärm | `EntityDetailScreen` | Tillsammans med `DetailUiState`/`DetailLoader`: toppbar med tillbaka, "Redigera" och meny; laddning → `AppLoading`; fel → läsfel med "Försök igen"; innehåll → huvud och sektioner i `AppCard` med `SectionHeader` (t.ex. sjukdomsepisoden med incheckningar, HIST-9) |
-| Arkivera/dölj listobjekt | `SwipeToHide` | Svep → dolt direkt → `UndoSnackbar` "%s arkiverad · Ångra" i 5 s; `enabled = false` för en redan arkiverad rad. Används för listobjekt som alternativen i Listor – **inte** för postkort: postkortets svep begär radering med `ConfirmDialog` (NFR-15, byggs med postkortet i etapp 4) |
+| Arkivera/dölj listobjekt | `SwipeToHide` | Svep → dolt direkt → `UndoSnackbar` "%s arkiverad · Ångra" i 5 s; `enabled = false` för en redan arkiverad rad. Används för listobjekt som alternativen i Listor – **inte** för postkort: postkortets svep begär radering med `ConfirmDialog` (NFR-15, `DagbokenEntryCard`) |
 | Ångra | `UndoSnackbar` | Enda ångra-mekanismen |
 | Permanent radering | `ConfirmDialog` | `destructive = true`; alltid bekräftelse – även efter svep på ett postkort, som fjädrar tillbaka tills dialogen svarat (NFR-15) |
 | Komponentöversikt | `ComponentGallery` | Debug-skärm med alla komponenter och ramar i alla tillstånd |
@@ -87,19 +99,6 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 
 | Elementtyp | Komponent | Status och innehåll |
 |---|---|---|
-| Postkort (sparad post: dos, aktivitet, mående, händelse, incheckning, episod, recept) | `DagbokenEntryCard` | portas i etapp 4 – gestmönster och trailing-ordning enligt NFR-15/16 |
-| Ihopfällbart sektionskort | `Foldout` | portas i etapp 4 – hela titelraden växlar, roterande chevron (NFR-18) |
-| Sifferreglage | `SliderRow` | portas i etapp 4 – standard för alla reglage 0–10 |
-| Reglage med färggradient (energi −10…10) | `GradientSliderRow` | portas i etapp 4 – energiskalan ur `ui-style` |
-| Hjulväljare | `WheelPicker` | portas i etapp 4 |
-| Kalender | `DagbokenCalendar` | portas i etapp 4 – Dagbokens kalendervy |
-| Mående i steg | `StepwiseScreeningForm` | portas i etapp 4 – "Logga nu" som ark |
-| Symptom med gradering | `SymptomLogCard` | portas i etapp 4 – samma i aktivitet, mående och incheckning (SJ-3) |
-| Anteckning | `NoteField` | portas i etapp 4 – fältet `note` (DAT-7) |
-| Mätvärde | `StatPill` | portas i etapp 4 – Hälsa idag (HLS-6) |
-| Datum + tid | `DateTimeRow` | portas i etapp 4 – bygger på `DateField`/`TimeField` |
-| Tidsåtgång | `DurationRow` | portas i etapp 4 |
-| Påminnelsetid | `ReminderTimeRow` | portas i etapp 4 |
 | Linjediagram | `LineChartCanvas` | portas i etapp 4 – hela `ui/diagram`; matematiken till `:core` |
 | Intervallstapel | `IntervalBarChart` | portas i etapp 4 |
 | Staplat stapeldiagram | `StackedBarChart` | portas i etapp 4 |
@@ -127,6 +126,8 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 | Svep-arkivera, Ångra, "Visa arkiverade" i en lista | `ArchiveActions` + `ArchiveEvent` i `ui/common/`; skärmen skickar `archive.collectAsListArchive()` till `EntityListScreen` |
 | Detaljtillstånd | `DetailUiState<T>` och `DetailLoader` (med "Försök igen") i `ui/common/` |
 | Datum i UI | `DateFormat` i `ui/common/` ("lör 4 okt 2026", millis för datumväljaren) |
+| Skalans nivå (etikett, ton och färg) för reglage, chips och postkortets accent | `scaleLevel` → `ScaleLevel` (`label`, `tone`, `color`) och `scaleValueText` i `ui/common/EnergyLabel.kt` – båda riktningarna (`higherIsBetter`) |
+| Tidsåtgång i text ("1 tim 30 min") | `durationText` i `ui/common/DateFormat.kt` |
 | Visa först efter en fördröjning | `Flow<Boolean>.shownAfter(delay)` i `ui/common/` |
 | Navigation | `AppKey`, `AppBackStack` (en stack per flik), `AppNavHost`, `Transitions` i `navigation/` |
 | Feltyp | `DataError` (`Offline`, `PermissionDenied`, `Cancelled`, `UpdateRequired`, `SignInRejected`, `NotSignedIn`, `NotFound`, `Unknown`) i `data/common/` |
