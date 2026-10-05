@@ -56,7 +56,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Firande | `Confetti` | egen `Canvas`, inget bibliotek; faller en gång (HEM-19) |
 | Avdelare | `AppDivider` | M3-avdelare med temats färg och tjocklek |
 | Inställningsrad med växel | `SwitchRow` | `ItemRow` + M3-växel; hela raden växlar (NFR-17); med `onClick` är växeln en egen kontroll och raden öppnar detaljer |
-| Segmentval (t.ex. tema) | `AppSegmentedChoice` | M3 segmentknappar |
+| Segmentval (t.ex. tema, diagramgrupperna Mående · Klocka · Jämför i Trender, TRD-19) | `AppSegmentedChoice` | M3 segmentknappar |
 | Meny (kontextmeny, `⋮`) | `AppMenu` | M3 rullgardinsmeny; ordning Redigera, kontextspecifikt, Ta bort sist i felfärg, ikon på varje post (NFR-16) |
 | Datumfält | `DateField` | internt `PickerField` (samma yta som `AppTextField`) + M3 datumväljare |
 | Tidsfält | `TimeField` | samma yta som `DateField` + M3 tidsväljare (24 timmar) |
@@ -66,6 +66,11 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Reglage (alla skalor: energi, stress, symptom, −10…+10) | `ValueSlider` | M3 `Slider(state)` med eget spår i energiskalan (`AppColors.extended.energy`): `higherIsBetter` rött→grönt, annars grönt→rött; nolla i mitten under noll; värdet som text och nivån (`scaleLevel`) som `InfoPill` |
 | Hjulväljare | `WheelPicker` | lat kolumn som snäpper; TalkBack läser valt värde och kan öka/minska |
 | Kalender | `DagbokenCalendar` | månadsrutnät (måndag först) med `AppIconButton` för månadsbyte; prick = dag med poster, fylld cirkel = vald, ring = idag; varje dag 48 dp (HIST-6) |
+| Datumremsa (veckan i Idag) | `DateStrip` | sju chips i `AppShapes.row` (18 dp), vald dag fylld teal; punkt = dag med poster, solgul punkt med mörk ring = idag, bock när dagen är klar (läses "Klar"); framtida dagar tonade och inte valbara; svep höger/vänster (och TalkBack-åtgärder) byter vecka via `onWeekChange`, anroparen äger veckan och `today` (HEM-14) |
+| Tillfällesrad för mående | `OccasionRow` | `ItemRow` + `InfoPill` + `AppButton`: Efter frukost · Lunch · Kvällsmat · Läggdags (namnet från anroparen); `OccasionStatus` loggad (avbockad stil, "Loggad", värdechips i `scaleLevel`-ton), "Försenat" (varningston, bara `isToday`, annars "Ej loggad") och "Snart" (solgul) med "Logga nu" (primär `AppButton`, compact), "Kommande" dämpad (HEM-4, HEM-5) |
+| Framstegsrad | `ProgressBar` | spår i pill-form som fylls animerat i teal ("4 av 9 klara"), solgul med mörk kontur och "9 av 9 · allt klart" när allt är klart; TalkBack läser "x av y klara" (HEM-18) |
+| Dagen klar | `DayDoneCard` | `AppCard(tone = Tone.Positive)` med bock, "Allt klart för idag" och tre nyckeltal (snittenergi, mot igår, dagar i rad; `null` → "—", samma `value_missing` som `StatPill`) + `Confetti` en gång per `play` som anroparen äger (HEM-19) |
+| Kontoavatar | `AccountAvatar` | foto-slot, annars initialer ur namnet, utloggad person-ikon; 48 dp, läses "Konto och inställningar"; i `AppTopBar(actions)` (NAV-9) |
 | Mående i steg | `StepwiseScreeningForm` | pager energi → stress → symptom med "Steg 1 av 3", fjädrande stegprickar och `AppButton` (HEM-5) |
 | Symptom med gradering | `SymptomLogCard` | `AppCard` + `Foldout`: `AppFilterChip` per symptom, ett `ValueSlider` (högre är sämre) per valt, `AppTextField` för "Övrigt", summan under (AKT-6, SJ-3) |
 | Anteckning | `NoteField` | `Foldout` med textens början i stängt läge och ett flerradigt `AppTextField` (DAT-7) |
@@ -108,11 +113,6 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 | Kompakt rullgardin i diagram | `CompactDropdownButton` | portas i etapp 4 – bygger på `AppMenu` |
 | Diagrammets talbara sammanfattning | `ChartSemantics` | portas i etapp 4 – NFR-14 |
 | Minidiagram (7-dagarstrend) | `SparklineChart` | portas i etapp 4 |
-| Datumremsa | `DateStrip` | ny – vecka med punkter för dagar med poster, idag-chip 18 dp |
-| Tillfällesrad för mående | `OccasionRow` | ny – frukost · lunch · middag · kväll |
-| Framstegsrad | `ProgressBar` | ny – fylls animerat, solgul när dagen är klar |
-| Dagen klar | `DayDoneCard` | ny – sammanfattningskortet i belöningsläget (HEM-19) |
-| Diagramgrupper | `ChartGroupTabs` | ny – Mående · Klocka · Jämför (TRD-20) |
 
 ## Kod: delade byggstenar i andra lager
 

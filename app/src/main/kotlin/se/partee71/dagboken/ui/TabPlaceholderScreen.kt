@@ -16,10 +16,9 @@ import se.partee71.dagboken.navigation.MedicinesKey
 import se.partee71.dagboken.navigation.TodayKey
 import se.partee71.dagboken.navigation.TopLevelKey
 import se.partee71.dagboken.navigation.TrendsKey
-import se.partee71.dagboken.ui.components.AppIconButton
+import se.partee71.dagboken.ui.components.AccountAvatar
 import se.partee71.dagboken.ui.components.AppTopBar
 import se.partee71.dagboken.ui.components.EmptyState
-import se.partee71.dagboken.ui.components.IconButtonVariant
 import se.partee71.dagboken.ui.components.LocalBottomClearance
 
 /** Flikens namn, ikon och vad den ska innehålla – samma ikon som i bottenraden. */
@@ -45,9 +44,8 @@ fun TabPlaceholderScreen(tab: TopLevelKey, onAccount: () -> Unit, modifier: Modi
     Column(modifier.fillMaxSize()) {
         AppTopBar(
             stringResource(info.title),
-            actions = {
-                AppIconButton(R.drawable.ic_person, stringResource(R.string.account_open), onAccount, variant = IconButtonVariant.Tonal)
-            },
+            // Namn och foto kopplas in när kontot visas i flikarna (#234); tills dess person-ikonen.
+            actions = { AccountAvatar(name = null, onClick = onAccount) },
         )
         Box(Modifier.fillMaxSize().padding(bottom = LocalBottomClearance.current), contentAlignment = Alignment.Center) {
             EmptyState(info.icon, stringResource(R.string.tab_upcoming_title), stringResource(info.upcoming))

@@ -66,6 +66,7 @@ fun ComponentGallery(onBack: () -> Unit, modifier: Modifier = Modifier) {
             GallerySection("Kort, rader och rubriker") { Rows() }
             GallerySection("Fält, val och mängder") { Fields() }
             GallerySection("Poster, reglage och kalender") { Diary() }
+            GallerySection("Idag och konto") { Today() }
             GallerySection("Laddning och navigering") { Progress() }
             GallerySection("Dialog, sheet, meddelanden") { Overlays() }
             GallerySection("Ramar") { Frames(onBack) }
@@ -247,7 +248,7 @@ private fun Diary() {
     Label("StatPill")
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
         StatPill(R.drawable.ic_activity, "7 842", "Steg")
-        StatPill(R.drawable.ic_sun, "—", "Sömn", tone = Tone.Primary, onClick = {}, onClickLabel = "Begär åtkomst")
+        StatPill(R.drawable.ic_sun, stringResource(R.string.value_missing), "Sömn", tone = Tone.Primary, onClick = {}, onClickLabel = "Begär åtkomst")
     }
     var month by remember { mutableStateOf(LocalDate(2026, 10, 1)) }
     var picked by remember { mutableStateOf<LocalDate?>(LocalDate(2026, 10, 4)) }
@@ -268,6 +269,59 @@ private fun Diary() {
     AppCard {
         StepwiseScreeningForm(energy, { energy = it }, stress, { stress = it }, GALLERY_SYMPTOMS, screeningSymptoms, { screeningSymptoms = it }, onSave = {})
     }
+}
+
+@Composable
+private fun Today() {
+    val today = LocalDate(2026, 10, 5)
+    var week by remember { mutableStateOf(today) }
+    var day by remember { mutableStateOf(today) }
+    var done by remember { mutableIntStateOf(4) }
+    var celebrate by remember { mutableStateOf(false) }
+    Label("DateStrip")
+    DateStrip(
+        week,
+        day,
+        { day = it },
+        { week = it },
+        today = today,
+        datesWithEntries = setOf(LocalDate(2026, 9, 28), LocalDate(2026, 9, 30), LocalDate(2026, 10, 1), LocalDate(2026, 10, 3), today),
+        todayDone = done == GALLERY_TOTAL,
+    )
+    Label("ProgressBar")
+    ProgressBar(done, GALLERY_TOTAL)
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+        AppButton("Bocka av", { done = (done + 1).coerceAtMost(GALLERY_TOTAL) }, variant = ButtonVariant.Secondary)
+        AppButton("Börja om", { done = 0 }, variant = ButtonVariant.Text)
+    }
+    Label("OccasionRow")
+    AppCard { GalleryOccasionRows() }
+    Label("DayDoneCard")
+    DayDoneCard(6.8, 0.5, 12, play = celebrate, onConfettiFinished = { celebrate = false })
+    AppButton("Fira igen", { celebrate = true }, variant = ButtonVariant.Text)
+    Label("AccountAvatar")
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+        AccountAvatar("Anna Berg", {})
+        AccountAvatar(null, {})
+    }
+}
+
+private const val GALLERY_TOTAL = 9
+
+/** Dagens fyra måendetillfällen i var sitt läge (påhittade värden) – för galleriet och dess skärmdumpar. */
+@Composable
+internal fun GalleryOccasionRows() {
+    OccasionRow(
+        "Efter frukost",
+        OccasionStatus.Logged,
+        {},
+        time = "08:12",
+        values = listOf(OccasionValue("Energi", 7), OccasionValue("Stress", 4, higherIsBetter = false)),
+        onClick = {},
+    )
+    OccasionRow("Lunch", OccasionStatus.Late, {}, time = "12:00")
+    OccasionRow("Kvällsmat", OccasionStatus.Soon, {}, time = "18:00")
+    OccasionRow("Läggdags", OccasionStatus.Upcoming, {}, time = "22:00")
 }
 
 /** Påhittade symptomalternativ för galleriet och dess skärmdumpar. */
