@@ -25,8 +25,10 @@ import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
 /**
- * Etikett eller räknare i en pill, i en av sektionstonerna ([Tone]). [icon] står före texten;
- * med [onClick] är pillen en knapp med minst 48 dp tryckyta (t.ex. synkindikatorn i [AppTopBar]).
+ * Etikett eller räknare i en pill, i en av sektionstonerna ([Tone]). [icon] står före texten och
+ * [trailingIcon] efter den (t.ex. rullgardinens pil i `CompactDropdownButton`); med [onClick] är pillen
+ * en knapp med minst 48 dp tryckyta (t.ex. synkindikatorn i [AppTopBar]), med [role] och [onClickLabel]
+ * för TalkBack.
  */
 @Composable
 fun InfoPill(
@@ -35,9 +37,12 @@ fun InfoPill(
     tone: Tone = Tone.Primary,
     @DrawableRes icon: Int? = null,
     onClick: (() -> Unit)? = null,
+    @DrawableRes trailingIcon: Int? = null,
+    role: Role = Role.Button,
+    onClickLabel: String? = null,
 ) {
     val colors = AppColors.tone(tone)
-    val click = onClick?.let { Modifier.minimumInteractiveComponentSize().clip(AppShapes.pill).clickable(role = Role.Button, onClick = it) } ?: Modifier
+    val click = onClick?.let { Modifier.minimumInteractiveComponentSize().clip(AppShapes.pill).clickable(onClickLabel = onClickLabel, role = role, onClick = it) } ?: Modifier
     Row(
         modifier.then(click).background(colors.container, AppShapes.pill).padding(horizontal = Spacing.m, vertical = Spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -45,6 +50,7 @@ fun InfoPill(
     ) {
         icon?.let { Icon(painterResource(it), contentDescription = null, tint = colors.content, modifier = Modifier.size(ICON)) }
         Text(text, style = AppTypography.pill, color = colors.content, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        trailingIcon?.let { Icon(painterResource(it), contentDescription = null, tint = colors.content, modifier = Modifier.size(ICON)) }
     }
 }
 
