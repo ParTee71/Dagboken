@@ -76,7 +76,7 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
   nedtoning som resten av appen räcker och är tydligare.
   Nedtonad text når inte 4,5:1 (uppmätt med `INACTIVE_ALPHA`: ljust ca 2,3:1, mörkt ca 3,3–3,5:1). Det
   godtas bara för det som inte räknas med eller inte går att välja; det som är aktivt och ska läsas
-  tonas aldrig ned. Höjd nedtoning är en öppen designfråga (#250).
+  tonas aldrig ned. Beslutat att behålla 0,55 (#250).
 - **Spår** (ofylld del av framstegsraden, inaktiva stegprickar) har en färg: `AppColors.extended.track`.
 
 ## Rörelse och belöning
