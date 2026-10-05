@@ -34,6 +34,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
+import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.SymptomScore
@@ -483,7 +484,13 @@ private fun Overlays() {
         }
     }
     when (appSheet) {
-        AppSheet.Account -> AccountSheet(onDismiss = { appSheet = null }, onSignOut = { appSheet = null }, onOpenGallery = { appSheet = null })
+        AppSheet.Account -> AccountSheet(
+            onDismiss = { appSheet = null },
+            onSignOut = { appSheet = null },
+            onOpenGallery = { appSheet = null },
+            account = AuthUser("galleri", "Anna Berg", "anna.berg@exempel.se"),
+            onOpen = { appSheet = null },
+        )
         AppSheet.LogMenu -> LogMenuSheet(onDismiss = { appSheet = null }, onPick = { appSheet = null })
         null -> Unit
     }

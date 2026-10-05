@@ -127,6 +127,8 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.vico.compose) // diagram, bara i ui/diagram (TRD-10 zoom/panorering)
+    implementation(libs.coil.compose) // profilfotot i AccountAvatar (AUTH-3)
+    implementation(libs.coil.network.okhttp)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)

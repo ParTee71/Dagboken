@@ -22,7 +22,7 @@ import se.partee71.dagboken.ui.components.AppLoading
 @Composable
 fun AppRoot(modifier: Modifier = Modifier, viewModel: AuthViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    AppRootContent(state, viewModel::onEvent, modifier) { AppNavigation(onSignOut = { viewModel.onEvent(AuthEvent.SignOut) }) }
+    AppRootContent(state, viewModel::onEvent, modifier) { AppNavigation(state.account, onSignOut = { viewModel.onEvent(AuthEvent.SignOut) }) }
 }
 
 /** Appens bakgrund sätts här, en gång; skärmarna ritar ovanpå den. */
@@ -31,7 +31,7 @@ fun AppRootContent(
     state: AuthUiState,
     onEvent: (AuthEvent) -> Unit,
     modifier: Modifier = Modifier,
-    main: @Composable () -> Unit = { AppNavigation(onSignOut = { onEvent(AuthEvent.SignOut) }) },
+    main: @Composable () -> Unit = { AppNavigation(state.account, onSignOut = { onEvent(AuthEvent.SignOut) }) },
 ) {
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         when (state.gate) {

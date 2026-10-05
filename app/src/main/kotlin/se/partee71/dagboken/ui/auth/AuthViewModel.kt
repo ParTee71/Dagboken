@@ -37,6 +37,8 @@ data class AuthUiState(
     /** Inloggning eller förberedelse av användaren pågår. */
     val busy: Boolean = false,
     val error: DataError? = null,
+    /** Den inloggade – namn, e-post och foto för avataren och inställningsarket, bara i minnet (AUTH-3). */
+    val account: AuthUser? = null,
 )
 
 sealed interface AuthEvent {
@@ -67,8 +69,8 @@ class AuthViewModel @Inject constructor(
     private val gate = combine(auth.authState, session.schemaVersion, session.unreadable, ::gateOf)
 
     val state: StateFlow<AuthUiState> =
-        combine(gate, signingIn, ensuring, error) { gate, signingIn, ensuring, error ->
-            AuthUiState(gate, busy = signingIn || ensuring, error = error)
+        combine(gate, signingIn, ensuring, error, user) { gate, signingIn, ensuring, error, user ->
+            AuthUiState(gate, busy = signingIn || ensuring, error = error, account = user)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AuthUiState())
 
     init {

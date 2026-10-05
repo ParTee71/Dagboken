@@ -84,7 +84,7 @@ fun EntityEditScreen(
             when (effect) {
                 EditorEffect.Done -> saved()
                 // Egen coroutine: en visad snackbar får inte hålla tillbaka nästa händelse.
-                is EditorEffect.Failed -> launch { snackbar.showSnackbar(resources.getString(effect.error.toMessage())) }
+                is EditorEffect.Failed -> launch { snackbar.showSnackbar(resources.getString(effect.message)) }
             }
         }
     }

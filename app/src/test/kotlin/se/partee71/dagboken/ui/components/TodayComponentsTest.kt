@@ -1,5 +1,15 @@
+@file:OptIn(coil3.annotation.DelicateCoilApi::class)
+
 package se.partee71.dagboken.ui.components
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.intercept.Interceptor
+import coil3.request.CachePolicy
+import coil3.request.ErrorResult
+import coil3.request.ImageRequest
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +27,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
@@ -26,6 +37,7 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -253,6 +265,36 @@ class TodayComponentsTest {
     }
 
     @Test
+    fun `fotot hämtas bara till minnet och utan foto syns initialerna (AUTH-3)`() {
+        // Ingen riktig nätåtkomst i JVM-testet: en egen ImageLoader fångar requesten och svarar med fel.
+        val requests = mutableListOf<ImageRequest>()
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        SingletonImageLoader.setUnsafe(
+            ImageLoader.Builder(context).components {
+                add(Interceptor { chain -> synchronized(requests) { requests += chain.request }; ErrorResult(null, chain.request, IllegalStateException("inget nät i test")) })
+            }.build(),
+        )
+        try {
+            show { AccountAvatar("Anna Berg", {}, photoUrl = "https://exempel.se/anna.jpg") }
+            rule.waitUntil(WAIT_MILLIS) { synchronized(requests) { requests.isNotEmpty() } }
+            rule.waitForIdle()
+            val request = synchronized(requests) { requests.single() }
+            assertEquals("https://exempel.se/anna.jpg", request.data)
+            assertEquals(CachePolicy.DISABLED, request.diskCachePolicy, "fotot får aldrig sparas på enheten")
+            assertTrue(rule.onNodeWithContentDescription("Konto och inställningar").pixels(AppColors.light.onPrimaryContainer) > 0, "initialerna ritas")
+        } finally {
+            SingletonImageLoader.reset()
+        }
+    }
+
+    @Test
+    fun `utan onClick är avataren bara en bild som inte läses upp`() {
+        show { AccountAvatar("Anna Berg", onClick = null) }
+        rule.onNodeWithContentDescription("Konto och inställningar").assertDoesNotExist()
+        rule.onAllNodes(hasClickAction()).assertCountEquals(0)
+    }
+
+    @Test
     fun `initialerna tas ur första och sista ordet, utan namn blir det person-ikonen`() {
         assertEquals("AB", initials("Anna Berg"))
         assertEquals("AB", initials("  anna maria   berg "))
@@ -270,3 +312,6 @@ class TodayComponentsTest {
         const val FRAMES = 64L
     }
 }
+
+/** Hur länge testet väntar på bildladdningens request. */
+private const val WAIT_MILLIS = 5_000L

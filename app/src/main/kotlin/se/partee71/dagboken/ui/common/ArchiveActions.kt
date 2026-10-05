@@ -34,14 +34,16 @@ sealed interface ArchiveEvent {
 /**
  * Den enda arkiveringslogiken för en listskärms ViewModel (skill shared-ui-components): vad
  * `SwipeToHide`, `UndoSnackbar` och "Visa arkiverade" i `EntityListScreen` behöver. [setArchived]
- * skriver; ett fel visas som meddelande ([error]) i stället för att tappas. Samma mekanik för
- * att dölja en rad: [setArchived] sätter då t.ex. `hidden` och [undoFormat] är "%s dold". ViewModeln exponerar
+ * skriver; ett fel visas som meddelande ([failure]) i stället för att tappas. Samma mekanik för
+ * att dölja en rad: [setArchived] sätter då t.ex. `hidden` och [undoFormat] är "%s dold". [errorMessage] ger en
+ * egen text för ett fel som inte är ett `DataError` (t.ex. en dubblett som nekas vid Ångra). ViewModeln exponerar
  * den som `archive`, och skärmen skickar `archive.collectAsListArchive()` till listan.
  */
 class ArchiveActions(
     private val scope: CoroutineScope,
     private val setArchived: suspend (id: String, archived: Boolean) -> Result<Unit>,
     @param:StringRes private val undoFormat: Int = R.string.archived_format,
+    private val errorMessage: (Throwable) -> Int? = { null },
 ) {
     private val _showingArchived = MutableStateFlow(false)
     val showingArchived: StateFlow<Boolean> = _showingArchived.asStateFlow()
@@ -49,9 +51,9 @@ class ArchiveActions(
     private val _undo = MutableStateFlow<UndoRequest?>(null)
     val undo: StateFlow<UndoRequest?> = _undo.asStateFlow()
 
-    /** Ett misslyckat arkivera/ångra, tills listan visat det. */
-    private val _error = MutableStateFlow<DataError?>(null)
-    val error: StateFlow<DataError?> = _error.asStateFlow()
+    /** Ett misslyckat arkivera/ångra med sin text, tills listan visat det. Två fel i rad är två värden. */
+    private val _failure = MutableStateFlow<Failure?>(null)
+    val failure: StateFlow<Failure?> = _failure.asStateFlow()
 
     /** Aktiva först; arkiverade sist och bara när de visas. Ordningen i övrigt behålls. */
     fun <T : Archivable> visible(source: Flow<List<T>>): Flow<List<T>> =
@@ -59,22 +61,28 @@ class ArchiveActions(
 
     /** Ett fel från en annan skrivning i samma lista (t.ex. en avprickning) visas på samma sätt. */
     fun report(error: DataError) {
-        _error.value = error
+        _failure.value = error.toFailure(errorMessage)
+    }
+
+    /** Visar felet i [result], om det misslyckades; `true` = misslyckat. */
+    private fun failed(result: Result<Unit>): Boolean {
+        _failure.value = result.failureOrNull(errorMessage) ?: return false
+        return true
     }
 
     fun onEvent(event: ArchiveEvent) {
         when (event) {
             is ArchiveEvent.Archive -> scope.launch {
-                setArchived(event.id, true).dataError()?.let { _error.value = it } ?: run { _undo.value = UndoRequest(event.id, event.name, undoFormat) }
+                if (!failed(setArchived(event.id, true))) _undo.value = UndoRequest(event.id, event.name, undoFormat)
             }
             ArchiveEvent.Undo -> {
                 val request = _undo.value ?: return
                 _undo.value = null
-                scope.launch { setArchived(request.id, false).dataError()?.let { _error.value = it } }
+                scope.launch { failed(setArchived(request.id, false)) }
             }
             ArchiveEvent.UndoDismissed -> _undo.value = null
             ArchiveEvent.ToggleArchived -> _showingArchived.value = !_showingArchived.value
-            ArchiveEvent.ErrorShown -> _error.value = null
+            ArchiveEvent.ErrorShown -> _failure.value = null
         }
     }
 }
@@ -84,6 +92,6 @@ class ArchiveActions(
 fun ArchiveActions.collectAsListArchive(showToggle: Boolean = true): ListArchive {
     val showing by showingArchived.collectAsStateWithLifecycle()
     val request by undo.collectAsStateWithLifecycle()
-    val failure by error.collectAsStateWithLifecycle()
-    return ListArchive(showing, request, failure, showToggle, ::onEvent)
+    val shown by failure.collectAsStateWithLifecycle()
+    return ListArchive(showing, request, shown, showToggle, ::onEvent)
 }

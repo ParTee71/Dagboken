@@ -219,4 +219,48 @@ class EditorStateTest {
         assertFalse(editor.state.value.loading)
         assertNull(loader.stored.value)
     }
+
+    @Test
+    fun `omvalidering och ändringar tar inte bort ett läsfel`() = runTest {
+        val editor = EditorState(Form(), validator, loading = true)
+        editor.loadFailed(DataError.Offline)
+
+        editor.revalidate()
+        assertEquals(DataError.Offline, editor.state.value.loadError)
+        editor.update("name") { it.copy(name = "Promenad") }
+        assertEquals(DataError.Offline, editor.state.value.loadError)
+
+        var writes = 0
+        editor.save { writes++; Result.success(Unit) }
+        assertEquals(0, writes, "inget lagrat värde att spara över")
+    }
+
+    @Test
+    fun `EditorLoader utan projektion lägger det lagrade i formuläret och i stored`() = runTest {
+        val editor = EditorState(Form(), validator, loading = true)
+        val loader = EditorLoader(editor, backgroundScope, read = { Result.success(Form("Promenad")) })
+        testScheduler.runCurrent()
+        assertEquals(Form("Promenad"), editor.state.value.value)
+        assertEquals(Form("Promenad"), loader.stored.value)
+    }
+
+    @Test
+    fun `ett ogiltigt lagrat värde visar sitt fel direkt bara när formuläret ber om det`() {
+        val editor = editor()
+        editor.load(Form())
+        assertTrue(editor.state.value.errors.isEmpty(), "standard: som förut")
+        editor.load(Form(), showInvalid = true)
+        assertTrue(editor.state.value.errors.isNotEmpty())
+    }
+
+    @Test
+    fun `ett fel som uppstår först vid omvalidering syns när det lagrade ska visa sina fel`() {
+        var taken = emptySet<String>()
+        val editor = EditorState(Form(), Validator<Form> { if (it.name in taken) mapOf(NAME to R.string.error_unknown) else emptyMap() })
+        editor.load(Form("Promenad"), showInvalid = true)
+        assertTrue(editor.state.value.errors.isEmpty())
+        taken = setOf("Promenad")
+        editor.revalidate()
+        assertEquals(R.string.error_unknown, editor.state.value.errorFor(NAME))
+    }
 }

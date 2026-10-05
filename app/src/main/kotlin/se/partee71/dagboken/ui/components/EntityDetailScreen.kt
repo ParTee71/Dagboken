@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.DetailUiState
+import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
 
@@ -34,33 +35,40 @@ data class DetailHeader(val title: String, val subtitle: String? = null)
  * Den enda detaljskärmen (skill shared-ui-components): toppbar med tillbaka, "Redigera" och
  * meny; laddning → [AppLoading]; fel → läsfel med "Försök igen"; innehåll → ett centrerat
  * huvud ([leading], [DetailHeader]) och sektioner i kort ([content]). Ett fel från en åtgärd
- * (t.ex. arkivera i menyn, [error]) visas som meddelande.
+ * (t.ex. arkivera i menyn, [error], eller [failure] med egen text) visas som meddelande.
  *
- * @param header vad huvudet visar för ett laddat värde.
+ * En underskärm utan eget huvud (t.ex. Tema och Om i inställningsarket) har [title]: titeln står då i
+ * toppraden bredvid tillbakapilen – samma topprad som `EntityEditScreen`, utan Spara – och inget
+ * centrerat huvud visas.
+ *
+ * @param header vad huvudet visar för ett laddat värde; `null` = inget huvud.
  * @param menu valen i "Fler val" (arkivera/återställ m.m.) för ett laddat värde.
  */
 @Composable
 fun <T> EntityDetailScreen(
     state: DetailUiState<T>,
-    header: (T) -> DetailHeader,
+    header: ((T) -> DetailHeader)?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    title: String? = null,
     onEdit: (() -> Unit)? = null,
     menu: (T) -> List<AppMenuItem> = { emptyList() },
     onRetry: () -> Unit = {},
     error: DataError? = null,
     onErrorShown: () -> Unit = {},
+    failure: Failure? = null,
     leading: @Composable (T) -> Unit = {},
     content: @Composable ColumnScope.(T) -> Unit,
 ) {
     val snackbar = remember { SnackbarHostState() }
-    ErrorSnackbar(error, snackbar, onShown = onErrorShown)
+    // [failure] (fel + text, varje fel en egen händelse) går före [error].
+    ErrorSnackbar(failure?.error ?: error, snackbar, message = failure?.message, key = failure ?: error, onShown = onErrorShown)
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { AppSnackbarHost(snackbar) },
         topBar = {
-            AppTopBar("", size = TopBarSize.Small, onBack = onBack) {
+            AppTopBar(title.orEmpty(), size = TopBarSize.Small, onBack = onBack) {
                 if (state is DetailUiState.Content) {
                     onEdit?.let { AppIconButton(R.drawable.ic_edit, stringResource(R.string.edit), it) }
                     val items = menu(state.value)
@@ -77,21 +85,26 @@ fun <T> EntityDetailScreen(
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.l, vertical = Spacing.s),
                     verticalArrangement = Arrangement.spacedBy(Spacing.m),
                 ) {
-                    val top = header(state.value)
-                    Column(
-                        Modifier.fillMaxWidth().padding(bottom = Spacing.s),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    ) {
-                        leading(state.value)
-                        Text(top.title, style = AppTypography.screenTitle, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
-                        top.subtitle?.let {
-                            Text(it, style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-                        }
-                    }
+                    header?.let { DetailTop(it(state.value)) { leading(state.value) } }
                     content(state.value)
                 }
             }
+        }
+    }
+}
+
+/** Det centrerade huvudet: bild, namn och en rad under. */
+@Composable
+private fun DetailTop(top: DetailHeader, leading: @Composable () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(bottom = Spacing.s),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        leading()
+        Text(top.title, style = AppTypography.screenTitle, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })
+        top.subtitle?.let {
+            Text(it, style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
     }
 }

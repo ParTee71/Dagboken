@@ -158,7 +158,86 @@
     <string name="account_open">Konto och inställningar</string>
     <string name="account_title">Inställningar</string>
     <string name="sign_out">Logga ut</string>
+    <string name="sign_out_title">Logga ut?</string>
+    <string name="sign_out_message">Din dagbok finns kvar i ditt konto och kommer tillbaka när du loggar in igen.</string>
     <string name="component_gallery">Komponentgalleri</string>
+    <string name="account_signed_in_google">Inloggad med Google</string>
+    <string name="settings_profile">Profil</string>
+    <string name="settings_reminders">Påminnelser</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_lists">Listor</string>
+    <string name="settings_export_import">Export och import</string>
+    <string name="settings_about">Om Dagboken</string>
+
+    <!-- Profil (HLS-11) -->
+    <string name="profile_birth_year">Födelseår</string>
+    <string name="profile_birth_year_help">Används bara för sömnkvalitetens åldersnormer.</string>
+    <string name="profile_birth_year_invalid">Ange ett rimligt födelseår</string>
+    <string name="profile_sex">Kön</string>
+    <string name="sex_female">Kvinna</string>
+    <string name="sex_male">Man</string>
+    <string name="sex_unspecified">Ej angivet</string>
+
+    <!-- Påminnelser (SET-4, NOT-4, NOT-13, NOT-18) -->
+    <string name="reminders_meds">Medicinpåminnelser</string>
+    <string name="reminders_meds_subtitle">Notis 15 minuter före varje tidpunkt du valt nedan</string>
+    <string name="reminders_med_times">Medicintider</string>
+    <string name="reminders_period">Periodslut</string>
+    <string name="reminders_period_time">Dagen innan en period tar slut</string>
+
+    <!-- Medicintidpunkter och måendetillfällen – ui/common/SlotLabels.kt, enda stället (DAT-1, NOT-4) -->
+    <string name="slot_morning">Morgon</string>
+    <string name="slot_midmorning">Förmiddag</string>
+    <string name="slot_lunch">Lunch</string>
+    <string name="slot_afternoon">Eftermiddag</string>
+    <string name="slot_evening">Kväll</string>
+    <string name="slot_night">Natt</string>
+    <string name="slot_as_needed">Vid behov</string>
+    <string name="occasion_breakfast">Efter frukost</string>
+    <string name="occasion_lunch">Lunch</string>
+    <string name="occasion_dinner">Kvällsmat</string>
+    <string name="occasion_bedtime">Läggdags</string>
+
+    <!-- Tema (SET-1, SET-2) -->
+    <string name="theme_light">Ljust</string>
+    <string name="theme_dark">Mörkt</string>
+    <string name="theme_auto">Auto</string>
+    <string name="theme_note">Ändringen syns direkt i hela appen.</string>
+    <string name="theme_light_from">Ljust från</string>
+    <string name="theme_dark_from">Mörkt från</string>
+    <string name="theme_hours_invalid">Ljust måste börja före mörkt</string>
+
+    <!-- Listor (SET-5, SET-6, SET-9, SET-11, DAT-9) -->
+    <string name="lists_activities">Aktiviteter</string>
+    <string name="lists_events">Händelser</string>
+    <string name="lists_empty_activity">Inga aktiviteter än</string>
+    <string name="lists_empty_activity_message">Promenad, yoga, städning – det du brukar göra.</string>
+    <string name="lists_empty_symptom">Inga symptom än</string>
+    <string name="lists_empty_symptom_message">Huvudvärk, illamående, trötthet – det du vill följa.</string>
+    <string name="lists_empty_event">Inga händelsetyper än</string>
+    <string name="lists_empty_event_message">Migrän, yrsel, fall – det som händer och du vill minnas.</string>
+    <string name="option_new_activity">Ny aktivitet</string>
+    <string name="option_new_symptom">Nytt symptom</string>
+    <string name="option_new_event">Ny händelsetyp</string>
+    <string name="option_rename">Byt namn</string>
+    <string name="option_name">Namn</string>
+    <string name="option_rename_help">Det nya namnet syns även i det du redan loggat.</string>
+    <string name="option_name_missing">Ange ett namn</string>
+    <string name="option_name_duplicate">Finns redan i listan</string>
+    <string name="option_favorite_add">Markera %s som favorit</string>
+    <string name="option_favorite_remove">Ta bort %s som favorit</string>
+    <string name="option_archived">Arkiverad</string>
+
+    <!-- Export och import (BCK-13, SET-8) – funktionen kommer i #230 -->
+    <string name="export_import_upcoming">Här sparar du hela dagboken till en fil och läser in en säkerhetskopia. Funktionen kommer snart.</string>
+
+    <!-- Om Dagboken -->
+    <string name="about_version">Version</string>
+    <string name="about_build_format">%1$s (bygge %2$d)</string>
+    <string name="about_licenses">Licenser</string>
+    <string name="about_fonts">Typsnitten Fraunces och Figtree · SIL Open Font License 1.1</string>
+    <string name="about_privacy">Integritet</string>
+    <string name="about_privacy_text">Dagboken sparas i ditt eget konto, i EU. Inget innehåll loggas eller delas, och hälsodata från klockan sparas aldrig.</string>
 
     <!-- Plusknappens loggmeny (NAV-10) -->
     <string name="log_menu_open">Logga</string>

@@ -39,7 +39,8 @@ data class EditorUiState<T>(
 sealed interface EditorEffect {
     data object Done : EditorEffect
 
-    data class Failed(val error: DataError) : EditorEffect
+    /** [message] är texten som visas – som standard felets (`DataError.toMessage()`). */
+    data class Failed(val error: DataError, @param:StringRes val message: Int = error.toMessage()) : EditorEffect
 }
 
 /**
@@ -49,11 +50,21 @@ sealed interface EditorEffect {
  * - Ett fältfel visas när fältet har ändrats eller efter ett sparförsök – aldrig innan
  *   användaren hunnit skriva.
  * - [loading] = true tills [load] anropats (redigering av något som finns).
+ * - [errorMessage] ger en egen text för ett fel som inte är ett `DataError` (t.ex. en dubblett som
+ *   datalagret nekar); annars visas `DataError.toMessage()`.
  */
-class EditorState<T>(initial: T, private val validator: Validator<T>, loading: Boolean = false) {
+class EditorState<T>(
+    initial: T,
+    private val validator: Validator<T>,
+    loading: Boolean = false,
+    private val errorMessage: (Throwable) -> Int? = { null },
+) {
     private var original: T = initial
     private val touched = mutableSetOf<String>()
     private var attempted = false
+
+    /** Om fält som är ogiltiga i det lagrade värdet ska visa sitt fel ([load]). */
+    private var showStoredInvalid = false
     private val _state = MutableStateFlow(compute(initial, loading = loading))
     private val _effects = Channel<EditorEffect>(Channel.BUFFERED)
 
@@ -62,27 +73,43 @@ class EditorState<T>(initial: T, private val validator: Validator<T>, loading: B
 
     val value: T get() = _state.value.value
 
-    /** Sätter det lagrade värdet – formuläret blir oändrat och fel nollställs. */
-    fun load(value: T) {
+    /**
+     * Sätter det lagrade värdet – formuläret blir oändrat och fel nollställs. Med [showInvalid] räknas
+     * ett fält som är ogiltigt i det lagrade (t.ex. ett födelseår utanför spannet från 3.x, eller ett
+     * namn som visar sig vara en dubblett när listan kommer, se [revalidate]) som rört, så att felet
+     * syns direkt och kan rättas. Standard är som tidigare: inga fel förrän fältet ändrats.
+     */
+    fun load(value: T, showInvalid: Boolean = false) {
         original = value
         touched.clear()
+        showStoredInvalid = showInvalid
+        if (showInvalid) touched += validator.validate(value).keys
         attempted = false
         _state.value = compute(value, loading = false)
     }
 
     /**
      * Läser det lagrade värdet med [read] – en gång för alla formulär. Finns det inte, eller går
-     * det inte att läsa, visas läsfelet; [prepare] fyller i förval för det som saknas.
+     * det inte att läsa, visas läsfelet; [prepare] fyller i förval för det som saknas. [showInvalid]
+     * som i [load].
      */
-    suspend fun loadFrom(read: suspend () -> Result<T?>, prepare: (T) -> T = { it }) {
+    suspend fun loadFrom(read: suspend () -> Result<T?>, showInvalid: Boolean = false, prepare: (T) -> T = { it }) {
         read()
-            .onSuccess { stored -> if (stored == null) loadFailed(DataError.NotFound) else load(prepare(stored)) }
+            .onSuccess { stored -> if (stored == null) loadFailed(DataError.NotFound) else load(prepare(stored), showInvalid) }
             .onFailure { loadFailed(it as? DataError ?: DataError.Unknown) }
     }
 
     /** Det lagrade värdet gick inte att läsa – formuläret visar felet i stället för en evig laddning. */
     fun loadFailed(error: DataError) {
         _state.update { it.copy(loading = false, loadError = error) }
+    }
+
+    /**
+     * Läsfelet är åtgärdat utan att något lagrat läses om – t.ex. en lista som valideringen läser och
+     * som gick att läsa vid "Försök igen". Det användaren skrivit står kvar.
+     */
+    fun clearLoadError() {
+        _state.update { it.copy(loadError = null) }
     }
 
     /** Inför ett nytt läsförsök ("Försök igen"). */
@@ -93,7 +120,18 @@ class EditorState<T>(initial: T, private val validator: Validator<T>, loading: B
     /** Ändrar värdet; [fields] markeras som rörda så att deras fel börjar synas. */
     fun update(vararg fields: String, transform: (T) -> T) {
         touched += fields
-        _state.update { compute(transform(it.value), loading = it.loading, saving = it.saving) }
+        // Ett läsfel står kvar: formuläret har inget lagrat värde att spara över.
+        _state.update { compute(transform(it.value), loading = it.loading, saving = it.saving).copy(loadError = it.loadError) }
+    }
+
+    /**
+     * Validerar om utan att något ändrats – när det valideringen läser har kommit eller ändrats (t.ex.
+     * listan som dubbletter söks i). Laddning och läsfel står kvar. Efter en [load] med `showInvalid`
+     * visas ett fel som först nu uppstår i det oändrade lagrade värdet.
+     */
+    fun revalidate() {
+        if (showStoredInvalid && !_state.value.isDirty) touched += validator.validate(value).keys
+        update { it }
     }
 
     /**
@@ -124,15 +162,15 @@ class EditorState<T>(initial: T, private val validator: Validator<T>, loading: B
     private suspend fun perform(written: T, closeIfChanged: Boolean, action: suspend () -> Result<Unit>) {
         if (_state.value.saving) return
         _state.update { it.copy(saving = true) }
-        val error = action().dataError()
+        val failure = action().failureOrNull(errorMessage)
         _state.update { it.copy(saving = false) }
-        if (error == null) {
+        if (failure == null) {
             original = written
             val after = compute(value, loading = false)
             _state.value = after
             if (closeIfChanged || !after.isDirty) _effects.send(EditorEffect.Done)
         } else {
-            _effects.send(EditorEffect.Failed(error))
+            _effects.send(EditorEffect.Failed(failure.error, failure.message))
         }
     }
 
