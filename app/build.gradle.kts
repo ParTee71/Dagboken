@@ -126,6 +126,7 @@ dependencies {
     implementation(libs.credentials.play.services)
     implementation(libs.googleid)
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.vico.compose) // diagram, bara i ui/diagram (TRD-10 zoom/panorering)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)

@@ -62,8 +62,9 @@ object Regel4 {
     }
 
     /**
-     * `feature`: ui-paket utom components/theme/common (även filer direkt i ui/).
+     * `feature`: ui-paket utom components/diagram/theme/common (även filer direkt i ui/).
      * `firestore`: allt utom data/firestore/. `expressive`: allt utom ui/theme/ och ui/components/.
+     * `vico`: allt utom ui/diagram/.
      */
     fun scopesFor(relPath: String): List<String> {
         val p = relPath.replace('\\', '/')
@@ -72,10 +73,11 @@ object Regel4 {
         val ui = Regex("""/ui/(?:([^/]+)/)?[^/]+\.kt$|/ui/([^/]+)/""").find(p)
         if (ui != null) {
             val sub = ui.groupValues[1].ifEmpty { ui.groupValues[2] }
-            if (sub !in setOf("components", "theme", "common")) scopes += "feature"
+            if (sub !in setOf("components", "diagram", "theme", "common")) scopes += "feature"
         }
         if (!p.contains("/data/firestore/")) scopes += "firestore"
         if (!Regex("""/ui/(theme|components)/""").containsMatchIn(p)) scopes += "expressive"
+        if (!p.contains("/ui/diagram/")) scopes += "vico"
         return scopes
     }
 

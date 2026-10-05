@@ -6,6 +6,8 @@
 # ok            = rader som är tillåtna i feature-kod (app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt)
 # stopp         = rader som ska stoppas i feature-kod
 # komponent-ok  = rader som är tillåtna i en delad komponent (app/src/main/kotlin/se/partee71/dagboken/ui/components/X.kt)
+# diagram-ok    = rader som är tillåtna i ett delat diagram (app/src/main/kotlin/se/partee71/dagboken/ui/diagram/X.kt)
+# diagram-stopp = Vico-rader som stoppas även i en delad komponent i ui/components (X.kt)
 # scope         = <sökväg><TAB><scope, kommaseparerade; tomt = inga>
 # allowlist     = <allowlist-rad><TAB><kodrad i TodayRow.kt><TAB><ok|stopp>
 # allowlist-fel = allowlist-rader som ska avvisas (saknar symbol eller motivering)
@@ -69,24 +71,45 @@ Badge { }
 NavigationBar { }
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+CartesianChartHost(chart, model)
+val layer = rememberLineCartesianLayer()
+val zoom = rememberVicoZoomState(initialZoom = Zoom.Content)
+VerticalAxis.rememberStart()
+val p = com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer()
 
 [komponent-ok]
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 Card(modifier = modifier) { content() }
 style = MaterialTheme.typography.titleLarge
 
+[diagram-ok]
+CartesianChartHost(chart, model)
+val layer = rememberLineCartesianLayer()
+val zoom = rememberVicoZoomState(initialZoom = Zoom.Content)
+VerticalAxis.rememberStart()
+val fill = Fill(color.copy(alpha = 0.28f))
+Modifier.height(200.dp)
+drawLine(color = Color.Transparent, start, end)
+
+[diagram-stopp]
+CartesianChartHost(chart, model)
+val layer = rememberLineCartesianLayer()
+val zoom = rememberVicoZoomState(initialZoom = Zoom.Content)
+VerticalAxis.rememberStart()
+
 [scope]
 README.md	
 app/src/main/kotlin/se/partee71/dagboken/ui/diary/notes.md	
 app/src/test/kotlin/X.kt	
-app/src/main/kotlin/se/partee71/dagboken/data/firestore/FirestoreCollection.kt	expressive
-app/src/main/kotlin/se/partee71/dagboken/ui/theme/Theme.kt	firestore
-app/src/main/kotlin/se/partee71/dagboken/ui/common/EditorState.kt	firestore,expressive
-app/src/main/kotlin/se/partee71/dagboken/ui/components/screens/EntityListScreen.kt	firestore
-app/src/main/kotlin/se/partee71/dagboken/ui/diary/DiaryScreen.kt	feature,firestore,expressive
-app/src/main/kotlin/se/partee71/dagboken/ui/AppRoot.kt	feature,firestore,expressive
-app/src/main/kotlin/se/partee71/dagboken/di/AppModule.kt	firestore,expressive
-app/src/main/kotlin/se/partee71/dagboken/data/repository/DoseRepository.kt	firestore,expressive
+app/src/main/kotlin/se/partee71/dagboken/data/firestore/FirestoreCollection.kt	expressive,vico
+app/src/main/kotlin/se/partee71/dagboken/ui/theme/Theme.kt	firestore,vico
+app/src/main/kotlin/se/partee71/dagboken/ui/common/EditorState.kt	firestore,expressive,vico
+app/src/main/kotlin/se/partee71/dagboken/ui/components/screens/EntityListScreen.kt	firestore,vico
+app/src/main/kotlin/se/partee71/dagboken/ui/diagram/LineChart.kt	firestore,expressive
+app/src/main/kotlin/se/partee71/dagboken/ui/diary/DiaryScreen.kt	feature,firestore,expressive,vico
+app/src/main/kotlin/se/partee71/dagboken/ui/AppRoot.kt	feature,firestore,expressive,vico
+app/src/main/kotlin/se/partee71/dagboken/di/AppModule.kt	firestore,expressive,vico
+app/src/main/kotlin/se/partee71/dagboken/data/repository/DoseRepository.kt	firestore,expressive,vico
 
 [allowlist]
 app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card( – test	Card(modifier) { }	ok

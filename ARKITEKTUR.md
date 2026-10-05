@@ -318,7 +318,7 @@ hårdkodar aldrig. Värdena nedan är mockupens approximation – kontrast räkn
 | Källa | Komponenter |
 |---|---|
 | **Från ReseApoteket (G, nästan rakt av)** | `EntityListScreen`, `EntityEditScreen`, `EntityDetailScreen`, `EditorState`, `ListUiState`, `AppButton`, `AppIconButton`, `AppTextField`, `AppTopBar`, `AppBottomSheet`, `AppMenu`, `AppSegmentedChoice`, `AppFilterChip`, `ChipRow`, `ChoiceChips`, `CheckRow`, `SwitchRow`, `ItemRow`, `SectionHeader`, `GroupLabel`, `InfoPill`, `EmptyState`, `LoadErrorState`, `AppLoading`, `ConfirmDialog`, `UndoSnackbar`, `ErrorSnackbar`, `SwipeToHide`, `DateField`, `TimeField`, `PickerField`, `QuantityStepper`, `Confetti`, `ComponentGallery` |
-| **Från Dagboken 3.x (portas till katalogen)** | `DagbokenEntryCard` → postkortet (NFR-15/16), `Foldout`, `SliderRow` + `GradientSliderRow` → `ValueSlider` (ett reglage, färgat åt båda hållen), `WheelPicker`, `DagbokenCalendar`, `StepwiseScreeningForm`, `SymptomLogCard`, `NoteField`, `StatPill`, `DateTimeRow`, `DurationRow`, `ReminderTimeRow`, hela `ui/diagram` (`LineChartCanvas`, `IntervalBarChart`, `StackedBarChart`, `SmartYAxis`, `TrendLine`, `MinMaxCaption`, `CompactDropdownButton`, `ChartSemantics`), `SparklineChart` |
+| **Från Dagboken 3.x (portas till katalogen)** | `DagbokenEntryCard` → postkortet (NFR-15/16), `Foldout`, `SliderRow` + `GradientSliderRow` → `ValueSlider` (ett reglage, färgat åt båda hållen), `WheelPicker`, `DagbokenCalendar`, `StepwiseScreeningForm`, `SymptomLogCard`, `NoteField`, `StatPill`, `DateTimeRow`, `DurationRow`, `ReminderTimeRow`, hela `ui/diagram` (`LineChartCanvas` → `LineChart` på Vico 3, `IntervalBarChart`, `StackedBarChart`, `MinMaxCaption`, `CompactDropdownButton`, `ChartSemantics`, `SparklineChart`; `SmartYAxis` och `TrendLine` är matematik och ligger i `:core/engine`) |
 | **Nya (NY KOMPONENT i mockupen)** | `DateStrip` (datumremsa), `OccasionRow` (tillfällesrad för mående), `ProgressBar` (framstegsrad), `DayDoneCard` (dagen klar), `AccountAvatar` (avataren som öppnar inställningsarket). `AccountSheet` och `LogMenuSheet` byggdes i etapp 1; diagramgrupperna i Trender (Mående · Klocka · Jämför, TRD-19) är `AppSegmentedChoice` |
 
 Varje komponent: en fil i `ui/components/`, Roborazzi ljust + mörkt, plats i `ComponentGallery`,
@@ -474,8 +474,8 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
 - **Skills som behålls från Dagboken:** `notifications-alarms`, `data-privacy-security`
   (hälsodataversionen), `accessibility-compose`, `android-dev`, `compose-expert`,
   `kotlin-coroutines`, `kotlin-flows`, `firebase-auth`.
-- **Nya skills:** `health-connect` (destillerat ur `HealthConnectRepository`), `diagram`
-  (ui/diagram-reglerna, TRD-6…18).
+- **Nya skills:** `health-connect` (destillerat ur `HealthConnectRepository`, etapp 6), `diagram`
+  (ui/diagram-reglerna, TRD-6…18 – byggd i etapp 4.3).
 - **Pensioneras:** `room-migrations`, `android-data-layer`.
 - **Agenter** (`.claude/agents/`, läggs i etapp 1-PR:en) med modell och effort i frontmatter, så
   att huvudsessionen kan delegera varje steg till rätt nivå utan att själv byta modell:

@@ -174,4 +174,41 @@
     <string name="sync_pending_description">Ändringar väntar på att synkas</string>
     <string name="sync_pending_explained">Ändringarna är sparade på telefonen och skickas när det finns nät.</string>
     <string name="sync_write_rejected">En ändring kunde inte sparas och har ångrats. %1$s</string>
+    <!-- Diagram (TRD-6–18, HEM-7, NFR-14) -->
+    <string name="chart_empty_title">För lite data än</string>
+    <string name="chart_empty_hint">Logga några dagar till så syns kurvan här.</string>
+    <string name="chart_min">Lägst</string>
+    <string name="chart_max">Högst</string>
+    <string name="chart_average">Snitt</string>
+    <string name="chart_today">Idag</string>
+    <string name="chart_stat_format">%1$s %2$s</string>
+    <string name="chart_trend_rising">Trend uppåt</string>
+    <string name="chart_trend_falling">Trend nedåt</string>
+    <string name="chart_trend_flat">Trend oförändrad</string>
+    <string name="chart_legend_trend">Trend</string>
+    <string name="chart_previous_format">%1$s (föregående)</string>
+    <string name="chart_open_trends">Visa i Trender</string>
+    <string name="chart_choose">Välj</string>
+    <string name="chart_a11y_default_label">Diagram</string>
+    <string name="chart_a11y_empty">%1$s: för lite data än</string>
+    <string name="chart_a11y_summary">%1$s: %2$s, lägsta %3$s, högsta %4$s, senaste %5$s, %6$s</string>
+    <string name="chart_a11y_interval_summary">%1$s: %2$s, lägsta %3$s, högsta %4$s, %5$s</string>
+    <string name="chart_a11y_stacked_summary">%1$s: %2$s, lägsta %3$s, högsta %4$s, mest %5$s, %6$s</string>
+    <plurals name="chart_a11y_values">
+        <item quantity="one">%d värde</item>
+        <item quantity="other">%d värden</item>
+    </plurals>
+    <plurals name="chart_a11y_days">
+        <item quantity="one">%d dag</item>
+        <item quantity="other">%d dagar</item>
+    </plurals>
+    <plurals name="chart_a11y_bars">
+        <item quantity="one">%d stapel</item>
+        <item quantity="other">%d staplar</item>
+    </plurals>
+    <string name="chart_a11y_no_dominant">ingen kategori</string>
+    <string name="chart_a11y_trend_rising">stigande trend</string>
+    <string name="chart_a11y_trend_falling">fallande trend</string>
+    <string name="chart_a11y_trend_flat">oförändrad trend</string>
+    <string name="chart_a11y_trend_unknown">ingen trend</string>
 </resources>

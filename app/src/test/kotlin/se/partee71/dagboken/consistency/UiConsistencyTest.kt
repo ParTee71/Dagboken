@@ -25,10 +25,11 @@ class UiConsistencyTest {
 
     private val featureFile = "app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt"
     private val componentFile = "app/src/main/kotlin/se/partee71/dagboken/ui/components/X.kt"
+    private val diagramFile = "app/src/main/kotlin/se/partee71/dagboken/ui/diagram/X.kt"
 
     @Test
     fun `mönsterfilen har alla scope och en ersättning per mönster`() {
-        assertEquals(setOf("feature", "firestore", "expressive"), patterns.keys)
+        assertEquals(setOf("feature", "firestore", "expressive", "vico"), patterns.keys)
         patterns.values.flatten().forEach { assertTrue(it.replacement.isNotBlank(), it.regex.pattern) }
     }
 
@@ -71,6 +72,12 @@ class UiConsistencyTest {
         examples.getValue("komponent-ok").forEach { line ->
             assertEquals(emptyList(), Regel4.findViolations(componentFile, line, patterns, emptyList()), line)
         }
+        examples.getValue("diagram-ok").forEach { line ->
+            assertEquals(emptyList(), Regel4.findViolations(diagramFile, line, patterns, emptyList()), line)
+        }
+        examples.getValue("diagram-stopp").forEach { line ->
+            assertTrue(Regel4.findViolations(componentFile, line, patterns, emptyList()).isNotEmpty(), line)
+        }
     }
 
     @Test
@@ -110,7 +117,7 @@ class UiConsistencyTest {
     }
 
     @Test
-    fun `komponenttabellen i shared-ui-components stämmer med ui-components`() {
+    fun `komponenttabellen i shared-ui-components stämmer med ui-components och ui-diagram`() {
         val inCode = publicComponents("Dokumentdrift")
         val inTable = documentedComponents()
         val missingInTable = inCode - inTable
@@ -137,10 +144,13 @@ class UiConsistencyTest {
     private fun galleryText(): String =
         checkNotNull(production.files.firstOrNull { it.name == "ComponentGallery" }?.text) { "ComponentGallery saknas i ui/components" }
 
-    /** Publika composables i `ui.components`; inga alls betyder att sökningen gått fel och fäller testet. */
+    /**
+     * Publika composables i de delade paketen `ui.components` och `ui.diagram`; inga alls betyder att
+     * sökningen gått fel och fäller testet.
+     */
     private fun publicComponents(checkName: String): Set<String> {
         val names = production.functions()
-            .filter { it.resideInPackage("..ui.components..") && it.hasPublicOrDefaultModifier }
+            .filter { (it.resideInPackage("..ui.components..") || it.resideInPackage("..ui.diagram..")) && it.hasPublicOrDefaultModifier }
             .filter { it.hasAnnotationWithName("Composable") }
             .map { it.name }
             .toSet()

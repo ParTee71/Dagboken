@@ -102,6 +102,23 @@ test('delade exempel: delade komponenter får använda M3 och Expressive', () =>
   }
 });
 
+test('delade exempel: diagrammen i ui/diagram får använda Vico och rita själva, inget annat får använda Vico', () => {
+  const scopes = parsePatterns(readPatterns());
+  const ex = readExamples();
+  assert.ok(ex['diagram-ok'].length >= 4);
+  for (const line of ex['diagram-ok']) assert.deepEqual(findViolations(`${pkg}/ui/diagram/X.kt`, line, scopes, []), [], line);
+  for (const line of ex['diagram-stopp']) assert.ok(findViolations(componentFile, line, scopes, []).length > 0, line);
+});
+
+test('Vico stoppas av hooken utanför ui/diagram men släpps i ui/diagram', () => {
+  const { dir } = makeProject();
+  const src = 'package x\n\n@Composable\nfun Chart() {\n    CartesianChartHost(chart, model)\n}\n';
+  const r = runHook(dir, writeKt(dir, `${pkg}/ui/trends/TrendsScreen.kt`, src));
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /kod utanför ui\/diagram/);
+  assert.equal(runHook(dir, writeKt(dir, `${pkg}/ui/diagram/LineChart.kt`, src)).status, 0);
+});
+
 test('delade exempel: ett undantag gäller bara sin fil och sin symbol', () => {
   const scopes = parsePatterns(readPatterns());
   for (const example of readExamples().allowlist) {
@@ -161,9 +178,10 @@ test('tom eller trasig indata ger exit 0', () => {
 
 test('mönsterfilen har alla scope, giltiga regexar och en ersättning per rad', () => {
   const scopes = parsePatterns(readPatterns());
-  assert.deepEqual(Object.keys(scopes).sort(), ['expressive', 'feature', 'firestore']);
+  assert.deepEqual(Object.keys(scopes).sort(), ['expressive', 'feature', 'firestore', 'vico']);
   assert.ok(scopes.feature.length >= 30);
   assert.ok(scopes.firestore.length >= 3);
+  assert.ok(scopes.vico.length >= 3);
   for (const rule of Object.values(scopes).flat()) assert.ok(rule.replacement, rule.source);
 });
 

@@ -86,6 +86,27 @@ class ThemeContrastTest {
         check("mörkt", todayGraphics(AppColors.dark, AppColors.darkExtended), GRAPHICS_MIN)
     }
 
+    /**
+     * Diagrammen (etapp 4.3): grafik som bär information mot kortet (3:1). Den solgula trendlinjen är
+     * stöd – riktningen står alltid som text i trendpillen – och dagens solgula punkt har en mörk ring.
+     */
+    private fun chartGraphics(scheme: ColorScheme, extended: ExtendedColors) = mapOf(
+        "kurvan mot kortet" to (scheme.primary to extended.card),
+        "ringen kring dagens punkt mot kortet" to (extended.sunTone.content to extended.card),
+        "djupsömn mot kortet" to (extended.sleepStages.deep to extended.card),
+        "lätt sömn mot kortet" to (extended.sleepStages.light to extended.card),
+        "REM mot kortet" to (extended.sleepStages.rem to extended.card),
+        "vaken mot kortet" to (extended.sleepStages.awake to extended.card),
+        "låg energi mot kortet" to (extended.energy.low to extended.card),
+        "hög energi mot kortet" to (extended.energy.high to extended.card),
+    )
+
+    @Test
+    fun `diagrammen - ljust och mörkt tema`() {
+        check("ljust", chartGraphics(AppColors.light, AppColors.lightExtended), GRAPHICS_MIN)
+        check("mörkt", chartGraphics(AppColors.dark, AppColors.darkExtended), GRAPHICS_MIN)
+    }
+
     @Test
     fun `valbara färger varvar och ett oläsbart värde ger första förvalet`() {
         assertTrue(AppColors.swatch(8) == AppColors.swatch(0))

@@ -29,12 +29,17 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.SymptomScore
+import se.partee71.dagboken.core.engine.IntervalPoint
+import se.partee71.dagboken.core.engine.StackedPoint
+import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorUiState
@@ -44,6 +49,14 @@ import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.scaleLevel
+import se.partee71.dagboken.ui.diagram.ChartSeries
+import se.partee71.dagboken.ui.diagram.CompactDropdownButton
+import se.partee71.dagboken.ui.diagram.IntervalBarChart
+import se.partee71.dagboken.ui.diagram.LineChart
+import se.partee71.dagboken.ui.diagram.MinMaxCaption
+import se.partee71.dagboken.ui.diagram.SparklineChart
+import se.partee71.dagboken.ui.diagram.StackSegment
+import se.partee71.dagboken.ui.diagram.StackedBarChart
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
@@ -67,6 +80,7 @@ fun ComponentGallery(onBack: () -> Unit, modifier: Modifier = Modifier) {
             GallerySection("Fält, val och mängder") { Fields() }
             GallerySection("Poster, reglage och kalender") { Diary() }
             GallerySection("Idag och konto") { Today() }
+            GallerySection("Diagram") { Diagrams() }
             GallerySection("Laddning och navigering") { Progress() }
             GallerySection("Dialog, sheet, meddelanden") { Overlays() }
             GallerySection("Ramar") { Frames(onBack) }
@@ -307,6 +321,89 @@ private fun Today() {
 }
 
 private const val GALLERY_TOTAL = 9
+
+@Composable
+private fun Diagrams() {
+    val periods = listOf("7 dagar", "14 dagar", "Månad", "3 månader", "Allt")
+    var period by remember { mutableIntStateOf(1) }
+    var withPrevious by remember { mutableStateOf(false) }
+    Label("CompactDropdownButton · LineChart")
+    AppCard {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Energi per dag", style = AppTypography.sectionTitle)
+            CompactDropdownButton(
+                periods[period],
+                periods.mapIndexed { i, name -> AppMenuItem(name, { period = i }, icon = if (i == period) R.drawable.ic_check else null) },
+            )
+        }
+        LineChart(
+            listOf(ChartSeries("Energi", GalleryCharts.energy)),
+            xLabels = GalleryCharts.days14,
+            previous = if (withPrevious) listOf(ChartSeries("Energi", GalleryCharts.energyPrevious)) else emptyList(),
+            label = "Energi per dag",
+        )
+        SwitchRow("Föregående period", withPrevious, { withPrevious = it })
+    }
+    Label("IntervalBarChart")
+    AppCard { IntervalBarChart(GalleryCharts.energySpans, xLabels = GalleryCharts.days7, label = "Energi (dag)") }
+    Label("StackedBarChart")
+    AppCard { StackedBarChart(GalleryCharts.sleep, galleryStages(), xLabels = GalleryCharts.days7, label = "Sömnstadier") }
+    Label("SparklineChart")
+    AppCard { SparklineChart(GalleryCharts.week, xLabels = GalleryCharts.weekdays, label = "Energi senaste veckan", onOpenTrends = {}) }
+    Label("MinMaxCaption · tomt läge")
+    MinMaxCaption(3f, 8f, average = 6.2f, trend = TrendDirection.RISING)
+    AppCard { LineChart(listOf(ChartSeries("Vilopuls", listOf(null, 58f, null))), label = "Vilopuls") }
+}
+
+/** Sömnstadierna nerifrån och upp enligt TRD-16 (djup, REM, lätt, vaken), färger ur temat. */
+@Composable
+internal fun galleryStages(): List<StackSegment> {
+    val stages = AppColors.extended.sleepStages
+    return listOf(
+        StackSegment("Djup", stages.deep),
+        StackSegment("REM", stages.rem),
+        StackSegment("Lätt", stages.light),
+        StackSegment("Vaken", stages.awake),
+    )
+}
+
+/** Påhittade diagramdata för galleriet och dess skärmdumpar – luckor där inget loggats. */
+internal object GalleryCharts {
+    private val start = LocalDate(2026, 9, 22)
+
+    /** "22 sep" … "5 okt". */
+    val days14: List<String> = (0 until 14).map { DateFormat.short(start.plus(DatePeriod(days = it))) }
+
+    val days7: List<String> = days14.takeLast(7)
+
+    /** "tis" … "mån" – sju dagar som slutar idag (mån 5 okt). */
+    val weekdays: List<String> = (7 until 14).map { DateFormat.weekdayShort(start.plus(DatePeriod(days = it))) }
+
+    val energy: List<Float?> = listOf(5f, 6f, 5.5f, null, 6f, 7f, 6.5f, null, null, 6f, 7f, 6.5f, 7.5f, 8f)
+    val energyPrevious: List<Float?> = listOf(6f, 5f, 5f, 4.5f, 5f, 6f, 5f, 5.5f, 5f, null, 6f, 5f, 5.5f, 6f)
+    val week: List<Float?> = listOf(6f, 7f, 5.5f, null, 6.5f, 7f, 8f)
+
+    val energySpans: List<IntervalPoint?> = listOf(
+        IntervalPoint(3f, 4.5f, 6f),
+        IntervalPoint(5f, 6f, 7f),
+        null,
+        IntervalPoint(2f, 3.5f, 5f),
+        IntervalPoint(6f, 7f, 8f),
+        IntervalPoint(7f, 7.5f, 8f),
+        IntervalPoint(5f, 6.3f, 8f),
+    )
+
+    /** Timmar per natt: djup, REM, lätt, vaken (TRD-16). En natt utan klockan och en utan REM-mätning. */
+    val sleep: List<StackedPoint> = listOf(
+        StackedPoint(listOf(1.2f, 1.6f, 4.1f, 0.5f)),
+        StackedPoint(listOf(1.0f, 1.4f, 3.8f, 0.8f)),
+        StackedPoint(listOf(null, null, null, null)),
+        StackedPoint(listOf(1.4f, 1.8f, 4.4f, 0.4f)),
+        StackedPoint(listOf(0.8f, null, 3.2f, 1.1f)),
+        StackedPoint(listOf(1.3f, 1.7f, 4.0f, 0.6f)),
+        StackedPoint(listOf(1.5f, 1.9f, 4.3f, 0.3f)),
+    )
+}
 
 /** Dagens fyra måendetillfällen i var sitt läge (påhittade värden) – för galleriet och dess skärmdumpar. */
 @Composable

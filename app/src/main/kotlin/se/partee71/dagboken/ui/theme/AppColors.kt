@@ -35,7 +35,15 @@ data class ToneColors(val container: Color, val content: Color)
 @Immutable
 data class EnergyColors(val low: Color, val mid: Color, val high: Color)
 
-/** Appens färger utöver Material 3-rollerna: kort, radtoning, verktygsrad, toner och energiskalan. */
+/**
+ * Sömnstadierna i det staplade sömndiagrammet (TRD-16): djup, REM, lätt och vaken – bara för grafik,
+ * aldrig för text. Djupsömnen är mest mättad; vaken tid är dämpad, inte solgul (solgult är gör-något).
+ * Alla fyra klarar 3:1 mot kortet i båda temana (WCAG 1.4.11, `ThemeContrastTest`).
+ */
+@Immutable
+data class SleepStageColors(val deep: Color, val light: Color, val rem: Color, val awake: Color)
+
+/** Appens färger utöver Material 3-rollerna: kort, radtoning, verktygsrad, toner, energiskalan och sömnstadierna. */
 @Immutable
 data class ExtendedColors(
     val card: Color,
@@ -48,6 +56,7 @@ data class ExtendedColors(
     val positiveTone: ToneColors,
     val warningTone: ToneColors,
     val energy: EnergyColors,
+    val sleepStages: SleepStageColors,
 )
 
 /**
@@ -147,6 +156,7 @@ object AppColors {
         positiveTone = ToneColors(Color(0xFFDCEFE3), Color(0xFF1F5A40)),
         warningTone = ToneColors(Color(0xFFF8E1D6), Color(0xFF7A3519)),
         energy = EnergyColors(low = Color(0xFFB5443A), mid = Color(0xFFC98A1B), high = Color(0xFF2F7D5B)),
+        sleepStages = SleepStageColors(deep = Color(0xFF0B4F49), light = Color(0xFF4E9A90), rem = Color(0xFF3B6EA5), awake = Color(0xFF958B78)),
     )
 
     val darkExtended = ExtendedColors(
@@ -160,6 +170,7 @@ object AppColors {
         positiveTone = ToneColors(Color(0xFF1C4A35), Color(0xFFC3EBD3)),
         warningTone = ToneColors(Color(0xFF6A2F17), Color(0xFFFFD9C9)),
         energy = EnergyColors(low = Color(0xFFE38A7F), mid = Color(0xFFE9B54F), high = Color(0xFF6CC79A)),
+        sleepStages = SleepStageColors(deep = Color(0xFF7FD3C8), light = Color(0xFF3F8F86), rem = Color(0xFF8FB4E0), awake = Color(0xFF8E897B)),
     )
 
     /** Färgerna man kan välja bland (`ColorSwatchPicker`) som hex – det som lagras. Harmonierar med paletten. */

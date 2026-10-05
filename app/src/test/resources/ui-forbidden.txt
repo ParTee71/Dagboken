@@ -1,12 +1,14 @@
 # Förbjudna mönster för regel 4 – enda källan.
 # Läses av hooken .claude/hooks/regel4-check.mjs och av UiConsistencyTest.
 # Format per rad: <regex><TAB><vad som ska användas i stället>
-# [feature]   = Kotlin i ett ui-paket under app/src/main utom ui/components, ui/theme, ui/common
-#               (även filer direkt under ui/)
+# [feature]   = Kotlin i ett ui-paket under app/src/main utom ui/components, ui/diagram, ui/theme,
+#               ui/common (även filer direkt under ui/)
 # [firestore] = all Kotlin under app/src/main utom data/firestore/
 # [expressive] = all Kotlin under app/src/main utom ui/theme/ och ui/components/
+# [vico]      = all Kotlin under app/src/main utom ui/diagram/ (diagrambiblioteket bara i de delade diagrammen)
 # Tillåtet i feature-kod: Text (med AppTypography-stil), Icon (appens ikoner i res/drawable),
-# Column, Row, Box, Spacer med Spacing, samt allt i ui/components och ui/common.
+# Column, Row, Box, Spacer med Spacing, samt allt i ui/components, ui/diagram och ui/common.
+# Importrader kontrolleras inte – [vico] stoppar därför användningen (Vicos typer och remember-funktioner).
 # Regexarna ska fungera både i JavaScript och Kotlin (ingen lookbehind).
 
 [feature]
@@ -54,3 +56,9 @@
 
 [expressive]
 \bExperimentalMaterial3ExpressiveApi\b	en delad komponent i ui/components (Expressive-opt-in bara i ui/theme och ui/components)
+
+[vico]
+\bcom\.patrykandpatrick\.vico\b	ett diagram i ui/diagram (LineChart, SparklineChart …) – Vico bara där
+\b[A-Za-z]*Cartesian[A-Za-z]*\b	ett diagram i ui/diagram (LineChart, SparklineChart …) – Vico bara där
+\b(VerticalAxis|HorizontalAxis|[A-Za-z]*PieChart[A-Za-z]*)\b	ett diagram i ui/diagram (LineChart, SparklineChart …) – Vico bara där
+\brememberVico[A-Za-z]*\b	ett diagram i ui/diagram (LineChart, SparklineChart …) – Vico bara där

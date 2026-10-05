@@ -35,7 +35,7 @@ export function parseSections(text) {
   return sections;
 }
 
-/** Tolkar ui-forbidden.txt till { feature: [...], firestore: [...] }. */
+/** Tolkar ui-forbidden.txt till { feature: [...], firestore: [...], expressive: [...], vico: [...] }. */
 export function parsePatterns(text) {
   return Object.fromEntries(
     Object.entries(parseSections(text)).map(([scope, lines]) => [
@@ -76,10 +76,11 @@ export function isAllowed(allowlist, file, match) {
 
 /**
  * Vilka scope en repo-relativ sökväg hör till.
- * - `feature`: Kotlin i ett ui-paket under app/src/main utom ui/components, ui/theme och ui/common
- *   (även filer direkt under ui/).
+ * - `feature`: Kotlin i ett ui-paket under app/src/main utom ui/components, ui/diagram, ui/theme och
+ *   ui/common (även filer direkt under ui/).
  * - `firestore`: all Kotlin under app/src/main utom data/firestore/.
  * - `expressive`: all Kotlin under app/src/main utom ui/theme/ och ui/components/.
+ * - `vico`: all Kotlin under app/src/main utom ui/diagram/ (diagrambiblioteket bara i diagrammen).
  */
 export function scopesFor(relPath) {
   const p = relPath.split(path.sep).join('/');
@@ -88,10 +89,11 @@ export function scopesFor(relPath) {
   const ui = p.match(/\/ui\/(?:([^/]+)\/)?[^/]+\.kt$|\/ui\/([^/]+)\//);
   if (ui) {
     const sub = ui[1] ?? ui[2];
-    if (!['components', 'theme', 'common'].includes(sub)) scopes.push('feature');
+    if (!['components', 'diagram', 'theme', 'common'].includes(sub)) scopes.push('feature');
   }
   if (!/\/data\/firestore\//.test(p)) scopes.push('firestore');
   if (!/\/ui\/(theme|components)\//.test(p)) scopes.push('expressive');
+  if (!/\/ui\/diagram\//.test(p)) scopes.push('vico');
   return scopes;
 }
 
@@ -130,6 +132,7 @@ const SCOPE_TEXT = {
   feature: 'feature-kod (ui/<feature>/)',
   firestore: 'kod utanför data/firestore/',
   expressive: 'kod utanför ui/theme/ och ui/components/',
+  vico: 'kod utanför ui/diagram/',
 };
 
 function main() {
