@@ -8,7 +8,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 
 enum class IconButtonVariant { Tonal, Plain }
 
@@ -22,7 +21,7 @@ fun AppIconButton(
     variant: IconButtonVariant = IconButtonVariant.Plain,
     enabled: Boolean = true,
 ) {
-    val sized = modifier.size(SIZE)
+    val sized = modifier.size(TOUCH_TARGET)
     val content: @Composable () -> Unit = { Icon(painterResource(icon), contentDescription) }
     when (variant) {
         IconButtonVariant.Tonal -> FilledTonalIconButton(onClick, sized, enabled, content = content)
@@ -30,4 +29,3 @@ fun AppIconButton(
     }
 }
 
-private val SIZE = 48.dp

@@ -19,6 +19,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.model.SymptomScore
+import se.partee71.dagboken.ui.common.DateFormat
+import se.partee71.dagboken.ui.common.color
+import se.partee71.dagboken.ui.common.durationText
+import se.partee71.dagboken.ui.common.scaleLevel
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
@@ -27,10 +32,12 @@ import se.partee71.dagboken.ui.theme.Tone
 
 /**
  * Skärmdumpar (ljust + mörkt) av katalogens komponenter i vila – en bild per komponent med
- * dess viktigaste lägen. Popup-komponenter och ramar fotograferas i sina egna tester.
+ * dess viktigaste lägen. Popup-komponenter och ramar fotograferas i sina egna tester, och det som
+ * animerar utan slut (`AppLoading`) med pausad klocka i `ComponentsTest`.
  */
 @RunWith(RobolectricTestRunner::class)
 class CatalogScreenshotTest {
+
 
     @Composable
     private fun Sheet(content: @Composable ColumnScope.() -> Unit) {
@@ -227,8 +234,7 @@ class CatalogScreenshotTest {
     }
 
     @Test
-    fun `laddning och navigering`() {
-        captureLightAndDark("AppLoading_standard") { Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.xxl)) { AppLoading() } }
+    fun `navigering`() {
         captureLightAndDark("AppTopBar_storlekar") {
             Column(Modifier.background(MaterialTheme.colorScheme.background)) {
                 AppTopBar("Idag") { AppMenu(emptyList()) }
@@ -257,6 +263,104 @@ class CatalogScreenshotTest {
         captureLightAndDark("AppFloatingToolbar_plusknapp") {
             Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.l)) {
                 AppFloatingToolbar(tabs, selectedIndex = 3, onSelect = {}, action = ToolbarAction("Logga", R.drawable.ic_add) {})
+            }
+        }
+    }
+
+    @Test
+    fun `poster, reglage och kalender`() {
+        captureLightAndDark("DagbokenEntryCard_lagen") {
+            Sheet {
+                DagbokenEntryCard(
+                    "Promenad",
+                    onClick = {},
+                    subtitle = "${DateFormat.time(LocalTime(8, 30))} · ${durationText(45)} · återhämtande",
+                    leading = { Text("🚶", style = AppTypography.sectionTitle) },
+                    accent = scaleLevel(3, -10..10).color,
+                    status = { InfoPill("+3", tone = Tone.Sun) },
+                    note = "Gick i skogen med hunden.",
+                    expandedContent = { Text("Huvudvärk 2", style = AppTypography.body) },
+                    onEdit = {},
+                    delete = DeleteAction("Radera?", "") {},
+                )
+                DagbokenEntryCard("Mående · frukost", onClick = {}, subtitle = "Energi 7 · stress 3", accent = scaleLevel(7).color, onEdit = {})
+                DagbokenEntryCard("Prednisolon 5 mg", onClick = {}, subtitle = "Avslutat 30 sep", inactive = true, onEdit = {})
+            }
+        }
+        captureLightAndDark("Foldout_lagen") {
+            Sheet {
+                AppCard { Foldout("Mätvärden", false, {}, summary = "Energi 7 · stress 3") {} }
+                AppCard { Foldout("Diagram", true, {}, trailing = { InfoPill("30 dagar", tone = Tone.Neutral) }) { Text("Innehållet", style = AppTypography.body) } }
+            }
+        }
+        captureLightAndDark("ValueSlider_riktningar") {
+            Sheet {
+                AppCard {
+                    ValueSlider("Energi", 2, {})
+                    ValueSlider("Sömnkvalitet", 8, {})
+                    ValueSlider("Stress", 5, {}, higherIsBetter = false)
+                    ValueSlider("Smärta", 9, {}, higherIsBetter = false)
+                    ValueSlider("Aktivitetens energi", -4, {}, valueRange = -10..10)
+                    ValueSlider("Aktivitetens energi", 6, {}, valueRange = -10..10, enabled = false)
+                }
+            }
+        }
+        captureLightAndDark("WheelPicker_vald") {
+            Sheet {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.l)) {
+                    WheelPicker((0..23).map { it.toString() }, 1, {}, "timmar")
+                    WheelPicker((0..55 step 5).map { it.toString() }, 6, {}, "minuter")
+                }
+            }
+        }
+        captureLightAndDark("DagbokenCalendar_oktober") {
+            Sheet {
+                AppCard {
+                    DagbokenCalendar(
+                        LocalDate(2026, 10, 1),
+                        {},
+                        setOf(LocalDate(2026, 10, 1), LocalDate(2026, 10, 2), LocalDate(2026, 10, 4), LocalDate(2026, 10, 12)),
+                        LocalDate(2026, 10, 4),
+                        {},
+                        today = LocalDate(2026, 10, 5),
+                    )
+                }
+            }
+        }
+        captureLightAndDark("StepwiseScreeningForm_forsta_steget") {
+            Sheet { AppCard { StepwiseScreeningForm(6, {}, 4, {}, GALLERY_SYMPTOMS, emptyList(), {}, onSave = {}) } }
+        }
+        captureLightAndDark("SymptomLogCard_valda") {
+            Sheet {
+                SymptomLogCard(GALLERY_SYMPTOMS, listOf(SymptomScore("huvudvark", 4), SymptomScore("ovrigt", 7, "Ont i knät")), {}, otherOptionId = "ovrigt")
+                SymptomLogCard(GALLERY_SYMPTOMS, emptyList(), {})
+            }
+        }
+        captureLightAndDark("NoteField_lagen") {
+            Sheet {
+                AppCard { NoteField("", {}) }
+                AppCard { NoteField("Sov dåligt, vaknade vid fyra. Tog en promenad före frukost och mådde bättre efteråt.", {}) }
+                AppCard { NoteField("Sov dåligt.", {}, initiallyExpanded = true) }
+            }
+        }
+        captureLightAndDark("StatPill_toner") {
+            Sheet {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                    StatPill(R.drawable.ic_activity, "7 842", "Steg")
+                    StatPill(R.drawable.ic_sun, "7 h 45 min", "Sömn", tone = Tone.Primary)
+                }
+                StatPill(R.drawable.ic_thermometer, "—", "Puls", tone = Tone.Warning, onClick = {}, onClickLabel = "Begär åtkomst")
+            }
+        }
+        captureLightAndDark("DateTimeRow_standard") { Sheet { DateTimeRow(LocalDate(2026, 10, 4), LocalTime(8, 30), {}, {}) } }
+        captureLightAndDark("DurationRow_snabbval") { Sheet { DurationRow(60, {}) } }
+        captureLightAndDark("ReminderTimeRow_lagen") {
+            Sheet {
+                AppCard {
+                    ReminderTimeRow("Efter frukost", LocalTime(8, 0), {}, enabled = true, onEnabledChange = {})
+                    ReminderTimeRow("Läggdags", LocalTime(22, 0), {}, enabled = false, onEnabledChange = {})
+                    ReminderTimeRow("Periodslut", LocalTime(9, 0), {})
+                }
             }
         }
     }

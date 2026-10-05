@@ -25,6 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.captureLightAndDark
+import se.partee71.dagboken.testing.captureLightAndDarkPaused
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.common.ArchiveEvent
@@ -301,7 +302,7 @@ class FramesTest {
 
     @Test
     fun `EntityListScreen - lägen`() {
-        captureLightAndDark("EntityListScreen_laddar") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Loading, empty, {}, key = { it }) {} }
+        rule.captureLightAndDarkPaused("EntityListScreen_laddar") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Loading, empty, {}, key = { it }) {} }
         captureLightAndDark("EntityListScreen_tom") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Empty, empty, {}, key = { it }) {} }
         captureLightAndDark("EntityListScreen_fel") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Error(DataError.Offline), empty, {}, key = { it }) {} }
         captureLightAndDark("EntityListScreen_innehall") {

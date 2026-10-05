@@ -51,10 +51,53 @@
     <string name="increase_format">Öka %s</string>
     <string name="pick_date">Välj datum</string>
     <string name="pick_time">Välj tid</string>
+    <string name="date">Datum</string>
+    <string name="time">Tid</string>
     <string name="expanded">Utfälld</string>
     <string name="collapsed">Hopfälld</string>
     <string name="paused">Pausat</string>
     <string name="paused_note">Pausat – räknas inte med</string>
+    <string name="expand">Fäll ut</string>
+    <string name="collapse">Fäll ihop</string>
+    <string name="close">Stäng</string>
+    <string name="open">Öppna</string>
+    <string name="next">Nästa</string>
+    <string name="previous">Föregående</string>
+
+    <!-- Skalans nivå – ScaleLevel i ui/common, enda stället (AKT-4, AKT-5, AKT-6, SCR-1) -->
+    <string name="level_low">Låg</string>
+    <string name="level_mid">Medel</string>
+    <string name="level_high">Hög</string>
+    <string name="severity_mild">Lätt</string>
+    <string name="severity_moderate">Måttlig</string>
+    <string name="severity_severe">Svår</string>
+    <string name="scale_value_format">%1$s, %2$s</string>
+
+    <!-- Postkort och anteckning (NFR-15, NFR-16, DAT-7) -->
+    <string name="note">Anteckning</string>
+    <string name="note_show">Visa anteckning</string>
+    <string name="note_placeholder">Lägg till en anteckning</string>
+
+    <!-- Kalender (HIST-6) -->
+    <string name="calendar_previous_month">Föregående månad</string>
+    <string name="calendar_next_month">Nästa månad</string>
+    <string name="calendar_has_entries">har poster</string>
+
+    <!-- Mående i steg och symptom (HEM-5, SCR-1, SCR-2, AKT-6, SJ-3) -->
+    <string name="step_format">Steg %1$d av %2$d</string>
+    <string name="energy">Energi</string>
+    <string name="stress">Stress</string>
+    <string name="symptoms">Symptom</string>
+    <string name="symptom_other_describe">Beskriv symptomet</string>
+    <string name="symptom_sum_format">Summa symptom: %d</string>
+    <string name="symptom_none">Välj de symptom du har – inga valda räknas som 0.</string>
+
+    <!-- Tidsåtgång (AKT-7) -->
+    <string name="duration">Tidsåtgång</string>
+    <string name="minutes">minuter</string>
+    <string name="duration_minutes_format">%d min</string>
+    <string name="duration_hours_format">%d tim</string>
+    <string name="duration_hours_minutes_format">%1$d tim %2$d min</string>
     <plurals name="suggestions_count">
         <item quantity="one">%d förslag</item>
         <item quantity="other">%d förslag</item>

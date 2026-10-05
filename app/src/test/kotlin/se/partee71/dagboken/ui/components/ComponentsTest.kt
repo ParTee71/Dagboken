@@ -25,6 +25,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.R
 import se.partee71.dagboken.testing.captureLightAndDark
+import se.partee71.dagboken.testing.captureLightAndDarkPaused
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 import se.partee71.dagboken.ui.theme.Spacing
 
@@ -52,7 +53,12 @@ class ComponentsTest {
     }
 
     @Test
-    fun `AppButton - varianter och lägen`() = captureLightAndDark("AppButton_varianter") {
+    fun `AppLoading - standard`() = rule.captureLightAndDarkPaused("AppLoading_standard") {
+        Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.xxl)) { AppLoading() }
+    }
+
+    @Test
+    fun `AppButton - varianter och lägen`() = rule.captureLightAndDarkPaused("AppButton_varianter") {
         Column(
             Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.m),

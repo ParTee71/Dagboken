@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -36,14 +39,17 @@ internal fun CardSegment(
     color: Color = AppColors.extended.card,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(
-        modifier
-            .fillMaxWidth()
-            .background(color, AppShapes.cardSegment(top, bottom))
-            .padding(start = Spacing.m, end = Spacing.m, top = if (top) Spacing.m else HALF_GAP, bottom = if (bottom) Spacing.m else HALF_GAP),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        content = content,
-    )
+    // Ikoner utan egen färg (t.ex. ⋮ och kalenderns pilar) tar kortets innehållsfärg, även utanför en skärmram.
+    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+        Column(
+            modifier
+                .fillMaxWidth()
+                .background(color, AppShapes.cardSegment(top, bottom))
+                .padding(start = Spacing.m, end = Spacing.m, top = if (top) Spacing.m else HALF_GAP, bottom = if (bottom) Spacing.m else HALF_GAP),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            content = content,
+        )
+    }
 }
 
 /** Halva radavståndet i ett kort ovanför och under en bit, så att bitarna ser ut som ett kort. */

@@ -42,6 +42,22 @@ fun ComposeContentTestRule.captureLightAndDark(
 ) = captureThemes(name, settle, content) { onRoot().captureRoboImage(it) }
 
 /**
+ * Som [captureLightAndDark], för innehåll med en animation som aldrig tar slut (laddningsindikatorn i
+ * `AppLoading`, `AppButton(loading = true)` och ramarnas laddningsläge). Utan testklocka kör
+ * Robolectrics Choreographer varje bildruta direkt och flyttar fram klockan själv, och Roborazzi väntar
+ * in en tom huvudloop före bilden – som aldrig kommer, eftersom varje bildruta beställer nästa: testet
+ * hänger. Här står regelns klocka still och flyttas fram en fast tid före varje bild, så att bilden
+ * blir densamma varje gång och ingen bildruta körs av sig själv.
+ */
+fun ComposeContentTestRule.captureLightAndDarkPaused(name: String, content: @Composable () -> Unit) {
+    mainClock.autoAdvance = false
+    captureLightAndDark(name, settle = { mainClock.advanceTimeBy(PAUSED_SETTLE_MILLIS) }, content = content)
+}
+
+/** Så länge den pausade klockan går före bilden – längre än varje ändlig animation i komponenterna. */
+private const val PAUSED_SETTLE_MILLIS = 2_000L
+
+/**
  * Som [captureLightAndDark], men fotograferar hela skärmen – för dialoger, menyer och sheets,
  * som ritas i egna fönster ovanpå innehållet. [open] körs före bilderna (t.ex. [clickWithoutRipple]
  * på knappen som öppnar menyn).

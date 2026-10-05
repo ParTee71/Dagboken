@@ -2,11 +2,20 @@
 
 package se.partee71.dagboken
 
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -78,6 +87,16 @@ class VerifiedApisTest {
         assertNotNull(probe)
     }
 
+    /** API:erna som de portade komponenterna (etapp 4.1) bygger på: reglaget med eget spår, pager och postkortets gester. */
+    @Test
+    fun `reglage med eget spår, pager och postkortets gester renderas`() {
+        compose.setContent { DagbokenTheme { PortedProbe() } }
+
+        compose.onNodeWithText("Spår").assertIsDisplayed()
+        compose.onNodeWithText("Steg 1").assertIsDisplayed()
+        compose.onNodeWithText("Postkort").assertIsDisplayed()
+    }
+
     @Test
     fun `Navigation 3 visar posten överst på back stacken med egen ViewModel`() {
         compose.setContent { DagbokenTheme { NavigationProbe() } }
@@ -110,6 +129,22 @@ private fun ExpressiveProbe() {
                 .size(24.dp)
                 .drawBehind { scale(size.minDimension, pivot = Offset.Zero) { drawPath(morph.toPath(0.5f), Color.Black) } },
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PortedProbe() {
+    Column {
+        val slider = remember { SliderState(3f, 9, 0f..10f) }
+        Slider(state = slider, onValueChange = {}, thumb = { Text("o") }, track = { Text("Spår") })
+        HorizontalPager(rememberPagerState(pageCount = { 2 })) { Text("Steg ${it + 1}") }
+        SwipeToDismissBox(
+            state = rememberSwipeToDismissBoxState(),
+            backgroundContent = {},
+            enableDismissFromStartToEnd = false,
+            onDismiss = { if (it == SwipeToDismissBoxValue.EndToStart) Unit },
+        ) { Text("Postkort", Modifier.combinedClickable(onLongClick = {}, onClick = {})) }
     }
 }
 

@@ -32,11 +32,18 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.OptionKind
+import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ArchiveEvent
+import se.partee71.dagboken.ui.common.DateFormat
+import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.ListUiState
+import se.partee71.dagboken.ui.common.color
+import se.partee71.dagboken.ui.common.scaleLevel
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
@@ -58,6 +65,7 @@ fun ComponentGallery(onBack: () -> Unit, modifier: Modifier = Modifier) {
             GallerySection("Knappar och meny") { Buttons() }
             GallerySection("Kort, rader och rubriker") { Rows() }
             GallerySection("Fält, val och mängder") { Fields() }
+            GallerySection("Poster, reglage och kalender") { Diary() }
             GallerySection("Laddning och navigering") { Progress() }
             GallerySection("Dialog, sheet, meddelanden") { Overlays() }
             GallerySection("Ramar") { Frames(onBack) }
@@ -188,6 +196,87 @@ private fun Fields() {
     Label("ColorSwatchPicker")
     ColorSwatchPicker(color, { color = it })
 }
+
+@Composable
+private fun Diary() {
+    var deleted by remember { mutableStateOf(false) }
+    Label("DagbokenEntryCard")
+    DagbokenEntryCard(
+        "Promenad",
+        onClick = {},
+        subtitle = "${DateFormat.time(LocalTime(8, 30))} · ${durationText(45)}",
+        leading = { Text("🚶", style = AppTypography.sectionTitle) },
+        accent = scaleLevel(3, -10..10).color,
+        status = { InfoPill("+3", tone = Tone.Positive) },
+        note = "Gick i skogen med hunden, lätt regn.",
+        expandedContent = { Text("Symptom: huvudvärk 2", style = AppTypography.body) },
+        onEdit = {},
+        delete = DeleteAction("Radera Promenad?", "Posten tas bort för gott. Det går inte att ångra.") { deleted = true },
+    )
+    DagbokenEntryCard("Prednisolon 5 mg", onClick = {}, subtitle = "Avslutat 30 sep", inactive = true, onEdit = {})
+    if (deleted) Text("Raderad", style = AppTypography.itemSubtitle)
+    var expanded by remember { mutableStateOf(true) }
+    AppCard {
+        Foldout("Mätvärden", expanded, { expanded = !expanded }, summary = "Energi 7 · stress 3") {
+            var energy by remember { mutableIntStateOf(7) }
+            var stress by remember { mutableIntStateOf(3) }
+            var activity by remember { mutableIntStateOf(3) }
+            ValueSlider("Energi", energy, { energy = it })
+            ValueSlider("Stress", stress, { stress = it }, higherIsBetter = false)
+            ValueSlider("Aktivitetens energi", activity, { activity = it }, valueRange = -10..10)
+        }
+    }
+    var symptoms by remember { mutableStateOf(listOf(SymptomScore("huvudvark", 4), SymptomScore("ovrigt", 2, "Ont i knät"))) }
+    SymptomLogCard(GALLERY_SYMPTOMS, symptoms, { symptoms = it }, otherOptionId = "ovrigt")
+    var note by remember { mutableStateOf("Sov dåligt, vaknade vid fyra.") }
+    AppCard { NoteField(note, { note = it }) }
+    var date by remember { mutableStateOf(LocalDate(2026, 10, 4)) }
+    var time by remember { mutableStateOf(LocalTime(8, 30)) }
+    DateTimeRow(date, time, { date = it }, { time = it })
+    var minutes by remember { mutableIntStateOf(45) }
+    DurationRow(minutes, { minutes = it })
+    var reminder by remember { mutableStateOf(true) }
+    var reminderTime by remember { mutableStateOf(LocalTime(8, 0)) }
+    AppCard {
+        ReminderTimeRow("Efter frukost", reminderTime, { reminderTime = it }, enabled = reminder, onEnabledChange = { reminder = it })
+        ReminderTimeRow("Periodslut", LocalTime(9, 0), {})
+    }
+    Label("WheelPicker")
+    var hour by remember { mutableIntStateOf(1) }
+    WheelPicker((0..23).map { it.toString() }, hour, { hour = it }, "timmar")
+    Label("StatPill")
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+        StatPill(R.drawable.ic_activity, "7 842", "Steg")
+        StatPill(R.drawable.ic_sun, "—", "Sömn", tone = Tone.Primary, onClick = {}, onClickLabel = "Begär åtkomst")
+    }
+    var month by remember { mutableStateOf(LocalDate(2026, 10, 1)) }
+    var picked by remember { mutableStateOf<LocalDate?>(LocalDate(2026, 10, 4)) }
+    AppCard {
+        DagbokenCalendar(
+            month,
+            { month = it },
+            setOf(LocalDate(2026, 10, 1), LocalDate(2026, 10, 2), LocalDate(2026, 10, 4)),
+            picked,
+            { picked = it },
+            today = LocalDate(2026, 10, 5),
+        )
+    }
+    Label("StepwiseScreeningForm")
+    var energy by remember { mutableIntStateOf(6) }
+    var stress by remember { mutableIntStateOf(4) }
+    var screeningSymptoms by remember { mutableStateOf(emptyList<SymptomScore>()) }
+    AppCard {
+        StepwiseScreeningForm(energy, { energy = it }, stress, { stress = it }, GALLERY_SYMPTOMS, screeningSymptoms, { screeningSymptoms = it }, onSave = {})
+    }
+}
+
+/** Påhittade symptomalternativ för galleriet och dess skärmdumpar. */
+internal val GALLERY_SYMPTOMS = listOf(
+    Option("huvudvark", OptionKind.SYMPTOM, "Huvudvärk", favorite = true),
+    Option("trotthet", OptionKind.SYMPTOM, "Trötthet", sortOrder = 1),
+    Option("yrsel", OptionKind.SYMPTOM, "Yrsel", sortOrder = 2),
+    Option("ovrigt", OptionKind.SYMPTOM, "Övrigt", sortOrder = 3),
+)
 
 @Composable
 private fun Progress() {

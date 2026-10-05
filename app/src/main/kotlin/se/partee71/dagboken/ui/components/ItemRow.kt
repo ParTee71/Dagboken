@@ -16,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -105,7 +105,7 @@ internal fun ItemRowLayout(
             .clip(AppShapes.row)
             .then(if (tinted) Modifier.background(tint) else Modifier)
             .then(interaction)
-            .then(if (accent != null) Modifier.drawBehind { drawAccent(accent) } else Modifier)
+            .accentBar(accent)
             .padding(horizontal = Spacing.m, vertical = Spacing.s),
         verticalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.CenterVertically),
     ) {
@@ -129,14 +129,18 @@ internal fun ItemRowLayout(
     }
 }
 
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawAccent(color: Color) {
+/** Statusfärgen i vänsterkanten (NFR-16) – för listraden och postkortet; `null` ritar inget. */
+internal fun Modifier.accentBar(color: Color?): Modifier = if (color == null) this else drawWithContent {
+    drawContent()
     val width = ACCENT_WIDTH.toPx()
     drawRoundRect(color, size = Size(width, size.height), cornerRadius = CornerRadius(width / 2))
 }
 
 private val MIN_HEIGHT = 56.dp
 private val ACCENT_WIDTH = 4.dp
-private const val INACTIVE_ALPHA = 0.55f
+
+/** Nedtoning för det som finns men inte räknas med (pausat recept, avslutad post). */
+internal const val INACTIVE_ALPHA = 0.55f
 
 /** [text] med [range] i primärfärgen; utan (eller med ett ogiltigt) intervall bara texten. */
 @Composable
