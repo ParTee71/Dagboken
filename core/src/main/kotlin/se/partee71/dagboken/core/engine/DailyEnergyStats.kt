@@ -1,0 +1,44 @@
+package se.partee71.dagboken.core.engine
+
+import kotlinx.datetime.LocalDate
+import se.partee71.dagboken.core.model.Screening
+
+/** En dags lägsta, genomsnittliga och högsta loggade screeningenergi. */
+data class DailyEnergyStats(
+    val date: LocalDate,
+    val avg: Float,
+    val min: Float,
+    val max: Float,
+)
+
+/**
+ * Beräknar per dag lägsta, genomsnittliga och högsta loggade screeningenergi.
+ * Delad mellan Idag ([DailyEnergyStats.avg], HEM-7) och Trender (hela min–max-spannet, TRD-8) — en
+ * enda källa så de aldrig kan visa olika dagsvärden för samma dag. Portad från 3.x
+ * `domain/usecase/DailyEnergyStats.kt`: i 4.0 är screeningar en egen samling, så filtret på
+ * `type == "screening"` behövs inte. En screening utan datum hör inte till någon dag och räknas
+ * inte. Dagarna kommer i stigande datumordning.
+ */
+fun computeDailyEnergyStats(screenings: List<Screening>): List<DailyEnergyStats> =
+    screenings
+        .mapNotNull { screening -> screening.date?.let { it to screening.energy.toFloat() } }
+        .groupBy({ it.first }, { it.second })
+        .entries
+        .sortedBy { it.key }
+        .map { (date, energies) ->
+            DailyEnergyStats(
+                date = date,
+                avg = energies.average().toFloat(),
+                min = energies.min(),
+                max = energies.max(),
+            )
+        }
+
+/**
+ * Dagsstatistiken utlagd på [days] (t.ex. de senaste sju dagarna, HEM-7): en plats per dag, `null`
+ * för en dag utan screening – en lucka i diagrammet, aldrig en nolla.
+ */
+fun List<DailyEnergyStats>.alignTo(days: List<LocalDate>): List<DailyEnergyStats?> {
+    val byDate = associateBy { it.date }
+    return days.map { byDate[it] }
+}
