@@ -63,7 +63,7 @@ fun CheckRow(
             // Samma storlek i båda varianterna, så att titlarna linjerar; med onClick är rutan knappen.
             val label = listOfNotNull(title, subtitle).joinToString(", ")
             val button = if (onClick == null) Modifier else Modifier.clip(CircleShape).then(toggle).semantics { contentDescription = label }
-            Box(Modifier.size(TOUCH).then(button), contentAlignment = Alignment.Center) { MorphingCheck(checked) }
+            Box(Modifier.size(TOUCH_TARGET).then(button), contentAlignment = Alignment.Center) { MorphingCheck(checked) }
         },
         trailing = trailing,
         tinted = checked,
@@ -104,6 +104,5 @@ private fun MorphingCheck(checked: Boolean) {
 }
 
 private val SIZE = 40.dp
-private val TOUCH = 48.dp
 private val ICON = 22.dp
 private val STROKE = 2.5.dp

@@ -24,4 +24,11 @@ class DateFormatTest {
         assertEquals("07:05", DateFormat.time(LocalTime(7, 5)))
         assertEquals("18:00", DateFormat.time(LocalTime(18, 0)))
     }
+
+    @Test
+    fun `månad och veckodag på svenska`() {
+        assertEquals("oktober 2026", DateFormat.month(LocalDate(2026, 10, 4)))
+        assertEquals("mån", DateFormat.weekdayShort(LocalDate(2026, 10, 5)))
+        assertEquals("sön", DateFormat.weekdayShort(LocalDate(2026, 10, 4)))
+    }
 }

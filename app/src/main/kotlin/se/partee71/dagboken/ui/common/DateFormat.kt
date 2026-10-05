@@ -1,16 +1,22 @@
 package se.partee71.dagboken.ui.common
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.res.stringResource
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toJavaLocalDate
+import se.partee71.dagboken.R
 
 /** Det enda sättet att visa och konvertera datum och tider i UI. */
 object DateFormat {
     private val swedish = Locale.forLanguageTag("sv-SE")
     private val display = DateTimeFormatter.ofPattern("EEE d MMM yyyy", swedish)
     private val short = DateTimeFormatter.ofPattern("d MMM", swedish)
+    private val monthYear = DateTimeFormatter.ofPattern("LLLL yyyy", swedish)
+    private val weekdayName = DateTimeFormatter.ofPattern("EEE", swedish)
     private const val DAY_MILLIS = 86_400_000L
 
     /** "lör 19 dec 2026" – utan punkterna som svensk CLDR sätter efter förkortningar. */
@@ -18,6 +24,12 @@ object DateFormat {
 
     /** "2 okt" – i förvalda namn ("Förkylning 2 okt"). */
     fun short(date: LocalDate): String = short.format(date.toJavaLocalDate()).replace(".", "")
+
+    /** "oktober 2026" – kalenderns rubrik. */
+    fun month(date: LocalDate): String = monthYear.format(date.toJavaLocalDate())
+
+    /** "mån" – kortnamnet på dagens veckodag, utan punkt. */
+    fun weekdayShort(date: LocalDate): String = weekdayName.format(date.toJavaLocalDate()).replace(".", "")
 
     /** "07:00" – 24 timmar, alltid två siffror. */
     fun time(time: LocalTime): String = "%02d:%02d".format(Locale.ROOT, time.hour, time.minute)
@@ -27,3 +39,18 @@ object DateFormat {
 
     fun fromEpochMillis(millis: Long): LocalDate = LocalDate.fromEpochDays(Math.floorDiv(millis, DAY_MILLIS).toInt())
 }
+
+/** Tidsåtgång i text: "45 min", "2 tim", "1 tim 30 min" (AKT-7) – samma överallt. */
+@Composable
+@ReadOnlyComposable
+fun durationText(minutes: Int): String {
+    val hours = minutes / MINUTES_PER_HOUR
+    val rest = minutes % MINUTES_PER_HOUR
+    return when {
+        hours == 0 -> stringResource(R.string.duration_minutes_format, rest)
+        rest == 0 -> stringResource(R.string.duration_hours_format, hours)
+        else -> stringResource(R.string.duration_hours_minutes_format, hours, rest)
+    }
+}
+
+private const val MINUTES_PER_HOUR = 60

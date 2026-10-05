@@ -37,7 +37,7 @@ internal fun <T> ChoiceGrid(
 ) {
     BoxWithConstraints(modifier.fillMaxWidth()) {
         // Så många per rad som får plats med full tryckyta, högst [columns].
-        val perRow = (maxWidth / TOUCH).toInt().coerceIn(1, columns)
+        val perRow = (maxWidth / TOUCH_TARGET).toInt().coerceIn(1, columns)
         ChoiceRows(items.chunked(perRow), perRow, selected, onSelect, label, cell)
     }
 }
@@ -59,7 +59,7 @@ private fun <T> ChoiceRows(
                     val description = label(item)
                     // Tryckytan är 48 dp (NFR-11); den synliga cirkeln är mindre.
                     Box(
-                        Modifier.size(TOUCH)
+                        Modifier.size(TOUCH_TARGET)
                             .clip(AppShapes.pill)
                             .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(item) })
                             .semantics { contentDescription = description },
@@ -67,7 +67,7 @@ private fun <T> ChoiceRows(
                     ) { Box(Modifier.size(CELL), contentAlignment = Alignment.Center) { cell(item, isSelected) } }
                 }
                 // En kortare sista rad följer rutnätet i stället för att spridas ut.
-                repeat(perRow - row.size) { Spacer(Modifier.size(TOUCH)) }
+                repeat(perRow - row.size) { Spacer(Modifier.size(TOUCH_TARGET)) }
             }
         }
     }
@@ -76,5 +76,4 @@ private fun <T> ChoiceRows(
 /** Som mest åtta per rad; på en smal telefon blir det färre, så att tryckytan räcker. */
 private const val COLUMNS = 8
 
-private val TOUCH = 48.dp
 private val CELL = 40.dp

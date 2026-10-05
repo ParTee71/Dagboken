@@ -34,7 +34,7 @@ klipps. Testa layouten med stor systemtextstorlek.
 - Ge tillstånd semantik: t.ex. `stateDescription` ("tagen"/"ej tagen") för dosens kryssrad,
   `Role.Button`/`Role.Checkbox` där det är otydligt. Listrader och ihopfällbara sektionskort
   följer NFR-17/NFR-18 (hela raden är tryckytan, chevronen är en ren indikator).
-- Sliders/graderingar (`SliderRow`, `SymptomLogCard`) ska kommunicera värde och etikett —
+- Sliders/graderingar (`ValueSlider`, `SymptomLogCard`) ska kommunicera värde och etikett —
   utöka den delade komponenten om semantiken saknas, fixa inte per anropare.
 
 ### 5. Färg är aldrig ensam bärare av information

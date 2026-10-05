@@ -3,7 +3,6 @@
 package se.partee71.dagboken.ui.components
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -32,22 +30,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.ArchiveEvent
 import se.partee71.dagboken.ui.common.ListUiState
-import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
@@ -281,18 +274,8 @@ private fun GroupHeader(group: ListGroup, size: Int, open: Boolean, onToggle: ()
         SectionHeader(group.title, icon = group.icon, count = count, tone = group.tone)
         return
     }
-    val state = stringResource(if (open) R.string.expanded else R.string.collapsed)
-    Row(
-        Modifier.fillMaxWidth().clip(AppShapes.row).clickable(onClick = onToggle).semantics { stateDescription = state },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    CollapsibleHeader(open, onToggle) {
         SectionHeader(group.title, Modifier.weight(1f), icon = group.icon, count = count, tone = group.tone)
-        Icon(
-            painterResource(R.drawable.ic_expand_more),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.rotate(if (open) 180f else 0f),
-        )
     }
 }
 

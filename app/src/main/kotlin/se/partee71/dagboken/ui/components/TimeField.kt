@@ -46,20 +46,21 @@ fun TimeField(
         helper = helper,
     )
     if (picking) {
-        val state = rememberTimePickerState(initialHour = time.hour, initialMinute = time.minute, is24Hour = true)
-        TimePickerDialog(
-            onDismissRequest = { picking = false },
-            confirmButton = {
-                AppButton(stringResource(R.string.ok), onClick = {
-                    onTimeChange(LocalTime(state.hour, state.minute))
-                    picking = false
-                }, variant = ButtonVariant.Text)
-            },
-            title = { Text(pickLabel, style = AppTypography.sectionTitle) },
-            dismissButton = { AppButton(stringResource(R.string.cancel), { picking = false }, variant = ButtonVariant.Text) },
-            containerColor = AppColors.extended.card,
-        ) {
-            TimePicker(state)
-        }
+        TimePickerPopup(time, pickLabel, onPick = { onTimeChange(it); picking = false }, onDismiss = { picking = false })
+    }
+}
+
+/** Tidsväljaren (24 timmar) med [title], OK och Avbryt – delas av [TimeField] och [ReminderTimeRow]. */
+@Composable
+internal fun TimePickerPopup(time: LocalTime, title: String, onPick: (LocalTime) -> Unit, onDismiss: () -> Unit) {
+    val state = rememberTimePickerState(initialHour = time.hour, initialMinute = time.minute, is24Hour = true)
+    TimePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { AppButton(stringResource(R.string.ok), onClick = { onPick(LocalTime(state.hour, state.minute)) }, variant = ButtonVariant.Text) },
+        title = { Text(title, style = AppTypography.sectionTitle) },
+        dismissButton = { AppButton(stringResource(R.string.cancel), onDismiss, variant = ButtonVariant.Text) },
+        containerColor = AppColors.extended.card,
+    ) {
+        TimePicker(state)
     }
 }

@@ -29,7 +29,7 @@
 \bSwitch\s*[({]	SwitchRow
 \bRadioButton\s*[({]	AppSegmentedChoice
 \b[A-Za-z]*SegmentedButton[A-Za-z]*\s*[({]	AppSegmentedChoice
-\bSlider\s*[({]	QuantityStepper
+\bSlider\s*[({]	ValueSlider / QuantityStepper
 \b(Outlined)?TextField\s*[({]	AppTextField
 \b[A-Za-z]*DatePicker[A-Za-z]*\s*[({]	DateField
 \bDropdownMenu(Item)?\s*[({]	AppMenu

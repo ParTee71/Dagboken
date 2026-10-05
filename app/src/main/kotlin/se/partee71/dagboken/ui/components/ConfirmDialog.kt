@@ -15,6 +15,8 @@ import se.partee71.dagboken.ui.theme.AppTypography
  * Bekräftelse. Permanent radering bekräftas alltid här med [destructive] = true – aldrig med
  * svep (skill shared-ui-components). [onDecline] är nej-knappen när den betyder något annat än
  * att stänga (t.ex. "Behåll listan" – spara utan att räkna om); tryck utanför är alltid [onDismiss].
+ * Med [dismissLabel] = `null` visas bara en knapp – för ett meddelande som bara ska läsas (anteckningen
+ * bakom postkortets anteckningsikon, MED-12).
  */
 @Composable
 fun ConfirmDialog(
@@ -25,7 +27,7 @@ fun ConfirmDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     destructive: Boolean = false,
-    dismissLabel: String = stringResource(R.string.cancel),
+    dismissLabel: String? = stringResource(R.string.cancel),
     onDecline: () -> Unit = onDismiss,
 ) {
     AlertDialog(
@@ -34,7 +36,7 @@ fun ConfirmDialog(
             AppButton(confirmLabel, onConfirm, variant = if (destructive) ButtonVariant.Destructive else ButtonVariant.Primary)
         },
         modifier = modifier,
-        dismissButton = { AppButton(dismissLabel, onDecline, variant = ButtonVariant.Text) },
+        dismissButton = dismissLabel?.let { { AppButton(it, onDecline, variant = ButtonVariant.Text) } },
         title = { Text(title, style = AppTypography.headline) },
         text = { Text(message, style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant) },
         shape = AppShapes.card,
