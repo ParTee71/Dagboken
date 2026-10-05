@@ -10,9 +10,14 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import se.partee71.dagboken.ui.AppRoot
 import se.partee71.dagboken.ui.settings.AppTheme
 import se.partee71.dagboken.ui.settings.AppThemeViewModel
@@ -28,6 +33,9 @@ class MainActivity : ComponentActivity() {
         // temat är känt (högst AppThemeViewModel.LOAD_TIMEOUT), så att appen inte blinkar i fel tema.
         installSplashScreen().setKeepOnScreenCondition { theme.theme.value == AppTheme.Loading }
         super.onCreate(savedInstanceState)
+        // Temat läses medan aktiviteten är startad, oberoende av Compose: startskärmen skymmer UI:t tills
+        // temat är känt, så det får inte vänta på att UI:t börjar samla flödet.
+        lifecycleScope.launch { repeatOnLifecycle(Lifecycle.State.STARTED) { theme.theme.collect() } }
         enableEdgeToEdge()
         setContent {
             // Temavalet i inställningsarket (SET-1): ljust, mörkt eller auto på klockslag – slår igenom
