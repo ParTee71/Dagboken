@@ -11,7 +11,7 @@ identiskt. Skillnader uttrycks **bara** med parametrar på den delade delen.
 
 Denna skill är **enda källan** för tabellerna nedan. `CLAUDE.md`, andra skills och
 agenter länkar hit – de kopierar dem inte. Tabellerna under **Utseende** och **Beteende** läses
-av `UiConsistencyTest` och jämförs med de publika composables i `ui/components` (se
+av `UiConsistencyTest` och jämförs med de publika composables i `ui/components` och `ui/diagram` (se
 *Dokumentdrift*). Håll formatet: en rad per komponent, komponentnamnet i backticks först i
 kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade komponenter*.
 
@@ -78,6 +78,12 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Datum + tid | `DateTimeRow` | `DateField` + `TimeField` på en rad |
 | Tidsåtgång | `DurationRow` | `LabeledGroup` + `QuantityStepper` i minuter (`step`) + snabbval som `AppFilterChip` (AKT-7) |
 | Påminnelsetid | `ReminderTimeRow` | `SwitchRow` med `onClick` (raden öppnar tidsväljaren, reglaget slår av/på) eller `ItemRow` utan reglage (NOT-18) |
+| Linjediagram | `LineChart` | `ui/diagram`, Vico: teal kurva med gradientfyllning och punkter, luckor (aldrig nollor), heltalsaxel, streckad trend, föregående period nedtonad (`previous`), zoom/panorering helt utzoomat från början; `MinMaxCaption` och tomt läge ingår (skill `diagram`) |
+| Intervallstapel (dagens spann) | `IntervalBarChart` | `ui/diagram`, egen `Canvas`: spann min–max (35 %) och dagsvärdets punkt i energiskalans färg (`scaleLevel`), mjuk kurva bruten vid luckor (TRD-8) |
+| Staplat stapeldiagram | `StackedBarChart` | `ui/diagram`, egen `Canvas`: segment nedifrån och upp (`StackSegment`, sömnstadier ur `AppColors.extended.sleepStages`), axel från noll, teckenförklaring (TRD-16) |
+| Minidiagram (7-dagarstrend) | `SparklineChart` | `ui/diagram`, Vico utan zoom: dagens punkt solgul med ring, "Lägst · Högst · Idag", länk till Trender (HEM-7) |
+| Min/max-text under diagram | `MinMaxCaption` | "Lägst · Högst · Snitt" (och "Idag") + trendpill (`InfoPill`) – under varje diagram (TRD-9) |
+| Kompakt rullgardin i diagram | `CompactDropdownButton` | pill med valt värde och pil; menyn är `AppMenu`s (`AppMenuItem`), tryckyta 48 dp (TRD-3, TRD-12) |
 
 ## Beteende: interaktionsmönster → enda tillåtna ram
 
@@ -104,15 +110,7 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 
 | Elementtyp | Komponent | Status och innehåll |
 |---|---|---|
-| Linjediagram | `LineChartCanvas` | portas i etapp 4 – hela `ui/diagram`; matematiken till `:core` |
-| Intervallstapel | `IntervalBarChart` | portas i etapp 4 |
-| Staplat stapeldiagram | `StackedBarChart` | portas i etapp 4 |
-| Y-axel | `SmartYAxis` | portas i etapp 4 – `computeSmartYAxis` till `:core` |
-| Trendlinje | `TrendLine` | portas i etapp 4 – `computeTrendLine` till `:core` |
-| Min/max-text | `MinMaxCaption` | portas i etapp 4 |
-| Kompakt rullgardin i diagram | `CompactDropdownButton` | portas i etapp 4 – bygger på `AppMenu` |
-| Diagrammets talbara sammanfattning | `ChartSemantics` | portas i etapp 4 – NFR-14 |
-| Minidiagram (7-dagarstrend) | `SparklineChart` | portas i etapp 4 |
+| – | – | inga kvar: diagrammen byggdes i etapp 4.3 (#233) och står under *Utseende*; y-axel, trendlinje och talbar sammanfattning är byggstenar (*Kod* nedan) |
 
 ## Kod: delade byggstenar i andra lager
 
@@ -144,7 +142,8 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 | Export | `RawDocuments` + `ExportFormat` (`:core`) – samma format som `tools/db export` (skill `firestore-data-layer`) |
 | 3.x → 4.0 | `legacy/BackupJsonConverter` i `:core` *(etapp 2)* – enda mappningen, även för legacy-läsaren (skill `data-safety-backup`) |
 | Doser, kylperiod, periodslut | `EnsureDoses`, `Cooldown`, `PeriodEndings` i `:core/engine` *(etapp 5)* |
-| Dagens energi, sömnkvalitet, diagrammatematik | `DailyEnergyStats`, `SleepQuality`, `computeSmartYAxis`, `computeTrendLine` i `:core/engine` *(etapp 4)* |
+| Dagens energi, sömnkvalitet, diagrammatematik | `computeDailyEnergyStats` (`DailyEnergyStats.kt`), `scoreSleepQuality`/`scoreNightlySleep`/`ageFromBirthYear` (`SleepQuality.kt`), `computeSmartYAxis`/`chartAxisFor`/`intervalAxisFor`/`stackedAxisFor` (`SmartYAxis.kt`), `computeTrendLine`/`trendSegment` (`TrendLine.kt`), `stackTotal`/`stackBases`/`dominantSegment` (`StackedBars.kt`), `summarize`/`gapFreeRuns` (`SeriesMath.kt`), `BarViewport`/`ZoomPan` (`ChartViewport.kt`) i `:core/engine` – ingen diagrammatematik i `app` (skill `diagram`) |
+| Diagrammens talbara sammanfattning, ram och stil | `ChartSemantics.kt` (NFR-14), `ChartFrame` (gemensamt tomt läge), `ChartStyle.kt` (färger ur temat, mått), `VicoLinePlot` (enda Vico-anropet) och `BarCanvas` (stapeldiagrammens rityta) – internt i `ui/diagram/` |
 | Påminnelser | `reminders/` i appen (skill `notifications-alarms`) – läser ur Firestore-cachen via repositories |
 | Test-fakes och hjälpare | se skill `testing-strategy` |
 | `tools/db`-logik | `tools/db/lib/` (admin, credentials, collections, walk, serialize, backup, query, migrate, cli) |
@@ -159,7 +158,7 @@ direkt efter varje filändring. De exakta mönstren står **bara** i
 undantag bara i `ui-allowlist.txt`. Att hooken och testet tolkar filen likadant bevisas av
 `ui-forbidden-examples.txt`, som båda kör – ändras ett mönster, lägg till ett exempel där. I korthet:
 
-- **Feature-kod** (Kotlin i ett ui-paket utom `ui/components`, `ui/theme`, `ui/common` –
+- **Feature-kod** (Kotlin i ett ui-paket utom `ui/components`, `ui/diagram`, `ui/theme`, `ui/common` –
   även filer direkt under `ui/`):
   - Material 3-komponenter och layoutelement som har en motsvarighet i tabellerna ovan –
     t.ex. kort, knappar, kryss, växlar, reglage, fält, menyer, dialoger, sheets, avdelare, chips,
@@ -173,7 +172,9 @@ undantag bara i `ui-allowlist.txt`. Att hooken och testet tolkar filen likadant 
 - **All kod utom `data/firestore/`** – även `di/` och `ui/`: `FirebaseFirestore`,
   `CollectionReference`, `DocumentReference`. Därför ligger `FirestoreModule` i `data/firestore/`.
 - **ViewModels** som heter `*EditViewModel` och inte exponerar en `EditorState`.
-- **I `ui/components/`:** publik komponent utan skärmdump (ljust + mörkt) eller utan plats i
+- **All kod utom `ui/diagram/`:** diagrambiblioteket Vico (`[vico]`) – ett diagram byggs alltid med
+  komponenterna i `ui/diagram`. `ui/diagram` räknas som delad kod (inte feature-kod) och får rita själv.
+- **I `ui/components/` och `ui/diagram/`:** publik komponent utan skärmdump (ljust + mörkt) eller utan plats i
   `ComponentGallery`.
 - **Undantag:** en rad i `ui-allowlist.txt` (`fil:symbol – motivering`). Undantaget gäller bara
   träffar vars matchade text överlappar symbolen – andra förbjudna mönster på samma rad stoppas
@@ -183,7 +184,7 @@ undantag bara i `ui-allowlist.txt`. Att hooken och testet tolkar filen likadant 
 ## Dokumentdrift
 
 `UiConsistencyTest` läser tabellerna under **Utseende** och **Beteende** i denna fil och jämför
-med de publika `@Composable`-funktionerna i `ui.components`:
+med de publika `@Composable`-funktionerna i `ui.components` och `ui.diagram`:
 - komponent i koden men inte i tabellen → bygget faller ("lägg till raden i shared-ui-components");
 - komponent i tabellen men inte i koden → bygget faller ("ta bort raden eller bygg komponenten").
 

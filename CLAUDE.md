@@ -55,7 +55,7 @@ finns på ett ställe.**
 
 - **Utseende:** varje elementtyp (knapp, kort, listrad, kryssrad, reglage, textfält, rubrik,
   dialog, bottom sheet, pill, progress, tomt tillstånd, diagram …) har **exakt en** komponent i
-  `ui/components/`. Feature-kod anropar aldrig Material 3-komponenter direkt och hårdkodar
+  `ui/components/` (diagrammen i `ui/diagram/`). Feature-kod anropar aldrig Material 3-komponenter direkt och hårdkodar
   aldrig utseende (`Color(…)`, `RoundedCornerShape(…)`, `fontSize`, `TextStyle`, literala dp
   för hörn/höjd). Färg, form, typografi och avstånd kommer från `ui/theme` (`AppColors`,
   `AppTypography`, `AppShapes`, `Spacing`) i designspråket Papper och teal.
@@ -193,7 +193,7 @@ Compose → ViewModel (StateFlow<UiState>) → Repository → FirestoreCollectio
 `:core` är ren Kotlin/JVM (modeller, codecs, motorer, diagrammatematik, 3.x-konverteraren);
 `:app` är Android-appen med fyra flikar (Idag · Dagbok · Trender · Mediciner), inställningsark
 bakom avataren och plusknapp som loggar. Utseende och gemensamt beteende finns bara i
-`ui/theme`, `ui/components` och `ui/common`; Firestore bara i `data/firestore`; felmappning en
+`ui/theme`, `ui/components`, `ui/diagram` och `ui/common`; Firestore bara i `data/firestore`; felmappning en
 gång i `data/common`. Struktur, datamodell, lager, migrering och etapper står i
 [ARKITEKTUR.md](ARKITEKTUR.md) (enda källan).
 
@@ -236,6 +236,7 @@ Skrivningar bara på uttrycklig begäran via `import.mjs`/`migrate.mjs`.
 | **`ci-budget`** | Regel 5 – vad som körs när i CI. |
 | `ui-style` | Designspråket Papper och teal (Material 3 Expressive). |
 | `mockup` | Ny skärm, komponent eller ändrat utseende: mockup före kod. |
+| `diagram` | Diagrammen i `ui/diagram` och diagrammatematiken i `:core/engine` (TRD-6…18, HEM-7, HLS-10/11/13). |
 | `firestore-data-layer` | `FirestoreCollection`, `DocCodec`, repositories, `UserSession`, offline, rules. |
 | `db-access` | Läsa databasen från en Claude-session. |
 | `refine-issue` | Förfina en idé till ett planerat issue (med Design och Återbruk). |
@@ -246,8 +247,8 @@ Skrivningar bara på uttrycklig begäran via `import.mjs`/`migrate.mjs`.
 | `navigation-3` | *Googles (Android).* Referens för Navigation 3: djuplänkar, flera stackar, scener. |
 
 Googles skills är oförändrade kopior (källa, commit och licens i deras `SOURCE.md`); där de
-krockar med projektets regler gäller projektets. Planerade skills (ARKITEKTUR.md): `health-connect`
-och `diagram` tillkommer i etapp 4–6.
+krockar med projektets regler gäller projektets. Planerad skill (ARKITEKTUR.md): `health-connect`
+tillkommer i etapp 6.
 
 > Reglerna gäller både i Claude-appen på telefonen och i Claude i Android Studio – båda
 > läser denna fil och `.claude/`.
