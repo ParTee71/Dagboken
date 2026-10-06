@@ -129,7 +129,7 @@ fun PrescriptionsScreen(vm: PrescriptionsViewModel = hiltViewModel(), onOpen: (S
         title = stringResource(R.string.prescriptions_title),
         state = state.list,                                   // ListUiState<Prescription>
         row = { rx -> PausableRow(rx.name, rx.detail, kind = null, active = rx.active, onClick = { onOpen(rx.id) }) },
-        onAdd = { vm.onEvent(PrescriptionsEvent.Add) },
+        add = AddAction(stringResource(R.string.prescriptions_new), { vm.onEvent(PrescriptionsEvent.Add) }),
     )
 }
 ```

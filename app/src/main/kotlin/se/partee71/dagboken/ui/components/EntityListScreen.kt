@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -47,16 +48,21 @@ import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
 /**
- * Det tomma tillståndet för en lista: ikon, rubrik, en mening och texten på lägg till-knappen.
- * [examples] är exempel att börja från ("Solkräm") – chips med plus ovanför knappen.
+ * Det tomma tillståndet för en lista: ikon, rubrik och en mening. [examples] är exempel att börja från
+ * ("Solkräm") – chips med plus ovanför lägg till-knappen.
  */
 data class EmptyContent(
     @param:DrawableRes val icon: Int,
     val title: String,
     val message: String,
-    val actionLabel: String,
     val examples: List<EmptyExample> = emptyList(),
 )
+
+/**
+ * Listans lägg till: knappens text och åtgärd hör ihop (ingen knapp utan text). [menu] är val i
+ * split-knappens pil (t.ex. "Ny vid behov-medicin").
+ */
+data class AddAction(val label: String, val onClick: () -> Unit, val menu: List<AppMenuItem> = emptyList())
 
 /** Ett exempel i en tom lista: tryck öppnar något nytt att börja från. */
 data class EmptyExample(val label: String, val onClick: () -> Unit)
@@ -66,7 +72,8 @@ data class EmptyExample(val label: String, val onClick: () -> Unit)
  * rubriken ("3 / 6" klara); [columns] = 2 lägger raderna i två kolumner (t.ex. vid behov-medicinerna);
  * [collapsible] gör gruppen hopfälld tills rubriken trycks ("Dolda"). [cards] = true för postkort
  * (`DagbokenEntryCard`, t.ex. recepten): varje rad är ett eget kort och rubriken står på bakgrunden
- * ovanför dem, i stället för att gruppen är ett kort med rader.
+ * ovanför dem, i stället för att gruppen är ett kort med rader. [showCount] = false tar bort räknaren
+ * (Dagbokens dagar, där rubriken är dagen).
  */
 data class ListGroup(
     val title: String,
@@ -76,6 +83,7 @@ data class ListGroup(
     val columns: Int = 1,
     val collapsible: Boolean = false,
     val cards: Boolean = false,
+    val showCount: Boolean = true,
 )
 
 /** En undergrupp inom en grupp: namn i en egen färg (t.ex. ett doseringstillfälle). */
@@ -111,6 +119,9 @@ data class ListArchive(
  * [filter] står fast under rubriken i alla lägen – även tomt och fel – för ett val av vilken lista
  * som visas (t.ex. `AppSegmentedChoice` Aktiviteter · Symptom · Händelser i Listor). [topBarSize] =
  * `TopBarSize.Small` för en underskärm i inställningsarket, med samma lilla topprad som formulären.
+ * [add] = `null` för en lista utan lägg till (Dagbok – plusknappen i verktygsraden loggar): ingen knapp,
+ * varken i listan eller i det tomma tillståndet. [footer] står sist i listan, efter grupperna, och under
+ * budskapet i det tomma tillståndet (t.ex. "Visa äldre").
  *
  * @param group grupp för en rad; grupperna visas i den ordning de först förekommer.
  * @param subgroup undergrupp för en rad inom gruppen (person), i den ordning de förekommer.
@@ -120,11 +131,10 @@ fun <T> EntityListScreen(
     title: String,
     state: ListUiState<T>,
     empty: EmptyContent,
-    onAdd: () -> Unit,
+    add: AddAction?,
     key: (T) -> Any,
     modifier: Modifier = Modifier,
     onRetry: () -> Unit = {},
-    addMenu: List<AppMenuItem> = emptyList(),
     group: ((T) -> ListGroup)? = null,
     archive: ListArchive? = null,
     subtitle: String? = null,
@@ -134,6 +144,7 @@ fun <T> EntityListScreen(
     subgroup: ((T) -> ListSubgroup?)? = null,
     filter: (@Composable () -> Unit)? = null,
     topBarSize: TopBarSize = TopBarSize.Large,
+    footer: (@Composable () -> Unit)? = null,
     row: @Composable (T) -> Unit,
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -156,8 +167,8 @@ fun <T> EntityListScreen(
         },
         snackbarHost = { AppSnackbarHost(snackbar, Modifier.padding(bottom = clearance)) },
         floatingActionButton = {
-            if (state is ListUiState.Content) {
-                AddSplitButton(empty.actionLabel, onAdd, Modifier.padding(bottom = clearance), menuItems = addMenu)
+            if (state is ListUiState.Content && add != null) {
+                AddSplitButton(add.label, add.onClick, Modifier.padding(bottom = clearance).testTag(ADD_BUTTON_TAG), menuItems = add.menu)
             }
         },
     ) { padding ->
@@ -171,18 +182,25 @@ fun <T> EntityListScreen(
                         title = empty.title,
                         message = empty.message,
                         modifier = Modifier.padding(bottom = clearance),
-                        action = {
-                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.l)) {
-                                if (empty.examples.isNotEmpty()) {
-                                    ExampleChips(empty.examples, { it.onClick() }, label = { it.label })
+                        action = if (add == null && footer == null) {
+                            null
+                        } else {
+                            {
+                                Column(verticalArrangement = Arrangement.spacedBy(Spacing.l)) {
+                                    if (add != null) {
+                                        if (empty.examples.isNotEmpty()) {
+                                            ExampleChips(empty.examples, { it.onClick() }, label = { it.label })
+                                        }
+                                        AppButton(add.label, add.onClick, Modifier.fillMaxWidth().testTag(ADD_BUTTON_TAG), icon = R.drawable.ic_add)
+                                    }
+                                    footer?.invoke()
                                 }
-                                AppButton(empty.actionLabel, onAdd, Modifier.fillMaxWidth(), icon = R.drawable.ic_add)
                             }
                         },
                     )
                     is ListUiState.Error ->
                         LoadErrorState(stringResource(R.string.list_error_title), state.error, onRetry, Modifier.padding(bottom = clearance))
-                    is ListUiState.Content -> ListContent(state.items, key, group, subgroup, header, clearance, row)
+                    is ListUiState.Content -> ListContent(state.items, key, group, subgroup, header, footer, clearance, addButton = add != null, row)
                 }
             }
         }
@@ -196,7 +214,9 @@ private fun <T> ListContent(
     group: ((T) -> ListGroup)?,
     subgroup: ((T) -> ListSubgroup?)?,
     header: (@Composable () -> Unit)?,
+    footer: (@Composable () -> Unit)?,
     clearance: Dp,
+    addButton: Boolean,
     row: @Composable (T) -> Unit,
 ) {
     val groups = remember(items, group) { if (group == null) listOf(null to items) else items.groupBy(group).toList() }
@@ -205,7 +225,7 @@ private fun <T> ListContent(
     // Varje rad är ett eget listobjekt (lat inläsning, animering per rad); korten byggs av bitar.
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = SCREEN_MARGIN, end = SCREEN_MARGIN, top = Spacing.xs, bottom = clearance + ADD_BUTTON_CLEARANCE),
+        contentPadding = PaddingValues(start = SCREEN_MARGIN, end = SCREEN_MARGIN, top = Spacing.xs, bottom = clearance + if (addButton) ADD_BUTTON_CLEARANCE else Spacing.l),
     ) {
         header?.let { item(key = "list-header") { Box(Modifier.padding(bottom = Spacing.m)) { it() } } }
         groups.forEachIndexed { index, (head, rows) ->
@@ -220,6 +240,7 @@ private fun <T> ListContent(
             }
             if (open) groupRows(head, rows, key, subgroup, row)
         }
+        footer?.let { item(key = "list-footer") { Box(Modifier.padding(top = Spacing.m)) { it() } } }
     }
 }
 
@@ -296,7 +317,7 @@ private fun <T> List<T>.runsBy(subgroup: (T) -> ListSubgroup?): List<Pair<ListSu
 
 @Composable
 private fun GroupHeader(group: ListGroup, size: Int, open: Boolean, onToggle: () -> Unit) {
-    val count = group.count ?: size.toString()
+    val count = if (group.showCount) group.count ?: size.toString() else null
     if (!group.collapsible) {
         SectionHeader(group.title, icon = group.icon, count = count, tone = group.tone)
         return
@@ -318,3 +339,6 @@ private fun SubgroupLabel(subgroup: ListSubgroup) {
 
 /** Plats under sista raden så att lägg till-knappen inte täcker den. */
 private val ADD_BUTTON_CLEARANCE = 80.dp
+
+/** Lägg till-knappens tagg (i listan och i det tomma tillståndet) – kontraktstestet prövar att den saknas utan [AddAction]. */
+internal const val ADD_BUTTON_TAG = "entity-list-add"

@@ -6,9 +6,16 @@ import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.core.model.Identified
 
 /**
- * Den senaste posten – en ordning för alla poster med dag och klockslag (måendeloggar HEM-5, incheckningar
- * HEM-12): på [date] och [time], sedan skapandetiden [createdAt] och sist id:t, så att valet alltid är
- * entydigt. Ett saknat värde räknas som äldst (en daterad post går före en odaterad). `null` för en tom lista.
+ * Den gemensamma ordningen för poster med dag och klockslag, äldst först: på [date] och [time], sedan
+ * skapandetiden [createdAt] och sist id:t, så att ordningen alltid är entydig. Ett saknat värde räknas som
+ * äldst (en daterad post går före en odaterad). Används av [latestBy] och Dagbokens tidslinje (HIST-1).
+ */
+fun <T : Identified> chronological(date: (T) -> LocalDate?, time: (T) -> LocalTime?, createdAt: (T) -> Instant?): Comparator<T> =
+    compareBy<T>({ date(it) }, { time(it) }, { createdAt(it) }, { it.id })
+
+/**
+ * Den senaste posten – i den gemensamma ordningen [chronological] (måendeloggar HEM-5, incheckningar
+ * HEM-12). `null` för en tom lista.
  */
 fun <T : Identified> List<T>.latestBy(date: (T) -> LocalDate?, time: (T) -> LocalTime?, createdAt: (T) -> Instant?): T? =
-    maxWithOrNull(compareBy<T>({ date(it) }, { time(it) }, { createdAt(it) }, { it.id }))
+    maxWithOrNull(chronological(date, time, createdAt))

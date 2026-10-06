@@ -22,6 +22,7 @@ object DateFormat {
     private val weekdayName = DateTimeFormatter.ofPattern("EEE", swedish)
     private val weekdayFull = DateTimeFormatter.ofPattern("EEEE", swedish)
     private val dayMonth = DateTimeFormatter.ofPattern("EEEE d MMMM", swedish)
+    private val dayMonthYear = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", swedish)
     private const val DAY_MILLIS = 86_400_000L
 
     /** "lör 19 dec 2026" – utan punkterna som svensk CLDR sätter efter förkortningar. */
@@ -42,8 +43,16 @@ object DateFormat {
     /** "måndag" – veckodagens hela namn (receptformulärets valda dagar). */
     fun weekdayLong(day: DayOfWeek): String = weekdayFull.format(java.time.DayOfWeek.of(day.isoDayNumber))
 
-    /** "Söndag 4 oktober" – Idags rubrikrad (HEM-2), med stor bokstav först. */
-    fun dayAndMonth(date: LocalDate): String = dayMonth.format(date.toJavaLocalDate()).replaceFirstChar { it.titlecase(swedish) }
+    /**
+     * "Söndag 4 oktober" – Idags rubrikrad (HEM-2) och Dagbokens dagar (HIST-1), med stor bokstav först;
+     * [withYear] lägger till året ("Lördag 4 oktober 2025") för en dag ett annat år.
+     */
+    fun dayAndMonth(date: LocalDate, withYear: Boolean = false): String =
+        weekdayDayAndMonth(date, withYear).replaceFirstChar { it.titlecase(swedish) }
+
+    /** "söndag 4 oktober" – som [dayAndMonth] efter en etikett ("Idag · söndag 4 oktober", HIST-1). */
+    fun weekdayDayAndMonth(date: LocalDate, withYear: Boolean = false): String =
+        (if (withYear) dayMonthYear else dayMonth).format(date.toJavaLocalDate())
 
     /** ISO-veckans nummer (HEM-2): veckan börjar på måndag och vecka 1 har årets första torsdag. */
     fun isoWeek(date: LocalDate): Int = date.toJavaLocalDate().get(IsoFields.WEEK_OF_WEEK_BASED_YEAR)

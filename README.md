@@ -30,7 +30,7 @@ Fyra flikar, ett inställningsark bakom avataren och en plusknapp som loggar mot
   (frukost, lunch, middag, kväll) med "Logga nu", vid behov-mediciner som snabbval, pågående
   sjukdom, Hälsa idag från klockan och en 7-dagarstrend. När allt är klart: "Allt klart för
   idag", konfetti en gång och ett sammanfattningskort (HEM).
-- **Dagbok** – tidslinje över alla posttyper per dag med filter (Mående, Aktiviteter, Doser,
+- **Dagbok** – tidslinje över alla posttyper per dag med filter (Alla, Mående, Aktiviteter, Doser,
   Händelser, Sjukdom), kalendervy, "Visa äldre" ett år i taget och sjukdomsepisoder med
   incheckningar (HIST, SJ).
 - **Trender** – diagram i grupperna Mående · Klocka · Jämför, var och en med egen period;

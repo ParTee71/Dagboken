@@ -20,6 +20,8 @@ import se.partee71.dagboken.ui.components.AccountSheet
 import se.partee71.dagboken.ui.components.ComponentGallery
 import se.partee71.dagboken.ui.components.LogMenuSheet
 import se.partee71.dagboken.ui.components.SettingsPage
+import se.partee71.dagboken.ui.diary.DiaryEntryPlaceholder
+import se.partee71.dagboken.ui.diary.DiaryRoute
 import se.partee71.dagboken.ui.medicines.MedicinesRoute
 import se.partee71.dagboken.ui.medicines.PrescriptionEditRoute
 import se.partee71.dagboken.ui.medicines.PrnMedicineEditRoute
@@ -121,7 +123,7 @@ fun RootSheets(
 
 /**
  * Vilken skärm varje nyckel visar – varje nyckel har en (`AppNavigationTest`). Flikarna visar en
- * platshållare tills de byggs i etapp 5 (Idag och Mediciner är byggda); [onAccount] är avataren uppe till höger (NAV-9) med
+ * platshållare tills de byggs i etapp 5 (Idag, Dagbok och Mediciner är byggda); [onAccount] är avataren uppe till höger (NAV-9) med
  * [account]s namn och foto. En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
  * andra tryck inte stänger skärmen under. Inställningsarkets underskärmar läggs på den aktuella
  * flikens stack.
@@ -138,7 +140,9 @@ fun appEntries(backStack: AppBackStack, account: () -> AuthUser?, onAccount: () 
                 onOpenTrends = { backStack.select(TrendsKey) },
             )
         }
-        entry<DiaryKey> { TabPlaceholderScreen(DiaryKey, account(), onAccount) }
+        // HIST-3: en post öppnas i en platshållare tills redigeringen (#239) och sjukdomsdetaljen (#240) finns.
+        entry<DiaryKey> { DiaryRoute(account(), onAccount, onOpen = { entry -> backStack.push(entry.key) }) }
+        entry<DiaryEntryKey> { key -> DiaryEntryPlaceholder(key.kind, onBack = { backStack.popIfTop(key) }) }
         entry<TrendsKey> { TabPlaceholderScreen(TrendsKey, account(), onAccount) }
         entry<MedicinesKey> {
             MedicinesRoute(

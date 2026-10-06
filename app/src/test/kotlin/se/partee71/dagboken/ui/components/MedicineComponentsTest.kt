@@ -118,8 +118,8 @@ class MedicineComponentsTest {
             EntityListScreen(
                 title = "Mediciner",
                 state = ListUiState.Content(listOf("Levaxin", "Sertralin", "Alvedon")),
-                empty = EmptyContent(0, "", "", "Nytt recept"),
-                onAdd = {},
+                empty = EmptyContent(0, "", ""),
+                add = AddAction("Nytt recept", {}),
                 key = { it },
                 group = { if (it == "Alvedon") ListGroup("Vid behov") else ListGroup("Recept och scheman", count = "2 aktiva", cards = true) },
             ) { DagbokenEntryCard(it, onClick = {}) }

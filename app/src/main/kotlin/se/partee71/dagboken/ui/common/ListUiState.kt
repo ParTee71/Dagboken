@@ -35,9 +35,12 @@ fun <T> Flow<List<T>>.asListUiState(retry: Flow<Unit>): Flow<ListUiState<T>> =
 
 /** Den enda översättningen från en datalista till [ListUiState]. */
 fun <T> Flow<List<T>>.asListUiState(): Flow<ListUiState<T>> =
-    map<List<T>, ListUiState<T>> { items -> if (items.isEmpty()) ListUiState.Empty else ListUiState.Content(items) }
+    map { items -> items.toListUiState() }
         .onStart { emit(ListUiState.Loading) }
         .catch { emit(ListUiState.Error(it as? DataError ?: DataError.Unknown)) }
+
+/** En läst lista som tillstånd: tom → [ListUiState.Empty], annars innehåll – för en skärm som själv håller laddning och fel (Dagbok). */
+fun <T> List<T>.toListUiState(): ListUiState<T> = if (isEmpty()) ListUiState.Empty else ListUiState.Content(this)
 
 /** Händelser som alla listskärmar har gemensamt; skärmens egna händelser läggs i en egen typ. */
 sealed interface ListEvent {

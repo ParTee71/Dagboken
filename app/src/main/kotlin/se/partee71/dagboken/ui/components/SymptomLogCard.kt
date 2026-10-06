@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.common.nonBlank
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.core.model.somatic
@@ -59,7 +60,7 @@ fun SymptomLogCard(
                         AppTextField(symptom.customText.orEmpty(), { update(symptom.copy(customText = it.ifEmpty { null })) }, stringResource(R.string.symptom_other_describe))
                     }
                     ValueSlider(
-                        label = symptom.customText?.takeIf { it.isNotBlank() } ?: names[symptom.optionId].orEmpty(),
+                        label = symptom.customText.nonBlank() ?: names[symptom.optionId].orEmpty(),
                         value = symptom.score,
                         onValueChange = { update(symptom.copy(score = it)) },
                         higherIsBetter = false,

@@ -29,6 +29,7 @@ import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.collectAsListArchive
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.AppSegmentedChoice
+import se.partee71.dagboken.ui.components.AddAction
 import se.partee71.dagboken.ui.components.EmptyContent
 import se.partee71.dagboken.ui.components.EntityListScreen
 import se.partee71.dagboken.ui.components.FavoriteStar
@@ -126,8 +127,8 @@ fun ListsScreen(
     EntityListScreen(
         title = stringResource(R.string.settings_lists),
         state = state,
-        empty = EmptyContent(texts.icon, stringResource(texts.emptyTitle), stringResource(texts.emptyMessage), stringResource(texts.add)),
-        onAdd = onAdd,
+        empty = EmptyContent(texts.icon, stringResource(texts.emptyTitle), stringResource(texts.emptyMessage)),
+        add = AddAction(stringResource(texts.add), onAdd),
         key = { it.id },
         onRetry = { onEvent(ListsEvent.Retry) },
         archive = archive,

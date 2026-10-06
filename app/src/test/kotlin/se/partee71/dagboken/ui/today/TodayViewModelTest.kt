@@ -881,7 +881,7 @@ class TodayViewModelTest {
         val second = IllnessEpisode("b", "Migrän", start = LocalDate(2026, 10, 3), createdAt = at(LocalDate(2026, 10, 3), 8))
         val episodes = MutableStateFlow(listOf(first))
         val checkins = mapOf(first.id to MutableSharedFlow<List<Checkin>>(replay = 1), second.id to MutableSharedFlow(replay = 1))
-        val repository = object : IllnessRepository {
+        val repository = object : IllnessRepository by DefaultIllnessRepository(factory) {
             override fun observeEpisodes(): Flow<List<IllnessEpisode>> = episodes
             override fun observeCheckins(episodeId: String): Flow<List<Checkin>> = checkins.getValue(episodeId)
         }
@@ -922,7 +922,7 @@ class TodayViewModelTest {
     @Test
     fun `episoderna och symptomlistan har inte svarat än – Idag visas ändå (HEM-12, HEM-16)`() = runTest(main.dispatcher) {
         seed()
-        val silentIllness = object : IllnessRepository {
+        val silentIllness = object : IllnessRepository by DefaultIllnessRepository(factory) {
             override fun observeEpisodes(): Flow<List<IllnessEpisode>> = MutableSharedFlow()
             override fun observeCheckins(episodeId: String): Flow<List<Checkin>> = MutableSharedFlow()
         }

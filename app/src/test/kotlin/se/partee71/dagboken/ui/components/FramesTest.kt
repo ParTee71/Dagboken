@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Rule
 import org.junit.Test
@@ -50,7 +51,8 @@ class FramesTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val empty = EmptyContent(R.drawable.ic_activity, "Inga aktivitetstyper än", "Promenad, yoga, städning – det du brukar göra.", "Lägg till")
+    private val empty = EmptyContent(R.drawable.ic_activity, "Inga aktivitetstyper än", "Promenad, yoga, städning – det du brukar göra.")
+    private val add = AddAction("Lägg till", {})
     private val items = listOf("Promenad" to "Rörelse", "Yoga" to "Rörelse", "Städning" to "Hemma")
 
     private fun string(id: Int) = ApplicationProvider.getApplicationContext<Context>().getString(id)
@@ -58,15 +60,43 @@ class FramesTest {
     private fun group(item: Pair<String, String>) = ListGroup(item.second, tone = if (item.second.startsWith("Hemma")) Tone.Positive else Tone.Primary)
 
     @Test
-    fun `EntityListScreen uppfyller listkontraktet`() = rule.runListScreenContract("Promenad", "Promenad", empty.title, empty.actionLabel) { state, onAdd, onRetry ->
-        EntityListScreen("Aktivitetstyper", state, empty, onAdd, key = { it }, onRetry = onRetry) { ItemRow(it) }
+    fun `EntityListScreen uppfyller listkontraktet`() = rule.runListScreenContract("Promenad", "Promenad", empty.title, add.label) { state, onAdd, onRetry ->
+        EntityListScreen("Aktivitetstyper", state, empty, AddAction(add.label, onAdd), key = { it }, onRetry = onRetry) { ItemRow(it) }
+    }
+
+    @Test
+    fun `utan lägg till finns ingen knapp, en grupp kan sakna räknare och sidfoten står sist – också i tomt läge`() {
+        var state by mutableStateOf<ListUiState<Pair<String, String>>>(ListUiState.Empty)
+        rule.setContent {
+            DagbokenTheme {
+                EntityListScreen(
+                    "Dagbok",
+                    state,
+                    EmptyContent(R.drawable.ic_book, "Inga poster än", "Logga med plusknappen."),
+                    add = null,
+                    key = { it.first },
+                    group = { ListGroup(it.second, showCount = false) },
+                    footer = { ItemRow("Sidfot") },
+                ) { ItemRow(it.first) }
+            }
+        }
+        rule.onNodeWithText("Inga poster än").assertIsDisplayed()
+        rule.onNodeWithText("Lägg till").assertDoesNotExist()
+        rule.onNodeWithText("Sidfot").assertIsDisplayed()
+        state = ListUiState.Content(items)
+        rule.onNodeWithText("Rörelse").assertIsDisplayed()
+        rule.onNodeWithText("2").assertDoesNotExist()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Sidfot"))
+        val last = rule.onNodeWithText("Städning").fetchSemanticsNode().positionInRoot
+        val footer = rule.onNodeWithText("Sidfot").fetchSemanticsNode().positionInRoot
+        assertTrue(footer.y > last.y, "sidfoten står efter grupperna")
     }
 
     @Test
     fun `grupperad lista visar en rubrik med antal per grupp`() {
         rule.setContent {
             DagbokenTheme {
-                EntityListScreen("Aktivitetstyper", ListUiState.Content(items), empty, {}, key = { it.first }, group = ::group) { ItemRow(it.first) }
+                EntityListScreen("Aktivitetstyper", ListUiState.Content(items), empty, add, key = { it.first }, group = ::group) { ItemRow(it.first) }
             }
         }
         rule.onNodeWithText("Rörelse").assertIsDisplayed()
@@ -89,7 +119,7 @@ class FramesTest {
                     "Mediciner",
                     ListUiState.Content(rows),
                     empty,
-                    {},
+                    add,
                     key = { it.first },
                     group = { groups.getValue(if (it.second == "b") "a" else it.second) },
                     subtitle = "sön 4 okt",
@@ -121,7 +151,7 @@ class FramesTest {
         val restore = StateRestorationTester(rule)
         restore.setContent {
             DagbokenTheme {
-                EntityListScreen("Mediciner", ListUiState.Content(listOf("A1", "D1")), empty, {}, key = { it }, group = { ListGroup(if (it == "D1") "Dolda" else "Övrigt", collapsible = it == "D1") }) { ItemRow(it) }
+                EntityListScreen("Mediciner", ListUiState.Content(listOf("A1", "D1")), empty, add, key = { it }, group = { ListGroup(if (it == "D1") "Dolda" else "Övrigt", collapsible = it == "D1") }) { ItemRow(it) }
             }
         }
         rule.onNodeWithText("D1").assertDoesNotExist()
@@ -136,7 +166,7 @@ class FramesTest {
         var state by mutableStateOf<ListUiState<String>>(ListUiState.Empty)
         rule.setContent {
             DagbokenTheme {
-                EntityListScreen("Listor", state, empty, {}, key = { it }, filter = { ItemRow("Filterrad") }) { ItemRow(it) }
+                EntityListScreen("Listor", state, empty, add, key = { it }, filter = { ItemRow("Filterrad") }) { ItemRow(it) }
             }
         }
         rule.onNodeWithText("Filterrad").assertIsDisplayed()
@@ -153,7 +183,7 @@ class FramesTest {
         var shown = 0
         rule.setContent {
             DagbokenTheme {
-                EntityListScreen("Listor", ListUiState.Content(listOf("Promenad")), empty, {}, key = { it }, archive = archive.copy(onEvent = { if (it == ArchiveEvent.ErrorShown) shown++ })) { ItemRow(it) }
+                EntityListScreen("Listor", ListUiState.Content(listOf("Promenad")), empty, add, key = { it }, archive = archive.copy(onEvent = { if (it == ArchiveEvent.ErrorShown) shown++ })) { ItemRow(it) }
             }
         }
         repeat(2) {
@@ -171,7 +201,7 @@ class FramesTest {
         var toggles = 0
         rule.setContent {
             DagbokenTheme {
-                EntityListScreen("Aktivitetstyper", ListUiState.Content(listOf("Promenad")), empty, {}, key = { it }, archive = ListArchive { if (it == ArchiveEvent.ToggleArchived) toggles++ }) { ItemRow(it) }
+                EntityListScreen("Aktivitetstyper", ListUiState.Content(listOf("Promenad")), empty, add, key = { it }, archive = ListArchive { if (it == ArchiveEvent.ToggleArchived) toggles++ }) { ItemRow(it) }
             }
         }
         rule.onNodeWithContentDescription("Fler val").performClick()
@@ -385,12 +415,11 @@ class FramesTest {
 
     @Test
     fun `EntityListScreen - lägen`() {
-        rule.captureLightAndDarkPaused("EntityListScreen_laddar") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Loading, empty, {}, key = { it }) {} }
-        captureLightAndDark("EntityListScreen_tom") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Empty, empty, {}, key = { it }) {} }
-        captureLightAndDark("EntityListScreen_fel") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Error(DataError.Offline), empty, {}, key = { it }) {} }
+        rule.captureLightAndDarkPaused("EntityListScreen_laddar") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Loading, empty, add, key = { it }) {} }
+        captureLightAndDark("EntityListScreen_tom") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Empty, empty, add, key = { it }) {} }
+        captureLightAndDark("EntityListScreen_fel") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Error(DataError.Offline), empty, add, key = { it }) {} }
         captureLightAndDark("EntityListScreen_innehall") {
-            EntityListScreen("Aktivitetstyper", ListUiState.Content(items), empty, {}, key = { it.first }, group = ::group,
-                addMenu = listOf(AppMenuItem("Visa arkiverade", {}))) { ItemRow(it.first, subtitle = "Favorit", navigates = true, onClick = {}) }
+            EntityListScreen("Aktivitetstyper", ListUiState.Content(items), empty, add.copy(menu = listOf(AppMenuItem("Visa arkiverade", {}))), key = { it.first }, group = ::group) { ItemRow(it.first, subtitle = "Favorit", navigates = true, onClick = {}) }
         }
     }
 

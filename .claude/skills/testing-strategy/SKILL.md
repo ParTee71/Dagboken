@@ -67,7 +67,7 @@ hjälparna och testar bara det som är unikt för funktionen:
 | `FakeAuthRepository` | `app/src/test/.../ui/auth/` | Google-inloggning i ViewModel-tester |
 | `captureLightAndDark(name) { … }`, `rule.captureLightAndDark(name, settle) { … }` och `rule.captureScreenLightAndDark(name, open) { … }` | `app/src/test/.../testing/Screenshots.kt` | egna Roborazzi-anrop; regelvarianten behåller en visad snackbar mellan bilderna, skärmvarianten fotograferar dialoger, menyer och sheets |
 | `SemanticsNodeInteraction.pixels(color)` | `app/src/test/.../testing/Pixels.kt` | egna pixelräkningar för att visa att något ritas i en viss färg (framstegsraden, diagrammen) |
-| `runListScreenContract(item, itemText, emptyTitle, addLabel) { state, onAdd, onRetry -> … }` | `app/src/test/.../ui/ScreenContracts.kt` | att testa tomt/fel/laddar/lägg till per skärm |
+| `runListScreenContract(item, itemText, emptyTitle, addLabel) { state, onAdd, onRetry -> … }` (`addLabel = null`: ingen lägg till-knapp får finnas) | `app/src/test/.../ui/ScreenContracts.kt` | att testa tomt/fel/laddar/lägg till per skärm |
 | `runEditScreenContract(editor, makeInvalid, makeValid, invalidMessage) { state, effects, onSave, onClose -> … }` | `app/src/test/.../ui/ScreenContracts.kt` | att testa spara-aktivering/släng-dialog/sparfel per skärm |
 | `test/fixtures/user.json` | `tools/db/test/` | egna seeds per Nodetest |
 

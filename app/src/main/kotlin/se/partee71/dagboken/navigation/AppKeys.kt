@@ -2,6 +2,7 @@ package se.partee71.dagboken.navigation
 
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
+import se.partee71.dagboken.core.engine.DiaryEntry
 import se.partee71.dagboken.core.model.OptionKind
 
 /** Alla skärmar i appen (NAV-8, NAV-11). Sparas med kotlinx.serialization, så nycklarna överlever processdöd. */
@@ -64,6 +65,28 @@ data class PrescriptionEditKey(val id: String? = null, val extend: Boolean = fal
 /** Ny vid behov-medicin ([id] = `null`) eller en befintlig (FAV-1, MEDF-3, MEDF-4). */
 @Serializable
 data class PrnMedicineEditKey(val id: String? = null) : AppKey
+
+/** Vad en post i Dagbok är – avgör vilken skärm den öppnar (HIST-3, HIST-9). */
+enum class DiaryEntryKind { SCREENING, ACTIVITY, DOSE, EVENT, EPISODE, CHECKIN }
+
+/**
+ * En post i Dagbok (HIST-3): [id] är dokumentets id i sin samling, och för en incheckning är [episodeId]
+ * episoden den ligger under. En platshållare tills redigeringen (#239) och sjukdomsdetaljen (#240) tar över.
+ */
+@Serializable
+data class DiaryEntryKey(val kind: DiaryEntryKind, val id: String, val episodeId: String? = null) : AppKey
+
+/** Skärmen som posten öppnar: episodens start och slut öppnar episoden, en incheckning sig själv under sin episod. */
+val DiaryEntry.key: DiaryEntryKey
+    get() = when (this) {
+        is DiaryEntry.Mood -> DiaryEntryKey(DiaryEntryKind.SCREENING, screening.id)
+        is DiaryEntry.Action -> DiaryEntryKey(DiaryEntryKind.ACTIVITY, activity.id)
+        is DiaryEntry.TakenDose -> DiaryEntryKey(DiaryEntryKind.DOSE, dose.id)
+        is DiaryEntry.Happening -> DiaryEntryKey(DiaryEntryKind.EVENT, event.id)
+        is DiaryEntry.EpisodeStart -> DiaryEntryKey(DiaryEntryKind.EPISODE, episode.id)
+        is DiaryEntry.EpisodeEnd -> DiaryEntryKey(DiaryEntryKind.EPISODE, episode.id)
+        is DiaryEntry.CheckIn -> DiaryEntryKey(DiaryEntryKind.CHECKIN, checkin.id, episode.id)
+    }
 
 /** Export och import (BCK-13, SET-8) – funktionen kommer i #230. */
 @Serializable

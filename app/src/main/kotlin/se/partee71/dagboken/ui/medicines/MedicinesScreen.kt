@@ -60,6 +60,7 @@ import se.partee71.dagboken.ui.common.tidyingUpEachDay
 import se.partee71.dagboken.ui.common.prescriptionSubtitle
 import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.components.AccountAvatar
+import se.partee71.dagboken.ui.components.AddAction
 import se.partee71.dagboken.ui.components.AppMenuItem
 import se.partee71.dagboken.ui.components.DagbokenEntryCard
 import se.partee71.dagboken.ui.components.DeleteAction
@@ -216,13 +217,15 @@ fun MedicinesScreen(
             R.drawable.ic_pill,
             stringResource(R.string.medicines_empty_title),
             stringResource(R.string.medicines_empty_message),
-            stringResource(R.string.medicines_new_prescription),
             examples = listOf(EmptyExample(newPrn) { onOpenPrn(null) }),
         ),
-        onAdd = { onOpenPrescription(null) },
+        add = AddAction(
+            stringResource(R.string.medicines_new_prescription),
+            { onOpenPrescription(null) },
+            menu = listOf(AppMenuItem(newPrn, { onOpenPrn(null) }, R.drawable.ic_add)),
+        ),
         key = { it.key },
         onRetry = { onEvent(MedicinesEvent.Retry) },
-        addMenu = listOf(AppMenuItem(newPrn, { onOpenPrn(null) }, R.drawable.ic_add)),
         group = { item ->
             when {
                 item is MedicineItem.AsNeeded -> prnGroup
