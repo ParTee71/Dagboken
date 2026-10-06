@@ -34,6 +34,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.TypeChoices
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.core.model.Option
@@ -285,6 +286,8 @@ private fun Diary() {
     DateTimeRow(date, time, { date = it }, { time = it })
     var minutes by remember { mutableIntStateOf(45) }
     DurationRow(minutes, { minutes = it })
+    var type by remember { mutableStateOf("promenad") }
+    TypeChoiceField(GALLERY_TYPES, type, { type = it }, otherLabel = "Övrigt")
     var reminder by remember { mutableStateOf(true) }
     var reminderTime by remember { mutableStateOf(LocalTime(8, 0)) }
     AppCard {
@@ -667,3 +670,10 @@ private fun Frames(onBack: () -> Unit) {
 }
 
 private val FRAME_HEIGHT = 480.dp
+
+/** Aktivitetstyperna i galleriet: två stjärnmärkta som chips, resten under "Fler typer" med Övrigt sist. */
+private val GALLERY_TYPES = TypeChoices(
+    favorites = listOf(Option("promenad", OptionKind.ACTIVITY, "Promenad", favorite = true), Option("jobb", OptionKind.ACTIVITY, "Jobb", favorite = true)),
+    more = listOf(Option("vila", OptionKind.ACTIVITY, "Vila", sortOrder = 2)),
+    other = "ovrigt",
+)

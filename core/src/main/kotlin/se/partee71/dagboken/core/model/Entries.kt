@@ -13,7 +13,7 @@ import kotlinx.datetime.LocalTime
  */
 data class Screening(
     override val id: String,
-    val date: LocalDate? = null,
+    override val date: LocalDate? = null,
     val time: LocalTime? = null,
     /** Måltidstillfället; fanns inte som fält i 3.x och härleds då (DAT-12, [Occasion.derive]). */
     val occasion: Occasion? = null,
@@ -24,9 +24,11 @@ data class Screening(
     /** Stress 0–10. */
     val stress: Int = 0,
     val symptoms: List<SymptomScore> = emptyList(),
-    val createdAt: Instant? = null,
+    override val createdAt: Instant? = null,
     val note: String? = null,
-) : Identified
+) : Post<Screening> {
+    override fun withId(id: String): Screening = copy(id = id)
+}
 
 /**
  * `users/{uid}/activities/{id}` – en aktivitet (AKT-1…AKT-12). Ersätter 3.x `aktiviteter` med
@@ -34,7 +36,7 @@ data class Screening(
  */
 data class Activity(
     override val id: String,
-    val date: LocalDate? = null,
+    override val date: LocalDate? = null,
     val time: LocalTime? = null,
     /** Aktivitetstypen i `options` (kind `activity`). */
     val optionId: String = "",
@@ -51,14 +53,16 @@ data class Activity(
     val drain: Boolean = false,
     /** Tidsåtgång i minuter (AKT-7); `null` = inte angiven. */
     val minutes: Int? = null,
-    val createdAt: Instant? = null,
+    override val createdAt: Instant? = null,
     val note: String? = null,
-) : Identified
+) : Post<Activity> {
+    override fun withId(id: String): Activity = copy(id = id)
+}
 
 /** `users/{uid}/events/{id}` – en hälsohändelse. Ersätter 3.x `health_events`. */
 data class Event(
     override val id: String,
-    val date: LocalDate? = null,
+    override val date: LocalDate? = null,
     val time: LocalTime? = null,
     /** Händelsetypen i `options` (kind `event`). */
     val optionId: String = "",
@@ -70,9 +74,11 @@ data class Event(
     val triggers: String? = null,
     /** Åtgärder, fritext. */
     val actions: String? = null,
-    val createdAt: Instant? = null,
+    override val createdAt: Instant? = null,
     val note: String? = null,
-) : Identified
+) : Post<Event> {
+    override fun withId(id: String): Event = copy(id = id)
+}
 
 /** `users/{uid}/illnessEpisodes/{id}` – en sjukdomsepisod (SJ-serien). Ersätter 3.x `sjukdomsepisoder`. */
 data class IllnessEpisode(
@@ -92,11 +98,13 @@ data class IllnessEpisode(
  */
 data class Checkin(
     override val id: String,
-    val date: LocalDate? = null,
+    override val date: LocalDate? = null,
     val time: LocalTime? = null,
     /** Svårighetsgrad 0–10. */
     val severity: Int = 0,
     val symptoms: List<SymptomScore> = emptyList(),
-    val createdAt: Instant? = null,
+    override val createdAt: Instant? = null,
     val note: String? = null,
-) : Identified
+) : Post<Checkin> {
+    override fun withId(id: String): Checkin = copy(id = id)
+}

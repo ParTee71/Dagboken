@@ -61,9 +61,11 @@ object OptionCodec : DocCodec<Option> {
     )
 }
 
-object ScreeningCodec : DocCodec<Screening> {
+object ScreeningCodec : DatedCodec<Screening> {
     /** Loggens dag (`yyyy-MM-dd`, sorterbar som text) – avgränsar lyssningen på en dag eller period. */
     const val DATE = se.partee71.dagboken.core.schema.DATE
+
+    override val dateField: String get() = DATE
 
     override fun encode(value: Screening): Doc = entryFields(value.date, value.time, value.createdAt, value.note) + mapOf(
         "occasion" to value.occasion.encodeWire(),
@@ -87,9 +89,11 @@ object ScreeningCodec : DocCodec<Screening> {
     )
 }
 
-object ActivityCodec : DocCodec<Activity> {
+object ActivityCodec : DatedCodec<Activity> {
     /** Aktivitetens dag (`yyyy-MM-dd`) – avgränsar Dagbokens lyssning på ett år (HIST-8). */
     const val DATE = se.partee71.dagboken.core.schema.DATE
+
+    override val dateField: String get() = DATE
 
     override fun encode(value: Activity): Doc = entryFields(value.date, value.time, value.createdAt, value.note) + mapOf(
         "optionId" to value.optionId,
@@ -119,9 +123,11 @@ object ActivityCodec : DocCodec<Activity> {
     )
 }
 
-object EventCodec : DocCodec<Event> {
+object EventCodec : DatedCodec<Event> {
     /** Händelsens dag (`yyyy-MM-dd`) – avgränsar Dagbokens lyssning på ett år (HIST-8). */
     const val DATE = se.partee71.dagboken.core.schema.DATE
+
+    override val dateField: String get() = DATE
 
     override fun encode(value: Event): Doc = entryFields(value.date, value.time, value.createdAt, value.note) + mapOf(
         "optionId" to value.optionId,

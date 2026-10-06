@@ -49,7 +49,8 @@ data class DeleteAction(val title: String, val message: String, val onConfirm: (
  *   formuläret utan att spara fälten;
  * - sparfel → snackbar via `DataError.toMessage()`; lyckad sparning → [onClose];
  * - arkivera/återställ/radera i menyn när [onArchive]/[onRestore]/[delete] finns;
- * - läsfel → feltillstånd med "Försök igen" ([onRetry]).
+ * - läsfel → feltillstånd med "Försök igen" ([onRetry]);
+ * - [formError] överst i formuläret: ett fel som inte hör till ett synligt fält (t.ex. ett värde som rules nekar).
  *
  * @param onSaved efter lyckad sparning (och arkivera/radera); standard [onClose]. Ett nytt objekt
  *   kan öppna sin detaljskärm i stället för att gå tillbaka.
@@ -70,6 +71,7 @@ fun EntityEditScreen(
     delete: DeleteAction? = null,
     onRetry: () -> Unit = {},
     onSaved: () -> Unit = onClose,
+    formError: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -128,8 +130,10 @@ fun EntityEditScreen(
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding()
                         .padding(horizontal = SCREEN_MARGIN, vertical = Spacing.s),
                     verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
-                    content = content,
-                )
+                ) {
+                    formError?.let { FieldError(it) }
+                    content()
+                }
             }
         }
     }

@@ -19,3 +19,14 @@ interface Sortable {
 interface Archivable {
     val archived: Boolean
 }
+
+/**
+ * En post i dagboken (mående, aktivitet, händelse, incheckning): dag, skapandetid – satt en gång när posten
+ * skapas – och samma post med ett annat id ([withId], för att skriva en ändring på det lästa dokumentets id).
+ */
+interface Post<T : Post<T>> : Identified {
+    val date: kotlinx.datetime.LocalDate?
+    val createdAt: kotlin.time.Instant?
+
+    fun withId(id: String): T
+}

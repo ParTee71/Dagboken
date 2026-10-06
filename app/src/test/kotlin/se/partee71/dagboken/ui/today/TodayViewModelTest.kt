@@ -67,7 +67,7 @@ import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.EditorSheetState
+import se.partee71.dagboken.ui.common.SelectedDay
 
 /**
  * Fliken Idag (HEM-4, HEM-5, HEM-7, HEM-10, HEM-12, HEM-13, HEM-14, HEM-18, HEM-19, SCR-1, SCR-6, MED-1–3, MED-5, MED-13, MED-14, FAV-2–6, FAV-8, FAV-11) mot
@@ -96,16 +96,16 @@ class TodayViewModelTest {
     private fun viewModel(
         prescriptions: PrescriptionRepository = testPrescriptions(factory, doses, zone, clock),
         screenings: ScreeningRepository = DefaultScreeningRepository(factory, clock),
-        options: OptionsRepository = DefaultOptionsRepository(factory),
         illnesses: IllnessRepository = DefaultIllnessRepository(factory),
+        selectedDay: SelectedDay = SelectedDay(factory.scope),
     ) = TodayViewModel(
         doses,
         prescriptions,
         DefaultPrnMedicineRepository(factory),
         screenings,
         DefaultSettingsRepository(factory),
-        options,
         illnesses,
+        selectedDay,
         clock,
     ) { zone }
 
@@ -165,6 +165,33 @@ class TodayViewModelTest {
         runCurrent()
         assertEquals(yesterday, vm.content.date)
         assertNull(stored(morning(LocalDate(2026, 10, 5))))
+    }
+
+    @Test
+    fun `den valda dagen delas med plusknappen – idag är null, andra flikar loggar mot idag (HEM-14, NAV-10)`() = runTest(main.dispatcher) {
+        seed()
+        val selected = SelectedDay(factory.scope)
+        val vm = started(viewModel(selectedDay = selected))
+        vm.onEvent(TodayEvent.SelectDate(yesterday))
+        runCurrent()
+        assertEquals(yesterday, selected.logDay(onToday = true))
+        assertNull(selected.logDay(onToday = false), "andra flikar loggar mot idag")
+        vm.onEvent(TodayEvent.SelectDate(today))
+        runCurrent()
+        assertNull(selected.logDay(onToday = true), "idag lagras som null och följer med över midnatt")
+        selected.select(yesterday)
+        runCurrent()
+        assertEquals(yesterday, vm.content.date, "Idag visar den delade dagen")
+    }
+
+    @Test
+    fun `en ny Idag börjar på idag, också när en tidigare dag var vald (HEM-14)`() = runTest(main.dispatcher) {
+        seed()
+        val selected = SelectedDay(factory.scope)
+        selected.select(yesterday)
+        val vm = started(viewModel(selectedDay = selected))
+        assertEquals(today, vm.content.date)
+        assertNull(selected.logDay(onToday = true))
     }
 
     @Test
@@ -511,34 +538,6 @@ class TodayViewModelTest {
     }
 
     @Test
-    fun `ett fel i städningen eller dagens doser kraschar inte fliken och visas inte`() = runTest(main.dispatcher) {
-        seed()
-        val throwing = object : PrescriptionRepository by testPrescriptions(factory, doses, zone, clock) {
-            override suspend fun tidyUp(today: LocalDate): Result<Unit> = throw IllegalStateException("syntetiskt fel")
-            override suspend fun ensureDay(date: LocalDate, today: LocalDate): Result<Unit> = throw IllegalStateException("syntetiskt fel")
-        }
-        val vm = started(viewModel(throwing))
-        assertTrue(vm.state.value is DetailUiState.Content)
-        assertNull(vm.failure.value)
-    }
-
-    // ── Mående, sjukdom, vecka och trend (HEM-4, HEM-5, HEM-7, HEM-12, HEM-13, SCR-1, SCR-6) ──
-
-    /** Alla fyra tillfällen påslagna med standardtiderna 08:00, 12:00, 17:00 och 21:00. */
-    private suspend fun allOccasions() {
-        factory.settings().upsert(Settings(reminders = ReminderSettings(screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = true) }))).getOrThrow()
-    }
-
-    /** Sparat: arket ska döljas (`closing`), och när skärmen dolt det stängs det (`CloseScreening`). */
-    private fun TodayViewModel.assertSavedAndClosed() {
-        assertEquals(true, screening.value?.closing?.value, "arket döljs när det är sparat")
-        onEvent(TodayEvent.CloseScreening)
-        assertNull(screening.value)
-    }
-
-    private suspend fun storedScreenings(): List<Screening> = factory.screenings().getAll().getOrThrow()
-
-    @Test
     fun `tillfällena får status mot klockan, och en tidigare dag är ej loggad (HEM-4, HEM-5, NOT-4)`() = runTest(main.dispatcher) {
         seed()
         allOccasions()
@@ -563,100 +562,6 @@ class TodayViewModelTest {
         vm.onEvent(TodayEvent.SelectDate(yesterday))
         runCurrent()
         assertEquals(List(4) { OccasionStatus.NOT_LOGGED }, vm.content.occasions.map { it.status })
-    }
-
-    @Test
-    fun `Logga nu en tidigare dag sparar en ny logg mot den dagen och tillfället (HEM-5, SCR-1, SCR-6)`() = runTest(main.dispatcher) {
-        seed()
-        allOccasions()
-        val vm = started(viewModel())
-        vm.onEvent(TodayEvent.SelectDate(yesterday))
-        runCurrent()
-        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
-        val sheet = assertNotNull(vm.screening.value)
-        assertNull(sheet.loaded)
-        val new = sheet.value
-        assertEquals(yesterday, new.date)
-        assertEquals(Occasion.LUNCH, new.occasion)
-        assertEquals(LocalTime(12, 0), new.time, "en tidigare dag: tillfällets klockslag")
-        assertTrue(sheet.editor.state.value.canSave, "en ny logg kan sparas direkt")
-
-        vm.onEvent(TodayEvent.ChangeEnergy(7))
-        vm.onEvent(TodayEvent.ChangeStress(2))
-        vm.onEvent(TodayEvent.ChangeSymptoms(listOf(SymptomScore("huvudvark", 4))))
-        vm.onEvent(TodayEvent.SaveScreening)
-        runCurrent()
-
-        vm.assertSavedAndClosed()
-        assertEquals(R.string.today_screening_saved, vm.notice.value?.text)
-        val saved = storedScreenings().single()
-        assertEquals(new.id, saved.id)
-        assertEquals(yesterday, saved.date)
-        assertEquals(Occasion.LUNCH, saved.occasion)
-        assertEquals(7, saved.energy)
-        assertEquals(2, saved.stress)
-        assertEquals(listOf(SymptomScore("huvudvark", 4)), saved.symptoms)
-        assertEquals(clock.instant, saved.createdAt)
-        assertEquals(OccasionStatus.LOGGED, vm.content.occasions.single { it.occasion == Occasion.LUNCH }.status)
-    }
-
-    @Test
-    fun `Logga nu idag tar klockslaget nu (SCR-6)`() = runTest(main.dispatcher) {
-        seed()
-        allOccasions()
-        val vm = started(viewModel())
-        vm.onEvent(TodayEvent.LogScreening(Occasion.DINNER))
-        val sheet = assertNotNull(vm.screening.value)
-        assertEquals(today, sheet.value.date)
-        assertEquals(LocalTime(10, 30), sheet.value.time)
-        vm.onEvent(TodayEvent.CloseScreening)
-        assertNull(vm.screening.value)
-        runCurrent()
-        assertTrue(storedScreenings().isEmpty(), "stängt utan att spara skriver inget")
-    }
-
-    @Test
-    fun `en loggad logg ändras fältvis – det som ändrats på annat håll står kvar (SCR-1)`() = runTest(main.dispatcher) {
-        seed()
-        allOccasions()
-        val logged = Screening("s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, stress = 3, createdAt = at(today, 8, 40))
-        factory.screenings().upsert(logged).getOrThrow()
-        val vm = started(viewModel())
-        vm.onEvent(TodayEvent.EditScreening(logged))
-        val sheet = assertNotNull(vm.screening.value)
-        assertFalse(sheet.editor.state.value.canSave, "inget ändrat än")
-
-        // En annan enhet skriver en anteckning medan arket är öppet.
-        factory.screenings().upsert(logged.copy(note = "Sov dåligt")).getOrThrow()
-        vm.onEvent(TodayEvent.ChangeStress(5))
-        assertTrue(sheet.editor.state.value.canSave)
-        vm.onEvent(TodayEvent.SaveScreening)
-        runCurrent()
-
-        val saved = storedScreenings().single()
-        assertEquals(5, saved.stress)
-        assertEquals(6, saved.energy)
-        assertEquals("Sov dåligt", saved.note)
-        vm.assertSavedAndClosed()
-    }
-
-    @Test
-    fun `ett sparfel visas i arket, som står kvar (SCR-1)`() = runTest(main.dispatcher) {
-        seed()
-        allOccasions()
-        val failing = object : ScreeningRepository by DefaultScreeningRepository(factory, clock) {
-            override suspend fun save(loaded: Screening?, edited: Screening): Result<Unit> = Result.failure(DataError.PermissionDenied)
-        }
-        val vm = started(viewModel(screenings = failing))
-        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
-        vm.onEvent(TodayEvent.SaveScreening)
-        runCurrent()
-        val sheet = assertNotNull(vm.screening.value)
-        assertEquals(DataError.PermissionDenied, sheet.error.value?.error)
-        assertFalse(sheet.editor.state.value.saving)
-        vm.onEvent(TodayEvent.ChangeEnergy(3))
-        assertNull(sheet.error.value, "en ändring tar bort felet")
-        assertNull(vm.notice.value)
     }
 
     @Test
@@ -732,101 +637,6 @@ class TodayViewModelTest {
         assertEquals(today, vm.content.energyDays.last())
     }
 
-    private val EditorSheetState<Screening, ScreeningSheetInfo>.value: Screening get() = editor.state.value.value
-
-    /** Ett repository vars sparning väntar på [gate] – sparningen pågår tills testet släpper den. */
-    private fun holding(gate: CompletableDeferred<Unit>) = object : ScreeningRepository by DefaultScreeningRepository(factory, clock) {
-        override suspend fun save(loaded: Screening?, edited: Screening): Result<Unit> {
-            gate.await()
-            return DefaultScreeningRepository(factory, clock).save(loaded, edited)
-        }
-    }
-
-    @Test
-    fun `ändringar i arket gör det ändrat, och stängt slängs de utan att något sparas (NFR-10)`() = runTest(main.dispatcher) {
-        seed()
-        allOccasions()
-        val vm = started(viewModel())
-        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
-        val sheet = assertNotNull(vm.screening.value)
-        assertFalse(sheet.editor.state.value.isDirty, "ett nyöppnat ark frågar inte vid stängning")
-        vm.onEvent(TodayEvent.ChangeEnergy(4))
-        vm.onEvent(TodayEvent.ChangeStress(6))
-        assertTrue(sheet.editor.state.value.isDirty)
-        assertEquals(4 to 6, sheet.value.energy to sheet.value.stress, "varje ändring på det aktuella värdet")
-        // "Släng" i dialogen (AppBottomSheet) stänger arket.
-        vm.onEvent(TodayEvent.CloseScreening)
-        runCurrent()
-        assertNull(vm.screening.value)
-        assertTrue(storedScreenings().isEmpty())
-    }
-
-    @Test
-    fun `Spara markerar arket som sparande direkt – det går inte att stänga eller ändra förrän det är sparat (SCR-1)`() = runTest(main.dispatcher) {
-        seed()
-        allOccasions()
-        val gate = CompletableDeferred<Unit>()
-        val vm = started(viewModel(screenings = holding(gate)))
-        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
-        val sheet = assertNotNull(vm.screening.value)
-        vm.onEvent(TodayEvent.ChangeEnergy(8))
-        vm.onEvent(TodayEvent.SaveScreening)
-        // Ingen dispatch: i samma stund som "Spara" (samma bildruta som ett bakåt) går arket inte att stänga.
-        assertTrue(sheet.editor.state.value.saving)
-        assertFalse(sheet.canDismiss())
-
-        vm.onEvent(TodayEvent.CloseScreening)
-        vm.onEvent(TodayEvent.ChangeEnergy(1))
-        runCurrent()
-        assertSame(sheet, vm.screening.value, "arket står kvar")
-        assertEquals(8, sheet.value.energy)
-
-        gate.complete(Unit)
-        runCurrent()
-        vm.assertSavedAndClosed()
-        assertEquals(8, storedScreenings().single().energy)
-        assertEquals(R.string.today_screening_saved, vm.notice.value?.text)
-
-        // Ett nytt ark efteråt öppnas som vanligt.
-        vm.onEvent(TodayEvent.LogScreening(Occasion.DINNER))
-        assertEquals(Occasion.DINNER, vm.screening.value?.value?.occasion)
-    }
-
-    @Test
-    fun `arkets rubrik har dagen bara när loggen inte är idag enligt samma klocka (HEM-5)`() = runTest(main.dispatcher) {
-        seed()
-        allOccasions()
-        val vm = started(viewModel())
-        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
-        assertNull(vm.screening.value?.context?.date, "idag – bara tillfället")
-        vm.onEvent(TodayEvent.CloseScreening)
-        // Midnatt har passerat men vyn har inte följt med: loggen och rubriken tar båda den nya dagen.
-        clock.instant = at(LocalDate(2026, 10, 5), 0, 5)
-        vm.onEvent(TodayEvent.LogScreening(Occasion.BEDTIME))
-        assertEquals(LocalDate(2026, 10, 5), vm.screening.value?.value?.date)
-        assertNull(vm.screening.value?.context?.date)
-        vm.onEvent(TodayEvent.CloseScreening)
-        vm.onEvent(TodayEvent.EditScreening(Screening("s", yesterday, LocalTime(12, 0), Occasion.LUNCH)))
-        assertEquals(yesterday, vm.screening.value?.context?.date)
-    }
-
-    @Test
-    fun `strax efter midnatt får en ny logg den nya dagen och klockslaget, inte gårdagens datum (SCR-6)`() = runTest(main.dispatcher) {
-        seed()
-        allOccasions()
-        val vm = started(viewModel())
-        assertEquals(today, vm.content.date)
-        // Klockan har passerat midnatt men minutflödet har inte hunnit ticka: vyn visar fortfarande igår som idag.
-        clock.instant = at(LocalDate(2026, 10, 5), 0, 5)
-        vm.onEvent(TodayEvent.LogScreening(Occasion.BEDTIME))
-        val new = assertNotNull(vm.screening.value).value
-        assertEquals(LocalDate(2026, 10, 5), new.date)
-        assertEquals(LocalTime(0, 5), new.time)
-    }
-
-    // ── Läsfel i tilläggen, byte av episod och anteckningen (HEM-12, SCR-1, SCR-5) ──
-
-    private val denied: Flow<Nothing> = flow { throw DataError.PermissionDenied }
 
     @Test
     fun `episoderna går inte att läsa – Idag visas utan sjukdomskort (HEM-12)`() = runTest(main.dispatcher) {
@@ -853,25 +663,6 @@ class TodayViewModelTest {
         runCurrent()
         assertEquals(episode, vm.content.illness?.episode)
         assertNull(vm.content.illness?.lastCheckin)
-    }
-
-    @Test
-    fun `symptomlistan går inte att läsa – arket fungerar med en tom lista (SCR-2)`() = runTest(main.dispatcher) {
-        seed()
-        allOccasions()
-        val failing = object : OptionsRepository by DefaultOptionsRepository(factory) {
-            override fun observe(kind: OptionKind): Flow<List<Option>> = denied
-        }
-        val vm = started(viewModel(options = failing))
-        runCurrent()
-        backgroundScope.launch { vm.symptomOptions.collect {} }
-        runCurrent()
-        assertTrue(vm.symptomOptions.value.isEmpty())
-        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
-        vm.onEvent(TodayEvent.ChangeEnergy(5))
-        vm.onEvent(TodayEvent.SaveScreening)
-        runCurrent()
-        assertEquals(5, storedScreenings().single().energy)
     }
 
     @Test
@@ -904,37 +695,38 @@ class TodayViewModelTest {
     }
 
     @Test
-    fun `en ändring i arket behåller loggens anteckning (SCR-1, SCR-5)`() = runTest(main.dispatcher) {
+    fun `ett fel i städningen eller dagens doser kraschar inte fliken och visas inte`() = runTest(main.dispatcher) {
         seed()
-        allOccasions()
-        val logged = Screening("s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, stress = 3, createdAt = at(today, 8, 40), note = "Sov dåligt")
-        factory.screenings().upsert(logged).getOrThrow()
-        val vm = started(viewModel())
-        vm.onEvent(TodayEvent.EditScreening(logged))
-        vm.onEvent(TodayEvent.ChangeEnergy(8))
-        vm.onEvent(TodayEvent.SaveScreening)
-        runCurrent()
-        val saved = storedScreenings().single()
-        assertEquals(8, saved.energy)
-        assertEquals("Sov dåligt", saved.note)
+        val throwing = object : PrescriptionRepository by testPrescriptions(factory, doses, zone, clock) {
+            override suspend fun tidyUp(today: LocalDate): Result<Unit> = throw IllegalStateException("syntetiskt fel")
+            override suspend fun ensureDay(date: LocalDate, today: LocalDate): Result<Unit> = throw IllegalStateException("syntetiskt fel")
+        }
+        val vm = started(viewModel(throwing))
+        assertTrue(vm.state.value is DetailUiState.Content)
+        assertNull(vm.failure.value)
     }
 
+    // ── Mående, sjukdom, vecka och trend (HEM-4, HEM-5, HEM-7, HEM-12, HEM-13, SCR-1, SCR-6) ──
+
+    /** Alla fyra tillfällen påslagna med standardtiderna 08:00, 12:00, 17:00 och 21:00. */
+    private suspend fun allOccasions() {
+        factory.settings().upsert(Settings(reminders = ReminderSettings(screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = true) }))).getOrThrow()
+    }
+
+
+    private val denied: Flow<Nothing> = flow { throw DataError.PermissionDenied }
+
     @Test
-    fun `episoderna och symptomlistan har inte svarat än – Idag visas ändå (HEM-12, HEM-16)`() = runTest(main.dispatcher) {
+    fun `episoderna har inte svarat än – Idag visas ändå (HEM-12, HEM-16)`() = runTest(main.dispatcher) {
         seed()
         val silentIllness = object : IllnessRepository by DefaultIllnessRepository(factory) {
             override fun observeEpisodes(): Flow<List<IllnessEpisode>> = MutableSharedFlow()
             override fun observeCheckins(episodeId: String): Flow<List<Checkin>> = MutableSharedFlow()
         }
-        val silentOptions = object : OptionsRepository by DefaultOptionsRepository(factory) {
-            override fun observe(kind: OptionKind): Flow<List<Option>> = MutableSharedFlow()
-        }
-        val vm = started(viewModel(options = silentOptions, illnesses = silentIllness))
-        backgroundScope.launch { vm.symptomOptions.collect {} }
+        val vm = started(viewModel(illnesses = silentIllness))
         runCurrent()
         assertTrue(vm.state.value is DetailUiState.Content)
         assertEquals(2, vm.content.progress.total, "medicinerna visas")
         assertNull(vm.content.illness)
-        assertTrue(vm.symptomOptions.value.isEmpty())
     }
 }

@@ -22,16 +22,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.AsNeededChoices
 import se.partee71.dagboken.core.engine.DayComparison
@@ -63,32 +60,26 @@ import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.IllnessEpisode
-import se.partee71.dagboken.core.model.Occasion
-import se.partee71.dagboken.core.model.Option
-import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Settings
-import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.combineByKey
 import se.partee71.dagboken.data.common.suspendRunCatching
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.repository.DoseRepository
 import se.partee71.dagboken.data.repository.IllnessRepository
-import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.ui.common.DetailLoader
 import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.EditorSheet
-import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.dagboken.ui.common.SelectedDay
 import se.partee71.dagboken.ui.common.failureOrNull
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.minutes
@@ -136,25 +127,6 @@ sealed interface TodayEvent {
 
     /** Bekräftat "Radera" i långtrycksmenyn (FAV-3). */
     data class DeleteMedicine(val medicine: PrnMedicine) : TodayEvent
-
-    /** "Logga nu" eller tryck på ett ologgat måendetillfälle: arket med en ny logg för den visade dagen (HEM-5, SCR-6). */
-    data class LogScreening(val occasion: Occasion) : TodayEvent
-
-    /** Tryck på ett loggat måendetillfälle: arket med loggen för ändring (HEM-5, SCR-1). */
-    data class EditScreening(val screening: Screening) : TodayEvent
-
-    /** Arkets energi (SCR-1). */
-    data class ChangeEnergy(val energy: Int) : TodayEvent
-
-    /** Arkets stress (SCR-1). */
-    data class ChangeStress(val stress: Int) : TodayEvent
-
-    /** Arkets symptom (SCR-2). */
-    data class ChangeSymptoms(val symptoms: List<SymptomScore>) : TodayEvent
-
-    data object SaveScreening : TodayEvent
-
-    data object CloseScreening : TodayEvent
 
     /** Konfettin har fallit – den faller inte igen samma dag (HEM-19). */
     data object ConfettiShown : TodayEvent
@@ -204,12 +176,6 @@ data class TodayContent(
     val isToday: Boolean get() = date == today
 }
 
-/**
- * Måendearkets rubrik (HEM-5), tagen när arket öppnas: tillfället och – en annan dag än idag – dagen.
- * Symptomvalen följer symptomlistan medan arket är öppet (`TodayViewModel.symptomOptions`).
- */
-data class ScreeningSheetInfo(val occasion: Occasion?, val date: LocalDate?)
-
 /** "För tidigt" (FAV-4): [remaining] kvar av kylperioden för [medicine]. */
 data class CooldownPrompt(val medicine: PrnMedicine, val remaining: Duration)
 
@@ -230,19 +196,24 @@ class TodayViewModel @Inject constructor(
     private val medicines: PrnMedicineRepository,
     private val screenings: ScreeningRepository,
     private val settings: SettingsRepository,
-    private val options: OptionsRepository,
     private val illnesses: IllnessRepository,
+    private val selectedDay: SelectedDay,
     private val clock: Clock,
     private val zone: Provider<TimeZone>,
 ) : ViewModel() {
+    init {
+        // En ny Idag (ny inloggning, ny aktivitet i samma process) börjar på idag (HEM-14).
+        selectedDay.reset()
+    }
+
     private val now: Flow<LocalDateTime> =
         clock.minutes { zone.get() }.shareIn(viewModelScope, sharing, replay = 1)
 
     /** Dagens datum, igen vid midnatt – med städningen vid start och varje ny dag, som i Mediciner. */
     private val today: Flow<LocalDate> = now.map { it.date }.distinctUntilChanged().tidyingUpEachDay(prescriptions, viewModelScope)
 
-    /** Vald dag (`null` = idag, även efter midnatt) och visad vecka (`null` = den valda dagens). */
-    private val selected = MutableStateFlow<LocalDate?>(null)
+    /** Vald dag (`null` = idag, även efter midnatt – delad med plusknappen, HEM-14) och visad vecka (`null` = den valda dagens). */
+    private val selected = selectedDay.date
     private val week = MutableStateFlow<LocalDate?>(null)
     private val showDone = MutableStateFlow(false)
     private val showUpcoming = MutableStateFlow(false)
@@ -299,13 +270,6 @@ class TodayViewModel @Inject constructor(
 
     private val library: Flow<Library> = combine(prescriptions.observe(), medicines.observe(), settings.settings, ::Library)
 
-    /**
-     * Symptomlistan (Listor) för måendearkets val (SCR-2) – följs medan arket är öppet, så att en sen lista ger
-     * symptomsteget; tom tills den lästs och vid läsfel. Inte en del av Idags innehåll.
-     */
-    val symptomOptions: StateFlow<List<Option>> = options.observe(OptionKind.SYMPTOM).distinctUntilChanged()
-        .withFallback(emptyList()).stateIn(viewModelScope, sharing, emptyList())
-
     private data class Toggles(val done: Boolean, val upcoming: Boolean, val celebrated: LocalDate?)
 
     private val toggles = combine(showDone, showUpcoming, celebrated, ::Toggles)
@@ -333,12 +297,6 @@ class TodayViewModel @Inject constructor(
 
     private val _notice = MutableStateFlow<TodayNotice?>(null)
     val notice: StateFlow<TodayNotice?> = _notice.asStateFlow()
-
-    /** Måendearket (HEM-5, SCR-1): sparat → arket stängs och "Mående sparat" visas (SCR-3). */
-    private val sheet = EditorSheet<Screening, ScreeningSheetInfo>(viewModelScope) { _notice.value = TodayNotice(R.string.today_screening_saved) }
-
-    /** Måendearket när det är öppet (HEM-5). */
-    val screening: StateFlow<EditorSheetState<Screening, ScreeningSheetInfo>?> = sheet.current
 
     /** Ångra efter en avbockning eller "Hoppa över": dosen som den var före. */
     private var undoDose: Dose? = null
@@ -457,15 +415,6 @@ class TodayViewModel @Inject constructor(
             is TodayEvent.LogExtra -> if (viewingToday) logExtra(event.prescription)
             is TodayEvent.ToggleFavorite -> write { medicines.setFavorite(event.medicine, !event.medicine.favorite) }
             is TodayEvent.DeleteMedicine -> write { medicines.delete(event.medicine.id) }
-            is TodayEvent.LogScreening -> logScreening(event.occasion)
-            is TodayEvent.EditScreening -> openSheet(event.screening, event.screening, clock.now().toLocalDateTime(zone.get()).date)
-            // Id:t och skapandetiden hör till loggen, inte formuläret.
-            is TodayEvent.ChangeEnergy -> sheet.update(ENERGY) { it.copy(energy = event.energy) }
-            is TodayEvent.ChangeStress -> sheet.update(STRESS) { it.copy(stress = event.stress) }
-            is TodayEvent.ChangeSymptoms -> sheet.update(SYMPTOMS) { it.copy(symptoms = event.symptoms) }
-            // SCR-1: ny logg som den är, ändrad fältvis (`ScreeningRepository.save`).
-            TodayEvent.SaveScreening -> sheet.save(screenings::save)
-            TodayEvent.CloseScreening -> sheet.close()
             TodayEvent.ConfettiShown -> celebrated.value = currentContent?.today
             TodayEvent.ErrorShown -> _failure.value = null
             TodayEvent.NoticeShown -> _notice.value = null
@@ -477,7 +426,7 @@ class TodayViewModel @Inject constructor(
         val today = currentContent?.today ?: return
         if (date > today) return
         // Idag följer med över midnatt; en tidigare dag står kvar.
-        selected.value = date.takeIf { it != today }
+        selectedDay.select(date.takeIf { it != today })
         week.value = null
     }
 
@@ -520,31 +469,6 @@ class TodayViewModel @Inject constructor(
         _undo.value = null
     }
 
-    /**
-     * HEM-5, SCR-6: en ny logg för [occasion] på den visade dagen – också en tidigare dag. Dag och klockslag ur
-     * **en** läsning av klockan: visas idag är dagen klockans (också om midnatt passerat innan vyn hunnit
-     * följa med), och klockslaget är nu; en tidigare dag får tillfällets påminnelsetid (3.x tog alltid "nu").
-     */
-    private fun logScreening(occasion: Occasion) {
-        val content = currentContent ?: return
-        val now = clock.now().toLocalDateTime(zone.get())
-        val date = if (content.isToday) now.date else content.date
-        val time = if (date == now.date) {
-            LocalTime(now.hour, now.minute)
-        } else {
-            content.occasions.firstOrNull { it.occasion == occasion }?.time ?: occasion.defaultTime
-        }
-        openSheet(null, screenings.new(date, occasion).copy(time = time), now.date)
-    }
-
-    /**
-     * Öppnar arket med [value] ([loaded] = den sparade loggen). Rubriken tas nu, så att arket står sig medan skärmen
-     * bakom laddar om: dagen står i den när den inte är [today] (samma klockläsning som gav loggens dag).
-     */
-    private fun openSheet(loaded: Screening?, value: Screening, today: LocalDate) {
-        sheet.open(loaded, value, ScreeningSheetInfo(value.occasion, value.date?.takeIf { it != today }))
-    }
-
     /** FAV-4, FAV-5, FAV-6: nu (bara när idag visas); kylperioden frågar ("För tidigt"), dagsgränsen stoppar med ett meddelande. */
     private fun logAsNeeded(medicine: PrnMedicine, force: Boolean) {
         viewModelScope.launch {
@@ -584,11 +508,6 @@ class TodayViewModel @Inject constructor(
 
         /** Hur långt bakåt dagar i rad räknas (HEM-20) – en längre svit visas som så här många dagar. */
         const val STREAK_DAYS = 90
-
-        /** Arkets fält (rörda när de ändrats, `EditorState`). */
-        const val ENERGY = "energy"
-        const val STRESS = "stress"
-        const val SYMPTOMS = "symptoms"
 
         /** "Din vecka" jämför två veckor (HEM-13): så många dagar till och med idag behövs. */
         const val WEEK_SUMMARY_DAYS = 14

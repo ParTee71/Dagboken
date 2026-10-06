@@ -209,6 +209,21 @@ class TodayTest {
         assertEquals(OccasionStatus.UPCOMING, occasionStates(reminders, emptyList(), day("2026-05-04"), at("2026-05-04T00:01"), STOCKHOLM).last().status)
     }
 
+    @Test fun `plusknappens tillfällesväljare har alla fyra – de aktiverade med Idags status, övriga aldrig försenade (HEM-8b)`() {
+        val today = day("2026-05-04")
+        val lunch = screening("2026-05-04", Occasion.LUNCH)
+        val choices = occasionChoices(reminders, listOf(lunch, screening("2026-05-03", Occasion.DINNER)), today, at("2026-05-04T19:00"), STOCKHOLM)
+        assertEquals(Occasion.entries.toList(), choices.map { it.occasion })
+        assertEquals(
+            listOf(OccasionStatus.LATE, OccasionStatus.LOGGED, OccasionStatus.NOT_LOGGED, OccasionStatus.SOON),
+            choices.map { it.status },
+            "frukost försenad och läggdags snart som på Idag; lunch loggad och kvällsmat utan påminnelse inte försenad",
+        )
+        assertEquals(listOf(lunch), choices[1].screenings)
+        assertEquals(Occasion.DINNER.defaultTime, choices[2].time)
+        assertEquals(occasionStates(reminders, listOf(lunch), today, at("2026-05-04T19:00"), STOCKHOLM), choices.filter { it.occasion in both })
+    }
+
     @Test fun `snart räknas i verkliga timmar över sommartidsbytet`() {
         // 29 mars 2026: klockan går från 02:00 till 03:00. 00:30 → 04:00 är 2,5 verkliga timmar.
         val springForward = day("2026-03-29")

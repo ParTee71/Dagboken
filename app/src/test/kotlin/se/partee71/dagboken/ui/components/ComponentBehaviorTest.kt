@@ -51,6 +51,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.TypeChoices
+import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.schema.TextLimits
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
@@ -66,6 +69,35 @@ class ComponentBehaviorTest {
 
     private companion object {
         const val SETTLE_MILLIS = 2_000L
+    }
+
+    @Test
+    fun `typvalet väljer bland chips och under Fler typer, där Övrigt står sist, och säger var typer läggs till`() {
+        val types = TypeChoices(
+            listOf(Option("walk", OptionKind.ACTIVITY, "Promenad", favorite = true)),
+            listOf(Option("rest", OptionKind.ACTIVITY, "Vila")),
+            other = "other",
+        )
+        var selected by mutableStateOf("")
+        var choices by mutableStateOf(types)
+        show { TypeChoiceField(choices, selected, { selected = it }, otherLabel = "Övrigt", error = "Välj en typ".takeIf { selected.isEmpty() }) }
+        rule.onNodeWithText("Välj en typ").assertIsDisplayed()
+        rule.onNodeWithText("Promenad").performClick()
+        assertEquals("walk", selected)
+        rule.onNodeWithText("Välj en typ").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Fler typer, Välj typ").performClick()
+        rule.onNodeWithText("Övrigt").performClick()
+        assertEquals("other", selected)
+        rule.onNodeWithContentDescription("Fler typer, Övrigt").assertExists()
+        choices = TypeChoices(emptyList(), emptyList())
+        rule.onNodeWithText("Inga typer än – lägg till dem under Listor i inställningarna.").assertIsDisplayed()
+        rule.onNodeWithText("Fler typer").assertDoesNotExist()
+    }
+
+    @Test
+    fun `anteckningens fel syns också i stängt läge`() {
+        show { NoteField("Sov dåligt.", {}, error = "Värdet går inte att spara") }
+        rule.onNodeWithText("Värdet går inte att spara").assertIsDisplayed()
     }
 
     @Test

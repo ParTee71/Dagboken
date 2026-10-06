@@ -75,8 +75,8 @@ class DiaryViewModelTest {
 
     /** Satt: läsningar som börjar före ankarets år svarar inte förrän flödet släpps (ett år som läses). */
     private var holdOlder: MutableSharedFlow<List<Activity>>? = null
-    private val countingActivities = object : ActivityRepository by DefaultActivityRepository(factory) {
-        private val real = DefaultActivityRepository(factory)
+    private val countingActivities = object : ActivityRepository by DefaultActivityRepository(factory, clock) {
+        private val real = DefaultActivityRepository(factory, clock)
 
         override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Activity>> {
             val held = holdOlder?.takeIf { from < LocalDate(2025, 10, 7) }
@@ -109,7 +109,7 @@ class DiaryViewModelTest {
     private fun viewModel(
         screenings: ScreeningRepository = DefaultScreeningRepository(factory, clock),
         activities: ActivityRepository = countingActivities,
-        events: EventRepository = DefaultEventRepository(factory),
+        events: EventRepository = DefaultEventRepository(factory, clock),
     ) = DiaryViewModel(screenings, activities, doses, events, illnesses, DefaultOptionsRepository(factory), clock) { zone }
 
     private fun TestScope.started(vm: DiaryViewModel): DiaryViewModel {
@@ -291,7 +291,7 @@ class DiaryViewModelTest {
     @Test
     fun `en radering som misslyckas visas som meddelande`() = runTest(main.dispatcher) {
         seed()
-        val failing = object : EventRepository by DefaultEventRepository(factory) {
+        val failing = object : EventRepository by DefaultEventRepository(factory, clock) {
             override suspend fun delete(id: String): Result<Unit> = Result.failure(DataError.PermissionDenied)
         }
         val vm = started(viewModel(events = failing))

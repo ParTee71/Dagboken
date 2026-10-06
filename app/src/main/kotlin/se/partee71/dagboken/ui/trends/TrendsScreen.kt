@@ -251,8 +251,8 @@ private val StressSeries.label: Int
     get() = when (this) {
         StressSeries.STRESS -> R.string.trends_series_stress
         StressSeries.SOMATIC -> R.string.trends_series_somatic
-        StressSeries.RECOVERING -> R.string.trends_series_recovering
-        StressSeries.DRAIN -> R.string.trends_series_drain
+        StressSeries.RECOVERING -> R.string.activity_recovering
+        StressSeries.DRAIN -> R.string.activity_drain
     }
 
 /**

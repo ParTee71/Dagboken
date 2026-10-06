@@ -89,12 +89,12 @@ class TrendsViewModelTest {
         private val real = DefaultScreeningRepository(factory, clock)
         override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Screening>> = real.observeDays(from, to).onStart { screeningReads += from..to }
     }
-    private val activities = object : ActivityRepository by DefaultActivityRepository(factory) {
-        private val real = DefaultActivityRepository(factory)
+    private val activities = object : ActivityRepository by DefaultActivityRepository(factory, clock) {
+        private val real = DefaultActivityRepository(factory, clock)
         override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Activity>> = real.observeDays(from, to).onStart { activityReads += from..to }
     }
-    private val events = object : EventRepository by DefaultEventRepository(factory) {
-        private val real = DefaultEventRepository(factory)
+    private val events = object : EventRepository by DefaultEventRepository(factory, clock) {
+        private val real = DefaultEventRepository(factory, clock)
         override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Event>> = real.observeDays(from, to).onStart { eventReads += from..to }
     }
     private val illnesses = object : IllnessRepository by DefaultIllnessRepository(factory) {
