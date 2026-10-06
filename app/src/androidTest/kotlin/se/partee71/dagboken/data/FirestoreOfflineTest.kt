@@ -103,9 +103,11 @@ class FirestoreOfflineTest {
         assertEquals(DataError.Offline, doses.deleteIf(listOf("a")) { true }.dataError())
         assertEquals(DataError.Offline, doses.updateIf(listOf(planned.copy(name = "Annat")), setOf(DoseCodec.NAME)) { true }.dataError())
 
-        val local = user.db.collection(Paths.doses(user.uid))
-        assertEquals("Levaxin", local.document("a").get(Source.CACHE).await().getString("name"), "varken raderad eller ändrad")
-        assertFalse(local.document("b").get(Source.CACHE).await().exists(), "inget skapat, inget i kö")
+        // En samlingsfråga mot cachen kastar inte för saknade dokument (det gör en dokumentläsning)
+        // och tar med väntande lokala skrivningar.
+        val local = user.db.collection(Paths.doses(user.uid)).get(Source.CACHE).await().documents.associateBy { it.id }
+        assertEquals("Levaxin", local["a"]?.getString("name"), "varken raderad eller ändrad")
+        assertFalse("b" in local, "inget skapat, inget i kö")
     }
 
     @Test
