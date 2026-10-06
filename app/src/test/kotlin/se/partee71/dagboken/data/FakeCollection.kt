@@ -20,6 +20,7 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.common.UserScope
 import se.partee71.dagboken.data.common.currentVersion
+import se.partee71.dagboken.data.common.FieldMerge
 import se.partee71.dagboken.data.common.FieldPath
 import se.partee71.dagboken.data.common.PendingCommits
 import se.partee71.dagboken.data.common.SERVER_WAIT
@@ -95,6 +96,13 @@ class FakeStore {
     }
 
     fun delete(path: String, id: String) = documents.update { all -> all + (path to all[path].orEmpty() - id) }
+
+    /** En batch i en enda ändring: [sets] med merge och [deletes]. */
+    fun batch(path: String, sets: List<Pair<String, Doc>>, deletes: List<String>) = documents.update { all ->
+        var collection = all[path].orEmpty()
+        for ((id, doc) in sets) collection = collection + (id to deepMerge(collection[id].orEmpty(), firestoreValues(doc)))
+        all + (path to collection - deletes.toSet())
+    }
 
     /** Som en transaktion: [to] får [doc] (Firestores värden) och [from] tas bort – i en och samma ändring. */
     fun move(path: String, from: String, to: String, doc: Doc) = documents.update { all ->
@@ -262,10 +270,11 @@ class FakeCollection<T : Identified>(
         store.patch(path(), items.associate { it.id to fieldsForUpdate(encode(it), fields) + remove.associateWith { FakeStore.DELETE } })
     }
 
-    override suspend fun batch(upserts: List<T>, deletes: List<String>) = write {
+    /** Som Firestores batch: allt eller inget – ett okänt fält skriver inget. */
+    override suspend fun batch(upserts: List<T>, deletes: List<String>, merges: List<FieldMerge<T>>) = write {
         val p = path()
-        upserts.forEach { store.set(p, it.id, encode(it), merge = true) }
-        deletes.forEach { store.delete(p, it) }
+        val sets = upserts.map { it.id to encode(it) } + merges.map { it.item.id to fieldsForMerge(encode(it.item), it.fields) }
+        store.batch(p, sets, deletes)
     }
 
     override fun newId(): String = "id-" + nextId++

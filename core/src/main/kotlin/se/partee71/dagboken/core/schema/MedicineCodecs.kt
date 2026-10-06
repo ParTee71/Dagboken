@@ -138,16 +138,23 @@ object DoseCodec : DocCodec<Dose> {
     const val UNIT = "unit"
     const val TAKEN_AT = "takenAt"
 
+    // Fälten som är givna av en receptdos id (`recept_{prescriptionId}_{date}_{tidpunkt}`, NOT-10).
+    const val SLOT = "slot"
+    const val PRESCRIPTION_ID = "prescriptionId"
+
+    /** Anteckningen (DAT-7) – skrivs aldrig blint över av "Markera tagen" utan nät (NOT-10). */
+    const val NOTE = se.partee71.dagboken.core.schema.NOTE
+
     override fun encode(value: Dose): Doc = mapOf(
         DATE to value.date.encodeDate(),
-        "slot" to value.slot.encodeWire(),
+        SLOT to value.slot.encodeWire(),
         NAME to value.name,
         DOSE to value.dose,
         UNIT to value.unit,
         STATUS to value.status.encodeWire(),
         "plannedTime" to value.plannedTime.encodeTime(),
         TAKEN_AT to value.takenAt,
-        "prescriptionId" to value.prescriptionId,
+        PRESCRIPTION_ID to value.prescriptionId,
         "prnId" to value.prnId,
         CREATED_AT to value.createdAt,
         NOTE to value.note,
@@ -156,14 +163,14 @@ object DoseCodec : DocCodec<Dose> {
     override fun decode(id: String, map: Doc) = Dose(
         id = id,
         date = map.localDate(DATE),
-        slot = map.wire("slot", Slot.AS_NEEDED),
+        slot = map.wire(SLOT, Slot.AS_NEEDED),
         name = map.string("name"),
         dose = map.string("dose"),
         unit = map.string("unit"),
         status = map.wire(STATUS, DoseStatus.PLANNED),
         plannedTime = map.localTime("plannedTime"),
         takenAt = map.instant(TAKEN_AT),
-        prescriptionId = map.stringOrNull("prescriptionId"),
+        prescriptionId = map.stringOrNull(PRESCRIPTION_ID),
         prnId = map.stringOrNull("prnId"),
         createdAt = map.instant(CREATED_AT),
         note = map.stringOrNull(NOTE),

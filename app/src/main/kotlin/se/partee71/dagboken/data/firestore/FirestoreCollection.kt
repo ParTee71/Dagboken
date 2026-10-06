@@ -34,6 +34,7 @@ import se.partee71.dagboken.data.common.PendingCommits
 import se.partee71.dagboken.data.common.Stored
 import se.partee71.dagboken.data.common.MoveOutcome
 import se.partee71.dagboken.data.common.mayCreate
+import se.partee71.dagboken.data.common.FieldMerge
 import se.partee71.dagboken.data.common.moveOutcome
 import se.partee71.dagboken.data.common.movedDocument
 import se.partee71.dagboken.data.common.satisfies
@@ -190,8 +191,11 @@ class FirestoreCollection<T : Identified>(
     override suspend fun updateAll(items: List<T>, fields: Set<String>, remove: Set<String>): Result<Unit> =
         commit { items.map { BatchOp.Update(it.id, fieldsForUpdate(encode(it), fields) + remove.associateWith { FieldValue.delete() }) } }
 
-    override suspend fun batch(upserts: List<T>, deletes: List<String>): Result<Unit> =
-        commit { upserts.map { BatchOp.Set(it.id, encode(it)) } + deletes.map { BatchOp.Delete(it) } }
+    override suspend fun batch(upserts: List<T>, deletes: List<String>, merges: List<FieldMerge<T>>): Result<Unit> = commit {
+        upserts.map { BatchOp.Set(it.id, encode(it)) } +
+            merges.map { BatchOp.Set(it.item.id, fieldsForMerge(encode(it.item), it.fields)) } +
+            deletes.map { BatchOp.Delete(it) }
+    }
 
     /** Atomärt inom varje bit om 500 skrivningar (Firestores gräns), inte över bitar. */
     private suspend fun commit(operations: () -> List<BatchOp>): Result<Unit> =
@@ -233,13 +237,11 @@ class FirestoreCollection<T : Identified>(
 
     /**
      * Väntar på transaktionen [task] högst [serverWait]. Svarar den inte i tid blir det [DataError.Offline], men
-     * den kan fortfarande committa: den spåras då i [commits] (som [awaitWrites] väntar in) och i [sync].
+     * den kan fortfarande committa: den spåras då i [commits] (som [awaitWrites] väntar in) och i [sync] – också
+     * när väntan avbryts av den som anropar (t.ex. en yttre tidsgräns), så att ett sent fel alltid syns.
      */
     private suspend fun <R : Any> awaitCommit(task: Task<R>): R =
-        commits.await(task.asDeferred(), serverWait) ?: run {
-            sync.track(task)
-            throw DataError.Offline
-        }
+        commits.await(task.asDeferred(), serverWait, onUnfinished = { sync.track(task) }) ?: throw DataError.Offline
 
     /** Transaktioner som inte hann bekräftas i tid men fortfarande kan committa. */
     private val commits = PendingCommits()

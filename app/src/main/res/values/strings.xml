@@ -183,6 +183,36 @@
     <string name="reminders_med_times">Medicintider</string>
     <string name="reminders_period">Periodslut</string>
     <string name="reminders_period_time">Dagen innan en period tar slut</string>
+    <!-- Behörigheter på Påminnelser (NOT-16) -->
+    <string name="reminders_notifications_off">Notiser är avstängda</string>
+    <string name="reminders_notifications_off_detail">Påminnelserna kan inte visas. Tryck för att slå på notiser för Dagboken.</string>
+    <string name="reminders_exact_off">Påminnelserna kan komma några minuter sent</string>
+    <string name="reminders_exact_off_detail">Tryck och tillåt Alarm och påminnelser för exakta tider.</string>
+    <string name="reminders_open_system_settings">Öppna systeminställningarna</string>
+
+    <!-- Notiser (NOT-1, NOT-3, NOT-10…NOT-12, NOT-17) – rubrikerna utan hälsoinnehåll visas på låsskärmen -->
+    <string name="notification_channel_meds_name">Medicinpåminnelser</string>
+    <string name="notification_channel_meds_description">Påminner om dagens doser och om perioder som tar slut</string>
+    <string name="notification_channel_mood_name">Måendepåminnelser</string>
+    <string name="notification_channel_mood_description">Påminner om att logga mående vid måltiderna du valt</string>
+    <string name="notification_med_title">Dags för medicin – %1$s</string>
+    <string name="notification_med_public_title">Dags för medicin</string>
+    <string name="notification_public_text">Lås upp telefonen för att se mer.</string>
+    <string name="notification_med_action_mark_taken">Markera tagen</string>
+    <string name="notification_mark_taken_failed">Kunde inte markera – öppna appen och bocka av där.</string>
+    <string name="notification_mood_title">Dags att logga mående – %1$s</string>
+    <string name="notification_mood_public_title">Dags att logga mående</string>
+    <string name="notification_mood_text">Hur mår du? Det tar en halv minut.</string>
+    <string name="notification_mood_action_log_now">Logga nu</string>
+    <string name="notification_period_public_title">En medicinperiod tar slut i morgon</string>
+    <string name="notification_period_prescription_title">I morgon är sista dagen med %1$s</string>
+    <string name="notification_period_prescription_text">I morgon tas den sista dosen i perioden.</string>
+    <string name="notification_period_boost_title">Doshöjningen för %1$s slutar i morgon</string>
+    <string name="notification_period_boost_text">Från och med dagen efter gäller %1$s.</string>
+    <plurals name="notification_period_multi_title">
+        <item quantity="one">%1$d medicinperiod tar slut i morgon</item>
+        <item quantity="other">%1$d medicinperioder tar slut i morgon</item>
+    </plurals>
 
     <!-- Medicintidpunkter och måendetillfällen – ui/common/SlotLabels.kt, enda stället (DAT-1, NOT-4) -->
     <string name="slot_morning">Morgon</string>

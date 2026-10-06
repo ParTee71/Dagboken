@@ -141,8 +141,17 @@ interface EntityCollection<T : Identified> {
     /** [update] för flera på en gång – atomärt inom varje bit om 500 (Firestores gräns). */
     suspend fun updateAll(items: List<T>, fields: Set<String>, remove: Set<String> = emptySet()): Result<Unit>
 
-    /** Flera skrivningar i ett svep – atomärt inom varje bit om 500 (Firestores gräns). */
-    suspend fun batch(upserts: List<T>, deletes: List<String> = emptyList()): Result<Unit>
+    /**
+     * Flera skrivningar i ett svep – atomärt inom varje bit om 500 (Firestores gräns): [upserts] som [upsert],
+     * [deletes] som [delete] och [merges] – varje dokument med sina egna fält – som [merge] (skapar dokumentet om
+     * det saknas, så ingen bit avvisas för ett saknat dokument). Ett okänt fält är ett fel innan något skrivs.
+     * Offline först.
+     */
+    suspend fun batch(
+        upserts: List<T>,
+        deletes: List<String> = emptyList(),
+        merges: List<FieldMerge<T>> = emptyList(),
+    ): Result<Unit>
 
     /**
      * Flyttar dokumentet [from] till id:t [item].id: det nya dokumentet är det **lagrade** dokumentet – med
@@ -159,6 +168,9 @@ interface EntityCollection<T : Identified> {
     /** Klientgenererat, slumpat ID – fungerar offline. */
     fun newId(): String
 }
+
+/** [EntityCollection.batch]: [item] skrivs med merge av bara [fields], som [EntityCollection.merge]. */
+data class FieldMerge<T>(val item: T, val fields: Set<FieldPath>)
 
 /** Ett värde ur en lyssnare, och om det kom ur den lokala cachen utan svar från servern. */
 data class Snapshot<R>(val value: R, val fromCache: Boolean)

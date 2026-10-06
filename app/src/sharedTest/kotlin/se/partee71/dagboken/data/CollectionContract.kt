@@ -36,6 +36,7 @@ import se.partee71.dagboken.core.schema.PrnMedicineCodec
 import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
+import se.partee71.dagboken.data.common.FieldMerge
 import se.partee71.dagboken.data.common.TargetExists
 import se.partee71.dagboken.data.common.dataError
 import se.partee71.dagboken.data.firestore.Paths
@@ -513,6 +514,32 @@ abstract class CollectionContract {
         val list = medicines.observe().awaitMatching { it.map(PrnMedicine::id).toSet() == setOf("b", "c") }
         assertEquals(setOf("b", "c"), list.map { it.id }.toSet())
         assertEquals(setOf("b", "c"), medicines.getAll().getOrThrow().map { it.id }.toSet())
+    }
+
+    @Test
+    fun batch_med_merges_skriver_bara_varje_dokuments_falt_i_ett_svep() = contract {
+        env.writeRaw(medicinesPath, "a", mapOf("name" to "Alvedon", "dose" to "500", "framtidaFält" to "kvar"))
+        env.writeRaw(medicinesPath, "b", mapOf("name" to "Ipren", "dose" to "200", "framtidaFält" to "kvar"))
+        medicines.batch(
+            upserts = emptyList(),
+            merges = listOf(
+                FieldMerge(PrnMedicine("a", "Annat", favorite = true), setOf(listOf(PrnMedicineCodec.FAVORITE))),
+                FieldMerge(PrnMedicine("b", "Annat", dose = "400"), setOf(listOf("dose"))),
+                FieldMerge(PrnMedicine("c", "Loratadin", dose = "10"), setOf(listOf("dose"))),
+            ),
+        ).getOrThrow()
+        medicines.observe().awaitMatching { list -> list.size == 3 && list.any { it.favorite } }
+        val a = env.readRaw(medicinesPath, "a")!!
+        assertEquals(listOf("Alvedon", true, "kvar"), listOf(a["name"], a[PrnMedicineCodec.FAVORITE], a["framtidaFält"]))
+        val b = env.readRaw(medicinesPath, "b")!!
+        assertEquals(listOf("Ipren", "400", "kvar"), listOf(b["name"], b["dose"], b["framtidaFält"]))
+        val c = env.readRaw(medicinesPath, "c")!!
+        assertEquals("10", c["dose"])
+        assertFalse("name" in c, "ett saknat dokument skapas med bara fälten")
+
+        val unknown = medicines.batch(upserts = listOf(PrnMedicine("d", "Ny")), merges = listOf(FieldMerge(PrnMedicine("e"), setOf(listOf("okänt")))))
+        assertTrue(unknown.isFailure)
+        assertNull(env.readRaw(medicinesPath, "d"), "ett okänt fält skriver inget alls")
     }
 
     @Test

@@ -2,6 +2,7 @@ package se.partee71.dagboken.data.common
 
 import kotlin.time.Duration
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.withTimeoutOrNull
 
 // De villkorade skrivningarnas regler (`EntityCollection.createIfAbsent`, `deleteIf`, `updateIf`) – en
@@ -39,18 +40,25 @@ class PendingCommits {
 
     /**
      * Väntar på [commit] högst [wait]; `null` = inte klar i tid. En commit som inte är klar när
-     * väntan slutar – efter tidsgränsen, ett fel eller ett avbrott av den som väntar – spåras tills den är klar.
+     * väntan slutar – efter tidsgränsen, ett fel eller ett avbrott av den som väntar – spåras tills den är klar,
+     * och då anropas också [onUnfinished] (t.ex. så att ett sent fel syns i `SyncStatus`) – också vid avbrott.
      */
-    suspend fun <R : Any> await(commit: Deferred<R>, wait: Duration): R? {
+    suspend fun <R : Any> await(commit: Deferred<R>, wait: Duration, onUnfinished: () -> Unit = {}): R? {
         try {
-            return withTimeoutOrNull(wait) { commit.await() }
+            // En commit som blev klar precis när tidsgränsen löpte ut räknas som klar – inte som "inte skriven".
+            return withTimeoutOrNull(wait) { commit.await() } ?: commit.completedOrNull()
         } finally {
             if (!commit.isCompleted) {
                 synchronized(pending) { pending += commit }
                 commit.invokeOnCompletion { synchronized(pending) { pending -= commit } }
+                onUnfinished()
             }
         }
     }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun <R : Any> Deferred<R>.completedOrNull(): R? =
+        if (isCompleted && getCompletionExceptionOrNull() == null) getCompleted() else null
 
     /** Väntar in de spårade, högst [wait] totalt; `false` = någon är fortfarande inte klar. */
     suspend fun awaitAll(wait: Duration): Boolean {

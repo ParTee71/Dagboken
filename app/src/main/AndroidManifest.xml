@@ -2,9 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- TP-9: resten (exakta larm, omstart) läggs till med påminnelserna i etapp 6. -->
+    <!-- TP-9: nätet, notiser (begärs först när en påminnelse slås på, NOT-16), exakta larm (NOT-8) och omstart (NOT-6). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".DagbokenApplication"
@@ -28,5 +30,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Påminnelserna (TP-8, NOT-2…NOT-14): ingen mottagare är exporterad. Larm och notisåtgärder når dem via
+             appens egna explicita, oföränderliga PendingIntents; systemets broadcasts nedan är skyddade och
+             levereras ändå (skill android-intent-security). -->
+        <receiver android:name=".reminders.MedAlarmReceiver" android:exported="false" />
+        <receiver android:name=".reminders.ScreeningReminderReceiver" android:exported="false" />
+        <receiver android:name=".reminders.PeriodReminderReceiver" android:exported="false" />
+        <receiver android:name=".reminders.MedActionReceiver" android:exported="false" />
+        <receiver android:name=".reminders.BootReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

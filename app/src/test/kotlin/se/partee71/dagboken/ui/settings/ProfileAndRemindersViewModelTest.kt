@@ -14,6 +14,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Profile
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.core.model.Slot
@@ -232,5 +233,25 @@ class ProfileAndRemindersViewModelTest {
         reminders.onEvent(RemindersEvent.Retry)
         assertNull(profile.editor.state.value.loadError)
         assertNull(reminders.editor.state.value.loadError)
+    }
+
+    @Test
+    fun `notisbehörigheten begärs bara när en påminnelse slås på (NOT-16)`() {
+        val off = ReminderSettings()
+        val on = ReminderSettings(medsEnabled = true)
+        val morning = on.medSlots.first()
+        val lunch = off.screeningOccasions.first { it.occasion == Occasion.LUNCH }
+
+        assertTrue(RemindersEvent.MedsEnabledChanged(true).turnsOn(off))
+        assertFalse(RemindersEvent.MedsEnabledChanged(true).turnsOn(on), "redan på")
+        assertFalse(RemindersEvent.MedsEnabledChanged(false).turnsOn(on))
+        assertTrue(RemindersEvent.SlotChanged(morning).turnsOn(on.copy(medSlots = on.medSlots.map { it.copy(enabled = false) })))
+        assertFalse(RemindersEvent.SlotChanged(morning.copy(time = LocalTime(6, 30))).turnsOn(on), "bara klockslaget ändrat")
+        assertTrue(RemindersEvent.OccasionChanged(lunch.copy(enabled = true)).turnsOn(off))
+        assertFalse(RemindersEvent.OccasionChanged(lunch).turnsOn(off), "avslagen")
+        assertFalse(RemindersEvent.PeriodTimeChanged(LocalTime(8, 0)).turnsOn(off))
+        assertFalse(RemindersEvent.Save.turnsOn(off))
+        assertFalse(RemindersEvent.SlotChanged(morning).turnsOn(off.copy(medSlots = off.medSlots.map { it.copy(enabled = false) })), "huvudreglaget av – inget blir aktivt")
+        assertFalse(RemindersEvent.MedsEnabledChanged(true).turnsOn(off.copy(medSlots = off.medSlots.map { it.copy(enabled = false) })), "ingen tidpunkt påslagen")
     }
 }

@@ -15,6 +15,7 @@ import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
+import se.partee71.dagboken.reminders.ReminderAccess
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ListUiState
@@ -42,6 +43,11 @@ class SettingsScreenshotTest {
             )
         }
         RemindersScreen(EditorUiState(reminders), emptyFlow(), {}, {})
+    }
+
+    @Test
+    fun `Påminnelser - behörigheter saknas`() = rule.captureLightAndDark("Settings_Paminnelser_behorighet") {
+        RemindersScreen(EditorUiState(ReminderSettings(medsEnabled = true)), emptyFlow(), {}, {}, access = ReminderAccess(notifications = false, exactAlarms = false))
     }
 
     @Test

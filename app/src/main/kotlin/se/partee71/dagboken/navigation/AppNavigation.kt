@@ -2,6 +2,7 @@ package se.partee71.dagboken.navigation
 
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,6 +20,7 @@ import se.partee71.dagboken.BuildConfig
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.DiaryEntry
 import se.partee71.dagboken.data.auth.AuthUser
+import se.partee71.dagboken.reminders.ReminderLaunch
 import se.partee71.dagboken.ui.components.AccountSheet
 import se.partee71.dagboken.ui.components.ComponentGallery
 import se.partee71.dagboken.ui.components.LogChoice
@@ -55,13 +57,16 @@ enum class RootSheet { Account, Log }
 /**
  * Appens innehåll efter inloggning: fyra flikar med egna back stackar (NAV-8, NAV-11), synkläget
  * (NFR-1), inställningsarket bakom avataren och loggmenyn bakom plusknappen. [account] är den
- * inloggade (namn, e-post och foto i avataren och arket – bara i minnet, AUTH-3); [onSignOut] loggar ut.
+ * inloggade (namn, e-post och foto i avataren och arket – bara i minnet, AUTH-3); [onSignOut] loggar ut. [launch]
+ * är vad en tryckt påminnelse ska öppna ([open]); när det är gjort anropas [onLaunchHandled].
  */
 @Composable
 fun AppNavigation(
     account: AuthUser?,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
+    launch: ReminderLaunch? = null,
+    onLaunchHandled: () -> Unit = {},
     syncViewModel: SyncViewModel = hiltViewModel(),
     logViewModel: LogViewModel = hiltViewModel(),
 ) {
@@ -100,6 +105,27 @@ fun AppNavigation(
         onLog = { choice -> backStack.log(choice, logViewModel.logDay(onToday = backStack.currentTab == TodayKey), logViewModel::onEvent) },
     )
     LogSheets(logViewModel, onOpen = { target -> backStack.push(target.key) })
+    LaunchedEffect(launch) {
+        val target = launch ?: return@LaunchedEffect
+        sheet = null
+        backStack.open(target, logViewModel::onEvent)
+        onLaunchHandled()
+    }
+}
+
+/**
+ * En tryckt påminnelse (NOT-9, NOT-11, NOT-12): medicin- och måendepåminnelsen öppnar Idag – "Logga nu" dessutom
+ * måendearket för tillfället, idag och nu ([onEvent]) – och periodslutet fliken Mediciner.
+ */
+fun AppBackStack.open(launch: ReminderLaunch, onEvent: (LogEvent) -> Unit) {
+    when (launch) {
+        ReminderLaunch.Today -> select(TodayKey)
+        is ReminderLaunch.LogMood -> {
+            select(TodayKey)
+            onEvent(LogEvent.LogScreening(launch.occasion, date = null, reminder = null))
+        }
+        ReminderLaunch.Medicines -> select(MedicinesKey)
+    }
 }
 
 /** Formuläret ett val i plusknappens dos- eller sjukdomsval öppnar (NAV-10). */

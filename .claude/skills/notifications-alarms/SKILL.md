@@ -18,29 +18,36 @@ Konsekvenser) läser de **samma repositories som UI:t**, ur Firestore-cachen (of
 - påminnelseinställningarna i dokumentet `settings` (medicinpåminnelser i sex tillfällen,
   måendepåminnelser i fyra, periodpåminnelse), recepten i `prescriptions` och dagens doser i
   `doses` (skill `firestore-data-layer`). Ingen egen Firestore-kod i en receiver.
-- **"Markera tagen"** från notisen skriver dosens `status`/`takenAt` till cachen via repositoryt
-  och synkas när nätet finns – den väntar aldrig på servern.
+- **"Markera tagen"** från notisen går via `DoseRepository.markTaken`: en skrivning i cachen direkt,
+  offline först som avbockningen i appen – väntar aldrig på servern. Notisen stängs när det lyckats; bara
+  vid ett lokalt fel (t.ex. utloggad) står den kvar med en rad om det.
 - **Omschemaläggning** sker vid ändrade inställningar eller recept, när cachen fått ny data
   från servern (synk från en annan enhet eller migreringen), vid omstart och vid appuppdatering
   (NOT-14). Risk och hantering: ARKITEKTUR.md → Risker ("Larm tystnar när schemat ligger i cachen").
-- Utloggad (skill `firebase-auth`) finns inget schema att läsa – inga larm.
+- Utloggad (skill `firebase-auth`) finns inget schema att läsa – alla larm avbokas och notiserna
+  stängs (AUTH-6). Bara **bekräftat** utloggat läge avbokar: hinner inloggningen inte läsas in vid en
+  kallstart, eller är cachen tom, står larmen kvar (en utlöst påminnelse lägger nästa larm på
+  klockslaget i sina extras).
 
 ## Var koden bor
 
-Paketet `reminders/` i appen (ARKITEKTUR.md → Lager och moduler) med samma ansvarsfördelning som
-3.x `notifications/` – portas i etapp 6:
+Paketet `reminders/` i appen (ARKITEKTUR.md → Lager och moduler); tidsberäkningen och urvalet i `:core/engine`:
 
 | Del | Ansvar |
 |---|---|
-| Schemaläggaren (3.x `AlarmScheduler`) | `@Singleton`, schemalägger/avbryter medicin-, mående- och periodlarm. Single source för all larmlogik. |
-| Notishjälparen (3.x `NotificationHelper`) | Skapar kanaler (`CHANNEL_MEDS` default, `CHANNEL_SCREENING` low) och postar notiser. |
-| Larmmottagare (3.x `MedAlarmReceiver`, `ScreeningReminderReceiver`) | `BroadcastReceiver` som tar emot larm och postar notis. |
-| Omstartsmottagare (3.x `BootReceiver`) | Återskapar alla larm efter `BOOT_COMPLETED` och `MY_PACKAGE_REPLACED` (NOT-14). |
-
-Tidsberäkningar som går att göra rent (nästa utlösning, periodslut, NOT-12) ligger i `:core`.
+| `:core` `AlarmTimes` | `nextDailyAt`, `medAlarmTime`/`nextMedAlarm` (15 min före, `00:00 − 15 = 23:45`), `medReminderDate` – ren, med `now: Instant` och `TimeZone` som parametrar. |
+| `:core` `ReminderPlan` | `Reminder` (`Med(slot)`, `Mood(occasion)`, `PeriodEnd`), `reminderAlarms`/`nextAlarm` ur `ReminderSettings` (`medSlots`, `screeningOccasions`, `periodReminderTime`), `slotDoses` (NOT-3/17), `moodReminderDue` (NOT-19). |
+| `AlarmScheduler` | `@Singleton`, enda stället för larmlogik: `rescheduleAll` (avbokar allt, lägger de påslagna), `rescheduleNext` (en utlöst påminnelse), `cancelAll`. Unik `requestCode` per `Reminder`. |
+| `ReminderContent` | Vad en påminnelse visar och "Markera tagen" – via `SettingsRepository`, `PrescriptionRepository`, `DoseRepository`, `ScreeningRepository`. |
+| `NotificationHelper` | Kanalerna (`CHANNEL_MEDS` default, `CHANNEL_SCREENING` low – "Måendepåminnelser") och notiserna, privata med offentlig version. `markTakenFailed` bygger från grundtexten (idempotent); `dismiss` stänger måendepåminnelsen när "Logga nu" öppnat appen. |
+| `ReminderActions` + mottagarna | `MedAlarmReceiver`, `ScreeningReminderReceiver`, `PeriodReminderReceiver`, `MedActionReceiver`, `BootReceiver` är tunna; vad de gör står i `ReminderActions` (testbart utan Hilt), körs av `ReceiverWork` (`goAsync`, nästa larm först, sedan notisen, under systemets tidsgräns). |
+| `AlarmLedger` | Senast schemalagd och senast utlöst per påminnelse (NOT-14), enhetslokalt, utan innehåll. |
+| `ReminderSync` | Startas från `MainActivity`; lägger om larmen när påminnelseinställningarna ändras i cachen (recept och doser påverkar inte larmen, bara notisens innehåll), avbokar vid utloggning. |
+| `ReminderIntents` / `ReminderLaunch` | Actions och extras (en gång); vad en tryckt notis öppnar (bara kända värden tolkas). |
+| `ReminderAccess` | Behörighetsläget och genvägarna till systeminställningarna (NOT-16). |
 
 Behörigheter i `AndroidManifest.xml`: `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`,
-`RECEIVE_BOOT_COMPLETED`.
+`RECEIVE_BOOT_COMPLETED`. Alla mottagare `exported="false"`.
 
 ## Icke-förhandlingsbara regler
 
@@ -69,35 +76,51 @@ Kanaler måste skapas (`NotificationHelper.createChannels`) **innan** första no
 ### PendingIntent-flaggor
 `FLAG_IMMUTABLE` är **obligatorisk** (API 31+). Använd `FLAG_UPDATE_CURRENT or
 FLAG_IMMUTABLE` vid schemaläggning och `FLAG_NO_CREATE or FLAG_IMMUTABLE` vid avbokning.
-Håll `requestCode` unik per larm (jfr `REQUEST_CODE_MED_BASE + slot`) — kolliderande
+Håll `requestCode` unik per larm (`AlarmScheduler.requestCode(reminder)`) — kolliderande
 koder skriver över varandra.
 
 ### Återskapa efter omstart (NOT-6)
-Larm överlever **inte** omstart. `BootReceiver` (`@AndroidEntryPoint`) måste anropa
-`alarmScheduler.rescheduleAll()` via `goAsync()` + coroutine så att det hinner klart.
+Larm överlever **inte** omstart. `BootReceiver` (`@AndroidEntryPoint`) anropar
+`AlarmScheduler.rescheduleAll()` via `ReceiverWork` (`goAsync()` + coroutine) så att det hinner klart.
+`BootReceiver.RESCHEDULE_ACTIONS` och manifestets intent-filter är samma lista (testat).
 
 ### Schemalägg om vid ändring (NOT-7)
 Varje ändring som påverkar tider/på-av (inställningar, recept, vid behov-mediciner) – och ny
-data från servern – ska följas av `rescheduleAll()` (eller riktad `scheduleX/cancelAllX`).
+data från servern – ska följas av `rescheduleAll()` – `ReminderSync` gör det medan appen kör.
 Lämna aldrig gamla larm kvar.
 
 ### Vilka larm som skapas
-Endast aktiverade händelser schemaläggs (`if (config.enabled)`). Endast ej tagna/ej
-skippade mediciner ska generera notis (NOT-3) — den logiken hör hemma i receivern.
-Screeninglarm som passerat dagens tid rullar till nästa dag (NOT-5) — se
-`screeningAlarmTriggerMs`/`medAlarmTriggerMs`.
+Endast aktiverade rader schemaläggs (`reminderAlarms`). Endast ej tagna/ej skippade
+mediciner ska generera notis (NOT-3) — `slotDoses`, läst när larmet går. Ett larm som passerat
+dagens tid rullar till nästa dag (NOT-5) — `nextDailyAt`/`nextMedAlarm`.
+Undantag (NOT-14): ett larm som är högst `AlarmScheduler.LATE_GRACE` (30 min) sent ligger kvar på dagens tid
+vid `rescheduleAll` – bara om just den tiden redan var schemalagd och påminnelsen inte utlösts. Det avgörs ur
+`AlarmLedger` (senast schemalagd och senast utlöst per påminnelse, enhetslokalt i SharedPreferences som är undantagna
+från backup; bara nyckel och epoch-millisekunder, aldrig Firestore), så att det håller också efter att processen dött
+eller en omstart. En nyss flyttad eller påslagen tid går till i morgon (NOT-5).
+Efter omstart/appuppdatering (`BootReceiver.CLEARS_ALARMS`) med oläsbara inställningar lägger
+`rescheduleAll(alarmsCleared = true)` om de senast schemalagda tiderna ur `AlarmLedger` (`restoredAlarms`, NOT-6) –
+utan det vore kedjan borta tills appen öppnas. `ReminderSync` skickar sina redan lästa inställningar
+(`rescheduleAll(known = …)`); standardvärdena bekräftas ändå med en läsning (så ser ett dokument ut som saknas i
+cachen). Utloggning tömmer också `AlarmLedger`. `ReceiverWork` fångar undantag per steg (loggar bara typen) så att
+notissteget alltid körs – också ett `CancellationException` inifrån steget (t.ex. en avbruten Task); bara när
+mottagarens egen coroutine är avbruten kastas det vidare (`ensureActive`); `SecurityException` vid exakt larm ger ett inexakt, och ledgern skrivs först när larmet satts.
+`AlarmScheduler`s lås är ett vanligt JVM-lås kring AlarmManager-anropen och `AlarmLedger` – aldrig en läsning
+eller suspension – så att `rescheduleNext` (nästa larm i en mottagare) aldrig väntar ut en omschemaläggning, och så
+att mottagaren kan registrera larmet som utlöst synkront i `onReceive` (`markFired`) innan något suspenderar:
+en `rescheduleAll` som hinner före mottagarens coroutine lägger då aldrig det passerade larmet igen. Mottagarnas tidsbudget (`ReceiverWork`, `ReceiverBudgetTest`): nästa larm först,
+sedan notisen på reserverad tid; läsningarna har gemensamma tak (`ReminderContent.READ_WAIT`).
 
 ## Tester (regel 2)
 
-- **Trigger-tidsberäkningen är ren och injicerbar** (`now: LocalDateTime = now()`).
-  Enhetstesta `screeningAlarmTriggerMs`/`medAlarmTriggerMs`: framtida tid idag, passerad
-  tid → nästa dag, midnattsvridning (`00:00 − 15 min = 23:45`), lead-minuter.
-- Enhetstesta schemaläggaren med en mockad `AlarmManager` och repositories byggda på
-  `FakeCollection` (skill `testing-strategy`): rätt antal larm vid `enabled`/`disabled`, att
-  `cancelAll*` anropas före omschemaläggning, och att en ändring i cachen ger ny schemaläggning.
-- "Markera tagen" testas mot `FakeCollection`: dosens `status` blir `taken` och `takenAt` sätts.
-- Receiver-/tillståndsbeteende är svårt att enhetstesta — håll logiken i scheduler/helper
-  och testa den.
+- **Tidsberäkningen är ren** (`AlarmTimesTest`, `ReminderPlanTest` i `:core`): framtida tid idag,
+  passerad tid → nästa dag, midnattsvridning (`00:00 − 15 min = 23:45`), förvarning, sommartid.
+- Schemaläggaren mot Robolectrics `ShadowAlarmManager` och repositories på `FakeCollection`
+  (`ReminderFixture`, `AlarmSchedulerTest`): rätt larm vid på/av, allt avbokas före omschemaläggning,
+  en ändring i cachen ger ny schemaläggning, utloggad → inga larm, tom cache → larmen står kvar.
+- "Markera tagen" och utlösta larm genom `ReminderActions` (`ReminderActionsTest`) – lyckat stänger
+  notisen, misslyckat lämnar den; bara status och tagningstid på befintliga doser (`ReminderContentTest`).
+- Mottagarna själva är tunna (Hilt) — håll logiken i `ReminderActions`/scheduler/helper och testa den.
 
 ## Vanliga fallgropar
 
