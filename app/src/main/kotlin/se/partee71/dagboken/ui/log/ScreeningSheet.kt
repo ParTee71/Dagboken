@@ -16,6 +16,7 @@ import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
+import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.EditorSheet
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.choices
@@ -57,9 +58,9 @@ class ScreeningSheet(
      * följa med), en tidigare dag tillfällets påminnelsetid [reminder] (eller standardtiden; 3.x tog alltid "nu").
      */
     fun log(occasion: Occasion, date: LocalDate?, reminder: LocalTime?) {
-        val now = clock.now().toLocalDateTime(zone.get())
+        val now = clock.nowInMinutes(zone.get())
         val day = date ?: now.date
-        val time = if (day == now.date) LocalTime(now.hour, now.minute) else reminder ?: occasion.defaultTime
+        val time = if (day == now.date) now.time else reminder ?: occasion.defaultTime
         open(null, screenings.new(day, occasion).copy(time = time), now.date)
     }
 

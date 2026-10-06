@@ -58,3 +58,39 @@ class PendingCommits {
         return withTimeoutOrNull(wait) { current.forEach { it.join() } } != null
     }
 }
+
+/** `EntityCollection.move`: vad transaktionen gjorde, prövat mot serverns version av källan och målet. */
+enum class MoveOutcome {
+    Moved,
+
+    /** Källan finns inte (raderad under tiden): ingenting skrivs, den återuppstår inte. */
+    SourceMissing,
+
+    /** Målet finns redan: ingenting skrivs, ett befintligt dokument skrivs aldrig över. */
+    TargetExists;
+
+    fun toResult(): Result<Unit> = when (this) {
+        Moved -> Result.success(Unit)
+        SourceMissing -> Result.failure(DataError.NotFound)
+        TargetExists -> Result.failure(TargetExists())
+    }
+}
+
+/**
+ * `EntityCollection.move`: målet finns redan, så ingenting skrevs. Inget [DataError] – ett nej som anroparen
+ * översätter till sitt eget fel (t.ex. `DoseSlotTaken`); visat som det är blir det "okänt fel" (`toFailure`).
+ */
+class TargetExists : Exception()
+
+/** [MoveOutcome] för källan [source] (lagrad, `null` = finns inte) och om målet [targetExists]. */
+fun moveOutcome(source: Map<String, Any?>?, targetExists: Boolean): MoveOutcome = when {
+    source == null -> MoveOutcome.SourceMissing
+    targetExists -> MoveOutcome.TargetExists
+    else -> MoveOutcome.Moved
+}
+
+/**
+ * Det flyttade dokumentet: det lagrade [stored] med alla fält (också okända), utan toppfälten i [remove] och
+ * med [patch] (de ändrade fälten och `updatedAt`, `fieldsForUpdate`) ovanpå – samma regel som `update`.
+ */
+fun movedDocument(stored: Map<String, Any?>, patch: Map<String, Any?>, remove: Set<String>): Map<String, Any?> = stored - remove + patch

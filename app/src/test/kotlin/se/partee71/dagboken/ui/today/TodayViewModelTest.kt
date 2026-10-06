@@ -66,6 +66,7 @@ import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.testing.MainDispatcherRule
+import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.SelectedDay
 
@@ -96,7 +97,7 @@ class TodayViewModelTest {
     private fun viewModel(
         prescriptions: PrescriptionRepository = testPrescriptions(factory, doses, zone, clock),
         screenings: ScreeningRepository = DefaultScreeningRepository(factory, clock),
-        illnesses: IllnessRepository = DefaultIllnessRepository(factory),
+        illnesses: IllnessRepository = DefaultIllnessRepository(factory, clock),
         selectedDay: SelectedDay = SelectedDay(factory.scope),
     ) = TodayViewModel(
         doses,
@@ -378,10 +379,51 @@ class TodayViewModelTest {
         vm.onEvent(TodayEvent.LogAsNeeded(imigran))
         runCurrent()
         val logged = factory.doses().getAll().getOrThrow().single { it.prnId == imigran.id }
+        val undo = vm.undo.value
         vm.onEvent(TodayEvent.SetTaken(logged, false))
         runCurrent()
         assertEquals(DoseStatus.TAKEN, stored(logged.id)?.status)
+        assertEquals(undo, vm.undo.value, "loggningens Ångra står kvar")
+    }
+
+    @Test
+    fun `en loggad vid behov-dos kan ångras – den tas bort igen (FAV-2)`() = runTest(main.dispatcher) {
+        seed()
+        val vm = started(viewModel())
+        vm.onEvent(TodayEvent.LogAsNeeded(imigran))
+        runCurrent()
+        val logged = factory.doses().getAll().getOrThrow().single { it.prnId == imigran.id }
+        assertEquals("Imigran 50 mg", vm.undo.value?.name)
+        assertEquals(R.string.today_logged_format, vm.undo.value?.format)
+        assertNull(vm.notice.value, "bekräftelsen är Ångra-meddelandet")
+        vm.onEvent(TodayEvent.Undo)
+        runCurrent()
+        assertNull(stored(logged.id), "ångrad = borttagen med sin anteckning")
         assertNull(vm.undo.value)
+    }
+
+    @Test
+    fun `en loggad vid behov- eller extrados raderas i radens meny, en receptdos aldrig (MED-3)`() = runTest(main.dispatcher) {
+        seed()
+        val vm = started(viewModel())
+        vm.onEvent(TodayEvent.LogAsNeeded(imigran))
+        vm.onEvent(TodayEvent.LogExtra(levaxin))
+        runCurrent()
+        val logged = factory.doses().getAll().getOrThrow().filter { it.slot == Slot.AS_NEEDED }
+        assertEquals(2, logged.size)
+        logged.forEach { vm.onEvent(TodayEvent.Delete(it)) }
+        runCurrent()
+        assertTrue(logged.all { stored(it.id) == null })
+        assertNull(vm.undo.value, "Ångra för en raderad dos är inaktuellt")
+        val scheduled = vm.content.checklist.shown.first().dose
+        vm.onEvent(TodayEvent.Delete(scheduled))
+        runCurrent()
+        assertEquals(scheduled, stored(scheduled.id), "en receptdos hoppas över, den raderas inte här")
+        val oneOff = Dose("o", today, Slot.EVENING, "Melatonin", "3", "mg", DoseStatus.TAKEN, takenAt = at(today, 9, 0))
+        factory.doses().upsert(oneOff).getOrThrow()
+        vm.onEvent(TodayEvent.Delete(oneOff))
+        runCurrent()
+        assertNull(stored(oneOff.id), "en engångsdos med tidpunkt är ingen receptdos – den raderas")
     }
 
     @Test
@@ -413,8 +455,8 @@ class TodayViewModelTest {
         assertNull(vm.cooldown.value)
         val logged = factory.doses().getAll().getOrThrow().filter { it.prnId == alvedon.id }
         assertEquals(2, logged.size)
-        assertEquals(R.string.today_logged_format, vm.notice.value?.text)
-        assertEquals(listOf<Any>("Alvedon 500 mg"), vm.notice.value?.args?.toList())
+        assertEquals(R.string.today_logged_format, vm.undo.value?.format)
+        assertEquals("Alvedon 500 mg", vm.undo.value?.name)
     }
 
     @Test
@@ -457,8 +499,11 @@ class TodayViewModelTest {
         assertEquals("100", extra.dose)
         assertNull(extra.prescriptionId)
         assertEquals(DoseStatus.TAKEN, extra.status)
-        assertEquals(listOf<Any>("Levaxin 100 µg"), vm.notice.value?.args?.toList())
+        assertEquals("Levaxin 100 µg", vm.undo.value?.name, "loggad med Ångra")
         assertEquals(2, vm.content.progress.total, "en extrados räknas inte i framstegen (HEM-18)")
+        vm.onEvent(TodayEvent.Undo)
+        runCurrent()
+        assertNull(stored(extra.id), "ångrad extrados tas bort")
     }
 
     @Test
@@ -641,7 +686,7 @@ class TodayViewModelTest {
     @Test
     fun `episoderna går inte att läsa – Idag visas utan sjukdomskort (HEM-12)`() = runTest(main.dispatcher) {
         seed()
-        val failing = object : IllnessRepository by DefaultIllnessRepository(factory) {
+        val failing = object : IllnessRepository by DefaultIllnessRepository(factory, clock) {
             override fun observeEpisodes(): Flow<List<IllnessEpisode>> = denied
         }
         val vm = started(viewModel(illnesses = failing))
@@ -656,7 +701,7 @@ class TodayViewModelTest {
         seed()
         val episode = IllnessEpisode("e", "Förkylning", start = LocalDate(2026, 10, 1))
         factory.illnessEpisodes().upsert(episode).getOrThrow()
-        val failing = object : IllnessRepository by DefaultIllnessRepository(factory) {
+        val failing = object : IllnessRepository by DefaultIllnessRepository(factory, clock) {
             override fun observeCheckins(episodeId: String): Flow<List<Checkin>> = denied
         }
         val vm = started(viewModel(illnesses = failing))
@@ -672,7 +717,7 @@ class TodayViewModelTest {
         val second = IllnessEpisode("b", "Migrän", start = LocalDate(2026, 10, 3), createdAt = at(LocalDate(2026, 10, 3), 8))
         val episodes = MutableStateFlow(listOf(first))
         val checkins = mapOf(first.id to MutableSharedFlow<List<Checkin>>(replay = 1), second.id to MutableSharedFlow(replay = 1))
-        val repository = object : IllnessRepository by DefaultIllnessRepository(factory) {
+        val repository = object : IllnessRepository by DefaultIllnessRepository(factory, clock) {
             override fun observeEpisodes(): Flow<List<IllnessEpisode>> = episodes
             override fun observeCheckins(episodeId: String): Flow<List<Checkin>> = checkins.getValue(episodeId)
         }
@@ -719,7 +764,7 @@ class TodayViewModelTest {
     @Test
     fun `episoderna har inte svarat än – Idag visas ändå (HEM-12, HEM-16)`() = runTest(main.dispatcher) {
         seed()
-        val silentIllness = object : IllnessRepository by DefaultIllnessRepository(factory) {
+        val silentIllness = object : IllnessRepository by DefaultIllnessRepository(factory, clock) {
             override fun observeEpisodes(): Flow<List<IllnessEpisode>> = MutableSharedFlow()
             override fun observeCheckins(episodeId: String): Flow<List<Checkin>> = MutableSharedFlow()
         }

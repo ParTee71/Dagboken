@@ -240,7 +240,7 @@
     <string name="today_medicines_none">Inga mediciner den här dagen.</string>
     <string name="today_medicines_all_done_title">Allt avklarat</string>
     <string name="today_medicines_all_done">Alla dagens mediciner är avklarade.</string>
-    <string name="today_prn_past_day">Visa idag för att logga – efterhandsloggning kommer med dosformuläret.</string>
+    <string name="today_prn_past_day">Visa idag för att logga – eller Logga i efterhand i medicinens meny.</string>
     <string name="today_prn_today_only">Loggas bara idag</string>
     <string name="today_show_today">Visa idag</string>
     <string name="today_count_format">%1$d av %2$d</string>
@@ -447,7 +447,6 @@
     <string name="diary_subject_dose">Dosen %1$s, %2$s</string>
     <string name="diary_subject_event">Händelsen %1$s, %2$s</string>
     <string name="diary_subject_checkin">Incheckningen för %1$s, %2$s</string>
-    <string name="diary_entry_upcoming">Här kommer du att kunna se och ändra posten.</string>
     <string name="diary_episode_upcoming">Här kommer sjukdomens förlopp med incheckningar.</string>
 
     <!-- Plusknappens loggmeny (NAV-10) -->
@@ -460,7 +459,31 @@
     <string name="log_event">Händelse</string>
     <string name="log_illness">Sjukdom</string>
     <string name="log_mood_pick_title">Välj tillfälle</string>
-    <string name="log_upcoming">Här kommer du att kunna logga det. Funktionen kommer snart.</string>
+    <!-- Dosformuläret och dosvalet (MED-11, MED-15, MED-16, FAV-10, MEDF-6) -->
+    <string name="dose_pick_title">Logga dos</string>
+    <string name="dose_one_off">Engångsdos</string>
+    <string name="dose_one_off_help">En dos utan recept eller vid behov-medicin</string>
+    <string name="dose_new">Ny dos</string>
+    <string name="dose_edit">Redigera dos</string>
+    <string name="dose_log_later">Logga i efterhand</string>
+    <string name="dose_log_later_link">Logga en dos i efterhand</string>
+    <string name="dose_medicine">Medicin</string>
+    <string name="dose_prescribed_help">Namn, dos och tidpunkt styrs av receptet.</string>
+    <string name="dose_slot">Tidpunkt</string>
+    <string name="dose_taken">Tagen</string>
+    <string name="dose_taken_help">Av = överhoppad</string>
+    <string name="dose_in_future">Tiden kan inte vara senare än nu.</string>
+    <string name="dose_limit_reached">Dagens gräns är nådd.</string>
+    <string name="dose_slot_taken">Det finns redan en dos för den tidpunkten den dagen.</string>
+    <string name="dose_not_saved">Dosen sparades inte – kylperioden eller dagens gräns hindrar den.</string>
+    <string name="dose_cooldown_notice">För tidigt vid den tiden: %1$sh %2$sm kvar av kylperioden för %3$s.</string>
+    <!-- Sjukdom från plusknappen och Idag (SJ-1, SJ-2, SJ-11) -->
+    <string name="illness_new">Ny sjukdomsepisod</string>
+    <string name="illness_checkin_on_format">Checka in på %s</string>
+    <string name="illness_type_help">T.ex. Förkylning eller Influensa</string>
+    <string name="illness_type_missing">Ange vilken sjukdom</string>
+    <string name="checkin_new">Ny incheckning</string>
+    <string name="checkin_edit">Redigera incheckning</string>
     <!-- Aktivitets- och händelseformulären (AKT-1–AKT-12, HAN-1) -->
     <string name="entry_type">Typ</string>
     <string name="entry_more_types">Fler typer</string>

@@ -68,7 +68,7 @@ class DiaryViewModelTest {
     private val clock = FixedClock(at(today, 10))
     private val factory = FakeCollectionFactory(clock = clock)
     private val doses = testDoses(factory, zone, clock)
-    private val illnesses = DefaultIllnessRepository(factory)
+    private val illnesses = DefaultIllnessRepository(factory, clock)
 
     /** Varje läsning av aktiviteter (från, till) – när den börjar lyssna. */
     private val activityReads = mutableListOf<ClosedRange<LocalDate>>()

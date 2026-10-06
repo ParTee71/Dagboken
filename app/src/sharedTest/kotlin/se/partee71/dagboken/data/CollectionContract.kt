@@ -36,6 +36,7 @@ import se.partee71.dagboken.core.schema.PrnMedicineCodec
 import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
+import se.partee71.dagboken.data.common.TargetExists
 import se.partee71.dagboken.data.common.dataError
 import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.testing.StuckTestTimeout
@@ -324,6 +325,37 @@ abstract class CollectionContract {
     }
 
     @Test
+    fun move_flyttar_hela_det_lagrade_dokumentet_med_de_andrade_falten_ovanpa() = contract {
+        // Det lagrade: ett okänt fält från en nyare app och en anteckning som en annan enhet ändrat –
+        // anroparens kopia känner inte till någotdera.
+        env.writeRaw(dosesPath, "gammal", mapOf(DoseCodec.DATE to "2026-09-21", "name" to "Levaxin", DoseCodec.STATUS to "taken", "note" to "Annan enhet", "framtidaFält" to "kvar"))
+        val before = dose("gammal", LocalDate(2026, 9, 21), DoseStatus.TAKEN)
+        val after = before.copy(id = "ny", date = LocalDate(2026, 9, 22))
+        doses.move("gammal", after, setOf(DoseCodec.DATE)).getOrThrow()
+        doses.observe("ny").awaitMatching { it != null }
+        assertEquals(
+            mapOf(DoseCodec.DATE to "2026-09-22", "name" to "Levaxin", DoseCodec.STATUS to "taken", "note" to "Annan enhet", "framtidaFält" to "kvar"),
+            env.readRaw(dosesPath, "ny"),
+        )
+        assertNull(env.readRaw(dosesPath, "gammal"), "källan är borta – flyttad, inte kopierad")
+    }
+
+    @Test
+    fun move_skriver_inget_nar_kallan_saknas_eller_malet_redan_finns() = contract {
+        env.writeRaw(dosesPath, "kalla", mapOf("name" to "Levaxin", DoseCodec.STATUS to "taken"))
+        env.writeRaw(dosesPath, "upptagen", mapOf("name" to "Alvedon", DoseCodec.STATUS to "taken"))
+        val moved = dose("upptagen", LocalDate(2026, 9, 22)).copy(name = "Skriver över")
+        assertTrue(doses.move("kalla", moved, setOf(DoseCodec.DATE, DoseCodec.NAME)).exceptionOrNull() is TargetExists, "målet finns – skrivs aldrig över")
+        assertEquals(mapOf("name" to "Alvedon", DoseCodec.STATUS to "taken"), env.readRaw(dosesPath, "upptagen"))
+        assertEquals(mapOf("name" to "Levaxin", DoseCodec.STATUS to "taken"), env.readRaw(dosesPath, "kalla"), "källan står kvar")
+        // Källan raderad under tiden (t.ex. på en annan enhet): den återuppstår inte under det nya id:t.
+        assertEquals(DataError.NotFound, doses.move("raderad", dose("ny", LocalDate(2026, 9, 22)), setOf(DoseCodec.DATE)).dataError())
+        assertNull(env.readRaw(dosesPath, "ny"))
+        assertTrue(doses.move("kalla", dose("ny", LocalDate(2026, 9, 22)), setOf("finnsInte")).isFailure, "okänt fält är ett fel")
+        assertNull(env.readRaw(dosesPath, "ny"))
+    }
+
+    @Test
     fun deleteIf_provar_villkoret_mot_det_lagrade_och_skapar_inget() = contract {
         doses.batch(listOf(dose("planerad", LocalDate(2026, 9, 21)), dose("tagen", LocalDate(2026, 9, 21)))).getOrThrow()
         // Anroparens kopia säger "planerad", men en annan enhet har hunnit ta dosen.
@@ -403,6 +435,7 @@ abstract class CollectionContract {
         assertEquals(DataError.UpdateRequired, doses.createIfAbsent(listOf(dose("b", LocalDate(2026, 9, 21)))).dataError())
         assertEquals(DataError.UpdateRequired, doses.deleteIf(listOf("a")) { true }.dataError())
         assertEquals(DataError.UpdateRequired, doses.updateIf(listOf(dose("a", LocalDate(2026, 9, 21))), setOf(DoseCodec.NAME)) { true }.dataError())
+        assertEquals(DataError.UpdateRequired, doses.move("a", dose("b", LocalDate(2026, 9, 22)), setOf(DoseCodec.DATE)).dataError())
         assertNull(env.readRaw(dosesPath, "b"))
         assertEquals("Levaxin", env.readRaw(dosesPath, "a")?.get("name"))
         env.signOut()

@@ -44,7 +44,7 @@ class DiaryRepositoriesTest {
     private val activities = DefaultActivityRepository(factory, clock)
     private val events = DefaultEventRepository(factory, clock)
     private val doses = testDoses(factory, TimeZone.of("Europe/Stockholm"))
-    private val illnesses = DefaultIllnessRepository(factory)
+    private val illnesses = DefaultIllnessRepository(factory, clock)
 
     private val day = LocalDate(2026, 10, 6)
     private val before = LocalDate(2025, 10, 6)

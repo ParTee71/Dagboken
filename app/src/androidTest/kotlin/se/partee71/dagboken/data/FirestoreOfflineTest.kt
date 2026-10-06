@@ -92,7 +92,7 @@ class FirestoreOfflineTest {
     @Test
     fun villkorade_skrivningar_och_serverlasning_utan_nat_ger_Offline_och_skriver_inget() = test {
         // Som första inloggningen: en port utan lyssnare, eftersom transaktioner inte stoppas av
-        // disableNetwork(). Kort väntan, så att fyra anrop ryms i testets tidsgräns.
+        // disableNetwork(). Kort väntan, så att fem anrop ryms i testets tidsgräns.
         val user = emulator.newSignedInUser(firestorePort = FirebaseEmulator.OFFLINE_PORT)
         val doses = user.collection(TestUserScope(user.uid), DoseCodec, Paths.DOSES, { Paths.doses(it!!) }, serverWait = 2.seconds)
         val day = LocalDate(2026, 9, 21)
@@ -108,12 +108,14 @@ class FirestoreOfflineTest {
         assertEquals(DataError.Offline, doses.createIfAbsent(listOf(Dose("b", day, name = "Ny"))).dataError())
         assertEquals(DataError.Offline, doses.deleteIf(listOf("a")) { true }.dataError())
         assertEquals(DataError.Offline, doses.updateIf(listOf(planned.copy(name = "Annat")), setOf(DoseCodec.NAME)) { true }.dataError())
+        assertEquals(DataError.Offline, doses.move("a", planned.copy(id = "c", name = "Flyttad"), setOf(DoseCodec.NAME)).dataError())
 
         // En samlingsfråga mot cachen kastar inte för saknade dokument (det gör en dokumentläsning)
         // och tar med väntande lokala skrivningar.
         val local = user.db.collection(Paths.doses(user.uid)).get(Source.CACHE).await().documents.associateBy { it.id }
         assertEquals("Levaxin", local["a"]?.getString("name"), "varken raderad eller ändrad av de villkorade")
         assertFalse("b" in local, "inget skapat, inget i kö")
+        assertFalse("c" in local, "ingen flytt i kö")
     }
 
     @Test

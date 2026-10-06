@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.OTHER_ACTIVITY_ID
 import se.partee71.dagboken.core.engine.OTHER_SYMPTOM_ID
@@ -35,6 +34,7 @@ import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.data.repository.ActivityRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
+import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryForm
 import se.partee71.dagboken.ui.common.hasErrorOutside
@@ -109,8 +109,8 @@ class ActivityEditViewModel @AssistedInject constructor(
         activityValidator,
         placeholder = Activity(""),
         create = {
-            val now = clock.now().toLocalDateTime(zone.get())
-            activities.new(date ?: now.date, LocalTime(now.hour, now.minute), today = now.date)
+            val now = clock.nowInMinutes(zone.get())
+            activities.new(date ?: now.date, now.time, today = now.date)
         },
         clean = { loaded, value -> value.cleaned(loaded) },
     )

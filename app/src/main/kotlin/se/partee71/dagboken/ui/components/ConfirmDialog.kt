@@ -43,3 +43,22 @@ fun ConfirmDialog(
         containerColor = AppColors.extended.card,
     )
 }
+
+/**
+ * Permanent radering efter bekräftelse (NFR-15, HIST-5): [action]s titel och text och "Radera" i felfärg; "Radera"
+ * stänger dialogen ([onDismiss]) och raderar. En gång för postkortet, redigeraskärmen och Idags doserad.
+ */
+@Composable
+internal fun DeleteConfirmDialog(action: DeleteAction, onDismiss: () -> Unit) {
+    ConfirmDialog(
+        action.title,
+        action.message,
+        stringResource(R.string.delete),
+        onConfirm = {
+            onDismiss()
+            action.onConfirm()
+        },
+        onDismiss = onDismiss,
+        destructive = true,
+    )
+}

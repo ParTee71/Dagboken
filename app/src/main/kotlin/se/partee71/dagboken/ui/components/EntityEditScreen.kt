@@ -148,16 +148,6 @@ fun EntityEditScreen(
         )
     }
     if (confirmDelete && delete != null) {
-        ConfirmDialog(
-            title = delete.title,
-            message = delete.message,
-            confirmLabel = stringResource(R.string.delete),
-            onConfirm = {
-                confirmDelete = false
-                delete.onConfirm()
-            },
-            onDismiss = { confirmDelete = false },
-            destructive = true,
-        )
+        DeleteConfirmDialog(delete) { confirmDelete = false }
     }
 }

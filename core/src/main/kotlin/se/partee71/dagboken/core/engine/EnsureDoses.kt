@@ -158,9 +158,4 @@ fun Prescription.syncDoses(
 }
 
 /** Om [dose] hör till receptet: kopplad via [Dose.prescriptionId], eller okopplad med receptets dos-id-form. */
-private fun Prescription.owns(dose: Dose): Boolean =
-    dose.prescriptionId == id ||
-        (dose.prescriptionId == null && dose.id.startsWith("recept_${id}_") && LEGACY_DOSE_ID_TAIL.matches(dose.id.removePrefix("recept_${id}_")))
-
-/** Resten av ett receptdos-id efter `recept_{id}_`: datum och tidpunktens namn (utan `_`). */
-private val LEGACY_DOSE_ID_TAIL = Regex("""\d{4}-\d{2}-\d{2}_[^_]+""")
+private fun Prescription.owns(dose: Dose): Boolean = dose.prescriptionRef == id

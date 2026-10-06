@@ -22,6 +22,12 @@ import se.partee71.dagboken.core.model.Slot
  */
 val Dose.isScheduled: Boolean get() = slot != Slot.AS_NEEDED && prnId == null
 
+/**
+ * MED-3: en receptdos i schemat ([isScheduled] och [isPrescribed]) – den hoppas över i stället för att raderas. En
+ * engångsdos med en tidpunkt står i schemat (som 3.x) men är ingen receptdos, och raderas.
+ */
+val Dose.isScheduledPrescription: Boolean get() = isScheduled && isPrescribed
+
 /** En schemalagd dos som är avklarad: tagen eller överhoppad (HEM-19). */
 val Dose.isDone: Boolean get() = status == DoseStatus.TAKEN || status == DoseStatus.SKIPPED
 

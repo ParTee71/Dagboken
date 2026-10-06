@@ -24,13 +24,16 @@ import se.partee71.dagboken.ui.components.ComponentGallery
 import se.partee71.dagboken.ui.components.LogChoice
 import se.partee71.dagboken.ui.components.LogMenuSheet
 import se.partee71.dagboken.ui.components.SettingsPage
-import se.partee71.dagboken.ui.diary.DiaryEntryPlaceholder
 import se.partee71.dagboken.ui.diary.DiaryRoute
+import se.partee71.dagboken.ui.diary.EpisodePlaceholder
 import se.partee71.dagboken.ui.log.ActivityEditRoute
+import se.partee71.dagboken.ui.log.CheckinEditRoute
+import se.partee71.dagboken.ui.log.DoseEditRoute
+import se.partee71.dagboken.ui.log.EpisodeNewRoute
 import se.partee71.dagboken.ui.log.EventEditRoute
 import se.partee71.dagboken.ui.log.LogEvent
 import se.partee71.dagboken.ui.log.LogSheets
-import se.partee71.dagboken.ui.log.LogUpcomingScreen
+import se.partee71.dagboken.ui.log.LogTarget
 import se.partee71.dagboken.ui.log.LogViewModel
 import se.partee71.dagboken.ui.medicines.MedicinesRoute
 import se.partee71.dagboken.ui.medicines.PrescriptionEditRoute
@@ -96,20 +99,30 @@ fun AppNavigation(
         onOpen = { page -> backStack.push(page.key) },
         onLog = { choice -> backStack.log(choice, logViewModel.logDay(onToday = backStack.currentTab == TodayKey), logViewModel::onEvent) },
     )
-    LogSheets(logViewModel)
+    LogSheets(logViewModel, onOpen = { target -> backStack.push(target.key) })
 }
+
+/** Formuläret ett val i plusknappens dos- eller sjukdomsval öppnar (NAV-10). */
+val LogTarget.key: AppKey
+    get() = when (this) {
+        is LogTarget.AsNeeded -> DoseEditKey(prnId = prnId, date = date)
+        is LogTarget.OneOffDose -> DoseEditKey(date = date)
+        is LogTarget.Checkin -> CheckinEditKey(episodeId, date = date)
+        is LogTarget.NewEpisode -> EpisodeNewKey(date)
+    }
 
 /**
  * Ett val i plusknappens meny (NAV-10) mot dagen [date] (den Idag visar, `null` = idag): Mående öppnar
- * tillfällesväljaren ([onEvent]), Aktivitet och Händelse sina formulär på den aktuella fliken, Dos och Sjukdom en
- * platshållare tills #271.
+ * tillfällesväljaren, Dos och Sjukdom sina val ([onEvent], ark ovanpå flikarna), Aktivitet och Händelse sina
+ * formulär på den aktuella fliken.
  */
 fun AppBackStack.log(choice: LogChoice, date: LocalDate?, onEvent: (LogEvent) -> Unit) {
     when (choice) {
         LogChoice.Mood -> onEvent(LogEvent.PickOccasion(date))
         LogChoice.Activity -> push(ActivityEditKey(date = date))
+        LogChoice.Dose -> onEvent(LogEvent.PickDose(date))
         LogChoice.Event -> push(EventEditKey(date = date))
-        LogChoice.Dose, LogChoice.Illness -> push(LogUpcomingKey(choice))
+        LogChoice.Illness -> onEvent(LogEvent.PickIllness(date))
     }
 }
 
@@ -171,7 +184,7 @@ fun RootSheets(
 /**
  * Vilken skärm varje nyckel visar – varje nyckel har en (`AppNavigationTest`). [onAccount] är avataren uppe
  * till höger (NAV-9) med [account]s namn och foto; [onScreening] öppnar måendearket ovanpå flikarna – från Idag och
- * från en måendepost i Dagbok – ett enda ark (`LogViewModel`). En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
+ * från en måendepost i Dagbok – ett enda ark (`LogViewModel`), och dosvalet från Mediciner (MEDF-6). En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
  * andra tryck inte stänger skärmen under. Inställningsarkets underskärmar läggs på den aktuella
  * flikens stack.
  */
@@ -191,17 +204,21 @@ fun appEntries(
                 // TRD-5: "Visa i Trender" under Idags 7-dagarstrend byter flik.
                 onOpenTrends = { backStack.select(TrendsKey) },
                 onScreening = onScreening,
+                onLogLater = { prnId, date -> backStack.push(DoseEditKey(prnId = prnId, date = date)) },
+                onCheckin = { episodeId, date -> backStack.push(CheckinEditKey(episodeId, date = date)) },
             )
         }
-        // HIST-3: aktivitet och händelse öppnar sina formulär, mående måendearket; dos, episod och incheckning en
-        // platshållare tills dosformuläret (#271) och sjukdomsdetaljen (#240) finns.
+        // HIST-3: aktivitet, händelse, dos och incheckning öppnar sina formulär, mående måendearket; episodens start och
+        // slut en platshållare tills sjukdomsdetaljen (#240) finns.
         entry<DiaryKey> {
             DiaryRoute(account(), onAccount, onOpen = { entry -> entry.key?.let(backStack::push) ?: (entry as? DiaryEntry.Mood)?.let { onScreening(LogEvent.EditScreening(it.screening)) } })
         }
-        entry<DiaryEntryKey> { key -> DiaryEntryPlaceholder(key.kind, onBack = { backStack.popIfTop(key) }) }
+        entry<EpisodeKey> { key -> EpisodePlaceholder(onBack = { backStack.popIfTop(key) }) }
         entry<ActivityEditKey> { key -> ActivityEditRoute(key.id, key.date, onClose = { backStack.popIfTop(key) }) }
         entry<EventEditKey> { key -> EventEditRoute(key.id, key.date, onClose = { backStack.popIfTop(key) }) }
-        entry<LogUpcomingKey> { key -> LogUpcomingScreen(key.choice, onBack = { backStack.popIfTop(key) }) }
+        entry<DoseEditKey> { key -> DoseEditRoute(key.id, key.prnId, key.date, onClose = { backStack.popIfTop(key) }) }
+        entry<EpisodeNewKey> { key -> EpisodeNewRoute(key.date, onClose = { backStack.popIfTop(key) }) }
+        entry<CheckinEditKey> { key -> CheckinEditRoute(key.episodeId, key.id, key.date, onClose = { backStack.popIfTop(key) }) }
         entry<TrendsKey> { TrendsRoute(account(), onAccount) }
         entry<MedicinesKey> {
             MedicinesRoute(
@@ -210,6 +227,8 @@ fun appEntries(
                 onOpenPrescription = { id -> backStack.push(PrescriptionEditKey(id)) },
                 onOpenPrn = { id -> backStack.push(PrnMedicineEditKey(id)) },
                 onExtendPrescription = { id -> backStack.push(PrescriptionEditKey(id, extend = true)) },
+                // MEDF-6: samma dosval som plusknappen, mot idag.
+                onLogDose = { onScreening(LogEvent.PickDose(null)) },
             )
         }
         entry<PrescriptionEditKey> { key -> PrescriptionEditRoute(key.id, key.extend, onClose = { backStack.popIfTop(key) }) }

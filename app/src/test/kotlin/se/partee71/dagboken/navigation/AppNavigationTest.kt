@@ -15,6 +15,7 @@ import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.ui.components.LogChoice
 import se.partee71.dagboken.ui.components.SettingsPage
 import se.partee71.dagboken.ui.log.LogEvent
+import se.partee71.dagboken.ui.log.LogTarget
 import org.junit.Test
 
 /** Varje nyckel har en skärm i `appEntries` – en saknad skulle krascha appen (fallbacken är ett fel). */
@@ -40,24 +41,27 @@ class AppNavigationTest {
         PrescriptionEditKey("6f1c2a9e", extend = true),
         PrnMedicineEditKey(),
         PrnMedicineEditKey("a7b8c9d0"),
-        DiaryEntryKey(DiaryEntryKind.DOSE, "d1"),
-        DiaryEntryKey(DiaryEntryKind.EPISODE, "flu"),
-        DiaryEntryKey(DiaryEntryKind.CHECKIN, "c1", episodeId = "flu"),
+        EpisodeKey("flu"),
         ActivityEditKey(),
         ActivityEditKey("a1"),
         ActivityEditKey(date = LocalDate(2026, 10, 5)),
         EventEditKey(),
         EventEditKey("e1"),
         EventEditKey(date = LocalDate(2026, 10, 5)),
-        LogUpcomingKey(LogChoice.Dose),
-        LogUpcomingKey(LogChoice.Illness),
+        DoseEditKey(),
+        DoseEditKey("d1"),
+        DoseEditKey(prnId = "a7b8c9d0", date = LocalDate(2026, 10, 5)),
+        EpisodeNewKey(),
+        EpisodeNewKey(LocalDate(2026, 10, 5)),
+        CheckinEditKey("flu"),
+        CheckinEditKey("flu", "c1"),
     ).onEach { key ->
         // Uttömmande: en ny nyckeltyp utan gren här ger ett kompileringsfel.
         when (key) {
             TodayKey, DiaryKey, TrendsKey, MedicinesKey, ComponentGalleryKey -> Unit
             ProfileKey, RemindersKey, ThemeKey, ListsKey, is OptionEditKey, ExportImportKey, AboutKey -> Unit
-            is PrescriptionEditKey, is PrnMedicineEditKey, is DiaryEntryKey -> Unit
-            is ActivityEditKey, is EventEditKey, is LogUpcomingKey -> Unit
+            is PrescriptionEditKey, is PrnMedicineEditKey, is EpisodeKey -> Unit
+            is ActivityEditKey, is EventEditKey, is DoseEditKey, is EpisodeNewKey, is CheckinEditKey -> Unit
         }
     }
 
@@ -80,10 +84,12 @@ class AppNavigationTest {
         backStack.push(OptionEditKey(OptionKind.ACTIVITY, "activity-promenad-c78928"))
         backStack.push(PrnMedicineEditKey("a7b8c9d0"))
         backStack.push(PrescriptionEditKey("6f1c2a9e", extend = true))
-        backStack.push(DiaryEntryKey(DiaryEntryKind.CHECKIN, "c1", episodeId = "flu"))
+        backStack.push(CheckinEditKey("flu", "c1", LocalDate(2026, 10, 5)))
         backStack.push(ActivityEditKey(date = LocalDate(2026, 10, 5)))
         backStack.push(EventEditKey("e1"))
-        backStack.push(LogUpcomingKey(LogChoice.Illness))
+        backStack.push(DoseEditKey(prnId = "a7b8c9d0", date = LocalDate(2026, 10, 5)))
+        backStack.push(EpisodeNewKey(LocalDate(2026, 10, 5)))
+        backStack.push(EpisodeKey("flu"))
         assertEquals(backStack.entries, AppBackStack.restore(backStack.save()).entries)
     }
 
@@ -95,17 +101,17 @@ class AppNavigationTest {
     }
 
     @Test
-    fun `en post i Dagbok öppnar sin egen skärm – en incheckning med sin episod (HIST-3, HIST-9)`() {
+    fun `en post i Dagbok öppnar sin egen skärm – en dos dosformuläret, en incheckning sitt under sin episod (HIST-3, HIST-9, MED-15)`() {
         val day = LocalDate(2026, 10, 6)
         assertEquals(ActivityEditKey("a1"), DiaryEntry.Action(Activity("a1", day), day).key)
         assertEquals(EventEditKey("e1"), DiaryEntry.Happening(Event("e1", day), day).key)
         assertNull(DiaryEntry.Mood(Screening("s1", day), day).key, "en måendepost öppnas i måendearket")
         val flu = IllnessEpisode("flu", "Förkylning", start = LocalDate(2026, 10, 3), end = LocalDate(2026, 10, 6))
-        assertEquals(DiaryEntryKey(DiaryEntryKind.EPISODE, "flu"), DiaryEntry.EpisodeStart(flu, LocalDate(2026, 10, 3)).key)
-        assertEquals(DiaryEntryKey(DiaryEntryKind.EPISODE, "flu"), DiaryEntry.EpisodeEnd(flu, LocalDate(2026, 10, 6)).key)
-        assertEquals(DiaryEntryKey(DiaryEntryKind.CHECKIN, "c1", "flu"), DiaryEntry.CheckIn(Checkin("c1"), flu, LocalDate(2026, 10, 5)).key)
+        assertEquals(EpisodeKey("flu"), DiaryEntry.EpisodeStart(flu, LocalDate(2026, 10, 3)).key)
+        assertEquals(EpisodeKey("flu"), DiaryEntry.EpisodeEnd(flu, LocalDate(2026, 10, 6)).key)
+        assertEquals(CheckinEditKey("flu", "c1"), DiaryEntry.CheckIn(Checkin("c1"), flu, LocalDate(2026, 10, 5)).key)
         val dose = Dose("d1", LocalDate(2026, 10, 6))
-        assertEquals(DiaryEntryKey(DiaryEntryKind.DOSE, "d1"), DiaryEntry.TakenDose(dose, LocalDate(2026, 10, 6), null).key)
+        assertEquals(DoseEditKey("d1"), DiaryEntry.TakenDose(dose, LocalDate(2026, 10, 6), null).key)
     }
 
     @Test
@@ -124,10 +130,17 @@ class AppNavigationTest {
         assertEquals(EventEditKey(), backStack.entries.last())
         backStack.pop()
         backStack.log(LogChoice.Dose, day, events::add)
-        assertEquals(LogUpcomingKey(LogChoice.Dose), backStack.entries.last())
-        backStack.pop()
-        backStack.log(LogChoice.Illness, day, events::add)
-        assertEquals(LogUpcomingKey(LogChoice.Illness), backStack.entries.last())
-        assertEquals(1, events.size)
+        backStack.log(LogChoice.Illness, null, events::add)
+        assertEquals(listOf(TodayKey, DiaryKey), backStack.entries, "Dos och Sjukdom öppnar sina val som ark")
+        assertEquals(listOf(LogEvent.PickOccasion(day), LogEvent.PickDose(day), LogEvent.PickIllness(null)), events)
+    }
+
+    @Test
+    fun `dos- och sjukdomsvalen öppnar formulären mot dagen (NAV-10, MED-16, SJ-1, SJ-2)`() {
+        val day = LocalDate(2026, 10, 5)
+        assertEquals(DoseEditKey(prnId = "p1", date = day), LogTarget.AsNeeded("p1", day).key)
+        assertEquals(DoseEditKey(date = null), LogTarget.OneOffDose(null).key)
+        assertEquals(CheckinEditKey("flu", date = day), LogTarget.Checkin("flu", day).key)
+        assertEquals(EpisodeNewKey(day), LogTarget.NewEpisode(day).key)
     }
 }
