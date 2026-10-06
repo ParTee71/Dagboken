@@ -13,14 +13,25 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.entryProvider
+import androidx.compose.ui.res.stringResource
+import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.BuildConfig
+import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.DiaryEntry
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.ui.components.AccountSheet
 import se.partee71.dagboken.ui.components.ComponentGallery
+import se.partee71.dagboken.ui.components.LogChoice
 import se.partee71.dagboken.ui.components.LogMenuSheet
 import se.partee71.dagboken.ui.components.SettingsPage
 import se.partee71.dagboken.ui.diary.DiaryEntryPlaceholder
 import se.partee71.dagboken.ui.diary.DiaryRoute
+import se.partee71.dagboken.ui.log.ActivityEditRoute
+import se.partee71.dagboken.ui.log.EventEditRoute
+import se.partee71.dagboken.ui.log.LogEvent
+import se.partee71.dagboken.ui.log.LogSheets
+import se.partee71.dagboken.ui.log.LogUpcomingScreen
+import se.partee71.dagboken.ui.log.LogViewModel
 import se.partee71.dagboken.ui.medicines.MedicinesRoute
 import se.partee71.dagboken.ui.medicines.PrescriptionEditRoute
 import se.partee71.dagboken.ui.medicines.PrnMedicineEditRoute
@@ -49,13 +60,22 @@ fun AppNavigation(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
     syncViewModel: SyncViewModel = hiltViewModel(),
+    logViewModel: LogViewModel = hiltViewModel(),
 ) {
     val sync by syncViewModel.state.collectAsStateWithLifecycle()
+    val saved by logViewModel.notice.collectAsStateWithLifecycle()
     val backStack = rememberAppBackStack()
     val activity = LocalActivity.current
     var sheet by rememberSaveable { mutableStateOf<RootSheet?>(null) }
     val currentAccount = rememberUpdatedState(account)
-    val entries = remember(backStack) { appEntries(backStack, account = { currentAccount.value }, onAccount = { sheet = RootSheet.Account }) }
+    val entries = remember(backStack) {
+        appEntries(
+            backStack,
+            account = { currentAccount.value },
+            onAccount = { sheet = RootSheet.Account },
+            onScreening = logViewModel::onEvent,
+        )
+    }
     AppNavHost(
         backStack,
         entries,
@@ -64,6 +84,8 @@ fun AppNavigation(
         sync = sync,
         onSyncEvent = syncViewModel::onEvent,
         onLog = { sheet = RootSheet.Log },
+        message = if (saved) stringResource(R.string.today_screening_saved) else null,
+        onMessageShown = { logViewModel.onEvent(LogEvent.NoticeShown) },
     )
     RootSheets(
         sheet,
@@ -72,7 +94,23 @@ fun AppNavigation(
         onOpenGallery = if (BuildConfig.DEBUG) ({ backStack.push(ComponentGalleryKey) }) else null,
         account = account,
         onOpen = { page -> backStack.push(page.key) },
+        onLog = { choice -> backStack.log(choice, logViewModel.logDay(onToday = backStack.currentTab == TodayKey), logViewModel::onEvent) },
     )
+    LogSheets(logViewModel)
+}
+
+/**
+ * Ett val i plusknappens meny (NAV-10) mot dagen [date] (den Idag visar, `null` = idag): Mående öppnar
+ * tillfällesväljaren ([onEvent]), Aktivitet och Händelse sina formulär på den aktuella fliken, Dos och Sjukdom en
+ * platshållare tills #271.
+ */
+fun AppBackStack.log(choice: LogChoice, date: LocalDate?, onEvent: (LogEvent) -> Unit) {
+    when (choice) {
+        LogChoice.Mood -> onEvent(LogEvent.PickOccasion(date))
+        LogChoice.Activity -> push(ActivityEditKey(date = date))
+        LogChoice.Event -> push(EventEditKey(date = date))
+        LogChoice.Dose, LogChoice.Illness -> push(LogUpcomingKey(choice))
+    }
 }
 
 /** Underskärmen som en rad i inställningsarket öppnar (NAV-9). */
@@ -86,7 +124,10 @@ val SettingsPage.key: AppKey
         SettingsPage.About -> AboutKey
     }
 
-/** Det ark som är öppet; varje val stänger arket först. [onOpen] öppnar en underskärm på den aktuella fliken. */
+/**
+ * Det ark som är öppet; varje val stänger arket först. [onOpen] öppnar en underskärm på den aktuella fliken och
+ * [onLog] tar emot ett val i plusknappens meny (NAV-10).
+ */
 @Composable
 fun RootSheets(
     sheet: RootSheet?,
@@ -95,6 +136,7 @@ fun RootSheets(
     onOpenGallery: (() -> Unit)?,
     account: AuthUser? = null,
     onOpen: (SettingsPage) -> Unit = {},
+    onLog: (LogChoice) -> Unit = {},
 ) {
     when (sheet) {
         RootSheet.Account -> AccountSheet(
@@ -115,19 +157,30 @@ fun RootSheets(
                 onOpen(page)
             },
         )
-        // Loggformulären kommer i etapp 5; tills dess stänger varje val bara arket.
-        RootSheet.Log -> LogMenuSheet(onDismiss = onDismiss, onPick = { onDismiss() })
+        RootSheet.Log -> LogMenuSheet(
+            onDismiss = onDismiss,
+            onPick = { choice ->
+                onDismiss()
+                onLog(choice)
+            },
+        )
         null -> Unit
     }
 }
 
 /**
  * Vilken skärm varje nyckel visar – varje nyckel har en (`AppNavigationTest`). [onAccount] är avataren uppe
- * till höger (NAV-9) med [account]s namn och foto. En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
+ * till höger (NAV-9) med [account]s namn och foto; [onScreening] öppnar måendearket ovanpå flikarna – från Idag och
+ * från en måendepost i Dagbok – ett enda ark (`LogViewModel`). En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
  * andra tryck inte stänger skärmen under. Inställningsarkets underskärmar läggs på den aktuella
  * flikens stack.
  */
-fun appEntries(backStack: AppBackStack, account: () -> AuthUser?, onAccount: () -> Unit): (AppKey) -> NavEntry<AppKey> =
+fun appEntries(
+    backStack: AppBackStack,
+    account: () -> AuthUser?,
+    onAccount: () -> Unit,
+    onScreening: (LogEvent) -> Unit = {},
+): (AppKey) -> NavEntry<AppKey> =
     // Varje nyckel har sin skärm (AppKey är förseglad); en saknad är ett programfel.
     entryProvider(fallback = { key -> error("Ingen skärm för $key") }) {
         entry<TodayKey> {
@@ -137,11 +190,18 @@ fun appEntries(backStack: AppBackStack, account: () -> AuthUser?, onAccount: () 
                 onEditPrn = { id -> backStack.push(PrnMedicineEditKey(id)) },
                 // TRD-5: "Visa i Trender" under Idags 7-dagarstrend byter flik.
                 onOpenTrends = { backStack.select(TrendsKey) },
+                onScreening = onScreening,
             )
         }
-        // HIST-3: en post öppnas i en platshållare tills redigeringen (#239) och sjukdomsdetaljen (#240) finns.
-        entry<DiaryKey> { DiaryRoute(account(), onAccount, onOpen = { entry -> backStack.push(entry.key) }) }
+        // HIST-3: aktivitet och händelse öppnar sina formulär, mående måendearket; dos, episod och incheckning en
+        // platshållare tills dosformuläret (#271) och sjukdomsdetaljen (#240) finns.
+        entry<DiaryKey> {
+            DiaryRoute(account(), onAccount, onOpen = { entry -> entry.key?.let(backStack::push) ?: (entry as? DiaryEntry.Mood)?.let { onScreening(LogEvent.EditScreening(it.screening)) } })
+        }
         entry<DiaryEntryKey> { key -> DiaryEntryPlaceholder(key.kind, onBack = { backStack.popIfTop(key) }) }
+        entry<ActivityEditKey> { key -> ActivityEditRoute(key.id, key.date, onClose = { backStack.popIfTop(key) }) }
+        entry<EventEditKey> { key -> EventEditRoute(key.id, key.date, onClose = { backStack.popIfTop(key) }) }
+        entry<LogUpcomingKey> { key -> LogUpcomingScreen(key.choice, onBack = { backStack.popIfTop(key) }) }
         entry<TrendsKey> { TrendsRoute(account(), onAccount) }
         entry<MedicinesKey> {
             MedicinesRoute(

@@ -27,13 +27,10 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.DayPart
 import se.partee71.dagboken.core.engine.Due
 import se.partee71.dagboken.core.engine.EnergyTrend
-import se.partee71.dagboken.core.engine.OTHER_SYMPTOM_ID
-import se.partee71.dagboken.core.engine.OccasionState
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.core.engine.OngoingIllness
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.latest
-import se.partee71.dagboken.core.engine.symptomChoices
 import se.partee71.dagboken.core.engine.OpenDose
 import se.partee71.dagboken.core.engine.boostEnd
 import se.partee71.dagboken.core.engine.boostFor
@@ -41,22 +38,18 @@ import se.partee71.dagboken.core.engine.doseFor
 import se.partee71.dagboken.core.engine.isScheduled
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
-import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
-import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.doseText
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.periodText
 import se.partee71.dagboken.ui.components.AccountAvatar
-import se.partee71.dagboken.ui.components.AppBottomSheet
 import se.partee71.dagboken.ui.components.AppButton
 import se.partee71.dagboken.ui.components.AppCard
 import se.partee71.dagboken.ui.components.AppFilterChip
@@ -75,15 +68,14 @@ import se.partee71.dagboken.ui.components.ItemRow
 import se.partee71.dagboken.ui.components.inactive
 import se.partee71.dagboken.ui.components.MessageSnackbar
 import se.partee71.dagboken.ui.components.NoticeBanner
-import se.partee71.dagboken.ui.components.OccasionRow
-import se.partee71.dagboken.ui.components.OccasionValue
 import se.partee71.dagboken.ui.components.ProgressBar
 import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.components.StatPill
-import se.partee71.dagboken.ui.components.StepwiseScreeningForm
 import se.partee71.dagboken.ui.components.UndoRequest
 import se.partee71.dagboken.ui.components.UndoSnackbar
 import se.partee71.dagboken.ui.diagram.SparklineChart
+import se.partee71.dagboken.ui.log.LogEvent
+import se.partee71.dagboken.ui.log.OccasionStateRow
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
@@ -94,6 +86,7 @@ fun TodayRoute(
     onAccount: () -> Unit,
     onEditPrn: (String) -> Unit,
     onOpenTrends: () -> Unit,
+    onScreening: (LogEvent) -> Unit,
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -101,8 +94,6 @@ fun TodayRoute(
     val undo by viewModel.undo.collectAsStateWithLifecycle()
     val cooldown by viewModel.cooldown.collectAsStateWithLifecycle()
     val notice by viewModel.notice.collectAsStateWithLifecycle()
-    val screening by viewModel.screening.collectAsStateWithLifecycle()
-    val symptomOptions by viewModel.symptomOptions.collectAsStateWithLifecycle()
     TodayScreen(
         state,
         viewModel::onEvent,
@@ -111,9 +102,8 @@ fun TodayRoute(
         undo = undo,
         cooldown = cooldown,
         notice = notice,
-        screening = screening,
-        symptomOptions = symptomOptions,
         onOpenTrends = onOpenTrends,
+        onScreening = onScreening,
     ) {
         AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
     }
@@ -125,7 +115,8 @@ fun TodayRoute(
  * "Allt klart för idag" med konfetti (HEM-19) och sedan korten Mediciner (MED-1–3, MED-5, MED-13) och Vid
  * behov (FAV-2, FAV-11) med Mående emellan (HEM-4, HEM-5), sedan pågående sjukdom (HEM-12) och 7-dagarstrenden
  * (HEM-7) – Hälsa idag kommer före trenden (#241, HEM-16). En söndag eller måndag står "Din vecka" överst (HEM-13).
- * Ångra och bekräftelserna visas i ramens meddelandeyta; [screening] är måendearket. [onEditPrn] öppnar vid
+ * Ångra och bekräftelserna visas i ramens meddelandeyta. [onScreening] öppnar måendearket – samma ark som plusknappen
+ * (`LogViewModel`, ovanpå flikarna) – med en ny logg eller en loggad för ändring. [onEditPrn] öppnar vid
  * behov-formuläret från långtrycksmenyn (HEM-11) och [onOpenTrends] fliken Trender (TRD-5).
  */
 @Composable
@@ -138,9 +129,8 @@ fun TodayScreen(
     undo: UndoRequest? = null,
     cooldown: CooldownPrompt? = null,
     notice: TodayNotice? = null,
-    screening: EditorSheetState<Screening, ScreeningSheetInfo>? = null,
-    symptomOptions: List<Option> = emptyList(),
     onOpenTrends: () -> Unit = {},
+    onScreening: (LogEvent) -> Unit = {},
     avatar: @Composable () -> Unit = {},
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -148,8 +138,6 @@ fun TodayScreen(
     MessageSnackbar(notice?.let { stringResource(it.text, *it.args) }, snackbar, key = notice) { onEvent(TodayEvent.NoticeShown) }
     cooldown?.let { CooldownDialog(it, onEvent) }
     val content = (state as? DetailUiState.Content)?.value
-    // Ett nytt ark får ett eget ark-tillstånd (steg, svep).
-    screening?.let { sheet -> key(sheet) { ScreeningSheetView(sheet, symptomOptions, onEvent) } }
     EntityDetailScreen(
         state = state,
         header = null,
@@ -166,11 +154,11 @@ fun TodayScreen(
         onErrorShown = { onEvent(TodayEvent.ErrorShown) },
         actions = { avatar() },
         snackbar = snackbar,
-    ) { TodayCards(it, onEvent, onEditPrn, onOpenTrends) }
+    ) { TodayCards(it, onEvent, onEditPrn, onOpenTrends, onScreening) }
 }
 
 @Composable
-private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, onEditPrn: (String) -> Unit, onOpenTrends: () -> Unit) {
+private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, onEditPrn: (String) -> Unit, onOpenTrends: () -> Unit, onScreening: (LogEvent) -> Unit) {
     content.weekSummary?.let { WeekSummaryCard(it) }
     DateStrip(
         week = content.week,
@@ -192,7 +180,7 @@ private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, onE
         )
     }
     MedicinesCard(content, onEvent)
-    MoodCard(content, onEvent)
+    MoodCard(content, onScreening)
     AsNeededCard(content, onEvent, onEditPrn)
     content.illness?.let { IllnessCard(it) }
     EnergyTrendCard(content, onOpenTrends)
@@ -224,7 +212,7 @@ private fun WeekSummaryCard(summary: WeekSummary) {
  * tillfällen visas inget kort.
  */
 @Composable
-private fun MoodCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) {
+private fun MoodCard(content: TodayContent, onScreening: (LogEvent) -> Unit) {
     val states = content.occasions
     if (states.isEmpty()) return
     AppCard {
@@ -234,67 +222,14 @@ private fun MoodCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) {
             count = stringResource(R.string.today_count_format, logged, states.size),
             tone = if (content.isToday && logged == states.size) Tone.Positive else Tone.Primary,
         )
-        states.forEach { state -> key(state.occasion) { MoodRow(state, onEvent) } }
-    }
-}
-
-@Composable
-private fun MoodRow(state: OccasionState, onEvent: (TodayEvent) -> Unit) {
-    val latest = state.latest
-    val log = { onEvent(TodayEvent.LogScreening(state.occasion)) }
-    OccasionRow(
-        title = stringResource(state.occasion.label()),
-        status = state.status,
-        onLog = log,
-        time = (if (latest != null) latest.time else state.time)?.let(DateFormat::time),
-        values = latest?.let {
-            listOf(OccasionValue(stringResource(R.string.energy), it.energy), OccasionValue(stringResource(R.string.stress), it.stress, higherIsBetter = false))
-        }.orEmpty(),
-        onClick = if (latest != null) ({ onEvent(TodayEvent.EditScreening(latest)) }) else log,
-    )
-}
-
-/**
- * Måendearket (HEM-5, SCR-1, SCR-2): `StepwiseScreeningForm` i `AppBottomSheet` med tillfällets namn – och dagen
- * när det inte är idag – som rubrik, tagen när arket öppnades ([ScreeningSheetInfo]), så att arket står sig också
- * när skärmen bakom laddar om. Symptomvalen följer [symptomOptions] medan arket är öppet – listans aktiva och de
- * arkiverade som loggen redan har; "Övrigt" får fritext. Osparade ändringar – eller en ny logg vars sparning
- * misslyckats – frågar "Släng ändringar?" innan arket stängs, och medan det sparas går det inte att stänga
- * (`canDismiss` läser formulärets aktuella läge, NFR-10); ett skrivfel visas i arket. Sparat → arket döljs
- * animerat och stängs.
- */
-@Composable
-private fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, symptomOptions: List<Option>, onEvent: (TodayEvent) -> Unit) {
-    val state by sheet.editor.state.collectAsStateWithLifecycle()
-    val error by sheet.error.collectAsStateWithLifecycle()
-    val unsaved by sheet.unsaved.collectAsStateWithLifecycle()
-    val closing by sheet.closing.collectAsStateWithLifecycle()
-    val edited = state.value
-    val info = sheet.context
-    val name = info.occasion?.let { stringResource(it.label()) } ?: stringResource(R.string.log_mood)
-    val title = info.date?.let { stringResource(R.string.today_screening_title_day_format, name, DateFormat.display(it)) } ?: name
-    val choices = remember(symptomOptions, sheet.loaded) { symptomChoices(symptomOptions, sheet.loaded?.symptoms.orEmpty()) }
-    AppBottomSheet(
-        title,
-        onDismiss = { onEvent(TodayEvent.CloseScreening) },
-        error = error,
-        dirty = unsaved,
-        canDismiss = sheet::canDismiss,
-        hide = closing,
-    ) {
-        StepwiseScreeningForm(
-            energy = edited.energy,
-            onEnergyChange = { onEvent(TodayEvent.ChangeEnergy(it)) },
-            stress = edited.stress,
-            onStressChange = { onEvent(TodayEvent.ChangeStress(it)) },
-            symptomOptions = choices,
-            symptoms = edited.symptoms,
-            onSymptomsChange = { onEvent(TodayEvent.ChangeSymptoms(it)) },
-            onSave = { onEvent(TodayEvent.SaveScreening) },
-            saveEnabled = state.canSave,
-            saving = state.saving,
-            otherOptionId = OTHER_SYMPTOM_ID,
-        )
+        states.forEach { state ->
+            key(state.occasion) {
+                // Idag är dagen klockans när arket öppnas (`null`); en tidigare dag får tillfällets påminnelsetid (SCR-6).
+                val log = { onScreening(LogEvent.LogScreening(state.occasion, content.date.takeUnless { content.isToday }, state.time)) }
+                val latest = state.latest
+                OccasionStateRow(state, onLog = log, onClick = if (latest != null) ({ onScreening(LogEvent.EditScreening(latest)) }) else log)
+            }
+        }
     }
 }
 

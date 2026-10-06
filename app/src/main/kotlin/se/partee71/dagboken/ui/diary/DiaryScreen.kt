@@ -30,6 +30,7 @@ import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.durationText
+import se.partee71.dagboken.ui.common.entrySubject
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.nonBlank
@@ -307,24 +308,18 @@ private fun deleteSubject(entry: DiaryEntry, title: String): String? {
         is DiaryEntry.CheckIn -> R.string.diary_subject_checkin
         is DiaryEntry.EpisodeStart, is DiaryEntry.EpisodeEnd -> return null
     }
-    val day = DateFormat.short(entry.date)
-    val time = entry.time
-    val whenText = if (time == null) day else stringResource(R.string.diary_when_format, day, DateFormat.time(time))
-    return stringResource(format, title, whenText)
+    return entrySubject(format, title, entry.date, entry.time)
 }
 
 /**
- * Platshållaren när en post öppnas (HIST-3), tills redigeringen (#239) och sjukdomsdetaljen (#240) finns:
+ * Platshållaren när en dos, episod eller incheckning öppnas (HIST-3), tills dosformuläret (#271) och sjukdomsdetaljen (#240) finns:
  * samma lilla topprad med tillbakapil som de andra underskärmarna.
  */
 @Composable
 fun DiaryEntryPlaceholder(kind: DiaryEntryKind, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val episode = kind == DiaryEntryKind.EPISODE
     val title = when (kind) {
-        DiaryEntryKind.SCREENING -> R.string.log_mood
-        DiaryEntryKind.ACTIVITY -> R.string.log_activity
         DiaryEntryKind.DOSE -> R.string.dose_label
-        DiaryEntryKind.EVENT -> R.string.log_event
         DiaryEntryKind.EPISODE -> R.string.log_illness
         DiaryEntryKind.CHECKIN -> R.string.diary_checkin
     }

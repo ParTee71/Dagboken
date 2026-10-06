@@ -14,6 +14,11 @@ interface DocCodec<T> {
     fun decode(id: String, map: Map<String, Any?>): T
 }
 
+/** Codec för en samling poster med ett datumfält ([dateField], `yyyy-MM-dd`) – läsningen per dag eller period. */
+interface DatedCodec<T> : DocCodec<T> {
+    val dateField: String
+}
+
 /**
  * Codec för ett nästlat värde utan eget dokument-ID, t.ex. `schedule` och `rule`. Tar emot
  * fältets råa värde – även ett som inte är en map – så att ett okänt format kan skrivas

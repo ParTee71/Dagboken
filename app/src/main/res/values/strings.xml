@@ -459,6 +459,33 @@
     <string name="dose_label">Dos</string>
     <string name="log_event">Händelse</string>
     <string name="log_illness">Sjukdom</string>
+    <string name="log_mood_pick_title">Välj tillfälle</string>
+    <string name="log_upcoming">Här kommer du att kunna logga det. Funktionen kommer snart.</string>
+    <!-- Aktivitets- och händelseformulären (AKT-1–AKT-12, HAN-1) -->
+    <string name="entry_type">Typ</string>
+    <string name="entry_more_types">Fler typer</string>
+    <string name="entry_pick_type">Välj typ</string>
+    <string name="entry_type_missing">Välj en typ</string>
+    <string name="entry_type_none">Inga typer än – lägg till dem under Listor i inställningarna.</string>
+    <string name="form_not_savable">Ett värde går inte att spara – ändra det för att kunna spara.</string>
+    <string name="field_not_savable">Värdet går inte att spara – korta eller ändra det</string>
+    <string name="activity_new">Ny aktivitet</string>
+    <string name="activity_edit">Redigera aktivitet</string>
+    <string name="activity_other">Övrigt</string>
+    <string name="activity_describe">Beskriv aktivitet</string>
+    <string name="activity_describe_missing">Beskriv aktiviteten</string>
+    <string name="activity_recovering">Återhämtande</string>
+    <string name="activity_drain">Energitjuv</string>
+    <string name="activity_metrics">Mätvärden</string>
+    <string name="activity_metrics_summary_format">%1$s %2$s · %3$s %4$s</string>
+    <string name="event_new">Ny händelse</string>
+    <string name="event_edit">Redigera händelse</string>
+    <string name="event_severity">Svårighetsgrad</string>
+    <string name="event_duration">Varaktighet</string>
+    <string name="event_triggers">Möjliga triggers</string>
+    <string name="event_triggers_hint">T.ex. stress, sömnbrist eller starkt ljus</string>
+    <string name="event_actions">Åtgärder / medicinering</string>
+    <string name="event_actions_hint">T.ex. vila i mörkt rum eller Alvedon 500 mg</string>
 
     <!-- Synk (NFR-1) -->
     <string name="sync_pending">Väntar på synk</string>
@@ -523,8 +550,6 @@
     <string name="trends_previous_period">Föregående period</string>
     <string name="trends_series_stress">Stress</string>
     <string name="trends_series_somatic">Somatiska</string>
-    <string name="trends_series_recovering">Återhämtande</string>
-    <string name="trends_series_drain">Energitjuv</string>
     <string name="trends_events_hint">Logga en händelse eller en sjukdom så syns de här.</string>
     <string name="trends_legend_events">Händelser</string>
     <string name="trends_legend_checkins">Incheckningar</string>

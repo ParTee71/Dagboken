@@ -19,6 +19,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.model.OptionKind
+import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.engine.TypeChoices
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.color
@@ -432,6 +435,22 @@ class CatalogScreenshotTest {
         }
         captureLightAndDark("DateTimeRow_standard") { Sheet { DateTimeRow(LocalDate(2026, 10, 4), LocalTime(8, 30), {}, {}) } }
         captureLightAndDark("DurationRow_snabbval") { Sheet { DurationRow(60, {}) } }
+        captureLightAndDark("TypeChoiceField_lagen") {
+            Sheet {
+                val types = TypeChoices(
+                    listOf(Option("walk", OptionKind.ACTIVITY, "Promenad", favorite = true), Option("work", OptionKind.ACTIVITY, "Jobb", favorite = true)),
+                    listOf(Option("rest", OptionKind.ACTIVITY, "Vila")),
+                    other = "other",
+                )
+                TypeChoiceField(types, "walk", {}, otherLabel = "Övrigt")
+                TypeChoiceField(types, "other", {}, otherLabel = "Övrigt")
+                TypeChoiceField(types, "", {}, error = "Välj en typ")
+                TypeChoiceField(TypeChoices(emptyList(), emptyList()), "", {})
+            }
+        }
+        captureLightAndDark("NoteField_fel") {
+            Sheet { AppCard { NoteField("Sov dåligt.", {}, error = "Värdet går inte att spara – korta eller ändra det") } }
+        }
         captureLightAndDark("ReminderTimeRow_lagen") {
             Sheet {
                 AppCard {

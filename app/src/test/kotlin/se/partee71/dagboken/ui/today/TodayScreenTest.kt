@@ -1,7 +1,9 @@
 package se.partee71.dagboken.ui.today
 
 import android.content.Context
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -77,6 +79,9 @@ import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.SampleMedicines
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorSheetState
+import se.partee71.dagboken.ui.log.LogEvent
+import se.partee71.dagboken.ui.log.ScreeningSheetInfo
+import se.partee71.dagboken.ui.log.ScreeningSheetView
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.Validator
@@ -408,18 +413,32 @@ class TodayScreenTest {
     private fun showFull(
         content: TodayContent = full(),
         screening: EditorSheetState<Screening, ScreeningSheetInfo>? = null,
-        onEvent: (TodayEvent) -> Unit = {},
+        onScreening: (LogEvent) -> Unit = {},
         onOpenTrends: () -> Unit = {},
     ) {
-        rule.setContent {
-            DagbokenTheme { TodayScreen(DetailUiState.Content(content), onEvent, {}, screening = screening, symptomOptions = symptoms, onOpenTrends = onOpenTrends) }
-        }
+        rule.setContent { DagbokenTheme { TodayWithSheet(DetailUiState.Content(content), screening, onScreening = onScreening, onOpenTrends = onOpenTrends) } }
+    }
+
+    /**
+     * Idag med måendearket ovanpå, som i appen: Idag skickar [onScreening] (`LogEvent`) till plusknappens `LogViewModel`, och
+     * arket visas av `LogSheets` ovanpå flikarna – här direkt med samma `ScreeningSheetView`.
+     */
+    @Composable
+    private fun TodayWithSheet(
+        state: DetailUiState<TodayContent>,
+        sheet: EditorSheetState<Screening, ScreeningSheetInfo>?,
+        symptomOptions: List<Option> = symptoms,
+        onScreening: (LogEvent) -> Unit = {},
+        onOpenTrends: () -> Unit = {},
+    ) {
+        TodayScreen(state, {}, {}, onOpenTrends = onOpenTrends, onScreening = onScreening)
+        sheet?.let { key(it) { ScreeningSheetView(it, symptomOptions, onScreening) } }
     }
 
     @Test
     fun `Mående visar tillfällena med status, och raden eller Logga nu öppnar arket (HEM-4, HEM-5, NFR-17)`() {
-        val events = mutableListOf<TodayEvent>()
-        showFull(onEvent = { events += it })
+        val events = mutableListOf<LogEvent>()
+        showFull(onScreening = { events += it })
         rule.onNodeWithText("1 av 4").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Loggad 08:12").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Energi 7").performScrollTo().assertIsDisplayed()
@@ -427,23 +446,23 @@ class TodayScreenTest {
         rule.onNodeWithText("Kommande · 21:00").performScrollTo().assertIsDisplayed()
 
         rule.onAllNodesWithText("Logga nu")[0].performScrollTo().performClick()
-        assertEquals(TodayEvent.LogScreening(Occasion.LUNCH), events.last())
+        assertEquals(LogEvent.LogScreening(Occasion.LUNCH, null, LocalTime(10, 0)), events.last())
         rule.onNodeWithText("Läggdags").performClick()
-        assertEquals(TodayEvent.LogScreening(Occasion.BEDTIME), events.last())
+        assertEquals(LogEvent.LogScreening(Occasion.BEDTIME, null, LocalTime(21, 0)), events.last())
         rule.onNodeWithText("Efter frukost").performScrollTo().performClick()
-        assertEquals(TodayEvent.EditScreening(breakfast), events.last())
+        assertEquals(LogEvent.EditScreening(breakfast), events.last())
     }
 
     @Test
     fun `en tidigare dag är ej loggad utan Försenat, och Logga nu loggar ändå (HEM-4, SCR-6)`() {
-        val events = mutableListOf<TodayEvent>()
+        val events = mutableListOf<LogEvent>()
         val past = LocalDate(2026, 10, 2)
-        showFull(full(past), onEvent = { events += it })
+        showFull(full(past), onScreening = { events += it })
         rule.onNodeWithText("Mående").performScrollTo()
         assertEquals(4, rule.onAllNodesWithText("Ej loggad").fetchSemanticsNodes().size)
         rule.onNodeWithText("Din vecka").assertDoesNotExist()
         rule.onAllNodesWithText("Logga nu")[1].performScrollTo().performClick()
-        assertEquals(TodayEvent.LogScreening(Occasion.LUNCH), events.last())
+        assertEquals(LogEvent.LogScreening(Occasion.LUNCH, past, LocalTime(10, 0)), events.last(), "den visade dagen och påminnelsens tid")
     }
 
     @Test
@@ -481,20 +500,20 @@ class TodayScreenTest {
 
     @Test
     fun `arket går i steg och sparar – en tidigare dag står dagen i rubriken (HEM-5, SCR-1, SCR-2)`() {
-        val events = mutableListOf<TodayEvent>()
+        val events = mutableListOf<LogEvent>()
         val past = LocalDate(2026, 10, 2)
         val new = Screening("ny", past, LocalTime(12, 0), Occasion.LUNCH)
         val sheet = sheet(null, new)
-        showFull(full(past), screening = sheet, onEvent = { events += it })
+        showFull(full(past), screening = sheet, onScreening = { events += it })
         rule.onNodeWithText("Lunch · fre 2 okt 2026").assertIsDisplayed()
         rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
         rule.onNodeWithText("Nästa").performClick()
         rule.onNodeWithText("Steg 2 av 3").assertIsDisplayed()
         rule.onNodeWithText("Nästa").performClick()
         rule.onNodeWithText("Övrigt").performClick()
-        assertEquals(TodayEvent.ChangeSymptoms(listOf(SymptomScore(OTHER_SYMPTOM_ID, 1))), events.last())
+        assertEquals(LogEvent.ChangeSymptoms(listOf(SymptomScore(OTHER_SYMPTOM_ID, 1))), events.last())
         rule.onNodeWithText("Spara").performClick()
-        assertEquals(TodayEvent.SaveScreening, events.last())
+        assertEquals(LogEvent.SaveScreening, events.last())
     }
 
     /** Ett ark som `EditorSheet` öppnar det: den delade `EditorState` med [value], [loaded] = den sparade loggen. */
@@ -509,7 +528,7 @@ class TodayScreenTest {
     fun `symptomvalen följer listan medan arket är öppet – en sen lista ger symptomsteget (SCR-2)`() {
         val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
         var options by mutableStateOf(emptyList<Option>())
-        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Content(full()), {}, {}, screening = sheet, symptomOptions = options) } }
+        rule.setContent { DagbokenTheme { TodayWithSheet(DetailUiState.Content(full()), sheet, options) } }
         rule.onNodeWithText("Steg 1 av 2").assertIsDisplayed()
         options = symptoms
         rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
@@ -517,12 +536,12 @@ class TodayScreenTest {
 
     @Test
     fun `sparat – arket döljs och stängs sedan (SCR-1)`() {
-        val events = mutableListOf<TodayEvent>()
+        val events = mutableListOf<LogEvent>()
         val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
-        showFull(screening = sheet, onEvent = { events += it })
+        showFull(screening = sheet, onScreening = { events += it })
         rule.runOnIdle { sheet.saved() }
         rule.waitForIdle()
-        assertEquals(TodayEvent.CloseScreening, events.last())
+        assertEquals(LogEvent.CloseScreening, events.last())
     }
 
     @Test
@@ -530,7 +549,7 @@ class TodayScreenTest {
         val past = LocalDate(2026, 10, 2)
         val sheet = sheet(null, Screening("ny", past, LocalTime(12, 0), Occasion.LUNCH))
         var state by mutableStateOf<DetailUiState<TodayContent>>(DetailUiState.Content(full(past)))
-        rule.setContent { DagbokenTheme { TodayScreen(state, {}, {}, screening = sheet, symptomOptions = symptoms) } }
+        rule.setContent { DagbokenTheme { TodayWithSheet(state, sheet) } }
         rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
         for (next in listOf(DetailUiState.Loading, DetailUiState.Error(DataError.Offline))) {
             state = next
@@ -541,26 +560,26 @@ class TodayScreenTest {
 
     @Test
     fun `en ny logg vars sparning misslyckades frågar Släng ändringar vid bakåt (NFR-10)`() {
-        val events = mutableListOf<TodayEvent>()
+        val events = mutableListOf<LogEvent>()
         val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
         sheet.showError(Failure(DataError.Offline))
-        showFull(screening = sheet, onEvent = { events += it })
+        showFull(screening = sheet, onScreening = { events += it })
         Espresso.pressBack()
         rule.onNodeWithText("Släng ändringar?").assertIsDisplayed()
-        assertTrue(events.none { it == TodayEvent.CloseScreening })
+        assertTrue(events.none { it == LogEvent.CloseScreening })
     }
 
     @Test
     fun `bakåt med osparade ändringar frågar Släng ändringar och arket står kvar tills svaret (NFR-10)`() {
-        val events = mutableListOf<TodayEvent>()
+        val events = mutableListOf<LogEvent>()
         val sheet = sheet(breakfast, breakfast)
-        showFull(screening = sheet, onEvent = { events += it })
+        showFull(screening = sheet, onScreening = { events += it })
         sheet.editor.update { it.copy(energy = 3) }
         rule.waitForIdle()
         Espresso.pressBack()
         rule.onNodeWithText("Släng ändringar?").assertIsDisplayed()
         rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
-        assertTrue(events.none { it == TodayEvent.CloseScreening })
+        assertTrue(events.none { it == LogEvent.CloseScreening })
         rule.onNodeWithText("Fortsätt redigera").performClick()
         rule.onNodeWithText("Släng ändringar?").assertDoesNotExist()
         rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
@@ -569,25 +588,25 @@ class TodayScreenTest {
         rule.onNodeWithText("Släng").performClick()
         // Arket döljs först (animerat), sedan stängs det.
         rule.waitForIdle()
-        assertEquals(TodayEvent.CloseScreening, events.last())
+        assertEquals(LogEvent.CloseScreening, events.last())
     }
 
     @Test
     fun `utan ändringar stänger bakåt arket direkt`() {
-        val events = mutableListOf<TodayEvent>()
-        showFull(screening = sheet(breakfast, breakfast), onEvent = { events += it })
+        val events = mutableListOf<LogEvent>()
+        showFull(screening = sheet(breakfast, breakfast), onScreening = { events += it })
         Espresso.pressBack()
         rule.waitForIdle()
         rule.onNodeWithText("Släng ändringar?").assertDoesNotExist()
-        assertEquals(TodayEvent.CloseScreening, events.last())
+        assertEquals(LogEvent.CloseScreening, events.last())
     }
 
     @Test
     fun `under sparningen stänger bakåt inte arket (SCR-1)`() {
-        val events = mutableListOf<TodayEvent>()
+        val events = mutableListOf<LogEvent>()
         val sheet = sheet(breakfast, breakfast)
         val gate = CompletableDeferred<Result<Unit>>()
-        showFull(screening = sheet, onEvent = { events += it })
+        showFull(screening = sheet, onScreening = { events += it })
         sheet.editor.update { it.copy(stress = 6) }
         val saving = CoroutineScope(Dispatchers.Main.immediate).launch { sheet.editor.save { gate.await() } }
         rule.waitForIdle()
@@ -595,7 +614,7 @@ class TodayScreenTest {
         rule.waitForIdle()
         rule.onNodeWithText("Släng ändringar?").assertDoesNotExist()
         rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
-        assertTrue(events.none { it == TodayEvent.CloseScreening })
+        assertTrue(events.none { it == LogEvent.CloseScreening })
         gate.complete(Result.success(Unit))
         rule.waitForIdle()
         assertTrue(saving.isCompleted)
@@ -623,12 +642,12 @@ class TodayScreenTest {
 
     @Test
     fun `skärmdump - arket steg 1`() = rule.captureScreenLightAndDark("Today_maende_steg1") {
-        TodayScreen(DetailUiState.Content(full()), {}, {}, screening = newLunch, symptomOptions = symptoms)
+        TodayWithSheet(DetailUiState.Content(full()), newLunch)
     }
 
     @Test
     fun `skärmdump - arket steg 2`() = rule.captureScreenLightAndDark("Today_maende_steg2", open = { onNodeWithText("Nästa").clickWithoutRipple() }) {
-        TodayScreen(DetailUiState.Content(full()), {}, {}, screening = newLunch, symptomOptions = symptoms)
+        TodayWithSheet(DetailUiState.Content(full()), newLunch)
     }
 
     @Test
@@ -640,13 +659,7 @@ class TodayScreenTest {
             onNodeWithText("Nästa").clickWithoutRipple()
         },
     ) {
-        TodayScreen(
-            DetailUiState.Content(full()),
-            {},
-            {},
-            screening = withSymptoms,
-            symptomOptions = symptoms,
-        )
+        TodayWithSheet(DetailUiState.Content(full()), withSymptoms)
     }
 
     private companion object {

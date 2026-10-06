@@ -102,6 +102,30 @@ fun occasionStates(
 }
 
 /**
+ * HEM-8b: plusknappens tillfällesväljare – alla fyra tillfällen i ordning, så att också ett tillfälle utan påminnelse
+ * går att logga. De aktiverade har samma status som på Idag ([occasionStates]); ett som inte är aktiverat är loggat
+ * eller [OccasionStatus.NOT_LOGGED] – aldrig försenat, det påminns inte om. Klockslaget är påminnelsens (eller
+ * tillfällets standardtid).
+ */
+fun occasionChoices(
+    reminders: ReminderSettings,
+    screenings: List<Screening>,
+    date: LocalDate,
+    now: Instant,
+    zone: TimeZone,
+): List<OccasionState> {
+    val enabled = occasionStates(reminders, screenings, date, now, zone).associateBy { it.occasion }
+    val onDate = screenings.filter { it.date == date }
+    return Occasion.entries.map { occasion ->
+        enabled[occasion] ?: run {
+            val logged = onDate.filter { it.occasion == occasion }
+            val time = reminders.screeningOccasions.firstOrNull { it.occasion == occasion }?.time ?: occasion.defaultTime
+            OccasionState(occasion, time, if (logged.isEmpty()) OccasionStatus.NOT_LOGGED else OccasionStatus.LOGGED, logged)
+        }
+    }
+}
+
+/**
  * HEM-5: tillfällets senaste logg – den som visas med värdechips och öppnas för ändring – i den gemensamma
  * ordningen [latestBy]; `null` när tillfället inte är loggat.
  */

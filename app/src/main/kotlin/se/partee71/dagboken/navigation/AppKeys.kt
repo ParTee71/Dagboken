@@ -1,9 +1,11 @@
 package se.partee71.dagboken.navigation
 
 import androidx.navigation3.runtime.NavKey
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 import se.partee71.dagboken.core.engine.DiaryEntry
 import se.partee71.dagboken.core.model.OptionKind
+import se.partee71.dagboken.ui.components.LogChoice
 
 /** Alla skärmar i appen (NAV-8, NAV-11). Sparas med kotlinx.serialization, så nycklarna överlever processdöd. */
 @Serializable
@@ -66,23 +68,38 @@ data class PrescriptionEditKey(val id: String? = null, val extend: Boolean = fal
 @Serializable
 data class PrnMedicineEditKey(val id: String? = null) : AppKey
 
-/** Vad en post i Dagbok är – avgör vilken skärm den öppnar (HIST-3, HIST-9). */
-enum class DiaryEntryKind { SCREENING, ACTIVITY, DOSE, EVENT, EPISODE, CHECKIN }
+/** Ny aktivitet ([id] = `null`) mot dagen [date] (`null` = idag, NAV-10, HEM-14), eller en befintlig (AKT-1–AKT-12, HIST-3). */
+@Serializable
+data class ActivityEditKey(val id: String? = null, val date: LocalDate? = null) : AppKey
+
+/** Ny händelse ([id] = `null`) mot dagen [date] (`null` = idag, NAV-10, HEM-14), eller en befintlig (HAN-1, HIST-3). */
+@Serializable
+data class EventEditKey(val id: String? = null, val date: LocalDate? = null) : AppKey
+
+/** Dos och Sjukdom i plusknappens meny (NAV-10) – en platshållare tills formulären finns (#271). */
+@Serializable
+data class LogUpcomingKey(val choice: LogChoice) : AppKey
+
+/** Vad en post i Dagbok är som ännu öppnar en platshållare (HIST-3, HIST-9). */
+enum class DiaryEntryKind { DOSE, EPISODE, CHECKIN }
 
 /**
- * En post i Dagbok (HIST-3): [id] är dokumentets id i sin samling, och för en incheckning är [episodeId]
- * episoden den ligger under. En platshållare tills redigeringen (#239) och sjukdomsdetaljen (#240) tar över.
+ * En post i Dagbok utan eget formulär än (HIST-3): [id] är dokumentets id i sin samling, och för en incheckning är
+ * [episodeId] episoden den ligger under. En platshållare tills dosformuläret (#271) och sjukdomsdetaljen (#240) tar över.
  */
 @Serializable
 data class DiaryEntryKey(val kind: DiaryEntryKind, val id: String, val episodeId: String? = null) : AppKey
 
-/** Skärmen som posten öppnar: episodens start och slut öppnar episoden, en incheckning sig själv under sin episod. */
-val DiaryEntry.key: DiaryEntryKey
+/**
+ * Skärmen som posten öppnar (HIST-3): aktiviteten och händelsen sina formulär, episodens start och slut episoden,
+ * en incheckning sig själv under sin episod. `null` för en måendelogg – den öppnas i måendearket ovanpå fliken.
+ */
+val DiaryEntry.key: AppKey?
     get() = when (this) {
-        is DiaryEntry.Mood -> DiaryEntryKey(DiaryEntryKind.SCREENING, screening.id)
-        is DiaryEntry.Action -> DiaryEntryKey(DiaryEntryKind.ACTIVITY, activity.id)
+        is DiaryEntry.Mood -> null
+        is DiaryEntry.Action -> ActivityEditKey(activity.id)
         is DiaryEntry.TakenDose -> DiaryEntryKey(DiaryEntryKind.DOSE, dose.id)
-        is DiaryEntry.Happening -> DiaryEntryKey(DiaryEntryKind.EVENT, event.id)
+        is DiaryEntry.Happening -> EventEditKey(event.id)
         is DiaryEntry.EpisodeStart -> DiaryEntryKey(DiaryEntryKind.EPISODE, episode.id)
         is DiaryEntry.EpisodeEnd -> DiaryEntryKey(DiaryEntryKind.EPISODE, episode.id)
         is DiaryEntry.CheckIn -> DiaryEntryKey(DiaryEntryKind.CHECKIN, checkin.id, episode.id)

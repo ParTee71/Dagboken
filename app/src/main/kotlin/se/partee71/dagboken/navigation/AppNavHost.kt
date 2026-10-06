@@ -30,6 +30,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.AppFloatingToolbar
 import se.partee71.dagboken.ui.components.AppSnackbarHost
 import se.partee71.dagboken.ui.components.ErrorSnackbar
+import se.partee71.dagboken.ui.components.MessageSnackbar
 import se.partee71.dagboken.ui.components.FloatingToolbarClearance
 import se.partee71.dagboken.ui.components.NoBottomClearance
 import se.partee71.dagboken.ui.components.LocalBottomClearance
@@ -46,7 +47,8 @@ import se.partee71.dagboken.ui.theme.Spacing
  * plusknappen (NAV-8, NAV-10) – som bara syns i en fliks rot (NAV-3). Skärmarna kommer från
  * [entryProvider] (`appEntries` i appen). [onLog] är plusknappen; utan den visas ingen.
  * [sync] ger synkindikatorn i varje skärms toppbar och meddelandet om en nekad skrivning
- * (NFR-1), i appens gemensamma meddelandeyta ovanför bottenraden.
+ * (NFR-1), i appens gemensamma meddelandeyta ovanför bottenraden – där också [message] visas (en bekräftelse från
+ * ett ark ovanpå flikarna, t.ex. "Mående sparat" från plusknappen, SCR-3).
  */
 @Composable
 fun AppNavHost(
@@ -57,6 +59,8 @@ fun AppNavHost(
     sync: SyncUiState = SyncUiState(),
     onSyncEvent: (SyncEvent) -> Unit = {},
     onLog: (() -> Unit)? = null,
+    message: String? = null,
+    onMessageShown: () -> Unit = {},
 ) {
     val toolbar = toolbarItems()
     val logLabel = stringResource(R.string.log_menu_open)
@@ -74,6 +78,7 @@ fun AppNavHost(
         }
     }
     ErrorSnackbar(sync.writeError, messages, R.string.sync_write_rejected, SnackbarDuration.Long) { onSyncEvent(SyncEvent.WriteErrorShown) }
+    MessageSnackbar(message, messages, onShown = onMessageShown)
     Box(modifier.fillMaxSize()) {
         CompositionLocalProvider(LocalBottomClearance provides clearance, LocalSyncIndicator provides indicator) {
             NavDisplay(
