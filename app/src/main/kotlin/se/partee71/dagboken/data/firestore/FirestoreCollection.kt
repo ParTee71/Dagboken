@@ -32,7 +32,10 @@ import se.partee71.dagboken.data.common.currentVersion
 import se.partee71.dagboken.data.common.FieldPath
 import se.partee71.dagboken.data.common.PendingCommits
 import se.partee71.dagboken.data.common.Stored
+import se.partee71.dagboken.data.common.MoveOutcome
 import se.partee71.dagboken.data.common.mayCreate
+import se.partee71.dagboken.data.common.moveOutcome
+import se.partee71.dagboken.data.common.movedDocument
 import se.partee71.dagboken.data.common.satisfies
 import se.partee71.dagboken.data.common.storedOf
 import se.partee71.dagboken.data.common.SERVER_WAIT
@@ -149,6 +152,33 @@ class FirestoreCollection<T : Identified>(
         return transact(patches.keys) { id, stored -> if (stored.satisfies(condition)) BatchOp.Update(id, patches.getValue(id)) else null }
     }
 
+    /**
+     * Källan och målet läses i en transaktion (Firestore gör om den om något av dem ändras före commit), så att
+     * källan som skrivs till målet är serverns version. Utfallet ([MoveOutcome]) ges ur transaktionen, inte som
+     * ett kastat fel – det kommer då fram oinlindat.
+     */
+    override suspend fun move(from: String, item: T, fields: Set<String>, remove: Set<String>): Result<Unit> {
+        // Kodas före transaktionen, så att ett okänt fält är ett fel innan något läses.
+        val patch = runCatching { fieldsForUpdate(encode(item), fields) }
+            .getOrElse { return Result.failure(firestoreError(it)) }
+        return suspendRunCatching(::firestoreError) {
+            scope.writeBlocker()?.let { throw it }
+            val ref = ref()
+            val source = ref.document(from)
+            val target = ref.document(item.id)
+            val task = db.runTransaction { tx ->
+                val stored = tx.get(source).data
+                val outcome = moveOutcome(stored, tx.get(target).exists())
+                if (outcome == MoveOutcome.Moved) {
+                    tx.set(target, movedDocument(checkNotNull(stored), patch, remove))
+                    tx.delete(source)
+                }
+                outcome
+            }
+            awaitCommit(task)
+        }.getOrElse { return Result.failure(it) }.toResult()
+    }
+
     override suspend fun delete(id: String): Result<Unit> = write { ref -> ref.document(id).delete() }
 
     /** `update`, inte `set`: ett dokument som raderats under tiden återuppstår inte som spöke. */
@@ -197,11 +227,18 @@ class FirestoreCollection<T : Identified>(
                     }
                     stored.forEach { (id, value) -> decide(id, value)?.applyTo(tx, ref) }
                 }
-                if (commits.await(task.asDeferred(), serverWait) == null) {
-                    sync.track(task)
-                    throw DataError.Offline
-                }
+                awaitCommit(task)
             }
+        }
+
+    /**
+     * Väntar på transaktionen [task] högst [serverWait]. Svarar den inte i tid blir det [DataError.Offline], men
+     * den kan fortfarande committa: den spåras då i [commits] (som [awaitWrites] väntar in) och i [sync].
+     */
+    private suspend fun <R : Any> awaitCommit(task: Task<R>): R =
+        commits.await(task.asDeferred(), serverWait) ?: run {
+            sync.track(task)
+            throw DataError.Offline
         }
 
     /** Transaktioner som inte hann bekräftas i tid men fortfarande kan committa. */

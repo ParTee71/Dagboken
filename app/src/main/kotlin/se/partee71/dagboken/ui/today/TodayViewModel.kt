@@ -7,7 +7,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlin.time.Clock
-import kotlin.time.Duration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +41,7 @@ import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.asNeededChoices
 import se.partee71.dagboken.core.engine.checkOffTime
 import se.partee71.dagboken.core.engine.isScheduled
+import se.partee71.dagboken.core.engine.isScheduledPrescription
 import se.partee71.dagboken.core.engine.datesWithEntries
 import se.partee71.dagboken.core.engine.dayComparison
 import se.partee71.dagboken.core.engine.dayPartAt
@@ -50,7 +50,6 @@ import se.partee71.dagboken.core.engine.dailyEnergyAverages
 import se.partee71.dagboken.core.engine.dayStreak
 import se.partee71.dagboken.core.engine.daysEnding
 import se.partee71.dagboken.core.engine.doseChecklist
-import se.partee71.dagboken.core.engine.doseFor
 import se.partee71.dagboken.core.engine.enabledOccasions
 import se.partee71.dagboken.core.engine.occasionStates
 import se.partee71.dagboken.core.engine.ongoingEpisode
@@ -86,6 +85,7 @@ import se.partee71.dagboken.ui.common.minutes
 import se.partee71.dagboken.ui.common.tidyingUpEachDay
 import se.partee71.dagboken.ui.components.UndoRequest
 import se.partee71.dagboken.ui.components.weekMonday
+import se.partee71.dagboken.ui.log.CooldownPrompt
 
 sealed interface TodayEvent {
     /** En dag i datumremsan (HEM-14); framtida dagar går inte att välja. */
@@ -99,6 +99,9 @@ sealed interface TodayEvent {
 
     /** Bekräftat "Hoppa över" (MED-3). */
     data class Skip(val dose: Dose) : TodayEvent
+
+    /** Bekräftat "Radera" på en vid behov-, extra- eller engångsdos (MED-3) – en receptdos i schemat hoppas över i stället. */
+    data class Delete(val dose: Dose) : TodayEvent
 
     data object Undo : TodayEvent
 
@@ -175,9 +178,6 @@ data class TodayContent(
 ) {
     val isToday: Boolean get() = date == today
 }
-
-/** "För tidigt" (FAV-4): [remaining] kvar av kylperioden för [medicine]. */
-data class CooldownPrompt(val medicine: PrnMedicine, val remaining: Duration)
 
 /** Ett meddelande efter ett snabbval: [text] med [args] (FAV-2, FAV-6). */
 class TodayNotice(@param:StringRes val text: Int, vararg val args: Any)
@@ -298,8 +298,12 @@ class TodayViewModel @Inject constructor(
     private val _notice = MutableStateFlow<TodayNotice?>(null)
     val notice: StateFlow<TodayNotice?> = _notice.asStateFlow()
 
-    /** Ångra efter en avbockning eller "Hoppa över": dosen som den var före. */
-    private var undoDose: Dose? = null
+    /**
+     * Ångra efter en avbockning eller "Hoppa över" (dosen som den var före) och efter en loggad vid behov- eller
+     * extrados (den tas bort igen, FAV-2) – för dosen [undoFor].
+     */
+    private var undoAction: (suspend () -> Result<Unit>)? = null
+    private var undoFor: String? = null
     private var undoCount = 0
     private val _undo = MutableStateFlow<UndoRequest?>(null)
     val undo: StateFlow<UndoRequest?> = _undo.asStateFlow()
@@ -389,7 +393,7 @@ class TodayViewModel @Inject constructor(
         )
     }
 
-    /** FAV-2, FAV-11: snabbvalen loggar nu – bara när idag visas (en tidigare dag loggas i efterhand, #239). */
+    /** FAV-2, FAV-11: snabbvalen loggar nu – bara när idag visas (en tidigare dag loggas i efterhand, FAV-10, MED-16). */
     private val viewingToday: Boolean get() = currentContent?.isToday == true
 
     /** Det som visas just nu, eller `null` under laddning och vid fel. */
@@ -399,9 +403,13 @@ class TodayViewModel @Inject constructor(
         when (event) {
             is TodayEvent.SelectDate -> selectDate(event.date)
             is TodayEvent.ShowWeek -> week.value = event.monday
-            // En loggad vid behov- eller extrados bockas inte av – den tas bort (dosformuläret, #239).
+            // En loggad vid behov- eller extrados bockas inte av – den raderas i radens meny ([TodayEvent.Delete]).
             is TodayEvent.SetTaken -> if (event.dose.isScheduled) setStatus(event.dose, if (event.taken) DoseStatus.TAKEN else DoseStatus.PLANNED)
             is TodayEvent.Skip -> setStatus(event.dose, DoseStatus.SKIPPED)
+            is TodayEvent.Delete -> if (!event.dose.isScheduledPrescription) {
+                if (undoFor == event.dose.id) clearUndo()
+                write { doses.remove(event.dose) }
+            }
             TodayEvent.Undo -> undo()
             is TodayEvent.UndoDismissed -> if (_undo.value?.id == event.id) clearUndo()
             TodayEvent.ToggleDone -> showDone.value = !showDone.value
@@ -450,51 +458,57 @@ class TodayViewModel @Inject constructor(
             }
             if (format == null) {
                 // Bara ångra för just den här dosen blir inaktuellt.
-                if (undoDose?.id == dose.id) clearUndo()
+                if (undoFor == dose.id) clearUndo()
             } else {
-                undoDose = dose
-                _undo.value = UndoRequest("${dose.id}#${++undoCount}", medicineTitle(dose.name, dose.dose, dose.unit), format)
+                offerUndo(dose, medicineTitle(dose.name, dose.dose, dose.unit), format) { doses.setStatus(dose, dose.status, dose.takenAt) }
             }
         }
     }
 
+    /** Ångra för [dose] i meddelandet [format] med [title]; [action] återställer. Ett nyare ångra ersätter ett äldre. */
+    private fun offerUndo(dose: Dose, title: String, @StringRes format: Int, action: suspend () -> Result<Unit>) {
+        undoFor = dose.id
+        undoAction = action
+        _undo.value = UndoRequest("${dose.id}#${++undoCount}", title, format)
+    }
+
     private fun undo() {
-        val dose = undoDose ?: return
+        val action = undoAction ?: return
         clearUndo()
-        write { doses.setStatus(dose, dose.status, dose.takenAt) }
+        write(action)
     }
 
     private fun clearUndo() {
-        undoDose = null
+        undoFor = null
+        undoAction = null
         _undo.value = null
     }
 
-    /** FAV-4, FAV-5, FAV-6: nu (bara när idag visas); kylperioden frågar ("För tidigt"), dagsgränsen stoppar med ett meddelande. */
+    /**
+     * FAV-2, FAV-4, FAV-5, FAV-6: nu (bara när idag visas); loggad → "Alvedon 500 mg loggad" med Ångra, som tar
+     * bort dosen igen. Kylperioden frågar ("För tidigt"), dagsgränsen stoppar med ett meddelande.
+     */
     private fun logAsNeeded(medicine: PrnMedicine, force: Boolean) {
         viewModelScope.launch {
             val result = doses.logAsNeeded(medicine, clock.now(), force)
             result.failureOrNull()?.let { _failure.value = it; return@launch }
             val title = medicineTitle(medicine.name, medicine.dose, medicine.unit)
-            when (val check = result.getOrThrow()) {
-                PrnCheck.Allowed -> _notice.value = TodayNotice(R.string.today_logged_format, title)
+            val log = result.getOrThrow()
+            when (val check = log.check) {
+                PrnCheck.Allowed -> log.dose?.let { dose -> offerUndo(dose, title, R.string.today_logged_format) { doses.remove(dose) } }
                 is PrnCheck.Cooldown -> _cooldown.value = CooldownPrompt(medicine, check.remaining)
                 PrnCheck.DailyLimitReached -> _notice.value = TodayNotice(R.string.today_limit_reached_format, medicine.maxPerDay, medicine.name)
             }
         }
     }
 
-    /** FAV-11: receptets medicin som extrados nu, med dagens dos (REC-12). */
+    /** FAV-11: receptets medicin som extrados nu, med dagens dos (REC-12) – med Ångra, som tar bort den igen. */
     private fun logExtra(prescription: Prescription) {
         viewModelScope.launch {
-            val now = clock.now()
-            val failure = doses.logExtraDose(prescription, now).failureOrNull()
-            if (failure != null) {
-                _failure.value = failure
-            } else {
-                val today = currentContent?.today
-                val dose = today?.let { prescription.doseFor(it) } ?: prescription.dose
-                _notice.value = TodayNotice(R.string.today_logged_format, medicineTitle(prescription.name, dose, prescription.unit))
-            }
+            val result = doses.logExtraDose(prescription, clock.now())
+            result.failureOrNull()?.let { _failure.value = it; return@launch }
+            val dose = result.getOrThrow()
+            offerUndo(dose, medicineTitle(dose.name, dose.dose, dose.unit), R.string.today_logged_format) { doses.remove(dose) }
         }
     }
 

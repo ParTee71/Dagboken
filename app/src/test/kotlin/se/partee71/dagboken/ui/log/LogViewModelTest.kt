@@ -20,7 +20,9 @@ import kotlinx.datetime.toInstant
 import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.core.engine.OccasionStatus
+import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
+import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
@@ -28,7 +30,9 @@ import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.TestUserScope
+import se.partee71.dagboken.data.repository.DefaultIllnessRepository
 import se.partee71.dagboken.data.repository.DefaultOptionsRepository
+import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
 import se.partee71.dagboken.data.repository.DefaultScreeningRepository
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
@@ -61,9 +65,11 @@ class LogViewModelTest {
     }
 
     private fun TestScope.started(): LogViewModel {
-        val vm = LogViewModel(screenings, DefaultSettingsRepository(factory), DefaultOptionsRepository(factory), selectedDay, clock) { zone }
+        val vm = LogViewModel(screenings, DefaultSettingsRepository(factory), DefaultOptionsRepository(factory), DefaultPrnMedicineRepository(factory), DefaultIllnessRepository(factory, clock), selectedDay, clock) { zone }
         backgroundScope.launch { vm.picker.collect {} }
         backgroundScope.launch { vm.screening.collect {} }
+        backgroundScope.launch { vm.dosePicker.collect {} }
+        backgroundScope.launch { vm.illnessPicker.collect {} }
         runCurrent()
         return vm
     }
@@ -208,5 +214,45 @@ class LogViewModelTest {
         assertNull(vm.logDay(onToday = true))
         (factory.scope as TestUserScope).uid.value = "uid-test"
         assertNull(vm.logDay(onToday = true), "samma konto igen börjar också på idag")
+    }
+
+    // ── Dos och Sjukdom (NAV-10, MEDF-6, SJ-1, SJ-2) ─────────────────────
+
+    @Test
+    fun `dosvalet listar vid behov-medicinerna – stjärnmärkta först – mot den visade dagen (NAV-10, MEDF-6)`() = runTest(main.dispatcher) {
+        val alvedon = PrnMedicine("b", "Alvedon")
+        val ipren = PrnMedicine("a", "Ipren", favorite = true)
+        val loratadin = PrnMedicine("c", "Loratadin")
+        factory.prnMedicines().batch(listOf(alvedon, ipren, loratadin)).getOrThrow()
+        val vm = started()
+        assertNull(vm.dosePicker.value)
+        vm.onEvent(LogEvent.PickDose(yesterday))
+        runCurrent()
+        assertEquals(DosePicker(yesterday, listOf(ipren, alvedon, loratadin)), vm.dosePicker.value)
+        vm.onEvent(LogEvent.ClosePick)
+        runCurrent()
+        assertNull(vm.dosePicker.value)
+        vm.onEvent(LogEvent.PickDose(today))
+        runCurrent()
+        assertNull(vm.dosePicker.value?.date, "idag loggas mot idag (null), också efter midnatt")
+    }
+
+    @Test
+    fun `sjukdomsvalet erbjuder incheckning på den pågående episoden med dag N när dagen ligger inom den, annars bara en ny (SJ-1, SJ-2, HEM-12)`() = runTest(main.dispatcher) {
+        val vm = started()
+        vm.onEvent(LogEvent.PickIllness(null))
+        runCurrent()
+        assertEquals(IllnessPicker(null, null, null), vm.illnessPicker.value)
+        val flu = IllnessEpisode("flu", "Förkylning", LocalDate(2026, 10, 3))
+        factory.illnessEpisodes().batch(listOf(flu, IllnessEpisode("gammal", "Migrän", LocalDate(2026, 9, 1), LocalDate(2026, 9, 2)))).getOrThrow()
+        runCurrent()
+        assertEquals(IllnessPicker(null, flu, 4), vm.illnessPicker.value)
+        vm.onEvent(LogEvent.PickIllness(yesterday))
+        runCurrent()
+        assertEquals(IllnessPicker(yesterday, flu, 3), vm.illnessPicker.value, "dag N den dag som loggas")
+        vm.onEvent(LogEvent.PickIllness(LocalDate(2026, 10, 2)))
+        runCurrent()
+        assertEquals(IllnessPicker(LocalDate(2026, 10, 2), null, null), vm.illnessPicker.value, "före starten: bara en ny episod")
+        assertNull(vm.dosePicker.value, "ett val i taget")
     }
 }

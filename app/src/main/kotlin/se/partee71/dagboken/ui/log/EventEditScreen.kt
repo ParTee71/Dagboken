@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.typeChoices
 import se.partee71.dagboken.core.model.Event
@@ -29,6 +28,7 @@ import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.core.schema.EventCodec
 import se.partee71.dagboken.data.repository.EventRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
+import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryForm
 import se.partee71.dagboken.ui.common.hasErrorOutside
@@ -93,8 +93,8 @@ class EventEditViewModel @AssistedInject constructor(
         eventValidator,
         placeholder = Event(""),
         create = {
-            val now = clock.now().toLocalDateTime(zone.get())
-            events.new(date ?: now.date, LocalTime(now.hour, now.minute))
+            val now = clock.nowInMinutes(zone.get())
+            events.new(date ?: now.date, now.time)
         },
         clean = { _, value -> value.cleaned() },
     )

@@ -173,13 +173,14 @@ fun MedicinesRoute(
     onOpenPrescription: (String?) -> Unit,
     onOpenPrn: (String?) -> Unit,
     onExtendPrescription: (String) -> Unit,
+    onLogDose: () -> Unit = {},
     viewModel: MedicinesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val endings by viewModel.endings.collectAsStateWithLifecycle()
     val failure by viewModel.failure.collectAsStateWithLifecycle()
     val today by viewModel.today.collectAsStateWithLifecycle()
-    MedicinesScreen(state, endings, today, failure, viewModel::onEvent, onOpenPrescription, onOpenPrn, onExtendPrescription) {
+    MedicinesScreen(state, endings, today, failure, viewModel::onEvent, onOpenPrescription, onOpenPrn, onExtendPrescription, onLogDose) {
         AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
     }
 }
@@ -189,8 +190,8 @@ fun MedicinesRoute(
  * som banner överst, recepten som postkort (NFR-15/16) med aktiv-reglaget som enda direktkontroll,
  * vid behov-medicinerna som rader med stjärna och pil (NFR-17, som Listor) och de avslutade recepten
  * hopfällda sist med antal (NFR-18). Lägg till = "Nytt recept" med "Ny vid behov-medicin" i pilens meny
- * (MEDF-4). [onOpenPrescription]/[onOpenPrn] öppnar formuläret (`null` = nytt); [onExtendPrescription]
- * öppnar ett avslutat recept förlängt och aktivt (MEDF-5).
+ * och "Logga en dos i efterhand" (MEDF-4, MEDF-6). [onOpenPrescription]/[onOpenPrn] öppnar formuläret (`null` =
+ * nytt); [onExtendPrescription] öppnar ett avslutat recept förlängt och aktivt (MEDF-5); [onLogDose] dosvalet (MEDF-6).
  */
 @Composable
 fun MedicinesScreen(
@@ -202,6 +203,7 @@ fun MedicinesScreen(
     onOpenPrescription: (String?) -> Unit,
     onOpenPrn: (String?) -> Unit,
     onExtendPrescription: (String) -> Unit,
+    onLogDose: () -> Unit = {},
     avatar: @Composable () -> Unit = {},
 ) {
     val newPrn = stringResource(R.string.medicines_new_prn)
@@ -222,7 +224,7 @@ fun MedicinesScreen(
         add = AddAction(
             stringResource(R.string.medicines_new_prescription),
             { onOpenPrescription(null) },
-            menu = listOf(AppMenuItem(newPrn, { onOpenPrn(null) }, R.drawable.ic_add)),
+            menu = listOf(AppMenuItem(newPrn, { onOpenPrn(null) }, R.drawable.ic_add), AppMenuItem(stringResource(R.string.dose_log_later_link), onLogDose, R.drawable.ic_clock)),
         ),
         key = { it.key },
         onRetry = { onEvent(MedicinesEvent.Retry) },

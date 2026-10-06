@@ -98,17 +98,7 @@ fun DagbokenEntryCard(
     }
     if (delete == null) card(modifier) else SwipeToDelete({ confirmDelete = true }, modifier) { card(Modifier) }
     if (delete != null && confirmDelete) {
-        ConfirmDialog(
-            delete.title,
-            delete.message,
-            stringResource(R.string.delete),
-            onConfirm = {
-                confirmDelete = false
-                delete.onConfirm()
-            },
-            onDismiss = { confirmDelete = false },
-            destructive = true,
-        )
+        DeleteConfirmDialog(delete) { confirmDelete = false }
     }
 }
 

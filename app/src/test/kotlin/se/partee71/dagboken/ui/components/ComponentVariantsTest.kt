@@ -16,7 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -76,6 +78,27 @@ class ComponentVariantsTest {
 
         rule.onNodeWithContentDescription("Visa anteckning").performClick()
         rule.onNodeWithText("Tas på fastande mage.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `inaktiv CheckRow med meny - växlar inte, men långtryck och ⋮ öppnar menyn (NFR-17, MED-3)`() {
+        val changes = mutableListOf<Boolean>()
+        var deleted = 0
+        show {
+            CheckRow(
+                "Ipren 400 mg", true, { changes += it },
+                menu = listOf(AppMenuItem("Radera", { deleted++ }, R.drawable.ic_delete, destructive = true)),
+                enabled = false,
+            )
+        }
+        rule.onNodeWithText("Ipren 400 mg").assertIsOn().assertIsNotEnabled().performClick()
+        assertEquals(emptyList(), changes, "en inaktiv rad växlar inte")
+        rule.onNodeWithText("Ipren 400 mg").performTouchInput { longClick() }
+        rule.onNodeWithText("Radera").performClick()
+        rule.onNodeWithContentDescription("Fler val").performClick()
+        rule.onNodeWithText("Radera").performClick()
+        assertEquals(2, deleted)
+        assertEquals(emptyList(), changes)
     }
 
     @Test

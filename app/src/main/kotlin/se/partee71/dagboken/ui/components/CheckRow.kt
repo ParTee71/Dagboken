@@ -33,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
@@ -52,7 +53,8 @@ import se.partee71.dagboken.ui.theme.Spacing
  * (t.ex. "Hoppa över" på en dos, MED-3): de nås med långtryck på raden och med `⋮` sist (NFR-17).
  * [below] står under titel och undertext (t.ex. dosens "Försenat"), så att titeln behåller bredden.
  * [enabled] = false visar tillståndet utan att det går att växla (t.ex. en loggad vid behov-dos, som tas
- * bort i stället för att bockas av); TalkBack läser den som en inaktiv kryssruta.
+ * bort i stället för att bockas av); TalkBack läser den som en inaktiv kryssruta, och en [menu] nås ändå med
+ * långtryck och `⋮`.
  */
 @Composable
 fun CheckRow(
@@ -76,7 +78,15 @@ fun CheckRow(
     val menuLabel = stringResource(R.string.more_options)
     val interaction = when {
         onClick != null -> Modifier.combinedClickable(onClickLabel = onClickLabel, onLongClickLabel = menuLabel.takeIf { openMenu != null }, onLongClick = openMenu, onClick = onClick)
-        openMenu == null || !enabled -> toggle
+        openMenu == null -> toggle
+        // Inaktiv med meny (en loggad vid behov-dos): krysset växlar inte, men långtrycket öppnar menyn (NFR-17) –
+        // samma roll, tillstånd och "inaktiv" för TalkBack som utan meny.
+        !enabled -> Modifier
+            .combinedClickable(role = Role.Checkbox, onLongClickLabel = menuLabel, onLongClick = openMenu) {}
+            .semantics {
+                toggleableState = ToggleableState(checked)
+                disabled()
+            }
         // Långtrycket kräver en klickyta i stället för toggleable – samma roll och tillstånd för TalkBack.
         else -> Modifier
             .combinedClickable(role = Role.Checkbox, onLongClickLabel = menuLabel, onLongClick = openMenu) { onCheckedChange(!checked) }

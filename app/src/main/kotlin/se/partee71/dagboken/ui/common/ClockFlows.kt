@@ -49,3 +49,9 @@ private fun <T> Clock.ticks(zone: () -> TimeZone, value: (LocalDateTime) -> T, u
 
 private const val SECONDS_PER_MINUTE = 60
 private const val SECONDS_PER_HOUR = 3_600
+
+/**
+ * Nu i [zone] i hela minuter – dagen och klockslaget en ny post får som förval (NAV-10, HEM-14), ur **en** läsning
+ * av klockan. En gång för alla formulär (aktivitet, händelse, mående, dos, episod, incheckning).
+ */
+fun Clock.nowInMinutes(zone: TimeZone): LocalDateTime = now().toLocalDateTime(zone).let { LocalDateTime(it.date, LocalTime(it.hour, it.minute)) }

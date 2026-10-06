@@ -24,14 +24,21 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.core.engine.OccasionState
+import se.partee71.dagboken.core.engine.asNeededChoices
+import se.partee71.dagboken.core.engine.illnessDay
 import se.partee71.dagboken.core.engine.occasionChoices
+import se.partee71.dagboken.core.engine.ongoingEpisode
+import se.partee71.dagboken.core.model.IllnessEpisode
+import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.common.withFallback
+import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
+import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.ui.common.EditorSheetState
@@ -44,6 +51,37 @@ import se.partee71.dagboken.ui.common.minutes
  * [occasions] alla fyra tillfällena med status – de aktiverade som Idags Mående-kort (`occasionChoices`).
  */
 data class OccasionPicker(val date: LocalDate, val isToday: Boolean, val occasions: List<OccasionState>)
+
+/**
+ * Plusknappens dosval och länken "Logga en dos i efterhand" i Mediciner (NAV-10, MEDF-6): vid behov-medicinerna i
+ * [medicines] – stjärnmärkta först, sedan övriga, var för sig efter namn (som Idags Vid behov-kort, `asNeededChoices`)
+ * – och en engångsdos, mot dagen [date] (`null` = idag).
+ */
+data class DosePicker(val date: LocalDate?, val medicines: List<PrnMedicine>)
+
+/**
+ * Plusknappens sjukdomsval (NAV-10, SJ-1, SJ-2): checka in på den pågående episoden [ongoing] – dag [day] i
+ * sjukdomen den dag som loggas; bara när dagen ligger inom episoden – eller en ny episod, mot dagen [date] (`null` = idag).
+ */
+data class IllnessPicker(val date: LocalDate?, val ongoing: IllnessEpisode?, val day: Int?)
+
+/** Om [day] ligger inom episoden: från starten (utan start: alltid) och till slutet, eller pågående. */
+private fun IllnessEpisode.covers(day: LocalDate): Boolean = (start?.let { it <= day } ?: true) && (end?.let { it >= day } ?: true)
+
+/** Formuläret ett val i plusknappens ark öppnar ([LogSheets]). */
+sealed interface LogTarget {
+    /** Vid behov-medicinen [prnId] i efterhand (MED-16). */
+    data class AsNeeded(val prnId: String, val date: LocalDate?) : LogTarget
+
+    /** En engångsdos (MED-11). */
+    data class OneOffDose(val date: LocalDate?) : LogTarget
+
+    /** En ny incheckning under [episodeId] (SJ-2). */
+    data class Checkin(val episodeId: String, val date: LocalDate?) : LogTarget
+
+    /** En ny sjukdomsepisod (SJ-1). */
+    data class NewEpisode(val date: LocalDate?) : LogTarget
+}
 
 sealed interface LogEvent {
     /** "Mående" i plusknappens meny: tillfällesväljaren för den dag som loggas (`SelectedDay.logDay`, `null` = idag). */
@@ -74,12 +112,22 @@ sealed interface LogEvent {
     data object CloseScreening : LogEvent
 
     data object NoticeShown : LogEvent
+
+    /** "Dos" i plusknappens meny eller "Logga en dos i efterhand" i Mediciner: dosvalet mot [date] (`null` = idag). */
+    data class PickDose(val date: LocalDate?) : LogEvent
+
+    /** "Sjukdom" i plusknappens meny: sjukdomsvalet mot [date] (`null` = idag). */
+    data class PickIllness(val date: LocalDate?) : LogEvent
+
+    /** Dos- eller sjukdomsvalet stängs – med ett val eller utan. */
+    data object ClosePick : LogEvent
 }
 
 /**
  * Det plusknappen och Dagbok öppnar ovanpå flikarna (NAV-10, HIST-3): tillfällesväljaren och måendearket – samma
- * ark som på Idag ([ScreeningSheet]). [selectedDay] är dagen Idag visar; formulären för aktivitet och händelse är
- * egna skärmar. Sparat → "Mående sparat" ([notice], SCR-3).
+ * ark som på Idag ([ScreeningSheet]) – och dos- och sjukdomsvalen ([dosePicker], [illnessPicker]). [selectedDay] är
+ * dagen Idag visar; formulären för aktivitet, händelse, dos, episod och incheckning är egna skärmar. Sparat →
+ * "Mående sparat" ([notice], SCR-3).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -87,6 +135,8 @@ class LogViewModel @Inject constructor(
     screenings: ScreeningRepository,
     private val settings: SettingsRepository,
     options: OptionsRepository,
+    medicines: PrnMedicineRepository,
+    illnesses: IllnessRepository,
     private val selectedDay: SelectedDay,
     private val clock: Clock,
     private val zone: Provider<TimeZone>,
@@ -131,6 +181,43 @@ class LogViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, sharing, null)
 
+    private sealed interface PickFor {
+        val date: LocalDate?
+
+        data class Dose(override val date: LocalDate?) : PickFor
+
+        data class Illness(override val date: LocalDate?) : PickFor
+    }
+
+    /** Dos- eller sjukdomsvalet när det är öppet. */
+    private val pickFor = MutableStateFlow<PickFor?>(null)
+
+    /** Dosvalet när det är öppet – vid behov-medicinerna följs medan det är öppet; ett läsfel visar bara engångsdosen. */
+    val dosePicker: StateFlow<DosePicker?> = pickFor.flatMapLatest { target ->
+        if (target !is PickFor.Dose) {
+            flowOf(null)
+        } else {
+            medicines.observe().withFallback(emptyList()).map { list ->
+                val choices = asNeededChoices(list, emptyList(), today())
+                DosePicker(target.date, choices.favorites + choices.others)
+            }
+        }
+    }.stateIn(viewModelScope, sharing, null)
+
+    /** Sjukdomsvalet när det är öppet: den pågående episoden (`ongoingEpisode`, som Idag) och dag N den dag som loggas. */
+    val illnessPicker: StateFlow<IllnessPicker?> = pickFor.flatMapLatest { target ->
+        if (target !is PickFor.Illness) {
+            flowOf(null)
+        } else {
+            illnesses.observeEpisodes().withFallback(emptyList()).map { episodes ->
+                val day = target.date ?: today()
+                // Checka in bara när dagen ligger inom episoden – annars hör incheckningen inte dit.
+                val ongoing = ongoingEpisode(episodes)?.takeIf { it.covers(day) }
+                IllnessPicker(target.date, ongoing, illnessDay(ongoing?.start, day))
+            }
+        }
+    }.stateIn(viewModelScope, sharing, null)
+
     /** Dagen plusknappen loggar mot (NAV-10, HEM-14): den Idag visar när Idag är vald, annars idag (`null`). */
     fun logDay(onToday: Boolean): LocalDate? = selectedDay.logDay(onToday)
 
@@ -154,6 +241,9 @@ class LogViewModel @Inject constructor(
             LogEvent.SaveScreening -> sheet.save()
             LogEvent.CloseScreening -> sheet.close()
             LogEvent.NoticeShown -> _notice.value = false
+            is LogEvent.PickDose -> pickFor.value = PickFor.Dose(event.date?.takeUnless { it == today() })
+            is LogEvent.PickIllness -> pickFor.value = PickFor.Illness(event.date?.takeUnless { it == today() })
+            LogEvent.ClosePick -> pickFor.value = null
         }
     }
 }

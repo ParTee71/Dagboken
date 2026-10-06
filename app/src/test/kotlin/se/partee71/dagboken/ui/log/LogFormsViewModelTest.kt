@@ -14,6 +14,11 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import kotlinx.coroutines.flow.first
+import se.partee71.dagboken.core.model.Checkin
+import se.partee71.dagboken.core.model.IllnessEpisode
+import se.partee71.dagboken.data.repository.DefaultIllnessRepository
+import se.partee71.dagboken.data.repository.IllnessRepository
 import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.R
@@ -39,7 +44,7 @@ import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.common.EntryEditEvent
 
 /**
- * Aktivitets- och händelseformulären (AKT-1–AKT-12, HAN-1, NFR-10–12) mot `FakeCollection` och en fast klocka:
+ * Aktivitets-, händelse- och sjukdomsformulären (AKT-1–AKT-12, HAN-1, SJ-1, SJ-2, SJ-11, NFR-10–12) mot `FakeCollection` och en fast klocka:
  * tisdag 6 oktober 2026 kl. 14:20 i Europe/Stockholm. Förval, validering, sparning av ny och ändrad, och radering.
  */
 class LogFormsViewModelTest {
@@ -300,5 +305,95 @@ class LogFormsViewModelTest {
         factory.store.set(Paths.activities(factory.scope.uid.value!!), "a1", ActivityCodec.encode(stored), merge = false)
         val vm = activityForm(id = "a1")
         assertEquals(R.string.field_not_savable, vm.editor.state.value.errorFor(ActivityField.NOTE))
+    }
+
+    // ── Sjukdom (SJ-1, SJ-2, SJ-3, SJ-8, SJ-11) ──────────────────────────
+
+    private val illnesses = DefaultIllnessRepository(factory, clock)
+
+    private fun episodeForm(date: LocalDate? = null) = EpisodeNewViewModel(illnesses, options, clock, { zone }, date)
+
+    private fun checkinForm(episodeId: String, id: String? = null, date: LocalDate? = null) = CheckinEditViewModel(illnesses, options, clock, { zone }, episodeId, id, date)
+
+    private val flu = IllnessEpisode("flu", "Förkylning", LocalDate(2026, 10, 3), createdAt = Instant.fromEpochSeconds(1_790_000_000))
+
+    @Test
+    fun `en ny episod börjar den visade dagen med svårighetsgrad 5, och typen krävs (SJ-1, HEM-14)`() = runTest(main.dispatcher) {
+        val vm = episodeForm(date = yesterday)
+        val start = vm.editor.state.value.value
+        assertEquals(yesterday, start.episode.start)
+        assertNull(start.episode.end, "pågående")
+        assertEquals(yesterday to LocalTime(14, 20), start.checkin.date to start.checkin.time)
+        assertEquals(IllnessRepository.DEFAULT_SEVERITY, start.checkin.severity)
+        vm.form.onEvent(EntryEditEvent.Changed(null) { it.copy(checkin = it.checkin.copy(severity = 7)) })
+        assertFalse(vm.editor.state.value.canSave, "ingen typ")
+        vm.editor.effects.test {
+            vm.form.onEvent(EntryEditEvent.Save)
+            expectNoEvents()
+        }
+        assertEquals(R.string.illness_type_missing, vm.editor.state.value.errorFor(IllnessField.TYPE))
+        assertTrue(factory.illnessEpisodes().getAll().getOrThrow().isEmpty())
+    }
+
+    @Test
+    fun `en ny episod sparas med sin första incheckning på startdagen – trimmad och med anteckningen på episoden (SJ-1, SJ-2, SJ-3, SJ-8)`() = runTest(main.dispatcher) {
+        val vm = episodeForm()
+        vm.form.onEvent(EntryEditEvent.Changed(IllnessField.TYPE) { it.copy(episode = it.episode.copy(type = " Influensa ")) })
+        vm.form.onEvent(EntryEditEvent.Changed(null) { it.copy(episode = it.episode.copy(start = yesterday), checkin = it.checkin.copy(date = yesterday)) })
+        vm.form.onEvent(EntryEditEvent.Changed(null) { it.copy(checkin = it.checkin.copy(severity = 8, symptoms = listOf(SymptomScore("h", 6)))) })
+        vm.form.onEvent(EntryEditEvent.Changed(IllnessField.NOTE) { it.copy(episode = it.episode.copy(note = " Feber ")) })
+        vm.editor.effects.test {
+            vm.form.onEvent(EntryEditEvent.Save)
+            assertEquals(EditorEffect.Done, awaitItem())
+        }
+        val value = vm.editor.state.value.value
+        assertEquals(IllnessEpisode(value.episode.id, "Influensa", yesterday, createdAt = clock.now(), note = "Feber"), illnesses.getEpisode(value.episode.id).getOrThrow())
+        assertEquals(
+            listOf(Checkin(value.checkin.id, yesterday, LocalTime(14, 20), 8, listOf(SymptomScore("h", 6)), clock.now())),
+            illnesses.observeCheckins(value.episode.id).first(),
+        )
+    }
+
+    @Test
+    fun `en ny incheckning skrivs bara under en episod som finns (SJ-2)`() = runTest(main.dispatcher) {
+        val missing = checkinForm("saknas")
+        assertEquals(DataError.NotFound, missing.editor.state.value.loadError)
+        missing.form.onEvent(EntryEditEvent.Save)
+        assertTrue(factory.checkins("saknas").getAll().getOrThrow().isEmpty())
+
+        factory.illnessEpisodes().upsert(flu).getOrThrow()
+        val vm = checkinForm("flu", date = yesterday)
+        backgroundScope.launch { vm.episode.collect {} }
+        runCurrent()
+        assertEquals(flu, vm.episode.value)
+        assertEquals(yesterday to LocalTime(14, 20), vm.editor.state.value.value.let { it.date to it.time })
+        vm.form.onEvent(EntryEditEvent.Changed(null) { it.copy(severity = 2) })
+        vm.editor.effects.test {
+            vm.form.onEvent(EntryEditEvent.Save)
+            assertEquals(EditorEffect.Done, awaitItem())
+        }
+        assertEquals(2, illnesses.observeCheckins("flu").first().single().severity)
+    }
+
+    @Test
+    fun `en incheckning ändras och raderas under sin episod (SJ-11, HIST-5)`() = runTest(main.dispatcher) {
+        factory.illnessEpisodes().upsert(flu).getOrThrow()
+        val stored = Checkin("c", yesterday, LocalTime(9, 0), severity = 4, createdAt = Instant.fromEpochSeconds(1_790_000_000))
+        factory.checkins("flu").upsert(stored).getOrThrow()
+        val vm = checkinForm("flu", id = "c")
+        assertFalse(vm.form.isNew)
+        assertEquals(stored, vm.editor.state.value.value)
+        vm.form.onEvent(EntryEditEvent.Changed(IllnessField.NOTE) { it.copy(note = " Bättre ") })
+        vm.editor.effects.test {
+            vm.form.onEvent(EntryEditEvent.Save)
+            assertEquals(EditorEffect.Done, awaitItem())
+        }
+        assertEquals(stored.copy(note = "Bättre"), factory.checkins("flu").get("c").getOrThrow())
+        vm.editor.effects.test {
+            vm.form.onEvent(EntryEditEvent.Delete)
+            assertEquals(EditorEffect.Done, awaitItem())
+        }
+        assertNull(factory.checkins("flu").get("c").getOrThrow())
+        assertEquals(flu, illnesses.getEpisode("flu").getOrThrow(), "episoden står kvar")
     }
 }

@@ -21,16 +21,16 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.DayLabel
 import se.partee71.dagboken.core.engine.DiaryEntry
 import se.partee71.dagboken.core.engine.DiaryType
+import se.partee71.dagboken.core.engine.isPrescribed
 import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.data.auth.AuthUser
-import se.partee71.dagboken.navigation.DiaryEntryKind
 import se.partee71.dagboken.ui.common.ArchiveEvent
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.durationText
-import se.partee71.dagboken.ui.common.entrySubject
+import se.partee71.dagboken.ui.common.entryDeleteAction
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.nonBlank
@@ -47,7 +47,6 @@ import se.partee71.dagboken.ui.components.ButtonVariant
 import se.partee71.dagboken.ui.components.ChipRow
 import se.partee71.dagboken.ui.components.DagbokenCalendar
 import se.partee71.dagboken.ui.components.DagbokenEntryCard
-import se.partee71.dagboken.ui.components.DeleteAction
 import se.partee71.dagboken.ui.components.EmptyContent
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.EntityListScreen
@@ -285,48 +284,37 @@ private fun EntryCard(row: DiaryRow.Entry, onEvent: (DiaryEvent) -> Unit, onOpen
         status = text.pill?.let { { InfoPill(it, tone = text.tone) } },
         note = entry.note.orEmpty(),
         onEdit = { onOpen(entry) },
-        delete = deleteSubject(entry, text.title)?.let { subject ->
+        delete = deleteFormat(entry)?.let { format ->
             // MED-15 (som 3.x): en receptdos markeras överhoppad i stället för att raderas.
-            val skips = entry is DiaryEntry.TakenDose && entry.dose.prescriptionId != null
-            val message = stringResource(if (skips) R.string.diary_delete_skip_message else R.string.diary_delete_message, subject)
-            DeleteAction(stringResource(R.string.diary_delete_title), message) { onEvent(DiaryEvent.Delete(entry)) }
+            val skips = entry is DiaryEntry.TakenDose && entry.dose.isPrescribed
+            entryDeleteAction(format, text.title, entry.date, entry.time, skips) { onEvent(DiaryEvent.Delete(entry)) }
         },
     )
 }
 
 /**
- * HIST-5: posten i bekräftelsen – typen, namnet ([title]) och när ("Incheckningen för Förkylning, 5 okt kl. 09:00").
+ * HIST-5: postens typ i bekräftelsen ("Incheckningen för %1$s, %2$s", `entryDeleteAction`).
  * `null` för det som inte tas bort i Dagbok (episodens start och slut, SJ-9).
  */
-@Composable
-private fun deleteSubject(entry: DiaryEntry, title: String): String? {
-    val format = when (entry) {
-        is DiaryEntry.Mood -> R.string.diary_subject_screening
-        is DiaryEntry.Action -> R.string.diary_subject_activity
-        is DiaryEntry.TakenDose -> R.string.diary_subject_dose
-        is DiaryEntry.Happening -> R.string.diary_subject_event
-        is DiaryEntry.CheckIn -> R.string.diary_subject_checkin
-        is DiaryEntry.EpisodeStart, is DiaryEntry.EpisodeEnd -> return null
-    }
-    return entrySubject(format, title, entry.date, entry.time)
+private fun deleteFormat(entry: DiaryEntry): Int? = when (entry) {
+    is DiaryEntry.Mood -> R.string.diary_subject_screening
+    is DiaryEntry.Action -> R.string.diary_subject_activity
+    is DiaryEntry.TakenDose -> R.string.diary_subject_dose
+    is DiaryEntry.Happening -> R.string.diary_subject_event
+    is DiaryEntry.CheckIn -> R.string.diary_subject_checkin
+    is DiaryEntry.EpisodeStart, is DiaryEntry.EpisodeEnd -> null
 }
 
 /**
- * Platshållaren när en dos, episod eller incheckning öppnas (HIST-3), tills dosformuläret (#271) och sjukdomsdetaljen (#240) finns:
- * samma lilla topprad med tillbakapil som de andra underskärmarna.
+ * Platshållaren när en episods start eller slut öppnas (HIST-3, HIST-9), tills sjukdomsdetaljen (#240) finns: samma
+ * lilla topprad med tillbakapil som de andra underskärmarna.
  */
 @Composable
-fun DiaryEntryPlaceholder(kind: DiaryEntryKind, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val episode = kind == DiaryEntryKind.EPISODE
-    val title = when (kind) {
-        DiaryEntryKind.DOSE -> R.string.dose_label
-        DiaryEntryKind.EPISODE -> R.string.log_illness
-        DiaryEntryKind.CHECKIN -> R.string.diary_checkin
-    }
+fun EpisodePlaceholder(onBack: () -> Unit, modifier: Modifier = Modifier) {
     UpcomingScreen(
-        stringResource(title),
-        if (episode) R.drawable.ic_thermometer else R.drawable.ic_edit,
-        stringResource(if (episode) R.string.diary_episode_upcoming else R.string.diary_entry_upcoming),
+        stringResource(R.string.log_illness),
+        R.drawable.ic_thermometer,
+        stringResource(R.string.diary_episode_upcoming),
         modifier,
         onBack = onBack,
     )

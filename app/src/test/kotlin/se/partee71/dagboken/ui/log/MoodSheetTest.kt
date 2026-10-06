@@ -32,7 +32,9 @@ import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.repository.DefaultIllnessRepository
 import se.partee71.dagboken.data.repository.DefaultOptionsRepository
+import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
 import se.partee71.dagboken.data.repository.DefaultScreeningRepository
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
@@ -63,7 +65,7 @@ class MoodSheetTest {
         screenings: ScreeningRepository = DefaultScreeningRepository(factory, clock),
         options: OptionsRepository = DefaultOptionsRepository(factory),
     ): LogViewModel {
-        val vm = LogViewModel(screenings, DefaultSettingsRepository(factory), options, SelectedDay(factory.scope), clock) { zone }
+        val vm = LogViewModel(screenings, DefaultSettingsRepository(factory), options, DefaultPrnMedicineRepository(factory), DefaultIllnessRepository(factory, clock), SelectedDay(factory.scope), clock) { zone }
         backgroundScope.launch { vm.screening.collect {} }
         runCurrent()
         return vm

@@ -43,7 +43,6 @@ import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.data.common.DataError
-import se.partee71.dagboken.navigation.DiaryEntryKind
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
@@ -213,9 +212,9 @@ class DiaryScreenTest {
     }
 
     @Test
-    fun `platshållaren för en post har tillbakapil (HIST-3)`() {
+    fun `platshållaren för en episod har tillbakapil (HIST-3, HIST-9)`() {
         var back = 0
-        rule.setContent { DagbokenTheme { DiaryEntryPlaceholder(DiaryEntryKind.EPISODE, { back++ }) } }
+        rule.setContent { DagbokenTheme { EpisodePlaceholder({ back++ }) } }
         rule.onNodeWithText("Sjukdom").assertIsDisplayed()
         rule.onNodeWithText("Här kommer sjukdomens förlopp med incheckningar.").assertIsDisplayed()
         rule.onNodeWithContentDescription("Tillbaka").performClick()

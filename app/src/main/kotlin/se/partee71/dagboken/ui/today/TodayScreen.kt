@@ -16,10 +16,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlin.math.ceil
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.DurationUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -35,7 +31,9 @@ import se.partee71.dagboken.core.engine.OpenDose
 import se.partee71.dagboken.core.engine.boostEnd
 import se.partee71.dagboken.core.engine.boostFor
 import se.partee71.dagboken.core.engine.doseFor
+import se.partee71.dagboken.core.engine.isPrescribed
 import se.partee71.dagboken.core.engine.isScheduled
+import se.partee71.dagboken.core.engine.isScheduledPrescription
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Prescription
@@ -46,6 +44,7 @@ import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.doseText
+import se.partee71.dagboken.ui.common.entryDeleteAction
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.periodText
@@ -61,6 +60,7 @@ import se.partee71.dagboken.ui.components.ChipRow
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DateStrip
 import se.partee71.dagboken.ui.components.DayDoneCard
+import se.partee71.dagboken.ui.components.DeleteConfirmDialog
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.EntityDetailScreen
 import se.partee71.dagboken.ui.components.InfoPill
@@ -74,6 +74,8 @@ import se.partee71.dagboken.ui.components.StatPill
 import se.partee71.dagboken.ui.components.UndoRequest
 import se.partee71.dagboken.ui.components.UndoSnackbar
 import se.partee71.dagboken.ui.diagram.SparklineChart
+import se.partee71.dagboken.ui.log.CooldownDialog
+import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.log.LogEvent
 import se.partee71.dagboken.ui.log.OccasionStateRow
 import se.partee71.dagboken.ui.theme.AppColors
@@ -87,6 +89,8 @@ fun TodayRoute(
     onEditPrn: (String) -> Unit,
     onOpenTrends: () -> Unit,
     onScreening: (LogEvent) -> Unit,
+    onLogLater: (prnId: String, date: LocalDate) -> Unit = { _, _ -> },
+    onCheckin: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -104,6 +108,8 @@ fun TodayRoute(
         notice = notice,
         onOpenTrends = onOpenTrends,
         onScreening = onScreening,
+        onLogLater = onLogLater,
+        onCheckin = onCheckin,
     ) {
         AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
     }
@@ -117,7 +123,9 @@ fun TodayRoute(
  * (HEM-7) – Hälsa idag kommer före trenden (#241, HEM-16). En söndag eller måndag står "Din vecka" överst (HEM-13).
  * Ångra och bekräftelserna visas i ramens meddelandeyta. [onScreening] öppnar måendearket – samma ark som plusknappen
  * (`LogViewModel`, ovanpå flikarna) – med en ny logg eller en loggad för ändring. [onEditPrn] öppnar vid
- * behov-formuläret från långtrycksmenyn (HEM-11) och [onOpenTrends] fliken Trender (TRD-5).
+ * behov-formuläret från långtrycksmenyn (HEM-11), [onLogLater] dosformuläret för medicinen i efterhand mot den visade
+ * dagen (FAV-10, MED-16), [onCheckin] en ny incheckning på den pågående sjukdomen (HEM-12, SJ-2) och [onOpenTrends]
+ * fliken Trender (TRD-5).
  */
 @Composable
 fun TodayScreen(
@@ -131,12 +139,14 @@ fun TodayScreen(
     notice: TodayNotice? = null,
     onOpenTrends: () -> Unit = {},
     onScreening: (LogEvent) -> Unit = {},
+    onLogLater: (prnId: String, date: LocalDate) -> Unit = { _, _ -> },
+    onCheckin: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
     avatar: @Composable () -> Unit = {},
 ) {
     val snackbar = remember { SnackbarHostState() }
     UndoSnackbar(undo, snackbar, { onEvent(TodayEvent.Undo) }, {}, onRequestDismissed = { onEvent(TodayEvent.UndoDismissed(it.id)) })
     MessageSnackbar(notice?.let { stringResource(it.text, *it.args) }, snackbar, key = notice) { onEvent(TodayEvent.NoticeShown) }
-    cooldown?.let { CooldownDialog(it, onEvent) }
+    cooldown?.let { CooldownDialog(it, { onEvent(TodayEvent.ConfirmCooldown) }, { onEvent(TodayEvent.DismissCooldown) }) }
     val content = (state as? DetailUiState.Content)?.value
     EntityDetailScreen(
         state = state,
@@ -154,11 +164,20 @@ fun TodayScreen(
         onErrorShown = { onEvent(TodayEvent.ErrorShown) },
         actions = { avatar() },
         snackbar = snackbar,
-    ) { TodayCards(it, onEvent, onEditPrn, onOpenTrends, onScreening) }
+    ) { TodayCards(it, onEvent, TodayLinks(onEditPrn, onOpenTrends, onScreening, onLogLater, onCheckin)) }
 }
 
+/** Det Idag öppnar utanför fliken – formulär, arket och Trender. */
+private class TodayLinks(
+    val onEditPrn: (String) -> Unit,
+    val onOpenTrends: () -> Unit,
+    val onScreening: (LogEvent) -> Unit,
+    val onLogLater: (String, LocalDate) -> Unit,
+    val onCheckin: (String, LocalDate) -> Unit,
+)
+
 @Composable
-private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, onEditPrn: (String) -> Unit, onOpenTrends: () -> Unit, onScreening: (LogEvent) -> Unit) {
+private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, links: TodayLinks) {
     content.weekSummary?.let { WeekSummaryCard(it) }
     DateStrip(
         week = content.week,
@@ -180,10 +199,10 @@ private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, onE
         )
     }
     MedicinesCard(content, onEvent)
-    MoodCard(content, onScreening)
-    AsNeededCard(content, onEvent, onEditPrn)
-    content.illness?.let { IllnessCard(it) }
-    EnergyTrendCard(content, onOpenTrends)
+    MoodCard(content, links.onScreening)
+    AsNeededCard(content, onEvent, links)
+    content.illness?.let { illness -> IllnessCard(illness) { links.onCheckin(illness.episode.id, content.date) } }
+    EnergyTrendCard(content, links.onOpenTrends)
 }
 
 /** "Din vecka" (HEM-13): energin mot förra veckan ("Energi · Uppåt") och andelen tagna doser – utan doser bara energin. */
@@ -235,10 +254,10 @@ private fun MoodCard(content: TodayContent, onScreening: (LogEvent) -> Unit) {
 
 /**
  * Pågående sjukdom (HEM-12): typen, "Dag N" och senaste incheckningen, med vänsterkanten i varningston
- * (status, NFR-16). Sjukdomsdetaljen och "Checka in" kommer med #240 – tills dess leder kortet ingenstans.
+ * (status, NFR-16). Raden öppnar en ny incheckning ([onCheckin], SJ-2); sjukdomsdetaljen kommer med #240.
  */
 @Composable
-private fun IllnessCard(illness: OngoingIllness) {
+private fun IllnessCard(illness: OngoingIllness, onCheckin: () -> Unit) {
     AppCard {
         SectionHeader(stringResource(R.string.today_illness_title), icon = R.drawable.ic_thermometer, tone = Tone.Warning)
         val checkin = illness.lastCheckin
@@ -252,6 +271,8 @@ private fun IllnessCard(illness: OngoingIllness) {
             },
             trailing = illness.day?.let { day -> { InfoPill(stringResource(R.string.today_illness_day_format, day), tone = Tone.Warning) } },
             accent = AppColors.tone(Tone.Warning).content,
+            onClick = onCheckin,
+            navigates = true,
         )
     }
 }
@@ -273,6 +294,7 @@ private fun EnergyTrendCard(content: TodayContent, onOpenTrends: () -> Unit) {
 @Composable
 private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) {
     var skipping by remember { mutableStateOf<Dose?>(null) }
+    var deleting by remember { mutableStateOf<Dose?>(null) }
     val list = content.checklist
     AppCard {
         val doses = content.doseProgress
@@ -284,7 +306,7 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
         val rows = list.shown + (if (content.showUpcoming) list.upcoming else emptyList()) +
             (if (content.showDone) list.done.map { OpenDose(it, null) } else emptyList())
         // Radens tillstånd (meny, anteckning, krysset) följer dosen när listan ändras.
-        rows.forEach { row -> key(row.dose.id) { DoseRow(row, content, onEvent) { skipping = it } } }
+        rows.forEach { row -> key(row.dose.id) { DoseRow(row, content, onEvent, onSkip = { skipping = it }, onDelete = { deleting = it }) } }
         when {
             list.isEmpty -> EmptyState(R.drawable.ic_pill, stringResource(R.string.today_medicines_none_title), stringResource(R.string.today_medicines_none), compact = true)
             list.shown.isEmpty() && list.upcoming.isEmpty() && !content.showDone ->
@@ -325,13 +347,30 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
             onDismiss = close,
         )
     }
+    deleting?.let { dose ->
+        val close = { deleting = null }
+        val action = entryDeleteAction(
+            R.string.diary_subject_dose,
+            medicineTitle(dose.name, dose.dose, dose.unit),
+            dose.date,
+            dose.takenAt?.toLocalDateTime(content.zone)?.time,
+            // Samma beslut som `DoseRepository.remove`: en receptdos hoppas över (MED-15).
+            skips = dose.isPrescribed,
+        ) { onEvent(TodayEvent.Delete(dose)) }
+        DeleteConfirmDialog(action, close)
+    }
 }
 
-/** En dos: tidpunkt, klockslag eller tagningstid och dagens höjning (REC-12) som undertext; "Försenat"/"Snart" (MED-13). */
+/**
+ * En dos: tidpunkt, klockslag eller tagningstid och dagens höjning (REC-12) som undertext; "Försenat"/"Snart" (MED-13).
+ * Menyn: "Hoppa över" på en planerad receptdos i schemat, "Radera" på en vid behov-, extra- eller engångsdos (MED-3) –
+ * med samma text som `DoseRepository.remove` gör (en migrerad receptdos hoppas över, MED-15).
+ */
 @Composable
-private fun DoseRow(item: OpenDose, content: TodayContent, onEvent: (TodayEvent) -> Unit, onSkip: (Dose) -> Unit) {
+private fun DoseRow(item: OpenDose, content: TodayContent, onEvent: (TodayEvent) -> Unit, onSkip: (Dose) -> Unit, onDelete: (Dose) -> Unit) {
     val dose = item.dose
     val skip = stringResource(R.string.today_skip)
+    val delete = stringResource(R.string.delete)
     CheckRow(
         title = medicineTitle(dose.name, dose.dose, dose.unit),
         checked = dose.status == DoseStatus.TAKEN,
@@ -343,9 +382,14 @@ private fun DoseRow(item: OpenDose, content: TodayContent, onEvent: (TodayEvent)
             else -> null
         },
         note = dose.note.orEmpty(),
-        // En loggad vid behov- eller extrados visas som tagen men växlas inte – den tas bort i dosformuläret (#239).
+        // En loggad vid behov- eller extrados visas som tagen men växlas inte – den raderas i menyn (eller ångras).
         enabled = dose.isScheduled,
-        menu = if (dose.status == DoseStatus.PLANNED && dose.isScheduled) listOf(AppMenuItem(skip, { onSkip(dose) }, R.drawable.ic_close)) else emptyList(),
+        menu = when {
+            // MED-3: en receptdos i schemat hoppas över; allt annat – vid behov, extrados, engångsdos – raderas.
+            !dose.isScheduledPrescription -> listOf(AppMenuItem(delete, { onDelete(dose) }, R.drawable.ic_delete, destructive = true))
+            dose.status == DoseStatus.PLANNED -> listOf(AppMenuItem(skip, { onSkip(dose) }, R.drawable.ic_close))
+            else -> emptyList()
+        },
     )
 }
 
@@ -364,12 +408,12 @@ private fun doseSubtitle(dose: Dose, prescription: Prescription?, date: LocalDat
 }
 
 /**
- * Vid behov (FAV-2, FAV-11): favoriterna som chips – tryck loggar, långtryck ger Redigera, Favorit, Visa
- * anteckning och Radera (HEM-11, FAV-3, FAV-8, FAV-9) – och "Fler" med övriga vid behov-mediciner och
- * receptens under "Recept". Utan vid behov-mediciner och recept visas inget kort.
+ * Vid behov (FAV-2, FAV-11): favoriterna som chips – tryck loggar, långtryck ger Redigera, Favorit, Logga i
+ * efterhand, Visa anteckning och Radera (HEM-11, FAV-3, FAV-8, FAV-9, FAV-10) – och "Fler" med övriga vid
+ * behov-mediciner och receptens under "Recept". Utan vid behov-mediciner och recept visas inget kort.
  */
 @Composable
-private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, onEditPrn: (String) -> Unit) {
+private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, links: TodayLinks) {
     val choices = content.choices
     if (choices.favorites.isEmpty() && choices.moreCount == 0) return
     var menuFor by remember { mutableStateOf<String?>(null) }
@@ -404,7 +448,13 @@ private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, o
                         onLongClick = { menuFor = medicine.id },
                         onLongClickLabel = stringResource(R.string.more_options),
                     )
-                    val items = medicineMenu(medicine, onEvent, { onEditPrn(medicine.id) }, { noteOf = medicine }) { deleting = medicine }
+                    val items = medicineMenu(
+                        medicine,
+                        onEvent,
+                        onEdit = { links.onEditPrn(medicine.id) },
+                        onLogLater = { links.onLogLater(medicine.id, content.date) },
+                        onNote = { noteOf = medicine },
+                    ) { deleting = medicine }
                     AppMenuPopup(items, expanded = menuFor == medicine.id, onDismiss = { menuFor = null })
                 }
             }
@@ -442,9 +492,16 @@ private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, o
     }
 }
 
-/** Långtrycksmenyn på ett snabbval i ordningen Redigera, Favorit, Visa anteckning, Radera sist (NFR-16, HEM-11). */
+/** Långtrycksmenyn på ett snabbval i ordningen Redigera, Favorit, Logga i efterhand, Visa anteckning, Radera sist (NFR-16, HEM-11). */
 @Composable
-private fun medicineMenu(medicine: PrnMedicine, onEvent: (TodayEvent) -> Unit, onEdit: () -> Unit, onNote: () -> Unit, onDelete: () -> Unit): List<AppMenuItem> =
+private fun medicineMenu(
+    medicine: PrnMedicine,
+    onEvent: (TodayEvent) -> Unit,
+    onEdit: () -> Unit,
+    onLogLater: () -> Unit,
+    onNote: () -> Unit,
+    onDelete: () -> Unit,
+): List<AppMenuItem> =
     listOfNotNull(
         AppMenuItem(stringResource(R.string.edit), onEdit, R.drawable.ic_edit),
         AppMenuItem(
@@ -453,26 +510,10 @@ private fun medicineMenu(medicine: PrnMedicine, onEvent: (TodayEvent) -> Unit, o
             // Samma ikon som stjärnan i Mediciner (FavoriteStar): fylld = favorit.
             if (medicine.favorite) R.drawable.ic_star_filled else R.drawable.ic_star,
         ),
+        AppMenuItem(stringResource(R.string.dose_log_later), onLogLater, R.drawable.ic_clock),
         if (medicine.note.isNullOrBlank()) null else AppMenuItem(stringResource(R.string.note_show), onNote, R.drawable.ic_note),
         AppMenuItem(stringResource(R.string.delete), onDelete, R.drawable.ic_delete, destructive = true),
     )
-
-/** "För tidigt" (FAV-4): kvarvarande tid och "Ta ändå". */
-@Composable
-private fun CooldownDialog(prompt: CooldownPrompt, onEvent: (TodayEvent) -> Unit) {
-    val (hours, minutes) = prompt.remaining.hoursAndMinutes()
-    ConfirmDialog(
-        stringResource(R.string.today_cooldown_title),
-        stringResource(R.string.today_cooldown_message, hours.toString(), minutes.toString(), prompt.medicine.name),
-        stringResource(R.string.today_take_anyway),
-        onConfirm = { onEvent(TodayEvent.ConfirmCooldown) },
-        onDismiss = { onEvent(TodayEvent.DismissCooldown) },
-    )
-}
-
-/** Hela timmar och påbörjade minuter – "0h 1m" hellre än "0h 0m" när några sekunder återstår. */
-private fun Duration.hoursAndMinutes(): Pair<Long, Int> =
-    ceil(toDouble(DurationUnit.MINUTES)).toLong().minutes.toComponents { hours, minutes, _, _ -> hours to minutes }
 
 private fun DayPart.greeting(): Int = when (this) {
     DayPart.MORNING -> R.string.greeting_morning

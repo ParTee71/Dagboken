@@ -20,11 +20,13 @@ fun entrySubject(@StringRes format: Int, title: String, date: LocalDate, time: L
 }
 
 /**
- * Radering av en post i dess formulär (AKT-9, HAN-1) med samma bekräftelse som i Dagbok (HIST-5): "Radera posten?"
- * och "Aktiviteten Promenad, 5 okt kl. 09:00 raderas med sin anteckning. Det går inte att ångra." – utan dag bara namnet.
+ * Radering av en post i Dagbok och i dess formulär (AKT-9, HAN-1, MED-15, HIST-5) med samma bekräftelse: "Radera
+ * posten?" och "Aktiviteten Promenad, 5 okt kl. 09:00 raderas med sin anteckning. Det går inte att ångra." – utan dag
+ * bara namnet. [skips] = en receptdos, som markeras som överhoppad i stället (MED-3, MED-15).
  */
 @Composable
-fun entryDeleteAction(@StringRes format: Int, title: String, date: LocalDate?, time: LocalTime?, onConfirm: () -> Unit): DeleteAction {
+fun entryDeleteAction(@StringRes format: Int, title: String, date: LocalDate?, time: LocalTime?, skips: Boolean = false, onConfirm: () -> Unit): DeleteAction {
     val subject = date?.let { entrySubject(format, title, it, time) } ?: title
-    return DeleteAction(stringResource(R.string.diary_delete_title), stringResource(R.string.diary_delete_message, subject), onConfirm)
+    val message = stringResource(if (skips) R.string.diary_delete_skip_message else R.string.diary_delete_message, subject)
+    return DeleteAction(stringResource(R.string.diary_delete_title), message, onConfirm)
 }

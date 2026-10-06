@@ -187,6 +187,22 @@ test('null, saknade och okända fält är tillåtna (codecens defaults, nyare ap
   await assertSucceeds(setDoc(mine('options', 'n2'), {}));
 });
 
+test('en flyttad dos (MED-15): målet skapas med det lagrade dokumentets alla fält och källan raderas i samma skrivning', async () => {
+  const store = db(OWNER);
+  const dose = (id) => doc(store, 'users', OWNER, 'doses', id);
+  const source = { ...toClient(base('doses')), framtidaFalt: { a: 1 } };
+  await assertSucceeds(setDoc(dose('recept_r1_2026-09-21_Morgon'), source));
+  const move = writeBatch(store);
+  move.set(dose('flyttad'), { ...source, date: '2026-09-22', prescriptionId: 'r1' });
+  move.delete(dose('recept_r1_2026-09-21_Morgon'));
+  await assertSucceeds(move.commit());
+  const invalid = writeBatch(store);
+  invalid.set(dose('ogiltig'), { ...source, date: '22 sep' });
+  invalid.delete(dose('flyttad'));
+  await assertFails(invalid.commit(), 'målet valideras som en ny dos – och då raderas inte källan');
+  assert.ok((await getDoc(dose('flyttad'))).exists(), 'källan står kvar');
+});
+
 test('ett lagrat för stort värde eller många fält hindrar inte att andra fält sparas', async () => {
   const fields = Object.fromEntries(Array.from({ length: 45 }, (_, i) => [`f${i}`, i]));
   await env.withSecurityRulesDisabled(async (ctx) => {

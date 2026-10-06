@@ -144,6 +144,18 @@ interface EntityCollection<T : Identified> {
     /** Flera skrivningar i ett svep – atomärt inom varje bit om 500 (Firestores gräns). */
     suspend fun batch(upserts: List<T>, deletes: List<String> = emptyList()): Result<Unit>
 
+    /**
+     * Flyttar dokumentet [from] till id:t [item].id: det nya dokumentet är det **lagrade** dokumentet – med
+     * alla fält, också okända från en nyare app – med bara [fields] ur [item] (kodade som vid [upsert], plus
+     * `updatedAt`) lagda ovanpå och toppfälten i [remove] borttagna; [from] raderas i samma skrivning. Som
+     * [update] men till ett nytt id ([moveChanged]). Prövas mot serverns version i en transaktion, som
+     * [createIfAbsent]: finns [from] inte (raderat under tiden) skrivs ingenting och det blir
+     * [DataError.NotFound] – det återuppstår aldrig; finns målet redan skrivs ingenting och det blir
+     * [TargetExists] – ett befintligt dokument skrivs aldrig över. Ett fält som codecen inte skriver är
+     * ett fel innan något läses. Kräver nät som [createIfAbsent]: offline [DataError.Offline], inget köas.
+     */
+    suspend fun move(from: String, item: T, fields: Set<String>, remove: Set<String> = emptySet()): Result<Unit>
+
     /** Klientgenererat, slumpat ID – fungerar offline. */
     fun newId(): String
 }
@@ -223,9 +235,24 @@ suspend fun <T> EntityCollection<T>.upsertPlaced(item: T, isNew: Boolean, placeL
  * ändrat → ingen skrivning.
  */
 suspend fun <T : Identified> EntityCollection<T>.updateChanged(codec: DocCodec<T>, before: T, after: T, always: Set<String> = emptySet()): Result<Unit> {
+    val (changed, removed) = topFieldChanges(codec, before, after, always)
+    return if (changed.isEmpty() && removed.isEmpty()) Result.success(Unit) else update(after, changed, removed)
+}
+
+/**
+ * [EntityCollection.move] av [before] till [after] (med ett nytt id): det lagrade dokumentet följer med – också
+ * fält från en nyare app och fält som en annan enhet ändrat under tiden – och bara de toppfält som skiljer
+ * [after] från [before] skrivs ovanpå, med samma jämförelse som [updateChanged].
+ */
+suspend fun <T : Identified> EntityCollection<T>.moveChanged(codec: DocCodec<T>, before: T, after: T): Result<Unit> {
+    val (changed, removed) = topFieldChanges(codec, before, after)
+    return move(before.id, after, changed, removed)
+}
+
+/** Toppfälten som [updateChanged] och [moveChanged] skriver (ändrade, plus [always]) och tar bort (som codecen inte längre skriver). */
+private fun <T> topFieldChanges(codec: DocCodec<T>, before: T, after: T, always: Set<String> = emptySet()): Pair<Set<String>, Set<String>> {
     val old = codec.encode(before)
     val new = codec.encode(after)
     val changed = new.filter { (key, value) -> (key !in old || old[key] != value || key in always) && isWrittenValue(key, value) }.keys
-    val removed = old.keys - new.keys
-    return if (changed.isEmpty() && removed.isEmpty()) Result.success(Unit) else update(after, changed, removed)
+    return changed to (old.keys - new.keys)
 }

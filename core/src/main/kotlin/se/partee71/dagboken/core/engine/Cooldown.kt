@@ -3,9 +3,11 @@ package se.partee71.dagboken.core.engine
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
@@ -55,6 +57,24 @@ fun PrnMedicine.cooldownRemaining(doses: Iterable<Dose>, at: Instant): Duration?
 /** FAV-5: om dagens gräns är nådd på [date] ([PrnMedicine.maxPerDay] 0 = obegränsat). */
 fun PrnMedicine.dailyLimitReached(doses: Iterable<Dose>, date: LocalDate): Boolean =
     maxPerDay > 0 && doses.count { it.date == date && isTakenDoseOf(it) } >= maxPerDay
+
+/**
+ * Dagarna vars doser [checkDose] behöver se vid [at] (FAV-4, FAV-5, MED-16): från dagen max([PrnMedicine.minHoursBetween],
+ * 24) timmar före [at] – dagsgränsen gäller hela dagen – och en vecka till (kylperioden mäts på tagningstiden, och
+ * en äldre dos kan ha bockats av nyss), till och med dagen för [at]. Samma urval för loggningen och formulärets
+ * kontroll i efterhand.
+ */
+fun PrnMedicine.checkDays(at: Instant, zone: TimeZone): ClosedRange<LocalDate> {
+    val window = maxOf(minHoursBetween, MIN_LOOKBACK_HOURS).hours
+    val from = (at - window).toLocalDateTime(zone).date.minus(EXTRA_LOOKBACK_DAYS, DateTimeUnit.DAY)
+    return from..at.toLocalDateTime(zone).date
+}
+
+/** Dagsgränsen (FAV-5) gäller dagen för dosen, så minst ett dygn bakåt läses. */
+private const val MIN_LOOKBACK_HOURS = 24
+
+/** Dagar extra bakåt för doser vars dag ligger före tagningstiden (avbockade i efterhand). */
+private const val EXTRA_LOOKBACK_DAYS = 7
 
 /**
  * FAV-4, FAV-5, MED-16: får en dos loggas vid [at]? Dagsgränsen (dagen för [at] i [zone]) kontrolleras

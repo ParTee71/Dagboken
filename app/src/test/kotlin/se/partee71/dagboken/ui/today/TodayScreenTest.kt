@@ -76,6 +76,7 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
+import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.SampleMedicines
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorSheetState
@@ -125,6 +126,9 @@ class TodayScreenTest {
         dose("d6", "Melatonin", "2", "mg", Slot.NIGHT, prescriptionId = "n"),
     )
     private val doses = listOf(levaxinDose, sertralinDose, vitaminDose, omegaDose) + upcoming
+
+    /** En loggad vid behov-dos – visas tagen men växlas inte (FAV-2). */
+    private val prn = Dose("p", today, Slot.AS_NEEDED, "Ipren", "400", "mg", DoseStatus.TAKEN, takenAt = at(9, 0), prnId = "9")
 
     private fun content(
         doses: List<Dose> = this.doses,
@@ -291,7 +295,7 @@ class TodayScreenTest {
         val events = mutableListOf<TodayEvent>()
         val edited = mutableListOf<String>()
         show(content(date = LocalDate(2026, 10, 2)), onEvent = { events += it }, onEditPrn = { edited += it })
-        rule.onNodeWithText("Visa idag för att logga – efterhandsloggning kommer med dosformuläret.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Visa idag för att logga – eller Logga i efterhand i medicinens meny.").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Imigran 50 mg").performScrollTo()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Loggas bara idag"))
             .assert(SemanticsMatcher.keyIsDefined(SemanticsActions.OnLongClick))
@@ -305,7 +309,7 @@ class TodayScreenTest {
         rule.onNodeWithText("Redigera").performClick()
         assertEquals(listOf("2"), edited)
 
-        rule.onNodeWithText("Visa idag för att logga – efterhandsloggning kommer med dosformuläret.").performClick()
+        rule.onNodeWithText("Visa idag för att logga – eller Logga i efterhand i medicinens meny.").performClick()
         assertEquals(listOf<TodayEvent>(TodayEvent.SelectDate(today)), events)
     }
 
@@ -342,10 +346,51 @@ class TodayScreenTest {
     @Test
     fun `en loggad vid behov-dos visas tagen men växlas inte (FAV-2)`() {
         val events = mutableListOf<TodayEvent>()
-        val prn = Dose("p", today, Slot.AS_NEEDED, "Ipren", "400", "mg", DoseStatus.TAKEN, takenAt = at(9, 0), prnId = "9")
         show(content(doses + prn), onEvent = { events += it })
         rule.onNodeWithText("Ipren 400 mg").performScrollTo().assertIsOn().assertIsNotEnabled().performClick()
         assertEquals(emptyList(), events)
+    }
+
+    @Test
+    fun `en loggad vid behov-dos raderas från radens meny efter bekräftelse (MED-3)`() {
+        val events = mutableListOf<TodayEvent>()
+        show(content(doses + prn), onEvent = { events += it })
+        // Raden växlar inte (en loggad dos bockas inte ur), men långtrycket öppnar menyn (NFR-17).
+        rule.onNodeWithText("Ipren 400 mg").performScrollTo().performTouchInput { longClick() }
+        rule.onNodeWithText("Hoppa över").assertDoesNotExist()
+        rule.onNodeWithText("Radera").performClick()
+        rule.onNodeWithText("Dosen Ipren 400 mg, 4 okt kl. 09:00 raderas med sin anteckning. Det går inte att ångra.").assertIsDisplayed()
+        assertEquals(emptyList(), events, "inget raderas utan bekräftelse")
+        rule.onNodeWithText("Radera").performClick()
+        assertEquals(listOf<TodayEvent>(TodayEvent.Delete(prn)), events)
+    }
+
+    @Test
+    fun `en engångsdos med tidpunkt raderas, och en migrerad receptdos säger att den hoppas över (MED-3, MED-15)`() {
+        val events = mutableListOf<TodayEvent>()
+        val oneOff = Dose("o", today, Slot.EVENING, "Melatonin", "3", "mg", DoseStatus.TAKEN, LocalTime(19, 0), takenAt = at(9, 30))
+        val migrated = Dose("recept_atarax_2026-10-04_Vid behov", today, Slot.AS_NEEDED, "Atarax", "25", "mg", DoseStatus.TAKEN, takenAt = at(9, 45))
+        show(content(doses + oneOff + migrated), onEvent = { events += it })
+        rule.onNodeWithText("Melatonin 3 mg").performScrollTo().performTouchInput { longClick() }
+        rule.onNodeWithText("Hoppa över").assertDoesNotExist()
+        rule.onNodeWithText("Radera").performClick()
+        rule.onNodeWithText("Dosen Melatonin 3 mg, 4 okt kl. 09:30 raderas med sin anteckning. Det går inte att ångra.").assertIsDisplayed()
+        rule.onNodeWithText("Avbryt").performClick()
+        rule.onNodeWithText("Atarax 25 mg").performScrollTo().performTouchInput { longClick() }
+        rule.onNodeWithText("Radera").performClick()
+        rule.onNodeWithText("Dosen Atarax 25 mg, 4 okt kl. 09:45 markeras som överhoppad och försvinner ur Dagbok. Receptet och anteckningen står kvar.").assertIsDisplayed()
+        rule.onNodeWithText("Radera").performClick()
+        assertEquals(listOf<TodayEvent>(TodayEvent.Delete(migrated)), events)
+    }
+
+    @Test
+    fun `Logga i efterhand i långtrycksmenyn öppnar dosformuläret mot den visade dagen (FAV-10, HEM-11, MED-16)`() {
+        val later = mutableListOf<Pair<String, LocalDate>>()
+        val past = LocalDate(2026, 10, 2)
+        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Content(content(date = past)), {}, {}, onLogLater = { id, date -> later += id to date }) } }
+        rule.onNodeWithText("Imigran 50 mg").performScrollTo().performSemanticsAction(SemanticsActions.OnLongClick)
+        rule.onNodeWithText("Logga i efterhand").performClick()
+        assertEquals(listOf("2" to past), later)
     }
 
     @Test
@@ -478,6 +523,14 @@ class TodayScreenTest {
         rule.onNodeWithText("Checka in").assertDoesNotExist()
         rule.onNodeWithText("Visa i Trender").performScrollTo().performClick()
         assertEquals(1, trends)
+    }
+
+    @Test
+    fun `pågående sjukdom öppnar en ny incheckning mot den visade dagen (HEM-12, SJ-2)`() {
+        val checkins = mutableListOf<Pair<String, LocalDate>>()
+        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Content(full()), {}, {}, onCheckin = { id, date -> checkins += id to date }) } }
+        rule.onNodeWithText("Förkylning").performScrollTo().performClick()
+        assertEquals(listOf("e" to today), checkins)
     }
 
     @Test

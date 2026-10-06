@@ -5,7 +5,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 import se.partee71.dagboken.core.engine.DiaryEntry
 import se.partee71.dagboken.core.model.OptionKind
-import se.partee71.dagboken.ui.components.LogChoice
 
 /** Alla skärmar i appen (NAV-8, NAV-11). Sparas med kotlinx.serialization, så nycklarna överlever processdöd. */
 @Serializable
@@ -76,33 +75,42 @@ data class ActivityEditKey(val id: String? = null, val date: LocalDate? = null) 
 @Serializable
 data class EventEditKey(val id: String? = null, val date: LocalDate? = null) : AppKey
 
-/** Dos och Sjukdom i plusknappens meny (NAV-10) – en platshållare tills formulären finns (#271). */
-@Serializable
-data class LogUpcomingKey(val choice: LogChoice) : AppKey
-
-/** Vad en post i Dagbok är som ännu öppnar en platshållare (HIST-3, HIST-9). */
-enum class DiaryEntryKind { DOSE, EPISODE, CHECKIN }
-
 /**
- * En post i Dagbok utan eget formulär än (HIST-3): [id] är dokumentets id i sin samling, och för en incheckning är
- * [episodeId] episoden den ligger under. En platshållare tills dosformuläret (#271) och sjukdomsdetaljen (#240) tar över.
+ * Dosformuläret (MED-11, MED-15, MED-16): en befintlig dos [id] (Dagbok, HIST-3), vid behov-medicinen [prnId] i
+ * efterhand (FAV-10, MEDF-6) eller – utan båda – en ny engångsdos (NAV-10). En ny loggas mot dagen [date] (`null` =
+ * idag, HEM-14).
  */
 @Serializable
-data class DiaryEntryKey(val kind: DiaryEntryKind, val id: String, val episodeId: String? = null) : AppKey
+data class DoseEditKey(val id: String? = null, val prnId: String? = null, val date: LocalDate? = null) : AppKey
+
+/** Ny sjukdomsepisod med sin första incheckning (SJ-1, SJ-2, NAV-10), som börjar [date] (`null` = idag). */
+@Serializable
+data class EpisodeNewKey(val date: LocalDate? = null) : AppKey
 
 /**
- * Skärmen som posten öppnar (HIST-3): aktiviteten och händelsen sina formulär, episodens start och slut episoden,
- * en incheckning sig själv under sin episod. `null` för en måendelogg – den öppnas i måendearket ovanpå fliken.
+ * Ny incheckning ([id] = `null`) under episoden [episodeId] mot dagen [date] (`null` = idag) – från plusknappen och
+ * Idags pågående sjukdom (SJ-2, HEM-12) – eller en befintlig (SJ-11, HIST-3, HIST-9).
+ */
+@Serializable
+data class CheckinEditKey(val episodeId: String, val id: String? = null, val date: LocalDate? = null) : AppKey
+
+/** En episods start eller slut i Dagbok (HIST-9) – en platshållare tills sjukdomsdetaljen (#240) tar över. */
+@Serializable
+data class EpisodeKey(val id: String) : AppKey
+
+/**
+ * Skärmen som posten öppnar (HIST-3): aktiviteten, händelsen, dosen och incheckningen (under sin episod) sina
+ * formulär, episodens start och slut episoden. `null` för en måendelogg – den öppnas i måendearket ovanpå fliken.
  */
 val DiaryEntry.key: AppKey?
     get() = when (this) {
         is DiaryEntry.Mood -> null
         is DiaryEntry.Action -> ActivityEditKey(activity.id)
-        is DiaryEntry.TakenDose -> DiaryEntryKey(DiaryEntryKind.DOSE, dose.id)
+        is DiaryEntry.TakenDose -> DoseEditKey(dose.id)
         is DiaryEntry.Happening -> EventEditKey(event.id)
-        is DiaryEntry.EpisodeStart -> DiaryEntryKey(DiaryEntryKind.EPISODE, episode.id)
-        is DiaryEntry.EpisodeEnd -> DiaryEntryKey(DiaryEntryKind.EPISODE, episode.id)
-        is DiaryEntry.CheckIn -> DiaryEntryKey(DiaryEntryKind.CHECKIN, checkin.id, episode.id)
+        is DiaryEntry.EpisodeStart -> EpisodeKey(episode.id)
+        is DiaryEntry.EpisodeEnd -> EpisodeKey(episode.id)
+        is DiaryEntry.CheckIn -> CheckinEditKey(episode.id, checkin.id)
     }
 
 /** Export och import (BCK-13, SET-8) – funktionen kommer i #230. */

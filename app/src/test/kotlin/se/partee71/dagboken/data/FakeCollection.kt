@@ -24,7 +24,10 @@ import se.partee71.dagboken.data.common.FieldPath
 import se.partee71.dagboken.data.common.PendingCommits
 import se.partee71.dagboken.data.common.SERVER_WAIT
 import se.partee71.dagboken.data.common.Stored
+import se.partee71.dagboken.data.common.MoveOutcome
 import se.partee71.dagboken.data.common.mayCreate
+import se.partee71.dagboken.data.common.moveOutcome
+import se.partee71.dagboken.data.common.movedDocument
 import se.partee71.dagboken.data.common.satisfies
 import se.partee71.dagboken.data.common.storedOf
 import se.partee71.dagboken.data.common.Snapshot
@@ -92,6 +95,11 @@ class FakeStore {
     }
 
     fun delete(path: String, id: String) = documents.update { all -> all + (path to all[path].orEmpty() - id) }
+
+    /** Som en transaktion: [to] får [doc] (Firestores värden) och [from] tas bort – i en och samma ändring. */
+    fun move(path: String, from: String, to: String, doc: Doc) = documents.update { all ->
+        all + (path to all[path].orEmpty() - from + (to to firestoreValues(doc)))
+    }
 
     fun read(path: String, id: String): Doc? = documents.value[path]?.get(id)
 
@@ -209,19 +217,38 @@ class FakeCollection<T : Identified>(
     }
 
     private suspend fun transact(ids: Set<String>, apply: (path: String, id: String, stored: Stored<T>) -> Unit) = write(queued = false) {
-        val p = path()
-        if (ids.isNotEmpty() && !store.online) throw DataError.Offline
-        val commit = { ids.forEach { id -> apply(p, id, storedOf(store.read(p, id) != null) { store.read(p, id)?.let { decode(id, it) } }) } }
-        val background = commitScope
         if (ids.isEmpty()) {
-            Unit // som Firestore: ingen transaktion alls
-        } else if (background == null) {
-            commit()
-        } else {
-            val pending = background.async { delay(commitLatency); commit() }
-            commits.await(pending, serverWait) ?: throw DataError.Offline
+            path() // som Firestore: ingen transaktion alls, men utloggad är fortfarande ett fel
+            return@write
         }
+        transaction { p -> ids.forEach { id -> apply(p, id, storedOf(store.read(p, id) != null) { store.read(p, id)?.let { decode(id, it) } }) } }
     }
+
+    /** Källan och målet prövas när den committar, som Firestores transaktion; utan "server" `Offline`. */
+    override suspend fun move(from: String, item: T, fields: Set<String>, remove: Set<String>): Result<Unit> {
+        val patch = runCatching { fieldsForUpdate(encode(item), fields) }.getOrElse { return Result.failure(DataError.Unknown) }
+        var outcome = MoveOutcome.Moved
+        write(queued = false) {
+            transaction { p ->
+                val stored = store.read(p, from)
+                outcome = moveOutcome(stored, store.read(p, item.id) != null)
+                if (outcome == MoveOutcome.Moved) store.move(p, from, item.id, movedDocument(checkNotNull(stored), patch, remove))
+            }
+        }.onFailure { return Result.failure(it) }
+        return outcome.toResult()
+    }
+
+    /** En transaktion: kräver "servern"; med [commitScope] committar den efter [commitLatency], som i Firestore. */
+    private suspend fun <R> transaction(commit: (path: String) -> R): R {
+        val p = path()
+        if (!store.online) throw DataError.Offline
+        val background = commitScope ?: return commit(p)
+        val pending = background.async { delay(commitLatency); Box(commit(p)) }
+        return (commits.await(pending, serverWait) ?: throw DataError.Offline).value
+    }
+
+    /** [PendingCommits.await] kräver ett icke-null-värde. */
+    private class Box<R>(val value: R)
 
     override suspend fun delete(id: String) = write { store.delete(path(), id) }
 

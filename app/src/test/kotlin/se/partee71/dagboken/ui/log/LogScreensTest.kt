@@ -36,7 +36,6 @@ import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryForm
 import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.components.LogChoice
 import se.partee71.dagboken.ui.runEditScreenContract
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 
@@ -208,15 +207,6 @@ class LogScreensTest {
         rule.onNodeWithText("Efter frukost").performClick()
         rule.onNodeWithText("Lunch").performClick()
         assertEquals(listOf<LogEvent>(LogEvent.LogOccasion(picker.occasions[0]), LogEvent.LogOccasion(picker.occasions[1])), events)
-    }
-
-    @Test
-    fun `Dos och Sjukdom visar Snart här med tillbakapil tills formulären finns`() {
-        var back = 0
-        rule.setContent { DagbokenTheme { LogUpcomingScreen(LogChoice.Dose, onBack = { back++ }) } }
-        rule.onNodeWithText("Snart här").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Tillbaka").performClick()
-        assertEquals(1, back)
     }
 
     // ── Skärmdumpar bredvid mockupen ──────────────────────────────────────

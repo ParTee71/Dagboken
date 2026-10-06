@@ -222,8 +222,10 @@ class TodayRepositoriesTest {
     @Test
     fun `vid behov loggas som en ny tagen dos när ingen spärr gäller`() = runTest {
         val now = at(today, 10)
-        assertEquals(PrnCheck.Allowed, doses.logAsNeeded(alvedon, now).getOrThrow())
+        val log = doses.logAsNeeded(alvedon, now).getOrThrow()
+        assertEquals(PrnCheck.Allowed, log.check)
         val logged = doses.observeDay(today).first().single()
+        assertEquals(logged, log.dose, "den skrivna dosen ges tillbaka – för Ångra (FAV-2)")
         assertEquals(DoseStatus.TAKEN, logged.status)
         assertEquals(alvedon.id, logged.prnId)
         assertEquals(now, logged.takenAt)
@@ -232,11 +234,11 @@ class TodayRepositoriesTest {
     @Test
     fun `kylperioden räknas över midnatt och kan bekräftas bort`() = runTest {
         doses.logAsNeeded(alvedon, at(yesterday, 23)).getOrThrow()
-        val check = doses.logAsNeeded(alvedon, at(today, 1)).getOrThrow()
+        val check = doses.logAsNeeded(alvedon, at(today, 1)).getOrThrow().check
         assertEquals(PrnCheck.Cooldown(2.hours), check)
         assertEquals(1, stored().size, "ingen dos skrivs under kylperioden")
 
-        assertEquals(PrnCheck.Allowed, doses.logAsNeeded(alvedon, at(today, 1), force = true).getOrThrow())
+        assertEquals(PrnCheck.Allowed, doses.logAsNeeded(alvedon, at(today, 1), force = true).getOrThrow().check)
         assertEquals(2, stored().size)
     }
 
@@ -244,16 +246,16 @@ class TodayRepositoriesTest {
     fun `en kylperiod längre än ett dygn läses hela vägen bakåt`() = runTest {
         val rare = alvedon.copy(minHoursBetween = 50, maxPerDay = 0)
         doses.logAsNeeded(rare, at(LocalDate(2026, 9, 19), 12)).getOrThrow() // 46 h före – utanför ett dygns läsning
-        val check = doses.logAsNeeded(rare, at(today, 10)).getOrThrow()
+        val check = doses.logAsNeeded(rare, at(today, 10)).getOrThrow().check
         assertEquals(PrnCheck.Cooldown(4.hours), check)
     }
 
     @Test
     fun `dagsgränsen spärrar alltid, också med force`() = runTest {
-        for (hour in listOf(6, 11, 16)) assertEquals(PrnCheck.Allowed, doses.logAsNeeded(alvedon, at(today, hour)).getOrThrow())
-        assertEquals(PrnCheck.DailyLimitReached, doses.logAsNeeded(alvedon, at(today, 21), force = true).getOrThrow())
+        for (hour in listOf(6, 11, 16)) assertEquals(PrnCheck.Allowed, doses.logAsNeeded(alvedon, at(today, hour)).getOrThrow().check)
+        assertEquals(PrnCheck.DailyLimitReached, doses.logAsNeeded(alvedon, at(today, 21), force = true).getOrThrow().check)
         assertEquals(3, stored().size)
-        assertEquals(PrnCheck.Allowed, doses.logAsNeeded(alvedon, at(tomorrow, 6)).getOrThrow(), "ny dag, ny gräns")
+        assertEquals(PrnCheck.Allowed, doses.logAsNeeded(alvedon, at(tomorrow, 6)).getOrThrow().check, "ny dag, ny gräns")
     }
 
     @Test
@@ -270,7 +272,7 @@ class TodayRepositoriesTest {
         val once = alvedon.copy(maxPerDay = 1, minHoursBetween = 0)
         val repository = testDoses(slowRead, zone, clock)
         val results = listOf(async { repository.logAsNeeded(once, at(today, 10)) }, async { repository.logAsNeeded(once, at(today, 10)) }).awaitAll()
-        assertEquals(setOf(PrnCheck.Allowed, PrnCheck.DailyLimitReached), results.map { it.getOrThrow() }.toSet())
+        assertEquals(setOf(PrnCheck.Allowed, PrnCheck.DailyLimitReached), results.map { it.getOrThrow().check }.toSet())
         assertEquals(1, stored().size)
     }
 
@@ -279,7 +281,7 @@ class TodayRepositoriesTest {
         // Dosen hör till en dag fem dagar bakåt men bockades av för en timme sedan.
         val now = at(today, 10)
         factory.doses().upsert(Dose("gammal", LocalDate(2026, 9, 16), Slot.AS_NEEDED, "Alvedon", status = DoseStatus.TAKEN, takenAt = now - 1.hours)).getOrThrow()
-        assertEquals(PrnCheck.Cooldown(3.hours), doses.logAsNeeded(alvedon, now).getOrThrow())
+        assertEquals(PrnCheck.Cooldown(3.hours), doses.logAsNeeded(alvedon, now).getOrThrow().check)
     }
 
     @Test
@@ -288,15 +290,15 @@ class TodayRepositoriesTest {
         assertTrue(doses.logAsNeeded(alvedon, later).exceptionOrNull() is IllegalArgumentException)
         assertTrue(doses.logExtraDose(levaxin, later).exceptionOrNull() is IllegalArgumentException)
         assertTrue(stored().isEmpty())
-        assertEquals(PrnCheck.Allowed, doses.logAsNeeded(alvedon, clock.instant).getOrThrow(), "nu går bra")
+        assertEquals(PrnCheck.Allowed, doses.logAsNeeded(alvedon, clock.instant).getOrThrow().check, "nu går bra")
     }
 
     @Test
     fun `vid behov loggas i efterhand och utan nät – bara ur cachen`() = runTest {
         factory.store.online = false
         doses.logAsNeeded(alvedon, at(today, 12)).getOrThrow()
-        assertEquals(PrnCheck.Cooldown(2.hours), doses.logAsNeeded(alvedon, at(today, 14)).getOrThrow())
-        assertEquals(PrnCheck.Allowed, doses.logAsNeeded(alvedon, at(today, 9)).getOrThrow(), "en senare dos spärrar inte en tidigare (MED-16)")
+        assertEquals(PrnCheck.Cooldown(2.hours), doses.logAsNeeded(alvedon, at(today, 14)).getOrThrow().check)
+        assertEquals(PrnCheck.Allowed, doses.logAsNeeded(alvedon, at(today, 9)).getOrThrow().check, "en senare dos spärrar inte en tidigare (MED-16)")
     }
 
     @Test
