@@ -16,8 +16,8 @@ import se.partee71.dagboken.ui.theme.Spacing
 internal const val MIN_CHART_POINTS = 2
 
 /**
- * Ramen kring varje diagram: med för lite data visas **ett** gemensamt tomt läge ("För lite data än"
- * och [emptyHint] som uppmaning, samma i alla diagram, `EmptyState` i kompakt form) och skärmläsaren
+ * Ramen kring varje diagram: med för lite data visas **ett** gemensamt tomt läge ([emptyTitle], "För lite
+ * data än" om inte diagrammet säger annat, och [emptyHint] som uppmaning, `EmptyState` i kompakt form) och skärmläsaren
  * får hela budskapet som en text ("<[label]>: för lite data än. <uppmaningen>"); annars ritas [chart] med [footer] under (legend och
  * `MinMaxCaption`, TRD-9).
  */
@@ -27,6 +27,7 @@ internal fun ChartFrame(
     label: String,
     emptyHint: String,
     modifier: Modifier = Modifier,
+    emptyTitle: String = stringResource(R.string.chart_empty_title),
     footer: @Composable () -> Unit = {},
     chart: @Composable () -> Unit,
 ) {
@@ -35,7 +36,7 @@ internal fun ChartFrame(
         val spoken = stringResource(R.string.chart_a11y_empty, label) + ". " + emptyHint
         EmptyState(
             icon = R.drawable.ic_trend,
-            title = stringResource(R.string.chart_empty_title),
+            title = emptyTitle,
             message = emptyHint,
             modifier = modifier.semantics(mergeDescendants = true) { contentDescription = spoken },
             compact = true,

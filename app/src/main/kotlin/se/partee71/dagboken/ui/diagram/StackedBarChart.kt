@@ -20,10 +20,24 @@ import se.partee71.dagboken.core.engine.stackTotals
 import se.partee71.dagboken.core.engine.stackedAxisFor
 import se.partee71.dagboken.core.engine.summarize
 import se.partee71.dagboken.core.engine.trendSegment
+import se.partee71.dagboken.ui.theme.AppColors
 
 /** En del av stapeln — en kategori med sin färg, t.ex. ett sömnstadium (`AppColors.extended.sleepStages`). */
 @Immutable
 data class StackSegment(val label: String, val color: Color)
+
+/**
+ * Sömnstadierna nedifrån och upp enligt TRD-16 (djup, REM, lätt, vaken) med temats färger – samma färger som
+ * Sömn-diagrammets linjeserier (TRD-15). Ett ställe (regel 4) för Trender → Sömnstadier och galleriet.
+ */
+@Composable
+internal fun sleepStageSegments(): List<StackSegment> =
+    listOf(R.string.trends_series_sleep_deep, R.string.trends_series_sleep_rem, R.string.trends_series_sleep_light, R.string.trends_series_sleep_awake)
+        .zip(sleepStageColors()) { label, color -> StackSegment(stringResource(label), color) }
+
+/** Sömnstadiernas färger i TRD-16:s ordning (djup, REM, lätt, vaken) – samma i staplarna och i Sömn-diagrammets linjer (TRD-15). */
+@Composable
+internal fun sleepStageColors(): List<Color> = AppColors.extended.sleepStages.let { listOf(it.deep, it.rem, it.light, it.awake) }
 
 /**
  * Ett tonat fält över x-indexen [from]…[to] (båda inräknade) bakom staplarna – en sjukdomsepisod i Händelser

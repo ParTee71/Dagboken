@@ -18,6 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import se.partee71.dagboken.core.engine.COMPARE_AXIS
 import se.partee71.dagboken.core.engine.IntervalPoint
 import se.partee71.dagboken.core.engine.StackedPoint
 import se.partee71.dagboken.core.engine.TrendDirection
@@ -27,7 +28,6 @@ import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.components.AppCard
 import se.partee71.dagboken.ui.components.AppMenuItem
 import se.partee71.dagboken.ui.components.GalleryCharts
-import se.partee71.dagboken.ui.components.galleryStages
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.Spacing
@@ -84,6 +84,23 @@ class DiagramScreenshotTest {
     }
 
     @Test
+    fun `LineChart - indexerade serier med fast axel och fotnot (Jämför)`() = captureLightAndDark("LineChart_index") {
+        Sheet {
+            LineChart(
+                listOf(
+                    ChartSeries("Steg · 2 350–11 020 steg", listOf(10f, 35f, null, 100f, 60f, 0f, 45f, 70f, null, 55f, 80f, 65f, 90f, 75f), AppColors.swatch(0)),
+                    ChartSeries("Energi (dag) · 3,5–8 skala", GalleryCharts.energy.map { it?.let { v -> (v - 3.5f) / 4.5f * 100f } }, AppColors.swatch(1)),
+                ),
+                xLabels = GalleryCharts.days14,
+                label = "Jämför",
+                axis = COMPARE_AXIS,
+                showCaption = false,
+                footnote = "Varje serie visas 0–100 mot sitt eget lägsta och högsta värde.",
+            )
+        }
+    }
+
+    @Test
     fun `LineChart - ett värde och tomt`() {
         captureLightAndDark("LineChart_ett_varde") { Sheet { LineChart(listOf(ChartSeries("Vilopuls", listOf(null, 58f, null))), label = "Vilopuls") } }
         captureLightAndDark("LineChart_tomt") { Sheet { LineChart(listOf(ChartSeries("Vilopuls", emptyList())), label = "Vilopuls") } }
@@ -110,9 +127,9 @@ class DiagramScreenshotTest {
 
     @Test
     fun `StackedBarChart - sömnstadier med luckor och tomt`() {
-        captureLightAndDark("StackedBarChart_somn") { Sheet { StackedBarChart(GalleryCharts.sleep, galleryStages(), xLabels = GalleryCharts.days7, label = "Sömnstadier") } }
+        captureLightAndDark("StackedBarChart_somn") { Sheet { StackedBarChart(GalleryCharts.sleep, sleepStageSegments(), xLabels = GalleryCharts.days7, label = "Sömnstadier") } }
         captureLightAndDark("StackedBarChart_tomt") {
-            Sheet { StackedBarChart(listOf(StackedPoint(listOf(1f, 1.5f, 4f, 0.5f))), galleryStages(), label = "Sömnstadier") }
+            Sheet { StackedBarChart(listOf(StackedPoint(listOf(1f, 1.5f, 4f, 0.5f))), sleepStageSegments(), label = "Sömnstadier") }
         }
     }
 
@@ -132,7 +149,7 @@ class DiagramScreenshotTest {
 
     @Test
     fun `StackedBarChart - stor text`() = captureLightAndDark("StackedBarChart_stor_text") {
-        LargeText { Sheet { StackedBarChart(GalleryCharts.sleep, galleryStages(), xLabels = GalleryCharts.days7, label = "Sömnstadier") } }
+        LargeText { Sheet { StackedBarChart(GalleryCharts.sleep, sleepStageSegments(), xLabels = GalleryCharts.days7, label = "Sömnstadier") } }
     }
 
     @Test

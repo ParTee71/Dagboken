@@ -5,7 +5,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.SleepQualityKind
 import se.partee71.dagboken.core.engine.TrendDirection
+import se.partee71.dagboken.core.engine.WatchMetric
+import se.partee71.dagboken.core.engine.WatchUnit
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OptionKind
@@ -57,6 +60,61 @@ fun TrendDirection.label(): Int = when (this) {
     TrendDirection.RISING -> R.string.chart_trend_rising
     TrendDirection.FALLING -> R.string.chart_trend_falling
     TrendDirection.FLAT -> R.string.chart_trend_flat
+}
+
+/** Klockmåttets namn i sitt eget diagram (TRD-11, TRD-15, HLS-12) – Trender → Klocka och Hälsa idag (HLS-6). */
+@StringRes
+fun WatchMetric.label(): Int = when (this) {
+    WatchMetric.STEPS -> R.string.trends_card_steps
+    WatchMetric.RESTING_HEART_RATE -> R.string.trends_card_heart_rate
+    WatchMetric.HEART_RATE_AVG -> R.string.trends_series_heart_rate_avg
+    WatchMetric.SLEEP_TOTAL -> R.string.trends_series_sleep_total
+    WatchMetric.SLEEP_DEEP -> R.string.trends_series_sleep_deep
+    WatchMetric.SLEEP_REM -> R.string.trends_series_sleep_rem
+    WatchMetric.SLEEP_LIGHT -> R.string.trends_series_sleep_light
+    WatchMetric.SLEEP_AWAKE -> R.string.trends_series_sleep_awake
+    WatchMetric.EXERCISE -> R.string.trends_card_exercise
+    WatchMetric.ACTIVE_CALORIES -> R.string.trends_card_calories
+    WatchMetric.DISTANCE -> R.string.trends_card_distance
+    WatchMetric.OXYGEN_SATURATION -> R.string.trends_card_oxygen
+    WatchMetric.SYSTOLIC -> R.string.trends_series_systolic
+    WatchMetric.DIASTOLIC -> R.string.trends_series_diastolic
+}
+
+/** Klockmåttets namn utanför sitt eget diagram (TRD-17): "Dygnssnittspuls", "Sömnlängd", "Djupsömn", "REM-sömn". */
+@StringRes
+fun WatchMetric.qualifiedLabel(): Int = when (this) {
+    WatchMetric.HEART_RATE_AVG -> R.string.trends_compare_heart_rate_avg
+    WatchMetric.SLEEP_TOTAL -> R.string.trends_compare_sleep_total
+    WatchMetric.SLEEP_DEEP -> R.string.trends_series_sleep_deep_share
+    WatchMetric.SLEEP_REM -> R.string.trends_compare_sleep_rem
+    else -> label()
+}
+
+/** Enhetens kortform ("bpm", "h", "skala") – legender och Hälsa idag. */
+@StringRes
+fun WatchUnit.label(): Int = when (this) {
+    WatchUnit.STEPS -> R.string.unit_steps
+    WatchUnit.BPM -> R.string.unit_bpm
+    WatchUnit.HOURS -> R.string.unit_hours
+    WatchUnit.MINUTES -> R.string.unit_minutes
+    WatchUnit.KCAL -> R.string.unit_kcal
+    WatchUnit.KM -> R.string.unit_km
+    WatchUnit.PERCENT -> R.string.unit_percent
+    WatchUnit.MMHG -> R.string.unit_mmhg
+    WatchUnit.POINTS -> R.string.unit_points
+    WatchUnit.SCALE -> R.string.unit_scale
+}
+
+/** Sömnkvalitetens delpoäng (HLS-10): "Längd", "Effektivitet" … – Trender och Hälsa idag. */
+@StringRes
+fun SleepQualityKind.label(): Int = when (this) {
+    SleepQualityKind.DURATION -> R.string.trends_series_sleep_duration
+    SleepQualityKind.EFFICIENCY -> R.string.trends_series_sleep_efficiency
+    SleepQualityKind.REGULARITY -> R.string.trends_series_sleep_regularity
+    SleepQualityKind.DEEP -> R.string.trends_series_sleep_deep_share
+    SleepQualityKind.REM -> R.string.trends_series_sleep_rem_share
+    SleepQualityKind.WASO -> R.string.trends_series_sleep_waso
 }
 
 /** Sjukdomsepisodens namn – typen, eller "Sjukdom" utan typ (HEM-12, HIST-9): Idag och Dagbok. */

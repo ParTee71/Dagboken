@@ -60,6 +60,7 @@ import se.partee71.dagboken.ui.diagram.MinMaxCaption
 import se.partee71.dagboken.ui.diagram.SparklineChart
 import se.partee71.dagboken.ui.diagram.StackSegment
 import se.partee71.dagboken.ui.diagram.StackedBarChart
+import se.partee71.dagboken.ui.diagram.sleepStageSegments
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
@@ -174,6 +175,7 @@ private fun Rows() {
         ItemRow("Alvedon 500 mg", subtitle = "Minst 4 h mellan · högst 8 per dag", navigates = true, onClick = {}, trailing = { FavoriteStar("Alvedon", favorite, { favorite = !favorite }) })
     }
     NoticeBanner("Kåvepenin slutar i morgon. Höjningen av Sertralin slutar i morgon – sedan 50 mg.", R.drawable.ic_bell, {})
+    NoticeBanner("Health Connect saknas", R.drawable.ic_clock, onClick = null, detail = "Klockans data visas när Health Connect är kopplat.")
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
         InfoPill("Mediciner")
         InfoPill("Klar", tone = Tone.Positive)
@@ -383,7 +385,7 @@ private fun Diagrams() {
     Label("IntervalBarChart")
     AppCard { IntervalBarChart(GalleryCharts.energySpans, xLabels = GalleryCharts.days7, label = "Energi (dag)") }
     Label("StackedBarChart")
-    AppCard { StackedBarChart(GalleryCharts.sleep, galleryStages(), xLabels = GalleryCharts.days7, label = "Sömnstadier") }
+    AppCard { StackedBarChart(GalleryCharts.sleep, sleepStageSegments(), xLabels = GalleryCharts.days7, label = "Sömnstadier") }
     Label("StackedBarChart · staplar, linje och fält (Händelser och sjukdom)")
     AppCard {
         StackedBarChart(
@@ -400,18 +402,6 @@ private fun Diagrams() {
     Label("MinMaxCaption · tomt läge")
     MinMaxCaption(3f, 8f, average = 6.2f, trend = TrendDirection.RISING)
     AppCard { LineChart(listOf(ChartSeries("Vilopuls", listOf(null, 58f, null))), label = "Vilopuls") }
-}
-
-/** Sömnstadierna nerifrån och upp enligt TRD-16 (djup, REM, lätt, vaken), färger ur temat. */
-@Composable
-internal fun galleryStages(): List<StackSegment> {
-    val stages = AppColors.extended.sleepStages
-    return listOf(
-        StackSegment("Djup", stages.deep),
-        StackSegment("REM", stages.rem),
-        StackSegment("Lätt", stages.light),
-        StackSegment("Vaken", stages.awake),
-    )
 }
 
 /** Påhittade diagramdata för galleriet och dess skärmdumpar – luckor där inget loggats. */
