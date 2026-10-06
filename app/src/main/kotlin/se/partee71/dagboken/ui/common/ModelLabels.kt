@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OptionKind
@@ -48,6 +49,14 @@ fun OptionKind.label(): Int = when (this) {
     OptionKind.ACTIVITY -> R.string.lists_activities
     OptionKind.SYMPTOM -> R.string.symptoms
     OptionKind.EVENT -> R.string.lists_events
+}
+
+/** Trendens riktning som text ("Trend uppåt", TRD-13) – trendpillen under diagrammen och kortens sammanfattning i Trender. */
+@StringRes
+fun TrendDirection.label(): Int = when (this) {
+    TrendDirection.RISING -> R.string.chart_trend_rising
+    TrendDirection.FALLING -> R.string.chart_trend_falling
+    TrendDirection.FLAT -> R.string.chart_trend_flat
 }
 
 /** Sjukdomsepisodens namn – typen, eller "Sjukdom" utan typ (HEM-12, HIST-9): Idag och Dagbok. */

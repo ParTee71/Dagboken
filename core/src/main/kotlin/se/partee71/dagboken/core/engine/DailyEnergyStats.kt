@@ -4,6 +4,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import se.partee71.dagboken.core.model.Screening
+import se.partee71.dagboken.core.time.datesBetween
 
 /** En dags lägsta, genomsnittliga och högsta loggade screeningenergi. */
 data class DailyEnergyStats(
@@ -50,7 +51,7 @@ const val ENERGY_TREND_DAYS = 7
 
 /** De [count] dagarna till och med [last], äldst först – x-axeln i Idags 7-dagarstrend (HEM-7). */
 fun daysEnding(last: LocalDate, count: Int = ENERGY_TREND_DAYS): List<LocalDate> =
-    (count - 1 downTo 0).map { last.minus(it, DateTimeUnit.DAY) }
+    datesBetween(last.minus(count - 1, DateTimeUnit.DAY), last)
 
 /**
  * HEM-7: dagsvärdet ([DailyEnergyStats.avg] ur [computeDailyEnergyStats], samma som Trender, TRD-8) för

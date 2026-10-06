@@ -24,6 +24,8 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
@@ -187,6 +189,16 @@ class ComponentBehaviorTest {
         rule.onNodeWithText("Arkivera").performClick()
         assertEquals(1, archived)
         rule.onNodeWithText("Radera").assertDoesNotExist()
+    }
+
+    @Test
+    fun `en kryssrad i menyn läses som kryssruta, växlar och håller menyn öppen (TRD-12)`() {
+        var toggled = 0
+        show { AppMenu(listOf(AppMenuItem("Frukost", { toggled++ }, checked = true), AppMenuItem("Lunch", { toggled++ }, checked = false))) }
+        rule.onNodeWithContentDescription("Fler val").performClick()
+        rule.onNodeWithText("Frukost").assertIsOn().performClick()
+        assertEquals(1, toggled)
+        rule.onNodeWithText("Lunch").assertIsOff().assertIsDisplayed()
     }
 
     @Test

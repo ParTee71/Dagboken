@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.Tone
 
 /**
  * Diagrammens utseende på ett ställe (skill `diagram`, Papper och teal): alla färger kommer ur temat
@@ -20,6 +21,8 @@ import se.partee71.dagboken.ui.theme.AppTypography
  * - [previous]: föregående period, grå och nedtonad (TRD-18) när diagrammet har en serie.
  * - [today]/[todayRing]: dagens punkt i sparklinen – solgul med mörk ring, som i datumremsan.
  * - [grid], [axis], [label]: värdelinjer, axellinje och axeletiketter.
+ * - [band]: ett tonat fält över några dagar (en sjukdomsepisod i Händelser och sjukdom, TRD-21) – varningstonens
+ *   yta, så svag att staplar och kurva syns igenom.
  */
 @Immutable
 internal data class ChartColors(
@@ -32,6 +35,7 @@ internal data class ChartColors(
     val grid: Color,
     val axis: Color,
     val label: Color,
+    val band: Color,
 )
 
 internal val chartColors: ChartColors
@@ -48,6 +52,7 @@ internal val chartColors: ChartColors
             grid = scheme.outlineVariant,
             axis = scheme.outlineVariant,
             label = scheme.onSurfaceVariant,
+            band = AppColors.tone(Tone.Warning).content.copy(alpha = BAND_ALPHA),
         )
     }
 
@@ -59,12 +64,17 @@ internal val chartLabelStyle: TextStyle
 /** En annan series färg på kurvan i ett diagram med flera serier: nedtonad för föregående period. */
 internal fun Color.previousPeriod(): Color = copy(alpha = alpha * PREVIOUS_ALPHA)
 
+/** Fältets ruta i teckenförklaringen: samma ton som fältet men tät nog att synas mot kortet. */
+internal fun Color.bandSwatch(): Color = copy(alpha = BAND_SWATCH_ALPHA)
+
 /** Spannets stapel i intervalldiagrammet (min–max) – 35 % av dagsvärdets färg. */
 internal fun Color.span(): Color = copy(alpha = SPAN_ALPHA)
 
 private const val FILL_ALPHA = 0.28f
 private const val PREVIOUS_ALPHA = 0.55f
 private const val SPAN_ALPHA = 0.35f
+private const val BAND_ALPHA = 0.14f
+private const val BAND_SWATCH_ALPHA = 0.4f
 
 /** Ritytans höjd för linje- och stapeldiagram, och för sparklinen på Idag. */
 internal val CHART_HEIGHT: Dp = 200.dp

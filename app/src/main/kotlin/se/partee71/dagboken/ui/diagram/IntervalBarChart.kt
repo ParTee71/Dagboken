@@ -4,9 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import kotlin.math.roundToInt
@@ -80,31 +78,8 @@ fun IntervalBarChart(
                     cap = StrokeCap.Round,
                 )
             }
-            // Dagsvärdena som mjuk kurva (S-kurva som Vicos kubiska), bruten vid en lucka (TRD-8).
-            val curve = Path()
-            var open = false
-            var previous = Offset.Zero
-            points.forEachIndexed { i, point ->
-                if (point == null) {
-                    open = false
-                    return@forEachIndexed
-                }
-                val p = Offset(viewport.xOf(i), viewport.yOf(point.value))
-                if (open) {
-                    val midX = (previous.x + p.x) / 2f
-                    curve.cubicTo(midX, previous.y, midX, p.y, p.x, p.y)
-                } else {
-                    curve.moveTo(p.x, p.y)
-                    open = true
-                }
-                previous = p
-            }
-            drawPath(curve, curveColor, style = Stroke(width = LINE_WIDTH.toPx(), cap = StrokeCap.Round))
-            // Dagsvärdets punkt överst.
-            points.forEachIndexed { i, point ->
-                if (point == null) return@forEachIndexed
-                drawCircle(checkNotNull(dayColors[i]), radius = INTERVAL_DOT_RADIUS.toPx(), center = Offset(viewport.xOf(i), viewport.yOf(point.value)))
-            }
+            // Dagsvärdena som mjuk kurva, bruten vid en lucka (TRD-8), med dagsvärdets punkt överst.
+            drawSmoothCurve(points.map { it?.value }, viewport, curveColor) { i -> dayColors[i] }
         }
     }
 }

@@ -152,10 +152,6 @@
     <string name="tab_trends">Trender</string>
     <string name="tab_medicines">Mediciner</string>
     <string name="tab_upcoming_title">Snart här</string>
-    <string name="tab_today_upcoming">Här samlas dagens mediciner, mående, vid behov och hälsa.</string>
-    <string name="tab_diary_upcoming">Här visas allt du loggat, dag för dag, med kalender och filter.</string>
-    <string name="tab_trends_upcoming">Här följer du mående, klockans mått och jämförelser över tid.</string>
-    <string name="tab_medicines_upcoming">Här hanterar du recept, scheman och vid behov-mediciner.</string>
 
     <!-- Inställningsarket bakom avataren (NAV-9) -->
     <string name="account_open">Konto och inställningar</string>
@@ -484,6 +480,7 @@
     <string name="chart_previous_format">%1$s (föregående)</string>
     <string name="chart_open_trends">Visa i Trender</string>
     <string name="chart_choose">Välj</string>
+    <string name="chart_caption_scope_format">%1$s: %2$s</string>
     <string name="chart_a11y_default_label">Diagram</string>
     <string name="chart_a11y_empty">%1$s: för lite data än</string>
     <string name="chart_a11y_summary">%1$s: %2$s, lägsta %3$s, högsta %4$s, senaste %5$s, %6$s</string>
@@ -506,4 +503,42 @@
     <string name="chart_a11y_trend_falling">fallande trend</string>
     <string name="chart_a11y_trend_flat">oförändrad trend</string>
     <string name="chart_a11y_trend_unknown">ingen trend</string>
+
+    <!-- Trender (TRD-1, TRD-3, TRD-12, TRD-14, TRD-18, TRD-19, TRD-21) -->
+    <string name="trends_group_mood">Mående</string>
+    <string name="trends_group_watch">Klocka</string>
+    <string name="trends_group_compare">Jämför</string>
+    <string name="trends_watch_upcoming">Här kommer klockans mått – steg, puls, sömn och mer – med Health Connect-status.</string>
+    <string name="trends_compare_upcoming">Här kommer du att kunna lägga två serier ur hela appen bredvid varandra.</string>
+    <string name="trends_card_energy_day">Energi per dag</string>
+    <string name="trends_card_energy_occasion">Energi per tillfälle</string>
+    <string name="trends_card_stress">Stress och belastning</string>
+    <string name="trends_card_events">Händelser och sjukdom</string>
+    <string name="trends_range_7_days">7 dagar</string>
+    <string name="trends_range_14_days">14 dagar</string>
+    <string name="trends_range_month">Månad</string>
+    <string name="trends_range_3_months">3 månader</string>
+    <string name="trends_range_all">Allt</string>
+    <string name="trends_show">Visa:</string>
+    <string name="trends_no_series">–</string>
+    <string name="trends_pick_series">Välj minst en dataserie</string>
+    <string name="trends_previous_period">Föregående period</string>
+    <string name="trends_series_stress">Stress</string>
+    <string name="trends_series_somatic">Somatiska</string>
+    <string name="trends_series_recovering">Återhämtande</string>
+    <string name="trends_series_drain">Energitjuv</string>
+    <string name="trends_events_hint">Logga en händelse eller en sjukdom så syns de här.</string>
+    <string name="trends_legend_events">Händelser</string>
+    <string name="trends_legend_checkins">Incheckningar</string>
+    <plurals name="trends_event_count">
+        <item quantity="one">%d händelse</item>
+        <item quantity="other">%d händelser</item>
+    </plurals>
+    <plurals name="trends_series_count">
+        <item quantity="one">%d serie vald</item>
+        <item quantity="other">%d serier valda</item>
+    </plurals>
+    <string name="trends_average_format">snitt %1$s</string>
+    <string name="trends_episode_ongoing_format">%1$s %2$s – pågår</string>
+    <string name="trends_episode_ended_format">%1$s %2$s – %3$s</string>
 </resources>

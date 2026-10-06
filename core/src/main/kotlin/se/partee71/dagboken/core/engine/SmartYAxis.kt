@@ -95,6 +95,19 @@ fun gridValuesFor(minValue: Float, maxValue: Float, step: Float): List<Float> {
 fun xLabelStep(count: Int): Int = maxOf(1, count / MAX_X_LABELS)
 
 /**
+ * Var hur många x-positioner som får en etikett när etiketterna är [labelWidth] breda och ritytan [plotWidth]
+ * (samma enhet), med [gap] luft mellan två etiketter: aldrig glesare än nödvändigt, aldrig tätare än [xLabelStep]
+ * – så att "23 sep 25 sep 27 sep …" inte trängs i ett 14-dagarsdiagram (TRD-6).
+ */
+fun xLabelStepFitting(count: Int, labelWidth: Float, plotWidth: Float, gap: Float): Int {
+    val base = xLabelStep(count)
+    if (count <= 1 || labelWidth <= 0f || plotWidth <= 0f) return base
+    val slot = plotWidth / count
+    val needed = ceil((labelWidth + gap) / slot).toInt()
+    return maxOf(base, needed, 1)
+}
+
+/**
  * Y-axeln för ett diagram med flera serier (TRD-2, TRD-7): skalan räknas över alla seriers kända
  * värden **och** deras trendlinjers ändpunkter (TRD-13), så att en trendlinje aldrig klipps av
  * axeln. Luckor (`null`) räknas inte.
@@ -122,13 +135,15 @@ fun intervalAxisFor(points: List<IntervalPoint?>): SmartYAxis {
  * kapa de nedersta segmenten. (3.x räknade axeln utan noll men ritade staplarna från axelns botten,
  * så att en stapel kunde gå över axelns topp och värdelinjerna inte stämde med segmenten.)
  */
-fun stackedAxisFor(points: List<StackedPoint>): SmartYAxis {
+fun stackedAxisFor(points: List<StackedPoint>, line: List<Float?> = emptyList()): SmartYAxis {
     val totals = stackTotals(points)
     val trend = trendSegment(totals)?.let { listOf(it.startY, it.endY) }.orEmpty()
-    val axis = computeSmartYAxis(listOf(0f) + totals.filterNotNull() + trend)
+    // En linje ovanpå staplarna (TRD-21: incheckningarnas svårighet) räknas in i skalan; den ritas utan trend.
+    val lineValues = line.filterNotNull()
+    val axis = computeSmartYAxis(listOf(0f) + totals.filterNotNull() + trend + lineValues)
     // Marginalen under noll betyder ingenting för en längd; noll är en multipel av steget, så
     // värdelinjerna landar fortfarande exakt på gränserna.
-    val start = if (totals.all { it == null || it >= 0f }) maxOf(0f, axis.range.start) else axis.range.start
+    val start = if ((totals + line).all { it == null || it >= 0f }) maxOf(0f, axis.range.start) else axis.range.start
     return axis.copy(range = start..axis.range.endInclusive)
 }
 
