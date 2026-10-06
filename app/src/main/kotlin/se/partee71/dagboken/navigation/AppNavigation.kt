@@ -31,6 +31,7 @@ import se.partee71.dagboken.ui.settings.ProfileRoute
 import se.partee71.dagboken.ui.settings.RemindersRoute
 import se.partee71.dagboken.ui.settings.ThemeRoute
 import se.partee71.dagboken.ui.sync.SyncViewModel
+import se.partee71.dagboken.ui.today.TodayRoute
 
 /** Arken som ligger över flikarna: inställningsarket bakom avataren (NAV-9) och loggmenyn bakom plusknappen (NAV-10). */
 enum class RootSheet { Account, Log }
@@ -120,7 +121,7 @@ fun RootSheets(
 
 /**
  * Vilken skärm varje nyckel visar – varje nyckel har en (`AppNavigationTest`). Flikarna visar en
- * platshållare tills de byggs i etapp 5 (Mediciner är byggd); [onAccount] är avataren uppe till höger (NAV-9) med
+ * platshållare tills de byggs i etapp 5 (Idag och Mediciner är byggda); [onAccount] är avataren uppe till höger (NAV-9) med
  * [account]s namn och foto. En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
  * andra tryck inte stänger skärmen under. Inställningsarkets underskärmar läggs på den aktuella
  * flikens stack.
@@ -128,7 +129,7 @@ fun RootSheets(
 fun appEntries(backStack: AppBackStack, account: () -> AuthUser?, onAccount: () -> Unit): (AppKey) -> NavEntry<AppKey> =
     // Varje nyckel har sin skärm (AppKey är förseglad); en saknad är ett programfel.
     entryProvider(fallback = { key -> error("Ingen skärm för $key") }) {
-        entry<TodayKey> { TabPlaceholderScreen(TodayKey, account(), onAccount) }
+        entry<TodayKey> { TodayRoute(account(), onAccount, onEditPrn = { id -> backStack.push(PrnMedicineEditKey(id)) }) }
         entry<DiaryKey> { TabPlaceholderScreen(DiaryKey, account(), onAccount) }
         entry<TrendsKey> { TabPlaceholderScreen(TrendsKey, account(), onAccount) }
         entry<MedicinesKey> {

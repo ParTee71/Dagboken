@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
@@ -21,6 +22,14 @@ import kotlinx.datetime.toLocalDateTime
 /** Timmen just nu, och igen vid varje ny hel timme (temat, SET-2). */
 fun Clock.hours(zone: () -> TimeZone): Flow<Int> = ticks(zone, { it.hour }) { now, _ ->
     (SECONDS_PER_HOUR - now.minute * SECONDS_PER_MINUTE - now.second).seconds
+}
+
+/**
+ * Klockslaget just nu i hela minuter, och igen vid varje ny minut (Idag: "Snart" och "Försenat",
+ * hälsningen och dagbytet vid midnatt kommer ur samma flöde).
+ */
+fun Clock.minutes(zone: () -> TimeZone): Flow<LocalDateTime> = ticks(zone, { LocalDateTime(it.date, LocalTime(it.hour, it.minute)) }) { now, _ ->
+    (SECONDS_PER_MINUTE - now.second).seconds
 }
 
 /** Dagen idag, och igen vid varje midnatt (Mediciner: dagens dos, periodslut, avslutade). */

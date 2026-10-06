@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.res.stringResource
 import java.time.format.DateTimeFormatter
+import java.time.temporal.IsoFields
 import java.util.Locale
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
@@ -20,6 +21,7 @@ object DateFormat {
     private val monthYear = DateTimeFormatter.ofPattern("LLLL yyyy", swedish)
     private val weekdayName = DateTimeFormatter.ofPattern("EEE", swedish)
     private val weekdayFull = DateTimeFormatter.ofPattern("EEEE", swedish)
+    private val dayMonth = DateTimeFormatter.ofPattern("EEEE d MMMM", swedish)
     private const val DAY_MILLIS = 86_400_000L
 
     /** "lör 19 dec 2026" – utan punkterna som svensk CLDR sätter efter förkortningar. */
@@ -39,6 +41,12 @@ object DateFormat {
 
     /** "måndag" – veckodagens hela namn (receptformulärets valda dagar). */
     fun weekdayLong(day: DayOfWeek): String = weekdayFull.format(java.time.DayOfWeek.of(day.isoDayNumber))
+
+    /** "Söndag 4 oktober" – Idags rubrikrad (HEM-2), med stor bokstav först. */
+    fun dayAndMonth(date: LocalDate): String = dayMonth.format(date.toJavaLocalDate()).replaceFirstChar { it.titlecase(swedish) }
+
+    /** ISO-veckans nummer (HEM-2): veckan börjar på måndag och vecka 1 har årets första torsdag. */
+    fun isoWeek(date: LocalDate): Int = date.toJavaLocalDate().get(IsoFields.WEEK_OF_WEEK_BASED_YEAR)
 
     /** "7" – dagen i månaden (en uppräkning av datum i samma månad: "6, 9, 12 okt"). */
     fun dayOfMonth(date: LocalDate): String = date.day.toString()

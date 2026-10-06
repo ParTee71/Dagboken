@@ -35,11 +35,13 @@ import se.partee71.dagboken.ui.theme.Spacing
  * Framstegsraden (HEM-18): hur många av dagens [total] poster som är klara ([done]), som text ("4 av 9
  * klara") och som ett spår som fylls animerat i teal. När allt är klart blir fyllnaden solgul med en mörk kontur och texten
  * "9 av 9 · allt klart" (belöningsläget, HEM-19, DSN-4). TalkBack läser "x av y klara" och framsteget.
+ * [celebrate] = false håller raden i teal med "9 av 9 klara" även när allt är klart – belöningsläget gäller
+ * bara dagens datum (en tidigare dag på Idag).
  */
 @Composable
-fun ProgressBar(done: Int, total: Int, modifier: Modifier = Modifier) {
+fun ProgressBar(done: Int, total: Int, modifier: Modifier = Modifier, celebrate: Boolean = true) {
     val count = done.coerceIn(0, total.coerceAtLeast(0))
-    val complete = total > 0 && count == total
+    val complete = celebrate && total > 0 && count == total
     val fraction = if (total > 0) count.toFloat() / total else 0f
     val motion = MaterialTheme.motionScheme
     val animated by animateFloatAsState(fraction, motion.slowSpatialSpec(), label = "framsteg")

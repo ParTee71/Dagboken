@@ -116,6 +116,10 @@ private fun Buttons() {
         AppIconButton(R.drawable.ic_arrow_back, "Tillbaka", {}, variant = IconButtonVariant.Tonal)
         AppIconButton(R.drawable.ic_add, "Lägg till", {}, variant = IconButtonVariant.Tonal)
         AppMenu(sampleMenu())
+        AppMenu(
+            listOf(AppMenuItem("Loratadin 10 mg", {}), AppMenuItem("Betapred 0,5 mg", {}, section = "Recept")),
+            contentDescription = "Fler, med avdelning",
+        )
     }
     AddSplitButton("Lägg till", {}, menuItems = listOf(AppMenuItem("Logga dos i efterhand", {}), AppMenuItem("Visa avslutade", {})))
     AddSplitButton("Ny vid behov-medicin", {})
@@ -156,6 +160,10 @@ private fun Rows() {
         CheckRow("Metformin 500 mg", taken, { taken = it }, subtitle = "12:00 · 2 tabletter", trailing = { InfoPill("Lunch", tone = Tone.Neutral) })
         CheckRow("Omega-3", true, {}, subtitle = "08:00 · 2 kapslar")
         CheckRow("Ipren 400 mg", false, {}, subtitle = "vid behov · tidigast 14:30", onClick = {}, accent = AppColors.swatch(2), trailing = { InfoPill("Snart", tone = Tone.Sun) })
+        CheckRow(
+            "D-vitamin 20 µg", false, {}, subtitle = "Förmiddag · 10:00", note = "Tas med mat.",
+            menu = listOf(AppMenuItem("Hoppa över", {}, R.drawable.ic_close)), below = { InfoPill("Försenat", tone = Tone.Warning) },
+        )
         AppDivider()
         SwitchRow("Medicinpåminnelser", reminders, { reminders = it }, subtitle = "6 tider om dagen")
         SwitchRow("Måendepåminnelse", reminders, { reminders = it }, subtitle = "Frukost · 08:00", onClick = {})
@@ -212,6 +220,7 @@ private fun Fields() {
     }
     FieldError("Ingen anslutning just nu. Det du sparar skickas när nätet är tillbaka.")
     AppFilterChip("Sjukdom", selected = false, onClick = {}, enabled = false)
+    AppFilterChip("Alvedon 500 mg", selected = false, onClick = {}, icon = R.drawable.ic_note, onLongClick = {}, onLongClickLabel = "Fler val")
     ExampleChips(listOf("Promenad", "Yoga", "Städning"), {}, chosen = "Promenad")
     AppSegmentedChoice(listOf("Ljust", "Mörkt", "Auto"), theme, { theme = it })
     QuantityStepper(minutes, { minutes = it }, "minuter")
@@ -326,6 +335,7 @@ private fun Today() {
     )
     Label("ProgressBar")
     ProgressBar(done, GALLERY_TOTAL)
+    ProgressBar(GALLERY_TOTAL, GALLERY_TOTAL, celebrate = false)
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
         AppButton("Bocka av", { done = (done + 1).coerceAtMost(GALLERY_TOTAL) }, variant = ButtonVariant.Secondary)
         AppButton("Börja om", { done = 0 }, variant = ButtonVariant.Text)
