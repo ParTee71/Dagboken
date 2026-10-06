@@ -6,6 +6,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -63,7 +64,9 @@ data class EmptyExample(val label: String, val onClick: () -> Unit)
 /**
  * En grupp i en grupperad lista: rubrik, valfri ikon och ton. [count] ersätter antalet rader i
  * rubriken ("3 / 6" klara); [columns] = 2 lägger raderna i två kolumner (t.ex. vid behov-medicinerna);
- * [collapsible] gör gruppen hopfälld tills rubriken trycks ("Dolda").
+ * [collapsible] gör gruppen hopfälld tills rubriken trycks ("Dolda"). [cards] = true för postkort
+ * (`DagbokenEntryCard`, t.ex. recepten): varje rad är ett eget kort och rubriken står på bakgrunden
+ * ovanför dem, i stället för att gruppen är ett kort med rader.
  */
 data class ListGroup(
     val title: String,
@@ -72,6 +75,7 @@ data class ListGroup(
     val count: String? = null,
     val columns: Int = 1,
     val collapsible: Boolean = false,
+    val cards: Boolean = false,
 )
 
 /** En undergrupp inom en grupp: namn i en egen färg (t.ex. ett doseringstillfälle). */
@@ -209,7 +213,7 @@ private fun <T> ListContent(
             val open = head == null || !head.collapsible || head.title in expanded
             head?.let {
                 item(key = "header:${it.title}") {
-                    CardSegment(top = true, bottom = !open, Modifier.animateItem()) {
+                    Segment(it.cards, top = true, bottom = !open, Modifier.animateItem(), first = true) {
                         GroupHeader(it, rows.size, open) { expanded = if (open) expanded - it.title else expanded + it.title }
                     }
                 }
@@ -228,6 +232,7 @@ private fun <T> LazyListScope.groupRows(
     row: @Composable (T) -> Unit,
 ) {
     val columns = head?.columns ?: 1
+    val cards = head?.cards == true
     val runs = if (subgroup == null) listOf(null to rows) else rows.runsBy(subgroup)
     // Undergruppens nyckel är dess rubrik (och ordningsnummer om samma namn finns två gånger) –
     // inte första radens, som byts när en rad prickas av och flyttas sist.
@@ -241,11 +246,11 @@ private fun <T> LazyListScope.groupRows(
         val bottom = position == lines.lastIndex
         when (line) {
             is Line.Label -> item(key = "sub:${head?.title}:${line.id}") {
-                CardSegment(top = top, bottom = bottom, Modifier.animateItem()) { SubgroupLabel(line.subgroup) }
+                Segment(cards, top = top, bottom = bottom, Modifier.animateItem()) { SubgroupLabel(line.subgroup) }
             }
             // Nycklar måste kunna sparas i en Bundle: en rad har sin egen, flera i kolumner en sammansatt sträng.
             is Line.Rows -> item(key = line.members.singleOrNull()?.let(key) ?: line.members.joinToString("|") { key(it).toString() }) {
-                CardSegment(top = top, bottom = bottom, Modifier.animateItem()) {
+                Segment(cards, top = top, bottom = bottom, Modifier.animateItem()) {
                     if (columns == 1) {
                         row(line.members.single())
                     } else {
@@ -257,6 +262,19 @@ private fun <T> LazyListScope.groupRows(
                 }
             }
         }
+    }
+}
+
+/**
+ * En bit av en grupp: i ett kort ([CardSegment]) eller – för en grupp av postkort ([ListGroup.cards]) –
+ * direkt på bakgrunden, med kortavstånd ovanför allt utom rubriken ([first]).
+ */
+@Composable
+private fun Segment(cards: Boolean, top: Boolean, bottom: Boolean, modifier: Modifier, first: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    if (cards) {
+        Column(modifier.padding(top = if (first) 0.dp else Spacing.s), content = content)
+    } else {
+        CardSegment(top = top, bottom = bottom, modifier, content = content)
     }
 }
 

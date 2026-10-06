@@ -5,6 +5,8 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.res.stringResource
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toJavaLocalDate
@@ -29,7 +31,10 @@ object DateFormat {
     fun month(date: LocalDate): String = monthYear.format(date.toJavaLocalDate())
 
     /** "mån" – kortnamnet på dagens veckodag, utan punkt. */
-    fun weekdayShort(date: LocalDate): String = weekdayName.format(date.toJavaLocalDate()).replace(".", "")
+    fun weekdayShort(date: LocalDate): String = weekdayShort(date.dayOfWeek)
+
+    /** "mån" – veckodagens kortnamn, utan punkt (t.ex. ett recepts veckodagar). */
+    fun weekdayShort(day: DayOfWeek): String = weekdayName.format(java.time.DayOfWeek.of(day.isoDayNumber)).replace(".", "")
 
     /** "07:00" – 24 timmar, alltid två siffror. */
     fun time(time: LocalTime): String = "%02d:%02d".format(Locale.ROOT, time.hour, time.minute)

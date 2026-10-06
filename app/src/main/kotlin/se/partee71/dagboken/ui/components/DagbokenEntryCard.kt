@@ -48,10 +48,13 @@ import se.partee71.dagboken.ui.theme.Spacing
  *   alltid med [ConfirmDialog] – samma dialog som menyns Radera, så ingen åtgärd finns bara via svep;
  * - svep från vänster till höger är reserverat och gör ingenting.
  *
- * Trailing-delen har fast ordning: [status] (värdechip eller en enda direktkontroll), anteckningsikonen
- * när [note] har text, chevronen när [expandedContent] finns (fäller ut detaljerna), `⋮`. [accent] är
+ * Trailing-delen har fast ordning: [toggle] (postkortets enda direktkontroll, t.ex. receptets
+ * aktiv-reglage – dubbleras som menyval av anroparen), [status] (värdechip), anteckningsikonen när
+ * [note] har text, chevronen när [expandedContent] finns (fäller ut detaljerna), `⋮`. [accent] är
  * en statusfärg i vänsterkanten (energi, aktiv/inaktiv, pågående) – aldrig dekoration – och
- * [inactive] tonar ner en avslutad eller pausad post.
+ * [inactive] tonar ner en avslutad eller pausad post (inte reglaget, som ska gå att slå på igen).
+ * [below] står under titel och undertext, t.ex. pills för dagens dos och period. Med [toggle] står
+ * titeln på hela bredden överst och undertexten bredvid kontrollerna, så att titeln inte trycks ihop.
  */
 @Composable
 fun DagbokenEntryCard(
@@ -68,6 +71,8 @@ fun DagbokenEntryCard(
     actions: List<AppMenuItem> = emptyList(),
     delete: DeleteAction? = null,
     inactive: Boolean = false,
+    toggle: EntryToggle? = null,
+    below: (@Composable () -> Unit)? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -87,6 +92,8 @@ fun DagbokenEntryCard(
             menuOpen = menuOpen,
             onMenuOpenChange = { menuOpen = it },
             inactive = inactive,
+            toggle = toggle,
+            below = below,
         )
     }
     if (delete == null) card(modifier) else SwipeToDelete({ confirmDelete = true }, modifier) { card(Modifier) }
@@ -104,6 +111,9 @@ fun DagbokenEntryCard(
         )
     }
 }
+
+/** Postkortets direktkontroll (NFR-16): ett reglage, läst av TalkBack som [label]. */
+data class EntryToggle(val checked: Boolean, val onCheckedChange: (Boolean) -> Unit, val label: String)
 
 /** Menyn i ordningen NFR-16: Redigera, det kontextspecifika, Radera sist. */
 @Composable
@@ -128,6 +138,8 @@ private fun EntryCardBody(
     menuOpen: Boolean,
     onMenuOpenChange: (Boolean) -> Unit,
     inactive: Boolean,
+    toggle: EntryToggle?,
+    below: (@Composable () -> Unit)?,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     AppCard(
@@ -141,6 +153,9 @@ private fun EntryCardBody(
             )
             .accentBar(accent),
     ) {
+        // Med reglage blir trailing-delen bred (reglage, anteckning, chevron, ⋮): titeln får då hela
+        // bredden ovanför, och undertexten står bredvid kontrollerna – titeln trycks aldrig ihop.
+        if (toggle != null) RowText(title, null, Modifier.inactive(inactive).padding(start = Spacing.xs))
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
             Row(
                 Modifier.weight(1f).inactive(inactive).padding(start = Spacing.xs),
@@ -148,8 +163,9 @@ private fun EntryCardBody(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.m),
             ) {
                 leading?.invoke()
-                RowText(title, subtitle)
+                RowText(title.takeIf { toggle == null }, subtitle)
             }
+            toggle?.let { SwitchControl(it.checked, it.onCheckedChange, label = it.label) }
             status?.invoke()
             NoteIndicator(note, title)
             if (expandedContent != null) ExpandButton(expanded) { expanded = !expanded }
@@ -160,6 +176,7 @@ private fun EntryCardBody(
                 }
             }
         }
+        below?.let { Box(Modifier.inactive(inactive).padding(start = Spacing.xs)) { it() } }
         if (expandedContent != null) {
             ExpandableContent(expanded) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {

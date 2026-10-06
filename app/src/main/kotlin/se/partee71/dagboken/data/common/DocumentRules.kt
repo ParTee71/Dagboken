@@ -19,11 +19,14 @@ fun prepareForWrite(encoded: Doc, now: Instant): Doc = buildMap {
     for ((key, value) in encoded) {
         when {
             key == "updatedAt" -> put(key, now)
-            key == "createdAt" && value == null -> Unit
+            !isWrittenValue(key, value) -> Unit
             else -> put(key, value)
         }
     }
 }
+
+/** Om fältet [key] med [value] skrivs alls – inte ett `createdAt` utan värde ([prepareForWrite]). */
+fun isWrittenValue(key: String, value: Any?): Boolean = !(key == "createdAt" && value == null)
 
 /**
  * Fälten som en `update` skriver: [fields] och alltid `updatedAt`, som [prepareForWrite] satt –

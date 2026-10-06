@@ -159,7 +159,11 @@ private fun Rows() {
         AppDivider()
         SwitchRow("Medicinpåminnelser", reminders, { reminders = it }, subtitle = "6 tider om dagen")
         SwitchRow("Måendepåminnelse", reminders, { reminders = it }, subtitle = "Frukost · 08:00", onClick = {})
+        AppDivider()
+        var favorite by remember { mutableStateOf(true) }
+        ItemRow("Alvedon 500 mg", subtitle = "Minst 4 h mellan · högst 8 per dag", navigates = true, onClick = {}, trailing = { FavoriteStar("Alvedon", favorite, { favorite = !favorite }) })
     }
+    NoticeBanner("Kåvepenin slutar i morgon. Höjningen av Sertralin slutar i morgon – sedan 50 mg.", R.drawable.ic_bell, {})
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
         InfoPill("Mediciner")
         InfoPill("Klar", tone = Tone.Positive)
@@ -230,6 +234,17 @@ private fun Diary() {
         delete = DeleteAction("Radera Promenad?", "Posten tas bort för gott. Det går inte att ångra.") { deleted = true },
     )
     DagbokenEntryCard("Prednisolon 5 mg", onClick = {}, subtitle = "Avslutat 30 sep", inactive = true, onEdit = {})
+    var active by remember { mutableStateOf(true) }
+    DagbokenEntryCard(
+        "Sertralin 50 mg",
+        onClick = {},
+        subtitle = "Morgon · dagligen · tills vidare",
+        accent = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+        onEdit = {},
+        inactive = !active,
+        toggle = EntryToggle(active, { active = it }, "Sertralin aktivt"),
+        below = { InfoPill("Idag 75 mg (+25)") },
+    )
     if (deleted) Text("Raderad", style = AppTypography.itemSubtitle)
     var expanded by remember { mutableStateOf(true) }
     AppCard {

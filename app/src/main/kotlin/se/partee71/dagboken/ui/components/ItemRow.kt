@@ -123,12 +123,12 @@ internal fun ItemRowLayout(
 
 /**
  * Titel och undertext i en listrad och ett postkort – en gång (regel 4, NFR-17): titeln högst två
- * rader, undertexten hela, med samma avstånd. [done] stryker över och dämpar (avbockad), [titleHighlight]
+ * rader, undertexten hela, med samma avstånd; `null` som titel ger bara undertexten (postkortet med reglage). [done] stryker över och dämpar (avbockad), [titleHighlight]
  * färgmarkerar en del av titeln.
  */
 @Composable
 internal fun RowText(
-    title: String,
+    title: String?,
     subtitle: String?,
     modifier: Modifier = Modifier,
     done: Boolean = false,
@@ -137,7 +137,7 @@ internal fun RowText(
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val decoration = if (done) TextDecoration.LineThrough else null
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(
+        if (title != null) Text(
             highlighted(title, titleHighlight),
             style = AppTypography.itemTitle,
             color = if (done) muted else MaterialTheme.colorScheme.onSurface,

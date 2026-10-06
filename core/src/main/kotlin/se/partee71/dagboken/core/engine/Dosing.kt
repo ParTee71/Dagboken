@@ -34,6 +34,16 @@ fun Period.covers(date: LocalDate): Boolean {
 fun Prescription.hasExpiredOn(today: LocalDate): Boolean = period.end?.let { today > it } ?: false
 
 /**
+ * REC-8: de aktiva recepten delade på om perioden passerats sett från [today] – `first` ska avslutas
+ * (bara `active = false`), `second` gäller fortfarande. Regeln finns bara här.
+ */
+fun List<Prescription>.activeByExpiryOn(today: LocalDate): Pair<List<Prescription>, List<Prescription>> =
+    filter { it.active }.partition { it.hasExpiredOn(today) }
+
+/** REC-8: de aktiva recepten vars period passerats – första halvan av [activeByExpiryOn]. */
+fun List<Prescription>.toDeactivateOn(today: LocalDate): List<Prescription> = activeByExpiryOn(today).first
+
+/**
  * Dagen intervallet räknas från (REC-4): periodens start, annars skapandedagen (3.x `periodStart` =
  * `startDatum.ifBlank { skapad }`). `null` när receptet saknar båda.
  *

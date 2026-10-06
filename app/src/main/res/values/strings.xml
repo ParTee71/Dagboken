@@ -225,9 +225,73 @@
     <string name="option_rename_help">Det nya namnet syns även i det du redan loggat.</string>
     <string name="option_name_missing">Ange ett namn</string>
     <string name="option_name_duplicate">Finns redan i listan</string>
-    <string name="option_favorite_add">Markera %s som favorit</string>
-    <string name="option_favorite_remove">Ta bort %s som favorit</string>
+    <string name="favorite_add">Markera %s som favorit</string>
+    <string name="favorite_remove">Ta bort %s som favorit</string>
+    <string name="favorite_on">Favorit</string>
+    <string name="favorite_off">Inte favorit</string>
     <string name="option_archived">Arkiverad</string>
+
+    <!-- Mediciner (MEDF-1–5, REC-5, REC-12, REC-13, FAV-1, FAV-3–5, SET-10) -->
+    <string name="medicines_prescriptions">Recept och scheman</string>
+    <plurals name="medicines_active_count">
+        <item quantity="one">%d aktivt</item>
+        <item quantity="other">%d aktiva</item>
+    </plurals>
+    <string name="medicines_as_needed">Vid behov</string>
+    <string name="medicines_ended">Avslutade recept</string>
+    <string name="medicines_empty_title">Inga mediciner än</string>
+    <string name="medicines_empty_message">Lägg till ett recept med schema, eller en medicin du tar vid behov.</string>
+    <string name="medicines_new_prescription">Nytt recept</string>
+    <string name="medicines_new_prn">Ny vid behov-medicin</string>
+    <string name="medicines_activate">Aktivera</string>
+    <string name="medicines_deactivate">Avaktivera</string>
+    <string name="medicines_active_format">%s aktivt</string>
+    <string name="delete_named_title">Radera %s?</string>
+    <string name="medicines_delete_prescription_message">Receptet tas bort för gott. Doser du redan loggat finns kvar.</string>
+    <string name="medicines_ends_today">%s slutar idag.</string>
+    <string name="medicines_ends_tomorrow">%s slutar i morgon.</string>
+    <string name="medicines_boost_ends_today">Höjningen av %1$s slutar idag – sedan %2$s.</string>
+    <string name="medicines_boost_ends_tomorrow">Höjningen av %1$s slutar i morgon – sedan %2$s.</string>
+    <string name="medicines_pill_today_boost">Idag %1$s (+%2$s)</string>
+    <string name="medicines_pill_boost">Höjning %s</string>
+    <string name="medicines_pill_period">Period %s</string>
+    <string name="medicines_pill_ends_today">Slutar idag</string>
+    <string name="medicines_pill_ends_tomorrow">Slutar i morgon</string>
+    <string name="medicines_pill_ended">Avslutat %s</string>
+    <string name="medicines_boosts">Doshöjningar</string>
+    <string name="medicines_boost_line">%1$s: +%2$s (totalt %3$s)</string>
+    <string name="date_range_format">%1$s – %2$s</string>
+    <string name="date_from_format">från %s</string>
+    <string name="date_until_format">t.o.m. %s</string>
+    <string name="until_further_notice">tills vidare</string>
+    <string name="repeat_daily">dagligen</string>
+    <string name="repeat_weekdays">vardagar</string>
+    <string name="repeat_weekends">helger</string>
+    <!-- Svenska ordningstal: :a efter 1 och 2 (utom 11, 12), annars :e – "var 2:a dag", "var 3:e dag" -->
+    <string name="repeat_interval_format">var %d:e dag</string>
+    <string name="repeat_interval_a_format">var %d:a dag</string>
+    <string name="repeat_unknown">okänd upprepning</string>
+    <string name="prn_min_hours_format">Minst %d h mellan</string>
+    <string name="prn_max_per_day_format">Högst %d per dag</string>
+    <string name="prn_both_limits_format">Minst %1$d h mellan · högst %2$d per dag</string>
+    <string name="prn_no_limit">Ingen gräns</string>
+    <string name="prescription_upcoming">Receptformuläret med schema, period och doshöjningar kommer snart.</string>
+    <string name="prescription_edit">Redigera recept</string>
+
+    <!-- Vid behov-formuläret (FAV-1, FAV-4, FAV-5, MEDF-4) -->
+    <string name="prn_edit">Redigera vid behov-medicin</string>
+    <string name="prn_unit">Enhet</string>
+    <string name="prn_min_hours">Minst mellan doser</string>
+    <string name="prn_min_hours_label">minsta tid mellan doser</string>
+    <string name="prn_min_hours_help">0 = ingen spärr. En ny dos stoppas tills tiden har gått.</string>
+    <string name="prn_hours_value">%d h</string>
+    <string name="prn_no_cooldown">Ingen spärr</string>
+    <string name="prn_max_per_day">Högst per dag</string>
+    <string name="prn_max_per_day_label">högst per dag</string>
+    <string name="prn_max_per_day_help">0 = obegränsat.</string>
+    <string name="prn_unlimited">Obegränsat</string>
+    <string name="prn_dose_missing">Ange en dos</string>
+    <string name="prn_delete_message">Vid behov-medicinen tas bort för gott. Doser du redan loggat finns kvar.</string>
 
     <!-- Export och import (BCK-13, SET-8) – funktionen kommer i #230 -->
     <string name="export_import_upcoming">Här sparar du hela dagboken till en fil och läser in en säkerhetskopia. Funktionen kommer snart.</string>
@@ -245,7 +309,8 @@
     <string name="log_menu_title">Logga</string>
     <string name="log_mood">Mående</string>
     <string name="log_activity">Aktivitet</string>
-    <string name="log_dose">Dos</string>
+    <!-- "Dos" – en gång: loggmenyn och vid behov-formuläret -->
+    <string name="dose_label">Dos</string>
     <string name="log_event">Händelse</string>
     <string name="log_illness">Sjukdom</string>
 

@@ -9,7 +9,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import se.partee71.dagboken.data.ContractItem
+import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.data.common.DataError
 
 class ListLoaderTest {
@@ -65,12 +66,12 @@ class ListLoaderTest {
 
     @Test
     fun `activeOnly döljer arkiverade`() = runTest {
-        val people = listOf(ContractItem("a", "Promenad"), ContractItem("b", "Yoga", archived = true))
+        val people = listOf(Option("a", OptionKind.ACTIVITY, "Promenad"), Option("b", OptionKind.ACTIVITY, "Yoga", archived = true))
         activeOnly(people).test {
             assertEquals(listOf("Promenad"), awaitItem().map { it.name })
             awaitComplete()
         }
     }
 
-    private fun activeOnly(people: List<ContractItem>) = flowOf(people).activeOnly()
+    private fun activeOnly(people: List<Option>) = flowOf(people).activeOnly()
 }

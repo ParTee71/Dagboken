@@ -18,7 +18,7 @@ import se.partee71.dagboken.data.auth.AuthUser
 enum class LogChoice(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Mood(R.string.log_mood, R.drawable.ic_mood),
     Activity(R.string.log_activity, R.drawable.ic_activity),
-    Dose(R.string.log_dose, R.drawable.ic_pill),
+    Dose(R.string.dose_label, R.drawable.ic_pill),
     Event(R.string.log_event, R.drawable.ic_event),
     Illness(R.string.log_illness, R.drawable.ic_thermometer),
 }

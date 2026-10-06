@@ -23,13 +23,13 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.core.engine.isDarkAt
 import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.data.auth.AuthRepository
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.dagboken.ui.common.hours
 
 /** Appens tema för `MainActivity` (SET-1, DSN-5). */
 sealed interface AppTheme {
@@ -68,7 +68,7 @@ class AppThemeViewModel @Inject constructor(
             if (uid == null) {
                 flowOf(AppTheme.System)
             } else {
-                combine(settings.settings.map<_, ThemeSettings?> { it.theme }.withFallback(null), hours()) { theme, hour ->
+                combine(settings.settings.map<_, ThemeSettings?> { it.theme }.withFallback(null), clock.hours { timeZone.get() }) { theme, hour ->
                     theme?.let { AppTheme.Chosen(it.isDarkAt(hour)) } ?: AppTheme.System
                 }
             }
@@ -93,20 +93,8 @@ class AppThemeViewModel @Inject constructor(
         .onEach { if (it != AppTheme.Loading) known = true }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), AppTheme.Loading)
 
-    /** Timmen just nu, och igen vid varje ny hel timme. */
-    private fun hours(): Flow<Int> = flow {
-        while (true) {
-            val now = clock.now().toLocalDateTime(timeZone.get()).time
-            emit(now.hour)
-            delay((SECONDS_PER_HOUR - now.minute * SECONDS_PER_MINUTE - now.second).seconds)
-        }
-    }.distinctUntilChanged()
-
     companion object {
         /** Längsta tid startskärmen väntar på temat. */
         val LOAD_TIMEOUT = 1.seconds
-
-        private const val SECONDS_PER_MINUTE = 60
-        private const val SECONDS_PER_HOUR = 3_600
     }
 }

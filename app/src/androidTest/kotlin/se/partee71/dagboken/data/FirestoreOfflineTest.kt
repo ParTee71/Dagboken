@@ -3,15 +3,23 @@ package se.partee71.dagboken.data
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.firebase.firestore.Source
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
+import kotlinx.datetime.LocalDate
+import kotlin.time.Duration.Companion.seconds
+import se.partee71.dagboken.core.model.Dose
+import se.partee71.dagboken.core.schema.DoseCodec
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.OptionKind
+import se.partee71.dagboken.core.schema.OptionCodec
 import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.dataError
@@ -39,10 +47,10 @@ class FirestoreOfflineTest {
     fun skrivning_offline_lyckas_direkt_syns_lokalt_och_synkas_nar_natet_kommer_tillbaka() = test {
         val user = emulator.newUser()
         val sync = FirebaseEmulator.sync()
-        val items = user.collection(TestUserScope(user.uid), ContractItemCodec, Paths.OPTIONS, { Paths.options(it!!) }, sync = sync)
+        val items = user.collection(TestUserScope(user.uid), OptionCodec, Paths.OPTIONS, { Paths.options(it!!) }, sync = sync)
         user.db.disableNetwork().await()
         try {
-            assertTrue(items.upsert(ContractItem("a", "Promenad")).isSuccess)
+            assertTrue(items.upsert(Option("a", OptionKind.ACTIVITY, "Promenad")).isSuccess)
             assertEquals("Promenad", items.observe("a").first { it != null }?.name)
             assertTrue(sync.syncing.first { it })
         } finally {
@@ -78,6 +86,26 @@ class FirestoreOfflineTest {
         EnsureUserUseCase(user.directory(), FixedClock(kotlin.time.Instant.fromEpochSeconds(1)))(user.uid).getOrThrow()
         val again = user.db.document(Paths.user(user.uid)).get(Source.SERVER).await()
         assertEquals(created.getTimestamp("createdAt"), again.getTimestamp("createdAt"), "ett befintligt dokument skrivs inte över")
+    }
+
+    @Test
+    fun villkorade_skrivningar_och_serverlasning_utan_nat_ger_Offline_och_skriver_inget() = test {
+        // Som första inloggningen: en port utan lyssnare, eftersom transaktioner inte stoppas av
+        // disableNetwork(). Kort väntan, så att fyra anrop ryms i testets tidsgräns.
+        val user = emulator.newSignedInUser(firestorePort = FirebaseEmulator.OFFLINE_PORT)
+        val doses = user.collection(TestUserScope(user.uid), DoseCodec, Paths.DOSES, { Paths.doses(it!!) }, serverWait = 2.seconds)
+        val day = LocalDate(2026, 9, 21)
+        val planned = Dose("a", day, name = "Levaxin")
+        doses.upsert(planned).getOrThrow() // bara i cachen – servern nås aldrig
+
+        assertEquals(DataError.Offline, doses.confirmedFrom(DoseCodec.DATE, day.toString()).dataError())
+        assertEquals(DataError.Offline, doses.createIfAbsent(listOf(Dose("b", day, name = "Ny"))).dataError())
+        assertEquals(DataError.Offline, doses.deleteIf(listOf("a")) { true }.dataError())
+        assertEquals(DataError.Offline, doses.updateIf(listOf(planned.copy(name = "Annat")), setOf(DoseCodec.NAME)) { true }.dataError())
+
+        val local = user.db.collection(Paths.doses(user.uid))
+        assertEquals("Levaxin", local.document("a").get(Source.CACHE).await().getString("name"), "varken raderad eller ändrad")
+        assertFalse(local.document("b").get(Source.CACHE).await().exists(), "inget skapat, inget i kö")
     }
 
     @Test

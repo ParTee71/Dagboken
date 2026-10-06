@@ -20,6 +20,9 @@ import se.partee71.dagboken.ui.components.AccountSheet
 import se.partee71.dagboken.ui.components.ComponentGallery
 import se.partee71.dagboken.ui.components.LogMenuSheet
 import se.partee71.dagboken.ui.components.SettingsPage
+import se.partee71.dagboken.ui.medicines.MedicinesRoute
+import se.partee71.dagboken.ui.medicines.PrescriptionPlaceholderScreen
+import se.partee71.dagboken.ui.medicines.PrnMedicineEditRoute
 import se.partee71.dagboken.ui.settings.AboutRoute
 import se.partee71.dagboken.ui.settings.ExportImportScreen
 import se.partee71.dagboken.ui.settings.ListsRoute
@@ -117,7 +120,7 @@ fun RootSheets(
 
 /**
  * Vilken skärm varje nyckel visar – varje nyckel har en (`AppNavigationTest`). Flikarna visar en
- * platshållare tills de byggs i etapp 5; [onAccount] är avataren uppe till höger (NAV-9) med
+ * platshållare tills de byggs i etapp 5 (Mediciner är byggd); [onAccount] är avataren uppe till höger (NAV-9) med
  * [account]s namn och foto. En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
  * andra tryck inte stänger skärmen under. Inställningsarkets underskärmar läggs på den aktuella
  * flikens stack.
@@ -128,7 +131,16 @@ fun appEntries(backStack: AppBackStack, account: () -> AuthUser?, onAccount: () 
         entry<TodayKey> { TabPlaceholderScreen(TodayKey, account(), onAccount) }
         entry<DiaryKey> { TabPlaceholderScreen(DiaryKey, account(), onAccount) }
         entry<TrendsKey> { TabPlaceholderScreen(TrendsKey, account(), onAccount) }
-        entry<MedicinesKey> { TabPlaceholderScreen(MedicinesKey, account(), onAccount) }
+        entry<MedicinesKey> {
+            MedicinesRoute(
+                account(),
+                onAccount,
+                onOpenPrescription = { id -> backStack.push(PrescriptionEditKey(id)) },
+                onOpenPrn = { id -> backStack.push(PrnMedicineEditKey(id)) },
+            )
+        }
+        entry<PrescriptionEditKey> { key -> PrescriptionPlaceholderScreen(isNew = key.id == null, onBack = { backStack.popIfTop(key) }) }
+        entry<PrnMedicineEditKey> { key -> PrnMedicineEditRoute(key.id, onClose = { backStack.popIfTop(key) }) }
         entry<ComponentGalleryKey> { key -> ComponentGallery(onBack = { backStack.popIfTop(key) }) }
         entry<ProfileKey> { key -> ProfileRoute(onClose = { backStack.popIfTop(key) }) }
         entry<RemindersKey> { key -> RemindersRoute(onClose = { backStack.popIfTop(key) }) }

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.Sortable
+import se.partee71.dagboken.core.schema.DocCodec
 
 /**
  * En samling dokument av en modell – samma kontrakt för riktig Firestore
@@ -38,9 +39,11 @@ interface EntityCollection<T : Identified> {
      * Skriver bara [fields] ur [item], kodade som vid [upsert] – t.ex. en dos status – och
      * `updatedAt`. Varje fält ersätts helt (en map slås inte ihop). Andra fält som ändrats under
      * tiden (på en annan enhet, i ett annat formulär) skrivs inte över, och ett dokument som inte
-     * finns skapas inte. Ett fältnamn som codecen inte känner till är ett fel.
+     * finns skapas inte. Ett fältnamn som codecen inte känner till är ett fel. Toppfälten i [remove]
+     * tas bort ur dokumentet (Firestores `FieldValue.delete()`) – för ett fält som codecen inte längre
+     * skriver ([updateChanged]).
      */
-    suspend fun update(item: T, fields: Set<String>): Result<Unit> = updateAll(listOf(item), fields)
+    suspend fun update(item: T, fields: Set<String>, remove: Set<String> = emptySet()): Result<Unit> = updateAll(listOf(item), fields, remove)
 
     /**
      * Skriver bara [fields] ur [item], kodade som vid [upsert], med djup merge – och `updatedAt` när
@@ -67,8 +70,57 @@ interface EntityCollection<T : Identified> {
      */
     suspend fun cached(id: String): Result<T?>
 
+    /**
+     * Dokumenten vars toppfält [field] är minst [from] – värdet som codecen skriver det (text jämförs
+     * som text, tal som tal; dokument där fältet saknas eller har en annan typ kommer inte med) –
+     * **bekräftade av servern**: en avgränsad läsning inför en skrivning, t.ex. dagens och senare
+     * doser i stället för hela samlingen. Till skillnad från [cached] godtas aldrig en ofullständig
+     * lista ur cachen: utan svar från servern blir det [DataError.Offline] (direkt när Firestore
+     * vet att den är offline, annars efter skyddsnätet). Utloggad: [DataError.NotSignedIn].
+     */
+    suspend fun confirmedFrom(field: String, from: Any): Result<List<T>>
+
+    /** Hela samlingen **bekräftad av servern**, som [confirmedFrom] – för beslut som inte får fattas på cachen. */
+    suspend fun confirmed(): Result<List<T>>
+
+    /** Dokumentet [id] **bekräftat av servern** (`null` = finns inte), som [confirmedFrom]. */
+    suspend fun confirmed(id: String): Result<T?>
+
+    /**
+     * Väntar tills appens egna skrivningar nått servern – också villkorade skrivningar som inte hann
+     * bekräftas i tid men fortfarande kan committa – så att en serverbekräftad läsning efteråt ser
+     * dem. Offline (eller längre än skyddsnätet): [DataError.Offline].
+     */
+    suspend fun awaitWrites(): Result<Unit>
+
+    /**
+     * Skapar de av [items] vars dokument **bevisligen inte finns**: servern läser varje id i en
+     * transaktion och skriver bara de som saknas, så ett dokument som finns – också ett som en
+     * annan enhet just skapat och som cachen här inte känner till, eller ett som inte går att avkoda –
+     * skrivs aldrig över ([Stored]). Kräver nät: offline blir det [DataError.Offline] och ingenting
+     * skrivs (läggs inte i kö). Hinner servern inte svara inom skyddsnätet blir det också `Offline`,
+     * men transaktionen spåras tills den är klar ([awaitWrites] väntar in den, sena fel syns i `SyncStatus`).
+     */
+    suspend fun createIfAbsent(items: List<T>): Result<Unit>
+
+    /**
+     * Tar bort de av [ids] vars **lagrade** dokument uppfyller [condition], prövat mot serverns
+     * version i en transaktion – inte mot anroparens kopia, som kan vara inaktuell (t.ex. en dos som
+     * tagits på en annan enhet). Ett id som inte finns eller inte går att avkoda hoppas över. Kräver nät
+     * som [createIfAbsent].
+     */
+    suspend fun deleteIf(ids: List<String>, condition: (T) -> Boolean): Result<Unit>
+
+    /**
+     * [update] av [fields] ur [items], men bara för de dokument vars **lagrade** version uppfyller
+     * [condition] – prövat mot serverns version i en transaktion, som [deleteIf]. Ett dokument som
+     * inte finns skapas inte; ett okänt fält är ett fel innan något läses. Kräver nät som
+     * [createIfAbsent].
+     */
+    suspend fun updateIf(items: List<T>, fields: Set<String>, condition: (T) -> Boolean): Result<Unit>
+
     /** [update] för flera på en gång – atomärt inom varje bit om 500 (Firestores gräns). */
-    suspend fun updateAll(items: List<T>, fields: Set<String>): Result<Unit>
+    suspend fun updateAll(items: List<T>, fields: Set<String>, remove: Set<String> = emptySet()): Result<Unit>
 
     /** Flera skrivningar i ett svep – atomärt inom varje bit om 500 (Firestores gräns). */
     suspend fun batch(upserts: List<T>, deletes: List<String> = emptyList()): Result<Unit>
@@ -104,8 +156,13 @@ suspend fun <R> firstFromCache(
 /** Ett dokument är ett svar när det finns, eller när servern bekräftat att det saknas. */
 fun <T> Snapshot<T?>.isDocumentAnswer(): Boolean = value != null || !fromCache
 
-/** Skyddsnät för [firstFromCache] – längre än Firestores egen väntan på servern. */
-private val SERVER_WAIT = 15.seconds
+/**
+ * Skyddsnät för [firstFromCache], [EntityCollection.confirmedFrom] och de villkorade skrivningarna
+ * ([EntityCollection.createIfAbsent], [EntityCollection.deleteIf], [EntityCollection.updateIf]) –
+ * längre än Firestores egen väntan på servern. `FirestoreCollection` tar väntan som parameter
+ * (kortare i offlinetestet).
+ */
+internal val SERVER_WAIT = 15.seconds
 
 /** `sortOrder` för något nytt i en lista som redan lästs, så att det hamnar sist; 0 i en tom lista. */
 fun <T : Sortable> List<T>.sortOrderAfterLast(): Int = maxOfOrNull { it.sortOrder }?.plus(1) ?: 0
@@ -127,3 +184,19 @@ private val SORT_ORDER_WAIT = 2.seconds
 /** Sparar [item]; något nytt ([isNew]) hamnar sist i listan via [placeLast] – samma i alla formulär. */
 suspend fun <T> EntityCollection<T>.upsertPlaced(item: T, isNew: Boolean, placeLast: T.(Int) -> T): Result<Unit> where T : Identified, T : Sortable =
     upsert(if (isNew) item.placeLast(nextSortOrder()) else item)
+
+/**
+ * Skriver bara de toppfält som skiljer [after] från [before] – kodade med [codec] – via
+ * [EntityCollection.update]: fält som en annan enhet eller skärm ändrat under tiden (en stjärna, ett
+ * fält från en nyare app) skrivs inte tillbaka, och ett dokument som raderats under tiden återuppstår
+ * inte. Båda sidornas nycklar jämförs: en ändrad map (t.ex. ett schema, också med en borttagen nyckel)
+ * skrivs i sin helhet, och ett toppfält som codecen inte längre skriver tas bort. Ett värde som aldrig
+ * skrivs ([isWrittenValue], t.ex. `createdAt` utan värde) räknas inte. Inget ändrat → ingen skrivning.
+ */
+suspend fun <T : Identified> EntityCollection<T>.updateChanged(codec: DocCodec<T>, before: T, after: T): Result<Unit> {
+    val old = codec.encode(before)
+    val new = codec.encode(after)
+    val changed = new.filter { (key, value) -> (key !in old || old[key] != value) && isWrittenValue(key, value) }.keys
+    val removed = old.keys - new.keys
+    return if (changed.isEmpty() && removed.isEmpty()) Result.success(Unit) else update(after, changed, removed)
+}

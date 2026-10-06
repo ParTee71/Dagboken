@@ -32,6 +32,9 @@ import se.partee71.dagboken.ui.theme.Spacing
  * Antal ± inom [range]. [label] beskriver vad som räknas ("doser per dag") och läses av
  * TalkBack på knapparna ("Minska doser per dag") och på värdet ("2 doser per dag"). [step] är
  * hur mycket ett tryck ändrar (t.ex. 5 för minuter i [DurationRow]). Knapparna är 48 dp (NFR-14).
+ * [valueText] visar värdet som text med sin enhet ("4 h", "Ingen spärr" för 0); TalkBack läser då
+ * [label] och texten ("minsta tid mellan doser 4 h") – [label] ska alltså inte ha någon enhet. Utan
+ * [valueText] visas talet och TalkBack läser "2 doser per dag".
  */
 @Composable
 fun QuantityStepper(
@@ -42,6 +45,7 @@ fun QuantityStepper(
     range: IntRange = 0..999,
     enabled: Boolean = true,
     step: Int = 1,
+    valueText: (@Composable (Int) -> String)? = null,
 ) {
     val colors = IconButtonDefaults.filledIconButtonColors(
         containerColor = AppColors.extended.card,
@@ -58,13 +62,14 @@ fun QuantityStepper(
             enabled = enabled && value > range.first,
             colors = colors,
         ) { Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.decrease_format, label)) }
+        val shown = valueText?.invoke(value)
         Text(
-            value.toString(),
+            shown ?: value.toString(),
             style = AppTypography.quantity,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(min = VALUE_WIDTH).semantics {
-                contentDescription = "$value $label"
+                contentDescription = if (shown == null) "$value $label" else "$label $shown"
                 liveRegion = LiveRegionMode.Polite
             },
         )

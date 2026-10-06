@@ -9,8 +9,9 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import se.partee71.dagboken.core.schema.Schema
-import se.partee71.dagboken.data.ContractItem
-import se.partee71.dagboken.data.ContractItemCodec
+import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.OptionKind
+import se.partee71.dagboken.core.schema.OptionCodec
 import se.partee71.dagboken.data.TestUserScope
 
 class DocumentRulesTest {
@@ -35,18 +36,18 @@ class DocumentRulesTest {
             doc - "namn" + ("name" to doc["namn"])
         }
         val old = mapOf("namn" to "Promenad")
-        assertEquals(ContractItem("p", "Promenad"), readDocument(ContractItemCodec, "options", 0, "p", old, renameNamn))
+        assertEquals(Option("p", OptionKind.ACTIVITY, "Promenad"), readDocument(OptionCodec, "options", 0, "p", old, renameNamn))
         assertEquals(listOf(0), calls)
         val current = mapOf("name" to "Promenad")
-        assertEquals(ContractItem("p", "Promenad"), readDocument(ContractItemCodec, "options", Schema.CURRENT_VERSION, "p", current, renameNamn))
-        assertEquals(ContractItem("p", "Promenad"), readDocument(ContractItemCodec, "options", Schema.CURRENT_VERSION + 1, "p", current, renameNamn))
-        assertEquals(ContractItem("p", "Promenad"), readDocument(ContractItemCodec, "options", null, "p", current, renameNamn))
+        assertEquals(Option("p", OptionKind.ACTIVITY, "Promenad"), readDocument(OptionCodec, "options", Schema.CURRENT_VERSION, "p", current, renameNamn))
+        assertEquals(Option("p", OptionKind.ACTIVITY, "Promenad"), readDocument(OptionCodec, "options", Schema.CURRENT_VERSION + 1, "p", current, renameNamn))
+        assertEquals(Option("p", OptionKind.ACTIVITY, "Promenad"), readDocument(OptionCodec, "options", null, "p", current, renameNamn))
         assertEquals(listOf(0), calls, "migreringen körs bara för äldre format")
     }
 
     @Test
     fun `listor sorteras på id och sedan sortOrder`() {
-        val sorted = sortForList(listOf(ContractItem("c"), ContractItem("b", sortOrder = 1), ContractItem("a")))
+        val sorted = sortForList(listOf(Option("c"), Option("b", sortOrder = 1), Option("a")))
         assertEquals(listOf("a", "c", "b"), sorted.map { it.id })
     }
 
