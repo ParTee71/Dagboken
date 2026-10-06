@@ -330,9 +330,9 @@ rad i skill `shared-ui-components`. Diagrammatematik (`computeSmartYAxis`, `comp
 ## Lager och moduler
 
 ```
-:core  (ren Kotlin/JVM)   model/ · schema/ (DocCodec, Fields, Schema, SchemaMigrator) · codecs ·
-                          engine/ (EnsureDoses, Cooldown, PeriodEndings, DailyEnergyStats,
-                          SleepQuality, chart math) · legacy/ (BackupJson → 4.0-konverterare, validering
+:core  (ren Kotlin/JVM)   model/ · time/ (HOME_ZONE) · schema/ (DocCodec, Fields, Schema, SchemaMigrator) · codecs ·
+                          engine/ (Dosing, EnsureDoses, Cooldown, PeriodEndings,
+                          PrescriptionRules, DailyEnergyStats, SleepQuality, chart math) · legacy/ (BackupJson → 4.0-konverterare, validering
                           mot DocumentRules, ConvertBackupMain för grinden OMB-4)
 :app   (Android)          data/common · data/firestore · data/auth · data/health (Health Connect,
                           read-only) · data/legacy (Room-läsare för migrering) · reminders/ ·

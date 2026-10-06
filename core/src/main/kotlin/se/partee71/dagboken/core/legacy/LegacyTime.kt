@@ -9,6 +9,7 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.hours
+import se.partee71.dagboken.core.time.HOME_ZONE
 
 /**
  * 3.x:s tider → 4.0:s ögonblick (ARKITEKTUR.md → Migrering, punkt 1). Tidszonen är alltid
@@ -22,7 +23,7 @@ import kotlin.time.Duration.Companion.hours
  * Båda är deterministiska, och ögonblicket läses tillbaka i Europe/Stockholm till samma dag.
  */
 internal object LegacyTime {
-    val ZONE: TimeZone = TimeZone.of("Europe/Stockholm")
+    val ZONE: TimeZone = HOME_ZONE
 
     /** 3.x `timestamp` (`Instant.toString()`, ISO med zon) → ögonblick; `null` om tomt eller ogiltigt. */
     fun instant(iso: String): Instant? = iso.takeIf { it.isNotBlank() }?.let { runCatching { Instant.parse(it) }.getOrNull() }
