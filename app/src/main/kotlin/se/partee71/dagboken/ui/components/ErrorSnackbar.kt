@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.toMessage
 
@@ -26,13 +26,28 @@ internal fun ErrorSnackbar(
     key: Any? = error,
     onShown: () -> Unit,
 ) {
-    val resources = LocalResources.current
+    val text = error?.let { stringResource(message ?: it.toMessage()) }?.let { text -> template?.let { stringResource(it, text) } ?: text }
+    MessageSnackbar(text, hostState, key = key, duration = duration, onShown = onShown)
+}
+
+/**
+ * Ett meddelande ([text]) i [hostState] – det enda sättet att visa en text som snackbar (regel 4): fel via
+ * [ErrorSnackbar], bekräftelser direkt (t.ex. "Alvedon 500 mg loggad" på Idag). [key] gör samma text två
+ * gånger i rad till två meddelanden; [onShown] anropas när det visats, så att ViewModeln släpper det.
+ */
+@Composable
+internal fun MessageSnackbar(
+    text: String?,
+    hostState: SnackbarHostState,
+    key: Any? = text,
+    duration: SnackbarDuration = SnackbarDuration.Short,
+    onShown: () -> Unit,
+) {
     val shown by rememberUpdatedState(onShown)
-    // [key]: ett nytt fel (även samma sort igen) visas på nytt.
+    val current by rememberUpdatedState(text)
     LaunchedEffect(key) {
-        if (error == null) return@LaunchedEffect
-        val text = resources.getString(message ?: error.toMessage())
-        hostState.showSnackbar(template?.let { resources.getString(it, text) } ?: text, duration = duration)
+        val message = current ?: return@LaunchedEffect
+        hostState.showSnackbar(message, duration = duration)
         shown()
     }
 }

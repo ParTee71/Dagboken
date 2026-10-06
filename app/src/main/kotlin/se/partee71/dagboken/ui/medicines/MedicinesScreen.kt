@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -43,8 +42,6 @@ import se.partee71.dagboken.core.engine.totalWith
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.data.auth.AuthUser
-import se.partee71.dagboken.data.common.DataError
-import se.partee71.dagboken.data.common.suspendRunCatching
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.ui.common.ArchiveEvent
@@ -59,6 +56,7 @@ import se.partee71.dagboken.ui.common.doseText
 import se.partee71.dagboken.ui.common.failureOrNull
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.periodText
+import se.partee71.dagboken.ui.common.tidyingUpEachDay
 import se.partee71.dagboken.ui.common.prescriptionSubtitle
 import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.components.AccountAvatar
@@ -137,16 +135,8 @@ class MedicinesViewModel @Inject constructor(
     val today: StateFlow<LocalDate> =
         clock.days { zone.get() }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), clock.todayIn(zone.get()))
 
-    /**
-     * REC-8, REC-5: utgångna recept avslutas och inaktiva recepts kvarblivna planerade doser städas när
-     * fliken visas och igen vid varje ny dag (midnatt) – på serverbekräftade recept, inte på listan ur
-     * cachen (`PrescriptionRepository.tidyUp`). Följer listans prenumeration, så att dagklockan inte
-     * tickar när fliken inte visas. Offline gör det ingenting; ett fel här är inget användaren kan
-     * åtgärda och visas inte – nästa gång försöker igen. Inget fel får heller krascha fliken.
-     */
-    private val tidiedDays = today.onEach { day ->
-        viewModelScope.launch { suspendRunCatching({ DataError.Unknown }) { prescriptions.tidyUp(day) } }
-    }
+    /** REC-8, REC-5, REC-10: städningen när fliken visas och vid varje ny dag (`tidyingUpEachDay`). */
+    private val tidiedDays = today.tidyingUpEachDay(prescriptions, viewModelScope)
 
     private val loader = ListLoader(combine(prescriptions.observe(), medicines.observe(), tidiedDays) { p, m, day -> medicineItems(p, m, day) }, viewModelScope)
     val state: StateFlow<ListUiState<MedicineItem>> = loader.state

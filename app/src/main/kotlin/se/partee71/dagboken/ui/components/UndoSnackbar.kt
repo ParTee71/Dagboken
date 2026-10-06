@@ -30,13 +30,22 @@ data class UndoRequest(val id: String, val name: String, @param:StringRes val fo
  * förblir då dold. Lämnar skärmen kompositionen (flikbyte, ny skärm, rotation) medan ångra
  * erbjuds räknas det som [onDismissed] – annars visades samma meddelande igen när man kom
  * tillbaka (NFR-3). Visar ingenting själv – meddelandet syns i `AppSnackbarHost`.
+ * [onRequestDismissed] får dessutom vilken [UndoRequest] som gick ut – så att en ViewModel som hunnit
+ * erbjuda ett nytt ångra inte släpper det nya när det förra försvinner (Idag, två snabba avbockningar).
  */
 @Composable
-fun UndoSnackbar(request: UndoRequest?, hostState: SnackbarHostState, onUndo: () -> Unit, onDismissed: () -> Unit) {
+fun UndoSnackbar(
+    request: UndoRequest?,
+    hostState: SnackbarHostState,
+    onUndo: () -> Unit,
+    onDismissed: () -> Unit,
+    onRequestDismissed: (UndoRequest) -> Unit = {},
+) {
     val message = request?.let { stringResource(it.format, it.name) }
     val action = stringResource(R.string.undo)
     val undo by rememberUpdatedState(onUndo)
     val dismissed by rememberUpdatedState(onDismissed)
+    val requestDismissed by rememberUpdatedState(onRequestDismissed)
     val accessibility = LocalAccessibilityManager.current
     val current by rememberUpdatedState(request)
     var resolved by remember { mutableStateOf<UndoRequest?>(null) }
@@ -48,10 +57,22 @@ fun UndoSnackbar(request: UndoRequest?, hostState: SnackbarHostState, onUndo: ()
             hostState.showSnackbar(message, actionLabel = action, withDismissAction = false, duration = SnackbarDuration.Indefinite)
         }
         resolved = request
-        if (result == SnackbarResult.ActionPerformed) undo() else dismissed()
+        if (result == SnackbarResult.ActionPerformed) {
+            undo()
+        } else {
+            dismissed()
+            requestDismissed(request)
+        }
     }
     DisposableEffect(Unit) {
-        onDispose { current?.let { if (it != resolved) dismissed() } }
+        onDispose {
+            current?.let {
+                if (it != resolved) {
+                    dismissed()
+                    requestDismissed(it)
+                }
+            }
+        }
     }
 }
 

@@ -234,6 +234,43 @@
     <string name="favorite_off">Inte favorit</string>
     <string name="option_archived">Arkiverad</string>
 
+    <!-- Idag (HEM-1, HEM-2, HEM-14, HEM-18, HEM-19, MED-1–3, MED-5, MED-13, MED-14, FAV-2–6, FAV-8, FAV-9, FAV-11) -->
+    <string name="today_heading_format">%1$s · vecka %2$d</string>
+    <string name="greeting_morning">God morgon</string>
+    <string name="greeting_afternoon">God eftermiddag</string>
+    <string name="greeting_evening">God kväll</string>
+    <string name="greeting_night">God natt</string>
+    <string name="today_medicines_none_title">Inga mediciner</string>
+    <string name="today_medicines_none">Inga mediciner den här dagen.</string>
+    <string name="today_medicines_all_done_title">Allt avklarat</string>
+    <string name="today_medicines_all_done">Alla dagens mediciner är avklarade.</string>
+    <string name="today_prn_past_day">Visa idag för att logga – efterhandsloggning kommer med dosformuläret.</string>
+    <string name="today_prn_today_only">Loggas bara idag</string>
+    <string name="today_show_today">Visa idag</string>
+    <string name="today_medicines_count_format">%1$d av %2$d</string>
+    <string name="today_show_done_format">Visa tagna (%1$d)</string>
+    <string name="today_hide_done">Dölj tagna</string>
+    <string name="today_show_upcoming_format">Visa kommande (%1$d)</string>
+    <string name="today_hide_upcoming">Dölj kommande</string>
+    <string name="today_dose_taken_format">tagen %1$s</string>
+    <string name="today_dose_skipped">hoppad över</string>
+    <string name="today_dose_boost_format">%1$s + %2$s höjning %3$s</string>
+    <string name="today_skip">Hoppa över</string>
+    <string name="today_skip_title">Hoppa över dos?</string>
+    <string name="today_skip_message">\"%s\" markeras som hoppad för idag.</string>
+    <string name="today_skip_message_day">\"%1$s\" markeras som hoppad för %2$s.</string>
+    <string name="today_next_dose_title">Inget att ta just nu</string>
+    <string name="today_next_dose_format">Nästa dos kl. %1$s.</string>
+    <string name="today_undo_taken_format">%s tagen</string>
+    <string name="today_undo_skipped_format">%s hoppad över</string>
+    <string name="today_more_format">Fler (%1$d)</string>
+    <string name="today_more_prescriptions">Recept</string>
+    <string name="today_cooldown_title">För tidigt</string>
+    <string name="today_cooldown_message">Du bör vänta %1$sh %2$sm till för %3$s. Vill du ta ändå?</string>
+    <string name="today_take_anyway">Ta ändå</string>
+    <string name="today_logged_format">%s loggad</string>
+    <string name="today_limit_reached_format">Högst %1$d doser per dag – gränsen är nådd för %2$s.</string>
+
     <!-- Mediciner (MEDF-1–5, REC-5, REC-12, REC-13, FAV-1, FAV-3–5, SET-10) -->
     <string name="medicines_prescriptions">Recept och scheman</string>
     <plurals name="medicines_active_count">

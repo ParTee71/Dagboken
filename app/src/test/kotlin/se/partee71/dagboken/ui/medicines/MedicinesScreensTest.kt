@@ -21,7 +21,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.core.engine.PeriodEnding
-import se.partee71.dagboken.core.model.Boost
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
@@ -34,6 +33,7 @@ import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ListUiState
+import se.partee71.dagboken.ui.SampleMedicines
 import se.partee71.dagboken.ui.runEditScreenContract
 import se.partee71.dagboken.ui.runListScreenContract
 import se.partee71.dagboken.ui.theme.DagbokenTheme
@@ -47,12 +47,8 @@ class MedicinesScreensTest {
 
     private val today = LocalDate(2026, 10, 6)
 
-    private val levaxin = Prescription("l", "Levaxin", "100", "µg", listOf(Slot.MORNING), Schedule.Repeating(), Period(LocalDate(2026, 1, 1)))
-    private val sertralin = Prescription(
-        "s", "Sertralin", "50", "mg", listOf(Slot.MORNING), Schedule.Repeating(), Period(LocalDate(2026, 3, 1)),
-        boosts = listOf(Boost("b", LocalDate(2026, 9, 29), LocalDate(2026, 10, 12), "25", "mg")),
-        note = "Tas med frukost.",
-    )
+    private val levaxin = SampleMedicines.levaxin
+    private val sertralin = SampleMedicines.sertralin.copy(note = "Tas med frukost.")
     private val kavepenin = Prescription(
         "k", "Kåvepenin", "1", "g", listOf(Slot.MORNING, Slot.LUNCH, Slot.EVENING), Schedule.Repeating(), Period(LocalDate(2026, 9, 28), LocalDate(2026, 10, 7)),
     )
