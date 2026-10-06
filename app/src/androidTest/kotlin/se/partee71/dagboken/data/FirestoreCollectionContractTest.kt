@@ -47,6 +47,10 @@ class FirestoreCollectionContractTest : CollectionContract() {
             override fun signOut() {
                 scope.uid.value = null
             }
+
+            override fun signInAgain() {
+                scope.uid.value = user.uid
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.settings
 
+import se.partee71.dagboken.data.FixedClock
 import app.cash.turbine.test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -168,7 +169,7 @@ class ThemeViewModelTest {
 
     @Test
     fun `temat laddas bara en gång – tillbaka från bakgrunden står det kvar`() = runTest(main.dispatcher) {
-        val app = AppThemeViewModel(signedIn, settings, MovableClock(at(12))) { TimeZone.UTC }
+        val app = AppThemeViewModel(signedIn, settings, FixedClock(at(12))) { TimeZone.UTC }
         app.theme.test {
             assertEquals(AppTheme.Chosen(dark = false), expectMostRecentItem())
             cancelAndIgnoreRemainingEvents()
@@ -194,18 +195,13 @@ class ThemeViewModelTest {
         }
     }
 
-    /** Klocka som testet flyttar fram. */
-    private class MovableClock(var instant: Instant) : Clock {
-        override fun now() = instant
-    }
-
     private fun at(hour: Int, minute: Int = 0) = LocalDateTime(2026, 10, 5, hour, minute).toInstant(TimeZone.UTC)
 
     private val signedIn = FakeAuthRepository(AuthUser("uid-test"))
 
     @Test
     fun `hela appen följer valet och auto byter på timmen (SET-1, DSN-5)`() = runTest(main.dispatcher) {
-        val clock = MovableClock(at(20, 59))
+        val clock = FixedClock(at(20, 59))
         val app = AppThemeViewModel(signedIn, settings, clock) { TimeZone.UTC }
         app.theme.test {
             assertEquals(AppTheme.Chosen(dark = false), expectMostRecentItem(), "auto 07–21: ljust klockan 20.59")
@@ -228,7 +224,7 @@ class ThemeViewModelTest {
     fun `temat laddas först, och dröjer inställningarna gäller systemet efter en kort stund`() = runTest(main.dispatcher) {
         // Inloggad, men samlingen har ännu ingen användare: inställningarna kommer aldrig.
         val stuck = DefaultSettingsRepository(FakeCollectionFactory(scope = TestUserScope(uid = null)))
-        val app = AppThemeViewModel(signedIn, stuck, MovableClock(at(12))) { TimeZone.UTC }
+        val app = AppThemeViewModel(signedIn, stuck, FixedClock(at(12))) { TimeZone.UTC }
         app.theme.test {
             assertEquals(AppTheme.Loading, awaitItem())
             testScheduler.advanceTimeBy(AppThemeViewModel.LOAD_TIMEOUT)
@@ -243,7 +239,7 @@ class ThemeViewModelTest {
     @Test
     fun `tidszonen läses vid varje omräkning`() = runTest(main.dispatcher) {
         var zone: TimeZone = TimeZone.UTC
-        val app = AppThemeViewModel(signedIn, settings, MovableClock(at(20, 30))) { zone }
+        val app = AppThemeViewModel(signedIn, settings, FixedClock(at(20, 30))) { zone }
         app.theme.test {
             assertEquals(AppTheme.Chosen(dark = false), expectMostRecentItem(), "20.30 i UTC")
             zone = TimeZone.of("Europe/Stockholm") // 22.30 lokal tid
@@ -262,7 +258,7 @@ class ThemeViewModelTest {
             mapOf("theme" to mapOf("mode" to "auto", "lightStartHour" to 22L, "darkStartHour" to 6L)),
             merge = false,
         )
-        val app = AppThemeViewModel(signedIn, settings, MovableClock(at(12))) { TimeZone.UTC }
+        val app = AppThemeViewModel(signedIn, settings, FixedClock(at(12))) { TimeZone.UTC }
         app.theme.test {
             assertEquals(AppTheme.Chosen(dark = false), expectMostRecentItem())
             cancelAndIgnoreRemainingEvents()

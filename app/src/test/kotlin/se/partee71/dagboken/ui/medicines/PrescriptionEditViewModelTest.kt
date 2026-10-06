@@ -30,7 +30,7 @@ import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.firestore.Paths
-import se.partee71.dagboken.data.repository.DefaultDoseRepository
+import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
@@ -49,7 +49,7 @@ class PrescriptionEditViewModelTest {
     private val today = LocalDate(2026, 9, 21)
 
     private val factory = FakeCollectionFactory()
-    private val repository = testPrescriptions(factory, DefaultDoseRepository(factory) { zone }, zone)
+    private val repository = testPrescriptions(factory, testDoses(factory, zone), zone)
 
     private val sertralin = Prescription(
         "s", "Sertralin", "50", "mg", listOf(Slot.MORNING), Schedule.Repeating(), Period(LocalDate(2026, 9, 1)),

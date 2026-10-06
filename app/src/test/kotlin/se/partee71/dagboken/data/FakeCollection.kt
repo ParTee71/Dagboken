@@ -47,6 +47,28 @@ import se.partee71.dagboken.data.firestore.Paths
 class FakeStore {
     val documents = MutableStateFlow<Map<String, Map<String, Doc>>>(emptyMap())
 
+    /**
+     * Om "servern" nås. Fejken är cache och server i ett; med `false` beter den sig som Firestore utan
+     * nät: läsflöden, engångsläsningar ur cachen och skrivningar som läggs i cachen fungerar (svaren är
+     * då `fromCache`), men det som kräver servern – `confirmed…`, en villkorad skrivning med något att
+     * pröva, `awaitWrites` när appen skrivit något utan nät – blir `Offline` och skriver inget. Åter
+     * online räknas de väntande skrivningarna som synkade.
+     */
+    @Volatile var online: Boolean = true
+        set(value) {
+            field = value
+            if (value) hasPendingWrites = false
+        }
+
+    /** Appen har skrivit något medan [online] var `false` (som Firestores väntande skrivningar). */
+    @Volatile var hasPendingWrites: Boolean = false
+        private set
+
+    /** En skrivning från appen: utan nät väntar den på servern. */
+    fun noteWrite() {
+        if (!online) hasPendingWrites = true
+    }
+
     fun set(path: String, id: String, doc: Doc, merge: Boolean) = documents.update { all ->
         val collection = all[path].orEmpty()
         val stored = firestoreValues(doc)
@@ -122,6 +144,19 @@ class FakeCollection<T : Identified>(
         store.collection(p).map { docs -> docs[id]?.let { decode(id, it) } }
     }
 
+    override fun observeBetween(field: String, from: Any, to: Any): Flow<List<T>> = scope.uid.flatMapLatest { uid ->
+        val p = pathOrNull(uid) ?: return@flatMapLatest emptyFlow()
+        store.collection(p).map { docs -> between(docs, field, from, to) }
+    }
+
+    /** Som Firestore: ur cachen också utan nät ([FakeStore.online]), då märkt `fromCache`. */
+    override suspend fun cachedBetween(field: String, from: Any, to: Any) = firstFromCache({ DataError.Unknown }) {
+        store.collection(path()).map { Snapshot(between(it, field, from, to), fromCache = !store.online) }
+    }
+
+    private fun between(docs: Map<String, Doc>, field: String, from: Any, to: Any) =
+        decodeList(docs.filterValues { atLeast(it[field], from) && atMost(it[field], to) })
+
     override suspend fun get(id: String) = run { store.read(path(), id)?.let { decode(id, it) } }
 
     override suspend fun getAll() = run { store.documents.value[path()].orEmpty().map { (id, doc) -> decode(id, doc) } }
@@ -143,19 +178,23 @@ class FakeCollection<T : Identified>(
 
     /**
      * Som Firestores `whereGreaterThanOrEqualTo` med `Source.SERVER`: bara samma typ jämförs (text med
-     * text, tal med tal). Fejken är alltid "online" – offline prövas i `FirestoreOfflineTest`.
+     * text, tal med tal). Utan "server" ([FakeStore.online]) `Offline`, som i `FirestoreOfflineTest`.
      */
-    override suspend fun confirmedFrom(field: String, from: Any) = run {
+    override suspend fun confirmedFrom(field: String, from: Any) = server {
         decodeList(store.documents.value[path()].orEmpty().filterValues { atLeast(it[field], from) })
     }
 
-    override suspend fun confirmed() = run { decodeList(store.documents.value[path()].orEmpty()) }
+    override suspend fun confirmed() = server { decodeList(store.documents.value[path()].orEmpty()) }
 
-    override suspend fun confirmed(id: String) = run { store.read(path(), id)?.let { decode(id, it) } }
+    override suspend fun confirmed(id: String) = server { store.read(path(), id)?.let { decode(id, it) } }
 
-    override suspend fun awaitWrites() = run { if (!commits.awaitAll(serverWait)) throw DataError.Offline }
+    /** Som Firestore: utan väntande skrivningar klar direkt, också utan nät. */
+    override suspend fun awaitWrites() = run {
+        path()
+        if (store.hasPendingWrites || !commits.awaitAll(serverWait)) throw DataError.Offline
+    }
 
-    /** Fejken är alltid "online": varje id prövas mot det lagrade när den committar, som Firestores transaktion. */
+    /** Varje id prövas mot det lagrade när den committar, som Firestores transaktion; utan "server" `Offline`. */
     override suspend fun createIfAbsent(items: List<T>): Result<Unit> {
         val byId = items.associateBy { it.id }
         return transact(byId.keys) { p, id, stored -> if (stored.mayCreate()) store.set(p, id, encode(byId.getValue(id)), merge = true) }
@@ -169,8 +208,9 @@ class FakeCollection<T : Identified>(
         return transact(patches.keys) { p, id, stored -> if (stored.satisfies(condition)) store.patch(p, mapOf(id to patches.getValue(id))) }
     }
 
-    private suspend fun transact(ids: Set<String>, apply: (path: String, id: String, stored: Stored<T>) -> Unit) = write {
+    private suspend fun transact(ids: Set<String>, apply: (path: String, id: String, stored: Stored<T>) -> Unit) = write(queued = false) {
         val p = path()
+        if (ids.isNotEmpty() && !store.online) throw DataError.Offline
         val commit = { ids.forEach { id -> apply(p, id, storedOf(store.read(p, id) != null) { store.read(p, id)?.let { decode(id, it) } }) } }
         val background = commitScope
         if (ids.isEmpty()) {
@@ -211,19 +251,33 @@ class FakeCollection<T : Identified>(
 
     private fun path(): String = path(scope.uid.value)
 
-    private fun atLeast(value: Any?, from: Any): Boolean = when {
-        value is String && from is String -> value >= from
-        value is Number && from is Number -> value.toDouble() >= from.toDouble()
-        else -> false
+    private fun atLeast(value: Any?, bound: Any) = compare(value, bound)?.let { it >= 0 } == true
+
+    private fun atMost(value: Any?, bound: Any) = compare(value, bound)?.let { it <= 0 } == true
+
+    /** Som Firestores jämförelse i en fråga: bara samma typ (text med text, tal med tal); annars `null`. */
+    private fun compare(value: Any?, bound: Any): Int? = when {
+        value is String && bound is String -> value.compareTo(bound)
+        value is Number && bound is Number -> value.toDouble().compareTo(bound.toDouble())
+        else -> null
     }
 
     private fun pathOrNull(uid: String?) = runCatching { path(uid) }.getOrNull()
 
     private suspend fun <R> run(block: suspend () -> R): Result<R> = suspendRunCatching({ DataError.Unknown }) { block() }
 
-    private suspend fun write(block: suspend () -> Unit): Result<Unit> = run {
+    /** Läsning som kräver servern: utloggad `NotSignedIn` först, sedan `Offline` utan "server". */
+    private suspend fun <R> server(block: suspend () -> R): Result<R> = run {
+        path()
+        if (!store.online) throw DataError.Offline
+        block()
+    }
+
+    /** [queued] = läggs i cachen och väntar på servern utan nät; en transaktion köas aldrig. */
+    private suspend fun write(queued: Boolean = true, block: suspend () -> Unit): Result<Unit> = run {
         scope.writeBlocker()?.let { throw it }
         block()
+        if (queued) store.noteWrite()
     }
 
     private companion object {

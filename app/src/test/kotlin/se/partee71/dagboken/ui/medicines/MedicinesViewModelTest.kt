@@ -35,7 +35,7 @@ import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.TestUserScope
 import se.partee71.dagboken.data.common.DataError
-import se.partee71.dagboken.data.repository.DefaultDoseRepository
+import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
 import se.partee71.dagboken.data.repository.PrescriptionRepository
@@ -62,7 +62,7 @@ class MedicinesViewModelTest {
     private val alvedon = PrnMedicine("a", name = "Alvedon", dose = "500", unit = "mg", maxPerDay = 8)
 
     private fun viewModel(factory: FakeCollectionFactory, clock: Clock = FixedClock()): MedicinesViewModel {
-        val doses = DefaultDoseRepository(factory) { zone }
+        val doses = testDoses(factory, zone)
         return MedicinesViewModel(testPrescriptions(factory, doses, zone, clock), DefaultPrnMedicineRepository(factory), clock) { zone }
     }
 
@@ -91,7 +91,7 @@ class MedicinesViewModelTest {
     fun `ett fel i städningen kraschar inte fliken och visas inte`() = runTest(main.dispatcher) {
         val factory = FakeCollectionFactory()
         factory.prescriptions().upsert(levaxin).getOrThrow()
-        val doses = DefaultDoseRepository(factory) { zone }
+        val doses = testDoses(factory, zone)
         val throwing = object : PrescriptionRepository by testPrescriptions(factory, doses, zone) {
             override suspend fun tidyUp(today: LocalDate): Result<Unit> = throw IllegalStateException("syntetiskt fel")
         }

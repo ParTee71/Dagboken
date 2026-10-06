@@ -13,6 +13,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration.Companion.seconds
 import se.partee71.dagboken.core.model.Dose
+import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.schema.DoseCodec
 import org.junit.Rule
 import org.junit.Test
@@ -97,6 +98,11 @@ class FirestoreOfflineTest {
         val day = LocalDate(2026, 9, 21)
         val planned = Dose("a", day, name = "Levaxin")
         doses.upsert(planned).getOrThrow() // bara i cachen – servern nås aldrig
+        // Dagens lyssning svarar ur cachen, och en avbockning (fältvis update) läggs i cachen direkt.
+        val dayDoses = doses.observeBetween(DoseCodec.DATE, day.toString(), day.toString())
+        assertEquals(listOf("a"), dayDoses.first().map { it.id }, "dagens doser ur cachen utan nät")
+        doses.update(planned.copy(status = DoseStatus.TAKEN), setOf(DoseCodec.STATUS, DoseCodec.TAKEN_AT)).getOrThrow()
+        assertEquals(DoseStatus.TAKEN, dayDoses.first { list -> list.any { it.status == DoseStatus.TAKEN } }.single().status)
 
         assertEquals(DataError.Offline, doses.confirmedFrom(DoseCodec.DATE, day.toString()).dataError())
         assertEquals(DataError.Offline, doses.createIfAbsent(listOf(Dose("b", day, name = "Ny"))).dataError())
@@ -106,7 +112,7 @@ class FirestoreOfflineTest {
         // En samlingsfråga mot cachen kastar inte för saknade dokument (det gör en dokumentläsning)
         // och tar med väntande lokala skrivningar.
         val local = user.db.collection(Paths.doses(user.uid)).get(Source.CACHE).await().documents.associateBy { it.id }
-        assertEquals("Levaxin", local["a"]?.getString("name"), "varken raderad eller ändrad")
+        assertEquals("Levaxin", local["a"]?.getString("name"), "varken raderad eller ändrad av de villkorade")
         assertFalse("b" in local, "inget skapat, inget i kö")
     }
 

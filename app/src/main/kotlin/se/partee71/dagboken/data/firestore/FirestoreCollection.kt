@@ -76,6 +76,19 @@ class FirestoreCollection<T : Identified>(
         ref.document(id).snapshots().map(::decodeDocument)
     }.catch { throw firestoreError(it) }
 
+    /** Ett intervall på ett fält (`>=` och `<=` på samma fält) täcks av Firestores automatiska enkelfältsindex. */
+    override fun observeBetween(field: String, from: Any, to: Any): Flow<List<T>> = scope.uid.flatMapLatest { uid ->
+        val ref = refOrNull(uid) ?: return@flatMapLatest emptyFlow()
+        ref.between(field, from, to).snapshots().map(::decodeList)
+    }.catch { throw firestoreError(it) }
+
+    override suspend fun cachedBetween(field: String, from: Any, to: Any): Result<List<T>> = firstFromCache(::firestoreError) {
+        ref().between(field, from, to).snapshots().map { Snapshot(decodeList(it), it.metadata.isFromCache) }
+    }
+
+    private fun CollectionReference.between(field: String, from: Any, to: Any): Query =
+        whereGreaterThanOrEqualTo(field, from).whereLessThanOrEqualTo(field, to)
+
     override suspend fun get(id: String): Result<T?> = suspendRunCatching(::firestoreError) {
         decodeDocument(ref().document(id).get().await())
     }

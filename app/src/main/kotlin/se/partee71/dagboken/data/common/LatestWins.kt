@@ -45,6 +45,26 @@ class LatestWins<K> {
         }
     }
 
+    /**
+     * Kör [block] för [key] ensam – efter pågående och före senare körningar för nyckeln – men utan att
+     * göra en väntande körning inaktuell eller själv kunna bli det. För arbete som bara får gå samtidigt
+     * med andra för samma nyckel, inte ersätta dem (t.ex. att skapa en tidigare dags doser, eller två
+     * vid behov-loggningar av samma medicin).
+     */
+    suspend fun <R> runExclusive(key: K, block: suspend () -> R): R {
+        val state = synchronized(states) {
+            states.getOrPut(key, ::State).also { it.waiting += 1 }
+        }
+        try {
+            return state.lock.withLock { block() }
+        } finally {
+            synchronized(states) {
+                state.waiting -= 1
+                if (state.waiting == 0) states.remove(key)
+            }
+        }
+    }
+
     /** Antal nycklar med en pågående eller väntande körning (för test: inga poster blir kvar). */
     internal val activeKeys: Int get() = synchronized(states) { states.size }
 }

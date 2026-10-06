@@ -26,4 +26,18 @@ class LatestWinsTest {
         assertEquals(listOf("annan nyckel", "första", "tredje"), seen, "andra nycklar väntar inte; den mellersta körs aldrig")
         assertEquals(0, runs.activeKeys, "inga poster kvar när ingen väntar")
     }
+
+    @Test
+    fun `en ensam körning väntar på låset men gör ingen annan inaktuell och hoppas aldrig över`() = runTest {
+        val runs = LatestWins<String>()
+        val seen = mutableListOf<String>()
+        val sync = async { runs.run("a", "hoppad") { isCurrent -> delay(100); seen += "synk"; if (isCurrent()) "klar" else "inaktuell" } }
+        runCurrent()
+        val exclusive = async { runs.runExclusive("a") { seen += "ensam"; "klar" } }
+        val later = async { runs.runExclusive("a") { seen += "ensam igen"; "klar" } }
+
+        assertEquals(listOf("klar", "klar", "klar"), listOf(sync.await(), exclusive.await(), later.await()))
+        assertEquals(listOf("synk", "ensam", "ensam igen"), seen, "en i taget, i ordning")
+        assertEquals(0, runs.activeKeys)
+    }
 }

@@ -12,7 +12,9 @@ import se.partee71.dagboken.data.repository.DoseRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
+import se.partee71.dagboken.data.repository.DefaultScreeningRepository
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
+import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 
 /** Repositories – tunna fasader över samlingarna (skill firestore-data-layer). */
@@ -28,4 +30,6 @@ abstract class RepositoryModule {
     @Binds abstract fun prnMedicines(repository: DefaultPrnMedicineRepository): PrnMedicineRepository
 
     @Binds abstract fun doses(repository: DefaultDoseRepository): DoseRepository
+
+    @Binds abstract fun screenings(repository: DefaultScreeningRepository): ScreeningRepository
 }

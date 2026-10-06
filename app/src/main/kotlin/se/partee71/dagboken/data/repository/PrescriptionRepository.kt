@@ -14,7 +14,7 @@ import se.partee71.dagboken.core.engine.toDeactivateOn
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.schema.PrescriptionCodec
 import se.partee71.dagboken.data.common.CollectionFactory
-import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.common.offlineIsNoOp
 import se.partee71.dagboken.data.common.LatestWins
 import se.partee71.dagboken.data.common.SyncStatus
 import se.partee71.dagboken.di.ApplicationScope
@@ -74,11 +74,23 @@ interface PrescriptionRepository {
      * så att en samtidig återaktivering inte skrivs över), och de inaktivas planerade doser från och med
      * [today] städas (REC-5). Även aktiva recept vars doser inte stämmer synkas – en sparning eller
      * växling vars synk avbröts eller var offline läks här (REC-10). En gemensam serverläsning av dagens
-     * och senare doser avgör: saknade doser skapas i en batch, och bara recept vars doser ska ändras
-     * eller tas bort går via samma synk som [syncFromServer] (idempotent: stämmer allt skrivs ingenting).
+     * och senare doser avgör: recept som bara saknar doser får dem samma låsta väg som [ensureDay], och
+     * recept vars doser ska ändras eller tas bort går via samma synk som [syncFromServer] (idempotent:
+     * stämmer allt skrivs ingenting).
      * Offline görs ingenting, utan fel.
      */
     suspend fun tidyUp(today: LocalDate): Result<Unit>
+
+    /**
+     * HEM-10, MED-4: [date]s receptdoser finns – idag eller en tidigare dag som bläddrats till (HEM-14).
+     * Urvalet görs på cachen: recepten ur cachen och dosernas cache (`DoseRepository.missingOn`) – finns
+     * allt görs ingen serverläsning eller transaktion. För varje recept som saknar doser går det sedan
+     * samma låsta, serverbekräftade väg som städningen (receptet läses från servern under låset), så att
+     * doser som en samtidig avaktivering tagit bort aldrig skapas igen. Ingen dos före receptets skapandedag
+     * eller start; en tidigare dag följer receptets nuvarande aktiv-läge. Idempotent; recept avslutas inte
+     * här (bara [tidyUp], REC-8). En dag efter [today] ger ingenting. Offline görs ingenting, utan fel.
+     */
+    suspend fun ensureDay(date: LocalDate, today: LocalDate): Result<Unit>
 
     /** Tar bort receptet. Doser som redan finns lämnas orörda, som i 3.x – historiken tappas aldrig. */
     suspend fun delete(id: String): Result<Unit>
@@ -156,10 +168,37 @@ class DefaultPrescriptionRepository @Inject constructor(
         // receptets lås.
         val ended = stored.toDeactivateOn(today).mapTo(LinkedHashSet()) { it.id }
         val plan = doses.plan(stored.filter { it.id !in ended }, today).getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
-        // Saknade doser i en batch – utan lås och utan en serverläsning per recept.
-        doses.createIfAbsent(plan.create).onFailure { return Result.failure(it) }
+        // Saknade doser: samma låsta väg som dagens doser (ensureDay).
+        createMissing(plan.missing, today, today).onFailure { return Result.failure(it) }
         for (id in ended) sync(id, today, endIfExpired = true).onFailure { return Result.failure<Unit>(it).offlineIsNoOp() }
         for (id in plan.locked) sync(id, today).onFailure { return Result.failure<Unit>(it).offlineIsNoOp() }
+        return Result.success(Unit)
+    }
+
+    override suspend fun ensureDay(date: LocalDate, today: LocalDate): Result<Unit> {
+        if (date > today) return Result.success(Unit)
+        // Urvalet på cachen (inget saknas → ingen serverläsning alls); beslutet fattas under låset.
+        val cached = collection.cached().getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
+        val missing = doses.missingOn(cached, date, today).getOrElse { return Result.failure(it) }
+        return createMissing(missing, date, today)
+    }
+
+    /**
+     * MED-4, HEM-10: **den enda vägen** för att skapa saknade doser – från [ensureDay] och [tidyUp]. Per
+     * recept under receptets lås (som [syncFromServer], men utan att göra en väntande synk inaktuell):
+     * väntar in egna skrivningar, läser receptet **från servern** och skapar dess saknade doser på [date]
+     * (`DoseRepository.createDay`). Så skapas aldrig doser som en samtidig avaktivering just tagit bort.
+     * Första `Offline` avslutar utan fel.
+     */
+    private suspend fun createMissing(ids: List<String>, date: LocalDate, today: LocalDate): Result<Unit> {
+        for (id in ids) {
+            syncs.runExclusive(id) {
+                collection.awaitWrites().onFailure { return@runExclusive Result.failure(it) }
+                val current = collection.confirmed(id).getOrElse { return@runExclusive Result.failure(it) }
+                    ?: return@runExclusive Result.success(Unit)
+                doses.createDay(current, date, today)
+            }.onFailure { return Result.failure<Unit>(it).offlineIsNoOp() }
+        }
         return Result.success(Unit)
     }
 
@@ -167,9 +206,6 @@ class DefaultPrescriptionRepository @Inject constructor(
         /** "Förläng och aktivera" skriver alltid dessa (MEDF-5). */
         val EXTEND_FIELDS = setOf(PrescriptionCodec.ACTIVE, PrescriptionCodec.PERIOD, PrescriptionCodec.BOOSTS)
     }
-
-    /** Offline görs ingenting, och det är inget fel – nästa gång med nät. */
-    private fun Result<Unit>.offlineIsNoOp(): Result<Unit> = if (exceptionOrNull() == DataError.Offline) Result.success(Unit) else this
 
     override suspend fun delete(id: String): Result<Unit> = collection.delete(id)
 }
