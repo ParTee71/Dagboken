@@ -15,7 +15,6 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.entryProvider
 import se.partee71.dagboken.BuildConfig
 import se.partee71.dagboken.data.auth.AuthUser
-import se.partee71.dagboken.ui.TabPlaceholderScreen
 import se.partee71.dagboken.ui.components.AccountSheet
 import se.partee71.dagboken.ui.components.ComponentGallery
 import se.partee71.dagboken.ui.components.LogMenuSheet
@@ -34,6 +33,7 @@ import se.partee71.dagboken.ui.settings.RemindersRoute
 import se.partee71.dagboken.ui.settings.ThemeRoute
 import se.partee71.dagboken.ui.sync.SyncViewModel
 import se.partee71.dagboken.ui.today.TodayRoute
+import se.partee71.dagboken.ui.trends.TrendsRoute
 
 /** Arken som ligger över flikarna: inställningsarket bakom avataren (NAV-9) och loggmenyn bakom plusknappen (NAV-10). */
 enum class RootSheet { Account, Log }
@@ -122,9 +122,8 @@ fun RootSheets(
 }
 
 /**
- * Vilken skärm varje nyckel visar – varje nyckel har en (`AppNavigationTest`). Flikarna visar en
- * platshållare tills de byggs i etapp 5 (Idag, Dagbok och Mediciner är byggda); [onAccount] är avataren uppe till höger (NAV-9) med
- * [account]s namn och foto. En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
+ * Vilken skärm varje nyckel visar – varje nyckel har en (`AppNavigationTest`). [onAccount] är avataren uppe
+ * till höger (NAV-9) med [account]s namn och foto. En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
  * andra tryck inte stänger skärmen under. Inställningsarkets underskärmar läggs på den aktuella
  * flikens stack.
  */
@@ -143,7 +142,7 @@ fun appEntries(backStack: AppBackStack, account: () -> AuthUser?, onAccount: () 
         // HIST-3: en post öppnas i en platshållare tills redigeringen (#239) och sjukdomsdetaljen (#240) finns.
         entry<DiaryKey> { DiaryRoute(account(), onAccount, onOpen = { entry -> backStack.push(entry.key) }) }
         entry<DiaryEntryKey> { key -> DiaryEntryPlaceholder(key.kind, onBack = { backStack.popIfTop(key) }) }
-        entry<TrendsKey> { TabPlaceholderScreen(TrendsKey, account(), onAccount) }
+        entry<TrendsKey> { TrendsRoute(account(), onAccount) }
         entry<MedicinesKey> {
             MedicinesRoute(
                 account(),

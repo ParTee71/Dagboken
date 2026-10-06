@@ -233,4 +233,24 @@ class SmartYAxisTest {
         assertTrue(8f in axis.range)
         assertEquals(0f, axis.range.start)
     }
+
+    @Test fun `x labels thin out until the measured width fits (TRD-6)`() {
+        assertEquals("slot 50, label 68 → every other", 2, xLabelStepFitting(14, labelWidth = 60f, plotWidth = 700f, gap = 8f))
+        assertEquals(3, xLabelStepFitting(14, labelWidth = 120f, plotWidth = 700f, gap = 8f))
+        assertEquals(1, xLabelStepFitting(7, labelWidth = 40f, plotWidth = 700f, gap = 8f))
+        assertEquals("never denser than xLabelStep", xLabelStep(90), xLabelStepFitting(90, labelWidth = 10f, plotWidth = 10_000f, gap = 0f))
+        assertEquals(1, xLabelStepFitting(1, labelWidth = 500f, plotWidth = 10f, gap = 0f))
+    }
+
+    @Test fun `a line over the stacked bars is part of the axis (TRD-21)`() {
+        val bars = listOf(StackedPoint(listOf(3f)), StackedPoint(listOf(null)), StackedPoint(listOf(4f)))
+        val without = stackedAxisFor(bars)
+        val with = stackedAxisFor(bars, line = listOf(null, 9f, 8f))
+        assertTrue(4f in without.range)
+        assertTrue("the line's 9 must fit", 9f in with.range)
+        assertEquals(0f, with.range.start)
+        // The line is drawn without a trend, so a steep line does not widen the axis beyond its values.
+        assertEquals(stackedAxisFor(bars, line = listOf(1f, 9f)), stackedAxisFor(bars, line = listOf(9f, 1f)))
+        assertEquals("no line keeps the axis as before", without, stackedAxisFor(bars, line = emptyList()))
+    }
 }

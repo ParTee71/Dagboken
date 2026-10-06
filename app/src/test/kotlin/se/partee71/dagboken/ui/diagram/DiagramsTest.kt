@@ -174,6 +174,42 @@ class DiagramsTest {
         assertTrue(chart("Sömnstadier:").pixels(AppColors.lightExtended.sleepStages.deep) > 0)
     }
 
+    @Test
+    fun `staplar med linje och fält – axeln rymmer linjen, raden gäller staplarna och linjen läses upp (TRD-21)`() {
+        val bars = listOf(null, 6f, null, null, 4f).map { StackedPoint(listOf(it)) }
+        show {
+            StackedBarChart(
+                bars,
+                listOf(StackSegment("Händelser", AppColors.lightExtended.energy.low)),
+                label = "Händelser och sjukdom",
+                line = ChartSeries("Incheckningar", listOf(null, null, 8f, 7f, 5f)),
+                bands = listOf(ChartBand(2, 4, "Förkylning")),
+            )
+        }
+        described("Händelser och sjukdom: 2 staplar, lägsta 4, högsta 6, mest Händelser").assertIsDisplayed()
+        described("Incheckningar: 3 värden, lägsta 5, högsta 8, senaste 5, fallande trend").assertIsDisplayed()
+        rule.onNodeWithText("Händelser: Lägst 4 · Högst 6 · Snitt 5").assertIsDisplayed()
+        listOf("Händelser", "Incheckningar", "Förkylning", "Trend").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
+        assertTrue(chart("Händelser och sjukdom:").pixels(AppColors.light.primary) > 0, "linjen ritas i teal")
+    }
+
+    @Test
+    fun `linjen ensam räcker för att diagrammet ska ritas och får då raden under – utan stapeltrend ingen trendrad`() {
+        show {
+            StackedBarChart(
+                listOf(StackedPoint(listOf(null)), StackedPoint(listOf(null)), StackedPoint(listOf(null))),
+                listOf(StackSegment("Händelser", AppColors.lightExtended.energy.low)),
+                label = "Händelser och sjukdom",
+                line = ChartSeries("Incheckningar", listOf(6f, null, 4f)),
+            )
+        }
+        rule.onNodeWithText("För lite data än").assertDoesNotExist()
+        rule.onNodeWithText("Incheckningar: Lägst 4 · Högst 6 · Snitt 5").assertIsDisplayed()
+        rule.onNodeWithText("Trend nedåt").assertIsDisplayed()
+        rule.onNodeWithText("Trend").assertDoesNotExist()
+        rule.onNodeWithText("Incheckningar").assertIsDisplayed()
+    }
+
     // ---- SparklineChart ----
 
     @Test

@@ -31,6 +31,7 @@ import se.partee71.dagboken.ui.components.galleryStages
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.dagboken.ui.theme.Tone
 
 /**
  * Skärmdumpar (ljust + mörkt) av diagrammen i mockupens tillstånd (canvasen "Komponenter", avsnitt 7):
@@ -112,6 +113,20 @@ class DiagramScreenshotTest {
         captureLightAndDark("StackedBarChart_somn") { Sheet { StackedBarChart(GalleryCharts.sleep, galleryStages(), xLabels = GalleryCharts.days7, label = "Sömnstadier") } }
         captureLightAndDark("StackedBarChart_tomt") {
             Sheet { StackedBarChart(listOf(StackedPoint(listOf(1f, 1.5f, 4f, 0.5f))), galleryStages(), label = "Sömnstadier") }
+        }
+    }
+
+    @Test
+    fun `StackedBarChart - staplar, linje och fält`() = captureLightAndDark("StackedBarChart_handelser_sjukdom") {
+        Sheet {
+            StackedBarChart(
+                GalleryCharts.eventBars,
+                listOf(StackSegment("Händelser", AppColors.tone(Tone.Warning).content)),
+                xLabels = GalleryCharts.days14,
+                label = "Händelser och sjukdom",
+                line = ChartSeries("Incheckningar", GalleryCharts.checkins),
+                bands = GalleryCharts.episodes,
+            )
         }
     }
 

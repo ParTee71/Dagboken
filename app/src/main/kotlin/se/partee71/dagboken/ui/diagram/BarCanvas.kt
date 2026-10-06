@@ -15,9 +15,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
@@ -33,7 +36,7 @@ import se.partee71.dagboken.core.engine.TrendSegment
 import se.partee71.dagboken.core.engine.ZoomPan
 import se.partee71.dagboken.core.engine.formatChartValue
 import se.partee71.dagboken.core.engine.gridValuesFor
-import se.partee71.dagboken.core.engine.xLabelStep
+import se.partee71.dagboken.core.engine.xLabelStepFitting
 
 /** Stapelns bredd: andel av platsen (växer med zoomen) och största bredd, minst 2 dp. */
 internal enum class BarStyle(val fraction: Float, val max: Dp) {
@@ -124,12 +127,51 @@ internal fun BarCanvas(
                     pathEffect = PathEffect.dashPathEffect(floatArrayOf(TREND_DASH.toPx(), TREND_GAP.toPx())),
                 )
             }
-            val step = xLabelStep(xLayouts.size)
-            xLayouts.forEachIndexed { i, layout ->
-                if (layout == null || i % step != 0) return@forEachIndexed
-                drawText(layout, topLeft = Offset(viewport.xOf(i) - layout.size.width / 2f, viewport.bottom + gap))
-            }
         }
+        // X-etiketterna glesas ut efter uppmätt bredd så att de aldrig trängs (TRD-6), centreras på sin plats och
+        // kläms in i ritytans bredd (kantetiketten får ligga under y-etiketterna, där inget annat ritas); en etikett
+        // vars plats panorerats ut ur ritytan ritas inte.
+        val widest = xLayouts.maxOfOrNull { it?.size?.width ?: 0 }?.toFloat() ?: 0f
+        val step = xLabelStepFitting(xLayouts.size, widest, viewport.right - viewport.left, gap * 2)
+        xLayouts.forEachIndexed { i, layout ->
+            if (layout == null || i % step != 0) return@forEachIndexed
+            val x = viewport.xOf(i)
+            if (x < viewport.left || x > viewport.right) return@forEachIndexed
+            val left = (x - layout.size.width / 2f).coerceIn(0f, (size.width - layout.size.width).coerceAtLeast(0f))
+            drawText(layout, topLeft = Offset(left, viewport.bottom + gap))
+        }
+    }
+}
+
+/**
+ * Dagsvärdena som en mjuk kurva (S-kurva som Vicos kubiska) genom [points] (`null` = lucka, kurvan bryts),
+ * med en punkt på varje värde – `IntervalBarChart`s dagsvärden (TRD-8) och linjen i `StackedBarChart`
+ * (TRD-21). [dotColor] ger punktens färg per index; `null` ritar ingen punkt där.
+ */
+internal fun DrawScope.drawSmoothCurve(points: List<Float?>, viewport: BarViewport, color: Color, dotColor: (Int) -> Color?) {
+    val curve = Path()
+    var open = false
+    var previous = Offset.Zero
+    points.forEachIndexed { i, value ->
+        if (value == null) {
+            open = false
+            return@forEachIndexed
+        }
+        val p = Offset(viewport.xOf(i), viewport.yOf(value))
+        if (open) {
+            val midX = (previous.x + p.x) / 2f
+            curve.cubicTo(midX, previous.y, midX, p.y, p.x, p.y)
+        } else {
+            curve.moveTo(p.x, p.y)
+            open = true
+        }
+        previous = p
+    }
+    drawPath(curve, color, style = Stroke(width = LINE_WIDTH.toPx(), cap = StrokeCap.Round))
+    points.forEachIndexed { i, value ->
+        if (value == null) return@forEachIndexed
+        val dot = dotColor(i) ?: return@forEachIndexed
+        drawCircle(dot, radius = INTERVAL_DOT_RADIUS.toPx(), center = Offset(viewport.xOf(i), viewport.yOf(value)))
     }
 }
 

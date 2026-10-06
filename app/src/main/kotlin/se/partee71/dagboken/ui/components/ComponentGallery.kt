@@ -51,6 +51,7 @@ import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.scaleLevel
+import se.partee71.dagboken.ui.diagram.ChartBand
 import se.partee71.dagboken.ui.diagram.ChartSeries
 import se.partee71.dagboken.ui.diagram.CompactDropdownButton
 import se.partee71.dagboken.ui.diagram.IntervalBarChart
@@ -383,6 +384,17 @@ private fun Diagrams() {
     AppCard { IntervalBarChart(GalleryCharts.energySpans, xLabels = GalleryCharts.days7, label = "Energi (dag)") }
     Label("StackedBarChart")
     AppCard { StackedBarChart(GalleryCharts.sleep, galleryStages(), xLabels = GalleryCharts.days7, label = "Sömnstadier") }
+    Label("StackedBarChart · staplar, linje och fält (Händelser och sjukdom)")
+    AppCard {
+        StackedBarChart(
+            GalleryCharts.eventBars,
+            listOf(StackSegment("Händelser", AppColors.tone(Tone.Warning).content)),
+            xLabels = GalleryCharts.days14,
+            label = "Händelser och sjukdom",
+            line = ChartSeries("Incheckningar", GalleryCharts.checkins),
+            bands = GalleryCharts.episodes,
+        )
+    }
     Label("SparklineChart")
     AppCard { SparklineChart(GalleryCharts.week, xLabels = GalleryCharts.weekdays, label = "Energi senaste veckan", onOpenTrends = {}) }
     Label("MinMaxCaption · tomt läge")
@@ -427,6 +439,11 @@ internal object GalleryCharts {
         IntervalPoint(7f, 7.5f, 8f),
         IntervalPoint(5f, 6.3f, 8f),
     )
+
+    /** Händelser och sjukdom (TRD-21): händelsernas svårighet som staplar, incheckningarna som linje och en förkylning som fält. */
+    val eventBars: List<StackedPoint> = listOf(null, 6f, null, null, 4f, null, null, null, 7f, 5f, null, null, null, 3f).map { StackedPoint(listOf(it)) }
+    val checkins: List<Float?> = listOf(null, null, null, null, null, null, null, 6f, 7f, 5f, 4f, 3f, null, 2f)
+    val episodes: List<ChartBand> = listOf(ChartBand(7, 13, "Förkylning"))
 
     /** Timmar per natt: djup, REM, lätt, vaken (TRD-16). En natt utan klockan och en utan REM-mätning. */
     val sleep: List<StackedPoint> = listOf(
