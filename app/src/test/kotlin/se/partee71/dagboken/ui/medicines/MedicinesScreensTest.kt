@@ -1,11 +1,14 @@
 package se.partee71.dagboken.ui.medicines
 
+import se.partee71.dagboken.ui.components.MEDICINE_UNITS
+import se.partee71.dagboken.ui.components.UnitChoice
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -26,6 +29,7 @@ import se.partee71.dagboken.core.model.Repeat
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.testing.captureLightAndDark
+import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
@@ -34,7 +38,7 @@ import se.partee71.dagboken.ui.runEditScreenContract
 import se.partee71.dagboken.ui.runListScreenContract
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 
-/** Fliken Mediciner och vid behov-formuläret: ramarnas kontrakt, det unika och skärmdumpar bredvid mockupen (NFR-20). Påhittad data. */
+/** Fliken Mediciner och vid behov-formuläret (receptformuläret i `PrescriptionEditScreenTest`): ramarnas kontrakt, det unika och skärmdumpar bredvid mockupen (NFR-20). Påhittad data. */
 @RunWith(RobolectricTestRunner::class)
 class MedicinesScreensTest {
 
@@ -66,14 +70,14 @@ class MedicinesScreensTest {
 
     @Test
     fun `fliken uppfyller listkontraktet (NFR-1)`() = rule.runListScreenContract(MedicineItem.AsNeeded(alvedon), "Alvedon 500 mg", "Inga mediciner än", "Nytt recept") { state, onAdd, onRetry ->
-        MedicinesScreen(state, emptyList(), today, null, { if (it == MedicinesEvent.Retry) onRetry() }, { if (it == null) onAdd() }, {})
+        MedicinesScreen(state, emptyList(), today, null, { if (it == MedicinesEvent.Retry) onRetry() }, { if (it == null) onAdd() }, {}, {})
     }
 
     @Test
     fun `receptkortet visar dagens dos med höjningen, perioden och slutet, och reglaget och menyn växlar (REC-5, REC-12, REC-13)`() {
         val events = mutableListOf<MedicinesEvent>()
         val opened = mutableListOf<String?>()
-        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(items), endings, today, null, { events += it }, { opened += it }, {}) } }
+        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(items), endings, today, null, { events += it }, { opened += it }, {}, {}) } }
 
         rule.onNodeWithText("Idag 75 mg (+25)").assertIsDisplayed()
         rule.onNodeWithText("Höjning 29 sep – 12 okt").assertIsDisplayed()
@@ -95,11 +99,21 @@ class MedicinesScreensTest {
     }
 
     @Test
+    fun `doshöjningarna under chevronen har samma total som formuläret, och ingen när dosen inte är ett tal (REC-9, REC-12)`() {
+        val tablets = sertralin.copy(id = "t", name = "Tablett", dose = "1 tablett", note = null)
+        val items = listOf(MedicineItem.Recipe(sertralin), MedicineItem.Recipe(tablets))
+        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(items), emptyList(), today, null, {}, {}, {}, {}) } }
+        repeat(2) { rule.onAllNodesWithContentDescription("Fäll ut")[0].performClick() }
+        rule.onNodeWithText("29 sep – 12 okt: +25 mg (totalt 75 mg)").assertIsDisplayed()
+        rule.onNodeWithText("29 sep – 12 okt: +25 mg").assertIsDisplayed()
+    }
+
+    @Test
     fun `stjärnan och raden på en vid behov-medicin har var sin åtgärd (SET-10, NFR-17)`() {
         val events = mutableListOf<MedicinesEvent>()
         val opened = mutableListOf<String?>()
         val prn = listOf(alvedon, imigran, loratadin).map { MedicineItem.AsNeeded(it) }
-        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(prn), emptyList(), today, null, { events += it }, {}, { opened += it }) } }
+        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(prn), emptyList(), today, null, { events += it }, {}, { opened += it }, {}) } }
         rule.onNodeWithText("Minst 4 h mellan · högst 8 per dag").assertIsDisplayed()
         rule.onNodeWithText("Högst 2 per dag").assertIsDisplayed()
         rule.onNodeWithText("Ingen gräns").assertIsDisplayed()
@@ -110,12 +124,25 @@ class MedicinesScreensTest {
     }
 
     @Test
-    fun `avslutade recept är hopfällda med antal och visar slutdatum utfällda (MEDF-5)`() {
-        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }), emptyList(), today, null, {}, {}, {}) } }
+    fun `avslutade recept är hopfällda med antal och visar slutdatum utfällda, utan reglage men med Förläng och aktivera (MEDF-5)`() {
+        val extended = mutableListOf<String>()
+        val events = mutableListOf<MedicinesEvent>()
+        rule.setContent {
+            DagbokenTheme {
+                MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }), emptyList(), today, null, { events += it }, {}, {}, { extended += it })
+            }
+        }
         rule.onNodeWithText("Avslutade recept").assertIsDisplayed()
         assertEquals(0, rule.onAllNodesWithTextCount("Amoxicillin 750 mg"))
         rule.onNodeWithText("Avslutade recept").performClick()
         rule.onNodeWithText("Avslutat 21 sep").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Amoxicillin aktivt").assertDoesNotExist()
+
+        rule.onNodeWithText("Amoxicillin 750 mg").performTouchInput { longClick() }
+        rule.onNodeWithText("Avaktivera").assertDoesNotExist()
+        rule.onNodeWithText("Förläng och aktivera").performClick()
+        assertEquals(listOf("x"), extended)
+        assertEquals(emptyList(), events)
     }
 
     private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.onAllNodesWithTextCount(text: String) =
@@ -150,13 +177,13 @@ class MedicinesScreensTest {
     fun `en tom lagrad enhet ger inget extra chip och inget val`() {
         rule.setContent { DagbokenTheme { PrnMedicineEditScreen(false, EditorUiState(alvedon.copy(unit = "")), emptyFlow(), {}, {}) } }
         val chips = rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)).fetchSemanticsNodes()
-        assertEquals(PRN_UNITS.size, chips.size, "bara listans enheter – inget tomt chip")
+        assertEquals(MEDICINE_UNITS.size, chips.size, "bara listans enheter – inget tomt chip")
         assertEquals(0, rule.onAllNodes(isSelected()).fetchSemanticsNodes().size, "inget val markerat")
     }
 
     @Test
     fun `skärmdump - listan`() = rule.captureLightAndDark("Medicines_lista") {
-        MedicinesScreen(ListUiState.Content(items + MedicineItem.Recipe(atarax)), endings + PeriodEnding.BoostEnds("s", "Sertralin", LocalDate(2026, 10, 7), "50", "mg"), today, null, {}, {}, {})
+        MedicinesScreen(ListUiState.Content(items + MedicineItem.Recipe(atarax)), endings + PeriodEnding.BoostEnds("s", "Sertralin", LocalDate(2026, 10, 7), "50", "mg"), today, null, {}, {}, {}, {})
     }
 
     @Test
@@ -173,7 +200,7 @@ class MedicinesScreensTest {
                 }
             },
         ) {
-            MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }), emptyList(), today, null, {}, {}, {})
+            MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }), emptyList(), today, null, {}, {}, {}, {})
         }
     }
 
@@ -188,7 +215,14 @@ class MedicinesScreensTest {
     }
 
     @Test
-    fun `skärmdump - receptformuläret kommer`() = rule.captureLightAndDark("Medicines_recept_kommer") {
-        PrescriptionPlaceholderScreen(isNew = true, onBack = {})
+    fun `skärmdump - avslutade med menyn öppen (MEDF-5)`() = rule.captureScreenLightAndDark(
+        "Medicines_avslutade_meny",
+        open = {
+            onNodeWithText("Avslutade recept").clickWithoutRipple()
+            waitForIdle()
+            onAllNodesWithContentDescription("Fler val")[1].clickWithoutRipple()
+        },
+    ) {
+        MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }), emptyList(), today, null, {}, {}, {}, {})
     }
 }

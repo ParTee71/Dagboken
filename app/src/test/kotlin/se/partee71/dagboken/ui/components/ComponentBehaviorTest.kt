@@ -31,6 +31,7 @@ import androidx.compose.ui.test.assertTouchWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -218,6 +219,46 @@ class ComponentBehaviorTest {
         rule.onNodeWithText("OK").performClick()
         assertEquals(1, changes)
         assertEquals(LocalDate(2026, 12, 19), date)
+    }
+
+    @Test
+    fun `textfältets suffix står efter värdet och följer inte med i värdet`() {
+        var text by mutableStateOf("25")
+        show { AppTextField(text, { text = it }, "Höjning", suffix = "mg") }
+        rule.onNodeWithText("mg", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Höjning").performTextReplacement("50")
+        assertEquals("50", text)
+    }
+
+    @Test
+    fun `datumfältet utan datum visar sin tomma text och läser upp den`() {
+        var date by mutableStateOf<LocalDate?>(null)
+        show { DateField("Slutdatum", date, { date = it }, emptyLabel = "Periodens slut") }
+        rule.onNodeWithContentDescription("Slutdatum, Periodens slut").assertIsDisplayed()
+        date = LocalDate(2026, 10, 12)
+        rule.onNodeWithContentDescription("Slutdatum, mån 12 okt 2026").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Till periodens slut").assertDoesNotExist()
+    }
+
+    @Test
+    fun `datumfältets rensa-knapp finns bara med datum, tömmer det till den tomma texten och fältet byter inte bredd`() {
+        var date by mutableStateOf<LocalDate?>(LocalDate(2026, 10, 12))
+        show { DateField("Slutdatum", date, { date = it }, emptyLabel = "Periodens slut", onClear = { date = null }, context = "doshöjning 1") }
+        val withDate = rule.onNodeWithContentDescription("Slutdatum, doshöjning 1, mån 12 okt 2026").assertIsDisplayed().getBoundsInRoot()
+        rule.onNodeWithContentDescription("Till periodens slut, doshöjning 1").performClick()
+        assertEquals(null, date)
+        rule.onNodeWithContentDescription("Till periodens slut, doshöjning 1").assertDoesNotExist()
+        val empty = rule.onNodeWithContentDescription("Slutdatum, doshöjning 1, Periodens slut").assertIsDisplayed().getBoundsInRoot()
+        assertEquals(withDate.right - withDate.left, empty.right - empty.left, "platsen för rensa-knappen hålls")
+    }
+
+    @Test
+    fun `enhetsvalet behåller en lagrad enhet utanför listan som val`() {
+        var unit by mutableStateOf("tablett")
+        show { UnitChoice(unit, { unit = it }) }
+        rule.onNodeWithText("tablett").assertIsDisplayed()
+        rule.onNodeWithText("sprut").performClick()
+        assertEquals("sprut", unit)
     }
 
     @Test

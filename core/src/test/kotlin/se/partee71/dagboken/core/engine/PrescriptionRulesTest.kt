@@ -11,6 +11,7 @@ import se.partee71.dagboken.core.engine.PrescriptionError.BOOST_OUTSIDE_PERIOD
 import se.partee71.dagboken.core.engine.PrescriptionError.BOOST_WITHOUT_DOSE
 import se.partee71.dagboken.core.engine.PrescriptionError.END_BEFORE_START
 import se.partee71.dagboken.core.model.Boost
+import se.partee71.dagboken.core.schema.DocumentRules
 
 /** Receptformulärets regler (REC-7, REC-9) i 3.x-ordning, och förvalen för en ny höjning. Port av 3.x `ReceptForm.validate()`. */
 class PrescriptionRulesTest {
@@ -78,6 +79,26 @@ class PrescriptionRulesTest {
         assertEquals(BOOST_END_BEFORE_START, rx("5", "2026-05-01", null, boost("2026-05-06", "2026-05-01", "1"), boost("2026-05-01", "2026-05-09", "1")).validate())
     }
 
+    @Test fun `felet pekar ut höjningen det gäller - den första med felet, vid överlapp den senare`() {
+        assertEquals(PrescriptionProblem(END_BEFORE_START), rx(start = "2026-05-10", end = "2026-05-09").problem())
+        assertEquals(PrescriptionProblem(BASE_DOSE_NOT_NUMERIC), rx("tablett", "2026-05-01", null, boost("2026-05-01", null, "1")).problem())
+        val loose = boost(null, null, "")
+        assertEquals(PrescriptionProblem(BOOST_WITHOUT_DOSE, 2), rx("500", "2026-05-01", null, loose, boost("2026-05-01", "2026-05-02", "1"), boost("2026-05-03", "2026-05-04", " ")).problem())
+        assertEquals(PrescriptionProblem(BOOST_NOT_POSITIVE, 1), rx("500", "2026-05-01", null, loose, boost("2026-05-01", "2026-05-02", "0")).problem())
+        assertEquals(PrescriptionProblem(BOOST_OUTSIDE_PERIOD, 1), rx("500", "2026-05-01", "2026-05-31", boost("2026-05-01", "2026-05-02", "1"), boost("2026-06-01", null, "1")).problem())
+        assertEquals(PrescriptionProblem(BOOST_END_BEFORE_START, 0), rx("500", "2026-05-01", null, boost("2026-05-10", "2026-05-09", "1")).problem())
+        // Överlapp: den som börjar senare får felet, oavsett ordningen i listan.
+        assertEquals(PrescriptionProblem(BOOSTS_OVERLAP, 0), rx("500", "2026-05-01", null, boost("2026-05-06", "2026-05-10", "1"), boost("2026-05-01", "2026-05-06", "1")).problem())
+        assertNull(rx().problem())
+    }
+
+    @Test fun `total dos med en höjning, bara när båda är tal`() {
+        assertEquals("75", rx("50").totalWith(boost("2026-05-01", null, "25")))
+        assertEquals("1,5", rx("1").totalWith(boost("2026-05-01", null, "0,5")))
+        assertNull(rx("1 tablett").totalWith(boost("2026-05-01", null, "1")))
+        assertNull(rx("50").totalWith(boost("2026-05-01", null, "")))
+    }
+
     // ── Ny höjning ────────────────────────────────────────────────────────────
 
     @Test fun `ny höjning börjar dagen efter den senast slutande och varar en vecka`() {
@@ -111,6 +132,13 @@ class PrescriptionRulesTest {
             val next = p.nextBoostDefaults("ny", day("2026-05-02"))!!.copy(dose = "1")
             assertNull(p.copy(boosts = p.boosts + next).validate(), p.toString())
         }
+    }
+
+    @Test fun `inget förslag när receptet har så många höjningar som rules tillåter`() {
+        val full = (0 until DocumentRules.MAX_BOOSTS).map { boost(null, null, "1", id = "b$it") }
+        assertNull(rx("500", "2026-05-01", null, *full.toTypedArray()).nextBoostDefaults("ny", day("2026-05-02")))
+        val room = full.drop(1)
+        assertEquals(day("2026-05-01"), rx("500", "2026-05-01", null, *room.toTypedArray()).nextBoostDefaults("ny", day("2026-05-02"))?.start)
     }
 
     @Test fun `utan höjningar börjar den på periodens start, annars idag`() {

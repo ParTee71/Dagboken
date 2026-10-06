@@ -37,11 +37,13 @@ interface DoseRepository {
     suspend fun syncPrescription(prescription: Prescription, today: LocalDate, isCurrent: () -> Boolean = { true }): Result<Unit>
 
     /**
-     * Id:n bland de inaktiva [prescriptions] som har planerade doser från och med [today] att städa
-     * (REC-5) – bara ett urval av kandidater: beslutet fattas sedan per recept av
-     * `PrescriptionRepository.syncFromServer` på färska data. Läser doserna från servern.
+     * Vad städningen behöver göra för [prescriptions] från och med [today], med **en** serverläsning av
+     * doserna för alla: recept som bara saknar doser ger dem i [DosePlan.create] (en `createIfAbsent`-
+     * batch, säker utan lås eftersom den bara skapar det som saknas); recept vars doser ska ändras eller
+     * tas bort – inaktiva med planerade kvar (REC-5), aktiva med inaktuella (REC-10) – står i
+     * [DosePlan.locked] och avgörs per recept av `PrescriptionRepository.syncFromServer` på färska data.
      */
-    suspend fun inactiveWithPlanned(prescriptions: List<Prescription>, today: LocalDate): Result<List<String>>
+    suspend fun plan(prescriptions: List<Prescription>, today: LocalDate): Result<DosePlan>
 
     /**
      * MED-4: skapar de doser i [doses] som bevisligen inte finns (`EntityCollection.createIfAbsent`):
@@ -51,6 +53,9 @@ interface DoseRepository {
      */
     suspend fun createIfAbsent(doses: List<Dose>): Result<Unit>
 }
+
+/** [DoseRepository.plan]: id:n som kräver en synk under receptets lås, och saknade doser att skapa direkt. */
+data class DosePlan(val locked: List<String> = emptyList(), val create: List<Dose> = emptyList())
 
 /** Tunn fasad över samlingen `doses` (skill firestore-data-layer); en instans, så att väntande commits delas. */
 @Singleton
@@ -78,12 +83,13 @@ class DefaultDoseRepository @Inject constructor(
         return Result.success(Unit)
     }
 
-    override suspend fun inactiveWithPlanned(prescriptions: List<Prescription>, today: LocalDate): Result<List<String>> {
-        val inactive = prescriptions.filter { !it.active }
-        if (inactive.isEmpty()) return Result.success(emptyList())
+    override suspend fun plan(prescriptions: List<Prescription>, today: LocalDate): Result<DosePlan> {
+        if (prescriptions.isEmpty()) return Result.success(DosePlan())
         val existing = fromToday(today).getOrElse { return Result.failure(it) }
         val zone = zone.get()
-        return Result.success(inactive.filter { it.syncDoses(existing, today, zone).delete.isNotEmpty() }.map { it.id })
+        val syncs = prescriptions.associate { it.id to it.syncDoses(existing, today, zone) }
+        val (locked, createOnly) = syncs.filterValues { !it.isEmpty }.entries.partition { (_, sync) -> sync.update.isNotEmpty() || sync.delete.isNotEmpty() }
+        return Result.success(DosePlan(locked = locked.map { it.key }, create = createOnly.flatMap { it.value.create }))
     }
 
     override suspend fun createIfAbsent(doses: List<Dose>): Result<Unit> =

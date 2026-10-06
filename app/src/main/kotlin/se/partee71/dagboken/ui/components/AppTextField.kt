@@ -23,7 +23,9 @@ import se.partee71.dagboken.ui.theme.AppTypography
  * med stor bokstav (NFR-18); ett fält som anger egna [keyboardOptions], t.ex. siffror, styr själv.
  * Texten växer inte förbi [maxLength] – samma tak som rules har (NFR-16); en inklistring som
  * skulle gå över ignoreras hellre än kapas mitt i. En lagrad längre text (från verktygen) kortas
- * aldrig av, men måste kortas under taket för att gå att spara.
+ * aldrig av, men måste kortas under taket för att gå att spara. [suffix] står efter värdet inne i
+ * fältet, nedtonat – t.ex. enheten på en doshöjning ("25 mg"). [valueIsPlaceholder] tonar ned värdet som
+ * en platshållare – för `PickerField`, som visar en text i stället för ett tomt värde (`DateField(emptyLabel)`).
  */
 @Composable
 fun AppTextField(
@@ -39,6 +41,8 @@ fun AppTextField(
     @DrawableRes trailingIcon: Int? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
     maxLength: Int = if (singleLine) TextLimits.SHORT else TextLimits.LONG,
+    suffix: String? = null,
+    valueIsPlaceholder: Boolean = false,
 ) {
     val card = AppColors.extended.card
     OutlinedTextField(
@@ -47,9 +51,10 @@ fun AppTextField(
         modifier = modifier.fillMaxWidth(),
         enabled = enabled,
         readOnly = readOnly,
-        textStyle = AppTypography.body,
+        textStyle = if (valueIsPlaceholder) AppTypography.body.copy(color = MaterialTheme.colorScheme.onSurfaceVariant) else AppTypography.body,
         label = { Text(label) },
         trailingIcon = trailingIcon?.let { { Icon(painterResource(it), contentDescription = null) } },
+        suffix = suffix?.let { { Text(it, style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
         supportingText = (error ?: helper)?.let { { Text(it, style = AppTypography.itemSubtitle) } },
         isError = error != null,
         keyboardOptions = keyboardOptions,
@@ -64,3 +69,4 @@ fun AppTextField(
         ),
     )
 }
+

@@ -25,6 +25,10 @@ class SyncViewModelTest {
         override fun clearWriteError() {
             lastWriteError.value = null
         }
+
+        override suspend fun trackWork(work: suspend () -> Result<Unit>) {
+            work()
+        }
     }
 
     private val status = FakeSyncStatus()

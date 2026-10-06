@@ -3,6 +3,7 @@ package se.partee71.dagboken.ui.common
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.res.stringResource
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.doseSlots
@@ -47,6 +48,28 @@ fun repeatText(schedule: Schedule): String = when (schedule) {
                 stringResource(if (ordinalTakesA(schedule.intervalDays)) R.string.repeat_interval_a_format else R.string.repeat_interval_format, schedule.intervalDays)
             }
     }
+}
+
+/** "Måndag, onsdag och fredag" – veckodagarna i veckans ordning (REC-3); inga dagar ger en tom text. */
+@Composable
+@ReadOnlyComposable
+fun weekdaysText(days: Set<DayOfWeek>): String =
+    andList(days.sorted().map(DateFormat::weekdayLong)).replaceFirstChar { it.titlecase() }
+
+/** "6, 9, 12 okt" – datum i en uppräkning; månaden skrivs ut när den byts och sist ("30 okt, 2 nov"). */
+fun datesText(dates: List<LocalDate>): String =
+    dates.mapIndexed { i, date ->
+        val next = dates.getOrNull(i + 1)
+        if (next != null && next.month == date.month && next.year == date.year) DateFormat.dayOfMonth(date) else DateFormat.short(date)
+    }.joinToString(", ")
+
+/** "a, b och c" – en svensk uppräkning. */
+@Composable
+@ReadOnlyComposable
+private fun andList(items: List<String>): String = when (items.size) {
+    0 -> ""
+    1 -> items.single()
+    else -> stringResource(R.string.list_and_format, items.dropLast(1).joinToString(", "), items.last())
 }
 
 /** Svenska ordningstal: `:a` efter 1 och 2 (2:a, 21:a, 102:a) men inte 11 och 12 (11:e, 12:e); annars `:e`. */

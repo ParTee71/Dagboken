@@ -1,6 +1,8 @@
 package se.partee71.dagboken.core.schema
 
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlinx.datetime.DayOfWeek
@@ -109,6 +111,18 @@ class CodecsTest {
         assertNull(ScheduleCodec.encode(Schedule.Unknown()))
         val stored = PrescriptionCodec.encode(prescription.copy(schedule = Schedule.Unknown(newer)))
         assertEquals(newer, PrescriptionCodec.encode(PrescriptionCodec.decode(prescription.id, stored))["schedule"])
+    }
+
+    @Test
+    fun `okända tidpunkter i ett recept bevaras och skrivs tillbaka efter de kända`() {
+        val stored = mapOf("slots" to listOf("morning", "brunch", 7, "night"))
+        val decoded = PrescriptionCodec.decode("r", stored)
+        assertEquals(listOf(Slot.MORNING, Slot.NIGHT), decoded.slots)
+        assertEquals(listOf("brunch"), decoded.unknownSlots)
+        assertTrue(decoded.hasUnknownSlots, "formuläret kan inte visa dem")
+        assertEquals(listOf("morning", "night", "brunch"), PrescriptionCodec.encode(decoded)["slots"])
+        assertTrue(PrescriptionCodec.decode("r", mapOf("slots" to listOf("asNeeded"))).hasUnknownSlots, "Vid behov visas inte heller")
+        assertFalse(PrescriptionCodec.decode("r", mapOf("slots" to listOf("morning"))).hasUnknownSlots)
     }
 
     @Test

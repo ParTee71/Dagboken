@@ -104,7 +104,8 @@ fun assertEveryFieldSet(doc: Doc, what: String) {
     assertEquals(emptySet(), emptyFieldPaths(doc), "$what ska ha ett värde i varje fält")
 }
 
+/** Modellens egna fält i dokumentet: inte `id`, och inte `@Transient` (ett värde som bärs i ett annat fält, t.ex. `Prescription.unknownSlots` i `slots`). */
 private fun persistedFields(value: Any) =
     value::class.java.declaredFields
-        .filterNot { Modifier.isStatic(it.modifiers) || it.name == "id" }
+        .filterNot { Modifier.isStatic(it.modifiers) || Modifier.isTransient(it.modifiers) || it.name == "id" }
         .onEach { it.isAccessible = true }

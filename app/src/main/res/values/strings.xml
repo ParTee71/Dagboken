@@ -50,6 +50,9 @@
     <string name="decrease_format">Minska %s</string>
     <string name="increase_format">Öka %s</string>
     <string name="pick_date">Välj datum</string>
+    <string name="date_clear_format">Till %s</string>
+    <!-- Ett fält som finns flera gånger på skärmen, för TalkBack: "Startdatum, doshöjning 2" -->
+    <string name="field_in_context_format">%1$s, %2$s</string>
     <string name="pick_time">Välj tid</string>
     <string name="date">Datum</string>
     <string name="time">Tid</string>
@@ -260,6 +263,7 @@
     <string name="medicines_pill_ended">Avslutat %s</string>
     <string name="medicines_boosts">Doshöjningar</string>
     <string name="medicines_boost_line">%1$s: +%2$s (totalt %3$s)</string>
+    <string name="medicines_boost_line_no_total">%1$s: +%2$s</string>
     <string name="date_range_format">%1$s – %2$s</string>
     <string name="date_from_format">från %s</string>
     <string name="date_until_format">t.o.m. %s</string>
@@ -275,8 +279,55 @@
     <string name="prn_max_per_day_format">Högst %d per dag</string>
     <string name="prn_both_limits_format">Minst %1$d h mellan · högst %2$d per dag</string>
     <string name="prn_no_limit">Ingen gräns</string>
-    <string name="prescription_upcoming">Receptformuläret med schema, period och doshöjningar kommer snart.</string>
+    <string name="list_and_format">%1$s och %2$s</string>
+
+    <!-- Receptformuläret (REC-1–REC-13, MEDF-5) -->
     <string name="prescription_edit">Redigera recept</string>
+    <string name="prescription_extend">Förläng och aktivera</string>
+    <string name="prescription_slots">Tidpunkter</string>
+    <string name="prescription_slots_help">Minst en tidpunkt.</string>
+    <string name="prescription_slots_unknown">Tidpunkterna kan inte visas. De sparas som de är.</string>
+    <string name="prescription_slots_missing">Välj minst en tidpunkt.</string>
+    <string name="prescription_repeat">Upprepning</string>
+    <string name="prescription_repeat_every_day">Varje dag</string>
+    <string name="prescription_repeat_weekdays">Veckodagar</string>
+    <string name="prescription_repeat_interval">Var X:e dag</string>
+    <string name="prescription_repeat_every_day_help">Varje dag inom perioden.</string>
+    <string name="prescription_days_help">Mån–fre = vardagar, lör–sön = helger.</string>
+    <string name="prescription_days_chosen_help">%s. Mån–fre = vardagar, lör–sön = helger.</string>
+    <string name="prescription_days_missing">Välj minst en dag.</string>
+    <string name="prescription_interval_label">intervall</string>
+    <string name="prescription_interval_help">Räknas från startdatum (%1$s): %2$s …</string>
+    <string name="prescription_repeat_unknown">Upprepningen kan inte visas. Den sparas som den är.</string>
+    <string name="prescription_period">Period</string>
+    <string name="prescription_start">Startdatum</string>
+    <string name="prescription_end">Slutdatum</string>
+    <string name="prescription_period_until">Tills vidare</string>
+    <string name="prescription_period_length">Längd</string>
+    <string name="prescription_period_end">T.o.m.</string>
+    <string name="prescription_period_until_help">Ingen slutdag – receptet fortsätter tills du stänger av det.</string>
+    <string name="prescription_period_summary">T.o.m. %1$s – %2$s</string>
+    <plurals name="prescription_days_count">
+        <item quantity="one">%d dag</item>
+        <item quantity="other">%d dagar</item>
+    </plurals>
+    <string name="prescription_length_label">periodens längd</string>
+    <string name="prescription_boosts_help">En höjning läggs till grunddosen under perioden, i receptets enhet.</string>
+    <string name="prescription_boost">Höjning</string>
+    <string name="prescription_boost_remove_format">Ta bort doshöjning %d</string>
+    <string name="prescription_boost_number">doshöjning %d</string>
+    <string name="prescription_boost_total">Total dos under perioden: %s</string>
+    <string name="prescription_boost_until_period_end">Periodens slut</string>
+    <string name="prescription_boost_add">Lägg till doshöjning</string>
+    <string name="prescription_active">Aktiv</string>
+    <string name="prescription_active_help">Doser planeras och påminnelser skickas</string>
+    <string name="prescription_error_end_before_start">Slutdatumet kan inte vara före startdatumet.</string>
+    <string name="prescription_error_boost_without_dose">Varje doshöjning måste ha ett värde.</string>
+    <string name="prescription_error_base_dose">Grunddosen måste vara ett tal (t.ex. 500) för att kunna höjas.</string>
+    <string name="prescription_error_boost_not_positive">Höjningen måste vara ett tal större än 0.</string>
+    <string name="prescription_error_boost_outside">Doshöjningen måste ligga inom perioden.</string>
+    <string name="prescription_error_boost_end_before_start">En doshöjnings slutdatum kan inte vara före dess startdatum.</string>
+    <string name="prescription_error_boosts_overlap">Doshöjningar får inte överlappa varandra.</string>
 
     <!-- Vid behov-formuläret (FAV-1, FAV-4, FAV-5, MEDF-4) -->
     <string name="prn_edit">Redigera vid behov-medicin</string>

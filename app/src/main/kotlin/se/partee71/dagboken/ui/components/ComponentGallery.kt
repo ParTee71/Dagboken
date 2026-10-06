@@ -188,6 +188,8 @@ private fun Fields() {
     var minutes by remember { mutableIntStateOf(45) }
     AppTextField(name, { name = it }, "Namn", helper = "Visas i dagboken")
     AppTextField("", {}, "Namn", error = "Ange ett namn")
+    var boost by remember { mutableStateOf("25") }
+    AppTextField(boost, { boost = it }, "Höjning", suffix = "mg")
     var medicine by remember { mutableStateOf("Alved") }
     SuggestionField(
         medicine,
@@ -199,6 +201,10 @@ private fun Fields() {
         footer = "Från dina vid behov-mediciner",
     )
     DateField("Datum", date, { date = it })
+    var boostEnd by remember { mutableStateOf<LocalDate?>(null) }
+    DateField("Slutdatum", boostEnd, { boostEnd = it }, emptyLabel = "Periodens slut", onClear = { boostEnd = null })
+    var unit by remember { mutableStateOf("mg") }
+    UnitChoice(unit, { unit = it })
     var time by remember { mutableStateOf(LocalTime(8, 30)) }
     TimeField("Tid", time, { time = it })
     LabeledGroup("Tillfälle") {

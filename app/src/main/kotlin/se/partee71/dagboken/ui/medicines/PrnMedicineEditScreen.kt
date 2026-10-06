@@ -1,5 +1,7 @@
 package se.partee71.dagboken.ui.medicines
 
+import se.partee71.dagboken.ui.components.MEDICINE_UNITS
+import se.partee71.dagboken.ui.components.UnitChoice
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
@@ -25,7 +27,6 @@ import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.Validator
 import se.partee71.dagboken.ui.components.AppCard
 import se.partee71.dagboken.ui.components.AppTextField
-import se.partee71.dagboken.ui.components.ChoiceChips
 import se.partee71.dagboken.ui.components.DeleteAction
 import se.partee71.dagboken.ui.components.EntityEditScreen
 import se.partee71.dagboken.ui.components.LabeledGroup
@@ -38,15 +39,12 @@ object PrnField {
     const val DOSE = "dose"
 }
 
-/** Enheterna att välja bland (MEDF-4) – "sprut" för sprejer. */
-val PRN_UNITS = listOf("mg", "ml", "st", "g", "mcg", "IE", "dropp", "sprut")
-
 /** Spannen för stegarna, som 3.x reglage (0–24 h, 0–10 per dag); ett större lagrat värde ryms alltid. */
 private const val MAX_HOURS = 24
 private const val MAX_PER_DAY = 10
 
 /** En ny vid behov-medicin: mg, minst 4 h mellan doser och ingen dagsgräns – som 3.x. */
-fun newPrnMedicine() = PrnMedicine(id = "", unit = PRN_UNITS.first())
+fun newPrnMedicine() = PrnMedicine(id = "", unit = MEDICINE_UNITS.first())
 
 /** Namn och dos måste finnas (FAV-1). */
 val prnValidator = Validator<PrnMedicine> { m ->
@@ -155,11 +153,7 @@ fun PrnMedicineEditScreen(
             stringResource(R.string.dose_label),
             error = state.errorFor(PrnField.DOSE)?.let { stringResource(it) },
         )
-        LabeledGroup(stringResource(R.string.prn_unit)) {
-            // En lagrad enhet utanför listan står kvar som val; en tom enhet ger inget extra chip och inget valt.
-            val units = if (m.unit in PRN_UNITS || m.unit.isBlank()) PRN_UNITS else PRN_UNITS + m.unit
-            ChoiceChips(units, m.unit, { unit -> change(null) { it.copy(unit = unit) } }, label = { it })
-        }
+        UnitChoice(m.unit, { unit -> change(null) { it.copy(unit = unit) } })
         LabeledGroup(stringResource(R.string.prn_min_hours), helper = stringResource(R.string.prn_min_hours_help)) {
             QuantityStepper(
                 m.minHoursBetween,

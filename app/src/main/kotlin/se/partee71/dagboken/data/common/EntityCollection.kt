@@ -191,12 +191,14 @@ suspend fun <T> EntityCollection<T>.upsertPlaced(item: T, isNew: Boolean, placeL
  * fält från en nyare app) skrivs inte tillbaka, och ett dokument som raderats under tiden återuppstår
  * inte. Båda sidornas nycklar jämförs: en ändrad map (t.ex. ett schema, också med en borttagen nyckel)
  * skrivs i sin helhet, och ett toppfält som codecen inte längre skriver tas bort. Ett värde som aldrig
- * skrivs ([isWrittenValue], t.ex. `createdAt` utan värde) räknas inte. Inget ändrat → ingen skrivning.
+ * skrivs ([isWrittenValue], t.ex. `createdAt` utan värde) räknas inte. Fälten i [always] skrivs även
+ * när de inte ändrats – för en ändring som måste gälla också om den lästa kopian var inaktuell. Inget
+ * ändrat → ingen skrivning.
  */
-suspend fun <T : Identified> EntityCollection<T>.updateChanged(codec: DocCodec<T>, before: T, after: T): Result<Unit> {
+suspend fun <T : Identified> EntityCollection<T>.updateChanged(codec: DocCodec<T>, before: T, after: T, always: Set<String> = emptySet()): Result<Unit> {
     val old = codec.encode(before)
     val new = codec.encode(after)
-    val changed = new.filter { (key, value) -> (key !in old || old[key] != value) && isWrittenValue(key, value) }.keys
+    val changed = new.filter { (key, value) -> (key !in old || old[key] != value || key in always) && isWrittenValue(key, value) }.keys
     val removed = old.keys - new.keys
     return if (changed.isEmpty() && removed.isEmpty()) Result.success(Unit) else update(after, changed, removed)
 }

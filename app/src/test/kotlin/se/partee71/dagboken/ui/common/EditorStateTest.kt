@@ -245,6 +245,46 @@ class EditorStateTest {
     }
 
     @Test
+    fun `EditorLoader gör ändringen efter varje lyckad läsning, också efter Försök igen, och inte efter ett läsfel`() = runTest {
+        val editor = EditorState(Form(), validator, loading = true)
+        var result: Result<Form?> = Result.failure(DataError.Offline)
+        val loader = EditorLoader(editor, backgroundScope, read = { result }, afterLoad = { editor.update { it.copy(note = "ändrad") } })
+        testScheduler.runCurrent()
+        assertEquals(DataError.Offline, editor.state.value.loadError)
+        assertEquals(Form(), editor.state.value.value)
+
+        result = Result.success(Form("Promenad"))
+        loader.retry()
+        testScheduler.runCurrent()
+        assertEquals(Form("Promenad", note = "ändrad"), editor.state.value.value)
+        assertTrue(editor.state.value.isDirty, "ändringen kan sparas")
+    }
+
+    @Test
+    fun `Försök igen avbryter en pågående läsning – den sena laddas aldrig över den nya och efterarbetet körs en gång`() = runTest {
+        val editor = EditorState(Form(), validator, loading = true)
+        val slow = CompletableDeferred<Result<Form?>>()
+        var reads = 0
+        var afterLoads = 0
+        val loader = EditorLoader(
+            editor,
+            backgroundScope,
+            read = { if (++reads == 1) slow.await() else Result.success(Form("Ny")) },
+            afterLoad = { afterLoads++ },
+        )
+        testScheduler.runCurrent()
+        loader.retry()
+        testScheduler.runCurrent()
+        assertEquals(Form("Ny"), editor.state.value.value)
+
+        editor.update { it.copy(note = "användarens") }
+        slow.complete(Result.success(Form("Gammal")))
+        testScheduler.runCurrent()
+        assertEquals(Form("Ny", note = "användarens"), editor.state.value.value, "den första läsningen avbröts")
+        assertEquals(1, afterLoads)
+    }
+
+    @Test
     fun `ett ogiltigt lagrat värde visar sitt fel direkt bara när formuläret ber om det`() {
         val editor = editor()
         editor.load(Form())

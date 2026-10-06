@@ -4,7 +4,9 @@ import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
 import kotlin.time.Clock
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
@@ -14,15 +16,39 @@ import se.partee71.dagboken.core.schema.PrescriptionCodec
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.LatestWins
+import se.partee71.dagboken.data.common.SyncStatus
+import se.partee71.dagboken.di.ApplicationScope
+import se.partee71.dagboken.data.common.updateChanged
 
 /**
- * Recepten i samlingen `prescriptions` (REC-1…REC-13). Ett recept avaktiveras eller tas bort – det
- * skrivs aldrig om i sin helhet härifrån (DAT-11): reglaget skriver bara `active`.
+ * Recepten i samlingen `prescriptions` (REC-1…REC-13). Ett recept skrivs aldrig om i sin helhet härifrån:
+ * reglaget skriver bara `active`, formuläret bara de fält som ändrats (DAT-10).
  */
 interface PrescriptionRepository {
     fun observe(): Flow<List<Prescription>>
 
     suspend fun get(id: String): Result<Prescription?>
+
+    /** Ett nytt, slumpat id för ett nytt recept ur samlingen – fungerar offline. */
+    fun newId(): String
+
+    /**
+     * Sparar receptformuläret (REC-1…REC-10). Lyckas när receptet skrivits (offline först); doserna följer
+     * sedan via [syncFromServer] (REC-10, den enda dossynkvägen) i appens livslånga scope – så att en
+     * stängd skärm inte avbryter den halvvägs – och ett fel där syns som skrivfel i `SyncStatus`, inte i
+     * formuläret. Offline, eller om synken avbryts, läker [tidyUp] doserna nästa gång.
+     * [loaded] `null` = nytt: [edited] skrivs med sitt id (från [newId]) och sin `createdAt` (sätts en gång
+     * av formuläret; saknas den, nu), så att ett nytt försök efter ett fel skriver samma dokument. Ett
+     * befintligt skriver bara de toppfält som skiljer [edited] från [loaded] (`updateChanged`) – [loaded]
+     * ska vara receptet **som formuläret visade det** (med formulärets förval), så att förvalen inte
+     * skrivs som ändringar. Okända fält och fält som en annan enhet ändrat och formuläret inte rört står
+     * kvar, en okänd upprepning (`Schedule.Unknown`) skrivs inte om den inte ändrats, och ett recept som
+     * raderats under tiden återuppstår inte. Listfälten (`slots`, `boosts`) skrivs hela när de ändrats;
+     * `slots` aldrig när tidpunkterna inte kan visas ([Prescription.hasUnknownSlots]). Med [extended]
+     * ("Förläng och aktivera", MEDF-5) skrivs `active`, `period` och `boosts` alltid – också när den
+     * lästa kopian redan hade samma värde men servern hunnit avsluta receptet (REC-8).
+     */
+    suspend fun save(loaded: Prescription?, edited: Prescription, extended: Boolean = false): Result<Unit>
 
     /**
      * REC-5: aktiverar eller avaktiverar. Bara fältet `active` skrivs, direkt (`update` – ett recept
@@ -46,7 +72,11 @@ interface PrescriptionRepository {
      * recept som servern bekräftat – aldrig på cachen: aktiva recept vars period passerats sett från
      * [today] avslutas (REC-8 – bara om de under receptets lås fortfarande är aktiva och utgångna,
      * så att en samtidig återaktivering inte skrivs över), och de inaktivas planerade doser från och med
-     * [today] städas (REC-5) – varje recept via samma synk som [syncFromServer]. Offline görs ingenting, utan fel.
+     * [today] städas (REC-5). Även aktiva recept vars doser inte stämmer synkas – en sparning eller
+     * växling vars synk avbröts eller var offline läks här (REC-10). En gemensam serverläsning av dagens
+     * och senare doser avgör: saknade doser skapas i en batch, och bara recept vars doser ska ändras
+     * eller tas bort går via samma synk som [syncFromServer] (idempotent: stämmer allt skrivs ingenting).
+     * Offline görs ingenting, utan fel.
      */
     suspend fun tidyUp(today: LocalDate): Result<Unit>
 
@@ -63,6 +93,9 @@ class DefaultPrescriptionRepository @Inject constructor(
     collections: CollectionFactory,
     private val doses: DoseRepository,
     private val clock: Clock,
+    /** Appens livslånga scope – dossynken efter en sparning ska inte avbrytas när skärmen stängs. */
+    @ApplicationScope private val background: CoroutineScope,
+    private val sync: SyncStatus,
     /** Enhetens tidszon, läst vid varje växling. */
     private val zone: Provider<TimeZone>,
 ) : PrescriptionRepository {
@@ -74,6 +107,23 @@ class DefaultPrescriptionRepository @Inject constructor(
     override fun observe(): Flow<List<Prescription>> = collection.observe()
 
     override suspend fun get(id: String): Result<Prescription?> = collection.get(id)
+
+    override fun newId(): String = collection.newId()
+
+    override suspend fun save(loaded: Prescription?, edited: Prescription, extended: Boolean): Result<Unit> {
+        val written = if (loaded == null) {
+            collection.upsert(edited.copy(createdAt = edited.createdAt ?: clock.now()))
+        } else {
+            // Okända tidpunkter skrivs aldrig om: formuläret jämförs mot det lästa i det fältet.
+            val after = edited.copy(id = loaded.id).let { if (loaded.hasUnknownSlots) it.copy(slots = loaded.slots, unknownSlots = loaded.unknownSlots) else it }
+            collection.updateChanged(PrescriptionCodec, loaded, after, always = if (extended) EXTEND_FIELDS else emptySet())
+        }
+        written.onFailure { return Result.failure(it) }
+        val id = loaded?.id ?: edited.id
+        val today = clock.todayIn(zone.get())
+        background.launch { sync.trackWork { syncFromServer(id, today) } }
+        return Result.success(Unit)
+    }
 
     override suspend fun setActive(prescription: Prescription, active: Boolean): Result<Unit> {
         collection.update(prescription.copy(active = active), setOf(PrescriptionCodec.ACTIVE)).onFailure { return Result.failure(it) }
@@ -105,11 +155,17 @@ class DefaultPrescriptionRepository @Inject constructor(
         // Bara ett urval: beslutet – avsluta, städa – fattas per recept i synken, på färska data under
         // receptets lås.
         val ended = stored.toDeactivateOn(today).mapTo(LinkedHashSet()) { it.id }
-        val withPlanned = doses.inactiveWithPlanned(stored.filter { it.id !in ended }, today)
-            .getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
+        val plan = doses.plan(stored.filter { it.id !in ended }, today).getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
+        // Saknade doser i en batch – utan lås och utan en serverläsning per recept.
+        doses.createIfAbsent(plan.create).onFailure { return Result.failure(it) }
         for (id in ended) sync(id, today, endIfExpired = true).onFailure { return Result.failure<Unit>(it).offlineIsNoOp() }
-        for (id in withPlanned) sync(id, today).onFailure { return Result.failure<Unit>(it).offlineIsNoOp() }
+        for (id in plan.locked) sync(id, today).onFailure { return Result.failure<Unit>(it).offlineIsNoOp() }
         return Result.success(Unit)
+    }
+
+    private companion object {
+        /** "Förläng och aktivera" skriver alltid dessa (MEDF-5). */
+        val EXTEND_FIELDS = setOf(PrescriptionCodec.ACTIVE, PrescriptionCodec.PERIOD, PrescriptionCodec.BOOSTS)
     }
 
     /** Offline görs ingenting, och det är inget fel – nästa gång med nät. */

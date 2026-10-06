@@ -184,10 +184,28 @@ class CatalogScreenshotTest {
                 AppTextField("", {}, "Namn", error = "Ange ett namn")
             }
         }
+        captureLightAndDark("AppTextField_suffix") {
+            Sheet {
+                AppTextField("25", {}, "Höjning", suffix = "mg")
+                AppTextField("", {}, "Höjning", error = "Varje doshöjning måste ha ett värde.", suffix = "mg")
+            }
+        }
+        captureLightAndDark("UnitChoice_val") {
+            Sheet {
+                UnitChoice("mg", {})
+                UnitChoice("tablett", {})
+            }
+        }
         captureLightAndDark("DateField_lagen") {
             Sheet {
                 DateField("Datum", LocalDate(2026, 10, 4), {})
                 DateField("Startdatum", null, {}, error = "Välj ett startdatum")
+            }
+        }
+        captureLightAndDark("DateField_tomtext") {
+            Sheet {
+                DateField("Slutdatum", null, {}, emptyLabel = "Periodens slut", onClear = {})
+                DateField("Slutdatum", LocalDate(2026, 10, 12), {}, emptyLabel = "Periodens slut", onClear = {})
             }
         }
         captureLightAndDark("TimeField_lagen") {

@@ -39,6 +39,7 @@ import se.partee71.dagboken.core.engine.doseFor
 import se.partee71.dagboken.core.engine.endingSoon
 import se.partee71.dagboken.core.engine.endingSoonDate
 import se.partee71.dagboken.core.engine.medicineOverview
+import se.partee71.dagboken.core.engine.totalWith
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.data.auth.AuthUser
@@ -180,13 +181,14 @@ fun MedicinesRoute(
     onAccount: () -> Unit,
     onOpenPrescription: (String?) -> Unit,
     onOpenPrn: (String?) -> Unit,
+    onExtendPrescription: (String) -> Unit,
     viewModel: MedicinesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val endings by viewModel.endings.collectAsStateWithLifecycle()
     val failure by viewModel.failure.collectAsStateWithLifecycle()
     val today by viewModel.today.collectAsStateWithLifecycle()
-    MedicinesScreen(state, endings, today, failure, viewModel::onEvent, onOpenPrescription, onOpenPrn) {
+    MedicinesScreen(state, endings, today, failure, viewModel::onEvent, onOpenPrescription, onOpenPrn, onExtendPrescription) {
         AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
     }
 }
@@ -196,7 +198,8 @@ fun MedicinesRoute(
  * som banner överst, recepten som postkort (NFR-15/16) med aktiv-reglaget som enda direktkontroll,
  * vid behov-medicinerna som rader med stjärna och pil (NFR-17, som Listor) och de avslutade recepten
  * hopfällda sist med antal (NFR-18). Lägg till = "Nytt recept" med "Ny vid behov-medicin" i pilens meny
- * (MEDF-4). [onOpenPrescription]/[onOpenPrn] öppnar formuläret (`null` = nytt).
+ * (MEDF-4). [onOpenPrescription]/[onOpenPrn] öppnar formuläret (`null` = nytt); [onExtendPrescription]
+ * öppnar ett avslutat recept förlängt och aktivt (MEDF-5).
  */
 @Composable
 fun MedicinesScreen(
@@ -207,6 +210,7 @@ fun MedicinesScreen(
     onEvent: (MedicinesEvent) -> Unit,
     onOpenPrescription: (String?) -> Unit,
     onOpenPrn: (String?) -> Unit,
+    onExtendPrescription: (String) -> Unit,
     avatar: @Composable () -> Unit = {},
 ) {
     val newPrn = stringResource(R.string.medicines_new_prn)
@@ -241,7 +245,7 @@ fun MedicinesScreen(
         header = if (endings.isEmpty()) null else ({ EndingsBanner(endings, today) { onOpenPrescription(endings.first().prescriptionId) } }),
     ) { item ->
         when (item) {
-            is MedicineItem.Recipe -> PrescriptionCard(item, today, onEvent) { onOpenPrescription(item.prescription.id) }
+            is MedicineItem.Recipe -> PrescriptionCard(item, today, onEvent, { onExtendPrescription(item.prescription.id) }) { onOpenPrescription(item.prescription.id) }
             is MedicineItem.AsNeeded -> ItemRow(
                 medicineTitle(item.medicine.name, item.medicine.dose, item.medicine.unit),
                 subtitle = prnLimits(item.medicine),
@@ -279,11 +283,11 @@ private fun endingText(ending: PeriodEnding, today: LocalDate): String {
  * som undertext, aktiv-reglaget som enda direktkontroll (dubblerat i menyn), pills för dagens dos med
  * höjningen inom parentes, höjningens och periodens dagar och "Slutar idag/i morgon"; anteckningen med
  * ikonen och doshöjningarna under chevronen. Ett avslutat recept är nedtonat med "Avslutat {datum}"
- * och har inget reglage – det förlängs i receptformuläret (MEDF-5).
+ * och har inget reglage – menyns "Förläng och aktivera" ([onExtend]) öppnar det i receptformuläret (MEDF-5).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PrescriptionCard(item: MedicineItem.Recipe, today: LocalDate, onEvent: (MedicinesEvent) -> Unit, onOpen: () -> Unit) {
+private fun PrescriptionCard(item: MedicineItem.Recipe, today: LocalDate, onEvent: (MedicinesEvent) -> Unit, onExtend: () -> Unit, onOpen: () -> Unit) {
     val p = item.prescription
     val title = medicineTitle(p.name, p.dose, p.unit)
     val active = p.active && !item.ended
@@ -298,7 +302,7 @@ private fun PrescriptionCard(item: MedicineItem.Recipe, today: LocalDate, onEven
         expandedContent = if (p.boosts.any { it.start != null }) ({ BoostLines(p) }) else null,
         onEdit = onOpen,
         actions = if (item.ended) {
-            emptyList()
+            listOf(AppMenuItem(stringResource(R.string.prescription_extend), onExtend, R.drawable.ic_refresh))
         } else {
             listOf(AppMenuItem(toggleLabel, { onEvent(MedicinesEvent.ActiveChanged(p, !p.active)) }, if (p.active) R.drawable.ic_toggle_off else R.drawable.ic_toggle_on))
         },
@@ -345,7 +349,10 @@ private fun BoostLines(p: Prescription) {
         GroupLabel(stringResource(R.string.medicines_boosts))
         p.boosts.filter { it.start != null }.sortedBy { it.start }.forEach { boost ->
             Text(
-                stringResource(R.string.medicines_boost_line, periodText(boost.start, p.boostEnd(boost)), doseText(boost.dose, p.unit), doseText(p.doseFor(boost.start!!), p.unit)),
+                // Totalen som i receptformuläret (totalWith) – ingen när dosen inte går att räkna.
+                p.totalWith(boost)?.let { total ->
+                    stringResource(R.string.medicines_boost_line, periodText(boost.start, p.boostEnd(boost)), doseText(boost.dose, p.unit), doseText(total, p.unit))
+                } ?: stringResource(R.string.medicines_boost_line_no_total, periodText(boost.start, p.boostEnd(boost)), doseText(boost.dose, p.unit)),
                 style = AppTypography.itemSubtitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

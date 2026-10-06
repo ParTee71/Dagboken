@@ -71,7 +71,8 @@ fun Schedule.appliesOn(date: LocalDate, anchor: LocalDate?): Boolean = when (thi
     }
 }
 
-private val WEEKEND = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+/** Lördag och söndag – [Repeat.WEEKENDS]. */
+internal val WEEKEND = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
 
 /**
  * MED-4, REC-7: om receptets kalender ger doser på [date] – inom perioden och enligt upprepningen.
@@ -147,11 +148,16 @@ fun Prescription.boostEnd(boost: Boost): LocalDate? = boost.end ?: period.end
  * receptets ([Prescription.unit]). Går grunddosen eller höjningen inte att räkna som tal
  * ("1 tablett") gäller grunddosen oförändrad.
  */
-fun Prescription.doseFor(date: LocalDate): String {
-    val boost = boostFor(date) ?: return dose
-    val base = parseDose(dose) ?: return dose
-    val extra = parseDose(boost.dose) ?: return dose
-    return (base + extra).takeIf { it.isFinite() }?.let(::formatDose) ?: dose
+fun Prescription.doseFor(date: LocalDate): String = boostFor(date)?.let(::totalWith) ?: dose
+
+/**
+ * REC-9: den totala dosen medan [boost] gäller – grunddosen plus höjningen ("75") – eller `null` när
+ * någon av dem inte går att räkna som tal. Receptformulärets "Total dos under perioden" och [doseFor].
+ */
+fun Prescription.totalWith(boost: Boost): String? {
+    val base = parseDose(dose) ?: return null
+    val extra = parseDose(boost.dose) ?: return null
+    return (base + extra).takeIf { it.isFinite() }?.let(::formatDose)
 }
 
 /**

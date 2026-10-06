@@ -30,6 +30,7 @@ import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
+import se.partee71.dagboken.data.firestore.FirestoreSyncStatus
 import se.partee71.dagboken.data.firestore.Paths
 
 /**
@@ -47,7 +48,7 @@ class MedicineRepositoriesTest {
     private val tomorrow = LocalDate(2026, 9, 22)
 
     private val doses = DefaultDoseRepository(factory) { zone }
-    private val prescriptions = DefaultPrescriptionRepository(factory, doses, FixedClock()) { zone }
+    private val prescriptions = testPrescriptions(factory, doses, zone)
     private val prnMedicines = DefaultPrnMedicineRepository(factory)
 
     private val levaxin = Prescription(
@@ -175,7 +176,11 @@ class MedicineRepositoriesTest {
 
         assertEquals(false, factory.prescriptions().get(expired.id).getOrThrow()?.active)
         assertEquals(true, factory.prescriptions().get(running.id).getOrThrow()?.active)
-        assertEquals(listOf(plannedFor(running).id), factory.doses().getAll().getOrThrow().map { it.id })
+        assertEquals(
+            setOf(plannedFor(running).id, DoseIds.prescribed(running.id, today, Slot.EVENING)),
+            factory.doses().getAll().getOrThrow().map { it.id }.toSet(),
+            "det utgångnas dos borta; det pågående får också sin saknade kvällsdos (REC-10)",
+        )
     }
 
     @Test
@@ -205,8 +210,8 @@ class MedicineRepositoriesTest {
     fun `städningen tar bara inaktiva recepts planerade doser från idag`() = runTest {
         val yesterday = LocalDate(2026, 9, 20)
         factory.doses().batch(listOf(planned(yesterday, Slot.MORNING), planned(today, Slot.MORNING), planned(today, Slot.EVENING, DoseStatus.SKIPPED))).getOrThrow()
-        assertEquals(emptyList(), doses.inactiveWithPlanned(listOf(levaxin), today).getOrThrow(), "aktivt recept: ingen kandidat")
-        assertEquals(listOf(levaxin.id), doses.inactiveWithPlanned(listOf(levaxin.copy(active = false)), today).getOrThrow())
+        assertEquals(DosePlan(), doses.plan(listOf(levaxin), today).getOrThrow(), "aktivt recept vars doser stämmer: ingenting")
+        assertEquals(DosePlan(locked = listOf(levaxin.id)), doses.plan(listOf(levaxin.copy(active = false)), today).getOrThrow())
 
         factory.prescriptions().upsert(levaxin.copy(active = false)).getOrThrow()
         prescriptions.tidyUp(today).getOrThrow()
@@ -375,7 +380,96 @@ class MedicineRepositoriesTest {
     }
 
     private fun prescriptionsWith(collections: CollectionFactory, doses: DoseRepository) =
-        DefaultPrescriptionRepository(collections, doses, FixedClock()) { zone }
+        testPrescriptions(collections, doses, zone)
 
     private suspend fun PrnMedicineRepository.observeFirst(): PrnMedicine = factory.prnMedicines().getAll().getOrThrow().single()
+
+    @Test
+    fun `sparningen lyckas när receptet skrivits – ett fel i dossynken syns som skrivfel, inte i formuläret`() = runTest {
+        val failing = dosesWith { object : EntityCollection<Dose> by it {
+            override suspend fun createIfAbsent(items: List<Dose>): Result<Unit> = Result.failure(DataError.PermissionDenied)
+        } }
+        val sync = FirestoreSyncStatus(backgroundScope)
+        val repository = testPrescriptions(factory, DefaultDoseRepository(failing) { zone }, zone, background = backgroundScope, sync = sync)
+
+        repository.save(null, levaxin).getOrThrow()
+        runCurrent()
+
+        assertEquals(levaxin.name, factory.prescriptions().get(levaxin.id).getOrThrow()?.name)
+        assertEquals(DataError.PermissionDenied, sync.lastWriteError.value)
+        assertEquals(false, sync.syncing.value)
+    }
+
+    @Test
+    fun `en sparning vars dossynk var offline läks av nästa städning (REC-10)`() = runTest {
+        val offline = dosesWith { object : EntityCollection<Dose> by it {
+            override suspend fun confirmedFrom(field: String, from: Any): Result<List<Dose>> = Result.failure(DataError.Offline)
+        } }
+        testPrescriptions(offline, DefaultDoseRepository(offline) { zone }, zone).save(null, levaxin).getOrThrow()
+        assertEquals(emptyList(), factory.doses().getAll().getOrThrow(), "offline: inga doser än")
+
+        prescriptions.tidyUp(today).getOrThrow()
+        assertEquals(setOf(planned(today, Slot.MORNING).id, planned(today, Slot.EVENING).id), factory.doses().getAll().getOrThrow().map { it.id }.toSet())
+
+        prescriptions.tidyUp(today).getOrThrow()
+        assertEquals(2, factory.doses().getAll().getOrThrow().size, "idempotent: inget mer när allt stämmer")
+    }
+
+    @Test
+    fun `städningen skapar saknade doser för många recept i en batch, utan en låst synk per recept`() = runTest {
+        val recipes = List(3) { levaxin.copy(id = "r$it") }
+        factory.prescriptions().batch(recipes).getOrThrow()
+        var doseReads = 0
+        var creates = 0
+        var recipeReads = 0
+        val counting = object : CollectionFactory by factory {
+            override fun doses(): EntityCollection<Dose> = object : EntityCollection<Dose> by factory.doses() {
+                override suspend fun confirmedFrom(field: String, from: Any): Result<List<Dose>> = factory.doses().confirmedFrom(field, from).also { doseReads++ }
+                override suspend fun createIfAbsent(items: List<Dose>): Result<Unit> = factory.doses().createIfAbsent(items).also { creates++ }
+            }
+
+            override fun prescriptions(): EntityCollection<Prescription> = object : EntityCollection<Prescription> by factory.prescriptions() {
+                override suspend fun confirmed(id: String): Result<Prescription?> = factory.prescriptions().confirmed(id).also { recipeReads++ }
+            }
+        }
+
+        testPrescriptions(counting, DefaultDoseRepository(counting) { zone }, zone).tidyUp(today).getOrThrow()
+
+        assertEquals(6, factory.doses().getAll().getOrThrow().size, "morgon och kväll för alla tre")
+        assertEquals(listOf(1, 1, 0), listOf(doseReads, creates, recipeReads), "en dosläsning, en batch, inga låsta synkar")
+    }
+
+    @Test
+    fun `förläng och aktivera skriver active även när den lästa kopian redan var aktiv men servern hunnit avsluta (MEDF-5)`() = runTest {
+        val ended = levaxin.copy(period = Period(LocalDate(2026, 8, 1), LocalDate(2026, 9, 20)))
+        factory.prescriptions().upsert(ended.copy(active = false)).getOrThrow() // städningen hann avsluta det
+        val staleCopy = ended // formulärets kopia, läst innan
+        val extended = ended.copy(period = Period(today, LocalDate(2026, 10, 1)), active = true)
+
+        prescriptions.save(staleCopy, extended).getOrThrow()
+        assertEquals(false, factory.prescriptions().get(levaxin.id).getOrThrow()?.active, "utan förlängningsvägen: active ser oförändrat ut och skrivs inte")
+
+        prescriptions.save(staleCopy, extended, extended = true).getOrThrow()
+        val stored = factory.prescriptions().get(levaxin.id).getOrThrow()!!
+        assertEquals(true, stored.active)
+        assertEquals(extended.period, stored.period)
+    }
+
+    @Test
+    fun `okända tidpunkter skrivs aldrig om av formulärets sparning`() = runTest {
+        factory.store.set(prescriptionsPath(), levaxin.id, PrescriptionCodec.encode(levaxin) + ("slots" to listOf("morning", "brunch")), merge = false)
+        val loaded = factory.prescriptions().get(levaxin.id).getOrThrow()!!
+        prescriptions.save(loaded, loaded.copy(name = "Levaxin Ny", slots = listOf(Slot.EVENING), unknownSlots = emptyList())).getOrThrow()
+        val raw = factory.store.read(prescriptionsPath(), levaxin.id)!!
+        assertEquals(listOf("morning", "brunch"), raw["slots"])
+        assertEquals("Levaxin Ny", raw["name"])
+    }
+
+    @Test
+    fun `receptformulärets sparning återuppväcker inte ett raderat recept och synkar inga doser för det`() = runTest {
+        prescriptions.save(levaxin, levaxin.copy(dose = "150"))
+        assertNull(factory.store.read(prescriptionsPath(), levaxin.id))
+        assertEquals(emptyList(), factory.doses().getAll().getOrThrow())
+    }
+
 }
