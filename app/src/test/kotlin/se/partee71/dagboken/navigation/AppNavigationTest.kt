@@ -24,11 +24,16 @@ class AppNavigationTest {
         OptionEditKey(OptionKind.ACTIVITY, "activity-promenad-c78928"),
         ExportImportKey,
         AboutKey,
+        PrescriptionEditKey(),
+        PrescriptionEditKey("6f1c2a9e"),
+        PrnMedicineEditKey(),
+        PrnMedicineEditKey("a7b8c9d0"),
     ).onEach { key ->
         // Uttömmande: en ny nyckeltyp utan gren här ger ett kompileringsfel.
         when (key) {
             TodayKey, DiaryKey, TrendsKey, MedicinesKey, ComponentGalleryKey -> Unit
             ProfileKey, RemindersKey, ThemeKey, ListsKey, is OptionEditKey, ExportImportKey, AboutKey -> Unit
+            is PrescriptionEditKey, is PrnMedicineEditKey -> Unit
         }
     }
 
@@ -49,6 +54,7 @@ class AppNavigationTest {
     fun `nycklarna överlever processdöd`() {
         val backStack = AppBackStack()
         backStack.push(OptionEditKey(OptionKind.ACTIVITY, "activity-promenad-c78928"))
+        backStack.push(PrnMedicineEditKey("a7b8c9d0"))
         assertEquals(backStack.entries, AppBackStack.restore(backStack.save()).entries)
     }
 

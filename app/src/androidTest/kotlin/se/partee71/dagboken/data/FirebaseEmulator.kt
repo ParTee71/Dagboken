@@ -1,5 +1,7 @@
 package se.partee71.dagboken.data
 
+import kotlin.time.Duration
+import se.partee71.dagboken.data.common.SERVER_WAIT
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.FirebaseApp
@@ -185,7 +187,8 @@ class EmulatorUser(val uid: String, val firestore: FirestoreInstance) {
         path: (uid: String?) -> String,
         clock: FixedClock = FixedClock(),
         sync: FirestoreSyncStatus = FirebaseEmulator.sync(),
-    ): EntityCollection<T> = FirestoreCollection(firestore, scope, sync, clock, codec, name, path)
+        serverWait: Duration = SERVER_WAIT,
+    ): EntityCollection<T> = FirestoreCollection(firestore, scope, sync, clock, codec, name, path, serverWait)
 
     fun versions() = FirestoreUserVersions(firestore)
 

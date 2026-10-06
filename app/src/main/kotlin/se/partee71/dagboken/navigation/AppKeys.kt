@@ -54,6 +54,14 @@ data object ListsKey : AppKey
 @Serializable
 data class OptionEditKey(val kind: OptionKind, val id: String? = null) : AppKey
 
+/** Nytt recept ([id] = `null`) eller ett befintligt (REC-1, MEDF-4) – formuläret kommer i #256. */
+@Serializable
+data class PrescriptionEditKey(val id: String? = null) : AppKey
+
+/** Ny vid behov-medicin ([id] = `null`) eller en befintlig (FAV-1, MEDF-3, MEDF-4). */
+@Serializable
+data class PrnMedicineEditKey(val id: String? = null) : AppKey
+
 /** Export och import (BCK-13, SET-8) – funktionen kommer i #230. */
 @Serializable
 data object ExportImportKey : AppKey

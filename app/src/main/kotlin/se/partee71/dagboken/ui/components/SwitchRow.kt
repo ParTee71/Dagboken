@@ -35,10 +35,20 @@ fun SwitchRow(
         textInactive = inactive,
         trailing = {
             if (onClick == null) {
-                Switch(checked = checked, onCheckedChange = null)
+                SwitchControl(checked, onCheckedChange = null)
             } else {
-                Switch(checked = checked, onCheckedChange = onCheckedChange, modifier = Modifier.semantics { contentDescription = title })
+                SwitchControl(checked, onCheckedChange, label = title)
             }
         },
     )
+}
+
+/**
+ * Själva växeln – en gång för [SwitchRow] och postkortets reglage (`DagbokenEntryCard(toggle)`). Utan
+ * [onCheckedChange] är den en ren indikator (raden växlar och läser upp den); med är den en egen
+ * kontroll som TalkBack läser som [label].
+ */
+@Composable
+internal fun SwitchControl(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, label: String? = null) {
+    Switch(checked = checked, onCheckedChange = onCheckedChange, modifier = if (label == null) Modifier else Modifier.semantics { contentDescription = label })
 }

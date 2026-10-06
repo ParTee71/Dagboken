@@ -12,7 +12,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.R
-import se.partee71.dagboken.data.ContractItem
+import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.components.UndoRequest
@@ -78,7 +79,7 @@ class ArchiveActionsTest {
     @Test
     fun `arkiverade visas sist och bara när de visas`() = runTest {
         val archive = actions()
-        val all = flowOf(listOf(ContractItem("a", "Promenad", archived = true), ContractItem("b", "Yoga")))
+        val all = flowOf(listOf(Option("a", OptionKind.ACTIVITY, "Promenad", archived = true), Option("b", OptionKind.ACTIVITY, "Yoga")))
         assertEquals(listOf("Yoga"), archive.visible(all).first().map { it.name })
         archive.onEvent(ArchiveEvent.ToggleArchived)
         assertTrue(archive.showingArchived.value)

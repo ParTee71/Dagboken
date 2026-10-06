@@ -88,4 +88,13 @@ class PeriodEndingsTest {
         assertEquals(listOf(BoostEnds("r1", "Metformin", day("2026-05-10"), "500", "mg")), listOf(p).endingOn(day("2026-05-10")))
         assertEquals(emptyList(), listOf(p).endingOn(day("2026-05-13")))
     }
+
+    @Test fun `receptkortets periodslut idag eller i morgon - bara receptets eget, bara aktivt (MEDF-1)`() {
+        val today = day("2026-05-09")
+        assertEquals(today, prednisolon("2026-05-09").endingSoonDate(today))
+        assertEquals(tomorrow, prednisolon("2026-05-10").endingSoonDate(today))
+        assertEquals(null, prednisolon("2026-05-11").endingSoonDate(today))
+        assertEquals(null, prednisolon("2026-05-10", active = false).endingSoonDate(today))
+        assertEquals(null, prednisolon("2026-05-20", boost("2026-05-01", "2026-05-10", "10")).endingSoonDate(today), "en höjning är inget periodslut")
+    }
 }

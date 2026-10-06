@@ -287,6 +287,50 @@ class CatalogScreenshotTest {
                 DagbokenEntryCard("Prednisolon 5 mg", onClick = {}, subtitle = "Avslutat 30 sep", inactive = true, onEdit = {})
             }
         }
+        captureLightAndDark("DagbokenEntryCard_reglage_och_pills") {
+            Sheet {
+                DagbokenEntryCard(
+                    "Sertralin 50 mg",
+                    onClick = {},
+                    subtitle = "Morgon · dagligen · tills vidare",
+                    accent = MaterialTheme.colorScheme.primary,
+                    note = "Tas med frukost.",
+                    expandedContent = { Text("29 sep – 12 okt: +25 mg", style = AppTypography.body) },
+                    onEdit = {},
+                    delete = DeleteAction("Ta bort?", "") {},
+                    toggle = EntryToggle(true, {}, "Sertralin aktivt"),
+                    below = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                            InfoPill("Idag 75 mg (+25)")
+                            InfoPill("Höjning 29 sep – 12 okt", tone = Tone.Neutral)
+                        }
+                    },
+                )
+                DagbokenEntryCard(
+                    "Levaxin 100 µg",
+                    onClick = {},
+                    subtitle = "Morgon · dagligen · tills vidare",
+                    accent = MaterialTheme.colorScheme.outline,
+                    onEdit = {},
+                    inactive = true,
+                    toggle = EntryToggle(false, {}, "Levaxin aktivt"),
+                )
+            }
+        }
+        captureLightAndDark("NoticeBanner_varning") {
+            Sheet {
+                NoticeBanner("Kåvepenin slutar i morgon. Höjningen av Sertralin slutar i morgon – sedan 50 mg.", R.drawable.ic_bell, {})
+                NoticeBanner("Ändringar väntar på att synkas.", R.drawable.ic_cloud_upload, {}, tone = Tone.Neutral)
+            }
+        }
+        captureLightAndDark("FavoriteStar_lagen") {
+            Sheet {
+                AppCard {
+                    ItemRow("Alvedon 500 mg", subtitle = "Minst 4 h mellan · högst 8 per dag", navigates = true, onClick = {}, trailing = { FavoriteStar("Alvedon", true, {}) })
+                    ItemRow("Loratadin 10 mg", subtitle = "Ingen gräns", navigates = true, onClick = {}, trailing = { FavoriteStar("Loratadin", false, {}) })
+                }
+            }
+        }
         captureLightAndDark("Foldout_lagen") {
             Sheet {
                 AppCard { Foldout("Mätvärden", false, {}, summary = "Energi 7 · stress 3") {} }

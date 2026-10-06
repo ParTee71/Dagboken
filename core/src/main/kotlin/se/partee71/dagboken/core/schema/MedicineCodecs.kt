@@ -121,16 +121,24 @@ object PrnMedicineCodec : DocCodec<PrnMedicine> {
 }
 
 object DoseCodec : DocCodec<Dose> {
+    /** Dosens dag (`yyyy-MM-dd`, sorterbar som text) – avgränsar läsningen av dagens och senare doser. */
+    const val DATE = se.partee71.dagboken.core.schema.DATE
+
     // Fälten som avbockningen skriver var för sig (MED-2, NOT-10).
     const val STATUS = "status"
+
+    // Fälten som följer receptet när det ändras (REC-10, REC-12).
+    const val NAME = "name"
+    const val DOSE = "dose"
+    const val UNIT = "unit"
     const val TAKEN_AT = "takenAt"
 
     override fun encode(value: Dose): Doc = mapOf(
         DATE to value.date.encodeDate(),
         "slot" to value.slot.encodeWire(),
-        "name" to value.name,
-        "dose" to value.dose,
-        "unit" to value.unit,
+        NAME to value.name,
+        DOSE to value.dose,
+        UNIT to value.unit,
         STATUS to value.status.encodeWire(),
         "plannedTime" to value.plannedTime.encodeTime(),
         TAKEN_AT to value.takenAt,

@@ -80,7 +80,7 @@ fun ensureDoses(
     today: LocalDate,
     zone: TimeZone,
 ): EnsurePlan {
-    val (expired, current) = prescriptions.filter { it.active }.partition { it.hasExpiredOn(today) }
+    val (expired, current) = prescriptions.activeByExpiryOn(today)
     val existingIds = existing.mapTo(HashSet()) { it.id }
     return EnsurePlan(
         deactivate = expired.map { it.id },

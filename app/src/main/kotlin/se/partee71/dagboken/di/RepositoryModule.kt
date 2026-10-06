@@ -4,8 +4,14 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import se.partee71.dagboken.data.repository.DefaultDoseRepository
 import se.partee71.dagboken.data.repository.DefaultOptionsRepository
+import se.partee71.dagboken.data.repository.DefaultPrescriptionRepository
+import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
+import se.partee71.dagboken.data.repository.DoseRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
+import se.partee71.dagboken.data.repository.PrescriptionRepository
+import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 
@@ -16,4 +22,10 @@ abstract class RepositoryModule {
     @Binds abstract fun settings(repository: DefaultSettingsRepository): SettingsRepository
 
     @Binds abstract fun options(repository: DefaultOptionsRepository): OptionsRepository
+
+    @Binds abstract fun prescriptions(repository: DefaultPrescriptionRepository): PrescriptionRepository
+
+    @Binds abstract fun prnMedicines(repository: DefaultPrnMedicineRepository): PrnMedicineRepository
+
+    @Binds abstract fun doses(repository: DefaultDoseRepository): DoseRepository
 }

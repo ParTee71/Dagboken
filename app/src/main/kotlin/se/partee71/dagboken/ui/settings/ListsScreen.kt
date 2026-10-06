@@ -28,10 +28,10 @@ import se.partee71.dagboken.ui.common.ListLoader
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.collectAsListArchive
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.components.AppIconButton
 import se.partee71.dagboken.ui.components.AppSegmentedChoice
 import se.partee71.dagboken.ui.components.EmptyContent
 import se.partee71.dagboken.ui.components.EntityListScreen
+import se.partee71.dagboken.ui.components.FavoriteStar
 import se.partee71.dagboken.ui.components.InfoPill
 import se.partee71.dagboken.ui.components.ItemRow
 import se.partee71.dagboken.ui.components.ListArchive
@@ -145,15 +145,9 @@ fun ListsScreen(
                 trailing = {
                     // Som "Pausat" i PausableRow: läget som pill, raden nedtonad.
                     if (option.archived) InfoPill(stringResource(R.string.option_archived), tone = Tone.Neutral)
-                    FavoriteStar(option) { onEvent(ListsEvent.FavoriteToggled(option)) }
+                    FavoriteStar(option.name, option.favorite, { onEvent(ListsEvent.FavoriteToggled(option)) })
                 },
             )
         }
     }
-}
-
-@Composable
-private fun FavoriteStar(option: Option, onToggle: () -> Unit) {
-    val description = stringResource(if (option.favorite) R.string.option_favorite_remove else R.string.option_favorite_add, option.name)
-    AppIconButton(if (option.favorite) R.drawable.ic_star_filled else R.drawable.ic_star, description, onToggle)
 }

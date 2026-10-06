@@ -53,3 +53,10 @@ fun List<Prescription>.endingOn(date: LocalDate): List<PeriodEnding> = filter { 
 /** MEDF-2: periodslut idag och i morgon, i den ordningen. */
 fun List<Prescription>.endingSoon(today: LocalDate): List<PeriodEnding> =
     endingOn(today) + endingOn(today.plus(1, DateTimeUnit.DAY))
+
+/**
+ * MEDF-1: dagen receptets period tar slut, när den är idag eller i morgon – samma urval som bannern
+ * ([endingSoon]: bara aktiva recept, sista dosdagen) – annars `null`. En höjning som tar slut räknas inte.
+ */
+fun Prescription.endingSoonDate(today: LocalDate): LocalDate? =
+    listOf(this).endingSoon(today).firstOrNull { it is PeriodEnding.PrescriptionEnds }?.date
