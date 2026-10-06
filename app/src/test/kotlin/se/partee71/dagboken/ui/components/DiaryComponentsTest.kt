@@ -17,6 +17,7 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
@@ -271,6 +272,16 @@ class DiaryComponentsTest {
         show { DagbokenCalendar(LocalDate(2026, 10, 1), {}, setOf(LocalDate(2026, 10, 5)), LocalDate(2026, 10, 4), {}, today = LocalDate(2026, 10, 5)) }
         rule.onNodeWithContentDescription("mån 5 okt 2026, idag, har poster").assertExists()
         rule.onNodeWithContentDescription("sön 4 okt 2026").assertIsSelected()
+    }
+
+    @Test
+    fun `kalendern tonar ner framtiden och den går inte att välja (HIST-6)`() {
+        var picked by mutableStateOf<LocalDate?>(null)
+        show { DagbokenCalendar(LocalDate(2026, 10, 1), {}, emptySet(), picked, { picked = it }, today = LocalDate(2026, 10, 5), dimFuture = true) }
+        rule.onNodeWithContentDescription("tis 6 okt 2026").assertIsNotEnabled().performClick()
+        assertEquals(null, picked)
+        rule.onNodeWithContentDescription("mån 5 okt 2026, idag").assertIsEnabled().performClick()
+        assertEquals(LocalDate(2026, 10, 5), picked)
     }
 
     private val symptoms = listOf(

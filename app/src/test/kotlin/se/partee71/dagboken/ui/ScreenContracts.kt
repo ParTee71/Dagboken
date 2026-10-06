@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -26,6 +27,7 @@ import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ListUiState
+import se.partee71.dagboken.ui.components.ADD_BUTTON_TAG
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 
 private val context: Context get() = ApplicationProvider.getApplicationContext()
@@ -39,12 +41,14 @@ private fun text(id: Int, vararg args: Any) = context.getString(id, *args)
  *
  * @param screen skärmens innehåll för ett tillstånd, med callbacks för lägg till och försök igen.
  * @param item en rad och [itemText] som ska synas för den.
+ * @param addLabel lägg till-knappens text; `null` för en lista utan lägg till (Dagbok) – då prövas att
+ *   ingen lägg till-knapp finns, varken i det tomma tillståndet eller ovanför listan.
  */
 fun <T> ComposeContentTestRule.runListScreenContract(
     item: T,
     itemText: String,
     emptyTitle: String,
-    addLabel: String,
+    addLabel: String?,
     screen: @Composable (state: ListUiState<T>, onAdd: () -> Unit, onRetry: () -> Unit) -> Unit,
 ) {
     var state by mutableStateOf<ListUiState<T>>(ListUiState.Loading)
@@ -56,8 +60,12 @@ fun <T> ComposeContentTestRule.runListScreenContract(
 
     state = ListUiState.Empty
     onNodeWithText(emptyTitle).assertIsDisplayed()
-    onNodeWithText(addLabel).performClick()
-    assertEquals(1, adds, "tomt tillstånd: knappen ska lägga till")
+    if (addLabel != null) {
+        onNodeWithText(addLabel).performClick()
+        assertEquals(1, adds, "tomt tillstånd: knappen ska lägga till")
+    } else {
+        onNodeWithTag(ADD_BUTTON_TAG).assertDoesNotExist()
+    }
 
     state = ListUiState.Error(DataError.Offline)
     onNodeWithText(text(R.string.list_error_title)).assertIsDisplayed()
@@ -67,8 +75,12 @@ fun <T> ComposeContentTestRule.runListScreenContract(
 
     state = ListUiState.Content(listOf(item))
     onNodeWithText(itemText).assertIsDisplayed()
-    onNodeWithText(addLabel).performClick()
-    assertEquals(2, adds, "innehåll: lägg till ska finnas ovanför listan")
+    if (addLabel != null) {
+        onNodeWithText(addLabel).performClick()
+        assertEquals(2, adds, "innehåll: lägg till ska finnas ovanför listan")
+    } else {
+        onNodeWithTag(ADD_BUTTON_TAG).assertDoesNotExist()
+    }
 }
 
 /**

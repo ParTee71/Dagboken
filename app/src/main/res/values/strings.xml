@@ -407,6 +407,53 @@
     <string name="about_privacy">Integritet</string>
     <string name="about_privacy_text">Dagboken sparas i ditt eget konto, i EU. Inget innehåll loggas eller delas, och hälsodata från klockan sparas aldrig.</string>
 
+    <!-- Dagbok (HIST-1–HIST-9) -->
+    <string name="diary_view_list">Listvy</string>
+    <string name="diary_view_calendar">Kalendervy</string>
+    <string name="diary_filter_all">Alla</string>
+    <string name="diary_filter_activity">Aktiviteter</string>
+    <string name="diary_filter_dose">Doser</string>
+    <string name="diary_filter_event">Händelser</string>
+    <string name="diary_day_today_format">Idag · %1$s</string>
+    <string name="diary_day_yesterday_format">Igår · %1$s</string>
+    <plurals name="diary_show_older">
+        <item quantity="one">Visa äldre än ett år</item>
+        <item quantity="other">Visa äldre än %d år</item>
+    </plurals>
+    <plurals name="diary_period">
+        <item quantity="one">det senaste året</item>
+        <item quantity="other">de senaste %d åren</item>
+    </plurals>
+    <string name="diary_empty_title">Inga poster än</string>
+    <string name="diary_empty_message">Inga poster %1$s. Logga med plusknappen.</string>
+    <string name="diary_empty_selected_message">Inga poster av de valda typerna %1$s. Välj fler typer eller logga med plusknappen.</string>
+    <string name="diary_empty_type_message">Inga poster av typen %1$s %2$s. Välj fler typer eller logga med plusknappen.</string>
+    <string name="diary_empty_screening">Inga måendeloggar än</string>
+    <string name="diary_empty_activity">Inga aktiviteter än</string>
+    <string name="diary_empty_dose">Inga doser än</string>
+    <string name="diary_empty_event">Inga händelser än</string>
+    <string name="diary_empty_illness">Ingen sjukdom än</string>
+    <string name="diary_day_empty_title">Inga poster den här dagen</string>
+    <string name="diary_day_empty_message">Välj en annan dag i kalendern eller logga med plusknappen.</string>
+    <string name="diary_subtitle_format">%1$s · %2$s</string>
+    <string name="diary_energy_format">Energi %1$s</string>
+    <string name="diary_stress_format">Stress %1$d</string>
+    <string name="diary_severity_format">Svårighet %1$d</string>
+    <string name="diary_checkin">Incheckning</string>
+    <string name="diary_episode_started">Sjukdomen började</string>
+    <string name="diary_episode_ended">Sjukdomen tog slut</string>
+    <string name="diary_delete_title">Radera posten?</string>
+    <string name="diary_delete_message">%1$s raderas med sin anteckning. Det går inte att ångra.</string>
+    <string name="diary_delete_skip_message">%1$s markeras som överhoppad och försvinner ur Dagbok. Receptet och anteckningen står kvar.</string>
+    <string name="diary_when_format">%1$s kl. %2$s</string>
+    <string name="diary_subject_screening">Måendeloggen %1$s, %2$s</string>
+    <string name="diary_subject_activity">Aktiviteten %1$s, %2$s</string>
+    <string name="diary_subject_dose">Dosen %1$s, %2$s</string>
+    <string name="diary_subject_event">Händelsen %1$s, %2$s</string>
+    <string name="diary_subject_checkin">Incheckningen för %1$s, %2$s</string>
+    <string name="diary_entry_upcoming">Här kommer du att kunna se och ändra posten.</string>
+    <string name="diary_episode_upcoming">Här kommer sjukdomens förlopp med incheckningar.</string>
+
     <!-- Plusknappens loggmeny (NAV-10) -->
     <string name="log_menu_open">Logga</string>
     <string name="log_menu_title">Logga</string>

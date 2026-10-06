@@ -47,6 +47,7 @@ import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.ui.common.DateFormat
+import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.Failure
@@ -308,7 +309,7 @@ private fun IllnessCard(illness: OngoingIllness) {
         val checkin = illness.lastCheckin
         val checkinDate = checkin?.date
         ItemRow(
-            title = illness.episode.type.ifBlank { stringResource(R.string.log_illness) },
+            title = illness.episode.title(),
             subtitle = when {
                 checkin == null -> stringResource(R.string.today_illness_no_checkin)
                 checkinDate == null -> stringResource(R.string.today_illness_checkin_undated)

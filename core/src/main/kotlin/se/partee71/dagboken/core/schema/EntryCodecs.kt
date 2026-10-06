@@ -88,6 +88,9 @@ object ScreeningCodec : DocCodec<Screening> {
 }
 
 object ActivityCodec : DocCodec<Activity> {
+    /** Aktivitetens dag (`yyyy-MM-dd`) – avgränsar Dagbokens lyssning på ett år (HIST-8). */
+    const val DATE = se.partee71.dagboken.core.schema.DATE
+
     override fun encode(value: Activity): Doc = entryFields(value.date, value.time, value.createdAt, value.note) + mapOf(
         "optionId" to value.optionId,
         "customText" to value.customText,
@@ -117,6 +120,9 @@ object ActivityCodec : DocCodec<Activity> {
 }
 
 object EventCodec : DocCodec<Event> {
+    /** Händelsens dag (`yyyy-MM-dd`) – avgränsar Dagbokens lyssning på ett år (HIST-8). */
+    const val DATE = se.partee71.dagboken.core.schema.DATE
+
     override fun encode(value: Event): Doc = entryFields(value.date, value.time, value.createdAt, value.note) + mapOf(
         "optionId" to value.optionId,
         "severity" to value.severity,

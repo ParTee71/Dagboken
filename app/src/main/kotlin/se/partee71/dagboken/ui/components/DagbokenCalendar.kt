@@ -41,7 +41,8 @@ import se.partee71.dagboken.ui.theme.Spacing
  * datumremsans ([DayMarkerDot]): dagar i [datesWithEntries] får en punkt och [today] den solgula punkten
  * med ring; [selectedDate] är fylld teal i `AppShapes.row`. Pilarna
  * byter månad via [onMonthChange] (första dagen i den nya månaden). Varje dag är en knapp som TalkBack
- * läser med datum och "har poster"; dagar utanför månaden visas inte.
+ * läser med datum och "har poster"; dagar utanför månaden visas inte. [dimFuture] tonar ner dagarna efter
+ * [today] och gör dem ovalbara, som i datumremsan (Dagbok, HIST-6).
  */
 @Composable
 fun DagbokenCalendar(
@@ -52,6 +53,7 @@ fun DagbokenCalendar(
     onDateClick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     today: LocalDate? = null,
+    dimFuture: Boolean = false,
 ) {
     val first = remember(month) { LocalDate(month.year, month.month, 1) }
     val weeks = remember(first) { monthGrid(first) }
@@ -83,7 +85,8 @@ fun DagbokenCalendar(
                 week.forEach { day ->
                     Box(Modifier.weight(1f).height(TOUCH_TARGET), contentAlignment = Alignment.Center) {
                         if (day.month == first.month) {
-                            DayCell(day, day in datesWithEntries, day == selectedDate, day == today) { onDateClick(day) }
+                            val future = dimFuture && today != null && day > today
+                            DayCell(day, day in datesWithEntries, day == selectedDate, day == today, future) { onDateClick(day) }
                         }
                     }
                 }
@@ -93,7 +96,7 @@ fun DagbokenCalendar(
 }
 
 @Composable
-private fun DayCell(day: LocalDate, hasEntries: Boolean, selected: Boolean, isToday: Boolean, onClick: () -> Unit) {
+private fun DayCell(day: LocalDate, hasEntries: Boolean, selected: Boolean, isToday: Boolean, future: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     // Samma uppläsning som datumremsan: datum, "idag", "har poster".
     val description = listOfNotNull(
@@ -107,11 +110,12 @@ private fun DayCell(day: LocalDate, hasEntries: Boolean, selected: Boolean, isTo
         Modifier
             .fillMaxSize()
             .clip(AppShapes.row)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(enabled = !future, role = Role.Button, onClick = onClick)
             .clearAndSetSemantics {
                 contentDescription = description
                 this.selected = selected
-            },
+            }
+            .inactive(future),
         contentAlignment = Alignment.Center,
     ) {
         Column(

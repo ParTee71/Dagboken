@@ -114,6 +114,14 @@ interface DoseRepository {
      * [DosePlan.locked] och avgörs per recept av `PrescriptionRepository.syncFromServer` på färska data.
      */
     suspend fun plan(prescriptions: List<Prescription>, today: LocalDate): Result<DosePlan>
+
+    /**
+     * HIST-5, MED-15 (som 3.x `deleteMedicin`): tar bort [dose] efter `ConfirmDialog` i UI:t – samma väg som
+     * dosformuläret (#239). En **receptdos** raderas inte utan markeras som överhoppad ([setStatus], samma som
+     * "Hoppa över"), så att dosgenereringen (MED-4) inte skapar den igen som planerad; en dos utan recept (vid
+     * behov, extrados) raderas permanent med sin anteckning (DAT-7). Offline först.
+     */
+    suspend fun remove(dose: Dose): Result<Unit>
 }
 
 /** [DoseRepository.plan]: id:n som kräver en synk under receptets lås, och id:n som bara saknar doser ([DoseRepository.createDay]). */
@@ -199,6 +207,9 @@ class DefaultDoseRepository @Inject constructor(
         val (locked, createOnly) = syncs.filterValues { !it.isEmpty }.entries.partition { (_, sync) -> sync.update.isNotEmpty() || sync.delete.isNotEmpty() }
         return Result.success(DosePlan(locked = locked.map { it.key }, missing = createOnly.map { it.key }))
     }
+
+    override suspend fun remove(dose: Dose): Result<Unit> =
+        if (dose.prescriptionId != null) setStatus(dose, DoseStatus.SKIPPED) else collection.delete(dose.id)
 
     /**
      * MED-4: skapar de doser i [doses] som bevisligen inte finns (`EntityCollection.createIfAbsent`): ett

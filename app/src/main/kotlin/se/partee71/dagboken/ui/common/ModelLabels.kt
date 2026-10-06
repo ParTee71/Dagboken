@@ -1,7 +1,11 @@
 package se.partee71.dagboken.ui.common
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Sex
@@ -45,3 +49,11 @@ fun OptionKind.label(): Int = when (this) {
     OptionKind.SYMPTOM -> R.string.symptoms
     OptionKind.EVENT -> R.string.lists_events
 }
+
+/** Sjukdomsepisodens namn – typen, eller "Sjukdom" utan typ (HEM-12, HIST-9): Idag och Dagbok. */
+@Composable
+@ReadOnlyComposable
+fun IllnessEpisode.title(): String = type.ifBlank { stringResource(R.string.log_illness) }
+
+/** En fritext som namn: `null` när den saknas eller bara är blanksteg – så att namnet ur listan tar över. */
+fun String?.nonBlank(): String? = this?.takeIf { it.isNotBlank() }

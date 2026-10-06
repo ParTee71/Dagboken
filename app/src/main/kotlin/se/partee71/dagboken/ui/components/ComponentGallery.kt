@@ -553,10 +553,9 @@ private fun Frames(onBack: () -> Unit) {
                 R.drawable.ic_activity,
                 "Inga aktivitetstyper än",
                 "Promenad, yoga, städning – det du brukar göra.",
-                "Lägg till",
                 examples = listOf(EmptyExample("Promenad") { items = listOf("Promenad") }),
             ),
-            onAdd = {},
+            add = AddAction("Lägg till", {}),
             key = { it },
             archive = ListArchive(undo = undo) { event ->
                 when (event) {
@@ -579,10 +578,22 @@ private fun Frames(onBack: () -> Unit) {
         EntityListScreen<String>(
             title = "Recept",
             state = ListUiState.Error(DataError.Offline),
-            empty = EmptyContent(R.drawable.ic_pill, "Inga recept än", "", "Nytt recept"),
-            onAdd = {},
+            empty = EmptyContent(R.drawable.ic_pill, "Inga recept än", ""),
+            add = AddAction("Nytt recept", {}),
             key = { it },
         ) {}
+    }
+    Label("EntityListScreen – utan lägg till, dagar utan räknare och sidfot")
+    Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
+        EntityListScreen(
+            title = "Dagbok",
+            state = ListUiState.Content(listOf("Idag" to "Efter frukost", "Idag" to "Levaxin 100 µg", "Igår" to "Promenad")),
+            empty = EmptyContent(R.drawable.ic_book, "Inga poster än", "Logga med plusknappen."),
+            add = null,
+            key = { it.second },
+            group = { ListGroup(it.first, tone = Tone.Neutral, cards = true, showCount = false) },
+            footer = { AppButton("Visa äldre än ett år", {}, Modifier.fillMaxWidth(), variant = ButtonVariant.Secondary, icon = R.drawable.ic_expand_more) },
+        ) { DagbokenEntryCard(it.second, onClick = {}) }
     }
     Label("EntityListScreen – rubrik, grupper, undergrupper, kolumner, hopfällbar")
     val grouped = listOf(
@@ -593,8 +604,8 @@ private fun Frames(onBack: () -> Unit) {
             title = "Mediciner",
             subtitle = "sön 4 okt",
             state = ListUiState.Content(grouped),
-            empty = EmptyContent(R.drawable.ic_pill, "", "", ""),
-            onAdd = {},
+            empty = EmptyContent(R.drawable.ic_pill, "", ""),
+            add = AddAction("", {}),
             key = { it.second },
             onBack = {},
             group = { (slot, _) ->
