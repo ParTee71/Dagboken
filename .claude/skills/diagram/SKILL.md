@@ -24,7 +24,9 @@ koden; vid skillnad gäller kravlistan. Vilken komponent som är vilken elementt
 | TRD-12 – kompakt rullgardin för period och serier | `CompactDropdownButton` (menyn är `AppMenu`s) |
 | TRD-13 – streckad minsta kvadrat-trend per serie, luckor hoppas över | `computeTrendLine`/`trendSegment`; solgul med en serie, seriens färg med flera |
 | TRD-15 – luckor ritas aldrig som nollor | `gapFreeRuns` (kurvan bryts), `null` i alla diagramdata |
-| TRD-16 – sömnstadier staplade, saknat segment tar ingen höjd | `StackedBarChart` + `stackBases`; axeln börjar på noll |
+| TRD-16 – sömnstadier staplade, saknat segment tar ingen höjd | `StackedBarChart` + `stackBases`; axeln börjar på noll; staplarna ur `sleepStagePoints`, namn och färger i `sleepStageSegments` |
+| TRD-17 – Jämför: varje serie 0–100 mot eget min/max, konstant = 50, luckor kvar | `indexSeries`/`compareSeries`/`CompareKey` i `CompareIndex.kt`; `LineChart(axis = COMPARE_AXIS, showCaption = false, footnote = …)`, legenden bär verkligt spann med enhet |
+| TRD-11/TRD-15 – klockans serier i måttets enhet, "Allt" kapad vid 365 dagar | `WatchMetric`, `watchSeries`, `sleepQualitySeries`, `TrendRange.cappedDays`/`cappedReadFrom` i `WatchSeries.kt` |
 | TRD-18 – föregående period nedtonad på samma x-index, egen trend | `LineChart(previous = …)`; grå med en serie, seriens färg nedtonad med flera |
 | NFR-14 – talbar sammanfattning, tryckytor 48 dp | `ChartSemantics.kt`; `CompactDropdownButton` har 48 dp |
 | HEM-7 – sparkline med dagens punkt, lägst · högst · idag | `SparklineChart` |

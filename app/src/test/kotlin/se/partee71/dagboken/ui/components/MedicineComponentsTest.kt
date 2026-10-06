@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -110,6 +111,14 @@ class MedicineComponentsTest {
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
             .performClick()
         assertEquals(1, opened)
+    }
+
+    @Test
+    fun `NoticeBanner utan länk är bara ett meddelande med sin förklaring – ingen knapp`() {
+        show { NoticeBanner("Health Connect saknas", se.partee71.dagboken.R.drawable.ic_clock, onClick = null, detail = "Klockans data visas när Health Connect är kopplat.") }
+        rule.onNodeWithText("Health Connect saknas").assertIsDisplayed().assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Role))
+        rule.onNodeWithText("Klockans data visas när Health Connect är kopplat.").assertIsDisplayed()
+        rule.onNode(hasClickAction()).assertDoesNotExist()
     }
 
     @Test

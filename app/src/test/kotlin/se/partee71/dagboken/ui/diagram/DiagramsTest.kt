@@ -32,6 +32,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import se.partee71.dagboken.core.engine.COMPARE_AXIS
 import se.partee71.dagboken.core.engine.IntervalPoint
 import se.partee71.dagboken.core.engine.StackedPoint
 import se.partee71.dagboken.core.engine.TrendDirection
@@ -111,6 +112,32 @@ class DiagramsTest {
         rule.onNodeWithText("Stress").assertIsDisplayed()
         rule.onNodeWithText("Trend").assertIsDisplayed()
         described("Stress: 6 värden").assertIsDisplayed()
+    }
+
+    @Test
+    fun `med fast axel, utan bildtext och med fotnot – Jämför (TRD-17) – och egen rubrik i tomt läge`() {
+        val steps = listOf(0f, 50f, null, 100f, 25f, 75f, 50f)
+        show {
+            LineChart(
+                listOf(ChartSeries("Steg · 2 000–10 000 steg", steps, AppColors.swatch(0)), ChartSeries("Energi · 3–8 skala", energy, AppColors.swatch(1))),
+                label = "Jämför",
+                axis = COMPARE_AXIS,
+                showCaption = false,
+                footnote = "Varje serie visas 0–100 mot sitt eget lägsta och högsta värde.",
+            )
+        }
+        rule.onNodeWithText("Steg · 2 000–10 000 steg").assertIsDisplayed()
+        rule.onNodeWithText("Varje serie visas 0–100 mot sitt eget lägsta och högsta värde.").assertIsDisplayed()
+        rule.onNodeWithText("Lägst", substring = true).assertDoesNotExist()
+        described("Steg · 2 000–10 000 steg: 6 värden, lägsta 0, högsta 100").assertIsDisplayed()
+    }
+
+    @Test
+    fun `det tomma läget kan ha en egen rubrik – Välj minst två serier i Jämför (TRD-17)`() {
+        show { LineChart(emptyList(), label = "Jämför", emptyTitle = "Välj minst två serier", emptyHint = "Jämför mående och klockdata i samma diagram.") }
+        rule.onNodeWithText("Välj minst två serier").assertIsDisplayed()
+        rule.onNodeWithText("Jämför mående och klockdata i samma diagram.").assertIsDisplayed()
+        rule.onNodeWithText("För lite data än").assertDoesNotExist()
     }
 
     @Test

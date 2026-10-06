@@ -23,7 +23,7 @@ class ThemeScreenshotTest {
     fun `startskärmen i ljust och mörkt tema`() {
         captureLightAndDark("AppRoot_start") {
             AppRootContent(AuthUiState(AuthGate.Ready), {}) {
-                AppNavHost(AppBackStack(), { key -> NavEntry(key) { UpcomingScreen(stringResource(R.string.tab_today), R.drawable.ic_sun, stringResource(R.string.trends_watch_upcoming)) { AccountAvatar(null, {}) } } }, onLog = {})
+                AppNavHost(AppBackStack(), { key -> NavEntry(key) { UpcomingScreen(stringResource(R.string.tab_today), R.drawable.ic_sun, "Här kommer klockans mått – steg, puls, sömn och mer – med Health Connect-status.") { AccountAvatar(null, {}) } } }, onLog = {})
             }
         }
     }

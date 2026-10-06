@@ -1,5 +1,7 @@
 package se.partee71.dagboken.ui.diagram
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.key
@@ -8,12 +10,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.SmartYAxis
 import se.partee71.dagboken.core.engine.chartAxisFor
 import se.partee71.dagboken.core.engine.computeTrendLine
 import se.partee71.dagboken.core.engine.gapFreeRuns
 import se.partee71.dagboken.core.engine.knownCount
 import se.partee71.dagboken.core.engine.summarize
 import se.partee71.dagboken.core.engine.trendSegment
+import se.partee71.dagboken.ui.theme.AppTypography
 
 /**
  * En dataserie i ett linjediagram: [points] är ett värde per dag (eller natt), `null` där inget
@@ -36,7 +40,12 @@ data class ChartSeries(val label: String, val points: List<Float?>, val color: C
  *
  * Under diagrammet står alltid `MinMaxCaption` (TRD-9) över alla visade värden, med snitt och
  * trendpill när diagrammet har en serie. Har ingen serie två kända punkter visas det gemensamma tomma
- * läget med [emptyHint]. Skärmläsaren får en sammanfattning per serie under [label] (NFR-14).
+ * läget med [emptyTitle] och [emptyHint]. Skärmläsaren får en sammanfattning per serie under [label] (NFR-14).
+ *
+ * Varianten för **Jämför** (TRD-17): [axis] låser y-axeln (index 0–100 i stället för den smarta axeln),
+ * [showCaption] `false` tar bort `MinMaxCaption` – indexets lägsta och högsta säger ingenting, de verkliga
+ * värdena står i seriernas etiketter – och [footnote] är en förklaring under teckenförklaringen. Utan dem är
+ * diagrammet oförändrat.
  */
 @Composable
 fun LineChart(
@@ -46,6 +55,10 @@ fun LineChart(
     previous: List<ChartSeries> = emptyList(),
     label: String = stringResource(R.string.chart_a11y_default_label),
     emptyHint: String = stringResource(R.string.chart_empty_hint),
+    emptyTitle: String = stringResource(R.string.chart_empty_title),
+    axis: SmartYAxis? = null,
+    showCaption: Boolean = true,
+    footnote: String? = null,
 ) {
     val colors = chartColors
     val single = series.size == 1
@@ -65,11 +78,13 @@ fun LineChart(
         enoughData = enough,
         label = label,
         emptyHint = emptyHint,
+        emptyTitle = emptyTitle,
         modifier = modifier,
         footer = {
             if (!single || earlier.isNotEmpty()) ChartLegend(lineLegend(current, earlier, colors, previousFormat, stringResource(R.string.chart_legend_trend)))
+            if (footnote != null) Text(footnote, style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
             val all = summarize((current + earlier).flatMap { it.points })
-            if (all != null) {
+            if (all != null && showCaption) {
                 MinMaxCaption(
                     min = all.min,
                     max = all.max,
@@ -81,11 +96,11 @@ fun LineChart(
     ) {
         // Temats färger ingår i nyckeln: ett temabyte utan att aktiviteten skapas om ska rita om kurvorna.
         val lines = remember(current, earlier, colors) { linePlot(current, earlier, trendColor = if (single) colors.trend else null) }
-        val axis = remember(current, earlier) { chartAxisFor((current + earlier).map { it.points }) }
+        val yAxis = axis ?: remember(current, earlier) { chartAxisFor((current + earlier).map { it.points }) }
         val xCount = (listOf(xLabels.size) + (current + earlier).map { it.points.size }).max()
         // Ny period eller nya data → helt utzoomat igen (TRD-10), även utan x-etiketter.
         key(current.map { it.points }, earlier.map { it.points }, xLabels) {
-            VicoLinePlot(lines, axis, xCount, xLabels, CHART_HEIGHT, zoomable = true, modifier = Modifier.chartDescription(spoken))
+            VicoLinePlot(lines, yAxis, xCount, xLabels, CHART_HEIGHT, zoomable = true, modifier = Modifier.chartDescription(spoken))
         }
     }
 }

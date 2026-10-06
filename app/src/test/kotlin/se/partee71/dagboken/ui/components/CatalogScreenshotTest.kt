@@ -339,6 +339,7 @@ class CatalogScreenshotTest {
             Sheet {
                 NoticeBanner("Kåvepenin slutar i morgon. Höjningen av Sertralin slutar i morgon – sedan 50 mg.", R.drawable.ic_bell, {})
                 NoticeBanner("Ändringar väntar på att synkas.", R.drawable.ic_cloud_upload, {}, tone = Tone.Neutral)
+                NoticeBanner("Health Connect saknas", R.drawable.ic_clock, onClick = null, detail = "Klockans data visas när Health Connect är kopplat.")
             }
         }
         captureLightAndDark("FavoriteStar_lagen") {
