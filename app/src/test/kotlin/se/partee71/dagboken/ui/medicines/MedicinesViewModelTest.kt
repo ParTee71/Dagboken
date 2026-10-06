@@ -36,7 +36,7 @@ import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.TestUserScope
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.repository.DefaultDoseRepository
-import se.partee71.dagboken.data.repository.DefaultPrescriptionRepository
+import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
@@ -63,7 +63,7 @@ class MedicinesViewModelTest {
 
     private fun viewModel(factory: FakeCollectionFactory, clock: Clock = FixedClock()): MedicinesViewModel {
         val doses = DefaultDoseRepository(factory) { zone }
-        return MedicinesViewModel(DefaultPrescriptionRepository(factory, doses, clock) { zone }, DefaultPrnMedicineRepository(factory), clock) { zone }
+        return MedicinesViewModel(testPrescriptions(factory, doses, zone, clock), DefaultPrnMedicineRepository(factory), clock) { zone }
     }
 
     @Test
@@ -92,7 +92,7 @@ class MedicinesViewModelTest {
         val factory = FakeCollectionFactory()
         factory.prescriptions().upsert(levaxin).getOrThrow()
         val doses = DefaultDoseRepository(factory) { zone }
-        val throwing = object : PrescriptionRepository by DefaultPrescriptionRepository(factory, doses, FixedClock(), { zone }) {
+        val throwing = object : PrescriptionRepository by testPrescriptions(factory, doses, zone) {
             override suspend fun tidyUp(today: LocalDate): Result<Unit> = throw IllegalStateException("syntetiskt fel")
         }
         val vm = MedicinesViewModel(throwing, DefaultPrnMedicineRepository(factory), FixedClock()) { zone }

@@ -21,7 +21,7 @@ import se.partee71.dagboken.ui.components.ComponentGallery
 import se.partee71.dagboken.ui.components.LogMenuSheet
 import se.partee71.dagboken.ui.components.SettingsPage
 import se.partee71.dagboken.ui.medicines.MedicinesRoute
-import se.partee71.dagboken.ui.medicines.PrescriptionPlaceholderScreen
+import se.partee71.dagboken.ui.medicines.PrescriptionEditRoute
 import se.partee71.dagboken.ui.medicines.PrnMedicineEditRoute
 import se.partee71.dagboken.ui.settings.AboutRoute
 import se.partee71.dagboken.ui.settings.ExportImportScreen
@@ -137,9 +137,10 @@ fun appEntries(backStack: AppBackStack, account: () -> AuthUser?, onAccount: () 
                 onAccount,
                 onOpenPrescription = { id -> backStack.push(PrescriptionEditKey(id)) },
                 onOpenPrn = { id -> backStack.push(PrnMedicineEditKey(id)) },
+                onExtendPrescription = { id -> backStack.push(PrescriptionEditKey(id, extend = true)) },
             )
         }
-        entry<PrescriptionEditKey> { key -> PrescriptionPlaceholderScreen(isNew = key.id == null, onBack = { backStack.popIfTop(key) }) }
+        entry<PrescriptionEditKey> { key -> PrescriptionEditRoute(key.id, key.extend, onClose = { backStack.popIfTop(key) }) }
         entry<PrnMedicineEditKey> { key -> PrnMedicineEditRoute(key.id, onClose = { backStack.popIfTop(key) }) }
         entry<ComponentGalleryKey> { key -> ComponentGallery(onBack = { backStack.popIfTop(key) }) }
         entry<ProfileKey> { key -> ProfileRoute(onClose = { backStack.popIfTop(key) }) }

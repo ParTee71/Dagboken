@@ -19,6 +19,7 @@ object DateFormat {
     private val short = DateTimeFormatter.ofPattern("d MMM", swedish)
     private val monthYear = DateTimeFormatter.ofPattern("LLLL yyyy", swedish)
     private val weekdayName = DateTimeFormatter.ofPattern("EEE", swedish)
+    private val weekdayFull = DateTimeFormatter.ofPattern("EEEE", swedish)
     private const val DAY_MILLIS = 86_400_000L
 
     /** "lör 19 dec 2026" – utan punkterna som svensk CLDR sätter efter förkortningar. */
@@ -35,6 +36,12 @@ object DateFormat {
 
     /** "mån" – veckodagens kortnamn, utan punkt (t.ex. ett recepts veckodagar). */
     fun weekdayShort(day: DayOfWeek): String = weekdayName.format(java.time.DayOfWeek.of(day.isoDayNumber)).replace(".", "")
+
+    /** "måndag" – veckodagens hela namn (receptformulärets valda dagar). */
+    fun weekdayLong(day: DayOfWeek): String = weekdayFull.format(java.time.DayOfWeek.of(day.isoDayNumber))
+
+    /** "7" – dagen i månaden (en uppräkning av datum i samma månad: "6, 9, 12 okt"). */
+    fun dayOfMonth(date: LocalDate): String = date.day.toString()
 
     /** "07:00" – 24 timmar, alltid två siffror. */
     fun time(time: LocalTime): String = "%02d:%02d".format(Locale.ROOT, time.hour, time.minute)

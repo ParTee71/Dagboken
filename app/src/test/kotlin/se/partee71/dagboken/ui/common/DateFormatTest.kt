@@ -30,5 +30,8 @@ class DateFormatTest {
         assertEquals("oktober 2026", DateFormat.month(LocalDate(2026, 10, 4)))
         assertEquals("mån", DateFormat.weekdayShort(LocalDate(2026, 10, 5)))
         assertEquals("sön", DateFormat.weekdayShort(LocalDate(2026, 10, 4)))
+        assertEquals("måndag", DateFormat.weekdayLong(kotlinx.datetime.DayOfWeek.MONDAY))
+        assertEquals("söndag", DateFormat.weekdayLong(kotlinx.datetime.DayOfWeek.SUNDAY))
+        assertEquals("7", DateFormat.dayOfMonth(LocalDate(2026, 10, 7)))
     }
 }

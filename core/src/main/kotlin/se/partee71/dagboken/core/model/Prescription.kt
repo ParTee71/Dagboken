@@ -30,7 +30,21 @@ data class Prescription(
     val createdAt: Instant? = null,
     /** Anteckningen (DAT-7). */
     val note: String? = null,
-) : Identified
+    /**
+     * Tidpunkter i `slots` som appen inte känner till (t.ex. från en nyare app), som råa lagrade
+     * värden: ger inga doser och skrivs tillbaka oförändrade efter de kända – som [Schedule.Unknown].
+     * Inget eget fält i dokumentet utan en del av `slots`; därför `@Transient` (codec-testernas
+     * fältlista räknar bara egna fält).
+     */
+    @Transient val unknownSlots: List<String> = emptyList(),
+) : Identified {
+    /**
+     * Tidpunkterna kan inte visas eller ändras i formuläret: någon är okänd ([unknownSlots]) eller
+     * "Vid behov" (som ett recept aldrig ger doser för, äldre eller importerad data). Formuläret visar
+     * dem då som "kan inte visas" och skriver aldrig `slots`.
+     */
+    val hasUnknownSlots: Boolean get() = unknownSlots.isNotEmpty() || Slot.AS_NEEDED in slots
+}
 
 /** Receptets upprepning. */
 sealed interface Schedule {

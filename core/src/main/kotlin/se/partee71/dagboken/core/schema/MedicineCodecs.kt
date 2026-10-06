@@ -14,15 +14,19 @@ import se.partee71.dagboken.core.model.Slot
 
 object PrescriptionCodec : DocCodec<Prescription> {
     const val ACTIVE = "active"
+    const val SLOTS = "slots"
+    const val PERIOD = "period"
+    const val BOOSTS = "boosts"
 
     override fun encode(value: Prescription): Doc = mapOf(
         "name" to value.name,
         "dose" to value.dose,
         "unit" to value.unit,
-        "slots" to value.slots.encodeWires(),
+        // Okända tidpunkter (från en nyare app) skrivs tillbaka efter de kända.
+        SLOTS to value.slots.encodeWires() + value.unknownSlots,
         "schedule" to ScheduleCodec.encode(value.schedule),
-        "period" to PeriodCodec.encode(value.period),
-        "boosts" to value.boosts.map(BoostCodec::encode),
+        PERIOD to PeriodCodec.encode(value.period),
+        BOOSTS to value.boosts.map(BoostCodec::encode),
         ACTIVE to value.active,
         CREATED_AT to value.createdAt,
         NOTE to value.note,
@@ -33,13 +37,14 @@ object PrescriptionCodec : DocCodec<Prescription> {
         name = map.string("name"),
         dose = map.string("dose"),
         unit = map.string("unit"),
-        slots = map.wireList<Slot>("slots"),
+        slots = map.wireList<Slot>(SLOTS),
         schedule = map.nested("schedule", ScheduleCodec),
-        period = map.nested("period", PeriodCodec),
-        boosts = map.docs("boosts").map(BoostCodec::decode),
+        period = map.nested(PERIOD, PeriodCodec),
+        boosts = map.docs(BOOSTS).map(BoostCodec::decode),
         active = map.bool(ACTIVE, default = true),
         createdAt = map.instant(CREATED_AT),
         note = map.stringOrNull(NOTE),
+        unknownSlots = map.unknownWires<Slot>(SLOTS),
     )
 }
 

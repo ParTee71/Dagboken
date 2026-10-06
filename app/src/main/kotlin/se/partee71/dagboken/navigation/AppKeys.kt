@@ -54,9 +54,12 @@ data object ListsKey : AppKey
 @Serializable
 data class OptionEditKey(val kind: OptionKind, val id: String? = null) : AppKey
 
-/** Nytt recept ([id] = `null`) eller ett befintligt (REC-1, MEDF-4) – formuläret kommer i #256. */
+/**
+ * Nytt recept ([id] = `null`) eller ett befintligt (REC-1, MEDF-4); [extend] = "Förläng och aktivera" på
+ * ett avslutat recept (MEDF-5).
+ */
 @Serializable
-data class PrescriptionEditKey(val id: String? = null) : AppKey
+data class PrescriptionEditKey(val id: String? = null, val extend: Boolean = false) : AppKey
 
 /** Ny vid behov-medicin ([id] = `null`) eller en befintlig (FAV-1, MEDF-3, MEDF-4). */
 @Serializable

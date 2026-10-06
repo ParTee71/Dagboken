@@ -13,6 +13,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.SyncStatus
+import se.partee71.dagboken.data.common.dataError
+import se.partee71.dagboken.data.common.suspendRunCatching
 import se.partee71.dagboken.di.ApplicationScope
 
 /**
@@ -29,6 +31,19 @@ class FirestoreSyncStatus @Inject constructor(@ApplicationScope scope: Coroutine
 
     override fun clearWriteError() {
         error.value = null
+    }
+
+    override suspend fun trackWork(work: suspend () -> Result<Unit>) {
+        pending.update { it + 1 }
+        try {
+            // Också ett kastat fel blir ett skrivfel – det får aldrig fälla appens scope.
+            // Offline är inget fel här: arbetet görs om nästa gång med nät.
+            suspendRunCatching(::firestoreError) { work().getOrThrow() }.dataError()
+                ?.takeIf { it != DataError.Offline }
+                ?.let { error.value = it }
+        } finally {
+            pending.update { it - 1 }
+        }
     }
 
     /** Följer [task] tills servern svarat; ett fel sparas i [lastWriteError]. */

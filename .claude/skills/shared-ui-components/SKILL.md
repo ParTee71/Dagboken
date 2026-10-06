@@ -39,11 +39,12 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Fel under ett fält eller i en panel | `FieldError` | felfärg, läses som fel; ett skrivfel i ett bottom sheet visas via `AppBottomSheet(error)` |
 | Skärmrubrik | `AppTopBar` | Expressive flexibel toppbar, `size`-parameter, Fraunces-rubrik; visar synkindikatorn före `actions` när ändringar väntar |
 | Toppnivånavigering | `AppFloatingToolbar` | Expressive flytande verktygsrad med flikarna Idag · Dagbok · Trender · Mediciner och plusknappen som `action` (NAV-8, NAV-10) |
-| Textfält | `AppTextField` | M3 textfält med fel/hjälptext; tak `TextLimits` (samma som rules) |
+| Textfält | `AppTextField` | M3 textfält med fel/hjälptext och valfritt `suffix` (t.ex. enheten på en doshöjning); tak `TextLimits` (samma som rules) |
 | Textfält med förslag | `SuggestionField` | `AppTextField` + kort med en `ItemRow` per förslag (matchningen färgmarkerad); antalet läses upp |
 | Etikett/pill | `InfoPill` | `AppShapes.pill`; `icon` före texten, `onClick` gör den till en knapp med 48 dp tryckyta |
 | Valchip | `AppFilterChip` | M3 filterchip |
 | Ett val bland några | `ChoiceChips` | `ChipRow` + en `AppFilterChip` per alternativ |
+| Medicinens enhet | `UnitChoice` | `LabeledGroup` ("Enhet") + `ChoiceChips` över `MEDICINE_UNITS`; en lagrad enhet utanför listan står kvar som val (REC-1, FAV-1) |
 | Exempel att börja från (snabbval, tom lista) | `ExampleChips` | `ChipRow` + `AppFilterChip` med plus; det valda med bock |
 | Emojival | `EmojiPicker` | rutnät av runda val (`ChoiceGrid`, som äger valmarkeringen: ring i teal med luft runt den valda) |
 | Färgval | `ColorSwatchPicker` | rutnät av runda val (`ChoiceGrid`, samma valmarkering som `EmojiPicker`) över `AppColors`; TalkBack läser färgens namn |
@@ -61,7 +62,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Inställningsrad med växel | `SwitchRow` | `ItemRow` + M3-växel; hela raden växlar (NFR-17); med `onClick` är växeln en egen kontroll och raden öppnar detaljer |
 | Segmentval (t.ex. tema, diagramgrupperna Mående · Klocka · Jämför i Trender, TRD-19) | `AppSegmentedChoice` | M3 segmentknappar |
 | Meny (kontextmeny, `⋮`) | `AppMenu` | M3 rullgardinsmeny; ordning Redigera, kontextspecifikt, Ta bort sist i felfärg, ikon på varje post (NFR-16) |
-| Datumfält | `DateField` | internt `PickerField` (samma yta som `AppTextField`) + M3 datumväljare |
+| Datumfält | `DateField` | internt `PickerField` (samma yta som `AppTextField`) + M3 datumväljare; `emptyLabel` visas nedtonat utan datum ("Periodens slut"), `onClear` ger en rensa-knapp tillbaka till den, `context` läggs till fältets och knappens namn för TalkBack när fältet upprepas ("Startdatum, doshöjning 2"); knappens plats hålls utan datum |
 | Tidsfält | `TimeField` | samma yta som `DateField` + M3 tidsväljare (24 timmar) |
 | Horisontell rad av chips | `ChipRow` | horisontell lista av `AppFilterChip` |
 | Postkort (sparad post: dos, aktivitet, mående, händelse, incheckning, episod, recept) | `DagbokenEntryCard` | `AppCard` + menyn från `AppMenu` + `AppIconButton`; tryck öppnar, långtryck = samma meny som `⋮` (Redigera, `actions`, Radera sist), svep höger→vänster begär radering via `ConfirmDialog` och fjädrar tillbaka (NFR-15); trailing i fast ordning `toggle` (enda direktkontrollen, ett reglage – t.ex. receptets aktiv; titeln står då på hela bredden ovanför, och växeln delas med `SwitchRow`), `status`, anteckningsikon (`note`), chevron (`expandedContent`), `⋮` (NFR-16); `below` (t.ex. pills) under texten; `accent` statusfärg, `inactive` nedtonad (inte reglaget) |
@@ -154,7 +155,7 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 | Synkläge | `SyncStatus` i `data/common/`; för UI:t `SyncViewModel` (`ui/sync/`) |
 | Export | `RawDocuments` + `ExportFormat` (`:core`) – samma format som `tools/db export` (skill `firestore-data-layer`) |
 | 3.x → 4.0 | `legacy/BackupJsonConverter` i `:core` *(etapp 2)* – enda mappningen, även för legacy-läsaren (skill `data-safety-backup`) |
-| Receptets kalender och dos, doser, kylperiod, periodslut, receptregler | `Period.covers`/`Schedule.appliesOn`/`Prescription.appliesOn`/`lastDoseDay`/`lastDoseDayOf`/`nextDoseDayAfter`/`hasExpiredOn`/`boostFor`/`doseFor`/`parseDose`/`formatDose` (`Dosing.kt`), `plannedDoses`/`ensureDoses`/`syncDoses` (`EnsureDoses.kt`), `checkDose`/`cooldownRemaining`/`dailyLimitReached`/`takenDose`/`extraDose` (`Cooldown.kt`), `endingOn`/`endingSoon` (`PeriodEndings.kt`), `validate`/`nextBoostDefaults` (`PrescriptionRules.kt`) i `:core/engine` – ingen doslogik i `app` |
+| Receptets kalender och dos, doser, kylperiod, periodslut, receptregler | `Period.covers`/`Schedule.appliesOn`/`Prescription.appliesOn`/`lastDoseDay`/`lastDoseDayOf`/`nextDoseDayAfter`/`hasExpiredOn`/`boostFor`/`doseFor`/`parseDose`/`formatDose` (`Dosing.kt`), `plannedDoses`/`ensureDoses`/`syncDoses` (`EnsureDoses.kt`), `checkDose`/`cooldownRemaining`/`dailyLimitReached`/`takenDose`/`extraDose` (`Cooldown.kt`), `endingOn`/`endingSoon` (`PeriodEndings.kt`), `validate`/`problem`/`nextBoostDefaults` (`PrescriptionRules.kt`), receptformulärets val `choice`/`chosenDays`/`withDays`/`withChoice`/`withLength`/`withStart`/`withFormStart`/`extendedFrom` (`PrescriptionForm.kt`) och `totalWith` (`Dosing.kt`) i `:core/engine` – ingen doslogik i `app` |
 | Dagens energi, sömnkvalitet, diagrammatematik | `computeDailyEnergyStats` (`DailyEnergyStats.kt`), `scoreSleepQuality`/`scoreNightlySleep`/`ageFromBirthYear` (`SleepQuality.kt`), `computeSmartYAxis`/`chartAxisFor`/`intervalAxisFor`/`stackedAxisFor` (`SmartYAxis.kt`), `computeTrendLine`/`trendSegment` (`TrendLine.kt`), `stackTotal`/`stackBases`/`dominantSegment` (`StackedBars.kt`), `summarize`/`gapFreeRuns` (`SeriesMath.kt`), `BarViewport`/`ZoomPan` (`ChartViewport.kt`) i `:core/engine` – ingen diagrammatematik i `app` (skill `diagram`) |
 | Diagrammens talbara sammanfattning, ram och stil | `ChartSemantics.kt` (NFR-14), `ChartFrame` (gemensamt tomt läge), `ChartStyle.kt` (färger ur temat, mått), `VicoLinePlot` (enda Vico-anropet) och `BarCanvas` (stapeldiagrammens rityta) – internt i `ui/diagram/` |
 | Påminnelser | `reminders/` i appen (skill `notifications-alarms`) – läser ur Firestore-cachen via repositories |

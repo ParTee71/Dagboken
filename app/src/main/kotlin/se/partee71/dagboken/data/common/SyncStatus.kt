@@ -15,4 +15,11 @@ interface SyncStatus {
     val lastWriteError: StateFlow<DataError?>
 
     fun clearWriteError()
+
+    /**
+     * Bakgrundsarbete utanför Firestores skrivkö – t.ex. dossynken efter att receptformuläret sparats,
+     * som körs i appens livslånga scope: räknas som [syncing] medan det pågår, och ett fel (inte
+     * `Offline`, som görs om nästa gång med nät) blir [lastWriteError] som en sen skrivning.
+     */
+    suspend fun trackWork(work: suspend () -> Result<Unit>)
 }

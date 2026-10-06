@@ -43,9 +43,13 @@ inline fun <reified E> Doc.wire(key: String, default: E): E where E : Enum<E>, E
 
 inline fun <reified E> Doc.wireOrNull(key: String): E? where E : Enum<E>, E : WireEnum = wireValue<E>(this[key])
 
-/** Lista av enum med lagrade namn, i lagrad ordning; okända värden hoppas över. */
+/** Lista av enum med lagrade namn, i lagrad ordning; okända värden hoppas över (se [unknownWires]). */
 inline fun <reified E> Doc.wireList(key: String): List<E> where E : Enum<E>, E : WireEnum =
     (this[key] as? List<*>)?.mapNotNull { wireValue<E>(it) }.orEmpty()
+
+/** De textvärden i listan [key] som inte är något känt [E] – för att skriva tillbaka dem oförändrade. */
+inline fun <reified E> Doc.unknownWires(key: String): List<String> where E : Enum<E>, E : WireEnum =
+    (this[key] as? List<*>)?.filterIsInstance<String>()?.filter { wireValue<E>(it) == null }.orEmpty()
 
 /** Datum utan tid lagras som ISO-sträng (`yyyy-MM-dd`); ogiltigt → `null`. */
 fun Doc.localDate(key: String): LocalDate? = (this[key] as? String)?.let(::parseDate)

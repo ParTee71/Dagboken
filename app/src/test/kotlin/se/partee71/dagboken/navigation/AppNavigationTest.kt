@@ -26,6 +26,7 @@ class AppNavigationTest {
         AboutKey,
         PrescriptionEditKey(),
         PrescriptionEditKey("6f1c2a9e"),
+        PrescriptionEditKey("6f1c2a9e", extend = true),
         PrnMedicineEditKey(),
         PrnMedicineEditKey("a7b8c9d0"),
     ).onEach { key ->
@@ -55,6 +56,7 @@ class AppNavigationTest {
         val backStack = AppBackStack()
         backStack.push(OptionEditKey(OptionKind.ACTIVITY, "activity-promenad-c78928"))
         backStack.push(PrnMedicineEditKey("a7b8c9d0"))
+        backStack.push(PrescriptionEditKey("6f1c2a9e", extend = true))
         assertEquals(backStack.entries, AppBackStack.restore(backStack.save()).entries)
     }
 
