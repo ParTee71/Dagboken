@@ -418,7 +418,7 @@ class PrescriptionEditViewModelTest {
         vm.onEvent(Event.NameChanged("Sertralin"))
         vm.editor.effects.test {
             vm.onEvent(Event.Save)
-            assertEquals(DataError.Unknown, (awaitItem() as EditorEffect.Failed).error)
+            assertEquals(DataError.Unknown, (awaitItem() as EditorEffect.Failed).failure.error)
             failSync = false
             vm.onEvent(Event.Save)
             assertEquals(EditorEffect.Done, awaitItem())

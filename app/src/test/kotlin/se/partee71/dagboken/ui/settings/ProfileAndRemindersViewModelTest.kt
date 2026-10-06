@@ -209,7 +209,7 @@ class ProfileAndRemindersViewModelTest {
         vm.onEvent(RemindersEvent.SlotChanged(SlotReminder(Slot.NIGHT, enabled = false)))
         vm.editor.effects.test {
             vm.onEvent(RemindersEvent.Save)
-            assertEquals(EditorEffect.Failed(DataError.Offline, R.string.error_offline), awaitItem())
+            (awaitItem() as EditorEffect.Failed).failure.let { assertEquals(DataError.Offline, it.error); assertEquals(R.string.error_offline, it.message) }
         }
         assertTrue(vm.editor.state.value.isDirty, "inte sparat – Spara går att trycka igen")
         assertTrue(vm.editor.state.value.canSave)

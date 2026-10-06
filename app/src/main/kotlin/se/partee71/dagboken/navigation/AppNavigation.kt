@@ -129,7 +129,15 @@ fun RootSheets(
 fun appEntries(backStack: AppBackStack, account: () -> AuthUser?, onAccount: () -> Unit): (AppKey) -> NavEntry<AppKey> =
     // Varje nyckel har sin skärm (AppKey är förseglad); en saknad är ett programfel.
     entryProvider(fallback = { key -> error("Ingen skärm för $key") }) {
-        entry<TodayKey> { TodayRoute(account(), onAccount, onEditPrn = { id -> backStack.push(PrnMedicineEditKey(id)) }) }
+        entry<TodayKey> {
+            TodayRoute(
+                account(),
+                onAccount,
+                onEditPrn = { id -> backStack.push(PrnMedicineEditKey(id)) },
+                // TRD-5: "Visa i Trender" under Idags 7-dagarstrend byter flik.
+                onOpenTrends = { backStack.select(TrendsKey) },
+            )
+        }
         entry<DiaryKey> { TabPlaceholderScreen(DiaryKey, account(), onAccount) }
         entry<TrendsKey> { TabPlaceholderScreen(TrendsKey, account(), onAccount) }
         entry<MedicinesKey> {

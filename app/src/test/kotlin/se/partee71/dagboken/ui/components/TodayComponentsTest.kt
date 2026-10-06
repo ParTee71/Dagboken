@@ -56,6 +56,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.testing.pixels
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
@@ -168,14 +169,14 @@ class TodayComponentsTest {
             Column {
                 OccasionRow(
                     "Efter frukost",
-                    OccasionStatus.Logged,
+                    OccasionStatus.LOGGED,
                     { logged += "frukost" },
                     time = "08:12",
                     values = listOf(OccasionValue("Energi", 7), OccasionValue("Stress", 4, higherIsBetter = false)),
                 )
-                OccasionRow("Lunch", OccasionStatus.Late, { logged += "lunch" }, time = "12:00")
-                OccasionRow("Kvällsmat", OccasionStatus.Soon, { logged += "kvällsmat" }, time = "18:00")
-                OccasionRow("Läggdags", OccasionStatus.Upcoming, { logged += "läggdags" }, time = "22:00")
+                OccasionRow("Lunch", OccasionStatus.LATE, { logged += "lunch" }, time = "12:00")
+                OccasionRow("Kvällsmat", OccasionStatus.SOON, { logged += "kvällsmat" }, time = "18:00")
+                OccasionRow("Läggdags", OccasionStatus.UPCOMING, { logged += "läggdags" }, time = "22:00")
             }
         }
         rule.onNodeWithText("Loggad 08:12").assertIsDisplayed()
@@ -194,7 +195,7 @@ class TodayComponentsTest {
     @Test
     fun `tillfällesraden - en tidigare dag är ej loggad, inte försenad (HEM-4)`() {
         var logged = 0
-        show { OccasionRow("Lunch", OccasionStatus.Late, { logged++ }, time = "12:00", isToday = false) }
+        show { OccasionRow("Lunch", OccasionStatus.NOT_LOGGED, { logged++ }, time = "12:00") }
         rule.onNodeWithText("Försenat").assertDoesNotExist()
         rule.onNodeWithText("Ej loggad").assertIsDisplayed()
         rule.onNodeWithText("Logga nu").performClick()

@@ -7,35 +7,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.ui.common.scaleLevel
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
-
-/** Ett måendetillfälles läge i dagens checklista (HEM-4). */
-enum class OccasionStatus {
-    /** Loggat – titeln tonas ner och värdena visas som chips. */
-    Logged,
-
-    /** Tiden har passerat utan logg. Försenat bara på dagens datum; en tidigare dag är bara ej loggad. */
-    Late,
-
-    /** Tiden närmar sig – gör-något. */
-    Soon,
-
-    /** Senare under dagen. */
-    Upcoming,
-}
 
 /** Ett loggat värde som chip på tillfällesraden: "Energi 7" i skalans ton ([scaleLevel]). */
 data class OccasionValue(val label: String, val value: Int, val higherIsBetter: Boolean = true)
 
 /**
  * Tillfällesraden för mående (HEM-4, HEM-5): en rad per tillfälle – Efter frukost · Lunch · Kvällsmat ·
- * Läggdags, namnet ([title]) ges av anroparen – med läget alltid som text, inte bara färg:
- * [OccasionStatus.Logged] avbockad stil (som en tagen dos), "Loggad" och [values] som chips, [OccasionStatus.Late] "Försenat" i
- * varningston och [OccasionStatus.Soon] "Snart" i solgult, båda med "Logga nu" ([onLog]), och
- * [OccasionStatus.Upcoming] "Kommande" i dämpad text. [isToday] = false (en tidigare dag) visar ett
- * försenat tillfälle som "Ej loggad" utan varningston (HEM-4). [time] är tillfällets klockslag eller
+ * Läggdags, namnet ([title]) ges av anroparen – med läget ([status], samma `OccasionStatus` som `:core`
+ * räknar fram i `occasionStates`) alltid som text, inte bara färg:
+ * [OccasionStatus.LOGGED] avbockad stil (som en tagen dos), "Loggad" och [values] som chips, [OccasionStatus.LATE] "Försenat" i
+ * varningston och [OccasionStatus.SOON] "Snart" i solgult, båda med "Logga nu" ([onLog]), och
+ * [OccasionStatus.UPCOMING] "Kommande" i dämpad text. [OccasionStatus.NOT_LOGGED] (en tidigare dag) visar
+ * "Ej loggad" utan varningston, också med "Logga nu" (HEM-4). [time] är tillfällets klockslag eller
  * loggens tid; [onClick] öppnar en loggad post.
  */
 @Composable
@@ -46,18 +33,18 @@ fun OccasionRow(
     modifier: Modifier = Modifier,
     time: String? = null,
     values: List<OccasionValue> = emptyList(),
-    isToday: Boolean = true,
     onClick: (() -> Unit)? = null,
 ) {
-    val logged = status == OccasionStatus.Logged
+    val logged = status == OccasionStatus.LOGGED
     val action: Pair<Int, Tone>? = when (status) {
-        OccasionStatus.Late -> if (isToday) R.string.occasion_late to Tone.Warning else R.string.occasion_not_logged to Tone.Neutral
-        OccasionStatus.Soon -> R.string.occasion_soon to Tone.Sun
+        OccasionStatus.LATE -> R.string.occasion_late to Tone.Warning
+        OccasionStatus.NOT_LOGGED -> R.string.occasion_not_logged to Tone.Neutral
+        OccasionStatus.SOON -> R.string.occasion_soon to Tone.Sun
         else -> null
     }
     val subtitle = when (status) {
-        OccasionStatus.Logged -> null
-        OccasionStatus.Upcoming -> listOfNotNull(stringResource(R.string.occasion_upcoming), time).joinToString(" · ")
+        OccasionStatus.LOGGED -> null
+        OccasionStatus.UPCOMING -> listOfNotNull(stringResource(R.string.occasion_upcoming), time).joinToString(" · ")
         else -> time
     }
     ItemRow(
