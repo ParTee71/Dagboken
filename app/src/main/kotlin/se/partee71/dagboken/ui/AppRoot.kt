@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.navigation.AppNavigation
+import se.partee71.dagboken.reminders.ReminderLaunch
 import se.partee71.dagboken.ui.auth.AuthEvent
 import se.partee71.dagboken.ui.auth.AuthGate
 import se.partee71.dagboken.ui.auth.AuthUiState
@@ -18,11 +19,21 @@ import se.partee71.dagboken.ui.auth.SignInScreen
 import se.partee71.dagboken.ui.auth.UpdateRequiredScreen
 import se.partee71.dagboken.ui.components.AppLoading
 
-/** Appens rot: inloggningen styr vad som visas (AUTH-1, AUTH-6). */
+/**
+ * Appens rot: inloggningen styr vad som visas (AUTH-1, AUTH-6). [launch] är vad en tryckt påminnelse ska öppna
+ * (NOT-9, NOT-11, NOT-12) – det görs när dagboken visas, och [onLaunchHandled] anropas sedan.
+ */
 @Composable
-fun AppRoot(modifier: Modifier = Modifier, viewModel: AuthViewModel = hiltViewModel()) {
+fun AppRoot(
+    modifier: Modifier = Modifier,
+    launch: ReminderLaunch? = null,
+    onLaunchHandled: () -> Unit = {},
+    viewModel: AuthViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    AppRootContent(state, viewModel::onEvent, modifier) { AppNavigation(state.account, onSignOut = { viewModel.onEvent(AuthEvent.SignOut) }) }
+    AppRootContent(state, viewModel::onEvent, modifier) {
+        AppNavigation(state.account, onSignOut = { viewModel.onEvent(AuthEvent.SignOut) }, launch = launch, onLaunchHandled = onLaunchHandled)
+    }
 }
 
 /** Appens bakgrund sätts här, en gång; skärmarna ritar ovanpå den. */

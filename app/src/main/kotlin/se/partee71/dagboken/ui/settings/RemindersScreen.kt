@@ -1,8 +1,16 @@
 package se.partee71.dagboken.ui.settings
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -17,6 +25,11 @@ import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.SlotReminder
 import se.partee71.dagboken.data.repository.SettingsRepository
+import se.partee71.dagboken.reminders.ReminderAccess
+import se.partee71.dagboken.reminders.needsNotificationPermission
+import se.partee71.dagboken.reminders.openExactAlarmSettings
+import se.partee71.dagboken.reminders.openNotificationSettings
+import se.partee71.dagboken.reminders.reminderAccess
 import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.common.EditorLoader
 import se.partee71.dagboken.ui.common.EditorState
@@ -26,6 +39,7 @@ import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.AppCard
 import se.partee71.dagboken.ui.components.EntityEditScreen
 import se.partee71.dagboken.ui.components.LabeledGroup
+import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.ReminderTimeRow
 import se.partee71.dagboken.ui.components.SwitchRow
 
@@ -46,9 +60,30 @@ sealed interface RemindersEvent {
     data object Retry : RemindersEvent
 }
 
+/** Formulärets ändring av [current] för händelsen – samma regel för formuläret och för [turnsOn]. */
+fun RemindersEvent.applyTo(current: ReminderSettings): ReminderSettings = when (this) {
+    is RemindersEvent.MedsEnabledChanged -> current.copy(medsEnabled = enabled)
+    is RemindersEvent.SlotChanged -> current.copy(medSlots = current.medSlots.map { if (it.slot == reminder.slot) reminder else it })
+    is RemindersEvent.OccasionChanged -> current.copy(screeningOccasions = current.screeningOccasions.map { if (it.occasion == reminder.occasion) reminder else it })
+    is RemindersEvent.PeriodTimeChanged -> current.copy(periodReminderTime = time)
+    RemindersEvent.Save, RemindersEvent.Retry -> current
+}
+
+/**
+ * NOT-16: om händelsen gör en påminnelse **aktiv** som inte var det i [current] – då begärs notisbehörigheten. En
+ * medicintidpunkt som slås på medan huvudreglaget är av, huvudreglaget utan någon påslagen tidpunkt, ett ändrat
+ * klockslag eller något som slås av gör det inte.
+ */
+fun RemindersEvent.turnsOn(current: ReminderSettings): Boolean = (applyTo(current).active() - current.active()).isNotEmpty()
+
+/** De påminnelser som skulle ge notiser: påslagna medicintider (när huvudreglaget är på) och måendetillfällen. */
+private fun ReminderSettings.active(): Set<Any> =
+    (if (medsEnabled) medSlots.filter { it.enabled }.map { it.slot } else emptyList<Any>()).toSet() +
+        screeningOccasions.filter { it.enabled }.map { it.occasion }
+
 /**
  * Påminnelser i inställningsarket (SET-4, NOT-4, NOT-13, NOT-18): läser och sparar bara gruppen
- * `reminders` i `settings/app`. Här sparas bara inställningarna; larmen schemaläggs i #242.
+ * `reminders` i `settings/app`. Här sparas bara inställningarna; larmen följer dem via `ReminderSync` (NOT-7).
  */
 @HiltViewModel
 class RemindersEditViewModel @Inject constructor(private val settings: SettingsRepository) : ViewModel() {
@@ -61,14 +96,8 @@ class RemindersEditViewModel @Inject constructor(private val settings: SettingsR
 
     fun onEvent(event: RemindersEvent) {
         when (event) {
-            is RemindersEvent.MedsEnabledChanged -> editor.update { it.copy(medsEnabled = event.enabled) }
-            is RemindersEvent.SlotChanged -> editor.update { r ->
-                r.copy(medSlots = r.medSlots.map { if (it.slot == event.reminder.slot) event.reminder else it })
-            }
-            is RemindersEvent.OccasionChanged -> editor.update { r ->
-                r.copy(screeningOccasions = r.screeningOccasions.map { if (it.occasion == event.reminder.occasion) event.reminder else it })
-            }
-            is RemindersEvent.PeriodTimeChanged -> editor.update { it.copy(periodReminderTime = event.time) }
+            is RemindersEvent.MedsEnabledChanged, is RemindersEvent.SlotChanged, is RemindersEvent.OccasionChanged,
+            is RemindersEvent.PeriodTimeChanged -> editor.update { event.applyTo(it) }
             RemindersEvent.Save -> viewModelScope.launch {
                 editor.save { form -> difference.save { it.copy(reminders = form) } }
             }
@@ -77,20 +106,51 @@ class RemindersEditViewModel @Inject constructor(private val settings: SettingsR
     }
 }
 
+/**
+ * NOT-16: behörigheterna läses när skärmen visas och igen när användaren kommer tillbaka från systeminställningarna;
+ * notisbehörigheten begärs när en påminnelse slås på ([turnsOn]) – inte vid appens första start.
+ */
 @Composable
 fun RemindersRoute(onClose: () -> Unit, viewModel: RemindersEditViewModel = hiltViewModel()) {
     val state by viewModel.editor.state.collectAsStateWithLifecycle()
-    RemindersScreen(state, viewModel.editor.effects, viewModel::onEvent, onClose)
+    val context = LocalContext.current
+    var access by remember { mutableStateOf(context.reminderAccess()) }
+    LifecycleResumeEffect(context) {
+        access = context.reminderAccess()
+        onPauseOrDispose {}
+    }
+    val requestPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { access = context.reminderAccess() }
+    RemindersScreen(
+        state,
+        viewModel.editor.effects,
+        onEvent = { event ->
+            if (event.turnsOn(state.value) && context.needsNotificationPermission()) requestPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            viewModel.onEvent(event)
+        },
+        onClose = onClose,
+        access = access,
+        onOpenNotificationSettings = context::openNotificationSettings,
+        onOpenExactAlarmSettings = context::openExactAlarmSettings,
+    )
 }
 
 /**
  * Påminnelser på `EntityEditScreen` (NFR-10): huvudreglaget, en `ReminderTimeRow` per medicintidpunkt
  * (07/10/12/15/19/22 – "Vid behov" har ingen tid) och per måendetillfälle, och periodslutets klockslag
  * utan reglage – varje grupp som `LabeledGroup`. En avslagen påminnelse tonas ned, och medicintiderna
- * när huvudreglaget är av.
+ * när huvudreglaget är av. Saknas behörighet att visa notiser eller ställa exakta larm ([access]) står det överst
+ * som en `NoticeBanner` som öppnar systeminställningarna (NOT-16).
  */
 @Composable
-fun RemindersScreen(state: EditorUiState<ReminderSettings>, effects: Flow<EditorEffect>, onEvent: (RemindersEvent) -> Unit, onClose: () -> Unit) {
+fun RemindersScreen(
+    state: EditorUiState<ReminderSettings>,
+    effects: Flow<EditorEffect>,
+    onEvent: (RemindersEvent) -> Unit,
+    onClose: () -> Unit,
+    access: ReminderAccess = ReminderAccess(),
+    onOpenNotificationSettings: () -> Unit = {},
+    onOpenExactAlarmSettings: () -> Unit = {},
+) {
     val reminders = state.value
     EntityEditScreen(
         title = stringResource(R.string.settings_reminders),
@@ -100,6 +160,24 @@ fun RemindersScreen(state: EditorUiState<ReminderSettings>, effects: Flow<Editor
         onClose = onClose,
         onRetry = { onEvent(RemindersEvent.Retry) },
     ) {
+        if (!access.notifications) {
+            NoticeBanner(
+                stringResource(R.string.reminders_notifications_off),
+                R.drawable.ic_bell,
+                onOpenNotificationSettings,
+                onClickLabel = stringResource(R.string.reminders_open_system_settings),
+                detail = stringResource(R.string.reminders_notifications_off_detail),
+            )
+        }
+        if (!access.exactAlarms) {
+            NoticeBanner(
+                stringResource(R.string.reminders_exact_off),
+                R.drawable.ic_clock,
+                onOpenExactAlarmSettings,
+                onClickLabel = stringResource(R.string.reminders_open_system_settings),
+                detail = stringResource(R.string.reminders_exact_off_detail),
+            )
+        }
         AppCard {
             SwitchRow(
                 stringResource(R.string.reminders_meds),

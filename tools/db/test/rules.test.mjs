@@ -203,6 +203,34 @@ test('en flyttad dos (MED-15): målet skapas med det lagrade dokumentets alla f�
   assert.ok((await getDoc(dose('flyttad'))).exists(), 'källan står kvar');
 });
 
+test('"Markera tagen" (NOT-10): en batch med bara merges – saknad dos skapas utan anteckning, befintlig och raderad godtas', async () => {
+  const { date, slot, name, dose, unit, prescriptionId } = toClient(base('doses'));
+  const taken = { date, slot, name, dose, unit, prescriptionId, status: 'taken', takenAt: Timestamp.now() };
+  await assertSucceeds(setDoc(mine('doses', 'ny-tagen'), taken, { merge: true }), 'saknas: skapas utan anteckning, skapandetid och klockslag');
+  const created = (await getDoc(mine('doses', 'ny-tagen'))).data();
+  assert.deepEqual(['createdAt', 'note', 'plannedTime'].filter((k) => k in created), []);
+  const existing = { ...toClient(base('doses')), status: 'planned', takenAt: null, note: 'Fastande' };
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'users', OWNER, 'doses', 'annan-enhet'), existing));
+  await assertSucceeds(setDoc(mine('doses', 'annan-enhet'), taken, { merge: true }), 'finns: slås ihop');
+  const merged = (await getDoc(mine('doses', 'annan-enhet'))).data();
+  assert.equal(merged.note, 'Fastande', 'anteckningen står kvar');
+  assert.ok(merged.createdAt.isEqual(existing.createdAt), 'skapandetiden står kvar');
+  assert.equal(merged.plannedTime, existing.plannedTime);
+  assert.equal(merged.status, 'taken');
+  await assertFails(setDoc(mine('doses', 'annan-enhet'), { ...taken, status: 'tagen' }, { merge: true }));
+
+  // Som appens batch: dosen i cachen får bara status och tid – också en som raderats på servern (återuppstår som tagen).
+  const store = db(OWNER);
+  const doseRef = (id) => doc(store, 'users', OWNER, 'doses', id);
+  const batch = writeBatch(store);
+  batch.set(doseRef('annan-enhet'), { status: 'taken', takenAt: Timestamp.now() }, { merge: true });
+  batch.set(doseRef('raderad'), { status: 'taken', takenAt: Timestamp.now() }, { merge: true });
+  batch.set(doseRef('ny-i-batch'), taken, { merge: true });
+  await assertSucceeds(batch.commit());
+  assert.equal((await getDoc(mine('doses', 'raderad'))).data().status, 'taken');
+  assert.equal((await getDoc(mine('doses', 'annan-enhet'))).data().note, 'Fastande');
+});
+
 test('ett lagrat för stort värde eller många fält hindrar inte att andra fält sparas', async () => {
   const fields = Object.fromEntries(Array.from({ length: 45 }, (_, i) => [`f${i}`, i]));
   await env.withSecurityRulesDisabled(async (ctx) => {

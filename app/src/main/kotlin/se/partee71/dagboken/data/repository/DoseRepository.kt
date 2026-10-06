@@ -10,6 +10,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import se.partee71.dagboken.core.engine.PrnCheck
+import se.partee71.dagboken.core.engine.SlotDoses
 import se.partee71.dagboken.core.engine.checkDays
 import se.partee71.dagboken.core.engine.checkDose
 import se.partee71.dagboken.core.engine.ensureDoses
@@ -29,6 +30,8 @@ import se.partee71.dagboken.core.schema.DoseCodec
 import se.partee71.dagboken.core.schema.encodeDate
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.common.FieldMerge
+import se.partee71.dagboken.data.common.FieldPath
 import se.partee71.dagboken.data.common.offlineIsNoOp
 import se.partee71.dagboken.data.common.LatestWins
 import se.partee71.dagboken.data.common.cachedDates
@@ -80,6 +83,27 @@ interface DoseRepository : EntryStore<Dose> {
      * nu). Offline först: fungerar utan nät.
      */
     suspend fun setStatus(dose: Dose, status: DoseStatus, takenAt: Instant? = null): Result<Unit>
+
+    /**
+     * NOT-10: "Markera tagen" i medicinpåminnelsen – tidpunktens ej tagna doser ([SlotDoses], `slotDoses`) blir tagna
+     * vid [at], som avbockningen i appen ([setStatus]): offline först, ingen servertransaktion och ingen väntan. Allt
+     * skrivs i **en** batch med bara fältvisa merges (allt eller inget, och aldrig avvisad för ett saknat dokument):
+     * [SlotDoses.stored] (i cachen) och [SlotDoses.missing] (saknas i cachen, appen har inte öppnats idag – med
+     * receptdosens stabila id, så att dosgenereringen sedan ser dem och aldrig skapar dem igen) får samma fält: bara
+     * `status`, `takenAt`, `name`, `dose`, `unit` och fälten som id:t ger (`date`, `slot`, `prescriptionId`), så att
+     * även en dos som raderats på servern återuppstår hel. Aldrig `note`, `createdAt`, `plannedTime` eller
+     *   okända fält: en anteckning eller skapandetid på servern står kvar, och en ny dos får dem inte (klockslaget
+     *   faller tillbaka på tidpunktens).
+     *
+     * **Medveten avvägning (last-write-wins, som avbockningen i appen):** användarens senaste handling vinner. En
+     * status som en annan enhet satt (överhoppad, tagen vid en annan tid) och som den här enheten inte sett skrivs
+     * över, liksom namn/dos/enhet som en annan enhet ändrat på dosen. En dos som raderats på servern
+     * återuppstår som tagen – användaren tog den. Skill data-safety-backup, "Fallgropar".
+     *
+     * `success` så fort skrivningen ligger i cachen; den synkas sedan som övriga skrivningar (sena fel i `SyncStatus`).
+     * Fel bara lokalt (t.ex. [DataError.NotSignedIn]) – då skrivs inget. [at] i framtiden är ett fel och skriver inget.
+     */
+    suspend fun markTaken(doses: SlotDoses, at: Instant): Result<Unit>
 
     /**
      * FAV-4, FAV-5, MED-16: loggar en dos av vid behov-medicinen vid [at] (nu, eller i efterhand). Läser
@@ -198,6 +222,13 @@ class DefaultDoseRepository @Inject constructor(
         return collection.update(dose.copy(status = status, takenAt = taken), STATUS_FIELDS)
     }
 
+    override suspend fun markTaken(doses: SlotDoses, at: Instant): Result<Unit> {
+        notInFuture(at).onFailure { return Result.failure(it) }
+        if (doses.isEmpty) return Result.success(Unit)
+        val merges = (doses.stored + doses.missing).map { FieldMerge(it.copy(status = DoseStatus.TAKEN, takenAt = at), TAKEN_FIELDS) }
+        return collection.batch(upserts = emptyList(), merges = merges)
+    }
+
     override suspend fun logAsNeeded(medicine: PrnMedicine, at: Instant, force: Boolean, note: String?): Result<PrnLog> {
         notInFuture(at).onFailure { return Result.failure(it) }
         return prnLogs.runExclusive(medicine.id) {
@@ -284,14 +315,23 @@ class DefaultDoseRepository @Inject constructor(
     /** REC-10: bara en dos som fortfarande är planerad på servern följer receptet eller tas bort. */
     private fun isPlanned(stored: Dose): Boolean = stored.status == DoseStatus.PLANNED
 
-    private companion object {
+    internal companion object {
         /** Fälten som följer receptet (REC-10, REC-12). */
-        val FOLLOWS_PRESCRIPTION = setOf(DoseCodec.NAME, DoseCodec.DOSE, DoseCodec.UNIT)
+        private val FOLLOWS_PRESCRIPTION = setOf(DoseCodec.NAME, DoseCodec.DOSE, DoseCodec.UNIT)
 
         /** Avbockningens fält (MED-2, MED-14). */
-        val STATUS_FIELDS = setOf(DoseCodec.STATUS, DoseCodec.TAKEN_AT)
+        private val STATUS_FIELDS = setOf(DoseCodec.STATUS, DoseCodec.TAKEN_AT)
+
+        /**
+         * [markTaken]: status och tagningstid, det som visas och fälten som id:t ger – samma för doser i cachen och doser
+         * som saknas, så att även en dos som raderats på servern återuppstår hel (med datum, tillfälle och recept). Aldrig
+         * anteckning, skapandetid eller klockslag – de kan finnas på servern.
+         */
+        private val TAKEN_FIELDS: Set<FieldPath> = setOf(
+            DoseCodec.STATUS, DoseCodec.TAKEN_AT, DoseCodec.NAME, DoseCodec.DOSE, DoseCodec.UNIT, DoseCodec.DATE, DoseCodec.SLOT, DoseCodec.PRESCRIPTION_ID,
+        ).mapTo(mutableSetOf()) { listOf(it) }
 
         /** En ny engångsdos enhet – som en ny vid behov-medicin (FAV-1). */
-        const val DEFAULT_UNIT = "mg"
+        private const val DEFAULT_UNIT = "mg"
     }
 }

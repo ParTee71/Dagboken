@@ -14,6 +14,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.junit.Test
+import se.partee71.dagboken.core.engine.SlotDoses
+import se.partee71.dagboken.core.engine.ensureDoses
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
@@ -325,6 +327,80 @@ class MedicineRepositoriesTest {
         } }
         prescriptionsWith(factory, testDoses(bounded, zone)).setActive(levaxin, true).getOrThrow()
         assertEquals(2, factory.doses().getAll().getOrThrow().size)
+    }
+
+    /** NOT-10: receptet med en tidpunkt till och en anteckning, och dagens doser som dosgenereringen skulle skapa dem. */
+    private val threeSlots = levaxin.copy(slots = listOf(Slot.MORNING, Slot.LUNCH, Slot.EVENING), note = "Med vatten")
+
+    private fun generated(slot: Slot) = ensureDoses(listOf(threeSlots), emptyList(), today, today, zone).create.single { it.slot == slot }
+
+    /** Morgonens dos finns redan (annan enhet: anteckning, fält från en nyare app), kvällens är överhoppad, lunchens saknas. */
+    private fun storeOtherDevice() {
+        factory.store.set(dosesPath(), generated(Slot.MORNING).id, DoseCodec.encode(generated(Slot.MORNING).copy(note = "Fastande")) + ("framtidaFält" to "kvar"), merge = false)
+        factory.store.set(dosesPath(), generated(Slot.EVENING).id, DoseCodec.encode(generated(Slot.EVENING).copy(status = DoseStatus.SKIPPED, note = "Illamående")), merge = false)
+    }
+
+    private val now = FixedClock().instant
+
+    private fun raw(slot: Slot) = factory.store.read(dosesPath(), generated(slot).id)
+
+    /** Toppfälten som skiljer [after] från [before]. */
+    private fun changed(before: Map<String, Any?>, after: Map<String, Any?>) = (before.keys + after.keys).filter { before[it] != after[it] }.toSet()
+
+    /** En saknad dos som "Markera tagen" skriver den: genereringens, tagen, utan anteckning, skapandetid och klockslag. */
+    private fun markedMissing(slot: Slot) = generated(slot).copy(status = DoseStatus.TAKEN, takenAt = now, note = null, createdAt = null, plannedTime = null)
+
+    @Test
+    fun `markera tagen i flygläge - success direkt, i cachen, och bara status och tid på en dos i cachen (NOT-10)`() = runTest {
+        storeOtherDevice()
+        val morningBefore = raw(Slot.MORNING)!!
+        factory.store.online = false
+
+        doses.markTaken(SlotDoses(stored = listOf(generated(Slot.MORNING)), missing = listOf(generated(Slot.LUNCH))), now).getOrThrow()
+
+        assertEquals(0, testScheduler.currentTime, "ingen väntan på servern")
+        val morning = raw(Slot.MORNING)!!
+        assertEquals(DoseStatus.TAKEN.wire, morning[DoseCodec.STATUS])
+        assertEquals(setOf(DoseCodec.STATUS, DoseCodec.TAKEN_AT), changed(morningBefore, morning), "anteckning, skapandetid och okända fält står kvar")
+        assertEquals(markedMissing(Slot.LUNCH), factory.doses().get(generated(Slot.LUNCH).id).getOrThrow())
+        assertEquals(true, factory.store.hasPendingWrites, "synkas när nätet finns")
+
+        factory.store.online = true
+        doses.createDay(threeSlots, today, today).getOrThrow()
+        assertEquals(3, factory.doses().getAll().getOrThrow().size, "genereringen skapar ingen dubblett")
+        assertEquals(DoseStatus.TAKEN, factory.doses().get(generated(Slot.LUNCH).id).getOrThrow()?.status)
+    }
+
+    @Test
+    fun `markera tagen - en saknad dos som fanns på servern behåller anteckning och skapandetid, status vinner sist (NOT-10)`() = runTest {
+        storeOtherDevice()
+        val morningBefore = raw(Slot.MORNING)!!
+        val eveningBefore = raw(Slot.EVENING)!!
+
+        // Cachen kände inte till någon av dem.
+        doses.markTaken(SlotDoses(missing = listOf(generated(Slot.MORNING), generated(Slot.EVENING))), now).getOrThrow()
+
+        assertEquals(setOf(DoseCodec.STATUS, DoseCodec.TAKEN_AT), changed(morningBefore, raw(Slot.MORNING)!!))
+        val evening = raw(Slot.EVENING)!!
+        assertEquals(setOf(DoseCodec.STATUS, DoseCodec.TAKEN_AT), changed(eveningBefore, evening), "last-write-wins: överhoppad blir tagen, inget annat rörs")
+        assertEquals("Illamående", evening[DoseCodec.NOTE])
+        assertEquals(eveningBefore["createdAt"], evening["createdAt"])
+    }
+
+    @Test
+    fun `markera tagen - en dos som raderats på servern återuppstår som tagen och avvisar ingenting`() = runTest {
+        val deletedElsewhere = generated(Slot.MORNING) // i cachen när notisen byggdes, raderad sedan
+
+        doses.markTaken(SlotDoses(stored = listOf(deletedElsewhere), missing = listOf(generated(Slot.LUNCH))), now).getOrThrow()
+
+        val morning = factory.doses().get(deletedElsewhere.id).getOrThrow()
+        assertEquals(DoseStatus.TAKEN, morning?.status)
+        assertEquals(now, morning?.takenAt)
+        assertEquals(deletedElsewhere.date, morning?.date, "återuppstår hel – syns på sin dag")
+        assertEquals(deletedElsewhere.slot, morning?.slot)
+        assertEquals(deletedElsewhere.prescriptionId, morning?.prescriptionId)
+        assertEquals(deletedElsewhere.name, morning?.name)
+        assertEquals(markedMissing(Slot.LUNCH), factory.doses().get(generated(Slot.LUNCH).id).getOrThrow(), "resten av batchen skrevs")
     }
 
     @Test

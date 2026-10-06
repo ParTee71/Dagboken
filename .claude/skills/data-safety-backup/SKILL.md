@@ -202,6 +202,14 @@ ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här ä
 - **Heltal vs decimaltal:** JSON skiljer dem inte åt – ett decimaltal med heltalsvärde (`2.0`)
   kommer tillbaka från en rundtur som heltal (`2`). Fälthjälparna i `:core` läser alla `Number`,
   så det är ofarligt; låt aldrig en codec bero på den skillnaden.
+- **Skapa offline utan att veta om dokumentet finns:** Firestore kan inte villkora en skrivning utan nät, så
+  "skapa om det saknas" kräver `createIfAbsent` (nät). Det enda medvetna undantaget är "Markera tagen" i
+  medicinpåminnelsen (NOT-10, `DoseRepository.markTaken`), som avbockningen i appen: offline först, **en** batch
+  med bara fältvisa merges (aldrig avvisad för ett saknat dokument). Alla doser (i cachen och saknade) får samma fält:
+  `status`, `takenAt`, `name`, `dose`, `unit` och id:ts fält (`date`, `slot`, `prescriptionId`) – aldrig `note`,
+  `createdAt`, `plannedTime` eller okända fält. Avvägning (last-write-wins): en status som en annan enhet satt och
+  som enheten inte sett skrivs över, liksom namn/dos/enhet som en annan enhet ändrat, och en dos som raderats på
+  servern återuppstår hel som tagen. Anteckning, skapandetid och okända fält bevaras alltid.
 - **Batch-storlek:** Firestore tillåter 500 skrivningar per batch; import delar upp.
 - **Samlingen glömd i `collections.mjs`** → den backas aldrig upp. Testet mot `Paths`
   fångar det; ta aldrig bort det testet.

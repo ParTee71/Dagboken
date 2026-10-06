@@ -25,6 +25,7 @@ import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.reminders.ReminderAccess
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.common.Failure
@@ -100,6 +101,29 @@ class SettingsScreensTest {
         rule.onNodeWithContentDescription("Morgon").performClick()
         assertEquals(RemindersEvent.MedsEnabledChanged(true), events[0])
         assertEquals(false, (events[1] as RemindersEvent.SlotChanged).reminder.enabled)
+    }
+
+    @Test
+    fun `Påminnelser - saknade behörigheter visas överst med genväg till systeminställningarna (NOT-16)`() {
+        val opened = mutableListOf<String>()
+        var access by mutableStateOf(ReminderAccess(notifications = false, exactAlarms = false))
+        rule.setContent {
+            DagbokenTheme {
+                RemindersScreen(
+                    EditorUiState(ReminderSettings()), emptyFlow(), {}, {},
+                    access = access,
+                    onOpenNotificationSettings = { opened += "notiser" },
+                    onOpenExactAlarmSettings = { opened += "exakta" },
+                )
+            }
+        }
+        rule.onNodeWithText(string(R.string.reminders_notifications_off)).performClick()
+        rule.onNodeWithText(string(R.string.reminders_exact_off)).performClick()
+        assertEquals(listOf("notiser", "exakta"), opened)
+
+        access = ReminderAccess()
+        rule.onNodeWithText(string(R.string.reminders_notifications_off)).assertDoesNotExist()
+        rule.onNodeWithText(string(R.string.reminders_exact_off)).assertDoesNotExist()
     }
 
     @Test
