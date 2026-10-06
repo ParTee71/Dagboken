@@ -31,7 +31,7 @@ import se.partee71.dagboken.ui.theme.Spacing
 /**
  * Antal ± inom [range]. [label] beskriver vad som räknas ("doser per dag") och läses av
  * TalkBack på knapparna ("Minska doser per dag") och på värdet ("2 doser per dag"). [step] är
- * hur mycket ett tryck ändrar (t.ex. 5 för minuter i [DurationRow]).
+ * hur mycket ett tryck ändrar (t.ex. 5 för minuter i [DurationRow]). Knapparna är 48 dp (NFR-14).
  */
 @Composable
 fun QuantityStepper(
@@ -54,7 +54,7 @@ fun QuantityStepper(
     ) {
         FilledIconButton(
             onClick = { onValueChange((value - step).coerceIn(range)) },
-            modifier = Modifier.size(BUTTON),
+            modifier = Modifier.size(TOUCH_TARGET),
             enabled = enabled && value > range.first,
             colors = colors,
         ) { Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.decrease_format, label)) }
@@ -70,12 +70,11 @@ fun QuantityStepper(
         )
         FilledIconButton(
             onClick = { onValueChange((value + step).coerceIn(range)) },
-            modifier = Modifier.size(BUTTON),
+            modifier = Modifier.size(TOUCH_TARGET),
             enabled = enabled && value < range.last,
             colors = colors,
         ) { Icon(painterResource(R.drawable.ic_add), stringResource(R.string.increase_format, label)) }
     }
 }
 
-private val BUTTON = 44.dp
 private val VALUE_WIDTH = 48.dp

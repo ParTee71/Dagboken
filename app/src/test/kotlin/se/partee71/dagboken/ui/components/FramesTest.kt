@@ -351,6 +351,30 @@ class FramesTest {
     }
 
     @Test
+    fun `UpcomingScreen - undersidan har tillbakapil som anropar onBack, fliken har ingen`() {
+        var back = 0
+        var sub by mutableStateOf(true)
+        rule.setContent {
+            DagbokenTheme {
+                if (sub) UpcomingScreen("Export och import", R.drawable.ic_download, "Kommer snart.", onBack = { back++ })
+                else UpcomingScreen("Idag", R.drawable.ic_sun, "Kommer snart.")
+            }
+        }
+        rule.onNodeWithText("Snart här").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Tillbaka").performClick()
+        assertEquals(1, back)
+        sub = false
+        rule.onNodeWithContentDescription("Tillbaka").assertDoesNotExist()
+    }
+
+    @Test
+    fun `UpcomingScreen - undersida`() {
+        captureLightAndDark("UpcomingScreen_undersida") {
+            UpcomingScreen("Export och import", R.drawable.ic_download, "Spara en kopia av dagboken eller läs in en tidigare.", onBack = {})
+        }
+    }
+
+    @Test
     fun `EntityListScreen - lägen`() {
         rule.captureLightAndDarkPaused("EntityListScreen_laddar") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Loading, empty, {}, key = { it }) {} }
         captureLightAndDark("EntityListScreen_tom") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Empty, empty, {}, key = { it }) {} }

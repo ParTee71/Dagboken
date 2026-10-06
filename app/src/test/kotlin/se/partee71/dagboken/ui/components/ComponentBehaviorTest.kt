@@ -4,6 +4,12 @@ import android.text.InputType
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -140,6 +146,36 @@ class ComponentBehaviorTest {
         assertEquals(2, value)
         rule.onNodeWithContentDescription("Öka dagar").assertIsNotEnabled()
         rule.onNodeWithContentDescription("2 dagar").assertIsDisplayed()
+    }
+
+    @Test
+    fun `stegarens knappar är 48 dp stora, inte bara i tryckytan (NFR-14)`() {
+        show { QuantityStepper(1, {}, "dagar") }
+        listOf("Minska dagar", "Öka dagar").forEach {
+            rule.onNodeWithContentDescription(it).assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
+        }
+    }
+
+    @Test
+    fun `listraden och postkortet radbryter titel och undertext likadant (NFR-17)`() {
+        val longTitle = "Promenad runt sjön med hunden och grannen en lång söndagsförmiddag i oktober"
+        val longSubtitle = "08:30 · 45 min · lugnt tempo i solsken, raster vid bryggan, fikat och tittade på fåglarna vid vassen"
+        show {
+            Column(Modifier.width(240.dp)) {
+                ItemRow("Rad: $longTitle", subtitle = "Rad: $longSubtitle")
+                DagbokenEntryCard("Kort: $longTitle", {}, subtitle = "Kort: $longSubtitle")
+            }
+        }
+        listOf("Rad", "Kort").forEach { prefix ->
+            assertEquals(2, lineCount("$prefix: $longTitle"), "$prefix: titeln högst två rader")
+            assertTrue(lineCount("$prefix: $longSubtitle") > 2, "$prefix: undertexten visas hela")
+        }
+    }
+
+    private fun lineCount(text: String): Int {
+        val layouts = mutableListOf<TextLayoutResult>()
+        rule.onNodeWithText(text, useUnmergedTree = true).performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        return layouts.single().lineCount
     }
 
     @Test

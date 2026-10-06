@@ -606,6 +606,10 @@ private fun Frames(onBack: () -> Unit) {
             }
         }
     }
+    Label("UpcomingScreen")
+    Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
+        UpcomingScreen("Export och import", R.drawable.ic_download, "Spara en kopia av dagboken eller läs in en tidigare.", onBack = onBack)
+    }
 }
 
 private val FRAME_HEIGHT = 480.dp

@@ -28,11 +28,11 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Ikonknapp | `AppIconButton` | M3 ikonknapp, min 48 dp |
 | Split-knapp "Lägg till ▾" | `AddSplitButton` | Expressive split-knapp |
 | Sektionskort / grupperad yta | `AppCard` | `AppShapes.card` (22 dp), vit yta utan kantlinje, `Spacing`; `tone` färgar ytan (t.ex. grönt i belöningsläget) |
-| Listrad | `ItemRow` | bas för alla listor; `navigates` ger pil, `done` avbockad stil, `accent` statusfärg (NFR-16), `inactive` nedtonad, `below` en rad under, `titleHighlight` färgmarkerar en del av titeln |
+| Listrad | `ItemRow` | bas för alla listor; titel (högst två rader) och undertext (hel) med internt `RowText`, samma som postkortet; `navigates` ger pil, `done` avbockad stil, `accent` statusfärg (NFR-16), `inactive` nedtonad, `below` en rad under, `titleHighlight` färgmarkerar en del av titeln |
 | Pausbar rad (recept, vid behov-medicin) | `PausableRow` | `ItemRow` + typ som `InfoPill`; pausad nedtonad med "Pausat" |
 | Kryssrad | `CheckRow` | `ItemRow` + formmorfande kryss; hela raden växlar (NFR-17); med `onClick` är krysset en egen knapp och raden öppnar detaljer |
 | Sektionsrubrik med räknare | `SectionHeader` | `InfoPill` för räknaren |
-| Gruppetikett över kort | `GroupLabel` | liten text, läses som rubrik |
+| Gruppetikett över kort | `GroupLabel` | liten text, läses som rubrik; samma stil är etiketten över varje formulärkontroll (`LabeledGroup`, `ValueSlider`) |
 | Formulärfält med etikett (val, väljare) | `LabeledGroup` | `GroupLabel` ovanför innehållet, valfri hjälptext och fältfel under |
 | Fel under ett fält eller i en panel | `FieldError` | felfärg, läses som fel; ett skrivfel i ett bottom sheet visas via `AppBottomSheet(error)` |
 | Skärmrubrik | `AppTopBar` | Expressive flexibel toppbar, `size`-parameter, Fraunces-rubrik; visar synkindikatorn före `actions` när ändringar väntar |
@@ -43,11 +43,12 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Valchip | `AppFilterChip` | M3 filterchip |
 | Ett val bland några | `ChoiceChips` | `ChipRow` + en `AppFilterChip` per alternativ |
 | Exempel att börja från (snabbval, tom lista) | `ExampleChips` | `ChipRow` + `AppFilterChip` med plus; det valda med bock |
-| Emojival | `EmojiPicker` | rutnät av runda val (`ChoiceGrid`) |
-| Färgval | `ColorSwatchPicker` | rutnät av runda val (`ChoiceGrid`) över `AppColors`; TalkBack läser färgens namn |
-| Antal ± | `QuantityStepper` | M3 ikonknappar i en pill, `label` för TalkBack |
+| Emojival | `EmojiPicker` | rutnät av runda val (`ChoiceGrid`, som äger valmarkeringen: ring i teal med luft runt den valda) |
+| Färgval | `ColorSwatchPicker` | rutnät av runda val (`ChoiceGrid`, samma valmarkering som `EmojiPicker`) över `AppColors`; TalkBack läser färgens namn |
+| Antal ± | `QuantityStepper` | M3 ikonknappar (48 dp, NFR-14) i en pill, `label` för TalkBack |
 | Laddning | `AppLoading` | Expressive laddningsindikator |
 | Tomt tillstånd / läsfel | `EmptyState` | ikon + text + `AppButton`; `isError` för läsfel (internt `LoadErrorState` med "Försök igen") |
+| Skärm som inte byggts än ("Snart här") | `UpcomingScreen` | `AppTopBar` (stor för en flik med `actions`, liten med tillbakapil när `onBack` finns) + `EmptyState` centrerat ovanför verktygsraden; flikarna (`TabPlaceholderScreen`) och Export och import |
 | Bekräftelse | `ConfirmDialog` | M3 dialog, `destructive`-parameter |
 | Bottom sheet | `AppBottomSheet` | M3 modal sheet, `AppShapes.sheet` (28 dp upptill) |
 | Inställningsark | `AccountSheet` | `AppBottomSheet` + en `ItemRow` per val bakom avataren (NAV-9): kontot överst (tonad `ItemRow` med `AccountAvatar`, namn, e-post, "Inloggad med Google"), en rad per `SettingsPage` med pil, "Komponentgalleri" bara i debug, "Logga ut" sist |
@@ -65,11 +66,11 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Ihopfällbart sektionskort | `Foldout` | hela titelraden växlar, minst 48 dp, `Role.Button` + `stateDescription`, fjädrande chevron (NFR-18); `trailing` före chevronen, `summary` i stängt läge; samma titelrad som `EntityListScreen`s hopfällbara grupper |
 | Reglage (alla skalor: energi, stress, symptom, −10…+10) | `ValueSlider` | M3 `Slider(state)` med eget spår i energiskalan (`AppColors.extended.energy`): `higherIsBetter` rött→grönt, annars grönt→rött; nolla i mitten under noll; värdet som text och nivån (`scaleLevel`) som `InfoPill` |
 | Hjulväljare | `WheelPicker` | lat kolumn som snäpper; TalkBack läser valt värde och kan öka/minska |
-| Kalender | `DagbokenCalendar` | månadsrutnät (måndag först) med `AppIconButton` för månadsbyte; prick = dag med poster, fylld cirkel = vald, ring = idag; varje dag 48 dp (HIST-6) |
-| Datumremsa (veckan i Idag) | `DateStrip` | sju chips i `AppShapes.row` (18 dp), vald dag fylld teal; punkt = dag med poster, solgul punkt med mörk ring = idag, bock när dagen är klar (läses "Klar"); framtida dagar tonade och inte valbara; svep höger/vänster (och TalkBack-åtgärder) byter vecka via `onWeekChange`, anroparen äger veckan och `today` (HEM-14) |
+| Kalender | `DagbokenCalendar` | månadsrutnät (måndag först) med `AppIconButton` för månadsbyte; punkt = dag med poster, solgul punkt med ring = idag, vald dag fylld teal i `AppShapes.row` – samma markering som `DateStrip` (internt `DayMarkerDot`); TalkBack läser datum, "idag" och "har poster"; varje dag 48 dp (HIST-6) |
+| Datumremsa (veckan i Idag) | `DateStrip` | sju chips i `AppShapes.row` (18 dp), vald dag fylld teal; punkt = dag med poster, solgul punkt med mörk ring = idag (internt `DayMarkerDot`, samma som kalendern), bock när dagen är klar (läses "Klar"); framtida dagar tonade och inte valbara; svep höger/vänster (och TalkBack-åtgärder) byter vecka via `onWeekChange`, anroparen äger veckan och `today` (HEM-14) |
 | Tillfällesrad för mående | `OccasionRow` | `ItemRow` + `InfoPill` + `AppButton`: Efter frukost · Lunch · Kvällsmat · Läggdags (namnet från anroparen); `OccasionStatus` loggad (avbockad stil, "Loggad", värdechips i `scaleLevel`-ton), "Försenat" (varningston, bara `isToday`, annars "Ej loggad") och "Snart" (solgul) med "Logga nu" (primär `AppButton`, compact), "Kommande" dämpad (HEM-4, HEM-5) |
-| Framstegsrad | `ProgressBar` | spår i pill-form som fylls animerat i teal ("4 av 9 klara"), solgul med mörk kontur och "9 av 9 · allt klart" när allt är klart; TalkBack läser "x av y klara" (HEM-18) |
-| Dagen klar | `DayDoneCard` | `AppCard(tone = Tone.Positive)` med bock, "Allt klart för idag" och tre nyckeltal (snittenergi, mot igår, dagar i rad; `null` → "—", samma `value_missing` som `StatPill`) + `Confetti` en gång per `play` som anroparen äger (HEM-19) |
+| Framstegsrad | `ProgressBar` | spår i pill-form (`AppColors.extended.track`, samma som stegprickarna i `StepwiseScreeningForm`) som fylls animerat i teal ("4 av 9 klara"), solgul med mörk kontur och "9 av 9 · allt klart" när allt är klart; TalkBack läser "x av y klara" (HEM-18) |
+| Dagen klar | `DayDoneCard` | `AppCard(tone = Tone.Positive)` med `SectionHeader(tone = Tone.Positive)` (bock, "Allt klart för idag") och tre nyckeltal (snittenergi, mot igår, dagar i rad; `null` → "—", samma `value_missing` som `StatPill`) + `Confetti` en gång per `play` som anroparen äger (HEM-19) |
 | Kontoavatar | `AccountAvatar` | foto-slot eller `photoUrl` (Coil, bara minnescache – AUTH-3) ovanpå initialerna ur namnet, utloggad person-ikon; 48 dp, läses "Konto och inställningar"; i `AppTopBar(actions)` (NAV-9); utan `onClick` en ren bild (kontokortet i arket) |
 | Mående i steg | `StepwiseScreeningForm` | pager energi → stress → symptom med "Steg 1 av 3", fjädrande stegprickar och `AppButton` (HEM-5) |
 | Symptom med gradering | `SymptomLogCard` | `AppCard` + `Foldout`: `AppFilterChip` per symptom, ett `ValueSlider` (högre är sämre) per valt, `AppTextField` för "Övrigt", summan under (AKT-6, SJ-3) |
@@ -77,7 +78,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Mätvärde | `StatPill` | ikon, värde och etikett i en `Tone`-yta; `onClick` gör den till en knapp med 48 dp (HLS-6) |
 | Datum + tid | `DateTimeRow` | `DateField` + `TimeField` på en rad |
 | Tidsåtgång | `DurationRow` | `LabeledGroup` + `QuantityStepper` i minuter (`step`) + snabbval som `AppFilterChip` (AKT-7) |
-| Påminnelsetid | `ReminderTimeRow` | `SwitchRow` med `onClick` (raden öppnar tidsväljaren, reglaget slår av/på) eller `ItemRow` utan reglage (NOT-18) |
+| Påminnelsetid | `ReminderTimeRow` | `SwitchRow` med `onClick` (raden öppnar tidsväljaren, reglaget slår av/på) eller `ItemRow` utan reglage (NOT-18); avslagen eller `inactive` (gruppen av) = nedtonad |
 | Linjediagram | `LineChart` | `ui/diagram`, Vico: teal kurva med gradientfyllning och punkter, luckor (aldrig nollor), heltalsaxel, streckad trend, föregående period nedtonad (`previous`), zoom/panorering helt utzoomat från början; `MinMaxCaption` och tomt läge ingår (skill `diagram`) |
 | Intervallstapel (dagens spann) | `IntervalBarChart` | `ui/diagram`, egen `Canvas`: spann min–max (35 %) och dagsvärdets punkt i energiskalans färg (`scaleLevel`), mjuk kurva bruten vid luckor (TRD-8) |
 | Staplat stapeldiagram | `StackedBarChart` | `ui/diagram`, egen `Canvas`: segment nedifrån och upp (`StackSegment`, sömnstadier ur `AppColors.extended.sleepStages`), axel från noll, teckenförklaring (TRD-16) |
@@ -89,7 +90,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 
 | Mönster | Ram | Beteende (identiskt överallt) |
 |---|---|---|
-| Listskärm | `EntityListScreen` | Arkivering via `archive: ListArchive` ("Visa arkiverade" i menyn, Ångra, fel som meddelande); laddning → `AppLoading`; tomt → `EmptyState` med primärknapp och valfria exempel (`ExampleChips`); fel → läsfel med "Försök igen"; rader (`ItemRow`) i kort; valfri gruppering (`SectionHeader` med antal, `collapsible` = hopfälld) och undergrupper; lägg till (`AddSplitButton`); för en undersida `onBack`, `subtitle`, `actions` och `header` överst i listan; `filter` fast under rubriken i alla lägen (t.ex. `AppSegmentedChoice` Aktiviteter · Symptom · Händelser i Listor) |
+| Listskärm | `EntityListScreen` | Arkivering via `archive: ListArchive` ("Visa arkiverade" i menyn, Ångra, fel som meddelande); laddning → `AppLoading`; tomt → `EmptyState` med primärknapp och valfria exempel (`ExampleChips`); fel → läsfel med "Försök igen"; rader (`ItemRow`) i kort; valfri gruppering (`SectionHeader` med antal, `collapsible` = hopfälld) och undergrupper; lägg till (`AddSplitButton`); för en undersida `onBack`, `subtitle`, `actions`, `header` överst i listan och `topBarSize = Small` i inställningsarket; `filter` fast under rubriken i alla lägen (t.ex. `AppSegmentedChoice` Aktiviteter · Symptom · Händelser i Listor) |
 | Redigeraskärm | `EntityEditScreen` | Tillsammans med `EditorState<T>`: "Spara" aktiv först när giltig **och** ändrad (NFR-10); fältfel visas när fältet ändrats eller efter ett sparförsök; läsfel → "Försök igen"; bakåt med osparat → "Släng ändringar?"; sparfel → snackbar; navigerar först när sparandet är klart (NFR-12); IME-inset hanteras i ramen (NFR-11); arkivera/återställ/radera i menyn |
 | Detaljskärm | `EntityDetailScreen` | Tillsammans med `DetailUiState`/`DetailLoader`: toppbar med tillbaka, "Redigera" och meny; laddning → `AppLoading`; fel → läsfel med "Försök igen"; innehåll → huvud och sektioner i `AppCard` med `SectionHeader` (t.ex. sjukdomsepisoden med incheckningar, HIST-9) |
 | Arkivera/dölj listobjekt | `SwipeToHide` | Svep → dolt direkt → `UndoSnackbar` "%s arkiverad · Ångra" i 5 s; `enabled = false` för en redan arkiverad rad. Används för listobjekt som alternativen i Listor – **inte** för postkort: postkortets svep begär radering med `ConfirmDialog` (NFR-15, `DagbokenEntryCard`) |
@@ -127,11 +128,15 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 | Svep-arkivera, Ångra, "Visa arkiverade" i en lista | `ArchiveActions` + `ArchiveEvent` i `ui/common/`; skärmen skickar `archive.collectAsListArchive()` till `EntityListScreen` |
 | Detaljtillstånd | `DetailUiState<T>` och `DetailLoader` (med "Försök igen") i `ui/common/` |
 | Datum i UI | `DateFormat` i `ui/common/` ("lör 4 okt 2026", millis för datumväljaren) |
+| Vecka och dagsmarkering | `weekMonday`, `ONE_WEEK`, `DAYS_PER_WEEK` och `DayMarkerDot` i `ui/components/DayMarker.kt` – för `DateStrip` och `DagbokenCalendar` |
 | Namn på modellens val (tidpunkt, måendetillfälle, kön, alternativlista) | `label()` i `ui/common/ModelLabels.kt` |
 | Inställningar och alternativlistor | `SettingsRepository` (`update` läser det lagrade och skriver med merge – `legacy` och okända fält bevaras, DAT-11) och `OptionsRepository` (nytt med `OptionIds.of`, namnbyte behåller id) i `data/repository/` |
 | Temats och listornas regler | `isDarkAt`/`hasValidHours` (SET-1, SET-2) och `hasActiveName` (inga dubbletter) i `:core/engine/SettingsRules.kt` |
 | Skalans nivå (etikett, ton och färg) för reglage, chips och postkortets accent | `scaleLevel` → `ScaleLevel` (`label`, `tone`, `color`) och `scaleValueText` i `ui/common/EnergyLabel.kt` – båda riktningarna (`higherIsBetter`) |
 | Tidsåtgång i text ("1 tim 30 min") | `durationText` i `ui/common/DateFormat.kt` |
+| Sidmarginal och sektionsavstånd i ramarna | `SCREEN_MARGIN` och `SECTION_GAP` (båda `Spacing.l`) i `ui/components/ScreenMargin.kt` – `EntityListScreen`, `EntityEditScreen`, `EntityDetailScreen` |
+| Ledande element i en rad (kryss, ikon) | `LeadingSlot` (48 dp ruta) i `ui/components/TouchTargets.kt` – `CheckRow` och inställningsarkets rader, så att titlarna linjerar |
+| Nedtoning | `Modifier.inactive(…)` med `INACTIVE_ALPHA` i `ui/components/ItemRow.kt` – rader, postkort, datumremsa, reglage, påminnelser |
 | Visa först efter en fördröjning | `Flow<Boolean>.shownAfter(delay)` i `ui/common/` |
 | Navigation | `AppKey`, `AppBackStack` (en stack per flik), `AppNavHost`, `Transitions` i `navigation/` |
 | Feltyp | `DataError` (`Offline`, `PermissionDenied`, `Cancelled`, `UpdateRequired`, `SignInRejected`, `NotSignedIn`, `NotFound`, `Unknown`) i `data/common/` |

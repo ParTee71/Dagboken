@@ -126,8 +126,8 @@ fun EntityEditScreen(
             } else {
                 Column(
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding()
-                        .padding(horizontal = Spacing.xl, vertical = Spacing.s),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.l),
+                        .padding(horizontal = SCREEN_MARGIN, vertical = Spacing.s),
+                    verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
                     content = content,
                 )
             }

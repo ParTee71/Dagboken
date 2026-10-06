@@ -90,7 +90,7 @@ private fun StepDots(count: Int, current: Int) {
         repeat(count) { index ->
             val active = index == current
             val width by animateDpAsState(if (active) DOT_ACTIVE else DOT, MaterialTheme.motionScheme.fastSpatialSpec(), label = "stegprick")
-            Box(Modifier.size(width, DOT).background(if (active) MaterialTheme.colorScheme.primary else AppColors.extended.rowTint, AppShapes.pill))
+            Box(Modifier.size(width, DOT).background(if (active) MaterialTheme.colorScheme.primary else AppColors.extended.track, AppShapes.pill))
         }
     }
 }

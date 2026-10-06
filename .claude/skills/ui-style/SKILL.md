@@ -16,7 +16,7 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
   med kontrasten uträknad.
 - Vilken komponent eller ram som används för vad → skill `shared-ui-components`.
 - Exakta Expressive- och Navigation 3-API:er → `VerifiedApisTest` (`app/src/test`), som kompilerar och kör dem, och versionskatalogen `gradle/libs.versions.toml` – gissa aldrig ett API-namn.
-- Tokens i kod → `ui/theme` (`AppColors`, `AppTypography`, `AppShapes`, `Spacing`). Feature-kod
+- Tokens i kod → `ui/theme` (`AppColors`, `AppTypography`, `AppShapes`, `Spacing`, `IconSize`). Feature-kod
   hårdkodar aldrig färg, form, typografi eller avstånd (regel 4, NFR-9).
 
 ## Tema
@@ -30,7 +30,7 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
 | Yta | papper `#FBF7EE` | bakgrund på alla skärmar |
 | Kort | vit, utan kantlinje | alla sektions- och postkort (`AppCard`) |
 | Primär | teal `#0B6E66` | kryss, knappar, aktiv flik, idag-chippet i datumremsan |
-| Gör-något | solgul `#F5B631` med mörk text | plusknappen, "Snart", punkten för idag, framstegsraden när dagen är klar |
+| Gör-något | solgul `#F5B631` med mörk text | plusknappen, "Snart", punkten för idag (alltid med mörk ring – datumremsa, kalender, diagram), framstegsraden när dagen är klar |
 | Varning | terrakotta (`#B85C38` i mockupen, mörkare i koden för kontrast) | försenat, periodslut |
 | Text / dämpad | `#1C1A14` / `#6B655A` | brödtext / undertext och avbockat |
 | Energiskala | låg `#B5443A` · mitt `#C98A1B` · hög `#2F7D5B` | diagram, energichips, postkortets vänsteraccent (NFR-16) |
@@ -54,15 +54,30 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
   `itemSubtitle`, `body`, `quantity`, `pill`, `caption`, `button`). Aldrig `fontSize`,
   `TextStyle` eller `MaterialTheme.typography` i feature-kod.
 - Siffror som betyder något (energi, antal doser, steg) står stora och tydliga; enheter i dämpad text.
+- **Etikett över en formulärkontroll** (val, väljare, reglage) har en stil: `GroupLabel` (`caption`,
+  versaler, dämpad) – i `LabeledGroup` och i `ValueSlider`. Ett ihopfällbart sektionskorts titel
+  (`Foldout`) och en sektionsrubrik (`SectionHeader`) är rubriker, inte etiketter.
+- **Titel och undertext** i listrad och postkort: titeln högst två rader, undertexten hel, med `Spacing.xs`
+  emellan (internt `RowText`).
 
 ## Former och avstånd (`AppShapes`, `Spacing`)
 
 - Kort **22 dp**, chips och knappar **helt rundade** (`pill`), datumremsans chip **18 dp**, ark
   **28 dp** upptill (`sheet`), rader 18 dp, fält 14 dp (DSN-3).
 - `Spacing`: `xs 4 · s 8 · m 12 · l 16 · xl 24 · xxl 32` dp – enda tillåtna avstånden.
+- **Sidmarginal** `l` (16 dp) på varje skärm – ramarna delar den (`SCREEN_MARGIN`).
 - **Luftigare än ReseApoteket:** mer avstånd mellan kort (`l`) än inuti dem (`m`); ett kort per
   ämne hellre än täta listor.
-- Tryckytor minst **48 dp** i båda riktningarna (NFR-14).
+- Tryckytor minst **48 dp** i båda riktningarna (NFR-14) – även knappar inuti en sammansatt kontroll.
+- **Vald dag** i datumremsa och kalender är fylld teal i radens form (`AppShapes.row`), aldrig en cirkel.
+- **Nedtoning:** en enda, `INACTIVE_ALPHA` (0,55), för det som finns men inte räknas med, det som inte
+  går att välja och en avstängd kontroll (även `ValueSlider`). M3:s 0,38 används inte: reglaget ritar
+  eget spår och egen tumme, och WCAG undantar avstängda kontroller från kontrastkravet – så samma
+  nedtoning som resten av appen räcker och är tydligare.
+  Nedtonad text når inte 4,5:1 (uppmätt med `INACTIVE_ALPHA`: ljust ca 2,3:1, mörkt ca 3,3–3,5:1). Det
+  godtas bara för det som inte räknas med eller inte går att välja; det som är aktivt och ska läsas
+  tonas aldrig ned. Beslutat att behålla 0,55 (#250).
+- **Spår** (ofylld del av framstegsraden, inaktiva stegprickar) har en färg: `AppColors.extended.track`.
 
 ## Rörelse och belöning
 
@@ -92,8 +107,12 @@ kort-/radstandarden NFR-15–18, aldrig från en enskild skärm.
 
 ## Ikoner och emoji
 
-- **Linjeikoner 24 dp** i kontroller (knappar, flikar, menyer): `res/drawable/ic_*`, rundad linje i
-  Material Symbols-rutnätet – samma uppsättning som canvasen. **Aldrig emoji som knappikon.**
+- **Linjeikoner** `res/drawable/ic_*`, rundad linje i Material Symbols-rutnätet – samma uppsättning som
+  canvasen. **Aldrig emoji som knappikon.**
+- **Ikonstorlekar** bara ur `IconSize` (`ui/theme`), efter var ikonen sitter: `marker` 14 (dagens bock),
+  `pill` 16, `tile` 18 (ikonruta i `SectionHeader`, filterchip), `button` 20, `row` 22 (kryss, mätvärde,
+  flikar), `control` 24 (ikonknappar, menyer – Materials standard), `hero` 56 (tomt tillstånd). En
+  rubrik med ikon är alltid en `SectionHeader` med ikonruta, även på ett tonat kort (`DayDoneCard`).
 - Emoji bara i innehåll där användaren själv valt dem, och i firandet.
 
 ## Skillnad mot ReseApoteket (DSN-6)

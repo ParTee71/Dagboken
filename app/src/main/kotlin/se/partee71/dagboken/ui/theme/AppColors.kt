@@ -43,11 +43,15 @@ data class EnergyColors(val low: Color, val mid: Color, val high: Color)
 @Immutable
 data class SleepStageColors(val deep: Color, val light: Color, val rem: Color, val awake: Color)
 
-/** Appens färger utöver Material 3-rollerna: kort, radtoning, verktygsrad, toner, energiskalan och sömnstadierna. */
+/**
+ * Appens färger utöver Material 3-rollerna: kort, radtoning, spår, verktygsrad, toner, energiskalan och
+ * sömnstadierna. [track] är det ofyllda spåret i allt som visar framsteg (framstegsraden, stegprickarna).
+ */
 @Immutable
 data class ExtendedColors(
     val card: Color,
     val rowTint: Color,
+    val track: Color,
     val toolbar: Color,
     val onToolbar: Color,
     val primaryTone: ToneColors,
@@ -148,6 +152,7 @@ object AppColors {
     val lightExtended = ExtendedColors(
         card = Color(0xFFFFFFFF),
         rowTint = Color(0xFFF4EFE3),
+        track = Color(0xFFD3EDE9),
         toolbar = Color(0xFF16302B),
         onToolbar = Color(0xFFF3F1EA),
         primaryTone = ToneColors(Color(0xFFD3EDE9), Color(0xFF00413C)),
@@ -162,6 +167,7 @@ object AppColors {
     val darkExtended = ExtendedColors(
         card = Color(0xFF182822),
         rowTint = Color(0xFF1E3029),
+        track = Color(0xFF0B4F49),
         toolbar = Color(0xFFE9EEE7),
         onToolbar = Color(0xFF0F1C17),
         primaryTone = ToneColors(Color(0xFF0B4F49), Color(0xFFBFEDE6)),

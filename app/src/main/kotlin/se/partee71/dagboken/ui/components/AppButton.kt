@@ -24,6 +24,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.IconSize
 import se.partee71.dagboken.ui.theme.Spacing
 
 enum class ButtonVariant {
@@ -80,11 +81,11 @@ private fun ButtonContent(text: String, @DrawableRes icon: Int?, loading: Boolea
     Row(verticalAlignment = Alignment.CenterVertically) {
         when {
             loading -> CircularProgressIndicator(
-                modifier = Modifier.size(ICON_SIZE),
+                modifier = Modifier.size(IconSize.button),
                 color = LocalContentColor.current,
                 strokeWidth = 2.5.dp,
             )
-            icon != null -> Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(ICON_SIZE))
+            icon != null -> Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(IconSize.button))
         }
         if (loading || icon != null) Spacer(Modifier.width(Spacing.s))
         Text(text, style = AppTypography.button)
@@ -94,4 +95,3 @@ private fun ButtonContent(text: String, @DrawableRes icon: Int?, loading: Boolea
 /** Tryckyta och höjd enligt mockupen – stor nog för tummen. */
 private val MIN_HEIGHT = 56.dp
 private val COMPACT_HEIGHT = 40.dp
-private val ICON_SIZE = 20.dp

@@ -13,6 +13,7 @@ import androidx.compose.ui.semantics.semantics
  * Inställningsrad med växel: hela raden är tryckytan, TalkBack läser den som en växel. Med
  * [onClick] är växeln en egen kontroll (läses med titeln) och resten av raden öppnar detaljer –
  * som en påminnelse i Inställningar ([onClickLabel] läses upp), samma mönster som [CheckRow].
+ * [inactive] tonar ned titel och undertext men inte växeln – den ska gå att se och slå på igen.
  */
 @Composable
 fun SwitchRow(
@@ -23,6 +24,7 @@ fun SwitchRow(
     subtitle: String? = null,
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null,
+    inactive: Boolean = false,
 ) {
     val toggle = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
     ItemRowLayout(
@@ -30,6 +32,7 @@ fun SwitchRow(
         modifier = modifier,
         interaction = if (onClick == null) toggle else Modifier.clickable(onClickLabel = onClickLabel, onClick = onClick),
         subtitle = subtitle,
+        textInactive = inactive,
         trailing = {
             if (onClick == null) {
                 Switch(checked = checked, onCheckedChange = null)

@@ -19,10 +19,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.IconSize
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
@@ -52,12 +52,10 @@ fun StatPill(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
-        Icon(painterResource(icon), contentDescription = null, tint = colors.content, modifier = Modifier.size(ICON))
+        Icon(painterResource(icon), contentDescription = null, tint = colors.content, modifier = Modifier.size(IconSize.row))
         Column {
             Text(value, style = AppTypography.quantity, color = colors.content, maxLines = 1)
             Text(label, style = AppTypography.itemSubtitle, color = colors.content, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
-
-private val ICON = 22.dp

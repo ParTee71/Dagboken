@@ -116,6 +116,7 @@ class SettingsScreensTest {
     @Test
     fun `Tema - ljust och mörkt har inga starttimmar`() {
         rule.setContent { DagbokenTheme { ThemeScreen(DetailUiState.Content(ThemeForm(ThemeSettings(mode = ThemeMode.LIGHT))), null, {}, {}) } }
+        rule.onNodeWithText("LÄGE").assertIsDisplayed()
         rule.onNodeWithText("Ändringen syns direkt i hela appen.").assertIsDisplayed()
         rule.onNodeWithContentDescription("Ljust från", substring = true).assertDoesNotExist()
     }
@@ -142,6 +143,14 @@ class SettingsScreensTest {
         rule.onNodeWithText("Promenad").performClick()
         assertEquals(ListsEvent.FavoriteToggled(promenad), events.last())
         assertEquals(listOf(promenad), opened)
+    }
+
+    @Test
+    fun `Listor - ett arkiverat alternativ har Arkiverad som pill, inte som undertext`() {
+        val archived = promenad.copy(archived = true)
+        rule.setContent { DagbokenTheme { ListsScreen(ListUiState.Content(listOf(archived)), OptionKind.ACTIVITY, ListArchive(showing = true), {}, {}, {}, {}) } }
+        rule.onNodeWithText("Arkiverad").assertIsDisplayed()
+        rule.onNodeWithText("Promenad").assertIsDisplayed()
     }
 
     @Test

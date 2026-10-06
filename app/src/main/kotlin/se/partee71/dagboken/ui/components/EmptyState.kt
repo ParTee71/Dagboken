@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.IconSize
 import se.partee71.dagboken.ui.theme.Spacing
 
 /**
@@ -90,7 +91,7 @@ private fun Message(@DrawableRes icon: Int, title: String, message: String, isEr
                 painterResource(icon),
                 contentDescription = null,
                 tint = onTile,
-                modifier = Modifier.size(if (compact) COMPACT_ICON else ICON),
+                modifier = Modifier.size(if (compact) IconSize.control else IconSize.hero),
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
@@ -112,6 +113,4 @@ private fun Message(@DrawableRes icon: Int, title: String, message: String, isEr
 }
 
 private val ICON_TILE = 120.dp
-private val ICON = 56.dp
 private val COMPACT_ICON_TILE = 48.dp
-private val COMPACT_ICON = 24.dp

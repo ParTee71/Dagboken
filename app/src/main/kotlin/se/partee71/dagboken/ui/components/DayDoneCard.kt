@@ -4,18 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import java.util.Locale
 import kotlin.math.abs
 import se.partee71.dagboken.R
@@ -25,8 +19,8 @@ import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
 /**
- * Dagen klar (belöningsläget, HEM-19, DSN-4): ett grönt kort med bock och "Allt klart för idag" och tre
- * nyckeltal – dagens snittenergi ([averageEnergy]), skillnaden mot igår ([versusYesterday], med tecken)
+ * Dagen klar (belöningsläget, HEM-19, DSN-4): ett grönt kort med rubriken "Allt klart för idag" – en
+ * [SectionHeader] med bock i grön ton – och tre nyckeltal: dagens snittenergi ([averageEnergy]), skillnaden mot igår ([versusYesterday], med tecken)
  * och dagar i rad ([streakDays]). Saknas underlag (`null`) står "—" (`R.string.value_missing`, samma som `StatPill`). Över kortet faller [Confetti] när
  * [play] blir sant; [onConfettiFinished] säger till när regnet är över, så att anroparen (som äger
  * "en gång per dag") kan slå av [play]. Kortet räknar inget självt – värdena kommer från `:core`.
@@ -40,19 +34,10 @@ fun DayDoneCard(
     play: Boolean = false,
     onConfettiFinished: () -> Unit = {},
 ) {
-    val colors = AppColors.tone(Tone.Positive)
     val missing = stringResource(R.string.value_missing)
     Box(modifier) {
         AppCard(tone = Tone.Positive) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                Icon(painterResource(R.drawable.ic_check), contentDescription = null, tint = colors.content, modifier = Modifier.size(ICON))
-                Text(
-                    stringResource(R.string.day_done_title),
-                    style = AppTypography.sectionTitle,
-                    color = colors.content,
-                    modifier = Modifier.semantics { heading() },
-                )
-            }
+            SectionHeader(stringResource(R.string.day_done_title), icon = R.drawable.ic_check, tone = Tone.Positive)
             Row(Modifier.semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(Spacing.l)) {
                 KeyFigure(averageEnergy?.let(::decimal) ?: missing, stringResource(R.string.day_done_average_energy), Modifier.weight(1f))
                 KeyFigure(versusYesterday?.let(::signedDecimal) ?: missing, stringResource(R.string.day_done_vs_yesterday), Modifier.weight(1f))
@@ -86,5 +71,3 @@ private fun signedDecimal(value: Double): String {
         else -> "−$text"
     }
 }
-
-private val ICON = 24.dp

@@ -60,7 +60,7 @@ fun ProgressBar(done: Int, total: Int, modifier: Modifier = Modifier) {
             style = AppTypography.itemSubtitle,
             color = if (complete) colors.onSurface else colors.onSurfaceVariant,
         )
-        Box(Modifier.fillMaxWidth().height(TRACK).clip(AppShapes.pill).background(colors.primaryContainer)) {
+        Box(Modifier.fillMaxWidth().height(TRACK).clip(AppShapes.pill).background(AppColors.extended.track)) {
             // Fjädern får slå över lite (Expressive) – fyllnaden stannar ändå inom spåret.
             // Solgult ensamt syns för dåligt mot kortet – vid klart får fyllnaden en kontur (ThemeContrastTest).
             val outline = if (complete) Modifier.border(OUTLINE, AppColors.extended.sunTone.content, AppShapes.pill) else Modifier

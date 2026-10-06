@@ -96,7 +96,8 @@ fun LogMenuSheet(onDismiss: () -> Unit, onPick: (LogChoice) -> Unit, modifier: M
 private fun SheetRow(@StringRes label: Int, @DrawableRes icon: Int, onClick: () -> Unit, navigates: Boolean = false) {
     ItemRow(
         stringResource(label),
-        leading = { Icon(painterResource(icon), contentDescription = null) },
+        // Samma ledande bredd som kontots avatar (och kryssraden), så att titlarna linjerar.
+        leading = { LeadingSlot { Icon(painterResource(icon), contentDescription = null) } },
         onClick = onClick,
         navigates = navigates,
     )

@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.graphics.shapes.Morph
 import se.partee71.dagboken.R
+import se.partee71.dagboken.ui.theme.IconSize
 
 /**
  * Kryssrad: en [ItemRow] med ett formmorfande kryss – en ring som fjädrar till en fylld
@@ -63,7 +64,7 @@ fun CheckRow(
             // Samma storlek i båda varianterna, så att titlarna linjerar; med onClick är rutan knappen.
             val label = listOfNotNull(title, subtitle).joinToString(", ")
             val button = if (onClick == null) Modifier else Modifier.clip(CircleShape).then(toggle).semantics { contentDescription = label }
-            Box(Modifier.size(TOUCH_TARGET).then(button), contentAlignment = Alignment.Center) { MorphingCheck(checked) }
+            LeadingSlot(button) { MorphingCheck(checked) }
         },
         trailing = trailing,
         tinted = checked,
@@ -98,11 +99,10 @@ private fun MorphingCheck(checked: Boolean) {
             painterResource(R.drawable.ic_check),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(ICON).alpha(progress.coerceIn(0f, 1f)),
+            modifier = Modifier.size(IconSize.row).alpha(progress.coerceIn(0f, 1f)),
         )
     }
 }
 
 private val SIZE = 40.dp
-private val ICON = 22.dp
 private val STROKE = 2.5.dp

@@ -1,6 +1,7 @@
 package se.partee71.dagboken.ui.components
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
@@ -74,6 +75,13 @@ class AppSheetsTest {
         labels.forEach { rule.onNodeWithText(it).performClick() }
         assertEquals(SettingsPage.entries.toList(), opened)
         assertEquals(labels.size, dismissed, "varje val stänger arket först")
+    }
+
+    @Test
+    fun `arkets titlar linjerar under kontots namn`() {
+        show(RootSheet.Account, onOpen = {})
+        val left = { text: String -> rule.onNodeWithText(text, useUnmergedTree = true).getUnclippedBoundsInRoot().left }
+        listOf("Profil", "Om Dagboken", "Logga ut").forEach { assertEquals(left("Anna Berg"), left(it), it) }
     }
 
     @Test

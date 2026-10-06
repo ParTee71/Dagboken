@@ -199,6 +199,7 @@
     <string name="occasion_bedtime">Läggdags</string>
 
     <!-- Tema (SET-1, SET-2) -->
+    <string name="theme_mode">Läge</string>
     <string name="theme_light">Ljust</string>
     <string name="theme_dark">Mörkt</string>
     <string name="theme_auto">Auto</string>

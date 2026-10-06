@@ -82,8 +82,8 @@ fun <T> EntityDetailScreen(
                 DetailUiState.Loading -> AppLoading()
                 is DetailUiState.Error -> LoadErrorState(stringResource(R.string.load_error_title), state.error, onRetry)
                 is DetailUiState.Content -> Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.l, vertical = Spacing.s),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.m),
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = SCREEN_MARGIN, vertical = Spacing.s),
+                    verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
                 ) {
                     header?.let { DetailTop(it(state.value)) { leading(state.value) } }
                     content(state.value)

@@ -1,7 +1,6 @@
 package se.partee71.dagboken.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,9 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -47,6 +43,7 @@ import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.IconSize
 import se.partee71.dagboken.ui.theme.Spacing
 
 /**
@@ -144,41 +141,24 @@ private fun DayChip(
                 contentDescription = description
                 if (done) stateDescription = doneLabel
             }
-            .then(if (future) Modifier.alpha(INACTIVE_ALPHA) else Modifier)
+            .inactive(future)
             .padding(vertical = Spacing.s),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(DAY_MARKER_GAP),
     ) {
         Column(Modifier.clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally) {
             Text(DateFormat.weekdayShort(day), style = AppTypography.caption, color = muted, textAlign = TextAlign.Center, maxLines = 1)
             Text(day.day.toString(), style = AppTypography.itemTitle, color = content, textAlign = TextAlign.Center, maxLines = 1)
         }
-        Box(Modifier.size(MARKER), contentAlignment = Alignment.Center) {
-            when {
-                done -> Icon(painterResource(R.drawable.ic_check), contentDescription = null, tint = if (selected) colors.onPrimary else colors.primary, modifier = Modifier.size(MARKER))
-                // Den solgula punkten har alltid en ring i underlagets kontrastfärg – solgult ensamt syns för
-                // dåligt mot det vita kortet och mot ljust teal i mörkt tema (ThemeContrastTest).
-                isToday -> Dot(colors.secondary, ring = if (selected) colors.onPrimary else AppColors.extended.sunTone.content)
-                hasEntries -> Dot(if (selected) colors.onPrimary else colors.primary)
+        Box(Modifier.size(IconSize.marker), contentAlignment = Alignment.Center) {
+            if (done) {
+                Icon(painterResource(R.drawable.ic_check), contentDescription = null, tint = if (selected) colors.onPrimary else colors.primary, modifier = Modifier.size(IconSize.marker))
+            } else {
+                DayMarkerDot(isToday, hasEntries, selected)
             }
         }
     }
 }
-
-@Composable
-private fun Dot(color: Color, ring: Color? = null) {
-    val ringed = if (ring == null) Modifier.size(DOT) else Modifier.size(DOT + RING * 2).border(RING, ring, CircleShape).padding(RING)
-    Box(ringed.background(color, CircleShape))
-}
-
-/** Måndagen i veckan som innehåller datumet – veckan börjar på måndag, som i `DagbokenCalendar`. */
-internal fun LocalDate.weekMonday(): LocalDate = minus(DatePeriod(days = dayOfWeek.ordinal))
-
-private val ONE_WEEK = DatePeriod(days = 7)
-private const val DAYS_PER_WEEK = 7
-private val MARKER = 14.dp
-private val DOT = 6.dp
-private val RING = 1.dp
 
 /** Så långt ett svep måste gå för att byta vecka – kortare dragningar är bara ett tryck som gled. */
 private val SWIPE_THRESHOLD = 48.dp
