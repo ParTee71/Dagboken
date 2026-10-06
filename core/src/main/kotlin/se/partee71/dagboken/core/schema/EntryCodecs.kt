@@ -62,6 +62,9 @@ object OptionCodec : DocCodec<Option> {
 }
 
 object ScreeningCodec : DocCodec<Screening> {
+    /** Loggens dag (`yyyy-MM-dd`, sorterbar som text) – avgränsar lyssningen på en dag eller period. */
+    const val DATE = se.partee71.dagboken.core.schema.DATE
+
     override fun encode(value: Screening): Doc = entryFields(value.date, value.time, value.createdAt, value.note) + mapOf(
         "occasion" to value.occasion.encodeWire(),
         "customText" to value.customText,

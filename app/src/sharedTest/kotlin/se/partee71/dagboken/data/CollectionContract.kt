@@ -9,6 +9,9 @@ import kotlin.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeout
 import org.junit.Before
 import org.junit.Rule
@@ -44,7 +47,7 @@ import se.partee71.dagboken.testing.StuckTestTimeout
  * recept ([PrescriptionCodec] – nästlat schema med okänd variant, valfritt fält, `createdAt`), vid
  * behov-mediciner ([PrnMedicineCodec] – enkla fält, stora batchar) och alternativ ([OptionCodec] –
  * det som sorteras på `sortOrder` och arkiveras) och doser ([DoseCodec] – villkorade skrivningar och
- * avgränsad läsning på datum).
+ * avgränsad läsning och lyssning på datum).
  *
  * `updatedAt`: ingen av appens modeller har fältet ännu (ARKITEKTUR.md → Datamodell), så regeln för
  * det bevisas mot testmodellen [StampedItem] – och för appens modeller att det **inte** skrivs.
@@ -72,6 +75,9 @@ abstract class CollectionContract {
 
         /** Ingen användare är inloggad. */
         fun signOut()
+
+        /** Samma användare är inloggad igen efter [signOut]. */
+        fun signInAgain()
     }
 
     /**
@@ -258,6 +264,52 @@ abstract class CollectionContract {
         env.writeRaw(dosesPath, "utan-datum", mapOf("name" to "Okänd dag"))
         val fromToday = doses.confirmedFrom(DoseCodec.DATE, "2026-09-21").getOrThrow()
         assertEquals(listOf("idag", "imorgon"), fromToday.map { it.id }.sorted(), "ett dokument utan fältet kommer inte med")
+    }
+
+    @Test
+    fun observeBetween_ger_dokumenten_i_intervallet_och_foljer_andringar() = contract {
+        for ((id, date) in listOf("igar" to "2026-09-20", "idag" to "2026-09-21", "imorgon" to "2026-09-22", "sedan" to "2026-09-23")) {
+            env.writeRaw(dosesPath, id, mapOf("name" to "Levaxin", DoseCodec.DATE to date))
+        }
+        env.writeRaw(dosesPath, "utan-datum", mapOf("name" to "Okänd dag"))
+        val between = doses.observeBetween(DoseCodec.DATE, "2026-09-21", "2026-09-22")
+        assertEquals(listOf("idag", "imorgon"), between.awaitMatching { it.size == 2 }.map { it.id }, "båda gränserna inräknade; ett dokument utan fältet kommer inte med")
+
+        doses.upsert(dose("ny", LocalDate(2026, 9, 21))).getOrThrow()
+        doses.upsert(dose("utanfor", LocalDate(2026, 9, 24))).getOrThrow()
+        assertEquals(listOf("idag", "imorgon", "ny"), between.awaitMatching { it.size == 3 }.map { it.id })
+        assertEquals(listOf("idag", "ny"), doses.observeBetween(DoseCodec.DATE, "2026-09-21", "2026-09-21").awaitMatching { it.size == 2 }.map { it.id }, "en enda dag")
+    }
+
+    @Test
+    fun observeBetween_tystnar_utloggad_och_tar_upp_lyssningen_vid_inloggning() = contract {
+        env.signOut()
+        var signedIn = false
+        val emissions = Channel<Pair<Boolean, List<String>>>(Channel.UNLIMITED)
+        coroutineScope {
+            val listening = launch { doses.observeBetween(DoseCodec.DATE, "2026-09-21", "2026-09-21").collect { emissions.send(signedIn to it.map(Dose::id)) } }
+            // Ändras samlingen medan ingen är inloggad emitterar ett lyssnande flöde – det här ska tiga.
+            env.writeRaw(dosesPath, "utloggad", mapOf("name" to "Levaxin", DoseCodec.DATE to "2026-09-21"))
+            signedIn = true
+            env.signInAgain()
+            val received = mutableListOf<Pair<Boolean, List<String>>>()
+            while (received.lastOrNull()?.second?.contains("utloggad") != true) received += emissions.receive()
+            assertTrue(received.all { it.first }, "inget emitterat utloggad – som observe(): $received")
+            env.writeRaw(dosesPath, "inloggad", mapOf("name" to "Levaxin", DoseCodec.DATE to "2026-09-21"))
+            while (true) if ("inloggad" in emissions.receive().second) break
+            listening.cancel()
+        }
+    }
+
+    @Test
+    fun cachedBetween_ger_intervallet_en_gang_och_NotSignedIn_utloggad() = contract {
+        for ((id, date) in listOf("igar" to "2026-09-20", "idag" to "2026-09-21", "imorgon" to "2026-09-22")) {
+            env.writeRaw(dosesPath, id, mapOf("name" to "Levaxin", DoseCodec.DATE to date))
+        }
+        doses.upsert(dose("ny", LocalDate(2026, 9, 21))).getOrThrow()
+        assertEquals(listOf("idag", "ny"), doses.cachedBetween(DoseCodec.DATE, "2026-09-21", "2026-09-21").getOrThrow().map { it.id }.sorted())
+        env.signOut()
+        assertEquals(DataError.NotSignedIn, doses.cachedBetween(DoseCodec.DATE, "2026-09-21", "2026-09-21").dataError())
     }
 
     @Test

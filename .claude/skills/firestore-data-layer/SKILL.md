@@ -54,6 +54,8 @@ fälthjälparna; toleranta mot saknade och okända fält (DAT-10):
 |---|---|
 | `observe(): Flow<List<T>>` | från cachen, följer den inloggade användaren (utloggad → inget emitteras); sorterat på `sortOrder` för `Sortable` |
 | `observe(id): Flow<T?>` | ett dokument, `null` om det saknas |
+| `observeBetween(field, from, to): Flow<List<T>>` | dokumenten där toppfältet ligger i `from..to` (båda inräknade; samma typjämförelse som `confirmedFrom`), offline först som `observe` – en dag eller period av `doses`/`screenings` på `DATE` (`>=` och `<=` på samma fält täcks av det automatiska enkelfältsindexet, inget i `firestore.indexes.json`). Följer användaren som `observe`: utloggad emitteras inget, och lyssningen tas upp igen vid inloggning. Datumfält via extensionen `observeDates(field, från, till)` |
+| `cachedBetween(field, from, to)` | intervallet en gång, offline först som `cached()` (`firstFromCache`: ur cachen också utan nät, annars servern); `NotSignedIn` direkt utloggad. För kontroller inför en offline-skrivning (vid behov-dosens kylperiod och dagsgräns). Datumfält via `cachedDates` |
 | `get(id)`, `getAll()` | engångsläsning som `Result` |
 | `upsert(item)` | `set(…, merge)` med codecens fullständiga fältlista; okända fält bevaras, `null` tömmer; `updatedAt` sätts, `createdAt` utan värde skrivs inte (`prepareForWrite`) |
 | `delete(id)` | permanent radering |
@@ -87,7 +89,11 @@ fälthjälparna; toleranta mot saknade och okända fält (DAT-10):
   texten via `DataError.toMessage()`.
 - **`FakeCollection`** (test) använder samma `prepareForWrite`/`readDocument` och emulerar
   Firestores merge (djup för nästlade maps, heltal som `Long`). `CollectionContract` i
-  `app/src/sharedTest` körs mot båda.
+  `app/src/sharedTest` körs mot båda. `FakeStore.online = false` ger Firestore utan nät: läsflöden,
+  `cached…` (svaren märkta `fromCache`) och skrivningar i cachen fungerar; `confirmed…`, en villkorad
+  skrivning med något att pröva och `awaitWrites` när appen skrivit något utan nät blir `Offline` (en tom
+  transaktion och `awaitWrites` utan väntande skrivningar lyckas, som i Firestore) – så att ett
+  repositorytest bevisar att något fungerar offline.
 
 ### Samlingar och sökvägar
 `CollectionTable` (`data/firestore/`) är enda tabellen över samlingarnas namn, codecs och
@@ -96,7 +102,19 @@ den. `tools/db/lib/collections.mjs` speglar `Paths`; `tools/db/test/collections.
 jämför dem.
 
 ### Repositories (`data/repository/`)
-Interface + `Default…Repository`. Enkla samlingar är bara delegering
+Interface + `Default…Repository`. **Alla dosskrivningar går genom `DoseRepository`**: dagens doser
+(`PrescriptionRepository.ensureDay`: urvalet på cachade recept och `DoseRepository.missingOn` mot dosernas
+cache – inget saknas, inga serveranrop – och sedan **en väg** för att skapa saknade doser, delad med
+`tidyUp`: per recept under receptets lås, `LatestWins.runExclusive`, efter en serverläsning av receptet,
+`DoseRepository.createDay`, så att en samtidig avaktivering aldrig följs av återskapade doser; ingen dos
+före receptets skapandedag/start, `firstDoseDay` i `:core`; avslutar aldrig recept, det gör bara `tidyUp`),
+avbockning (`setStatus` – fältvis `update` av `status` och `takenAt`, tagen utan tid = nu, offline först),
+vid behov (`logAsNeeded` – en i taget per medicin, läser max(kylperiod, 24 h) + 7 dagar bakåt med
+`cachedDates`, eftersom kylperioden mäts på tagningstiden, `checkDose`, ny dos vid `Allowed`; **känd
+begränsning:** offline med ofullständig cache kan dagsgränsen passeras, FAV-5) och extrados (`logExtraDose`);
+en tidpunkt i framtiden är ett fel. Dag- och
+periodläsning via `observeDay`/`observeDays` (`observeDates`), också i `ScreeningRepository`, där en ny
+logg skapas med `new()` (id och `createdAt` en gång). Enkla samlingar är bara delegering
 (`OptionRepository : EntityCollection<Option>`, `… by collections.options()`); egen kod finns
 bara för domänfrågor (t.ex. dagens doser ur recepten med stabila 3.x-id:n `recept_{prescriptionId}_{date}_{tidpunkt}`,
 DAT-8; incheckningar per episod; importen från 3.x via `batch`). Ingen `FirebaseFirestore`, ingen
@@ -212,7 +230,7 @@ JVM-testerna i varje PR fångar samma sak som instrumenttestet mot riktig Firest
 ## Kostnad (Spark-planen)
 
 - Lyssna inte på stora samlingar utan `where`/`limit`. `doses`, `screenings`, `activities` och
-  `events` växer med ~3 000–5 000 dokument per år: lyssna per dag eller period (Idag, Dagbok
+  `events` växer med ~3 000–5 000 dokument per år: lyssna per dag eller period med `observeBetween` (Idag, Dagbok
   ett år i taget, Trender per vald period), aldrig på hela samlingen. "Allt"-perioden i Trender
   räknas ur cachen i `:core` (ARKITEKTUR.md → Risker).
 - Första synken av flera års data efter migreringen är en engångskostnad inom Spark-planen.

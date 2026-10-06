@@ -5,9 +5,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.Sortable
 import se.partee71.dagboken.core.schema.DocCodec
+import se.partee71.dagboken.core.schema.encodeDate
 
 /**
  * En samling dokument av en modell – samma kontrakt för riktig Firestore
@@ -23,6 +25,23 @@ interface EntityCollection<T : Identified> {
     fun observe(): Flow<List<T>>
 
     fun observe(id: String): Flow<T?>
+
+    /**
+     * Dokumenten vars toppfält [field] ligger mellan [from] och [to], båda inräknade – värdena som
+     * codecen skriver dem (text jämförs som text, tal som tal; dokument där fältet saknas eller har en
+     * annan typ kommer inte med), t.ex. en dags eller en veckas doser på `DoseCodec.DATE` ([observeDates]).
+     * Som [observe]: offline först (från cachen direkt och sedan när servern svarar), sorterat likadant,
+     * och följer den inloggade användaren – utloggad emitteras inget, och flödet tar upp lyssningen igen
+     * vid nästa inloggning. Ett intervall på ett enda fält kräver inget sammansatt index.
+     */
+    fun observeBetween(field: String, from: Any, to: Any): Flow<List<T>>
+
+    /**
+     * Intervallet som i [observeBetween], en gång, offline först som [cached] (`firstFromCache`): ur
+     * cachen när den kan svara – också utan nät – annars från servern. Utloggad: [DataError.NotSignedIn]
+     * direkt. För en kontroll inför en skrivning som ska fungera offline, t.ex. vid behov-dosens kylperiod.
+     */
+    suspend fun cachedBetween(field: String, from: Any, to: Any): Result<List<T>>
 
     suspend fun get(id: String): Result<T?>
 
@@ -163,6 +182,14 @@ fun <T> Snapshot<T?>.isDocumentAnswer(): Boolean = value != null || !fromCache
  * (kortare i offlinetestet).
  */
 internal val SERVER_WAIT = 15.seconds
+
+/** [EntityCollection.observeBetween] på ett datumfält ([field], `yyyy-MM-dd`): dagarna [from]…[to], båda inräknade. */
+fun <T : Identified> EntityCollection<T>.observeDates(field: String, from: LocalDate, to: LocalDate): Flow<List<T>> =
+    observeBetween(field, checkNotNull(from.encodeDate()), checkNotNull(to.encodeDate()))
+
+/** [EntityCollection.cachedBetween] på ett datumfält, som [observeDates]. */
+suspend fun <T : Identified> EntityCollection<T>.cachedDates(field: String, from: LocalDate, to: LocalDate): Result<List<T>> =
+    cachedBetween(field, checkNotNull(from.encodeDate()), checkNotNull(to.encodeDate()))
 
 /** `sortOrder` för något nytt i en lista som redan lästs, så att det hamnar sist; 0 i en tom lista. */
 fun <T : Sortable> List<T>.sortOrderAfterLast(): Int = maxOfOrNull { it.sortOrder }?.plus(1) ?: 0

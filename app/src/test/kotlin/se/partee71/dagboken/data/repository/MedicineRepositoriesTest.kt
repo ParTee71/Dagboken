@@ -47,7 +47,7 @@ class MedicineRepositoriesTest {
     private val today = LocalDate(2026, 9, 21)
     private val tomorrow = LocalDate(2026, 9, 22)
 
-    private val doses = DefaultDoseRepository(factory) { zone }
+    private val doses = testDoses(factory, zone)
     private val prescriptions = testPrescriptions(factory, doses, zone)
     private val prnMedicines = DefaultPrnMedicineRepository(factory)
 
@@ -122,7 +122,7 @@ class MedicineRepositoriesTest {
         val staleRead = dosesWith { object : EntityCollection<Dose> by it {
             override suspend fun confirmedFrom(field: String, from: Any): Result<List<Dose>> = Result.success(listOf(morning))
         } }
-        val doses = DefaultDoseRepository(staleRead) { zone }
+        val doses = testDoses(staleRead, zone)
 
         doses.syncPrescription(renamed, today).getOrThrow()
         assertEquals(morning.copy(status = DoseStatus.TAKEN), factory.doses().get(morning.id).getOrThrow(), "namn och dos följer inte till en tagen dos")
@@ -152,7 +152,7 @@ class MedicineRepositoriesTest {
                 return read
             }
         } }
-        val repository = prescriptionsWith(factory, DefaultDoseRepository(slow) { zone })
+        val repository = prescriptionsWith(factory, testDoses(slow, zone))
 
         val off = launch { repository.setActive(levaxin, false).getOrThrow() }
         val on = launch { repository.setActive(levaxin.copy(active = false), true).getOrThrow() }
@@ -202,7 +202,7 @@ class MedicineRepositoriesTest {
         val offline = dosesWith { object : EntityCollection<Dose> by it {
             override suspend fun confirmedFrom(field: String, from: Any): Result<List<Dose>> = Result.failure(DataError.Offline)
         } }
-        prescriptionsWith(factory, DefaultDoseRepository(offline) { zone }).setActive(levaxin, false).getOrThrow()
+        prescriptionsWith(factory, testDoses(offline, zone)).setActive(levaxin, false).getOrThrow()
         assertEquals(1, factory.doses().getAll().getOrThrow().size)
     }
 
@@ -285,7 +285,7 @@ class MedicineRepositoriesTest {
                 commitLatency = 20.seconds, serverWait = 15.seconds, commitScope = backgroundScope,
             )
         }
-        val repository = prescriptionsWith(factory, DefaultDoseRepository(slowNet) { zone })
+        val repository = prescriptionsWith(factory, testDoses(slowNet, zone))
 
         repository.setActive(levaxin, false).getOrThrow() // raderingen hinner inte bekräftas – Offline, ingen fel
         repository.setActive(levaxin.copy(active = false), true).getOrThrow()
@@ -307,13 +307,13 @@ class MedicineRepositoriesTest {
             override suspend fun updateIf(items: List<Dose>, fields: Set<String>, condition: (Dose) -> Boolean): Result<Unit> = Result.failure(DataError.Offline)
             override suspend fun createIfAbsent(items: List<Dose>): Result<Unit> = Result.failure(DataError.Offline)
         } }
-        val offlineDoses = DefaultDoseRepository(offline) { zone }
+        val offlineDoses = testDoses(offline, zone)
 
         prescriptionsWith(factory, offlineDoses).setActive(levaxin, false).getOrThrow()
         assertEquals(false, factory.prescriptions().get(levaxin.id).getOrThrow()?.active, "reglaget skrivs ändå")
         assertEquals(setOf(planned(today, Slot.MORNING).id), factory.doses().getAll().getOrThrow().map { it.id }.toSet())
 
-        offlineDoses.createIfAbsent(listOf(planned(today, Slot.EVENING))).getOrThrow()
+        offlineDoses.createDay(levaxin, today, today).getOrThrow()
         assertNull(factory.store.read(dosesPath(), planned(today, Slot.EVENING).id), "offline: ingen dos")
     }
 
@@ -323,16 +323,16 @@ class MedicineRepositoriesTest {
         val bounded = dosesWith { object : EntityCollection<Dose> by it {
             override suspend fun cached(): Result<List<Dose>> = error("hela samlingen ska inte läsas")
         } }
-        prescriptionsWith(factory, DefaultDoseRepository(bounded) { zone }).setActive(levaxin, true).getOrThrow()
+        prescriptionsWith(factory, testDoses(bounded, zone)).setActive(levaxin, true).getOrThrow()
         assertEquals(2, factory.doses().getAll().getOrThrow().size)
     }
 
     @Test
-    fun `createIfAbsent skriver aldrig över en dos som finns`() = runTest {
+    fun `createDay skriver aldrig över en dos som finns`() = runTest {
         val taken = planned(today, Slot.MORNING, DoseStatus.TAKEN)
         factory.doses().upsert(taken).getOrThrow()
 
-        doses.createIfAbsent(listOf(planned(today, Slot.MORNING), planned(today, Slot.EVENING))).getOrThrow()
+        doses.createDay(levaxin, today, today).getOrThrow()
         val all = factory.doses().getAll().getOrThrow().associateBy { it.id }
         assertEquals(DoseStatus.TAKEN, all.getValue(taken.id).status, "en tagen dos skrivs aldrig över")
         assertEquals(DoseStatus.PLANNED, all.getValue(planned(today, Slot.EVENING).id).status)
@@ -390,7 +390,7 @@ class MedicineRepositoriesTest {
             override suspend fun createIfAbsent(items: List<Dose>): Result<Unit> = Result.failure(DataError.PermissionDenied)
         } }
         val sync = FirestoreSyncStatus(backgroundScope)
-        val repository = testPrescriptions(factory, DefaultDoseRepository(failing) { zone }, zone, background = backgroundScope, sync = sync)
+        val repository = testPrescriptions(factory, testDoses(failing, zone), zone, background = backgroundScope, sync = sync)
 
         repository.save(null, levaxin).getOrThrow()
         runCurrent()
@@ -405,7 +405,7 @@ class MedicineRepositoriesTest {
         val offline = dosesWith { object : EntityCollection<Dose> by it {
             override suspend fun confirmedFrom(field: String, from: Any): Result<List<Dose>> = Result.failure(DataError.Offline)
         } }
-        testPrescriptions(offline, DefaultDoseRepository(offline) { zone }, zone).save(null, levaxin).getOrThrow()
+        testPrescriptions(offline, testDoses(offline, zone), zone).save(null, levaxin).getOrThrow()
         assertEquals(emptyList(), factory.doses().getAll().getOrThrow(), "offline: inga doser än")
 
         prescriptions.tidyUp(today).getOrThrow()
@@ -416,7 +416,7 @@ class MedicineRepositoriesTest {
     }
 
     @Test
-    fun `städningen skapar saknade doser för många recept i en batch, utan en låst synk per recept`() = runTest {
+    fun `städningen skapar saknade doser med en dosläsning, per recept under låset och utan full synk`() = runTest {
         val recipes = List(3) { levaxin.copy(id = "r$it") }
         factory.prescriptions().batch(recipes).getOrThrow()
         var doseReads = 0
@@ -433,10 +433,10 @@ class MedicineRepositoriesTest {
             }
         }
 
-        testPrescriptions(counting, DefaultDoseRepository(counting) { zone }, zone).tidyUp(today).getOrThrow()
+        testPrescriptions(counting, testDoses(counting, zone), zone).tidyUp(today).getOrThrow()
 
         assertEquals(6, factory.doses().getAll().getOrThrow().size, "morgon och kväll för alla tre")
-        assertEquals(listOf(1, 1, 0), listOf(doseReads, creates, recipeReads), "en dosläsning, en batch, inga låsta synkar")
+        assertEquals(listOf(1, 3, 3), listOf(doseReads, creates, recipeReads), "en dosläsning för alla; per recept en serverläsning och en transaktion under låset")
     }
 
     @Test

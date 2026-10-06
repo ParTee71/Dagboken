@@ -6,6 +6,8 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import se.partee71.dagboken.core.time.HOME_ZONE
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
@@ -68,10 +70,18 @@ data class EnsurePlan(
 )
 
 /**
+ * HEM-10: första dagen receptet kan ha en dos – det senare av skapandedagen (`createdAt` i [HOME_ZONE],
+ * samma zon som konverteraren) och periodens start. `null` = varken skapandetid eller start (ingen gräns).
+ */
+fun Prescription.firstDoseDay(): LocalDate? = listOfNotNull(createdAt?.toLocalDateTime(HOME_ZONE)?.date, period.start).maxOrNull()
+
+/**
  * MED-4, REC-8: dosgenereringen för [date] (idag eller en tidigare dag, HEM-14). [existing] är dagens
  * befintliga doser; en dos vars id redan finns skapas aldrig igen, vilken status den än har – därför
  * är genereringen idempotent. Aktiva recept vars period passerats sett från [today] (inte [date], så
- * att bakåtbläddring varken väcker eller avslutar något) avslutas och ger inga doser, som i 3.x.
+ * att bakåtbläddring varken väcker eller avslutar något) avslutas och ger inga doser, som i 3.x. Ingen
+ * dos genereras före receptets [firstDoseDay] (HEM-10) – 3.x seedade recept utan start bakåt utan gräns.
+ * En tidigare dag följer receptets **nuvarande** aktiv-läge och schema; pauser har ingen historik.
  */
 fun ensureDoses(
     prescriptions: List<Prescription>,
@@ -84,7 +94,8 @@ fun ensureDoses(
     val existingIds = existing.mapTo(HashSet()) { it.id }
     return EnsurePlan(
         deactivate = expired.map { it.id },
-        create = current.flatMap { it.plannedDoses(date, zone) }.filter { it.id !in existingIds },
+        create = current.filter { p -> p.firstDoseDay()?.let { date >= it } ?: true }
+            .flatMap { it.plannedDoses(date, zone) }.filter { it.id !in existingIds },
     )
 }
 

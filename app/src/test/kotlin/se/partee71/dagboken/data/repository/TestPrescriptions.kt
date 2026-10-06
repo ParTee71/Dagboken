@@ -9,6 +9,10 @@ import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.firestore.FirestoreSyncStatus
 
+/** [DefaultDoseRepository] i test – en gång för alla testklasser; [clock] avgör "nu" (avbockning, framtid). */
+fun testDoses(collections: CollectionFactory, zone: TimeZone, clock: Clock = FixedClock()): DefaultDoseRepository =
+    DefaultDoseRepository(collections, clock) { zone }
+
 /**
  * [DefaultPrescriptionRepository] i test – en gång för alla testklasser. Dossynken efter en sparning
  * körs i [background] (standard: direkt, så att doserna syns när `save` returnerat) och dess fel hamnar

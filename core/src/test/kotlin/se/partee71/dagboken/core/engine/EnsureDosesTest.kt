@@ -69,9 +69,16 @@ class EnsureDosesTest {
         assertEquals(emptyList(), prescription(schedule = schedule(Repeat.WEEKENDS)).plannedDoses(today, STOCKHOLM))
     }
 
-    @Test fun `recept utan start ger doser före skapandedagen (HEM-14)`() {
-        val p = prescription(start = null, createdAt = at("2026-08-01T00:00"))
-        assertEquals(1, ensure(p, date = "2026-01-15").create.size)
+    @Test fun `ingen dos före det senare av skapandedagen och periodens start (HEM-10)`() {
+        val created = prescription(start = null, createdAt = at("2026-08-01T00:00"))
+        assertEquals(0, ensure(created, date = "2026-01-15").create.size, "3.x seedade bakåt utan gräns")
+        assertEquals(0, ensure(created, date = "2026-07-31").create.size)
+        assertEquals(1, ensure(created, date = "2026-08-01").create.size, "skapandedagen i svensk tid")
+        val startedBefore = prescription(start = "2026-07-01", createdAt = at("2026-08-01T00:30"))
+        assertEquals(0, ensure(startedBefore, date = "2026-07-15").create.size, "skapandedagen är den senare")
+        val startsLater = prescription(start = "2026-08-10", createdAt = at("2026-08-01T00:00"))
+        assertEquals(0, ensure(startsLater, date = "2026-08-05").create.size)
+        assertEquals(1, ensure(prescription(start = null, createdAt = null), date = "2026-01-15").create.size, "ingen uppgift – ingen gräns")
     }
 
     @Test fun `createdAt följer väggklockan över sommartidsbytena, id och dag ändras inte`() {

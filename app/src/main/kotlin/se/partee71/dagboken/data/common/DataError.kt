@@ -31,6 +31,9 @@ sealed class DataError : Exception() {
     data object Unknown : DataError()
 }
 
+/** En skrivning som görs nästa gång med nät: [DataError.Offline] är inget fel, utan ett lyckat "ingenting gjordes". */
+fun Result<Unit>.offlineIsNoOp(): Result<Unit> = if (exceptionOrNull() == DataError.Offline) Result.success(Unit) else this
+
 /** Felet i ett misslyckat [Result], eller `null` vid lyckat. */
 fun Result<*>.dataError(): DataError? = exceptionOrNull()?.let { it as? DataError ?: DataError.Unknown }
 
