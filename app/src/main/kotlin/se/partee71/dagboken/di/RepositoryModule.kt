@@ -5,10 +5,12 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import se.partee71.dagboken.data.repository.DefaultDoseRepository
+import se.partee71.dagboken.data.repository.DefaultIllnessRepository
 import se.partee71.dagboken.data.repository.DefaultOptionsRepository
 import se.partee71.dagboken.data.repository.DefaultPrescriptionRepository
 import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
 import se.partee71.dagboken.data.repository.DoseRepository
+import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
@@ -32,4 +34,6 @@ abstract class RepositoryModule {
     @Binds abstract fun doses(repository: DefaultDoseRepository): DoseRepository
 
     @Binds abstract fun screenings(repository: DefaultScreeningRepository): ScreeningRepository
+
+    @Binds abstract fun illnesses(repository: DefaultIllnessRepository): IllnessRepository
 }

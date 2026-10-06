@@ -247,7 +247,7 @@
     <string name="today_prn_past_day">Visa idag för att logga – efterhandsloggning kommer med dosformuläret.</string>
     <string name="today_prn_today_only">Loggas bara idag</string>
     <string name="today_show_today">Visa idag</string>
-    <string name="today_medicines_count_format">%1$d av %2$d</string>
+    <string name="today_count_format">%1$d av %2$d</string>
     <string name="today_show_done_format">Visa tagna (%1$d)</string>
     <string name="today_hide_done">Dölj tagna</string>
     <string name="today_show_upcoming_format">Visa kommande (%1$d)</string>
@@ -270,6 +270,21 @@
     <string name="today_take_anyway">Ta ändå</string>
     <string name="today_logged_format">%s loggad</string>
     <string name="today_limit_reached_format">Högst %1$d doser per dag – gränsen är nådd för %2$s.</string>
+    <!-- Idag: Mående, Din vecka, pågående sjukdom och 7-dagarstrenden (HEM-5, HEM-7, HEM-12, HEM-13, SCR-1, SCR-6) -->
+    <string name="today_screening_saved">Mående sparat</string>
+    <string name="today_screening_title_day_format">%1$s · %2$s</string>
+    <string name="today_week_title">Din vecka</string>
+    <string name="today_week_energy_up">Uppåt</string>
+    <string name="today_week_energy_down">Nedåt</string>
+    <string name="today_week_energy_same">Oförändrad</string>
+    <string name="today_week_doses_format">%d %%</string>
+    <string name="today_week_doses">Tagna doser</string>
+    <string name="today_illness_title">Pågående sjukdom</string>
+    <string name="today_illness_day_format">Dag %d</string>
+    <string name="today_illness_checkin_format">Senaste incheckning %s</string>
+    <string name="today_illness_no_checkin">Ingen incheckning än</string>
+    <string name="today_illness_checkin_undated">Senaste incheckningen saknar datum</string>
+    <string name="today_energy_title">Energi senaste veckan</string>
 
     <!-- Mediciner (MEDF-1–5, REC-5, REC-12, REC-13, FAV-1, FAV-3–5, SET-10) -->
     <string name="medicines_prescriptions">Recept och scheman</string>

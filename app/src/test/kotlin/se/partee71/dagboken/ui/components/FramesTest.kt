@@ -233,6 +233,15 @@ class FramesTest {
     }
 
     @Test
+    fun `EntityEditScreen - ett sparfel visas med sin Failure-text i snackbaren`() {
+        val effects = kotlinx.coroutines.flow.MutableSharedFlow<EditorEffect>(extraBufferCapacity = 1)
+        rule.setContent { DagbokenTheme { EntityEditScreen("Ny händelse", EditorUiState("Migrän"), effects, {}, {}) {} } }
+        rule.runOnIdle { effects.tryEmit(EditorEffect.Failed(Failure(DataError.Unknown, R.string.option_name_duplicate))) }
+        rule.onNodeWithText(string(R.string.option_name_duplicate)).assertIsDisplayed()
+        rule.onNodeWithText(string(R.string.error_unknown)).assertDoesNotExist()
+    }
+
+    @Test
     fun `ConfirmDialog - nej-knappen och tryck utanför kan betyda olika saker`() {
         var declined = 0
         var dismissed = 0

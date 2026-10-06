@@ -26,9 +26,11 @@ data class EditorUiState<T>(
     val saving: Boolean = false,
     /** Det lagrade värdet gick inte att läsa; ramen visar felet och "Försök igen". */
     val loadError: DataError? = null,
+    /** Får sparas oförändrat ([EditorState] `saveUnchanged`) – t.ex. en ny måendelogg med förvalen (SCR-1). */
+    val saveUnchanged: Boolean = false,
 ) {
-    /** "Spara" är aktiv först när formuläret är giltigt och ändrat (NFR-2). */
-    val canSave: Boolean get() = isValid && isDirty && !saving && !loading && loadError == null
+    /** "Spara" är aktiv först när formuläret är giltigt och ändrat (NFR-2) – eller får sparas oförändrat. */
+    val canSave: Boolean get() = isValid && (isDirty || saveUnchanged) && !saving && !loading && loadError == null
 
     /** Felet för [field], om det ska visas. */
     @StringRes
@@ -39,8 +41,11 @@ data class EditorUiState<T>(
 sealed interface EditorEffect {
     data object Done : EditorEffect
 
-    /** [message] är texten som visas – som standard felets (`DataError.toMessage()`). */
-    data class Failed(val error: DataError, @param:StringRes val message: Int = error.toMessage()) : EditorEffect
+    /**
+     * Sparandet misslyckades: [failure] är felet och texten som visas – som standard felets
+     * (`DataError.toMessage()`). Samma [Failure] visas i `EntityEditScreen` (snackbar) och i ett ark (`EditorSheet`).
+     */
+    class Failed(val failure: Failure) : EditorEffect
 }
 
 /**
@@ -52,12 +57,15 @@ sealed interface EditorEffect {
  * - [loading] = true tills [load] anropats (redigering av något som finns).
  * - [errorMessage] ger en egen text för ett fel som inte är ett `DataError` (t.ex. en dubblett som
  *   datalagret nekar); annars visas `DataError.toMessage()`.
+ * - [saveUnchanged] = true låter ett giltigt formulär sparas utan ändring – ett nytt objekt vars förval är
+ *   ett riktigt svar (en ny måendelogg, SCR-1). "Släng ändringar?" gäller ändå bara ändringar. Standard: nej.
  */
 class EditorState<T>(
     initial: T,
     private val validator: Validator<T>,
     loading: Boolean = false,
     private val errorMessage: (Throwable) -> Int? = { null },
+    private val saveUnchanged: Boolean = false,
 ) {
     private var original: T = initial
     private val touched = mutableSetOf<String>()
@@ -170,13 +178,13 @@ class EditorState<T>(
             _state.value = after
             if (closeIfChanged || !after.isDirty) _effects.send(EditorEffect.Done)
         } else {
-            _effects.send(EditorEffect.Failed(failure.error, failure.message))
+            _effects.send(EditorEffect.Failed(failure))
         }
     }
 
     private fun compute(value: T, loading: Boolean, saving: Boolean = false): EditorUiState<T> {
         val all = validator.validate(value)
         val visible = if (attempted) all else all.filterKeys { it in touched }
-        return EditorUiState(value, visible, all.isEmpty(), value != original, loading, saving)
+        return EditorUiState(value, visible, all.isEmpty(), value != original, loading, saving, saveUnchanged = saveUnchanged)
     }
 }

@@ -16,6 +16,7 @@ import kotlinx.datetime.LocalDate
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.Spacing
@@ -70,7 +71,7 @@ class TodayScreenshotTest {
         captureLightAndDark("OccasionRow_lagen") {
             Sheet {
                 AppCard { GalleryOccasionRows() }
-                AppCard { OccasionRow("Lunch", OccasionStatus.Late, {}, time = "12:00", isToday = false) }
+                AppCard { OccasionRow("Lunch", OccasionStatus.NOT_LOGGED, {}, time = "12:00") }
             }
         }
     }

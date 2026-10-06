@@ -49,6 +49,17 @@ class EditorStateTest {
     }
 
     @Test
+    fun `saveUnchanged låter ett giltigt nytt objekt sparas utan ändring – standard är att det inte går`() {
+        assertFalse(EditorState(Form("Solkräm"), validator).state.value.canSave, "standard: oförändrat kan inte sparas")
+        val unchanged = EditorState(Form("Solkräm"), validator, saveUnchanged = true)
+        assertTrue(unchanged.state.value.canSave)
+        assertFalse(unchanged.state.value.isDirty, "oförändrat – ingen fråga om att slänga")
+        assertFalse(EditorState(Form(), validator, saveUnchanged = true).state.value.canSave, "ogiltigt sparas ändå inte")
+        unchanged.update(NAME) { it.copy(name = "") }
+        assertFalse(unchanged.state.value.canSave)
+    }
+
+    @Test
     fun `att ändra tillbaka till det sparade gör formuläret oändrat`() {
         val editor = editor(Form("Solkräm"))
         editor.update(NAME) { it.copy(name = "Solkräm 50") }
@@ -85,7 +96,7 @@ class EditorStateTest {
         editor.update(NAME) { it.copy(name = "Solkräm") }
         editor.effects.test {
             editor.save { Result.failure(DataError.Offline) }
-            assertEquals(EditorEffect.Failed(DataError.Offline), awaitItem())
+            (awaitItem() as EditorEffect.Failed).failure.let { assertEquals(DataError.Offline, it.error); assertEquals(DataError.Offline.toMessage(), it.message) }
         }
         assertTrue(editor.state.value.isDirty)
         assertTrue(editor.state.value.canSave)
@@ -128,7 +139,7 @@ class EditorStateTest {
             editor.run { Result.success(Unit) }
             assertEquals(EditorEffect.Done, awaitItem())
             editor.run { Result.failure(DataError.PermissionDenied) }
-            assertEquals(EditorEffect.Failed(DataError.PermissionDenied), awaitItem())
+            (awaitItem() as EditorEffect.Failed).failure.let { assertEquals(DataError.PermissionDenied, it.error); assertEquals(DataError.PermissionDenied.toMessage(), it.message) }
         }
     }
 

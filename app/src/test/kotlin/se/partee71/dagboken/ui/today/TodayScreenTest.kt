@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.today
 
+import android.content.Context
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,7 +23,14 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.Espresso
 import kotlin.test.assertEquals
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
@@ -34,23 +42,45 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.DayComparison
 import se.partee71.dagboken.core.engine.DayPart
 import se.partee71.dagboken.core.engine.DayProgress
+import se.partee71.dagboken.core.engine.EnergyTrend
+import se.partee71.dagboken.core.engine.OTHER_SYMPTOM_ID
+import se.partee71.dagboken.core.engine.OngoingIllness
+import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.asNeededChoices
 import se.partee71.dagboken.core.engine.doseChecklist
+import se.partee71.dagboken.core.engine.occasionStates
+import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.IllnessEpisode
+import se.partee71.dagboken.core.model.Occasion
+import se.partee71.dagboken.core.model.OccasionReminder
+import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Schedule
+import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.captureLightAndDark
+import se.partee71.dagboken.testing.captureScreenLightAndDark
+import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.SampleMedicines
 import se.partee71.dagboken.ui.common.DetailUiState
+import se.partee71.dagboken.ui.common.EditorSheetState
+import se.partee71.dagboken.ui.common.EditorState
+import se.partee71.dagboken.ui.common.Failure
+import se.partee71.dagboken.ui.common.Validator
+import se.partee71.dagboken.ui.common.toMessage
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 
 /**
@@ -346,6 +376,277 @@ class TodayScreenTest {
         CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = FONT_SCALE)) {
             TodayScreen(DetailUiState.Content(content()), {}, {})
         }
+    }
+
+    // ── Mående, Din vecka, pågående sjukdom och 7-dagarstrenden (HEM-4, HEM-5, HEM-7, HEM-12, HEM-13, TRD-5) ──
+
+    /** Frukost loggad, lunch 10:00 försenad, kvällsmat 12:30 snart och läggdags kommande. */
+    private val reminders = ReminderSettings(
+        screeningOccasions = listOf(
+            OccasionReminder(Occasion.BREAKFAST, true, LocalTime(8, 0)),
+            OccasionReminder(Occasion.LUNCH, true, LocalTime(10, 0)),
+            OccasionReminder(Occasion.DINNER, true, LocalTime(12, 30)),
+            OccasionReminder(Occasion.BEDTIME, true, LocalTime(21, 0)),
+        ),
+    )
+    private val breakfast = Screening("s1", today, LocalTime(8, 12), Occasion.BREAKFAST, energy = 7, stress = 3)
+    private val episode = IllnessEpisode("e", "Förkylning", start = LocalDate(2026, 10, 1))
+    private val symptoms = listOf(
+        Option("h", OptionKind.SYMPTOM, "Huvudvärk", sortOrder = 0),
+        Option("t", OptionKind.SYMPTOM, "Trötthet", sortOrder = 1),
+        Option(OTHER_SYMPTOM_ID, OptionKind.SYMPTOM, "Övrigt", sortOrder = 2),
+    )
+
+    private fun full(date: LocalDate = today, base: TodayContent = content(date = date, showDone = false)) = base.copy(
+        occasions = occasionStates(reminders, listOf(breakfast), date, now, zone),
+        weekSummary = WeekSummary(EnergyTrend.UP, 86).takeIf { date == today },
+        energyDays = (28..30).map { LocalDate(2026, 9, it) } + (1..4).map { LocalDate(2026, 10, it) },
+        energy = listOf(5.5f, 6f, null, 7f, 6.5f, 5f, 7f),
+        illness = OngoingIllness(episode, 4, Checkin("c", LocalDate(2026, 10, 3), LocalTime(20, 0), severity = 4)),
+    )
+
+    private fun showFull(
+        content: TodayContent = full(),
+        screening: EditorSheetState<Screening, ScreeningSheetInfo>? = null,
+        onEvent: (TodayEvent) -> Unit = {},
+        onOpenTrends: () -> Unit = {},
+    ) {
+        rule.setContent {
+            DagbokenTheme { TodayScreen(DetailUiState.Content(content), onEvent, {}, screening = screening, symptomOptions = symptoms, onOpenTrends = onOpenTrends) }
+        }
+    }
+
+    @Test
+    fun `Mående visar tillfällena med status, och raden eller Logga nu öppnar arket (HEM-4, HEM-5, NFR-17)`() {
+        val events = mutableListOf<TodayEvent>()
+        showFull(onEvent = { events += it })
+        rule.onNodeWithText("1 av 4").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Loggad 08:12").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Energi 7").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Stress 3").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Kommande · 21:00").performScrollTo().assertIsDisplayed()
+
+        rule.onAllNodesWithText("Logga nu")[0].performScrollTo().performClick()
+        assertEquals(TodayEvent.LogScreening(Occasion.LUNCH), events.last())
+        rule.onNodeWithText("Läggdags").performClick()
+        assertEquals(TodayEvent.LogScreening(Occasion.BEDTIME), events.last())
+        rule.onNodeWithText("Efter frukost").performScrollTo().performClick()
+        assertEquals(TodayEvent.EditScreening(breakfast), events.last())
+    }
+
+    @Test
+    fun `en tidigare dag är ej loggad utan Försenat, och Logga nu loggar ändå (HEM-4, SCR-6)`() {
+        val events = mutableListOf<TodayEvent>()
+        val past = LocalDate(2026, 10, 2)
+        showFull(full(past), onEvent = { events += it })
+        rule.onNodeWithText("Mående").performScrollTo()
+        assertEquals(4, rule.onAllNodesWithText("Ej loggad").fetchSemanticsNodes().size)
+        rule.onNodeWithText("Din vecka").assertDoesNotExist()
+        rule.onAllNodesWithText("Logga nu")[1].performScrollTo().performClick()
+        assertEquals(TodayEvent.LogScreening(Occasion.LUNCH), events.last())
+    }
+
+    @Test
+    fun `Din vecka, pågående sjukdom utan Checka in och trenden med länk till Trender (HEM-7, HEM-12, HEM-13, TRD-5)`() {
+        var trends = 0
+        showFull(onOpenTrends = { trends++ })
+        rule.onNodeWithText("Din vecka").assertIsDisplayed()
+        rule.onNodeWithText("Uppåt").assertIsDisplayed()
+        rule.onNodeWithText("86 %").assertIsDisplayed()
+        rule.onNodeWithText("Förkylning").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Dag 4").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Senaste incheckning 3 okt").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Checka in").assertDoesNotExist()
+        rule.onNodeWithText("Visa i Trender").performScrollTo().performClick()
+        assertEquals(1, trends)
+    }
+
+    @Test
+    fun `sjukdomskortet utan incheckning och med en odaterad senaste incheckning (HEM-12)`() {
+        var content by mutableStateOf(full().copy(illness = OngoingIllness(episode, 4, null)))
+        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Content(content), {}, {}) } }
+        rule.onNodeWithText("Ingen incheckning än").performScrollTo().assertIsDisplayed()
+        content = full().copy(illness = OngoingIllness(episode, 4, Checkin("c", severity = 3)))
+        rule.onNodeWithText("Senaste incheckningen saknar datum").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Ingen incheckning än").assertDoesNotExist()
+    }
+
+    @Test
+    fun `utan aktiverade tillfällen, sjukdom eller underlag för veckan visas inga sådana kort (HEM-12, HEM-13)`() {
+        show()
+        rule.onNodeWithText("Mående").assertDoesNotExist()
+        rule.onNodeWithText("Pågående sjukdom").assertDoesNotExist()
+        rule.onNodeWithText("Din vecka").assertDoesNotExist()
+    }
+
+    @Test
+    fun `arket går i steg och sparar – en tidigare dag står dagen i rubriken (HEM-5, SCR-1, SCR-2)`() {
+        val events = mutableListOf<TodayEvent>()
+        val past = LocalDate(2026, 10, 2)
+        val new = Screening("ny", past, LocalTime(12, 0), Occasion.LUNCH)
+        val sheet = sheet(null, new)
+        showFull(full(past), screening = sheet, onEvent = { events += it })
+        rule.onNodeWithText("Lunch · fre 2 okt 2026").assertIsDisplayed()
+        rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Steg 2 av 3").assertIsDisplayed()
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Övrigt").performClick()
+        assertEquals(TodayEvent.ChangeSymptoms(listOf(SymptomScore(OTHER_SYMPTOM_ID, 1))), events.last())
+        rule.onNodeWithText("Spara").performClick()
+        assertEquals(TodayEvent.SaveScreening, events.last())
+    }
+
+    /** Ett ark som `EditorSheet` öppnar det: den delade `EditorState` med [value], [loaded] = den sparade loggen. */
+    private fun sheet(loaded: Screening?, value: Screening) = EditorSheetState(
+        EditorState(value, Validator { emptyMap() }, saveUnchanged = loaded == null),
+        loaded,
+        ScreeningSheetInfo(value.occasion, value.date?.takeIf { it != today }),
+        CoroutineScope(Dispatchers.Main.immediate),
+    )
+
+    @Test
+    fun `symptomvalen följer listan medan arket är öppet – en sen lista ger symptomsteget (SCR-2)`() {
+        val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
+        var options by mutableStateOf(emptyList<Option>())
+        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Content(full()), {}, {}, screening = sheet, symptomOptions = options) } }
+        rule.onNodeWithText("Steg 1 av 2").assertIsDisplayed()
+        options = symptoms
+        rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
+    }
+
+    @Test
+    fun `sparat – arket döljs och stängs sedan (SCR-1)`() {
+        val events = mutableListOf<TodayEvent>()
+        val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
+        showFull(screening = sheet, onEvent = { events += it })
+        rule.runOnIdle { sheet.saved() }
+        rule.waitForIdle()
+        assertEquals(TodayEvent.CloseScreening, events.last())
+    }
+
+    @Test
+    fun `arket står sig när skärmen bakom laddar om eller visar fel – samma rubrik och tre steg (HEM-5)`() {
+        val past = LocalDate(2026, 10, 2)
+        val sheet = sheet(null, Screening("ny", past, LocalTime(12, 0), Occasion.LUNCH))
+        var state by mutableStateOf<DetailUiState<TodayContent>>(DetailUiState.Content(full(past)))
+        rule.setContent { DagbokenTheme { TodayScreen(state, {}, {}, screening = sheet, symptomOptions = symptoms) } }
+        rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
+        for (next in listOf(DetailUiState.Loading, DetailUiState.Error(DataError.Offline))) {
+            state = next
+            rule.onNodeWithText("Lunch · fre 2 okt 2026").assertIsDisplayed()
+            rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `en ny logg vars sparning misslyckades frågar Släng ändringar vid bakåt (NFR-10)`() {
+        val events = mutableListOf<TodayEvent>()
+        val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
+        sheet.showError(Failure(DataError.Offline))
+        showFull(screening = sheet, onEvent = { events += it })
+        Espresso.pressBack()
+        rule.onNodeWithText("Släng ändringar?").assertIsDisplayed()
+        assertTrue(events.none { it == TodayEvent.CloseScreening })
+    }
+
+    @Test
+    fun `bakåt med osparade ändringar frågar Släng ändringar och arket står kvar tills svaret (NFR-10)`() {
+        val events = mutableListOf<TodayEvent>()
+        val sheet = sheet(breakfast, breakfast)
+        showFull(screening = sheet, onEvent = { events += it })
+        sheet.editor.update { it.copy(energy = 3) }
+        rule.waitForIdle()
+        Espresso.pressBack()
+        rule.onNodeWithText("Släng ändringar?").assertIsDisplayed()
+        rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
+        assertTrue(events.none { it == TodayEvent.CloseScreening })
+        rule.onNodeWithText("Fortsätt redigera").performClick()
+        rule.onNodeWithText("Släng ändringar?").assertDoesNotExist()
+        rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
+
+        Espresso.pressBack()
+        rule.onNodeWithText("Släng").performClick()
+        // Arket döljs först (animerat), sedan stängs det.
+        rule.waitForIdle()
+        assertEquals(TodayEvent.CloseScreening, events.last())
+    }
+
+    @Test
+    fun `utan ändringar stänger bakåt arket direkt`() {
+        val events = mutableListOf<TodayEvent>()
+        showFull(screening = sheet(breakfast, breakfast), onEvent = { events += it })
+        Espresso.pressBack()
+        rule.waitForIdle()
+        rule.onNodeWithText("Släng ändringar?").assertDoesNotExist()
+        assertEquals(TodayEvent.CloseScreening, events.last())
+    }
+
+    @Test
+    fun `under sparningen stänger bakåt inte arket (SCR-1)`() {
+        val events = mutableListOf<TodayEvent>()
+        val sheet = sheet(breakfast, breakfast)
+        val gate = CompletableDeferred<Result<Unit>>()
+        showFull(screening = sheet, onEvent = { events += it })
+        sheet.editor.update { it.copy(stress = 6) }
+        val saving = CoroutineScope(Dispatchers.Main.immediate).launch { sheet.editor.save { gate.await() } }
+        rule.waitForIdle()
+        Espresso.pressBack()
+        rule.waitForIdle()
+        rule.onNodeWithText("Släng ändringar?").assertDoesNotExist()
+        rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
+        assertTrue(events.none { it == TodayEvent.CloseScreening })
+        gate.complete(Result.success(Unit))
+        rule.waitForIdle()
+        assertTrue(saving.isCompleted)
+    }
+
+    @Test
+    fun `en oförändrad logg kan inte sparas, och ett sparfel visas i arket (SCR-1)`() {
+        showFull(screening = sheet(breakfast, breakfast).also { it.showError(Failure(DataError.PermissionDenied)) })
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Spara").assertIsNotEnabled()
+        rule.onNodeWithText(ApplicationProvider.getApplicationContext<Context>().getString(DataError.PermissionDenied.toMessage())).assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w390dp-h1800dp-xxhdpi")
+    fun `skärmdump - alla kort`() = rule.captureLightAndDark("Today_alla_kort") {
+        TodayScreen(DetailUiState.Content(full()), {}, {})
+    }
+
+    private val withSymptoms = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH, energy = 6, stress = 4, symptoms = listOf(SymptomScore("h", 4), SymptomScore(OTHER_SYMPTOM_ID, 2, "Ont i knät"))))
+
+    /** Ett ark per test – skapat en gång, inte vid varje komposition (arket har nyckeln `key(sheet)`). */
+    private val newLunch = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH, energy = 6, stress = 4))
+
+    @Test
+    fun `skärmdump - arket steg 1`() = rule.captureScreenLightAndDark("Today_maende_steg1") {
+        TodayScreen(DetailUiState.Content(full()), {}, {}, screening = newLunch, symptomOptions = symptoms)
+    }
+
+    @Test
+    fun `skärmdump - arket steg 2`() = rule.captureScreenLightAndDark("Today_maende_steg2", open = { onNodeWithText("Nästa").clickWithoutRipple() }) {
+        TodayScreen(DetailUiState.Content(full()), {}, {}, screening = newLunch, symptomOptions = symptoms)
+    }
+
+    @Test
+    fun `skärmdump - arket steg 3`() = rule.captureScreenLightAndDark(
+        "Today_maende_steg3",
+        open = {
+            onNodeWithText("Nästa").clickWithoutRipple()
+            waitForIdle()
+            onNodeWithText("Nästa").clickWithoutRipple()
+        },
+    ) {
+        TodayScreen(
+            DetailUiState.Content(full()),
+            {},
+            {},
+            screening = withSymptoms,
+            symptomOptions = symptoms,
+        )
     }
 
     private companion object {

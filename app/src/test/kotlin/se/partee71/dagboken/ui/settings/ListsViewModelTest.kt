@@ -170,7 +170,7 @@ class ListsViewModelTest {
         vm.editor.effects.test {
             vm.onEvent(OptionEditEvent.Restore)
             val failed = awaitItem() as EditorEffect.Failed
-            assertEquals(R.string.option_name_duplicate, failed.message)
+            assertEquals(R.string.option_name_duplicate, failed.failure.message)
         }
         assertTrue(options.get(yoga.id).getOrThrow()!!.archived)
     }

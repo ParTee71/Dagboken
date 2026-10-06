@@ -5,10 +5,16 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -23,10 +29,18 @@ import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.Due
+import se.partee71.dagboken.core.engine.EnergyTrend
+import se.partee71.dagboken.core.engine.OccasionStatus
+import se.partee71.dagboken.core.engine.WeekSummary
+import se.partee71.dagboken.core.engine.computeDailyEnergyStats
+import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
+import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
@@ -36,19 +50,27 @@ import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
+import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.repository.DefaultIllnessRepository
+import se.partee71.dagboken.data.repository.DefaultOptionsRepository
 import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
 import se.partee71.dagboken.data.repository.DefaultScreeningRepository
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
+import se.partee71.dagboken.data.repository.IllnessRepository
+import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.PrescriptionRepository
+import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.common.DetailUiState
+import se.partee71.dagboken.ui.common.EditorSheetState
 
 /**
- * Fliken Idag (HEM-10, HEM-14, HEM-18, HEM-19, MED-1–3, MED-5, MED-13, MED-14, FAV-2–6, FAV-8, FAV-11) mot
+ * Fliken Idag (HEM-4, HEM-5, HEM-7, HEM-10, HEM-12, HEM-13, HEM-14, HEM-18, HEM-19, SCR-1, SCR-6, MED-1–3, MED-5, MED-13, MED-14, FAV-2–6, FAV-8, FAV-11) mot
  * `FakeCollection` och en fast klocka: söndag 4 oktober 2026 kl. 10:30 i Europe/Stockholm.
  */
 class TodayViewModelTest {
@@ -71,12 +93,19 @@ class TodayViewModelTest {
 
     private fun at(date: LocalDate, hour: Int, minute: Int = 0): Instant = LocalDateTime(date, LocalTime(hour, minute)).toInstant(zone)
 
-    private fun viewModel(prescriptions: PrescriptionRepository = testPrescriptions(factory, doses, zone, clock)) = TodayViewModel(
+    private fun viewModel(
+        prescriptions: PrescriptionRepository = testPrescriptions(factory, doses, zone, clock),
+        screenings: ScreeningRepository = DefaultScreeningRepository(factory, clock),
+        options: OptionsRepository = DefaultOptionsRepository(factory),
+        illnesses: IllnessRepository = DefaultIllnessRepository(factory),
+    ) = TodayViewModel(
         doses,
         prescriptions,
         DefaultPrnMedicineRepository(factory),
-        DefaultScreeningRepository(factory, clock),
+        screenings,
         DefaultSettingsRepository(factory),
+        options,
+        illnesses,
         clock,
     ) { zone }
 
@@ -491,5 +520,421 @@ class TodayViewModelTest {
         val vm = started(viewModel(throwing))
         assertTrue(vm.state.value is DetailUiState.Content)
         assertNull(vm.failure.value)
+    }
+
+    // ── Mående, sjukdom, vecka och trend (HEM-4, HEM-5, HEM-7, HEM-12, HEM-13, SCR-1, SCR-6) ──
+
+    /** Alla fyra tillfällen påslagna med standardtiderna 08:00, 12:00, 17:00 och 21:00. */
+    private suspend fun allOccasions() {
+        factory.settings().upsert(Settings(reminders = ReminderSettings(screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = true) }))).getOrThrow()
+    }
+
+    /** Sparat: arket ska döljas (`closing`), och när skärmen dolt det stängs det (`CloseScreening`). */
+    private fun TodayViewModel.assertSavedAndClosed() {
+        assertEquals(true, screening.value?.closing?.value, "arket döljs när det är sparat")
+        onEvent(TodayEvent.CloseScreening)
+        assertNull(screening.value)
+    }
+
+    private suspend fun storedScreenings(): List<Screening> = factory.screenings().getAll().getOrThrow()
+
+    @Test
+    fun `tillfällena får status mot klockan, och en tidigare dag är ej loggad (HEM-4, HEM-5, NOT-4)`() = runTest(main.dispatcher) {
+        seed()
+        allOccasions()
+        factory.screenings().upsert(Screening("s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, stress = 3)).getOrThrow()
+        val vm = started(viewModel())
+        assertEquals(
+            listOf(
+                Occasion.BREAKFAST to OccasionStatus.LOGGED,
+                Occasion.LUNCH to OccasionStatus.SOON,
+                Occasion.DINNER to OccasionStatus.UPCOMING,
+                Occasion.BEDTIME to OccasionStatus.UPCOMING,
+            ),
+            vm.content.occasions.map { it.occasion to it.status },
+        )
+        assertEquals(6, vm.content.progress.total, "två doser och fyra tillfällen (HEM-18)")
+
+        clock.instant = at(today, 12, 5)
+        advanceTimeBy(2.minutes)
+        runCurrent()
+        assertEquals(OccasionStatus.LATE, vm.content.occasions[1].status, "klockslaget nått")
+
+        vm.onEvent(TodayEvent.SelectDate(yesterday))
+        runCurrent()
+        assertEquals(List(4) { OccasionStatus.NOT_LOGGED }, vm.content.occasions.map { it.status })
+    }
+
+    @Test
+    fun `Logga nu en tidigare dag sparar en ny logg mot den dagen och tillfället (HEM-5, SCR-1, SCR-6)`() = runTest(main.dispatcher) {
+        seed()
+        allOccasions()
+        val vm = started(viewModel())
+        vm.onEvent(TodayEvent.SelectDate(yesterday))
+        runCurrent()
+        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
+        val sheet = assertNotNull(vm.screening.value)
+        assertNull(sheet.loaded)
+        val new = sheet.value
+        assertEquals(yesterday, new.date)
+        assertEquals(Occasion.LUNCH, new.occasion)
+        assertEquals(LocalTime(12, 0), new.time, "en tidigare dag: tillfällets klockslag")
+        assertTrue(sheet.editor.state.value.canSave, "en ny logg kan sparas direkt")
+
+        vm.onEvent(TodayEvent.ChangeEnergy(7))
+        vm.onEvent(TodayEvent.ChangeStress(2))
+        vm.onEvent(TodayEvent.ChangeSymptoms(listOf(SymptomScore("huvudvark", 4))))
+        vm.onEvent(TodayEvent.SaveScreening)
+        runCurrent()
+
+        vm.assertSavedAndClosed()
+        assertEquals(R.string.today_screening_saved, vm.notice.value?.text)
+        val saved = storedScreenings().single()
+        assertEquals(new.id, saved.id)
+        assertEquals(yesterday, saved.date)
+        assertEquals(Occasion.LUNCH, saved.occasion)
+        assertEquals(7, saved.energy)
+        assertEquals(2, saved.stress)
+        assertEquals(listOf(SymptomScore("huvudvark", 4)), saved.symptoms)
+        assertEquals(clock.instant, saved.createdAt)
+        assertEquals(OccasionStatus.LOGGED, vm.content.occasions.single { it.occasion == Occasion.LUNCH }.status)
+    }
+
+    @Test
+    fun `Logga nu idag tar klockslaget nu (SCR-6)`() = runTest(main.dispatcher) {
+        seed()
+        allOccasions()
+        val vm = started(viewModel())
+        vm.onEvent(TodayEvent.LogScreening(Occasion.DINNER))
+        val sheet = assertNotNull(vm.screening.value)
+        assertEquals(today, sheet.value.date)
+        assertEquals(LocalTime(10, 30), sheet.value.time)
+        vm.onEvent(TodayEvent.CloseScreening)
+        assertNull(vm.screening.value)
+        runCurrent()
+        assertTrue(storedScreenings().isEmpty(), "stängt utan att spara skriver inget")
+    }
+
+    @Test
+    fun `en loggad logg ändras fältvis – det som ändrats på annat håll står kvar (SCR-1)`() = runTest(main.dispatcher) {
+        seed()
+        allOccasions()
+        val logged = Screening("s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, stress = 3, createdAt = at(today, 8, 40))
+        factory.screenings().upsert(logged).getOrThrow()
+        val vm = started(viewModel())
+        vm.onEvent(TodayEvent.EditScreening(logged))
+        val sheet = assertNotNull(vm.screening.value)
+        assertFalse(sheet.editor.state.value.canSave, "inget ändrat än")
+
+        // En annan enhet skriver en anteckning medan arket är öppet.
+        factory.screenings().upsert(logged.copy(note = "Sov dåligt")).getOrThrow()
+        vm.onEvent(TodayEvent.ChangeStress(5))
+        assertTrue(sheet.editor.state.value.canSave)
+        vm.onEvent(TodayEvent.SaveScreening)
+        runCurrent()
+
+        val saved = storedScreenings().single()
+        assertEquals(5, saved.stress)
+        assertEquals(6, saved.energy)
+        assertEquals("Sov dåligt", saved.note)
+        vm.assertSavedAndClosed()
+    }
+
+    @Test
+    fun `ett sparfel visas i arket, som står kvar (SCR-1)`() = runTest(main.dispatcher) {
+        seed()
+        allOccasions()
+        val failing = object : ScreeningRepository by DefaultScreeningRepository(factory, clock) {
+            override suspend fun save(loaded: Screening?, edited: Screening): Result<Unit> = Result.failure(DataError.PermissionDenied)
+        }
+        val vm = started(viewModel(screenings = failing))
+        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
+        vm.onEvent(TodayEvent.SaveScreening)
+        runCurrent()
+        val sheet = assertNotNull(vm.screening.value)
+        assertEquals(DataError.PermissionDenied, sheet.error.value?.error)
+        assertFalse(sheet.editor.state.value.saving)
+        vm.onEvent(TodayEvent.ChangeEnergy(3))
+        assertNull(sheet.error.value, "en ändring tar bort felet")
+        assertNull(vm.notice.value)
+    }
+
+    @Test
+    fun `pågående sjukdom visas med dag och senaste incheckning, en avslutad inte (HEM-12)`() = runTest(main.dispatcher) {
+        seed()
+        val vm = started(viewModel())
+        assertNull(vm.content.illness)
+
+        val episode = IllnessEpisode("e", "Förkylning", start = LocalDate(2026, 10, 1))
+        factory.illnessEpisodes().batch(listOf(episode, IllnessEpisode("f", "Migrän", start = LocalDate(2026, 9, 1), end = LocalDate(2026, 9, 3)))).getOrThrow()
+        val checkin = Checkin("c2", LocalDate(2026, 10, 3), LocalTime(20, 0), severity = 4)
+        factory.checkins(episode.id).batch(listOf(Checkin("c1", LocalDate(2026, 10, 2), LocalTime(9, 0), severity = 6), checkin)).getOrThrow()
+        runCurrent()
+
+        val illness = assertNotNull(vm.content.illness)
+        assertEquals(episode, illness.episode)
+        assertEquals(4, illness.day)
+        assertEquals(checkin, illness.lastCheckin)
+
+        factory.illnessEpisodes().upsert(episode.copy(end = today)).getOrThrow()
+        runCurrent()
+        assertNull(vm.content.illness)
+    }
+
+    @Test
+    fun `Din vecka visas söndag och måndag med underlag, inte andra dagar eller en tidigare dag (HEM-13)`() = runTest(main.dispatcher) {
+        val vm = started(viewModel())
+        assertNull(vm.content.weekSummary, "söndag men inget underlag än")
+
+        factory.screenings().upsert(Screening("s", LocalDate(2026, 10, 2), LocalTime(9, 0), Occasion.BREAKFAST, energy = 6)).getOrThrow()
+        runCurrent()
+        assertEquals(WeekSummary(EnergyTrend.SAME, dosesTakenPercent = null), vm.content.weekSummary, "söndag, utan doser ingen dosandel")
+
+        // En förfallen morgondos som inte är tagen ger en dosandel.
+        factory.doses().upsert(Dose(morning(), today, Slot.MORNING, "Levaxin", prescriptionId = levaxin.id)).getOrThrow()
+        runCurrent()
+        assertEquals(0, vm.content.weekSummary?.dosesTakenPercent)
+
+        vm.onEvent(TodayEvent.SelectDate(yesterday))
+        runCurrent()
+        assertNull(vm.content.weekSummary, "en tidigare dag")
+        vm.onEvent(TodayEvent.SelectDate(today))
+        runCurrent()
+
+        clock.instant = at(LocalDate(2026, 10, 5), 9, 0)
+        advanceTimeBy(1.minutes)
+        runCurrent()
+        assertNotNull(vm.content.weekSummary, "måndag")
+
+        clock.instant = at(LocalDate(2026, 10, 6), 9, 0)
+        advanceTimeBy(1.minutes)
+        runCurrent()
+        assertNull(vm.content.weekSummary, "tisdag")
+    }
+
+    @Test
+    fun `7-dagarstrenden är dagsvärdet de sju senaste dagarna, också när en tidigare dag visas (HEM-7)`() = runTest(main.dispatcher) {
+        seed()
+        val screenings = listOf(
+            Screening("a", today, LocalTime(8, 0), Occasion.BREAKFAST, energy = 6),
+            Screening("b", today, LocalTime(9, 0), Occasion.LUNCH, energy = 8),
+            Screening("c", LocalDate(2026, 10, 1), LocalTime(8, 0), Occasion.BREAKFAST, energy = 3),
+            Screening("d", LocalDate(2026, 9, 27), LocalTime(8, 0), Occasion.BREAKFAST, energy = 9),
+        )
+        factory.screenings().batch(screenings).getOrThrow()
+        val vm = started(viewModel())
+        assertEquals((28..30).map { LocalDate(2026, 9, it) } + (1..4).map { LocalDate(2026, 10, it) }, vm.content.energyDays)
+        assertEquals(listOf(null, null, null, 3f, null, null, 7f), vm.content.energy)
+        assertEquals(computeDailyEnergyStats(screenings).last().avg, vm.content.energy.last(), "samma dagsvärde som Trender (TRD-8)")
+
+        vm.onEvent(TodayEvent.SelectDate(LocalDate(2026, 9, 29)))
+        runCurrent()
+        assertEquals(today, vm.content.energyDays.last())
+    }
+
+    private val EditorSheetState<Screening, ScreeningSheetInfo>.value: Screening get() = editor.state.value.value
+
+    /** Ett repository vars sparning väntar på [gate] – sparningen pågår tills testet släpper den. */
+    private fun holding(gate: CompletableDeferred<Unit>) = object : ScreeningRepository by DefaultScreeningRepository(factory, clock) {
+        override suspend fun save(loaded: Screening?, edited: Screening): Result<Unit> {
+            gate.await()
+            return DefaultScreeningRepository(factory, clock).save(loaded, edited)
+        }
+    }
+
+    @Test
+    fun `ändringar i arket gör det ändrat, och stängt slängs de utan att något sparas (NFR-10)`() = runTest(main.dispatcher) {
+        seed()
+        allOccasions()
+        val vm = started(viewModel())
+        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
+        val sheet = assertNotNull(vm.screening.value)
+        assertFalse(sheet.editor.state.value.isDirty, "ett nyöppnat ark frågar inte vid stängning")
+        vm.onEvent(TodayEvent.ChangeEnergy(4))
+        vm.onEvent(TodayEvent.ChangeStress(6))
+        assertTrue(sheet.editor.state.value.isDirty)
+        assertEquals(4 to 6, sheet.value.energy to sheet.value.stress, "varje ändring på det aktuella värdet")
+        // "Släng" i dialogen (AppBottomSheet) stänger arket.
+        vm.onEvent(TodayEvent.CloseScreening)
+        runCurrent()
+        assertNull(vm.screening.value)
+        assertTrue(storedScreenings().isEmpty())
+    }
+
+    @Test
+    fun `Spara markerar arket som sparande direkt – det går inte att stänga eller ändra förrän det är sparat (SCR-1)`() = runTest(main.dispatcher) {
+        seed()
+        allOccasions()
+        val gate = CompletableDeferred<Unit>()
+        val vm = started(viewModel(screenings = holding(gate)))
+        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
+        val sheet = assertNotNull(vm.screening.value)
+        vm.onEvent(TodayEvent.ChangeEnergy(8))
+        vm.onEvent(TodayEvent.SaveScreening)
+        // Ingen dispatch: i samma stund som "Spara" (samma bildruta som ett bakåt) går arket inte att stänga.
+        assertTrue(sheet.editor.state.value.saving)
+        assertFalse(sheet.canDismiss())
+
+        vm.onEvent(TodayEvent.CloseScreening)
+        vm.onEvent(TodayEvent.ChangeEnergy(1))
+        runCurrent()
+        assertSame(sheet, vm.screening.value, "arket står kvar")
+        assertEquals(8, sheet.value.energy)
+
+        gate.complete(Unit)
+        runCurrent()
+        vm.assertSavedAndClosed()
+        assertEquals(8, storedScreenings().single().energy)
+        assertEquals(R.string.today_screening_saved, vm.notice.value?.text)
+
+        // Ett nytt ark efteråt öppnas som vanligt.
+        vm.onEvent(TodayEvent.LogScreening(Occasion.DINNER))
+        assertEquals(Occasion.DINNER, vm.screening.value?.value?.occasion)
+    }
+
+    @Test
+    fun `arkets rubrik har dagen bara när loggen inte är idag enligt samma klocka (HEM-5)`() = runTest(main.dispatcher) {
+        seed()
+        allOccasions()
+        val vm = started(viewModel())
+        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
+        assertNull(vm.screening.value?.context?.date, "idag – bara tillfället")
+        vm.onEvent(TodayEvent.CloseScreening)
+        // Midnatt har passerat men vyn har inte följt med: loggen och rubriken tar båda den nya dagen.
+        clock.instant = at(LocalDate(2026, 10, 5), 0, 5)
+        vm.onEvent(TodayEvent.LogScreening(Occasion.BEDTIME))
+        assertEquals(LocalDate(2026, 10, 5), vm.screening.value?.value?.date)
+        assertNull(vm.screening.value?.context?.date)
+        vm.onEvent(TodayEvent.CloseScreening)
+        vm.onEvent(TodayEvent.EditScreening(Screening("s", yesterday, LocalTime(12, 0), Occasion.LUNCH)))
+        assertEquals(yesterday, vm.screening.value?.context?.date)
+    }
+
+    @Test
+    fun `strax efter midnatt får en ny logg den nya dagen och klockslaget, inte gårdagens datum (SCR-6)`() = runTest(main.dispatcher) {
+        seed()
+        allOccasions()
+        val vm = started(viewModel())
+        assertEquals(today, vm.content.date)
+        // Klockan har passerat midnatt men minutflödet har inte hunnit ticka: vyn visar fortfarande igår som idag.
+        clock.instant = at(LocalDate(2026, 10, 5), 0, 5)
+        vm.onEvent(TodayEvent.LogScreening(Occasion.BEDTIME))
+        val new = assertNotNull(vm.screening.value).value
+        assertEquals(LocalDate(2026, 10, 5), new.date)
+        assertEquals(LocalTime(0, 5), new.time)
+    }
+
+    // ── Läsfel i tilläggen, byte av episod och anteckningen (HEM-12, SCR-1, SCR-5) ──
+
+    private val denied: Flow<Nothing> = flow { throw DataError.PermissionDenied }
+
+    @Test
+    fun `episoderna går inte att läsa – Idag visas utan sjukdomskort (HEM-12)`() = runTest(main.dispatcher) {
+        seed()
+        val failing = object : IllnessRepository by DefaultIllnessRepository(factory) {
+            override fun observeEpisodes(): Flow<List<IllnessEpisode>> = denied
+        }
+        val vm = started(viewModel(illnesses = failing))
+        runCurrent()
+        assertNull(vm.content.illness)
+        assertEquals(2, vm.content.progress.total, "resten av fliken visas")
+        assertNull(vm.failure.value)
+    }
+
+    @Test
+    fun `incheckningarna går inte att läsa – kortet visas utan incheckning (HEM-12)`() = runTest(main.dispatcher) {
+        seed()
+        val episode = IllnessEpisode("e", "Förkylning", start = LocalDate(2026, 10, 1))
+        factory.illnessEpisodes().upsert(episode).getOrThrow()
+        val failing = object : IllnessRepository by DefaultIllnessRepository(factory) {
+            override fun observeCheckins(episodeId: String): Flow<List<Checkin>> = denied
+        }
+        val vm = started(viewModel(illnesses = failing))
+        runCurrent()
+        assertEquals(episode, vm.content.illness?.episode)
+        assertNull(vm.content.illness?.lastCheckin)
+    }
+
+    @Test
+    fun `symptomlistan går inte att läsa – arket fungerar med en tom lista (SCR-2)`() = runTest(main.dispatcher) {
+        seed()
+        allOccasions()
+        val failing = object : OptionsRepository by DefaultOptionsRepository(factory) {
+            override fun observe(kind: OptionKind): Flow<List<Option>> = denied
+        }
+        val vm = started(viewModel(options = failing))
+        runCurrent()
+        backgroundScope.launch { vm.symptomOptions.collect {} }
+        runCurrent()
+        assertTrue(vm.symptomOptions.value.isEmpty())
+        vm.onEvent(TodayEvent.LogScreening(Occasion.LUNCH))
+        vm.onEvent(TodayEvent.ChangeEnergy(5))
+        vm.onEvent(TodayEvent.SaveScreening)
+        runCurrent()
+        assertEquals(5, storedScreenings().single().energy)
+    }
+
+    @Test
+    fun `byte av pågående episod visar aldrig den nya episoden med den gamlas incheckningar (HEM-12)`() = runTest(main.dispatcher) {
+        seed()
+        val first = IllnessEpisode("a", "Förkylning", start = LocalDate(2026, 9, 20), createdAt = at(LocalDate(2026, 9, 20), 8))
+        val second = IllnessEpisode("b", "Migrän", start = LocalDate(2026, 10, 3), createdAt = at(LocalDate(2026, 10, 3), 8))
+        val episodes = MutableStateFlow(listOf(first))
+        val checkins = mapOf(first.id to MutableSharedFlow<List<Checkin>>(replay = 1), second.id to MutableSharedFlow(replay = 1))
+        val repository = object : IllnessRepository {
+            override fun observeEpisodes(): Flow<List<IllnessEpisode>> = episodes
+            override fun observeCheckins(episodeId: String): Flow<List<Checkin>> = checkins.getValue(episodeId)
+        }
+        val firstCheckin = Checkin("c1", LocalDate(2026, 10, 2), LocalTime(9, 0), severity = 5)
+        checkins.getValue(first.id).emit(listOf(firstCheckin))
+        val vm = started(viewModel(illnesses = repository))
+        val seen = mutableListOf<Pair<String, String?>>()
+        backgroundScope.launch { vm.state.collect { state -> (state as? DetailUiState.Content)?.value?.illness?.let { seen += it.episode.id to it.lastCheckin?.id } } }
+        runCurrent()
+        assertEquals(first.id to firstCheckin.id, seen.last())
+
+        episodes.value = listOf(first, second)
+        runCurrent()
+        assertEquals(first.id, vm.content.illness?.episode?.id, "väntar på den nya episodens incheckningar")
+        val secondCheckin = Checkin("c2", LocalDate(2026, 10, 3), LocalTime(20, 0), severity = 7)
+        checkins.getValue(second.id).emit(listOf(secondCheckin))
+        runCurrent()
+        assertEquals(second.id to secondCheckin.id, seen.last())
+        assertTrue(seen.none { (episode, checkin) -> episode == second.id && checkin != secondCheckin.id }, "aldrig B med A:s eller inga incheckningar: $seen")
+    }
+
+    @Test
+    fun `en ändring i arket behåller loggens anteckning (SCR-1, SCR-5)`() = runTest(main.dispatcher) {
+        seed()
+        allOccasions()
+        val logged = Screening("s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, stress = 3, createdAt = at(today, 8, 40), note = "Sov dåligt")
+        factory.screenings().upsert(logged).getOrThrow()
+        val vm = started(viewModel())
+        vm.onEvent(TodayEvent.EditScreening(logged))
+        vm.onEvent(TodayEvent.ChangeEnergy(8))
+        vm.onEvent(TodayEvent.SaveScreening)
+        runCurrent()
+        val saved = storedScreenings().single()
+        assertEquals(8, saved.energy)
+        assertEquals("Sov dåligt", saved.note)
+    }
+
+    @Test
+    fun `episoderna och symptomlistan har inte svarat än – Idag visas ändå (HEM-12, HEM-16)`() = runTest(main.dispatcher) {
+        seed()
+        val silentIllness = object : IllnessRepository {
+            override fun observeEpisodes(): Flow<List<IllnessEpisode>> = MutableSharedFlow()
+            override fun observeCheckins(episodeId: String): Flow<List<Checkin>> = MutableSharedFlow()
+        }
+        val silentOptions = object : OptionsRepository by DefaultOptionsRepository(factory) {
+            override fun observe(kind: OptionKind): Flow<List<Option>> = MutableSharedFlow()
+        }
+        val vm = started(viewModel(options = silentOptions, illnesses = silentIllness))
+        backgroundScope.launch { vm.symptomOptions.collect {} }
+        runCurrent()
+        assertTrue(vm.state.value is DetailUiState.Content)
+        assertEquals(2, vm.content.progress.total, "medicinerna visas")
+        assertNull(vm.content.illness)
+        assertTrue(vm.symptomOptions.value.isEmpty())
     }
 }

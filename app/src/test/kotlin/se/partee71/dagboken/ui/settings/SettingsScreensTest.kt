@@ -202,7 +202,7 @@ class SettingsScreensTest {
                 }
             }
         }
-        rule.runOnIdle { effects.tryEmit(EditorEffect.Failed(DataError.Unknown, R.string.option_name_duplicate)) }
+        rule.runOnIdle { effects.tryEmit(EditorEffect.Failed(Failure(DataError.Unknown, R.string.option_name_duplicate))) }
         rule.onNodeWithText("Finns redan i listan").assertIsDisplayed()
 
         showList = true

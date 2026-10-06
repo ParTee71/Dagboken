@@ -34,6 +34,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
@@ -342,6 +343,8 @@ private fun Today() {
     }
     Label("OccasionRow")
     AppCard { GalleryOccasionRows() }
+    // En tidigare dag: "Ej loggad" utan varningston (HEM-4).
+    AppCard { OccasionRow("Lunch", OccasionStatus.NOT_LOGGED, {}, time = "12:00") }
     Label("DayDoneCard")
     DayDoneCard(6.8, 0.5, 12, play = celebrate, onConfettiFinished = { celebrate = false })
     AppButton("Fira igen", { celebrate = true }, variant = ButtonVariant.Text)
@@ -442,15 +445,15 @@ internal object GalleryCharts {
 internal fun GalleryOccasionRows() {
     OccasionRow(
         "Efter frukost",
-        OccasionStatus.Logged,
+        OccasionStatus.LOGGED,
         {},
         time = "08:12",
         values = listOf(OccasionValue("Energi", 7), OccasionValue("Stress", 4, higherIsBetter = false)),
         onClick = {},
     )
-    OccasionRow("Lunch", OccasionStatus.Late, {}, time = "12:00")
-    OccasionRow("Kvällsmat", OccasionStatus.Soon, {}, time = "18:00")
-    OccasionRow("Läggdags", OccasionStatus.Upcoming, {}, time = "22:00")
+    OccasionRow("Lunch", OccasionStatus.LATE, {}, time = "12:00")
+    OccasionRow("Kvällsmat", OccasionStatus.SOON, {}, time = "18:00")
+    OccasionRow("Läggdags", OccasionStatus.UPCOMING, {}, time = "22:00")
 }
 
 /** Påhittade symptomalternativ för galleriet och dess skärmdumpar. */
@@ -509,9 +512,11 @@ private fun Overlays() {
         ConfirmDialog("Radera Promenad?", "Aktiviteten tas bort för gott. Det går inte att ångra.", "Radera", { dialog = false }, { dialog = false }, destructive = true)
     }
     if (sheet) {
-        AppBottomSheet("Promenad", onDismiss = { sheet = false }) {
-            QuantityStepper(45, {}, "minuter")
-            AppButton("Spara", {}, variant = ButtonVariant.Text)
+        // Ändra minuterna: då frågar bakåt, svep ner och tryck utanför "Släng ändringar?" (dirty, NFR-10).
+        var minutes by remember { mutableIntStateOf(45) }
+        AppBottomSheet("Promenad", onDismiss = { sheet = false }, dirty = minutes != 45) {
+            QuantityStepper(minutes, { minutes = it }, "minuter")
+            AppButton("Spara", { sheet = false }, variant = ButtonVariant.Text)
         }
     }
     when (appSheet) {

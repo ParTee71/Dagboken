@@ -67,6 +67,16 @@ fun weekSummary(now: Instant, zone: TimeZone, screenings: List<Screening>, doses
     return if (thisWeek == null && percent == null) null else WeekSummary(trend, percent)
 }
 
+/**
+ * HEM-13: "Din vecka" när den visade dagen är [date] – bara när [date] är idag (dagen för [now] i [zone]) och
+ * idag är söndag eller måndag, annars `null`. Dagen tas ur samma [now] som sammanfattningen, så att den inte
+ * visas på en tisdag strax efter midnatt.
+ */
+fun weekSummaryOn(date: LocalDate, now: Instant, zone: TimeZone, screenings: List<Screening>, doses: List<Dose>): WeekSummary? {
+    val today = now.toLocalDateTime(zone).date
+    return if (date == today && today.showsWeekSummary) weekSummary(now, zone, screenings, doses) else null
+}
+
 /** HEM-19: dagens snittenergi och skillnaden mot igår (`null` när igår saknar måendelogg). */
 data class DayComparison(val average: Float, val changeFromYesterday: Float?)
 

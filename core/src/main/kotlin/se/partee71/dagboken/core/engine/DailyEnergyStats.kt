@@ -1,6 +1,8 @@
 package se.partee71.dagboken.core.engine
 
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 import se.partee71.dagboken.core.model.Screening
 
 /** En dags lägsta, genomsnittliga och högsta loggade screeningenergi. */
@@ -42,3 +44,17 @@ fun List<DailyEnergyStats>.alignTo(days: List<LocalDate>): List<DailyEnergyStats
     val byDate = associateBy { it.date }
     return days.map { byDate[it] }
 }
+
+/** Idags 7-dagarstrend (HEM-7): så många dagar visas. */
+const val ENERGY_TREND_DAYS = 7
+
+/** De [count] dagarna till och med [last], äldst först – x-axeln i Idags 7-dagarstrend (HEM-7). */
+fun daysEnding(last: LocalDate, count: Int = ENERGY_TREND_DAYS): List<LocalDate> =
+    (count - 1 downTo 0).map { last.minus(it, DateTimeUnit.DAY) }
+
+/**
+ * HEM-7: dagsvärdet ([DailyEnergyStats.avg] ur [computeDailyEnergyStats], samma som Trender, TRD-8) för
+ * var och en av [days]; `null` för en dag utan screening – en lucka, aldrig en nolla.
+ */
+fun dailyEnergyAverages(screenings: List<Screening>, days: List<LocalDate>): List<Float?> =
+    computeDailyEnergyStats(screenings).alignTo(days).map { it?.avg }

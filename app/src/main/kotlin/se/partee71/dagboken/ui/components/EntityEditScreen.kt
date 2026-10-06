@@ -84,7 +84,7 @@ fun EntityEditScreen(
             when (effect) {
                 EditorEffect.Done -> saved()
                 // Egen coroutine: en visad snackbar får inte hålla tillbaka nästa händelse.
-                is EditorEffect.Failed -> launch { snackbar.showSnackbar(resources.getString(effect.message)) }
+                is EditorEffect.Failed -> launch { snackbar.showSnackbar(resources.getString(effect.failure.message)) }
             }
         }
     }
@@ -135,16 +135,12 @@ fun EntityEditScreen(
     }
 
     discardThen?.let { after ->
-        ConfirmDialog(
-            title = stringResource(R.string.discard_title),
-            message = stringResource(R.string.discard_message),
-            confirmLabel = stringResource(R.string.discard_confirm),
+        DiscardChangesDialog(
             onConfirm = {
                 discardThen = null
                 proceed(after)
             },
             onDismiss = { discardThen = null },
-            dismissLabel = stringResource(R.string.keep_editing),
         )
     }
     if (confirmDelete && delete != null) {

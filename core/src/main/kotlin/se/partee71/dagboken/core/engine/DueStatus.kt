@@ -100,3 +100,10 @@ fun occasionStates(
         OccasionState(row.occasion, row.time, status, logged)
     }
 }
+
+/**
+ * HEM-5: tillfällets senaste logg – den som visas med värdechips och öppnas för ändring – i den gemensamma
+ * ordningen [latestBy]; `null` när tillfället inte är loggat.
+ */
+val OccasionState.latest: Screening?
+    get() = screenings.latestBy(Screening::date, Screening::time, Screening::createdAt)
