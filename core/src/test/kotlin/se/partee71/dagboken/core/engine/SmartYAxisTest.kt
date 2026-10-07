@@ -215,9 +215,19 @@ class SmartYAxisTest {
         assertEquals("-2,5", formatChartValue(-2.5f))
         assertEquals("0", formatChartValue(0f))
         assertEquals("7", formatChartValue(6.96f)) // avrundas före heltalskontrollen
+    }
+
+    @Test fun `formatChartValue groups thousands with a no-break space from 1 000 (TRD-9, HLS-6)`() {
+        assertEquals("999", formatChartValue(999f))
+        assertEquals("1\u00A0000", formatChartValue(1_000f))
+        assertEquals("7\u00A0842", formatChartValue(7_842f))
+        assertEquals("12\u00A0345,5", formatChartValue(12_345.5f))
+        assertEquals("1\u00A0234\u00A0567", formatChartValue(1_234_567f))
+        assertEquals("-4\u00A0020", formatChartValue(-4_020f))
+        assertEquals("1\u00A0000", formatChartValue(999.96f)) // avrundningen kan ge en grupp till
         assertEquals("0", formatChartValue(-0.04f)) // ingen minusnolla
         assertEquals("-0,1", formatChartValue(-0.06f))
-        assertEquals("10000", formatChartValue(10_000f))
+        assertEquals("10\u00A0000", formatChartValue(10_000f)) // tusentalen grupperas sedan #241 (TRD-9)
     }
 
     @Test fun `the interval axis covers every day's span and the trend of the day values`() {

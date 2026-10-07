@@ -8,7 +8,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -119,6 +122,24 @@ class MedicineComponentsTest {
         rule.onNodeWithText("Health Connect saknas").assertIsDisplayed().assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Role))
         rule.onNodeWithText("Klockans data visas när Health Connect är kopplat.").assertIsDisplayed()
         rule.onNode(hasClickAction()).assertDoesNotExist()
+    }
+
+    @Test
+    fun `NoticeBanner med åtgärd har knappen under texten – kortet självt är ingen knapp (HLS-4)`() {
+        var opened = 0
+        show {
+            NoticeBanner(
+                "Health Connect saknas",
+                se.partee71.dagboken.R.drawable.ic_watch,
+                { opened++ },
+                detail = "Installera Health Connect från Play Butik för att se klockans data.",
+                action = "Installera",
+            )
+        }
+        rule.onNodeWithText("Health Connect saknas").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Role))
+        rule.onAllNodes(hasClickAction()).assertCountEquals(1)
+        rule.onNodeWithText("Installera").assertHeightIsAtLeast(48.dp).performClick()
+        assertEquals(1, opened)
     }
 
     @Test

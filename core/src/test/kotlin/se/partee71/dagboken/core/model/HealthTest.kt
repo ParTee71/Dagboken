@@ -20,7 +20,7 @@ class HealthTest {
         assertTrue(SleepStages().isEmpty)
         assertFalse(DailyHealth(from, steps = 0).isEmpty, "noll steg är en mätning, inte en lucka")
         assertFalse(DailyHealth(from, sleepStages = SleepStages(deep = 1.hours)).isEmpty)
-        assertFalse(DailyHealth(from, bloodPressure = BloodPressure(120, 80)).isEmpty)
+        assertFalse(DailyHealth(from, oxygenSaturationAvg = 96.0).isEmpty)
     }
 
     @Test

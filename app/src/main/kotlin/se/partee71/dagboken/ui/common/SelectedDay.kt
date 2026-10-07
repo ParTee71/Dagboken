@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.datetime.LocalDate
+import se.partee71.dagboken.core.time.shownDate
 import se.partee71.dagboken.data.common.UserScope
 
 /**
@@ -22,6 +23,9 @@ class SelectedDay @Inject constructor(private val users: UserScope) {
 
     /** Den valda dagen för den inloggade, eller `null` för idag. */
     val date: Flow<LocalDate?> = combine(chosen, users.uid) { chosen, uid -> current(chosen, uid) }.distinctUntilChanged()
+
+    /** Den visade dagen mot [today] (`shownDate`, HEM-14): vald dag, annars idag – aldrig efter idag. */
+    fun shown(today: Flow<LocalDate>): Flow<LocalDate> = combine(date, today, ::shownDate).distinctUntilChanged()
 
     /** Idag väljer [date] (`null` = idag). */
     fun select(date: LocalDate?) {

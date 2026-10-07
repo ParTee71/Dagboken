@@ -37,6 +37,7 @@ import se.partee71.dagboken.core.engine.summarize
 import se.partee71.dagboken.core.engine.summarizeIntervals
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.data.auth.AuthUser
+import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.distinctSeriesColors
@@ -49,9 +50,14 @@ import se.partee71.dagboken.ui.components.AppMenuItem
 import se.partee71.dagboken.ui.components.AppSegmentedChoice
 import se.partee71.dagboken.ui.components.EntityDetailScreen
 import se.partee71.dagboken.ui.components.Foldout
-import se.partee71.dagboken.ui.components.NoticeBanner
+import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.components.SwitchRow
 import se.partee71.dagboken.ui.diagram.CHART_SEPARATOR
+import se.partee71.dagboken.ui.health.ClockStatus
+import se.partee71.dagboken.ui.health.ClockUiState
+import se.partee71.dagboken.ui.health.ClockViewModel
+import se.partee71.dagboken.ui.health.HealthEvent
+import se.partee71.dagboken.ui.health.HealthTodaySection
 import se.partee71.dagboken.ui.diagram.ChartBand
 import se.partee71.dagboken.ui.diagram.ChartSeries
 import se.partee71.dagboken.ui.diagram.chartStatText
@@ -68,9 +74,16 @@ import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
 @Composable
-fun TrendsRoute(account: AuthUser?, onAccount: () -> Unit, viewModel: TrendsViewModel = hiltViewModel()) {
+fun TrendsRoute(
+    account: AuthUser?,
+    onAccount: () -> Unit,
+    viewModel: TrendsViewModel = hiltViewModel(),
+    clockViewModel: ClockViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    TrendsScreen(state, viewModel::onEvent) {
+    // Hälsa idag läses bara medan Klocka visas – byter man grupp slutar läsningen (TRD-15).
+    val clock = if (state.group == TrendGroup.WATCH) clockViewModel.state.collectAsStateWithLifecycle().value else null
+    TrendsScreen(state, viewModel::onEvent, clock = clock, onClockEvent = clockViewModel::onEvent) {
         AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
     }
 }
@@ -78,11 +91,21 @@ fun TrendsRoute(account: AuthUser?, onAccount: () -> Unit, viewModel: TrendsView
 /**
  * Fliken Trender (TRD-19) på `EntityDetailScreen` i flikläge: stor rubrik med avataren (NAV-9) som övriga flikar,
  * segmentknappen Mående · Klocka · Jämför och, i varje grupp, ett ihopfällbart kort per diagram (TRD-14, NFR-18) med
- * periodväljare, serieval, "Föregående period", diagram och sammanfattning bara i utfällt läge. Klocka har bannern
- * "Health Connect saknas" överst när klockan inte går att läsa (HLS-4, TRD-20); Jämför är ett enda kort (TRD-17).
+ * periodväljare, serieval, "Föregående period", diagram och sammanfattning bara i utfällt läge. Klocka har Health
+ * Connect-statusen överst ur [clock] – den enda källan för läget (`ClockStatus`: kopplad, ej kopplad, saknas,
+ * uppdatering krävs, saknade valfria behörigheter – HLS-4, HLS-14, TRD-20; `null` = okänt, ingen status) –, med klockan
+ * kopplad "Hälsa idag" (HLS-6) och sedan korten under rubriken Trender;
+ * [onClockEvent] tar "Ge åtkomst", "Installera" och "Uppdatera". Jämför är ett enda kort (TRD-17).
  */
 @Composable
-fun TrendsScreen(state: TrendsUiState, onEvent: (TrendsEvent) -> Unit, modifier: Modifier = Modifier, avatar: @Composable () -> Unit = {}) {
+fun TrendsScreen(
+    state: TrendsUiState,
+    onEvent: (TrendsEvent) -> Unit,
+    modifier: Modifier = Modifier,
+    clock: ClockUiState? = null,
+    onClockEvent: (HealthEvent) -> Unit = {},
+    avatar: @Composable () -> Unit = {},
+) {
     EntityDetailScreen(
         state = DetailUiState.Content(state),
         header = null,
@@ -96,8 +119,12 @@ fun TrendsScreen(state: TrendsUiState, onEvent: (TrendsEvent) -> Unit, modifier:
             selectedIndex = content.group.ordinal,
             onSelect = { onEvent(TrendsEvent.ShowGroup(TrendGroup.entries[it])) },
         )
-        if (content.group == TrendGroup.WATCH && content.healthMissing) {
-            NoticeBanner(stringResource(R.string.trends_health_missing), R.drawable.ic_clock, onClick = null, detail = stringResource(R.string.trends_health_missing_detail))
+        if (content.group == TrendGroup.WATCH && clock != null) {
+            ClockStatus(clock.status, clock.missing, onClockEvent)
+            if (clock.status == HealthStatus.AVAILABLE) {
+                HealthTodaySection(clock)
+                SectionHeader(stringResource(R.string.tab_trends))
+            }
         }
         TrendCard.inGroup(content.group).forEach { card -> TrendCardView(card, content.cards.getValue(card), onEvent) }
     }
@@ -128,7 +155,6 @@ private val TrendCard.title: Int
         TrendCard.CALORIES -> R.string.trends_card_calories
         TrendCard.DISTANCE -> R.string.trends_card_distance
         TrendCard.OXYGEN -> R.string.trends_card_oxygen
-        TrendCard.BLOOD_PRESSURE -> R.string.trends_card_blood_pressure
         TrendCard.COMPARE -> R.string.trends_group_compare
     }
 
@@ -145,7 +171,6 @@ private val TrendCard.emptyHint: Int
         TrendCard.CALORIES -> R.string.trends_no_calories_data
         TrendCard.DISTANCE -> R.string.trends_no_distance_data
         TrendCard.OXYGEN -> R.string.trends_no_oxygen_data
-        TrendCard.BLOOD_PRESSURE -> R.string.trends_no_blood_pressure_data
         TrendCard.COMPARE -> R.string.trends_compare_hint
         else -> R.string.chart_empty_hint
     }

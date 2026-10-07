@@ -1,8 +1,6 @@
 package se.partee71.dagboken.core.engine.health
 
-import kotlin.math.roundToInt
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 import kotlinx.datetime.DateTimeUnit
@@ -10,7 +8,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
-import se.partee71.dagboken.core.model.BloodPressure
 import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.core.model.HealthHistory
 import se.partee71.dagboken.core.model.SleepStages
@@ -21,9 +18,6 @@ import se.partee71.dagboken.core.model.SleepStages
 
 /** Syremättnaden mäts under natten och läses över samma fönster som sömnen (HLS-8). */
 val NIGHT_WINDOW: Duration = 24.hours
-
-/** Blodtryck mäts sporadiskt; Hälsa idag visar senaste mätningen inom så lång tid (HLS-8). */
-val BLOOD_PRESSURE_WINDOW: Duration = 7.days
 
 /** Snittet av syremättnaden i [samples], `null` utan mätningar. */
 fun averageOxygen(samples: List<OxygenSample>): Double? = samples.takeIf { it.isNotEmpty() }?.map { it.percent }?.average()
@@ -37,14 +31,6 @@ fun averageOxygenByDay(samples: List<OxygenSample>, sleep: List<TimeSpan>, zone:
     val windows = SleepWindows(sleep)
     return samples.perDay(zone, { sample -> windows.containing(sample.time)?.end ?: sample.time }, ::averageOxygen)
 }
-
-/** Den senaste mätningen i [samples] som [BloodPressure], avrundad till hela mmHg; `null` utan mätningar. */
-fun latestBloodPressure(samples: List<BloodPressureSample>): BloodPressure? =
-    samples.maxByOrNull { it.time }?.let { BloodPressure(systolic = it.systolic.roundToInt(), diastolic = it.diastolic.roundToInt()) }
-
-/** Dygnets senaste blodtrycksmätning (HLS-12) – ingen utfyllnad mellan dygnen, serien blir mest luckor. */
-fun bloodPressureByDay(samples: List<BloodPressureSample>, zone: TimeZone): Map<LocalDate, BloodPressure> =
-    samples.perDay(zone, { it.time }, ::latestBloodPressure)
 
 /**
  * Dagshistoriken för [from]…[to] (HLS-12): exakt ett [DailyHealth] per dygn i datumordning, tomt där inget
@@ -62,10 +48,9 @@ fun healthHistory(records: HealthRecords, from: LocalDate, to: LocalDate, zone: 
     val calories = mostCompleteSumByDay(records.calories, zone)
     val distance = mostCompleteSumByDay(records.distance, zone)
     val oxygen = averageOxygenByDay(records.oxygen, records.sleep, zone)
-    val bloodPressure = bloodPressureByDay(records.bloodPressure, zone)
 
     val dates = steps.keys + heartRateAvg.keys + restingHr.keys + nights.keys + exercise.keys +
-        calories.keys + distance.keys + oxygen.keys + bloodPressure.keys
+        calories.keys + distance.keys + oxygen.keys
     val measured = dates.associateWith { date ->
         val night = nights[date]
         DailyHealth(
@@ -80,7 +65,6 @@ fun healthHistory(records: HealthRecords, from: LocalDate, to: LocalDate, zone: 
             activeEnergyKcal = calories[date],
             distanceMeters = distance[date],
             oxygenSaturationAvg = oxygen[date],
-            bloodPressure = bloodPressure[date],
         )
     }
     return HealthHistory.of(from, to, measured)
@@ -93,11 +77,11 @@ fun healthHistory(records: HealthRecords, from: LocalDate, to: LocalDate, zone: 
  *   dygnets slut för ett tidigare datum;
  * - sömnen som **summan** av längd och stadier över alla sessioner som slutar inom [NIGHT_WINDOW] före
  *   dygnets slut – paritet med 3.x `readToday`;
- * - syremättnaden över samma fönster och blodtrycket som senaste mätningen inom [BLOOD_PRESSURE_WINDOW].
+ * - syremättnaden över samma fönster.
  *
  * **Skillnad mot [healthHistory]:** historiken tar den längsta sessionen per natt (HLS-12), så en natt delad i
  * två sessioner ger kortare sömn där än här; syremättnaden räknas där per dygn i stället för över ett
- * glidande fönster, och blodtrycket bara för dygnet självt. Övriga mått är desamma för ett avslutat dygn.
+ * glidande fönster. Övriga mått är desamma för ett avslutat dygn.
  *
  * [records] ska läsa sömnen med `from` minus 24 timmar (som [HealthRecords] säger), annars saknas nattens
  * början och vilopulsens sömnfilter. Inget mätt ger ett tomt [DailyHealth].
@@ -125,6 +109,5 @@ fun healthDay(records: HealthRecords, date: LocalDate, now: Instant, zone: TimeZ
         activeEnergyKcal = mostCompleteSum(records.calories.startingInDay()),
         distanceMeters = mostCompleteSum(records.distance.startingInDay()),
         oxygenSaturationAvg = averageOxygen(records.oxygen.filter { it.time in night }),
-        bloodPressure = latestBloodPressure(records.bloodPressure.filter { it.time in TimeWindow(dayEnd - BLOOD_PRESSURE_WINDOW, dayEnd) }),
     )
 }

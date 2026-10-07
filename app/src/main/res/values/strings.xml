@@ -310,7 +310,11 @@
     <string name="today_illness_checkin_format">Senaste incheckning %s</string>
     <string name="today_illness_no_checkin">Ingen incheckning än</string>
     <string name="today_illness_checkin_undated">Senaste incheckningen saknar datum</string>
-    <string name="today_energy_title">Energi senaste veckan</string>
+    <!-- Idag · Hälsa och Senaste veckan (HEM-15, HEM-17, HLS-7) -->
+    <string name="today_health_title">Hälsa</string>
+    <string name="today_health_connect">Koppla klockan via Health Connect för att se steg och vilopuls här.</string>
+    <string name="today_week_trends_title">Senaste veckan</string>
+    <string name="today_energy_hint">Logga mående två dagar för att se energitrenden.</string>
 
     <!-- Mediciner (MEDF-1–5, REC-5, REC-12, REC-13, FAV-1, FAV-3–5, SET-10) -->
     <string name="medicines_prescriptions">Recept och scheman</string>
@@ -641,7 +645,25 @@
     <string name="trends_episode_ended_format">%1$s %2$s – %3$s</string>
     <!-- Trender · Klocka (TRD-11, TRD-15, TRD-16, TRD-20) -->
     <string name="trends_health_missing">Health Connect saknas</string>
-    <string name="trends_health_missing_detail">Klockans data visas när Health Connect är kopplat.</string>
+    <string name="trends_health_missing_detail">Installera Health Connect från Play Butik för att se klockans data.</string>
+    <!-- Health Connect-status och Hälsa idag (HLS-3, HLS-4, HLS-6, HLS-8, HLS-10, HLS-11, HLS-14, TRD-20) -->
+    <string name="health_grant_access">Ge åtkomst</string>
+    <string name="health_install">Installera</string>
+    <string name="health_update">Uppdatera</string>
+    <string name="health_connected">Health Connect kopplad</string>
+    <string name="health_connected_detail">Steg, puls, sömn och sömnkvalitet visas här.</string>
+    <string name="health_not_connected">Health Connect är inte kopplat</string>
+    <string name="health_not_connected_detail">Ge Dagboken läsåtkomst till steg, puls och sömn. Inget sparas – värdena läses när du tittar.</string>
+    <string name="health_update_required">Health Connect behöver uppdateras</string>
+    <string name="health_update_required_detail">Uppdatera Health Connect i Play Butik för att se klockans data.</string>
+    <string name="health_missing_permissions_format">%d saknas</string>
+    <string name="health_today_title">Hälsa idag</string>
+    <string name="health_heart_rate_avg">Snittpuls idag</string>
+    <string name="health_sleep_last_night">Sömn i natt</string>
+    <string name="health_sleep_quality_needs_birth_year">Sömnkvalitet · fyll i födelseår i Profil</string>
+    <string name="health_exercise_today">Träning idag</string>
+    <string name="health_metric_history">Historik längre bak än 30 dagar</string>
+    <string name="value_with_unit_format">%1$s %2$s</string>
     <string name="trends_card_steps">Steg</string>
     <string name="trends_card_heart_rate">Vilopuls</string>
     <string name="trends_card_sleep">Sömn</string>
@@ -651,7 +673,6 @@
     <string name="trends_card_calories">Aktiva kalorier</string>
     <string name="trends_card_distance">Sträcka</string>
     <string name="trends_card_oxygen">Syremättnad</string>
-    <string name="trends_card_blood_pressure">Blodtryck</string>
     <string name="trends_series_heart_rate_avg">Dygnssnitt</string>
     <string name="trends_series_sleep_total">Total</string>
     <string name="trends_series_sleep_deep">Djup</string>
@@ -665,8 +686,6 @@
     <string name="trends_series_sleep_deep_share">Djupsömn</string>
     <string name="trends_series_sleep_rem_share">REM-andel</string>
     <string name="trends_series_sleep_waso">Vaken tid</string>
-    <string name="trends_series_systolic">Systoliskt</string>
-    <string name="trends_series_diastolic">Diastoliskt</string>
     <string name="trends_no_steps_data">Ingen stegdata för vald period.</string>
     <string name="trends_no_heart_rate_data">Ingen pulsdata för vald period.</string>
     <string name="trends_no_sleep_data">Ingen sömndata för vald period.</string>
@@ -676,7 +695,6 @@
     <string name="trends_no_calories_data">Inga kaloridata för vald period.</string>
     <string name="trends_no_distance_data">Ingen sträckdata för vald period.</string>
     <string name="trends_no_oxygen_data">Ingen syremättnadsdata för vald period.</string>
-    <string name="trends_no_blood_pressure_data">Inga blodtrycksmätningar för vald period.</string>
     <!-- Trender · Jämför (TRD-17) -->
     <string name="trends_compare_energy_day">Energi (dag)</string>
     <string name="trends_compare_heart_rate_avg">Dygnssnittspuls</string>
@@ -697,7 +715,6 @@
     <string name="unit_kcal">kcal</string>
     <string name="unit_km">km</string>
     <string name="unit_percent">%</string>
-    <string name="unit_mmhg">mmHg</string>
     <string name="unit_points">poäng</string>
     <string name="unit_scale">skala</string>
 </resources>

@@ -368,6 +368,31 @@ class DiaryComponentsTest {
     }
 
     @Test
+    fun `ett mätvärde med åtgärd skriver den sist och läser den som åtgärd (HLS-14)`() {
+        var clicks = 0
+        show { StatPill(se.partee71.dagboken.R.drawable.ic_lock, "2 saknas", "Träning · Syremättnad", onClick = { clicks++ }, action = "Ge åtkomst") }
+        rule.onNodeWithText("Ge åtkomst").assertIsDisplayed()
+        val pill = rule.onNodeWithText("2 saknas").assert(button).assertHeightIsAtLeast(48.dp)
+        assertEquals("Ge åtkomst", pill.fetchSemanticsNode().config[SemanticsActions.OnClick].label)
+        pill.performClick()
+        assertEquals(1, clicks)
+    }
+
+    @Test
+    fun `StatPill med åtgärd men utan onClick fäller – som NoticeBanner`() {
+        kotlin.test.assertFailsWith<IllegalArgumentException> {
+            show { StatPill(se.partee71.dagboken.R.drawable.ic_lock, "2 saknas", "Träning", action = "Ge åtkomst") }
+        }
+    }
+
+    @Test
+    fun `NoticeBanner med åtgärd men utan onClick fäller också`() {
+        kotlin.test.assertFailsWith<IllegalArgumentException> {
+            show { NoticeBanner("Health Connect saknas", se.partee71.dagboken.R.drawable.ic_watch, onClick = null, action = "Installera") }
+        }
+    }
+
+    @Test
     fun `datum och tid på en rad läses som två fält`() {
         show { DateTimeRow(LocalDate(2026, 10, 4), LocalTime(8, 30), {}, {}) }
         rule.onNodeWithContentDescription("Datum, sön 4 okt 2026").assertIsDisplayed()

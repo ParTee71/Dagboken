@@ -15,3 +15,9 @@ fun datesBetween(from: LocalDate, to: LocalDate): List<LocalDate> {
     if (count <= 0) return emptyList()
     return List(count) { from.plus(it, DateTimeUnit.DAY) }
 }
+
+/**
+ * Dagen som visas (HEM-14): den valda [chosen], eller [today] när ingen är vald (`null`) – aldrig en dag efter idag,
+ * så att ett val står kvar som idag över midnatt. En gång för Idag och klockan på Idag.
+ */
+fun shownDate(chosen: LocalDate?, today: LocalDate): LocalDate = chosen?.takeIf { it <= today } ?: today

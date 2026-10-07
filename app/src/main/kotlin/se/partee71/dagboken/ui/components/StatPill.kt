@@ -29,7 +29,9 @@ import se.partee71.dagboken.ui.theme.Tone
 /**
  * Mätvärde (HLS-6): ikon, värde ("7 842", `R.string.value_missing` "—" när datapunkten saknas – samma tecken överallt) och etikett ("Steg") i en tonad
  * yta ([tone]). Läses som en enhet. Med [onClick] är hela ytan en knapp med minst 48 dp och
- * [onClickLabel] beskriver åtgärden ("Begär åtkomst"); utan är den ren avläsning.
+ * [onClickLabel] beskriver åtgärden ("Begär åtkomst"); utan är den ren avläsning. [action] skriver åtgärden sist
+ * i pillen ("Ge åtkomst", HLS-14) och är då också det TalkBack läser som åtgärd, om inte [onClickLabel] säger annat.
+ * [action] och [onClick] hör ihop, som i `NoticeBanner`: en åtgärd kräver [onClick].
  */
 @Composable
 fun StatPill(
@@ -40,12 +42,14 @@ fun StatPill(
     tone: Tone = Tone.Neutral,
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null,
+    action: String? = null,
 ) {
+    require(action == null || onClick != null) { "StatPill: action kräver onClick" }
     val colors = AppColors.tone(tone)
     val interaction = if (onClick == null) {
         Modifier.semantics(mergeDescendants = true) {}
     } else {
-        Modifier.heightIn(min = TOUCH_TARGET).clickable(onClickLabel = onClickLabel, role = Role.Button, onClick = onClick)
+        Modifier.heightIn(min = TOUCH_TARGET).clickable(onClickLabel = onClickLabel ?: action, role = Role.Button, onClick = onClick)
     }
     Row(
         modifier.clip(AppShapes.row).background(colors.container).then(interaction).padding(horizontal = Spacing.l, vertical = Spacing.m),
@@ -53,9 +57,10 @@ fun StatPill(
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
         Icon(painterResource(icon), contentDescription = null, tint = colors.content, modifier = Modifier.size(IconSize.row))
-        Column {
+        Column(if (action != null) Modifier.weight(1f) else Modifier) {
             Text(value, style = AppTypography.quantity, color = colors.content, maxLines = 1)
             Text(label, style = AppTypography.itemSubtitle, color = colors.content, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        if (action != null) Text(action, style = AppTypography.button, color = colors.content, maxLines = 1)
     }
 }

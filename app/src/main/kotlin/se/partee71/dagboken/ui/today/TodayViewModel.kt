@@ -64,6 +64,7 @@ import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Settings
+import se.partee71.dagboken.core.time.shownDate
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.combineByKey
 import se.partee71.dagboken.data.common.suspendRunCatching
@@ -226,7 +227,7 @@ class TodayViewModel @Inject constructor(
      * (`ensureDay`, HEM-10), också en tidigare dag som aldrig varit "idag". Ingen egen dosgenerering här.
      */
     private val days: Flow<Pair<LocalDate, LocalDate>> = combine(selected, today) { chosen, today ->
-        (chosen?.takeIf { it <= today } ?: today) to today
+        shownDate(chosen, today) to today
     }.distinctUntilChanged().onEach { (date, today) ->
         viewModelScope.launch { suspendRunCatching({ DataError.Unknown }) { prescriptions.ensureDay(date, today) } }
     }

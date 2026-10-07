@@ -107,7 +107,7 @@ sealed interface CompareKey {
 
 /**
  * Klockans valbara serier i Jämför, i menyns ordning (TRD-17): steg, pulserna, sömnlängd, djup, REM,
- * sömnkvalitet, träning, kalorier, sträcka, syremättnad och blodtryckets två. Lätt sömn och vaken tid
+ * sömnkvalitet, träning, kalorier, sträcka och syremättnad. Lätt sömn och vaken tid
  * jämförs inte (som 3.x).
  */
 val WATCH_COMPARE_KEYS: List<CompareKey> = listOf(
@@ -122,8 +122,6 @@ val WATCH_COMPARE_KEYS: List<CompareKey> = listOf(
     CompareKey.Watch(WatchMetric.ACTIVE_CALORIES),
     CompareKey.Watch(WatchMetric.DISTANCE),
     CompareKey.Watch(WatchMetric.OXYGEN_SATURATION),
-    CompareKey.Watch(WatchMetric.SYSTOLIC),
-    CompareKey.Watch(WatchMetric.DIASTOLIC),
 )
 
 /**

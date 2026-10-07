@@ -10,6 +10,7 @@ import se.partee71.dagboken.core.engine.SleepQualityKind
 import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.core.engine.WatchMetric
 import se.partee71.dagboken.core.engine.WatchUnit
+import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OptionKind
@@ -78,8 +79,6 @@ fun WatchMetric.label(): Int = when (this) {
     WatchMetric.ACTIVE_CALORIES -> R.string.trends_card_calories
     WatchMetric.DISTANCE -> R.string.trends_card_distance
     WatchMetric.OXYGEN_SATURATION -> R.string.trends_card_oxygen
-    WatchMetric.SYSTOLIC -> R.string.trends_series_systolic
-    WatchMetric.DIASTOLIC -> R.string.trends_series_diastolic
 }
 
 /** Klockmåttets namn utanför sitt eget diagram (TRD-17): "Dygnssnittspuls", "Sömnlängd", "Djupsömn", "REM-sömn". */
@@ -102,7 +101,6 @@ fun WatchUnit.label(): Int = when (this) {
     WatchUnit.KCAL -> R.string.unit_kcal
     WatchUnit.KM -> R.string.unit_km
     WatchUnit.PERCENT -> R.string.unit_percent
-    WatchUnit.MMHG -> R.string.unit_mmhg
     WatchUnit.POINTS -> R.string.unit_points
     WatchUnit.SCALE -> R.string.unit_scale
 }
@@ -116,6 +114,16 @@ fun SleepQualityKind.label(): Int = when (this) {
     SleepQualityKind.DEEP -> R.string.trends_series_sleep_deep_share
     SleepQualityKind.REM -> R.string.trends_series_sleep_rem_share
     SleepQualityKind.WASO -> R.string.trends_series_sleep_waso
+}
+
+/** Ett valfritt klockmått som kan sakna åtkomst (HLS-14) – samma namn som måttets kort i Klocka. */
+@StringRes
+fun OptionalHealthMetric.label(): Int = when (this) {
+    OptionalHealthMetric.EXERCISE -> R.string.trends_card_exercise
+    OptionalHealthMetric.ACTIVE_ENERGY -> R.string.trends_card_calories
+    OptionalHealthMetric.DISTANCE -> R.string.trends_card_distance
+    OptionalHealthMetric.OXYGEN_SATURATION -> R.string.trends_card_oxygen
+    OptionalHealthMetric.HISTORY -> R.string.health_metric_history
 }
 
 /** Sjukdomsepisodens namn – typen, eller "Sjukdom" utan typ (HEM-12, HIST-9): Idag och Dagbok. */

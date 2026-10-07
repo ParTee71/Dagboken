@@ -22,9 +22,6 @@ data class SleepStages(
     val isEmpty: Boolean get() = deep == null && rem == null && light == null && awake == null
 }
 
-/** En blodtrycksmätning i mmHg (HLS-8). */
-data class BloodPressure(val systolic: Int, val diastolic: Int)
-
 /**
  * Ett dygns hälsodata (HLS-12) – samma mått som Hälsa idag, knutna till ett datum så att de går att rita
  * över tid. Alla mått är nullbara: ett dygn utan mätning ger **ingen** datapunkt, aldrig en nolla – en
@@ -45,14 +42,12 @@ data class DailyHealth(
     val activeEnergyKcal: Double? = null,
     val distanceMeters: Double? = null,
     val oxygenSaturationAvg: Double? = null,
-    val bloodPressure: BloodPressure? = null,
 ) {
     /** Ingen mätning alls det här dygnet – en lucka i varje diagram. */
     val isEmpty: Boolean
         get() = steps == null && restingHeartRate == null && heartRateAvg == null &&
             sleepDuration == null && sleepStages.isEmpty && exerciseDuration == null &&
-            activeEnergyKcal == null && distanceMeters == null && oxygenSaturationAvg == null &&
-            bloodPressure == null
+            activeEnergyKcal == null && distanceMeters == null && oxygenSaturationAvg == null
 }
 
 /**
