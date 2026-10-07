@@ -38,6 +38,7 @@ errorProneAnnotations    = "2.30.0"
 pmd                      = "7.28.0"
 vico                     = "3.3.1"  # diagram (ui/diagram, TRD-6…18); 3.x använde 2.1.3
 coil                     = "3.6.3"  # profilfotot i AccountAvatar (AUTH-3); 3.x använde Coil 2.7.0
+healthConnect            = "1.1.0"  # klockdatan, read-only (TP-10, HLS-1); senaste stabila, samma som 3.x
 
 [libraries]
 androidx-core-ktx                     = { group = "androidx.core",               name = "core-ktx",                          version.ref = "coreKtx" }
@@ -80,6 +81,8 @@ vico-compose                          = { group = "com.patrykandpatrick.vico",  
 # utan diskcache (fotot sparas aldrig på enheten).
 coil-compose                          = { group = "io.coil-kt.coil3",            name = "coil-compose",                      version.ref = "coil" }
 coil-network-okhttp                   = { group = "io.coil-kt.coil3",            name = "coil-network-okhttp",               version.ref = "coil" }
+# Health Connect (TP-10, §19 HLS): bara läsning, bara i data/health – ingen Samsung-partner krävs.
+androidx-health-connect               = { group = "androidx.health.connect",     name = "connect-client",                    version.ref = "healthConnect" }
 # Test
 junit                                 = { group = "junit",                       name = "junit",                             version.ref = "junit" }
 kotlin-test                           = { group = "org.jetbrains.kotlin",        name = "kotlin-test",                       version.ref = "kotlin" }

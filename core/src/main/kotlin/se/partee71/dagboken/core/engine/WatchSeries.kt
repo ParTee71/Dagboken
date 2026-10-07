@@ -89,17 +89,11 @@ fun sleepStagePoints(history: HealthHistory, days: List<LocalDate>): List<Stacke
 /** Nyckeln för sömnkvalitetens totalpoäng; delpoängen har [SleepQualityKind]-namnet som nyckel. */
 const val SLEEP_SCORE_KEY = "SCORE"
 
-/**
- * Sömnkvalitetskortets serier i ordning: poängen först, sedan delpoängen (TRD-15, HLS-10). Regelbundenheten
- * (HLS-13) döljs tills dagshistoriken bär sömnens mittpunkter (#243) – en alltid tom serie vore bara brus.
- */
-val SLEEP_QUALITY_KEYS: List<String> = listOf(SLEEP_SCORE_KEY) + SleepQualityKind.entries.filter { it != SleepQualityKind.REGULARITY }.map { it.name }
+/** Sömnkvalitetskortets serier i ordning: poängen först, sedan de sex delpoängen (TRD-15, HLS-10, HLS-13). */
+val SLEEP_QUALITY_KEYS: List<String> = listOf(SLEEP_SCORE_KEY) + SleepQualityKind.entries.map { it.name }
 
 /**
- * Nätterna i [history] som underlag för sömnkvaliteten (HLS-13): tiden i säng är sömnsessionens längd,
- * vaken tid, djup och REM kommer ur stadierna. Mittpunktens spridning (regelbundenhet) finns inte i
- * dagshistoriken än, så den komponenten faller bort och vikterna normaliseras om (HLS-10). En natt utan
- * sömnlängd är ingen natt.
+ * Nätterna i [history] som underlag för sömnkvaliteten (HLS-13), en per dygn med sömnlängd ([DailyHealth.sleepMeasurements]).
  */
 fun sleepMeasurements(history: HealthHistory): List<NightlySleepMeasurements> =
     history.days.mapNotNull { day -> day.sleepMeasurements()?.let { NightlySleepMeasurements(day.date, it) } }
@@ -109,14 +103,14 @@ fun sleepMeasurements(history: HealthHistory): List<NightlySleepMeasurements> =
  * kommer ur stadierna; `null` utan sömnlängd. Samma underlag för Hälsa idag (en natt) och historiken ([sleepMeasurements]).
  */
 fun DailyHealth.sleepMeasurements(): SleepMeasurements? = sleepDuration?.let { timeInBed ->
-    SleepMeasurements(timeInBed = timeInBed, awake = sleepStages.awake, deep = sleepStages.deep, rem = sleepStages.rem)
+    SleepMeasurements(timeInBed = timeInBed, awake = sleepStages.awake, deep = sleepStages.deep, rem = sleepStages.rem, midpointSdMinutes = sleepMidpointSdMinutes)
 }
 
 /**
  * Sömnpoängen för natten som slutade [date] (Hälsa idag, HLS-10, HLS-11, HLS-13): **samma uträkning** som Trenders
  * sömnkvalitet – [sleepQualitySeries] över [history], sista punkten – så att samma natt aldrig får två poäng.
- * [history] ska sluta med [date] och bör täcka [REGULARITY_WINDOW_NIGHTS] nätter, så att regelbundenheten räknas
- * rullande när dagshistoriken bär mittpunkterna (#243). `null` utan [age] (ingen poäng mot fel norm) och för en natt
+ * [history] ska sluta med [date]; regelbundenheten följer med natten ur dagshistoriken (`DailyHealth.sleepMidpointSdMinutes`,
+ * HLS-13), så historikens längd påverkar inte poängen. `null` utan [age] (ingen poäng mot fel norm) och för en natt
  * som inte går att bedöma.
  */
 fun sleepScoreOn(history: HealthHistory, date: LocalDate, age: Int?, sex: Sex): Int? =

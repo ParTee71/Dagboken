@@ -322,47 +322,41 @@ fun wasoTargetMinutes(age: Int): Double =
  * bort och vikterna normaliseras om).
  */
 fun sleepMidpointSdMinutes(midpoints: List<LocalTime>): Double? {
-    if (midpoints.size < MIN_NIGHTS_FOR_REGULARITY) return null
-
-    val radiansPerMinute = 2.0 * Math.PI / MINUTES_PER_DAY
     var sumSin = 0.0
     var sumCos = 0.0
     midpoints.forEach { time ->
-        val angle = time.toSecondOfDay() / 60.0 * radiansPerMinute
+        val angle = time.dayAngle()
         sumSin += sin(angle)
         sumCos += cos(angle)
     }
-    val resultant = sqrt(sumSin * sumSin + sumCos * sumCos) / midpoints.size
+    return circularSdMinutes(sumSin, sumCos, midpoints.size)
+}
+
+/** Klockslaget som vinkel på dygnscirkeln, i radianer. */
+internal fun LocalTime.dayAngle(): Double = toSecondOfDay() / 60.0 * RADIANS_PER_MINUTE
+
+/**
+ * Den cirkulära spridningen i minuter ur summan av [count] enhetsvektorer ([sumSin], [sumCos]) – en gång för
+ * [sleepMidpointSdMinutes] och det glidande fönstret i `midpointSdByNight`. `null` under [MIN_NIGHTS_FOR_REGULARITY].
+ */
+internal fun circularSdMinutes(sumSin: Double, sumCos: Double, count: Int): Double? {
+    if (count < MIN_NIGHTS_FOR_REGULARITY) return null
+    val resultant = sqrt(sumSin * sumSin + sumCos * sumCos) / count
     // Identiska tidpunkter ger resultant 1.0 (ln 1 = 0); flyttalsbrus kan ge en aning
     // över 1, vilket skulle göra logaritmen positiv och roten odefinierad.
     if (resultant >= 1.0) return 0.0
     if (resultant <= 0.0) return MINUTES_PER_DAY / 4.0
-
-    val circularSdRadians = sqrt(-2.0 * ln(resultant))
-    return circularSdRadians / radiansPerMinute
+    return sqrt(-2.0 * ln(resultant)) / RADIANS_PER_MINUTE
 }
-
-/**
- * Regelbundenheten **per natt** (HLS-13): varje natt bedöms mot spridningen över de
- * [window] nätter som slutar med den natten, i stället för mot ett enda värde för hela
- * perioden. En natt i mars ska inte bedömas mot hur regelbunden sömnen var i augusti.
- *
- * [midpoints] ska vara sorterade äldst → nyast. Element *i* är null när fönstret fram
- * till natt *i* har färre än [MIN_NIGHTS_FOR_REGULARITY] nätter — då faller
- * regelbundenhetskomponenten bort och vikterna normaliseras om (HLS-10).
- */
-fun rollingMidpointSdMinutes(midpoints: List<LocalTime>, window: Int = REGULARITY_WINDOW_NIGHTS): List<Double?> =
-    midpoints.indices.map { i ->
-        sleepMidpointSdMinutes(midpoints.subList(maxOf(0, i - window + 1), i + 1))
-    }
 
 /** Färre nätter än så ger ingen meningsfull spridning. */
 const val MIN_NIGHTS_FOR_REGULARITY = 4
 
-/** Regelbundenheten mäts över så många nätter (HLS-10, HLS-13). */
+/** Regelbundenheten mäts över så många dygn bakåt, natten själv inräknad (HLS-10, HLS-13). */
 const val REGULARITY_WINDOW_NIGHTS = 14
 
 private const val MINUTES_PER_DAY = 1440.0
+private const val RADIANS_PER_MINUTE = 2.0 * Math.PI / MINUTES_PER_DAY
 
 /**
  * Poäng för ett mått med ett målband: 100 inne i bandet, linjär avtrappning ut mot

@@ -51,6 +51,8 @@ import se.partee71.dagboken.core.model.SleepStages
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
+import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
+import se.partee71.dagboken.data.health.FakeHealthPermissions
 import se.partee71.dagboken.data.health.FakeHealthRepository
 import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.data.repository.ActivityRepository
@@ -103,6 +105,7 @@ class TrendsViewModelTest {
     }
 
     private val health = FakeHealthRepository()
+    private val permissions = FakeHealthPermissions()
 
     private fun day(daysAgo: Int) = today.minus(daysAgo, DateTimeUnit.DAY)
 
@@ -142,7 +145,7 @@ class TrendsViewModelTest {
         factory.options().upsert(Option("yrsel", OptionKind.SYMPTOM, "Yrsel")).getOrThrow()
     }
 
-    private fun viewModel() = TrendsViewModel(screenings, activities, events, illnesses, DefaultOptionsRepository(factory), health, DefaultSettingsRepository(factory), clock) { zone }
+    private fun viewModel() = TrendsViewModel(screenings, activities, events, illnesses, DefaultOptionsRepository(factory), health, permissions, DefaultSettingsRepository(factory), clock) { zone }
 
     private fun TestScope.started(): TrendsViewModel {
         val vm = viewModel()
@@ -241,7 +244,7 @@ class TrendsViewModelTest {
 
         var quality = assertIs<CardData.Lines>(vm.card(TrendCard.SLEEP_QUALITY).data)
         assertEquals(SLEEP_QUALITY_KEYS, quality.available.map { it.key })
-        assertFalse(quality.available.any { it.key == "REGULARITY" }, "regelbundenheten döljs tills mittpunkterna finns (#243)")
+        assertTrue(quality.available.any { it.key == "REGULARITY" }, "regelbundenheten är ett valbart delmått (HLS-13)")
         assertEquals(listOf(SLEEP_SCORE_KEY), quality.shown.map { it.key })
         assertTrue(quality.shown.single().points.all { it == null }, "utan födelseår ingen poäng (HLS-11)")
         assertTrue(quality.needsBirthYear, "kortet ber om födelseåret")
@@ -287,6 +290,28 @@ class TrendsViewModelTest {
         vm.onEvent(TrendsEvent.Toggle(TrendCard.HEART_RATE))
         runCurrent()
         assertEquals(2, health.reads.size, "samma läge och period – läsningen delas")
+    }
+
+    @Test
+    fun `när en valfri behörighet ges eller återkallas läses perioden om (HLS-14)`() = runTest(main.dispatcher) {
+        seedHealth()
+        permissions.missingOptional.value = setOf(OptionalHealthMetric.EXERCISE)
+        val vm = started()
+        vm.onEvent(TrendsEvent.Toggle(TrendCard.EXERCISE))
+        runCurrent()
+        assertEquals(1, health.reads.size)
+
+        permissions.missingOptional.value = emptySet()
+        runCurrent()
+        assertEquals(2, health.reads.size, "träningen fick åtkomst – ny läsning")
+
+        permissions.missingOptional.value = emptySet()
+        runCurrent()
+        assertEquals(2, health.reads.size, "samma behörigheter igen – ingen ny läsning")
+
+        permissions.missingOptional.value = setOf(OptionalHealthMetric.EXERCISE)
+        runCurrent()
+        assertEquals(3, health.reads.size, "återkallad – ny läsning")
     }
 
     // ---- Jämför (TRD-17) ----

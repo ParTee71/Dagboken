@@ -8,6 +8,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
+import se.partee71.dagboken.core.engine.REGULARITY_WINDOW_NIGHTS
 import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.core.model.HealthHistory
 import se.partee71.dagboken.core.model.SleepStages
@@ -18,6 +19,24 @@ import se.partee71.dagboken.core.model.SleepStages
 
 /** Syremättnaden mäts under natten och läses över samma fönster som sömnen (HLS-8). */
 val NIGHT_WINDOW: Duration = 24.hours
+
+/**
+ * Fönstren en läsning av perioden [start]…[end] behöver per posttyp (HLS-7, HLS-8, HLS-12, HLS-13) – en gång, så att
+ * källan och dess fejk läser likadant:
+ * - [samples]: puls och vilopuls, bara perioden;
+ * - [lead]: steg, träning, kalorier, sträcka och syremättnad från [NIGHT_WINDOW] före starten – ett pass över periodens
+ *   första midnatt dedupliceras mot sin dubblett, och nattens syre hör till första morgonen;
+ * - [sleep]: sömnen från [REGULARITY_WINDOW_NIGHTS] dygn före starten – natten mot första morgonen, vilopulsens
+ *   sömnfilter och hela regelbundenhetsfönstret för periodens första natt, så att samma natt får samma poäng oavsett
+ *   hur lång period som läses.
+ */
+data class HealthReadWindows(val samples: TimeWindow, val lead: TimeWindow, val sleep: TimeWindow)
+
+fun healthReadWindows(start: Instant, end: Instant): HealthReadWindows = HealthReadWindows(
+    samples = TimeWindow(start, end),
+    lead = TimeWindow(start - NIGHT_WINDOW, end),
+    sleep = TimeWindow(start - NIGHT_WINDOW * REGULARITY_WINDOW_NIGHTS, end),
+)
 
 /** Snittet av syremättnaden i [samples], `null` utan mätningar. */
 fun averageOxygen(samples: List<OxygenSample>): Double? = samples.takeIf { it.isNotEmpty() }?.map { it.percent }?.average()
@@ -36,14 +55,17 @@ fun averageOxygenByDay(samples: List<OxygenSample>, sleep: List<TimeSpan>, zone:
  * Dagshistoriken för [from]…[to] (HLS-12): exakt ett [DailyHealth] per dygn i datumordning, tomt där inget
  * mättes – en lucka, aldrig en nolla. Summerbara mått väljs per källa per dygn (HLS-2, HLS-8), träningspass
  * dedupliceras på tidsöverlapp över hela perioden och fördelas sedan per dygn, vilopulsen tar registrerat värde före skattning (HLS-7) och en
- * natt dateras efter sessionens slut med den längsta sessionen som natten. En post hör annars till dygnet
- * dess starttid faller på i [zone].
+ * natt dateras efter sessionens slut med den längsta sessionen som natten; dess mittpunkt ger regelbundenheten
+ * ([midpointSdByNight], HLS-13), räknad också över nätterna före [from] som [records] har med. En post hör annars till
+ * dygnet dess starttid faller på i [zone]; poster före [from] räknas bara in där de hör till ett dygn i perioden.
  */
 fun healthHistory(records: HealthRecords, from: LocalDate, to: LocalDate, zone: TimeZone): HealthHistory {
     val steps = mostCompleteSumByDay(records.steps, zone)
     val heartRateAvg = averageBpmByDay(records.heartRate, zone)
     val restingHr = restingHeartRateByDay(records.restingHeartRate, records.heartRate, records.sleep, zone)
     val nights = longestNightPerDay(records.sleep, zone)
+    // Regelbundenheten ur alla lästa nätter – också de före perioden (HLS-13, [healthReadWindows]).
+    val regularity = midpointSdByNight(nights.mapValues { (_, night) -> midpointOf(night, zone) })
     val exercise = mostCompleteExerciseByDay(records.exercise, zone)
     val calories = mostCompleteSumByDay(records.calories, zone)
     val distance = mostCompleteSumByDay(records.distance, zone)
@@ -60,6 +82,7 @@ fun healthHistory(records: HealthRecords, from: LocalDate, to: LocalDate, zone: 
             heartRateAvg = heartRateAvg[date],
             sleepDuration = night?.duration?.takeIf { it.isPositive() },
             sleepStages = night?.let { summarizeSleepStages(it.stages) } ?: SleepStages(),
+            sleepMidpointSdMinutes = night?.let { regularity[date] },
             exerciseSessions = exercise[date]?.sessions ?: 0,
             exerciseDuration = exercise[date]?.duration,
             activeEnergyKcal = calories[date],
@@ -83,8 +106,7 @@ fun healthHistory(records: HealthRecords, from: LocalDate, to: LocalDate, zone: 
  * två sessioner ger kortare sömn där än här; syremättnaden räknas där per dygn i stället för över ett
  * glidande fönster. Övriga mått är desamma för ett avslutat dygn.
  *
- * [records] ska läsa sömnen med `from` minus 24 timmar (som [HealthRecords] säger), annars saknas nattens
- * början och vilopulsens sömnfilter. Inget mätt ger ett tomt [DailyHealth].
+ * [records] ska vara lästa över [healthReadWindows], annars saknas nattens början och vilopulsens sömnfilter. Inget mätt ger ett tomt [DailyHealth].
  */
 fun healthDay(records: HealthRecords, date: LocalDate, now: Instant, zone: TimeZone): DailyHealth {
     val dayStart = date.atStartOfDayIn(zone)

@@ -27,8 +27,10 @@ data class SleepStages(
  * över tid. Alla mått är nullbara: ett dygn utan mätning ger **ingen** datapunkt, aldrig en nolla – en
  * nolla vore ett påstående om ett dygn som aldrig mättes och skulle dra ner varje trendlinje.
  *
- * Nattens värden ([sleepDuration], [sleepStages]) hör till det dygn sömnen **slutade** – en natt över
- * midnatt hamnar på morgonens datum (HLS-12).
+ * Nattens värden ([sleepDuration], [sleepStages], [sleepMidpointSdMinutes]) hör till det dygn sömnen **slutade** – en
+ * natt över midnatt hamnar på morgonens datum (HLS-12). [sleepMidpointSdMinutes] är sömnens regelbundenhet för natten:
+ * spridningen i mittpunkten över de 14 dygn som slutar med den (HLS-10, HLS-13); `null` utan natt eller med för få
+ * nätter i fönstret.
  */
 data class DailyHealth(
     val date: LocalDate,
@@ -37,6 +39,7 @@ data class DailyHealth(
     val heartRateAvg: Long? = null,
     val sleepDuration: Duration? = null,
     val sleepStages: SleepStages = SleepStages(),
+    val sleepMidpointSdMinutes: Double? = null,
     val exerciseSessions: Int = 0,
     val exerciseDuration: Duration? = null,
     val activeEnergyKcal: Double? = null,

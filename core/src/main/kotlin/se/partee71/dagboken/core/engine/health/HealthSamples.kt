@@ -126,8 +126,8 @@ data class SleepSession(
 
 /**
  * Allt som lästs för en period, en lista per posttyp (HLS-12: varje typ läses **en gång** över perioden och
- * fördelas per dygn i efterhand). En typ utan behörighet (HLS-8) är bara en tom lista. Sömnen bör läsas med
- * startgränsen ett dygn bakåt, så att en session som korsar periodens första midnatt kommer med (HLS-7).
+ * fördelas per dygn i efterhand). En typ utan behörighet (HLS-8) är bara en tom lista. Varje typ läses över sitt fönster
+ * i `healthReadWindows` – sömnen och de summerbara typerna en bit före perioden (HLS-7, HLS-13).
  */
 data class HealthRecords(
     val steps: List<StepSample> = emptyList(),

@@ -223,4 +223,29 @@ class HealthDaysTest {
     @Test fun `a day without anything is empty`() {
         assertEquals(DailyHealth(mar28), healthDay(HealthRecords(), mar28, now, STOCKHOLM))
     }
+
+    @Test fun `regularity uses the nights read before the period, so every period gives the same value`() {
+        // Tjugo nätter 23:00–07:00 med mittpunkten växlande 03:00/03:30; perioderna "vecka" och "månad" ur samma poster.
+        val sleep = (1..20).map { day ->
+            val shift = if (day % 2 == 0) "30" else "00"
+            sleep("2026-08-%02dT23:%s".format(day, shift), "2026-08-%02dT07:%s".format(day + 1, shift))
+        }
+        val records = HealthRecords(sleep = sleep)
+        val to = LocalDate(2026, 8, 21)
+        val week = healthHistory(records, LocalDate(2026, 8, 15), to, STOCKHOLM)
+        val month = healthHistory(records, LocalDate(2026, 7, 22), to, STOCKHOLM)
+        val weekFirst = week.days.first()
+        assertTrue("veckans första natt har sitt fönster ur nätterna före veckan", weekFirst.sleepMidpointSdMinutes != null)
+        assertEquals(week.days.map { it.sleepMidpointSdMinutes }, month.days.takeLast(7).map { it.sleepMidpointSdMinutes })
+        assertNull("en dag utan natt har ingen regelbundenhet", month.days.first().sleepMidpointSdMinutes)
+    }
+
+    @Test fun `the read windows reach a night before the period and the whole regularity window for sleep`() {
+        val start = at(mar28, "00:00")
+        val windows = healthReadWindows(start, start + 10.hours)
+        assertEquals(start, windows.samples.start)
+        assertEquals(start - 24.hours, windows.lead.start)
+        assertEquals(start - 24.hours * 14, windows.sleep.start)
+        assertEquals(listOf(start + 10.hours), listOf(windows.samples, windows.lead, windows.sleep).map { it.end }.distinct())
+    }
 }

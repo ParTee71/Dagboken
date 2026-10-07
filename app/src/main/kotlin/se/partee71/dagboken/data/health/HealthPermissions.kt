@@ -8,8 +8,7 @@ import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 /**
  * Behörighetsflödet mot Health Connect (HLS-3, HLS-4, HLS-14) som port: skärmarna skickar bara en händelse
  * ("Ge åtkomst", "Installera"/"Uppdatera"), och porten äger aktivitetens launcher och Health Connects
- * behörighetsnamn. Den riktiga porten kommer med Health Connect (#243); tills dess är
- * [UnavailableHealthPermissions] bunden, och i test en fejk.
+ * behörighetsnamn. Bunden till [HealthPermissionsImpl] (Health Connect, #243); i test en fejk.
  */
 interface HealthPermissions {
     /**
@@ -26,8 +25,8 @@ interface HealthPermissions {
 }
 
 /**
- * Standardbindningen tills porten finns (#243): behörighetsläget går inte att läsa och åtgärderna gör ingenting –
- * klockan är ändå [HealthStatus.UNAVAILABLE] (`UnavailableHealthRepository`).
+ * Porten utan Health Connect, för test och förhandsvisningar: behörighetsläget går inte att läsa och åtgärderna gör
+ * ingenting – klockan är ändå [HealthStatus.UNAVAILABLE] (`UnavailableHealthRepository`).
  */
 class UnavailableHealthPermissions @Inject constructor() : HealthPermissions {
     override val missingOptional: Flow<Set<OptionalHealthMetric>?> = flowOf(null)

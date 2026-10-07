@@ -1,17 +1,22 @@
 package se.partee71.dagboken.core.engine.health
 
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.time.Duration
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.core.engine.REGULARITY_WINDOW_NIGHTS
-import se.partee71.dagboken.core.engine.rollingMidpointSdMinutes
+import se.partee71.dagboken.core.engine.circularSdMinutes
+import se.partee71.dagboken.core.engine.dayAngle
 import se.partee71.dagboken.core.model.SleepStages
 
 // Sömnen (HLS-8, HLS-12, HLS-13) – portad från 3.x `HealthConnectRepository.kt` (`summarizeSleepStages`,
-// `longestNightPerDay`, `nightlyMidpoints`, `midpointOf`) utan SDK-typer. Spridningen i mittpunkterna räknas
-// av `SleepQuality.kt` (`sleepMidpointSdMinutes`, `rollingMidpointSdMinutes`); här tas bara mittpunkterna fram.
+// `longestNightPerDay`, `nightlyMidpoints`, `midpointOf`) utan SDK-typer. Spridningen räknas cirkulärt i
+// `SleepQuality.kt` (`circularSdMinutes`); här det glidande fönstret per natt (`midpointSdByNight`).
 
 /**
  * Nattens stadier per kategori (HLS-8): djup, REM, lätt och vaken. [SleepStageType.SLEEPING] (ospecificerad
@@ -54,15 +59,29 @@ fun nightlyMidpoints(sessions: List<SleepSession>, zone: TimeZone): Map<LocalDat
     longestNightPerDay(sessions, zone).mapValues { (_, night) -> midpointOf(night, zone) }
 
 /**
- * Regelbundenheten **per natt** (HLS-13): spridningen i mittpunkten över de [window] nätter som slutar med
- * natten, räknad av [rollingMidpointSdMinutes]. `null` för en natt vars fönster har för få nätter – då faller
- * komponenten bort och vikterna normaliseras om (HLS-10).
+ * Regelbundenheten per natt (HLS-10, HLS-13): varje natt i [midpoints] får spridningen i mittpunkten över nätterna
+ * inom de [days] **dygn** som slutar med den – ett glidande fönster, linjärt i antalet nätter. Fönstret räknas i dygn
+ * och inte i antal nätter, så att samma natt får samma värde oavsett hur långt bakåt historiken lästs (Hälsa idag och
+ * Trenders perioder läser alla [days] − 1 dygn sömn före sin första dag, se [healthReadWindows]). För få nätter i
+ * fönstret ger `null` – då faller komponenten bort och vikterna normaliseras om.
  */
-fun nightlyMidpointSdMinutes(
-    sessions: List<SleepSession>,
-    zone: TimeZone,
-    window: Int = REGULARITY_WINDOW_NIGHTS,
-): Map<LocalDate, Double?> {
-    val midpoints = nightlyMidpoints(sessions, zone)
-    return midpoints.keys.zip(rollingMidpointSdMinutes(midpoints.values.toList(), window)).toMap()
+fun midpointSdByNight(midpoints: Map<LocalDate, LocalTime>, days: Int = REGULARITY_WINDOW_NIGHTS): Map<LocalDate, Double?> {
+    val nights = midpoints.entries.sortedBy { it.key }.map { (date, time) -> date to time.dayAngle() }
+    val result = LinkedHashMap<LocalDate, Double?>(nights.size)
+    var first = 0
+    var sumSin = 0.0
+    var sumCos = 0.0
+    for ((last, night) in nights.withIndex()) {
+        val (date, angle) = night
+        sumSin += sin(angle)
+        sumCos += cos(angle)
+        val windowStart = date.minus(days - 1, DateTimeUnit.DAY)
+        while (nights[first].first < windowStart) {
+            sumSin -= sin(nights[first].second)
+            sumCos -= cos(nights[first].second)
+            first++
+        }
+        result[date] = circularSdMinutes(sumSin, sumCos, last - first + 1)
+    }
+    return result
 }
