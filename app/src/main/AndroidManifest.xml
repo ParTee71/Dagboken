@@ -8,6 +8,26 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Health Connect (TP-10, §19 HLS): bara läsbehörigheter, med samtycke i Health Connects dialog. Uppsättningen
+         står en gång i kod (HealthPermissionSet); PrivacyManifestTest håller manifestet lika. Inget blodtryck (4.0). -->
+    <!-- Kärnan (HLS-3): utan dem visar klockan inget. -->
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <!-- Valfria (HLS-8, HLS-14): en nekad behörighet ger bara en lucka i sitt mått. -->
+    <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_DISTANCE" />
+    <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION" />
+    <!-- Historik (HLS-9): utan den lämnar Health Connect bara ut 30 dagar bakåt. -->
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
+
+    <!-- Paketsynlighet (Android 11+): appen ska kunna se om Health Connect finns (HLS-4). -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+
     <application
         android:name=".DagbokenApplication"
         android:allowBackup="false"
@@ -29,7 +49,25 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Health Connects rationale-handler för Android 13 och äldre (HLS-3): utan den visas ingen samtyckesdialog.
+                 Avsiktet bär inga data som appen läser – den öppnar bara appen. -->
+            <intent-filter>
+                <action android:name="androidx.health.connect.action.SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
         </activity>
+
+        <!-- Samma handler för Android 14 och senare (HLS-3): exporterad, men bara systemet har START_VIEW_PERMISSION_USAGE
+             (skill android-intent-security). -->
+        <activity-alias
+            android:name=".ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- Påminnelserna (TP-8, NOT-2…NOT-14): ingen mottagare är exporterad. Larm och notisåtgärder når dem via
              appens egna explicita, oföränderliga PendingIntents; systemets broadcasts nedan är skyddade och

@@ -87,12 +87,12 @@ class WatchSeriesTest {
         val night = nights.first().measurements
         assertEquals(7.hours + 30.minutes, night.timeInBed)
         assertEquals(45.minutes, night.awake)
-        assertNull(night.midpointSdMinutes, "mittpunkten finns inte i dagshistoriken – regelbundenheten faller bort")
+        assertNull(night.midpointSdMinutes, "utan mittpunkter i dagshistoriken faller regelbundenheten bort")
 
         val series = sleepQualitySeries(history, age = 50, sex = Sex.MALE, days = days)
         assertEquals(SLEEP_QUALITY_KEYS, series.map { it.key })
-        assertEquals(SleepQualityKind.entries.size, series.size, "poängen och fem delpoäng")
-        assertTrue("REGULARITY" !in SLEEP_QUALITY_KEYS, "regelbundenheten döljs tills mittpunkterna finns (#243)")
+        assertEquals(SleepQualityKind.entries.size + 1, series.size, "poängen och sex delpoäng")
+        assertTrue("REGULARITY" in SLEEP_QUALITY_KEYS, "regelbundenheten visas när dagshistoriken bär mittpunkterna (#243)")
         assertEquals(listOf(SLEEP_SCORE_KEY), sleepQualitySeries(history, 50, Sex.MALE, days, listOf(SLEEP_SCORE_KEY)).map { it.key })
         assertEquals(emptyList(), sleepQualitySeries(history, 50, Sex.MALE, days, emptyList()))
         val expected = scoreSleepQuality(night, 50, Sex.MALE)
@@ -121,5 +121,14 @@ class WatchSeriesTest {
         assertEquals(TrendRange.MONTH.days(today), TrendRange.MONTH.cappedDays(today))
         assertEquals(TrendRange.MONTH.readFrom(today, true), TrendRange.MONTH.cappedReadFrom(today, true))
         assertEquals(TrendRange.SEVEN_DAYS.from(today), TrendRange.SEVEN_DAYS.cappedReadFrom(today, false))
+    }
+
+    @Test
+    fun `nattens regelbundenhet ur dagshistoriken går in i sömnkvaliteten (HLS-13)`() {
+        val regular = full.copy(sleepMidpointSdMinutes = 12.0)
+        val nights = sleepMeasurements(HealthHistory.of(full.date, full.date, mapOf(full.date to regular)))
+        assertEquals(12.0, nights.single().measurements.midpointSdMinutes)
+        val quality = assertNotNull(scoreSleepQuality(nights.single().measurements, 50, Sex.MALE))
+        assertTrue(quality.components.any { it.kind == SleepQualityKind.REGULARITY })
     }
 }

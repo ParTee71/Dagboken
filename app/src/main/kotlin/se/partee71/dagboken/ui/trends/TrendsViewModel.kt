@@ -65,8 +65,8 @@ import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.data.common.combineByKey
 import se.partee71.dagboken.data.common.withFallback
+import se.partee71.dagboken.data.health.HealthPermissions
 import se.partee71.dagboken.data.health.HealthRepository
-import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.data.health.observedStatus
 import se.partee71.dagboken.data.repository.ActivityRepository
 import se.partee71.dagboken.data.repository.EventRepository
@@ -241,6 +241,7 @@ class TrendsViewModel @Inject constructor(
     private val illnesses: IllnessRepository,
     options: OptionsRepository,
     private val health: HealthRepository,
+    permissions: HealthPermissions,
     settings: SettingsRepository,
     clock: Clock,
     private val zone: Provider<TimeZone>,
@@ -260,8 +261,13 @@ class TrendsViewModel @Inject constructor(
     /** Profilen för sömnkvalitetens åldersnormer (HLS-11); utan födelseår blir varje natt en lucka. */
     private val profile: Flow<Profile> = settings.settings.withFallback(Settings()).map { it.profile }.distinctUntilChanged()
 
-    /** Klockans läge (HLS-4) – bara för att läsa om klockkorten när det ändras; skärmen visar `ClockViewModel`s läge. */
-    private val healthStatus: Flow<HealthStatus?> = health.observedStatus()
+    /**
+     * Klockans läge och de valfria mått som saknar åtkomst (HLS-4, HLS-14) – bara för att läsa om klockkorten när något
+     * av dem ändras (behörighet given eller återkallad i Health Connect); skärmen visar `ClockViewModel`s läge.
+     */
+    private val healthAccess: Flow<String> =
+        combine(health.observedStatus(), permissions.missingOptional.withFallback(null)) { status, missing -> "$status:${missing?.sorted()}" }
+            .distinctUntilChanged()
 
     /**
      * Delade läsningar per källa och intervall – två kort med samma period läser en gång, och ett kort som byter
@@ -285,12 +291,14 @@ class TrendsViewModel @Inject constructor(
 
     /**
      * Klockans dagshistorik för perioden (HLS-12), **en** läsning som delas av alla klockkort och Jämför med samma
-     * period (TRD-15); utan Health Connect bara luckor. Läsningen är nycklad på klockans läge: blir Health Connect
-     * tillgängligt (eller behörigheten given) läses perioden om och öppna kort fylls på – också efter ett fel som
+     * period (TRD-15); utan Health Connect bara luckor. Läsningen är nycklad på klockans läge och de valfria
+     * behörigheterna: blir Health Connect tillgängligt (eller en behörighet given eller återkallad) läses perioden om och öppna kort fylls på – också efter ett fel som
      * annars vore bestående. Inget sparas (HLS-5).
      */
-    private fun health(from: LocalDate, to: LocalDate): Flow<HealthHistory> = healthStatus.flatMapLatest { status ->
-        shared("health:$status", from..to, HealthHistory.empty(from, to)) { flow { emit(health.history(from, to).getOrThrow()) } }
+    private fun health(from: LocalDate, to: LocalDate): Flow<HealthHistory> = healthAccess.flatMapLatest { access ->
+        // En läsning för ett tidigare läge är inaktuell: tillbaka till samma läge ska läsa om, inte visa den gamla.
+        reads.keys.removeAll { (source, _) -> source.startsWith(HEALTH_READ) && source != "$HEALTH_READ$access" }
+        shared("$HEALTH_READ$access", from..to, HealthHistory.empty(from, to)) { flow { emit(health.history(from, to).getOrThrow()) } }
     }
 
     /**
@@ -424,3 +432,6 @@ class TrendsViewModel @Inject constructor(
         val sharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS, replayExpirationMillis = 0)
     }
 }
+
+/** Nyckelprefixet för klockans läsningar i Trenders cache. */
+private const val HEALTH_READ = "health:"

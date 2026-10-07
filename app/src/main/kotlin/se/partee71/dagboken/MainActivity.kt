@@ -21,6 +21,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import se.partee71.dagboken.data.health.HealthPermissionsImpl
 import se.partee71.dagboken.reminders.NotificationHelper
 import se.partee71.dagboken.reminders.ReminderLaunch
 import se.partee71.dagboken.reminders.ReminderSync
@@ -36,6 +37,7 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var reminderSync: ReminderSync
     @Inject lateinit var notifications: NotificationHelper
+    @Inject lateinit var healthPermissions: HealthPermissionsImpl
 
     /** Vad en tryckt påminnelse ska öppna (NOT-9, NOT-11, NOT-12) tills navigationen tagit hand om det. */
     private val launch = MutableStateFlow<ReminderLaunch?>(null)
@@ -48,6 +50,8 @@ class MainActivity : ComponentActivity() {
         // Påminnelserna (NOT-1, NOT-7): kanalerna finns före första notisen, och larmen följer cachen medan appen kör.
         notifications.createChannels()
         reminderSync.start()
+        // Health Connects samtyckesdialog registreras före STARTED; läget läses om när appen kommer tillbaka (HLS-3, HLS-4).
+        healthPermissions.attach(this)
         // Ny start: notisens önskan, en gång (från Senaste spelas den inte upp igen). Ombyggd: den som ännu inte hanterats.
         launch.value = if (savedInstanceState == null) {
             ReminderLaunch.consume(intent)?.also(notifications::dismiss)

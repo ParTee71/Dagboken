@@ -10,7 +10,9 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import se.partee71.dagboken.core.engine.health.midpointSdByNight
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalTime
 
@@ -27,8 +29,14 @@ class NightlySleepHistoryTest {
 
     // ─── Rullande regelbundenhet ──────────────────────────────────────────────
 
+    private val night0 = LocalDate(2026, 3, 1)
+
+    /** [midpoints] som nätter i följd från [night0], genom `midpointSdByNight` – i följd är dygn och nätter samma fönster. */
+    private fun rolling(midpoints: List<LocalTime>, days: Int = REGULARITY_WINDOW_NIGHTS): List<Double?> =
+        midpointSdByNight(midpoints.mapIndexed { i, time -> night0.plus(DatePeriod(days = i)) to time }.toMap(), days).values.toList()
+
     @Test fun `the first nights have no regularity until the window has enough of them`() {
-        val sd = rollingMidpointSdMinutes(List(6) { midnightish(0) }, window)
+        val sd = rolling(List(6) { midnightish(0) }, window)
         // MIN_NIGHTS_FOR_REGULARITY = 4 → de tre första fönstren är för korta.
         assertNull(sd[0])
         assertNull(sd[1])
@@ -37,7 +45,7 @@ class NightlySleepHistoryTest {
     }
 
     @Test fun `identical midpoints give zero spread`() {
-        val sd = rollingMidpointSdMinutes(List(8) { midnightish(0) }, window)
+        val sd = rolling(List(8) { midnightish(0) }, window)
         assertEquals(0.0, sd.last()!!, 0.001)
     }
 
@@ -46,7 +54,7 @@ class NightlySleepHistoryTest {
         // som regelbunden, trots att perioden som helhet inte är det.
         val midpoints = listOf(-180L, 200L, -150L, 240L).map { midnightish(it) } +
             List(window) { midnightish(0) }
-        val sd = rollingMidpointSdMinutes(midpoints, window)
+        val sd = rolling(midpoints, window)
 
         assertTrue("Den spretiga inledningen ska ge stor spridning", sd[3]!! > 60.0)
         assertEquals("Sista fönstret är fjorton identiska nätter", 0.0, sd.last()!!, 0.001)
@@ -54,13 +62,13 @@ class NightlySleepHistoryTest {
 
     @Test fun `the window never looks further back than its length`() {
         val midpoints = List(window) { midnightish(0) } + listOf(midnightish(300))
-        val sd = rollingMidpointSdMinutes(midpoints, window)
+        val sd = rolling(midpoints, window)
         // Sista fönstret innehåller tretton identiska nätter plus den avvikande.
         assertTrue(sd.last()!! > 0.0)
     }
 
     @Test fun `an empty list gives no values`() {
-        assertTrue(rollingMidpointSdMinutes(emptyList(), window).isEmpty())
+        assertTrue(rolling(emptyList(), window).isEmpty())
     }
 
     // ─── Poäng per natt ───────────────────────────────────────────────────────
@@ -114,8 +122,27 @@ class NightlySleepHistoryTest {
         assertEquals(nights.map { it.date }, scored.map { it.date })
     }
 
-    @Test fun `the default window is the fourteen nights of HLS-10`() {
+    @Test fun `the default window is the fourteen days of HLS-10`() {
         val midpoints = List(window) { midnightish(0) } + listOf(midnightish(300))
-        assertEquals(rollingMidpointSdMinutes(midpoints, window), rollingMidpointSdMinutes(midpoints))
+        assertEquals(rolling(midpoints, window), rolling(midpoints))
+    }
+
+    @Test fun `the window counts days, not nights - a gap leaves older nights outside`() {
+        // Fyra nätter, elva dygn utan klocka, sedan en natt: dess fönster (14 dygn) når bara de två senaste av de fyra.
+        val dates = listOf(0, 1, 2, 3, 15).map { night0.plus(DatePeriod(days = it)) }
+        val sd = midpointSdByNight(dates.associateWith { midnightish(0) })
+        assertNotNull(sd[dates[3]])
+        assertNull("bara tre nätter inom fjorton dygn", sd[dates[4]])
+    }
+
+    @Test fun `the sliding window gives the same spread as recounting every window`() {
+        val dates = (0 until 60).filter { it % 7 != 3 }.map { night0.plus(DatePeriod(days = it)) }
+        val midpoints = dates.mapIndexed { i, date -> date to midnightish(((i * 37) % 120 - 60).toLong()) }.toMap()
+        val sliding = midpointSdByNight(midpoints)
+        midpoints.keys.forEach { night ->
+            val first = night.minus(DatePeriod(days = REGULARITY_WINDOW_NIGHTS - 1))
+            val expected = sleepMidpointSdMinutes(midpoints.filterKeys { it in first..night }.values.toList())
+            if (expected == null) assertNull(sliding[night]) else assertEquals(expected, sliding[night]!!, 1e-6)
+        }
     }
 }

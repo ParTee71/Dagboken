@@ -129,6 +129,7 @@ dependencies {
     implementation(libs.vico.compose) // diagram, bara i ui/diagram (TRD-10 zoom/panorering)
     implementation(libs.coil.compose) // profilfotot i AccountAvatar (AUTH-3)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.androidx.health.connect) // klockdatan, read-only (TP-10, HLS-1), bara i data/health
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)

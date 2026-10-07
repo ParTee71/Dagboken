@@ -64,7 +64,7 @@ class NightlyMidpointsTest {
 
     @Test fun `regularity is rolling per night and needs four nights`() {
         val nights = (1..5).map { day -> sleep("2026-08-%02dT23:00".format(day), "2026-08-%02dT07:00".format(day + 1)) }
-        val sd = nightlyMidpointSdMinutes(nights, STOCKHOLM)
+        val sd = midpointSdByNight(nightlyMidpoints(nights, STOCKHOLM))
         assertEquals((2..6).map { LocalDate(2026, 8, it) }, sd.keys.toList())
         assertNull(sd[LocalDate(2026, 8, 4)])
         assertNotNull(sd[LocalDate(2026, 8, 5)])
