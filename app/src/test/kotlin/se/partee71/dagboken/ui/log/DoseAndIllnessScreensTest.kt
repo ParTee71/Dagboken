@@ -227,7 +227,7 @@ class DoseAndIllnessScreensTest {
 
     @Test
     fun `en ny episod uppfyller redigeringskontraktet – typen krävs (SJ-1, NFR-10)`() {
-        val editor = EditorState(start, episodeStartValidator)
+        val editor = EditorState(start, episodeStartValidator { day })
         rule.runEditScreenContract(
             editor,
             makeInvalid = { update(IllnessField.TYPE) { it.copy(episode = it.episode.copy(type = "")) } },
@@ -236,6 +236,31 @@ class DoseAndIllnessScreensTest {
         ) { state, effects, onSave, onClose ->
             EpisodeNewScreen(EntryForm(true, state, effects, { if (it == EntryEditEvent.Save) onSave() }), onClose, symptoms)
         }
+    }
+
+    @Test
+    fun `en episod uppfyller redigeringskontraktet – typen krävs (SJ-12, NFR-10)`() {
+        val editor = EditorState(flu, episodeValidator { day })
+        editor.load(flu)
+        rule.runEditScreenContract(
+            editor,
+            makeInvalid = { update(IllnessField.TYPE) { it.copy(type = " ") } },
+            makeValid = { update(IllnessField.TYPE) { it.copy(type = "Influensa") } },
+            invalidMessage = "Ange vilken sjukdom",
+        ) { state, effects, onSave, onClose ->
+            EpisodeEditScreen(EntryForm(false, state, effects, { if (it == EntryEditEvent.Save) onSave() }, flu), onClose)
+        }
+    }
+
+    @Test
+    fun `episodens formulär har typ, startdatum och anteckning men ingen incheckning (SJ-8, SJ-12)`() {
+        rule.setContent { DagbokenTheme { EpisodeEditScreen(form(flu.copy(note = "Halsen"), isNew = false, stored = flu), {}) } }
+        rule.onNodeWithText("Redigera sjukdomsepisod").assertIsDisplayed()
+        rule.onNodeWithText("Förkylning").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Startdatum", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("Halsen").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Svårighetsgrad").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Fler val").assertDoesNotExist()
     }
 
     @Test
@@ -310,6 +335,11 @@ class DoseAndIllnessScreensTest {
     @Test
     fun `skärmdump - ny sjukdomsepisod`() = rule.captureLightAndDark("Log_sjukdom_ny") {
         EpisodeNewScreen(form(start.copy(checkin = start.checkin.copy(symptoms = listOf(SymptomScore("throat", 6))))), {}, symptoms)
+    }
+
+    @Test
+    fun `skärmdump - redigera sjukdomsepisod`() = rule.captureLightAndDark("Log_sjukdom_redigera") {
+        EpisodeEditScreen(form(flu.copy(note = "Började efter jobbresan."), isNew = false, stored = flu), {})
     }
 
     @Test

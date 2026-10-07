@@ -54,7 +54,6 @@ import se.partee71.dagboken.ui.components.IconButtonVariant
 import se.partee71.dagboken.ui.components.InfoPill
 import se.partee71.dagboken.ui.components.ListArchive
 import se.partee71.dagboken.ui.components.ListGroup
-import se.partee71.dagboken.ui.components.UpcomingScreen
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
@@ -294,7 +293,8 @@ private fun EntryCard(row: DiaryRow.Entry, onEvent: (DiaryEvent) -> Unit, onOpen
 
 /**
  * HIST-5: postens typ i bekräftelsen ("Incheckningen för %1$s, %2$s", `entryDeleteAction`).
- * `null` för det som inte tas bort i Dagbok (episodens start och slut, SJ-9).
+ * `null` för det som inte tas bort i Dagbok: episodens start och slut – episoden raderas med sina incheckningar i
+ * sjukdomsdetaljen (SJ-9).
  */
 private fun deleteFormat(entry: DiaryEntry): Int? = when (entry) {
     is DiaryEntry.Mood -> R.string.diary_subject_screening
@@ -303,19 +303,4 @@ private fun deleteFormat(entry: DiaryEntry): Int? = when (entry) {
     is DiaryEntry.Happening -> R.string.diary_subject_event
     is DiaryEntry.CheckIn -> R.string.diary_subject_checkin
     is DiaryEntry.EpisodeStart, is DiaryEntry.EpisodeEnd -> null
-}
-
-/**
- * Platshållaren när en episods start eller slut öppnas (HIST-3, HIST-9), tills sjukdomsdetaljen (#240) finns: samma
- * lilla topprad med tillbakapil som de andra underskärmarna.
- */
-@Composable
-fun EpisodePlaceholder(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    UpcomingScreen(
-        stringResource(R.string.log_illness),
-        R.drawable.ic_thermometer,
-        stringResource(R.string.diary_episode_upcoming),
-        modifier,
-        onBack = onBack,
-    )
 }

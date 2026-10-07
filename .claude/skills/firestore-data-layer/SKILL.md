@@ -198,6 +198,14 @@ cachen och synkas när nätet finns; larmen schemaläggs om vid synk, omstart oc
 - **Incheckningar** skrivs bara under en episod som finns efter skrivningen (`existsAfter`); en
   batch får slå upp högst 20 befintliga episoder (episoder som skapas i samma batch räknas inte), så
   importen skriver episoderna med sina incheckningar eller delar upp per högst 20 episoder.
+- **Kaskadradering av en förälder med undersamling** (episod → `checkins`, SJ-9): `IllnessRepository.deleteEpisode`
+  är mönstret – `awaitWrites` → barnen ur `confirmed()` (serverns lista, aldrig cachens) → `batch(deletes)` i bitar
+  om 500 → `awaitWrites` → läs om, tills listan är tom (högst `MAX_CASCADE_ROUNDS` varv) → föräldern sist. Kräver nät
+  (offline `Offline`, inget raderas); antalet i bekräftelsen läses likadant (`checkinCount`). Ett avbrott lämnar
+  föräldern med en del av barnen, och `existsAfter` hindrar nya barn efteråt. Omläsningen **krymper** fönstret men
+  stänger det inte (det kräver en transaktion över undersamlingen): ett barn från en annan enhet i sista
+  millisekunden kan bli kvar utan förälder och fångas av exporten. Testas med avbruten batch, barn mellan varven och
+  taket mot `FakeCollection` (`IllnessRepositoryTest`), i `CollectionContract` och i rules-testet.
 - Ny samling = ny `match` med `valid…`-funktion + rules-test + rad i `collections.mjs` i samma PR.
 - **Storlek (TP-12):** text via `nullOrShort`/`nullOrLong` (tak `maxShort()`/`maxLong()` = `TextLimits`
   i `:core`, 200/5 000, hålls lika av `schema.test.mjs`), listor med tak, antal fält via `fieldCount` –

@@ -18,18 +18,22 @@ import org.junit.Rule
 import org.junit.Test
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Identified
+import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Repeat
 import se.partee71.dagboken.core.model.Schedule
+import se.partee71.dagboken.core.schema.CheckinCodec
 import se.partee71.dagboken.core.schema.Doc
 import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.DoseCodec
+import se.partee71.dagboken.core.schema.IllnessEpisodeCodec
 import se.partee71.dagboken.core.schema.OptionCodec
 import se.partee71.dagboken.core.schema.PrescriptionCodec
 import se.partee71.dagboken.core.schema.PrnMedicineCodec
@@ -565,6 +569,27 @@ abstract class CollectionContract {
         val many = List(501) { PrnMedicine("m%03d".format(it), "Medicin $it") }
         medicines.batch(many).getOrThrow()
         assertEquals(501, medicines.observe().awaitMatching { it.size == 501 }.size)
+    }
+
+    /**
+     * Sjukdomsdetaljens kaskad (SJ-9, `IllnessRepository.deleteEpisode`): en undersamling med fler än 500 dokument
+     * skrivs under sin förälder (rules `existsAfter`) och raderas i bitar om 500 före föräldern – mot riktig Firestore
+     * med rules aktiva.
+     */
+    @Test
+    fun undersamling_over_500_raderas_fore_foraldern() = contract {
+        val episodes = env.collection(IllnessEpisodeCodec, Paths.ILLNESS_EPISODES) { uid -> Paths.illnessEpisodes(uid ?: throw DataError.NotSignedIn) }
+        val checkins = env.collection(CheckinCodec, Paths.CHECKINS) { uid -> Paths.checkins(uid ?: throw DataError.NotSignedIn, "flu") }
+        val ids = List(501) { "c%03d".format(it) }
+        episodes.upsert(IllnessEpisode("flu", "Förkylning", LocalDate(2026, 10, 1))).getOrThrow()
+        checkins.batch(ids.map { Checkin(it, LocalDate(2026, 10, 1), severity = it.takeLast(1).toInt()) }).getOrThrow()
+        checkins.observe().awaitMatching { it.size == 501 }
+
+        checkins.batch(emptyList(), deletes = ids).getOrThrow()
+        checkins.observe().awaitMatching { it.isEmpty() }
+        episodes.delete("flu").getOrThrow()
+        assertNull(episodes.observe("flu").awaitMatching { it == null })
+        assertNull(env.readRaw(Paths.checkins(env.uid, "flu"), "c500"))
     }
 
     @Test

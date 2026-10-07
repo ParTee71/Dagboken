@@ -27,10 +27,11 @@ import se.partee71.dagboken.ui.components.LogChoice
 import se.partee71.dagboken.ui.components.LogMenuSheet
 import se.partee71.dagboken.ui.components.SettingsPage
 import se.partee71.dagboken.ui.diary.DiaryRoute
-import se.partee71.dagboken.ui.diary.EpisodePlaceholder
+import se.partee71.dagboken.ui.illness.IllnessDetailRoute
 import se.partee71.dagboken.ui.log.ActivityEditRoute
 import se.partee71.dagboken.ui.log.CheckinEditRoute
 import se.partee71.dagboken.ui.log.DoseEditRoute
+import se.partee71.dagboken.ui.log.EpisodeEditRoute
 import se.partee71.dagboken.ui.log.EpisodeNewRoute
 import se.partee71.dagboken.ui.log.EventEditRoute
 import se.partee71.dagboken.ui.log.LogEvent
@@ -231,15 +232,24 @@ fun appEntries(
                 onOpenTrends = { backStack.select(TrendsKey) },
                 onScreening = onScreening,
                 onLogLater = { prnId, date -> backStack.push(DoseEditKey(prnId = prnId, date = date)) },
-                onCheckin = { episodeId, date -> backStack.push(CheckinEditKey(episodeId, date = date)) },
+                // HEM-12: den pågående sjukdomen öppnar sjukdomsdetaljen på Idags stack.
+                onOpenIllness = { episodeId, date -> backStack.push(EpisodeKey(episodeId, date)) },
             )
         }
         // HIST-3: aktivitet, händelse, dos och incheckning öppnar sina formulär, mående måendearket; episodens start och
-        // slut en platshållare tills sjukdomsdetaljen (#240) finns.
+        // slut sjukdomsdetaljen (HIST-9).
         entry<DiaryKey> {
             DiaryRoute(account(), onAccount, onOpen = { entry -> entry.key?.let(backStack::push) ?: (entry as? DiaryEntry.Mood)?.let { onScreening(LogEvent.EditScreening(it.screening)) } })
         }
-        entry<EpisodeKey> { key -> EpisodePlaceholder(onBack = { backStack.popIfTop(key) }) }
+        entry<EpisodeKey> { key ->
+            IllnessDetailRoute(
+                key.id,
+                onBack = { backStack.popIfTop(key) },
+                onEdit = { backStack.push(EpisodeEditKey(key.id)) },
+                onCheckin = { checkinId -> backStack.push(key.checkinKey(checkinId)) },
+            )
+        }
+        entry<EpisodeEditKey> { key -> EpisodeEditRoute(key.id, onClose = { backStack.popIfTop(key) }) }
         entry<ActivityEditKey> { key -> ActivityEditRoute(key.id, key.date, onClose = { backStack.popIfTop(key) }) }
         entry<EventEditKey> { key -> EventEditRoute(key.id, key.date, onClose = { backStack.popIfTop(key) }) }
         entry<DoseEditKey> { key -> DoseEditRoute(key.id, key.prnId, key.date, onClose = { backStack.popIfTop(key) }) }

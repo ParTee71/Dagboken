@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.EndDateError
 import se.partee71.dagboken.core.engine.SleepQualityKind
 import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.core.engine.WatchMetric
@@ -124,3 +125,11 @@ fun IllnessEpisode.title(): String = type.ifBlank { stringResource(R.string.log_
 
 /** En fritext som namn: `null` när den saknas eller bara är blanksteg – så att namnet ur listan tar över. */
 fun String?.nonBlank(): String? = this?.takeIf { it.isNotBlank() }
+
+/** SJ-4, SJ-12: felet för ett slutdatum som `endDateError` avvisar – samma text i avsluta-frågan och episodformuläret. */
+@get:StringRes
+val EndDateError.message: Int
+    get() = when (this) {
+        EndDateError.BEFORE_START -> R.string.prescription_error_end_before_start
+        EndDateError.AFTER_TODAY -> R.string.illness_end_after_today
+    }

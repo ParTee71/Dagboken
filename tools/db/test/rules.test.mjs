@@ -465,6 +465,38 @@ test('en incheckning skrivs bara under en episod som finns – även en som skap
   await assertSucceeds(deleteDoc(mine('illnessEpisodes', 'ny', 'checkins', 'c1')));
 });
 
+test('kaskadraderingen (SJ-9): incheckningarna i batchar om högst 500 före episoden, och sedan kan ingen ny skapas', async () => {
+  // Som IllnessRepository.deleteEpisode: ägaren läser incheckningarna, raderar dem i bitar om 500 och episoden sist.
+  const store = db(OWNER);
+  const checkin = toClient(base('checkins'));
+  await assertSucceeds(setDoc(mine('illnessEpisodes', 'lang'), toClient(base('illnessEpisodes'))));
+  const ids = Array.from({ length: 501 }, (_, i) => `c${String(i).padStart(3, '0')}`);
+  for (let i = 0; i < ids.length; i += 500) {
+    const create = writeBatch(store);
+    for (const id of ids.slice(i, i + 500)) create.set(doc(store, 'users', OWNER, 'illnessEpisodes', 'lang', 'checkins', id), checkin);
+    await assertSucceeds(create.commit());
+  }
+  const checkins = collection(store, 'users', OWNER, 'illnessEpisodes', 'lang', 'checkins');
+  const stored = (await assertSucceeds(getDocs(checkins))).docs.map((d) => d.id);
+  assert.equal(stored.length, 501);
+
+  for (let i = 0; i < stored.length; i += 500) {
+    const remove = writeBatch(store);
+    for (const id of stored.slice(i, i + 500)) remove.delete(doc(checkins, id));
+    await assertSucceeds(remove.commit());
+    // Avbryts raderingen här står episoden kvar med resten av sina incheckningar – inga föräldralösa.
+    assert.ok((await getDoc(mine('illnessEpisodes', 'lang'))).exists());
+  }
+  assert.equal((await getDocs(checkins)).size, 0);
+  await assertSucceeds(deleteDoc(mine('illnessEpisodes', 'lang')));
+  assert.equal((await getDoc(mine('illnessEpisodes', 'lang'))).exists(), false);
+  // En incheckning från en annan enhet efter raderingen nekas (existsAfter) – den kan inte bli föräldralös.
+  await assertFails(setDoc(doc(checkins, 'sen'), checkin));
+  // Någon annan får varken läsa listan eller radera i den.
+  await assertFails(getDocs(collection(db('annan'), 'users', OWNER, 'illnessEpisodes', 'e1', 'checkins')));
+  await assertFails(deleteDoc(doc(db('annan'), 'users', OWNER, 'illnessEpisodes', 'e1', 'checkins', 'checkins-1')));
+});
+
 test('importen från 3.x: incheckningar under högst 20 befintliga episoder per batch (existsAfter)', async () => {
   // Episoder som skapas i samma batch slås upp i batchen själv; för episoder som redan finns är
   // varje episod ett dokumentuppslag, och Firestore tillåter 20 per batch. Importen (etapp 3)

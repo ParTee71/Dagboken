@@ -526,11 +526,11 @@ class TodayScreenTest {
     }
 
     @Test
-    fun `pågående sjukdom öppnar en ny incheckning mot den visade dagen (HEM-12, SJ-2)`() {
-        val checkins = mutableListOf<Pair<String, LocalDate>>()
-        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Content(full()), {}, {}, onCheckin = { id, date -> checkins += id to date }) } }
+    fun `pågående sjukdom öppnar sjukdomsdetaljen med den visade dagen (HEM-12, HEM-14, SJ-13)`() {
+        val opened = mutableListOf<Pair<String, LocalDate>>()
+        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Content(full()), {}, {}, onOpenIllness = { id, date -> opened += id to date }) } }
         rule.onNodeWithText("Förkylning").performScrollTo().performClick()
-        assertEquals(listOf("e" to today), checkins)
+        assertEquals(listOf("e" to today), opened)
     }
 
     @Test

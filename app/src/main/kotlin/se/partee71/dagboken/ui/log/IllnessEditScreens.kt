@@ -16,13 +16,14 @@ import javax.inject.Provider
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.OTHER_SYMPTOM_ID
+import se.partee71.dagboken.core.engine.endDateError
 import se.partee71.dagboken.core.engine.illnessDay
 import se.partee71.dagboken.core.engine.symptomChoices
 import se.partee71.dagboken.core.model.Checkin
@@ -38,6 +39,7 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
+import se.partee71.dagboken.data.repository.EntryStore
 import se.partee71.dagboken.data.repository.creatingStore
 import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.EditorState
@@ -49,6 +51,7 @@ import se.partee71.dagboken.ui.common.Validator
 import se.partee71.dagboken.ui.common.choices
 import se.partee71.dagboken.ui.common.entryDeleteAction
 import se.partee71.dagboken.ui.common.hasErrorOutside
+import se.partee71.dagboken.ui.common.message
 import se.partee71.dagboken.ui.common.nonBlank
 import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
@@ -66,36 +69,48 @@ import se.partee71.dagboken.ui.components.ValueSlider
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.Tone
 
-// Sjukdom från plusknappen och Idag (SJ-1, SJ-2, SJ-3, SJ-8, SJ-11): en ny episod med sin första incheckning, och
-// incheckningen under en episod som finns.
+// Sjukdom från plusknappen, Idag och sjukdomsdetaljen (SJ-1, SJ-2, SJ-3, SJ-8, SJ-11, SJ-12): en ny episod med sin
+// första incheckning, en befintlig episods typ, startdatum och anteckning, och incheckningen under en episod som finns.
 
 /** Fälten i formulären – codecarnas namn, så att rules-felen ([rulesValidator]) hamnar på rätt fält. */
 object IllnessField {
     const val TYPE = "type"
+    const val START = "start"
     const val NOTE = "note"
 }
 
 /** En ny episod och dess första incheckning – det formuläret "Ny sjukdomsepisod" sparar (SJ-1, SJ-2, som 3.x). */
 data class EpisodeStart(val episode: IllnessEpisode, val checkin: Checkin)
 
-/** SJ-1: typen krävs; allt annat – i episoden och incheckningen – som rules. */
-val episodeStartValidator = Validator<EpisodeStart> { start ->
-    val episode = rulesValidator(CollectionNames.ILLNESS_EPISODES, IllnessEpisodeCodec) { e ->
-        if (e.type.isBlank()) mapOf(IllnessField.TYPE to R.string.illness_type_missing) else emptyMap()
+/**
+ * SJ-1, SJ-12: typen krävs och slutdatumet följer `endDateError` ([today] = dagen idag) – samma regel som att avsluta
+ * i sjukdomsdetaljen (SJ-4). Felet visas vid startdatumet, formulärets enda datum; allt annat som rules.
+ */
+fun episodeValidator(today: () -> LocalDate) = rulesValidator(CollectionNames.ILLNESS_EPISODES, IllnessEpisodeCodec) { e ->
+    buildMap {
+        if (e.type.isBlank()) put(IllnessField.TYPE, R.string.illness_type_missing)
+        endDateError(e.start, e.end, today())?.let { put(IllnessField.START, it.message) }
     }
-    episode.validate(start.episode) + checkinValidator.validate(start.checkin)
+}
+
+/** SJ-1: episoden som [episodeValidator] och den första incheckningen som rules. */
+fun episodeStartValidator(today: () -> LocalDate): Validator<EpisodeStart> {
+    val episode = episodeValidator(today)
+    return Validator { start -> episode.validate(start.episode) + checkinValidator.validate(start.checkin) }
 }
 
 /** SJ-2: som rules (svårighetsgraden 0–10, symptomen, anteckningens tak). */
 val checkinValidator = rulesValidator(CollectionNames.CHECKINS, CheckinCodec)
 
 /** Det som sparas: trimmad typ och en tom anteckning som ingen. */
-internal fun EpisodeStart.cleaned(): EpisodeStart = copy(episode = episode.copy(type = episode.type.trim(), note = episode.note?.trim().nonBlank()))
+internal fun EpisodeStart.cleaned(): EpisodeStart = copy(episode = episode.cleaned())
+
+internal fun IllnessEpisode.cleaned(): IllnessEpisode = copy(type = type.trim(), note = note?.trim().nonBlank())
 
 internal fun Checkin.cleaned(): Checkin = copy(note = note?.trim().nonBlank())
 
 /** Fälten som formulären visar ett fel vid; ett fel på något annat visas överst (`EntityEditScreen(formError)`). */
-private val SHOWN_ERRORS = setOf(IllnessField.TYPE, IllnessField.NOTE)
+private val SHOWN_ERRORS = setOf(IllnessField.TYPE, IllnessField.START, IllnessField.NOTE)
 
 /**
  * Ny sjukdomsepisod (SJ-1, SJ-2, SJ-3, SJ-8, NAV-10) som börjar [date] (den dag Idag visar, `null` = idag): typen,
@@ -114,7 +129,7 @@ class EpisodeNewViewModel @AssistedInject constructor(
         viewModelScope,
         creatingStore<EpisodeStart> { illnesses.startEpisode(it.episode, it.checkin) },
         id = null,
-        episodeStartValidator,
+        episodeStartValidator { clock.todayIn(zone.get()) },
         placeholder = EpisodeStart(IllnessEpisode(""), Checkin("")),
         create = {
             val now = clock.nowInMinutes(zone.get())
@@ -158,25 +173,109 @@ fun EpisodeNewScreen(form: EntryForm<EpisodeStart>, onClose: () -> Unit, symptom
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
         formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
     ) {
-        AppTextField(
-            start.episode.type,
-            { type -> form.change(IllnessField.TYPE) { it.copy(episode = it.episode.copy(type = type)) } },
-            stringResource(R.string.entry_type),
-            error = messages[IllnessField.TYPE],
-            helper = stringResource(R.string.illness_type_help),
-        )
-        start.episode.start?.let { day ->
-            // Den första incheckningen gäller startdagen (som 3.x).
-            DateField(stringResource(R.string.prescription_start), day, { date -> form.change { it.copy(episode = it.episode.copy(start = date), checkin = it.checkin.copy(date = date)) } })
+        // Den första incheckningen gäller startdagen (som 3.x).
+        EpisodeFields(
+            start.episode,
+            messages,
+            change = { field, change -> form.change(field) { it.copy(episode = change(it.episode)) } },
+            onStart = { date -> form.change(IllnessField.START) { it.copy(episode = it.episode.copy(start = date), checkin = it.checkin.copy(date = date)) } },
+        ) {
+            CheckinValues(start.checkin, symptomOptions, stored = emptyList()) { change -> form.change { it.copy(checkin = change(it.checkin)) } }
         }
-        CheckinValues(start.checkin, symptomOptions, stored = emptyList()) { change -> form.change { it.copy(checkin = change(it.checkin)) } }
-        AppCard {
-            NoteField(
-                start.episode.note.orEmpty(),
-                { note -> form.change(IllnessField.NOTE) { it.copy(episode = it.episode.copy(note = note.ifEmpty { null })) } },
-                error = messages[IllnessField.NOTE],
-            )
-        }
+    }
+}
+
+/**
+ * Episodens fält – typ, startdatum och (efter [between], t.ex. den första incheckningens värden) anteckningen – en
+ * gång för "Ny sjukdomsepisod" och "Redigera sjukdomsepisod" (SJ-1, SJ-8, SJ-12). [change] ändrar episoden för ett
+ * fält; [onStart] ett nytt startdatum.
+ */
+@Composable
+private fun EpisodeFields(
+    episode: IllnessEpisode,
+    messages: Map<String, String>,
+    change: (field: String, (IllnessEpisode) -> IllnessEpisode) -> Unit,
+    onStart: (LocalDate) -> Unit = { date -> change(IllnessField.START) { it.copy(start = date) } },
+    between: @Composable () -> Unit = {},
+) {
+    AppTextField(
+        episode.type,
+        { type -> change(IllnessField.TYPE) { it.copy(type = type) } },
+        stringResource(R.string.entry_type),
+        error = messages[IllnessField.TYPE],
+        helper = stringResource(R.string.illness_type_help),
+    )
+    episode.start?.let { day -> DateField(stringResource(R.string.prescription_start), day, onStart, error = messages[IllnessField.START]) }
+    between()
+    AppCard {
+        NoteField(episode.note.orEmpty(), { note -> change(IllnessField.NOTE) { it.copy(note = note.ifEmpty { null }) } }, error = messages[IllnessField.NOTE])
+    }
+}
+
+/**
+ * Redigera sjukdomsepisod (SJ-12) från sjukdomsdetaljen: typ, startdatum och anteckning. Bara ändrade fält skrivs
+ * (`IllnessRepository.saveEpisode`) – slutdatumet, skapandetiden och okända fält står kvar – och ingen incheckning
+ * skapas. Episoden raderas i detaljen, inte här (SJ-9).
+ */
+@HiltViewModel(assistedFactory = EpisodeEditViewModel.Factory::class)
+class EpisodeEditViewModel @AssistedInject constructor(
+    illnesses: IllnessRepository,
+    clock: Clock,
+    zone: Provider<TimeZone>,
+    @Assisted id: String,
+) : ViewModel() {
+    val form = EntryEditor(
+        viewModelScope,
+        illnesses.episodeStore(),
+        id,
+        episodeValidator { clock.todayIn(zone.get()) },
+        placeholder = IllnessEpisode(""),
+        // Formuläret öppnar bara en episod som finns.
+        create = { throw DataError.NotFound },
+        clean = { _, value -> value.cleaned() },
+    )
+
+    val editor: EditorState<IllnessEpisode> = form.editor
+
+    @AssistedFactory
+    interface Factory {
+        fun create(id: String): EpisodeEditViewModel
+    }
+}
+
+/** Episoderna som formulärets [EntryStore]: läsning och sparning. */
+private fun IllnessRepository.episodeStore(): EntryStore<IllnessEpisode> = object : EntryStore<IllnessEpisode> {
+    override suspend fun get(id: String): Result<IllnessEpisode?> = getEpisode(id)
+
+    override suspend fun save(loaded: IllnessEpisode?, edited: IllnessEpisode): Result<Unit> = saveEpisode(loaded, edited)
+
+    /**
+     * Formuläret raderar aldrig: en episod raderas med sina incheckningar (kaskad, kräver nät) bara med Radera i
+     * sjukdomsdetaljens ⋮, efter bekräftelsen som nämner antalet incheckningar (SJ-9).
+     */
+    override suspend fun delete(id: String): Result<Unit> = Result.failure(UnsupportedOperationException("En episod raderas i sjukdomsdetaljen"))
+}
+
+@Composable
+fun EpisodeEditRoute(id: String, onClose: () -> Unit) {
+    val viewModel = hiltViewModel<EpisodeEditViewModel, EpisodeEditViewModel.Factory> { it.create(id) }
+    EpisodeEditScreen(rememberEntryForm(viewModel.form), onClose)
+}
+
+/** "Redigera sjukdomsepisod" på `EntityEditScreen` (SJ-8, SJ-12, NFR-10–12) – samma fält som en ny episod. */
+@Composable
+fun EpisodeEditScreen(form: EntryForm<IllnessEpisode>, onClose: () -> Unit) {
+    val state = form.state
+    EntityEditScreen(
+        title = stringResource(R.string.illness_edit),
+        state = state,
+        effects = form.effects,
+        onSave = { form.onEvent(EntryEditEvent.Save) },
+        onClose = onClose,
+        onRetry = { form.onEvent(EntryEditEvent.Retry) },
+        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
+    ) {
+        EpisodeFields(form.value, state.errors.mapValues { stringResource(it.value) }, change = { field, change -> form.change(field, change) })
     }
 }
 
@@ -212,8 +311,7 @@ class CheckinEditViewModel @AssistedInject constructor(
     val editor: EditorState<Checkin> = form.editor
 
     /** Episoden incheckningen hör till (typ och dag N) – följer den medan formuläret är öppet. */
-    val episode: StateFlow<IllnessEpisode?> = illnesses.observeEpisodes().withFallback(emptyList())
-        .map { episodes -> episodes.firstOrNull { it.id == episodeId } }
+    val episode: StateFlow<IllnessEpisode?> = illnesses.observeEpisodeOnly(episodeId).withFallback(null)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
 
     /** Symptomen ur Listor (SJ-3) – följer listan medan formuläret är öppet. */

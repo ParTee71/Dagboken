@@ -312,7 +312,7 @@ class DiaryViewModel @Inject constructor(
         years.value = maxOf(years.value, DiaryWindow(anchor, years.value, today).covering(date).years)
     }
 
-    /** HIST-5: samma repository-metod som postens domänskärm. Episodens start och slut tas bort med sjukdomsdetaljen (#240, SJ-9). */
+    /** HIST-5: samma repository-metod som postens domänskärm. Episodens start och slut tas bort i sjukdomsdetaljen (SJ-9). */
     private fun delete(entry: DiaryEntry) {
         val action: suspend () -> Result<Unit> = when (entry) {
             is DiaryEntry.Mood -> ({ screenings.delete(entry.screening.id) })

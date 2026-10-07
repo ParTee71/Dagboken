@@ -10,4 +10,7 @@ object Spacing {
     val l = 16.dp
     val xl = 24.dp
     val xxl = 32.dp
+
+    /** Den bredaste en dialog blir – M3:s tak för dialoger (`ConfirmDialog` med ett fält, som sätter sin bredd själv). */
+    val dialogMaxWidth = 560.dp
 }

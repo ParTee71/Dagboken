@@ -500,6 +500,7 @@ private enum class AppSheet { Account, LogMenu }
 @Composable
 private fun Overlays() {
     var dialog by remember { mutableStateOf(false) }
+    var fieldDialog by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf(false) }
     var appSheet by remember { mutableStateOf<AppSheet?>(null) }
     var celebrate by remember { mutableStateOf(false) }
@@ -516,10 +517,18 @@ private fun Overlays() {
         AppButton("Inställningsark", { appSheet = AppSheet.Account }, variant = ButtonVariant.Secondary)
         AppButton("Loggmeny", { appSheet = AppSheet.LogMenu }, variant = ButtonVariant.Secondary)
     }
+    AppButton("Dialog med fält", { fieldDialog = true }, variant = ButtonVariant.Secondary)
     AppButton("Arkivera Yoga", { archived = UndoRequest("yoga", "Yoga") }, variant = ButtonVariant.Text)
     UndoSnackbar(archived, snackbar, onUndo = { archived = null }, onDismissed = { archived = null })
     if (dialog) {
         ConfirmDialog("Radera Promenad?", "Aktiviteten tas bort för gott. Det går inte att ångra.", "Radera", { dialog = false }, { dialog = false }, destructive = true)
+    }
+    if (fieldDialog) {
+        // Ett fält i frågan (SJ-4): slutdatumet när en sjukdomsepisod avslutas.
+        var end by remember { mutableStateOf(LocalDate(2026, 10, 6)) }
+        ConfirmDialog("Avsluta episoden?", "Förkylning markeras som avslutad. Incheckningarna står kvar.", "Avsluta", { fieldDialog = false }, { fieldDialog = false }) {
+            DateField("Slutdatum", end, { end = it })
+        }
     }
     if (sheet) {
         // Ändra minuterna: då frågar bakåt, svep ner och tryck utanför "Släng ändringar?" (dirty, NFR-10).
