@@ -73,7 +73,11 @@ import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.components.StatPill
 import se.partee71.dagboken.ui.components.UndoRequest
 import se.partee71.dagboken.ui.components.UndoSnackbar
-import se.partee71.dagboken.ui.diagram.SparklineChart
+import se.partee71.dagboken.ui.health.HealthEvent
+import se.partee71.dagboken.ui.health.HealthTodayCard
+import se.partee71.dagboken.ui.health.HealthTodayUiState
+import se.partee71.dagboken.ui.health.HealthTodayViewModel
+import se.partee71.dagboken.ui.health.WeekTrendsCard
 import se.partee71.dagboken.ui.log.CooldownDialog
 import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.log.LogEvent
@@ -92,8 +96,10 @@ fun TodayRoute(
     onLogLater: (prnId: String, date: LocalDate) -> Unit = { _, _ -> },
     onOpenIllness: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
     viewModel: TodayViewModel = hiltViewModel(),
+    healthViewModel: HealthTodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val health by healthViewModel.state.collectAsStateWithLifecycle()
     val failure by viewModel.failure.collectAsStateWithLifecycle()
     val undo by viewModel.undo.collectAsStateWithLifecycle()
     val cooldown by viewModel.cooldown.collectAsStateWithLifecycle()
@@ -110,6 +116,8 @@ fun TodayRoute(
         onScreening = onScreening,
         onLogLater = onLogLater,
         onOpenIllness = onOpenIllness,
+        health = health,
+        onHealthEvent = healthViewModel::onEvent,
     ) {
         AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
     }
@@ -119,8 +127,9 @@ fun TodayRoute(
  * Fliken Idag (HEM-16) på `EntityDetailScreen` i flikläge: hälsningen och den visade dagen överst med
  * avataren (HEM-1, HEM-2, NAV-9), datumremsan (HEM-14), framstegsraden (HEM-18), i belöningsläget kortet
  * "Allt klart för idag" med konfetti (HEM-19) och sedan korten Mediciner (MED-1–3, MED-5, MED-13) och Vid
- * behov (FAV-2, FAV-11) med Mående emellan (HEM-4, HEM-5), sedan pågående sjukdom (HEM-12) och 7-dagarstrenden
- * (HEM-7) – Hälsa idag kommer före trenden (#241, HEM-16). En söndag eller måndag står "Din vecka" överst (HEM-13).
+ * behov (FAV-2, FAV-11) med Mående emellan (HEM-4, HEM-5), sedan pågående sjukdom (HEM-12), hälsokortet (HEM-15,
+ * [health] ur `HealthTodayViewModel`, `null` = ingen klocka) och "Senaste veckan" med steg-, vilopuls- och energitrenden
+ * (HEM-17, HEM-7). En söndag eller måndag står "Din vecka" överst (HEM-13). [onHealthEvent] tar hälsokortets "Ge åtkomst".
  * Ångra och bekräftelserna visas i ramens meddelandeyta. [onScreening] öppnar måendearket – samma ark som plusknappen
  * (`LogViewModel`, ovanpå flikarna) – med en ny logg eller en loggad för ändring. [onEditPrn] öppnar vid
  * behov-formuläret från långtrycksmenyn (HEM-11), [onLogLater] dosformuläret för medicinen i efterhand mot den visade
@@ -141,6 +150,8 @@ fun TodayScreen(
     onScreening: (LogEvent) -> Unit = {},
     onLogLater: (prnId: String, date: LocalDate) -> Unit = { _, _ -> },
     onOpenIllness: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
+    health: HealthTodayUiState? = null,
+    onHealthEvent: (HealthEvent) -> Unit = {},
     avatar: @Composable () -> Unit = {},
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -164,7 +175,7 @@ fun TodayScreen(
         onErrorShown = { onEvent(TodayEvent.ErrorShown) },
         actions = { avatar() },
         snackbar = snackbar,
-    ) { TodayCards(it, onEvent, TodayLinks(onEditPrn, onOpenTrends, onScreening, onLogLater, onOpenIllness)) }
+    ) { TodayCards(it, onEvent, TodayLinks(onEditPrn, onOpenTrends, onScreening, onLogLater, onOpenIllness), health, onHealthEvent) }
 }
 
 /** Det Idag öppnar utanför fliken – formulär, arket och Trender. */
@@ -177,7 +188,7 @@ private class TodayLinks(
 )
 
 @Composable
-private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, links: TodayLinks) {
+private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, links: TodayLinks, health: HealthTodayUiState?, onHealthEvent: (HealthEvent) -> Unit) {
     content.weekSummary?.let { WeekSummaryCard(it) }
     DateStrip(
         week = content.week,
@@ -202,7 +213,8 @@ private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, lin
     MoodCard(content, links.onScreening)
     AsNeededCard(content, onEvent, links)
     content.illness?.let { illness -> IllnessCard(illness) { links.onOpenIllness(illness.episode.id, content.date) } }
-    EnergyTrendCard(content, links.onOpenTrends)
+    health?.let { HealthTodayCard(it, onHealthEvent) }
+    WeekTrendsCard(content.energyDays, content.energy, health, links.onOpenTrends)
 }
 
 /** "Din vecka" (HEM-13): energin mot förra veckan ("Energi · Uppåt") och andelen tagna doser – utan doser bara energin. */
@@ -274,16 +286,6 @@ private fun IllnessCard(illness: OngoingIllness, onOpen: () -> Unit) {
             onClick = onOpen,
             navigates = true,
         )
-    }
-}
-
-/** 7-dagarstrenden för energi (HEM-7): dagsvärdet ur `:core`, samma som Trender, och länken dit (TRD-5). */
-@Composable
-private fun EnergyTrendCard(content: TodayContent, onOpenTrends: () -> Unit) {
-    AppCard {
-        val title = stringResource(R.string.today_energy_title)
-        SectionHeader(title, icon = R.drawable.ic_trend)
-        SparklineChart(content.energy, xLabels = content.energyDays.map(DateFormat::weekdayShort), label = title, onOpenTrends = onOpenTrends)
     }
 }
 

@@ -26,8 +26,10 @@ import se.partee71.dagboken.ui.theme.Tone
  * [AppCard] i [tone] med [icon], [text] och en pil. Hela kortet är en knapp som läses med
  * [onClickLabel] ("Öppna") och öppnar det meddelandet gäller ([onClick]); ikonen och pilen är rena
  * indikatorer. [detail] är en förklarande rad under [text]. Utan [onClick] (`null`) är kortet bara ett
- * meddelande – ingen pil, ingen knapp – för ett läge som inget i appen kan ändra än ("Health Connect saknas",
- * TRD-20).
+ * meddelande – ingen pil, ingen knapp – för ett läge som inget i appen kan ändra ("Health Connect kopplad",
+ * TRD-20). Med [action] står åtgärden som en primär [AppButton] under texten i stället för pilen ("Ge åtkomst",
+ * "Installera", HLS-4) – då är knappen åtgärden och kortet i sig ingen knapp. [action] och [onClick] hör ihop, som i
+ * `StatPill`: en åtgärd kräver [onClick].
  */
 @Composable
 fun NoticeBanner(
@@ -38,17 +40,22 @@ fun NoticeBanner(
     tone: Tone = Tone.Warning,
     onClickLabel: String = stringResource(R.string.open),
     detail: String? = null,
+    action: String? = null,
 ) {
+    require(action == null || onClick != null) { "NoticeBanner: action kräver onClick" }
     val colors = AppColors.tone(tone)
-    val clickable = if (onClick == null) Modifier else Modifier.clip(AppShapes.card).clickable(onClickLabel = onClickLabel, role = Role.Button, onClick = onClick)
+    // Hela kortet är knappen – utom när åtgärden är en egen knapp under texten.
+    val cardClick = onClick.takeIf { action == null }
+    val clickable = cardClick?.let { Modifier.clip(AppShapes.card).clickable(onClickLabel = onClickLabel, role = Role.Button, onClick = it) } ?: Modifier
     AppCard(modifier.then(clickable), tone = tone) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.m)) {
             Icon(painterResource(icon), contentDescription = null, tint = colors.content)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(text, style = AppTypography.itemTitle, color = colors.content)
                 if (detail != null) Text(detail, style = AppTypography.caption, color = colors.content)
+                action?.let { AppButton(it, checkNotNull(onClick)) }
             }
-            if (onClick != null) Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = colors.content)
+            if (cardClick != null) Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = colors.content)
         }
     }
 }

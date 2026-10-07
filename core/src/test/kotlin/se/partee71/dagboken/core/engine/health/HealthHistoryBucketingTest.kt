@@ -168,7 +168,7 @@ class HealthHistoryBucketingTest {
         assertEquals(LocalTime(3, 0), midpointOf(TimeWindow(at(day1, "23:00"), at(day2, "07:00")), STOCKHOLM))
     }
 
-    // ─── Syremättnad och blodtryck per dygn ───────────────────────────────────
+    // ─── Syremättnad per dygn ───────────────────────────────────
 
     @Test fun `oxygen saturation is averaged per day`() {
         val byDay = averageOxygenByDay(
@@ -208,18 +208,5 @@ class HealthHistoryBucketingTest {
         assertEquals(setOf(day1), byDay.keys)
         assertEquals(1, byDay.getValue(day1).sessions)
         assertEquals(50.minutes, byDay.getValue(day1).duration)
-    }
-
-    @Test fun `blood pressure is the latest reading of each day, rounded`() {
-        val byDay = bloodPressureByDay(
-            listOf(
-                BloodPressureSample("cuff", at(day1, "08:00"), 140.0, 90.0),
-                BloodPressureSample("cuff", at(day1, "20:00"), 121.6, 79.4),
-            ),
-            STOCKHOLM,
-        )
-        assertEquals(122, byDay.getValue(day1).systolic)
-        assertEquals(79, byDay.getValue(day1).diastolic)
-        assertFalse(byDay.containsKey(day2))
     }
 }

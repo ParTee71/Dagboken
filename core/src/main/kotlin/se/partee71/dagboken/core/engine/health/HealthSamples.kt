@@ -103,10 +103,6 @@ data class RestingHeartRateSample(override val origin: String, val time: Instant
 /** En syremättnadsmätning i procent (`OxygenSaturationRecord`, HLS-8). */
 data class OxygenSample(override val origin: String, val time: Instant, val percent: Double) : HealthSample
 
-/** En blodtrycksmätning i mmHg (`BloodPressureRecord`, HLS-8). */
-data class BloodPressureSample(override val origin: String, val time: Instant, val systolic: Double, val diastolic: Double) :
-    HealthSample
-
 /** Ett träningspass (`ExerciseSessionRecord`, HLS-8) – en diskret händelse, inte en dygnssumma. */
 data class ExerciseSession(override val origin: String, override val start: Instant, override val end: Instant) :
     HealthSample, TimeSpan
@@ -142,7 +138,6 @@ data class HealthRecords(
     val calories: List<CaloriesSample> = emptyList(),
     val distance: List<DistanceSample> = emptyList(),
     val oxygen: List<OxygenSample> = emptyList(),
-    val bloodPressure: List<BloodPressureSample> = emptyList(),
 )
 
 /** Dygnet [this] infaller på i [zone] – zonen är en parameter så att sommartid räknas rätt (HLS-12). */

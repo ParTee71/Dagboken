@@ -176,7 +176,8 @@ private fun Rows() {
         ItemRow("Alvedon 500 mg", subtitle = "Minst 4 h mellan · högst 8 per dag", navigates = true, onClick = {}, trailing = { FavoriteStar("Alvedon", favorite, { favorite = !favorite }) })
     }
     NoticeBanner("Kåvepenin slutar i morgon. Höjningen av Sertralin slutar i morgon – sedan 50 mg.", R.drawable.ic_bell, {})
-    NoticeBanner("Health Connect saknas", R.drawable.ic_clock, onClick = null, detail = "Klockans data visas när Health Connect är kopplat.")
+    NoticeBanner("Health Connect kopplad", R.drawable.ic_watch, onClick = null, tone = Tone.Positive, detail = "Steg, puls, sömn och sömnkvalitet visas här.")
+    NoticeBanner("Health Connect saknas", R.drawable.ic_watch, {}, detail = "Installera Health Connect från Play Butik för att se klockans data.", action = "Installera")
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
         InfoPill("Mediciner")
         InfoPill("Klar", tone = Tone.Positive)
@@ -302,6 +303,7 @@ private fun Diary() {
         StatPill(R.drawable.ic_activity, "7 842", "Steg")
         StatPill(R.drawable.ic_sun, stringResource(R.string.value_missing), "Sömn", tone = Tone.Primary, onClick = {}, onClickLabel = "Begär åtkomst")
     }
+    StatPill(R.drawable.ic_lock, "2 saknas", "Träning · Syremättnad", Modifier.fillMaxWidth(), tone = Tone.Sun, onClick = {}, action = "Ge åtkomst")
     var month by remember { mutableStateOf(LocalDate(2026, 10, 1)) }
     var picked by remember { mutableStateOf<LocalDate?>(LocalDate(2026, 10, 4)) }
     AppCard {

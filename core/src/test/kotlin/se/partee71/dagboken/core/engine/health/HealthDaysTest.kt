@@ -7,7 +7,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import se.partee71.dagboken.core.model.BloodPressure
 import se.partee71.dagboken.core.model.DailyHealth
 
 /**
@@ -116,7 +115,6 @@ class HealthDaysTest {
             restingHeartRate = listOf(RestingHeartRateSample("watch", at(mar28, "09:00"), 55)),
             exercise = listOf(at(mar28, "17:00").let { ExerciseSession("watch", it, it + 40.minutes) }),
             oxygen = listOf(OxygenSample("watch", at(mar28, "03:00"), 96.0)),
-            bloodPressure = listOf(BloodPressureSample("cuff", at(mar28, "08:00"), 118.0, 76.0)),
         )
         val day = healthHistory(records, mar28, mar28, STOCKHOLM).days.single()
         assertEquals(70L, day.heartRateAvg)
@@ -124,7 +122,6 @@ class HealthDaysTest {
         assertEquals(1, day.exerciseSessions)
         assertEquals(40.minutes, day.exerciseDuration)
         assertEquals(96.0, day.oxygenSaturationAvg!!, 0.001)
-        assertEquals(BloodPressure(118, 76), day.bloodPressure)
     }
 
     // ─── Hälsa idag ───────────────────────────────────────────────────────────
@@ -168,14 +165,12 @@ class HealthDaysTest {
         val records = HealthRecords(
             steps = listOf(StepSample("watch", midnight, midnight + 1.minutes, 500), steps("watch", mar27, "12:00", 1000)),
             heartRate = listOf(HeartRateSample("watch", midnight, 90), HeartRateSample("watch", at(mar27, "12:00"), 60)),
-            bloodPressure = listOf(BloodPressureSample("cuff", midnight, 130.0, 85.0)),
             oxygen = listOf(OxygenSample("watch", midnight, 90.0)),
             sleep = listOf(SleepSession("watch", at(mar27, "16:00"), midnight)),
         )
         val earlier = healthDay(records, mar27, now, STOCKHOLM)
         assertEquals(1000L, earlier.steps)
         assertEquals(60L, earlier.heartRateAvg)
-        assertNull(earlier.bloodPressure)
         assertNull(earlier.oxygenSaturationAvg)
         assertNull(earlier.sleepDuration)
         val next = healthDay(records, mar28, now, STOCKHOLM)
@@ -196,7 +191,6 @@ class HealthDaysTest {
             exercise = listOf(at(mar27, "17:00").let { ExerciseSession("watch", it, it + 30.minutes) }),
             calories = listOf(at(mar27, "17:00").let { CaloriesSample("watch", it, it + 30.minutes, 210.0) }),
             distance = listOf(at(mar27, "17:00").let { DistanceSample("watch", it, it + 30.minutes, 4100.0) }),
-            bloodPressure = listOf(BloodPressureSample("cuff", at(mar27, "07:00"), 121.0, 78.0)),
         )
         val day = healthDay(records, mar27, now, STOCKHOLM)
         val history = healthHistory(records, mar27, mar27, STOCKHOLM).days.single()
@@ -207,7 +201,6 @@ class HealthDaysTest {
         assertEquals(history.exerciseDuration, day.exerciseDuration)
         assertEquals(history.activeEnergyKcal, day.activeEnergyKcal)
         assertEquals(history.distanceMeters, day.distanceMeters)
-        assertEquals(history.bloodPressure, day.bloodPressure)
         assertEquals(5200L, day.steps)
     }
 
@@ -220,18 +213,6 @@ class HealthDaysTest {
             ),
         )
         assertEquals(96.0, healthDay(records, mar28, now, STOCKHOLM).oxygenSaturationAvg!!, 0.001)
-    }
-
-    @Test fun `blood pressure is the latest reading within seven days`() {
-        val records = HealthRecords(
-            bloodPressure = listOf(
-                BloodPressureSample("cuff", local("2026-03-20T08:00"), 150.0, 95.0), // äldre än sju dagar
-                BloodPressureSample("cuff", local("2026-03-23T08:00"), 124.0, 81.0),
-            ),
-        )
-        assertEquals(BloodPressure(124, 81), healthDay(records, mar28, now, STOCKHOLM).bloodPressure)
-        val stale = HealthRecords(bloodPressure = listOf(BloodPressureSample("cuff", local("2026-03-20T08:00"), 150.0, 95.0)))
-        assertNull(healthDay(stale, mar28, now, STOCKHOLM).bloodPressure)
     }
 
     @Test fun `an earlier date is read up to the end of that day`() {

@@ -2,10 +2,13 @@ package se.partee71.dagboken.data.health
 
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.core.model.HealthHistory
+import se.partee71.dagboken.data.common.withFallback
 
 /**
  * Klockans läge (HLS-3, HLS-4, HLS-14): vad Trender → Klocka ska visa i stället för – eller ovanför – datan.
@@ -45,6 +48,14 @@ interface HealthRepository {
     /** Dygnet [date] (Hälsa idag, HLS-6, HLS-8): samma mått som historiken, tomt utan mätning. */
     suspend fun day(date: LocalDate): Result<DailyHealth>
 }
+
+/**
+ * Klockans läge som skärmarna följer det (HLS-4, TRD-20, HEM-15): ett fel i statusflödet lämnar läget okänt
+ * (`null`) i stället för att fälla skärmen, och flödet försöker igen (`withFallback`). En gång för Trender,
+ * Klocka-gruppens topp och hälsokortet på Idag.
+ */
+fun HealthRepository.observedStatus(): Flow<HealthStatus?> =
+    status.map<HealthStatus, HealthStatus?> { it }.withFallback(null).distinctUntilChanged()
 
 /**
  * Standardbindningen tills Health Connect portats (#243): klockan är [HealthStatus.UNAVAILABLE], varje dygn är

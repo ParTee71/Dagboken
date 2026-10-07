@@ -8,7 +8,6 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.datetime.LocalDate
 import org.junit.Test
-import se.partee71.dagboken.core.model.BloodPressure
 import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.core.model.HealthHistory
 import se.partee71.dagboken.core.model.Sex
@@ -34,7 +33,6 @@ class WatchSeriesTest {
         activeEnergyKcal = 512.5,
         distanceMeters = 6_250.0,
         oxygenSaturationAvg = 96.4,
-        bloodPressure = BloodPressure(121, 79),
     )
     private val history = HealthHistory.of(days.first(), today, mapOf(full.date to full, today to DailyHealth(today, steps = 1_200, sleepDuration = 6.hours)))
 
@@ -53,8 +51,6 @@ class WatchSeriesTest {
             WatchMetric.ACTIVE_CALORIES to 512.5f,
             WatchMetric.DISTANCE to 6.25f,
             WatchMetric.OXYGEN_SATURATION to 96.4f,
-            WatchMetric.SYSTOLIC to 121f,
-            WatchMetric.DIASTOLIC to 79f,
         )
         WatchMetric.entries.forEach { metric ->
             assertEquals(expected.getValue(metric), metric.value(full), metric.name)

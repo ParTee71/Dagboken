@@ -148,11 +148,22 @@ fun stackedAxisFor(points: List<StackedPoint>, line: List<Float?> = emptyList())
 }
 
 /**
- * "5" för heltal (även efter avrundning), annars en decimal med svenskt decimalkomma ("6,4") — i axlar, bildtexter och
- * skärmläsarens sammanfattning. Avrundningen är 3.x:s (halva uppåt på en decimal); 3.x skrev punkt.
+ * "5" för heltal (även efter avrundning), annars en decimal med svenskt decimalkomma ("6,4"), och tusental avskilda med
+ * ett hårt mellanslag från 1 000 ("7 842", "12 345,5") — i axlar, bildtexter, skärmläsarens sammanfattning och
+ * klockans mätvärden (HLS-6), en formaterare för alla tal. Avrundningen är 3.x:s (halva uppåt på en decimal); 3.x
+ * skrev punkt och grupperade inte.
  */
 fun formatChartValue(value: Float): String {
     // Avrunda först, avgör heltal sedan: 6,96 → "7" (inte "7,0") och −0,04 → "0" (inte "-0,0").
-    val rounded = String.format(Locale.ROOT, "%.1f", value).removeSuffix(".0")
-    return (if (rounded == "-0") "0" else rounded).replace('.', ',')
+    val rounded = String.format(Locale.ROOT, "%.1f", value).removeSuffix(".0").let { if (it == "-0") "0" else it }
+    val sign = if (rounded.startsWith("-")) "-" else ""
+    val whole = rounded.removePrefix("-").substringBefore('.')
+    val decimals = rounded.substringAfter('.', "")
+    val grouped = whole.reversed().chunked(DIGITS_PER_GROUP).joinToString(NO_BREAK_SPACE).reversed()
+    return sign + grouped + if (decimals.isEmpty()) "" else ",$decimals"
 }
+
+private const val DIGITS_PER_GROUP = 3
+
+/** Ett hårt mellanslag, så att ett tal aldrig bryts mellan tusentalen. */
+private const val NO_BREAK_SPACE = "\u00A0"

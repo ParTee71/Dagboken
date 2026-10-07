@@ -1,5 +1,6 @@
 package se.partee71.dagboken.core.engine
 
+import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.model.DailyHealth
@@ -12,11 +13,11 @@ import se.partee71.dagboken.core.model.Sex
 // allt här är härlett ur `HealthHistory` i stunden.
 
 /** Enheten ett klockmått eller en jämförd serie mäts i – texten sätter skärmen (TRD-15, TRD-17). */
-enum class WatchUnit { STEPS, BPM, HOURS, MINUTES, KCAL, KM, PERCENT, MMHG, POINTS, SCALE }
+enum class WatchUnit { STEPS, BPM, HOURS, MINUTES, KCAL, KM, PERCENT, POINTS, SCALE }
 
 /**
  * Klockans mått som diagramserier (HLS-12): varje mått plockas ur dygnet i diagrammets egen enhet –
- * timmar, minuter, kilometer, kcal, procent, mmHg eller bpm. Namnet är nyckeln i `TrendSerie.key`.
+ * timmar, minuter, kilometer, kcal, procent eller bpm. Namnet är nyckeln i `TrendSerie.key`.
  */
 enum class WatchMetric(val unit: WatchUnit) {
     STEPS(WatchUnit.STEPS),
@@ -31,8 +32,6 @@ enum class WatchMetric(val unit: WatchUnit) {
     ACTIVE_CALORIES(WatchUnit.KCAL),
     DISTANCE(WatchUnit.KM),
     OXYGEN_SATURATION(WatchUnit.PERCENT),
-    SYSTOLIC(WatchUnit.MMHG),
-    DIASTOLIC(WatchUnit.MMHG),
     ;
 
     /** Måttets värde ett dygn, i måttets enhet; `null` när dygnet saknar det (en lucka, HLS-12). */
@@ -49,8 +48,6 @@ enum class WatchMetric(val unit: WatchUnit) {
         ACTIVE_CALORIES -> day.activeEnergyKcal?.toFloat()
         DISTANCE -> day.distanceMeters?.let { (it / METERS_PER_KM).toFloat() }
         OXYGEN_SATURATION -> day.oxygenSaturationAvg?.toFloat()
-        SYSTOLIC -> day.bloodPressure?.systolic?.toFloat()
-        DIASTOLIC -> day.bloodPressure?.diastolic?.toFloat()
     }
 }
 
@@ -104,13 +101,26 @@ val SLEEP_QUALITY_KEYS: List<String> = listOf(SLEEP_SCORE_KEY) + SleepQualityKin
  * dagshistoriken än, så den komponenten faller bort och vikterna normaliseras om (HLS-10). En natt utan
  * sömnlängd är ingen natt.
  */
-fun sleepMeasurements(history: HealthHistory): List<NightlySleepMeasurements> = history.days.mapNotNull { day ->
-    val timeInBed = day.sleepDuration ?: return@mapNotNull null
-    NightlySleepMeasurements(
-        day.date,
-        SleepMeasurements(timeInBed = timeInBed, awake = day.sleepStages.awake, deep = day.sleepStages.deep, rem = day.sleepStages.rem),
-    )
+fun sleepMeasurements(history: HealthHistory): List<NightlySleepMeasurements> =
+    history.days.mapNotNull { day -> day.sleepMeasurements()?.let { NightlySleepMeasurements(day.date, it) } }
+
+/**
+ * Dygnets natt som underlag för sömnkvaliteten (HLS-10): tiden i säng är sömnlängden, vaken tid, djup och REM
+ * kommer ur stadierna; `null` utan sömnlängd. Samma underlag för Hälsa idag (en natt) och historiken ([sleepMeasurements]).
+ */
+fun DailyHealth.sleepMeasurements(): SleepMeasurements? = sleepDuration?.let { timeInBed ->
+    SleepMeasurements(timeInBed = timeInBed, awake = sleepStages.awake, deep = sleepStages.deep, rem = sleepStages.rem)
 }
+
+/**
+ * Sömnpoängen för natten som slutade [date] (Hälsa idag, HLS-10, HLS-11, HLS-13): **samma uträkning** som Trenders
+ * sömnkvalitet – [sleepQualitySeries] över [history], sista punkten – så att samma natt aldrig får två poäng.
+ * [history] ska sluta med [date] och bör täcka [REGULARITY_WINDOW_NIGHTS] nätter, så att regelbundenheten räknas
+ * rullande när dagshistoriken bär mittpunkterna (#243). `null` utan [age] (ingen poäng mot fel norm) och för en natt
+ * som inte går att bedöma.
+ */
+fun sleepScoreOn(history: HealthHistory, date: LocalDate, age: Int?, sex: Sex): Int? =
+    sleepQualitySeries(history, age, sex, listOf(date), listOf(SLEEP_SCORE_KEY)).single().points.single()?.roundToInt()
 
 /**
  * Sömnkvalitet per natt över [days] (TRD-15, HLS-13): poängen ([SLEEP_SCORE_KEY]) och delpoängen i

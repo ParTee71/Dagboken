@@ -67,6 +67,7 @@ import se.partee71.dagboken.data.common.combineByKey
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.health.HealthRepository
 import se.partee71.dagboken.data.health.HealthStatus
+import se.partee71.dagboken.data.health.observedStatus
 import se.partee71.dagboken.data.repository.ActivityRepository
 import se.partee71.dagboken.data.repository.EventRepository
 import se.partee71.dagboken.data.repository.IllnessRepository
@@ -98,13 +99,12 @@ enum class TrendCard(val group: TrendGroup, val hasSeriesPicker: Boolean, val ha
     CALORIES(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
     DISTANCE(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
     OXYGEN(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
-    BLOOD_PRESSURE(TrendGroup.WATCH, hasSeriesPicker = true, hasPreviousPeriod = true),
     COMPARE(TrendGroup.COMPARE, hasSeriesPicker = true, hasPreviousPeriod = false),
     ;
 
     /**
      * Serierna som är valda när kortet öppnas första gången (som 3.x): frukost (TRD-1), stress, vilopuls, sömnens
-     * total, sömnkvalitetens poäng och blodtryckets båda; symptomen och Jämför väljs (TRD-17).
+     * total och sömnkvalitetens poäng; symptomen och Jämför väljs (TRD-17).
      */
     val defaultSelection: Set<String>
         get() = when (this) {
@@ -113,7 +113,6 @@ enum class TrendCard(val group: TrendGroup, val hasSeriesPicker: Boolean, val ha
             HEART_RATE -> setOf(WatchMetric.RESTING_HEART_RATE.name)
             SLEEP -> setOf(WatchMetric.SLEEP_TOTAL.name)
             SLEEP_QUALITY -> setOf(SLEEP_SCORE_KEY)
-            BLOOD_PRESSURE -> setOf(WatchMetric.SYSTOLIC.name, WatchMetric.DIASTOLIC.name)
             else -> emptySet()
         }
 
@@ -130,7 +129,6 @@ enum class TrendCard(val group: TrendGroup, val hasSeriesPicker: Boolean, val ha
             CALORIES -> listOf(WatchMetric.ACTIVE_CALORIES)
             DISTANCE -> listOf(WatchMetric.DISTANCE)
             OXYGEN -> listOf(WatchMetric.OXYGEN_SATURATION)
-            BLOOD_PRESSURE -> listOf(WatchMetric.SYSTOLIC, WatchMetric.DIASTOLIC)
             else -> emptyList()
         }
 
@@ -203,17 +201,13 @@ sealed interface CardData {
 data class TrendCardState(val controls: CardControls, val data: CardData? = null)
 
 /**
- * [healthStatus] är klockans läge (HLS-4, TRD-20): `null` tills det lästs; "saknas" eller "uppdatera" ger bannern
- * överst i Klocka – statusraden med "Ge åtkomst" kommer i #241. Korten visas oavsett, stängda.
+ * Trenders grupper och kort. Klockans läge visas inte härifrån: Klocka-sektionens status och Hälsa idag har en enda
+ * källa, `ClockViewModel` (TRD-20); korten visas oavsett läge, stängda.
  */
 data class TrendsUiState(
     val group: TrendGroup = TrendGroup.MOOD,
     val cards: Map<TrendCard, TrendCardState> = TrendCard.entries.associateWith { TrendCardState(CardControls(selected = it.defaultSelection)) },
-    val healthStatus: HealthStatus? = null,
-) {
-    /** Health Connect saknas eller behöver uppdateras (HLS-4) – Klocka visar bannern. */
-    val healthMissing: Boolean get() = healthStatus == HealthStatus.UNAVAILABLE || healthStatus == HealthStatus.UPDATE_REQUIRED
-}
+)
 
 sealed interface TrendsEvent {
     data class ShowGroup(val group: TrendGroup) : TrendsEvent
@@ -266,8 +260,8 @@ class TrendsViewModel @Inject constructor(
     /** Profilen för sömnkvalitetens åldersnormer (HLS-11); utan födelseår blir varje natt en lucka. */
     private val profile: Flow<Profile> = settings.settings.withFallback(Settings()).map { it.profile }.distinctUntilChanged()
 
-    /** Klockans läge (HLS-4) – bannern i Klocka; ett fel i statusflödet lämnar läget okänt. */
-    private val healthStatus: Flow<HealthStatus?> = health.status.map<HealthStatus, HealthStatus?> { it }.withFallback(null).distinctUntilChanged()
+    /** Klockans läge (HLS-4) – bara för att läsa om klockkorten när det ändras; skärmen visar `ClockViewModel`s läge. */
+    private val healthStatus: Flow<HealthStatus?> = health.observedStatus()
 
     /**
      * Delade läsningar per källa och intervall – två kort med samma period läser en gång, och ett kort som byter
@@ -354,7 +348,7 @@ class TrendsViewModel @Inject constructor(
                 val age = ageFromBirthYear(p.birthYear, period.today)
                 lines(period, null) { days -> sleepQualitySeries(h, age, p.sex, days) }.copy(needsBirthYear = age == null)
             }
-            TrendCard.STEPS, TrendCard.HEART_RATE, TrendCard.SLEEP, TrendCard.EXERCISE, TrendCard.CALORIES, TrendCard.DISTANCE, TrendCard.OXYGEN, TrendCard.BLOOD_PRESSURE ->
+            TrendCard.STEPS, TrendCard.HEART_RATE, TrendCard.SLEEP, TrendCard.EXERCISE, TrendCard.CALORIES, TrendCard.DISTANCE, TrendCard.OXYGEN ->
                 health(from, to).map { h -> lines(period, null) { days -> watchSeries(h, period.card.metrics, days) } }
             TrendCard.COMPARE -> compare(period)
         }
@@ -407,8 +401,8 @@ class TrendsViewModel @Inject constructor(
 
     private val data: Flow<Map<TrendCard, CardData?>> = combine(TrendCard.entries.map { card -> cardData(card).map { card to it } }) { it.toMap() }
 
-    val state: StateFlow<TrendsUiState> = combine(group, controls, data, healthStatus) { group, controls, data, status ->
-        TrendsUiState(group, TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) }, status)
+    val state: StateFlow<TrendsUiState> = combine(group, controls, data) { group, controls, data ->
+        TrendsUiState(group, TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) })
     }.stateIn(viewModelScope, sharing, TrendsUiState())
 
     fun onEvent(event: TrendsEvent) {

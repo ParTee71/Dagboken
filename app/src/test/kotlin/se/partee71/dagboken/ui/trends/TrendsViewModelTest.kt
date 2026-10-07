@@ -172,11 +172,10 @@ class TrendsViewModelTest {
         assertEquals(setOf(WatchMetric.RESTING_HEART_RATE.name), state.cards.getValue(TrendCard.HEART_RATE).controls.selected)
         assertEquals(setOf(WatchMetric.SLEEP_TOTAL.name), state.cards.getValue(TrendCard.SLEEP).controls.selected)
         assertEquals(setOf(SLEEP_SCORE_KEY), state.cards.getValue(TrendCard.SLEEP_QUALITY).controls.selected)
-        assertEquals(setOf(WatchMetric.SYSTOLIC.name, WatchMetric.DIASTOLIC.name), state.cards.getValue(TrendCard.BLOOD_PRESSURE).controls.selected)
         assertEquals(emptySet(), state.cards.getValue(TrendCard.COMPARE).controls.selected, "Jämför har inget förval (TRD-17)")
         assertTrue(screeningReads.isEmpty() && activityReads.isEmpty() && eventReads.isEmpty() && episodeReads == 0, "stängda kort läser inget")
         assertTrue(health.reads.isEmpty(), "klockan läses först när ett kort fälls ut (TRD-15)")
-        assertEquals(listOf(TrendCard.STEPS, TrendCard.HEART_RATE, TrendCard.SLEEP, TrendCard.SLEEP_STAGES, TrendCard.SLEEP_QUALITY, TrendCard.EXERCISE, TrendCard.CALORIES, TrendCard.DISTANCE, TrendCard.OXYGEN, TrendCard.BLOOD_PRESSURE), TrendCard.inGroup(TrendGroup.WATCH))
+        assertEquals(listOf(TrendCard.STEPS, TrendCard.HEART_RATE, TrendCard.SLEEP, TrendCard.SLEEP_STAGES, TrendCard.SLEEP_QUALITY, TrendCard.EXERCISE, TrendCard.CALORIES, TrendCard.DISTANCE, TrendCard.OXYGEN), TrendCard.inGroup(TrendGroup.WATCH))
         assertEquals(listOf(TrendCard.COMPARE), TrendCard.inGroup(TrendGroup.COMPARE))
     }
 
@@ -259,22 +258,13 @@ class TrendsViewModelTest {
     }
 
     @Test
-    fun `utan Health Connect visas bannern och korten står kvar tomma (HLS-4, TRD-20)`() = runTest(main.dispatcher) {
+    fun `utan Health Connect står korten kvar tomma – läget visas av ClockViewModel, inte här (HLS-4, TRD-20)`() = runTest(main.dispatcher) {
         health.status.value = HealthStatus.UNAVAILABLE
         val vm = started()
-        assertEquals(HealthStatus.UNAVAILABLE, vm.state.value.healthStatus)
-        assertTrue(vm.state.value.healthMissing)
         vm.onEvent(TrendsEvent.Toggle(TrendCard.STEPS))
         runCurrent()
         val data = assertIs<CardData.Lines>(vm.card(TrendCard.STEPS).data)
         assertTrue(data.shown.single().points.all { it == null })
-
-        health.status.value = HealthStatus.AVAILABLE
-        runCurrent()
-        assertFalse(vm.state.value.healthMissing)
-        health.status.value = HealthStatus.PERMISSIONS_MISSING
-        runCurrent()
-        assertFalse(vm.state.value.healthMissing, "behörigheter hanteras av statusraden (#241), inte bannern")
     }
 
     @Test
@@ -342,7 +332,7 @@ class TrendsViewModelTest {
         assertNull(steps.points.last(), "lucka förblir lucka")
         assertEquals(30, data.days.size)
 
-        vm.onEvent(TrendsEvent.ToggleSeries(TrendCard.COMPARE, CompareKey.Watch(WatchMetric.DIASTOLIC).wire))
+        vm.onEvent(TrendsEvent.ToggleSeries(TrendCard.COMPARE, CompareKey.Watch(WatchMetric.OXYGEN_SATURATION).wire))
         runCurrent()
         data = assertIs(vm.card(TrendCard.COMPARE).data)
         assertEquals(2, data.shown.size, "en vald serie utan data i perioden visas inte")

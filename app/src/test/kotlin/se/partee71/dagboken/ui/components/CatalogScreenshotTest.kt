@@ -345,6 +345,12 @@ class CatalogScreenshotTest {
                 NoticeBanner("Health Connect saknas", R.drawable.ic_clock, onClick = null, detail = "Klockans data visas när Health Connect är kopplat.")
             }
         }
+        captureLightAndDark("NoticeBanner_atgard") {
+            Sheet {
+                NoticeBanner("Health Connect kopplad", R.drawable.ic_watch, onClick = null, tone = Tone.Positive, detail = "Steg, puls, sömn och sömnkvalitet visas här.")
+                NoticeBanner("Health Connect saknas", R.drawable.ic_watch, {}, detail = "Installera Health Connect från Play Butik för att se klockans data.", action = "Installera")
+            }
+        }
         captureLightAndDark("FavoriteStar_lagen") {
             Sheet {
                 AppCard {
@@ -432,6 +438,9 @@ class CatalogScreenshotTest {
                 }
                 StatPill(R.drawable.ic_thermometer, "—", "Puls", tone = Tone.Warning, onClick = {}, onClickLabel = "Begär åtkomst")
             }
+        }
+        captureLightAndDark("StatPill_atgard") {
+            Sheet { StatPill(R.drawable.ic_lock, "2 saknas", "Träning · Syremättnad", Modifier.fillMaxWidth(), tone = Tone.Sun, onClick = {}, action = "Ge åtkomst") }
         }
         captureLightAndDark("DateTimeRow_standard") { Sheet { DateTimeRow(LocalDate(2026, 10, 4), LocalTime(8, 30), {}, {}) } }
         captureLightAndDark("DurationRow_snabbval") { Sheet { DurationRow(60, {}) } }

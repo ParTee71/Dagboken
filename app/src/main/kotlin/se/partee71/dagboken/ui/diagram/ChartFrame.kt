@@ -9,11 +9,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.health.MIN_TREND_POINTS
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.theme.Spacing
 
-/** Så många kända punkter behövs innan ett diagram ritas (TRD-13: en trend kräver två). */
-internal const val MIN_CHART_POINTS = 2
+/** Så många kända punkter behövs innan ett diagram ritas (TRD-13: en trend kräver två) – samma gräns som Idags trendrader (HEM-17). */
+internal const val MIN_CHART_POINTS = MIN_TREND_POINTS
 
 /**
  * Ramen kring varje diagram: med för lite data visas **ett** gemensamt tomt läge ([emptyTitle], "För lite

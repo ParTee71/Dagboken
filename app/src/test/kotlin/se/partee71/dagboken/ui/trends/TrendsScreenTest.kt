@@ -20,6 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import se.partee71.dagboken.core.engine.CompareKey
 import se.partee71.dagboken.core.engine.ComparedSerie
 import se.partee71.dagboken.core.engine.EpisodeSpan
@@ -33,6 +34,7 @@ import se.partee71.dagboken.core.engine.WatchMetric
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.time.datesBetween
+import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
@@ -40,6 +42,9 @@ import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.testing.pixels
 import se.partee71.dagboken.ui.common.distinctSeriesColors
 import se.partee71.dagboken.ui.components.GalleryCharts
+import se.partee71.dagboken.ui.health.ClockUiState
+import se.partee71.dagboken.ui.health.HealthEvent
+import se.partee71.dagboken.ui.health.HealthSamples
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 
@@ -82,13 +87,20 @@ class TrendsScreenTest {
     private val occasionOpen = closed.with(TrendCard.ENERGY_OCCASION, CardControls(expanded = true, range = TrendRange.FOURTEEN_DAYS, selected = setOf(Occasion.BREAKFAST.wire)), occasionLines)
     private val nothingSelected = closed.with(TrendCard.SYMPTOMS, CardControls(expanded = true), CardData.Lines(days, listOf(SeriesInfo("yrsel", "Yrsel")), emptyList(), emptyList()))
 
-    private val watchMissing = closed.copy(group = TrendGroup.WATCH, healthStatus = HealthStatus.UNAVAILABLE)
+    private val watch = closed.copy(group = TrendGroup.WATCH)
+    private val hcMissing = ClockUiState(HealthStatus.UNAVAILABLE)
+
+    /** Hälsa idag som i mockupen (canvas avsnitt 14 · Klocka-Kopplad): träning och syremättnad saknar åtkomst. */
+    private val clockMissingTwo = HealthSamples.clock.copy(
+        missing = setOf(OptionalHealthMetric.EXERCISE, OptionalHealthMetric.OXYGEN_SATURATION),
+        day = HealthSamples.night.copy(exerciseSessions = 0, exerciseDuration = null, oxygenSaturationAvg = null),
+    )
     /** Fjorton nätter: galleriets sju och sju till med en natt utan stadier (TRD-16). */
     private val stages = GalleryCharts.sleep + listOf(
         StackedPoint(listOf(1.1f, 1.5f, 3.9f, 0.7f)), StackedPoint(listOf(null, null, null, null)), StackedPoint(listOf(1.2f, 1.3f, 3.6f, 0.9f)),
         StackedPoint(listOf(1.0f, 1.6f, 4.3f, 0.5f)), StackedPoint(listOf(1.3f, 1.8f, 4.1f, 0.4f)), StackedPoint(listOf(0.9f, 1.2f, 3.5f, 1.0f)), StackedPoint(listOf(1.4f, 1.7f, 4.0f, 0.6f)),
     )
-    private val stagesOpen = closed.copy(group = TrendGroup.WATCH, healthStatus = HealthStatus.AVAILABLE)
+    private val stagesOpen = watch
         .with(TrendCard.SLEEP_STAGES, CardControls(expanded = true, range = TrendRange.FOURTEEN_DAYS), CardData.Stacked(days, stages))
 
     private val compareAvailable = listOf(SeriesInfo(CompareKey.EnergyDay.wire, null), SeriesInfo(CompareKey.Stress(se.partee71.dagboken.core.engine.StressSeries.STRESS).wire, null), SeriesInfo(CompareKey.Symptom("yrsel").wire, "Yrsel")) +
@@ -116,7 +128,8 @@ class TrendsScreenTest {
         previous = emptyList(),
     )
 
-    private fun show(state: TrendsUiState, onEvent: (TrendsEvent) -> Unit = {}) = rule.setContent { DagbokenTheme { TrendsScreen(state, onEvent) } }
+    private fun show(state: TrendsUiState, clock: ClockUiState? = null, onEvent: (TrendsEvent) -> Unit = {}) =
+        rule.setContent { DagbokenTheme { TrendsScreen(state, onEvent, clock = clock) } }
 
     @Test
     fun `rubriken, grupperna och fem stängda kort utan diagram eller periodväljare (TRD-14, TRD-19)`() {
@@ -134,14 +147,16 @@ class TrendsScreenTest {
     }
 
     @Test
-    fun `Klocka utan Health Connect visar bannern överst och tio stängda kort (HLS-4, TRD-19, TRD-20)`() {
+    fun `Klocka utan Health Connect visar bannern överst och nio stängda kort (HLS-4, TRD-19, TRD-20)`() {
         val events = mutableListOf<TrendsEvent>()
-        show(watchMissing) { events += it }
+        show(watch, hcMissing) { events += it }
         rule.onNodeWithText("Health Connect saknas").assertIsDisplayed()
-        rule.onNodeWithText("Klockans data visas när Health Connect är kopplat.").assertIsDisplayed()
+        rule.onNodeWithText("Installera Health Connect från Play Butik för att se klockans data.").assertIsDisplayed()
+        rule.onNodeWithText("Installera").assertIsDisplayed()
+        rule.onNodeWithText("Hälsa idag").assertDoesNotExist()
         rule.onNodeWithText("Energi per dag").assertDoesNotExist()
         val list = rule.onNode(hasScrollAction())
-        listOf("Steg", "Vilopuls", "Sömn", "Sömnstadier", "Sömnkvalitet", "Träning", "Aktiva kalorier", "Sträcka", "Syremättnad", "Blodtryck").forEach {
+        listOf("Steg", "Vilopuls", "Sömn", "Sömnstadier", "Sömnkvalitet", "Träning", "Aktiva kalorier", "Sträcka", "Syremättnad").forEach {
             list.performScrollToNode(hasText(it))
             rule.onNodeWithText(it).assertIsDisplayed()
         }
@@ -152,10 +167,38 @@ class TrendsScreenTest {
     }
 
     @Test
-    fun `med Health Connect finns ingen banner`() {
-        show(watchMissing.copy(healthStatus = HealthStatus.AVAILABLE))
+    fun `innan klockans läge lästs står ingen status och ingen Hälsa idag – bara korten (TRD-20)`() {
+        show(watch)
         rule.onNodeWithText("Health Connect saknas").assertDoesNotExist()
+        rule.onNodeWithText("Health Connect kopplad").assertDoesNotExist()
+        rule.onNodeWithText("Hälsa idag").assertDoesNotExist()
         rule.onNodeWithText("Steg").assertIsDisplayed()
+    }
+
+    @Test
+    fun `kopplad med Hälsa idag – saknade behörigheter, alla mått och sedan korten under Trender (HLS-6, HLS-14, TRD-20)`() {
+        val clockEvents = mutableListOf<HealthEvent>()
+        rule.setContent { DagbokenTheme { TrendsScreen(watch, {}, clock = clockMissingTwo, onClockEvent = { clockEvents += it }) } }
+        rule.onNodeWithText("Health Connect kopplad").assertIsDisplayed()
+        rule.onNodeWithText("2 saknas").performClick()
+        assertEquals(listOf<HealthEvent>(HealthEvent.GrantAccess), clockEvents)
+        rule.onNodeWithText("Hälsa idag").assertIsDisplayed()
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("Snittpuls idag"))
+        rule.onNodeWithText("Snittpuls idag").assertIsDisplayed()
+        list.performScrollToNode(hasText("Sömnstadier"))
+        rule.onNodeWithText("Sömnstadier").assertIsDisplayed()
+    }
+
+    @Test
+    fun `utan behörighet Ge åtkomst och ingen Hälsa idag (HLS-3, TRD-20)`() {
+        val clockEvents = mutableListOf<HealthEvent>()
+        rule.setContent { DagbokenTheme { TrendsScreen(watch, {}, clock = ClockUiState(HealthStatus.PERMISSIONS_MISSING), onClockEvent = { clockEvents += it }) } }
+        rule.onNodeWithText("Health Connect är inte kopplat").assertIsDisplayed()
+        rule.onNodeWithText("Ge åtkomst").performClick()
+        assertEquals(listOf<HealthEvent>(HealthEvent.GrantAccess), clockEvents)
+        rule.onNodeWithText("Hälsa idag").assertDoesNotExist()
+        rule.onNodeWithText("2 saknas").assertDoesNotExist()
     }
 
     @Test
@@ -189,9 +232,9 @@ class TrendsScreenTest {
         val list = rule.onAllNodes(hasScrollAction()).onFirst()
         list.performScrollToNode(hasText("Varje serie visas 0–100 mot sitt eget lägsta och högsta värde."))
         rule.onNodeWithText("Energi (dag) · 3,5–8 skala").assertIsDisplayed()
-        rule.onNodeWithText("Steg · 2350–11020 steg").assertIsDisplayed()
+        rule.onNodeWithText("Steg · 2\u00A0350–11\u00A0020 steg").assertIsDisplayed()
         rule.onNodeWithText("Lägst", substring = true).assertDoesNotExist()
-        rule.onNodeWithContentDescription("Steg · 2350–11020 steg: 12 värden, lägsta 0, högsta 100", substring = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("Steg · 2\u00A0350–11\u00A0020 steg: 12 värden, lägsta 0, högsta 100", substring = true).assertIsDisplayed()
 
         rule.onNodeWithText("Energi (dag) · Steg").performClick()
         listOf("MÅENDE", "KLOCKA").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
@@ -214,7 +257,7 @@ class TrendsScreenTest {
     fun `Jämförs serier behåller färgen från sitt kort och krockar löses (TRD-17)`() {
         // Energi (dag) och Steg är båda ensamma (teal) i sina kort – den andra får nästa lediga färg.
         show(compareOpen)
-        rule.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText("Steg · 2350–11020 steg"))
+        rule.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText("Steg · 2\u00A0350–11\u00A0020 steg"))
         val colors = distinctSeriesColors(listOf(null, null), AppColors.light.primary)
         assertEquals(AppColors.light.primary, colors[0])
         assertTrue(colors[1] != colors[0])
@@ -372,7 +415,35 @@ class TrendsScreenTest {
     fun `skärmdump - tomt`() = rule.captureLightAndDark("Trends_tomt") { TrendsScreen(nothingSelected, {}) }
 
     @Test
-    fun `skärmdump - Klocka utan Health Connect`() = rule.captureLightAndDark("Trends_klocka_saknas") { TrendsScreen(watchMissing, {}) }
+    fun `skärmdump - Klocka utan Health Connect`() = rule.captureLightAndDark("Trends_klocka_saknas") { TrendsScreen(watch, {}, clock = hcMissing) }
+
+    @Test
+    @Config(qualifiers = "w390dp-h1400dp-xxhdpi")
+    fun `skärmdump - Klocka kopplad, två valfria saknas`() = rule.captureLightAndDark("Trends_klocka_kopplad") {
+        TrendsScreen(watch, {}, clock = clockMissingTwo)
+    }
+
+    @Test
+    @Config(qualifiers = "w390dp-h1400dp-xxhdpi")
+    fun `skärmdump - Klocka med alla behörigheter`() = rule.captureLightAndDark("Trends_klocka_alla") {
+        TrendsScreen(watch, {}, clock = HealthSamples.clock)
+    }
+
+    @Test
+    @Config(qualifiers = "w390dp-h1400dp-xxhdpi")
+    fun `skärmdump - Klocka utan födelseår`() = rule.captureLightAndDark("Trends_klocka_fodelsear") {
+        TrendsScreen(watch, {}, clock = HealthSamples.clock.copy(sleepScore = null, needsBirthYear = true))
+    }
+
+    @Test
+    fun `skärmdump - Klocka ej kopplad`() = rule.captureLightAndDark("Trends_klocka_ejkopplad") {
+        TrendsScreen(watch, {}, clock = ClockUiState(HealthStatus.PERMISSIONS_MISSING))
+    }
+
+    @Test
+    fun `skärmdump - Klocka uppdatering krävs`() = rule.captureLightAndDark("Trends_klocka_uppdatera") {
+        TrendsScreen(watch, {}, clock = ClockUiState(HealthStatus.UPDATE_REQUIRED))
+    }
 
     @Test
     fun `skärmdump - Klocka med Sömnstadier utfällt`() = rule.captureLightAndDark(

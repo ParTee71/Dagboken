@@ -79,9 +79,8 @@ class CompareIndexTest {
         assertEquals(listOf(false, false, false, false, true, true), keys.map { it.fromWatch })
         assertEquals(WatchUnit.BPM, CompareKey.Watch(WatchMetric.RESTING_HEART_RATE).unit)
         assertEquals(WatchUnit.HOURS, CompareKey.Watch(WatchMetric.SLEEP_DEEP).unit)
-        assertEquals(WatchUnit.MMHG, CompareKey.Watch(WatchMetric.DIASTOLIC).unit)
         listOf("", "watch:", "watch:UNKNOWN", "occasion:middag", "stress:LUGN", "symptom:", "okänd", "sleepQuality:x").forEach { assertNull(CompareKey.parse(it), it) }
-        assertEquals(13, WATCH_COMPARE_KEYS.size)
+        assertEquals(11, WATCH_COMPARE_KEYS.size)
         assertFalse(WATCH_COMPARE_KEYS.any { it is CompareKey.Watch && it.metric in setOf(WatchMetric.SLEEP_LIGHT, WatchMetric.SLEEP_AWAKE) }, "lätt sömn och vaken tid jämförs inte")
         assertEquals(WATCH_COMPARE_KEYS.size, WATCH_COMPARE_KEYS.map { it.wire }.distinct().size)
     }

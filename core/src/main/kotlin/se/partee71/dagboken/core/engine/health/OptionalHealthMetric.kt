@@ -8,7 +8,7 @@ package se.partee71.dagboken.core.engine.health
  * åtkomst (HLS-14) utan att känna till Health Connects behörighetsnamn. Sömnstadierna saknas med flit: de
  * ryms i kärnans `READ_SLEEP` och kan inte nekas separat.
  */
-enum class OptionalHealthMetric { EXERCISE, ACTIVE_ENERGY, DISTANCE, OXYGEN_SATURATION, BLOOD_PRESSURE, HISTORY }
+enum class OptionalHealthMetric { EXERCISE, ACTIVE_ENERGY, DISTANCE, OXYGEN_SATURATION, HISTORY }
 
 /**
  * De mått i [permissions] (mått → behörighet) vars behörighet saknas i [granted] (HLS-14). Kärnbehörigheter

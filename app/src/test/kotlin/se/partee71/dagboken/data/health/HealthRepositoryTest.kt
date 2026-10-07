@@ -68,7 +68,7 @@ class HealthRepositoryTest {
 
     @Test
     fun `hälsomodellerna har ingen codec, ingen samling och ingen plats i exporten`() {
-        val models = Regex("\\b(DailyHealth|SleepStages|BloodPressure|HealthHistory)\\b")
+        val models = Regex("\\b(DailyHealth|SleepStages|HealthHistory)\\b")
         val persisting = listOf(
             File(repoRoot, "core/src/main/kotlin/se/partee71/dagboken/core/schema"),
             File(repoRoot, "core/src/main/kotlin/se/partee71/dagboken/core/legacy"),
