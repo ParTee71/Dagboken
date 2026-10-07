@@ -244,8 +244,10 @@ class HealthDaysTest {
         val start = at(mar28, "00:00")
         val windows = healthReadWindows(start, start + 10.hours)
         assertEquals(start, windows.samples.start)
+        assertEquals("Hälsa idags dygn läser pulsen över dygnet", windows.samples, windows.heartRate)
+        assertEquals("historiken läser pulsen från natten före (HLS-10)", windows.lead, healthReadWindows(start, start + 10.hours, sleepVitals = true).heartRate)
         assertEquals(start - 24.hours, windows.lead.start)
         assertEquals(start - 24.hours * 14, windows.sleep.start)
-        assertEquals(listOf(start + 10.hours), listOf(windows.samples, windows.lead, windows.sleep).map { it.end }.distinct())
+        assertEquals(listOf(start + 10.hours), listOf(windows.samples, windows.heartRate, windows.lead, windows.sleep).map { it.end }.distinct())
     }
 }

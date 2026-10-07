@@ -90,7 +90,8 @@ interface HealthConnectSource {
 
     /**
      * Periodens poster, varje posttyp läst **en gång** över sitt fönster i [windows] (`healthReadWindows`, HLS-12):
-     * puls och vilopuls över perioden, de summerbara typerna och syremättnaden från ett dygn före, sömnen från
+     * vilopuls över perioden, pulsen över sitt eget fönster (för historiken från ett dygn före – nattens sovpuls, HLS-10),
+     * de summerbara typerna och syremättnaden från ett dygn före, sömnen från
      * regelbundenhetsfönstret före (HLS-7, HLS-13). En typ vars behörighet saknas i [granted] läses inte och blir en
      * tom lista (HLS-8).
      */
@@ -135,7 +136,7 @@ class HealthConnectClientSource @Inject constructor(
 
         HealthRecords(
             steps = read(StepsRecord::class, lead).map { StepSample(it.origin, it.startTime.toKotlinInstant(), it.endTime.toKotlinInstant(), it.count) },
-            heartRate = read(HeartRateRecord::class, day).flatMap(::heartRateSamples),
+            heartRate = read(HeartRateRecord::class, windows.heartRate.filter()).flatMap(::heartRateSamples),
             restingHeartRate = read(RestingHeartRateRecord::class, day).map { RestingHeartRateSample(it.origin, it.time.toKotlinInstant(), it.beatsPerMinute) },
             sleep = read(SleepSessionRecord::class, sleepRange).map(::sleepSession),
             exercise = read(ExerciseSessionRecord::class, lead).map { ExerciseSession(it.origin, it.startTime.toKotlinInstant(), it.endTime.toKotlinInstant()) },

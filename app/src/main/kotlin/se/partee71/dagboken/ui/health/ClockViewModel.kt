@@ -22,7 +22,9 @@ import kotlinx.datetime.minus
 import se.partee71.dagboken.core.engine.REGULARITY_WINDOW_NIGHTS
 import se.partee71.dagboken.core.engine.ageFromBirthYear
 import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
-import se.partee71.dagboken.core.engine.sleepScoreOn
+import se.partee71.dagboken.core.engine.SleepFlag
+import se.partee71.dagboken.core.engine.sleepFlagsOn
+import se.partee71.dagboken.core.engine.sleepQualityOn
 import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.core.model.HealthHistory
 import se.partee71.dagboken.core.model.Profile
@@ -36,7 +38,8 @@ import se.partee71.dagboken.data.repository.SettingsRepository
 /**
  * Klocka-gruppens topp (TRD-20, HLS-4, HLS-6, HLS-8, HLS-10, HLS-11, HLS-14): klockans läge [status] – den enda källan
  * för Klocka-sektionen –, de valfria mått som saknar åtkomst ([missing], `null` = läget kunde inte läsas, ingen rad),
- * dagens alla mått ([day], `null` medan de läses) och nattens sömnpoäng ([sleepScore]). [needsBirthYear]: profilen
+ * dagens alla mått ([day], `null` medan de läses), nattens sömnpoäng ([sleepScore]) och dess varningsrader ([sleepFlags],
+ * HLS-10). [needsBirthYear]: profilen
  * lästes och saknar födelseår – då uppmaningen i stället för en poäng; kunde profilen inte läsas visas bara "—".
  */
 data class ClockUiState(
@@ -44,14 +47,16 @@ data class ClockUiState(
     val missing: Set<OptionalHealthMetric>? = null,
     val day: DailyHealth? = null,
     val sleepScore: Int? = null,
+    val sleepFlags: List<SleepFlag> = emptyList(),
     val needsBirthYear: Boolean = false,
 )
 
 /**
  * Trender → Klocka: läget, och när klockan är kopplad – och bara då – Hälsa idag, läst live ur [HealthRepository] och
  * aldrig sparad (HLS-5). Idag läses om varje minut medan Klocka visas, och igen när behörigheterna ändras (HLS-14).
- * Sömnpoängen är Trenders (`sleepScoreOn`: samma serie över de senaste [REGULARITY_WINDOW_NIGHTS] nätterna, sista
- * natten) mot profilens födelseår och kön (HLS-11). "Ge åtkomst", "Installera" och "Uppdatera" går till porten
+ * Sömnpoängen är Trenders (`sleepQualityOn`: samma uträkning över de senaste [REGULARITY_WINDOW_NIGHTS] nätterna, sista
+ * natten) mot profilens födelseår och kön (HLS-11); varningsraderna (`sleepFlagsOn`, HLS-10) ur samma natt, också utan
+ * födelseår. "Ge åtkomst", "Installera" och "Uppdatera" går till porten
  * [HealthPermissions].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -87,7 +92,9 @@ class ClockViewModel @Inject constructor(
             status = HealthStatus.AVAILABLE,
             missing = missing,
             day = read?.day,
-            sleepScore = read?.let { profile?.let { p -> sleepScoreOn(it.nights, date, age, p.sex) } },
+            sleepScore = read?.let { profile?.let { p -> sleepQualityOn(it.nights, date, age, p.sex)?.score } },
+            // Varningsraderna beror inte på åldern – de visas också utan födelseår och utan läst profil (HLS-10).
+            sleepFlags = read?.let { sleepFlagsOn(it.nights, date) }.orEmpty(),
             needsBirthYear = profile != null && age == null,
         )
     }

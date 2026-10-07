@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import kotlin.time.Duration
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.SleepFlag
 import se.partee71.dagboken.core.engine.WatchMetric
 import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.core.model.SleepStages
@@ -70,8 +71,8 @@ private fun StatusBanner(title: Int, detail: Int, action: Int, tone: Tone, onCli
 /**
  * "Hälsa idag" (HLS-6, HLS-8, HLS-10, HLS-11) under `SectionHeader`: klockans alla mått för idag som `StatPill`, två
  * per rad – steg, snittpuls, vilopuls; sömnen i natt med stadierna under (bara när natten har stadier); sömnkvaliteten
- * – eller uppmaningen att fylla i födelseår i Profil, aldrig en poäng mot fel norm; träning, aktiva kalorier, sträcka
- * och syremättnad. Ett mått utan värde (eller utan åtkomst, se [ClockStatus]) är "—".
+ * – eller uppmaningen att fylla i födelseår i Profil, aldrig en poäng mot fel norm – med nattens varningsrader under
+ * ([SleepFlagNotices]); träning, aktiva kalorier, sträcka och syremättnad. Ett mått utan värde (eller utan åtkomst, se [ClockStatus]) är "—".
  */
 @Composable
 fun HealthTodaySection(state: ClockUiState) {
@@ -100,6 +101,7 @@ fun HealthTodaySection(state: ClockUiState) {
             else -> Tone.Neutral
         },
     )
+    SleepFlagNotices(state.sleepFlags)
     PillRows(
         listOf(
             Metric(R.drawable.ic_run, metricValue(WatchMetric.EXERCISE, day), stringResource(R.string.health_exercise_today)),
@@ -108,6 +110,22 @@ fun HealthTodaySection(state: ClockUiState) {
             Metric(R.drawable.ic_oxygen, metricValue(WatchMetric.OXYGEN_SATURATION, day), stringResource(WatchMetric.OXYGEN_SATURATION.label())),
         ),
     )
+}
+
+/**
+ * Sömnkvalitetens varningsrader (HLS-10): en `NoticeBanner` per varning – låg syremättnad och sovpuls över den vakna
+ * baslinjen – i varningston, utan åtgärd. De visas vid sidan av poängen och dras aldrig av från den, bara i Hälsa idag
+ * (som i 3.x).
+ */
+@Composable
+internal fun SleepFlagNotices(flags: List<SleepFlag>) {
+    flags.forEach { flag ->
+        val icon = when (flag) {
+            SleepFlag.LOW_OXYGEN_SATURATION -> R.drawable.ic_oxygen
+            SleepFlag.ELEVATED_SLEEPING_HEART_RATE -> R.drawable.ic_heart
+        }
+        NoticeBanner(stringResource(flag.label()), icon, onClick = null, Modifier.fillMaxWidth())
+    }
 }
 
 /** "Djup 1 tim 12 min · REM 1 tim 35 min · Lätt 3 tim 48 min · Vaken 37 min" – ett stadium utan tid utelämnas. */

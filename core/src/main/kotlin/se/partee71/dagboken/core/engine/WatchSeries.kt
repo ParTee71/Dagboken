@@ -1,6 +1,5 @@
 package se.partee71.dagboken.core.engine
 
-import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.model.DailyHealth
@@ -100,21 +99,37 @@ fun sleepMeasurements(history: HealthHistory): List<NightlySleepMeasurements> =
 
 /**
  * Dygnets natt som underlag för sömnkvaliteten (HLS-10): tiden i säng är sömnlängden, vaken tid, djup och REM
- * kommer ur stadierna; `null` utan sömnlängd. Samma underlag för Hälsa idag (en natt) och historiken ([sleepMeasurements]).
+ * kommer ur stadierna, sovpulsen, baslinjen och syremättnaden (varningsraderna) ur nattens fönster; `null` utan
+ * sömnlängd. Samma underlag för Hälsa idag (en natt) och historiken ([sleepMeasurements]).
  */
 fun DailyHealth.sleepMeasurements(): SleepMeasurements? = sleepDuration?.let { timeInBed ->
-    SleepMeasurements(timeInBed = timeInBed, awake = sleepStages.awake, deep = sleepStages.deep, rem = sleepStages.rem, midpointSdMinutes = sleepMidpointSdMinutes)
+    SleepMeasurements(
+        timeInBed = timeInBed,
+        awake = sleepStages.awake,
+        deep = sleepStages.deep,
+        rem = sleepStages.rem,
+        midpointSdMinutes = sleepMidpointSdMinutes,
+        meanOxygenSaturation = sleepOxygenSaturation,
+        sleepingHeartRate = sleepHeartRate,
+        baselineRestingHeartRate = sleepHeartRateBaseline,
+    )
 }
 
 /**
- * Sömnpoängen för natten som slutade [date] (Hälsa idag, HLS-10, HLS-11, HLS-13): **samma uträkning** som Trenders
- * sömnkvalitet – [sleepQualitySeries] över [history], sista punkten – så att samma natt aldrig får två poäng.
- * [history] ska sluta med [date]; regelbundenheten följer med natten ur dagshistoriken (`DailyHealth.sleepMidpointSdMinutes`,
- * HLS-13), så historikens längd påverkar inte poängen. `null` utan [age] (ingen poäng mot fel norm) och för en natt
- * som inte går att bedöma.
+ * Sömnkvaliteten för natten som slutade [date] (Hälsa idag, HLS-10, HLS-11, HLS-13) – poängen, delpoängen och
+ * varningsraderna – med **samma uträkning** som varje natt i Trenders [sleepQualitySeries] ([scoreNightlySleep] över
+ * [sleepMeasurements]), så att samma natt aldrig får två poäng. Regelbundenheten följer med natten ur dagshistoriken
+ * (`DailyHealth.sleepMidpointSdMinutes`), så historikens längd påverkar inte poängen. `null` utan [age] (ingen poäng
+ * mot fel norm) och för en natt som inte går att bedöma.
  */
-fun sleepScoreOn(history: HealthHistory, date: LocalDate, age: Int?, sex: Sex): Int? =
-    sleepQualitySeries(history, age, sex, listOf(date), listOf(SLEEP_SCORE_KEY)).single().points.single()?.roundToInt()
+fun sleepQualityOn(history: HealthHistory, date: LocalDate, age: Int?, sex: Sex): SleepQuality? =
+    scoreNightlySleep(nightOn(history, date), age, sex).singleOrNull()?.quality
+
+/** Varningsraderna för natten som slutade [date] (HLS-10) – också utan födelseår; tom utan natt. */
+fun sleepFlagsOn(history: HealthHistory, date: LocalDate): List<SleepFlag> =
+    nightOn(history, date).singleOrNull()?.measurements?.let(::sleepFlags).orEmpty()
+
+private fun nightOn(history: HealthHistory, date: LocalDate) = sleepMeasurements(history).filter { it.date == date }
 
 /**
  * Sömnkvalitet per natt över [days] (TRD-15, HLS-13): poängen ([SLEEP_SCORE_KEY]) och delpoängen i

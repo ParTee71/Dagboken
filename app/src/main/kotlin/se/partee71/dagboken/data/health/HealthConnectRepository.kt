@@ -125,7 +125,7 @@ class HealthConnectRepository @Inject constructor(
 
     override suspend fun history(from: LocalDate, to: LocalDate): Result<HealthHistory> = suspendRunCatching(::healthError) {
         val zone = zone.get()
-        read(from, to, zone)?.let { healthHistory(it, from, to, zone) } ?: HealthHistory.empty(from, to)
+        read(from, to, zone, sleepVitals = true)?.let { healthHistory(it, from, to, zone) } ?: HealthHistory.empty(from, to)
     }
 
     override suspend fun day(date: LocalDate): Result<DailyHealth> = suspendRunCatching(::healthError) {
@@ -136,14 +136,14 @@ class HealthConnectRepository @Inject constructor(
     /**
      * Posterna för dygnen [from]…[to] fram till nu, över fönstren i `healthReadWindows`, eller `null` – alla dygn
      * luckor – när Health Connect saknas, kärnbehörigheterna inte är givna eller perioden ligger i framtiden (HLS-3,
-     * HLS-4, HLS-12).
+     * HLS-4, HLS-12). [sleepVitals]: pulsen läses från ett dygn före, för nattens sovpuls – bara historiken (HLS-10).
      */
-    private suspend fun read(from: LocalDate, to: LocalDate, zone: TimeZone) = run {
+    private suspend fun read(from: LocalDate, to: LocalDate, zone: TimeZone, sleepVitals: Boolean = false) = run {
         val access = access.now().getOrThrow()
         if (access.status != HealthStatus.AVAILABLE) return@run null
         val start = from.atStartOfDayIn(zone)
         val end = minOf(to.plus(1, DateTimeUnit.DAY).atStartOfDayIn(zone), clock.now())
-        if (end <= start) null else source.read(healthReadWindows(start, end), access.granted)
+        if (end <= start) null else source.read(healthReadWindows(start, end, sleepVitals), access.granted)
     }
 }
 

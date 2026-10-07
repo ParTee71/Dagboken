@@ -32,6 +32,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import se.partee71.dagboken.core.engine.SleepFlag
 import se.partee71.dagboken.core.engine.daysEnding
 import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.core.model.DailyHealth
@@ -153,6 +154,11 @@ class HealthScreensTest {
         }
     }
 
+    @Test
+    fun `skärmdump - Hälsa idag med nattens varningsrader`() = rule.captureLightAndDark("Health_halsa_idag_varningar") {
+        Sheet { HealthTodaySection(HealthSamples.clockWithFlags) }
+    }
+
     // ---- Klocka ----
 
     @Test
@@ -211,6 +217,18 @@ class HealthScreensTest {
     }
 
     @Test
+    fun `nattens varningsrader står under sömnkvaliteten, bara när natten har dem (HLS-10)`() {
+        var flags by mutableStateOf(SleepFlag.entries.toList())
+        show { HealthTodaySection(HealthSamples.clock.copy(sleepFlags = flags)) }
+        rule.onNodeWithText("Låg syremättnad under natten – ta upp det med vården").assertIsDisplayed()
+        rule.onNodeWithText("Sovpulsen ligger över din vanliga nivå").assertIsDisplayed()
+        rule.onNode(hasClickAction()).assertDoesNotExist()
+        flags = emptyList()
+        rule.onNodeWithText("Sovpulsen ligger över din vanliga nivå").assertDoesNotExist()
+        rule.onNodeWithText("Låg syremättnad under natten – ta upp det med vården").assertDoesNotExist()
+    }
+
+    @Test
     fun `en natt utan stadier visar bara längden, och utan födelseår ingen poäng utan Profil (HLS-8, HLS-11)`() {
         show { HealthTodaySection(ClockUiState(HealthStatus.AVAILABLE, day = HealthSamples.night.copy(sleepStages = SleepStages()), needsBirthYear = true)) }
         rule.onNodeWithText("7 tim 12 min").assertIsDisplayed()
@@ -254,4 +272,7 @@ object HealthSamples {
     )
 
     val clock = ClockUiState(HealthStatus.AVAILABLE, missing = emptySet(), day = night, sleepScore = 78)
+
+    /** En natt med båda varningsraderna (HLS-10): sovpuls över baslinjen och låg syremättnad. */
+    val clockWithFlags = clock.copy(sleepScore = 71, sleepFlags = SleepFlag.entries.toList())
 }
