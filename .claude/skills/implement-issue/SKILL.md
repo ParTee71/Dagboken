@@ -68,6 +68,12 @@ till agenten `byggare`; datamodell, codecs, konverteraren, rules och migrering t
 `arkitekt`; tester på tre eller fler nivåer till `testskrivare`. Huvudsessionen orkestrerar och
 granskar och byter aldrig modell själv. Går ett steg fel två gånger i rad flyttas det upp en nivå.
 
+**Kör agenten som issuet anger.** Läs issuets avsnitt **Agent · modell · effort** och starta
+varje del med den agenten, modellen (`model`) och effort (`effort`) – det är det uttryckliga
+beslutet som Agent-verktygets `effort` kräver. Saknas avsnittet: komplettera issuet först (skill
+`refine-issue`, steg 6) utifrån etapptabellen i `ARKITEKTUR.md`. Avvikelse bara uppåt (fel två
+gånger i rad, eller större risk än väntat) och motiveras i PR-beskrivningen.
+
 ## Steg 6 – Implementera (tester samtidigt, inte efter)
 
 `Compose → ViewModel(StateFlow<UiState>, sealed events) → Repository → FirestoreCollection`,

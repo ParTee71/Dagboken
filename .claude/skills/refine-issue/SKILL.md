@@ -46,7 +46,8 @@ konkreta val. Hoppa över steget om begäran redan är entydig.
 - **Data (regel 1):** nytt eller ändrat persisterat fält eller ny samling? Då krävs hela
   kedjan i skill `data-safety-backup`.
 - **Ombyggnaden:** vilken etapp i `ARKITEKTUR.md` hör det till, och vilken modell/effort
-  anger etapptabellen (byggare/arkitekt)? Rör det 3.x-paritet: vilka krav i kravlistan är
+  anger etapptabellen (byggare/arkitekt)? Det blir issuets obligatoriska avsnitt
+  **Agent · modell · effort** (steg 6). Rör det 3.x-paritet: vilka krav i kravlistan är
   paritetspunkter (OMB-6) och var ligger 3.x-koden på branchen `legacy`?
 - **Beräkning:** berörs en regel som räknas (doser, kylperiod, periodslut, energi, diagram)?
   Den ligger i `:core` och står i kravlistan (skill `requirements-kravlista`).
@@ -129,10 +130,19 @@ Gäller en regel inte, skriv varför. Stort arbete → föreslå uppdelning i un
 
 ## Risker / Öppna frågor
 - …
+
+## Agent · modell · effort
+- <agent> · <modell> · <effort> – <vilken del> (t.ex. `arkitekt` · Fable · high – codecs och rules;
+  `byggare` · Opus · medium – skärmarna)
 ```
 
 För **buggar**: byt Föreslaget upplägg mot **Steg för att återskapa**, **Förväntat**,
 **Faktiskt**, **Miljö**, och kräv regressionstestet.
+
+**Agent · modell · effort är obligatoriskt.** Varje issue anger vilken agent (`byggare`,
+`arkitekt`, `testskrivare` …), vilken modell och vilken effort som ska köra varje del. Utgå från
+etapptabellen och agenttabellen i `ARKITEKTUR.md`; data, rules och migrering minst `arkitekt` ·
+high. Ett issue utan avsnittet är inte färdigförfinat.
 
 Titel: `<område>: <sammanfattning i imperativ>`. Visa hela utkastet och **vänta på
 bekräftelse**. Fråga om etiketter (`funktion`, `arkitektur`, `ai-regler`, `ombyggnad`, `prio:1–3`, `epic`).
