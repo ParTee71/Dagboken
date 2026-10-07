@@ -27,8 +27,21 @@ fun estimateRestingHeartRate(samples: List<HeartRateSample>, sleepWindows: List<
 /** Som ovan med ett färdigt [SleepWindows]-index, så att en period bygger indexet en gång och inte per dygn. */
 fun estimateRestingHeartRate(samples: List<HeartRateSample>, sleepWindows: SleepWindows): Long? {
     if (samples.isEmpty()) return null
-    val awake = samples.filterNot { it.time in sleepWindows }
-    val sorted = awake.ifEmpty { samples }.map { it.bpm }.sorted()
+    return awakeHeartRateBaseline(samples, sleepWindows) ?: lowPercentileMean(samples)
+}
+
+/**
+ * Den vakna baslinjen som sovpulsen jämförs mot (HLS-10): samma skattning som [estimateRestingHeartRate] men **utan**
+ * fallbacken till alla prov – en baslinje ur sömnprov vore sovpulsen själv och skulle ge en falsk varning, eller dölja
+ * en riktig. `null` när inga vakna prov finns (klockan bars bara på natten); då visas ingen pulsvarning.
+ */
+fun awakeHeartRateBaseline(samples: List<HeartRateSample>, sleepWindows: SleepWindows): Long? =
+    lowPercentileMean(samples.filterNot { it.time in sleepWindows })
+
+/** Medelvärdet av den lägsta 5-percentilen (minst ett prov); `null` utan prov. */
+private fun lowPercentileMean(samples: List<HeartRateSample>): Long? {
+    if (samples.isEmpty()) return null
+    val sorted = samples.map { it.bpm }.sorted()
     val count = (sorted.size / LOW_PERCENTILE_DIVISOR).coerceAtLeast(1)
     return sorted.take(count).average().roundToLong()
 }
@@ -53,8 +66,15 @@ fun restingHeartRateByDay(
     samples: List<HeartRateSample>,
     sleepWindows: List<TimeSpan>,
     zone: TimeZone,
+): Map<LocalDate, Long> = restingHeartRateByDay(recorded, samples, SleepWindows(sleepWindows), zone)
+
+/** Som ovan med ett färdigt [SleepWindows]-index, delat med resten av dagshistoriken. */
+fun restingHeartRateByDay(
+    recorded: List<RestingHeartRateSample>,
+    samples: List<HeartRateSample>,
+    windows: SleepWindows,
+    zone: TimeZone,
 ): Map<LocalDate, Long> {
-    val windows = SleepWindows(sleepWindows)
     val estimated = samples.perDay(zone, { it.time }) { estimateRestingHeartRate(it, windows) }
     val measured = recorded.perDay(zone, { it.time }) { day -> day.maxBy { it.time }.bpm }
     // Ett registrerat värde slår alltid skattningen för samma dygn.

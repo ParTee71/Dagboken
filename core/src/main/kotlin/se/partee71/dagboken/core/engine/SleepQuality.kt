@@ -261,23 +261,28 @@ fun scoreSleepQuality(
     val totalWeight = components.sumOf { it.weight }
     val weighted = components.sumOf { it.score.toDouble() * it.weight } / totalWeight
 
-    val flags = buildList {
-        measurements.meanOxygenSaturation
-            ?.takeIf { it < LOW_SPO2_THRESHOLD }
-            ?.let { add(SleepFlag.LOW_OXYGEN_SATURATION) }
-
-        val sleeping = measurements.sleepingHeartRate
-        val baseline = measurements.baselineRestingHeartRate
-        if (sleeping != null && baseline != null && sleeping - baseline >= ELEVATED_SLEEPING_HR_DELTA) {
-            add(SleepFlag.ELEVATED_SLEEPING_HEART_RATE)
-        }
-    }
-
     return SleepQuality(
         score = weighted.roundToInt().coerceIn(0, 100),
         components = components,
-        flags = flags,
+        flags = sleepFlags(measurements),
     )
+}
+
+/**
+ * Nattens varningsrader (HLS-10), vid sidan av poängen och oberoende av den: låg syremättnad (snitt under 90 %) behöver
+ * ingen ålder, och förhöjd sovpuls (≥5 bpm över den vakna baslinjen) kräver både sovpuls och baslinje – utan vakna prov
+ * finns ingen baslinje och ingen pulsvarning. Samma rader i [scoreSleepQuality] och utan födelseår.
+ */
+fun sleepFlags(measurements: SleepMeasurements): List<SleepFlag> = buildList {
+    measurements.meanOxygenSaturation
+        ?.takeIf { it < LOW_SPO2_THRESHOLD }
+        ?.let { add(SleepFlag.LOW_OXYGEN_SATURATION) }
+
+    val sleeping = measurements.sleepingHeartRate
+    val baseline = measurements.baselineRestingHeartRate
+    if (sleeping != null && baseline != null && sleeping - baseline >= ELEVATED_SLEEPING_HR_DELTA) {
+        add(SleepFlag.ELEVATED_SLEEPING_HEART_RATE)
+    }
 }
 
 private fun component(kind: SleepQualityKind, measured: Double, score: Int) =

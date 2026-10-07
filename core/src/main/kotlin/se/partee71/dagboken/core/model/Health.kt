@@ -30,7 +30,10 @@ data class SleepStages(
  * Nattens värden ([sleepDuration], [sleepStages], [sleepMidpointSdMinutes]) hör till det dygn sömnen **slutade** – en
  * natt över midnatt hamnar på morgonens datum (HLS-12). [sleepMidpointSdMinutes] är sömnens regelbundenhet för natten:
  * spridningen i mittpunkten över de 14 dygn som slutar med den (HLS-10, HLS-13); `null` utan natt eller med för få
- * nätter i fönstret.
+ * nätter i fönstret. [sleepHeartRate] och [sleepOxygenSaturation] är snitten inom nattens sömnfönster och
+ * [sleepHeartRateBaseline] den vakna baslinjen sovpulsen jämförs mot – underlaget för sömnkvalitetens varningsrader
+ * (HLS-10, HLS-13); `null` utan natt eller utan mätning, och bara satta i dagshistoriken (`healthHistory`) – aldrig
+ * i ett enskilt dygn ur `healthDay`. Baslinjen är `null` utan vakna pulsprov.
  */
 data class DailyHealth(
     val date: LocalDate,
@@ -40,6 +43,9 @@ data class DailyHealth(
     val sleepDuration: Duration? = null,
     val sleepStages: SleepStages = SleepStages(),
     val sleepMidpointSdMinutes: Double? = null,
+    val sleepHeartRate: Long? = null,
+    val sleepHeartRateBaseline: Long? = null,
+    val sleepOxygenSaturation: Double? = null,
     val exerciseSessions: Int = 0,
     val exerciseDuration: Duration? = null,
     val activeEnergyKcal: Double? = null,

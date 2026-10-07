@@ -6,6 +6,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.EndDateError
+import se.partee71.dagboken.core.engine.SleepFlag
 import se.partee71.dagboken.core.engine.SleepQualityKind
 import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.core.engine.WatchMetric
@@ -114,6 +115,13 @@ fun SleepQualityKind.label(): Int = when (this) {
     SleepQualityKind.DEEP -> R.string.trends_series_sleep_deep_share
     SleepQualityKind.REM -> R.string.trends_series_sleep_rem_share
     SleepQualityKind.WASO -> R.string.trends_series_sleep_waso
+}
+
+/** Sömnkvalitetens varningsrader (HLS-10): låg syremättnad och förhöjd sovpuls – bara i Hälsa idag. */
+@StringRes
+fun SleepFlag.label(): Int = when (this) {
+    SleepFlag.LOW_OXYGEN_SATURATION -> R.string.health_sleep_flag_low_oxygen
+    SleepFlag.ELEVATED_SLEEPING_HEART_RATE -> R.string.health_sleep_flag_high_heart_rate
 }
 
 /** Ett valfritt klockmått som kan sakna åtkomst (HLS-14) – samma namn som måttets kort i Klocka. */

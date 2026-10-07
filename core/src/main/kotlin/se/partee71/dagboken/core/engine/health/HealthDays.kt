@@ -23,20 +23,27 @@ val NIGHT_WINDOW: Duration = 24.hours
 /**
  * Fönstren en läsning av perioden [start]…[end] behöver per posttyp (HLS-7, HLS-8, HLS-12, HLS-13) – en gång, så att
  * källan och dess fejk läser likadant:
- * - [samples]: puls och vilopuls, bara perioden;
- * - [lead]: steg, träning, kalorier, sträcka och syremättnad från [NIGHT_WINDOW] före starten – ett pass över periodens
- *   första midnatt dedupliceras mot sin dubblett, och nattens syre hör till första morgonen;
+ * - [samples]: vilopuls, bara perioden;
+ * - [heartRate]: pulsproven – för dagshistoriken (`sleepVitals`) samma som [lead], så att periodens första natt får sina
+ *   prov före midnatt till sovpulsen ([sleepVitalsByNight], HLS-10); för Hälsa idags dygn bara perioden, som [samples];
+ * - [lead]: steg, träning, kalorier, sträcka och syremättnad från [NIGHT_WINDOW] före starten – ett pass över
+ *   periodens första midnatt dedupliceras mot sin dubblett, och nattens syre hör till första morgonen;
  * - [sleep]: sömnen från [REGULARITY_WINDOW_NIGHTS] dygn före starten – natten mot första morgonen, vilopulsens
  *   sömnfilter och hela regelbundenhetsfönstret för periodens första natt, så att samma natt får samma poäng oavsett
  *   hur lång period som läses.
  */
-data class HealthReadWindows(val samples: TimeWindow, val lead: TimeWindow, val sleep: TimeWindow)
+data class HealthReadWindows(val samples: TimeWindow, val heartRate: TimeWindow, val lead: TimeWindow, val sleep: TimeWindow)
 
-fun healthReadWindows(start: Instant, end: Instant): HealthReadWindows = HealthReadWindows(
-    samples = TimeWindow(start, end),
-    lead = TimeWindow(start - NIGHT_WINDOW, end),
-    sleep = TimeWindow(start - NIGHT_WINDOW * REGULARITY_WINDOW_NIGHTS, end),
-)
+fun healthReadWindows(start: Instant, end: Instant, sleepVitals: Boolean = false): HealthReadWindows {
+    val samples = TimeWindow(start, end)
+    val lead = TimeWindow(start - NIGHT_WINDOW, end)
+    return HealthReadWindows(
+        samples = samples,
+        heartRate = if (sleepVitals) lead else samples,
+        lead = lead,
+        sleep = TimeWindow(start - NIGHT_WINDOW * REGULARITY_WINDOW_NIGHTS, end),
+    )
+}
 
 /** Snittet av syremättnaden i [samples], `null` utan mätningar. */
 fun averageOxygen(samples: List<OxygenSample>): Double? = samples.takeIf { it.isNotEmpty() }?.map { it.percent }?.average()
@@ -46,30 +53,38 @@ fun averageOxygen(samples: List<OxygenSample>): Double? = samples.takeIf { it.is
  * att hela natten – också proven före midnatt – hamnar på morgonens datum, som nattens sömn och som
  * 24-timmarsfönstret i [healthDay]. Prov utanför sömnen dateras efter sin egen tid.
  */
-fun averageOxygenByDay(samples: List<OxygenSample>, sleep: List<TimeSpan>, zone: TimeZone): Map<LocalDate, Double> {
-    val windows = SleepWindows(sleep)
-    return samples.perDay(zone, { sample -> windows.containing(sample.time)?.end ?: sample.time }, ::averageOxygen)
-}
+fun averageOxygenByDay(samples: List<OxygenSample>, sleep: List<TimeSpan>, zone: TimeZone): Map<LocalDate, Double> =
+    averageOxygenByDay(samples, SleepWindows(sleep), zone)
+
+/** Som ovan med ett färdigt [SleepWindows]-index, delat med resten av dagshistoriken. */
+fun averageOxygenByDay(samples: List<OxygenSample>, windows: SleepWindows, zone: TimeZone): Map<LocalDate, Double> =
+    samples.perDay(zone, { sample -> windows.containing(sample.time)?.end ?: sample.time }, ::averageOxygen)
 
 /**
  * Dagshistoriken för [from]…[to] (HLS-12): exakt ett [DailyHealth] per dygn i datumordning, tomt där inget
  * mättes – en lucka, aldrig en nolla. Summerbara mått väljs per källa per dygn (HLS-2, HLS-8), träningspass
  * dedupliceras på tidsöverlapp över hela perioden och fördelas sedan per dygn, vilopulsen tar registrerat värde före skattning (HLS-7) och en
  * natt dateras efter sessionens slut med den längsta sessionen som natten; dess mittpunkt ger regelbundenheten
- * ([midpointSdByNight], HLS-13), räknad också över nätterna före [from] som [records] har med. En post hör annars till
+ * ([midpointSdByNight], HLS-13), räknad också över nätterna före [from] som [records] har med, och dess fönster
+ * sovpulsen och syremättnaden mot periodens vakna baslinje ([sleepVitalsByNight], HLS-10). En post hör annars till
  * dygnet dess starttid faller på i [zone]; poster före [from] räknas bara in där de hör till ett dygn i perioden.
  */
 fun healthHistory(records: HealthRecords, from: LocalDate, to: LocalDate, zone: TimeZone): HealthHistory {
+    // Pulsproven sorteras och sömnfönstren indexeras en gång, delade av vilopulsen och nattens sovpuls.
+    val heartRate = records.heartRate.sortedBy { it.time }
+    val sleepWindows = SleepWindows(records.sleep)
     val steps = mostCompleteSumByDay(records.steps, zone)
-    val heartRateAvg = averageBpmByDay(records.heartRate, zone)
-    val restingHr = restingHeartRateByDay(records.restingHeartRate, records.heartRate, records.sleep, zone)
+    val heartRateAvg = averageBpmByDay(heartRate, zone)
+    val restingHr = restingHeartRateByDay(records.restingHeartRate, heartRate, sleepWindows, zone)
     val nights = longestNightPerDay(records.sleep, zone)
     // Regelbundenheten ur alla lästa nätter – också de före perioden (HLS-13, [healthReadWindows]).
     val regularity = midpointSdByNight(nights.mapValues { (_, night) -> midpointOf(night, zone) })
     val exercise = mostCompleteExerciseByDay(records.exercise, zone)
     val calories = mostCompleteSumByDay(records.calories, zone)
     val distance = mostCompleteSumByDay(records.distance, zone)
-    val oxygen = averageOxygenByDay(records.oxygen, records.sleep, zone)
+    val oxygen = averageOxygenByDay(records.oxygen, sleepWindows, zone)
+    // Bara periodens nätter – nätterna före den läses för regelbundenheten, inte för att visas.
+    val vitals = sleepVitalsByNight(heartRate, records.oxygen, sleepWindows, nights.filterKeys { it >= from })
 
     val dates = steps.keys + heartRateAvg.keys + restingHr.keys + nights.keys + exercise.keys +
         calories.keys + distance.keys + oxygen.keys
@@ -83,6 +98,9 @@ fun healthHistory(records: HealthRecords, from: LocalDate, to: LocalDate, zone: 
             sleepDuration = night?.duration?.takeIf { it.isPositive() },
             sleepStages = night?.let { summarizeSleepStages(it.stages) } ?: SleepStages(),
             sleepMidpointSdMinutes = night?.let { regularity[date] },
+            sleepHeartRate = vitals[date]?.heartRate,
+            sleepHeartRateBaseline = vitals[date]?.baselineHeartRate,
+            sleepOxygenSaturation = vitals[date]?.oxygenSaturation,
             exerciseSessions = exercise[date]?.sessions ?: 0,
             exerciseDuration = exercise[date]?.duration,
             activeEnergyKcal = calories[date],
@@ -101,6 +119,9 @@ fun healthHistory(records: HealthRecords, from: LocalDate, to: LocalDate, zone: 
  * - sömnen som **summan** av längd och stadier över alla sessioner som slutar inom [NIGHT_WINDOW] före
  *   dygnets slut – paritet med 3.x `readToday`;
  * - syremättnaden över samma fönster.
+ *
+ * Nattens sovpuls, baslinje och syremättnad (varningsraderna, HLS-10) räknas bara i [healthHistory] – Hälsa idag tar
+ * sömnkvaliteten ur historiken – så samma datum kan aldrig få två olika baslinjer.
  *
  * **Skillnad mot [healthHistory]:** historiken tar den längsta sessionen per natt (HLS-12), så en natt delad i
  * två sessioner ger kortare sömn där än här; syremättnaden räknas där per dygn i stället för över ett

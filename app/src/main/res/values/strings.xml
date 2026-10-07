@@ -662,6 +662,8 @@
     <string name="health_sleep_last_night">Sömn i natt</string>
     <string name="health_sleep_quality_needs_birth_year">Sömnkvalitet · fyll i födelseår i Profil</string>
     <string name="health_exercise_today">Träning idag</string>
+    <string name="health_sleep_flag_low_oxygen">Låg syremättnad under natten – ta upp det med vården</string>
+    <string name="health_sleep_flag_high_heart_rate">Sovpulsen ligger över din vanliga nivå</string>
     <string name="health_metric_history">Historik längre bak än 30 dagar</string>
     <string name="value_with_unit_format">%1$s %2$s</string>
     <string name="trends_card_steps">Steg</string>

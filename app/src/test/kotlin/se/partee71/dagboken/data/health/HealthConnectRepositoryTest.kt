@@ -30,7 +30,7 @@ import se.partee71.dagboken.core.engine.health.SleepSession
 import se.partee71.dagboken.core.engine.health.StepSample
 import se.partee71.dagboken.core.engine.health.TimeSpan
 import se.partee71.dagboken.core.engine.health.contains
-import se.partee71.dagboken.core.engine.sleepScoreOn
+import se.partee71.dagboken.core.engine.sleepQualityOn
 import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.common.DataError
@@ -182,9 +182,37 @@ class HealthConnectRepositoryTest {
         assertTrue(inWeek.all { it.second != null }, "varje natt i veckan har sitt fulla fönster")
         assertEquals(inWeek, month.days.takeLast(7).map { it.date to it.sleepMidpointSdMinutes })
         assertEquals(inWeek, clock.days.takeLast(7).map { it.date to it.sleepMidpointSdMinutes })
-        val score = assertNotNull(sleepScoreOn(clock, today, 50, Sex.MALE))
-        assertEquals(score, sleepScoreOn(week, today, 50, Sex.MALE))
-        assertEquals(score, sleepScoreOn(month, today, 50, Sex.MALE))
+        val score = assertNotNull(sleepQualityOn(clock, today, 50, Sex.MALE)?.score)
+        assertEquals(score, sleepQualityOn(week, today, 50, Sex.MALE)?.score)
+        assertEquals(score, sleepQualityOn(month, today, 50, Sex.MALE)?.score)
+    }
+
+    @Test
+    fun `day läser pulsen över dygnet, history från natten före – första dagens vilopuls och snittpuls är oförändrade (HLS-7, HLS-10)`() = runTest {
+        source.granted = HealthPermissionSet.CORE
+        val evening = at(yesterday.minus(1, DateTimeUnit.DAY), 23, 30)
+        source.records = HealthRecords(
+            heartRate = listOf(
+                HeartRateSample("klocka", evening, 40), // i natt, före periodens första midnatt
+                HeartRateSample("klocka", at(yesterday, 3), 52),
+                HeartRateSample("klocka", at(yesterday, 10), 66),
+                HeartRateSample("klocka", at(yesterday, 18), 80),
+            ),
+            sleep = listOf(SleepSession("klocka", evening - 30.minutes, at(yesterday, 6))),
+        )
+        val repository = repository()
+        val day = repository.day(yesterday).getOrThrow()
+        assertEquals(source.reads.last().windows!!.samples, source.reads.last().windows!!.heartRate, "dygnet läser bara sitt eget dygn")
+        assertNull(day.sleepHeartRate, "Hälsa idags dygn räknar inga nattvärden")
+
+        val first = repository.history(yesterday, today).getOrThrow().days.first()
+        assertEquals(source.reads.last().windows!!.lead, source.reads.last().windows!!.heartRate, "historiken läser pulsen från natten före")
+        assertEquals(day.restingHeartRate, first.restingHeartRate)
+        assertEquals(day.heartRateAvg, first.heartRateAvg)
+        assertEquals(66L, first.restingHeartRate)
+        assertEquals(66L, first.heartRateAvg)
+        assertEquals(46L, first.sleepHeartRate, "nattens prov före midnatt räknas in i sovpulsen")
+        assertEquals(66L, first.sleepHeartRateBaseline)
     }
 
     @Test
@@ -308,7 +336,7 @@ class FakeHealthConnectSource : HealthConnectSource {
         fun <T : TimeSpan> List<T>.overlapping(window: TimeSpan) = filter { it.start < window.end && it.end > window.start }
         return HealthRecords(
             steps = records.steps.overlapping(windows.lead),
-            heartRate = records.heartRate.filter { it.time in windows.samples },
+            heartRate = records.heartRate.filter { it.time in windows.heartRate },
             restingHeartRate = records.restingHeartRate.filter { it.time in windows.samples },
             sleep = records.sleep.overlapping(windows.sleep),
             exercise = records.exercise.overlapping(windows.lead),

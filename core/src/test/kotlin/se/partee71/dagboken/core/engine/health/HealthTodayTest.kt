@@ -9,7 +9,7 @@ import org.junit.Test
 import se.partee71.dagboken.core.engine.SLEEP_SCORE_KEY
 import se.partee71.dagboken.core.engine.scoreSleepQuality
 import se.partee71.dagboken.core.engine.sleepMeasurements
-import se.partee71.dagboken.core.engine.sleepScoreOn
+import se.partee71.dagboken.core.engine.sleepQualityOn
 import se.partee71.dagboken.core.time.shownDate
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
@@ -51,16 +51,16 @@ class HealthTodayTest {
             DailyHealth(d, sleepDuration = (6 + back % 3).hours, sleepStages = SleepStages(deep = 1.hours, rem = 80.minutes, awake = (20 + back).minutes))
         }
         val history = HealthHistory((earlier.reversed() + night))
-        val score = sleepScoreOn(history, date, age = 55, sex = Sex.FEMALE)
+        val score = sleepQualityOn(history, date, age = 55, sex = Sex.FEMALE)?.score
         val trend = sleepQualitySeries(history, 55, Sex.FEMALE, history.dates, listOf(SLEEP_SCORE_KEY)).single().points.last()
         assertEquals(trend, score?.toFloat())
         assertEquals(scoreSleepQuality(night.sleepMeasurements()!!, 55, Sex.FEMALE)!!.score, score)
     }
 
     @Test fun `utan födelseår eller utan sömn ingen poäng (HLS-11)`() {
-        assertNull(sleepScoreOn(HealthHistory(listOf(night)), date, age = null, sex = Sex.MALE))
-        assertNull(sleepScoreOn(HealthHistory(listOf(DailyHealth(date, steps = 7_842))), date, age = 40, sex = Sex.MALE))
-        assertNull("natten saknas i historiken", sleepScoreOn(HealthHistory(), date, age = 40, sex = Sex.MALE))
+        assertNull(sleepQualityOn(HealthHistory(listOf(night)), date, age = null, sex = Sex.MALE))
+        assertNull(sleepQualityOn(HealthHistory(listOf(DailyHealth(date, steps = 7_842))), date, age = 40, sex = Sex.MALE))
+        assertNull("natten saknas i historiken", sleepQualityOn(HealthHistory(), date, age = 40, sex = Sex.MALE))
     }
 
     @Test fun `den visade dagen är den valda, idag utan val, aldrig efter idag (HEM-14)`() {

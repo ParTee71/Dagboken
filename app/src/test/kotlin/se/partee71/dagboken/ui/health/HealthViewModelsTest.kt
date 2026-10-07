@@ -20,6 +20,7 @@ import se.partee71.dagboken.core.engine.daysEnding
 import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.core.engine.REGULARITY_WINDOW_NIGHTS
 import se.partee71.dagboken.core.engine.SLEEP_SCORE_KEY
+import se.partee71.dagboken.core.engine.SleepFlag
 import se.partee71.dagboken.core.engine.sleepQualitySeries
 import se.partee71.dagboken.core.model.HealthHistory
 import se.partee71.dagboken.core.model.Settings
@@ -210,11 +211,34 @@ class HealthViewModelsTest {
     }
 
     @Test
+    fun `nattens varningsrader följer med poängen – låg syremättnad och förhöjd sovpuls (HLS-10)`() = runTest(main.dispatcher) {
+        health.measured[today] = night.copy(sleepHeartRate = 64, sleepHeartRateBaseline = 58, sleepOxygenSaturation = 89.5)
+        DefaultSettingsRepository(factory).update { it.copy(profile = Profile(birthYear = 1971, sex = Sex.FEMALE)) }.getOrThrow()
+        clockViewModel().state.test {
+            val state = assertNotNull(expectMostRecentItem())
+            assertEquals(listOf(SleepFlag.LOW_OXYGEN_SATURATION, SleepFlag.ELEVATED_SLEEPING_HEART_RATE), state.sleepFlags)
+            assertNotNull(state.sleepScore)
+        }
+    }
+
+    @Test
+    fun `varningsraderna visas också utan födelseår – låg syremättnad beror inte på åldern (HLS-10, HLS-11)`() = runTest(main.dispatcher) {
+        health.measured[today] = night.copy(sleepHeartRate = 64, sleepHeartRateBaseline = 58, sleepOxygenSaturation = 89.5)
+        clockViewModel().state.test {
+            val state = assertNotNull(expectMostRecentItem())
+            assertNull(state.sleepScore)
+            assertTrue(state.needsBirthYear)
+            assertEquals(listOf(SleepFlag.LOW_OXYGEN_SATURATION, SleepFlag.ELEVATED_SLEEPING_HEART_RATE), state.sleepFlags)
+        }
+    }
+
+    @Test
     fun `utan födelseår ingen poäng utan uppmaning (HLS-11)`() = runTest(main.dispatcher) {
         health.measured[today] = night
         clockViewModel().state.test {
             val state = assertNotNull(expectMostRecentItem())
             assertNull(state.sleepScore)
+            assertEquals(emptyList(), state.sleepFlags, "natten saknar nattvärden – inga rader")
             assertTrue(state.needsBirthYear)
             assertEquals(58L, state.day?.restingHeartRate)
         }
