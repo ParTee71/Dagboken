@@ -42,6 +42,8 @@ class AppNavigationTest {
         PrnMedicineEditKey(),
         PrnMedicineEditKey("a7b8c9d0"),
         EpisodeKey("flu"),
+        EpisodeKey("flu", LocalDate(2026, 10, 5)),
+        EpisodeEditKey("flu"),
         ActivityEditKey(),
         ActivityEditKey("a1"),
         ActivityEditKey(date = LocalDate(2026, 10, 5)),
@@ -60,7 +62,7 @@ class AppNavigationTest {
         when (key) {
             TodayKey, DiaryKey, TrendsKey, MedicinesKey, ComponentGalleryKey -> Unit
             ProfileKey, RemindersKey, ThemeKey, ListsKey, is OptionEditKey, ExportImportKey, AboutKey -> Unit
-            is PrescriptionEditKey, is PrnMedicineEditKey, is EpisodeKey -> Unit
+            is PrescriptionEditKey, is PrnMedicineEditKey, is EpisodeKey, is EpisodeEditKey -> Unit
             is ActivityEditKey, is EventEditKey, is DoseEditKey, is EpisodeNewKey, is CheckinEditKey -> Unit
         }
     }
@@ -90,7 +92,37 @@ class AppNavigationTest {
         backStack.push(DoseEditKey(prnId = "a7b8c9d0", date = LocalDate(2026, 10, 5)))
         backStack.push(EpisodeNewKey(LocalDate(2026, 10, 5)))
         backStack.push(EpisodeKey("flu"))
+        backStack.push(EpisodeEditKey("flu"))
         assertEquals(backStack.entries, AppBackStack.restore(backStack.save()).entries)
+    }
+
+    @Test
+    fun `sjukdomsdetaljen läggs på den aktuella fliken och tillbaka återställer flikens stack (HIST-9, HEM-12)`() {
+        val backStack = AppBackStack()
+        backStack.push(EpisodeKey("flu"))
+        backStack.push(EpisodeEditKey("flu"))
+        assertEquals(listOf(TodayKey, EpisodeKey("flu"), EpisodeEditKey("flu")), backStack.entries)
+        backStack.popIfTop(EpisodeEditKey("flu"))
+        backStack.popIfTop(EpisodeKey("flu"))
+        assertEquals(listOf(TodayKey), backStack.entries)
+
+        backStack.select(DiaryKey)
+        backStack.push(EpisodeKey("flu"))
+        backStack.push(CheckinEditKey("flu", "c1"))
+        backStack.select(TodayKey)
+        backStack.select(DiaryKey)
+        assertEquals(listOf(TodayKey, DiaryKey, EpisodeKey("flu"), CheckinEditKey("flu", "c1")), backStack.entries, "flikens stack står kvar vid flikbyte")
+        backStack.popIfTop(CheckinEditKey("flu", "c1"))
+        backStack.popIfTop(EpisodeKey("flu"))
+        assertEquals(listOf(TodayKey, DiaryKey), backStack.entries)
+    }
+
+    @Test
+    fun `Ny incheckning i detaljen behåller dagen som Idag visar, från Dagbok idag, och en befintlig öppnas utan dag (SJ-2, HEM-12, HEM-14)`() {
+        val day = LocalDate(2026, 10, 5)
+        assertEquals(CheckinEditKey("flu", date = day), EpisodeKey("flu", day).checkinKey(null))
+        assertEquals(CheckinEditKey("flu"), EpisodeKey("flu").checkinKey(null), "från Dagbok: idag")
+        assertEquals(CheckinEditKey("flu", "c1"), EpisodeKey("flu", day).checkinKey("c1"))
     }
 
     @Test

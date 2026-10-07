@@ -90,7 +90,7 @@ fun TodayRoute(
     onOpenTrends: () -> Unit,
     onScreening: (LogEvent) -> Unit,
     onLogLater: (prnId: String, date: LocalDate) -> Unit = { _, _ -> },
-    onCheckin: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
+    onOpenIllness: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -109,7 +109,7 @@ fun TodayRoute(
         onOpenTrends = onOpenTrends,
         onScreening = onScreening,
         onLogLater = onLogLater,
-        onCheckin = onCheckin,
+        onOpenIllness = onOpenIllness,
     ) {
         AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
     }
@@ -124,7 +124,7 @@ fun TodayRoute(
  * Ångra och bekräftelserna visas i ramens meddelandeyta. [onScreening] öppnar måendearket – samma ark som plusknappen
  * (`LogViewModel`, ovanpå flikarna) – med en ny logg eller en loggad för ändring. [onEditPrn] öppnar vid
  * behov-formuläret från långtrycksmenyn (HEM-11), [onLogLater] dosformuläret för medicinen i efterhand mot den visade
- * dagen (FAV-10, MED-16), [onCheckin] en ny incheckning på den pågående sjukdomen (HEM-12, SJ-2) och [onOpenTrends]
+ * dagen (FAV-10, MED-16), [onOpenIllness] sjukdomsdetaljen för den pågående sjukdomen med den visade dagen (HEM-12, HEM-14) och [onOpenTrends]
  * fliken Trender (TRD-5).
  */
 @Composable
@@ -140,7 +140,7 @@ fun TodayScreen(
     onOpenTrends: () -> Unit = {},
     onScreening: (LogEvent) -> Unit = {},
     onLogLater: (prnId: String, date: LocalDate) -> Unit = { _, _ -> },
-    onCheckin: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
+    onOpenIllness: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
     avatar: @Composable () -> Unit = {},
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -164,7 +164,7 @@ fun TodayScreen(
         onErrorShown = { onEvent(TodayEvent.ErrorShown) },
         actions = { avatar() },
         snackbar = snackbar,
-    ) { TodayCards(it, onEvent, TodayLinks(onEditPrn, onOpenTrends, onScreening, onLogLater, onCheckin)) }
+    ) { TodayCards(it, onEvent, TodayLinks(onEditPrn, onOpenTrends, onScreening, onLogLater, onOpenIllness)) }
 }
 
 /** Det Idag öppnar utanför fliken – formulär, arket och Trender. */
@@ -173,7 +173,7 @@ private class TodayLinks(
     val onOpenTrends: () -> Unit,
     val onScreening: (LogEvent) -> Unit,
     val onLogLater: (String, LocalDate) -> Unit,
-    val onCheckin: (String, LocalDate) -> Unit,
+    val onOpenIllness: (String, LocalDate) -> Unit,
 )
 
 @Composable
@@ -201,7 +201,7 @@ private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, lin
     MedicinesCard(content, onEvent)
     MoodCard(content, links.onScreening)
     AsNeededCard(content, onEvent, links)
-    content.illness?.let { illness -> IllnessCard(illness) { links.onCheckin(illness.episode.id, content.date) } }
+    content.illness?.let { illness -> IllnessCard(illness) { links.onOpenIllness(illness.episode.id, content.date) } }
     EnergyTrendCard(content, links.onOpenTrends)
 }
 
@@ -254,10 +254,10 @@ private fun MoodCard(content: TodayContent, onScreening: (LogEvent) -> Unit) {
 
 /**
  * Pågående sjukdom (HEM-12): typen, "Dag N" och senaste incheckningen, med vänsterkanten i varningston
- * (status, NFR-16). Raden öppnar en ny incheckning ([onCheckin], SJ-2); sjukdomsdetaljen kommer med #240.
+ * (status, NFR-16). Raden öppnar sjukdomsdetaljen ([onOpen], SJ-13), där man checkar in (SJ-2).
  */
 @Composable
-private fun IllnessCard(illness: OngoingIllness, onCheckin: () -> Unit) {
+private fun IllnessCard(illness: OngoingIllness, onOpen: () -> Unit) {
     AppCard {
         SectionHeader(stringResource(R.string.today_illness_title), icon = R.drawable.ic_thermometer, tone = Tone.Warning)
         val checkin = illness.lastCheckin
@@ -271,7 +271,7 @@ private fun IllnessCard(illness: OngoingIllness, onCheckin: () -> Unit) {
             },
             trailing = illness.day?.let { day -> { InfoPill(stringResource(R.string.today_illness_day_format, day), tone = Tone.Warning) } },
             accent = AppColors.tone(Tone.Warning).content,
-            onClick = onCheckin,
+            onClick = onOpen,
             navigates = true,
         )
     }

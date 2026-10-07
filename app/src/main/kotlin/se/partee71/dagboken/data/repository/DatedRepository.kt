@@ -25,7 +25,8 @@ interface EntryStore<T> {
      * skriver samma dokument med samma skapandetid; utan `createdAt` är det ett fel ([IllegalArgumentException]) och
      * ingenting skrivs. En befintlig skriver bara de fält som skiljer [edited] från [loaded] (`updateChanged`): id:t,
      * skapandetiden och fält som en annan enhet eller en nyare app skrivit står kvar, och en post som raderats under
-     * tiden återuppstår inte. Offline först.
+     * tiden återuppstår inte. En ändring som byter skapandetiden är ett fel ([IllegalArgumentException]) och ingenting
+     * skrivs (SJ-11). Offline först.
      */
     suspend fun save(loaded: T?, edited: T): Result<Unit>
 
@@ -53,12 +54,19 @@ class StoredEntries<T : Identified>(
     override suspend fun get(id: String): Result<T?> = collection.get(id)
 
     override suspend fun save(loaded: T?, edited: T): Result<Unit> = when {
-        loaded != null -> collection.updateChanged(codec, loaded, withId(edited, loaded.id))
+        loaded != null -> keepsCreatedAt(loaded, edited).fold({ collection.updateChanged(codec, loaded, withId(edited, loaded.id)) }, { Result.failure(it) })
         createdAt(edited) == null -> Result.failure(IllegalArgumentException("En ny post skapas med new()"))
         else -> collection.upsert(edited)
     }
 
     override suspend fun delete(id: String): Result<Unit> = collection.delete(id)
+
+    /**
+     * SJ-11: en ändring av [loaded] behåller skapandetiden – [edited] har samma `createdAt` (också `null` för en äldre
+     * post utan), annars [IllegalArgumentException]. Också för en ändring som inte går genom [save] (dosens flytt).
+     */
+    fun keepsCreatedAt(loaded: T, edited: T): Result<Unit> =
+        if (createdAt(edited) == createdAt(loaded)) Result.success(Unit) else Result.failure(IllegalArgumentException("En ändring behåller skapandetiden"))
 }
 
 /** [StoredEntries] för en post ([Post]): skapandetiden och id:t ur modellen. */

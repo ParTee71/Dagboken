@@ -28,3 +28,24 @@ data class OngoingIllness(val episode: IllnessEpisode, val day: Int?, val lastCh
 /** [OngoingIllness] för [episode] med dess [checkins] och [today]. */
 fun ongoingIllness(episode: IllnessEpisode, checkins: List<Checkin>, today: LocalDate): OngoingIllness =
     OngoingIllness(episode, illnessDay(episode.start, today), latestCheckin(checkins))
+
+/** Varför ett slutdatum inte godtas ([endDateError]). */
+enum class EndDateError {
+    /** Slutet ligger före starten. */
+    BEFORE_START,
+
+    /** Slutet ligger efter idag – en episod avslutas inte i förväg. */
+    AFTER_TODAY,
+}
+
+/**
+ * SJ-4, SJ-12: regeln för en episods slutdatum, en gång för att avsluta (`IllnessRepository.finishEpisode`,
+ * sjukdomsdetaljen) och för episodformuläret: [end] ska ligga i [start]…[today], båda inräknade (samma dag som
+ * starten går). `null` = godtas, också utan slut (pågående) eller utan start (bara taket idag gäller då).
+ */
+fun endDateError(start: LocalDate?, end: LocalDate?, today: LocalDate): EndDateError? = when {
+    end == null -> null
+    start != null && end < start -> EndDateError.BEFORE_START
+    end > today -> EndDateError.AFTER_TODAY
+    else -> null
+}

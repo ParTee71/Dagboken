@@ -38,6 +38,30 @@ test('rundtur: export → radera → import → export ger identiskt innehåll',
   assert.deepEqual(byPath(second.documents), byPath(first.documents));
 });
 
+test('rundtur med episoder som har många incheckningar (SJ-7, SJ-9): alla kommer tillbaka under sin episod', async () => {
+  const db = database();
+  const user = fixture.documents.find((d) => d.path === `users/${UID}`);
+  const episode = fixture.documents.find((d) => collectionOf(d.path) === 'illnessEpisodes');
+  const checkin = fixture.documents.find((d) => d.path.startsWith(`${episode.path}/checkins/`));
+  const withCheckins = (id, count) => [
+    { path: `users/${UID}/illnessEpisodes/${id}`, data: episode.data },
+    ...Array.from({ length: count }, (_, i) => ({
+      path: `users/${UID}/illnessEpisodes/${id}/checkins/c${String(i).padStart(4, '0')}`,
+      data: { ...checkin.data, severity: i % 11, note: `Incheckning ${i}` },
+    })),
+  ];
+  const documents = [user, ...withCheckins('lang', MAX_BATCH * 2 + 1), ...withCheckins('kort', 3)];
+
+  const { written } = await importData(db, { schemaVersion: 1, documents });
+  assert.equal(written.checkins, MAX_BATCH * 2 + 4);
+  const first = await exportData(db);
+  assert.deepEqual(byPath(first.documents), byPath(documents));
+
+  await clearUsers(db);
+  await importData(db, first);
+  assert.deepEqual(byPath((await exportData(db)).documents), byPath(first.documents));
+});
+
 test('--user exporterar och importerar bara den användaren', async () => {
   const db = database();
   await seed(db);

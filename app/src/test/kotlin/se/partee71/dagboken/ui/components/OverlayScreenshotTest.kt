@@ -21,6 +21,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import kotlin.test.assertEquals
+import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -47,6 +48,13 @@ class OverlayScreenshotTest {
     @Test
     fun `ConfirmDialog - radera`() = rule.captureScreenLightAndDark("ConfirmDialog_radera") {
         ConfirmDialog("Radera Alvedon?", "Receptet tas bort för gott. Det går inte att ångra.", "Radera", {}, {}, destructive = true)
+    }
+
+    @Test
+    fun `ConfirmDialog - med fält`() = rule.captureScreenLightAndDark("ConfirmDialog_med_falt") {
+        ConfirmDialog("Avsluta episoden?", "Förkylning markeras som avslutad. Incheckningarna står kvar.", "Avsluta", {}, {}) {
+            DateField("Slutdatum", LocalDate(2026, 10, 6), {})
+        }
     }
 
     @Test

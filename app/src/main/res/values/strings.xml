@@ -477,7 +477,6 @@
     <string name="diary_subject_dose">Dosen %1$s, %2$s</string>
     <string name="diary_subject_event">Händelsen %1$s, %2$s</string>
     <string name="diary_subject_checkin">Incheckningen för %1$s, %2$s</string>
-    <string name="diary_episode_upcoming">Här kommer sjukdomens förlopp med incheckningar.</string>
 
     <!-- Plusknappens loggmeny (NAV-10) -->
     <string name="log_menu_open">Logga</string>
@@ -514,6 +513,29 @@
     <string name="illness_type_missing">Ange vilken sjukdom</string>
     <string name="checkin_new">Ny incheckning</string>
     <string name="checkin_edit">Redigera incheckning</string>
+    <string name="illness_edit">Redigera sjukdomsepisod</string>
+    <!-- Sjukdomsdetaljen (SJ-4, SJ-5, SJ-9, SJ-12, SJ-13, #240) -->
+    <string name="illness_ongoing">Pågår</string>
+    <string name="illness_ended">Avslutad</string>
+    <string name="illness_started">Började</string>
+    <string name="illness_ended_on">Slutade</string>
+    <string name="illness_latest_severity">Senaste svårighet</string>
+    <string name="illness_latest_severity_format">%1$d · %2$s</string>
+    <string name="illness_checkins">Incheckningar</string>
+    <string name="illness_checkins_empty_title">Inga incheckningar än</string>
+    <string name="illness_checkins_empty_message">Checka in för att följa hur sjukdomen utvecklas.</string>
+    <string name="illness_finish">Avsluta episod</string>
+    <string name="illness_finish_title">Avsluta episoden?</string>
+    <string name="illness_finish_message">%s markeras som avslutad. Incheckningarna står kvar.</string>
+    <string name="illness_finish_confirm">Avsluta</string>
+    <string name="illness_end_after_today">Slutdatumet kan inte vara senare än idag.</string>
+    <string name="illness_delete_title">Radera sjukdomsepisoden?</string>
+    <string name="illness_delete_subject_format">%1$s (%2$s)</string>
+    <plurals name="illness_delete_message">
+        <item quantity="one">%1$s raderas med sin incheckning och dess anteckning. Det går inte att ångra.</item>
+        <item quantity="other">%1$s raderas med sina %2$d incheckningar och deras anteckningar. Det går inte att ångra.</item>
+    </plurals>
+    <string name="illness_delete_message_none">%s raderas. Det går inte att ångra.</string>
     <!-- Aktivitets- och händelseformulären (AKT-1–AKT-12, HAN-1) -->
     <string name="entry_type">Typ</string>
     <string name="entry_more_types">Fler typer</string>

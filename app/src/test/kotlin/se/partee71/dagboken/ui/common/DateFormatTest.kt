@@ -34,4 +34,11 @@ class DateFormatTest {
         assertEquals("söndag", DateFormat.weekdayLong(kotlinx.datetime.DayOfWeek.SUNDAY))
         assertEquals("7", DateFormat.dayOfMonth(LocalDate(2026, 10, 7)))
     }
+
+    @Test
+    fun `en dag i episoden med kort veckodag utan år, och som rubrik med stor bokstav (SJ-5)`() {
+        assertEquals("tis 6 okt", DateFormat.weekdayDay(LocalDate(2026, 10, 6)))
+        assertEquals("Lör 3 okt", DateFormat.weekdayDay(LocalDate(2026, 10, 3), capitalized = true))
+        assertEquals("tors 1 okt", DateFormat.weekdayDay(LocalDate(2026, 10, 1)))
+    }
 }

@@ -396,4 +396,50 @@ class LogFormsViewModelTest {
         assertNull(factory.checkins("flu").get("c").getOrThrow())
         assertEquals(flu, illnesses.getEpisode("flu").getOrThrow(), "episoden står kvar")
     }
+
+    @Test
+    fun `en episod redigeras utan att någon incheckning skapas – slutet och skapandetiden står kvar (SJ-12)`() = runTest(main.dispatcher) {
+        val ended = flu.copy(end = today, note = "Halsen")
+        factory.illnessEpisodes().upsert(ended).getOrThrow()
+        val vm = EpisodeEditViewModel(illnesses, clock, { zone }, "flu")
+        assertEquals(ended, vm.editor.state.value.value)
+        vm.form.onEvent(EntryEditEvent.Changed(IllnessField.START) { it.copy(start = LocalDate(2026, 10, 7)) })
+        assertEquals(R.string.prescription_error_end_before_start, vm.editor.state.value.errorFor(IllnessField.START))
+        assertFalse(vm.editor.state.value.canSave, "starten efter slutet")
+        vm.form.onEvent(EntryEditEvent.Changed(IllnessField.START) { it.copy(start = yesterday) })
+        vm.form.onEvent(EntryEditEvent.Changed(IllnessField.TYPE) { it.copy(type = " Influensa ") })
+        vm.form.onEvent(EntryEditEvent.Changed(IllnessField.NOTE) { it.copy(note = " ") })
+        vm.editor.effects.test {
+            vm.form.onEvent(EntryEditEvent.Save)
+            assertEquals(EditorEffect.Done, awaitItem())
+        }
+        assertEquals(ended.copy(type = "Influensa", start = yesterday, note = null), illnesses.getEpisode("flu").getOrThrow())
+        assertTrue(illnesses.observeCheckins("flu").first().isEmpty(), "ingen incheckning")
+    }
+
+    @Test
+    fun `en episod som inte finns kan inte redigeras (SJ-12)`() = runTest(main.dispatcher) {
+        val vm = EpisodeEditViewModel(illnesses, clock, { zone }, "saknas")
+        assertEquals(DataError.NotFound, vm.editor.state.value.loadError)
+    }
+
+    @Test
+    fun `ett lagrat slutdatum efter idag går inte att spara – samma regel som Avsluta (SJ-4, SJ-12)`() = runTest(main.dispatcher) {
+        factory.illnessEpisodes().upsert(flu.copy(end = LocalDate(2026, 10, 9))).getOrThrow()
+        val vm = EpisodeEditViewModel(illnesses, clock, { zone }, "flu")
+        assertEquals(R.string.illness_end_after_today, vm.editor.state.value.errorFor(IllnessField.START))
+        vm.form.onEvent(EntryEditEvent.Changed(IllnessField.TYPE) { it.copy(type = "Influensa") })
+        assertFalse(vm.editor.state.value.canSave)
+    }
+
+    @Test
+    fun `episodens formulär raderar aldrig – kaskaden finns bara i sjukdomsdetaljen (SJ-9)`() = runTest(main.dispatcher) {
+        factory.illnessEpisodes().upsert(flu).getOrThrow()
+        factory.checkins("flu").upsert(Checkin("c", yesterday, LocalTime(9, 0), severity = 4, createdAt = flu.createdAt)).getOrThrow()
+        val vm = EpisodeEditViewModel(illnesses, clock, { zone }, "flu")
+        vm.form.onEvent(EntryEditEvent.Delete)
+        runCurrent()
+        assertEquals(flu, illnesses.getEpisode("flu").getOrThrow())
+        assertEquals(1, illnesses.observeCheckins("flu").first().size)
+    }
 }

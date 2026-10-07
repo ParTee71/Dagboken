@@ -94,13 +94,24 @@ data class EpisodeNewKey(val date: LocalDate? = null) : AppKey
 @Serializable
 data class CheckinEditKey(val episodeId: String, val id: String? = null, val date: LocalDate? = null) : AppKey
 
-/** En episods start eller slut i Dagbok (HIST-9) – en platshållare tills sjukdomsdetaljen (#240) tar över. */
+/**
+ * Sjukdomsdetaljen för episoden [id] (SJ-4, SJ-9, SJ-13) – från en episods start eller slut i Dagbok (HIST-9) och Idags
+ * pågående sjukdom (HEM-12). [date] är dagen Idag visar (`null` = idag, från Dagbok): "Ny incheckning" checkar in den
+ * dagen (SJ-2, HEM-14).
+ */
 @Serializable
-data class EpisodeKey(val id: String) : AppKey
+data class EpisodeKey(val id: String, val date: LocalDate? = null) : AppKey
+
+/** Detaljens incheckning: en ny ([checkinId] = `null`) mot detaljens dag, eller den befintliga [checkinId] (SJ-2, SJ-11). */
+fun EpisodeKey.checkinKey(checkinId: String?): CheckinEditKey = CheckinEditKey(id, checkinId, date.takeIf { checkinId == null })
+
+/** Redigera episoden [id] – typ, startdatum och anteckning (SJ-12) – från sjukdomsdetaljen. */
+@Serializable
+data class EpisodeEditKey(val id: String) : AppKey
 
 /**
  * Skärmen som posten öppnar (HIST-3): aktiviteten, händelsen, dosen och incheckningen (under sin episod) sina
- * formulär, episodens start och slut episoden. `null` för en måendelogg – den öppnas i måendearket ovanpå fliken.
+ * formulär, episodens start och slut sjukdomsdetaljen. `null` för en måendelogg – den öppnas i måendearket ovanpå fliken.
  */
 val DiaryEntry.key: AppKey?
     get() = when (this) {

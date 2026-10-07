@@ -25,6 +25,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.common.EditorState
+import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.components.ADD_BUTTON_TAG
@@ -81,6 +82,45 @@ fun <T> ComposeContentTestRule.runListScreenContract(
     } else {
         onNodeWithTag(ADD_BUTTON_TAG).assertDoesNotExist()
     }
+}
+
+/**
+ * Kontraktet för en skärm på `EntityDetailScreen` (NFR-1): laddning utan Redigera, läsfel med "Försök igen", ett
+ * dokument som inte finns (raderat) med sin text, och innehåll med Redigera och tillbakapil. Feature-tester anropar
+ * det här och testar sedan bara det som är unikt för skärmen.
+ *
+ * @param value ett laddat värde och [valueText] som ska synas för det.
+ * @param screen skärmen för ett tillstånd, med callbacks för försök igen, Redigera och tillbaka.
+ */
+fun <T> ComposeContentTestRule.runDetailScreenContract(
+    value: T,
+    valueText: String,
+    screen: @Composable (state: DetailUiState<T>, onRetry: () -> Unit, onEdit: () -> Unit, onBack: () -> Unit) -> Unit,
+) {
+    var state by mutableStateOf<DetailUiState<T>>(DetailUiState.Loading)
+    var retries = 0
+    var edits = 0
+    var backs = 0
+    setContent { DagbokenTheme { screen(state, { retries++ }, { edits++ }, { backs++ }) } }
+
+    onNodeWithContentDescription(text(R.string.loading)).assertExists()
+    onNodeWithContentDescription(text(R.string.edit)).assertDoesNotExist()
+
+    state = DetailUiState.Error(DataError.Offline)
+    onNodeWithText(text(R.string.load_error_title)).assertIsDisplayed()
+    onNodeWithText(text(R.string.error_offline)).assertIsDisplayed()
+    onNodeWithText(text(R.string.retry)).performClick()
+    assertEquals(1, retries, "fel: Försök igen ska läsa om")
+
+    state = DetailUiState.Error(DataError.NotFound)
+    onNodeWithText(text(R.string.error_not_found)).assertIsDisplayed()
+
+    state = DetailUiState.Content(value)
+    onNodeWithText(valueText).assertIsDisplayed()
+    onNodeWithContentDescription(text(R.string.edit)).performClick()
+    assertEquals(1, edits, "innehåll: Redigera i toppraden")
+    onNodeWithContentDescription(text(R.string.back)).performClick()
+    assertEquals(1, backs, "tillbakapilen stänger detaljen")
 }
 
 /**

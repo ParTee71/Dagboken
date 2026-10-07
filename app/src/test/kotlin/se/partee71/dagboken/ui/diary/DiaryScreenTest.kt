@@ -211,16 +211,6 @@ class DiaryScreenTest {
         assertEquals(listOf<DiaryEvent>(DiaryEvent.ShowOlder), events)
     }
 
-    @Test
-    fun `platshållaren för en episod har tillbakapil (HIST-3, HIST-9)`() {
-        var back = 0
-        rule.setContent { DagbokenTheme { EpisodePlaceholder({ back++ }) } }
-        rule.onNodeWithText("Sjukdom").assertIsDisplayed()
-        rule.onNodeWithText("Här kommer sjukdomens förlopp med incheckningar.").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Tillbaka").performClick()
-        assertEquals(1, back)
-    }
-
     // ── Skärmdumpar (ljust + mörkt) ──────────────────────────────────────────
 
     @Test

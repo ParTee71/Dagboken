@@ -256,6 +256,7 @@ class DefaultDoseRepository @Inject constructor(
 
     override suspend fun save(loaded: Dose?, edited: Dose): Result<Unit> {
         edited.takenAt?.takeIf { edited.status == DoseStatus.TAKEN }?.let { notInFuture(it) }?.onFailure { return Result.failure(it) }
+        if (loaded != null) entries.keepsCreatedAt(loaded, edited).onFailure { return Result.failure(it) }
         return when {
             loaded == null -> entries.save(null, edited)
             loaded.movesPrescribedDose(edited) -> collection.moveChanged(DoseCodec, loaded, loaded.moveTarget(edited, collection::newId))
