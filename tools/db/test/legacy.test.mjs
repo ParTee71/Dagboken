@@ -12,7 +12,7 @@ import { COLLECTIONS } from '../lib/collections.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
 import { collectionOf } from '../lib/walk.mjs';
 import { toClient } from './helpers/client.mjs';
-import { rulesTestEnvironment, useCleanEmulator } from './helpers/emulator.mjs';
+import { fixture, UID as FIXTURE_UID, rulesTestEnvironment, useCleanEmulator } from './helpers/emulator.mjs';
 import { readRepoFile, repoRoot } from './helpers/repo.mjs';
 import { runScript } from './helpers/run.mjs';
 
@@ -176,4 +176,28 @@ test('migreringsmarkören users/{uid}.legacyMigration sätts en gång av ägaren
   // Ett nytt konto kan skapas med markören direkt (importen från verktygen sätter den så).
   const other = env.authenticatedContext('ny').firestore();
   await assertSucceeds(setDoc(doc(other, 'users', 'ny'), { schemaVersion: 1, legacyMigration: marker }));
+});
+
+// ── Importen i appen (BCK-6, BCK-14, OMB-5): samma batchskrivning som flytten (merge, sökvägsordning), men en
+// import ersätter också befintliga dokument med samma id – det ska gå genom rules som en uppdatering.
+
+test('appens import av en 4.0-export: ägaren skriver över dokument med samma id med merge genom rules, och exporten blir filens (BCK-6)', async () => {
+  const db = database();
+  await env.clearFirestore();
+  const owner = env.authenticatedContext(FIXTURE_UID).firestore();
+  // Som appen: användardokumentet finns sedan inloggningen och skrivs aldrig; en föräldralös incheckning stoppar importen.
+  const documents = byPath(fixture.documents.filter((d) => d.path !== `users/${FIXTURE_UID}` && !d.path.includes('/utan-dokument/')));
+  await assertSucceeds(setDoc(doc(owner, 'users', FIXTURE_UID), { schemaVersion: CURRENT_VERSION }));
+  const run = async () => {
+    const batch = writeBatch(owner);
+    for (const { path: docPath, data: fields } of documents) batch.set(doc(owner, docPath), toClient(fields), { merge: true });
+    await assertSucceeds(batch.commit());
+  };
+  await run();
+  // Ändrad i 4.0 efter exporten: importen ersätter värdet med filens.
+  const activity = documents.find((d) => collectionOf(d.path) === 'activities');
+  await assertSucceeds(updateDoc(doc(owner, activity.path), { note: 'Ändrad i 4.0' }));
+  await run();
+  const exported = await exportData(db, { user: FIXTURE_UID });
+  assert.deepEqual(byPath(exported.documents.filter((d) => d.path !== `users/${FIXTURE_UID}`)), documents);
 });

@@ -26,6 +26,7 @@ import se.partee71.dagboken.data.legacy.CopyRecord
 import se.partee71.dagboken.data.legacy.CopyResult
 import se.partee71.dagboken.data.legacy.CopyStatus
 import se.partee71.dagboken.data.legacy.LegacyAbortOutcome
+import se.partee71.dagboken.data.legacy.LegacyImportUseCase
 import se.partee71.dagboken.data.legacy.LegacyMigrationPlan
 import se.partee71.dagboken.data.legacy.LegacyMigrationUseCase
 import se.partee71.dagboken.data.legacy.LegacyRead
@@ -130,6 +131,15 @@ sealed interface MigrationStage {
 
     /** 3.x-filerna gick inte att läsa ([error] = `null`) eller ingen var inloggad. */
     data class ReadFailed(val error: DataError?) : MigrationStage
+
+    /**
+     * Första starten utan Room-fil och utan markör (OMB-5, mockupen avsnitt 16): importens lägen [import] – i
+     * [ImportStage.Choose] med valen "Importera från Google Drive", "Importera från fil" och "Börja tomt"
+     * ([MigrationEvent.StartEmpty], även i [ImportStage.NoDriveBackup]). När importen är klar ([ImportStage.Done]) är
+     * flaggan redan satt; "Öppna Dagboken" = [MigrationEvent.StartEmpty]. Händelserna i importen skickas som
+     * [MigrationEvent.Import].
+     */
+    data class Fallback(val import: ImportStage = ImportStage.Choose) : MigrationStage
 }
 
 /** [failure] = bekräftelsen misslyckades – visas som meddelande, knappen kan tryckas igen. */
@@ -161,6 +171,12 @@ sealed interface MigrationEvent {
     data object Confirm : MigrationEvent
 
     data object ErrorShown : MigrationEvent
+
+    /** "Börja tomt" i fallbacken – och "Öppna Dagboken" efter en klar import: flaggan sätts, frågan kommer inte igen (OMB-5). */
+    data object StartEmpty : MigrationEvent
+
+    /** En händelse i fallbackens import ([MigrationStage.Fallback]). */
+    data class Import(val event: ImportEvent) : MigrationEvent
 }
 
 /**
@@ -170,11 +186,15 @@ sealed interface MigrationEvent {
 @HiltViewModel
 class MigrationViewModel @Inject constructor(
     private val migration: LegacyMigrationUseCase,
+    importer: LegacyImportUseCase,
     private val clock: Clock,
     private val zone: Provider<TimeZone>,
 ) : ViewModel() {
     private val _state = MutableStateFlow(MigrationUiState())
     val state: StateFlow<MigrationUiState> = _state.asStateFlow()
+
+    /** Fallbackens import (OMB-5) – samma tillståndsmaskin som Export och import. */
+    private val import = ImportFlow(viewModelScope, importer)
 
     private var plan: LegacyMigrationPlan? = null
     private var outcome: LegacyWriteOutcome.Verified? = null
@@ -183,6 +203,14 @@ class MigrationViewModel @Inject constructor(
 
     init {
         check()
+        viewModelScope.launch {
+            import.state.collect { stage ->
+                if (this@MigrationViewModel.stage !is MigrationStage.Fallback) return@collect
+                // En klar import räknas som svaret på frågan: flaggan sätts direkt, även om appen stängs före "Öppna Dagboken".
+                if (stage is ImportStage.Done) migration.skipFallback()
+                show(MigrationStage.Fallback(stage))
+            }
+        }
     }
 
     fun onEvent(event: MigrationEvent) {
@@ -196,6 +224,8 @@ class MigrationViewModel @Inject constructor(
             MigrationEvent.Confirm -> confirm()
             MigrationEvent.Abort -> abort()
             MigrationEvent.ErrorShown -> _state.update { it.copy(failure = null) }
+            MigrationEvent.StartEmpty -> startEmpty()
+            is MigrationEvent.Import -> if (stage is MigrationStage.Fallback) import.onEvent(event.event)
         }
     }
 
@@ -212,9 +242,28 @@ class MigrationViewModel @Inject constructor(
     private fun check() = step {
         show(MigrationStage.Checking)
         migration.isPending().fold(
-            onSuccess = { pending -> if (pending) read() else leaveTo(openImport = false) },
+            onSuccess = { pending -> if (pending) read() else fallback() },
             onFailure = { show(MigrationStage.CheckFailed(it as? DataError ?: DataError.Unknown)) },
         )
+    }
+
+    /**
+     * Ingen Room-migrering: utan Room-fil, flagga, markör och data i kontot frågar första starten om import eller "Börja
+     * tomt" (OMB-5). Går det inte att avgöra (utan nät) släpps användaren in och frågan prövas igen vid nästa start –
+     * utan 3.x-data på telefonen finns inget som väntar.
+     */
+    private suspend fun fallback() {
+        val pending = migration.isFallbackPending().getOrDefault(false)
+        if (pending) show(MigrationStage.Fallback(import.state.value)) else leaveTo(openImport = false)
+    }
+
+    /** "Börja tomt" / "Öppna Dagboken": flaggan och in i appen. Ett fel i flaggan stoppar inte – frågan kommer då igen vid nästa start. */
+    private fun startEmpty() {
+        if (stage !is MigrationStage.Fallback || import.busy) return
+        step {
+            migration.skipFallback()
+            leaveTo(openImport = false)
+        }
     }
 
     private suspend fun read() {
@@ -268,6 +317,8 @@ class MigrationViewModel @Inject constructor(
     private fun close(openImport: Boolean) {
         // Under skrivningen och bekräftelsen finns ingen väg ut – de är korta och kan inte lämnas halvgjorda.
         if (job?.isActive == true && stage !is MigrationStage.Review) return
+        // Medan fallbackens import läser eller skriver finns ingen väg ut.
+        if (stage is MigrationStage.Fallback && import.busy) return
         // När flytten börjat finns bara bekräfta eller avbryt (OMB-7).
         if (started()) return
         job?.cancel()
@@ -367,10 +418,10 @@ internal fun accounted(after: Map<String, Int>, vararg extra: Map<String, Int>):
 private fun LegacyWriteOutcome.accounted(): Map<String, Int> = accounted(after, existing)
 
 /** Varningarnas texter, var och en en gång – sökvägen (med dokument-id) visas inte. */
-private fun List<Warning>.messages(): List<String> = map { it.message }.distinct()
+internal fun List<Warning>.messages(): List<String> = map { it.message }.distinct()
 
 /** Stopprapporten per samling, fält och skäl med antal; sökvägens id visas inte. */
-private fun reportOf(problems: List<Problem>): List<ReportLine> =
+internal fun reportOf(problems: List<Problem>): List<ReportLine> =
     problems.groupingBy { Triple(reportCollection(it.path), it.field, it.reason) }.eachCount()
         .map { (key, count) -> ReportLine(key.first, key.second, key.third, count) }
 

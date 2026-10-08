@@ -181,6 +181,47 @@ class LegacyMigrationUseCaseTest {
     // ── Läsa ──────────────────────────────────────────────────────────────
 
     @Test
+    fun `isFallbackPending - utan Room-fil, flagga och markör sant, Börja tomt sätter flaggan, markören räcker och med Room-fil falskt`() = test {
+        room.read = LegacyRoomRead.Missing
+        assertEquals(true, useCase.isFallbackPending().getOrThrow())
+        assertEquals(false, useCase.isPending().getOrThrow(), "Room-migreringen väntar inte – fallbacken frågar i stället")
+
+        useCase.skipFallback().getOrThrow()
+        assertTrue(uid in flag.done)
+        firestore.offline = true
+        assertEquals(false, useCase.isFallbackPending().getOrThrow(), "flaggan räcker – servern frågas inte")
+        assertTrue(store.read(Paths.USERS, uid)?.get(LegacyMigrationCodec.FIELD) == null, "Börja tomt skriver ingen markör")
+
+        flag.done.clear()
+        firestore.offline = false
+        store.set(Paths.USERS, uid, mapOf(LegacyMigrationCodec.FIELD to mapOf("source" to "room")), merge = true)
+        assertEquals(false, useCase.isFallbackPending().getOrThrow(), "markören på servern: kontot har redan sin 3.x-data")
+        assertTrue(uid in flag.done)
+
+        flag.done.clear()
+        room.read = LegacyRoomRead.Tables(tables, 0, FINGERPRINT)
+        assertEquals(false, useCase.isFallbackPending().getOrThrow(), "med Room-fil gäller flytten (OMB-2), inte fallbacken")
+    }
+
+    @Test
+    fun `isFallbackPending - ett konto som redan har 4_0-data frågas aldrig och flaggan sätts`() = test {
+        room.read = LegacyRoomRead.Missing
+        store.set("${Paths.user(uid)}/screenings", "s1", mapOf("energy" to 5L), merge = false)
+        assertEquals(false, useCase.isFallbackPending().getOrThrow())
+        assertTrue(uid in flag.done, "nästa start frågar inte servern igen")
+    }
+
+    @Test
+    fun `isFallbackPending - utan nät Offline, utloggad NotSignedIn`() = test {
+        room.read = LegacyRoomRead.Missing
+        firestore.offline = true
+        assertEquals(DataError.Offline, useCase.isFallbackPending().exceptionOrNull())
+        scope.uid.value = null
+        assertEquals(DataError.NotSignedIn, useCase.isFallbackPending().exceptionOrNull())
+        assertEquals(DataError.NotSignedIn, useCase.skipFallback().exceptionOrNull())
+    }
+
+    @Test
     fun `read - Room-raderna ger konverterarens dokument utan users, antal före = rapportens, e-post och varningar utan innehåll`() = test {
         flag.session = LegacySession("uid-3x")
         val plan = readyPlan()

@@ -95,6 +95,7 @@ class CatalogScreenshotTest {
                     ItemRow("Huvudvärk", subtitle = "Svårighetsgrad 4", trailing = { InfoPill("ändrad") })
                     ItemRow("Förkylning", accent = AppColors.swatch(2), tinted = true)
                     ItemRow("Kvällsmedicin", done = true)
+                    ItemRow("Importera från fil", subtitle = "3.x-backup (.json) eller 4.0-export", icon = R.drawable.ic_file, navigates = true, onClick = {})
                 }
             }
         }

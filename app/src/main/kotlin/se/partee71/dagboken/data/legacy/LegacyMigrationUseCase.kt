@@ -2,9 +2,11 @@ package se.partee71.dagboken.data.legacy
 
 import android.net.Uri
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import se.partee71.dagboken.core.legacy.BackupJson
@@ -26,6 +28,7 @@ import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.core.schema.asDoc
 import se.partee71.dagboken.data.auth.AuthRepository
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.common.UserFile
 import se.partee71.dagboken.data.common.UserScope
 import se.partee71.dagboken.data.common.currentVersion
 import se.partee71.dagboken.data.common.suspendRunCatching
@@ -210,7 +213,7 @@ class LegacyMigrationUseCase @Inject constructor(
     private val state: MigrationDeviceState,
     private val ledger: MigrationLedger,
     private val work: LegacyWork,
-    private val copies: LegacyCopyFile,
+    private val copies: UserFile,
     private val pause: LegacyMigrationPause,
     private val appVersion: AppVersion,
     private val auth: AuthRepository,
@@ -234,12 +237,46 @@ class LegacyMigrationUseCase @Inject constructor(
         if (state.isDone(uid)) return@suspendRunCatching false
         // Flytten har börjat (något är skrivet): skärmen visas tills bekräftelsen eller avbrytandet – utan att fråga servern.
         if (readOrNull { ledger.read(uid).started } == true) return@suspendRunCatching true
-        val marker = LegacyMigrationCodec.decode(documents.document(Paths.user(uid))?.get(LegacyMigrationCodec.FIELD))
-        if (marker != null) {
+        !markedOnServer(uid)
+    }
+
+    /**
+     * Fallbacken (OMB-5, NAV-6): **ingen** Room-fil, flaggan för kontot saknas, servern har ingen markör **och** kontot har
+     * inga dokument i datasamlingarna – då frågar första starten om import från Drive, import från fil eller "Börja tomt".
+     * Ett konto som redan har 4.0-data (ny telefon) frågas aldrig, så att en gammal backup inte skriver över nyare data
+     * av misstag; flaggan sätts då, liksom när markören finns. Utan nät `Offline`.
+     */
+    suspend fun isFallbackPending(): Result<Boolean> = suspendRunCatching(::firestoreError) {
+        if (room.exists()) return@suspendRunCatching false
+        val uid = scope.uid.value ?: throw DataError.NotSignedIn
+        if (state.isDone(uid)) return@suspendRunCatching false
+        if (markedOnServer(uid)) return@suspendRunCatching false
+        if (hasData(uid)) {
             state.markDone(uid)
             return@suspendRunCatching false
         }
         true
+    }
+
+    /** Om kontot har något dokument i någon datasamling – en `limit(1)`-fråga per samling, parallellt. */
+    private suspend fun hasData(uid: String): Boolean = coroutineScope {
+        Paths.USER_COLLECTIONS.map { async { documents.hasDocuments(Paths.collection(uid, it)) } }.awaitAll().any { it }
+    }
+
+    /**
+     * "Börja tomt" och en klar import i fallbacken (OMB-5): flaggan för kontot sätts, så att första starten inte frågar
+     * igen på den här enheten. Ingen markör på servern – den betyder att Room-datan flyttats, och skulle annars hindra en
+     * senare flytt från en telefon som fortfarande har 3.x.
+     */
+    suspend fun skipFallback(): Result<Unit> = suspendRunCatching({ DataError.Unknown }) {
+        state.markDone(scope.uid.value ?: throw DataError.NotSignedIn)
+    }
+
+    /** Markören `users/{uid}.legacyMigration` finns på servern; då sätts flaggan, så att servern inte frågas igen. */
+    private suspend fun markedOnServer(uid: String): Boolean {
+        LegacyMigrationCodec.decode(documents.document(Paths.user(uid))?.get(LegacyMigrationCodec.FIELD)) ?: return false
+        state.markDone(uid)
+        return true
     }
 
     /**
@@ -287,7 +324,7 @@ class LegacyMigrationUseCase @Inject constructor(
                         fingerprint = tables.fingerprint,
                         tableCounts = LegacyRoomSchema.TABLES.associateWith { tables.tables[it].orEmpty().size },
                         copy = copyStatus(tables.fingerprint),
-                        documents = result.documents.filterNot { CollectionNames.collectionOf(it.path) == CollectionNames.USERS },
+                        documents = result.accountDocuments,
                         counts = result.report.counts - CollectionNames.USERS,
                         warnings = assembly.warnings + result.report.warnings,
                         report = result.report,
@@ -320,7 +357,7 @@ class LegacyMigrationUseCase @Inject constructor(
         if (LegacyRoomAssembler.tableCounts(parsed) != cleared.tableCounts) return@withContext failed(CopyFailure.COUNT_MISMATCH)
         val documents = when (val result = BackupJsonConverter.convert(parsed, cleared.uid)) {
             is ConversionResult.Stopped -> return@withContext failed(CopyFailure.CONVERTER_STOPPED, result.report)
-            is ConversionResult.Converted -> result.documents.filterNot { CollectionNames.collectionOf(it.path) == CollectionNames.USERS }
+            is ConversionResult.Converted -> result.accountDocuments
         }
         if (documents.size != cleared.documents.size || !documents.zip(cleared.documents).all { (a, b) -> a.path == b.path && MigrationLedger.hashOf(a.data, null) == MigrationLedger.hashOf(b.data, null) }) {
             return@withContext failed(CopyFailure.DOCUMENTS_DIFFER)
@@ -353,12 +390,7 @@ class LegacyMigrationUseCase @Inject constructor(
      * ett fel stannar utan markör och kan göras om.
      */
     suspend fun write(plan: LegacyMigrationPlan, onProgress: (Map<String, Int>) -> Unit = {}): LegacyWriteOutcome = withContext(computation) {
-        pause.set(true)
-        try {
-            writePaused(plan, onProgress)
-        } finally {
-            pause.set(false)
-        }
+        pause.during { writePaused(plan, onProgress) }
     }
 
     private suspend fun writePaused(plan: LegacyMigrationPlan, onProgress: (Map<String, Int>) -> Unit): LegacyWriteOutcome {
@@ -445,7 +477,7 @@ class LegacyMigrationUseCase @Inject constructor(
                         mismatchedNow[relative(plan.uid, document.path)] = onServer
                     }
                 }
-                MigrationLedger.hashOf(project(got, document.data), null) == MigrationLedger.hashOf(document.data, null) -> tally.existing.add(collection)
+                landed(got, document.data) -> tally.existing.add(collection)
                 else -> tally.mismatched.add(collection)
             }
         }
@@ -466,12 +498,7 @@ class LegacyMigrationUseCase @Inject constructor(
      * och kan göras om; liggaren står kvar tills allt är borta. Utan rader: klart direkt.
      */
     suspend fun abort(): LegacyAbortOutcome = withContext(computation) {
-        pause.set(true)
-        try {
-            abortPaused()
-        } finally {
-            pause.set(false)
-        }
+        pause.during { abortPaused() }
     }
 
     private suspend fun abortPaused(): LegacyAbortOutcome {
@@ -513,13 +540,6 @@ class LegacyMigrationUseCase @Inject constructor(
         ledger.delete(plan.uid)
     }
 
-    /** Det lagrade dokumentet begränsat till [template]s nycklar, rekursivt – det som ska hasha lika med en delvis skrivning. */
-    private fun project(stored: Doc, template: Doc): Doc = template.mapNotNull { (field, value) ->
-        if (!stored.containsKey(field)) return@mapNotNull null
-        val got = stored[field]
-        field to if (value is Map<*, *> && got is Map<*, *>) project(asDoc(got), asDoc(value)) else got
-    }.toMap()
-
     /** Konverterarens fält som saknas på servern, rekursivt – det som skrivs (med merge) till ett dokument som redan finns. */
     private fun missingFields(expected: Doc, stored: Doc): Doc = expected.mapNotNull { (field, value) ->
         val got = stored[field]
@@ -537,62 +557,7 @@ class LegacyMigrationUseCase @Inject constructor(
         operator fun get(collection: String): DocumentRules.FieldTree = trees.getOrPut(collection) { DocumentRules.fieldTree(collection) }
     }
 
-    /** Antal per entitet under skrivningen, i "före"-ordningen. */
-    private class Tally(private val before: Map<String, Int>) {
-        /** Lika på servern redan före skrivningen. */
-        val after = Counter()
-
-        /** Skrivna i den här körningen och verifierade lika – separat från [written], så att inget räknas två gånger. */
-        val afterWritten = Counter()
-        val existing = Counter()
-        val written = Counter()
-        val mismatched = Counter()
-
-        /** Lika på servern per entitet, i "före"-ordningen med 0 där inget är lika. */
-        fun after() = before.keys.associateWith { after[it] + afterWritten[it] }
-
-        /** Det som var klart när skrivningen stannade: lika på servern och skrivet med kvitto. */
-        fun doneSoFar() = before.keys.associateWith { after[it] + written[it] }
-
-        fun existing() = existing.sparse()
-
-        fun mismatched() = mismatched.sparse()
-
-        /** Klara per entitet: lika, befintliga och skrivna hittills. */
-        fun progress(): Map<String, Int> = before.keys.associateWith { after[it] + existing[it] + written[it] }
-
-        /** Bara entiteter med något att rapportera, i "före"-ordningen – tom map = inget. */
-        private fun Counter.sparse(): Map<String, Int> = before.keys.filter { this[it] > 0 }.associateWith { this[it] }
-    }
-
-    private class Counter {
-        private val counts = linkedMapOf<String, Int>()
-
-        operator fun get(key: String): Int = counts[key] ?: 0
-
-        fun add(key: String) {
-            counts.merge(key, 1, Int::plus)
-        }
-
-        fun addAll(keys: Collection<String>) = keys.forEach(::add)
-
-        fun isEmpty() = counts.isEmpty()
-    }
-
     private fun relative(uid: String, path: String): String = path.removePrefix("${Paths.user(uid)}/")
-
-    private suspend fun <T> fromServer(block: suspend () -> T): Result<T> = suspendRunCatching(::firestoreError) { block() }
-
-    private fun Throwable.asDataError(): DataError = this as? DataError ?: DataError.Unknown
-
-    /** Lokala fel blir `null`; ett avbrott släpps igenom. */
-    private inline fun <T> readOrNull(block: () -> T): T? = try {
-        block()
-    } catch (e: CancellationException) {
-        throw e
-    } catch (_: Exception) {
-        null
-    }
 
     companion object {
         /** Felkoden när planen skulle skrivas utan verifierad kopia – ett fel i flödet, inte hos servern (OMB-8). */
@@ -625,7 +590,7 @@ class LegacyMigrationUseCase @Inject constructor(
             return result
         }
 
-        /** Felkoden i rapporten – Firestores namn för det `DataError` som mappades, aldrig innehåll. */
+        /** Felkoden i rapporten – Firestores namn för det `DataError` som mappades, aldrig innehåll. Även importens (BCK-14). */
         fun codeOf(error: DataError): String = when (error) {
             DataError.PermissionDenied -> "PERMISSION_DENIED"
             DataError.QuotaExceeded -> "RESOURCE_EXHAUSTED"

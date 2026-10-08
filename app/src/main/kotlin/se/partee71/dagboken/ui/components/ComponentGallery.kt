@@ -150,6 +150,8 @@ private fun Rows() {
             onClick = {},
         )
         AppDivider()
+        ItemRow("Importera från fil", subtitle = "3.x-backup (.json) eller 4.0-export", icon = R.drawable.ic_file, navigates = true, onClick = {})
+        AppDivider()
         ItemRow(
             "Förkylning",
             subtitle = "sedan fre 2 okt · 3 incheckningar",

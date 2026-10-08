@@ -427,8 +427,6 @@
     <string name="prn_dose_missing">Ange en dos</string>
     <string name="prn_delete_message">Vid behov-medicinen tas bort för gott. Doser du redan loggat finns kvar.</string>
 
-    <!-- Export och import (BCK-13, SET-8) – funktionen kommer i #230 -->
-    <string name="export_import_upcoming">Här sparar du hela dagboken till en fil och läser in en säkerhetskopia. Funktionen kommer snart.</string>
 
     <!-- Om Dagboken -->
     <string name="about_version">Version</string>
@@ -824,4 +822,59 @@
     <string name="migration_entity_illness_episodes">Sjukdomsepisoder</string>
     <string name="migration_entity_checkins">Incheckningar</string>
     <string name="migration_entity_settings">Inställningar och listor</string>
+
+    <!-- Export och import (BCK-6, BCK-13, BCK-14, SET-8) och första starten utan Room-fil (OMB-5), mockupen avsnitt 16. -->
+    <string name="export_title">Spara som JSON</string>
+    <string name="export_subtitle">Hela dagboken · du väljer var filen sparas</string>
+    <string name="export_note">Exporten innehåller allt i ditt konto i samma format som veckobackupen. Health Connect-data ingår aldrig.</string>
+    <string name="export_saving">Sparar …</string>
+    <plurals name="export_saved">
+        <item quantity="one">Sparade %s post</item>
+        <item quantity="other">Sparade %s poster</item>
+    </plurals>
+    <string name="import_title">Importera backup</string>
+    <string name="import_note">3.x-backup från Drive eller fil, eller en 4.0-export</string>
+    <string name="import_fallback_title">Välkommen till Dagboken</string>
+    <string name="import_fallback_intro">Ingen Dagboken 3.x hittades på telefonen. Har du en backup kan du läsa in den nu – eller senare under Inställningar → Export och import.</string>
+    <string name="import_from_drive">Importera från Google Drive</string>
+    <string name="import_from_drive_note">Senaste 3.x-backupen i ditt konto</string>
+    <string name="import_from_file">Importera från fil</string>
+    <string name="import_from_file_note">3.x-backup (.json) eller 4.0-export</string>
+    <string name="import_start_empty_note">En ny dagbok utan gammal data</string>
+    <string name="import_reading_drive">Hämtar backupen från Google Drive …</string>
+    <string name="import_reading_file">Läser filen …</string>
+    <string name="import_reading_note">Bara läsning – ingenting skrivs förrän du bekräftar.</string>
+    <string name="import_no_drive_title">Ingen backup på Drive</string>
+    <string name="import_no_drive">Det finns ingen 3.x-backup på Google Drive för det här kontot. Importera från en fil eller börja tomt.</string>
+    <string name="import_no_drive_settings">Det finns ingen 3.x-backup på Google Drive för det här kontot. Importera från en fil i stället.</string>
+    <string name="import_not_a_backup_title">Filen är ingen backup</string>
+    <string name="import_not_a_backup">Välj en 3.x-backup eller en export från Dagboken 4.0. Inget har skrivits.</string>
+    <string name="import_read_failed_title">Det gick inte att läsa</string>
+    <string name="import_read_failed_file">Filen gick inte att öppna. Inget har skrivits.</string>
+    <string name="import_choose_other">Välj en annan fil</string>
+    <string name="import_review_title">Det här finns i backupen</string>
+    <string name="import_from_source_drive">Från Google Drive</string>
+    <string name="import_from_source_file">Från fil</string>
+    <string name="import_source_legacy">3.x · v%d</string>
+    <string name="import_source_export">4.0 · v%d</string>
+    <string name="import_replaces">Poster med samma id som i ditt konto ersätts. Inget dubbleras.</string>
+    <plurals name="import_replaces_count">
+        <item quantity="one">%s post med samma id ersätts av backupens version.</item>
+        <item quantity="other">%s poster med samma id ersätts av backupens version.</item>
+    </plurals>
+    <string name="import_action">Importera till mitt konto</string>
+    <string name="import_confirm">Importera</string>
+    <plurals name="import_confirm_title">
+        <item quantity="one">Importera %s post?</item>
+        <item quantity="other">Importera %s poster?</item>
+    </plurals>
+    <string name="import_confirm_body">Poster med samma id som redan finns i ditt konto ersätts av backupens version. Övriga poster rörs inte.</string>
+    <string name="import_writing_title">Importerar …</string>
+    <string name="import_writing_intro">Låt appen vara öppen. Avbryts importen kan den köras igen utan dubbletter.</string>
+    <string name="import_done_title">Importen är klar</string>
+    <string name="import_done_note">Antalet i ditt konto stämmer med filen för varje typ.</string>
+    <string name="import_done">Klar</string>
+    <string name="import_stopped_title">Importen stoppades</string>
+    <string name="import_stopped_intro">Något i backupen ryms inte i 4.0 utan att ändras.</string>
+    <string name="import_failed_title">Importen avbröts</string>
 </resources>

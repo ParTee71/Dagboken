@@ -20,6 +20,7 @@ hiltLifecycle            = "1.4.0"
 firebaseBom              = "34.19.0"
 credentials              = "1.6.0"
 googleid                 = "1.2.1"
+playServicesAuth         = "21.1.1"
 datastore                = "1.2.1"
 work                     = "2.12.0"
 googleServices           = "4.5.0"
@@ -69,6 +70,7 @@ firebase-firestore                    = { group = "com.google.firebase",        
 credentials                           = { group = "androidx.credentials",        name = "credentials",                       version.ref = "credentials" }
 credentials-play-services             = { group = "androidx.credentials",        name = "credentials-play-services-auth",    version.ref = "credentials" }
 googleid                              = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
+play-services-auth                    = { group = "com.google.android.gms",      name = "play-services-auth",                version.ref = "playServicesAuth" }
 kotlinx-serialization-json            = { group = "org.jetbrains.kotlinx",       name = "kotlinx-serialization-json",        version.ref = "kotlinxSerialization" }
 kotlinx-datetime                      = { group = "org.jetbrains.kotlinx",       name = "kotlinx-datetime",                  version.ref = "kotlinxDatetime" }
 kotlinx-coroutines-android            = { group = "org.jetbrains.kotlinx",       name = "kotlinx-coroutines-android",        version.ref = "kotlinxCoroutines" }

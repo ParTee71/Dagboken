@@ -11,6 +11,7 @@ import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Settings
+import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.ExportFormat
 import se.partee71.dagboken.core.schema.Schema
 
@@ -90,6 +91,12 @@ sealed interface ConversionResult {
     ) : ConversionResult {
         /** Filen i `tools/db export`-format med dagens `schemaVersion`. */
         fun exportJson(exportedAt: Instant): String = ExportFormat.encode(exportedAt, Schema.CURRENT_VERSION, documents)
+
+        /**
+         * Dokumenten utan `users/{uid}` – det som skrivs på enheten (migreringen OMB-2 och importen BCK-14): användardokumentet
+         * finns sedan inloggningen och bär kontots `schemaVersion`, `createdAt` och markören.
+         */
+        val accountDocuments: List<ExportFormat.Document> by lazy { documents.filterNot { CollectionNames.collectionOf(it.path) == CollectionNames.USERS } }
     }
 
     /** Något ryms inte eller saknar plats; rapporten listar varje fel. Inget dokument lämnas ut. */

@@ -17,7 +17,7 @@ import se.partee71.dagboken.data.common.DataError
  * Läser alltid från servern: cachen innehåller bara
  * det som visats på enheten, och en export ur den skulle se hel ut men sakna dokument – som
  * `tools/db import --replace` då skulle radera. Utan nät blir det `DataError.Offline`. Används av
- * exporten i appen (BCK, etapp 5) och av migreringens läge, verifiering och startkontroll (OMB-2).
+ * exporten i appen (BCK-13), importen (BCK-6), fallbackens kontroll (OMB-5) och av migreringens läge, verifiering och startkontroll (OMB-2).
  */
 class FirestoreRawDocuments @Inject constructor(private val firestore: FirestoreInstance) : RawDocuments {
     override suspend fun awaitPendingWrites() {
@@ -28,6 +28,9 @@ class FirestoreRawDocuments @Inject constructor(private val firestore: Firestore
 
     override suspend fun collection(path: String): Map<String, Doc> =
         firestore.db.collection(path).get(Source.SERVER).await().documents.associate { it.id to fromFirestore(it.data.orEmpty()) }
+
+    override suspend fun hasDocuments(path: String): Boolean =
+        !firestore.db.collection(path).limit(1).get(Source.SERVER).await().isEmpty
 
     /**
      * Grupper om 30 id:n per förälder, högst [PARALLEL] frågor i taget. Ett dokument med köade lokala skrivningar

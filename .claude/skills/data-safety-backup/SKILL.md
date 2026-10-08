@@ -23,6 +23,10 @@ OMB-2–5). Villkor nummer ett för ombyggnaden: **ingen data får tappas** (ADR
 
 3.x (Room-fil på enheten / Drive-backup / lokal JSON = BackupJson v1, v2)
           → legacy/BackupJsonConverter (:core) → 4.0-dokument → batchar → Firestore
+
+appens export:  Firestore (servern, rått längs Paths) → ExportFormat → fil (SAF)   = tools/db export
+appens import:  fil (SAF) / Drive → legacy/ImportFile (:core: 3.x via konverteraren, 4.0-export kontrollerad)
+                → granskning + bekräftelse → MigrationBatches → Firestore → verifiering per id
 ```
 
 | Led | Fil | Ansvar |
@@ -34,7 +38,8 @@ OMB-2–5). Villkor nummer ett för ombyggnaden: **ingen data får tappas** (ADR
 | Regler | `firestore.rules` | Bara samlingarna i `collections.mjs`, alla bara för ägaren (`request.auth.uid == uid`), med generiska gränser och (från etapp 2) typkontroll av kända fält; `schemaVersion` minst 1, kan inte sänkas och höjs högst till `maxSchemaVersion()` |
 | Samlingslista | `tools/db/lib/collections.mjs` | Enda listan export/import/query går igenom; testad mot `Paths` och rules |
 | Backup | `.github/workflows/backup.yml` | Veckovis export, krypterad artifact, 90 dagar (BCK-12) |
-| Appens export | `core/.../schema/ExportFormat.kt` + `RawDocuments` (`data/firestore/`) | Export i inställningsarket (BCK-13): samma format som `tools/db export` (`serialize.mjs`, `backup.mjs`), läser dokumenten rått längs `Paths` – aldrig via codecarna, så att okända fält följer med |
+| Appens export | `app/.../data/export/ExportUseCase.kt` + `core/.../schema/ExportFormat.kt` + `RawDocuments` (`data/firestore/`) | Export i inställningsarket (BCK-13): `awaitPendingWrites` först, sedan hela `users/{uid}` rått från servern längs `Paths` i `walk.mjs`-ordning – aldrig via codecarna, så att okända fält följer med; samma format som `tools/db export` (`serialize.mjs`, `backup.mjs`). Aldrig Health Connect-data (HLS-5) |
+| Appens import | `core/.../legacy/ImportFile.kt` + `app/.../data/legacy/LegacyImportUseCase.kt`, `DriveBackups.kt` | En läsare för 3.x-backup (Drive eller fil, via **samma** konverterare) och 4.0-export (BCK-6, BCK-14, OMB-5): hela filen kontrolleras mot `DocumentRules` före skrivning, annars stopp med rapport; skrivning med merge i `MigrationBatches` form och verifiering per id med flyttens räkning och likhet (`WriteSupport.kt`). Samma id ersätts, inget tas bort; ingen markör |
 | Konverterare 3.x → 4.0 | `core/.../legacy/BackupJsonConverter.kt` (3.x-klasserna i `legacy/BackupJson.kt`) | `BackupJson` v1 och v2 (inkl. arvsfälten `anteckning` på posterna och `tidpunkt` på receptet) → 4.0-dokument; **enda** mappningen, delad av legacy-läsaren (OMB-2), legacyimporten (BCK-14) och grinden OMB-4. Utfall `Converted` (dokument + rapport) eller `Stopped` (alla fel) |
 | Rules-gränserna i `:core` | `core/.../schema/DocumentRules.kt` | Fält för fält per samling som `valid…` i rules (textgränser, intervall, listtak, enum, datum/klockslag); `DocumentRulesTest` läser rules och kräver likhet. Konverteraren validerar varje dokument mot den |
 | Grinden OMB-4 | `core/.../legacy/ConvertBackupMain.kt`, task `:core:convertLegacyBackup` | 3.x-backup → fil för `tools/db import.mjs`, rapport (antal, varningar, stopp) på stdout utan innehåll; kommandot i CLAUDE.md → Bygg & test och skill `db-access` |
@@ -198,7 +203,15 @@ ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här ä
    Bekräftelsen är idempotent. Batchfel stannar direkt med felkod, aldrig innehåll. Påminnelserna pausas bara medan
    `write()` körs (`LegacyMigrationPause`, try/finally) och pausen avbokar aldrig larm. 3.x:s backupjobb avbokas vid
    varje start tills det lyckats (flagga per installation).
-9. **Legacyimporten** (BCK-14) behålls minst en version efter 4.0.
+9. **Legacyimporten** (BCK-14) behålls minst en version efter 4.0. Den och 4.0-importen (BCK-6) går genom
+   `ImportFile` – formatet känns igen på filen, aldrig en andra mappning eller en egen validering. Importen skriver
+   med merge och tar aldrig bort något (samma id ersätts fält för fält); `users/{uid}` och markören skrivs aldrig.
+   Fallbacken utan Room-fil (OMB-5) sätter bara flaggan på enheten – en markör där skulle tysta flytten från en
+   telefon som fortfarande har 3.x – och frågar aldrig ett konto som redan har data. Importen väntar in enhetens köade
+   skrivningar före varje serverläsning, så att en osynkad lokal ändring aldrig skrivs över. Drive läses bara (inget Drive-bibliotek, ingen lagrad token).
+10. **Appens export = `tools/db export`.** Ett nytt fält eller en ny samling följer med av sig själv (rått längs `Paths`);
+   en ny undersamling kräver `Paths.SUBCOLLECTIONS` – annars saknas den i appens export. Bevis: `ExportUseCaseTest`
+   (export → radera → import → identisk fil) och `ExportImportRoundTripTest` i emulatorn.
 
 ## Fallgropar
 

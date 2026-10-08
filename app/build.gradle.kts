@@ -127,6 +127,9 @@ dependencies {
     implementation(libs.credentials)
     implementation(libs.credentials.play.services)
     implementation(libs.googleid)
+    // Identity AuthorizationClient för Drive-scopet vid legacyimporten (BCK-14, OMB-5) – fanns redan transitivt via
+    // credentials-play-services-auth (samma version), nu på kompileringsvägen; inget Drive-bibliotek, REST via HttpURLConnection.
+    implementation(libs.play.services.auth)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.vico.compose) // diagram, bara i ui/diagram (TRD-10 zoom/panorering)
     implementation(libs.coil.compose) // profilfotot i AccountAvatar (AUTH-3)

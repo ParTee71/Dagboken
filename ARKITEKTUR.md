@@ -335,9 +335,11 @@ rad i skill `shared-ui-components`. Diagrammatematik (`computeSmartYAxis`, `comp
 :core  (ren Kotlin/JVM)   model/ · time/ (HOME_ZONE) · schema/ (DocCodec, Fields, Schema, SchemaMigrator) · codecs ·
                           engine/ (Dosing, EnsureDoses, Cooldown, PeriodEndings,
                           PrescriptionRules, DailyEnergyStats, SleepQuality, chart math) · legacy/ (BackupJson → 4.0-konverterare, validering
-                          mot DocumentRules, ConvertBackupMain för grinden OMB-4)
+                          mot DocumentRules, ConvertBackupMain för grinden OMB-4, ImportFile: importens läsare av 3.x-backup
+                          och 4.0-export)
 :app   (Android)          data/common · data/firestore · data/auth · data/health (Health Connect,
-                          read-only) · data/legacy (Room-läsare för migrering) · reminders/ ·
+                          read-only) · data/legacy (Room-läsare för migrering, Drive-läsare och import) ·
+                          data/export (manuell export) · reminders/ ·
                           ui/theme · ui/components · ui/common · ui/<flik> · navigation/
 tools/db                  query · get · stats · export · import · migrate · test/ (rules, roundtrip)
 ```
@@ -524,9 +526,46 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
      okänt konto – okänt kräver att e-posten bekräftas uttryckligen. 3.x:s WorkManager-jobb avbokas vid varje start tills det lyckats;
      WorkManager initieras på begäran (`Configuration.Provider`, startup-initieraren borttagen) eftersom 4.0 inte har
      några workers och det kvarliggande jobbet inte ska kunna köras före avbokningen.
-     Fallback utan Room-fil: Drive-backup eller lokal JSON (#230). Room-filen och DataStore-filen ändras aldrig och
-     raderas aldrig automatiskt.
-5. **Legacyimport** (Inställningar → Export och import) behålls minst en version efter 4.0.
+     Room-filen och DataStore-filen ändras aldrig och raderas aldrig automatiskt.
+   - *Fallback utan Room-fil (OMB-5, #230):* `isFallbackPending` – ingen Room-fil, ingen flagga för kontot, ingen markör
+     på servern **och inga dokument i datasamlingarna** (`RawDocuments.hasDocuments`, `limit(1)` per samling, parallellt) –
+     visar `MigrationStage.Fallback` med valen Drive, fil och "Börja tomt". Ett konto med 4.0-data (ny telefon) frågas
+     aldrig – flaggan sätts – så att en gammal backup inte skriver över nyare data av misstag. Utan nät släpps användaren
+     in och frågan prövas vid nästa start (ingen 3.x-data väntar på telefonen). "Börja tomt"
+     och en klar import sätter flaggan (`skipFallback`); **ingen markör** skrivs – den betyder att Room-datan flyttats och
+     skulle annars hindra flytten från en telefon som fortfarande har 3.x (valt framför en markör med `source = drive/json`,
+     som också hade tystat frågan på andra enheter). Följd: ett tomt konto frågas en gång per enhet.
+5. **Import och export i appen** (#230; legacyimporten behålls minst en version efter 4.0):
+   - *En läsare* (`:core/legacy/ImportFile`): `documents` i filen = 4.0-export, annars någon av `BackupJson`:s nycklar =
+     3.x-backup (v1 skrev inte `version`); annat = "ingen backup". 3.x går genom `BackupJson.parse` och **den enda**
+     konverteraren (samma dokument som grinden OMB-4 och flytten). En 4.0-export kontrolleras helt innan något skrivs: en
+     användare, kända samlingar och djup, giltiga och unika id:n, `DocumentRules` per dokument, varje incheckning med sin
+     episod i filen (rules `existsAfter`), `schemaVersion` inte nyare än appens (äldre lyfts med `SchemaMigrator`).
+     Sökvägarna flyttas till det inloggade kontot; `users/{uid}` skrivs aldrig (kontots version, `createdAt`, markören).
+     Utfallet är alla dokument eller ett stopp med alla fel (rapporten: samling/id eller `options#<plats>`, fält, skäl).
+   - *Källor* (`LegacySource`): Room (flytten, punkt 4), Drive (`DriveRestBackups`: Identity `AuthorizationClient` för
+     `DRIVE_APPDATA` + REST via `HttpURLConnection`, bara läsning av den senaste `dagboken-backup-*` i `appDataFolder`;
+     samtycket begärs först vid importen, ingen token lagras; inget Drive-bibliotek – `play-services-auth` fanns redan
+     transitivt) och fil (SAF, `UserFile`, delad med kopian och exporten).
+   - *Granskning:* efter läsningen väntas enhetens köade skrivningar in (`awaitPendingWrites`, högst en minut, annars
+     `Offline`) och kontots läge läses på id; `replaced` = befintliga dokument med samma id och andra värden visas.
+   - *Skrivning* (`LegacyImportUseCase.write`): köade skrivningar väntas in igen – en lokal ändring som inte synkats skrivs
+     aldrig över – sedan serverns läge på id – lika dokument räknas som klara och skrivs inte –
+     sedan `MigrationBatches` med kvitto per batch och verifiering per id med **samma** räkning och likhet som flytten
+     (`WriteSupport.kt`: `Tally`, `landed` = det skrivna finns på servern i kanonisk form). Samma id ersätts med merge:
+     filens fält skrivs, fält bara på servern står kvar – importen tar aldrig bort något (valt framför ett fullt utbyte med
+     `withDeletions`, som hade raderat framtida fält och inställningar som en 3.x-backup saknar). Ingen kopia, liggare eller
+     markör: en import kan alltid köras om utan dubbletter och har inget att avbryta. Påminnelserna pausas medan den skriver.
+   - *Export* (`data/export/ExportUseCase`): `awaitPendingWrites`, sedan hela `users/{uid}` rått från servern i
+     `walk.mjs`-ordning (användaren, samlingarna i `Paths`-ordning, incheckningarna efter sin episod) i `ExportFormat` –
+     samma fil som `tools/db export`. Health Connect-data finns inte i Firestore och kommer aldrig med (HLS-5).
+     Samlingarna läses parallellt och incheckningarna per episod högst åtta frågor i taget. **Godtagen skillnad mot
+     `tools/db`:** klienten kan inte lista undersamlingar, så en föräldralös incheckning (episoden saknar dokument; appen
+     kan inte skapa en) kommer inte med i appens export. En collectionGroup-fråga avgränsad till `users/{uid}` prövades:
+     rules kan inte binda sökvägen (`{path=**}`) i en fråga ("Variable is not bound in path template"), och en regel utan
+     sökvägsvillkor kräver ett ägarfält i varje incheckning – en datamodelländring som inte är värd kantfallet.
+   - *Tillstånd:* `ui/migration/ImportFlow` (`ImportStage`, `ImportEvent`) är importens tillståndsmaskin **en** gång, ägd av
+     `MigrationViewModel` (fallbacken) och `ExportImportViewModel` (Inställningar → Export och import).
 6. Firestore-sidan: `schemaVersion` på `users/{uid}`, `SchemaMigrator` i `:core`, `migrate.mjs`
    i `tools/db`; appen vägrar skriva mot en okänd högre version.
 
