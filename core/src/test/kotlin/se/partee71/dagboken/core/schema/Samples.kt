@@ -111,12 +111,12 @@ object Samples {
 
     val screening = Screening(
         id = "s1", date = day, time = LocalTime(8, 15), occasion = Occasion.BREAKFAST, customText = "Morgonkoll",
-        energy = 6, stress = 3, symptoms = symptoms, createdAt = created, note = "Sov dåligt",
+        energy = 6, stress = 3, symptoms = symptoms, legacySomatic = 7, createdAt = created, note = "Sov dåligt",
     )
 
     val activity = Activity(
         id = "a1", date = day, time = LocalTime(17, 0), optionId = "promenad", customText = "Svamplockning",
-        energy = -2, stress = 1, symptoms = symptoms, recovering = true, drain = true, minutes = 45,
+        energy = -2, stress = 1, symptoms = symptoms, legacySomatic = 3, recovering = true, drain = true, minutes = 45,
         createdAt = created, note = "Regn",
     )
 
@@ -131,7 +131,7 @@ object Samples {
     )
 
     val checkin = Checkin(
-        id = "c1", date = LocalDate(2026, 9, 11), time = LocalTime(19, 0), severity = 4, symptoms = symptoms,
+        id = "c1", date = LocalDate(2026, 9, 11), time = LocalTime(19, 0), severity = 4, symptoms = symptoms, legacySomatic = 2,
         createdAt = created, note = "Feber på kvällen",
     )
 

@@ -92,11 +92,11 @@ markören `legacyMigration` {completedAt, source `room` \| `drive` \| `json`, so
 | `prescriptions` | name, dose (text), unit, slots[], schedule {repeat `daily` \| `weekdays` \| `weekends` \| `custom` \| `interval`, days[], intervalDays}, period {start?, end?}, boosts[] {id, start, end?, dose, unit}, active, createdAt, note | `recept` + `dosperioderJson` |
 | `prnMedicines` | name, dose (text), unit, slot, minHoursBetween, dispensingTime, maxPerDay, favorite, note | `favoriter` |
 | `doses` | date, slot, name, dose (text), unit, status (`planned` \| `taken` \| `skipped`), plannedTime, takenAt?, prescriptionId?, prnId?, createdAt, note | `mediciner` (tagen + skipped + tagenTid) |
-| `screenings` | date, time, occasion? (`breakfast` \| `lunch` \| `dinner` \| `bedtime`), customText?, energy 0–10, stress, symptoms[] {optionId, score (0–10, `null` = utan poäng, bara från 3.x), customText?}, createdAt, note | `aktiviteter` med type=screening |
-| `activities` | date, time, optionId, customText?, energy −10..10, stress, symptoms[], recovering, drain, minutes?, createdAt, note | `aktiviteter` med type=aktivitet |
+| `screenings` | date, time, occasion? (`breakfast` \| `lunch` \| `dinner` \| `bedtime`), customText?, energy 0–10, stress, symptoms[] {optionId, score (0–10, `null` = utan poäng, bara från 3.x), customText?}, legacySomatic?, createdAt, note | `aktiviteter` med type=screening |
+| `activities` | date, time, optionId, customText?, energy −10..10, stress, symptoms[], legacySomatic?, recovering, drain, minutes?, createdAt, note | `aktiviteter` med type=aktivitet |
 | `events` | date, time, optionId, severity, durationMinutes, triggers, actions, createdAt, note | `health_events` |
 | `illnessEpisodes` | type, start, end?, createdAt, note | `sjukdomsepisoder` |
-| `illnessEpisodes/{id}/checkins` | date, time, severity, symptoms[], createdAt, note | `sjukdoms_incheckningar` |
+| `illnessEpisodes/{id}/checkins` | date, time, severity, symptoms[], legacySomatic?, createdAt, note | `sjukdoms_incheckningar` |
 
 **Värden:** datum som text `yyyy-MM-dd`, klockslag som text `HH:mm` (DAT-2); ögonblick
 (`createdAt`, `takenAt`) som tidsstämpel. Enum lagras med engelska namn ur `WireEnum.wire` –
@@ -117,7 +117,7 @@ skapas med den (inte heller återskapas efter radering) tills `schemaVersion` oc
 
 Fyra förenklingar: anteckningen är fältet `note` på varje dokument (notes-tabellen och
 kaskadraderingen försvinner); symptom lagras som `[{optionId, score, customText?}]` (summan
-`somatiska` räknas i `:core`, fritexten vid "Övrigt" ligger i `customText`, AKT-6); poster
+`somatiska` räknas i `:core` – utom ett avvikande 3.x-värde, som bevaras i `legacySomatic` –, fritexten vid "Övrigt" ligger i `customText`, AKT-6); poster
 refererar alternativ via `optionId` så namnbyte aldrig behöver skriva om historiken (SET-11 blir
 gratis); dosen har en `status` i stället för två booleaner.
 
@@ -192,7 +192,7 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `AktivitetJson.aktivitet` | `activities.optionId`, `activities.customText`, `screenings.occasion`, `screenings.customText` | Aktivitet: namn bland aktivitetsalternativen → `optionId`; annat namn (fritext vid "Övrigt", AKT-2) → `customText` med alternativet "Övrigt". Screening: tillfällets namn → `occasion`; annat namn → `customText` och `occasion` ur klockslaget (DAT-12). |
 | `AktivitetJson.energy` | `activities.energy`, `screenings.energy` | −10..10 respektive 0–10. |
 | `AktivitetJson.stress` | `activities.stress`, `screenings.stress` | |
-| `AktivitetJson.somatiska` | *beräknas* | Summan av `symptoms[].score` (DAT-6). En 3.x-post där summan avviker rapporteras av konverteraren. |
+| `AktivitetJson.somatiska` | `activities.legacySomatic`, `screenings.legacySomatic` | Summan av `symptoms[].score` beräknas (DAT-6); avviker 3.x-värdet (importerad data: namnlista utan poäng, eget värde) bevaras det i `legacySomatic`, som gäller i Trender tills symptomen ändras. |
 | `AktivitetJson.symptom` | `activities.symptoms[].optionId`, `activities.symptoms[].score`, `activities.symptoms[].customText`, `screenings.symptoms[].optionId`, `screenings.symptoms[].score`, `screenings.symptoms[].customText` | `Namn:Poäng,…` → symptomalternativ på namnet; `Övrigt (fritext)` → "Övrigt" + `customText`; okänt namn → arkiverat alternativ. Tomma delar hoppas över; olästa delar fogas ihop med nästa del med poäng bara till ett alternativ i backupen eller `Övrigt (…)`, annars `score: null` per del. |
 | `AktivitetJson.aterhamtande` | `activities.recovering` | Screening: alltid `false` i 3.x; annat värde stoppar konverteringen i stället för att tappas. |
 | `AktivitetJson.energitjuv` | `activities.drain` | Som `aterhamtande`. |
@@ -253,7 +253,7 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `SjukdomsIncheckningJson.tid` | `checkins.time` | |
 | `SjukdomsIncheckningJson.svarighetsgrad` | `checkins.severity` | |
 | `SjukdomsIncheckningJson.symptom` | `checkins.symptoms[].optionId`, `checkins.symptoms[].score`, `checkins.symptoms[].customText` | Som `AktivitetJson.symptom`. |
-| `SjukdomsIncheckningJson.somatiska` | *beräknas* | Som `AktivitetJson.somatiska`. |
+| `SjukdomsIncheckningJson.somatiska` | `checkins.legacySomatic` | Som `AktivitetJson.somatiska`. |
 | `SjukdomsIncheckningJson.anteckning` | `checkins.note` | Arvsfält. |
 | `SjukdomsIncheckningJson.timestamp` | `checkins.createdAt` | Som episodens. |
 | `HandelseJson.id` | `events.id` | Bevaras. |
@@ -421,7 +421,10 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
      symptomnamn), så olästa delar fogas ihop med nästa del med poäng, med kommat kvar – men bara när det hopfogade
      namnet är ett alternativ i backupen eller har formen `Övrigt (…)` (längsta hopfogningen gäller). Varje annan
      oläst del blir ett eget symptom med `score: null` (`Yrsel,Huvudvärk:3` → Yrsel utan poäng, Huvudvärk 3); en
-     dubblett utan poäng skriver aldrig över en poäng. Varning för båda. Bara en poäng utan namn (`:3`) **stoppar**. Avviker `somatiska` från summan: varning.
+     dubblett utan poäng skriver aldrig över en poäng. Varning för båda. Bara en poäng utan namn (`:3`) **stoppar**. Avviker `somatiska` från summan bevaras det i `legacySomatic` (ingen varning).
+     `timestamp` läses som ISO-ögonblick, epok-ms som text (exakt 13 siffror, 3.x doseditorn d9a6d93–1149a57) eller
+     lokal tid utan zon (via samma sommartidsregel och rapport som `tagenTid`); annat ersätts med dag och klockslag och en
+     varning med värdets form. Negativt `somatiska` ersätts av summan, med varning.
    - *Poster.* Saknat `type` är "aktivitet" (klassens default, som 3.x); bara tomt `type` härleds ur namnet
      (`inferType`). En aktivitet vars namn är ett måendetillfälles får en varning. En screening med
      `aterhamtande`/`energitjuv` sant eller `spentTime` över 0 **stoppar** (ingen plats; `0` = ej angivet → saknas). Blank `datum`/`tid` →

@@ -388,5 +388,5 @@ private fun CheckinValues(checkin: Checkin, symptomOptions: List<Option>, stored
         )
     }
     val symptoms = remember(symptomOptions, stored) { symptomChoices(symptomOptions, stored) }
-    SymptomLogCard(symptoms, checkin.symptoms, { scores -> change { it.copy(symptoms = scores) } }, otherOptionId = OTHER_SYMPTOM_ID)
+    SymptomLogCard(symptoms, checkin.symptoms, { scores -> change { it.withSymptoms(scores) } }, otherOptionId = OTHER_SYMPTOM_ID, somatic = checkin.somatic)
 }

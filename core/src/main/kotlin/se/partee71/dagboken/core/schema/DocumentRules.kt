@@ -226,6 +226,7 @@ object DocumentRules {
             "energy" to Check.Range(SCORE),
             "stress" to Check.Range(SCORE),
             "symptoms" to Check.ListOf(SYMPTOM, max = MAX_SYMPTOMS),
+            "legacySomatic" to Check.Min(0),
         ),
         CollectionNames.ACTIVITIES to POST + mapOf(
             "optionId" to Check.ShortText,
@@ -233,6 +234,7 @@ object DocumentRules {
             "energy" to Check.Range(ACTIVITY_ENERGY),
             "stress" to Check.Range(SCORE),
             "symptoms" to Check.ListOf(SYMPTOM, max = MAX_SYMPTOMS),
+            "legacySomatic" to Check.Min(0),
             "recovering" to Check.BoolField,
             "drain" to Check.BoolField,
             "minutes" to Check.Min(0),
@@ -253,6 +255,7 @@ object DocumentRules {
         CollectionNames.CHECKINS to POST + mapOf(
             "severity" to Check.Range(SCORE),
             "symptoms" to Check.ListOf(SYMPTOM, max = MAX_SYMPTOMS),
+            "legacySomatic" to Check.Min(0),
         ),
     )
 

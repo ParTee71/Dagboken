@@ -266,7 +266,8 @@ service cloud.firestore {
         && (!('customText' in w) || nullOrShort(d.get('customText', null)))
         && (!('energy' in w) || nullOrRange(d.get('energy', null), 0, 10))
         && (!('stress' in w) || nullOrRange(d.get('stress', null), 0, 10))
-        && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms));
+        && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms))
+        && (!('legacySomatic' in w) || nullOrMin(d.get('legacySomatic', null), 0));
     }
 
     function validActivity(d) {
@@ -277,6 +278,7 @@ service cloud.firestore {
         && (!('energy' in w) || nullOrRange(d.get('energy', null), -10, 10))
         && (!('stress' in w) || nullOrRange(d.get('stress', null), 0, 10))
         && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms))
+        && (!('legacySomatic' in w) || nullOrMin(d.get('legacySomatic', null), 0))
         && (!('recovering' in w) || nullOrBool(d.get('recovering', null)))
         && (!('drain' in w) || nullOrBool(d.get('drain', null)))
         && (!('minutes' in w) || nullOrMin(d.get('minutes', null), 0));
@@ -305,7 +307,8 @@ service cloud.firestore {
       let w = written();
       return validPost(d, w)
         && (!('severity' in w) || nullOrRange(d.get('severity', null), 0, 10))
-        && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms));
+        && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms))
+        && (!('legacySomatic' in w) || nullOrMin(d.get('legacySomatic', null), 0));
     }
 
     // Användardokumentet: schemaVersion är ett heltal från 1 (BCK-15); migreringsmarkören sätts en gång (OMB-7).

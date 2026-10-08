@@ -58,8 +58,22 @@ internal object LegacyTime {
      * godtas) eller ett ISO-ögonblick med zon. Backupfilens `createdAt` (3.x skrev `LocalDateTime.now()` utan zon) och
      * ett recepts `skapad` som inte är ett datum. `null` om tomt eller ogiltigt – även för ett rent datum.
      */
-    fun moment(text: String): Instant? =
-        text.takeIf { it.isNotBlank() }?.let { runCatching { LocalDateTime.parse(it.replaceFirst(' ', 'T')).toInstant(ZONE) }.getOrNull() } ?: instant(text)
+    fun moment(text: String): Instant? = localDateTime(text)?.toInstant(ZONE) ?: instant(text)
+
+    /** ISO dag och klockslag utan zon (mellanslag i stället för `T` godtas); `null` om tomt eller något annat. */
+    fun localDateTime(text: String): LocalDateTime? =
+        text.takeIf { it.isNotBlank() }?.let { runCatching { LocalDateTime.parse(it.replaceFirst(' ', 'T')) }.getOrNull() }
+
+    /**
+     * 3.x `timestamp` på en post med zon: ISO-ögonblick (`Timestamps.of`, och före 3.x #85 `datumTtid:00.000Z`) eller
+     * epok-ms som text (`System.currentTimeMillis().toString()` i doseditorn, 3.x d9a6d93–1149a57) – exakt 13 siffror,
+     * alltså efter 2001-09-09; epok-sekunder och andra tal är inget ögonblick. Dag och klockslag utan zon läser
+     * konverteraren själv ([localDateTime]), så att sommartidsbytet syns i rapporten. `null` om inget av dem.
+     */
+    fun timestamp(text: String): Instant? =
+        instant(text) ?: text.takeIf { EPOCH_MILLIS.matches(it) }?.toLongOrNull()?.let(Instant::fromEpochMilliseconds)
+
+    private val EPOCH_MILLIS = Regex("^[0-9]{13}$")
 
     /**
      * Ett värdes form utan innehåll, för rapporten: siffror → `9`, bokstäver → `a`, annat som det står, högst

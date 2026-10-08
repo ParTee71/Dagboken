@@ -190,7 +190,7 @@ fun ActivityEditScreen(
         DurationRow(a.minutes ?: 0, { minutes -> form.change { it.copy(minutes = minutes) } })
         MetricsCard(a) { change -> form.change(transform = change) }
         val symptoms = remember(symptomOptions, form.stored) { symptomChoices(symptomOptions, form.stored?.symptoms.orEmpty()) }
-        SymptomLogCard(symptoms, a.symptoms, { scores -> form.change { it.copy(symptoms = scores) } }, otherOptionId = OTHER_SYMPTOM_ID)
+        SymptomLogCard(symptoms, a.symptoms, { scores -> form.change { it.withSymptoms(scores) } }, otherOptionId = OTHER_SYMPTOM_ID, somatic = a.somatic)
         AppCard {
             NoteField(a.note.orEmpty(), { note -> form.change(ActivityField.NOTE) { it.copy(note = note.ifEmpty { null }) } }, error = error(ActivityField.NOTE))
         }

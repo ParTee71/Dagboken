@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.SymptomScore
+import se.partee71.dagboken.core.model.somatic
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
@@ -50,6 +51,8 @@ fun StepwiseScreeningForm(
     saveEnabled: Boolean = true,
     saving: Boolean = false,
     otherOptionId: String? = null,
+    /** Summan som visas under symptomen ([SymptomLogCard]); standard summan av [symptoms]. */
+    somatic: Int = symptoms.somatic,
 ) {
     val steps = if (symptomOptions.isEmpty()) 2 else 3
     // Antalet sidor läses om vid varje komposition: laddas symptomlistan sent (2 → 3 steg) står
@@ -67,7 +70,7 @@ fun StepwiseScreeningForm(
             when (page) {
                 0 -> ValueSlider(stringResource(R.string.energy), energy, onEnergyChange)
                 1 -> ValueSlider(stringResource(R.string.stress), stress, onStressChange, higherIsBetter = false)
-                else -> SymptomLogCard(symptomOptions, symptoms, onSymptomsChange, otherOptionId = otherOptionId, initiallyExpanded = true)
+                else -> SymptomLogCard(symptomOptions, symptoms, onSymptomsChange, otherOptionId = otherOptionId, initiallyExpanded = true, somatic = somatic)
             }
         }
         StepDots(steps, pager.currentPage)

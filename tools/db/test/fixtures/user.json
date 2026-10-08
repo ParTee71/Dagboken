@@ -128,6 +128,7 @@
           { "optionId": "symptom-huvudvark-d55e7d", "score": 4, "customText": null },
           { "optionId": "symptom-ovrigt-c067e8", "score": 2, "customText": "Stel nacke" }
         ],
+        "legacySomatic": null,
         "createdAt": { "__ts": "2026-09-21T06:15:00.000000000Z" }, "note": "Sov dåligt"
       }
     },
@@ -135,7 +136,7 @@
       "path": "users/uid-test/screenings/9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
       "data": {
         "date": "2026-09-20", "time": "21:50", "occasion": "bedtime", "customText": "Screening", "energy": 2, "stress": 7,
-        "symptoms": [], "createdAt": { "__ts": "2026-09-20T19:50:00.000000000Z" }, "note": null
+        "symptoms": [], "legacySomatic": 3, "createdAt": { "__ts": "2026-09-20T19:50:00.000000000Z" }, "note": null
       }
     },
     {
@@ -146,6 +147,7 @@
           { "optionId": "symptom-huvudvark-d55e7d", "score": 1, "customText": null },
           { "optionId": "symptom-ovrigt-c067e8", "score": 5, "customText": "Myggbett" }
         ],
+        "legacySomatic": null,
         "recovering": true, "drain": true, "minutes": 45,
         "createdAt": { "__ts": "2026-09-21T15:00:00.000000000Z" }, "note": "Regn hela vägen"
       }
@@ -154,7 +156,7 @@
       "path": "users/uid-test/activities/6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e",
       "data": {
         "date": "2026-09-22", "time": "07:30", "optionId": "activity-promenad-c78928", "customText": null, "energy": 4, "stress": 0,
-        "symptoms": [], "recovering": false, "drain": false, "minutes": null,
+        "symptoms": [], "legacySomatic": 2, "recovering": false, "drain": false, "minutes": null,
         "createdAt": { "__ts": "2026-09-22T05:30:00.000000000Z" }, "note": null
       }
     },
@@ -182,12 +184,13 @@
       "data": {
         "date": "2026-09-11", "time": "19:00", "severity": 4,
         "symptoms": [{ "optionId": "symptom-ovrigt-c067e8", "score": 3, "customText": "Ont i halsen" }, { "optionId": "symptom-huvudvark-d55e7d", "score": null, "customText": null }],
+        "legacySomatic": null,
         "createdAt": { "__ts": "2026-09-11T17:00:00.000000000Z" }, "note": "Feber på kvällen"
       }
     },
     {
       "path": "users/uid-test/illnessEpisodes/utan-dokument/checkins/b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d5e",
-      "data": { "date": "2026-08-02", "time": "09:00", "severity": 2, "symptoms": [], "createdAt": null, "note": "Kvar fast episoden saknas" }
+      "data": { "date": "2026-08-02", "time": "09:00", "severity": 2, "symptoms": [], "legacySomatic": 4, "createdAt": null, "note": "Kvar fast episoden saknas" }
     }
   ]
 }

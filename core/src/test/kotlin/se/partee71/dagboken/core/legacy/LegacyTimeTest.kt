@@ -82,6 +82,17 @@ class LegacyTimeTest {
     }
 
     @Test
+    fun `postens timestamp - ISO, epok-ms som text och lokal tid godtas, annat blir null`() {
+        assertEquals(Instant.parse("2026-01-15T08:15:00Z"), LegacyTime.timestamp("2026-01-15T08:15:00.000Z"))
+        assertEquals(Instant.fromEpochMilliseconds(1_768_460_400_000), LegacyTime.timestamp("1768460400000"))
+        assertNull(LegacyTime.timestamp("2026-01-15T08:15:00"), "utan zon läser konverteraren via at() (sommartid)")
+        assertEquals(kotlinx.datetime.LocalDateTime(2026, 1, 15, 8, 15), LegacyTime.localDateTime("2026-01-15 08:15:00"))
+        assertNull(LegacyTime.timestamp("1768460400"), "epok-sekunder hade hamnat 1970 som ms")
+        assertNull(LegacyTime.timestamp("igår"))
+        assertNull(LegacyTime.timestamp("123"))
+    }
+
+    @Test
     fun `formen på ett värde - siffror och bokstäver döljs, längden begränsas`() {
         assertEquals("9999-99-99a99:99:99.999a", LegacyTime.shape("2025-11-20T08:15:00.000Z"))
         assertEquals("99/99 9999", LegacyTime.shape("20/11 2025"))

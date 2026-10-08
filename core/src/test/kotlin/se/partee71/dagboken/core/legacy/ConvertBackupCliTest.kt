@@ -33,7 +33,7 @@ class ConvertBackupCliTest {
         val run = run("--in", fixture, "--out", output.path, "--user", LegacyFixtures.UID)
         assertEquals(ConvertBackupCli.EXIT_OK, run.exit, run.err)
         assertEquals(LegacyFixtures.expectedText("backup-v2"), output.readText())
-        assertTrue("Dokument per samling:" in run.out && "Varningar: 13" in run.out && "Skrev 35 dokument" in run.out, run.out)
+        assertTrue("Dokument per samling:" in run.out && "Varningar: 12" in run.out && "Skrev 35 dokument" in run.out, run.out)
         assertEquals("", run.err)
     }
 

@@ -297,7 +297,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     private fun created(path: String, raw: String, intervalFromCreated: Boolean): Instant? {
         if (raw.isBlank()) return null
         parseDate(raw)?.let { return LegacyTime.midnight(it) }
-        LegacyTime.moment(raw)?.let { moment ->
+        momentAt(path, "skapad", raw)?.let { moment ->
             warn(path, "skapad är ett ögonblick, inte ett datum (${LegacyTime.shape(raw)}) – bevaras som ögonblicket")
             if (intervalFromCreated) warn(path, "intervallet räknas från skapad – 3.x kunde inte läsa skapad och räknade varje dag som dag 0")
             return moment
@@ -381,6 +381,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         if (a.aterhamtande) problem(path, "aterhamtande", "true på en screening har ingen plats i 4.0")
         if (a.energitjuv) problem(path, "energitjuv", "true på en screening har ingen plats i 4.0")
         if (a.spentTime != null && a.spentTime != 0) problem(path, "spentTime", "värdet ${a.spentTime} på en screening har ingen plats i 4.0")
+        val symptoms = symptoms(path, a.symptom)
         return Screening(
             id = a.id,
             date = date,
@@ -389,7 +390,8 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             customText = if (Occasion.isLegacyName(a.aktivitet)) null else a.aktivitet.ifBlank { null },
             energy = a.energy,
             stress = a.stress,
-            symptoms = symptoms(path, a.symptom, a.somatiska),
+            symptoms = symptoms,
+            legacySomatic = legacySomatic(path, a.somatiska, symptoms),
             createdAt = createdAt(path, a.timestamp, date, time),
             note = notes.note(LegacyDefaults.NOTE_SCREENING, a.id, "", path),
         )
@@ -404,6 +406,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         val option = options.find(OptionKind.ACTIVITY, a.aktivitet)
         // Saknat `type` är "aktivitet" i 3.x (klassens default) – bara ett tomt härleds ur namnet.
         if (Occasion.isLegacyName(a.aktivitet)) warn(path, "heter som ett måendetillfälle men har type aktivitet – konverteras som aktivitet, som i 3.x")
+        val symptoms = symptoms(path, a.symptom)
         return Activity(
             id = a.id,
             date = date,
@@ -412,7 +415,8 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             customText = if (option == null) a.aktivitet.ifBlank { null } else null,
             energy = a.energy,
             stress = a.stress,
-            symptoms = symptoms(path, a.symptom, a.somatiska),
+            symptoms = symptoms,
+            legacySomatic = legacySomatic(path, a.somatiska, symptoms),
             recovering = a.aterhamtande,
             drain = a.energitjuv,
             minutes = a.spentTime,
@@ -464,12 +468,14 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         id(path, i.id)
         val date = date(path, "datum", i.datum)
         val time = clock(path, "tid", i.tid)
+        val symptoms = symptoms(path, i.symptom)
         return Checkin(
             id = i.id,
             date = date,
             time = time,
             severity = i.svarighetsgrad,
-            symptoms = symptoms(path, i.symptom, i.somatiska),
+            symptoms = symptoms,
+            legacySomatic = legacySomatic(path, i.somatiska, symptoms),
             createdAt = LegacyTime.epochMillis(i.timestamp),
             note = notes.note(LegacyDefaults.NOTE_CHECKIN, i.id, i.anteckning, path),
         )
@@ -488,13 +494,10 @@ private class Conversion(private val backup: BackupJson, private val uid: String
      *   `Övrigt (…)` – den längsta sådana hopfogningen gäller ([joinedScore]).
      * - **Namn utan poäng.** Varje annan oläst del blir ett eget symptom med poäng `null` (`Yrsel,Huvudvärk:3` →
      *   Yrsel utan poäng och Huvudvärk 3). En dubblett utan poäng skriver aldrig över en poäng.
-     * Bara en poäng utan namn (`:3`) stoppar. Avviker `somatiska` från summan rapporteras det som varning (DAT-6).
+     * Bara en poäng utan namn (`:3`) stoppar. `somatiska` bevaras av [legacySomatic].
      */
-    private fun symptoms(path: String, raw: String, somatiska: Int): List<SymptomScore> {
-        if (raw.isBlank()) {
-            if (somatiska != 0) warn(path, "somatiska $somatiska utan symptom – summan blir 0")
-            return emptyList()
-        }
+    private fun symptoms(path: String, raw: String): List<SymptomScore> {
+        if (raw.isBlank()) return emptyList()
         val scores = linkedMapOf<String, Int?>()
         fun put(index: Int, name: String, score: Int?) {
             if (name in scores) warn(path, "symptom[$index] är en dubblett – den sista poängen gäller, som i 3.x")
@@ -534,9 +537,24 @@ private class Conversion(private val backup: BackupJson, private val uid: String
                 else -> SymptomScore(options.findOrArchived(OptionKind.SYMPTOM, name).id, score)
             }
         }
-        if (symptoms.somatic != somatiska) warn(path, "somatiska $somatiska skiljer sig från summan av symptompoängen ${symptoms.somatic}")
         return symptoms
     }
+
+    /**
+     * 3.x `somatiska` när det inte är summan av de konverterade poängen (DAT-6), annars `null`. 3.x-appen räknade alltid
+     * summan (`SymptomUtils.sum`), men importerad data har namnlistor utan poäng och egna värden – 3.x Trender visade
+     * `somatiska` som det stod (`TrenderViewModel`, `avgSomatiska`). Bevaras därför som det är, utan varning.
+     */
+    private fun legacySomatic(path: String, somatiska: Int, symptoms: List<SymptomScore>): Int? {
+        if (somatiska == symptoms.somatic) return null
+        // Negativt kan ingen 3.x-summa vara: summan av poängen gäller, med varning – inget stopp.
+        if (somatiska < 0) return null.also { warn(path, "somatiska $somatiska är negativt – summan av symptompoängen ${symptoms.somatic} gäller") }
+        return somatiska
+    }
+
+    /** Ett ögonblick med zon som det står, eller dag och klockslag utan zon via [at] (sommartidsbytet rapporteras). */
+    private fun momentAt(path: String, field: String, raw: String): Instant? =
+        LegacyTime.instant(raw) ?: LegacyTime.localDateTime(raw)?.let { at(path, field, it.date, it.time) }
 
     /** Heltalet efter sista kolonet, som 3.x `decode` läste det; `null` = delen gick inte att läsa. */
     private fun scoreOf(part: String): Int? = part.lastIndexOf(':').takeIf { it >= 0 }?.let { part.substring(it + 1).trim().toIntOrNull() }
@@ -577,12 +595,13 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     private fun unknown(raw: String) = "okänt värde (${raw.length} tecken)"
 
     /**
-     * 3.x `timestamp` som ISO-ögonblick; tomt eller ogiltigt → dag och klockslag i Europe/Stockholm
-     * (utan klockslag: midnatt), utan dag `null`. Ett ogiltigt värde ersätts med varning.
+     * 3.x `timestamp` ([LegacyTime.timestamp]: ISO-ögonblick, epok-ms som text, dag och klockslag utan zon); tomt eller
+     * ogiltigt → dag och klockslag i Europe/Stockholm (utan klockslag: midnatt), utan dag `null`. Ett ogiltigt värde ersätts
+     * med varning och värdets form (aldrig innehåll); texten finns kvar i kopian av 3.x-datan.
      */
     private fun createdAt(path: String, iso: String, date: LocalDate?, time: LocalTime?): Instant? {
-        LegacyTime.instant(iso)?.let { return it }
-        if (iso.isNotBlank()) warn(path, "timestamp är inte ett giltigt ögonblick (${iso.length} tecken) – datum och klockslag i Europe/Stockholm används")
+        (LegacyTime.timestamp(iso) ?: LegacyTime.localDateTime(iso)?.let { at(path, "timestamp", it.date, it.time) })?.let { return it }
+        if (iso.isNotBlank()) warn(path, "timestamp är inte ett giltigt ögonblick (${LegacyTime.shape(iso)}) – datum och klockslag i Europe/Stockholm används")
         return date?.let { at(path, "timestamp", it, time ?: LocalTime(0, 0)) }
     }
 
