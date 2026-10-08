@@ -146,7 +146,8 @@ class LegacyRoomReaderTest {
 
     private fun checksum(file: File): String = MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString("") { "%02x".format(it) }
 
-    private fun checksums() = mapOf("db" to checksum(dbFile), "wal" to checksum(walFile), "prefs" to checksum(prefsFile))
+    private fun checksums(withPrefs: Boolean = true) =
+        mapOf("db" to checksum(dbFile), "wal" to checksum(walFile)) + if (withPrefs) mapOf("prefs" to checksum(prefsFile)) else emptyMap()
 
     @Test
     fun room_filen_och_datastore_filen_las_ur_wal_utan_att_andras_och_ger_konverterarens_dokument() = test {
@@ -180,9 +181,9 @@ class LegacyRoomReaderTest {
     @Test
     fun en_annan_user_version_ar_ett_eget_utfall_och_laser_inget() = test {
         createRoomFile(version = 10)
-        val before = checksums().filterKeys { it != "prefs" }
+        val before = checksums(withPrefs = false)
         assertEquals(LegacyRoomRead.WrongVersion(10), LegacyRoomReader(context, Dispatchers.IO).read())
-        assertEquals(before, checksums().filterKeys { it != "prefs" })
+        assertEquals(before, checksums(withPrefs = false))
     }
 
     @Test
