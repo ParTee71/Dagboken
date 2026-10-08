@@ -4,6 +4,7 @@ import java.io.File
 import kotlin.test.assertEquals
 import org.junit.Test
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.LegacySource
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Repeat
@@ -39,11 +40,12 @@ class RulesEnumsTest {
         assertEquals(wires(Repeat.entries), rulesList("repeats"))
         assertEquals(wires(ThemeMode.entries), rulesList("themeModes"))
         assertEquals(wires(Sex.entries), rulesList("sexes"))
+        assertEquals(wires(LegacySource.entries), rulesList("legacySources"))
     }
 
     @Test
     fun `de lagrade namnen är unika inom varje enum`() {
-        for (values in listOf(OptionKind.entries, Slot.entries, DoseStatus.entries, Occasion.entries, Repeat.entries, ThemeMode.entries, Sex.entries)) {
+        for (values in listOf(OptionKind.entries, Slot.entries, DoseStatus.entries, Occasion.entries, Repeat.entries, ThemeMode.entries, Sex.entries, LegacySource.entries)) {
             assertEquals(values.size, wires(values).toSet().size, values.first()::class.simpleName)
         }
     }

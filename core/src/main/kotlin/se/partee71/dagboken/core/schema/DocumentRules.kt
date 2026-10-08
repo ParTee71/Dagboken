@@ -2,6 +2,7 @@ package se.partee71.dagboken.core.schema
 
 import kotlin.time.Instant
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.LegacySource
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Repeat
@@ -89,12 +90,18 @@ object DocumentRules {
         /** Nästlat objekt (`isTheme`, `isSchedule` …). */
         data class Nested(val shape: Shape) : Check
 
+        /** Ett objekt med bara nycklarna i [keys] (`keys().hasOnly`), var och en ett heltal när den finns – markörens `counts`. */
+        data class IntMap(val keys: List<String>) : Check
+
         /** Lista av nästlade objekt, högst [max] eller exakt [exact] element. */
         data class ListOf(val shape: Shape, val max: Int = Int.MAX_VALUE, val exact: Int? = null) : Check
     }
 
-    /** Ett nästlat objekts fält; [required] måste finnas med rätt typ (rules läser dem utan `none`). */
-    data class Shape(val fields: Map<String, Check>, val required: Set<String> = emptySet())
+    /**
+     * Ett nästlat objekts fält; [required] måste finnas med rätt typ (rules läser dem utan `none`). [closed] = inga
+     * andra nycklar får finnas (`keys().hasOnly`) – markören, som bara appen skriver.
+     */
+    data class Shape(val fields: Map<String, Check>, val required: Set<String> = emptySet(), val closed: Boolean = false)
 
     private fun wires(values: List<WireEnum>) = values.map { it.wire }
 
@@ -133,6 +140,22 @@ object DocumentRules {
     val PROFILE = Shape(mapOf("birthYear" to Check.IntField, "sex" to Check.OneOf(wires(Sex.entries))))
     val LEGACY = Shape(mapOf("dynamicColor" to Check.BoolField, "sheetsConfig" to Check.LongText))
 
+    /** Samlingarna som migreringsmarkörens `counts` får räkna (`countCollections()`): användarens samlingar och undersamlingen. */
+    val COUNT_COLLECTIONS: List<String> = CollectionNames.USER_COLLECTIONS + CollectionNames.CHECKINS
+
+    /** Migreringsmarkören på användardokumentet (`isLegacyMigration`, OMB-2): exakt dessa fält, tid och källa krävs. */
+    val LEGACY_MIGRATION = Shape(
+        mapOf(
+            "completedAt" to Check.TimestampField,
+            "source" to Check.OneOf(wires(LegacySource.entries)),
+            "sourceCreatedAt" to Check.TimestampField,
+            "appVersion" to Check.ShortText,
+            "counts" to Check.IntMap(COUNT_COLLECTIONS),
+        ),
+        required = setOf("completedAt", "source"),
+        closed = true,
+    )
+
     /** Gemensamt för alla dokument under användaren (`validEntry`): anteckningen och namnet. */
     val ENTRY: Map<String, Check> = mapOf("note" to Check.LongText, "name" to Check.ShortText)
 
@@ -141,7 +164,11 @@ object DocumentRules {
 
     /** Fältkontrollerna per samling – samma fält som `valid…`-funktionerna i rules och codecarna. */
     val FIELDS: Map<String, Map<String, Check>> = mapOf(
-        CollectionNames.USERS to mapOf("schemaVersion" to Check.Min(1), "createdAt" to Check.TimestampField),
+        CollectionNames.USERS to mapOf(
+            "schemaVersion" to Check.Min(1),
+            "createdAt" to Check.TimestampField,
+            "legacyMigration" to Check.Nested(LEGACY_MIGRATION),
+        ),
         CollectionNames.SETTINGS to ENTRY + mapOf(
             "theme" to Check.Nested(THEME),
             "reminders" to Check.Nested(REMINDERS),
@@ -221,6 +248,18 @@ object DocumentRules {
         ),
     )
 
+    /**
+     * Fälten en samlings codec kan skriva, som träd: en nyckel per fält, med underträd för nästlade objekt
+     * (`theme`, `reminders`, …) och `null` för värden som jämförs hela (text, tal, listor, markörens `counts`). Den fasta
+     * nyckelmängden som migreringens hashar och jämförelser begränsas till (OMB-7) – inte dokumentets egna nycklar, så
+     * att ett fält som tömts i 3.x (nyckeln försvinner) syns som en ändring.
+     */
+    data class FieldTree(val fields: Map<String, FieldTree?>)
+
+    fun fieldTree(collection: String): FieldTree = treeOf(requireNotNull(FIELDS[collection]) { "okänd samling $collection" })
+
+    private fun treeOf(fields: Map<String, Check>): FieldTree = FieldTree(fields.mapValues { (_, check) -> (check as? Check.Nested)?.let { treeOf(it.shape.fields) } })
+
     /** Fält som rules kräver även på toppnivå (läses utan `none`): användardokumentets version. */
     private val REQUIRED: Map<String, Set<String>> = mapOf(CollectionNames.USERS to setOf("schemaVersion"))
 
@@ -251,7 +290,7 @@ object DocumentRules {
             key in shape.required -> listOf(Violation("$prefix$key", "saknas"))
             else -> emptyList()
         }
-    }
+    } + if (shape.closed) (doc.keys - shape.fields.keys).map { Violation("$prefix$it", "okänt fält") } else emptyList()
 
     /** Alla brott i [value] (aldrig `null`) mot [check]; nästlade fel får sin egen fältväg (`symptoms[3].score`). */
     private fun check(check: Check, value: Any, path: String): List<Violation> {
@@ -270,6 +309,7 @@ object DocumentRules {
             is Check.IntList -> list(value, check.max) ?: return elements(value, path) { i, v -> check(Check.Range(check.range), v, "$path[$i]") }
             is Check.EnumList -> list(value, check.max) ?: return elements(value, path) { i, v -> check(Check.OneOf(check.values), v, "$path[$i]") }
             is Check.Nested -> if (value is Map<*, *>) return check(check.shape, asDoc(value), "$path.") else type(value, "objekt")
+            is Check.IntMap -> if (value is Map<*, *>) return check(Shape(check.keys.associateWith { Check.IntField }, closed = true), asDoc(value), "$path.") else type(value, "objekt")
             is Check.ListOf -> list(value, check.max, check.exact) ?: return elements(value, path) { i, element ->
                 if (element is Map<*, *>) check(check.shape, asDoc(element), "$path[$i].") else listOf(Violation("$path[$i]", type(element, "objekt")))
             }

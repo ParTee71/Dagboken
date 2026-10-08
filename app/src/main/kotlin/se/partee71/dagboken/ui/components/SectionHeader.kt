@@ -25,7 +25,10 @@ import se.partee71.dagboken.ui.theme.IconSize
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
-/** Sektionsrubrik med valfri ikonruta och räknare ("4 / 5") i sektionens [tone]. */
+/**
+ * Sektionsrubrik med valfri ikonruta och räknare ("4 / 5") i sektionens [tone]. [countTone] färgar bara räknaren –
+ * en statuspill ("Krävs", "Kontrollerad") bredvid en ikonruta i sektionens ton.
+ */
 @Composable
 fun SectionHeader(
     title: String,
@@ -33,6 +36,7 @@ fun SectionHeader(
     @DrawableRes icon: Int? = null,
     count: String? = null,
     tone: Tone = Tone.Primary,
+    countTone: Tone = tone,
 ) {
     val colors = AppColors.tone(tone)
     Row(
@@ -51,7 +55,7 @@ fun SectionHeader(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f).semantics { heading() },
         )
-        count?.let { InfoPill(it, tone = tone) }
+        count?.let { InfoPill(it, tone = countTone) }
     }
 }
 

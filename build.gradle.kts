@@ -61,6 +61,9 @@ dependencies {
 val cpdSources = fileTree(rootDir) {
     include("core/src/**/*.kt", "app/src/main/**/*.kt", "app/src/test/**/*.kt", "app/src/sharedTest/**/*.kt", "app/src/androidTest/**/*.kt")
     exclude("**/*Preview.kt")
+    // 3.27.0:s egen backupmodell, kopierad ordagrant till testkällan för kompatibilitetstestet (OMB-8) – den ska
+    // vara en dubblett av core/legacy/BackupJson.kt, annars bevisar testet inget.
+    exclude("**/core/legacy/threex/**")
 }
 
 val cpdCheck = tasks.register<JavaExec>("cpdCheck") {

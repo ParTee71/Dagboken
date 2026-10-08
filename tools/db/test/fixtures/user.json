@@ -6,6 +6,13 @@
       "data": {
         "schemaVersion": 1,
         "createdAt": { "__ts": "2026-09-01T08:15:30.123456000Z" },
+        "legacyMigration": {
+          "completedAt": { "__ts": "2026-10-07T18:30:00.000000000Z" },
+          "source": "json",
+          "sourceCreatedAt": { "__ts": "2026-10-07T17:55:12.000000000Z" },
+          "appVersion": "4.0.0",
+          "counts": { "settings": 1, "doses": 2 }
+        },
         "framtidaFält": { "okänd": true, "andel": 0.25, "lista": [1, "två", null] },
         "skyddad": { "__map": { "__ts": "inte en tid" } },
         "liten": 1.5e-7

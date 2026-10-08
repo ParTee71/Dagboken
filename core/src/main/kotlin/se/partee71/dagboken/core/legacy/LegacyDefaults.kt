@@ -1,9 +1,13 @@
 package se.partee71.dagboken.core.legacy
 
+import se.partee71.dagboken.core.model.Occasion
+import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.core.schema.encodeTime
+
 /**
- * 3.x:s standardvärden som konverteraren behöver (branchen `legacy`, `data/datastore/PreferencesRepository.kt`).
- * Tidpunkternas och tillfällenas namn och standardtider ligger på [se.partee71.dagboken.core.model.Slot]
- * och [se.partee71.dagboken.core.model.Occasion]; påminnelsernas standardvärden är modellernas defaults.
+ * 3.x:s standardvärden som konverteraren och legacy-läsaren behöver (branchen `legacy`,
+ * `data/datastore/PreferencesRepository.kt`). Tidpunkternas och tillfällenas namn och standardtider
+ * ligger på [Slot] och [Occasion]; påminnelsernas standardvärden är modellernas defaults.
  */
 internal object LegacyDefaults {
     /** 3.x:s fasta alternativ för "annat": aktivitetens fritext (AKT-2) och symptomens fritext (AKT-6). */
@@ -41,4 +45,23 @@ internal object LegacyDefaults {
     const val SEX_MALE = "man"
     const val SEX_FEMALE = "kvinna"
     const val SEX_UNSPECIFIED = "ej_angivet"
+    val SEX_KEYS = listOf(SEX_MALE, SEX_FEMALE, SEX_UNSPECIFIED)
+
+    // 3.x `PreferencesRepository`: värdet när nyckeln saknas i DataStore (legacy-läsaren, OMB-2). Samma
+    // värden som 4.0:s `Settings`-defaults, så att en enhet utan sparade inställningar ger dem.
+    const val THEME_MODE = "auto"
+    const val THEME_LIGHT_START = 7
+    const val THEME_DARK_START = 21
+    const val IS_DARK_THEME = true
+    const val DYNAMIC_COLOR = true
+    const val MEDS_NOTIFICATIONS = false
+    const val PERIOD_REMINDER_TIME = "09:00"
+
+    /** 3.x `DEFAULT_SCREENING_EVENTS`: avstängda, tillfällenas standardtider. */
+    val SCREENING_EVENT_CONFIGS: List<ScreeningEventConfigJson> =
+        Occasion.entries.map { ScreeningEventConfigJson(enabled = false, time = it.defaultTime.encodeTime().orEmpty()) }
+
+    /** 3.x `DEFAULT_MED_NOTIFICATIONS` med namnen som `BackupAssembler` skrev dem: på, tidpunkternas standardtider. */
+    val MED_NOTIFICATION_CONFIGS: List<MedNotificationConfigJson> =
+        Slot.SCHEDULED.map { MedNotificationConfigJson(tidpunkt = it.legacyName, enabled = true, time = it.defaultTime.encodeTime().orEmpty()) }
 }

@@ -12,6 +12,7 @@ fun firestoreError(error: Throwable): DataError = when (error) {
         Code.PERMISSION_DENIED, Code.UNAUTHENTICATED -> DataError.PermissionDenied
         Code.CANCELLED -> DataError.Cancelled
         Code.NOT_FOUND -> DataError.NotFound
+        Code.RESOURCE_EXHAUSTED -> DataError.QuotaExceeded
         else -> DataError.Unknown
     }
 }

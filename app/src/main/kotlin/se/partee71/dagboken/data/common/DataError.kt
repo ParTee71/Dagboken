@@ -28,6 +28,9 @@ sealed class DataError : Exception() {
     /** Det som efterfrågas finns inte (längre) – t.ex. raderat på en annan enhet. Ett nytt försök hjälper inte. */
     data object NotFound : DataError()
 
+    /** Molnets kvot är slut (Firestore `RESOURCE_EXHAUSTED`) – t.ex. dagskvoten under migreringen; ett nytt försök senare hjälper. */
+    data object QuotaExceeded : DataError()
+
     data object Unknown : DataError()
 }
 

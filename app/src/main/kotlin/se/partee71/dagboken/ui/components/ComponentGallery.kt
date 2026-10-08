@@ -140,6 +140,7 @@ private fun Rows() {
     var taken by remember { mutableStateOf(false) }
     var reminders by remember { mutableStateOf(true) }
     AppCard {
+        SectionHeader("Flytten", icon = R.drawable.ic_database, count = "Kontrollerat", countTone = Tone.Positive)
         SectionHeader("Mediciner", icon = R.drawable.ic_pill, count = "2 / 3")
         ItemRow(
             "Promenad",

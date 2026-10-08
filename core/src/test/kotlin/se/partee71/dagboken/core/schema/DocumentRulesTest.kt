@@ -101,9 +101,54 @@ class DocumentRulesTest {
         val body = functions.getValue("validUser")
         assertTrue(Regex("""d\.schemaVersion is int\s*&& d\.schemaVersion >= 1""").containsMatchIn(body))
         assertTrue("nullOrTime(d.get('createdAt', null))" in body)
-        assertEquals(mapOf("schemaVersion" to Check.Min(1), "createdAt" to Check.TimestampField), DocumentRules.FIELDS.getValue(CollectionNames.USERS))
+        assertTrue("(!('legacyMigration' in w) || (noLegacyMigrationYet() && isLegacyMigration(d.legacyMigration)))" in body, "markören sätts bara när den saknas")
+        assertEquals(
+            mapOf("schemaVersion" to Check.Min(1), "createdAt" to Check.TimestampField, "legacyMigration" to Check.Nested(DocumentRules.LEGACY_MIGRATION)),
+            DocumentRules.FIELDS.getValue(CollectionNames.USERS),
+        )
+        val marker = functions.getValue("isLegacyMigration")
+        assertTrue("m.get('completedAt', null) is timestamp && m.completedAt == request.time" in marker, "serverns tid, aldrig klientens")
+        assertTrue("m.get('source', null) in legacySources()" in marker)
+        assertTrue("nullOrTime(m.get('sourceCreatedAt', null)) && nullOrShort(m.get('appVersion', null))" in marker)
+        assertTrue("m.keys().hasOnly(['completedAt', 'source', 'sourceCreatedAt', 'appVersion', 'counts'])" in marker, "exakt markörens fält")
+        assertTrue(DocumentRules.LEGACY_MIGRATION.closed)
+        assertTrue("isCounts(m.counts)" in marker)
+        val counts = functions.getValue("isCounts")
+        assertTrue("c.keys().hasOnly(countCollections())" in counts)
+        assertEquals(DocumentRules.COUNT_COLLECTIONS, rulesList("countCollections"))
+        for (name in DocumentRules.COUNT_COLLECTIONS) assertTrue("(!('$name' in c) || c.$name is int)" in counts, name)
+        assertEquals(
+            listOf(
+                DocumentRules.Violation("legacyMigration.counts.doses", "fel typ: String (väntat heltal)"),
+                DocumentRules.Violation("legacyMigration.counts.okänd", "okänt fält"),
+                DocumentRules.Violation("legacyMigration.extra", "okänt fält"),
+            ),
+            DocumentRules.validate(
+                CollectionNames.USERS,
+                mapOf("schemaVersion" to 1, "legacyMigration" to mapOf("completedAt" to kotlin.time.Instant.fromEpochSeconds(1), "source" to "room", "counts" to mapOf("doses" to "4", "okänd" to 1), "extra" to 1)),
+            ),
+        )
+        assertEquals(setOf("completedAt", "source"), DocumentRules.LEGACY_MIGRATION.required)
+        assertEquals(rulesList("legacySources"), (DocumentRules.LEGACY_MIGRATION.fields.getValue("source") as Check.OneOf).values)
+        assertEquals(
+            listOf(DocumentRules.Violation("legacyMigration.completedAt", "saknas"), DocumentRules.Violation("legacyMigration.counts", "fel typ: Int (väntat objekt)")),
+            DocumentRules.validate(CollectionNames.USERS, mapOf("schemaVersion" to 1, "legacyMigration" to mapOf("source" to "room", "counts" to 3))),
+        )
         assertEquals(listOf(DocumentRules.Violation("schemaVersion", "saknas")), DocumentRules.validate(CollectionNames.USERS, emptyMap()))
         assertEquals(listOf(DocumentRules.Violation("schemaVersion", "under 1: 0")), DocumentRules.validate(CollectionNames.USERS, mapOf("schemaVersion" to 0)))
+    }
+
+    @Test
+    fun `fältträdet per samling är codecens fält med underträd för nästlade objekt`() {
+        val settings = DocumentRules.fieldTree(CollectionNames.SETTINGS)
+        assertEquals(DocumentRules.FIELDS.getValue(CollectionNames.SETTINGS).keys, settings.fields.keys)
+        assertEquals(DocumentRules.THEME.fields.keys, settings.fields.getValue("theme")!!.fields.keys)
+        assertEquals(DocumentRules.REMINDERS.fields.keys, settings.fields.getValue("reminders")!!.fields.keys)
+        assertEquals(null, settings.fields.getValue("reminders")!!.fields.getValue("medSlots"), "listor jämförs hela")
+        val doses = DocumentRules.fieldTree(CollectionNames.DOSES)
+        assertEquals(DocumentRules.FIELDS.getValue(CollectionNames.DOSES).keys, doses.fields.keys)
+        assertTrue(doses.fields.values.all { it == null })
+        assertEquals(null, DocumentRules.fieldTree(CollectionNames.USERS).fields.getValue("legacyMigration")!!.fields.getValue("counts"))
     }
 
     @Test

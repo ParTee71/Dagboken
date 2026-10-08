@@ -3,7 +3,7 @@ import { after, before, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'node:fs';
-import { Timestamp, collection, collectionGroup, deleteDoc, deleteField, doc, getDoc, getDocs, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { Timestamp, collection, collectionGroup, deleteDoc, deleteField, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { COLLECTIONS } from '../lib/collections.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
 import { toClient } from './helpers/client.mjs';
@@ -248,7 +248,9 @@ test('fixturens dokument (alla samlingar, varje fält, null och tidsstämplar) g
   const owner = db('uid-test');
   const orphan = documents.filter((d) => d.path.includes('/utan-dokument/'));
   assert.equal(orphan.length, 1, 'fixturen har en incheckning utan episod');
-  for (const { path, data } of documents.filter((d) => !orphan.includes(d))) await assertSucceeds(setDoc(doc(owner, path), toClient(data)));
+  // Migreringsmarkörens completedAt måste vara serverns tid (OMB-7) – klienten skriver den som appen gör, med serverTimestamp().
+  const asClient = (data) => (data.legacyMigration ? { ...toClient(data), legacyMigration: { ...toClient(data.legacyMigration), completedAt: serverTimestamp() } } : toClient(data));
+  for (const { path, data } of documents.filter((d) => !orphan.includes(d))) await assertSucceeds(setDoc(doc(owner, path), asClient(data)));
   // Verktygen kan lagra en föräldralös incheckning (rundturen bevarar den), men appen kan inte skapa en.
   await assertFails(setDoc(doc(owner, orphan[0].path), toClient(orphan[0].data)));
   await assertFails(setDoc(doc(db('annan'), documents[1].path), toClient(documents[1].data)));

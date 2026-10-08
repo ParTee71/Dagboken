@@ -38,20 +38,9 @@ class BackupJsonConverterTest {
     @Test
     fun `v1 - varje dokument och fält blir exakt som i den förväntade exporten`() = assertMatchesExpected("backup-v1")
 
-    /** Fält för fält per dokument (ett tydligt fel per avvikelse), och sedan hela filen tecken för tecken. */
-    private fun assertMatchesExpected(name: String) {
-        val result = converted(name)
-        val expected = LegacyFixtures.expected(name).associateBy { it.path }
-        val actual = result.documents.associateBy { it.path }
-        assertEquals(expected.keys.sorted(), actual.keys.sorted(), "dokumentens sökvägar")
-        for ((path, document) in expected) {
-            val got = actual.getValue(path).data
-            for (field in document.data.keys + got.keys) {
-                assertEquals(ExportFormat.toJson(document.data[field]), ExportFormat.toJson(got[field]), "$path.$field")
-            }
-        }
-        assertEquals(LegacyFixtures.expectedText(name), result.exportJson(BackupJsonConverter.exportedAt(LegacyFixtures.backup(name))))
-    }
+    /** Fält för fält per dokument och sedan hela filen (`LegacyFixtures.assertMatchesExpected`, delad med legacy-läsarens test). */
+    private fun assertMatchesExpected(name: String) =
+        LegacyFixtures.assertMatchesExpected(name, converted(name), BackupJsonConverter.exportedAt(LegacyFixtures.backup(name)))
 
     @Test
     fun `v2 - rapporten räknar dokument per samling och listar varningarna utan innehåll`() {
@@ -199,6 +188,19 @@ class BackupJsonConverterTest {
         assertEquals(DoseStatus.PLANNED, doses.getValue("m3").status)
         assertNull(doses.getValue("m3").takenAt)
         assertEquals(Slot.AS_NEEDED, doses.getValue("m3").slot)
+    }
+
+    @Test
+    fun `dos - en tagningstid mer än 12 timmar före det schemalagda klockslaget bevaras men syns i rapporten`() {
+        val backup = BackupJson(
+            mediciner = listOf(
+                MedicinJson(id = "m1", datum = "2026-01-15", tid = "22:00", tidpunkt = "Natt", tagen = true, tagenTid = "01:30"),
+                MedicinJson(id = "m2", datum = "2026-01-15", tid = "19:00", tidpunkt = "Kväll", tagen = true, tagenTid = "07:30"),
+            ),
+        )
+        val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u"))
+        assertEquals(kotlin.time.Instant.parse("2026-01-15T00:30:00Z"), result.data.doses.first { it.id == "m1" }.takenAt, "värdet ändras inte")
+        assertEquals(listOf("doses/m1"), result.report.warnings.filter { "12 timmar före" in it.message }.map { it.path }, "11,5 timmar före är inom gränsen")
     }
 
     @Test
