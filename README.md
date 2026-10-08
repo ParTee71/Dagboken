@@ -177,7 +177,7 @@ chatten (skill [`data-privacy-security`](.claude/skills/data-privacy-security/SK
 3. **Service accounts** (Google Cloud Console → IAM → Service accounts):
    - `dagboken-backup` med rollen **Cloud Datastore Viewer** (backupen läser bara) →
      nyckeln som GitHub-secret `FIREBASE_SERVICE_ACCOUNT` (veckobackupen).
-   - `dagboken-rules` med rollerna **Firebase Rules Admin** och **Service Usage Consumer**
+   - `dagboken-rules` med rollerna **Firebase Rules Admin**, **Service Usage Consumer** och **Service Usage Viewer**
      (får bara ändra security rules, inte läsa data) → nyckeln som GitHub-secret
      `FIREBASE_RULES_DEPLOYER`.
    - en läsnyckel med rollen **Cloud Datastore Viewer** → miljövariabeln

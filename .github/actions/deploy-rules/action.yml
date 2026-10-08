@@ -1,7 +1,7 @@
 name: Deploya firestore.rules
 description: >-
   Deployar firestore.rules till Dagbokens Firebase-projekt (dagboken-711d2) med service-kontot i
-  FIREBASE_RULES_DEPLOYER (bara Firebase Rules Admin + Service Usage Consumer). Nyckeln måste
+  FIREBASE_RULES_DEPLOYER (bara Firebase Rules Admin + Service Usage Consumer + Service Usage Viewer). Nyckeln måste
   höra till projektet, skrivs till en temporär fil och tas bort i samma steg. En riktig deploy
   kräver att firestore.rules är samma som på master. Kör efter
   rules-testerna. Kräver att repot är utcheckat och att setup-tools-db (eller rules-tests, som
