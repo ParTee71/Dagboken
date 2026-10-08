@@ -8,6 +8,7 @@ import se.partee71.dagboken.core.schema.LegacyMigrationCodec
 import se.partee71.dagboken.core.schema.asDoc
 import se.partee71.dagboken.data.FakeStore
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.common.UserFile
 import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.firestore.RawDocumentWriter
 import se.partee71.dagboken.data.firestore.RawDocuments
@@ -76,6 +77,11 @@ class FakeRawFirestore(val store: FakeStore, private val now: Instant = Instant.
     override suspend fun collection(path: String): Map<String, Doc> {
         if (offline) throw DataError.Offline
         return store.documents.value[path].orEmpty()
+    }
+
+    override suspend fun hasDocuments(path: String): Boolean {
+        if (offline) throw DataError.Offline
+        return store.documents.value[path].orEmpty().isNotEmpty()
     }
 
     override suspend fun writeBatch(documents: List<ExportFormat.Document>): Result<Unit> {
@@ -234,7 +240,7 @@ class FakeLegacyWork : LegacyWork {
 }
 
 /** Filen som SAF ger den: det skrivna läses tillbaka – genom [readBack], som kan förvanska det (en trasig lagring). */
-class FakeCopyFile : LegacyCopyFile {
+class FakeCopyFile : UserFile {
     val files = mutableMapOf<Uri, String>()
     var writeFails = false
     var readBack: (String) -> String = { it }
@@ -248,4 +254,14 @@ class FakeCopyFile : LegacyCopyFile {
     override suspend fun read(uri: Uri): String = readBack(files.getValue(uri))
 
     override suspend fun displayName(uri: Uri): String? = name
+}
+
+/** Drive som värden (BCK-14): det [read] säger, och antal anrop – samtycket och nätet styrs av testet. */
+class FakeDriveBackups(var read: DriveRead = DriveRead.NoBackup) : DriveBackups {
+    var calls = 0
+
+    override suspend fun downloadLatestBackup(): DriveRead {
+        calls++
+        return read
+    }
 }

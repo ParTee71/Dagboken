@@ -3,6 +3,8 @@ package se.partee71.dagboken.ui.migration
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
+import se.partee71.dagboken.core.legacy.ImportFormat
+import se.partee71.dagboken.core.model.LegacySource
 import se.partee71.dagboken.data.legacy.AccountCheck
 
 /** Påhittade lägen för migreringsskärmens tester och skärmdumpar – samma siffror som mockupen (avsnitt 15). */
@@ -37,4 +39,15 @@ object MigrationSamples {
     )
 
     val stopped = MigrationStage.Stopped(listOf(ReportLine("prescriptions", "periodDays", "värde utanför tillåtet intervall (högst 1096)", 1)))
+
+    /** Importens granskning (mockupen avsnitt 16): en 3.x-backup v2 från Drive med en varning. */
+    val importReview = ImportStage.Review(
+        LegacySource.DRIVE,
+        ImportFormat.Legacy(2),
+        before,
+        listOf("3 anteckning(ar) med target ACTIVITY utan sin post – kan inte placeras"),
+        replaced = 12,
+    )
+
+    val importStopped = ImportStage.Stopped(stopped.report)
 }

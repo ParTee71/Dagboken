@@ -38,4 +38,10 @@ object CollectionNames {
 
     /** Samlingens namn ur en dokumentsökväg (näst sista ledet); `users/{uid}` → [USERS]. */
     fun collectionOf(path: String): String = path.split('/').let { it[it.size - 2] }
+
+    /** Antal dokument per samling i [ALL]-ordning, bara samlingar med dokument – rapportens och granskningens "före". */
+    fun countsOf(paths: Collection<String>): Map<String, Int> {
+        val counts = paths.groupingBy(::collectionOf).eachCount()
+        return ALL.filter { it in counts }.associateWith { counts.getValue(it) }
+    }
 }

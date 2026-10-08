@@ -203,11 +203,12 @@ class SettingsScreensTest {
     }
 
     @Test
-    fun `Export och import säger att funktionen kommer och går tillbaka`() {
+    fun `Export och import har Spara som JSON och Importera backup och går tillbaka`() {
         var back = 0
-        rule.setContent { DagbokenTheme { ExportImportScreen(onBack = { back++ }) } }
+        rule.setContent { DagbokenTheme { ExportImportScreen(ExportImportUiState(), {}, { "dagboken-export.json" }, onBack = { back++ }) } }
         rule.onNodeWithText("Export och import").assertIsDisplayed()
-        rule.onNodeWithText("Snart här").assertIsDisplayed()
+        rule.onNodeWithText("Spara som JSON").assertIsDisplayed()
+        rule.onNodeWithText("Importera backup").assertIsDisplayed()
         rule.onNodeWithContentDescription("Tillbaka").performClick()
         assertEquals(1, back)
     }

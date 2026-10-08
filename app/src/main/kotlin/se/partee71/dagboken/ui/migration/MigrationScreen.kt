@@ -2,15 +2,8 @@ package se.partee71.dagboken.ui.migration
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,13 +11,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
@@ -36,19 +25,12 @@ import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.toMessage
 import se.partee71.dagboken.ui.components.AppButton
 import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppDivider
 import se.partee71.dagboken.ui.components.AppLoading
 import se.partee71.dagboken.ui.components.ButtonVariant
 import se.partee71.dagboken.ui.components.CheckRow
 import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.EntityDetailScreen
-import se.partee71.dagboken.ui.components.ItemRow
-import se.partee71.dagboken.ui.components.NoticeBanner
-import se.partee71.dagboken.ui.components.ProgressBar
-import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.IconSize
-import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
 /**
@@ -81,16 +63,18 @@ fun MigrationGateContent(state: MigrationUiState, onEvent: (MigrationEvent) -> U
  */
 @Composable
 fun MigrationScreen(state: MigrationUiState, onEvent: (MigrationEvent) -> Unit, modifier: Modifier = Modifier) {
-    val saveCopy = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(JSON)) { uri ->
+    val saveCopy = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(JSON_MIME)) { uri ->
         uri?.let { onEvent(MigrationEvent.CopyChosen(it)) }
     }
+    val fallback = state.stage as? MigrationStage.Fallback
+    val pickFile = rememberImportLaunchers(fallback?.import ?: ImportStage.Choose) { onEvent(MigrationEvent.Import(it)) }
     EntityDetailScreen(
         state = DetailUiState.Content(state.stage),
         header = null,
         onBack = null,
         modifier = modifier,
-        title = stringResource(R.string.migration_title),
-        subtitle = intro(state.stage)?.let { stringResource(it) },
+        title = stringResource(fallback?.let { importTitle(it.import) } ?: R.string.migration_title),
+        subtitle = fallback?.let { importSubtitle(it.import) } ?: intro(state.stage)?.let { stringResource(it) },
         failure = state.failure,
         onErrorShown = { onEvent(MigrationEvent.ErrorShown) },
     ) { stage ->
@@ -106,6 +90,7 @@ fun MigrationScreen(state: MigrationUiState, onEvent: (MigrationEvent) -> Unit, 
             is MigrationStage.WrongVersion -> WrongVersion(onEvent)
             is MigrationStage.ReadFailed -> ReadFailed(stage, onEvent)
             is MigrationStage.CheckFailed -> CheckFailed(stage, onEvent)
+            is MigrationStage.Fallback -> Fallback(stage.import, onEvent, pickFile)
             MigrationStage.Checking, is MigrationStage.Closed -> Unit
         }
     }
@@ -145,14 +130,7 @@ private fun Review(review: MigrationStage.Review, onEvent: (MigrationEvent) -> U
     ) {
         CountRows(review.counts)
     }
-    if (review.warnings.isNotEmpty()) {
-        Note(
-            pluralStringResource(R.plurals.migration_warnings, review.warnings.size, review.warnings.size),
-            R.drawable.ic_warning,
-            Tone.Sun,
-            detail = limited(review.warnings).joinToString("\n"),
-        )
-    }
+    WarningsNote(review.warnings)
     if (review.started) Note(stringResource(R.string.migration_started_note), R.drawable.ic_info, Tone.Neutral)
     RemindersPaused()
     Actions {
@@ -226,29 +204,13 @@ private fun Account(review: MigrationStage.Review, onEvent: (MigrationEvent) -> 
 
 @Composable
 private fun Writing(writing: MigrationStage.Writing) {
-    StatusCard(R.drawable.ic_database, stringResource(R.string.migration_writing_title)) {
-        val done = writing.done
-        if (done == null) {
-            Muted(stringResource(R.string.migration_reading_server))
-        } else {
-            // Hela flytten, inte en entitet i taget; belöningsläget hör till Idag.
-            ProgressBar(done.values.sum(), writing.before.values.sum(), celebrate = false)
-        }
-        CountRows(writing.before, done ?: writing.before.mapValues { 0 })
-    }
+    WritingCard(stringResource(R.string.migration_writing_title), writing.before, writing.done)
     Actions { AppButton(stringResource(R.string.migration_open), {}, Modifier.fillMaxWidth(), enabled = false) }
 }
 
 @Composable
 private fun Written(written: MigrationStage.Written, onEvent: (MigrationEvent) -> Unit) {
-    StatusCard(
-        R.drawable.ic_database,
-        stringResource(R.string.migration_done_title),
-        count = stringResource(R.string.migration_done_verified),
-        countTone = Tone.Positive,
-    ) {
-        CountRows(written.before, written.after, accounted(written.after, written.existing))
-    }
+    DoneCard(stringResource(R.string.migration_done_title), written.before, written.after, accounted(written.after, written.existing))
     Note(stringResource(R.string.migration_done_note), R.drawable.ic_check, Tone.Positive)
     val existing = written.existing.values.sum()
     if (existing > 0) Note(pluralStringResource(R.plurals.migration_existing, existing, countText(existing)), R.drawable.ic_info, Tone.Neutral)
@@ -265,29 +227,19 @@ private fun Written(written: MigrationStage.Written, onEvent: (MigrationEvent) -
 
 @Composable
 private fun Mismatch(mismatch: MigrationStage.Mismatch, onEvent: (MigrationEvent) -> Unit) {
-    val lines = MigrationEntity.entries.filter { entity -> entity.collections.any { it in mismatch.mismatched } }.map { entity ->
-        stringResource(
-            R.string.migration_mismatch_line,
-            stringResource(entity.label),
-            countText(entity.count(mismatch.accounted)),
-            countText(entity.count(mismatch.before)),
-        )
-    }
-    ProblemCard(
-        stringResource(R.string.migration_mismatch_title),
-        listOf(stringResource(R.string.migration_mismatch_report)) + lines + stringResource(R.string.migration_nothing_confirmed),
-    )
+    MismatchCard(mismatch.before, mismatch.accounted, mismatch.mismatched, stringResource(R.string.migration_nothing_confirmed))
     RemindersPaused()
     RetryOrAbort(onEvent)
 }
 
 @Composable
 private fun WriteFailed(failed: MigrationStage.WriteFailed, onEvent: (MigrationEvent) -> Unit) {
-    val code = failed.batch?.let { stringResource(R.string.migration_failed_code, failed.code, it + 1) }
-        ?: stringResource(R.string.migration_failed_code_only, failed.code)
-    ProblemCard(
+    WriteFailedCard(
         stringResource(R.string.migration_failed_title),
-        listOf(stringResource(failed.error.toMessage()), code, stringResource(R.string.migration_nothing_confirmed)),
+        stringResource(failed.error.toMessage()),
+        failed.batch,
+        failed.code,
+        stringResource(R.string.migration_nothing_confirmed),
     )
     RemindersPaused()
     if (failed.started) RetryOrAbort(onEvent) else RetryOrNotNow(onEvent)
@@ -303,14 +255,7 @@ private fun Aborting() {
 
 @Composable
 private fun Stopped(stopped: MigrationStage.Stopped, onEvent: (MigrationEvent) -> Unit) {
-    val lines = stopped.report.map { line ->
-        val entity = MigrationEntity.of(line.collection)?.let { stringResource(it.label) } ?: line.collection
-        stringResource(R.string.migration_report_line, entity, line.count, line.field, line.reason)
-    }
-    ProblemCard(
-        stringResource(R.string.migration_stopped_title),
-        listOf(stringResource(R.string.migration_report)) + limited(lines) + stringResource(R.string.migration_nothing_written),
-    )
+    StoppedCard(stringResource(R.string.migration_stopped_title), stopped.report)
     Fallback(R.string.migration_untouched_note, onEvent, retry = true)
 }
 
@@ -337,92 +282,11 @@ private fun CheckFailed(failed: MigrationStage.CheckFailed, onEvent: (MigrationE
     RetryOrNotNow(onEvent)
 }
 
-// ── Byggstenar på skärmen ─────────────────────────────────────────────────
-
-/** Ett kort med ikonruta och rubrik, valfri statuspill och innehåll. */
-@Composable
-private fun StatusCard(
-    @DrawableRes icon: Int,
-    title: String,
-    count: String? = null,
-    countTone: Tone = Tone.Primary,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    AppCard {
-        SectionHeader(title, icon = icon, count = count, countTone = countTone)
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.s), content = content)
-    }
-}
-
-/** Ett läge som inte gick: varningsikon, rubrik och rapportens rader (antal, aldrig innehåll). */
-@Composable
-private fun ProblemCard(title: String, lines: List<String>) {
-    StatusCard(R.drawable.ic_warning, title) {
-        lines.forEach { Text(it, style = AppTypography.body, color = MaterialTheme.colorScheme.onSurface) }
-    }
-}
-
-/**
- * Antal per entitet: bara före ([after] = `null`), eller före → efter med en bock när allt är avklarat och "…" för
- * det som inte flyttats än. Avklarat ([accounted], standard [after]) är efter + behållna + raderade i 4.0 + fanns redan – före =
- * avklarat ger bocken (OMB-7). Varje rad läses som en enhet.
- */
-@Composable
-private fun CountRows(before: Map<String, Int>, after: Map<String, Int>? = null, accounted: Map<String, Int>? = after) {
-    MigrationEntity.entries.forEachIndexed { index, entity ->
-        if (index > 0) AppDivider()
-        CountRow(stringResource(entity.label), entity.count(before), after?.let(entity::count), accounted?.let(entity::count))
-    }
-}
-
-@Composable
-private fun CountRow(label: String, before: Int, after: Int?, accounted: Int?) {
-    val from = countText(before)
-    val to = after?.let(::countText)
-    val done = accounted != null && accounted == before
-    val waiting = accounted == 0 && before > 0
-    val text = when {
-        to == null -> from
-        waiting -> stringResource(R.string.migration_count_pending, from)
-        else -> stringResource(R.string.migration_count_change, from, to)
-    }
-    val description = when {
-        to == null -> stringResource(R.string.migration_row_before, label, from)
-        done -> stringResource(R.string.migration_row_done, label, from, to)
-        waiting -> stringResource(R.string.migration_row_pending, label, from)
-        else -> stringResource(R.string.migration_row_after, label, from, to)
-    }
-    ItemRow(
-        label,
-        Modifier.clearAndSetSemantics { contentDescription = description },
-        trailing = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                Text(text, style = AppTypography.itemTitle, color = MaterialTheme.colorScheme.onSurface)
-                if (done) Icon(painterResource(R.drawable.ic_check), null, Modifier.size(IconSize.marker), tint = MaterialTheme.colorScheme.primary)
-            }
-        },
-    )
-}
-
-@Composable
-private fun Muted(text: String) {
-    Text(text, style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-/** Ett meddelande utan åtgärd (konto, varningar, påminnelser, klart). */
-@Composable
-private fun Note(text: String, @DrawableRes icon: Int, tone: Tone, detail: String? = null) {
-    NoticeBanner(text, icon, onClick = null, tone = tone, detail = detail)
-}
+// ── Byggstenar på skärmen (de delade i MigrationParts.kt) ──────────────────
 
 @Composable
 private fun RemindersPaused() {
     Note(stringResource(R.string.migration_reminders_paused), R.drawable.ic_bell, Tone.Sun)
-}
-
-@Composable
-private fun Actions(content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.s), content = content)
 }
 
 @Composable
@@ -467,8 +331,24 @@ private fun Abort(onEvent: (MigrationEvent) -> Unit) {
 }
 
 /**
+ * Första starten utan Room-fil (OMB-5, mockupen avsnitt 16): valen i ett kort under notisen, sedan importens lägen –
+ * samma vy som i Inställningar → Export och import. "Börja tomt" och "Öppna Dagboken" = [MigrationEvent.StartEmpty].
+ */
+@Composable
+private fun Fallback(stage: ImportStage, onEvent: (MigrationEvent) -> Unit, pickFile: () -> Unit) {
+    val startEmpty = { onEvent(MigrationEvent.StartEmpty) }
+    val import = { event: ImportEvent -> onEvent(MigrationEvent.Import(event)) }
+    if (stage == ImportStage.Choose) {
+        Note(stringResource(R.string.import_fallback_intro), R.drawable.ic_info, Tone.Neutral)
+        AppCard { ImportChoiceRows(onDrive = { import(ImportEvent.FromDrive) }, onFile = pickFile, onStartEmpty = startEmpty) }
+    } else {
+        ImportStageContent(stage, import, pickFile, stringResource(R.string.migration_open), startEmpty, onStartEmpty = startEmpty)
+    }
+}
+
+/**
  * Vägarna vidare när 3.x-filen inte kan flyttas (OMB-5, OMB-7): [note] om att filen är orörd, "Försök igen" ([retry]),
- * "Importera backup" och "Börja tomt" – som, tills fallbacken finns (#230), släpper in i appen som "Inte nu".
+ * "Importera backup" (öppnar Export och import, #230) och "Börja tomt" (släpper in i appen som "Inte nu").
  */
 @Composable
 private fun Fallback(@StringRes note: Int, onEvent: (MigrationEvent) -> Unit, retry: Boolean) {
@@ -485,13 +365,3 @@ private fun Fallback(@StringRes note: Int, onEvent: (MigrationEvent) -> Unit, re
     }
 }
 
-/** Högst [MAX_LINES] rader, och "… och N till" för resten. */
-@Composable
-private fun limited(lines: List<String>): List<String> {
-    val shown = lines.take(MAX_LINES)
-    val more = lines.size - shown.size
-    return if (more > 0) shown + stringResource(R.string.migration_more, more) else shown
-}
-
-private const val MAX_LINES = 5
-private const val JSON = "application/json"

@@ -4,8 +4,10 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import se.partee71.dagboken.data.common.ContentResolverUserFile
+import se.partee71.dagboken.data.common.UserFile
 
-/** Legacy-läsaren för migreringen på enheten (OMB-2): bara läsning av 3.x-filerna, enhetslokalt läge och kopian. */
+/** Migreringen och importen från 3.x (OMB-2, OMB-5, BCK-14): bara läsning av 3.x-filerna och Drive, enhetslokalt läge, kopian och filerna från dokumentväljaren. */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class LegacyModule {
@@ -19,6 +21,8 @@ abstract class LegacyModule {
 
     @Binds abstract fun work(work: WorkManagerLegacyWork): LegacyWork
 
-    @Binds abstract fun copy(file: ContentResolverCopyFile): LegacyCopyFile
+    /** Filen från dokumentväljaren – kopian (OMB-8), exporten (BCK-13) och importen (BCK-6). */
+    @Binds abstract fun userFile(file: ContentResolverUserFile): UserFile
 
+    @Binds abstract fun drive(backups: DriveRestBackups): DriveBackups
 }

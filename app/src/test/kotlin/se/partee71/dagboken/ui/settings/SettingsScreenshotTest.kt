@@ -1,12 +1,14 @@
 package se.partee71.dagboken.ui.settings
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.LocalTime
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
@@ -21,6 +23,9 @@ import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.components.ListArchive
 import se.partee71.dagboken.testing.captureLightAndDark
+import se.partee71.dagboken.testing.captureScreenLightAndDark
+import se.partee71.dagboken.testing.clickWithoutRipple
+import se.partee71.dagboken.ui.migration.MigrationSamples
 
 /** Inställningsarkets underskärmar i ljust och mörkt (NFR-20: bredvid mockupen i PR:en). Påhittad data. */
 @RunWith(RobolectricTestRunner::class)
@@ -88,6 +93,25 @@ class SettingsScreenshotTest {
 
     @Test
     fun `Export och import`() = rule.captureLightAndDark("Settings_ExportImport") {
-        ExportImportScreen(onBack = {})
+        ExportImportScreen(ExportImportUiState(), {}, { "dagboken-export-2026-10-08.json" }, onBack = {})
+    }
+
+    @Test
+    fun `Export och import - sparar`() = rule.captureLightAndDark("Settings_ExportImport_sparar") {
+        ExportImportScreen(ExportImportUiState(exporting = true), {}, { "dagboken-export-2026-10-08.json" }, onBack = {})
+    }
+
+    @Test
+    fun `Export och import - välj varifrån`() = rule.captureScreenLightAndDark(
+        "Settings_ExportImport_ark",
+        open = { onNodeWithText("Importera backup").clickWithoutRipple() },
+    ) {
+        ExportImportScreen(ExportImportUiState(), {}, { "dagboken-export-2026-10-08.json" }, onBack = {})
+    }
+
+    @Test
+    @Config(qualifiers = "w390dp-h1700dp-xxhdpi")
+    fun `Export och import - granska importen`() = rule.captureLightAndDark("Settings_ExportImport_granska") {
+        ExportImportScreen(ExportImportUiState(import = MigrationSamples.importReview), {}, { "dagboken-export-2026-10-08.json" }, onBack = {})
     }
 }

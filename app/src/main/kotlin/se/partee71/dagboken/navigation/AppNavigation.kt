@@ -42,7 +42,7 @@ import se.partee71.dagboken.ui.medicines.MedicinesRoute
 import se.partee71.dagboken.ui.medicines.PrescriptionEditRoute
 import se.partee71.dagboken.ui.medicines.PrnMedicineEditRoute
 import se.partee71.dagboken.ui.settings.AboutRoute
-import se.partee71.dagboken.ui.settings.ExportImportScreen
+import se.partee71.dagboken.ui.settings.ExportImportRoute
 import se.partee71.dagboken.ui.settings.ListsRoute
 import se.partee71.dagboken.ui.settings.OptionEditRoute
 import se.partee71.dagboken.ui.settings.ProfileRoute
@@ -289,6 +289,6 @@ fun appEntries(
             )
         }
         entry<OptionEditKey> { key -> OptionEditRoute(key.kind, key.id, onClose = { backStack.popIfTop(key) }) }
-        entry<ExportImportKey> { key -> ExportImportScreen(onBack = { backStack.popIfTop(key) }) }
+        entry<ExportImportKey> { key -> ExportImportRoute(onBack = { backStack.popIfTop(key) }) }
         entry<AboutKey> { key -> AboutRoute(onBack = { backStack.popIfTop(key) }) }
     }

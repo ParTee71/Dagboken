@@ -1,11 +1,8 @@
 package se.partee71.dagboken.ui.log
 
-import androidx.annotation.DrawableRes
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
@@ -19,7 +16,6 @@ import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.AppDivider
 import se.partee71.dagboken.ui.components.ItemRow
-import se.partee71.dagboken.ui.components.LeadingSlot
 import se.partee71.dagboken.ui.components.OccasionRow
 import se.partee71.dagboken.ui.components.OccasionValue
 
@@ -75,7 +71,7 @@ fun DosePickerSheet(picker: DosePicker, onClose: () -> Unit, onOpen: (LogTarget)
                 ItemRow(
                     medicineTitle(medicine.name, medicine.dose, medicine.unit),
                     subtitle = prnLimits(medicine),
-                    leading = leadingIcon(R.drawable.ic_pill),
+                    icon = R.drawable.ic_pill,
                     onClick = { onOpen(LogTarget.AsNeeded(medicine.id, picker.date)) },
                     navigates = true,
                 )
@@ -85,7 +81,7 @@ fun DosePickerSheet(picker: DosePicker, onClose: () -> Unit, onOpen: (LogTarget)
         ItemRow(
             stringResource(R.string.dose_one_off),
             subtitle = stringResource(R.string.dose_one_off_help),
-            leading = leadingIcon(R.drawable.ic_add),
+            icon = R.drawable.ic_add,
             onClick = { onOpen(LogTarget.OneOffDose(picker.date)) },
             navigates = true,
         )
@@ -103,14 +99,14 @@ fun IllnessPickerSheet(picker: IllnessPicker, onClose: () -> Unit, onOpen: (LogT
             ItemRow(
                 stringResource(R.string.illness_checkin_on_format, episode.title()),
                 subtitle = picker.day?.let { stringResource(R.string.today_illness_day_format, it) },
-                leading = leadingIcon(R.drawable.ic_thermometer),
+                icon = R.drawable.ic_thermometer,
                 onClick = { onOpen(LogTarget.Checkin(episode.id, picker.date)) },
                 navigates = true,
             )
         }
         ItemRow(
             stringResource(R.string.illness_new),
-            leading = leadingIcon(R.drawable.ic_add),
+            icon = R.drawable.ic_add,
             onClick = { onOpen(LogTarget.NewEpisode(picker.date)) },
             navigates = true,
         )
@@ -144,5 +140,3 @@ fun LogSheets(viewModel: LogViewModel, onOpen: (LogTarget) -> Unit = {}) {
     illnessPicker?.let { IllnessPickerSheet(it, close, open) }
 }
 
-/** En dekorativ ikon först i ett vals rad, i samma ruta som plusknappens meny (`LeadingSlot`). */
-private fun leadingIcon(@DrawableRes icon: Int): @Composable () -> Unit = { LeadingSlot { Icon(painterResource(icon), contentDescription = null) } }

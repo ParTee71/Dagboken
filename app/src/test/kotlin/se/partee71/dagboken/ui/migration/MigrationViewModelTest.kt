@@ -41,6 +41,8 @@ import se.partee71.dagboken.data.legacy.AppVersion
 import se.partee71.dagboken.data.legacy.CopyFailure
 import se.partee71.dagboken.data.legacy.CopyRecord
 import se.partee71.dagboken.data.legacy.FakeCopyFile
+import se.partee71.dagboken.data.legacy.FakeDriveBackups
+import se.partee71.dagboken.data.legacy.LegacyImportUseCase
 import se.partee71.dagboken.data.legacy.FakeLegacyPreferencesSource
 import se.partee71.dagboken.data.legacy.FakeLegacyRoomSource
 import se.partee71.dagboken.data.legacy.FakeLegacyWork
@@ -88,7 +90,11 @@ class MigrationViewModelTest {
     )
     private val copyUri: Uri = Uri.parse("content://test/dagboken-3x-kopia-2026-10-07.json")
 
-    private fun viewModel() = MigrationViewModel(useCase, clock) { zone }
+    private val drive = FakeDriveBackups()
+    private val importer = LegacyImportUseCase(drive, copies, server, server, pause, scope, io)
+    private val backupUri: Uri = Uri.parse("content://test/backup.json")
+
+    private fun viewModel() = MigrationViewModel(useCase, importer, clock) { zone }
 
     private fun test(block: suspend TestScope.() -> Unit) = runTest(main.dispatcher) { block() }
 
@@ -126,6 +132,8 @@ class MigrationViewModelTest {
         }
     }
 
+    private fun repoRoot() = java.io.File("").absoluteFile.let { if (it.name == "app") it.parentFile else it }
+
     private companion object {
         const val FINGERPRINT = "sha256-flytt"
     }
@@ -133,9 +141,76 @@ class MigrationViewModelTest {
     // ── Startkontrollen (NAV-6) ───────────────────────────────────────────
 
     @Test
-    fun `utan Room-fil släpps användaren in direkt`() = test {
+    fun `utan Room-fil med flaggan satt släpps användaren in direkt`() = test {
         room.read = LegacyRoomRead.Missing
+        flag.done += uid
         viewModel().state.test { assertEquals(MigrationStage.Closed(), next<MigrationStage.Closed>()) }
+    }
+
+    // ── Fallbacken utan Room-fil (OMB-5) ──────────────────────────────────
+
+    @Test
+    fun `utan Room-fil, flagga och markör frågar första starten, och Börja tomt sätter flaggan och släpper in`() = test {
+        room.read = LegacyRoomRead.Missing
+        val vm = viewModel()
+        vm.state.test {
+            assertEquals(MigrationStage.Fallback(ImportStage.Choose), next<MigrationStage.Fallback>())
+            vm.onEvent(MigrationEvent.StartEmpty)
+            assertEquals(MigrationStage.Closed(), next<MigrationStage.Closed>())
+        }
+        assertTrue(uid in flag.done)
+        assertEquals(emptyList(), firestore.batches)
+        viewModel().state.test { assertEquals(MigrationStage.Closed(), next<MigrationStage.Closed>()) }
+    }
+
+    @Test
+    fun `utan Room-fil och utan nät släpps användaren in, och nästa start frågar igen`() = test {
+        room.read = LegacyRoomRead.Missing
+        firestore.offline = true
+        viewModel().state.test { assertEquals(MigrationStage.Closed(), next<MigrationStage.Closed>()) }
+        assertFalse(uid in flag.done)
+        firestore.offline = false
+        viewModel().state.test { next<MigrationStage.Fallback>() }
+    }
+
+    @Test
+    fun `utan Room-fil men med data i kontot (ny telefon) frågas ingenting`() = test {
+        room.read = LegacyRoomRead.Missing
+        store.set("${Paths.user(uid)}/doses", "d1", mapOf("date" to "2026-10-07"), merge = false)
+        viewModel().state.test { assertEquals(MigrationStage.Closed(), next<MigrationStage.Closed>()) }
+        assertTrue(uid in flag.done)
+    }
+
+    @Test
+    fun `utan Room-fil men med markören på servern frågas ingenting`() = test {
+        room.read = LegacyRoomRead.Missing
+        store.set(Paths.USERS, uid, mapOf("legacyMigration" to mapOf("source" to "room")), merge = true)
+        viewModel().state.test { assertEquals(MigrationStage.Closed(), next<MigrationStage.Closed>()) }
+        assertTrue(uid in flag.done)
+    }
+
+    @Test
+    fun `fallbacken - ingen backup på Drive visar notisen, filen granskas, bekräftas, skrivs och flaggan sätts när den är klar`() = test {
+        room.read = LegacyRoomRead.Missing
+        copies.files[backupUri] = java.io.File(repoRoot(), "tools/db/test/fixtures/legacy/backup-v2.json").readText()
+        val vm = viewModel()
+        vm.state.test {
+            next<MigrationStage.Fallback>()
+            vm.onEvent(MigrationEvent.Import(ImportEvent.FromDrive))
+            while (next<MigrationStage.Fallback>().import != ImportStage.NoDriveBackup) Unit
+            vm.onEvent(MigrationEvent.Import(ImportEvent.FileChosen(backupUri)))
+            var stage = next<MigrationStage.Fallback>().import
+            while (stage !is ImportStage.Review) stage = next<MigrationStage.Fallback>().import
+            assertEquals(3, stage.counts["prescriptions"])
+            vm.onEvent(MigrationEvent.Import(ImportEvent.Import))
+            assertTrue((next<MigrationStage.Fallback>().import as ImportStage.Review).confirming)
+            vm.onEvent(MigrationEvent.Import(ImportEvent.Confirm))
+            while (next<MigrationStage.Fallback>().import !is ImportStage.Done) Unit
+            assertTrue(uid in flag.done, "en klar import räknas som svaret – frågan kommer inte igen")
+            vm.onEvent(MigrationEvent.StartEmpty)
+            assertEquals(MigrationStage.Closed(), next<MigrationStage.Closed>())
+        }
+        assertTrue(firestore.batches.isNotEmpty())
     }
 
     @Test

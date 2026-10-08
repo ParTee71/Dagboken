@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +42,8 @@ import se.partee71.dagboken.ui.theme.Spacing
  * [inactive] tonar ner hela raden, för det som finns men inte räknas med (ett pausat recept).
  * [below] står under titel och undertext över hela radens bredd (t.ex. en episods incheckningar).
  * [titleHighlight] färgmarkerar en del av titeln – det man sökt på i ett [SuggestionField].
+ * [icon] är en dekorativ ikon först i raden, i samma ruta som kontots avatar (`LeadingSlot`), för val i ark och kort
+ * (plusknappens meny, importens val) – används i stället för [leading].
  */
 @Composable
 fun ItemRow(
@@ -57,7 +60,9 @@ fun ItemRow(
     inactive: Boolean = false,
     below: (@Composable () -> Unit)? = null,
     titleHighlight: IntRange? = null,
+    @DrawableRes icon: Int? = null,
 ) {
+    val start: (@Composable () -> Unit)? = leading ?: icon?.let { { LeadingSlot { Icon(painterResource(it), contentDescription = null) } } }
     val end: (@Composable () -> Unit)? = if (navigates) {
         {
             trailing?.invoke()
@@ -71,7 +76,7 @@ fun ItemRow(
         modifier = modifier.inactive(inactive),
         interaction = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
         subtitle = subtitle,
-        leading = leading,
+        leading = start,
         trailing = end,
         tinted = tinted,
         done = done,

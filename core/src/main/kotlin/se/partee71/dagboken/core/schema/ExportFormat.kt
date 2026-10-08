@@ -39,14 +39,17 @@ object ExportFormat {
             JsonElement.serializer(),
             buildJsonObject {
                 put("exportedAt", millis(exportedAt))
-                put("schemaVersion", schemaVersion)
-                put("documents", buildJsonArray { documents.forEach { add(document(it)) } })
+                put(SCHEMA_VERSION, schemaVersion)
+                put(DOCUMENTS, buildJsonArray { documents.forEach { add(document(it)) } })
             },
         )
 
     /** Dokumenten i en exportfil. */
-    fun decode(text: String): List<Document> =
-        Json.parseToJsonElement(text).jsonObject.getValue("documents").jsonArray.map { element ->
+    fun decode(text: String): List<Document> = decode(Json.parseToJsonElement(text).jsonObject)
+
+    /** Dokumenten i en redan parsad exportfil – importen (BCK-6) läser filen en gång för att känna igen formatet. */
+    fun decode(root: JsonObject): List<Document> =
+        root.getValue(DOCUMENTS).jsonArray.map { element ->
             val doc = element.jsonObject
             @Suppress("UNCHECKED_CAST")
             Document(doc.getValue("path").jsonPrimitive.content, fromJson(doc.getValue("data")) as Doc)
@@ -135,6 +138,12 @@ object ExportFormat {
         val whole = java.time.Instant.parse("${match.groupValues[1]}Z")
         return Instant.fromEpochSeconds(whole.epochSecond, match.groupValues[2].padEnd(9, '0').toInt())
     }
+
+    /** Nyckeln för dokumentlistan – det som skiljer en 4.0-export från en 3.x-backup. */
+    const val DOCUMENTS = "documents"
+
+    /** Nyckeln för filens version. */
+    const val SCHEMA_VERSION = "schemaVersion"
 
     private const val TS = "__ts"
     private const val MAP = "__map"

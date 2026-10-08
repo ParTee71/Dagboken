@@ -123,11 +123,10 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         }
         documents.sortBy { it.path }
 
-        val counts = documents.groupingBy { CollectionNames.collectionOf(it.path) }.eachCount()
         val report = ConversionReport(
             formatVersion = backup.version,
             createdAt = backup.createdAt,
-            counts = CollectionNames.ALL.filter { it in counts }.associateWith { counts.getValue(it) },
+            counts = CollectionNames.countsOf(documents.map { it.path }),
             warnings = warnings.toList(),
             problems = problems.toList(),
         )

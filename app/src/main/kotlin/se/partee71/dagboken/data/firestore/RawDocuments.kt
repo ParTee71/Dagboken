@@ -17,6 +17,9 @@ interface RawDocuments {
     /** Dokumenten i samlingen [path], per ID. */
     suspend fun collection(path: String): Map<String, Doc>
 
+    /** Om samlingen [path] har minst ett dokument – en fråga med `limit(1)`, aldrig hela samlingen (fallbacken, OMB-5). */
+    suspend fun hasDocuments(path: String): Boolean
+
     /**
      * Dokumenten på [paths] som finns på servern, per sökväg – lästa direkt på id i grupper om högst
      * [ID_GROUP] (`documentId() in …`) och parallellt, aldrig hela samlingar. Migreringens läge före

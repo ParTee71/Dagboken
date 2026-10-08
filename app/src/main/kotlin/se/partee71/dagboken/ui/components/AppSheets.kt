@@ -2,14 +2,12 @@ package se.partee71.dagboken.ui.components
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.auth.AuthUser
@@ -97,7 +95,7 @@ private fun SheetRow(@StringRes label: Int, @DrawableRes icon: Int, onClick: () 
     ItemRow(
         stringResource(label),
         // Samma ledande bredd som kontots avatar (och kryssraden), så att titlarna linjerar.
-        leading = { LeadingSlot { Icon(painterResource(icon), contentDescription = null) } },
+        icon = icon,
         onClick = onClick,
         navigates = navigates,
     )
