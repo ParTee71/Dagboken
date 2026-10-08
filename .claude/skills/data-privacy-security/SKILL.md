@@ -29,7 +29,7 @@ anger sökväg eller fält, aldrig värdet) och GitHub Actions-loggar.
   `firestore-data-layer`). En samling utan rules är ett säkerhetshål eller oåtkomlig.
 - Rules deployas medvetet: av `release.yml` före publiceringen eller av `rules.yml` på begäran
   (dry-run som standard) – aldrig från en PR och aldrig automatiskt på `master`. Deploynyckeln
-  (`FIREBASE_RULES_DEPLOYER`) får bara rollen Firebase Rules Admin (+ Service Usage Consumer)
+  (`FIREBASE_RULES_DEPLOYER`) får bara rollen Firebase Rules Admin (+ Service Usage Consumer och Service Usage Viewer, som firebase-tools behöver för att se att Firestore-API:t är på)
   och stoppas om den hör till ett annat projekt än `dagboken-711d2`.
 - Appen **kräver inloggning** (AUTH-6; 3.x-kravet AUTH-5 "fungerar utan konto" är struket);
   ingen data läses eller skrivs utan `request.auth`.
