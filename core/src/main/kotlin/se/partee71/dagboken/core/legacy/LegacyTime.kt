@@ -54,9 +54,19 @@ internal object LegacyTime {
     fun epochMillis(millis: Long): Instant? = millis.takeIf { it != 0L }?.let(Instant::fromEpochMilliseconds)
 
     /**
-     * Backupfilens `createdAt`: 3.x skrev `LocalDateTime.now()` utan zon (tolkas i Europe/Stockholm);
-     * ett ISO-ögonblick godtas också. `null` om tomt eller ogiltigt.
+     * Ett ögonblick som text: ISO dag och klockslag utan zon (tolkas i Europe/Stockholm; mellanslag i stället för `T`
+     * godtas) eller ett ISO-ögonblick med zon. Backupfilens `createdAt` (3.x skrev `LocalDateTime.now()` utan zon) och
+     * ett recepts `skapad` som inte är ett datum. `null` om tomt eller ogiltigt – även för ett rent datum.
      */
-    fun backupCreatedAt(text: String): Instant? =
-        text.takeIf { it.isNotBlank() }?.let { runCatching { LocalDateTime.parse(it).toInstant(ZONE) }.getOrNull() } ?: instant(text)
+    fun moment(text: String): Instant? =
+        text.takeIf { it.isNotBlank() }?.let { runCatching { LocalDateTime.parse(it.replaceFirst(' ', 'T')).toInstant(ZONE) }.getOrNull() } ?: instant(text)
+
+    /**
+     * Ett värdes form utan innehåll, för rapporten: siffror → `9`, bokstäver → `a`, annat som det står, högst
+     * [SHAPE_MAX] tecken (`2025-11-20T08:15:00.000Z` → `9999-99-99a99:99:99.999a`).
+     */
+    fun shape(text: String): String =
+        text.take(SHAPE_MAX).map { if (it.isDigit()) '9' else if (it.isLetter()) 'a' else it }.joinToString("") + if (text.length > SHAPE_MAX) "…" else ""
+
+    private const val SHAPE_MAX = 32
 }

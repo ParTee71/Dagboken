@@ -264,6 +264,25 @@ class MigrationScreenTest {
     }
 
     @Test
+    fun `stopp - kopiekortet Spara en kopia utan Krävs, ingen Flytta, och alla typer av fynd utan och N till`() {
+        val report = (0 until 8).map { ReportLine("screenings", "symptom[…]", "skäl $it", it + 1) }
+        show(MigrationStage.Stopped(report))
+        rule.onNodeWithText(text(R.string.migration_copy_save)).assertExists()
+        rule.onNodeWithText(text(R.string.migration_copy_missing_stopped)).assertExists()
+        rule.onNodeWithText(text(R.string.migration_copy_required)).assertDoesNotExist()
+        rule.onNodeWithText(text(R.string.migration_move)).assertDoesNotExist()
+        for (line in report) rule.onNodeWithText(text(R.string.migration_report_line, text(R.string.migration_entity_screenings), line.count, line.field, line.reason)).assertExists()
+        rule.onNodeWithText(text(R.string.migration_more, 3)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `stopp - en sparad kopia visas som Kontrollerad`() {
+        show(MigrationSamples.stopped.copy(copy = MigrationSamples.saved))
+        rule.onNodeWithText(text(R.string.migration_copy_verified)).assertExists()
+        rule.onNodeWithText(MigrationSamples.saved.fileName!!).assertExists()
+    }
+
+    @Test
     fun `äldre version - Importera backup och Börja tomt, inget Försök igen`() {
         show(MigrationStage.WrongVersion(10))
         rule.onNodeWithText(text(R.string.migration_version_title)).assertIsDisplayed()

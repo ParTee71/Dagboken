@@ -98,16 +98,24 @@ object DocumentRules {
     }
 
     /**
-     * Ett nästlat objekts fält; [required] måste finnas med rätt typ (rules läser dem utan `none`). [closed] = inga
-     * andra nycklar får finnas (`keys().hasOnly`) – markören, som bara appen skriver.
+     * Ett nästlat objekts fält; [required] måste finnas med rätt typ (rules läser dem utan `none`), [nullable] måste
+     * finnas som nyckel men får vara `null` (rules läser dem utan `get`, `s.score == null || …`). [closed] = inga andra
+     * nycklar får finnas (`keys().hasOnly`) – markören, som bara appen skriver.
      */
-    data class Shape(val fields: Map<String, Check>, val required: Set<String> = emptySet(), val closed: Boolean = false)
+    data class Shape(
+        val fields: Map<String, Check>,
+        val required: Set<String> = emptySet(),
+        val closed: Boolean = false,
+        val nullable: Set<String> = emptySet(),
+    )
 
     private fun wires(values: List<WireEnum>) = values.map { it.wire }
 
+    /** `score` får vara `null` (utan poäng, från 3.x) men nyckeln måste finnas – rules läser den utan `get`. */
     val SYMPTOM = Shape(
         mapOf("optionId" to Check.AnyText, "score" to Check.Range(SCORE), "customText" to Check.AnyText),
-        required = setOf("optionId", "score"),
+        required = setOf("optionId"),
+        nullable = setOf("score"),
     )
     val BOOST = Shape(
         mapOf("id" to Check.AnyText, "start" to Check.DateText, "end" to Check.DateText, "dose" to Check.AnyText, "unit" to Check.AnyText),
@@ -288,6 +296,7 @@ object DocumentRules {
         when {
             value != null -> check(check, value, "$prefix$key")
             key in shape.required -> listOf(Violation("$prefix$key", "saknas"))
+            key in shape.nullable && !doc.containsKey(key) -> listOf(Violation("$prefix$key", "saknas"))
             else -> emptyList()
         }
     } + if (shape.closed) (doc.keys - shape.fields.keys).map { Violation("$prefix$it", "okänt fält") } else emptyList()

@@ -3,10 +3,10 @@
   "createdAt": "2026-01-15T21:00:00",
   "tables": {
     "aktiviteter": [
-      { "id": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d", "timestamp": "2026-01-15T16:00:00Z", "datum": "2026-01-15", "tid": "17:00", "aktivitet": "Promenad", "energy": 7, "stress": 3, "somatiska": 6, "symptom": "Huvudvärk:4,Övrigt (Stel nacke):2", "aterhamtande": 1, "energitjuv": 0, "type": "aktivitet", "spentTime": 45 },
+      { "id": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d", "timestamp": "2026-01-15T16:00:00Z", "datum": "2026-01-15", "tid": "17:00", "aktivitet": "Promenad", "energy": 7, "stress": 3, "somatiska": 7, "symptom": "Huvudvärk:4,Ont i nacke, axlar:1,Övrigt (Stel nacke):2", "aterhamtande": 1, "energitjuv": 0, "type": "aktivitet", "spentTime": 45 },
       { "id": "6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e", "timestamp": "", "datum": "2026-01-16", "tid": "09:30", "aktivitet": "Svamplockning", "energy": -2, "stress": 1, "somatiska": 5, "symptom": "Nackspärr:3", "aterhamtande": 0, "energitjuv": 1, "type": "", "spentTime": null },
-      { "id": "0d4f6a2c-7b1e-4c3a-9f5d-2e8b1a6c3d70", "timestamp": "2026-01-15T07:15:00Z", "datum": "2026-01-15", "tid": "08:15", "aktivitet": "Efter frukost", "energy": 6, "stress": 2, "somatiska": 3, "symptom": "Trötthet:3", "aterhamtande": 0, "energitjuv": 0, "type": "screening", "spentTime": null },
-      { "id": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b", "timestamp": "igår", "datum": "2026-01-14", "tid": "21:50", "aktivitet": "Kvällskoll", "energy": 2, "stress": 7, "somatiska": 0, "symptom": "", "aterhamtande": 0, "energitjuv": 0, "type": "screening", "spentTime": null },
+      { "id": "0d4f6a2c-7b1e-4c3a-9f5d-2e8b1a6c3d70", "timestamp": "2026-01-15T07:15:00Z", "datum": "2026-01-15", "tid": "08:15", "aktivitet": "Efter frukost", "energy": 6, "stress": 2, "somatiska": 5, "symptom": "Trötthet:3,Övrigt (yrsel, kl 14:00):2", "aterhamtande": 0, "energitjuv": 0, "type": "screening", "spentTime": 0 },
+      { "id": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b", "timestamp": "igår", "datum": "2026-01-14", "tid": "21:50", "aktivitet": "Kvällskoll", "energy": 2, "stress": 7, "somatiska": 0, "symptom": "Huvudvärk,Yrsel", "aterhamtande": 0, "energitjuv": 0, "type": "screening", "spentTime": null },
       { "id": "1f2e3d4c-5b6a-4798-8a9b-0c1d2e3f4a5b", "timestamp": "2026-01-16T11:05:00.000Z", "datum": "2026-01-16", "tid": "12:05", "aktivitet": "Lunch", "energy": 1, "stress": 0, "somatiska": 2, "symptom": "Övrigt:2", "aterhamtande": 0, "energitjuv": 0, "type": "", "spentTime": null }
     ],
     "mediciner": [
@@ -17,8 +17,8 @@
     ],
     "recept": [
       { "id": "6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a", "namn": "Levaxin", "dos": "0,5", "enhet": "mg", "tidpunkterJson": "[\"Morgon\",\"Kväll\"]", "upprepning": "intervall", "dagarJson": "[0,2,4]", "intervalDagar": 3, "aktiv": 1, "skapad": "2026-01-01", "startDatum": "2026-01-10", "slutDatum": "2026-03-01", "dosperioderJson": "[{\"id\":\"b-1\",\"startDatum\":\"2026-02-01\",\"slutDatum\":\"2026-02-07\",\"dos\":\"0,25\",\"enhet\":\"mg\"},{\"id\":\"b-2\",\"startDatum\":\"2026-02-20\",\"dos\":\"1\",\"enhet\":\"mg\"}]" },
-      { "id": "1b2c3d4e-5f60-4718-8293-a4b5c6d7e8f9", "namn": "D-vitamin", "dos": "1 tablett", "enhet": "st", "tidpunkterJson": "[\"Förmiddag\"]", "upprepning": "specifika dagar", "dagarJson": "[5,6]", "intervalDagar": 2, "aktiv": 0, "skapad": "2025-06-01", "startDatum": "", "slutDatum": null, "dosperioderJson": "[]" },
-      { "id": "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e60", "namn": "Magnesium", "dos": "300", "enhet": "mg", "tidpunkterJson": "[]", "upprepning": "veckovis", "dagarJson": "[]", "intervalDagar": 2, "aktiv": 1, "skapad": "2025-11-20", "startDatum": "", "slutDatum": "", "dosperioderJson": "[]" }
+      { "id": "1b2c3d4e-5f60-4718-8293-a4b5c6d7e8f9", "namn": "D-vitamin", "dos": "1 tablett", "enhet": "st", "tidpunkterJson": "[\"Förmiddag\"]", "upprepning": "specifika dagar", "dagarJson": "[5,6]", "intervalDagar": 2, "aktiv": 0, "skapad": "2025-06-01T09:30:00.000Z", "startDatum": "", "slutDatum": null, "dosperioderJson": "[]" },
+      { "id": "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e60", "namn": "Magnesium", "dos": "300", "enhet": "mg", "tidpunkterJson": "[]", "upprepning": "veckovis", "dagarJson": "[]", "intervalDagar": 2, "aktiv": 1, "skapad": "20/11 2025", "startDatum": "", "slutDatum": "", "dosperioderJson": "[]" }
     ],
     "favoriter": [
       { "id": "a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d", "namn": "Alvedon", "dos": "500", "enhet": "mg", "tidpunkt": "Vid behov", "minTidMellan": 6, "dispenseringsTid": "30 min", "maxDoserPerDag": 3, "isFavorite": 1 },
@@ -50,13 +50,13 @@
       { "id": "9e0f1a2b-3c4d-4e5f-8a6b-7c8d9e0f1a2b", "typ": "Migrän", "start_datum": "2026-01-20", "slut_datum": "", "timestamp": 0 }
     ],
     "sjukdoms_incheckningar": [
-      { "id": "a0b1c2d3-e4f5-4a6b-8c7d-9e0f1a2b3c4d", "episod_id": "8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a", "datum": "2026-01-11", "tid": "19:00", "svarighetsgrad": 5, "symptom": "Hosta:3,Övrigt (Ont i halsen):2", "somatiska": 5, "timestamp": 1768158000000 },
+      { "id": "a0b1c2d3-e4f5-4a6b-8c7d-9e0f1a2b3c4d", "episod_id": "8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a", "datum": "2026-01-11", "tid": "19:00", "svarighetsgrad": 5, "symptom": "Hosta:3,Övrigt (Ont i halsen, feber):2", "somatiska": 5, "timestamp": 1768158000000 },
       { "id": "b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d5e", "episod_id": "9e0f1a2b-3c4d-4e5f-8a6b-7c8d9e0f1a2b", "datum": "2026-01-20", "tid": "08:00", "svarighetsgrad": 7, "symptom": "", "somatiska": 0, "timestamp": 0 }
     ]
   },
   "preferences": {
     "aktivitet_options": "[{\"name\":\"Promenad\",\"isFavorite\":true},{\"name\":\"Jobb\"}]",
-    "symptom_options": "[{\"name\":\"Huvudvärk\",\"isFavorite\":true},{\"name\":\"Trötthet\",\"isFavorite\":false},{\"name\":\"Övrigt\"}]",
+    "symptom_options": "[{\"name\":\"Huvudvärk\",\"isFavorite\":true},{\"name\":\"Trötthet\",\"isFavorite\":false},{\"name\":\"Övrigt\"},{\"name\":\"Ont i nacke, axlar\",\"isFavorite\":true}]",
     "handelse_typ_options": "[{\"name\":\"Ögonmigrän\",\"isFavorite\":true},{\"name\":\"Yrsel\",\"isFavorite\":false}]",
     "screening_event_configs": "[{\"enabled\":true,\"time\":\"08:30\"},{\"enabled\":true,\"time\":\"12:15\"},{\"enabled\":false,\"time\":\"17:45\"},{\"enabled\":true,\"time\":\"21:30\"}]",
     "med_notification_configs": "[{\"enabled\":false,\"time\":\"06:45\"},{\"enabled\":true,\"time\":\"09:45\"},{\"enabled\":true,\"time\":\"12:30\"},{\"enabled\":false,\"time\":\"15:30\"},{\"enabled\":true,\"time\":\"19:15\"},{\"enabled\":true,\"time\":\"22:30\"}]",

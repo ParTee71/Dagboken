@@ -154,7 +154,7 @@ private fun CheckinCard(checkin: Checkin, detail: IllnessDetail, episodeTitle: S
 /** "09:00 · Svårighet 3 · Snuva 3 · Hosta 4" – klockslaget först (som Dagbok, HIST-7), symptomen med namn ur Listor. */
 private fun checkinSubtitle(checkin: Checkin, names: Map<String, String>, resources: Resources): String {
     val symptoms = checkin.symptoms.mapNotNull { score ->
-        (score.customText.nonBlank() ?: names[score.optionId])?.let { resources.getString(R.string.occasion_value_format, it, score.score) }
+        (score.customText.nonBlank() ?: names[score.optionId])?.let { name -> score.score?.let { resources.getString(R.string.occasion_value_format, name, it) } ?: name }
     }
     val parts = listOfNotNull(checkin.time?.let(DateFormat::time), resources.getString(R.string.diary_severity_format, checkin.severity)) + symptoms
     return parts.reduce { text, part -> resources.getString(R.string.diary_subtitle_format, text, part) }

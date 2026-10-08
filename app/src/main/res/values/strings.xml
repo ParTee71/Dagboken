@@ -727,6 +727,7 @@
     <string name="migration_copy_title">Kopia av 3.x-datan</string>
     <string name="migration_copy_required">Krävs</string>
     <string name="migration_copy_missing">Krävs innan flytten. Du väljer var filen sparas – med den kan 3.27 läsa tillbaka allt om något går fel.</string>
+    <string name="migration_copy_missing_stopped">Du väljer var filen sparas – med den kan 3.27 läsa tillbaka allt. Flytten väntar tills stoppet är löst.</string>
     <string name="migration_copy_save">Spara en kopia</string>
     <string name="migration_copy_checking">Kontrollerar kopian – läser tillbaka och jämför …</string>
     <string name="migration_copy_verified">Kontrollerad</string>

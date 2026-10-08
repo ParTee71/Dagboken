@@ -63,8 +63,9 @@ fun stressSeries(screenings: List<Screening>, activities: List<Activity>, days: 
  * Dagar då symptomet inte loggats är luckor. Serierna i id-ordning; tom lista utan symptom.
  */
 fun symptomSeries(screenings: List<Screening>, activities: List<Activity>, days: List<LocalDate>): List<TrendSerie> {
-    val scored = screenings.flatMap { s -> s.symptoms.map { Triple(s.date, it.optionId, it.score) } } +
-        activities.flatMap { a -> a.symptoms.map { Triple(a.date, it.optionId, it.score) } }
+    // Ett symptom utan poäng (från 3.x, DAT-6) ger ingen punkt.
+    val scored = screenings.flatMap { s -> s.symptoms.mapNotNull { sc -> sc.score?.let { Triple(s.date, sc.optionId, it) } } } +
+        activities.flatMap { a -> a.symptoms.mapNotNull { sc -> sc.score?.let { Triple(a.date, sc.optionId, it) } } }
     val period = days.toSet()
     val inPeriod = scored.filter { it.first in period }
     return inPeriod.map { it.second }.distinct().sorted().map { id ->

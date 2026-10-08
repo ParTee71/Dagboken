@@ -22,6 +22,9 @@ fun Doc.int(key: String, default: Int = 0): Int = intOrNull(key) ?: default
 
 fun Doc.intOrNull(key: String): Int? = (this[key] as? Number)?.toIntClamped()
 
+/** Heltal där ett lagrat `null` betyder något (symptomets `score`, DAT-6): saknas eller trasigt → [default], `null` → `null`. */
+fun Doc.intKeepingNull(key: String, default: Int = 0): Int? = if (containsKey(key) && this[key] == null) null else int(key, default)
+
 /**
  * Som `toInt()`, men ett värde utanför Int-intervallet (t.ex. ett Long från ett annat verktyg)
  * begränsas till gränsen i stället för att slå runt till ett litet, rimligt tal.

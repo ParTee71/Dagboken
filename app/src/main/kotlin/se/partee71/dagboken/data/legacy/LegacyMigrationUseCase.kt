@@ -45,8 +45,11 @@ sealed interface LegacyRead {
     /** Allt konverterat och klart att granska: antal före per entitet, varningar och kopian att spara. */
     data class Ready(val plan: LegacyMigrationPlan) : LegacyRead
 
-    /** Konverteraren stoppade (OMB-3): rapporten – antal och fel per fält, aldrig innehåll – och ingenting skrivs. */
-    data class Stopped(val report: ConversionReport, val warnings: List<Warning>) : LegacyRead
+    /**
+     * Konverteraren stoppade (OMB-3): rapporten – antal och fel per fält, aldrig innehåll – och ingenting skrivs. [source]
+     * är 3.x-datan för kopian (OMB-8), som kan sparas även nu: den kräver bara en läsbar 3.x-fil, inte konverteringen.
+     */
+    data class Stopped(val report: ConversionReport, val warnings: List<Warning>, val source: LegacyCopyData) : LegacyRead
 
     /** Room-filens `user_version` är inte 11 – en äldre 3.x; fallbacken (OMB-5) gäller. */
     data class WrongVersion(val found: Int) : LegacyRead
@@ -73,6 +76,28 @@ sealed interface CopyStatus {
     data class Stale(val record: CopyRecord) : CopyStatus
 }
 
+/**
+ * Det kopian av 3.x-datan (OMB-8) byggs och kontrolleras av: 3.x-datan i backupform, Room-filens kontrollsumma och antal
+ * rader per tabell. Både planen och ett stopp har det – kopian kräver ingen lyckad konvertering.
+ */
+interface LegacyCopySource {
+    val backup: BackupJson
+
+    /** Room-filens kontrollsumma när den lästes. */
+    val fingerprint: String
+
+    /** Antal rader per Room-tabell – det kopian ska ge tillbaka. */
+    val tableCounts: Map<String, Int>
+}
+
+/** [LegacyCopySource] vid ett stopp, med kopians läge ([copy]) för Room-filen som den ser ut nu. */
+data class LegacyCopyData(
+    override val backup: BackupJson,
+    override val fingerprint: String,
+    override val tableCounts: Map<String, Int>,
+    val copy: CopyStatus = CopyStatus.Missing,
+) : LegacyCopySource
+
 /** Varför en kopia inte blev klar; visas med "Spara igen". Aldrig innehåll. */
 enum class CopyFailure {
     /** Filen gick inte att skriva (platsen otillgänglig). */
@@ -84,10 +109,7 @@ enum class CopyFailure {
     /** Antalet poster per entitet i filen skiljer sig från det som lästes ur Room. */
     COUNT_MISMATCH,
 
-    /** Konverteraren stoppar på filen (rapporten följer med). */
-    CONVERTER_STOPPED,
-
-    /** Filen ger inte exakt samma dokument som Room-raderna. */
+    /** Med en plan (granskningen): filen ger inte exakt planens dokument – eller konverteraren stoppar på den. */
     DOCUMENTS_DIFFER,
 
     /** Kopians läge gick inte att spara på telefonen (DataStore) – kopian räknas inte som verifierad. */
@@ -96,10 +118,10 @@ enum class CopyFailure {
 
 /** Utfallet av [LegacyMigrationUseCase.saveCopy]. */
 sealed interface CopyResult {
-    /** Kopian är klar; planen bär [CopyStatus.Verified]. */
-    data class Verified(val plan: LegacyMigrationPlan) : CopyResult
+    /** Kopian är sparad och kontrollerad; [record] gäller Room-filen med källans fingeravtryck ([LegacyMigrationPlan.withCopy]). */
+    data class Verified(val record: CopyRecord) : CopyResult
 
-    data class Failed(val reason: CopyFailure, val report: ConversionReport? = null) : CopyResult
+    data class Failed(val reason: CopyFailure) : CopyResult
 }
 
 /** Kontot i bekräftelsesteget mot 3.x-sessionen (Firebase Auths konto vid första starten av 4.0). */
@@ -128,18 +150,26 @@ data class LegacyMigrationPlan(
     val previousUid: String?,
     /** Hur kontot förhåller sig till 3.x-sessionen. */
     val accountCheck: AccountCheck,
-    val backup: BackupJson,
-    /** Room-filens kontrollsumma när den lästes. */
-    val fingerprint: String,
-    /** Antal rader per Room-tabell – det kopian ska ge tillbaka. */
-    val tableCounts: Map<String, Int>,
+    override val backup: BackupJson,
+    override val fingerprint: String,
+    override val tableCounts: Map<String, Int>,
     val documents: List<ExportFormat.Document>,
     /** Antal per entitet (samlingsnamn) i `CollectionNames`-ordning – det som visas som "före". */
     val counts: Map<String, Int>,
     val warnings: List<Warning>,
     val report: ConversionReport,
     val copy: CopyStatus = CopyStatus.Missing,
-) {
+) : LegacyCopySource {
+    /** Planen med en sparad och kontrollerad kopia ([CopyResult.Verified]). */
+    fun withCopy(record: CopyRecord): LegacyMigrationPlan = copy(copy = CopyStatus.Verified(record))
+
+    /** Om [parsed] konverteras till exakt planens dokument (samma sökvägar och samma hash, [MigrationLedger.hashOf]). */
+    fun sameDocuments(parsed: BackupJson): Boolean {
+        val converted = (BackupJsonConverter.convert(parsed, uid) as? ConversionResult.Converted)?.accountDocuments ?: return false
+        return converted.size == documents.size &&
+            converted.zip(documents).all { (a, b) -> a.path == b.path && MigrationLedger.hashOf(a.data, null) == MigrationLedger.hashOf(b.data, null) }
+    }
+
     /** Inloggad med ett annat konto än 3.x-sessionen – visas som varning i bekräftelsesteget. */
     val accountMismatch: Boolean get() = accountCheck == AccountCheck.DIFFERENT
 
@@ -306,8 +336,10 @@ class LegacyMigrationUseCase @Inject constructor(
         }
         val prefs = readOrNull { preferences.read() } ?: return@withContext LegacyRead.Unreadable
         val assembly = LegacyRoomAssembler.assemble(tables.tables, prefs, LegacyRoomAssembler.createdAt(tables.lastModifiedMillis))
+        val tableCounts = LegacyRoomSchema.TABLES.associateWith { tables.tables[it].orEmpty().size }
         when (val result = BackupJsonConverter.convert(assembly.backup, uid)) {
-            is ConversionResult.Stopped -> LegacyRead.Stopped(result.report, assembly.warnings)
+            is ConversionResult.Stopped ->
+                LegacyRead.Stopped(result.report, assembly.warnings, LegacyCopyData(assembly.backup, tables.fingerprint, tableCounts, copyStatus(tables.fingerprint)))
             is ConversionResult.Converted -> {
                 val session = readOrNull { state.session() }
                 LegacyRead.Ready(
@@ -322,7 +354,7 @@ class LegacyMigrationUseCase @Inject constructor(
                         },
                         backup = assembly.backup,
                         fingerprint = tables.fingerprint,
-                        tableCounts = LegacyRoomSchema.TABLES.associateWith { tables.tables[it].orEmpty().size },
+                        tableCounts = tableCounts,
                         copy = copyStatus(tables.fingerprint),
                         documents = result.accountDocuments,
                         counts = result.report.counts - CollectionNames.USERS,
@@ -334,37 +366,35 @@ class LegacyMigrationUseCase @Inject constructor(
         }
     }
 
-    /** Kopians läge för Room-filen med [fingerprint]: den sparade kopian gäller bara exakt den filen. */
+    /**
+     * Kopians läge för Room-filen med [fingerprint]: den sparade kopian gäller bara exakt den filen, och bara när den
+     * kontrollerades med dagens kontroll ([CopyRecord.VERSION]) – en äldre måste sparas om.
+     */
     private suspend fun copyStatus(fingerprint: String): CopyStatus {
-        val record = readOrNull { state.copy() } ?: return CopyStatus.Missing
+        val record = readOrNull { state.copy() }?.takeIf { it.version == CopyRecord.VERSION } ?: return CopyStatus.Missing
         return if (record.fingerprint == fingerprint) CopyStatus.Verified(record) else CopyStatus.Stale(record)
     }
 
     /**
-     * Sparar 3.x-datan som en 3.x-backupfil (läsbar av 3.27.0:s "Välj fil") till [uri] och **verifierar** den (OMB-8):
-     * filen läses tillbaka och parsas som 3.x gör (`BackupJson.parse`), antalet per entitet ska vara det som lästes
-     * ur Room, konverteraren ska gå igenom utan stopp och ge exakt planens dokument. Först då sparas kopian som
-     * verifierad för Room-filen som den ser ut nu; annars [CopyResult.Failed] med skälet. En tidigare kopia glöms
-     * innan filen skrivs, så ett misslyckat försök aldrig lämnar ett gammalt "verifierad" kvar.
+     * Sparar 3.x-datan som en 3.x-backupfil (läsbar av 3.27.0:s "Välj fil") till [uri] och **verifierar** den som 3.x-fil
+     * (OMB-8): filen läses tillbaka och parsas som 3.x gör (`BackupJson.parse`), och antalet per entitet ska vara det som
+     * lästes ur Room. Med en plan (granskningen) ska filen dessutom ge exakt planens dokument ([CopyFailure.DOCUMENTS_DIFFER]).
+     * Vid ett stopp ([LegacyRead.Stopped], ingen plan) räcker antalet – kopian går att spara även då, så att 3.x-datan
+     * aldrig hänger på 4.0. Först då sparas kopian som verifierad för Room-filen som den ser ut nu (antal =
+     * 3.x-raderna); annars [CopyResult.Failed] med skälet. En tidigare kopia glöms innan filen skrivs, så ett misslyckat
+     * försök aldrig lämnar ett gammalt "verifierad" kvar.
      */
-    suspend fun saveCopy(plan: LegacyMigrationPlan, uri: Uri): CopyResult = withContext(computation) {
-        fun failed(reason: CopyFailure, report: ConversionReport? = null) = CopyResult.Failed(reason, report)
+    suspend fun saveCopy(source: LegacyCopySource, uri: Uri): CopyResult = withContext(computation) {
+        fun failed(reason: CopyFailure) = CopyResult.Failed(reason)
         readOrNull { state.clearCopy() } ?: return@withContext failed(CopyFailure.STATE_FAILED)
-        val cleared = plan.copy(copy = CopyStatus.Missing)
-        val text = BackupJson.encode(cleared.backup)
+        val text = BackupJson.encode(source.backup)
         readOrNull { copies.write(uri, text) } ?: return@withContext failed(CopyFailure.WRITE_FAILED)
         val parsed = readOrNull { BackupJson.parse(copies.read(uri)) } ?: return@withContext failed(CopyFailure.UNREADABLE)
-        if (LegacyRoomAssembler.tableCounts(parsed) != cleared.tableCounts) return@withContext failed(CopyFailure.COUNT_MISMATCH)
-        val documents = when (val result = BackupJsonConverter.convert(parsed, cleared.uid)) {
-            is ConversionResult.Stopped -> return@withContext failed(CopyFailure.CONVERTER_STOPPED, result.report)
-            is ConversionResult.Converted -> result.accountDocuments
-        }
-        if (documents.size != cleared.documents.size || !documents.zip(cleared.documents).all { (a, b) -> a.path == b.path && MigrationLedger.hashOf(a.data, null) == MigrationLedger.hashOf(b.data, null) }) {
-            return@withContext failed(CopyFailure.DOCUMENTS_DIFFER)
-        }
-        val record = CopyRecord(cleared.fingerprint, clock.now(), readOrNull { copies.displayName(uri) }, cleared.total)
+        if (LegacyRoomAssembler.tableCounts(parsed) != source.tableCounts) return@withContext failed(CopyFailure.COUNT_MISMATCH)
+        if (source is LegacyMigrationPlan && !source.sameDocuments(parsed)) return@withContext failed(CopyFailure.DOCUMENTS_DIFFER)
+        val record = CopyRecord(source.fingerprint, clock.now(), readOrNull { copies.displayName(uri) }, source.tableCounts.values.sum())
         readOrNull { state.rememberCopy(record) } ?: return@withContext failed(CopyFailure.STATE_FAILED)
-        CopyResult.Verified(cleared.copy(copy = CopyStatus.Verified(record)))
+        CopyResult.Verified(record)
     }
 
     /**

@@ -78,7 +78,7 @@ class LegacyMigrationUseCaseTest {
     private val copyUri: Uri = Uri.parse("content://test/kopia.json")
 
     private val before = mapOf(
-        "settings" to 1, "options" to 11, "prescriptions" to 3, "prnMedicines" to 2, "doses" to 4,
+        "settings" to 1, "options" to 13, "prescriptions" to 3, "prnMedicines" to 2, "doses" to 4,
         "screenings" to 3, "activities" to 2, "events" to 2, "illnessEpisodes" to 2, "checkins" to 2,
     )
 
@@ -92,7 +92,7 @@ class LegacyMigrationUseCaseTest {
 
     private suspend fun readyPlan(): LegacyMigrationPlan = assertIs<LegacyRead.Ready>(useCase.read()).plan
 
-    private suspend fun savedPlan(): LegacyMigrationPlan = assertIs<CopyResult.Verified>(useCase.saveCopy(readyPlan(), copyUri)).plan
+    private suspend fun savedPlan(): LegacyMigrationPlan = readyPlan().let { plan -> plan.withCopy(assertIs<CopyResult.Verified>(useCase.saveCopy(plan, copyUri)).record) }
 
     /** Alla dokument under användaren som de ligger i fejken, på sökväg. */
     private fun storedDocuments(): Map<String, Map<String, Any?>> =
@@ -229,7 +229,7 @@ class LegacyMigrationUseCaseTest {
         for ((doc, got) in expected.zip(plan.documents)) assertEquals(ExportFormat.toJson(doc.data), ExportFormat.toJson(got.data), doc.path)
         assertEquals(before, plan.counts)
         assertEquals(before.keys.toList(), plan.counts.keys.toList(), "entiteterna i CollectionNames-ordning")
-        assertEquals(32, plan.total)
+        assertEquals(34, plan.total)
         assertEquals("anna@example.com", plan.accountEmail)
         assertTrue(plan.accountMismatch, "3.x-sessionen var ett annat konto")
         assertEquals(AccountCheck.DIFFERENT, plan.accountCheck)
@@ -273,6 +273,13 @@ class LegacyMigrationUseCaseTest {
         assertFalse("Levaxin" in stopped.report.render())
         assertEquals(emptyMap(), storedDocuments())
         assertFalse(uid in flag.done)
+        // Kopian (OMB-8) kan ändå sparas: den kräver en läsbar 3.x-fil, inte konverteringen.
+        assertEquals(LegacyCopyData(stopped.source.backup, FINGERPRINT, stopped.source.tableCounts, CopyStatus.Missing), stopped.source)
+        val record = assertIs<CopyResult.Verified>(useCase.saveCopy(stopped.source, copyUri)).record
+        assertEquals(CopyRecord(FINGERPRINT, clock.now(), "dagboken-3x.json", stopped.source.tableCounts.values.sum()), record)
+        assertEquals(stopped.source.backup, BackupJson.parse(copies.files.getValue(copyUri)))
+        assertEquals(CopyStatus.Verified(record), assertIs<LegacyRead.Stopped>(useCase.read()).source.copy, "kopian gäller Room-filen som den ser ut nu")
+        assertEquals(emptyMap(), storedDocuments(), "kopian skriver inget i kontot")
     }
 
     // ── Kopian (OMB-8) ────────────────────────────────────────────────────
@@ -282,9 +289,8 @@ class LegacyMigrationUseCaseTest {
         val plan = readyPlan()
         assertEquals(LegacyMigrationUseCase.COPY_NOT_VERIFIED, assertIs<LegacyWriteOutcome.Failed>(useCase.write(plan)).code)
         assertEquals(emptyMap(), storedDocuments())
-        val saved = assertIs<CopyResult.Verified>(useCase.saveCopy(plan, copyUri)).plan
-        val record = assertIs<CopyStatus.Verified>(saved.copy).record
-        assertEquals(CopyRecord(FINGERPRINT, clock.now(), "dagboken-3x.json", 32), record)
+        val record = assertIs<CopyResult.Verified>(useCase.saveCopy(plan, copyUri)).record
+        assertEquals(CopyRecord(FINGERPRINT, clock.now(), "dagboken-3x.json", tables.values.sumOf { it.size }), record, "antal = 3.x-raderna")
         assertEquals(record, flag.copyRecord, "kopian sparas på enheten")
         assertEquals(plan.backup, BackupJson.parse(copies.files.getValue(copyUri)), "3.x:s parser läser filen tillbaka till samma data")
         // Nästa läsning (t.ex. efter processdöd) ser kopian som verifierad för samma Room-fil …
@@ -306,16 +312,29 @@ class LegacyMigrationUseCaseTest {
         // En anteckning försvann på vägen: antalet per entitet stämmer inte med Room.
         copies.readBack = { it.replace(""",{"target":"ACTIVITY","entityId":"finns-inte-i-backupen","text":"Anteckning utan post"}""", "") }
         assertEquals(CopyResult.Failed(CopyFailure.COUNT_MISMATCH), useCase.saveCopy(plan, copyUri))
-        // Samma antal men en incheckning som pekar fel: konverteraren stoppar, och rapporten följer med.
-        copies.readBack = { it.replace(""""episodId":"9e0f1a2b-3c4d-4e5f-8a6b-7c8d9e0f1a2b"""", """"episodId":"finns-inte"""") }
-        val stopped = assertIs<CopyResult.Failed>(useCase.saveCopy(plan, copyUri))
-        assertEquals(CopyFailure.CONVERTER_STOPPED, stopped.reason)
-        assertTrue(stopped.report?.stopped == true)
-        // Samma antal, konverteraren går igenom, men ett värde skiljer sig.
+        // Med en plan jämförs dokumenten: samma antal, men ett värde skiljer sig …
         copies.readBack = { it.replace(""""namn":"Alvedon"""", """"namn":"Alvedom"""") }
         assertEquals(CopyResult.Failed(CopyFailure.DOCUMENTS_DIFFER), useCase.saveCopy(plan, copyUri))
+        // … eller konverteraren stoppar på filen.
+        copies.readBack = { it.replace(""""episodId":"9e0f1a2b-3c4d-4e5f-8a6b-7c8d9e0f1a2b"""", """"episodId":"finns-inte"""") }
+        assertEquals(CopyResult.Failed(CopyFailure.DOCUMENTS_DIFFER), useCase.saveCopy(plan, copyUri))
         assertNull(flag.copyRecord)
+        // Vid ett stopp finns ingen plan att jämföra med: antalet räcker (stopptestet ovan).
+        copies.readBack = { it.replace(""""namn":"Alvedon"""", """"namn":"Alvedom"""") }
+        val source = LegacyCopyData(plan.backup, plan.fingerprint, plan.tableCounts)
+        assertIs<CopyResult.Verified>(useCase.saveCopy(source, copyUri))
+        flag.clearCopy()
         assertEquals(CopyStatus.Missing, readyPlan().copy)
+    }
+
+    @Test
+    fun `saveCopy - en kopia sparad med den äldre kontrollen (version 1, total i dokument) gäller inte och måste sparas om`() = test {
+        flag.copyRecord = CopyRecord(FINGERPRINT, clock.now(), "kopia.json", 32, version = 1)
+        assertEquals(CopyStatus.Missing, readyPlan().copy)
+        assertEquals(LegacyMigrationUseCase.COPY_NOT_VERIFIED, assertIs<LegacyWriteOutcome.Failed>(useCase.write(readyPlan())).code)
+        val record = assertIs<CopyResult.Verified>(useCase.saveCopy(readyPlan(), copyUri)).record
+        assertEquals(CopyRecord.VERSION, record.version)
+        assertEquals(CopyStatus.Verified(record), readyPlan().copy)
     }
 
     @Test
@@ -349,7 +368,7 @@ class LegacyMigrationUseCaseTest {
         assertEquals(before, outcome.before)
         assertEquals(before, outcome.after)
         assertEquals(MigrationBatches.plan(plan.documents), firestore.batches)
-        assertEquals(1, firestore.batches.size, "32 dokument ryms i en batch")
+        assertEquals(1, firestore.batches.size, "34 dokument ryms i en batch")
         assertEquals(listOf(before.mapValues { 0 }, before), progress, "läget på servern först (inget klart), sedan batchen")
         assertEquals(plan.documents.map { it.path.removePrefix("users/$uid/") }.toSet(), ledger.verified.getValue(uid).keys, "varje skrivet dokument verifierat och antecknat med hash")
         assertEquals(emptyMap(), ledger.read(uid).pending)
@@ -396,7 +415,7 @@ class LegacyMigrationUseCaseTest {
         val first = storedDocuments()
         assertIs<LegacyWriteOutcome.Verified>(useCase.write(plan), "en avbruten körning görs om")
         assertEquals(first, storedDocuments(), "samma id:n med merge – inga dubbletter")
-        assertEquals(32, storedDocuments().size)
+        assertEquals(34, storedDocuments().size)
     }
 
     @Test
@@ -632,7 +651,7 @@ class LegacyMigrationUseCaseTest {
         assertFalse(pause.paused.value)
         ledger.fails = false
         assertIs<LegacyWriteOutcome.Verified>(useCase.write(plan))
-        assertEquals(32, storedDocuments().size)
+        assertEquals(34, storedDocuments().size)
     }
 
     @Test
@@ -667,7 +686,7 @@ class LegacyMigrationUseCaseTest {
         firestore.failAt = 0
         firestore.failWith = DataError.Offline
         assertIs<LegacyWriteOutcome.Failed>(useCase.write(plan))
-        assertEquals(32, ledger.read(uid).planned.size)
+        assertEquals(34, ledger.read(uid).planned.size)
         val option = expected.first { CollectionNames.collectionOf(it.path) == "options" }
         for (document in plan.documents) store.set(document.path.substringBeforeLast('/'), document.path.substringAfterLast('/'), document.data, merge = true)
         store.set(Paths.options(uid), option.path.substringAfterLast('/'), mapOf("name" to "Eget i 4.0", "framtida" to 1), merge = true)
@@ -678,7 +697,7 @@ class LegacyMigrationUseCaseTest {
         assertEquals(before, retry.after)
         assertEquals(option.data["name"], store.read(Paths.options(uid), option.path.substringAfterLast('/'))?.get("name"))
         assertEquals(1L, store.read(Paths.options(uid), option.path.substringAfterLast('/'))?.get("framtida"), "fält utanför fältmängden rörs inte")
-        assertEquals(32, ledger.read(uid).verified.size)
+        assertEquals(34, ledger.read(uid).verified.size)
         assertEquals(emptyMap(), ledger.read(uid).planned)
     }
 
@@ -714,7 +733,7 @@ class LegacyMigrationUseCaseTest {
         assertEquals(Ledger.EMPTY, ledger.read(uid))
         firestore.failWith = DataError.Offline
         assertIs<LegacyWriteOutcome.Failed>(useCase.write(plan))
-        assertEquals(32, ledger.read(uid).planned.size, "kan ha landat: står kvar")
+        assertEquals(34, ledger.read(uid).planned.size, "kan ha landat: står kvar")
     }
 
     @Test
@@ -762,7 +781,7 @@ class LegacyMigrationUseCaseTest {
         assertIs<LegacyWriteOutcome.Verified>(useCase.write(plan))
         assertFalse(useCase.started())
         assertEquals(LegacyAbortOutcome.Done(emptyMap()), useCase.abort())
-        assertEquals(32, storedDocuments().size)
+        assertEquals(34, storedDocuments().size)
     }
 
     @Test
@@ -791,7 +810,7 @@ class LegacyMigrationUseCaseTest {
         val plan = savedPlan()
         assertIs<LegacyWriteOutcome.Verified>(useCase.write(plan))
         val before = storedDocuments()
-        assertEquals(33, before.size)
+        assertEquals(35, before.size)
         val done = assertIs<LegacyAbortOutcome.Done>(useCase.abort())
         assertEquals(this@LegacyMigrationUseCaseTest.before - "settings", done.deleted)
         val left = storedDocuments()

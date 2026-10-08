@@ -57,10 +57,15 @@ class ConverterStopsTest {
     }
 
     @Test
-    fun `screening med aterhamtande, energitjuv eller spentTime har ingen plats och stoppar`() {
+    fun `screening med aterhamtande, energitjuv eller spentTime har ingen plats och stoppar - utom spentTime 0 som är ej angivet`() {
         assertStops(screening(aterhamtande = true), "screenings/s1", "aterhamtande", "ingen plats")
         assertStops(screening(energitjuv = true), "screenings/s1", "energitjuv", "ingen plats")
         assertStops(screening(spentTime = 30), "screenings/s1", "spentTime", "30")
+        // 3.x före #157 sparade spentTime = 0 på varje screening (formuläret saknar fältet): ej angivet → saknas.
+        val zero = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(screening(spentTime = 0), "u"))
+        assertEquals(1, zero.data.screenings.size)
+        assertTrue(zero.documents.single { it.path.contains("/screenings/") }.data.keys.none { it == "minutes" || it == "spentTime" })
+        assertEquals(emptyList(), zero.report.warnings)
     }
 
     @Test
@@ -76,10 +81,11 @@ class ConverterStopsTest {
     }
 
     @Test
-    fun `en symptomdel som 3x inte kunde läsa stoppar i stället för att hoppas över`() {
-        assertStops(activity(symptom = "Huvudvärk"), "activities/a1", "symptom[0]", "saknar poäng")
-        assertStops(activity(symptom = "Huvudvärk:tre"), "activities/a1", "symptom[0]", "inte ett heltal")
+    fun `en poäng utan namn stoppar - delar utan poäng stoppar inte längre (BackupJsonConverterTest)`() {
         assertStops(activity(symptom = "Huvudvärk:2,:3"), "activities/a1", "symptom[1]", "saknar namn")
+        for (raw in listOf("Huvudvärk", "Huvudvärk:tre", "Övrigt (yrsel, kl 14:00):2", "Huvudvärk,Yrsel")) {
+            assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(activity(symptom = raw), "u"), raw)
+        }
     }
 
     @Test
@@ -96,7 +102,6 @@ class ConverterStopsTest {
         assertStops(dose(datum = "15/1 2026"), "doses/m1", "datum", "ogiltigt datum")
         assertStops(dose(tid = "7:00"), "doses/m1", "tid", "ogiltigt klockslag")
         assertStops(dose(tagenTid = "07:04:30"), "doses/m1", "tagenTid", "ogiltigt klockslag")
-        assertStops(BackupJson(medicinRecipes = listOf(ReceptJson(id = "r1", skapad = "igår"))), "prescriptions/r1", "skapad", "ogiltigt datum")
         assertStops(BackupJson(sjukdomsepisoder = listOf(SjukdomsEpisodJson(id = "e1", slutDatum = "2026-13-01"))), "illnessEpisodes/e1", "slutDatum", "ogiltigt datum")
     }
 

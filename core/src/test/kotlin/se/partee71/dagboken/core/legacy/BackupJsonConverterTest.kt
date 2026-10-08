@@ -49,7 +49,7 @@ class BackupJsonConverterTest {
         assertEquals("2026-01-15T21:00:00", report.createdAt)
         assertEquals(
             mapOf(
-                "users" to 1, "settings" to 1, "options" to 11, "prescriptions" to 3, "prnMedicines" to 2, "doses" to 4,
+                "users" to 1, "settings" to 1, "options" to 13, "prescriptions" to 3, "prnMedicines" to 2, "doses" to 4,
                 "screenings" to 3, "activities" to 2, "events" to 2, "illnessEpisodes" to 2, "checkins" to 2,
             ),
             report.counts,
@@ -57,11 +57,18 @@ class BackupJsonConverterTest {
         assertEquals(emptyList(), report.problems)
         assertEquals(
             listOf(
+                "prescriptions/1b2c3d4e-5f60-4718-8293-a4b5c6d7e8f9" to "skapad är ett ögonblick, inte ett datum",
                 "prescriptions/2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e60" to "okänd upprepning",
+                "prescriptions/2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e60" to "skapad är inget datum",
                 "doses/recept_6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a_2026-01-15_Morgon" to "notes-posten går före arvsfältet anteckning",
+                "screenings/0d4f6a2c-7b1e-4c3a-9f5d-2e8b1a6c3d70" to "ett symptomnamn med kommatecken fogades ihop",
+                "screenings/9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b" to "symptom utan poäng",
+                "screenings/9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b" to "symptom utan poäng",
                 "screenings/9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b" to "timestamp är inte ett giltigt ögonblick",
+                "activities/5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d" to "ett symptomnamn med kommatecken fogades ihop",
                 "activities/6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e" to "somatiska 5 skiljer sig från summan av symptompoängen 3",
                 "illnessEpisodes/8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a" to "notes-posten går före arvsfältet anteckning",
+                "illnessEpisodes/8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a/checkins/a0b1c2d3-e4f5-4a6b-8c7d-9e0f1a2b3c4d" to "ett symptomnamn med kommatecken fogades ihop",
                 "notes" to "1 anteckning(ar) med target ACTIVITY utan sin post",
             ),
             report.warnings.map { it.path to it.message.substringBefore(" (").substringBefore(" –") },
@@ -120,9 +127,9 @@ class BackupJsonConverterTest {
         assertEquals(listOf("Promenad" to true, "Jobb" to false, LegacyDefaults.OTHER to false), activities.map { it.name to it.favorite })
         assertEquals(listOf(false, false, false), activities.map { it.archived })
         val symptoms = options.filter { it.kind == OptionKind.SYMPTOM }.sortedBy { it.sortOrder }
-        assertEquals(listOf("Huvudvärk", "Trötthet", "Övrigt", "Nackspärr", "Hosta"), symptoms.map { it.name })
-        assertEquals(listOf(false, false, false, true, true), symptoms.map { it.archived }, "okända namn blir arkiverade")
-        assertEquals(listOf(0, 1, 2, 3, 4), symptoms.map { it.sortOrder })
+        assertEquals(listOf("Huvudvärk", "Trötthet", "Övrigt", "Ont i nacke, axlar", "Yrsel", "Nackspärr", "Hosta"), symptoms.map { it.name })
+        assertEquals(listOf(false, false, false, false, true, true, true), symptoms.map { it.archived }, "okända namn blir arkiverade")
+        assertEquals(listOf(0, 1, 2, 3, 4, 5, 6), symptoms.map { it.sortOrder })
     }
 
     @Test
@@ -239,6 +246,91 @@ class BackupJsonConverterTest {
         assertTrue(result.report.warnings.any { "dubblett" in it.message })
         assertTrue(result.report.warnings.none { "somatiska" in it.message }, "7 = 4 + 2 + 1 som 3.x räknade")
         assertNotEquals(emptyList(), result.documents.filter { CollectionNames.collectionOf(it.path) == CollectionNames.OPTIONS }.map { OptionCodec.decode("x", it.data).name }.filter { it == "Övrigt" })
+    }
+
+    private fun symptomsOf(raw: String, somatiska: Int, vararg options: String): Pair<List<se.partee71.dagboken.core.model.SymptomScore>, List<String>> {
+        val backup = BackupJson(
+            aktiviteter = listOf(AktivitetJson(id = "a1", aktivitet = "Promenad", symptom = raw, somatiska = somatiska)),
+            symptomOptionsV2 = options.map(::SymptomOptionBackup),
+        )
+        val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u"), raw)
+        return result.data.activities.single().symptoms to result.report.warnings.map { it.message }
+    }
+
+    @Test
+    fun `symptom - ett namn med kommatecken fogas ihop som 3x skrev det, Övrigt-fritext och eget namn`() {
+        // 3.x encode: "Övrigt (yrsel, kl 14:00):2" – decode delade på kommat och visade bara "kl 14:00)".
+        val (other, warnings) = symptomsOf("Huvudvärk:4,Övrigt (yrsel, kl 14:00):2", 6, "Huvudvärk", "Övrigt")
+        assertEquals(listOf(4, 2), other.map { it.score })
+        assertEquals(listOf(null, "yrsel, kl 14:00"), other.map { it.customText })
+        assertEquals(OptionIds.of(OptionKind.SYMPTOM, "Övrigt"), other[1].optionId)
+        assertTrue(warnings.any { "kommatecken" in it })
+        assertTrue(warnings.none { "somatiska" in it }, "6 = 4 + 2 som 3.x räknade")
+        // Tre delar och ett eget alternativ med komma i namnet.
+        val (own, _) = symptomsOf("Ont i nacke, axlar, rygg:3,Övrigt (a, b):1", 4, "Ont i nacke, axlar, rygg", "Övrigt")
+        assertEquals(listOf(OptionIds.of(OptionKind.SYMPTOM, "Ont i nacke, axlar, rygg") to 3, OptionIds.of(OptionKind.SYMPTOM, "Övrigt") to 1), own.map { it.optionId to it.score })
+        assertEquals("a, b", own[1].customText)
+    }
+
+    @Test
+    fun `symptom - delar utan poäng behåller namnet med poäng null, inget stopp`() {
+        val (list, warnings) = symptomsOf("Huvudvärk,Yrsel", 0, "Huvudvärk")
+        assertEquals(listOf(OptionIds.of(OptionKind.SYMPTOM, "Huvudvärk") to null, OptionIds.of(OptionKind.SYMPTOM, "Yrsel") to null), list.map { it.optionId to it.score })
+        assertTrue(warnings.any { "utan poäng" in it })
+        assertTrue(warnings.none { "somatiska" in it }, "summan av poäng null är 0")
+        val (word, _) = symptomsOf("Huvudvärk:tre", 0)
+        assertEquals(listOf(OptionIds.of(OptionKind.SYMPTOM, "Huvudvärk:tre") to null), word.map { it.optionId to it.score })
+        val (trailingEmpty, emptyWarnings) = symptomsOf("Huvudvärk:2,", 2, "Huvudvärk")
+        assertEquals(listOf(2), trailingEmpty.map { it.score })
+        assertTrue(emptyWarnings.any { "tom symptomdel" in it })
+    }
+
+    private fun scoresOf(raw: String, somatiska: Int, vararg options: String): List<Pair<String, Int?>> {
+        val names = (options.toList() + listOf("Huvudvärk", "Yrsel", "A", "B", "Övrigt")).distinct()
+        return symptomsOf(raw, somatiska, *names.toTypedArray()).first.map { symptom ->
+            val option = names.first { OptionIds.of(OptionKind.SYMPTOM, it) == symptom.optionId }
+            (symptom.customText?.let { "$option ($it)" } ?: option) to symptom.score
+        }
+    }
+
+    @Test
+    fun `symptom - en dubblett utan poäng skriver aldrig över en poäng`() {
+        assertEquals(listOf("Huvudvärk" to 3), scoresOf("Huvudvärk:3,Huvudvärk", 3))
+        val (symptoms, _) = symptomsOf("A:3,A:x", 3, "A")
+        assertEquals(3, symptoms.single { it.optionId == OptionIds.of(OptionKind.SYMPTOM, "A") }.score, "A:x skriver inte över A:3")
+        assertEquals(null, symptoms.single { it.optionId == OptionIds.of(OptionKind.SYMPTOM, "A:x") }.score, "A:x bevaras som eget namn utan poäng")
+    }
+
+    @Test
+    fun `symptom - tomma delar hoppas över innan något fogas ihop, inget namn får inledande kommatecken`() {
+        assertEquals(listOf("A" to 3, "B" to 2), scoresOf("A:3,,B:2", 5))
+        assertEquals(listOf("B" to 2), scoresOf(",B:2", 2))
+        assertEquals(listOf("Övrigt (x)" to 2), scoresOf(",Övrigt (x):2", 2))
+    }
+
+    @Test
+    fun `symptom - delar fogas bara ihop till ett känt alternativ eller Övrigt-formen, annars egna symptom utan poäng`() {
+        assertEquals(listOf("Yrsel" to null, "Huvudvärk" to 3), scoresOf("Yrsel,Huvudvärk:3", 3))
+        assertEquals(listOf("Yrsel" to null, "Övrigt (a, b)" to 2), scoresOf("Yrsel,Övrigt (a, b):2", 2))
+        assertEquals(listOf("Ont i nacke, axlar" to 1), scoresOf("Ont i nacke, axlar:1", 1, "Ont i nacke, axlar"))
+    }
+
+    @Test
+    fun `skapad - datum blir midnatt, ett ögonblick bevaras med varning, annat blir saknat med varning och form`() {
+        fun recept(skapad: String, upprepning: String = "dagligen", startDatum: String = "") =
+            assertIs<ConversionResult.Converted>(
+                BackupJsonConverter.convert(BackupJson(medicinRecipes = listOf(ReceptJson(id = "r1", skapad = skapad, upprepning = upprepning, startDatum = startDatum))), "u"),
+                skapad,
+            ).let { it.data.prescriptions.single().createdAt to it.report.warnings.map { w -> w.message } }
+        assertEquals(kotlin.time.Instant.parse("2025-11-19T23:00:00Z") to emptyList(), recept("2025-11-20"))
+        val (instant, instantWarnings) = recept("2025-11-20T08:15:00.000Z", upprepning = "intervall")
+        assertEquals(kotlin.time.Instant.parse("2025-11-20T08:15:00Z"), instant)
+        assertTrue(instantWarnings.any { "ögonblick" in it && "9999-99-99a99:99:99.999a" in it })
+        assertTrue(instantWarnings.any { "intervallet" in it })
+        assertTrue(recept("2025-11-20T08:15:00", upprepning = "intervall", startDatum = "2025-12-01").second.none { "intervallet" in it }, "med startdatum gäller det")
+        val (missing, missingWarnings) = recept("20/11 2025")
+        assertNull(missing)
+        assertTrue(missingWarnings.single().let { "99/99 9999" in it && "20/11" !in it }, "formen, aldrig värdet")
     }
 
     private companion object {

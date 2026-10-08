@@ -22,6 +22,8 @@ import se.partee71.dagboken.core.legacy.Warning
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.legacy.AccountCheck
 import se.partee71.dagboken.data.legacy.CopyFailure
+import se.partee71.dagboken.data.legacy.LegacyCopyData
+import se.partee71.dagboken.data.legacy.LegacyCopySource
 import se.partee71.dagboken.data.legacy.CopyRecord
 import se.partee71.dagboken.data.legacy.CopyResult
 import se.partee71.dagboken.data.legacy.CopyStatus
@@ -123,8 +125,11 @@ sealed interface MigrationStage {
     /** "Avbryt flytten" pågår (Mig-Avbryter): det migreringen skrev tas bort från kontot. */
     data object Aborting : MigrationStage
 
-    /** Konverteraren stoppade (Mig-Stopp): rapporten, ingenting skrivet. */
-    data class Stopped(val report: List<ReportLine>) : MigrationStage
+    /**
+     * Konverteraren stoppade (Mig-Stopp): rapporten, ingenting skrivet. Kopian av 3.x-datan (OMB-8) kan ändå sparas
+     * ([copy], samma kort som i granskningen) – den kräver bara en läsbar 3.x-fil. "Flytta" finns inte här.
+     */
+    data class Stopped(val report: List<ReportLine>, val copy: CopyStep = CopyStep.Missing, val copyFileName: String = "") : MigrationStage
 
     /** Room-filen är från en äldre 3.x (Mig-Version). */
     data class WrongVersion(val found: Int) : MigrationStage
@@ -197,6 +202,9 @@ class MigrationViewModel @Inject constructor(
     private val import = ImportFlow(viewModelScope, importer)
 
     private var plan: LegacyMigrationPlan? = null
+
+    /** 3.x-datan för kopian när konverteraren stoppade ([MigrationStage.Stopped]). */
+    private var stoppedSource: LegacyCopyData? = null
     private var outcome: LegacyWriteOutcome.Verified? = null
     private var job: Job? = null
     private var accountConfirmed = false
@@ -268,9 +276,15 @@ class MigrationViewModel @Inject constructor(
 
     private suspend fun read() {
         show(MigrationStage.Reading)
-        when (val read = migration.read()) {
+        val read = migration.read()
+        // Kopians källa vid stopp gäller bara medan Stopp-läget visas.
+        if (read !is LegacyRead.Stopped) stoppedSource = null
+        when (read) {
             is LegacyRead.Ready -> review(read.plan)
-            is LegacyRead.Stopped -> show(MigrationStage.Stopped(reportOf(read.report.problems)))
+            is LegacyRead.Stopped -> {
+                stoppedSource = read.source
+                show(MigrationStage.Stopped(reportOf(read.report.problems), copyStep(read.source.copy), copyFileName()))
+            }
             is LegacyRead.WrongVersion -> show(MigrationStage.WrongVersion(read.found))
             // Filen försvann mellan kontrollen och läsningen: inget att flytta.
             LegacyRead.NoDatabase -> leaveTo(openImport = false)
@@ -291,11 +305,14 @@ class MigrationViewModel @Inject constructor(
                 accountConfirmed = confirmed,
                 warnings = plan.warnings.messages(),
                 copy = copy,
-                copyFileName = "dagboken-3x-kopia-${clock.now().toLocalDateTime(zone.get()).date}.json",
+                copyFileName = copyFileName(),
                 started = migration.started(),
             ),
         )
     }
+
+    /** Förslaget i filväljaren för kopian: `dagboken-3x-kopia-<datum>.json`. */
+    private fun copyFileName() = "dagboken-3x-kopia-${clock.now().toLocalDateTime(zone.get()).date}.json"
 
     private fun copyStep(status: CopyStatus): CopyStep = when (status) {
         CopyStatus.Missing -> CopyStep.Missing
@@ -345,15 +362,36 @@ class MigrationViewModel @Inject constructor(
         show(MigrationStage.Closed(openImport))
     }
 
+    /**
+     * Kopian (OMB-8) i granskningen eller vid ett stopp – samma steg ([copySaved]): Kontrollerar, sedan Kontrollerad eller
+     * skälet. Bara granskningen kan sedan flytta.
+     */
     private fun saveCopy(uri: Uri) {
-        val review = stage as? MigrationStage.Review ?: return
-        val plan = plan ?: return
-        step {
-            show(review.copy(copy = CopyStep.Checking))
-            when (val result = migration.saveCopy(plan, uri)) {
-                is CopyResult.Verified -> review(result.plan)
-                is CopyResult.Failed -> (stage as? MigrationStage.Review)?.let { show(it.copy(copy = CopyStep.Failed(result.reason))) }
+        when (val current = stage) {
+            is MigrationStage.Review -> plan?.let { plan ->
+                copySaved(plan, uri, { show(current.copy(copy = it)) }) { result, copy ->
+                    if (result != null) review(plan.withCopy(result)) else (stage as? MigrationStage.Review)?.let { show(it.copy(copy = copy)) }
+                }
             }
+            is MigrationStage.Stopped -> stoppedSource?.let { source ->
+                copySaved(source, uri, { show(current.copy(copy = it)) }) { result, copy ->
+                    if (result != null) stoppedSource = source.copy(copy = CopyStatus.Verified(result))
+                    (stage as? MigrationStage.Stopped)?.let { show(it.copy(copy = copy)) }
+                }
+            }
+            else -> Unit
+        }
+    }
+
+    /**
+     * Sparar och kontrollerar kopian av [source]: [checking] visar Kontrollerar, sedan får [done] posten (`null` när det
+     * inte gick) och kortets nya läge.
+     */
+    private fun copySaved(source: LegacyCopySource, uri: Uri, checking: (CopyStep) -> Unit, done: suspend (CopyRecord?, CopyStep) -> Unit) = step {
+        checking(CopyStep.Checking)
+        when (val result = migration.saveCopy(source, uri)) {
+            is CopyResult.Verified -> done(result.record, saved(result.record))
+            is CopyResult.Failed -> done(null, CopyStep.Failed(result.reason))
         }
     }
 
@@ -420,10 +458,15 @@ private fun LegacyWriteOutcome.accounted(): Map<String, Int> = accounted(after, 
 /** Varningarnas texter, var och en en gång – sökvägen (med dokument-id) visas inte. */
 internal fun List<Warning>.messages(): List<String> = map { it.message }.distinct()
 
-/** Stopprapporten per samling, fält och skäl med antal; sökvägens id visas inte. */
+/**
+ * Stopprapporten per typ – samling, fält och skäl med antal; sökvägens id visas inte, och listindex slås ihop
+ * (`symptom[0]`, `symptom[3]` → `symptom[…]`), så att varje typ av fynd står på en rad och alla typer syns.
+ */
 internal fun reportOf(problems: List<Problem>): List<ReportLine> =
-    problems.groupingBy { Triple(reportCollection(it.path), it.field, it.reason) }.eachCount()
+    problems.groupingBy { Triple(reportCollection(it.path), it.field.replace(LIST_INDEX, "[…]"), it.reason) }.eachCount()
         .map { (key, count) -> ReportLine(key.first, key.second, key.third, count) }
+
+private val LIST_INDEX = Regex("""\[\d+]""")
 
 /** Samlingen i en rapportsökväg: `prescriptions/<id>` → `prescriptions`, `illnessEpisodes/<id>/checkins/<id>` → `checkins`, `options/activity#3` → `options`. */
 internal fun reportCollection(path: String): String {

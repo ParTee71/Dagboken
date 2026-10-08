@@ -86,7 +86,7 @@ fun MigrationScreen(state: MigrationUiState, onEvent: (MigrationEvent) -> Unit, 
             is MigrationStage.Mismatch -> Mismatch(stage, onEvent)
             is MigrationStage.WriteFailed -> WriteFailed(stage, onEvent)
             MigrationStage.Aborting -> Aborting()
-            is MigrationStage.Stopped -> Stopped(stage, onEvent)
+            is MigrationStage.Stopped -> Stopped(stage, onEvent, onSaveCopy = { saveCopy.launch(stage.copyFileName) })
             is MigrationStage.WrongVersion -> WrongVersion(onEvent)
             is MigrationStage.ReadFailed -> ReadFailed(stage, onEvent)
             is MigrationStage.CheckFailed -> CheckFailed(stage, onEvent)
@@ -139,13 +139,17 @@ private fun Review(review: MigrationStage.Review, onEvent: (MigrationEvent) -> U
     }
 }
 
+/**
+ * Kopian av 3.x-datan (OMB-8). [stopped] = konverteraren stoppade: kopian krävs inte för något där (ingen "Krävs"),
+ * men kan sparas så att 3.27 kan läsa tillbaka allt – flytten väntar tills stoppet är löst.
+ */
 @Composable
-private fun CopyCard(copy: CopyStep, onSave: () -> Unit) {
+private fun CopyCard(copy: CopyStep, onSave: () -> Unit, stopped: Boolean = false) {
     val title = stringResource(R.string.migration_copy_title)
-    val required = stringResource(R.string.migration_copy_required)
+    val required = stringResource(R.string.migration_copy_required).takeUnless { stopped }
     when (copy) {
         CopyStep.Missing -> StatusCard(R.drawable.ic_file, title, required, Tone.Sun) {
-            Muted(stringResource(R.string.migration_copy_missing))
+            Muted(stringResource(if (stopped) R.string.migration_copy_missing_stopped else R.string.migration_copy_missing))
             AppButton(stringResource(R.string.migration_copy_save), onSave, Modifier.fillMaxWidth(), variant = ButtonVariant.Secondary)
         }
         CopyStep.Checking -> StatusCard(R.drawable.ic_file, title) {
@@ -174,7 +178,7 @@ private fun CopyFailure.message(): Int = when (this) {
     CopyFailure.WRITE_FAILED -> R.string.migration_copy_write_failed
     CopyFailure.UNREADABLE -> R.string.migration_copy_unreadable
     CopyFailure.COUNT_MISMATCH -> R.string.migration_copy_count_mismatch
-    CopyFailure.CONVERTER_STOPPED, CopyFailure.DOCUMENTS_DIFFER -> R.string.migration_copy_differs
+    CopyFailure.DOCUMENTS_DIFFER -> R.string.migration_copy_differs
     CopyFailure.STATE_FAILED -> R.string.migration_copy_state_failed
 }
 
@@ -254,8 +258,9 @@ private fun Aborting() {
 }
 
 @Composable
-private fun Stopped(stopped: MigrationStage.Stopped, onEvent: (MigrationEvent) -> Unit) {
+private fun Stopped(stopped: MigrationStage.Stopped, onEvent: (MigrationEvent) -> Unit, onSaveCopy: () -> Unit) {
     StoppedCard(stringResource(R.string.migration_stopped_title), stopped.report)
+    CopyCard(stopped.copy, onSaveCopy, stopped = true)
     Fallback(R.string.migration_untouched_note, onEvent, retry = true)
 }
 

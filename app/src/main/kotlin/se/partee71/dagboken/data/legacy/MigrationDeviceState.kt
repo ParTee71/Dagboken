@@ -18,9 +18,16 @@ data class CopyRecord(
     val savedAt: Instant,
     /** Filnamnet användaren valde (SAF `DISPLAY_NAME`), `null` när det inte gick att läsa. */
     val fileName: String?,
-    /** Antal dokument kopian konverteras till. */
+    /** Antal 3.x-poster (Room-rader) i kopian. */
     val total: Int,
-)
+    /** Kontrollens version ([VERSION]); en kopia sparad med en annan (äldre) kontroll gäller inte och måste sparas om. */
+    val version: Int = VERSION,
+) {
+    companion object {
+        /** 1 = `total` räknade 4.0-dokument (före kontrollen som 3.x-fil); 2 = `total` räknar 3.x-raderna. */
+        const val VERSION = 2
+    }
+}
 
 /** 3.x-sessionen som den såg ut vid första starten av 4.0: [uid] = inloggad i Firebase Auth då, `null` = ingen. */
 data class LegacySession(val uid: String?)
@@ -82,6 +89,8 @@ class DataStoreMigrationState @Inject constructor(private val store: DataStore<P
             savedAt = Instant.fromEpochMilliseconds(prefs[COPY_SAVED_AT] ?: return null),
             fileName = prefs[COPY_FILE],
             total = prefs[COPY_TOTAL] ?: 0,
+            // Saknad nyckel = sparad före versionsfältet.
+            version = prefs[COPY_VERSION] ?: 1,
         )
     }
 
@@ -91,11 +100,12 @@ class DataStoreMigrationState @Inject constructor(private val store: DataStore<P
             it[COPY_SAVED_AT] = record.savedAt.toEpochMilliseconds()
             if (record.fileName != null) it[COPY_FILE] = record.fileName else it.remove(COPY_FILE)
             it[COPY_TOTAL] = record.total
+            it[COPY_VERSION] = record.version
         }
     }
 
     override suspend fun clearCopy() {
-        store.edit { prefs -> listOf(COPY_FINGERPRINT, COPY_SAVED_AT, COPY_FILE, COPY_TOTAL).forEach { prefs.remove(it) } }
+        store.edit { prefs -> listOf(COPY_FINGERPRINT, COPY_SAVED_AT, COPY_FILE, COPY_TOTAL, COPY_VERSION).forEach { prefs.remove(it) } }
     }
 
     override suspend fun backupJobCancelled(): Boolean = store.data.first()[BACKUP_JOB_CANCELLED] ?: false
@@ -115,5 +125,6 @@ class DataStoreMigrationState @Inject constructor(private val store: DataStore<P
         val COPY_SAVED_AT = longPreferencesKey("legacy_copy_saved_at")
         val COPY_FILE = stringPreferencesKey("legacy_copy_file")
         val COPY_TOTAL = intPreferencesKey("legacy_copy_total")
+        val COPY_VERSION = intPreferencesKey("legacy_copy_version")
     }
 }

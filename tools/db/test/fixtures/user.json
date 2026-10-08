@@ -181,7 +181,7 @@
       "path": "users/uid-test/illnessEpisodes/8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a/checkins/a0b1c2d3-e4f5-4a6b-8c7d-9e0f1a2b3c4d",
       "data": {
         "date": "2026-09-11", "time": "19:00", "severity": 4,
-        "symptoms": [{ "optionId": "symptom-ovrigt-c067e8", "score": 3, "customText": "Ont i halsen" }],
+        "symptoms": [{ "optionId": "symptom-ovrigt-c067e8", "score": 3, "customText": "Ont i halsen" }, { "optionId": "symptom-huvudvark-d55e7d", "score": null, "customText": null }],
         "createdAt": { "__ts": "2026-09-11T17:00:00.000000000Z" }, "note": "Feber på kvällen"
       }
     },

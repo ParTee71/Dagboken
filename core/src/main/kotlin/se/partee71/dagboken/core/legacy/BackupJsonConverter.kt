@@ -74,7 +74,7 @@ object BackupJsonConverter {
     fun exportedAt(backup: BackupJson): Instant = sourceCreatedAt(backup) ?: Instant.fromEpochSeconds(0)
 
     /** Backupfilens `createdAt` som ögonblick (migreringsmarkörens `sourceCreatedAt`); `null` när den saknas eller är ogiltig. */
-    fun sourceCreatedAt(backup: BackupJson): Instant? = LegacyTime.backupCreatedAt(backup.createdAt)
+    fun sourceCreatedAt(backup: BackupJson): Instant? = LegacyTime.moment(backup.createdAt)
 }
 
 private class Conversion(private val backup: BackupJson, private val uid: String) {
@@ -266,21 +266,44 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         id(path, r.id)
         // v1 hade en enda `tidpunkt`; båda tomma → Morgon, som 3.x BackupMapper.
         val names = r.tidpunkter.ifEmpty { listOfNotNull(r.tidpunkt?.takeIf { it.isNotBlank() }).ifEmpty { listOf(Slot.MORNING.legacyName) } }
+        val repeat = repeat(path, r.upprepning)
+        val start = date(path, "startDatum", r.startDatum)
         return Prescription(
             id = r.id,
             name = r.namn,
             dose = r.dos,
             unit = r.enhet,
             slots = names.map { slot(path, "tidpunkter", it) },
-            schedule = Schedule.Repeating(repeat(path, r.upprepning), r.dagar.mapNotNull { weekday(path, it) }.toSet(), r.intervalDagar),
-            period = Period(start = date(path, "startDatum", r.startDatum), end = date(path, "slutDatum", r.slutDatum.orEmpty())),
+            schedule = Schedule.Repeating(repeat, r.dagar.mapNotNull { weekday(path, it) }.toSet(), r.intervalDagar),
+            period = Period(start = start, end = date(path, "slutDatum", r.slutDatum.orEmpty())),
             boosts = r.dosperioder.map {
                 Boost(it.id, date(path, "dosperioder.startDatum", it.startDatum), date(path, "dosperioder.slutDatum", it.slutDatum.orEmpty()), it.dos, it.enhet)
             },
             active = r.aktiv,
-            createdAt = date(path, "skapad", r.skapad)?.let(LegacyTime::midnight),
+            createdAt = created(path, r.skapad, intervalFromCreated = repeat == Repeat.INTERVAL && start == null),
             note = notes.note(LegacyDefaults.NOTE_PRESCRIPTION, r.id, r.anteckning, path),
         )
+    }
+
+    /**
+     * 3.x `skapad`. 3.x-formuläret skrev alltid `LocalDate.now()` (`yyyy-MM-dd`) → midnatt Europe/Stockholm. Annan form
+     * kom bara med importerad data (3.x `BackupMapper` kopierade texten), och 3.x kunde inte läsa den som datum: intervallet
+     * räknades då från dagens datum (`EnsureTodayEntriesUseCase`, `getOrDefault(today)`) och perioden visade texten som
+     * den stod. Därför inget stopp: ett ISO-ögonblick (med eller utan zon) bevaras som ögonblicket, med varning; annat
+     * blir `null` – samma beteende som 3.x (intervallet utan ankare räknar varje dag som dag 0, `intervalAnchor`) – med
+     * varning och värdets form (aldrig innehåll). Texten finns kvar i den obligatoriska kopian av 3.x-datan (OMB-8).
+     * [intervalFromCreated] = receptet har intervall utan startdatum, så skapandedagen blir intervallets ankare i 4.0.
+     */
+    private fun created(path: String, raw: String, intervalFromCreated: Boolean): Instant? {
+        if (raw.isBlank()) return null
+        parseDate(raw)?.let { return LegacyTime.midnight(it) }
+        LegacyTime.moment(raw)?.let { moment ->
+            warn(path, "skapad är ett ögonblick, inte ett datum (${LegacyTime.shape(raw)}) – bevaras som ögonblicket")
+            if (intervalFromCreated) warn(path, "intervallet räknas från skapad – 3.x kunde inte läsa skapad och räknade varje dag som dag 0")
+            return moment
+        }
+        warn(path, "skapad är inget datum (${LegacyTime.shape(raw)}) – saknas i 4.0, som i 3.x som inte kunde läsa det; finns kvar i kopian av 3.x-datan")
+        return null
     }
 
     /** 3.x `Upprepning.fromString` med synonymerna; okänt → dagligen (som 3.x), men med varning. */
@@ -352,10 +375,12 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         id(path, a.id)
         val date = date(path, "datum", a.datum)
         val time = clock(path, "tid", a.tid)
-        // Alltid false respektive null på en 3.x-screening; ett annat värde har ingen plats och stoppar.
+        // Alltid false respektive null eller 0 på en 3.x-screening: före `BuildScreeningAktivitetUseCase` (3.x #157) sparade
+        // formuläret `spentTime = timmar * 60 + minuter` även för screeningar, som saknar fältet – alltid 0 = "ej angivet",
+        // som blir saknat. Ett annat värde har ingen plats och stoppar.
         if (a.aterhamtande) problem(path, "aterhamtande", "true på en screening har ingen plats i 4.0")
         if (a.energitjuv) problem(path, "energitjuv", "true på en screening har ingen plats i 4.0")
-        if (a.spentTime != null) problem(path, "spentTime", "värdet ${a.spentTime} på en screening har ingen plats i 4.0")
+        if (a.spentTime != null && a.spentTime != 0) problem(path, "spentTime", "värdet ${a.spentTime} på en screening har ingen plats i 4.0")
         return Screening(
             id = a.id,
             date = date,
@@ -451,32 +476,52 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     }
 
     /**
-     * 3.x wire-formatet `Namn:Poäng,…` (`SymptomUtils.decode`: sista kolonet skiljer, dubbletter
+     * 3.x wire-formatet `Namn:Poäng,…` (`SymptomUtils.encode`/`decode`: sista kolonet skiljer, dubbletter
      * samlas och den sista poängen gäller) → `symptoms[]` (DAT-6): namnet bland symptomalternativen →
      * `optionId`; `Övrigt (fritext)` → "Övrigt" + `customText`; okänt namn → nytt arkiverat alternativ.
-     * En del som 3.x inte kunde läsa stoppar i stället för att hoppas över. Avviker `somatiska` från
-     * summan rapporteras det som varning (DAT-6).
+     *
+     * 3.x `decode` hoppade tyst över varje del den inte kunde läsa (ingen kolon, eller inget heltal efter sista
+     * kolonet). Här tappas ingen sådan del (tomma delar bär ingenting och hoppas över först):
+     * - **Namn med kommatecken.** `encode` skyddade inte kommat i namnet – fritexten vid Övrigt
+     *   (`Övrigt (yrsel, illamående):2`) eller ett eget symptomnamn. Olästa delar fogas ihop med nästa del med
+     *   poäng, med kommat kvar, **bara** när det hopfogade namnet är ett alternativ i backupen eller har Övrigt-formen
+     *   `Övrigt (…)` – den längsta sådana hopfogningen gäller ([joinedScore]).
+     * - **Namn utan poäng.** Varje annan oläst del blir ett eget symptom med poäng `null` (`Yrsel,Huvudvärk:3` →
+     *   Yrsel utan poäng och Huvudvärk 3). En dubblett utan poäng skriver aldrig över en poäng.
+     * Bara en poäng utan namn (`:3`) stoppar. Avviker `somatiska` från summan rapporteras det som varning (DAT-6).
      */
     private fun symptoms(path: String, raw: String, somatiska: Int): List<SymptomScore> {
         if (raw.isBlank()) {
             if (somatiska != 0) warn(path, "somatiska $somatiska utan symptom – summan blir 0")
             return emptyList()
         }
-        val scores = linkedMapOf<String, Int>()
-        raw.split(",").forEachIndexed { index, part ->
-            val colon = part.lastIndexOf(':')
-            val name = if (colon < 0) "" else part.substring(0, colon).trim()
-            val score = if (colon < 0) null else part.substring(colon + 1).trim().toIntOrNull()
-            when {
-                colon < 0 -> problem(path, "symptom[$index]", "saknar poäng (ingen kolon)")
-                name.isEmpty() -> problem(path, "symptom[$index]", "saknar namn")
-                score == null -> problem(path, "symptom[$index]", "poängen är inte ett heltal")
-                else -> {
-                    if (name in scores) warn(path, "symptom[$index] är en dubblett – den sista poängen gäller, som i 3.x")
-                    scores[name] = score
-                }
-            }
+        val scores = linkedMapOf<String, Int?>()
+        fun put(index: Int, name: String, score: Int?) {
+            if (name in scores) warn(path, "symptom[$index] är en dubblett – den sista poängen gäller, som i 3.x")
+            if (score != null || name !in scores) scores[name] = score
         }
+        fun unscored(index: Int, part: String) {
+            warn(path, "symptom utan poäng – namnet bevaras med poäng null; 3.x kunde inte läsa det")
+            put(index, part.trim(), null)
+        }
+        val parts = raw.split(",").withIndex().filter { (_, part) ->
+            part.isNotBlank().also { if (!it) warn(path, "en tom symptomdel hoppades över") }
+        }
+        val pending = mutableListOf<IndexedValue<String>>()
+        for (part in parts) {
+            if (scoreOf(part.value) == null) {
+                pending += part
+                continue
+            }
+            val (joinFrom, text) = joinedScore(pending.map { it.value }, part.value)
+            pending.take(joinFrom).forEach { unscored(it.index, it.value) }
+            if (joinFrom < pending.size) warn(path, "ett symptomnamn med kommatecken fogades ihop – 3.x visade bara delen efter sista kommat")
+            pending.clear()
+            val colon = text.lastIndexOf(':')
+            val name = text.substring(0, colon).trim()
+            if (name.isEmpty()) problem(path, "symptom[${part.index}]", "saknar namn") else put(part.index, name, scoreOf(text))
+        }
+        pending.forEach { unscored(it.index, it.value) }
         val symptoms = scores.map { (name, score) ->
             val option = options.find(OptionKind.SYMPTOM, name)
             when {
@@ -491,6 +536,24 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         }
         if (symptoms.somatic != somatiska) warn(path, "somatiska $somatiska skiljer sig från summan av symptompoängen ${symptoms.somatic}")
         return symptoms
+    }
+
+    /** Heltalet efter sista kolonet, som 3.x `decode` läste det; `null` = delen gick inte att läsa. */
+    private fun scoreOf(part: String): Int? = part.lastIndexOf(':').takeIf { it >= 0 }?.let { part.substring(it + 1).trim().toIntOrNull() }
+
+    /**
+     * Den längsta hopfogningen av de sista olästa delarna i [pending] med [scored] vars namn är ett symptomalternativ i
+     * backupen eller har Övrigt-formen `Övrigt (…)`: index i [pending] där hopfogningen börjar (= `pending.size` när
+     * ingen gäller) och den hopfogade texten.
+     */
+    private fun joinedScore(pending: List<String>, scored: String): Pair<Int, String> {
+        for (from in pending.indices) {
+            val text = (pending.drop(from) + scored).joinToString(",")
+            val name = text.substring(0, text.lastIndexOf(':')).trim()
+            val other = name.startsWith("${LegacyDefaults.OTHER} (") && name.endsWith(")")
+            if (other || options.find(OptionKind.SYMPTOM, name) != null) return from to text
+        }
+        return pending.size to scored
     }
 
     // ── Värden ───────────────────────────────────────────────────────────────────────────────────

@@ -92,7 +92,7 @@ markören `legacyMigration` {completedAt, source `room` \| `drive` \| `json`, so
 | `prescriptions` | name, dose (text), unit, slots[], schedule {repeat `daily` \| `weekdays` \| `weekends` \| `custom` \| `interval`, days[], intervalDays}, period {start?, end?}, boosts[] {id, start, end?, dose, unit}, active, createdAt, note | `recept` + `dosperioderJson` |
 | `prnMedicines` | name, dose (text), unit, slot, minHoursBetween, dispensingTime, maxPerDay, favorite, note | `favoriter` |
 | `doses` | date, slot, name, dose (text), unit, status (`planned` \| `taken` \| `skipped`), plannedTime, takenAt?, prescriptionId?, prnId?, createdAt, note | `mediciner` (tagen + skipped + tagenTid) |
-| `screenings` | date, time, occasion? (`breakfast` \| `lunch` \| `dinner` \| `bedtime`), customText?, energy 0–10, stress, symptoms[] {optionId, score, customText?}, createdAt, note | `aktiviteter` med type=screening |
+| `screenings` | date, time, occasion? (`breakfast` \| `lunch` \| `dinner` \| `bedtime`), customText?, energy 0–10, stress, symptoms[] {optionId, score (0–10, `null` = utan poäng, bara från 3.x), customText?}, createdAt, note | `aktiviteter` med type=screening |
 | `activities` | date, time, optionId, customText?, energy −10..10, stress, symptoms[], recovering, drain, minutes?, createdAt, note | `aktiviteter` med type=aktivitet |
 | `events` | date, time, optionId, severity, durationMinutes, triggers, actions, createdAt, note | `health_events` |
 | `illnessEpisodes` | type, start, end?, createdAt, note | `sjukdomsepisoder` |
@@ -193,11 +193,11 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `AktivitetJson.energy` | `activities.energy`, `screenings.energy` | −10..10 respektive 0–10. |
 | `AktivitetJson.stress` | `activities.stress`, `screenings.stress` | |
 | `AktivitetJson.somatiska` | *beräknas* | Summan av `symptoms[].score` (DAT-6). En 3.x-post där summan avviker rapporteras av konverteraren. |
-| `AktivitetJson.symptom` | `activities.symptoms[].optionId`, `activities.symptoms[].score`, `activities.symptoms[].customText`, `screenings.symptoms[].optionId`, `screenings.symptoms[].score`, `screenings.symptoms[].customText` | `Namn:Poäng,…` → symptomalternativ på namnet; `Övrigt (fritext)` → "Övrigt" + `customText`; okänt namn → arkiverat alternativ. |
+| `AktivitetJson.symptom` | `activities.symptoms[].optionId`, `activities.symptoms[].score`, `activities.symptoms[].customText`, `screenings.symptoms[].optionId`, `screenings.symptoms[].score`, `screenings.symptoms[].customText` | `Namn:Poäng,…` → symptomalternativ på namnet; `Övrigt (fritext)` → "Övrigt" + `customText`; okänt namn → arkiverat alternativ. Tomma delar hoppas över; olästa delar fogas ihop med nästa del med poäng bara till ett alternativ i backupen eller `Övrigt (…)`, annars `score: null` per del. |
 | `AktivitetJson.aterhamtande` | `activities.recovering` | Screening: alltid `false` i 3.x; annat värde stoppar konverteringen i stället för att tappas. |
 | `AktivitetJson.energitjuv` | `activities.drain` | Som `aterhamtande`. |
 | `AktivitetJson.type` | `activities`, `screenings` | `aktivitet`/`screening`; tomt → ur namnet som 3.x `BackupMapper.inferType`; saknat är `aktivitet` (klassens default, som 3.x). |
-| `AktivitetJson.spentTime` | `activities.minutes` | `null` bevaras. Screening: alltid `null` i 3.x; annat värde stoppar konverteringen. |
+| `AktivitetJson.spentTime` | `activities.minutes` | `null` bevaras. Screening: `null`, eller `0` från 3.x före #157 (formuläret sparade `timmar * 60 + minuter` även för screeningar, som saknar fältet = ej angivet) → saknas; annat värde stoppar konverteringen. |
 | `MedicinJson.id` | `doses.id` | Bevaras; `recept_…`-id:n oförändrade (DAT-8). |
 | `MedicinJson.timestamp` | `doses.createdAt` | Som `AktivitetJson.timestamp`. |
 | `MedicinJson.datum` | `doses.date` | |
@@ -222,7 +222,7 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `ReceptJson.intervalDagar` | `prescriptions.schedule.intervalDays` | Bevaras oavsett upprepning. |
 | `ReceptJson.anteckning` | `prescriptions.note` | Arvsfält, som `MedicinJson.anteckning`. |
 | `ReceptJson.aktiv` | `prescriptions.active` | |
-| `ReceptJson.skapad` | `prescriptions.createdAt` | Datum → midnatt Europe/Stockholm (dagen går att läsa tillbaka exakt). |
+| `ReceptJson.skapad` | `prescriptions.createdAt` | Datum → midnatt Europe/Stockholm (dagen går att läsa tillbaka exakt). Annan form kom bara med importerad data och kunde inte läsas av 3.x: ISO-ögonblick → ögonblicket, annat → `null` (som 3.x), båda med varning. |
 | `ReceptJson.startDatum` | `prescriptions.period.start` | `""` → `null`: ingen bakre gräns, intervallet räknas från skapandedagen (REC-4, REC-7). |
 | `ReceptJson.slutDatum` | `prescriptions.period.end` | `null`/`""` → `null` (tills vidare). |
 | `ReceptJson.dosperioder` | `prescriptions.boosts` | |
@@ -415,15 +415,23 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
      allt efter "Övrigt") → "Övrigt" + `customText`. Dubbletter i en lista är samma alternativ (det första
      gäller, varning). `sortOrder` är listans ordning, skapade alternativ fortsätter numreringen.
    - *Symptomsträngen* tolkas som 3.x `SymptomUtils.decode` (sista kolonet skiljer namn och poäng, dubbla namn
-     samlas och den sista poängen gäller – med varning); en del utan kolon, utan namn eller med en poäng som
-     inte är ett heltal kunde 3.x inte läsa och **stoppar**. Avviker `somatiska` från summan: varning.
+     samlas och den sista poängen gäller – med varning). En del 3.x inte kunde läsa (ingen kolon, eller inget
+     heltal efter sista kolonet) hoppades tyst över i 3.x; här tappas den inte. Tomma delar hoppas över först.
+     `encode` skyddade inte kommat i namnet (fritexten vid Övrigt, `Övrigt (yrsel, illamående):2`, eller ett eget
+     symptomnamn), så olästa delar fogas ihop med nästa del med poäng, med kommat kvar – men bara när det hopfogade
+     namnet är ett alternativ i backupen eller har formen `Övrigt (…)` (längsta hopfogningen gäller). Varje annan
+     oläst del blir ett eget symptom med `score: null` (`Yrsel,Huvudvärk:3` → Yrsel utan poäng, Huvudvärk 3); en
+     dubblett utan poäng skriver aldrig över en poäng. Varning för båda. Bara en poäng utan namn (`:3`) **stoppar**. Avviker `somatiska` från summan: varning.
    - *Poster.* Saknat `type` är "aktivitet" (klassens default, som 3.x); bara tomt `type` härleds ur namnet
      (`inferType`). En aktivitet vars namn är ett måendetillfälles får en varning. En screening med
-     `aterhamtande`/`energitjuv` sant eller `spentTime` satt **stoppar** (ingen plats). Blank `datum`/`tid` →
+     `aterhamtande`/`energitjuv` sant eller `spentTime` över 0 **stoppar** (ingen plats; `0` = ej angivet → saknas). Blank `datum`/`tid` →
      `null`; ogiltigt **stoppar** (även ett datum som inte finns, `2026-02-30`, fast rules mönster godtar det).
      Dubbla id:n i en samling och id:n Firestore inte godtar stoppar. Tagen och överhoppad samtidigt → `taken`.
    - *Recept.* Okänd `upprepning` → `daily` (som 3.x `Upprepning.fromString`) med varning; `dagar` utanför 0–6
-     stoppar; blank `tidpunkt` räknas som saknad (båda tomma → Morgon). `skapad` → midnatt Stockholm.
+     stoppar; blank `tidpunkt` räknas som saknad (båda tomma → Morgon). `skapad` → midnatt Stockholm; i annan form
+     (bara importerad data, oläslig för 3.x) aldrig stopp: ISO-ögonblick bevaras med varning (och en till när det blir
+     intervallets ankare), annat blir `null` med varning och värdets form (`99/99 9999`) – som 3.x, som räknade
+     intervallet från dagens datum. Texten finns kvar i kopian (OMB-8).
    - *Inställningar.* Dokumentet innehåller **bara** de fält backupen hade (`null` = "rör inte"; v1 ger inget
      dokument alls); de typade modellerna får 3.x-defaults i övrigt. `medNotificationConfigs` matchas på
      namn, annars på position för rader utan namn (3.x `toMedNotificationConfigs`); en rad utan tidpunkt att
@@ -467,10 +475,13 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
      finns inte i v11 och är tomma). Kontrollsumman över `.db` och `-wal` (inte `-shm`) följer med som filens
      fingeravtryck. Sedan **samma** konverterare som grinden; "före" = rapportens antal per entitet.
    - *Obligatorisk kopia (OMB-8):* innan något skrivs sparas 3.x-datan som en 3.x-backupfil (`BackupJson.encode`,
-     format v2, UTF-8 utan BOM) till en fil användaren väljer (SAF) och verifieras: läses tillbaka och parsas med
-     `BackupJson.parse`, antalet per entitet jämförs med Room-raderna, konverteraren ska gå igenom utan stopp och
-     ge exakt samma dokument. Kopian sparas på enheten med fingeravtryck, tid, filnamn och antal och gäller bara
-     Room-filen som den såg ut då; ändras filen krävs en ny kopia. `Backup3xCompatibilityTest` parsar filen med
+     format v2, UTF-8 utan BOM) till en fil användaren väljer (SAF) och verifieras **som 3.x-fil**: läses tillbaka
+     och parsas med `BackupJson.parse`, och antalet per entitet jämförs med Room-raderna; i granskningen (med en plan)
+     ska filen också ge exakt planens dokument. Vid ett stopp finns ingen plan och antalet räcker – kopian kan därför
+     sparas även då (kortet "Spara en kopia" finns också i Stopp-läget), medan "Flytta" kräver både en lyckad
+     konvertering och kopian. Kopian sparas på enheten med fingeravtryck, tid, filnamn, antal 3.x-poster och
+     kontrollens version och gäller bara Room-filen som den såg ut då; ändras filen, eller är kopian från en äldre
+     kontroll, krävs en ny kopia. `Backup3xCompatibilityTest` parsar filen med
      3.27.0:s egna klasser (kopia i testkällan).
    - *Läget på servern först (återupptagning, OMB-7):* målens id läses direkt från servern (`RawDocuments.documents`:
      `documentId() in …` i grupper om 30, åtta parallellt – aldrig hela samlingar) och ställs mot **liggaren**
