@@ -26,6 +26,9 @@ Kör stegen i ordning och rapportera efter varje steg. Stanna och förklara om n
 - **Rules:** `publish` deployar `firestore.rules` (secret `FIREBASE_RULES_DEPLOYER`) före
   GitHub Release – bara om de ändrats sedan förra releasen. En publicering vars
   `firestore.rules` skiljer sig från `master` stoppas.
+- **Testbygge utan publicering:** `workflow_dispatch` med `publish_release: "false"` ger bara den
+  signerade APK:n som artifact – ingen tagg, ingen Release, ingen rules-deploy (kräver då inte
+  `FIREBASE_RULES_DEPLOYER`). Används t.ex. för att installera 4.0 ovanpå 3.x och spara kopian (#228).
 - **Ett fallerat jobb:** kör om bara det (`rerun_failed_jobs`), aldrig hela releasen.
 - **Starta releasen först när CI på `master` är grönt** för merge-commiten – annars stoppar
   `gate` den direkt (det kostar sekunder, inte emulatorminuter).
