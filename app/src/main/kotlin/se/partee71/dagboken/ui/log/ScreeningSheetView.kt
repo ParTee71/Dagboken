@@ -56,6 +56,7 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
             saveEnabled = state.canSave,
             saving = state.saving,
             otherOptionId = OTHER_SYMPTOM_ID,
+            somatic = edited.somatic,
         )
     }
 }

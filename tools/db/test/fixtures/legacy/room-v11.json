@@ -6,7 +6,7 @@
       { "id": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d", "timestamp": "2026-01-15T16:00:00Z", "datum": "2026-01-15", "tid": "17:00", "aktivitet": "Promenad", "energy": 7, "stress": 3, "somatiska": 7, "symptom": "Huvudvärk:4,Ont i nacke, axlar:1,Övrigt (Stel nacke):2", "aterhamtande": 1, "energitjuv": 0, "type": "aktivitet", "spentTime": 45 },
       { "id": "6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e", "timestamp": "", "datum": "2026-01-16", "tid": "09:30", "aktivitet": "Svamplockning", "energy": -2, "stress": 1, "somatiska": 5, "symptom": "Nackspärr:3", "aterhamtande": 0, "energitjuv": 1, "type": "", "spentTime": null },
       { "id": "0d4f6a2c-7b1e-4c3a-9f5d-2e8b1a6c3d70", "timestamp": "2026-01-15T07:15:00Z", "datum": "2026-01-15", "tid": "08:15", "aktivitet": "Efter frukost", "energy": 6, "stress": 2, "somatiska": 5, "symptom": "Trötthet:3,Övrigt (yrsel, kl 14:00):2", "aterhamtande": 0, "energitjuv": 0, "type": "screening", "spentTime": 0 },
-      { "id": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b", "timestamp": "igår", "datum": "2026-01-14", "tid": "21:50", "aktivitet": "Kvällskoll", "energy": 2, "stress": 7, "somatiska": 0, "symptom": "Huvudvärk,Yrsel", "aterhamtande": 0, "energitjuv": 0, "type": "screening", "spentTime": null },
+      { "id": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b", "timestamp": "igår", "datum": "2026-01-14", "tid": "21:50", "aktivitet": "Kvällskoll", "energy": 2, "stress": 7, "somatiska": 2, "symptom": "Huvudvärk,Yrsel", "aterhamtande": 0, "energitjuv": 0, "type": "screening", "spentTime": null },
       { "id": "1f2e3d4c-5b6a-4798-8a9b-0c1d2e3f4a5b", "timestamp": "2026-01-16T11:05:00.000Z", "datum": "2026-01-16", "tid": "12:05", "aktivitet": "Lunch", "energy": 1, "stress": 0, "somatiska": 2, "symptom": "Övrigt:2", "aterhamtande": 0, "energitjuv": 0, "type": "", "spentTime": null }
     ],
     "mediciner": [
@@ -51,7 +51,7 @@
     ],
     "sjukdoms_incheckningar": [
       { "id": "a0b1c2d3-e4f5-4a6b-8c7d-9e0f1a2b3c4d", "episod_id": "8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a", "datum": "2026-01-11", "tid": "19:00", "svarighetsgrad": 5, "symptom": "Hosta:3,Övrigt (Ont i halsen, feber):2", "somatiska": 5, "timestamp": 1768158000000 },
-      { "id": "b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d5e", "episod_id": "9e0f1a2b-3c4d-4e5f-8a6b-7c8d9e0f1a2b", "datum": "2026-01-20", "tid": "08:00", "svarighetsgrad": 7, "symptom": "", "somatiska": 0, "timestamp": 0 }
+      { "id": "b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d5e", "episod_id": "9e0f1a2b-3c4d-4e5f-8a6b-7c8d9e0f1a2b", "datum": "2026-01-20", "tid": "08:00", "svarighetsgrad": 7, "symptom": "", "somatiska": 4, "timestamp": 0 }
     ]
   },
   "preferences": {

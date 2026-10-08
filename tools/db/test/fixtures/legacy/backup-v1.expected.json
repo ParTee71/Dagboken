@@ -28,6 +28,7 @@
             "customText": null
           }
         ],
+        "legacySomatic": null,
         "recovering": true,
         "drain": false,
         "minutes": null
@@ -47,6 +48,7 @@
         "energy": 4,
         "stress": 1,
         "symptoms": [],
+        "legacySomatic": null,
         "recovering": false,
         "drain": false,
         "minutes": null
@@ -130,7 +132,8 @@
             "score": 3,
             "customText": null
           }
-        ]
+        ],
+        "legacySomatic": null
       }
     },
     {
@@ -316,7 +319,8 @@
         "customText": null,
         "energy": 6,
         "stress": 3,
-        "symptoms": []
+        "symptoms": [],
+        "legacySomatic": null
       }
     }
   ]

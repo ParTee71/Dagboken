@@ -23,11 +23,15 @@ data class Screening(
     val energy: Int = 0,
     /** Stress 0–10. */
     val stress: Int = 0,
-    val symptoms: List<SymptomScore> = emptyList(),
+    override val symptoms: List<SymptomScore> = emptyList(),
     override val createdAt: Instant? = null,
     val note: String? = null,
-) : Post<Screening> {
+    /** 3.x `somatiska` som inte är summan ([HasSymptoms.legacySomatic]). */
+    override val legacySomatic: Int? = null,
+) : Post<Screening>, HasSymptoms<Screening> {
     override fun withId(id: String): Screening = copy(id = id)
+
+    override fun copySymptoms(symptoms: List<SymptomScore>, legacySomatic: Int?): Screening = copy(symptoms = symptoms, legacySomatic = legacySomatic)
 }
 
 /**
@@ -46,7 +50,7 @@ data class Activity(
     val energy: Int = 0,
     /** Stress 0–10 (AKT-5). */
     val stress: Int = 0,
-    val symptoms: List<SymptomScore> = emptyList(),
+    override val symptoms: List<SymptomScore> = emptyList(),
     /** Återhämtande (AKT-3). */
     val recovering: Boolean = false,
     /** Energitjuv (AKT-3). */
@@ -55,8 +59,12 @@ data class Activity(
     val minutes: Int? = null,
     override val createdAt: Instant? = null,
     val note: String? = null,
-) : Post<Activity> {
+    /** 3.x `somatiska` som inte är summan ([HasSymptoms.legacySomatic]). */
+    override val legacySomatic: Int? = null,
+) : Post<Activity>, HasSymptoms<Activity> {
     override fun withId(id: String): Activity = copy(id = id)
+
+    override fun copySymptoms(symptoms: List<SymptomScore>, legacySomatic: Int?): Activity = copy(symptoms = symptoms, legacySomatic = legacySomatic)
 }
 
 /** `users/{uid}/events/{id}` – en hälsohändelse. Ersätter 3.x `health_events`. */
@@ -102,9 +110,13 @@ data class Checkin(
     val time: LocalTime? = null,
     /** Svårighetsgrad 0–10. */
     val severity: Int = 0,
-    val symptoms: List<SymptomScore> = emptyList(),
+    override val symptoms: List<SymptomScore> = emptyList(),
     override val createdAt: Instant? = null,
     val note: String? = null,
-) : Post<Checkin> {
+    /** 3.x `somatiska` som inte är summan ([HasSymptoms.legacySomatic]). */
+    override val legacySomatic: Int? = null,
+) : Post<Checkin>, HasSymptoms<Checkin> {
     override fun withId(id: String): Checkin = copy(id = id)
+
+    override fun copySymptoms(symptoms: List<SymptomScore>, legacySomatic: Int?): Checkin = copy(symptoms = symptoms, legacySomatic = legacySomatic)
 }

@@ -66,7 +66,6 @@ class BackupJsonConverterTest {
                 "screenings/9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b" to "symptom utan poäng",
                 "screenings/9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b" to "timestamp är inte ett giltigt ögonblick",
                 "activities/5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d" to "ett symptomnamn med kommatecken fogades ihop",
-                "activities/6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e" to "somatiska 5 skiljer sig från summan av symptompoängen 3",
                 "illnessEpisodes/8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a" to "notes-posten går före arvsfältet anteckning",
                 "illnessEpisodes/8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a/checkins/a0b1c2d3-e4f5-4a6b-8c7d-9e0f1a2b3c4d" to "ett symptomnamn med kommatecken fogades ihop",
                 "notes" to "1 anteckning(ar) med target ACTIVITY utan sin post",
@@ -291,6 +290,48 @@ class BackupJsonConverterTest {
             val option = names.first { OptionIds.of(OptionKind.SYMPTOM, it) == symptom.optionId }
             (symptom.customText?.let { "$option ($it)" } ?: option) to symptom.score
         }
+    }
+
+    @Test
+    fun `somatiska - bevaras som legacySomatic när det inte är summan, utan varning, och gäller i trenderna`() {
+        fun converted(raw: String, somatiska: Int) = assertIs<ConversionResult.Converted>(
+            BackupJsonConverter.convert(BackupJson(aktiviteter = listOf(AktivitetJson(id = "a1", aktivitet = "Promenad", symptom = raw, somatiska = somatiska))), "u"),
+        )
+        for ((raw, somatiska, expected) in listOf(Triple("a, a", 3, 3), Triple("", 4, 4), Triple("a:9,a a a:9", 2, 2), Triple("Huvudvärk:2,Yrsel:1", 3, null))) {
+            val result = converted(raw, somatiska)
+            val activity = result.data.activities.single()
+            assertEquals(expected, activity.legacySomatic, raw)
+            assertEquals(somatiska, activity.somatic, "$raw: 3.x-värdet gäller")
+            assertTrue(result.report.warnings.none { "somatiska" in it.message }, raw)
+        }
+        // Nya symptom i 4.0: 3.x-värdet gäller inte längre, summan räknas som i 3.x vid sparning – men samma symptom rör inget.
+        val activity = converted("a, a", 3).data.activities.single()
+        assertEquals(activity, activity.withSymptoms(activity.symptoms))
+        val edited = activity.withSymptoms(emptyList())
+        assertEquals(null to 0, edited.legacySomatic to edited.somatic)
+        // Negativt kan ingen 3.x-summa vara: summan gäller, med varning, inget stopp.
+        val negative = converted("Huvudvärk:2", -1)
+        assertEquals(null to 2, negative.data.activities.single().let { it.legacySomatic to it.somatic })
+        assertTrue(negative.report.warnings.any { "negativt" in it.message })
+    }
+
+    @Test
+    fun `timestamp - epok-ms som text (3x doseditorn före 1149a57) blir ögonblicket utan varning`() {
+        val result = assertIs<ConversionResult.Converted>(
+            BackupJsonConverter.convert(BackupJson(mediciner = listOf(MedicinJson(id = "m1", datum = "2026-01-15", tid = "07:00", tidpunkt = "Morgon", timestamp = "1768460400000"))), "u"),
+        )
+        assertEquals(kotlin.time.Instant.fromEpochMilliseconds(1_768_460_400_000), result.data.doses.single().createdAt)
+        assertTrue(result.report.warnings.none { "timestamp" in it.message })
+        fun dose(timestamp: String) = assertIs<ConversionResult.Converted>(
+            BackupJsonConverter.convert(BackupJson(mediciner = listOf(MedicinJson(id = "m1", datum = "2026-03-29", tid = "02:30", tidpunkt = "Natt", timestamp = timestamp))), "u"),
+        )
+        // Epok-sekunder är inget 3.x-format (hade blivit 1970): dag och klockslag gäller, med varning och form.
+        val seconds = dose("1768460400")
+        assertTrue(seconds.report.warnings.any { "timestamp är inte ett giltigt ögonblick (9999999999)" in it.message })
+        // Lokal tid utan zon går via at(): luckan vid sommartidsbytet rapporteras.
+        val local = dose("2026-03-29T02:30:00")
+        assertEquals(kotlin.time.Instant.parse("2026-03-29T01:30:00Z"), local.data.doses.single().createdAt)
+        assertTrue(local.report.warnings.any { "timestamp ligger i luckan" in it.message })
     }
 
     @Test

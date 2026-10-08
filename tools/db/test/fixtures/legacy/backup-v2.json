@@ -20,7 +20,7 @@
     },
     {
       "id": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b", "timestamp": "igår", "datum": "2026-01-14", "tid": "21:50",
-      "aktivitet": "Kvällskoll", "energy": 2, "stress": 7, "somatiska": 0, "symptom": "Huvudvärk,Yrsel",
+      "aktivitet": "Kvällskoll", "energy": 2, "stress": 7, "somatiska": 2, "symptom": "Huvudvärk,Yrsel",
       "aterhamtande": false, "energitjuv": false, "type": "screening", "spentTime": null
     },
     {
@@ -111,7 +111,7 @@
     },
     {
       "id": "b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d5e", "episodId": "9e0f1a2b-3c4d-4e5f-8a6b-7c8d9e0f1a2b", "datum": "2026-01-20", "tid": "08:00",
-      "svarighetsgrad": 7, "symptom": "", "somatiska": 0, "anteckning": "", "timestamp": 0
+      "svarighetsgrad": 7, "symptom": "", "somatiska": 4, "anteckning": "", "timestamp": 0
     }
   ],
   "handelser": [

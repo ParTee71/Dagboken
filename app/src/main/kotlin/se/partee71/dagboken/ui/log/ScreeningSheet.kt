@@ -72,7 +72,7 @@ class ScreeningSheet(
 
     fun changeStress(stress: Int) = sheet.update(STRESS) { it.copy(stress = stress) }
 
-    fun changeSymptoms(symptoms: List<SymptomScore>) = sheet.update(SYMPTOMS) { it.copy(symptoms = symptoms) }
+    fun changeSymptoms(symptoms: List<SymptomScore>) = sheet.update(SYMPTOMS) { it.withSymptoms(symptoms) }
 
     /** SCR-1: ny logg som den är, ändrad fältvis (`ScreeningRepository.save`). */
     fun save() = sheet.save(screenings::save)

@@ -356,6 +356,8 @@ const invalid = {
     ['symptoms', [{ score: 3, customText: null }], 'optionId saknas'],
     ['symptoms', [{ optionId: 'x', customText: null }], 'poäng saknas'],
     ['symptoms', [{ optionId: 'x', score: '3', customText: null }], 'poäng som text'],
+    ['legacySomatic', -1, '3.x-somatiska under 0'],
+    ['legacySomatic', '3', '3.x-somatiska som text'],
     ['symptoms', [{ optionId: 7, score: 3, customText: null }], 'optionId som tal'],
     ['symptoms', [{ optionId: 'x', score: 3, customText: 5 }], 'fritext som tal'],
     ['symptoms', Array.from({ length: 10 }, (_, i) => ({ optionId: `s${i}`, score: i === 9 ? 11 : 1, customText: null })), 'tionde symptomet ogiltigt'],
@@ -421,6 +423,7 @@ test('gränsvärdena i intervallen godtas', async () => {
     ['screenings', 'symptoms', Array.from({ length: 50 }, (_, i) => ({ optionId: `s${i}`, score: 10, customText: `Fritext ${i}` }))],
     ['activities', 'symptoms', Array.from({ length: 50 }, (_, i) => ({ optionId: `s${i}`, score: 0, customText: null }))],
     ['checkins', 'symptoms', Array.from({ length: 50 }, (_, i) => ({ optionId: `s${i}`, score: 5, customText: null }))],
+    ['screenings', 'legacySomatic', 0], ['activities', 'legacySomatic', 40], ['checkins', 'legacySomatic', null],
     // Ett symptom utan poäng (från 3.x, DAT-6): score null godtas.
     ['screenings', 'symptoms', [{ optionId: 'x', score: null, customText: null }]],
     ['checkins', 'symptoms', [{ optionId: 'x', score: 3, customText: null }, { optionId: 'y', score: null, customText: null }]],

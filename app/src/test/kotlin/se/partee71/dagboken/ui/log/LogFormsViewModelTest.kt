@@ -249,6 +249,19 @@ class LogFormsViewModelTest {
     }
 
     @Test
+    fun `samma symptom igen gör inte formuläret ändrat och behåller 3x-somatiska (DAT-6)`() = runTest(main.dispatcher) {
+        val stored = Activity("a1", today, LocalTime(9, 0), optionId = "walk", symptoms = listOf(SymptomScore("h", null)), legacySomatic = 3)
+        factory.activities().upsert(stored).getOrThrow()
+        val vm = activityForm(id = "a1")
+        vm.change { it.withSymptoms(it.symptoms.toList()) }
+        assertFalse(vm.editor.state.value.isDirty)
+        assertEquals(3, vm.value.somatic)
+        vm.change { it.withSymptoms(listOf(SymptomScore("h", 2))) }
+        assertTrue(vm.editor.state.value.isDirty)
+        assertEquals(null to 2, vm.value.legacySomatic to vm.value.somatic)
+    }
+
+    @Test
     fun `ett sparfel visas och formuläret står kvar (NFR-12)`() = runTest(main.dispatcher) {
         val failing = object : EventRepository by events {
             override suspend fun save(loaded: Event?, edited: Event): Result<Unit> = Result.failure(DataError.Offline)

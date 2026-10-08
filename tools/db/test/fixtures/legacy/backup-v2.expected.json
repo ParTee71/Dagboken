@@ -38,6 +38,7 @@
             "customText": "Stel nacke"
           }
         ],
+        "legacySomatic": null,
         "recovering": true,
         "drain": false,
         "minutes": 45
@@ -63,6 +64,7 @@
             "customText": null
           }
         ],
+        "legacySomatic": 5,
         "recovering": false,
         "drain": true,
         "minutes": null
@@ -215,7 +217,8 @@
             "score": 2,
             "customText": "Ont i halsen, feber"
           }
-        ]
+        ],
+        "legacySomatic": null
       }
     },
     {
@@ -236,7 +239,8 @@
         "createdAt": null,
         "note": "Ljuskänslig",
         "severity": 7,
-        "symptoms": []
+        "symptoms": [],
+        "legacySomatic": 4
       }
     },
     {
@@ -520,7 +524,8 @@
             "score": 2,
             "customText": "yrsel, kl 14:00"
           }
-        ]
+        ],
+        "legacySomatic": null
       }
     },
     {
@@ -542,7 +547,8 @@
             "score": 2,
             "customText": null
           }
-        ]
+        ],
+        "legacySomatic": null
       }
     },
     {
@@ -569,7 +575,8 @@
             "score": null,
             "customText": null
           }
-        ]
+        ],
+        "legacySomatic": 2
       }
     },
     {

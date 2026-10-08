@@ -7,7 +7,6 @@ import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Screening
-import se.partee71.dagboken.core.model.somatic
 
 // Trenders serier i gruppen Mående (TRD-1, TRD-2, TRD-8, TRD-21) – portade från 3.x `computeCategoryDataFor`
 // i `TrenderViewModel`, med en punkt per dag i periodens x-axel (`null` = lucka, aldrig en nolla, TRD-15).
@@ -38,8 +37,8 @@ enum class StressSeries { STRESS, SOMATIC, RECOVERING, DRAIN }
 private class MoodEntry(val date: LocalDate?, val stress: Int, val somatic: Int, val recovering: Boolean, val drain: Boolean)
 
 private fun moodEntries(screenings: List<Screening>, activities: List<Activity>): List<MoodEntry> =
-    screenings.map { MoodEntry(it.date, it.stress, it.symptoms.somatic, recovering = false, drain = false) } +
-        activities.map { MoodEntry(it.date, it.stress, it.symptoms.somatic, it.recovering, it.drain) }
+    screenings.map { MoodEntry(it.date, it.stress, it.somatic, recovering = false, drain = false) } +
+        activities.map { MoodEntry(it.date, it.stress, it.somatic, it.recovering, it.drain) }
 
 /**
  * Stress och belastning (TRD-1), som 3.x: dagens snitt av stress och av symptompoängens summa (`somatic`,

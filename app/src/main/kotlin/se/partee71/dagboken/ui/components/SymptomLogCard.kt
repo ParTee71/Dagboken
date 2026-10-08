@@ -35,11 +35,13 @@ fun SymptomLogCard(
     modifier: Modifier = Modifier,
     otherOptionId: String? = null,
     initiallyExpanded: Boolean = false,
+    /** Summan som visas: postens `somatic` (med ett bevarat 3.x-värde, DAT-6); standard summan av [scores]. */
+    somatic: Int = scores.somatic,
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyExpanded || scores.isNotEmpty()) }
     val sorted = remember(options) { options.sortedWith(compareByDescending<Option> { it.favorite }.thenBy { it.sortOrder }) }
     val names = remember(options) { options.associate { it.id to it.name } }
-    val sum = stringResource(R.string.symptom_sum_format, scores.somatic)
+    val sum = stringResource(R.string.symptom_sum_format, somatic)
     AppCard(modifier) {
         Foldout(stringResource(R.string.symptoms), expanded, { expanded = !expanded }, summary = sum.takeIf { scores.isNotEmpty() }) {
             ChipRow {

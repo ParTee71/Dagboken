@@ -85,7 +85,8 @@ interface IllnessRepository {
      * Formulärets läsning, sparning och radering av incheckningarna under episoden [episodeId] (SJ-2, SJ-11, HIST-5).
      * En ny incheckning skrivs bara när episoden finns (som rules `existsAfter`): saknas den blir det
      * [DataError.NotFound] och ingenting skrivs. En ändrad behåller `id` och `createdAt` och skriver bara ändrade
-     * fält; summan av symptomen (`somatic`) lagras inte utan räknas ur symptomen (SJ-11, DAT-6).
+     * fält; summan av symptomen (`somatic`) räknas ur symptomen – bara ett bevarat 3.x-värde som inte är summan lagras,
+     * som `legacySomatic`, och gäller tills symptomen ändras (SJ-11, DAT-6).
      */
     fun checkins(episodeId: String): EntryStore<Checkin>
 
