@@ -92,8 +92,12 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           FIREBASE_RULES_DEPLOYER: ${{ secrets.FIREBASE_RULES_DEPLOYER }}
+          PUBLISH: ${{ steps.version.outputs.publish }}
         run: |
-          for name in SIGNING_KEYSTORE_BASE64 SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD FIREBASE_RULES_DEPLOYER; do
+          # Rules deployas bara av publish – ett testbygge utan publicering behöver bara signeringen.
+          names="SIGNING_KEYSTORE_BASE64 SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD"
+          if [ "$PUBLISH" = "true" ]; then names="$names FIREBASE_RULES_DEPLOYER"; fi
+          for name in $names; do
             if [ -z "${!name}" ]; then echo "::error::Secret $name saknas – krävs för en release."; exit 1; fi
           done
 
