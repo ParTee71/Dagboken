@@ -31,6 +31,8 @@ class GoogleAuthRepository @Inject constructor(
     private val credentials = CredentialManager.create(context)
     private val serverClientId = context.getString(R.string.default_web_client_id)
 
+    override val currentUid: String? get() = auth.currentUser?.uid
+
     override val authState: Flow<AuthUser?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { trySend(it.currentUser?.toAuthUser()) }
         auth.addAuthStateListener(listener)

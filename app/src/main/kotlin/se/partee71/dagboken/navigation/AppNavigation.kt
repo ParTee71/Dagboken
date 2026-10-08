@@ -59,7 +59,8 @@ enum class RootSheet { Account, Log }
  * Appens innehåll efter inloggning: fyra flikar med egna back stackar (NAV-8, NAV-11), synkläget
  * (NFR-1), inställningsarket bakom avataren och loggmenyn bakom plusknappen. [account] är den
  * inloggade (namn, e-post och foto i avataren och arket – bara i minnet, AUTH-3); [onSignOut] loggar ut. [launch]
- * är vad en tryckt påminnelse ska öppna ([open]); när det är gjort anropas [onLaunchHandled].
+ * är vad en tryckt påminnelse ska öppna ([open]); när det är gjort anropas [onLaunchHandled]. [openFirst] öppnas en
+ * gång ovanpå första fliken – Export och import när migreringen lämnats med "Importera backup" (OMB-5).
  */
 @Composable
 fun AppNavigation(
@@ -68,6 +69,7 @@ fun AppNavigation(
     modifier: Modifier = Modifier,
     launch: ReminderLaunch? = null,
     onLaunchHandled: () -> Unit = {},
+    openFirst: AppKey? = null,
     syncViewModel: SyncViewModel = hiltViewModel(),
     logViewModel: LogViewModel = hiltViewModel(),
 ) {
@@ -106,6 +108,12 @@ fun AppNavigation(
         onLog = { choice -> backStack.log(choice, logViewModel.logDay(onToday = backStack.currentTab == TodayKey), logViewModel::onEvent) },
     )
     LogSheets(logViewModel, onOpen = { target -> backStack.push(target.key) })
+    var openedFirst by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(openFirst) {
+        if (openFirst == null || openedFirst) return@LaunchedEffect
+        openedFirst = true
+        backStack.push(openFirst)
+    }
     LaunchedEffect(launch) {
         val target = launch ?: return@LaunchedEffect
         sheet = null

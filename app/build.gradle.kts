@@ -76,6 +76,8 @@ android {
         // Kontraktstester som körs både i JVM (mot fakes) och på enhet (mot Firebase-emulatorn).
         getByName("test").kotlin.directories += "src/sharedTest/kotlin"
         getByName("androidTest").kotlin.directories += "src/sharedTest/kotlin"
+        // Legacy-läsarens instrumenttest bygger en riktig v11-fil ur samma syntetiska fixturer som :core (OMB-2).
+        getByName("androidTest").assets.directories += "../tools/db/test/fixtures/legacy"
     }
 
     buildFeatures {
@@ -130,6 +132,8 @@ dependencies {
     implementation(libs.coil.compose) // profilfotot i AccountAvatar (AUTH-3)
     implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.health.connect) // klockdatan, read-only (TP-10, HLS-1), bara i data/health
+    implementation(libs.androidx.datastore.preferences) // enhetslokalt tillstånd (TP-4) och 3.x-filen dagboken_prefs, read-only (OMB-2)
+    implementation(libs.androidx.work.runtime) // bara för att avboka 3.x:s backupjobb vid första starten (OMB-2); inga egna workers (TP-7)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)

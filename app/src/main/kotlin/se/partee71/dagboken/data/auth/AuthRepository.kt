@@ -18,6 +18,9 @@ interface AuthRepository {
     /** Aktuell användare vid varje ändring; `null` = utloggad. */
     val authState: Flow<AuthUser?>
 
+    /** Den inloggades uid just nu, synkront ur Firebase Auths bevarade session – 3.x-sessionen vid första starten (OMB-2). */
+    val currentUid: String?
+
     /** Visar Googles kontoväljare – kräver aktivitetens kontext. Avbrott ger `DataError.Cancelled`. */
     suspend fun signInWithGoogle(activityContext: Context): Result<AuthUser>
 

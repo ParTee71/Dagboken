@@ -64,6 +64,13 @@ data class BackupJson(
             throw IllegalArgumentException(NOT_A_BACKUP)
         }
 
+        /**
+         * Skriver en backupfil som 3.x gjorde (`json.encodeToString(BackupJson.serializer(), …)` med
+         * `ignoreUnknownKeys`, utan standardvärden): 3.27:s "Välj fil" läser den. Kopian av 3.x-datan på
+         * migreringsskärmen (OMB-7) går den här vägen.
+         */
+        fun encode(backup: BackupJson): String = json.encodeToString(serializer(), backup)
+
         private const val NOT_A_BACKUP = "Filen är inte en 3.x-backup (BackupJson) – innehållet visas inte"
     }
 }

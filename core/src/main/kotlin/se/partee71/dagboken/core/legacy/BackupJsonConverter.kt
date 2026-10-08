@@ -71,7 +71,10 @@ object BackupJsonConverter {
     fun convert(backup: BackupJson, uid: String): ConversionResult = Conversion(backup, uid).run()
 
     /** Backupfilens `createdAt` som ögonblick för exportfilens `exportedAt`; saknas den: epoken (aldrig "nu"). */
-    fun exportedAt(backup: BackupJson): Instant = LegacyTime.backupCreatedAt(backup.createdAt) ?: Instant.fromEpochSeconds(0)
+    fun exportedAt(backup: BackupJson): Instant = sourceCreatedAt(backup) ?: Instant.fromEpochSeconds(0)
+
+    /** Backupfilens `createdAt` som ögonblick (migreringsmarkörens `sourceCreatedAt`); `null` när den saknas eller är ogiltig. */
+    fun sourceCreatedAt(backup: BackupJson): Instant? = LegacyTime.backupCreatedAt(backup.createdAt)
 }
 
 private class Conversion(private val backup: BackupJson, private val uid: String) {
@@ -319,6 +322,10 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         val time = clock(path, "tid", m.tid)
         val takenTime = m.tagenTid?.takeIf { it.isNotBlank() }?.let { clock(path, "tagenTid", it) }
         if (takenTime != null && date == null) problem(path, "tagenTid", "kan inte placeras på en dag: datum saknas")
+        // En tagningstid långt före det schemalagda klockslaget är troligen fel dag i 3.x; värdet bevaras, men syns i rapporten.
+        if (takenTime != null && time != null && time.toSecondOfDay() - takenTime.toSecondOfDay() > TAKEN_EARLY_SECONDS) {
+            warn(path, "tagenTid ligger mer än ${TAKEN_EARLY_SECONDS / SECONDS_PER_HOUR} timmar före tid – bevaras som den är")
+        }
         return Dose(
             id = m.id,
             date = date,
@@ -538,6 +545,8 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     private companion object {
         const val SCHEMA_VERSION = "schemaVersion"
         val SETTINGS_PATH = "${CollectionNames.SETTINGS}/${Settings.ID}"
+        const val SECONDS_PER_HOUR = 3600
+        const val TAKEN_EARLY_SECONDS = 12 * SECONDS_PER_HOUR
     }
 }
 
@@ -622,9 +631,9 @@ private class NoteIndex(notes: List<NoteJson>, private val warn: (String, String
 }
 
 /** Ett `target` i rapporten: 3.x-konstanten när den är känd, annars bara längden – det kan vara vad som helst. */
-private fun targetLabel(target: String): String =
+internal fun targetLabel(target: String): String =
     if (target in LegacyDefaults.NOTE_TARGETS) target else "okänt target (${target.length} tecken)"
 
 /** Ett post-id i rapporten: id:t när det duger som dokument-id (UUID eller `recept_…`), annars bara längden. */
-private fun idLabel(id: String): String =
+internal fun idLabel(id: String): String =
     if (DocumentRules.isValidId(id)) id else "(ogiltigt id, ${id.length} tecken)"

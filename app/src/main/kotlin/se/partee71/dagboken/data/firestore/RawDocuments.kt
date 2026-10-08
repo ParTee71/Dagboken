@@ -4,7 +4,8 @@ import se.partee71.dagboken.core.schema.Doc
 
 /**
  * Dokument som de ligger lagrade, med tidsstämplar som `Instant` – för exporten, som ska ta med
- * allt, även fält som appen inte känner till, och därför aldrig går via codecarna.
+ * allt, även fält som appen inte känner till, och därför aldrig går via codecarna. Alltid från
+ * servern; utan nät kastas Firestores fel (anroparen mappar med `firestoreError`).
  */
 interface RawDocuments {
     /** Väntar tills enhetens egna skrivningar nått servern, så att de kommer med i det som läses. */
@@ -15,4 +16,16 @@ interface RawDocuments {
 
     /** Dokumenten i samlingen [path], per ID. */
     suspend fun collection(path: String): Map<String, Doc>
+
+    /**
+     * Dokumenten på [paths] som finns på servern, per sökväg – lästa direkt på id i grupper om högst
+     * [ID_GROUP] (`documentId() in …`) och parallellt, aldrig hela samlingar. Migreringens läge före
+     * skrivningen och verifieringen efter den (OMB-2, OMB-7).
+     */
+    suspend fun documents(paths: Collection<String>): Map<String, Doc>
+
+    companion object {
+        /** Firestores gräns för antal värden i en `in`-fråga. */
+        const val ID_GROUP = 30
+    }
 }

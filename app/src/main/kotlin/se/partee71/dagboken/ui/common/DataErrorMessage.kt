@@ -14,6 +14,7 @@ fun DataError.toMessage(): Int = when (this) {
     DataError.SignInRejected -> R.string.error_sign_in_rejected
     DataError.NotSignedIn -> R.string.error_not_signed_in
     DataError.NotFound -> R.string.error_not_found
+    DataError.QuotaExceeded -> R.string.error_quota_exceeded
     DataError.Unknown -> R.string.error_unknown
 }
 

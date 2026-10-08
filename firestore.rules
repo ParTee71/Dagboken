@@ -77,6 +77,7 @@ service cloud.firestore {
     function repeats() { return ['daily', 'weekdays', 'weekends', 'custom', 'interval']; }
     function themeModes() { return ['light', 'dark', 'auto']; }
     function sexes() { return ['male', 'female', 'unspecified']; }
+    function legacySources() { return ['room', 'drive', 'json']; }
 
     // Listor av objekt. Rules kan inte loopa och räknar högst 1 000 uttryck per skrivning, så hela
     // listan kontrolleras som lista med tak, men elementen bara upp till det tionde (nästlat, så att
@@ -155,6 +156,29 @@ service cloud.firestore {
     // 3.x-värden som bara bevaras (Settings.legacy): valfria, men med rätt typ när de finns.
     function isLegacy(m) {
       return m is map && nullOrBool(m.get('dynamicColor', null)) && nullOrLong(m.get('sheetsConfig', null));
+    }
+
+    // Migreringsmarkören users/{uid}.legacyMigration (OMB-2): exakt fälten när (serverns tid – aldrig klientens),
+    // varifrån, källans tid, appversion och antal per samling – rapportens "före", bara kända samlingar, heltal.
+    function countCollections() { return ['settings', 'options', 'prescriptions', 'prnMedicines', 'doses', 'screenings', 'activities', 'events', 'illnessEpisodes', 'checkins']; }
+    function isCounts(c) {
+      return c is map && c.keys().hasOnly(countCollections())
+        && (!('settings' in c) || c.settings is int) && (!('options' in c) || c.options is int)
+        && (!('prescriptions' in c) || c.prescriptions is int) && (!('prnMedicines' in c) || c.prnMedicines is int)
+        && (!('doses' in c) || c.doses is int) && (!('screenings' in c) || c.screenings is int)
+        && (!('activities' in c) || c.activities is int) && (!('events' in c) || c.events is int)
+        && (!('illnessEpisodes' in c) || c.illnessEpisodes is int) && (!('checkins' in c) || c.checkins is int);
+    }
+    function isLegacyMigration(m) {
+      return m is map && m.keys().hasOnly(['completedAt', 'source', 'sourceCreatedAt', 'appVersion', 'counts'])
+        && m.get('completedAt', null) is timestamp && m.completedAt == request.time
+        && m.get('source', null) in legacySources()
+        && nullOrTime(m.get('sourceCreatedAt', null)) && nullOrShort(m.get('appVersion', null))
+        && (none(m, 'counts') || isCounts(m.counts));
+    }
+    // Markören finns inte sedan tidigare – den sätts en gång och ändras eller tas aldrig bort (OMB-7).
+    function noLegacyMigrationYet() {
+      return resource == null || resource.data.get('legacyMigration', null) == null;
     }
 
     // Den lagrade versionen; saknas den eller är den inget heltal gäller den första (BCK-15).
@@ -284,12 +308,14 @@ service cloud.firestore {
         && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms));
     }
 
-    // Användardokumentet: schemaVersion är ett heltal från 1 (BCK-15).
+    // Användardokumentet: schemaVersion är ett heltal från 1 (BCK-15); migreringsmarkören sätts en gång (OMB-7).
     function validUser(d) {
+      let w = written();
       return fieldCount(d)
         && d.schemaVersion is int
         && d.schemaVersion >= 1
-        && (!('createdAt' in written()) || nullOrTime(d.get('createdAt', null)));
+        && (!('createdAt' in w) || nullOrTime(d.get('createdAt', null)))
+        && (!('legacyMigration' in w) || (noLegacyMigrationYet() && isLegacyMigration(d.legacyMigration)));
     }
 
     match /users/{uid} {

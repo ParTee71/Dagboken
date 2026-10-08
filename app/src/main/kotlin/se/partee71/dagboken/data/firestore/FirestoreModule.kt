@@ -35,6 +35,10 @@ abstract class FirestoreModule {
     @Binds
     abstract fun rawDocuments(documents: FirestoreRawDocuments): RawDocuments
 
+    /** Migreringen från 3.x skriver konverterarens dokument rått (OMB-2). */
+    @Binds
+    abstract fun rawWriter(writer: FirestoreRawWriter): RawDocumentWriter
+
     /** Utloggningen tömmer cachen (AUTH-6). */
     @Binds
     abstract fun localCache(instance: FirestoreInstance): LocalCacheCleaner

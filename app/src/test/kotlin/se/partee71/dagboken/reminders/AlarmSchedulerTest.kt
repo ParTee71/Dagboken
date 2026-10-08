@@ -3,6 +3,7 @@ package se.partee71.dagboken.reminders
 import android.app.PendingIntent
 import android.content.Intent
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -32,6 +33,7 @@ import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.data.legacy.LegacyMigrationPause
 import se.partee71.dagboken.data.auth.AuthRepository
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.common.DataError
@@ -310,8 +312,46 @@ class AlarmSchedulerTest {
 
     // ── ReminderSync (NOT-7, NOT-15, AUTH-6) ───────────────────────────────────
 
+    private val migrationPause = LegacyMigrationPause()
+
+    @Test
+    fun `kallstart för en migrerad användare avbokar inget - pausen är av tills en flytt pågår (OMB-2)`() = runTest {
+        f.enable(slots = setOf(Slot.LUNCH))
+        assertFalse(migrationPause.paused.value, "startvärdet är av")
+        val job = launch { sync(f.scheduler()).run() }
+        runCurrent()
+        assertTrue(Reminder.Med(Slot.LUNCH) in f.alarms(), "larmen läggs som vanligt")
+        job.cancel()
+    }
+
     private fun sync(scheduler: AlarmScheduler) =
-        ReminderSync(f.user, f.settings, scheduler, NotificationHelper(f.context!!), CoroutineScope(Dispatchers.Unconfined))
+        ReminderSync(f.user, f.settings, scheduler, NotificationHelper(f.context!!), migrationPause, CoroutineScope(Dispatchers.Unconfined))
+
+    @Test
+    fun `synken schemalägger inget medan migreringens skrivning pågår men avbokar aldrig, och lägger larmen när pausen släpps (OMB-2)`() = runTest {
+        f.enable(slots = setOf(Slot.LUNCH))
+        migrationPause.set(true)
+        val job = launch { sync(f.scheduler()).run() }
+        runCurrent()
+        assertEquals(emptyMap(), f.alarms(), "inget nytt schemaläggs medan skrivningen pågår")
+
+        migrationPause.set(false)
+        runCurrent()
+        assertEquals(setOf(Reminder.Med(Slot.LUNCH), Reminder.PeriodEnd), f.alarms().keys, "när pausen släpps läggs larmen av synken själv")
+
+        // En ny skrivning pågår: befintliga larm rörs inte, och en ändring i inställningarna schemaläggs inte förrän pausen släpps.
+        migrationPause.set(true)
+        runCurrent()
+        assertEquals(setOf(Reminder.Med(Slot.LUNCH), Reminder.PeriodEnd), f.alarms().keys, "pausen avbokar aldrig")
+        f.enable(slots = setOf(Slot.NIGHT))
+        runCurrent()
+        assertEquals(setOf(Reminder.Med(Slot.LUNCH), Reminder.PeriodEnd), f.alarms().keys, "ingen omschemaläggning under pausen")
+
+        migrationPause.set(false)
+        runCurrent()
+        assertEquals(setOf(Reminder.Med(Slot.NIGHT), Reminder.PeriodEnd), f.alarms().keys, "efteråt gäller inställningarna som vanligt")
+        job.cancel()
+    }
 
     @Test
     fun `synken lägger larmen vid start och igen när cachen ändras - också från servern`() = runTest {

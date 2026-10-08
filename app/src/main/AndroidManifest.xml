@@ -69,6 +69,19 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- WorkManager initieras på begäran (DagbokenApplication är Configuration.Provider): bara avbokningen av 3.x:s
+             backupjobb använder den (OMB-2), så den automatiska initieraren tas bort. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
         <!-- Påminnelserna (TP-8, NOT-2…NOT-14): ingen mottagare är exporterad. Larm och notisåtgärder når dem via
              appens egna explicita, oföränderliga PendingIntents; systemets broadcasts nedan är skyddade och
              levereras ändå (skill android-intent-security). -->
