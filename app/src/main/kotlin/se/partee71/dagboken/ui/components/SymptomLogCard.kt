@@ -61,7 +61,8 @@ fun SymptomLogCard(
                     }
                     ValueSlider(
                         label = symptom.customText.nonBlank() ?: names[symptom.optionId].orEmpty(),
-                        value = symptom.score,
+                        // Utan poäng (från 3.x) visas 0 tills reglaget flyttas.
+                        value = symptom.score ?: 0,
                         onValueChange = { update(symptom.copy(score = it)) },
                         higherIsBetter = false,
                     )

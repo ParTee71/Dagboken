@@ -165,9 +165,10 @@ class DocumentRulesTest {
     @Test
     fun `de nästlade objekten är rules - symptom, doshöjning, schema, period, tema, påminnelser, profil, legacy`() {
         val symptom = functions.getValue("isSymptom")
-        assertTrue("s.optionId is string" in symptom && "s.score is int && s.score >= ${DocumentRules.SCORE.first} && s.score <= ${DocumentRules.SCORE.last}" in symptom)
+        assertTrue("s.optionId is string" in symptom && "(s.score == null || (s.score is int && s.score >= ${DocumentRules.SCORE.first} && s.score <= ${DocumentRules.SCORE.last}))" in symptom)
         assertTrue("(s.customText == null || s.customText is string)" in symptom)
-        assertEquals(setOf("optionId", "score"), DocumentRules.SYMPTOM.required)
+        assertEquals(setOf("optionId"), DocumentRules.SYMPTOM.required)
+        assertEquals(setOf("score"), DocumentRules.SYMPTOM.nullable, "score läses utan get i rules: nyckeln krävs, null godtas")
         val boost = functions.getValue("isBoost")
         assertTrue("b.id is string" in boost && "(b.start == null || isDate(b.start))" in boost && "(b.end == null || isDate(b.end))" in boost && "b.dose is string && b.unit is string" in boost)
         assertEquals(setOf("id", "dose", "unit"), DocumentRules.BOOST.required)

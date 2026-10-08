@@ -107,14 +107,17 @@ internal fun WriteFailedCard(title: String, message: String, batch: Int?, code: 
     ProblemCard(title, listOf(message, codeLine) + listOfNotNull(footer))
 }
 
-/** Konverterarens stopp (OMB-3): rapporten (entitet, antal, fält, skäl – aldrig innehåll) och "Inget har skrivits". */
+/**
+ * Konverterarens stopp (OMB-3): rapporten (entitet, antal, fält, skäl – aldrig innehåll) och "Inget har skrivits". **Alla**
+ * rader visas – en per typ av fynd ([reportOf]), inget "… och N till" som döljer en typ.
+ */
 @Composable
 internal fun StoppedCard(title: String, report: List<ReportLine>) {
     val lines = report.map { line ->
         val entity = MigrationEntity.of(line.collection)?.let { stringResource(it.label) } ?: line.collection
         stringResource(R.string.migration_report_line, entity, line.count, line.field, line.reason)
     }
-    ProblemCard(title, listOf(stringResource(R.string.migration_report)) + limited(lines) + stringResource(R.string.migration_nothing_written))
+    ProblemCard(title, listOf(stringResource(R.string.migration_report)) + lines + stringResource(R.string.migration_nothing_written))
 }
 
 /** Varningarna i en granskning (t.ex. anteckningar utan sin post): antal och de första raderna. */

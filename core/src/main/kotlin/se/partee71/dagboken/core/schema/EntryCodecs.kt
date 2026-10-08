@@ -28,9 +28,12 @@ internal fun entryFields(
     note: String?,
 ): Doc = mapOf(DATE to date.encodeDate(), TIME to time.encodeTime(), CREATED_AT to createdAt, NOTE to note)
 
-/** `symptoms: [{optionId, score, customText}]` (DAT-6), i lagrad ordning; element som inte är objekt hoppas över. */
+/**
+ * `symptoms: [{optionId, score, customText}]` (DAT-6), i lagrad ordning; element som inte är objekt hoppas över. `score`
+ * lagrat som `null` = utan poäng (från 3.x); saknad eller trasig poäng läses som 0, som förut.
+ */
 internal fun Doc.symptoms(): List<SymptomScore> = docs(SYMPTOMS).map {
-    SymptomScore(optionId = it.string("optionId"), score = it.int("score"), customText = it.stringOrNull("customText"))
+    SymptomScore(optionId = it.string("optionId"), score = it.intKeepingNull("score"), customText = it.stringOrNull("customText"))
 }
 
 internal fun List<SymptomScore>.encodeSymptoms(): List<Doc> =

@@ -176,7 +176,12 @@ ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här ä
    id vid ny import, så att en upprepad import inte dubblerar.
 4. **Validera, kapa aldrig.** Konverteraren validerar varje dokument mot `DocumentRules` (= rules,
    `DocumentRulesTest`) och stoppar med en rapport över alla fel utan innehåll – kapar, avrundar eller hoppar
-   aldrig över ett värde. Valen utanför paritetstabellen (tider och sommartid, anteckningar utan post,
+   aldrig över ett värde. **Ett stopp ska bara träffa det som verkligen saknar plats.** Ett värde som 3.x själv
+   inte kunde läsa (och därför hoppade över eller ersatte) läses ur 3.x-koden på branchen `legacy` innan det
+   blir ett stopp: det som i 3.x betyder "ej satt" mappas till saknat, det som går att bevara bevaras (och
+   modellen utökas vid behov, hela datakedjan), och en fallback är motiverad och ger en varning med värdets
+   form, aldrig innehåll. Exempel: symptomnamn med kommatecken och delar utan poäng (`score: null`), `spentTime`
+   0 på en screening, `skapad` som inte är ett datum (OMB-3). Stopprapporten visar alla typer av fynd. Valen utanför paritetstabellen (tider och sommartid, anteckningar utan post,
    alternativ, symptomsträngen, inställningar) och grinden OMB-4 står i ARKITEKTUR.md → Migrering, punkt 1
    och 3 – ändra dem där först.
 5. **Bevis före användning:** fixturtestet (OMB-3), rundturen mot emulatorn (BCK-16) och grinden
@@ -187,8 +192,11 @@ ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här ä
    `users/{uid}.legacyMigration` (en gång, rules hindrar ändring och radering) och flaggan på enheten.
    Startkontrollen frågar servern efter markören före flaggan.
 7. **Kopian är obligatorisk** (OMB-8): ingen skrivning förrän 3.x-datan sparats som 3.x-backupfil och
-   verifierats (parse med `BackupJson.parse`, antal per entitet, konverteraren utan stopp, samma dokument) för
-   Room-filen med just den kontrollsumman. Filen ska läsas av 3.27.0 – `Backup3xCompatibilityTest`.
+   verifierats (parse med `BackupJson.parse`, antal per entitet mot Room och, med en plan, exakt planens dokument) för
+   Room-filen med just den kontrollsumman och dagens kontrollversion. Vid ett stopp finns ingen plan: kopian kan ändå
+   sparas (samma kort i Stopp-läget) och kontrolleras då som 3.x-fil, så att 3.x-datan aldrig hänger på att 4.0 kan
+   läsa den; "Flytta" kräver båda. Filen ska läsas av
+   3.27.0 – `Backup3xCompatibilityTest`.
 8. **Omkörning utan dubbletter och utan att skriva över 4.0-data** (OMB-7): målens läge läses först på id och ställs
    mot liggaren (egen fil per konto: `P`/`W`/`V`/`M sökväg hash`; P före batchens commit och W efter kvittot, P ersätter
    aldrig V/M – servern = P-hashen betyder att skrivningen landade; sista W/V/M-raden per sökväg gäller;
@@ -221,7 +229,7 @@ ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här ä
 - **`Timestamp` vs `Long` vs ISO-sträng:** datum lagras som ISO-sträng (`yyyy-MM-dd`) och
   klockslag som `HH:mm` (DAT-2), även dosens `plannedTime`; `Timestamp` bara för ögonblick
   (`createdAt`, `updatedAt`, dosens `takenAt`). 3.x-tider (`timestamp` som ISO-text eller epok-ms,
-  `tagenTid` som `HH:mm` på dosens dag, receptets `skapad` som datum) konverteras medvetet – tidszonen
+  `tagenTid` som `HH:mm` på dosens dag, receptets `skapad` som datum – eller ögonblick i importerad data) konverteras medvetet – tidszonen
   är `Europe/Stockholm` om inget annat sägs, och konverterarens test täcker sommartidsbytet.
   `tools/db` serialiserar `Timestamp` som `{ "__ts": iso }`.
 - **`null` vs saknat fält:** codecen skriver alla kända fält, även `null`, och `decode`

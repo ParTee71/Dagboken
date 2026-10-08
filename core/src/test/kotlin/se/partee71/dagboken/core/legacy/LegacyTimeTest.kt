@@ -72,11 +72,20 @@ class LegacyTimeTest {
 
     @Test
     fun `backupfilens createdAt - 3x lokal tid utan zon tolkas i Stockholm, ISO-ögonblick godtas, annat blir null`() {
-        assertEquals(Instant.parse("2026-01-15T20:00:00Z"), LegacyTime.backupCreatedAt("2026-01-15T21:00:00"))
-        assertEquals(Instant.parse("2026-07-15T19:00:00.500Z"), LegacyTime.backupCreatedAt("2026-07-15T21:00:00.5"))
-        assertEquals(Instant.parse("2026-01-15T21:00:00Z"), LegacyTime.backupCreatedAt("2026-01-15T21:00:00Z"))
-        assertNull(LegacyTime.backupCreatedAt(""))
-        assertNull(LegacyTime.backupCreatedAt("2026-01-15"))
+        assertEquals(Instant.parse("2026-01-15T20:00:00Z"), LegacyTime.moment("2026-01-15T21:00:00"))
+        assertEquals(Instant.parse("2026-07-15T19:00:00.500Z"), LegacyTime.moment("2026-07-15T21:00:00.5"))
+        assertEquals(Instant.parse("2026-01-15T21:00:00Z"), LegacyTime.moment("2026-01-15T21:00:00Z"))
+        assertNull(LegacyTime.moment(""))
+        assertNull(LegacyTime.moment("2026-01-15"))
+        assertEquals(Instant.parse("2026-01-15T20:00:00Z"), LegacyTime.moment("2026-01-15 21:00:00"), "mellanslag i stället för T")
         assertEquals(Instant.fromEpochSeconds(0), BackupJsonConverter.exportedAt(BackupJson(createdAt = "")))
+    }
+
+    @Test
+    fun `formen på ett värde - siffror och bokstäver döljs, längden begränsas`() {
+        assertEquals("9999-99-99a99:99:99.999a", LegacyTime.shape("2025-11-20T08:15:00.000Z"))
+        assertEquals("99/99 9999", LegacyTime.shape("20/11 2025"))
+        assertEquals("aaaa", LegacyTime.shape("igår"))
+        assertEquals("9".repeat(32) + "…", LegacyTime.shape("1".repeat(40)))
     }
 }

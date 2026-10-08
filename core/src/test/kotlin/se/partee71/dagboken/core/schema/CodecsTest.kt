@@ -33,6 +33,7 @@ import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.SlotReminder
 import se.partee71.dagboken.core.model.SymptomScore
+import se.partee71.dagboken.core.model.somatic
 import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.core.schema.Samples.prescription
@@ -176,6 +177,22 @@ class CodecsTest {
         val stored = mapOf("symptoms" to listOf(mapOf("optionId" to "yrsel", "score" to 2L), "trasig", mapOf("optionId" to "huvudvark", "score" to 7.0)))
         assertEquals(listOf(SymptomScore("yrsel", 2), SymptomScore("huvudvark", 7)), CheckinCodec.decode("c", stored).symptoms)
         assertEveryFieldDiffersFromDefault(SymptomScore("ovrigt", 3, "Stel nacke"), SymptomScore())
+    }
+
+    @Test
+    fun `ett symptom utan poäng (från 3x) skrivs som score null och läses tillbaka som null - saknad poäng är 0 som förut`() {
+        val checkin = Samples.entry(CollectionNames.CHECKINS).let { CheckinCodec.decode("c", it.encoded()) }.copy(symptoms = listOf(SymptomScore("yrsel", null), SymptomScore("huvudvark", 3)))
+        val encoded = CheckinCodec.encode(checkin)
+        assertEquals(listOf(mapOf("optionId" to "yrsel", "score" to null, "customText" to null), mapOf("optionId" to "huvudvark", "score" to 3, "customText" to null)), encoded["symptoms"])
+        assertEquals(checkin.symptoms, CheckinCodec.decode("c", encoded).symptoms)
+        assertEquals(emptyList(), DocumentRules.validate(CollectionNames.CHECKINS, encoded), "rules godtar score null")
+        assertEquals(
+            listOf(DocumentRules.Violation("symptoms[0].score", "saknas")),
+            DocumentRules.validate(CollectionNames.CHECKINS, mapOf("symptoms" to listOf(mapOf("optionId" to "yrsel", "customText" to null)))),
+            "en saknad score-nyckel nekas, som i rules",
+        )
+        assertEquals(listOf(SymptomScore("yrsel", 0)), CheckinCodec.decode("c", mapOf("symptoms" to listOf(mapOf("optionId" to "yrsel")))).symptoms)
+        assertEquals(3, checkin.symptoms.somatic, "utan poäng räknas som 0 i summan")
     }
 
     @Test

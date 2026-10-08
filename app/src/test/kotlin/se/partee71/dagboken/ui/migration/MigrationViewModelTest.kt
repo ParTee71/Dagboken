@@ -24,6 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.core.legacy.LegacyRoomSchema
+import se.partee71.dagboken.core.legacy.Problem
 import se.partee71.dagboken.core.legacy.Row
 import se.partee71.dagboken.core.schema.Doc
 import se.partee71.dagboken.core.schema.ExportFormat
@@ -286,7 +287,7 @@ class MigrationViewModelTest {
             vm.onEvent(MigrationEvent.CopyChosen(copyUri))
             assertEquals(CopyStep.Checking, next<MigrationStage.Review>().copy)
             val saved = next<MigrationStage.Review>()
-            assertEquals(CopyStep.Saved("dagboken-3x.json", now, 27), saved.copy)
+            assertEquals(CopyStep.Saved("dagboken-3x.json", now, 4), saved.copy, "antal = 3.x-raderna i Room")
             assertTrue(saved.canMove)
         }
     }
@@ -581,6 +582,26 @@ class MigrationViewModelTest {
     }
 
     @Test
+    fun `stopp - kopian kan sparas och kontrolleras som 3x-fil fast konverteringen stoppar, och Flytta gör ingenting`() = test {
+        room.read = tables(episodes = 2, orphan = true)
+        val vm = viewModel()
+        vm.state.test {
+            val stopped = next<MigrationStage.Stopped>()
+            assertEquals(CopyStep.Missing, stopped.copy)
+            assertEquals("dagboken-3x-kopia-${now.date}.json", stopped.copyFileName)
+            vm.onEvent(MigrationEvent.CopyChosen(copyUri))
+            assertEquals(CopyStep.Checking, next<MigrationStage.Stopped>().copy)
+            val saved = next<MigrationStage.Stopped>()
+            assertIs<CopyStep.Saved>(saved.copy)
+            assertEquals(stopped.report, saved.report)
+            vm.onEvent(MigrationEvent.Move)
+            expectNoEvents()
+        }
+        assertEquals(emptyList(), firestore.batches, "inget skrivet")
+        assertNotNull(flag.copyRecord, "kopian är sparad för Room-filen")
+    }
+
+    @Test
     fun `äldre databasversion - Importera backup släpper in till Export och import`() = test {
         room.read = LegacyRoomRead.WrongVersion(10)
         val vm = viewModel()
@@ -609,6 +630,23 @@ class MigrationViewModelTest {
         assertEquals("checkins", reportCollection("illnessEpisodes/flu/checkins/c1"))
         assertEquals("options", reportCollection("options/activity#3"))
         assertEquals("notes", reportCollection("notes"))
+    }
+
+    @Test
+    fun `stopprapporten - en rad per typ, listindex slås ihop och antalet summeras`() {
+        val problems = listOf(
+            Problem("screenings/s1", "symptom[0]", "saknar namn"), Problem("screenings/s2", "symptom[1]", "saknar namn"),
+            Problem("screenings/s2", "symptom[12]", "saknar namn"), Problem("prescriptions/r1", "dagar", "ingen veckodag: 9 (0–6)"),
+            Problem("settings/app", "medNotificationConfigs[2].time", "ogiltigt klockslag"),
+        )
+        assertEquals(
+            listOf(
+                ReportLine("screenings", "symptom[…]", "saknar namn", 3),
+                ReportLine("prescriptions", "dagar", "ingen veckodag: 9 (0–6)", 1),
+                ReportLine("settings", "medNotificationConfigs[…].time", "ogiltigt klockslag", 1),
+            ),
+            reportOf(problems),
+        )
     }
 }
 

@@ -87,9 +87,9 @@ service cloud.firestore {
     function maxSymptoms() { return 50; }
     function maxBoosts() { return 50; }
 
-    // Ett symptom (DAT-6): {optionId, score 0–10, customText}.
+    // Ett symptom (DAT-6): {optionId, score 0–10 eller null (utan poäng, från 3.x), customText}.
     function isSymptom(s) {
-      return s.optionId is string && s.score is int && s.score >= 0 && s.score <= 10
+      return s.optionId is string && (s.score == null || (s.score is int && s.score >= 0 && s.score <= 10))
         && (s.customText == null || s.customText is string);
     }
     function isSymptoms(l) {

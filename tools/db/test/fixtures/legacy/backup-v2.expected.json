@@ -28,6 +28,11 @@
             "customText": null
           },
           {
+            "optionId": "symptom-ont-i-nacke-axlar-529c25",
+            "score": 1,
+            "customText": null
+          },
+          {
             "optionId": "symptom-ovrigt-c067e8",
             "score": 2,
             "customText": "Stel nacke"
@@ -208,7 +213,7 @@
           {
             "optionId": "symptom-ovrigt-c067e8",
             "score": 2,
-            "customText": "Ont i halsen"
+            "customText": "Ont i halsen, feber"
           }
         ]
       }
@@ -300,7 +305,7 @@
         "kind": "symptom",
         "name": "Hosta",
         "favorite": false,
-        "sortOrder": 4,
+        "sortOrder": 6,
         "archived": true
       }
     },
@@ -320,8 +325,18 @@
         "kind": "symptom",
         "name": "Nackspärr",
         "favorite": false,
-        "sortOrder": 3,
+        "sortOrder": 5,
         "archived": true
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/symptom-ont-i-nacke-axlar-529c25",
+      "data": {
+        "kind": "symptom",
+        "name": "Ont i nacke, axlar",
+        "favorite": true,
+        "sortOrder": 3,
+        "archived": false
       }
     },
     {
@@ -342,6 +357,16 @@
         "favorite": false,
         "sortOrder": 1,
         "archived": false
+      }
+    },
+    {
+      "path": "users/uid-legacy/options/symptom-yrsel-6db696",
+      "data": {
+        "kind": "symptom",
+        "name": "Yrsel",
+        "favorite": false,
+        "sortOrder": 4,
+        "archived": true
       }
     },
     {
@@ -368,7 +393,7 @@
         "boosts": [],
         "active": false,
         "createdAt": {
-          "__ts": "2025-05-31T22:00:00.000000000Z"
+          "__ts": "2025-06-01T09:30:00.000000000Z"
         },
         "note": "Pausad över sommaren"
       }
@@ -393,9 +418,7 @@
         },
         "boosts": [],
         "active": true,
-        "createdAt": {
-          "__ts": "2025-11-19T23:00:00.000000000Z"
-        },
+        "createdAt": null,
         "note": null
       }
     },
@@ -491,6 +514,11 @@
             "optionId": "symptom-trotthet-e11b0b",
             "score": 3,
             "customText": null
+          },
+          {
+            "optionId": "symptom-ovrigt-c067e8",
+            "score": 2,
+            "customText": "yrsel, kl 14:00"
           }
         ]
       }
@@ -530,7 +558,18 @@
         "customText": "Kvällskoll",
         "energy": 2,
         "stress": 7,
-        "symptoms": []
+        "symptoms": [
+          {
+            "optionId": "symptom-huvudvark-d55e7d",
+            "score": null,
+            "customText": null
+          },
+          {
+            "optionId": "symptom-yrsel-6db696",
+            "score": null,
+            "customText": null
+          }
+        ]
       }
     },
     {
