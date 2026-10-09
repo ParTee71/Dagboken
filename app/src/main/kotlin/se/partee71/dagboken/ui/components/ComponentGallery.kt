@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -538,9 +539,17 @@ private fun Overlays() {
     if (sheet) {
         // Ändra minuterna: då frågar bakåt, svep ner och tryck utanför "Släng ändringar?" (dirty, NFR-10).
         var minutes by remember { mutableIntStateOf(45) }
-        AppBottomSheet("Promenad", onDismiss = { sheet = false }, dirty = minutes != 45) {
+        // Knappraden (footer, NFR-21) står fast i botten medan innehållet ovanför scrollar.
+        AppBottomSheet(
+            "Promenad",
+            onDismiss = { sheet = false },
+            dirty = minutes != 45,
+            footer = {
+                Spacer(Modifier.weight(1f))
+                AppButton("Spara", { sheet = false })
+            },
+        ) {
             QuantityStepper(minutes, { minutes = it }, "minuter")
-            AppButton("Spara", { sheet = false }, variant = ButtonVariant.Text)
         }
     }
     when (appSheet) {

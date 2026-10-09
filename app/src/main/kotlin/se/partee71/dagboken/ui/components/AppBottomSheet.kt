@@ -5,8 +5,14 @@ package se.partee71.dagboken.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
@@ -20,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -43,6 +50,10 @@ import se.partee71.dagboken.ui.theme.Spacing
  * `StateFlow.value`), inte det senast komponerade – `false` håller arket öppet utan fråga (t.ex. medan
  * formuläret sparas). [hide] = true döljer arket animerat på samma sätt och anropar sedan [onDismiss] – t.ex. när
  * formuläret sparats. Standard: stängs direkt, som tidigare.
+ *
+ * [footer] = knappraden (t.ex. Spara eller stegnavigeringen, NFR-21): innehållet ovanför scrollar och raden står
+ * fast i arkets botten, ovanför navigeringsfältet och tangentbordet, hur högt innehållet än blir. Felet visas då
+ * direkt ovanför raden. Standard (`null`): ingen knapprad, innehållet som tidigare.
  */
 @Composable
 fun AppBottomSheet(
@@ -53,6 +64,7 @@ fun AppBottomSheet(
     dirty: Boolean = false,
     canDismiss: () -> Boolean = { true },
     hide: Boolean = false,
+    footer: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // Inte sparad över ett konfigurationsbyte: efter en rotation är frågan borta och arket står kvar.
@@ -88,13 +100,38 @@ fun AppBottomSheet(
         shape = AppShapes.sheet,
         containerColor = AppColors.extended.card,
     ) {
-        Column(
-            Modifier.fillMaxWidth().padding(start = Spacing.xl, end = Spacing.xl, bottom = Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.m),
-        ) {
-            Text(title, style = AppTypography.sectionTitle, modifier = Modifier.semantics { heading() })
-            content()
-            error?.let { FieldError(stringResource(it.message)) }
+        if (footer == null) {
+            Column(
+                Modifier.fillMaxWidth().padding(start = Spacing.xl, end = Spacing.xl, bottom = Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.m),
+            ) {
+                Text(title, style = AppTypography.sectionTitle, modifier = Modifier.semantics { heading() })
+                content()
+                error?.let { FieldError(stringResource(it.message)) }
+            }
+        } else {
+            Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding()) {
+                Column(
+                    Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
+                        .padding(start = Spacing.xl, end = Spacing.xl, bottom = Spacing.m),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.m),
+                ) {
+                    Text(title, style = AppTypography.sectionTitle, modifier = Modifier.semantics { heading() })
+                    content()
+                }
+                Column(
+                    Modifier.fillMaxWidth().padding(start = Spacing.xl, end = Spacing.xl, bottom = Spacing.xl),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.m),
+                ) {
+                    error?.let { FieldError(stringResource(it.message)) }
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.s),
+                        content = footer,
+                    )
+                }
+            }
         }
         // I arkets innehåll, så att dialogens fönster alltid hamnar ovanpå arkets.
         if (askDiscard) {
