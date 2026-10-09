@@ -37,6 +37,12 @@ class ScaleLevelTest {
     }
 
     @Test
+    fun `högre är sämre - 0 heter Ingen, inte Lätt`() {
+        assertEquals(R.string.severity_none to Tone.Positive, scaleLevel(0, higherIsBetter = false).let { it.label to it.tone })
+        assertEquals(R.string.level_low, scaleLevel(0).label)
+    }
+
+    @Test
     fun `värden utanför skalan räknas som kanten`() {
         assertEquals(ScaleZone.High, scaleLevel(14).zone)
         assertEquals(ScaleZone.Low, scaleLevel(-3).zone)

@@ -1,6 +1,7 @@
 package se.partee71.dagboken.data
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import org.junit.Rule
@@ -39,8 +40,12 @@ class FirestoreCollectionContractTest : CollectionContract() {
                 user.db.collection(path).document(id).set(toFirestore(doc)).await()
             }
 
-            override suspend fun readRaw(path: String, id: String): Doc? =
-                user.db.collection(path).document(id).get().await().data?.let(::fromFirestore)
+            // Serverns version, efter att appens köade skrivningar har kvitterats: `observe` kan redan ha visat
+            // den lokala skrivningen medan en vanlig `get()` hinner svara med serverns äldre dokument.
+            override suspend fun readRaw(path: String, id: String): Doc? {
+                user.db.waitForPendingWrites().await()
+                return user.db.collection(path).document(id).get(Source.SERVER).await().data?.let(::fromFirestore)
+            }
 
             override fun makeUserNewerThanApp() = scope.setVersion(Schema.CURRENT_VERSION + 1)
 

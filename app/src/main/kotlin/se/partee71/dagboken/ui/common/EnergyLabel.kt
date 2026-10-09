@@ -13,7 +13,8 @@ enum class ScaleZone { Low, Mid, High }
 
 /**
  * Nivån för ett värde på en skala (AKT-4, AKT-5, AKT-6, SCR-1): [label] är texten ("Låg"/"Medel"/"Hög"
- * när högre är bättre, "Lätt"/"Måttlig"/"Svår" när högre är sämre) och [tone] pillens ton – grön för
+ * när högre är bättre, "Lätt"/"Måttlig"/"Svår" när högre är sämre – och "Ingen" för 0 på en sådan
+ * skala som börjar på noll) och [tone] pillens ton – grön för
  * det bra, solgul i mitten, terrakotta för det dåliga. Färgen bär aldrig informationen ensam:
  * etiketten visas alltid bredvid (skill `accessibility-compose`).
  */
@@ -46,10 +47,11 @@ fun scaleLevel(value: Int, range: IntRange = 0..10, higherIsBetter: Boolean = tr
             ScaleZone.High -> R.string.level_high
         }
     } else {
-        when (zone) {
-            ScaleZone.Low -> R.string.severity_mild
-            ScaleZone.Mid -> R.string.severity_moderate
-            ScaleZone.High -> R.string.severity_severe
+        when {
+            value <= 0 && range.first == 0 -> R.string.severity_none
+            zone == ScaleZone.Low -> R.string.severity_mild
+            zone == ScaleZone.Mid -> R.string.severity_moderate
+            else -> R.string.severity_severe
         }
     }
     return ScaleLevel(zone, higherIsBetter, label, tone)

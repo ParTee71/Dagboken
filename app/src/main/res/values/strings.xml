@@ -72,6 +72,7 @@
     <string name="level_low">Låg</string>
     <string name="level_mid">Medel</string>
     <string name="level_high">Hög</string>
+    <string name="severity_none">Ingen</string>
     <string name="severity_mild">Lätt</string>
     <string name="severity_moderate">Måttlig</string>
     <string name="severity_severe">Svår</string>
