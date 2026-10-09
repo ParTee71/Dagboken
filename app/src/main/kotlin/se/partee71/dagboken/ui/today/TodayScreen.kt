@@ -210,8 +210,8 @@ private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, lin
         )
     }
     MedicinesCard(content, onEvent)
-    MoodCard(content, links.onScreening)
     AsNeededCard(content, onEvent, links)
+    MoodCard(content, links.onScreening)
     content.illness?.let { illness -> IllnessCard(illness) { links.onOpenIllness(illness.episode.id, content.date) } }
     health?.let { HealthTodayCard(it, onHealthEvent) }
     WeekTrendsCard(content.energyDays, content.energy, health, links.onOpenTrends)
