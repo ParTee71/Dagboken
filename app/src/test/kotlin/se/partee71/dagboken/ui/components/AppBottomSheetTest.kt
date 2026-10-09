@@ -1,7 +1,9 @@
 package se.partee71.dagboken.ui.components
 
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -131,5 +133,38 @@ class AppBottomSheetTest {
         const val SCRIM = "Close sheet"
 
         const val SWIPE_PX = 1500f
+    }
+
+    /** NFR-21: med ett innehåll högre än skärmen står knappraden kvar i botten – synlig utan att scrolla. */
+    @Test
+    fun `knappraden syns med långt innehåll`() {
+        rule.setContent {
+            DagbokenTheme {
+                AppBottomSheet("Promenad", onDismiss = {}, footer = { AppButton("Spara", {}) }) {
+                    repeat(40) { Text("Rad $it") }
+                }
+            }
+        }
+        rule.onNodeWithText("Spara").assertIsDisplayed()
+        rule.onNodeWithText("Rad 39").assertIsNotDisplayed()
+    }
+
+    /** Måendearket på symptomsteget med alla symptom utfällda: Föregående och Spara syns utan att scrolla. */
+    @Test
+    fun `stegarkets knappar syns med utfällda symptom`() {
+        var saved = 0
+        rule.setContent {
+            DagbokenTheme {
+                val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS)
+                LaunchedEffect(steps) { steps.pager.scrollToPage(2) }
+                AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepwiseScreeningNavigation(steps, { saved++ }) }) {
+                    StepwiseScreeningForm(6, {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, state = steps, navigation = false)
+                }
+            }
+        }
+        rule.onNodeWithText("Steg 3 av 3").assertIsDisplayed()
+        rule.onNodeWithText("Föregående").assertIsDisplayed()
+        rule.onNodeWithText("Spara").assertIsDisplayed().performClick()
+        assertEquals(1, saved)
     }
 }

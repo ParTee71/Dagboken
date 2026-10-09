@@ -15,6 +15,8 @@ import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.AppBottomSheet
 import se.partee71.dagboken.ui.components.StepwiseScreeningForm
+import se.partee71.dagboken.ui.components.StepwiseScreeningNavigation
+import se.partee71.dagboken.ui.components.rememberStepwiseScreeningState
 
 /**
  * Måendearket (HEM-5, HEM-8b, SCR-1, SCR-2): `StepwiseScreeningForm` i `AppBottomSheet` med tillfällets namn – och
@@ -23,7 +25,7 @@ import se.partee71.dagboken.ui.components.StepwiseScreeningForm
  * de arkiverade som loggen redan har; "Övrigt" får fritext. Osparade ändringar – eller en ny logg vars sparning
  * misslyckats – frågar "Släng ändringar?" innan arket stängs, och medan det sparas går det inte att stänga
  * (`canDismiss` läser formulärets aktuella läge, NFR-10); ett skrivfel visas i arket. Sparat → arket döljs
- * animerat och stängs. Ett enda ark för Idag, plusknappen och Dagbok ([LogSheets], händelserna till `LogViewModel`).
+ * animerat och stängs. Stegknapparna står i arkets fasta knapprad (NFR-21), så att de syns också med utfällda symptom. Ett enda ark för Idag, plusknappen och Dagbok ([LogSheets], händelserna till `LogViewModel`).
  */
 @Composable
 fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, symptomOptions: List<Option>, onEvent: (LogEvent) -> Unit) {
@@ -36,6 +38,7 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
     val name = info.occasion?.let { stringResource(it.label()) } ?: stringResource(R.string.log_mood)
     val title = info.date?.let { stringResource(R.string.today_screening_title_day_format, name, DateFormat.display(it)) } ?: name
     val choices = remember(symptomOptions, sheet.loaded) { symptomChoices(symptomOptions, sheet.loaded?.symptoms.orEmpty()) }
+    val steps = rememberStepwiseScreeningState(choices)
     AppBottomSheet(
         title,
         onDismiss = { onEvent(LogEvent.CloseScreening) },
@@ -43,6 +46,7 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
         dirty = unsaved,
         canDismiss = sheet::canDismiss,
         hide = closing,
+        footer = { StepwiseScreeningNavigation(steps, { onEvent(LogEvent.SaveScreening) }, state.canSave, state.saving) },
     ) {
         StepwiseScreeningForm(
             energy = edited.energy,
@@ -57,6 +61,8 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
             saving = state.saving,
             otherOptionId = OTHER_SYMPTOM_ID,
             somatic = edited.somatic,
+            state = steps,
+            navigation = false,
         )
     }
 }

@@ -6,16 +6,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -36,6 +41,9 @@ import se.partee71.dagboken.ui.theme.Spacing
  * stegprickar och Föregående/Nästa; sista steget har Spara. Symptomsteget finns bara när det finns
  * [symptomOptions]. Används i arket bakom "Logga nu"; reglagen är [ValueSlider] (energi: högre är
  * bättre, stress: högre är sämre) och symptomen [SymptomLogCard]. Stegen går också att svepa mellan.
+ *
+ * [navigation] = false: knapparna ritas inte här utan av [StepwiseScreeningNavigation] med samma [state] – i
+ * arkets fasta knapprad (`AppBottomSheet(footer)`, NFR-21), så att de syns också när symptomen är utfällda.
  */
 @Composable
 fun StepwiseScreeningForm(
@@ -53,13 +61,11 @@ fun StepwiseScreeningForm(
     otherOptionId: String? = null,
     /** Summan som visas under symptomen ([SymptomLogCard]); standard summan av [symptoms]. */
     somatic: Int = symptoms.somatic,
+    state: StepwiseScreeningState = rememberStepwiseScreeningState(symptomOptions),
+    navigation: Boolean = true,
 ) {
-    val steps = if (symptomOptions.isEmpty()) 2 else 3
-    // Antalet sidor läses om vid varje komposition: laddas symptomlistan sent (2 → 3 steg) står
-    // formuläret kvar på steget användaren är på.
-    val pager = rememberPagerState(pageCount = { steps })
-    val scope = rememberCoroutineScope()
-    val go = { page: Int -> scope.launch { pager.animateScrollToPage(page) }; Unit }
+    val steps = state.steps
+    val pager = state.pager
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.m)) {
         Text(
             stringResource(R.string.step_format, pager.currentPage + 1, steps),
@@ -74,15 +80,43 @@ fun StepwiseScreeningForm(
             }
         }
         StepDots(steps, pager.currentPage)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-            if (pager.currentPage > 0) AppButton(stringResource(R.string.previous), { go(pager.currentPage - 1) }, variant = ButtonVariant.Text)
-            Spacer(Modifier.weight(1f))
-            if (pager.currentPage < steps - 1) {
-                AppButton(stringResource(R.string.next), { go(pager.currentPage + 1) }, variant = ButtonVariant.Secondary)
-            } else {
-                AppButton(stringResource(R.string.save), onSave, enabled = saveEnabled, loading = saving)
+        if (navigation) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                StepwiseScreeningNavigation(state, onSave, saveEnabled, saving)
             }
         }
+    }
+}
+
+/** Stegen i [StepwiseScreeningForm]: sidan och antalet steg, delat mellan formuläret och dess knapprad. */
+@Stable
+class StepwiseScreeningState internal constructor(internal val pager: PagerState, private val count: () -> Int) {
+    val steps: Int get() = count()
+}
+
+/**
+ * Antalet steg läses om vid varje komposition: laddas symptomlistan sent (2 → 3 steg) står formuläret kvar på
+ * steget användaren är på.
+ */
+@Composable
+internal fun rememberStepwiseScreeningState(symptomOptions: List<Option>): StepwiseScreeningState {
+    val steps by rememberUpdatedState(if (symptomOptions.isEmpty()) 2 else 3)
+    val pager = rememberPagerState(pageCount = { steps })
+    return remember(pager) { StepwiseScreeningState(pager) { steps } }
+}
+
+/** Föregående/Nästa – och Spara på sista steget – för [StepwiseScreeningForm], t.ex. i `AppBottomSheet(footer)`. */
+@Composable
+internal fun RowScope.StepwiseScreeningNavigation(state: StepwiseScreeningState, onSave: () -> Unit, saveEnabled: Boolean = true, saving: Boolean = false) {
+    val pager = state.pager
+    val scope = rememberCoroutineScope()
+    val go = { page: Int -> scope.launch { pager.animateScrollToPage(page) }; Unit }
+    if (pager.currentPage > 0) AppButton(stringResource(R.string.previous), { go(pager.currentPage - 1) }, variant = ButtonVariant.Text)
+    Spacer(Modifier.weight(1f))
+    if (pager.currentPage < state.steps - 1) {
+        AppButton(stringResource(R.string.next), { go(pager.currentPage + 1) }, variant = ButtonVariant.Secondary)
+    } else {
+        AppButton(stringResource(R.string.save), onSave, enabled = saveEnabled, loading = saving)
     }
 }
 

@@ -2,11 +2,13 @@ package se.partee71.dagboken.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +29,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
@@ -59,9 +62,18 @@ class OverlayScreenshotTest {
 
     @Test
     fun `AppBottomSheet - ändra mängd`() = rule.captureScreenLightAndDark("AppBottomSheet_mangd") {
-        AppBottomSheet("Promenad", onDismiss = {}) {
+        AppBottomSheet("Promenad", onDismiss = {}, footer = { Spacer(Modifier.weight(1f)); AppButton("Spara", {}) }) {
             QuantityStepper(45, {}, "minuter")
-            AppButton("Spara", {}, variant = ButtonVariant.Text)
+        }
+    }
+
+    /** Måendearket på symptomsteget med alla symptom utfällda: knappraden står kvar i botten (NFR-21). */
+    @Test
+    fun `AppBottomSheet - steg med utfällda symptom`() = rule.captureScreenLightAndDark("AppBottomSheet_steg_symptom") {
+        val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS)
+        LaunchedEffect(steps) { steps.pager.scrollToPage(2) }
+        AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepwiseScreeningNavigation(steps, {}) }) {
+            StepwiseScreeningForm(6, {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, otherOptionId = "ovrigt", state = steps, navigation = false)
         }
     }
 
@@ -175,3 +187,6 @@ class OverlayScreenshotTest {
         const val STEPS = 10
     }
 }
+
+/** Alla galleriets symptom valda, så att symptomsteget blir högre än skärmen. */
+internal val GALLERY_SCORES = GALLERY_SYMPTOMS.mapIndexed { i, option -> SymptomScore(option.id, 3 + i) }
