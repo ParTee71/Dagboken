@@ -8,7 +8,7 @@ import { COLLECTIONS } from '../lib/collections.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
 import { toClient } from './helpers/client.mjs';
 import { rulesTestEnvironment } from './helpers/emulator.mjs';
-import { textLimits } from './helpers/repo.mjs';
+import { documentRulesConstant, readRepoFile, textLimits } from './helpers/repo.mjs';
 
 const OWNER = 'anna';
 /** Textgränserna (TextLimits i :core = maxShort/maxLong i rules) och en text med [n] tecken. */
@@ -323,6 +323,16 @@ const invalid = {
     ['boosts.0.start', '2026-02-30x', 'datum med svans'],
     ['boosts.0.dose', 25, 'höjningen är text'],
     ['boosts.1.unit', ['mg'], 'enheten är text'],
+    ['boosts.0.id', null, 'höjning utan id'],
+    ['boosts.0.unit', null, 'höjning utan enhet'],
+    ['boosts.0.dose', ['1'], 'höjningen som lista'],
+    ['boosts', [{ id: ['b'], start: null, end: null, dose: ['1'], unit: ['mg'] }], 'id, höjning och enhet som listor'],
+    ['boosts', [{ id: 1, start: null, end: null, dose: 2, unit: 3 }], 'id, höjning och enhet som tal'],
+    ['boosts.0', { id: 'b0', end: null, dose: '1', unit: 'mg' }, 'höjning utan start'],
+    ['boosts.0.end', true, 'datum som bool'],
+    ['boosts.0.start', '2026-09-01 2026-09-01', 'två datum i start'],
+    ['boosts.1.start', 'null 2026-10-01', 'två värden i start när end är null'],
+    ['boosts.1.end', '', 'tomt slutdatum'],
     ['active', 'true', 'bool som text'],
     ['createdAt', '2026-01-01', 'tidsstämpel som text'],
     ['note', text(LIMIT.long + 1), 'för lång anteckning'],
@@ -439,6 +449,10 @@ test('gränsvärdena i intervallen godtas', async () => {
     ['screenings', 'symptoms', [{ optionId: 'x', score: null, customText: null }]],
     ['checkins', 'symptoms', [{ optionId: 'x', score: 3, customText: null }, { optionId: 'y', score: null, customText: null }]],
     ['prescriptions', 'boosts', Array.from({ length: 50 }, (_, i) => ({ id: `b${i}`, start: '2026-01-01', end: null, dose: '1', unit: 'mg' }))],
+    ['prescriptions', 'boosts', [{ id: '', start: null, end: '2026-02-28', dose: '', unit: '' }, { id: 'b', start: null, end: null, dose: '1', unit: 'mg' }]],
+    // Texten 'null' i ett höjningsdatum släpps igenom av det billiga mönstret i isBoost (#294); codecen
+    // läser den som inget datum, samma som null (DocumentRulesTest). DocumentRules är strängare.
+    ['prescriptions', 'boosts.0.start', 'null'],
     ['prescriptions', 'schedule.days', [1, 2, 3, 4, 5, 6, 7]],
     ['prescriptions', 'slots', ['morning', 'midmorning', 'lunch', 'afternoon', 'evening', 'night', 'asNeeded']],
     ['doses', 'status', 'planned'], ['doses', 'slot', 'asNeeded'], ['activities', 'minutes', 0],
@@ -597,15 +611,52 @@ test('en okänd form (från en nyare app) kan stå kvar vid uppdatering men inte
   }
 });
 
-test('styrka och form ryms i uttrycksbudgeten bredvid tio kontrollerade höjningar och alla tidpunkter', async () => {
-  // Rules räknar högst 1 000 uttryck per skrivning; tio höjningar kontrolleras element för element.
-  // Mätt med utfyllnad i emulatorn (#292): datummönstret direkt i isBoost gav plats för styrka och form
-  // med något större marginal än före. Ett nytt fält på receptet ska mätas igen.
-  const boosts = Array.from({ length: 50 }, (_, i) => ({ id: `b${i}`, start: '2026-01-01', end: null, dose: '1', unit: 'mg' }));
-  const heavy = {
-    ...base('prescriptions'), strength: text(LIMIT.short), form: 'inhaler', boosts,
-    slots: ['morning', 'midmorning', 'lunch', 'afternoon', 'evening', 'night', 'asNeeded'],
-  };
-  await assertSucceeds(setDoc(mine('prescriptions', 'tung'), toClient(heavy)));
-  await assertSucceeds(setDoc(mine('prescriptions', 'tung'), toClient({ ...heavy, note: 'Ändrad', form: 'tablet' })));
+/**
+ * Ett recept i värsta fall för uttrycksbudgeten (rules räknar högst 1 000 uttryck per skrivning):
+ * varje fält satt och så långt som DocumentRules tillåter, och alla MAX_BOOSTS höjningar med både
+ * start och slut – det dyraste en höjning kan kontrolleras med. [v] varierar värdena, så att en
+ * överskrivning ändrar varje fält (uppdateringen kontrollerar då allt, som skapandet).
+ */
+const worstPrescription = (v = 0) => ({
+  name: text(LIMIT.short - v), strength: text(LIMIT.short - v), form: ['inhaler', 'tablet'][v], dose: text(LIMIT.short - v), unit: text(LIMIT.short - v),
+  slots: ['morning', 'midmorning', 'lunch', 'afternoon', 'evening', 'night', 'asNeeded'].slice(v),
+  schedule: { repeat: ['custom', 'interval'][v], days: [1, 2, 3, 4, 5, 6, 7].slice(v), intervalDays: 3 + v },
+  period: { start: `2026-01-0${1 + v}`, end: `2026-12-3${v}` },
+  boosts: Array.from({ length: documentRulesConstant('MAX_BOOSTS') }, (_, i) => ({ id: `b${i}-${v}`, start: `2026-02-0${1 + v}`, end: `2026-02-2${v}`, dose: `${1 + v}`, unit: `mg${v}` })),
+  active: v === 0, createdAt: Timestamp.fromDate(new Date(Date.UTC(2026, 0, 1 + v))), note: text(LIMIT.long - v),
+});
+
+/** Skapar värsta-fall-receptet i [store] och skriver sedan över varje fält. */
+const writeWorstPrescription = async (store, uid) => {
+  const ref = doc(store, 'users', uid, 'prescriptions', 'tung');
+  await assertSucceeds(setDoc(ref, worstPrescription(0)), 'skapat');
+  await assertSucceeds(setDoc(ref, worstPrescription(1)), 'varje fält ändrat');
+};
+
+test('ett recept i värsta fall – alla höjningar med start och slut, varje fält fullt – ryms i uttrycksbudgeten (#294)', async () => {
+  // Före #294 nekades redan tio höjningar med slutdatum (PERMISSION_DENIED: "maximum of 1000
+  // expressions"), fast DocumentRules och receptformuläret tillät dem – även i 3.x-flytten.
+  await writeWorstPrescription(db(OWNER), OWNER);
+});
+
+/** Reserven i uttrycksbudgeten för värsta-fall-receptet, i fältkontroller (se testet nedan). */
+const BUDGET_RESERVE_FIELDS = 3;
+
+test(`uttrycksbudgeten har en reserv på minst ${BUDGET_RESERVE_FIELDS} fältkontroller för värsta-fall-receptet`, async () => {
+  // validPrescription med BUDGET_RESERVE_FIELDS extra fältkontroller (som ett nytt kort textfält var):
+  // ryms värsta-fall-receptet fortfarande har nästa fält plats. Blir testet rött har receptet vuxit
+  // in i reserven – gör kontrollerna billigare innan fältet läggs till, sänk aldrig bara reserven.
+  // Mätt i emulatorn efter #294: värsta-fall-receptet rymmer 5 extra fältkontroller, inte 6 (före #294
+  // nekades det utan några). Testet kräver 3, så att två fält till får plats innan det blir rött.
+  const rules = readRepoFile('firestore.rules');
+  const end = /(function validPrescription\(d\) \{[\s\S]*?);\n    \}/;
+  assert.match(rules, end);
+  const padding = " && (!('strength' in w) || nullOrShort(d.get('strength', null)))".repeat(BUDGET_RESERVE_FIELDS);
+  const padded = await rulesTestEnvironment({ rules: rules.replace(end, `$1${padding};\n    }`), projectId: 'demo-dagboken-budget' });
+  try {
+    await padded.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'users', OWNER), user));
+    await writeWorstPrescription(padded.authenticatedContext(OWNER).firestore(), OWNER);
+  } finally {
+    await padded.cleanup();
+  }
 });

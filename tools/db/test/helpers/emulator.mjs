@@ -22,11 +22,15 @@ export function emulatorHost() {
   return { host: hostname, port: Number(port) };
 }
 
-/** Testmiljö för rules-tester med repots firestore.rules. */
-export function rulesTestEnvironment() {
+/**
+ * Testmiljö för rules-tester med repots firestore.rules – eller med [rules] (en ändrad kopia, t.ex.
+ * för att mäta uttrycksbudgeten) i ett eget demo-projekt [projectId], så att repots rules står kvar.
+ */
+export function rulesTestEnvironment({ rules = readRepoFile('firestore.rules'), projectId = PROJECT_ID } = {}) {
+  if (!projectId.startsWith('demo-')) throw new Error(`bara demo-projekt i testerna: ${projectId}`);
   return initializeTestEnvironment({
-    projectId: PROJECT_ID,
-    firestore: { ...emulatorHost(), rules: readRepoFile('firestore.rules') },
+    projectId,
+    firestore: { ...emulatorHost(), rules },
   });
 }
 

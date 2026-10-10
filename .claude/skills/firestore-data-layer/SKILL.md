@@ -192,9 +192,15 @@ cachen och synkas när nätet finns; larmen schemaläggs om vid synk, omstart oc
   `WireEnum` av `RulesEnumsTest` i `:core`. Rules-testet "fixturens dokument godtas" skriver
   `tools/db`:s fixtur genom klientens SDK och fångar drift mellan codecs och rules; varje fält har
   minst ett ogiltigt fall.
-- **Uttrycksbudget:** rules räknar högst 1 000 uttryck per skrivning. Listor av objekt (`symptoms`,
-  `boosts`) kontrolleras därför som lista med tak (50), men elementen bara upp till det tionde;
-  håll kontrollerna platta och mät med emulatorns `ruleCoverage` vid ändring.
+- **Uttrycksbudget:** rules räknar högst 1 000 uttryck per skrivning (över gränsen = `PERMISSION_DENIED`,
+  även för giltig data). Listor av objekt (`symptoms`, `boosts`) kontrolleras därför som lista med tak
+  (50), men elementen bara upp till det tionde (`DocumentRules.RULES_CHECKED_ELEMENTS`; `validate`
+  kontrollerar alla och är strängare). Elementkontrollen skrivs billigt – `isBoost` summerar texterna
+  (`(b.id + b.dose + b.unit) is string`) och prövar båda datumen med ett mönster (#294). Värsta-fall-receptet
+  (alla höjningar med start och slut, varje fält fullt) skrivs i rules-testet, och ett reservtest kräver plats
+  för minst tre fältkontroller till; nytt fält på receptet → kör det, och blir det rött gör kontrollerna
+  billigare i stället för att sänka reserven. Samma risk för andra samlingar med listor: mät med ett
+  värsta-fall-dokument i emulatorn.
 - **Incheckningar** skrivs bara under en episod som finns efter skrivningen (`existsAfter`); en
   batch får slå upp högst 20 befintliga episoder (episoder som skapas i samma batch räknas inte), så
   importen skriver episoderna med sina incheckningar eller delar upp per högst 20 episoder.

@@ -34,6 +34,15 @@ object DocumentRules {
     /** Högst så många doshöjningar på ett recept (`maxBoosts()`). */
     const val MAX_BOOSTS = 50
 
+    /**
+     * Rules kontrollerar elementen i symptom- och höjningslistorna upp till så här många (`l[0]`…`l[9]`):
+     * rules kan inte loopa och räknar högst 1 000 uttryck per skrivning. [validate] kontrollerar alla element
+     * och är därmed strängare – det rules nekar för elementen nekas här också. Att värsta fallet (alla
+     * [MAX_BOOSTS] höjningar med start och slut, varje fält fullt) ryms i budgeten med reserv mäts av
+     * `tools/db/test/rules.test.mjs` mot emulatorn (#294).
+     */
+    const val RULES_CHECKED_ELEMENTS = 10
+
     /** Stress, svårighetsgrad, måendets energi och symptompoäng. */
     val SCORE: IntRange = 0..10
 
@@ -118,9 +127,15 @@ object DocumentRules {
         required = setOf("optionId"),
         nullable = setOf("score"),
     )
+    /**
+     * `start` och `end` får vara `null` (öppen höjning) men nycklarna måste finnas – rules läser dem utan `get`.
+     * Rules släpper dessutom igenom texten `null` som datum (det billiga mönstret i `isBoost`, #294), som
+     * codecen läser som inget datum; här är den ett ogiltigt datum.
+     */
     val BOOST = Shape(
         mapOf("id" to Check.AnyText, "start" to Check.DateText, "end" to Check.DateText, "dose" to Check.AnyText, "unit" to Check.AnyText),
         required = setOf("id", "dose", "unit"),
+        nullable = setOf("start", "end"),
     )
     val SCHEDULE = Shape(
         mapOf("repeat" to Check.OneOf(wires(Repeat.entries)), "days" to Check.IntList(WEEKDAYS, WEEKDAYS.count()), "intervalDays" to Check.Min(0)),
