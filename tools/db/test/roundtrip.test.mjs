@@ -124,6 +124,32 @@ test('--replace gör användaren exakt som i filen: dokument som tillkommit efte
   assert.ok((await exportData(db)).documents.some((d) => d.path === 'users/annan'), 'andra användare rörs inte');
 });
 
+test('--update skriver bara filens fält i befintliga dokument; saknade hoppas över och skapas inte', async () => {
+  const db = database();
+  await seed(db);
+  const before = (await db.doc(`users/${UID}/doses/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f`).get()).data();
+  // Ändrat i appen efter exporten: ska stå kvar.
+  await db.doc(`users/${UID}/doses/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f`).update({ note: 'Ändrad efter exporten' });
+  const data = {
+    schemaVersion: 1,
+    updates: [
+      { path: `users/${UID}/doses/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f`, data: { name: 'Alvedon', strength: '500 mg', 'a.b': 1 } },
+      { path: `users/${UID}/doses/raderad`, data: { name: 'Alvedon' } },
+    ],
+  };
+  const dry = await importData(db, data, { update: true, dryRun: true });
+  assert.deepEqual([dry.written, dry.skipped], [{ doses: 1 }, { doses: 1 }]);
+  const { written, skipped } = await importData(db, data, { update: true });
+  assert.deepEqual([written, skipped], [{ doses: 1 }, { doses: 1 }]);
+  const after = (await db.doc(`users/${UID}/doses/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f`).get()).data();
+  assert.equal(after.note, 'Ändrad efter exporten', 'ett fält som inte finns i filen står kvar');
+  assert.equal(after.strength, '500 mg');
+  assert.equal(after['a.b'], 1, 'en punkt i ett fältnamn är ingen väg');
+  assert.ok(after.takenAt.isEqual(before.takenAt));
+  assert.equal((await db.doc(`users/${UID}/doses/raderad`).get()).exists, false, 'ett raderat dokument återskapas inte');
+  await assert.rejects(importData(db, data, { update: true, replace: true }), /går inte att kombinera/);
+});
+
 test('import skriver ingenting om ett dokument längre fram i filen är trasigt', async () => {
   const db = database();
   const documents = [

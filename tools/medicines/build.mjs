@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bygger appens läkemedelslista (REC-6) från Läkemedelsverkets öppna data:
+// Bygger appens läkemedelslista (REC-14) från Läkemedelsverkets öppna data:
 //   node tools/medicines/build.mjs              # hämtar dagens lista
 //   node tools/medicines/build.mjs fil.xlsx     # från en nedladdad fil
 // Skriver app/src/main/assets/medicines.tsv. Körs vid release (skill release), aldrig i CI.

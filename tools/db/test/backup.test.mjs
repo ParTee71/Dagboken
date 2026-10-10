@@ -25,6 +25,16 @@ test('import vägrar okända sökvägar och filer som inte är exporter', () => 
   assert.throws(() => prepareImport({ documents: [user] }, { user: 'annan' }), /finns inte i filen/);
 });
 
+test('en ändringsfil (updates) kräver --update, och --update kräver en ändringsfil utan användardokument', () => {
+  const updates = { schemaVersion: 1, updates: [{ path: 'users/u/doses/d1', data: { name: 'Ny' } }] };
+  assert.throws(() => prepareImport(updates), /bara ändrade fält.*--update/);
+  assert.throws(() => prepareImport({ schemaVersion: 1, documents: [user] }, { update: true }), /ingen ändringsfil/);
+  assert.throws(() => prepareImport({ updates: [user] }, { update: true }), /users\/u: en ändringsfil får inte ändra användardokumentet/);
+  assert.throws(() => prepareImport({ updates: [{ path: 'users/u/doses/d1', data: {} }] }, { update: true }), /inga fält att ändra/);
+  assert.throws(() => prepareImport({ updates: [{ path: 'users/u/okand/x', data: { a: 1 } }] }, { update: true }), /Okänd sökväg/);
+  assert.deepEqual(prepareImport(updates, { update: true }), [{ path: 'users/u/doses/d1', data: { name: 'Ny' } }]);
+});
+
 /** Den delade id-fixturen (samma i DocumentRulesTest i :core); `{ text, times }` är en upprepad text. */
 const ids = JSON.parse(readRepoFile('tools/db/test/fixtures/ids.json'));
 const idText = (v) => (typeof v === 'string' ? v : v.text.repeat(v.times));

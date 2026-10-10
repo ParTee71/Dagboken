@@ -19,7 +19,9 @@ import se.partee71.dagboken.core.schema.ExportFormat
  * ./gradlew :core:matchMedicines --args="--in export.json --catalog app/src/main/assets/medicines.tsv --suggest map.tsv"
  * ./gradlew :core:matchMedicines --args="--in export.json --map map.tsv --out renamed.json"
  * ```
- * `renamed.json` har bara de ändrade dokumenten och läses in med `node tools/db/import.mjs --in renamed.json`.
+ * `renamed.json` är en ändringsfil (`updates`) med bara de ändrade fälten per dokument och läses in med
+ * `node tools/db/import.mjs --in renamed.json --update` (`--dry-run` först): andra fält står kvar och ett
+ * dokument som raderats sedan exporten hoppas över. En vanlig import vägrar filen.
  * Exitkod 0 = filen skrevs; 1 = kartan eller exporten går inte att läsa, eller ett ändrat fält bryter mot rules;
  * 2 = fel argument, saknad infil eller en utfil som redan finns (skrivs över bara med `--force`).
  */
@@ -29,7 +31,8 @@ fun main(args: Array<String>) {
 
 object MatchMedicinesCli {
     const val USAGE = "Användning: --in <export.json> --catalog <medicines.tsv> --suggest <map.tsv> [--force]\n" +
-        "        eller: --in <export.json> --map <map.tsv> --out <renamed.json> [--force]"
+        "        eller: --in <export.json> --map <map.tsv> --out <renamed.json> [--force]\n" +
+        "renamed.json innehåller bara ändrade fält och läses in med tools/db/import.mjs --update."
 
     private val SUGGEST = setOf("--in", "--catalog", "--suggest")
     private val APPLY = setOf("--in", "--map", "--out")
@@ -101,14 +104,15 @@ object MatchMedicinesCli {
 
     private fun apply(export: Export, mapFile: File, output: File, out: PrintStream): Int {
         val applied = MedicineRename.apply(export.documents, MedicineRename.parseMap(mapFile.readText()))
-        output.writeText(ExportFormat.encode(export.exportedAt, export.schemaVersion, applied.documents))
+        output.writeText(ExportFormat.encode(export.exportedAt, export.schemaVersion, applied.documents, ExportFormat.UPDATES))
         out.println("Mediciner ändrade: ${applied.medicines}")
-        out.println("Doser med nytt namn: ${applied.doses}")
+        out.println("Doser med nytt namn eller ny styrka: ${applied.doses}")
         out.println("Rader utan nytt namn: ${applied.skipped}")
         out.println("Inaktuella rader (medicinen saknas eller har ändrats): ${applied.stale}")
         out.println("Recept med orörd dos (går inte att räkna om exakt): ${applied.doseKept}")
         out.println("Doser utan koppling med tvetydigt namn (orörda): ${applied.ambiguousDoses}")
-        out.println("Skrev ${applied.documents.size} dokument till ${output.path}")
+        out.println("Skrev ändringar i ${applied.documents.size} dokument till ${output.path}")
+        out.println("Läs in med: node tools/db/import.mjs --in ${output.path} --update --dry-run (sedan utan --dry-run)")
         return EXIT_OK
     }
 }

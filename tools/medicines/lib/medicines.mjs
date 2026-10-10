@@ -1,4 +1,4 @@
-// Läkemedelsverkets lista över läkemedel → appens bantade fil (REC-6). Bara humanläkemedel som
+// Läkemedelsverkets lista över läkemedel → appens bantade fil (REC-14). Bara humanläkemedel som
 // finns till försäljning; namn, styrka och form, utan dubbletter, i svensk ordning.
 
 export const SOURCE_PAGE = 'https://www.lakemedelsverket.se/sv/om-webbplatsen/oppna-data';

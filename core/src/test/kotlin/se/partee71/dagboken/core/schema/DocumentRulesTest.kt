@@ -172,6 +172,12 @@ class DocumentRulesTest {
         val boost = functions.getValue("isBoost")
         // Datummönstret står direkt i isBoost (uttrycksbudgeten) – samma som isDate.
         val date = DocumentRules.DATE.pattern
+        val isDatePattern = Regex("""v\.matches\('([^']+)'\)""").find(functions.getValue("isDate"))!!.groupValues[1]
+        assertEquals(
+            listOf(isDatePattern, isDatePattern),
+            Regex("""\.matches\('([^']+)'\)""").findAll(boost).map { it.groupValues[1] }.toList(),
+            "isBoosts båda datummönster är exakt isDate()",
+        )
         assertTrue("b.id is string" in boost && "(b.start == null || b.start.matches('$date'))" in boost && "(b.end == null || b.end.matches('$date'))" in boost && "b.dose is string && b.unit is string" in boost)
         assertEquals(setOf("id", "dose", "unit"), DocumentRules.BOOST.required)
         val schedule = functions.getValue("isSchedule")

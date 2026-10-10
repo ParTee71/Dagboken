@@ -278,7 +278,7 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `SymptomOptionBackup.isFavorite` | `options.favorite` | |
 
 Nya fält i 4.0 utan 3.x-motsvarighet: `doses.prnId`, `options.archived`, `prescriptions.strength`, `prescriptions.form`, `prnMedicines.strength`, `prnMedicines.form`, `doses.strength`.
-Styrka och form fanns inte i 3.x: konverterarens dokument får tom styrka och ingen form (ej angivet); `:core:matchMedicines` kan fylla dem ur Läkemedelsverkets lista efter flytten (REC-1, FAV-1).
+Styrka och form fanns inte i 3.x: konverterarens dokument får tom styrka och ingen form (ej angivet); `:core:matchMedicines` kan fylla dem ur Läkemedelsverkets lista efter flytten (REC-1, FAV-1, REC-14) – som en ändringsfil (`updates`, bara ändrade fält) som `tools/db/import.mjs --update` skriver med Firestores `update`: andra fält står kvar och raderade dokument återskapas inte; doserna får bara namn och styrka.
 
 \* *metadata* (bara `BackupJson.version` och `BackupJson.createdAt`): **backupfilens** metadata, inte
 användarens data – de beskriver filen (formatversion och när den skrevs), inte något användaren har
