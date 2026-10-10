@@ -1,5 +1,5 @@
 # Läkemedel som säljs i Sverige – Läkemedelsverket, CC BY 4.0 (https://www.lakemedelsverket.se/sv/om-webbplatsen/oppna-data)
-# updated 2026-10-07
+# updated 2026-10-10
 Abacavir/Lamivudine Accord	600 mg/300 mg	Filmdragerad tablett
 Abacavir/Lamivudine Glenmark	600 mg/300 mg	Filmdragerad tablett
 Abacavir/Lamivudine Medical Valley	600 mg/300 mg	Filmdragerad tablett
@@ -693,8 +693,6 @@ Atorvastatin Accord	10 mg	Filmdragerad tablett
 Atorvastatin Accord	20 mg	Filmdragerad tablett
 Atorvastatin Accord	40 mg	Filmdragerad tablett
 Atorvastatin Accord	80 mg	Filmdragerad tablett
-Atorvastatin Actavis	10 mg	Filmdragerad tablett
-Atorvastatin Actavis	20 mg	Filmdragerad tablett
 Atorvastatin Amarox	10 mg	Filmdragerad tablett
 Atorvastatin Amarox	20 mg	Filmdragerad tablett
 Atorvastatin Amarox	40 mg	Filmdragerad tablett
@@ -717,7 +715,6 @@ Atorvastatin SUN	40 mg	Filmdragerad tablett
 Atorvastatin SUN	80 mg	Filmdragerad tablett
 Atorvastatin Teva	20 mg	Filmdragerad tablett
 Atorvastatin Teva	40 mg	Filmdragerad tablett
-Atorvastatin Teva	80 mg	Filmdragerad tablett
 Atorvastatin Teva B.V.	10 mg	Filmdragerad tablett
 Atorvastatin Teva B.V.	20 mg	Filmdragerad tablett
 Atorvastatin Teva B.V.	40 mg	Filmdragerad tablett
@@ -1237,7 +1234,6 @@ Buprenorphine Sandoz	40 mikrogram/timme	Depotplåster
 Buprenorphine STADA	5 mikrogram/timme	Depotplåster
 Buprenorphine STADA	10 mikrogram/timme	Depotplåster
 Buprenorphine STADA	20 mikrogram/timme	Depotplåster
-Buprenorphine Teva	5 mikrogram/timme	Depotplåster
 Buprenorphine Teva	20 mikrogram/timme	Depotplåster
 Buprenorphine/Naloxone G.L. Pharma	2 mg/0,5 mg	Resoriblett, sublingual
 Buprenorphine/Naloxone G.L. Pharma	8 mg/2 mg	Resoriblett, sublingual
@@ -1788,6 +1784,7 @@ Curemid	50 mg/g	Kräm
 Curosurf	80 mg/ml	Instillationsvätska för luftvägarna, suspension
 Cutaquig	165 mg/ml	Injektionsvätska, lösning
 Cuvitru	200 mg/ml	Injektionsvätska, lösning
+Cyanocobalamin Farmacia	1 mg	Filmdragerad tablett
 Cyanokit	5 g	Pulver till infusionsvätska, lösning
 Cyclogest	400 mg	Vagitorium
 Cyclogyl	1 %	Ögondroppar, lösning
@@ -2902,7 +2899,6 @@ Flagyl	40 mg/ml	Oral suspension
 Flagyl	400 mg	Tablett
 Flebogamma DIF	50 mg/ml	Infusionsvätska, lösning
 Flexilev	5 mg/1,25 mg	Dispergerbara tabletter för dosdispenser
-Flexiloges		Filmdragerad tablett
 Flixabi	100 mg	Pulver till koncentrat till infusionsvätska, lösning
 Florinef	0,1 mg	Tablett
 Fluad		Injektionsvätska, suspension, förfylld spruta
@@ -5199,6 +5195,8 @@ Noradrenalin Zentiva	1 mg/ml	Koncentrat till infusionsvätska, lösning
 Noradrenaline Sintetica	0,1 mg/ml	Infusionsvätska, lösning
 Noradrenaline Sintetica	0,2 mg/ml	Infusionsvätska, lösning
 Noradrenaline Sintetica	1 mg/ml	Koncentrat till infusionsvätska, lösning
+Nordanest	40 mg/ml + 5 mikrogram/ml	Injektionsvätska, lösning
+Nordanest	40 mg/ml + 10 mikrogram/ml	Injektionsvätska, lösning
 Nordimet	7,5 mg	Injektionsvätska, lösning i förfylld injektionspenna
 Nordimet	10 mg	Injektionsvätska, lösning i förfylld injektionspenna
 Nordimet	12,5 mg	Injektionsvätska, lösning i förfylld injektionspenna
@@ -5565,6 +5563,7 @@ Otrivin utan konserveringsmedel	0,5 mg/ml	Nässpray, lösning
 Otrivin utan konserveringsmedel	1 mg/ml	Nässpray, lösning
 Otulfi	45 mg	Injektionsvätska, lösning
 Otulfi	45 mg	Injektionsvätska, lösning i förfylld spruta
+Otulfi	90 mg	Injektionsvätska, lösning i förfylld injektionspenna
 Otulfi	90 mg	Injektionsvätska, lösning i förfylld spruta
 Otulfi	130 mg	Koncentrat till infusionsvätska, lösning
 Ovaleap	300 IE/0,5 ml	Injektionsvätska, lösning
@@ -6049,7 +6048,6 @@ Pramipexol STADA	0,35 mg	Tablett
 Pramipexol STADA	0,52 mg	Depottablett
 Pramipexol STADA	1,05 mg	Depottablett
 Pramipexol STADA	2,10 mg	Depottablett
-Pramipexol Teva Pharma	0,26 mg	Depottablett
 Pramipexol Teva Pharma	0,52 mg	Depottablett
 Pramipexol Teva Pharma	1,05 mg	Depottablett
 Pramipexol Teva Pharma	2,1 mg	Depottablett
@@ -7348,6 +7346,7 @@ Tamoxifen Ebb	20 mg	Tablett
 Tamoxifen Orifarm	20 mg	Tablett
 Tamoxifen Sandoz	20 mg	Filmdragerad tablett
 Tamoxifen Viatris	20 mg	Tablett
+Tamsulosin Medartuum	0,4 mg	Kapsel med modifierad frisättning, hård
 Tapentadol Consilient Health	50 mg	Filmdragerad tablett
 Tapentadol Depot Krka	50 mg	Depottablett
 Tapentadol Depot Krka	100 mg	Depottablett
