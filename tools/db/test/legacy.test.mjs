@@ -9,6 +9,7 @@ import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { Timestamp, collection, deleteField, doc, getCountFromServer, getDoc, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { exportData, importData } from '../lib/backup.mjs';
 import { COLLECTIONS } from '../lib/collections.mjs';
+import { byPath } from '../lib/compare.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
 import { collectionOf } from '../lib/walk.mjs';
 import { toClient } from './helpers/client.mjs';
@@ -22,7 +23,6 @@ const FIXTURES = ['backup-v2', 'backup-v1'];
 const expected = Object.fromEntries(
   FIXTURES.map((name) => [name, JSON.parse(readRepoFile(`tools/db/test/fixtures/legacy/${name}.expected.json`))]),
 );
-const byPath = (docs) => [...docs].sort((a, b) => a.path.localeCompare(b.path));
 
 const database = useCleanEmulator();
 let env;

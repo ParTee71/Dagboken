@@ -5,9 +5,9 @@ import assert from 'node:assert/strict';
 import { readRepoFile } from './helpers/repo.mjs';
 import { runScript } from './helpers/run.mjs';
 
-const READ_ONLY = ['query.mjs', 'get.mjs', 'stats.mjs', 'lib/query.mjs'];
+const READ_ONLY = ['query.mjs', 'get.mjs', 'stats.mjs', 'compare.mjs', 'lib/query.mjs', 'lib/compare.mjs'];
 
-test('query, get och stats innehåller inga skrivande anrop', () => {
+test('query, get, stats och compare innehåller inga skrivande anrop', () => {
   for (const file of READ_ONLY) {
     const source = readRepoFile(`tools/db/${file}`);
     for (const call of ['.set(', '.update(', '.delete(', '.create(', '.batch(', 'recursiveDelete', 'importData', 'migrateUsers', 'write: true']) {
