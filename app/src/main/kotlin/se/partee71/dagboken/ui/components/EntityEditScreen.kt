@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -42,8 +43,11 @@ private enum class AfterDiscard { Close, Archive, Restore }
 data class DeleteAction(val title: String, val message: String, val onConfirm: () -> Unit)
 
 /**
- * Den enda redigeringsskärmen (NFR-2, skill shared-ui-components), tillsammans med
+ * Den enda redigeringsskärmen (NFR-10, skill shared-ui-components), tillsammans med
  * `EditorState`:
+ * - tangentbordets inset krymper den scrollande ytan (`imePadding` före `verticalScroll`, Scaffoldens inset
+ *   förbrukad så att navigeringsfältet inte räknas två gånger), så att det fokuserade fältet scrollas fram ovanför
+ *   tangentbordet (NFR-11);
  * - "Spara" ([saveLabel]) aktiv först när formuläret är giltigt och ändrat;
  * - bakåt med osparade ändringar → "Släng ändringar?" – likaså arkivera/återställ, som stänger
  *   formuläret utan att spara fälten;
@@ -119,7 +123,8 @@ fun EntityEditScreen(
         },
         snackbarHost = { AppSnackbarHost(snackbar) },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        // Scaffoldens inset (navigeringsfältet) är redan utfyllnad här – imePadding nedan lägger bara till resten.
+        Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             val loadError = state.loadError
             if (state.loading) {
                 AppLoading()
@@ -127,7 +132,7 @@ fun EntityEditScreen(
                 LoadErrorState(stringResource(R.string.load_error_title), loadError, onRetry)
             } else {
                 Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding()
+                    Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState())
                         .padding(horizontal = SCREEN_MARGIN, vertical = Spacing.s),
                     verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
                 ) {
