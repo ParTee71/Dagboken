@@ -156,6 +156,14 @@ class DocumentRulesTest {
         assertEquals(constant("maxFields"), DocumentRules.MAX_FIELDS)
         assertEquals(constant("maxSymptoms"), DocumentRules.MAX_SYMPTOMS)
         assertEquals(constant("maxBoosts"), DocumentRules.MAX_BOOSTS)
+        // Elementkontrollen i rules går till l[RULES_CHECKED_ELEMENTS - 1] i båda listorna, nästlat steg för steg.
+        for ((list, element) in listOf("isBoosts" to "isBoost", "isSymptoms" to "isSymptom")) {
+            val body = functions.getValue(list)
+            val checked = Regex("""$element\(l\[(\d+)]\)""").findAll(body).map { it.groupValues[1].toInt() }.toList()
+            assertEquals((0 until DocumentRules.RULES_CHECKED_ELEMENTS).toList(), checked, list)
+            val guards = Regex("""n <=\s+(\d+) \|\|""").findAll(body).map { it.groupValues[1].toInt() }.toList()
+            assertEquals((0 until DocumentRules.RULES_CHECKED_ELEMENTS).toList(), guards, "$list hoppar över element som inte finns")
+        }
         assertEquals(constant("maxShort"), TextLimits.SHORT)
         assertEquals(constant("maxLong"), TextLimits.LONG)
         assertEquals(DocumentRules.DATE.pattern, Regex("""v\.matches\('([^']+)'\)""").find(functions.getValue("isDate"))!!.groupValues[1])
@@ -170,16 +178,17 @@ class DocumentRulesTest {
         assertEquals(setOf("optionId"), DocumentRules.SYMPTOM.required)
         assertEquals(setOf("score"), DocumentRules.SYMPTOM.nullable, "score läses utan get i rules: nyckeln krävs, null godtas")
         val boost = functions.getValue("isBoost")
-        // Datummönstret står direkt i isBoost (uttrycksbudgeten) – samma som isDate.
-        val date = DocumentRules.DATE.pattern
+        // Billigt för uttrycksbudgeten (#294): tre texter i en summa och båda datumen i ett mönster, som är
+        // isDate() för vart och ett (eller `null`, string(null)).
+        val date = DocumentRules.DATE.pattern.removePrefix("^").removeSuffix("$")
         val isDatePattern = Regex("""v\.matches\('([^']+)'\)""").find(functions.getValue("isDate"))!!.groupValues[1]
-        assertEquals(
-            listOf(isDatePattern, isDatePattern),
-            Regex("""\.matches\('([^']+)'\)""").findAll(boost).map { it.groupValues[1] }.toList(),
-            "isBoosts båda datummönster är exakt isDate()",
-        )
-        assertTrue("b.id is string" in boost && "(b.start == null || b.start.matches('$date'))" in boost && "(b.end == null || b.end.matches('$date'))" in boost && "b.dose is string && b.unit is string" in boost)
+        assertEquals(DocumentRules.DATE.pattern, isDatePattern)
+        assertTrue("(b.id + b.dose + b.unit) is string" in boost, "id, höjning och enhet är texter")
+        assertTrue("(string(b.start) + ' ' + string(b.end)).matches('^(null|$date) (null|$date)$')" in boost, "start och slut är isDate eller null")
         assertEquals(setOf("id", "dose", "unit"), DocumentRules.BOOST.required)
+        assertEquals(setOf("start", "end"), DocumentRules.BOOST.nullable, "start och end läses utan get i rules: nycklarna krävs, null godtas")
+        // Texten 'null' passerar mönstret i rules men läses som inget datum – samma som null. DocumentRules nekar den.
+        assertEquals(null, parseDate("null"))
         val schedule = functions.getValue("isSchedule")
         assertTrue("m.repeat in repeats()" in schedule && "isEnumList(m.days, [${DocumentRules.WEEKDAYS.joinToString(", ")}], ${DocumentRules.WEEKDAYS.count()})" in schedule && "atLeast(m.intervalDays, 0)" in schedule)
         assertEquals(rulesList("repeats"), (DocumentRules.SCHEDULE.fields.getValue("repeat") as Check.OneOf).values)
@@ -257,7 +266,11 @@ class DocumentRulesTest {
         assertEquals(listOf(DocumentRules.Violation("schedule.days[0]", "utanför intervallet 1..7: 0")), prescriptionWith("schedule" to asDoc(prescription["schedule"]) + ("days" to listOf(0))))
         assertEquals(listOf(DocumentRules.Violation("schedule.repeat", "okänt värde (7 tecken)")), prescriptionWith("schedule" to asDoc(prescription["schedule"]) + ("repeat" to "monthly")))
         assertEquals(listOf(DocumentRules.Violation("boosts[0].end", "ogiltigt datum")), prescriptionWith("boosts" to listOf(mapOf("id" to "b", "start" to null, "end" to "igår", "dose" to "1", "unit" to "mg"))))
-        assertEquals(listOf(DocumentRules.Violation("boosts[0].dose", "saknas")), prescriptionWith("boosts" to listOf(mapOf("id" to "b", "unit" to "mg"))))
+        assertEquals(listOf(DocumentRules.Violation("boosts[0].start", "ogiltigt datum")), prescriptionWith("boosts" to listOf(mapOf("id" to "b", "start" to "null", "end" to null, "dose" to "1", "unit" to "mg"))))
+        assertEquals(
+            listOf("boosts[0].start" to "saknas", "boosts[0].end" to "saknas", "boosts[0].dose" to "saknas").map { (field, problem) -> DocumentRules.Violation(field, problem) }.sortedBy { it.field },
+            prescriptionWith("boosts" to listOf(mapOf("id" to "b", "unit" to "mg"))).sortedBy { it.field },
+        )
         assertEquals(emptyList(), prescriptionWith("createdAt" to Instant.parse("2026-01-01T00:00:00Z"), "schedule" to null, "period" to null))
     }
 

@@ -82,7 +82,8 @@ service cloud.firestore {
 
     // Listor av objekt. Rules kan inte loopa och räknar högst 1 000 uttryck per skrivning, så hela
     // listan kontrolleras som lista med tak, men elementen bara upp till det tionde (nästlat, så att
-    // resten hoppas över när listan tar slut). Taket är generöst så att en 3.x-post aldrig nekas;
+    // resten hoppas över när listan tar slut; DocumentRules.RULES_CHECKED_ELEMENTS). Värsta fallet –
+    // alla höjningar med start och slut, varje fält fullt – mäts med reserv i rules.test.mjs (#294). Taket är generöst så att en 3.x-post aldrig nekas;
     // codecen läser trasiga element tolerant (skill data-safety-backup). Elementkontrollen kräver
     // alla fält, som codecen alltid skriver.
     function maxSymptoms() { return 50; }
@@ -102,14 +103,17 @@ service cloud.firestore {
         (isSymptom(l[9])))))))))))))))))))));
     }
 
-    // En doshöjning (REC-9): {id, start, end, dose, unit}. Datummönstret är isDate() skrivet direkt
-    // (en text annars matches-fel = nekad): tio höjningar ligger nära uttrycksbudgeten, och utan
-    // anropet ryms receptets styrka och form (#292). DocumentRulesTest håller mönstret lika med isDate.
+    // En doshöjning (REC-9): {id, start, end, dose, unit}, alla nycklar med. Skriven för uttrycksbudgeten
+    // (#294): tio höjningar med start och slut kontrolleras i varje skrivning, så varje uttryck räknas.
+    // - `(b.id + b.dose + b.unit) is string`: tre texter. Saknas, null eller annan typ ger fel (nekad)
+    //   eller en icke-text (listor, tal).
+    // - Datumen med ett mönster: string() ger `null` för null och texten för en text, så paret är
+    //   `datum|null datum|null` (isDate-mönstret, en text annars fel eller ingen träff = nekad). Texten
+    //   'null' släpps därmed igenom, men codecen läser den som inget datum (parseDate) – samma som null.
+    // DocumentRulesTest håller mönstret lika med isDate; rules.test.mjs mäter reserven i budgeten.
     function isBoost(b) {
-      return b.id is string
-        && (b.start == null || b.start.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'))
-        && (b.end == null || b.end.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'))
-        && b.dose is string && b.unit is string;
+      return (b.id + b.dose + b.unit) is string
+        && (string(b.start) + ' ' + string(b.end)).matches('^(null|[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])) (null|[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]))$');
     }
     function isBoosts(l) {
       let n = l is list ? l.size() : maxBoosts() + 1;

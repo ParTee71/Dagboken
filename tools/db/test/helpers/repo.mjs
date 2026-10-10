@@ -8,9 +8,13 @@ export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 /** En fil i repot, relativt repots rot. */
 export const readRepoFile = (rel) => readFileSync(path.join(repoRoot, rel), 'utf8');
 
+const SCHEMA = 'core/src/main/kotlin/se/partee71/dagboken/core/schema';
+
+/** Heltalskonstanten `const val [name] = n` i Kotlin-filen [file] under :core/schema. */
+const kotlinConstant = (file, name) => Number(readRepoFile(`${SCHEMA}/${file}`).match(new RegExp(`const val ${name} = (\\d+)`))[1]);
+
 /** Textgränserna i :core (`TextLimits.SHORT`/`LONG`) – samma tak som rules (schema.test.mjs). */
-export const textLimits = () => {
-  const kotlin = readRepoFile('core/src/main/kotlin/se/partee71/dagboken/core/schema/TextLimits.kt');
-  const value = (name) => Number(kotlin.match(new RegExp(`const val ${name} = (\\d+)`))[1]);
-  return { short: value('SHORT'), long: value('LONG') };
-};
+export const textLimits = () => ({ short: kotlinConstant('TextLimits.kt', 'SHORT'), long: kotlinConstant('TextLimits.kt', 'LONG') });
+
+/** Ett heltal ur `DocumentRules` i :core (`MAX_BOOSTS` …) – konverterarens gränser, samma som rules. */
+export const documentRulesConstant = (name) => kotlinConstant('DocumentRules.kt', name);
