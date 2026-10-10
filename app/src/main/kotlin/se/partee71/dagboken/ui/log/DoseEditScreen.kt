@@ -105,7 +105,7 @@ fun doseValidator(now: () -> Instant, limitReached: () -> Boolean = { false }): 
 }
 
 /** Det som sparas: trimmad text, och en tom anteckning som ingen. */
-internal fun Dose.cleaned(): Dose = copy(name = name.trim(), dose = dose.trim(), note = note?.trim().nonBlank())
+internal fun Dose.cleaned(): Dose = copy(name = name.trim(), strength = strength.trim(), dose = dose.trim(), note = note?.trim().nonBlank())
 
 /** Fälten som formuläret visar ett fel vid; ett fel på något annat visas överst (`EntityEditScreen(formError)`). */
 private val SHOWN_ERRORS = setOf(DoseField.NAME, DoseField.DOSE, DoseField.TAKEN_AT, DoseField.NOTE, DoseField.LIMIT)

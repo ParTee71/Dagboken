@@ -95,6 +95,19 @@ class ComponentBehaviorTest {
     }
 
     @Test
+    fun `valchips - tryck på det valda anropar onClear om det finns, annars onSelect`() {
+        val events = mutableListOf<String>()
+        var withClear by mutableStateOf(true)
+        show { ChoiceChips(listOf("A", "B"), "A", { events += "select $it" }, { it }, onClear = if (withClear) ({ events += "clear" }) else null) }
+        rule.onNodeWithText("B").performClick()
+        rule.onNodeWithText("A").performClick()
+        assertEquals(listOf("select B", "clear"), events)
+        withClear = false
+        rule.onNodeWithText("A").performClick()
+        assertEquals("select A", events.last(), "utan onClear är beteendet som förut")
+    }
+
+    @Test
     fun `anteckningens fel syns också i stängt läge`() {
         show { NoteField("Sov dåligt.", {}, error = "Värdet går inte att spara") }
         rule.onNodeWithText("Värdet går inte att spara").assertIsDisplayed()

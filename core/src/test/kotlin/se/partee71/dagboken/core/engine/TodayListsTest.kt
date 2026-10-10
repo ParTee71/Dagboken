@@ -118,6 +118,13 @@ class TodayListsTest {
         assertEquals(listOf(otherStrength), asNeededChoices(listOf(prn), listOf(sameStrength, otherStrength), today).prescriptions)
     }
 
+    @Test fun `en medicin utan styrka och samma med styrka är samma medicin, åt båda håll (FAV-11)`() {
+        val withStrength = Prescription("a", "Alvedon", strength = "500 mg", period = Period(day("2026-01-01")))
+        val without = Prescription("b", "Alvedon", period = Period(day("2026-01-01")))
+        assertEquals(emptyList(), asNeededChoices(listOf(PrnMedicine("1", "Alvedon")), listOf(withStrength), today).prescriptions)
+        assertEquals(emptyList(), asNeededChoices(listOf(PrnMedicine("1", "alvedon", strength = "500  MG")), listOf(without, withStrength), today).prescriptions)
+    }
+
     // ── Datumremsans punkter (HEM-14) ────────────────────────────────────────
 
     @Test fun `dagar med avklarade doser eller måendeloggar får en punkt, inte orörda planerade doser`() {

@@ -38,18 +38,22 @@ class AssetMedicineRepository internal constructor(private val open: () -> Input
         }?.also { loaded = it } ?: MedicineCatalog(null, emptyList())
     }
 
-    /** Datumet ur de första raderna (`# updated ÅÅÅÅ-MM-DD`) – läser inte resten av listan. */
-    override suspend fun updated(): LocalDate? = loaded?.updated ?: withContext(Dispatchers.IO) {
-        runCatching {
-            open().bufferedReader().useLines { lines ->
-                lines.take(HEADER_LINES).firstOrNull { it.startsWith(UPDATED) }?.removePrefix(UPDATED)?.trim()?.let(LocalDate::parse)
-            }
-        }.getOrNull()
+    private var date: Result<LocalDate?>? = null
+
+    /**
+     * Datumet ur filens första rader – läser inte resten av listan. Ett läst datum cachas (även `null` när
+     * raden saknas); ett läsfel gör det inte.
+     */
+    override suspend fun updated(): LocalDate? = lock.withLock {
+        loaded?.let { return@withLock it.updated }
+        date?.let { return@withLock it.getOrNull() }
+        withContext(Dispatchers.IO) {
+            runCatching { open().bufferedReader().useLines { lines -> MedicineCatalog.parseUpdated(lines.take(HEADER_LINES)) } }
+        }.also { if (it.isSuccess) date = it }.getOrNull()
     }
 
     private companion object {
         const val FILE = "medicines.tsv"
-        const val UPDATED = "# updated "
         const val HEADER_LINES = 5
     }
 }

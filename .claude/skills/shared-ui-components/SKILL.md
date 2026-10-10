@@ -43,7 +43,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Textfält med förslag | `SuggestionField` | `AppTextField` + kort med en `ItemRow` per förslag (matchningen färgmarkerad); antalet läses upp |
 | Etikett/pill | `InfoPill` | `AppShapes.pill`; `icon` före texten, `onClick` gör den till en knapp med 48 dp tryckyta |
 | Valchip | `AppFilterChip` | M3 filterchip; `onLongClick` (med `onLongClickLabel` för TalkBack) för en meny på långtryck – vid behov-snabbvalen på Idag (HEM-11); egen gest med touch slop (en rullning som börjar på chipet går vidare) som fungerar även när chipet är inaktivt |
-| Ett val bland några | `ChoiceChips` | `ChipRow` + en `AppFilterChip` per alternativ |
+| Ett val bland några | `ChoiceChips` | `ChipRow` + en `AppFilterChip` per alternativ; med `onClear` avmarkerar ett tryck på det valda valet (val som får vara ej angivna, t.ex. läkemedelsform) |
 | Typ ur en alternativlista (aktivitet, händelse) | `TypeChoiceField` | `LabeledGroup` ("Typ") + `ChoiceChips` för de stjärnmärkta och "Fler typer" (samma yta som `DateField`, internt `PickerField`) med listan som meny (`AppMenu`s popup); "Övrigt" sist när det saknas i listan (`TypeChoices.other`), hjälptext utan typer, fel under (AKT-1, SET-9) |
 | Medicinens enhet | `UnitChoice` | `LabeledGroup` ("Enhet") + `ChoiceChips` över `MEDICINE_UNITS`; en lagrad enhet utanför listan står kvar som val (REC-1, FAV-1) |
 | Exempel att börja från (snabbval, tom lista) | `ExampleChips` | `ChipRow` + `AppFilterChip` med plus; det valda med bock |

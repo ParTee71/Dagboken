@@ -62,16 +62,18 @@ class MedicineCatalog(val updated: LocalDate?, val entries: List<MedicineEntry>)
          * fler kolumner än tre ignoreras – en äldre app klarar en nyare fil.
          */
         fun parse(text: String): MedicineCatalog {
-            var updated: LocalDate? = null
             val entries = text.lineSequence().mapNotNull { line ->
-                if (line.startsWith(UPDATED)) updated = runCatching { LocalDate.parse(line.removePrefix(UPDATED).trim()) }.getOrNull()
                 if (line.isBlank() || line.startsWith(HEADER)) return@mapNotNull null
                 val cols = line.split('\t')
                 if (cols.size < 3 || cols[0].isBlank() || cols[2].isBlank()) return@mapNotNull null
                 MedicineEntry(name = cols[0].trim(), strength = cols[1].trim(), formText = cols[2].trim())
             }.toList()
-            return MedicineCatalog(updated, entries)
+            return MedicineCatalog(parseUpdated(text.lineSequence()), entries)
         }
+
+        /** Datumet ur raden `# updated ÅÅÅÅ-MM-DD` bland [lines], eller `null` – tolkningen av filens datum på ett ställe. */
+        fun parseUpdated(lines: Sequence<String>): LocalDate? =
+            lines.firstOrNull { it.startsWith(UPDATED) }?.let { runCatching { LocalDate.parse(it.removePrefix(UPDATED).trim()) }.getOrNull() }
 
         /** Gemener utan diakritiska tecken, tecken för tecken – så att positionerna stämmer med originalet. */
         internal fun fold(text: String): String = buildString(text.length) {

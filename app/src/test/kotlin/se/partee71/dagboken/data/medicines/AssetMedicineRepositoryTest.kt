@@ -45,5 +45,11 @@ class AssetMedicineRepositoryTest {
         assertEquals(1, flaky.catalog().entries.size, "nästa anrop försöker igen")
         assertSame(flaky.catalog(), flaky.catalog(), "en lyckad läsning cachas")
         assertEquals(2, calls)
+
+        var reads = 0
+        val counted = AssetMedicineRepository { reads++; "Alvedon\t500 mg\tTablett\n".byteInputStream() }
+        assertEquals(null, counted.updated())
+        assertEquals(null, counted.updated())
+        assertEquals(1, reads, "ett läst datum (även null) cachas")
     }
 }

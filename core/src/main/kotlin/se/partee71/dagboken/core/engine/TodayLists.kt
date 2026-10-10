@@ -84,15 +84,25 @@ data class AsNeededChoices(
 }
 
 /**
+ * FAV-11: samma medicin = samma namn (utan skiftläge, blanktecken normaliserade) och samma styrka (normaliserad)
+ * – eller att någon av styrkorna inte är angiven, så att en medicin utan styrka inte visas bredvid samma med styrka.
+ */
+fun sameMedicine(nameA: String, strengthA: String, nameB: String, strengthB: String): Boolean {
+    fun norm(text: String) = text.trim().lowercase().replace(Regex("\\s+"), " ")
+    val a = norm(strengthA)
+    val b = norm(strengthB)
+    return norm(nameA) == norm(nameB) && (a.isEmpty() || b.isEmpty() || a == b)
+}
+
+/**
  * FAV-2, FAV-11: delar vid behov-medicinerna på stjärnan, efter namn, och tar med de aktiva recept vars
- * period täcker [today] – utom ett recept vars namn med styrka (utan skiftläge och blanktecken runt om) redan finns
- * bland vid behov-medicinerna, så att samma medicin aldrig står två gånger. Lika namn ordnas på id.
+ * period täcker [today] – utom ett recept som redan finns bland vid behov-medicinerna ([sameMedicine]), så att
+ * samma medicin aldrig står två gånger. Lika namn ordnas på id.
  */
 fun asNeededChoices(medicines: List<PrnMedicine>, prescriptions: List<Prescription>, today: LocalDate): AsNeededChoices {
     val sorted = medicines.sortedWith(compareBy<PrnMedicine, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id })
-    val names = medicines.mapTo(HashSet()) { it.displayName.lowercase() }
     val recipes = prescriptions
-        .filter { it.active && it.period.covers(today) && it.displayName.lowercase() !in names }
+        .filter { p -> p.active && p.period.covers(today) && medicines.none { sameMedicine(it.name, it.strength, p.name, p.strength) } }
         .sortedWith(compareBy<Prescription, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id })
     val (favorites, others) = sorted.partition { it.favorite }
     return AsNeededChoices(favorites, others, recipes)
