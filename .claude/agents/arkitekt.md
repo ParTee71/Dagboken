@@ -42,6 +42,8 @@ ombyggnaden är att **ingen data får tappas** (ADR-001, beslut 11; KRAVLISTA §
 
 ## Rapport
 
+**Kortrapport** (CLAUDE.md → Agenter): bara mallen nedan – inga referat av det du läst, ingen upprepning av uppdraget, ingen inledning eller avslutning. Högst ~15 rader; längre bara när fynden kräver det (en rad per fynd).
+
 ```
 Beslut:      <vad som valts och varför, med alternativ som valdes bort>
 Datakedjan:  <modell · codec · rules · collections.mjs · fixtur · rundtur – vad som ändrats>

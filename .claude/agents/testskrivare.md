@@ -39,5 +39,7 @@ Du skriver tester för Dagboken.
 
 ## Rapport
 
+**Kortrapport** (CLAUDE.md → Agenter): bara mallen nedan – inga referat av det du läst, ingen upprepning av uppdraget, ingen inledning eller avslutning. Högst ~15 rader; längre bara när fynden kräver det (en rad per fynd).
+
 En tabell: `Testklass | Testfall | Nivå | Krav-ID | Status (kört grönt / ej kört här)`.
 Därunder eventuella luckor du inte kunde täcka och varför.

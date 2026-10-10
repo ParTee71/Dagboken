@@ -222,6 +222,11 @@ Skrivningar bara på uttrycklig begäran via `import.mjs`/`migrate.mjs`.
 | `testskrivare` | Skriver/utökar tester och fixturer med de delade testhjälparna – när tre eller fler testnivåer berörs. |
 | `db-inspektor` | Svarar på frågor om faktisk data i Firestore, endast läsning (Haiku · low). |
 
+**Kortrapport:** agenternas svar hamnar i huvudsessionens kontext och kostar där. Varje agent
+svarar bara med mallen i sin fil – inga referat av det den läst, ingen upprepning av uppdraget,
+högst ~15 rader om inte fynden kräver mer. Effort står som kommentar i frontmatter och styr
+inte körningen; huvudsessionen anger den när agenten startas.
+
 ## Skills (`.claude/skills/`)
 
 | Skill | När |

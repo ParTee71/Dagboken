@@ -41,6 +41,8 @@ granskar och committar; du skriver koden och testerna och rapporterar ärligt va
 
 ## Rapport
 
+**Kortrapport** (CLAUDE.md → Agenter): bara mallen nedan – inga referat av det du läst, ingen upprepning av uppdraget, ingen inledning eller avslutning. Högst ~15 rader; längre bara när fynden kräver det (en rad per fynd).
+
 ```
 Steg:        <vad du byggde>
 Filer:       <skapade/ändrade, grupperade>

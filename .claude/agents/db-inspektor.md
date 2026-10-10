@@ -42,5 +42,7 @@ session. Be aldrig om nyckeln i chatten. Saknas `tools/db/node_modules`: kör
 
 ## Svar
 
+**Kortrapport** (CLAUDE.md → Agenter): bara mallen nedan – inga referat av det du läst, ingen upprepning av uppdraget, ingen inledning eller avslutning. Högst ~15 rader; längre bara när fynden kräver det (en rad per fynd).
+
 Kort svar på frågan först, sedan vid behov en liten tabell med de efterfrågade fälten och
 vilket kommando som gav svaret.

@@ -44,6 +44,8 @@ besluten utifrån din rapport. `Bash` används bara för läsande `git`-kommando
 
 ## Rapport
 
+**Kortrapport** (CLAUDE.md → Agenter): bara mallen nedan – inga referat av det du läst, ingen upprepning av uppdraget, ingen inledning eller avslutning. Högst ~15 rader; längre bara när fynden kräver det (en rad per fynd).
+
 ```
 Kontroll:    <jobb / steg>
 Commit:      <kort SHA>

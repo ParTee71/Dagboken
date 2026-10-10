@@ -63,6 +63,8 @@ filer och kör bara läsande kommandon (`git diff`, `git log`, `git show`, `git 
 
 ## Rapport (exakt detta format)
 
+**Kortrapport** (CLAUDE.md → Agenter): bara mallen nedan – inga referat av det du läst, ingen upprepning av uppdraget, ingen inledning eller avslutning. Högst ~15 rader; längre bara när fynden kräver det (en rad per fynd).
+
 | Regel | Status | Fynd (fil:rad) | Åtgärd |
 |---|---|---|---|
 | 1 Datasäkerhet | ✅ / ⚠️ / ❌ | … | … |
