@@ -13,12 +13,19 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.medicine.MedicineEntry
+import se.partee71.dagboken.core.medicine.MedicineMatch
+import se.partee71.dagboken.core.medicine.filledFrom
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.medicines.MedicineRepository
+import se.partee71.dagboken.di.DefaultDispatcher
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.common.EditorLoader
@@ -57,6 +64,9 @@ val prnValidator = Validator<PrnMedicine> { m ->
 sealed interface PrnEditEvent {
     data class Changed(val field: String?, val change: (PrnMedicine) -> PrnMedicine) : PrnEditEvent
 
+    /** Ett val bland namnförslagen (REC-14): fyller i namn, styrka, form och enhet, men inte dosen. */
+    data class MedicineChosen(val entry: MedicineEntry) : PrnEditEvent
+
     data object Save : PrnEditEvent
 
     data object Delete : PrnEditEvent
@@ -72,9 +82,14 @@ sealed interface PrnEditEvent {
 @HiltViewModel(assistedFactory = PrnMedicineEditViewModel.Factory::class)
 class PrnMedicineEditViewModel @AssistedInject constructor(
     private val medicines: PrnMedicineRepository,
+    catalog: MedicineRepository,
+    @DefaultDispatcher computation: CoroutineDispatcher,
     @Assisted private val id: String?,
 ) : ViewModel() {
     val editor: EditorState<PrnMedicine> = EditorState(newPrnMedicine(), prnValidator, loading = id != null)
+
+    /** Namnförslag ur Läkemedelsverkets lista, bara i en ny medicin (REC-14). */
+    val suggestions = MedicineSuggestions(catalog, enabled = id == null, name = editor.state.map { it.value.name }, scope = viewModelScope, computation = computation)
 
     private val loader = EditorLoader(editor, viewModelScope, read = id?.let { id -> { medicines.get(id) } })
 
@@ -86,6 +101,10 @@ class PrnMedicineEditViewModel @AssistedInject constructor(
     fun onEvent(event: PrnEditEvent) {
         when (event) {
             is PrnEditEvent.Changed -> if (event.field == null) editor.update(transform = event.change) else editor.update(event.field, transform = event.change)
+            is PrnEditEvent.MedicineChosen -> {
+                suggestions.pick(event.entry)
+                editor.update(PrnField.NAME) { it.filledFrom(event.entry) }
+            }
             PrnEditEvent.Save -> viewModelScope.launch { editor.save(::save) }
             PrnEditEvent.Delete -> id?.let { id -> viewModelScope.launch { editor.run { medicines.delete(id) } } }
             PrnEditEvent.Retry -> loader.retry()
@@ -94,7 +113,7 @@ class PrnMedicineEditViewModel @AssistedInject constructor(
 
     /** Ny läggs till; en befintlig skriver bara det ändrade – aldrig en ny i stället för en som inte gick att läsa. */
     private suspend fun save(medicine: PrnMedicine): Result<Unit> {
-        val trimmed = medicine.copy(name = medicine.name.trim(), dose = medicine.dose.trim(), note = medicine.note?.trim()?.takeIf { it.isNotEmpty() })
+        val trimmed = medicine.copy(name = medicine.name.trim(), strength = medicine.strength.trim(), dose = medicine.dose.trim(), note = medicine.note?.trim()?.takeIf { it.isNotEmpty() })
         if (id == null) return medicines.add(trimmed)
         val loaded = stored.value ?: return Result.failure(DataError.NotFound)
         return medicines.save(loaded, trimmed)
@@ -110,11 +129,13 @@ class PrnMedicineEditViewModel @AssistedInject constructor(
 fun PrnMedicineEditRoute(id: String?, onClose: () -> Unit) {
     val viewModel = hiltViewModel<PrnMedicineEditViewModel, PrnMedicineEditViewModel.Factory> { it.create(id) }
     val state by viewModel.editor.state.collectAsStateWithLifecycle()
-    PrnMedicineEditScreen(viewModel.isNew, state, viewModel.editor.effects, viewModel::onEvent, onClose)
+    val matches by viewModel.suggestions.matches.collectAsStateWithLifecycle()
+    PrnMedicineEditScreen(viewModel.isNew, state, viewModel.editor.effects, viewModel::onEvent, onClose, matches)
 }
 
 /**
- * Vid behov-formuläret på `EntityEditScreen` (NFR-10): namn, dos, enhet som val (en lagrad enhet utanför
+ * Vid behov-formuläret på `EntityEditScreen` (NFR-10): namn (med förslag ur läkemedelslistan i en ny medicin,
+ * [matches], REC-14), styrka, form, dos, enhet som val (en lagrad enhet utanför
  * listan står kvar som val), minsta tid mellan doser och högsta antal per dag med stegare (0 = ingen
  * spärr respektive obegränsat) och anteckningen. En befintlig kan tas bort i menyn, efter bekräftelse.
  */
@@ -125,6 +146,7 @@ fun PrnMedicineEditScreen(
     effects: Flow<EditorEffect>,
     onEvent: (PrnEditEvent) -> Unit,
     onClose: () -> Unit,
+    matches: List<MedicineMatch> = emptyList(),
 ) {
     val m = state.value
     val change: (String?, (PrnMedicine) -> PrnMedicine) -> Unit = { field, transform -> onEvent(PrnEditEvent.Changed(field, transform)) }
@@ -137,20 +159,27 @@ fun PrnMedicineEditScreen(
         delete = if (isNew) {
             null
         } else {
-            DeleteAction(stringResource(R.string.delete_named_title, m.name), stringResource(R.string.prn_delete_message)) { onEvent(PrnEditEvent.Delete) }
+            DeleteAction(stringResource(R.string.delete_named_title, m.displayName), stringResource(R.string.prn_delete_message)) { onEvent(PrnEditEvent.Delete) }
         },
         onRetry = { onEvent(PrnEditEvent.Retry) },
     ) {
-        AppTextField(
-            m.name,
-            { name -> change(PrnField.NAME) { it.copy(name = name) } },
-            stringResource(R.string.option_name),
-            error = state.errorFor(PrnField.NAME)?.let { stringResource(it) },
+        MedicineFields(
+            name = m.name,
+            strength = m.strength,
+            form = m.form,
+            suggest = isNew,
+            matches = matches,
+            nameError = state.errorFor(PrnField.NAME)?.let { stringResource(it) },
+            onName = { name -> change(PrnField.NAME) { it.copy(name = name) } },
+            onPick = { onEvent(PrnEditEvent.MedicineChosen(it)) },
+            onStrength = { strength -> change(null) { it.copy(strength = strength) } },
+            // En okänd form från en nyare app ersätts först när användaren väljer en.
+            onForm = { form -> change(null) { it.copy(form = form, unknownForm = null) } },
         )
         AppTextField(
             m.dose,
             { dose -> change(PrnField.DOSE) { it.copy(dose = dose) } },
-            stringResource(R.string.dose_label),
+            stringResource(R.string.medicine_dose_label),
             error = state.errorFor(PrnField.DOSE)?.let { stringResource(it) },
         )
         UnitChoice(m.unit, { unit -> change(null) { it.copy(unit = unit) } })

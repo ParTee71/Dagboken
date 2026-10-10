@@ -12,6 +12,7 @@ import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Boost
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
+import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.IllnessEpisode
@@ -124,6 +125,38 @@ class CodecsTest {
         assertEquals(listOf("morning", "night", "brunch"), PrescriptionCodec.encode(decoded)["slots"])
         assertTrue(PrescriptionCodec.decode("r", mapOf("slots" to listOf("asNeeded"))).hasUnknownSlots, "Vid behov visas inte heller")
         assertFalse(PrescriptionCodec.decode("r", mapOf("slots" to listOf("morning"))).hasUnknownSlots)
+    }
+
+    @Test
+    fun `styrka och form - saknade är ej angivna, alla former rundar, en okänd form skrivs tillbaka oförändrad`() {
+        fun <T> emptyRoundTrip(codec: DocCodec<T>) = codec.encode(codec.decode("m", emptyMap()))
+        for (empty in listOf(emptyRoundTrip(PrescriptionCodec), emptyRoundTrip(PrnMedicineCodec))) {
+            assertEquals("", empty["strength"])
+            assertTrue(empty.containsKey("form") && empty["form"] == null, "ej angiven form skrivs som null")
+        }
+        assertEquals("", DoseCodec.decode("d", emptyMap()).strength)
+        for (form in MedicineForm.entries) {
+            assertEquals(form, PrescriptionCodec.decode("r", PrescriptionCodec.encode(Prescription("r", form = form))).form)
+            assertEquals(form, PrnMedicineCodec.decode("p", PrnMedicineCodec.encode(PrnMedicine("p", form = form))).form)
+        }
+        val recipe = PrescriptionCodec.decode("r", mapOf("form" to "spray"))
+        assertNull(recipe.form, "okänd form visas som ej angiven")
+        assertEquals("spray", recipe.unknownForm)
+        assertEquals("spray", PrescriptionCodec.encode(recipe)["form"])
+        assertEquals("spray", PrnMedicineCodec.encode(PrnMedicineCodec.decode("p", mapOf("form" to "spray")))["form"])
+        assertEquals("tablet", PrescriptionCodec.encode(recipe.copy(form = MedicineForm.TABLET))["form"], "en vald form ersätter den okända")
+        assertNull(PrescriptionCodec.decode("r", mapOf("form" to 3)).unknownForm, "annan typ än text bevaras inte")
+        assertNull(PrescriptionCodec.decode("r", mapOf("form" to "tablet")).unknownForm)
+    }
+
+    @Test
+    fun `visningsnamnet är namn och styrka, tomma delar utelämnade`() {
+        assertEquals("Levaxin 100 mikrogram", prescription.displayName)
+        assertEquals("Alvedon 500 mg", Samples.prnMedicine.displayName)
+        assertEquals("Levaxin 100 mikrogram", Samples.dose.displayName)
+        assertEquals("Magnecyl", Dose("d", name = "Magnecyl ", strength = " ").displayName)
+        assertEquals("500 mg", PrnMedicine("p", strength = "500 mg").displayName)
+        assertEquals("", Prescription("r").displayName)
     }
 
     @Test

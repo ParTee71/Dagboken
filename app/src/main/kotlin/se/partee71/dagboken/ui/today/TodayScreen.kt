@@ -341,7 +341,7 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
         ConfirmDialog(
             stringResource(R.string.today_skip_title),
             dose.date.let { day ->
-                val title = medicineTitle(dose.name, dose.dose, dose.unit)
+                val title = medicineTitle(dose.displayName, dose.dose, dose.unit)
                 if (day == null || day == content.today) stringResource(R.string.today_skip_message, title) else stringResource(R.string.today_skip_message_day, title, DateFormat.display(day))
             },
             stringResource(R.string.today_skip),
@@ -353,7 +353,7 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
         val close = { deleting = null }
         val action = entryDeleteAction(
             R.string.diary_subject_dose,
-            medicineTitle(dose.name, dose.dose, dose.unit),
+            medicineTitle(dose.displayName, dose.dose, dose.unit),
             dose.date,
             dose.takenAt?.toLocalDateTime(content.zone)?.time,
             // Samma beslut som `DoseRepository.remove`: en receptdos hoppas över (MED-15).
@@ -374,7 +374,7 @@ private fun DoseRow(item: OpenDose, content: TodayContent, onEvent: (TodayEvent)
     val skip = stringResource(R.string.today_skip)
     val delete = stringResource(R.string.delete)
     CheckRow(
-        title = medicineTitle(dose.name, dose.dose, dose.unit),
+        title = medicineTitle(dose.displayName, dose.dose, dose.unit),
         checked = dose.status == DoseStatus.TAKEN,
         onCheckedChange = { onEvent(TodayEvent.SetTaken(dose, it)) },
         subtitle = doseSubtitle(dose, dose.prescriptionId?.let(content.prescriptions::get), content.date, content.zone),
@@ -442,7 +442,7 @@ private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, l
             choices.favorites.forEach { medicine ->
                 Box {
                     AppFilterChip(
-                        medicineTitle(medicine.name, medicine.dose, medicine.unit),
+                        medicineTitle(medicine.displayName, medicine.dose, medicine.unit),
                         selected = false,
                         onClick = { if (canLog) onEvent(TodayEvent.LogAsNeeded(medicine)) },
                         modifier = pastDay,
@@ -470,8 +470,8 @@ private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, l
                         icon = R.drawable.ic_expand_more,
                     )
                     val recipes = stringResource(R.string.today_more_prescriptions)
-                    val items = choices.others.map { AppMenuItem(medicineTitle(it.name, it.dose, it.unit), { onEvent(TodayEvent.LogAsNeeded(it)) }) } +
-                        choices.prescriptions.map { AppMenuItem(medicineTitle(it.name, it.doseFor(content.today), it.unit), { onEvent(TodayEvent.LogExtra(it)) }, section = recipes) }
+                    val items = choices.others.map { AppMenuItem(medicineTitle(it.displayName, it.dose, it.unit), { onEvent(TodayEvent.LogAsNeeded(it)) }) } +
+                        choices.prescriptions.map { AppMenuItem(medicineTitle(it.displayName, it.doseFor(content.today), it.unit), { onEvent(TodayEvent.LogExtra(it)) }, section = recipes) }
                     AppMenuPopup(items, expanded = moreOpen, onDismiss = { moreOpen = false })
                 }
             }
@@ -480,7 +480,7 @@ private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, l
     deleting?.let { medicine ->
         val close = { deleting = null }
         ConfirmDialog(
-            stringResource(R.string.delete_named_title, medicine.name),
+            stringResource(R.string.delete_named_title, medicine.displayName),
             stringResource(R.string.prn_delete_message),
             stringResource(R.string.delete),
             onConfirm = { close(); onEvent(TodayEvent.DeleteMedicine(medicine)) },
@@ -490,7 +490,7 @@ private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, l
     }
     noteOf?.let { medicine ->
         val close = { noteOf = null }
-        ConfirmDialog(medicine.name, medicine.note.orEmpty(), stringResource(R.string.close), onConfirm = close, onDismiss = close, dismissLabel = null)
+        ConfirmDialog(medicine.displayName, medicine.note.orEmpty(), stringResource(R.string.close), onConfirm = close, onDismiss = close, dismissLabel = null)
     }
 }
 
@@ -507,7 +507,7 @@ private fun medicineMenu(
     listOfNotNull(
         AppMenuItem(stringResource(R.string.edit), onEdit, R.drawable.ic_edit),
         AppMenuItem(
-            stringResource(if (medicine.favorite) R.string.favorite_remove else R.string.favorite_add, medicine.name),
+            stringResource(if (medicine.favorite) R.string.favorite_remove else R.string.favorite_add, medicine.displayName),
             { onEvent(TodayEvent.ToggleFavorite(medicine)) },
             // Samma ikon som stjärnan i Mediciner (FavoriteStar): fylld = favorit.
             if (medicine.favorite) R.drawable.ic_star_filled else R.drawable.ic_star,

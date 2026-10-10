@@ -37,6 +37,8 @@ Fyra flikar, ett inställningsark bakom avataren och en plusknapp som loggar mot
   Health Connect-status och klockans alla mått under Klocka (TRD, HLS).
 - **Mediciner** – recept och scheman med doshöjningar och perioder, vid behov-mediciner med
   kylperiod och dagsgräns, avslutade recept och "Logga en dos i efterhand" (MEDF, REC, FAV).
+  Läkemedel har styrka och form, och i ett nytt recept eller en ny medicin föreslår namnfältet
+  ur Läkemedelsverkets lista (söks helt lokalt, REC-14).
 - **Logga** (plusknappen) – Mående, Aktivitet, Dos, Händelse, Sjukdom.
 - **Inställningar** (avataren) – konto, profil, påminnelser, tema (ljust, mörkt, auto), listor
   över aktivitetstyper, symptom och händelsetyper, export och import, om appen.

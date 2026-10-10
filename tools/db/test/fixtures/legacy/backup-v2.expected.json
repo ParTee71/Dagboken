@@ -76,6 +76,7 @@
         "date": "2026-01-16",
         "slot": "asNeeded",
         "name": "Alvedon",
+        "strength": "",
         "dose": "500",
         "unit": "mg",
         "status": "taken",
@@ -97,6 +98,7 @@
         "date": "2026-01-16",
         "slot": "midmorning",
         "name": "D-vitamin",
+        "strength": "",
         "dose": "1 tablett",
         "unit": "st",
         "status": "taken",
@@ -118,6 +120,7 @@
         "date": "2026-01-15",
         "slot": "evening",
         "name": "Levaxin",
+        "strength": "",
         "dose": "0,5",
         "unit": "mg",
         "status": "skipped",
@@ -137,6 +140,7 @@
         "date": "2026-01-15",
         "slot": "morning",
         "name": "Levaxin",
+        "strength": "",
         "dose": "0,5",
         "unit": "mg",
         "status": "taken",
@@ -377,6 +381,8 @@
       "path": "users/uid-legacy/prescriptions/1b2c3d4e-5f60-4718-8293-a4b5c6d7e8f9",
       "data": {
         "name": "D-vitamin",
+        "strength": "",
+        "form": null,
         "dose": "1 tablett",
         "unit": "st",
         "slots": [
@@ -406,6 +412,8 @@
       "path": "users/uid-legacy/prescriptions/2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e60",
       "data": {
         "name": "Magnesium",
+        "strength": "",
+        "form": null,
         "dose": "300",
         "unit": "mg",
         "slots": [
@@ -430,6 +438,8 @@
       "path": "users/uid-legacy/prescriptions/6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a",
       "data": {
         "name": "Levaxin",
+        "strength": "",
+        "form": null,
         "dose": "0,5",
         "unit": "mg",
         "slots": [
@@ -476,6 +486,8 @@
       "path": "users/uid-legacy/prnMedicines/a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d",
       "data": {
         "name": "Alvedon",
+        "strength": "",
+        "form": null,
         "dose": "500",
         "unit": "mg",
         "slot": "asNeeded",
@@ -490,6 +502,8 @@
       "path": "users/uid-legacy/prnMedicines/b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e",
       "data": {
         "name": "Ipren",
+        "strength": "",
+        "form": null,
         "dose": "400",
         "unit": "mg",
         "slot": "evening",

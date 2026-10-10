@@ -13,6 +13,7 @@ import se.partee71.dagboken.core.engine.WatchMetric
 import se.partee71.dagboken.core.engine.WatchUnit
 import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.core.model.IllnessEpisode
+import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Sex
@@ -149,3 +150,16 @@ val EndDateError.message: Int
         EndDateError.BEFORE_START -> R.string.prescription_error_end_before_start
         EndDateError.AFTER_TODAY -> R.string.illness_end_after_today
     }
+
+/** Läkemedelsformens namn i UI:t (REC-14) – formuläret för recept och vid behov-medicin. */
+@StringRes
+fun MedicineForm.label(): Int = when (this) {
+    MedicineForm.TABLET -> R.string.form_tablet
+    MedicineForm.CAPSULE -> R.string.form_capsule
+    MedicineForm.LIQUID -> R.string.form_liquid
+    MedicineForm.POWDER -> R.string.form_powder
+    MedicineForm.INHALER -> R.string.form_inhaler
+    MedicineForm.DROPS -> R.string.form_drops
+    MedicineForm.PATCH -> R.string.form_patch
+    MedicineForm.OTHER -> R.string.form_other
+}

@@ -33,7 +33,7 @@ fun CooldownDialog(prompt: CooldownPrompt, onConfirm: () -> Unit, onDismiss: () 
 @Composable
 fun cooldownText(@StringRes format: Int, prompt: CooldownPrompt): String {
     val (hours, minutes) = prompt.remaining.hoursAndMinutes()
-    return stringResource(format, hours.toString(), minutes.toString(), prompt.medicine.name)
+    return stringResource(format, hours.toString(), minutes.toString(), prompt.medicine.displayName)
 }
 
 /** Hela timmar och påbörjade minuter – "0h 1m" hellre än "0h 0m" när några sekunder återstår. */

@@ -192,9 +192,10 @@ class SettingsScreensTest {
     }
 
     @Test
-    fun `Om Dagboken visar version, licenser och integritet`() {
-        rule.setContent { DagbokenTheme { AboutScreen(DetailUiState.Content(AboutInfo("4.0.0", 400, "SIL Open Font License")), {}) } }
+    fun `Om Dagboken visar version, läkemedelslistans datum och källa (REC-14), licenser och integritet`() {
+        rule.setContent { DagbokenTheme { AboutScreen(DetailUiState.Content(AboutInfo("4.0.0", 400, "SIL Open Font License", kotlinx.datetime.LocalDate(2026, 10, 7))), {}) } }
         rule.onNodeWithText("Om Dagboken").assertIsDisplayed()
+        rule.onNodeWithText("Läkemedelsverket, ons 7 okt 2026 · CC BY 4.0").assertIsDisplayed()
         rule.onNodeWithText("4.0.0 (bygge 400)").assertIsDisplayed()
         rule.onNodeWithText("SIL Open Font License").assertDoesNotExist()
         rule.onNodeWithText("Licenser").performClick()

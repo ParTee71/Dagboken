@@ -79,6 +79,27 @@ test('import.mjs --replace från kommandoraden återställer användaren exakt',
   assert.equal((await database().doc('users/uid-test/options/extra').get()).exists, false);
 });
 
+test('import.mjs --update från kommandoraden: bara fälten, saknade hoppas över; utan --update vägras filen', async () => {
+  const file = path.join(dir, 'renamed.json');
+  const id = 'a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d';
+  writeFileSync(file, JSON.stringify({
+    exportedAt: '2026-10-01T00:00:00.000Z', schemaVersion: 1,
+    updates: [{ path: `users/uid-test/prnMedicines/${id}`, data: { name: 'Alvedon', form: 'tablet' } }, { path: 'users/uid-test/prnMedicines/borta', data: { name: 'X' } }],
+  }));
+  const plain = node('import.mjs', ['--in', file, '--dry-run']);
+  assert.equal(plain.status, 1);
+  assert.match(plain.stderr, /--update/);
+  const dry = node('import.mjs', ['--in', file, '--update', '--dry-run']);
+  assert.equal(dry.status, 0, dry.stderr);
+  assert.match(dry.stdout, /skulle skriva:\n {2}prnMedicines: 1/);
+  assert.match(dry.stdout, /Skulle hoppa över \(saknas\):\n {2}prnMedicines: 1/);
+  const result = node('import.mjs', ['--in', file, '--update']);
+  assert.equal(result.status, 0, result.stderr);
+  const stored = (await database().doc(`users/uid-test/prnMedicines/${id}`).get()).data();
+  assert.deepEqual([stored.form, stored.maxPerDay, stored.note], ['tablet', 4, 'Max 3 g per dygn']);
+  assert.equal((await database().doc('users/uid-test/prnMedicines/borta').get()).exists, false);
+});
+
 test('en trasig fil ger ett fast felmeddelande utan utdrag ur innehållet', () => {
   const broken = path.join(dir, 'trasig.json');
   writeFileSync(broken, '{"documents": [{"path": "users/u1/doses/d1", "data": {"name": "Levaxin 50" ');

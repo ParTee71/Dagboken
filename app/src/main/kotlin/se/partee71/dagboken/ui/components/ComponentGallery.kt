@@ -228,6 +228,10 @@ private fun Fields() {
     LabeledGroup("Tillfälle") {
         ChoiceChips(listOf(0, 1, 2, 3), occasion, { occasion = it }, { listOf("Frukost", "Lunch", "Middag", "Kväll")[it] })
     }
+    var form by remember { mutableStateOf<Int?>(1) }
+    LabeledGroup("Form (tryck på valet avmarkerar)") {
+        ChoiceChips<Int?>(listOf(0, 1, 2), form, { form = it }, { listOf("Tablett", "Kapsel", "Flytande")[it ?: 0] }, onClear = { form = null })
+    }
     FieldError("Ingen anslutning just nu. Det du sparar skickas när nätet är tillbaka.")
     AppFilterChip("Sjukdom", selected = false, onClick = {}, enabled = false)
     AppFilterChip("Alvedon 500 mg", selected = false, onClick = {}, icon = R.drawable.ic_note, onLongClick = {}, onLongClickLabel = "Fler val")

@@ -318,7 +318,7 @@ class DefaultDoseRepository @Inject constructor(
 
     internal companion object {
         /** Fälten som följer receptet (REC-10, REC-12). */
-        private val FOLLOWS_PRESCRIPTION = setOf(DoseCodec.NAME, DoseCodec.DOSE, DoseCodec.UNIT)
+        private val FOLLOWS_PRESCRIPTION = setOf(DoseCodec.NAME, DoseCodec.STRENGTH, DoseCodec.DOSE, DoseCodec.UNIT)
 
         /** Avbockningens fält (MED-2, MED-14). */
         private val STATUS_FIELDS = setOf(DoseCodec.STATUS, DoseCodec.TAKEN_AT)
@@ -329,7 +329,7 @@ class DefaultDoseRepository @Inject constructor(
          * anteckning, skapandetid eller klockslag – de kan finnas på servern.
          */
         private val TAKEN_FIELDS: Set<FieldPath> = setOf(
-            DoseCodec.STATUS, DoseCodec.TAKEN_AT, DoseCodec.NAME, DoseCodec.DOSE, DoseCodec.UNIT, DoseCodec.DATE, DoseCodec.SLOT, DoseCodec.PRESCRIPTION_ID,
+            DoseCodec.STATUS, DoseCodec.TAKEN_AT, DoseCodec.NAME, DoseCodec.STRENGTH, DoseCodec.DOSE, DoseCodec.UNIT, DoseCodec.DATE, DoseCodec.SLOT, DoseCodec.PRESCRIPTION_ID,
         ).mapTo(mutableSetOf()) { listOf(it) }
 
         /** En ny engångsdos enhet – som en ny vid behov-medicin (FAV-1). */

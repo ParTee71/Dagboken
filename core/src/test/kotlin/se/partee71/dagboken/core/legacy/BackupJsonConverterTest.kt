@@ -376,7 +376,7 @@ class BackupJsonConverterTest {
 
     private companion object {
         /** Nya fält i 4.0 utan 3.x-motsvarighet (ARKITEKTUR.md → Fältparitet). */
-        val NEW_IN_4_0 = setOf("prnId")
+        val NEW_IN_4_0 = setOf("prnId", "strength", "form")
     }
 
     @Test

@@ -14,7 +14,7 @@ data class Dose(
     /** Dagen dosen hör till. */
     val date: LocalDate? = null,
     val slot: Slot = Slot.AS_NEEDED,
-    /** Namn, dos och enhet kopierade från receptet eller medicinen när dosen skapades. */
+    /** Namn, styrka, dos och enhet kopierade från receptet eller medicinen när dosen skapades. */
     val name: String = "",
     val dose: String = "",
     val unit: String = "",
@@ -31,7 +31,12 @@ data class Dose(
     val createdAt: Instant? = null,
     /** Anteckningen (DAT-7). */
     val note: String? = null,
-) : Identified
+    /** Styrkan (`"500 mg"`), kopierad med namnet; tom = ej angiven, som alla doser från 3.x. */
+    val strength: String = "",
+) : Identified {
+    /** "Alvedon 500 mg" – namn och styrka, tomma delar utelämnade. */
+    val displayName: String get() = medicineTitle(name, strength)
+}
 
 /** Dosens tillstånd – ersätter 3.x `tagen` och `skipped`. */
 enum class DoseStatus(override val wire: String) : WireEnum {

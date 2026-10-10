@@ -28,10 +28,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Provider
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -57,13 +59,19 @@ import se.partee71.dagboken.core.engine.withDays
 import se.partee71.dagboken.core.engine.withFormStart
 import se.partee71.dagboken.core.engine.withLength
 import se.partee71.dagboken.core.engine.withStart
+import se.partee71.dagboken.core.medicine.MedicineEntry
+import se.partee71.dagboken.core.medicine.MedicineMatch
+import se.partee71.dagboken.core.medicine.filledFrom
 import se.partee71.dagboken.core.model.Boost
+import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.Repeat
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.medicines.MedicineRepository
+import se.partee71.dagboken.di.DefaultDispatcher
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.EditorEffect
@@ -156,6 +164,13 @@ private fun PrescriptionError.message(): Int = when (this) {
 sealed interface PrescriptionEditEvent {
     data class NameChanged(val name: String) : PrescriptionEditEvent
 
+    data class StrengthChanged(val strength: String) : PrescriptionEditEvent
+
+    data class FormChosen(val form: MedicineForm?) : PrescriptionEditEvent
+
+    /** Ett val bland namnförslagen (REC-14): fyller i namn, styrka, form och enhet, men inte antalet. */
+    data class MedicineChosen(val entry: MedicineEntry) : PrescriptionEditEvent
+
     data class DoseChanged(val dose: String) : PrescriptionEditEvent
 
     data class UnitChanged(val unit: String) : PrescriptionEditEvent
@@ -206,6 +221,8 @@ sealed interface PrescriptionEditEvent {
 @HiltViewModel(assistedFactory = PrescriptionEditViewModel.Factory::class)
 class PrescriptionEditViewModel @AssistedInject constructor(
     private val prescriptions: PrescriptionRepository,
+    medicines: MedicineRepository,
+    @DefaultDispatcher computation: CoroutineDispatcher,
     clock: Clock,
     zone: Provider<TimeZone>,
     @Assisted private val id: String?,
@@ -221,6 +238,9 @@ class PrescriptionEditViewModel @AssistedInject constructor(
     private val createdAt: Instant? = if (id == null) clock.now() else null
 
     val editor: EditorState<Prescription> = EditorState(newPrescription(today), prescriptionValidator, loading = id != null)
+
+    /** Namnförslag ur Läkemedelsverkets lista, bara i ett nytt recept (REC-14). */
+    val suggestions = MedicineSuggestions(medicines, enabled = id == null, name = editor.state.map { it.value.name }, scope = viewModelScope, computation = computation)
 
     private val _periodChoice = MutableStateFlow(PeriodChoice.UNTIL_FURTHER_NOTICE)
 
@@ -259,6 +279,13 @@ class PrescriptionEditViewModel @AssistedInject constructor(
     fun onEvent(event: PrescriptionEditEvent) {
         when (event) {
             is PrescriptionEditEvent.NameChanged -> editor.update(PrescriptionField.NAME) { it.copy(name = event.name) }
+            is PrescriptionEditEvent.StrengthChanged -> editor.update { it.copy(strength = event.strength) }
+            // En okänd form från en nyare app ersätts först när användaren väljer en.
+            is PrescriptionEditEvent.FormChosen -> editor.update { it.copy(form = event.form, unknownForm = null) }
+            is PrescriptionEditEvent.MedicineChosen -> {
+                suggestions.pick(event.entry)
+                editor.update(PrescriptionField.NAME) { it.filledFrom(event.entry) }
+            }
             is PrescriptionEditEvent.DoseChanged -> rules { it.copy(dose = event.dose) }
             // Höjningarna anges alltid i receptets enhet (REC-9).
             is PrescriptionEditEvent.UnitChanged -> editor.update { p -> p.copy(unit = event.unit, boosts = p.boosts.map { it.copy(unit = event.unit) }) }
@@ -321,6 +348,7 @@ class PrescriptionEditViewModel @AssistedInject constructor(
     private suspend fun save(prescription: Prescription): Result<Unit> {
         val trimmed = prescription.copy(
             name = prescription.name.trim(),
+            strength = prescription.strength.trim(),
             dose = prescription.dose.trim(),
             note = prescription.note?.trim()?.takeIf { it.isNotEmpty() },
             boosts = prescription.boosts.map { it.copy(dose = it.dose.trim()) },
@@ -343,11 +371,13 @@ fun PrescriptionEditRoute(id: String?, extend: Boolean, onClose: () -> Unit) {
     val viewModel = hiltViewModel<PrescriptionEditViewModel, PrescriptionEditViewModel.Factory> { it.create(id, extend) }
     val state by viewModel.editor.state.collectAsStateWithLifecycle()
     val periodChoice by viewModel.periodChoice.collectAsStateWithLifecycle()
-    PrescriptionEditScreen(viewModel.isNew, state, periodChoice, viewModel.canAddBoost(state.value), viewModel.editor.effects, viewModel::onEvent, onClose)
+    val matches by viewModel.suggestions.matches.collectAsStateWithLifecycle()
+    PrescriptionEditScreen(viewModel.isNew, state, periodChoice, viewModel.canAddBoost(state.value), viewModel.editor.effects, viewModel::onEvent, onClose, matches)
 }
 
 /**
- * Receptformuläret på `EntityEditScreen` (NFR-10), fälten i mockupens ordning: namn, dos, enhet,
+ * Receptformuläret på `EntityEditScreen` (NFR-10), fälten i mockupens ordning: namn (med förslag ur
+ * läkemedelslistan i ett nytt recept, [matches], REC-14), styrka, form, antal per dos, enhet,
  * tidpunkter, upprepning, period, doshöjningar, anteckning och Aktiv. Upprepningen och perioden är
  * ett val var, och bara det valda lägets kontroll syns.
  */
@@ -360,6 +390,7 @@ fun PrescriptionEditScreen(
     effects: Flow<EditorEffect>,
     onEvent: (PrescriptionEditEvent) -> Unit,
     onClose: () -> Unit,
+    matches: List<MedicineMatch> = emptyList(),
 ) {
     val p = state.value
     val errors: Map<String, String> = state.errors.mapValues { (_, message) -> stringResource(message) }
@@ -372,8 +403,19 @@ fun PrescriptionEditScreen(
         onClose = onClose,
         onRetry = { onEvent(PrescriptionEditEvent.Retry) },
     ) {
-        AppTextField(p.name, { onEvent(PrescriptionEditEvent.NameChanged(it)) }, stringResource(R.string.option_name), error = error(PrescriptionField.NAME))
-        AppTextField(p.dose, { onEvent(PrescriptionEditEvent.DoseChanged(it)) }, stringResource(R.string.dose_label), error = error(PrescriptionField.DOSE))
+        MedicineFields(
+            name = p.name,
+            strength = p.strength,
+            form = p.form,
+            suggest = isNew,
+            matches = matches,
+            nameError = error(PrescriptionField.NAME),
+            onName = { onEvent(PrescriptionEditEvent.NameChanged(it)) },
+            onPick = { onEvent(PrescriptionEditEvent.MedicineChosen(it)) },
+            onStrength = { onEvent(PrescriptionEditEvent.StrengthChanged(it)) },
+            onForm = { onEvent(PrescriptionEditEvent.FormChosen(it)) },
+        )
+        AppTextField(p.dose, { onEvent(PrescriptionEditEvent.DoseChanged(it)) }, stringResource(R.string.medicine_dose_label), error = error(PrescriptionField.DOSE))
         UnitChoice(p.unit, { onEvent(PrescriptionEditEvent.UnitChanged(it)) })
         SlotsSection(p, error(PrescriptionField.SLOTS), onEvent)
         RepeatSection(p, error(PrescriptionField.DAYS), onEvent)

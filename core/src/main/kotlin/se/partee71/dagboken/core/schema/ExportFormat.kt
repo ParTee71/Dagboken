@@ -33,14 +33,17 @@ import kotlinx.serialization.json.put
 object ExportFormat {
     data class Document(val path: String, val data: Doc)
 
-    /** Hela filen, indragen med två mellanslag som `tools/db export`. */
-    fun encode(exportedAt: Instant, schemaVersion: Int, documents: List<Document>): String =
+    /**
+     * Hela filen, indragen med två mellanslag som `tools/db export`. [listKey] [UPDATES] ger en ändringsfil
+     * (bara ändrade fält per dokument) som bara `tools/db import --update` läser – aldrig en vanlig import.
+     */
+    fun encode(exportedAt: Instant, schemaVersion: Int, documents: List<Document>, listKey: String = DOCUMENTS): String =
         PRETTY.encodeToString(
             JsonElement.serializer(),
             buildJsonObject {
                 put("exportedAt", millis(exportedAt))
                 put(SCHEMA_VERSION, schemaVersion)
-                put(DOCUMENTS, buildJsonArray { documents.forEach { add(document(it)) } })
+                put(listKey, buildJsonArray { documents.forEach { add(document(it)) } })
             },
         )
 
@@ -141,6 +144,13 @@ object ExportFormat {
 
     /** Nyckeln för dokumentlistan – det som skiljer en 4.0-export från en 3.x-backup. */
     const val DOCUMENTS = "documents"
+
+    /**
+     * Nyckeln för dokumentlistan i en ändringsfil (`:core:matchMedicines`): bara ändrade fält per dokument.
+     * Utan [DOCUMENTS] känns den varken igen av appens import (BCK-6) eller av `tools/db import` utan `--update`,
+     * som annars skulle skriva de ofullständiga dokumenten hela.
+     */
+    const val UPDATES = "updates"
 
     /** Nyckeln för filens version. */
     const val SCHEMA_VERSION = "schemaVersion"

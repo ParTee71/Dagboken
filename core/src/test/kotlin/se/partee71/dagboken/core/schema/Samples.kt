@@ -14,6 +14,7 @@ import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.LegacySettings
+import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Option
@@ -75,6 +76,8 @@ object Samples {
     val prescription = Prescription(
         id = "6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a",
         name = "Levaxin",
+        strength = "100 mikrogram",
+        form = MedicineForm.TABLET,
         dose = "0,5",
         unit = "mg",
         slots = listOf(Slot.EVENING, Slot.MORNING),
@@ -87,7 +90,7 @@ object Samples {
     )
 
     val prnMedicine = PrnMedicine(
-        id = "alvedon", name = "Alvedon", dose = "500", unit = "mg", slot = Slot.NIGHT, minHoursBetween = 6,
+        id = "alvedon", name = "Alvedon", strength = "500 mg", form = MedicineForm.CAPSULE, dose = "500", unit = "mg", slot = Slot.NIGHT, minHoursBetween = 6,
         dispensingTime = "30 min", maxPerDay = 4, favorite = true, note = "Max 3 g per dygn",
     )
 
@@ -96,6 +99,7 @@ object Samples {
         date = day,
         slot = Slot.MIDMORNING,
         name = "Levaxin",
+        strength = "100 mikrogram",
         dose = "0,5",
         unit = "mg",
         status = DoseStatus.TAKEN,

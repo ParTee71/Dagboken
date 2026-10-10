@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
@@ -126,6 +127,15 @@ class DoseAndIllnessScreensTest {
         ) { state, effects, onSave, onClose ->
             DoseEditScreen(EntryForm(false, state, effects, { if (it == EntryEditEvent.Save) onSave() }, prn), onClose, DoseMode.EDIT, zone)
         }
+    }
+
+    @Test
+    fun `en engångsdos visar och ändrar styrkan (REC-14)`() {
+        var value by mutableStateOf(oneOff.copy(strength = "3 mg"))
+        rule.setContent { DagbokenTheme { DoseEditScreen(form(value) { e -> if (e is EntryEditEvent.Changed) value = e.change(value) }, {}, DoseMode.NEW, zone) } }
+        rule.onNodeWithText("3 mg").assertIsDisplayed()
+        rule.onNodeWithText("3 mg").performTextReplacement("5 mg")
+        assertEquals("5 mg", value.strength)
     }
 
     @Test

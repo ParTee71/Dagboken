@@ -61,6 +61,9 @@ node tools/db/migrate.mjs --to <N>                        # schemamigrering (BCK
 - `import` kontrollerar hela filen först och vägrar användare med högre `schemaVersion` än verktyget.
 - `import --replace` tar bort dokument under filens användare som inte finns i filen (exakt
   återställning); visa alltid torrkörningens "Skulle ta bort" först.
+- `import --update` läser en ändringsfil (`updates`, t.ex. från `:core:matchMedicines`) och skriver
+  bara dess fält med Firestores `update`; ett dokument som saknas hoppas över, inget skapas. En
+  vanlig import vägrar en ändringsfil.
 - `import` läser bara 4.0-formatet (`tools/db export`). En 3.x Drive-backup (`BackupJson`)
   konverteras först av konverteraren i `:core` (OMB-3, BCK-14):
   `./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <uid>"`

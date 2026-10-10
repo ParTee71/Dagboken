@@ -40,7 +40,7 @@ fälthjälparna; toleranta mot saknade och okända fält (DAT-10):
 
 - **Saknat fält** eller `null` → modellens default.
 - **Okänt enumvärde** (från en nyare app) → modellens default, som skrivs vid nästa sparning –
-  utom `screenings.occasion`, som blir `null`, och påminnelserader och receptets tidpunkter med
+  utom `screenings.occasion`, som blir `null`, receptets och vid behov-medicinens `form`, som blir `null` och skrivs tillbaka oförändrad (`unknownForm`), och påminnelserader och receptets tidpunkter med
   okänd nyckel, som hoppas över.
 - **Okända fält** på toppnivå och i nästlade objekt bevaras (merge-skrivning). **Okända fält i ett
   listelement** (`symptoms[]`, `boosts[]`, `medSlots[]`, `screeningOccasions[]`) bevaras **inte** –

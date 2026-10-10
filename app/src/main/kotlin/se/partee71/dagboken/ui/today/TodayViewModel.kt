@@ -461,7 +461,7 @@ class TodayViewModel @Inject constructor(
                 // Bara ångra för just den här dosen blir inaktuellt.
                 if (undoFor == dose.id) clearUndo()
             } else {
-                offerUndo(dose, medicineTitle(dose.name, dose.dose, dose.unit), format) { doses.setStatus(dose, dose.status, dose.takenAt) }
+                offerUndo(dose, medicineTitle(dose.displayName, dose.dose, dose.unit), format) { doses.setStatus(dose, dose.status, dose.takenAt) }
             }
         }
     }
@@ -493,12 +493,12 @@ class TodayViewModel @Inject constructor(
         viewModelScope.launch {
             val result = doses.logAsNeeded(medicine, clock.now(), force)
             result.failureOrNull()?.let { _failure.value = it; return@launch }
-            val title = medicineTitle(medicine.name, medicine.dose, medicine.unit)
+            val title = medicineTitle(medicine.displayName, medicine.dose, medicine.unit)
             val log = result.getOrThrow()
             when (val check = log.check) {
                 PrnCheck.Allowed -> log.dose?.let { dose -> offerUndo(dose, title, R.string.today_logged_format) { doses.remove(dose) } }
                 is PrnCheck.Cooldown -> _cooldown.value = CooldownPrompt(medicine, check.remaining)
-                PrnCheck.DailyLimitReached -> _notice.value = TodayNotice(R.string.today_limit_reached_format, medicine.maxPerDay, medicine.name)
+                PrnCheck.DailyLimitReached -> _notice.value = TodayNotice(R.string.today_limit_reached_format, medicine.maxPerDay, medicine.displayName)
             }
         }
     }
@@ -509,7 +509,7 @@ class TodayViewModel @Inject constructor(
             val result = doses.logExtraDose(prescription, clock.now())
             result.failureOrNull()?.let { _failure.value = it; return@launch }
             val dose = result.getOrThrow()
-            offerUndo(dose, medicineTitle(dose.name, dose.dose, dose.unit), R.string.today_logged_format) { doses.remove(dose) }
+            offerUndo(dose, medicineTitle(dose.displayName, dose.dose, dose.unit), R.string.today_logged_format) { doses.remove(dose) }
         }
     }
 

@@ -242,11 +242,11 @@ fun MedicinesScreen(
         when (item) {
             is MedicineItem.Recipe -> PrescriptionCard(item, today, onEvent, { onExtendPrescription(item.prescription.id) }) { onOpenPrescription(item.prescription.id) }
             is MedicineItem.AsNeeded -> ItemRow(
-                medicineTitle(item.medicine.name, item.medicine.dose, item.medicine.unit),
+                medicineTitle(item.medicine.displayName, item.medicine.dose, item.medicine.unit),
                 subtitle = prnLimits(item.medicine),
                 onClick = { onOpenPrn(item.medicine.id) },
                 navigates = true,
-                trailing = { FavoriteStar(item.medicine.name, item.medicine.favorite, { onEvent(MedicinesEvent.FavoriteToggled(item.medicine)) }) },
+                trailing = { FavoriteStar(item.medicine.displayName, item.medicine.favorite, { onEvent(MedicinesEvent.FavoriteToggled(item.medicine)) }) },
             )
         }
     }
@@ -284,7 +284,7 @@ private fun endingText(ending: PeriodEnding, today: LocalDate): String {
 @Composable
 private fun PrescriptionCard(item: MedicineItem.Recipe, today: LocalDate, onEvent: (MedicinesEvent) -> Unit, onExtend: () -> Unit, onOpen: () -> Unit) {
     val p = item.prescription
-    val title = medicineTitle(p.name, p.dose, p.unit)
+    val title = medicineTitle(p.displayName, p.dose, p.unit)
     val active = p.active && !item.ended
     val toggleLabel = stringResource(if (p.active) R.string.medicines_deactivate else R.string.medicines_activate)
     val pills = prescriptionPills(item, today)
@@ -302,11 +302,11 @@ private fun PrescriptionCard(item: MedicineItem.Recipe, today: LocalDate, onEven
             listOf(AppMenuItem(toggleLabel, { onEvent(MedicinesEvent.ActiveChanged(p, !p.active)) }, if (p.active) R.drawable.ic_toggle_off else R.drawable.ic_toggle_on))
         },
         delete = DeleteAction(
-            stringResource(R.string.delete_named_title, p.name),
+            stringResource(R.string.delete_named_title, p.displayName),
             stringResource(R.string.medicines_delete_prescription_message),
         ) { onEvent(MedicinesEvent.DeletePrescription(p)) },
         inactive = !active,
-        toggle = if (item.ended) null else EntryToggle(p.active, { onEvent(MedicinesEvent.ActiveChanged(p, it)) }, stringResource(R.string.medicines_active_format, p.name)),
+        toggle = if (item.ended) null else EntryToggle(p.active, { onEvent(MedicinesEvent.ActiveChanged(p, it)) }, stringResource(R.string.medicines_active_format, p.displayName)),
         below = if (pills.isEmpty()) {
             null
         } else {

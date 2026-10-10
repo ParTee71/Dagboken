@@ -241,7 +241,7 @@ private fun cardText(row: DiaryRow.Entry): CardText = when (val entry = row.entr
     }
     is DiaryEntry.TakenDose -> {
         val d = entry.dose
-        CardText(medicineTitle(d.name, d.dose, d.unit), subtitle(entry.time, stringResource(d.slot.label())))
+        CardText(medicineTitle(d.displayName, d.dose, d.unit), subtitle(entry.time, stringResource(d.slot.label())))
     }
     is DiaryEntry.Happening -> {
         val e = entry.event

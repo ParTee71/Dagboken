@@ -69,7 +69,7 @@ fun DosePickerSheet(picker: DosePicker, onClose: () -> Unit, onOpen: (LogTarget)
         picker.medicines.forEach { medicine ->
             key(medicine.id) {
                 ItemRow(
-                    medicineTitle(medicine.name, medicine.dose, medicine.unit),
+                    medicineTitle(medicine.displayName, medicine.dose, medicine.unit),
                     subtitle = prnLimits(medicine),
                     icon = R.drawable.ic_pill,
                     onClick = { onOpen(LogTarget.AsNeeded(medicine.id, picker.date)) },

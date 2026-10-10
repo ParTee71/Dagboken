@@ -54,6 +54,13 @@ inline fun <reified E> Doc.wireList(key: String): List<E> where E : Enum<E>, E :
 inline fun <reified E> Doc.unknownWires(key: String): List<String> where E : Enum<E>, E : WireEnum =
     (this[key] as? List<*>)?.filterIsInstance<String>()?.filter { wireValue<E>(it) == null }.orEmpty()
 
+/**
+ * Fältets text när den inte är något känt [E] – ett enumvärde från en nyare app, som skrivs tillbaka
+ * oförändrat (som [unknownWires] för listor). Känt, saknat eller annan typ → `null`.
+ */
+inline fun <reified E> Doc.unknownWire(key: String): String? where E : Enum<E>, E : WireEnum =
+    (this[key] as? String)?.takeIf { wireValue<E>(it) == null }
+
 /** Datum utan tid lagras som ISO-sträng (`yyyy-MM-dd`); ogiltigt → `null`. */
 fun Doc.localDate(key: String): LocalDate? = (this[key] as? String)?.let(::parseDate)
 
@@ -103,5 +110,8 @@ fun LocalDate?.encodeDate(): String? = this?.toString()
 fun Set<DayOfWeek>.encodeWeekdays(): List<Int> = map { it.isoDayNumber }.sorted()
 
 fun WireEnum?.encodeWire(): String? = this?.wire
+
+/** Ett valfritt enumvärde: det kända, annars det okända lagrade värdet oförändrat ([unknownWire]). */
+fun WireEnum?.encodeWire(unknown: String?): String? = this?.wire ?: unknown
 
 fun List<WireEnum>.encodeWires(): List<String> = map { it.wire }

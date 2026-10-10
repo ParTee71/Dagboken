@@ -89,9 +89,9 @@ markören `legacyMigration` {completedAt, source `room` \| `drive` \| `json`, so
 |---|---|---|
 | `settings` (ett dokument, `settings/app`) | theme {mode `light` \| `dark` \| `auto`, lightStartHour, darkStartHour, isDarkTheme}, reminders {medsEnabled, medSlots[6] {slot, enabled, time}, screeningOccasions[4] {occasion, enabled, time}, periodReminderTime}, profile {birthYear?, sex `male` \| `female` \| `unspecified`}, legacy {dynamicColor?, sheetsConfig?} (bara bevarade 3.x-värden) | DataStore + `SettingsBackup` + `BackupJson.sheetsConfig` |
 | `options` | kind (`activity` \| `symptom` \| `event`), name, favorite, sortOrder, archived | DataStore-listorna |
-| `prescriptions` | name, dose (text), unit, slots[], schedule {repeat `daily` \| `weekdays` \| `weekends` \| `custom` \| `interval`, days[], intervalDays}, period {start?, end?}, boosts[] {id, start, end?, dose, unit}, active, createdAt, note | `recept` + `dosperioderJson` |
-| `prnMedicines` | name, dose (text), unit, slot, minHoursBetween, dispensingTime, maxPerDay, favorite, note | `favoriter` |
-| `doses` | date, slot, name, dose (text), unit, status (`planned` \| `taken` \| `skipped`), plannedTime, takenAt?, prescriptionId?, prnId?, createdAt, note | `mediciner` (tagen + skipped + tagenTid) |
+| `prescriptions` | name, strength (text, `""` = ej angiven), form? (`tablet` \| `capsule` \| `liquid` \| `powder` \| `inhaler` \| `drops` \| `patch` \| `other`; `null` = ej angiven, okänt värde skrivs tillbaka oförändrat), dose (text), unit, slots[], schedule {repeat `daily` \| `weekdays` \| `weekends` \| `custom` \| `interval`, days[], intervalDays}, period {start?, end?}, boosts[] {id, start, end?, dose, unit}, active, createdAt, note | `recept` + `dosperioderJson` |
+| `prnMedicines` | name, strength, form? (som `prescriptions`), dose (text), unit, slot, minHoursBetween, dispensingTime, maxPerDay, favorite, note | `favoriter` |
+| `doses` | date, slot, name, strength (kopierad med namnet), dose (text), unit, status (`planned` \| `taken` \| `skipped`), plannedTime, takenAt?, prescriptionId?, prnId?, createdAt, note | `mediciner` (tagen + skipped + tagenTid) |
 | `screenings` | date, time, occasion? (`breakfast` \| `lunch` \| `dinner` \| `bedtime`), customText?, energy 0–10, stress, symptoms[] {optionId, score (0–10, `null` = utan poäng, bara från 3.x), customText?}, legacySomatic?, createdAt, note | `aktiviteter` med type=screening |
 | `activities` | date, time, optionId, customText?, energy −10..10, stress, symptoms[], legacySomatic?, recovering, drain, minutes?, createdAt, note | `aktiviteter` med type=aktivitet |
 | `events` | date, time, optionId, severity, durationMinutes, triggers, actions, createdAt, note | `health_events` |
@@ -277,7 +277,8 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `SymptomOptionBackup.name` | `options.name` | |
 | `SymptomOptionBackup.isFavorite` | `options.favorite` | |
 
-Nya fält i 4.0 utan 3.x-motsvarighet: `doses.prnId`, `options.archived`.
+Nya fält i 4.0 utan 3.x-motsvarighet: `doses.prnId`, `options.archived`, `prescriptions.strength`, `prescriptions.form`, `prnMedicines.strength`, `prnMedicines.form`, `doses.strength`.
+Styrka och form fanns inte i 3.x: konverterarens dokument får tom styrka och ingen form (ej angivet); `:core:matchMedicines` kan fylla dem ur Läkemedelsverkets lista efter flytten (REC-1, FAV-1, REC-14) – som en ändringsfil (`updates`, bara ändrade fält) som `tools/db/import.mjs --update` skriver med Firestores `update`: andra fält står kvar och raderade dokument återskapas inte; doserna får bara namn och styrka.
 
 \* *metadata* (bara `BackupJson.version` och `BackupJson.createdAt`): **backupfilens** metadata, inte
 användarens data – de beskriver filen (formatversion och när den skrevs), inte något användaren har

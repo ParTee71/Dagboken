@@ -246,7 +246,7 @@ ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här ä
   "skapa om det saknas" kräver `createIfAbsent` (nät). Det enda medvetna undantaget är "Markera tagen" i
   medicinpåminnelsen (NOT-10, `DoseRepository.markTaken`), som avbockningen i appen: offline först, **en** batch
   med bara fältvisa merges (aldrig avvisad för ett saknat dokument). Alla doser (i cachen och saknade) får samma fält:
-  `status`, `takenAt`, `name`, `dose`, `unit` och id:ts fält (`date`, `slot`, `prescriptionId`) – aldrig `note`,
+  `status`, `takenAt`, `name`, `strength`, `dose`, `unit` och id:ts fält (`date`, `slot`, `prescriptionId`) – aldrig `note`,
   `createdAt`, `plannedTime` eller okända fält. Avvägning (last-write-wins): en status som en annan enhet satt och
   som enheten inte sett skrivs över, liksom namn/dos/enhet som en annan enhet ändrat, och en dos som raderats på
   servern återuppstår hel som tagen. Anteckning, skapandetid och okända fält bevaras alltid.

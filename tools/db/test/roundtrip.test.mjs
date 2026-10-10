@@ -1,7 +1,7 @@
 // Regel 1: all data överlever export → radera → import → export (BCK-12, BCK-16). Endast emulatorn.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { exportData, importData, MAX_BATCH } from '../lib/backup.mjs';
+import { exportData, importData, MAX_BATCH, updateDocuments } from '../lib/backup.mjs';
 import { COLLECTIONS } from '../lib/collections.mjs';
 import { collectionOf } from '../lib/walk.mjs';
 import { UID, clearUsers, fixture, otherUser, seed, useCleanEmulator } from './helpers/emulator.mjs';
@@ -122,6 +122,52 @@ test('--replace gör användaren exakt som i filen: dokument som tillkommit efte
   await importData(db, backup, { replace: true });
   assert.deepEqual(byPath((await exportData(db, { user: UID })).documents), byPath(backup.documents));
   assert.ok((await exportData(db)).documents.some((d) => d.path === 'users/annan'), 'andra användare rörs inte');
+});
+
+test('--update skriver bara filens fält i befintliga dokument; saknade hoppas över och skapas inte', async () => {
+  const db = database();
+  await seed(db);
+  const before = (await db.doc(`users/${UID}/doses/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f`).get()).data();
+  // Ändrat i appen efter exporten: ska stå kvar.
+  await db.doc(`users/${UID}/doses/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f`).update({ note: 'Ändrad efter exporten' });
+  const data = {
+    schemaVersion: 1,
+    updates: [
+      { path: `users/${UID}/doses/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f`, data: { name: 'Alvedon', strength: '500 mg', 'a.b': 1 } },
+      { path: `users/${UID}/doses/raderad`, data: { name: 'Alvedon' } },
+    ],
+  };
+  const dry = await importData(db, data, { update: true, dryRun: true });
+  assert.deepEqual([dry.written, dry.skipped], [{ doses: 1 }, { doses: 1 }]);
+  const { written, skipped } = await importData(db, data, { update: true });
+  assert.deepEqual([written, skipped], [{ doses: 1 }, { doses: 1 }]);
+  const after = (await db.doc(`users/${UID}/doses/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f`).get()).data();
+  assert.equal(after.note, 'Ändrad efter exporten', 'ett fält som inte finns i filen står kvar');
+  assert.equal(after.strength, '500 mg');
+  assert.equal(after['a.b'], 1, 'en punkt i ett fältnamn är ingen väg');
+  assert.ok(after.takenAt.isEqual(before.takenAt));
+  assert.equal((await db.doc(`users/${UID}/doses/raderad`).get()).exists, false, 'ett raderat dokument återskapas inte');
+  await assert.rejects(importData(db, data, { update: true, replace: true }), /går inte att kombinera/);
+});
+
+test('--update: ett dokument som raderats efter existenskontrollen hoppas över och resten av batchen skrivs', async () => {
+  const db = database();
+  const documents = [
+    { path: 'users/u', data: { schemaVersion: 1 } },
+    ...Array.from({ length: MAX_BATCH + 3 }, (_, i) => ({ path: `users/u/doses/d${i}`, data: { name: `D${i}`, note: 'Står kvar' } })),
+  ];
+  await seed(db, documents);
+  // Som om d2 och d501 raderats mellan kontrollen och skrivningen: updateDocuments får dem ändå.
+  await db.doc('users/u/doses/d2').delete();
+  await db.doc(`users/u/doses/d${MAX_BATCH + 1}`).delete();
+  const changes = documents.slice(1).map(({ path }) => ({ path, data: { name: 'Ny' } }));
+  const { written, skipped } = await updateDocuments(db, changes);
+  assert.deepEqual(skipped.map((d) => d.path), ['users/u/doses/d2', `users/u/doses/d${MAX_BATCH + 1}`]);
+  assert.equal(written.length, MAX_BATCH + 1);
+  assert.equal((await db.doc('users/u/doses/d2').get()).exists, false, 'återskapas inte');
+  const d0 = (await db.doc('users/u/doses/d0').get()).data();
+  assert.deepEqual([d0.name, d0.note], ['Ny', 'Står kvar']);
+  assert.equal((await db.doc(`users/u/doses/d${MAX_BATCH + 2}`).get()).data().name, 'Ny', 'andra batchen skrivs också');
 });
 
 test('import skriver ingenting om ett dokument längre fram i filen är trasigt', async () => {
