@@ -40,6 +40,50 @@ export function adminFirestore() {
   return openFirestore({ test: true, projectId: PROJECT_ID });
 }
 
+/** Ett tal som skrivs som Firestores `doubleValue` även när det är helt (3.0) – klientens SDK skickar det som heltal. */
+export class Double {
+  constructor(value) { this.value = value; }
+}
+
+/** Ett klientvärde (som rules-testet skriver med setDoc) som REST-värde; hela tal blir heltal, utom [Double]. */
+const toRestValue = (v) => {
+  if (v === null) return { nullValue: null };
+  if (v instanceof Double) return { doubleValue: v.value };
+  if (typeof v === 'string') return { stringValue: v };
+  if (typeof v === 'boolean') return { booleanValue: v };
+  if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(toRestValue) } };
+  if (typeof v?.toDate === 'function') return { timestampValue: v.toDate().toISOString() };
+  if (typeof v === 'object') return { mapValue: { fields: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, toRestValue(x)])) } };
+  throw new Error(`okänd typ i testdata: ${typeof v}`);
+};
+
+/** Osignerad ID-token för [uid] i [projectId], som emulatorn godtar (samma form som rules-unit-testing skapar). */
+const mockToken = (uid, projectId) => {
+  const part = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const payload = {
+    iss: `https://securetoken.google.com/${projectId}`, aud: projectId, iat: 0, exp: 3600, auth_time: 0, sub: uid, user_id: uid,
+    firebase: { sign_in_provider: 'custom', identities: {} },
+  };
+  return `${part({ alg: 'none', type: 'JWT' })}.${part(payload)}.`;
+};
+
+/**
+ * Skriver hela dokumentet `users/{uid}/…[path]` som [uid] genom rules via emulatorns REST (som setDoc: create
+ * eller update) – för värden som klientens SDK inte kan skicka, som [Double]. Ger HTTP-statusen (200 eller 403).
+ */
+export async function restSetAs(uid, path, data) {
+  const { host, port } = emulatorHost();
+  const url = `http://${host}:${port}/v1/projects/${PROJECT_ID}/databases/(default)/documents/users/${uid}/${path.join('/')}`;
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${mockToken(uid, PROJECT_ID)}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: toRestValue(data).mapValue.fields }),
+  });
+  await response.body?.cancel();
+  return response.status;
+}
+
 /** Den syntetiska fixturen (test/fixtures/user.json), delad av testerna. */
 export const fixture = JSON.parse(readRepoFile('tools/db/test/fixtures/user.json'));
 

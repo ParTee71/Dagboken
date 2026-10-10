@@ -201,9 +201,10 @@ cachen och synkas när nätet finns; larmen schemaläggs om vid synk, omstart oc
   med `!(s.score is string)` (#296). DocumentRulesTest låser formen och mönstren mot `DocumentRules`.
   Värsta-fall-dokumenten (`WORST` i rules-testet: recept med alla höjningar med start och slut; screening,
   aktivitet och incheckning med 50 symptom med poäng och fritext; varje fält fullt) skrivs mot emulatorn, och
-  ett reservtest kräver plats för minst fem fältkontroller till i varje samling (mätt efter #296: recept 5,
-  screening 8, aktivitet 5, incheckning 10). Nytt fält i en sådan samling → kör det, och blir det rött gör
-  kontrollerna billigare i stället för att sänka reserven. Ny samling med en lista av objekt → lägg den i `WORST`.
+  ett reservtest kräver plats för minst fem fältkontroller till i var och en av de fyra. Uppmätt reserv efter
+  #296 (siffrorna står bara här): recept 5, screening 8, aktivitet 5, incheckning 10 – recept och aktivitet
+  ligger på kravet. Nytt fält i en sådan samling → kör det, och blir det rött gör kontrollerna billigare i
+  stället för att sänka reserven. Ny samling med en lista av objekt → lägg den i `WORST`.
 - **Incheckningar** skrivs bara under en episod som finns efter skrivningen (`existsAfter`); en
   batch får slå upp högst 20 befintliga episoder (episoder som skapas i samma batch räknas inte), så
   importen skriver episoderna med sina incheckningar eller delar upp per högst 20 episoder.

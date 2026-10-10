@@ -7,7 +7,7 @@ import { Timestamp, collection, collectionGroup, deleteDoc, deleteField, doc, ge
 import { COLLECTIONS } from '../lib/collections.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
 import { toClient } from './helpers/client.mjs';
-import { rulesTestEnvironment } from './helpers/emulator.mjs';
+import { Double, restSetAs, rulesTestEnvironment } from './helpers/emulator.mjs';
 import { documentRulesConstant, readRepoFile, textLimits } from './helpers/repo.mjs';
 
 const OWNER = 'anna';
@@ -410,6 +410,7 @@ const invalid = {
     ['symptoms.1.score', '5', 'poäng som text i andra symptomet'],
     ['symptoms.1.score', 5.5, 'poäng som decimaltal i andra symptomet'],
     ['symptoms.1.customText', 7, 'fritext som tal i andra symptomet'],
+    ['symptoms', [{ optionId: 'a', score: 1, customText: null }, { optionId: 'x', customText: null }], 'poäng saknas i andra symptomet'],
   ],
   events: [
     ['severity', 11, 'svårighetsgrad över 10'],
@@ -616,6 +617,22 @@ test('ett recept med okänt schema (Schedule.Unknown från en nyare app) kan upp
   await assertFails(setDoc(mine('prescriptions', 'ny'), toClient(withField(base('prescriptions'), 'schedule', unknown))), 'nytt');
 });
 
+test('en poäng som decimaltal nekas även när den är hel (3.0 som double, via emulatorns REST) – vid create och update (#296)', async () => {
+  // isSymptom prövar poängen med ett mönster över string(score) i stället för `is int`: string(3.0) är '3.0',
+  // som inte träffar. Klientens SDK skickar 3.0 som heltal, så double skrivs via REST; heltalet är kontrollen
+  // att vägen och token fungerar.
+  const activity = (score) => ({ ...toClient(base('activities')), symptoms: [{ optionId: 'a', score: 1, customText: null }, { optionId: 'x', score, customText: null }] });
+  for (const id of ['ny', 'a1']) {
+    if (id === 'a1') await assertSucceeds(setDoc(mine('activities', id), activity(1)));
+    else await deleteDoc(mine('activities', id));
+    for (const value of [3, 0, 10]) {
+      assert.equal(await restSetAs(OWNER, ['activities', id], activity(new Double(value))), 403, `${id}: ${value}.0 som double`);
+    }
+    assert.equal(await restSetAs(OWNER, ['activities', id], activity(3)), 200, `${id}: 3 som heltal`);
+    if (id === 'ny') await deleteDoc(mine('activities', id));
+  }
+});
+
 test('en okänd form (från en nyare app) kan stå kvar vid uppdatering men inte skapas eller ändras till', async () => {
   // Codecen skriver tillbaka en okänd form oförändrad (unknownForm, DAT-10) – som ett okänt schema.
   for (const collection of ['prescriptions', 'prnMedicines']) {
@@ -690,9 +707,7 @@ test(`uttrycksbudgeten har en reserv på minst ${BUDGET_RESERVE_FIELDS} fältkon
   // Varje valid…-funktion med reserven i extra fältkontroller (som ett nytt kort textfält var):
   // ryms värsta-fall-dokumentet fortfarande har nästa fält plats. Blir testet rött har samlingen vuxit in
   // i reserven – gör kontrollerna billigare innan fältet läggs till, sänk aldrig bara reserven.
-  // Mätt i emulatorn efter #296 (extra fältkontroller som ryms, inte en till): recept 5 (före #294 inga),
-  // screening 8, aktivitet 5, incheckning 10 (före #296 4, 2 och 7 – isSymptom gjordes billigare som isBoost).
-  // Recept och aktivitet ligger på kravet: ett nytt fält där kräver billigare kontroller först.
+  // Uppmätt reserv per samling: skill firestore-data-layer, Uttrycksbudget.
   const padding = (n) => " && (!('name' in w) || nullOrShort(d.get('name', null)))".repeat(n);
   let rules = readRepoFile('firestore.rules');
   for (const { rule } of Object.values(WORST)) {
