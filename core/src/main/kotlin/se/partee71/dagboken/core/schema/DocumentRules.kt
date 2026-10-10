@@ -38,8 +38,8 @@ object DocumentRules {
      * Rules kontrollerar elementen i symptom- och höjningslistorna upp till så här många (`l[0]`…`l[9]`):
      * rules kan inte loopa och räknar högst 1 000 uttryck per skrivning. [validate] kontrollerar alla element
      * och är därmed strängare – det rules nekar för elementen nekas här också. Att värsta fallet (alla
-     * [MAX_BOOSTS] höjningar med start och slut, varje fält fullt) ryms i budgeten med reserv mäts av
-     * `tools/db/test/rules.test.mjs` mot emulatorn (#294).
+     * [MAX_BOOSTS] höjningar med start och slut, alla [MAX_SYMPTOMS] symptom med poäng och fritext, varje fält
+     * fullt) ryms i budgeten med reserv mäts av `tools/db/test/rules.test.mjs` mot emulatorn (#294, #296).
      */
     const val RULES_CHECKED_ELEMENTS = 10
 
@@ -121,11 +121,15 @@ object DocumentRules {
 
     private fun wires(values: List<WireEnum>) = values.map { it.wire }
 
-    /** `score` får vara `null` (utan poäng, från 3.x) men nyckeln måste finnas – rules läser den utan `get`. */
+    /**
+     * `score` (utan poäng, från 3.x) och `customText` får vara `null`, men nycklarna måste finnas – rules läser dem
+     * utan `get` (en saknad nyckel = fel = nekad), och codecen skriver alltid båda. Rules prövar poängen med ett
+     * mönster över `string(score)` (#296), som DocumentRulesTest håller lika med [SCORE].
+     */
     val SYMPTOM = Shape(
         mapOf("optionId" to Check.AnyText, "score" to Check.Range(SCORE), "customText" to Check.AnyText),
         required = setOf("optionId"),
-        nullable = setOf("score"),
+        nullable = setOf("score", "customText"),
     )
     /**
      * `start` och `end` får vara `null` (öppen höjning) men nycklarna måste finnas – rules läser dem utan `get`.

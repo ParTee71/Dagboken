@@ -173,10 +173,20 @@ class DocumentRulesTest {
     @Test
     fun `de nästlade objekten är rules - symptom, doshöjning, schema, period, tema, påminnelser, profil, legacy`() {
         val symptom = functions.getValue("isSymptom")
-        assertTrue("s.optionId is string" in symptom && "(s.score == null || (s.score is int && s.score >= ${DocumentRules.SCORE.first} && s.score <= ${DocumentRules.SCORE.last}))" in symptom)
-        assertTrue("(s.customText == null || s.customText is string)" in symptom)
+        // Billigt för uttrycksbudgeten (#296): poängen med ett mönster över string(score), texter nekade för sig.
+        val scorePattern = Regex("""string\(s\.score\)\.matches\('([^']+)'\)""").find(symptom)!!.groupValues[1]
+        assertEquals(
+            "s.optionId is string && string(s.score).matches('$scorePattern') && !(s.score is string) && (s.customText == null || s.customText is string)",
+            Regex("""return ([\s\S]*);""").find(symptom)!!.groupValues[1].replace(Regex("""\s+"""), " "),
+            "isSymptom: optionId text, poängen null eller heltal enligt mönstret, fritexten null eller text",
+        )
+        // Mönstret är exakt SCORE (eller null) för det string() ger för ett heltal; decimaltal, bool och tom text träffar inte.
+        val score = Regex(scorePattern)
+        for (i in DocumentRules.SCORE.first - 20..DocumentRules.SCORE.last + 20) assertEquals(i in DocumentRules.SCORE, score.matches(i.toString()), "poäng $i")
+        assertTrue(score.matches("null"))
+        for (other in listOf("3.0", "2.5", "10.0", "true", "false", "", "01", "-0", " 3")) assertFalse(score.matches(other), other)
         assertEquals(setOf("optionId"), DocumentRules.SYMPTOM.required)
-        assertEquals(setOf("score"), DocumentRules.SYMPTOM.nullable, "score läses utan get i rules: nyckeln krävs, null godtas")
+        assertEquals(setOf("score", "customText"), DocumentRules.SYMPTOM.nullable, "score och customText läses utan get i rules: nycklarna krävs, null godtas")
         val boost = functions.getValue("isBoost")
         // Billigt för uttrycksbudgeten (#294): tre texter i en summa och båda datumen i ett mönster, som är
         // isDate() för vart och ett (eller `null`, string(null)).
@@ -239,7 +249,11 @@ class DocumentRulesTest {
         val symptoms = List(51) { mapOf("optionId" to "s", "score" to 1, "customText" to null) }
         assertEquals(listOf(DocumentRules.Violation("symptoms", "för många element: 51 (högst 50)")), violations("symptoms" to symptoms))
         assertEquals(listOf(DocumentRules.Violation("symptoms[1].score", "utanför intervallet 0..10: 11")), violations("symptoms" to symptoms.take(1) + mapOf("optionId" to "s", "score" to 11, "customText" to null)))
-        assertEquals(listOf(DocumentRules.Violation("symptoms[0].optionId", "saknas")), violations("symptoms" to listOf(mapOf("score" to 1))))
+        assertEquals(
+            listOf(DocumentRules.Violation("symptoms[0].optionId", "saknas"), DocumentRules.Violation("symptoms[0].customText", "saknas")),
+            violations("symptoms" to listOf(mapOf("score" to 1))),
+        )
+        assertEquals(emptyList(), violations("symptoms" to listOf(mapOf("optionId" to "s", "score" to null, "customText" to null))))
         assertEquals(listOf(DocumentRules.Violation("symptoms[0]", "fel typ: String (väntat objekt)")), violations("symptoms" to listOf("huvudvärk")))
         assertEquals(listOf(DocumentRules.Violation("symptoms", "fel typ: String (väntat lista)")), violations("symptoms" to "huvudvärk"))
         assertEquals(emptyList(), violations("note" to null, "framtidaFalt" to mapOf("a" to 1)), "null och okända fält är tillåtna")
