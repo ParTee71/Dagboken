@@ -29,7 +29,7 @@ data class EditorUiState<T>(
     /** Får sparas oförändrat ([EditorState] `saveUnchanged`) – t.ex. en ny måendelogg med förvalen (SCR-1). */
     val saveUnchanged: Boolean = false,
 ) {
-    /** "Spara" är aktiv först när formuläret är giltigt och ändrat (NFR-2) – eller får sparas oförändrat. */
+    /** "Spara" är aktiv först när formuläret är giltigt och ändrat (NFR-10) – eller får sparas oförändrat. */
     val canSave: Boolean get() = isValid && (isDirty || saveUnchanged) && !saving && !loading && loadError == null
 
     /** Felet för [field], om det ska visas. */
@@ -156,7 +156,7 @@ class EditorState<T>(
         _state.value = current
         if (!current.isValid) return
         // Ändrades formuläret medan det sparades är ändringen inte sparad: formuläret står kvar
-        // som ändrat i stället för att stängas och tappa den (NFR-2).
+        // som ändrat i stället för att stängas och tappa den (NFR-10).
         perform(written = current.value, closeIfChanged = false) { write(current.value) }
     }
 

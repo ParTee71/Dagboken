@@ -57,7 +57,7 @@ enum class RootSheet { Account, Log }
 
 /**
  * Appens innehåll efter inloggning: fyra flikar med egna back stackar (NAV-8, NAV-11), synkläget
- * (NFR-1), inställningsarket bakom avataren och loggmenyn bakom plusknappen. [account] är den
+ * (NFR-22), inställningsarket bakom avataren och loggmenyn bakom plusknappen. [account] är den
  * inloggade (namn, e-post och foto i avataren och arket – bara i minnet, AUTH-3); [onSignOut] loggar ut. [launch]
  * är vad en tryckt påminnelse ska öppna ([open]); när det är gjort anropas [onLaunchHandled]. [openFirst] öppnas en
  * gång ovanpå första fliken – Export och import när migreringen lämnats med "Importera backup" (OMB-5).

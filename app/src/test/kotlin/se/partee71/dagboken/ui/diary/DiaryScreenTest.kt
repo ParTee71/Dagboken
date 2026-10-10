@@ -94,7 +94,7 @@ class DiaryScreenTest {
     private val calendar = controls.copy(view = DiaryView.CALENDAR, selected = saturday)
 
     @Test
-    fun `fliken uppfyller listkontraktet utan lägg till (NFR-1)`() =
+    fun `fliken uppfyller listkontraktet utan lägg till`() =
         rule.runListScreenContract<DiaryRow>(listRows.first(), "Efter frukost", "Inga poster än", null) { state, _, onRetry ->
             DiaryScreen(state, controls, null, { if (it == DiaryEvent.Retry) onRetry() }, {})
         }

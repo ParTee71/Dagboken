@@ -21,7 +21,7 @@ sealed interface SyncEvent {
     data object WriteErrorShown : SyncEvent
 }
 
-/** Appens synkläge för UI:t (NFR-1): indikatorn i toppraden och meddelandet om en nekad skrivning. */
+/** Appens synkläge för UI:t (NFR-22): indikatorn i toppraden och meddelandet om en nekad skrivning. */
 @HiltViewModel
 class SyncViewModel @Inject constructor(private val status: SyncStatus) : ViewModel() {
 

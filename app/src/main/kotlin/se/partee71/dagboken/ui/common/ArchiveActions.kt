@@ -18,7 +18,7 @@ import se.partee71.dagboken.data.common.dataError
 import se.partee71.dagboken.ui.components.ListArchive
 import se.partee71.dagboken.ui.components.UndoRequest
 
-/** Arkivera med svep, Ångra och "Visa arkiverade" – samma händelser i alla listor (NFR-3). */
+/** Arkivera med svep, Ångra och "Visa arkiverade" – samma händelser i alla listor (SET-5). */
 sealed interface ArchiveEvent {
     data class Archive(val id: String, val name: String) : ArchiveEvent
 
@@ -87,7 +87,7 @@ class ArchiveActions(
     }
 }
 
-/** Tillståndet som listan visar, med händelserna tillbaka hit (NFR-3); [showToggle] = "Visa arkiverade" i menyn. */
+/** Tillståndet som listan visar, med händelserna tillbaka hit (SET-5); [showToggle] = "Visa arkiverade" i menyn. */
 @Composable
 fun ArchiveActions.collectAsListArchive(showToggle: Boolean = true): ListArchive {
     val showing by showingArchived.collectAsStateWithLifecycle()

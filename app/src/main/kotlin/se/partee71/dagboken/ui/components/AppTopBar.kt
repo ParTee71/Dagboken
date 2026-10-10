@@ -37,7 +37,7 @@ enum class TopBarSize {
     Small,
 }
 
-/** Synkindikatorn (NFR-1): [pending] när ändringar väntat på servern; [onClick] förklarar den. */
+/** Synkindikatorn (NFR-22): [pending] när ändringar väntat på servern; [onClick] förklarar den. */
 @Immutable
 data class SyncIndicator(val pending: Boolean = false, val onClick: () -> Unit = {})
 

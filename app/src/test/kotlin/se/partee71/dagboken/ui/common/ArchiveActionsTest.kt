@@ -18,7 +18,7 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.components.UndoRequest
 
-/** Den delade arkiveringslogiken för listor (NFR-3) – listornas egna tester visar den i sitt sammanhang. */
+/** Den delade arkiveringslogiken för listor (SET-5, DAT-9) – listornas egna tester visar den i sitt sammanhang. */
 class ArchiveActionsTest {
 
     @get:Rule

@@ -1,21 +1,25 @@
 package se.partee71.dagboken
 
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import java.io.File
+import android.view.WindowManager
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.xmlpull.v1.XmlPullParser
 import se.partee71.dagboken.data.health.HealthPermissionSet
+import se.partee71.dagboken.testing.AppManifest
+import se.partee71.dagboken.testing.AppManifest.android
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Hälsodata lämnar inte appen via Androids backup eller enhetsöverföring (NFR-8, skill data-privacy-security), och Health
- * Connect nås bara med läsbehörigheter och en rationale-handler som bara systemet kan starta (HLS-3, HLS-9, HLS-14, TP-10).
+ * Manifestet: hälsodata lämnar inte appen via Androids backup eller enhetsöverföring (NFR-23, skill data-privacy-security),
+ * Health Connect nås bara med läsbehörigheter och en rationale-handler som bara systemet kan starta (HLS-3, HLS-9, HLS-14,
+ * TP-10), och appen stöder RTL, systemets predictive back (NFR-4) och tangentbordets inset (NFR-11).
  */
 @RunWith(RobolectricTestRunner::class)
 class PrivacyManifestTest {
@@ -31,9 +35,8 @@ class PrivacyManifestTest {
     @Test
     fun `molnbackup och enhetsöverföring undantar alla domäner`() {
         // ApplicationInfo.dataExtractionRulesRes är dold API – kontrollera manifestet direkt.
-        val manifest = File("src/main/AndroidManifest.xml").readText()
         assertTrue(
-            manifest.contains("""android:dataExtractionRules="@xml/data_extraction_rules""""),
+            AppManifest.text.contains("""android:dataExtractionRules="@xml/data_extraction_rules""""),
             "android:dataExtractionRules saknas i manifestet",
         )
         val excluded = mutableMapOf<String, MutableSet<String>>()
@@ -53,6 +56,29 @@ class PrivacyManifestTest {
             "device_root", "device_file", "device_database", "device_sharedpref",
         )
         assertEquals(mapOf("cloud-backup" to allDomains, "device-transfer" to allDomains), excluded)
+    }
+
+    @Test
+    fun `appen stöder RTL och systemets predictive back (NFR-4)`() {
+        assertTrue((appInfo.flags and ApplicationInfo.FLAG_SUPPORTS_RTL) != 0, "android:supportsRtl saknas på <application>")
+        // Flaggan för predictive back är dold API i ApplicationInfo – attributet läses på <application>.
+        assertEquals(
+            "true",
+            AppManifest.element("application").android("enableOnBackInvokedCallback"),
+            "android:enableOnBackInvokedCallback saknas på <application> – utan den får appen ingen predictive back-animation",
+        )
+    }
+
+    @Test
+    fun `huvudaktiviteten får tangentbordets inset (NFR-11)`() {
+        // Med edge-to-edge räknar Compose själv med tangentbordet (imePadding i ramarna); adjustResize gör att insetet
+        // levereras också före Android 11.
+        val activity = context.packageManager.getActivityInfo(ComponentName(context, MainActivity::class.java), 0)
+        assertEquals(
+            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
+            activity.softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST,
+            "android:windowSoftInputMode=\"adjustResize\" saknas på MainActivity",
+        )
     }
 
     // ---- Health Connect (HLS-3, HLS-9, HLS-14, TP-10): bara läsning, och samtyckesdialogen kan visas ----
@@ -83,7 +109,6 @@ class PrivacyManifestTest {
 
     @Test
     fun `Health Connect syns för appen`() {
-        val manifest = File("src/main/AndroidManifest.xml").readText()
-        assertTrue(manifest.contains("""<package android:name="com.google.android.apps.healthdata" />"""), "<queries> för Health Connect saknas")
+        assertTrue(AppManifest.text.contains("""<package android:name="com.google.android.apps.healthdata" />"""), "<queries> för Health Connect saknas")
     }
 }

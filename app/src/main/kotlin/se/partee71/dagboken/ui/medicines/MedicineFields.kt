@@ -29,7 +29,7 @@ import se.partee71.dagboken.ui.components.SuggestionField
 /**
  * Förslagen på namnfältet i ett nytt recept eller en ny vid behov-medicin (REC-14), gemensamma för båda
  * formulären. [matches] följer [name] när [enabled] (nytt läge), tom annars; efter ett val ([pick]) visas
- * inga förslag förrän namnet ändras. Listan läses lokalt ur [medicines] – inget nätverk, inget loggas (NFR-8). Sökningen körs på [computation].
+ * inga förslag förrän namnet ändras. Listan läses lokalt ur [medicines] – inget nätverk, inget loggas (NFR-13). Sökningen körs på [computation].
  */
 class MedicineSuggestions(
     medicines: MedicineRepository,

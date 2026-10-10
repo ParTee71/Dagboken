@@ -403,7 +403,7 @@ class TodayScreenTest {
     }
 
     @Test
-    fun `ett läsfel visar Försök igen (NFR-5)`() {
+    fun `ett läsfel visar Försök igen`() {
         val events = mutableListOf<TodayEvent>()
         rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Error(DataError.Offline), { events += it }, {}) } }
         rule.onNodeWithText("Försök igen").performClick()

@@ -70,7 +70,7 @@ class IllnessDetailScreenTest {
     )
 
     @Test
-    fun `detaljen uppfyller detaljkontraktet (NFR-1)`() = rule.runDetailScreenContract(ongoing, "tors 1 okt 2026") { state, onRetry, onEdit, onBack ->
+    fun `detaljen uppfyller detaljkontraktet`() = rule.runDetailScreenContract(ongoing, "tors 1 okt 2026") { state, onRetry, onEdit, onBack ->
         IllnessDetailScreen(state, null, null, { if (it == IllnessDetailEvent.Retry) onRetry() }, onBack, onEdit, {})
     }
 

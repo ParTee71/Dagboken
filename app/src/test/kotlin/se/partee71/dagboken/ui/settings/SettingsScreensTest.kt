@@ -148,7 +148,7 @@ class SettingsScreensTest {
     private val promenad = Option("activity-promenad", OptionKind.ACTIVITY, "Promenad", favorite = true)
 
     @Test
-    fun `Listor uppfyller listkontraktet (NFR-1)`() = rule.runListScreenContract(promenad, "Promenad", "Inga aktiviteter än", "Ny aktivitet") { state, onAdd, onRetry ->
+    fun `Listor uppfyller listkontraktet`() = rule.runListScreenContract(promenad, "Promenad", "Inga aktiviteter än", "Ny aktivitet") { state, onAdd, onRetry ->
         ListsScreen(state, OptionKind.ACTIVITY, ListArchive(), { if (it == ListsEvent.Retry) onRetry() }, {}, onAdd, {})
     }
 

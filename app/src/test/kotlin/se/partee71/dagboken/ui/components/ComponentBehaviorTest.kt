@@ -502,7 +502,7 @@ class ComponentBehaviorTest {
     }
 
     @Test
-    fun `toppraden visar synkindikatorn bara när ändringar väntar (NFR-1)`() {
+    fun `toppraden visar synkindikatorn bara när ändringar väntar (NFR-22)`() {
         var indicator by mutableStateOf(SyncIndicator())
         var clicks = 0
         show {

@@ -27,7 +27,7 @@ import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.IconSize
 
 /**
- * Valchip: bock och korallton när det är valt. Används ensamt eller i en [ChipRow]. Med [onLongClick]
+ * Valchip: bock och temats tealbehållare (`primaryContainer`, Papper och teal) när det är valt. Används ensamt eller i en [ChipRow]. Med [onLongClick]
  * öppnar ett långtryck något mer – t.ex. vid behov-snabbvalets meny på Idag (HEM-11) – och TalkBack
  * erbjuder det som åtgärd med [onLongClickLabel]; tryck är fortfarande [onClick]. Långtrycket fungerar
  * också när chipet är inaktivt ([enabled] = false) – menyn ska nås även när tryck inte går.

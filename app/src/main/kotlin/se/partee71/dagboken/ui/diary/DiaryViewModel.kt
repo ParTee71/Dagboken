@@ -215,7 +215,7 @@ class DiaryViewModel @Inject constructor(
 
     private val choice = combine(view, selected, today, ::Choice)
 
-    /** Listans tillstånd (NFR-1): laddning och fel ur läsningen, annars raderna för vyn. */
+    /** Listans tillstånd: laddning och fel ur läsningen, annars raderna för vyn. */
     val state: StateFlow<ListUiState<DiaryRow>> = combine(filtered, choice) { state, choice ->
         when (state) {
             DetailUiState.Loading -> ListUiState.Loading

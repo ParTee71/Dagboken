@@ -8,7 +8,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.toMessage
 
-/** Läsfelet i ramarna (lista, redigering, detalj): samma ikon, text och "Försök igen" överallt – utom för något som inte finns längre (NFR-1, NFR-5). */
+/** Läsfelet i ramarna (lista, redigering, detalj): samma ikon, text och "Försök igen" överallt – utom för något som inte finns längre. */
 @Composable
 internal fun LoadErrorState(title: String, error: DataError, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     EmptyState(

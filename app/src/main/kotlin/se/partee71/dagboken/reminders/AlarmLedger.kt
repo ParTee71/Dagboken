@@ -12,7 +12,7 @@ import se.partee71.dagboken.core.engine.Reminder
  * NOT-14: per påminnelse den senast schemalagda utlösningstiden och när den senast utlöstes – så att en sen,
  * ännu inte utlöst påminnelse ligger kvar på dagens tid också efter att processen dött eller telefonen startats om,
  * men aldrig utlöses två gånger (`reminderAlarms`). **Enhetslokalt** (SharedPreferences, undantagen från Androids
- * backup – NFR-8), aldrig i Firestore: bara påminnelsens nyckel och epoch-millisekunder, inget innehåll.
+ * backup – NFR-23), aldrig i Firestore: bara påminnelsens nyckel och epoch-millisekunder, inget innehåll.
  */
 @Singleton
 class AlarmLedger @Inject constructor(@ApplicationContext context: Context) {

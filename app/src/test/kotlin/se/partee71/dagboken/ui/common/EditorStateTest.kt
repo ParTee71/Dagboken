@@ -12,7 +12,7 @@ import org.junit.Test
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
 
-/** Formulärlogiken bakom `EntityEditScreen` (NFR-2) – testas en gång här, inte per skärm. */
+/** Formulärlogiken bakom `EntityEditScreen` (NFR-10, NFR-12) – testas en gång här, inte per skärm. */
 class EditorStateTest {
 
     private data class Form(val name: String = "", val note: String = "")
@@ -172,7 +172,7 @@ class EditorStateTest {
     }
 
     @Test
-    fun `text som skrivs medan sparningen pågår är osparad och stänger inte formuläret (NFR-2)`() = runTest {
+    fun `text som skrivs medan sparningen pågår är osparad och stänger inte formuläret (NFR-10, NFR-12)`() = runTest {
         val editor = editor()
         editor.update(NAME) { it.copy(name = "Solkräm") }
         val gate = CompletableDeferred<Unit>()

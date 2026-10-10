@@ -69,7 +69,7 @@ class MedicinesScreensTest {
     )
 
     @Test
-    fun `fliken uppfyller listkontraktet (NFR-1)`() = rule.runListScreenContract(MedicineItem.AsNeeded(alvedon), "Alvedon 500 mg", "Inga mediciner än", "Nytt recept") { state, onAdd, onRetry ->
+    fun `fliken uppfyller listkontraktet`() = rule.runListScreenContract(MedicineItem.AsNeeded(alvedon), "Alvedon 500 mg", "Inga mediciner än", "Nytt recept") { state, onAdd, onRetry ->
         MedicinesScreen(state, emptyList(), today, null, { if (it == MedicinesEvent.Retry) onRetry() }, { if (it == null) onAdd() }, {}, {})
     }
 

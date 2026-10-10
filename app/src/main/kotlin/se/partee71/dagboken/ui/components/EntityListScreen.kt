@@ -90,7 +90,7 @@ data class ListGroup(
 data class ListSubgroup(val title: String, val color: Color)
 
 /**
- * Arkivering i en lista (NFR-3), där den finns: "Visa arkiverade" i menyn ([showing]), Ångra
+ * Arkivering i en lista (SET-5), där den finns: "Visa arkiverade" i menyn ([showing]), Ångra
  * efter svep ([undo]) och ett misslyckat arkivera/ångra som meddelande ([failure]). Händelserna
  * går till `ArchiveActions` i ViewModeln; `collectAsListArchive()` bygger den. [showToggle] =
  * false när dolda rader visas på annat sätt (t.ex. "Avslutade").
@@ -107,7 +107,7 @@ data class ListArchive(
 }
 
 /**
- * Den enda listskärmen (NFR-1, skill shared-ui-components). Samma fyra lägen överallt:
+ * Den enda listskärmen (skill shared-ui-components). Samma fyra lägen överallt:
  * laddning → [AppLoading]; tomt → [EmptyState] med knapp; fel → feltillstånd med
  * "Försök igen"; innehåll → rader i kort, valfritt grupperade med [SectionHeader].
  * "Lägg till" står nere till höger ovanför verktygsraden. Med [archive] finns "Visa arkiverade"
