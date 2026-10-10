@@ -3,6 +3,7 @@ package se.partee71.dagboken.ui.settings
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Rule
 import org.junit.Test
@@ -88,7 +89,7 @@ class SettingsScreenshotTest {
 
     @Test
     fun `Om Dagboken`() = rule.captureLightAndDark("Settings_Om") {
-        AboutScreen(DetailUiState.Content(AboutInfo("4.0.0", 400, "SIL Open Font License, version 1.1")), {})
+        AboutScreen(DetailUiState.Content(AboutInfo("4.0.0", 400, "SIL Open Font License, version 1.1", LocalDate(2026, 10, 7))), {})
     }
 
     @Test

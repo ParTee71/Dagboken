@@ -175,6 +175,7 @@ Utvecklingen sker mest från telefonen, och en release för att "se hur det blev
 ./gradlew cpdCheck                      # copy-paste-detektor
 ./gradlew :app:compileDebugKotlin       # kompilera
 ./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <uid>"   # 3.x-backup → 4.0-export (OMB-4), rapport utan innehåll
+./gradlew :core:matchMedicines --args="--in <export.json> --catalog app/src/main/assets/medicines.tsv --suggest <map.tsv>"   # föreslår styrka och form för flyttade recept/vid behov-mediciner ur läkemedelslistan (REC-14); rapport utan innehåll
 npx --prefix tools/db firebase emulators:exec --only firestore --project demo-dagboken "npm --prefix tools/db test"   # rules + rundtur (Java 21)
 node --test '.github/scripts/*.test.mjs' && node --test '.claude/hooks/test/*.test.mjs'                             # dokumentkontroller + hooktest
 node tools/db/stats.mjs                 # databasöversikt (kräver FIREBASE_SERVICE_ACCOUNT)

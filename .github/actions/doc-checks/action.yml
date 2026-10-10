@@ -2,7 +2,7 @@ name: Dokumentkontroller
 description: >-
   Node 22 och testkommandona som alltid körs (sekunder, inga beroenden):
   dokumentkontrollerna i .github/scripts (CI-tabellen mot filtren, länkar och
-  namn) och hooktestet. Kräver att repot redan är utcheckat.
+  namn), hooktestet och läkemedelslistans byggskript (tools/medicines). Kräver att repot redan är utcheckat.
 
 runs:
   using: composite
@@ -19,3 +19,7 @@ runs:
     - name: Hooktest (regel4-check)
       shell: bash
       run: node --test '.claude/hooks/test/*.test.mjs'
+
+    - name: Läkemedelslistans byggskript (tools/medicines)
+      shell: bash
+      run: node --test 'tools/medicines/test/*.test.mjs'

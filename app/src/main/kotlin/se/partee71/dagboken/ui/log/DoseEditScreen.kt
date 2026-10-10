@@ -328,15 +328,15 @@ fun DoseEditScreen(form: EntryForm<Dose>, onClose: () -> Unit, mode: DoseMode, z
         delete = if (mode != DoseMode.EDIT) {
             null
         } else {
-            val title = medicineTitle(stored.name, stored.dose, stored.unit)
+            val title = medicineTitle(stored.displayName, stored.dose, stored.unit)
             entryDeleteAction(R.string.diary_subject_dose, title, stored.date, stored.shownTime(zone), skips = stored.isPrescribed) { form.onEvent(EntryEditEvent.Delete) }
         },
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
         formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
     ) {
         when {
-            mode == DoseMode.AS_NEEDED -> asNeeded.medicine?.let { MedicineInfo(medicineTitle(it.name, it.dose, it.unit), prnLimits(it), help = null) }
-            prescribed -> MedicineInfo(medicineTitle(d.name, d.dose, d.unit), stringResource(d.slot.label()), stringResource(R.string.dose_prescribed_help))
+            mode == DoseMode.AS_NEEDED -> asNeeded.medicine?.let { MedicineInfo(medicineTitle(it.displayName, it.dose, it.unit), prnLimits(it), help = null) }
+            prescribed -> MedicineInfo(medicineTitle(d.displayName, d.dose, d.unit), stringResource(d.slot.label()), stringResource(R.string.dose_prescribed_help))
         }
         DayAndTime(form, zone, timeShown = !prescribed || d.status == DoseStatus.TAKEN, error = error(DoseField.TAKEN_AT))
         if (mode == DoseMode.AS_NEEDED) AsNeededNotice(asNeeded)
@@ -399,7 +399,7 @@ private fun AsNeededNotice(asNeeded: AsNeededState) {
     val medicine = asNeeded.medicine ?: return
     when (val check = asNeeded.check) {
         is PrnCheck.Cooldown -> NoticeBanner(cooldownText(R.string.dose_cooldown_notice, CooldownPrompt(medicine, check.remaining)), R.drawable.ic_clock, onClick = null)
-        PrnCheck.DailyLimitReached -> NoticeBanner(stringResource(R.string.today_limit_reached_format, medicine.maxPerDay, medicine.name), R.drawable.ic_info, onClick = null)
+        PrnCheck.DailyLimitReached -> NoticeBanner(stringResource(R.string.today_limit_reached_format, medicine.maxPerDay, medicine.displayName), R.drawable.ic_info, onClick = null)
         PrnCheck.Allowed, null -> Unit
     }
 }

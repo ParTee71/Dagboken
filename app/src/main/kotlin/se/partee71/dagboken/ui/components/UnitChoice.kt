@@ -6,7 +6,7 @@ import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
 
 /** Medicinenheterna att välja bland i recept- och vid behov-formuläret (REC-1, FAV-1) – "sprut" för sprejer. */
-val MEDICINE_UNITS = listOf("mg", "ml", "st", "g", "mcg", "IE", "dropp", "sprut")
+val MEDICINE_UNITS = listOf("mg", "ml", "st", "g", "mcg", "IE", "dropp", "sprut", "tablett", "kapsel", "puff", "dos")
 
 /**
  * Enheten som val under etiketten "Enhet": [ChoiceChips] med [units]. En lagrad enhet utanför listan

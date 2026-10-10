@@ -43,11 +43,11 @@ sealed interface PeriodEnding {
  * som gäller nästa dosdag.
  */
 fun List<Prescription>.endingOn(date: LocalDate): List<PeriodEnding> = filter { it.active }.mapNotNull { p ->
-    if (p.lastDoseDay() == date) return@mapNotNull PeriodEnding.PrescriptionEnds(p.id, p.name, date)
+    if (p.lastDoseDay() == date) return@mapNotNull PeriodEnding.PrescriptionEnds(p.id, p.displayName, date)
     val boost = p.boostFor(date) ?: return@mapNotNull null
     if (p.lastDoseDayOf(boost) != date) return@mapNotNull null
     val next = p.nextDoseDayAfter(date) ?: return@mapNotNull null
-    PeriodEnding.BoostEnds(p.id, p.name, date, p.doseFor(next), p.unit)
+    PeriodEnding.BoostEnds(p.id, p.displayName, date, p.doseFor(next), p.unit)
 }
 
 /** MEDF-2: periodslut idag och i morgon, i den ordningen. */

@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -21,12 +22,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.core.engine.PeriodEnding
+import se.partee71.dagboken.core.medicine.MedicineCatalog
+import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Repeat
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
@@ -173,7 +177,7 @@ class MedicinesScreensTest {
     fun `en tom lagrad enhet ger inget extra chip och inget val`() {
         rule.setContent { DagbokenTheme { PrnMedicineEditScreen(false, EditorUiState(alvedon.copy(unit = "")), emptyFlow(), {}, {}) } }
         val chips = rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)).fetchSemanticsNodes()
-        assertEquals(MEDICINE_UNITS.size, chips.size, "bara listans enheter – inget tomt chip")
+        assertEquals(MEDICINE_UNITS.size + MedicineForm.entries.size, chips.size, "bara listans enheter och formerna – inget tomt chip")
         assertEquals(0, rule.onAllNodes(isSelected()).fetchSemanticsNodes().size, "inget val markerat")
     }
 
@@ -203,6 +207,22 @@ class MedicinesScreensTest {
     @Test
     fun `skärmdump - ny vid behov-medicin`() = rule.captureLightAndDark("Medicines_vidbehov") {
         PrnMedicineEditScreen(true, EditorUiState(alvedon.copy(note = "Inte på fastande mage", maxPerDay = 8), isDirty = true), emptyFlow(), {}, {})
+    }
+
+    @Test
+    fun `vid behov-formuläret visar förslag i en ny medicin, och ett tryck väljer läkemedlet (REC-14)`() {
+        val events = mutableListOf<PrnEditEvent>()
+        val matches = MedicineCatalog.parse(FakeMedicines.SAMPLE).search("alv")
+        rule.setContent { DagbokenTheme { PrnMedicineEditScreen(true, EditorUiState(PrnMedicine("", "alv"), isDirty = true), emptyFlow(), { events += it }, {}, matches) } }
+        rule.onNodeWithText("Från Läkemedelsverkets lista · fortsätt skriva om ditt inte finns").assertIsDisplayed()
+        rule.onAllNodesWithText("Filmdragerad tablett")[0].performClick()
+        assertEquals(PrnEditEvent.MedicineChosen(matches[1].entry), events.last())
+    }
+
+    @Test
+    fun `skärmdump - ny vid behov-medicin med namnförslag`() = rule.captureLightAndDark("Medicines_vidbehov_forslag") {
+        val matches = MedicineCatalog.parse(FakeMedicines.SAMPLE).search("alv")
+        PrnMedicineEditScreen(true, EditorUiState(PrnMedicine("", "alv", "1", "mg", minHoursBetween = 0), isDirty = true), emptyFlow(), {}, {}, matches)
     }
 
     @Test

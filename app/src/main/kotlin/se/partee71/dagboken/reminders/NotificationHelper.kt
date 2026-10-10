@@ -59,7 +59,7 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
      */
     fun postMedReminder(slot: Slot, date: LocalDate, doses: List<Dose>) {
         if (doses.isEmpty()) return
-        val body = doses.joinToString("\n") { medicineTitle(it.name, it.dose, it.unit) }
+        val body = doses.joinToString("\n") { medicineTitle(it.displayName, it.dose, it.unit) }
         val markTaken = Intent(context, MedActionReceiver::class.java)
             .setAction(ReminderIntents.ACTION_MARK_TAKEN)
             .putExtra(ReminderIntents.EXTRA_SLOT, slot.wire)

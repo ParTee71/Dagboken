@@ -489,6 +489,20 @@
     <string name="log_activity">Aktivitet</string>
     <!-- "Dos" – en gång: loggmenyn och vid behov-formuläret -->
     <string name="dose_label">Dos</string>
+    <string name="medicine_dose_label">Antal per dos</string>
+    <string name="medicine_strength">Styrka</string>
+    <string name="medicine_form">Form</string>
+    <string name="form_tablet">Tablett</string>
+    <string name="form_capsule">Kapsel</string>
+    <string name="form_liquid">Flytande</string>
+    <string name="form_powder">Pulver</string>
+    <string name="form_inhaler">Inhalator</string>
+    <string name="form_drops">Droppar</string>
+    <string name="form_patch">Plåster</string>
+    <string name="form_other">Annat</string>
+    <string name="medicine_lookup_source">Från Läkemedelsverkets lista · fortsätt skriva om ditt inte finns</string>
+    <string name="settings_medicines">Läkemedelslista</string>
+    <string name="settings_medicines_note">Läkemedelsverket, %1$s · CC BY 4.0</string>
     <string name="log_event">Händelse</string>
     <string name="log_illness">Sjukdom</string>
     <string name="log_mood_pick_title">Välj tillfälle</string>

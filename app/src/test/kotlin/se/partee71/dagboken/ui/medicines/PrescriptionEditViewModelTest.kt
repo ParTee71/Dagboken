@@ -20,6 +20,7 @@ import se.partee71.dagboken.core.model.Boost
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.Repeat
@@ -33,6 +34,7 @@ import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.data.repository.PrescriptionRepository
+import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.medicines.PrescriptionEditEvent as Event
@@ -57,7 +59,7 @@ class PrescriptionEditViewModelTest {
     )
 
     private fun viewModel(id: String? = null, extend: Boolean = false, prescriptions: PrescriptionRepository = repository) =
-        PrescriptionEditViewModel(prescriptions, FixedClock(), { zone }, id, extend)
+        PrescriptionEditViewModel(prescriptions, FakeMedicines(), FixedClock(), { zone }, id, extend)
 
     private val PrescriptionEditViewModel.value get() = editor.state.value.value
 
@@ -319,7 +321,7 @@ class PrescriptionEditViewModelTest {
             override suspend fun save(loaded: Prescription?, edited: Prescription, extended: Boolean): Result<Unit> =
                 if (fail) Result.failure(DataError.Offline) else repository.save(loaded, edited, extended)
         }
-        val vm = PrescriptionEditViewModel(flaky, clock, { zone }, null, false)
+        val vm = PrescriptionEditViewModel(flaky, FakeMedicines(), clock, { zone }, null, false)
         vm.onEvent(Event.NameChanged("Sertralin"))
         vm.editor.effects.test {
             vm.onEvent(Event.Save)
@@ -424,5 +426,39 @@ class PrescriptionEditViewModelTest {
             assertEquals(EditorEffect.Done, awaitItem())
         }
         assertEquals(1, factory.prescriptions().getAll().getOrThrow().size, "inget dubblettrecept")
+    }
+
+    @Test
+    fun `förslag bara i ett nytt recept, och ett val fyller i fyra fält men lämnar antalet (REC-14)`() = runTest(main.dispatcher) {
+        val vm = viewModel()
+        vm.onEvent(Event.DoseChanged("2"))
+        vm.onEvent(Event.NameChanged("levax"))
+        val entry = vm.suggestions.matches.value.single().entry
+        vm.onEvent(Event.MedicineChosen(entry))
+        assertEquals(Prescription("", "Levaxin", "2", "tablett", vm.value.slots, vm.value.schedule, vm.value.period, strength = "50 mikrogram", form = MedicineForm.TABLET), vm.value)
+        assertEquals(emptyList(), vm.suggestions.matches.value, "förslagen stängs efter valet")
+        vm.onEvent(Event.NameChanged("Levaxin 5"))
+        assertEquals(listOf("Levaxin 50 mikrogram"), vm.suggestions.matches.value.map { it.entry.title })
+
+        factory.prescriptions().upsert(sertralin).getOrThrow()
+        val existing = viewModel(sertralin.id)
+        existing.onEvent(Event.NameChanged("levax"))
+        assertEquals(emptyList(), existing.suggestions.matches.value, "ett befintligt recept har ett vanligt namnfält")
+    }
+
+    @Test
+    fun `en okänd form står kvar om användaren inte väljer en, och ersätts av ett val (REC-1)`() = runTest(main.dispatcher) {
+        factory.prescriptions().upsert(sertralin.copy(unknownForm = "gel")).getOrThrow()
+        val vm = viewModel(sertralin.id)
+        assertEquals(null to "gel", vm.value.form to vm.value.unknownForm)
+        vm.onEvent(Event.StrengthChanged(" 50 mg "))
+        vm.editor.effects.test {
+            vm.onEvent(Event.Save)
+            assertEquals(EditorEffect.Done, awaitItem())
+        }
+        factory.prescriptions().get(sertralin.id).getOrThrow().let { assertEquals(Triple("50 mg", null, "gel"), Triple(it?.strength, it?.form, it?.unknownForm)) }
+
+        vm.onEvent(Event.FormChosen(MedicineForm.CAPSULE))
+        assertEquals(MedicineForm.CAPSULE to null, vm.value.form to vm.value.unknownForm)
     }
 }

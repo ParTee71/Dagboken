@@ -74,7 +74,10 @@ Kör v<ny>, eller en annan version?
    (ersätt "under ombyggnad" på 4.0.0-raden vid första releasen).
 3. Kontrollera att KRAVLISTA.md speglar det som släpps (inga kvarvarande `*(planerad)*` för
    byggda funktioner) och att TP-kraven matchar SDK-nivåerna i byggfilen.
-4. Har `schemaVersion` höjts sedan förra releasen: nämn det tydligt (skill `data-safety-backup`)
+4. Uppdatera läkemedelslistan (REC-14): `node tools/medicines/build.mjs` hämtar Läkemedelsverkets senaste lista
+   till `app/src/main/assets/medicines.tsv` (CC BY 4.0; datumet står i filens första rader och visas under Om
+   Dagboken). Körs aldrig i CI; checka in filen om den ändrats och kör `./gradlew :app:testDebugUnitTest`.
+5. Har `schemaVersion` höjts sedan förra releasen: nämn det tydligt (skill `data-safety-backup`)
    och be användaren göra detta, i den här ordningen, **innan** release-bygget triggas (steg 5):
    1. deploya `firestore.rules` med den nya `maxSchemaVersion()` – kör `rules.yml` med
       `deploy: true` (`publish` deployar dem också, men stämplingen måste vänta på dem);
