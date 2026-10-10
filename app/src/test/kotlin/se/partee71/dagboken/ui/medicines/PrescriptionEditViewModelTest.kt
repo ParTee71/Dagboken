@@ -59,7 +59,7 @@ class PrescriptionEditViewModelTest {
     )
 
     private fun viewModel(id: String? = null, extend: Boolean = false, prescriptions: PrescriptionRepository = repository) =
-        PrescriptionEditViewModel(prescriptions, FakeMedicines(), FixedClock(), { zone }, id, extend)
+        PrescriptionEditViewModel(prescriptions, FakeMedicines(), main.dispatcher, FixedClock(), { zone }, id, extend)
 
     private val PrescriptionEditViewModel.value get() = editor.state.value.value
 
@@ -321,7 +321,7 @@ class PrescriptionEditViewModelTest {
             override suspend fun save(loaded: Prescription?, edited: Prescription, extended: Boolean): Result<Unit> =
                 if (fail) Result.failure(DataError.Offline) else repository.save(loaded, edited, extended)
         }
-        val vm = PrescriptionEditViewModel(flaky, FakeMedicines(), clock, { zone }, null, false)
+        val vm = PrescriptionEditViewModel(flaky, FakeMedicines(), main.dispatcher, clock, { zone }, null, false)
         vm.onEvent(Event.NameChanged("Sertralin"))
         vm.editor.effects.test {
             vm.onEvent(Event.Save)
@@ -460,5 +460,7 @@ class PrescriptionEditViewModelTest {
 
         vm.onEvent(Event.FormChosen(MedicineForm.CAPSULE))
         assertEquals(MedicineForm.CAPSULE to null, vm.value.form to vm.value.unknownForm)
+        vm.onEvent(Event.FormChosen(null))
+        assertEquals(null, vm.value.form, "avmarkerad = ej angiven")
     }
 }

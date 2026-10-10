@@ -20,9 +20,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.BuildConfig
 import se.partee71.dagboken.R
-import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.data.medicines.MedicineRepository
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.DetailLoader
@@ -42,7 +42,7 @@ class AboutViewModel @Inject constructor(@ApplicationContext context: Context, m
     private val loader = DetailLoader(
         flow {
             val licenses = context.assets.open(LICENSES).bufferedReader().use { it.readText() }
-            emit(AboutInfo(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, licenses, medicines.catalog().updated))
+            emit(AboutInfo(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, licenses, medicines.updated()))
         }
             .flowOn(Dispatchers.IO),
         viewModelScope,

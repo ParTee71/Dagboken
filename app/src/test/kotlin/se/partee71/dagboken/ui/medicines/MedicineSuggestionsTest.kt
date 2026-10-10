@@ -19,7 +19,7 @@ class MedicineSuggestionsTest {
     private val medicines = FakeMedicines()
     private val name = MutableStateFlow("")
 
-    private fun TestScope.suggestions(enabled: Boolean = true) = MedicineSuggestions(medicines, enabled, name, backgroundScope)
+    private fun TestScope.suggestions(enabled: Boolean = true) = MedicineSuggestions(medicines, enabled, name, backgroundScope, main.dispatcher)
 
     private fun MedicineSuggestions.titles() = matches.value.map { it.entry.title }
 

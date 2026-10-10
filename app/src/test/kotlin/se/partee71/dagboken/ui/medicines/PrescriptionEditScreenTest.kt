@@ -222,7 +222,8 @@ class PrescriptionEditScreenTest {
         val events = mutableListOf<PrescriptionEditEvent>()
         rule.setContent { DagbokenTheme { PrescriptionEditScreen(false, EditorUiState(typed.copy(form = MedicineForm.CAPSULE)), PeriodChoice.UNTIL_FURTHER_NOTICE, true, emptyFlow(), { events += it }, {}, matches) } }
         rule.onNodeWithText("Från Läkemedelsverkets lista · fortsätt skriva om ditt inte finns").assertDoesNotExist()
-        rule.onNodeWithText("Kapsel").assertIsSelected()
+        rule.onNodeWithText("Kapsel").assertIsSelected().performClick()
+        assertEquals(PrescriptionEditEvent.FormChosen(null), events.last(), "ett tryck på den valda formen avmarkerar den")
         rule.onNodeWithText("Tablett").assertIsNotSelected().performClick()
         assertEquals(PrescriptionEditEvent.FormChosen(MedicineForm.TABLET), events.last())
     }

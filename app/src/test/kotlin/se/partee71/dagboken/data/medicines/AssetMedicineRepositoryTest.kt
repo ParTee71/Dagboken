@@ -33,4 +33,17 @@ class AssetMedicineRepositoryTest {
         assertEquals(emptyList(), catalog.entries.filter { it.name.isBlank() || it.formText.isBlank() })
         assertSame(catalog, repository.catalog())
     }
+
+    @Test
+    fun `datumet läses ur filens första rader, och ett misslyckande cachas inte`() = runTest {
+        assertEquals(kotlinx.datetime.LocalDate(2026, 10, 7), repository.updated().also { assertNotNull(it) })
+        var calls = 0
+        val flaky = AssetMedicineRepository {
+            if (calls++ == 0) throw java.io.IOException("trasig") else "# updated 2026-10-04\nAlvedon\t500 mg\tTablett\n".byteInputStream()
+        }
+        assertTrue(flaky.catalog().entries.isEmpty(), "första försöket ger en tom lista")
+        assertEquals(1, flaky.catalog().entries.size, "nästa anrop försöker igen")
+        assertSame(flaky.catalog(), flaky.catalog(), "en lyckad läsning cachas")
+        assertEquals(2, calls)
+    }
 }

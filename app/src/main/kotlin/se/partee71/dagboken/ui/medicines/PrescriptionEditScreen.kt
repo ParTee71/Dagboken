@@ -28,6 +28,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Provider
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -70,6 +71,7 @@ import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.medicines.MedicineRepository
+import se.partee71.dagboken.di.DefaultDispatcher
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.EditorEffect
@@ -164,7 +166,7 @@ sealed interface PrescriptionEditEvent {
 
     data class StrengthChanged(val strength: String) : PrescriptionEditEvent
 
-    data class FormChosen(val form: MedicineForm) : PrescriptionEditEvent
+    data class FormChosen(val form: MedicineForm?) : PrescriptionEditEvent
 
     /** Ett val bland namnförslagen (REC-14): fyller i namn, styrka, form och enhet, men inte antalet. */
     data class MedicineChosen(val entry: MedicineEntry) : PrescriptionEditEvent
@@ -220,6 +222,7 @@ sealed interface PrescriptionEditEvent {
 class PrescriptionEditViewModel @AssistedInject constructor(
     private val prescriptions: PrescriptionRepository,
     medicines: MedicineRepository,
+    @DefaultDispatcher computation: CoroutineDispatcher,
     clock: Clock,
     zone: Provider<TimeZone>,
     @Assisted private val id: String?,
@@ -237,7 +240,7 @@ class PrescriptionEditViewModel @AssistedInject constructor(
     val editor: EditorState<Prescription> = EditorState(newPrescription(today), prescriptionValidator, loading = id != null)
 
     /** Namnförslag ur Läkemedelsverkets lista, bara i ett nytt recept (REC-14). */
-    val suggestions = MedicineSuggestions(medicines, enabled = id == null, name = editor.state.map { it.value.name }, scope = viewModelScope)
+    val suggestions = MedicineSuggestions(medicines, enabled = id == null, name = editor.state.map { it.value.name }, scope = viewModelScope, computation = computation)
 
     private val _periodChoice = MutableStateFlow(PeriodChoice.UNTIL_FURTHER_NOTICE)
 

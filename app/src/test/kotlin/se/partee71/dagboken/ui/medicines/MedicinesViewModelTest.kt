@@ -194,7 +194,7 @@ class MedicinesViewModelTest {
     @Test
     fun `en ny vid behov-medicin kräver namn och dos och sparas med förvalen`() = runTest(main.dispatcher) {
         val factory = FakeCollectionFactory()
-        val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(factory), FakeMedicines(), id = null)
+        val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(factory), FakeMedicines(), main.dispatcher, id = null)
         assertTrue(vm.isNew)
         assertFalse(vm.editor.state.value.canSave)
 
@@ -217,7 +217,7 @@ class MedicinesViewModelTest {
         val stored = alvedon.copy(favorite = true, dispensingTime = "30 min", unit = "tablett")
         factory.prnMedicines().upsert(stored).getOrThrow()
         val repository = DefaultPrnMedicineRepository(factory)
-        val vm = PrnMedicineEditViewModel(repository, FakeMedicines(), alvedon.id)
+        val vm = PrnMedicineEditViewModel(repository, FakeMedicines(), main.dispatcher, alvedon.id)
         assertEquals(stored, vm.editor.state.value.value)
         assertEquals(stored, vm.stored.value)
 
@@ -235,14 +235,14 @@ class MedicinesViewModelTest {
 
     @Test
     fun `en vid behov-medicin som inte finns visar läsfel`() = runTest(main.dispatcher) {
-        val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(FakeCollectionFactory()), FakeMedicines(), "finns-inte")
+        val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(FakeCollectionFactory()), FakeMedicines(), main.dispatcher, "finns-inte")
         assertEquals(DataError.NotFound, vm.editor.state.value.loadError)
     }
 
     @Test
     fun `förslag bara i en ny vid behov-medicin, och ett val fyller i fyra fält men lämnar dosen (REC-14)`() = runTest(main.dispatcher) {
         val factory = FakeCollectionFactory()
-        val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(factory), FakeMedicines(), id = null)
+        val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(factory), FakeMedicines(), main.dispatcher, id = null)
         vm.onEvent(PrnEditEvent.Changed(PrnField.DOSE) { it.copy(dose = "2") })
         vm.onEvent(PrnEditEvent.Changed(PrnField.NAME) { it.copy(name = "bricanyl") })
         vm.onEvent(PrnEditEvent.MedicineChosen(vm.suggestions.matches.value.single().entry))
@@ -252,7 +252,7 @@ class MedicinesViewModelTest {
         assertEquals(1, vm.suggestions.matches.value.size, "och öppnas igen när namnet ändras")
 
         factory.prnMedicines().upsert(alvedon).getOrThrow()
-        val existing = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(factory), FakeMedicines(), alvedon.id)
+        val existing = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(factory), FakeMedicines(), main.dispatcher, alvedon.id)
         existing.onEvent(PrnEditEvent.Changed(PrnField.NAME) { it.copy(name = "alvedon") })
         assertEquals(emptyList(), existing.suggestions.matches.value, "en befintlig medicin har ett vanligt namnfält")
     }

@@ -2,17 +2,22 @@ package se.partee71.dagboken.data.medicines
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.InputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.medicine.MedicineCatalog
 
 /** Läkemedelslistan som är inbyggd i appen (REC-14) – läses en gång, sedan ur minnet. */
 interface MedicineRepository {
     suspend fun catalog(): MedicineCatalog
+
+    /** Listans datum – för Om Dagboken, som inte ska behöva tolka hela listan. */
+    suspend fun updated(): LocalDate? = catalog().updated
 }
 
 /**
@@ -20,18 +25,31 @@ interface MedicineRepository {
  * listan tom: formuläret fungerar då som utan förslag. Helt lokalt – inget om sökningar loggas eller skickas (NFR-8).
  */
 @Singleton
-class AssetMedicineRepository @Inject constructor(@param:ApplicationContext private val context: Context) : MedicineRepository {
+class AssetMedicineRepository internal constructor(private val open: () -> InputStream) : MedicineRepository {
+    @Inject constructor(@ApplicationContext context: Context) : this({ context.assets.open(FILE) })
+
     private val lock = Mutex()
     private var loaded: MedicineCatalog? = null
 
+    /** Ett misslyckande ger en tom lista men cachas inte: nästa anrop försöker läsa filen igen. */
     override suspend fun catalog(): MedicineCatalog = lock.withLock {
         loaded ?: withContext(Dispatchers.IO) {
-            runCatching { context.assets.open(FILE).bufferedReader().use { MedicineCatalog.parse(it.readText()) } }
-                .getOrElse { MedicineCatalog(null, emptyList()) }
-        }.also { loaded = it }
+            runCatching { open().bufferedReader().use { MedicineCatalog.parse(it.readText()) } }.getOrNull()
+        }?.also { loaded = it } ?: MedicineCatalog(null, emptyList())
+    }
+
+    /** Datumet ur de första raderna (`# updated ÅÅÅÅ-MM-DD`) – läser inte resten av listan. */
+    override suspend fun updated(): LocalDate? = loaded?.updated ?: withContext(Dispatchers.IO) {
+        runCatching {
+            open().bufferedReader().useLines { lines ->
+                lines.take(HEADER_LINES).firstOrNull { it.startsWith(UPDATED) }?.removePrefix(UPDATED)?.trim()?.let(LocalDate::parse)
+            }
+        }.getOrNull()
     }
 
     private companion object {
         const val FILE = "medicines.tsv"
+        const val UPDATED = "# updated "
+        const val HEADER_LINES = 5
     }
 }

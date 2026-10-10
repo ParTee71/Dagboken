@@ -85,14 +85,14 @@ data class AsNeededChoices(
 
 /**
  * FAV-2, FAV-11: delar vid behov-medicinerna på stjärnan, efter namn, och tar med de aktiva recept vars
- * period täcker [today] – utom ett recept vars namn (utan skiftläge och blanktecken runt om) redan finns
+ * period täcker [today] – utom ett recept vars namn med styrka (utan skiftläge och blanktecken runt om) redan finns
  * bland vid behov-medicinerna, så att samma medicin aldrig står två gånger. Lika namn ordnas på id.
  */
 fun asNeededChoices(medicines: List<PrnMedicine>, prescriptions: List<Prescription>, today: LocalDate): AsNeededChoices {
     val sorted = medicines.sortedWith(compareBy<PrnMedicine, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id })
-    val names = medicines.mapTo(HashSet()) { it.name.trim().lowercase() }
+    val names = medicines.mapTo(HashSet()) { it.displayName.lowercase() }
     val recipes = prescriptions
-        .filter { it.active && it.period.covers(today) && it.name.trim().lowercase() !in names }
+        .filter { it.active && it.period.covers(today) && it.displayName.lowercase() !in names }
         .sortedWith(compareBy<Prescription, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id })
     val (favorites, others) = sorted.partition { it.favorite }
     return AsNeededChoices(favorites, others, recipes)

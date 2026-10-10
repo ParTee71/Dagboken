@@ -13,6 +13,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -24,6 +25,7 @@ import se.partee71.dagboken.core.medicine.filledFrom
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.medicines.MedicineRepository
+import se.partee71.dagboken.di.DefaultDispatcher
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.common.EditorLoader
@@ -81,12 +83,13 @@ sealed interface PrnEditEvent {
 class PrnMedicineEditViewModel @AssistedInject constructor(
     private val medicines: PrnMedicineRepository,
     catalog: MedicineRepository,
+    @DefaultDispatcher computation: CoroutineDispatcher,
     @Assisted private val id: String?,
 ) : ViewModel() {
     val editor: EditorState<PrnMedicine> = EditorState(newPrnMedicine(), prnValidator, loading = id != null)
 
     /** Namnförslag ur Läkemedelsverkets lista, bara i en ny medicin (REC-14). */
-    val suggestions = MedicineSuggestions(catalog, enabled = id == null, name = editor.state.map { it.value.name }, scope = viewModelScope)
+    val suggestions = MedicineSuggestions(catalog, enabled = id == null, name = editor.state.map { it.value.name }, scope = viewModelScope, computation = computation)
 
     private val loader = EditorLoader(editor, viewModelScope, read = id?.let { id -> { medicines.get(id) } })
 

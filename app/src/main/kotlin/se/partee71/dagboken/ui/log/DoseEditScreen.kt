@@ -381,11 +381,12 @@ private fun DayAndTime(form: EntryForm<Dose>, zone: TimeZone, timeShown: Boolean
     error?.let { FieldError(it) }
 }
 
-/** Namn, dos, enhet och tidpunkt – en dos utan recept (MED-11, MED-15). */
+/** Namn, styrka, dos, enhet och tidpunkt – en dos utan recept (MED-11, MED-15). */
 @Composable
 private fun DoseFields(form: EntryForm<Dose>, error: (String) -> String?) {
     val d = form.value
     AppTextField(d.name, { name -> form.change(DoseField.NAME) { it.copy(name = name) } }, stringResource(R.string.option_name), error = error(DoseField.NAME))
+    AppTextField(d.strength, { strength -> form.change { it.copy(strength = strength) } }, stringResource(R.string.medicine_strength))
     AppTextField(d.dose, { dose -> form.change(DoseField.DOSE) { it.copy(dose = dose) } }, stringResource(R.string.dose_label), error = error(DoseField.DOSE))
     UnitChoice(d.unit, { unit -> form.change { it.copy(unit = unit) } })
     LabeledGroup(stringResource(R.string.dose_slot)) {
