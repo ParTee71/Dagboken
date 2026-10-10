@@ -36,7 +36,11 @@ class AssetMedicineRepositoryTest {
 
     @Test
     fun `datumet läses ur filens första rader, och ett misslyckande cachas inte`() = runTest {
-        assertEquals(kotlinx.datetime.LocalDate(2026, 10, 7), repository.updated().also { assertNotNull(it) })
+        // Datumet i filens rubrik – listan uppdateras vid varje release (skill release), så det hårdkodas inte.
+        val header = RuntimeEnvironment.getApplication().assets.open("medicines.tsv").bufferedReader().useLines { lines ->
+            lines.first { it.startsWith("# updated ") }.removePrefix("# updated ").trim()
+        }
+        assertEquals(kotlinx.datetime.LocalDate.parse(header), repository.updated().also { assertNotNull(it) })
         var calls = 0
         val flaky = AssetMedicineRepository {
             if (calls++ == 0) throw java.io.IOException("trasig") else "# updated 2026-10-04\nAlvedon\t500 mg\tTablett\n".byteInputStream()
