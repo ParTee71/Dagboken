@@ -612,50 +612,87 @@ test('en okänd form (från en nyare app) kan stå kvar vid uppdatering men inte
 });
 
 /**
- * Ett recept i värsta fall för uttrycksbudgeten (rules räknar högst 1 000 uttryck per skrivning):
- * varje fält satt och så långt som DocumentRules tillåter, och alla MAX_BOOSTS höjningar med både
- * start och slut – det dyraste en höjning kan kontrolleras med. [v] varierar värdena, så att en
- * överskrivning ändrar varje fält (uppdateringen kontrollerar då allt, som skapandet).
+ * Dokument i värsta fall för uttrycksbudgeten (rules räknar högst 1 000 uttryck per skrivning): varje
+ * fält satt och så långt som DocumentRules tillåter, listorna av objekt fulla och med de dyraste
+ * elementen – höjningar med både start och slut, symptom med poäng och fritext. [v] (0 eller 1)
+ * varierar värdena, så att en överskrivning ändrar varje fält (uppdateringen kontrollerar då allt).
+ * Nyckeln är samlingen, `rule` dess valid…-funktion.
  */
-const worstPrescription = (v = 0) => ({
-  name: text(LIMIT.short - v), strength: text(LIMIT.short - v), form: ['inhaler', 'tablet'][v], dose: text(LIMIT.short - v), unit: text(LIMIT.short - v),
-  slots: ['morning', 'midmorning', 'lunch', 'afternoon', 'evening', 'night', 'asNeeded'].slice(v),
-  schedule: { repeat: ['custom', 'interval'][v], days: [1, 2, 3, 4, 5, 6, 7].slice(v), intervalDays: 3 + v },
-  period: { start: `2026-01-0${1 + v}`, end: `2026-12-3${v}` },
-  boosts: Array.from({ length: documentRulesConstant('MAX_BOOSTS') }, (_, i) => ({ id: `b${i}-${v}`, start: `2026-02-0${1 + v}`, end: `2026-02-2${v}`, dose: `${1 + v}`, unit: `mg${v}` })),
-  active: v === 0, createdAt: Timestamp.fromDate(new Date(Date.UTC(2026, 0, 1 + v))), note: text(LIMIT.long - v),
-});
-
-/** Skapar värsta-fall-receptet i [store] och skriver sedan över varje fält. */
-const writeWorstPrescription = async (store, uid) => {
-  const ref = doc(store, 'users', uid, 'prescriptions', 'tung');
-  await assertSucceeds(setDoc(ref, worstPrescription(0)), 'skapat');
-  await assertSucceeds(setDoc(ref, worstPrescription(1)), 'varje fält ändrat');
+const at = (v) => Timestamp.fromDate(new Date(Date.UTC(2026, 0, 1 + v)));
+const post = (v) => ({ name: text(LIMIT.short - v), note: text(LIMIT.long - v), date: `2026-03-0${1 + v}`, time: `08:0${v}`, createdAt: at(v) });
+const symptoms = (v) => Array.from({ length: documentRulesConstant('MAX_SYMPTOMS') }, (_, i) => ({ optionId: `s${i}-${v}`, score: 10 - v, customText: `Fritext ${i} ${v}` }));
+const WORST = {
+  prescriptions: {
+    rule: 'validPrescription',
+    build: (v) => ({
+      name: text(LIMIT.short - v), strength: text(LIMIT.short - v), form: ['inhaler', 'tablet'][v], dose: text(LIMIT.short - v), unit: text(LIMIT.short - v),
+      slots: ['morning', 'midmorning', 'lunch', 'afternoon', 'evening', 'night', 'asNeeded'].slice(v),
+      schedule: { repeat: ['custom', 'interval'][v], days: [1, 2, 3, 4, 5, 6, 7].slice(v), intervalDays: 3 + v },
+      period: { start: `2026-01-0${1 + v}`, end: `2026-12-3${v}` },
+      boosts: Array.from({ length: documentRulesConstant('MAX_BOOSTS') }, (_, i) => ({ id: `b${i}-${v}`, start: `2026-02-0${1 + v}`, end: `2026-02-2${v}`, dose: `${1 + v}`, unit: `mg${v}` })),
+      active: v === 0, createdAt: at(v), note: text(LIMIT.long - v),
+    }),
+  },
+  screenings: {
+    rule: 'validScreening',
+    build: (v) => ({ ...post(v), occasion: ['breakfast', 'dinner'][v], customText: text(LIMIT.short - v), energy: 10 - v, stress: 10 - v, symptoms: symptoms(v), legacySomatic: 40 + v }),
+  },
+  activities: {
+    rule: 'validActivity',
+    // Mätt till 2 – flest fält bredvid 50 symptom. Under BUDGET_RESERVE_FIELDS tills isSymptom görs billigare
+    // som isBoost (#294); ett nytt fält på aktiviteten kräver det först.
+    reserve: 2,
+    build: (v) => ({
+      ...post(v), optionId: text(LIMIT.short - v), customText: text(LIMIT.short - v), energy: -10 + v, stress: 10 - v, symptoms: symptoms(v),
+      legacySomatic: 40 + v, recovering: v === 0, drain: v === 0, minutes: 600 + v,
+    }),
+  },
+  checkins: {
+    rule: 'validCheckin',
+    build: (v) => ({ ...post(v), severity: 10 - v, symptoms: symptoms(v), legacySomatic: 40 + v }),
+  },
 };
 
-test('ett recept i värsta fall – alla höjningar med start och slut, varje fält fullt – ryms i uttrycksbudgeten (#294)', async () => {
-  // Före #294 nekades redan tio höjningar med slutdatum (PERMISSION_DENIED: "maximum of 1000
-  // expressions"), fast DocumentRules och receptformuläret tillät dem – även i 3.x-flytten.
-  await writeWorstPrescription(db(OWNER), OWNER);
+/** Skapar värsta-fall-dokumentet i [collection] i [store] (episoden e1 finns för incheckningen) och skriver sedan över varje fält. */
+const writeWorst = async (store, collection) => {
+  const ref = doc(store, 'users', OWNER, ...docPath[collection]);
+  await assertSucceeds(setDoc(ref, WORST[collection].build(0)), `${collection}: skapat`);
+  await assertSucceeds(setDoc(ref, WORST[collection].build(1)), `${collection}: varje fält ändrat`);
+};
+
+test('dokument i värsta fall – alla höjningar med start och slut, alla symptom med poäng och fritext, varje fält fullt – ryms i uttrycksbudgeten (#294)', async () => {
+  // Före #294 nekades redan ett recept med tio höjningar med slutdatum (PERMISSION_DENIED: "maximum of
+  // 1000 expressions"), fast DocumentRules och receptformuläret tillät dem – även i 3.x-flytten.
+  for (const collection of Object.keys(WORST)) await writeWorst(db(OWNER), collection);
 });
 
-/** Reserven i uttrycksbudgeten för värsta-fall-receptet, i fältkontroller (se testet nedan). */
+/** Reserven i uttrycksbudgeten för värsta-fall-dokumenten, i fältkontroller (se testet nedan); `reserve` i WORST undantar. */
 const BUDGET_RESERVE_FIELDS = 3;
 
-test(`uttrycksbudgeten har en reserv på minst ${BUDGET_RESERVE_FIELDS} fältkontroller för värsta-fall-receptet`, async () => {
-  // validPrescription med BUDGET_RESERVE_FIELDS extra fältkontroller (som ett nytt kort textfält var):
-  // ryms värsta-fall-receptet fortfarande har nästa fält plats. Blir testet rött har receptet vuxit
-  // in i reserven – gör kontrollerna billigare innan fältet läggs till, sänk aldrig bara reserven.
-  // Mätt i emulatorn efter #294: värsta-fall-receptet rymmer 5 extra fältkontroller, inte 6 (före #294
-  // nekades det utan några). Testet kräver 3, så att två fält till får plats innan det blir rött.
-  const rules = readRepoFile('firestore.rules');
-  const end = /(function validPrescription\(d\) \{[\s\S]*?);\n    \}/;
-  assert.match(rules, end);
-  const padding = " && (!('strength' in w) || nullOrShort(d.get('strength', null)))".repeat(BUDGET_RESERVE_FIELDS);
-  const padded = await rulesTestEnvironment({ rules: rules.replace(end, `$1${padding};\n    }`), projectId: 'demo-dagboken-budget' });
+test(`uttrycksbudgeten har en reserv på minst ${BUDGET_RESERVE_FIELDS} fältkontroller för varje värsta-fall-dokument`, async () => {
+  // Varje valid…-funktion med reserven i extra fältkontroller (som ett nytt kort textfält var):
+  // ryms värsta-fall-dokumentet fortfarande har nästa fält plats. Blir testet rött har samlingen vuxit in
+  // i reserven – gör kontrollerna billigare innan fältet läggs till, sänk aldrig bara reserven.
+  // Mätt i emulatorn efter #294 (extra fältkontroller som ryms, inte en till): recept 5 (före #294 inga),
+  // screening 4, aktivitet 2, incheckning 7. Testet kräver 3 (aktiviteten 2), så att fält kan läggas till
+  // innan det blir rött.
+  const padding = (n) => " && (!('name' in w) || nullOrShort(d.get('name', null)))".repeat(n);
+  let rules = readRepoFile('firestore.rules');
+  for (const { rule, reserve = BUDGET_RESERVE_FIELDS } of Object.values(WORST)) {
+    const end = new RegExp(`(function ${rule}\\(d\\) \\{[\\s\\S]*?);\\n    \\}`);
+    assert.match(rules, end, rule);
+    rules = rules.replace(end, `$1${padding(reserve)};\n    }`);
+  }
+  const padded = await rulesTestEnvironment({ rules, projectId: 'demo-dagboken-budget' });
   try {
-    await padded.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'users', OWNER), user));
-    await writeWorstPrescription(padded.authenticatedContext(OWNER).firestore(), OWNER);
+    // Tomt först, så att skapandet mäts även när emulatorn återanvänds mellan körningar.
+    await padded.clearFirestore();
+    await padded.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', OWNER), user);
+      await setDoc(doc(ctx.firestore(), 'users', OWNER, 'illnessEpisodes', 'e1'), { type: 'Förkylning' });
+    });
+    const store = padded.authenticatedContext(OWNER).firestore();
+    for (const collection of Object.keys(WORST)) await writeWorst(store, collection);
   } finally {
     await padded.cleanup();
   }
