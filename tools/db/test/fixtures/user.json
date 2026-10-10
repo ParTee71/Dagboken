@@ -68,7 +68,7 @@
     {
       "path": "users/uid-test/prescriptions/6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a",
       "data": {
-        "name": "Levaxin", "dose": "0,5", "unit": "mg", "slots": ["midmorning", "evening"],
+        "name": "Levaxin", "strength": "100 mikrogram", "form": "tablet", "dose": "0,5", "unit": "mg", "slots": ["midmorning", "evening"],
         "schedule": { "repeat": "interval", "days": [1, 4], "intervalDays": 3 },
         "period": { "start": "2026-01-01", "end": "2026-12-31" },
         "boosts": [
@@ -81,7 +81,7 @@
     {
       "path": "users/uid-test/prescriptions/1b2c3d4e-5f60-4718-8293-a4b5c6d7e8f9",
       "data": {
-        "name": "D-vitamin", "dose": "1 tablett", "unit": "st", "slots": ["morning"],
+        "name": "D-vitamin", "strength": "", "form": null, "dose": "1 tablett", "unit": "st", "slots": ["morning"],
         "schedule": { "repeat": "daily", "days": [], "intervalDays": 2 },
         "period": { "start": null, "end": null },
         "boosts": [], "active": true, "createdAt": null, "note": null
@@ -90,14 +90,14 @@
     {
       "path": "users/uid-test/prnMedicines/a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d",
       "data": {
-        "name": "Alvedon", "dose": "500", "unit": "mg", "slot": "night", "minHoursBetween": 6,
+        "name": "Alvedon", "strength": "500 mg", "form": "capsule", "dose": "500", "unit": "mg", "slot": "night", "minHoursBetween": 6,
         "dispensingTime": "30 min", "maxPerDay": 4, "favorite": true, "note": "Max 3 g per dygn"
       }
     },
     {
       "path": "users/uid-test/doses/recept_6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a_2026-09-21_Förmiddag",
       "data": {
-        "date": "2026-09-21", "slot": "midmorning", "name": "Levaxin", "dose": "0,75", "unit": "mg", "status": "taken",
+        "date": "2026-09-21", "slot": "midmorning", "name": "Levaxin", "strength": "100 mikrogram", "dose": "0,75", "unit": "mg", "status": "taken",
         "plannedTime": "10:00", "takenAt": { "__ts": "2026-09-21T08:12:45.000001000Z" },
         "prescriptionId": "6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a", "prnId": null,
         "createdAt": { "__ts": "2026-09-21T08:00:00.000000000Z" }, "note": "Tog med frukost"
@@ -106,7 +106,7 @@
     {
       "path": "users/uid-test/doses/recept_6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a_2026-09-21_Kväll",
       "data": {
-        "date": "2026-09-21", "slot": "evening", "name": "Levaxin", "dose": "0,75", "unit": "mg", "status": "skipped",
+        "date": "2026-09-21", "slot": "evening", "name": "Levaxin", "strength": "", "dose": "0,75", "unit": "mg", "status": "skipped",
         "plannedTime": "19:00", "takenAt": null, "prescriptionId": "6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a", "prnId": null,
         "createdAt": { "__ts": "2026-09-21T17:00:00.000000000Z" }, "note": null
       }
@@ -114,7 +114,7 @@
     {
       "path": "users/uid-test/doses/3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
       "data": {
-        "date": "2026-09-22", "slot": "asNeeded", "name": "Alvedon", "dose": "500", "unit": "mg", "status": "taken",
+        "date": "2026-09-22", "slot": "asNeeded", "name": "Alvedon", "strength": "500 mg", "dose": "500", "unit": "mg", "status": "taken",
         "plannedTime": "13:40", "takenAt": { "__ts": "2026-09-22T11:40:00.500000000Z" },
         "prescriptionId": null, "prnId": "a7b8c9d0-e1f2-4a3b-8c4d-5e6f7a8b9c0d",
         "createdAt": { "__ts": "2026-09-22T11:40:00.000000000Z" }, "note": "Huvudvärk efter mötet"

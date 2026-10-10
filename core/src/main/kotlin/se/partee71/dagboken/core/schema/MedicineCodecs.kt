@@ -3,6 +3,7 @@ package se.partee71.dagboken.core.schema
 import se.partee71.dagboken.core.model.Boost
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
@@ -12,6 +13,12 @@ import se.partee71.dagboken.core.model.Slot
 
 // Codecs för recept, vid behov-mediciner och doser (ARKITEKTUR.md → Datamodell).
 
+/** Styrkan (REC-1, FAV-1, dosens kopia) – samma fältnamn i alla tre samlingarna. */
+internal const val STRENGTH = "strength"
+
+/** Läkemedelsformen ([MedicineForm]); ett okänt värde skrivs tillbaka oförändrat. */
+internal const val FORM = "form"
+
 object PrescriptionCodec : DocCodec<Prescription> {
     const val ACTIVE = "active"
     const val SLOTS = "slots"
@@ -20,6 +27,8 @@ object PrescriptionCodec : DocCodec<Prescription> {
 
     override fun encode(value: Prescription): Doc = mapOf(
         "name" to value.name,
+        STRENGTH to value.strength,
+        FORM to value.form.encodeWire(value.unknownForm),
         "dose" to value.dose,
         "unit" to value.unit,
         // Okända tidpunkter (från en nyare app) skrivs tillbaka efter de kända.
@@ -35,6 +44,8 @@ object PrescriptionCodec : DocCodec<Prescription> {
     override fun decode(id: String, map: Doc) = Prescription(
         id = id,
         name = map.string("name"),
+        strength = map.string(STRENGTH),
+        form = map.wireOrNull<MedicineForm>(FORM),
         dose = map.string("dose"),
         unit = map.string("unit"),
         slots = map.wireList<Slot>(SLOTS),
@@ -45,6 +56,7 @@ object PrescriptionCodec : DocCodec<Prescription> {
         createdAt = map.instant(CREATED_AT),
         note = map.stringOrNull(NOTE),
         unknownSlots = map.unknownWires<Slot>(SLOTS),
+        unknownForm = map.unknownWire<MedicineForm>(FORM),
     )
 }
 
@@ -101,6 +113,8 @@ object PrnMedicineCodec : DocCodec<PrnMedicine> {
 
     override fun encode(value: PrnMedicine): Doc = mapOf(
         "name" to value.name,
+        STRENGTH to value.strength,
+        FORM to value.form.encodeWire(value.unknownForm),
         "dose" to value.dose,
         "unit" to value.unit,
         "slot" to value.slot.encodeWire(),
@@ -114,6 +128,8 @@ object PrnMedicineCodec : DocCodec<PrnMedicine> {
     override fun decode(id: String, map: Doc) = PrnMedicine(
         id = id,
         name = map.string("name"),
+        strength = map.string(STRENGTH),
+        form = map.wireOrNull<MedicineForm>(FORM),
         dose = map.string("dose"),
         unit = map.string("unit"),
         slot = map.wire("slot", Slot.AS_NEEDED),
@@ -122,6 +138,7 @@ object PrnMedicineCodec : DocCodec<PrnMedicine> {
         maxPerDay = map.int("maxPerDay"),
         favorite = map.bool(FAVORITE),
         note = map.stringOrNull(NOTE),
+        unknownForm = map.unknownWire<MedicineForm>(FORM),
     )
 }
 
@@ -134,6 +151,7 @@ object DoseCodec : DocCodec<Dose> {
 
     // Fälten som följer receptet när det ändras (REC-10, REC-12).
     const val NAME = "name"
+    const val STRENGTH = se.partee71.dagboken.core.schema.STRENGTH
     const val DOSE = "dose"
     const val UNIT = "unit"
     const val TAKEN_AT = "takenAt"
@@ -149,6 +167,7 @@ object DoseCodec : DocCodec<Dose> {
         DATE to value.date.encodeDate(),
         SLOT to value.slot.encodeWire(),
         NAME to value.name,
+        STRENGTH to value.strength,
         DOSE to value.dose,
         UNIT to value.unit,
         STATUS to value.status.encodeWire(),
@@ -165,6 +184,7 @@ object DoseCodec : DocCodec<Dose> {
         date = map.localDate(DATE),
         slot = map.wire(SLOT, Slot.AS_NEEDED),
         name = map.string("name"),
+        strength = map.string(STRENGTH),
         dose = map.string("dose"),
         unit = map.string("unit"),
         status = map.wire(STATUS, DoseStatus.PLANNED),

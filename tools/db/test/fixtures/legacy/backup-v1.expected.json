@@ -60,6 +60,7 @@
         "date": "2024-03-01",
         "slot": "asNeeded",
         "name": "Ibuprofen",
+        "strength": "",
         "dose": "400",
         "unit": "mg",
         "status": "taken",
@@ -79,6 +80,7 @@
         "date": "2024-03-01",
         "slot": "morning",
         "name": "Metformin",
+        "strength": "",
         "dose": "500",
         "unit": "mg",
         "status": "taken",
@@ -270,6 +272,8 @@
       "path": "users/uid-legacy/prescriptions/f4a5b6c7-d8e9-4f0a-9b2c-3d4e5f6a7b8c",
       "data": {
         "name": "Metformin",
+        "strength": "",
+        "form": null,
         "dose": "500",
         "unit": "mg",
         "slots": [
@@ -296,6 +300,8 @@
       "path": "users/uid-legacy/prnMedicines/b6c7d8e9-f0a1-4b2c-9d4e-5f6a7b8c9d0e",
       "data": {
         "name": "Ibuprofen",
+        "strength": "",
+        "form": null,
         "dose": "400",
         "unit": "mg",
         "slot": "asNeeded",

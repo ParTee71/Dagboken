@@ -204,8 +204,8 @@ test('en flyttad dos (MED-15): målet skapas med det lagrade dokumentets alla f�
 });
 
 test('"Markera tagen" (NOT-10): en batch med bara merges – saknad dos skapas utan anteckning, befintlig och raderad godtas', async () => {
-  const { date, slot, name, dose, unit, prescriptionId } = toClient(base('doses'));
-  const taken = { date, slot, name, dose, unit, prescriptionId, status: 'taken', takenAt: Timestamp.now() };
+  const { date, slot, name, strength, dose, unit, prescriptionId } = toClient(base('doses'));
+  const taken = { date, slot, name, strength, dose, unit, prescriptionId, status: 'taken', takenAt: Timestamp.now() };
   await assertSucceeds(setDoc(mine('doses', 'ny-tagen'), taken, { merge: true }), 'saknas: skapas utan anteckning, skapandetid och klockslag');
   const created = (await getDoc(mine('doses', 'ny-tagen'))).data();
   assert.deepEqual(['createdAt', 'note', 'plannedTime'].filter((k) => k in created), []);
@@ -300,6 +300,10 @@ const invalid = {
     ['name', text(LIMIT.short + 1), 'för långt namn'],
   ],
   prescriptions: [
+    ['strength', 500, 'styrkan är text'],
+    ['strength', text(LIMIT.short + 1), 'för lång styrka'],
+    ['form', 'spray', 'okänd form'],
+    ['form', 1, 'form som tal'],
     ['dose', 50, 'dosen är text'],
     ['unit', 3, 'enheten är text'],
     ['slots', ['brunch'], 'okänd tidpunkt'],
@@ -315,6 +319,8 @@ const invalid = {
     ['boosts.0', { id: 'b0', start: '2026-01-01', dose: '1', unit: 'mg' }, 'höjning utan end'],
     ['boosts', ['b0'], 'höjning som text'],
     ['boosts.0.start', 'igår', 'ogiltigt datum'],
+    ['boosts.0.end', 20260914, 'datum som tal'],
+    ['boosts.0.start', '2026-02-30x', 'datum med svans'],
     ['boosts.0.dose', 25, 'höjningen är text'],
     ['boosts.1.unit', ['mg'], 'enheten är text'],
     ['active', 'true', 'bool som text'],
@@ -328,6 +334,9 @@ const invalid = {
     ['dispensingTime', 30, 'fritext som tal'],
     ['favorite', 'ja', 'bool som text'],
     ['dose', 500, 'dosen är text'],
+    ['strength', ['500 mg'], 'styrkan är text'],
+    ['strength', text(LIMIT.short + 1), 'för lång styrka'],
+    ['form', 'tablett', 'okänd form (svenska namnet)'],
   ],
   doses: [
     ['status', 'lost', 'okänd status'],
@@ -338,6 +347,8 @@ const invalid = {
     ['prescriptionId', 5, 'id som tal'],
     ['prnId', true, 'id som bool'],
     ['dose', 50, 'dosen är text'],
+    ['strength', 500, 'styrkan är text'],
+    ['strength', text(LIMIT.short + 1), 'för lång styrka'],
     ['createdAt', 'igår', 'tidsstämpel som text'],
   ],
   screenings: [
@@ -434,6 +445,10 @@ test('gränsvärdena i intervallen godtas', async () => {
     ['settings', 'legacy', null], ['settings', 'legacy.dynamicColor', null], ['settings', 'legacy.sheetsConfig', null],
     ['settings', 'legacy.dynamicColor', false], ['settings', 'legacy.sheetsConfig', text(LIMIT.long)],
     ['prescriptions', 'note', text(LIMIT.long)], ['prescriptions', 'schedule', null],
+    // Styrka och form (REC-1, FAV-1): ej angivna (tom text, null) och alla former godtas.
+    ['prescriptions', 'strength', ''], ['prescriptions', 'strength', text(LIMIT.short)], ['prescriptions', 'form', null],
+    ['prnMedicines', 'strength', ''], ['prnMedicines', 'form', null], ['doses', 'strength', text(LIMIT.short)], ['doses', 'strength', null],
+    ...['tablet', 'capsule', 'liquid', 'powder', 'inhaler', 'drops', 'patch', 'other'].flatMap((form) => [['prescriptions', 'form', form], ['prnMedicines', 'form', form]]),
   ];
   for (const [collection, path, value] of cases) {
     await assertSucceeds(setDoc(mine(...docPath[collection]), toClient(withField(base(collection), path, value))), `${collection}.${path} = ${JSON.stringify(value)}`);
@@ -565,4 +580,32 @@ test('ett recept med okänt schema (Schedule.Unknown från en nyare app) kan upp
   await deleteDoc(ref);
   await assertFails(setDoc(ref, toClient(withField(base('prescriptions'), 'schedule', unknown))), 'återskapat');
   await assertFails(setDoc(mine('prescriptions', 'ny'), toClient(withField(base('prescriptions'), 'schedule', unknown))), 'nytt');
+});
+
+test('en okänd form (från en nyare app) kan stå kvar vid uppdatering men inte skapas eller ändras till', async () => {
+  // Codecen skriver tillbaka en okänd form oförändrad (unknownForm, DAT-10) – som ett okänt schema.
+  for (const collection of ['prescriptions', 'prnMedicines']) {
+    const ref = mine(collection, 'nyare-form');
+    const stored = toClient(withField(base(collection), 'form', 'spray'));
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'users', OWNER, collection, 'nyare-form'), stored));
+    await assertSucceeds(updateDoc(ref, { note: 'Ändrad i 4.0', strength: '0,5 mg/dos' }), `${collection}: formen orörd`);
+    await assertSucceeds(setDoc(ref, stored), `${collection}: hela dokumentet skrivet med formen orörd`);
+    await assertSucceeds(updateDoc(ref, { form: 'inhaler' }), `${collection}: en känd form ersätter den okända`);
+    await assertFails(updateDoc(ref, { form: 'spray' }), `${collection}: tillbaka till en okänd form`);
+    await deleteDoc(ref);
+    await assertFails(setDoc(ref, stored), `${collection}: återskapad med okänd form`);
+  }
+});
+
+test('styrka och form ryms i uttrycksbudgeten bredvid tio kontrollerade höjningar och alla tidpunkter', async () => {
+  // Rules räknar högst 1 000 uttryck per skrivning; tio höjningar kontrolleras element för element.
+  // Mätt med utfyllnad i emulatorn (#292): datummönstret direkt i isBoost gav plats för styrka och form
+  // med något större marginal än före. Ett nytt fält på receptet ska mätas igen.
+  const boosts = Array.from({ length: 50 }, (_, i) => ({ id: `b${i}`, start: '2026-01-01', end: null, dose: '1', unit: 'mg' }));
+  const heavy = {
+    ...base('prescriptions'), strength: text(LIMIT.short), form: 'inhaler', boosts,
+    slots: ['morning', 'midmorning', 'lunch', 'afternoon', 'evening', 'night', 'asNeeded'],
+  };
+  await assertSucceeds(setDoc(mine('prescriptions', 'tung'), toClient(heavy)));
+  await assertSucceeds(setDoc(mine('prescriptions', 'tung'), toClient({ ...heavy, note: 'Ändrad', form: 'tablet' })));
 });

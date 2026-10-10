@@ -33,6 +33,12 @@ class EnsureDosesTest {
         assertEquals(listOf(LocalTime(7, 0), LocalTime(19, 0)), doses.map { it.plannedTime })
     }
 
+    @Test fun `receptets styrka kopieras till doserna, som namnet`() {
+        val doses = prescription().copy(strength = "500 mg").plannedDoses(today, STOCKHOLM)
+        assertEquals(listOf("500 mg"), doses.map { it.strength })
+        assertEquals(listOf(""), prescription().plannedDoses(today, STOCKHOLM).map { it.strength })
+    }
+
     @Test fun `varje schemalagd tidpunkt får sitt standardklockslag (REC-6)`() {
         val doses = prescription(slots = Slot.SCHEDULED).plannedDoses(today, STOCKHOLM)
         assertEquals(listOf(7, 10, 12, 15, 19, 22), doses.map { it.plannedTime!!.hour })
@@ -152,6 +158,12 @@ class EnsureDosesTest {
         assertTrue(sync.update.all { it.name == "Metformin XR" && it.dose == "1000" && it.date!! >= today })
         assertEquals(emptyList(), sync.delete)
         assertEquals(emptyList(), sync.create)
+    }
+
+    @Test fun `en ändrad styrka följer med till otagna doser från idag (REC-10)`() {
+        val existing = dosesOf("2026-05-05", "2026-05-06", "2026-05-07")
+        val sync = saved.copy(strength = "850 mg").syncDoses(existing, today, STOCKHOLM)
+        assertEquals(existing.drop(2).map { it.copy(strength = "850 mg") }, sync.update)
     }
 
     @Test fun `tagna och överhoppade doser rörs aldrig`() {

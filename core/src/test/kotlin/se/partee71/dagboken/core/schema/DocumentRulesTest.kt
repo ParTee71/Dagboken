@@ -170,7 +170,9 @@ class DocumentRulesTest {
         assertEquals(setOf("optionId"), DocumentRules.SYMPTOM.required)
         assertEquals(setOf("score"), DocumentRules.SYMPTOM.nullable, "score läses utan get i rules: nyckeln krävs, null godtas")
         val boost = functions.getValue("isBoost")
-        assertTrue("b.id is string" in boost && "(b.start == null || isDate(b.start))" in boost && "(b.end == null || isDate(b.end))" in boost && "b.dose is string && b.unit is string" in boost)
+        // Datummönstret står direkt i isBoost (uttrycksbudgeten) – samma som isDate.
+        val date = DocumentRules.DATE.pattern
+        assertTrue("b.id is string" in boost && "(b.start == null || b.start.matches('$date'))" in boost && "(b.end == null || b.end.matches('$date'))" in boost && "b.dose is string && b.unit is string" in boost)
         assertEquals(setOf("id", "dose", "unit"), DocumentRules.BOOST.required)
         val schedule = functions.getValue("isSchedule")
         assertTrue("m.repeat in repeats()" in schedule && "isEnumList(m.days, [${DocumentRules.WEEKDAYS.joinToString(", ")}], ${DocumentRules.WEEKDAYS.count()})" in schedule && "atLeast(m.intervalDays, 0)" in schedule)

@@ -122,6 +122,12 @@ class CooldownTest {
         assertEquals("500", p.extraDose("ny-4", at("2026-02-08T12:00"), STOCKHOLM).dose)
     }
 
+    @Test fun `vid behov-dosen och extradosen får medicinens styrka, som namnet`() {
+        assertEquals("500 mg", prn().copy(strength = "500 mg").takenDose("ny-5", at("2026-05-07T08:00"), STOCKHOLM).strength)
+        assertEquals("850 mg", prescription().copy(strength = "850 mg").extraDose("ny-6", at("2026-05-07T08:00"), STOCKHOLM).strength)
+        assertEquals("", prn().takenDose("ny-7", at("2026-05-07T08:00"), STOCKHOLM).strength)
+    }
+
     @Test fun `ett tomt namn matchar aldrig på namn, bara på prnId`() {
         val blank = prn().copy(name = " ")
         val now = at("2026-05-06T10:00")

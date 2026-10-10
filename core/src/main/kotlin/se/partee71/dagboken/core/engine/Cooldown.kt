@@ -91,7 +91,7 @@ fun PrnMedicine.checkDose(doses: Iterable<Dose>, at: Instant, zone: TimeZone, fo
  * anteckning som förval (MED-11) och [Dose.prnId] satt. [id] är ett nytt dokument-id.
  */
 fun PrnMedicine.takenDose(id: String, at: Instant, zone: TimeZone): Dose =
-    asNeededDose(id, at, zone, slot, name, dose, unit, note).copy(prnId = this.id)
+    asNeededDose(id, at, zone, slot, name, strength, dose, unit, note).copy(prnId = this.id)
 
 /**
  * FAV-11: en extrados av receptets medicin vid [at] – en vid behov-dos utan receptkoppling (den ska
@@ -100,7 +100,7 @@ fun PrnMedicine.takenDose(id: String, at: Instant, zone: TimeZone): Dose =
  */
 fun Prescription.extraDose(id: String, at: Instant, zone: TimeZone): Dose {
     val date = at.toLocalDateTime(zone).date
-    return asNeededDose(id, at, zone, Slot.AS_NEEDED, name, doseFor(date), unit, note)
+    return asNeededDose(id, at, zone, Slot.AS_NEEDED, name, strength, doseFor(date), unit, note)
 }
 
 private fun asNeededDose(
@@ -109,6 +109,7 @@ private fun asNeededDose(
     zone: TimeZone,
     slot: Slot,
     name: String,
+    strength: String,
     dose: String,
     unit: String,
     note: String?,
@@ -119,6 +120,7 @@ private fun asNeededDose(
         date = local.date,
         slot = slot,
         name = name,
+        strength = strength,
         dose = dose,
         unit = unit,
         status = DoseStatus.TAKEN,

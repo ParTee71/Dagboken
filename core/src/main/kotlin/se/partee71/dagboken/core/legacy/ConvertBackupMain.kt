@@ -2,6 +2,7 @@ package se.partee71.dagboken.core.legacy
 
 import java.io.File
 import java.io.PrintStream
+import se.partee71.dagboken.core.cli.CliArgs
 import se.partee71.dagboken.core.schema.DocumentRules
 import kotlin.system.exitProcess
 
@@ -64,23 +65,8 @@ object ConvertBackupCli {
 
     /** `--in`, `--out`, `--user` obligatoriska, `--force` valfri; inget annat godtas. */
     private fun parse(args: Array<String>): Options? {
-        val values = mutableMapOf<String, String>()
-        var force = false
-        var i = 0
-        while (i < args.size) {
-            if (args[i] == FORCE) {
-                if (force) return null
-                force = true
-                i += 1
-                continue
-            }
-            val flag = args[i].takeIf { it in FLAGS } ?: return null
-            val value = args.getOrNull(i + 1)?.takeUnless { it.startsWith("--") } ?: return null
-            if (values.put(flag, value) != null) return null
-            i += 2
-        }
-        if (values.keys != FLAGS) return null
-        return Options(values.getValue("--in"), values.getValue("--out"), values.getValue("--user"), force)
+        val parsed = CliArgs.parse(args, FLAGS, setOf(FORCE))?.takeIf { it.values.keys == FLAGS } ?: return null
+        return Options(parsed.value("--in"), parsed.value("--out"), parsed.value("--user"), FORCE in parsed.switches)
     }
 
     private val FLAGS = setOf("--in", "--out", "--user")

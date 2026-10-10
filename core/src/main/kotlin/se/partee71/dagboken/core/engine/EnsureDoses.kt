@@ -46,6 +46,7 @@ fun Prescription.plannedDoses(date: LocalDate, zone: TimeZone): List<Dose> {
             date = date,
             slot = slot,
             name = name,
+            strength = strength,
             dose = total,
             unit = unit,
             status = DoseStatus.PLANNED,
@@ -113,7 +114,7 @@ data class DoseSync(
  * från och med [today] berörs – tagna och överhoppade ändras aldrig, och gårdagens historik lämnas orörd.
  * - **delete:** receptet är inaktivt (REC-5), dagen ligger utanför perioden eller upprepningen, eller
  *   tidpunkten finns inte längre i receptet (anteckningen följer med dokumentet);
- * - **update:** namn, dos eller enhet följer receptet och dagens höjning (REC-12);
+ * - **update:** namn, styrka, dos eller enhet följer receptet och dagens höjning (REC-12);
  * - **create:** saknade doser för dagarna [today]…[through] (standard bara idag) om receptet är
  *   aktivt – t.ex. en ny tidpunkt syns direkt i dagens checklista. Senare dagar fylls på av
  *   [ensureDoses] när de visas.
@@ -146,7 +147,8 @@ fun Prescription.syncDoses(
     val (obsolete, kept) = pending.partition { !appliesOn(it.date!!) || it.slot !in slotsNow }
     val update = kept.mapNotNull { dose ->
         val total = doseFor(dose.date!!)
-        dose.takeIf { it.name != name || it.dose != total || it.unit != unit }?.copy(name = name, dose = total, unit = unit)
+        dose.takeIf { it.name != name || it.strength != strength || it.dose != total || it.unit != unit }
+            ?.copy(name = name, strength = strength, dose = total, unit = unit)
     }
     val existingIds = existing.mapTo(HashSet()) { it.id }
     val create = generateSequence(today) { it.plus(1, DateTimeUnit.DAY) }

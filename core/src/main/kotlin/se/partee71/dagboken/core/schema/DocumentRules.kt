@@ -3,6 +3,7 @@ package se.partee71.dagboken.core.schema
 import kotlin.time.Instant
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.LegacySource
+import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Repeat
@@ -190,6 +191,8 @@ object DocumentRules {
             "archived" to Check.BoolField,
         ),
         CollectionNames.PRESCRIPTIONS to ENTRY + mapOf(
+            STRENGTH to Check.ShortText,
+            FORM to Check.OneOf(wires(MedicineForm.entries)),
             "dose" to Check.ShortText,
             "unit" to Check.ShortText,
             "slots" to Check.EnumList(wires(Slot.entries), Slot.entries.size),
@@ -200,6 +203,8 @@ object DocumentRules {
             "createdAt" to Check.TimestampField,
         ),
         CollectionNames.PRN_MEDICINES to ENTRY + mapOf(
+            STRENGTH to Check.ShortText,
+            FORM to Check.OneOf(wires(MedicineForm.entries)),
             "dose" to Check.ShortText,
             "unit" to Check.ShortText,
             "slot" to Check.OneOf(wires(Slot.entries)),
@@ -211,6 +216,7 @@ object DocumentRules {
         CollectionNames.DOSES to ENTRY + mapOf(
             "date" to Check.DateText,
             "slot" to Check.OneOf(wires(Slot.entries)),
+            STRENGTH to Check.ShortText,
             "dose" to Check.ShortText,
             "unit" to Check.ShortText,
             "status" to Check.OneOf(wires(DoseStatus.entries)),

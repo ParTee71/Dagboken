@@ -30,6 +30,10 @@ data class Prescription(
     val createdAt: Instant? = null,
     /** Anteckningen (DAT-7). */
     val note: String? = null,
+    /** Styrkan som text, som i Läkemedelsverkets lista (`"500 mg"`, `"0,5 mg/dos"`); tom = ej angiven (REC-1). Sist bland fälten, så att positionella anrop står kvar. */
+    val strength: String = "",
+    /** Läkemedelsformen; `null` = ej angiven (3.x saknade fältet) eller okänd ([unknownForm]). */
+    val form: MedicineForm? = null,
     /**
      * Tidpunkter i `slots` som appen inte känner till (t.ex. från en nyare app), som råa lagrade
      * värden: ger inga doser och skrivs tillbaka oförändrade efter de kända – som [Schedule.Unknown].
@@ -37,7 +41,15 @@ data class Prescription(
      * fältlista räknar bara egna fält).
      */
     @Transient val unknownSlots: List<String> = emptyList(),
+    /**
+     * En form i `form` som appen inte känner till (från en nyare app), som det råa lagrade värdet: skrivs
+     * tillbaka oförändrad så länge [form] är `null`. Bärs i fältet `form`, därför `@Transient` som [unknownSlots].
+     */
+    @Transient val unknownForm: String? = null,
 ) : Identified {
+    /** "Levaxin 50 mikrogram" – namn och styrka, tomma delar utelämnade. */
+    val displayName: String get() = medicineTitle(name, strength)
+
     /**
      * Tidpunkterna kan inte visas eller ändras i formuläret: någon är okänd ([unknownSlots]) eller
      * "Vid behov" (som ett recept aldrig ger doser för, äldre eller importerad data). Formuläret visar

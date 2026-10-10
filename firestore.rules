@@ -78,6 +78,7 @@ service cloud.firestore {
     function themeModes() { return ['light', 'dark', 'auto']; }
     function sexes() { return ['male', 'female', 'unspecified']; }
     function legacySources() { return ['room', 'drive', 'json']; }
+    function medicineForms() { return ['tablet', 'capsule', 'liquid', 'powder', 'inhaler', 'drops', 'patch', 'other']; }
 
     // Listor av objekt. Rules kan inte loopa och räknar högst 1 000 uttryck per skrivning, så hela
     // listan kontrolleras som lista med tak, men elementen bara upp till det tionde (nästlat, så att
@@ -101,9 +102,13 @@ service cloud.firestore {
         (isSymptom(l[9])))))))))))))))))))));
     }
 
-    // En doshöjning (REC-9): {id, start, end, dose, unit}.
+    // En doshöjning (REC-9): {id, start, end, dose, unit}. Datummönstret är isDate() skrivet direkt
+    // (en text annars matches-fel = nekad): tio höjningar ligger nära uttrycksbudgeten, och utan
+    // anropet ryms receptets styrka och form (#292). DocumentRulesTest håller mönstret lika med isDate.
     function isBoost(b) {
-      return b.id is string && (b.start == null || isDate(b.start)) && (b.end == null || isDate(b.end))
+      return b.id is string
+        && (b.start == null || b.start.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'))
+        && (b.end == null || b.end.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'))
         && b.dose is string && b.unit is string;
     }
     function isBoosts(l) {
@@ -222,6 +227,8 @@ service cloud.firestore {
     function validPrescription(d) {
       let w = written();
       return validEntry(d, w)
+        && (!('strength' in w) || nullOrShort(d.get('strength', null)))
+        && (!('form' in w) || nullOrIn(d.get('form', null), medicineForms()))
         && (!('dose' in w) || nullOrShort(d.get('dose', null)))
         && (!('unit' in w) || nullOrShort(d.get('unit', null)))
         && (!('slots' in w) || d.get('slots', null) == null || isEnumList(d.slots, slots(), 7))
@@ -235,6 +242,8 @@ service cloud.firestore {
     function validPrnMedicine(d) {
       let w = written();
       return validEntry(d, w)
+        && (!('strength' in w) || nullOrShort(d.get('strength', null)))
+        && (!('form' in w) || nullOrIn(d.get('form', null), medicineForms()))
         && (!('dose' in w) || nullOrShort(d.get('dose', null)))
         && (!('unit' in w) || nullOrShort(d.get('unit', null)))
         && (!('slot' in w) || nullOrIn(d.get('slot', null), slots()))
@@ -249,6 +258,7 @@ service cloud.firestore {
       return validEntry(d, w)
         && (!('date' in w) || nullOrDate(d.get('date', null)))
         && (!('slot' in w) || nullOrIn(d.get('slot', null), slots()))
+        && (!('strength' in w) || nullOrShort(d.get('strength', null)))
         && (!('dose' in w) || nullOrShort(d.get('dose', null)))
         && (!('unit' in w) || nullOrShort(d.get('unit', null)))
         && (!('status' in w) || nullOrIn(d.get('status', null), doseStatuses()))
