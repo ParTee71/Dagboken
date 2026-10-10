@@ -7,7 +7,7 @@ import { Timestamp, collection, collectionGroup, deleteDoc, deleteField, doc, ge
 import { COLLECTIONS } from '../lib/collections.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
 import { toClient } from './helpers/client.mjs';
-import { rulesTestEnvironment } from './helpers/emulator.mjs';
+import { Double, restSetAs, rulesTestEnvironment } from './helpers/emulator.mjs';
 import { documentRulesConstant, readRepoFile, textLimits } from './helpers/repo.mjs';
 
 const OWNER = 'anna';
@@ -383,6 +383,20 @@ const invalid = {
     ['symptoms', [{ optionId: 'x', score: 3, customText: 5 }], 'fritext som tal'],
     ['symptoms', Array.from({ length: 10 }, (_, i) => ({ optionId: `s${i}`, score: i === 9 ? 11 : 1, customText: null })), 'tionde symptomet ogiltigt'],
     ['symptoms', Array.from({ length: 51 }, (_, i) => ({ optionId: `s${i}`, score: 1, customText: null })), '51 symptom'],
+    // Poängmönstret i isSymptom (#296) träffar texterna nedan; de nekas för att de är texter.
+    ['symptoms', [{ optionId: 'x', score: 'null', customText: null }], 'poäng som texten null'],
+    ['symptoms', [{ optionId: 'x', score: '10', customText: null }], 'poäng 10 som text'],
+    ['symptoms', [{ optionId: 'x', score: true, customText: null }], 'poäng som bool'],
+    ['symptoms', [{ optionId: 'x', score: [3], customText: null }], 'poäng som lista'],
+    ['symptoms', [{ optionId: 'x', score: { v: 3 }, customText: null }], 'poäng som objekt'],
+    ['symptoms', [{ optionId: 'x', score: 100, customText: null }], 'poäng 100'],
+    ['symptoms', [{ optionId: 'x', score: 10.5, customText: null }], 'poäng strax över 10 som decimaltal'],
+    ['symptoms', [{ optionId: 'x', score: 3 }], 'fritext saknas'],
+    ['symptoms', [{ optionId: 'x', score: 3, customText: true }], 'fritext som bool'],
+    ['symptoms', [{ optionId: 'x', score: 3, customText: ['t'] }], 'fritext som lista'],
+    ['symptoms', [{ optionId: null, score: 3, customText: null }], 'optionId null'],
+    ['symptoms', [{ optionId: ['x'], score: 3, customText: null }], 'optionId som lista'],
+    ['symptoms', [null], 'symptom null'],
   ],
   activities: [
     ['energy', 11, 'energi över 10'],
@@ -393,6 +407,10 @@ const invalid = {
     ['drain', 1, 'bool som tal'],
     ['optionId', 3, 'id som tal'],
     ['symptoms.1.score', 11, 'poäng över 10 i andra symptomet'],
+    ['symptoms.1.score', '5', 'poäng som text i andra symptomet'],
+    ['symptoms.1.score', 5.5, 'poäng som decimaltal i andra symptomet'],
+    ['symptoms.1.customText', 7, 'fritext som tal i andra symptomet'],
+    ['symptoms', [{ optionId: 'a', score: 1, customText: null }, { optionId: 'x', customText: null }], 'poäng saknas i andra symptomet'],
   ],
   events: [
     ['severity', 11, 'svårighetsgrad över 10'],
@@ -448,6 +466,9 @@ test('gränsvärdena i intervallen godtas', async () => {
     // Ett symptom utan poäng (från 3.x, DAT-6): score null godtas.
     ['screenings', 'symptoms', [{ optionId: 'x', score: null, customText: null }]],
     ['checkins', 'symptoms', [{ optionId: 'x', score: 3, customText: null }, { optionId: 'y', score: null, customText: null }]],
+    // Varje poäng 0–10 och null, tomma texter och texten 'null' som id och fritext (poängmönstret i isSymptom, #296).
+    ...[null, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => ['activities', 'symptoms', [{ optionId: 'x', score, customText: `Fritext ${score}` }]]),
+    ['activities', 'symptoms', [{ optionId: '', score: null, customText: '' }, { optionId: 'null', score: 7, customText: 'null' }]],
     ['prescriptions', 'boosts', Array.from({ length: 50 }, (_, i) => ({ id: `b${i}`, start: '2026-01-01', end: null, dose: '1', unit: 'mg' }))],
     ['prescriptions', 'boosts', [{ id: '', start: null, end: '2026-02-28', dose: '', unit: '' }, { id: 'b', start: null, end: null, dose: '1', unit: 'mg' }]],
     // Texten 'null' i ett höjningsdatum släpps igenom av det billiga mönstret i isBoost (#294); codecen
@@ -596,6 +617,22 @@ test('ett recept med okänt schema (Schedule.Unknown från en nyare app) kan upp
   await assertFails(setDoc(mine('prescriptions', 'ny'), toClient(withField(base('prescriptions'), 'schedule', unknown))), 'nytt');
 });
 
+test('en poäng som decimaltal nekas även när den är hel (3.0 som double, via emulatorns REST) – vid create och update (#296)', async () => {
+  // isSymptom prövar poängen med ett mönster över string(score) i stället för `is int`: string(3.0) är '3.0',
+  // som inte träffar. Klientens SDK skickar 3.0 som heltal, så double skrivs via REST; heltalet är kontrollen
+  // att vägen och token fungerar.
+  const activity = (score) => ({ ...toClient(base('activities')), symptoms: [{ optionId: 'a', score: 1, customText: null }, { optionId: 'x', score, customText: null }] });
+  for (const id of ['ny', 'a1']) {
+    if (id === 'a1') await assertSucceeds(setDoc(mine('activities', id), activity(1)));
+    else await deleteDoc(mine('activities', id));
+    for (const value of [3, 0, 10]) {
+      assert.equal(await restSetAs(OWNER, ['activities', id], activity(new Double(value))), 403, `${id}: ${value}.0 som double`);
+    }
+    assert.equal(await restSetAs(OWNER, ['activities', id], activity(3)), 200, `${id}: 3 som heltal`);
+    if (id === 'ny') await deleteDoc(mine('activities', id));
+  }
+});
+
 test('en okänd form (från en nyare app) kan stå kvar vid uppdatering men inte skapas eller ändras till', async () => {
   // Codecen skriver tillbaka en okänd form oförändrad (unknownForm, DAT-10) – som ett okänt schema.
   for (const collection of ['prescriptions', 'prnMedicines']) {
@@ -639,9 +676,6 @@ const WORST = {
   },
   activities: {
     rule: 'validActivity',
-    // Mätt till 2 – flest fält bredvid 50 symptom. Under BUDGET_RESERVE_FIELDS tills isSymptom görs billigare
-    // som isBoost (#294); ett nytt fält på aktiviteten kräver det först.
-    reserve: 2,
     build: (v) => ({
       ...post(v), optionId: text(LIMIT.short - v), customText: text(LIMIT.short - v), energy: -10 + v, stress: 10 - v, symptoms: symptoms(v),
       legacySomatic: 40 + v, recovering: v === 0, drain: v === 0, minutes: 600 + v,
@@ -666,22 +700,20 @@ test('dokument i värsta fall – alla höjningar med start och slut, alla sympt
   for (const collection of Object.keys(WORST)) await writeWorst(db(OWNER), collection);
 });
 
-/** Reserven i uttrycksbudgeten för värsta-fall-dokumenten, i fältkontroller (se testet nedan); `reserve` i WORST undantar. */
-const BUDGET_RESERVE_FIELDS = 3;
+/** Reserven i uttrycksbudgeten för varje värsta-fall-dokument, i fältkontroller (se testet nedan) – samma krav för alla. */
+const BUDGET_RESERVE_FIELDS = 5;
 
 test(`uttrycksbudgeten har en reserv på minst ${BUDGET_RESERVE_FIELDS} fältkontroller för varje värsta-fall-dokument`, async () => {
   // Varje valid…-funktion med reserven i extra fältkontroller (som ett nytt kort textfält var):
   // ryms värsta-fall-dokumentet fortfarande har nästa fält plats. Blir testet rött har samlingen vuxit in
   // i reserven – gör kontrollerna billigare innan fältet läggs till, sänk aldrig bara reserven.
-  // Mätt i emulatorn efter #294 (extra fältkontroller som ryms, inte en till): recept 5 (före #294 inga),
-  // screening 4, aktivitet 2, incheckning 7. Testet kräver 3 (aktiviteten 2), så att fält kan läggas till
-  // innan det blir rött.
+  // Uppmätt reserv per samling: skill firestore-data-layer, Uttrycksbudget.
   const padding = (n) => " && (!('name' in w) || nullOrShort(d.get('name', null)))".repeat(n);
   let rules = readRepoFile('firestore.rules');
-  for (const { rule, reserve = BUDGET_RESERVE_FIELDS } of Object.values(WORST)) {
+  for (const { rule } of Object.values(WORST)) {
     const end = new RegExp(`(function ${rule}\\(d\\) \\{[\\s\\S]*?);\\n    \\}`);
     assert.match(rules, end, rule);
-    rules = rules.replace(end, `$1${padding(reserve)};\n    }`);
+    rules = rules.replace(end, `$1${padding(BUDGET_RESERVE_FIELDS)};\n    }`);
   }
   const padded = await rulesTestEnvironment({ rules, projectId: 'demo-dagboken-budget' });
   try {

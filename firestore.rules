@@ -83,15 +83,22 @@ service cloud.firestore {
     // Listor av objekt. Rules kan inte loopa och räknar högst 1 000 uttryck per skrivning, så hela
     // listan kontrolleras som lista med tak, men elementen bara upp till det tionde (nästlat, så att
     // resten hoppas över när listan tar slut; DocumentRules.RULES_CHECKED_ELEMENTS). Värsta fallet –
-    // alla höjningar med start och slut, varje fält fullt – mäts med reserv i rules.test.mjs (#294). Taket är generöst så att en 3.x-post aldrig nekas;
+    // alla höjningar med start och slut, alla symptom med poäng och fritext, varje fält fullt – mäts med
+    // reserv i rules.test.mjs (#294, #296). Taket är generöst så att en 3.x-post aldrig nekas;
     // codecen läser trasiga element tolerant (skill data-safety-backup). Elementkontrollen kräver
     // alla fält, som codecen alltid skriver.
     function maxSymptoms() { return 50; }
     function maxBoosts() { return 50; }
 
-    // Ett symptom (DAT-6): {optionId, score 0–10 eller null (utan poäng, från 3.x), customText}.
+    // Ett symptom (DAT-6): {optionId, score 0–10 eller null (utan poäng, från 3.x), customText}, alla nycklar
+    // med. Skrivet för uttrycksbudgeten som isBoost (#296): varje uttryck räknas tio gånger per lista.
+    // - Poängen med ett mönster: string() ger `null` för null, siffrorna för ett heltal, `3.0`/`2.5` för ett
+    //   decimaltal och `true` för en bool (ingen träff = nekad); en lista eller ett objekt ger fel (nekad).
+    //   Texter ('3', 'null') skulle träffa och nekas med `!(s.score is string)`.
+    // - Fritexten är null eller text; den billiga grenen (null) först, texten kostar en kontroll till.
+    // DocumentRulesTest håller mönstret lika med DocumentRules.SCORE; rules.test.mjs mäter reserven i budgeten.
     function isSymptom(s) {
-      return s.optionId is string && (s.score == null || (s.score is int && s.score >= 0 && s.score <= 10))
+      return s.optionId is string && string(s.score).matches('^(null|[0-9]|10)$') && !(s.score is string)
         && (s.customText == null || s.customText is string);
     }
     function isSymptoms(l) {
