@@ -35,7 +35,7 @@ class SyncViewModelTest {
     private val viewModel = SyncViewModel(status)
 
     @Test
-    fun `väntande ändringar visas först efter två sekunder (NFR-6)`() = runTest(main.dispatcher) {
+    fun `väntande ändringar visas först efter två sekunder (NFR-22)`() = runTest(main.dispatcher) {
         viewModel.state.test {
             assertEquals(SyncUiState(), awaitItem())
             status.syncing.value = true

@@ -13,6 +13,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.junit.Rule
 import org.junit.Test
+import se.partee71.dagboken.consistency.RepositoryWrites
 import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.core.model.Profile
 import se.partee71.dagboken.core.model.Sex
@@ -65,11 +66,13 @@ class HealthNotPersistedTest {
             .filter { it.packagee?.name?.endsWith("ui.health") == true }
         assertTrue(files.isNotEmpty(), "ui/health saknas")
         val allowed = setOf("se.partee71.dagboken.data.repository.SettingsRepository")
-        val writes = Regex("\\.(save|update|upsert|delete|remove|setStatus|archive|merge)\\(")
         files.forEach { file ->
             file.imports.filter { it.name.contains(".data.repository.") || it.name.contains(".data.firestore.") || it.name.contains("core.schema") }
                 .forEach { assertTrue(it.name in allowed, "${file.name} importerar ${it.name}") }
-            assertFalse(writes.containsMatchIn(file.text), "${file.name} anropar en skrivning (HLS-5)")
         }
+        // Skrivningarna härleds ur gränssnitten (RepositoryWrites) – minst de som kontrollerades här tidigare.
+        val writes = RepositoryWrites.writes
+        assertTrue(setOf("save", "update", "upsert", "delete", "remove", "setStatus", "setArchived", "merge").all { it in writes }, "skrivningarna hittades inte: $writes")
+        assertEquals(emptyList(), RepositoryWrites.callsIn("ui.health"), "ui/health anropar en skrivning (HLS-5)")
     }
 }

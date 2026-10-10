@@ -580,7 +580,7 @@
     <string name="event_actions">Åtgärder / medicinering</string>
     <string name="event_actions_hint">T.ex. vila i mörkt rum eller Alvedon 500 mg</string>
 
-    <!-- Synk (NFR-1) -->
+    <!-- Synk (NFR-22) -->
     <string name="sync_pending">Väntar på synk</string>
     <string name="sync_pending_description">Ändringar väntar på att synkas</string>
     <string name="sync_pending_explained">Ändringarna är sparade på telefonen och skickas när det finns nät.</string>

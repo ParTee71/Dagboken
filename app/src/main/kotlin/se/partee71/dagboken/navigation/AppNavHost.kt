@@ -47,7 +47,7 @@ import se.partee71.dagboken.ui.theme.Spacing
  * plusknappen (NAV-8, NAV-10) – som bara syns i en fliks rot (NAV-3). Skärmarna kommer från
  * [entryProvider] (`appEntries` i appen). [onLog] är plusknappen; utan den visas ingen.
  * [sync] ger synkindikatorn i varje skärms toppbar och meddelandet om en nekad skrivning
- * (NFR-1), i appens gemensamma meddelandeyta ovanför bottenraden – där också [message] visas (en bekräftelse från
+ * (NFR-22), i appens gemensamma meddelandeyta ovanför bottenraden – där också [message] visas (en bekräftelse från
  * ett ark ovanpå flikarna, t.ex. "Mående sparat" från plusknappen, SCR-3).
  */
 @Composable

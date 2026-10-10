@@ -29,7 +29,7 @@ data class UndoRequest(val id: String, val name: String, @param:StringRes val fo
  * vid tryck på Ångra, annars [onDismissed]. En ny [request] ersätter den som visas; den förra
  * förblir då dold. Lämnar skärmen kompositionen (flikbyte, ny skärm, rotation) medan ångra
  * erbjuds räknas det som [onDismissed] – annars visades samma meddelande igen när man kom
- * tillbaka (NFR-3). Visar ingenting själv – meddelandet syns i `AppSnackbarHost`.
+ * tillbaka (SET-5). Visar ingenting själv – meddelandet syns i `AppSnackbarHost`.
  * [onRequestDismissed] får dessutom vilken [UndoRequest] som gick ut – så att en ViewModel som hunnit
  * erbjuda ett nytt ångra inte släpper det nya när det förra försvinner (Idag, två snabba avbockningar).
  */

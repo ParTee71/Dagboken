@@ -455,7 +455,8 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
    ./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <scratch-uid>"
    node tools/db/import.mjs --in tools/db/export-4.json --dry-run      # kontroll, skriver inget
    node tools/db/import.mjs --in tools/db/export-4.json                # skrivande nyckel, uttrycklig begäran
-   node tools/db/export.mjs --user <scratch-uid> --out tools/db/export-igen.json && cmp tools/db/export-4.json tools/db/export-igen.json
+   node tools/db/export.mjs --user <scratch-uid> --out tools/db/export-igen.json
+   node tools/db/compare.mjs --a tools/db/export-4.json --b tools/db/export-igen.json   # exitkod 0 = noll skillnader
    ```
    Konverteraren skriver rapporten (antal per samling, varningar – även klockslag som flyttats av
    sommartidsbytet – och stopp) till stdout utan något innehåll; exitkod 0 = filen skrevs, 1 = stopp (ingen

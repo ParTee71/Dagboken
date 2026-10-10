@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Hälsodata lämnar aldrig appen via Androids backup eller enhetsöverföring (NFR-8, skill
+<!-- Hälsodata lämnar aldrig appen via Androids backup eller enhetsöverföring (NFR-23, skill
      data-privacy-security). Data finns i Firestore; en ny telefon hämtar den efter inloggning.
      Gäller Android 12+; äldre versioner stoppas av android:allowBackup="false". -->
 <data-extraction-rules>

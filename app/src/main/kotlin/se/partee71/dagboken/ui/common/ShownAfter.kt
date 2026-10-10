@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.transformLatest
 
 /**
  * Sant först när källan varit sann i [delay] – falskt direkt. Så blinkar inte en indikator
- * för något som går fort (synkindikatorn, NFR-1).
+ * för något som går fort (synkindikatorn, NFR-22).
  */
 fun Flow<Boolean>.shownAfter(delay: Duration): Flow<Boolean> = transformLatest { on ->
     if (on) delay(delay)

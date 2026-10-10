@@ -4,7 +4,6 @@ import android.Manifest
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Intent
-import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -20,8 +19,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
-import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserFactory
 import se.partee71.dagboken.core.engine.Reminder
 import se.partee71.dagboken.core.engine.SlotDoses
 import se.partee71.dagboken.core.model.Dose
@@ -38,6 +35,8 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.repository.DoseRepository
 import se.partee71.dagboken.data.repository.PrescriptionRepository
+import se.partee71.dagboken.testing.AppManifest
+import se.partee71.dagboken.testing.AppManifest.android
 
 /**
  * Vad mottagarna gör (NOT-3, NOT-6, NOT-10, NOT-14, NOT-19) – genom [ReminderActions], med Intents som notisen och
@@ -223,22 +222,8 @@ class ReminderActionsTest {
 
     @Test
     fun `omstartsmottagarens åtgärder och manifestets intent-filter är samma lista`() {
-        val parser = XmlPullParserFactory.newInstance().apply { isNamespaceAware = true }.newPullParser()
-        parser.setInput(File("src/main/AndroidManifest.xml").reader())
-        val actions = mutableSetOf<String>()
-        var inBoot = false
-        while (parser.next() != XmlPullParser.END_DOCUMENT) {
-            val name = if (parser.eventType == XmlPullParser.START_TAG) parser.getAttributeValue(ANDROID, "name") else null
-            when {
-                parser.eventType == XmlPullParser.START_TAG && parser.name == "receiver" -> inBoot = name == ".reminders.BootReceiver"
-                parser.eventType == XmlPullParser.END_TAG && parser.name == "receiver" -> inBoot = false
-                parser.eventType == XmlPullParser.START_TAG && parser.name == "action" && inBoot -> actions += checkNotNull(name)
-            }
-        }
+        val boot = AppManifest.element("receiver", ".reminders.BootReceiver")
+        val actions = AppManifest.elements("action", boot).map { it.android("name") }.toSet()
         assertEquals(BootReceiver.RESCHEDULE_ACTIONS, actions)
-    }
-
-    private companion object {
-        const val ANDROID = "http://schemas.android.com/apk/res/android"
     }
 }

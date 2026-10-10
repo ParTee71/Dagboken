@@ -33,7 +33,7 @@ class ListLoaderTest {
     }
 
     @Test
-    fun `utan prenumerant går listan tillbaka till laddning - gammal lista visas aldrig (NFR-8)`() = runTest(UnconfinedTestDispatcher()) {
+    fun `utan prenumerant går listan tillbaka till laddning - gammal lista visas aldrig`() = runTest(UnconfinedTestDispatcher()) {
         val source = MutableStateFlow(listOf("Morgonpromenad"))
         val loader = ListLoader(source, backgroundScope)
         loader.state.test {

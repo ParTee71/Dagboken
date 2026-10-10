@@ -13,8 +13,8 @@ import se.partee71.dagboken.ui.common.toMessage
 
 /**
  * Ett fel från en åtgärd i ramen (t.ex. arkivera) som meddelande i [hostState], med samma
- * texter som överallt (NFR-5). [template] (`%1$s` = felets text) sätter felet i ett sammanhang,
- * t.ex. en nekad synk (NFR-1). [onShown] anropas när det visats, så att ViewModeln släpper det.
+ * texter som överallt. [template] (`%1$s` = felets text) sätter felet i ett sammanhang,
+ * t.ex. en nekad synk (NFR-22). [onShown] anropas när det visats, så att ViewModeln släpper det.
  */
 @Composable
 internal fun ErrorSnackbar(

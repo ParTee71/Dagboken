@@ -36,7 +36,7 @@ private val context: Context get() = ApplicationProvider.getApplicationContext()
 private fun text(id: Int, vararg args: Any) = context.getString(id, *args)
 
 /**
- * Kontraktet för en skärm på `EntityListScreen` (NFR-1): laddning, tomt med knapp som lägger
+ * Kontraktet för en skärm på `EntityListScreen`: laddning, tomt med knapp som lägger
  * till, fel med "Försök igen" och innehåll. Feature-tester anropar det här och testar sedan
  * bara det som är unikt för skärmen.
  *
@@ -85,7 +85,7 @@ fun <T> ComposeContentTestRule.runListScreenContract(
 }
 
 /**
- * Kontraktet för en skärm på `EntityDetailScreen` (NFR-1): laddning utan Redigera, läsfel med "Försök igen", ett
+ * Kontraktet för en skärm på `EntityDetailScreen`: laddning utan Redigera, läsfel med "Försök igen", ett
  * dokument som inte finns (raderat) med sin text, och innehåll med Redigera och tillbakapil. Feature-tester anropar
  * det här och testar sedan bara det som är unikt för skärmen.
  *
@@ -124,7 +124,7 @@ fun <T> ComposeContentTestRule.runDetailScreenContract(
 }
 
 /**
- * Kontraktet för en skärm på `EntityEditScreen` + `EditorState` (NFR-2): "Spara" inaktiv tills
+ * Kontraktet för en skärm på `EntityEditScreen` + `EditorState` (NFR-10): "Spara" inaktiv tills
  * formuläret är giltigt och ändrat, fältfel efter ändring, "Släng ändringar?" vid bakåt,
  * sparfel som snackbar och tillbaka efter lyckad sparning.
  *

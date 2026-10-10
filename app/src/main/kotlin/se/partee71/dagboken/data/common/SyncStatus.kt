@@ -2,7 +2,7 @@ package se.partee71.dagboken.data.common
 
 import kotlinx.coroutines.flow.StateFlow
 
-/** Appens enda synkläge: underlag för "synkas…"-indikatorn (NFR-1) och sena skrivfel. */
+/** Appens enda synkläge: underlag för "synkas…"-indikatorn (NFR-22) och sena skrivfel. */
 interface SyncStatus {
     /** Sant så länge någon skrivning väntar på att nå servern. */
     val syncing: StateFlow<Boolean>

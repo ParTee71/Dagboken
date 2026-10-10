@@ -6,6 +6,7 @@ import java.io.File
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
@@ -57,6 +58,37 @@ class UiConsistencyTest {
             .filter { File(it.path).name !in allowed && Regex("\\.pop\\(\\)").containsMatchIn(it.text) }
             .map { File(it.path).relativeTo(repoRoot).invariantSeparatorsPath }
         assertEquals(emptyList(), hits, "använd backStack.popIfTop(key) – ett andra anrop får inte stänga skärmen under")
+    }
+
+    @Test
+    fun `ramarna för textinmatning lägger tangentbordets inset på den scrollande ytan (NFR-11)`() {
+        // På synfältet krymper tangentbordet den scrollande ytan, så att det fokuserade fältet scrollas fram ovanför
+        // det. Efter verticalScroll blir insetet bara utfyllnad i innehållet, och ett fält längst ned kan stå kvar under
+        // tangentbordet. Kontrollen gäller modifier-kedjan i koden (kommentarer strippade), inte bara radordningen.
+        val chains = mapOf(
+            // Samma kedja: imePadding() direkt före verticalScroll.
+            "EntityEditScreen" to Regex("""\.imePadding\(\)\s*\.\s*verticalScroll\("""),
+            // Knappradsvarianten: ytan med imePadding() omsluter direkt den scrollande kolumnen.
+            "AppBottomSheet" to Regex("""\.imePadding\(\)\s*\)\s*\{\s*Column\(\s*Modifier[^{}]*?\.verticalScroll\("""),
+        )
+        // verticalScroll(…) följt av imePadding() senare i samma kedja, också efter andra led: `.verticalScroll(s).padding(x).imePadding()`.
+        val call = """\((?:[^()]|\([^()]*\))*\)"""
+        val afterScroll = Regex("""verticalScroll$call(?:\s*\.\s*\w+$call)*\s*\.\s*imePadding\(""")
+        for ((frame, chain) in chains) {
+            val file = production.files.firstOrNull { it.name == frame && it.packagee?.name?.endsWith("ui.components") == true }
+            val text = stripComments(checkNotNull(file) { "$frame saknas i ui/components" }.text)
+            assertTrue(chain.containsMatchIn(text), "$frame: imePadding() ska ligga på den scrollande ytans synfält, före verticalScroll")
+            assertFalse(afterScroll.containsMatchIn(text), "$frame: imePadding() efter verticalScroll är utfyllnad i innehållet")
+        }
+    }
+
+    @Test
+    fun `Trender är en ren läsvy – inga anrop till repositoryns skrivningar (TRD-4)`() {
+        val writes = RepositoryWrites.writes
+        assertTrue(setOf("save", "delete", "update", "add", "setArchived").all { it in writes }, "skrivningarna hittades inte: $writes")
+        // Kontrollprov: listorna i inställningarna skriver – annars hittar skanningen ingenting alls.
+        assertTrue(RepositoryWrites.callsIn("ui.settings").isNotEmpty(), "skanningen hittar inte skrivningarna i ui/settings")
+        assertEquals(emptyList(), RepositoryWrites.callsIn("ui.trends"), "Trender skriver inte till någon datakälla (TRD-4)")
     }
 
     // De delade exemplen körs med tom allowlist utom sektionen "allowlist" – precis som i hooktestet.

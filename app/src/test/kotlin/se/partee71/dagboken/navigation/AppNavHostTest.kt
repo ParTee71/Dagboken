@@ -122,7 +122,7 @@ class AppNavHostTest {
     }
 
     @Test
-    fun `synkindikatorn syns i skärmens toppbar och förklarar sig vid tryck (NFR-1)`() {
+    fun `synkindikatorn syns i skärmens toppbar och förklarar sig vid tryck (NFR-22)`() {
         var sync by mutableStateOf(SyncUiState())
         rule.setContent {
             DagbokenTheme {
@@ -136,7 +136,7 @@ class AppNavHostTest {
     }
 
     @Test
-    fun `en nekad skrivning visas med orsaken och släpps sedan (NFR-1)`() {
+    fun `en nekad skrivning visas med orsaken och släpps sedan (NFR-22)`() {
         val events = mutableListOf<SyncEvent>()
         rule.mainClock.autoAdvance = false
         rule.setContent {

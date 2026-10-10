@@ -22,7 +22,7 @@ interface MedicineRepository {
 
 /**
  * Läser `assets/medicines.tsv` (byggd av `tools/medicines`). Saknas eller går filen inte att läsa blir
- * listan tom: formuläret fungerar då som utan förslag. Helt lokalt – inget om sökningar loggas eller skickas (NFR-8).
+ * listan tom: formuläret fungerar då som utan förslag. Helt lokalt – inget om sökningar loggas eller skickas (NFR-13).
  */
 @Singleton
 class AssetMedicineRepository internal constructor(private val open: () -> InputStream) : MedicineRepository {

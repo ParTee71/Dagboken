@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import se.partee71.dagboken.core.model.Archivable
 import se.partee71.dagboken.data.common.DataError
 
-/** Tillståndet för varje listskärm – samma fyra lägen överallt (NFR-1, `EntityListScreen`). */
+/** Tillståndet för varje listskärm – samma fyra lägen överallt (`EntityListScreen`). */
 sealed interface ListUiState<out T> {
     data object Loading : ListUiState<Nothing>
 
@@ -57,7 +57,7 @@ class ListLoader<T>(source: Flow<List<T>>, scope: CoroutineScope) {
     /**
      * Utan prenumerant i [STOP_TIMEOUT_MILLIS] stoppas flödet och tillståndet går tillbaka till
      * laddning: listan från förra gången (kanske en annan användares efter kontobyte) visas aldrig
-     * ens en bildruta när skärmen kommer tillbaka (NFR-8).
+     * ens en bildruta när skärmen kommer tillbaka.
      */
     val state: StateFlow<ListUiState<T>> = source.asListUiState(retries).stateIn(
         scope,

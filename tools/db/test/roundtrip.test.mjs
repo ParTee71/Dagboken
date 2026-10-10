@@ -3,11 +3,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { exportData, importData, MAX_BATCH, updateDocuments } from '../lib/backup.mjs';
 import { COLLECTIONS } from '../lib/collections.mjs';
+import { byPath } from '../lib/compare.mjs';
 import { collectionOf } from '../lib/walk.mjs';
 import { UID, clearUsers, fixture, otherUser, seed, useCleanEmulator } from './helpers/emulator.mjs';
 
 const database = useCleanEmulator();
-const byPath = (docs) => [...docs].sort((a, b) => a.path.localeCompare(b.path));
 
 test('fixturen täcker alla samlingar', () => {
   const covered = new Set(fixture.documents.map((d) => collectionOf(d.path)));
