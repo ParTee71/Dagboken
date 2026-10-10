@@ -1,7 +1,7 @@
 // Regel 1: all data överlever export → radera → import → export (BCK-12, BCK-16). Endast emulatorn.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { exportData, importData, MAX_BATCH } from '../lib/backup.mjs';
+import { exportData, importData, MAX_BATCH, updateDocuments } from '../lib/backup.mjs';
 import { COLLECTIONS } from '../lib/collections.mjs';
 import { collectionOf } from '../lib/walk.mjs';
 import { UID, clearUsers, fixture, otherUser, seed, useCleanEmulator } from './helpers/emulator.mjs';
@@ -148,6 +148,26 @@ test('--update skriver bara filens fält i befintliga dokument; saknade hoppas �
   assert.ok(after.takenAt.isEqual(before.takenAt));
   assert.equal((await db.doc(`users/${UID}/doses/raderad`).get()).exists, false, 'ett raderat dokument återskapas inte');
   await assert.rejects(importData(db, data, { update: true, replace: true }), /går inte att kombinera/);
+});
+
+test('--update: ett dokument som raderats efter existenskontrollen hoppas över och resten av batchen skrivs', async () => {
+  const db = database();
+  const documents = [
+    { path: 'users/u', data: { schemaVersion: 1 } },
+    ...Array.from({ length: MAX_BATCH + 3 }, (_, i) => ({ path: `users/u/doses/d${i}`, data: { name: `D${i}`, note: 'Står kvar' } })),
+  ];
+  await seed(db, documents);
+  // Som om d2 och d501 raderats mellan kontrollen och skrivningen: updateDocuments får dem ändå.
+  await db.doc('users/u/doses/d2').delete();
+  await db.doc(`users/u/doses/d${MAX_BATCH + 1}`).delete();
+  const changes = documents.slice(1).map(({ path }) => ({ path, data: { name: 'Ny' } }));
+  const { written, skipped } = await updateDocuments(db, changes);
+  assert.deepEqual(skipped.map((d) => d.path), ['users/u/doses/d2', `users/u/doses/d${MAX_BATCH + 1}`]);
+  assert.equal(written.length, MAX_BATCH + 1);
+  assert.equal((await db.doc('users/u/doses/d2').get()).exists, false, 'återskapas inte');
+  const d0 = (await db.doc('users/u/doses/d0').get()).data();
+  assert.deepEqual([d0.name, d0.note], ['Ny', 'Står kvar']);
+  assert.equal((await db.doc(`users/u/doses/d${MAX_BATCH + 2}`).get()).data().name, 'Ny', 'andra batchen skrivs också');
 });
 
 test('import skriver ingenting om ett dokument längre fram i filen är trasigt', async () => {

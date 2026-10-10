@@ -47,12 +47,12 @@ object ExportFormat {
             },
         )
 
-    /** Dokumenten i en exportfil ([listKey] [UPDATES] för en ändringsfil). */
-    fun decode(text: String, listKey: String = DOCUMENTS): List<Document> = decode(Json.parseToJsonElement(text).jsonObject, listKey)
+    /** Dokumenten i en exportfil. */
+    fun decode(text: String): List<Document> = decode(Json.parseToJsonElement(text).jsonObject)
 
     /** Dokumenten i en redan parsad exportfil – importen (BCK-6) läser filen en gång för att känna igen formatet. */
-    fun decode(root: JsonObject, listKey: String = DOCUMENTS): List<Document> =
-        root.getValue(listKey).jsonArray.map { element ->
+    fun decode(root: JsonObject): List<Document> =
+        root.getValue(DOCUMENTS).jsonArray.map { element ->
             val doc = element.jsonObject
             @Suppress("UNCHECKED_CAST")
             Document(doc.getValue("path").jsonPrimitive.content, fromJson(doc.getValue("data")) as Doc)

@@ -140,12 +140,48 @@ async function existing(db, documents) {
 /** Fälten i [doc] som `update`-argument: varje toppnyckel som en hel fältväg (en punkt i ett namn är ingen väg). */
 const updateArgs = (doc) => Object.entries(doc).flatMap(([key, value]) => [new FieldPath(key), value]);
 
+/** gRPC NOT_FOUND – Firestores svar när `update` träffar ett dokument som inte finns. */
+const NOT_FOUND = 5;
+const isNotFound = (error) => error?.code === NOT_FOUND;
+
+/**
+ * Skriver bara fälten i [documents] med Firestores `update`, i batchar om högst MAX_BATCH. Ett dokument som
+ * raderats efter existenskontrollen fäller hela batchen (NOT_FOUND); då görs just den batchen om dokument för
+ * dokument, så att det saknade räknas som hoppat och resten skrivs – importen avbryts aldrig halvvägs av det.
+ * Andra fel stoppar som vanligt. Ger `{ written, skipped }`: dokumentlistor.
+ */
+export async function updateDocuments(db, documents) {
+  const written = [];
+  const skipped = [];
+  for (let i = 0; i < documents.length; i += MAX_BATCH) {
+    const chunk = documents.slice(i, i + MAX_BATCH);
+    const batch = db.batch();
+    for (const { path, data } of chunk) batch.update(db.doc(path), ...updateArgs(data));
+    try {
+      await batch.commit();
+      written.push(...chunk);
+    } catch (error) {
+      if (!isNotFound(error)) throw error;
+      for (const doc of chunk) {
+        try {
+          await db.doc(doc.path).update(...updateArgs(doc.data));
+          written.push(doc);
+        } catch (single) {
+          if (!isNotFound(single)) throw single;
+          skipped.push(doc);
+        }
+      }
+    }
+  }
+  return { written, skipped };
+}
+
 /**
  * Skriver dokumenten exakt som i filen (set utan merge), i batchar om högst 500 – först när
  * hela filen godkänts. `replace` tar dessutom bort dokument under filens användare som inte finns
  * i filen, så att användarens data blir exakt som i backupen. `update` läser en ändringsfil och skriver
  * bara dess fält i dokument som finns (Firestores `update`: andra fält står kvar, inget skapas); ett
- * dokument som saknas räknas som hoppat. `dryRun` skriver ingenting (med `replace` och `update` läses
+ * dokument som saknas – också ett som raderas under importen ([updateDocuments]) – räknas som hoppat. `dryRun` skriver ingenting (med `replace` och `update` läses
  * databasen för att räkna).
  * Ger `{ written, removed, skipped }`: antal per samling.
  */
@@ -154,14 +190,16 @@ export async function importData(db, data, { user, dryRun = false, replace = fal
   const documents = prepareImport(data, { user, update });
   const removed = replace ? await extraDocuments(db, documents) : [];
   const found = update ? await existing(db, documents) : null;
-  const targets = update ? documents.filter((d) => found.has(d.path)) : documents;
-  const skipped = update ? documents.filter((d) => !found.has(d.path)) : [];
-  if (!dryRun) {
+  let targets = update ? documents.filter((d) => found.has(d.path)) : documents;
+  let skipped = update ? documents.filter((d) => !found.has(d.path)) : [];
+  if (!dryRun && update) {
+    const result = await updateDocuments(db, targets);
+    targets = result.written;
+    skipped = [...skipped, ...result.skipped];
+  } else if (!dryRun) {
     await commitInBatches(db, [
       ...removed.map((path) => (batch) => batch.delete(db.doc(path))),
-      ...targets.map(({ path, data: doc }) => (update
-        ? (batch) => batch.update(db.doc(path), ...updateArgs(doc))
-        : (batch) => batch.set(db.doc(path), doc))),
+      ...targets.map(({ path, data: doc }) => (batch) => batch.set(db.doc(path), doc)),
     ]);
   }
   return {

@@ -9,6 +9,10 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
 import se.partee71.dagboken.core.schema.Doc
 import se.partee71.dagboken.core.schema.ExportFormat
@@ -72,7 +76,24 @@ class MedicineRenameTest {
         newUnit: String = "",
         uid: String = "u1",
         form: String = "tablet",
-    ) = MedicineRename.Row(uid, collection, id, oldName, newName, strength, form, oldDose, oldUnit, newDose, newUnit, 0)
+        from: List<ExportFormat.Document> = export,
+    ): MedicineRename.Row {
+        // Styrka, form och höjningar som de står i exporten raden tillämpas på – annars är raden inaktuell.
+        val stored = from.singleOrNull { it.path == "users/$uid/$collection/$id" }?.data.orEmpty()
+        return MedicineRename.Row(
+            uid, collection, id, oldName, newName, strength, form, oldDose, oldUnit, newDose, newUnit, 0,
+            oldStrength = stored["strength"] as? String ?: "", oldForm = stored["form"] as? String ?: "",
+            oldBoosts = MedicineRename.fingerprint(stored["boosts"]),
+        )
+    }
+
+    /** Ändringarna i en ändringsfil (`updates`). */
+    private fun updatesOf(text: String): List<ExportFormat.Document> =
+        Json.parseToJsonElement(text).jsonObject.getValue(ExportFormat.UPDATES).jsonArray.map { element ->
+            val doc = element.jsonObject
+            @Suppress("UNCHECKED_CAST")
+            ExportFormat.Document(doc.getValue("path").jsonPrimitive.content, ExportFormat.fromJson(doc.getValue("data")) as Doc)
+        }
 
     private fun json(doc: Doc) = ExportFormat.toJson(doc)
 
@@ -94,8 +115,12 @@ class MedicineRenameTest {
                 MedicineRename.Row("u1", "prnMedicines", "p3", "Bricanyl", "Bricanyl Turbuhaler", "0,5 mg/dos", "inhaler", "2", "st", "2", "st", 0),
                 MedicineRename.Row("u2", "prnMedicines", "p1", "alvedon", "Alvedon", "500 mg", "tablet", "500", "mg", "1", "tablett", 1),
             ),
-            MedicineRename.suggest(export, catalog),
+            MedicineRename.suggest(export, catalog).map { it.copy(oldBoosts = "") },
         )
+        val rows = MedicineRename.suggest(export, catalog)
+        assertEquals(MedicineRename.fingerprint(byPath.getValue("users/u1/prescriptions/r1").data["boosts"]), rows[0].oldBoosts)
+        assertEquals(12, rows[0].oldBoosts.length)
+        assertEquals("", rows[2].oldBoosts, "vid behov-medicinen har inga höjningar")
         val firstWord = MedicineRename.suggest(listOf(doc("u1/prnMedicines/p9", "name" to "Alvedon brus", "dose" to "500", "unit" to "mg")), catalog)
         assertEquals("Alvedon", firstWord.single().newName)
     }
@@ -143,12 +168,13 @@ class MedicineRenameTest {
     fun `en trasig karta stoppar med radnummer, aldrig innehåll`() {
         val header = MedicineRename.HEADER.joinToString("\t")
         fun error(vararg lines: String) = assertFailsWith<IllegalArgumentException> { MedicineRename.parseMap(lines.joinToString("\n")) }.message!!
-        val ok = "u1\tprnMedicines\tp1\tAlvedon\tAlvedon\t500 mg\ttablet\t1\tmg\t1\tmg\t0"
+        fun line(doses: String = "0") = "u1\tprnMedicines\tp1\tAlvedon\tAlvedon\t500 mg\ttablet\t1\tmg\t1\tmg\t$doses\t\t\t"
+        val ok = line()
         assertTrue("rad 1" in error("namn\tnytt"))
         assertTrue(error(header, "u1\tprnMedicines\tp1\tAlvedon").let { "rad 2" in it && "Alvedon" !in it })
         assertTrue("okänd samling" in error(header, ok.replace("prnMedicines", "doses")))
         assertTrue(error(header, ok.replace("tablet", "spray")).let { "okänd form" in it && "spray" !in it })
-        assertTrue("inte ett tal" in error(header, ok.removeSuffix("0") + "x"))
+        assertTrue("inte ett tal" in error(header, line(doses = "x")))
         assertTrue("rad 3" in error(header, ok, ok), "samma medicin två gånger")
         assertEquals(2, MedicineRename.parseMap(listOf(header, ok, ok.replaceFirst("u1", "u2")).joinToString("\n")).size, "samma id hos två användare")
     }
@@ -205,7 +231,7 @@ class MedicineRenameTest {
             doc("u1/prescriptions/r", "name" to "Levaxin 50", "dose" to "1", "unit" to "st"),
             doc("u1/doses/d", "name" to "Levaxin 50", "dose" to "1", "unit" to "st", "prescriptionId" to "r"),
         )
-        val renamed = applied(listOf(row("prescriptions", "r", "Levaxin 50", newName = "Levaxin", strength = "50 mikrogram", oldDose = "1", oldUnit = "st")), levaxin50)
+        val renamed = applied(listOf(row("prescriptions", "r", "Levaxin 50", newName = "Levaxin", strength = "50 mikrogram", oldDose = "1", oldUnit = "st", from = levaxin50)), levaxin50)
         assertEquals(mapOf("name" to "Levaxin", "strength" to "50 mikrogram"), renamed.fields("u1/doses/d"))
         // d6 hör till ett annat recept, d5 heter något annat, d7 är en annan användare, c1 är ingen dos.
         val novum = applied(listOf(row("prnMedicines", "p1", "alvedon", newName = "Alvedon Novum")))
@@ -226,7 +252,7 @@ class MedicineRenameTest {
         assertEquals(1, result.doseKept)
         // Utan höjningar byts dosen även när den gamla inte är ett tal.
         val noBoosts = listOf(doc("u1/prescriptions/r9", "name" to "D-vitamin", "dose" to "1 tablett", "unit" to "st", "boosts" to emptyList<Any>()))
-        val d = applied(listOf(row("prescriptions", "r9", "D-vitamin", newName = "D-vitamin", newDose = "1", newUnit = "tablett", oldDose = "1 tablett", oldUnit = "st")), noBoosts)
+        val d = applied(listOf(row("prescriptions", "r9", "D-vitamin", newName = "D-vitamin", newDose = "1", newUnit = "tablett", oldDose = "1 tablett", oldUnit = "st", from = noBoosts)), noBoosts)
         assertEquals(listOf("1", "tablett", null), d.fields("u1/prescriptions/r9")!!.let { listOf(it["dose"], it["unit"], it["boosts"]) })
         // Oförändrad dos och enhet (eller tomma nya) rör varken dos eller höjningar.
         val same = applied(listOf(row("prescriptions", "r2", "Metformin", newName = "Metformin Teva", oldDose = "750", oldUnit = "mg")))
@@ -249,10 +275,44 @@ class MedicineRenameTest {
     }
 
     @Test
+    fun `tom styrka eller form i kartan lämnar de lagrade - doserna får den lagrade styrkan`() {
+        val stored = listOf(
+            doc("u1/prescriptions/r", "name" to "levaxin", "strength" to "50 mikrogram", "form" to "tablet", "dose" to "1", "unit" to "st"),
+            doc("u1/doses/d", "name" to "levaxin", "strength" to "", "dose" to "1", "unit" to "st", "prescriptionId" to "r"),
+        )
+        val result = applied(listOf(row("prescriptions", "r", "levaxin", newName = "Levaxin", strength = "", form = "", oldDose = "1", oldUnit = "st", from = stored)), stored)
+        assertEquals(mapOf("name" to "Levaxin"), result.fields("u1/prescriptions/r"))
+        assertEquals(mapOf("name" to "Levaxin", "strength" to "50 mikrogram"), result.fields("u1/doses/d"))
+    }
+
+    @Test
+    fun `en medicin vars styrka, form eller höjningar ändrats sedan förslaget är inaktuell`() {
+        val rows = MedicineRename.suggest(export, catalog)
+        fun changed(field: String, value: Any?) = export.map { if (it.path == "users/u1/prescriptions/r1") ExportFormat.Document(it.path, it.data + (field to value)) else it }
+        for ((field, value) in listOf("strength" to "100 mikrogram", "form" to "capsule", "boosts" to listOf(boost("b1", "150", "mcg")))) {
+            val result = applied(rows, changed(field, value))
+            assertNull(result.fields("u1/prescriptions/r1"), field)
+            assertNull(result.fields("u1/doses/d1"), "$field: dess doser rörs inte heller")
+            assertEquals(1, result.stale, field)
+        }
+        assertEquals(0, applied(rows).stale)
+    }
+
+    @Test
+    fun `fingeravtrycket beror på höjningarnas innehåll, inte på nycklarnas ordning`() {
+        val a = listOf(mapOf("id" to "b1", "dose" to "1", "unit" to "mg"))
+        val b = listOf(mapOf("unit" to "mg", "dose" to "1", "id" to "b1"))
+        assertEquals(MedicineRename.fingerprint(a), MedicineRename.fingerprint(b))
+        assertTrue(MedicineRename.fingerprint(a) != MedicineRename.fingerprint(listOf(mapOf("id" to "b1", "dose" to "2", "unit" to "mg"))))
+        assertEquals("", MedicineRename.fingerprint(null))
+        assertTrue(MedicineRename.fingerprint(emptyList<Any>()).isNotEmpty(), "en tom lista är inte samma som saknad")
+    }
+
+    @Test
     fun `en okopplad dos rörs bara när alla mediciner med dess namn får samma namn och styrka`() {
         val both = export + doc("u1/prescriptions/r5", "name" to "alvedon", "dose" to "1000", "unit" to "mg")
         fun d4(vararg rows: MedicineRename.Row) = applied(rows.toList(), both).let { it.fields("u1/doses/d4") to it.ambiguousDoses }
-        val p1 = row("prnMedicines", "p1", "alvedon", newName = "Alvedon")
+        val p1 = row("prnMedicines", "p1", "alvedon", newName = "Alvedon", from = both)
         assertEquals(null to 1, d4(p1), "r5 heter fortfarande alvedon")
         assertEquals(null to 1, d4(p1, row("prescriptions", "r5", "alvedon", newName = "Alvedon Novum")), "olika nya namn")
         assertEquals(null to 1, d4(p1, row("prescriptions", "r5", "alvedon", newName = "Alvedon", strength = "1 g")), "olika styrka")
@@ -285,7 +345,7 @@ class MedicineRenameTest {
         assertEquals(MatchMedicinesCli.EXIT_OK, applyCode)
         val text = out.readText()
         assertFalse("\"${ExportFormat.DOCUMENTS}\"" in text, "ingen vanlig export – en vanlig import skulle skriva de ofullständiga dokumenten hela")
-        val written = ExportFormat.decode(text, ExportFormat.UPDATES)
+        val written = updatesOf(text)
         assertTrue(written.isNotEmpty() && written.all { it.path in byPath })
         assertEquals(mapOf("name" to "Levaxin", "strength" to "100 mikrogram"), written.single { it.path == "users/u1/doses/d1" }.data)
         assertTrue(text.contains("\"exportedAt\": \"2026-09-21T08:12:45.000Z\""))
