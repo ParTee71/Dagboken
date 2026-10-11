@@ -183,9 +183,11 @@ node tools/db/query.mjs doses           # läs en samling
 ```
 
 Kör det du ändrat lokalt innan varje push – även i fjärr-/telefonsessioner (skill
-**testing-strategy**, "Innan du anser dig klar"). **Gradle går att köra i sessionen när Android
-SDK finns i `/opt/android-sdk`** (session-start-hooken säger om den finns); annars får CI
-bekräfta – säg det i PR:en. Kommandona gäller även i Android Studio.
+**testing-strategy**, "Innan du anser dig klar"). **Gradle körs i sessionen med Android SDK i
+`/opt/android-sdk`** (session-start-hooken säger om den finns). Saknas den: installera den –
+det är alltid ok att installera Android SDK och liknande verktyg i sessionen vid behov
+(`.claude/hooks/install-android-sdk.sh`, ≈450 MB, några minuter). Bara om installationen inte
+går får CI bekräfta – säg det i PR:en. Kommandona gäller även i Android Studio.
 
 ## Arkitektur i korthet
 

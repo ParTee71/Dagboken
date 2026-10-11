@@ -32,5 +32,5 @@ sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/opt/android-sdk}}"
 if [ -d "$sdk/platforms" ]; then
   echo "Android SDK: $sdk (Gradle kan köras i sessionen)"
 else
-  echo "Android SDK: saknas (Gradle körs i GitHub Actions)"
+  echo "Android SDK: saknas – installera vid behov med .claude/hooks/install-android-sdk.sh"
 fi
