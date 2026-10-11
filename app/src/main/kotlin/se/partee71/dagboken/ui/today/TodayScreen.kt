@@ -303,13 +303,21 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
         SectionHeader(
             stringResource(R.string.tab_medicines),
             count = if (doses.total > 0) stringResource(R.string.today_count_format, doses.done, doses.total) else null,
-            tone = if (content.isToday && doses.isComplete) Tone.Positive else Tone.Primary,
+            tone = if (content.isToday && doses.isComplete && !content.dosesMissing) Tone.Positive else Tone.Primary,
         )
         val rows = list.shown + (if (content.showUpcoming) list.upcoming else emptyList()) +
             (if (content.showDone) list.done.map { OpenDose(it, null) } else emptyList())
         // Radens tillstånd (meny, anteckning, krysset) följer dosen när listan ändras.
         rows.forEach { row -> key(row.dose.id) { DoseRow(row, content, onEvent, onSkip = { skipping = it }, onDelete = { deleting = it }) } }
         when {
+            // HEM-10, MED-4: doser kunde inte skapas (t.ex. slut på molnets kvot) – också när några finns; aldrig "Allt avklarat".
+            content.dosesMissing -> EmptyState(
+                R.drawable.ic_warning,
+                stringResource(R.string.today_medicines_missing_title),
+                stringResource(R.string.today_medicines_missing),
+                isError = true,
+                compact = true,
+            )
             list.isEmpty -> EmptyState(R.drawable.ic_pill, stringResource(R.string.today_medicines_none_title), stringResource(R.string.today_medicines_none), compact = true)
             list.shown.isEmpty() && list.upcoming.isEmpty() && !content.showDone ->
                 EmptyState(R.drawable.ic_check, stringResource(R.string.today_medicines_all_done_title), stringResource(R.string.today_medicines_all_done), compact = true)

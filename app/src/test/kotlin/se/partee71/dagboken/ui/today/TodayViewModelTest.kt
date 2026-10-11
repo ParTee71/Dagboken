@@ -751,6 +751,89 @@ class TodayViewModelTest {
         assertNull(vm.failure.value)
     }
 
+    @Test
+    fun `dagens doser kan inte skapas – slut på kvoten visas och kortet säger att doserna saknas (HEM-10, MED-4)`() = runTest(main.dispatcher) {
+        seed()
+        val attempt = CompletableDeferred<Unit>()
+        val exhausted = object : PrescriptionRepository by testPrescriptions(factory, doses, zone, clock) {
+            override suspend fun tidyUp(today: LocalDate): Result<Unit> = Result.success(Unit)
+            override suspend fun ensureDay(date: LocalDate, today: LocalDate): Result<Unit> {
+                attempt.await()
+                return Result.failure(DataError.QuotaExceeded)
+            }
+        }
+        val vm = started(viewModel(exhausted))
+        assertTrue(vm.content.checklist.isEmpty)
+        assertFalse(vm.content.dosesMissing, "inte förrän försöket är klart")
+        assertNull(vm.failure.value)
+
+        attempt.complete(Unit)
+        runCurrent()
+        assertEquals(DataError.QuotaExceeded, vm.failure.value?.error)
+        assertEquals(R.string.error_quota_exceeded, vm.failure.value?.message)
+        assertTrue(vm.content.dosesMissing, "receptet ger doser idag men inga finns")
+    }
+
+    @Test
+    fun `städningen får slut på kvoten – felet visas som meddelande (REC-8)`() = runTest(main.dispatcher) {
+        seed()
+        val exhausted = object : PrescriptionRepository by testPrescriptions(factory, doses, zone, clock) {
+            override suspend fun tidyUp(today: LocalDate): Result<Unit> = Result.failure(DataError.QuotaExceeded)
+        }
+        val vm = started(viewModel(exhausted))
+        assertEquals(DataError.QuotaExceeded, vm.failure.value?.error)
+        assertFalse(vm.content.dosesMissing, "ensureDay skapade doserna")
+    }
+
+    @Test
+    fun `utan nät är försöket tyst och kortet oförändrat (HEM-10, MED-4)`() = runTest(main.dispatcher) {
+        seed()
+        factory.store.online = false
+        val vm = started(viewModel())
+        runCurrent()
+        assertNull(vm.failure.value)
+        assertTrue(vm.content.checklist.isEmpty)
+        assertFalse(vm.content.dosesMissing, "bara ett misslyckat försök säger att doser saknas")
+    }
+
+    @Test
+    fun `ett lyckat försök vars doser ännu inte nått lyssnaren säger inte att doser saknas (HEM-10, MED-4)`() = runTest(main.dispatcher) {
+        seed()
+        // Försöket lyckas utan att doserna syns än (som en transaktion före serverns kvitto) – inget blinkande felkort.
+        val pending = object : PrescriptionRepository by testPrescriptions(factory, doses, zone, clock) {
+            override suspend fun tidyUp(today: LocalDate): Result<Unit> = Result.success(Unit)
+            override suspend fun ensureDay(date: LocalDate, today: LocalDate): Result<Unit> = Result.success(Unit)
+        }
+        val vm = started(viewModel(pending))
+        runCurrent()
+        assertTrue(vm.content.checklist.isEmpty)
+        assertFalse(vm.content.dosesMissing)
+    }
+
+    @Test
+    fun `när dagens doser finns saknas inget (HEM-10, MED-4)`() = runTest(main.dispatcher) {
+        seed()
+        val vm = started(viewModel())
+        runCurrent()
+        assertNull(vm.failure.value)
+        assertEquals(2, vm.content.progress.total)
+        assertFalse(vm.content.dosesMissing)
+    }
+
+    @Test
+    fun `ett avslutat recept ger inga saknade doser fast försöket misslyckas (HEM-10, MED-4)`() = runTest(main.dispatcher) {
+        factory.prescriptions().upsert(levaxin.copy(active = false)).getOrThrow()
+        val exhausted = object : PrescriptionRepository by testPrescriptions(factory, doses, zone, clock) {
+            override suspend fun tidyUp(today: LocalDate): Result<Unit> = Result.success(Unit)
+            override suspend fun ensureDay(date: LocalDate, today: LocalDate): Result<Unit> = Result.failure(DataError.QuotaExceeded)
+        }
+        val vm = started(viewModel(exhausted))
+        runCurrent()
+        assertEquals(DataError.QuotaExceeded, vm.failure.value?.error)
+        assertTrue(vm.content.checklist.isEmpty)
+        assertFalse(vm.content.dosesMissing)
+    }
+
     // ── Mående, sjukdom, vecka och trend (HEM-4, HEM-5, HEM-7, HEM-12, HEM-13, SCR-1, SCR-6) ──
 
     /** Alla fyra tillfällen påslagna med standardtiderna 08:00, 12:00, 17:00 och 21:00. */

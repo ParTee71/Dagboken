@@ -136,8 +136,12 @@ class MedicinesViewModel @Inject constructor(
     val today: StateFlow<LocalDate> =
         clock.days { zone.get() }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), clock.todayIn(zone.get()))
 
-    /** REC-8, REC-5, REC-10: städningen när fliken visas och vid varje ny dag (`tidyingUpEachDay`). */
-    private val tidiedDays = today.tidyingUpEachDay(prescriptions, viewModelScope)
+    /** Före [tidiedDays], som skriver hit när städningen misslyckas. */
+    private val _failure = MutableStateFlow<Failure?>(null)
+    val failure: StateFlow<Failure?> = _failure.asStateFlow()
+
+    /** REC-8, REC-5, REC-10: städningen när fliken visas och vid varje ny dag (`tidyingUpEachDay`); fel utom offline visas. */
+    private val tidiedDays = today.tidyingUpEachDay(prescriptions, viewModelScope) { _failure.value = it }
 
     private val loader = ListLoader(combine(prescriptions.observe(), medicines.observe(), tidiedDays) { p, m, day -> medicineItems(p, m, day) }, viewModelScope)
     val state: StateFlow<ListUiState<MedicineItem>> = loader.state
@@ -147,9 +151,6 @@ class MedicinesViewModel @Inject constructor(
         val items = (state as? ListUiState.Content)?.items.orEmpty()
         items.filterIsInstance<MedicineItem.Recipe>().map { it.prescription }.endingSoon(day)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), emptyList())
-
-    private val _failure = MutableStateFlow<Failure?>(null)
-    val failure: StateFlow<Failure?> = _failure.asStateFlow()
 
     fun onEvent(event: MedicinesEvent) {
         when (event) {

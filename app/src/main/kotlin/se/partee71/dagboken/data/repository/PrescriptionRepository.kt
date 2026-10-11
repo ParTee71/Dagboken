@@ -179,7 +179,7 @@ class DefaultPrescriptionRepository @Inject constructor(
         if (date > today) return Result.success(Unit)
         // Urvalet på cachen (inget saknas → ingen serverläsning alls); beslutet fattas under låset.
         val cached = collection.cached().getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
-        val missing = doses.missingOn(cached, date, today).getOrElse { return Result.failure(it) }
+        val missing = doses.missingOn(cached, date, today).getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
         return createMissing(missing, date, today)
     }
 
