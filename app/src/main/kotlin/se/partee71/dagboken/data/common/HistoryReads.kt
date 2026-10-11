@@ -4,6 +4,7 @@ import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
@@ -12,16 +13,19 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -198,3 +202,13 @@ fun <T : Identified> EntityCollection<T>.observeDates(field: String, from: Local
 /** [observeDates] med fasta lyssnade dagar [live] – Dagboken och Trender. */
 fun <T : Identified> EntityCollection<T>.observeDates(field: String, from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<T>> =
     observeDates(field, from, to, flowOf(live))
+
+/**
+ * Historikläget **en gång** (NFR-24): dagarna [from]…[to] på datumfältet [field] som de första gången kommer ur cachen
+ * ([EntityCollection.observeHistory]) – ingen lyssnare mot servern, så ingenting debiteras när perioden redan är täckt;
+ * det som inte täcks hämtas en gång i bakgrunden och antecknas, också när svaret redan getts. Offline först, som
+ * [EntityCollection.cachedBetween] var för en ny post: hellre ett svar ur cachen än att formuläret väntar. `null` när inget
+ * kommit inom [wait], vid ett fel och utloggad – för förval som får utebli (AKT-12).
+ */
+suspend fun <T : Identified> EntityCollection<T>.historyOnce(field: String, from: LocalDate, to: LocalDate, wait: Duration): List<T>? =
+    withTimeoutOrNull(wait) { observeHistory(field, from, to).catch { }.firstOrNull() }

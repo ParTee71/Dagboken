@@ -15,7 +15,7 @@ import se.partee71.dagboken.data.repository.ActivityRepository.Companion.PREFILL
 import se.partee71.dagboken.core.schema.ActivityCodec
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.common.EntityCollection
-import se.partee71.dagboken.data.common.cachedDates
+import se.partee71.dagboken.data.common.historyOnce
 
 /** Aktiviteterna i samlingen `activities` (AKT-serien): läsning, formuläret och radering. */
 interface ActivityRepository : DatedRepository<Activity> {
@@ -27,7 +27,8 @@ interface ActivityRepository : DatedRepository<Activity> {
     /**
      * En ny, osparad aktivitet på [date] kl. [time] (AKT-12): nytt slumpat id och `createdAt` = nu, satta **en gång**
      * här, förifylld med typen och tidsåtgången från den senast loggade aktiviteten det senaste året fram till
-     * [today] (`prefilledFrom`; en arkiverad typ förifylls inte) – ur cachen, offline först. Går de inte att läsa
+     * [today] (`prefilledFrom`; en arkiverad typ förifylls inte) – i historikläget (`historyOnce`, NFR-24): ur cachen,
+     * offline först, och ingen läsning debiteras när året redan är täckt. Går de inte att läsa
      * inom [PREFILL_WAIT] blir den utan förval, hellre än att formuläret väntar. Inget sparas.
      */
     suspend fun new(date: LocalDate, time: LocalTime, today: LocalDate): Activity
@@ -42,7 +43,7 @@ class DefaultActivityRepository private constructor(
     @Inject constructor(collections: CollectionFactory, clock: Clock) : this(collections.activities(), collections.options(), clock)
 
     override suspend fun new(date: LocalDate, time: LocalTime, today: LocalDate): Activity {
-        val recent = withTimeoutOrNull(PREFILL_WAIT) { collection.cachedDates(ActivityCodec.DATE, today.minus(PREFILL_DAYS, DateTimeUnit.DAY), today).getOrNull() }.orEmpty()
+        val recent = collection.historyOnce(ActivityCodec.DATE, today.minus(PREFILL_DAYS, DateTimeUnit.DAY), today, PREFILL_WAIT).orEmpty()
         val types = if (recent.isEmpty()) emptyList() else withTimeoutOrNull(PREFILL_WAIT) { options.cached().getOrNull() }.orEmpty()
         return Activity(collection.newId(), date = date, time = time, createdAt = clock.now()).prefilledFrom(recent, types)
     }
