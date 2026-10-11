@@ -29,7 +29,10 @@ import se.partee71.dagboken.core.schema.DoseCodec
 import se.partee71.dagboken.data.FakeCollection
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
+import se.partee71.dagboken.data.TestUserScope
 import se.partee71.dagboken.data.common.CollectionFactory
+import se.partee71.dagboken.data.common.DailyGate
+import se.partee71.dagboken.data.common.MemoryDayMarks
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.firestore.FirestoreSyncStatus
@@ -195,6 +198,51 @@ class MedicineRepositoriesTest {
         }
         prescriptionsWith(offline, doses).tidyUp(today).getOrThrow()
         assertEquals(true, factory.prescriptions().get(levaxin.id).getOrThrow()?.active, "ingenting avslutas på cachens recept")
+    }
+
+    @Test
+    fun `städningen läser servern en gång per dag, enhet och konto – utan nät eller vid fel försöker nästa igen (REC-8, #304)`() = runTest {
+        factory.prescriptions().upsert(levaxin).getOrThrow()
+        var reads = 0
+        var failure: DataError? = null
+        val counting = object : CollectionFactory by factory {
+            override fun prescriptions(): EntityCollection<Prescription> = object : EntityCollection<Prescription> by factory.prescriptions() {
+                override suspend fun confirmed(): Result<List<Prescription>> {
+                    reads++
+                    return failure?.let { Result.failure<List<Prescription>>(it) } ?: factory.prescriptions().confirmed()
+                }
+            }
+        }
+        val marks = MemoryDayMarks()
+        val user = factory.scope as TestUserScope
+        fun repository() = testPrescriptions(counting, doses, zone, gate = DailyGate(marks, user))
+        val repository = repository()
+
+        factory.store.online = false
+        repository.tidyUp(today).getOrThrow()
+        factory.store.online = true
+        assertEquals(emptyList(), factory.doses().getAll().getOrThrow(), "utan nät: ingenting, utan fel")
+
+        failure = DataError.QuotaExceeded
+        assertEquals(DataError.QuotaExceeded, repository.tidyUp(today).exceptionOrNull(), "felet når anroparen")
+        failure = null
+
+        repository.tidyUp(today).getOrThrow()
+        assertEquals(2, factory.doses().getAll().getOrThrow().size, "den lyckade körningen skapade dagens doser")
+        repository.tidyUp(today).getOrThrow()
+        repository().tidyUp(today).getOrThrow()
+        assertEquals(3, reads, "offline, felet och den lyckade – inte samma dag igen, inte heller efter processdöd")
+
+        repository.tidyUp(tomorrow).getOrThrow()
+        assertEquals(4, reads, "en ny dag")
+        user.uid.value = "annat-konto"
+        repository.tidyUp(tomorrow).getOrThrow()
+        assertEquals(5, reads, "ett annat konto på enheten")
+        repository.tidyUp(tomorrow).getOrThrow()
+        assertEquals(5, reads)
+        repository.setActive(levaxin, true).getOrThrow()
+        repository.tidyUp(tomorrow).getOrThrow()
+        assertEquals(6, reads, "en egen receptskrivning gör att nästa visning städar igen samma dag (REC-10)")
     }
 
     @Test
@@ -487,7 +535,8 @@ class MedicineRepositoriesTest {
         prescriptions.tidyUp(today).getOrThrow()
         assertEquals(setOf(planned(today, Slot.MORNING).id, planned(today, Slot.EVENING).id), factory.doses().getAll().getOrThrow().map { it.id }.toSet())
 
-        prescriptions.tidyUp(today).getOrThrow()
+        // En ny instans (egen, tom dagsgrind), så att städningen verkligen körs en gång till.
+        testPrescriptions(factory, doses, zone).tidyUp(today).getOrThrow()
         assertEquals(2, factory.doses().getAll().getOrThrow().size, "idempotent: inget mer när allt stämmer")
     }
 

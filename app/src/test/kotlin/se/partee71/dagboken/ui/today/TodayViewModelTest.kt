@@ -53,7 +53,11 @@ import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
+import se.partee71.dagboken.data.common.CollectionFactory
+import se.partee71.dagboken.data.common.DailyGate
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.common.EntityCollection
+import se.partee71.dagboken.data.common.MemoryDayMarks
 import se.partee71.dagboken.data.repository.DefaultIllnessRepository
 import se.partee71.dagboken.data.repository.DefaultOptionsRepository
 import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
@@ -66,6 +70,7 @@ import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.testing.MainDispatcherRule
+import se.partee71.dagboken.ui.medicines.MedicinesViewModel
 import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.SelectedDay
@@ -783,6 +788,39 @@ class TodayViewModelTest {
         val vm = started(viewModel(exhausted))
         assertEquals(DataError.QuotaExceeded, vm.failure.value?.error)
         assertFalse(vm.content.dosesMissing, "ensureDay skapade doserna")
+    }
+
+    @Test
+    fun `Idag och Mediciner samma dag städar mot servern en gång – nästa dag igen (REC-8, HEM-10, #304)`() = runTest(main.dispatcher) {
+        seed()
+        var reads = 0
+        val counting = object : CollectionFactory by factory {
+            override fun prescriptions(): EntityCollection<Prescription> = object : EntityCollection<Prescription> by factory.prescriptions() {
+                override suspend fun confirmed(): Result<List<Prescription>> = factory.prescriptions().confirmed().also { reads++ }
+            }
+        }
+        // En instans och en grind för hela appen (@Singleton), som i appen.
+        val app = testPrescriptions(counting, doses, zone, clock, gate = DailyGate(MemoryDayMarks(), factory.scope))
+        var calls = 0
+        val shared = object : PrescriptionRepository by app {
+            override suspend fun tidyUp(today: LocalDate): Result<Unit> = app.tidyUp(today).also { calls++ }
+        }
+
+        val first = started(viewModel(shared))
+        val medicines = MedicinesViewModel(shared, DefaultPrnMedicineRepository(factory), clock) { zone }
+        backgroundScope.launch { medicines.state.collect {} }
+        started(viewModel(shared))
+        runCurrent()
+        assertEquals(3, calls, "Idag, Mediciner och ett nytt besök på Idag anropar städningen")
+        assertEquals(1, reads, "men servern läses en gång")
+        assertNull(first.failure.value)
+
+        val tomorrow = LocalDate(2026, 10, 5)
+        clock.instant = at(tomorrow, 0, 0)
+        advanceTimeBy(1.minutes)
+        runCurrent()
+        assertEquals(tomorrow, first.content.today)
+        assertEquals(2, reads, "en ny dag städas igen – en gång")
     }
 
     @Test
