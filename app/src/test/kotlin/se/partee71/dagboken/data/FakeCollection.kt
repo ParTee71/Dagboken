@@ -227,9 +227,16 @@ class FakeCollection<T : Identified>(
         return docs
     }
 
-    /** Som Firestore: ur cachen också utan nät ([FakeStore.online]), då märkt `fromCache`. */
+    /**
+     * Som Firestore: ur cachen också utan nät ([FakeStore.online]), då märkt `fromCache`. Med "server" är svaret serverns –
+     * en vanlig lyssnare som hann få svar – och debiteras för sitt resultat (NFR-24); utan nät kostar det inget.
+     */
     override suspend fun cachedBetween(field: String, from: Any, to: Any) = firstFromCache({ DataError.Unknown }) {
-        store.collection(path()).map { Snapshot(decodeList(inRange(it, field, from, to)), fromCache = !store.online) }
+        val p = path()
+        store.collection(p).map { all ->
+            val docs = inRange(all, field, from, to)
+            Snapshot(decodeList(if (store.online) served(p, docs) else docs), fromCache = !store.online)
+        }
     }
 
     /**
