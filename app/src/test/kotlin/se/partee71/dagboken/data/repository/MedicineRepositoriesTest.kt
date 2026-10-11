@@ -235,14 +235,15 @@ class MedicineRepositoriesTest {
 
         repository.tidyUp(tomorrow).getOrThrow()
         assertEquals(4, reads, "en ny dag")
-        user.uid.value = "annat-konto"
-        repository.tidyUp(tomorrow).getOrThrow()
-        assertEquals(5, reads, "ett annat konto på enheten")
-        repository.tidyUp(tomorrow).getOrThrow()
-        assertEquals(5, reads)
         repository.setActive(levaxin, true).getOrThrow()
         repository.tidyUp(tomorrow).getOrThrow()
-        assertEquals(6, reads, "en egen receptskrivning gör att nästa visning städar igen samma dag (REC-10)")
+        assertEquals(5, reads, "en egen receptskrivning gör att nästa visning städar igen samma dag (REC-10)")
+        repository.tidyUp(tomorrow).getOrThrow()
+        assertEquals(5, reads)
+        // Sist: det andra kontots version är okänd i testet, så det får inte skriva (`writeBlocker`) – bara städa.
+        user.uid.value = "annat-konto"
+        repository.tidyUp(tomorrow).getOrThrow()
+        assertEquals(6, reads, "ett annat konto på enheten")
     }
 
     @Test
