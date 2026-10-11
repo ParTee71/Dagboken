@@ -105,6 +105,33 @@ class MedicinesViewModelTest {
     }
 
     @Test
+    fun `städningen får slut på molnets kvot – felet visas som meddelande, fliken visas (REC-8)`() = runTest(main.dispatcher) {
+        val factory = FakeCollectionFactory()
+        factory.prescriptions().upsert(levaxin).getOrThrow()
+        val doses = testDoses(factory, zone)
+        val exhausted = object : PrescriptionRepository by testPrescriptions(factory, doses, zone) {
+            override suspend fun tidyUp(today: LocalDate): Result<Unit> = Result.failure(DataError.QuotaExceeded)
+        }
+        val vm = MedicinesViewModel(exhausted, DefaultPrnMedicineRepository(factory), FixedClock()) { zone }
+        backgroundScope.launch { vm.state.collect {} }
+        runCurrent()
+        assertTrue(vm.state.value is ListUiState.Content)
+        assertEquals(DataError.QuotaExceeded, vm.failure.value?.error)
+        assertEquals(R.string.error_quota_exceeded, vm.failure.value?.message)
+    }
+
+    @Test
+    fun `städningen offline är tyst (REC-8)`() = runTest(main.dispatcher) {
+        val factory = FakeCollectionFactory()
+        factory.prescriptions().upsert(levaxin).getOrThrow()
+        factory.store.online = false
+        val vm = viewModel(factory)
+        backgroundScope.launch { vm.state.collect {} }
+        runCurrent()
+        assertNull(vm.failure.value)
+    }
+
+    @Test
     fun `raderna följer indelningen från core – recepten, vid behov och de avslutade sist (MEDF-1, MEDF-5)`() {
         val items = medicineItems(listOf(levaxin, stale, ended, paused, kavepenin), listOf(alvedon), today)
         assertEquals(

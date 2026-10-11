@@ -12,9 +12,25 @@ import se.partee71.dagboken.data.repository.PrescriptionRepository
 /**
  * REC-8, REC-5, REC-10: receptens städning (`PrescriptionRepository.tidyUp`) för varje dag flödet ger – när
  * en vy med recepten visas och igen vid midnatt (Mediciner, Idag). Följer flödets prenumeration, så att
- * dagklockan inte tickar när vyn inte visas. Offline gör städningen ingenting; ett fel här är inget
- * användaren kan åtgärda och visas inte – nästa dag eller visning försöker igen, och inget fel får fälla
- * vyn. Körs i [scope] (ViewModelns), så att flödet inte väntar på den.
+ * dagklockan inte tickar när vyn inte visas. Offline gör städningen ingenting (repositoryt svarar utan fel);
+ * ett annat fel – t.ex. slut på molnets kvot – går till [onFailure], så att vyn kan visa det. Nästa dag eller
+ * visning försöker igen. Ett kast är ett programfel som inte får fälla vyn: det fångas och visas inte. Körs i
+ * [scope] (ViewModelns), så att flödet inte väntar på den.
  */
-fun Flow<LocalDate>.tidyingUpEachDay(prescriptions: PrescriptionRepository, scope: CoroutineScope): Flow<LocalDate> =
-    onEach { day -> scope.launch { suspendRunCatching({ DataError.Unknown }) { prescriptions.tidyUp(day) } } }
+fun Flow<LocalDate>.tidyingUpEachDay(
+    prescriptions: PrescriptionRepository,
+    scope: CoroutineScope,
+    onFailure: (Failure) -> Unit = {},
+): Flow<LocalDate> =
+    onEach { day ->
+        scope.launch {
+            failureOfAttempt { prescriptions.tidyUp(day) }?.let(onFailure)
+        }
+    }
+
+/**
+ * Utfallet av ett bakgrundsförsök mot recepten ([tidyingUpEachDay], Idags `ensureDay`): felet som ska visas, eller
+ * `null`. Ett kast fångas och visas inte (ett programfel får inte fälla vyn); offline svarar repositoryt utan fel.
+ */
+suspend fun failureOfAttempt(action: suspend () -> Result<Unit>): Failure? =
+    suspendRunCatching({ DataError.Unknown }) { action() }.getOrNull()?.failureOrNull()

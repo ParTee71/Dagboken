@@ -344,6 +344,23 @@ class TodayScreenTest {
     }
 
     @Test
+    fun `dagens doser saknas efter försöket – kortet säger det, inte Allt avklarat eller Inga mediciner (HEM-10, MED-4)`() {
+        show(content(emptyList(), progress = DayProgress(0, 0), showDone = false).copy(dosesMissing = true))
+        rule.onNodeWithText("Doser saknas").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Alla doser för dagen kunde inte skapas just nu. Appen försöker igen nästa gång dagen visas.").assertIsDisplayed()
+        rule.onNodeWithText("Allt avklarat").assertDoesNotExist()
+        rule.onNodeWithText("Inga mediciner").assertDoesNotExist()
+    }
+
+    @Test
+    fun `saknade doser när några redan finns – raderna visas som förut, och att doser saknas, aldrig Allt avklarat (HEM-10, MED-4, MED-5)`() {
+        show(content(listOf(levaxinDose, sertralinDose), showDone = true).copy(dosesMissing = true))
+        rule.onNodeWithText("Levaxin 100 µg").performScrollTo().assertIsOn()
+        rule.onNodeWithText("Doser saknas").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Allt avklarat").assertDoesNotExist()
+    }
+
+    @Test
     fun `en loggad vid behov-dos visas tagen men växlas inte (FAV-2)`() {
         val events = mutableListOf<TodayEvent>()
         show(content(doses + prn), onEvent = { events += it })
