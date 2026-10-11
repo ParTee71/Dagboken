@@ -63,12 +63,14 @@ import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Profile
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Settings
+import se.partee71.dagboken.core.time.recentDays
 import se.partee71.dagboken.data.common.combineByKey
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.health.HealthPermissions
 import se.partee71.dagboken.data.health.HealthRepository
 import se.partee71.dagboken.data.health.observedStatus
 import se.partee71.dagboken.data.repository.ActivityRepository
+import se.partee71.dagboken.data.repository.DatedRepository
 import se.partee71.dagboken.data.repository.EventRepository
 import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
@@ -230,7 +232,8 @@ sealed interface TrendsEvent {
  * när det fällts ut** (TRD-15) – och all matematik görs i `:core` (`TrendSeries`, `WatchSeries`, `CompareIndex`,
  * `TrendRange`, `PreviousPeriod`). Två kort med samma läsning delar den – också klockans hälsoläsning, som
  * aldrig persisteras (HLS-5) – och ett kort som fälls ihop slutar läsa men behåller sin senaste data till
- * sammanfattningen. Läsfel visar tomt läge och försöker igen (`withFallback`).
+ * sammanfattningen. Läsfel visar tomt läge och försöker igen (`withFallback`). Bara de senaste 30 dagarna lyssnas på;
+ * längre perioder läses i historikläget (NFR-24).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -283,11 +286,19 @@ class TrendsViewModel @Inject constructor(
     private fun <T> shared(source: String, range: ClosedRange<LocalDate>, fallback: T, create: () -> Flow<T>): Flow<T> =
         reads.getOrPut(source to range) { create().withFallback(fallback).shareIn(viewModelScope, sharing, replay = 1) } as Flow<T>
 
-    private fun screenings(from: LocalDate, to: LocalDate) = shared("screenings", from..to, emptyList<Screening>()) { screenings.observeDays(from, to) }
+    /**
+     * Dagbokens poster från [from] till [today] (NFR-24), en delad läsning per källa och period: historikläget för hela
+     * perioden och lyssnare bara på de senaste 30 dagarna räknat från idag (`recentDays`, perioden Månad) – aldrig på
+     * föregående periods eller "Allt"s äldre dagar.
+     */
+    private fun <T> dated(source: String, repository: DatedRepository<T>, from: LocalDate, today: LocalDate): Flow<List<T>> =
+        shared(source, from..today, emptyList()) { repository.observeDays(from, today, listOf(recentDays(today))) }
 
-    private fun activities(from: LocalDate, to: LocalDate) = shared("activities", from..to, emptyList<Activity>()) { activities.observeDays(from, to) }
+    private fun screenings(from: LocalDate, today: LocalDate) = dated("screenings", screenings, from, today)
 
-    private fun events(from: LocalDate, to: LocalDate) = shared("events", from..to, emptyList<Event>()) { events.observeDays(from, to) }
+    private fun activities(from: LocalDate, today: LocalDate) = dated("activities", activities, from, today)
+
+    private fun events(from: LocalDate, today: LocalDate) = dated("events", events, from, today)
 
     /**
      * Klockans dagshistorik för perioden (HLS-12), **en** läsning som delas av alla klockkort och Jämför med samma

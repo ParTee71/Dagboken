@@ -12,8 +12,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.LocalDate
 
 /**
- * Enhetslokal anteckning (TP-4): per nyckel den senast antecknade dagen. Bara ett datum per nyckel – ingen hälsodata,
- * aldrig i Firestore eller exporten.
+ * Enhetslokal anteckning (TP-4): per nyckel den senast antecknade dagen – dagsgrinden ([DailyGate]) och historiklägets
+ * täckning ([HistoryCoverage], NFR-24). Bara ett datum per nyckel – ingen hälsodata, aldrig i Firestore eller exporten.
  */
 interface DayMarks {
     /** Den antecknade dagen, `null` om ingen (eller om den inte går att läsa). */
@@ -22,6 +22,9 @@ interface DayMarks {
     suspend fun set(key: String, day: LocalDate)
 
     suspend fun remove(key: String)
+
+    /** Tar bort varje nyckel som börjar med [prefix]. */
+    suspend fun removeStartingWith(prefix: String)
 }
 
 /** [DayMarks] i 4.0:s egen DataStore-fil (`dagboken_device`), som överlever processdöd. */
@@ -35,6 +38,10 @@ class DataStoreDayMarks @Inject constructor(private val store: DataStore<Prefere
 
     override suspend fun remove(key: String) {
         store.edit { it.remove(preference(key)) }
+    }
+
+    override suspend fun removeStartingWith(prefix: String) {
+        store.edit { prefs -> prefs.asMap().keys.filter { it.name.startsWith(PREFIX + prefix) }.forEach { prefs.remove(it) } }
     }
 
     private fun preference(key: String) = stringPreferencesKey(PREFIX + key)

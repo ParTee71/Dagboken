@@ -5,9 +5,11 @@ import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenSource
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.SnapshotListenOptions
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.Transaction
 import com.google.firebase.firestore.WriteBatch
@@ -15,7 +17,9 @@ import com.google.firebase.firestore.snapshots
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -23,10 +27,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.asDeferred
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.schema.DocCodec
+import se.partee71.dagboken.core.schema.encodeDate
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
+import se.partee71.dagboken.data.common.HistoryCoverage
+import se.partee71.dagboken.data.common.historyFlow
 import se.partee71.dagboken.data.common.UserScope
 import se.partee71.dagboken.data.common.currentVersion
 import se.partee71.dagboken.data.common.FieldPath
@@ -64,6 +72,8 @@ class FirestoreCollection<T : Identified>(
     private val codec: DocCodec<T>,
     private val name: String,
     private val path: (uid: String?) -> String,
+    /** Historiklägets täckning (NFR-24) – en för appen, delad av alla samlingar. */
+    private val coverage: HistoryCoverage,
     /** Hur länge en läsning eller villkorad skrivning som kräver servern väntar innan den blir `Offline`. */
     private val serverWait: Duration = SERVER_WAIT,
 ) : EntityCollection<T> {
@@ -92,6 +102,39 @@ class FirestoreCollection<T : Identified>(
 
     private fun CollectionReference.between(field: String, from: Any, to: Any): Query =
         whereGreaterThanOrEqualTo(field, from).whereLessThanOrEqualTo(field, to)
+
+    /**
+     * Täckningen hämtas med `get(Source.SERVER)` (debiteras per dokument) för flödets konto och läggs bara i cachen – den
+     * avkodas inte, så ett oläsbart dokument fäller inte hämtningen. Ingen egen tidsgräns: samma hämtning inväntas tills
+     * Firestore svarar eller ger upp (offline: UNAVAILABLE), i stället för att en ny, lika dyr startas. Sedan en lyssnare med
+     * `ListenSource.CACHE`, som aldrig kontaktar servern och därför inte debiteras.
+     */
+    override fun observeHistory(field: String, from: LocalDate, to: LocalDate): Flow<List<T>> = historyFlow(
+        uid = scope.uid,
+        coverage = coverage,
+        key = { uid -> refOrNull(uid)?.let { "${it.path}.$field" } },
+        from = from,
+        to = to,
+        fetch = { uid, start, until ->
+            suspendRunCatching(::firestoreError) {
+                val ref = db.collection(path(uid))
+                val query = if (until == null) ref.whereGreaterThanOrEqualTo(field, date(start)) else ref.between(field, date(start), date(until))
+                query.get(Source.SERVER).await()
+            }.getOrThrow()
+        },
+        cache = { uid -> refOrNull(uid)?.between(field, date(from), date(to))?.cacheSnapshots()?.map(::decodeList) ?: emptyFlow() },
+    ).catch { throw firestoreError(it) }
+
+    private fun date(day: LocalDate): String = checkNotNull(day.encodeDate())
+
+    /** Ögonblicksbilder bara ur den lokala cachen (`ListenSource.CACHE`): ingen kontakt med servern, ingen debitering. */
+    private fun Query.cacheSnapshots(): Flow<QuerySnapshot> = callbackFlow {
+        val options = SnapshotListenOptions.Builder().setSource(ListenSource.CACHE).build()
+        val registration = addSnapshotListener(options) { snapshot, error ->
+            if (error != null) close(error) else if (snapshot != null) trySend(snapshot)
+        }
+        awaitClose { registration.remove() }
+    }
 
     override suspend fun get(id: String): Result<T?> = suspendRunCatching(::firestoreError) {
         decodeDocument(ref().document(id).get().await())

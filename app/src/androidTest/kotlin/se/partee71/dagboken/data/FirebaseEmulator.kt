@@ -25,6 +25,8 @@ import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.common.EntityCollection
+import se.partee71.dagboken.data.common.HistoryCoverage
+import se.partee71.dagboken.data.common.testCoverage
 import se.partee71.dagboken.data.firestore.FirestoreCollection
 import se.partee71.dagboken.data.firestore.FirestoreInstance
 import se.partee71.dagboken.data.firestore.FirestoreSyncStatus
@@ -188,7 +190,8 @@ class EmulatorUser(val uid: String, val firestore: FirestoreInstance) {
         clock: FixedClock = FixedClock(),
         sync: FirestoreSyncStatus = FirebaseEmulator.sync(),
         serverWait: Duration = SERVER_WAIT,
-    ): EntityCollection<T> = FirestoreCollection(firestore, scope, sync, clock, codec, name, path, serverWait)
+        coverage: HistoryCoverage = testCoverage(clock = clock),
+    ): EntityCollection<T> = FirestoreCollection(firestore, scope, sync, clock, codec, name, path, coverage, serverWait)
 
     fun versions() = FirestoreUserVersions(firestore)
 

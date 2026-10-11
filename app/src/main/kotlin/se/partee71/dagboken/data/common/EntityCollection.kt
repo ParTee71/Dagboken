@@ -32,7 +32,9 @@ interface EntityCollection<T : Identified> {
      * annan typ kommer inte med), t.ex. en dags eller en veckas doser på `DoseCodec.DATE` ([observeDates]).
      * Som [observe]: offline först (från cachen direkt och sedan när servern svarar), sorterat likadant,
      * och följer den inloggade användaren – utloggad emitteras inget, och flödet tar upp lyssningen igen
-     * vid nästa inloggning. Ett intervall på ett enda fält kräver inget sammansatt index.
+     * vid nästa inloggning. Ett intervall på ett enda fält kräver inget sammansatt index. En lyssnare debiteras för
+     * hela sitt resultat när den startar efter en längre paus – bara för det som visas eller nyss hänt; äldre dagar
+     * läses med [observeHistory] (NFR-24).
      */
     fun observeBetween(field: String, from: Any, to: Any): Flow<List<T>>
 
@@ -42,6 +44,17 @@ interface EntityCollection<T : Identified> {
      * direkt. För en kontroll inför en skrivning som ska fungera offline, t.ex. vid behov-dosens kylperiod.
      */
     suspend fun cachedBetween(field: String, from: Any, to: Any): Result<List<T>>
+
+    /**
+     * Historikläget (NFR-24): dokumenten vars datumfält [field] (`yyyy-MM-dd`) ligger mellan [from] och [to], båda
+     * inräknade, som flöde **ur den lokala cachen** – utan bestående lyssnare mot servern. Cachen visas direkt (offline
+     * först); det den inte bevisligen har ([HistoryCoverage]: aldrig hämtat komplett från servern för kontot, eller för
+     * över en vecka sedan) hämtas samtidigt från servern en gång, och flödet fyller på när det kommit – ingen post saknas
+     * när hämtningen är klar. Appens egna skrivningar (en ändrad eller raderad äldre post) syns direkt; appen körs på en
+     * enhet, så det täckta är komplett. Offline eller med slut på kvoten görs hämtningen om tills den lyckas. Sorterat som
+     * [observe]; utloggad emitteras inget, och flödet följer kontot. Delas av [historyFlow].
+     */
+    fun observeHistory(field: String, from: LocalDate, to: LocalDate): Flow<List<T>>
 
     suspend fun get(id: String): Result<T?>
 

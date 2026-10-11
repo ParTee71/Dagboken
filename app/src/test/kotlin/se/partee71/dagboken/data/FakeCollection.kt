@@ -1,5 +1,6 @@
 package se.partee71.dagboken.data
 
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlinx.coroutines.CoroutineScope
@@ -7,17 +8,25 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.schema.Doc
 import se.partee71.dagboken.core.schema.DocCodec
+import se.partee71.dagboken.core.schema.encodeDate
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
+import se.partee71.dagboken.data.common.HistoryCoverage
+import se.partee71.dagboken.data.common.MemoryDayMarks
+import se.partee71.dagboken.data.common.testCoverage
+import se.partee71.dagboken.data.common.historyFlow
 import se.partee71.dagboken.data.common.UserScope
 import se.partee71.dagboken.data.common.currentVersion
 import se.partee71.dagboken.data.common.FieldMerge
@@ -73,12 +82,41 @@ class FakeStore {
         if (!online) hasPendingWrites = true
     }
 
+    /**
+     * Debiterade läsningar (NFR-24), räknade som Firestore gör: en lyssnare för sitt resultat när den startar (fejken
+     * räknar varje start så – Firestore tar upp en lyssnare billigt inom 30 minuter, så siffran är en övre gräns), en
+     * serverläsning för sitt resultat, båda minst en läsning även för ett tomt svar, och en läsning ur cachen ingenting.
+     */
+    val reads = AtomicLong()
+
+    fun bill(results: Int) {
+        reads.addAndGet(maxOf(1, results).toLong())
+    }
+
+    /**
+     * Dokumenten (id:n per sökväg) som enhetens cache känner till – allt appen skrivit och allt som lästs från servern
+     * eller via en lyssnare. Bara historiklägets cacheläsning begränsas av den; i övrigt är fejken cache och server i ett.
+     */
+    val cached = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
+
+    fun markCached(path: String, ids: Set<String>) = cached.update { all ->
+        val known = all[path].orEmpty()
+        if (known.containsAll(ids)) all else all + (path to known + ids)
+    }
+
+    /** Cachen känner inget – som en ny enhet, eller som om en annan enhet skrivit allt som finns (NFR-24). */
+    fun clearCache() {
+        cached.value = emptyMap()
+    }
+
+    fun cachedIn(path: String): Flow<Set<String>> = cached.map { it[path].orEmpty() }.distinctUntilChanged()
+
     fun set(path: String, id: String, doc: Doc, merge: Boolean) = documents.update { all ->
         val collection = all[path].orEmpty()
         val stored = firestoreValues(doc)
         val merged = if (merge) deepMerge(collection[id].orEmpty(), stored) else stored
         all + (path to collection + (id to merged))
-    }
+    }.also { markCached(path, setOf(id)) }
 
     /**
      * Som Firestores `update` i en batch: varje fält ersätts helt, även en map – inget slås ihop
@@ -88,7 +126,7 @@ class FakeStore {
         val collection = all[path].orEmpty()
         if (!collection.keys.containsAll(patches.keys)) return@update all
         all + (path to collection + patches.mapValues { (id, fields) -> (collection.getValue(id) + firestoreValues(fields)).filterValues { it !== DELETE } })
-    }
+    }.also { markCached(path, patches.keys) }
 
     companion object {
         /** Som Firestores `FieldValue.delete()` i en [patch]: fältet tas bort. */
@@ -102,12 +140,12 @@ class FakeStore {
         var collection = all[path].orEmpty()
         for ((id, doc) in sets) collection = collection + (id to deepMerge(collection[id].orEmpty(), firestoreValues(doc)))
         all + (path to collection - deletes.toSet())
-    }
+    }.also { markCached(path, sets.mapTo(mutableSetOf()) { it.first }) }
 
     /** Som en transaktion: [to] får [doc] (Firestores värden) och [from] tas bort – i en och samma ändring. */
     fun move(path: String, from: String, to: String, doc: Doc) = documents.update { all ->
         all + (path to all[path].orEmpty() - from + (to to firestoreValues(doc)))
-    }
+    }.also { markCached(path, setOf(to)) }
 
     fun read(path: String, id: String): Doc? = documents.value[path]?.get(id)
 
@@ -147,35 +185,83 @@ class FakeCollection<T : Identified>(
     private val commitLatency: Duration = Duration.ZERO,
     private val serverWait: Duration = SERVER_WAIT,
     private val commitScope: CoroutineScope? = null,
+    /** Historiklägets täckning (NFR-24); [FakeCollectionFactory] delar en mellan sina samlingar, som appen. */
+    private val coverage: HistoryCoverage = testCoverage(MemoryDayMarks(), clock),
 ) : EntityCollection<T> {
     private val commits = PendingCommits()
 
     override fun observe(): Flow<List<T>> = scope.uid.flatMapLatest { uid ->
         val p = pathOrNull(uid) ?: return@flatMapLatest emptyFlow()
-        store.collection(p).map(::decodeList)
+        listen(p) { it }.map(::decodeList)
     }
 
     override fun observe(id: String): Flow<T?> = scope.uid.flatMapLatest { uid ->
         val p = pathOrNull(uid) ?: return@flatMapLatest emptyFlow()
-        store.collection(p).map { docs -> docs[id]?.let { decode(id, it) } }
+        listen(p) { docs -> docs.filterKeys { it == id } }.map { docs -> docs[id]?.let { decode(id, it) } }
     }
 
     override fun observeBetween(field: String, from: Any, to: Any): Flow<List<T>> = scope.uid.flatMapLatest { uid ->
         val p = pathOrNull(uid) ?: return@flatMapLatest emptyFlow()
-        store.collection(p).map { docs -> between(docs, field, from, to) }
+        listen(p) { docs -> inRange(docs, field, from, to) }.map(::decodeList)
+    }
+
+    /**
+     * En lyssnare på [select] ur samlingen [p]: debiteras för sitt första resultat ([FakeStore.bill], som Firestore när
+     * den startar), och det den ser hamnar i cachen ([FakeStore.markCached]).
+     */
+    private fun listen(p: String, select: (Map<String, Doc>) -> Map<String, Doc>): Flow<Map<String, Doc>> = flow {
+        var started = false
+        store.collection(p).collect { all ->
+            val docs = select(all)
+            if (!started) store.bill(docs.size)
+            started = true
+            store.markCached(p, docs.keys)
+            emit(docs)
+        }
+    }
+
+    /** En serverläsning av [docs] ur [p]: debiteras och hamnar i cachen. */
+    private fun served(p: String, docs: Map<String, Doc>): Map<String, Doc> {
+        store.bill(docs.size)
+        store.markCached(p, docs.keys)
+        return docs
     }
 
     /** Som Firestore: ur cachen också utan nät ([FakeStore.online]), då märkt `fromCache`. */
     override suspend fun cachedBetween(field: String, from: Any, to: Any) = firstFromCache({ DataError.Unknown }) {
-        store.collection(path()).map { Snapshot(between(it, field, from, to), fromCache = !store.online) }
+        store.collection(path()).map { Snapshot(decodeList(inRange(it, field, from, to)), fromCache = !store.online) }
     }
 
-    private fun between(docs: Map<String, Doc>, field: String, from: Any, to: Any) =
-        decodeList(docs.filterValues { atLeast(it[field], from) && atMost(it[field], to) })
+    /**
+     * Som Firestore: serverläsningen (utan "server" `Offline`) debiteras och lägger dokumenten i cachen; cacheläsningen ser
+     * bara de dokument cachen känner till ([FakeStore.cached]) – en ofullständig cache syns alltså, som på en ny enhet.
+     */
+    override fun observeHistory(field: String, from: LocalDate, to: LocalDate): Flow<List<T>> = historyFlow(
+        uid = scope.uid,
+        coverage = coverage,
+        key = { uid -> pathOrNull(uid)?.let { "$it.$field" } },
+        from = from,
+        to = to,
+        fetch = { uid, start, until ->
+            server {
+                val p = path(uid)
+                served(p, store.documents.value[p].orEmpty().filterValues { atLeast(it[field], date(start)) && (until == null || atMost(it[field], date(until))) })
+            }.getOrThrow()
+        },
+        cache = { uid ->
+            val p = path(uid)
+            combine(store.collection(p), store.cachedIn(p)) { docs, known -> decodeList(inRange(docs.filterKeys { it in known }, field, date(from), date(to))) }
+        },
+    )
 
-    override suspend fun get(id: String) = run { store.read(path(), id)?.let { decode(id, it) } }
+    private fun date(day: LocalDate): String = checkNotNull(day.encodeDate())
 
-    override suspend fun getAll() = run { store.documents.value[path()].orEmpty().map { (id, doc) -> decode(id, doc) } }
+    private fun inRange(docs: Map<String, Doc>, field: String, from: Any, to: Any) =
+        docs.filterValues { atLeast(it[field], from) && atMost(it[field], to) }
+
+    override suspend fun get(id: String) = run { path().let { p -> served(p, store.read(p, id)?.let { mapOf(id to it) }.orEmpty())[id]?.let { decode(id, it) } } }
+
+    override suspend fun getAll() = run { path().let { p -> served(p, store.documents.value[p].orEmpty()).map { (id, doc) -> decode(id, doc) } } }
 
     override suspend fun upsert(item: T) = write { store.set(path(), item.id, encode(item), merge = true) }
 
@@ -197,12 +283,13 @@ class FakeCollection<T : Identified>(
      * text, tal med tal). Utan "server" ([FakeStore.online]) `Offline`, som i `FirestoreOfflineTest`.
      */
     override suspend fun confirmedFrom(field: String, from: Any) = server {
-        decodeList(store.documents.value[path()].orEmpty().filterValues { atLeast(it[field], from) })
+        val p = path()
+        decodeList(served(p, store.documents.value[p].orEmpty().filterValues { atLeast(it[field], from) }))
     }
 
-    override suspend fun confirmed() = server { decodeList(store.documents.value[path()].orEmpty()) }
+    override suspend fun confirmed() = server { path().let { p -> decodeList(served(p, store.documents.value[p].orEmpty())) } }
 
-    override suspend fun confirmed(id: String) = server { store.read(path(), id)?.let { decode(id, it) } }
+    override suspend fun confirmed(id: String) = server { path().let { p -> served(p, store.read(p, id)?.let { mapOf(id to it) }.orEmpty())[id]?.let { decode(id, it) } } }
 
     /** Som Firestore: utan väntande skrivningar klar direkt, också utan nät. */
     override suspend fun awaitWrites() = run {
@@ -326,9 +413,14 @@ class FakeCollectionFactory(
     val store: FakeStore = FakeStore(),
     val scope: UserScope = TestUserScope(),
     private val clock: Clock = FixedClock(),
+    /** Enhetens lokala anteckningar – historiklägets täckning ligger här (NFR-24). */
+    val marks: MemoryDayMarks = MemoryDayMarks(),
 ) : CollectionTable() {
+    /** En täckning för alla samlingar, som appens `@Singleton`. */
+    val coverage = testCoverage(marks, clock)
+
     override fun <T : Identified> create(codec: DocCodec<T>, name: String, path: (uid: String?) -> String) =
-        FakeCollection(store, scope, clock, codec, name, path)
+        FakeCollection(store, scope, clock, codec, name, path, coverage = coverage)
 
     fun <T : Identified> collection(codec: DocCodec<T>, name: String, path: (uid: String?) -> String) = create(codec, name, path)
 }

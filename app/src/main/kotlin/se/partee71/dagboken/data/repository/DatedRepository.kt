@@ -2,6 +2,7 @@ package se.partee71.dagboken.data.repository
 
 import kotlin.time.Instant
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.Post
@@ -34,11 +35,31 @@ interface EntryStore<T> {
     suspend fun delete(id: String): Result<Unit>
 }
 
-/** En samling poster med ett datumfält: läsning per period, formulärets läsning och sparning, och radering – mående, aktiviteter och händelser. */
-interface DatedRepository<T> : EntryStore<T> {
-    /** Posterna för [from]…[to], båda inräknade, offline först (Idag per dag, Dagboken ett år i taget, HIST-8). */
+/** Läsning per period av en samling poster med ett datumfält (NFR-24) – mående, aktiviteter, händelser och doser. */
+interface DayReads<T> {
+    /** Posterna för [from]…[to], båda inräknade, med lyssnare på hela perioden, offline först – för en kort period som visas. */
     fun observeDays(from: LocalDate, to: LocalDate): Flow<List<T>>
+
+    /**
+     * Posterna för [from]…[to] i historikläget med lyssnare bara på dagarna i [live] (`observeDates` med `live`) – för långa
+     * perioder: Idags svit och vecka (HEM-13, HEM-20), där ett veckosvep bara byter lyssnarna. Samma poster som [observeDays].
+     */
+    fun observeDays(from: LocalDate, to: LocalDate, live: Flow<List<ClosedRange<LocalDate>>>): Flow<List<T>>
+
+    /** Som ovan med fasta lyssnade dagar – Dagboken ett år i taget (HIST-8), Trender (TRD-3). */
+    fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<T>> = observeDays(from, to, flowOf(live))
 }
+
+/** [DayReads] över [collection] och dess datumfält [field] – den enda implementationen. */
+class CollectionDays<T : Identified>(private val collection: EntityCollection<T>, private val field: String) : DayReads<T> {
+    override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<T>> = collection.observeDates(field, from, to)
+
+    override fun observeDays(from: LocalDate, to: LocalDate, live: Flow<List<ClosedRange<LocalDate>>>): Flow<List<T>> =
+        collection.observeDates(field, from, to, live)
+}
+
+/** En samling poster med ett datumfält: läsning per period, formulärets läsning och sparning, och radering – mående, aktiviteter och händelser. */
+interface DatedRepository<T> : EntryStore<T>, DayReads<T>
 
 /**
  * Den enda implementationen av [EntryStore] över en samling – [collection] och dess [codec] (fälten som jämförs
@@ -89,7 +110,5 @@ fun <T> creatingStore(create: suspend (T) -> Result<Unit>): EntryStore<T> = obje
  * Den enda implementationen av [DatedRepository] – över [collection] och dess [codec] (datumfältet, och fälten som
  * jämförs vid en ändring). Postens skapandetid och id kommer ur modellen ([Post]).
  */
-class DatedEntries<T : Post<T>>(private val collection: EntityCollection<T>, private val codec: DatedCodec<T>) :
-    DatedRepository<T>, EntryStore<T> by StoredEntries(collection, codec) {
-    override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<T>> = collection.observeDates(codec.dateField, from, to)
-}
+class DatedEntries<T : Post<T>>(collection: EntityCollection<T>, codec: DatedCodec<T>) :
+    DatedRepository<T>, EntryStore<T> by StoredEntries(collection, codec), DayReads<T> by CollectionDays(collection, codec.dateField)

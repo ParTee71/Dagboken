@@ -161,7 +161,9 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 | Resultat av suspend-anrop | `suspendRunCatching` i `data/common/` (används av `FirestoreCollection` och `AuthRepository`) |
 | Läs- och skrivregler för dokument | `prepareForWrite`, `readDocument`, `sortForList` i `data/common/DocumentRules.kt` och `writeBlocker` i `UserScope.kt` – används av både `FirestoreCollection` och `FakeCollection` |
 | Firestore-instans | `FirestoreInstance` (`.db` vid varje anrop) från `FirestoreModule` (Hilt) i `data/firestore/` |
-| Töm lokala cachen | `LocalCacheCleaner` i `data/common/` (Firestore: `FirestoreInstance`), anropas bara av `SignOutUseCase` |
+| Töm lokala cachen | `LocalCacheCleaner` i `data/common/` (Firestore: `FirestoreInstance`), anropas bara av `SignOutUseCase` – som först glömmer historiklägets täckning (`HistoryCoverage.forgetAll`) |
+| Lång period utan bestående lyssnare (NFR-24) | `EntityCollection.observeHistory` + `historyFlow` + `HistoryCoverage`, `observeDates(field, från, till, live)` och `mergeReads` i `data/common/HistoryReads.kt`; i repositories `DayReads`/`CollectionDays` (`observeDays`, och `observeDays(från, till, live)` med `live` som lista eller flöde) i `data/repository/DatedRepository.kt`; i test `testCoverage`; delarna `readParts`/`mergeDays` och lyssningsfönstret `recentDays` i `:core/time/ReadParts.kt` – Dagbok, Trender, Idag |
+| Enhetslokal dag per nyckel | `DayMarks`/`DataStoreDayMarks` i `data/common/DailyGate.kt` (`dagboken_device`) – dagsgrinden `DailyGate` och historiklägets täckning; i test `MemoryDayMarks` (`app/src/sharedTest`) |
 | Inloggad användare | `UserSession` i `data/user/` (`UserScope`), `EnsureUserUseCase` vid inloggning |
 | Synkläge | `SyncStatus` i `data/common/`; för UI:t `SyncViewModel` (`ui/sync/`) |
 | Export | `RawDocuments` + `ExportFormat` (`:core`) – samma format som `tools/db export` (skill `firestore-data-layer`) |

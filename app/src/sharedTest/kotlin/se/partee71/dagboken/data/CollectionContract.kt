@@ -272,18 +272,26 @@ abstract class CollectionContract {
         assertEquals(listOf("idag", "imorgon"), fromToday.map { it.id }.sorted(), "ett dokument utan fältet kommer inte med")
     }
 
-    @Test
-    fun observeBetween_ger_dokumenten_i_intervallet_och_foljer_andringar() = contract {
+    /** Doser 20–23 september och en utan datum, skrivna förbi codecen – underlaget för intervallens kontrakt. */
+    private suspend fun writeDoseDays() {
         for ((id, date) in listOf("igar" to "2026-09-20", "idag" to "2026-09-21", "imorgon" to "2026-09-22", "sedan" to "2026-09-23")) {
             env.writeRaw(dosesPath, id, mapOf("name" to "Levaxin", DoseCodec.DATE to date))
         }
         env.writeRaw(dosesPath, "utan-datum", mapOf("name" to "Okänd dag"))
-        val between = doses.observeBetween(DoseCodec.DATE, "2026-09-21", "2026-09-22")
-        assertEquals(listOf("idag", "imorgon"), between.awaitMatching { it.size == 2 }.map { it.id }, "båda gränserna inräknade; ett dokument utan fältet kommer inte med")
+    }
 
+    /** [days] är 21–22 september ur [writeDoseDays]: båda gränserna inräknade, och en ny dos i intervallet syns, en utanför inte. */
+    private suspend fun assertFollowsTwoDays(days: Flow<List<Dose>>) {
+        assertEquals(listOf("idag", "imorgon"), days.awaitMatching { it.size == 2 }.map { it.id }, "båda gränserna inräknade; ett dokument utan fältet kommer inte med")
         doses.upsert(dose("ny", LocalDate(2026, 9, 21))).getOrThrow()
         doses.upsert(dose("utanfor", LocalDate(2026, 9, 24))).getOrThrow()
-        assertEquals(listOf("idag", "imorgon", "ny"), between.awaitMatching { it.size == 3 }.map { it.id })
+        assertEquals(listOf("idag", "imorgon", "ny"), days.awaitMatching { it.size == 3 }.map { it.id })
+    }
+
+    @Test
+    fun observeBetween_ger_dokumenten_i_intervallet_och_foljer_andringar() = contract {
+        writeDoseDays()
+        assertFollowsTwoDays(doses.observeBetween(DoseCodec.DATE, "2026-09-21", "2026-09-22"))
         assertEquals(listOf("idag", "ny"), doses.observeBetween(DoseCodec.DATE, "2026-09-21", "2026-09-21").awaitMatching { it.size == 2 }.map { it.id }, "en enda dag")
     }
 
@@ -302,6 +310,37 @@ abstract class CollectionContract {
             while (received.lastOrNull()?.second?.contains("utloggad") != true) received += emissions.receive()
             assertTrue(received.all { it.first }, "inget emitterat utloggad – som observe(): $received")
             env.writeRaw(dosesPath, "inloggad", mapOf("name" to "Levaxin", DoseCodec.DATE to "2026-09-21"))
+            while (true) if ("inloggad" in emissions.receive().second) break
+            listening.cancel()
+        }
+    }
+
+    @Test
+    fun observeHistory_ger_intervallet_och_foljer_egna_skrivningar_och_raderingar() = contract {
+        writeDoseDays()
+        val history = doses.observeHistory(DoseCodec.DATE, LocalDate(2026, 9, 21), LocalDate(2026, 9, 22))
+        // En äldre post som skapas, ändras eller raderas i appen syns direkt – historikläget följer cachen (NFR-24).
+        assertFollowsTwoDays(history)
+        doses.delete("idag").getOrThrow()
+        assertEquals(listOf("imorgon", "ny"), history.awaitMatching { it.size == 2 }.map { it.id })
+        assertEquals(listOf("imorgon"), doses.observeHistory(DoseCodec.DATE, LocalDate(2026, 9, 22), LocalDate(2026, 9, 22)).awaitMatching { it.size == 1 }.map { it.id }, "en enda dag")
+    }
+
+    @Test
+    fun observeHistory_tystnar_utloggad_och_tar_upp_lasningen_vid_inloggning() = contract {
+        env.writeRaw(dosesPath, "fore", mapOf("name" to "Levaxin", DoseCodec.DATE to "2026-09-21"))
+        env.signOut()
+        var signedIn = false
+        val emissions = Channel<Pair<Boolean, List<String>>>(Channel.UNLIMITED)
+        coroutineScope {
+            val day = LocalDate(2026, 9, 21)
+            val listening = launch { doses.observeHistory(DoseCodec.DATE, day, day).collect { emissions.send(signedIn to it.map(Dose::id)) } }
+            signedIn = true
+            env.signInAgain()
+            val received = mutableListOf<Pair<Boolean, List<String>>>()
+            while (received.lastOrNull()?.second?.contains("fore") != true) received += emissions.receive()
+            assertTrue(received.all { it.first }, "inget emitterat utloggad – som observe(): $received")
+            doses.upsert(dose("inloggad", day)).getOrThrow()
             while (true) if ("inloggad" in emissions.receive().second) break
             listening.cancel()
         }

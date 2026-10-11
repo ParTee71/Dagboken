@@ -30,6 +30,7 @@ import se.partee71.dagboken.core.schema.DoseCodec
 import se.partee71.dagboken.core.schema.encodeDate
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.common.FieldMerge
 import se.partee71.dagboken.data.common.FieldPath
 import se.partee71.dagboken.data.common.offlineIsNoOp
@@ -37,7 +38,6 @@ import se.partee71.dagboken.data.common.LatestWins
 import se.partee71.dagboken.data.common.cachedDates
 import se.partee71.dagboken.data.common.moveChanged
 import se.partee71.dagboken.data.common.TargetExists
-import se.partee71.dagboken.data.common.observeDates
 
 /**
  * Doserna i samlingen `doses` (DAT-8) – **alla** dosskrivningar i appen går härigenom. Beräkningen –
@@ -49,12 +49,11 @@ import se.partee71.dagboken.data.common.observeDates
  * avbockning från en annan enhet. Det användaren själv gör med en dos – bocka av ([setStatus]), logga
  * vid behov ([logAsNeeded], [logExtraDose]) – är offline först: det läggs i cachen direkt och synkas sedan.
  */
-interface DoseRepository : EntryStore<Dose> {
+interface DoseRepository : EntryStore<Dose>, DayReads<Dose> {
     /** HEM-4: doserna för [date] ur cachen och sedan servern (offline först), sorterade på id. */
     fun observeDay(date: LocalDate): Flow<List<Dose>>
 
-    /** Doserna för [from]…[to], båda inräknade (veckosammanfattningen HEM-13, dagar i rad HEM-20). */
-    fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Dose>>
+    // DayReads: doserna per period (Dagboken HIST-8, veckosammanfattningen HEM-13, dagar i rad HEM-20) – NFR-24.
 
     /**
      * HEM-10, MED-4: id:n för de av [prescriptions] (lästa från servern) som enligt cachen saknar doser på
@@ -190,13 +189,13 @@ data class DosePlan(val locked: List<String> = emptyList(), val missing: List<St
 
 /** Tunn fasad över samlingen `doses` (skill firestore-data-layer); en instans, så att väntande commits delas. */
 @Singleton
-class DefaultDoseRepository @Inject constructor(
-    collections: CollectionFactory,
+class DefaultDoseRepository private constructor(
+    private val collection: EntityCollection<Dose>,
     private val clock: Clock,
     /** Enhetens tidszon, läst vid varje användning – ett byte slår igenom direkt. */
     private val zone: Provider<TimeZone>,
-) : DoseRepository {
-    private val collection = collections.doses()
+) : DoseRepository, DayReads<Dose> by CollectionDays(collection, DoseCodec.DATE) {
+    @Inject constructor(collections: CollectionFactory, clock: Clock, zone: Provider<TimeZone>) : this(collections.doses(), clock, zone)
 
     /** Formulärets läsning och sparning – samma som för dagbokens andra poster. */
     private val entries = StoredEntries(collection, DoseCodec, { it.createdAt }, { dose, id -> dose.copy(id = id) })
@@ -206,7 +205,6 @@ class DefaultDoseRepository @Inject constructor(
 
     override fun observeDay(date: LocalDate): Flow<List<Dose>> = observeDays(date, date)
 
-    override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Dose>> = collection.observeDates(DoseCodec.DATE, from, to)
 
     override suspend fun missingOn(prescriptions: List<Prescription>, date: LocalDate, today: LocalDate): Result<List<String>> =
         collection.cachedDates(DoseCodec.DATE, date, date).map { cached ->

@@ -28,6 +28,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.AsNeededChoices
@@ -85,6 +86,7 @@ import se.partee71.dagboken.ui.common.failureOrNull
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.minutes
 import se.partee71.dagboken.ui.common.tidyingUpEachDay
+import se.partee71.dagboken.ui.components.DAYS_PER_WEEK
 import se.partee71.dagboken.ui.components.UndoRequest
 import se.partee71.dagboken.ui.components.weekMonday
 import se.partee71.dagboken.ui.log.CooldownPrompt
@@ -262,6 +264,13 @@ class TodayViewModel @Inject constructor(
     private data class Span(val date: LocalDate, val today: LocalDate, val week: LocalDate) {
         /** Det som läses: den visade dagen, remsans vecka, dagarna i rad bakåt från idag (HEM-20) och "Din vecka"s två veckor (HEM-13). */
         val from: LocalDate get() = minOf(week, date.weekMonday(), today.minus(STREAK_DAYS, DateTimeUnit.DAY))
+
+        /**
+         * Läsbudgeten (NFR-24): lyssnare bara på det som visas – remsans vecka, den visade dagen och idag. Hela perioden läses
+         * dessutom i historikläget, för sviten, "Din vecka" och 7-dagarstrenden.
+         */
+        val live: List<ClosedRange<LocalDate>>
+            get() = listOf(week..week.plus(DAYS_PER_WEEK - 1, DateTimeUnit.DAY), date..date, today..today)
     }
 
     private data class Entries(val doses: List<Dose>, val screenings: List<Screening>) {
@@ -274,8 +283,13 @@ class TodayViewModel @Inject constructor(
         Span(date, today, (shown?.takeIf { it <= today } ?: date).weekMonday())
     }.distinctUntilChanged().shareIn(viewModelScope, sharing, replay = 1)
 
+    /**
+     * Perioden i historikläget med lyssnare på det som visas ([Span.live], NFR-24). Ett veckosvep inom perioden byter bara
+     * lyssnarna – historiken står still; en vecka längre bak än sviten flyttar periodens början, och då läses perioden om.
+     */
     private val entries: Flow<Entries> = span.map { it.from to it.today }.distinctUntilChanged().flatMapLatest { (from, to) ->
-        combine(doses.observeDays(from, to), screenings.observeDays(from, to), ::Entries)
+        val live = span.map { it.live }
+        combine(doses.observeDays(from, to, live), screenings.observeDays(from, to, live), ::Entries)
     }
 
     private data class Library(

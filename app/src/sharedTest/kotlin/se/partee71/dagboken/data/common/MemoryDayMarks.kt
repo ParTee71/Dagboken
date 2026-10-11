@@ -2,7 +2,7 @@ package se.partee71.dagboken.data.common
 
 import kotlinx.datetime.LocalDate
 
-/** [DayMarks] i minnet: en instans = en enhets lagring (dela den mellan grindar för att efterlikna processdöd). */
+/** [DayMarks] i minnet: en instans = en enhets lagring (dela den mellan grindar för att efterlikna processdöd). Delas av JVM- och instrumenttesterna. */
 class MemoryDayMarks : DayMarks {
     val marks = mutableMapOf<String, LocalDate>()
 
@@ -22,5 +22,10 @@ class MemoryDayMarks : DayMarks {
     override suspend fun remove(key: String) {
         if (fails) throw java.io.IOException("dagboken_device gick inte att nå")
         marks.remove(key)
+    }
+
+    override suspend fun removeStartingWith(prefix: String) {
+        if (fails) throw java.io.IOException("dagboken_device gick inte att nå")
+        marks.keys.removeAll { it.startsWith(prefix) }
     }
 }

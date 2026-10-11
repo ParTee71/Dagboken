@@ -18,6 +18,8 @@ import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.auth.SignOutUseCase
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.LocalCacheCleaner
+import se.partee71.dagboken.data.common.MemoryDayMarks
+import se.partee71.dagboken.data.common.testCoverage
 import se.partee71.dagboken.data.common.UserVersionSource
 import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.user.EnsureUserUseCase
@@ -59,7 +61,10 @@ class UserFixture(scope: CoroutineScope, val auth: FakeAuthRepository = FakeAuth
     val directory = FakeUserDirectory(store)
     val ensureUser = EnsureUserUseCase(directory, clock)
     val cache = FakeLocalCacheCleaner(auth)
-    val signOut = SignOutUseCase(auth, cache)
+
+    /** Enhetens anteckningar – historiklägets täckning (NFR-24) ligger här och glöms före tömningen. */
+    val marks = MemoryDayMarks()
+    val signOut = SignOutUseCase(auth, cache, testCoverage(marks, clock))
 
     /** Lägger ett användardokument direkt i den fejkade databasen, som om en annan enhet skapat det. */
     fun storeUser(uid: String, doc: Doc = mapOf(EnsureUserUseCase.SCHEMA_VERSION to Schema.CURRENT_VERSION)) =

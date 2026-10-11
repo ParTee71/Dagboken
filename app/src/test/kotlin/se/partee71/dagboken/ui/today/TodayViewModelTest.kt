@@ -668,6 +668,19 @@ class TodayViewModelTest {
     }
 
     @Test
+    fun `Din vecka räknar med förra veckan ur historikläget – skriven på en annan enhet, och ändrad här syns den direkt (HEM-13, NFR-24)`() = runTest(main.dispatcher) {
+        val lastWeek = Screening("forra", LocalDate(2026, 9, 22), LocalTime(9, 0), Occasion.BREAKFAST, energy = 3)
+        factory.screenings().batch(listOf(lastWeek, Screening("denna", LocalDate(2026, 10, 2), LocalTime(9, 0), Occasion.BREAKFAST, energy = 8))).getOrThrow()
+        factory.store.clearCache()
+        val vm = started(viewModel())
+        assertEquals(EnergyTrend.UP, vm.content.weekSummary?.energyTrend, "förra veckan (utanför remsans vecka) saknas inte")
+
+        factory.screenings().upsert(lastWeek.copy(energy = 9)).getOrThrow()
+        runCurrent()
+        assertEquals(EnergyTrend.DOWN, vm.content.weekSummary?.energyTrend)
+    }
+
+    @Test
     fun `7-dagarstrenden är dagsvärdet de sju senaste dagarna, också när en tidigare dag visas (HEM-7)`() = runTest(main.dispatcher) {
         seed()
         val screenings = listOf(

@@ -40,6 +40,7 @@ import se.partee71.dagboken.core.engine.on
 import se.partee71.dagboken.core.engine.shownBy
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.OptionKind
+import se.partee71.dagboken.core.time.recentDays
 import se.partee71.dagboken.data.common.combineByKey
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.repository.ActivityRepository
@@ -130,7 +131,9 @@ sealed interface DiaryEvent {
  * Fliken Dagbok (HIST-1…HIST-9): alla posttyper i ett flöde, ett år i taget. Tidslinjen, filterregeln och
  * fönstret räknas i `:core` (`DiaryTimeline`); radering går till samma repository-metod som postens
  * domänskärm. Varje år läses för sig och delas ([year]), så att "Visa äldre" bara läser det nya året –
- * de tidigare lyssnarna står kvar, och listan byts aldrig mot laddning (scrollpositionen behålls).
+ * de tidigare läsningarna står kvar, och listan byts aldrig mot laddning (scrollpositionen behålls). Läsbudgeten
+ * (NFR-24): bara de senaste 30 dagarna (`recentDays`) har lyssnare; resten av år 0 och de äldre åren läses i
+ * historikläget, som följer cachen – en ändrad eller raderad äldre post syns direkt.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -171,7 +174,14 @@ class DiaryViewModel @Inject constructor(
             val (from, to) = range.start to range.endInclusive
             // HIST-7: en dos planerad dagen före året men tagen inom det hör till året – `within` avgör.
             val doseFrom = from.minus(1, DateTimeUnit.DAY)
-            combine(screenings.observeDays(from, to), activities.observeDays(from, to), doses.observeDays(doseFrom, to), events.observeDays(from, to)) { s, a, d, e ->
+            // NFR-24: lyssnare bara på år 0:s senaste 30 dagar; äldre dagar och år i historikläget.
+            val live = if (index == 0) listOf(recentDays(to)) else emptyList()
+            combine(
+                screenings.observeDays(from, to, live),
+                activities.observeDays(from, to, live),
+                doses.observeDays(doseFrom, to, live),
+                events.observeDays(from, to, live),
+            ) { s, a, d, e ->
                 Result.success(DiarySources(screenings = s, activities = a, doses = d, events = e))
             }
                 // Ett läsfel delas som värde – ett fel i en delad läsning får inte fälla ViewModeln; det kastas i tidslinjen.

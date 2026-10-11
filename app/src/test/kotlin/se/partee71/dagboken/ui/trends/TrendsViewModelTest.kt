@@ -83,21 +83,27 @@ class TrendsViewModelTest {
     private val factory = FakeCollectionFactory(clock = clock)
 
     private val screeningReads = mutableListOf<ClosedRange<LocalDate>>()
+
+    /** Dagarna varje läsning av måendeloggar lyssnar på (NFR-24). */
+    private val screeningLive = mutableListOf<List<ClosedRange<LocalDate>>>()
     private val activityReads = mutableListOf<ClosedRange<LocalDate>>()
     private val eventReads = mutableListOf<ClosedRange<LocalDate>>()
     private var episodeReads = 0
 
     private val screenings = object : ScreeningRepository by DefaultScreeningRepository(factory, clock) {
         private val real = DefaultScreeningRepository(factory, clock)
-        override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Screening>> = real.observeDays(from, to).onStart { screeningReads += from..to }
+        override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Screening>> =
+            real.observeDays(from, to, live).onStart { screeningReads += from..to; screeningLive.add(live) }
     }
     private val activities = object : ActivityRepository by DefaultActivityRepository(factory, clock) {
         private val real = DefaultActivityRepository(factory, clock)
-        override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Activity>> = real.observeDays(from, to).onStart { activityReads += from..to }
+        override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Activity>> =
+            real.observeDays(from, to, live).onStart { activityReads += from..to }
     }
     private val events = object : EventRepository by DefaultEventRepository(factory, clock) {
         private val real = DefaultEventRepository(factory, clock)
-        override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Event>> = real.observeDays(from, to).onStart { eventReads += from..to }
+        override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Event>> =
+            real.observeDays(from, to, live).onStart { eventReads += from..to }
     }
     private val illnesses = object : IllnessRepository by DefaultIllnessRepository(factory, clock) {
         private val real = DefaultIllnessRepository(factory, clock)
@@ -403,6 +409,26 @@ class TrendsViewModelTest {
     }
 
     @Test
+    fun `Allt och 3 månader saknar inga poster fast enhetens cache är tom, och historiken läses från servern en gång (TRD-3, NFR-24)`() = runTest(main.dispatcher) {
+        seed()
+        factory.store.clearCache()
+        val vm = started()
+        vm.onEvent(TrendsEvent.Toggle(TrendCard.ENERGY_DAY))
+        vm.onEvent(TrendsEvent.SetRange(TrendCard.ENERGY_DAY, TrendRange.ALL))
+        runCurrent()
+        val all = assertIs<CardData.EnergyDay>(vm.card(TrendCard.ENERGY_DAY).data)
+        assertEquals(day(100), all.days.first(), "loggen för 100 dagar sedan kommer med")
+        assertEquals(IntervalPoint(2f, 2f, 2f), all.points.first())
+
+        val before = factory.store.reads.get()
+        vm.onEvent(TrendsEvent.SetRange(TrendCard.ENERGY_DAY, TrendRange.THREE_MONTHS))
+        runCurrent()
+        val quarter = assertIs<CardData.EnergyDay>(vm.card(TrendCard.ENERGY_DAY).data)
+        assertEquals(IntervalPoint(5f, 5f, 5f), quarter.points[quarter.days.indexOf(day(40))], "dag 40 ur historiken")
+        assertEquals(4L, factory.store.reads.get() - before, "historiken ur cachen – bara lyssnaren på de 30 dagarna (fyra loggar) startar igen")
+    }
+
+    @Test
     fun `perioden gäller per kort, och två kort med samma period delar en läsning (TRD-3)`() = runTest(main.dispatcher) {
         seed()
         val vm = started()
@@ -456,6 +482,7 @@ class TrendsViewModelTest {
         vm.onEvent(TrendsEvent.SetPrevious(TrendCard.ENERGY_OCCASION, true))
         runCurrent()
         assertEquals<ClosedRange<LocalDate>>(day(59)..today, screeningReads.last(), "båda perioderna i en läsning")
+        assertEquals(listOf(day(29)..today), screeningLive.last(), "lyssnaren bara på de 30 dagarna till idag – föregående period i historikläget (NFR-24)")
         var lines = assertIs<CardData.Lines>(vm.card(TrendCard.ENERGY_OCCASION).data)
         assertEquals(30, lines.days.size)
         assertEquals(listOf(Occasion.BREAKFAST.wire), lines.previous.map { it.key })
