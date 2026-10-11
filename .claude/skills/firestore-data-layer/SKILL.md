@@ -55,6 +55,7 @@ fälthjälparna; toleranta mot saknade och okända fält (DAT-10):
 | `observe(): Flow<List<T>>` | från cachen, följer den inloggade användaren (utloggad → inget emitteras); sorterat på `sortOrder` för `Sortable` |
 | `observe(id): Flow<T?>` | ett dokument, `null` om det saknas |
 | `observeBetween(field, from, to): Flow<List<T>>` | dokumenten där toppfältet ligger i `from..to` (båda inräknade; samma typjämförelse som `confirmedFrom`), offline först som `observe` – en dag eller period av `doses`/`screenings` på `DATE` (`>=` och `<=` på samma fält täcks av det automatiska enkelfältsindexet, inget i `firestore.indexes.json`). Följer användaren som `observe`: utloggad emitteras inget, och lyssningen tas upp igen vid inloggning. Datumfält via extensionen `observeDates(field, från, till)` |
+| `observeHistory(field, från, till)` | **historikläget** (NFR-24) för äldre dagar: flöde ur den lokala cachen via en lyssnare med `ListenSource.CACHE` (debiteras inte, ser appens egna skrivningar direkt). Det cachen inte bevisligen har hämtas först från servern en gång (`get(Source.SERVER)`) och antecknas i `HistoryCoverage` (per konto, samlingens sökväg och fält: äldsta dag med allt hämtat + hämtdagen, i `dagboken_device` via `DayMarks`; cachen visas direkt och fylls på när hämtningen kommit; bara luckan före täckningen hämtas, allt hämtas om efter 7 dagar från den äldsta täckta dagen; hämtningen körs i appens scope utan egen tidsgräns och antecknas när den blir klar, bara för samma konto och om ingen `forgetAll` kommit emellan; samtidiga anrop för samma samling en i taget). Antagande: en enhet – omhämtningen skyddar mot Firestores LRU-rensning (över 100 MB) och skrivningar från `tools/db`. Offline (och slut på kvoten): det cachen har, hämtningen görs om med växande paus. Utloggad emitteras inget. Delad logik i `historyFlow` (`data/common/HistoryReads.kt`) för båda implementationerna. Långa perioder läses med `observeDates(field, från, till, live)` – historikläget för hela perioden och lyssnare på dagarna i `live` (dagar från idag ska ligga där), ihopslaget med `mergeReads` (senaste listans version vinner, sorterat med `sortForList`). Med `live` som flöde (Idag) byter ett nytt värde bara lyssnarna – historiken står still. En tom period läser inget |
 | `cachedBetween(field, from, to)` | intervallet en gång, offline först som `cached()` (`firstFromCache`: ur cachen också utan nät, annars servern); `NotSignedIn` direkt utloggad. För kontroller inför en offline-skrivning (vid behov-dosens kylperiod och dagsgräns). Datumfält via `cachedDates` |
 | `get(id)`, `getAll()` | engångsläsning som `Result` |
 | `upsert(item)` | `set(…, merge)` med codecens fullständiga fältlista; okända fält bevaras, `null` tömmer; `updatedAt` sätts, `createdAt` utan värde skrivs inte (`prepareForWrite`) |
@@ -93,7 +94,10 @@ fälthjälparna; toleranta mot saknade och okända fält (DAT-10):
   `cached…` (svaren märkta `fromCache`) och skrivningar i cachen fungerar; `confirmed…`, en villkorad
   skrivning med något att pröva och `awaitWrites` när appen skrivit något utan nät blir `Offline` (en tom
   transaktion och `awaitWrites` utan väntande skrivningar lyckas, som i Firestore) – så att ett
-  repositorytest bevisar att något fungerar offline.
+  repositorytest bevisar att något fungerar offline. `FakeStore.reads` räknar debiterade läsningar (en lyssnare för
+  sitt resultat vid varje start – en övre gräns, Firestore tar upp en lyssnare inom 30 minuter för bara ändringarna –,
+  en serverläsning för sitt resultat, minst 1; cachen 0) och `FakeStore.cached` vad enhetens cache känner till (allt
+  som skrivits eller lästs); `clearCache()` ger en ny enhet, vars historikläsning bara ser det som hämtats från servern.
 
 ### Samlingar och sökvägar
 `CollectionTable` (`data/firestore/`) är enda tabellen över samlingarnas namn, codecs och
@@ -236,6 +240,8 @@ cachen och synkas när nätet finns; larmen schemaläggs om vid synk, omstart oc
 |---|---|
 | Codec-rundtur och tolerans | `core/src/test/.../schema/` (hjälparna i skill `testing-strategy`) |
 | `CollectionContract` (i `app/src/sharedTest`) mot `FakeCollection` | `FakeCollectionContractTest`, JVM, varje PR när `app/` ändras |
+| Historikläget: ofullständig cache, täckning, offline, konto (NFR-24) | `HistoryReadsTest` mot `FakeCollection` (`clearCache`, `reads`) |
+| Läsbudget per besök (NFR-24) | `ReadBudgetTest`: Idag, Dagbok och Trender med ca 2 000 dokument över tre år |
 | `CollectionContract` mot riktig `FirestoreCollection` + Firebase-emulatorn (firestore + auth, rules aktiva) | `FirestoreCollectionContractTest` i `app/src/androidTest` (instrumenttest: i PR:er som rör koden, skill `ci-budget`); användare och Firestore-instans per test från regeln `FirebaseEmulator` (skill `testing-strategy`) |
 | Offline först och användarens version mot riktig Firestore | `FirestoreOfflineTest` i `app/src/androidTest` (`disableNetwork` → skrivning lyckas, syns lokalt, synkas efter `enableNetwork`) |
 | Rules-test | `tools/db/test/rules.test.mjs` |
@@ -247,11 +253,17 @@ JVM-testerna i varje PR fångar samma sak som instrumenttestet mot riktig Firest
 
 ## Kostnad (Spark-planen)
 
-- Lyssna inte på stora samlingar utan `where`/`limit`. `doses`, `screenings`, `activities` och
-  `events` växer med ~3 000–5 000 dokument per år: lyssna per dag eller period med `observeBetween` (Idag, Dagbok
-  ett år i taget, Trender per vald period), aldrig på hela samlingen. "Allt"-perioden i Trender
-  räknas ur cachen i `:core` (ARKITEKTUR.md → Risker).
-- Första synken av flera års data efter migreringen är en engångskostnad inom Spark-planen.
+- **Läsbudgeten (NFR-24):** 50 000 läsningar per dag. En lyssnare som kopplas in igen efter mer än ca 30 minuter
+  debiteras för **hela** sitt resultat – med `WhileSubscribed(5_000)` alltså vid nästan varje besök. Kvoten tog slut
+  (#305) med ca 2 000 dokument när Idag lyssnade på 91 dagar, Dagbok på hela år och Trender på hela historiken.
+- Lyssna bara på det som visas eller nyss hänt: Idag på remsans vecka och den visade dagen, Dagbok och Trender på
+  de senaste 30 dagarna (`recentDays` i `:core/time`). Äldre dagar läses i historikläget (`observeHistory`, via
+  `observeDates(field, från, till, live)` och repositoryts `observeDays(från, till, live)`), aldrig med en lyssnare
+  på ett helt år eller hela historiken. Lyssna aldrig på hela `doses`, `screenings`, `activities` eller `events`.
+- En ny skärm med lång period följer samma mönster och får ett budgettest som `ReadBudgetTest` (ca 2 000 dokument
+  över tre år, första besöket och ett nytt besök samma dag).
+- Första synken av flera års data efter migreringen är en engångskostnad inom Spark-planen; historikläget hämtar
+  varje äldre dag högst en gång per vecka och enhet.
 - Stäng lyssnare när skärmen lämnas (`WhileSubscribed(5_000)` i ViewModel).
 
 ## Anti-mönster

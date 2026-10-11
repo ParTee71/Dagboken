@@ -333,7 +333,7 @@ rad i skill `shared-ui-components`. Diagrammatematik (`computeSmartYAxis`, `comp
 ## Lager och moduler
 
 ```
-:core  (ren Kotlin/JVM)   model/ · time/ (HOME_ZONE) · schema/ (DocCodec, Fields, Schema, SchemaMigrator) · codecs ·
+:core  (ren Kotlin/JVM)   model/ · time/ (HOME_ZONE, ReadParts) · schema/ (DocCodec, Fields, Schema, SchemaMigrator) · codecs ·
                           engine/ (Dosing, EnsureDoses, Cooldown, PeriodEndings,
                           PrescriptionRules, DailyEnergyStats, SleepQuality, chart math) · legacy/ (BackupJson → 4.0-konverterare, validering
                           mot DocumentRules, ConvertBackupMain för grinden OMB-4, ImportFile: importens läsare av 3.x-backup
@@ -657,7 +657,7 @@ PR-beskrivningen, `granskare` + `/code-review` före push, en PR i taget.
 | Fält tappas i konverteringen | Fixtur med alla fält (varje 3.x-fält icke-default, varje 4.0-fält fyllt), fältvis jämförelse mot förväntad export, rundtur och rules-skrivning av den i emulatorn, grind OMB-4 med riktig backup, Room-filen behålls. Anteckningar utan sin post är det enda som inte får plats – de räknas i rapporten (Migrering, punkt 1). |
 | 3.x-text längre än rules-gränserna (3.x hade inga) | `TextLimits.LONG` är 5 000 tecken för anteckningar, det enda 3.x-fältet som rimligen kan vara långt. Konverteraren validerar varje dokument mot `TextLimits` och rules-intervallen och stoppar med rapport – kapar aldrig (Migrering, punkt 1). Grinden OMB-4 omfattar valideringen, eftersom admin-importen går förbi rules. Visar en riktig backup längre text höjs gränsen i `TextLimits` och rules i samma PR. |
 | Rules nekar riktig 3.x-data vid importen på enheten | Rules räknar högst 1 000 uttryck och 20 dokumentuppslag per skrivning: listor av objekt har generösa tak (50 symptom, 50 doshöjningar) och elementen kontrolleras upp till det tionde, billigt nog att värsta-fall-dokumenten (receptet med 50 höjningar med start och slut, screening, aktivitet och incheckning med 50 symptom med poäng och fritext, varje fält fullt) ryms med en reserv på minst fem fältkontroller för var och en av de fyra (recept, screening, aktivitet, incheckning) – mätt i rules-testet (#294, #296); incheckningar kräver sin episod (`existsAfter`) och en batch får slå upp högst 20 befintliga episoder, så importen skriver episoderna i samma batch som sina incheckningar eller delar upp per högst 20 episoder. Rules-testerna täcker gränserna; grinden OMB-4 går via `tools/db` (admin, förbi rules), så importen på enheten (etapp 3) prövar rules mot riktig data. |
-| Spark-planens läsbudget vid första synk | Engångskostnad; cache därefter; "Allt"-perioden i Trender räknas ur cachen i `:core`. |
+| Spark-planens läsbudget (50 000/dag) | Första synken är en engångskostnad. Därefter lyssnar appen bara på det som visas eller nyss hänt (Idags vecka, Dagboks och Trenders senaste 30 dagar); äldre dagar läses i historikläget ur cachen och hämtas från servern högst en gång per vecka och enhet (NFR-24, #305 – kvoten tog slut med ~2 000 dokument när lyssnare på hela år debiterades vid varje besök). Budgeten provas i `ReadBudgetTest`. |
 | Hälsodata i molnet | EU-region, rules bara för ägaren, krypterad export, ingen PII i loggar (skill `data-privacy-security`). |
 | Larm tystnar när schemat ligger i cachen | Omschemaläggning vid synk, boot och appuppdatering (NOT-14); test mot `FakeCollection`. |
 | Omfattning | Kravlistan är paritetschecklistan; etapperna i värdeordning; första release först när allt är grönt. |

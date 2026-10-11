@@ -78,9 +78,9 @@ class DiaryViewModelTest {
     private val countingActivities = object : ActivityRepository by DefaultActivityRepository(factory, clock) {
         private val real = DefaultActivityRepository(factory, clock)
 
-        override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Activity>> {
+        override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Activity>> {
             val held = holdOlder?.takeIf { from < LocalDate(2025, 10, 7) }
-            return (held ?: real.observeDays(from, to)).onStart { activityReads += from..to }
+            return (held ?: real.observeDays(from, to, live)).onStart { activityReads += from..to }
         }
     }
 
@@ -289,6 +289,37 @@ class DiaryViewModelTest {
     }
 
     @Test
+    fun `poster som en annan enhet skrivit saknas inte fast enhetens cache är tom – också äldre år (HIST-8, NFR-24)`() = runTest(main.dispatcher) {
+        seed()
+        factory.store.clearCache()
+        val vm = started(viewModel())
+        assertEquals(7, vm.rows.size)
+        vm.onEvent(DiaryEvent.ShowOlder)
+        runCurrent()
+        assertTrue("activity:old" in vm.ids)
+    }
+
+    @Test
+    fun `en äldre post som ändras eller raderas syns direkt – historikläget följer cachen (HIST-5, NFR-24)`() = runTest(main.dispatcher) {
+        val august = Screening("aug", LocalDate(2026, 8, 3), LocalTime(9, 0), energy = 4)
+        factory.screenings().upsert(august).getOrThrow()
+        factory.activities().upsert(old).getOrThrow()
+        val vm = started(viewModel())
+        vm.onEvent(DiaryEvent.ShowOlder)
+        runCurrent()
+        assertEquals(listOf("screening:aug", "activity:old"), vm.ids, "två månader sedan och förra året – utanför de 30 lyssnade dagarna")
+
+        factory.screenings().upsert(august.copy(energy = 9)).getOrThrow()
+        runCurrent()
+        assertEquals(9, (vm.rows.first() as DiaryRow.Entry).entry.let { (it as DiaryEntry.Mood).screening.energy })
+
+        val entries = vm.rows.filterIsInstance<DiaryRow.Entry>().associate { it.key to it.entry }
+        vm.onEvent(DiaryEvent.Delete(entries.getValue("activity:old")))
+        runCurrent()
+        assertEquals(listOf("screening:aug"), vm.ids)
+    }
+
+    @Test
     fun `en radering som misslyckas visas som meddelande`() = runTest(main.dispatcher) {
         seed()
         val failing = object : EventRepository by DefaultEventRepository(factory, clock) {
@@ -309,8 +340,8 @@ class DiaryViewModelTest {
         var fail = true
         val real = DefaultScreeningRepository(factory, clock)
         val flaky = object : ScreeningRepository by real {
-            override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Screening>> =
-                if (fail) flow { throw DataError.Offline } else real.observeDays(from, to)
+            override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Screening>> =
+                if (fail) flow { throw DataError.Offline } else real.observeDays(from, to, live)
         }
         val vm = started(viewModel(screenings = flaky))
         assertEquals(ListUiState.Error(DataError.Offline), vm.state.value)
