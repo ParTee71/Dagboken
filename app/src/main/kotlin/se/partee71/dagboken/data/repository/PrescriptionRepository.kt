@@ -14,6 +14,7 @@ import se.partee71.dagboken.core.engine.toDeactivateOn
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.schema.PrescriptionCodec
 import se.partee71.dagboken.data.common.CollectionFactory
+import se.partee71.dagboken.data.common.DailyGate
 import se.partee71.dagboken.data.common.offlineIsNoOp
 import se.partee71.dagboken.data.common.LatestWins
 import se.partee71.dagboken.data.common.SyncStatus
@@ -77,7 +78,10 @@ interface PrescriptionRepository {
      * och senare doser avgör: recept som bara saknar doser får dem samma låsta väg som [ensureDay], och
      * recept vars doser ska ändras eller tas bort går via samma synk som [syncFromServer] (idempotent:
      * stämmer allt skrivs ingenting).
-     * Offline görs ingenting, utan fel.
+     * Körs högst en gång per dag, enhet och konto efter en lyckad körning (#304, [DailyGate]) – de serverläsningarna
+     * debiteras fullt; samtidiga anrop (Idag och Mediciner) ger en körning. Offline görs ingenting, utan fel – men det
+     * räknas inte som lyckat, så nästa anrop med nät kör; ett fel (t.ex. `QuotaExceeded`) ges tillbaka och nästa
+     * anrop försöker igen.
      */
     suspend fun tidyUp(today: LocalDate): Result<Unit>
 
@@ -110,6 +114,8 @@ class DefaultPrescriptionRepository @Inject constructor(
     private val sync: SyncStatus,
     /** Enhetens tidszon, läst vid varje växling. */
     private val zone: Provider<TimeZone>,
+    /** [tidyUp] en gång per dag, enhet och konto (#304). */
+    private val daily: DailyGate,
 ) : PrescriptionRepository {
     private val collection = collections.prescriptions()
 
@@ -133,13 +139,22 @@ class DefaultPrescriptionRepository @Inject constructor(
         written.onFailure { return Result.failure(it) }
         val id = loaded?.id ?: edited.id
         val today = clock.todayIn(zone.get())
-        background.launch { sync.trackWork { syncFromServer(id, today) } }
+        background.launch {
+            // REC-10: avbryts dossynken (offline, fel) läker nästa visnings städning den – också samma dag (#304).
+            // Glöms före och efter synken, så att en städning som hann köras under den inte gäller dagen ut. I
+            // bakgrunden: väntar in en pågående städning utan att hålla kvar sparningen.
+            daily.forget(TIDY_UP)
+            sync.trackWork { syncFromServer(id, today) }
+            daily.forget(TIDY_UP)
+        }
         return Result.success(Unit)
     }
 
     override suspend fun setActive(prescription: Prescription, active: Boolean): Result<Unit> {
         collection.update(prescription.copy(active = active), setOf(PrescriptionCodec.ACTIVE)).onFailure { return Result.failure(it) }
-        return syncFromServer(prescription.id, clock.todayIn(zone.get()))
+        // REC-10, #304: som efter en sparning – före och efter synken, utan att vänta in en pågående städning.
+        background.launch { daily.forget(TIDY_UP) }
+        return syncFromServer(prescription.id, clock.todayIn(zone.get())).also { background.launch { daily.forget(TIDY_UP) } }
     }
 
     override suspend fun syncFromServer(prescriptionId: String, today: LocalDate): Result<Unit> = sync(prescriptionId, today).offlineIsNoOp()
@@ -162,16 +177,19 @@ class DefaultPrescriptionRepository @Inject constructor(
             doses.syncPrescription(stored, today, isCurrent)
         }
 
-    override suspend fun tidyUp(today: LocalDate): Result<Unit> {
-        val stored = collection.confirmed().getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
+    override suspend fun tidyUp(today: LocalDate): Result<Unit> = daily.runOncePerDay(TIDY_UP, today) { tidy(today) }.offlineIsNoOp()
+
+    /** [tidyUp] utan grind, med `Offline` kvar som fel – så att grinden inte antecknar en körning utan nät. */
+    private suspend fun tidy(today: LocalDate): Result<Unit> {
+        val stored = collection.confirmed().getOrElse { return Result.failure(it) }
         // Bara ett urval: beslutet – avsluta, städa – fattas per recept i synken, på färska data under
         // receptets lås.
         val ended = stored.toDeactivateOn(today).mapTo(LinkedHashSet()) { it.id }
-        val plan = doses.plan(stored.filter { it.id !in ended }, today).getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
+        val plan = doses.plan(stored.filter { it.id !in ended }, today).getOrElse { return Result.failure(it) }
         // Saknade doser: samma låsta väg som dagens doser (ensureDay).
         createMissing(plan.missing, today, today).onFailure { return Result.failure(it) }
-        for (id in ended) sync(id, today, endIfExpired = true).onFailure { return Result.failure<Unit>(it).offlineIsNoOp() }
-        for (id in plan.locked) sync(id, today).onFailure { return Result.failure<Unit>(it).offlineIsNoOp() }
+        for (id in ended) sync(id, today, endIfExpired = true).onFailure { return Result.failure(it) }
+        for (id in plan.locked) sync(id, today).onFailure { return Result.failure(it) }
         return Result.success(Unit)
     }
 
@@ -180,7 +198,7 @@ class DefaultPrescriptionRepository @Inject constructor(
         // Urvalet på cachen (inget saknas → ingen serverläsning alls); beslutet fattas under låset.
         val cached = collection.cached().getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
         val missing = doses.missingOn(cached, date, today).getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
-        return createMissing(missing, date, today)
+        return createMissing(missing, date, today).offlineIsNoOp()
     }
 
     /**
@@ -188,7 +206,8 @@ class DefaultPrescriptionRepository @Inject constructor(
      * recept under receptets lås (som [syncFromServer], men utan att göra en väntande synk inaktuell):
      * väntar in egna skrivningar, läser receptet **från servern** och skapar dess saknade doser på [date]
      * (`DoseRepository.createDay`). Så skapas aldrig doser som en samtidig avaktivering just tagit bort.
-     * Första `Offline` avslutar utan fel.
+     * Första fel avslutar; `Offline` ges tillbaka som fel ([ensureDay] gör det till "ingenting gjordes", [tidy] låter
+     * dagsgrinden se det).
      */
     private suspend fun createMissing(ids: List<String>, date: LocalDate, today: LocalDate): Result<Unit> {
         for (id in ids) {
@@ -197,12 +216,15 @@ class DefaultPrescriptionRepository @Inject constructor(
                 val current = collection.confirmed(id).getOrElse { return@runExclusive Result.failure(it) }
                     ?: return@runExclusive Result.success(Unit)
                 doses.createDay(current, date, today)
-            }.onFailure { return Result.failure<Unit>(it).offlineIsNoOp() }
+            }.onFailure { return Result.failure(it) }
         }
         return Result.success(Unit)
     }
 
     private companion object {
+        /** Dagsgrindens namn för [tidyUp] (nyckeln i `dagboken_device` per uid). */
+        const val TIDY_UP = "prescriptions_tidy_up"
+
         /** "Förläng och aktivera" skriver alltid dessa (MEDF-5). */
         val EXTEND_FIELDS = setOf(PrescriptionCodec.ACTIVE, PrescriptionCodec.PERIOD, PrescriptionCodec.BOOSTS)
     }

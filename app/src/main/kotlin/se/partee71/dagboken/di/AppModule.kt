@@ -19,6 +19,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.datetime.TimeZone
+import se.partee71.dagboken.data.common.DataStoreDayMarks
+import se.partee71.dagboken.data.common.DayMarks
 import se.partee71.dagboken.data.common.UserScope
 import se.partee71.dagboken.data.user.UserSession
 
@@ -44,6 +46,10 @@ abstract class AppModule {
     @Binds
     abstract fun userScope(session: UserSession): UserScope
 
+    /** Dagsgrindens anteckningar (`DailyGate`, #304) i `dagboken_device`. */
+    @Binds
+    abstract fun dayMarks(marks: DataStoreDayMarks): DayMarks
+
     companion object {
         @Provides
         @Singleton
@@ -66,8 +72,9 @@ abstract class AppModule {
         fun timeZone(): TimeZone = TimeZone.currentSystemDefault()
 
         /**
-         * Enhetslokalt tillstånd (TP-4): migreringsflaggan (OMB-2) och senare senast valda flik. 4.0:s egen
-         * fil – aldrig 3.x-filen `dagboken_prefs`, som migreringen bara läser. Ett DataStore per fil och process.
+         * Enhetslokalt tillstånd (TP-4): migreringsflaggan (OMB-2), dagsgrindens senaste dag per konto (#304) och
+         * senare senast valda flik. 4.0:s egen fil – aldrig 3.x-filen `dagboken_prefs`, som migreringen bara läser.
+         * Ett DataStore per fil och process.
          */
         @Provides
         @Singleton
