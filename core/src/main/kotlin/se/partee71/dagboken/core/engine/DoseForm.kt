@@ -10,6 +10,7 @@ import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Slot
 
 // Dosformuläret (MED-11, MED-15, MED-16) – hur dag, klockslag och "Tagen" ändrar en dos, en gång, här.
@@ -29,12 +30,12 @@ val Dose.isPrescribed: Boolean get() = prescriptionRef != null
 private val PRESCRIBED_ID = Regex("""recept_(.+)_\d{4}-\d{2}-\d{2}_[^_]+""")
 
 /**
- * Klockslaget formuläret visar: tagningstiden (MED-14) för en tagen dos, annars det planerade klockslaget och
- * till sist tidpunktens standard (REC-6) – i hela minuter.
+ * Klockslaget formuläret visar: tagningstiden (MED-14) för en tagen dos, annars dosens klockslag i schemat
+ * ([scheduledTime] – för en planerad eller överhoppad receptdos tidpunktens i [reminders], NOT-18) – i hela minuter.
  */
-fun Dose.shownTime(zone: TimeZone): LocalTime {
+fun Dose.shownTime(zone: TimeZone, reminders: ReminderSettings): LocalTime {
     val taken = takenAt?.takeIf { status == DoseStatus.TAKEN }?.toLocalDateTime(zone)?.time
-    val time = taken ?: plannedTime ?: slot.defaultTime
+    val time = taken ?: scheduledTime(reminders)
     return LocalTime(time.hour, time.minute)
 }
 
@@ -42,14 +43,14 @@ fun Dose.shownTime(zone: TimeZone): LocalTime {
 fun momentOf(date: LocalDate, time: LocalTime, zone: TimeZone): Instant = LocalDateTime(date, time).toInstant(zone)
 
 /** Dosen flyttad till [date] med samma klockslag ([shownTime]); en tagen dos tagningstid följer med (MED-15). */
-fun Dose.onDay(date: LocalDate, zone: TimeZone): Dose {
-    val time = shownTime(zone)
+fun Dose.onDay(date: LocalDate, zone: TimeZone, reminders: ReminderSettings): Dose {
+    val time = shownTime(zone, reminders)
     return copy(date = date, takenAt = if (status == DoseStatus.TAKEN) momentOf(date, time, zone) else takenAt)
 }
 
 /**
  * Dosen kl. [time] på sin dag: en tagen dos tagningstid (MED-14). En dos utan recept får också klockslaget som
- * sitt planerade (3.x `tid`); en receptdos behåller schemats klockslag – det styrs av receptet (MED-15).
+ * sitt planerade (3.x `tid`); en receptdos behåller schemats klockslag – det styrs av tidpunkten (NOT-18, MED-15).
  */
 fun Dose.atTime(time: LocalTime, zone: TimeZone): Dose {
     val day = date ?: return this
@@ -61,10 +62,10 @@ fun Dose.atTime(time: LocalTime, zone: TimeZone): Dose {
  * "Tagen" i formuläret (MED-15): på → tagen vid det visade klockslaget på dosens dag; av → överhoppad utan
  * tagningstid – samma som "Hoppa över" (MED-3), så att dosgenereringen aldrig skapar den igen som planerad.
  */
-fun Dose.withTaken(taken: Boolean, zone: TimeZone): Dose {
+fun Dose.withTaken(taken: Boolean, zone: TimeZone, reminders: ReminderSettings): Dose {
     if (!taken) return copy(status = DoseStatus.SKIPPED, takenAt = null)
     val day = date ?: return copy(status = DoseStatus.TAKEN)
-    return copy(status = DoseStatus.TAKEN, takenAt = momentOf(day, shownTime(zone), zone))
+    return copy(status = DoseStatus.TAKEN, takenAt = momentOf(day, shownTime(zone, reminders), zone))
 }
 
 /**

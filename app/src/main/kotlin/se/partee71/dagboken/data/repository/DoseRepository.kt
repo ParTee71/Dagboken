@@ -26,6 +26,7 @@ import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.schema.DoseCodec
 import se.partee71.dagboken.core.schema.encodeDate
 import se.partee71.dagboken.data.common.CollectionFactory
@@ -64,14 +65,14 @@ interface DoseRepository : EntryStore<Dose>, DayReads<Dose> {
 
     /**
      * HEM-10, MED-4: skapar [prescription]s saknade doser på [date] (`createIfAbsent` – en befintlig dos,
-     * vilken status den än har, skrivs aldrig över). [prescription] ska vara läst från servern, och anropet
-     * görs **bara** av `PrescriptionRepository` (dagens doser och städningen, en väg) under receptets lås, så att en samtidig dossynk
+     * vilken status den än har, skrivs aldrig över) med tidpunkternas klockslag i [reminders] (NOT-18).
+     * [prescription] ska vara läst från servern, och anropet görs **bara** av `PrescriptionRepository` (dagens doser och städningen, en väg) under receptets lås, så att en samtidig dossynk
      * (t.ex. en avaktivering som tar bort dagens planerade doser) aldrig följs av att de skapas igen.
      * Recept vars period passerats avslutas inte här – bara av `PrescriptionRepository.tidyUp` (REC-8).
      * Offline görs ingenting och `Offline` ges tillbaka – så att Idag försöker igen (HEM-10) och städningens dagsgrind
      * inte antecknar en körning vars doser saknas.
      */
-    suspend fun createDay(prescription: Prescription, date: LocalDate, today: LocalDate): Result<Unit>
+    suspend fun createDay(prescription: Prescription, date: LocalDate, today: LocalDate, reminders: ReminderSettings): Result<Unit>
 
     /**
      * MED-2, MED-3, MED-14: tagen, överhoppad eller planerad (ångrad). Skriver **bara** `status` och
@@ -152,12 +153,18 @@ interface DoseRepository : EntryStore<Dose>, DayReads<Dose> {
      * lästs från servern. Anropas **bara** via `PrescriptionRepository.syncFromServer` – den enda vägen,
      * med receptets lås. Väntar först in appens egna dosskrivningar (`awaitWrites`), läser sedan dagens
      * och senare doser från servern och skriver diffen: namn/dos/enhet på planerade (`updateIf`),
-     * planerade som inte längre gäller tas bort (`deleteIf`), saknade skapas (`createIfAbsent`). Tagna
+     * planerade som inte längre gäller tas bort (`deleteIf`), saknade skapas (`createIfAbsent`, med tidpunkternas
+     * klockslag i [reminders], NOT-18; en befintlig dos klockslag skrivs aldrig om). Tagna
      * och överhoppade rörs aldrig – villkoret prövas mot serverns version. Första `Offline` avbryter
      * resten och ges tillbaka som [DataError.Offline]. [isCurrent] blir `false` när synken blivit
      * inaktuell (en senare växling): då avslutas den före nästa skrivning, aldrig mitt i en.
      */
-    suspend fun syncPrescription(prescription: Prescription, today: LocalDate, isCurrent: () -> Boolean = { true }): Result<Unit>
+    suspend fun syncPrescription(
+        prescription: Prescription,
+        today: LocalDate,
+        reminders: ReminderSettings,
+        isCurrent: () -> Boolean = { true },
+    ): Result<Unit>
 
     /**
      * Vad städningen behöver göra för [prescriptions] från och med [today], med **en** serverläsning av
@@ -208,12 +215,12 @@ class DefaultDoseRepository private constructor(
 
     override suspend fun missingOn(prescriptions: List<Prescription>, date: LocalDate, today: LocalDate): Result<List<String>> =
         collection.cachedDates(DoseCodec.DATE, date, date).map { cached ->
-            ensureDoses(prescriptions, cached, date, today, zone.get()).create.mapNotNull { it.prescriptionId }.distinct()
+            ensureDoses(prescriptions, cached, date, today, zone.get(), ANY_TIMES).create.mapNotNull { it.prescriptionId }.distinct()
         }
 
-    override suspend fun createDay(prescription: Prescription, date: LocalDate, today: LocalDate): Result<Unit> =
+    override suspend fun createDay(prescription: Prescription, date: LocalDate, today: LocalDate, reminders: ReminderSettings): Result<Unit> =
         // Ett dokument som finns – vilken status det än har, också om cachen inte känner till det – skrivs aldrig över.
-        collection.createIfAbsent(ensureDoses(listOf(prescription), existing = emptyList(), date = date, today = today, zone = zone.get()).create)
+        collection.createIfAbsent(ensureDoses(listOf(prescription), existing = emptyList(), date = date, today = today, zone = zone.get(), reminders = reminders).create)
 
     override suspend fun setStatus(dose: Dose, status: DoseStatus, takenAt: Instant?): Result<Unit> {
         takenAt?.let { notInFuture(it) }?.onFailure { return Result.failure(it) }
@@ -273,11 +280,11 @@ class DefaultDoseRepository private constructor(
     private fun notInFuture(at: Instant): Result<Unit> =
         if (at > clock.now()) Result.failure(IllegalArgumentException("En dos kan inte loggas i framtiden")) else Result.success(Unit)
 
-    override suspend fun syncPrescription(prescription: Prescription, today: LocalDate, isCurrent: () -> Boolean): Result<Unit> {
+    override suspend fun syncPrescription(prescription: Prescription, today: LocalDate, reminders: ReminderSettings, isCurrent: () -> Boolean): Result<Unit> {
         collection.awaitWrites().onFailure { return Result.failure(it) }
         val existing = fromToday(today).getOrElse { return Result.failure(it) }
         val zone = zone.get()
-        val sync = prescription.syncDoses(existing, today, zone)
+        val sync = prescription.syncDoses(existing, today, zone, reminders)
         val steps: List<suspend () -> Result<Unit>> = listOf(
             { collection.updateIf(sync.update, FOLLOWS_PRESCRIPTION, ::isPlanned) },
             { collection.deleteIf(sync.delete.map { it.id }, ::isPlanned) },
@@ -294,7 +301,7 @@ class DefaultDoseRepository private constructor(
         if (prescriptions.isEmpty()) return Result.success(DosePlan())
         val existing = fromToday(today).getOrElse { return Result.failure(it) }
         val zone = zone.get()
-        val syncs = prescriptions.associate { it.id to it.syncDoses(existing, today, zone) }
+        val syncs = prescriptions.associate { it.id to it.syncDoses(existing, today, zone, ANY_TIMES) }
         val (locked, createOnly) = syncs.filterValues { !it.isEmpty }.entries.partition { (_, sync) -> sync.update.isNotEmpty() || sync.delete.isNotEmpty() }
         return Result.success(DosePlan(locked = locked.map { it.key }, missing = createOnly.map { it.key }))
     }
@@ -309,6 +316,12 @@ class DefaultDoseRepository private constructor(
     private fun isPlanned(stored: Dose): Boolean = stored.status == DoseStatus.PLANNED
 
     internal companion object {
+        /**
+         * [missingOn] och [plan] ser bara vilka recept som saknar eller har inaktuella doser – det avgörs av id:n, status och
+         * receptet, aldrig av klockslaget (MED-4). Doserna skapas med användarens klockslag i [createDay] och [syncPrescription].
+         */
+        private val ANY_TIMES = ReminderSettings()
+
         /** Fälten som följer receptet (REC-10, REC-12). */
         private val FOLLOWS_PRESCRIPTION = setOf(DoseCodec.NAME, DoseCodec.STRENGTH, DoseCodec.DOSE, DoseCodec.UNIT)
 

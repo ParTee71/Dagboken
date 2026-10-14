@@ -94,6 +94,7 @@ class SettingsScreensTest {
             rule.onNodeWithText(it).assertExists()
         }
         rule.onNodeWithText("Vid behov").assertDoesNotExist()
+        rule.onNodeWithText("Klockslaget gäller också doserna på Idag.").assertExists()
         rule.onNodeWithText("07:00").assertExists()
         rule.onNodeWithText("22:00").assertExists()
         rule.onNodeWithText("09:00").assertExists()

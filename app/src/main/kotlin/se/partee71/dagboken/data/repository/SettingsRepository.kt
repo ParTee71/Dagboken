@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.schema.SettingsCodec
 import se.partee71.dagboken.data.common.CollectionFactory
@@ -13,6 +14,7 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.FieldPath
 import se.partee71.dagboken.data.common.KeyedList
 import se.partee71.dagboken.data.common.changedFields
+import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.common.withChangedRows
 
 /**
@@ -51,6 +53,17 @@ interface SettingsRepository {
      */
     suspend fun update(change: (Settings) -> Settings): Result<Unit>
 }
+
+/**
+ * NOT-18: påminnelseinställningarna – tidpunkternas klockslag som doserna följer – vid varje ändring. Går de inte att läsa
+ * gäller standardvärdena (REC-6), och flödet försöker igen (`withFallback`). Den enda fallbacken för inställningarna i
+ * beräkningar; en påminnelse som ska tystas av en avslagen inställning läser i stället [SettingsRepository.get].
+ */
+val SettingsRepository.reminders: Flow<ReminderSettings>
+    get() = settings.map { it.reminders }.withFallback(ReminderSettings())
+
+/** NOT-18: påminnelseinställningarna en gång (cachen först, [SettingsRepository.get]); går de inte att läsa standardvärdena (REC-6). */
+suspend fun SettingsRepository.currentReminders(): ReminderSettings = get().getOrNull()?.reminders ?: ReminderSettings()
 
 /** Tunn fasad över samlingen `settings` (skill firestore-data-layer). */
 @Singleton

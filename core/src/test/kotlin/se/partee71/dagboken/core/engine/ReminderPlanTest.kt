@@ -150,10 +150,10 @@ class ReminderPlanTest {
     private val levaxin = prescription(id = "lev", name = "Levaxin", dose = "100", slots = listOf(Slot.MORNING))
 
     private fun stored(p: se.partee71.dagboken.core.model.Prescription, slot: Slot, status: DoseStatus = DoseStatus.PLANNED) =
-        p.plannedDoses(today, STOCKHOLM).single { it.slot == slot }.copy(status = status)
+        p.plannedDoses(today, STOCKHOLM, reminders = ReminderSettings()).single { it.slot == slot }.copy(status = status)
 
     @Test fun `planerade doser för tidpunkten, och receptens som ännu inte skapats`() {
-        val doses = slotDoses(Slot.MORNING, today, today, listOf(metformin, levaxin), listOf(stored(metformin, Slot.MORNING)), STOCKHOLM)
+        val doses = slotDoses(Slot.MORNING, today, today, listOf(metformin, levaxin), listOf(stored(metformin, Slot.MORNING)), STOCKHOLM, reminders = ReminderSettings())
         assertEquals(listOf(DoseIds.prescribed("met", today, Slot.MORNING)), doses.stored.map { it.id })
         assertEquals(listOf(DoseIds.prescribed("lev", today, Slot.MORNING)), doses.missing.map { it.id })
         assertEquals(listOf("Levaxin", "Metformin"), doses.all.map { it.name })
@@ -161,27 +161,27 @@ class ReminderPlanTest {
 
     @Test fun `tagna och överhoppade doser ger ingen notis (NOT-3)`() {
         val existing = listOf(stored(metformin, Slot.MORNING, DoseStatus.TAKEN), stored(levaxin, Slot.MORNING, DoseStatus.SKIPPED))
-        assertTrue(slotDoses(Slot.MORNING, today, today, listOf(metformin, levaxin), existing, STOCKHOLM).isEmpty)
+        assertTrue(slotDoses(Slot.MORNING, today, today, listOf(metformin, levaxin), existing, STOCKHOLM, reminders = ReminderSettings()).isEmpty)
     }
 
     @Test fun `andra tidpunkter, andra dagar och vid behov-doser räknas inte`() {
         val prn = Dose("prn", date = today, slot = Slot.AS_NEEDED, name = "Alvedon")
         val prnWithSlot = Dose("prn2", date = today, slot = Slot.MORNING, name = "Ipren", prnId = "ipren")
         val yesterday = stored(metformin, Slot.MORNING).copy(id = "igår", date = day("2026-05-05"))
-        val doses = slotDoses(Slot.MORNING, today, today, emptyList(), listOf(stored(metformin, Slot.EVENING), prn, prnWithSlot, yesterday), STOCKHOLM)
+        val doses = slotDoses(Slot.MORNING, today, today, emptyList(), listOf(stored(metformin, Slot.EVENING), prn, prnWithSlot, yesterday), STOCKHOLM, reminders = ReminderSettings())
         assertTrue(doses.isEmpty)
-        assertTrue(slotDoses(Slot.AS_NEEDED, today, today, listOf(metformin), emptyList(), STOCKHOLM).isEmpty)
+        assertTrue(slotDoses(Slot.AS_NEEDED, today, today, listOf(metformin), emptyList(), STOCKHOLM, reminders = ReminderSettings()).isEmpty)
     }
 
     @Test fun `en dos som saknas har dagens totala dos med höjningen (REC-12)`() {
         val boosted = prescription(id = "pred", name = "Prednisolon", dose = "5", boosts = listOf(boost("2026-05-01", "2026-05-10", "10")))
-        assertEquals(listOf("15"), slotDoses(Slot.MORNING, today, today, listOf(boosted), emptyList(), STOCKHOLM).all.map { it.dose })
+        assertEquals(listOf("15"), slotDoses(Slot.MORNING, today, today, listOf(boosted), emptyList(), STOCKHOLM, reminders = ReminderSettings()).all.map { it.dose })
     }
 
     @Test fun `inaktiva recept och recept som inte gäller dagen ger inget`() {
         val inactive = metformin.copy(active = false)
         val later = prescription(id = "senare", start = "2026-05-10")
-        assertTrue(slotDoses(Slot.MORNING, today, today, listOf(inactive, later), emptyList(), STOCKHOLM).isEmpty)
+        assertTrue(slotDoses(Slot.MORNING, today, today, listOf(inactive, later), emptyList(), STOCKHOLM, reminders = ReminderSettings()).isEmpty)
     }
 
     // ── Måendepåminnelsen (NOT-19) ─────────────────────────────────────────────

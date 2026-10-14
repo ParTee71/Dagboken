@@ -12,6 +12,7 @@ import se.partee71.dagboken.core.engine.isPrescribed
 import se.partee71.dagboken.core.engine.moveTarget
 import se.partee71.dagboken.core.engine.prescriptionRef
 import se.partee71.dagboken.core.engine.syncDoses
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 
@@ -51,12 +52,12 @@ class MigratedDosesTest {
             for (date in data.doses.mapNotNull { it.date }.distinct()) {
                 val linked = data.doses.filter { it.date == date }
                 val bare = linked.unlinked()
-                val created = ensureDoses(prescriptions, linked, date, today = date, zone = zone).create
-                assertEquals(created, ensureDoses(prescriptions, bare, date, today = date, zone = zone).create, "$name $date")
+                val created = ensureDoses(prescriptions, linked, date, today = date, zone = zone, reminders = ReminderSettings()).create
+                assertEquals(created, ensureDoses(prescriptions, bare, date, today = date, zone = zone, reminders = ReminderSettings()).create, "$name $date")
                 assertTrue(created.none { dose -> linked.any { it.id == dose.id } }, "$name $date: ingen dubblett")
                 for (p in prescriptions) {
-                    val withLink = p.syncDoses(linked, date, zone)
-                    val withoutLink = p.syncDoses(bare, date, zone)
+                    val withLink = p.syncDoses(linked, date, zone, reminders = ReminderSettings())
+                    val withoutLink = p.syncDoses(bare, date, zone, reminders = ReminderSettings())
                     assertEquals(withLink.create, withoutLink.create, "$name $date ${p.id}")
                     assertEquals(withLink.update.map { it.id }, withoutLink.update.map { it.id })
                     assertEquals(withLink.delete.map { it.id }, withoutLink.delete.map { it.id })
@@ -74,12 +75,12 @@ class MigratedDosesTest {
         val owner = data.prescriptions.single { it.id == linked.prescriptionId }
         val date = checkNotNull(linked.date)
         // Avaktiverat recept: dagens planerade dos tas bort – också den som bara har receptet i id:t (REC-5).
-        assertEquals(listOf(bare), owner.copy(active = false).syncDoses(listOf(bare), date, zone).delete)
+        assertEquals(listOf(bare), owner.copy(active = false).syncDoses(listOf(bare), date, zone, reminders = ReminderSettings()).delete)
         // Ett annat recept äger den aldrig, och den flyttade dosen bär kopplingen i fältet.
-        data.prescriptions.filter { it.id != owner.id }.forEach { assertTrue(it.copy(active = false).syncDoses(listOf(bare), date, zone).isEmpty) }
+        data.prescriptions.filter { it.id != owner.id }.forEach { assertTrue(it.copy(active = false).syncDoses(listOf(bare), date, zone, reminders = ReminderSettings()).isEmpty) }
         val moved = bare.moveTarget(bare.copy(date = date.plus(1, DateTimeUnit.DAY))) { "slumpat" }
         assertEquals(owner.id, moved.prescriptionId)
         // Måldagens datumbundna id: dosgenereringen ser den flyttade dosen och skapar ingen till.
-        assertEquals(emptyList(), ensureDoses(listOf(owner.copy(active = true)), listOf(moved), checkNotNull(moved.date), checkNotNull(moved.date), zone).create.filter { it.slot == moved.slot })
+        assertEquals(emptyList(), ensureDoses(listOf(owner.copy(active = true)), listOf(moved), checkNotNull(moved.date), checkNotNull(moved.date), zone, reminders = ReminderSettings()).create.filter { it.slot == moved.slot })
     }
 }

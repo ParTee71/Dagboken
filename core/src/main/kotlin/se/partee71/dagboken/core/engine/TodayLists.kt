@@ -3,12 +3,14 @@ package se.partee71.dagboken.core.engine
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Slot
 
@@ -30,8 +32,11 @@ private val MORNING_HOURS = 5..11
 private val AFTERNOON_HOURS = 12..16
 private val EVENING_HOURS = 17..20
 
-/** En dos som inte är avklarad och hur den står mot nu ([dueAt]); `null` för vid behov, som inte väntar på ett klockslag. */
-data class OpenDose(val dose: Dose, val due: Due?)
+/**
+ * En dos som inte är avklarad och hur den står mot nu ([dueAt]) vid klockslaget [time] ([scheduledTime]); båda `null` för
+ * vid behov, som inte väntar på ett klockslag.
+ */
+data class OpenDose(val dose: Dose, val due: Due?, val time: LocalTime? = null)
 
 /**
  * Mediciner-kortet på Idag (MED-1, MED-5, MED-13), varje del i tidpunktsordning (Morgon → Natt → Vid behov).
@@ -51,22 +56,23 @@ data class DoseChecklist(
  * MED-1, MED-5, MED-13: [date]s doser ur [doses] (andra dagar hoppas över) delade och ordnade för
  * Mediciner-kortet. Avklarade ([isDone]) står för sig; en öppen dos med klockslag mer än [SOON_WINDOW] fram
  * idag är kommande, allt annat visas – en tidigare dag har aldrig kommande (`Due.PAST`, HEM-4). Klockslaget
- * är dosens planerade, annars tidpunktens standard (REC-6).
+ * är [scheduledTime]: en planerad receptdos följer tidpunktens klockslag i [reminders] (NOT-18).
  */
-fun doseChecklist(doses: List<Dose>, date: LocalDate, now: Instant, zone: TimeZone): DoseChecklist {
-    val ordered = doses.filter { it.date == date }.sortedWith(DOSE_ORDER)
+fun doseChecklist(doses: List<Dose>, date: LocalDate, now: Instant, zone: TimeZone, reminders: ReminderSettings): DoseChecklist {
+    val ordered = doses.filter { it.date == date }.sortedWith(doseOrder(reminders))
     val (done, open) = ordered.partition { it.isDone }
     val withDue = open.map { dose ->
-        OpenDose(dose, if (dose.slot == Slot.AS_NEEDED) null else dueAt(date, dose.plannedTime ?: dose.slot.defaultTime, now, zone))
+        val time = if (dose.slot == Slot.AS_NEEDED) null else dose.scheduledTime(reminders)
+        OpenDose(dose, time?.let { dueAt(date, it, now, zone) }, time)
     }
     val (upcoming, shown) = withDue.partition { it.due == Due.UPCOMING }
     return DoseChecklist(shown = shown, done = done, upcoming = upcoming)
 }
 
-/** Tidpunkt (Morgon → Natt → Vid behov), klockslag, namn utan skiftläge och sist id – samma ordning varje gång. */
-private val DOSE_ORDER: Comparator<Dose> =
+/** Tidpunkt (Morgon → Natt → Vid behov), klockslag ([scheduledTime]), namn utan skiftläge och sist id – samma ordning varje gång. */
+private fun doseOrder(reminders: ReminderSettings): Comparator<Dose> =
     compareBy<Dose> { it.slot.ordinal }
-        .thenBy { it.plannedTime ?: it.slot.defaultTime }
+        .thenBy { it.scheduledTime(reminders) }
         .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
         .thenBy { it.id }
 
@@ -117,12 +123,12 @@ fun datesWithEntries(doses: List<Dose>, screenings: List<Screening>): Set<LocalD
 
 /**
  * MED-14: tagningstiden när dosen bockas av på Idag vid [now]. Idag (eller en dos utan dag) är det nu; en
- * tidigare dag – bläddrad till i efterhand (HEM-14) – får dosens planerade klockslag på sin dag (annars
- * tidpunktens standard, REC-6), aldrig senare än [now]. Så hamnar en avbockning i efterhand på rätt dag i
+ * tidigare dag – bläddrad till i efterhand (HEM-14) – får dosens klockslag ([scheduledTime], för en planerad receptdos
+ * tidpunktens i [reminders], NOT-18) på sin dag, aldrig senare än [now]. Så hamnar en avbockning i efterhand på rätt dag i
  * historiken och i kylperioden (FAV-4) i stället för på dagens datum.
  */
-fun Dose.checkOffTime(now: Instant, zone: TimeZone): Instant {
+fun Dose.checkOffTime(now: Instant, zone: TimeZone, reminders: ReminderSettings): Instant {
     val day = date ?: return now
     if (day >= now.toLocalDateTime(zone).date) return now
-    return minOf(LocalDateTime(day, plannedTime ?: slot.defaultTime).toInstant(zone), now)
+    return minOf(LocalDateTime(day, scheduledTime(reminders)).toInstant(zone), now)
 }

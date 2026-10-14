@@ -20,7 +20,8 @@ fun testDoses(collections: CollectionFactory, zone: TimeZone, clock: Clock = Fix
  * [DefaultPrescriptionRepository] i test – en gång för alla testklasser. Dossynken efter en sparning
  * körs i [background] (standard: direkt, så att doserna syns när `save` returnerat) och dess fel hamnar
  * i [sync] som i appen. Städningens dagsgrind ([gate], #304) är som standard en egen per instans med tom lagring –
- * en ny instans städar alltså på nytt; dela en grind för att efterlikna appens enda instans.
+ * en ny instans städar alltså på nytt; dela en grind för att efterlikna appens enda instans. Tidpunkternas klockslag för
+ * nya doser läses ur [settings] (NOT-18) – som standard samma samlingar.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 fun testPrescriptions(
@@ -31,4 +32,5 @@ fun testPrescriptions(
     background: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher()),
     sync: FirestoreSyncStatus = FirestoreSyncStatus(background),
     gate: DailyGate = DailyGate(MemoryDayMarks(), TestUserScope()),
-): DefaultPrescriptionRepository = DefaultPrescriptionRepository(collections, doses, clock, background, sync, { zone }, gate)
+    settings: SettingsRepository = DefaultSettingsRepository(collections),
+): DefaultPrescriptionRepository = DefaultPrescriptionRepository(collections, doses, clock, background, sync, { zone }, gate, settings)

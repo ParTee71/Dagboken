@@ -4,6 +4,7 @@ import kotlin.time.Instant
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import se.partee71.dagboken.core.model.Boost
@@ -12,9 +13,11 @@ import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Repeat
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.core.model.SlotReminder
 
 // Delade, syntetiska testdata för medicinmotorerna – fasta datum, aldrig "nu".
 
@@ -25,6 +28,21 @@ fun day(iso: String): LocalDate = LocalDate.parse(iso)
 
 /** Dag och klockslag (`"2026-05-01T08:00"`) i Europe/Stockholm. */
 fun at(isoLocal: String): Instant = LocalDateTime.parse(isoLocal).toInstant(STOCKHOLM)
+
+/**
+ * Påminnelserna med egna klockslag (NOT-18): Morgon 06:15 med påminnelsen avslagen, Natt 23:30 och huvudreglaget av –
+ * klockslagen gäller doserna ändå. Övriga tidpunkter har standardklockslaget (REC-6).
+ */
+val OWN_TIMES = ReminderSettings(
+    medsEnabled = false,
+    medSlots = Slot.SCHEDULED.map { slot ->
+        when (slot) {
+            Slot.MORNING -> SlotReminder(slot, enabled = false, time = LocalTime(6, 15))
+            Slot.NIGHT -> SlotReminder(slot, time = LocalTime(23, 30))
+            else -> SlotReminder(slot)
+        }
+    },
+)
 
 fun schedule(repeat: Repeat = Repeat.DAILY, days: Set<DayOfWeek> = emptySet(), intervalDays: Int = 2) =
     Schedule.Repeating(repeat, days, intervalDays)

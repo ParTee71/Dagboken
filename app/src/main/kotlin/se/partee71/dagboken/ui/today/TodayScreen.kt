@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.R
@@ -327,12 +328,13 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
             list.isEmpty -> EmptyState(R.drawable.ic_pill, stringResource(R.string.today_medicines_none_title), stringResource(R.string.today_medicines_none), compact = true)
             list.shown.isEmpty() && list.upcoming.isEmpty() && !content.showDone ->
                 EmptyState(R.drawable.ic_check, stringResource(R.string.today_medicines_all_done_title), stringResource(R.string.today_medicines_all_done), compact = true)
-            // Allt som återstår ligger mer än tre timmar fram och är dolt (MED-13): säg när nästa dos är.
-            rows.isEmpty() && list.upcoming.isNotEmpty() -> list.upcoming.first().dose.let { next ->
+            // Allt som återstår ligger mer än tre timmar fram och är dolt (MED-13): säg när nästa dos är – det tidigaste
+            // klockslaget urvalet räknats med (`scheduledTime`; för en receptdos tidpunktens i Påminnelser, NOT-18).
+            rows.isEmpty() && list.upcoming.isNotEmpty() -> list.upcoming.mapNotNull { it.time }.minOrNull()?.let { next ->
                 EmptyState(
                     R.drawable.ic_clock,
                     stringResource(R.string.today_next_dose_title),
-                    stringResource(R.string.today_next_dose_format, DateFormat.time(next.plannedTime ?: next.slot.defaultTime)),
+                    stringResource(R.string.today_next_dose_format, DateFormat.time(next)),
                     compact = true,
                 )
             }
@@ -391,7 +393,7 @@ private fun DoseRow(item: OpenDose, content: TodayContent, onEvent: (TodayEvent)
         title = medicineTitle(dose.displayName, dose.dose, dose.unit),
         checked = dose.status == DoseStatus.TAKEN,
         onCheckedChange = { onEvent(TodayEvent.SetTaken(dose, it)) },
-        subtitle = doseSubtitle(dose, dose.prescriptionId?.let(content.prescriptions::get), content.date, content.zone),
+        subtitle = doseSubtitle(dose, item.time, dose.prescriptionId?.let(content.prescriptions::get), content.date, content.zone),
         below = when (item.due) {
             Due.LATE -> ({ InfoPill(stringResource(R.string.occasion_late), tone = Tone.Warning) })
             Due.SOON -> ({ InfoPill(stringResource(R.string.occasion_soon), tone = Tone.Sun) })
@@ -409,13 +411,16 @@ private fun DoseRow(item: OpenDose, content: TodayContent, onEvent: (TodayEvent)
     )
 }
 
-/** "Morgon · tagen 07:12 · 50 mg + 25 mg höjning t.o.m. 12 okt" – det som saknas utelämnas. */
+/**
+ * "Morgon · tagen 07:12 · 50 mg + 25 mg höjning t.o.m. 12 okt" – det som saknas utelämnas. En planerad dos visar
+ * [scheduled], klockslaget den väntar på ([OpenDose.time] – för en receptdos tidpunktens i Påminnelser, NOT-18).
+ */
 @Composable
-private fun doseSubtitle(dose: Dose, prescription: Prescription?, date: LocalDate, zone: TimeZone): String {
+private fun doseSubtitle(dose: Dose, scheduled: LocalTime?, prescription: Prescription?, date: LocalDate, zone: TimeZone): String {
     val time = when (dose.status) {
         DoseStatus.TAKEN -> dose.takenAt?.let { stringResource(R.string.today_dose_taken_format, DateFormat.time(it.toLocalDateTime(zone).time)) }
         DoseStatus.SKIPPED -> stringResource(R.string.today_dose_skipped)
-        DoseStatus.PLANNED -> dose.plannedTime?.let(DateFormat::time)
+        DoseStatus.PLANNED -> (scheduled ?: dose.plannedTime)?.let(DateFormat::time)
     }
     val boost = prescription?.boostFor(date)?.let { boost ->
         stringResource(R.string.today_dose_boost_format, doseText(prescription.dose, prescription.unit), doseText(boost.dose, prescription.unit), periodText(null, prescription.boostEnd(boost)))

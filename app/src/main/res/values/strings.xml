@@ -183,6 +183,7 @@
     <string name="reminders_meds">Medicinpåminnelser</string>
     <string name="reminders_meds_subtitle">Notis 15 minuter före varje tidpunkt du valt nedan</string>
     <string name="reminders_med_times">Medicintider</string>
+    <string name="reminders_med_times_helper">Klockslaget gäller också doserna på Idag.</string>
     <string name="reminders_period">Periodslut</string>
     <string name="reminders_period_time">Dagen innan en period tar slut</string>
     <!-- Behörigheter på Påminnelser (NOT-16) -->

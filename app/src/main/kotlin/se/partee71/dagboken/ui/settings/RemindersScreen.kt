@@ -186,7 +186,8 @@ fun RemindersScreen(
                 subtitle = stringResource(R.string.reminders_meds_subtitle),
             )
         }
-        LabeledGroup(stringResource(R.string.reminders_med_times)) {
+        // NOT-18: klockslaget är tidpunktens – det gäller också doserna, också när påminnelsen är av.
+        LabeledGroup(stringResource(R.string.reminders_med_times), helper = stringResource(R.string.reminders_med_times_helper)) {
             AppCard {
                 reminders.medSlots.forEach { row ->
                     ReminderTimeRow(

@@ -116,7 +116,7 @@ data class SlotDoses(val stored: List<Dose> = emptyList(), val missing: List<Dos
  * NOT-3, NOT-10, NOT-17: vad medicinpåminnelsen för [slot] på [date] gäller. [doses] är dagens doser (andra
  * dagar hoppas över): planerade doser i schemat ([isScheduled]) med tidpunkten – vid behov-doser aldrig; tagna
  * och överhoppade aldrig. Till dem läggs receptens doser som ännu saknas ([ensureDoses] mot [today], med
- * dagens totala dos, REC-12). Tom = ingen notis.
+ * dagens totala dos, REC-12, och tidpunktens klockslag i [reminders]). Tom = ingen notis.
  */
 fun slotDoses(
     slot: Slot,
@@ -125,12 +125,13 @@ fun slotDoses(
     prescriptions: List<Prescription>,
     doses: List<Dose>,
     zone: TimeZone,
+    reminders: ReminderSettings,
 ): SlotDoses {
     if (slot == Slot.AS_NEEDED) return SlotDoses()
     val onDate = doses.filter { it.date == date }
     return SlotDoses(
         stored = onDate.filter { it.slot == slot && it.isScheduled && it.status == DoseStatus.PLANNED },
-        missing = ensureDoses(prescriptions, onDate, date, today, zone).create.filter { it.slot == slot },
+        missing = ensureDoses(prescriptions, onDate, date, today, zone, reminders).create.filter { it.slot == slot },
     )
 }
 

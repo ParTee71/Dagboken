@@ -380,6 +380,40 @@ class TodayViewModelTest {
         assertEquals(at(yesterday, 7), stored(dose.id)?.takenAt)
     }
 
+    /** Påminnelserna med [slot] kl. [time] (avslagna – klockslaget gäller doserna ändå, NOT-18). */
+    private fun ReminderSettings.withTime(slot: Slot, time: LocalTime) =
+        copy(medSlots = medSlots.map { if (it.slot == slot) it.copy(enabled = false, time = time) else it })
+
+    @Test
+    fun `tidpunktens klockslag i Påminnelser gäller nya doser, förfallotid, Nästa dos och avbockning i efterhand (NOT-18, MED-4, MED-13, MED-14)`() = runTest(main.dispatcher) {
+        seed()
+        val times = ReminderSettings().withTime(Slot.MORNING, LocalTime(6, 30)).withTime(Slot.EVENING, LocalTime(13, 0))
+        factory.settings().upsert(Settings(reminders = times)).getOrThrow()
+        val vm = started(viewModel())
+        assertEquals(LocalTime(6, 30), stored(morning())?.plannedTime)
+        assertEquals(LocalTime(13, 0), stored(evening())?.plannedTime)
+        assertEquals(
+            listOf(Triple(morning(), Due.LATE, LocalTime(6, 30)), Triple(evening(), Due.SOON, LocalTime(13, 0))),
+            vm.content.checklist.shown.map { Triple(it.dose.id, it.due, it.time) },
+        )
+
+        // Kvällen flyttas till 20:00: den lagrade dosen skrivs inte om, men visas och förfaller enligt inställningen.
+        factory.settings().upsert(Settings(reminders = times.withTime(Slot.EVENING, LocalTime(20, 0)))).getOrThrow()
+        runCurrent()
+        assertEquals(LocalTime(13, 0), stored(evening())?.plannedTime)
+        assertEquals(listOf(evening() to LocalTime(20, 0)), vm.content.checklist.upcoming.map { it.dose.id to it.time })
+
+        // En tidigare dag bockas av på inställningens klockslag (MED-14), också när det ändrats efter att dosen skapades.
+        vm.onEvent(TodayEvent.SelectDate(yesterday))
+        runCurrent()
+        factory.settings().upsert(Settings(reminders = times.withTime(Slot.EVENING, LocalTime(21, 0)))).getOrThrow()
+        runCurrent()
+        val dose = vm.content.checklist.shown.single { it.dose.slot == Slot.EVENING }.dose
+        vm.onEvent(TodayEvent.SetTaken(dose, true))
+        runCurrent()
+        assertEquals(at(yesterday, 21), stored(dose.id)?.takenAt)
+    }
+
     @Test
     fun `en loggad vid behov-dos går inte att bocka ur (FAV-2, FAV-11)`() = runTest(main.dispatcher) {
         seed()

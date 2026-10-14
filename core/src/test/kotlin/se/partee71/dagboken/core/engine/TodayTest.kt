@@ -141,14 +141,14 @@ class TodayTest {
     )
 
     @Test fun `energitrend upp, ner och oförändrad vid gränsen 0,5`() {
-        assertEquals(EnergyTrend.UP, weekSummary(mondayNight, STOCKHOLM, energyWeeks(7, 6), emptyList())?.energyTrend)
-        assertEquals(EnergyTrend.DOWN, weekSummary(mondayNight, STOCKHOLM, energyWeeks(5, 6), emptyList())?.energyTrend)
+        assertEquals(EnergyTrend.UP, weekSummary(mondayNight, STOCKHOLM, energyWeeks(7, 6), emptyList(), reminders = ReminderSettings())?.energyTrend)
+        assertEquals(EnergyTrend.DOWN, weekSummary(mondayNight, STOCKHOLM, energyWeeks(5, 6), emptyList(), reminders = ReminderSettings())?.energyTrend)
         val halfUp = listOf(screening("2026-05-04", Occasion.BREAKFAST, 6), screening("2026-05-04", Occasion.BEDTIME, 7), screening("2026-04-27", Occasion.BREAKFAST, 6))
-        assertEquals(EnergyTrend.SAME, weekSummary(mondayNight, STOCKHOLM, halfUp, emptyList())?.energyTrend, "6,5 mot 6 är inte mer än 0,5")
+        assertEquals(EnergyTrend.SAME, weekSummary(mondayNight, STOCKHOLM, halfUp, emptyList(), reminders = ReminderSettings())?.energyTrend, "6,5 mot 6 är inte mer än 0,5")
     }
 
     @Test fun `utan förra veckan är trenden oförändrad`() {
-        val summary = weekSummary(mondayNight, STOCKHOLM, listOf(screening("2026-05-04", Occasion.BREAKFAST, 9)), emptyList())
+        val summary = weekSummary(mondayNight, STOCKHOLM, listOf(screening("2026-05-04", Occasion.BREAKFAST, 9)), emptyList(), reminders = ReminderSettings())
         assertEquals(WeekSummary(EnergyTrend.SAME, null), summary)
     }
 
@@ -161,7 +161,7 @@ class TodayTest {
             dose("2026-05-01", DoseStatus.TAKEN, Slot.AS_NEEDED),
             dose("2026-04-27", DoseStatus.PLANNED), // förra veckan
         )
-        assertEquals(66, weekSummary(mondayNight, STOCKHOLM, emptyList(), doses)?.dosesTakenPercent, "2 av 3, avrundat nedåt")
+        assertEquals(66, weekSummary(mondayNight, STOCKHOLM, emptyList(), doses, reminders = ReminderSettings())?.dosesTakenPercent, "2 av 3, avrundat nedåt")
     }
 
     @Test fun `måndag morgon räknas bara förfallna doser – kommande sänker inte andelen`() {
@@ -170,15 +170,25 @@ class TodayTest {
             dose("2026-05-04", DoseStatus.PLANNED, Slot.EVENING), // 19:00, inte förfallen
             dose("2026-05-03", DoseStatus.PLANNED, Slot.MORNING), // igår, missad
         )
-        assertEquals(50, weekSummary(at("2026-05-04T08:00"), STOCKHOLM, emptyList(), doses)?.dosesTakenPercent, "1 av 2 – kvällsdosen räknas inte än")
+        assertEquals(50, weekSummary(at("2026-05-04T08:00"), STOCKHOLM, emptyList(), doses, reminders = ReminderSettings())?.dosesTakenPercent, "1 av 2 – kvällsdosen räknas inte än")
         val takenEarly = doses + dose("2026-05-04", DoseStatus.TAKEN, Slot.NIGHT)
-        assertEquals(66, weekSummary(at("2026-05-04T08:00"), STOCKHOLM, emptyList(), takenEarly)?.dosesTakenPercent, "en dos tagen i förväg räknas")
-        assertEquals(33, weekSummary(at("2026-05-04T19:00"), STOCKHOLM, emptyList(), doses)?.dosesTakenPercent, "kvällsdosen förfallen kl 19")
+        assertEquals(66, weekSummary(at("2026-05-04T08:00"), STOCKHOLM, emptyList(), takenEarly, reminders = ReminderSettings())?.dosesTakenPercent, "en dos tagen i förväg räknas")
+        assertEquals(33, weekSummary(at("2026-05-04T19:00"), STOCKHOLM, emptyList(), doses, reminders = ReminderSettings())?.dosesTakenPercent, "kvällsdosen förfallen kl 19")
+    }
+
+    @Test fun `en planerad receptdos räknas som förfallen först vid inställningens klockslag`() {
+        // Morgon 06:15 i inställningen: kl. 06:30 har morgondosen förfallit, med standardklockslaget 07:00 inte.
+        val doses = listOf(
+            dose("2026-05-03", DoseStatus.TAKEN, Slot.MORNING),
+            dose("2026-05-04", DoseStatus.PLANNED, Slot.MORNING).copy(prescriptionId = "r1"),
+        )
+        assertEquals(100, weekSummary(at("2026-05-04T06:30"), STOCKHOLM, emptyList(), doses, ReminderSettings())?.dosesTakenPercent)
+        assertEquals(50, weekSummary(at("2026-05-04T06:30"), STOCKHOLM, emptyList(), doses, OWN_TIMES)?.dosesTakenPercent)
     }
 
     @Test fun `utan underlag ingen sammanfattning`() {
-        assertNull(weekSummary(mondayNight, STOCKHOLM, emptyList(), emptyList()))
-        assertNull(weekSummary(mondayNight, STOCKHOLM, energyWeeks(5, 5).filter { it.date!! < day("2026-04-28") }, listOf(dose("2026-05-01", DoseStatus.SKIPPED))), "bara förra veckan och överhoppade")
+        assertNull(weekSummary(mondayNight, STOCKHOLM, emptyList(), emptyList(), reminders = ReminderSettings()))
+        assertNull(weekSummary(mondayNight, STOCKHOLM, energyWeeks(5, 5).filter { it.date!! < day("2026-04-28") }, listOf(dose("2026-05-01", DoseStatus.SKIPPED)), reminders = ReminderSettings()), "bara förra veckan och överhoppade")
     }
 
     @Test fun `sammanfattningen visas söndag och måndag`() {

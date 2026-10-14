@@ -12,6 +12,7 @@ import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Prescription
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
 
@@ -32,15 +33,19 @@ fun Prescription.doseSlots(): List<Slot> =
 
 /**
  * MED-4: receptets planerade doser för [date] – en per tidpunkt med det stabila id:t
- * [DoseIds.prescribed] (samma som 3.x), dagens totala dos (REC-12), tidpunktens standardklockslag
- * (REC-6) och receptets anteckning som förval (REC-1). Tom när receptet är inaktivt eller inte
- * gäller dagen. [Dose.createdAt] är dag och klockslag i [zone] (3.x `Timestamps.of`), så att två
- * körningar ger exakt samma dokument.
+ * [DoseIds.prescribed] (samma som 3.x), dagens totala dos (REC-12), tidpunktens klockslag i
+ * inställningarna ([ReminderSettings.timeOf], NOT-18; standard REC-6) och receptets anteckning som förval
+ * (REC-1). Tom när receptet är inaktivt eller inte gäller dagen. [Dose.createdAt] är dag och klockslag i
+ * [zone] (3.x `Timestamps.of`), så att två körningar **med samma inställningar** ger exakt samma dokument. Id:t
+ * beror aldrig på klockslaget: en dos skapas en gång (`createIfAbsent`), och dess lagrade `plannedTime`/`createdAt` är
+ * klockslaget när den skapades – den skapas inte igen när klockslaget ändrats. Planerade och överhoppade receptdoser
+ * visas ändå enligt aktuell inställning ([scheduledTime]).
  */
-fun Prescription.plannedDoses(date: LocalDate, zone: TimeZone): List<Dose> {
+fun Prescription.plannedDoses(date: LocalDate, zone: TimeZone, reminders: ReminderSettings): List<Dose> {
     if (!active || !appliesOn(date)) return emptyList()
     val total = doseFor(date)
     return doseSlots().map { slot ->
+        val time = reminders.timeOf(slot)
         Dose(
             id = DoseIds.prescribed(id, date, slot),
             date = date,
@@ -50,9 +55,9 @@ fun Prescription.plannedDoses(date: LocalDate, zone: TimeZone): List<Dose> {
             dose = total,
             unit = unit,
             status = DoseStatus.PLANNED,
-            plannedTime = slot.defaultTime,
+            plannedTime = time,
             prescriptionId = id,
-            createdAt = LocalDateTime(date, slot.defaultTime).toInstant(zone),
+            createdAt = LocalDateTime(date, time).toInstant(zone),
             note = note?.takeIf { it.isNotBlank() },
         )
     }
@@ -82,7 +87,8 @@ fun Prescription.firstDoseDay(): LocalDate? = listOfNotNull(createdAt?.toLocalDa
  * är genereringen idempotent. Aktiva recept vars period passerats sett från [today] (inte [date], så
  * att bakåtbläddring varken väcker eller avslutar något) avslutas och ger inga doser, som i 3.x. Ingen
  * dos genereras före receptets [firstDoseDay] (HEM-10) – 3.x seedade recept utan start bakåt utan gräns.
- * En tidigare dag följer receptets **nuvarande** aktiv-läge och schema; pauser har ingen historik.
+ * En tidigare dag följer receptets **nuvarande** aktiv-läge och schema; pauser har ingen historik. Klockslagen
+ * kommer ur [reminders] ([plannedDoses]).
  */
 fun ensureDoses(
     prescriptions: List<Prescription>,
@@ -90,13 +96,14 @@ fun ensureDoses(
     date: LocalDate,
     today: LocalDate,
     zone: TimeZone,
+    reminders: ReminderSettings,
 ): EnsurePlan {
     val (expired, current) = prescriptions.activeByExpiryOn(today)
     val existingIds = existing.mapTo(HashSet()) { it.id }
     return EnsurePlan(
         deactivate = expired.map { it.id },
         create = current.filter { p -> p.firstDoseDay()?.let { date >= it } ?: true }
-            .flatMap { it.plannedDoses(date, zone) }.filter { it.id !in existingIds },
+            .flatMap { it.plannedDoses(date, zone, reminders) }.filter { it.id !in existingIds },
     )
 }
 
@@ -116,8 +123,9 @@ data class DoseSync(
  *   tidpunkten finns inte längre i receptet (anteckningen följer med dokumentet);
  * - **update:** namn, styrka, dos eller enhet följer receptet och dagens höjning (REC-12);
  * - **create:** saknade doser för dagarna [today]…[through] (standard bara idag) om receptet är
- *   aktivt – t.ex. en ny tidpunkt syns direkt i dagens checklista. Senare dagar fylls på av
- *   [ensureDoses] när de visas.
+ *   aktivt, med tidpunkternas klockslag i [reminders] ([plannedDoses]) – t.ex. en ny tidpunkt syns direkt i
+ *   dagens checklista. Senare dagar fylls på av [ensureDoses] när de visas. En befintlig dos klockslag
+ *   ändras aldrig – planerade och överhoppade receptdoser visas ändå enligt aktuell inställning ([scheduledTime]).
  *
  * Data från en nyare app rörs aldrig: med okänd upprepning ([Schedule.Unknown]) blir diffen tom, och
  * en dos med "Vid behov" som tidpunkt (så avkodas en okänd tidpunkt; ett recept genererar aldrig en
@@ -135,6 +143,7 @@ fun Prescription.syncDoses(
     existing: Collection<Dose>,
     today: LocalDate,
     zone: TimeZone,
+    reminders: ReminderSettings,
     through: LocalDate = today,
 ): DoseSync {
     if (schedule is Schedule.Unknown) return DoseSync()
@@ -153,7 +162,7 @@ fun Prescription.syncDoses(
     val existingIds = existing.mapTo(HashSet()) { it.id }
     val create = generateSequence(today) { it.plus(1, DateTimeUnit.DAY) }
         .takeWhile { it <= through }
-        .flatMap { plannedDoses(it, zone) }
+        .flatMap { plannedDoses(it, zone, reminders) }
         .filter { it.id !in existingIds }
         .toList()
     return DoseSync(create = create, update = update, delete = obsolete)

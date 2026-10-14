@@ -7,6 +7,9 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -20,17 +23,22 @@ import se.partee71.dagboken.core.engine.PrnCheck
 import se.partee71.dagboken.core.engine.atTime
 import se.partee71.dagboken.core.engine.onDay
 import se.partee71.dagboken.core.engine.withTaken
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.PrnMedicine
+import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.core.model.SlotReminder
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
+import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.data.repository.DoseRepository
 import se.partee71.dagboken.data.repository.PrnLog
+import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.common.EditorEffect
@@ -53,10 +61,11 @@ class DoseFormViewModelTest {
     private val factory = FakeCollectionFactory(clock = clock)
     private val doses = testDoses(factory, zone, clock)
     private val medicines = DefaultPrnMedicineRepository(factory)
+    private val settings = DefaultSettingsRepository(factory)
 
     private fun at(date: LocalDate, hour: Int, minute: Int = 0): Instant = LocalDateTime(date, LocalTime(hour, minute)).toInstant(zone)
 
-    private fun form(id: String? = null, prnId: String? = null, date: LocalDate? = null) = DoseEditViewModel(doses, medicines, clock, { zone }, id, prnId, date)
+    private fun form(id: String? = null, prnId: String? = null, date: LocalDate? = null) = DoseEditViewModel(doses, medicines, settings, clock, { zone }, id, prnId, date)
 
     private val DoseEditViewModel.value: Dose get() = editor.state.value.value
 
@@ -159,7 +168,7 @@ class DoseFormViewModelTest {
         val offline = object : DoseRepository by doses {
             override suspend fun logAsNeeded(medicine: PrnMedicine, at: Instant, force: Boolean, note: String?) = Result.failure<PrnLog>(DataError.Offline)
         }
-        val vm = DoseEditViewModel(offline, medicines, clock, { zone }, null, alvedon.id, yesterday)
+        val vm = DoseEditViewModel(offline, medicines, settings, clock, { zone }, null, alvedon.id, yesterday)
         vm.change(DoseField.TAKEN_AT) { it.atTime(LocalTime(21, 0), zone) }
         vm.form.onEvent(EntryEditEvent.Save)
         assertEquals(CooldownPrompt(alvedon, 3.hours), vm.cooldown.value)
@@ -183,7 +192,7 @@ class DoseFormViewModelTest {
         assertEquals(PrnCheck.DailyLimitReached, vm.check.value)
         assertFalse(vm.editor.state.value.isValid, "gränsen gäller alltid – Spara inaktiv")
         assertFalse(vm.editor.state.value.canSave)
-        vm.change(DoseField.TAKEN_AT) { it.onDay(today, zone).atTime(LocalTime(9, 0), zone) }
+        vm.change(DoseField.TAKEN_AT) { it.onDay(today, zone, reminders = ReminderSettings()).atTime(LocalTime(9, 0), zone) }
         assertEquals(PrnCheck.Allowed, vm.check.value)
         assertTrue(vm.editor.state.value.canSave)
     }
@@ -211,7 +220,7 @@ class DoseFormViewModelTest {
         val vm = form(id = recipe.id)
         assertEquals(DoseMode.EDIT, vm.mode)
         assertEquals(recipe, vm.value)
-        vm.change(DoseField.TAKEN_AT) { it.onDay(today, zone) }
+        vm.change(DoseField.TAKEN_AT) { it.onDay(today, zone, reminders = ReminderSettings()) }
         vm.saved()
         val stored = factory.doses().getAll().getOrThrow().single()
         assertTrue(stored.id != recipe.id)
@@ -223,7 +232,7 @@ class DoseFormViewModelTest {
         val taken = recipe.copy(id = DoseIds.prescribed("levaxin", today, Slot.MORNING), date = today, takenAt = at(today, 7, 5))
         factory.doses().batch(listOf(recipe, taken)).getOrThrow()
         val vm = form(id = recipe.id)
-        vm.change(DoseField.TAKEN_AT) { it.onDay(today, zone) }
+        vm.change(DoseField.TAKEN_AT) { it.onDay(today, zone, reminders = ReminderSettings()) }
         vm.editor.effects.test {
             vm.form.onEvent(EntryEditEvent.Save)
             assertEquals(R.string.dose_slot_taken, (awaitItem() as EditorEffect.Failed).failure.message, "Det finns redan en dos för den tidpunkten den dagen.")
@@ -233,10 +242,34 @@ class DoseFormViewModelTest {
     }
 
     @Test
+    fun `en lagrad dos laddas först när inställningarna lästs – Tagen räknar aldrig med förvalen (NOT-18, MED-15)`() = runTest(main.dispatcher) {
+        val planned = recipe.copy(status = DoseStatus.PLANNED, takenAt = null)
+        factory.doses().upsert(planned).getOrThrow()
+        val own = ReminderSettings(medSlots = Slot.SCHEDULED.map { SlotReminder(it, time = if (it == Slot.MORNING) LocalTime(6, 15) else it.defaultTime) })
+        val gate = MutableSharedFlow<Settings>()
+        val base = settings
+        val slow = object : SettingsRepository by base {
+            override val settings: Flow<Settings> = gate
+        }
+        val vm = DoseEditViewModel(doses, medicines, slow, clock, { zone }, planned.id, null, null)
+        runCurrent()
+        assertTrue(vm.editor.state.value.loading, "dosen visas inte före inställningarna")
+        assertNull(vm.reminders.value)
+
+        gate.emit(Settings(reminders = own))
+        runCurrent()
+        assertFalse(vm.editor.state.value.loading)
+        assertEquals(planned, vm.value)
+        val reminders = checkNotNull(vm.reminders.value)
+        vm.change(DoseField.TAKEN_AT) { it.withTaken(true, zone, reminders) }
+        assertEquals(at(yesterday, 6, 15), vm.value.takenAt)
+    }
+
+    @Test
     fun `Tagen av markerar dosen som överhoppad, och Radera hoppar över en receptdos (MED-3, MED-15)`() = runTest(main.dispatcher) {
         factory.doses().upsert(recipe).getOrThrow()
         val vm = form(id = recipe.id)
-        vm.change(DoseField.TAKEN_AT) { it.withTaken(false, zone) }
+        vm.change(DoseField.TAKEN_AT) { it.withTaken(false, zone, reminders = ReminderSettings()) }
         vm.saved()
         assertEquals(recipe.copy(status = DoseStatus.SKIPPED, takenAt = null), factory.doses().get(recipe.id).getOrThrow())
 

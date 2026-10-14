@@ -76,6 +76,7 @@ import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
+import se.partee71.dagboken.data.repository.currentReminders
 import se.partee71.dagboken.ui.common.DetailLoader
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.Failure
@@ -380,7 +381,7 @@ class TodayViewModel @Inject constructor(
             progress = progress,
             todayComplete = todayComplete,
             doseProgress = doseProgress,
-            checklist = doseChecklist(doses, date, moment.now.toInstant(moment.zone), moment.zone),
+            checklist = doseChecklist(doses, date, moment.now.toInstant(moment.zone), moment.zone, reminders),
             showDone = toggles.done,
             showUpcoming = toggles.upcoming,
             prescriptions = prescriptions,
@@ -388,7 +389,7 @@ class TodayViewModel @Inject constructor(
             dayDone = dayDone,
             zone = moment.zone,
             occasions = occasionStates(reminders, screenings, date, moment.now.toInstant(moment.zone), moment.zone),
-            weekSummary = weekEntries?.let { weekSummaryOn(date, moment.now.toInstant(moment.zone), moment.zone, it.screenings, it.doses) },
+            weekSummary = weekEntries?.let { weekSummaryOn(date, moment.now.toInstant(moment.zone), moment.zone, it.screenings, it.doses, reminders) },
             energyDays = energyDays,
             energy = energy,
             illness = illness?.let { (episode, checkins) -> ongoingIllness(episode, checkins, today) },
@@ -405,7 +406,7 @@ class TodayViewModel @Inject constructor(
         val progress = dayProgress(date, dayDoses, entries.screenings, occasions)
         val todayProgress = if (date == today) progress else dayProgress(today, entries.doses, entries.screenings, occasions)
         // HEM-10, MED-4: samma beräkning som `ensureDay` och påminnelsen – efter ett misslyckat försök saknas doser som recepten ger.
-        val missingCause = failedDays[date]?.takeIf { ensureDoses(library.prescriptions, dayDoses, date, today, zone.get()).create.isNotEmpty() }
+        val missingCause = failedDays[date]?.takeIf { ensureDoses(library.prescriptions, dayDoses, date, today, zone.get(), library.settings.reminders).create.isNotEmpty() }
         // HEM-19: en dag med saknade doser är inte klar – ingen belöning eller konfetti.
         val dayDone = if (date == today && progress.isComplete && missingCause == null) {
             DayDone(
@@ -491,8 +492,8 @@ class TodayViewModel @Inject constructor(
      */
     private fun setStatus(dose: Dose, status: DoseStatus) {
         viewModelScope.launch {
-            // MED-14: en tidigare dag bockas av på dosens planerade tid, inte nu (`checkOffTime`).
-            val takenAt = if (status == DoseStatus.TAKEN) dose.checkOffTime(clock.now(), zone.get()) else null
+            // MED-14: en tidigare dag bockas av på dosens klockslag (för en planerad receptdos inställningens, NOT-18), inte nu.
+            val takenAt = if (status == DoseStatus.TAKEN) dose.checkOffTime(clock.now(), zone.get(), settings.currentReminders()) else null
             val failure = doses.setStatus(dose, status, takenAt).failureOrNull()
             if (failure != null) {
                 _failure.value = failure

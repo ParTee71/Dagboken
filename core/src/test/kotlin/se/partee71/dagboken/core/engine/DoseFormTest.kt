@@ -11,6 +11,7 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.junit.Test
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
@@ -40,13 +41,32 @@ class DoseFormTest {
     }
 
     @Test fun `klockslaget är tagningstiden för en tagen dos, annars det planerade`() {
-        assertEquals(LocalTime(7, 12), recipe.shownTime(zone))
-        assertEquals(LocalTime(7, 0), recipe.copy(status = DoseStatus.SKIPPED, takenAt = null).shownTime(zone))
-        assertEquals(Slot.EVENING.defaultTime, Dose("d", day, Slot.EVENING).shownTime(zone), "utan klockslag: tidpunktens standard")
+        assertEquals(LocalTime(7, 12), recipe.shownTime(zone, reminders = ReminderSettings()))
+        assertEquals(LocalTime(7, 0), recipe.copy(status = DoseStatus.SKIPPED, takenAt = null).shownTime(zone, reminders = ReminderSettings()))
+        assertEquals(Slot.EVENING.defaultTime, Dose("d", day, Slot.EVENING).shownTime(zone, reminders = ReminderSettings()), "utan klockslag: tidpunktens standard")
+    }
+
+    @Test fun `en planerad receptdos visas och tas vid inställningens klockslag, en tagen vid sin tagningstid (NOT-18)`() {
+        val planned = recipe.copy(status = DoseStatus.PLANNED, takenAt = null)
+        assertEquals(LocalTime(6, 15), planned.shownTime(zone, OWN_TIMES))
+        assertEquals(at(day, 6, 15), planned.withTaken(true, zone, OWN_TIMES).takenAt)
+        assertEquals(LocalTime(7, 12), recipe.shownTime(zone, OWN_TIMES), "tagen: tagningstiden")
+        assertEquals(LocalTime(14, 0), prn.copy(status = DoseStatus.PLANNED, takenAt = null).shownTime(zone, OWN_TIMES), "utan recept: sitt klockslag")
+    }
+
+    @Test fun `planerad, överhoppad och tagen igen efter ändrad inställning – klockslaget är hela tiden inställningens (NOT-18, MED-15)`() {
+        // Dosen skapades med 07:00; Morgon är nu 06:15 i Påminnelser.
+        val planned = recipe.copy(status = DoseStatus.PLANNED, takenAt = null)
+        val skipped = planned.withTaken(false, zone, OWN_TIMES)
+        assertEquals(DoseStatus.SKIPPED to LocalTime(6, 15), skipped.status to skipped.shownTime(zone, OWN_TIMES))
+        val takenAgain = skipped.withTaken(true, zone, OWN_TIMES)
+        assertEquals(at(day, 6, 15), takenAgain.takenAt)
+        assertEquals(LocalTime(7, 0), takenAgain.plannedTime, "det lagrade klockslaget skrivs inte om")
+        assertEquals(at(LocalDate(2026, 10, 6), 6, 15), skipped.onDay(LocalDate(2026, 10, 6), zone, OWN_TIMES).withTaken(true, zone, OWN_TIMES).takenAt)
     }
 
     @Test fun `ny dag och nytt klockslag flyttar tagningstiden – receptets klockslag står kvar (MED-15)`() {
-        val moved = recipe.onDay(LocalDate(2026, 10, 6), zone)
+        val moved = recipe.onDay(LocalDate(2026, 10, 6), zone, reminders = ReminderSettings())
         assertEquals(LocalDate(2026, 10, 6), moved.date)
         assertEquals(at(LocalDate(2026, 10, 6), 7, 12), moved.takenAt)
         val later = recipe.atTime(LocalTime(9, 30), zone)
@@ -56,10 +76,10 @@ class DoseFormTest {
     }
 
     @Test fun `Tagen av är överhoppad utan tagningstid, på igen tagen vid det visade klockslaget (MED-15)`() {
-        val skipped = recipe.withTaken(false, zone)
+        val skipped = recipe.withTaken(false, zone, reminders = ReminderSettings())
         assertEquals(DoseStatus.SKIPPED, skipped.status)
         assertNull(skipped.takenAt)
-        val taken = skipped.withTaken(true, zone)
+        val taken = skipped.withTaken(true, zone, reminders = ReminderSettings())
         assertEquals(DoseStatus.TAKEN, taken.status)
         assertEquals(at(day, 7, 0), taken.takenAt)
     }
@@ -71,10 +91,10 @@ class DoseFormTest {
     }
 
     @Test fun `bara en receptdos som byter dag flyttas, och den behåller receptet (MED-15)`() {
-        assertTrue(recipe.movesPrescribedDose(recipe.onDay(LocalDate(2026, 10, 6), zone)))
+        assertTrue(recipe.movesPrescribedDose(recipe.onDay(LocalDate(2026, 10, 6), zone, reminders = ReminderSettings())))
         assertFalse(recipe.movesPrescribedDose(recipe.atTime(LocalTime(8, 0), zone)))
-        assertFalse(prn.movesPrescribedDose(prn.onDay(LocalDate(2026, 10, 6), zone)))
-        assertFalse(recipe.copy(id = "slumpat").movesPrescribedDose(recipe.onDay(LocalDate(2026, 10, 6), zone)), "redan flyttad: inte bunden till dagen")
+        assertFalse(prn.movesPrescribedDose(prn.onDay(LocalDate(2026, 10, 6), zone, reminders = ReminderSettings())))
+        assertFalse(recipe.copy(id = "slumpat").movesPrescribedDose(recipe.onDay(LocalDate(2026, 10, 6), zone, reminders = ReminderSettings())), "redan flyttad: inte bunden till dagen")
         val next = LocalDate(2026, 10, 6)
         val legacy = recipe.copy(id = "recept_p1_2026-10-05_Morgon", prescriptionId = null)
         assertEquals(legacy.copy(id = "recept_p1_2026-10-06_Morgon", date = next, prescriptionId = "p1"), legacy.moveTarget(legacy.copy(date = next)) { "slumpat" })

@@ -9,6 +9,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.LocalTime
 import org.junit.Test
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
@@ -94,11 +95,11 @@ class TodayCardsTest {
         fun at(date: String, hour: Int, minute: Int = 0) = LocalDateTime(day(date), LocalTime(hour, minute)).toInstant(zone)
         val screenings = listOf(Screening("s", day("2026-10-02"), energy = 6))
         val monday = day("2026-10-05")
-        assertNotNull(weekSummaryOn(monday, at("2026-10-05", 23, 59), zone, screenings, emptyList()))
-        assertNull(weekSummaryOn(monday, at("2026-10-06", 0, 0), zone, screenings, emptyList()), "efter midnatt är det tisdag")
-        assertNull(weekSummaryOn(day("2026-10-06"), at("2026-10-06", 9), zone, screenings, emptyList()), "tisdag")
-        assertNull(weekSummaryOn(day("2026-10-04"), at("2026-10-05", 9), zone, screenings, emptyList()), "en tidigare dag")
-        assertNull(weekSummaryOn(monday, at("2026-10-05", 9), zone, emptyList(), emptyList()), "utan underlag")
+        assertNotNull(weekSummaryOn(monday, at("2026-10-05", 23, 59), zone, screenings, emptyList(), reminders = ReminderSettings()))
+        assertNull(weekSummaryOn(monday, at("2026-10-06", 0, 0), zone, screenings, emptyList(), reminders = ReminderSettings()), "efter midnatt är det tisdag")
+        assertNull(weekSummaryOn(day("2026-10-06"), at("2026-10-06", 9), zone, screenings, emptyList(), reminders = ReminderSettings()), "tisdag")
+        assertNull(weekSummaryOn(day("2026-10-04"), at("2026-10-05", 9), zone, screenings, emptyList(), reminders = ReminderSettings()), "en tidigare dag")
+        assertNull(weekSummaryOn(monday, at("2026-10-05", 9), zone, emptyList(), emptyList(), reminders = ReminderSettings()), "utan underlag")
     }
 
     // ── 7-dagarstrenden (HEM-7) ───────────────────────────────────────────
