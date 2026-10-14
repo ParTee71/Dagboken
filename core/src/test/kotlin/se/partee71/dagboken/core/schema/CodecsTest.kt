@@ -15,6 +15,8 @@ import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Event
+import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.core.model.FeelingCatalog
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.LegacySettings
 import se.partee71.dagboken.core.model.Occasion
@@ -226,6 +228,28 @@ class CodecsTest {
         )
         assertEquals(listOf(SymptomScore("yrsel", 0)), CheckinCodec.decode("c", mapOf("symptoms" to listOf(mapOf("optionId" to "yrsel")))).symptoms)
         assertEquals(3, checkin.symptoms.somatic, "utan poäng räknas som 0 i summan")
+    }
+
+    @Test
+    fun `känslorna (DAT-14) - tokens core_nuance_detail, rundtur, saknat fält är tom lista, okänt token bevaras, trasiga element hoppas över`() {
+        val encoded = ScreeningCodec.encode(Samples.screening)
+        assertEquals(listOf("scared.anxious.tense", "calm.grateful.moved"), encoded["feelings"])
+        assertEquals(Samples.screening.feelings, ScreeningCodec.decode("s", encoded).feelings)
+        assertEquals(emptyList(), ScreeningCodec.decode("s", emptyMap()).feelings, "saknat fält")
+        assertEquals(emptyList(), ScreeningCodec.decode("s", mapOf("feelings" to null)).feelings)
+        assertEquals(emptyList(), ScreeningCodec.decode("s", mapOf("feelings" to "calm")).feelings, "fel typ läses som inget")
+        assertEquals(listOf("glad", "calm.grateful"), ScreeningCodec.encode(Screening("s", feelings = listOf(Feeling("glad"), Feeling("calm", "grateful"))))["feelings"])
+        assertEquals(listOf("scared"), ScreeningCodec.encode(Screening("s", feelings = listOf(Feeling("scared", null, "tense"))))["feelings"], "ett ord utan nyans lagras inte")
+        val stored = mapOf("feelings" to listOf("glad", 3, null, "", "glad.", ".glad", "glad..tense", "glad.a.b.c", mapOf("core" to "sad"), "serene.framtida.nytt", "Glad", "scared.anxious.tense"))
+        val decoded = ScreeningCodec.decode("s", stored).feelings
+        assertEquals(listOf(Feeling("glad"), Feeling("serene", "framtida", "nytt"), Feeling("Glad"), Feeling("scared", "anxious", "tense")), decoded, "ordningen bevaras; tal, null, tomt, tomma delar, fler än tre delar och objekt hoppas över")
+        assertFalse(FeelingCatalog.isKnown(decoded[1]), "okänt token läses men är okänt")
+        assertEquals(listOf("glad", "serene.framtida.nytt", "Glad", "scared.anxious.tense"), ScreeningCodec.encode(ScreeningCodec.decode("s", stored))["feelings"], "okända tokens med giltig form skrivs tillbaka oförändrade")
+        assertEquals(listOf(Feeling("glad")), Screening("s").withFeelings(listOf(Feeling("glad"))).feelings)
+        assertEveryFieldDiffersFromDefault(Feeling("calm", "grateful", "moved"), Feeling(""))
+        assertEquals(Feeling("glad", "excited"), Feeling.parse("glad.excited"))
+        assertNull(Feeling.parse("glad.a.b.c"))
+        assertNull(Feeling.parse(""))
     }
 
     @Test

@@ -47,6 +47,17 @@ interface HasSymptoms<T : HasSymptoms<T>> {
     fun withSymptoms(symptoms: List<SymptomScore>): T = copySymptoms(symptoms, legacySomatic.takeIf { symptoms == this.symptoms })
 }
 
+/**
+ * En post med loggade känslor (SCR-7, DAT-14) – måendeloggen: [feelings] ur [FeelingCatalog], högst
+ * [FeelingCatalog.MAX_FEELINGS], i vald ordning. Okända tokens bevaras ([Feeling]).
+ */
+interface HasFeelings<T : HasFeelings<T>> {
+    val feelings: List<Feeling>
+
+    /** Posten med [feelings] satta (dataklassens `copy`). */
+    fun withFeelings(feelings: List<Feeling>): T
+}
+
 interface Post<T : Post<T>> : Identified {
     val date: kotlinx.datetime.LocalDate?
     val createdAt: kotlin.time.Instant?
