@@ -1,5 +1,5 @@
 # Läkemedel som säljs i Sverige – Läkemedelsverket, CC BY 4.0 (https://www.lakemedelsverket.se/sv/om-webbplatsen/oppna-data)
-# updated 2026-10-11
+# updated 2026-10-14
 Abacavir/Lamivudine Accord	600 mg/300 mg	Filmdragerad tablett
 Abacavir/Lamivudine Glenmark	600 mg/300 mg	Filmdragerad tablett
 Abacavir/Lamivudine Medical Valley	600 mg/300 mg	Filmdragerad tablett
@@ -1150,6 +1150,7 @@ Brivaracetam Orion	25 mg	Filmdragerad tablett
 Brivaracetam Orion	50 mg	Filmdragerad tablett
 Brivaracetam Orion	75 mg	Filmdragerad tablett
 Brivaracetam Orion	100 mg	Filmdragerad tablett
+Brivaracetam STADA	10 mg	Filmdragerad tablett
 Brivaracetam Teva	25 mg	Filmdragerad tablett
 Brivaracetam Teva	50 mg	Filmdragerad tablett
 Brivaracetam Teva	75 mg	Filmdragerad tablett
@@ -2128,6 +2129,7 @@ Dizminelle	0,02 mg/3 mg	Filmdragerad tablett
 Dobutamin Hameln	12,5 mg/ml	Koncentrat till infusionsvätska, lösning
 Docetaxel Accord	80 mg/4 ml	Koncentrat till infusionsvätska, lösning
 Docetaxel Accord	160 mg/8 ml	Koncentrat till infusionsvätska, lösning
+Docetaxel Actavis	20 mg/ml	Koncentrat till infusionsvätska, lösning
 DOCETAXEL KABI	160 mg/8 ml	Koncentrat till infusionsvätska, lösning
 Doktacillin		Pulver till injektions-/infusionsvätska, lösning
 Dokusatnatrium/Sorbitol Evolan	1 mg/ml + 250 mg/ml	Rektallösning
@@ -2683,6 +2685,7 @@ Everolimus Avansor	5 mg	Tablett
 Everolimus Krka	2,5 mg	Tablett
 Everolimus Krka	5 mg	Tablett
 Everolimus Krka	10 mg	Tablett
+Everolimus Orifarm	10 mg	Tablett
 Everolimus Sandoz	2,5 mg	Tablett
 Everolimus Sandoz	5 mg	Tablett
 Everolimus Sandoz	10 mg	Tablett
@@ -4065,10 +4068,6 @@ Lenalidomide Accord	10 mg	Kapsel, hård
 Lenalidomide Accord	15 mg	Kapsel, hård
 Lenalidomide Accord	20 mg	Kapsel, hård
 Lenalidomide Accord	25 mg	Kapsel, hård
-Lenalidomide Glenmark	5 mg	Kapsel, hård
-Lenalidomide Glenmark	10 mg	Kapsel, hård
-Lenalidomide Glenmark	15 mg	Kapsel, hård
-Lenalidomide Glenmark	25 mg	Kapsel, hård
 Lenalidomide Grindeks	5 mg	Kapsel, hård
 Lenalidomide Grindeks	10 mg	Kapsel, hård
 Lenalidomide Grindeks	15 mg	Kapsel, hård
@@ -7363,7 +7362,6 @@ Tapentadol Depot STADA	150 mg	Depottablett
 Tapentadol Depot STADA	200 mg	Depottablett
 Tapentadol Depot STADA	250 mg	Depottablett
 Tapentadol G.L. Pharma	50 mg	Filmdragerad tablett
-Tapimio Depot	50 mg	Depottablett
 Tapin	25 mg/25 mg	Medicinskt plåster
 Tapin	25 mg/g + 25 mg/g	Kräm
 Taptiqom	15 mikrogram/ml+5 mg/ml	Ögondroppar, lösning i endosbehållare
@@ -7900,6 +7898,9 @@ Varenicline Bluefish	0,5 mg + 1 mg	Filmdragerad tablett
 Varenicline Bluefish	1 mg	Filmdragerad tablett
 Varenicline Glenmark	0,5 mg	Filmdragerad tablett
 Varenicline Glenmark	1 mg	Filmdragerad tablett
+Varenicline Newbury	0,5 mg	Filmdragerad tablett
+Varenicline Newbury	0,5 mg + 1 mg	Filmdragerad tablett
+Varenicline Newbury	1 mg	Filmdragerad tablett
 Varenicline Orion	0,5 mg	Filmdragerad tablett
 Varenicline Orion	0,5 mg + 1 mg	Filmdragerad tablett
 Varenicline Orion	1 mg	Filmdragerad tablett
