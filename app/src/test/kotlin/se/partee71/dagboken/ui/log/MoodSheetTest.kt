@@ -21,6 +21,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.junit.Rule
 import org.junit.Test
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Option
@@ -42,6 +43,8 @@ import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.SelectedDay
+import se.partee71.dagboken.ui.components.ScreeningStep
+import se.partee71.dagboken.ui.components.screeningSteps
 
 /**
  * Måendearket (HEM-5, SCR-1, SCR-2, SCR-5, SCR-6, NFR-10) – ett ark för Idag, plusknappen och Dagbok (`LogViewModel`).
@@ -295,5 +298,85 @@ class MoodSheetTest {
         val saved = storedScreenings().single()
         assertEquals(8, saved.energy)
         assertEquals("Sov dåligt", saved.note)
+    }
+
+    // ── Känslor (SCR-7) ──
+
+    @Test
+    fun `stegen är energi, känslor, stress och symptom – utan symptomlista tre steg (SCR-7)`() {
+        assertEquals(listOf(ScreeningStep.ENERGY, ScreeningStep.FEELINGS, ScreeningStep.STRESS, ScreeningStep.SYMPTOMS), screeningSteps(withSymptoms = true))
+        assertEquals(listOf(ScreeningStep.ENERGY, ScreeningStep.FEELINGS, ScreeningStep.STRESS), screeningSteps(withSymptoms = false))
+    }
+
+    @Test
+    fun `Logga nu med känslosteget öppnar arket på känslorna – sidan är känslostegets index (SCR-7)`() = runTest(main.dispatcher) {
+        allOccasions()
+        val vm = started()
+        vm.onEvent(LogEvent.LogScreening(Occasion.LUNCH, null, null, ScreeningStep.FEELINGS))
+        val initial = assertNotNull(vm.screening.value).context.initialStep
+        assertEquals(ScreeningStep.FEELINGS, initial)
+        // Samma uträkning som rememberStepwiseScreeningState gör för startsidan.
+        assertEquals(1, screeningSteps(withSymptoms = true).indexOf(initial))
+        assertEquals(1, screeningSteps(withSymptoms = false).indexOf(initial))
+    }
+
+    @Test
+    fun `en ny logg sparas med de valda känslorna i vald ordning (SCR-7)`() = runTest(main.dispatcher) {
+        allOccasions()
+        val vm = started()
+        vm.onEvent(LogEvent.LogScreening(Occasion.LUNCH, null, null))
+        val picked = listOf(Feeling("sad", "lonely"), Feeling("happy"), Feeling("scared", "anxious", "worried"))
+        vm.onEvent(LogEvent.ChangeFeelings(picked))
+        assertEquals(picked, vm.screening.value?.value?.feelings)
+        vm.onEvent(LogEvent.SaveScreening)
+        runCurrent()
+        assertEquals(picked, storedScreenings().single().feelings)
+        vm.assertSavedAndClosed()
+    }
+
+    @Test
+    fun `en logg med känslor öppnas med dem, och ändrade känslor gör arket ändrat – tillbaka gör det oändrat (SCR-7, NFR-10)`() = runTest(main.dispatcher) {
+        allOccasions()
+        val feelings = listOf(Feeling("calm", "grateful"), Feeling("sad"))
+        val logged = Screening("s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, feelings = feelings, createdAt = at(today, 8, 40))
+        factory.screenings().upsert(logged).getOrThrow()
+        val vm = started()
+        vm.onEvent(LogEvent.EditScreening(logged))
+        val sheet = assertNotNull(vm.screening.value)
+        assertEquals(feelings, sheet.value.feelings)
+        assertFalse(sheet.editor.state.value.isDirty)
+
+        vm.onEvent(LogEvent.ChangeFeelings(listOf(Feeling("happy"))))
+        assertTrue(sheet.editor.state.value.isDirty)
+        assertTrue(sheet.editor.state.value.canSave)
+        vm.onEvent(LogEvent.ChangeFeelings(feelings))
+        assertFalse(sheet.editor.state.value.isDirty, "samma känslor som loggen har: oändrat")
+
+        vm.onEvent(LogEvent.ChangeFeelings(emptyList()))
+        assertTrue(sheet.editor.state.value.isDirty, "alla borttagna är en ändring")
+        assertTrue(sheet.value.feelings.isEmpty())
+    }
+
+    @Test
+    fun `bara känslorna sparas fältvis – det som ändrats på annat håll står kvar (SCR-1, SCR-7)`() = runTest(main.dispatcher) {
+        allOccasions()
+        val logged = Screening("s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, stress = 3, createdAt = at(today, 8, 40))
+        factory.screenings().upsert(logged).getOrThrow()
+        val vm = started()
+        vm.onEvent(LogEvent.EditScreening(logged))
+        val sheet = assertNotNull(vm.screening.value)
+
+        // En annan enhet ändrar energin medan arket är öppet.
+        factory.screenings().upsert(logged.copy(energy = 9)).getOrThrow()
+        vm.onEvent(LogEvent.ChangeFeelings(listOf(Feeling("calm"), Feeling("happy", "proud"))))
+        assertTrue(sheet.editor.state.value.canSave)
+        vm.onEvent(LogEvent.SaveScreening)
+        runCurrent()
+
+        val saved = storedScreenings().single()
+        assertEquals(listOf(Feeling("calm"), Feeling("happy", "proud")), saved.feelings)
+        assertEquals(9, saved.energy)
+        assertEquals(3, saved.stress)
+        vm.assertSavedAndClosed()
     }
 }
