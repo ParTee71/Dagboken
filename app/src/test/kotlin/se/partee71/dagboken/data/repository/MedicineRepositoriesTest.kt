@@ -364,7 +364,7 @@ class MedicineRepositoriesTest {
         assertEquals(false, factory.prescriptions().get(levaxin.id).getOrThrow()?.active, "reglaget skrivs ändå")
         assertEquals(setOf(planned(today, Slot.MORNING).id), factory.doses().getAll().getOrThrow().map { it.id }.toSet())
 
-        offlineDoses.createDay(levaxin, today, today).getOrThrow()
+        assertEquals(DataError.Offline, offlineDoses.createDay(levaxin, today, today).exceptionOrNull(), "Offline når ensureDay, så att Idag försöker igen (HEM-10)")
         assertNull(factory.store.read(dosesPath(), planned(today, Slot.EVENING).id), "offline: ingen dos")
     }
 

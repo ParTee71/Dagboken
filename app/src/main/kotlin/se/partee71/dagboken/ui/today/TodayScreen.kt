@@ -39,6 +39,7 @@ import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.data.auth.AuthUser
+import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.common.DetailUiState
@@ -48,6 +49,7 @@ import se.partee71.dagboken.ui.common.entryDeleteAction
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.periodText
+import se.partee71.dagboken.ui.common.toMessage
 import se.partee71.dagboken.ui.components.AccountAvatar
 import se.partee71.dagboken.ui.components.AppButton
 import se.partee71.dagboken.ui.components.AppCard
@@ -310,14 +312,18 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
         // Radens tillstånd (meny, anteckning, krysset) följer dosen när listan ändras.
         rows.forEach { row -> key(row.dose.id) { DoseRow(row, content, onEvent, onSkip = { skipping = it }, onDelete = { deleting = it }) } }
         when {
-            // HEM-10, MED-4: doser kunde inte skapas (t.ex. slut på molnets kvot) – också när några finns; aldrig "Allt avklarat".
-            content.dosesMissing -> EmptyState(
-                R.drawable.ic_warning,
-                stringResource(R.string.today_medicines_missing_title),
-                stringResource(R.string.today_medicines_missing),
-                isError = true,
-                compact = true,
-            )
+            // HEM-10, MED-4: doser kunde inte skapas – också när några finns; aldrig "Allt avklarat". Orsaken visas, och när det görs om.
+            content.missingCause != null -> {
+                val offline = content.missingCause == DataError.Offline
+                EmptyState(
+                    R.drawable.ic_warning,
+                    stringResource(R.string.today_medicines_missing_title),
+                    stringResource(if (offline) R.string.today_medicines_missing_offline else content.missingCause.toMessage()),
+                    note = stringResource(if (offline) R.string.today_medicines_missing_offline_retry else R.string.today_medicines_missing_retry),
+                    isError = true,
+                    compact = true,
+                )
+            }
             list.isEmpty -> EmptyState(R.drawable.ic_pill, stringResource(R.string.today_medicines_none_title), stringResource(R.string.today_medicines_none), compact = true)
             list.shown.isEmpty() && list.upcoming.isEmpty() && !content.showDone ->
                 EmptyState(R.drawable.ic_check, stringResource(R.string.today_medicines_all_done_title), stringResource(R.string.today_medicines_all_done), compact = true)

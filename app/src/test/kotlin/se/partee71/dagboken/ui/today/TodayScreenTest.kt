@@ -344,17 +344,27 @@ class TodayScreenTest {
     }
 
     @Test
-    fun `dagens doser saknas efter försöket – kortet säger det, inte Allt avklarat eller Inga mediciner (HEM-10, MED-4)`() {
-        show(content(emptyList(), progress = DayProgress(0, 0), showDone = false).copy(dosesMissing = true))
+    fun `dagens doser saknas efter försöket – kortet säger det och varför, inte Allt avklarat eller Inga mediciner (HEM-10, MED-4)`() {
+        show(content(emptyList(), progress = DayProgress(0, 0), showDone = false).copy(missingCause = DataError.QuotaExceeded))
         rule.onNodeWithText("Doser saknas").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Alla doser för dagen kunde inte skapas just nu. Appen försöker igen nästa gång dagen visas.").assertIsDisplayed()
+        rule.onNodeWithText("Molnets kvot för i dag är slut. Ingenting har gått förlorat – försök igen senare.").assertIsDisplayed()
+        rule.onNodeWithText("Appen försöker igen nästa gång dagen visas.").assertIsDisplayed()
         rule.onNodeWithText("Allt avklarat").assertDoesNotExist()
         rule.onNodeWithText("Inga mediciner").assertDoesNotExist()
     }
 
     @Test
+    fun `dagens doser saknas utan nät – kortet säger att anslutningen saknas och att appen försöker igen (HEM-10, MED-4)`() {
+        show(content(emptyList(), progress = DayProgress(0, 0), showDone = false).copy(missingCause = DataError.Offline))
+        rule.onNodeWithText("Doser saknas").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Ingen anslutning just nu, så dagens doser kan inte skapas.").assertIsDisplayed()
+        rule.onNodeWithText("Appen försöker igen av sig själv när nätet är tillbaka.").assertIsDisplayed()
+        rule.onNodeWithText("Allt avklarat").assertDoesNotExist()
+    }
+
+    @Test
     fun `saknade doser när några redan finns – raderna visas som förut, och att doser saknas, aldrig Allt avklarat (HEM-10, MED-4, MED-5)`() {
-        show(content(listOf(levaxinDose, sertralinDose), showDone = true).copy(dosesMissing = true))
+        show(content(listOf(levaxinDose, sertralinDose), showDone = true).copy(missingCause = DataError.QuotaExceeded))
         rule.onNodeWithText("Levaxin 100 µg").performScrollTo().assertIsOn()
         rule.onNodeWithText("Doser saknas").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Allt avklarat").assertDoesNotExist()
@@ -430,6 +440,11 @@ class TodayScreenTest {
     @Test
     fun `skärmdump - vanligt läge`() = rule.captureLightAndDark("Today_vanligt") {
         TodayScreen(DetailUiState.Content(content()), {}, {})
+    }
+
+    @Test
+    fun `skärmdump - doser saknas utan nät`() = rule.captureLightAndDark("Today_doser_saknas_offline") {
+        TodayScreen(DetailUiState.Content(content(emptyList(), progress = DayProgress(0, 0), showDone = false).copy(missingCause = DataError.Offline)), {}, {})
     }
 
     @Test

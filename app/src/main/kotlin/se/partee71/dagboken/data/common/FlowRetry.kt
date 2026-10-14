@@ -1,6 +1,7 @@
 package se.partee71.dagboken.data.common
 
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +34,27 @@ internal fun backoff(first: Duration, max: Duration, attempt: Long): Duration =
     (first * (1L shl attempt.coerceAtMost(MAX_DOUBLINGS).toInt()).toDouble()).coerceAtMost(max)
 
 private const val MAX_DOUBLINGS = 16L
+
+/**
+ * Första pausen innan ett försök utan nät görs om, och den längsta – kort nog att det kommer snart efter att nätet kommit
+ * tillbaka: historikläget (NFR-24) och receptens försök på Idag och Mediciner (HEM-10, REC-8).
+ */
+val OFFLINE_RETRY_FIRST = 30.seconds
+val OFFLINE_RETRY_MAX = 1.minutes
+
+/**
+ * Kör [block] och gör om det med växande paus ([OFFLINE_RETRY_FIRST] upp till [OFFLINE_RETRY_MAX]) så länge [retryOn]
+ * godtar utfallet – [onRetry] före varje paus. Ger det första utfall som inte görs om; avbryts med anroparen.
+ */
+suspend fun <R> retryWithBackoffWhile(retryOn: (R) -> Boolean, onRetry: (R) -> Unit = {}, block: suspend () -> R): R {
+    var attempt = 0L
+    while (true) {
+        val result = block()
+        if (!retryOn(result)) return result
+        onRetry(result)
+        delay(backoff(OFFLINE_RETRY_FIRST, OFFLINE_RETRY_MAX, attempt++))
+    }
+}
 
 /**
  * För ett tillägg på en skärm (en sammanfattning, en räknare): vid fel visas [fallback]
