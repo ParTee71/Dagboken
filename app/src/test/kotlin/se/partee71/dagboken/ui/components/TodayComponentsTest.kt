@@ -38,7 +38,9 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -179,12 +181,17 @@ class TodayComponentsTest {
                 OccasionRow("Läggdags", OccasionStatus.UPCOMING, { logged += "läggdags" }, time = "22:00")
             }
         }
-        rule.onNodeWithText("Loggad 08:12").assertIsDisplayed()
+        // Loggad: bocken i stället för en "Loggad"-pill, bara klockslaget som undertext, värdena som chips under namnet.
+        rule.onNodeWithText("Loggad", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("08:12").assertIsDisplayed()
         rule.onNodeWithText("Energi 7").assertIsDisplayed()
         rule.onNodeWithText("Stress 4").assertIsDisplayed()
+        rule.onNode(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Loggad")).assertIsDisplayed()
         rule.onNodeWithText("Försenat").assertIsDisplayed()
         rule.onNodeWithText("Snart").assertIsDisplayed()
-        rule.onNodeWithText("Kommande · 22:00").assertIsDisplayed()
+        rule.onNodeWithText("22:00 · Kommande").assertIsDisplayed()
+        // Bocken är bara visning: ingen kryssruta på någon rad (NFR-17).
+        rule.onAllNodes(isToggleable()).assertCountEquals(0)
         val buttons = rule.onAllNodesWithText("Logga nu")
         assertEquals(2, buttons.fetchSemanticsNodes().size, "Logga nu bara för försenat och snart")
         buttons[0].assertTouchHeightIsEqualTo(48.dp).assertHasClickAction().performClick()
@@ -200,6 +207,38 @@ class TodayComponentsTest {
         rule.onNodeWithText("Ej loggad").assertIsDisplayed()
         rule.onNodeWithText("Logga nu").performClick()
         assertEquals(1, logged)
+    }
+
+    @Test
+    fun `tillfällesraden - statusen står under namnet, i linje med titeln, och Logga nu till höger`() {
+        show { OccasionRow("Lunch", OccasionStatus.LATE, {}, time = "12:00") }
+        val title = rule.onNodeWithText("Lunch", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val status = rule.onNodeWithText("Försenat", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val button = rule.onNodeWithText("Logga nu").getUnclippedBoundsInRoot()
+        assertTrue(status.top >= title.bottom, "statusen under namnet")
+        assertTrue(button.left > title.right, "Logga nu till höger om namnet")
+        // Pillens text har pillens inre marginal: den börjar vid titelns vänsterkant (efter bocken) plus den.
+        assertTrue(status.left >= title.left && status.left - title.left <= 16.dp, "statusen i linje med titeln: ${status.left} vs ${title.left}")
+    }
+
+    @Test
+    fun `tillfällesraden - en loggad rads värden står under namnet, som får plats på en rad`() {
+        show {
+            OccasionRow(
+                "Efter frukost",
+                OccasionStatus.LOGGED,
+                {},
+                time = "08:12",
+                values = listOf(OccasionValue("Energi", 7), OccasionValue("Stress", 4, higherIsBetter = false)),
+            )
+        }
+        val title = rule.onNodeWithText("Efter frukost", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val time = rule.onNodeWithText("08:12", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val energy = rule.onNodeWithText("Energi 7", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue(energy.top >= time.bottom, "värdena under klockslaget")
+        assertTrue(energy.left >= title.left && energy.left - title.left <= 16.dp, "värdena i linje med titeln: ${energy.left} vs ${title.left}")
+        // Namnet på en rad: lika högt som klockslagets rad, inte två.
+        assertTrue(title.bottom - title.top < (time.bottom - time.top) * 2, "namnet på en rad")
     }
 
     // ---- DayDoneCard ----

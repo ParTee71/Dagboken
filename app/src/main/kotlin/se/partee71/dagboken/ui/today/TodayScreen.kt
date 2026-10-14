@@ -24,7 +24,9 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.DayPart
 import se.partee71.dagboken.core.engine.Due
 import se.partee71.dagboken.core.engine.EnergyTrend
+import se.partee71.dagboken.core.engine.OccasionState
 import se.partee71.dagboken.core.engine.OccasionStatus
+import se.partee71.dagboken.core.engine.groupedByLogged
 import se.partee71.dagboken.core.engine.OngoingIllness
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.latest
@@ -66,6 +68,7 @@ import se.partee71.dagboken.ui.components.DayDoneCard
 import se.partee71.dagboken.ui.components.DeleteConfirmDialog
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.EntityDetailScreen
+import se.partee71.dagboken.ui.components.GroupLabel
 import se.partee71.dagboken.ui.components.InfoPill
 import se.partee71.dagboken.ui.components.ItemRow
 import se.partee71.dagboken.ui.components.inactive
@@ -241,7 +244,8 @@ private fun WeekSummaryCard(summary: WeekSummary) {
 
 /**
  * Mående (HEM-4, HEM-5, NOT-4): en tillfällesrad per aktiverat tillfälle med status och räknaren loggade av
- * tillfällena. Hela raden är radens åtgärd (NFR-17): ett loggat tillfälle öppnar loggen för ändring, annars
+ * tillfällena – först de ej loggade under "Kvar idag" (en tidigare dag "Ej loggat"), sedan de loggade under "Loggat";
+ * etiketterna bara när båda grupperna har rader. Hela raden är radens åtgärd (NFR-17): ett loggat tillfälle öppnar loggen för ändring, annars
  * öppnar raden – liksom "Logga nu" – arket med en ny logg för den visade dagen (SCR-6). Utan aktiverade
  * tillfällen visas inget kort.
  */
@@ -256,13 +260,23 @@ private fun MoodCard(content: TodayContent, onScreening: (LogEvent) -> Unit) {
             count = stringResource(R.string.today_count_format, logged, states.size),
             tone = if (content.isToday && logged == states.size) Tone.Positive else Tone.Primary,
         )
-        states.forEach { state ->
-            key(state.occasion) {
-                // Idag är dagen klockans när arket öppnas (`null`); en tidigare dag får tillfällets påminnelsetid (SCR-6).
-                val log = { onScreening(LogEvent.LogScreening(state.occasion, content.date.takeUnless { content.isToday }, state.time)) }
-                val latest = state.latest
-                OccasionStateRow(state, onLog = log, onClick = if (latest != null) ({ onScreening(LogEvent.EditScreening(latest)) }) else log)
-            }
+        val groups = states.groupedByLogged()
+        val openLabel = if (content.isToday) R.string.occasion_group_remaining else R.string.occasion_group_not_logged
+        MoodGroup(groups.open, stringResource(openLabel).takeIf { groups.bothShown }, content, onScreening)
+        MoodGroup(groups.logged, stringResource(R.string.occasion_group_logged).takeIf { groups.bothShown }, content, onScreening)
+    }
+}
+
+/** En grupp i Mående-kortet (HEM-5): [label] över raderna när den visas, sedan en tillfällesrad per tillfälle. */
+@Composable
+private fun MoodGroup(states: List<OccasionState>, label: String?, content: TodayContent, onScreening: (LogEvent) -> Unit) {
+    if (label != null) GroupLabel(label)
+    states.forEach { state ->
+        key(state.occasion) {
+            // Idag är dagen klockans när arket öppnas (`null`); en tidigare dag får tillfällets påminnelsetid (SCR-6).
+            val log = { onScreening(LogEvent.LogScreening(state.occasion, content.date.takeUnless { content.isToday }, state.time)) }
+            val latest = state.latest
+            OccasionStateRow(state, onLog = log, onClick = if (latest != null) ({ onScreening(LogEvent.EditScreening(latest)) }) else log)
         }
     }
 }

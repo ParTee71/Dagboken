@@ -19,6 +19,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -532,10 +533,11 @@ class TodayScreenTest {
         val events = mutableListOf<LogEvent>()
         showFull(onScreening = { events += it })
         rule.onNodeWithText("1 av 4").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Loggad 08:12").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("08:12").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Loggad", substring = true).assertDoesNotExist()
         rule.onNodeWithText("Energi 7").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Stress 3").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Kommande · 21:00").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("21:00 · Kommande").performScrollTo().assertIsDisplayed()
 
         rule.onAllNodesWithText("Logga nu")[0].performScrollTo().performClick()
         assertEquals(LogEvent.LogScreening(Occasion.LUNCH, null, LocalTime(10, 0)), events.last())
@@ -555,6 +557,40 @@ class TodayScreenTest {
         rule.onNodeWithText("Din vecka").assertDoesNotExist()
         rule.onAllNodesWithText("Logga nu")[1].performScrollTo().performClick()
         assertEquals(LogEvent.LogScreening(Occasion.LUNCH, past, LocalTime(10, 0)), events.last(), "den visade dagen och påminnelsens tid")
+    }
+
+    @Test
+    fun `Mående visar först det som är kvar och sedan det loggade, med etiketter (HEM-5)`() {
+        showFull()
+        rule.onNodeWithText("Mående").performScrollTo()
+        val tops = listOf("KVAR IDAG", "Lunch", "Kvällsmat", "Läggdags", "LOGGAT", "Efter frukost").map { text ->
+            rule.onNodeWithText(text, useUnmergedTree = true).getUnclippedBoundsInRoot().top
+        }
+        assertEquals(tops.sorted(), tops, "kvar i tidsordning före loggat")
+        rule.onNodeWithText("EJ LOGGAT").assertDoesNotExist()
+    }
+
+    @Test
+    fun `Mående utan etiketter när bara en grupp har rader (HEM-5)`() {
+        showFull(full().copy(occasions = occasionStates(reminders, emptyList(), today, now, zone)))
+        rule.onNodeWithText("Mående").performScrollTo()
+        rule.onNodeWithText("KVAR IDAG").assertDoesNotExist()
+        rule.onNodeWithText("LOGGAT").assertDoesNotExist()
+        rule.onNodeWithText("Lunch").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `Mående en tidigare dag – Ej loggat över det ologgade (HEM-5)`() {
+        val past = LocalDate(2026, 10, 2)
+        val lunch = Screening("s2", past, LocalTime(12, 40), Occasion.LUNCH, energy = 6, stress = 2)
+        showFull(full(past).copy(occasions = occasionStates(reminders, listOf(lunch), past, now, zone)))
+        rule.onNodeWithText("Mående").performScrollTo()
+        val tops = listOf("EJ LOGGAT", "Efter frukost", "Kvällsmat", "Läggdags", "LOGGAT", "Lunch").map { text ->
+            rule.onNodeWithText(text, useUnmergedTree = true).getUnclippedBoundsInRoot().top
+        }
+        assertEquals(tops.sorted(), tops)
+        rule.onNodeWithText("KVAR IDAG").assertDoesNotExist()
+        rule.onNodeWithText("12:40").performScrollTo().assertIsDisplayed()
     }
 
     @Test

@@ -273,4 +273,26 @@ class TodayTest {
         val states = occasionStates(reminders, listOf(screening("2026-05-03", Occasion.BEDTIME)), day("2026-05-03"), at("2026-05-04T12:00"), STOCKHOLM)
         assertEquals(listOf(OccasionStatus.NOT_LOGGED, OccasionStatus.LOGGED), states.map { it.status })
     }
+
+    @Test fun `Mående-kortet visar ej loggade före loggade, båda i tidsordning (HEM-5)`() {
+        val all = ReminderSettings(screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = true) })
+        val logs = listOf(screening("2026-05-04", Occasion.BREAKFAST), screening("2026-05-04", Occasion.DINNER))
+        val groups = occasionStates(all, logs, day("2026-05-04"), at("2026-05-04T19:00"), STOCKHOLM).groupedByLogged()
+        assertEquals(listOf(Occasion.LUNCH, Occasion.BEDTIME), groups.open.map { it.occasion })
+        assertEquals(listOf(Occasion.BREAKFAST, Occasion.DINNER), groups.logged.map { it.occasion })
+        assertTrue(groups.bothShown)
+    }
+
+    @Test fun `etiketterna behövs bara när båda grupperna har rader (HEM-5)`() {
+        val none = occasionStates(reminders, emptyList(), day("2026-05-04"), at("2026-05-04T09:00"), STOCKHOLM).groupedByLogged()
+        assertEquals(2, none.open.size)
+        assertTrue(none.logged.isEmpty())
+        assertFalse(none.bothShown)
+        val logs = both.map { screening("2026-05-04", it) }
+        val done = occasionStates(reminders, logs, day("2026-05-04"), at("2026-05-04T22:00"), STOCKHOLM).groupedByLogged()
+        assertTrue(done.open.isEmpty())
+        assertEquals(both, done.logged.map { it.occasion })
+        assertFalse(done.bothShown)
+        assertFalse(emptyList<OccasionState>().groupedByLogged().bothShown)
+    }
 }
