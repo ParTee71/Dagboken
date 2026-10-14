@@ -131,3 +131,18 @@ fun occasionChoices(
  */
 val OccasionState.latest: Screening?
     get() = screenings.latestBy(Screening::date, Screening::time, Screening::createdAt)
+
+/** HEM-5: Idags Mående-kort i två grupper – [open] (ej loggade, "Kvar idag"/"Ej loggat") före [logged] ("Loggat"). */
+data class OccasionGroups(val open: List<OccasionState>, val logged: List<OccasionState>) {
+    /** Etiketterna över grupperna visas bara när båda har rader. */
+    val bothShown: Boolean get() = open.isNotEmpty() && logged.isNotEmpty()
+}
+
+/**
+ * HEM-5: delar tillfällena ([occasionStates]) i ej loggade och loggade; båda grupperna behåller listans ordning
+ * (tillfällenas tidsordning).
+ */
+fun List<OccasionState>.groupedByLogged(): OccasionGroups {
+    val (logged, open) = partition { it.status == OccasionStatus.LOGGED }
+    return OccasionGroups(open = open, logged = logged)
+}

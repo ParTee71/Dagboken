@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,7 +41,8 @@ import se.partee71.dagboken.ui.theme.Spacing
  * [tinted] den tonade bakgrunden och [accent] en färgad vänsterkant (status, NFR-16).
  * [navigates] visar en pil längst till höger (efter [trailing]) – raden öppnar en annan skärm.
  * [inactive] tonar ner hela raden, för det som finns men inte räknas med (ett pausat recept).
- * [below] står under titel och undertext över hela radens bredd (t.ex. en episods incheckningar).
+ * [below] står under titel och undertext över hela radens bredd (t.ex. en episods incheckningar); med
+ * [belowAlignsWithTitle] börjar den i linje med titeln efter en [leading] i `LeadingSlot` (tillfällets "Försenat").
  * [titleHighlight] färgmarkerar en del av titeln – det man sökt på i ett [SuggestionField].
  * [icon] är en dekorativ ikon först i raden, i samma ruta som kontots avatar (`LeadingSlot`), för val i ark och kort
  * (plusknappens meny, importens val) – används i stället för [leading].
@@ -61,6 +63,7 @@ fun ItemRow(
     below: (@Composable () -> Unit)? = null,
     titleHighlight: IntRange? = null,
     @DrawableRes icon: Int? = null,
+    belowAlignsWithTitle: Boolean = false,
 ) {
     val start: (@Composable () -> Unit)? = leading ?: icon?.let { { LeadingSlot { Icon(painterResource(it), contentDescription = null) } } }
     val end: (@Composable () -> Unit)? = if (navigates) {
@@ -83,12 +86,14 @@ fun ItemRow(
         accent = accent,
         below = below,
         titleHighlight = titleHighlight,
+        belowAlignsWithTitle = belowAlignsWithTitle,
     )
 }
 
 /**
  * Gemensam layout för [ItemRow], `CheckRow` och `SwitchRow` – de skiljer sig bara i [interaction].
  * [textInactive] tonar ned bara titel och undertext, så att en kontroll i [trailing] behåller full kontrast.
+ * [belowAlignsWithTitle] drar in [below] förbi en [leading] i `LeadingSlot`, så att den linjerar med titeln.
  */
 @Composable
 internal fun ItemRowLayout(
@@ -104,6 +109,7 @@ internal fun ItemRowLayout(
     below: (@Composable () -> Unit)? = null,
     titleHighlight: IntRange? = null,
     textInactive: Boolean = false,
+    belowAlignsWithTitle: Boolean = false,
 ) {
     val tint = AppColors.extended.rowTint
     Column(
@@ -122,7 +128,9 @@ internal fun ItemRowLayout(
             RowText(title, subtitle, Modifier.weight(1f).inactive(textInactive), done = done, titleHighlight = titleHighlight)
             trailing?.invoke()
         }
-        below?.invoke()
+        below?.let { content ->
+            if (belowAlignsWithTitle) Box(Modifier.padding(start = TOUCH_TARGET + Spacing.m)) { content() } else content()
+        }
     }
 }
 
