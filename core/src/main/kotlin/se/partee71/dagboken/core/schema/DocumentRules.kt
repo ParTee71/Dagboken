@@ -2,6 +2,7 @@ package se.partee71.dagboken.core.schema
 
 import kotlin.time.Instant
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
 import se.partee71.dagboken.core.model.LegacySource
 import se.partee71.dagboken.core.model.MedicineForm
@@ -39,7 +40,7 @@ object DocumentRules {
     const val MAX_FEELINGS = FeelingCatalog.MAX_FEELINGS
 
     /** Nyansens och ordets längd i ett känslotoken (`[a-z]{1,32}` i rules). */
-    const val MAX_FEELING_PART = 32
+    const val MAX_FEELING_PART = Feeling.MAX_PART
 
     /**
      * Ett känslotoken `core[.nuance[.detail]]` ([Feeling.token], DAT-14): kärnan en av [FeelingCatalog.cores], nyans och ord
@@ -47,7 +48,7 @@ object DocumentRules {
      * alla [MAX_FEELINGS] element kontrolleras för några få uttryck; DocumentRulesTest håller mönstren lika. Att nyans och
      * ord hör till kärnan kontrolleras inte: ett okänt token med giltig form bevaras av codecen (som en okänd form).
      */
-    val FEELING_TOKEN = Regex("^(${FeelingCatalog.cores.joinToString("|")})(\\.[a-z]{1,$MAX_FEELING_PART}){0,2}$")
+    val FEELING_TOKEN = Regex("^(${FeelingCatalog.cores.joinToString("|")})(\\.${Feeling.PART.pattern}){0,2}$")
 
     /**
      * Rules kontrollerar elementen i symptom- och höjningslistorna upp till så här många (`l[0]`…`l[9]`):

@@ -111,8 +111,12 @@ class FeelingComponentsTest {
         rule.onNodeWithContentDescription("Rädd").performClick()
         assertEquals(listOf(Feeling("scared", "anxious"), Feeling("scared")), selected, "navet väljer bara kärnan")
         rule.onNodeWithContentDescription("Rädd").assert(chosen)
+        rule.onNodeWithText("Mer precist:").assertDoesNotExist()
         rule.onNodeWithContentDescription("Orolig").performClick()
-        assertEquals(listOf(Feeling("scared")), selected, "ett nytt tryck på nyansen tar bort den")
+        assertEquals(listOf(Feeling("scared", "anxious"), Feeling("scared")), selected, "vald men inte aktiv: blir aktiv, tas inte bort")
+        rule.onNodeWithText("Mer precist:").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Orolig").performClick()
+        assertEquals(listOf(Feeling("scared")), selected, "ett tryck på den aktiva nyansen tar bort den")
         rule.onNodeWithText("Mer precist:").assertDoesNotExist()
     }
 
@@ -130,6 +134,32 @@ class FeelingComponentsTest {
         rule.onNodeWithContentDescription("Lugn").assert(chosen)
         rule.onNodeWithContentDescription("Arg").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
         assertEquals(2, selected.size)
+    }
+
+    @Test
+    fun `väljaren - en redan vald nyans visar sina ord när kärnan öppnas och förfinas på sin plats`() {
+        selected = listOf(Feeling("glad"), Feeling("calm", "grateful"), Feeling("scared"))
+        picker()
+        rule.onNodeWithContentDescription("Lugn").performClick()
+        rule.onNodeWithText("Mer precist:").assertIsDisplayed()
+        rule.onNodeWithText("Ödmjuk").performClick()
+        assertEquals(listOf(Feeling("glad"), Feeling("calm", "grateful", "humble"), Feeling("scared")), selected, "samma plats i listan")
+    }
+
+    @Test
+    fun `väljaren - två valda nyanser under en kärna, tryck på den inaktiva visar dess ord`() {
+        selected = listOf(Feeling("calm", "grateful"), Feeling("glad"), Feeling("calm", "relaxed"))
+        picker()
+        rule.onNodeWithContentDescription("Lugn").performClick()
+        rule.onNodeWithText("Ödmjuk").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Avslappnad").assert(chosen).performClick()
+        assertEquals(3, selected.size, "inget togs bort")
+        rule.onNodeWithText("Ödmjuk").assertDoesNotExist()
+        rule.onNodeWithText("Vilsam").performClick()
+        assertEquals(listOf(Feeling("calm", "grateful"), Feeling("glad"), Feeling("calm", "relaxed", "restful")), selected)
+        rule.onNodeWithText("Tillbaka till hjulet").performClick()
+        rule.onNodeWithContentDescription("Lugn").performClick()
+        rule.onNodeWithText("Ödmjuk").assertIsDisplayed()
     }
 
     @Test

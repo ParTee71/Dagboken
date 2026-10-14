@@ -22,10 +22,21 @@ data class Feeling(val core: String, val nuance: String? = null, val detail: Str
     companion object {
         const val SEPARATOR = '.'
 
-        /** Enda stället som läser den lagrade formen: 1–3 icke-tomma delar runt [SEPARATOR]; allt annat → `null`. */
+        /** Längsta token-del; samma gräns i rules och `DocumentRules.FEELING_TOKEN`. */
+        const val MAX_PART = 32
+
+        /** En token-del: 1–[MAX_PART] gemener a–z – det rules släpper igenom. */
+        val PART = Regex("[a-z]{1,$MAX_PART}")
+
+        /**
+         * Enda stället som läser den lagrade formen: 1–3 delar runt [SEPARATOR], var och en enligt [PART]; allt annat →
+         * `null`. Ett okänt ord med giltig form (nyare app) läses och skrivs tillbaka (en okänd kärna nekas ändå av rules
+         * tills de höjts, som en okänd form); en del med fel tecken (versal, siffra, för lång) hoppas över och skrivs
+         * aldrig tillbaka.
+         */
         fun parse(text: String): Feeling? {
             val parts = text.split(SEPARATOR)
-            if (parts.size !in 1..3 || parts.any { it.isEmpty() }) return null
+            if (parts.size !in 1..3 || parts.any { !PART.matches(it) }) return null
             return Feeling(parts[0], parts.getOrNull(1), parts.getOrNull(2))
         }
     }

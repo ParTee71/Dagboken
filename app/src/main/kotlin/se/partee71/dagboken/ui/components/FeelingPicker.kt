@@ -45,11 +45,13 @@ import se.partee71.dagboken.ui.theme.ToneColors
  * Känslosteget (SCR-7, variant B2 i #318): rubriken "Vad känner du just nu?" med hjälptext, [FeelingWheel] som ingång
  * och de valda känslorna som pills i kärnans ton under ("Lugn › Tacksam", `feelingsLabel`) – tryck på en pill tar bort
  * den. Tryck på en kärna visar den som nav överst (tryck väljer bara kärnan) och dess sex nyanser som liggande knappar
- * i två spalter; en vald nyans visar "Mer precist:" med sina två precisare ord som [AppFilterChip]. Ett precisare ord
- * eller en nyans ersätter det grövre valet på samma plats i listan, och ett nytt tryck på det valda tar bort det (eller
- * går tillbaka till nyansen). "Tillbaka till hjulet" behåller valen. Högst [maxSelected] val: därefter ignoreras nya
- * val och knapparna som skulle lägga till är inaktiva. Vilken kärna som är öppen och vilken nyans som visar sina ord
- * är komponentens eget tillstånd; valen ägs av anroparen ([selected], [onSelectedChange]).
+ * i två spalter; den aktiva valda nyansen visar "Mer precist:" med sina två precisare ord som [AppFilterChip] – när en
+ * kärna öppnas är det den första valda nyansen under den. Ett precisare ord eller en nyans ersätter det grövre valet
+ * på samma plats i listan. Tryck på en vald nyans som inte är aktiv gör den aktiv; tryck på den aktiva tar bort den,
+ * och ett nytt tryck på ett valt precisare ord går tillbaka till nyansen. "Tillbaka till hjulet" behåller valen.
+ * Högst [maxSelected] val: därefter ignoreras nya val och knapparna som skulle lägga till är inaktiva. Vilken kärna
+ * som är öppen och vilken nyans som visar sina ord är komponentens eget tillstånd; valen ägs av anroparen
+ * ([selected], [onSelectedChange]).
  */
 @Composable
 fun FeelingPicker(
@@ -65,7 +67,11 @@ fun FeelingPicker(
     LabeledGroup(stringResource(R.string.feelings_title), modifier.fillMaxWidth(), helper = helper, helperAbove = true) {
         val core = openCore
         if (core == null) {
-            FeelingWheel(selected.mapTo(mutableSetOf()) { it.core }, { openCore = it; activeNuance = null })
+            FeelingWheel(selected.mapTo(mutableSetOf()) { it.core }, { opened ->
+                openCore = opened
+                // En redan vald nyans visar sina ord direkt, så att den kan förfinas på sin plats.
+                activeNuance = selected.firstOrNull { it.core == opened && it.nuance != null }?.nuance
+            })
         } else {
             CoreView(core, selected, full, activeNuance?.takeIf { n -> selected.any { it.core == core && it.nuance == n } }) { change ->
                 activeNuance = change.active
@@ -101,8 +107,11 @@ private fun CoreView(core: String, selected: List<Feeling>, full: Boolean, activ
                 row.forEach { nuance ->
                     val chosen = selected.any { it.core == core && it.nuance == nuance }
                     NuanceButton(feelingName(core, nuance), tone, chosen, enabled = chosen || FeelingSelection.canAdd(selected, core, full), Modifier.weight(1f)) {
-                        val next = FeelingSelection.toggleNuance(selected, core, nuance, full)
-                        onChange(Change(next, nuance.takeUnless { chosen }))
+                        when {
+                            // Vald men inte aktiv: visa dess ord, ta inte bort.
+                            chosen && nuance != active -> onChange(Change(selected, nuance))
+                            else -> onChange(Change(FeelingSelection.toggleNuance(selected, core, nuance, full), nuance.takeUnless { chosen }))
+                        }
                     }
                 }
             }

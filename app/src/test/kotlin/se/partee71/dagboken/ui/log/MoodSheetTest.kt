@@ -98,6 +98,23 @@ class MoodSheetTest {
 
     private suspend fun storedScreenings(): List<Screening> = factory.screenings().getAll().getOrThrow()
 
+    /** En loggad frukostlogg (energi 6, stress 3) öppnad för ändring i arket; `vm` och arket returneras. */
+    private suspend fun TestScope.editingLogged(): Triple<Screening, LogViewModel, EditorSheetState<Screening, ScreeningSheetInfo>> {
+        allOccasions()
+        val logged = Screening("s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, stress = 3, createdAt = at(today, 8, 40))
+        factory.screenings().upsert(logged).getOrThrow()
+        val vm = started()
+        vm.onEvent(LogEvent.EditScreening(logged))
+        return Triple(logged, vm, assertNotNull(vm.screening.value))
+    }
+
+    /** Sparar arket och returnerar den lagrade loggen. */
+    private suspend fun TestScope.saveAndStored(vm: LogViewModel): Screening {
+        vm.onEvent(LogEvent.SaveScreening)
+        runCurrent()
+        return storedScreenings().single()
+    }
+
     @Test
     fun `Logga nu en tidigare dag sparar en ny logg mot den dagen och tillfället (HEM-5, SCR-1, SCR-6)`() = runTest(main.dispatcher) {
         allOccasions()
@@ -146,22 +163,15 @@ class MoodSheetTest {
 
     @Test
     fun `en loggad logg ändras fältvis – det som ändrats på annat håll står kvar (SCR-1)`() = runTest(main.dispatcher) {
-        allOccasions()
-        val logged = Screening("s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, stress = 3, createdAt = at(today, 8, 40))
-        factory.screenings().upsert(logged).getOrThrow()
-        val vm = started()
-        vm.onEvent(LogEvent.EditScreening(logged))
-        val sheet = assertNotNull(vm.screening.value)
+        val (logged, vm, sheet) = editingLogged()
         assertFalse(sheet.editor.state.value.canSave, "inget ändrat än")
 
         // En annan enhet skriver en anteckning medan arket är öppet.
         factory.screenings().upsert(logged.copy(note = "Sov dåligt")).getOrThrow()
         vm.onEvent(LogEvent.ChangeStress(5))
         assertTrue(sheet.editor.state.value.canSave)
-        vm.onEvent(LogEvent.SaveScreening)
-        runCurrent()
 
-        val saved = storedScreenings().single()
+        val saved = saveAndStored(vm)
         assertEquals(5, saved.stress)
         assertEquals(6, saved.energy)
         assertEquals("Sov dåligt", saved.note)
@@ -325,7 +335,7 @@ class MoodSheetTest {
         allOccasions()
         val vm = started()
         vm.onEvent(LogEvent.LogScreening(Occasion.LUNCH, null, null))
-        val picked = listOf(Feeling("sad", "lonely"), Feeling("happy"), Feeling("scared", "anxious", "worried"))
+        val picked = listOf(Feeling("sad", "lonely"), Feeling("glad"), Feeling("scared", "anxious", "tense"))
         vm.onEvent(LogEvent.ChangeFeelings(picked))
         assertEquals(picked, vm.screening.value?.value?.feelings)
         vm.onEvent(LogEvent.SaveScreening)
@@ -346,7 +356,7 @@ class MoodSheetTest {
         assertEquals(feelings, sheet.value.feelings)
         assertFalse(sheet.editor.state.value.isDirty)
 
-        vm.onEvent(LogEvent.ChangeFeelings(listOf(Feeling("happy"))))
+        vm.onEvent(LogEvent.ChangeFeelings(listOf(Feeling("glad"))))
         assertTrue(sheet.editor.state.value.isDirty)
         assertTrue(sheet.editor.state.value.canSave)
         vm.onEvent(LogEvent.ChangeFeelings(feelings))
@@ -359,22 +369,15 @@ class MoodSheetTest {
 
     @Test
     fun `bara känslorna sparas fältvis – det som ändrats på annat håll står kvar (SCR-1, SCR-7)`() = runTest(main.dispatcher) {
-        allOccasions()
-        val logged = Screening("s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, stress = 3, createdAt = at(today, 8, 40))
-        factory.screenings().upsert(logged).getOrThrow()
-        val vm = started()
-        vm.onEvent(LogEvent.EditScreening(logged))
-        val sheet = assertNotNull(vm.screening.value)
+        val (logged, vm, sheet) = editingLogged()
 
         // En annan enhet ändrar energin medan arket är öppet.
         factory.screenings().upsert(logged.copy(energy = 9)).getOrThrow()
-        vm.onEvent(LogEvent.ChangeFeelings(listOf(Feeling("calm"), Feeling("happy", "proud"))))
+        vm.onEvent(LogEvent.ChangeFeelings(listOf(Feeling("calm"), Feeling("strong", "proud"))))
         assertTrue(sheet.editor.state.value.canSave)
-        vm.onEvent(LogEvent.SaveScreening)
-        runCurrent()
 
-        val saved = storedScreenings().single()
-        assertEquals(listOf(Feeling("calm"), Feeling("happy", "proud")), saved.feelings)
+        val saved = saveAndStored(vm)
+        assertEquals(listOf(Feeling("calm"), Feeling("strong", "proud")), saved.feelings)
         assertEquals(9, saved.energy)
         assertEquals(3, saved.stress)
         vm.assertSavedAndClosed()
