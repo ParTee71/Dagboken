@@ -48,9 +48,16 @@ data class ReminderSettings(
     val screeningOccasions: List<OccasionReminder> = Occasion.entries.map { OccasionReminder(it) },
     /** Klockslaget för periodslutspåminnelsen (NOT-12). */
     val periodReminderTime: LocalTime = LocalTime(9, 0),
-)
+) {
+    /**
+     * NOT-18, REC-6: tidpunktens klockslag – det i [medSlots] (den första raden för tidpunkten, som larmen), också när
+     * påminnelsen eller huvudreglaget är av; utan rad (t.ex. "Vid behov") tidpunktens standard ([Slot.defaultTime]).
+     * Gäller både medicinpåminnelsen och tidpunktens doser (MED-4, DAT-8).
+     */
+    fun timeOf(slot: Slot): LocalTime = medSlots.firstOrNull { it.slot == slot }?.time ?: slot.defaultTime
+}
 
-/** Medicinpåminnelse för en tidpunkt: på/av och klockslag (NOT-18). */
+/** Medicinpåminnelse för en tidpunkt: på/av och klockslag (NOT-18) – klockslaget gäller också tidpunktens doser ([ReminderSettings.timeOf]). */
 data class SlotReminder(
     val slot: Slot,
     val enabled: Boolean = true,

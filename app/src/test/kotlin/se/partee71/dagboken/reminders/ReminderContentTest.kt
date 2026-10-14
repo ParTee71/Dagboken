@@ -11,6 +11,7 @@ import kotlinx.datetime.plus
 import org.junit.Test
 import se.partee71.dagboken.core.engine.PeriodEnding
 import se.partee71.dagboken.core.engine.plannedDoses
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
@@ -45,7 +46,7 @@ class ReminderContentTest {
         doses.forEach { f.factory.store.set(Paths.doses(uid), it.id, DoseCodec.encode(it), merge = false) }
     }
 
-    private fun planned(p: Prescription, slot: Slot) = p.plannedDoses(today, f.zone).single { it.slot == slot }
+    private fun planned(p: Prescription, slot: Slot) = p.plannedDoses(today, f.zone, reminders = ReminderSettings()).single { it.slot == slot }
 
     private fun storedDose(id: String) = f.factory.store.read(Paths.doses(uid), id)
 

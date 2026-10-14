@@ -14,6 +14,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.junit.Test
 import se.partee71.dagboken.core.engine.ensureDoses
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
@@ -102,11 +103,11 @@ class LogRepositoriesTest {
         assertEquals(DoseIds.prescribed("levaxin", today, Slot.MORNING), stored.id, "måldagens datumbundna id")
         assertEquals(moved.copy(id = stored.id), stored, "alla fält följer med, receptkopplingen också")
         // Måldagen har nu sin dos: dosgenereringen skapar ingen andra planerad dos där.
-        assertEquals(emptyList(), ensureDoses(listOf(levaxin), all.filter { it.date == today }, today, today, zone).create)
+        assertEquals(emptyList(), ensureDoses(listOf(levaxin), all.filter { it.date == today }, today, today, zone, reminders = ReminderSettings()).create)
         assertEquals("kvar", factory.store.read(Paths.doses(uid), stored.id)?.get("framtidaFält"), "okända fält följer med (regel 1)")
         assertEquals(emptyList(), DocumentRules.validate(CollectionNames.DOSES, DoseCodec.encode(stored)))
         // Ursprungsdagens schemalagda dos saknas nu och skapas igen som planerad; den flyttade rörs inte.
-        assertEquals(listOf(recipeDose.id), ensureDoses(listOf(levaxin), all.filter { it.date == day }, day, today, zone).create.map { it.id })
+        assertEquals(listOf(recipeDose.id), ensureDoses(listOf(levaxin), all.filter { it.date == day }, day, today, zone, reminders = ReminderSettings()).create.map { it.id })
 
         doses.save(stored, stored.copy(note = "Tog den sent")).getOrThrow()
         assertEquals(1, factory.doses().getAll().getOrThrow().size, "en flyttad dos som ändras igen samma dag stannar")

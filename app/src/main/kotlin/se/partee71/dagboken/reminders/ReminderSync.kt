@@ -13,11 +13,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.core.model.ReminderSettings
-import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.data.common.UserScope
-import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.legacy.LegacyMigrationPause
 import se.partee71.dagboken.data.repository.SettingsRepository
+import se.partee71.dagboken.data.repository.reminders
 import se.partee71.dagboken.di.ApplicationScope
 
 /**
@@ -74,5 +73,5 @@ class ReminderSync @Inject constructor(
      * omschemaläggning, som då lämnar larmen orörda om inställningarna inte går att läsa.
      */
     private fun reminderSettings(): Flow<ReminderSettings> =
-        settings.settings.withFallback(Settings()).map { it.reminders }.distinctUntilChanged()
+        settings.reminders.distinctUntilChanged()
 }

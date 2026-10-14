@@ -12,6 +12,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import se.partee71.dagboken.core.engine.toDeactivateOn
 import se.partee71.dagboken.core.model.Prescription
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.schema.PrescriptionCodec
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.common.DailyGate
@@ -117,6 +118,8 @@ class DefaultPrescriptionRepository @Inject constructor(
     private val zone: Provider<TimeZone>,
     /** [tidyUp] en gång per dag, enhet och konto (#304). */
     private val daily: DailyGate,
+    /** Tidpunkternas klockslag för nya doser (NOT-18, `currentReminders` – standardklockslagen när de inte går att läsa). */
+    private val settings: SettingsRepository,
 ) : PrescriptionRepository {
     private val collection = collections.prescriptions()
 
@@ -158,14 +161,17 @@ class DefaultPrescriptionRepository @Inject constructor(
         return syncFromServer(prescription.id, clock.todayIn(zone.get())).also { background.launch { daily.forget(TIDY_UP) } }
     }
 
-    override suspend fun syncFromServer(prescriptionId: String, today: LocalDate): Result<Unit> = sync(prescriptionId, today).offlineIsNoOp()
+    // Inställningarna läses en gång, före låset: om synken skapar doser avgörs först under låset (serverns recept).
+    override suspend fun syncFromServer(prescriptionId: String, today: LocalDate): Result<Unit> =
+        sync(prescriptionId, today, settings.currentReminders()).offlineIsNoOp()
 
     /**
      * [syncFromServer] med `Offline` kvar som fel, så att [tidyUp] kan sluta vid första. Med
      * [endIfExpired] avslutas receptet först (REC-8) – bara om det enligt servern, under låset, fortfarande
-     * är aktivt och utgånget, så att en samtidig återaktivering aldrig skrivs över.
+     * är aktivt och utgånget, så att en samtidig återaktivering aldrig skrivs över. Doser som skapas får
+     * tidpunkternas klockslag i [reminders] (NOT-18), lästa av anroparen utanför låset.
      */
-    private suspend fun sync(prescriptionId: String, today: LocalDate, endIfExpired: Boolean = false): Result<Unit> =
+    private suspend fun sync(prescriptionId: String, today: LocalDate, reminders: ReminderSettings, endIfExpired: Boolean = false): Result<Unit> =
         syncs.run(prescriptionId, superseded = Result.success(Unit)) { isCurrent ->
             // Egna skrivningar (t.ex. reglagets `active`) först till servern, så att läsningen ser dem.
             collection.awaitWrites().onFailure { return@run Result.failure(it) }
@@ -175,7 +181,7 @@ class DefaultPrescriptionRepository @Inject constructor(
                 stored = stored.copy(active = false)
                 collection.update(stored, setOf(PrescriptionCodec.ACTIVE)).onFailure { return@run Result.failure(it) }
             }
-            doses.syncPrescription(stored, today, isCurrent)
+            doses.syncPrescription(stored, today, reminders, isCurrent)
         }
 
     override suspend fun tidyUp(today: LocalDate): Result<Unit> = daily.runOncePerDay(TIDY_UP, today) { tidy(today) }.offlineIsNoOp()
@@ -187,10 +193,13 @@ class DefaultPrescriptionRepository @Inject constructor(
         // receptets lås.
         val ended = stored.toDeactivateOn(today).mapTo(LinkedHashSet()) { it.id }
         val plan = doses.plan(stored.filter { it.id !in ended }, today).getOrElse { return Result.failure(it) }
+        if (ended.isEmpty() && plan.missing.isEmpty() && plan.locked.isEmpty()) return Result.success(Unit)
+        // NOT-18: en gång för hela städningen, utanför receptens lås – och bara när något recept ska synkas eller få doser.
+        val reminders = settings.currentReminders()
         // Saknade doser: samma låsta väg som dagens doser (ensureDay).
-        createMissing(plan.missing, today, today).onFailure { return Result.failure(it) }
-        for (id in ended) sync(id, today, endIfExpired = true).onFailure { return Result.failure(it) }
-        for (id in plan.locked) sync(id, today).onFailure { return Result.failure(it) }
+        createMissing(plan.missing, today, today, reminders).onFailure { return Result.failure(it) }
+        for (id in ended) sync(id, today, reminders, endIfExpired = true).onFailure { return Result.failure(it) }
+        for (id in plan.locked) sync(id, today, reminders).onFailure { return Result.failure(it) }
         return Result.success(Unit)
     }
 
@@ -199,24 +208,26 @@ class DefaultPrescriptionRepository @Inject constructor(
         // Urvalet på cachen (inget saknas → ingen serverläsning alls); beslutet fattas under låset.
         val cached = collection.cached().getOrElse { return Result.failure(it) }
         val missing = doses.missingOn(cached, date, today).getOrElse { return Result.failure(it) }
-        return createMissing(missing, date, today)
+        if (missing.isEmpty()) return Result.success(Unit)
+        return createMissing(missing, date, today, settings.currentReminders())
     }
 
     /**
      * MED-4, HEM-10: **den enda vägen** för att skapa saknade doser – från [ensureDay] och [tidyUp]. Per
      * recept under receptets lås (som [syncFromServer], men utan att göra en väntande synk inaktuell):
      * väntar in egna skrivningar, läser receptet **från servern** och skapar dess saknade doser på [date]
-     * (`DoseRepository.createDay`). Så skapas aldrig doser som en samtidig avaktivering just tagit bort.
+     * (`DoseRepository.createDay`) med tidpunkternas klockslag [reminders] (NOT-18) – lästa en gång av anroparen,
+     * utanför låset. Så skapas aldrig doser som en samtidig avaktivering just tagit bort.
      * Första fel avslutar; också `Offline` ges tillbaka som fel (till vyn från [ensureDay], och [tidy] låter dagsgrinden
      * se det).
      */
-    private suspend fun createMissing(ids: List<String>, date: LocalDate, today: LocalDate): Result<Unit> {
+    private suspend fun createMissing(ids: List<String>, date: LocalDate, today: LocalDate, reminders: ReminderSettings): Result<Unit> {
         for (id in ids) {
             syncs.runExclusive(id) {
                 collection.awaitWrites().onFailure { return@runExclusive Result.failure(it) }
                 val current = collection.confirmed(id).getOrElse { return@runExclusive Result.failure(it) }
                     ?: return@runExclusive Result.success(Unit)
-                doses.createDay(current, date, today)
+                doses.createDay(current, date, today, reminders)
             }.onFailure { return Result.failure(it) }
         }
         return Result.success(Unit)

@@ -17,13 +17,17 @@ import kotlin.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -41,6 +45,7 @@ import se.partee71.dagboken.core.engine.withTaken
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.PrnMedicine
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.DoseCodec
@@ -48,8 +53,11 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.repository.DoseRepository
 import se.partee71.dagboken.data.repository.DoseSlotTaken
+import se.partee71.dagboken.data.repository.EntryStore
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
+import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.data.repository.creatingStore
+import se.partee71.dagboken.data.repository.reminders
 import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EntryEditEvent
@@ -140,6 +148,7 @@ fun doseErrorText(error: Throwable): Int? = when (error) {
 class DoseEditViewModel @AssistedInject constructor(
     private val doses: DoseRepository,
     private val medicines: PrnMedicineRepository,
+    settings: SettingsRepository,
     private val clock: Clock,
     private val zones: Provider<TimeZone>,
     @Assisted("id") id: String?,
@@ -154,6 +163,14 @@ class DoseEditViewModel @AssistedInject constructor(
 
     /** Tidszonen formuläret räknar dag och klockslag i (enhetens). */
     val zone: TimeZone get() = zones.get()
+
+    /**
+     * Tidpunkternas klockslag (NOT-18): en planerad eller överhoppad receptdos visas och tas enligt inställningen
+     * (`shownTime`). `null` tills de lästs – en lagrad dos laddas inte förrän dess ([EntryStore.get] nedan), så att
+     * formuläret aldrig räknar med standardklockslagen när användaren har egna. Går de inte att läsa gäller
+     * standardvärdena (`SettingsRepository.reminders`).
+     */
+    val reminders: StateFlow<ReminderSettings?> = settings.reminders.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _medicine = MutableStateFlow<PrnMedicine?>(null)
 
@@ -178,7 +195,7 @@ class DoseEditViewModel @AssistedInject constructor(
 
     val form = EntryEditor(
         viewModelScope,
-        if (mode == DoseMode.AS_NEEDED) creatingStore(::logLater) else doses,
+        if (mode == DoseMode.AS_NEEDED) creatingStore(::logLater) else doses.afterReminders(),
         id,
         doseValidator({ clock.now() }) { _check.value == PrnCheck.DailyLimitReached },
         placeholder = Dose(""),
@@ -200,6 +217,14 @@ class DoseEditViewModel @AssistedInject constructor(
                     editor.revalidate()
                 }
             }
+        }
+    }
+
+    /** Läsningen av en lagrad dos väntar in inställningarna – formuläret laddar tills båda finns. */
+    private fun DoseRepository.afterReminders(): EntryStore<Dose> = object : EntryStore<Dose> by this {
+        override suspend fun get(id: String): Result<Dose?> {
+            reminders.filterNotNull().first()
+            return this@afterReminders.get(id)
         }
     }
 
@@ -291,22 +316,33 @@ fun DoseEditRoute(id: String?, prnId: String?, date: LocalDate?, onClose: () -> 
     val medicine by viewModel.medicine.collectAsStateWithLifecycle()
     val check by viewModel.check.collectAsStateWithLifecycle()
     val cooldown by viewModel.cooldown.collectAsStateWithLifecycle()
+    val reminders by viewModel.reminders.collectAsStateWithLifecycle()
     DoseEditScreen(
         rememberEntryForm(viewModel.form),
         onClose,
         viewModel.mode,
         viewModel.zone,
         AsNeededState(medicine, check, cooldown, viewModel::confirmCooldown, viewModel::dismissCooldown),
+        // En lagrad dos visas först när inställningarna lästs (`afterReminders`); en ny dos har inget recept och inget schema.
+        reminders ?: ReminderSettings(),
     )
 }
 
 /**
  * Dosformuläret på `EntityEditScreen` (MED-11, MED-15, MED-16, NFR-10–12) i läget [mode] (se [DoseEditViewModel]),
- * med dag och klockslag i [zone]. En loggad dos kan raderas i menyn efter en bekräftelse som namnger den lagrade dosen
- * – en receptdos markeras som överhoppad (HIST-5, MED-3).
+ * med dag och klockslag i [zone] – en planerad receptdos klockslag är tidpunktens i [reminders] (NOT-18). En loggad
+ * dos kan raderas i menyn efter en bekräftelse som namnger den lagrade dosen – en receptdos markeras som överhoppad
+ * (HIST-5, MED-3).
  */
 @Composable
-fun DoseEditScreen(form: EntryForm<Dose>, onClose: () -> Unit, mode: DoseMode, zone: TimeZone, asNeeded: AsNeededState = AsNeededState()) {
+fun DoseEditScreen(
+    form: EntryForm<Dose>,
+    onClose: () -> Unit,
+    mode: DoseMode,
+    zone: TimeZone,
+    asNeeded: AsNeededState = AsNeededState(),
+    reminders: ReminderSettings = ReminderSettings(),
+) {
     val state = form.state
     val d = form.value
     val stored = form.stored ?: d
@@ -329,7 +365,7 @@ fun DoseEditScreen(form: EntryForm<Dose>, onClose: () -> Unit, mode: DoseMode, z
             null
         } else {
             val title = medicineTitle(stored.displayName, stored.dose, stored.unit)
-            entryDeleteAction(R.string.diary_subject_dose, title, stored.date, stored.shownTime(zone), skips = stored.isPrescribed) { form.onEvent(EntryEditEvent.Delete) }
+            entryDeleteAction(R.string.diary_subject_dose, title, stored.date, stored.shownTime(zone, reminders), skips = stored.isPrescribed) { form.onEvent(EntryEditEvent.Delete) }
         },
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
         formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
@@ -338,7 +374,7 @@ fun DoseEditScreen(form: EntryForm<Dose>, onClose: () -> Unit, mode: DoseMode, z
             mode == DoseMode.AS_NEEDED -> asNeeded.medicine?.let { MedicineInfo(medicineTitle(it.displayName, it.dose, it.unit), prnLimits(it), help = null) }
             prescribed -> MedicineInfo(medicineTitle(d.displayName, d.dose, d.unit), stringResource(d.slot.label()), stringResource(R.string.dose_prescribed_help))
         }
-        DayAndTime(form, zone, timeShown = !prescribed || d.status == DoseStatus.TAKEN, error = error(DoseField.TAKEN_AT))
+        DayAndTime(form, zone, reminders, timeShown = !prescribed || d.status == DoseStatus.TAKEN, error = error(DoseField.TAKEN_AT))
         if (mode == DoseMode.AS_NEEDED) AsNeededNotice(asNeeded)
         if (mode != DoseMode.AS_NEEDED && !prescribed) DoseFields(form, error)
         // "Tagen" bara för en receptdos: av = överhoppad (MED-3); en dos utan recept raderas i stället (menyn).
@@ -346,7 +382,7 @@ fun DoseEditScreen(form: EntryForm<Dose>, onClose: () -> Unit, mode: DoseMode, z
             SwitchRow(
                 stringResource(R.string.dose_taken),
                 d.status == DoseStatus.TAKEN,
-                { taken -> form.change(DoseField.TAKEN_AT) { it.withTaken(taken, zone) } },
+                { taken -> form.change(DoseField.TAKEN_AT) { it.withTaken(taken, zone, reminders) } },
                 subtitle = stringResource(R.string.dose_taken_help),
             )
         }
@@ -366,15 +402,15 @@ private fun MedicineInfo(title: String, subtitle: String, help: String?) {
 }
 
 /**
- * Dag och klockslag (DAT-2): en tagen dos tagningstid (MED-14), annars det planerade klockslaget. En överhoppad
- * receptdos har inget klockslag att ändra ([timeShown] = `false`) – schemats tid styrs av receptet.
+ * Dag och klockslag (DAT-2): en tagen dos tagningstid (MED-14), annars dosens klockslag i schemat (`shownTime`). En
+ * överhoppad receptdos har inget klockslag att ändra ([timeShown] = `false`) – schemats tid styrs av tidpunkten (NOT-18).
  */
 @Composable
-private fun DayAndTime(form: EntryForm<Dose>, zone: TimeZone, timeShown: Boolean, error: String?) {
+private fun DayAndTime(form: EntryForm<Dose>, zone: TimeZone, reminders: ReminderSettings, timeShown: Boolean, error: String?) {
     val date = form.value.date ?: return
-    val onDate: (LocalDate) -> Unit = { day -> form.change(DoseField.TAKEN_AT) { it.onDay(day, zone) } }
+    val onDate: (LocalDate) -> Unit = { day -> form.change(DoseField.TAKEN_AT) { it.onDay(day, zone, reminders) } }
     if (timeShown) {
-        DateTimeRow(date, form.value.shownTime(zone), onDate, { time -> form.change(DoseField.TAKEN_AT) { it.atTime(time, zone) } })
+        DateTimeRow(date, form.value.shownTime(zone, reminders), onDate, { time -> form.change(DoseField.TAKEN_AT) { it.atTime(time, zone) } })
     } else {
         DateField(stringResource(R.string.date), date, onDate)
     }

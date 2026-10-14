@@ -7,7 +7,7 @@ import kotlinx.datetime.LocalTime
  * medicinpåminnelser. [legacyName] är 3.x-namnet (`tidpunkt`); det ingår i receptdosernas
  * dokument-id ([DoseIds]) och används av konverteraren – det får aldrig innehålla understreck,
  * eftersom `syncDoses` känner igen okopplade receptdoser på id-mönstret. [defaultTime] är standardklockslaget
- * (REC-6, NOT-18).
+ * (REC-6) – förvalet tills tidpunktens klockslag ställts i påminnelserna; använd [ReminderSettings.timeOf] (NOT-18).
  */
 enum class Slot(override val wire: String, val legacyName: String, val defaultTime: LocalTime) : WireEnum {
     MORNING("morning", "Morgon", LocalTime(7, 0)),

@@ -71,6 +71,7 @@ import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.core.model.SlotReminder
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.captureLightAndDark
@@ -136,6 +137,7 @@ class TodayScreenTest {
         progress: DayProgress = DayProgress(4, 9),
         showDone: Boolean = true,
         dayDone: DayDone? = null,
+        reminders: ReminderSettings = ReminderSettings(),
     ) = TodayContent(
         today = today,
         date = date,
@@ -145,7 +147,7 @@ class TodayScreenTest {
         progress = progress,
         todayComplete = dayDone != null,
         doseProgress = DayProgress(doses.count { it.status != DoseStatus.PLANNED }, doses.size),
-        checklist = doseChecklist(doses, date, now, zone),
+        checklist = doseChecklist(doses, date, now, zone, reminders),
         showDone = showDone,
         showUpcoming = false,
         prescriptions = listOf(sertralin, levaxin).associateBy { it.id },
@@ -341,6 +343,19 @@ class TodayScreenTest {
         show(content(upcoming, showDone = false))
         rule.onNodeWithText("Inget att ta just nu").assertIsDisplayed()
         rule.onNodeWithText("Nästa dos kl. 19:00.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `en planerad receptdos visar tidpunktens klockslag i Påminnelser, också i Nästa dos (NOT-18, MED-13)`() {
+        // Natt före Kväll: Nästa dos är det tidigaste klockslaget, inte den första tidpunkten.
+        val own = mapOf(Slot.LUNCH to LocalTime(11, 45), Slot.EVENING to LocalTime(20, 15), Slot.NIGHT to LocalTime(19, 30))
+        val times = ReminderSettings(medSlots = Slot.SCHEDULED.map { SlotReminder(it, time = own[it] ?: it.defaultTime) })
+        var current by mutableStateOf(content(reminders = times))
+        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Content(current), {}, {}) } }
+        rule.onNodeWithText("Lunch · 11:45").assertIsDisplayed()
+        rule.onNodeWithText("Lunch · 12:00").assertDoesNotExist()
+        current = content(upcoming, showDone = false, reminders = times)
+        rule.onNodeWithText("Nästa dos kl. 19:30.").assertIsDisplayed()
     }
 
     @Test

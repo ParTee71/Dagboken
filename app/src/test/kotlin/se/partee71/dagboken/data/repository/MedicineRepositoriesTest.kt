@@ -12,10 +12,14 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import org.junit.Test
 import se.partee71.dagboken.core.engine.SlotDoses
 import se.partee71.dagboken.core.engine.ensureDoses
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
@@ -23,7 +27,9 @@ import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Schedule
+import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.core.model.SlotReminder
 import se.partee71.dagboken.core.schema.PrescriptionCodec
 import se.partee71.dagboken.core.schema.DoseCodec
 import se.partee71.dagboken.data.FakeCollection
@@ -109,6 +115,45 @@ class MedicineRepositoriesTest {
         assertEquals(true, factory.prescriptions().get(levaxin.id).getOrThrow()?.active)
     }
 
+    /** Kväll 21:15 och Natt 23:00 i Påminnelser, med påminnelserna avslagna – klockslagen gäller doserna ändå (NOT-18). */
+    private val ownTimes = ReminderSettings(
+        medSlots = Slot.SCHEDULED.map { slot ->
+            SlotReminder(slot, enabled = false, time = mapOf(Slot.EVENING to LocalTime(21, 15), Slot.NIGHT to LocalTime(23, 0))[slot] ?: slot.defaultTime)
+        },
+    )
+
+    private suspend fun storedTime(date: LocalDate, slot: Slot) = factory.doses().get(DoseIds.prescribed(levaxin.id, date, slot)).getOrThrow()?.plannedTime
+
+    @Test
+    fun `nya receptdoser får tidpunktens klockslag i inställningarna, befintliga skrivs inte om (NOT-18, MED-4, REC-10)`() = runTest {
+        factory.settings().upsert(Settings(reminders = ownTimes)).getOrThrow()
+        factory.prescriptions().upsert(levaxin).getOrThrow()
+        factory.doses().upsert(planned(today, Slot.MORNING)).getOrThrow()
+
+        prescriptions.ensureDay(today, today).getOrThrow()
+        assertEquals(LocalTime(7, 0), storedTime(today, Slot.MORNING), "en befintlig dos skrivs inte om")
+        assertEquals(LocalTime(21, 15), storedTime(today, Slot.EVENING))
+        val evening = factory.doses().get(DoseIds.prescribed(levaxin.id, today, Slot.EVENING)).getOrThrow()
+        assertEquals(LocalDateTime(today, LocalTime(21, 15)).toInstant(zone), evening?.createdAt)
+
+        // REC-10: en ny tidpunkt vid sparning får också inställningens klockslag.
+        prescriptions.save(levaxin, levaxin.copy(slots = listOf(Slot.MORNING, Slot.EVENING, Slot.NIGHT))).getOrThrow()
+        assertEquals(LocalTime(23, 0), storedTime(today, Slot.NIGHT))
+        assertEquals(LocalTime(7, 0), storedTime(today, Slot.MORNING))
+    }
+
+    @Test
+    fun `går inställningarna inte att läsa skapas doserna med standardklockslagen (REC-6)`() = runTest {
+        factory.settings().upsert(Settings(reminders = ownTimes)).getOrThrow()
+        factory.prescriptions().upsert(levaxin).getOrThrow()
+        val unreadable = object : SettingsRepository by DefaultSettingsRepository(factory) {
+            override suspend fun get(): Result<Settings> = Result.failure(DataError.Offline)
+        }
+
+        testPrescriptions(factory, doses, zone, settings = unreadable).ensureDay(today, today).getOrThrow()
+        assertEquals(LocalTime(19, 0), storedTime(today, Slot.EVENING))
+    }
+
     @Test
     fun `ett recept som raderats under tiden återuppstår inte av reglaget och får inga doser`() = runTest {
         prescriptions.setActive(levaxin, false)
@@ -129,17 +174,17 @@ class MedicineRepositoriesTest {
         } }
         val doses = testDoses(staleRead, zone)
 
-        doses.syncPrescription(renamed, today).getOrThrow()
+        doses.syncPrescription(renamed, today, ReminderSettings()).getOrThrow()
         assertEquals(morning.copy(status = DoseStatus.TAKEN), factory.doses().get(morning.id).getOrThrow(), "namn och dos följer inte till en tagen dos")
 
-        doses.syncPrescription(renamed.copy(active = false), today).getOrThrow()
+        doses.syncPrescription(renamed.copy(active = false), today, ReminderSettings()).getOrThrow()
         assertEquals(DoseStatus.TAKEN, factory.doses().get(morning.id).getOrThrow()?.status, "prövas mot det lagrade, inte läsningens kopia")
     }
 
     @Test
     fun `namn och dos följer receptet på planerade doser (REC-10)`() = runTest {
         factory.doses().upsert(planned(today, Slot.MORNING)).getOrThrow()
-        doses.syncPrescription(levaxin.copy(name = "Levaxin Ny", dose = "150"), today).getOrThrow()
+        doses.syncPrescription(levaxin.copy(name = "Levaxin Ny", dose = "150"), today, ReminderSettings()).getOrThrow()
         val stored = factory.doses().get(planned(today, Slot.MORNING).id).getOrThrow()!!
         assertEquals(listOf("Levaxin Ny", "150"), listOf(stored.name, stored.dose))
     }
@@ -364,7 +409,7 @@ class MedicineRepositoriesTest {
         assertEquals(false, factory.prescriptions().get(levaxin.id).getOrThrow()?.active, "reglaget skrivs ändå")
         assertEquals(setOf(planned(today, Slot.MORNING).id), factory.doses().getAll().getOrThrow().map { it.id }.toSet())
 
-        assertEquals(DataError.Offline, offlineDoses.createDay(levaxin, today, today).exceptionOrNull(), "Offline når ensureDay, så att Idag försöker igen (HEM-10)")
+        assertEquals(DataError.Offline, offlineDoses.createDay(levaxin, today, today, ReminderSettings()).exceptionOrNull(), "Offline når ensureDay, så att Idag försöker igen (HEM-10)")
         assertNull(factory.store.read(dosesPath(), planned(today, Slot.EVENING).id), "offline: ingen dos")
     }
 
@@ -381,7 +426,7 @@ class MedicineRepositoriesTest {
     /** NOT-10: receptet med en tidpunkt till och en anteckning, och dagens doser som dosgenereringen skulle skapa dem. */
     private val threeSlots = levaxin.copy(slots = listOf(Slot.MORNING, Slot.LUNCH, Slot.EVENING), note = "Med vatten")
 
-    private fun generated(slot: Slot) = ensureDoses(listOf(threeSlots), emptyList(), today, today, zone).create.single { it.slot == slot }
+    private fun generated(slot: Slot) = ensureDoses(listOf(threeSlots), emptyList(), today, today, zone, reminders = ReminderSettings()).create.single { it.slot == slot }
 
     /** Morgonens dos finns redan (annan enhet: anteckning, fält från en nyare app), kvällens är överhoppad, lunchens saknas. */
     private fun storeOtherDevice() {
@@ -415,7 +460,7 @@ class MedicineRepositoriesTest {
         assertEquals(true, factory.store.hasPendingWrites, "synkas när nätet finns")
 
         factory.store.online = true
-        doses.createDay(threeSlots, today, today).getOrThrow()
+        doses.createDay(threeSlots, today, today, ReminderSettings()).getOrThrow()
         assertEquals(3, factory.doses().getAll().getOrThrow().size, "genereringen skapar ingen dubblett")
         assertEquals(DoseStatus.TAKEN, factory.doses().get(generated(Slot.LUNCH).id).getOrThrow()?.status)
     }
@@ -457,7 +502,7 @@ class MedicineRepositoriesTest {
         val taken = planned(today, Slot.MORNING, DoseStatus.TAKEN)
         factory.doses().upsert(taken).getOrThrow()
 
-        doses.createDay(levaxin, today, today).getOrThrow()
+        doses.createDay(levaxin, today, today, ReminderSettings()).getOrThrow()
         val all = factory.doses().getAll().getOrThrow().associateBy { it.id }
         assertEquals(DoseStatus.TAKEN, all.getValue(taken.id).status, "en tagen dos skrivs aldrig över")
         assertEquals(DoseStatus.PLANNED, all.getValue(planned(today, Slot.EVENING).id).status)

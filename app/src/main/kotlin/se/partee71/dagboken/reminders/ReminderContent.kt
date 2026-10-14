@@ -77,12 +77,14 @@ class ReminderContent @Inject constructor(
 
     /**
      * Tidpunktens otagna doser, eller `null` när recepten eller dagens doser inte gick att läsa – båda läsningarna
-     * delar på [READ_WAIT], så att mottagaren alltid hinner visa utfallet.
+     * delar på [READ_WAIT], så att mottagaren alltid hinner visa utfallet. Klockslaget på de saknade doserna används
+     * aldrig – notisen listar namnen och "Markera tagen" skriver inte `plannedTime` (`DoseRepository.markTaken`) – så
+     * inställningarna läses inte för det; det skulle bara äta av tiden mottagaren har.
      */
     private suspend fun slotDosesOn(slot: Slot, date: LocalDate): SlotDoses? = withTimeoutOrNull(READ_WAIT) {
         val list = prescriptions.observe().firstValue() ?: return@withTimeoutOrNull null
         val day = doses.observeDay(date).firstValue() ?: return@withTimeoutOrNull null
-        slotDoses(slot, date, today(), list, day, zone.get())
+        slotDoses(slot, date, today(), list, day, zone.get(), ReminderSettings())
     }
 
     /** Påminnelseinställningarna, eller `null` när de inte går att läsa i tid – då gäller larmet som det sattes. */

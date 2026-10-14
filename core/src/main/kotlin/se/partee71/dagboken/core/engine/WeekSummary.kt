@@ -9,6 +9,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
 
 // Veckosammanfattningen (HEM-13) och dagens energi mot igår (HEM-19) – ren beräkning över befintliga
@@ -35,11 +36,11 @@ val LocalDate.showsWeekSummary: Boolean get() = dayOfWeek == DayOfWeek.SUNDAY ||
  * dagarna före; mer än [ENERGY_TREND_THRESHOLD] upp eller ner är [EnergyTrend.UP]/[EnergyTrend.DOWN],
  * annars – också när en av veckorna saknar loggar – [EnergyTrend.SAME]. Dosandelen är tagna av veckans
  * schemalagda doser ([isScheduled]) som inte hoppats över **och har förfallit** – en tidigare dag, eller
- * idag med klockslaget nått ([dueAt]); en dos som redan tagits räknas alltid. Kommande doser räknas inte
- * (3.x räknade dem och sänkte andelen på morgonen). I hela procent avrundat nedåt. `null` utan underlag:
+ * idag med klockslaget ([scheduledTime], tidpunktens i [reminders] för en planerad receptdos) nått ([dueAt]); en
+ * dos som redan tagits räknas alltid. Kommande doser räknas inte (3.x räknade dem och sänkte andelen på morgonen). I hela procent avrundat nedåt. `null` utan underlag:
  * varken en måendelogg eller en förfallen schemalagd dos den här veckan.
  */
-fun weekSummary(now: Instant, zone: TimeZone, screenings: List<Screening>, doses: List<Dose>): WeekSummary? {
+fun weekSummary(now: Instant, zone: TimeZone, screenings: List<Screening>, doses: List<Dose>, reminders: ReminderSettings): WeekSummary? {
     val today = now.toLocalDateTime(zone).date
     val weekStart = today.minus(6, DateTimeUnit.DAY)
     val previousStart = today.minus(13, DateTimeUnit.DAY)
@@ -60,7 +61,7 @@ fun weekSummary(now: Instant, zone: TimeZone, screenings: List<Screening>, doses
     val weekDoses = doses.filter { dose ->
         val date = dose.date
         date != null && date in weekStart..today && dose.isScheduled && dose.status != DoseStatus.SKIPPED &&
-            (dose.status == DoseStatus.TAKEN || dueAt(date, dose.plannedTime ?: dose.slot.defaultTime, now, zone).let { it == Due.LATE || it == Due.PAST })
+            (dose.status == DoseStatus.TAKEN || dueAt(date, dose.scheduledTime(reminders), now, zone).let { it == Due.LATE || it == Due.PAST })
     }
     val percent = if (weekDoses.isEmpty()) null else weekDoses.count { it.status == DoseStatus.TAKEN } * 100 / weekDoses.size
 
@@ -72,9 +73,16 @@ fun weekSummary(now: Instant, zone: TimeZone, screenings: List<Screening>, doses
  * idag är söndag eller måndag, annars `null`. Dagen tas ur samma [now] som sammanfattningen, så att den inte
  * visas på en tisdag strax efter midnatt.
  */
-fun weekSummaryOn(date: LocalDate, now: Instant, zone: TimeZone, screenings: List<Screening>, doses: List<Dose>): WeekSummary? {
+fun weekSummaryOn(
+    date: LocalDate,
+    now: Instant,
+    zone: TimeZone,
+    screenings: List<Screening>,
+    doses: List<Dose>,
+    reminders: ReminderSettings,
+): WeekSummary? {
     val today = now.toLocalDateTime(zone).date
-    return if (date == today && today.showsWeekSummary) weekSummary(now, zone, screenings, doses) else null
+    return if (date == today && today.showsWeekSummary) weekSummary(now, zone, screenings, doses, reminders) else null
 }
 
 /** HEM-19: dagens snittenergi och skillnaden mot igår (`null` när igår saknar måendelogg). */

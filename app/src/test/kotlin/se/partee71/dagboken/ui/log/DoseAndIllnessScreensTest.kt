@@ -35,6 +35,8 @@ import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.core.model.SlotReminder
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
@@ -162,6 +164,20 @@ class DoseAndIllnessScreensTest {
         assertEquals(DoseStatus.SKIPPED to null, value.status to value.takenAt)
         rule.onNodeWithText("Tagen").assertIsOff()
         rule.onNodeWithText("Tid").assertDoesNotExist()
+    }
+
+    @Test
+    fun `Tagen på en planerad receptdos tar den vid tidpunktens klockslag i Påminnelser (NOT-18, MED-15)`() {
+        val planned = recipe.copy(status = DoseStatus.PLANNED, takenAt = null)
+        val reminders = ReminderSettings(medSlots = Slot.SCHEDULED.map { SlotReminder(it, time = if (it == Slot.MORNING) LocalTime(6, 45) else it.defaultTime) })
+        var value by mutableStateOf(planned)
+        rule.setContent {
+            DagbokenTheme {
+                DoseEditScreen(form(value, isNew = false, stored = planned) { e -> if (e is EntryEditEvent.Changed) value = e.change(value) }, {}, DoseMode.EDIT, zone, reminders = reminders)
+            }
+        }
+        rule.onNodeWithText("Tagen").performScrollTo().performClick()
+        assertEquals(DoseStatus.TAKEN to at(yesterday, 6, 45), value.status to value.takenAt)
     }
 
     @Test
