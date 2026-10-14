@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -68,6 +67,7 @@ import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.time.shownDate
+import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.combineByKey
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.repository.DoseRepository
@@ -81,7 +81,7 @@ import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.SelectedDay
-import se.partee71.dagboken.ui.common.failureOfAttempt
+import se.partee71.dagboken.ui.common.attemptingEach
 import se.partee71.dagboken.ui.common.failureOrNull
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.minutes
@@ -179,10 +179,16 @@ data class TodayContent(
     val energy: List<Float?> = emptyList(),
     /** Pågående sjukdom (HEM-12), eller `null` – också medan den läses. */
     val illness: OngoingIllness? = null,
-    /** Dagens doser som recepten ger saknas efter ett misslyckat `ensureDay` (t.ex. slut på molnets kvot) – HEM-10, MED-4. */
-    val dosesMissing: Boolean = false,
+    /**
+     * Varför dagens doser som recepten ger saknas efter ett misslyckat `ensureDay` – [DataError.Offline] utan nät (försöks
+     * igen medan dagen visas), annars t.ex. slut på molnets kvot – eller `null` när inget saknas (HEM-10, MED-4).
+     */
+    val missingCause: DataError? = null,
 ) {
     val isToday: Boolean get() = date == today
+
+    /** Doser som recepten ger saknas – kortet säger det och varför, aldrig "Allt avklarat" (HEM-10). */
+    val dosesMissing: Boolean get() = missingCause != null
 }
 
 /** Ett meddelande efter ett snabbval: [text] med [args] (FAV-2, FAV-6). */
@@ -217,13 +223,11 @@ class TodayViewModel @Inject constructor(
     val failure: StateFlow<Failure?> = _failure.asStateFlow()
 
     /**
-     * Dagarna vars senaste `ensureDay` misslyckades (inte offline) – bara då sägs doser saknas (HEM-10, MED-4). Inte
-     * "försöket klart": en transaktions doser når lyssnaren först efter serverns kvitto, så kortet kunde annars blinka.
+     * Dagarna vars senaste `ensureDay` misslyckades, med orsaken – också utan nät (HEM-10, MED-4): bara då sägs doser
+     * saknas. Inte "försöket klart": en transaktions doser når lyssnaren först efter serverns kvitto, så kortet kunde
+     * annars blinka.
      */
-    private val failedDays = MutableStateFlow<Set<LocalDate>>(emptySet())
-
-    /** Senaste `ensureDay`-försöket per dag (räknas på huvudtråden, i [viewModelScope]). */
-    private val ensureAttempts = mutableMapOf<LocalDate, Int>()
+    private val failedDays = MutableStateFlow<Map<LocalDate, DataError>>(emptyMap())
 
     private val now: Flow<LocalDateTime> =
         clock.minutes { zone.get() }.shareIn(viewModelScope, sharing, replay = 1)
@@ -243,23 +247,21 @@ class TodayViewModel @Inject constructor(
 
     /**
      * Den visade dagen och idag. Varje ny dag – ett val i remsan eller midnatt – säkerställer dagens receptdoser
-     * (`ensureDay`, HEM-10), också en tidigare dag som aldrig varit "idag". Ingen egen dosgenerering här. Offline
-     * är tyst; ett annat fel (t.ex. slut på molnets kvot) visas som meddelande och dagen antecknas i [failedDays]
-     * tills ett nytt försök lyckas.
+     * (`ensureDay`, HEM-10), också en tidigare dag som aldrig varit "idag". Ingen egen dosgenerering här. Utan nät
+     * antecknas dagen i [failedDays] utan meddelande, och försöket görs om medan dagen visas tills nätet är tillbaka
+     * ([attemptingEach]) – så att morgonens doser kommer utan att man byter dag. Ett annat fel (t.ex. slut på molnets
+     * kvot) visas som meddelande och antecknas tills ett nytt försök lyckas.
      */
     private val days: Flow<Pair<LocalDate, LocalDate>> = combine(selected, today) { chosen, today ->
         shownDate(chosen, today) to today
-    }.distinctUntilChanged().onEach { (date, today) ->
-        viewModelScope.launch {
-            // Bara dagens senaste försök får skriva: ett äldre, långsamt försök skriver inte över ett nyare.
-            val attempt = (ensureAttempts[date] ?: 0) + 1
-            ensureAttempts[date] = attempt
-            val failure = failureOfAttempt { prescriptions.ensureDay(date, today) }
-            if (ensureAttempts[date] != attempt) return@launch
+    }.distinctUntilChanged().attemptingEach(
+        viewModelScope,
+        onOffline = { (date, _) -> failedDays.update { it + (date to DataError.Offline) } },
+        onResult = { (date, _), failure ->
             failure?.let { _failure.value = it }
-            failedDays.update { if (failure != null) it + date else it - date }
-        }
-    }
+            failedDays.update { if (failure != null) it + (date to failure.error) else it - date }
+        },
+    ) { (date, today) -> prescriptions.ensureDay(date, today) }
 
     private data class Span(val date: LocalDate, val today: LocalDate, val week: LocalDate) {
         /** Det som läses: den visade dagen, remsans vecka, dagarna i rad bakåt från idag (HEM-20) och "Din vecka"s två veckor (HEM-13). */
@@ -367,7 +369,7 @@ class TodayViewModel @Inject constructor(
         val weekEntries: Entries?,
         val energyDays: List<LocalDate>,
         val energy: List<Float?>,
-        val dosesMissing: Boolean,
+        val missingCause: DataError?,
     ) {
         fun at(moment: Moment, illness: Pair<IllnessEpisode, List<Checkin>>?): TodayContent = TodayContent(
             today = today,
@@ -390,11 +392,11 @@ class TodayViewModel @Inject constructor(
             energyDays = energyDays,
             energy = energy,
             illness = illness?.let { (episode, checkins) -> ongoingIllness(episode, checkins, today) },
-            dosesMissing = dosesMissing,
+            missingCause = missingCause,
         )
     }
 
-    private fun day(span: Span, entries: Entries, library: Library, toggles: Toggles, failedDays: Set<LocalDate>): DayView {
+    private fun day(span: Span, entries: Entries, library: Library, toggles: Toggles, failedDays: Map<LocalDate, DataError>): DayView {
         val (date, today) = span.date to span.today
         val occasions = library.settings.reminders.enabledOccasions
         val dayDoses = entries.doses.filter { it.date == date }
@@ -403,9 +405,9 @@ class TodayViewModel @Inject constructor(
         val progress = dayProgress(date, dayDoses, entries.screenings, occasions)
         val todayProgress = if (date == today) progress else dayProgress(today, entries.doses, entries.screenings, occasions)
         // HEM-10, MED-4: samma beräkning som `ensureDay` och påminnelsen – efter ett misslyckat försök saknas doser som recepten ger.
-        val dosesMissing = date in failedDays && ensureDoses(library.prescriptions, dayDoses, date, today, zone.get()).create.isNotEmpty()
+        val missingCause = failedDays[date]?.takeIf { ensureDoses(library.prescriptions, dayDoses, date, today, zone.get()).create.isNotEmpty() }
         // HEM-19: en dag med saknade doser är inte klar – ingen belöning eller konfetti.
-        val dayDone = if (date == today && progress.isComplete && !dosesMissing) {
+        val dayDone = if (date == today && progress.isComplete && missingCause == null) {
             DayDone(
                 comparison = dayComparison(today, entries.screenings),
                 streak = dayStreak(today, entries.doses, entries.screenings, occasions),
@@ -434,7 +436,7 @@ class TodayViewModel @Inject constructor(
             weekEntries = if (date == today) entries.since(today.minus(WEEK_SUMMARY_DAYS - 1, DateTimeUnit.DAY)) else null,
             energyDays = energyDays,
             energy = dailyEnergyAverages(entries.screenings, energyDays),
-            dosesMissing = dosesMissing,
+            missingCause = missingCause,
         )
     }
 

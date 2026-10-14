@@ -80,8 +80,8 @@ interface PrescriptionRepository {
      * stämmer allt skrivs ingenting).
      * Körs högst en gång per dag, enhet och konto efter en lyckad körning (#304, [DailyGate]) – de serverläsningarna
      * debiteras fullt; samtidiga anrop (Idag och Mediciner) ger en körning. Offline görs ingenting, utan fel – men det
-     * räknas inte som lyckat, så nästa anrop med nät kör; ett fel (t.ex. `QuotaExceeded`) ges tillbaka och nästa
-     * anrop försöker igen.
+     * räknas inte som lyckat (också när nätet försvann vid dosernas skrivning), så nästa anrop med nät kör; ett fel
+     * (t.ex. `QuotaExceeded`) ges tillbaka och nästa anrop försöker igen.
      */
     suspend fun tidyUp(today: LocalDate): Result<Unit>
 
@@ -92,7 +92,8 @@ interface PrescriptionRepository {
      * samma låsta, serverbekräftade väg som städningen (receptet läses från servern under låset), så att
      * doser som en samtidig avaktivering tagit bort aldrig skapas igen. Ingen dos före receptets skapandedag
      * eller start; en tidigare dag följer receptets nuvarande aktiv-läge. Idempotent; recept avslutas inte
-     * här (bara [tidyUp], REC-8). En dag efter [today] ger ingenting. Offline görs ingenting, utan fel.
+     * här (bara [tidyUp], REC-8). En dag efter [today] ger ingenting. Offline görs ingenting och `Offline` ges tillbaka,
+     * så att Idag kan säga varför doserna saknas och försöka igen när nätet är tillbaka.
      */
     suspend fun ensureDay(date: LocalDate, today: LocalDate): Result<Unit>
 
@@ -196,9 +197,9 @@ class DefaultPrescriptionRepository @Inject constructor(
     override suspend fun ensureDay(date: LocalDate, today: LocalDate): Result<Unit> {
         if (date > today) return Result.success(Unit)
         // Urvalet på cachen (inget saknas → ingen serverläsning alls); beslutet fattas under låset.
-        val cached = collection.cached().getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
-        val missing = doses.missingOn(cached, date, today).getOrElse { return Result.failure<Unit>(it).offlineIsNoOp() }
-        return createMissing(missing, date, today).offlineIsNoOp()
+        val cached = collection.cached().getOrElse { return Result.failure(it) }
+        val missing = doses.missingOn(cached, date, today).getOrElse { return Result.failure(it) }
+        return createMissing(missing, date, today)
     }
 
     /**
@@ -206,8 +207,8 @@ class DefaultPrescriptionRepository @Inject constructor(
      * recept under receptets lås (som [syncFromServer], men utan att göra en väntande synk inaktuell):
      * väntar in egna skrivningar, läser receptet **från servern** och skapar dess saknade doser på [date]
      * (`DoseRepository.createDay`). Så skapas aldrig doser som en samtidig avaktivering just tagit bort.
-     * Första fel avslutar; `Offline` ges tillbaka som fel ([ensureDay] gör det till "ingenting gjordes", [tidy] låter
-     * dagsgrinden se det).
+     * Första fel avslutar; också `Offline` ges tillbaka som fel (till vyn från [ensureDay], och [tidy] låter dagsgrinden
+     * se det).
      */
     private suspend fun createMissing(ids: List<String>, date: LocalDate, today: LocalDate): Result<Unit> {
         for (id in ids) {

@@ -5,12 +5,9 @@ import javax.inject.Provider
 import javax.inject.Singleton
 import kotlin.time.Clock
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -158,24 +155,19 @@ fun <T> historyFlow(
     if (to < from) return@flatMapLatest flowOf(emptyList())
     channelFlow {
         launch {
-            var attempt = 0L
-            while (true) {
+            retryWithBackoffWhile(retryOn = { failure: DataError? -> failure != null }) {
                 try {
                     coverage.ensure(coverageKey, from, { uid.value == account }) { start, until -> fetch(account, start, until) }
-                    break
+                    null
                 } catch (e: DataError) {
                     if (e != DataError.Offline && e != DataError.QuotaExceeded) throw e
+                    e
                 }
-                delay(backoff(HISTORY_RETRY_FIRST, HISTORY_RETRY_MAX, attempt++))
             }
         }
         cache(account).collect { send(it) }
     }
 }
-
-/** Första pausen innan historikläget försöker nå servern igen offline, och den längsta. */
-private val HISTORY_RETRY_FIRST = 30.seconds
-private val HISTORY_RETRY_MAX = 1.minutes
 
 /**
  * Läsningar av samma dagar slagna ihop: en post finns en gång, i den **senaste** listans version (lyssnade delar läggs

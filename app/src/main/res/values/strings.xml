@@ -273,7 +273,9 @@
     <string name="today_medicines_all_done_title">Allt avklarat</string>
     <string name="today_medicines_all_done">Alla dagens mediciner är avklarade.</string>
     <string name="today_medicines_missing_title">Doser saknas</string>
-    <string name="today_medicines_missing">Alla doser för dagen kunde inte skapas just nu. Appen försöker igen nästa gång dagen visas.</string>
+    <string name="today_medicines_missing_offline">Ingen anslutning just nu, så dagens doser kan inte skapas.</string>
+    <string name="today_medicines_missing_offline_retry">Appen försöker igen av sig själv när nätet är tillbaka.</string>
+    <string name="today_medicines_missing_retry">Appen försöker igen nästa gång dagen visas.</string>
     <string name="today_prn_past_day">Visa idag för att logga – eller Logga i efterhand i medicinens meny.</string>
     <string name="today_prn_today_only">Loggas bara idag</string>
     <string name="today_show_today">Visa idag</string>

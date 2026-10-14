@@ -33,7 +33,6 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.common.FieldMerge
 import se.partee71.dagboken.data.common.FieldPath
-import se.partee71.dagboken.data.common.offlineIsNoOp
 import se.partee71.dagboken.data.common.LatestWins
 import se.partee71.dagboken.data.common.cachedDates
 import se.partee71.dagboken.data.common.moveChanged
@@ -69,7 +68,8 @@ interface DoseRepository : EntryStore<Dose>, DayReads<Dose> {
      * görs **bara** av `PrescriptionRepository` (dagens doser och städningen, en väg) under receptets lås, så att en samtidig dossynk
      * (t.ex. en avaktivering som tar bort dagens planerade doser) aldrig följs av att de skapas igen.
      * Recept vars period passerats avslutas inte här – bara av `PrescriptionRepository.tidyUp` (REC-8).
-     * Offline görs ingenting, utan fel.
+     * Offline görs ingenting och `Offline` ges tillbaka – så att Idag försöker igen (HEM-10) och städningens dagsgrind
+     * inte antecknar en körning vars doser saknas.
      */
     suspend fun createDay(prescription: Prescription, date: LocalDate, today: LocalDate): Result<Unit>
 
@@ -212,7 +212,8 @@ class DefaultDoseRepository private constructor(
         }
 
     override suspend fun createDay(prescription: Prescription, date: LocalDate, today: LocalDate): Result<Unit> =
-        createIfAbsent(ensureDoses(listOf(prescription), existing = emptyList(), date = date, today = today, zone = zone.get()).create)
+        // Ett dokument som finns – vilken status det än har, också om cachen inte känner till det – skrivs aldrig över.
+        collection.createIfAbsent(ensureDoses(listOf(prescription), existing = emptyList(), date = date, today = today, zone = zone.get()).create)
 
     override suspend fun setStatus(dose: Dose, status: DoseStatus, takenAt: Instant?): Result<Unit> {
         takenAt?.let { notInFuture(it) }?.onFailure { return Result.failure(it) }
@@ -300,13 +301,6 @@ class DefaultDoseRepository private constructor(
 
     override suspend fun remove(dose: Dose): Result<Unit> =
         if (dose.isPrescribed) setStatus(dose, DoseStatus.SKIPPED) else collection.delete(dose.id)
-
-    /**
-     * MED-4: skapar de doser i [doses] som bevisligen inte finns (`EntityCollection.createIfAbsent`): ett
-     * dokument som finns – vilken status det än har, också om cachen inte känner till det – skrivs aldrig
-     * över. Offline skrivs ingenting, utan fel.
-     */
-    private suspend fun createIfAbsent(doses: List<Dose>): Result<Unit> = collection.createIfAbsent(doses).offlineIsNoOp()
 
     /** Dagens och senare doser, från servern – aldrig hela historiken (som syncDoses ändå inte rör). */
     private suspend fun fromToday(today: LocalDate) = collection.confirmedFrom(DoseCodec.DATE, checkNotNull(today.encodeDate()))

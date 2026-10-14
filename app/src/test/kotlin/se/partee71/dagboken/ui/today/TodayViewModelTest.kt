@@ -58,6 +58,8 @@ import se.partee71.dagboken.data.common.DailyGate
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.common.MemoryDayMarks
+import se.partee71.dagboken.data.common.OFFLINE_RETRY_FIRST
+import se.partee71.dagboken.data.common.OFFLINE_RETRY_MAX
 import se.partee71.dagboken.data.repository.DefaultIllnessRepository
 import se.partee71.dagboken.data.repository.DefaultOptionsRepository
 import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
@@ -73,6 +75,7 @@ import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.medicines.MedicinesViewModel
 import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.common.DetailUiState
+import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.SelectedDay
 
 /**
@@ -837,14 +840,48 @@ class TodayViewModelTest {
     }
 
     @Test
-    fun `utan nät är försöket tyst och kortet oförändrat (HEM-10, MED-4)`() = runTest(main.dispatcher) {
+    fun `utan nät säger kortet varför doserna saknas, och de kommer när nätet är tillbaka utan dagbyte (HEM-10, MED-4)`() = runTest(main.dispatcher) {
         seed()
         factory.store.online = false
         val vm = started(viewModel())
         runCurrent()
-        assertNull(vm.failure.value)
+        assertNull(vm.failure.value, "inget felmeddelande utan nät")
         assertTrue(vm.content.checklist.isEmpty)
-        assertFalse(vm.content.dosesMissing, "bara ett misslyckat försök säger att doser saknas")
+        assertEquals(DataError.Offline, vm.content.missingCause, "kortet säger att doserna saknas för att nätet saknas")
+
+        // Morgonen: nätet kommer en stund efter att appen öppnats – Idag försöker igen av sig själv.
+        factory.store.online = true
+        advanceTimeBy(OFFLINE_RETRY_FIRST)
+        runCurrent()
+        assertNull(vm.failure.value)
+        assertEquals(2, vm.content.progress.total, "dagens doser skapades utan att dagen byttes")
+        assertNull(vm.content.missingCause)
+    }
+
+    @Test
+    fun `utan nät görs försöket om med växande paus bara medan Idag visas (HEM-10)`() = runTest(main.dispatcher) {
+        seed()
+        var attempts = 0
+        val offline = object : PrescriptionRepository by testPrescriptions(factory, doses, zone, clock) {
+            override suspend fun tidyUp(today: LocalDate): Result<Unit> = Result.success(Unit)
+            override suspend fun ensureDay(date: LocalDate, today: LocalDate): Result<Unit> = Result.failure<Unit>(DataError.Offline).also { attempts++ }
+        }
+        val vm = viewModel(offline)
+        val shown = backgroundScope.launch { vm.state.collect {} }
+        runCurrent()
+        assertEquals(1, attempts)
+        advanceTimeBy(OFFLINE_RETRY_FIRST)
+        runCurrent()
+        assertEquals(2, attempts, "efter första pausen")
+        advanceTimeBy(OFFLINE_RETRY_MAX)
+        runCurrent()
+        assertEquals(3, attempts, "pausen växer men blir aldrig längre än den längsta")
+
+        shown.cancel()
+        advanceTimeBy(STOP_TIMEOUT_MILLIS + 1)
+        advanceTimeBy(OFFLINE_RETRY_MAX * 5)
+        runCurrent()
+        assertEquals(3, attempts, "inga försök när Idag inte visas")
     }
 
     @Test

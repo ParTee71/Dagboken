@@ -34,6 +34,7 @@ import se.partee71.dagboken.core.schema.ScreeningCodec
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.common.CollectionFactory
+import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.firestore.Paths
 
@@ -115,10 +116,10 @@ class TodayRepositoriesTest {
     }
 
     @Test
-    fun `ensureDay utan nät gör ingenting och är inget fel`() = runTest {
+    fun `ensureDay utan nät gör ingenting och säger Offline, så att Idag kan försöka igen (HEM-10)`() = runTest {
         factory.prescriptions().upsert(levaxin).getOrThrow()
         factory.store.online = false
-        assertTrue(prescriptions.ensureDay(today, today).isSuccess)
+        assertEquals(DataError.Offline, prescriptions.ensureDay(today, today).exceptionOrNull())
         assertTrue(stored().isEmpty())
     }
 
