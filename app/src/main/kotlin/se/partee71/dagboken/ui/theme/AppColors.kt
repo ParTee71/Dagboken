@@ -44,8 +44,40 @@ data class EnergyColors(val low: Color, val mid: Color, val high: Color)
 data class SleepStageColors(val deep: Color, val light: Color, val rem: Color, val awake: Color)
 
 /**
- * Appens färger utöver Material 3-rollerna: kort, radtoning, spår, verktygsrad, toner, energiskalan och
- * sömnstadierna. [track] är det ofyllda spåret i allt som visar framsteg (framstegsraden, stegprickarna).
+ * Kärnkänslornas toner (SCR-8): en [ToneColors] per kärna i `FeelingCatalog` – Glad solgul, Stark lila, Lugn teal,
+ * Ledsen blågrå, Arg röd och Rädd terrakotta, som i prototypen (#318). Delas av hjulet, väljaren, pills och diagram;
+ * innehållet klarar 4,5:1 mot behållaren i båda temana (`ThemeContrastTest`), så att en vald yta kan fyllas med
+ * innehållsfärgen och bära behållarfärgen som text. Färgen bär aldrig ensam betydelsen – ordet står alltid med.
+ */
+@Immutable
+data class FeelingColors(
+    val glad: ToneColors,
+    val strong: ToneColors,
+    val calm: ToneColors,
+    val sad: ToneColors,
+    val angry: ToneColors,
+    val scared: ToneColors,
+    /** Tonen för en kärna appen inte känner (ett token från en nyare app) – den dämpade tonen ([ExtendedColors.neutralTone]). */
+    val unknown: ToneColors,
+) {
+    /** Tonen för kärnans token (`Feeling.core`); en okänd kärna får [unknown]. */
+    fun forCore(core: String): ToneColors = when (core) {
+        "glad" -> glad
+        "strong" -> strong
+        "calm" -> calm
+        "sad" -> sad
+        "angry" -> angry
+        "scared" -> scared
+        else -> unknown
+    }
+
+    /** De sex kärntonerna i hjulets ordning. */
+    val all: List<ToneColors> get() = listOf(glad, strong, calm, sad, angry, scared)
+}
+
+/**
+ * Appens färger utöver Material 3-rollerna: kort, radtoning, spår, verktygsrad, toner, energiskalan,
+ * sömnstadierna och kärnkänslornas toner. [track] är det ofyllda spåret i allt som visar framsteg (framstegsraden, stegprickarna).
  */
 @Immutable
 data class ExtendedColors(
@@ -61,6 +93,7 @@ data class ExtendedColors(
     val warningTone: ToneColors,
     val energy: EnergyColors,
     val sleepStages: SleepStageColors,
+    val feelingTones: FeelingColors,
 )
 
 /**
@@ -149,6 +182,10 @@ object AppColors {
         surfaceContainerHighest = Color(0xFF1E3029),
     )
 
+    /** Dämpad ton – också tonen för en okänd kärnkänsla ([FeelingColors.unknown]). */
+    private val lightNeutral = ToneColors(Color(0xFFEFEADF), Color(0xFF4F4A40))
+    private val darkNeutral = ToneColors(Color(0xFF2A3A33), Color(0xFFDCE3DA))
+
     val lightExtended = ExtendedColors(
         card = Color(0xFFFFFFFF),
         rowTint = Color(0xFFF4EFE3),
@@ -156,12 +193,21 @@ object AppColors {
         toolbar = Color(0xFF16302B),
         onToolbar = Color(0xFFF3F1EA),
         primaryTone = ToneColors(Color(0xFFD3EDE9), Color(0xFF00413C)),
-        neutralTone = ToneColors(Color(0xFFEFEADF), Color(0xFF4F4A40)),
+        neutralTone = lightNeutral,
         sunTone = ToneColors(Color(0xFFFCEBC4), Color(0xFF4D3500)),
         positiveTone = ToneColors(Color(0xFFDCEFE3), Color(0xFF1F5A40)),
         warningTone = ToneColors(Color(0xFFF8E1D6), Color(0xFF7A3519)),
         energy = EnergyColors(low = Color(0xFFB5443A), mid = Color(0xFFC98A1B), high = Color(0xFF2F7D5B)),
         sleepStages = SleepStageColors(deep = Color(0xFF0B4F49), light = Color(0xFF4E9A90), rem = Color(0xFF3B6EA5), awake = Color(0xFF958B78)),
+        feelingTones = FeelingColors(
+            glad = ToneColors(Color(0xFFFDEBC2), Color(0xFF6B4A00)),
+            strong = ToneColors(Color(0xFFE8E1F4), Color(0xFF5B3A84)),
+            calm = ToneColors(Color(0xFFD8EBE6), Color(0xFF0B5A53)),
+            sad = ToneColors(Color(0xFFDDE5EE), Color(0xFF344B63)),
+            angry = ToneColors(Color(0xFFF8DAD5), Color(0xFF8A2A22)),
+            scared = ToneColors(Color(0xFFF6E0D5), Color(0xFF7E3A1E)),
+            unknown = lightNeutral,
+        ),
     )
 
     val darkExtended = ExtendedColors(
@@ -171,12 +217,21 @@ object AppColors {
         toolbar = Color(0xFFE9EEE7),
         onToolbar = Color(0xFF0F1C17),
         primaryTone = ToneColors(Color(0xFF0B4F49), Color(0xFFBFEDE6)),
-        neutralTone = ToneColors(Color(0xFF2A3A33), Color(0xFFDCE3DA)),
+        neutralTone = darkNeutral,
         sunTone = ToneColors(Color(0xFF5A4100), Color(0xFFFCEBC4)),
         positiveTone = ToneColors(Color(0xFF1C4A35), Color(0xFFC3EBD3)),
         warningTone = ToneColors(Color(0xFF6A2F17), Color(0xFFFFD9C9)),
         energy = EnergyColors(low = Color(0xFFE38A7F), mid = Color(0xFFE9B54F), high = Color(0xFF6CC79A)),
         sleepStages = SleepStageColors(deep = Color(0xFF7FD3C8), light = Color(0xFF3F8F86), rem = Color(0xFF8FB4E0), awake = Color(0xFF8E897B)),
+        feelingTones = FeelingColors(
+            glad = ToneColors(Color(0xFF5A4414), Color(0xFFFCE3A8)),
+            strong = ToneColors(Color(0xFF3A2E52), Color(0xFFE6DAFA)),
+            calm = ToneColors(Color(0xFF1D3A37), Color(0xFFBFEDE6)),
+            sad = ToneColors(Color(0xFF2B3440), Color(0xFFD6E2F0)),
+            angry = ToneColors(Color(0xFF4A231F), Color(0xFFFFD6D0)),
+            scared = ToneColors(Color(0xFF4A2A1C), Color(0xFFFFD9C9)),
+            unknown = darkNeutral,
+        ),
     )
 
     /** Färgerna man kan välja bland (`ColorSwatchPicker`) som hex – det som lagras. Harmonierar med paletten. */

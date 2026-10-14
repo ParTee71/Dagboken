@@ -289,6 +289,17 @@ class CatalogScreenshotTest {
         }
     }
 
+    /** Känslohjulet i vila med två valda kärnor, och väljaren på hjulet med val på alla tre nivåer (SCR-7). */
+    @Test
+    fun `känslor`() {
+        captureLightAndDark("FeelingWheel_valda") {
+            Sheet { AppCard { FeelingWheel(setOf("calm", "scared"), {}) } }
+        }
+        captureLightAndDark("FeelingPicker_hjul_med_val") {
+            Sheet { AppCard { FeelingPicker(GALLERY_FEELINGS, {}) } }
+        }
+    }
+
     @Test
     fun `poster, reglage och kalender`() {
         captureLightAndDark("DagbokenEntryCard_lagen") {
@@ -416,7 +427,7 @@ class CatalogScreenshotTest {
             }
         }
         captureLightAndDark("StepwiseScreeningForm_forsta_steget") {
-            Sheet { AppCard { StepwiseScreeningForm(6, {}, 4, {}, GALLERY_SYMPTOMS, emptyList(), {}, onSave = {}) } }
+            Sheet { AppCard { StepwiseScreeningForm(6, {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, emptyList(), {}, onSave = {}) } }
         }
         captureLightAndDark("SymptomLogCard_valda") {
             Sheet {

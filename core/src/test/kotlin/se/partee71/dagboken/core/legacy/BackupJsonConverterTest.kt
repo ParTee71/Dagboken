@@ -118,6 +118,19 @@ class BackupJsonConverterTest {
     }
 
     @Test
+    fun `känslor (DAT-14) fanns inte i 3x - varje måendelogg får en tom lista, som skrivs i exporten`() {
+        for (name in listOf("backup-v2", "backup-v1")) {
+            val result = converted(name)
+            val screenings = result.data.screenings
+            assertTrue(screenings.isNotEmpty(), name)
+            for (screening in screenings) assertEquals(emptyList(), screening.feelings, "$name: ${screening.id}")
+            for (document in result.documents.filter { CollectionNames.collectionOf(it.path) == CollectionNames.SCREENINGS }) {
+                assertEquals(emptyList<Any>(), document.data["feelings"], "$name: ${document.path} skriver fältet, så importen fyller det")
+            }
+        }
+    }
+
+    @Test
     fun `alternativen får sina id ur OptionIds, V2-listorna går före v1 och Övrigt skapas när listan saknar det`() {
         val options = converted("backup-v2").data.options
         for (option in options) assertEquals(OptionIds.of(option.kind, option.name), option.id)
@@ -376,7 +389,7 @@ class BackupJsonConverterTest {
 
     private companion object {
         /** Nya fält i 4.0 utan 3.x-motsvarighet (ARKITEKTUR.md → Fältparitet). */
-        val NEW_IN_4_0 = setOf("prnId", "strength", "form")
+        val NEW_IN_4_0 = setOf("prnId", "strength", "form", "feelings")
     }
 
     @Test

@@ -3,6 +3,7 @@ package se.partee71.dagboken.core.schema
 import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Event
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
@@ -42,6 +43,18 @@ internal fun Doc.symptoms(): List<SymptomScore> = docs(SYMPTOMS).map {
 internal fun List<SymptomScore>.encodeSymptoms(): List<Doc> =
     map { mapOf("optionId" to it.optionId, "score" to it.score, "customText" to it.customText) }
 
+/** Känslorna på en måendelogg (DAT-14). */
+internal const val FEELINGS = "feelings"
+
+/**
+ * `feelings: ["core", "core.nuance", "core.nuance.detail"]` (DAT-14), i lagrad ordning ([Feeling.parse]). Element som inte
+ * är text, är tomma eller har fler än tre delar hoppas över; tokens läses som de är, så ett okänt med giltig form (från en
+ * nyare app) bevaras och skrivs tillbaka oförändrat. Saknat fält = tom lista.
+ */
+internal fun Doc.feelings(): List<Feeling> = stringList(FEELINGS).mapNotNull(Feeling::parse)
+
+internal fun List<Feeling>.encodeFeelings(): List<String> = map { it.token }
+
 object OptionCodec : DocCodec<Option> {
     const val NAME = "name"
     const val KIND = "kind"
@@ -80,6 +93,7 @@ object ScreeningCodec : DatedCodec<Screening> {
         "stress" to value.stress,
         SYMPTOMS to value.symptoms.encodeSymptoms(),
         LEGACY_SOMATIC to value.legacySomatic,
+        FEELINGS to value.feelings.encodeFeelings(),
     )
 
     override fun decode(id: String, map: Doc) = Screening(
@@ -91,6 +105,7 @@ object ScreeningCodec : DatedCodec<Screening> {
         energy = map.int("energy"),
         stress = map.int("stress"),
         symptoms = map.symptoms(),
+        feelings = map.feelings(),
         legacySomatic = map.intOrNull(LEGACY_SOMATIC),
         createdAt = map.instant(CREATED_AT),
         note = map.stringOrNull(NOTE),

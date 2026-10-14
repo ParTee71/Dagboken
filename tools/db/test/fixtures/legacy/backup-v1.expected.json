@@ -326,7 +326,8 @@
         "energy": 6,
         "stress": 3,
         "symptoms": [],
-        "legacySomatic": null
+        "legacySomatic": null,
+        "feelings": []
       }
     }
   ]

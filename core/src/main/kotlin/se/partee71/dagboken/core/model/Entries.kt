@@ -24,14 +24,18 @@ data class Screening(
     /** Stress 0–10. */
     val stress: Int = 0,
     override val symptoms: List<SymptomScore> = emptyList(),
+    /** Känslorna ur ordkatalogen (SCR-7, DAT-14); fanns inte i 3.x – konverteraren ger tom lista. */
+    override val feelings: List<Feeling> = emptyList(),
     override val createdAt: Instant? = null,
     val note: String? = null,
     /** 3.x `somatiska` som inte är summan ([HasSymptoms.legacySomatic]). */
     override val legacySomatic: Int? = null,
-) : Post<Screening>, HasSymptoms<Screening> {
+) : Post<Screening>, HasSymptoms<Screening>, HasFeelings<Screening> {
     override fun withId(id: String): Screening = copy(id = id)
 
     override fun copySymptoms(symptoms: List<SymptomScore>, legacySomatic: Int?): Screening = copy(symptoms = symptoms, legacySomatic = legacySomatic)
+
+    override fun withFeelings(feelings: List<Feeling>): Screening = copy(feelings = feelings)
 }
 
 /**

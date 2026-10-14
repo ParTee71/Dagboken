@@ -1,7 +1,6 @@
 package se.partee71.dagboken.ui.components
 
 import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -155,14 +154,13 @@ class AppBottomSheetTest {
         var saved = 0
         rule.setContent {
             DagbokenTheme {
-                val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS)
-                LaunchedEffect(steps) { steps.pager.scrollToPage(2) }
+                val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS, ScreeningStep.SYMPTOMS)
                 AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepwiseScreeningNavigation(steps, { saved++ }) }) {
-                    StepwiseScreeningForm(6, {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, state = steps, navigation = false)
+                    StepwiseScreeningForm(6, {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, state = steps, navigation = false)
                 }
             }
         }
-        rule.onNodeWithText("Steg 3 av 3").assertIsDisplayed()
+        rule.onNodeWithText("Steg 4 av 4").assertIsDisplayed()
         rule.onNodeWithText("Föregående").assertIsDisplayed()
         rule.onNodeWithText("Spara").assertIsDisplayed().performClick()
         assertEquals(1, saved)

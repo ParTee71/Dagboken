@@ -8,13 +8,15 @@ import { COLLECTIONS } from '../lib/collections.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
 import { toClient } from './helpers/client.mjs';
 import { Double, restSetAs, rulesTestEnvironment } from './helpers/emulator.mjs';
-import { documentRulesConstant, readRepoFile, textLimits } from './helpers/repo.mjs';
+import { documentRulesConstant, feelingCatalogConstant, readRepoFile, textLimits } from './helpers/repo.mjs';
 
 const OWNER = 'anna';
 /** Textgränserna (TextLimits i :core = maxShort/maxLong i rules) och en text med [n] tecken. */
 const LIMIT = textLimits();
 const text = (n) => 'x'.repeat(n);
 const user = { schemaVersion: 1, createdAt: Timestamp.fromDate(new Date('2026-09-01T08:00:00Z')) };
+/** Kärnkänslorna (FeelingCatalog.cores = kärnorna i isFeelings mönster, RulesEnumsTest). */
+const CORES = ['glad', 'strong', 'calm', 'sad', 'angry', 'scared'];
 
 /** Den syntetiska fixturen (alla samlingar, varje fält satt). */
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/user.json', import.meta.url), 'utf8'));
@@ -397,6 +399,27 @@ const invalid = {
     ['symptoms', [{ optionId: null, score: 3, customText: null }], 'optionId null'],
     ['symptoms', [{ optionId: ['x'], score: 3, customText: null }], 'optionId som lista'],
     ['symptoms', [null], 'symptom null'],
+    // Känslor (SCR-7, DAT-14): högst 6 texter core[.nuance[.detail]] – kärnan ur katalogen, delar 1–32 gemener a–z.
+    ['feelings', 'calm', 'känslor som text'],
+    ['feelings', [3], 'känsla som tal'],
+    ['feelings', [null], 'känsla null'],
+    ['feelings', [{ core: 'glad' }], 'känsla som objekt'],
+    ['feelings', ['bored'], 'okänd kärna (en nyans)'],
+    ['feelings', ['Glad'], 'kärna med stor bokstav'],
+    ['feelings', [''], 'tom känsla'],
+    ['feelings', ['glad.'], 'tom nyans'],
+    ['feelings', ['.glad'], 'tom kärna'],
+    ['feelings', ['glad..tense'], 'tom nyans före ordet'],
+    ['feelings', ['glad.anxious.tense.extra'], 'fyra delar'],
+    ['feelings', ['glad.nyans1'], 'siffra i nyansen'],
+    ['feelings', ['glad.Anxious'], 'stor bokstav i nyansen'],
+    ['feelings', [`glad.${'a'.repeat(33)}`], 'nyans över 32 tecken'],
+    ['feelings', ['glad', ''], 'tom känsla sist'],
+    ['feelings', ['', 'glad'], 'tom känsla först'],
+    ['feelings', ['glad,calm'], 'komma i stället för punkt'],
+    ['feelings', Array.from({ length: 7 }, () => 'glad'), '7 känslor'],
+    ['feelings', [...CORES.slice(0, 5), 'bored'], 'sjätte känslan ogiltig'],
+    ['feelings', ['glad', 'calm.7'], 'siffra i andra känslan'],
   ],
   activities: [
     ['energy', 11, 'energi över 10'],
@@ -463,6 +486,13 @@ test('gränsvärdena i intervallen godtas', async () => {
     ['activities', 'symptoms', Array.from({ length: 50 }, (_, i) => ({ optionId: `s${i}`, score: 0, customText: null }))],
     ['checkins', 'symptoms', Array.from({ length: 50 }, (_, i) => ({ optionId: `s${i}`, score: 5, customText: null }))],
     ['screenings', 'legacySomatic', 0], ['activities', 'legacySomatic', 40], ['checkins', 'legacySomatic', null],
+    // Känslor (DAT-14): tom, null, alla sex kärnor med längsta delar, varje nivå, och okänd nyans/okänt ord med giltig form.
+    ['screenings', 'feelings', []], ['screenings', 'feelings', null],
+    ['screenings', 'feelings', CORES.map((core, i) => `${core}.${'n'.repeat(i + 1)}.${'o'.repeat(32)}`)],
+    ['screenings', 'feelings', ['scared.anxious.tense', 'calm.grateful', 'glad']],
+    ['screenings', 'feelings', ['glad.framtida.nytt', 'sad.a']],
+    // Ett element med mellanslag ser ut som två i join(' ') och släpps igenom av rules; DocumentRules (:core) nekar det.
+    ['screenings', 'feelings', ['glad calm']],
     // Ett symptom utan poäng (från 3.x, DAT-6): score null godtas.
     ['screenings', 'symptoms', [{ optionId: 'x', score: null, customText: null }]],
     ['checkins', 'symptoms', [{ optionId: 'x', score: 3, customText: null }, { optionId: 'y', score: null, customText: null }]],
@@ -648,6 +678,21 @@ test('en okänd form (från en nyare app) kan stå kvar vid uppdatering men inte
   }
 });
 
+test('en känsla med okänd kärna (från en nyare app) kan stå kvar vid uppdatering men inte skapas eller ändras till (DAT-14)', async () => {
+  // Codecen skriver tillbaka okända tokens med giltig form oförändrade (DAT-10); rules känner bara de sex kärnorna, så ett
+  // nytt dokument med en okänd kärna nekas tills schemaVersion och rules höjs – som ett okänt schema eller en okänd form.
+  const ref = mine('screenings', 'nyare-kansla');
+  const stored = toClient(withField(base('screenings'), 'feelings', ['glad', 'serene.framtida.nytt']));
+  await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'users', OWNER, 'screenings', 'nyare-kansla'), stored));
+  await assertSucceeds(updateDoc(ref, { note: 'Ändrad i 4.0', energy: 4 }), 'känslorna orörda');
+  await assertSucceeds(setDoc(ref, stored), 'hela dokumentet skrivet med känslorna orörda');
+  await assertFails(updateDoc(ref, { feelings: ['glad', 'serene.framtida.nytt', 'calm'] }), 'listan ändrad med den okända kvar');
+  await assertSucceeds(updateDoc(ref, { feelings: ['glad', 'calm'] }), 'kända känslor ersätter den okända');
+  await assertFails(updateDoc(ref, { feelings: ['serene'] }), 'tillbaka till en okänd kärna');
+  await deleteDoc(ref);
+  await assertFails(setDoc(ref, stored), 'återskapad med okänd kärna');
+});
+
 /**
  * Dokument i värsta fall för uttrycksbudgeten (rules räknar högst 1 000 uttryck per skrivning): varje
  * fält satt och så långt som DocumentRules tillåter, listorna av objekt fulla och med de dyraste
@@ -658,6 +703,8 @@ test('en okänd form (från en nyare app) kan stå kvar vid uppdatering men inte
 const at = (v) => Timestamp.fromDate(new Date(Date.UTC(2026, 0, 1 + v)));
 const post = (v) => ({ name: text(LIMIT.short - v), note: text(LIMIT.long - v), date: `2026-03-0${1 + v}`, time: `08:0${v}`, createdAt: at(v) });
 const symptoms = (v) => Array.from({ length: documentRulesConstant('MAX_SYMPTOMS') }, (_, i) => ({ optionId: `s${i}-${v}`, score: 10 - v, customText: `Fritext ${i} ${v}` }));
+/** Alla känslor med kärna, längsta nyans och ord (DAT-14) – maxFeelings() är antalet kärnor. */
+const feelings = (v) => Array.from({ length: feelingCatalogConstant('MAX_FEELINGS') }, (_, i) => `${CORES[i % CORES.length]}.${'n'.repeat(32 - v)}.${'o'.repeat(32 - v)}`);
 const WORST = {
   prescriptions: {
     rule: 'validPrescription',
@@ -672,7 +719,10 @@ const WORST = {
   },
   screenings: {
     rule: 'validScreening',
-    build: (v) => ({ ...post(v), occasion: ['breakfast', 'dinner'][v], customText: text(LIMIT.short - v), energy: 10 - v, stress: 10 - v, symptoms: symptoms(v), legacySomatic: 40 + v }),
+    build: (v) => ({
+      ...post(v), occasion: ['breakfast', 'dinner'][v], customText: text(LIMIT.short - v), energy: 10 - v, stress: 10 - v, symptoms: symptoms(v),
+      legacySomatic: 40 + v, feelings: feelings(v),
+    }),
   },
   activities: {
     rule: 'validActivity',

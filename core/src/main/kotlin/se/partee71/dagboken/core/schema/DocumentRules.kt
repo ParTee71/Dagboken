@@ -2,6 +2,8 @@ package se.partee71.dagboken.core.schema
 
 import kotlin.time.Instant
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.core.model.FeelingCatalog
 import se.partee71.dagboken.core.model.LegacySource
 import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Occasion
@@ -33,6 +35,20 @@ object DocumentRules {
 
     /** Högst så många doshöjningar på ett recept (`maxBoosts()`). */
     const val MAX_BOOSTS = 50
+
+    /** Högst så många känslor på en måendelogg (`maxFeelings()`, DAT-14) – [FeelingCatalog.MAX_FEELINGS]. */
+    const val MAX_FEELINGS = FeelingCatalog.MAX_FEELINGS
+
+    /** Nyansens och ordets längd i ett känslotoken (`[a-z]{1,32}` i rules). */
+    const val MAX_FEELING_PART = Feeling.MAX_PART
+
+    /**
+     * Ett känslotoken `core[.nuance[.detail]]` ([Feeling.token], DAT-14): kärnan en av [FeelingCatalog.cores], nyans och ord
+     * 1–[MAX_FEELING_PART] gemener a–z. Rules prövar hela listan med samma mönster över `join(' ')` (`isFeelings`), så att
+     * alla [MAX_FEELINGS] element kontrolleras för några få uttryck; DocumentRulesTest håller mönstren lika. Att nyans och
+     * ord hör till kärnan kontrolleras inte: ett okänt token med giltig form bevaras av codecen (som en okänd form).
+     */
+    val FEELING_TOKEN = Regex("^(${FeelingCatalog.cores.joinToString("|")})(\\.${Feeling.PART.pattern}){0,2}$")
 
     /**
      * Rules kontrollerar elementen i symptom- och höjningslistorna upp till så här många (`l[0]`…`l[9]`):
@@ -96,6 +112,9 @@ object DocumentRules {
 
         /** Lista av enum-namn, högst [max] (`isEnumList`). */
         data class EnumList(val values: List<String>, val max: Int) : Check
+
+        /** Lista av texter som var och en matchar [pattern] (ett regex), högst [max] – känslotokens (`isFeelings`). */
+        data class PatternList(val pattern: String, val max: Int) : Check
 
         /** Nästlat objekt (`isTheme`, `isSchedule` …). */
         data class Nested(val shape: Shape) : Check
@@ -252,6 +271,7 @@ object DocumentRules {
             "stress" to Check.Range(SCORE),
             "symptoms" to Check.ListOf(SYMPTOM, max = MAX_SYMPTOMS),
             "legacySomatic" to Check.Min(0),
+            "feelings" to Check.PatternList(FEELING_TOKEN.pattern, max = MAX_FEELINGS),
         ),
         CollectionNames.ACTIVITIES to POST + mapOf(
             "optionId" to Check.ShortText,
@@ -345,6 +365,7 @@ object DocumentRules {
             is Check.OneOf -> if (value is String) (if (value in check.values) null else "okänt värde (${value.length} tecken)") else type(value, "enum")
             is Check.IntList -> list(value, check.max) ?: return elements(value, path) { i, v -> check(Check.Range(check.range), v, "$path[$i]") }
             is Check.EnumList -> list(value, check.max) ?: return elements(value, path) { i, v -> check(Check.OneOf(check.values), v, "$path[$i]") }
+            is Check.PatternList -> list(value, check.max) ?: return elements(value, path) { i, v -> listOfNotNull(token(v, check.pattern)?.let { Violation("$path[$i]", it) }) }
             is Check.Nested -> if (value is Map<*, *>) return check(check.shape, asDoc(value), "$path.") else type(value, "objekt")
             is Check.IntMap -> if (value is Map<*, *>) return check(Shape(check.keys.associateWith { Check.IntField }, closed = true), asDoc(value), "$path.") else type(value, "objekt")
             is Check.ListOf -> list(value, check.max, check.exact) ?: return elements(value, path) { i, element ->
@@ -359,6 +380,13 @@ object DocumentRules {
         (list as List<*>).withIndex().flatMap { (i, element) -> if (element == null) listOf(Violation("$path[$i]", "saknas")) else check(i, element) }
 
     private fun whole(value: Any): String? = if (value is Int || value is Long) null else type(value, "heltal")
+
+    /** Ett token som ska matcha [pattern]; felet nämner längden, aldrig texten. */
+    private fun token(value: Any, pattern: String): String? = when {
+        value !is String -> type(value, "text")
+        !Regex(pattern).matches(value) -> "ogiltigt token (${value.length} tecken)"
+        else -> null
+    }
 
     private fun text(value: Any, limit: Int): String? = when {
         value !is String -> type(value, "text")

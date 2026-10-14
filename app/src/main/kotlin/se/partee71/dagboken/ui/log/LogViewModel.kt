@@ -28,6 +28,7 @@ import se.partee71.dagboken.core.engine.asNeededChoices
 import se.partee71.dagboken.core.engine.illnessDay
 import se.partee71.dagboken.core.engine.occasionChoices
 import se.partee71.dagboken.core.engine.ongoingEpisode
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Occasion
@@ -41,6 +42,7 @@ import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
+import se.partee71.dagboken.ui.components.ScreeningStep
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.SelectedDay
@@ -92,9 +94,14 @@ sealed interface LogEvent {
 
     /**
      * "Logga nu" eller ett ologgat tillfälle på Idag (HEM-5, SCR-6): en ny logg för [occasion] på [date] (`null` = idag,
-     * då klockslaget nu), en tidigare dag på påminnelsens tid [reminder].
+     * då klockslaget nu), en tidigare dag på påminnelsens tid [reminder]; formuläret börjar på [initialStep] (SCR-7).
      */
-    data class LogScreening(val occasion: Occasion, val date: LocalDate?, val reminder: LocalTime?) : LogEvent
+    data class LogScreening(
+        val occasion: Occasion,
+        val date: LocalDate?,
+        val reminder: LocalTime?,
+        val initialStep: ScreeningStep = ScreeningStep.ENERGY,
+    ) : LogEvent
 
     data object ClosePicker : LogEvent
 
@@ -104,6 +111,9 @@ sealed interface LogEvent {
     data class ChangeEnergy(val energy: Int) : LogEvent
 
     data class ChangeStress(val stress: Int) : LogEvent
+
+    /** Känslosteget (SCR-7): hela listan efter valet. */
+    data class ChangeFeelings(val feelings: List<Feeling>) : LogEvent
 
     data class ChangeSymptoms(val symptoms: List<SymptomScore>) : LogEvent
 
@@ -232,11 +242,12 @@ class LogViewModel @Inject constructor(
                 pickerFor.value = null
                 sheet.log(event.state.occasion, target.date, event.state.time)
             }
-            is LogEvent.LogScreening -> sheet.log(event.occasion, event.date, event.reminder)
+            is LogEvent.LogScreening -> sheet.log(event.occasion, event.date, event.reminder, event.initialStep)
             LogEvent.ClosePicker -> pickerFor.value = null
             is LogEvent.EditScreening -> sheet.edit(event.screening)
             is LogEvent.ChangeEnergy -> sheet.changeEnergy(event.energy)
             is LogEvent.ChangeStress -> sheet.changeStress(event.stress)
+            is LogEvent.ChangeFeelings -> sheet.changeFeelings(event.feelings)
             is LogEvent.ChangeSymptoms -> sheet.changeSymptoms(event.symptoms)
             LogEvent.SaveScreening -> sheet.save()
             LogEvent.CloseScreening -> sheet.close()

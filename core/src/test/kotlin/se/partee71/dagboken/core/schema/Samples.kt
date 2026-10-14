@@ -11,6 +11,7 @@ import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Event
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.LegacySettings
@@ -113,9 +114,12 @@ object Samples {
 
     private val symptoms = listOf(SymptomScore("huvudvark", 4, "Bakom ögonen"), SymptomScore("ovrigt", 2, "Stel nacke"))
 
+    /** Känslor med kärna, nyans och ord satta (DAT-14) – varje fält i elementet har ett värde. */
+    private val feelings = listOf(Feeling("scared", "anxious", "tense"), Feeling("calm", "grateful", "moved"))
+
     val screening = Screening(
         id = "s1", date = day, time = LocalTime(8, 15), occasion = Occasion.BREAKFAST, customText = "Morgonkoll",
-        energy = 6, stress = 3, symptoms = symptoms, legacySomatic = 7, createdAt = created, note = "Sov dåligt",
+        energy = 6, stress = 3, symptoms = symptoms, feelings = feelings, legacySomatic = 7, createdAt = created, note = "Sov dåligt",
     )
 
     val activity = Activity(

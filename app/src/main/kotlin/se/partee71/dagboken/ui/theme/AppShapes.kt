@@ -35,6 +35,15 @@ object AppShapes {
     /** Liten ikonruta, t.ex. i en sektionsrubrik. */
     val smallTile: Shape = RoundedCornerShape(10.dp)
 
+    /**
+     * Kärnkänslan som nav överst i känsloväljaren (`FeelingPicker`, SCR-7): en halv skiva – hörnen är hela höjden,
+     * så att ytan blir en halvcirkel när bredden är dubbla höjden.
+     */
+    val feelingHub: Shape = RoundedCornerShape(topStartPercent = 100, topEndPercent = 100, bottomEndPercent = 0, bottomStartPercent = 0)
+
+    /** En nyans i känsloväljaren: ett blad – rundat i två motstående hörn, som i prototypen (#318). */
+    val feelingNuance: Shape = RoundedCornerShape(topStart = 26.dp, topEnd = 8.dp, bottomEnd = 26.dp, bottomStart = 8.dp)
+
     /** Ikonrutan i ett tomt tillstånd – rundare än ett kort, för att den är större. */
     val iconTile: Shape = RoundedCornerShape(40.dp)
 }

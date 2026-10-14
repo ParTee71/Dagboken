@@ -12,6 +12,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
+import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.core.model.FeelingCatalog
 import se.partee71.dagboken.core.schema.DocumentRules.Check
 
 /**
@@ -62,6 +64,7 @@ class DocumentRulesTest {
     private fun nestedCheck(function: String, args: List<String>): Check = when (function) {
         "isSymptoms" -> Check.ListOf(DocumentRules.SYMPTOM, max = constant("maxSymptoms"))
         "isBoosts" -> Check.ListOf(DocumentRules.BOOST, max = constant("maxBoosts"))
+        "isFeelings" -> Check.PatternList(DocumentRules.FEELING_TOKEN.pattern, max = constant("maxFeelings"))
         "isSchedule" -> Check.Nested(DocumentRules.SCHEDULE)
         "isPeriod" -> Check.Nested(DocumentRules.PERIOD)
         "isTheme" -> Check.Nested(DocumentRules.THEME)
@@ -156,6 +159,16 @@ class DocumentRulesTest {
         assertEquals(constant("maxFields"), DocumentRules.MAX_FIELDS)
         assertEquals(constant("maxSymptoms"), DocumentRules.MAX_SYMPTOMS)
         assertEquals(constant("maxBoosts"), DocumentRules.MAX_BOOSTS)
+        assertEquals(constant("maxFeelings"), DocumentRules.MAX_FEELINGS)
+        assertEquals(FeelingCatalog.MAX_FEELINGS, DocumentRules.MAX_FEELINGS)
+        // Känslorna (DAT-14): hela listan prövas med FEELING_TOKEN-mönstret över join(' ') – listan som helhet, tak och typ först.
+        val feelings = functions.getValue("isFeelings")
+        assertTrue("l is list && l.size() <= maxFeelings()" in feelings)
+        assertTrue("(l.size() == 0 || l.join(' ')" in feelings, "den tomma listan för sig – ett tomt element är inte en tom lista")
+        val token = DocumentRules.FEELING_TOKEN.pattern.removePrefix("^").removeSuffix("$")
+        val joined = Regex("""l\.join\(' '\)\.matches\('([^']+)'\)""").find(feelings)!!.groupValues[1].replace("\\\\", "\\")
+        assertEquals("^$token( $token){0,${DocumentRules.MAX_FEELINGS - 1}}$", joined, "samma token-mönster som FEELING_TOKEN, högst MAX_FEELINGS element")
+        assertEquals("^(${FeelingCatalog.cores.joinToString("|")})(\\.[a-z]{1,${DocumentRules.MAX_FEELING_PART}}){0,2}$", DocumentRules.FEELING_TOKEN.pattern)
         // Elementkontrollen i rules går till l[RULES_CHECKED_ELEMENTS - 1] i båda listorna, nästlat steg för steg.
         for ((list, element) in listOf("isBoosts" to "isBoost", "isSymptoms" to "isSymptom")) {
             val body = functions.getValue(list)
@@ -223,6 +236,30 @@ class DocumentRulesTest {
         assertEquals(rulesList("sexes"), (DocumentRules.PROFILE.fields.getValue("sex") as Check.OneOf).values)
         val legacy = functions.getValue("isLegacy")
         assertTrue("nullOrBool(m.get('dynamicColor', null))" in legacy && "nullOrLong(m.get('sheetsConfig', null))" in legacy)
+    }
+
+    @Test
+    fun `känslor (DAT-14) - högst sex tokens core_nuance_detail med kärnan ur katalogen, delar 1-32 gemener - strängare än rules för mellanslag`() {
+        val screening = Samples.entry(CollectionNames.SCREENINGS).encoded()
+        fun violations(value: Any?) = DocumentRules.validate(CollectionNames.SCREENINGS, screening + ("feelings" to value))
+        assertEquals(emptyList(), violations(FeelingCatalog.cores), "sex kärnor")
+        assertEquals(emptyList(), violations(listOf("scared.anxious.tense", "calm.grateful", "glad")))
+        assertEquals(emptyList(), violations(emptyList<Any>()))
+        assertEquals(emptyList(), violations(null))
+        assertEquals(emptyList(), violations(listOf("glad.framtida.nytt", "sad." + "a".repeat(DocumentRules.MAX_FEELING_PART))), "okänd nyans och okänt ord med giltig form – som codecen bevarar dem")
+        assertEquals(listOf(DocumentRules.Violation("feelings", "för många element: 7 (högst 6)")), violations(List(7) { "glad" }))
+        assertEquals(listOf(DocumentRules.Violation("feelings[1]", "ogiltigt token (5 tecken)")), violations(listOf("glad", "bored")), "en nyans är ingen kärna; innehållet nämns inte")
+        for (bad in listOf("Glad", "", "glad.", ".glad", "glad..tense", "glad.a.b.c", "glad.nyans1", "glad.Anxious", "glad,calm", "glad." + "a".repeat(DocumentRules.MAX_FEELING_PART + 1), "glad calm")) {
+            assertEquals(listOf(DocumentRules.Violation("feelings[0]", "ogiltigt token (${bad.length} tecken)")), violations(listOf(bad)), bad)
+        }
+        assertEquals(listOf(DocumentRules.Violation("feelings[0]", "fel typ: Int (väntat text)")), violations(listOf(3)))
+        assertEquals(listOf(DocumentRules.Violation("feelings[0]", "fel typ: Boolean (väntat text)")), violations(listOf(true)))
+        assertEquals(listOf(DocumentRules.Violation("feelings[0]", "saknas")), violations(listOf(null)))
+        assertEquals(listOf(DocumentRules.Violation("feelings", "fel typ: String (väntat lista)")), violations("glad"))
+        // Mönstret är exakt formen codecen skriver (Feeling.token) för katalogens ord.
+        for (core in FeelingCatalog.cores) for (nuance in FeelingCatalog.nuances(core)) for (detail in FeelingCatalog.details(core, nuance)) {
+            assertTrue(DocumentRules.FEELING_TOKEN.matches(Feeling(core, nuance, detail).token), "$core.$nuance.$detail")
+        }
     }
 
     @Test

@@ -130,6 +130,19 @@ service cloud.firestore {
         7 || (isBoost(l[7]) && (n <= 8 || (isBoost(l[8]) && (n <= 9 || (isBoost(l[9])))))))))))))))))))));
     }
 
+    // Känslorna på en måendelogg (SCR-7, DAT-14): högst maxFeelings() texter `core[.nuance[.detail]]` – kärnan en av de
+    // sex i FeelingCatalog (:core), nyans och ord 1–32 gemener a–z (DocumentRules.FEELING_TOKEN, hålls lika av
+    // DocumentRulesTest). Katalogtillhörigheten kontrolleras inte: ett okänt token med giltig form bevaras av codecen,
+    // som en okänd form. Hela listan prövas med ett mönster över join(' ') – några få uttryck oavsett antal, medan
+    // objekt per element inte rymdes i måendeloggens uttrycksbudget (#318). Ett element som inte är text ger fel (nekad);
+    // ett element med mellanslag ('glad calm') ser ut som två och släpps igenom – DocumentRules nekar det. Den tomma
+    // listan prövas för sig, så att ett tomt element ('') inte ser ut som en tom lista.
+    function maxFeelings() { return 6; }
+    function isFeelings(l) {
+      return l is list && l.size() <= maxFeelings()
+        && (l.size() == 0 || l.join(' ').matches('^(glad|strong|calm|sad|angry|scared)(\\.[a-z]{1,32}){0,2}( (glad|strong|calm|sad|angry|scared)(\\.[a-z]{1,32}){0,2}){0,5}$'));
+    }
+
     // Receptets upprepning {repeat, days ISO 1–7, intervalDays} och period {start?, end?}.
     function isSchedule(m) {
       return m is map && (none(m, 'repeat') || m.repeat in repeats())
@@ -288,7 +301,8 @@ service cloud.firestore {
         && (!('energy' in w) || nullOrRange(d.get('energy', null), 0, 10))
         && (!('stress' in w) || nullOrRange(d.get('stress', null), 0, 10))
         && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms))
-        && (!('legacySomatic' in w) || nullOrMin(d.get('legacySomatic', null), 0));
+        && (!('legacySomatic' in w) || nullOrMin(d.get('legacySomatic', null), 0))
+        && (!('feelings' in w) || d.get('feelings', null) == null || isFeelings(d.feelings));
     }
 
     function validActivity(d) {
