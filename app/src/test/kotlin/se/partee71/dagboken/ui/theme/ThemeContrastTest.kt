@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.luminance
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.Test
+import se.partee71.dagboken.core.model.FeelingCatalog
 
 /** Varje färg som bär text klarar 4,5:1 mot sin bakgrund, i båda temana (skill `ui-style`, DSN-1, DSN-5). */
 class ThemeContrastTest {
@@ -107,6 +108,32 @@ class ThemeContrastTest {
     fun `diagrammen - ljust och mörkt tema`() {
         check("ljust", chartGraphics(AppColors.light, AppColors.lightExtended), GRAPHICS_MIN)
         check("mörkt", chartGraphics(AppColors.dark, AppColors.darkExtended), GRAPHICS_MIN)
+    }
+
+    /**
+     * Kärnkänslornas toner (SCR-8): ordet i innehållsfärgen på behållaren – och, när kärnan är vald, i
+     * behållarfärgen på innehållsfärgen (samma kvot) – klarar 4,5:1; en vald sektor i hjulet skiljer sig från
+     * kortet med 3:1 (WCAG 1.4.11). Varje kärna har en egen ton, och en okänd kärna får den dämpade.
+     */
+    private fun feelingPairs(extended: ExtendedColors) = FeelingCatalog.cores.associate { core ->
+        val tone = extended.feelingTones.forCore(core)
+        "känslan $core" to (tone.content to tone.container)
+    }
+
+    private fun feelingGraphics(extended: ExtendedColors) = FeelingCatalog.cores.associate { core ->
+        "vald sektor $core mot kortet" to (extended.feelingTones.forCore(core).content to extended.card)
+    }
+
+    @Test
+    fun `kärnkänslornas toner - ljust och mörkt tema`() {
+        for ((theme, extended) in listOf("ljust" to AppColors.lightExtended, "mörkt" to AppColors.darkExtended)) {
+            check(theme, feelingPairs(extended))
+            check(theme, feelingGraphics(extended), GRAPHICS_MIN)
+            val tones = FeelingCatalog.cores.map { extended.feelingTones.forCore(it) }
+            assertEquals(extended.feelingTones.all, tones, "$theme: hjulets ordning")
+            assertEquals(FeelingCatalog.cores.size, tones.toSet().size, "$theme: en egen ton per kärna")
+            assertEquals(extended.neutralTone, extended.feelingTones.forCore("okänd"), "$theme: okänd kärna")
+        }
     }
 
     @Test

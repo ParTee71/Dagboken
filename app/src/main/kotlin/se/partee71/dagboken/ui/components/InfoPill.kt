@@ -23,12 +23,14 @@ import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.IconSize
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.ToneColors
 
 /**
  * Etikett eller räknare i en pill, i en av sektionstonerna ([Tone]). [icon] står före texten och
  * [trailingIcon] efter den (t.ex. rullgardinens pil i `CompactDropdownButton`); med [onClick] är pillen
  * en knapp med minst 48 dp tryckyta (t.ex. synkindikatorn i [AppTopBar]), med [role] och [onClickLabel]
- * för TalkBack.
+ * för TalkBack. [colors] ger en ton utanför [Tone] – kärnkänslans ton på en vald känsla (`FeelingPicker`, SCR-7);
+ * standard färgerna för [tone].
  */
 @Composable
 fun InfoPill(
@@ -40,8 +42,8 @@ fun InfoPill(
     @DrawableRes trailingIcon: Int? = null,
     role: Role = Role.Button,
     onClickLabel: String? = null,
+    colors: ToneColors = AppColors.tone(tone),
 ) {
-    val colors = AppColors.tone(tone)
     val click = onClick?.let { Modifier.minimumInteractiveComponentSize().clip(AppShapes.pill).clickable(onClickLabel = onClickLabel, role = role, onClick = it) } ?: Modifier
     Row(
         modifier.then(click).background(colors.container, AppShapes.pill).padding(horizontal = Spacing.m, vertical = Spacing.xs),

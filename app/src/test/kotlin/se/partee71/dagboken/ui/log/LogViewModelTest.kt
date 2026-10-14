@@ -21,6 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.core.model.IllnessEpisode
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.OccasionReminder
@@ -36,6 +37,7 @@ import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
 import se.partee71.dagboken.data.repository.DefaultScreeningRepository
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
+import se.partee71.dagboken.ui.components.ScreeningStep
 import se.partee71.dagboken.ui.common.SelectedDay
 
 /**
@@ -145,17 +147,29 @@ class LogViewModelTest {
         vm.onEvent(LogEvent.LogOccasion(vm.picker.value!!.occasions[3]))
         runCurrent()
         vm.onEvent(LogEvent.ChangeEnergy(7))
+        vm.onEvent(LogEvent.ChangeFeelings(listOf(Feeling("calm", "grateful"), Feeling("scared"))))
         vm.onEvent(LogEvent.ChangeStress(2))
         vm.onEvent(LogEvent.SaveScreening)
         runCurrent()
         val saved = factory.screenings().getAll().getOrThrow().single()
         assertEquals(Triple(Occasion.BEDTIME, 7, 2), Triple(saved.occasion, saved.energy, saved.stress))
+        assertEquals(listOf(Feeling("calm", "grateful"), Feeling("scared")), saved.feelings, "känslorna i ordning (SCR-7)")
         assertTrue(vm.notice.value)
         assertTrue(vm.screening.value!!.closing.value)
         vm.onEvent(LogEvent.CloseScreening)
         vm.onEvent(LogEvent.NoticeShown)
         assertNull(vm.screening.value)
         assertFalse(vm.notice.value)
+    }
+
+    @Test
+    fun `Logga nu kan öppna arket på ett givet steg (SCR-7)`() = runTest(main.dispatcher) {
+        val vm = started()
+        vm.onEvent(LogEvent.LogScreening(Occasion.LUNCH, null, null, ScreeningStep.FEELINGS))
+        assertEquals(ScreeningSheetInfo(Occasion.LUNCH, null, ScreeningStep.FEELINGS), assertNotNull(vm.screening.value).context)
+        vm.onEvent(LogEvent.CloseScreening)
+        vm.onEvent(LogEvent.LogScreening(Occasion.LUNCH, null, null))
+        assertEquals(ScreeningStep.ENERGY, assertNotNull(vm.screening.value).context.initialStep, "standard: energin först")
     }
 
     @Test

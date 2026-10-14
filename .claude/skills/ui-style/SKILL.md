@@ -34,6 +34,7 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
 | Varning | terrakotta (`#B85C38` i mockupen, mörkare i koden för kontrast) | försenat, periodslut |
 | Text / dämpad | `#1C1A14` / `#6B655A` | brödtext / undertext och avbockat |
 | Energiskala | låg `#B5443A` · mitt `#C98A1B` · hög `#2F7D5B` | diagram, energichips, postkortets vänsteraccent (NFR-16) |
+| Kärnkänslor | Glad solgul · Stark lila · Lugn teal · Ledsen blågrå · Arg röd · Rädd terrakotta, en `ToneColors` var (`AppColors.extended.feelingTones.forCore`, okänd kärna = dämpad) | hjulet, känsloväljaren, känslopills och diagram (SCR-8); vald = fylld med innehållsfärgen; ordet står alltid med |
 
 - **Kontrast:** varje färg som bär text klarar **4,5:1** mot sin bakgrund (DSN-1) – räkna efter vid
   varje ny nyans, även i mörkt tema. Solgult bär alltid mörk text.
@@ -69,6 +70,8 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
 - **Luftigare än ReseApoteket:** mer avstånd mellan kort (`l`) än inuti dem (`m`); ett kort per
   ämne hellre än täta listor.
 - Tryckytor minst **48 dp** i båda riktningarna (NFR-14) – även knappar inuti en sammansatt kontroll.
+- **Känsloväljaren** har två egna former: navet är en halv skiva (`AppShapes.feelingHub`) och nyanserna blad
+  rundade i två motstående hörn (`AppShapes.feelingNuance`), som i prototypen (#318).
 - **Vald dag** i datumremsa och kalender är fylld teal i radens form (`AppShapes.row`), aldrig en cirkel.
 - **Nedtoning:** en enda, `INACTIVE_ALPHA` (0,55), för det som finns men inte räknas med, det som inte
   går att välja och en avstängd kontroll (även `ValueSlider`). M3:s 0,38 används inte: reglaget ritar

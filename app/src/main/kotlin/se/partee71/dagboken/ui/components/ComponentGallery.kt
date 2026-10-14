@@ -38,6 +38,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.TypeChoices
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.data.auth.AuthUser
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.SymptomScore
@@ -326,11 +327,21 @@ private fun Diary() {
     }
     Label("StepwiseScreeningForm")
     var energy by remember { mutableIntStateOf(6) }
+    var screeningFeelings by remember { mutableStateOf(emptyList<Feeling>()) }
     var stress by remember { mutableIntStateOf(4) }
     var screeningSymptoms by remember { mutableStateOf(emptyList<SymptomScore>()) }
     AppCard {
-        StepwiseScreeningForm(energy, { energy = it }, stress, { stress = it }, GALLERY_SYMPTOMS, screeningSymptoms, { screeningSymptoms = it }, onSave = {})
+        StepwiseScreeningForm(
+            energy, { energy = it }, screeningFeelings, { screeningFeelings = it }, stress, { stress = it },
+            GALLERY_SYMPTOMS, screeningSymptoms, { screeningSymptoms = it }, onSave = {},
+        )
     }
+    Label("FeelingWheel")
+    var wheel by remember { mutableStateOf(setOf("calm")) }
+    FeelingWheel(wheel, { core -> wheel = if (core in wheel) wheel - core else wheel + core })
+    Label("FeelingPicker")
+    var feelings by remember { mutableStateOf(GALLERY_FEELINGS) }
+    AppCard { FeelingPicker(feelings, { feelings = it }) }
 }
 
 @Composable
@@ -483,6 +494,9 @@ internal val GALLERY_SYMPTOMS = listOf(
     Option("yrsel", OptionKind.SYMPTOM, "Yrsel", sortOrder = 2),
     Option("ovrigt", OptionKind.SYMPTOM, "Övrigt", sortOrder = 3),
 )
+
+/** Påhittade valda känslor för galleriet och dess skärmdumpar – en på varje nivå (kärna, nyans, precisare ord). */
+internal val GALLERY_FEELINGS = listOf(Feeling("calm", "grateful"), Feeling("scared", "anxious", "tense"), Feeling("glad"))
 
 @Composable
 private fun Progress() {

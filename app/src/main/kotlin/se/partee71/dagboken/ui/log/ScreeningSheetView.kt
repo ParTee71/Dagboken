@@ -19,10 +19,10 @@ import se.partee71.dagboken.ui.components.StepwiseScreeningNavigation
 import se.partee71.dagboken.ui.components.rememberStepwiseScreeningState
 
 /**
- * Måendearket (HEM-5, HEM-8b, SCR-1, SCR-2): `StepwiseScreeningForm` i `AppBottomSheet` med tillfällets namn – och
+ * Måendearket (HEM-5, HEM-8b, SCR-1, SCR-2, SCR-7): `StepwiseScreeningForm` i `AppBottomSheet` med tillfällets namn – och
  * dagen när det inte är idag – som rubrik, tagen när arket öppnades ([ScreeningSheetInfo]), så att arket står sig
  * också när skärmen bakom laddar om. Symptomvalen följer [symptomOptions] medan arket är öppet – listans aktiva och
- * de arkiverade som loggen redan har; "Övrigt" får fritext. Osparade ändringar – eller en ny logg vars sparning
+ * de arkiverade som loggen redan har; "Övrigt" får fritext. Formuläret börjar på arkets steg ([ScreeningSheetInfo.initialStep]). Osparade ändringar – eller en ny logg vars sparning
  * misslyckats – frågar "Släng ändringar?" innan arket stängs, och medan det sparas går det inte att stänga
  * (`canDismiss` läser formulärets aktuella läge, NFR-10); ett skrivfel visas i arket. Sparat → arket döljs
  * animerat och stängs. Stegknapparna står i arkets fasta knapprad (NFR-21), så att de syns också med utfällda symptom. Ett enda ark för Idag, plusknappen och Dagbok ([LogSheets], händelserna till `LogViewModel`).
@@ -38,7 +38,7 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
     val name = info.occasion?.let { stringResource(it.label()) } ?: stringResource(R.string.log_mood)
     val title = info.date?.let { stringResource(R.string.today_screening_title_day_format, name, DateFormat.display(it)) } ?: name
     val choices = remember(symptomOptions, sheet.loaded) { symptomChoices(symptomOptions, sheet.loaded?.symptoms.orEmpty()) }
-    val steps = rememberStepwiseScreeningState(choices)
+    val steps = rememberStepwiseScreeningState(choices, info.initialStep)
     AppBottomSheet(
         title,
         onDismiss = { onEvent(LogEvent.CloseScreening) },
@@ -51,6 +51,8 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
         StepwiseScreeningForm(
             energy = edited.energy,
             onEnergyChange = { onEvent(LogEvent.ChangeEnergy(it)) },
+            feelings = edited.feelings,
+            onFeelingsChange = { onEvent(LogEvent.ChangeFeelings(it)) },
             stress = edited.stress,
             onStressChange = { onEvent(LogEvent.ChangeStress(it)) },
             symptomOptions = choices,

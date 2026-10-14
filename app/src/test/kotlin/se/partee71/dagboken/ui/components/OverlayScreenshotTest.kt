@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,10 +69,9 @@ class OverlayScreenshotTest {
     /** Måendearket på symptomsteget med alla symptom utfällda: knappraden står kvar i botten (NFR-21). */
     @Test
     fun `AppBottomSheet - steg med utfällda symptom`() = rule.captureScreenLightAndDark("AppBottomSheet_steg_symptom") {
-        val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS)
-        LaunchedEffect(steps) { steps.pager.scrollToPage(2) }
+        val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS, ScreeningStep.SYMPTOMS)
         AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepwiseScreeningNavigation(steps, {}) }) {
-            StepwiseScreeningForm(6, {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, otherOptionId = "ovrigt", state = steps, navigation = false)
+            StepwiseScreeningForm(6, {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, otherOptionId = "ovrigt", state = steps, navigation = false)
         }
     }
 

@@ -50,6 +50,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.RobolectricTestRunner
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.SymptomScore
@@ -291,33 +292,51 @@ class DiaryComponentsTest {
     )
 
     @Test
-    fun `mående i steg - energi, stress och symptom, Spara på sista steget`() {
+    fun `mående i steg - energi, känslor, stress och symptom, Spara på sista steget`() {
         var saved = 0
         var energy by mutableStateOf(5)
+        var feelings by mutableStateOf(emptyList<Feeling>())
         show {
-            StepwiseScreeningForm(energy, { energy = it }, 3, {}, symptoms, emptyList(), {}, onSave = { saved++ })
+            StepwiseScreeningForm(energy, { energy = it }, feelings, { feelings = it }, 3, {}, symptoms, emptyList(), {}, onSave = { saved++ })
         }
-        rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
+        rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
         rule.onNodeWithContentDescription("Energi").assert(state("5, Medel"))
         rule.onNodeWithText("Föregående").assertDoesNotExist()
         rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Steg 2 av 3").assertIsDisplayed()
+        rule.onNodeWithText("Steg 2 av 4").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Lugn").performClick()
+        rule.onNodeWithContentDescription("Tacksam").performClick()
+        assertEquals(listOf(Feeling("calm", "grateful")), feelings)
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Steg 3 av 4").assertIsDisplayed()
         rule.onNodeWithContentDescription("Stress").assert(state("3, Lätt"))
         rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Steg 3 av 3").assertIsDisplayed()
+        rule.onNodeWithText("Steg 4 av 4").assertIsDisplayed()
         rule.onNodeWithText("Huvudvärk").assertIsDisplayed()
         rule.onNodeWithText("Spara").performClick()
         assertEquals(1, saved)
         rule.onNodeWithText("Föregående").performClick()
-        rule.onNodeWithText("Steg 2 av 3").assertIsDisplayed()
+        rule.onNodeWithText("Steg 3 av 4").assertIsDisplayed()
     }
 
     @Test
-    fun `mående i steg utan symptomalternativ har två steg`() {
-        show { StepwiseScreeningForm(5, {}, 3, {}, emptyList(), emptyList(), {}, onSave = {}) }
-        rule.onNodeWithText("Steg 1 av 2").assertIsDisplayed()
+    fun `mående i steg utan symptomalternativ har tre steg, och inget känsloval går vidare`() {
+        show { StepwiseScreeningForm(5, {}, emptyList(), {}, 3, {}, emptyList(), emptyList(), {}, onSave = {}) }
+        rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
         rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Steg 3 av 3").assertIsDisplayed()
         rule.onNodeWithText("Spara").assertIsDisplayed()
+    }
+
+    @Test
+    fun `mående i steg börjar på sitt startsteg (SCR-7)`() {
+        show {
+            val steps = rememberStepwiseScreeningState(symptoms, ScreeningStep.FEELINGS)
+            StepwiseScreeningForm(5, {}, emptyList(), {}, 3, {}, symptoms, emptyList(), {}, onSave = {}, state = steps)
+        }
+        rule.onNodeWithText("Steg 2 av 4").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Glad").assertIsDisplayed()
     }
 
     @Test
@@ -429,13 +448,14 @@ class DiaryComponentsTest {
     @Test
     fun `mående i steg står kvar på sitt steg när symptomalternativen laddas sent`() {
         var options by mutableStateOf(emptyList<Option>())
-        show { StepwiseScreeningForm(5, {}, 3, {}, options, emptyList(), {}, onSave = {}) }
+        show { StepwiseScreeningForm(5, {}, emptyList(), {}, 3, {}, options, emptyList(), {}, onSave = {}) }
         rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Steg 2 av 2").assertIsDisplayed()
-        options = symptoms
-        rule.onNodeWithText("Steg 2 av 3").assertIsDisplayed()
         rule.onNodeWithText("Nästa").performClick()
         rule.onNodeWithText("Steg 3 av 3").assertIsDisplayed()
+        options = symptoms
+        rule.onNodeWithText("Steg 3 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Steg 4 av 4").assertIsDisplayed()
     }
 
     @Test
