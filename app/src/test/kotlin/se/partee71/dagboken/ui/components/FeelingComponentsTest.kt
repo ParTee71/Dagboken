@@ -98,9 +98,12 @@ class FeelingComponentsTest {
         picker()
         rule.onNodeWithText("Börja i mitten. Du kan välja flera, eller inget.").assertIsDisplayed()
         rule.onNodeWithContentDescription("Rädd").performClick()
+        assertEquals(listOf(Feeling("scared")), selected, "ett tryck i hjulet väljer kärnan direkt – första nivån räcker")
+        rule.onNodeWithContentDescription("Rädd").assert(chosen).assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Role))
         rule.onNodeWithText("Mer precist:").assertDoesNotExist()
         rule.onNodeWithContentDescription("Orolig").assert(button).performClick()
-        assertEquals(listOf(Feeling("scared", "anxious")), selected)
+        assertEquals(listOf(Feeling("scared", "anxious")), selected, "nyansen ersätter kärnan på samma plats")
+        rule.onNodeWithContentDescription("Rädd").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
         rule.onNodeWithContentDescription("Orolig").assert(chosen)
         rule.onNodeWithText("Mer precist:").assertIsDisplayed()
         rule.onNodeWithText("Spänd").performClick()
@@ -108,16 +111,32 @@ class FeelingComponentsTest {
         rule.onNodeWithText("Rädd › Orolig › Spänd").assertIsDisplayed()
         rule.onNodeWithText("Spänd").performClick()
         assertEquals(listOf(Feeling("scared", "anxious")), selected, "ett nytt tryck på ordet går tillbaka till nyansen")
-        rule.onNodeWithContentDescription("Rädd").performClick()
-        assertEquals(listOf(Feeling("scared", "anxious"), Feeling("scared")), selected, "navet väljer bara kärnan")
+        rule.onNodeWithContentDescription("Orolig").performClick()
+        assertEquals(listOf(Feeling("scared")), selected, "ett tryck på den aktiva nyansen går tillbaka till kärnan ensam")
         rule.onNodeWithContentDescription("Rädd").assert(chosen)
         rule.onNodeWithText("Mer precist:").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Osäker").performClick()
         rule.onNodeWithContentDescription("Orolig").performClick()
-        assertEquals(listOf(Feeling("scared", "anxious"), Feeling("scared")), selected, "vald men inte aktiv: blir aktiv, tas inte bort")
-        rule.onNodeWithText("Mer precist:").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Orolig").performClick()
-        assertEquals(listOf(Feeling("scared")), selected, "ett tryck på den aktiva nyansen tar bort den")
+        assertEquals(listOf(Feeling("scared", "insecure"), Feeling("scared", "anxious")), selected, "en andra nyans läggs sist")
+        rule.onNodeWithContentDescription("Osäker").performClick()
+        assertEquals(listOf(Feeling("scared", "insecure"), Feeling("scared", "anxious")), selected, "vald men inte aktiv: blir aktiv, tas inte bort")
+        rule.onNodeWithContentDescription("Osäker").performClick()
+        assertEquals(listOf(Feeling("scared", "anxious")), selected, "tas bort när kärnan redan står kvar i ett annat val")
         rule.onNodeWithText("Mer precist:").assertDoesNotExist()
+    }
+
+    @Test
+    fun `väljaren - ett nytt tryck på en vald kärna lägger inte till en till`() {
+        selected = listOf(Feeling("calm", "grateful"))
+        picker()
+        rule.onNodeWithContentDescription("Lugn").performClick()
+        assertEquals(listOf(Feeling("calm", "grateful")), selected)
+        rule.onNodeWithContentDescription("Lugn").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
+        rule.onNodeWithText("Tillbaka till hjulet").performClick()
+        rule.onNodeWithContentDescription("Glad").performClick()
+        rule.onNodeWithText("Tillbaka till hjulet").performClick()
+        rule.onNodeWithContentDescription("Glad").assert(chosen).performClick()
+        assertEquals(listOf(Feeling("calm", "grateful"), Feeling("glad")), selected)
     }
 
     @Test
@@ -177,19 +196,21 @@ class FeelingComponentsTest {
         picker(max = 2)
         rule.onNodeWithText("Högst 2 känslor per logg.").assertIsDisplayed()
         rule.onNodeWithContentDescription("Rädd").performClick()
-        rule.onNodeWithContentDescription("Rädd").assertIsNotEnabled()
+        assertEquals(2, selected.size, "vid taket väljs ingen ny kärna")
+        rule.onNodeWithContentDescription("Rädd").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
         rule.onNodeWithContentDescription("Orolig").assertIsNotEnabled().performClick()
         assertEquals(2, selected.size)
         rule.onNodeWithText("Tillbaka till hjulet").performClick()
         rule.onNodeWithContentDescription("Glad").performClick()
         rule.onNodeWithContentDescription("Upprymd").assertIsEnabled().performClick()
         assertEquals(listOf(Feeling("glad", "excited"), Feeling("calm", "grateful")), selected, "kärnan ensam förfinas, även vid taket")
-        rule.onNodeWithContentDescription("Glad").assertIsNotEnabled()
         rule.onNodeWithText("Tillbaka till hjulet").performClick()
         rule.onNodeWithContentDescription("Lugn").performClick()
         rule.onNodeWithContentDescription("Tacksam").assertIsEnabled().performClick()
-        assertEquals(listOf(Feeling("glad", "excited")), selected, "ett val går alltid att ta bort")
+        assertEquals(listOf(Feeling("glad", "excited"), Feeling("calm")), selected, "nyansen går tillbaka till kärnan även vid taket")
         rule.onNodeWithContentDescription("Kärleksfull").assertIsEnabled()
+        rule.onNodeWithText("Lugn").performClick()
+        assertEquals(listOf(Feeling("glad", "excited")), selected, "ett val går alltid att ta bort via sin pill")
     }
 
     @Test
@@ -221,11 +242,11 @@ class FeelingComponentsTest {
         }) { Sheet { FeelingPicker(selected, { selected = it }) } }
     }
 
-    /** Stark har Respekterad; kärnan vald ensam (ringen i navet). */
+    /** Stark har Respekterad; kärnan vald ensam (ringen i navet) direkt ur hjulet. */
     @Test
     @Config(qualifiers = "w360dp-h800dp-xxhdpi")
     fun `FeelingPicker - kärnan vald på 360 dp`() {
-        selected = listOf(Feeling("strong"), Feeling("sad", "tired", "exhausted"))
+        selected = listOf(Feeling("sad", "tired", "exhausted"))
         var opened = false
         rule.captureLightAndDark("FeelingPicker_karnan_vald_360dp", settle = {
             waitForIdle()

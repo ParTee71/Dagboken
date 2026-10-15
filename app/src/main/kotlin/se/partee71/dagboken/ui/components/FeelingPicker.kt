@@ -44,11 +44,13 @@ import se.partee71.dagboken.ui.theme.ToneColors
 /**
  * Känslosteget (SCR-7, variant B2 i #318): rubriken "Vad känner du just nu?" med hjälptext, [FeelingWheel] som ingång
  * och de valda känslorna som pills i kärnans ton under ("Lugn › Tacksam", `feelingsLabel`) – tryck på en pill tar bort
- * den. Tryck på en kärna visar den som nav överst (tryck väljer bara kärnan) och dess sex nyanser som liggande knappar
- * i två spalter; den aktiva valda nyansen visar "Mer precist:" med sina två precisare ord som [AppFilterChip] – när en
- * kärna öppnas är det den första valda nyansen under den. Ett precisare ord eller en nyans ersätter det grövre valet
- * på samma plats i listan. Tryck på en vald nyans som inte är aktiv gör den aktiv; tryck på den aktiva tar bort den,
- * och ett nytt tryck på ett valt precisare ord går tillbaka till nyansen. "Tillbaka till hjulet" behåller valen.
+ * den. Tryck på en kärna i hjulet väljer den direkt – man får stanna på första nivån ("Lugn") – och visar den som nav
+ * överst med dess sex nyanser som liggande knappar i två spalter; den aktiva valda nyansen visar "Mer precist:" med
+ * sina två precisare ord som [AppFilterChip] – när en kärna öppnas är det den första valda nyansen under den. Ett
+ * precisare ord eller en nyans ersätter det grövre valet på samma plats i listan. Tryck på en vald nyans som inte är
+ * aktiv gör den aktiv; tryck på den aktiva går tillbaka till kärnan ensam (tas bort om kärnan redan står kvar i ett
+ * annat val), och ett nytt tryck på ett valt precisare ord går tillbaka till nyansen. Navet visar kärnan och har en
+ * ring när den är vald ensam; ett val tas bort via sin pill. "Tillbaka till hjulet" behåller valen.
  * Högst [maxSelected] val: därefter ignoreras nya val och knapparna som skulle lägga till är inaktiva. Vilken kärna
  * som är öppen och vilken nyans som visar sina ord är komponentens eget tillstånd; valen ägs av anroparen
  * ([selected], [onSelectedChange]).
@@ -71,6 +73,8 @@ fun FeelingPicker(
                 openCore = opened
                 // En redan vald nyans visar sina ord direkt, så att den kan förfinas på sin plats.
                 activeNuance = selected.firstOrNull { it.core == opened && it.nuance != null }?.nuance
+                // Kärnan väljs direkt (första nivån räcker); en nyans förfinar den sedan på samma plats.
+                FeelingSelection.selectCore(selected, opened, full)?.let(onSelectedChange)
             })
         } else {
             CoreView(core, selected, full, activeNuance?.takeIf { n -> selected.any { it.core == core && it.nuance == n } }) { change ->
@@ -98,10 +102,7 @@ private class Change(val selected: List<Feeling>, val active: String?)
 private fun CoreView(core: String, selected: List<Feeling>, full: Boolean, active: String?, onChange: (Change) -> Unit) {
     val tone = AppColors.extended.feelingTones.forCore(core)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.m)) {
-        val coreOnly = Feeling(core) in selected
-        Hub(core, tone, coreOnly, enabled = coreOnly || !full) {
-            onChange(Change(FeelingSelection.toggleCore(selected, core, full), null))
-        }
+        Hub(core, tone, chosen = Feeling(core) in selected)
         FeelingCatalog.nuances(core).chunked(COLUMNS).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
                 row.forEach { nuance ->
@@ -120,18 +121,16 @@ private fun CoreView(core: String, selected: List<Feeling>, full: Boolean, activ
     }
 }
 
-/** Kärnan överst som en halv skiva i sin ton; vald (bara kärnan) har en ring innanför kanten. */
+/** Kärnan överst som en halv skiva i sin ton – bara visning; vald (bara kärnan) har en ring innanför kanten. */
 @Composable
-private fun Hub(core: String, tone: ToneColors, chosen: Boolean, enabled: Boolean, onClick: () -> Unit) {
+private fun Hub(core: String, tone: ToneColors, chosen: Boolean) {
     val name = stringResource(feelingName(core))
     val selectedState = stringResource(R.string.feeling_selected_state)
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Box(
             Modifier.size(HUB_WIDTH, HUB_HEIGHT)
-                .inactive(!enabled)
                 .clip(AppShapes.feelingHub)
                 .background(tone.content)
-                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
                 .semantics {
                     contentDescription = name
                     if (chosen) stateDescription = selectedState
@@ -214,16 +213,20 @@ internal object FeelingSelection {
     /** Om en nyans under [core] kan väljas: det finns plats, eller kärnan står ensam och kan förfinas. */
     fun canAdd(selected: List<Feeling>, core: String, full: Boolean) = !full || Feeling(core) in selected
 
-    /** Bara kärnan: av om den är vald, annars sist i listan. */
-    fun toggleCore(selected: List<Feeling>, core: String, full: Boolean): List<Feeling> = when {
-        Feeling(core) in selected -> selected - Feeling(core)
-        full -> selected
-        else -> selected + Feeling(core)
-    }
+    /** Kärnan ensam sist i listan när inget val har kärnan och det finns plats; annars `null` (ingen ändring). */
+    fun selectCore(selected: List<Feeling>, core: String, full: Boolean): List<Feeling>? =
+        if (full || selected.any { it.core == core }) null else selected + Feeling(core)
 
-    /** En nyans: av (med sitt precisare ord) om den är vald, annars i stället för kärnan ensam eller sist i listan. */
+    /**
+     * En nyans: vald (med sitt precisare ord) går tillbaka till kärnan ensam på samma plats – eller bort, om kärnan
+     * redan står kvar i ett annat val; annars i stället för kärnan ensam eller sist i listan.
+     */
     fun toggleNuance(selected: List<Feeling>, core: String, nuance: String, full: Boolean): List<Feeling> {
-        if (selected.any { it.core == core && it.nuance == nuance }) return selected.filterNot { it.core == core && it.nuance == nuance }
+        val chosen = selected.indexOfFirst { it.core == core && it.nuance == nuance }
+        if (chosen >= 0) {
+            val coreElsewhere = selected.withIndex().any { (i, f) -> i != chosen && f.core == core }
+            return if (coreElsewhere) selected.filterIndexed { i, _ -> i != chosen } else selected.replace(chosen, Feeling(core))
+        }
         val coreOnly = selected.indexOf(Feeling(core))
         return when {
             coreOnly >= 0 -> selected.replace(coreOnly, Feeling(core, nuance))
