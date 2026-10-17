@@ -361,7 +361,7 @@ Fel mappas en gång i `data/common/DataError`. Ingen Room i 4.0 utom den läsand
 | Java/JVM | 17 | rotens `build.gradle.kts` (`subprojects`) |
 | Testtimeout per task | 4 min | rotens `build.gradle.kts` |
 | cpdCheck-tröskel | 80 tokens, `*Preview.kt` och den ordagranna 3.x-kopian `core/src/test/…/legacy/threex/` (kompatibilitetstestet, OMB-8) undantas | rotens `build.gradle.kts` |
-| Version | `version.properties` (versionCode, versionName) | höjs bara vid release |
+| Version | `version.properties` (versionCode, versionName) | höjs i funktions-PR:en |
 | google-services | `app/google-services.json` (incheckad); `src/authStub` när den saknas | `app/build.gradle.kts` |
 | Signering | `local.properties` eller env `SIGNING_*` | `app/build.gradle.kts` |
 

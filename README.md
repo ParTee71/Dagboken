@@ -246,7 +246,7 @@ en 3.x-backup kan fortfarande importeras i appen (BCK-14).
 
 ## Versionshistorik
 
-Versionen höjs bara vid release (skill [`release`](.claude/skills/release/SKILL.md)); den står i `version.properties`.
+Versionen höjs i funktions-PR:en; releasen görs via skill [`release`](.claude/skills/release/SKILL.md)); den står i `version.properties`.
 
 | Version | Innehåll |
 |---|---|

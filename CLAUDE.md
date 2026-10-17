@@ -46,7 +46,7 @@ får nästa lediga ID, ändrat behåller sitt ID, borttaget stryks med `~~…~~ 
 och det som ändras i ombyggnaden märks *(4.0)*. Gemensamma beteenden beskrivs en gång
 (NFR-15–18, NAV) och refereras. Kravlistan är ombyggnadens paritetschecklista (OMB-6): varje
 PR bockar av sina krav-ID:n. README följer med när funktionsomfånget ändras; `versionName`
-höjs bara vid release (skill **release**).
+höjs i funktions-PR:en (se PR-flöde); själva releasen görs via skill **release**.
 → Skill: **requirements-kravlista**.
 
 ### 4. Enhetligt och utan dubbelkod
@@ -155,6 +155,14 @@ Utvecklingen sker mest från telefonen, och en release för att "se hur det blev
   inte via antagande. Först när den är mergad startas arbetsbranchen om från `origin/master`.
 - PR:er går mot `master`. Kör testerna lokalt först (skill **testing-strategy**), pusha sedan –
   GitHub Actions bekräftar.
+- **Förbered releasen i funktions-PR:en.** Varje PR som ändrar appens beteende höjer
+  versionen i samma ändring, så att ingen separat release-PR behövs. Välj semver efter
+  ändringen: **major** = brytande/borttagen funktion eller backupformat som äldre appar inte
+  läser, **minor** = ny funktion, **patch** = fix, chore, refactor. Höj `versionCode` med 1,
+  uppdatera `version.properties` och versionshistoriken i README, och skriv versionen i PR-beskrivningen. Ren dokument-,
+  test- eller CI-ändring utan effekt i appen höjer inte. Är versionen redan höjd sedan senaste
+  tagg, höj bara om denna PR är allvarligare. Själva releasen (tagg, bygge, publicering) körs
+  fortfarande bara på uttrycklig begäran (skill **release**) och kräver då ingen ny PR.
 - **Prenumerera automatiskt** på PR-aktivitet (`subscribe_pr_activity`) så fort en PR
   skapas, utan att fråga. Bevaka tills den är mergad eller stängd: fixa CI-fel, hantera
   granskningskommentarer, schemalägg check-in. Vid rött CI: låt agenten `ci-doktor`
