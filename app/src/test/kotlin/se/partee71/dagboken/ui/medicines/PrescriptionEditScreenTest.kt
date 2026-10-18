@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import kotlin.test.assertEquals
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -147,7 +148,7 @@ class PrescriptionEditScreenTest {
 
     private fun capture(name: String, value: Prescription, period: PeriodChoice, scrollTo: String? = null, isNew: Boolean = false, errors: Map<String, Int> = emptyMap()) =
         rule.captureLightAndDark(name, settle = scrollTo?.let(::scrolledTo) ?: { waitForIdle() }) {
-            PrescriptionEditScreen(isNew, EditorUiState(value, errors = errors, isValid = errors.isEmpty(), isDirty = true), period, true, emptyFlow(), {}, {})
+            PrescriptionEditScreen(isNew, EditorUiState(value, errors = errors.toImmutableMap(), isValid = errors.isEmpty(), isDirty = true), period, true, emptyFlow(), {}, {})
         }
 
     @Test

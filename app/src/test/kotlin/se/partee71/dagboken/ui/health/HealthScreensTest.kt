@@ -27,6 +27,9 @@ import androidx.compose.ui.unit.dp
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.Test
@@ -218,12 +221,12 @@ class HealthScreensTest {
 
     @Test
     fun `nattens varningsrader står under sömnkvaliteten, bara när natten har dem (HLS-10)`() {
-        var flags by mutableStateOf(SleepFlag.entries.toList())
+        var flags by mutableStateOf(SleepFlag.entries.toImmutableList())
         show { HealthTodaySection(HealthSamples.clock.copy(sleepFlags = flags)) }
         rule.onNodeWithText("Låg syremättnad under natten – ta upp det med vården").assertIsDisplayed()
         rule.onNodeWithText("Sovpulsen ligger över din vanliga nivå").assertIsDisplayed()
         rule.onNode(hasClickAction()).assertDoesNotExist()
-        flags = emptyList()
+        flags = persistentListOf()
         rule.onNodeWithText("Sovpulsen ligger över din vanliga nivå").assertDoesNotExist()
         rule.onNodeWithText("Låg syremättnad under natten – ta upp det med vården").assertDoesNotExist()
     }
@@ -266,13 +269,13 @@ object HealthSamples {
         HealthStatus.AVAILABLE,
         today,
         night,
-        daysEnding(today),
-        steps = listOf(6_100f, 9_870f, 4_020f, 8_400f, 6_900f, 5_200f, 7_842f),
-        restingHeartRate = listOf(59f, 60f, 61f, 57f, 57f, 59f, 58f),
+        daysEnding(today).toImmutableList(),
+        steps = persistentListOf(6_100f, 9_870f, 4_020f, 8_400f, 6_900f, 5_200f, 7_842f),
+        restingHeartRate = persistentListOf(59f, 60f, 61f, 57f, 57f, 59f, 58f),
     )
 
-    val clock = ClockUiState(HealthStatus.AVAILABLE, missing = emptySet(), day = night, sleepScore = 78)
+    val clock = ClockUiState(HealthStatus.AVAILABLE, missing = persistentSetOf(), day = night, sleepScore = 78)
 
     /** En natt med båda varningsraderna (HLS-10): sovpuls över baslinjen och låg syremättnad. */
-    val clockWithFlags = clock.copy(sleepScore = 71, sleepFlags = SleepFlag.entries.toList())
+    val clockWithFlags = clock.copy(sleepScore = 71, sleepFlags = SleepFlag.entries.toImmutableList())
 }

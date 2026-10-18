@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import kotlin.test.assertEquals
 import kotlin.time.Instant
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -143,7 +144,7 @@ class LogScreensTest {
         rule.setContent {
             DagbokenTheme {
                 ActivityEditScreen(
-                    EntryForm(false, EditorUiState(tooLong, errors = mapOf(ActivityField.NOTE to R.string.field_not_savable, "minutes" to R.string.field_not_savable), isValid = false), emptyFlow(), {}),
+                    EntryForm(false, EditorUiState(tooLong, errors = persistentMapOf(ActivityField.NOTE to R.string.field_not_savable, "minutes" to R.string.field_not_savable), isValid = false), emptyFlow(), {}),
                     {},
                     activityTypes,
                 )
@@ -233,7 +234,7 @@ class LogScreensTest {
 
     @Test
     fun `skärmdump - händelse utan typ efter sparförsök`() = rule.captureLightAndDark("Log_handelse_utan_typ") {
-        EventEditScreen(EntryForm(true, EditorUiState(migraine.copy(optionId = ""), errors = mapOf(EventField.TYPE to R.string.entry_type_missing), isValid = false), emptyFlow(), {}), {}, eventTypes)
+        EventEditScreen(EntryForm(true, EditorUiState(migraine.copy(optionId = ""), errors = persistentMapOf(EventField.TYPE to R.string.entry_type_missing), isValid = false), emptyFlow(), {}), {}, eventTypes)
     }
 
     @Test

@@ -15,6 +15,8 @@ import androidx.compose.ui.test.performScrollToNode
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.Test
@@ -74,7 +76,7 @@ class TrendsScreenTest {
     private val closed = TrendsUiState()
 
     private fun TrendsUiState.with(card: TrendCard, controls: CardControls, data: CardData?) =
-        copy(cards = cards + (card to TrendCardState(controls, data)))
+        copy(cards = (cards + (card to TrendCardState(controls, data))).toImmutableMap())
 
     private val energyOpen = closed.with(TrendCard.ENERGY_DAY, CardControls(expanded = true, range = TrendRange.FOURTEEN_DAYS), CardData.EnergyDay(days, energy))
     private val eventsOpen = closed.with(TrendCard.EVENTS_ILLNESS, CardControls(expanded = true, range = TrendRange.FOURTEEN_DAYS), CardData.EventsIllness(days, eventsTrend))
@@ -92,7 +94,7 @@ class TrendsScreenTest {
 
     /** Hälsa idag som i mockupen (canvas avsnitt 14 · Klocka-Kopplad): träning och syremättnad saknar åtkomst. */
     private val clockMissingTwo = HealthSamples.clock.copy(
-        missing = setOf(OptionalHealthMetric.EXERCISE, OptionalHealthMetric.OXYGEN_SATURATION),
+        missing = persistentSetOf(OptionalHealthMetric.EXERCISE, OptionalHealthMetric.OXYGEN_SATURATION),
         day = HealthSamples.night.copy(exerciseSessions = 0, exerciseDuration = null, oxygenSaturationAvg = null),
     )
     /** Fjorton nätter: galleriets sju och sju till med en natt utan stadier (TRD-16). */

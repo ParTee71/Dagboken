@@ -1,11 +1,14 @@
 package se.partee71.dagboken.ui.trends
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlin.time.Clock
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -200,15 +203,17 @@ sealed interface CardData {
 }
 
 /** Ett korts läge: det användaren styr och – när kortet lästs – datan, som står kvar när det fälls ihop. */
+@Immutable
 data class TrendCardState(val controls: CardControls, val data: CardData? = null)
 
 /**
  * Trenders grupper och kort. Klockans läge visas inte härifrån: Klocka-sektionens status och Hälsa idag har en enda
  * källa, `ClockViewModel` (TRD-20); korten visas oavsett läge, stängda.
  */
+@Immutable
 data class TrendsUiState(
     val group: TrendGroup = TrendGroup.MOOD,
-    val cards: Map<TrendCard, TrendCardState> = TrendCard.entries.associateWith { TrendCardState(CardControls(selected = it.defaultSelection)) },
+    val cards: ImmutableMap<TrendCard, TrendCardState> = TrendCard.entries.associateWith { TrendCardState(CardControls(selected = it.defaultSelection)) }.toImmutableMap(),
 )
 
 sealed interface TrendsEvent {
@@ -421,7 +426,7 @@ class TrendsViewModel @Inject constructor(
     private val data: Flow<Map<TrendCard, CardData?>> = combine(TrendCard.entries.map { card -> cardData(card).map { card to it } }) { it.toMap() }
 
     val state: StateFlow<TrendsUiState> = combine(group, controls, data) { group, controls, data ->
-        TrendsUiState(group, TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) })
+        TrendsUiState(group, TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) }.toImmutableMap())
     }.stateIn(viewModelScope, sharing, TrendsUiState())
 
     fun onEvent(event: TrendsEvent) {

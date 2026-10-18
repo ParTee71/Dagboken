@@ -1,11 +1,15 @@
 package se.partee71.dagboken.ui.health
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlin.time.Clock
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,13 +36,14 @@ import se.partee71.dagboken.ui.common.SelectedDay
  * [steps]/[restingHeartRate] veckans trendrader, `null` när raden utelämnas (färre än två dagar med värde, eller
  * klockan inte kopplad).
  */
+@Immutable
 data class HealthTodayUiState(
     val status: HealthStatus,
     val date: LocalDate,
     val day: DailyHealth? = null,
-    val weekDays: List<LocalDate> = emptyList(),
-    val steps: List<Float?>? = null,
-    val restingHeartRate: List<Float?>? = null,
+    val weekDays: ImmutableList<LocalDate> = persistentListOf(),
+    val steps: ImmutableList<Float?>? = null,
+    val restingHeartRate: ImmutableList<Float?>? = null,
 )
 
 /**
@@ -82,9 +87,9 @@ class HealthTodayViewModel @Inject constructor(
                     status = status,
                     date = date,
                     day = day,
-                    weekDays = week.days,
-                    steps = week.history?.let { trendOrNull(it.series { day -> day.steps }) },
-                    restingHeartRate = week.history?.let { trendOrNull(it.series { day -> day.restingHeartRate }) },
+                    weekDays = week.days.toImmutableList(),
+                    steps = week.history?.let { trendOrNull(it.series { day -> day.steps })?.toImmutableList() },
+                    restingHeartRate = week.history?.let { trendOrNull(it.series { day -> day.restingHeartRate })?.toImmutableList() },
                 )
             }
             else -> date.map { HealthTodayUiState(status, it) }

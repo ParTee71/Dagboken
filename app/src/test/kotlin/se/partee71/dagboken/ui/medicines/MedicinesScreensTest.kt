@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.medicines
 
+import kotlinx.collections.immutable.toImmutableList
 import se.partee71.dagboken.ui.components.MEDICINE_UNITS
 import se.partee71.dagboken.ui.components.UnitChoice
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -77,7 +78,7 @@ class MedicinesScreensTest {
     fun `receptkortet visar dagens dos med höjningen, perioden och slutet, och reglaget och menyn växlar (REC-5, REC-12, REC-13)`() {
         val events = mutableListOf<MedicinesEvent>()
         val opened = mutableListOf<String?>()
-        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(items), endings, today, null, { events += it }, { opened += it }, {}, {}) } }
+        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(items.toImmutableList()), endings, today, null, { events += it }, { opened += it }, {}, {}) } }
 
         rule.onNodeWithText("Idag 75 mg (+25)").assertIsDisplayed()
         rule.onNodeWithText("Höjning 29 sep – 12 okt").assertIsDisplayed()
@@ -102,7 +103,7 @@ class MedicinesScreensTest {
     fun `doshöjningarna under chevronen har samma total som formuläret, och ingen när dosen inte är ett tal (REC-9, REC-12)`() {
         val tablets = sertralin.copy(id = "t", name = "Tablett", dose = "1 tablett", note = null)
         val items = listOf(MedicineItem.Recipe(sertralin), MedicineItem.Recipe(tablets))
-        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(items), emptyList(), today, null, {}, {}, {}, {}) } }
+        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(items.toImmutableList()), emptyList(), today, null, {}, {}, {}, {}) } }
         repeat(2) { rule.onAllNodesWithContentDescription("Fäll ut")[0].performClick() }
         rule.onNodeWithText("29 sep – 12 okt: +25 mg (totalt 75 mg)").assertIsDisplayed()
         rule.onNodeWithText("29 sep – 12 okt: +25 mg").assertIsDisplayed()
@@ -113,7 +114,7 @@ class MedicinesScreensTest {
         val events = mutableListOf<MedicinesEvent>()
         val opened = mutableListOf<String?>()
         val prn = listOf(alvedon, imigran, loratadin).map { MedicineItem.AsNeeded(it) }
-        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(prn), emptyList(), today, null, { events += it }, {}, { opened += it }, {}) } }
+        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(prn.toImmutableList()), emptyList(), today, null, { events += it }, {}, { opened += it }, {}) } }
         rule.onNodeWithText("Minst 4 h mellan · högst 8 per dag").assertIsDisplayed()
         rule.onNodeWithText("Högst 2 per dag").assertIsDisplayed()
         rule.onNodeWithText("Ingen gräns").assertIsDisplayed()
@@ -129,7 +130,7 @@ class MedicinesScreensTest {
         val events = mutableListOf<MedicinesEvent>()
         rule.setContent {
             DagbokenTheme {
-                MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }), emptyList(), today, null, { events += it }, {}, {}, { extended += it })
+                MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }.toImmutableList()), emptyList(), today, null, { events += it }, {}, {}, { extended += it })
             }
         }
         rule.onNodeWithText("Avslutade recept").assertIsDisplayed()
@@ -183,7 +184,7 @@ class MedicinesScreensTest {
 
     @Test
     fun `skärmdump - listan`() = rule.captureLightAndDark("Medicines_lista") {
-        MedicinesScreen(ListUiState.Content(items + MedicineItem.Recipe(atarax)), endings + PeriodEnding.BoostEnds("s", "Sertralin", LocalDate(2026, 10, 7), "50", "mg"), today, null, {}, {}, {}, {})
+        MedicinesScreen(ListUiState.Content((items + MedicineItem.Recipe(atarax)).toImmutableList()), endings + PeriodEnding.BoostEnds("s", "Sertralin", LocalDate(2026, 10, 7), "50", "mg"), today, null, {}, {}, {}, {})
     }
 
     @Test
@@ -200,7 +201,7 @@ class MedicinesScreensTest {
                 }
             },
         ) {
-            MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }), emptyList(), today, null, {}, {}, {}, {})
+            MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }.toImmutableList()), emptyList(), today, null, {}, {}, {}, {})
         }
     }
 
@@ -239,6 +240,6 @@ class MedicinesScreensTest {
             onAllNodesWithContentDescription("Fler val")[1].clickWithoutRipple()
         },
     ) {
-        MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }), emptyList(), today, null, {}, {}, {}, {})
+        MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }.toImmutableList()), emptyList(), today, null, {}, {}, {}, {})
     }
 }

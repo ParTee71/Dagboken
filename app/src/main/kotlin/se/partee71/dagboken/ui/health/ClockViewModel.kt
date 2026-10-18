@@ -1,11 +1,17 @@
 package se.partee71.dagboken.ui.health
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlin.time.Clock
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -42,12 +48,13 @@ import se.partee71.dagboken.data.repository.SettingsRepository
  * HLS-10). [needsBirthYear]: profilen
  * lästes och saknar födelseår – då uppmaningen i stället för en poäng; kunde profilen inte läsas visas bara "—".
  */
+@Immutable
 data class ClockUiState(
     val status: HealthStatus,
-    val missing: Set<OptionalHealthMetric>? = null,
+    val missing: ImmutableSet<OptionalHealthMetric>? = null,
     val day: DailyHealth? = null,
     val sleepScore: Int? = null,
-    val sleepFlags: List<SleepFlag> = emptyList(),
+    val sleepFlags: ImmutableList<SleepFlag> = persistentListOf(),
     val needsBirthYear: Boolean = false,
 )
 
@@ -90,11 +97,11 @@ class ClockViewModel @Inject constructor(
         val age = profile?.let { ageFromBirthYear(it.birthYear, date) }
         ClockUiState(
             status = HealthStatus.AVAILABLE,
-            missing = missing,
+            missing = missing?.toImmutableSet(),
             day = read?.day,
             sleepScore = read?.let { profile?.let { p -> sleepQualityOn(it.nights, date, age, p.sex)?.score } },
             // Varningsraderna beror inte på åldern – de visas också utan födelseår och utan läst profil (HLS-10).
-            sleepFlags = read?.let { sleepFlagsOn(it.nights, date) }.orEmpty(),
+            sleepFlags = read?.let { sleepFlagsOn(it.nights, date) }.orEmpty().toImmutableList(),
             needsBirthYear = profile != null && age == null,
         )
     }

@@ -16,6 +16,9 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import kotlin.test.assertEquals
 import kotlin.time.Instant
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -90,7 +93,7 @@ class DiaryScreenTest {
     )
 
     private val listRows = diaryDays(entries, today).flatMap { day -> day.entries.map(::row) }
-    private val controls = DiaryControls(today, datesWithEntries = setOf(today, yesterday, saturday))
+    private val controls = DiaryControls(today, datesWithEntries = persistentSetOf(today, yesterday, saturday))
     private val calendar = controls.copy(view = DiaryView.CALENDAR, selected = saturday)
 
     @Test
@@ -101,7 +104,7 @@ class DiaryScreenTest {
 
     @Test
     fun `dagarna har Idag, Igår och datum, och korten klockslaget först och värdet som pill (HIST-1, HIST-7, HIST-9)`() {
-        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(listRows), controls, null, {}, {}) } }
+        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(listRows.toImmutableList()), controls, null, {}, {}) } }
         rule.onNodeWithText("Idag · tisdag 6 oktober").assertIsDisplayed()
         rule.onNodeWithText("08:15 · Stress 3").assertIsDisplayed()
         rule.onNodeWithText("Energi 7").assertIsDisplayed()
@@ -123,7 +126,7 @@ class DiaryScreenTest {
     fun `filterchipsen, vyväxlaren och Visa äldre skickar sina händelser (HIST-2, HIST-6, HIST-8)`() {
         val events = mutableListOf<DiaryEvent>()
         val filtered = controls.copy(filter = DiaryFilter(setOf(DiaryType.EVENT)))
-        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(listRows), filtered, null, { events += it }, {}) } }
+        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(listRows.toImmutableList()), filtered, null, { events += it }, {}) } }
         rule.onNodeWithText("Alla").assertIsNotSelected().performClick()
         rule.onNodeWithText("Händelser").assertIsSelected()
         rule.onNodeWithText("Doser").assertIsNotSelected().performClick()
@@ -139,7 +142,7 @@ class DiaryScreenTest {
 
     @Test
     fun `när alla typer visas är bara Alla markerat`() {
-        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(listRows), controls, null, {}, {}) } }
+        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(listRows.toImmutableList()), controls, null, {}, {}) } }
         rule.onNodeWithText("Alla").assertIsSelected()
         listOf("Mående", "Aktiviteter", "Doser", "Händelser", "Sjukdom").forEach { rule.onNodeWithText(it).assertIsNotSelected() }
     }
@@ -148,7 +151,7 @@ class DiaryScreenTest {
     fun `tryck öppnar posten, och Radera bekräftas innan den raderas (HIST-3, HIST-5, NFR-15)`() {
         val events = mutableListOf<DiaryEvent>()
         val opened = mutableListOf<DiaryEntry>()
-        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(listRows), controls, null, { events += it }, { opened += it }) } }
+        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(listRows.toImmutableList()), controls, null, { events += it }, { opened += it }) } }
         rule.onNodeWithText("Levaxin 100 µg").performClick()
         assertEquals(listOf("dose:d1"), opened.map { it.id })
 
@@ -165,7 +168,7 @@ class DiaryScreenTest {
     fun `episodens start har Redigera men inte Radera, och en episod öppnas (HIST-5, HIST-9, SJ-9)`() {
         val opened = mutableListOf<DiaryEntry>()
         val start = listOf(row(entries.single { it is DiaryEntry.EpisodeStart }))
-        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(start), controls, null, {}, { opened += it }) } }
+        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(start.toImmutableList()), controls, null, {}, { opened += it }) } }
         rule.onNodeWithContentDescription("Fler val").performClick()
         rule.onNodeWithText("Redigera").assertIsDisplayed()
         rule.onNodeWithText("Radera").assertDoesNotExist()
@@ -177,7 +180,7 @@ class DiaryScreenTest {
     fun `kalendern – framtida dagar går inte att välja, och en dag utan poster säger det (HIST-6)`() {
         val events = mutableListOf<DiaryEvent>()
         val empty = listOf(DiaryRow.EmptyDay(LocalDate(2026, 10, 4), dayLabel(LocalDate(2026, 10, 4), today)))
-        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(empty), calendar.copy(selected = LocalDate(2026, 10, 4)), null, { events += it }, {}) } }
+        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(empty.toImmutableList()), calendar.copy(selected = LocalDate(2026, 10, 4)), null, { events += it }, {}) } }
         rule.onNodeWithText("Oktober 2026").assertIsDisplayed()
         rule.onNodeWithText("Inga poster den här dagen").assertIsDisplayed()
         rule.onNodeWithContentDescription("ons 7 okt 2026").assertIsNotEnabled()
@@ -192,7 +195,7 @@ class DiaryScreenTest {
         val recept = Dose("r1", yesterday, Slot.EVENING, "Atarax", "25", "mg", status = DoseStatus.TAKEN, prescriptionId = "atarax", takenAt = at(yesterday, 21, 5))
         val rows = diaryEntries(sources.copy(doses = listOf(recept), screenings = emptyList(), activities = emptyList(), events = emptyList()), zone)
             .filter { it is DiaryEntry.CheckIn || it is DiaryEntry.TakenDose }.map(::row)
-        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(rows), controls, null, {}, {}) } }
+        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(rows.toImmutableList()), controls, null, {}, {}) } }
         rule.onAllNodesWithContentDescription("Fler val")[0].performClick()
         rule.onNodeWithText("Radera").performClick()
         rule.onNodeWithText("Dosen Atarax 25 mg, 5 okt kl. 21:05 markeras som överhoppad och försvinner ur Dagbok. Receptet och anteckningen står kvar.").assertIsDisplayed()
@@ -215,18 +218,18 @@ class DiaryScreenTest {
 
     @Test
     fun `skärmdump - listan`() = rule.captureLightAndDark("Diary_lista") {
-        DiaryScreen(ListUiState.Content(listRows), controls, null, {}, {})
+        DiaryScreen(ListUiState.Content(listRows.toImmutableList()), controls, null, {}, {})
     }
 
     @Test
     fun `skärmdump - kalendern med vald dag`() = rule.captureLightAndDark("Diary_kalender") {
-        DiaryScreen(ListUiState.Content(entries.on(saturday).map(::row)), calendar, null, {}, {})
+        DiaryScreen(ListUiState.Content(entries.on(saturday).map(::row).toImmutableList()), calendar, null, {}, {})
     }
 
     @Test
     fun `skärmdump - kalenderdag utan poster`() = rule.captureLightAndDark("Diary_kalender_tom_dag") {
         val day = LocalDate(2026, 10, 4)
-        DiaryScreen(ListUiState.Content(listOf(DiaryRow.EmptyDay(day, dayLabel(day, today)))), calendar.copy(selected = day), null, {}, {})
+        DiaryScreen(ListUiState.Content(persistentListOf(DiaryRow.EmptyDay(day, dayLabel(day, today)))), calendar.copy(selected = day), null, {}, {})
     }
 
     @Test
@@ -248,6 +251,6 @@ class DiaryScreenTest {
             onNodeWithText("Radera").clickWithoutRipple()
         },
     ) {
-        DiaryScreen(ListUiState.Content(listRows), controls, null, {}, {})
+        DiaryScreen(ListUiState.Content(listRows.toImmutableList()), controls, null, {}, {})
     }
 }

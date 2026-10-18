@@ -90,8 +90,8 @@ class HealthViewModelsTest {
             assertEquals(7_842L, state.day?.steps)
             assertEquals(58L, state.day?.restingHeartRate)
             assertEquals(daysEnding(today), state.weekDays)
-            assertEquals(listOf(null, null, null, 4_020f, null, 9_870f, 7_842f), state.steps)
-            assertEquals(listOf(null, 59f, null, 61f, null, 57f, 58f), state.restingHeartRate)
+            assertEquals<List<Float?>?>(listOf(null, null, null, 4_020f, null, 9_870f, 7_842f), state.steps)
+            assertEquals<List<Float?>?>(listOf(null, 59f, null, 61f, null, 57f, 58f), state.restingHeartRate)
         }
         assertEquals<Set<ClosedRange<LocalDate>>>(setOf(today..today, day(6)..today), health.reads.toSet())
         assertEquals(2, health.reads.size, "dagen och veckan läses en gång var")
@@ -205,7 +205,7 @@ class HealthViewModelsTest {
             assertEquals(trend, state.sleepScore?.toFloat(), "samma poäng som Trenders sömnkvalitet för samma natt")
             assertNotNull(state.sleepScore)
             assertFalse(state.needsBirthYear)
-            assertEquals(emptySet(), state.missing)
+            assertEquals<Set<OptionalHealthMetric>?>(emptySet(), state.missing)
         }
         assertEquals<Set<ClosedRange<LocalDate>>>(setOf(today..today, day(REGULARITY_WINDOW_NIGHTS - 1)..today), health.reads.toSet())
     }
@@ -263,7 +263,7 @@ class HealthViewModelsTest {
         permissions.missingOptional.value = setOf(OptionalHealthMetric.OXYGEN_SATURATION, OptionalHealthMetric.EXERCISE)
         val vm = clockViewModel()
         vm.state.test {
-            assertEquals(setOf(OptionalHealthMetric.EXERCISE, OptionalHealthMetric.OXYGEN_SATURATION), expectMostRecentItem()?.missing)
+            assertEquals<Set<OptionalHealthMetric>?>(setOf(OptionalHealthMetric.EXERCISE, OptionalHealthMetric.OXYGEN_SATURATION), expectMostRecentItem()?.missing)
             permissions.missingOptional.value = null
             assertNull(expectMostRecentItem()?.missing)
             vm.onEvent(HealthEvent.GrantAccess)
@@ -283,7 +283,7 @@ class HealthViewModelsTest {
             permissions.missingOptional.value = emptySet()
             val state = assertNotNull(expectMostRecentItem())
             assertEquals(97.0, state.day?.oxygenSaturationAvg)
-            assertEquals(emptySet(), state.missing)
+            assertEquals<Set<OptionalHealthMetric>?>(emptySet(), state.missing)
         }
     }
 

@@ -2,6 +2,7 @@ package se.partee71.dagboken.ui.common
 
 import app.cash.turbine.test
 import kotlin.test.assertEquals
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -15,7 +16,7 @@ class AsListUiStateTest {
         flowOf(emptyList<String>(), listOf("a")).asListUiState().test {
             assertEquals(ListUiState.Loading, awaitItem())
             assertEquals(ListUiState.Empty, awaitItem())
-            assertEquals(ListUiState.Content(listOf("a")), awaitItem())
+            assertEquals(ListUiState.Content(persistentListOf("a")), awaitItem())
             awaitComplete()
         }
     }

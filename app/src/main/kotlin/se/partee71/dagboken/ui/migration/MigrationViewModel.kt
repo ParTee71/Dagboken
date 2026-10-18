@@ -1,6 +1,7 @@
 package se.partee71.dagboken.ui.migration
 
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -148,6 +149,7 @@ sealed interface MigrationStage {
 }
 
 /** [failure] = bekräftelsen misslyckades – visas som meddelande, knappen kan tryckas igen. */
+@Immutable
 data class MigrationUiState(val stage: MigrationStage = MigrationStage.Checking, val failure: Failure? = null)
 
 sealed interface MigrationEvent {

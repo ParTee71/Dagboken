@@ -1,6 +1,10 @@
 package se.partee71.dagboken.ui.common
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Immutable
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,9 +21,10 @@ fun interface Validator<T> {
 }
 
 /** Det som `EntityEditScreen` visar. [errors] innehåller bara de fel som ska synas. */
+@Immutable
 data class EditorUiState<T>(
     val value: T,
-    val errors: Map<String, Int> = emptyMap(),
+    val errors: ImmutableMap<String, Int> = persistentMapOf(),
     val isValid: Boolean = true,
     val isDirty: Boolean = false,
     val loading: Boolean = false,
@@ -185,6 +190,6 @@ class EditorState<T>(
     private fun compute(value: T, loading: Boolean, saving: Boolean = false): EditorUiState<T> {
         val all = validator.validate(value)
         val visible = if (attempted) all else all.filterKeys { it in touched }
-        return EditorUiState(value, visible, all.isEmpty(), value != original, loading, saving, saveUnchanged = saveUnchanged)
+        return EditorUiState(value, visible.toImmutableMap(), all.isEmpty(), value != original, loading, saving, saveUnchanged = saveUnchanged)
     }
 }

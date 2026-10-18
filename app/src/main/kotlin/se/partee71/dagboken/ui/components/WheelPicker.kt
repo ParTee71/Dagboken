@@ -100,8 +100,8 @@ fun WheelPicker(
         // Markeringen ligger under texten, mitt i.
         Box(Modifier.fillMaxWidth().height(ITEM_HEIGHT).background(AppColors.extended.rowTint, AppShapes.smallTile))
         LazyColumn(state = listState, flingBehavior = snap, horizontalAlignment = Alignment.CenterHorizontally) {
-            items(side) { Box(Modifier.height(ITEM_HEIGHT)) }
-            itemsIndexed(items) { index, item ->
+            items(side, contentType = { "spacer" }) { Box(Modifier.height(ITEM_HEIGHT)) }
+            itemsIndexed(items, contentType = { _, _ -> "value" }) { index, item ->
                 val distance = abs(index - selected)
                 Box(Modifier.height(ITEM_HEIGHT).alpha(if (distance == 0) 1f else if (distance == 1) NEAR_ALPHA else FAR_ALPHA), contentAlignment = Alignment.Center) {
                     Text(
@@ -112,7 +112,7 @@ fun WheelPicker(
                     )
                 }
             }
-            items(side) { Box(Modifier.height(ITEM_HEIGHT)) }
+            items(side, contentType = { "spacer" }) { Box(Modifier.height(ITEM_HEIGHT)) }
         }
     }
 }

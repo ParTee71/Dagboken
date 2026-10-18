@@ -1,5 +1,8 @@
 package se.partee71.dagboken.ui.common
 
+import androidx.compose.runtime.Immutable
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -15,12 +18,13 @@ import se.partee71.dagboken.core.model.Archivable
 import se.partee71.dagboken.data.common.DataError
 
 /** Tillståndet för varje listskärm – samma fyra lägen överallt (`EntityListScreen`). */
+@Immutable
 sealed interface ListUiState<out T> {
     data object Loading : ListUiState<Nothing>
 
     data object Empty : ListUiState<Nothing>
 
-    data class Content<T>(val items: List<T>) : ListUiState<T>
+    data class Content<T>(val items: ImmutableList<T>) : ListUiState<T>
 
     data class Error(val error: DataError) : ListUiState<Nothing>
 }
@@ -40,7 +44,7 @@ fun <T> Flow<List<T>>.asListUiState(): Flow<ListUiState<T>> =
         .catch { emit(ListUiState.Error(it as? DataError ?: DataError.Unknown)) }
 
 /** En läst lista som tillstånd: tom → [ListUiState.Empty], annars innehåll – för en skärm som själv håller laddning och fel (Dagbok). */
-fun <T> List<T>.toListUiState(): ListUiState<T> = if (isEmpty()) ListUiState.Empty else ListUiState.Content(this)
+fun <T> List<T>.toListUiState(): ListUiState<T> = if (isEmpty()) ListUiState.Empty else ListUiState.Content(toImmutableList())
 
 /** Händelser som alla listskärmar har gemensamt; skärmens egna händelser läggs i en egen typ. */
 sealed interface ListEvent {
@@ -73,6 +77,7 @@ class ListLoader<T>(source: Flow<List<T>>, scope: CoroutineScope) {
 }
 
 /** Tillståndet för en detaljskärm (`EntityDetailScreen`): laddning, fel eller innehåll. */
+@Immutable
 sealed interface DetailUiState<out T> {
     data object Loading : DetailUiState<Nothing>
 

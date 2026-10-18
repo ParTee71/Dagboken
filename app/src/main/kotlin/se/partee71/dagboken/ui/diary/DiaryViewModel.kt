@@ -1,11 +1,15 @@
 package se.partee71.dagboken.ui.diary
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlin.time.Clock
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -89,13 +93,14 @@ sealed interface DiaryRow {
  * [selected], dagarna med poster för filtret ([datesWithEntries], kalenderns punkter) och hur många år som
  * lästs ([years], HIST-8).
  */
+@Immutable
 data class DiaryControls(
     val today: LocalDate,
     val filter: DiaryFilter = DiaryFilter(),
     val view: DiaryView = DiaryView.LIST,
     val month: LocalDate = LocalDate(today.year, today.month, 1),
     val selected: LocalDate = today,
-    val datesWithEntries: Set<LocalDate> = emptySet(),
+    val datesWithEntries: ImmutableSet<LocalDate> = persistentSetOf(),
     val years: Int = 1,
     /** Ett äldre år läses ("Visa äldre" visar laddning, HIST-8). */
     val loadingOlder: Boolean = false,
@@ -276,7 +281,7 @@ class DiaryViewModel @Inject constructor(
             view = shown.view,
             month = shown.month ?: LocalDate(day.year, day.month, 1),
             selected = day,
-            datesWithEntries = loaded?.entries?.dates().orEmpty(),
+            datesWithEntries = loaded?.entries?.dates().orEmpty().toImmutableSet(),
             years = shown.years,
             loadingOlder = loaded != null && loaded.window.years < shown.years,
         )
