@@ -21,6 +21,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentWithReceiverOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -96,6 +97,8 @@ fun AppBottomSheet(
         Unit
     }
     LaunchedEffect(hide) { if (hide) hideThenDismiss() }
+    // Flyttbart, så att innehållets tillstånd följer med om knappraden kommer eller går.
+    val body = remember(content) { movableContentWithReceiverOf(content) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier,
@@ -109,7 +112,7 @@ fun AppBottomSheet(
                 verticalArrangement = Arrangement.spacedBy(Spacing.m)
             ) {
                 Text(title, style = AppTypography.sectionTitle, modifier = Modifier.semantics { heading() })
-                content()
+                body()
                 error?.let { FieldError(stringResource(it.message)) }
             }
         } else {
@@ -120,7 +123,7 @@ fun AppBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(Spacing.m)
                 ) {
                     Text(title, style = AppTypography.sectionTitle, modifier = Modifier.semantics { heading() })
-                    content()
+                    body()
                 }
                 Column(
                     Modifier.fillMaxWidth().padding(start = Spacing.xl, end = Spacing.xl, bottom = Spacing.xl),

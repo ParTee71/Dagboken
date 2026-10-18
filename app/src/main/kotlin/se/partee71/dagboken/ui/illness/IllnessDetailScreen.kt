@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -53,7 +54,8 @@ fun IllnessDetailRoute(id: String, onBack: () -> Unit, onEdit: () -> Unit, onChe
     val prompt by viewModel.prompt.collectAsStateWithLifecycle()
     val failure by viewModel.failure.collectAsStateWithLifecycle()
     val closed by viewModel.closed.collectAsStateWithLifecycle()
-    LaunchedEffect(closed) { if (closed) onBack() }
+    val back by rememberUpdatedState(onBack)
+    LaunchedEffect(closed) { if (closed) back() }
     IllnessDetailScreen(state, prompt, failure, viewModel::onEvent, onBack, onEdit, onCheckin)
 }
 

@@ -48,10 +48,6 @@ fun SwipeToHide(
     enabled: Boolean = true,
     content: @Composable (Modifier) -> Unit
 ) {
-    if (!enabled) {
-        content(Modifier)
-        return
-    }
     val hide by rememberUpdatedState(onHide)
     val state = rememberSwipeToDismissBoxState()
     val tone = AppColors.extended.primaryTone
@@ -59,17 +55,22 @@ fun SwipeToHide(
     SwipeToDismissBox(
         state = state,
         backgroundContent = {
-            Row(
-                Modifier.fillMaxSize().clip(AppShapes.row).background(tone.container).padding(horizontal = Spacing.l),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(painterResource(R.drawable.ic_archive), contentDescription = null, tint = tone.content)
-                Text(label, style = AppTypography.button, color = tone.content)
+            // Utan svep syns aldrig bakgrunden, inte heller genom en nedtonad rad.
+            if (enabled) {
+                Row(
+                    Modifier.fillMaxSize().clip(AppShapes.row).background(tone.container).padding(horizontal = Spacing.l),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(painterResource(R.drawable.ic_archive), contentDescription = null, tint = tone.content)
+                    Text(label, style = AppTypography.button, color = tone.content)
+                }
             }
         },
         modifier = modifier,
         enableDismissFromStartToEnd = false,
+        // Samma gren med och utan svep, så att radens tillstånd överlever när den arkiveras.
+        gesturesEnabled = enabled,
         onDismiss = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
                 hide()
@@ -81,16 +82,21 @@ fun SwipeToHide(
             }
         }
     ) {
-        // Ogenomskinlig, så att bakgrunden bara syns där raden svepts undan.
-        Box(Modifier.clip(AppShapes.row).background(AppColors.extended.card)) {
+        // Ogenomskinlig, så att bakgrunden bara syns där raden svepts undan. En arkiverad rad
+        // (utan svep) är nedtonad och ska synas mot listans bakgrund, inte mot ett kort.
+        Box(if (enabled) Modifier.clip(AppShapes.row).background(AppColors.extended.card) else Modifier) {
             content(
-                Modifier.semantics {
-                    customActions = listOf(
-                        CustomAccessibilityAction(label) {
-                            hide()
-                            true
-                        }
-                    )
+                if (enabled) {
+                    Modifier.semantics {
+                        customActions = listOf(
+                            CustomAccessibilityAction(label) {
+                                hide()
+                                true
+                            }
+                        )
+                    }
+                } else {
+                    Modifier
                 }
             )
         }
