@@ -51,7 +51,7 @@ Funktionerna i 3.27.0 beskrivs i versionshistoriken nedan och i kravlistan på b
 
 ## Kom igång (Android Studio)
 
-1. Android Studio (senaste stabila) med JDK 17 och Android SDK-plattform 37 (`compileSdk`, TP-1).
+1. Android Studio (senaste stabila) med JDK 21 och Android SDK-plattform 37 (`compileSdk`, TP-1).
 2. Klona repot och öppna det. `app/google-services.json` (Firebase-projektet `dagboken-711d2`) är
    incheckad – inloggning fungerar för nycklar vars SHA-1 är registrerad (se [Firebase-setup](#firebase-setup)).
 3. Byggkommandon: [CLAUDE.md → Bygg & test](CLAUDE.md#bygg--test); alla testkommandon: skill [`testing-strategy`](.claude/skills/testing-strategy/SKILL.md).

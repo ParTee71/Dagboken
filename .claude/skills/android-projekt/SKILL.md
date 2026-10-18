@@ -23,7 +23,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 - Bakgrund: WorkManager (Hilt-worker) bara där något måste köras utan öppen app (TP-7); ingen backup-worker – Firestore synkar själv, veckobackupen körs i GitHub Actions (`tools/db`, BCK-12) och JSON-export finns i appen (BCK-13). 3.x Drive-backup är pensionerad; Drive läses bara av legacy-importen (BCK-14). Påminnelser via AlarmManager (TP-8, skill `notifications-alarms`).
 - Nav-argument tas redan med assisted injection (`@HiltViewModel(assistedFactory = …)`), som pluginen säger.
 - Bara `di/` nämner `Dispatchers.`; scopet `[dispatchers]` i `ui-forbidden.txt` kontrolleras av `UiConsistencyTest` och hooken. Enhetstester ger `UnconfinedTestDispatcher()` eller `StandardTestDispatcher(testScheduler)`; androidTest får använda `Dispatchers.IO` direkt.
-- Java 17 utan toolchain (samma som CI). Tester JVM först (JUnit, Turbine, Robolectric, Roborazzi), fakes byggda på `FakeCollection<T>` (skill `testing-strategy`).
+- Koden byggs för Java 17 utan toolchain; JDK 21 kör bygget lokalt och i CI, eftersom Robolectric kräver 21 för SDK 36. Tester JVM först (JUnit, Turbine, Robolectric, Roborazzi), fakes byggda på `FakeCollection<T>` (skill `testing-strategy`).
 
 ## Coroutines (android:kotlin-coroutines)
 
