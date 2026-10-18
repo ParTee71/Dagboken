@@ -67,7 +67,7 @@ beslutskort eller en kort fråga i tråden).
 **Delegera på rätt nivå** (ARKITEKTUR.md → Agenter): portar, komponenter, skärmar och CI-filer
 till agenten `byggare`; datamodell, codecs, konverteraren, rules och migrering till agenten
 `arkitekt`; tester på tre eller fler nivåer till `testskrivare`. Huvudsessionen orkestrerar och
-granskar och byter aldrig modell själv. Går ett steg fel två gånger i rad flyttas det upp en nivå.
+granskar; modellen väljs efter uppgiften ([`.claude/README.md`](../../README.md) → Modellval). Går ett steg fel två gånger i rad flyttas det upp en nivå.
 
 **Kör agenten som issuet anger.** Läs issuets avsnitt **Agent · modell · effort** och starta
 varje del med den agenten, modellen (`model`) och effort (`effort`) – det är det uttryckliga

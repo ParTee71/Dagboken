@@ -10,11 +10,28 @@ som finns i `.claude/agents/` och `.claude/skills/`.
 | Agent | När |
 |---|---|
 | `byggare` | Portar, komponenter, skärmar på ramarna och CI-filer enligt en klar plan (Opus · medium). |
-| `arkitekt` | Datamodell, codecs, 3.x-konverteraren, rules, migrering och arkitekturval (Fable/Opus · high). |
+| `arkitekt` | Datamodell, codecs, 3.x-konverteraren, rules, migrering och arkitekturval (Opus · high). |
 | `granskare` | Före varje PR: granskar diffen mot de fem reglerna och mockup-regeln, rapporterar i en tabell. |
 | `ci-doktor` | Vid rött CI: läser loggar, skärmdumpsdiffar och CPD-rapporter, föreslår fix. |
 | `testskrivare` | Skriver/utökar tester och fixturer med de delade testhjälparna – när tre eller fler testnivåer berörs. |
 | `db-inspektor` | Svarar på frågor om faktisk data i Firestore, endast läsning (Haiku · low). |
+
+## Modellval
+
+Modellen väljs efter uppgiftens komplexitet – för sessionen och för varje agent. **Opus är
+standard.** Frontmatterns modell är agentens standard; huvudsessionen anger `model` när
+agenten startas, efter uppgiften. Sessionen byter själv via `/model`, eller låter en billigare
+agent ta rutindelarna.
+
+| Uppgift | Modell |
+|---|---|
+| Uppslag och läsning – loggar, data, sökningar | Haiku |
+| Små avgränsade ändringar – en fil, en komponent, ett test | Sonnet |
+| Flera lager, datamodell, migrering, backup och granskning | Opus |
+| Väldigt komplexa issues – anges då i issuets **Agent · modell · effort** | Fable |
+
+Skills `refine-issue` och `implement-issue` sätter och följer **Agent · modell · effort** per
+issue utifrån den här tabellen.
 
 ## Skills (`.claude/skills/`)
 

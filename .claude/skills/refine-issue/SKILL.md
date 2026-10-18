@@ -146,7 +146,7 @@ För **buggar**: byt Föreslaget upplägg mot **Steg för att återskapa**, **F�
 
 **Agent · modell · effort är obligatoriskt.** Varje issue anger vilken agent (`byggare`,
 `arkitekt`, `testskrivare` …), vilken modell och vilken effort som ska köra varje del. Utgå från
-etapptabellen och agenttabellen i `ARKITEKTUR.md`; data, rules och migrering minst `arkitekt` ·
+etapptabellen och agenttabellen i `ARKITEKTUR.md` och Modellval i [`.claude/README.md`](../../README.md); data, rules och migrering minst `arkitekt` ·
 high. Ett issue utan avsnittet är inte färdigförfinat.
 
 Titel: `<område>: <sammanfattning i imperativ>`. Visa hela utkastet och **vänta på

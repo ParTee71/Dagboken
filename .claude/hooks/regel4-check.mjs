@@ -7,7 +7,7 @@
 // PostToolUse: exit 0 = inget att anmärka (tyst), exit 2 = träff; stderr går till Claude.
 // Stop: alltid exit 0; vid träff `{"decision":"block"}` på stdout så att Claude rättar först.
 
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -209,6 +209,10 @@ function afterEdit(input) {
   return 2;
 }
 
+/** Detta repos rot: hooken ligger i <rot>/.claude/hooks/. */
+const OWN_ROOT = realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'));
+const HOOK_REL = '.claude/hooks/regel4-check.mjs';
+
 /**
  * Repona som Stop kontrollerar: projektroten om den är ett repo, annars varje repo direkt under
  * den (en session med flera repon under en gemensam katalog), annars repot där skriptet ligger.
@@ -221,8 +225,35 @@ export function stopRoots(input) {
     ? readdirSync(base, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => path.join(base, d.name)).filter(isRepo)
     : [];
   if (children.length > 0) return children;
-  const own = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-  return isRepo(own) ? [own] : [];
+  return isRepo(OWN_ROOT) ? [OWN_ROOT] : [];
+}
+
+/**
+ * Träffar i ett repo. Det egna repot kontrolleras här; ett annat repo med egen hook får
+ * kontrollera sig självt med sina egna scope, och ett repo utan hook lämnas därhän.
+ * Returnerar { hits } eller { error } (trasig undantagsfil eller grannrepots egen träff).
+ */
+function repoHits(root) {
+  if (realpathSync(root) === OWN_ROOT) {
+    try {
+      const rules = loadRules(root);
+      return { hits: changedFiles(root).flatMap((rel) => checkFile(root, rel, rules)) };
+    } catch (e) {
+      return { error: `Regel 4: ${e.message}` };
+    }
+  }
+  const hook = path.join(root, HOOK_REL);
+  if (!existsSync(hook)) return { hits: [] };
+  const r = spawnSync('node', [hook, '--stop'], {
+    input: '{}', env: { ...process.env, CLAUDE_PROJECT_DIR: root }, encoding: 'utf8', timeout: 15000,
+  });
+  if (!r.stdout?.trim()) return { hits: [] };
+  try {
+    const out = JSON.parse(r.stdout);
+    return out.decision === 'block' ? { error: out.reason } : { hits: [] };
+  } catch {
+    return { hits: [] };
+  }
 }
 
 /**
@@ -232,20 +263,16 @@ export function stopRoots(input) {
  */
 function beforeStop(input) {
   if (input?.stop_hook_active) return 0;
-  const hits = [];
   const roots = stopRoots(input);
+  const reasons = [];
   for (const root of roots) {
     // Med flera repon visas reponamnet före sökvägen, så att träffarna går att skilja åt.
     const prefix = roots.length > 1 ? `${path.basename(root)}/` : '';
-    try {
-      const rules = loadRules(root);
-      hits.push(...changedFiles(root).flatMap((rel) => checkFile(root, rel, rules)).map((h) => ({ ...h, rel: prefix + h.rel })));
-    } catch (e) {
-      process.stdout.write(JSON.stringify({ decision: 'block', reason: `Regel 4: ${e.message}` }));
-      return 0;
-    }
+    const { hits, error } = repoHits(root);
+    if (error) reasons.push(roots.length > 1 ? `${path.basename(root)}: ${error}` : error);
+    else if (hits.length > 0) reasons.push(formatHits(hits.map((h) => ({ ...h, rel: prefix + h.rel }))));
   }
-  if (hits.length > 0) process.stdout.write(JSON.stringify({ decision: 'block', reason: formatHits(hits) }));
+  if (reasons.length > 0) process.stdout.write(JSON.stringify({ decision: 'block', reason: reasons.join('\n') }));
   return 0;
 }
 

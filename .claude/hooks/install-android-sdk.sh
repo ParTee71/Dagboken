@@ -19,4 +19,8 @@ else
   echo "Android SDK installerad: $sdk"
 fi
 # Gradle hittar SDK:n via local.properties (gitignorerad) – inget ANDROID_HOME behövs.
-if ! grep -qs '^sdk.dir=' local.properties; then echo "sdk.dir=$sdk" >> local.properties; fi
+if ! grep -qs '^sdk.dir=' local.properties; then
+  # Radbrytning först om filen inte slutar med en, så att raden inte klistras ihop med den förra.
+  if [ -s local.properties ] && [ -n "$(tail -c1 local.properties)" ]; then echo >> local.properties; fi
+  echo "sdk.dir=$sdk" >> local.properties
+fi

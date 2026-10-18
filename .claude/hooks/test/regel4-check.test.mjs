@@ -219,9 +219,22 @@ test('hook-kommandona i settings.json hittar skripten både i repot och från en
   assert.equal(none.status, 0, 'utan hook i projektet ska kommandot vara tyst');
 });
 
-/** Tillfälligt git-repo där origin/master pekar på första committen. */
-function makeGitProject() {
-  const { dir, parent } = makeProject();
+/**
+ * Tillfälligt git-repo med en kopia av hooken, där origin/master pekar på första committen.
+ * Med `parent` läggs repot som `name` bredvid ett annat i samma katalog.
+ */
+function makeGitProject(name = 'Dagboken', parent) {
+  let dir;
+  if (parent) {
+    dir = path.join(parent, name);
+    mkdirSync(path.join(dir, 'app/src/test/resources'), { recursive: true });
+    copyFileSync(path.join(repoRoot, patternsRel), path.join(dir, patternsRel));
+    copyFileSync(path.join(repoRoot, allowRel), path.join(dir, allowRel));
+  } else {
+    ({ dir, parent } = makeProject());
+  }
+  mkdirSync(path.join(dir, '.claude/hooks'), { recursive: true });
+  copyFileSync(hook, path.join(dir, '.claude/hooks/regel4-check.mjs'));
   const git = (...args) => {
     const r = spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr);
@@ -232,8 +245,9 @@ function makeGitProject() {
   return { dir, parent, git };
 }
 
-function runStop(projectDir, input = {}) {
-  return spawnSync('node', [hook, '--stop'], {
+/** Kör Stop med hookkopian i `hookRoot` (som standard projektroten själv). */
+function runStop(projectDir, { hookRoot = projectDir, ...input } = {}) {
+  return spawnSync('node', [path.join(hookRoot, '.claude/hooks/regel4-check.mjs'), '--stop'], {
     input: JSON.stringify({ hook_event_name: 'Stop', ...input }),
     env: { ...process.env, CLAUDE_PROJECT_DIR: projectDir },
     encoding: 'utf8',
@@ -296,18 +310,19 @@ test('Stop blockerar med radnummer när undantagsfilen är trasig', () => {
   assert.match(out.reason, /Regel 4:/);
 });
 
-test('Stop kontrollerar varje repo när projektroten är en katalog med flera repon', () => {
+test('Stop kontrollerar varje repo med dess egen hook när projektroten har flera repon', () => {
   const { dir, parent } = makeGitProject();
   writeKt(dir, featureFileRel, featureCard);
-  const other = path.join(parent, 'Annat');
-  mkdirSync(path.join(other, 'app/src/test/resources'), { recursive: true });
-  copyFileSync(path.join(dir, patternsRel), path.join(other, patternsRel));
-  spawnSync('git', ['init', '-q'], { cwd: other });
-  spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'bas'], { cwd: other });
-  spawnSync('git', ['update-ref', 'refs/remotes/origin/master', 'HEAD'], { cwd: other });
+  const other = makeGitProject('Annat', parent).dir;
   writeKt(other, `${pkg}/ui/today/OtherRow.kt`, featureCard);
-  const out = JSON.parse(runStop(parent).stdout);
+  const utanHook = path.join(parent, 'UtanHook');
+  mkdirSync(path.join(utanHook, 'app/src/test/resources'), { recursive: true });
+  copyFileSync(path.join(dir, patternsRel), path.join(utanHook, patternsRel));
+  writeKt(utanHook, `${pkg}/ui/today/Ignorerad.kt`, featureCard);
+
+  const out = JSON.parse(runStop(parent, { hookRoot: dir }).stdout);
   assert.equal(out.decision, 'block');
   assert.match(out.reason, /Dagboken\/.*DoseRow\.kt:5/);
-  assert.match(out.reason, /Annat\/.*OtherRow\.kt:5/);
+  assert.match(out.reason, /Annat: [\s\S]*OtherRow\.kt:5/);
+  assert.doesNotMatch(out.reason, /Ignorerad/, 'ett repo utan egen hook har egna regler och lämnas därhän');
 });

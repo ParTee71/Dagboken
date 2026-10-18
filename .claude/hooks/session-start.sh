@@ -31,7 +31,11 @@ fi
 sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/opt/android-sdk}}"
 if [ -d "$sdk/licenses" ]; then
   # Gradle hittar SDK:n via local.properties (gitignorerad), även i en ny klon.
-  if ! grep -qs '^sdk.dir=' local.properties; then echo "sdk.dir=$sdk" >> local.properties; fi
+  if ! grep -qs '^sdk.dir=' local.properties; then
+    # Radbrytning först om filen inte slutar med en, så att raden inte klistras ihop med den förra.
+    if [ -s local.properties ] && [ -n "$(tail -c1 local.properties)" ]; then echo >> local.properties; fi
+    echo "sdk.dir=$sdk" >> local.properties
+  fi
   echo "Android SDK: $sdk (Gradle kan köras i sessionen)"
 else
   echo "Android SDK: saknas – installera vid behov med .claude/hooks/install-android-sdk.sh"
