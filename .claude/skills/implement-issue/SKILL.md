@@ -61,7 +61,8 @@ godkänd mockup under **Design** → gör mockupen, visa den och **vänta på ok
 ## Steg 5 – Planera
 
 Kort plan: filer, ordning, tester, datakedjan, krav. Arkitektoniskt betydande eller
-tvetydigt → bekräfta med `AskUserQuestion` innan kod.
+tvetydigt → fråga användaren innan kod (`AskUserQuestion` där det finns, annars ett
+beslutskort eller en kort fråga i tråden).
 
 **Delegera på rätt nivå** (ARKITEKTUR.md → Agenter): portar, komponenter, skärmar och CI-filer
 till agenten `byggare`; datamodell, codecs, konverteraren, rules och migrering till agenten
@@ -95,8 +96,9 @@ får skärmdump ljust + mörkt och plats i `ComponentGallery`.
 
 ## Steg 8 – Självgranskning
 
-Kör agenten **`granskare`** på diffen och åtgärda varje ⚠️/❌ i dess tabell. Spåra varje
-acceptanskriterium till kod eller test. Kan du inte det är du inte klar.
+Kör agenten **`granskare`** på diffen. Varje ❌ åtgärdas; ett ⚠️ åtgärdas om det är litet,
+annars nämns det i PR:en. Spåra varje acceptanskriterium till kod eller test och till
+issuets **Verifiering** – kör de kommandona. Kan du inte det är du inte klar.
 
 Rör ändringen logik i `:core`, datalagret, `firestore.rules`, `tools/db` eller en delad
 ram/komponent – eller är diffen större än ett par filer – kör dessutom den inbyggda
@@ -105,8 +107,9 @@ reglerna; `/code-review` letar buggar. Verifiera varje fynd och åtgärda de ver
 dokument- och strängändringar behöver den inte.
 
 Ändras koden efter granskningen (rättningar av fynden) granskas rättningarna igen – `granskare`
-och `/code-review` på det som ändrats – innan push. En PR går aldrig ut med kod som ingen
-granskning sett.
+och `/code-review` på bara det som ändrats sedan förra rundan, och bara mot ❌ och buggar –
+innan push. Rundorna slutar när en runda inte hittar något ❌; ⚠️ i en senare runda nämns i
+PR:en i stället för att starta en ny. En PR går aldrig ut med kod som ingen granskning sett.
 
 ## Steg 9 – Commit och push
 

@@ -1,6 +1,6 @@
 ---
 name: data-privacy-security
-description: Dagbokens integritets- och säkerhetsregler — appen lagrar mående, symptom, mediciner, doser, sjukdomar och anteckningar, vilket är känslig hälsodata (GDPR art. 9), i 4.0 i Firestore under users/{uid}. Ladda denna ALLTID när du rör loggning, Firestore, security rules, backup/export/import, migreringen från 3.x, tools/db, Health Connect, notiser, behörigheter, autentisering, hemligheter (nycklar/tokens/service accounts), release/minify eller något som exponerar eller lagrar användardata. Trigger-ord: integritet, säkerhet, privacy, GDPR, känslig data, hälsodata, mående, symptom, anteckning, PII, logga, Log, secret, hemlighet, service account, FIREBASE_SERVICE_ACCOUNT, BACKUP_PASSPHRASE, keystore, jks, google-services, token, Firestore, firestore.rules, EU-region, export, import, Drive, appDataFolder, Room-fil, Health Connect, behörighet, permission, notis, låsskärm, minify, R8, ProGuard.
+description: Integritet och säkerhet i Dagboken — mående, symptom, mediciner, doser och anteckningar är hälsodata (GDPR art. 9). Ladda alltid vid loggning, firestore.rules, backup/export/import, 3.x-migreringen, tools/db, Health Connect, notiser, behörigheter, inloggning, hemligheter eller release/minify. Trigger-ord: integritet, säkerhet, GDPR, hälsodata, PII, logga, Log, hemlighet, service account, keystore, BACKUP_PASSPHRASE, EU-region, Drive, Health Connect, notis, låsskärm, R8, ProGuard.
 ---
 
 # Datasäkerhet & integritet

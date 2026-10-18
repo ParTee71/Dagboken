@@ -72,7 +72,7 @@ resten med `dorny/paths-filter`.
 filtren i `android.yml` och fäller `changes` om de skiljer sig. Ändra alltid båda i samma
 PR. Ny modul = ny rad här **och** nytt filter. `.github/scripts/check-links.mjs` kontrollerar
 relativa länkar och nämnda skills/agenter i `CLAUDE.md`, `README.md`, `ARKITEKTUR.md`,
-`KRAVLISTA.md` och `.claude/**`, och att tabellerna i `CLAUDE.md` listar exakt de skills och
+`KRAVLISTA.md` och `.claude/**`, och att tabellerna i `.claude/README.md` listar exakt de skills och
 agenter som finns. Framåtreferenser står i `.github/scripts/link-allowlist.txt`.
 
 ## Inte i PR-flödet (utan uttryckligt beslut)

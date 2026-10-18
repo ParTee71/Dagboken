@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Edit, Write, Bash
 # Fable 5.1 · high enligt ARKITEKTUR.md → Agenter. Frontmatter tar bara modellalias; stöds inte
 # Fable här väljer huvudsessionen Fable när den startar agenten – annars körs Opus.
 model: opus
-# effort: high
+effort: high
 ---
 
 Du äger datamodellen och arkitekturbesluten i Dagboken 4.0. Villkor nummer ett för

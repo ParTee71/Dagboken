@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 // PostToolUse-hook (Edit|Write|MultiEdit): snabb kontroll av regel 4 direkt efter en
-// filändring, utan Gradle. Mönster och undantag läses från samma filer som
+// filändring, utan Gradle. Med `--stop` (Stop-hook): samma kontroll av alla ändrade filer
+// innan turen avslutas. Mönster och undantag läses från samma filer som
 // UiConsistencyTest använder – hooken har inga egna mönster (skill shared-ui-components).
 //
-// Exit 0 = inget att anmärka (tyst). Exit 2 = träff; meddelandet på stderr går till Claude.
+// PostToolUse: exit 0 = inget att anmärka (tyst), exit 2 = träff; stderr går till Claude.
+// Stop: alltid exit 0; vid träff `{"decision":"block"}` på stdout så att Claude rättar först.
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -135,8 +138,50 @@ const SCOPE_TEXT = {
   vico: 'kod utanför ui/diagram/',
 };
 
-function main() {
-  const input = readInput();
+/** Läser mönster och undantag för ett repo. Kastar vid ogiltig undantagsfil. */
+function loadRules(root) {
+  const scopes = parsePatterns(readFileSync(path.join(root, PATTERNS_FILE), 'utf8'));
+  const allowPath = path.join(root, ALLOWLIST_FILE);
+  const allowlist = existsSync(allowPath) ? parseAllowlist(readFileSync(allowPath, 'utf8')) : [];
+  return { scopes, allowlist };
+}
+
+/** Träffar i en fil (sökväg relativ repots rot); tom lista för filer utanför regelns räckvidd. */
+function checkFile(root, rel, rules) {
+  const abs = path.join(root, rel);
+  if (!rel.endsWith('.kt') || !existsSync(abs) || scopesFor(rel).length === 0) return [];
+  return findViolations(rel, readFileSync(abs, 'utf8'), rules.scopes, rules.allowlist).map((h) => ({ ...h, rel }));
+}
+
+function formatHits(hits) {
+  const where = [...new Set(hits.map((h) => SCOPE_TEXT[h.scope] ?? h.scope))].join(' och ');
+  const lines = hits.map((h) => `  ${h.rel}:${h.line}  \`${h.match.trim()}\`  → använd ${h.replacement}`);
+  return (
+    `Regel 4 (enhetligt och utan dubbelkod): förbjudna mönster i ${where}.\n` +
+    lines.join('\n') +
+    '\nAnvänd den delade komponenten/ramen/byggstenen (skill shared-ui-components). ' +
+    'Behövs en variant: utöka den delade delen med en parameter. ' +
+    'Undantag bara via app/src/test/resources/ui-allowlist.txt med motivering och användarens ok.\n'
+  );
+}
+
+/** Filer som ändrats mot origin/master: committade, ändrade i arbetsträdet och nya. */
+export function changedFiles(root) {
+  const git = (...args) => {
+    const r = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+    return r.status === 0 ? r.stdout.split('\n').filter(Boolean) : [];
+  };
+  return [
+    ...new Set([
+      ...git('diff', '--name-only', '--diff-filter=d', 'origin/master...HEAD'),
+      ...git('diff', '--name-only', '--diff-filter=d', 'HEAD'),
+      ...git('ls-files', '--others', '--exclude-standard'),
+    ]),
+  ];
+}
+
+/** PostToolUse: kontrollerar filen som just ändrades. */
+function afterEdit(input) {
   const filePath = input?.tool_input?.file_path;
   if (!filePath) return 0;
 
@@ -151,29 +196,62 @@ function main() {
   const rel = path.relative(root, abs);
   if (scopesFor(rel).length === 0) return 0;
 
-  const scopes = parsePatterns(readFileSync(path.join(root, PATTERNS_FILE), 'utf8'));
-  const allowPath = path.join(root, ALLOWLIST_FILE);
-  let allowlist = [];
+  let rules;
   try {
-    allowlist = existsSync(allowPath) ? parseAllowlist(readFileSync(allowPath, 'utf8')) : [];
+    rules = loadRules(root);
   } catch (e) {
     process.stderr.write(`Regel 4: ${e.message}\n`);
     return 2;
   }
-
-  const hits = findViolations(rel, readFileSync(abs, 'utf8'), scopes, allowlist);
+  const hits = checkFile(root, rel, rules);
   if (hits.length === 0) return 0;
-
-  const where = [...new Set(hits.map((h) => SCOPE_TEXT[h.scope] ?? h.scope))].join(' och ');
-  const lines = hits.map((h) => `  ${rel}:${h.line}  \`${h.match.trim()}\`  → använd ${h.replacement}`);
-  process.stderr.write(
-    `Regel 4 (enhetligt och utan dubbelkod): förbjudna mönster i ${where}.\n` +
-      lines.join('\n') +
-      '\nAnvänd den delade komponenten/ramen/byggstenen (skill shared-ui-components). ' +
-      'Behövs en variant: utöka den delade delen med en parameter. ' +
-      'Undantag bara via app/src/test/resources/ui-allowlist.txt med motivering och användarens ok.\n',
-  );
+  process.stderr.write(formatHits(hits));
   return 2;
+}
+
+/**
+ * Repona som Stop kontrollerar: projektroten om den är ett repo, annars varje repo direkt under
+ * den (en session med flera repon under en gemensam katalog), annars repot där skriptet ligger.
+ */
+export function stopRoots(input) {
+  const isRepo = (dir) => existsSync(path.join(dir, PATTERNS_FILE));
+  const base = process.env.CLAUDE_PROJECT_DIR || input?.cwd;
+  if (base && isRepo(base)) return [base];
+  const children = base && existsSync(base)
+    ? readdirSync(base, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => path.join(base, d.name)).filter(isRepo)
+    : [];
+  if (children.length > 0) return children;
+  const own = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+  return isRepo(own) ? [own] : [];
+}
+
+/**
+ * Stop: kontrollerar alla ändrade filer innan Claude avslutar turen, så att en träff som
+ * PostToolUse-meddelandet inte ledde till en rättning inte följer med till PR:en.
+ * Blockerar högst en gång i följd (`stop_hook_active`) – sedan avgör Claude själv.
+ */
+function beforeStop(input) {
+  if (input?.stop_hook_active) return 0;
+  const hits = [];
+  const roots = stopRoots(input);
+  for (const root of roots) {
+    // Med flera repon visas reponamnet före sökvägen, så att träffarna går att skilja åt.
+    const prefix = roots.length > 1 ? `${path.basename(root)}/` : '';
+    try {
+      const rules = loadRules(root);
+      hits.push(...changedFiles(root).flatMap((rel) => checkFile(root, rel, rules)).map((h) => ({ ...h, rel: prefix + h.rel })));
+    } catch (e) {
+      process.stdout.write(JSON.stringify({ decision: 'block', reason: `Regel 4: ${e.message}` }));
+      return 0;
+    }
+  }
+  if (hits.length > 0) process.stdout.write(JSON.stringify({ decision: 'block', reason: formatHits(hits) }));
+  return 0;
+}
+
+function main() {
+  const input = readInput();
+  return process.argv.includes('--stop') ? beforeStop(input) : afterEdit(input);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

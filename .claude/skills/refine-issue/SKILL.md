@@ -35,8 +35,9 @@ Sök efter dubbletter först: `mcp__github__search_issues` (owner `ParTee71`, re
 
 ## Steg 2 – Klargör avsikt
 
-Fråga bara det som inte går att härleda ur begäran eller koden. `AskUserQuestion` vid
-konkreta val. Hoppa över steget om begäran redan är entydig.
+Fråga bara det som inte går att härleda ur begäran eller koden. Konkreta val ställs som en
+fråga med alternativ – `AskUserQuestion` där det finns, annars ett beslutskort eller en kort
+fråga i tråden. Hoppa över steget om begäran redan är entydig.
 
 ## Steg 3 – Undersök koden
 
@@ -117,6 +118,10 @@ Gäller en regel inte, skriv varför. Stort arbete → föreslå uppdelning i un
 - `app/src/test`: … (inkl. kontraktstester, skärmdumpar)
 - `tools/db`: …
 
+## Verifiering
+<kommandona och skärmdumparna som bevisar att issuet är klart, t.ex.
+`./gradlew :core:test --tests "*Cooldown*"` eller vilka Roborazzi-bilder som ändras>
+
 ## Acceptanskriterier
 - [ ] <beteende>
 - [ ] Mockup godkänd och skärmdumpar i PR:en (om GUI)
@@ -157,5 +162,6 @@ Rapportera nummer och länk.
 
 ## Steg 8 – Nästa steg
 
-Erbjud kort: genomför nu (`implement-issue`), skapa uppföljande issues för det som låg
+Erbjud kort: genomför nu (`implement-issue`, helst i en ny session eller tråd så att
+implementationen får ren kontext med issuet som underlag), skapa uppföljande issues för det som låg
 utanför omfånget, eller låt det ligga planerat.

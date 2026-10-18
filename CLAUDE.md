@@ -96,8 +96,6 @@ mot kod och workflow, länkar, hooktest) körs alltid. Att slippa köra ett test
 skäl att inte skriva det.
 → Skill: **ci-budget** – enda källan för vad som körs när; kontrolleras mot `android.yml`. Krav: NFR-19.
 
----
-
 ## Processregel: mockup före ny GUI (skill **mockup**)
 
 Utvecklingen sker mest från telefonen, och en release för att "se hur det blev" är dyr.
@@ -117,8 +115,6 @@ Utvecklingen sker mest från telefonen, och en release för att "se hur det blev
   ikonbyte → skärmdumpsdiffen i PR:en räcker.
 
 → Skills: **mockup**, **ui-style**, **refine-issue**, **implement-issue**.
-
----
 
 ## Innan du skriver ny kod
 
@@ -144,8 +140,6 @@ Utvecklingen sker mest från telefonen, och en release för att "se hur det blev
 - [ ] **CI-budget:** inga nya dyra steg i PR-flödet; byggtidseffekt angiven vid nya beroenden. (5)
 - [ ] **GUI:** mockup godkänd och skärmdumpar bifogade i PR:en.
 - [ ] **Granskning:** agenten `granskare` och `/code-review` har körts på diffen – och igen på rättningarna efter dem (skill **implement-issue**, steg 8).
-
----
 
 ## PR-flöde
 
@@ -194,7 +188,7 @@ Kör det du ändrat lokalt innan varje push – även i fjärr-/telefonsessioner
 **testing-strategy**, "Innan du anser dig klar"). **Gradle körs i sessionen med Android SDK i
 `/opt/android-sdk`** (session-start-hooken säger om den finns). Saknas den: installera den –
 det är alltid ok att installera Android SDK och liknande verktyg i sessionen vid behov
-(`.claude/hooks/install-android-sdk.sh`, ≈450 MB, några minuter). Bara om installationen inte
+(`.claude/hooks/install-android-sdk.sh`, ≈470 MB, några minuter). Bara om installationen inte
 går får CI bekräfta – säg det i PR:en. Kommandona gäller även i Android Studio.
 
 ## Arkitektur i korthet
@@ -219,55 +213,20 @@ inställningar – be aldrig användaren klistra in en nyckel i chatten. Projekt
 `app/google-services.json`; `FIREBASE_PROJECT_ID` behövs bara för ett annat projekt.
 Skrivningar bara på uttrycklig begäran via `import.mjs`/`migrate.mjs`.
 
----
+## Agenter och skills
 
-## Agenter (`.claude/agents/`)
-
-| Agent | När |
-|---|---|
-| `byggare` | Portar, komponenter, skärmar på ramarna och CI-filer enligt en klar plan (Opus · medium). |
-| `arkitekt` | Datamodell, codecs, 3.x-konverteraren, rules, migrering och arkitekturval (Fable/Opus · high). |
-| `granskare` | Före varje PR: granskar diffen mot de fem reglerna och mockup-regeln, rapporterar i en tabell. |
-| `ci-doktor` | Vid rött CI: läser loggar, skärmdumpsdiffar och CPD-rapporter, föreslår fix. |
-| `testskrivare` | Skriver/utökar tester och fixturer med de delade testhjälparna – när tre eller fler testnivåer berörs. |
-| `db-inspektor` | Svarar på frågor om faktisk data i Firestore, endast läsning (Haiku · low). |
+Agenterna (`byggare`, `arkitekt`, `granskare`, `ci-doktor`, `testskrivare`, `db-inspektor`)
+och alla skills, med när de används, listas i [.claude/README.md](.claude/README.md). Modell
+och effort står i varje agents frontmatter (ARKITEKTUR.md → Agenter).
 
 **Kortrapport:** agenternas svar hamnar i huvudsessionens kontext och kostar där. Varje agent
 svarar bara med mallen i sin fil – inga referat av det den läst, ingen upprepning av uppdraget,
-högst ~15 rader om inte fynden kräver mer. Effort står som kommentar i frontmatter och styr
-inte körningen; huvudsessionen anger den när agenten startas.
+högst ~15 rader om inte fynden kräver mer.
 
-## Skills (`.claude/skills/`)
+## Lång session
 
-| Skill | När |
-|---|---|
-| `android-dev` | Baslinje för all Android/Kotlin-utveckling (ladda alltid). |
-| `compose-expert` · `kotlin-coroutines` · `kotlin-flows` | Compose-, coroutine- och flow-detaljer. |
-| `android-gradle-logic` | Gradle, version catalog, `:core`/`:app`, `cpdCheck`. |
-| `firebase-auth` | Google-inloggning (Credential Manager + Firebase), krav på inloggning, `users/{uid}`. |
-| `notifications-alarms` | Påminnelser och larm: exakta larm, kanaler, omschemaläggning, schemat ur Firestore-cachen. |
-| `accessibility-compose` | TalkBack, tryckytor, dynamisk text. |
-| `data-privacy-security` | Hälsodata, loggning, EU-region, hemligheter, notiser, minify. |
-| **`data-safety-backup`** | Regel 1 – codecs, schemaversion, export/import, rundtur och 3.x-konverteraren. |
-| **`testing-strategy`** | Regel 2 – testnivåer, kontraktstester, skärmdumpar. |
-| **`requirements-kravlista`** | Regel 3 – hålla KRAVLISTA.md aktuell, paritetschecklistan. |
-| **`shared-ui-components`** | Regel 4 – komponenter, ramar, byggstenar, förbud, kontroller. |
-| **`ci-budget`** | Regel 5 – vad som körs när i CI. |
-| `ui-style` | Designspråket Papper och teal (Material 3 Expressive). |
-| `mockup` | Ny skärm, komponent eller ändrat utseende: mockup före kod. |
-| `diagram` | Diagrammen i `ui/diagram` och diagrammatematiken i `:core/engine` (TRD-6…18, HEM-7, HLS-10/11/13). |
-| `firestore-data-layer` | `FirestoreCollection`, `DocCodec`, repositories, `UserSession`, offline, rules. |
-| `db-access` | Läsa databasen från en Claude-session. |
-| `refine-issue` | Förfina en idé till ett planerat issue (med Design och Återbruk). |
-| `implement-issue` | Genomföra ett issue hela vägen till PR enligt reglerna (med merge-kontroll först). |
-| `release` | Endast vid uttrycklig release. |
-| `firebase-security-rules-auditor` | *Googles (Firebase).* Granska `firestore.rules` – vid varje rules-ändring. |
-| `android-intent-security` | *Googles (Android).* Granska exporterade komponenter, notisers `PendingIntent` och delningens Intents. |
-| `navigation-3` | *Googles (Android).* Referens för Navigation 3: djuplänkar, flera stackar, scener. |
-
-Googles skills är oförändrade kopior (källa, commit och licens i deras `SOURCE.md`); där de
-krockar med projektets regler gäller projektets. Planerad skill (ARKITEKTUR.md): `health-connect`
-tillkommer i etapp 6.
+Vid komprimering av sammanhanget: behåll listan över ändrade filer, issue- och PR-nummer,
+testkommandon som körts med resultat, och öppna ❌ från granskningen.
 
 > Reglerna gäller både i Claude-appen på telefonen och i Claude i Android Studio – båda
 > läser denna fil och `.claude/`.
