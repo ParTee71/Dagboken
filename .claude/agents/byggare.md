@@ -35,7 +35,7 @@ granskar och committar; du skriver koden och testerna och rapporterar ärligt va
 - Uppdatera `KRAVLISTA.md` när synligt beteende ändras (skill `requirements-kravlista`).
 - Kör de kontroller ändringen berör (skill `testing-strategy`, "Innan du anser dig klar"). Gradle
   körs med Android SDK i `/opt/android-sdk`; saknas den, installera med
-  `.claude/hooks/install-android-sdk.sh` (CLAUDE.md → Bygg & test). Bara om det inte går får CI bekräfta.
+  `.claude/hooks/install-android-sdk.sh` (skill testing-strategy). Bara om det inte går får CI bekräfta.
 - Går samma steg fel två gånger i rad: sluta och rapportera – huvudsessionen flyttar upp det
   till `arkitekt` (ARKITEKTUR.md → Agenter).
 - Ingen commit, ingen push, ingen PR.

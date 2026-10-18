@@ -132,11 +132,13 @@ koden i båda riktningar, och att varje publik komponent har skärmdumpar och en
 npx --prefix tools/db firebase emulators:exec --only firestore --project demo-dagboken "npm --prefix tools/db test"  # om tools/db/ eller rules ändrats – bara mot emulatorn
 node --test '.github/scripts/*.test.mjs'              # dokumentkontroller, alltid
 node --test '.claude/hooks/test/*.test.mjs'           # hooktest, alltid
+./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <uid>"   # vid behov, ingen kontroll: 3.x-backup → 4.0-export (OMB-4), rapport utan innehåll
+./gradlew :core:matchMedicines --args="--in <export.json> --catalog app/src/main/assets/medicines.tsv --suggest <map.tsv>"   # vid behov, ingen kontroll: styrka och form ur läkemedelslistan (REC-14), rapport utan innehåll
 ```
 
 **Kör kontrollerna lokalt innan varje push** – en röd CI-runda är det dyraste som finns (skill
 `ci-budget`). Gradle körs i sessionen med Android SDK i `/opt/android-sdk`
-(saknas den: `.claude/hooks/install-android-sdk.sh`, CLAUDE.md → Bygg & test); Firebase-emulatorn kräver Java 21 och `npm ci` i
+(saknas den: kör `.claude/hooks/install-android-sdk.sh` – det är alltid ok att installera Android SDK och liknande verktyg i sessionen; bara om installationen inte går får CI bekräfta); Firebase-emulatorn kräver Java 21 och `npm ci` i
 `tools/db`. `LC_ALL=C.UTF-8` (testnamn med å/ä/ö) sätts av `.claude/settings.json`. Kör en Gradle-körning i taget. Bara instrumenttesterna kräver Android-emulator
 och körs i Actions (`instrumented.yml`, i PR:er som rör koden de testar). Går ett kommando inte att köra (nät, SDK saknas):
 säg det i PR:en. Vid rött CI – låt agenten `ci-doktor` diagnostisera.

@@ -27,7 +27,7 @@ else
   echo "FIREBASE_SERVICE_ACCOUNT: saknas (databasåtkomst från sessionen är avstängd)"
 fi
 
-# Gradle i sessionen: bara med Android SDK (CLAUDE.md → Bygg & test). Annars får CI testa.
+# Gradle i sessionen: bara med Android SDK (skill testing-strategy). Annars får CI testa.
 sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/opt/android-sdk}}"
 if [ -d "$sdk/licenses" ]; then
   # Gradle hittar SDK:n via local.properties (gitignorerad), även i en ny klon.

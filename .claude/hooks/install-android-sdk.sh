@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installerar Android SDK i /opt/android-sdk för en molnsession (CLAUDE.md → Bygg & test).
+# Installerar Android SDK i /opt/android-sdk för en molnsession (skill testing-strategy).
 # Körs vid behov eller från molnmiljöns setup-skript – inte av session-start-hooken (≈470 MB).
 # Idempotent. Skriptet installerar verktygen och accepterar licenserna; plattform och
 # build-tools hämtar Gradle själv (paketnamnen följer compileSdk, t.ex. android-37.0).

@@ -4,9 +4,8 @@
 > Android/Kotlin · Compose (Material 3 Expressive) · Navigation 3 · MVVM · Hilt · Firestore · Firebase Auth.
 > Kravspecifikation: [KRAVLISTA.md](KRAVLISTA.md) · Arkitektur och ombyggnadsplan: [ARKITEKTUR.md](ARKITEKTUR.md) (ADR-001)
 
-Den här filen laddas automatiskt vid **varje** uppgift och gäller alltid, för alla
-ändringar, oavsett storlek. De detaljerade reglerna ligger som skills i
-`.claude/skills/` – den här filen är kontraktet som binder ihop dem.
+Den här filen gäller vid **varje** ändring, oavsett storlek, både på telefonen och i Android
+Studio; detaljerna ligger som skills i `.claude/skills/`.
 
 **Svarslängd:** håll chattsvar minimala. Inga sammanfattningar, ingen upprepning av vad
 som gjordes, inga rubriker/listor om inte nödvändigt. Kod, commits och PR-beskrivningar
@@ -98,23 +97,12 @@ skäl att inte skriva det.
 
 ## Processregel: mockup före ny GUI (skill **mockup**)
 
-Utvecklingen sker mest från telefonen, och en release för att "se hur det blev" är dyr.
-
-- Ny skärm, ny delad komponent eller tydligt ändrat utseende/beteende → visa först en
-  **mockup** för användaren (Design-canvas-artifact; ombyggnadens canvas med struktur,
-  datamodell och känslan Papper och teal: https://claude.ai/artifact/MP2fPHimTk8tAmKkpr3K5t)
-  och vänta på ok innan koden skrivs (NFR-20).
-- Mockupen byggs av **katalogens komponenter och mönster** (regel 4), i appens designspråk,
-  med riktiga svenska texter och realistisk men påhittad data – aldrig användarens riktiga
-  hälsodata. Ett element som redan används i appen återanvänds på samma sätt som tidigare –
-  det är ingen designfråga. Bara en verklig öppen fråga om något helt nytt → två varianter
-  sida vid sida. Något som saknas i katalogen märks "NY KOMPONENT".
-- Länken läggs i issuet under rubriken **Design**.
-- I PR:en visas resultatet med **Roborazzi-skärmdumpar** (ljust + mörkt) bredvid mockupen.
-- Tumregel: syns förändringen i en tumnagel → mockup först. Padding, ordval eller
-  ikonbyte → skärmdumpsdiffen i PR:en räcker.
-
-→ Skills: **mockup**, **ui-style**, **refine-issue**, **implement-issue**.
+Utvecklingen sker mest från telefonen, och en release för att "se hur det blev" är dyr. Ny
+skärm, ny delad komponent eller tydligt ändrat utseende/beteende → visa först en **mockup**
+(Design-canvas-artifact av katalogens komponenter, med påhittad data – aldrig riktig hälsodata)
+och vänta på ok innan koden skrivs (NFR-20). Tumregel: syns förändringen i en tumnagel →
+mockup först; padding, ordval eller ikonbyte → skärmdumpsdiffen i PR:en räcker. Hur mockupen
+byggs, var länken läggs och skärmdumparna i PR:en står i skill **mockup**.
 
 ## Innan du skriver ny kod
 
@@ -131,15 +119,10 @@ Utvecklingen sker mest från telefonen, och en release för att "se hur det blev
    service accounts). `app/google-services.json` är incheckad klientkonfiguration, ingen
    hemlighet. → skill **data-privacy-security**.
 
-## Innan du anser dig klar (slutkontroll)
+## Innan du anser dig klar
 
-- [ ] **Datasäkerhet:** nya/ändrade fält i modell, codec, rules, samlingslista och rundturstest; 3.x-fält har sin plats i konverteraren och dess fixtur. (1)
-- [ ] **Tester:** tillagda/uppdaterade på alla berörda nivåer; kontraktstester för skärmar som använder ramarna. (2)
-- [ ] **Krav:** KRAVLISTA.md (och ev. README/version) speglar ändringen; krav-ID:n i PR-beskrivningen. (3)
-- [ ] **Enhetligt:** inga råa M3-komponenter, egna interaktionsmönster, hårdkodade stilvärden eller kopierad logik; `UiConsistencyTest` och `cpdCheck` gröna. (4)
-- [ ] **CI-budget:** inga nya dyra steg i PR-flödet; byggtidseffekt angiven vid nya beroenden. (5)
-- [ ] **GUI:** mockup godkänd och skärmdumpar bifogade i PR:en.
-- [ ] **Granskning:** agenten `granskare` och `/code-review` har körts på diffen – och igen på rättningarna efter dem (skill **implement-issue**, steg 8).
+Gå igenom de fem reglerna och mockup-regeln. Agenten `granskare` gör det på diffen och
+rapporterar i en tabell (skill **implement-issue**, steg 8).
 
 ## PR-flöde
 
@@ -150,13 +133,10 @@ Utvecklingen sker mest från telefonen, och en release för att "se hur det blev
 - PR:er går mot `master`. Kör testerna lokalt först (skill **testing-strategy**), pusha sedan –
   GitHub Actions bekräftar.
 - **Förbered releasen i funktions-PR:en.** Varje PR som ändrar appens beteende höjer
-  versionen i samma ändring, så att ingen separat release-PR behövs. Välj semver efter
-  ändringen: **major** = brytande/borttagen funktion eller backupformat som äldre appar inte
-  läser, **minor** = ny funktion, **patch** = fix, chore, refactor. Höj `versionCode` med 1,
-  uppdatera `version.properties` och versionshistoriken i README, och skriv versionen i PR-beskrivningen. Ren dokument-,
-  test- eller CI-ändring utan effekt i appen höjer inte. Är versionen redan höjd sedan senaste
-  tagg, höj bara om denna PR är allvarligare. Själva releasen (tagg, bygge, publicering) körs
-  fortfarande bara på uttrycklig begäran (skill **release**) och kräver då ingen ny PR.
+  versionen i samma ändring (semver, `versionCode`, `version.properties`, README) och skriver
+  den i PR-beskrivningen; ren dokument-, test- eller CI-ändring höjer inte. Detaljerna står i
+  skill **release**, "Versionshöjning i funktions-PR:en". Själva releasen körs bara på
+  uttrycklig begäran.
 - **Prenumerera automatiskt** på PR-aktivitet (`subscribe_pr_activity`) så fort en PR
   skapas, utan att fråga. Bevaka tills den är mergad eller stängd: fixa CI-fel, hantera
   granskningskommentarer, schemalägg check-in. Vid rött CI: låt agenten `ci-doktor`
@@ -176,20 +156,14 @@ Utvecklingen sker mest från telefonen, och en release för att "se hur det blev
 ./gradlew :app:recordRoborazziDebug     # spela in referenser (bara vid avsiktlig designändring)
 ./gradlew cpdCheck                      # copy-paste-detektor
 ./gradlew :app:compileDebugKotlin       # kompilera
-./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <uid>"   # 3.x-backup → 4.0-export (OMB-4), rapport utan innehåll
-./gradlew :core:matchMedicines --args="--in <export.json> --catalog app/src/main/assets/medicines.tsv --suggest <map.tsv>"   # föreslår styrka och form för flyttade recept/vid behov-mediciner ur läkemedelslistan (REC-14); rapport utan innehåll
-npx --prefix tools/db firebase emulators:exec --only firestore --project demo-dagboken "npm --prefix tools/db test"   # rules + rundtur (Java 21)
 node --test '.github/scripts/*.test.mjs' && node --test '.claude/hooks/test/*.test.mjs'                             # dokumentkontroller + hooktest
 node tools/db/stats.mjs                 # databasöversikt (kräver FIREBASE_SERVICE_ACCOUNT)
 node tools/db/query.mjs doses           # läs en samling
 ```
 
-Kör det du ändrat lokalt innan varje push – även i fjärr-/telefonsessioner (skill
-**testing-strategy**, "Innan du anser dig klar"). **Gradle körs i sessionen med Android SDK i
-`/opt/android-sdk`** (session-start-hooken säger om den finns). Saknas den: installera den –
-det är alltid ok att installera Android SDK och liknande verktyg i sessionen vid behov
-(`.claude/hooks/install-android-sdk.sh`, ≈470 MB, några minuter). Bara om installationen inte
-går får CI bekräfta – säg det i PR:en. Kommandona gäller även i Android Studio.
+Kör det du ändrat lokalt innan varje push, även i telefonsessioner. Emulatortester,
+3.x-konverteraren, läkemedelsmatchningen och Android SDK i sessionen (alltid ok att
+installera) står i skill **testing-strategy**, "Innan du anser dig klar".
 
 ## Arkitektur i korthet
 
@@ -199,19 +173,16 @@ Compose → ViewModel (StateFlow<UiState>) → Repository → FirestoreCollectio
 ```
 
 `:core` är ren Kotlin/JVM (modeller, codecs, motorer, diagrammatematik, 3.x-konverteraren);
-`:app` är Android-appen med fyra flikar (Idag · Dagbok · Trender · Mediciner), inställningsark
-bakom avataren och plusknapp som loggar. Utseende och gemensamt beteende finns bara i
+`:app` är Android-appen med fyra flikar (Idag · Dagbok · Trender · Mediciner). Utseende och gemensamt beteende finns bara i
 `ui/theme`, `ui/components`, `ui/diagram` och `ui/common`; Firestore bara i `data/firestore`; felmappning en
 gång i `data/common`. Struktur, datamodell, lager, migrering och etapper står i
 [ARKITEKTUR.md](ARKITEKTUR.md) (enda källan).
 
 ## Databasåtkomst från sessionen
 
-Läs med `tools/db` (skill **db-access**, agent **db-inspektor**). Kräver miljövariabeln
-`FIREBASE_SERVICE_ACCOUNT` (läsroll, projektet `dagboken-711d2`) i Claude-miljöns
-inställningar – be aldrig användaren klistra in en nyckel i chatten. Projektet läses ur
-`app/google-services.json`; `FIREBASE_PROJECT_ID` behövs bara för ett annat projekt.
-Skrivningar bara på uttrycklig begäran via `import.mjs`/`migrate.mjs`.
+Läs med `tools/db` (skill **db-access**, agent **db-inspektor**); nyckeln ligger i miljön som
+`FIREBASE_SERVICE_ACCOUNT` – be aldrig användaren klistra in en nyckel i chatten. Skrivningar
+bara på uttrycklig begäran via `import.mjs`/`migrate.mjs`.
 
 ## Agenter och skills
 
@@ -223,10 +194,5 @@ och effort står i varje agents frontmatter (ARKITEKTUR.md → Agenter).
 svarar bara med mallen i sin fil – inga referat av det den läst, ingen upprepning av uppdraget,
 högst ~15 rader om inte fynden kräver mer.
 
-## Lång session
-
-Vid komprimering av sammanhanget: behåll listan över ändrade filer, issue- och PR-nummer,
+**Lång session:** vid komprimering av sammanhanget: behåll listan över ändrade filer, issue- och PR-nummer,
 testkommandon som körts med resultat, och öppna ❌ från granskningen.
-
-> Reglerna gäller både i Claude-appen på telefonen och i Claude i Android Studio – båda
-> läser denna fil och `.claude/`.
