@@ -358,7 +358,7 @@ fun DoseEditScreen(
             },
         ),
         state = state,
-        effects = form.effects,
+        events = form.events,
         onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
         delete = if (mode != DoseMode.EDIT) {

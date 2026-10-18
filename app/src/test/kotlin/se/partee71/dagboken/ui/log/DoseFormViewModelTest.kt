@@ -41,7 +41,9 @@ import se.partee71.dagboken.data.repository.PrnLog
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.common.EditorEffect
+import se.partee71.dagboken.testing.awaitDone
+import se.partee71.dagboken.testing.awaitFailure
+import se.partee71.dagboken.testing.expectNoEditorEvents
 import se.partee71.dagboken.ui.common.EntryEditEvent
 
 /**
@@ -71,9 +73,10 @@ class DoseFormViewModelTest {
 
     private fun DoseEditViewModel.change(field: String? = null, transform: (Dose) -> Dose) = form.onEvent(EntryEditEvent.Changed(field, transform))
 
-    private suspend fun DoseEditViewModel.saved() = editor.effects.test {
+    private suspend fun DoseEditViewModel.saved() = editor.state.test {
         form.onEvent(EntryEditEvent.Save)
-        assertEquals(EditorEffect.Done, awaitItem())
+        awaitDone(editor)
+        cancelAndIgnoreRemainingEvents()
     }
 
     private val alvedon = PrnMedicine("alvedon", "Alvedon", "500", "mg", minHoursBetween = 4, maxPerDay = 2, note = "Med mat")
@@ -92,9 +95,9 @@ class DoseFormViewModelTest {
         assertFalse(vm.editor.state.value.canSave)
         vm.change { it.copy(dose = "3") }
         assertFalse(vm.editor.state.value.canSave, "inget namn")
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            expectNoEvents()
+            expectNoEditorEvents()
         }
         assertEquals(R.string.option_name_missing, vm.editor.state.value.errorFor(DoseField.NAME))
         vm.change(DoseField.NAME) { it.copy(name = " Melatonin ") }
@@ -154,9 +157,10 @@ class DoseFormViewModelTest {
         assertNull(vm.cooldown.value)
 
         vm.form.onEvent(EntryEditEvent.Save)
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.confirmCooldown()
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         assertEquals(2, factory.doses().getAll().getOrThrow().size)
     }
@@ -172,9 +176,10 @@ class DoseFormViewModelTest {
         vm.change(DoseField.TAKEN_AT) { it.atTime(LocalTime(21, 0), zone) }
         vm.form.onEvent(EntryEditEvent.Save)
         assertEquals(CooldownPrompt(alvedon, 3.hours), vm.cooldown.value)
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.confirmCooldown()
-            assertEquals(DataError.Offline, (awaitItem() as EditorEffect.Failed).failure.error)
+            assertEquals(DataError.Offline, awaitFailure(vm.editor).error)
+            cancelAndIgnoreRemainingEvents()
         }
         vm.form.onEvent(EntryEditEvent.Save)
         assertEquals(CooldownPrompt(alvedon, 3.hours), vm.cooldown.value, "efter ett sparfel frågar den igen")
@@ -233,9 +238,10 @@ class DoseFormViewModelTest {
         factory.doses().batch(listOf(recipe, taken)).getOrThrow()
         val vm = form(id = recipe.id)
         vm.change(DoseField.TAKEN_AT) { it.onDay(today, zone, reminders = ReminderSettings()) }
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            assertEquals(R.string.dose_slot_taken, (awaitItem() as EditorEffect.Failed).failure.message, "Det finns redan en dos för den tidpunkten den dagen.")
+            assertEquals(R.string.dose_slot_taken, awaitFailure(vm.editor).message, "Det finns redan en dos för den tidpunkten den dagen.")
+            cancelAndIgnoreRemainingEvents()
         }
         assertEquals(recipe, factory.doses().get(recipe.id).getOrThrow(), "ingenting flyttades")
         assertEquals(taken, factory.doses().get(taken.id).getOrThrow())
@@ -274,9 +280,10 @@ class DoseFormViewModelTest {
         assertEquals(recipe.copy(status = DoseStatus.SKIPPED, takenAt = null), factory.doses().get(recipe.id).getOrThrow())
 
         val again = form(id = recipe.id)
-        again.editor.effects.test {
+        again.editor.state.test {
             again.form.onEvent(EntryEditEvent.Delete)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(again.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         assertEquals(DoseStatus.SKIPPED, factory.doses().get(recipe.id).getOrThrow()?.status, "en receptdos raderas aldrig")
     }
@@ -289,9 +296,10 @@ class DoseFormViewModelTest {
         vm.change(DoseField.DOSE) { it.copy(dose = "1000") }
         vm.saved()
         assertEquals(prn.copy(dose = "1000"), factory.doses().get("p").getOrThrow())
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Delete)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         assertNull(factory.doses().get("p").getOrThrow())
     }

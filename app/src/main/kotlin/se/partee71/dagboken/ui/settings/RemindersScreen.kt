@@ -17,7 +17,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
@@ -30,7 +29,7 @@ import se.partee71.dagboken.reminders.needsNotificationPermission
 import se.partee71.dagboken.reminders.openExactAlarmSettings
 import se.partee71.dagboken.reminders.openNotificationSettings
 import se.partee71.dagboken.reminders.reminderAccess
-import se.partee71.dagboken.ui.common.EditorEffect
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorLoader
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
@@ -122,7 +121,7 @@ fun RemindersRoute(onClose: () -> Unit, viewModel: RemindersEditViewModel = hilt
     val requestPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { access = context.reminderAccess() }
     RemindersScreen(
         state,
-        viewModel.editor.effects,
+        viewModel.editor,
         onEvent = { event ->
             if (event.turnsOn(state.value) && context.needsNotificationPermission()) requestPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
             viewModel.onEvent(event)
@@ -144,7 +143,7 @@ fun RemindersRoute(onClose: () -> Unit, viewModel: RemindersEditViewModel = hilt
 @Composable
 fun RemindersScreen(
     state: EditorUiState<ReminderSettings>,
-    effects: Flow<EditorEffect>,
+    events: EditorEvents,
     onEvent: (RemindersEvent) -> Unit,
     onClose: () -> Unit,
     access: ReminderAccess = ReminderAccess(),
@@ -155,7 +154,7 @@ fun RemindersScreen(
     EntityEditScreen(
         title = stringResource(R.string.settings_reminders),
         state = state,
-        effects = effects,
+        events = events,
         onSave = { onEvent(RemindersEvent.Save) },
         onClose = onClose,
         onRetry = { onEvent(RemindersEvent.Retry) },

@@ -7,6 +7,7 @@
 # [expressive] = all Kotlin under app/src/main utom ui/theme/ och ui/components/
 # [vico]      = all Kotlin under app/src/main utom ui/diagram/ (diagrambiblioteket bara i de delade diagrammen)
 # [dispatchers] = all Kotlin under app/src/main utom di/ (skill android:kotlin-coroutines)
+# [events]    = all Kotlin under ui/, även ui/components, ui/common och ui/diagram (skill android:kotlin-flows)
 # Tillåtet i feature-kod: Text (med AppTypography-stil), Icon (appens ikoner i res/drawable),
 # Column, Row, Box, Spacer med Spacing, samt allt i ui/components, ui/diagram och ui/common.
 # Importrader kontrolleras inte – [vico] stoppar därför användningen (Vicos typer och remember-funktioner).
@@ -66,3 +67,7 @@
 
 [dispatchers]
 \bDispatchers\.(IO|Default|Main|Unconfined)\b	injicerad CoroutineDispatcher (@IoDispatcher/@DefaultDispatcher från di/DispatchersModule)
+
+[events]
+\bChannel\s*(<[^()]*>)?\s*\(	händelsen som fält i UiState som skärmen kvitterar (EditorUiState.done/failure + EditorEvents)
+\.receiveAsFlow\(	händelsen som fält i UiState som skärmen kvitterar (EditorUiState.done/failure + EditorEvents)

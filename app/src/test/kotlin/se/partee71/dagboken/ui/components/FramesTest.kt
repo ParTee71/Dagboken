@@ -2,6 +2,7 @@ package se.partee71.dagboken.ui.components
 
 import android.content.Context
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -17,11 +18,13 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -33,9 +36,9 @@ import se.partee71.dagboken.testing.captureLightAndDarkPaused
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.common.ArchiveEvent
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ListUiState
@@ -220,8 +223,8 @@ class FramesTest {
             makeInvalid = { update("name") { "x" }; update("name") { "" } },
             makeValid = { update("name") { "Promenad" } },
             invalidMessage = string(R.string.error_not_signed_in),
-        ) { state, effects, onSave, onClose ->
-            EntityEditScreen("Ny aktivitetstyp", state, effects, onSave, onClose) {
+        ) { state, events, onSave, onClose ->
+            EntityEditScreen("Ny aktivitetstyp", state, events, onSave, onClose) {
                 AppTextField(state.value, { v -> editor.update("name") { v } }, "Namn", error = state.errorFor("name")?.let { string(it) })
             }
         }
@@ -234,7 +237,7 @@ class FramesTest {
         rule.setContent {
             DagbokenTheme {
                 EntityEditScreen(
-                    "Promenad", EditorUiState("Promenad"), emptyFlow(), {}, {},
+                    "Promenad", EditorUiState("Promenad"), EditorEvents.None, {}, {},
                     onArchive = { archived++ },
                     delete = DeleteAction("Radera Promenad?", "Det går inte att ångra.") { deleted++ },
                 ) {}
@@ -255,11 +258,14 @@ class FramesTest {
     fun `EntityEditScreen - lyckad sparning går till onSaved, bakåt till onClose`() {
         var saved = 0
         var closed = 0
-        val effects = kotlinx.coroutines.flow.MutableSharedFlow<EditorEffect>(extraBufferCapacity = 1)
+        val editor = EditorState("Migrän", Validator { emptyMap() })
         rule.setContent {
-            DagbokenTheme { EntityEditScreen("Ny händelse", EditorUiState("Migrän"), effects, {}, { closed++ }, onSaved = { saved++ }) {} }
+            DagbokenTheme {
+                val state by editor.state.collectAsState()
+                EntityEditScreen("Ny händelse", state, editor, {}, { closed++ }, onSaved = { saved++ }) {}
+            }
         }
-        rule.runOnIdle { effects.tryEmit(EditorEffect.Done) }
+        rule.runOnIdle { runBlocking { editor.run { Result.success(Unit) } } }
         rule.waitForIdle()
         rule.onNodeWithContentDescription("Tillbaka").performClick()
         assertEquals(1 to 1, saved to closed)
@@ -267,11 +273,46 @@ class FramesTest {
 
     @Test
     fun `EntityEditScreen - ett sparfel visas med sin Failure-text i snackbaren`() {
-        val effects = kotlinx.coroutines.flow.MutableSharedFlow<EditorEffect>(extraBufferCapacity = 1)
-        rule.setContent { DagbokenTheme { EntityEditScreen("Ny händelse", EditorUiState("Migrän"), effects, {}, {}) {} } }
-        rule.runOnIdle { effects.tryEmit(EditorEffect.Failed(Failure(DataError.Unknown, R.string.option_name_duplicate))) }
+        val editor = EditorState("Migrän", Validator { emptyMap() }, errorMessage = { R.string.option_name_duplicate })
+        rule.setContent {
+            DagbokenTheme {
+                val state by editor.state.collectAsState()
+                EntityEditScreen("Ny händelse", state, editor, {}, {}) {}
+            }
+        }
+        rule.runOnIdle { runBlocking { editor.run { Result.failure(DataError.Unknown) } } }
         rule.onNodeWithText(string(R.string.option_name_duplicate)).assertIsDisplayed()
         rule.onNodeWithText(string(R.string.error_unknown)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `EntityEditScreen kvitterar klar och sparfel – de väntar tills skärmen visas och kommer inte igen efter rotation`() {
+        val editor = EditorState("Migrän", Validator { emptyMap() })
+        var saved = 0
+        var shown by mutableStateOf(false)
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent {
+            DagbokenTheme {
+                val state by editor.state.collectAsState()
+                if (shown) EntityEditScreen("Ny händelse", state, editor, {}, {}, onSaved = { saved++ }) {}
+            }
+        }
+        // Ett sparfel medan skärmen inte visas tappas inte: snackbaren kommer när den visas.
+        rule.runOnIdle { runBlocking { editor.run { Result.failure(DataError.Offline) } } }
+        assertEquals(DataError.Offline, editor.state.value.failure?.error)
+        rule.runOnIdle { shown = true }
+        rule.onNodeWithText(string(R.string.error_offline)).assertIsDisplayed()
+        assertNull(editor.state.value.failure, "kvitterat när snackbaren startats")
+
+        rule.runOnIdle { runBlocking { editor.run { Result.success(Unit) } } }
+        rule.waitForIdle()
+        assertEquals(1, saved)
+        assertFalse(editor.state.value.done, "kvitterat när skärmen lämnats")
+
+        restoration.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+        assertEquals(1, saved, "klar upprepas inte efter rotation")
+        rule.onNodeWithText(string(R.string.error_offline)).assertDoesNotExist()
     }
 
     @Test
@@ -295,7 +336,7 @@ class FramesTest {
     fun `EntityEditScreen - arkivera med osparade ändringar frågar först (NFR-10)`() {
         var archived = 0
         rule.setContent {
-            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), emptyFlow(), {}, {}, onArchive = { archived++ }) {} }
+            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), EditorEvents.None, {}, {}, onArchive = { archived++ }) {} }
         }
         rule.onNodeWithContentDescription("Fler val").performClick()
         rule.onNodeWithText("Arkivera").performClick()
@@ -318,7 +359,7 @@ class FramesTest {
     fun `EntityEditScreen - Återställ i menyn för något arkiverat`() {
         var restored = 0
         rule.setContent {
-            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad"), emptyFlow(), {}, {}, onRestore = { restored++ }) {} }
+            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad"), EditorEvents.None, {}, {}, onRestore = { restored++ }) {} }
         }
         rule.onNodeWithContentDescription("Fler val").performClick()
         rule.onNodeWithText("Arkivera").assertDoesNotExist()
@@ -429,13 +470,13 @@ class FramesTest {
     @Test
     fun `EntityEditScreen - ogiltig och giltig`() {
         captureLightAndDark("EntityEditScreen_ogiltig") {
-            EntityEditScreen("Ny aktivitetstyp", EditorUiState("", persistentMapOf("name" to R.string.error_unknown), isValid = false, isDirty = true), emptyFlow(), {}, {}) {
+            EntityEditScreen("Ny aktivitetstyp", EditorUiState("", persistentMapOf("name" to R.string.error_unknown), isValid = false, isDirty = true), EditorEvents.None, {}, {}) {
                 AppTextField("", {}, "Namn", error = "Ange ett namn")
                 LabeledGroup("Sort") { ChoiceChips(listOf("Aktivitet", "Symptom", "Händelse"), "Aktivitet", {}, { it }) }
             }
         }
         captureLightAndDark("EntityEditScreen_giltig") {
-            EntityEditScreen("Ny aktivitetstyp", EditorUiState("Promenad", isValid = true, isDirty = true), emptyFlow(), {}, {}, onArchive = {}) {
+            EntityEditScreen("Ny aktivitetstyp", EditorUiState("Promenad", isValid = true, isDirty = true), EditorEvents.None, {}, {}, onArchive = {}) {
                 AppTextField("Promenad", {}, "Namn")
                 SwitchRow("Favorit", true, {}, subtitle = "Visas först i snabbvalen")
             }
@@ -444,7 +485,7 @@ class FramesTest {
 
     @Test
     fun `EntityEditScreen - släng ändringar`() = rule.captureScreenLightAndDark("EntityEditScreen_slang", open = { onNodeWithContentDescription("Tillbaka").clickWithoutRipple() }) {
-        EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), emptyFlow(), {}, {}) {
+        EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), EditorEvents.None, {}, {}) {
             AppTextField("Promenad 50", {}, "Namn")
         }
     }

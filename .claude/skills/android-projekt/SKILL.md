@@ -43,6 +43,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 - `Flow<List<T>>.asListUiState()` – gemensam omvandling till `ListUiState<T>` för alla listskärmar; skriv aldrig en egen variant.
 - Inställningar kommer från Firestore-dokumentet `settings` (tema, påminnelser, profil) via sitt repository; DataStore håller bara enhetslokalt tillstånd (TP-4).
 - ViewModels: `stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), …)`.
+- Händelser från en ViewModel är fält i tillståndet som skärmen kvitterar (pluginen, Googles råd): fel som state med kvittens (t.ex. `ArchiveActions.failure`); formulärets klar/sparfel `EditorUiState.done`/`failure`, som `EntityEditScreen` kvitterar via `EditorEvents` (`EditorState`) och `EditorSheet` i arkets livscykel. Skärmen agerar i en `LaunchedEffect` nyckelad på värdet. Ingen `Channel` eller `receiveAsFlow` i `ui/` – scopet `[events]` i `ui-forbidden.txt` kontrollerar det; `MutableSharedFlow` bara för "Försök igen" i `ListLoader`/`DetailLoader`.
 - Bara `di/` nämner `Dispatchers.`; scopet `[dispatchers]` i `ui-forbidden.txt` kontrolleras av `UiConsistencyTest` och hooken. Enhetstester ger `UnconfinedTestDispatcher()` eller `StandardTestDispatcher(testScheduler)`; androidTest får använda `Dispatchers.IO` direkt.
 
 ## Compose (android:compose-expert)

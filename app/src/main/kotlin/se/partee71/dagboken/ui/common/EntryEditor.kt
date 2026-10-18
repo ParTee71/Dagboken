@@ -6,7 +6,6 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
@@ -125,7 +124,7 @@ class EntryEditor<T>(
 class EntryForm<T>(
     val isNew: Boolean,
     val state: EditorUiState<T>,
-    val effects: Flow<EditorEffect>,
+    val events: EditorEvents,
     val onEvent: (EntryEditEvent<T>) -> Unit,
     val stored: T? = null,
 ) {
@@ -140,7 +139,7 @@ class EntryForm<T>(
 fun <T> rememberEntryForm(editor: EntryEditor<T>): EntryForm<T> {
     val state by editor.editor.state.collectAsStateWithLifecycle()
     val stored by editor.stored.collectAsStateWithLifecycle()
-    return EntryForm(editor.isNew, state, editor.editor.effects, editor::onEvent, stored)
+    return EntryForm(editor.isNew, state, editor.editor, editor::onEvent, stored)
 }
 
 /**

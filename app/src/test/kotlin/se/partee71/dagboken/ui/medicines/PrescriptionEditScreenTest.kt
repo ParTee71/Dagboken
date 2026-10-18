@@ -13,7 +13,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import kotlin.test.assertEquals
 import kotlinx.collections.immutable.toImmutableMap
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import org.junit.Rule
@@ -33,6 +32,7 @@ import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.captureLightAndDark
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.runEditScreenContract
@@ -56,7 +56,7 @@ class PrescriptionEditScreenTest {
     private val new = newPrescription(today).copy(name = "Kåvepenin", dose = "1", unit = "g", slots = listOf(Slot.MORNING, Slot.EVENING))
 
     private fun show(value: Prescription, period: PeriodChoice = value.period.end?.let { PeriodChoice.END_DATE } ?: PeriodChoice.UNTIL_FURTHER_NOTICE, canAdd: Boolean = true, onEvent: (PrescriptionEditEvent) -> Unit = {}) =
-        rule.setContent { DagbokenTheme { PrescriptionEditScreen(false, EditorUiState(value), period, canAdd, emptyFlow(), onEvent, {}) } }
+        rule.setContent { DagbokenTheme { PrescriptionEditScreen(false, EditorUiState(value), period, canAdd, EditorEvents.None, onEvent, {}) } }
 
     @Test
     fun `receptformuläret uppfyller redigeringskontraktet (NFR-10)`() {
@@ -66,8 +66,8 @@ class PrescriptionEditScreenTest {
             makeInvalid = { update(PrescriptionField.NAME) { it.copy(name = " ") } },
             makeValid = { update(PrescriptionField.NAME) { it.copy(name = "Sertralin") } },
             invalidMessage = "Ange ett namn",
-        ) { state, effects, onSave, onClose ->
-            PrescriptionEditScreen(true, state, PeriodChoice.UNTIL_FURTHER_NOTICE, true, effects, { if (it == PrescriptionEditEvent.Save) onSave() }, onClose)
+        ) { state, events, onSave, onClose ->
+            PrescriptionEditScreen(true, state, PeriodChoice.UNTIL_FURTHER_NOTICE, true, events, { if (it == PrescriptionEditEvent.Save) onSave() }, onClose)
         }
     }
 
@@ -148,7 +148,7 @@ class PrescriptionEditScreenTest {
 
     private fun capture(name: String, value: Prescription, period: PeriodChoice, scrollTo: String? = null, isNew: Boolean = false, errors: Map<String, Int> = emptyMap()) =
         rule.captureLightAndDark(name, settle = scrollTo?.let(::scrolledTo) ?: { waitForIdle() }) {
-            PrescriptionEditScreen(isNew, EditorUiState(value, errors = errors.toImmutableMap(), isValid = errors.isEmpty(), isDirty = true), period, true, emptyFlow(), {}, {})
+            PrescriptionEditScreen(isNew, EditorUiState(value, errors = errors.toImmutableMap(), isValid = errors.isEmpty(), isDirty = true), period, true, EditorEvents.None, {}, {})
         }
 
     @Test
@@ -209,7 +209,7 @@ class PrescriptionEditScreenTest {
     @Test
     fun `förslagen visas under namnet i ett nytt recept och ett tryck väljer läkemedlet`() {
         val events = mutableListOf<PrescriptionEditEvent>()
-        rule.setContent { DagbokenTheme { PrescriptionEditScreen(true, EditorUiState(typed), PeriodChoice.UNTIL_FURTHER_NOTICE, true, emptyFlow(), { events += it }, {}, matches) } }
+        rule.setContent { DagbokenTheme { PrescriptionEditScreen(true, EditorUiState(typed), PeriodChoice.UNTIL_FURTHER_NOTICE, true, EditorEvents.None, { events += it }, {}, matches) } }
         rule.onNodeWithText("Från Läkemedelsverkets lista · fortsätt skriva om ditt inte finns").assertIsDisplayed()
         rule.onNodeWithText("Munsönderfallande tablett").assertIsDisplayed()
         rule.onAllNodesWithText("Filmdragerad tablett")[0].performClick()
@@ -221,7 +221,7 @@ class PrescriptionEditScreenTest {
     @Test
     fun `ett befintligt recept har inga förslag, och formen är vald eller inte`() {
         val events = mutableListOf<PrescriptionEditEvent>()
-        rule.setContent { DagbokenTheme { PrescriptionEditScreen(false, EditorUiState(typed.copy(form = MedicineForm.CAPSULE)), PeriodChoice.UNTIL_FURTHER_NOTICE, true, emptyFlow(), { events += it }, {}, matches) } }
+        rule.setContent { DagbokenTheme { PrescriptionEditScreen(false, EditorUiState(typed.copy(form = MedicineForm.CAPSULE)), PeriodChoice.UNTIL_FURTHER_NOTICE, true, EditorEvents.None, { events += it }, {}, matches) } }
         rule.onNodeWithText("Från Läkemedelsverkets lista · fortsätt skriva om ditt inte finns").assertDoesNotExist()
         rule.onNodeWithText("Kapsel").assertIsSelected().performClick()
         assertEquals(PrescriptionEditEvent.FormChosen(null), events.last(), "ett tryck på den valda formen avmarkerar den")
@@ -231,6 +231,6 @@ class PrescriptionEditScreenTest {
 
     @Test
     fun `skärmdump - nytt recept med namnförslag`() = rule.captureLightAndDark("Medicines_recept_forslag") {
-        PrescriptionEditScreen(true, EditorUiState(typed, isDirty = true), PeriodChoice.UNTIL_FURTHER_NOTICE, true, emptyFlow(), {}, {}, matches)
+        PrescriptionEditScreen(true, EditorUiState(typed, isDirty = true), PeriodChoice.UNTIL_FURTHER_NOTICE, true, EditorEvents.None, {}, {}, matches)
     }
 }

@@ -11,6 +11,9 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.testing.awaitDone
+import se.partee71.dagboken.testing.awaitFailure
+import se.partee71.dagboken.testing.expectNoEditorEvents
 
 /** Formulärlogiken bakom `EntityEditScreen` (NFR-10, NFR-12) – testas en gång här, inte per skärm. */
 class EditorStateTest {
@@ -80,11 +83,12 @@ class EditorStateTest {
     fun `lyckad sparning ger Done och ett oändrat formulär`() = runTest {
         val editor = editor()
         editor.update(NAME) { it.copy(name = "Solkräm") }
-        editor.effects.test {
+        editor.state.test {
             var saved: Form? = null
             editor.save { saved = it; Result.success(Unit) }
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(editor)
             assertEquals(Form("Solkräm"), saved)
+            cancelAndIgnoreRemainingEvents()
         }
         assertFalse(editor.state.value.isDirty)
         assertFalse(editor.state.value.saving)
@@ -94,12 +98,48 @@ class EditorStateTest {
     fun `sparfel ger Failed och formuläret står kvar ändrat`() = runTest {
         val editor = editor()
         editor.update(NAME) { it.copy(name = "Solkräm") }
-        editor.effects.test {
+        editor.state.test {
             editor.save { Result.failure(DataError.Offline) }
-            (awaitItem() as EditorEffect.Failed).failure.let { assertEquals(DataError.Offline, it.error); assertEquals(DataError.Offline.toMessage(), it.message) }
+            awaitFailure(editor).let { assertEquals(DataError.Offline, it.error); assertEquals(DataError.Offline.toMessage(), it.message) }
+            cancelAndIgnoreRemainingEvents()
         }
         assertTrue(editor.state.value.isDirty)
         assertTrue(editor.state.value.canSave)
+    }
+
+    @Test
+    fun `klar och sparfel står kvar tills de kvitterats, även när formuläret ändras, och kommer inte igen`() = runTest {
+        val editor = editor()
+        editor.update(NAME) { it.copy(name = "Solkräm") }
+        editor.save { Result.failure(DataError.Offline) }
+        editor.update(NOTE) { it.copy(note = "SPF 50") }
+        assertEquals(DataError.Offline, editor.state.value.failure?.error, "ett okvitterat fel tappas inte av en ändring")
+        editor.onFailureShown()
+        assertNull(editor.state.value.failure)
+
+        editor.save { Result.success(Unit) }
+        editor.load(Form("Solkräm", "SPF 50"))
+        assertTrue(editor.state.value.done, "ett okvitterat klar tappas inte av load")
+        editor.onDoneHandled()
+        assertFalse(editor.state.value.done)
+        assertNull(editor.state.value.failure, "det kvitterade felet visas inte igen")
+
+        editor.update(NOTE) { it.copy(note = "SPF 30") }
+        assertFalse(editor.state.value.done, "klar visas inte igen")
+    }
+
+    @Test
+    fun `samma fel två gånger i rad är två sparfel`() = runTest {
+        val editor = editor()
+        editor.update(NAME) { it.copy(name = "Solkräm") }
+        editor.state.test {
+            editor.save { Result.failure(DataError.Offline) }
+            val first = awaitFailure(editor)
+            editor.save { Result.failure(DataError.Offline) }
+            val second = awaitFailure(editor)
+            assertTrue(first !== second, "ett nytt fel, inte det kvitterade")
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
@@ -135,11 +175,12 @@ class EditorStateTest {
     @Test
     fun `run för arkivera och radera ger Done eller Failed`() = runTest {
         val editor = editor(Form("Solkräm"))
-        editor.effects.test {
+        editor.state.test {
             editor.run { Result.success(Unit) }
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(editor)
             editor.run { Result.failure(DataError.PermissionDenied) }
-            (awaitItem() as EditorEffect.Failed).failure.let { assertEquals(DataError.PermissionDenied, it.error); assertEquals(DataError.PermissionDenied.toMessage(), it.message) }
+            awaitFailure(editor).let { assertEquals(DataError.PermissionDenied, it.error); assertEquals(DataError.PermissionDenied.toMessage(), it.message) }
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -176,7 +217,7 @@ class EditorStateTest {
         val editor = editor()
         editor.update(NAME) { it.copy(name = "Solkräm") }
         val gate = CompletableDeferred<Unit>()
-        editor.effects.test {
+        editor.state.test {
             val saving = launch { editor.save { gate.await(); Result.success(Unit) } }
             testScheduler.runCurrent()
             editor.update(NOTE) { it.copy(note = "SPF 50") }
@@ -185,7 +226,7 @@ class EditorStateTest {
 
             assertTrue(editor.state.value.isDirty, "anteckningen är inte sparad")
             assertTrue(editor.state.value.canSave)
-            expectNoEvents()
+            expectNoEditorEvents()
         }
     }
 
@@ -193,13 +234,14 @@ class EditorStateTest {
     fun `arkivera eller radera stänger alltid, även om något ändrats under tiden`() = runTest {
         val editor = editor(Form("Solkräm"))
         val gate = CompletableDeferred<Unit>()
-        editor.effects.test {
+        editor.state.test {
             val deleting = launch { editor.run { gate.await(); Result.success(Unit) } }
             testScheduler.runCurrent()
             editor.update(NOTE) { it.copy(note = "skrivet under raderingen") }
             gate.complete(Unit)
             deleting.join()
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(editor)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 

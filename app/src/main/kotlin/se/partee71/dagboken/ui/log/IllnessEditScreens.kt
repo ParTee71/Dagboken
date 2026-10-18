@@ -167,7 +167,7 @@ fun EpisodeNewScreen(form: EntryForm<EpisodeStart>, onClose: () -> Unit, symptom
     EntityEditScreen(
         title = stringResource(R.string.illness_new),
         state = state,
-        effects = form.effects,
+        events = form.events,
         onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
@@ -269,7 +269,7 @@ fun EpisodeEditScreen(form: EntryForm<IllnessEpisode>, onClose: () -> Unit) {
     EntityEditScreen(
         title = stringResource(R.string.illness_edit),
         state = state,
-        effects = form.effects,
+        events = form.events,
         onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
@@ -345,7 +345,7 @@ fun CheckinEditScreen(form: EntryForm<Checkin>, onClose: () -> Unit, episode: Il
     EntityEditScreen(
         title = stringResource(if (form.isNew) R.string.checkin_new else R.string.checkin_edit),
         state = state,
-        effects = form.effects,
+        events = form.events,
         onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
         delete = if (form.isNew) {

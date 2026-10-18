@@ -36,8 +36,9 @@ import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.medicines.PrescriptionEditEvent as Event
+import se.partee71.dagboken.testing.awaitDone
+import se.partee71.dagboken.testing.awaitFailure
 
 /** Receptformuläret (REC-1…REC-10, MEDF-5) mot `FakeCollection`: valen, reglerna, sparningen och dossynken. */
 class PrescriptionEditViewModelTest {
@@ -82,9 +83,10 @@ class PrescriptionEditViewModelTest {
         vm.onEvent(Event.DoseChanged("50 "))
         vm.onEvent(Event.NoteChanged(" Tas med frukost "))
         assertTrue(vm.editor.state.value.canSave)
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(Event.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         val saved = factory.prescriptions().getAll().getOrThrow().single()
         assertEquals(newPrescription(today).copy(id = saved.id, name = "Sertralin", dose = "50", note = "Tas med frukost", createdAt = FixedClock().now()), saved)
@@ -239,9 +241,10 @@ class PrescriptionEditViewModelTest {
         assertEquals(PeriodChoice.UNTIL_FURTHER_NOTICE, vm.periodChoice.value)
         assertFalse(vm.editor.state.value.isDirty)
         vm.onEvent(Event.DoseChanged("75"))
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(Event.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         val stored = factory.store.read(prescriptionsPath(), sertralin.id)!!
         assertEquals("75", stored["dose"])
@@ -262,9 +265,10 @@ class PrescriptionEditViewModelTest {
         assertFalse(vm.editor.state.value.isDirty)
 
         vm.onEvent(Event.NameChanged("Sertralin Teva"))
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(Event.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         val stored = factory.store.read(prescriptionsPath(), sertralin.id)!!
         assertEquals(newer, stored["schedule"])
@@ -288,9 +292,10 @@ class PrescriptionEditViewModelTest {
         val before = factory.store.read(prescriptionsPath(), sertralin.id)!!
         val vm = viewModel(sertralin.id)
         vm.onEvent(Event.NameChanged("Sertralin Teva"))
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(Event.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         assertEquals(before + ("name" to "Sertralin Teva"), factory.store.read(prescriptionsPath(), sertralin.id), "ingen start, inga tidpunkter skrivna")
     }
@@ -303,9 +308,10 @@ class PrescriptionEditViewModelTest {
         vm.onEvent(Event.SlotToggled(Slot.EVENING))
         assertFalse(vm.editor.state.value.isDirty, "tidpunkterna går inte att ändra")
         vm.onEvent(Event.NameChanged("Sertralin Teva"))
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(Event.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         assertEquals(listOf("morning", "brunch"), factory.store.read(prescriptionsPath(), sertralin.id)!!["slots"])
     }
@@ -323,13 +329,14 @@ class PrescriptionEditViewModelTest {
         }
         val vm = PrescriptionEditViewModel(flaky, FakeMedicines(), main.dispatcher, clock, { zone }, null, false)
         vm.onEvent(Event.NameChanged("Sertralin"))
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(Event.Save)
-            assertTrue(awaitItem() is EditorEffect.Failed)
+            awaitFailure(vm.editor)
             now = kotlin.time.Instant.parse("2026-09-21T09:30:00Z")
             fail = false
             vm.onEvent(Event.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         assertEquals(kotlin.time.Instant.parse("2026-09-21T08:00:00Z"), factory.prescriptions().getAll().getOrThrow().single().createdAt)
     }
@@ -350,9 +357,10 @@ class PrescriptionEditViewModelTest {
         assertTrue(vm.editor.state.value.canSave, "förlängningen är en ändring som kan sparas direkt")
         assertEquals(ended, vm.stored.value)
 
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(Event.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         val saved = factory.prescriptions().get(ended.id).getOrThrow()!!
         assertTrue(saved.active)
@@ -418,12 +426,13 @@ class PrescriptionEditViewModelTest {
         }
         val vm = viewModel(prescriptions = flaky)
         vm.onEvent(Event.NameChanged("Sertralin"))
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(Event.Save)
-            assertEquals(DataError.Unknown, (awaitItem() as EditorEffect.Failed).failure.error)
+            assertEquals(DataError.Unknown, awaitFailure(vm.editor).error)
             failSync = false
             vm.onEvent(Event.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         assertEquals(1, factory.prescriptions().getAll().getOrThrow().size, "inget dubblettrecept")
     }
@@ -452,9 +461,10 @@ class PrescriptionEditViewModelTest {
         val vm = viewModel(sertralin.id)
         assertEquals(null to "gel", vm.value.form to vm.value.unknownForm)
         vm.onEvent(Event.StrengthChanged(" 50 mg "))
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(Event.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         factory.prescriptions().get(sertralin.id).getOrThrow().let { assertEquals(Triple("50 mg", null, "gel"), Triple(it?.strength, it?.form, it?.unknownForm)) }
 

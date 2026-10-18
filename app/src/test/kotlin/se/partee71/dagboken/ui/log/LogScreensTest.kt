@@ -12,7 +12,6 @@ import androidx.compose.ui.test.performScrollTo
 import kotlin.test.assertEquals
 import kotlin.time.Instant
 import kotlinx.collections.immutable.persistentMapOf
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Rule
@@ -33,6 +32,7 @@ import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryForm
@@ -77,7 +77,7 @@ class LogScreensTest {
     private val migraine = Event("e1", day, LocalTime(9, 40), optionId = "migraine", severity = 5, durationMinutes = 30, createdAt = created)
 
     private fun <T> form(value: T, isNew: Boolean = true, stored: T? = null, onEvent: (EntryEditEvent<T>) -> Unit = {}) =
-        EntryForm(isNew, EditorUiState(value), emptyFlow(), onEvent, stored)
+        EntryForm(isNew, EditorUiState(value), EditorEvents.None, onEvent, stored)
 
     // ── Aktivitet ─────────────────────────────────────────────────────────
 
@@ -89,8 +89,8 @@ class LogScreensTest {
             makeInvalid = { update(ActivityField.TYPE, ActivityField.DESCRIPTION) { it.copy(optionId = OTHER_ACTIVITY_ID) } },
             makeValid = { update(ActivityField.DESCRIPTION) { it.copy(customText = "Svamplockning") } },
             invalidMessage = "Beskriv aktiviteten",
-        ) { state, effects, onSave, onClose ->
-            ActivityEditScreen(EntryForm(true, state, effects, { if (it == EntryEditEvent.Save) onSave() }), onClose, activityTypes)
+        ) { state, events, onSave, onClose ->
+            ActivityEditScreen(EntryForm(true, state, events, { if (it == EntryEditEvent.Save) onSave() }), onClose, activityTypes)
         }
     }
 
@@ -144,7 +144,7 @@ class LogScreensTest {
         rule.setContent {
             DagbokenTheme {
                 ActivityEditScreen(
-                    EntryForm(false, EditorUiState(tooLong, errors = persistentMapOf(ActivityField.NOTE to R.string.field_not_savable, "minutes" to R.string.field_not_savable), isValid = false), emptyFlow(), {}),
+                    EntryForm(false, EditorUiState(tooLong, errors = persistentMapOf(ActivityField.NOTE to R.string.field_not_savable, "minutes" to R.string.field_not_savable), isValid = false), EditorEvents.None, {}),
                     {},
                     activityTypes,
                 )
@@ -164,8 +164,8 @@ class LogScreensTest {
             makeInvalid = { update(EventField.TYPE) { it.copy(optionId = "") } },
             makeValid = { update(EventField.TYPE) { it.copy(optionId = "migraine") } },
             invalidMessage = "Välj en typ",
-        ) { state, effects, onSave, onClose ->
-            EventEditScreen(EntryForm(true, state, effects, { if (it == EntryEditEvent.Save) onSave() }), onClose, eventTypes)
+        ) { state, events, onSave, onClose ->
+            EventEditScreen(EntryForm(true, state, events, { if (it == EntryEditEvent.Save) onSave() }), onClose, eventTypes)
         }
     }
 
@@ -220,7 +220,7 @@ class LogScreensTest {
     @Test
     fun `skärmdump - aktivitet Övrigt`() = rule.captureLightAndDark("Log_aktivitet_ovrigt") {
         ActivityEditScreen(
-            EntryForm(false, EditorUiState(other.copy(symptoms = listOf(SymptomScore("headache", 3)), note = "Regn hela vägen"), isDirty = true), emptyFlow(), {}),
+            EntryForm(false, EditorUiState(other.copy(symptoms = listOf(SymptomScore("headache", 3)), note = "Regn hela vägen"), isDirty = true), EditorEvents.None, {}),
             {},
             activityTypes,
             symptoms,
@@ -234,7 +234,7 @@ class LogScreensTest {
 
     @Test
     fun `skärmdump - händelse utan typ efter sparförsök`() = rule.captureLightAndDark("Log_handelse_utan_typ") {
-        EventEditScreen(EntryForm(true, EditorUiState(migraine.copy(optionId = ""), errors = persistentMapOf(EventField.TYPE to R.string.entry_type_missing), isValid = false), emptyFlow(), {}), {}, eventTypes)
+        EventEditScreen(EntryForm(true, EditorUiState(migraine.copy(optionId = ""), errors = persistentMapOf(EventField.TYPE to R.string.entry_type_missing), isValid = false), EditorEvents.None, {}), {}, eventTypes)
     }
 
     @Test

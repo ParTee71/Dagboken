@@ -29,7 +29,6 @@ import javax.inject.Provider
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -74,7 +73,7 @@ import se.partee71.dagboken.data.medicines.MedicineRepository
 import se.partee71.dagboken.di.DefaultDispatcher
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.ui.common.DateFormat
-import se.partee71.dagboken.ui.common.EditorEffect
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorLoader
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
@@ -372,7 +371,7 @@ fun PrescriptionEditRoute(id: String?, extend: Boolean, onClose: () -> Unit) {
     val state by viewModel.editor.state.collectAsStateWithLifecycle()
     val periodChoice by viewModel.periodChoice.collectAsStateWithLifecycle()
     val matches by viewModel.suggestions.matches.collectAsStateWithLifecycle()
-    PrescriptionEditScreen(viewModel.isNew, state, periodChoice, viewModel.canAddBoost(state.value), viewModel.editor.effects, viewModel::onEvent, onClose, matches)
+    PrescriptionEditScreen(viewModel.isNew, state, periodChoice, viewModel.canAddBoost(state.value), viewModel.editor, viewModel::onEvent, onClose, matches)
 }
 
 /**
@@ -387,7 +386,7 @@ fun PrescriptionEditScreen(
     state: EditorUiState<Prescription>,
     periodChoice: PeriodChoice,
     canAddBoost: Boolean,
-    effects: Flow<EditorEffect>,
+    events: EditorEvents,
     onEvent: (PrescriptionEditEvent) -> Unit,
     onClose: () -> Unit,
     matches: List<MedicineMatch> = emptyList(),
@@ -398,7 +397,7 @@ fun PrescriptionEditScreen(
     EntityEditScreen(
         title = stringResource(if (isNew) R.string.medicines_new_prescription else R.string.prescription_edit),
         state = state,
-        effects = effects,
+        events = events,
         onSave = { onEvent(PrescriptionEditEvent.Save) },
         onClose = onClose,
         onRetry = { onEvent(PrescriptionEditEvent.Retry) },

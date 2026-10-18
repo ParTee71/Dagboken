@@ -12,7 +12,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.time.Clock
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
@@ -21,7 +20,7 @@ import se.partee71.dagboken.core.engine.plausibleBirthYears
 import se.partee71.dagboken.core.model.Profile
 import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.data.repository.SettingsRepository
-import se.partee71.dagboken.ui.common.EditorEffect
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorLoader
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
@@ -92,7 +91,7 @@ class ProfileEditViewModel @Inject constructor(
 @Composable
 fun ProfileRoute(onClose: () -> Unit, viewModel: ProfileEditViewModel = hiltViewModel()) {
     val state by viewModel.editor.state.collectAsStateWithLifecycle()
-    ProfileScreen(state, viewModel.editor.effects, viewModel::onEvent, onClose)
+    ProfileScreen(state, viewModel.editor, viewModel::onEvent, onClose)
 }
 
 /** Kön i den ordning de visas: Kvinna · Man · Ej angivet. */
@@ -100,11 +99,11 @@ private val SEXES = listOf(Sex.FEMALE, Sex.MALE, Sex.UNSPECIFIED)
 
 /** Profil: födelseår och kön på `EntityEditScreen` – Spara aktiv först när giltigt och ändrat (NFR-10). */
 @Composable
-fun ProfileScreen(state: EditorUiState<ProfileForm>, effects: Flow<EditorEffect>, onEvent: (ProfileEvent) -> Unit, onClose: () -> Unit) {
+fun ProfileScreen(state: EditorUiState<ProfileForm>, events: EditorEvents, onEvent: (ProfileEvent) -> Unit, onClose: () -> Unit) {
     EntityEditScreen(
         title = stringResource(R.string.settings_profile),
         state = state,
-        effects = effects,
+        events = events,
         onSave = { onEvent(ProfileEvent.Save) },
         onClose = onClose,
         onRetry = { onEvent(ProfileEvent.Retry) },

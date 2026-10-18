@@ -16,7 +16,7 @@ import kotlinx.coroutines.plus
  * Ett öppet formulär i ett ark: formuläret ([editor], den delade [EditorState]), det sparade värdet [loaded]
  * (`null` = nytt) och [context] – det arket visar utöver formuläret (t.ex. rubriken), taget när arket öppnades,
  * så att arket står sig också när skärmen bakom laddar om. [error] är ett skrivfel med samma text som i
- * `EntityEditScreen` (`EditorEffect.Failed.failure`), visat i arket (`AppBottomSheet(error)`). [closing] = sparat:
+ * `EntityEditScreen` (`EditorUiState.failure`), visat i arket (`AppBottomSheet(error)`). [closing] = sparat:
  * arket ska döljas (animerat, `AppBottomSheet(hide)`) och sedan stängas ([EditorSheet.close]).
  */
 class EditorSheetState<T, C> internal constructor(
@@ -85,13 +85,16 @@ class EditorSheet<T, C>(private val scope: CoroutineScope, private val onSaved: 
         job = sheetJob
         _current.value = sheet
         sheetScope.launch {
-            sheet.editor.effects.collect { effect ->
-                when (effect) {
-                    EditorEffect.Done -> {
-                        onSaved()
-                        sheet.saved()
-                    }
-                    is EditorEffect.Failed -> sheet.showError(effect.failure)
+            // Formulärets händelser kvitteras här, i arkets livscykel – arket visar dem som eget tillstånd.
+            sheet.editor.state.collect { state ->
+                if (state.done) {
+                    sheet.editor.onDoneHandled()
+                    onSaved()
+                    sheet.saved()
+                }
+                state.failure?.let { failure ->
+                    sheet.editor.onFailureShown()
+                    sheet.showError(failure)
                 }
             }
         }

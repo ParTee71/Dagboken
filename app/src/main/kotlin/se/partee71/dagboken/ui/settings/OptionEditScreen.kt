@@ -13,7 +13,6 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
@@ -34,7 +33,7 @@ import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.repository.DuplicateOptionName
 import se.partee71.dagboken.data.repository.OptionsRepository
-import se.partee71.dagboken.ui.common.EditorEffect
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorLoader
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
@@ -184,7 +183,7 @@ fun OptionEditRoute(kind: OptionKind, id: String?, onClose: () -> Unit) {
     val viewModel = hiltViewModel<OptionEditViewModel, OptionEditViewModel.Factory> { it.create(kind, id) }
     val state by viewModel.editor.state.collectAsStateWithLifecycle()
     val stored by viewModel.stored.collectAsStateWithLifecycle()
-    OptionEditScreen(kind, isNew = viewModel.isNew, archived = stored?.archived, state, viewModel.editor.effects, viewModel::onEvent, onClose)
+    OptionEditScreen(kind, isNew = viewModel.isNew, archived = stored?.archived, state, viewModel.editor, viewModel::onEvent, onClose)
 }
 
 /**
@@ -198,14 +197,14 @@ fun OptionEditScreen(
     isNew: Boolean,
     archived: Boolean?,
     state: EditorUiState<String>,
-    effects: Flow<EditorEffect>,
+    events: EditorEvents,
     onEvent: (OptionEditEvent) -> Unit,
     onClose: () -> Unit,
 ) {
     EntityEditScreen(
         title = stringResource(if (isNew) kind.newLabel() else R.string.option_rename),
         state = state,
-        effects = effects,
+        events = events,
         onSave = { onEvent(OptionEditEvent.Save) },
         onClose = onClose,
         onArchive = if (archived == false) ({ onEvent(OptionEditEvent.Archive) }) else null,

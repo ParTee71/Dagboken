@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -50,6 +49,7 @@ import se.partee71.dagboken.core.engine.StackedPoint
 import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.DetailUiState
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ArchiveEvent
 import se.partee71.dagboken.ui.common.DateFormat
@@ -682,7 +682,7 @@ private fun Frames(onBack: () -> Unit) {
         EntityEditScreen(
             title = "Ny aktivitetstyp",
             state = EditorUiState(value = name, errors = if (name.isBlank()) persistentMapOf("name" to R.string.error_unknown) else persistentMapOf(), isValid = name.isNotBlank(), isDirty = name.isNotEmpty()),
-            effects = emptyFlow(),
+            events = EditorEvents.None,
             onSave = {},
             onClose = onBack,
             onArchive = {},
