@@ -16,7 +16,6 @@ import javax.inject.Singleton
 import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.datetime.TimeZone
 import se.partee71.dagboken.data.common.DataStoreDayMarks
@@ -28,16 +27,6 @@ import se.partee71.dagboken.data.user.UserSession
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class ApplicationScope
-
-/** Dispatchern för blockerande läsningar utanför Firestore, t.ex. Health Connect (NFR-8) – utbytbar i test. */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class IoDispatcher
-
-/** Dispatchern för tung beräkning utanför huvudtråden, t.ex. migreringens jämförelser (NFR-8) – utbytbar i test. */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class DefaultDispatcher
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -54,15 +43,8 @@ abstract class AppModule {
         @Provides
         @Singleton
         @ApplicationScope
-        fun applicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
-        @Provides
-        @IoDispatcher
-        fun ioDispatcher(): CoroutineDispatcher = Dispatchers.IO
-
-        @Provides
-        @DefaultDispatcher
-        fun defaultDispatcher(): CoroutineDispatcher = Dispatchers.Default
+        fun applicationScope(@DefaultDispatcher computation: CoroutineDispatcher): CoroutineScope =
+            CoroutineScope(SupervisorJob() + computation)
 
         @Provides
         fun clock(): Clock = Clock.System

@@ -13,6 +13,8 @@
 # allowlist-fel = allowlist-rader som ska avvisas (saknar symbol eller motivering)
 
 [ok]
+withContext(io) {
+import kotlinx.coroutines.Dispatchers
 AppCard { }
 AppButton(onClick = {})
 AppIconButton(onClick = {})
@@ -44,6 +46,8 @@ import androidx.compose.material3.Card
  * Card(modifier) i en KDoc
 
 [stopp]
+withContext(Dispatchers.IO) {
+val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 val c = Color(0xFFC8502F)
 tint = Color.Red
 shape = RoundedCornerShape(12.dp)
@@ -101,15 +105,15 @@ VerticalAxis.rememberStart()
 README.md	
 app/src/main/kotlin/se/partee71/dagboken/ui/diary/notes.md	
 app/src/test/kotlin/X.kt	
-app/src/main/kotlin/se/partee71/dagboken/data/firestore/FirestoreCollection.kt	expressive,vico
-app/src/main/kotlin/se/partee71/dagboken/ui/theme/Theme.kt	firestore,vico
-app/src/main/kotlin/se/partee71/dagboken/ui/common/EditorState.kt	firestore,expressive,vico
-app/src/main/kotlin/se/partee71/dagboken/ui/components/screens/EntityListScreen.kt	firestore,vico
-app/src/main/kotlin/se/partee71/dagboken/ui/diagram/LineChart.kt	firestore,expressive
-app/src/main/kotlin/se/partee71/dagboken/ui/diary/DiaryScreen.kt	feature,firestore,expressive,vico
-app/src/main/kotlin/se/partee71/dagboken/ui/AppRoot.kt	feature,firestore,expressive,vico
+app/src/main/kotlin/se/partee71/dagboken/data/firestore/FirestoreCollection.kt	expressive,vico,dispatchers
+app/src/main/kotlin/se/partee71/dagboken/ui/theme/Theme.kt	firestore,vico,dispatchers
+app/src/main/kotlin/se/partee71/dagboken/ui/common/EditorState.kt	firestore,expressive,vico,dispatchers
+app/src/main/kotlin/se/partee71/dagboken/ui/components/screens/EntityListScreen.kt	firestore,vico,dispatchers
+app/src/main/kotlin/se/partee71/dagboken/ui/diagram/LineChart.kt	firestore,expressive,dispatchers
+app/src/main/kotlin/se/partee71/dagboken/ui/diary/DiaryScreen.kt	feature,firestore,expressive,vico,dispatchers
+app/src/main/kotlin/se/partee71/dagboken/ui/AppRoot.kt	feature,firestore,expressive,vico,dispatchers
 app/src/main/kotlin/se/partee71/dagboken/di/AppModule.kt	firestore,expressive,vico
-app/src/main/kotlin/se/partee71/dagboken/data/repository/DoseRepository.kt	firestore,expressive,vico
+app/src/main/kotlin/se/partee71/dagboken/data/repository/DoseRepository.kt	firestore,expressive,vico,dispatchers
 
 [allowlist]
 app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card( – test	Card(modifier) { }	ok

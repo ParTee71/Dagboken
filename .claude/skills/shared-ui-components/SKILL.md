@@ -208,6 +208,9 @@ undantag bara i `ui-allowlist.txt`. Att hooken och testet tolkar filen likadant 
   för Expressive). Behövs ett Expressive-API i en skärm → bygg eller utöka en delad komponent.
 - **All kod utom `data/firestore/`** – även `di/` och `ui/`: `FirebaseFirestore`,
   `CollectionReference`, `DocumentReference`. Därför ligger `FirestoreModule` i `data/firestore/`.
+- **All kod utom `di/`:** `Dispatchers.IO`/`Default`/`Main`/`Unconfined` (`[dispatchers]`). Klassen tar en
+  `CoroutineDispatcher` med `@IoDispatcher` eller `@DefaultDispatcher` från `di/DispatchersModule`
+  (skill `android:kotlin-coroutines`).
 - **ViewModels** som heter `*EditViewModel` och inte exponerar en `EditorState`.
 - **All kod utom `ui/diagram/`:** diagrambiblioteket Vico (`[vico]`) – ett diagram byggs alltid med
   komponenterna i `ui/diagram`. `ui/diagram` räknas som delad kod (inte feature-kod) och får rita själv.

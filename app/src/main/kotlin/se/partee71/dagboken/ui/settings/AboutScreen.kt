@@ -16,7 +16,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -24,6 +24,7 @@ import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.BuildConfig
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.medicines.MedicineRepository
+import se.partee71.dagboken.di.IoDispatcher
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.DetailLoader
 import se.partee71.dagboken.ui.common.DetailUiState
@@ -38,13 +39,17 @@ data class AboutInfo(val versionName: String, val versionCode: Int, val licenses
 
 /** Om Dagboken: versionen ur `BuildConfig` och licenserna ur `assets/licenses/fonts.txt`. */
 @HiltViewModel
-class AboutViewModel @Inject constructor(@ApplicationContext context: Context, medicines: MedicineRepository) : ViewModel() {
+class AboutViewModel @Inject constructor(
+    @ApplicationContext context: Context,
+    medicines: MedicineRepository,
+    @param:IoDispatcher io: CoroutineDispatcher,
+) : ViewModel() {
     private val loader = DetailLoader(
         flow {
             val licenses = context.assets.open(LICENSES).bufferedReader().use { it.readText() }
             emit(AboutInfo(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, licenses, medicines.updated()))
         }
-            .flowOn(Dispatchers.IO),
+            .flowOn(io),
         viewModelScope,
     )
     val state: StateFlow<DetailUiState<AboutInfo>> = loader.state
