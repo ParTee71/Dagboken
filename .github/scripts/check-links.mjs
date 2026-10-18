@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Dokumentkontroll: relativa länkar och nämnda skills/agenter i dokumentationen finns, och
-// tabellerna i CLAUDE.md listar exakt de skills och agenter som finns i .claude/.
+// tabellerna i .claude/README.md listar exakt de skills och agenter som finns i .claude/.
 // Framåtreferenser till sådant som byggs senare står i link-allowlist.txt (töms allteftersom).
 // Kör: node .github/scripts/check-links.mjs  (testas av check-links.test.mjs)
 
@@ -9,6 +9,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ALLOWLIST = '.github/scripts/link-allowlist.txt';
+/** Översikten över skills och agenter (CLAUDE.md länkar hit, så att den filen hålls kort). */
+export const TABLES = '.claude/README.md';
 
 /** Dokumenten som kontrolleras: rotens md-filer och allt i .claude/ (utom lokala inställningar). */
 export function docFiles(root) {
@@ -47,7 +49,7 @@ export function mentions(markdown) {
   return { skills, agents };
 }
 
-/** Förstakolumnens namn i CLAUDE.md-tabellen under rubriken (t.ex. "## Skills"). */
+/** Förstakolumnens namn i översiktstabellen under rubriken (t.ex. "## Skills"). */
 export function tableNames(markdown, heading) {
   const section = markdown.split(/\n(?=## )/).find((s) => s.startsWith(`## ${heading}`));
   if (!section) return new Set();
@@ -83,15 +85,15 @@ export function check(root) {
     for (const a of agents) if (!agentExists(a)) report(file, a, `agenten \`${a}\` finns inte i .claude/agents/`);
   }
 
-  const claude = readFileSync(path.join(root, 'CLAUDE.md'), 'utf8');
-  const listedSkills = tableNames(claude, 'Skills');
-  const listedAgents = tableNames(claude, 'Agenter');
+  const tables = existsSync(path.join(root, TABLES)) ? readFileSync(path.join(root, TABLES), 'utf8') : '';
+  const listedSkills = tableNames(tables, 'Skills');
+  const listedAgents = tableNames(tables, 'Agenter');
   const actualSkills = readdirSync(path.join(root, '.claude/skills')).filter(skillExists);
   const actualAgents = readdirSync(path.join(root, '.claude/agents')).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3));
-  for (const s of actualSkills) if (!listedSkills.has(s)) problems.push(`CLAUDE.md: skill \`${s}\` saknas i tabellen "Skills"`);
-  for (const s of listedSkills) if (!actualSkills.includes(s)) problems.push(`CLAUDE.md: tabellen "Skills" nämner \`${s}\`, som inte finns`);
-  for (const a of actualAgents) if (!listedAgents.has(a)) problems.push(`CLAUDE.md: agenten \`${a}\` saknas i tabellen "Agenter"`);
-  for (const a of listedAgents) if (!actualAgents.includes(a)) problems.push(`CLAUDE.md: tabellen "Agenter" nämner \`${a}\`, som inte finns`);
+  for (const s of actualSkills) if (!listedSkills.has(s)) problems.push(`${TABLES}: skill \`${s}\` saknas i tabellen "Skills"`);
+  for (const s of listedSkills) if (!actualSkills.includes(s)) problems.push(`${TABLES}: tabellen "Skills" nämner \`${s}\`, som inte finns`);
+  for (const a of actualAgents) if (!listedAgents.has(a)) problems.push(`${TABLES}: agenten \`${a}\` saknas i tabellen "Agenter"`);
+  for (const a of listedAgents) if (!actualAgents.includes(a)) problems.push(`${TABLES}: tabellen "Agenter" nämner \`${a}\`, som inte finns`);
   return problems;
 }
 

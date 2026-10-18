@@ -617,7 +617,7 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
   | `byggare` (ny) | Opus 5.5 · medium | portar, komponenter, skärmar på ramarna, CI-filer |
   | `arkitekt` (ny) | Fable 5.1 · high | datamodell, codecs, konverterare, rules, migrering |
   | `testskrivare` | Sonnet 5.5 · medium | tester på tre eller fler nivåer, fixturer |
-  | `granskare` | Sonnet 5.5 · medium | diffen mot reglerna före varje PR |
+  | `granskare` | sessionens modell · medium | diffen mot reglerna före varje PR – inte svagare än modellen som skrev koden |
   | `ci-doktor` | Sonnet 5.5 · medium | röd CI, loggar, skärmdumpsdiffar |
   | `db-inspektor` | Haiku 4.5 · low | läsfrågor mot Firestore via `tools/db` |
 

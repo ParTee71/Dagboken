@@ -13,6 +13,17 @@ Kör stegen i ordning och rapportera efter varje steg. Stanna och förklara om n
 > ligger kvar som tagg och på branchen `legacy` (OMB-1). 4.0 behåller `applicationId`, så den
 > installeras som uppdatering ovanpå 3.x och migreringen på enheten (OMB-2) körs vid första start.
 
+## Versionshöjning i funktions-PR:en
+
+Varje PR som ändrar appens beteende höjer versionen i samma ändring, så att ingen separat
+release-PR behövs. Välj semver efter ändringen: **major** = brytande/borttagen funktion eller
+backupformat som äldre appar inte läser, **minor** = ny funktion, **patch** = fix, chore,
+refactor. Höj `versionCode` med 1, uppdatera `version.properties` och versionshistoriken i
+README, och skriv versionen i PR-beskrivningen. Ren dokument-, test- eller CI-ändring utan
+effekt i appen höjer inte. Är versionen redan höjd sedan senaste tagg, höj bara om denna PR är
+allvarligare. Själva releasen (tagg, bygge, publicering) körs bara på uttrycklig begäran och
+kräver då ingen ny PR.
+
 ## Hur en release går till
 
 - **Snålt med Actions-minuter (skill `ci-budget`):** `release.yml` kör bara det som inte redan

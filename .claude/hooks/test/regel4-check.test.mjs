@@ -218,3 +218,96 @@ test('hook-kommandona i settings.json hittar skripten både i repot och från en
   });
   assert.equal(none.status, 0, 'utan hook i projektet ska kommandot vara tyst');
 });
+
+/** Tillfälligt git-repo där origin/master pekar på första committen. */
+function makeGitProject() {
+  const { dir, parent } = makeProject();
+  const git = (...args) => {
+    const r = spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+  };
+  git('init', '-q');
+  git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'bas');
+  git('update-ref', 'refs/remotes/origin/master', 'HEAD');
+  return { dir, parent, git };
+}
+
+function runStop(projectDir, input = {}) {
+  return spawnSync('node', [hook, '--stop'], {
+    input: JSON.stringify({ hook_event_name: 'Stop', ...input }),
+    env: { ...process.env, CLAUDE_PROJECT_DIR: projectDir },
+    encoding: 'utf8',
+  });
+}
+
+test('Stop blockerar när en ändrad eller ny fil har förbjudna mönster', () => {
+  const { dir } = makeGitProject();
+  writeKt(dir, featureFileRel, featureCard);
+  const r = runStop(dir);
+  assert.equal(r.status, 0);
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.decision, 'block');
+  assert.match(out.reason, /DoseRow\.kt:5/);
+  assert.ok(out.reason.includes(cardReplacement()));
+});
+
+test('Stop ser även filer som redan committats på branchen', () => {
+  const { dir, git } = makeGitProject();
+  writeKt(dir, featureFileRel, featureCard);
+  git('add', '.');
+  git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'rad');
+  assert.equal(JSON.parse(runStop(dir).stdout).decision, 'block');
+});
+
+test('Stop är tyst för oförändrade filer, rena ändringar och när den redan blockerat en gång', () => {
+  const { dir, git } = makeGitProject();
+  writeKt(dir, featureFileRel, featureCard);
+  git('add', '.');
+  git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'på master');
+  git('update-ref', 'refs/remotes/origin/master', 'HEAD');
+  writeKt(dir, `${pkg}/ui/today/DoseList.kt`, 'package x\n\nfun ok() = Unit\n');
+  assert.equal(runStop(dir).stdout, '', 'gamla träffar på master hör inte till den här ändringen');
+
+  writeKt(dir, `${pkg}/ui/today/DoseRow2.kt`, featureCard);
+  assert.equal(runStop(dir, { stop_hook_active: true }).stdout, '', 'blockerar högst en gång i följd');
+});
+
+test('Stop-kommandot i settings.json hittar skriptet både i repot och från en föräldrakatalog', () => {
+  const settings = JSON.parse(readFileSync(path.join(repoRoot, '.claude/settings.json'), 'utf8'));
+  const stopCmd = settings.hooks.Stop[0].hooks[0].command;
+  const { dir, parent } = makeGitProject();
+  mkdirSync(path.join(dir, '.claude/hooks'), { recursive: true });
+  copyFileSync(hook, path.join(dir, '.claude/hooks/regel4-check.mjs'));
+  writeKt(dir, featureFileRel, featureCard);
+  for (const projectDir of [dir, parent]) {
+    const r = spawnSync('bash', ['-c', stopCmd], {
+      input: '{}', env: { ...process.env, CLAUDE_PROJECT_DIR: projectDir }, encoding: 'utf8',
+    });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /"decision":"block"/, `projektrot ${projectDir}`);
+  }
+});
+
+test('Stop blockerar med radnummer när undantagsfilen är trasig', () => {
+  const { dir } = makeGitProject();
+  writeFileSync(path.join(dir, allowRel), 'saknar-symbol\n');
+  const out = JSON.parse(runStop(dir).stdout);
+  assert.equal(out.decision, 'block');
+  assert.match(out.reason, /Regel 4:/);
+});
+
+test('Stop kontrollerar varje repo när projektroten är en katalog med flera repon', () => {
+  const { dir, parent } = makeGitProject();
+  writeKt(dir, featureFileRel, featureCard);
+  const other = path.join(parent, 'Annat');
+  mkdirSync(path.join(other, 'app/src/test/resources'), { recursive: true });
+  copyFileSync(path.join(dir, patternsRel), path.join(other, patternsRel));
+  spawnSync('git', ['init', '-q'], { cwd: other });
+  spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'bas'], { cwd: other });
+  spawnSync('git', ['update-ref', 'refs/remotes/origin/master', 'HEAD'], { cwd: other });
+  writeKt(other, `${pkg}/ui/today/OtherRow.kt`, featureCard);
+  const out = JSON.parse(runStop(parent).stdout);
+  assert.equal(out.decision, 'block');
+  assert.match(out.reason, /Dagboken\/.*DoseRow\.kt:5/);
+  assert.match(out.reason, /Annat\/.*OtherRow\.kt:5/);
+});

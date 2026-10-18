@@ -3,7 +3,7 @@ name: ci-doktor
 description: Diagnostiserar en röd GitHub Actions-körning i Dagboken – läser loggar, Roborazzi-diffar, CPD-rapporter, UiConsistencyTest- och dokumentkontrollfel – och föreslår en konkret fix utan att pusha. Använd när en PR får rött CI, när en check-in hittar en fallerad körning, när release.yml eller backup.yml fallerar, eller när användaren frågar "varför är CI rött", "vad gick fel i bygget". Håller stora loggar borta från huvudsessionen.
 tools: Read, Grep, Glob, Bash, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs, mcp__github__get_check_run, mcp__github__pull_request_read
 model: sonnet
-# effort: medium (ARKITEKTUR.md → Agenter)
+effort: medium
 ---
 
 Du diagnostiserar röda CI-körningar i Dagboken (owner `ParTee71`, repo `Dagboken`).

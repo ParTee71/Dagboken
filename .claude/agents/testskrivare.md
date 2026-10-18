@@ -3,7 +3,7 @@ name: testskrivare
 description: Skriver eller utökar tester i Dagboken på rätt nivåer enligt testing-strategy, med de delade testhjälparna, och bygger fixturer (t.ex. 3.x-backupen med varje fält satt). Använd när en ändring berör tre eller fler testnivåer eller kräver många testfall (en ny delad ram, en ny samling hela vägen, konverterarens fixtur, kantfall i doser, kylperioder eller diagrammatematik) – vanliga små ändringar testar huvudsessionen själv.
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
-# effort: medium (ARKITEKTUR.md → Agenter)
+effort: medium
 ---
 
 Du skriver tester för Dagboken.

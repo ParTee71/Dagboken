@@ -1,7 +1,7 @@
 // Körs med: node --test '.github/scripts/*.test.mjs'
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,11 +9,12 @@ import { check, mentions, relativeLinks, tableNames } from './check-links.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
-/** Minimalt repo med en skill, en agent och CLAUDE.md som listar dem. */
+/** Minimalt repo med en skill, en agent och .claude/README.md som listar dem. */
 function makeRepo(extra = {}) {
   const dir = mkdtempSync(path.join(tmpdir(), 'links-'));
   const files = {
-    'CLAUDE.md': '## Agenter\n| Agent | När |\n|---|---|\n| `granskare` | x |\n\n## Skills\n| Skill | När |\n|---|---|\n| `ci-budget` | x |\n',
+    'CLAUDE.md': 'Översikt: [.claude/README.md](.claude/README.md).',
+    '.claude/README.md': '## Agenter\n| Agent | När |\n|---|---|\n| `granskare` | x |\n\n## Skills\n| Skill | När |\n|---|---|\n| `ci-budget` | x |\n',
     '.claude/skills/ci-budget/SKILL.md': 'Se [README](../../../README.md).',
     '.claude/agents/granskare.md': 'Agent.',
     'README.md': 'Läs [CLAUDE.md](CLAUDE.md) och skill `ci-budget`.',
@@ -51,13 +52,23 @@ test('skill- och agentnamn känns igen i projektets skrivsätt', () => {
   assert.deepEqual([...agents], ['granskare']);
 });
 
-test('CLAUDE.md-tabellerna måste lista exakt de skills och agenter som finns', () => {
+test('översiktstabellerna måste lista exakt de skills och agenter som finns', () => {
   const dir = makeRepo({ '.claude/skills/ny-skill/SKILL.md': 'x', '.claude/agents/ny.md': 'x' });
   assert.deepEqual(check(dir).sort(), [
-    'CLAUDE.md: agenten `ny` saknas i tabellen "Agenter"',
-    'CLAUDE.md: skill `ny-skill` saknas i tabellen "Skills"',
+    '.claude/README.md: agenten `ny` saknas i tabellen "Agenter"',
+    '.claude/README.md: skill `ny-skill` saknas i tabellen "Skills"',
   ]);
   assert.deepEqual([...tableNames('## Skills\n| `a` · `b` | x |', 'Skills')], ['a', 'b']);
+});
+
+test('saknas översikten fälls varje skill och agent', () => {
+  const dir = makeRepo();
+  rmSync(path.join(dir, '.claude/README.md'));
+  assert.deepEqual(check(dir).sort(), [
+    '.claude/README.md: agenten `granskare` saknas i tabellen "Agenter"',
+    '.claude/README.md: skill `ci-budget` saknas i tabellen "Skills"',
+    'CLAUDE.md: länken .claude/README.md pekar på något som inte finns',
+  ]);
 });
 
 test('framåtreferens i allowlistan godtas', () => {

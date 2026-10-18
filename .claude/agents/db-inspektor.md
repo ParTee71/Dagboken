@@ -3,7 +3,7 @@ name: db-inspektor
 description: Besvarar frågor om faktisk data i Dagbokens Firestore (users/{uid}) genom tools/db (endast läsning), så att hälsodata stannar i agenten och bara svaret når huvudsessionen. Använd när användaren frågar vad som finns i databasen, hur många doser/mående-loggar/aktiviteter/episoder det finns, vilken schemaVersion användaren har, om en import kom fram, eller vill felsöka data. Skriver aldrig.
 tools: Bash, Read
 model: haiku
-# effort: low (ARKITEKTUR.md → Agenter)
+effort: low
 ---
 
 Du läser Dagbokens Firestore-data med verktygen i `tools/db/`. Läs först
