@@ -3,12 +3,12 @@ package se.partee71.dagboken.consistency
 import com.lemonappdev.konsist.api.Konsist
 import com.lemonappdev.konsist.api.ext.list.withNameEndingWith
 import java.io.File
-import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.fail
+import org.junit.Test
 
 /**
  * Regel 4 i bygget (skill shared-ui-components). Mönstren står bara i `ui-forbidden.txt`,
@@ -45,7 +45,7 @@ class UiConsistencyTest {
         if (hits.isNotEmpty()) {
             fail(
                 "Regel 4: förbjudna mönster (skill shared-ui-components).\n" + hits.joinToString("\n") +
-                    "\nUndantag bara via ui-allowlist.txt med motivering och användarens ok.",
+                    "\nUndantag bara via ui-allowlist.txt med motivering och användarens ok."
             )
         }
     }
@@ -69,7 +69,7 @@ class UiConsistencyTest {
             // Samma kedja: imePadding() direkt före verticalScroll.
             "EntityEditScreen" to Regex("""\.imePadding\(\)\s*\.\s*verticalScroll\("""),
             // Knappradsvarianten: ytan med imePadding() omsluter direkt den scrollande kolumnen.
-            "AppBottomSheet" to Regex("""\.imePadding\(\)\s*\)\s*\{\s*Column\(\s*Modifier[^{}]*?\.verticalScroll\("""),
+            "AppBottomSheet" to Regex("""\.imePadding\(\)\s*\)\s*\{\s*Column\(\s*Modifier[^{}]*?\.verticalScroll\(""")
         )
         // verticalScroll(…) följt av imePadding() senare i samma kedja, också efter andra led: `.verticalScroll(s).padding(x).imePadding()`.
         val call = """\((?:[^()]|\([^()]*\))*\)"""
@@ -143,7 +143,7 @@ class UiConsistencyTest {
         production.classes().withNameEndingWith("EditViewModel").forEach { vm ->
             assertTrue(
                 vm.properties().any { it.type?.name?.startsWith("EditorState") == true },
-                "${vm.name} ska exponera en EditorState (ram EntityEditScreen)",
+                "${vm.name} ska exponera en EditorState (ram EntityEditScreen)"
             )
         }
     }
@@ -178,14 +178,13 @@ class UiConsistencyTest {
             listOfNotNull(
                 "$name saknar skärmdump ${name}_*_light.png".takeIf { screenshots.none { it.startsWith("${name}_") && it.endsWith("_light.png") } },
                 "$name saknar skärmdump ${name}_*_dark.png".takeIf { screenshots.none { it.startsWith("${name}_") && it.endsWith("_dark.png") } },
-                "$name saknas i ComponentGallery".takeIf { !Regex("""\b$name\s*[({<]""").containsMatchIn(gallery) },
+                "$name saknas i ComponentGallery".takeIf { !Regex("""\b$name\s*[({<]""").containsMatchIn(gallery) }
             )
         }
         assertTrue(problems.isEmpty(), problems.joinToString("\n"))
     }
 
-    private fun galleryText(): String =
-        checkNotNull(production.files.firstOrNull { it.name == "ComponentGallery" }?.text) { "ComponentGallery saknas i ui/components" }
+    private fun galleryText(): String = checkNotNull(production.files.firstOrNull { it.name == "ComponentGallery" }?.text) { "ComponentGallery saknas i ui/components" }
 
     /**
      * Publika composables i de delade paketen `ui.components` och `ui.diagram`; inga alls betyder att

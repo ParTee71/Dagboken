@@ -72,8 +72,7 @@ class MedicineCatalog(val updated: LocalDate?, val entries: List<MedicineEntry>)
         }
 
         /** Datumet ur raden `# updated ÅÅÅÅ-MM-DD` bland [lines], eller `null` – tolkningen av filens datum på ett ställe. */
-        fun parseUpdated(lines: Sequence<String>): LocalDate? =
-            lines.firstOrNull { it.startsWith(UPDATED) }?.let { runCatching { LocalDate.parse(it.removePrefix(UPDATED).trim()) }.getOrNull() }
+        fun parseUpdated(lines: Sequence<String>): LocalDate? = lines.firstOrNull { it.startsWith(UPDATED) }?.let { runCatching { LocalDate.parse(it.removePrefix(UPDATED).trim()) }.getOrNull() }
 
         /** Gemener utan diakritiska tecken, tecken för tecken – så att positionerna stämmer med originalet. */
         internal fun fold(text: String): String = buildString(text.length) {
@@ -126,7 +125,7 @@ fun Prescription.filledFrom(entry: MedicineEntry): Prescription = entry.fill.let
         form = fill.form,
         unknownForm = null,
         unit = fill.unit,
-        boosts = boosts.map { it.copy(unit = fill.unit) },
+        boosts = boosts.map { it.copy(unit = fill.unit) }
     )
 }
 
@@ -150,7 +149,7 @@ object MedicineForms {
         "kapsel" to MedicineForm.CAPSULE,
         "tablett|resoriblett" to MedicineForm.TABLET,
         "pulver|granulat" to MedicineForm.POWDER,
-        "lösning|suspension|sirap|emulsion|vätska|dryck|mixtur" to MedicineForm.LIQUID,
+        "lösning|suspension|sirap|emulsion|vätska|dryck|mixtur" to MedicineForm.LIQUID
     ).map { (pattern, form) -> Regex(pattern) to form }
 
     fun of(formText: String): MedicineForm {

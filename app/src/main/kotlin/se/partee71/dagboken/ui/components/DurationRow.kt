@@ -18,7 +18,7 @@ fun DurationRow(
     modifier: Modifier = Modifier,
     quickPicks: List<Int> = DEFAULT_QUICK_PICKS,
     step: Int = DEFAULT_STEP,
-    label: String = stringResource(R.string.duration),
+    label: String = stringResource(R.string.duration)
 ) {
     LabeledGroup(label, modifier, helper = durationText(minutes)) {
         QuantityStepper(minutes, onMinutesChange, stringResource(R.string.minutes), range = 0..MAX_MINUTES, step = step)

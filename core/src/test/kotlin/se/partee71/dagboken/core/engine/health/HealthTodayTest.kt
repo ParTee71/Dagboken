@@ -2,7 +2,10 @@ package se.partee71.dagboken.core.engine.health
 
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -10,15 +13,12 @@ import se.partee71.dagboken.core.engine.SLEEP_SCORE_KEY
 import se.partee71.dagboken.core.engine.scoreSleepQuality
 import se.partee71.dagboken.core.engine.sleepMeasurements
 import se.partee71.dagboken.core.engine.sleepQualityOn
-import se.partee71.dagboken.core.time.shownDate
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.minus
-import kotlinx.datetime.plus
 import se.partee71.dagboken.core.engine.sleepQualitySeries
 import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.core.model.HealthHistory
 import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.core.model.SleepStages
+import se.partee71.dagboken.core.time.shownDate
 
 /** Hälsa idag och Idags veckotrender (HEM-14, HEM-15, HEM-17, HLS-8, HLS-10, HLS-11, HLS-13). */
 class HealthTodayTest {
@@ -27,7 +27,7 @@ class HealthTodayTest {
     private val night = DailyHealth(
         date,
         sleepDuration = 7.hours + 12.minutes,
-        sleepStages = SleepStages(deep = 1.hours + 12.minutes, rem = 1.hours + 35.minutes, light = 3.hours + 48.minutes, awake = 37.minutes),
+        sleepStages = SleepStages(deep = 1.hours + 12.minutes, rem = 1.hours + 35.minutes, light = 3.hours + 48.minutes, awake = 37.minutes)
     )
 
     @Test fun `en trendrad kräver två dagar med värde – annars utelämnas den`() {

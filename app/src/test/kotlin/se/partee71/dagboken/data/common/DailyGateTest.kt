@@ -21,8 +21,10 @@ class DailyGateTest {
     private val tuesday = LocalDate(2026, 9, 22)
     private var runs = 0
 
-    private suspend fun DailyGate.attempt(day: LocalDate = monday, result: Result<Unit> = Result.success(Unit)): Result<Unit> =
-        runOncePerDay(NAME, day) { runs++; result }
+    private suspend fun DailyGate.attempt(day: LocalDate = monday, result: Result<Unit> = Result.success(Unit)): Result<Unit> = runOncePerDay(NAME, day) {
+        runs++
+        result
+    }
 
     @Test
     fun `en lyckad körning per dag – nästa dag körs igen`() = runTest {
@@ -70,7 +72,11 @@ class DailyGateTest {
 
     @Test
     fun `ett kontobyte under körningen antecknas inte`() = runTest {
-        gate.runOncePerDay(NAME, monday) { runs++; user.uid.value = "annan"; Result.success(Unit) }.getOrThrow()
+        gate.runOncePerDay(NAME, monday) {
+            runs++
+            user.uid.value = "annan"
+            Result.success(Unit)
+        }.getOrThrow()
         user.uid.value = "uid-test"
         gate.attempt().getOrThrow()
         assertEquals(2, runs)
@@ -97,7 +103,13 @@ class DailyGateTest {
     @Test
     fun `samtidiga anrop ger en körning, och de som väntat får dess utfall – också ett fel`() = runTest {
         val release = CompletableDeferred<Unit>()
-        val first = async { gate.runOncePerDay(NAME, monday) { runs++; release.await(); Result.failure(DataError.QuotaExceeded) } }
+        val first = async {
+            gate.runOncePerDay(NAME, monday) {
+                runs++
+                release.await()
+                Result.failure(DataError.QuotaExceeded)
+            }
+        }
         runCurrent()
         val second = async { gate.attempt() }
         val third = async { gate.attempt() }
@@ -113,7 +125,13 @@ class DailyGateTest {
     @Test
     fun `samtidiga anrop med lyckat utfall ger en körning`() = runTest {
         val release = CompletableDeferred<Unit>()
-        val first = async { gate.runOncePerDay(NAME, monday) { runs++; release.await(); Result.success(Unit) } }
+        val first = async {
+            gate.runOncePerDay(NAME, monday) {
+                runs++
+                release.await()
+                Result.success(Unit)
+            }
+        }
         runCurrent()
         val second = async { gate.attempt() }
         runCurrent()

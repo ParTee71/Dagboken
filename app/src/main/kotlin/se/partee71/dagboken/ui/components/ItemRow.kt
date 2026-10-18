@@ -63,7 +63,7 @@ fun ItemRow(
     below: (@Composable () -> Unit)? = null,
     titleHighlight: IntRange? = null,
     @DrawableRes icon: Int? = null,
-    belowAlignsWithTitle: Boolean = false,
+    belowAlignsWithTitle: Boolean = false
 ) {
     val start: (@Composable () -> Unit)? = leading ?: icon?.let { { LeadingSlot { Icon(painterResource(it), contentDescription = null) } } }
     val end: (@Composable () -> Unit)? = if (navigates) {
@@ -86,7 +86,7 @@ fun ItemRow(
         accent = accent,
         below = below,
         titleHighlight = titleHighlight,
-        belowAlignsWithTitle = belowAlignsWithTitle,
+        belowAlignsWithTitle = belowAlignsWithTitle
     )
 }
 
@@ -98,8 +98,8 @@ fun ItemRow(
 @Composable
 internal fun ItemRowLayout(
     title: String,
-    modifier: Modifier,
-    interaction: Modifier,
+    modifier: Modifier = Modifier,
+    interaction: Modifier = Modifier,
     subtitle: String? = null,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
@@ -109,7 +109,7 @@ internal fun ItemRowLayout(
     below: (@Composable () -> Unit)? = null,
     titleHighlight: IntRange? = null,
     textInactive: Boolean = false,
-    belowAlignsWithTitle: Boolean = false,
+    belowAlignsWithTitle: Boolean = false
 ) {
     val tint = AppColors.extended.rowTint
     Column(
@@ -121,7 +121,7 @@ internal fun ItemRowLayout(
             .then(interaction)
             .accentBar(accent)
             .padding(horizontal = Spacing.m, vertical = Spacing.s),
-        verticalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.CenterVertically)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.m)) {
             leading?.invoke()
@@ -145,28 +145,34 @@ internal fun RowText(
     subtitle: String?,
     modifier: Modifier = Modifier,
     done: Boolean = false,
-    titleHighlight: IntRange? = null,
+    titleHighlight: IntRange? = null
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val decoration = if (done) TextDecoration.LineThrough else null
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        if (title != null) Text(
-            highlighted(title, titleHighlight),
-            style = AppTypography.itemTitle,
-            color = if (done) muted else MaterialTheme.colorScheme.onSurface,
-            textDecoration = decoration,
-            maxLines = TITLE_MAX_LINES,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (title != null) {
+            Text(
+                highlighted(title, titleHighlight),
+                style = AppTypography.itemTitle,
+                color = if (done) muted else MaterialTheme.colorScheme.onSurface,
+                textDecoration = decoration,
+                maxLines = TITLE_MAX_LINES,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
         subtitle?.let { Text(it, style = AppTypography.itemSubtitle, color = muted, textDecoration = decoration) }
     }
 }
 
 /** Statusfärgen i vänsterkanten (NFR-16) – för listraden och postkortet; `null` ritar inget. */
-internal fun Modifier.accentBar(color: Color?): Modifier = if (color == null) this else drawWithContent {
-    drawContent()
-    val width = ACCENT_WIDTH.toPx()
-    drawRoundRect(color, size = Size(width, size.height), cornerRadius = CornerRadius(width / 2))
+internal fun Modifier.accentBar(color: Color?): Modifier = if (color == null) {
+    this
+} else {
+    drawWithContent {
+        drawContent()
+        val width = ACCENT_WIDTH.toPx()
+        drawRoundRect(color, size = Size(width, size.height), cornerRadius = CornerRadius(width / 2))
+    }
 }
 
 private val MIN_HEIGHT = 56.dp

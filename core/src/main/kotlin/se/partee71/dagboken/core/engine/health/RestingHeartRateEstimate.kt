@@ -21,8 +21,7 @@ private const val LOW_PERCENTILE_DIVISOR = 20
  * provmängden hellre än "—" – samma fallback som 3.x `estimateRestingHeartRate` (HLS-7), behållen för paritet.
  * `null` bara utan prover.
  */
-fun estimateRestingHeartRate(samples: List<HeartRateSample>, sleepWindows: List<TimeSpan> = emptyList()): Long? =
-    estimateRestingHeartRate(samples, SleepWindows(sleepWindows))
+fun estimateRestingHeartRate(samples: List<HeartRateSample>, sleepWindows: List<TimeSpan> = emptyList()): Long? = estimateRestingHeartRate(samples, SleepWindows(sleepWindows))
 
 /** Som ovan med ett färdigt [SleepWindows]-index, så att en period bygger indexet en gång och inte per dygn. */
 fun estimateRestingHeartRate(samples: List<HeartRateSample>, sleepWindows: SleepWindows): Long? {
@@ -35,8 +34,7 @@ fun estimateRestingHeartRate(samples: List<HeartRateSample>, sleepWindows: Sleep
  * fallbacken till alla prov – en baslinje ur sömnprov vore sovpulsen själv och skulle ge en falsk varning, eller dölja
  * en riktig. `null` när inga vakna prov finns (klockan bars bara på natten); då visas ingen pulsvarning.
  */
-fun awakeHeartRateBaseline(samples: List<HeartRateSample>, sleepWindows: SleepWindows): Long? =
-    lowPercentileMean(samples.filterNot { it.time in sleepWindows })
+fun awakeHeartRateBaseline(samples: List<HeartRateSample>, sleepWindows: SleepWindows): Long? = lowPercentileMean(samples.filterNot { it.time in sleepWindows })
 
 /** Medelvärdet av den lägsta 5-percentilen (minst ett prov); `null` utan prov. */
 private fun lowPercentileMean(samples: List<HeartRateSample>): Long? {
@@ -53,7 +51,7 @@ private fun lowPercentileMean(samples: List<HeartRateSample>): Long? {
 fun restingHeartRate(
     recorded: List<RestingHeartRateSample>,
     samples: List<HeartRateSample>,
-    sleepWindows: List<TimeSpan> = emptyList(),
+    sleepWindows: List<TimeSpan> = emptyList()
 ): Long? = recorded.maxByOrNull { it.time }?.bpm ?: estimateRestingHeartRate(samples, sleepWindows)
 
 /**
@@ -65,7 +63,7 @@ fun restingHeartRateByDay(
     recorded: List<RestingHeartRateSample>,
     samples: List<HeartRateSample>,
     sleepWindows: List<TimeSpan>,
-    zone: TimeZone,
+    zone: TimeZone
 ): Map<LocalDate, Long> = restingHeartRateByDay(recorded, samples, SleepWindows(sleepWindows), zone)
 
 /** Som ovan med ett färdigt [SleepWindows]-index, delat med resten av dagshistoriken. */
@@ -73,7 +71,7 @@ fun restingHeartRateByDay(
     recorded: List<RestingHeartRateSample>,
     samples: List<HeartRateSample>,
     windows: SleepWindows,
-    zone: TimeZone,
+    zone: TimeZone
 ): Map<LocalDate, Long> {
     val estimated = samples.perDay(zone, { it.time }) { estimateRestingHeartRate(it, windows) }
     val measured = recorded.perDay(zone, { it.time }) { day -> day.maxBy { it.time }.bpm }
@@ -85,5 +83,4 @@ fun restingHeartRateByDay(
 fun averageBpm(samples: List<HeartRateSample>): Long? = samples.takeIf { it.isNotEmpty() }?.map { it.bpm }?.average()?.roundToLong()
 
 /** Dygnets snittpuls (HLS-12) per dygn. */
-fun averageBpmByDay(samples: List<HeartRateSample>, zone: TimeZone): Map<LocalDate, Long> =
-    samples.perDay(zone, { it.time }, ::averageBpm)
+fun averageBpmByDay(samples: List<HeartRateSample>, zone: TimeZone): Map<LocalDate, Long> = samples.perDay(zone, { it.time }, ::averageBpm)

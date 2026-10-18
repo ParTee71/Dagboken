@@ -124,8 +124,7 @@ class DefaultIllnessRepository @Inject constructor(private val collections: Coll
 
     override fun observeCheckins(episodeId: String): Flow<List<Checkin>> = collections.checkins(episodeId).observe()
 
-    override fun observeEpisode(id: String): Flow<EpisodeWithCheckins?> =
-        combine(episodes.observe(id), collections.checkins(id).observe()) { episode, checkins -> episode?.let { EpisodeWithCheckins(it, checkins) } }
+    override fun observeEpisode(id: String): Flow<EpisodeWithCheckins?> = combine(episodes.observe(id), collections.checkins(id).observe()) { episode, checkins -> episode?.let { EpisodeWithCheckins(it, checkins) } }
 
     override fun observeEpisodeOnly(id: String): Flow<IllnessEpisode?> = episodes.observe(id)
 
@@ -176,6 +175,5 @@ class DefaultIllnessRepository @Inject constructor(private val collections: Coll
 
     override fun newEpisode(start: LocalDate): IllnessEpisode = IllnessEpisode(episodes.newId(), start = start, createdAt = clock.now())
 
-    override fun newCheckin(episodeId: String, date: LocalDate, time: LocalTime): Checkin =
-        Checkin(collections.checkins(episodeId).newId(), date, time, severity = IllnessRepository.DEFAULT_SEVERITY, createdAt = clock.now())
+    override fun newCheckin(episodeId: String, date: LocalDate, time: LocalTime): Checkin = Checkin(collections.checkins(episodeId).newId(), date, time, severity = IllnessRepository.DEFAULT_SEVERITY, createdAt = clock.now())
 }

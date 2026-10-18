@@ -7,7 +7,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import se.partee71.dagboken.core.time.HOME_ZONE
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
@@ -15,6 +14,7 @@ import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.core.time.HOME_ZONE
 
 // Receptens doser (MED-4, REC-8, REC-10) – port av 3.x `EnsureTodayEntriesUseCase.compute`,
 // `MedicinerRepository.ensureEntriesForDate` och `syncPendingDoses`. Ren beräkning: repositoryt
@@ -28,8 +28,7 @@ import se.partee71.dagboken.core.model.Slot
  * äldre eller importerad data kan ha den. Sådana migrerade doser behålls orörda (de har tidpunkten
  * "Vid behov" och [syncDoses] rör dem inte), men nya skapas inte.
  */
-fun Prescription.doseSlots(): List<Slot> =
-    if (slots.isEmpty()) listOf(Slot.MORNING) else slots.filter { it != Slot.AS_NEEDED }.distinct()
+fun Prescription.doseSlots(): List<Slot> = if (slots.isEmpty()) listOf(Slot.MORNING) else slots.filter { it != Slot.AS_NEEDED }.distinct()
 
 /**
  * MED-4: receptets planerade doser för [date] – en per tidpunkt med det stabila id:t
@@ -58,7 +57,7 @@ fun Prescription.plannedDoses(date: LocalDate, zone: TimeZone, reminders: Remind
             plannedTime = time,
             prescriptionId = id,
             createdAt = LocalDateTime(date, time).toInstant(zone),
-            note = note?.takeIf { it.isNotBlank() },
+            note = note?.takeIf { it.isNotBlank() }
         )
     }
 }
@@ -72,7 +71,7 @@ data class EnsurePlan(
      */
     val deactivate: List<String>,
     /** Doser som saknas för dagen. */
-    val create: List<Dose>,
+    val create: List<Dose>
 )
 
 /**
@@ -96,14 +95,14 @@ fun ensureDoses(
     date: LocalDate,
     today: LocalDate,
     zone: TimeZone,
-    reminders: ReminderSettings,
+    reminders: ReminderSettings
 ): EnsurePlan {
     val (expired, current) = prescriptions.activeByExpiryOn(today)
     val existingIds = existing.mapTo(HashSet()) { it.id }
     return EnsurePlan(
         deactivate = expired.map { it.id },
         create = current.filter { p -> p.firstDoseDay()?.let { date >= it } ?: true }
-            .flatMap { it.plannedDoses(date, zone, reminders) }.filter { it.id !in existingIds },
+            .flatMap { it.plannedDoses(date, zone, reminders) }.filter { it.id !in existingIds }
     )
 }
 
@@ -111,7 +110,7 @@ fun ensureDoses(
 data class DoseSync(
     val create: List<Dose> = emptyList(),
     val update: List<Dose> = emptyList(),
-    val delete: List<Dose> = emptyList(),
+    val delete: List<Dose> = emptyList()
 ) {
     val isEmpty: Boolean get() = create.isEmpty() && update.isEmpty() && delete.isEmpty()
 }
@@ -144,7 +143,7 @@ fun Prescription.syncDoses(
     today: LocalDate,
     zone: TimeZone,
     reminders: ReminderSettings,
-    through: LocalDate = today,
+    through: LocalDate = today
 ): DoseSync {
     if (schedule is Schedule.Unknown) return DoseSync()
     val pending = existing.filter { dose ->

@@ -189,8 +189,8 @@ class OptionsRepositoryTest {
             listOf(
                 Option("b", OptionKind.SYMPTOM, "Trötthet", sortOrder = 2, archived = true),
                 Option("a", OptionKind.SYMPTOM, "Huvudvärk", sortOrder = 1),
-                Option("c", OptionKind.ACTIVITY, "Yoga"),
-            ),
+                Option("c", OptionKind.ACTIVITY, "Yoga")
+            )
         ).getOrThrow()
 
         repository.observe(OptionKind.SYMPTOM).test {
@@ -202,8 +202,7 @@ class OptionsRepositoryTest {
 
 /** Som [FakeCollectionFactory], men listan ur cachen är [list] – ett fel, eller en ofullständig cache. */
 private class CachedOverride(private val fake: FakeCollectionFactory, private val list: Result<List<Nothing>>) : CollectionTable() {
-    override fun <T : Identified> create(codec: DocCodec<T>, name: String, path: (uid: String?) -> String): EntityCollection<T> =
-        object : EntityCollection<T> by fake.collection(codec, name, path) {
-            override suspend fun cached(): Result<List<T>> = list
-        }
+    override fun <T : Identified> create(codec: DocCodec<T>, name: String, path: (uid: String?) -> String): EntityCollection<T> = object : EntityCollection<T> by fake.collection(codec, name, path) {
+        override suspend fun cached(): Result<List<T>> = list
+    }
 }

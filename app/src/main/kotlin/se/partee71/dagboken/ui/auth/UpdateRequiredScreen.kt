@@ -26,8 +26,8 @@ fun UpdateRequiredScreen(modifier: Modifier = Modifier) {
                 text = stringResource(R.string.update_required_action),
                 onClick = { uriHandler.openUri(releasesUrl) },
                 modifier = Modifier.fillMaxWidth(),
-                icon = R.drawable.ic_download,
+                icon = R.drawable.ic_download
             )
-        },
+        }
     )
 }

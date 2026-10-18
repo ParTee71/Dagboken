@@ -43,17 +43,17 @@ import se.partee71.dagboken.data.legacy.CopyFailure
 import se.partee71.dagboken.data.legacy.CopyRecord
 import se.partee71.dagboken.data.legacy.FakeCopyFile
 import se.partee71.dagboken.data.legacy.FakeDriveBackups
-import se.partee71.dagboken.data.legacy.LegacyImportUseCase
 import se.partee71.dagboken.data.legacy.FakeLegacyPreferencesSource
 import se.partee71.dagboken.data.legacy.FakeLegacyRoomSource
 import se.partee71.dagboken.data.legacy.FakeLegacyWork
 import se.partee71.dagboken.data.legacy.FakeMigrationLedger
 import se.partee71.dagboken.data.legacy.FakeMigrationState
 import se.partee71.dagboken.data.legacy.FakeRawFirestore
+import se.partee71.dagboken.data.legacy.LegacyImportUseCase
 import se.partee71.dagboken.data.legacy.LegacyMigrationPause
-import se.partee71.dagboken.data.legacy.LegacySession
 import se.partee71.dagboken.data.legacy.LegacyMigrationUseCase
 import se.partee71.dagboken.data.legacy.LegacyRoomRead
+import se.partee71.dagboken.data.legacy.LegacySession
 import se.partee71.dagboken.testing.FakeAuthRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
 
@@ -80,6 +80,7 @@ class MigrationViewModelTest {
     private val firestore = FakeRawFirestore(store)
     private val server = HeldServer(firestore)
     private val room = FakeLegacyRoomSource(tables(episodes = 2))
+
     // 3.x-sessionen var samma konto, om inte testet säger annat (AccountCheck.SAME).
     private val flag = FakeMigrationState().apply { session = LegacySession(uid) }
     private val copies = FakeCopyFile()
@@ -87,7 +88,7 @@ class MigrationViewModelTest {
     private val scope = TestUserScope(uid)
     private val useCase = LegacyMigrationUseCase(
         room, FakeLegacyPreferencesSource(), server, server, flag, FakeMigrationLedger(), FakeLegacyWork(), copies, pause, AppVersion(),
-        FakeAuthRepository(AuthUser(uid, email = "kim.berg@example.com")), scope, clock, io, io,
+        FakeAuthRepository(AuthUser(uid, email = "kim.berg@example.com")), scope, clock, io, io
     )
     private val copyUri: Uri = Uri.parse("content://test/dagboken-3x-kopia-2026-10-07.json")
 
@@ -106,14 +107,13 @@ class MigrationViewModelTest {
         return LegacyRoomRead.Tables(
             mapOf(LegacyRoomSchema.SJUKDOMSEPISODER to ids.map(::episode), LegacyRoomSchema.SJUKDOMS_INCHECKNINGAR to checkins),
             lastModifiedMillis = 1_790_000_000_000,
-            fingerprint = fingerprint,
+            fingerprint = fingerprint
         )
     }
 
     private fun episode(id: String): Row = mapOf("start_datum" to "2026-09-20", "slut_datum" to "2026-09-27", "typ" to "Halsfluss", "id" to id, "timestamp" to 1L)
 
-    private fun checkin(episode: String, id: String): Row =
-        mapOf("episod_id" to episode, "id" to id, "tid" to "07:30", "datum" to "2026-09-21", "symptom" to "", "svarighetsgrad" to 3L, "somatiska" to 0L, "timestamp" to 1L)
+    private fun checkin(episode: String, id: String): Row = mapOf("episod_id" to episode, "id" to id, "tid" to "07:30", "datum" to "2026-09-21", "symptom" to "", "svarighetsgrad" to 3L, "somatiska" to 0L, "timestamp" to 1L)
 
     /** Väntar ut lägen som inte är [T] (t.ex. det första "Läser") och ger nästa av typen. */
     private suspend inline fun <reified T : MigrationStage> ReceiveTurbine<MigrationUiState>.next(): T {
@@ -635,17 +635,19 @@ class MigrationViewModelTest {
     @Test
     fun `stopprapporten - en rad per typ, listindex slås ihop och antalet summeras`() {
         val problems = listOf(
-            Problem("screenings/s1", "symptom[0]", "saknar namn"), Problem("screenings/s2", "symptom[1]", "saknar namn"),
-            Problem("screenings/s2", "symptom[12]", "saknar namn"), Problem("prescriptions/r1", "dagar", "ingen veckodag: 9 (0–6)"),
-            Problem("settings/app", "medNotificationConfigs[2].time", "ogiltigt klockslag"),
+            Problem("screenings/s1", "symptom[0]", "saknar namn"),
+            Problem("screenings/s2", "symptom[1]", "saknar namn"),
+            Problem("screenings/s2", "symptom[12]", "saknar namn"),
+            Problem("prescriptions/r1", "dagar", "ingen veckodag: 9 (0–6)"),
+            Problem("settings/app", "medNotificationConfigs[2].time", "ogiltigt klockslag")
         )
         assertEquals(
             listOf(
                 ReportLine("screenings", "symptom[…]", "saknar namn", 3),
                 ReportLine("prescriptions", "dagar", "ingen veckodag: 9 (0–6)", 1),
-                ReportLine("settings", "medNotificationConfigs[…].time", "ogiltigt klockslag", 1),
+                ReportLine("settings", "medNotificationConfigs[…].time", "ogiltigt klockslag", 1)
             ),
-            reportOf(problems),
+            reportOf(problems)
         )
     }
 }
@@ -654,7 +656,9 @@ class MigrationViewModelTest {
  * Servern över [inner] som med [held] väntar på en [permits] före varje läsning av målens läge, varje batch och
  * markören – för lägena mellan stegen.
  */
-private class HeldServer(private val inner: FakeRawFirestore) : RawDocumentWriter, RawDocuments by inner {
+private class HeldServer(private val inner: FakeRawFirestore) :
+    RawDocumentWriter,
+    RawDocuments by inner {
     val permits = Channel<Unit>(Channel.UNLIMITED)
     var held = false
 

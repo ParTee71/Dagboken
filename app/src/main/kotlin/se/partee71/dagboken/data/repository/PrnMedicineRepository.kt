@@ -40,11 +40,9 @@ class DefaultPrnMedicineRepository @Inject constructor(collections: CollectionFa
 
     override suspend fun add(medicine: PrnMedicine): Result<Unit> = collection.upsert(medicine.copy(id = collection.newId()))
 
-    override suspend fun save(loaded: PrnMedicine, edited: PrnMedicine): Result<Unit> =
-        collection.updateChanged(PrnMedicineCodec, loaded, edited.copy(id = loaded.id))
+    override suspend fun save(loaded: PrnMedicine, edited: PrnMedicine): Result<Unit> = collection.updateChanged(PrnMedicineCodec, loaded, edited.copy(id = loaded.id))
 
-    override suspend fun setFavorite(medicine: PrnMedicine, favorite: Boolean): Result<Unit> =
-        collection.update(medicine.copy(favorite = favorite), setOf(PrnMedicineCodec.FAVORITE))
+    override suspend fun setFavorite(medicine: PrnMedicine, favorite: Boolean): Result<Unit> = collection.update(medicine.copy(favorite = favorite), setOf(PrnMedicineCodec.FAVORITE))
 
     override suspend fun delete(id: String): Result<Unit> = collection.delete(id)
 }

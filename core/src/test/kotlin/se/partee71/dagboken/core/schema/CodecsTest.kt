@@ -2,9 +2,9 @@ package se.partee71.dagboken.core.schema
 
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalTime
 import org.junit.Test
@@ -12,13 +12,13 @@ import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Boost
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
-import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.LegacySettings
+import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Option
@@ -36,9 +36,9 @@ import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.SlotReminder
 import se.partee71.dagboken.core.model.SymptomScore
-import se.partee71.dagboken.core.model.somatic
 import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
+import se.partee71.dagboken.core.model.somatic
 import se.partee71.dagboken.core.schema.Samples.prescription
 
 /** Ett kontraktstest per dokument-codec (skill data-safety-backup); proven i [Samples] är syntetiska. */
@@ -193,10 +193,10 @@ class CodecsTest {
                     mapOf("slot" to "night", "enabled" to false, "time" to "23:10"),
                     mapOf("slot" to "framtida", "enabled" to true, "time" to "03:00"),
                     "inte en rad",
-                    mapOf("slot" to "morning", "time" to "trasig"),
+                    mapOf("slot" to "morning", "time" to "trasig")
                 ),
-                "screeningOccasions" to listOf(mapOf("occasion" to "bedtime", "enabled" to true, "time" to "22:30")),
-            ),
+                "screeningOccasions" to listOf(mapOf("occasion" to "bedtime", "enabled" to true, "time" to "22:30"))
+            )
         )
         val reminders = SettingsCodec.decode("app", stored).reminders
         assertEquals(Slot.SCHEDULED, reminders.medSlots.map { it.slot })
@@ -224,7 +224,7 @@ class CodecsTest {
         assertEquals(
             listOf(DocumentRules.Violation("symptoms[0].score", "saknas")),
             DocumentRules.validate(CollectionNames.CHECKINS, mapOf("symptoms" to listOf(mapOf("optionId" to "yrsel", "customText" to null)))),
-            "en saknad score-nyckel nekas, som i rules",
+            "en saknad score-nyckel nekas, som i rules"
         )
         assertEquals(listOf(SymptomScore("yrsel", 0)), CheckinCodec.decode("c", mapOf("symptoms" to listOf(mapOf("optionId" to "yrsel")))).symptoms)
         assertEquals(3, checkin.symptoms.somatic, "utan poäng räknas som 0 i summan")
@@ -276,7 +276,7 @@ class CodecsTest {
         // Ett nytt fält i ett listelement kräver därför höjd schemaVersion (skill data-safety-backup).
         val stored = mapOf(
             "symptoms" to listOf(mapOf("optionId" to "yrsel", "score" to 2L, "customText" to null, "framtida" to "x")),
-            "framtidaToppfalt" to 1,
+            "framtidaToppfalt" to 1
         )
         val written = ActivityCodec.encode(ActivityCodec.decode("a", stored))
         assertEquals(listOf(mapOf("optionId" to "yrsel", "score" to 2, "customText" to null)), written["symptoms"])

@@ -49,25 +49,24 @@ class IllnessDetailScreenTest {
     private val names = persistentMapOf("snuva" to "Snuva", "hosta" to "Hosta", "feber" to "Feber", "trotthet" to "Trötthet")
     private val flu = IllnessEpisode("flu", "Förkylning", LocalDate(2026, 10, 1), createdAt = created, note = "Började efter jobbresan.")
 
-    private fun checkin(id: String, day: Int, hour: Int, minute: Int, severity: Int, vararg symptoms: Pair<String, Int>, note: String? = null) =
-        Checkin(id, LocalDate(2026, 10, day), LocalTime(hour, minute), severity, symptoms.map { (s, v) -> SymptomScore(s, v) }, created, note)
+    private fun checkin(id: String, day: Int, hour: Int, minute: Int, severity: Int, vararg symptoms: Pair<String, Int>, note: String? = null) = Checkin(id, LocalDate(2026, 10, day), LocalTime(hour, minute), severity, symptoms.map { (s, v) -> SymptomScore(s, v) }, created, note)
 
     private val checkins = listOf(
         checkin("c1", 1, 19, 0, 5, "snuva" to 4, "trotthet" to 5),
         checkin("c2", 3, 8, 30, 6, "snuva" to 6, "feber" to 2, "trotthet" to 6),
         checkin("c3", 5, 21, 40, 4, "snuva" to 5, "trotthet" to 4, note = "Sov dåligt"),
-        checkin("c4", 6, 9, 0, 3, "snuva" to 3, "hosta" to 4),
+        checkin("c4", 6, 9, 0, 3, "snuva" to 3, "hosta" to 4)
     )
 
     private val ongoing = IllnessDetail(illnessSummary(flu, checkins, LocalDate(2026, 10, 6)), LocalDate(2026, 10, 6), names)
     private val ended = IllnessDetail(
         illnessSummary(flu.copy(end = LocalDate(2026, 10, 9), note = null), checkins + checkin("c5", 9, 8, 0, 1, "snuva" to 1), LocalDate(2026, 10, 10)),
         LocalDate(2026, 10, 10),
-        names,
+        names
     )
     private val empty = IllnessDetail(
         illnessSummary(IllnessEpisode("migran", "Migrän", LocalDate(2026, 10, 6), createdAt = created), emptyList(), LocalDate(2026, 10, 6)),
-        LocalDate(2026, 10, 6),
+        LocalDate(2026, 10, 6)
     )
 
     @Test

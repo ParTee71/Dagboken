@@ -46,7 +46,7 @@ fun SwipeToHide(
     modifier: Modifier = Modifier,
     label: String = stringResource(R.string.archive),
     enabled: Boolean = true,
-    content: @Composable (Modifier) -> Unit,
+    content: @Composable (Modifier) -> Unit
 ) {
     if (!enabled) {
         content(Modifier)
@@ -62,7 +62,7 @@ fun SwipeToHide(
             Row(
                 Modifier.fillMaxSize().clip(AppShapes.row).background(tone.container).padding(horizontal = Spacing.l),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(painterResource(R.drawable.ic_archive), contentDescription = null, tint = tone.content)
                 Text(label, style = AppTypography.button, color = tone.content)
@@ -79,11 +79,20 @@ fun SwipeToHide(
                     state.reset()
                 }
             }
-        },
+        }
     ) {
         // Ogenomskinlig, så att bakgrunden bara syns där raden svepts undan.
         Box(Modifier.clip(AppShapes.row).background(AppColors.extended.card)) {
-            content(Modifier.semantics { customActions = listOf(CustomAccessibilityAction(label) { hide(); true }) })
+            content(
+                Modifier.semantics {
+                    customActions = listOf(
+                        CustomAccessibilityAction(label) {
+                            hide()
+                            true
+                        }
+                    )
+                }
+            )
         }
     }
 }

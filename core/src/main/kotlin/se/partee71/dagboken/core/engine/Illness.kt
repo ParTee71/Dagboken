@@ -13,8 +13,7 @@ import se.partee71.dagboken.core.model.IllnessEpisode
  * skapandetid id:t. Startdatum påverkar inte valet; en start efter idag ger bara ingen dag ([illnessDay]).
  * `null` när ingen pågår.
  */
-fun ongoingEpisode(episodes: List<IllnessEpisode>): IllnessEpisode? =
-    episodes.filter { it.end == null }.maxWithOrNull(compareBy<IllnessEpisode>({ it.createdAt }, { it.id }))
+fun ongoingEpisode(episodes: List<IllnessEpisode>): IllnessEpisode? = episodes.filter { it.end == null }.maxWithOrNull(compareBy<IllnessEpisode>({ it.createdAt }, { it.id }))
 
 /** HEM-12: vilken dag i sjukdomen [today] är – startdagen är dag 1. `null` utan start eller före den. */
 fun illnessDay(start: LocalDate?, today: LocalDate): Int? = start?.daysUntil(today)?.takeIf { it >= 0 }?.plus(1)
@@ -26,8 +25,7 @@ fun latestCheckin(checkins: List<Checkin>): Checkin? = checkins.latestBy(Checkin
 data class OngoingIllness(val episode: IllnessEpisode, val day: Int?, val lastCheckin: Checkin?)
 
 /** [OngoingIllness] för [episode] med dess [checkins] och [today]. */
-fun ongoingIllness(episode: IllnessEpisode, checkins: List<Checkin>, today: LocalDate): OngoingIllness =
-    OngoingIllness(episode, illnessDay(episode.start, today), latestCheckin(checkins))
+fun ongoingIllness(episode: IllnessEpisode, checkins: List<Checkin>, today: LocalDate): OngoingIllness = OngoingIllness(episode, illnessDay(episode.start, today), latestCheckin(checkins))
 
 /** Varför ett slutdatum inte godtas ([endDateError]). */
 enum class EndDateError {
@@ -35,7 +33,7 @@ enum class EndDateError {
     BEFORE_START,
 
     /** Slutet ligger efter idag – en episod avslutas inte i förväg. */
-    AFTER_TODAY,
+    AFTER_TODAY
 }
 
 /**

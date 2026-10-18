@@ -11,8 +11,8 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
-import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Prescription
+import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Slot
 
 // Vid behov-doser (FAV-4, FAV-5, FAV-11, MED-11, MED-16) – port av 3.x `CheckCooldownUseCase`,
@@ -35,9 +35,8 @@ sealed interface PrnCheck {
  * oavsett skiftläge, som 3.x (som bara hade namnet – även en tagen receptdos med samma namn räknas).
  * Ett tomt namn matchar aldrig på namn, bara på [Dose.prnId].
  */
-fun PrnMedicine.isTakenDoseOf(dose: Dose): Boolean =
-    dose.status == DoseStatus.TAKEN &&
-        (dose.prnId == id || (name.isNotBlank() && dose.name.equals(name, ignoreCase = true)))
+fun PrnMedicine.isTakenDoseOf(dose: Dose): Boolean = dose.status == DoseStatus.TAKEN &&
+    (dose.prnId == id || (name.isNotBlank() && dose.name.equals(name, ignoreCase = true)))
 
 /** När en tagen dos togs: [Dose.takenAt] (MED-14), annars [Dose.createdAt] (3.x `timestamp`). */
 fun Dose.takenMoment(): Instant? = takenAt ?: createdAt
@@ -55,8 +54,7 @@ fun PrnMedicine.cooldownRemaining(doses: Iterable<Dose>, at: Instant): Duration?
 }
 
 /** FAV-5: om dagens gräns är nådd på [date] ([PrnMedicine.maxPerDay] 0 = obegränsat). */
-fun PrnMedicine.dailyLimitReached(doses: Iterable<Dose>, date: LocalDate): Boolean =
-    maxPerDay > 0 && doses.count { it.date == date && isTakenDoseOf(it) } >= maxPerDay
+fun PrnMedicine.dailyLimitReached(doses: Iterable<Dose>, date: LocalDate): Boolean = maxPerDay > 0 && doses.count { it.date == date && isTakenDoseOf(it) } >= maxPerDay
 
 /**
  * Dagarna vars doser [checkDose] behöver se vid [at] (FAV-4, FAV-5, MED-16): från dagen max([PrnMedicine.minHoursBetween],
@@ -90,8 +88,7 @@ fun PrnMedicine.checkDose(doses: Iterable<Dose>, at: Instant, zone: TimeZone, fo
  * Dosen som loggas från vid behov-medicinen vid [at]: tagen, med medicinens tidpunkt, dos och
  * anteckning som förval (MED-11) och [Dose.prnId] satt. [id] är ett nytt dokument-id.
  */
-fun PrnMedicine.takenDose(id: String, at: Instant, zone: TimeZone): Dose =
-    asNeededDose(id, at, zone, slot, name, strength, dose, unit, note).copy(prnId = this.id)
+fun PrnMedicine.takenDose(id: String, at: Instant, zone: TimeZone): Dose = asNeededDose(id, at, zone, slot, name, strength, dose, unit, note).copy(prnId = this.id)
 
 /**
  * FAV-11: en extrados av receptets medicin vid [at] – en vid behov-dos utan receptkoppling (den ska
@@ -112,7 +109,7 @@ private fun asNeededDose(
     strength: String,
     dose: String,
     unit: String,
-    note: String?,
+    note: String?
 ): Dose {
     val local = at.toLocalDateTime(zone)
     return Dose(
@@ -128,6 +125,6 @@ private fun asNeededDose(
         plannedTime = LocalTime(local.hour, local.minute),
         takenAt = at,
         createdAt = at,
-        note = note?.takeIf { it.isNotBlank() },
+        note = note?.takeIf { it.isNotBlank() }
     )
 }

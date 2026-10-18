@@ -16,11 +16,9 @@ class IllnessSummaryTest {
     private val today = day("2026-10-06")
     private val created = Instant.fromEpochSeconds(1_790_000_000)
 
-    private fun episode(start: String?, end: String? = null) =
-        IllnessEpisode("flu", "Förkylning", start?.let(::day), end?.let(::day), createdAt = created)
+    private fun episode(start: String?, end: String? = null) = IllnessEpisode("flu", "Förkylning", start?.let(::day), end?.let(::day), createdAt = created)
 
-    private fun checkin(id: String, date: String?, hour: Int, severity: Int, createdAt: Instant = created) =
-        Checkin(id, date?.let(::day), LocalTime(hour, 0), severity = severity, createdAt = createdAt)
+    private fun checkin(id: String, date: String?, hour: Int, severity: Int, createdAt: Instant = created) = Checkin(id, date?.let(::day), LocalTime(hour, 0), severity = severity, createdAt = createdAt)
 
     @Test fun `pågående episod räknar dagarna till idag och visar senaste incheckningens svårighetsgrad`() {
         val first = checkin("a", "2026-10-03", 9, severity = 6)

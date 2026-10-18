@@ -40,15 +40,13 @@ fun medAlarmTime(slotTime: LocalTime, leadMinutes: Int = MED_LEAD_MINUTES): Loca
 }
 
 /** NOT-2, NOT-14: nästa medicinpåminnelse för en tidpunkt kl. [slotTime] ([medAlarmTime], [nextDailyAt]). */
-fun nextMedAlarm(slotTime: LocalTime, now: Instant, zone: TimeZone, leadMinutes: Int = MED_LEAD_MINUTES): Instant =
-    nextDailyAt(medAlarmTime(slotTime, leadMinutes), now, zone)
+fun nextMedAlarm(slotTime: LocalTime, now: Instant, zone: TimeZone, leadMinutes: Int = MED_LEAD_MINUTES): Instant = nextDailyAt(medAlarmTime(slotTime, leadMinutes), now, zone)
 
 /**
  * NOT-3, NOT-17: dagen vars doser en medicinpåminnelse som utlöstes [firedAt] gäller – dagen då tidpunkten
  * nås, [leadMinutes] senare. Påminnelsen 23:45 för en tidpunkt 00:00 gäller alltså nästa dags doser.
  */
-fun medReminderDate(firedAt: Instant, zone: TimeZone, leadMinutes: Int = MED_LEAD_MINUTES): LocalDate =
-    (firedAt + leadMinutes.minutes).toLocalDateTime(zone).date
+fun medReminderDate(firedAt: Instant, zone: TimeZone, leadMinutes: Int = MED_LEAD_MINUTES): LocalDate = (firedAt + leadMinutes.minutes).toLocalDateTime(zone).date
 
 private const val SECONDS_PER_MINUTE = 60
 private const val SECONDS_PER_DAY = 24 * 60 * 60

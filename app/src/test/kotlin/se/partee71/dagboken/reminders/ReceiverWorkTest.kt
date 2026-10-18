@@ -1,7 +1,7 @@
 package se.partee71.dagboken.reminders
 
-import kotlin.test.assertEquals
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.job
@@ -45,7 +45,10 @@ class ReceiverWorkTest {
     fun `avbryts mottagarens coroutine själv körs inget mer`() = runTest {
         val ran = mutableListOf<String>()
         val job = launch {
-            ReceiverWork.steps(first = { coroutineContext.job.cancel(); awaitCancellation() }, firstBudget = ReceiverWork.FIRST_BUDGET) { ran += "then" }
+            ReceiverWork.steps(first = {
+                coroutineContext.job.cancel()
+                awaitCancellation()
+            }, firstBudget = ReceiverWork.FIRST_BUDGET) { ran += "then" }
         }
         job.join()
         assertTrue(job.isCancelled)

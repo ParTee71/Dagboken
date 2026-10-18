@@ -10,11 +10,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.entryProvider
-import androidx.compose.ui.res.stringResource
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.BuildConfig
 import se.partee71.dagboken.R
@@ -71,7 +71,7 @@ fun AppNavigation(
     onLaunchHandled: () -> Unit = {},
     openFirst: AppKey? = null,
     syncViewModel: SyncViewModel = hiltViewModel(),
-    logViewModel: LogViewModel = hiltViewModel(),
+    logViewModel: LogViewModel = hiltViewModel()
 ) {
     val sync by syncViewModel.state.collectAsStateWithLifecycle()
     val saved by logViewModel.notice.collectAsStateWithLifecycle()
@@ -84,7 +84,7 @@ fun AppNavigation(
             backStack,
             account = { currentAccount.value },
             onAccount = { sheet = RootSheet.Account },
-            onScreening = logViewModel::onEvent,
+            onScreening = logViewModel::onEvent
         )
     }
     AppNavHost(
@@ -96,7 +96,7 @@ fun AppNavigation(
         onSyncEvent = syncViewModel::onEvent,
         onLog = { sheet = RootSheet.Log },
         message = if (saved) stringResource(R.string.today_screening_saved) else null,
-        onMessageShown = { logViewModel.onEvent(LogEvent.NoticeShown) },
+        onMessageShown = { logViewModel.onEvent(LogEvent.NoticeShown) }
     )
     RootSheets(
         sheet,
@@ -105,7 +105,7 @@ fun AppNavigation(
         onOpenGallery = if (BuildConfig.DEBUG) ({ backStack.push(ComponentGalleryKey) }) else null,
         account = account,
         onOpen = { page -> backStack.push(page.key) },
-        onLog = { choice -> backStack.log(choice, logViewModel.logDay(onToday = backStack.currentTab == TodayKey), logViewModel::onEvent) },
+        onLog = { choice -> backStack.log(choice, logViewModel.logDay(onToday = backStack.currentTab == TodayKey), logViewModel::onEvent) }
     )
     LogSheets(logViewModel, onOpen = { target -> backStack.push(target.key) })
     var openedFirst by rememberSaveable { mutableStateOf(false) }
@@ -129,10 +129,12 @@ fun AppNavigation(
 fun AppBackStack.open(launch: ReminderLaunch, onEvent: (LogEvent) -> Unit) {
     when (launch) {
         ReminderLaunch.Today -> select(TodayKey)
+
         is ReminderLaunch.LogMood -> {
             select(TodayKey)
             onEvent(LogEvent.LogScreening(launch.occasion, date = null, reminder = null))
         }
+
         ReminderLaunch.Medicines -> select(MedicinesKey)
     }
 }
@@ -184,7 +186,7 @@ fun RootSheets(
     onOpenGallery: (() -> Unit)?,
     account: AuthUser? = null,
     onOpen: (SettingsPage) -> Unit = {},
-    onLog: (LogChoice) -> Unit = {},
+    onLog: (LogChoice) -> Unit = {}
 ) {
     when (sheet) {
         RootSheet.Account -> AccountSheet(
@@ -203,15 +205,17 @@ fun RootSheets(
             onOpen = { page ->
                 onDismiss()
                 onOpen(page)
-            },
+            }
         )
+
         RootSheet.Log -> LogMenuSheet(
             onDismiss = onDismiss,
             onPick = { choice ->
                 onDismiss()
                 onLog(choice)
-            },
+            }
         )
+
         null -> Unit
     }
 }
@@ -227,9 +231,8 @@ fun appEntries(
     backStack: AppBackStack,
     account: () -> AuthUser?,
     onAccount: () -> Unit,
-    onScreening: (LogEvent) -> Unit = {},
-): (AppKey) -> NavEntry<AppKey> =
-    // Varje nyckel har sin skärm (AppKey är förseglad); en saknad är ett programfel.
+    onScreening: (LogEvent) -> Unit = {}
+): (AppKey) -> NavEntry<AppKey> = // Varje nyckel har sin skärm (AppKey är förseglad); en saknad är ett programfel.
     entryProvider(fallback = { key -> error("Ingen skärm för $key") }) {
         entry<TodayKey> {
             TodayRoute(
@@ -241,7 +244,7 @@ fun appEntries(
                 onScreening = onScreening,
                 onLogLater = { prnId, date -> backStack.push(DoseEditKey(prnId = prnId, date = date)) },
                 // HEM-12: den pågående sjukdomen öppnar sjukdomsdetaljen på Idags stack.
-                onOpenIllness = { episodeId, date -> backStack.push(EpisodeKey(episodeId, date)) },
+                onOpenIllness = { episodeId, date -> backStack.push(EpisodeKey(episodeId, date)) }
             )
         }
         // HIST-3: aktivitet, händelse, dos och incheckning öppnar sina formulär, mående måendearket; episodens start och
@@ -254,7 +257,7 @@ fun appEntries(
                 key.id,
                 onBack = { backStack.popIfTop(key) },
                 onEdit = { backStack.push(EpisodeEditKey(key.id)) },
-                onCheckin = { checkinId -> backStack.push(key.checkinKey(checkinId)) },
+                onCheckin = { checkinId -> backStack.push(key.checkinKey(checkinId)) }
             )
         }
         entry<EpisodeEditKey> { key -> EpisodeEditRoute(key.id, onClose = { backStack.popIfTop(key) }) }
@@ -272,7 +275,7 @@ fun appEntries(
                 onOpenPrn = { id -> backStack.push(PrnMedicineEditKey(id)) },
                 onExtendPrescription = { id -> backStack.push(PrescriptionEditKey(id, extend = true)) },
                 // MEDF-6: samma dosval som plusknappen, mot idag.
-                onLogDose = { onScreening(LogEvent.PickDose(null)) },
+                onLogDose = { onScreening(LogEvent.PickDose(null)) }
             )
         }
         entry<PrescriptionEditKey> { key -> PrescriptionEditRoute(key.id, key.extend, onClose = { backStack.popIfTop(key) }) }
@@ -285,7 +288,7 @@ fun appEntries(
             ListsRoute(
                 onBack = { backStack.popIfTop(key) },
                 onAdd = { kind -> backStack.push(OptionEditKey(kind)) },
-                onOpen = { option -> backStack.push(OptionEditKey(option.kind, option.id)) },
+                onOpen = { option -> backStack.push(OptionEditKey(option.kind, option.id)) }
             )
         }
         entry<OptionEditKey> { key -> OptionEditRoute(key.kind, key.id, onClose = { backStack.popIfTop(key) }) }

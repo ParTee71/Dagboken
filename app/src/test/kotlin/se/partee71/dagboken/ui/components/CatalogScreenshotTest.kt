@@ -19,15 +19,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.R
-import se.partee71.dagboken.core.model.OptionKind
-import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.engine.TypeChoices
+import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.SymptomScore
+import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.scaleLevel
-import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
@@ -41,13 +41,12 @@ import se.partee71.dagboken.ui.theme.Tone
 @RunWith(RobolectricTestRunner::class)
 class CatalogScreenshotTest {
 
-
     @Composable
     private fun Sheet(content: @Composable ColumnScope.() -> Unit) {
         Column(
             Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.m),
-            content = content,
+            content = content
         )
     }
 
@@ -132,7 +131,7 @@ class CatalogScreenshotTest {
                     "Namn",
                     listOf(Suggestion("Alvedon 500 mg", "Filmdragerad tablett", 0..4), Suggestion("Alvedon forte 1 g", "Filmdragerad tablett", 0..4)),
                     {},
-                    footer = "Från dina vid behov-mediciner · fortsätt skriva om din inte finns",
+                    footer = "Från dina vid behov-mediciner · fortsätt skriva om din inte finns"
                 )
             }
         }
@@ -150,8 +149,21 @@ class CatalogScreenshotTest {
         captureLightAndDark("InfoPill_ikon_klickbar") {
             Sheet { InfoPill("Väntar på synk", tone = Tone.Neutral, icon = R.drawable.ic_cloud_upload, onClick = {}) }
         }
-        captureLightAndDark("GroupLabel_over_kort") { Sheet { GroupLabel("Utseende"); AppCard { ItemRow("Tema") } } }
-        captureLightAndDark("AppDivider_i_kort") { Sheet { AppCard { ItemRow("Promenad"); AppDivider(); ItemRow("Yoga") } } }
+        captureLightAndDark("GroupLabel_over_kort") {
+            Sheet {
+                GroupLabel("Utseende")
+                AppCard { ItemRow("Tema") }
+            }
+        }
+        captureLightAndDark("AppDivider_i_kort") {
+            Sheet {
+                AppCard {
+                    ItemRow("Promenad")
+                    AppDivider()
+                    ItemRow("Yoga")
+                }
+            }
+        }
         captureLightAndDark("PausableRow_aktiv_och_pausad") {
             Sheet {
                 AppCard {
@@ -172,7 +184,7 @@ class CatalogScreenshotTest {
                         trailing = { InfoPill("Pausat", tone = Tone.Neutral) },
                         navigates = true,
                         onClick = {},
-                        inactive = true,
+                        inactive = true
                     )
                 }
             }
@@ -275,7 +287,7 @@ class CatalogScreenshotTest {
             ToolbarItem("Idag", R.drawable.ic_sun),
             ToolbarItem("Dagbok", R.drawable.ic_book),
             ToolbarItem("Trender", R.drawable.ic_trend),
-            ToolbarItem("Mediciner", R.drawable.ic_pill),
+            ToolbarItem("Mediciner", R.drawable.ic_pill)
         )
         captureLightAndDark("AppFloatingToolbar_flikar") {
             Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.l)) {
@@ -314,7 +326,7 @@ class CatalogScreenshotTest {
                     note = "Gick i skogen med hunden.",
                     expandedContent = { Text("Huvudvärk 2", style = AppTypography.body) },
                     onEdit = {},
-                    delete = DeleteAction("Radera?", "") {},
+                    delete = DeleteAction("Radera?", "") {}
                 )
                 DagbokenEntryCard("Mående · frukost", onClick = {}, subtitle = "Energi 7 · stress 3", accent = scaleLevel(7).color, onEdit = {})
                 DagbokenEntryCard("Prednisolon 5 mg", onClick = {}, subtitle = "Avslutat 30 sep", inactive = true, onEdit = {})
@@ -337,7 +349,7 @@ class CatalogScreenshotTest {
                             InfoPill("Idag 75 mg (+25)")
                             InfoPill("Höjning 29 sep – 12 okt", tone = Tone.Neutral)
                         }
-                    },
+                    }
                 )
                 DagbokenEntryCard(
                     "Levaxin 100 µg",
@@ -346,7 +358,7 @@ class CatalogScreenshotTest {
                     accent = MaterialTheme.colorScheme.outline,
                     onEdit = {},
                     inactive = true,
-                    toggle = EntryToggle(false, {}, "Levaxin aktivt"),
+                    toggle = EntryToggle(false, {}, "Levaxin aktivt")
                 )
             }
         }
@@ -406,7 +418,7 @@ class CatalogScreenshotTest {
                         setOf(LocalDate(2026, 10, 1), LocalDate(2026, 10, 2), LocalDate(2026, 10, 4), LocalDate(2026, 10, 12)),
                         LocalDate(2026, 10, 4),
                         {},
-                        today = LocalDate(2026, 10, 5),
+                        today = LocalDate(2026, 10, 5)
                     )
                 }
             }
@@ -421,7 +433,7 @@ class CatalogScreenshotTest {
                         LocalDate(2026, 10, 3),
                         {},
                         today = LocalDate(2026, 10, 5),
-                        dimFuture = true,
+                        dimFuture = true
                     )
                 }
             }
@@ -461,7 +473,7 @@ class CatalogScreenshotTest {
                 val types = TypeChoices(
                     listOf(Option("walk", OptionKind.ACTIVITY, "Promenad", favorite = true), Option("work", OptionKind.ACTIVITY, "Jobb", favorite = true)),
                     listOf(Option("rest", OptionKind.ACTIVITY, "Vila")),
-                    other = "other",
+                    other = "other"
                 )
                 TypeChoiceField(types, "walk", {}, otherLabel = "Övrigt")
                 TypeChoiceField(types, "other", {}, otherLabel = "Övrigt")

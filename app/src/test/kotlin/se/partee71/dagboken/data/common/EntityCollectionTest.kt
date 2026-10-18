@@ -11,17 +11,17 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.Schedule
-import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.schema.Doc
 import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.PrescriptionCodec
-import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.TestUserScope
+import se.partee71.dagboken.data.firestore.Paths
 
 /** `nextSortOrder`/`upsertPlaced`: något nytt hamnar sist, och sparandet väntar aldrig på nätet. */
 class EntityCollectionTest {

@@ -37,11 +37,10 @@ import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.core.schema.IllnessEpisodeCodec
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.withFallback
+import se.partee71.dagboken.data.repository.EntryStore
 import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
-import se.partee71.dagboken.data.repository.EntryStore
 import se.partee71.dagboken.data.repository.creatingStore
-import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryEditor
@@ -53,6 +52,7 @@ import se.partee71.dagboken.ui.common.entryDeleteAction
 import se.partee71.dagboken.ui.common.hasErrorOutside
 import se.partee71.dagboken.ui.common.message
 import se.partee71.dagboken.ui.common.nonBlank
+import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
 import se.partee71.dagboken.ui.common.title
@@ -123,7 +123,7 @@ class EpisodeNewViewModel @AssistedInject constructor(
     options: OptionsRepository,
     clock: Clock,
     zone: Provider<TimeZone>,
-    @Assisted date: LocalDate?,
+    @Assisted date: LocalDate?
 ) : ViewModel() {
     val form = EntryEditor(
         viewModelScope,
@@ -137,7 +137,7 @@ class EpisodeNewViewModel @AssistedInject constructor(
             val episode = illnesses.newEpisode(day)
             EpisodeStart(episode, illnesses.newCheckin(episode.id, day, now.time))
         },
-        clean = { _, value -> value.cleaned() },
+        clean = { _, value -> value.cleaned() }
     )
 
     val editor: EditorState<EpisodeStart> = form.editor
@@ -171,14 +171,14 @@ fun EpisodeNewScreen(form: EntryForm<EpisodeStart>, onClose: () -> Unit, symptom
         onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
+        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null
     ) {
         // Den första incheckningen gäller startdagen (som 3.x).
         EpisodeFields(
             start.episode,
             messages,
             change = { field, change -> form.change(field) { it.copy(episode = change(it.episode)) } },
-            onStart = { date -> form.change(IllnessField.START) { it.copy(episode = it.episode.copy(start = date), checkin = it.checkin.copy(date = date)) } },
+            onStart = { date -> form.change(IllnessField.START) { it.copy(episode = it.episode.copy(start = date), checkin = it.checkin.copy(date = date)) } }
         ) {
             CheckinValues(start.checkin, symptomOptions, stored = emptyList()) { change -> form.change { it.copy(checkin = change(it.checkin)) } }
         }
@@ -196,14 +196,14 @@ private fun EpisodeFields(
     messages: Map<String, String>,
     change: (field: String, (IllnessEpisode) -> IllnessEpisode) -> Unit,
     onStart: (LocalDate) -> Unit = { date -> change(IllnessField.START) { it.copy(start = date) } },
-    between: @Composable () -> Unit = {},
+    between: @Composable () -> Unit = {}
 ) {
     AppTextField(
         episode.type,
         { type -> change(IllnessField.TYPE) { it.copy(type = type) } },
         stringResource(R.string.entry_type),
         error = messages[IllnessField.TYPE],
-        helper = stringResource(R.string.illness_type_help),
+        helper = stringResource(R.string.illness_type_help)
     )
     episode.start?.let { day -> DateField(stringResource(R.string.prescription_start), day, onStart, error = messages[IllnessField.START]) }
     between()
@@ -222,7 +222,7 @@ class EpisodeEditViewModel @AssistedInject constructor(
     illnesses: IllnessRepository,
     clock: Clock,
     zone: Provider<TimeZone>,
-    @Assisted id: String,
+    @Assisted id: String
 ) : ViewModel() {
     val form = EntryEditor(
         viewModelScope,
@@ -232,7 +232,7 @@ class EpisodeEditViewModel @AssistedInject constructor(
         placeholder = IllnessEpisode(""),
         // Formuläret öppnar bara en episod som finns.
         create = { throw DataError.NotFound },
-        clean = { _, value -> value.cleaned() },
+        clean = { _, value -> value.cleaned() }
     )
 
     val editor: EditorState<IllnessEpisode> = form.editor
@@ -273,7 +273,7 @@ fun EpisodeEditScreen(form: EntryForm<IllnessEpisode>, onClose: () -> Unit) {
         onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
+        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null
     ) {
         EpisodeFields(form.value, state.errors.mapValues { stringResource(it.value) }, change = { field, change -> form.change(field, change) })
     }
@@ -292,7 +292,7 @@ class CheckinEditViewModel @AssistedInject constructor(
     zone: Provider<TimeZone>,
     @Assisted("episodeId") episodeId: String,
     @Assisted("id") id: String?,
-    @Assisted date: LocalDate?,
+    @Assisted date: LocalDate?
 ) : ViewModel() {
     val form = EntryEditor(
         viewModelScope,
@@ -305,7 +305,7 @@ class CheckinEditViewModel @AssistedInject constructor(
             val now = clock.nowInMinutes(zone.get())
             illnesses.newCheckin(episodeId, date ?: now.date, now.time)
         },
-        clean = { _, value -> value.cleaned() },
+        clean = { _, value -> value.cleaned() }
     )
 
     val editor: EditorState<Checkin> = form.editor
@@ -355,14 +355,14 @@ fun CheckinEditScreen(form: EntryForm<Checkin>, onClose: () -> Unit, episode: Il
             entryDeleteAction(R.string.diary_subject_checkin, episodeTitle, shown.date, shown.time) { form.onEvent(EntryEditEvent.Delete) }
         },
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
+        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null
     ) {
         AppCard {
             val day = c.date?.let { illnessDay(episode?.start, it) }
             ItemRow(
                 episodeTitle,
                 trailing = day?.let { { InfoPill(stringResource(R.string.today_illness_day_format, it), tone = Tone.Warning) } },
-                accent = AppColors.tone(Tone.Warning).content,
+                accent = AppColors.tone(Tone.Warning).content
             )
         }
         c.date?.let { date ->
@@ -384,7 +384,7 @@ private fun CheckinValues(checkin: Checkin, symptomOptions: List<Option>, stored
             checkin.severity,
             { value -> change { it.copy(severity = value) } },
             valueRange = DocumentRules.SCORE,
-            higherIsBetter = false,
+            higherIsBetter = false
         )
     }
     val symptoms = remember(symptomOptions, stored) { symptomChoices(symptomOptions, stored) }

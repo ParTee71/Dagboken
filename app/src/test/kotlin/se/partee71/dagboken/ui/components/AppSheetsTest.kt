@@ -35,7 +35,7 @@ class AppSheetsTest {
         onDismiss: () -> Unit = {},
         account: AuthUser? = anna,
         onOpen: (SettingsPage) -> Unit = {},
-        onLog: (LogChoice) -> Unit = {},
+        onLog: (LogChoice) -> Unit = {}
     ) = rule.setContent { DagbokenTheme { RootSheets(sheet, onDismiss, onSignOut, onOpenGallery, account, onOpen, onLog) } }
 
     @Test
@@ -125,5 +125,4 @@ class AppSheetsTest {
     }
 }
 
-private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.activityString(id: Int): String =
-    androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)
+private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.activityString(id: Int): String = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)

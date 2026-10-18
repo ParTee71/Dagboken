@@ -31,6 +31,7 @@ internal fun DayMarkerDot(isToday: Boolean, hasEntries: Boolean, selected: Boole
             // Den solgula punkten har alltid en ring i underlagets kontrastfärg – solgult ensamt syns för
             // dåligt mot det vita kortet och mot ljust teal i mörkt tema (ThemeContrastTest).
             isToday -> Dot(colors.secondary, ring = if (selected) colors.onPrimary else AppColors.extended.sunTone.content)
+
             hasEntries -> Dot(if (selected) colors.onPrimary else colors.primary)
         }
     }

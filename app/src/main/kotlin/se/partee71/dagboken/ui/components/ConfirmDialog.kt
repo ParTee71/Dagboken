@@ -44,7 +44,7 @@ fun ConfirmDialog(
     destructive: Boolean = false,
     dismissLabel: String? = stringResource(R.string.cancel),
     onDecline: () -> Unit = onDismiss,
-    content: (@Composable ColumnScope.() -> Unit)? = null,
+    content: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -67,7 +67,7 @@ fun ConfirmDialog(
         },
         shape = AppShapes.card,
         containerColor = AppColors.extended.card,
-        properties = if (content == null) DialogProperties() else DialogProperties(usePlatformDefaultWidth = false),
+        properties = if (content == null) DialogProperties() else DialogProperties(usePlatformDefaultWidth = false)
     )
 }
 
@@ -86,6 +86,6 @@ internal fun DeleteConfirmDialog(action: DeleteAction, onDismiss: () -> Unit) {
             action.onConfirm()
         },
         onDismiss = onDismiss,
-        destructive = true,
+        destructive = true
     )
 }

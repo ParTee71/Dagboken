@@ -19,14 +19,14 @@ class NightlyMidpointsTest {
     @Test fun `each night contributes one midpoint`() {
         assertEquals(
             listOf(LocalTime(3, 0), LocalTime(3, 30)),
-            midpoints(sleep("2026-08-01T23:00", "2026-08-02T07:00"), sleep("2026-08-02T23:30", "2026-08-03T07:30")),
+            midpoints(sleep("2026-08-01T23:00", "2026-08-02T07:00"), sleep("2026-08-02T23:30", "2026-08-03T07:30"))
         )
     }
 
     @Test fun `a night split into two sessions counts once, using the longest`() {
         assertEquals(
             listOf(LocalTime(5, 0)),
-            midpoints(sleep("2026-08-01T23:00", "2026-08-02T02:00"), sleep("2026-08-02T02:30", "2026-08-02T07:30")),
+            midpoints(sleep("2026-08-01T23:00", "2026-08-02T02:00"), sleep("2026-08-02T02:30", "2026-08-02T07:30"))
         )
     }
 
@@ -46,14 +46,14 @@ class NightlyMidpointsTest {
     @Test fun `the longest session wins even when it starts later`() {
         assertEquals(
             listOf(LocalTime(4, 30)),
-            midpoints(sleep("2026-08-02T00:00", "2026-08-02T00:30"), sleep("2026-08-02T01:00", "2026-08-02T08:00")),
+            midpoints(sleep("2026-08-02T00:00", "2026-08-02T00:30"), sleep("2026-08-02T01:00", "2026-08-02T08:00"))
         )
     }
 
     @Test fun `midpoints come in date order whatever the input order`() {
         assertEquals(
             listOf(LocalTime(3, 0), LocalTime(3, 30)),
-            midpoints(sleep("2026-08-02T23:30", "2026-08-03T07:30"), sleep("2026-08-01T23:00", "2026-08-02T07:00")),
+            midpoints(sleep("2026-08-02T23:30", "2026-08-03T07:30"), sleep("2026-08-01T23:00", "2026-08-02T07:00"))
         )
     }
 

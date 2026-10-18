@@ -57,7 +57,7 @@ data class ImportPlan(
     val counts: Map<String, Int>,
     val warnings: List<Warning>,
     /** Dokument som redan finns i kontot med samma id men andra värden – de som ersätts (granskningens notis). */
-    val replaced: Int = 0,
+    val replaced: Int = 0
 ) {
     val total: Int get() = documents.size
 }
@@ -78,7 +78,7 @@ class LegacyImportUseCase @Inject constructor(
     private val documents: RawDocuments,
     private val pause: LegacyMigrationPause,
     private val scope: UserScope,
-    @DefaultDispatcher private val computation: CoroutineDispatcher,
+    @DefaultDispatcher private val computation: CoroutineDispatcher
 ) {
     /** Filen användaren valt i dokumentväljaren (SAF). Ingenting skrivs. */
     suspend fun readFile(uri: Uri): ImportRead {
@@ -102,7 +102,9 @@ class LegacyImportUseCase @Inject constructor(
         val uid = scope.uid.value ?: return@withContext ImportRead.Failed(DataError.NotSignedIn)
         when (val result = ImportFile.read(text, uid)) {
             ImportFileResult.NotABackup -> ImportRead.NotABackup
+
             is ImportFileResult.Stopped -> ImportRead.Stopped(result.report)
+
             is ImportFileResult.Ready -> {
                 val stored = serverState(result.documents).getOrElse { return@withContext ImportRead.Failed(it.asDataError()) }
                 val replaced = result.documents.count { document -> stored[document.path]?.let { !landed(it, document.data) } == true }
@@ -133,8 +135,7 @@ class LegacyImportUseCase @Inject constructor(
 
     private suspend fun writePaused(plan: ImportPlan, onProgress: (Map<String, Int>) -> Unit): LegacyWriteOutcome {
         val tally = Tally(plan.counts)
-        fun failed(error: DataError, batch: Int? = null) =
-            LegacyWriteOutcome.Failed(plan.counts, tally.doneSoFar(), error, batch, LegacyMigrationUseCase.codeOf(error))
+        fun failed(error: DataError, batch: Int? = null) = LegacyWriteOutcome.Failed(plan.counts, tally.doneSoFar(), error, batch, LegacyMigrationUseCase.codeOf(error))
         if (scope.uid.value != plan.uid) return failed(DataError.NotSignedIn)
         scope.writeBlocker()?.let { return failed(it) }
         // Dokumenten är i appens format; ett konto i ett äldre format måste lyftas med migrate.mjs först.

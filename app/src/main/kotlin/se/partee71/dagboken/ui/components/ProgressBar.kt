@@ -55,12 +55,12 @@ fun ProgressBar(done: Int, total: Int, modifier: Modifier = Modifier, celebrate:
                 contentDescription = description
                 progressBarRangeInfo = ProgressBarRangeInfo(fraction, 0f..1f)
             },
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         Text(
             stringResource(if (complete) R.string.progress_done_format else R.string.progress_format, count, total),
             style = AppTypography.itemSubtitle,
-            color = if (complete) colors.onSurface else colors.onSurfaceVariant,
+            color = if (complete) colors.onSurface else colors.onSurfaceVariant
         )
         Box(Modifier.fillMaxWidth().height(TRACK).clip(AppShapes.pill).background(AppColors.extended.track)) {
             // Fjädern får slå över lite (Expressive) – fyllnaden stannar ändå inom spåret.

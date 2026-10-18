@@ -78,7 +78,7 @@ fun EntityEditScreen(
     onRetry: () -> Unit = {},
     onSaved: () -> Unit = onClose,
     formError: String? = null,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     val snackbar = remember { SnackbarHostState() }
     // Vad "Släng ändringar" leder till; null = ingen fråga visas.
@@ -126,12 +126,12 @@ fun EntityEditScreen(
                 val menu = listOfNotNull(
                     onArchive?.let { AppMenuItem(stringResource(R.string.archive), { askFirst(AfterDiscard.Archive) }, R.drawable.ic_archive) },
                     onRestore?.let { AppMenuItem(stringResource(R.string.restore), { askFirst(AfterDiscard.Restore) }, R.drawable.ic_unarchive) },
-                    delete?.let { AppMenuItem(stringResource(R.string.delete), { confirmDelete = true }, R.drawable.ic_delete, destructive = true) },
+                    delete?.let { AppMenuItem(stringResource(R.string.delete), { confirmDelete = true }, R.drawable.ic_delete, destructive = true) }
                 )
                 if (menu.isNotEmpty()) AppMenu(menu)
             }
         },
-        snackbarHost = { AppSnackbarHost(snackbar) },
+        snackbarHost = { AppSnackbarHost(snackbar) }
     ) { padding ->
         // Scaffoldens inset (navigeringsfältet) är redan utfyllnad här – imePadding nedan lägger bara till resten.
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
@@ -144,7 +144,7 @@ fun EntityEditScreen(
                 Column(
                     Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState())
                         .padding(horizontal = SCREEN_MARGIN, vertical = Spacing.s),
-                    verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
+                    verticalArrangement = Arrangement.spacedBy(SECTION_GAP)
                 ) {
                     formError?.let { FieldError(it) }
                     content()
@@ -159,7 +159,7 @@ fun EntityEditScreen(
                 discardThen = null
                 proceed(after)
             },
-            onDismiss = { discardThen = null },
+            onDismiss = { discardThen = null }
         )
     }
     if (confirmDelete && delete != null) {

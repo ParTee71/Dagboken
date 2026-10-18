@@ -13,8 +13,7 @@ import se.partee71.dagboken.data.common.MemoryDayMarks
 import se.partee71.dagboken.data.firestore.FirestoreSyncStatus
 
 /** [DefaultDoseRepository] i test – en gång för alla testklasser; [clock] avgör "nu" (avbockning, framtid). */
-fun testDoses(collections: CollectionFactory, zone: TimeZone, clock: Clock = FixedClock()): DefaultDoseRepository =
-    DefaultDoseRepository(collections, clock) { zone }
+fun testDoses(collections: CollectionFactory, zone: TimeZone, clock: Clock = FixedClock()): DefaultDoseRepository = DefaultDoseRepository(collections, clock) { zone }
 
 /**
  * [DefaultPrescriptionRepository] i test – en gång för alla testklasser. Dossynken efter en sparning
@@ -32,5 +31,5 @@ fun testPrescriptions(
     background: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher()),
     sync: FirestoreSyncStatus = FirestoreSyncStatus(background),
     gate: DailyGate = DailyGate(MemoryDayMarks(), TestUserScope()),
-    settings: SettingsRepository = DefaultSettingsRepository(collections),
+    settings: SettingsRepository = DefaultSettingsRepository(collections)
 ): DefaultPrescriptionRepository = DefaultPrescriptionRepository(collections, doses, clock, background, sync, { zone }, gate, settings)

@@ -101,7 +101,7 @@ object ImportFile {
     internal val LEGACY_DATA_KEYS: List<String> = listOf(
         "aktiviteter", "mediciner", "medicinRecipes", "medicinFavoriter", "sjukdomsepisoder", "sjukdomsIncheckningar", "handelser",
         "aktiviteterOptions", "symptomOptions", "aktiviteterOptionsV2", "symptomOptionsV2", "handelseTypOptions",
-        "screeningEventConfigs", "medNotificationConfigs",
+        "screeningEventConfigs", "medNotificationConfigs"
     )
 }
 
@@ -133,9 +133,13 @@ private class ExportRead(private val documents: List<ExportFormat.Document>, pri
             }
             when {
                 collection == null -> problem(label, "path", "okänd samling – finns inte i 4.0")
+
                 collection == CollectionNames.USERS -> Unit
+
                 parts.any { !DocumentRules.isValidId(it) } -> problem(label, "id", "ogiltigt id")
+
                 !seen.add(document.path) -> problem(label, "id", "dubblett: samma sökväg två gånger")
+
                 else -> {
                     val data = SchemaMigrator.migrate(version, collection, document.data)
                     for (violation in DocumentRules.validate(collection, data)) problem(label, violation.field, violation.reason)
@@ -157,7 +161,7 @@ private class ExportRead(private val documents: List<ExportFormat.Document>, pri
         createdAt = (root["exportedAt"] as? JsonPrimitive)?.contentOrNull.orEmpty(),
         counts = CollectionNames.countsOf(written.map { it.path }),
         warnings = emptyList(),
-        problems = problems.toList(),
+        problems = problems.toList()
     )
 
     /** Samlingen för en sökväg under `users/{uid}` enligt Datamodell, eller `null` för en sökväg 4.0 inte har. */

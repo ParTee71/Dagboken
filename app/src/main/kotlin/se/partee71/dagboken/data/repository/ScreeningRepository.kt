@@ -30,12 +30,12 @@ interface ScreeningRepository : DatedRepository<Screening> {
 /** Tunn fasad över samlingen `screenings` (skill firestore-data-layer). */
 class DefaultScreeningRepository private constructor(
     private val collection: EntityCollection<Screening>,
-    private val clock: Clock,
-) : ScreeningRepository, DatedRepository<Screening> by DatedEntries(collection, ScreeningCodec) {
+    private val clock: Clock
+) : ScreeningRepository,
+    DatedRepository<Screening> by DatedEntries(collection, ScreeningCodec) {
     @Inject constructor(collections: CollectionFactory, clock: Clock) : this(collections.screenings(), clock)
 
     override fun observeDay(date: LocalDate): Flow<List<Screening>> = observeDays(date, date)
 
-    override fun new(date: LocalDate, occasion: Occasion?): Screening =
-        Screening(collection.newId(), date = date, occasion = occasion, createdAt = clock.now())
+    override fun new(date: LocalDate, occasion: Occasion?): Screening = Screening(collection.newId(), date = date, occasion = occasion, createdAt = clock.now())
 }

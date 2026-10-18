@@ -16,11 +16,11 @@ class FirestoreCollectionFactory @Inject constructor(
     private val scope: UserScope,
     private val sync: FirestoreSyncStatus,
     private val clock: Clock,
-    private val coverage: HistoryCoverage,
+    private val coverage: HistoryCoverage
 ) : CollectionTable() {
     override fun <T : Identified> create(
         codec: DocCodec<T>,
         name: String,
-        path: (uid: String?) -> String,
+        path: (uid: String?) -> String
     ): EntityCollection<T> = FirestoreCollection(firestore, scope, sync, clock, codec, name, path, coverage)
 }

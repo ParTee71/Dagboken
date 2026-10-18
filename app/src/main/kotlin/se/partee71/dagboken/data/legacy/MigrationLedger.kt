@@ -26,7 +26,7 @@ data class Ledger(
     val pending: Map<String, String>,
     val verified: Map<String, String>,
     val mismatched: Map<String, String> = emptyMap(),
-    val planned: Map<String, String> = emptyMap(),
+    val planned: Map<String, String> = emptyMap()
 ) {
     /** Flytten har börjat: något är antecknat (P/W/V/M) – då finns dokument i kontot som migreringen skrivit eller tänkt skriva. */
     val started: Boolean get() = pending.isNotEmpty() || verified.isNotEmpty() || mismatched.isNotEmpty() || planned.isNotEmpty()
@@ -81,8 +81,7 @@ interface MigrationLedger {
          * (även i listelement) och fält utanför [tree]; ett fält som försvinner ändrar den. Tal och tidsstämplar
          * normaliseras av exportformatet. [tree] = `null` jämför hela dokumentet (kopian).
          */
-        fun hashOf(doc: Doc, tree: DocumentRules.FieldTree?): String =
-            hex(MessageDigest.getInstance("SHA-256").digest(ExportFormat.toJson(canonical(doc, tree)).toString().toByteArray(Charsets.UTF_8)))
+        fun hashOf(doc: Doc, tree: DocumentRules.FieldTree?): String = hex(MessageDigest.getInstance("SHA-256").digest(ExportFormat.toJson(canonical(doc, tree)).toString().toByteArray(Charsets.UTF_8)))
 
         private val HEX = "0123456789abcdef".toCharArray()
 
@@ -125,7 +124,7 @@ interface MigrationLedger {
  */
 class FileMigrationLedger @Inject constructor(
     @ApplicationContext private val context: Context,
-    @IoDispatcher private val dispatcher: CoroutineDispatcher,
+    @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : MigrationLedger {
     private fun file(uid: String) = File(File(context.filesDir, DIR), "$uid.ledger")
 
@@ -144,7 +143,9 @@ class FileMigrationLedger @Inject constructor(
                 val path = unescape(parts[1])
                 when (parts[0]) {
                     PLANNED -> planned[path] = parts[2]
+
                     CANCELLED -> planned.remove(path)
+
                     else -> {
                         val target = when (parts[0]) {
                             WRITTEN -> pending
@@ -176,12 +177,14 @@ class FileMigrationLedger @Inject constructor(
 
     /** Ett id från 3.x kan innehålla vad som helst: tab, radbrytning och backslash escapas så att raden förblir en rad. */
     private fun escape(path: String): String = buildString(path.length) {
-        for (c in path) when (c) {
-            '\\' -> append("\\\\")
-            '\t' -> append("\\t")
-            '\n' -> append("\\n")
-            '\r' -> append("\\r")
-            else -> append(c)
+        for (c in path) {
+            when (c) {
+                '\\' -> append("\\\\")
+                '\t' -> append("\\t")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                else -> append(c)
+            }
         }
     }
 

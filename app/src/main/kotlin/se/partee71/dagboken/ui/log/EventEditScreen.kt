@@ -28,16 +28,16 @@ import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.core.schema.EventCodec
 import se.partee71.dagboken.data.repository.EventRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
-import se.partee71.dagboken.ui.common.nowInMinutes
-import se.partee71.dagboken.ui.common.EntryEditEvent
-import se.partee71.dagboken.ui.common.EntryForm
-import se.partee71.dagboken.ui.common.hasErrorOutside
-import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.EditorState
+import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryEditor
+import se.partee71.dagboken.ui.common.EntryForm
 import se.partee71.dagboken.ui.common.choices
 import se.partee71.dagboken.ui.common.entryDeleteAction
+import se.partee71.dagboken.ui.common.hasErrorOutside
 import se.partee71.dagboken.ui.common.nonBlank
+import se.partee71.dagboken.ui.common.nowInMinutes
+import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
 import se.partee71.dagboken.ui.components.AppCard
 import se.partee71.dagboken.ui.components.AppTextField
@@ -65,7 +65,7 @@ val eventValidator = rulesValidator(CollectionNames.EVENTS, EventCodec) { e ->
 internal fun Event.cleaned(): Event = copy(
     triggers = triggers?.trim().nonBlank(),
     actions = actions?.trim().nonBlank(),
-    note = note?.trim().nonBlank(),
+    note = note?.trim().nonBlank()
 )
 
 /** Fälten som formuläret visar ett fel vid; ett fel på något annat visas överst (`EntityEditScreen(formError)`). */
@@ -84,7 +84,7 @@ class EventEditViewModel @AssistedInject constructor(
     clock: Clock,
     zone: Provider<TimeZone>,
     @Assisted id: String?,
-    @Assisted date: LocalDate?,
+    @Assisted date: LocalDate?
 ) : ViewModel() {
     val form = EntryEditor(
         viewModelScope,
@@ -96,7 +96,7 @@ class EventEditViewModel @AssistedInject constructor(
             val now = clock.nowInMinutes(zone.get())
             events.new(date ?: now.date, now.time)
         },
-        clean = { _, value -> value.cleaned() },
+        clean = { _, value -> value.cleaned() }
     )
 
     val editor: EditorState<Event> = form.editor
@@ -144,7 +144,7 @@ fun EventEditScreen(form: EntryForm<Event>, onClose: () -> Unit, eventOptions: L
             entryDeleteAction(R.string.diary_subject_event, typeName, shown.date, shown.time) { form.onEvent(EntryEditEvent.Delete) }
         },
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
+        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null
     ) {
         TypeChoiceField(types, e.optionId, { id -> form.change(EventField.TYPE) { it.copy(optionId = id) } }, error = error(EventField.TYPE))
         e.date?.let { date ->
@@ -156,7 +156,7 @@ fun EventEditScreen(form: EntryForm<Event>, onClose: () -> Unit, eventOptions: L
                 e.severity,
                 { value -> form.change { it.copy(severity = value) } },
                 valueRange = DocumentRules.SCORE,
-                higherIsBetter = false,
+                higherIsBetter = false
             )
         }
         DurationRow(e.durationMinutes, { minutes -> form.change { it.copy(durationMinutes = minutes) } }, label = stringResource(R.string.event_duration))
@@ -166,7 +166,7 @@ fun EventEditScreen(form: EntryForm<Event>, onClose: () -> Unit, eventOptions: L
             stringResource(R.string.event_triggers),
             error = error(EventField.TRIGGERS),
             helper = stringResource(R.string.event_triggers_hint),
-            singleLine = false,
+            singleLine = false
         )
         AppTextField(
             e.actions.orEmpty(),
@@ -174,7 +174,7 @@ fun EventEditScreen(form: EntryForm<Event>, onClose: () -> Unit, eventOptions: L
             stringResource(R.string.event_actions),
             error = error(EventField.ACTIONS),
             helper = stringResource(R.string.event_actions_hint),
-            singleLine = false,
+            singleLine = false
         )
         AppCard {
             NoteField(e.note.orEmpty(), { note -> form.change(EventField.NOTE) { it.copy(note = note.ifEmpty { null }) } }, error = error(EventField.NOTE))

@@ -50,7 +50,7 @@ fun WheelPicker(
     label: String,
     modifier: Modifier = Modifier,
     visibleItems: Int = DEFAULT_VISIBLE,
-    width: Dp = DEFAULT_WIDTH,
+    width: Dp = DEFAULT_WIDTH
 ) {
     require(visibleItems % 2 == 1) { "visibleItems måste vara udda så att det valda står mitt i" }
     val selected = selectedIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0))
@@ -92,10 +92,10 @@ fun WheelPicker(
                 stateDescription = items.getOrElse(selected) { "" }
                 customActions = listOf(
                     CustomAccessibilityAction(decrease) { (selected > 0).also { if (it) change(selected - 1) } },
-                    CustomAccessibilityAction(increase) { (selected < items.lastIndex).also { if (it) change(selected + 1) } },
+                    CustomAccessibilityAction(increase) { (selected < items.lastIndex).also { if (it) change(selected + 1) } }
                 )
             },
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         // Markeringen ligger under texten, mitt i.
         Box(Modifier.fillMaxWidth().height(ITEM_HEIGHT).background(AppColors.extended.rowTint, AppShapes.smallTile))
@@ -103,12 +103,23 @@ fun WheelPicker(
             items(side, contentType = { "spacer" }) { Box(Modifier.height(ITEM_HEIGHT)) }
             itemsIndexed(items, contentType = { _, _ -> "value" }) { index, item ->
                 val distance = abs(index - selected)
-                Box(Modifier.height(ITEM_HEIGHT).alpha(if (distance == 0) 1f else if (distance == 1) NEAR_ALPHA else FAR_ALPHA), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier.height(ITEM_HEIGHT).alpha(
+                        if (distance == 0) {
+                            1f
+                        } else if (distance == 1) {
+                            NEAR_ALPHA
+                        } else {
+                            FAR_ALPHA
+                        }
+                    ),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         item,
                         style = if (distance == 0) AppTypography.quantity else AppTypography.body,
                         color = if (distance == 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
+                        textAlign = TextAlign.Center
                     )
                 }
             }

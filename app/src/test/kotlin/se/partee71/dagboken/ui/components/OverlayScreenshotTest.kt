@@ -44,7 +44,7 @@ class OverlayScreenshotTest {
 
     private val menu = listOf(
         AppMenuItem("Arkivera", {}, R.drawable.ic_archive),
-        AppMenuItem("Radera", {}, R.drawable.ic_delete, destructive = true),
+        AppMenuItem("Radera", {}, R.drawable.ic_delete, destructive = true)
     )
 
     @Test
@@ -61,7 +61,10 @@ class OverlayScreenshotTest {
 
     @Test
     fun `AppBottomSheet - ändra mängd`() = rule.captureScreenLightAndDark("AppBottomSheet_mangd") {
-        AppBottomSheet("Promenad", onDismiss = {}, footer = { Spacer(Modifier.weight(1f)); AppButton("Spara", {}) }) {
+        AppBottomSheet("Promenad", onDismiss = {}, footer = {
+            Spacer(Modifier.weight(1f))
+            AppButton("Spara", {})
+        }) {
             QuantityStepper(45, {}, "minuter")
         }
     }
@@ -84,7 +87,10 @@ class OverlayScreenshotTest {
     fun `UndoSnackbar - arkiverad`() {
         var undone = 0
         rule.mainClock.autoAdvance = false
-        rule.captureLightAndDark("UndoSnackbar_arkiverad", settle = { mainClock.advanceTimeBy(FRAME); waitForIdle() }) {
+        rule.captureLightAndDark("UndoSnackbar_arkiverad", settle = {
+            mainClock.advanceTimeBy(FRAME)
+            waitForIdle()
+        }) {
             val host = remember { SnackbarHostState() }
             UndoSnackbar(UndoRequest("yoga", "Yoga"), host, onUndo = { undone++ }, onDismissed = {})
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.BottomCenter) {
@@ -140,7 +146,12 @@ class OverlayScreenshotTest {
         rule.setContent {
             DagbokenTheme {
                 val host = remember { SnackbarHostState() }
-                if (visible) UndoSnackbar(request, host, onUndo = { request = null }, onDismissed = { dismissed++; request = null })
+                if (visible) {
+                    UndoSnackbar(request, host, onUndo = { request = null }, onDismissed = {
+                        dismissed++
+                        request = null
+                    })
+                }
                 AppSnackbarHost(host)
             }
         }
@@ -158,7 +169,12 @@ class OverlayScreenshotTest {
         var swiped = false
         rule.captureLightAndDark("SwipeToHide_svept", settle = {
             // Fingret hålls kvar mitt i svepet, så att bakgrunden syns i båda bilderna.
-            if (!swiped) onRoot().performTouchInput { down(Offset(width * 0.8f, height / 2f)); repeat(STEPS) { moveBy(Offset(-width * 0.3f / STEPS, 0f)) } }
+            if (!swiped) {
+                onRoot().performTouchInput {
+                    down(Offset(width * 0.8f, height / 2f))
+                    repeat(STEPS) { moveBy(Offset(-width * 0.3f / STEPS, 0f)) }
+                }
+            }
             swiped = true
             waitForIdle()
         }) { SwipeSample() }
@@ -174,7 +190,10 @@ class OverlayScreenshotTest {
     @Test
     fun `Confetti - mitt i regnet`() {
         rule.mainClock.autoAdvance = false
-        rule.captureLightAndDark("Confetti_mitt", settle = { mainClock.advanceTimeBy(CONFETTI_MIDDLE); waitForIdle() }) {
+        rule.captureLightAndDark("Confetti_mitt", settle = {
+            mainClock.advanceTimeBy(CONFETTI_MIDDLE)
+            waitForIdle()
+        }) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { Confetti(Modifier.fillMaxSize()) }
         }
     }

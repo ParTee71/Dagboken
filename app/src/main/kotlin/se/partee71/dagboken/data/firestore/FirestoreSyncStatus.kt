@@ -3,14 +3,14 @@ package se.partee71.dagboken.data.firestore
 import com.google.android.gms.tasks.Task
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.SharingStarted
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.SyncStatus
 import se.partee71.dagboken.data.common.dataError

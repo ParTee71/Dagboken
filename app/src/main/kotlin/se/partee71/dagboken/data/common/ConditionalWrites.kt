@@ -57,8 +57,7 @@ class PendingCommits {
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private fun <R : Any> Deferred<R>.completedOrNull(): R? =
-        if (isCompleted && getCompletionExceptionOrNull() == null) getCompleted() else null
+    private fun <R : Any> Deferred<R>.completedOrNull(): R? = if (isCompleted && getCompletionExceptionOrNull() == null) getCompleted() else null
 
     /** Väntar in de spårade, högst [wait] totalt; `false` = någon är fortfarande inte klar. */
     suspend fun awaitAll(wait: Duration): Boolean {

@@ -49,21 +49,23 @@ class ReminderPlanTest {
 
     @Test fun `bara påslagna måendetillfällen, på sina egna tider (NOT-4, NOT-5)`() {
         val settings = ReminderSettings().let { r ->
-            r.copy(screeningOccasions = r.screeningOccasions.map {
-                when (it.occasion) {
-                    Occasion.BREAKFAST -> it.copy(enabled = true, time = LocalTime(8, 30))
-                    Occasion.DINNER -> it.copy(enabled = true)
-                    else -> it
+            r.copy(
+                screeningOccasions = r.screeningOccasions.map {
+                    when (it.occasion) {
+                        Occasion.BREAKFAST -> it.copy(enabled = true, time = LocalTime(8, 30))
+                        Occasion.DINNER -> it.copy(enabled = true)
+                        else -> it
+                    }
                 }
-            })
+            )
         }
         val moods = alarms(settings).filter { it.reminder is Reminder.Mood }
         assertEquals(
             listOf(
                 ReminderAlarm(Reminder.Mood(Occasion.BREAKFAST), LocalTime(8, 30), at("2026-05-07T08:30")),
-                ReminderAlarm(Reminder.Mood(Occasion.DINNER), LocalTime(17, 0), at("2026-05-06T17:00")),
+                ReminderAlarm(Reminder.Mood(Occasion.DINNER), LocalTime(17, 0), at("2026-05-06T17:00"))
             ),
-            moods,
+            moods
         )
     }
 
@@ -71,7 +73,7 @@ class ReminderPlanTest {
         val settings = ReminderSettings(medsEnabled = true).let { r ->
             r.copy(
                 medSlots = r.medSlots.map { it.copy(enabled = it.slot == Slot.MORNING) },
-                screeningOccasions = r.screeningOccasions.map { it.copy(enabled = true) },
+                screeningOccasions = r.screeningOccasions.map { it.copy(enabled = true) }
             )
         }
         val morning = alarms(settings).single { it.reminder == Reminder.Med(Slot.MORNING) }
@@ -83,7 +85,7 @@ class ReminderPlanTest {
         val r = ReminderSettings(medsEnabled = true)
         val settings = r.copy(
             medSlots = listOf(r.medSlots[0], r.medSlots[0].copy(time = LocalTime(8, 0))),
-            screeningOccasions = listOf(r.screeningOccasions[0].copy(enabled = true), r.screeningOccasions[0].copy(enabled = true, time = LocalTime(9, 0))),
+            screeningOccasions = listOf(r.screeningOccasions[0].copy(enabled = true), r.screeningOccasions[0].copy(enabled = true, time = LocalTime(9, 0)))
         )
         assertEquals(3, alarms(settings).size)
         assertEquals(LocalTime(7, 0), alarms(settings).first().time)
@@ -107,9 +109,8 @@ class ReminderPlanTest {
         val morning = Reminder.Med(Slot.MORNING)
         val due = at("2026-05-06T06:45")
         val tomorrow = at("2026-05-07T06:45")
-        fun at655(scheduled: Instant? = due, fired: Instant? = null, grace: Duration = 30.minutes, now: Instant = at("2026-05-06T06:55")) =
-            reminderAlarms(settings, now, STOCKHOLM, grace, listOfNotNull(scheduled?.let { morning to it }).toMap(), listOfNotNull(fired?.let { morning to it }).toMap())
-                .single { it.reminder == morning }.at
+        fun at655(scheduled: Instant? = due, fired: Instant? = null, grace: Duration = 30.minutes, now: Instant = at("2026-05-06T06:55")) = reminderAlarms(settings, now, STOCKHOLM, grace, listOfNotNull(scheduled?.let { morning to it }).toMap(), listOfNotNull(fired?.let { morning to it }).toMap())
+            .single { it.reminder == morning }.at
 
         assertEquals(due, at655(), "schemalagd 06:45, inte utlöst – ligger kvar idag")
         assertEquals(tomorrow, at655(fired = at("2026-05-06T06:46")), "utlöst – i morgon")
@@ -127,7 +128,7 @@ class ReminderPlanTest {
         val scheduled = mapOf(
             med to at("2026-05-06T06:45"), // passerat för länge sedan → i morgon
             mood to at("2026-05-06T12:00"), // fortfarande framtida → samma
-            Reminder.PeriodEnd to at("2026-05-06T09:10"), // missat under omstarten, inte utlöst → direkt
+            Reminder.PeriodEnd to at("2026-05-06T09:10") // missat under omstarten, inte utlöst → direkt
         )
         val restored = restoredAlarms(scheduled, emptyMap(), now, STOCKHOLM, 30.minutes).associateBy { it.reminder }
 
@@ -149,8 +150,7 @@ class ReminderPlanTest {
     private val metformin = prescription(id = "met", name = "Metformin", dose = "500", slots = listOf(Slot.MORNING, Slot.EVENING))
     private val levaxin = prescription(id = "lev", name = "Levaxin", dose = "100", slots = listOf(Slot.MORNING))
 
-    private fun stored(p: se.partee71.dagboken.core.model.Prescription, slot: Slot, status: DoseStatus = DoseStatus.PLANNED) =
-        p.plannedDoses(today, STOCKHOLM, reminders = ReminderSettings()).single { it.slot == slot }.copy(status = status)
+    private fun stored(p: se.partee71.dagboken.core.model.Prescription, slot: Slot, status: DoseStatus = DoseStatus.PLANNED) = p.plannedDoses(today, STOCKHOLM, reminders = ReminderSettings()).single { it.slot == slot }.copy(status = status)
 
     @Test fun `planerade doser för tidpunkten, och receptens som ännu inte skapats`() {
         val doses = slotDoses(Slot.MORNING, today, today, listOf(metformin, levaxin), listOf(stored(metformin, Slot.MORNING)), STOCKHOLM, reminders = ReminderSettings())

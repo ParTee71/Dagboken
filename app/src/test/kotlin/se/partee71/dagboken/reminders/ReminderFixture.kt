@@ -14,16 +14,16 @@ import se.partee71.dagboken.core.engine.Reminder
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.data.FakeCollectionFactory
-import se.partee71.dagboken.data.auth.AuthRepository
-import se.partee71.dagboken.data.auth.AuthUser
-import se.partee71.dagboken.testing.FakeAuthRepository
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.TestUserScope
+import se.partee71.dagboken.data.auth.AuthRepository
+import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.repository.DefaultScreeningRepository
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
+import se.partee71.dagboken.testing.FakeAuthRepository
 
 /**
  * Påminnelsernas delar mot `FakeCollection` – samma repositories som UI:t – för alla påminnelsetester. "Nu" är
@@ -33,6 +33,7 @@ class ReminderFixture(val context: Context? = null) {
     val zone: TimeZone = TimeZone.of("Europe/Stockholm")
     val today = LocalDate(2026, 5, 6)
     val user = TestUserScope()
+
     /** Inloggningens eget läge; `null` = utloggad. */
     val auth = FakeAuthRepository(AuthUser("uid-test"))
     val factory = FakeCollectionFactory(scope = user)
@@ -49,8 +50,7 @@ class ReminderFixture(val context: Context? = null) {
     fun scheduler(settingsSource: SettingsRepository = settings, authSource: AuthRepository = auth) = AlarmScheduler(checkNotNull(context), settingsSource, user, authSource, clock, AlarmLedger(checkNotNull(context))) { zone }
 
     /** Mottagarnas handlingar över [contentSource] (standard: [content]). */
-    fun actions(scheduler: AlarmScheduler = scheduler(), contentSource: ReminderContent = content) =
-        ReminderActions(scheduler, contentSource, NotificationHelper(checkNotNull(context)), clock) { zone }
+    fun actions(scheduler: AlarmScheduler = scheduler(), contentSource: ReminderContent = content) = ReminderActions(scheduler, contentSource, NotificationHelper(checkNotNull(context)), clock) { zone }
 
     fun at(date: LocalDate, hour: Int, minute: Int = 0): Instant = LocalDateTime(date, LocalTime(hour, minute)).toInstant(zone)
 
@@ -69,8 +69,8 @@ class ReminderFixture(val context: Context? = null) {
             reminders = s.reminders.copy(
                 medsEnabled = slots.isNotEmpty(),
                 medSlots = s.reminders.medSlots.map { it.copy(enabled = it.slot in slots) },
-                screeningOccasions = s.reminders.screeningOccasions.map { it.copy(enabled = it.occasion in occasions) },
-            ),
+                screeningOccasions = s.reminders.screeningOccasions.map { it.copy(enabled = it.occasion in occasions) }
+            )
         )
     }.getOrThrow()
 }

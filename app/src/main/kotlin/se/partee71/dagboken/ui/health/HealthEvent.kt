@@ -53,8 +53,7 @@ internal class HealthTime(clock: Clock, zone: Provider<TimeZone>, scope: Corouti
     val today: Flow<LocalDate> = now.map { it.date }.distinctUntilChanged()
 
     /** Läsnycklarna för den visade dagen [date] (och [extra]): idag en per minut, en tidigare dag en. */
-    fun reads(date: Flow<LocalDate>, extra: Flow<Any?> = flowOfNull): Flow<HealthRead> =
-        combine(date, now, extra) { d, now, x -> HealthRead(d, now.takeIf { d == now.date }, x) }.distinctUntilChanged()
+    fun reads(date: Flow<LocalDate>, extra: Flow<Any?> = flowOfNull): Flow<HealthRead> = combine(date, now, extra) { d, now, x -> HealthRead(d, now.takeIf { d == now.date }, x) }.distinctUntilChanged()
 
     private companion object {
         val flowOfNull: Flow<Any?> = flowOf(null)

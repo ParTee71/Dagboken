@@ -15,8 +15,7 @@ import se.partee71.dagboken.core.model.Schedule
 // Medicinernas texter i UI:t – enda stället (regel 4), för Mediciner nu och Idag och påminnelserna sen.
 
 /** "Levaxin 100 µg" – namn, dos och enhet; det som saknas utelämnas. */
-fun medicineTitle(name: String, dose: String, unit: String): String =
-    listOf(name, dose, unit).map { it.trim() }.filter { it.isNotEmpty() }.joinToString(" ")
+fun medicineTitle(name: String, dose: String, unit: String): String = listOf(name, dose, unit).map { it.trim() }.filter { it.isNotEmpty() }.joinToString(" ")
 
 /** "75 mg" – en dos med enhet. */
 fun doseText(dose: String, unit: String): String = medicineTitle("", dose, unit)
@@ -36,11 +35,16 @@ fun periodText(start: LocalDate?, end: LocalDate?): String = when {
 @ReadOnlyComposable
 fun repeatText(schedule: Schedule): String = when (schedule) {
     is Schedule.Unknown -> stringResource(R.string.repeat_unknown)
+
     is Schedule.Repeating -> when (schedule.repeat) {
         Repeat.DAILY -> stringResource(R.string.repeat_daily)
+
         Repeat.WEEKDAYS -> stringResource(R.string.repeat_weekdays)
+
         Repeat.WEEKENDS -> stringResource(R.string.repeat_weekends)
+
         Repeat.CUSTOM -> schedule.days.sorted().joinToString(", ") { DateFormat.weekdayShort(it) }
+
         Repeat.INTERVAL ->
             if (schedule.intervalDays <= 1) {
                 stringResource(R.string.repeat_daily)
@@ -53,15 +57,13 @@ fun repeatText(schedule: Schedule): String = when (schedule) {
 /** "Måndag, onsdag och fredag" – veckodagarna i veckans ordning (REC-3); inga dagar ger en tom text. */
 @Composable
 @ReadOnlyComposable
-fun weekdaysText(days: Set<DayOfWeek>): String =
-    andList(days.sorted().map(DateFormat::weekdayLong)).replaceFirstChar { it.titlecase() }
+fun weekdaysText(days: Set<DayOfWeek>): String = andList(days.sorted().map(DateFormat::weekdayLong)).replaceFirstChar { it.titlecase() }
 
 /** "6, 9, 12 okt" – datum i en uppräkning; månaden skrivs ut när den byts och sist ("30 okt, 2 nov"). */
-fun datesText(dates: List<LocalDate>): String =
-    dates.mapIndexed { i, date ->
-        val next = dates.getOrNull(i + 1)
-        if (next != null && next.month == date.month && next.year == date.year) DateFormat.dayOfMonth(date) else DateFormat.short(date)
-    }.joinToString(", ")
+fun datesText(dates: List<LocalDate>): String = dates.mapIndexed { i, date ->
+    val next = dates.getOrNull(i + 1)
+    if (next != null && next.month == date.month && next.year == date.year) DateFormat.dayOfMonth(date) else DateFormat.short(date)
+}.joinToString(", ")
 
 /** "a, b och c" – en svensk uppräkning. */
 @Composable

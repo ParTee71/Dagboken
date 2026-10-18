@@ -2,9 +2,9 @@ package se.partee71.dagboken.core.legacy
 
 import java.io.File
 import java.io.PrintStream
+import kotlin.system.exitProcess
 import se.partee71.dagboken.core.cli.CliArgs
 import se.partee71.dagboken.core.schema.DocumentRules
-import kotlin.system.exitProcess
 
 /**
  * Grinden OMB-4 från kommandoraden: en 3.x-backupfil → en fil i `tools/db export`-format som
@@ -53,6 +53,7 @@ object ConvertBackupCli {
         out.print(result.report.render())
         return when (result) {
             is ConversionResult.Stopped -> EXIT_STOPPED
+
             is ConversionResult.Converted -> {
                 output.writeText(result.exportJson(BackupJsonConverter.exportedAt(backup)))
                 out.println("Skrev ${result.documents.size} dokument till ${options.output}")

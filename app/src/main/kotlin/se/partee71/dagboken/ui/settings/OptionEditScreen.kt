@@ -15,11 +15,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -90,7 +90,7 @@ sealed interface OptionEditEvent {
 class OptionEditViewModel @AssistedInject constructor(
     private val options: OptionsRepository,
     @Assisted private val kind: OptionKind,
-    @Assisted private val id: String?,
+    @Assisted private val id: String?
 ) : ViewModel() {
     /** Listans alternativ som valideringen läser – före formuläret, som validerar redan när det skapas. */
     private val latest = MutableStateFlow<List<Option>?>(null)
@@ -146,16 +146,24 @@ class OptionEditViewModel @AssistedInject constructor(
     fun onEvent(event: OptionEditEvent) {
         when (event) {
             is OptionEditEvent.NameChanged -> editor.update(OPTION_NAME) { event.name }
+
             OptionEditEvent.Save -> viewModelScope.launch {
                 editor.save { name -> save(name) }
             }
+
             OptionEditEvent.Archive -> setArchived(true)
+
             OptionEditEvent.Restore -> setArchived(false)
+
             OptionEditEvent.Retry -> {
                 // Listan först: ett gammalt listfel får inte läggas tillbaka över det som läses om.
                 listError.value = null
                 listRetries.tryEmit(Unit)
-                if (id != null) loader.retry() else if (listError.value == null) editor.clearLoadError()
+                if (id != null) {
+                    loader.retry()
+                } else if (listError.value == null) {
+                    editor.clearLoadError()
+                }
             }
         }
     }
@@ -199,7 +207,7 @@ fun OptionEditScreen(
     state: EditorUiState<String>,
     events: EditorEvents,
     onEvent: (OptionEditEvent) -> Unit,
-    onClose: () -> Unit,
+    onClose: () -> Unit
 ) {
     EntityEditScreen(
         title = stringResource(if (isNew) kind.newLabel() else R.string.option_rename),
@@ -209,14 +217,14 @@ fun OptionEditScreen(
         onClose = onClose,
         onArchive = if (archived == false) ({ onEvent(OptionEditEvent.Archive) }) else null,
         onRestore = if (archived == true) ({ onEvent(OptionEditEvent.Restore) }) else null,
-        onRetry = { onEvent(OptionEditEvent.Retry) },
+        onRetry = { onEvent(OptionEditEvent.Retry) }
     ) {
         AppTextField(
             state.value,
             { onEvent(OptionEditEvent.NameChanged(it)) },
             stringResource(R.string.option_name),
             error = state.errorFor(OPTION_NAME)?.let { stringResource(it) },
-            helper = if (isNew) null else stringResource(R.string.option_rename_help),
+            helper = if (isNew) null else stringResource(R.string.option_rename_help)
         )
     }
 }

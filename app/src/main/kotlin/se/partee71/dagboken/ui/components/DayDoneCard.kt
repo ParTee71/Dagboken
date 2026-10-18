@@ -32,7 +32,7 @@ fun DayDoneCard(
     streakDays: Int?,
     modifier: Modifier = Modifier,
     play: Boolean = false,
-    onConfettiFinished: () -> Unit = {},
+    onConfettiFinished: () -> Unit = {}
 ) {
     val missing = stringResource(R.string.value_missing)
     Box(modifier) {
@@ -49,7 +49,7 @@ fun DayDoneCard(
 }
 
 @Composable
-private fun KeyFigure(value: String, label: String, modifier: Modifier) {
+private fun KeyFigure(value: String, label: String, modifier: Modifier = Modifier) {
     val colors = AppColors.tone(Tone.Positive)
     Column(modifier) {
         Text(value, style = AppTypography.bigNumber, color = colors.content, maxLines = 1)

@@ -20,7 +20,7 @@ class LegacySessionCapture @Inject constructor(
     private val room: LegacyRoomSource,
     private val state: Lazy<MigrationDeviceState>,
     private val auth: Lazy<AuthRepository>,
-    @ApplicationScope private val scope: CoroutineScope,
+    @ApplicationScope private val scope: CoroutineScope
 ) {
     /** Anropas från `Application.onCreate`; gör ingenting utan Room-fil eller när sessionen redan sparats. */
     fun capture() {

@@ -61,7 +61,7 @@ interface DriveBackups {
 class DriveRestBackups @Inject constructor(
     @ApplicationContext private val context: Context,
     private val auth: AuthRepository,
-    @IoDispatcher private val dispatcher: CoroutineDispatcher,
+    @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : DriveBackups {
     override suspend fun downloadLatestBackup(): DriveRead = withContext(dispatcher) {
         val email = auth.authState.first()?.email ?: return@withContext DriveRead.Failed(DataError.NotSignedIn)
@@ -90,7 +90,7 @@ class DriveRestBackups @Inject constructor(
             "spaces" to "appDataFolder",
             "q" to BACKUP_QUERY,
             "orderBy" to "createdTime desc",
-            "fields" to "files(id,name,createdTime)",
+            "fields" to "files(id,name,createdTime)"
         ).joinToString("&") { (key, value) -> "$key=${URLEncoder.encode(value, Charsets.UTF_8.name())}" }
         val files = Json.parseToJsonElement(get(token, "$FILES?$query")).jsonObject["files"]?.jsonArray.orEmpty()
         return files.map { element ->
@@ -98,7 +98,7 @@ class DriveRestBackups @Inject constructor(
             DriveBackupFile(
                 id = file.getValue("id").jsonPrimitive.content,
                 name = file["name"]?.jsonPrimitive?.content.orEmpty(),
-                createdTime = file["createdTime"]?.jsonPrimitive?.content.orEmpty(),
+                createdTime = file["createdTime"]?.jsonPrimitive?.content.orEmpty()
             )
         }
     }

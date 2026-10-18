@@ -28,11 +28,11 @@ interface MedicineRepository {
 @Singleton
 class AssetMedicineRepository internal constructor(
     private val io: CoroutineDispatcher,
-    private val open: () -> InputStream,
+    private val open: () -> InputStream
 ) : MedicineRepository {
     @Inject constructor(
         @ApplicationContext context: Context,
-        @IoDispatcher io: CoroutineDispatcher,
+        @IoDispatcher io: CoroutineDispatcher
     ) : this(io, { context.assets.open(FILE) })
 
     private val lock = Mutex()

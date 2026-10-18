@@ -33,7 +33,7 @@ import se.partee71.dagboken.di.ApplicationScope
 class UserSession @Inject constructor(
     auth: AuthRepository,
     private val versions: UserVersionSource,
-    @ApplicationScope scope: CoroutineScope,
+    @ApplicationScope scope: CoroutineScope
 ) : UserScope {
 
     override val uid: StateFlow<String?> =

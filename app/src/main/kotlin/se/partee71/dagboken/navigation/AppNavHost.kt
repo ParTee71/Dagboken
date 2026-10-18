@@ -30,11 +30,11 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.AppFloatingToolbar
 import se.partee71.dagboken.ui.components.AppSnackbarHost
 import se.partee71.dagboken.ui.components.ErrorSnackbar
-import se.partee71.dagboken.ui.components.MessageSnackbar
 import se.partee71.dagboken.ui.components.FloatingToolbarClearance
-import se.partee71.dagboken.ui.components.NoBottomClearance
 import se.partee71.dagboken.ui.components.LocalBottomClearance
 import se.partee71.dagboken.ui.components.LocalSyncIndicator
+import se.partee71.dagboken.ui.components.MessageSnackbar
+import se.partee71.dagboken.ui.components.NoBottomClearance
 import se.partee71.dagboken.ui.components.SyncIndicator
 import se.partee71.dagboken.ui.components.ToolbarAction
 import se.partee71.dagboken.ui.components.ToolbarItem
@@ -60,7 +60,7 @@ fun AppNavHost(
     onSyncEvent: (SyncEvent) -> Unit = {},
     onLog: (() -> Unit)? = null,
     message: String? = null,
-    onMessageShown: () -> Unit = {},
+    onMessageShown: () -> Unit = {}
 ) {
     val toolbar = toolbarItems()
     val logLabel = stringResource(R.string.log_menu_open)
@@ -86,25 +86,25 @@ fun AppNavHost(
                 onBack = { if (!backStack.pop()) onExit() },
                 entryDecorators = listOf(
                     rememberSaveableStateHolderNavEntryDecorator(rememberTabRootStateHolder()),
-                    rememberViewModelStoreNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator()
                 ),
                 transitionSpec = Transitions.forward,
                 popTransitionSpec = Transitions.back,
                 predictivePopTransitionSpec = Transitions.predictiveBack,
-                entryProvider = { key -> entryProvider(key).asTabRootIf(key) },
+                entryProvider = { key -> entryProvider(key).asTabRootIf(key) }
             )
         }
         AnimatedVisibility(
             visible = backStack.atTopLevel,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = Spacing.l),
             enter = slideInVertically { it } + fadeIn(),
-            exit = slideOutVertically { it } + fadeOut(),
+            exit = slideOutVertically { it } + fadeOut()
         ) {
             AppFloatingToolbar(
                 items = toolbar,
                 selectedIndex = TOP_LEVEL.indexOf(backStack.currentTab),
                 onSelect = { backStack.select(TOP_LEVEL[it]) },
-                action = action,
+                action = action
             )
         }
         AppSnackbarHost(messages, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = clearance))
@@ -133,13 +133,12 @@ private class TabRootStateHolder(private val holder: SaveableStateHolder) : Save
 /** Prefix för flikrötternas innehållsnycklar (en sträng, eftersom nyckeln sparas i en Bundle). */
 private const val TAB_ROOT = "flikrot:"
 
-private fun NavEntry<AppKey>.asTabRootIf(key: AppKey): NavEntry<AppKey> =
-    if (key is TopLevelKey) NavEntry(key, contentKey = TAB_ROOT + key, metadata = metadata) { Content() } else this
+private fun NavEntry<AppKey>.asTabRootIf(key: AppKey): NavEntry<AppKey> = if (key is TopLevelKey) NavEntry(key, contentKey = TAB_ROOT + key, metadata = metadata) { Content() } else this
 
 @Composable
 private fun toolbarItems(): List<ToolbarItem> = listOf(
     ToolbarItem(stringResource(R.string.tab_today), R.drawable.ic_sun),
     ToolbarItem(stringResource(R.string.tab_diary), R.drawable.ic_book),
     ToolbarItem(stringResource(R.string.tab_trends), R.drawable.ic_trend),
-    ToolbarItem(stringResource(R.string.tab_medicines), R.drawable.ic_pill),
+    ToolbarItem(stringResource(R.string.tab_medicines), R.drawable.ic_pill)
 )

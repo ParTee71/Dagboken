@@ -4,18 +4,18 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.schema.Doc
@@ -23,32 +23,32 @@ import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.encodeDate
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
-import se.partee71.dagboken.data.common.HistoryCoverage
-import se.partee71.dagboken.data.common.MemoryDayMarks
-import se.partee71.dagboken.data.common.testCoverage
-import se.partee71.dagboken.data.common.historyFlow
-import se.partee71.dagboken.data.common.UserScope
-import se.partee71.dagboken.data.common.currentVersion
 import se.partee71.dagboken.data.common.FieldMerge
 import se.partee71.dagboken.data.common.FieldPath
+import se.partee71.dagboken.data.common.HistoryCoverage
+import se.partee71.dagboken.data.common.MemoryDayMarks
+import se.partee71.dagboken.data.common.MoveOutcome
 import se.partee71.dagboken.data.common.PendingCommits
 import se.partee71.dagboken.data.common.SERVER_WAIT
+import se.partee71.dagboken.data.common.Snapshot
 import se.partee71.dagboken.data.common.Stored
-import se.partee71.dagboken.data.common.MoveOutcome
+import se.partee71.dagboken.data.common.UserScope
+import se.partee71.dagboken.data.common.currentVersion
+import se.partee71.dagboken.data.common.fieldsForMerge
+import se.partee71.dagboken.data.common.fieldsForUpdate
+import se.partee71.dagboken.data.common.firstFromCache
+import se.partee71.dagboken.data.common.historyFlow
+import se.partee71.dagboken.data.common.isDocumentAnswer
 import se.partee71.dagboken.data.common.mayCreate
 import se.partee71.dagboken.data.common.moveOutcome
 import se.partee71.dagboken.data.common.movedDocument
-import se.partee71.dagboken.data.common.satisfies
-import se.partee71.dagboken.data.common.storedOf
-import se.partee71.dagboken.data.common.Snapshot
-import se.partee71.dagboken.data.common.fieldsForMerge
-import se.partee71.dagboken.data.common.firstFromCache
-import se.partee71.dagboken.data.common.isDocumentAnswer
-import se.partee71.dagboken.data.common.fieldsForUpdate
 import se.partee71.dagboken.data.common.prepareForWrite
 import se.partee71.dagboken.data.common.readDocument
+import se.partee71.dagboken.data.common.satisfies
 import se.partee71.dagboken.data.common.sortForList
+import se.partee71.dagboken.data.common.storedOf
 import se.partee71.dagboken.data.common.suspendRunCatching
+import se.partee71.dagboken.data.common.testCoverage
 import se.partee71.dagboken.data.common.writeBlocker
 import se.partee71.dagboken.data.firestore.CollectionTable
 import se.partee71.dagboken.data.firestore.Paths
@@ -186,7 +186,7 @@ class FakeCollection<T : Identified>(
     private val serverWait: Duration = SERVER_WAIT,
     private val commitScope: CoroutineScope? = null,
     /** Historiklägets täckning (NFR-24); [FakeCollectionFactory] delar en mellan sina samlingar, som appen. */
-    private val coverage: HistoryCoverage = testCoverage(MemoryDayMarks(), clock),
+    private val coverage: HistoryCoverage = testCoverage(MemoryDayMarks(), clock)
 ) : EntityCollection<T> {
     private val commits = PendingCommits()
 
@@ -258,13 +258,12 @@ class FakeCollection<T : Identified>(
         cache = { uid ->
             val p = path(uid)
             combine(store.collection(p), store.cachedIn(p)) { docs, known -> decodeList(inRange(docs.filterKeys { it in known }, field, date(from), date(to))) }
-        },
+        }
     )
 
     private fun date(day: LocalDate): String = checkNotNull(day.encodeDate())
 
-    private fun inRange(docs: Map<String, Doc>, field: String, from: Any, to: Any) =
-        docs.filterValues { atLeast(it[field], from) && atMost(it[field], to) }
+    private fun inRange(docs: Map<String, Doc>, field: String, from: Any, to: Any) = docs.filterValues { atLeast(it[field], from) && atMost(it[field], to) }
 
     override suspend fun get(id: String) = run { path().let { p -> served(p, store.read(p, id)?.let { mapOf(id to it) }.orEmpty())[id]?.let { decode(id, it) } } }
 
@@ -310,8 +309,7 @@ class FakeCollection<T : Identified>(
         return transact(byId.keys) { p, id, stored -> if (stored.mayCreate()) store.set(p, id, encode(byId.getValue(id)), merge = true) }
     }
 
-    override suspend fun deleteIf(ids: List<String>, condition: (T) -> Boolean) =
-        transact(ids.toSet()) { p, id, stored -> if (stored.satisfies(condition)) store.delete(p, id) }
+    override suspend fun deleteIf(ids: List<String>, condition: (T) -> Boolean) = transact(ids.toSet()) { p, id, stored -> if (stored.satisfies(condition)) store.delete(p, id) }
 
     override suspend fun updateIf(items: List<T>, fields: Set<String>, condition: (T) -> Boolean): Result<Unit> {
         val patches = runCatching { items.associate { it.id to fieldsForUpdate(encode(it), fields) } }.getOrElse { return Result.failure(DataError.Unknown) }
@@ -345,7 +343,10 @@ class FakeCollection<T : Identified>(
         val p = path()
         if (!store.online) throw DataError.Offline
         val background = commitScope ?: return commit(p)
-        val pending = background.async { delay(commitLatency); Box(commit(p)) }
+        val pending = background.async {
+            delay(commitLatency)
+            Box(commit(p))
+        }
         return (commits.await(pending, serverWait) ?: throw DataError.Offline).value
     }
 
@@ -421,13 +422,12 @@ class FakeCollectionFactory(
     val scope: UserScope = TestUserScope(),
     private val clock: Clock = FixedClock(),
     /** Enhetens lokala anteckningar – historiklägets täckning ligger här (NFR-24). */
-    val marks: MemoryDayMarks = MemoryDayMarks(),
+    val marks: MemoryDayMarks = MemoryDayMarks()
 ) : CollectionTable() {
     /** En täckning för alla samlingar, som appens `@Singleton`. */
     val coverage = testCoverage(marks, clock)
 
-    override fun <T : Identified> create(codec: DocCodec<T>, name: String, path: (uid: String?) -> String) =
-        FakeCollection(store, scope, clock, codec, name, path, coverage = coverage)
+    override fun <T : Identified> create(codec: DocCodec<T>, name: String, path: (uid: String?) -> String) = FakeCollection(store, scope, clock, codec, name, path, coverage = coverage)
 
     fun <T : Identified> collection(codec: DocCodec<T>, name: String, path: (uid: String?) -> String) = create(codec, name, path)
 }

@@ -11,11 +11,11 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.junit.Test
-import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.PrnMedicine
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Slot
 
 /** Dosformuläret (MED-11, MED-15, MED-16): dag, klockslag, "Tagen", engångsdosen och flytten av en receptdos. */
@@ -27,7 +27,7 @@ class DoseFormTest {
 
     private val recipe = Dose(
         DoseIds.prescribed("p1", day, Slot.MORNING), day, Slot.MORNING, "Levaxin", "100", "µg", DoseStatus.TAKEN,
-        plannedTime = LocalTime(7, 0), takenAt = at(day, 7, 12), prescriptionId = "p1",
+        plannedTime = LocalTime(7, 0), takenAt = at(day, 7, 12), prescriptionId = "p1"
     )
     private val prn = Dose("x", day, Slot.AS_NEEDED, "Alvedon", "500", "mg", DoseStatus.TAKEN, plannedTime = LocalTime(14, 0), takenAt = at(day, 14, 0), prnId = "a")
 

@@ -77,7 +77,7 @@ class DiaryScreenTest {
         doses = listOf(Dose("d1", today, Slot.MORNING, "Levaxin", "100", "µg", status = DoseStatus.TAKEN, takenAt = at(today, 7, 42))),
         events = listOf(Event("e1", saturday, LocalTime(14, 0), optionId = "migran", severity = 7, durationMinutes = 90)),
         episodes = listOf(flu),
-        checkins = mapOf("flu" to listOf(Checkin("c1", yesterday, LocalTime(9, 0), severity = 4))),
+        checkins = mapOf("flu" to listOf(Checkin("c1", yesterday, LocalTime(9, 0), severity = 4)))
     )
     private val names = mapOf("promenad" to "Promenad", "migran" to "Migrän")
     private val entries = diaryEntries(sources, zone)
@@ -89,7 +89,7 @@ class DiaryScreenTest {
             is DiaryEntry.Action -> names[entry.activity.optionId]
             is DiaryEntry.Happening -> names[entry.event.optionId]
             else -> null
-        },
+        }
     )
 
     private val listRows = diaryDays(entries, today).flatMap { day -> day.entries.map(::row) }
@@ -97,10 +97,9 @@ class DiaryScreenTest {
     private val calendar = controls.copy(view = DiaryView.CALENDAR, selected = saturday)
 
     @Test
-    fun `fliken uppfyller listkontraktet utan lägg till`() =
-        rule.runListScreenContract<DiaryRow>(listRows.first(), "Efter frukost", "Inga poster än", null) { state, _, onRetry ->
-            DiaryScreen(state, controls, null, { if (it == DiaryEvent.Retry) onRetry() }, {})
-        }
+    fun `fliken uppfyller listkontraktet utan lägg till`() = rule.runListScreenContract<DiaryRow>(listRows.first(), "Efter frukost", "Inga poster än", null) { state, _, onRetry ->
+        DiaryScreen(state, controls, null, { if (it == DiaryEvent.Retry) onRetry() }, {})
+    }
 
     @Test
     fun `dagarna har Idag, Igår och datum, och korten klockslaget först och värdet som pill (HIST-1, HIST-7, HIST-9)`() {
@@ -136,7 +135,7 @@ class DiaryScreenTest {
         rule.onNodeWithText("Visa äldre än ett år").performClick()
         assertEquals(
             listOf(DiaryEvent.ShowAll, DiaryEvent.Toggle(DiaryType.DOSE), DiaryEvent.ShowView(DiaryView.CALENDAR), DiaryEvent.ShowOlder),
-            events,
+            events
         )
     }
 
@@ -249,7 +248,7 @@ class DiaryScreenTest {
             onAllNodesWithContentDescription("Fler val")[0].clickWithoutRipple()
             waitForIdle()
             onNodeWithText("Radera").clickWithoutRipple()
-        },
+        }
     ) {
         DiaryScreen(ListUiState.Content(listRows.toImmutableList()), controls, null, {}, {})
     }

@@ -35,7 +35,7 @@ class ReminderSync @Inject constructor(
     private val scheduler: AlarmScheduler,
     private val notifications: NotificationHelper,
     private val migration: LegacyMigrationPause,
-    @ApplicationScope private val scope: CoroutineScope,
+    @ApplicationScope private val scope: CoroutineScope
 ) {
     private val started = AtomicBoolean(false)
 
@@ -72,6 +72,5 @@ class ReminderSync @Inject constructor(
      * Det som avgör larmen: påminnelseinställningarna (`reminderAlarms`), bara när de ändrats. Ett läsfel blir en
      * omschemaläggning, som då lämnar larmen orörda om inställningarna inte går att läsa.
      */
-    private fun reminderSettings(): Flow<ReminderSettings> =
-        settings.reminders.distinctUntilChanged()
+    private fun reminderSettings(): Flow<ReminderSettings> = settings.reminders.distinctUntilChanged()
 }

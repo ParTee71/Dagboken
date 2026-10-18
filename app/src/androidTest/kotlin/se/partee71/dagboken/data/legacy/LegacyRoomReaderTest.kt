@@ -84,7 +84,10 @@ class LegacyRoomReaderTest {
     /** Bygger `dagboken.db` som 3.x: schemats `createSql`, `room_master_table`, `user_version` = [version], raderna i WAL. */
     private fun createRoomFile(version: Int = LegacyRoomSchema.DATABASE_VERSION) {
         dbFile.parentFile?.mkdirs()
-        val snapshot = File(context.cacheDir, "snapshot").apply { deleteRecursively(); mkdirs() }
+        val snapshot = File(context.cacheDir, "snapshot").apply {
+            deleteRecursively()
+            mkdirs()
+        }
         SQLiteDatabase.openOrCreateDatabase(dbFile, null).use { db ->
             check(db.enableWriteAheadLogging()) { "WAL kunde inte slås på" }
             for (entity in schema.getValue("entities").jsonArray) {
@@ -146,8 +149,7 @@ class LegacyRoomReaderTest {
 
     private fun checksum(file: File): String = MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString("") { "%02x".format(it) }
 
-    private fun checksums(withPrefs: Boolean = true) =
-        mapOf("db" to checksum(dbFile), "wal" to checksum(walFile)) + if (withPrefs) mapOf("prefs" to checksum(prefsFile)) else emptyMap()
+    private fun checksums(withPrefs: Boolean = true) = mapOf("db" to checksum(dbFile), "wal" to checksum(walFile)) + if (withPrefs) mapOf("prefs" to checksum(prefsFile)) else emptyMap()
 
     @Test
     fun room_filen_och_datastore_filen_las_ur_wal_utan_att_andras_och_ger_konverterarens_dokument() = test {

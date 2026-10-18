@@ -6,7 +6,7 @@ import kotlin.time.Instant
 enum class LegacySource(override val wire: String) : WireEnum {
     ROOM("room"),
     DRIVE("drive"),
-    JSON("json"),
+    JSON("json")
 }
 
 /**
@@ -24,5 +24,5 @@ data class LegacyMigration(
     /** Appens `versionName` när migreringen gjordes. */
     val appVersion: String = "",
     /** Antal dokument per samling som migrerades (rapportens "före"). */
-    val counts: Map<String, Int> = emptyMap(),
+    val counts: Map<String, Int> = emptyMap()
 )

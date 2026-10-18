@@ -27,8 +27,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.todayIn
 import se.partee71.dagboken.core.engine.DayLabel
 import se.partee71.dagboken.core.engine.DiaryEntry
@@ -103,7 +103,7 @@ data class DiaryControls(
     val datesWithEntries: ImmutableSet<LocalDate> = persistentSetOf(),
     val years: Int = 1,
     /** Ett äldre år läses ("Visa äldre" visar laddning, HIST-8). */
-    val loadingOlder: Boolean = false,
+    val loadingOlder: Boolean = false
 )
 
 sealed interface DiaryEvent {
@@ -150,7 +150,7 @@ class DiaryViewModel @Inject constructor(
     private val illnesses: IllnessRepository,
     options: OptionsRepository,
     private val clock: Clock,
-    private val zone: Provider<TimeZone>,
+    private val zone: Provider<TimeZone>
 ) : ViewModel() {
     /** Idag ur klockan vid varje prenumeration (inget gammalt startvärde efter en paus), igen vid midnatt. */
     private val today: Flow<LocalDate> = clock.days { zone.get() }.distinctUntilChanged().shareIn(viewModelScope, sharing, replay = 1)
@@ -185,7 +185,7 @@ class DiaryViewModel @Inject constructor(
                 screenings.observeDays(from, to, live),
                 activities.observeDays(from, to, live),
                 doses.observeDays(doseFrom, to, live),
-                events.observeDays(from, to, live),
+                events.observeDays(from, to, live)
             ) { s, a, d, e ->
                 Result.success(DiarySources(screenings = s, activities = a, doses = d, events = e))
             }
@@ -203,13 +203,13 @@ class DiaryViewModel @Inject constructor(
     /** HIST-9: alla episoder (en användare har få) med sina incheckningar; lyssnas om bara när episoderna byts. */
     private val illness: Flow<DiarySources> = illnesses.observeEpisodes().combineByKey(
         { episodes -> episodes.map { it.id } },
-        { ids -> if (ids.isEmpty()) flowOf(emptyMap()) else combine(ids.map { id -> illnesses.observeCheckins(id).map { id to it } }) { it.toMap<String, List<Checkin>>() } },
+        { ids -> if (ids.isEmpty()) flowOf(emptyMap()) else combine(ids.map { id -> illnesses.observeCheckins(id).map { id to it } }) { it.toMap<String, List<Checkin>>() } }
     ) { episodes, checkins -> DiarySources(episodes = episodes, checkins = checkins) }
 
     /** Namnen på aktiviteter och händelser ur Listor – arkiverade med; ett läsfel ger bara typens namn (`withFallback`). */
     private val names: Flow<Map<String, String>> = combine(
         options.observe(OptionKind.ACTIVITY).withFallback(emptyList()),
-        options.observe(OptionKind.EVENT).withFallback(emptyList()),
+        options.observe(OptionKind.EVENT).withFallback(emptyList())
     ) { a, e -> (a + e).associate { it.id to it.name } }.distinctUntilChanged()
 
     /** Tidslinjen för det lästa fönstret [window] (alla typer) med namnen ur Listor. */
@@ -218,7 +218,7 @@ class DiaryViewModel @Inject constructor(
     /** Posterna räknas **en gång** per läsning (`:core`); laddning, fel och "Försök igen" via den delade [DetailLoader]. */
     private val loader = DetailLoader(
         combine(windowed, illness, names) { (window, sources), illness, names -> Timeline(window, window.within(diaryEntries(sources + illness, zone.get())), names) },
-        viewModelScope,
+        viewModelScope
     )
 
     /** Tidslinjen med filtret (HIST-2) – **ett** flöde som både listans rader och kalenderns punkter läser. */
@@ -243,6 +243,7 @@ class DiaryViewModel @Inject constructor(
         val today = choice.today
         return when (choice.view) {
             DiaryView.LIST -> diaryDays(timeline.entries, today).flatMap { day -> day.entries.map { row(it, day.label, timeline.names) } }
+
             DiaryView.CALENDAR -> {
                 val day = choice.selected ?: today
                 val label = dayLabel(day, today)
@@ -271,7 +272,7 @@ class DiaryViewModel @Inject constructor(
     val controls: StateFlow<DiaryControls> = combine(
         combine(filter, view, selected, month, years, ::Shown),
         today,
-        filtered,
+        filtered
     ) { shown, today, filtered ->
         val day = shown.selected ?: today
         val loaded = (filtered as? DetailUiState.Content)?.value
@@ -283,7 +284,7 @@ class DiaryViewModel @Inject constructor(
             selected = day,
             datesWithEntries = loaded?.entries?.dates().orEmpty().toImmutableSet(),
             years = shown.years,
-            loadingOlder = loaded != null && loaded.window.years < shown.years,
+            loadingOlder = loaded != null && loaded.window.years < shown.years
         )
     }.stateIn(viewModelScope, sharing, DiaryControls(anchor))
 
@@ -293,17 +294,25 @@ class DiaryViewModel @Inject constructor(
     fun onEvent(event: DiaryEvent) {
         when (event) {
             DiaryEvent.ShowAll -> filter.value = filter.value.showAll()
+
             is DiaryEvent.Toggle -> filter.value = filter.value.toggle(event.type)
+
             is DiaryEvent.ShowView -> view.value = event.view
+
             is DiaryEvent.SelectDate -> selectDate(event.date)
+
             is DiaryEvent.ShowMonth -> showMonth(event.month)
+
             DiaryEvent.ShowOlder -> years.value += 1
+
             is DiaryEvent.Delete -> delete(event.entry)
+
             DiaryEvent.Retry -> {
                 // Ett delat läsfel ligger kvar i sin läsning – "Försök igen" läser om alla år.
                 yearReads.clear()
                 loader.retry()
             }
+
             DiaryEvent.ErrorShown -> _failure.value = null
         }
     }

@@ -33,8 +33,8 @@ import se.partee71.dagboken.core.schema.ActivityCodec
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.common.DailyGate
-import se.partee71.dagboken.data.common.cachedDates
 import se.partee71.dagboken.data.common.MemoryDayMarks
+import se.partee71.dagboken.data.common.cachedDates
 import se.partee71.dagboken.data.health.FakeHealthPermissions
 import se.partee71.dagboken.data.health.FakeHealthRepository
 import se.partee71.dagboken.data.repository.DefaultActivityRepository
@@ -121,13 +121,20 @@ class ReadBudgetTest {
     }
 
     private fun todayVm() = TodayViewModel(
-        doses, prescriptions, DefaultPrnMedicineRepository(factory), screenings, DefaultSettingsRepository(factory), illnesses, SelectedDay(factory.scope), clock,
+        doses,
+        prescriptions,
+        DefaultPrnMedicineRepository(factory),
+        screenings,
+        DefaultSettingsRepository(factory),
+        illnesses,
+        SelectedDay(factory.scope),
+        clock
     ) { zone }
 
     private fun diaryVm() = DiaryViewModel(screenings, activities, doses, events, illnesses, DefaultOptionsRepository(factory), clock) { zone }
 
     private fun trendsVm() = TrendsViewModel(
-        screenings, activities, events, illnesses, DefaultOptionsRepository(factory), FakeHealthRepository(), FakeHealthPermissions(), DefaultSettingsRepository(factory), clock,
+        screenings, activities, events, illnesses, DefaultOptionsRepository(factory), FakeHealthRepository(), FakeHealthPermissions(), DefaultSettingsRepository(factory), clock
     ) { zone }
 
     @Test
@@ -168,7 +175,10 @@ class ReadBudgetTest {
         val again = visit(diaryVm().state)
         val yearAgo = today.minus(1, DateTimeUnit.YEAR)
         val before = listenedBefore(
-            screenings.observeDays(yearAgo, today), activities.observeDays(yearAgo, today), doses.observeDays(yearAgo, today), events.observeDays(yearAgo, today),
+            screenings.observeDays(yearAgo, today),
+            activities.observeDays(yearAgo, today),
+            doses.observeDays(yearAgo, today),
+            events.observeDays(yearAgo, today)
         )
 
         assertTrue(first <= FIRST_DIARY, "första besöket: $first läsningar (ett år en gång + 30 dagar)")
@@ -201,11 +211,17 @@ class ReadBudgetTest {
     fun `en ny aktivitet läser förvalen ur cachen – ingenting debiteras när året är täckt (AKT-12, NFR-24)`() = runTest(main.dispatcher) {
         seed()
         visit(diaryVm().state)
-        val gap = reads.let { start -> activities.new(today, LocalTime(18, 0), today = today); reads - start }
+        val gap = reads.let { start ->
+            activities.new(today, LocalTime(18, 0), today = today)
+            reads - start
+        }
         val before = reads
         val new = activities.new(today, LocalTime(18, 0), today = today)
         val prefill = reads - before
-        val listened = reads.let { start -> factory.activities().cachedDates(ActivityCodec.DATE, today.minus(365, DateTimeUnit.DAY), today); reads - start }
+        val listened = reads.let { start ->
+            factory.activities().cachedDates(ActivityCodec.DATE, today.minus(365, DateTimeUnit.DAY), today)
+            reads - start
+        }
 
         assertTrue(new.minutes == 30, "förvalen kommer med (tidsåtgången från den senaste aktiviteten)")
         // Förvalen söker 365 dagar bakåt, Dagbokens år börjar en dag senare: den dagen hämtas en gång (en läsning).

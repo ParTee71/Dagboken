@@ -37,8 +37,7 @@ fun Prescription.hasExpiredOn(today: LocalDate): Boolean = period.end?.let { tod
  * REC-8: de aktiva recepten delade på om perioden passerats sett från [today] – `first` ska avslutas
  * (bara `active = false`), `second` gäller fortfarande. Regeln finns bara här.
  */
-fun List<Prescription>.activeByExpiryOn(today: LocalDate): Pair<List<Prescription>, List<Prescription>> =
-    filter { it.active }.partition { it.hasExpiredOn(today) }
+fun List<Prescription>.activeByExpiryOn(today: LocalDate): Pair<List<Prescription>, List<Prescription>> = filter { it.active }.partition { it.hasExpiredOn(today) }
 
 /** REC-8: de aktiva recepten vars period passerats – första halvan av [activeByExpiryOn]. */
 fun List<Prescription>.toDeactivateOn(today: LocalDate): List<Prescription> = activeByExpiryOn(today).first
@@ -61,11 +60,16 @@ fun Prescription.intervalAnchor(): LocalDate? = period.start ?: createdAt?.toLoc
  */
 fun Schedule.appliesOn(date: LocalDate, anchor: LocalDate?): Boolean = when (this) {
     is Schedule.Unknown -> false
+
     is Schedule.Repeating -> when (repeat) {
         Repeat.DAILY -> true
+
         Repeat.WEEKDAYS -> date.dayOfWeek !in WEEKEND
+
         Repeat.WEEKENDS -> date.dayOfWeek in WEEKEND
+
         Repeat.CUSTOM -> date.dayOfWeek in days
+
         // Före ankaret (recept utan periodstart) blir resten negativ eller 0 – som 3.x `%`.
         Repeat.INTERVAL -> intervalDays <= 1 || anchor == null || anchor.daysUntil(date) % intervalDays == 0
     }
@@ -78,8 +82,7 @@ internal val WEEKEND = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
  * MED-4, REC-7: om receptets kalender ger doser på [date] – inom perioden och enligt upprepningen.
  * Aktivt/inaktivt ([Prescription.active]) avgörs av anroparen, som i 3.x.
  */
-fun Prescription.appliesOn(date: LocalDate): Boolean =
-    period.covers(date) && schedule.appliesOn(date, intervalAnchor())
+fun Prescription.appliesOn(date: LocalDate): Boolean = period.covers(date) && schedule.appliesOn(date, intervalAnchor())
 
 /**
  * NOT-12, MEDF-2: periodens sista dag som faktiskt ger en dos – periodens slut eller den närmaste
@@ -99,15 +102,13 @@ fun Prescription.lastDoseDayOf(boost: Boost): LocalDate? {
     return boostEnd(boost)?.let(::lastDoseDayOnOrBefore)?.takeIf { it >= start }
 }
 
-private fun Prescription.lastDoseDayOnOrBefore(date: LocalDate): LocalDate? =
-    doseDayNear(date, forward = false)?.takeIf { period.covers(it) }
+private fun Prescription.lastDoseDayOnOrBefore(date: LocalDate): LocalDate? = doseDayNear(date, forward = false)?.takeIf { period.covers(it) }
 
 /**
  * NOT-12: första dagen efter [date] som ger en dos inom perioden, eller `null` (perioden slut,
  * okänd upprepning eller inga dosdagar). Konstant tid, som [lastDoseDay].
  */
-fun Prescription.nextDoseDayAfter(date: LocalDate): LocalDate? =
-    doseDayNear(date.plus(1, DateTimeUnit.DAY), forward = true)?.takeIf { period.covers(it) }
+fun Prescription.nextDoseDayAfter(date: LocalDate): LocalDate? = doseDayNear(date.plus(1, DateTimeUnit.DAY), forward = true)?.takeIf { period.covers(it) }
 
 /** Närmaste dag enligt upprepningen på eller efter ([forward]) respektive på eller före [from]; perioden ignoreras. */
 private fun Prescription.doseDayNear(from: LocalDate, forward: Boolean): LocalDate? {
@@ -131,14 +132,13 @@ private const val DAYS_PER_WEEK = 7
  * start räknas inte; utan slut gäller den till periodens slut. Överlappar höjningar (äldre eller
  * importerad data – formuläret hindrar det) vinner den senast påbörjade, den mer specifika.
  */
-fun Prescription.boostFor(date: LocalDate): Boost? =
-    boosts
-        .filter { boost ->
-            val start = boost.start ?: return@filter false
-            val end = boostEnd(boost)
-            date >= start && (end == null || date <= end)
-        }
-        .maxByOrNull { it.start!! }
+fun Prescription.boostFor(date: LocalDate): Boost? = boosts
+    .filter { boost ->
+        val start = boost.start ?: return@filter false
+        val end = boostEnd(boost)
+        date >= start && (end == null || date <= end)
+    }
+    .maxByOrNull { it.start!! }
 
 /** Höjningens sista dag: dess eget slut, annars periodens; `null` = tills vidare. */
 fun Prescription.boostEnd(boost: Boost): LocalDate? = boost.end ?: period.end
@@ -165,8 +165,7 @@ fun Prescription.totalWith(boost: Boost): String? {
  * tillåtna ("0,5", " 1.5 "). `null` för allt annat ("1 tablett", "", "NaN", "1e3", "5d", "-1") och
  * för tal för stora för att räknas med (hundratals siffror blir oändligt).
  */
-fun parseDose(value: String?): Double? =
-    value?.trim()?.takeIf(DOSE_NUMBER::matches)?.replace(',', '.')?.toDouble()?.takeIf { it.isFinite() }
+fun parseDose(value: String?): Double? = value?.trim()?.takeIf(DOSE_NUMBER::matches)?.replace(',', '.')?.toDouble()?.takeIf { it.isFinite() }
 
 /** Siffror med valfri decimal (komma eller punkt) – inga tecken, exponenter, hex eller suffix ("5d"). */
 private val DOSE_NUMBER = Regex("""\d+([.,]\d*)?|[.,]\d+""")
@@ -176,8 +175,10 @@ private val DOSE_NUMBER = Regex("""\d+([.,]\d*)?|[.,]\d+""")
  * avslutande nollor. Avrundas till sex decimaler, så att flyttalsbrus (`0,1 + 0,2`) inte syns. Kastar
  * aldrig: ett värde som inte är ändligt (som [parseDose] aldrig ger) skrivs som det är.
  */
-fun formatDose(value: Double): String =
-    if (!value.isFinite()) value.toString()
-    else BigDecimal.valueOf(value).setScale(DOSE_DECIMALS, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString().replace('.', ',')
+fun formatDose(value: Double): String = if (!value.isFinite()) {
+    value.toString()
+} else {
+    BigDecimal.valueOf(value).setScale(DOSE_DECIMALS, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString().replace('.', ',')
+}
 
 private const val DOSE_DECIMALS = 6

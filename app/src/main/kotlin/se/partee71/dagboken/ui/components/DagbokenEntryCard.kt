@@ -72,7 +72,7 @@ fun DagbokenEntryCard(
     delete: DeleteAction? = null,
     inactive: Boolean = false,
     toggle: EntryToggle? = null,
-    below: (@Composable () -> Unit)? = null,
+    below: (@Composable () -> Unit)? = null
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -93,7 +93,7 @@ fun DagbokenEntryCard(
             onMenuOpenChange = { menuOpen = it },
             inactive = inactive,
             toggle = toggle,
-            below = below,
+            below = below
         )
     }
     if (delete == null) card(modifier) else SwipeToDelete({ confirmDelete = true }, modifier) { card(Modifier) }
@@ -117,7 +117,7 @@ private fun entryMenu(onEdit: (() -> Unit)?, actions: List<AppMenuItem>, delete:
 private fun EntryCardBody(
     title: String,
     onClick: () -> Unit,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     subtitle: String?,
     leading: (@Composable () -> Unit)?,
     accent: Color?,
@@ -129,7 +129,7 @@ private fun EntryCardBody(
     onMenuOpenChange: (Boolean) -> Unit,
     inactive: Boolean,
     toggle: EntryToggle?,
-    below: (@Composable () -> Unit)?,
+    below: (@Composable () -> Unit)?
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     AppCard(
@@ -139,9 +139,9 @@ private fun EntryCardBody(
                 onClickLabel = stringResource(R.string.open),
                 onLongClickLabel = stringResource(R.string.more_options).takeIf { menu.isNotEmpty() },
                 onLongClick = if (menu.isEmpty()) null else ({ onMenuOpenChange(true) }),
-                onClick = onClick,
+                onClick = onClick
             )
-            .accentBar(accent),
+            .accentBar(accent)
     ) {
         // Med reglage blir trailing-delen bred (reglage, anteckning, chevron, ⋮): titeln får då hela
         // bredden ovanför, och undertexten står bredvid kontrollerna – titeln trycks aldrig ihop.
@@ -150,7 +150,7 @@ private fun EntryCardBody(
             Row(
                 Modifier.weight(1f).inactive(inactive).padding(start = Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.m),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.m)
             ) {
                 leading?.invoke()
                 RowText(title.takeIf { toggle == null }, subtitle)
@@ -186,7 +186,7 @@ private fun ExpandButton(expanded: Boolean, onToggle: () -> Unit) {
         R.drawable.ic_expand_more,
         labels.action,
         onToggle,
-        Modifier.rotate(chevronRotation(expanded)).semantics { stateDescription = labels.state },
+        Modifier.rotate(chevronRotation(expanded)).semantics { stateDescription = labels.state }
     )
 }
 
@@ -195,7 +195,7 @@ private fun ExpandButton(expanded: Boolean, onToggle: () -> Unit) {
  * ligger kvar tills bekräftelsen svarat (NFR-15). Svep åt höger är avstängt.
  */
 @Composable
-private fun SwipeToDelete(onRequest: () -> Unit, modifier: Modifier, content: @Composable () -> Unit) {
+private fun SwipeToDelete(onRequest: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val state = rememberSwipeToDismissBoxState()
     val scope = rememberCoroutineScope()
     SwipeToDismissBox(
@@ -205,7 +205,7 @@ private fun SwipeToDelete(onRequest: () -> Unit, modifier: Modifier, content: @C
             Row(
                 Modifier.fillMaxSize().clip(AppShapes.card).background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = Spacing.l).clearAndSetSemantics {},
                 horizontalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 val color = MaterialTheme.colorScheme.onErrorContainer
                 Icon(painterResource(R.drawable.ic_delete), contentDescription = null, tint = color)
@@ -220,7 +220,6 @@ private fun SwipeToDelete(onRequest: () -> Unit, modifier: Modifier, content: @C
                 scope.launch { state.reset() }
             }
         },
-        content = { content() },
+        content = { content() }
     )
 }
-

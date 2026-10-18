@@ -19,7 +19,7 @@ enum class MigrationEntity(@param:StringRes val label: Int, val collections: Lis
     PRN_MEDICINES(R.string.migration_entity_prn_medicines, listOf(CollectionNames.PRN_MEDICINES)),
     ILLNESS_EPISODES(R.string.migration_entity_illness_episodes, listOf(CollectionNames.ILLNESS_EPISODES)),
     CHECKINS(R.string.migration_entity_checkins, listOf(CollectionNames.CHECKINS)),
-    SETTINGS(R.string.migration_entity_settings, listOf(CollectionNames.SETTINGS, CollectionNames.OPTIONS)),
+    SETTINGS(R.string.migration_entity_settings, listOf(CollectionNames.SETTINGS, CollectionNames.OPTIONS))
     ;
 
     /** Antalet för raden ur antal per samling. */

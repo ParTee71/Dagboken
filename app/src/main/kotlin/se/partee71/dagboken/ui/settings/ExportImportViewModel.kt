@@ -32,7 +32,7 @@ data class ExportImportUiState(
     val import: ImportStage = ImportStage.Choose,
     val exporting: Boolean = false,
     val exported: Int? = null,
-    val failure: Failure? = null,
+    val failure: Failure? = null
 ) {
     /** Medan något skrivs eller läses går det inte att starta något annat (och raderna är inaktiva). */
     val busy: Boolean get() = exporting || import is ImportStage.Reading || import is ImportStage.Writing
@@ -54,7 +54,7 @@ sealed interface ExportImportEvent {
 class ExportImportViewModel @Inject constructor(
     private val exporter: ExportUseCase,
     importer: LegacyImportUseCase,
-    private val zone: Provider<TimeZone>,
+    private val zone: Provider<TimeZone>
 ) : ViewModel() {
     private val _state = MutableStateFlow(ExportImportUiState())
     val state: StateFlow<ExportImportUiState> = _state.asStateFlow()

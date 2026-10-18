@@ -27,7 +27,7 @@ data class PrnMedicine(
     /** Läkemedelsformen; `null` = ej angiven (3.x saknade fältet) eller okänd ([unknownForm]). */
     val form: MedicineForm? = null,
     /** En okänd form från en nyare app, skrivs tillbaka oförändrad så länge [form] är `null` (som [Prescription.unknownForm]). */
-    @Transient val unknownForm: String? = null,
+    @Transient val unknownForm: String? = null
 ) : Identified {
     /** "Alvedon 500 mg" – namn och styrka, tomma delar utelämnade. */
     val displayName: String get() = medicineTitle(name, strength)

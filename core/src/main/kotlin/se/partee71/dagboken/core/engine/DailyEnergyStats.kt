@@ -11,7 +11,7 @@ data class DailyEnergyStats(
     val date: LocalDate,
     val avg: Float,
     val min: Float,
-    val max: Float,
+    val max: Float
 )
 
 /**
@@ -22,20 +22,19 @@ data class DailyEnergyStats(
  * `type == "screening"` behövs inte. En screening utan datum hör inte till någon dag och räknas
  * inte. Dagarna kommer i stigande datumordning.
  */
-fun computeDailyEnergyStats(screenings: List<Screening>): List<DailyEnergyStats> =
-    screenings
-        .mapNotNull { screening -> screening.date?.let { it to screening.energy.toFloat() } }
-        .groupBy({ it.first }, { it.second })
-        .entries
-        .sortedBy { it.key }
-        .map { (date, energies) ->
-            DailyEnergyStats(
-                date = date,
-                avg = energies.average().toFloat(),
-                min = energies.min(),
-                max = energies.max(),
-            )
-        }
+fun computeDailyEnergyStats(screenings: List<Screening>): List<DailyEnergyStats> = screenings
+    .mapNotNull { screening -> screening.date?.let { it to screening.energy.toFloat() } }
+    .groupBy({ it.first }, { it.second })
+    .entries
+    .sortedBy { it.key }
+    .map { (date, energies) ->
+        DailyEnergyStats(
+            date = date,
+            avg = energies.average().toFloat(),
+            min = energies.min(),
+            max = energies.max()
+        )
+    }
 
 /**
  * Dagsstatistiken utlagd på [days] (t.ex. de senaste sju dagarna, HEM-7): en plats per dag, `null`
@@ -50,12 +49,10 @@ fun List<DailyEnergyStats>.alignTo(days: List<LocalDate>): List<DailyEnergyStats
 const val ENERGY_TREND_DAYS = 7
 
 /** De [count] dagarna till och med [last], äldst först – x-axeln i Idags 7-dagarstrend (HEM-7). */
-fun daysEnding(last: LocalDate, count: Int = ENERGY_TREND_DAYS): List<LocalDate> =
-    datesBetween(last.minus(count - 1, DateTimeUnit.DAY), last)
+fun daysEnding(last: LocalDate, count: Int = ENERGY_TREND_DAYS): List<LocalDate> = datesBetween(last.minus(count - 1, DateTimeUnit.DAY), last)
 
 /**
  * HEM-7: dagsvärdet ([DailyEnergyStats.avg] ur [computeDailyEnergyStats], samma som Trender, TRD-8) för
  * var och en av [days]; `null` för en dag utan screening – en lucka, aldrig en nolla.
  */
-fun dailyEnergyAverages(screenings: List<Screening>, days: List<LocalDate>): List<Float?> =
-    computeDailyEnergyStats(screenings).alignTo(days).map { it?.avg }
+fun dailyEnergyAverages(screenings: List<Screening>, days: List<LocalDate>): List<Float?> = computeDailyEnergyStats(screenings).alignTo(days).map { it?.avg }

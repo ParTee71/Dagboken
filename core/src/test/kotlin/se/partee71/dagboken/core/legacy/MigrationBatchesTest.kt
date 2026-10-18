@@ -14,18 +14,16 @@ class MigrationBatchesTest {
 
     private fun plain(collection: String, n: Int) = List(n) { doc(CollectionNames.document(uid, collection, "d%04d".format(it))) }
 
-    private fun episode(id: String, checkins: Int) =
-        listOf(doc(CollectionNames.document(uid, CollectionNames.ILLNESS_EPISODES, id))) + List(checkins) { doc(CollectionNames.checkin(uid, id, "c%04d".format(it))) }
+    private fun episode(id: String, checkins: Int) = listOf(doc(CollectionNames.document(uid, CollectionNames.ILLNESS_EPISODES, id))) + List(checkins) { doc(CollectionNames.checkin(uid, id, "c%04d".format(it))) }
 
     /** Episoder som hör till batchen: episoddokumentet eller incheckningarnas förälder. */
-    private fun episodesIn(batch: List<ExportFormat.Document>): Set<String> =
-        batch.mapNotNull { d ->
-            when (CollectionNames.collectionOf(d.path)) {
-                CollectionNames.ILLNESS_EPISODES -> d.path
-                CollectionNames.CHECKINS -> d.path.split('/').dropLast(2).joinToString("/")
-                else -> null
-            }
-        }.toSet()
+    private fun episodesIn(batch: List<ExportFormat.Document>): Set<String> = batch.mapNotNull { d ->
+        when (CollectionNames.collectionOf(d.path)) {
+            CollectionNames.ILLNESS_EPISODES -> d.path
+            CollectionNames.CHECKINS -> d.path.split('/').dropLast(2).joinToString("/")
+            else -> null
+        }
+    }.toSet()
 
     private fun assertWellFormed(documents: List<ExportFormat.Document>, batches: List<List<ExportFormat.Document>>) {
         assertEquals(documents, batches.flatten(), "varje dokument exakt en gång, i samma ordning")

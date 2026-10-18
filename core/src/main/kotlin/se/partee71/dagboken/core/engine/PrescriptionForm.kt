@@ -46,7 +46,7 @@ fun Schedule.Repeating.withDays(days: Set<DayOfWeek>): Schedule.Repeating = copy
         WEEKEND -> Repeat.WEEKENDS
         else -> Repeat.CUSTOM
     },
-    days = days,
+    days = days
 )
 
 /**
@@ -64,8 +64,7 @@ fun Schedule.Repeating.withChoice(choice: RepeatChoice): Schedule.Repeating = wh
 const val MIN_INTERVAL_DAYS = 2
 
 /** REC-4: de första [count] dosdagarna för var [intervalDays]:e dag från [start], startdagen inräknad. */
-fun intervalDaysFrom(start: LocalDate, intervalDays: Int, count: Int = 3): List<LocalDate> =
-    List(count) { n -> start.plus(n * intervalDays.coerceAtLeast(1), DateTimeUnit.DAY) }
+fun intervalDaysFrom(start: LocalDate, intervalDays: Int, count: Int = 3): List<LocalDate> = List(count) { n -> start.plus(n * intervalDays.coerceAtLeast(1), DateTimeUnit.DAY) }
 
 /** Perioden som ett val i formuläret: Tills vidare · Längd · T.o.m. (REC-7). */
 enum class PeriodChoice { UNTIL_FURTHER_NOTICE, LENGTH, END_DATE }
@@ -112,8 +111,7 @@ const val DEFAULT_PERIOD_DAYS = 14
  * från före periodstödet) förväljs dagen intervallet redan räknas från ([intervalAnchor], skapandedagen),
  * så att dosdagarna inte flyttas; finns ingen sådan, [today].
  */
-fun Prescription.withFormStart(today: LocalDate): Prescription =
-    if (period.start != null) this else copy(period = period.copy(start = intervalAnchor() ?: today))
+fun Prescription.withFormStart(today: LocalDate): Prescription = if (period.start != null) this else copy(period = period.copy(start = intervalAnchor() ?: today))
 
 /**
  * MEDF-5, REC-8: "Förläng och aktivera" – en ny period från [today] lika lång som den förra

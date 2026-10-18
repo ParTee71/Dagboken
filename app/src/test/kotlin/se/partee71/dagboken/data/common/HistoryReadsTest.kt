@@ -3,15 +3,15 @@ package se.partee71.dagboken.data.common
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.test.TestScope
-import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -123,11 +123,14 @@ class HistoryReadsTest {
         val seen = mutableListOf<List<String>>()
         backgroundScope.launch { history(4, 0).collect { list -> seen += list.map { it.id } } }
         runCurrent()
-        assertEquals(0, billed {
-            doses.upsert(Dose("ny", day(2), name = "Alvedon")).getOrThrow()
-            doses.delete("d001").getOrThrow()
-            runCurrent()
-        })
+        assertEquals(
+            0,
+            billed {
+                doses.upsert(Dose("ny", day(2), name = "Alvedon")).getOrThrow()
+                doses.delete("d001").getOrThrow()
+                runCurrent()
+            }
+        )
         assertEquals((ids(4, 0) + "ny" - "d001").sorted(), seen.last())
     }
 
@@ -184,8 +187,7 @@ class HistoryReadsTest {
         }
     }
 
-    private fun slowFlow(uid: MutableStateFlow<String?>, coverage: HistoryCoverage, slow: SlowFetch) =
-        historyFlow(uid, coverage, { "nyckel.$it" }, today, today, slow.fetch) { flowOf(listOf("ur cachen")) }
+    private fun slowFlow(uid: MutableStateFlow<String?>, coverage: HistoryCoverage, slow: SlowFetch) = historyFlow(uid, coverage, { "nyckel.$it" }, today, today, slow.fetch) { flowOf(listOf("ur cachen")) }
 
     @Test
     fun `långsamt nät – cachen visas direkt, samma hämtning inväntas och antecknas när den blir klar, också när skärmen lämnats, och ingen ny startar under tiden`() = runTest {
@@ -235,8 +237,7 @@ class HistoryReadsTest {
     @Test
     fun `ett annat fel än Offline och slut på kvoten avslutar flödet – de två visar cachen`() = runTest {
         val coverage = testCoverage(MemoryDayMarks(), clock)
-        fun flowFailingWith(error: DataError) =
-            historyFlow(MutableStateFlow<String?>("uid"), coverage, { "nyckel.$it" }, today, today, { _, _, _ -> throw error }) { flowOf(listOf("ur cachen")) }
+        fun flowFailingWith(error: DataError) = historyFlow(MutableStateFlow<String?>("uid"), coverage, { "nyckel.$it" }, today, today, { _, _, _ -> throw error }) { flowOf(listOf("ur cachen")) }
         val failing = flowFailingWith(DataError.PermissionDenied)
         assertEquals(DataError.PermissionDenied, runCatching { failing.collect {} }.exceptionOrNull())
         assertEquals(listOf("ur cachen"), flowFailingWith(DataError.Offline).first())

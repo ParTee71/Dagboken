@@ -17,6 +17,6 @@ internal fun DiscardChangesDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) 
         confirmLabel = stringResource(R.string.discard_confirm),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
-        dismissLabel = stringResource(R.string.keep_editing),
+        dismissLabel = stringResource(R.string.keep_editing)
     )
 }

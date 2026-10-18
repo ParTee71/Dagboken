@@ -144,8 +144,7 @@ class ProfileAndRemindersViewModelTest {
         assertFalse(vm.editor.state.value.isDirty)
     }
 
-    private fun otherDevice(group: String, fields: Map<String, Any?>) =
-        factory.store.set(Paths.settings("uid-test"), Settings.ID, mapOf(group to fields), merge = true)
+    private fun otherDevice(group: String, fields: Map<String, Any?>) = factory.store.set(Paths.settings("uid-test"), Settings.ID, mapOf(group to fields), merge = true)
 
     @Test
     fun `Profil skriver bara det som ändrats – en annan enhets ändring efter laddningen står kvar`() = runTest(main.dispatcher) {
@@ -213,7 +212,10 @@ class ProfileAndRemindersViewModelTest {
         vm.onEvent(RemindersEvent.SlotChanged(SlotReminder(Slot.NIGHT, enabled = false)))
         vm.editor.state.test {
             vm.onEvent(RemindersEvent.Save)
-            awaitFailure(vm.editor).let { assertEquals(DataError.Offline, it.error); assertEquals(R.string.error_offline, it.message) }
+            awaitFailure(vm.editor).let {
+                assertEquals(DataError.Offline, it.error)
+                assertEquals(R.string.error_offline, it.message)
+            }
             cancelAndIgnoreRemainingEvents()
         }
         assertTrue(vm.editor.state.value.isDirty, "inte sparat – Spara går att trycka igen")
@@ -224,8 +226,7 @@ class ProfileAndRemindersViewModelTest {
     fun `utan nät och cache visar Profil och Påminnelser läsfelet, och Försök igen läser om`() = runTest(main.dispatcher) {
         var offline = true
         val flaky = object : SettingsRepository by settings {
-            override suspend fun get(): Result<Settings> =
-                if (offline) Result.failure(DataError.Offline) else this@ProfileAndRemindersViewModelTest.settings.get()
+            override suspend fun get(): Result<Settings> = if (offline) Result.failure(DataError.Offline) else this@ProfileAndRemindersViewModelTest.settings.get()
         }
         val profile = ProfileEditViewModel(flaky, FixedClock(), TimeZone.UTC)
         val reminders = RemindersEditViewModel(flaky)

@@ -35,7 +35,7 @@ class EditKeepsCreatedAtTest(private val case: Case<*>) {
         val store: (FakeCollectionFactory, FixedClock) -> EntryStore<T>,
         val stored: T,
         val withNote: (T, String) -> T,
-        val withCreatedAt: (T, Instant?) -> T,
+        val withCreatedAt: (T, Instant?) -> T
     ) {
         override fun toString() = name
     }
@@ -79,29 +79,53 @@ class EditKeepsCreatedAtTest(private val case: Case<*>) {
         @Parameterized.Parameters(name = "{0}")
         fun cases(): List<Case<*>> = listOf(
             Case(
-                "mående", { it.screenings() }, { f, c -> DefaultScreeningRepository(f, c) },
-                Screening("s", DAY, createdAt = CREATED, note = "Före"), { s, n -> s.copy(note = n) }, { s, t -> s.copy(createdAt = t) },
+                "mående",
+                { it.screenings() },
+                { f, c -> DefaultScreeningRepository(f, c) },
+                Screening("s", DAY, createdAt = CREATED, note = "Före"),
+                { s, n -> s.copy(note = n) },
+                { s, t -> s.copy(createdAt = t) }
             ),
             Case(
-                "aktivitet", { it.activities() }, { f, c -> DefaultActivityRepository(f, c) },
-                Activity("a", DAY, createdAt = CREATED, note = "Före"), { a, n -> a.copy(note = n) }, { a, t -> a.copy(createdAt = t) },
+                "aktivitet",
+                { it.activities() },
+                { f, c -> DefaultActivityRepository(f, c) },
+                Activity("a", DAY, createdAt = CREATED, note = "Före"),
+                { a, n -> a.copy(note = n) },
+                { a, t -> a.copy(createdAt = t) }
             ),
             Case(
-                "händelse", { it.events() }, { f, c -> DefaultEventRepository(f, c) },
-                Event("h", DAY, createdAt = CREATED, note = "Före"), { e, n -> e.copy(note = n) }, { e, t -> e.copy(createdAt = t) },
+                "händelse",
+                { it.events() },
+                { f, c -> DefaultEventRepository(f, c) },
+                Event("h", DAY, createdAt = CREATED, note = "Före"),
+                { e, n -> e.copy(note = n) },
+                { e, t -> e.copy(createdAt = t) }
             ),
             Case(
-                "episod", { it.illnessEpisodes() }, { f, c -> episodeStore(DefaultIllnessRepository(f, c)) },
-                IllnessEpisode("flu", "Förkylning", DAY, createdAt = CREATED, note = "Före"), { e, n -> e.copy(note = n) }, { e, t -> e.copy(createdAt = t) },
+                "episod",
+                { it.illnessEpisodes() },
+                { f, c -> episodeStore(DefaultIllnessRepository(f, c)) },
+                IllnessEpisode("flu", "Förkylning", DAY, createdAt = CREATED, note = "Före"),
+                { e, n -> e.copy(note = n) },
+                { e, t -> e.copy(createdAt = t) }
             ),
             Case(
-                "incheckning", { it.checkins("flu") }, { f, c -> DefaultIllnessRepository(f, c).checkins("flu") },
-                Checkin("c", DAY, severity = 4, createdAt = CREATED, note = "Före"), { e, n -> e.copy(note = n) }, { e, t -> e.copy(createdAt = t) },
+                "incheckning",
+                { it.checkins("flu") },
+                { f, c -> DefaultIllnessRepository(f, c).checkins("flu") },
+                Checkin("c", DAY, severity = 4, createdAt = CREATED, note = "Före"),
+                { e, n -> e.copy(note = n) },
+                { e, t -> e.copy(createdAt = t) }
             ),
             Case(
-                "dos", { it.doses() }, { f, c -> testDoses(f, TimeZone.of("Europe/Stockholm"), c) },
-                Dose("d", DAY, name = "Alvedon", dose = "500", unit = "mg", createdAt = CREATED, note = "Före"), { d, n -> d.copy(note = n) }, { d, t -> d.copy(createdAt = t) },
-            ),
+                "dos",
+                { it.doses() },
+                { f, c -> testDoses(f, TimeZone.of("Europe/Stockholm"), c) },
+                Dose("d", DAY, name = "Alvedon", dose = "500", unit = "mg", createdAt = CREATED, note = "Före"),
+                { d, n -> d.copy(note = n) },
+                { d, t -> d.copy(createdAt = t) }
+            )
         )
 
         /** Episodens formulär som [EntryStore] – `IllnessRepository.saveEpisode` och `getEpisode`. */

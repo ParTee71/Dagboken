@@ -42,7 +42,7 @@ internal fun StatusCard(
     title: String,
     count: String? = null,
     countTone: Tone = Tone.Primary,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     AppCard {
         SectionHeader(title, icon = icon, count = count, countTone = countTone)
@@ -79,7 +79,7 @@ internal fun DoneCard(title: String, before: Map<String, Int>, after: Map<String
         R.drawable.ic_database,
         title,
         count = stringResource(R.string.migration_done_verified),
-        countTone = Tone.Positive,
+        countTone = Tone.Positive
     ) {
         CountRows(before, after, accounted)
     }
@@ -93,7 +93,7 @@ internal fun MismatchCard(before: Map<String, Int>, accounted: Map<String, Int>,
             R.string.migration_mismatch_line,
             stringResource(entity.label),
             countText(entity.count(accounted)),
-            countText(entity.count(before)),
+            countText(entity.count(before))
         )
     }
     ProblemCard(stringResource(R.string.migration_mismatch_title), listOf(stringResource(R.string.migration_mismatch_report)) + lines + listOfNotNull(footer))
@@ -128,7 +128,7 @@ internal fun WarningsNote(warnings: List<String>) {
         pluralStringResource(R.plurals.migration_warnings, warnings.size, warnings.size),
         R.drawable.ic_warning,
         Tone.Sun,
-        detail = limited(warnings).joinToString("\n"),
+        detail = limited(warnings).joinToString("\n")
     )
 }
 
@@ -170,7 +170,7 @@ private fun CountRow(label: String, before: Int, after: Int?, accounted: Int?) {
                 Text(text, style = AppTypography.itemTitle, color = MaterialTheme.colorScheme.onSurface)
                 if (done) Icon(painterResource(R.drawable.ic_check), null, Modifier.size(IconSize.marker), tint = MaterialTheme.colorScheme.primary)
             }
-        },
+        }
     )
 }
 

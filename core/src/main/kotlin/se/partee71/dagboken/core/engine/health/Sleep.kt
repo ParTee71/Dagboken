@@ -34,7 +34,7 @@ fun summarizeSleepStages(slices: List<SleepStageSlice>): SleepStages {
         deep = sum(SleepStageType.DEEP),
         rem = sum(SleepStageType.REM),
         light = sum(SleepStageType.LIGHT, SleepStageType.SLEEPING),
-        awake = sum(SleepStageType.AWAKE, SleepStageType.AWAKE_IN_BED, SleepStageType.OUT_OF_BED),
+        awake = sum(SleepStageType.AWAKE, SleepStageType.AWAKE_IN_BED, SleepStageType.OUT_OF_BED)
     )
 }
 
@@ -44,8 +44,7 @@ fun summarizeSleepStages(slices: List<SleepStageSlice>): SleepStages {
  * så att natten inte räknas som två kortare. Resultatet är i datumordning. Som i 3.x blir en tupplur dygnets
  * "natt" när dygnet saknar nattsömn – och förlorar mot nattsömnen när den är längre.
  */
-fun longestNightPerDay(sessions: List<SleepSession>, zone: TimeZone): Map<LocalDate, SleepSession> =
-    sessions.perDay(zone, { it.end }) { night -> night.maxBy { it.duration } }.toSortedMap()
+fun longestNightPerDay(sessions: List<SleepSession>, zone: TimeZone): Map<LocalDate, SleepSession> = sessions.perDay(zone, { it.end }) { night -> night.maxBy { it.duration } }.toSortedMap()
 
 /** Fönstrets mittpunkt som klockslag i [zone] – mätt i verklig tid, så en natt över sommartidsbytet blir rätt. */
 fun midpointOf(span: TimeSpan, zone: TimeZone): LocalTime = (span.start + span.duration / 2).toLocalDateTime(zone).time
@@ -55,8 +54,7 @@ fun midpointOf(span: TimeSpan, zone: TimeZone): LocalTime = (span.start + span.d
  * underlaget till regelbundenheten. Två sessioner samma natt skulle annars se ut som två läggtider och blåsa
  * upp spridningen.
  */
-fun nightlyMidpoints(sessions: List<SleepSession>, zone: TimeZone): Map<LocalDate, LocalTime> =
-    longestNightPerDay(sessions, zone).mapValues { (_, night) -> midpointOf(night, zone) }
+fun nightlyMidpoints(sessions: List<SleepSession>, zone: TimeZone): Map<LocalDate, LocalTime> = longestNightPerDay(sessions, zone).mapValues { (_, night) -> midpointOf(night, zone) }
 
 /**
  * Regelbundenheten per natt (HLS-10, HLS-13): varje natt i [midpoints] får spridningen i mittpunkten över nätterna

@@ -1,10 +1,10 @@
 package se.partee71.dagboken.core.schema
 
-import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import org.junit.Test
 
 class SchemaMigratorTest {
 

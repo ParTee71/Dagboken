@@ -44,9 +44,8 @@ internal enum class BarStyle(val fraction: Float, val max: Dp) {
     Span(0.35f, MAX_SPAN_WIDTH),
 
     /** Nattens stapel i `StackedBarChart`. */
-    Stack(0.6f, MAX_STACK_WIDTH),
+    Stack(0.6f, MAX_STACK_WIDTH)
 }
-
 
 /**
  * Stapeldiagrammens gemensamma rityta (`IntervalBarChart`, `StackedBarChart`) – egen `Canvas`, eftersom
@@ -68,7 +67,7 @@ internal fun BarCanvas(
     barStyle: BarStyle,
     modifier: Modifier = Modifier,
     height: Dp = CHART_HEIGHT,
-    drawBars: DrawScope.(viewport: BarViewport, barWidth: Float) -> Unit,
+    drawBars: DrawScope.(viewport: BarViewport, barWidth: Float) -> Unit
 ) {
     val colors = chartColors
     val trendColor = colors.trend
@@ -85,7 +84,7 @@ internal fun BarCanvas(
             labelHeight = measurer.measure("0", labelStyle).size.height.toFloat(),
             hasXLabels = xLabels.isNotEmpty(),
             axis = axis,
-            count = count,
+            count = count
         )
     }
     val currentFrame by rememberUpdatedState(frame)
@@ -100,7 +99,7 @@ internal fun BarCanvas(
                     zoomPan = plot.transform(zoom, panX)
                 }
             }
-            .chartDescription(description),
+            .chartDescription(description)
     ) {
         val viewport = frame.viewport(this, size.width, size.height, zoomPan)
         val gap = AXIS_LABEL_GAP.toPx()
@@ -124,7 +123,7 @@ internal fun BarCanvas(
                     end = Offset(viewport.xOf(it.endX), viewport.yOf(it.endY)),
                     strokeWidth = TREND_WIDTH.toPx(),
                     cap = StrokeCap.Round,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(TREND_DASH.toPx(), TREND_GAP.toPx())),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(TREND_DASH.toPx(), TREND_GAP.toPx()))
                 )
             }
         }
@@ -187,7 +186,7 @@ private data class BarFrame(val labelWidth: Int, val labelHeight: Float, val has
             minValue = axis.range.start,
             maxValue = axis.range.endInclusive,
             count = count,
-            zoomPan = zoomPan,
+            zoomPan = zoomPan
         )
     }
 }

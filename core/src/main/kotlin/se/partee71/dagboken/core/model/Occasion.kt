@@ -10,7 +10,7 @@ enum class Occasion(override val wire: String, val legacyName: String, val defau
     BREAKFAST("breakfast", "Efter frukost", LocalTime(8, 0)),
     LUNCH("lunch", "Lunch", LocalTime(12, 0)),
     DINNER("dinner", "Kvällsmat", LocalTime(17, 0)),
-    BEDTIME("bedtime", "Läggdags", LocalTime(21, 0)),
+    BEDTIME("bedtime", "Läggdags", LocalTime(21, 0))
     ;
 
     companion object {
@@ -31,14 +31,14 @@ enum class Occasion(override val wire: String, val legacyName: String, val defau
         fun derive(
             legacyName: String,
             time: LocalTime?,
-            reminderTimes: Map<Occasion, LocalTime> = entries.associateWith { it.defaultTime },
+            reminderTimes: Map<Occasion, LocalTime> = entries.associateWith { it.defaultTime }
         ): Occasion? {
             fromLegacyName(legacyName)?.let { return it }
             if (time == null) return null
             val minute = time.toSecondOfDay() / SECONDS_PER_MINUTE
             return entries.minWithOrNull(
                 compareBy<Occasion> { circularDistance(minute, (reminderTimes[it] ?: it.defaultTime).toSecondOfDay() / SECONDS_PER_MINUTE) }
-                    .thenBy { (reminderTimes[it] ?: it.defaultTime).toSecondOfDay() },
+                    .thenBy { (reminderTimes[it] ?: it.defaultTime).toSecondOfDay() }
             )
         }
 

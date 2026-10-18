@@ -41,11 +41,15 @@ fun ClockStatus(status: HealthStatus?, missing: Set<OptionalHealthMetric>?, onEv
             R.drawable.ic_watch,
             onClick = null,
             tone = Tone.Positive,
-            detail = stringResource(R.string.health_connected_detail),
+            detail = stringResource(R.string.health_connected_detail)
         )
+
         HealthStatus.PERMISSIONS_MISSING -> StatusBanner(R.string.health_not_connected, R.string.health_not_connected_detail, R.string.health_grant_access, Tone.Neutral, grant)
+
         HealthStatus.UNAVAILABLE -> StatusBanner(R.string.trends_health_missing, R.string.trends_health_missing_detail, R.string.health_install, Tone.Warning, open)
+
         HealthStatus.UPDATE_REQUIRED -> StatusBanner(R.string.health_update_required, R.string.health_update_required_detail, R.string.health_update, Tone.Sun, open)
+
         null -> Unit
     }
     if (status == HealthStatus.AVAILABLE && !missing.isNullOrEmpty()) {
@@ -58,7 +62,7 @@ fun ClockStatus(status: HealthStatus?, missing: Set<OptionalHealthMetric>?, onEv
             Modifier.fillMaxWidth(),
             tone = Tone.Sun,
             onClick = grant,
-            action = stringResource(R.string.health_grant_access),
+            action = stringResource(R.string.health_grant_access)
         )
     }
 }
@@ -82,8 +86,8 @@ fun HealthTodaySection(state: ClockUiState) {
         listOf(
             Metric(R.drawable.ic_steps, metricValue(WatchMetric.STEPS, day), stringResource(WatchMetric.STEPS.label())),
             Metric(R.drawable.ic_heart, metricValue(WatchMetric.HEART_RATE_AVG, day), stringResource(R.string.health_heart_rate_avg)),
-            Metric(R.drawable.ic_heart, metricValue(WatchMetric.RESTING_HEART_RATE, day), stringResource(WatchMetric.RESTING_HEART_RATE.label())),
-        ),
+            Metric(R.drawable.ic_heart, metricValue(WatchMetric.RESTING_HEART_RATE, day), stringResource(WatchMetric.RESTING_HEART_RATE.label()))
+        )
     )
     StatPill(R.drawable.ic_moon, metricValue(WatchMetric.SLEEP_TOTAL, day), stringResource(R.string.health_sleep_last_night), Modifier.fillMaxWidth())
     day?.sleepStages?.takeUnless { it.isEmpty }?.let { stages ->
@@ -99,7 +103,7 @@ fun HealthTodaySection(state: ClockUiState) {
             state.needsBirthYear -> Tone.Sun
             score != null -> Tone.Positive
             else -> Tone.Neutral
-        },
+        }
     )
     SleepFlagNotices(state.sleepFlags)
     PillRows(
@@ -107,8 +111,8 @@ fun HealthTodaySection(state: ClockUiState) {
             Metric(R.drawable.ic_run, metricValue(WatchMetric.EXERCISE, day), stringResource(R.string.health_exercise_today)),
             Metric(R.drawable.ic_flame, metricValue(WatchMetric.ACTIVE_CALORIES, day), stringResource(WatchMetric.ACTIVE_CALORIES.label())),
             Metric(R.drawable.ic_route, metricValue(WatchMetric.DISTANCE, day), stringResource(WatchMetric.DISTANCE.label())),
-            Metric(R.drawable.ic_oxygen, metricValue(WatchMetric.OXYGEN_SATURATION, day), stringResource(WatchMetric.OXYGEN_SATURATION.label())),
-        ),
+            Metric(R.drawable.ic_oxygen, metricValue(WatchMetric.OXYGEN_SATURATION, day), stringResource(WatchMetric.OXYGEN_SATURATION.label()))
+        )
     )
 }
 
@@ -135,11 +139,10 @@ private fun stagesText(stages: SleepStages): String {
         WatchMetric.SLEEP_DEEP to stages.deep,
         WatchMetric.SLEEP_REM to stages.rem,
         WatchMetric.SLEEP_LIGHT to stages.light,
-        WatchMetric.SLEEP_AWAKE to stages.awake,
+        WatchMetric.SLEEP_AWAKE to stages.awake
     ).mapNotNull { (metric, time) -> time?.let { stageText(metric, it) } }
     return parts.joinToString(CHART_SEPARATOR)
 }
 
 @Composable
-private fun stageText(metric: WatchMetric, time: Duration): String =
-    stringResource(R.string.chart_stat_format, stringResource(metric.label()), durationText(time.inWholeMinutes.toInt()))
+private fun stageText(metric: WatchMetric, time: Duration): String = stringResource(R.string.chart_stat_format, stringResource(metric.label()), durationText(time.inWholeMinutes.toInt()))

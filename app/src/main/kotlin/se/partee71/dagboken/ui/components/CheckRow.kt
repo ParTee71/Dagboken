@@ -48,7 +48,7 @@ fun CheckRow(
     note: String = "",
     menu: List<AppMenuItem> = emptyList(),
     below: (@Composable () -> Unit)? = null,
-    enabled: Boolean = true,
+    enabled: Boolean = true
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val toggle = Modifier.toggleable(value = checked, enabled = enabled, role = Role.Checkbox, onValueChange = onCheckedChange)
@@ -56,19 +56,24 @@ fun CheckRow(
     val menuLabel = stringResource(R.string.more_options)
     val interaction = when {
         onClick != null -> Modifier.combinedClickable(onClickLabel = onClickLabel, onLongClickLabel = menuLabel.takeIf { openMenu != null }, onLongClick = openMenu, onClick = onClick)
+
         openMenu == null -> toggle
+
         // Inaktiv med meny (en loggad vid behov-dos): krysset växlar inte, men långtrycket öppnar menyn (NFR-17) –
         // samma roll, tillstånd och "inaktiv" för TalkBack som utan meny.
-        !enabled -> Modifier
-            .combinedClickable(role = Role.Checkbox, onLongClickLabel = menuLabel, onLongClick = openMenu) {}
-            .semantics {
-                toggleableState = ToggleableState(checked)
-                disabled()
-            }
+        !enabled ->
+            Modifier
+                .combinedClickable(role = Role.Checkbox, onLongClickLabel = menuLabel, onLongClick = openMenu) {}
+                .semantics {
+                    toggleableState = ToggleableState(checked)
+                    disabled()
+                }
+
         // Långtrycket kräver en klickyta i stället för toggleable – samma roll och tillstånd för TalkBack.
-        else -> Modifier
-            .combinedClickable(role = Role.Checkbox, onLongClickLabel = menuLabel, onLongClick = openMenu) { onCheckedChange(!checked) }
-            .semantics { toggleableState = ToggleableState(checked) }
+        else ->
+            Modifier
+                .combinedClickable(role = Role.Checkbox, onLongClickLabel = menuLabel, onLongClick = openMenu) { onCheckedChange(!checked) }
+                .semantics { toggleableState = ToggleableState(checked) }
     }
     val end: (@Composable () -> Unit)? = if (trailing == null && note.isBlank() && menu.isEmpty()) {
         null
@@ -101,6 +106,6 @@ fun CheckRow(
         accent = accent,
         below = below,
         // Under texten, i linje med titeln (efter krysset).
-        belowAlignsWithTitle = true,
+        belowAlignsWithTitle = true
     )
 }

@@ -27,13 +27,12 @@ import se.partee71.dagboken.data.repository.PrescriptionRepository
 fun Flow<LocalDate>.tidyingUpEachDay(
     prescriptions: PrescriptionRepository,
     scope: CoroutineScope,
-    onFailure: (Failure) -> Unit = {},
-): Flow<LocalDate> =
-    onEach { day ->
-        scope.launch {
-            failureOfAttempt { prescriptions.tidyUp(day) }?.let(onFailure)
-        }
+    onFailure: (Failure) -> Unit = {}
+): Flow<LocalDate> = onEach { day ->
+    scope.launch {
+        failureOfAttempt { prescriptions.tidyUp(day) }?.let(onFailure)
     }
+}
 
 /**
  * HEM-10: ett bakgrundsförsök ([attempt], Idags `ensureDay`) för varje värde flödet ger, utan att flödet väntar på det.
@@ -49,7 +48,7 @@ fun <T> Flow<T>.attemptingEach(
     scope: CoroutineScope,
     onOffline: (T) -> Unit,
     onResult: (T, Failure?) -> Unit,
-    attempt: suspend (T) -> Result<Unit>,
+    attempt: suspend (T) -> Result<Unit>
 ): Flow<T> = channelFlow {
     val latest = HashMap<T, Long>()
     var started = 0L
@@ -72,5 +71,4 @@ fun <T> Flow<T>.attemptingEach(
  * `null`. Ett kast fångas och visas inte (ett programfel får inte fälla vyn); offline svarar städningen utan fel, och
  * `ensureDay` med [DataError.Offline] (som [attemptingEach] gör om).
  */
-suspend fun failureOfAttempt(action: suspend () -> Result<Unit>): Failure? =
-    suspendRunCatching({ DataError.Unknown }) { action() }.getOrNull()?.failureOrNull()
+suspend fun failureOfAttempt(action: suspend () -> Result<Unit>): Failure? = suspendRunCatching({ DataError.Unknown }) { action() }.getOrNull()?.failureOrNull()

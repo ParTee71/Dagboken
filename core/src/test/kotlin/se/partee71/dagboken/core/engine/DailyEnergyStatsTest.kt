@@ -22,7 +22,7 @@ class DailyEnergyStatsTest {
         time = LocalTime(9, 0),
         occasion = occasion,
         energy = energy,
-        stress = 3,
+        stress = 3
     )
 
     private val day = LocalDate(2026, 7, 10)
@@ -49,8 +49,8 @@ class DailyEnergyStatsTest {
             listOf(
                 screening("s1", day, energy = 2, occasion = Occasion.BREAKFAST),
                 screening("s2", day, energy = 8, occasion = Occasion.LUNCH),
-                screening("s3", day, energy = 5, occasion = Occasion.DINNER),
-            ),
+                screening("s3", day, energy = 5, occasion = Occasion.DINNER)
+            )
         )
         assertEquals(1, result.size)
         assertEquals(2f, result[0].min)
@@ -63,8 +63,8 @@ class DailyEnergyStatsTest {
             listOf(
                 screening("s1", LocalDate(2026, 7, 12), energy = 5),
                 screening("s2", LocalDate(2026, 7, 10), energy = 5),
-                screening("s3", LocalDate(2026, 7, 11), energy = 5),
-            ),
+                screening("s3", LocalDate(2026, 7, 11), energy = 5)
+            )
         )
         assertEquals(listOf(LocalDate(2026, 7, 10), LocalDate(2026, 7, 11), LocalDate(2026, 7, 12)), result.map { it.date })
     }
@@ -74,7 +74,7 @@ class DailyEnergyStatsTest {
         // inline-uträkningen i HomeViewModel (screeningDailyAvg) efter extraktionen.
         val screenings = listOf(
             screening("s1", day, energy = 3),
-            screening("s2", day, energy = 7),
+            screening("s2", day, energy = 7)
         )
         val previousInlineAvg = screenings
             .groupBy { it.date }
@@ -89,7 +89,7 @@ class DailyEnergyStatsTest {
 
     @Test fun `the average of a day is not rounded, it is the exact mean`() {
         val result = computeDailyEnergyStats(
-            listOf(screening("a", day, energy = 3), screening("b", day, energy = 4), screening("c", day, energy = 4)),
+            listOf(screening("a", day, energy = 3), screening("b", day, energy = 4), screening("c", day, energy = 4))
         )
         assertEquals(11f / 3f, result.single().avg, 0.0001f)
     }
@@ -105,8 +105,8 @@ class DailyEnergyStatsTest {
             listOf(
                 screening("a", LocalDate(2027, 1, 1), energy = 4),
                 screening("b", LocalDate(2026, 12, 31), energy = 6),
-                screening("c", LocalDate(2026, 12, 31), energy = 8),
-            ),
+                screening("c", LocalDate(2026, 12, 31), energy = 8)
+            )
         )
         assertEquals(listOf(LocalDate(2026, 12, 31), LocalDate(2027, 1, 1)), result.map { it.date })
         assertEquals(7f, result[0].avg)
@@ -118,8 +118,8 @@ class DailyEnergyStatsTest {
         val result = computeDailyEnergyStats(
             listOf(
                 Screening("a", date = dst, time = LocalTime(1, 30), energy = 2),
-                Screening("b", date = dst, time = LocalTime(3, 30), energy = 4),
-            ),
+                Screening("b", date = dst, time = LocalTime(3, 30), energy = 4)
+            )
         )
         assertEquals(1, result.size)
         assertEquals(3f, result.single().avg)
@@ -127,7 +127,7 @@ class DailyEnergyStatsTest {
 
     @Test fun `alignTo lays the days out with a gap where nothing was logged`() {
         val stats = computeDailyEnergyStats(
-            listOf(screening("a", LocalDate(2026, 10, 1), energy = 4), screening("b", LocalDate(2026, 10, 3), energy = 6)),
+            listOf(screening("a", LocalDate(2026, 10, 1), energy = 4), screening("b", LocalDate(2026, 10, 3), energy = 6))
         )
         val week = (0..2).map { LocalDate(2026, 10, 1 + it) }
         val aligned = stats.alignTo(week)

@@ -21,7 +21,7 @@ data class CopyRecord(
     /** Antal 3.x-poster (Room-rader) i kopian. */
     val total: Int,
     /** Kontrollens version ([VERSION]); en kopia sparad med en annan (äldre) kontroll gäller inte och måste sparas om. */
-    val version: Int = VERSION,
+    val version: Int = VERSION
 ) {
     companion object {
         /** 1 = `total` räknade 4.0-dokument (före kontrollen som 3.x-fil); 2 = `total` räknar 3.x-raderna. */
@@ -90,7 +90,7 @@ class DataStoreMigrationState @Inject constructor(private val store: DataStore<P
             fileName = prefs[COPY_FILE],
             total = prefs[COPY_TOTAL] ?: 0,
             // Saknad nyckel = sparad före versionsfältet.
-            version = prefs[COPY_VERSION] ?: 1,
+            version = prefs[COPY_VERSION] ?: 1
         )
     }
 

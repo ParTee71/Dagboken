@@ -47,7 +47,7 @@ interface LegacyRoomSource {
  */
 class LegacyRoomReader @Inject constructor(
     @ApplicationContext private val context: Context,
-    @IoDispatcher private val dispatcher: CoroutineDispatcher,
+    @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : LegacyRoomSource {
     private val file: File get() = context.getDatabasePath(LegacyRoomSchema.DATABASE_NAME)
 

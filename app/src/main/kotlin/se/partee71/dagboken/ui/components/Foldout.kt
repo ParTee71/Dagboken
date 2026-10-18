@@ -50,7 +50,7 @@ fun Foldout(
     modifier: Modifier = Modifier,
     trailing: (@Composable () -> Unit)? = null,
     summary: String? = null,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     Column(modifier) {
         CollapsibleHeader(expanded, onToggle) {
@@ -78,7 +78,7 @@ internal fun CollapsibleHeader(
     expanded: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable RowScope.() -> Unit,
+    content: @Composable RowScope.() -> Unit
 ) {
     val labels = expandLabels(expanded)
     Row(
@@ -89,14 +89,14 @@ internal fun CollapsibleHeader(
             .clickable(onClickLabel = labels.action, role = Role.Button, onClick = onToggle)
             .semantics { stateDescription = labels.state },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.s),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.s)
     ) {
         content()
         Icon(
             painterResource(R.drawable.ic_expand_more),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.rotate(chevronRotation(expanded)),
+            modifier = Modifier.rotate(chevronRotation(expanded))
         )
     }
 }
@@ -107,7 +107,7 @@ internal class ExpandLabels(val action: String, val state: String)
 @Composable
 internal fun expandLabels(expanded: Boolean) = ExpandLabels(
     action = stringResource(if (expanded) R.string.collapse else R.string.expand),
-    state = stringResource(if (expanded) R.string.expanded else R.string.collapsed),
+    state = stringResource(if (expanded) R.string.expanded else R.string.collapsed)
 )
 
 /** Chevronens fjädrande vridning – ett halvt varv i utfällt läge (DSN-4). */
@@ -116,7 +116,7 @@ internal fun chevronRotation(expanded: Boolean): Float {
     val rotation by animateFloatAsState(
         targetValue = if (expanded) HALF_TURN else 0f,
         animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-        label = "chevron",
+        label = "chevron"
     )
     return rotation
 }
@@ -127,7 +127,7 @@ internal fun ExpandableContent(visible: Boolean, content: @Composable () -> Unit
     AnimatedVisibility(
         visible = visible,
         enter = expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec()),
-        exit = shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec()),
+        exit = shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec())
     ) { content() }
 }
 

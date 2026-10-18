@@ -33,8 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -55,7 +55,7 @@ data class EmptyContent(
     @param:DrawableRes val icon: Int,
     val title: String,
     val message: String,
-    val examples: List<EmptyExample> = emptyList(),
+    val examples: List<EmptyExample> = emptyList()
 )
 
 /**
@@ -83,7 +83,7 @@ data class ListGroup(
     val columns: Int = 1,
     val collapsible: Boolean = false,
     val cards: Boolean = false,
-    val showCount: Boolean = true,
+    val showCount: Boolean = true
 )
 
 /** En undergrupp inom en grupp: namn i en egen färg (t.ex. ett doseringstillfälle). */
@@ -100,7 +100,7 @@ data class ListArchive(
     val undo: UndoRequest? = null,
     val failure: Failure? = null,
     val showToggle: Boolean = true,
-    val onEvent: (ArchiveEvent) -> Unit = {},
+    val onEvent: (ArchiveEvent) -> Unit = {}
 ) {
     /** Svep på en rad: arkivera den och erbjud Ångra. */
     fun archive(id: String, name: String) = onEvent(ArchiveEvent.Archive(id, name))
@@ -145,7 +145,7 @@ fun <T> EntityListScreen(
     filter: (@Composable () -> Unit)? = null,
     topBarSize: TopBarSize = TopBarSize.Large,
     footer: (@Composable () -> Unit)? = null,
-    row: @Composable (T) -> Unit,
+    row: @Composable (T) -> Unit
 ) {
     val snackbar = remember { SnackbarHostState() }
     val failure = archive?.failure
@@ -170,13 +170,14 @@ fun <T> EntityListScreen(
             if (state is ListUiState.Content && add != null) {
                 AddSplitButton(add.label, add.onClick, Modifier.padding(bottom = clearance).testTag(ADD_BUTTON_TAG), menuItems = add.menu)
             }
-        },
+        }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             filter?.let { Box(Modifier.padding(start = SCREEN_MARGIN, end = SCREEN_MARGIN, bottom = Spacing.m)) { it() } }
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 when (state) {
                     ListUiState.Loading -> AppLoading()
+
                     ListUiState.Empty -> EmptyState(
                         icon = empty.icon,
                         title = empty.title,
@@ -196,10 +197,12 @@ fun <T> EntityListScreen(
                                     footer?.invoke()
                                 }
                             }
-                        },
+                        }
                     )
+
                     is ListUiState.Error ->
                         LoadErrorState(stringResource(R.string.list_error_title), state.error, onRetry, Modifier.padding(bottom = clearance))
+
                     is ListUiState.Content -> ListContent(state.items, key, group, subgroup, header, footer, clearance, addButton = add != null, row)
                 }
             }
@@ -217,7 +220,7 @@ private fun <T> ListContent(
     footer: (@Composable () -> Unit)?,
     clearance: Dp,
     addButton: Boolean,
-    row: @Composable (T) -> Unit,
+    row: @Composable (T) -> Unit
 ) {
     val groups = remember(items, group) { if (group == null) listOf(null to items) else items.groupBy(group).toList() }
     // Utfällda grupper (bara de hopfällbara), efter rubrik; står kvar efter rotation och tillbaka.
@@ -225,7 +228,7 @@ private fun <T> ListContent(
     // Varje rad är ett eget listobjekt (lat inläsning, animering per rad); korten byggs av bitar.
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = SCREEN_MARGIN, end = SCREEN_MARGIN, top = Spacing.xs, bottom = clearance + if (addButton) ADD_BUTTON_CLEARANCE else Spacing.l),
+        contentPadding = PaddingValues(start = SCREEN_MARGIN, end = SCREEN_MARGIN, top = Spacing.xs, bottom = clearance + if (addButton) ADD_BUTTON_CLEARANCE else Spacing.l)
     ) {
         header?.let { item(key = "list-header", contentType = "list-header") { Box(Modifier.padding(bottom = Spacing.m)) { it() } } }
         groups.forEachIndexed { index, (head, rows) ->
@@ -250,7 +253,7 @@ private fun <T> LazyListScope.groupRows(
     rows: List<T>,
     key: (T) -> Any,
     subgroup: ((T) -> ListSubgroup?)?,
-    row: @Composable (T) -> Unit,
+    row: @Composable (T) -> Unit
 ) {
     val columns = head?.columns ?: 1
     val cards = head?.cards == true
@@ -269,11 +272,12 @@ private fun <T> LazyListScope.groupRows(
             is Line.Label -> item(key = "sub:${head?.title}:${line.id}", contentType = "subgroup") {
                 Segment(cards, top = top, bottom = bottom, Modifier.animateItem()) { SubgroupLabel(line.subgroup) }
             }
+
             // Nycklar måste kunna sparas i en Bundle: en rad har sin egen, flera i kolumner en sammansatt sträng.
             // contentType efter antal kolumner och kort: Compose återanvänder bara rader med samma uppbyggnad.
             is Line.Rows -> item(
                 key = line.members.singleOrNull()?.let(key) ?: line.members.joinToString("|") { key(it).toString() },
-                contentType = "rows:$columns:$cards",
+                contentType = "rows:$columns:$cards"
             ) {
                 Segment(cards, top = top, bottom = bottom, Modifier.animateItem()) {
                     if (columns == 1) {
@@ -295,7 +299,7 @@ private fun <T> LazyListScope.groupRows(
  * direkt på bakgrunden, med kortavstånd ovanför allt utom rubriken ([first]).
  */
 @Composable
-private fun Segment(cards: Boolean, top: Boolean, bottom: Boolean, modifier: Modifier, first: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+private fun Segment(cards: Boolean, top: Boolean, bottom: Boolean, modifier: Modifier = Modifier, first: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     if (cards) {
         Column(modifier.padding(top = if (first) 0.dp else Spacing.s), content = content)
     } else {
@@ -337,7 +341,7 @@ private fun SubgroupLabel(subgroup: ListSubgroup) {
         subgroup.title,
         style = AppTypography.pill,
         color = subgroup.color,
-        modifier = Modifier.padding(start = Spacing.s, top = Spacing.xs).semantics { heading() },
+        modifier = Modifier.padding(start = Spacing.s, top = Spacing.xs).semantics { heading() }
     )
 }
 

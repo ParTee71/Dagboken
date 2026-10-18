@@ -1,9 +1,9 @@
 package se.partee71.dagboken.core
 
+import kotlin.test.assertEquals
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
 import org.junit.Test
-import kotlin.test.assertEquals
 
 /** Bevisar att :core bygger och att dess beroenden (serialisering, datum) går att använda. */
 class SmokeTest {

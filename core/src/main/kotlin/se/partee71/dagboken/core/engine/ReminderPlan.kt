@@ -52,12 +52,16 @@ fun reminderAlarms(
     zone: TimeZone,
     grace: Duration = Duration.ZERO,
     scheduled: Map<Reminder, Instant> = emptyMap(),
-    firedAt: Map<Reminder, Instant> = emptyMap(),
+    firedAt: Map<Reminder, Instant> = emptyMap()
 ): List<ReminderAlarm> {
-    val meds = if (!settings.medsEnabled) emptyList() else settings.medSlots
-        .filter { it.enabled && it.slot != Slot.AS_NEEDED }
-        .distinctBy { it.slot }
-        .map { Reminder.Med(it.slot) to it.time }
+    val meds = if (!settings.medsEnabled) {
+        emptyList()
+    } else {
+        settings.medSlots
+            .filter { it.enabled && it.slot != Slot.AS_NEEDED }
+            .distinctBy { it.slot }
+            .map { Reminder.Med(it.slot) to it.time }
+    }
     val moods = settings.enabledOccasionRows.map { Reminder.Mood(it.occasion) to it.time }
     val rows = meds + moods + (Reminder.PeriodEnd to settings.periodReminderTime)
     return rows.map { (reminder, time) ->
@@ -79,7 +83,7 @@ fun restoredAlarms(
     firedAt: Map<Reminder, Instant>,
     now: Instant,
     zone: TimeZone,
-    grace: Duration = Duration.ZERO,
+    grace: Duration = Duration.ZERO
 ): List<ReminderAlarm> = scheduled.map { (reminder, at) ->
     val alarmTime = at.toLocalDateTime(zone).time
     val time = if (reminder is Reminder.Med) medAlarmTime(alarmTime, -MED_LEAD_MINUTES) else alarmTime
@@ -91,14 +95,13 @@ fun restoredAlarms(
  * NOT-14: nästa larm för [reminder] enligt [settings] – samma regel som [reminderAlarms] – eller `null` när
  * påminnelsen är avslagen. Det mottagaren schemalägger om sig till när den utlösts.
  */
-fun nextAlarm(reminder: Reminder, settings: ReminderSettings, now: Instant, zone: TimeZone): ReminderAlarm? =
-    reminderAlarms(settings, now, zone).firstOrNull { it.reminder == reminder }
+fun nextAlarm(reminder: Reminder, settings: ReminderSettings, now: Instant, zone: TimeZone): ReminderAlarm? = reminderAlarms(settings, now, zone).firstOrNull { it.reminder == reminder }
 
 /** NOT-14: nästa larm för [reminder] med klockslaget [time] (också när inställningarna inte går att läsa). */
 fun nextAlarmAt(reminder: Reminder, time: LocalTime, now: Instant, zone: TimeZone): ReminderAlarm = ReminderAlarm(
     reminder,
     time,
-    if (reminder is Reminder.Med) nextMedAlarm(time, now, zone) else nextDailyAt(time, now, zone),
+    if (reminder is Reminder.Med) nextMedAlarm(time, now, zone) else nextDailyAt(time, now, zone)
 )
 
 /**
@@ -125,13 +128,13 @@ fun slotDoses(
     prescriptions: List<Prescription>,
     doses: List<Dose>,
     zone: TimeZone,
-    reminders: ReminderSettings,
+    reminders: ReminderSettings
 ): SlotDoses {
     if (slot == Slot.AS_NEEDED) return SlotDoses()
     val onDate = doses.filter { it.date == date }
     return SlotDoses(
         stored = onDate.filter { it.slot == slot && it.isScheduled && it.status == DoseStatus.PLANNED },
-        missing = ensureDoses(prescriptions, onDate, date, today, zone, reminders).create.filter { it.slot == slot },
+        missing = ensureDoses(prescriptions, onDate, date, today, zone, reminders).create.filter { it.slot == slot }
     )
 }
 

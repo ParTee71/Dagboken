@@ -41,7 +41,7 @@ fun AppFilterChip(
     enabled: Boolean = true,
     @DrawableRes icon: Int? = null,
     onLongClick: (() -> Unit)? = null,
-    onLongClickLabel: String? = null,
+    onLongClickLabel: String? = null
 ) {
     val leading = if (selected) R.drawable.ic_check else icon
     // Gesten startas en gång (nyckel Unit) och läser alltid den senaste callbacken.
@@ -54,7 +54,7 @@ fun AppFilterChip(
         enabled = enabled,
         leadingIcon = leading?.let { { Icon(painterResource(it), contentDescription = null, modifier = Modifier.size(IconSize.tile)) } },
         shape = AppShapes.pill,
-        colors = chipColors(),
+        colors = chipColors()
     )
 }
 
@@ -64,7 +64,7 @@ internal fun chipColors(): SelectableChipColors = FilterChipDefaults.filterChipC
     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
     selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-    labelColor = MaterialTheme.colorScheme.onSurface,
+    labelColor = MaterialTheme.colorScheme.onSurface
 )
 
 /**
@@ -76,26 +76,30 @@ internal fun chipColors(): SelectableChipColors = FilterChipDefaults.filterChipC
  * gesten. Först efter ett långtryck förbrukas resten av gesten, så att komponentens klick inte också körs.
  * Fungerar även när chipet är inaktivt (menyn nås fortfarande). TalkBack får långtrycket som åtgärd.
  */
-private fun Modifier.longPress(onLongClick: () -> Unit, label: String?): Modifier =
-    semantics { onLongClick(label) { onLongClick(); true } }
-        .pointerInput(Unit) {
-            awaitEachGesture {
-                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                val cancelled = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-                    while (true) {
-                        val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
-                        val moved = change != null && (change.position - down.position).getDistance() > viewConfiguration.touchSlop
-                        if (change == null || !change.pressed || change.isConsumed || moved) break
-                    }
-                    true
+private fun Modifier.longPress(onLongClick: () -> Unit, label: String?): Modifier = semantics {
+    onLongClick(label) {
+        onLongClick()
+        true
+    }
+}
+    .pointerInput(Unit) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            val cancelled = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                while (true) {
+                    val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
+                    val moved = change != null && (change.position - down.position).getDistance() > viewConfiguration.touchSlop
+                    if (change == null || !change.pressed || change.isConsumed || moved) break
                 }
-                if (cancelled == true) return@awaitEachGesture
-                onLongClick()
-                do {
-                    val event = awaitPointerEvent(PointerEventPass.Initial)
-                    event.changes.forEach { it.consume() }
-                } while (event.changes.any { it.pressed })
+                true
             }
+            if (cancelled == true) return@awaitEachGesture
+            onLongClick()
+            do {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                event.changes.forEach { it.consume() }
+            } while (event.changes.any { it.pressed })
         }
+    }
 
 private val CHIP_HEIGHT = 36.dp

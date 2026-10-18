@@ -1,10 +1,14 @@
 package se.partee71.dagboken.ui.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -13,22 +17,18 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.graphics.toPixelMap
-import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.padding
-import se.partee71.dagboken.ui.theme.AppColors
-import se.partee71.dagboken.ui.theme.Spacing
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertTouchWidthIsEqualTo
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -38,9 +38,8 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
-import kotlin.math.abs
-import androidx.compose.ui.test.longClick
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
@@ -48,13 +47,15 @@ import kotlinx.datetime.LocalTime
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.SymptomScore
+import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.dagboken.ui.theme.Spacing
 
 /**
  * Beteende och tillgänglighet för Dagbokens portade komponenter (etapp 4.1). Postkortets gestmönster
@@ -88,7 +89,7 @@ class DiaryComponentsTest {
         expandedContent = { androidx.compose.material3.Text("Huvudvärk 2") },
         onEdit = { log += "redigera" },
         actions = listOf(AppMenuItem("Kopiera", { log += "kopiera" })),
-        delete = DeleteAction("Radera Promenad?", "Det går inte att ångra.") { deleted++ },
+        delete = DeleteAction("Radera Promenad?", "Det går inte att ångra.") { deleted++ }
     )
 
     @Test
@@ -151,7 +152,7 @@ class DiaryComponentsTest {
             rule.onNodeWithText("+3", useUnmergedTree = true),
             rule.onNodeWithContentDescription("Visa anteckning"),
             rule.onNodeWithContentDescription("Fäll ut"),
-            rule.onNodeWithContentDescription("Fler val"),
+            rule.onNodeWithContentDescription("Fler val")
         )
         val lefts = parts.map { it.left() }
         assertEquals(lefts.sorted(), lefts)
@@ -198,9 +199,9 @@ class DiaryComponentsTest {
 
     @Test
     fun `reglaget läser etikett, värde och nivå och går att ställa med TalkBack`() {
-        var energy by mutableStateOf(7)
-        var stress by mutableStateOf(8)
-        var activity by mutableStateOf(3)
+        var energy by mutableIntStateOf(7)
+        var stress by mutableIntStateOf(8)
+        var activity by mutableIntStateOf(3)
         show {
             Column {
                 ValueSlider("Energi", energy, { energy = it })
@@ -221,7 +222,7 @@ class DiaryComponentsTest {
 
     @Test
     fun `hjulväljaren läser valt värde och stegar med TalkBack-åtgärderna`() {
-        var index by mutableStateOf(2)
+        var index by mutableIntStateOf(2)
         show { WheelPicker((0..23).map { it.toString() }, index, { index = it }, "timmar") }
         fun act(label: String) = rule.runOnIdle {
             rule.onNodeWithContentDescription("timmar").fetchSemanticsNode().config[SemanticsActions.CustomActions].single { it.label == label }.action()
@@ -288,13 +289,13 @@ class DiaryComponentsTest {
     private val symptoms = listOf(
         Option("huvudvark", OptionKind.SYMPTOM, "Huvudvärk"),
         Option("yrsel", OptionKind.SYMPTOM, "Yrsel", sortOrder = 1),
-        Option("ovrigt", OptionKind.SYMPTOM, "Övrigt", sortOrder = 2),
+        Option("ovrigt", OptionKind.SYMPTOM, "Övrigt", sortOrder = 2)
     )
 
     @Test
     fun `mående i steg - energi, känslor, stress och symptom, Spara på sista steget`() {
         var saved = 0
-        var energy by mutableStateOf(5)
+        var energy by mutableIntStateOf(5)
         var feelings by mutableStateOf(emptyList<Feeling>())
         show {
             StepwiseScreeningForm(energy, { energy = it }, feelings, { feelings = it }, 3, {}, symptoms, emptyList(), {}, onSave = { saved++ })
@@ -420,7 +421,7 @@ class DiaryComponentsTest {
 
     @Test
     fun `tidsåtgången stegar om fem minuter och snabbvalen sätter värdet`() {
-        var minutes by mutableStateOf(45)
+        var minutes by mutableIntStateOf(45)
         show { DurationRow(minutes, { minutes = it }) }
         rule.onNodeWithContentDescription("Öka minuter").performClick()
         assertEquals(50, minutes)
@@ -473,7 +474,7 @@ class DiaryComponentsTest {
 
     @Test
     fun `stegaren med steg stannar vid intervallets gränser`() {
-        var value by mutableStateOf(97)
+        var value by mutableIntStateOf(97)
         show { QuantityStepper(value, { value = it }, "minuter", range = 0..100, step = 5) }
         rule.onNodeWithContentDescription("Öka minuter").performClick()
         assertEquals(100, value)

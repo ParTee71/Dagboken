@@ -21,6 +21,6 @@ fun PausableRow(title: String, detail: String, kind: String?, active: Boolean, o
         trailing = pill?.let { { InfoPill(it, tone = Tone.Neutral) } },
         onClick = onClick,
         navigates = true,
-        inactive = !active,
+        inactive = !active
     )
 }

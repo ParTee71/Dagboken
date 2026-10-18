@@ -8,7 +8,7 @@ import se.partee71.dagboken.data.common.UserVersion
 /** En inloggad användare för tester, med styrbar version. */
 class TestUserScope(
     uid: String? = "uid-test",
-    version: Int? = Schema.CURRENT_VERSION,
+    version: Int? = Schema.CURRENT_VERSION
 ) : UserScope {
     override val uid = MutableStateFlow(uid)
     override val schemaVersion = MutableStateFlow(versionOf(uid, version))
@@ -19,6 +19,5 @@ class TestUserScope(
         schemaVersion.value = versionOf(uid.value, version)
     }
 
-    private fun versionOf(id: String?, version: Int?) =
-        if (id != null && version != null) UserVersion(id, version) else null
+    private fun versionOf(id: String?, version: Int?) = if (id != null && version != null) UserVersion(id, version) else null
 }

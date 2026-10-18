@@ -23,11 +23,11 @@ import se.partee71.dagboken.core.engine.PrnCheck
 import se.partee71.dagboken.core.engine.atTime
 import se.partee71.dagboken.core.engine.onDay
 import se.partee71.dagboken.core.engine.withTaken
-import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.PrnMedicine
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.SlotReminder
@@ -107,7 +107,7 @@ class DoseFormViewModelTest {
         assertEquals(
             Dose(vm.value.id, yesterday, Slot.NIGHT, "Melatonin", "3", "mg", DoseStatus.TAKEN, LocalTime(22, 30), at(yesterday, 22, 30), createdAt = clock.now()),
             factory.doses().get(vm.value.id).getOrThrow(),
-            "trimmat, och en tom anteckning sparas som ingen",
+            "trimmat, och en tom anteckning sparas som ingen"
         )
     }
 
@@ -216,7 +216,7 @@ class DoseFormViewModelTest {
 
     private val recipe = Dose(
         DoseIds.prescribed("levaxin", yesterday, Slot.MORNING), yesterday, Slot.MORNING, "Levaxin", "100", "µg", DoseStatus.TAKEN,
-        plannedTime = LocalTime(7, 0), takenAt = at(yesterday, 7, 12), prescriptionId = "levaxin", createdAt = at(yesterday, 7), note = "Med frukost",
+        plannedTime = LocalTime(7, 0), takenAt = at(yesterday, 7, 12), prescriptionId = "levaxin", createdAt = at(yesterday, 7), note = "Med frukost"
     )
 
     @Test

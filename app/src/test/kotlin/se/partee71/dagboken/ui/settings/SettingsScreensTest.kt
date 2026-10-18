@@ -27,9 +27,9 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.reminders.ReminderAccess
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
+import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.Validator
 import se.partee71.dagboken.ui.components.ListArchive
@@ -56,7 +56,7 @@ class SettingsScreensTest {
             editor = editor,
             makeInvalid = { update(ProfileForm.BIRTH_YEAR) { it.copy(birthYear = "1800") } },
             makeValid = { update(ProfileForm.BIRTH_YEAR) { it.copy(birthYear = "1971") } },
-            invalidMessage = string(R.string.profile_birth_year_invalid),
+            invalidMessage = string(R.string.profile_birth_year_invalid)
         ) { state, events, onSave, onClose ->
             ProfileScreen(state, events, { if (it == ProfileEvent.Save) onSave() }, onClose)
         }
@@ -79,7 +79,7 @@ class SettingsScreensTest {
             editor = editor,
             makeInvalid = null,
             makeValid = { update { it.copy(medsEnabled = true) } },
-            invalidMessage = null,
+            invalidMessage = null
         ) { state, events, onSave, onClose ->
             RemindersScreen(state, events, { if (it == RemindersEvent.Save) onSave() }, onClose)
         }
@@ -110,10 +110,13 @@ class SettingsScreensTest {
         rule.setContent {
             DagbokenTheme {
                 RemindersScreen(
-                    EditorUiState(ReminderSettings()), EditorEvents.None, {}, {},
+                    EditorUiState(ReminderSettings()),
+                    EditorEvents.None,
+                    {},
+                    {},
                     access = access,
                     onOpenNotificationSettings = { opened += "notiser" },
-                    onOpenExactAlarmSettings = { opened += "exakta" },
+                    onOpenExactAlarmSettings = { opened += "exakta" }
                 )
             }
         }
@@ -184,7 +187,7 @@ class SettingsScreensTest {
             editor = editor,
             makeInvalid = { update(OPTION_NAME) { "promenad" } },
             makeValid = { update(OPTION_NAME) { "Cykling" } },
-            invalidMessage = string(R.string.option_name_duplicate),
+            invalidMessage = string(R.string.option_name_duplicate)
         ) { state, events, onSave, onClose ->
             OptionEditScreen(OptionKind.ACTIVITY, isNew = true, archived = null, state, events, { if (it == OptionEditEvent.Save) onSave() }, onClose)
         }

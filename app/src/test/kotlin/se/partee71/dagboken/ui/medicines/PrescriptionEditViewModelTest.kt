@@ -31,14 +31,14 @@ import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.firestore.Paths
+import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
-import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.medicines.PrescriptionEditEvent as Event
 import se.partee71.dagboken.testing.awaitDone
 import se.partee71.dagboken.testing.awaitFailure
+import se.partee71.dagboken.ui.medicines.PrescriptionEditEvent as Event
 
 /** Receptformuläret (REC-1…REC-10, MEDF-5) mot `FakeCollection`: valen, reglerna, sparningen och dossynken. */
 class PrescriptionEditViewModelTest {
@@ -55,12 +55,17 @@ class PrescriptionEditViewModelTest {
     private val repository = testPrescriptions(factory, testDoses(factory, zone), zone)
 
     private val sertralin = Prescription(
-        "s", "Sertralin", "50", "mg", listOf(Slot.MORNING), Schedule.Repeating(), Period(LocalDate(2026, 9, 1)),
-        note = "Tas med frukost",
+        "s",
+        "Sertralin",
+        "50",
+        "mg",
+        listOf(Slot.MORNING),
+        Schedule.Repeating(),
+        Period(LocalDate(2026, 9, 1)),
+        note = "Tas med frukost"
     )
 
-    private fun viewModel(id: String? = null, extend: Boolean = false, prescriptions: PrescriptionRepository = repository) =
-        PrescriptionEditViewModel(prescriptions, FakeMedicines(), main.dispatcher, FixedClock(), { zone }, id, extend)
+    private fun viewModel(id: String? = null, extend: Boolean = false, prescriptions: PrescriptionRepository = repository) = PrescriptionEditViewModel(prescriptions, FakeMedicines(), main.dispatcher, FixedClock(), { zone }, id, extend)
 
     private val PrescriptionEditViewModel.value get() = editor.state.value.value
 
@@ -324,8 +329,7 @@ class PrescriptionEditViewModelTest {
         }
         var fail = true
         val flaky = object : PrescriptionRepository by repository {
-            override suspend fun save(loaded: Prescription?, edited: Prescription, extended: Boolean): Result<Unit> =
-                if (fail) Result.failure(DataError.Offline) else repository.save(loaded, edited, extended)
+            override suspend fun save(loaded: Prescription?, edited: Prescription, extended: Boolean): Result<Unit> = if (fail) Result.failure(DataError.Offline) else repository.save(loaded, edited, extended)
         }
         val vm = PrescriptionEditViewModel(flaky, FakeMedicines(), main.dispatcher, clock, { zone }, null, false)
         vm.onEvent(Event.NameChanged("Sertralin"))
@@ -346,7 +350,7 @@ class PrescriptionEditViewModelTest {
         val ended = sertralin.copy(
             period = Period(LocalDate(2026, 9, 1), LocalDate(2026, 9, 10)),
             boosts = listOf(Boost("b", LocalDate(2026, 9, 3), LocalDate(2026, 9, 5), "25", "mg")),
-            active = false,
+            active = false
         )
         factory.prescriptions().upsert(ended).getOrThrow()
         val vm = viewModel(ended.id, extend = true)

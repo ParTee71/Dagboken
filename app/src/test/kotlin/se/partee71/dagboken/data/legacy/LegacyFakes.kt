@@ -46,7 +46,9 @@ class FakeLegacyPreferencesSource(var values: Map<String, Any?> = emptyMap(), va
  * saknas (rules), och [failAt]/[offline]/[tamper] framkallar fel i en batch, saknat nät vid läsningarna, respektive en
  * ändring på servern mellan skrivningen och verifieringen.
  */
-class FakeRawFirestore(val store: FakeStore, private val now: Instant = Instant.fromEpochSeconds(1_790_000_000)) : RawDocuments, RawDocumentWriter {
+class FakeRawFirestore(val store: FakeStore, private val now: Instant = Instant.fromEpochSeconds(1_790_000_000)) :
+    RawDocuments,
+    RawDocumentWriter {
     val batches = mutableListOf<List<ExportFormat.Document>>()
     var failAt: Int? = null
     var failWith: DataError = DataError.PermissionDenied

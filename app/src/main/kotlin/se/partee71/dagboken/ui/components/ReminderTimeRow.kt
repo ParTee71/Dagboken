@@ -27,7 +27,7 @@ fun ReminderTimeRow(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     onEnabledChange: ((Boolean) -> Unit)? = null,
-    inactive: Boolean = false,
+    inactive: Boolean = false
 ) {
     var picking by rememberSaveable { mutableStateOf(false) }
     val pickLabel = stringResource(R.string.pick_time)
@@ -38,6 +38,9 @@ fun ReminderTimeRow(
         SwitchRow(label, enabled, onEnabledChange, modifier, subtitle = shown, onClick = { picking = true }, onClickLabel = pickLabel, inactive = inactive || !enabled)
     }
     if (picking) {
-        TimePickerPopup(time, label, onPick = { onTimeChange(it); picking = false }, onDismiss = { picking = false })
+        TimePickerPopup(time, label, onPick = {
+            onTimeChange(it)
+            picking = false
+        }, onDismiss = { picking = false })
     }
 }

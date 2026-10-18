@@ -86,7 +86,7 @@ object MatchMedicinesCli {
         return Export(
             requireNotNull(exportedAt) { "exporten saknar giltig exportedAt" },
             requireNotNull(version) { "exporten saknar giltig schemaVersion" },
-            ExportFormat.decode(root),
+            ExportFormat.decode(root)
         )
     }
 

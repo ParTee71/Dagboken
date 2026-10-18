@@ -13,10 +13,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -30,9 +30,9 @@ import se.partee71.dagboken.core.engine.occasionChoices
 import se.partee71.dagboken.core.engine.ongoingEpisode
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.IllnessEpisode
-import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.model.SymptomScore
@@ -42,11 +42,11 @@ import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
-import se.partee71.dagboken.ui.components.ScreeningStep
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.SelectedDay
 import se.partee71.dagboken.ui.common.minutes
+import se.partee71.dagboken.ui.components.ScreeningStep
 
 /**
  * Plusknappens tillfällesväljare (HEM-8b, NAV-10): [date] är dagen som loggas, [isToday] om det är idag, och
@@ -100,7 +100,7 @@ sealed interface LogEvent {
         val occasion: Occasion,
         val date: LocalDate?,
         val reminder: LocalTime?,
-        val initialStep: ScreeningStep = ScreeningStep.ENERGY,
+        val initialStep: ScreeningStep = ScreeningStep.ENERGY
     ) : LogEvent
 
     data object ClosePicker : LogEvent
@@ -149,7 +149,7 @@ class LogViewModel @Inject constructor(
     illnesses: IllnessRepository,
     private val selectedDay: SelectedDay,
     private val clock: Clock,
-    private val zone: Provider<TimeZone>,
+    private val zone: Provider<TimeZone>
 ) : ViewModel() {
     private val sharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS, replayExpirationMillis = 0)
 
@@ -236,24 +236,38 @@ class LogViewModel @Inject constructor(
     fun onEvent(event: LogEvent) {
         when (event) {
             is LogEvent.PickOccasion -> pickerFor.value = PickerFor(event.date?.takeUnless { it == today() })
+
             is LogEvent.LogOccasion -> {
                 // Dagen när raden trycks: öppnad för idag är det idag enligt klockan nu, också efter midnatt (som Idag).
                 val target = pickerFor.value ?: return
                 pickerFor.value = null
                 sheet.log(event.state.occasion, target.date, event.state.time)
             }
+
             is LogEvent.LogScreening -> sheet.log(event.occasion, event.date, event.reminder, event.initialStep)
+
             LogEvent.ClosePicker -> pickerFor.value = null
+
             is LogEvent.EditScreening -> sheet.edit(event.screening)
+
             is LogEvent.ChangeEnergy -> sheet.changeEnergy(event.energy)
+
             is LogEvent.ChangeStress -> sheet.changeStress(event.stress)
+
             is LogEvent.ChangeFeelings -> sheet.changeFeelings(event.feelings)
+
             is LogEvent.ChangeSymptoms -> sheet.changeSymptoms(event.symptoms)
+
             LogEvent.SaveScreening -> sheet.save()
+
             LogEvent.CloseScreening -> sheet.close()
+
             LogEvent.NoticeShown -> _notice.value = false
+
             is LogEvent.PickDose -> pickFor.value = PickFor.Dose(event.date?.takeUnless { it == today() })
+
             is LogEvent.PickIllness -> pickFor.value = PickFor.Illness(event.date?.takeUnless { it == today() })
+
             LogEvent.ClosePick -> pickFor.value = null
         }
     }

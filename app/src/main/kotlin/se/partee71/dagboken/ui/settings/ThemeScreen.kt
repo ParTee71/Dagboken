@@ -64,12 +64,12 @@ class ThemeViewModel @Inject constructor(private val settings: SettingsRepositor
             // Valet släpps först när cachen visar det sparat – annars hoppar fältet tillbaka och nästa
             // ändring bygger på det gamla värdet.
             settings.settings.map { it.theme }.onEach { stored -> chosen.update { picked -> picked?.takeUnless { it.sameHours(stored) } } },
-            chosen,
+            chosen
         ) { stored, picked ->
             val hours = picked ?: stored
             ThemeForm(stored.copy(lightStartHour = hours.lightStartHour, darkStartHour = hours.darkStartHour), hoursInvalid = !hours.hasValidHours())
         },
-        viewModelScope,
+        viewModelScope
     )
     val state: StateFlow<DetailUiState<ThemeForm>> = loader.state
 
@@ -134,7 +134,7 @@ fun ThemeScreen(state: DetailUiState<ThemeForm>, failure: Failure?, onEvent: (Th
         title = title,
         onRetry = { onEvent(ThemeEvent.Retry) },
         failure = failure,
-        onErrorShown = { onEvent(ThemeEvent.ErrorShown) },
+        onErrorShown = { onEvent(ThemeEvent.ErrorShown) }
     ) { form ->
         val theme = form.theme
         LabeledGroup(stringResource(R.string.theme_mode), helper = note) {
@@ -146,14 +146,13 @@ fun ThemeScreen(state: DetailUiState<ThemeForm>, failure: Failure?, onEvent: (Th
                 stringResource(R.string.theme_dark_from),
                 hourTime(theme.darkStartHour),
                 { onEvent(ThemeEvent.DarkFromChanged(it.hour)) },
-                error = if (form.hoursInvalid) stringResource(R.string.theme_hours_invalid) else null,
+                error = if (form.hoursInvalid) stringResource(R.string.theme_hours_invalid) else null
             )
         }
     }
 }
 
-private fun ThemeSettings.sameHours(other: ThemeSettings) =
-    lightStartHour == other.lightStartHour && darkStartHour == other.darkStartHour
+private fun ThemeSettings.sameHours(other: ThemeSettings) = lightStartHour == other.lightStartHour && darkStartHour == other.darkStartHour
 
 /** En starttimme som klockslag ("07:00"); ett lagrat värde utanför dygnet visas som närmaste timme. */
 private fun hourTime(hour: Int) = LocalTime(hour.coerceIn(0, LAST_HOUR), 0)

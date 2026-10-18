@@ -29,7 +29,7 @@ enum class Due {
     UPCOMING,
 
     /** En tidigare dag: bara inte gjort – aldrig försenat (HEM-4). */
-    PAST,
+    PAST
 }
 
 /**
@@ -41,7 +41,9 @@ fun dueAt(date: LocalDate, time: LocalTime, now: Instant, zone: TimeZone): Due {
     val today = now.toLocalDateTime(zone).date
     return when {
         date < today -> Due.PAST
+
         date > today -> Due.UPCOMING
+
         else -> {
             val until = LocalDateTime(date, time).toInstant(zone) - now
             when {
@@ -61,7 +63,7 @@ enum class OccasionStatus {
     UPCOMING,
 
     /** En tidigare dag utan logg – inte försenad (HEM-4). */
-    NOT_LOGGED,
+    NOT_LOGGED
 }
 
 /** Ett aktiverat måendetillfälle på [date]: klockslaget ur påminnelserna, status och dagens loggar för det. */
@@ -69,7 +71,7 @@ data class OccasionState(
     val occasion: Occasion,
     val time: LocalTime,
     val status: OccasionStatus,
-    val screenings: List<Screening>,
+    val screenings: List<Screening>
 )
 
 /**
@@ -82,7 +84,7 @@ fun occasionStates(
     screenings: List<Screening>,
     date: LocalDate,
     now: Instant,
-    zone: TimeZone,
+    zone: TimeZone
 ): List<OccasionState> {
     val onDate = screenings.filter { it.date == date }
     return reminders.enabledOccasionRows.map { row ->
@@ -112,7 +114,7 @@ fun occasionChoices(
     screenings: List<Screening>,
     date: LocalDate,
     now: Instant,
-    zone: TimeZone,
+    zone: TimeZone
 ): List<OccasionState> {
     val enabled = occasionStates(reminders, screenings, date, now, zone).associateBy { it.occasion }
     val onDate = screenings.filter { it.date == date }

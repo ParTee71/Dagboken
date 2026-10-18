@@ -26,9 +26,9 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import se.partee71.dagboken.core.engine.REGULARITY_WINDOW_NIGHTS
+import se.partee71.dagboken.core.engine.SleepFlag
 import se.partee71.dagboken.core.engine.ageFromBirthYear
 import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
-import se.partee71.dagboken.core.engine.SleepFlag
 import se.partee71.dagboken.core.engine.sleepFlagsOn
 import se.partee71.dagboken.core.engine.sleepQualityOn
 import se.partee71.dagboken.core.model.DailyHealth
@@ -55,7 +55,7 @@ data class ClockUiState(
     val day: DailyHealth? = null,
     val sleepScore: Int? = null,
     val sleepFlags: ImmutableList<SleepFlag> = persistentListOf(),
-    val needsBirthYear: Boolean = false,
+    val needsBirthYear: Boolean = false
 )
 
 /**
@@ -73,7 +73,7 @@ class ClockViewModel @Inject constructor(
     private val permissions: HealthPermissions,
     settings: SettingsRepository,
     clock: Clock,
-    zone: Provider<TimeZone>,
+    zone: Provider<TimeZone>
 ) : ViewModel() {
     private val time = HealthTime(clock, zone, viewModelScope)
 
@@ -89,7 +89,7 @@ class ClockViewModel @Inject constructor(
     private val today: Flow<Today?> = time.reads(time.today, missing).readEach { today ->
         Today(
             health.day(today).getOrNull() ?: DailyHealth(today),
-            health.history(today.minus(REGULARITY_WINDOW_NIGHTS - 1, DateTimeUnit.DAY), today).getOrNull() ?: HealthHistory(),
+            health.history(today.minus(REGULARITY_WINDOW_NIGHTS - 1, DateTimeUnit.DAY), today).getOrNull() ?: HealthHistory()
         )
     }
 
@@ -102,7 +102,7 @@ class ClockViewModel @Inject constructor(
             sleepScore = read?.let { profile?.let { p -> sleepQualityOn(it.nights, date, age, p.sex)?.score } },
             // Varningsraderna beror inte på åldern – de visas också utan födelseår och utan läst profil (HLS-10).
             sleepFlags = read?.let { sleepFlagsOn(it.nights, date) }.orEmpty().toImmutableList(),
-            needsBirthYear = profile != null && age == null,
+            needsBirthYear = profile != null && age == null
         )
     }
 

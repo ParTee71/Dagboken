@@ -44,7 +44,7 @@ fun AccountAvatar(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     photoUrl: String? = null,
-    photo: (@Composable () -> Unit)? = null,
+    photo: (@Composable () -> Unit)? = null
 ) {
     val colors = MaterialTheme.colorScheme
     val description = stringResource(R.string.account_open)
@@ -64,7 +64,7 @@ fun AccountAvatar(
             .size(TOUCH_TARGET)
             .clip(CircleShape)
             .then(interaction),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         Box(Modifier.size(AVATAR).clip(CircleShape).background(colors.primaryContainer), contentAlignment = Alignment.Center) {
             // Initialerna ligger alltid under fotot: syns tills fotot laddats, och om det aldrig gör det.

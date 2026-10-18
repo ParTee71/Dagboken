@@ -4,22 +4,22 @@ import app.cash.turbine.test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlinx.datetime.LocalTime
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalTime
 import org.junit.Test
+import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.Profile
 import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
-import se.partee71.dagboken.data.FakeCollectionFactory
-import se.partee71.dagboken.data.TestUserScope
-import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.SettingsCodec
+import se.partee71.dagboken.data.FakeCollectionFactory
+import se.partee71.dagboken.data.TestUserScope
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.firestore.CollectionTable
@@ -50,9 +50,9 @@ class SettingsRepositoryTest {
                 "reminders" to mapOf("medsEnabled" to true, "snooze" to 10L),
                 "profile" to mapOf("birthYear" to 1971L, "sex" to "female", "height" to 170L),
                 "legacy" to mapOf("dynamicColor" to true, "sheetsConfig" to "https://sheets.exempel.se/1", "widgetTheme" to "rund"),
-                "futureGroup" to mapOf("x" to 1L),
+                "futureGroup" to mapOf("x" to 1L)
             ),
-            merge = false,
+            merge = false
         )
 
         repository.update { it.copy(profile = Profile(birthYear = 1980, sex = Sex.MALE)) }.getOrThrow()
@@ -89,7 +89,7 @@ class SettingsRepositoryTest {
             async { repository.update { it.copy(theme = it.theme.copy(mode = ThemeMode.DARK)) } },
             async { repository.update { it.copy(theme = it.theme.copy(lightStartHour = 5)) } },
             async { repository.update { it.copy(profile = Profile(birthYear = 1971, sex = Sex.FEMALE)) } },
-            async { repository.update { it.copy(theme = it.theme.copy(darkStartHour = 23)) } },
+            async { repository.update { it.copy(theme = it.theme.copy(darkStartHour = 23)) } }
         ).awaitAll().forEach { it.getOrThrow() }
 
         val settings = repository.get().getOrThrow()
@@ -149,8 +149,7 @@ class SettingsRepositoryTest {
         assertEquals(server, stored())
     }
 
-    private fun Settings.withSlot(slot: Slot, time: LocalTime) =
-        copy(reminders = reminders.copy(medSlots = reminders.medSlots.map { if (it.slot == slot) it.copy(time = time) else it }))
+    private fun Settings.withSlot(slot: Slot, time: LocalTime) = copy(reminders = reminders.copy(medSlots = reminders.medSlots.map { if (it.slot == slot) it.copy(time = time) else it }))
 
     @Test
     fun `en ändrad påminnelserad läggs på den lagrade listan – en annan enhets ändring på en annan rad står kvar`() = runTest {
@@ -198,7 +197,7 @@ class SettingsRepositoryTest {
     fun `fram och tillbaka i snabb följd tappar inte den sista ändringen`() = runTest {
         listOf(
             async { repository.update { it.copy(theme = it.theme.copy(mode = ThemeMode.DARK)) } },
-            async { repository.update { it.copy(theme = it.theme.copy(mode = ThemeMode.AUTO)) } },
+            async { repository.update { it.copy(theme = it.theme.copy(mode = ThemeMode.AUTO)) } }
         ).awaitAll().forEach { it.getOrThrow() }
 
         assertEquals(ThemeMode.AUTO, repository.get().getOrThrow().theme.mode)
@@ -215,8 +214,7 @@ class SettingsRepositoryTest {
 
 /** Som [FakeCollectionFactory], men dokumentet ur cachen ger [error] (t.ex. inte i cachen och offline). */
 private class CachedDoc(private val fake: FakeCollectionFactory, private val error: DataError) : CollectionTable() {
-    override fun <T : Identified> create(codec: DocCodec<T>, name: String, path: (uid: String?) -> String): EntityCollection<T> =
-        object : EntityCollection<T> by fake.collection(codec, name, path) {
-            override suspend fun cached(id: String): Result<T?> = Result.failure(error)
-        }
+    override fun <T : Identified> create(codec: DocCodec<T>, name: String, path: (uid: String?) -> String): EntityCollection<T> = object : EntityCollection<T> by fake.collection(codec, name, path) {
+        override suspend fun cached(id: String): Result<T?> = Result.failure(error)
+    }
 }

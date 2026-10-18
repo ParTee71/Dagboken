@@ -34,7 +34,7 @@ data class BackupJson(
     // Appinställningar (BCK-10). Saknas i äldre backupar — null betyder "rör inte
     // den inställningen vid återställning", så en gammal backup aldrig nollställer
     // något som användaren redan ställt in på den nya enheten.
-    val settings: SettingsBackup? = null,
+    val settings: SettingsBackup? = null
 )
 
 /**
@@ -53,7 +53,7 @@ data class SettingsBackup(
     val dynamicColor: Boolean? = null,
     // Profil (HLS-11) — styr åldersnormerna för sömnkvalitet. Null i äldre backupar.
     val birthYear: Int? = null,
-    val sex: String? = null,
+    val sex: String? = null
 )
 
 @Serializable
@@ -70,7 +70,7 @@ data class AktivitetJson(
     val aterhamtande: Boolean = false,
     val energitjuv: Boolean = false,
     val type: String = "aktivitet",
-    val spentTime: Int? = null,
+    val spentTime: Int? = null
 )
 
 @Serializable
@@ -87,7 +87,7 @@ data class MedicinJson(
     val anteckning: String = "",
     val receptId: String? = null,
     val skipped: Boolean = false,
-    val tagenTid: String? = null,
+    val tagenTid: String? = null
 )
 
 @Serializable
@@ -97,7 +97,7 @@ data class ReceptJson(
     val dos: String = "",
     val enhet: String = "",
     val tidpunkter: List<String> = emptyList(),
-    val tidpunkt: String? = null,     // v1 compat — single tidpunkt
+    val tidpunkt: String? = null, // v1 compat — single tidpunkt
     val upprepning: String = "dagligen",
     val dagar: List<Int> = emptyList(),
     val intervalDagar: Int = 2,
@@ -108,7 +108,7 @@ data class ReceptJson(
     // på skapad, slutDatum på "tills vidare" och dosperioder på tom lista.
     val startDatum: String = "",
     val slutDatum: String? = null,
-    val dosperioder: List<DosperiodJson> = emptyList(),
+    val dosperioder: List<DosperiodJson> = emptyList()
 )
 
 @Serializable
@@ -117,7 +117,7 @@ data class DosperiodJson(
     val startDatum: String = "",
     val slutDatum: String? = null,
     val dos: String = "",
-    val enhet: String = "",
+    val enhet: String = ""
 )
 
 @Serializable
@@ -131,7 +131,7 @@ data class FavoritJson(
     val minTidMellan: Int = 4,
     val dispenseringsTid: String = "",
     val maxDoserPerDag: Int = 0,
-    val isFavorite: Boolean = false,
+    val isFavorite: Boolean = false
 )
 
 @Serializable
@@ -141,7 +141,7 @@ data class SjukdomsEpisodJson(
     val startDatum: String = "",
     val slutDatum: String = "",
     val anteckning: String = "",
-    val timestamp: Long = 0,
+    val timestamp: Long = 0
 )
 
 @Serializable
@@ -154,7 +154,7 @@ data class SjukdomsIncheckningJson(
     val symptom: String = "",
     val somatiska: Int = 0,
     val anteckning: String = "",
-    val timestamp: Long = 0,
+    val timestamp: Long = 0
 )
 
 @Serializable
@@ -168,20 +168,20 @@ data class HandelseJson(
     val varaktighetMinuter: Int = 0,
     val triggers: String = "",
     val atgarder: String = "",
-    val anteckning: String = "",
+    val anteckning: String = ""
 )
 
 @Serializable
 data class NoteJson(
     val target: String = "",
     val entityId: String = "",
-    val text: String = "",
+    val text: String = ""
 )
 
 @Serializable
 data class ScreeningEventConfigJson(
     val enabled: Boolean = false,
-    val time: String = "",
+    val time: String = ""
 )
 
 /**
@@ -193,7 +193,7 @@ data class ScreeningEventConfigJson(
 data class MedNotificationConfigJson(
     val tidpunkt: String = "",
     val enabled: Boolean = false,
-    val time: String = "",
+    val time: String = ""
 )
 
 @Serializable

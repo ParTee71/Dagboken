@@ -15,8 +15,7 @@ class FakeCollectionContractTest : CollectionContract() {
         override val uid = scope.uid.value!!
         override val now = clock.instant
 
-        override fun <T : Identified> collection(codec: DocCodec<T>, name: String, path: (uid: String?) -> String) =
-            factory.collection(codec, name, path)
+        override fun <T : Identified> collection(codec: DocCodec<T>, name: String, path: (uid: String?) -> String) = factory.collection(codec, name, path)
 
         override suspend fun writeRaw(path: String, id: String, doc: Doc) = factory.store.set(path, id, doc, merge = false)
 

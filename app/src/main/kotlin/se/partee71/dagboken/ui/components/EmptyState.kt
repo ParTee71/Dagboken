@@ -43,7 +43,7 @@ fun EmptyState(
     fullScreen: Boolean = false,
     isError: Boolean = false,
     compact: Boolean = false,
-    action: (@Composable () -> Unit)? = null,
+    action: (@Composable () -> Unit)? = null
 ) {
     val footer: @Composable ColumnScope.() -> Unit = {
         action?.let { Box(Modifier.fillMaxWidth()) { it() } }
@@ -53,7 +53,7 @@ fun EmptyState(
                 style = AppTypography.itemSubtitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -67,7 +67,7 @@ fun EmptyState(
         Column(
             modifier.fillMaxWidth().padding(gap),
             verticalArrangement = Arrangement.spacedBy(gap),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Message(icon, title, message, isError, compact)
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.m), content = footer)
@@ -81,17 +81,17 @@ private fun Message(@DrawableRes icon: Int, title: String, message: String, isEr
     val onTile = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(if (compact) Spacing.m else Spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(if (compact) Spacing.m else Spacing.xl)
     ) {
         Box(
             Modifier.size(if (compact) COMPACT_ICON_TILE else ICON_TILE).background(tile, if (compact) AppShapes.smallTile else AppShapes.iconTile),
-            contentAlignment = Alignment.Center,
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 painterResource(icon),
                 contentDescription = null,
                 tint = onTile,
-                modifier = Modifier.size(if (compact) IconSize.control else IconSize.hero),
+                modifier = Modifier.size(if (compact) IconSize.control else IconSize.hero)
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
@@ -100,13 +100,13 @@ private fun Message(@DrawableRes icon: Int, title: String, message: String, isEr
                 style = if (compact) AppTypography.sectionTitle else AppTypography.headline,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.semantics { heading() },
+                modifier = Modifier.semantics { heading() }
             )
             Text(
                 message,
                 style = AppTypography.body,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
+                textAlign = TextAlign.Center
             )
         }
     }

@@ -45,7 +45,7 @@ data class Prescription(
      * En form i `form` som appen inte känner till (från en nyare app), som det råa lagrade värdet: skrivs
      * tillbaka oförändrad så länge [form] är `null`. Bärs i fältet `form`, därför `@Transient` som [unknownSlots].
      */
-    @Transient val unknownForm: String? = null,
+    @Transient val unknownForm: String? = null
 ) : Identified {
     /** "Levaxin 50 mikrogram" – namn och styrka, tomma delar utelämnade. */
     val displayName: String get() = medicineTitle(name, strength)
@@ -69,7 +69,7 @@ sealed interface Schedule {
         /** Veckodagarna för [Repeat.CUSTOM]. */
         val days: Set<DayOfWeek> = emptySet(),
         /** Var n:e dag för [Repeat.INTERVAL], räknat från periodens start eller skapandedagen (REC-4). */
-        val intervalDays: Int = 2,
+        val intervalDays: Int = 2
     ) : Schedule
 
     /**
@@ -84,7 +84,7 @@ enum class Repeat(override val wire: String) : WireEnum {
     WEEKDAYS("weekdays"),
     WEEKENDS("weekends"),
     CUSTOM("custom"),
-    INTERVAL("interval"),
+    INTERVAL("interval")
 }
 
 /**
@@ -94,7 +94,7 @@ enum class Repeat(override val wire: String) : WireEnum {
  */
 data class Period(
     val start: LocalDate? = null,
-    val end: LocalDate? = null,
+    val end: LocalDate? = null
 )
 
 /**
@@ -106,5 +106,5 @@ data class Boost(
     val start: LocalDate? = null,
     val end: LocalDate? = null,
     val dose: String = "",
-    val unit: String = "",
+    val unit: String = ""
 ) : Identified

@@ -1,9 +1,5 @@
 package se.partee71.dagboken.ui.medicines
 
-import kotlinx.collections.immutable.toImmutableList
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.components.MEDICINE_UNITS
-import se.partee71.dagboken.ui.components.UnitChoice
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
@@ -11,12 +7,13 @@ import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import kotlin.test.assertEquals
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.Test
@@ -35,10 +32,13 @@ import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
+import se.partee71.dagboken.ui.SampleMedicines
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ListUiState
-import se.partee71.dagboken.ui.SampleMedicines
+import se.partee71.dagboken.ui.components.MEDICINE_UNITS
+import se.partee71.dagboken.ui.components.UnitChoice
 import se.partee71.dagboken.ui.runEditScreenContract
 import se.partee71.dagboken.ui.runListScreenContract
 import se.partee71.dagboken.ui.theme.DagbokenTheme
@@ -55,7 +55,13 @@ class MedicinesScreensTest {
     private val levaxin = SampleMedicines.levaxin
     private val sertralin = SampleMedicines.sertralin.copy(note = "Tas med frukost.")
     private val kavepenin = Prescription(
-        "k", "Kåvepenin", "1", "g", listOf(Slot.MORNING, Slot.LUNCH, Slot.EVENING), Schedule.Repeating(), Period(LocalDate(2026, 9, 28), LocalDate(2026, 10, 7)),
+        "k",
+        "Kåvepenin",
+        "1",
+        "g",
+        listOf(Slot.MORNING, Slot.LUNCH, Slot.EVENING),
+        Schedule.Repeating(),
+        Period(LocalDate(2026, 9, 28), LocalDate(2026, 10, 7))
     )
     private val atarax = Prescription("a", "Atarax", "25", "mg", listOf(Slot.NIGHT), Schedule.Repeating(Repeat.CUSTOM, setOf(kotlinx.datetime.DayOfWeek.MONDAY, kotlinx.datetime.DayOfWeek.THURSDAY)), active = false)
     private val amoxicillin = Prescription("x", "Amoxicillin", "750", "mg", listOf(Slot.MORNING, Slot.EVENING), Schedule.Repeating(), Period(LocalDate(2026, 9, 14), LocalDate(2026, 9, 21)), active = false)
@@ -66,7 +72,7 @@ class MedicinesScreensTest {
 
     private val items = medicineItems(listOf(levaxin, sertralin, kavepenin, amoxicillin, prednisolon), listOf(alvedon, imigran, loratadin), today)
     private val endings = listOf(
-        PeriodEnding.PrescriptionEnds("k", "Kåvepenin", LocalDate(2026, 10, 7)),
+        PeriodEnding.PrescriptionEnds("k", "Kåvepenin", LocalDate(2026, 10, 7))
     )
 
     @Test
@@ -146,8 +152,7 @@ class MedicinesScreensTest {
         assertEquals(emptyList(), events)
     }
 
-    private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.onAllNodesWithTextCount(text: String) =
-        onAllNodes(androidx.compose.ui.test.hasText(text)).fetchSemanticsNodes().size
+    private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.onAllNodesWithTextCount(text: String) = onAllNodes(androidx.compose.ui.test.hasText(text)).fetchSemanticsNodes().size
 
     @Test
     fun `vid behov-formuläret uppfyller redigeringskontraktet (NFR-10)`() {
@@ -156,7 +161,7 @@ class MedicinesScreensTest {
             editor,
             makeInvalid = { update(PrnField.NAME) { it.copy(name = "") } },
             makeValid = { update(PrnField.NAME, PrnField.DOSE) { it.copy(name = "Alvedon", dose = "500") } },
-            invalidMessage = "Ange ett namn",
+            invalidMessage = "Ange ett namn"
         ) { state, events, onSave, onClose ->
             PrnMedicineEditScreen(true, state, events, { if (it == PrnEditEvent.Save) onSave() }, onClose)
         }
@@ -199,7 +204,7 @@ class MedicinesScreensTest {
                     opened = true
                     waitForIdle()
                 }
-            },
+            }
         ) {
             MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }.toImmutableList()), emptyList(), today, null, {}, {}, {}, {})
         }
@@ -238,7 +243,7 @@ class MedicinesScreensTest {
             onNodeWithText("Avslutade recept").clickWithoutRipple()
             waitForIdle()
             onAllNodesWithContentDescription("Fler val")[1].clickWithoutRipple()
-        },
+        }
     ) {
         MedicinesScreen(ListUiState.Content(items.filter { it !is MedicineItem.Recipe || it.ended }.toImmutableList()), emptyList(), today, null, {}, {}, {}, {})
     }

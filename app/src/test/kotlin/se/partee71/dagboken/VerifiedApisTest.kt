@@ -4,27 +4,27 @@ package se.partee71.dagboken
 
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderState
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.SplitButtonLayout
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.toPath
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -113,7 +113,7 @@ private fun ExpressiveProbe() {
         LoadingIndicator()
         SplitButtonLayout(
             leadingButton = { SplitButtonDefaults.LeadingButton(onClick = {}) { Text("Lägg till") } },
-            trailingButton = { SplitButtonDefaults.TrailingButton(checked = false, onCheckedChange = {}) { Text("▾") } },
+            trailingButton = { SplitButtonDefaults.TrailingButton(checked = false, onCheckedChange = {}) { Text("▾") } }
         )
         ButtonGroup(overflowIndicator = {}) {
             clickableItem(onClick = {}, label = "−")
@@ -121,13 +121,13 @@ private fun ExpressiveProbe() {
         }
         HorizontalFloatingToolbar(
             expanded = true,
-            colors = FloatingToolbarDefaults.standardFloatingToolbarColors(toolbarContainerColor = Color.Black, toolbarContentColor = Color.White),
+            colors = FloatingToolbarDefaults.standardFloatingToolbarColors(toolbarContainerColor = Color.Black, toolbarContentColor = Color.White)
         ) { Text("Verktygsrad") }
         val morph = remember { Morph(MaterialShapes.Circle, MaterialShapes.Cookie9Sided) }
         Box(
             Modifier
                 .size(24.dp)
-                .drawBehind { scale(size.minDimension, pivot = Offset.Zero) { drawPath(morph.toPath(0.5f), Color.Black) } },
+                .drawBehind { scale(size.minDimension, pivot = Offset.Zero) { drawPath(morph.toPath(0.5f), Color.Black) } }
         )
     }
 }
@@ -143,7 +143,7 @@ private fun PortedProbe() {
             state = rememberSwipeToDismissBoxState(),
             backgroundContent = {},
             enableDismissFromStartToEnd = false,
-            onDismiss = { if (it == SwipeToDismissBoxValue.EndToStart) Unit },
+            onDismiss = { if (it == SwipeToDismissBoxValue.EndToStart) Unit }
         ) { Text("Postkort", Modifier.combinedClickable(onLongClick = {}, onClick = {})) }
     }
 }
@@ -165,20 +165,19 @@ internal class KeyedProbeViewModel(val id: String) : ViewModel() {
 }
 
 @Composable
-private fun NavigationProbe() {
+private fun NavigationProbe(vm: ProbeViewModel = viewModel()) {
     val backStack = rememberNavBackStack(TodayProbeKey)
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
-            rememberViewModelStoreNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator()
         ),
         entryProvider = entryProvider {
             entry<TodayProbeKey> {
-                val vm: ProbeViewModel = viewModel()
                 Text("Idag: ${vm::class.simpleName}")
             }
-        },
+        }
     )
 }

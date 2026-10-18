@@ -33,9 +33,9 @@ import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.PrnMedicine
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.SlotReminder
-import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
@@ -73,20 +73,19 @@ class DoseAndIllnessScreensTest {
     private val later = Dose("", yesterday, Slot.AS_NEEDED, "Alvedon", "500", "mg", DoseStatus.TAKEN, LocalTime(21, 30), at(yesterday, 21, 30), prnId = "alvedon", note = "Huvudvärk")
     private val recipe = Dose(
         DoseIds.prescribed("levaxin", yesterday, Slot.MORNING), yesterday, Slot.MORNING, "Levaxin", "100", "µg", DoseStatus.TAKEN,
-        LocalTime(7, 0), at(yesterday, 7, 12), prescriptionId = "levaxin", createdAt = created, note = "Med frukost",
+        LocalTime(7, 0), at(yesterday, 7, 12), prescriptionId = "levaxin", createdAt = created, note = "Med frukost"
     )
     private val flu = IllnessEpisode("flu", "Förkylning", LocalDate(2026, 10, 3), createdAt = created)
     private val symptoms = listOf(
         Option("headache", OptionKind.SYMPTOM, "Huvudvärk", favorite = true),
         Option("throat", OptionKind.SYMPTOM, "Halsont", favorite = true, sortOrder = 1),
         Option("tired", OptionKind.SYMPTOM, "Trötthet", sortOrder = 2),
-        Option(OTHER_SYMPTOM_ID, OptionKind.SYMPTOM, "Övrigt", sortOrder = 3),
+        Option(OTHER_SYMPTOM_ID, OptionKind.SYMPTOM, "Övrigt", sortOrder = 3)
     )
     private val checkin = Checkin("c1", day, LocalTime(8, 30), severity = 6, symptoms = listOf(SymptomScore("throat", 7), SymptomScore("tired", 5)), createdAt = created)
     private val start = EpisodeStart(IllnessEpisode("e", "Influensa", day, createdAt = created), Checkin("c", day, LocalTime(14, 20), severity = 5, createdAt = created))
 
-    private fun <T> form(value: T, isNew: Boolean = true, stored: T? = null, onEvent: (EntryEditEvent<T>) -> Unit = {}) =
-        EntryForm(isNew, EditorUiState(value), EditorEvents.None, onEvent, stored)
+    private fun <T> form(value: T, isNew: Boolean = true, stored: T? = null, onEvent: (EntryEditEvent<T>) -> Unit = {}) = EntryForm(isNew, EditorUiState(value), EditorEvents.None, onEvent, stored)
 
     // ── Dos ───────────────────────────────────────────────────────────────
 
@@ -97,7 +96,7 @@ class DoseAndIllnessScreensTest {
             editor,
             makeInvalid = { update(DoseField.NAME) { it.copy(name = " ") } },
             makeValid = { update(DoseField.NAME) { it.copy(name = "Melatonin") } },
-            invalidMessage = "Ange ett namn",
+            invalidMessage = "Ange ett namn"
         ) { state, events, onSave, onClose ->
             DoseEditScreen(EntryForm(true, state, events, { if (it == EntryEditEvent.Save) onSave() }), onClose, DoseMode.NEW, zone)
         }
@@ -110,7 +109,7 @@ class DoseAndIllnessScreensTest {
             editor,
             makeInvalid = { update(DoseField.TAKEN_AT) { it.copy(takenAt = now + 30.minutes) } },
             makeValid = { update(DoseField.TAKEN_AT) { it.copy(takenAt = at(yesterday, 22, 0)) } },
-            invalidMessage = "Tiden kan inte vara senare än nu.",
+            invalidMessage = "Tiden kan inte vara senare än nu."
         ) { state, events, onSave, onClose ->
             DoseEditScreen(EntryForm(true, state, events, { if (it == EntryEditEvent.Save) onSave() }), onClose, DoseMode.AS_NEEDED, zone, AsNeededState(alvedon))
         }
@@ -125,7 +124,7 @@ class DoseAndIllnessScreensTest {
             editor,
             makeInvalid = { update(DoseField.NAME) { it.copy(name = "") } },
             makeValid = { update(DoseField.NAME) { it.copy(name = "Alvedon Forte") } },
-            invalidMessage = "Ange ett namn",
+            invalidMessage = "Ange ett namn"
         ) { state, events, onSave, onClose ->
             DoseEditScreen(EntryForm(false, state, events, { if (it == EntryEditEvent.Save) onSave() }, prn), onClose, DoseMode.EDIT, zone)
         }
@@ -258,7 +257,7 @@ class DoseAndIllnessScreensTest {
             editor,
             makeInvalid = { update(IllnessField.TYPE) { it.copy(episode = it.episode.copy(type = "")) } },
             makeValid = { update(IllnessField.TYPE) { it.copy(episode = it.episode.copy(type = "Förkylning")) } },
-            invalidMessage = "Ange vilken sjukdom",
+            invalidMessage = "Ange vilken sjukdom"
         ) { state, events, onSave, onClose ->
             EpisodeNewScreen(EntryForm(true, state, events, { if (it == EntryEditEvent.Save) onSave() }), onClose, symptoms)
         }
@@ -272,7 +271,7 @@ class DoseAndIllnessScreensTest {
             editor,
             makeInvalid = { update(IllnessField.TYPE) { it.copy(type = " ") } },
             makeValid = { update(IllnessField.TYPE) { it.copy(type = "Influensa") } },
-            invalidMessage = "Ange vilken sjukdom",
+            invalidMessage = "Ange vilken sjukdom"
         ) { state, events, onSave, onClose ->
             EpisodeEditScreen(EntryForm(false, state, events, { if (it == EntryEditEvent.Save) onSave() }, flu), onClose)
         }
@@ -297,7 +296,7 @@ class DoseAndIllnessScreensTest {
             editor,
             makeInvalid = null,
             makeValid = { update { it.copy(severity = 3) } },
-            invalidMessage = null,
+            invalidMessage = null
         ) { state, events, onSave, onClose ->
             CheckinEditScreen(EntryForm(false, state, events, { if (it == EntryEditEvent.Save) onSave() }, checkin), onClose, flu, symptoms)
         }

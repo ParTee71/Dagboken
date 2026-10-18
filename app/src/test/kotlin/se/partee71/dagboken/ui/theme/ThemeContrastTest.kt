@@ -41,7 +41,7 @@ class ThemeContrastTest {
         "dämpad ton" to (extended.neutralTone.content to extended.neutralTone.container),
         "solgul ton" to (extended.sunTone.content to extended.sunTone.container),
         "grön ton" to (extended.positiveTone.content to extended.positiveTone.container),
-        "terrakottaton" to (extended.warningTone.content to extended.warningTone.container),
+        "terrakottaton" to (extended.warningTone.content to extended.warningTone.container)
     )
 
     @Test
@@ -63,7 +63,7 @@ class ThemeContrastTest {
         "Logga nu (primär knapp)" to (scheme.onPrimary to scheme.primary),
         "valt datumchip" to (scheme.onPrimary to scheme.primary),
         "veckodag på datumchip" to (scheme.onSurfaceVariant to extended.card),
-        "initialer i avataren" to (scheme.onPrimaryContainer to scheme.primaryContainer),
+        "initialer i avataren" to (scheme.onPrimaryContainer to scheme.primaryContainer)
     )
 
     private fun todayGraphics(scheme: ColorScheme, extended: ExtendedColors) = mapOf(
@@ -74,7 +74,7 @@ class ThemeContrastTest {
         "framstegsradens fyllnad och aktiv stegprick mot spåret" to (scheme.primary to extended.track),
         "valmarkeringen i färg- och emojivalet mot kortet" to (scheme.primary to extended.card),
         "framstegsradens kontur vid klart mot kortet" to (extended.sunTone.content to extended.card),
-        "framstegsradens kontur vid klart mot bakgrunden" to (extended.sunTone.content to scheme.background),
+        "framstegsradens kontur vid klart mot bakgrunden" to (extended.sunTone.content to scheme.background)
     )
 
     @Test
@@ -101,7 +101,7 @@ class ThemeContrastTest {
         "REM mot kortet" to (extended.sleepStages.rem to extended.card),
         "vaken mot kortet" to (extended.sleepStages.awake to extended.card),
         "låg energi mot kortet" to (extended.energy.low to extended.card),
-        "hög energi mot kortet" to (extended.energy.high to extended.card),
+        "hög energi mot kortet" to (extended.energy.high to extended.card)
     )
 
     @Test
@@ -154,7 +154,7 @@ class ThemeContrastTest {
         assertEquals(
             EnergyColors(Color(0xFFB5443A), Color(0xFFC98A1B), Color(0xFF2F7D5B)),
             AppColors.lightExtended.energy,
-            "energiskalan",
+            "energiskalan"
         )
     }
 

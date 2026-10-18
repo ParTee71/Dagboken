@@ -14,7 +14,7 @@ class MissingMetricsTest {
     private val permissions = mapOf(
         OptionalHealthMetric.EXERCISE to exercise,
         OptionalHealthMetric.DISTANCE to distance,
-        OptionalHealthMetric.HISTORY to history,
+        OptionalHealthMetric.HISTORY to history
     )
 
     @Test fun `a metric whose permission is missing is reported`() {

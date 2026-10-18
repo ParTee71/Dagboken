@@ -55,8 +55,7 @@ object FeelingCatalog {
 
     private class Core(val token: String, val nuances: List<Nuance>)
 
-    private fun core(token: String, vararg nuances: Pair<String, Pair<String, String>>) =
-        Core(token, nuances.map { (nuance, details) -> Nuance(nuance, listOf(details.first, details.second)) })
+    private fun core(token: String, vararg nuances: Pair<String, Pair<String, String>>) = Core(token, nuances.map { (nuance, details) -> Nuance(nuance, listOf(details.first, details.second)) })
 
     private val wheel: List<Core> = listOf(
         core(
@@ -66,7 +65,7 @@ object FeelingCatalog {
             "playful" to ("mischievous" to "joking"),
             "creative" to ("inspired" to "curious"),
             "hopeful" to ("optimistic" to "expectant"),
-            "content" to ("satisfied" to "fulfilled"),
+            "content" to ("satisfied" to "fulfilled")
         ),
         core(
             "strong",
@@ -75,7 +74,7 @@ object FeelingCatalog {
             "brave" to ("determined" to "fearless"),
             "focused" to ("clear" to "purposeful"),
             "appreciated" to ("seen" to "affirmed"),
-            "respected" to ("trusted" to "important"),
+            "respected" to ("trusted" to "important")
         ),
         core(
             "calm",
@@ -84,7 +83,7 @@ object FeelingCatalog {
             "trusting" to ("open" to "reassured"),
             "relaxed" to ("serene" to "restful"),
             "present" to ("centered" to "aware"),
-            "caring" to ("kind" to "generous"),
+            "caring" to ("kind" to "generous")
         ),
         core(
             "sad",
@@ -93,7 +92,7 @@ object FeelingCatalog {
             "guilty" to ("ashamed" to "remorseful"),
             "bored" to ("indifferent" to "restless"),
             "tired" to ("exhausted" to "empty"),
-            "disappointed" to ("dejected" to "discouraged"),
+            "disappointed" to ("dejected" to "discouraged")
         ),
         core(
             "angry",
@@ -102,7 +101,7 @@ object FeelingCatalog {
             "critical" to ("skeptical" to "judgmental"),
             "distant" to ("cold" to "detached"),
             "jealous" to ("suspicious" to "bitter"),
-            "hostile" to ("hateful" to "aggressive"),
+            "hostile" to ("hateful" to "aggressive")
         ),
         core(
             "scared",
@@ -111,8 +110,8 @@ object FeelingCatalog {
             "confused" to ("lost" to "scattered"),
             "helpless" to ("powerless" to "stuck"),
             "rejected" to ("excluded" to "unwanted"),
-            "inferior" to ("inadequate" to "small"),
-        ),
+            "inferior" to ("inadequate" to "small")
+        )
     )
 
     /** Kärnkänslorna i hjulets ordning – samma lista som kärnorna i `isFeelings` mönster i rules (`DocumentRules.FEELING_TOKEN`). */

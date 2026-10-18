@@ -46,7 +46,7 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
         dirty = unsaved,
         canDismiss = sheet::canDismiss,
         hide = closing,
-        footer = { StepwiseScreeningNavigation(steps, { onEvent(LogEvent.SaveScreening) }, state.canSave, state.saving) },
+        footer = { StepwiseScreeningNavigation(steps, { onEvent(LogEvent.SaveScreening) }, state.canSave, state.saving) }
     ) {
         StepwiseScreeningForm(
             energy = edited.energy,
@@ -64,7 +64,7 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
             otherOptionId = OTHER_SYMPTOM_ID,
             somatic = edited.somatic,
             state = steps,
-            navigation = false,
+            navigation = false
         )
     }
 }

@@ -16,7 +16,7 @@ enum class Slot(override val wire: String, val legacyName: String, val defaultTi
     AFTERNOON("afternoon", "Eftermiddag", LocalTime(15, 0)),
     EVENING("evening", "Kväll", LocalTime(19, 0)),
     NIGHT("night", "Natt", LocalTime(22, 0)),
-    AS_NEEDED("asNeeded", "Vid behov", LocalTime(12, 0)),
+    AS_NEEDED("asNeeded", "Vid behov", LocalTime(12, 0))
     ;
 
     companion object {

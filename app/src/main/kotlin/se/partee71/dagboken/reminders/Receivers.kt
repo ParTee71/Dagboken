@@ -8,12 +8,12 @@ import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import javax.inject.Provider
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -96,7 +96,7 @@ class ReminderActions @Inject constructor(
     private val content: ReminderContent,
     private val notifications: NotificationHelper,
     private val clock: Clock,
-    private val zone: Provider<TimeZone>,
+    private val zone: Provider<TimeZone>
 ) {
     /** NOT-14: ett larm har levererats – registreras direkt i `onReceive` ([AlarmScheduler.markFired]). */
     fun markFired(intent: Intent) {
@@ -119,7 +119,9 @@ class ReminderActions @Inject constructor(
                 val date = medReminderDate(firedAt, zone.get())
                 notifications.postMedReminder(reminder.slot, date, content.medDoses(reminder.slot, date).all)
             }
+
             is Reminder.Mood -> if (content.moodDue(reminder.occasion)) notifications.postMoodReminder(reminder.occasion)
+
             Reminder.PeriodEnd -> notifications.postPeriodReminder(content.periodEndings())
         }
     }
@@ -138,8 +140,7 @@ class ReminderActions @Inject constructor(
     }
 
     /** NOT-6, NOT-14: en av [BootReceiver.RESCHEDULE_ACTIONS] lägger om alla larm; annat ger `null`. */
-    suspend fun onSystemEvent(intent: Intent): Rescheduled? =
-        if (intent.action in BootReceiver.RESCHEDULE_ACTIONS) scheduler.rescheduleAll(alarmsCleared = intent.action in BootReceiver.CLEARS_ALARMS) else null
+    suspend fun onSystemEvent(intent: Intent): Rescheduled? = if (intent.action in BootReceiver.RESCHEDULE_ACTIONS) scheduler.rescheduleAll(alarmsCleared = intent.action in BootReceiver.CLEARS_ALARMS) else null
 
     /** Klockan nu – när larmet utlöstes. */
     fun now(): Instant = clock.now()
@@ -169,6 +170,7 @@ private fun BroadcastReceiver.onAlarm(intent: Intent, action: String, work: Rece
 @AndroidEntryPoint
 class MedAlarmReceiver : BroadcastReceiver() {
     @Inject lateinit var actions: ReminderActions
+
     @Inject lateinit var work: ReceiverWork
 
     override fun onReceive(context: Context, intent: Intent) = onAlarm(intent, ReminderIntents.ACTION_MED_ALARM, work, actions)
@@ -178,6 +180,7 @@ class MedAlarmReceiver : BroadcastReceiver() {
 @AndroidEntryPoint
 class ScreeningReminderReceiver : BroadcastReceiver() {
     @Inject lateinit var actions: ReminderActions
+
     @Inject lateinit var work: ReceiverWork
 
     override fun onReceive(context: Context, intent: Intent) = onAlarm(intent, ReminderIntents.ACTION_MOOD_ALARM, work, actions)
@@ -187,6 +190,7 @@ class ScreeningReminderReceiver : BroadcastReceiver() {
 @AndroidEntryPoint
 class PeriodReminderReceiver : BroadcastReceiver() {
     @Inject lateinit var actions: ReminderActions
+
     @Inject lateinit var work: ReceiverWork
 
     override fun onReceive(context: Context, intent: Intent) = onAlarm(intent, ReminderIntents.ACTION_PERIOD_ALARM, work, actions)
@@ -196,6 +200,7 @@ class PeriodReminderReceiver : BroadcastReceiver() {
 @AndroidEntryPoint
 class MedActionReceiver : BroadcastReceiver() {
     @Inject lateinit var actions: ReminderActions
+
     @Inject lateinit var work: ReceiverWork
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -213,6 +218,7 @@ class MedActionReceiver : BroadcastReceiver() {
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
     @Inject lateinit var actions: ReminderActions
+
     @Inject lateinit var work: ReceiverWork
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -227,7 +233,7 @@ class BootReceiver : BroadcastReceiver() {
             Intent.ACTION_MY_PACKAGE_REPLACED,
             AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
             Intent.ACTION_TIME_CHANGED,
-            Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED
         )
 
         /**

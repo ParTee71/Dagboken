@@ -7,8 +7,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
-import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performSemanticsAction
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -38,7 +38,7 @@ fun captureLightAndDark(name: String, content: @Composable () -> Unit) {
 fun ComposeContentTestRule.captureLightAndDark(
     name: String,
     settle: ComposeContentTestRule.() -> Unit = { waitForIdle() },
-    content: @Composable () -> Unit,
+    content: @Composable () -> Unit
 ) = captureThemes(name, settle, content) { onRoot().captureRoboImage(it) }
 
 /**
@@ -66,17 +66,24 @@ private const val PAUSED_SETTLE_MILLIS = 2_000L
 fun ComposeContentTestRule.captureScreenLightAndDark(
     name: String,
     open: ComposeContentTestRule.() -> Unit = {},
-    content: @Composable () -> Unit,
+    content: @Composable () -> Unit
 ) {
     var opened = false
-    captureThemes(name, settle = { waitForIdle(); if (!opened) { open(); opened = true; waitForIdle() } }, content) { captureScreenRoboImage(it) }
+    captureThemes(name, settle = {
+        waitForIdle()
+        if (!opened) {
+            open()
+            opened = true
+            waitForIdle()
+        }
+    }, content) { captureScreenRoboImage(it) }
 }
 
 private fun ComposeContentTestRule.captureThemes(
     name: String,
     settle: ComposeContentTestRule.() -> Unit,
     content: @Composable () -> Unit,
-    capture: (String) -> Unit,
+    capture: (String) -> Unit
 ) {
     var dark by mutableStateOf(false)
     setContent { DagbokenTheme(darkTheme = dark, content = content) }

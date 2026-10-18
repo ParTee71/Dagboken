@@ -15,7 +15,7 @@ fun <T> ChoiceChips(
     onSelect: (T) -> Unit,
     label: @Composable (T) -> String,
     modifier: Modifier = Modifier,
-    onClear: (() -> Unit)? = null,
+    onClear: (() -> Unit)? = null
 ) {
     ChipRow(modifier) {
         options.forEach { option ->

@@ -1,10 +1,10 @@
 package se.partee71.dagboken.core.engine
 
+import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlinx.datetime.LocalTime
 
 /**
  * Enhetstest för regelbundenhetsmåttet i sömnkvaliteten (HLS-10): spridningen i

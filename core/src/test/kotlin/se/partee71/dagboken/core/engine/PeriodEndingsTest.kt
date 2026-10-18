@@ -13,8 +13,7 @@ class PeriodEndingsTest {
 
     private val tomorrow = day("2026-05-10")
 
-    private fun prednisolon(end: String? = null, vararg boosts: Boost, active: Boolean = true, id: String = "r1", name: String = "Prednisolon") =
-        prescription(id = id, name = name, dose = "5", start = "2026-05-01", end = end, boosts = boosts.toList(), active = active)
+    private fun prednisolon(end: String? = null, vararg boosts: Boost, active: Boolean = true, id: String = "r1", name: String = "Prednisolon") = prescription(id = id, name = name, dose = "5", start = "2026-05-01", end = end, boosts = boosts.toList(), active = active)
 
     @Test fun `receptet vars period slutar den dagen rapporteras`() {
         assertEquals(listOf(PrescriptionEnds("r1", "Prednisolon", tomorrow)), listOf(prednisolon("2026-05-10")).endingOn(tomorrow))

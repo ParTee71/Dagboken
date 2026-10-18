@@ -74,8 +74,7 @@ fun dayProgress(date: LocalDate, doses: List<Dose>, screenings: List<Screening>,
 fun dayStreak(today: LocalDate, doses: List<Dose>, screenings: List<Screening>, occasions: List<Occasion>): Int {
     val dosesByDate = doses.groupBy { it.date }
     val screeningsByDate = screenings.groupBy { it.date }
-    fun complete(date: LocalDate) =
-        dayProgress(date, dosesByDate[date].orEmpty(), screeningsByDate[date].orEmpty(), occasions).isComplete
+    fun complete(date: LocalDate) = dayProgress(date, dosesByDate[date].orEmpty(), screeningsByDate[date].orEmpty(), occasions).isComplete
     // Varje klar dag har minst en post (total > 0), så slingan slutar senast vid den äldsta dagen med data.
     var day = if (complete(today)) today else today.minus(1, DateTimeUnit.DAY)
     var streak = 0

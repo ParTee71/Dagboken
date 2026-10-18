@@ -60,7 +60,7 @@ fun FeelingPicker(
     selected: List<Feeling>,
     onSelectedChange: (List<Feeling>) -> Unit,
     modifier: Modifier = Modifier,
-    maxSelected: Int = FeelingCatalog.MAX_FEELINGS,
+    maxSelected: Int = FeelingCatalog.MAX_FEELINGS
 ) {
     var openCore by rememberSaveable { mutableStateOf<String?>(null) }
     var activeNuance by rememberSaveable { mutableStateOf<String?>(null) }
@@ -86,9 +86,12 @@ fun FeelingPicker(
         if (core != null) {
             AppButton(
                 stringResource(R.string.feelings_back_to_wheel),
-                { openCore = null; activeNuance = null },
+                {
+                    openCore = null
+                    activeNuance = null
+                },
                 variant = ButtonVariant.Text,
-                icon = R.drawable.ic_chevron_left,
+                icon = R.drawable.ic_chevron_left
             )
         }
     }
@@ -111,6 +114,7 @@ private fun CoreView(core: String, selected: List<Feeling>, full: Boolean, activ
                         when {
                             // Vald men inte aktiv: visa dess ord, ta inte bort.
                             chosen && nuance != active -> onChange(Change(selected, nuance))
+
                             else -> onChange(Change(FeelingSelection.toggleNuance(selected, core, nuance, full), nuance.takeUnless { chosen }))
                         }
                     }
@@ -135,7 +139,7 @@ private fun Hub(core: String, tone: ToneColors, chosen: Boolean) {
                     contentDescription = name
                     if (chosen) stateDescription = selectedState
                 },
-            contentAlignment = Alignment.Center,
+            contentAlignment = Alignment.Center
         ) {
             // Ringen ligger en bit innanför kanten, så att den syns mot fyllnaden i båda temana.
             if (chosen) Box(Modifier.matchParentSize().padding(Spacing.xs).border(RING, tone.container, AppShapes.feelingHub))
@@ -146,7 +150,7 @@ private fun Hub(core: String, tone: ToneColors, chosen: Boolean) {
 
 /** En nyans: ett liggande blad i kärnans ton, fyllt med innehållsfärgen när den är vald. */
 @Composable
-private fun NuanceButton(@StringRes nameRes: Int, tone: ToneColors, chosen: Boolean, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun NuanceButton(@StringRes nameRes: Int, tone: ToneColors, chosen: Boolean, enabled: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val name = stringResource(nameRes)
     val selectedState = stringResource(R.string.feeling_selected_state)
     Box(
@@ -160,14 +164,14 @@ private fun NuanceButton(@StringRes nameRes: Int, tone: ToneColors, chosen: Bool
                 if (chosen) stateDescription = selectedState
             }
             .padding(horizontal = Spacing.m, vertical = Spacing.s),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         Text(
             name,
             Modifier.clearAndSetSemantics {},
             style = AppTypography.itemTitle,
             color = if (chosen) tone.container else tone.content,
-            textAlign = TextAlign.Center,
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -199,7 +203,7 @@ private fun SelectedPills(selected: List<Feeling>, onRemove: (Int) -> Unit) {
                 colors = tones.forCore(feeling.core),
                 onClick = { onRemove(index) },
                 trailingIcon = R.drawable.ic_close,
-                onClickLabel = stringResource(R.string.feelings_remove_format, label),
+                onClickLabel = stringResource(R.string.feelings_remove_format, label)
             )
         }
     }
@@ -214,8 +218,7 @@ internal object FeelingSelection {
     fun canAdd(selected: List<Feeling>, core: String, full: Boolean) = !full || Feeling(core) in selected
 
     /** Kärnan ensam sist i listan när inget val har kärnan och det finns plats; annars `null` (ingen ändring). */
-    fun selectCore(selected: List<Feeling>, core: String, full: Boolean): List<Feeling>? =
-        if (full || selected.any { it.core == core }) null else selected + Feeling(core)
+    fun selectCore(selected: List<Feeling>, core: String, full: Boolean): List<Feeling>? = if (full || selected.any { it.core == core }) null else selected + Feeling(core)
 
     /**
      * En nyans: vald (med sitt precisare ord) går tillbaka till kärnan ensam på samma plats – eller bort, om kärnan

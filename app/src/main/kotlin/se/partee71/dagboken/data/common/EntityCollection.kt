@@ -163,7 +163,7 @@ interface EntityCollection<T : Identified> {
     suspend fun batch(
         upserts: List<T>,
         deletes: List<String> = emptyList(),
-        merges: List<FieldMerge<T>> = emptyList(),
+        merges: List<FieldMerge<T>> = emptyList()
     ): Result<Unit>
 
     /**
@@ -200,7 +200,7 @@ data class Snapshot<R>(val value: R, val fromCache: Boolean)
 suspend fun <R> firstFromCache(
     mapError: (Throwable) -> DataError,
     isAnswer: (Snapshot<R>) -> Boolean = { true },
-    listen: () -> Flow<Snapshot<R>>,
+    listen: () -> Flow<Snapshot<R>>
 ): Result<R> = suspendRunCatching(mapError) {
     // Som `observe()`: ett fel i lyssnaren (från Firestore ofta inlindat i ett CancellationException)
     // mappas till DataError, så att det blir ett misslyckande och inte avbryter anroparen.
@@ -221,12 +221,10 @@ fun <T> Snapshot<T?>.isDocumentAnswer(): Boolean = value != null || !fromCache
 internal val SERVER_WAIT = 15.seconds
 
 /** [EntityCollection.observeBetween] på ett datumfält ([field], `yyyy-MM-dd`): dagarna [from]…[to], båda inräknade. */
-fun <T : Identified> EntityCollection<T>.observeDates(field: String, from: LocalDate, to: LocalDate): Flow<List<T>> =
-    observeBetween(field, checkNotNull(from.encodeDate()), checkNotNull(to.encodeDate()))
+fun <T : Identified> EntityCollection<T>.observeDates(field: String, from: LocalDate, to: LocalDate): Flow<List<T>> = observeBetween(field, checkNotNull(from.encodeDate()), checkNotNull(to.encodeDate()))
 
 /** [EntityCollection.cachedBetween] på ett datumfält, som [observeDates]. */
-suspend fun <T : Identified> EntityCollection<T>.cachedDates(field: String, from: LocalDate, to: LocalDate): Result<List<T>> =
-    cachedBetween(field, checkNotNull(from.encodeDate()), checkNotNull(to.encodeDate()))
+suspend fun <T : Identified> EntityCollection<T>.cachedDates(field: String, from: LocalDate, to: LocalDate): Result<List<T>> = cachedBetween(field, checkNotNull(from.encodeDate()), checkNotNull(to.encodeDate()))
 
 /** `sortOrder` för något nytt i en lista som redan lästs, så att det hamnar sist; 0 i en tom lista. */
 fun <T : Sortable> List<T>.sortOrderAfterLast(): Int = maxOfOrNull { it.sortOrder }?.plus(1) ?: 0
@@ -246,8 +244,7 @@ suspend fun <T> EntityCollection<T>.nextSortOrder(): Int where T : Identified, T
 private val SORT_ORDER_WAIT = 2.seconds
 
 /** Sparar [item]; något nytt ([isNew]) hamnar sist i listan via [placeLast] – samma i alla formulär. */
-suspend fun <T> EntityCollection<T>.upsertPlaced(item: T, isNew: Boolean, placeLast: T.(Int) -> T): Result<Unit> where T : Identified, T : Sortable =
-    upsert(if (isNew) item.placeLast(nextSortOrder()) else item)
+suspend fun <T> EntityCollection<T>.upsertPlaced(item: T, isNew: Boolean, placeLast: T.(Int) -> T): Result<Unit> where T : Identified, T : Sortable = upsert(if (isNew) item.placeLast(nextSortOrder()) else item)
 
 /**
  * Skriver bara de toppfält som skiljer [after] från [before] – kodade med [codec] – via

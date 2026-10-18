@@ -18,7 +18,7 @@ object MigrationBatches {
     fun plan(
         documents: List<ExportFormat.Document>,
         maxWrites: Int = MAX_WRITES,
-        maxEpisodes: Int = MAX_EPISODES,
+        maxEpisodes: Int = MAX_EPISODES
     ): List<List<ExportFormat.Document>> {
         require(maxWrites > 0 && maxEpisodes > 0) { "batchgränserna måste vara positiva" }
         val batches = mutableListOf<List<ExportFormat.Document>>()
@@ -46,8 +46,7 @@ object MigrationBatches {
     }
 
     /** Dokumenten i enheter som inte får delas: en episod med sina incheckningar, annars ett dokument var. */
-    private fun units(documents: List<ExportFormat.Document>): List<List<ExportFormat.Document>> =
-        documents.groupBy(::unitKey).values.toList()
+    private fun units(documents: List<ExportFormat.Document>): List<List<ExportFormat.Document>> = documents.groupBy(::unitKey).values.toList()
 
     /** Episodens sökväg för episoden själv och dess incheckningar; andra dokument är sin egen enhet. */
     private fun unitKey(document: ExportFormat.Document): String = when (CollectionNames.collectionOf(document.path)) {
@@ -55,6 +54,5 @@ object MigrationBatches {
         else -> document.path
     }
 
-    private fun belongsToEpisode(document: ExportFormat.Document): Boolean =
-        CollectionNames.collectionOf(document.path).let { it == CollectionNames.CHECKINS || it == CollectionNames.ILLNESS_EPISODES }
+    private fun belongsToEpisode(document: ExportFormat.Document): Boolean = CollectionNames.collectionOf(document.path).let { it == CollectionNames.CHECKINS || it == CollectionNames.ILLNESS_EPISODES }
 }

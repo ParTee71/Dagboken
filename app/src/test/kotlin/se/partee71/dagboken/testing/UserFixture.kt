@@ -1,6 +1,7 @@
 package se.partee71.dagboken.testing
 
 import android.content.Context
+import kotlin.time.Duration
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -8,7 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
-import kotlin.time.Duration
 import se.partee71.dagboken.core.schema.Doc
 import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.FakeStore
@@ -19,8 +19,8 @@ import se.partee71.dagboken.data.auth.SignOutUseCase
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.LocalCacheCleaner
 import se.partee71.dagboken.data.common.MemoryDayMarks
-import se.partee71.dagboken.data.common.testCoverage
 import se.partee71.dagboken.data.common.UserVersionSource
+import se.partee71.dagboken.data.common.testCoverage
 import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.user.EnsureUserUseCase
 import se.partee71.dagboken.data.user.UserDirectory
@@ -45,11 +45,10 @@ class UserFixture(scope: CoroutineScope, val auth: FakeAuthRepository = FakeAuth
     val stamps = mutableListOf<Pair<String, Int>>()
 
     private val versions = object : UserVersionSource {
-        override fun schemaVersion(uid: String): Flow<Int?> =
-            combine(store.documents, versionsKnown, denied) { all, known, denied ->
-                if (uid in denied) throw DataError.PermissionDenied
-                known to all[Paths.USERS]?.get(uid)?.let { Schema.versionOf(it[EnsureUserUseCase.SCHEMA_VERSION]) }
-            }.filter { (known, _) -> known }.map { (_, version) -> version }
+        override fun schemaVersion(uid: String): Flow<Int?> = combine(store.documents, versionsKnown, denied) { all, known, denied ->
+            if (uid in denied) throw DataError.PermissionDenied
+            known to all[Paths.USERS]?.get(uid)?.let { Schema.versionOf(it[EnsureUserUseCase.SCHEMA_VERSION]) }
+        }.filter { (known, _) -> known }.map { (_, version) -> version }
 
         override fun stamp(uid: String, version: Int) {
             stamps += uid to version
@@ -67,8 +66,7 @@ class UserFixture(scope: CoroutineScope, val auth: FakeAuthRepository = FakeAuth
     val signOut = SignOutUseCase(auth, cache, testCoverage(marks, clock))
 
     /** Lägger ett användardokument direkt i den fejkade databasen, som om en annan enhet skapat det. */
-    fun storeUser(uid: String, doc: Doc = mapOf(EnsureUserUseCase.SCHEMA_VERSION to Schema.CURRENT_VERSION)) =
-        store.set(Paths.USERS, uid, doc, merge = false)
+    fun storeUser(uid: String, doc: Doc = mapOf(EnsureUserUseCase.SCHEMA_VERSION to Schema.CURRENT_VERSION)) = store.set(Paths.USERS, uid, doc, merge = false)
 
     fun user(uid: String): Doc? = store.read(Paths.USERS, uid)
 }

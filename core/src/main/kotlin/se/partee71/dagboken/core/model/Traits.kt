@@ -21,10 +21,6 @@ interface Archivable {
 }
 
 /**
- * En post i dagboken (mående, aktivitet, händelse, incheckning): dag, skapandetid – satt en gång när posten
- * skapas – och samma post med ett annat id ([withId], för att skriva en ändring på det lästa dokumentets id).
- */
-/**
  * En post med graderade symptom (DAT-6) – måendelogg, aktivitet och incheckning: [symptoms], det bevarade 3.x-värdet
  * [legacySomatic] och summan [somatic] som gäller. **Enda** stället för regeln om 3.x `somatiska`.
  */
@@ -58,6 +54,10 @@ interface HasFeelings<T : HasFeelings<T>> {
     fun withFeelings(feelings: List<Feeling>): T
 }
 
+/**
+ * En post i dagboken (mående, aktivitet, händelse, incheckning): dag, skapandetid – satt en gång när posten
+ * skapas – och samma post med ett annat id ([withId], för att skriva en ändring på det lästa dokumentets id).
+ */
 interface Post<T : Post<T>> : Identified {
     val date: kotlinx.datetime.LocalDate?
     val createdAt: kotlin.time.Instant?

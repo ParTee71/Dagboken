@@ -42,7 +42,7 @@ fun AppTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
     maxLength: Int = if (singleLine) TextLimits.SHORT else TextLimits.LONG,
     suffix: String? = null,
-    valueIsPlaceholder: Boolean = false,
+    valueIsPlaceholder: Boolean = false
 ) {
     val card = AppColors.extended.card
     OutlinedTextField(
@@ -65,8 +65,7 @@ fun AppTextField(
             unfocusedContainerColor = card,
             disabledContainerColor = card,
             errorContainerColor = card,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-        ),
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+        )
     )
 }
-

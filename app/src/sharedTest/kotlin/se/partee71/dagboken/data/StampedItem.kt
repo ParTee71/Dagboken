@@ -18,7 +18,7 @@ data class StampedItem(
     val name: String = "",
     val kind: String = "activity",
     val createdAt: Instant? = null,
-    val updatedAt: Instant? = null,
+    val updatedAt: Instant? = null
 ) : Identified
 
 object StampedItemCodec : DocCodec<StampedItem> {
@@ -32,14 +32,18 @@ object StampedItemCodec : DocCodec<StampedItem> {
         NAME to value.name,
         KIND to value.kind,
         "createdAt" to value.createdAt,
-        "updatedAt" to value.updatedAt,
+        "updatedAt" to value.updatedAt
     )
 
-    override fun decode(id: String, map: Map<String, Any?>): StampedItem = if (map[NAME] == UNREADABLE) error("Oläsbart testdokument") else StampedItem(
-        id = id,
-        name = map.string(NAME),
-        kind = map.string(KIND, "activity"),
-        createdAt = map.instant("createdAt"),
-        updatedAt = map.instant("updatedAt"),
-    )
+    override fun decode(id: String, map: Map<String, Any?>): StampedItem = if (map[NAME] == UNREADABLE) {
+        error("Oläsbart testdokument")
+    } else {
+        StampedItem(
+            id = id,
+            name = map.string(NAME),
+            kind = map.string(KIND, "activity"),
+            createdAt = map.instant("createdAt"),
+            updatedAt = map.instant("updatedAt")
+        )
+    }
 }

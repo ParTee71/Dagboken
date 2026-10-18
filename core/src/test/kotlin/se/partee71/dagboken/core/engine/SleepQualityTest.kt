@@ -1,15 +1,15 @@
 package se.partee71.dagboken.core.engine
 
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import se.partee71.dagboken.core.model.Sex
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 
 /** Enhetstest för sömnkvalitetens poängmodell (HLS-10, §19). */
 class SleepQualityTest {
@@ -23,7 +23,7 @@ class SleepQualityTest {
         // 460 min sömn: 11 % djupsömn ≈ 51 min, 21 % REM ≈ 97 min.
         deep = 51.minutes,
         rem = 97.minutes,
-        midpointSdMinutes = 15.0,
+        midpointSdMinutes = 15.0
     )
 
     @Test fun `an ideal night scores at or near 100`() {
@@ -36,7 +36,7 @@ class SleepQualityTest {
         val quality = scoreSleepQuality(
             idealNight().copy(timeInBed = 5.hours, awake = 20.minutes),
             age55,
-            Sex.MALE,
+            Sex.MALE
         )!!
         val duration = quality.components.first { it.kind == SleepQualityKind.DURATION }
         assertTrue("Kort natt ska tappa poäng på längd", duration.score < 50)
@@ -55,11 +55,11 @@ class SleepQualityTest {
         val quality = scoreSleepQuality(
             SleepMeasurements(timeInBed = 8.hours, midpointSdMinutes = 10.0),
             age55,
-            Sex.MALE,
+            Sex.MALE
         )!!
         assertEquals(
             listOf(SleepQualityKind.DURATION, SleepQualityKind.REGULARITY),
-            quality.components.map { it.kind },
+            quality.components.map { it.kind }
         )
         assertEquals(100, quality.score)
     }
@@ -103,10 +103,10 @@ class SleepQualityTest {
             idealNight().copy(
                 timeInBed = 500.minutes,
                 awake = 60.minutes,
-                deep = 17.minutes,
+                deep = 17.minutes
             ),
             age55,
-            Sex.MALE,
+            Sex.MALE
         )!!
         val deep = quality.components.first { it.kind == SleepQualityKind.DEEP }
         assertTrue("Förväntade låg poäng, fick ${deep.score}", deep.score <= 15)
@@ -119,10 +119,10 @@ class SleepQualityTest {
             idealNight().copy(
                 timeInBed = 480.minutes,
                 awake = Duration.ZERO,
-                deep = ((band.start / 2.0 / 100.0 * sleepMinutes).toLong()).minutes,
+                deep = ((band.start / 2.0 / 100.0 * sleepMinutes).toLong()).minutes
             ),
             age55,
-            Sex.MALE,
+            Sex.MALE
         )!!
         assertEquals(0, quality.components.first { it.kind == SleepQualityKind.DEEP }.score)
     }
@@ -131,7 +131,7 @@ class SleepQualityTest {
         val quality = scoreSleepQuality(
             idealNight().copy(timeInBed = 9.hours, awake = 90.minutes),
             age55,
-            Sex.MALE,
+            Sex.MALE
         )!!
         assertEquals(0, quality.components.first { it.kind == SleepQualityKind.WASO }.score)
     }
@@ -142,7 +142,7 @@ class SleepQualityTest {
             // 408 av 480 min = 85 %.
             idealNight().copy(timeInBed = 480.minutes, awake = 72.minutes),
             age55,
-            Sex.MALE,
+            Sex.MALE
         )!!
         val efficiency = quality.components.first { it.kind == SleepQualityKind.EFFICIENCY }
         assertEquals(67, efficiency.score)
@@ -158,10 +158,10 @@ class SleepQualityTest {
                 awake = 60.minutes,
                 deep = 17.minutes,
                 rem = 92.minutes,
-                midpointSdMinutes = 32.0,
+                midpointSdMinutes = 32.0
             ),
             age55,
-            Sex.MALE,
+            Sex.MALE
         )!!
         assertEquals(81, quality.score)
     }
@@ -202,7 +202,7 @@ class SleepQualityTest {
         val quality = scoreSleepQuality(
             idealNight().copy(sleepingHeartRate = 66, baselineRestingHeartRate = 58),
             age55,
-            Sex.MALE,
+            Sex.MALE
         )!!
         assertTrue(SleepFlag.ELEVATED_SLEEPING_HEART_RATE in quality.flags)
     }
@@ -211,7 +211,7 @@ class SleepQualityTest {
         val quality = scoreSleepQuality(
             idealNight().copy(sleepingHeartRate = 60, baselineRestingHeartRate = 58),
             age55,
-            Sex.MALE,
+            Sex.MALE
         )!!
         assertTrue(quality.flags.isEmpty())
     }
@@ -220,7 +220,7 @@ class SleepQualityTest {
         val quality = scoreSleepQuality(
             idealNight().copy(sleepingHeartRate = 90, baselineRestingHeartRate = null),
             age55,
-            Sex.MALE,
+            Sex.MALE
         )!!
         assertTrue(quality.flags.isEmpty())
     }

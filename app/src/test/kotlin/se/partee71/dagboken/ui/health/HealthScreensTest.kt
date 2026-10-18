@@ -42,8 +42,8 @@ import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.core.model.SleepStages
 import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.testing.captureLightAndDark
-import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.dagboken.ui.theme.Spacing
 
 /**
  * Hälsokortet och "Senaste veckan" på Idag (HEM-15, HEM-17, HLS-7) och Klocka-gruppens topp med Hälsa idag (TRD-20,
@@ -127,7 +127,7 @@ class HealthScreensTest {
         Column(
             Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.m),
-            content = content,
+            content = content
         )
     }
 
@@ -169,7 +169,7 @@ class HealthScreensTest {
         val cases = listOf(
             Triple(HealthStatus.PERMISSIONS_MISSING, "Health Connect är inte kopplat", "Ge åtkomst" to HealthEvent.GrantAccess),
             Triple(HealthStatus.UNAVAILABLE, "Health Connect saknas", "Installera" to HealthEvent.OpenHealthConnect),
-            Triple(HealthStatus.UPDATE_REQUIRED, "Health Connect behöver uppdateras", "Uppdatera" to HealthEvent.OpenHealthConnect),
+            Triple(HealthStatus.UPDATE_REQUIRED, "Health Connect behöver uppdateras", "Uppdatera" to HealthEvent.OpenHealthConnect)
         )
         var current by mutableStateOf(cases.first().first)
         val events = mutableListOf<HealthEvent>()
@@ -211,7 +211,7 @@ class HealthScreensTest {
         rule.onNodeWithText("Hälsa idag").assertIsDisplayed()
         listOf(
             "7 842" to "Steg", "64" to "Snittpuls idag", "58" to "Vilopuls", "7 tim 12 min" to "Sömn i natt", "78" to "Sömnkvalitet",
-            "32 min" to "Träning idag", "412 kcal" to "Aktiva kalorier", "5,8 km" to "Sträcka", "97 %" to "Syremättnad",
+            "32 min" to "Träning idag", "412 kcal" to "Aktiva kalorier", "5,8 km" to "Sträcka", "97 %" to "Syremättnad"
         ).forEach { (value, label) ->
             rule.onNodeWithText(value).assertIsDisplayed()
             rule.onNodeWithText(label).assertIsDisplayed()
@@ -262,7 +262,7 @@ object HealthSamples {
         exerciseDuration = 32.minutes,
         activeEnergyKcal = 412.0,
         distanceMeters = 5_800.0,
-        oxygenSaturationAvg = 97.0,
+        oxygenSaturationAvg = 97.0
     )
 
     val todayCard = HealthTodayUiState(
@@ -271,7 +271,7 @@ object HealthSamples {
         night,
         daysEnding(today).toImmutableList(),
         steps = persistentListOf(6_100f, 9_870f, 4_020f, 8_400f, 6_900f, 5_200f, 7_842f),
-        restingHeartRate = persistentListOf(59f, 60f, 61f, 57f, 57f, 59f, 58f),
+        restingHeartRate = persistentListOf(59f, 60f, 61f, 57f, 57f, 59f, 58f)
     )
 
     val clock = ClockUiState(HealthStatus.AVAILABLE, missing = persistentSetOf(), day = night, sleepScore = 78)

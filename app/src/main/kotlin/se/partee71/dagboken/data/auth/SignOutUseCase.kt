@@ -25,7 +25,7 @@ import se.partee71.dagboken.data.common.suspendRunCatching
 class SignOutUseCase @Inject constructor(
     private val auth: AuthRepository,
     private val cache: LocalCacheCleaner,
-    private val coverage: HistoryCoverage,
+    private val coverage: HistoryCoverage
 ) {
     suspend operator fun invoke(): Result<Unit> {
         val synced = cache.awaitPendingWrites(SYNC_TIMEOUT)

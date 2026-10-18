@@ -1,12 +1,12 @@
 package se.partee71.dagboken.core.engine
 
+import kotlin.time.Instant
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.ReminderSettings
@@ -46,8 +46,7 @@ fun weekSummary(now: Instant, zone: TimeZone, screenings: List<Screening>, doses
     val previousStart = today.minus(13, DateTimeUnit.DAY)
     val previousEnd = today.minus(7, DateTimeUnit.DAY)
 
-    fun averageEnergy(from: LocalDate, to: LocalDate): Double? =
-        screenings.filter { it.date?.let { d -> d in from..to } == true }.map { it.energy }.takeIf { it.isNotEmpty() }?.average()
+    fun averageEnergy(from: LocalDate, to: LocalDate): Double? = screenings.filter { it.date?.let { d -> d in from..to } == true }.map { it.energy }.takeIf { it.isNotEmpty() }?.average()
 
     val thisWeek = averageEnergy(weekStart, today)
     val previousWeek = averageEnergy(previousStart, previousEnd)
@@ -79,7 +78,7 @@ fun weekSummaryOn(
     zone: TimeZone,
     screenings: List<Screening>,
     doses: List<Dose>,
-    reminders: ReminderSettings,
+    reminders: ReminderSettings
 ): WeekSummary? {
     val today = now.toLocalDateTime(zone).date
     return if (date == today && today.showsWeekSummary) weekSummary(now, zone, screenings, doses, reminders) else null

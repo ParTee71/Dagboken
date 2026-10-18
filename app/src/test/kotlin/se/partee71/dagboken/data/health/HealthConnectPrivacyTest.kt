@@ -3,6 +3,7 @@ package se.partee71.dagboken.data.health
 import com.lemonappdev.konsist.api.Konsist
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.hours
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -15,7 +16,6 @@ import se.partee71.dagboken.core.engine.health.HealthRecords
 import se.partee71.dagboken.core.engine.health.HeartRateSample
 import se.partee71.dagboken.core.engine.health.StepSample
 import se.partee71.dagboken.data.FixedClock
-import kotlin.time.Duration.Companion.hours
 
 /**
  * Inget klockvärde loggas eller sparas (HLS-5, NFR-13): Health Connect-porten läser, räknar och lämnar ut – men
@@ -44,7 +44,7 @@ class HealthConnectPrivacyTest {
             granted = HealthPermissionSet.ALL
             records = HealthRecords(
                 steps = listOf(StepSample("klocka", start + 8.hours, start + 9.hours, 73_919)),
-                heartRate = listOf(HeartRateSample("klocka", start + 10.hours, 47)),
+                heartRate = listOf(HeartRateSample("klocka", start + 10.hours, 47))
             )
         }
         val repository = HealthConnectRepository(source, HealthConnectAccess(source, backgroundScope), FixedClock(start + 12.hours)) { zone }

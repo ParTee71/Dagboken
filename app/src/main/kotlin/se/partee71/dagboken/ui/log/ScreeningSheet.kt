@@ -17,10 +17,10 @@ import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
-import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.EditorSheet
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.choices
+import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.components.ScreeningStep
 
 /**
@@ -42,7 +42,7 @@ class ScreeningSheet(
     private val clock: Clock,
     private val zone: Provider<TimeZone>,
     sharing: SharingStarted,
-    onSaved: () -> Unit,
+    onSaved: () -> Unit
 ) {
     /**
      * Symptomlistan (Listor) för arkets val (SCR-2) – följs medan arket är öppet, så att en sen lista ger

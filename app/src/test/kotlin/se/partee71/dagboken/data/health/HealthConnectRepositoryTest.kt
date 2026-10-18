@@ -128,13 +128,13 @@ class HealthConnectRepositoryTest {
             // Två källor samma dygn: den mest kompletta väljs, aldrig summan (HLS-2).
             steps = listOf(
                 StepSample("telefon", at(yesterday, 9), at(yesterday, 10), 4_000),
-                StepSample("klocka", at(yesterday, 9), at(yesterday, 10), 6_000),
+                StepSample("klocka", at(yesterday, 9), at(yesterday, 10), 6_000)
             ),
             // En natt över midnatt hör till morgonens datum (HLS-12).
             sleep = listOf(SleepSession("klocka", at(yesterday, 23), at(today, 7))),
             // Registrerad vilopuls före skattning (HLS-7).
             restingHeartRate = listOf(RestingHeartRateSample("klocka", at(today, 8), 54)),
-            heartRate = listOf(HeartRateSample("klocka", at(today, 9), 70)),
+            heartRate = listOf(HeartRateSample("klocka", at(today, 9), 70))
         )
         val history = repository().history(yesterday, today).getOrThrow()
 
@@ -154,8 +154,8 @@ class HealthConnectRepositoryTest {
             exercise = listOf(
                 ExerciseSession("klocka", at(yesterday.minus(1, DateTimeUnit.DAY), 23, 30), at(yesterday, 0, 40)),
                 ExerciseSession("telefon", at(yesterday, 0, 0), at(yesterday, 0, 30)),
-                ExerciseSession("klocka", at(today, 7), at(today, 7, 45)),
-            ),
+                ExerciseSession("klocka", at(today, 7), at(today, 7, 45))
+            )
         )
         val history = repository().history(yesterday, today).getOrThrow()
         assertEquals(listOf(null, 45f), history.series { it.exerciseDuration?.inWholeMinutes })
@@ -171,7 +171,7 @@ class HealthConnectRepositoryTest {
                 val morning = today.minus(nightsAgo - 1, DateTimeUnit.DAY)
                 val shift = ((nightsAgo * 17) % 41 - 20).minutes
                 SleepSession("klocka", at(morning.minus(1, DateTimeUnit.DAY), 23) + shift, at(morning, 7) + shift)
-            },
+            }
         )
         val repository = repository()
         val week = repository.history(today.minus(6, DateTimeUnit.DAY), today).getOrThrow()
@@ -196,9 +196,9 @@ class HealthConnectRepositoryTest {
                 HeartRateSample("klocka", evening, 40), // i natt, före periodens första midnatt
                 HeartRateSample("klocka", at(yesterday, 3), 52),
                 HeartRateSample("klocka", at(yesterday, 10), 66),
-                HeartRateSample("klocka", at(yesterday, 18), 80),
+                HeartRateSample("klocka", at(yesterday, 18), 80)
             ),
-            sleep = listOf(SleepSession("klocka", evening - 30.minutes, at(yesterday, 6))),
+            sleep = listOf(SleepSession("klocka", evening - 30.minutes, at(yesterday, 6)))
         )
         val repository = repository()
         val day = repository.day(yesterday).getOrThrow()
@@ -221,7 +221,7 @@ class HealthConnectRepositoryTest {
         source.records = HealthRecords(
             steps = listOf(StepSample("klocka", at(today, 8), at(today, 9), 3_210)),
             heartRate = listOf(HeartRateSample("klocka", at(today, 3), 48), HeartRateSample("klocka", at(today, 10), 66)),
-            sleep = listOf(SleepSession("klocka", at(yesterday, 23), at(today, 6))),
+            sleep = listOf(SleepSession("klocka", at(yesterday, 23), at(today, 6)))
         )
         val repository = repository()
         val day = repository.day(today).getOrThrow()
@@ -253,7 +253,7 @@ class HealthConnectRepositoryTest {
         source.granted = HealthPermissionSet.CORE + HealthPermissionSet.OPTIONAL.getValue(OptionalHealthMetric.DISTANCE)
         assertEquals(
             setOf(OptionalHealthMetric.EXERCISE, OptionalHealthMetric.ACTIVE_ENERGY, OptionalHealthMetric.OXYGEN_SATURATION, OptionalHealthMetric.HISTORY),
-            access.now().getOrThrow().missingOptional,
+            access.now().getOrThrow().missingOptional
         )
         source.granted = HealthPermissionSet.ALL
         access.changed()
@@ -342,7 +342,7 @@ class FakeHealthConnectSource : HealthConnectSource {
             exercise = records.exercise.overlapping(windows.lead),
             calories = records.calories.overlapping(windows.lead),
             distance = records.distance.overlapping(windows.lead),
-            oxygen = records.oxygen.filter { it.time in windows.lead },
+            oxygen = records.oxygen.filter { it.time in windows.lead }
         )
     }
 }

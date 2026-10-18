@@ -13,9 +13,8 @@ enum class MedicineForm(override val wire: String) : WireEnum {
     INHALER("inhaler"),
     DROPS("drops"),
     PATCH("patch"),
-    OTHER("other"),
+    OTHER("other")
 }
 
 /** "Alvedon 500 mg": namn och styrka med de tomma delarna utelämnade – visningsnamnet för recept, medicin och dos. */
-internal fun medicineTitle(name: String, strength: String): String =
-    listOf(name, strength).map(String::trim).filter(String::isNotEmpty).joinToString(" ")
+internal fun medicineTitle(name: String, strength: String): String = listOf(name, strength).map(String::trim).filter(String::isNotEmpty).joinToString(" ")

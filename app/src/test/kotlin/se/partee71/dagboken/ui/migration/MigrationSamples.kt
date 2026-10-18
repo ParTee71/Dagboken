@@ -12,7 +12,7 @@ object MigrationSamples {
     /** Antal per samling i `CollectionNames`-ordning; inställningarna och listorna blir en rad. */
     val before: Map<String, Int> = linkedMapOf(
         "settings" to 1, "options" to 24, "prescriptions" to 9, "prnMedicines" to 4, "doses" to 3904,
-        "screenings" to 1248, "activities" to 612, "events" to 187, "illnessEpisodes" to 21, "checkins" to 143,
+        "screenings" to 1248, "activities" to 612, "events" to 187, "illnessEpisodes" to 21, "checkins" to 143
     )
 
     val total: Int = before.values.sum()
@@ -35,7 +35,7 @@ object MigrationSamples {
         accountConfirmed = accountConfirmed,
         warnings = listOf("3 anteckning(ar) med target ACTIVITY utan sin post – kan inte placeras"),
         copy = copy,
-        copyFileName = "dagboken-3x-kopia-2026-10-07.json",
+        copyFileName = "dagboken-3x-kopia-2026-10-07.json"
     )
 
     val stopped = MigrationStage.Stopped(listOf(ReportLine("prescriptions", "periodDays", "värde utanför tillåtet intervall (högst 1096)", 1)))
@@ -46,7 +46,7 @@ object MigrationSamples {
         ImportFormat.Legacy(2),
         before,
         listOf("3 anteckning(ar) med target ACTIVITY utan sin post – kan inte placeras"),
-        replaced = 12,
+        replaced = 12
     )
 
     val importStopped = ImportStage.Stopped(stopped.report)

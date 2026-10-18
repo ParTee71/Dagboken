@@ -24,7 +24,7 @@ class ParityTableTest {
         Row(
             legacy = TOKEN.find(cells[1])!!.groupValues[1],
             targets = TOKEN.findAll(cells[2]).map { it.groupValues[1] }.toList(),
-            markers = MARKER.findAll(cells[2]).map { it.groupValues[1] }.toList(),
+            markers = MARKER.findAll(cells[2]).map { it.groupValues[1] }.toList()
         )
     }
 
@@ -77,9 +77,8 @@ class ParityTableTest {
         }
     }
 
-    private fun newFields(): Set<String> =
-        TOKEN.findAll(section.substringAfter("Nya fält i 4.0 utan 3.x-motsvarighet:").lineSequence().first())
-            .map { it.groupValues[1] }.toSet()
+    private fun newFields(): Set<String> = TOKEN.findAll(section.substringAfter("Nya fält i 4.0 utan 3.x-motsvarighet:").lineSequence().first())
+        .map { it.groupValues[1] }.toSet()
 
     private companion object {
         val TOKEN = Regex("`([^`]+)`")

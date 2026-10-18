@@ -40,7 +40,7 @@ fun NoticeBanner(
     tone: Tone = Tone.Warning,
     onClickLabel: String = stringResource(R.string.open),
     detail: String? = null,
-    action: String? = null,
+    action: String? = null
 ) {
     require(action == null || onClick != null) { "NoticeBanner: action kräver onClick" }
     val colors = AppColors.tone(tone)

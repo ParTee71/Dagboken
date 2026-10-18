@@ -22,13 +22,12 @@ import se.partee71.dagboken.data.user.EnsureUserUseCase
  * fel försöker igen, så att versionen aldrig blir okänd för gott.
  */
 class FirestoreUserVersions @Inject constructor(private val firestore: FirestoreInstance) : UserVersionSource {
-    override fun schemaVersion(uid: String): Flow<Int?> =
-        firestore.db.document(Paths.user(uid)).snapshots()
-            .map { doc -> if (doc.exists()) Schema.versionOf(doc.get(EnsureUserUseCase.SCHEMA_VERSION)) else null }
-            .catch { error ->
-                throw if (error.firestoreCode() == Code.PERMISSION_DENIED) DataError.PermissionDenied else error
-            }
-            .retryWithBackoff(first = 2.seconds, max = 60.seconds, retryOn = { it != DataError.PermissionDenied })
+    override fun schemaVersion(uid: String): Flow<Int?> = firestore.db.document(Paths.user(uid)).snapshots()
+        .map { doc -> if (doc.exists()) Schema.versionOf(doc.get(EnsureUserUseCase.SCHEMA_VERSION)) else null }
+        .catch { error ->
+            throw if (error.firestoreCode() == Code.PERMISSION_DENIED) DataError.PermissionDenied else error
+        }
+        .retryWithBackoff(first = 2.seconds, max = 60.seconds, retryOn = { it != DataError.PermissionDenied })
 
     /** `update`, inte `set`: bara versionen ändras, och ett dokument som inte finns skapas inte. */
     override fun stamp(uid: String, version: Int) {

@@ -42,7 +42,7 @@ fun StatPill(
     tone: Tone = Tone.Neutral,
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null,
-    action: String? = null,
+    action: String? = null
 ) {
     require(action == null || onClick != null) { "StatPill: action kräver onClick" }
     val colors = AppColors.tone(tone)
@@ -54,7 +54,7 @@ fun StatPill(
     Row(
         modifier.clip(AppShapes.row).background(colors.container).then(interaction).padding(horizontal = Spacing.l, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.m),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.m)
     ) {
         Icon(painterResource(icon), contentDescription = null, tint = colors.content, modifier = Modifier.size(IconSize.row))
         Column(if (action != null) Modifier.weight(1f) else Modifier) {

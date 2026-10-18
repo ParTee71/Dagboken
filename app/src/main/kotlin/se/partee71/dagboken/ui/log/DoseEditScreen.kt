@@ -58,7 +58,6 @@ import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.data.repository.creatingStore
 import se.partee71.dagboken.data.repository.reminders
-import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryEditor
@@ -69,6 +68,7 @@ import se.partee71.dagboken.ui.common.hasErrorOutside
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.nonBlank
+import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
@@ -153,7 +153,7 @@ class DoseEditViewModel @AssistedInject constructor(
     private val zones: Provider<TimeZone>,
     @Assisted("id") id: String?,
     @Assisted("prnId") prnId: String?,
-    @Assisted date: LocalDate?,
+    @Assisted date: LocalDate?
 ) : ViewModel() {
     val mode: DoseMode = when {
         id != null -> DoseMode.EDIT
@@ -204,7 +204,7 @@ class DoseEditViewModel @AssistedInject constructor(
         confirmSave = ::mayLog,
         errorMessage = ::doseErrorText,
         // Medicinen kl. nu den visade dagen är ett riktigt svar; en engångsdos kräver ändå ett namn.
-        saveUnchanged = mode == DoseMode.AS_NEEDED,
+        saveUnchanged = mode == DoseMode.AS_NEEDED
     )
 
     val editor: EditorState<Dose> = form.editor
@@ -241,18 +241,17 @@ class DoseEditViewModel @AssistedInject constructor(
     }
 
     /** Kontrollen vid den valda tiden, om igen när tiden eller doserna ändras – ett läsfel visar ingen kontroll (sparandet prövar ändå). */
-    private fun checks(): Flow<PrnCheck?> =
-        combine(_medicine, editor.state.map { it.value.takenAt }.distinctUntilChanged()) { medicine, at -> medicine to at }
-            .flatMapLatest { (medicine, at) ->
-                if (medicine == null || at == null) {
-                    flowOf(null)
-                } else {
-                    val zone = zone
-                    val days = medicine.checkDays(at, zone)
-                    doses.observeDays(days.start, days.endInclusive).withFallback(emptyList()).map { medicine.checkDose(it, at, zone) }
-                }
+    private fun checks(): Flow<PrnCheck?> = combine(_medicine, editor.state.map { it.value.takenAt }.distinctUntilChanged()) { medicine, at -> medicine to at }
+        .flatMapLatest { (medicine, at) ->
+            if (medicine == null || at == null) {
+                flowOf(null)
+            } else {
+                val zone = zone
+                val days = medicine.checkDays(at, zone)
+                doses.observeDays(days.start, days.endInclusive).withFallback(emptyList()).map { medicine.checkDose(it, at, zone) }
             }
-            .distinctUntilChanged()
+        }
+        .distinctUntilChanged()
 
     /** FAV-4: med en pågående kylperiod frågar "För tidigt" först – "Ta ändå" sparar ([confirmCooldown]). */
     private fun mayLog(value: Dose): Boolean {
@@ -270,11 +269,13 @@ class DoseEditViewModel @AssistedInject constructor(
         val result = doses.logAsNeeded(medicine, at, force = isConfirmed(at), note = dose.note).mapCatching { log ->
             when (val check = log.check) {
                 PrnCheck.Allowed -> Unit
+
                 is PrnCheck.Cooldown -> {
                     // Kylperioden hann börja efter kontrollen i formuläret: fråga nu.
                     _cooldown.value = CooldownPrompt(medicine, check.remaining)
                     throw AsNeededBlocked()
                 }
+
                 PrnCheck.DailyLimitReached -> throw AsNeededBlocked()
             }
         }
@@ -307,7 +308,7 @@ class AsNeededState(
     val check: PrnCheck? = null,
     val cooldown: CooldownPrompt? = null,
     val onConfirmCooldown: () -> Unit = {},
-    val onDismissCooldown: () -> Unit = {},
+    val onDismissCooldown: () -> Unit = {}
 )
 
 @Composable
@@ -324,7 +325,7 @@ fun DoseEditRoute(id: String?, prnId: String?, date: LocalDate?, onClose: () -> 
         viewModel.zone,
         AsNeededState(medicine, check, cooldown, viewModel::confirmCooldown, viewModel::dismissCooldown),
         // En lagrad dos visas först när inställningarna lästs (`afterReminders`); en ny dos har inget recept och inget schema.
-        reminders ?: ReminderSettings(),
+        reminders ?: ReminderSettings()
     )
 }
 
@@ -341,7 +342,7 @@ fun DoseEditScreen(
     mode: DoseMode,
     zone: TimeZone,
     asNeeded: AsNeededState = AsNeededState(),
-    reminders: ReminderSettings = ReminderSettings(),
+    reminders: ReminderSettings = ReminderSettings()
 ) {
     val state = form.state
     val d = form.value
@@ -355,7 +356,7 @@ fun DoseEditScreen(
                 DoseMode.NEW -> R.string.dose_new
                 DoseMode.AS_NEEDED -> R.string.dose_log_later
                 DoseMode.EDIT -> R.string.dose_edit
-            },
+            }
         ),
         state = state,
         events = form.events,
@@ -368,7 +369,7 @@ fun DoseEditScreen(
             entryDeleteAction(R.string.diary_subject_dose, title, stored.date, stored.shownTime(zone, reminders), skips = stored.isPrescribed) { form.onEvent(EntryEditEvent.Delete) }
         },
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
+        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null
     ) {
         when {
             mode == DoseMode.AS_NEEDED -> asNeeded.medicine?.let { MedicineInfo(medicineTitle(it.displayName, it.dose, it.unit), prnLimits(it), help = null) }
@@ -383,7 +384,7 @@ fun DoseEditScreen(
                 stringResource(R.string.dose_taken),
                 d.status == DoseStatus.TAKEN,
                 { taken -> form.change(DoseField.TAKEN_AT) { it.withTaken(taken, zone, reminders) } },
-                subtitle = stringResource(R.string.dose_taken_help),
+                subtitle = stringResource(R.string.dose_taken_help)
             )
         }
         AppCard {

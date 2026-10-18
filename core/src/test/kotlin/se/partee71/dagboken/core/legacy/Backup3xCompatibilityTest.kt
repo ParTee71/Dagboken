@@ -61,7 +61,7 @@ class Backup3xCompatibilityTest {
             se.partee71.dagboken.core.legacy.threex.SjukdomsEpisodJson::class, se.partee71.dagboken.core.legacy.threex.SjukdomsIncheckningJson::class,
             se.partee71.dagboken.core.legacy.threex.HandelseJson::class, se.partee71.dagboken.core.legacy.threex.NoteJson::class,
             se.partee71.dagboken.core.legacy.threex.ScreeningEventConfigJson::class, se.partee71.dagboken.core.legacy.threex.MedNotificationConfigJson::class,
-            se.partee71.dagboken.core.legacy.threex.SymptomOptionBackup::class,
+            se.partee71.dagboken.core.legacy.threex.SymptomOptionBackup::class
         ).associate { it.simpleName!! to LegacyFixtures.fields(it).map { f -> f.name }.toSet() }
         assertEquals(theirs, ours)
         assertTrue(theirs.isNotEmpty())

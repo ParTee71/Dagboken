@@ -17,5 +17,4 @@ internal fun at(date: LocalDate, time: String): Instant = LocalDateTime(date, Lo
 internal fun local(dateTime: String): Instant = LocalDateTime.parse(dateTime).toInstant(STOCKHOLM)
 
 /** En sömnsession i Stockholmstid, med valfria stadier. */
-internal fun sleep(from: String, to: String, stages: List<SleepStageSlice> = emptyList(), origin: String = "watch") =
-    SleepSession(origin, local(from), local(to), stages)
+internal fun sleep(from: String, to: String, stages: List<SleepStageSlice> = emptyList(), origin: String = "watch") = SleepSession(origin, local(from), local(to), stages)

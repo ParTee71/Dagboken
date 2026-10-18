@@ -72,7 +72,10 @@ class AuthScreensTest {
     @Test
     fun `SignInScreen - fel`() {
         rule.mainClock.autoAdvance = false
-        rule.captureLightAndDark("SignInScreen_fel", settle = { waitForIdle(); mainClock.advanceTimeBy(SNACKBAR_VISIBLE_MS) }) {
+        rule.captureLightAndDark("SignInScreen_fel", settle = {
+            waitForIdle()
+            mainClock.advanceTimeBy(SNACKBAR_VISIBLE_MS)
+        }) {
             AppRootContent(AuthUiState(AuthGate.SignedOut, error = DataError.Unknown), {})
         }
     }

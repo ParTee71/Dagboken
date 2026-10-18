@@ -31,7 +31,7 @@ fun TimeField(
     onTimeChange: (LocalTime) -> Unit,
     modifier: Modifier = Modifier,
     error: String? = null,
-    helper: String? = null,
+    helper: String? = null
 ) {
     var picking by rememberSaveable { mutableStateOf(false) }
     val pickLabel = stringResource(R.string.pick_time)
@@ -43,10 +43,13 @@ fun TimeField(
         onPick = { picking = true },
         modifier = modifier,
         error = error,
-        helper = helper,
+        helper = helper
     )
     if (picking) {
-        TimePickerPopup(time, pickLabel, onPick = { onTimeChange(it); picking = false }, onDismiss = { picking = false })
+        TimePickerPopup(time, pickLabel, onPick = {
+            onTimeChange(it)
+            picking = false
+        }, onDismiss = { picking = false })
     }
 }
 
@@ -59,7 +62,7 @@ internal fun TimePickerPopup(time: LocalTime, title: String, onPick: (LocalTime)
         confirmButton = { AppButton(stringResource(R.string.ok), onClick = { onPick(LocalTime(state.hour, state.minute)) }, variant = ButtonVariant.Text) },
         title = { Text(title, style = AppTypography.sectionTitle) },
         dismissButton = { AppButton(stringResource(R.string.cancel), onDismiss, variant = ButtonVariant.Text) },
-        containerColor = AppColors.extended.card,
+        containerColor = AppColors.extended.card
     ) {
         TimePicker(state)
     }

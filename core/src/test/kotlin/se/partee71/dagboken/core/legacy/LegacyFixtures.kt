@@ -38,19 +38,18 @@ object LegacyFixtures {
         return RoomFixture(
             tables = ExportFormat.fromJson(root.getValue("tables")) as Map<String, List<Row>>,
             preferences = ExportFormat.fromJson(root.getValue("preferences")) as Map<String, Any?>,
-            createdAt = root.getValue("createdAt").jsonPrimitive.content,
+            createdAt = root.getValue("createdAt").jsonPrimitive.content
         )
     }
 
     /** Kolumnnamnen per tabell i Room-schemat v11 (`room-schema-11.json`, kopia av 3.x `11.json`). */
-    fun schemaColumns(): Map<String, List<String>> =
-        Json.parseToJsonElement(text("room-schema-11.json")).jsonObject.getValue("database").jsonObject.getValue("entities").let { entities ->
-            entities.let { it as kotlinx.serialization.json.JsonArray }.associate { entity ->
-                val obj = entity.jsonObject
-                obj.getValue("tableName").jsonPrimitive.content to
-                    (obj.getValue("fields") as kotlinx.serialization.json.JsonArray).map { it.jsonObject.getValue("columnName").jsonPrimitive.content }
-            }
+    fun schemaColumns(): Map<String, List<String>> = Json.parseToJsonElement(text("room-schema-11.json")).jsonObject.getValue("database").jsonObject.getValue("entities").let { entities ->
+        entities.let { it as kotlinx.serialization.json.JsonArray }.associate { entity ->
+            val obj = entity.jsonObject
+            obj.getValue("tableName").jsonPrimitive.content to
+                (obj.getValue("fields") as kotlinx.serialization.json.JsonArray).map { it.jsonObject.getValue("columnName").jsonPrimitive.content }
         }
+    }
 
     /**
      * Fält för fält per dokument mot den förväntade exporten [name] (ett tydligt fel per avvikelse), och
@@ -73,7 +72,7 @@ object LegacyFixtures {
     val BACKUP_CLASSES: List<KClass<*>> = listOf(
         BackupJson::class, SettingsBackup::class, AktivitetJson::class, MedicinJson::class, ReceptJson::class, DosperiodJson::class,
         FavoritJson::class, SjukdomsEpisodJson::class, SjukdomsIncheckningJson::class, HandelseJson::class, NoteJson::class,
-        ScreeningEventConfigJson::class, MedNotificationConfigJson::class, SymptomOptionBackup::class,
+        ScreeningEventConfigJson::class, MedNotificationConfigJson::class, SymptomOptionBackup::class
     )
 
     /** `Klass.fält` för varje 3.x-fält, i deklarationsordning – paritetstabellens vänsterkolumn. */
@@ -91,7 +90,9 @@ object LegacyFixtures {
         fun visit(value: Any?) {
             when {
                 value == null -> Unit
+
                 value is List<*> -> value.forEach(::visit)
+
                 value::class in BACKUP_CLASSES -> {
                     found.getOrPut(value::class) { mutableListOf() } += value
                     fields(value::class).forEach { visit(it.get(value)) }

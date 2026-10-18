@@ -40,7 +40,7 @@ fun AddSplitButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     menuItems: List<AppMenuItem> = emptyList(),
-    menuDescription: String = stringResource(R.string.more_options),
+    menuDescription: String = stringResource(R.string.more_options)
 ) {
     if (menuItems.isEmpty()) {
         AppButton(label, onClick, modifier, variant = ButtonVariant.Secondary, icon = R.drawable.ic_add)
@@ -63,15 +63,15 @@ fun AddSplitButton(
                     checked = expanded,
                     onCheckedChange = { expanded = it },
                     modifier = Modifier.heightIn(min = HEIGHT),
-                    colors = colors,
+                    colors = colors
                 ) {
                     Icon(
                         painterResource(R.drawable.ic_expand_more),
                         contentDescription = menuDescription,
-                        modifier = Modifier.size(IconSize.button).rotate(rotation),
+                        modifier = Modifier.size(IconSize.button).rotate(rotation)
                     )
                 }
-            },
+            }
         )
         AppMenuPopup(menuItems, expanded, onDismiss = { expanded = false })
     }

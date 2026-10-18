@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.diary
 
+import android.content.res.Resources
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,7 +15,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import android.content.res.Resources
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
@@ -39,10 +39,10 @@ import se.partee71.dagboken.ui.common.scaleValueText
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.AccountAvatar
 import se.partee71.dagboken.ui.components.AppButton
-import se.partee71.dagboken.ui.components.AppLoading
 import se.partee71.dagboken.ui.components.AppCard
 import se.partee71.dagboken.ui.components.AppFilterChip
 import se.partee71.dagboken.ui.components.AppIconButton
+import se.partee71.dagboken.ui.components.AppLoading
 import se.partee71.dagboken.ui.components.ButtonVariant
 import se.partee71.dagboken.ui.components.ChipRow
 import se.partee71.dagboken.ui.components.DagbokenCalendar
@@ -62,7 +62,7 @@ fun DiaryRoute(
     account: AuthUser?,
     onAccount: () -> Unit,
     onOpen: (DiaryEntry) -> Unit,
-    viewModel: DiaryViewModel = hiltViewModel(),
+    viewModel: DiaryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val controls by viewModel.controls.collectAsStateWithLifecycle()
@@ -86,7 +86,7 @@ fun DiaryScreen(
     failure: Failure?,
     onEvent: (DiaryEvent) -> Unit,
     onOpen: (DiaryEntry) -> Unit,
-    avatar: @Composable () -> Unit = {},
+    avatar: @Composable () -> Unit = {}
 ) {
     val resources = LocalResources.current
     // Rubriken formateras en gång per dag, inte per rad; lambdan är stabil så länge dagen och resurserna är det.
@@ -114,7 +114,7 @@ fun DiaryScreen(
         },
         filter = { FilterChips(controls, onEvent) },
         header = if (calendar) ({ Calendar(controls, onEvent) }) else null,
-        footer = if (calendar) null else ({ ShowOlder(controls.years, controls.loadingOlder, onEvent) }),
+        footer = if (calendar) null else ({ ShowOlder(controls.years, controls.loadingOlder, onEvent) })
     ) { row ->
         when (row) {
             is DiaryRow.Entry -> EntryCard(row, onEvent, onOpen)
@@ -140,7 +140,7 @@ private fun ViewButton(view: DiaryView, current: DiaryView, icon: Int, @StringRe
         stringResource(label),
         { onEvent(DiaryEvent.ShowView(view)) },
         Modifier.semantics { selected = chosen },
-        variant = if (chosen) IconButtonVariant.Tonal else IconButtonVariant.Plain,
+        variant = if (chosen) IconButtonVariant.Tonal else IconButtonVariant.Plain
     )
 }
 
@@ -184,11 +184,13 @@ private fun emptyContent(controls: DiaryControls): EmptyContent {
     val single = filter.types.singleOrNull()
     return when {
         filter.showsAll -> EmptyContent(R.drawable.ic_book, stringResource(R.string.diary_empty_title), stringResource(R.string.diary_empty_message, period))
+
         single != null -> EmptyContent(
             R.drawable.ic_book,
             stringResource(single.emptyTitle),
-            stringResource(R.string.diary_empty_type_message, stringResource(single.chip), period),
+            stringResource(R.string.diary_empty_type_message, stringResource(single.chip), period)
         )
+
         else -> EmptyContent(R.drawable.ic_book, stringResource(R.string.diary_empty_title), stringResource(R.string.diary_empty_selected_message, period))
     }
 }
@@ -204,7 +206,7 @@ private fun Calendar(controls: DiaryControls, onEvent: (DiaryEvent) -> Unit) {
             selectedDate = controls.selected,
             onDateClick = { onEvent(DiaryEvent.SelectDate(it)) },
             today = controls.today,
-            dimFuture = true,
+            dimFuture = true
         )
     }
 }
@@ -218,7 +220,7 @@ private fun ShowOlder(years: Int, loading: Boolean, onEvent: (DiaryEvent) -> Uni
         Modifier.fillMaxWidth(),
         variant = ButtonVariant.Secondary,
         icon = R.drawable.ic_expand_more,
-        loading = loading,
+        loading = loading
     )
 }
 
@@ -233,36 +235,41 @@ private fun cardText(row: DiaryRow.Entry): CardText = when (val entry = row.entr
         // Typen står i titeln när posten saknar tillfälle; undertexten har stressen, inte "Mående" en gång till.
         CardText(title, subtitle(entry.time, stringResource(R.string.diary_stress_format, s.stress)), stringResource(R.string.diary_energy_format, scaleValueText(s.energy)), scaleLevel(s.energy).tone)
     }
+
     is DiaryEntry.Action -> {
         val a = entry.activity
         val title = a.customText.nonBlank() ?: row.optionName ?: stringResource(R.string.log_activity)
         val detail = a.minutes?.let { durationText(it) } ?: stringResource(R.string.log_activity)
         CardText(title, subtitle(entry.time, detail), stringResource(R.string.diary_energy_format, scaleValueText(a.energy, DocumentRules.ACTIVITY_ENERGY)), scaleLevel(a.energy, DocumentRules.ACTIVITY_ENERGY).tone)
     }
+
     is DiaryEntry.TakenDose -> {
         val d = entry.dose
         CardText(medicineTitle(d.displayName, d.dose, d.unit), subtitle(entry.time, stringResource(d.slot.label())))
     }
+
     is DiaryEntry.Happening -> {
         val e = entry.event
         val detail = e.durationMinutes.takeIf { it > 0 }?.let { durationText(it) } ?: stringResource(R.string.log_event)
         val level = scaleLevel(e.severity, higherIsBetter = false)
         CardText(row.optionName ?: stringResource(R.string.log_event), subtitle(entry.time, detail), stringResource(R.string.diary_severity_format, e.severity), level.tone)
     }
+
     is DiaryEntry.CheckIn -> CardText(
         entry.episode.title(),
         subtitle(entry.time, stringResource(R.string.diary_subtitle_format, stringResource(R.string.diary_checkin), stringResource(R.string.diary_severity_format, entry.checkin.severity))),
         entry.day?.let { stringResource(R.string.today_illness_day_format, it) },
-        Tone.Warning,
+        Tone.Warning
     )
+
     is DiaryEntry.EpisodeStart -> CardText(entry.episode.title(), stringResource(R.string.diary_episode_started), entry.day?.let { stringResource(R.string.today_illness_day_format, it) }, Tone.Warning)
+
     is DiaryEntry.EpisodeEnd -> CardText(entry.episode.title(), stringResource(R.string.diary_episode_ended), entry.day?.let { stringResource(R.string.today_illness_day_format, it) }, Tone.Warning)
 }
 
 /** "08:15 · Mående" – klockslaget först (HIST-7); utan klockslag bara [detail]. */
 @Composable
-private fun subtitle(time: LocalTime?, detail: String): String =
-    time?.let { stringResource(R.string.diary_subtitle_format, DateFormat.time(it), detail) } ?: detail
+private fun subtitle(time: LocalTime?, detail: String): String = time?.let { stringResource(R.string.diary_subtitle_format, DateFormat.time(it), detail) } ?: detail
 
 /** Postkortet (NFR-15/16): tryck öppnar, ⋮ och långtryck = Redigera · Ta bort, svep begär radering (HIST-5). */
 @Composable
@@ -287,7 +294,7 @@ private fun EntryCard(row: DiaryRow.Entry, onEvent: (DiaryEvent) -> Unit, onOpen
             // MED-15 (som 3.x): en receptdos markeras överhoppad i stället för att raderas.
             val skips = entry is DiaryEntry.TakenDose && entry.dose.isPrescribed
             entryDeleteAction(format, text.title, entry.date, entry.time, skips) { onEvent(DiaryEvent.Delete(entry)) }
-        },
+        }
     )
 }
 

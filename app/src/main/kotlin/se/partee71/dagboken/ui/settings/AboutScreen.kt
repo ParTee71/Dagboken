@@ -42,7 +42,7 @@ data class AboutInfo(val versionName: String, val versionCode: Int, val licenses
 class AboutViewModel @Inject constructor(
     @ApplicationContext context: Context,
     medicines: MedicineRepository,
-    @param:IoDispatcher io: CoroutineDispatcher,
+    @param:IoDispatcher io: CoroutineDispatcher
 ) : ViewModel() {
     private val loader = DetailLoader(
         flow {
@@ -50,7 +50,7 @@ class AboutViewModel @Inject constructor(
             emit(AboutInfo(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, licenses, medicines.updated()))
         }
             .flowOn(io),
-        viewModelScope,
+        viewModelScope
     )
     val state: StateFlow<DetailUiState<AboutInfo>> = loader.state
 
@@ -76,7 +76,7 @@ fun AboutScreen(state: DetailUiState<AboutInfo>, onBack: () -> Unit, onRetry: ()
         header = null,
         onBack = onBack,
         title = stringResource(R.string.settings_about),
-        onRetry = onRetry,
+        onRetry = onRetry
     ) { about ->
         AppCard {
             ItemRow(stringResource(R.string.about_version), subtitle = stringResource(R.string.about_build_format, about.versionName, about.versionCode))

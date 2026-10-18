@@ -37,9 +37,9 @@ fun SignInScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Mod
                     onClick = { onEvent(AuthEvent.SignIn(context)) },
                     modifier = Modifier.fillMaxWidth(),
                     icon = R.drawable.ic_login,
-                    loading = state.busy,
+                    loading = state.busy
                 )
             }
-        },
+        }
     )
 }

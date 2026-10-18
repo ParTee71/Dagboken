@@ -7,9 +7,9 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.IsoFields
 import java.util.Locale
 import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.toJavaLocalDate
 import se.partee71.dagboken.R
 
@@ -36,8 +36,7 @@ object DateFormat {
      * "tis 6 okt" – en dag i episoden utan år (sjukdomsdetaljens incheckningar och senaste svårighet, SJ-5); [capitalized]
      * ger "Tis 6 okt" som rubrik på ett postkort.
      */
-    fun weekdayDay(date: LocalDate, capitalized: Boolean = false): String =
-        weekdayShortDay.format(date.toJavaLocalDate()).replace(".", "").let { if (capitalized) it.replaceFirstChar { c -> c.titlecase(swedish) } else it }
+    fun weekdayDay(date: LocalDate, capitalized: Boolean = false): String = weekdayShortDay.format(date.toJavaLocalDate()).replace(".", "").let { if (capitalized) it.replaceFirstChar { c -> c.titlecase(swedish) } else it }
 
     /** "oktober 2026" – kalenderns rubrik. */
     fun month(date: LocalDate): String = monthYear.format(date.toJavaLocalDate())
@@ -55,12 +54,10 @@ object DateFormat {
      * "Söndag 4 oktober" – Idags rubrikrad (HEM-2) och Dagbokens dagar (HIST-1), med stor bokstav först;
      * [withYear] lägger till året ("Lördag 4 oktober 2025") för en dag ett annat år.
      */
-    fun dayAndMonth(date: LocalDate, withYear: Boolean = false): String =
-        weekdayDayAndMonth(date, withYear).replaceFirstChar { it.titlecase(swedish) }
+    fun dayAndMonth(date: LocalDate, withYear: Boolean = false): String = weekdayDayAndMonth(date, withYear).replaceFirstChar { it.titlecase(swedish) }
 
     /** "söndag 4 oktober" – som [dayAndMonth] efter en etikett ("Idag · söndag 4 oktober", HIST-1). */
-    fun weekdayDayAndMonth(date: LocalDate, withYear: Boolean = false): String =
-        (if (withYear) dayMonthYear else dayMonth).format(date.toJavaLocalDate())
+    fun weekdayDayAndMonth(date: LocalDate, withYear: Boolean = false): String = (if (withYear) dayMonthYear else dayMonth).format(date.toJavaLocalDate())
 
     /** ISO-veckans nummer (HEM-2): veckan börjar på måndag och vecka 1 har årets första torsdag. */
     fun isoWeek(date: LocalDate): Int = date.toJavaLocalDate().get(IsoFields.WEEK_OF_WEEK_BASED_YEAR)

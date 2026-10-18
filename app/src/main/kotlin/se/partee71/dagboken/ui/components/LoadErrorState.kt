@@ -18,8 +18,10 @@ internal fun LoadErrorState(title: String, error: DataError, onRetry: () -> Unit
         modifier = modifier,
         isError = true,
         // Något som inte finns längre blir inte bättre av ett nytt försök – då bara tillbaka.
-        action = if (error == DataError.NotFound) null else {
+        action = if (error == DataError.NotFound) {
+            null
+        } else {
             { AppButton(stringResource(R.string.retry), onRetry, Modifier.fillMaxWidth(), variant = ButtonVariant.Secondary) }
-        },
+        }
     )
 }

@@ -58,7 +58,7 @@ fun LineChart(
     emptyTitle: String = stringResource(R.string.chart_empty_title),
     axis: SmartYAxis? = null,
     showCaption: Boolean = true,
-    footnote: String? = null,
+    footnote: String? = null
 ) {
     val colors = chartColors
     val single = series.size == 1
@@ -89,10 +89,10 @@ fun LineChart(
                     min = all.min,
                     max = all.max,
                     average = if (single) summarize(current.single().points)?.average else null,
-                    trend = if (single) computeTrendLine(current.single().points)?.direction else null,
+                    trend = if (single) computeTrendLine(current.single().points)?.direction else null
                 )
             }
-        },
+        }
     ) {
         // Temats färger ingår i nyckeln: ett temabyte utan att aktiviteten skapas om ska rita om kurvorna.
         val lines = remember(current, earlier, colors) { linePlot(current, earlier, trendColor = if (single) colors.trend else null) }
@@ -113,8 +113,7 @@ internal fun linePlot(current: List<ChartSeries>, previous: List<ChartSeries>, t
     fun curves(series: List<ChartSeries>, points: Boolean, area: Boolean) = series.flatMap { s ->
         gapFreeRuns(s.points).map { it.toPlotLine(PlotStyle(checkNotNull(s.color), area = area, points = points)) }
     }
-    fun trends(series: List<ChartSeries>, color: (ChartSeries) -> Color) =
-        series.mapNotNull { s -> trendSegment(s.points)?.toPlotLine(color(s)) }
+    fun trends(series: List<ChartSeries>, color: (ChartSeries) -> Color) = series.mapNotNull { s -> trendSegment(s.points)?.toPlotLine(color(s)) }
     return curves(previous, points = false, area = false) +
         curves(current, points = true, area = true) +
         trends(previous) { checkNotNull(it.color) } +
@@ -126,8 +125,7 @@ private fun lineLegend(
     previous: List<ChartSeries>,
     colors: ChartColors,
     previousFormat: String,
-    trendLabel: String,
-): List<LegendItem> =
-    current.map { LegendItem(it.label, checkNotNull(it.color)) } +
-        previous.map { LegendItem(previousFormat.format(it.label), checkNotNull(it.color)) } +
-        LegendItem(trendLabel, if (current.size == 1) colors.trend else colors.label, LegendMark.Dashed)
+    trendLabel: String
+): List<LegendItem> = current.map { LegendItem(it.label, checkNotNull(it.color)) } +
+    previous.map { LegendItem(previousFormat.format(it.label), checkNotNull(it.color)) } +
+    LegendItem(trendLabel, if (current.size == 1) colors.trend else colors.label, LegendMark.Dashed)

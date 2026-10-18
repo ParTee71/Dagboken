@@ -42,8 +42,8 @@ class MostCompleteSourceTest {
         val sum = mostCompleteSum(
             listOf(
                 StepSample("phone", morning, morning + 60.minutes, 3000),
-                StepSample("watch", afternoon, afternoon + 60.minutes, 5000),
-            ),
+                StepSample("watch", afternoon, afternoon + 60.minutes, 5000)
+            )
         )
         assertEquals(5000.0, sum!!, 0.001)
     }
@@ -82,7 +82,7 @@ class MostCompleteSourceTest {
 
     @Test fun `a source's other sessions survive when one of them is a duplicate`() {
         val totals = mostCompleteExercise(
-            listOf(session("watch", "07:00", 45), session("phone", "07:05", 30), session("phone", "16:00", 20)),
+            listOf(session("watch", "07:00", 45), session("phone", "07:05", 30), session("phone", "16:00", 20))
         )
         assertEquals(2, totals!!.sessions)
         assertEquals(65.minutes, totals.duration)
@@ -96,7 +96,7 @@ class MostCompleteSourceTest {
 
     @Test fun `a chain of overlapping sessions collapses into one event`() {
         val totals = mostCompleteExercise(
-            listOf(session("phone", "07:00", 20), session("watch", "07:10", 40), session("ring", "07:30", 25)),
+            listOf(session("phone", "07:00", 20), session("watch", "07:10", 40), session("ring", "07:30", 25))
         )
         assertEquals(1, totals!!.sessions)
         assertEquals(40.minutes, totals.duration)
@@ -104,7 +104,7 @@ class MostCompleteSourceTest {
 
     @Test fun `the order of the input does not matter`() {
         val totals = mostCompleteExercise(
-            listOf(session("phone", "16:00", 20), session("watch", "07:00", 45), session("phone", "07:05", 30)),
+            listOf(session("phone", "16:00", 20), session("watch", "07:00", 45), session("phone", "07:05", 30))
         )
         assertEquals(2, totals!!.sessions)
         assertEquals(65.minutes, totals.duration)

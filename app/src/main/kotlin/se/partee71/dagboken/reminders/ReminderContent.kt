@@ -39,7 +39,7 @@ class ReminderContent @Inject constructor(
     private val doses: DoseRepository,
     private val screenings: ScreeningRepository,
     private val clock: Clock,
-    private val zone: Provider<TimeZone>,
+    private val zone: Provider<TimeZone>
 ) {
     /**
      * NOT-3, NOT-17: doserna medicinpåminnelsen för [slot] på [date] listar – tom när inget är otaget, när

@@ -51,7 +51,7 @@ class EntryEditor<T>(
     private val clean: (loaded: T?, value: T) -> T = { _, value -> value },
     private val confirmSave: (T) -> Boolean = { true },
     errorMessage: (Throwable) -> Int? = { null },
-    saveUnchanged: Boolean = false,
+    saveUnchanged: Boolean = false
 ) {
     /** Det lästa, för valideringen – satt när läsningen finns (formuläret valideras redan när det skapas). */
     private var loaded: () -> T? = { null }
@@ -126,7 +126,7 @@ class EntryForm<T>(
     val state: EditorUiState<T>,
     val events: EditorEvents,
     val onEvent: (EntryEditEvent<T>) -> Unit,
-    val stored: T? = null,
+    val stored: T? = null
 ) {
     val value: T get() = state.value
 
@@ -147,11 +147,10 @@ fun <T> rememberEntryForm(editor: EntryEditor<T>): EntryForm<T> {
  * fält i det kodade värdet som rules skulle neka får [message] – t.ex. en text från verktygen som är längre än taket.
  * [form] lägger till formulärets egna krav (t.ex. att en typ är vald); de går före.
  */
-fun <T> rulesValidator(collection: String, codec: DocCodec<T>, @StringRes message: Int = R.string.field_not_savable, form: (T) -> Map<String, Int> = { emptyMap() }): Validator<T> =
-    Validator { value ->
-        val rules = DocumentRules.validate(collection, codec.encode(value)).associate { it.field.substringBefore('[').substringBefore('.') to message }
-        rules + form(value)
-    }
+fun <T> rulesValidator(collection: String, codec: DocCodec<T>, @StringRes message: Int = R.string.field_not_savable, form: (T) -> Map<String, Int> = { emptyMap() }): Validator<T> = Validator { value ->
+    val rules = DocumentRules.validate(collection, codec.encode(value)).associate { it.field.substringBefore('[').substringBefore('.') to message }
+    rules + form(value)
+}
 
 /** Om ett fel gäller ett fält utanför [shown] – fält som formuläret inte visar ett fel vid, så att ramen visar ett gemensamt (`EntityEditScreen(formError)`). */
 fun EditorUiState<*>.hasErrorOutside(shown: Set<String>): Boolean = errors.keys.any { it !in shown }

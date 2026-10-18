@@ -27,7 +27,7 @@ fun ColorSwatchPicker(selected: String, onSelect: (String) -> Unit, modifier: Mo
         onSelect,
         label = { stringResource(R.string.color_format, names.getOrElse(hexes.indexOf(it)) { "" }) },
         modifier = modifier,
-        columns = COLUMNS,
+        columns = COLUMNS
     ) { hex -> Box(Modifier.fillMaxSize().background(AppColors.swatch(hex), AppShapes.pill)) }
 }
 

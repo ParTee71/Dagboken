@@ -104,7 +104,7 @@ enum class TrendCard(val group: TrendGroup, val hasSeriesPicker: Boolean, val ha
     CALORIES(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
     DISTANCE(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
     OXYGEN(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
-    COMPARE(TrendGroup.COMPARE, hasSeriesPicker = true, hasPreviousPeriod = false),
+    COMPARE(TrendGroup.COMPARE, hasSeriesPicker = true, hasPreviousPeriod = false)
     ;
 
     /**
@@ -150,7 +150,7 @@ data class CardControls(
     val expanded: Boolean = false,
     val range: TrendRange = TrendRange.DEFAULT,
     val previous: Boolean = false,
-    val selected: Set<String> = emptySet(),
+    val selected: Set<String> = emptySet()
 ) {
     /** Tillvalet visas bara för kort som kan jämföra och en period som har en föregående (inte "Allt"). */
     fun showsPrevious(card: TrendCard): Boolean = card.hasPreviousPeriod && range.hasPreviousPeriod
@@ -179,7 +179,7 @@ sealed interface CardData {
         val available: List<SeriesInfo>,
         val shown: List<TrendSerie>,
         val previous: List<TrendSerie>,
-        val needsBirthYear: Boolean = false,
+        val needsBirthYear: Boolean = false
     ) : CardData
 
     /** Händelser och sjukdom (TRD-21). */
@@ -198,7 +198,7 @@ sealed interface CardData {
         val available: List<SeriesInfo>,
         val shown: List<ComparedSerie>,
         val selectedCount: Int,
-        val needsBirthYear: Boolean = false,
+        val needsBirthYear: Boolean = false
     ) : CardData
 }
 
@@ -213,7 +213,7 @@ data class TrendCardState(val controls: CardControls, val data: CardData? = null
 @Immutable
 data class TrendsUiState(
     val group: TrendGroup = TrendGroup.MOOD,
-    val cards: ImmutableMap<TrendCard, TrendCardState> = TrendCard.entries.associateWith { TrendCardState(CardControls(selected = it.defaultSelection)) }.toImmutableMap(),
+    val cards: ImmutableMap<TrendCard, TrendCardState> = TrendCard.entries.associateWith { TrendCardState(CardControls(selected = it.defaultSelection)) }.toImmutableMap()
 )
 
 sealed interface TrendsEvent {
@@ -252,7 +252,7 @@ class TrendsViewModel @Inject constructor(
     permissions: HealthPermissions,
     settings: SettingsRepository,
     clock: Clock,
-    private val zone: Provider<TimeZone>,
+    private val zone: Provider<TimeZone>
 ) : ViewModel() {
     /** Dagens datum, igen vid midnatt – då rensas läsningarna som slutade på gårdagen (ingen nyckel lever kvar per dag). */
     private val today: Flow<LocalDate> = clock.days { zone.get() }.distinctUntilChanged()
@@ -288,16 +288,14 @@ class TrendsViewModel @Inject constructor(
     internal val cachedReads: Int get() = reads.size
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T> shared(source: String, range: ClosedRange<LocalDate>, fallback: T, create: () -> Flow<T>): Flow<T> =
-        reads.getOrPut(source to range) { create().withFallback(fallback).shareIn(viewModelScope, sharing, replay = 1) } as Flow<T>
+    private fun <T> shared(source: String, range: ClosedRange<LocalDate>, fallback: T, create: () -> Flow<T>): Flow<T> = reads.getOrPut(source to range) { create().withFallback(fallback).shareIn(viewModelScope, sharing, replay = 1) } as Flow<T>
 
     /**
      * Dagbokens poster från [from] till [today] (NFR-24), en delad läsning per källa och period: historikläget för hela
      * perioden och lyssnare bara på de senaste 30 dagarna räknat från idag (`recentDays`, perioden Månad) – aldrig på
      * föregående periods eller "Allt"s äldre dagar.
      */
-    private fun <T> dated(source: String, repository: DatedRepository<T>, from: LocalDate, today: LocalDate): Flow<List<T>> =
-        shared(source, from..today, emptyList()) { repository.observeDays(from, today, listOf(recentDays(today))) }
+    private fun <T> dated(source: String, repository: DatedRepository<T>, from: LocalDate, today: LocalDate): Flow<List<T>> = shared(source, from..today, emptyList()) { repository.observeDays(from, today, listOf(recentDays(today))) }
 
     private fun screenings(from: LocalDate, today: LocalDate) = dated("screenings", screenings, from, today)
 
@@ -325,7 +323,7 @@ class TrendsViewModel @Inject constructor(
     private fun illness(to: LocalDate): Flow<Illness> = shared("illness", TrendRange.ALL_FROM..to, Illness(emptyList(), emptyMap())) {
         illnesses.observeEpisodes().combineByKey(
             { episodes -> episodes.map { it.id } },
-            { ids -> if (ids.isEmpty()) flowOf(emptyMap()) else combine(ids.map { id -> illnesses.observeCheckins(id).map { id to it } }) { it.toMap() } },
+            { ids -> if (ids.isEmpty()) flowOf(emptyMap()) else combine(ids.map { id -> illnesses.observeCheckins(id).map { id to it } }) { it.toMap() } }
         ) { episodes, checkins -> Illness(episodes, checkins) }
     }
 
@@ -343,10 +341,9 @@ class TrendsViewModel @Inject constructor(
     }
 
     /** Kortets data medan det är utfällt; ingenting läses i stängt läge (TRD-15). Det senaste står kvar efter ihopfällning. */
-    private fun cardData(card: TrendCard): Flow<CardData?> =
-        combine(controls.map { it.getValue(card) }.distinctUntilChanged(), today) { c, t -> Period(card, c, t) }
-            .flatMapLatest { period -> if (!period.controls.expanded) flowOf(null) else load(period) }
-            .scan(null as CardData?) { last, next -> next ?: last }
+    private fun cardData(card: TrendCard): Flow<CardData?> = combine(controls.map { it.getValue(card) }.distinctUntilChanged(), today) { c, t -> Period(card, c, t) }
+        .flatMapLatest { period -> if (!period.controls.expanded) flowOf(null) else load(period) }
+        .scan(null as CardData?) { last, next -> next ?: last }
 
     private fun load(period: Period): Flow<CardData> {
         val (from, to) = period.from to period.today
@@ -355,25 +352,33 @@ class TrendsViewModel @Inject constructor(
                 val days = period.days(earliestDate(s.map { it.date }))
                 CardData.EnergyDay(days, dailyEnergyPoints(s, days))
             }
+
             TrendCard.ENERGY_OCCASION -> screenings(from, to).map { s -> lines(period, earliestDate(s.map { it.date })) { days -> energyByOccasion(s, days) } }
+
             TrendCard.STRESS -> combine(screenings(from, to), activities(from, to)) { s, a ->
                 lines(period, earliest(s, a)) { days -> stressSeries(s, a, days) }
             }
+
             TrendCard.SYMPTOMS -> combine(screenings(from, to), activities(from, to), symptomNames) { s, a, names ->
                 lines(period, earliest(s, a), names) { days -> symptomSeries(s, a, days) }
             }
+
             TrendCard.EVENTS_ILLNESS -> combine(events(from, to), illness(to)) { e, (episodes, checkins) ->
                 val earliest = earliestDate(e.map { it.date } + episodes.map { it.start } + checkins.values.flatten().map { it.date })
                 val days = period.days(earliest)
                 CardData.EventsIllness(days, eventIllnessTrend(e, episodes, checkins, days))
             }
+
             TrendCard.SLEEP_STAGES -> health(from, to).map { h -> period.days().let { days -> CardData.Stacked(days, sleepStagePoints(h, days)) } }
+
             TrendCard.SLEEP_QUALITY -> combine(health(from, to), profile) { h, p ->
                 val age = ageFromBirthYear(p.birthYear, period.today)
                 lines(period, null) { days -> sleepQualitySeries(h, age, p.sex, days) }.copy(needsBirthYear = age == null)
             }
+
             TrendCard.STEPS, TrendCard.HEART_RATE, TrendCard.SLEEP, TrendCard.EXERCISE, TrendCard.CALORIES, TrendCard.DISTANCE, TrendCard.OXYGEN ->
                 health(from, to).map { h -> lines(period, null) { days -> watchSeries(h, period.card.metrics, days) } }
+
             TrendCard.COMPARE -> compare(period)
         }
     }

@@ -43,7 +43,7 @@ class ArchiveActions(
     private val scope: CoroutineScope,
     private val setArchived: suspend (id: String, archived: Boolean) -> Result<Unit>,
     @param:StringRes private val undoFormat: Int = R.string.archived_format,
-    private val errorMessage: (Throwable) -> Int? = { null },
+    private val errorMessage: (Throwable) -> Int? = { null }
 ) {
     private val _showingArchived = MutableStateFlow(false)
     val showingArchived: StateFlow<Boolean> = _showingArchived.asStateFlow()
@@ -56,8 +56,7 @@ class ArchiveActions(
     val failure: StateFlow<Failure?> = _failure.asStateFlow()
 
     /** Aktiva först; arkiverade sist och bara när de visas. Ordningen i övrigt behålls. */
-    fun <T : Archivable> visible(source: Flow<List<T>>): Flow<List<T>> =
-        combine(source, _showingArchived) { all, showArchived -> all.filter { showArchived || !it.archived }.sortedBy { it.archived } }
+    fun <T : Archivable> visible(source: Flow<List<T>>): Flow<List<T>> = combine(source, _showingArchived) { all, showArchived -> all.filter { showArchived || !it.archived }.sortedBy { it.archived } }
 
     /** Ett fel från en annan skrivning i samma lista (t.ex. en avprickning) visas på samma sätt. */
     fun report(error: DataError) {
@@ -75,13 +74,17 @@ class ArchiveActions(
             is ArchiveEvent.Archive -> scope.launch {
                 if (!failed(setArchived(event.id, true))) _undo.value = UndoRequest(event.id, event.name, undoFormat)
             }
+
             ArchiveEvent.Undo -> {
                 val request = _undo.value ?: return
                 _undo.value = null
                 scope.launch { failed(setArchived(request.id, false)) }
             }
+
             ArchiveEvent.UndoDismissed -> _undo.value = null
+
             ArchiveEvent.ToggleArchived -> _showingArchived.value = !_showingArchived.value
+
             ArchiveEvent.ErrorShown -> _failure.value = null
         }
     }

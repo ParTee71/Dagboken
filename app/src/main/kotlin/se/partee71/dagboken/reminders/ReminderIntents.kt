@@ -85,8 +85,7 @@ sealed interface ReminderLaunch {
         }
 
         /** Det [intent] ber om, eller `null` för en vanlig start (eller okända värden). */
-        fun from(intent: Intent?): ReminderLaunch? =
-            intent?.let { parse(it.getStringExtra(ReminderIntents.EXTRA_OPEN), it.getStringExtra(ReminderIntents.EXTRA_OCCASION)) }
+        fun from(intent: Intent?): ReminderLaunch? = intent?.let { parse(it.getStringExtra(ReminderIntents.EXTRA_OPEN), it.getStringExtra(ReminderIntents.EXTRA_OCCASION)) }
 
         /**
          * Sparar [launch] – ännu inte hanterad – i aktivitetens tillstånd, så att den överlever en rotation: bara
@@ -99,8 +98,7 @@ sealed interface ReminderLaunch {
         }
 
         /** Det [save] sparade, eller `null`. */
-        fun restore(state: Bundle?): ReminderLaunch? =
-            state?.let { parse(it.getString(ReminderIntents.EXTRA_OPEN), it.getString(ReminderIntents.EXTRA_OCCASION)) }
+        fun restore(state: Bundle?): ReminderLaunch? = state?.let { parse(it.getString(ReminderIntents.EXTRA_OPEN), it.getString(ReminderIntents.EXTRA_OCCASION)) }
 
         /** Bara kända värden; ett okänt tillfälle för "Logga nu" öppnar Idag. */
         private fun parse(open: String?, occasion: String?): ReminderLaunch? = when (open) {

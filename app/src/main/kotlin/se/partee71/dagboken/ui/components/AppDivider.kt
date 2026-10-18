@@ -14,6 +14,6 @@ fun AppDivider(modifier: Modifier = Modifier) {
     HorizontalDivider(
         modifier.padding(horizontal = Spacing.m),
         thickness = 1.dp,
-        color = MaterialTheme.colorScheme.outlineVariant,
+        color = MaterialTheme.colorScheme.outlineVariant
     )
 }

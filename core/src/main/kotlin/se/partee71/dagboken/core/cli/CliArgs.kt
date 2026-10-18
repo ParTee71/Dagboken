@@ -26,11 +26,13 @@ class CliArgs private constructor(val values: Map<String, String>, val switches:
                         if (!seen.add(arg)) return null
                         i += 1
                     }
+
                     in flags -> {
                         val value = args.getOrNull(i + 1)?.takeUnless { it.startsWith("--") } ?: return null
                         if (values.put(arg, value) != null) return null
                         i += 2
                     }
+
                     else -> return null
                 }
             }

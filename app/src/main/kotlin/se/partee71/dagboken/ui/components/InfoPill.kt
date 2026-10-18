@@ -42,13 +42,13 @@ fun InfoPill(
     @DrawableRes trailingIcon: Int? = null,
     role: Role = Role.Button,
     onClickLabel: String? = null,
-    colors: ToneColors = AppColors.tone(tone),
+    colors: ToneColors = AppColors.tone(tone)
 ) {
     val click = onClick?.let { Modifier.minimumInteractiveComponentSize().clip(AppShapes.pill).clickable(onClickLabel = onClickLabel, role = role, onClick = it) } ?: Modifier
     Row(
         modifier.then(click).background(colors.container, AppShapes.pill).padding(horizontal = Spacing.m, vertical = Spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         icon?.let { Icon(painterResource(it), contentDescription = null, tint = colors.content, modifier = Modifier.size(IconSize.pill)) }
         Text(text, style = AppTypography.pill, color = colors.content, maxLines = 1, overflow = TextOverflow.Ellipsis)

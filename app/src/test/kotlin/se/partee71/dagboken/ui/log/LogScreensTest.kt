@@ -34,9 +34,9 @@ import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorState
+import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryForm
-import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.runEditScreenContract
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 
@@ -59,25 +59,24 @@ class LogScreensTest {
         Option("work", OptionKind.ACTIVITY, "Jobb", favorite = true, sortOrder = 1),
         Option("gym", OptionKind.ACTIVITY, "Träning", favorite = true, sortOrder = 2),
         Option("rest", OptionKind.ACTIVITY, "Vila", sortOrder = 3),
-        Option("read", OptionKind.ACTIVITY, "Läsning", sortOrder = 4),
+        Option("read", OptionKind.ACTIVITY, "Läsning", sortOrder = 4)
     )
     private val symptoms = listOf(
         Option("headache", OptionKind.SYMPTOM, "Huvudvärk", favorite = true),
         Option("tired", OptionKind.SYMPTOM, "Trötthet", sortOrder = 1),
-        Option(OTHER_SYMPTOM_ID, OptionKind.SYMPTOM, "Övrigt", sortOrder = 2),
+        Option(OTHER_SYMPTOM_ID, OptionKind.SYMPTOM, "Övrigt", sortOrder = 2)
     )
     private val eventTypes = listOf(
         Option("migraine", OptionKind.EVENT, "Ögonmigrän", favorite = true, sortOrder = 0),
         Option("dizzy", OptionKind.EVENT, "Yrsel", favorite = true, sortOrder = 1),
-        Option("palpitations", OptionKind.EVENT, "Hjärtklappning", sortOrder = 2),
+        Option("palpitations", OptionKind.EVENT, "Hjärtklappning", sortOrder = 2)
     )
 
     private val walk = Activity("a1", day, LocalTime(14, 20), optionId = "walk", minutes = 45, createdAt = created)
     private val other = walk.copy(optionId = OTHER_ACTIVITY_ID, customText = "Svamplockning", recovering = true, energy = 3, stress = 1)
     private val migraine = Event("e1", day, LocalTime(9, 40), optionId = "migraine", severity = 5, durationMinutes = 30, createdAt = created)
 
-    private fun <T> form(value: T, isNew: Boolean = true, stored: T? = null, onEvent: (EntryEditEvent<T>) -> Unit = {}) =
-        EntryForm(isNew, EditorUiState(value), EditorEvents.None, onEvent, stored)
+    private fun <T> form(value: T, isNew: Boolean = true, stored: T? = null, onEvent: (EntryEditEvent<T>) -> Unit = {}) = EntryForm(isNew, EditorUiState(value), EditorEvents.None, onEvent, stored)
 
     // ── Aktivitet ─────────────────────────────────────────────────────────
 
@@ -88,7 +87,7 @@ class LogScreensTest {
             editor,
             makeInvalid = { update(ActivityField.TYPE, ActivityField.DESCRIPTION) { it.copy(optionId = OTHER_ACTIVITY_ID) } },
             makeValid = { update(ActivityField.DESCRIPTION) { it.copy(customText = "Svamplockning") } },
-            invalidMessage = "Beskriv aktiviteten",
+            invalidMessage = "Beskriv aktiviteten"
         ) { state, events, onSave, onClose ->
             ActivityEditScreen(EntryForm(true, state, events, { if (it == EntryEditEvent.Save) onSave() }), onClose, activityTypes)
         }
@@ -146,7 +145,7 @@ class LogScreensTest {
                 ActivityEditScreen(
                     EntryForm(false, EditorUiState(tooLong, errors = persistentMapOf(ActivityField.NOTE to R.string.field_not_savable, "minutes" to R.string.field_not_savable), isValid = false), EditorEvents.None, {}),
                     {},
-                    activityTypes,
+                    activityTypes
                 )
             }
         }
@@ -163,7 +162,7 @@ class LogScreensTest {
             editor,
             makeInvalid = { update(EventField.TYPE) { it.copy(optionId = "") } },
             makeValid = { update(EventField.TYPE) { it.copy(optionId = "migraine") } },
-            invalidMessage = "Välj en typ",
+            invalidMessage = "Välj en typ"
         ) { state, events, onSave, onClose ->
             EventEditScreen(EntryForm(true, state, events, { if (it == EntryEditEvent.Save) onSave() }), onClose, eventTypes)
         }
@@ -196,8 +195,8 @@ class LogScreensTest {
             OccasionState(Occasion.BREAKFAST, LocalTime(8, 0), OccasionStatus.LOGGED, listOf(Screening("s1", day, LocalTime(8, 15), Occasion.BREAKFAST, energy = 7, stress = 2))),
             OccasionState(Occasion.LUNCH, LocalTime(12, 0), OccasionStatus.LATE, emptyList()),
             OccasionState(Occasion.DINNER, LocalTime(17, 0), OccasionStatus.SOON, emptyList()),
-            OccasionState(Occasion.BEDTIME, LocalTime(21, 0), OccasionStatus.NOT_LOGGED, emptyList()),
-        ),
+            OccasionState(Occasion.BEDTIME, LocalTime(21, 0), OccasionStatus.NOT_LOGGED, emptyList())
+        )
     )
 
     @Test
@@ -223,7 +222,7 @@ class LogScreensTest {
             EntryForm(false, EditorUiState(other.copy(symptoms = listOf(SymptomScore("headache", 3)), note = "Regn hela vägen"), isDirty = true), EditorEvents.None, {}),
             {},
             activityTypes,
-            symptoms,
+            symptoms
         )
     }
 

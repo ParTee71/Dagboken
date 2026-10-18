@@ -24,7 +24,7 @@ internal fun ErrorSnackbar(
     duration: SnackbarDuration = SnackbarDuration.Short,
     @StringRes message: Int? = null,
     key: Any? = error,
-    onShown: () -> Unit,
+    onShown: () -> Unit
 ) {
     val text = error?.let { stringResource(message ?: it.toMessage()) }?.let { text -> template?.let { stringResource(it, text) } ?: text }
     MessageSnackbar(text, hostState, key = key, duration = duration, onShown = onShown)
@@ -41,7 +41,7 @@ internal fun MessageSnackbar(
     hostState: SnackbarHostState,
     key: Any? = text,
     duration: SnackbarDuration = SnackbarDuration.Short,
-    onShown: () -> Unit,
+    onShown: () -> Unit
 ) {
     val shown by rememberUpdatedState(onShown)
     val current by rememberUpdatedState(text)

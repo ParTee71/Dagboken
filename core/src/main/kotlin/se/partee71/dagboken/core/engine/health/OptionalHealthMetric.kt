@@ -15,5 +15,4 @@ enum class OptionalHealthMetric { EXERCISE, ACTIVE_ENERGY, DISTANCE, OXYGEN_SATU
  * i [granted] påverkar inte svaret. Kan behörigheterna inte läsas ska anroparen inte fråga alls – hellre
  * ingen varning än en som bygger på en gissning.
  */
-fun missingMetrics(granted: Set<String>, permissions: Map<OptionalHealthMetric, String>): Set<OptionalHealthMetric> =
-    permissions.filterValues { it !in granted }.keys
+fun missingMetrics(granted: Set<String>, permissions: Map<OptionalHealthMetric, String>): Set<OptionalHealthMetric> = permissions.filterValues { it !in granted }.keys

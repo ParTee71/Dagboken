@@ -6,6 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -14,17 +15,14 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import kotlinx.coroutines.flow.first
-import se.partee71.dagboken.core.model.Checkin
-import se.partee71.dagboken.core.model.IllnessEpisode
-import se.partee71.dagboken.data.repository.DefaultIllnessRepository
-import se.partee71.dagboken.data.repository.IllnessRepository
 import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.OTHER_ACTIVITY_ID
 import se.partee71.dagboken.core.model.Activity
+import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Event
+import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.SymptomScore
@@ -37,8 +35,10 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.repository.DefaultActivityRepository
 import se.partee71.dagboken.data.repository.DefaultEventRepository
+import se.partee71.dagboken.data.repository.DefaultIllnessRepository
 import se.partee71.dagboken.data.repository.DefaultOptionsRepository
 import se.partee71.dagboken.data.repository.EventRepository
+import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.testing.awaitDone
 import se.partee71.dagboken.testing.awaitFailure
@@ -137,9 +137,9 @@ class LogFormsViewModelTest {
         assertEquals(
             Activity(
                 id, today, LocalTime(14, 20), OTHER_ACTIVITY_ID, "Svamplockning", energy = -3, stress = 2, symptoms = listOf(SymptomScore("h", 4)),
-                recovering = true, drain = true, minutes = 90, createdAt = clock.now(), note = "Regn",
+                recovering = true, drain = true, minutes = 90, createdAt = clock.now(), note = "Regn"
             ),
-            saved,
+            saved
         )
 
         val other = activityForm()
@@ -225,7 +225,7 @@ class LogFormsViewModelTest {
         assertEquals(
             Event(vm.value.id, yesterday, LocalTime(14, 20), "migraine", 8, 120, "Starkt ljus", null, clock.now(), "Aura först"),
             factory.events().get(vm.value.id).getOrThrow(),
-            "trimmat, och en tom text sparas som ingen",
+            "trimmat, och en tom text sparas som ingen"
         )
     }
 
@@ -376,7 +376,7 @@ class LogFormsViewModelTest {
         assertEquals(IllnessEpisode(value.episode.id, "Influensa", yesterday, createdAt = clock.now(), note = "Feber"), illnesses.getEpisode(value.episode.id).getOrThrow())
         assertEquals(
             listOf(Checkin(value.checkin.id, yesterday, LocalTime(14, 20), 8, listOf(SymptomScore("h", 6)), clock.now())),
-            illnesses.observeCheckins(value.episode.id).first(),
+            illnesses.observeCheckins(value.episode.id).first()
         )
     }
 

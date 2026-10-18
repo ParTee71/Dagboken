@@ -30,7 +30,7 @@ fun sleepVitalsByNight(
     heartRate: List<HeartRateSample>,
     oxygen: List<OxygenSample>,
     sleep: SleepWindows,
-    nights: Map<LocalDate, TimeSpan>,
+    nights: Map<LocalDate, TimeSpan>
 ): Map<LocalDate, SleepVitals> {
     if (nights.isEmpty()) return emptyMap()
     val baseline = awakeHeartRateBaseline(heartRate, sleep)
@@ -39,7 +39,7 @@ fun sleepVitalsByNight(
         SleepVitals(
             heartRate = averageBpm(heartRate.during(night) { it.time }),
             baselineHeartRate = baseline,
-            oxygenSaturation = averageOxygen(sortedOxygen.during(night) { it.time }),
+            oxygenSaturation = averageOxygen(sortedOxygen.during(night) { it.time })
         )
     }
 }

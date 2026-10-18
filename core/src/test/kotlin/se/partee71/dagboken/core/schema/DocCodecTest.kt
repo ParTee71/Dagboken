@@ -29,8 +29,10 @@ class DocCodecTest {
         val tags: List<String> = emptyList(),
         override val sortOrder: Int = 0,
         override val archived: Boolean = false,
-        val createdAt: Instant? = null,
-    ) : Identified, Sortable, Archivable
+        val createdAt: Instant? = null
+    ) : Identified,
+        Sortable,
+        Archivable
 
     private object SampleCodec : DocCodec<Sample> {
         override fun encode(value: Sample): Map<String, Any?> = mapOf(
@@ -42,7 +44,7 @@ class DocCodecTest {
             "tags" to value.tags,
             "sortOrder" to value.sortOrder,
             "archived" to value.archived,
-            "createdAt" to value.createdAt,
+            "createdAt" to value.createdAt
         )
 
         override fun decode(id: String, map: Map<String, Any?>) = Sample(
@@ -55,7 +57,7 @@ class DocCodecTest {
             tags = map.stringList("tags"),
             sortOrder = map.int("sortOrder"),
             archived = map.bool("archived"),
-            createdAt = map.instant("createdAt"),
+            createdAt = map.instant("createdAt")
         )
     }
 
@@ -85,7 +87,7 @@ class DocCodecTest {
         tags = listOf("ute", "morgon"),
         sortOrder = 3,
         archived = true,
-        createdAt = Instant.fromEpochSeconds(1_790_000_000),
+        createdAt = Instant.fromEpochSeconds(1_790_000_000)
     )
 
     @Test

@@ -3,13 +3,6 @@
 package se.partee71.dagboken.ui.components
 
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
-import coil3.ImageLoader
-import coil3.SingletonImageLoader
-import coil3.intercept.Interceptor
-import coil3.request.CachePolicy
-import coil3.request.ErrorResult
-import coil3.request.ImageRequest
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,8 +30,8 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsAtLeast
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -50,6 +43,13 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.intercept.Interceptor
+import coil3.request.CachePolicy
+import coil3.request.ErrorResult
+import coil3.request.ImageRequest
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -110,7 +110,12 @@ class TodayComponentsTest {
     fun `datumremsan - svep åt höger ger föregående vecka, åt vänster aldrig en framtida vecka`() {
         var week by mutableStateOf(today)
         val changes = mutableListOf<LocalDate>()
-        show { DateStrip(week, today, {}, { changes += it; week = it }, today = today) }
+        show {
+            DateStrip(week, today, {}, {
+                changes += it
+                week = it
+            }, today = today)
+        }
         day("ons 7 okt 2026").performTouchInput { swipeLeft(startX = right, endX = right - 4 * width) }
         assertEquals(emptyList(), changes)
         day("ons 7 okt 2026").performTouchInput { swipeRight(startX = left, endX = left + 4 * width) }
@@ -174,7 +179,7 @@ class TodayComponentsTest {
                     OccasionStatus.LOGGED,
                     { logged += "frukost" },
                     time = "08:12",
-                    values = listOf(OccasionValue("Energi", 7), OccasionValue("Stress", 4, higherIsBetter = false)),
+                    values = listOf(OccasionValue("Energi", 7), OccasionValue("Stress", 4, higherIsBetter = false))
                 )
                 OccasionRow("Lunch", OccasionStatus.LATE, { logged += "lunch" }, time = "12:00")
                 OccasionRow("Kvällsmat", OccasionStatus.SOON, { logged += "kvällsmat" }, time = "18:00")
@@ -229,7 +234,7 @@ class TodayComponentsTest {
                 OccasionStatus.LOGGED,
                 {},
                 time = "08:12",
-                values = listOf(OccasionValue("Energi", 7), OccasionValue("Stress", 4, higherIsBetter = false)),
+                values = listOf(OccasionValue("Energi", 7), OccasionValue("Stress", 4, higherIsBetter = false))
             )
         }
         val title = rule.onNodeWithText("Efter frukost", useUnmergedTree = true).getUnclippedBoundsInRoot()
@@ -311,8 +316,13 @@ class TodayComponentsTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         SingletonImageLoader.setUnsafe(
             ImageLoader.Builder(context).components {
-                add(Interceptor { chain -> synchronized(requests) { requests += chain.request }; ErrorResult(null, chain.request, IllegalStateException("inget nät i test")) })
-            }.build(),
+                add(
+                    Interceptor { chain ->
+                        synchronized(requests) { requests += chain.request }
+                        ErrorResult(null, chain.request, IllegalStateException("inget nät i test"))
+                    }
+                )
+            }.build()
         )
         try {
             show { AccountAvatar("Anna Berg", {}, photoUrl = "https://exempel.se/anna.jpg") }

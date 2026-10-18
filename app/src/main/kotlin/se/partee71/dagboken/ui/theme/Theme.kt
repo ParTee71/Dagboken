@@ -18,14 +18,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 @Composable
 fun DagbokenTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit,
+    content: @Composable () -> Unit
 ) {
     CompositionLocalProvider(LocalExtendedColors provides if (darkTheme) AppColors.darkExtended else AppColors.lightExtended) {
         MaterialExpressiveTheme(
             colorScheme = if (darkTheme) AppColors.dark else AppColors.light,
             motionScheme = MotionScheme.expressive(),
             typography = AppTypeScale,
-            content = content,
+            content = content
         )
     }
 }

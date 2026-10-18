@@ -18,5 +18,5 @@ import se.partee71.dagboken.data.repository.OptionsRepository
 fun OptionsRepository.choices(
     kind: OptionKind,
     scope: CoroutineScope,
-    sharing: SharingStarted = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+    sharing: SharingStarted = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS)
 ): StateFlow<List<Option>> = observe(kind).distinctUntilChanged().withFallback(emptyList()).stateIn(scope, sharing, emptyList())

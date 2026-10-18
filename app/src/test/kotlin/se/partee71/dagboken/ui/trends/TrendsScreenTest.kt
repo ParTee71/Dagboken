@@ -33,10 +33,10 @@ import se.partee71.dagboken.core.engine.TrendRange
 import se.partee71.dagboken.core.engine.TrendSerie
 import se.partee71.dagboken.core.engine.WATCH_COMPARE_KEYS
 import se.partee71.dagboken.core.engine.WatchMetric
+import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.time.datesBetween
-import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
@@ -70,13 +70,12 @@ class TrendsScreenTest {
         checkins = listOf(null, null, null, null, null, null, null, 6f, 7f, 5f, 4f, 3f, null, 2f),
         episodes = listOf(EpisodeSpan(flu, 7, 13)),
         eventCount = 4,
-        averageSeverity = 5.5f,
+        averageSeverity = 5.5f
     )
 
     private val closed = TrendsUiState()
 
-    private fun TrendsUiState.with(card: TrendCard, controls: CardControls, data: CardData?) =
-        copy(cards = (cards + (card to TrendCardState(controls, data))).toImmutableMap())
+    private fun TrendsUiState.with(card: TrendCard, controls: CardControls, data: CardData?) = copy(cards = (cards + (card to TrendCardState(controls, data))).toImmutableMap())
 
     private val energyOpen = closed.with(TrendCard.ENERGY_DAY, CardControls(expanded = true, range = TrendRange.FOURTEEN_DAYS), CardData.EnergyDay(days, energy))
     private val eventsOpen = closed.with(TrendCard.EVENTS_ILLNESS, CardControls(expanded = true, range = TrendRange.FOURTEEN_DAYS), CardData.EventsIllness(days, eventsTrend))
@@ -84,7 +83,7 @@ class TrendsScreenTest {
         days,
         Occasion.entries.map { SeriesInfo(it.wire, null) },
         shown = listOf(TrendSerie(Occasion.BREAKFAST.wire, listOf(5f, 6f, 5.5f, null, 6f, 7f, 6.5f, null, null, 6f, 7f, 6.5f, 7.5f, 8f))),
-        previous = emptyList(),
+        previous = emptyList()
     )
     private val occasionOpen = closed.with(TrendCard.ENERGY_OCCASION, CardControls(expanded = true, range = TrendRange.FOURTEEN_DAYS, selected = setOf(Occasion.BREAKFAST.wire)), occasionLines)
     private val nothingSelected = closed.with(TrendCard.SYMPTOMS, CardControls(expanded = true), CardData.Lines(days, listOf(SeriesInfo("yrsel", "Yrsel")), emptyList(), emptyList()))
@@ -95,12 +94,18 @@ class TrendsScreenTest {
     /** Hälsa idag som i mockupen (canvas avsnitt 14 · Klocka-Kopplad): träning och syremättnad saknar åtkomst. */
     private val clockMissingTwo = HealthSamples.clock.copy(
         missing = persistentSetOf(OptionalHealthMetric.EXERCISE, OptionalHealthMetric.OXYGEN_SATURATION),
-        day = HealthSamples.night.copy(exerciseSessions = 0, exerciseDuration = null, oxygenSaturationAvg = null),
+        day = HealthSamples.night.copy(exerciseSessions = 0, exerciseDuration = null, oxygenSaturationAvg = null)
     )
+
     /** Fjorton nätter: galleriets sju och sju till med en natt utan stadier (TRD-16). */
     private val stages = GalleryCharts.sleep + listOf(
-        StackedPoint(listOf(1.1f, 1.5f, 3.9f, 0.7f)), StackedPoint(listOf(null, null, null, null)), StackedPoint(listOf(1.2f, 1.3f, 3.6f, 0.9f)),
-        StackedPoint(listOf(1.0f, 1.6f, 4.3f, 0.5f)), StackedPoint(listOf(1.3f, 1.8f, 4.1f, 0.4f)), StackedPoint(listOf(0.9f, 1.2f, 3.5f, 1.0f)), StackedPoint(listOf(1.4f, 1.7f, 4.0f, 0.6f)),
+        StackedPoint(listOf(1.1f, 1.5f, 3.9f, 0.7f)),
+        StackedPoint(listOf(null, null, null, null)),
+        StackedPoint(listOf(1.2f, 1.3f, 3.6f, 0.9f)),
+        StackedPoint(listOf(1.0f, 1.6f, 4.3f, 0.5f)),
+        StackedPoint(listOf(1.3f, 1.8f, 4.1f, 0.4f)),
+        StackedPoint(listOf(0.9f, 1.2f, 3.5f, 1.0f)),
+        StackedPoint(listOf(1.4f, 1.7f, 4.0f, 0.6f))
     )
     private val stagesOpen = watch
         .with(TrendCard.SLEEP_STAGES, CardControls(expanded = true, range = TrendRange.FOURTEEN_DAYS), CardData.Stacked(days, stages))
@@ -112,9 +117,9 @@ class TrendsScreenTest {
         compareAvailable,
         listOf(
             ComparedSerie(CompareKey.EnergyDay.wire, listOf(33f, 56f, 44f, null, 56f, 78f, 67f, null, null, 56f, 78f, 67f, 89f, 100f), 3.5f, 8f),
-            ComparedSerie(CompareKey.Watch(WatchMetric.STEPS).wire, listOf(10f, 35f, null, 100f, 60f, 0f, 45f, 70f, null, 55f, 80f, 65f, 90f, 75f), 2_350f, 11_020f),
+            ComparedSerie(CompareKey.Watch(WatchMetric.STEPS).wire, listOf(10f, 35f, null, 100f, 60f, 0f, 45f, 70f, null, 55f, 80f, 65f, 90f, 75f), 2_350f, 11_020f)
         ),
-        selectedCount = 2,
+        selectedCount = 2
     )
     private val compareOpen = closed.copy(group = TrendGroup.COMPARE)
         .with(TrendCard.COMPARE, CardControls(expanded = true, range = TrendRange.FOURTEEN_DAYS, selected = compareTwo.shown.map { it.key }.toSet()), compareTwo)
@@ -125,13 +130,12 @@ class TrendsScreenTest {
         listOf(WatchMetric.SLEEP_TOTAL, WatchMetric.SLEEP_DEEP, WatchMetric.SLEEP_REM, WatchMetric.SLEEP_LIGHT, WatchMetric.SLEEP_AWAKE).map { SeriesInfo(it.name, null) },
         shown = listOf(
             TrendSerie(WatchMetric.SLEEP_TOTAL.name, listOf(7.4f, 7f, null, 8f, 5.1f, 7.6f, 8f, 7.2f, null, 7f, 7.4f, 7.6f, 6.6f, 7.7f)),
-            TrendSerie(WatchMetric.SLEEP_DEEP.name, listOf(1.2f, 1f, null, 1.4f, 0.8f, 1.3f, 1.5f, 1.1f, null, 1.2f, 1f, 1.3f, 0.9f, 1.4f)),
+            TrendSerie(WatchMetric.SLEEP_DEEP.name, listOf(1.2f, 1f, null, 1.4f, 0.8f, 1.3f, 1.5f, 1.1f, null, 1.2f, 1f, 1.3f, 0.9f, 1.4f))
         ),
-        previous = emptyList(),
+        previous = emptyList()
     )
 
-    private fun show(state: TrendsUiState, clock: ClockUiState? = null, onEvent: (TrendsEvent) -> Unit = {}) =
-        rule.setContent { DagbokenTheme { TrendsScreen(state, onEvent, clock = clock) } }
+    private fun show(state: TrendsUiState, clock: ClockUiState? = null, onEvent: (TrendsEvent) -> Unit = {}) = rule.setContent { DagbokenTheme { TrendsScreen(state, onEvent, clock = clock) } }
 
     @Test
     fun `rubriken, grupperna och fem stängda kort utan diagram eller periodväljare (TRD-14, TRD-19)`() {
@@ -377,7 +381,7 @@ class TrendsScreenTest {
             closed
                 .with(TrendCard.ENERGY_DAY, CardControls(), CardData.EnergyDay(days, energy))
                 .with(TrendCard.EVENTS_ILLNESS, CardControls(), CardData.EventsIllness(days, eventsTrend))
-                .with(TrendCard.ENERGY_OCCASION, CardControls(selected = setOf(Occasion.BREAKFAST.wire, Occasion.LUNCH.wire)), occasionLines.copy(shown = occasionLines.shown + TrendSerie(Occasion.LUNCH.wire, listOf(5f)))),
+                .with(TrendCard.ENERGY_OCCASION, CardControls(selected = setOf(Occasion.BREAKFAST.wire, Occasion.LUNCH.wire)), occasionLines.copy(shown = occasionLines.shown + TrendSerie(Occasion.LUNCH.wire, listOf(5f))))
         )
         rule.onNodeWithText("Snitt 6,1 · Trend uppåt").assertIsDisplayed()
         rule.onNodeWithText("2 serier valda").assertIsDisplayed()
@@ -410,7 +414,7 @@ class TrendsScreenTest {
             waitForIdle()
             onNode(hasScrollAction()).performScrollToNode(hasText("Händelser och sjukdom"))
             waitForIdle()
-        },
+        }
     ) { TrendsScreen(eventsOpen, {}) }
 
     @Test
@@ -454,7 +458,7 @@ class TrendsScreenTest {
             waitForIdle()
             onNode(hasScrollAction()).performScrollToNode(hasText("Sömnstadier"))
             waitForIdle()
-        },
+        }
     ) { TrendsScreen(stagesOpen, {}) }
 
     @Test
@@ -466,12 +470,12 @@ class TrendsScreenTest {
     @Test
     fun `skärmdump - Jämförs serieval`() = rule.captureScreenLightAndDark(
         "Trends_jamfor_serieval",
-        open = { onNodeWithText("Energi (dag) · Steg").clickWithoutRipple() },
+        open = { onNodeWithText("Energi (dag) · Steg").clickWithoutRipple() }
     ) { TrendsScreen(compareOpen, {}) }
 
     @Test
     fun `skärmdump - serievalets meny`() = rule.captureScreenLightAndDark(
         "Trends_serieval",
-        open = { onNodeWithText("Efter frukost").clickWithoutRipple() },
+        open = { onNodeWithText("Efter frukost").clickWithoutRipple() }
     ) { TrendsScreen(occasionOpen, {}) }
 }

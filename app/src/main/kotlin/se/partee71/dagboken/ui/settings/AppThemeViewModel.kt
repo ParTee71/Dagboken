@@ -59,7 +59,7 @@ class AppThemeViewModel @Inject constructor(
     auth: AuthRepository,
     settings: SettingsRepository,
     private val clock: Clock,
-    private val timeZone: Provider<TimeZone>,
+    private val timeZone: Provider<TimeZone>
 ) : ViewModel() {
     private val chosen: Flow<AppTheme> = auth.authState
         .map { it?.uid }

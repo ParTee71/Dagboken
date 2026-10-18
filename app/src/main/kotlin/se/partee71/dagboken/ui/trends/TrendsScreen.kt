@@ -53,21 +53,21 @@ import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.components.SwitchRow
 import se.partee71.dagboken.ui.diagram.CHART_SEPARATOR
-import se.partee71.dagboken.ui.health.ClockStatus
-import se.partee71.dagboken.ui.health.ClockUiState
-import se.partee71.dagboken.ui.health.ClockViewModel
-import se.partee71.dagboken.ui.health.HealthEvent
-import se.partee71.dagboken.ui.health.HealthTodaySection
 import se.partee71.dagboken.ui.diagram.ChartBand
 import se.partee71.dagboken.ui.diagram.ChartSeries
-import se.partee71.dagboken.ui.diagram.chartStatText
 import se.partee71.dagboken.ui.diagram.CompactDropdownButton
 import se.partee71.dagboken.ui.diagram.IntervalBarChart
 import se.partee71.dagboken.ui.diagram.LineChart
 import se.partee71.dagboken.ui.diagram.StackSegment
 import se.partee71.dagboken.ui.diagram.StackedBarChart
+import se.partee71.dagboken.ui.diagram.chartStatText
 import se.partee71.dagboken.ui.diagram.sleepStageColors
 import se.partee71.dagboken.ui.diagram.sleepStageSegments
+import se.partee71.dagboken.ui.health.ClockStatus
+import se.partee71.dagboken.ui.health.ClockUiState
+import se.partee71.dagboken.ui.health.ClockViewModel
+import se.partee71.dagboken.ui.health.HealthEvent
+import se.partee71.dagboken.ui.health.HealthTodaySection
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
@@ -78,7 +78,7 @@ fun TrendsRoute(
     account: AuthUser?,
     onAccount: () -> Unit,
     viewModel: TrendsViewModel = hiltViewModel(),
-    clockViewModel: ClockViewModel = hiltViewModel(),
+    clockViewModel: ClockViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Hälsa idag läses bara medan Klocka visas – byter man grupp slutar läsningen (TRD-15).
@@ -104,7 +104,7 @@ fun TrendsScreen(
     modifier: Modifier = Modifier,
     clock: ClockUiState? = null,
     onClockEvent: (HealthEvent) -> Unit = {},
-    avatar: @Composable () -> Unit = {},
+    avatar: @Composable () -> Unit = {}
 ) {
     EntityDetailScreen(
         state = DetailUiState.Content(state),
@@ -112,12 +112,12 @@ fun TrendsScreen(
         onBack = null,
         modifier = modifier,
         title = stringResource(R.string.tab_trends),
-        actions = { avatar() },
+        actions = { avatar() }
     ) { content ->
         AppSegmentedChoice(
             options = TrendGroup.entries.map { stringResource(it.label) },
             selectedIndex = content.group.ordinal,
-            onSelect = { onEvent(TrendsEvent.ShowGroup(TrendGroup.entries[it])) },
+            onSelect = { onEvent(TrendsEvent.ShowGroup(TrendGroup.entries[it])) }
         )
         if (content.group == TrendGroup.WATCH && clock != null) {
             ClockStatus(clock.status, clock.missing, onClockEvent)
@@ -200,7 +200,7 @@ private fun TrendCardView(card: TrendCard, state: TrendCardState, onEvent: (Tren
             expanded = controls.expanded,
             onToggle = { onEvent(TrendsEvent.Toggle(card)) },
             trailing = if (controls.expanded) ({ RangePicker(card, controls.range, onEvent) }) else null,
-            summary = summary,
+            summary = summary
         ) {
             val data = state.data
             // Serievalet finns först när kortet lästs – en tom meny säger ingenting.
@@ -240,7 +240,7 @@ private fun SeriesPicker(card: TrendCard, available: List<SeriesInfo>, selected:
             available.map { info ->
                 val section = if (card == TrendCard.COMPARE) sections[if (CompareKey.parse(info.key)?.fromWatch == true) TrendGroup.WATCH else TrendGroup.MOOD] else null
                 AppMenuItem(names.getValue(info.key), { onEvent(TrendsEvent.ToggleSeries(card, info.key)) }, section = section, checked = info.key in selected)
-            },
+            }
         )
     }
 }
@@ -300,15 +300,19 @@ private fun seriesColor(card: TrendCard, key: String, keys: List<String>, shownC
  */
 private fun compareColor(key: String, available: List<String>, stageColors: List<Color>): Color? = when (val parsed = CompareKey.parse(key)) {
     is CompareKey.EnergyOccasion -> seriesColor(TrendCard.ENERGY_OCCASION, parsed.occasion.wire, Occasion.entries.map { it.wire }, Occasion.entries.size, stageColors)
+
     is CompareKey.Stress -> seriesColor(TrendCard.STRESS, parsed.series.name, StressSeries.entries.map { it.name }, StressSeries.entries.size, stageColors)
+
     is CompareKey.Symptom -> {
         val symptoms = available.filter { CompareKey.parse(it) is CompareKey.Symptom }
         seriesColor(TrendCard.SYMPTOMS, key, symptoms, symptoms.size, stageColors)
     }
+
     is CompareKey.Watch -> {
         val home = TrendCard.entries.first { parsed.metric in it.metrics }
         seriesColor(home, parsed.metric.name, home.metrics.map { it.name }, home.metrics.size, stageColors)
     }
+
     CompareKey.EnergyDay, CompareKey.SleepQuality, null -> null
 }
 
@@ -318,6 +322,7 @@ private fun Chart(card: TrendCard, data: CardData) {
     val xLabels = data.days.map(DateFormat::short)
     when (data) {
         is CardData.EnergyDay -> IntervalBarChart(data.points, xLabels = xLabels, label = title)
+
         is CardData.Lines -> {
             val stageColors = sleepStageColors()
             val colorOf: (TrendSerie) -> Color? = { serie -> seriesColor(card, serie.key, data.available.map { it.key }, data.shown.size, stageColors) }
@@ -334,11 +339,13 @@ private fun Chart(card: TrendCard, data: CardData) {
                         data.needsBirthYear -> R.string.trends_sleep_quality_needs_birth_year
                         data.shown.isEmpty() && card.hasSeriesPicker -> R.string.trends_pick_series
                         else -> card.emptyHint
-                    },
-                ),
+                    }
+                )
             )
         }
+
         is CardData.Stacked -> StackedBarChart(data.points, sleepStageSegments(), xLabels = xLabels, label = title, emptyHint = stringResource(card.emptyHint))
+
         is CardData.Compare -> {
             // Varje serie behåller färgen från sitt eget kort, utan krockar; etiketten bär det verkliga spannet med enhet (TRD-17).
             val colors = distinctSeriesColors(data.shown.map { compareColor(it.key, data.available.map { info -> info.key }, sleepStageColors()) }, MaterialTheme.colorScheme.primary)
@@ -359,10 +366,11 @@ private fun Chart(card: TrendCard, data: CardData) {
                 showCaption = false,
                 footnote = listOfNotNull(
                     stringResource(R.string.trends_compare_footnote),
-                    stringResource(R.string.trends_compare_sleep_quality_needs_birth_year).takeIf { data.needsBirthYear },
-                ).joinToString(" "),
+                    stringResource(R.string.trends_compare_sleep_quality_needs_birth_year).takeIf { data.needsBirthYear }
+                ).joinToString(" ")
             )
         }
+
         is CardData.EventsIllness -> StackedBarChart(
             points = data.trend.events.map { StackedPoint(listOf(it)) },
             segments = listOf(StackSegment(stringResource(R.string.trends_legend_events), AppColors.tone(Tone.Warning).content)),
@@ -370,7 +378,7 @@ private fun Chart(card: TrendCard, data: CardData) {
             label = title,
             emptyHint = stringResource(R.string.trends_events_hint),
             line = ChartSeries(stringResource(R.string.trends_legend_checkins), data.trend.checkins),
-            bands = data.trend.episodes.map { ChartBand(it.from, it.to, it.episode.title()) },
+            bands = data.trend.episodes.map { ChartBand(it.from, it.to, it.episode.title()) }
         )
     }
 }
@@ -383,22 +391,26 @@ private fun Chart(card: TrendCard, data: CardData) {
 @Composable
 private fun summaryText(card: TrendCard, data: CardData): String? = when (data) {
     is CardData.EnergyDay -> statsText(summarizeIntervals(data.points), computeTrendLine(data.points.map { it?.value })?.direction)
+
     is CardData.Lines -> when (data.shown.size) {
         0 -> if (card.hasSeriesPicker) stringResource(R.string.trends_pick_series) else null
         1 -> data.shown.single().let { statsText(summarize(it.points), computeTrendLine(it.points)?.direction) }
         else -> pluralStringResource(R.plurals.trends_series_count, data.shown.size, data.shown.size)
     }
+
     is CardData.Stacked -> stackTotals(data.points).let { statsText(summarize(it), computeTrendLine(it)?.direction) }
+
     is CardData.Compare -> when {
         data.selectedCount < 2 -> stringResource(R.string.trends_compare_pick_two)
         data.shown.size < 2 -> stringResource(R.string.trends_compare_too_little)
         else -> pluralStringResource(R.plurals.trends_series_count, data.shown.size, data.shown.size)
     }
+
     is CardData.EventsIllness -> {
         val trend = data.trend
         val parts = listOfNotNull(
             pluralStringResource(R.plurals.trends_event_count, trend.eventCount, trend.eventCount).takeIf { trend.eventCount > 0 || trend.episodes.isEmpty() },
-            trend.averageSeverity?.let { stringResource(R.string.trends_average_format, formatChartValue(it)) },
+            trend.averageSeverity?.let { stringResource(R.string.trends_average_format, formatChartValue(it)) }
         ) + trend.episodes.map { episodeText(it) }
         parts.takeIf { trend.eventCount > 0 || trend.episodes.isNotEmpty() }?.joinToString(CHART_SEPARATOR)
     }
@@ -410,7 +422,7 @@ private fun statsText(summary: SeriesSummary?, trend: TrendDirection?): String? 
     summary ?: return null
     return listOfNotNull(
         chartStatText(LocalResources.current, R.string.chart_average, summary.average),
-        trend?.let { stringResource(it.label()) },
+        trend?.let { stringResource(it.label()) }
     ).joinToString(CHART_SEPARATOR)
 }
 

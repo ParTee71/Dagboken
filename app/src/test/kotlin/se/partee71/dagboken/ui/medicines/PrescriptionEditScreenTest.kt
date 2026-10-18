@@ -1,12 +1,12 @@
 package se.partee71.dagboken.ui.medicines
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -50,13 +50,12 @@ class PrescriptionEditScreenTest {
     private val sertralin = Prescription(
         "s", "Sertralin", "50", "mg", listOf(Slot.MORNING), Schedule.Repeating(), Period(LocalDate(2026, 9, 1)),
         boosts = listOf(Boost("b", LocalDate(2026, 9, 29), LocalDate(2026, 10, 12), "25", "mg")),
-        note = "Tas med frukost",
+        note = "Tas med frukost"
     )
 
     private val new = newPrescription(today).copy(name = "Kåvepenin", dose = "1", unit = "g", slots = listOf(Slot.MORNING, Slot.EVENING))
 
-    private fun show(value: Prescription, period: PeriodChoice = value.period.end?.let { PeriodChoice.END_DATE } ?: PeriodChoice.UNTIL_FURTHER_NOTICE, canAdd: Boolean = true, onEvent: (PrescriptionEditEvent) -> Unit = {}) =
-        rule.setContent { DagbokenTheme { PrescriptionEditScreen(false, EditorUiState(value), period, canAdd, EditorEvents.None, onEvent, {}) } }
+    private fun show(value: Prescription, period: PeriodChoice = value.period.end?.let { PeriodChoice.END_DATE } ?: PeriodChoice.UNTIL_FURTHER_NOTICE, canAdd: Boolean = true, onEvent: (PrescriptionEditEvent) -> Unit = {}) = rule.setContent { DagbokenTheme { PrescriptionEditScreen(false, EditorUiState(value), period, canAdd, EditorEvents.None, onEvent, {}) } }
 
     @Test
     fun `receptformuläret uppfyller redigeringskontraktet (NFR-10)`() {
@@ -65,7 +64,7 @@ class PrescriptionEditScreenTest {
             editor,
             makeInvalid = { update(PrescriptionField.NAME) { it.copy(name = " ") } },
             makeValid = { update(PrescriptionField.NAME) { it.copy(name = "Sertralin") } },
-            invalidMessage = "Ange ett namn",
+            invalidMessage = "Ange ett namn"
         ) { state, events, onSave, onClose ->
             PrescriptionEditScreen(true, state, PeriodChoice.UNTIL_FURTHER_NOTICE, true, events, { if (it == PrescriptionEditEvent.Save) onSave() }, onClose)
         }
@@ -146,10 +145,9 @@ class PrescriptionEditScreenTest {
         waitForIdle()
     }
 
-    private fun capture(name: String, value: Prescription, period: PeriodChoice, scrollTo: String? = null, isNew: Boolean = false, errors: Map<String, Int> = emptyMap()) =
-        rule.captureLightAndDark(name, settle = scrollTo?.let(::scrolledTo) ?: { waitForIdle() }) {
-            PrescriptionEditScreen(isNew, EditorUiState(value, errors = errors.toImmutableMap(), isValid = errors.isEmpty(), isDirty = true), period, true, EditorEvents.None, {}, {})
-        }
+    private fun capture(name: String, value: Prescription, period: PeriodChoice, scrollTo: String? = null, isNew: Boolean = false, errors: Map<String, Int> = emptyMap()) = rule.captureLightAndDark(name, settle = scrollTo?.let(::scrolledTo) ?: { waitForIdle() }) {
+        PrescriptionEditScreen(isNew, EditorUiState(value, errors = errors.toImmutableMap(), isValid = errors.isEmpty(), isDirty = true), period, true, EditorEvents.None, {}, {})
+    }
 
     @Test
     fun `skärmdump - redigera recept`() = capture("Medicines_recept", sertralin, PeriodChoice.UNTIL_FURTHER_NOTICE)
@@ -166,7 +164,7 @@ class PrescriptionEditScreenTest {
         new.copy(schedule = Schedule.Repeating(Repeat.CUSTOM, setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY))),
         PeriodChoice.UNTIL_FURTHER_NOTICE,
         scrollTo = "DOSHÖJNINGAR",
-        isNew = true,
+        isNew = true
     )
 
     @Test
@@ -175,7 +173,7 @@ class PrescriptionEditScreenTest {
         new.copy(schedule = Schedule.Repeating(Repeat.INTERVAL, intervalDays = 3)),
         PeriodChoice.UNTIL_FURTHER_NOTICE,
         scrollTo = "DOSHÖJNINGAR",
-        isNew = true,
+        isNew = true
     )
 
     @Test
@@ -190,7 +188,7 @@ class PrescriptionEditScreenTest {
         sertralin.copy(period = Period(LocalDate(2026, 9, 1)), boosts = listOf(Boost("c", LocalDate(2026, 10, 13), null, "", "mg"))),
         PeriodChoice.UNTIL_FURTHER_NOTICE,
         scrollTo = "Lägg till doshöjning",
-        errors = mapOf(PrescriptionField.boostDose(0) to R.string.prescription_error_boost_without_dose),
+        errors = mapOf(PrescriptionField.boostDose(0) to R.string.prescription_error_boost_without_dose)
     )
 
     @Test
@@ -198,7 +196,7 @@ class PrescriptionEditScreenTest {
         "Medicines_recept_okant",
         sertralin.copy(slots = listOf(Slot.AS_NEEDED), schedule = Schedule.Unknown(mapOf("repeat" to "biweekly"))),
         PeriodChoice.UNTIL_FURTHER_NOTICE,
-        scrollTo = "PERIOD",
+        scrollTo = "PERIOD"
     )
 
     // ── Namnförslag (REC-14) ──────────────────────────────────────────────────

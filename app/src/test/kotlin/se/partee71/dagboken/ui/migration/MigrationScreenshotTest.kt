@@ -81,7 +81,7 @@ class MigrationScreenshotTest {
     @Config(qualifiers = TALL)
     fun `Klar med poster som fanns redan`() = capture(
         "klarFannsRedan",
-        MigrationStage.Written(before, before + ("settings" to 0), existing = mapOf("settings" to 1)),
+        MigrationStage.Written(before, before + ("settings" to 0), existing = mapOf("settings" to 1))
     )
 
     @Test

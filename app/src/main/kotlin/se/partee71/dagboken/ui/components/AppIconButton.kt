@@ -19,7 +19,7 @@ fun AppIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     variant: IconButtonVariant = IconButtonVariant.Plain,
-    enabled: Boolean = true,
+    enabled: Boolean = true
 ) {
     val sized = modifier.size(TOUCH_TARGET)
     val content: @Composable () -> Unit = { Icon(painterResource(icon), contentDescription) }
@@ -28,4 +28,3 @@ fun AppIconButton(
         IconButtonVariant.Plain -> IconButton(onClick, sized, enabled, content = content)
     }
 }
-

@@ -26,11 +26,9 @@ class TrendSeriesTest {
     private val d3 = LocalDate(2026, 10, 3)
     private val days = listOf(d1, d2, d3)
 
-    private fun mood(id: String, date: LocalDate?, energy: Int, stress: Int = 0, occasion: Occasion? = Occasion.LUNCH, symptoms: List<SymptomScore> = emptyList()) =
-        Screening(id, date, LocalTime(12, 0), occasion, energy = energy, stress = stress, symptoms = symptoms)
+    private fun mood(id: String, date: LocalDate?, energy: Int, stress: Int = 0, occasion: Occasion? = Occasion.LUNCH, symptoms: List<SymptomScore> = emptyList()) = Screening(id, date, LocalTime(12, 0), occasion, energy = energy, stress = stress, symptoms = symptoms)
 
-    private fun activity(id: String, date: LocalDate, stress: Int = 0, recovering: Boolean = false, drain: Boolean = false, symptoms: List<SymptomScore> = emptyList()) =
-        Activity(id, date, LocalTime(15, 0), optionId = "promenad", stress = stress, recovering = recovering, drain = drain, symptoms = symptoms)
+    private fun activity(id: String, date: LocalDate, stress: Int = 0, recovering: Boolean = false, drain: Boolean = false, symptoms: List<SymptomScore> = emptyList()) = Activity(id, date, LocalTime(15, 0), optionId = "promenad", stress = stress, recovering = recovering, drain = drain, symptoms = symptoms)
 
     // ── Energi per dag (TRD-8) ──────────────────────────────────────────────
 
@@ -51,9 +49,9 @@ class TrendSeriesTest {
                 mood("b", d1, 7, occasion = Occasion.BREAKFAST),
                 mood("c", d2, 3, occasion = Occasion.LUNCH),
                 mood("d", d3, 9, occasion = null),
-                mood("e", null, 9, occasion = Occasion.BEDTIME),
+                mood("e", null, 9, occasion = Occasion.BEDTIME)
             ),
-            days,
+            days
         )
         assertEquals(Occasion.entries.map { it.wire }, series.map { it.key })
         assertEquals(listOf(6f, null, null), series[0].points, "frukost: snittet dag 1, luckor sedan")
@@ -76,7 +74,7 @@ class TrendSeriesTest {
         val series = stressSeries(
             screenings = listOf(mood("a", d1, 5, stress = 6, symptoms = symptoms)),
             activities = listOf(activity("x", d1, stress = 2, recovering = true), activity("y", d1, stress = 4, drain = true), activity("z", d1, recovering = true)),
-            days = days,
+            days = days
         )
         assertEquals(StressSeries.entries.map { it.name }, series.map { it.key })
         val byKey = series.associate { it.key to it.points }
@@ -99,9 +97,9 @@ class TrendSeriesTest {
             screenings = listOf(mood("a", d1, 5, symptoms = listOf(SymptomScore("yrsel", 6))), mood("b", d1, 5, symptoms = listOf(SymptomScore("yrsel", 2)))),
             activities = listOf(
                 activity("x", d3, symptoms = listOf(SymptomScore("huvudvark", 7), SymptomScore("yrsel", 3))),
-                activity("y", LocalDate(2026, 9, 1), symptoms = listOf(SymptomScore("gammalt", 9))),
+                activity("y", LocalDate(2026, 9, 1), symptoms = listOf(SymptomScore("gammalt", 9)))
             ),
-            days = days,
+            days = days
         )
         assertEquals(listOf("huvudvark", "yrsel"), series.map { it.key }, "i id-ordning, bara periodens symptom")
         assertEquals(listOf(null, null, 7f), series[0].points)
@@ -124,7 +122,7 @@ class TrendSeriesTest {
             events = listOf(Event("e1", d1, severity = 4), Event("e2", d1, severity = 7), Event("e3", d3, severity = 6), Event("old", LocalDate(2026, 9, 1), severity = 10), Event("none", null, severity = 10)),
             episodes = listOf(flu, migraine, IllnessEpisode("gone", "Influensa", start = LocalDate(2026, 9, 1), end = LocalDate(2026, 9, 10)), IllnessEpisode("nostart", "Okänd")),
             checkins = mapOf("flu" to listOf(Checkin("c1", d1, severity = 5), Checkin("c2", d1, severity = 7), Checkin("c3", d3, severity = 3)), "mig" to listOf(Checkin("c4", d2, severity = 8))),
-            days = days,
+            days = days
         )
         assertEquals(listOf(5.5f, null, 6f), trend.events)
         assertEquals(listOf(6f, 8f, 3f), trend.checkins)

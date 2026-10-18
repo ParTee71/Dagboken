@@ -13,7 +13,7 @@ data class MedicineOverview(
     /** Vid behov-medicinerna efter namn (MEDF-3). */
     val asNeeded: List<PrnMedicine>,
     /** Recepten vars period passerats, senast avslutade först (MEDF-5). */
-    val ended: List<Prescription>,
+    val ended: List<Prescription>
 )
 
 /**
@@ -28,6 +28,6 @@ fun medicineOverview(prescriptions: List<Prescription>, medicines: List<PrnMedic
     return MedicineOverview(
         current = current.sortedWith(byName),
         asNeeded = medicines.sortedWith(compareBy<PrnMedicine, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id }),
-        ended = ended.sortedWith(compareByDescending<Prescription> { it.period.end }.then(byName)),
+        ended = ended.sortedWith(compareByDescending<Prescription> { it.period.end }.then(byName))
     )
 }

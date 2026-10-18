@@ -26,9 +26,9 @@ import kotlinx.coroutines.withContext
 import se.partee71.dagboken.core.engine.health.CaloriesSample
 import se.partee71.dagboken.core.engine.health.DistanceSample
 import se.partee71.dagboken.core.engine.health.ExerciseSession
+import se.partee71.dagboken.core.engine.health.HealthReadWindows
 import se.partee71.dagboken.core.engine.health.HealthRecords
 import se.partee71.dagboken.core.engine.health.HeartRateSample
-import se.partee71.dagboken.core.engine.health.HealthReadWindows
 import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.core.engine.health.OxygenSample
 import se.partee71.dagboken.core.engine.health.RestingHeartRateSample
@@ -54,7 +54,7 @@ object HealthPermissionSet {
         HealthPermission.getReadPermission(StepsRecord::class),
         HealthPermission.getReadPermission(HeartRateRecord::class),
         HealthPermission.getReadPermission(RestingHeartRateRecord::class),
-        HealthPermission.getReadPermission(SleepSessionRecord::class),
+        HealthPermission.getReadPermission(SleepSessionRecord::class)
     )
 
     /** De valfria måtten (HLS-8, HLS-9): en nekad behörighet ger bara en lucka i sitt mått. */
@@ -63,7 +63,7 @@ object HealthPermissionSet {
         OptionalHealthMetric.ACTIVE_ENERGY to HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
         OptionalHealthMetric.DISTANCE to HealthPermission.getReadPermission(DistanceRecord::class),
         OptionalHealthMetric.OXYGEN_SATURATION to HealthPermission.getReadPermission(OxygenSaturationRecord::class),
-        OptionalHealthMetric.HISTORY to HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY,
+        OptionalHealthMetric.HISTORY to HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY
     )
 
     /** Hela uppsättningen, som manifestet deklarerar (HLS-14). */
@@ -102,7 +102,7 @@ interface HealthConnectSource {
 @Singleton
 class HealthConnectClientSource @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    @param:IoDispatcher private val io: CoroutineDispatcher,
+    @param:IoDispatcher private val io: CoroutineDispatcher
 ) : HealthConnectSource {
 
     // getOrCreate kastar när Health Connect saknas – skapas först när sdkStatus sagt AVAILABLE.
@@ -127,12 +127,11 @@ class HealthConnectClientSource @Inject constructor(
         val lead = windows.lead.filter()
         val sleepRange = windows.sleep.filter()
 
-        suspend fun <T : Record> read(type: KClass<T>, range: TimeRangeFilter): List<T> =
-            if (HealthPermission.getReadPermission(type) in granted) {
-                readPages { token -> client.readRecords(ReadRecordsRequest(type, range, pageToken = token)).let { it.records to it.pageToken } }
-            } else {
-                emptyList()
-            }
+        suspend fun <T : Record> read(type: KClass<T>, range: TimeRangeFilter): List<T> = if (HealthPermission.getReadPermission(type) in granted) {
+            readPages { token -> client.readRecords(ReadRecordsRequest(type, range, pageToken = token)).let { it.records to it.pageToken } }
+        } else {
+            emptyList()
+        }
 
         HealthRecords(
             steps = read(StepsRecord::class, lead).map { StepSample(it.origin, it.startTime.toKotlinInstant(), it.endTime.toKotlinInstant(), it.count) },
@@ -146,7 +145,7 @@ class HealthConnectClientSource @Inject constructor(
             distance = read(DistanceRecord::class, lead).map {
                 DistanceSample(it.origin, it.startTime.toKotlinInstant(), it.endTime.toKotlinInstant(), it.distance.inMeters)
             },
-            oxygen = read(OxygenSaturationRecord::class, lead).map { OxygenSample(it.origin, it.time.toKotlinInstant(), it.percentage.value) },
+            oxygen = read(OxygenSaturationRecord::class, lead).map { OxygenSample(it.origin, it.time.toKotlinInstant(), it.percentage.value) }
         )
     }
 }
@@ -173,15 +172,14 @@ private fun TimeSpan.filter(): TimeRangeFilter = TimeRangeFilter.between(start.t
 private val Record.origin: String get() = metadata.dataOrigin.packageName
 
 /** En `HeartRateRecord` bär många prover; varje prov blir ett eget [HeartRateSample] (HLS-2, HLS-7). */
-internal fun heartRateSamples(record: HeartRateRecord): List<HeartRateSample> =
-    record.samples.map { HeartRateSample(record.origin, it.time.toKotlinInstant(), it.beatsPerMinute) }
+internal fun heartRateSamples(record: HeartRateRecord): List<HeartRateSample> = record.samples.map { HeartRateSample(record.origin, it.time.toKotlinInstant(), it.beatsPerMinute) }
 
 /** En sömnsession med sina stadier (HLS-8). */
 internal fun sleepSession(record: SleepSessionRecord): SleepSession = SleepSession(
     origin = record.origin,
     start = record.startTime.toKotlinInstant(),
     end = record.endTime.toKotlinInstant(),
-    stages = record.stages.map { SleepStageSlice(sleepStageType(it.stage), it.startTime.toKotlinInstant(), it.endTime.toKotlinInstant()) },
+    stages = record.stages.map { SleepStageSlice(sleepStageType(it.stage), it.startTime.toKotlinInstant(), it.endTime.toKotlinInstant()) }
 )
 
 /** Health Connects `STAGE_TYPE_*` som domänbegrepp; en okänd kod (en nyare SDK) är [SleepStageType.UNKNOWN] och ignoreras (HLS-8). */

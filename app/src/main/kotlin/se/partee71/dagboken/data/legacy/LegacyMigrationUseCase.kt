@@ -95,7 +95,7 @@ data class LegacyCopyData(
     override val backup: BackupJson,
     override val fingerprint: String,
     override val tableCounts: Map<String, Int>,
-    val copy: CopyStatus = CopyStatus.Missing,
+    val copy: CopyStatus = CopyStatus.Missing
 ) : LegacyCopySource
 
 /** Varför en kopia inte blev klar; visas med "Spara igen". Aldrig innehåll. */
@@ -113,7 +113,7 @@ enum class CopyFailure {
     DOCUMENTS_DIFFER,
 
     /** Kopians läge gick inte att spara på telefonen (DataStore) – kopian räknas inte som verifierad. */
-    STATE_FAILED,
+    STATE_FAILED
 }
 
 /** Utfallet av [LegacyMigrationUseCase.saveCopy]. */
@@ -133,7 +133,7 @@ enum class AccountCheck {
     DIFFERENT,
 
     /** 3.x-sessionen är okänd (3.x kördes utan konto, eller den hann inte fångas): e-posten måste bekräftas uttryckligen. */
-    UNKNOWN,
+    UNKNOWN
 }
 
 /**
@@ -158,7 +158,7 @@ data class LegacyMigrationPlan(
     val counts: Map<String, Int>,
     val warnings: List<Warning>,
     val report: ConversionReport,
-    val copy: CopyStatus = CopyStatus.Missing,
+    val copy: CopyStatus = CopyStatus.Missing
 ) : LegacyCopySource {
     /** Planen med en sparad och kontrollerad kopia ([CopyResult.Verified]). */
     fun withCopy(record: CopyRecord): LegacyMigrationPlan = copy(copy = CopyStatus.Verified(record))
@@ -191,7 +191,7 @@ sealed interface LegacyWriteOutcome {
     data class Verified(
         override val before: Map<String, Int>,
         override val after: Map<String, Int>,
-        override val existing: Map<String, Int> = emptyMap(),
+        override val existing: Map<String, Int> = emptyMap()
     ) : LegacyWriteOutcome
 
     /** Något skrivet dokument saknas eller skiljer sig på servern ([mismatched] per entitet): "Försök igen" skriver om det. */
@@ -199,7 +199,7 @@ sealed interface LegacyWriteOutcome {
         override val before: Map<String, Int>,
         override val after: Map<String, Int>,
         val mismatched: Map<String, Int>,
-        override val existing: Map<String, Int> = emptyMap(),
+        override val existing: Map<String, Int> = emptyMap()
     ) : LegacyWriteOutcome
 
     /**
@@ -215,7 +215,7 @@ sealed interface LegacyWriteOutcome {
         val error: DataError,
         val batch: Int?,
         val code: String,
-        override val existing: Map<String, Int> = emptyMap(),
+        override val existing: Map<String, Int> = emptyMap()
     ) : LegacyWriteOutcome
 }
 
@@ -250,7 +250,7 @@ class LegacyMigrationUseCase @Inject constructor(
     private val scope: UserScope,
     private val clock: Clock,
     @IoDispatcher private val dispatcher: CoroutineDispatcher,
-    @DefaultDispatcher private val computation: CoroutineDispatcher,
+    @DefaultDispatcher private val computation: CoroutineDispatcher
 ) {
     /**
      * Startkontrollen (NAV-6): Room-filen finns, flaggan för kontot saknas **och** servern har ingen markör
@@ -340,6 +340,7 @@ class LegacyMigrationUseCase @Inject constructor(
         when (val result = BackupJsonConverter.convert(assembly.backup, uid)) {
             is ConversionResult.Stopped ->
                 LegacyRead.Stopped(result.report, assembly.warnings, LegacyCopyData(assembly.backup, tables.fingerprint, tableCounts, copyStatus(tables.fingerprint)))
+
             is ConversionResult.Converted -> {
                 val session = readOrNull { state.session() }
                 LegacyRead.Ready(
@@ -359,8 +360,8 @@ class LegacyMigrationUseCase @Inject constructor(
                         documents = result.accountDocuments,
                         counts = result.report.counts - CollectionNames.USERS,
                         warnings = assembly.warnings + result.report.warnings,
-                        report = result.report,
-                    ),
+                        report = result.report
+                    )
                 )
             }
         }
@@ -425,8 +426,7 @@ class LegacyMigrationUseCase @Inject constructor(
 
     private suspend fun writePaused(plan: LegacyMigrationPlan, onProgress: (Map<String, Int>) -> Unit): LegacyWriteOutcome {
         val tally = Tally(plan.counts)
-        fun failed(error: DataError, batch: Int? = null, code: String = codeOf(error)) =
-            LegacyWriteOutcome.Failed(plan.counts, tally.doneSoFar(), error, batch, code, tally.existing())
+        fun failed(error: DataError, batch: Int? = null, code: String = codeOf(error)) = LegacyWriteOutcome.Failed(plan.counts, tally.doneSoFar(), error, batch, code, tally.existing())
         fun ledgerFailed(batch: Int? = null) = failed(DataError.Unknown, batch, LEDGER_FAILED)
         if (scope.uid.value != plan.uid) return failed(DataError.NotSignedIn)
         if (plan.copy !is CopyStatus.Verified) return failed(DataError.Unknown, code = COPY_NOT_VERIFIED)
@@ -454,12 +454,15 @@ class LegacyMigrationUseCase @Inject constructor(
             val onServer = existing?.let { MigrationLedger.hashOf(it, tree) }
             when {
                 existing == null -> full += document
+
                 onServer == ours -> {
                     tally.after.add(collection)
                     // Bara flyttens egna dokument antecknas; ett som var lika redan före första skrivningen (t.ex. efter en import) är inte flyttens och raderas aldrig.
                     if (rel in before && rel !in before.verified) lateVerified[rel] = ours
                 }
+
                 rel in before -> full += ExportFormat.Document(document.path, withDeletions(document.data, existing, tree))
+
                 else -> {
                     val missing = missingFields(document.data, existing)
                     if (missing.isNotEmpty()) partial += ExportFormat.Document(document.path, missing) else tally.existing.add(collection)
@@ -497,6 +500,7 @@ class LegacyMigrationUseCase @Inject constructor(
                     tally.mismatched.add(collection)
                     if (document.path in fullPaths) mismatchedNow[relative(plan.uid, document.path)] = MigrationLedger.MISSING
                 }
+
                 document.path in fullPaths -> {
                     val onServer = MigrationLedger.hashOf(got, trees[collection])
                     if (onServer == hashes.getValue(document.path)) {
@@ -507,7 +511,9 @@ class LegacyMigrationUseCase @Inject constructor(
                         mismatchedNow[relative(plan.uid, document.path)] = onServer
                     }
                 }
+
                 landed(got, document.data) -> tally.existing.add(collection)
+
                 else -> tally.mismatched.add(collection)
             }
         }
@@ -546,8 +552,6 @@ class LegacyMigrationUseCase @Inject constructor(
         return LegacyAbortOutcome.Done(paths.groupingBy { CollectionNames.collectionOf(it) }.eachCount())
     }
 
-
-
     /**
      * Sista steget efter [LegacyWriteOutcome.Verified] och användarens bekräftelse: markören på servern (med `counts` =
      * rapportens "före"), flaggan på enheten för kontot och liggaren raderas. **Idempotent:** finns markören redan –
@@ -559,7 +563,7 @@ class LegacyMigrationUseCase @Inject constructor(
             source = LegacySource.ROOM,
             sourceCreatedAt = BackupJsonConverter.sourceCreatedAt(plan.backup),
             appVersion = appVersion.name,
-            counts = outcome.before,
+            counts = outcome.before
         )
         val wrote = writer.markLegacyMigration(plan.uid, asDoc(LegacyMigrationCodec.encode(marker)) - LegacyMigrationCodec.COMPLETED_AT)
         if (wrote.isFailure) {

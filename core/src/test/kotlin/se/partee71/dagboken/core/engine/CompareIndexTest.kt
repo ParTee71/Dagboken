@@ -48,8 +48,8 @@ class CompareIndexTest {
             listOf(
                 TrendSerie("steps", listOf(2_000f, null, 10_000f)),
                 TrendSerie("energy", listOf(null, null, null)),
-                TrendSerie("stress", listOf(4f, 4f, 4f)),
-            ),
+                TrendSerie("stress", listOf(4f, 4f, 4f))
+            )
         )
         assertEquals(listOf("steps", "stress"), compared.map { it.key })
         assertEquals(ComparedSerie("steps", listOf(0f, null, 100f), 2_000f, 10_000f), compared[0])
@@ -72,7 +72,7 @@ class CompareIndexTest {
             CompareKey.Stress(StressSeries.DRAIN),
             CompareKey.Symptom("yrsel"),
             CompareKey.Watch(WatchMetric.STEPS),
-            CompareKey.SleepQuality,
+            CompareKey.SleepQuality
         )
         keys.forEach { key -> assertEquals(key, CompareKey.parse(key.wire), key.wire) }
         assertEquals(listOf(WatchUnit.SCALE, WatchUnit.SCALE, WatchUnit.SCALE, WatchUnit.SCALE, WatchUnit.STEPS, WatchUnit.POINTS), keys.map { it.unit })
@@ -90,7 +90,7 @@ class CompareIndexTest {
         val screenings = listOf(
             Screening("s1", d1, LocalTime(8, 0), Occasion.BREAKFAST, energy = 4, stress = 2, symptoms = listOf(SymptomScore("yrsel", 6))),
             Screening("s2", d1, LocalTime(12, 0), Occasion.LUNCH, energy = 8, stress = 4),
-            Screening("s3", d3, LocalTime(8, 0), Occasion.BREAKFAST, energy = 6, stress = 6),
+            Screening("s3", d3, LocalTime(8, 0), Occasion.BREAKFAST, energy = 6, stress = 6)
         )
         val activities = listOf(Activity("a1", d3, LocalTime(15, 0), optionId = "promenad", stress = 2, recovering = true))
         val series = moodCompareSeries(screenings, activities, days).associateBy { it.key }

@@ -83,6 +83,7 @@ class FeelingComponentsTest {
     @Test
     fun `hjulet - sektorn räknas medurs från klockan 12, navet och utsidan är ingen sektor`() {
         val r = 100f
+
         // En punkt [degrees] medurs från klockan 12, på [distance] av radien från mitten.
         fun at(degrees: Double, distance: Float = 0.8f) = Math.toRadians(degrees).let {
             Offset(r + (sin(it) * r * distance).toFloat(), r - (cos(it) * r * distance).toFloat())

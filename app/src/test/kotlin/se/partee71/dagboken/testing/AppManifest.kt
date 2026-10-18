@@ -28,10 +28,9 @@ object AppManifest {
     }
 
     /** Det första elementet med [tag] – och med `android:name` lika med [name], när det anges. */
-    fun element(tag: String, name: String? = null): Element =
-        checkNotNull(elements(tag).firstOrNull { name == null || it.android("name") == name }) {
-            "<$tag${name?.let { " android:name=\"$it\"" }.orEmpty()}> saknas i manifestet"
-        }
+    fun element(tag: String, name: String? = null): Element = checkNotNull(elements(tag).firstOrNull { name == null || it.android("name") == name }) {
+        "<$tag${name?.let { " android:name=\"$it\"" }.orEmpty()}> saknas i manifestet"
+    }
 
     /** Attributet `android:[name]`; tom sträng när det saknas. */
     fun Element.android(name: String): String = getAttributeNS(ANDROID, name)

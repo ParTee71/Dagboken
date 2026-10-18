@@ -21,13 +21,13 @@ fun ChipRow(modifier: Modifier = Modifier, wrap: Boolean = true, content: @Compo
         FlowRow(
             modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) { content() }
     } else {
         Row(
             modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Spacing.s),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) { content() }
     }
 }

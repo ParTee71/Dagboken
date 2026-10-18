@@ -121,18 +121,17 @@ val WATCH_COMPARE_KEYS: List<CompareKey> = listOf(
     CompareKey.Watch(WatchMetric.EXERCISE),
     CompareKey.Watch(WatchMetric.ACTIVE_CALORIES),
     CompareKey.Watch(WatchMetric.DISTANCE),
-    CompareKey.Watch(WatchMetric.OXYGEN_SATURATION),
+    CompareKey.Watch(WatchMetric.OXYGEN_SATURATION)
 )
 
 /**
  * Dagbokens serier för Jämför över [days] (TRD-17), med [CompareKey]-nycklar: Energi (dag) (TRD-8), de fyra
  * tillfällena, de fyra stresserierna och periodens symptom – samma uträkningar som gruppen Måendes kort.
  */
-fun moodCompareSeries(screenings: List<Screening>, activities: List<Activity>, days: List<LocalDate>): List<TrendSerie> =
-    listOf(TrendSerie(CompareKey.EnergyDay.wire, dailyEnergyAverages(screenings, days))) +
-        energyByOccasion(screenings, days).map { it.rekey { key -> CompareKey.EnergyOccasion(Occasion.entries.first { it.wire == key }) } } +
-        stressSeries(screenings, activities, days).map { it.rekey { key -> CompareKey.Stress(StressSeries.valueOf(key)) } } +
-        symptomSeries(screenings, activities, days).map { it.rekey(CompareKey::Symptom) }
+fun moodCompareSeries(screenings: List<Screening>, activities: List<Activity>, days: List<LocalDate>): List<TrendSerie> = listOf(TrendSerie(CompareKey.EnergyDay.wire, dailyEnergyAverages(screenings, days))) +
+    energyByOccasion(screenings, days).map { it.rekey { key -> CompareKey.EnergyOccasion(Occasion.entries.first { it.wire == key }) } } +
+    stressSeries(screenings, activities, days).map { it.rekey { key -> CompareKey.Stress(StressSeries.valueOf(key)) } } +
+    symptomSeries(screenings, activities, days).map { it.rekey(CompareKey::Symptom) }
 
 /**
  * Klockans serier för Jämför över [days], bara för [keys] (de valda) i [WATCH_COMPARE_KEYS] ordning. Nätterna

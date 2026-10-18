@@ -44,7 +44,7 @@ class ExportUseCase @Inject constructor(
     private val files: UserFile,
     private val scope: UserScope,
     private val clock: Clock,
-    @DefaultDispatcher private val computation: CoroutineDispatcher,
+    @DefaultDispatcher private val computation: CoroutineDispatcher
 ) {
     /** Förslaget i filväljaren: `dagboken-export-<datum>.json` (datum i [zone]). */
     fun fileName(zone: TimeZone): String = "$FILE_PREFIX${clock.now().toLocalDateTime(zone).date}.json"

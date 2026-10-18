@@ -22,7 +22,7 @@ data class IllnessSummary(
     val checkins: List<Checkin>,
     val ongoing: Boolean,
     val durationDays: Int?,
-    val latestSeverity: Int?,
+    val latestSeverity: Int?
 ) {
     /** "Dag N" för [checkin] i den här episoden ([checkinDay]). */
     fun dayOf(checkin: Checkin): Int? = checkinDay(episode, checkin)
@@ -34,7 +34,7 @@ fun illnessSummary(episode: IllnessEpisode, checkins: List<Checkin>, today: Loca
     checkins = checkins.sortedWith(chronological(Checkin::date, Checkin::time, Checkin::createdAt).reversed()),
     ongoing = episode.end == null,
     durationDays = illnessDay(episode.start, episode.end ?: today),
-    latestSeverity = latestCheckin(checkins)?.severity,
+    latestSeverity = latestCheckin(checkins)?.severity
 )
 
 /** "Dag N" för [checkin] i [episode] – startdagen är dag 1 ([illnessDay]); `null` utan datum eller före starten. */

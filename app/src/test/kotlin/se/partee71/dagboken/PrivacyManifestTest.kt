@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.view.WindowManager
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -13,8 +15,6 @@ import org.xmlpull.v1.XmlPullParser
 import se.partee71.dagboken.data.health.HealthPermissionSet
 import se.partee71.dagboken.testing.AppManifest
 import se.partee71.dagboken.testing.AppManifest.android
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * Manifestet: hälsodata lämnar inte appen via Androids backup eller enhetsöverföring (NFR-23, skill data-privacy-security),
@@ -37,7 +37,7 @@ class PrivacyManifestTest {
         // ApplicationInfo.dataExtractionRulesRes är dold API – kontrollera manifestet direkt.
         assertTrue(
             AppManifest.text.contains("""android:dataExtractionRules="@xml/data_extraction_rules""""),
-            "android:dataExtractionRules saknas i manifestet",
+            "android:dataExtractionRules saknas i manifestet"
         )
         val excluded = mutableMapOf<String, MutableSet<String>>()
         val parser = context.resources.getXml(R.xml.data_extraction_rules)
@@ -46,6 +46,7 @@ class PrivacyManifestTest {
             if (parser.eventType != XmlPullParser.START_TAG) continue
             when (parser.name) {
                 "cloud-backup", "device-transfer" -> section = parser.name
+
                 "exclude" -> if (parser.getAttributeValue(null, "path") == ".") {
                     excluded.getOrPut(checkNotNull(section)) { mutableSetOf() } += parser.getAttributeValue(null, "domain")
                 }
@@ -53,7 +54,7 @@ class PrivacyManifestTest {
         }
         val allDomains = setOf(
             "root", "file", "database", "sharedpref", "external",
-            "device_root", "device_file", "device_database", "device_sharedpref",
+            "device_root", "device_file", "device_database", "device_sharedpref"
         )
         assertEquals(mapOf("cloud-backup" to allDomains, "device-transfer" to allDomains), excluded)
     }
@@ -65,7 +66,7 @@ class PrivacyManifestTest {
         assertEquals(
             "true",
             AppManifest.element("application").android("enableOnBackInvokedCallback"),
-            "android:enableOnBackInvokedCallback saknas på <application> – utan den får appen ingen predictive back-animation",
+            "android:enableOnBackInvokedCallback saknas på <application> – utan den får appen ingen predictive back-animation"
         )
     }
 
@@ -77,7 +78,7 @@ class PrivacyManifestTest {
         assertEquals(
             WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
             activity.softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST,
-            "android:windowSoftInputMode=\"adjustResize\" saknas på MainActivity",
+            "android:windowSoftInputMode=\"adjustResize\" saknas på MainActivity"
         )
     }
 

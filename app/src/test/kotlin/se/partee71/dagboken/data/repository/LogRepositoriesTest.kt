@@ -14,13 +14,13 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.junit.Test
 import se.partee71.dagboken.core.engine.ensureDoses
-import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Prescription
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.SymptomScore
@@ -30,9 +30,9 @@ import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.core.schema.DoseCodec
 import se.partee71.dagboken.core.schema.IllnessEpisodeCodec
 import se.partee71.dagboken.data.FakeCollectionFactory
+import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.dataError
-import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.firestore.Paths
 
 /**
@@ -56,7 +56,7 @@ class LogRepositoriesTest {
     private val levaxin = Prescription("levaxin", "Levaxin", "100", "µg", listOf(Slot.MORNING), Schedule.Repeating(), createdAt = at(LocalDate(2026, 9, 1), 8))
     private val recipeDose = Dose(
         DoseIds.prescribed("levaxin", day, Slot.MORNING), day, Slot.MORNING, "Levaxin", "100", "µg", DoseStatus.TAKEN,
-        plannedTime = LocalTime(7, 0), takenAt = at(day, 7, 12), prescriptionId = "levaxin", createdAt = at(day, 7), note = "Med frukost",
+        plannedTime = LocalTime(7, 0), takenAt = at(day, 7, 12), prescriptionId = "levaxin", createdAt = at(day, 7), note = "Med frukost"
     )
 
     // ── Dos ───────────────────────────────────────────────────────────────
@@ -183,7 +183,9 @@ class LogRepositoriesTest {
         factory.store.online = false
         val episode = illnesses.newEpisode(day).copy(type = "Förkylning", note = "Började i halsen")
         val first = illnesses.newCheckin(episode.id, day, LocalTime(14, 20)).copy(
-            severity = 6, symptoms = listOf(SymptomScore("symptom-huvudvark-d55e7d", 4), SymptomScore("symptom-ovrigt-c067e8", 3, "Ont i halsen")), note = "Feber 38,2",
+            severity = 6,
+            symptoms = listOf(SymptomScore("symptom-huvudvark-d55e7d", 4), SymptomScore("symptom-ovrigt-c067e8", 3, "Ont i halsen")),
+            note = "Feber 38,2"
         )
         assertEquals(IllnessRepository.DEFAULT_SEVERITY, illnesses.newCheckin(episode.id, day, LocalTime(9, 0)).severity)
         assertEquals(clock.now(), episode.createdAt)

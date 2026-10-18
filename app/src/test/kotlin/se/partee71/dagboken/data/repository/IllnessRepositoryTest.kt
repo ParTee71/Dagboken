@@ -44,8 +44,7 @@ class IllnessRepositoryTest {
 
     private val uid: String get() = factory.scope.uid.value!!
 
-    private fun checkin(id: String, severity: Int = 4) =
-        Checkin(id, day, LocalTime(9, 0), severity = severity, createdAt = created, note = "Anteckning $id")
+    private fun checkin(id: String, severity: Int = 4) = Checkin(id, day, LocalTime(9, 0), severity = severity, createdAt = created, note = "Anteckning $id")
 
     /** [count] incheckningar under [episodeId], skrivna med `batch` (som importen). */
     private suspend fun checkins(episodeId: String, count: Int): List<String> {
@@ -251,7 +250,7 @@ class IllnessRepositoryTest {
             abortingCheckins(factory, committed = Int.MAX_VALUE, afterBatch = {
                 if (batches++ == 0) factory.store.set(Paths.checkins(uid, "flu"), "annan-enhet", CheckinCodec.encode(checkin("annan-enhet")), merge = false)
             }),
-            clock,
+            clock
         )
 
         racing.deleteEpisode("flu").getOrThrow()
@@ -271,7 +270,7 @@ class IllnessRepositoryTest {
             abortingCheckins(factory, committed = Int.MAX_VALUE, afterBatch = {
                 factory.store.set(Paths.checkins(uid, "flu"), "ny-${batches++}", CheckinCodec.encode(checkin("ny")), merge = false)
             }),
-            clock,
+            clock
         )
 
         assertEquals(DataError.Unknown, endless.deleteEpisode("flu").dataError())
@@ -290,18 +289,17 @@ class IllnessRepositoryTest {
         factory: FakeCollectionFactory,
         committed: Int,
         beforeBatch: () -> Unit = {},
-        afterBatch: () -> Unit = {},
-    ): CollectionFactory =
-        object : CollectionFactory by factory {
-            override fun checkins(episodeId: String): EntityCollection<Checkin> = object : EntityCollection<Checkin> by factory.checkins(episodeId) {
-                private val real = factory.checkins(episodeId)
+        afterBatch: () -> Unit = {}
+    ): CollectionFactory = object : CollectionFactory by factory {
+        override fun checkins(episodeId: String): EntityCollection<Checkin> = object : EntityCollection<Checkin> by factory.checkins(episodeId) {
+            private val real = factory.checkins(episodeId)
 
-                override suspend fun batch(upserts: List<Checkin>, deletes: List<String>, merges: List<FieldMerge<Checkin>>): Result<Unit> {
-                    beforeBatch()
-                    real.batch(upserts, deletes.take(committed), merges).getOrThrow()
-                    afterBatch()
-                    return if (deletes.size > committed) Result.failure(DataError.Offline) else Result.success(Unit)
-                }
+            override suspend fun batch(upserts: List<Checkin>, deletes: List<String>, merges: List<FieldMerge<Checkin>>): Result<Unit> {
+                beforeBatch()
+                real.batch(upserts, deletes.take(committed), merges).getOrThrow()
+                afterBatch()
+                return if (deletes.size > committed) Result.failure(DataError.Offline) else Result.success(Unit)
             }
         }
+    }
 }

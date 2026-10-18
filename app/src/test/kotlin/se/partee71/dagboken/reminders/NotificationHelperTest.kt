@@ -36,7 +36,7 @@ class NotificationHelperTest {
 
     private val doses = listOf(
         Dose("d1", date = today, slot = Slot.MORNING, name = "Levaxin", dose = "100", unit = "µg"),
-        Dose("d2", date = today, slot = Slot.MORNING, name = "Prednisolon", dose = "15", unit = "mg"),
+        Dose("d2", date = today, slot = Slot.MORNING, name = "Prednisolon", dose = "15", unit = "mg")
     )
 
     @Before
@@ -47,7 +47,7 @@ class NotificationHelperTest {
     private fun Notification.text(): String = listOfNotNull(
         extras.getCharSequence(NotificationCompat.EXTRA_TITLE),
         extras.getCharSequence(NotificationCompat.EXTRA_TEXT),
-        extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT),
+        extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT)
     ).joinToString("\n")
 
     @Test
@@ -114,7 +114,7 @@ class NotificationHelperTest {
         val notification = posted().single()
         assertEquals(
             "Kunde inte markera – öppna appen och bocka av där.\nLevaxin 100 µg\nPrednisolon 15 mg",
-            notification.extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT).toString(),
+            notification.extras.getCharSequence(NotificationCompat.EXTRA_BIG_TEXT).toString()
         )
         assertEquals(1, notification.actions.size, "Markera tagen finns kvar")
     }

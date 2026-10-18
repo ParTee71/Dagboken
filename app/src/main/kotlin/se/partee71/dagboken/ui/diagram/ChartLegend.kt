@@ -41,7 +41,7 @@ internal fun ChartLegend(items: List<LegendItem>, modifier: Modifier = Modifier)
     FlowRow(
         modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         items.forEach { item ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -56,7 +56,9 @@ internal fun ChartLegend(items: List<LegendItem>, modifier: Modifier = Modifier)
 private fun Mark(item: LegendItem) {
     when (item.mark) {
         LegendMark.Dot -> Box(Modifier.size(LEGEND_SWATCH).background(item.color, CircleShape))
+
         LegendMark.Square -> Box(Modifier.size(LEGEND_SWATCH).background(item.color, RectangleShape))
+
         LegendMark.Dashed -> Canvas(Modifier.size(LEGEND_DASH_WIDTH, LEGEND_SWATCH)) {
             drawLine(
                 color = item.color,
@@ -64,7 +66,7 @@ private fun Mark(item: LegendItem) {
                 end = Offset(size.width, size.height / 2),
                 strokeWidth = TREND_WIDTH.toPx(),
                 cap = StrokeCap.Round,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(TREND_DASH.toPx() / 2, TREND_GAP.toPx())),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(TREND_DASH.toPx() / 2, TREND_GAP.toPx()))
             )
         }
     }

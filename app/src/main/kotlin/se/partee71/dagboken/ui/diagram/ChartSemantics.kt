@@ -28,22 +28,21 @@ internal fun trendSpoken(direction: TrendDirection?): String = stringResource(
         TrendDirection.FALLING -> R.string.chart_a11y_trend_falling
         TrendDirection.FLAT -> R.string.chart_a11y_trend_flat
         null -> R.string.chart_a11y_trend_unknown
-    },
+    }
 )
 
 /** En series sammanfattning ("Energi: 6 värden, lägsta 3, högsta 8, senaste 7, stigande trend"). */
 @Composable
-internal fun seriesSpoken(label: String, summary: SeriesSummary?, trend: TrendDirection?): String =
-    if (summary == null) {
-        stringResource(R.string.chart_a11y_empty, label)
-    } else {
-        stringResource(
-            R.string.chart_a11y_summary,
-            label,
-            pluralStringResource(R.plurals.chart_a11y_values, summary.count, summary.count),
-            formatChartValue(summary.min),
-            formatChartValue(summary.max),
-            formatChartValue(summary.last),
-            trendSpoken(trend),
-        )
-    }
+internal fun seriesSpoken(label: String, summary: SeriesSummary?, trend: TrendDirection?): String = if (summary == null) {
+    stringResource(R.string.chart_a11y_empty, label)
+} else {
+    stringResource(
+        R.string.chart_a11y_summary,
+        label,
+        pluralStringResource(R.plurals.chart_a11y_values, summary.count, summary.count),
+        formatChartValue(summary.min),
+        formatChartValue(summary.max),
+        formatChartValue(summary.last),
+        trendSpoken(trend)
+    )
+}

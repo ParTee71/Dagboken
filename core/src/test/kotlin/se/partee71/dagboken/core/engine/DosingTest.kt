@@ -10,8 +10,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import org.junit.Test
-import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Period
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Repeat
 import se.partee71.dagboken.core.model.Schedule
 

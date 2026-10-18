@@ -1,32 +1,32 @@
 package se.partee71.dagboken.ui.diagram
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
-import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.pinch
-import androidx.compose.ui.test.performTouchInput
-import kotlin.test.assertFalse
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.pinch
 import androidx.compose.ui.unit.dp
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -70,8 +70,8 @@ class DiagramsTest {
         rule.onNode(
             SemanticsMatcher.expectValue(
                 SemanticsProperties.ContentDescription,
-                listOf("Vilopuls: för lite data än. Koppla klockan för att se vilopulsen."),
-            ),
+                listOf("Vilopuls: för lite data än. Koppla klockan för att se vilopulsen.")
+            )
         ).assertIsDisplayed()
     }
 
@@ -123,7 +123,7 @@ class DiagramsTest {
                 label = "Jämför",
                 axis = COMPARE_AXIS,
                 showCaption = false,
-                footnote = "Varje serie visas 0–100 mot sitt eget lägsta och högsta värde.",
+                footnote = "Varje serie visas 0–100 mot sitt eget lägsta och högsta värde."
             )
         }
         rule.onNodeWithText("Steg · 2 000–10 000 steg").assertIsDisplayed()
@@ -154,7 +154,7 @@ class DiagramsTest {
         val lines = linePlot(
             listOf(ChartSeries("Energi", energy, Color.Red)),
             listOf(ChartSeries("Energi", listOf(1f, 2f, 3f), Color.Gray)),
-            trendColor = Color.Yellow,
+            trendColor = Color.Yellow
         )
         assertEquals(listOf(listOf(0, 1, 2), listOf(0, 1), listOf(3, 4), listOf(6), listOf(0, 2), listOf(0, 6)), lines.map { it.xs })
         assertEquals(listOf(false, false, false, false, true, true), lines.map { it.style.dashed })
@@ -193,7 +193,7 @@ class DiagramsTest {
         val nights = listOf(
             StackedPoint(listOf(1f, 1.5f, 4f, 0.5f)),
             StackedPoint(listOf(null, null, null, null)),
-            StackedPoint(listOf(1.2f, null, 4.5f, 0.3f)),
+            StackedPoint(listOf(1.2f, null, 4.5f, 0.3f))
         )
         show { StackedBarChart(nights, stages(), label = "Sömnstadier") }
         described("Sömnstadier: 2 staplar, lägsta 6, högsta 7, mest Lätt").assertIsDisplayed()
@@ -210,7 +210,7 @@ class DiagramsTest {
                 listOf(StackSegment("Händelser", AppColors.lightExtended.energy.low)),
                 label = "Händelser och sjukdom",
                 line = ChartSeries("Incheckningar", listOf(null, null, 8f, 7f, 5f)),
-                bands = listOf(ChartBand(2, 4, "Förkylning")),
+                bands = listOf(ChartBand(2, 4, "Förkylning"))
             )
         }
         described("Händelser och sjukdom: 2 staplar, lägsta 4, högsta 6, mest Händelser").assertIsDisplayed()
@@ -227,7 +227,7 @@ class DiagramsTest {
                 listOf(StackedPoint(listOf(null)), StackedPoint(listOf(null)), StackedPoint(listOf(null))),
                 listOf(StackSegment("Händelser", AppColors.lightExtended.energy.low)),
                 label = "Händelser och sjukdom",
-                line = ChartSeries("Incheckningar", listOf(6f, null, 4f)),
+                line = ChartSeries("Incheckningar", listOf(6f, null, 4f))
             )
         }
         rule.onNodeWithText("För lite data än").assertDoesNotExist()
@@ -279,7 +279,7 @@ class DiagramsTest {
         show {
             CompactDropdownButton(
                 "14 dagar",
-                listOf("7 dagar", "14 dagar", "Allt").map { AppMenuItem(it, { chosen = it }) },
+                listOf("7 dagar", "14 dagar", "Allt").map { AppMenuItem(it, { chosen = it }) }
             )
         }
         rule.onNodeWithText("14 dagar")
@@ -365,7 +365,7 @@ class DiagramsTest {
         StackSegment("Djup", AppColors.extended.sleepStages.deep),
         StackSegment("REM", AppColors.extended.sleepStages.rem),
         StackSegment("Lätt", AppColors.extended.sleepStages.light),
-        StackSegment("Vaken", AppColors.extended.sleepStages.awake),
+        StackSegment("Vaken", AppColors.extended.sleepStages.awake)
     )
 
     private fun chart(descriptionStart: String) = described(descriptionStart)

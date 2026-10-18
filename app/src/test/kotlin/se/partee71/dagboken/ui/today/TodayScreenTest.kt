@@ -3,24 +3,24 @@ package se.partee71.dagboken.ui.today
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -30,6 +30,9 @@ import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
@@ -38,9 +41,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -64,8 +64,8 @@ import se.partee71.dagboken.core.engine.doseChecklist
 import se.partee71.dagboken.core.engine.occasionStates
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
-import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
@@ -84,17 +84,17 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
-import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.SampleMedicines
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorSheetState
-import se.partee71.dagboken.ui.log.LogEvent
-import se.partee71.dagboken.ui.log.ScreeningSheetInfo
-import se.partee71.dagboken.ui.log.ScreeningSheetView
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.Validator
 import se.partee71.dagboken.ui.common.toMessage
+import se.partee71.dagboken.ui.log.CooldownPrompt
+import se.partee71.dagboken.ui.log.LogEvent
+import se.partee71.dagboken.ui.log.ScreeningSheetInfo
+import se.partee71.dagboken.ui.log.ScreeningSheetView
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 
 /**
@@ -122,8 +122,7 @@ class TodayScreenTest {
     private val loratadin = PrnMedicine("3", "Loratadin", "10", "mg")
     private val betapred = Prescription("b", "Betapred", "0,5", "mg", listOf(Slot.MORNING), Schedule.Repeating(), Period(LocalDate(2026, 9, 1)))
 
-    private fun dose(id: String, name: String, dose: String, unit: String, slot: Slot, status: DoseStatus = DoseStatus.PLANNED, takenAt: Instant? = null, prescriptionId: String? = null) =
-        Dose(id, today, slot, name, dose, unit, status, slot.defaultTime, takenAt = takenAt, prescriptionId = prescriptionId)
+    private fun dose(id: String, name: String, dose: String, unit: String, slot: Slot, status: DoseStatus = DoseStatus.PLANNED, takenAt: Instant? = null, prescriptionId: String? = null) = Dose(id, today, slot, name, dose, unit, status, slot.defaultTime, takenAt = takenAt, prescriptionId = prescriptionId)
 
     private val levaxinDose = dose("d1", "Levaxin", "100", "µg", Slot.MORNING, DoseStatus.TAKEN, at(7, 12), "l")
     private val sertralinDose = dose("d2", "Sertralin", "75", "mg", Slot.MORNING, DoseStatus.TAKEN, at(7, 15), "s")
@@ -131,7 +130,7 @@ class TodayScreenTest {
     private val omegaDose = dose("d4", "Omega-3", "1", "kapsel", Slot.LUNCH, prescriptionId = "o").copy(note = "Tas med mat.")
     private val upcoming = listOf(
         dose("d5", "Metformin", "500", "mg", Slot.EVENING, prescriptionId = "m"),
-        dose("d6", "Melatonin", "2", "mg", Slot.NIGHT, prescriptionId = "n"),
+        dose("d6", "Melatonin", "2", "mg", Slot.NIGHT, prescriptionId = "n")
     )
     private val doses = listOf(levaxinDose, sertralinDose, vitaminDose, omegaDose) + upcoming
 
@@ -144,7 +143,7 @@ class TodayScreenTest {
         progress: DayProgress = DayProgress(4, 9),
         showDone: Boolean = true,
         dayDone: DayDone? = null,
-        reminders: ReminderSettings = ReminderSettings(),
+        reminders: ReminderSettings = ReminderSettings()
     ) = TodayContent(
         today = today,
         date = date,
@@ -160,7 +159,7 @@ class TodayScreenTest {
         prescriptions = listOf(sertralin, levaxin).associateBy { it.id }.toImmutableMap(),
         choices = asNeededChoices(listOf(alvedon, imigran, loratadin), listOf(levaxin, betapred), today),
         dayDone = dayDone,
-        zone = zone,
+        zone = zone
     )
 
     private val allTaken = doses.map { it.copy(status = DoseStatus.TAKEN, takenAt = it.takenAt ?: at(10, 0)) }
@@ -171,7 +170,7 @@ class TodayScreenTest {
         cooldown: CooldownPrompt? = null,
         notice: TodayNotice? = null,
         onEvent: (TodayEvent) -> Unit = {},
-        onEditPrn: (String) -> Unit = {},
+        onEditPrn: (String) -> Unit = {}
     ) {
         rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Content(content), onEvent, onEditPrn, cooldown = cooldown, notice = notice) } }
     }
@@ -490,15 +489,15 @@ class TodayScreenTest {
             OccasionReminder(Occasion.BREAKFAST, true, LocalTime(8, 0)),
             OccasionReminder(Occasion.LUNCH, true, LocalTime(10, 0)),
             OccasionReminder(Occasion.DINNER, true, LocalTime(12, 30)),
-            OccasionReminder(Occasion.BEDTIME, true, LocalTime(21, 0)),
-        ),
+            OccasionReminder(Occasion.BEDTIME, true, LocalTime(21, 0))
+        )
     )
     private val breakfast = Screening("s1", today, LocalTime(8, 12), Occasion.BREAKFAST, energy = 7, stress = 3)
     private val episode = IllnessEpisode("e", "Förkylning", start = LocalDate(2026, 10, 1))
     private val symptoms = listOf(
         Option("h", OptionKind.SYMPTOM, "Huvudvärk", sortOrder = 0),
         Option("t", OptionKind.SYMPTOM, "Trötthet", sortOrder = 1),
-        Option(OTHER_SYMPTOM_ID, OptionKind.SYMPTOM, "Övrigt", sortOrder = 2),
+        Option(OTHER_SYMPTOM_ID, OptionKind.SYMPTOM, "Övrigt", sortOrder = 2)
     )
 
     private fun full(date: LocalDate = today, base: TodayContent = content(date = date, showDone = false)) = base.copy(
@@ -506,14 +505,14 @@ class TodayScreenTest {
         weekSummary = WeekSummary(EnergyTrend.UP, 86).takeIf { date == today },
         energyDays = ((28..30).map { LocalDate(2026, 9, it) } + (1..4).map { LocalDate(2026, 10, it) }).toImmutableList(),
         energy = persistentListOf(5.5f, 6f, null, 7f, 6.5f, 5f, 7f),
-        illness = OngoingIllness(episode, 4, Checkin("c", LocalDate(2026, 10, 3), LocalTime(20, 0), severity = 4)),
+        illness = OngoingIllness(episode, 4, Checkin("c", LocalDate(2026, 10, 3), LocalTime(20, 0), severity = 4))
     )
 
     private fun showFull(
         content: TodayContent = full(),
         screening: EditorSheetState<Screening, ScreeningSheetInfo>? = null,
         onScreening: (LogEvent) -> Unit = {},
-        onOpenTrends: () -> Unit = {},
+        onOpenTrends: () -> Unit = {}
     ) {
         rule.setContent { DagbokenTheme { TodayWithSheet(DetailUiState.Content(content), screening, onScreening = onScreening, onOpenTrends = onOpenTrends) } }
     }
@@ -528,7 +527,7 @@ class TodayScreenTest {
         sheet: EditorSheetState<Screening, ScreeningSheetInfo>?,
         symptomOptions: List<Option> = symptoms,
         onScreening: (LogEvent) -> Unit = {},
-        onOpenTrends: () -> Unit = {},
+        onOpenTrends: () -> Unit = {}
     ) {
         TodayScreen(state, {}, {}, onOpenTrends = onOpenTrends, onScreening = onScreening)
         sheet?.let { key(it) { ScreeningSheetView(it, symptomOptions, onScreening) } }
@@ -668,7 +667,7 @@ class TodayScreenTest {
         EditorState(value, Validator { emptyMap() }, saveUnchanged = loaded == null),
         loaded,
         ScreeningSheetInfo(value.occasion, value.date?.takeIf { it != today }),
-        CoroutineScope(Dispatchers.Main.immediate),
+        CoroutineScope(Dispatchers.Main.immediate)
     )
 
     @Test

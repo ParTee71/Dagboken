@@ -28,7 +28,7 @@ fun SparklineChart(
     xLabels: List<String> = emptyList(),
     label: String = stringResource(R.string.chart_a11y_default_label),
     emptyHint: String = stringResource(R.string.chart_empty_hint),
-    onOpenTrends: (() -> Unit)? = null,
+    onOpenTrends: (() -> Unit)? = null
 ) {
     val colors = chartColors
     val summary = summarize(points)
@@ -44,7 +44,7 @@ fun SparklineChart(
                 MinMaxCaption(min = summary.min, max = summary.max, trend = direction, today = points.lastOrNull(), showToday = true)
             }
             onOpenTrends?.let { AppButton(stringResource(R.string.chart_open_trends), it, variant = ButtonVariant.Text) }
-        },
+        }
     ) {
         val lines = remember(points, colors) {
             val today = points.lastIndex.takeIf { points.lastOrNull() != null }
@@ -59,7 +59,7 @@ fun SparklineChart(
             xLabels,
             SPARKLINE_HEIGHT,
             zoomable = false,
-            modifier = Modifier.chartDescription(spoken),
+            modifier = Modifier.chartDescription(spoken)
         )
     }
 }

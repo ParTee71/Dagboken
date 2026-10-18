@@ -68,14 +68,14 @@ class FileMigrationLedgerTest {
         ledger.appendPlanned("uid-a", mapOf("doses/d1" to NEW, "doses/d2" to NEW, "doses/d3" to NEW))
         assertEquals(
             Ledger(pending = emptyMap(), verified = mapOf("doses/d1" to OLD), mismatched = mapOf("doses/d2" to BAD), planned = mapOf("doses/d1" to NEW, "doses/d2" to NEW, "doses/d3" to NEW)),
-            ledger.read("uid-a"),
+            ledger.read("uid-a")
         )
         ledger.appendWritten("uid-a", mapOf("doses/d1" to NEW))
         ledger.appendVerified("uid-a", mapOf("doses/d2" to NEW))
         ledger.appendMismatched("uid-a", mapOf("doses/d3" to "MISSING"))
         assertEquals(
             Ledger(pending = mapOf("doses/d1" to NEW), verified = mapOf("doses/d2" to NEW), mismatched = mapOf("doses/d3" to "MISSING"), planned = emptyMap()),
-            ledger.read("uid-a"),
+            ledger.read("uid-a")
         )
     }
 
