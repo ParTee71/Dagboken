@@ -95,14 +95,15 @@ mot kod och workflow, länkar, hooktest) körs alltid. Att slippa köra ett test
 skäl att inte skriva det.
 → Skill: **ci-budget** – enda källan för vad som körs när; kontrolleras mot `android.yml`. Krav: NFR-19.
 
-## Processregel: mockup före ny GUI (skill **mockup**)
+## Processregel: mockup före ny GUI (skill **android:mockup**)
 
 Utvecklingen sker mest från telefonen, och en release för att "se hur det blev" är dyr. Ny
 skärm, ny delad komponent eller tydligt ändrat utseende/beteende → visa först en **mockup**
 (Design-canvas-artifact av katalogens komponenter, med påhittad data – aldrig riktig hälsodata)
 och vänta på ok innan koden skrivs (NFR-20). Tumregel: syns förändringen i en tumnagel →
 mockup först; padding, ordval eller ikonbyte → skärmdumpsdiffen i PR:en räcker. Hur mockupen
-byggs, var länken läggs och skärmdumparna i PR:en står i skill **mockup**.
+byggs står i pluginens skill **android:mockup**; mallens länk, datan, var länken läggs och
+skärmdumparna i PR:en i skill **android-projekt**.
 
 ## Innan du skriver ny kod
 

@@ -76,5 +76,16 @@
         ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "claude-android": {
+      "source": {
+        "source": "github",
+        "repo": "ParTee71/claude-android"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "android@claude-android": true
   }
 }

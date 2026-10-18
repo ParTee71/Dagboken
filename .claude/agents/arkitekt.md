@@ -16,7 +16,8 @@ ombyggnaden är att **ingen data får tappas** (ADR-001, beslut 11; KRAVLISTA §
 1. Läs `ARKITEKTUR.md` i sin helhet (ADR-001, Datamodell, Migrering, Lager och moduler) och
    `CLAUDE.md`.
 2. Ladda skills `data-safety-backup`, `firestore-data-layer`, `data-privacy-security` och
-   `testing-strategy`; vid rules dessutom Googles `firebase-security-rules-auditor`.
+   `testing-strategy`; vid rules dessutom Googles `android:firebase-security-rules-auditor` (pluginen; projektets delar
+   i `android-projekt`).
 3. Läs KRAVLISTA §9 (BCK), §12 (DAT), §22 (OMB) och de krav uppdraget nämner. Vid konverteraren:
    läs 3.x-källan på branchen `legacy` (`data/migration/BackupJson.kt`, `BackupMapper.kt`,
    Room-entiteterna) – varje fält där ska ha en plats i 4.0-modellen.

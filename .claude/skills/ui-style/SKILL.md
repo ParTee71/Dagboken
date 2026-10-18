@@ -1,6 +1,6 @@
 ---
 name: ui-style
-description: Dagbokens designspråk i 4.0 – känslan "I · Papper och teal" (Material 3 Expressive): lugn dagbokskänsla med luft, en tydlig gör-något-färg och belöning när dagen är klar. Ladda denna när du bygger eller ändrar tema, färger, typografi, former, rörelse, texter, ikoner, tomma tillstånd, belöningsläget eller en komponents utseende, och tillsammans med skill mockup. Trigger-ord: design, stil, utseende, färg, palett, tema, mörkt läge, ljust läge, papper, teal, solgul, terrakotta, typsnitt, font, Fraunces, Figtree, serif, rundad, hörn, kort, animation, rörelse, fjädrande, Expressive, konfetti, belöning, allt klart, framstegsrad, ikon, emoji, text, formulering, tomt tillstånd, kontrast, snyggt.
+description: Dagbokens designspråk i 4.0 – känslan "I · Papper och teal" (Material 3 Expressive): lugn dagbokskänsla med luft, en tydlig gör-något-färg och belöning när dagen är klar. Ladda denna när du bygger eller ändrar tema, färger, typografi, former, rörelse, texter, ikoner, tomma tillstånd, belöningsläget eller en komponents utseende, och tillsammans med skill android:mockup och android-projekt. Trigger-ord: design, stil, utseende, färg, palett, tema, mörkt läge, ljust läge, papper, teal, solgul, terrakotta, typsnitt, font, Fraunces, Figtree, serif, rundad, hörn, kort, animation, rörelse, fjädrande, Expressive, konfetti, belöning, allt klart, framstegsrad, ikon, emoji, text, formulering, tomt tillstånd, kontrast, snyggt.
 ---
 
 # Designspråket · I "Papper och teal"
@@ -125,7 +125,7 @@ luftigare kort, inga personfärger. Kopiera aldrig ReseApotekets färg- eller ty
 
 ## Tillgänglighet
 
-Enligt skill `accessibility-compose` – semantiken ligger i komponenterna; diagram har talbar
+Enligt skill `android:accessibility-compose` och `android-projekt` → "Tillgänglighet" – semantiken ligger i komponenterna; diagram har talbar
 sammanfattning (NFR-14).
 
 ## Skärmdumpar

@@ -24,7 +24,7 @@ Konsekvenser) läser de **samma repositories som UI:t**, ur Firestore-cachen (of
 - **Omschemaläggning** sker vid ändrade inställningar eller recept, när cachen fått ny data
   från servern (synk från en annan enhet eller migreringen), vid omstart och vid appuppdatering
   (NOT-14). Risk och hantering: ARKITEKTUR.md → Risker ("Larm tystnar när schemat ligger i cachen").
-- Utloggad (skill `firebase-auth`) finns inget schema att läsa – alla larm avbokas och notiserna
+- Utloggad (skill `android-projekt` → "Inloggning") finns inget schema att läsa – alla larm avbokas och notiserna
   stängs (AUTH-6). Bara **bekräftat** utloggat läge avbokar: hinner inloggningen inte läsas in vid en
   kallstart, eller är cachen tom, står larmen kvar (en utlöst påminnelse lägger nästa larm på
   klockslaget i sina extras).

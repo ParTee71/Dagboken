@@ -185,7 +185,7 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 | Test-fakes och hjälpare | se skill `testing-strategy` |
 | `tools/db`-logik | `tools/db/lib/` (admin, credentials, collections, walk, serialize, backup, query, migrate, cli) |
 | CI-steg | composite actions i `.github/actions/` |
-| Byggkonfiguration | ett ställe (skill `android-gradle-logic`) |
+| Byggkonfiguration | ett ställe (skill `android-projekt` → "Gradle") |
 
 ## Förbjudet
 
@@ -240,7 +240,7 @@ byggstenarna ovan eller utöka en ram. Tröskeln höjs inte för att "det bara �
 2. Räcker det inte → **utöka** med en parameter vars default bevarar nuvarande utseende
    och beteende. Uppdatera bara de skärmdumpar som avsiktligt ändras.
 3. Något nytt behövs → ny delad del i rätt paket, rad i tabellen, test, skärmdump, plats i
-   `ComponentGallery` – och visad i mockup först (skill `mockup`). En port från 3.x flyttar
+   `ComponentGallery` – och visad i mockup först (skill `android:mockup` och `android-projekt`). En port från 3.x flyttar
    raden från *Planerade komponenter* till *Utseende*.
 4. Delade delar utökas i en egen commit **före** featuren som behöver dem.
 5. Två ställen gör nästan samma sak → bryt ut innan det tredje kommer.

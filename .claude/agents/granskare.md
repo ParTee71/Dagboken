@@ -17,7 +17,7 @@ filer och kör bara läsande kommandon (`git diff`, `git log`, `git show`, `git 
    - tester → `.claude/skills/testing-strategy/SKILL.md`
    - UI, komponenter, ramar, byggstenar → `.claude/skills/shared-ui-components/SKILL.md`
    - CI, beroenden → `.claude/skills/ci-budget/SKILL.md`
-   - GUI → `.claude/skills/mockup/SKILL.md` och `.claude/skills/ui-style/SKILL.md`
+   - GUI → skill `android:mockup` (pluginen), `.claude/skills/android-projekt/SKILL.md` → "Mockup" och `.claude/skills/ui-style/SKILL.md`
    - hälsodata, loggning, hemligheter → `.claude/skills/data-privacy-security/SKILL.md`
    - larm och notiser → `.claude/skills/notifications-alarms/SKILL.md`
 2. Hämta diffen: `git diff origin/master...HEAD` (eller det intervall du fått).
@@ -59,8 +59,9 @@ filer och kör bara läsande kommandon (`git diff`, `git log`, `git show`, `git 
 - **Integritet:** loggning av hälsodata (mående, symptom, doser, anteckningar, sjukdomar) eller
   PII, hemligheter eller nycklar i diffen, bredare behörigheter, Health Connect-data som
   persisteras (HLS-5). Rör diffen `firestore.rules`: gå igenom Googles skill
-  `firebase-security-rules-auditor`. Rör den manifestet, extras, `PendingIntent`, notiser eller
-  delning: gå igenom Googles skill `android-intent-security`.
+  `android:firebase-security-rules-auditor`. Rör den manifestet, extras, `PendingIntent`, notiser eller
+  delning: gå igenom Googles skill `android:android-intent-security`
+  (projektets delar: skill `android-projekt`).
 
 ## Rapport (exakt detta format)
 
