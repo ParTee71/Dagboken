@@ -1,5 +1,6 @@
 package se.partee71.dagboken.core.legacy
 
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -8,7 +9,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Duration.Companion.hours
 import se.partee71.dagboken.core.time.HOME_ZONE
 
 /**
@@ -61,8 +61,7 @@ internal object LegacyTime {
     fun moment(text: String): Instant? = localDateTime(text)?.toInstant(ZONE) ?: instant(text)
 
     /** ISO dag och klockslag utan zon (mellanslag i stället för `T` godtas); `null` om tomt eller något annat. */
-    fun localDateTime(text: String): LocalDateTime? =
-        text.takeIf { it.isNotBlank() }?.let { runCatching { LocalDateTime.parse(it.replaceFirst(' ', 'T')) }.getOrNull() }
+    fun localDateTime(text: String): LocalDateTime? = text.takeIf { it.isNotBlank() }?.let { runCatching { LocalDateTime.parse(it.replaceFirst(' ', 'T')) }.getOrNull() }
 
     /**
      * 3.x `timestamp` på en post med zon: ISO-ögonblick (`Timestamps.of`, och före 3.x #85 `datumTtid:00.000Z`) eller
@@ -70,8 +69,7 @@ internal object LegacyTime {
      * alltså efter 2001-09-09; epok-sekunder och andra tal är inget ögonblick. Dag och klockslag utan zon läser
      * konverteraren själv ([localDateTime]), så att sommartidsbytet syns i rapporten. `null` om inget av dem.
      */
-    fun timestamp(text: String): Instant? =
-        instant(text) ?: text.takeIf { EPOCH_MILLIS.matches(it) }?.toLongOrNull()?.let(Instant::fromEpochMilliseconds)
+    fun timestamp(text: String): Instant? = instant(text) ?: text.takeIf { EPOCH_MILLIS.matches(it) }?.toLongOrNull()?.let(Instant::fromEpochMilliseconds)
 
     private val EPOCH_MILLIS = Regex("^[0-9]{13}$")
 
@@ -79,8 +77,15 @@ internal object LegacyTime {
      * Ett värdes form utan innehåll, för rapporten: siffror → `9`, bokstäver → `a`, annat som det står, högst
      * [SHAPE_MAX] tecken (`2025-11-20T08:15:00.000Z` → `9999-99-99a99:99:99.999a`).
      */
-    fun shape(text: String): String =
-        text.take(SHAPE_MAX).map { if (it.isDigit()) '9' else if (it.isLetter()) 'a' else it }.joinToString("") + if (text.length > SHAPE_MAX) "…" else ""
+    fun shape(text: String): String = text.take(SHAPE_MAX).map {
+        if (it.isDigit()) {
+            '9'
+        } else if (it.isLetter()) {
+            'a'
+        } else {
+            it
+        }
+    }.joinToString("") + if (text.length > SHAPE_MAX) "…" else ""
 
     private const val SHAPE_MAX = 32
 }

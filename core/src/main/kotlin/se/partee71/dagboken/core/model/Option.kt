@@ -21,13 +21,15 @@ data class Option(
     /** Plats i listan (3.x: listans ordning). */
     override val sortOrder: Int = 0,
     /** Dold i formulären men kvar för poster som refererar det. */
-    override val archived: Boolean = false,
-) : Identified, Sortable, Archivable
+    override val archived: Boolean = false
+) : Identified,
+    Sortable,
+    Archivable
 
 enum class OptionKind(override val wire: String) : WireEnum {
     ACTIVITY("activity"),
     SYMPTOM("symptom"),
-    EVENT("event"),
+    EVENT("event")
 }
 
 /**
@@ -52,13 +54,11 @@ object OptionIds {
      */
     fun of(kind: OptionKind, name: String): String = "${kind.wire}-${slug(name)}-${hash(name)}"
 
-    internal fun slug(name: String): String =
-        Normalizer.normalize(name, Normalizer.Form.NFD).replace(COMBINING, "").lowercase(Locale.ROOT)
-            .replace(NOT_SLUG, "-").replace(DASHES, "-").trim('-')
-            .take(MAX_SLUG).trimEnd('-')
+    internal fun slug(name: String): String = Normalizer.normalize(name, Normalizer.Form.NFD).replace(COMBINING, "").lowercase(Locale.ROOT)
+        .replace(NOT_SLUG, "-").replace(DASHES, "-").trim('-')
+        .take(MAX_SLUG).trimEnd('-')
 
-    private fun hash(name: String): String =
-        HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(name.toByteArray(Charsets.UTF_8))).take(HASH_LENGTH)
+    private fun hash(name: String): String = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(name.toByteArray(Charsets.UTF_8))).take(HASH_LENGTH)
 
     private val COMBINING = Regex("\\p{Mn}+")
     private val NOT_SLUG = Regex("[^a-z0-9]")

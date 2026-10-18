@@ -37,7 +37,7 @@ data class EditorUiState<T>(
      * Sparfelet som ska visas: felet och texten – som standard felets (`DataError.toMessage()`). Samma [Failure]
      * visas i `EntityEditScreen` (snackbar) och i ett ark (`EditorSheet`); ramen kvitterar med [EditorEvents.onFailureShown].
      */
-    val failure: Failure? = null,
+    val failure: Failure? = null
 ) {
     /** "Spara" är aktiv först när formuläret är giltigt och ändrat (NFR-10) – eller får sparas oförändrat. */
     val canSave: Boolean get() = isValid && (isDirty || saveUnchanged) && !saving && !loading && loadError == null
@@ -85,7 +85,7 @@ class EditorState<T>(
     private val validator: Validator<T>,
     loading: Boolean = false,
     private val errorMessage: (Throwable) -> Int? = { null },
-    private val saveUnchanged: Boolean = false,
+    private val saveUnchanged: Boolean = false
 ) : EditorEvents {
     private var original: T = initial
     private val touched = mutableSetOf<String>()

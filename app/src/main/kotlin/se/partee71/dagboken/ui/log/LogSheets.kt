@@ -10,10 +10,10 @@ import se.partee71.dagboken.core.engine.OccasionState
 import se.partee71.dagboken.core.engine.latest
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.components.AppBottomSheet
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.common.title
+import se.partee71.dagboken.ui.components.AppBottomSheet
 import se.partee71.dagboken.ui.components.AppDivider
 import se.partee71.dagboken.ui.components.ItemRow
 import se.partee71.dagboken.ui.components.OccasionRow
@@ -35,7 +35,7 @@ fun OccasionStateRow(state: OccasionState, onLog: () -> Unit, onClick: () -> Uni
         values = latest?.let {
             listOf(OccasionValue(stringResource(R.string.energy), it.energy), OccasionValue(stringResource(R.string.stress), it.stress, higherIsBetter = false))
         }.orEmpty(),
-        onClick = onClick,
+        onClick = onClick
     )
 }
 
@@ -73,7 +73,7 @@ fun DosePickerSheet(picker: DosePicker, onClose: () -> Unit, onOpen: (LogTarget)
                     subtitle = prnLimits(medicine),
                     icon = R.drawable.ic_pill,
                     onClick = { onOpen(LogTarget.AsNeeded(medicine.id, picker.date)) },
-                    navigates = true,
+                    navigates = true
                 )
             }
         }
@@ -83,7 +83,7 @@ fun DosePickerSheet(picker: DosePicker, onClose: () -> Unit, onOpen: (LogTarget)
             subtitle = stringResource(R.string.dose_one_off_help),
             icon = R.drawable.ic_add,
             onClick = { onOpen(LogTarget.OneOffDose(picker.date)) },
-            navigates = true,
+            navigates = true
         )
     }
 }
@@ -101,14 +101,14 @@ fun IllnessPickerSheet(picker: IllnessPicker, onClose: () -> Unit, onOpen: (LogT
                 subtitle = picker.day?.let { stringResource(R.string.today_illness_day_format, it) },
                 icon = R.drawable.ic_thermometer,
                 onClick = { onOpen(LogTarget.Checkin(episode.id, picker.date)) },
-                navigates = true,
+                navigates = true
             )
         }
         ItemRow(
             stringResource(R.string.illness_new),
             icon = R.drawable.ic_add,
             onClick = { onOpen(LogTarget.NewEpisode(picker.date)) },
-            navigates = true,
+            navigates = true
         )
     }
 }
@@ -139,4 +139,3 @@ fun LogSheets(viewModel: LogViewModel, onOpen: (LogTarget) -> Unit = {}) {
     dosePicker?.let { DosePickerSheet(it, close, open) }
     illnessPicker?.let { IllnessPickerSheet(it, close, open) }
 }
-

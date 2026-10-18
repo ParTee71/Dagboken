@@ -4,13 +4,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalTime
 import org.junit.Test
-import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Slot
 
@@ -28,7 +28,7 @@ class TodayListsTest {
         status: DoseStatus = DoseStatus.PLANNED,
         date: String = "2026-10-04",
         time: LocalTime? = null,
-        name: String = id,
+        name: String = id
     ) = Dose(id, day(date), slot, name = name, status = status, plannedTime = time)
 
     // ── Hälsningen (HEM-1) ───────────────────────────────────────────────────
@@ -57,7 +57,7 @@ class TodayListsTest {
             dose("morgon2", Slot.MORNING),
             dose("vidbehov", Slot.AS_NEEDED, DoseStatus.TAKEN),
             dose("planeradvidbehov", Slot.AS_NEEDED),
-            dose("igar", Slot.MORNING, date = "2026-10-03"),
+            dose("igar", Slot.MORNING, date = "2026-10-03")
         )
         val list = doseChecklist(doses, today, at("2026-10-04T10:30"), STOCKHOLM, reminders = ReminderSettings())
 
@@ -101,7 +101,7 @@ class TodayListsTest {
             dose("b", Slot.MORNING, name = "omega"),
             dose("a", Slot.MORNING, name = "Omega"),
             dose("c", Slot.MORNING, name = "Levaxin"),
-            dose("d", Slot.MORNING, name = "Zink", time = LocalTime(6, 0)),
+            dose("d", Slot.MORNING, name = "Zink", time = LocalTime(6, 0))
         )
         val list = doseChecklist(doses, today, at("2026-10-04T09:00"), STOCKHOLM, reminders = ReminderSettings())
         assertEquals(listOf("d", "c", "a", "b"), list.shown.map { it.dose.id })
@@ -148,7 +148,7 @@ class TodayListsTest {
         val doses = listOf(
             dose("a", Slot.MORNING, DoseStatus.TAKEN, date = "2026-10-01"),
             dose("b", Slot.MORNING, DoseStatus.SKIPPED, date = "2026-10-02"),
-            dose("c", Slot.MORNING, date = "2026-10-03"),
+            dose("c", Slot.MORNING, date = "2026-10-03")
         )
         val screenings = listOf(Screening("s", day("2026-10-04"), occasion = Occasion.LUNCH))
         assertEquals(setOf(day("2026-10-01"), day("2026-10-02"), day("2026-10-04")), datesWithEntries(doses, screenings))

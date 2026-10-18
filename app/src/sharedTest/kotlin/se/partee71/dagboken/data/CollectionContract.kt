@@ -6,18 +6,18 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
@@ -206,7 +206,7 @@ abstract class CollectionContract {
         assertEquals(
             (PrescriptionCodec.encode(updated)[SCHEDULE] as Map<*, *>).keys,
             (raw[SCHEDULE] as Map<*, *>).keys,
-            "inga kvarblivna nycklar från det gamla schemat",
+            "inga kvarblivna nycklar från det gamla schemat"
         )
         assertEquals(setOf("name", SCHEDULE), raw.keys, "bara fältet skrivs – och updatedAt bara för en modell som har det")
 
@@ -223,7 +223,7 @@ abstract class CollectionContract {
         // En äldre kopia med annat namn och upprepning: bara schemats intervall och aktiv skrivs.
         recipes.merge(
             Prescription("a", "Gammalt namn", schedule = Schedule.Repeating(Repeat.DAILY, intervalDays = 3), active = false),
-            setOf(listOf(SCHEDULE, "intervalDays"), listOf(PrescriptionCodec.ACTIVE)),
+            setOf(listOf(SCHEDULE, "intervalDays"), listOf(PrescriptionCodec.ACTIVE))
         ).getOrThrow()
         recipes.observe("a").awaitMatching { it?.active == false }
         val raw = env.readRaw(recipesPath, "a")!!
@@ -379,7 +379,7 @@ abstract class CollectionContract {
         doses.observe("ny").awaitMatching { it != null }
         assertEquals(
             mapOf(DoseCodec.DATE to "2026-09-22", "name" to "Levaxin", DoseCodec.STATUS to "taken", "note" to "Annan enhet", "framtidaFält" to "kvar"),
-            env.readRaw(dosesPath, "ny"),
+            env.readRaw(dosesPath, "ny")
         )
         assertNull(env.readRaw(dosesPath, "gammal"), "källan är borta – flyttad, inte kopierad")
     }
@@ -568,8 +568,8 @@ abstract class CollectionContract {
             merges = listOf(
                 FieldMerge(PrnMedicine("a", "Annat", favorite = true), setOf(listOf(PrnMedicineCodec.FAVORITE))),
                 FieldMerge(PrnMedicine("b", "Annat", dose = "400"), setOf(listOf("dose"))),
-                FieldMerge(PrnMedicine("c", "Loratadin", dose = "10"), setOf(listOf("dose"))),
-            ),
+                FieldMerge(PrnMedicine("c", "Loratadin", dose = "10"), setOf(listOf("dose")))
+            )
         ).getOrThrow()
         medicines.observe().awaitMatching { list -> list.size == 3 && list.any { it.favorite } }
         val a = env.readRaw(medicinesPath, "a")!!

@@ -75,7 +75,7 @@ class HealthRepositoryTest {
             File(repoRoot, "app/src/main/kotlin/se/partee71/dagboken/data/firestore"),
             File(repoRoot, "app/src/main/kotlin/se/partee71/dagboken/data/repository"),
             File(repoRoot, "tools/db/lib"),
-            File(repoRoot, "firestore.rules"),
+            File(repoRoot, "firestore.rules")
         )
         val hits = persisting.flatMap { root -> root.walk().filter { it.isFile }.filter { models.containsMatchIn(it.readText()) }.map { it.relativeTo(repoRoot).path }.toList() }
         assertEquals(emptyList(), hits, "hälsodata får inte ha en väg till Firestore eller exporten (HLS-5)")

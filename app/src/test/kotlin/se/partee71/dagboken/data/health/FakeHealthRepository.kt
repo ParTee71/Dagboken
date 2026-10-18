@@ -13,7 +13,7 @@ import se.partee71.dagboken.core.model.HealthHistory
 class FakeHealthRepository(
     status: HealthStatus = HealthStatus.AVAILABLE,
     val measured: MutableMap<LocalDate, DailyHealth> = mutableMapOf(),
-    var failure: Throwable? = null,
+    var failure: Throwable? = null
 ) : HealthRepository {
     override val status: MutableStateFlow<HealthStatus> = MutableStateFlow(status)
 

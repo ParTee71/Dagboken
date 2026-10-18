@@ -33,8 +33,7 @@ class FirestoreCollectionContractTest : CollectionContract() {
             override val uid = user.uid
             override val now = clock.instant
 
-            override fun <T : Identified> collection(codec: DocCodec<T>, name: String, path: (uid: String?) -> String) =
-                user.collection(scope, codec, name, path, clock)
+            override fun <T : Identified> collection(codec: DocCodec<T>, name: String, path: (uid: String?) -> String) = user.collection(scope, codec, name, path, clock)
 
             override suspend fun writeRaw(path: String, id: String, doc: Doc) {
                 user.db.collection(path).document(id).set(toFirestore(doc)).await()

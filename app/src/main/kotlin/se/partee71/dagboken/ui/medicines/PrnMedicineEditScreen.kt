@@ -1,7 +1,5 @@
 package se.partee71.dagboken.ui.medicines
 
-import se.partee71.dagboken.ui.components.MEDICINE_UNITS
-import se.partee71.dagboken.ui.components.UnitChoice
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
@@ -24,8 +22,8 @@ import se.partee71.dagboken.core.medicine.filledFrom
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.medicines.MedicineRepository
-import se.partee71.dagboken.di.DefaultDispatcher
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
+import se.partee71.dagboken.di.DefaultDispatcher
 import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorLoader
 import se.partee71.dagboken.ui.common.EditorState
@@ -36,8 +34,10 @@ import se.partee71.dagboken.ui.components.AppTextField
 import se.partee71.dagboken.ui.components.DeleteAction
 import se.partee71.dagboken.ui.components.EntityEditScreen
 import se.partee71.dagboken.ui.components.LabeledGroup
+import se.partee71.dagboken.ui.components.MEDICINE_UNITS
 import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.QuantityStepper
+import se.partee71.dagboken.ui.components.UnitChoice
 
 /** Fälten i formuläret. */
 object PrnField {
@@ -83,7 +83,7 @@ class PrnMedicineEditViewModel @AssistedInject constructor(
     private val medicines: PrnMedicineRepository,
     catalog: MedicineRepository,
     @DefaultDispatcher computation: CoroutineDispatcher,
-    @Assisted private val id: String?,
+    @Assisted private val id: String?
 ) : ViewModel() {
     val editor: EditorState<PrnMedicine> = EditorState(newPrnMedicine(), prnValidator, loading = id != null)
 
@@ -100,12 +100,16 @@ class PrnMedicineEditViewModel @AssistedInject constructor(
     fun onEvent(event: PrnEditEvent) {
         when (event) {
             is PrnEditEvent.Changed -> if (event.field == null) editor.update(transform = event.change) else editor.update(event.field, transform = event.change)
+
             is PrnEditEvent.MedicineChosen -> {
                 suggestions.pick(event.entry)
                 editor.update(PrnField.NAME) { it.filledFrom(event.entry) }
             }
+
             PrnEditEvent.Save -> viewModelScope.launch { editor.save(::save) }
+
             PrnEditEvent.Delete -> id?.let { id -> viewModelScope.launch { editor.run { medicines.delete(id) } } }
+
             PrnEditEvent.Retry -> loader.retry()
         }
     }
@@ -145,7 +149,7 @@ fun PrnMedicineEditScreen(
     events: EditorEvents,
     onEvent: (PrnEditEvent) -> Unit,
     onClose: () -> Unit,
-    matches: List<MedicineMatch> = emptyList(),
+    matches: List<MedicineMatch> = emptyList()
 ) {
     val m = state.value
     val change: (String?, (PrnMedicine) -> PrnMedicine) -> Unit = { field, transform -> onEvent(PrnEditEvent.Changed(field, transform)) }
@@ -160,7 +164,7 @@ fun PrnMedicineEditScreen(
         } else {
             DeleteAction(stringResource(R.string.delete_named_title, m.displayName), stringResource(R.string.prn_delete_message)) { onEvent(PrnEditEvent.Delete) }
         },
-        onRetry = { onEvent(PrnEditEvent.Retry) },
+        onRetry = { onEvent(PrnEditEvent.Retry) }
     ) {
         MedicineFields(
             name = m.name,
@@ -173,13 +177,13 @@ fun PrnMedicineEditScreen(
             onPick = { onEvent(PrnEditEvent.MedicineChosen(it)) },
             onStrength = { strength -> change(null) { it.copy(strength = strength) } },
             // En okänd form från en nyare app ersätts först när användaren väljer en.
-            onForm = { form -> change(null) { it.copy(form = form, unknownForm = null) } },
+            onForm = { form -> change(null) { it.copy(form = form, unknownForm = null) } }
         )
         AppTextField(
             m.dose,
             { dose -> change(PrnField.DOSE) { it.copy(dose = dose) } },
             stringResource(R.string.medicine_dose_label),
-            error = state.errorFor(PrnField.DOSE)?.let { stringResource(it) },
+            error = state.errorFor(PrnField.DOSE)?.let { stringResource(it) }
         )
         UnitChoice(m.unit, { unit -> change(null) { it.copy(unit = unit) } })
         LabeledGroup(stringResource(R.string.prn_min_hours), helper = stringResource(R.string.prn_min_hours_help)) {
@@ -188,7 +192,7 @@ fun PrnMedicineEditScreen(
                 { hours -> change(null) { it.copy(minHoursBetween = hours) } },
                 stringResource(R.string.prn_min_hours_label),
                 range = 0..maxOf(MAX_HOURS, m.minHoursBetween),
-                valueText = { if (it <= 0) stringResource(R.string.prn_no_cooldown) else stringResource(R.string.prn_hours_value, it) },
+                valueText = { if (it <= 0) stringResource(R.string.prn_no_cooldown) else stringResource(R.string.prn_hours_value, it) }
             )
         }
         LabeledGroup(stringResource(R.string.prn_max_per_day), helper = stringResource(R.string.prn_max_per_day_help)) {
@@ -197,7 +201,7 @@ fun PrnMedicineEditScreen(
                 { max -> change(null) { it.copy(maxPerDay = max) } },
                 stringResource(R.string.prn_max_per_day_label),
                 range = 0..maxOf(MAX_PER_DAY, m.maxPerDay),
-                valueText = { if (it <= 0) stringResource(R.string.prn_unlimited) else it.toString() },
+                valueText = { if (it <= 0) stringResource(R.string.prn_unlimited) else it.toString() }
             )
         }
         AppCard { NoteField(m.note.orEmpty(), { note -> change(null) { it.copy(note = note.ifEmpty { null }) } }) }

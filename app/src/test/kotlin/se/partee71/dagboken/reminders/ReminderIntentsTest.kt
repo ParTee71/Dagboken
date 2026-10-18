@@ -56,7 +56,7 @@ class ReminderIntentsTest {
         val receivers = info.receivers.orEmpty().filter { it.name.startsWith("se.partee71.dagboken.reminders.") }
         assertEquals(
             setOf(MedAlarmReceiver::class, ScreeningReminderReceiver::class, PeriodReminderReceiver::class, MedActionReceiver::class, BootReceiver::class).map { it.java.name }.toSet(),
-            receivers.map { it.name }.toSet(),
+            receivers.map { it.name }.toSet()
         )
         assertTrue(receivers.none { it.exported })
     }
@@ -64,7 +64,7 @@ class ReminderIntentsTest {
     @Test
     fun `bara kända värden tolkas - en främmande app kan inte öppna något annat`() {
         fun launch(open: String?, occasion: String? = null) = ReminderLaunch.from(
-            Intent(context, MainActivity::class.java).putExtra(ReminderIntents.EXTRA_OPEN, open).putExtra(ReminderIntents.EXTRA_OCCASION, occasion),
+            Intent(context, MainActivity::class.java).putExtra(ReminderIntents.EXTRA_OPEN, open).putExtra(ReminderIntents.EXTRA_OCCASION, occasion)
         )
         assertNull(ReminderLaunch.from(null))
         assertNull(launch(null))

@@ -27,8 +27,8 @@ import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.core.schema.ExportFormat
 import se.partee71.dagboken.core.schema.LegacyMigrationCodec
-import se.partee71.dagboken.core.schema.asDoc
 import se.partee71.dagboken.core.schema.Schema
+import se.partee71.dagboken.core.schema.asDoc
 import se.partee71.dagboken.data.FakeStore
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.TestUserScope
@@ -79,7 +79,7 @@ class LegacyMigrationUseCaseTest {
 
     private val before = mapOf(
         "settings" to 1, "options" to 13, "prescriptions" to 3, "prnMedicines" to 2, "doses" to 4,
-        "screenings" to 3, "activities" to 2, "events" to 2, "illnessEpisodes" to 2, "checkins" to 2,
+        "screenings" to 3, "activities" to 2, "events" to 2, "illnessEpisodes" to 2, "checkins" to 2
     )
 
     init {
@@ -95,8 +95,7 @@ class LegacyMigrationUseCaseTest {
     private suspend fun savedPlan(): LegacyMigrationPlan = readyPlan().let { plan -> plan.withCopy(assertIs<CopyResult.Verified>(useCase.saveCopy(plan, copyUri)).record) }
 
     /** Alla dokument under användaren som de ligger i fejken, på sökväg. */
-    private fun storedDocuments(): Map<String, Map<String, Any?>> =
-        store.documents.value.filterKeys { it != Paths.USERS }.flatMap { (path, docs) -> docs.map { (id, doc) -> "$path/$id" to doc } }.toMap()
+    private fun storedDocuments(): Map<String, Map<String, Any?>> = store.documents.value.filterKeys { it != Paths.USERS }.flatMap { (path, docs) -> docs.map { (id, doc) -> "$path/$id" to doc } }.toMap()
 
     // ── Startkontrollen (NAV-6) ───────────────────────────────────────────
 
@@ -364,7 +363,12 @@ class LegacyMigrationUseCaseTest {
         val plan = savedPlan()
         val progress = mutableListOf<Map<String, Int>>()
         var pausedDuringWrite = true
-        val outcome = assertIs<LegacyWriteOutcome.Verified>(useCase.write(plan) { progress += it; pausedDuringWrite = pausedDuringWrite && pause.paused.value })
+        val outcome = assertIs<LegacyWriteOutcome.Verified>(
+            useCase.write(plan) {
+                progress += it
+                pausedDuringWrite = pausedDuringWrite && pause.paused.value
+            }
+        )
         assertEquals(before, outcome.before)
         assertEquals(before, outcome.after)
         assertEquals(MigrationBatches.plan(plan.documents), firestore.batches)
@@ -502,6 +506,7 @@ class LegacyMigrationUseCaseTest {
     @Test
     fun `write - nyckelordningen på servern, också i mappar inne i listor, ger aldrig en avvikelse`() = test {
         val plan = savedPlan()
+
         // Som Firestore kan lämna tillbaka det: mapparna i omvänd nyckelordning – inställningarna (medSlots är en lista av mappar) och ett recept med doshöjningar.
         fun shuffled(value: Any?): Any? = when (value) {
             is Map<*, *> -> value.entries.reversed().associate { it.key.toString() to shuffled(it.value) }

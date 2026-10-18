@@ -63,13 +63,13 @@ class FirestoreValuesTest {
     fun `alla samlingar i ARKITEKTUR-md, Datamodell, finns – i tabellens ordning`() {
         assertEquals(
             listOf("settings", "options", "prescriptions", "prnMedicines", "doses", "screenings", "activities", "events", "illnessEpisodes"),
-            Paths.USER_COLLECTIONS,
+            Paths.USER_COLLECTIONS
         )
         assertEquals(mapOf("illnessEpisodes" to listOf("checkins")), Paths.SUBCOLLECTIONS)
         Paths.USER_COLLECTIONS.forEach { assertEquals("users/u/$it", Paths.collection("u", it)) }
         assertEquals(
             listOf(Paths.options("u"), Paths.prescriptions("u"), Paths.prnMedicines("u"), Paths.screenings("u"), Paths.activities("u"), Paths.events("u"), Paths.illnessEpisodes("u")),
-            listOf("options", "prescriptions", "prnMedicines", "screenings", "activities", "events", "illnessEpisodes").map { "users/u/$it" },
+            listOf("options", "prescriptions", "prnMedicines", "screenings", "activities", "events", "illnessEpisodes").map { "users/u/$it" }
         )
     }
 }

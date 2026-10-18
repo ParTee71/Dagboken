@@ -21,8 +21,7 @@ internal fun project(stored: Doc, template: Doc): Doc = template.mapNotNull { (f
  * Om [written] (skrivet med merge) finns i [stored] på servern: varje skrivet fält har samma värde, i den kanoniska
  * formen ([MigrationLedger.hashOf]); fält bara på servern rör inte svaret.
  */
-internal fun landed(stored: Doc, written: Doc): Boolean =
-    MigrationLedger.hashOf(project(stored, written), null) == MigrationLedger.hashOf(written, null)
+internal fun landed(stored: Doc, written: Doc): Boolean = MigrationLedger.hashOf(project(stored, written), null) == MigrationLedger.hashOf(written, null)
 
 /** Antal per entitet under skrivningen, i "före"-ordningen. */
 internal class Tally(private val before: Map<String, Int>) {

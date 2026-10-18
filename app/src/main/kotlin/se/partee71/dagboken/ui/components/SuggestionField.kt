@@ -36,7 +36,7 @@ fun SuggestionField(
     modifier: Modifier = Modifier,
     footer: String? = null,
     error: String? = null,
-    helper: String? = null,
+    helper: String? = null
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
         AppTextField(value, onValueChange, label, error = error, helper = helper)
@@ -46,14 +46,14 @@ fun SuggestionField(
                 Modifier.semantics {
                     liveRegion = LiveRegionMode.Polite
                     contentDescription = count
-                },
+                }
             ) {
                 suggestions.forEachIndexed { index, suggestion ->
                     ItemRow(
                         title = suggestion.title,
                         subtitle = suggestion.subtitle,
                         titleHighlight = suggestion.highlight,
-                        onClick = { onPick(index) },
+                        onClick = { onPick(index) }
                     )
                 }
                 footer?.let {
@@ -61,7 +61,7 @@ fun SuggestionField(
                         it,
                         style = AppTypography.itemSubtitle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = Spacing.m, vertical = Spacing.xs),
+                        modifier = Modifier.padding(horizontal = Spacing.m, vertical = Spacing.xs)
                     )
                 }
             }

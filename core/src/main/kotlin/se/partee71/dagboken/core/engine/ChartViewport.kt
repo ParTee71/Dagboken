@@ -36,7 +36,7 @@ data class BarViewport(
     val minValue: Float,
     val maxValue: Float,
     val count: Int,
-    val zoomPan: ZoomPan = ZoomPan(),
+    val zoomPan: ZoomPan = ZoomPan()
 ) {
     /** Bredden per plats (dag eller natt) utan zoom. */
     val slotWidth: Float get() = if (count <= 0) 0f else (right - left) / count

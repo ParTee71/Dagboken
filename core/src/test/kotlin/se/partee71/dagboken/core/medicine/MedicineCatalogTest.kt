@@ -26,7 +26,7 @@ class MedicineCatalogTest {
         "Lopéramid\t2 mg\tKapsel, hård",
         "Paracetamol Ägg\t500 mg\tTablett",
         "trasig rad",
-        "Utan form\t5 mg\t",
+        "Utan form\t5 mg\t"
     ).joinToString("\n")
 
     private val catalog = MedicineCatalog.parse(file)
@@ -48,7 +48,7 @@ class MedicineCatalogTest {
         assertEquals(emptyList(), catalog.search("  al  "))
         assertEquals(
             listOf("Alvedon 500 mg", "Alvedon 665 mg", "Alvedon forte 1 g", "Alvedon 60 mg", "Alvedon 24 mg/ml"),
-            names("alved"),
+            names("alved")
         )
     }
 
@@ -87,21 +87,31 @@ class MedicineCatalogTest {
         val inhaler = catalog.entries.single { it.form == MedicineForm.INHALER }
         assertEquals(MedicineFill("Bricanyl Turbuhaler", "0,5 mg/dos", MedicineForm.INHALER, "puff"), inhaler.fill)
         val recipe = Prescription(
-            "r1", name = "Bricanyl", form = null, unknownForm = "spray", dose = "2", unit = "st", note = "Vid andnöd",
-            boosts = listOf(Boost("b1", dose = "1", unit = "st")),
+            "r1",
+            name = "Bricanyl",
+            form = null,
+            unknownForm = "spray",
+            dose = "2",
+            unit = "st",
+            note = "Vid andnöd",
+            boosts = listOf(Boost("b1", dose = "1", unit = "st"))
         )
         assertEquals(
             recipe.copy(
-                name = "Bricanyl Turbuhaler", strength = "0,5 mg/dos", form = MedicineForm.INHALER, unknownForm = null, unit = "puff",
-                boosts = listOf(Boost("b1", dose = "1", unit = "puff")),
+                name = "Bricanyl Turbuhaler",
+                strength = "0,5 mg/dos",
+                form = MedicineForm.INHALER,
+                unknownForm = null,
+                unit = "puff",
+                boosts = listOf(Boost("b1", dose = "1", unit = "puff"))
             ),
-            recipe.filledFrom(inhaler),
+            recipe.filledFrom(inhaler)
         )
         val prn = PrnMedicine("p1", name = "alv", dose = "1", unit = "mg", maxPerDay = 4, note = "Max 3 g")
         val alvedon = catalog.entries.first()
         assertEquals(
             prn.copy(name = "Alvedon", strength = "500 mg", form = MedicineForm.TABLET, unit = "tablett"),
-            prn.filledFrom(alvedon),
+            prn.filledFrom(alvedon)
         )
     }
 
@@ -136,7 +146,7 @@ class MedicineCatalogTest {
             "Ögondroppar, suspension" to MedicineForm.DROPS,
             "Medicinskt plåster" to MedicineForm.PATCH,
             "Medicinsk gas, komprimerad" to MedicineForm.OTHER,
-            "Något helt nytt" to MedicineForm.OTHER,
+            "Något helt nytt" to MedicineForm.OTHER
         )
         assertEquals(expected, expected.mapValues { (text, _) -> MedicineForms.of(text) })
     }
@@ -145,10 +155,16 @@ class MedicineCatalogTest {
     fun `varje form har en enhet`() {
         assertEquals(
             mapOf(
-                MedicineForm.TABLET to "tablett", MedicineForm.CAPSULE to "kapsel", MedicineForm.LIQUID to "ml", MedicineForm.POWDER to "dos",
-                MedicineForm.INHALER to "puff", MedicineForm.DROPS to "ml", MedicineForm.PATCH to "st", MedicineForm.OTHER to "st",
+                MedicineForm.TABLET to "tablett",
+                MedicineForm.CAPSULE to "kapsel",
+                MedicineForm.LIQUID to "ml",
+                MedicineForm.POWDER to "dos",
+                MedicineForm.INHALER to "puff",
+                MedicineForm.DROPS to "ml",
+                MedicineForm.PATCH to "st",
+                MedicineForm.OTHER to "st"
             ),
-            MedicineForm.entries.associateWith { it.defaultUnit },
+            MedicineForm.entries.associateWith { it.defaultUnit }
         )
     }
 
@@ -156,7 +172,7 @@ class MedicineCatalogTest {
     fun `formernas lagrade namn`() {
         assertEquals(
             listOf("tablet", "capsule", "liquid", "powder", "inhaler", "drops", "patch", "other"),
-            MedicineForm.entries.map { it.wire },
+            MedicineForm.entries.map { it.wire }
         )
     }
 }

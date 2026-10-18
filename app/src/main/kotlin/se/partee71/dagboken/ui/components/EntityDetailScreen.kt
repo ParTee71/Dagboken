@@ -72,7 +72,7 @@ fun <T> EntityDetailScreen(
     actions: @Composable RowScope.() -> Unit = {},
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
     leading: @Composable (T) -> Unit = {},
-    content: @Composable ColumnScope.(T) -> Unit,
+    content: @Composable ColumnScope.(T) -> Unit
 ) {
     // [failure] (fel + text, varje fel en egen händelse) går före [error].
     ErrorSnackbar(failure?.error ?: error, snackbar, message = failure?.message, key = failure ?: error, onShown = onErrorShown)
@@ -89,7 +89,7 @@ fun <T> EntityDetailScreen(
                 size = if (tab) TopBarSize.Large else TopBarSize.Small,
                 subtitle = subtitle,
                 onBack = onBack,
-                scrollBehavior = if (tab) scroll else null,
+                scrollBehavior = if (tab) scroll else null
             ) {
                 actions()
                 if (state is DetailUiState.Content) {
@@ -98,15 +98,17 @@ fun <T> EntityDetailScreen(
                     if (items.isNotEmpty()) AppMenu(items)
                 }
             }
-        },
+        }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (state) {
                 DetailUiState.Loading -> AppLoading(Modifier.padding(bottom = clearance))
+
                 is DetailUiState.Error -> LoadErrorState(stringResource(R.string.load_error_title), state.error, onRetry, Modifier.padding(bottom = clearance))
+
                 is DetailUiState.Content -> Column(
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = SCREEN_MARGIN, vertical = Spacing.s).padding(bottom = clearance),
-                    verticalArrangement = Arrangement.spacedBy(SECTION_GAP),
+                    verticalArrangement = Arrangement.spacedBy(SECTION_GAP)
                 ) {
                     header?.let { DetailTop(it(state.value)) { leading(state.value) } }
                     content(state.value)
@@ -122,7 +124,7 @@ private fun DetailTop(top: DetailHeader, leading: @Composable () -> Unit) {
     Column(
         Modifier.fillMaxWidth().padding(bottom = Spacing.s),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         leading()
         Text(top.title, style = AppTypography.screenTitle, textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })

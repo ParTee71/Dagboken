@@ -43,11 +43,11 @@ class DiaryTimelineTest {
             Dose("taken", today, Slot.MORNING, "Levaxin", status = DoseStatus.TAKEN, plannedTime = time(8), takenAt = at(today, 7, 42)),
             Dose("planned", today, Slot.EVENING, "Levaxin", status = DoseStatus.PLANNED, plannedTime = time(20)),
             Dose("skipped", yesterday, Slot.MORNING, "Levaxin", status = DoseStatus.SKIPPED, plannedTime = time(8)),
-            Dose("old", saturday, Slot.MORNING, "Levaxin", status = DoseStatus.TAKEN, plannedTime = time(8)),
+            Dose("old", saturday, Slot.MORNING, "Levaxin", status = DoseStatus.TAKEN, plannedTime = time(8))
         ),
         events = listOf(Event("e1", saturday, time(14), optionId = "migran", severity = 7)),
         episodes = listOf(flu),
-        checkins = mapOf("flu" to listOf(Checkin("c1", yesterday, time(9), severity = 4))),
+        checkins = mapOf("flu" to listOf(Checkin("c1", yesterday, time(9), severity = 4)))
     )
 
     @Test
@@ -55,11 +55,16 @@ class DiaryTimelineTest {
         val entries = diaryEntries(sources, zone)
         assertEquals(
             listOf(
-                "episode-end:flu", "screening:s1", "dose:taken",
-                "activity:a1", "checkin:flu/c1",
-                "event:e1", "dose:old", "episode-start:flu",
+                "episode-end:flu",
+                "screening:s1",
+                "dose:taken",
+                "activity:a1",
+                "checkin:flu/c1",
+                "event:e1",
+                "dose:old",
+                "episode-start:flu"
             ),
-            entries.map { it.id },
+            entries.map { it.id }
         )
         val taken = entries.filterIsInstance<DiaryEntry.TakenDose>()
         assertEquals(listOf(time(7, 42), time(8)), taken.map { it.time }, "tagningstiden, annars den planerade tiden")
@@ -72,13 +77,13 @@ class DiaryTimelineTest {
         val entries = diaryEntries(
             DiarySources(
                 episodes = listOf(oneDay),
-                checkins = mapOf("kort" to listOf(Checkin("tidig", today, time(0, 5)), Checkin("utan-tid", today), Checkin("sen", today, time(23, 50)))),
+                checkins = mapOf("kort" to listOf(Checkin("tidig", today, time(0, 5)), Checkin("utan-tid", today), Checkin("sen", today, time(23, 50))))
             ),
-            zone,
+            zone
         )
         assertEquals(
             listOf("episode-end:kort", "checkin:kort/sen", "checkin:kort/tidig", "checkin:kort/utan-tid", "episode-start:kort"),
-            entries.map { it.id },
+            entries.map { it.id }
         )
     }
 
@@ -104,7 +109,7 @@ class DiaryTimelineTest {
         val ongoing = flu.copy(end = null)
         val entries = diaryEntries(
             DiarySources(screenings = listOf(Screening("odaterad")), episodes = listOf(ongoing), checkins = mapOf("flu" to listOf(Checkin("utan-dag")))),
-            zone,
+            zone
         )
         assertEquals(listOf("episode-start:flu"), entries.map { it.id })
     }
@@ -114,7 +119,7 @@ class DiaryTimelineTest {
         val same = listOf(
             Screening("b", today, time(9), createdAt = at(today, 9, 1)),
             Screening("a", today, time(9), createdAt = at(today, 9, 1)),
-            Screening("c", today, time(9), createdAt = at(today, 9, 2)),
+            Screening("c", today, time(9), createdAt = at(today, 9, 2))
         )
         val forward = diaryEntries(DiarySources(screenings = same), zone).map { it.id }
         val backward = diaryEntries(DiarySources(screenings = same.reversed()), zone).map { it.id }

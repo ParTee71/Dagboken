@@ -33,7 +33,7 @@ enum class ButtonVariant {
     Text,
 
     /** Permanent radering – bara i en `ConfirmDialog` med `destructive = true`. */
-    Destructive,
+    Destructive
 }
 
 /**
@@ -50,7 +50,7 @@ fun AppButton(
     @DrawableRes icon: Int? = null,
     enabled: Boolean = true,
     loading: Boolean = false,
-    compact: Boolean = false,
+    compact: Boolean = false
 ) {
     val sized = modifier.heightIn(min = if (compact) COMPACT_HEIGHT else MIN_HEIGHT)
     val active = enabled && !loading
@@ -58,14 +58,17 @@ fun AppButton(
     when (variant) {
         ButtonVariant.Primary ->
             Button(onClick, sized, active, AppShapes.pill, ButtonDefaults.buttonColors().busy(loading), content = content)
+
         ButtonVariant.Secondary ->
             FilledTonalButton(onClick, sized, active, AppShapes.pill, ButtonDefaults.filledTonalButtonColors().busy(loading), content = content)
+
         ButtonVariant.Text ->
             TextButton(onClick, sized, active, AppShapes.pill, ButtonDefaults.textButtonColors().busy(loading), content = content)
+
         ButtonVariant.Destructive -> {
             val colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError,
+                contentColor = MaterialTheme.colorScheme.onError
             )
             Button(onClick, sized, active, AppShapes.pill, colors.busy(loading), content = content)
         }
@@ -73,8 +76,7 @@ fun AppButton(
 }
 
 /** En knapp som arbetar är inaktiv men behåller sina färger – den ser upptagen ut, inte avstängd. */
-private fun ButtonColors.busy(loading: Boolean) =
-    if (loading) copy(disabledContainerColor = containerColor, disabledContentColor = contentColor) else this
+private fun ButtonColors.busy(loading: Boolean) = if (loading) copy(disabledContainerColor = containerColor, disabledContentColor = contentColor) else this
 
 @Composable
 private fun ButtonContent(text: String, @DrawableRes icon: Int?, loading: Boolean) {
@@ -83,8 +85,9 @@ private fun ButtonContent(text: String, @DrawableRes icon: Int?, loading: Boolea
             loading -> CircularProgressIndicator(
                 modifier = Modifier.size(IconSize.button),
                 color = LocalContentColor.current,
-                strokeWidth = 2.5.dp,
+                strokeWidth = 2.5.dp
             )
+
             icon != null -> Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(IconSize.button))
         }
         if (loading || icon != null) Spacer(Modifier.width(Spacing.s))

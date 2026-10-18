@@ -1,20 +1,20 @@
 package se.partee71.dagboken.core.engine
 
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import se.partee71.dagboken.core.model.Sex
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.minutes
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
-import kotlinx.datetime.plus
 import se.partee71.dagboken.core.engine.health.midpointSdByNight
-import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.LocalTime
+import se.partee71.dagboken.core.model.Sex
 
 /**
  * Enhetstest för sömnkvalitet **per natt** (HLS-13) — den rullande regelbundenheten och
@@ -24,16 +24,14 @@ class NightlySleepHistoryTest {
 
     private val window = 14
 
-    private fun midnightish(offsetMinutes: Long): LocalTime =
-        LocalTime.fromSecondOfDay(Math.floorMod(3 * 3600 + offsetMinutes.toInt() * 60, 86_400))
+    private fun midnightish(offsetMinutes: Long): LocalTime = LocalTime.fromSecondOfDay(Math.floorMod(3 * 3600 + offsetMinutes.toInt() * 60, 86_400))
 
     // ─── Rullande regelbundenhet ──────────────────────────────────────────────
 
     private val night0 = LocalDate(2026, 3, 1)
 
     /** [midpoints] som nätter i följd från [night0], genom `midpointSdByNight` – i följd är dygn och nätter samma fönster. */
-    private fun rolling(midpoints: List<LocalTime>, days: Int = REGULARITY_WINDOW_NIGHTS): List<Double?> =
-        midpointSdByNight(midpoints.mapIndexed { i, time -> night0.plus(DatePeriod(days = i)) to time }.toMap(), days).values.toList()
+    private fun rolling(midpoints: List<LocalTime>, days: Int = REGULARITY_WINDOW_NIGHTS): List<Double?> = midpointSdByNight(midpoints.mapIndexed { i, time -> night0.plus(DatePeriod(days = i)) to time }.toMap(), days).values.toList()
 
     @Test fun `the first nights have no regularity until the window has enough of them`() {
         val sd = rolling(List(6) { midnightish(0) }, window)
@@ -78,8 +76,8 @@ class NightlySleepHistoryTest {
         measurements = SleepMeasurements(
             timeInBed = hours.hours,
             awake = awakeMinutes.minutes,
-            midpointSdMinutes = 15.0,
-        ),
+            midpointSdMinutes = 15.0
+        )
     )
 
     private val day: LocalDate = LocalDate(2026, 3, 10)
@@ -88,14 +86,14 @@ class NightlySleepHistoryTest {
         val scored = scoreNightlySleep(
             listOf(night(day, hours = 8), night(day.plus(DatePeriod(days = 1)), hours = 5)),
             age = 45,
-            sex = Sex.MALE,
+            sex = Sex.MALE
         )
         assertEquals(2, scored.size)
         assertEquals(day, scored[0].date)
         assertNotNull(scored[0].quality)
         assertTrue(
             "En åtta timmars natt ska få högre poäng än en femtimmarsnatt",
-            scored[0].quality!!.score > scored[1].quality!!.score,
+            scored[0].quality!!.score > scored[1].quality!!.score
         )
     }
 
@@ -110,7 +108,7 @@ class NightlySleepHistoryTest {
     @Test fun `a night that cannot be scored gives a gap, not a zero`() {
         val unscorable = NightlySleepMeasurements(
             date = day,
-            measurements = SleepMeasurements(timeInBed = Duration.ZERO),
+            measurements = SleepMeasurements(timeInBed = Duration.ZERO)
         )
         val scored = scoreNightlySleep(listOf(unscorable), age = 45, sex = Sex.MALE)
         assertNull(scored[0].quality)

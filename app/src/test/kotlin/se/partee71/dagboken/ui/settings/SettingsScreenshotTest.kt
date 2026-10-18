@@ -19,14 +19,14 @@ import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.reminders.ReminderAccess
+import se.partee71.dagboken.testing.captureLightAndDark
+import se.partee71.dagboken.testing.captureScreenLightAndDark
+import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.components.ListArchive
-import se.partee71.dagboken.testing.captureLightAndDark
-import se.partee71.dagboken.testing.captureScreenLightAndDark
-import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.migration.MigrationSamples
 
 /** Inställningsarkets underskärmar i ljust och mörkt (NFR-20: bredvid mockupen i PR:en). Påhittad data. */
@@ -46,7 +46,7 @@ class SettingsScreenshotTest {
         val reminders = ReminderSettings(medsEnabled = true).let { r ->
             r.copy(
                 medSlots = r.medSlots.map { if (it.slot == Slot.NIGHT) it.copy(enabled = false) else it },
-                screeningOccasions = r.screeningOccasions.map { if (it.occasion == Occasion.BREAKFAST) it.copy(enabled = true, time = LocalTime(8, 30)) else it },
+                screeningOccasions = r.screeningOccasions.map { if (it.occasion == Occasion.BREAKFAST) it.copy(enabled = true, time = LocalTime(8, 30)) else it }
             )
         }
         RemindersScreen(EditorUiState(reminders), EditorEvents.None, {}, {})
@@ -73,7 +73,7 @@ class SettingsScreenshotTest {
             Option("a", OptionKind.ACTIVITY, "Promenad", favorite = true),
             Option("b", OptionKind.ACTIVITY, "Yoga"),
             Option("c", OptionKind.ACTIVITY, "Städning", favorite = true),
-            Option("d", OptionKind.ACTIVITY, "Simning", archived = true),
+            Option("d", OptionKind.ACTIVITY, "Simning", archived = true)
         )
         ListsScreen(ListUiState.Content(options.toImmutableList()), OptionKind.ACTIVITY, ListArchive(showing = true), {}, {}, {}, {})
     }
@@ -106,7 +106,7 @@ class SettingsScreenshotTest {
     @Test
     fun `Export och import - välj varifrån`() = rule.captureScreenLightAndDark(
         "Settings_ExportImport_ark",
-        open = { onNodeWithText("Importera backup").clickWithoutRipple() },
+        open = { onNodeWithText("Importera backup").clickWithoutRipple() }
     ) {
         ExportImportScreen(ExportImportUiState(), {}, { "dagboken-export-2026-10-08.json" }, onBack = {})
     }

@@ -26,11 +26,9 @@ class FirestoreRawDocuments @Inject constructor(private val firestore: Firestore
 
     override suspend fun document(path: String): Doc? = firestore.db.document(path).get(Source.SERVER).await().data?.let(::fromFirestore)
 
-    override suspend fun collection(path: String): Map<String, Doc> =
-        firestore.db.collection(path).get(Source.SERVER).await().documents.associate { it.id to fromFirestore(it.data.orEmpty()) }
+    override suspend fun collection(path: String): Map<String, Doc> = firestore.db.collection(path).get(Source.SERVER).await().documents.associate { it.id to fromFirestore(it.data.orEmpty()) }
 
-    override suspend fun hasDocuments(path: String): Boolean =
-        !firestore.db.collection(path).limit(1).get(Source.SERVER).await().isEmpty
+    override suspend fun hasDocuments(path: String): Boolean = !firestore.db.collection(path).limit(1).get(Source.SERVER).await().isEmpty
 
     /**
      * Grupper om 30 id:n per förälder, högst [PARALLEL] frågor i taget. Ett dokument med köade lokala skrivningar

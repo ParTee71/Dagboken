@@ -12,5 +12,4 @@ import se.partee71.dagboken.core.engine.formatChartValue
 const val CHART_SEPARATOR = " · "
 
 /** "Snitt 6,4" – ett mått ([name]) med sitt värde på diagrammens sätt (svenskt decimalkomma). */
-fun chartStatText(resources: Resources, @StringRes name: Int, value: Float): String =
-    resources.getString(R.string.chart_stat_format, resources.getString(name), formatChartValue(value))
+fun chartStatText(resources: Resources, @StringRes name: Int, value: Float): String = resources.getString(R.string.chart_stat_format, resources.getString(name), formatChartValue(value))

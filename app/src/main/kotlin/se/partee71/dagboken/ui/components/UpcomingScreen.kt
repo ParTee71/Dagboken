@@ -26,7 +26,7 @@ fun UpcomingScreen(
     message: String,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
-    actions: @Composable RowScope.() -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {}
 ) {
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AppTopBar(title, size = if (onBack == null) TopBarSize.Large else TopBarSize.Small, onBack = onBack, actions = actions)

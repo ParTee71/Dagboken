@@ -24,7 +24,7 @@ enum class Tone {
     Positive,
 
     /** Terrakotta – varning: försenat, periodslut. */
-    Warning,
+    Warning
 }
 
 /** Behållare och innehåll för en [Tone]; innehållet klarar 4,5:1 mot behållaren. */
@@ -58,7 +58,7 @@ data class FeelingColors(
     val angry: ToneColors,
     val scared: ToneColors,
     /** Tonen för en kärna appen inte känner (ett token från en nyare app) – den dämpade tonen ([ExtendedColors.neutralTone]). */
-    val unknown: ToneColors,
+    val unknown: ToneColors
 ) {
     /** Tonen för kärnans token (`Feeling.core`); en okänd kärna får [unknown]. */
     fun forCore(core: String): ToneColors = when (core) {
@@ -93,7 +93,7 @@ data class ExtendedColors(
     val warningTone: ToneColors,
     val energy: EnergyColors,
     val sleepStages: SleepStageColors,
-    val feelingTones: FeelingColors,
+    val feelingTones: FeelingColors
 )
 
 /**
@@ -140,7 +140,7 @@ object AppColors {
         surfaceContainerLow = Color(0xFFF7F2E6),
         surfaceContainer = Color(0xFFFFFFFF),
         surfaceContainerHigh = Color(0xFFFFFFFF),
-        surfaceContainerHighest = Color(0xFFF1EBDD),
+        surfaceContainerHighest = Color(0xFFF1EBDD)
     )
 
     val dark: ColorScheme = darkColorScheme(
@@ -179,7 +179,7 @@ object AppColors {
         surfaceContainerLow = Color(0xFF14231D),
         surfaceContainer = Color(0xFF182822),
         surfaceContainerHigh = Color(0xFF182822),
-        surfaceContainerHighest = Color(0xFF1E3029),
+        surfaceContainerHighest = Color(0xFF1E3029)
     )
 
     /** Dämpad ton – också tonen för en okänd kärnkänsla ([FeelingColors.unknown]). */
@@ -206,8 +206,8 @@ object AppColors {
             sad = ToneColors(Color(0xFFDDE5EE), Color(0xFF344B63)),
             angry = ToneColors(Color(0xFFF8DAD5), Color(0xFF8A2A22)),
             scared = ToneColors(Color(0xFFF6E0D5), Color(0xFF7E3A1E)),
-            unknown = lightNeutral,
-        ),
+            unknown = lightNeutral
+        )
     )
 
     val darkExtended = ExtendedColors(
@@ -230,13 +230,20 @@ object AppColors {
             sad = ToneColors(Color(0xFF2B3440), Color(0xFFD6E2F0)),
             angry = ToneColors(Color(0xFF4A231F), Color(0xFFFFD6D0)),
             scared = ToneColors(Color(0xFF4A2A1C), Color(0xFFFFD9C9)),
-            unknown = darkNeutral,
-        ),
+            unknown = darkNeutral
+        )
     )
 
     /** Färgerna man kan välja bland (`ColorSwatchPicker`) som hex – det som lagras. Harmonierar med paletten. */
     val SWATCH_HEX: List<String> = listOf(
-        "#0B6E66", "#F5B631", "#A4502E", "#2F7D5B", "#3B6EA5", "#8E5BA8", "#C98A1B", "#B5443A",
+        "#0B6E66",
+        "#F5B631",
+        "#A4502E",
+        "#2F7D5B",
+        "#3B6EA5",
+        "#8E5BA8",
+        "#C98A1B",
+        "#B5443A"
     )
 
     /** Valbar färg nummer [index] (varvar efter åtta). */

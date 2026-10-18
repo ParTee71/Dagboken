@@ -1,8 +1,8 @@
 package se.partee71.dagboken.ui.common
 
+import android.content.Context
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.core.app.ApplicationProvider
-import android.content.Context
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.Rule

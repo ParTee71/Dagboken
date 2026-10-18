@@ -1,11 +1,13 @@
 package se.partee71.dagboken.core.model
 
-import org.junit.Test
 import kotlin.test.assertEquals
+import org.junit.Test
 
 class TraitsTest {
 
-    private data class Option(override val id: String, override val sortOrder: Int) : Identified, Sortable
+    private data class Option(override val id: String, override val sortOrder: Int) :
+        Identified,
+        Sortable
 
     @Test
     fun `Sortable-ordningen sorterar på sortOrder`() {

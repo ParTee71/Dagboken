@@ -25,9 +25,9 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.components.ADD_BUTTON_TAG
@@ -52,7 +52,7 @@ fun <T> ComposeContentTestRule.runListScreenContract(
     itemText: String,
     emptyTitle: String,
     addLabel: String?,
-    screen: @Composable (state: ListUiState<T>, onAdd: () -> Unit, onRetry: () -> Unit) -> Unit,
+    screen: @Composable (state: ListUiState<T>, onAdd: () -> Unit, onRetry: () -> Unit) -> Unit
 ) {
     var state by mutableStateOf<ListUiState<T>>(ListUiState.Loading)
     var adds = 0
@@ -97,7 +97,7 @@ fun <T> ComposeContentTestRule.runListScreenContract(
 fun <T> ComposeContentTestRule.runDetailScreenContract(
     value: T,
     valueText: String,
-    screen: @Composable (state: DetailUiState<T>, onRetry: () -> Unit, onEdit: () -> Unit, onBack: () -> Unit) -> Unit,
+    screen: @Composable (state: DetailUiState<T>, onRetry: () -> Unit, onEdit: () -> Unit, onBack: () -> Unit) -> Unit
 ) {
     var state by mutableStateOf<DetailUiState<T>>(DetailUiState.Loading)
     var retries = 0
@@ -141,7 +141,7 @@ fun <T> ComposeContentTestRule.runEditScreenContract(
     makeInvalid: (EditorState<T>.() -> Unit)?,
     makeValid: EditorState<T>.() -> Unit,
     invalidMessage: String?,
-    screen: @Composable (state: EditorUiState<T>, events: EditorEvents, onSave: () -> Unit, onClose: () -> Unit) -> Unit,
+    screen: @Composable (state: EditorUiState<T>, events: EditorEvents, onSave: () -> Unit, onClose: () -> Unit) -> Unit
 ) {
     var saveResult: Result<Unit> = Result.failure(DataError.Offline)
     var closes = 0

@@ -35,7 +35,7 @@ internal data class ChartColors(
     val grid: Color,
     val axis: Color,
     val label: Color,
-    val band: Color,
+    val band: Color
 )
 
 internal val chartColors: ChartColors
@@ -52,7 +52,7 @@ internal val chartColors: ChartColors
             grid = scheme.outlineVariant,
             axis = scheme.outlineVariant,
             label = scheme.onSurfaceVariant,
-            band = AppColors.tone(Tone.Warning).content.copy(alpha = BAND_ALPHA),
+            band = AppColors.tone(Tone.Warning).content.copy(alpha = BAND_ALPHA)
         )
     }
 

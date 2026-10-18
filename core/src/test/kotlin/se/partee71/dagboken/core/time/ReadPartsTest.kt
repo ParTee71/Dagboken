@@ -27,7 +27,7 @@ class ReadPartsTest {
     fun `ett lyssnat intervall i mitten ger historik på båda sidor`() {
         assertEquals(
             listOf(history(d(1)..d(4)), live(d(5)..d(11)), history(d(12)..d(31))),
-            readParts(d(1), d(31), listOf(d(5)..d(11))),
+            readParts(d(1), d(31), listOf(d(5)..d(11)))
         )
     }
 
@@ -45,7 +45,7 @@ class ReadPartsTest {
     fun `överlappande och angränsande intervall slås ihop, i vilken ordning de än kommer`() {
         assertEquals(
             listOf(history(d(1)..d(1)), live(d(2)..d(10)), history(d(11)..d(14)), live(d(15)..d(15)), history(d(16)..d(20))),
-            readParts(d(1), d(20), listOf(d(15)..d(15), d(6)..d(10), d(2)..d(5), d(3)..d(4))),
+            readParts(d(1), d(20), listOf(d(15)..d(15), d(6)..d(10), d(2)..d(5), d(3)..d(4)))
         )
     }
 

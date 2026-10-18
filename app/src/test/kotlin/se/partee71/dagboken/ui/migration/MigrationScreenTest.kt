@@ -297,7 +297,7 @@ class MigrationScreenTest {
     fun `varje samling som migreringen skriver har en rad, i mockupens ordning`() {
         assertEquals(
             CollectionNames.ALL - CollectionNames.USERS,
-            (CollectionNames.ALL - CollectionNames.USERS).filter { MigrationEntity.of(it) != null },
+            (CollectionNames.ALL - CollectionNames.USERS).filter { MigrationEntity.of(it) != null }
         )
         assertEquals(25, MigrationEntity.SETTINGS.count(before), "inställningarna och listorna på en rad")
         assertEquals("6 353", countText(6353))

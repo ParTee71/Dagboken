@@ -12,9 +12,9 @@ import se.partee71.dagboken.core.engine.isPrescribed
 import se.partee71.dagboken.core.engine.moveTarget
 import se.partee71.dagboken.core.engine.prescriptionRef
 import se.partee71.dagboken.core.engine.syncDoses
-import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.ReminderSettings
 
 /**
  * Konverterade 3.x-doser och receptkopplingen (MED-4, MED-15, REC-10, OMB-3): en dos med receptets id-form
@@ -25,8 +25,7 @@ import se.partee71.dagboken.core.model.DoseStatus
 class MigratedDosesTest {
     private val zone = TimeZone.of("Europe/Stockholm")
 
-    private fun converted(name: String) =
-        assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(LegacyFixtures.backup(name), LegacyFixtures.UID)).data
+    private fun converted(name: String) = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(LegacyFixtures.backup(name), LegacyFixtures.UID)).data
 
     /** Fixturens doser utan `prescriptionId` på receptdoserna – som 3.x-data där bara id:t bär receptet. */
     private fun List<Dose>.unlinked() = map { if (it.id.startsWith("recept_")) it.copy(prescriptionId = null) else it }

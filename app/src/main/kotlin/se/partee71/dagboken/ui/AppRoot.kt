@@ -31,7 +31,7 @@ fun AppRoot(
     modifier: Modifier = Modifier,
     launch: ReminderLaunch? = null,
     onLaunchHandled: () -> Unit = {},
-    viewModel: AuthViewModel = hiltViewModel(),
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     AppRootContent(state, viewModel::onEvent, modifier) {
@@ -41,7 +41,7 @@ fun AppRoot(
                 onSignOut = { viewModel.onEvent(AuthEvent.SignOut) },
                 launch = launch,
                 onLaunchHandled = onLaunchHandled,
-                openFirst = if (openImport) ExportImportKey else null,
+                openFirst = if (openImport) ExportImportKey else null
             )
         }
     }
@@ -53,14 +53,17 @@ fun AppRootContent(
     state: AuthUiState,
     onEvent: (AuthEvent) -> Unit,
     modifier: Modifier = Modifier,
-    main: @Composable () -> Unit = { AppNavigation(state.account, onSignOut = { onEvent(AuthEvent.SignOut) }) },
+    main: @Composable () -> Unit = { AppNavigation(state.account, onSignOut = { onEvent(AuthEvent.SignOut) }) }
 ) {
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         when (state.gate) {
             AuthGate.SignedOut, AuthGate.NeedsUser -> SignInScreen(state, onEvent)
+
             AuthGate.UpdateRequired -> UpdateRequiredScreen()
+
             // Syns bara en kort stund vid start; hänger något ser användaren att appen arbetar.
             AuthGate.Loading -> AppLoading()
+
             AuthGate.Ready -> main()
         }
     }

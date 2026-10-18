@@ -24,14 +24,11 @@ class ConverterStopsTest {
         assertTrue(reason in problem.reason, "skälet '${problem.reason}' ska nämna '$reason'")
     }
 
-    private fun activity(id: String = "a1", symptom: String = "", energy: Int = 0, spentTime: Int? = null, datum: String = "2026-01-15", tid: String = "09:00") =
-        BackupJson(aktiviteter = listOf(AktivitetJson(id = id, datum = datum, tid = tid, aktivitet = "Promenad", energy = energy, symptom = symptom, spentTime = spentTime)))
+    private fun activity(id: String = "a1", symptom: String = "", energy: Int = 0, spentTime: Int? = null, datum: String = "2026-01-15", tid: String = "09:00") = BackupJson(aktiviteter = listOf(AktivitetJson(id = id, datum = datum, tid = tid, aktivitet = "Promenad", energy = energy, symptom = symptom, spentTime = spentTime)))
 
-    private fun screening(aterhamtande: Boolean = false, energitjuv: Boolean = false, spentTime: Int? = null, energy: Int = 5) =
-        BackupJson(aktiviteter = listOf(AktivitetJson(id = "s1", datum = "2026-01-15", tid = "08:00", aktivitet = "Efter frukost", type = "screening", energy = energy, aterhamtande = aterhamtande, energitjuv = energitjuv, spentTime = spentTime)))
+    private fun screening(aterhamtande: Boolean = false, energitjuv: Boolean = false, spentTime: Int? = null, energy: Int = 5) = BackupJson(aktiviteter = listOf(AktivitetJson(id = "s1", datum = "2026-01-15", tid = "08:00", aktivitet = "Efter frukost", type = "screening", energy = energy, aterhamtande = aterhamtande, energitjuv = energitjuv, spentTime = spentTime)))
 
-    private fun dose(id: String = "m1", datum: String = "2026-01-15", tid: String = "07:00", tidpunkt: String = "Morgon", tagenTid: String? = null, anteckning: String = "") =
-        BackupJson(mediciner = listOf(MedicinJson(id = id, datum = datum, tid = tid, tidpunkt = tidpunkt, tagenTid = tagenTid, anteckning = anteckning)))
+    private fun dose(id: String = "m1", datum: String = "2026-01-15", tid: String = "07:00", tidpunkt: String = "Morgon", tagenTid: String? = null, anteckning: String = "") = BackupJson(mediciner = listOf(MedicinJson(id = id, datum = datum, tid = tid, tidpunkt = tidpunkt, tagenTid = tagenTid, anteckning = anteckning)))
 
     @Test
     fun `för lång anteckning stoppar och rapporten anger längden, aldrig texten`() {
@@ -46,7 +43,9 @@ class ConverterStopsTest {
     @Test
     fun `för långt namn stoppar`() = assertStops(
         BackupJson(medicinFavoriter = listOf(FavoritJson(id = "f1", tidpunkt = "Vid behov", namn = "x".repeat(TextLimits.SHORT + 1)))),
-        "prnMedicines/f1", "name", "för lång text: ${TextLimits.SHORT + 1}",
+        "prnMedicines/f1",
+        "name",
+        "för lång text: ${TextLimits.SHORT + 1}"
     )
 
     @Test
@@ -106,13 +105,14 @@ class ConverterStopsTest {
     }
 
     @Test
-    fun `tagenTid utan datum kan inte placeras och stoppar`() =
-        assertStops(dose(datum = "", tagenTid = "07:04"), "doses/m1", "tagenTid", "datum saknas")
+    fun `tagenTid utan datum kan inte placeras och stoppar`() = assertStops(dose(datum = "", tagenTid = "07:04"), "doses/m1", "tagenTid", "datum saknas")
 
     @Test
     fun `incheckning utan sin episod stoppar - det finns ingen sökväg`() = assertStops(
         BackupJson(sjukdomsIncheckningar = listOf(SjukdomsIncheckningJson(id = "i1", episodId = "finns-inte"))),
-        "illnessEpisodes/finns-inte/checkins/i1", "episodId", "episoden finns inte",
+        "illnessEpisodes/finns-inte/checkins/i1",
+        "episodId",
+        "episoden finns inte"
     )
 
     @Test
@@ -162,7 +162,7 @@ class ConverterStopsTest {
             aktiviteterOptionsV2 = listOf(SymptomOptionBackup("Hemligt Besök"), SymptomOptionBackup("Hemligt Besök", isFavorite = true)),
             symptomOptionsV2 = listOf(SymptomOptionBackup("Hemlig Diagnos ".repeat(20))),
             mediciner = listOf(MedicinJson(id = "m1", tidpunkt = "Hemligtid", datum = "2026-01-15")),
-            settings = SettingsBackup(themeMode = "hemligtema", sex = "hemligkon"),
+            settings = SettingsBackup(themeMode = "hemligtema", sex = "hemligkon")
         )
         val result = assertIs<ConversionResult.Stopped>(BackupJsonConverter.convert(backup, "u"))
         val rendered = result.report.render()
@@ -175,16 +175,16 @@ class ConverterStopsTest {
                 Problem("doses/m1", "tidpunkt", "okänd tidpunkt okänt värde (9 tecken)"),
                 Problem("options/symptom#0", "name", "för lång text: 300 tecken (högst ${TextLimits.SHORT})"),
                 Problem("settings/app", "themeMode", "okänt värde (10 tecken)"),
-                Problem("settings/app", "sex", "okänt värde (9 tecken)"),
+                Problem("settings/app", "sex", "okänt värde (9 tecken)")
             ),
-            result.report.problems.sortedBy { it.path },
+            result.report.problems.sortedBy { it.path }
         )
     }
 
     @Test
     fun `anteckningar med text men utan target eller id räknas i rapporten - inte tyst bort`() {
         val backup = BackupJson(
-            notes = listOf(NoteJson(target = "", entityId = "x", text = "Hemlig text"), NoteJson(target = "EVENT", entityId = "", text = "Annan"), NoteJson(target = "", entityId = "", text = "")),
+            notes = listOf(NoteJson(target = "", entityId = "x", text = "Hemlig text"), NoteJson(target = "EVENT", entityId = "", text = "Annan"), NoteJson(target = "", entityId = "", text = ""))
         )
         val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u"))
         assertEquals(listOf(Warning("notes", "2 anteckning(ar) utan target eller id – kan inte placeras")), result.report.warnings)
@@ -196,16 +196,16 @@ class ConverterStopsTest {
         val backup = BackupJson(
             notes = listOf(
                 NoteJson(target = "HEMLIGT", entityId = "a/b", text = "Dold"),
-                NoteJson(target = "HEMLIGT", entityId = "a/b", text = "Dold igen"),
-            ),
+                NoteJson(target = "HEMLIGT", entityId = "a/b", text = "Dold igen")
+            )
         )
         val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u"))
         assertEquals(
             listOf(
                 Warning("notes", "två anteckningar för okänt target (7 tecken) (ogiltigt id, 3 tecken) med olika text – den första gäller"),
-                Warning("notes", "1 anteckning(ar) med target okänt target (7 tecken) utan sin post – kan inte placeras"),
+                Warning("notes", "1 anteckning(ar) med target okänt target (7 tecken) utan sin post – kan inte placeras")
             ),
-            result.report.warnings,
+            result.report.warnings
         )
         val rendered = result.report.render()
         assertFalse("HEMLIGT" in rendered || "a/b" in rendered || "Dold" in rendered, rendered)
@@ -217,17 +217,17 @@ class ConverterStopsTest {
             mediciner = listOf(
                 MedicinJson(id = "m1", datum = "2026-03-29", tid = "02:30", tidpunkt = "Natt", tagen = true, tagenTid = "02:30", timestamp = ""),
                 MedicinJson(id = "m2", datum = "2026-10-25", tid = "01:00", tidpunkt = "Natt", tagen = true, tagenTid = "02:30"),
-                MedicinJson(id = "m3", datum = "2026-10-25", tid = "01:00", tidpunkt = "Natt", tagen = true, tagenTid = "03:30"),
-            ),
+                MedicinJson(id = "m3", datum = "2026-10-25", tid = "01:00", tidpunkt = "Natt", tagen = true, tagenTid = "03:30")
+            )
         )
         val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u"))
         assertEquals(
             listOf(
                 Warning("doses/m1", "tagenTid ligger i luckan vid sommartidsbytet – flyttat fram med luckans längd"),
                 Warning("doses/m1", "timestamp ligger i luckan vid sommartidsbytet – flyttat fram med luckans längd"),
-                Warning("doses/m2", "tagenTid ligger i överlappningen vid sommartidsbytet – första förekomsten (sommartid) gäller"),
+                Warning("doses/m2", "tagenTid ligger i överlappningen vid sommartidsbytet – första förekomsten (sommartid) gäller")
             ),
-            result.report.warnings,
+            result.report.warnings
         )
         val doses = result.data.doses.associateBy { it.id }
         assertEquals(kotlin.time.Instant.parse("2026-03-29T01:30:00Z"), doses.getValue("m1").takenAt)
@@ -239,7 +239,7 @@ class ConverterStopsTest {
     fun `alla fel samlas i en rapport - inte bara det första`() {
         val backup = BackupJson(
             mediciner = listOf(MedicinJson(id = "m1", tidpunkt = "Brunch", datum = "igår")),
-            aktiviteter = listOf(AktivitetJson(id = "a1", energy = 99, aktivitet = "Promenad")),
+            aktiviteter = listOf(AktivitetJson(id = "a1", energy = 99, aktivitet = "Promenad"))
         )
         val problems = problems(backup)
         assertEquals(listOf("doses/m1" to "datum", "doses/m1" to "tidpunkt", "activities/a1" to "energy"), problems.map { it.path to it.field })

@@ -36,7 +36,7 @@ object SettingsCodec : DocCodec<Settings> {
                 "mode" to it.mode.encodeWire(),
                 "lightStartHour" to it.lightStartHour,
                 "darkStartHour" to it.darkStartHour,
-                "isDarkTheme" to it.isDarkTheme,
+                "isDarkTheme" to it.isDarkTheme
             )
         },
         REMINDERS to value.reminders.let { r ->
@@ -44,11 +44,11 @@ object SettingsCodec : DocCodec<Settings> {
                 "medsEnabled" to r.medsEnabled,
                 MED_SLOTS to slotRows.encode(r.medSlots),
                 SCREENING_OCCASIONS to occasionRows.encode(r.screeningOccasions),
-                "periodReminderTime" to r.periodReminderTime.encodeTime(),
+                "periodReminderTime" to r.periodReminderTime.encodeTime()
             )
         },
         PROFILE to value.profile.let { mapOf("birthYear" to it.birthYear, "sex" to it.sex.encodeWire()) },
-        LEGACY to value.legacy.let { mapOf(DYNAMIC_COLOR to it.dynamicColor, SHEETS_CONFIG to it.sheetsConfig) },
+        LEGACY to value.legacy.let { mapOf(DYNAMIC_COLOR to it.dynamicColor, SHEETS_CONFIG to it.sheetsConfig) }
     )
 
     override fun decode(id: String, map: Doc): Settings {
@@ -63,16 +63,16 @@ object SettingsCodec : DocCodec<Settings> {
                 mode = theme.wire("mode", ThemeMode.AUTO),
                 lightStartHour = theme.int("lightStartHour", ThemeSettings().lightStartHour),
                 darkStartHour = theme.int("darkStartHour", ThemeSettings().darkStartHour),
-                isDarkTheme = theme.bool("isDarkTheme", ThemeSettings().isDarkTheme),
+                isDarkTheme = theme.bool("isDarkTheme", ThemeSettings().isDarkTheme)
             ),
             reminders = ReminderSettings(
                 medsEnabled = reminders.bool("medsEnabled", defaults.medsEnabled),
                 medSlots = slotRows.decode(reminders.docs(MED_SLOTS)),
                 screeningOccasions = occasionRows.decode(reminders.docs(SCREENING_OCCASIONS)),
-                periodReminderTime = reminders.localTime("periodReminderTime") ?: defaults.periodReminderTime,
+                periodReminderTime = reminders.localTime("periodReminderTime") ?: defaults.periodReminderTime
             ),
             profile = Profile(birthYear = profile.intOrNull("birthYear"), sex = profile.wire("sex", Sex.UNSPECIFIED)),
-            legacy = LegacySettings(dynamicColor = legacy.boolOrNull(DYNAMIC_COLOR), sheetsConfig = legacy.stringOrNull(SHEETS_CONFIG)),
+            legacy = LegacySettings(dynamicColor = legacy.boolOrNull(DYNAMIC_COLOR), sheetsConfig = legacy.stringOrNull(SHEETS_CONFIG))
         )
     }
 
@@ -84,7 +84,7 @@ object SettingsCodec : DocCodec<Settings> {
         keys = Slot.SCHEDULED,
         default = { SlotReminder(it) },
         row = ::SlotReminder,
-        parts = { Triple(it.slot, it.enabled, it.time) },
+        parts = { Triple(it.slot, it.enabled, it.time) }
     )
 
     private val occasionRows = ReminderRows(
@@ -92,7 +92,7 @@ object SettingsCodec : DocCodec<Settings> {
         keys = Occasion.entries,
         default = { OccasionReminder(it) },
         row = ::OccasionReminder,
-        parts = { Triple(it.occasion, it.enabled, it.time) },
+        parts = { Triple(it.occasion, it.enabled, it.time) }
     )
 }
 
@@ -107,7 +107,7 @@ private class ReminderRows<K : WireEnum, R>(
     private val keys: List<K>,
     private val default: (K) -> R,
     private val row: (K, Boolean, LocalTime) -> R,
-    private val parts: (R) -> Triple<K, Boolean, LocalTime>,
+    private val parts: (R) -> Triple<K, Boolean, LocalTime>
 ) {
     fun encode(rows: List<R>): List<Doc> = rows.map(parts).map { (k, enabled, time) ->
         mapOf(key to k.encodeWire(), ENABLED to enabled, TIME to time.encodeTime())

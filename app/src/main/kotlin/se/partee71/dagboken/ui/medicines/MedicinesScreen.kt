@@ -47,18 +47,18 @@ import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.ui.common.ArchiveEvent
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.days
 import se.partee71.dagboken.ui.common.ListEvent
 import se.partee71.dagboken.ui.common.ListLoader
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.dagboken.ui.common.days
 import se.partee71.dagboken.ui.common.doseText
 import se.partee71.dagboken.ui.common.failureOrNull
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.periodText
-import se.partee71.dagboken.ui.common.tidyingUpEachDay
 import se.partee71.dagboken.ui.common.prescriptionSubtitle
 import se.partee71.dagboken.ui.common.prnLimits
+import se.partee71.dagboken.ui.common.tidyingUpEachDay
 import se.partee71.dagboken.ui.components.AccountAvatar
 import se.partee71.dagboken.ui.components.AddAction
 import se.partee71.dagboken.ui.components.AppMenuItem
@@ -126,7 +126,7 @@ class MedicinesViewModel @Inject constructor(
     private val prescriptions: PrescriptionRepository,
     private val medicines: PrnMedicineRepository,
     clock: Clock,
-    zone: Provider<TimeZone>,
+    zone: Provider<TimeZone>
 ) : ViewModel() {
     /**
      * Dagen fliken räknar med – dagens dos, periodetiketter, periodslut och avslutade – byts vid
@@ -175,7 +175,7 @@ fun MedicinesRoute(
     onOpenPrn: (String?) -> Unit,
     onExtendPrescription: (String) -> Unit,
     onLogDose: () -> Unit = {},
-    viewModel: MedicinesViewModel = hiltViewModel(),
+    viewModel: MedicinesViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val endings by viewModel.endings.collectAsStateWithLifecycle()
@@ -205,7 +205,7 @@ fun MedicinesScreen(
     onOpenPrn: (String?) -> Unit,
     onExtendPrescription: (String) -> Unit,
     onLogDose: () -> Unit = {},
-    avatar: @Composable () -> Unit = {},
+    avatar: @Composable () -> Unit = {}
 ) {
     val newPrn = stringResource(R.string.medicines_new_prn)
     val items = (state as? ListUiState.Content)?.items.orEmpty()
@@ -220,12 +220,12 @@ fun MedicinesScreen(
             R.drawable.ic_pill,
             stringResource(R.string.medicines_empty_title),
             stringResource(R.string.medicines_empty_message),
-            examples = listOf(EmptyExample(newPrn) { onOpenPrn(null) }),
+            examples = listOf(EmptyExample(newPrn) { onOpenPrn(null) })
         ),
         add = AddAction(
             stringResource(R.string.medicines_new_prescription),
             { onOpenPrescription(null) },
-            menu = listOf(AppMenuItem(newPrn, { onOpenPrn(null) }, R.drawable.ic_add), AppMenuItem(stringResource(R.string.dose_log_later_link), onLogDose, R.drawable.ic_clock)),
+            menu = listOf(AppMenuItem(newPrn, { onOpenPrn(null) }, R.drawable.ic_add), AppMenuItem(stringResource(R.string.dose_log_later_link), onLogDose, R.drawable.ic_clock))
         ),
         key = { it.key },
         onRetry = { onEvent(MedicinesEvent.Retry) },
@@ -238,16 +238,17 @@ fun MedicinesScreen(
         },
         archive = ListArchive(failure = failure, showToggle = false) { if (it == ArchiveEvent.ErrorShown) onEvent(MedicinesEvent.ErrorShown) },
         actions = { avatar() },
-        header = if (endings.isEmpty()) null else ({ EndingsBanner(endings, today) { onOpenPrescription(endings.first().prescriptionId) } }),
+        header = if (endings.isEmpty()) null else ({ EndingsBanner(endings, today) { onOpenPrescription(endings.first().prescriptionId) } })
     ) { item ->
         when (item) {
             is MedicineItem.Recipe -> PrescriptionCard(item, today, onEvent, { onExtendPrescription(item.prescription.id) }) { onOpenPrescription(item.prescription.id) }
+
             is MedicineItem.AsNeeded -> ItemRow(
                 medicineTitle(item.medicine.displayName, item.medicine.dose, item.medicine.unit),
                 subtitle = prnLimits(item.medicine),
                 onClick = { onOpenPrn(item.medicine.id) },
                 navigates = true,
-                trailing = { FavoriteStar(item.medicine.displayName, item.medicine.favorite, { onEvent(MedicinesEvent.FavoriteToggled(item.medicine)) }) },
+                trailing = { FavoriteStar(item.medicine.displayName, item.medicine.favorite, { onEvent(MedicinesEvent.FavoriteToggled(item.medicine)) }) }
             )
         }
     }
@@ -265,11 +266,12 @@ private fun endingText(ending: PeriodEnding, today: LocalDate): String {
     return when (ending) {
         is PeriodEnding.PrescriptionEnds ->
             stringResource(if (isToday) R.string.medicines_ends_today else R.string.medicines_ends_tomorrow, ending.name)
+
         is PeriodEnding.BoostEnds ->
             stringResource(
                 if (isToday) R.string.medicines_boost_ends_today else R.string.medicines_boost_ends_tomorrow,
                 ending.name,
-                doseText(ending.newDose, ending.unit),
+                doseText(ending.newDose, ending.unit)
             )
     }
 }
@@ -304,7 +306,7 @@ private fun PrescriptionCard(item: MedicineItem.Recipe, today: LocalDate, onEven
         },
         delete = DeleteAction(
             stringResource(R.string.delete_named_title, p.displayName),
-            stringResource(R.string.medicines_delete_prescription_message),
+            stringResource(R.string.medicines_delete_prescription_message)
         ) { onEvent(MedicinesEvent.DeletePrescription(p)) },
         inactive = !active,
         toggle = if (item.ended) null else EntryToggle(p.active, { onEvent(MedicinesEvent.ActiveChanged(p, it)) }, stringResource(R.string.medicines_active_format, p.displayName)),
@@ -316,7 +318,7 @@ private fun PrescriptionCard(item: MedicineItem.Recipe, today: LocalDate, onEven
                     pills.forEach { (text, tone) -> InfoPill(text, tone = tone) }
                 }
             }
-        },
+        }
     )
 }
 
@@ -350,7 +352,7 @@ private fun BoostLines(p: Prescription) {
                     stringResource(R.string.medicines_boost_line, periodText(boost.start, p.boostEnd(boost)), doseText(boost.dose, p.unit), doseText(total, p.unit))
                 } ?: stringResource(R.string.medicines_boost_line_no_total, periodText(boost.start, p.boostEnd(boost)), doseText(boost.dose, p.unit)),
                 style = AppTypography.itemSubtitle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

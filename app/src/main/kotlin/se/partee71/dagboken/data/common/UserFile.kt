@@ -27,7 +27,7 @@ interface UserFile {
 
 class ContentResolverUserFile @Inject constructor(
     @ApplicationContext private val context: Context,
-    @IoDispatcher private val dispatcher: CoroutineDispatcher,
+    @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : UserFile {
     override suspend fun write(uri: Uri, text: String) = withContext(dispatcher) {
         // "wt": skriv över helt – en kortare kopia får inte lämna slutet av en äldre fil kvar.

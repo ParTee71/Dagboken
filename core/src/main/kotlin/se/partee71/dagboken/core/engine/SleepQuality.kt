@@ -29,7 +29,7 @@ import se.partee71.dagboken.core.model.Sex
 data class SleepQuality(
     val score: Int,
     val components: List<SleepQualityComponent>,
-    val flags: List<SleepFlag> = emptyList(),
+    val flags: List<SleepFlag> = emptyList()
 )
 
 /** En delkomponent med sin egen poäng och sin vikt i totalen. */
@@ -38,7 +38,7 @@ data class SleepQualityComponent(
     val score: Int,
     val weight: Int,
     /** Uppmätt värde i komponentens egen enhet (timmar, procent eller minuter). */
-    val measured: Double,
+    val measured: Double
 )
 
 /**
@@ -73,7 +73,7 @@ enum class SleepQualityKind(val weight: Int) {
     REM(12),
 
     /** Vaken tid efter insomnande (WASO), åldersjusterad. */
-    WASO(8),
+    WASO(8)
 }
 
 /** Varningar som visas vid sidan av poängen — de ska inte döljas i ett medelvärde. */
@@ -82,7 +82,7 @@ enum class SleepFlag {
     LOW_OXYGEN_SATURATION,
 
     /** Sovpuls klart över den egna baslinjen — tecken på bristande återhämtning. */
-    ELEVATED_SLEEPING_HEART_RATE,
+    ELEVATED_SLEEPING_HEART_RATE
 }
 
 /**
@@ -99,7 +99,7 @@ data class SleepMeasurements(
     val midpointSdMinutes: Double? = null,
     val meanOxygenSaturation: Double? = null,
     val sleepingHeartRate: Long? = null,
-    val baselineRestingHeartRate: Long? = null,
+    val baselineRestingHeartRate: Long? = null
 )
 
 /**
@@ -123,11 +123,11 @@ data class NightlySleepQuality(val date: LocalDate, val quality: SleepQuality?)
 fun scoreNightlySleep(
     nights: List<NightlySleepMeasurements>,
     age: Int?,
-    sex: Sex,
+    sex: Sex
 ): List<NightlySleepQuality> = nights.map { night ->
     NightlySleepQuality(
         date = night.date,
-        quality = age?.let { scoreSleepQuality(night.measurements, it, sex) },
+        quality = age?.let { scoreSleepQuality(night.measurements, it, sex) }
     )
 }
 
@@ -161,7 +161,7 @@ private const val WASO_ZERO_MINUTES = 90.0
 fun scoreSleepQuality(
     measurements: SleepMeasurements,
     age: Int,
-    sex: Sex,
+    sex: Sex
 ): SleepQuality? {
     val timeInBedMinutes = measurements.timeInBed.inWholeMinutes.toDouble()
     if (timeInBedMinutes <= 0.0) return null
@@ -182,8 +182,8 @@ fun scoreSleepQuality(
                 kind = SleepQualityKind.DURATION,
                 measured = sleepMinutes / 60.0,
                 // AASM/SRS: ≥7 h. Övre gränsen speglar den U-formade dödlighetskurvan.
-                score = plateau(sleepMinutes / 60.0, zeroLow = 4.0, fullLow = 7.0, fullHigh = 8.5, zeroHigh = 10.0),
-            ),
+                score = plateau(sleepMinutes / 60.0, zeroLow = 4.0, fullLow = 7.0, fullHigh = 8.5, zeroHigh = 10.0)
+            )
         )
 
         if (awakeMinutes != null) {
@@ -194,8 +194,8 @@ fun scoreSleepQuality(
                     measured = efficiency,
                     // Noll vid 75 %: 85 % är gränsen för kliniskt störd sömn och ska
                     // inte hamna högt upp på skalan.
-                    score = rampUp(efficiency, zeroAt = EFFICIENCY_ZERO_PERCENT, fullAt = 90.0),
-                ),
+                    score = rampUp(efficiency, zeroAt = EFFICIENCY_ZERO_PERCENT, fullAt = 90.0)
+                )
             )
             add(
                 component(
@@ -204,9 +204,9 @@ fun scoreSleepQuality(
                     score = rampDown(
                         awakeMinutes,
                         fullAt = wasoTargetMinutes(age),
-                        zeroAt = WASO_ZERO_MINUTES,
-                    ),
-                ),
+                        zeroAt = WASO_ZERO_MINUTES
+                    )
+                )
             )
         }
 
@@ -215,8 +215,8 @@ fun scoreSleepQuality(
                 component(
                     kind = SleepQualityKind.REGULARITY,
                     measured = sd,
-                    score = rampDown(sd, fullAt = 30.0, zeroAt = 90.0),
-                ),
+                    score = rampDown(sd, fullAt = 30.0, zeroAt = 90.0)
+                )
             )
         }
 
@@ -236,9 +236,9 @@ fun scoreSleepQuality(
                         zeroLow = band.start / 2.0,
                         fullLow = band.start,
                         fullHigh = band.endInclusive,
-                        zeroHigh = Double.MAX_VALUE,
-                    ),
-                ),
+                        zeroHigh = Double.MAX_VALUE
+                    )
+                )
             )
         }
 
@@ -248,8 +248,8 @@ fun scoreSleepQuality(
                 component(
                     kind = SleepQualityKind.REM,
                     measured = percent,
-                    score = plateau(percent, zeroLow = 8.0, fullLow = 18.0, fullHigh = 25.0, zeroHigh = 40.0),
-                ),
+                    score = plateau(percent, zeroLow = 8.0, fullLow = 18.0, fullHigh = 25.0, zeroHigh = 40.0)
+                )
             )
         }
     }
@@ -264,7 +264,7 @@ fun scoreSleepQuality(
     return SleepQuality(
         score = weighted.roundToInt().coerceIn(0, 100),
         components = components,
-        flags = sleepFlags(measurements),
+        flags = sleepFlags(measurements)
     )
 }
 
@@ -285,8 +285,7 @@ fun sleepFlags(measurements: SleepMeasurements): List<SleepFlag> = buildList {
     }
 }
 
-private fun component(kind: SleepQualityKind, measured: Double, score: Int) =
-    SleepQualityComponent(kind = kind, score = score, weight = kind.weight, measured = measured)
+private fun component(kind: SleepQualityKind, measured: Double, score: Int) = SleepQualityComponent(kind = kind, score = score, weight = kind.weight, measured = measured)
 
 /**
  * Åldersnormen för djupsömn i procent av sömntiden.
@@ -311,8 +310,7 @@ fun deepSleepBand(age: Int, sex: Sex): ClosedFloatingPointRange<Double> {
  * decennium från vuxen ålder (Ohayon m.fl. 2004) — en 55-årings uppvaknanden ska
  * inte mätas mot en 25-årings.
  */
-fun wasoTargetMinutes(age: Int): Double =
-    (20.0 + 10.0 * ((age.coerceAtLeast(30) - 30) / 10.0)).coerceAtMost(60.0)
+fun wasoTargetMinutes(age: Int): Double = (20.0 + 10.0 * ((age.coerceAtLeast(30) - 30) / 10.0)).coerceAtMost(60.0)
 
 /**
  * Spridningen i sömnens mittpunkt mellan nätterna, i minuter — appens mått på
@@ -373,7 +371,7 @@ fun plateau(
     zeroLow: Double,
     fullLow: Double,
     fullHigh: Double,
-    zeroHigh: Double,
+    zeroHigh: Double
 ): Int = when {
     value in fullLow..fullHigh -> 100
     value < fullLow -> rampUp(value, zeroAt = zeroLow, fullAt = fullLow)

@@ -41,7 +41,7 @@ fun healthReadWindows(start: Instant, end: Instant, sleepVitals: Boolean = false
         samples = samples,
         heartRate = if (sleepVitals) lead else samples,
         lead = lead,
-        sleep = TimeWindow(start - NIGHT_WINDOW * REGULARITY_WINDOW_NIGHTS, end),
+        sleep = TimeWindow(start - NIGHT_WINDOW * REGULARITY_WINDOW_NIGHTS, end)
     )
 }
 
@@ -53,12 +53,10 @@ fun averageOxygen(samples: List<OxygenSample>): Double? = samples.takeIf { it.is
  * att hela natten – också proven före midnatt – hamnar på morgonens datum, som nattens sömn och som
  * 24-timmarsfönstret i [healthDay]. Prov utanför sömnen dateras efter sin egen tid.
  */
-fun averageOxygenByDay(samples: List<OxygenSample>, sleep: List<TimeSpan>, zone: TimeZone): Map<LocalDate, Double> =
-    averageOxygenByDay(samples, SleepWindows(sleep), zone)
+fun averageOxygenByDay(samples: List<OxygenSample>, sleep: List<TimeSpan>, zone: TimeZone): Map<LocalDate, Double> = averageOxygenByDay(samples, SleepWindows(sleep), zone)
 
 /** Som ovan med ett färdigt [SleepWindows]-index, delat med resten av dagshistoriken. */
-fun averageOxygenByDay(samples: List<OxygenSample>, windows: SleepWindows, zone: TimeZone): Map<LocalDate, Double> =
-    samples.perDay(zone, { sample -> windows.containing(sample.time)?.end ?: sample.time }, ::averageOxygen)
+fun averageOxygenByDay(samples: List<OxygenSample>, windows: SleepWindows, zone: TimeZone): Map<LocalDate, Double> = samples.perDay(zone, { sample -> windows.containing(sample.time)?.end ?: sample.time }, ::averageOxygen)
 
 /**
  * Dagshistoriken för [from]…[to] (HLS-12): exakt ett [DailyHealth] per dygn i datumordning, tomt där inget
@@ -105,7 +103,7 @@ fun healthHistory(records: HealthRecords, from: LocalDate, to: LocalDate, zone: 
             exerciseDuration = exercise[date]?.duration,
             activeEnergyKcal = calories[date],
             distanceMeters = distance[date],
-            oxygenSaturationAvg = oxygen[date],
+            oxygenSaturationAvg = oxygen[date]
         )
     }
     return HealthHistory.of(from, to, measured)
@@ -151,6 +149,6 @@ fun healthDay(records: HealthRecords, date: LocalDate, now: Instant, zone: TimeZ
         exerciseDuration = exercise?.duration,
         activeEnergyKcal = mostCompleteSum(records.calories.startingInDay()),
         distanceMeters = mostCompleteSum(records.distance.startingInDay()),
-        oxygenSaturationAvg = averageOxygen(records.oxygen.filter { it.time in night }),
+        oxygenSaturationAvg = averageOxygen(records.oxygen.filter { it.time in night })
     )
 }

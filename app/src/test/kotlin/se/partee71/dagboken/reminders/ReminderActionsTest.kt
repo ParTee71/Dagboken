@@ -52,8 +52,13 @@ class ReminderActionsTest {
     private val uid get() = checkNotNull(f.user.uid.value)
 
     private val levaxin = Prescription(
-        "lev", name = "Levaxin", dose = "100", unit = "µg", slots = listOf(Slot.MORNING),
-        schedule = Schedule.Repeating(), period = Period(start = LocalDate(2026, 1, 1)),
+        "lev",
+        name = "Levaxin",
+        dose = "100",
+        unit = "µg",
+        slots = listOf(Slot.MORNING),
+        schedule = Schedule.Repeating(),
+        period = Period(start = LocalDate(2026, 1, 1))
     )
 
     @Before

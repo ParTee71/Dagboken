@@ -34,8 +34,8 @@ fun HealthTodayCard(state: HealthTodayUiState, onEvent: (HealthEvent) -> Unit) {
             PillRows(
                 listOf(
                     Metric(R.drawable.ic_steps, metricValue(WatchMetric.STEPS, state.day), stringResource(WatchMetric.STEPS.label())),
-                    Metric(R.drawable.ic_heart, metricValue(WatchMetric.RESTING_HEART_RATE, state.day), stringResource(WatchMetric.RESTING_HEART_RATE.label())),
-                ),
+                    Metric(R.drawable.ic_heart, metricValue(WatchMetric.RESTING_HEART_RATE, state.day), stringResource(WatchMetric.RESTING_HEART_RATE.label()))
+                )
             )
         } else {
             Text(stringResource(R.string.today_health_connect), style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant)

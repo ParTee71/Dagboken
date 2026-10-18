@@ -66,7 +66,7 @@ class MoodSheetTest {
 
     private fun TestScope.started(
         screenings: ScreeningRepository = DefaultScreeningRepository(factory, clock),
-        options: OptionsRepository = DefaultOptionsRepository(factory),
+        options: OptionsRepository = DefaultOptionsRepository(factory)
     ): LogViewModel {
         val vm = LogViewModel(screenings, DefaultSettingsRepository(factory), options, DefaultPrnMedicineRepository(factory), DefaultIllnessRepository(factory, clock), SelectedDay(factory.scope), clock) { zone }
         backgroundScope.launch { vm.screening.collect {} }

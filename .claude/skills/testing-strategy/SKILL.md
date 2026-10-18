@@ -129,6 +129,7 @@ koden i båda riktningar, och att varje publik komponent har skärmdumpar och en
 ```bash
 ./gradlew :core:test                                  # om core/ ändrats
 ./gradlew :app:testDebugUnitTest :app:verifyRoborazziDebug cpdCheck   # om app/ eller core/ ändrats
+./gradlew spotlessApply                                              # kodstil före push (inte i CI)
 ./gradlew :app:lintDebug :app:assembleRelease         # om manifest, resurser, proguard eller byggfiler ändrats
 npx --prefix tools/db firebase emulators:exec --only firestore --project demo-dagboken "npm --prefix tools/db test"  # om tools/db/ eller rules ändrats – bara mot emulatorn
 node --test '.github/scripts/*.test.mjs'              # dokumentkontroller, alltid

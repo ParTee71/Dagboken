@@ -11,8 +11,7 @@ import se.partee71.dagboken.core.model.ThemeSettings
 private val HOURS = 0..23
 
 /** SET-2: auto-temats starttimmar är giltiga när båda är 0–23 och ljust börjar före mörkt. */
-fun ThemeSettings.hasValidHours(): Boolean =
-    lightStartHour in HOURS && darkStartHour in HOURS && lightStartHour < darkStartHour
+fun ThemeSettings.hasValidHours(): Boolean = lightStartHour in HOURS && darkStartHour in HOURS && lightStartHour < darkStartHour
 
 /**
  * Om appen ska vara mörk klockan [hour] (0–23) (SET-1, DSN-5): ljust och mörkt gäller dygnet runt;
@@ -22,7 +21,9 @@ fun ThemeSettings.hasValidHours(): Boolean =
  */
 fun ThemeSettings.isDarkAt(hour: Int): Boolean = when (mode) {
     ThemeMode.LIGHT -> false
+
     ThemeMode.DARK -> true
+
     ThemeMode.AUTO -> {
         val hours = if (hasValidHours()) this else ThemeSettings()
         hour < hours.lightStartHour || hour >= hours.darkStartHour

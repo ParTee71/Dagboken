@@ -24,7 +24,7 @@ class EditorLoader<T, S>(
     private val project: (S) -> T,
     private val prepare: (T) -> T = { it },
     private val showInvalid: Boolean = false,
-    private val afterLoad: (() -> Unit)? = null,
+    private val afterLoad: (() -> Unit)? = null
 ) {
     private val _stored = MutableStateFlow<S?>(null)
     val stored: StateFlow<S?> = _stored.asStateFlow()
@@ -60,5 +60,5 @@ fun <T> EditorLoader(
     read: (suspend () -> Result<T?>)?,
     prepare: (T) -> T = { it },
     showInvalid: Boolean = false,
-    afterLoad: (() -> Unit)? = null,
+    afterLoad: (() -> Unit)? = null
 ): EditorLoader<T, T> = EditorLoader(editor, scope, read, project = { it }, prepare = prepare, showInvalid = showInvalid, afterLoad = afterLoad)

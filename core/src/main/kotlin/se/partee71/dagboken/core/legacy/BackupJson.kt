@@ -1,7 +1,7 @@
 package se.partee71.dagboken.core.legacy
 
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
 // Dagboken 3.x:s backupformat (branchen `legacy`, `data/migration/BackupJson.kt`), fält för fält
@@ -42,7 +42,7 @@ data class BackupJson(
     /** Klockslaget för periodslutspåminnelsen (NOT-13). */
     val periodReminderTime: String? = null,
     /** Appinställningar (3.x BCK-10); `null` i ett fält = "rör inte". */
-    val settings: SettingsBackup? = null,
+    val settings: SettingsBackup? = null
 ) {
     companion object {
         /** Som 3.x: okända fält ignoreras; `null` i ett fält utan `null`-stöd blir fältets standardvärde. */
@@ -87,7 +87,7 @@ data class SettingsBackup(
     val dynamicColor: Boolean? = null,
     val birthYear: Int? = null,
     /** `man`, `kvinna` eller `ej_angivet` (3.x `Sex.storageKey`). */
-    val sex: String? = null,
+    val sex: String? = null
 )
 
 /** En aktivitet eller måendelogg; `type` skiljer dem (`aktivitet`/`screening`, tomt i äldre filer). */
@@ -109,7 +109,7 @@ data class AktivitetJson(
     val aterhamtande: Boolean = false,
     val energitjuv: Boolean = false,
     val type: String = "aktivitet",
-    val spentTime: Int? = null,
+    val spentTime: Int? = null
 )
 
 @Serializable
@@ -129,7 +129,7 @@ data class MedicinJson(
     val receptId: String? = null,
     val skipped: Boolean = false,
     /** Faktisk tagningstid `HH:mm` (MED-14). */
-    val tagenTid: String? = null,
+    val tagenTid: String? = null
 )
 
 @Serializable
@@ -154,7 +154,7 @@ data class ReceptJson(
     val startDatum: String = "",
     /** `null`/`""` = tills vidare. */
     val slutDatum: String? = null,
-    val dosperioder: List<DosperiodJson> = emptyList(),
+    val dosperioder: List<DosperiodJson> = emptyList()
 )
 
 /** En doshöjning (REC-9). */
@@ -164,7 +164,7 @@ data class DosperiodJson(
     val startDatum: String = "",
     val slutDatum: String? = null,
     val dos: String = "",
-    val enhet: String = "",
+    val enhet: String = ""
 )
 
 @Serializable
@@ -178,7 +178,7 @@ data class FavoritJson(
     val minTidMellan: Int = 4,
     val dispenseringsTid: String = "",
     val maxDoserPerDag: Int = 0,
-    val isFavorite: Boolean = false,
+    val isFavorite: Boolean = false
 )
 
 @Serializable
@@ -190,7 +190,7 @@ data class SjukdomsEpisodJson(
     val slutDatum: String = "",
     val anteckning: String = "",
     /** Epok-millisekunder; 0 i v1. */
-    val timestamp: Long = 0,
+    val timestamp: Long = 0
 )
 
 @Serializable
@@ -203,7 +203,7 @@ data class SjukdomsIncheckningJson(
     val symptom: String = "",
     val somatiska: Int = 0,
     val anteckning: String = "",
-    val timestamp: Long = 0,
+    val timestamp: Long = 0
 )
 
 @Serializable
@@ -218,7 +218,7 @@ data class HandelseJson(
     val varaktighetMinuter: Int = 0,
     val triggers: String = "",
     val atgarder: String = "",
-    val anteckning: String = "",
+    val anteckning: String = ""
 )
 
 /** En anteckning i notes-tabellen: `target` är 3.x `NoteTarget` (`ACTIVITY`, `MEDICATION` …). */
@@ -226,13 +226,13 @@ data class HandelseJson(
 data class NoteJson(
     val target: String = "",
     val entityId: String = "",
-    val text: String = "",
+    val text: String = ""
 )
 
 @Serializable
 data class ScreeningEventConfigJson(
     val enabled: Boolean = false,
-    val time: String = "",
+    val time: String = ""
 )
 
 /** En medicinpåminnelse (NOT-18); `tidpunkt` är namnet, tomt i filer skrivna före namnen fanns (då gäller positionen). */
@@ -240,12 +240,12 @@ data class ScreeningEventConfigJson(
 data class MedNotificationConfigJson(
     val tidpunkt: String = "",
     val enabled: Boolean = false,
-    val time: String = "",
+    val time: String = ""
 )
 
 /** Ett alternativ i v2-listorna och händelsetyperna. */
 @Serializable
 data class SymptomOptionBackup(
     val name: String = "",
-    val isFavorite: Boolean = false,
+    val isFavorite: Boolean = false
 )

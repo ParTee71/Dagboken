@@ -15,7 +15,7 @@ class LegacyMigrationCodecTest {
         source = LegacySource.JSON,
         sourceCreatedAt = Instant.fromEpochSeconds(1_780_000_000),
         appVersion = "4.0.0",
-        counts = mapOf("doses" to 12, "settings" to 1),
+        counts = mapOf("doses" to 12, "settings" to 1)
     )
 
     @Test

@@ -52,7 +52,7 @@ data class IllnessDetail(
     val summary: IllnessSummary,
     val today: LocalDate,
     val symptomNames: ImmutableMap<String, String> = persistentMapOf(),
-    val deleting: Boolean = false,
+    val deleting: Boolean = false
 ) {
     /** SJ-4: "Avsluta episod" finns för en pågående episod som inte börjar efter idag ([endDateError] med idag som slut). */
     val canFinish: Boolean get() = summary.ongoing && endDateError(summary.episode.start, today, today) == null
@@ -102,7 +102,7 @@ class IllnessDetailViewModel @AssistedInject constructor(
     options: OptionsRepository,
     clock: Clock,
     zone: Provider<TimeZone>,
-    @Assisted private val id: String,
+    @Assisted private val id: String
 ) : ViewModel() {
     /** Symptomens namn – ett läsfel ger bara svårighetsgraden i undertexten (`withFallback`). */
     private val names: Flow<Map<String, String>> = options.observe(OptionKind.SYMPTOM).withFallback(emptyList())
@@ -113,7 +113,7 @@ class IllnessDetailViewModel @AssistedInject constructor(
         combine(illnesses.observeEpisode(id), clock.days { zone.get() }, names) { loaded, today, names ->
             loaded?.let { IllnessDetail(illnessSummary(it.episode, it.checkins, today), today, names.toImmutableMap()) }
         },
-        viewModelScope,
+        viewModelScope
     )
 
     /** En radering pågår: det som visas står kvar tills den är klar, i stället för incheckningar som försvinner och "finns inte". */

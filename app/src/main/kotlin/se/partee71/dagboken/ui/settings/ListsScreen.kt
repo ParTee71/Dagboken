@@ -28,8 +28,8 @@ import se.partee71.dagboken.ui.common.ListLoader
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.collectAsListArchive
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.components.AppSegmentedChoice
 import se.partee71.dagboken.ui.components.AddAction
+import se.partee71.dagboken.ui.components.AppSegmentedChoice
 import se.partee71.dagboken.ui.components.EmptyContent
 import se.partee71.dagboken.ui.components.EntityListScreen
 import se.partee71.dagboken.ui.components.FavoriteStar
@@ -68,9 +68,11 @@ class ListsViewModel @Inject constructor(private val options: OptionsRepository)
     fun onEvent(event: ListsEvent) {
         when (event) {
             is ListsEvent.KindChosen -> _kind.value = event.kind
+
             is ListsEvent.FavoriteToggled -> viewModelScope.launch {
                 options.setFavorite(event.option, !event.option.favorite).dataError()?.let(archive::report)
             }
+
             ListsEvent.Retry -> loader.onEvent(ListEvent.Retry)
         }
     }
@@ -89,11 +91,11 @@ private enum class ListTexts(
     @param:DrawableRes val icon: Int,
     @param:StringRes val emptyTitle: Int,
     @param:StringRes val emptyMessage: Int,
-    @param:StringRes val add: Int,
+    @param:StringRes val add: Int
 ) {
     Activities(OptionKind.ACTIVITY, R.drawable.ic_activity, R.string.lists_empty_activity, R.string.lists_empty_activity_message, R.string.option_new_activity),
     Symptoms(OptionKind.SYMPTOM, R.drawable.ic_thermometer, R.string.lists_empty_symptom, R.string.lists_empty_symptom_message, R.string.option_new_symptom),
-    Events(OptionKind.EVENT, R.drawable.ic_event, R.string.lists_empty_event, R.string.lists_empty_event_message, R.string.option_new_event),
+    Events(OptionKind.EVENT, R.drawable.ic_event, R.string.lists_empty_event, R.string.lists_empty_event_message, R.string.option_new_event)
     ;
 
     companion object {
@@ -119,7 +121,7 @@ fun ListsScreen(
     onEvent: (ListsEvent) -> Unit,
     onBack: () -> Unit,
     onAdd: () -> Unit,
-    onOpen: (Option) -> Unit,
+    onOpen: (Option) -> Unit
 ) {
     val texts = ListTexts.of(kind)
     val kinds = OptionKind.entries
@@ -134,7 +136,7 @@ fun ListsScreen(
         archive = archive,
         onBack = onBack,
         filter = { AppSegmentedChoice(labels, kinds.indexOf(kind), { onEvent(ListsEvent.KindChosen(kinds[it])) }) },
-        topBarSize = TopBarSize.Small,
+        topBarSize = TopBarSize.Small
     ) { option ->
         SwipeToHide(onHide = { archive.archive(option.id, option.name) }, enabled = !option.archived) { swipe ->
             ItemRow(
@@ -147,7 +149,7 @@ fun ListsScreen(
                     // Som "Pausat" i PausableRow: läget som pill, raden nedtonad.
                     if (option.archived) InfoPill(stringResource(R.string.option_archived), tone = Tone.Neutral)
                     FavoriteStar(option.name, option.favorite, { onEvent(ListsEvent.FavoriteToggled(option)) })
-                },
+                }
             )
         }
     }

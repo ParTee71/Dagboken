@@ -5,11 +5,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -20,11 +20,11 @@ import kotlinx.datetime.toInstant
 import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.core.engine.OccasionStatus
-import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
-import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.OccasionReminder
+import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Settings
@@ -37,8 +37,8 @@ import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
 import se.partee71.dagboken.data.repository.DefaultScreeningRepository
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.components.ScreeningStep
 import se.partee71.dagboken.ui.common.SelectedDay
+import se.partee71.dagboken.ui.components.ScreeningStep
 
 /**
  * Plusknappens Mående (HEM-8b, NAV-10, SCR-1, SCR-3, SCR-6) och Dagbokens måendepost (HIST-3) mot `FakeCollection`
@@ -59,7 +59,7 @@ class LogViewModelTest {
 
     /** Frukost 08:00 och lunch 12:00 påminns; kvällsmat och läggdags inte. */
     private val reminders = ReminderSettings(
-        screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = it == Occasion.BREAKFAST || it == Occasion.LUNCH) },
+        screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = it == Occasion.BREAKFAST || it == Occasion.LUNCH) }
     )
 
     private suspend fun seed() {
@@ -99,7 +99,7 @@ class LogViewModelTest {
         assertEquals(Occasion.entries.toList(), picker.occasions.map { it.occasion })
         assertEquals(
             listOf(OccasionStatus.LATE, OccasionStatus.LOGGED, OccasionStatus.NOT_LOGGED, OccasionStatus.NOT_LOGGED),
-            picker.occasions.map { it.status },
+            picker.occasions.map { it.status }
         )
 
         vm.onEvent(LogEvent.ClosePicker)

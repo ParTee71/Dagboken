@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.health.MIN_TREND_POINTS
 import se.partee71.dagboken.ui.components.EmptyState
@@ -30,7 +30,7 @@ internal fun ChartFrame(
     modifier: Modifier = Modifier,
     emptyTitle: String = stringResource(R.string.chart_empty_title),
     footer: @Composable () -> Unit = {},
-    chart: @Composable () -> Unit,
+    chart: @Composable () -> Unit
 ) {
     if (!enoughData) {
         // En nod för skärmläsaren med hela budskapet: "Vilopuls: för lite data än. <uppmaning>".
@@ -40,7 +40,7 @@ internal fun ChartFrame(
             title = emptyTitle,
             message = emptyHint,
             modifier = modifier.semantics(mergeDescendants = true) { contentDescription = spoken },
-            compact = true,
+            compact = true
         )
         return
     }

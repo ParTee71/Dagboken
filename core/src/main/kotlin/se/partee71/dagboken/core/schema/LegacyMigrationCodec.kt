@@ -23,7 +23,7 @@ object LegacyMigrationCodec : ValueCodec<LegacyMigration?> {
             SOURCE to it.source.encodeWire(),
             SOURCE_CREATED_AT to it.sourceCreatedAt,
             APP_VERSION to it.appVersion,
-            COUNTS to it.counts,
+            COUNTS to it.counts
         )
     }
 
@@ -36,7 +36,7 @@ object LegacyMigrationCodec : ValueCodec<LegacyMigration?> {
             source = doc.wire(SOURCE, LegacySource.ROOM),
             sourceCreatedAt = doc.instant(SOURCE_CREATED_AT),
             appVersion = doc.string(APP_VERSION),
-            counts = asDoc(doc[COUNTS]).mapNotNull { (key, value) -> (value as? Number)?.let { key to it.toIntClamped() } }.toMap(),
+            counts = asDoc(doc[COUNTS]).mapNotNull { (key, value) -> (value as? Number)?.let { key to it.toIntClamped() } }.toMap()
         )
     }
 }

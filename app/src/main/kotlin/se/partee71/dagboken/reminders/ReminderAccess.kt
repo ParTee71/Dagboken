@@ -21,17 +21,16 @@ data class ReminderAccess(val notifications: Boolean = true, val exactAlarms: Bo
 /** Behörigheterna just nu (NOT-16). */
 fun Context.reminderAccess(): ReminderAccess = ReminderAccess(
     notifications = NotificationManagerCompat.from(this).areNotificationsEnabled() && !needsNotificationPermission(),
-    exactAlarms = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() != false,
+    exactAlarms = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() != false
 )
 
 /** NOT-16: notisbehörigheten (API 33+) saknas och ska begäras när en påminnelse slås på – aldrig vid första start. */
-fun Context.needsNotificationPermission(): Boolean =
-    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-        ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+fun Context.needsNotificationPermission(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+    ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
 
 /** NOT-16: systemets notisinställningar för appen. */
 fun Context.openNotificationSettings() = openSystemSettings(
-    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName),
+    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
 )
 
 /** NOT-16: systemets "Alarm och påminnelser" för appen (API 31+; tidigare behövs ingen rätt). */

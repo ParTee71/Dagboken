@@ -52,7 +52,7 @@ class HistoryCoverage @Inject constructor(
     /** Enhetens tidszon, läst vid varje användning. */
     private val zone: Provider<TimeZone>,
     /** Hämtningen fortsätter här när den som väntar avbryts, så att en debiterad läsning alltid antecknas. */
-    @ApplicationScope private val scope: CoroutineScope,
+    @ApplicationScope private val scope: CoroutineScope
 ) {
     private val locks = mutableMapOf<String, Mutex>()
 
@@ -82,10 +82,12 @@ class HistoryCoverage @Inject constructor(
                 val fresh = fetchedOn != null && fetchedOn <= today && fetchedOn > today.minus(REFRESH_DAYS, DateTimeUnit.DAY)
                 when {
                     fresh && coveredFrom != null && from >= coveredFrom -> Unit
+
                     fresh && coveredFrom != null -> {
                         fetch(from, coveredFrom.minus(1, DateTimeUnit.DAY))
                         record(started, isCurrent) { write(key + FROM, from) }
                     }
+
                     else -> {
                         val start = coveredFrom?.let { minOf(it, from) } ?: from
                         fetch(start, null)
@@ -148,7 +150,7 @@ fun <T> historyFlow(
     from: LocalDate,
     to: LocalDate,
     fetch: suspend (uid: String, from: LocalDate, until: LocalDate?) -> Unit,
-    cache: (uid: String) -> Flow<List<T>>,
+    cache: (uid: String) -> Flow<List<T>>
 ): Flow<List<T>> = uid.flatMapLatest { account ->
     val coverageKey = account?.let(key) ?: return@flatMapLatest emptyFlow()
     // En tom period: ingen hämtning och ingen lyssnare.
@@ -192,8 +194,7 @@ fun <T : Identified> EntityCollection<T>.observeDates(field: String, from: Local
 }
 
 /** [observeDates] med fasta lyssnade dagar [live] – Dagboken och Trender. */
-fun <T : Identified> EntityCollection<T>.observeDates(field: String, from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<T>> =
-    observeDates(field, from, to, flowOf(live))
+fun <T : Identified> EntityCollection<T>.observeDates(field: String, from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<T>> = observeDates(field, from, to, flowOf(live))
 
 /**
  * Historikläget **en gång** (NFR-24): dagarna [from]…[to] på datumfältet [field] som de första gången kommer ur cachen
@@ -202,5 +203,4 @@ fun <T : Identified> EntityCollection<T>.observeDates(field: String, from: Local
  * [EntityCollection.cachedBetween] var för en ny post: hellre ett svar ur cachen än att formuläret väntar. `null` när inget
  * kommit inom [wait], vid ett fel och utloggad – för förval som får utebli (AKT-12).
  */
-suspend fun <T : Identified> EntityCollection<T>.historyOnce(field: String, from: LocalDate, to: LocalDate, wait: Duration): List<T>? =
-    withTimeoutOrNull(wait) { observeHistory(field, from, to).catch { }.firstOrNull() }
+suspend fun <T : Identified> EntityCollection<T>.historyOnce(field: String, from: LocalDate, to: LocalDate, wait: Duration): List<T>? = withTimeoutOrNull(wait) { observeHistory(field, from, to).catch { }.firstOrNull() }

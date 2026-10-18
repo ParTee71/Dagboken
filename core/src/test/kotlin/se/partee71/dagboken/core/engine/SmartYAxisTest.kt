@@ -78,7 +78,7 @@ class SmartYAxisTest {
         val nearestWhole = Math.round(multiples)
         assertTrue(
             "span $span should be a whole multiple of step ${axis.step}, got $multiples",
-            Math.abs(multiples - nearestWhole) < 0.01f,
+            Math.abs(multiples - nearestWhole) < 0.01f
         )
     }
 
@@ -97,7 +97,7 @@ class SmartYAxisTest {
         listOf(5f, 5f, 5f), // enda distinkta värdet
         listOf(0f, 0f),
         listOf(-8f, -5f, -3f),
-        listOf(42f),
+        listOf(42f)
     )
 
     @Test fun `step is always a whole number and at least 1`() {
@@ -105,7 +105,7 @@ class SmartYAxisTest {
             val axis = computeSmartYAxis(values)
             assertTrue(
                 "step for $values should be >= 1, was ${axis.step}",
-                axis.step >= 1f,
+                axis.step >= 1f
             )
             assertEquals("step for $values should be a whole number", axis.step, Math.round(axis.step).toFloat())
         }
@@ -117,12 +117,12 @@ class SmartYAxisTest {
             assertEquals(
                 "range.start for $values should be a whole number",
                 axis.range.start,
-                Math.round(axis.range.start).toFloat(),
+                Math.round(axis.range.start).toFloat()
             )
             assertEquals(
                 "range.endInclusive for $values should be a whole number",
                 axis.range.endInclusive,
-                Math.round(axis.range.endInclusive).toFloat(),
+                Math.round(axis.range.endInclusive).toFloat()
             )
         }
     }
@@ -134,7 +134,7 @@ class SmartYAxisTest {
             val normalized = axis.step / magnitude
             assertTrue(
                 "step ${axis.step} for $values should normalize to 1, 2, 5 or 10, was $normalized",
-                listOf(1.0, 2.0, 5.0, 10.0).any { Math.abs(normalized - it) < 0.01 },
+                listOf(1.0, 2.0, 5.0, 10.0).any { Math.abs(normalized - it) < 0.01 }
             )
         }
     }
@@ -145,7 +145,7 @@ class SmartYAxisTest {
             val values2 = gridValuesFor(axis.range.start, axis.range.endInclusive, axis.step)
             assertTrue(
                 "grid line count for $values was ${values2.size}",
-                values2.size <= 12,
+                values2.size <= 12
             )
         }
     }

@@ -21,8 +21,14 @@ internal object LegacyDefaults {
 
     /** `DEFAULT_HANDELSE_TYP_OPTIONS`. */
     val EVENT_OPTIONS = listOf(
-        "Blodtrycksfall", "Ögonmigrän", "Vita fingrar (Raynaud)", "Plötslig huvudvärk",
-        "Allergisk reaktion", "Yrsel", "Hjärtklappning", "Andnöd",
+        "Blodtrycksfall",
+        "Ögonmigrän",
+        "Vita fingrar (Raynaud)",
+        "Plötslig huvudvärk",
+        "Allergisk reaktion",
+        "Yrsel",
+        "Hjärtklappning",
+        "Andnöd"
     )
 
     /** 3.x `NoteTarget`-namnen, i enum-ordningen. */
@@ -35,7 +41,14 @@ internal object LegacyDefaults {
     const val NOTE_EPISODE = "SJUKDOM_EPISOD"
     const val NOTE_CHECKIN = "SJUKDOM_INCHECKNING"
     val NOTE_TARGETS = listOf(
-        NOTE_ACTIVITY, NOTE_SCREENING, NOTE_MEDICATION, NOTE_PRESCRIPTION, NOTE_PRN, NOTE_EVENT, NOTE_EPISODE, NOTE_CHECKIN,
+        NOTE_ACTIVITY,
+        NOTE_SCREENING,
+        NOTE_MEDICATION,
+        NOTE_PRESCRIPTION,
+        NOTE_PRN,
+        NOTE_EVENT,
+        NOTE_EPISODE,
+        NOTE_CHECKIN
     )
 
     /** 3.x `Aktivitet.type`. */

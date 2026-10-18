@@ -10,8 +10,7 @@ package se.partee71.dagboken.core.engine
 data class StackedPoint(val values: List<Float?>)
 
 /** Stapelns totalhöjd, eller null om ingen kategori har något värde alls. */
-fun stackTotal(point: StackedPoint): Float? =
-    point.values.filterNotNull().takeIf { it.isNotEmpty() }?.sum()
+fun stackTotal(point: StackedPoint): Float? = point.values.filterNotNull().takeIf { it.isNotEmpty() }?.sum()
 
 /** Totalhöjden per stapel — underlaget för y-skalan, min/max och trendlinjen. */
 fun stackTotals(points: List<StackedPoint>): List<Float?> = points.map { stackTotal(it) }

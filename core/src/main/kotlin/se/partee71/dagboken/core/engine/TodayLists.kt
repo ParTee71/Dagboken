@@ -47,7 +47,7 @@ data class OpenDose(val dose: Dose, val due: Due?, val time: LocalTime? = null)
 data class DoseChecklist(
     val shown: List<OpenDose> = emptyList(),
     val done: List<Dose> = emptyList(),
-    val upcoming: List<OpenDose> = emptyList(),
+    val upcoming: List<OpenDose> = emptyList()
 ) {
     val isEmpty: Boolean get() = shown.isEmpty() && done.isEmpty() && upcoming.isEmpty()
 }
@@ -70,11 +70,10 @@ fun doseChecklist(doses: List<Dose>, date: LocalDate, now: Instant, zone: TimeZo
 }
 
 /** Tidpunkt (Morgon → Natt → Vid behov), klockslag ([scheduledTime]), namn utan skiftläge och sist id – samma ordning varje gång. */
-private fun doseOrder(reminders: ReminderSettings): Comparator<Dose> =
-    compareBy<Dose> { it.slot.ordinal }
-        .thenBy { it.scheduledTime(reminders) }
-        .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
-        .thenBy { it.id }
+private fun doseOrder(reminders: ReminderSettings): Comparator<Dose> = compareBy<Dose> { it.slot.ordinal }
+    .thenBy { it.scheduledTime(reminders) }
+    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+    .thenBy { it.id }
 
 /**
  * Vid behov-kortet på Idag (FAV-2, FAV-11): [favorites] som snabbval, och i "Fler" [others] – de övriga vid
@@ -83,7 +82,7 @@ private fun doseOrder(reminders: ReminderSettings): Comparator<Dose> =
 data class AsNeededChoices(
     val favorites: List<PrnMedicine> = emptyList(),
     val others: List<PrnMedicine> = emptyList(),
-    val prescriptions: List<Prescription> = emptyList(),
+    val prescriptions: List<Prescription> = emptyList()
 ) {
     /** Antalet i "Fler" (FAV-2). */
     val moreCount: Int get() = others.size + prescriptions.size
@@ -118,8 +117,7 @@ fun asNeededChoices(medicines: List<PrnMedicine>, prescriptions: List<Prescripti
  * HEM-14: dagarna som får en punkt i datumremsan – dagar med en avklarad dos (tagen eller överhoppad,
  * [isDone]) eller en måendelogg. En planerad dos som ingen rört är ingen post.
  */
-fun datesWithEntries(doses: List<Dose>, screenings: List<Screening>): Set<LocalDate> =
-    (doses.filter { it.isDone }.mapNotNull { it.date } + screenings.mapNotNull { it.date }).toSet()
+fun datesWithEntries(doses: List<Dose>, screenings: List<Screening>): Set<LocalDate> = (doses.filter { it.isDone }.mapNotNull { it.date } + screenings.mapNotNull { it.date }).toSet()
 
 /**
  * MED-14: tagningstiden när dosen bockas av på Idag vid [now]. Idag (eller en dos utan dag) är det nu; en

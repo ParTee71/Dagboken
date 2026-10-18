@@ -26,17 +26,16 @@ class TodayTest {
         status: DoseStatus = DoseStatus.PLANNED,
         slot: Slot = Slot.MORNING,
         prnId: String? = null,
-        id: String = "$date-$slot-$status-$prnId",
+        id: String = "$date-$slot-$status-$prnId"
     ) = Dose(id, day(date), slot, name = "Levaxin", status = status, prnId = prnId)
 
-    private fun screening(date: String, occasion: Occasion?, energy: Int = 5, id: String = "$date-$occasion-$energy") =
-        Screening(id, day(date), occasion = occasion, energy = energy)
+    private fun screening(date: String, occasion: Occasion?, energy: Int = 5, id: String = "$date-$occasion-$energy") = Screening(id, day(date), occasion = occasion, energy = energy)
 
     private val both = listOf(Occasion.BREAKFAST, Occasion.BEDTIME)
 
     /** Påminnelserna med frukost 08:00 och läggdags 21:00 aktiverade, lunch och kvällsmat avstängda. */
     private val reminders = ReminderSettings(
-        screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = it in both) },
+        screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = it in both) }
     )
 
     /** En helt klar dag: morgondosen tagen och båda tillfällena loggade. */
@@ -51,7 +50,7 @@ class TodayTest {
             dose("2026-05-04", slot = Slot.NIGHT),
             dose("2026-05-04", DoseStatus.TAKEN, Slot.AS_NEEDED),
             dose("2026-05-04", DoseStatus.TAKEN, Slot.MORNING, prnId = "p1"), // 3.x-favorit med tidpunkt
-            dose("2026-05-03", DoseStatus.TAKEN), // en annan dag
+            dose("2026-05-03", DoseStatus.TAKEN) // en annan dag
         )
         val screenings = listOf(screening("2026-05-04", Occasion.BREAKFAST), screening("2026-05-04", Occasion.LUNCH), screening("2026-05-04", null))
         val progress = dayProgress(day("2026-05-04"), doses, screenings, reminders.enabledOccasions)
@@ -116,7 +115,7 @@ class TodayTest {
             screening("2026-05-03", Occasion.BREAKFAST, 4),
             screening("2026-05-03", Occasion.BEDTIME, 6),
             screening("2026-05-04", Occasion.BREAKFAST, 6),
-            screening("2026-05-04", Occasion.BEDTIME, 8),
+            screening("2026-05-04", Occasion.BEDTIME, 8)
         )
         assertEquals(DayComparison(7f, 2f), dayComparison(day("2026-05-04"), screenings))
     }
@@ -137,7 +136,7 @@ class TodayTest {
         screening("2026-04-28", Occasion.BREAKFAST, thisWeek), // sista dagen i veckan (today - 6)
         screening("2026-04-27", Occasion.BREAKFAST, previousWeek), // today - 7
         screening("2026-04-21", Occasion.BREAKFAST, previousWeek), // today - 13
-        screening("2026-04-20", Occasion.BREAKFAST, 0), // today - 14: utanför
+        screening("2026-04-20", Occasion.BREAKFAST, 0) // today - 14: utanför
     )
 
     @Test fun `energitrend upp, ner och oförändrad vid gränsen 0,5`() {
@@ -159,7 +158,7 @@ class TodayTest {
             dose("2026-05-02", DoseStatus.PLANNED),
             dose("2026-05-01", DoseStatus.SKIPPED),
             dose("2026-05-01", DoseStatus.TAKEN, Slot.AS_NEEDED),
-            dose("2026-04-27", DoseStatus.PLANNED), // förra veckan
+            dose("2026-04-27", DoseStatus.PLANNED) // förra veckan
         )
         assertEquals(66, weekSummary(mondayNight, STOCKHOLM, emptyList(), doses, reminders = ReminderSettings())?.dosesTakenPercent, "2 av 3, avrundat nedåt")
     }
@@ -168,7 +167,7 @@ class TodayTest {
         val doses = listOf(
             dose("2026-05-04", DoseStatus.TAKEN, Slot.MORNING), // 07:00, tagen
             dose("2026-05-04", DoseStatus.PLANNED, Slot.EVENING), // 19:00, inte förfallen
-            dose("2026-05-03", DoseStatus.PLANNED, Slot.MORNING), // igår, missad
+            dose("2026-05-03", DoseStatus.PLANNED, Slot.MORNING) // igår, missad
         )
         assertEquals(50, weekSummary(at("2026-05-04T08:00"), STOCKHOLM, emptyList(), doses, reminders = ReminderSettings())?.dosesTakenPercent, "1 av 2 – kvällsdosen räknas inte än")
         val takenEarly = doses + dose("2026-05-04", DoseStatus.TAKEN, Slot.NIGHT)
@@ -180,7 +179,7 @@ class TodayTest {
         // Morgon 06:15 i inställningen: kl. 06:30 har morgondosen förfallit, med standardklockslaget 07:00 inte.
         val doses = listOf(
             dose("2026-05-03", DoseStatus.TAKEN, Slot.MORNING),
-            dose("2026-05-04", DoseStatus.PLANNED, Slot.MORNING).copy(prescriptionId = "r1"),
+            dose("2026-05-04", DoseStatus.PLANNED, Slot.MORNING).copy(prescriptionId = "r1")
         )
         assertEquals(100, weekSummary(at("2026-05-04T06:30"), STOCKHOLM, emptyList(), doses, ReminderSettings())?.dosesTakenPercent)
         assertEquals(50, weekSummary(at("2026-05-04T06:30"), STOCKHOLM, emptyList(), doses, OWN_TIMES)?.dosesTakenPercent)
@@ -227,7 +226,7 @@ class TodayTest {
         assertEquals(
             listOf(OccasionStatus.LATE, OccasionStatus.LOGGED, OccasionStatus.NOT_LOGGED, OccasionStatus.SOON),
             choices.map { it.status },
-            "frukost försenad och läggdags snart som på Idag; lunch loggad och kvällsmat utan påminnelse inte försenad",
+            "frukost försenad och läggdags snart som på Idag; lunch loggad och kvällsmat utan påminnelse inte försenad"
         )
         assertEquals(listOf(lunch), choices[1].screenings)
         assertEquals(Occasion.DINNER.defaultTime, choices[2].time)
@@ -244,7 +243,7 @@ class TodayTest {
 
     @Test fun `tillfällesstatus följer påminnelsernas tider och bara aktiverade tillfällen`() {
         val custom = reminders.copy(
-            screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = it != Occasion.DINNER, time = if (it == Occasion.LUNCH) LocalTime(10, 30) else it.defaultTime) },
+            screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = it != Occasion.DINNER, time = if (it == Occasion.LUNCH) LocalTime(10, 30) else it.defaultTime) }
         )
         val screenings = listOf(screening("2026-05-04", Occasion.BREAKFAST, 6), screening("2026-05-03", Occasion.LUNCH))
         val states = occasionStates(custom, screenings, day("2026-05-04"), at("2026-05-04T09:00"), STOCKHOLM)
@@ -260,8 +259,8 @@ class TodayTest {
             screeningOccasions = listOf(
                 OccasionReminder(Occasion.BREAKFAST, enabled = true, time = LocalTime(7, 0)),
                 OccasionReminder(Occasion.BREAKFAST, enabled = true, time = LocalTime(9, 0)),
-                OccasionReminder(Occasion.LUNCH, enabled = false),
-            ),
+                OccasionReminder(Occasion.LUNCH, enabled = false)
+            )
         )
         val states = occasionStates(doubled, emptyList(), day("2026-05-04"), at("2026-05-04T08:00"), STOCKHOLM)
         assertEquals(listOf(Occasion.BREAKFAST to LocalTime(7, 0)), states.map { it.occasion to it.time })

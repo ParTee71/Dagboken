@@ -2,23 +2,24 @@ package se.partee71.dagboken.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertHeightIsAtLeast
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.collections.immutable.persistentListOf
@@ -62,7 +63,7 @@ class MedicineComponentsTest {
                 onClick = { opened++ },
                 inactive = !active,
                 toggle = EntryToggle(active, { active = it }, "Sertralin aktivt"),
-                below = { InfoPill("Idag 75 mg (+25)") },
+                below = { InfoPill("Idag 75 mg (+25)") }
             )
         }
         rule.onNodeWithContentDescription("Sertralin aktivt")
@@ -86,7 +87,7 @@ class MedicineComponentsTest {
                 note = "Med frukost",
                 expandedContent = {},
                 onEdit = {},
-                toggle = EntryToggle(true, {}, "Sertralin aktivt"),
+                toggle = EntryToggle(true, {}, "Sertralin aktivt")
             )
         }
         val title = rule.onNodeWithText("Sertralin 50 mg", useUnmergedTree = true).fetchSemanticsNode()
@@ -98,7 +99,7 @@ class MedicineComponentsTest {
 
     @Test
     fun `QuantityStepper visar och läser värdetexten`() {
-        var hours by mutableStateOf(1)
+        var hours by mutableIntStateOf(1)
         show { QuantityStepper(hours, { hours = it }, "minsta tid mellan doser", valueText = { if (it == 0) "Ingen spärr" else "$it h" }) }
         rule.onNodeWithText("1 h").assertIsDisplayed()
         rule.onNodeWithContentDescription("minsta tid mellan doser 1 h").assertIsDisplayed()
@@ -134,7 +135,7 @@ class MedicineComponentsTest {
                 se.partee71.dagboken.R.drawable.ic_watch,
                 { opened++ },
                 detail = "Installera Health Connect från Play Butik för att se klockans data.",
-                action = "Installera",
+                action = "Installera"
             )
         }
         rule.onNodeWithText("Health Connect saknas").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Role))
@@ -152,7 +153,7 @@ class MedicineComponentsTest {
                 empty = EmptyContent(0, "", ""),
                 add = AddAction("Nytt recept", {}),
                 key = { it },
-                group = { if (it == "Alvedon") ListGroup("Vid behov") else ListGroup("Recept och scheman", count = "2 aktiva", cards = true) },
+                group = { if (it == "Alvedon") ListGroup("Vid behov") else ListGroup("Recept och scheman", count = "2 aktiva", cards = true) }
             ) { DagbokenEntryCard(it, onClick = {}) }
         }
         rule.onNodeWithText("Recept och scheman").assertIsDisplayed()

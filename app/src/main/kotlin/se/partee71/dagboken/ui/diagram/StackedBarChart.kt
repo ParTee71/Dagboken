@@ -31,9 +31,8 @@ data class StackSegment(val label: String, val color: Color)
  * Sömn-diagrammets linjeserier (TRD-15). Ett ställe (regel 4) för Trender → Sömnstadier och galleriet.
  */
 @Composable
-internal fun sleepStageSegments(): List<StackSegment> =
-    listOf(R.string.trends_series_sleep_deep, R.string.trends_series_sleep_rem, R.string.trends_series_sleep_light, R.string.trends_series_sleep_awake)
-        .zip(sleepStageColors()) { label, color -> StackSegment(stringResource(label), color) }
+internal fun sleepStageSegments(): List<StackSegment> = listOf(R.string.trends_series_sleep_deep, R.string.trends_series_sleep_rem, R.string.trends_series_sleep_light, R.string.trends_series_sleep_awake)
+    .zip(sleepStageColors()) { label, color -> StackSegment(stringResource(label), color) }
 
 /** Sömnstadiernas färger i TRD-16:s ordning (djup, REM, lätt, vaken) – samma i staplarna och i Sömn-diagrammets linjer (TRD-15). */
 @Composable
@@ -69,7 +68,7 @@ fun StackedBarChart(
     label: String = stringResource(R.string.chart_a11y_default_label),
     emptyHint: String = stringResource(R.string.chart_empty_hint),
     line: ChartSeries? = null,
-    bands: List<ChartBand> = emptyList(),
+    bands: List<ChartBand> = emptyList()
 ) {
     val colors = chartColors
     val totals = remember(points) { stackTotals(points) }
@@ -85,13 +84,13 @@ fun StackedBarChart(
             formatChartValue(it.min),
             formatChartValue(it.max),
             dominant ?: stringResource(R.string.chart_a11y_no_dominant),
-            trendSpoken(direction),
+            trendSpoken(direction)
         )
     }
     val lineColor = line?.color ?: colors.line
     val spoken = listOfNotNull(
         barsSpoken,
-        line?.let { seriesSpoken(it.label, summarize(it.points), computeTrendLine(it.points)?.direction) },
+        line?.let { seriesSpoken(it.label, summarize(it.points), computeTrendLine(it.points)?.direction) }
     ).joinToString(". ")
     // Raden under diagrammet (TRD-9) gäller en sak i taget: staplarna när de räcker för ett diagram, annars linjen –
     // och med en linje står det vilken ("Händelser: Lägst 4 · Högst 7"). Linjen läses alltid upp som egen serie.
@@ -110,14 +109,14 @@ fun StackedBarChart(
                     listOfNotNull(line?.let { LegendItem(it.label, lineColor) }) +
                     bands.map { it.label }.distinct().map { LegendItem(it, colors.band.bandSwatch(), LegendMark.Square) } +
                     // Trenden står alltid med i det rena stapeldiagrammet; med en linje bara när den ritas.
-                    listOfNotNull(LegendItem(stringResource(R.string.chart_legend_trend), colors.trend, LegendMark.Dashed).takeIf { line == null || direction != null }),
+                    listOfNotNull(LegendItem(stringResource(R.string.chart_legend_trend), colors.trend, LegendMark.Dashed).takeIf { line == null || direction != null })
             )
             when {
                 line == null -> summary?.let { MinMaxCaption(it.min, it.max, average = it.average, trend = direction) }
                 barsEnough -> summary?.let { MinMaxCaption(it.min, it.max, average = it.average, trend = direction, scope = segments.joinToString(CHART_SEPARATOR) { s -> s.label }) }
                 lineSummary != null -> MinMaxCaption(lineSummary.min, lineSummary.max, average = lineSummary.average, trend = lineDirection, scope = line.label)
             }
-        },
+        }
     ) {
         val axis = remember(points, lineValues) { stackedAxisFor(points, lineValues) }
         val trend = remember(totals) { trendSegment(totals) }
@@ -129,7 +128,7 @@ fun StackedBarChart(
             trend,
             resetKey = Triple(points, lineValues, xLabels),
             description = spoken,
-            barStyle = BarStyle.Stack,
+            barStyle = BarStyle.Stack
         ) { viewport, barWidth ->
             // Fälten underst, från första till sista dagens plats – klippta i ritytan som allt annat.
             bands.forEach { band ->
@@ -148,7 +147,7 @@ fun StackedBarChart(
                     drawRect(
                         color = segments.getOrNull(segment)?.color ?: fallback,
                         topLeft = Offset(x - barWidth / 2f, top),
-                        size = Size(barWidth, (bottom - top).coerceAtLeast(0f)),
+                        size = Size(barWidth, (bottom - top).coerceAtLeast(0f))
                     )
                 }
             }

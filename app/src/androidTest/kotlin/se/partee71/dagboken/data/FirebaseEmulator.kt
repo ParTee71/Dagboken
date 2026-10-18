@@ -1,7 +1,5 @@
 package se.partee71.dagboken.data
 
-import kotlin.time.Duration
-import se.partee71.dagboken.data.common.SERVER_WAIT
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.FirebaseApp
@@ -14,6 +12,7 @@ import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +25,7 @@ import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.common.HistoryCoverage
+import se.partee71.dagboken.data.common.SERVER_WAIT
 import se.partee71.dagboken.data.common.testCoverage
 import se.partee71.dagboken.data.firestore.FirestoreCollection
 import se.partee71.dagboken.data.firestore.FirestoreInstance
@@ -143,9 +143,8 @@ class FirebaseEmulator : ExternalResource() {
             }
         }
 
-        private suspend fun <T : Any> step(what: String, block: suspend () -> T): T =
-            withTimeoutOrNull(STEP_TIMEOUT) { block() }
-                ?: throw AssertionError("$what svarade inte inom $STEP_TIMEOUT – körs Firebase-emulatorerna (firestore, auth) med projektet $PROJECT?")
+        private suspend fun <T : Any> step(what: String, block: suspend () -> T): T = withTimeoutOrNull(STEP_TIMEOUT) { block() }
+            ?: throw AssertionError("$what svarade inte inom $STEP_TIMEOUT – körs Firebase-emulatorerna (firestore, auth) med projektet $PROJECT?")
 
         /**
          * Skriver `users/{uid}` med [version] förbi rules – som en nyare app eller verktygen gjort – via
@@ -190,7 +189,7 @@ class EmulatorUser(val uid: String, val firestore: FirestoreInstance) {
         clock: FixedClock = FixedClock(),
         sync: FirestoreSyncStatus = FirebaseEmulator.sync(),
         serverWait: Duration = SERVER_WAIT,
-        coverage: HistoryCoverage = testCoverage(clock = clock),
+        coverage: HistoryCoverage = testCoverage(clock = clock)
     ): EntityCollection<T> = FirestoreCollection(firestore, scope, sync, clock, codec, name, path, coverage, serverWait)
 
     fun versions() = FirestoreUserVersions(firestore)

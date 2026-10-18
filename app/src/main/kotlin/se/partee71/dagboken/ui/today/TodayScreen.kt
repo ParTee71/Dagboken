@@ -26,17 +26,17 @@ import se.partee71.dagboken.core.engine.Due
 import se.partee71.dagboken.core.engine.EnergyTrend
 import se.partee71.dagboken.core.engine.OccasionState
 import se.partee71.dagboken.core.engine.OccasionStatus
-import se.partee71.dagboken.core.engine.groupedByLogged
 import se.partee71.dagboken.core.engine.OngoingIllness
-import se.partee71.dagboken.core.engine.WeekSummary
-import se.partee71.dagboken.core.engine.latest
 import se.partee71.dagboken.core.engine.OpenDose
+import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.boostEnd
 import se.partee71.dagboken.core.engine.boostFor
 import se.partee71.dagboken.core.engine.doseFor
+import se.partee71.dagboken.core.engine.groupedByLogged
 import se.partee71.dagboken.core.engine.isPrescribed
 import se.partee71.dagboken.core.engine.isScheduled
 import se.partee71.dagboken.core.engine.isScheduledPrescription
+import se.partee71.dagboken.core.engine.latest
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Prescription
@@ -44,7 +44,6 @@ import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.DateFormat
-import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.doseText
@@ -52,6 +51,7 @@ import se.partee71.dagboken.ui.common.entryDeleteAction
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.periodText
+import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.common.toMessage
 import se.partee71.dagboken.ui.components.AccountAvatar
 import se.partee71.dagboken.ui.components.AppButton
@@ -71,7 +71,6 @@ import se.partee71.dagboken.ui.components.EntityDetailScreen
 import se.partee71.dagboken.ui.components.GroupLabel
 import se.partee71.dagboken.ui.components.InfoPill
 import se.partee71.dagboken.ui.components.ItemRow
-import se.partee71.dagboken.ui.components.inactive
 import se.partee71.dagboken.ui.components.MessageSnackbar
 import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.ProgressBar
@@ -79,6 +78,7 @@ import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.components.StatPill
 import se.partee71.dagboken.ui.components.UndoRequest
 import se.partee71.dagboken.ui.components.UndoSnackbar
+import se.partee71.dagboken.ui.components.inactive
 import se.partee71.dagboken.ui.health.HealthEvent
 import se.partee71.dagboken.ui.health.HealthTodayCard
 import se.partee71.dagboken.ui.health.HealthTodayUiState
@@ -102,7 +102,7 @@ fun TodayRoute(
     onLogLater: (prnId: String, date: LocalDate) -> Unit = { _, _ -> },
     onOpenIllness: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
     viewModel: TodayViewModel = hiltViewModel(),
-    healthViewModel: HealthTodayViewModel = hiltViewModel(),
+    healthViewModel: HealthTodayViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val health by healthViewModel.state.collectAsStateWithLifecycle()
@@ -123,7 +123,7 @@ fun TodayRoute(
         onLogLater = onLogLater,
         onOpenIllness = onOpenIllness,
         health = health,
-        onHealthEvent = healthViewModel::onEvent,
+        onHealthEvent = healthViewModel::onEvent
     ) {
         AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
     }
@@ -158,7 +158,7 @@ fun TodayScreen(
     onOpenIllness: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
     health: HealthTodayUiState? = null,
     onHealthEvent: (HealthEvent) -> Unit = {},
-    avatar: @Composable () -> Unit = {},
+    avatar: @Composable () -> Unit = {}
 ) {
     val snackbar = remember { SnackbarHostState() }
     UndoSnackbar(undo, snackbar, { onEvent(TodayEvent.Undo) }, {}, onRequestDismissed = { onEvent(TodayEvent.UndoDismissed(it.id)) })
@@ -180,7 +180,7 @@ fun TodayScreen(
         failure = failure,
         onErrorShown = { onEvent(TodayEvent.ErrorShown) },
         actions = { avatar() },
-        snackbar = snackbar,
+        snackbar = snackbar
     ) { TodayCards(it, onEvent, TodayLinks(onEditPrn, onOpenTrends, onScreening, onLogLater, onOpenIllness), health, onHealthEvent) }
 }
 
@@ -190,7 +190,7 @@ private class TodayLinks(
     val onOpenTrends: () -> Unit,
     val onScreening: (LogEvent) -> Unit,
     val onLogLater: (String, LocalDate) -> Unit,
-    val onOpenIllness: (String, LocalDate) -> Unit,
+    val onOpenIllness: (String, LocalDate) -> Unit
 )
 
 @Composable
@@ -203,7 +203,7 @@ private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, lin
         onWeekChange = { onEvent(TodayEvent.ShowWeek(it)) },
         today = content.today,
         datesWithEntries = content.datesWithEntries,
-        todayDone = content.todayComplete,
+        todayDone = content.todayComplete
     )
     if (content.progress.total > 0) ProgressBar(content.progress.done, content.progress.total, celebrate = content.isToday)
     content.dayDone?.let { done ->
@@ -212,7 +212,7 @@ private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, lin
             versusYesterday = done.comparison?.changeFromYesterday?.toDouble(),
             streakDays = done.streak,
             play = done.playConfetti,
-            onConfettiFinished = { onEvent(TodayEvent.ConfettiShown) },
+            onConfettiFinished = { onEvent(TodayEvent.ConfettiShown) }
         )
     }
     MedicinesCard(content, onEvent)
@@ -258,7 +258,7 @@ private fun MoodCard(content: TodayContent, onScreening: (LogEvent) -> Unit) {
         SectionHeader(
             stringResource(R.string.log_mood),
             count = stringResource(R.string.today_count_format, logged, states.size),
-            tone = if (content.isToday && logged == states.size) Tone.Positive else Tone.Primary,
+            tone = if (content.isToday && logged == states.size) Tone.Positive else Tone.Primary
         )
         val groups = states.groupedByLogged()
         val openLabel = if (content.isToday) R.string.occasion_group_remaining else R.string.occasion_group_not_logged
@@ -301,7 +301,7 @@ private fun IllnessCard(illness: OngoingIllness, onOpen: () -> Unit) {
             trailing = illness.day?.let { day -> { InfoPill(stringResource(R.string.today_illness_day_format, day), tone = Tone.Warning) } },
             accent = AppColors.tone(Tone.Warning).content,
             onClick = onOpen,
-            navigates = true,
+            navigates = true
         )
     }
 }
@@ -320,7 +320,7 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
         SectionHeader(
             stringResource(R.string.tab_medicines),
             count = if (doses.total > 0) stringResource(R.string.today_count_format, doses.done, doses.total) else null,
-            tone = if (content.isToday && doses.isComplete && !content.dosesMissing) Tone.Positive else Tone.Primary,
+            tone = if (content.isToday && doses.isComplete && !content.dosesMissing) Tone.Positive else Tone.Primary
         )
         val rows = list.shown + (if (content.showUpcoming) list.upcoming else emptyList()) +
             (if (content.showDone) list.done.map { OpenDose(it, null) } else emptyList())
@@ -336,12 +336,15 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
                     stringResource(if (offline) R.string.today_medicines_missing_offline else content.missingCause.toMessage()),
                     note = stringResource(if (offline) R.string.today_medicines_missing_offline_retry else R.string.today_medicines_missing_retry),
                     isError = true,
-                    compact = true,
+                    compact = true
                 )
             }
+
             list.isEmpty -> EmptyState(R.drawable.ic_pill, stringResource(R.string.today_medicines_none_title), stringResource(R.string.today_medicines_none), compact = true)
+
             list.shown.isEmpty() && list.upcoming.isEmpty() && !content.showDone ->
                 EmptyState(R.drawable.ic_check, stringResource(R.string.today_medicines_all_done_title), stringResource(R.string.today_medicines_all_done), compact = true)
+
             // Allt som återstår ligger mer än tre timmar fram och är dolt (MED-13): säg när nästa dos är – det tidigaste
             // klockslaget urvalet räknats med (`scheduledTime`; för en receptdos tidpunktens i Påminnelser, NOT-18).
             rows.isEmpty() && list.upcoming.isNotEmpty() -> list.upcoming.mapNotNull { it.time }.minOrNull()?.let { next ->
@@ -349,7 +352,7 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
                     R.drawable.ic_clock,
                     stringResource(R.string.today_next_dose_title),
                     stringResource(R.string.today_next_dose_format, DateFormat.time(next)),
-                    compact = true,
+                    compact = true
                 )
             }
         }
@@ -375,8 +378,11 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
                 if (day == null || day == content.today) stringResource(R.string.today_skip_message, title) else stringResource(R.string.today_skip_message_day, title, DateFormat.display(day))
             },
             stringResource(R.string.today_skip),
-            onConfirm = { close(); onEvent(TodayEvent.Skip(dose)) },
-            onDismiss = close,
+            onConfirm = {
+                close()
+                onEvent(TodayEvent.Skip(dose))
+            },
+            onDismiss = close
         )
     }
     deleting?.let { dose ->
@@ -387,7 +393,7 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) 
             dose.date,
             dose.takenAt?.toLocalDateTime(content.zone)?.time,
             // Samma beslut som `DoseRepository.remove`: en receptdos hoppas över (MED-15).
-            skips = dose.isPrescribed,
+            skips = dose.isPrescribed
         ) { onEvent(TodayEvent.Delete(dose)) }
         DeleteConfirmDialog(action, close)
     }
@@ -419,9 +425,11 @@ private fun DoseRow(item: OpenDose, content: TodayContent, onEvent: (TodayEvent)
         menu = when {
             // MED-3: en receptdos i schemat hoppas över; allt annat – vid behov, extrados, engångsdos – raderas.
             !dose.isScheduledPrescription -> listOf(AppMenuItem(delete, { onDelete(dose) }, R.drawable.ic_delete, destructive = true))
+
             dose.status == DoseStatus.PLANNED -> listOf(AppMenuItem(skip, { onSkip(dose) }, R.drawable.ic_close))
+
             else -> emptyList()
-        },
+        }
     )
 }
 
@@ -468,7 +476,7 @@ private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, l
                 R.drawable.ic_info,
                 { onEvent(TodayEvent.SelectDate(content.today)) },
                 tone = Tone.Neutral,
-                onClickLabel = stringResource(R.string.today_show_today),
+                onClickLabel = stringResource(R.string.today_show_today)
             )
         }
         ChipRow {
@@ -481,14 +489,14 @@ private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, l
                         modifier = pastDay,
                         icon = if (medicine.note.isNullOrBlank()) null else R.drawable.ic_note,
                         onLongClick = { menuFor = medicine.id },
-                        onLongClickLabel = stringResource(R.string.more_options),
+                        onLongClickLabel = stringResource(R.string.more_options)
                     )
                     val items = medicineMenu(
                         medicine,
                         onEvent,
                         onEdit = { links.onEditPrn(medicine.id) },
                         onLogLater = { links.onLogLater(medicine.id, content.date) },
-                        onNote = { noteOf = medicine },
+                        onNote = { noteOf = medicine }
                     ) { deleting = medicine }
                     AppMenuPopup(items, expanded = menuFor == medicine.id, onDismiss = { menuFor = null })
                 }
@@ -500,7 +508,7 @@ private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, l
                         selected = false,
                         onClick = { if (canLog) moreOpen = true },
                         modifier = pastDay,
-                        icon = R.drawable.ic_expand_more,
+                        icon = R.drawable.ic_expand_more
                     )
                     val recipes = stringResource(R.string.today_more_prescriptions)
                     val items = choices.others.map { AppMenuItem(medicineTitle(it.displayName, it.dose, it.unit), { onEvent(TodayEvent.LogAsNeeded(it)) }) } +
@@ -516,9 +524,12 @@ private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, l
             stringResource(R.string.delete_named_title, medicine.displayName),
             stringResource(R.string.prn_delete_message),
             stringResource(R.string.delete),
-            onConfirm = { close(); onEvent(TodayEvent.DeleteMedicine(medicine)) },
+            onConfirm = {
+                close()
+                onEvent(TodayEvent.DeleteMedicine(medicine))
+            },
             onDismiss = close,
-            destructive = true,
+            destructive = true
         )
     }
     noteOf?.let { medicine ->
@@ -535,20 +546,19 @@ private fun medicineMenu(
     onEdit: () -> Unit,
     onLogLater: () -> Unit,
     onNote: () -> Unit,
-    onDelete: () -> Unit,
-): List<AppMenuItem> =
-    listOfNotNull(
-        AppMenuItem(stringResource(R.string.edit), onEdit, R.drawable.ic_edit),
-        AppMenuItem(
-            stringResource(if (medicine.favorite) R.string.favorite_remove else R.string.favorite_add, medicine.displayName),
-            { onEvent(TodayEvent.ToggleFavorite(medicine)) },
-            // Samma ikon som stjärnan i Mediciner (FavoriteStar): fylld = favorit.
-            if (medicine.favorite) R.drawable.ic_star_filled else R.drawable.ic_star,
-        ),
-        AppMenuItem(stringResource(R.string.dose_log_later), onLogLater, R.drawable.ic_clock),
-        if (medicine.note.isNullOrBlank()) null else AppMenuItem(stringResource(R.string.note_show), onNote, R.drawable.ic_note),
-        AppMenuItem(stringResource(R.string.delete), onDelete, R.drawable.ic_delete, destructive = true),
-    )
+    onDelete: () -> Unit
+): List<AppMenuItem> = listOfNotNull(
+    AppMenuItem(stringResource(R.string.edit), onEdit, R.drawable.ic_edit),
+    AppMenuItem(
+        stringResource(if (medicine.favorite) R.string.favorite_remove else R.string.favorite_add, medicine.displayName),
+        { onEvent(TodayEvent.ToggleFavorite(medicine)) },
+        // Samma ikon som stjärnan i Mediciner (FavoriteStar): fylld = favorit.
+        if (medicine.favorite) R.drawable.ic_star_filled else R.drawable.ic_star
+    ),
+    AppMenuItem(stringResource(R.string.dose_log_later), onLogLater, R.drawable.ic_clock),
+    if (medicine.note.isNullOrBlank()) null else AppMenuItem(stringResource(R.string.note_show), onNote, R.drawable.ic_note),
+    AppMenuItem(stringResource(R.string.delete), onDelete, R.drawable.ic_delete, destructive = true)
+)
 
 private fun DayPart.greeting(): Int = when (this) {
     DayPart.MORNING -> R.string.greeting_morning

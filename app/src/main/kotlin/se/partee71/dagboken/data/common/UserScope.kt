@@ -29,8 +29,7 @@ interface UserScope {
 }
 
 /** Den kända versionen för den inloggade användaren, annars `null`. */
-fun UserScope.currentVersion(): Int? =
-    schemaVersion.value?.takeIf { it.uid == uid.value }?.version
+fun UserScope.currentVersion(): Int? = schemaVersion.value?.takeIf { it.uid == uid.value }?.version
 
 /**
  * Varför en skrivning inte får göras, eller `null` om den får. **Stängd som standard:** så länge
@@ -44,8 +43,10 @@ suspend fun UserScope.writeBlocker(): DataError? {
         combine(schemaVersion, unreadable) { version, denied ->
             when {
                 denied == id -> Verdict(DataError.PermissionDenied)
+
                 version?.uid == id ->
                     Verdict(DataError.UpdateRequired.takeIf { Schema.isNewerThanApp(version.version) })
+
                 else -> null
             }
         }.filterNotNull().first()

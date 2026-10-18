@@ -8,13 +8,13 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -90,7 +90,7 @@ internal fun ChoiceRow(@StringRes title: Int, @StringRes subtitle: Int, @Drawabl
         icon = icon,
         onClick = onClick.takeIf { enabled },
         navigates = true,
-        inactive = !enabled,
+        inactive = !enabled
     )
 }
 
@@ -107,37 +107,48 @@ fun ImportStageContent(
     onPickFile: () -> Unit,
     doneLabel: String,
     onDone: () -> Unit,
-    onStartEmpty: (() -> Unit)? = null,
+    onStartEmpty: (() -> Unit)? = null
 ) {
     when (stage) {
         ImportStage.Choose -> Unit
+
         is ImportStage.Reading -> Reading(stage.source)
+
         // Systemets samtyckesdialog ligger överst; under den fortsätter läsningen av Drive.
         is ImportStage.DriveConsent -> Reading(LegacySource.DRIVE)
+
         ImportStage.NoDriveBackup -> NoDriveBackup(onEvent, onPickFile, onStartEmpty)
+
         ImportStage.NotABackup -> {
             ProblemCard(stringResource(R.string.import_not_a_backup_title), listOf(stringResource(R.string.import_not_a_backup)))
             ChooseOtherOrCancel(onEvent, onPickFile)
         }
+
         is ImportStage.ReadFailed -> ReadFailed(stage, onEvent, onPickFile)
+
         is ImportStage.Review -> Review(stage, onEvent)
+
         is ImportStage.Stopped -> {
             StoppedCard(stringResource(R.string.import_stopped_title), stage.report)
             ChooseOtherOrCancel(onEvent, onPickFile)
         }
+
         is ImportStage.Writing -> {
             WritingCard(stringResource(R.string.import_writing_title), stage.before, stage.done)
             Actions { AppButton(doneLabel, {}, Modifier.fillMaxWidth(), enabled = false) }
         }
+
         is ImportStage.Done -> {
             DoneCard(stringResource(R.string.import_done_title), stage.before, stage.after)
             Note(stringResource(R.string.import_done_note), R.drawable.ic_check, Tone.Positive)
             Actions { AppButton(doneLabel, onDone, Modifier.fillMaxWidth()) }
         }
+
         is ImportStage.Mismatch -> {
             MismatchCard(stage.before, stage.accounted, stage.mismatched, footer = null)
             RetryOrCancel(onEvent)
         }
+
         is ImportStage.WriteFailed -> {
             WriteFailedCard(stringResource(R.string.import_failed_title), stringResource(stage.error.toMessage()), stage.batch, stage.code, footer = null)
             RetryOrCancel(onEvent)
@@ -223,7 +234,7 @@ private fun Review(review: ImportStage.Review, onEvent: (ImportEvent) -> Unit) {
             message = stringResource(R.string.import_confirm_body),
             confirmLabel = stringResource(R.string.import_confirm),
             onConfirm = { onEvent(ImportEvent.Confirm) },
-            onDismiss = { onEvent(ImportEvent.Dismiss) },
+            onDismiss = { onEvent(ImportEvent.Dismiss) }
         )
     }
 }

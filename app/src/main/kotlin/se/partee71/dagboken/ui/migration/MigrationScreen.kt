@@ -51,7 +51,9 @@ fun MigrationGateContent(state: MigrationUiState, onEvent: (MigrationEvent) -> U
     when (val stage = state.stage) {
         // Syns bara en kort stund vid start, som inloggningens laddning.
         MigrationStage.Checking -> AppLoading()
+
         is MigrationStage.Closed -> tabs(stage.openImport)
+
         else -> MigrationScreen(state, onEvent)
     }
 }
@@ -76,7 +78,7 @@ fun MigrationScreen(state: MigrationUiState, onEvent: (MigrationEvent) -> Unit, 
         title = stringResource(fallback?.let { importTitle(it.import) } ?: R.string.migration_title),
         subtitle = fallback?.let { importSubtitle(it.import) } ?: intro(state.stage)?.let { stringResource(it) },
         failure = state.failure,
-        onErrorShown = { onEvent(MigrationEvent.ErrorShown) },
+        onErrorShown = { onEvent(MigrationEvent.ErrorShown) }
     ) { stage ->
         when (stage) {
             MigrationStage.Reading -> Reading()
@@ -126,7 +128,7 @@ private fun Review(review: MigrationStage.Review, onEvent: (MigrationEvent) -> U
         R.drawable.ic_database,
         stringResource(R.string.migration_found_title),
         count = stringResource(R.string.migration_found_source),
-        countTone = Tone.Neutral,
+        countTone = Tone.Neutral
     ) {
         CountRows(review.counts)
     }
@@ -152,20 +154,24 @@ private fun CopyCard(copy: CopyStep, onSave: () -> Unit, stopped: Boolean = fals
             Muted(stringResource(if (stopped) R.string.migration_copy_missing_stopped else R.string.migration_copy_missing))
             AppButton(stringResource(R.string.migration_copy_save), onSave, Modifier.fillMaxWidth(), variant = ButtonVariant.Secondary)
         }
+
         CopyStep.Checking -> StatusCard(R.drawable.ic_file, title) {
             AppLoading()
             Muted(stringResource(R.string.migration_copy_checking))
         }
+
         is CopyStep.Saved -> StatusCard(R.drawable.ic_file, title, stringResource(R.string.migration_copy_verified), Tone.Positive) {
             copy.fileName?.let { Text(it, style = AppTypography.body, color = MaterialTheme.colorScheme.onSurface) }
             val posts = pluralStringResource(R.plurals.migration_posts, copy.total, countText(copy.total))
             val saved = "${DateFormat.weekdayDay(copy.savedAt.date)} ${DateFormat.time(copy.savedAt.time)}"
             Muted(stringResource(R.string.migration_copy_saved_format, saved, posts))
         }
+
         is CopyStep.Stale -> StatusCard(R.drawable.ic_warning, stringResource(R.string.migration_copy_stale_title), required, Tone.Sun) {
             Muted(stringResource(R.string.migration_copy_stale, DateFormat.weekdayDay(copy.savedOn)))
             AppButton(stringResource(R.string.migration_copy_save_new), onSave, Modifier.fillMaxWidth(), variant = ButtonVariant.Secondary)
         }
+
         is CopyStep.Failed -> StatusCard(R.drawable.ic_warning, stringResource(R.string.migration_copy_failed_title), required, Tone.Sun) {
             Muted(stringResource(copy.reason.message()))
             AppButton(stringResource(R.string.migration_copy_retry), onSave, Modifier.fillMaxWidth(), variant = ButtonVariant.Secondary)
@@ -200,7 +206,7 @@ private fun Account(review: MigrationStage.Review, onEvent: (MigrationEvent) -> 
             CheckRow(
                 email?.let { stringResource(R.string.migration_account_confirm, it) } ?: stringResource(R.string.migration_account_confirm_unknown),
                 checked = review.accountConfirmed,
-                onCheckedChange = { onEvent(MigrationEvent.ConfirmAccount(it)) },
+                onCheckedChange = { onEvent(MigrationEvent.ConfirmAccount(it)) }
             )
         }
     }
@@ -223,7 +229,7 @@ private fun Written(written: MigrationStage.Written, onEvent: (MigrationEvent) -
             stringResource(R.string.migration_confirm),
             { onEvent(MigrationEvent.Confirm) },
             Modifier.fillMaxWidth(),
-            loading = written.confirming,
+            loading = written.confirming
         )
         Abort(onEvent)
     }
@@ -243,7 +249,7 @@ private fun WriteFailed(failed: MigrationStage.WriteFailed, onEvent: (MigrationE
         stringResource(failed.error.toMessage()),
         failed.batch,
         failed.code,
-        stringResource(R.string.migration_nothing_confirmed),
+        stringResource(R.string.migration_nothing_confirmed)
     )
     RemindersPaused()
     if (failed.started) RetryOrAbort(onEvent) else RetryOrNotNow(onEvent)
@@ -330,7 +336,7 @@ private fun Abort(onEvent: (MigrationEvent) -> Unit) {
                 onEvent(MigrationEvent.Abort)
             },
             onDismiss = { confirm = false },
-            destructive = true,
+            destructive = true
         )
     }
 }
@@ -364,9 +370,8 @@ private fun Fallback(@StringRes note: Int, onEvent: (MigrationEvent) -> Unit, re
             stringResource(if (retry) R.string.migration_import_instead else R.string.migration_import),
             { onEvent(MigrationEvent.ImportBackup) },
             Modifier.fillMaxWidth(),
-            variant = if (retry) ButtonVariant.Secondary else ButtonVariant.Primary,
+            variant = if (retry) ButtonVariant.Secondary else ButtonVariant.Primary
         )
         AppButton(stringResource(R.string.migration_start_empty), { onEvent(MigrationEvent.NotNow) }, Modifier.fillMaxWidth(), variant = ButtonVariant.Text)
     }
 }
-

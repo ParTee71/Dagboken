@@ -37,7 +37,7 @@ fun OccasionRow(
     modifier: Modifier = Modifier,
     time: String? = null,
     values: List<OccasionValue> = emptyList(),
-    onClick: (() -> Unit)? = null,
+    onClick: (() -> Unit)? = null
 ) {
     val logged = status == OccasionStatus.LOGGED
     val pending: Pair<Int, Tone>? = when (status) {
@@ -61,6 +61,7 @@ fun OccasionRow(
         done = logged,
         below = when {
             pending != null -> ({ InfoPill(stringResource(pending.first), tone = pending.second) })
+
             // Värdena under namnet, som statusen på en ologgad rad – till höger fick namnet inte plats på en rad.
             logged && values.isNotEmpty() -> {
                 {
@@ -68,14 +69,15 @@ fun OccasionRow(
                         values.forEach { chip ->
                             InfoPill(
                                 stringResource(R.string.occasion_value_format, chip.label, chip.value),
-                                tone = scaleLevel(chip.value, higherIsBetter = chip.higherIsBetter).tone,
+                                tone = scaleLevel(chip.value, higherIsBetter = chip.higherIsBetter).tone
                             )
                         }
                     }
                 }
             }
+
             else -> null
         },
-        belowAlignsWithTitle = true,
+        belowAlignsWithTitle = true
     )
 }

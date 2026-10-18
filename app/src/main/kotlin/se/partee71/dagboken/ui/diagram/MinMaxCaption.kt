@@ -37,7 +37,7 @@ fun MinMaxCaption(
     trend: TrendDirection? = null,
     today: Float? = null,
     showToday: Boolean = today != null,
-    scope: String? = null,
+    scope: String? = null
 ) {
     val resources = LocalResources.current
     val missing = stringResource(R.string.value_missing)
@@ -52,7 +52,7 @@ fun MinMaxCaption(
         modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.Start),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        itemVerticalAlignment = Alignment.CenterVertically,
+        itemVerticalAlignment = Alignment.CenterVertically
     ) {
         Text(text, style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
         trend?.let { InfoPill(stringResource(it.label()), tone = Tone.Neutral, icon = R.drawable.ic_trend) }

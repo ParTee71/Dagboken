@@ -36,7 +36,7 @@ fun IntervalBarChart(
     label: String = stringResource(R.string.chart_a11y_default_label),
     emptyHint: String = stringResource(R.string.chart_empty_hint),
     scale: IntRange = 0..10,
-    higherIsBetter: Boolean = true,
+    higherIsBetter: Boolean = true
 ) {
     val summary = summarizeIntervals(points)
     val direction = computeTrendLine(points.map { it?.value })?.direction
@@ -47,7 +47,7 @@ fun IntervalBarChart(
             pluralStringResource(R.plurals.chart_a11y_days, it.count, it.count),
             formatChartValue(it.min),
             formatChartValue(it.max),
-            trendSpoken(direction),
+            trendSpoken(direction)
         )
     }.orEmpty()
     // Dagsvärdets färg ur energiskalan – samma nivågränser som reglagen och chipsen (DSN-1).
@@ -61,7 +61,7 @@ fun IntervalBarChart(
         modifier = modifier,
         footer = {
             if (summary != null) MinMaxCaption(summary.min, summary.max, average = summary.average, trend = direction)
-        },
+        }
     ) {
         val axis = remember(points) { intervalAxisFor(points) }
         val trend = remember(points) { trendSegment(points.map { it?.value }) }
@@ -75,7 +75,7 @@ fun IntervalBarChart(
                     start = Offset(x, viewport.yOf(point.max)),
                     end = Offset(x, viewport.yOf(point.min)),
                     strokeWidth = barWidth,
-                    cap = StrokeCap.Round,
+                    cap = StrokeCap.Round
                 )
             }
             // Dagsvärdena som mjuk kurva, bruten vid en lucka (TRD-8), med dagsvärdets punkt överst.

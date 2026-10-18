@@ -53,7 +53,7 @@ class RestingHeartRateEstimateTest {
             bpm(Instant.parse("2026-07-21T23:00:00Z"), 44L),
             bpm(Instant.parse("2026-07-22T02:00:00Z"), 45L),
             bpm(Instant.parse("2026-07-22T12:00:00Z"), 60L),
-            bpm(Instant.parse("2026-07-22T13:00:00Z"), 70L),
+            bpm(Instant.parse("2026-07-22T13:00:00Z"), 70L)
         )
         assertEquals(60L, estimateRestingHeartRate(samples, listOf(sleep)))
     }
@@ -74,7 +74,7 @@ class RestingHeartRateEstimateTest {
         val windows = listOf(
             TimeWindow(Instant.parse("2026-07-22T01:00:00Z"), Instant.parse("2026-07-22T03:00:00Z")),
             TimeWindow(night, Instant.parse("2026-07-22T02:00:00Z")),
-            TimeWindow(Instant.parse("2026-07-22T10:00:00Z"), Instant.parse("2026-07-22T10:30:00Z")),
+            TimeWindow(Instant.parse("2026-07-22T10:00:00Z"), Instant.parse("2026-07-22T10:30:00Z"))
         )
         val samples = (0 until 24 * 60 step 7).map { bpm(night + it.minutes, 40L + it % 50) }
         val naive = samples.filterNot { s -> windows.any { s.time in it } }.map { it.bpm }.sorted()

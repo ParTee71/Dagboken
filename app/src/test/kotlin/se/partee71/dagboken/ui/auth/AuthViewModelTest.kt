@@ -1,12 +1,12 @@
 package se.partee71.dagboken.ui.auth
 
 import android.content.Context
+import kotlin.test.assertEquals
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
-import kotlin.test.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,8 +30,7 @@ class AuthViewModelTest {
 
     private val context: Context = RuntimeEnvironment.getApplication()
 
-    private fun TestScope.viewModel(fixture: UserFixture = UserFixture(backgroundScope)) =
-        fixture to AuthViewModel(fixture.auth, fixture.session, fixture.ensureUser, fixture.signOut)
+    private fun TestScope.viewModel(fixture: UserFixture = UserFixture(backgroundScope)) = fixture to AuthViewModel(fixture.auth, fixture.session, fixture.ensureUser, fixture.signOut)
 
     private suspend fun AuthViewModel.awaitGate(gate: AuthGate) = state.first { it.gate == gate && !it.busy }
 

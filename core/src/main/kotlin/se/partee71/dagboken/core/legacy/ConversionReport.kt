@@ -37,7 +37,7 @@ data class ConversionReport(
     /** Dokument per samling i `CollectionNames.ALL`-ordning (bara de med dokument). */
     val counts: Map<String, Int>,
     val warnings: List<Warning>,
-    val problems: List<Problem>,
+    val problems: List<Problem>
 ) {
     val stopped: Boolean get() = problems.isNotEmpty()
 
@@ -70,7 +70,7 @@ data class ConvertedData(
     val events: List<Event>,
     val episodes: List<IllnessEpisode>,
     /** Incheckningar per episod-id. */
-    val checkins: Map<String, List<Checkin>>,
+    val checkins: Map<String, List<Checkin>>
 )
 
 /** Utfallet: antingen alla dokument eller ett stopp – aldrig en del. */
@@ -87,7 +87,7 @@ sealed interface ConversionResult {
     data class Converted(
         val data: ConvertedData,
         val documents: List<ExportFormat.Document>,
-        override val report: ConversionReport,
+        override val report: ConversionReport
     ) : ConversionResult {
         /** Filen i `tools/db export`-format med dagens `schemaVersion`. */
         fun exportJson(exportedAt: Instant): String = ExportFormat.encode(exportedAt, Schema.CURRENT_VERSION, documents)

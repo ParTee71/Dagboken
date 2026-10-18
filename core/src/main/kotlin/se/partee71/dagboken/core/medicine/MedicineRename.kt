@@ -37,7 +37,7 @@ object MedicineRename {
     /** Kartans kolumner, i ordning (rubrikraden). */
     val HEADER: List<String> = listOf(
         "uid", "collection", "id", "oldName", "newName", "strength", "form", "oldDose", "oldUnit", "newDose", "newUnit", "doses",
-        "oldStrength", "oldForm", "oldBoosts",
+        "oldStrength", "oldForm", "oldBoosts"
     )
 
     /**
@@ -61,7 +61,7 @@ object MedicineRename {
         val doses: Int = 0,
         val oldStrength: String = "",
         val oldForm: String = "",
-        val oldBoosts: String = "",
+        val oldBoosts: String = ""
     ) {
         val path: String get() = CollectionNames.document(uid, collection, id)
     }
@@ -81,7 +81,7 @@ object MedicineRename {
         /** Recept vars dos och enhet lämnats orörda: dosen eller en doshöjning går inte att räkna om exakt. */
         val doseKept: Int,
         /** Doser utan koppling vars namn flera mediciner har men inte får samma nya namn och styrka – lämnade orörda. */
-        val ambiguousDoses: Int,
+        val ambiguousDoses: Int
     )
 
     private val MEDICINES = setOf(CollectionNames.PRESCRIPTIONS, CollectionNames.PRN_MEDICINES)
@@ -106,7 +106,7 @@ object MedicineRename {
             val unit = doc.data.string("unit")
             val base = Row(
                 userOf(doc.path), collectionOf(doc.path), idOf(doc.path), name, oldDose = dose, oldUnit = unit, doses = counts[doc.path] ?: 0,
-                oldStrength = doc.data.string(STRENGTH), oldForm = doc.data.string(FORM), oldBoosts = fingerprint(doc.data["boosts"]),
+                oldStrength = doc.data.string(STRENGTH), oldForm = doc.data.string(FORM), oldBoosts = fingerprint(doc.data["boosts"])
             )
             val entry = bestMatch(catalog, name, dose, unit) ?: return@map base
             val (newDose, newUnit) = perUnit(dose, unit, entry.strength)?.let { it to entry.form.defaultUnit } ?: (dose to unit)
@@ -155,7 +155,7 @@ object MedicineRename {
         for (row in rows) {
             val cells = listOf(
                 row.uid, row.collection, row.id, row.oldName, row.newName, row.strength, row.form,
-                row.oldDose, row.oldUnit, row.newDose, row.newUnit, row.doses.toString(), row.oldStrength, row.oldForm, row.oldBoosts,
+                row.oldDose, row.oldUnit, row.newDose, row.newUnit, row.doses.toString(), row.oldStrength, row.oldForm, row.oldBoosts
             )
             appendLine(cells.joinToString("\t") { it.replace(CONTROL, " ") })
         }
@@ -179,7 +179,7 @@ object MedicineRename {
             val doses = requireNotNull(cols[11].toIntOrNull()) { "$at: antalet doser är inte ett tal" }
             Row(
                 cols[0], cols[1], cols[2], cols[3], cols[4].trim(), cols[5].trim(), cols[6], cols[7], cols[8], cols[9].trim(), cols[10].trim(), doses,
-                cols[12], cols[13], cols[14],
+                cols[12], cols[13], cols[14]
             )
                 .also { require(seen.add(it.path)) { "$at: medicinen finns redan på en tidigare rad" } }
         }
@@ -239,7 +239,7 @@ object MedicineRename {
             skipped = skipped,
             stale = stale,
             doseKept = doseKept,
-            ambiguousDoses = doseChanges.ambiguous,
+            ambiguousDoses = doseChanges.ambiguous
         )
     }
 
@@ -247,13 +247,11 @@ object MedicineRename {
      * Om fältet [key] får ett annat värde än det lagrade, jämfört som i exportfilen. Saknat är `null`, och en tom
      * styrka på ett dokument utan styrka (alla från 3.x) är ingen ändring.
      */
-    private fun differs(stored: Doc, key: String, value: Any?): Boolean =
-        !(stored[key] == null && value == "") && ExportFormat.toJson(stored[key]) != ExportFormat.toJson(value)
+    private fun differs(stored: Doc, key: String, value: Any?): Boolean = !(stored[key] == null && value == "") && ExportFormat.toJson(stored[key]) != ExportFormat.toJson(value)
 
     /** Om medicinen är som när förslaget gjordes: samma namn, styrka, form, dos, enhet och höjningar som radens gamla. */
-    private fun isCurrent(data: Doc, row: Row): Boolean =
-        data.string("name") == row.oldName && data.string(STRENGTH) == row.oldStrength && data.string(FORM) == row.oldForm &&
-            data.string("dose") == row.oldDose && data.string("unit") == row.oldUnit && fingerprint(data["boosts"]) == row.oldBoosts
+    private fun isCurrent(data: Doc, row: Row): Boolean = data.string("name") == row.oldName && data.string(STRENGTH) == row.oldStrength && data.string(FORM) == row.oldForm &&
+        data.string("dose") == row.oldDose && data.string("unit") == row.oldUnit && fingerprint(data["boosts"]) == row.oldBoosts
 
     /**
      * Fingeravtrycket av doshöjningarna i kartan: de första tecknen av SHA-256 över den kanoniska JSON-formen (sorterade
@@ -308,7 +306,7 @@ object MedicineRename {
     private fun renamedDoses(
         documents: List<ExportFormat.Document>,
         medicines: Collection<ExportFormat.Document>,
-        targets: Map<String, Target>,
+        targets: Map<String, Target>
     ): DoseChanges {
         val changes = LinkedHashMap<String, Doc>()
         var ambiguous = 0
@@ -348,11 +346,10 @@ object MedicineRename {
         val isUnlinked: Boolean get() = prescriptionRef == null && prnId == null
     }
 
-    private fun storedDoses(documents: List<ExportFormat.Document>): List<StoredDose> =
-        documents.filter { isDirectChild(it.path) && collectionOf(it.path) == CollectionNames.DOSES }.map { doc ->
-            val dose = DoseCodec.decode(idOf(doc.path), doc.data)
-            StoredDose(doc.path, dose.name, dose.prescriptionRef, dose.prnId)
-        }
+    private fun storedDoses(documents: List<ExportFormat.Document>): List<StoredDose> = documents.filter { isDirectChild(it.path) && collectionOf(it.path) == CollectionNames.DOSES }.map { doc ->
+        val dose = DoseCodec.decode(idOf(doc.path), doc.data)
+        StoredDose(doc.path, dose.name, dose.prescriptionRef, dose.prnId)
+    }
 
     /** Medicinerna uppslagna på sökväg och på (användare, namn) – en dos hittar sina på en gång, aldrig genom att gå igenom alla. */
     private class MedicineIndex(medicines: Collection<ExportFormat.Document>) {
@@ -362,7 +359,7 @@ object MedicineRename {
         /** Receptet (via `prescriptionId` eller receptdosens id) och vid behov-medicinen (`prnId`) dosen är kopplad till. */
         fun linked(dose: StoredDose): List<ExportFormat.Document> = listOfNotNull(
             dose.prescriptionRef?.let { byPath[CollectionNames.document(dose.user, CollectionNames.PRESCRIPTIONS, it)] },
-            dose.prnId?.let { byPath[CollectionNames.document(dose.user, CollectionNames.PRN_MEDICINES, it)] },
+            dose.prnId?.let { byPath[CollectionNames.document(dose.user, CollectionNames.PRN_MEDICINES, it)] }
         )
 
         /** Användarens mediciner med samma namn som en dos utan koppling; tom för en kopplad dos. */

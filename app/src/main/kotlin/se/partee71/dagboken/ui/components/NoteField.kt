@@ -22,7 +22,7 @@ fun NoteField(
     onNoteChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     initiallyExpanded: Boolean = false,
-    error: String? = null,
+    error: String? = null
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
     val label = stringResource(R.string.note)
@@ -31,7 +31,7 @@ fun NoteField(
             title = if (note.isBlank()) stringResource(R.string.note_placeholder) else label,
             expanded = expanded,
             onToggle = { expanded = !expanded },
-            summary = note,
+            summary = note
         ) {
             AppTextField(note, onNoteChange, label, error = error, singleLine = false)
         }

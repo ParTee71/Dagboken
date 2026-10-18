@@ -36,7 +36,7 @@ class MedicineSuggestions(
     enabled: Boolean,
     name: Flow<String>,
     scope: CoroutineScope,
-    computation: CoroutineDispatcher,
+    computation: CoroutineDispatcher
 ) {
     private val picked = MutableStateFlow<String?>(null)
 
@@ -71,7 +71,7 @@ fun MedicineFields(
     onName: (String) -> Unit,
     onPick: (MedicineEntry) -> Unit,
     onStrength: (String) -> Unit,
-    onForm: (MedicineForm?) -> Unit,
+    onForm: (MedicineForm?) -> Unit
 ) {
     val nameLabel = stringResource(R.string.option_name)
     if (suggest) {
@@ -82,7 +82,7 @@ fun MedicineFields(
             suggestions = matches.map { Suggestion(it.entry.title, it.entry.formText, it.start until it.start + it.length) },
             onPick = { onPick(matches[it].entry) },
             footer = stringResource(R.string.medicine_lookup_source),
-            error = nameError,
+            error = nameError
         )
     } else {
         AppTextField(name, onName, nameLabel, error = nameError)
@@ -94,7 +94,7 @@ fun MedicineFields(
             form,
             onForm,
             label = { f -> f?.let { stringResource(it.label()) }.orEmpty() },
-            onClear = { onForm(null) },
+            onClear = { onForm(null) }
         )
     }
 }

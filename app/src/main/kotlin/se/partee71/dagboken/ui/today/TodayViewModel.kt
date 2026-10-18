@@ -49,18 +49,18 @@ import se.partee71.dagboken.core.engine.PrnCheck
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.asNeededChoices
 import se.partee71.dagboken.core.engine.checkOffTime
-import se.partee71.dagboken.core.engine.isScheduled
-import se.partee71.dagboken.core.engine.isScheduledPrescription
+import se.partee71.dagboken.core.engine.dailyEnergyAverages
 import se.partee71.dagboken.core.engine.datesWithEntries
 import se.partee71.dagboken.core.engine.dayComparison
 import se.partee71.dagboken.core.engine.dayPartAt
 import se.partee71.dagboken.core.engine.dayProgress
-import se.partee71.dagboken.core.engine.dailyEnergyAverages
 import se.partee71.dagboken.core.engine.dayStreak
 import se.partee71.dagboken.core.engine.daysEnding
 import se.partee71.dagboken.core.engine.doseChecklist
 import se.partee71.dagboken.core.engine.enabledOccasions
 import se.partee71.dagboken.core.engine.ensureDoses
+import se.partee71.dagboken.core.engine.isScheduled
+import se.partee71.dagboken.core.engine.isScheduledPrescription
 import se.partee71.dagboken.core.engine.occasionStates
 import se.partee71.dagboken.core.engine.ongoingEpisode
 import se.partee71.dagboken.core.engine.ongoingIllness
@@ -193,7 +193,7 @@ data class TodayContent(
      * Varför dagens doser som recepten ger saknas efter ett misslyckat `ensureDay` – [DataError.Offline] utan nät (försöks
      * igen medan dagen visas), annars t.ex. slut på molnets kvot – eller `null` när inget saknas (HEM-10, MED-4).
      */
-    val missingCause: DataError? = null,
+    val missingCause: DataError? = null
 ) {
     val isToday: Boolean get() = date == today
 
@@ -221,7 +221,7 @@ class TodayViewModel @Inject constructor(
     private val illnesses: IllnessRepository,
     private val selectedDay: SelectedDay,
     private val clock: Clock,
-    private val zone: Provider<TimeZone>,
+    private val zone: Provider<TimeZone>
 ) : ViewModel() {
     init {
         // En ny Idag (ny inloggning, ny aktivitet i samma process) börjar på idag (HEM-14).
@@ -270,7 +270,7 @@ class TodayViewModel @Inject constructor(
         onResult = { (date, _), failure ->
             failure?.let { _failure.value = it }
             failedDays.update { if (failure != null) it + (date to failure.error) else it - date }
-        },
+        }
     ) { (date, today) -> prescriptions.ensureDay(date, today) }
 
     private data class Span(val date: LocalDate, val today: LocalDate, val week: LocalDate) {
@@ -307,7 +307,7 @@ class TodayViewModel @Inject constructor(
     private data class Library(
         val prescriptions: List<Prescription>,
         val medicines: List<PrnMedicine>,
-        val settings: Settings,
+        val settings: Settings
     )
 
     /**
@@ -379,7 +379,7 @@ class TodayViewModel @Inject constructor(
         val weekEntries: Entries?,
         val energyDays: ImmutableList<LocalDate>,
         val energy: ImmutableList<Float?>,
-        val missingCause: DataError?,
+        val missingCause: DataError?
     ) {
         fun at(moment: Moment, illness: Pair<IllnessEpisode, List<Checkin>>?): TodayContent = TodayContent(
             today = today,
@@ -402,7 +402,7 @@ class TodayViewModel @Inject constructor(
             energyDays = energyDays,
             energy = energy,
             illness = illness?.let { (episode, checkins) -> ongoingIllness(episode, checkins, today) },
-            missingCause = missingCause,
+            missingCause = missingCause
         )
     }
 
@@ -421,7 +421,7 @@ class TodayViewModel @Inject constructor(
             DayDone(
                 comparison = dayComparison(today, entries.screenings),
                 streak = dayStreak(today, entries.doses, entries.screenings, occasions),
-                playConfetti = toggles.celebrated != today,
+                playConfetti = toggles.celebrated != today
             )
         } else {
             null
@@ -446,7 +446,7 @@ class TodayViewModel @Inject constructor(
             weekEntries = if (date == today) entries.since(today.minus(WEEK_SUMMARY_DAYS - 1, DateTimeUnit.DAY)) else null,
             energyDays = energyDays.toImmutableList(),
             energy = dailyEnergyAverages(entries.screenings, energyDays).toImmutableList(),
-            missingCause = missingCause,
+            missingCause = missingCause
         )
     }
 
@@ -459,30 +459,48 @@ class TodayViewModel @Inject constructor(
     fun onEvent(event: TodayEvent) {
         when (event) {
             is TodayEvent.SelectDate -> selectDate(event.date)
+
             is TodayEvent.ShowWeek -> week.value = event.monday
+
             // En loggad vid behov- eller extrados bockas inte av – den raderas i radens meny ([TodayEvent.Delete]).
             is TodayEvent.SetTaken -> if (event.dose.isScheduled) setStatus(event.dose, if (event.taken) DoseStatus.TAKEN else DoseStatus.PLANNED)
+
             is TodayEvent.Skip -> setStatus(event.dose, DoseStatus.SKIPPED)
+
             is TodayEvent.Delete -> if (!event.dose.isScheduledPrescription) {
                 if (undoFor == event.dose.id) clearUndo()
                 write { doses.remove(event.dose) }
             }
+
             TodayEvent.Undo -> undo()
+
             is TodayEvent.UndoDismissed -> if (_undo.value?.id == event.id) clearUndo()
+
             TodayEvent.ToggleDone -> showDone.value = !showDone.value
+
             TodayEvent.ToggleUpcoming -> showUpcoming.value = !showUpcoming.value
+
             is TodayEvent.LogAsNeeded -> if (viewingToday) logAsNeeded(event.medicine, force = false)
+
             TodayEvent.ConfirmCooldown -> _cooldown.value?.let {
                 _cooldown.value = null
                 if (viewingToday) logAsNeeded(it.medicine, force = true)
             }
+
             TodayEvent.DismissCooldown -> _cooldown.value = null
+
             is TodayEvent.LogExtra -> if (viewingToday) logExtra(event.prescription)
+
             is TodayEvent.ToggleFavorite -> write { medicines.setFavorite(event.medicine, !event.medicine.favorite) }
+
             is TodayEvent.DeleteMedicine -> write { medicines.delete(event.medicine.id) }
+
             TodayEvent.ConfettiShown -> celebrated.value = currentContent?.today
+
             TodayEvent.ErrorShown -> _failure.value = null
+
             TodayEvent.NoticeShown -> _notice.value = null
+
             TodayEvent.Retry -> loader.retry()
         }
     }
@@ -548,7 +566,10 @@ class TodayViewModel @Inject constructor(
     private fun logAsNeeded(medicine: PrnMedicine, force: Boolean) {
         viewModelScope.launch {
             val result = doses.logAsNeeded(medicine, clock.now(), force)
-            result.failureOrNull()?.let { _failure.value = it; return@launch }
+            result.failureOrNull()?.let {
+                _failure.value = it
+                return@launch
+            }
             val title = medicineTitle(medicine.displayName, medicine.dose, medicine.unit)
             val log = result.getOrThrow()
             when (val check = log.check) {
@@ -563,7 +584,10 @@ class TodayViewModel @Inject constructor(
     private fun logExtra(prescription: Prescription) {
         viewModelScope.launch {
             val result = doses.logExtraDose(prescription, clock.now())
-            result.failureOrNull()?.let { _failure.value = it; return@launch }
+            result.failureOrNull()?.let {
+                _failure.value = it
+                return@launch
+            }
             val dose = result.getOrThrow()
             offerUndo(dose, medicineTitle(dose.displayName, dose.dose, dose.unit), R.string.today_logged_format) { doses.remove(dose) }
         }

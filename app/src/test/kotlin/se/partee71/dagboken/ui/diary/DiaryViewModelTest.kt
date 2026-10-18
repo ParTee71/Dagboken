@@ -4,14 +4,14 @@ import app.cash.turbine.test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -109,7 +109,7 @@ class DiaryViewModelTest {
     private fun viewModel(
         screenings: ScreeningRepository = DefaultScreeningRepository(factory, clock),
         activities: ActivityRepository = countingActivities,
-        events: EventRepository = DefaultEventRepository(factory, clock),
+        events: EventRepository = DefaultEventRepository(factory, clock)
     ) = DiaryViewModel(screenings, activities, doses, events, illnesses, DefaultOptionsRepository(factory), clock) { zone }
 
     private fun TestScope.started(vm: DiaryViewModel): DiaryViewModel {
@@ -134,7 +134,7 @@ class DiaryViewModelTest {
             while (rows == null) rows = (awaitItem() as? ListUiState.Content)?.items
             assertEquals(
                 listOf("episode-end:flu", "screening:s1", "dose:taken", "activity:a1", "checkin:flu/c1", "event:e1", "episode-start:flu"),
-                rows.map { it.key },
+                rows.map { it.key }
             )
             assertEquals(listOf(DayLabel.TODAY, DayLabel.YESTERDAY, DayLabel.OTHER), rows.map { it.label }.distinct())
             val names = rows.filterIsInstance<DiaryRow.Entry>().associate { it.key to it.optionName }
@@ -340,8 +340,7 @@ class DiaryViewModelTest {
         var fail = true
         val real = DefaultScreeningRepository(factory, clock)
         val flaky = object : ScreeningRepository by real {
-            override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Screening>> =
-                if (fail) flow { throw DataError.Offline } else real.observeDays(from, to, live)
+            override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Screening>> = if (fail) flow { throw DataError.Offline } else real.observeDays(from, to, live)
         }
         val vm = started(viewModel(screenings = flaky))
         assertEquals(ListUiState.Error(DataError.Offline), vm.state.value)

@@ -33,29 +33,29 @@ import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.encodeDate
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.EntityCollection
-import se.partee71.dagboken.data.common.HistoryCoverage
-import se.partee71.dagboken.data.common.historyFlow
-import se.partee71.dagboken.data.common.UserScope
-import se.partee71.dagboken.data.common.currentVersion
-import se.partee71.dagboken.data.common.FieldPath
-import se.partee71.dagboken.data.common.PendingCommits
-import se.partee71.dagboken.data.common.Stored
-import se.partee71.dagboken.data.common.MoveOutcome
-import se.partee71.dagboken.data.common.mayCreate
 import se.partee71.dagboken.data.common.FieldMerge
-import se.partee71.dagboken.data.common.moveOutcome
-import se.partee71.dagboken.data.common.movedDocument
-import se.partee71.dagboken.data.common.satisfies
-import se.partee71.dagboken.data.common.storedOf
+import se.partee71.dagboken.data.common.FieldPath
+import se.partee71.dagboken.data.common.HistoryCoverage
+import se.partee71.dagboken.data.common.MoveOutcome
+import se.partee71.dagboken.data.common.PendingCommits
 import se.partee71.dagboken.data.common.SERVER_WAIT
 import se.partee71.dagboken.data.common.Snapshot
+import se.partee71.dagboken.data.common.Stored
+import se.partee71.dagboken.data.common.UserScope
+import se.partee71.dagboken.data.common.currentVersion
 import se.partee71.dagboken.data.common.fieldsForMerge
-import se.partee71.dagboken.data.common.firstFromCache
-import se.partee71.dagboken.data.common.isDocumentAnswer
 import se.partee71.dagboken.data.common.fieldsForUpdate
+import se.partee71.dagboken.data.common.firstFromCache
+import se.partee71.dagboken.data.common.historyFlow
+import se.partee71.dagboken.data.common.isDocumentAnswer
+import se.partee71.dagboken.data.common.mayCreate
+import se.partee71.dagboken.data.common.moveOutcome
+import se.partee71.dagboken.data.common.movedDocument
 import se.partee71.dagboken.data.common.prepareForWrite
 import se.partee71.dagboken.data.common.readDocument
+import se.partee71.dagboken.data.common.satisfies
 import se.partee71.dagboken.data.common.sortForList
+import se.partee71.dagboken.data.common.storedOf
 import se.partee71.dagboken.data.common.suspendRunCatching
 import se.partee71.dagboken.data.common.writeBlocker
 
@@ -75,7 +75,7 @@ class FirestoreCollection<T : Identified>(
     /** Historiklägets täckning (NFR-24) – en för appen, delad av alla samlingar. */
     private val coverage: HistoryCoverage,
     /** Hur länge en läsning eller villkorad skrivning som kräver servern väntar innan den blir `Offline`. */
-    private val serverWait: Duration = SERVER_WAIT,
+    private val serverWait: Duration = SERVER_WAIT
 ) : EntityCollection<T> {
     /** Hämtas vid varje anrop – instansen byts när cachen tömts (AUTH-6). */
     private val db: FirebaseFirestore get() = firestore.db
@@ -100,8 +100,7 @@ class FirestoreCollection<T : Identified>(
         ref().between(field, from, to).snapshots().map { Snapshot(decodeList(it), it.metadata.isFromCache) }
     }
 
-    private fun CollectionReference.between(field: String, from: Any, to: Any): Query =
-        whereGreaterThanOrEqualTo(field, from).whereLessThanOrEqualTo(field, to)
+    private fun CollectionReference.between(field: String, from: Any, to: Any): Query = whereGreaterThanOrEqualTo(field, from).whereLessThanOrEqualTo(field, to)
 
     /**
      * Täckningen hämtas med `get(Source.SERVER)` (debiteras per dokument) för flödets konto och läggs bara i cachen – den
@@ -122,7 +121,7 @@ class FirestoreCollection<T : Identified>(
                 query.get(Source.SERVER).await()
             }.getOrThrow()
         },
-        cache = { uid -> refOrNull(uid)?.between(field, date(from), date(to))?.cacheSnapshots()?.map(::decodeList) ?: emptyFlow() },
+        cache = { uid -> refOrNull(uid)?.between(field, date(from), date(to))?.cacheSnapshots()?.map(::decodeList) ?: emptyFlow() }
     ).catch { throw firestoreError(it) }
 
     private fun date(day: LocalDate): String = checkNotNull(day.encodeDate())
@@ -131,7 +130,11 @@ class FirestoreCollection<T : Identified>(
     private fun Query.cacheSnapshots(): Flow<QuerySnapshot> = callbackFlow {
         val options = SnapshotListenOptions.Builder().setSource(ListenSource.CACHE).build()
         val registration = addSnapshotListener(options) { snapshot, error ->
-            if (error != null) close(error) else if (snapshot != null) trySend(snapshot)
+            if (error != null) {
+                close(error)
+            } else if (snapshot != null) {
+                trySend(snapshot)
+            }
         }
         awaitClose { registration.remove() }
     }
@@ -186,8 +189,7 @@ class FirestoreCollection<T : Identified>(
         return transact(byId.keys) { id, stored -> if (stored.mayCreate()) BatchOp.Set(id, encode(byId.getValue(id))) else null }
     }
 
-    override suspend fun deleteIf(ids: List<String>, condition: (T) -> Boolean): Result<Unit> =
-        transact(ids.toSet()) { id, stored -> if (stored.satisfies(condition)) BatchOp.Delete(id) else null }
+    override suspend fun deleteIf(ids: List<String>, condition: (T) -> Boolean): Result<Unit> = transact(ids.toSet()) { id, stored -> if (stored.satisfies(condition)) BatchOp.Delete(id) else null }
 
     override suspend fun updateIf(items: List<T>, fields: Set<String>, condition: (T) -> Boolean): Result<Unit> {
         // Kodas före transaktionen, så att ett okänt fält är ett fel innan något läses.
@@ -231,8 +233,7 @@ class FirestoreCollection<T : Identified>(
     }
 
     /** `update`, inte `set`: bara [fields] (och `updatedAt`) ändras, och ett dokument som raderats återuppstår inte. */
-    override suspend fun updateAll(items: List<T>, fields: Set<String>, remove: Set<String>): Result<Unit> =
-        commit { items.map { BatchOp.Update(it.id, fieldsForUpdate(encode(it), fields) + remove.associateWith { FieldValue.delete() }) } }
+    override suspend fun updateAll(items: List<T>, fields: Set<String>, remove: Set<String>): Result<Unit> = commit { items.map { BatchOp.Update(it.id, fieldsForUpdate(encode(it), fields) + remove.associateWith { FieldValue.delete() }) } }
 
     override suspend fun batch(upserts: List<T>, deletes: List<String>, merges: List<FieldMerge<T>>): Result<Unit> = commit {
         upserts.map { BatchOp.Set(it.id, encode(it)) } +
@@ -241,16 +242,15 @@ class FirestoreCollection<T : Identified>(
     }
 
     /** Atomärt inom varje bit om 500 skrivningar (Firestores gräns), inte över bitar. */
-    private suspend fun commit(operations: () -> List<BatchOp>): Result<Unit> =
-        suspendRunCatching(::firestoreError) {
-            scope.writeBlocker()?.let { throw it }
-            val ref = ref()
-            operations().chunked(MAX_BATCH).forEach { chunk ->
-                val batch = db.batch()
-                chunk.forEach { op -> op.applyTo(batch, ref) }
-                sync.track(batch.commit())
-            }
+    private suspend fun commit(operations: () -> List<BatchOp>): Result<Unit> = suspendRunCatching(::firestoreError) {
+        scope.writeBlocker()?.let { throw it }
+        val ref = ref()
+        operations().chunked(MAX_BATCH).forEach { chunk ->
+            val batch = db.batch()
+            chunk.forEach { op -> op.applyTo(batch, ref) }
+            sync.track(batch.commit())
         }
+    }
 
     /**
      * Villkorade skrivningar: varje id läses från servern i en transaktion och [decide] avgör utifrån
@@ -261,30 +261,28 @@ class FirestoreCollection<T : Identified>(
      * [commits] (som [awaitWrites] väntar in) och i [sync] (ett sent fel syns som skrivfel). Ett
      * dokument som inte går att avkoda fäller inte bitens övriga ([Stored.Unreadable]).
      */
-    private suspend fun transact(ids: Set<String>, decide: (id: String, stored: Stored<T>) -> BatchOp?): Result<Unit> =
-        suspendRunCatching(::firestoreError) {
-            scope.writeBlocker()?.let { throw it }
-            val ref = ref()
-            ids.chunked(MAX_BATCH).forEach { chunk ->
-                val task = db.runTransaction { tx ->
-                    // Alla läsningar före första skrivningen (Firestores regel för transaktioner).
-                    val stored = chunk.associateWith { id ->
-                        val snapshot = tx.get(ref.document(id))
-                        storedOf(snapshot.exists()) { decodeDocument(snapshot) }
-                    }
-                    stored.forEach { (id, value) -> decide(id, value)?.applyTo(tx, ref) }
+    private suspend fun transact(ids: Set<String>, decide: (id: String, stored: Stored<T>) -> BatchOp?): Result<Unit> = suspendRunCatching(::firestoreError) {
+        scope.writeBlocker()?.let { throw it }
+        val ref = ref()
+        ids.chunked(MAX_BATCH).forEach { chunk ->
+            val task = db.runTransaction { tx ->
+                // Alla läsningar före första skrivningen (Firestores regel för transaktioner).
+                val stored = chunk.associateWith { id ->
+                    val snapshot = tx.get(ref.document(id))
+                    storedOf(snapshot.exists()) { decodeDocument(snapshot) }
                 }
-                awaitCommit(task)
+                stored.forEach { (id, value) -> decide(id, value)?.applyTo(tx, ref) }
             }
+            awaitCommit(task)
         }
+    }
 
     /**
      * Väntar på transaktionen [task] högst [serverWait]. Svarar den inte i tid blir det [DataError.Offline], men
      * den kan fortfarande committa: den spåras då i [commits] (som [awaitWrites] väntar in) och i [sync] – också
      * när väntan avbryts av den som anropar (t.ex. en yttre tidsgräns), så att ett sent fel alltid syns.
      */
-    private suspend fun <R : Any> awaitCommit(task: Task<R>): R =
-        commits.await(task.asDeferred(), serverWait, onUnfinished = { sync.track(task) }) ?: throw DataError.Offline
+    private suspend fun <R : Any> awaitCommit(task: Task<R>): R = commits.await(task.asDeferred(), serverWait, onUnfinished = { sync.track(task) }) ?: throw DataError.Offline
 
     /** Transaktioner som inte hann bekräftas i tid men fortfarande kan committa. */
     private val commits = PendingCommits()
@@ -297,20 +295,17 @@ class FirestoreCollection<T : Identified>(
 
     private fun decodeDocument(doc: DocumentSnapshot) = doc.data?.let { decode(doc.id, it) }
 
-    private fun decode(id: String, data: Map<String, Any?>) =
-        readDocument(codec, name, scope.currentVersion(), id, fromFirestore(data))
+    private fun decode(id: String, data: Map<String, Any?>) = readDocument(codec, name, scope.currentVersion(), id, fromFirestore(data))
 
     /** Skrivningen läggs i cachen direkt; servern svarar senare (offline först). */
-    private suspend fun write(block: (CollectionReference) -> Task<*>): Result<Unit> =
-        suspendRunCatching(::firestoreError) {
-            scope.writeBlocker()?.let { throw it }
-            sync.track(block(ref()))
-        }
+    private suspend fun write(block: (CollectionReference) -> Task<*>): Result<Unit> = suspendRunCatching(::firestoreError) {
+        scope.writeBlocker()?.let { throw it }
+        sync.track(block(ref()))
+    }
 
     private fun ref(): CollectionReference = db.collection(path(scope.uid.value))
 
-    private fun refOrNull(uid: String?): CollectionReference? =
-        runCatching { db.collection(path(uid)) }.getOrNull()
+    private fun refOrNull(uid: String?): CollectionReference? = runCatching { db.collection(path(uid)) }.getOrNull()
 
     private sealed interface BatchOp {
         fun applyTo(batch: WriteBatch, ref: CollectionReference)

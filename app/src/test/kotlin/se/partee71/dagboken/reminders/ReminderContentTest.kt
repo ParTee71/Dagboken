@@ -11,13 +11,13 @@ import kotlinx.datetime.plus
 import org.junit.Test
 import se.partee71.dagboken.core.engine.PeriodEnding
 import se.partee71.dagboken.core.engine.plannedDoses
-import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.schema.DoseCodec
@@ -35,8 +35,13 @@ class ReminderContentTest {
     private val uid get() = checkNotNull(f.user.uid.value)
 
     private val levaxin = Prescription(
-        "lev", name = "Levaxin", dose = "100", unit = "µg", slots = listOf(Slot.MORNING, Slot.EVENING),
-        schedule = Schedule.Repeating(), period = Period(start = LocalDate(2026, 1, 1)),
+        "lev",
+        name = "Levaxin",
+        dose = "100",
+        unit = "µg",
+        slots = listOf(Slot.MORNING, Slot.EVENING),
+        schedule = Schedule.Repeating(),
+        period = Period(start = LocalDate(2026, 1, 1))
     )
     private val metformin = levaxin.copy(id = "met", name = "Metformin", dose = "500", unit = "mg", slots = listOf(Slot.MORNING))
 

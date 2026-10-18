@@ -23,12 +23,12 @@ import se.partee71.dagboken.core.legacy.Warning
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.legacy.AccountCheck
 import se.partee71.dagboken.data.legacy.CopyFailure
-import se.partee71.dagboken.data.legacy.LegacyCopyData
-import se.partee71.dagboken.data.legacy.LegacyCopySource
 import se.partee71.dagboken.data.legacy.CopyRecord
 import se.partee71.dagboken.data.legacy.CopyResult
 import se.partee71.dagboken.data.legacy.CopyStatus
 import se.partee71.dagboken.data.legacy.LegacyAbortOutcome
+import se.partee71.dagboken.data.legacy.LegacyCopyData
+import se.partee71.dagboken.data.legacy.LegacyCopySource
 import se.partee71.dagboken.data.legacy.LegacyImportUseCase
 import se.partee71.dagboken.data.legacy.LegacyMigrationPlan
 import se.partee71.dagboken.data.legacy.LegacyMigrationUseCase
@@ -87,7 +87,7 @@ sealed interface MigrationStage {
         val copy: CopyStep,
         /** Förslaget i filväljaren: `dagboken-3x-kopia-<datum>.json`. */
         val copyFileName: String,
-        val started: Boolean = false,
+        val started: Boolean = false
     ) : MigrationStage {
         /**
          * Spärren (OMB-8): "Flytta till mitt konto" är aktiv först med en kontrollerad kopia – och, när 3.x-kontot är
@@ -111,7 +111,7 @@ sealed interface MigrationStage {
         val before: Map<String, Int>,
         val after: Map<String, Int>,
         val existing: Map<String, Int> = emptyMap(),
-        val confirming: Boolean = false,
+        val confirming: Boolean = false
     ) : MigrationStage
 
     /** Kontrollen mot servern stämde inte (Mig-Avvikelse): [mismatched] per samling; [accounted] = efter + existing. "Försök igen" eller avbryt. */
@@ -195,7 +195,7 @@ class MigrationViewModel @Inject constructor(
     private val migration: LegacyMigrationUseCase,
     importer: LegacyImportUseCase,
     private val clock: Clock,
-    private val zone: Provider<TimeZone>,
+    private val zone: Provider<TimeZone>
 ) : ViewModel() {
     private val _state = MutableStateFlow(MigrationUiState())
     val state: StateFlow<MigrationUiState> = _state.asStateFlow()
@@ -253,7 +253,7 @@ class MigrationViewModel @Inject constructor(
         show(MigrationStage.Checking)
         migration.isPending().fold(
             onSuccess = { pending -> if (pending) read() else fallback() },
-            onFailure = { show(MigrationStage.CheckFailed(it as? DataError ?: DataError.Unknown)) },
+            onFailure = { show(MigrationStage.CheckFailed(it as? DataError ?: DataError.Unknown)) }
         )
     }
 
@@ -283,14 +283,19 @@ class MigrationViewModel @Inject constructor(
         if (read !is LegacyRead.Stopped) stoppedSource = null
         when (read) {
             is LegacyRead.Ready -> review(read.plan)
+
             is LegacyRead.Stopped -> {
                 stoppedSource = read.source
                 show(MigrationStage.Stopped(reportOf(read.report.problems), copyStep(read.source.copy), copyFileName()))
             }
+
             is LegacyRead.WrongVersion -> show(MigrationStage.WrongVersion(read.found))
+
             // Filen försvann mellan kontrollen och läsningen: inget att flytta.
             LegacyRead.NoDatabase -> leaveTo(openImport = false)
+
             LegacyRead.Unreadable -> show(MigrationStage.ReadFailed(null))
+
             is LegacyRead.Failed -> show(MigrationStage.ReadFailed(read.error))
         }
     }
@@ -308,8 +313,8 @@ class MigrationViewModel @Inject constructor(
                 warnings = plan.warnings.messages(),
                 copy = copy,
                 copyFileName = copyFileName(),
-                started = migration.started(),
-            ),
+                started = migration.started()
+            )
         )
     }
 
@@ -375,12 +380,14 @@ class MigrationViewModel @Inject constructor(
                     if (result != null) review(plan.withCopy(result)) else (stage as? MigrationStage.Review)?.let { show(it.copy(copy = copy)) }
                 }
             }
+
             is MigrationStage.Stopped -> stoppedSource?.let { source ->
                 copySaved(source, uri, { show(current.copy(copy = it)) }) { result, copy ->
                     if (result != null) stoppedSource = source.copy(copy = CopyStatus.Verified(result))
                     (stage as? MigrationStage.Stopped)?.let { show(it.copy(copy = copy)) }
                 }
             }
+
             else -> Unit
         }
     }
@@ -412,7 +419,9 @@ class MigrationViewModel @Inject constructor(
                 outcome = result
                 show(MigrationStage.Written(result.before, result.after, result.existing))
             }
+
             is LegacyWriteOutcome.Mismatch -> show(MigrationStage.Mismatch(result.before, result.accounted(), result.mismatched))
+
             // Kopian gäller inte (längre) Room-filen som den ser ut nu: läs om och granska med en ny kopia (OMB-8).
             is LegacyWriteOutcome.Failed -> if (result.code in COPY_CODES) read() else show(MigrationStage.WriteFailed(result.error, result.batch, result.code, migration.started()))
         }
@@ -452,8 +461,7 @@ class MigrationViewModel @Inject constructor(
 }
 
 /** Före = efter + fanns redan (OMB-7): det som är avklarat per samling. */
-internal fun accounted(after: Map<String, Int>, vararg extra: Map<String, Int>): Map<String, Int> =
-    after.mapValues { (collection, count) -> count + extra.sumOf { it[collection] ?: 0 } }
+internal fun accounted(after: Map<String, Int>, vararg extra: Map<String, Int>): Map<String, Int> = after.mapValues { (collection, count) -> count + extra.sumOf { it[collection] ?: 0 } }
 
 private fun LegacyWriteOutcome.accounted(): Map<String, Int> = accounted(after, existing)
 
@@ -464,9 +472,8 @@ internal fun List<Warning>.messages(): List<String> = map { it.message }.distinc
  * Stopprapporten per typ – samling, fält och skäl med antal; sökvägens id visas inte, och listindex slås ihop
  * (`symptom[0]`, `symptom[3]` → `symptom[…]`), så att varje typ av fynd står på en rad och alla typer syns.
  */
-internal fun reportOf(problems: List<Problem>): List<ReportLine> =
-    problems.groupingBy { Triple(reportCollection(it.path), it.field.replace(LIST_INDEX, "[…]"), it.reason) }.eachCount()
-        .map { (key, count) -> ReportLine(key.first, key.second, key.third, count) }
+internal fun reportOf(problems: List<Problem>): List<ReportLine> = problems.groupingBy { Triple(reportCollection(it.path), it.field.replace(LIST_INDEX, "[…]"), it.reason) }.eachCount()
+    .map { (key, count) -> ReportLine(key.first, key.second, key.third, count) }
 
 private val LIST_INDEX = Regex("""\[\d+]""")
 

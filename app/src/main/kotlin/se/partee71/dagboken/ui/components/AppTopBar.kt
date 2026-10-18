@@ -34,7 +34,7 @@ enum class TopBarSize {
     Large,
 
     /** Underskärm: tillbakaknapp och liten rubrik. */
-    Small,
+    Small
 }
 
 /** Synkindikatorn (NFR-22): [pending] när ändringar väntat på servern; [onClick] förklarar den. */
@@ -57,7 +57,7 @@ fun AppTopBar(
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
-    actions: @Composable RowScope.() -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {}
 ) {
     val background = MaterialTheme.colorScheme.background
     val colors = TopAppBarDefaults.topAppBarColors(containerColor = background, scrolledContainerColor = background)
@@ -78,15 +78,16 @@ fun AppTopBar(
             navigationIcon = navigation,
             actions = allActions,
             colors = colors,
-            scrollBehavior = scrollBehavior,
+            scrollBehavior = scrollBehavior
         )
+
         TopBarSize.Small -> TopAppBar(
             title = { Text(title, style = AppTypography.sectionTitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = heading) },
             modifier = modifier,
             navigationIcon = navigation,
             actions = allActions,
             colors = colors,
-            scrollBehavior = scrollBehavior,
+            scrollBehavior = scrollBehavior
         )
     }
 }
@@ -103,7 +104,7 @@ private fun RowScope.SyncPill(sync: SyncIndicator) {
             },
             tone = Tone.Neutral,
             icon = R.drawable.ic_cloud_upload,
-            onClick = sync.onClick,
+            onClick = sync.onClick
         )
     }
 }

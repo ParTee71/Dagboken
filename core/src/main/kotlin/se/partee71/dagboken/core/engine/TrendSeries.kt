@@ -19,8 +19,7 @@ import se.partee71.dagboken.core.model.Screening
 data class TrendSerie(val key: String, val points: List<Float?>)
 
 /** TRD-8: dagens spann och dagsvärde (samma `computeDailyEnergyStats` som Idag, HEM-7) utlagt på [days]. */
-fun dailyEnergyPoints(screenings: List<Screening>, days: List<LocalDate>): List<IntervalPoint?> =
-    computeDailyEnergyStats(screenings).alignTo(days).map { day -> day?.let { IntervalPoint(it.min, it.avg, it.max) } }
+fun dailyEnergyPoints(screenings: List<Screening>, days: List<LocalDate>): List<IntervalPoint?> = computeDailyEnergyStats(screenings).alignTo(days).map { day -> day?.let { IntervalPoint(it.min, it.avg, it.max) } }
 
 /**
  * Energi per tillfälle (TRD-1): en serie per [Occasion] i tillfällenas ordning, dagens snittenergi för loggarna
@@ -36,9 +35,8 @@ enum class StressSeries { STRESS, SOMATIC, RECOVERING, DRAIN }
 /** Det båda posttyperna bidrar med till Stress och belastning: 3.x räknade över alla rader i `aktiviteter`. */
 private class MoodEntry(val date: LocalDate?, val stress: Int, val somatic: Int, val recovering: Boolean, val drain: Boolean)
 
-private fun moodEntries(screenings: List<Screening>, activities: List<Activity>): List<MoodEntry> =
-    screenings.map { MoodEntry(it.date, it.stress, it.somatic, recovering = false, drain = false) } +
-        activities.map { MoodEntry(it.date, it.stress, it.somatic, it.recovering, it.drain) }
+private fun moodEntries(screenings: List<Screening>, activities: List<Activity>): List<MoodEntry> = screenings.map { MoodEntry(it.date, it.stress, it.somatic, recovering = false, drain = false) } +
+    activities.map { MoodEntry(it.date, it.stress, it.somatic, it.recovering, it.drain) }
 
 /**
  * Stress och belastning (TRD-1), som 3.x: dagens snitt av stress och av symptompoängens summa (`somatic`,
@@ -52,7 +50,7 @@ fun stressSeries(screenings: List<Screening>, activities: List<Activity>, days: 
         TrendSerie(StressSeries.STRESS.name, dailyAverage(entries, days, { it.date }, { it.stress })),
         TrendSerie(StressSeries.SOMATIC.name, dailyAverage(entries, days, { it.date }, { it.somatic })),
         TrendSerie(StressSeries.RECOVERING.name, share { it.recovering }),
-        TrendSerie(StressSeries.DRAIN.name, share { it.drain }),
+        TrendSerie(StressSeries.DRAIN.name, share { it.drain })
     )
 }
 
@@ -91,7 +89,7 @@ data class EventIllnessTrend(
     val checkins: List<Float?>,
     val episodes: List<EpisodeSpan>,
     val eventCount: Int,
-    val averageSeverity: Float?,
+    val averageSeverity: Float?
 )
 
 /**
@@ -102,7 +100,7 @@ fun eventIllnessTrend(
     events: List<Event>,
     episodes: List<IllnessEpisode>,
     checkins: Map<String, List<Checkin>>,
-    days: List<LocalDate>,
+    days: List<LocalDate>
 ): EventIllnessTrend {
     val first = days.firstOrNull()
     val last = days.lastOrNull()
@@ -122,7 +120,7 @@ fun eventIllnessTrend(
         checkins = dailyAverage(checkins.values.flatten(), days, { it.date }, { it.severity }),
         episodes = spans,
         eventCount = inPeriod.size,
-        averageSeverity = inPeriod.map { it.severity }.takeIf { it.isNotEmpty() }?.average()?.toFloat(),
+        averageSeverity = inPeriod.map { it.severity }.takeIf { it.isNotEmpty() }?.average()?.toFloat()
     )
 }
 

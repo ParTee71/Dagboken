@@ -5,10 +5,10 @@ import androidx.navigation3.runtime.NavEntry
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import se.partee71.dagboken.R
 import se.partee71.dagboken.navigation.AppBackStack
 import se.partee71.dagboken.navigation.AppNavHost
 import se.partee71.dagboken.testing.captureLightAndDark
-import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.AppRootContent
 import se.partee71.dagboken.ui.auth.AuthGate
 import se.partee71.dagboken.ui.auth.AuthUiState

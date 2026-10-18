@@ -64,10 +64,10 @@ object Samples {
             medsEnabled = true,
             medSlots = Slot.SCHEDULED.mapIndexed { i, slot -> SlotReminder(slot, enabled = false, time = LocalTime(6 + i * 3, 15)) },
             screeningOccasions = Occasion.entries.mapIndexed { i, o -> OccasionReminder(o, enabled = true, time = LocalTime(8 + i * 4, 45)) },
-            periodReminderTime = LocalTime(8, 30),
+            periodReminderTime = LocalTime(8, 30)
         ),
         profile = Profile(birthYear = 1971, sex = Sex.FEMALE),
-        legacy = LegacySettings(dynamicColor = false, sheetsConfig = "https://docs.google.com/spreadsheets/d/exempel/edit"),
+        legacy = LegacySettings(dynamicColor = false, sheetsConfig = "https://docs.google.com/spreadsheets/d/exempel/edit")
     )
 
     val option = Option(OptionIds.of(OptionKind.SYMPTOM, "Huvudvärk"), kind = OptionKind.SYMPTOM, name = "Huvudvärk", favorite = true, sortOrder = 3, archived = true)
@@ -87,12 +87,12 @@ object Samples {
         boosts = listOf(boost),
         active = false,
         createdAt = created,
-        note = "På fastande mage",
+        note = "På fastande mage"
     )
 
     val prnMedicine = PrnMedicine(
         id = "alvedon", name = "Alvedon", strength = "500 mg", form = MedicineForm.CAPSULE, dose = "500", unit = "mg", slot = Slot.NIGHT, minHoursBetween = 6,
-        dispensingTime = "30 min", maxPerDay = 4, favorite = true, note = "Max 3 g per dygn",
+        dispensingTime = "30 min", maxPerDay = 4, favorite = true, note = "Max 3 g per dygn"
     )
 
     val dose = Dose(
@@ -109,7 +109,7 @@ object Samples {
         prescriptionId = prescription.id,
         prnId = "alvedon",
         createdAt = created,
-        note = "Tog med frukost",
+        note = "Tog med frukost"
     )
 
     private val symptoms = listOf(SymptomScore("huvudvark", 4, "Bakom ögonen"), SymptomScore("ovrigt", 2, "Stel nacke"))
@@ -119,28 +119,38 @@ object Samples {
 
     val screening = Screening(
         id = "s1", date = day, time = LocalTime(8, 15), occasion = Occasion.BREAKFAST, customText = "Morgonkoll",
-        energy = 6, stress = 3, symptoms = symptoms, feelings = feelings, legacySomatic = 7, createdAt = created, note = "Sov dåligt",
+        energy = 6, stress = 3, symptoms = symptoms, feelings = feelings, legacySomatic = 7, createdAt = created, note = "Sov dåligt"
     )
 
     val activity = Activity(
         id = "a1", date = day, time = LocalTime(17, 0), optionId = "promenad", customText = "Svamplockning",
         energy = -2, stress = 1, symptoms = symptoms, legacySomatic = 3, recovering = true, drain = true, minutes = 45,
-        createdAt = created, note = "Regn",
+        createdAt = created, note = "Regn"
     )
 
     val event = Event(
         id = "e1", date = day, time = LocalTime(10, 5), optionId = "yrsel-handelse", severity = 5, durationMinutes = 10,
-        triggers = "Snabb uppresning", actions = "Satte mig ner", createdAt = created, note = "Första gången",
+        triggers = "Snabb uppresning", actions = "Satte mig ner", createdAt = created, note = "Första gången"
     )
 
     val episode = IllnessEpisode(
-        id = "forkylning", type = "Förkylning", start = LocalDate(2026, 9, 10), end = LocalDate(2026, 9, 17),
-        createdAt = created, note = "Hela familjen",
+        id = "forkylning",
+        type = "Förkylning",
+        start = LocalDate(2026, 9, 10),
+        end = LocalDate(2026, 9, 17),
+        createdAt = created,
+        note = "Hela familjen"
     )
 
     val checkin = Checkin(
-        id = "c1", date = LocalDate(2026, 9, 11), time = LocalTime(19, 0), severity = 4, symptoms = symptoms, legacySomatic = 2,
-        createdAt = created, note = "Feber på kvällen",
+        id = "c1",
+        date = LocalDate(2026, 9, 11),
+        time = LocalTime(19, 0),
+        severity = 4,
+        symptoms = symptoms,
+        legacySomatic = 2,
+        createdAt = created,
+        note = "Feber på kvällen"
     )
 
     /** Alla samlingar i `CollectionNames.USER_COLLECTIONS` + `checkins`. */
@@ -154,7 +164,7 @@ object Samples {
         Entry(CollectionNames.ACTIVITIES, ActivityCodec, activity, Activity(activity.id)),
         Entry(CollectionNames.EVENTS, EventCodec, event, Event(event.id)),
         Entry(CollectionNames.ILLNESS_EPISODES, IllnessEpisodeCodec, episode, IllnessEpisode(episode.id)),
-        Entry(CollectionNames.CHECKINS, CheckinCodec, checkin, Checkin(checkin.id)),
+        Entry(CollectionNames.CHECKINS, CheckinCodec, checkin, Checkin(checkin.id))
     )
 
     fun entry(collection: String): Entry<*> = all.single { it.collection == collection }

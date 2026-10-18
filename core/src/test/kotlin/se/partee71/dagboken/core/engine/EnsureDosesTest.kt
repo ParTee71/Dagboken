@@ -5,10 +5,10 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalTime
 import org.junit.Test
-import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Prescription
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Repeat
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
@@ -22,8 +22,7 @@ class EnsureDosesTest {
 
     private val today = day("2026-05-06")
 
-    private fun ensure(vararg prescriptions: Prescription, existing: List<Dose> = emptyList(), date: String = "2026-05-06") =
-        ensureDoses(prescriptions.toList(), existing, day(date), today, STOCKHOLM, reminders = ReminderSettings())
+    private fun ensure(vararg prescriptions: Prescription, existing: List<Dose> = emptyList(), date: String = "2026-05-06") = ensureDoses(prescriptions.toList(), existing, day(date), today, STOCKHOLM, reminders = ReminderSettings())
 
     // ── Planerade doser (MED-4) ───────────────────────────────────────────────
 
@@ -227,7 +226,7 @@ class EnsureDosesTest {
         assertEquals(listOf("recept_r1_2026-05-06_Lunch"), withLunch.syncDoses(existing, today, STOCKHOLM, reminders = ReminderSettings()).create.map { it.id })
         assertEquals(
             listOf("recept_r1_2026-05-06_Lunch", "recept_r1_2026-05-07_Morgon", "recept_r1_2026-05-07_Lunch", "recept_r1_2026-05-07_Kväll"),
-            withLunch.syncDoses(existing, today, STOCKHOLM, through = day("2026-05-07"), reminders = ReminderSettings()).create.map { it.id },
+            withLunch.syncDoses(existing, today, STOCKHOLM, through = day("2026-05-07"), reminders = ReminderSettings()).create.map { it.id }
         )
         assertEquals(emptyList(), withLunch.copy(active = false).syncDoses(existing, today, STOCKHOLM, reminders = ReminderSettings()).create)
     }

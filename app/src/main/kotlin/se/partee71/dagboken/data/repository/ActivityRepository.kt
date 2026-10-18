@@ -11,11 +11,11 @@ import kotlinx.datetime.minus
 import se.partee71.dagboken.core.engine.prefilledFrom
 import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Option
-import se.partee71.dagboken.data.repository.ActivityRepository.Companion.PREFILL_WAIT
 import se.partee71.dagboken.core.schema.ActivityCodec
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.common.historyOnce
+import se.partee71.dagboken.data.repository.ActivityRepository.Companion.PREFILL_WAIT
 
 /** Aktiviteterna i samlingen `activities` (AKT-serien): läsning, formuläret och radering. */
 interface ActivityRepository : DatedRepository<Activity> {
@@ -38,8 +38,9 @@ interface ActivityRepository : DatedRepository<Activity> {
 class DefaultActivityRepository private constructor(
     private val collection: EntityCollection<Activity>,
     private val options: EntityCollection<Option>,
-    private val clock: Clock,
-) : ActivityRepository, DatedRepository<Activity> by DatedEntries(collection, ActivityCodec) {
+    private val clock: Clock
+) : ActivityRepository,
+    DatedRepository<Activity> by DatedEntries(collection, ActivityCodec) {
     @Inject constructor(collections: CollectionFactory, clock: Clock) : this(collections.activities(), collections.options(), clock)
 
     override suspend fun new(date: LocalDate, time: LocalTime, today: LocalDate): Activity {

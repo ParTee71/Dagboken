@@ -23,8 +23,7 @@ class ImportFileTest {
     private val fixtureDocs = ExportFormat.decode(userJson)
     private val fixtureUid = "uid-test"
 
-    private fun export(documents: List<ExportFormat.Document>, schemaVersion: Int = Schema.CURRENT_VERSION) =
-        ExportFormat.encode(Instant.parse("2026-10-07T19:14:00Z"), schemaVersion, documents)
+    private fun export(documents: List<ExportFormat.Document>, schemaVersion: Int = Schema.CURRENT_VERSION) = ExportFormat.encode(Instant.parse("2026-10-07T19:14:00Z"), schemaVersion, documents)
 
     /** Fixturen utan incheckningen vars episod saknar dokument (den kan inte skrivas genom rules). */
     private val withoutOrphan = fixtureDocs.filterNot { "/utan-dokument/" in it.path }
@@ -66,7 +65,7 @@ class ImportFileTest {
         val stopped = assertIs<ImportFileResult.Stopped>(ImportFile.read(userJson, uid))
         assertEquals(
             listOf(Problem("illnessEpisodes/utan-dokument/checkins/b1c2d3e4-f5a6-4b7c-9d8e-0f1a2b3c4d5e", "episod", "episoden saknas i filen")),
-            stopped.report.problems,
+            stopped.report.problems
         )
     }
 
@@ -91,7 +90,7 @@ class ImportFileTest {
             ExportFormat.Document("users/$fixtureUid/okand/x", mapOf("a" to 1L)),
             ExportFormat.Document("users/$fixtureUid/doses/__reserverat__", mapOf()),
             activity,
-            ExportFormat.Document("users/annan/activities/y", activity.data),
+            ExportFormat.Document("users/annan/activities/y", activity.data)
         )
         val stopped = assertIs<ImportFileResult.Stopped>(ImportFile.read(export(broken), uid))
         val problems = stopped.report.problems

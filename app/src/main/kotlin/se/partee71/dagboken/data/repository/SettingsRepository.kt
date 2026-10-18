@@ -14,8 +14,8 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.FieldPath
 import se.partee71.dagboken.data.common.KeyedList
 import se.partee71.dagboken.data.common.changedFields
-import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.common.withChangedRows
+import se.partee71.dagboken.data.common.withFallback
 
 /**
  * Användarens inställningar – dokumentet `settings/app` (DAT-11). Ett saknat dokument betyder
@@ -110,8 +110,7 @@ class DefaultSettingsRepository @Inject constructor(collections: CollectionFacto
         return mergeIfAny(SettingsCodec.decode(Settings.ID, rebased), fields - listPaths + rows)
     }
 
-    private suspend fun mergeIfAny(settings: Settings, fields: Set<FieldPath>): Result<Unit> =
-        if (fields.isEmpty()) Result.success(Unit) else collection.merge(settings, fields)
+    private suspend fun mergeIfAny(settings: Settings, fields: Set<FieldPath>): Result<Unit> = if (fields.isEmpty()) Result.success(Unit) else collection.merge(settings, fields)
 
     private companion object {
         /**
@@ -122,7 +121,7 @@ class DefaultSettingsRepository @Inject constructor(collections: CollectionFacto
          */
         val REMINDER_ROWS = setOf(
             KeyedList(listOf(SettingsCodec.REMINDERS, SettingsCodec.MED_SLOTS), key = "slot"),
-            KeyedList(listOf(SettingsCodec.REMINDERS, SettingsCodec.SCREENING_OCCASIONS), key = "occasion"),
+            KeyedList(listOf(SettingsCodec.REMINDERS, SettingsCodec.SCREENING_OCCASIONS), key = "occasion")
         )
     }
 }

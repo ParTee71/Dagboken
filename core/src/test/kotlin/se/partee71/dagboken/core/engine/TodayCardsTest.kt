@@ -5,17 +5,17 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.LocalTime
 import org.junit.Test
-import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionIds
 import se.partee71.dagboken.core.model.OptionKind
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.SymptomScore
 
@@ -78,8 +78,7 @@ class TodayCardsTest {
     // ── Senaste posten (HEM-5, HEM-12) och Din vecka (HEM-13) ──────────────
 
     @Test fun `tillfällets senaste logg – samma klockslag avgörs av skapandetiden, sedan id, saknat är äldst`() {
-        fun state(vararg screenings: Screening) =
-            OccasionState(Occasion.LUNCH, LocalTime(12, 0), OccasionStatus.LOGGED, screenings.toList())
+        fun state(vararg screenings: Screening) = OccasionState(Occasion.LUNCH, LocalTime(12, 0), OccasionStatus.LOGGED, screenings.toList())
         val early = Screening("a", day("2026-10-04"), LocalTime(12, 0), Occasion.LUNCH, createdAt = Instant.fromEpochSeconds(100))
         val late = Screening("b", day("2026-10-04"), LocalTime(12, 0), Occasion.LUNCH, createdAt = Instant.fromEpochSeconds(200))
         val noCreated = Screening("z", day("2026-10-04"), LocalTime(12, 0), Occasion.LUNCH)
@@ -111,7 +110,7 @@ class TodayCardsTest {
             Screening("1", day("2026-10-04"), energy = 6),
             Screening("2", day("2026-10-04"), energy = 8),
             Screening("3", day("2026-10-01"), energy = 3),
-            Screening("4", day("2026-09-27"), energy = 9),
+            Screening("4", day("2026-09-27"), energy = 9)
         )
         assertEquals(listOf(null, null, null, 3f, null, null, 7f), dailyEnergyAverages(screenings, days))
         // Samma dagsvärde som Trender (TRD-8): computeDailyEnergyStats.

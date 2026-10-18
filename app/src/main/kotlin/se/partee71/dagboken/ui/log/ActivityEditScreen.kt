@@ -34,16 +34,16 @@ import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.data.repository.ActivityRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
-import se.partee71.dagboken.ui.common.nowInMinutes
-import se.partee71.dagboken.ui.common.EntryEditEvent
-import se.partee71.dagboken.ui.common.EntryForm
-import se.partee71.dagboken.ui.common.hasErrorOutside
-import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.EditorState
+import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryEditor
-import se.partee71.dagboken.ui.common.entryDeleteAction
+import se.partee71.dagboken.ui.common.EntryForm
 import se.partee71.dagboken.ui.common.choices
+import se.partee71.dagboken.ui.common.entryDeleteAction
+import se.partee71.dagboken.ui.common.hasErrorOutside
 import se.partee71.dagboken.ui.common.nonBlank
+import se.partee71.dagboken.ui.common.nowInMinutes
+import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
 import se.partee71.dagboken.ui.common.scaleValueText
 import se.partee71.dagboken.ui.components.AppCard
@@ -100,7 +100,7 @@ class ActivityEditViewModel @AssistedInject constructor(
     clock: Clock,
     zone: Provider<TimeZone>,
     @Assisted id: String?,
-    @Assisted date: LocalDate?,
+    @Assisted date: LocalDate?
 ) : ViewModel() {
     val form = EntryEditor(
         viewModelScope,
@@ -112,7 +112,7 @@ class ActivityEditViewModel @AssistedInject constructor(
             val now = clock.nowInMinutes(zone.get())
             activities.new(date ?: now.date, now.time, today = now.date)
         },
-        clean = { loaded, value -> value.cleaned(loaded) },
+        clean = { loaded, value -> value.cleaned(loaded) }
     )
 
     val editor: EditorState<Activity> = form.editor
@@ -147,7 +147,7 @@ fun ActivityEditScreen(
     form: EntryForm<Activity>,
     onClose: () -> Unit,
     activityOptions: List<Option> = emptyList(),
-    symptomOptions: List<Option> = emptyList(),
+    symptomOptions: List<Option> = emptyList()
 ) {
     val state = form.state
     val a = form.value
@@ -169,7 +169,7 @@ fun ActivityEditScreen(
             entryDeleteAction(R.string.diary_subject_activity, shown.customText.nonBlank() ?: typeName, shown.date, shown.time) { form.onEvent(EntryEditEvent.Delete) }
         },
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
+        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null
     ) {
         a.date?.let { date ->
             DateTimeRow(date, a.time ?: LocalTime(0, 0), { day -> form.change { it.copy(date = day) } }, { time -> form.change { it.copy(time = time) } })
@@ -180,7 +180,7 @@ fun ActivityEditScreen(
                 a.customText.orEmpty(),
                 { text -> form.change(ActivityField.DESCRIPTION) { it.copy(customText = text.ifEmpty { null }) } },
                 stringResource(R.string.activity_describe),
-                error = error(ActivityField.DESCRIPTION),
+                error = error(ActivityField.DESCRIPTION)
             )
         }
         ChipRow {
@@ -208,7 +208,7 @@ private fun MetricsCard(a: Activity, change: ((Activity) -> Activity) -> Unit) {
         energy,
         scaleValueText(a.energy, DocumentRules.ACTIVITY_ENERGY),
         stress,
-        scaleValueText(a.stress, DocumentRules.SCORE),
+        scaleValueText(a.stress, DocumentRules.SCORE)
     )
     AppCard {
         Foldout(stringResource(R.string.activity_metrics), expanded, { expanded = !expanded }, summary = summary) {

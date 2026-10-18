@@ -35,9 +35,9 @@ import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.common.FieldMerge
 import se.partee71.dagboken.data.common.FieldPath
 import se.partee71.dagboken.data.common.LatestWins
+import se.partee71.dagboken.data.common.TargetExists
 import se.partee71.dagboken.data.common.cachedDates
 import se.partee71.dagboken.data.common.moveChanged
-import se.partee71.dagboken.data.common.TargetExists
 
 /**
  * Doserna i samlingen `doses` (DAT-8) – **alla** dosskrivningar i appen går härigenom. Beräkningen –
@@ -49,7 +49,9 @@ import se.partee71.dagboken.data.common.TargetExists
  * avbockning från en annan enhet. Det användaren själv gör med en dos – bocka av ([setStatus]), logga
  * vid behov ([logAsNeeded], [logExtraDose]) – är offline först: det läggs i cachen direkt och synkas sedan.
  */
-interface DoseRepository : EntryStore<Dose>, DayReads<Dose> {
+interface DoseRepository :
+    EntryStore<Dose>,
+    DayReads<Dose> {
     /** HEM-4: doserna för [date] ur cachen och sedan servern (offline först), sorterade på id. */
     fun observeDay(date: LocalDate): Flow<List<Dose>>
 
@@ -163,7 +165,7 @@ interface DoseRepository : EntryStore<Dose>, DayReads<Dose> {
         prescription: Prescription,
         today: LocalDate,
         reminders: ReminderSettings,
-        isCurrent: () -> Boolean = { true },
+        isCurrent: () -> Boolean = { true }
     ): Result<Unit>
 
     /**
@@ -200,8 +202,9 @@ class DefaultDoseRepository private constructor(
     private val collection: EntityCollection<Dose>,
     private val clock: Clock,
     /** Enhetens tidszon, läst vid varje användning – ett byte slår igenom direkt. */
-    private val zone: Provider<TimeZone>,
-) : DoseRepository, DayReads<Dose> by CollectionDays(collection, DoseCodec.DATE) {
+    private val zone: Provider<TimeZone>
+) : DoseRepository,
+    DayReads<Dose> by CollectionDays(collection, DoseCodec.DATE) {
     @Inject constructor(collections: CollectionFactory, clock: Clock, zone: Provider<TimeZone>) : this(collections.doses(), clock, zone)
 
     /** Formulärets läsning och sparning – samma som för dagbokens andra poster. */
@@ -212,14 +215,11 @@ class DefaultDoseRepository private constructor(
 
     override fun observeDay(date: LocalDate): Flow<List<Dose>> = observeDays(date, date)
 
+    override suspend fun missingOn(prescriptions: List<Prescription>, date: LocalDate, today: LocalDate): Result<List<String>> = collection.cachedDates(DoseCodec.DATE, date, date).map { cached ->
+        ensureDoses(prescriptions, cached, date, today, zone.get(), ANY_TIMES).create.mapNotNull { it.prescriptionId }.distinct()
+    }
 
-    override suspend fun missingOn(prescriptions: List<Prescription>, date: LocalDate, today: LocalDate): Result<List<String>> =
-        collection.cachedDates(DoseCodec.DATE, date, date).map { cached ->
-            ensureDoses(prescriptions, cached, date, today, zone.get(), ANY_TIMES).create.mapNotNull { it.prescriptionId }.distinct()
-        }
-
-    override suspend fun createDay(prescription: Prescription, date: LocalDate, today: LocalDate, reminders: ReminderSettings): Result<Unit> =
-        // Ett dokument som finns – vilken status det än har, också om cachen inte känner till det – skrivs aldrig över.
+    override suspend fun createDay(prescription: Prescription, date: LocalDate, today: LocalDate, reminders: ReminderSettings): Result<Unit> = // Ett dokument som finns – vilken status det än har, också om cachen inte känner till det – skrivs aldrig över.
         collection.createIfAbsent(ensureDoses(listOf(prescription), existing = emptyList(), date = date, today = today, zone = zone.get(), reminders = reminders).create)
 
     override suspend fun setStatus(dose: Dose, status: DoseStatus, takenAt: Instant?): Result<Unit> {
@@ -255,8 +255,7 @@ class DefaultDoseRepository private constructor(
         return collection.upsert(dose).map { dose }
     }
 
-    override fun newOneOff(date: LocalDate, time: LocalTime): Dose =
-        oneOffDose(collection.newId(), date, time, zone.get(), createdAt = clock.now(), unit = DEFAULT_UNIT)
+    override fun newOneOff(date: LocalDate, time: LocalTime): Dose = oneOffDose(collection.newId(), date, time, zone.get(), createdAt = clock.now(), unit = DEFAULT_UNIT)
 
     override suspend fun get(id: String): Result<Dose?> = collection.get(id)
 
@@ -265,8 +264,10 @@ class DefaultDoseRepository private constructor(
         if (loaded != null) entries.keepsCreatedAt(loaded, edited).onFailure { return Result.failure(it) }
         return when {
             loaded == null -> entries.save(null, edited)
+
             loaded.movesPrescribedDose(edited) -> collection.moveChanged(DoseCodec, loaded, loaded.moveTarget(edited, collection::newId))
                 .recoverCatching { throw if (it is TargetExists) DoseSlotTaken() else it }
+
             else -> entries.save(loaded, edited)
         }
     }
@@ -277,8 +278,7 @@ class DefaultDoseRepository private constructor(
     }
 
     /** MED-16: en dos loggas aldrig i framtiden. */
-    private fun notInFuture(at: Instant): Result<Unit> =
-        if (at > clock.now()) Result.failure(IllegalArgumentException("En dos kan inte loggas i framtiden")) else Result.success(Unit)
+    private fun notInFuture(at: Instant): Result<Unit> = if (at > clock.now()) Result.failure(IllegalArgumentException("En dos kan inte loggas i framtiden")) else Result.success(Unit)
 
     override suspend fun syncPrescription(prescription: Prescription, today: LocalDate, reminders: ReminderSettings, isCurrent: () -> Boolean): Result<Unit> {
         collection.awaitWrites().onFailure { return Result.failure(it) }
@@ -288,7 +288,7 @@ class DefaultDoseRepository private constructor(
         val steps: List<suspend () -> Result<Unit>> = listOf(
             { collection.updateIf(sync.update, FOLLOWS_PRESCRIPTION, ::isPlanned) },
             { collection.deleteIf(sync.delete.map { it.id }, ::isPlanned) },
-            { collection.createIfAbsent(sync.create) },
+            { collection.createIfAbsent(sync.create) }
         )
         for (step in steps) {
             if (!isCurrent()) break
@@ -306,8 +306,7 @@ class DefaultDoseRepository private constructor(
         return Result.success(DosePlan(locked = locked.map { it.key }, missing = createOnly.map { it.key }))
     }
 
-    override suspend fun remove(dose: Dose): Result<Unit> =
-        if (dose.isPrescribed) setStatus(dose, DoseStatus.SKIPPED) else collection.delete(dose.id)
+    override suspend fun remove(dose: Dose): Result<Unit> = if (dose.isPrescribed) setStatus(dose, DoseStatus.SKIPPED) else collection.delete(dose.id)
 
     /** Dagens och senare doser, från servern – aldrig hela historiken (som syncDoses ändå inte rör). */
     private suspend fun fromToday(today: LocalDate) = collection.confirmedFrom(DoseCodec.DATE, checkNotNull(today.encodeDate()))
@@ -334,7 +333,7 @@ class DefaultDoseRepository private constructor(
          * anteckning, skapandetid eller klockslag – de kan finnas på servern.
          */
         private val TAKEN_FIELDS: Set<FieldPath> = setOf(
-            DoseCodec.STATUS, DoseCodec.TAKEN_AT, DoseCodec.NAME, DoseCodec.STRENGTH, DoseCodec.DOSE, DoseCodec.UNIT, DoseCodec.DATE, DoseCodec.SLOT, DoseCodec.PRESCRIPTION_ID,
+            DoseCodec.STATUS, DoseCodec.TAKEN_AT, DoseCodec.NAME, DoseCodec.STRENGTH, DoseCodec.DOSE, DoseCodec.UNIT, DoseCodec.DATE, DoseCodec.SLOT, DoseCodec.PRESCRIPTION_ID
         ).mapTo(mutableSetOf()) { listOf(it) }
 
         /** En ny engångsdos enhet – som en ny vid behov-medicin (FAV-1). */

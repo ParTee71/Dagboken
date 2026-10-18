@@ -7,11 +7,11 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import se.partee71.dagboken.core.engine.SleepFlag
-import se.partee71.dagboken.core.engine.sleepMeasurements
-import se.partee71.dagboken.core.engine.sleepQualityOn
 import se.partee71.dagboken.core.engine.SleepMeasurements
 import se.partee71.dagboken.core.engine.sleepFlags
 import se.partee71.dagboken.core.engine.sleepFlagsOn
+import se.partee71.dagboken.core.engine.sleepMeasurements
+import se.partee71.dagboken.core.engine.sleepQualityOn
 import se.partee71.dagboken.core.model.Sex
 
 /**
@@ -35,14 +35,14 @@ class SleepVitalsTest {
             hr("2026-08-01T14:00", 72),
             hr("2026-08-01T23:30", 66), // i natt, före midnatt
             hr("2026-08-02T03:00", 70),
-            hr("2026-08-02T12:00", 75),
+            hr("2026-08-02T12:00", 75)
         ),
         sleep = listOf(sleep("2026-08-01T23:00", "2026-08-02T07:00")),
         oxygen = listOf(
             spo2("2026-08-01T23:30", 88.0),
             spo2("2026-08-02T04:00", 89.0),
-            spo2("2026-08-02T09:00", 97.0), // vaken – utanför natten
-        ),
+            spo2("2026-08-02T09:00", 97.0) // vaken – utanför natten
+        )
     )
 
     @Test fun `sleeping heart rate and oxygen are the averages inside the night, the baseline the awake estimate`() {
@@ -68,7 +68,7 @@ class SleepVitalsTest {
     @Test fun `a calm night with normal oxygen raises no warning`() {
         val calm = records.copy(
             heartRate = records.heartRate.map { if (it.time in records.sleep.single()) it.copy(bpm = 62) else it },
-            oxygen = records.oxygen.map { it.copy(percent = 95.0) },
+            oxygen = records.oxygen.map { it.copy(percent = 95.0) }
         )
         val quality = sleepQualityOn(healthHistory(calm, aug1, aug2, STOCKHOLM), aug2, 50, Sex.FEMALE)!!
         assertTrue(quality.flags.isEmpty())
@@ -78,7 +78,7 @@ class SleepVitalsTest {
         val edges = HealthRecords(
             heartRate = listOf(hr("2026-08-01T23:00", 50), hr("2026-08-02T07:00", 90), hr("2026-08-02T12:00", 70)),
             sleep = records.sleep,
-            oxygen = listOf(spo2("2026-08-01T23:00", 91.0), spo2("2026-08-02T07:00", 80.0)),
+            oxygen = listOf(spo2("2026-08-01T23:00", 91.0), spo2("2026-08-02T07:00", 80.0))
         )
         val night = healthHistory(edges, aug2, aug2, STOCKHOLM).days.single()
         assertEquals(50L, night.sleepHeartRate)
@@ -101,7 +101,7 @@ class SleepVitalsTest {
     @Test fun `the longest session is the night, and every session is left out of the baseline`() {
         val split = HealthRecords(
             heartRate = listOf(hr("2026-08-02T00:30", 52), hr("2026-08-02T04:00", 64), hr("2026-08-02T12:00", 61)),
-            sleep = listOf(sleep("2026-08-02T00:00", "2026-08-02T01:00"), sleep("2026-08-02T02:00", "2026-08-02T07:00")),
+            sleep = listOf(sleep("2026-08-02T00:00", "2026-08-02T01:00"), sleep("2026-08-02T02:00", "2026-08-02T07:00"))
         )
         val night = healthHistory(split, aug2, aug2, STOCKHOLM).days.single()
         assertEquals("bara den längsta sessionens prov", 64L, night.sleepHeartRate)
@@ -111,7 +111,7 @@ class SleepVitalsTest {
     @Test fun `the baseline is shared by the nights of the period`() {
         val twoNights = records.copy(
             heartRate = records.heartRate + hr("2026-08-03T02:00", 58),
-            sleep = records.sleep + sleep("2026-08-02T23:00", "2026-08-03T07:00"),
+            sleep = records.sleep + sleep("2026-08-02T23:00", "2026-08-03T07:00")
         )
         val history = healthHistory(twoNights, aug2, aug3, STOCKHOLM)
         assertEquals(listOf(68L, 58L), history.days.map { it.sleepHeartRate })
@@ -157,7 +157,7 @@ class SleepVitalsTest {
         val nights = (0 until 365).map { i -> LocalDate.fromEpochDays(first.toEpochDays() + i) }
         val many = HealthRecords(
             heartRate = nights.map { date -> HeartRateSample("watch", at(date, "03:00"), 40L + date.toEpochDays() % 30) }.reversed(),
-            sleep = nights.map { date -> SleepSession("watch", at(date, "00:00") - 1.hours, at(date, "07:00")) },
+            sleep = nights.map { date -> SleepSession("watch", at(date, "00:00") - 1.hours, at(date, "07:00")) }
         )
         val history = healthHistory(many, nights.first(), nights.last(), STOCKHOLM)
         assertEquals(nights.map { 40L + it.toEpochDays() % 30 }, history.days.map { it.sleepHeartRate })

@@ -26,8 +26,7 @@ private val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
 
-private fun signingValue(key: String) =
-    localProps.getProperty("signing.$key") ?: providers.environmentVariable("SIGNING_${key.toScreamingSnake()}").orNull
+private fun signingValue(key: String) = localProps.getProperty("signing.$key") ?: providers.environmentVariable("SIGNING_${key.toScreamingSnake()}").orNull
 
 private fun String.toScreamingSnake() = replace(Regex("([a-z])([A-Z])"), "$1_$2").uppercase()
 

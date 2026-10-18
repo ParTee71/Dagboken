@@ -25,7 +25,7 @@ class SettingsRulesTest {
         val theme = auto(light = 7, dark = 21)
         assertEquals(
             (0..23).map { it < 7 || it >= 21 },
-            (0..23).map(theme::isDarkAt),
+            (0..23).map(theme::isDarkAt)
         )
     }
 
@@ -54,7 +54,7 @@ class SettingsRulesTest {
 
     private val options = listOf(
         Option("a", OptionKind.ACTIVITY, "Promenad"),
-        Option("b", OptionKind.ACTIVITY, "Yoga", archived = true),
+        Option("b", OptionKind.ACTIVITY, "Yoga", archived = true)
     )
 
     @Test fun `samma namn oavsett skiftläge och mellanslag är en dubblett`() {

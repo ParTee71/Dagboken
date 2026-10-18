@@ -31,6 +31,9 @@ kotlinxCollections       = "0.4.0"
 junit                    = "4.13.2"
 robolectric              = "4.17"
 roborazzi                = "1.76.0"
+spotless                 = "8.10.4"
+ktlint                   = "1.8.0"
+composeRules             = "0.6.8"
 konsist                  = "0.17.3"
 turbine                  = "1.2.1"
 androidxTestRunner       = "1.7.0"
@@ -94,6 +97,7 @@ robolectric                           = { group = "org.robolectric",            
 roborazzi                             = { group = "io.github.takahirom.roborazzi", name = "roborazzi",                       version.ref = "roborazzi" }
 roborazzi-compose                     = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose",               version.ref = "roborazzi" }
 roborazzi-junit-rule                  = { group = "io.github.takahirom.roborazzi", name = "roborazzi-junit-rule",            version.ref = "roborazzi" }
+compose-rules-ktlint                  = { group = "io.nlopez.compose.rules",     name = "ktlint",                            version.ref = "composeRules" }
 androidx-test-runner                  = { group = "androidx.test",               name = "runner",                            version.ref = "androidxTestRunner" }
 errorprone-annotations                = { group = "com.google.errorprone",       name = "error_prone_annotations",           version.ref = "errorProneAnnotations" }
 androidx-concurrent-futures           = { group = "androidx.concurrent",         name = "concurrent-futures",                version.ref = "concurrentFutures" }
@@ -113,3 +117,4 @@ ksp                  = { id = "com.google.devtools.ksp",                   versi
 hilt                 = { id = "com.google.dagger.hilt.android",            version.ref = "hilt" }
 google-services      = { id = "com.google.gms.google-services",            version.ref = "googleServices" }
 roborazzi            = { id = "io.github.takahirom.roborazzi",             version.ref = "roborazzi" }
+spotless             = { id = "com.diffplug.spotless",                     version.ref = "spotless" }

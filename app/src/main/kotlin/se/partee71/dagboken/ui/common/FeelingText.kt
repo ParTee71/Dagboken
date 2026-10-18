@@ -31,7 +31,7 @@ fun feelingsLabel(feeling: Feeling): String {
     val levels = listOfNotNull(
         feelingName(feeling.core),
         feeling.nuance?.let { feelingName(feeling.core, it) },
-        feeling.detail?.let { feelingName(feeling.core, feeling.nuance, it) },
+        feeling.detail?.let { feelingName(feeling.core, feeling.nuance, it) }
     )
     return levels.map { stringResource(it) }.joinToString(stringResource(R.string.feeling_separator))
 }
@@ -151,5 +151,5 @@ private val FEELING_NAMES: Map<String, Int> = mapOf(
     "scared.rejected.unwanted" to R.string.feeling_scared_rejected_unwanted,
     "scared.inferior" to R.string.feeling_scared_inferior,
     "scared.inferior.inadequate" to R.string.feeling_scared_inferior_inadequate,
-    "scared.inferior.small" to R.string.feeling_scared_inferior_small,
+    "scared.inferior.small" to R.string.feeling_scared_inferior_small
 )

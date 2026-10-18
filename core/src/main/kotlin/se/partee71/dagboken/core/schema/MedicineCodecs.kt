@@ -38,7 +38,7 @@ object PrescriptionCodec : DocCodec<Prescription> {
         BOOSTS to value.boosts.map(BoostCodec::encode),
         ACTIVE to value.active,
         CREATED_AT to value.createdAt,
-        NOTE to value.note,
+        NOTE to value.note
     )
 
     override fun decode(id: String, map: Doc) = Prescription(
@@ -56,7 +56,7 @@ object PrescriptionCodec : DocCodec<Prescription> {
         createdAt = map.instant(CREATED_AT),
         note = map.stringOrNull(NOTE),
         unknownSlots = map.unknownWires<Slot>(SLOTS),
-        unknownForm = map.unknownWire<MedicineForm>(FORM),
+        unknownForm = map.unknownWire<MedicineForm>(FORM)
     )
 }
 
@@ -68,10 +68,11 @@ object PrescriptionCodec : DocCodec<Prescription> {
 object ScheduleCodec : ValueCodec<Schedule> {
     override fun encode(value: Schedule): Any? = when (value) {
         is Schedule.Unknown -> value.raw
+
         is Schedule.Repeating -> mapOf(
             "repeat" to value.repeat.encodeWire(),
             "days" to value.days.encodeWeekdays(),
-            "intervalDays" to value.intervalDays,
+            "intervalDays" to value.intervalDays
         )
     }
 
@@ -96,7 +97,7 @@ object BoostCodec {
         "start" to value.start.encodeDate(),
         "end" to value.end.encodeDate(),
         "dose" to value.dose,
-        "unit" to value.unit,
+        "unit" to value.unit
     )
 
     fun decode(map: Doc) = Boost(
@@ -104,7 +105,7 @@ object BoostCodec {
         start = map.localDate("start"),
         end = map.localDate("end"),
         dose = map.string("dose"),
-        unit = map.string("unit"),
+        unit = map.string("unit")
     )
 }
 
@@ -122,7 +123,7 @@ object PrnMedicineCodec : DocCodec<PrnMedicine> {
         "dispensingTime" to value.dispensingTime,
         "maxPerDay" to value.maxPerDay,
         FAVORITE to value.favorite,
-        NOTE to value.note,
+        NOTE to value.note
     )
 
     override fun decode(id: String, map: Doc) = PrnMedicine(
@@ -138,7 +139,7 @@ object PrnMedicineCodec : DocCodec<PrnMedicine> {
         maxPerDay = map.int("maxPerDay"),
         favorite = map.bool(FAVORITE),
         note = map.stringOrNull(NOTE),
-        unknownForm = map.unknownWire<MedicineForm>(FORM),
+        unknownForm = map.unknownWire<MedicineForm>(FORM)
     )
 }
 
@@ -176,7 +177,7 @@ object DoseCodec : DocCodec<Dose> {
         PRESCRIPTION_ID to value.prescriptionId,
         "prnId" to value.prnId,
         CREATED_AT to value.createdAt,
-        NOTE to value.note,
+        NOTE to value.note
     )
 
     override fun decode(id: String, map: Doc) = Dose(
@@ -193,6 +194,6 @@ object DoseCodec : DocCodec<Dose> {
         prescriptionId = map.stringOrNull(PRESCRIPTION_ID),
         prnId = map.stringOrNull("prnId"),
         createdAt = map.instant(CREATED_AT),
-        note = map.stringOrNull(NOTE),
+        note = map.stringOrNull(NOTE)
     )
 }

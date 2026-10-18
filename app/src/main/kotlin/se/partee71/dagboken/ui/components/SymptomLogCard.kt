@@ -13,10 +13,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.common.nonBlank
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.core.model.somatic
+import se.partee71.dagboken.ui.common.nonBlank
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
 
@@ -36,7 +36,7 @@ fun SymptomLogCard(
     otherOptionId: String? = null,
     initiallyExpanded: Boolean = false,
     /** Summan som visas: postens `somatic` (med ett bevarat 3.x-värde, DAT-6); standard summan av [scores]. */
-    somatic: Int = scores.somatic,
+    somatic: Int = scores.somatic
 ) {
     var expanded by rememberSaveable { mutableStateOf(initiallyExpanded || scores.isNotEmpty()) }
     val sorted = remember(options) { options.sortedWith(compareByDescending<Option> { it.favorite }.thenBy { it.sortOrder }) }
@@ -66,7 +66,7 @@ fun SymptomLogCard(
                         // Utan poäng (från 3.x) visas 0 tills reglaget flyttas.
                         value = symptom.score ?: 0,
                         onValueChange = { update(symptom.copy(score = it)) },
-                        higherIsBetter = false,
+                        higherIsBetter = false
                     )
                 }
             }

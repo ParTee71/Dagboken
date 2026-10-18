@@ -39,9 +39,9 @@ import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
+import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
-import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
@@ -72,11 +72,11 @@ import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.medicines.MedicinesViewModel
-import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.SelectedDay
+import se.partee71.dagboken.ui.log.CooldownPrompt
+import se.partee71.dagboken.ui.medicines.MedicinesViewModel
 
 /**
  * Fliken Idag (HEM-4, HEM-5, HEM-7, HEM-10, HEM-12, HEM-13, HEM-14, HEM-18, HEM-19, SCR-1, SCR-6, MED-1–3, MED-5, MED-13, MED-14, FAV-2–6, FAV-8, FAV-11) mot
@@ -95,7 +95,13 @@ class TodayViewModelTest {
     private val doses = testDoses(factory, zone, clock)
 
     private val levaxin = Prescription(
-        "levaxin", "Levaxin", "100", "µg", listOf(Slot.MORNING, Slot.EVENING), Schedule.Repeating(), Period(LocalDate(2026, 1, 1)),
+        "levaxin",
+        "Levaxin",
+        "100",
+        "µg",
+        listOf(Slot.MORNING, Slot.EVENING),
+        Schedule.Repeating(),
+        Period(LocalDate(2026, 1, 1))
     )
     private val alvedon = PrnMedicine("alvedon", "Alvedon", "500", "mg", minHoursBetween = 4, maxPerDay = 3, favorite = true)
     private val imigran = PrnMedicine("imigran", "Imigran", "50", "mg", minHoursBetween = 0, maxPerDay = 1)
@@ -106,7 +112,7 @@ class TodayViewModelTest {
         prescriptions: PrescriptionRepository = testPrescriptions(factory, doses, zone, clock),
         screenings: ScreeningRepository = DefaultScreeningRepository(factory, clock),
         illnesses: IllnessRepository = DefaultIllnessRepository(factory, clock),
-        selectedDay: SelectedDay = SelectedDay(factory.scope),
+        selectedDay: SelectedDay = SelectedDay(factory.scope)
     ) = TodayViewModel(
         doses,
         prescriptions,
@@ -115,7 +121,7 @@ class TodayViewModelTest {
         DefaultSettingsRepository(factory),
         illnesses,
         selectedDay,
-        clock,
+        clock
     ) { zone }
 
     private suspend fun seed() {
@@ -381,8 +387,7 @@ class TodayViewModelTest {
     }
 
     /** Påminnelserna med [slot] kl. [time] (avslagna – klockslaget gäller doserna ändå, NOT-18). */
-    private fun ReminderSettings.withTime(slot: Slot, time: LocalTime) =
-        copy(medSlots = medSlots.map { if (it.slot == slot) it.copy(enabled = false, time = time) else it })
+    private fun ReminderSettings.withTime(slot: Slot, time: LocalTime) = copy(medSlots = medSlots.map { if (it.slot == slot) it.copy(enabled = false, time = time) else it })
 
     @Test
     fun `tidpunktens klockslag i Påminnelser gäller nya doser, förfallotid, Nästa dos och avbockning i efterhand (NOT-18, MED-4, MED-13, MED-14)`() = runTest(main.dispatcher) {
@@ -394,7 +399,7 @@ class TodayViewModelTest {
         assertEquals(LocalTime(13, 0), stored(evening())?.plannedTime)
         assertEquals(
             listOf(Triple(morning(), Due.LATE, LocalTime(6, 30)), Triple(evening(), Due.SOON, LocalTime(13, 0))),
-            vm.content.checklist.shown.map { Triple(it.dose.id, it.due, it.time) },
+            vm.content.checklist.shown.map { Triple(it.dose.id, it.due, it.time) }
         )
 
         // Kvällen flyttas till 20:00: den lagrade dosen skrivs inte om, men visas och förfaller enligt inställningen.
@@ -570,13 +575,13 @@ class TodayViewModelTest {
         factory.screenings().batch(
             listOf(
                 Screening("s1", yesterday, LocalTime(12, 0), Occasion.LUNCH, energy = 5),
-                Screening("s2", today, LocalTime(10, 0), Occasion.LUNCH, energy = 7),
-            ),
+                Screening("s2", today, LocalTime(10, 0), Occasion.LUNCH, energy = 7)
+            )
         ).getOrThrow()
         factory.doses().batch(
             listOf(morning(yesterday), evening(yesterday)).map { id ->
                 Dose(id, yesterday, Slot.MORNING, "Levaxin", status = DoseStatus.TAKEN, takenAt = at(yesterday, 8), prescriptionId = levaxin.id)
-            },
+            }
         ).getOrThrow()
         val vm = started(viewModel())
         assertNull(vm.content.dayDone)
@@ -613,7 +618,7 @@ class TodayViewModelTest {
         factory.doses().batch(
             listOf(morning(yesterday), evening(yesterday)).map { id ->
                 Dose(id, yesterday, Slot.MORNING, "Levaxin", status = DoseStatus.TAKEN, takenAt = at(yesterday, 8), prescriptionId = levaxin.id)
-            },
+            }
         ).getOrThrow()
         val vm = started(viewModel())
         vm.onEvent(TodayEvent.SelectDate(yesterday))
@@ -635,9 +640,9 @@ class TodayViewModelTest {
                 Occasion.BREAKFAST to OccasionStatus.LOGGED,
                 Occasion.LUNCH to OccasionStatus.SOON,
                 Occasion.DINNER to OccasionStatus.UPCOMING,
-                Occasion.BEDTIME to OccasionStatus.UPCOMING,
+                Occasion.BEDTIME to OccasionStatus.UPCOMING
             ),
-            vm.content.occasions.map { it.occasion to it.status },
+            vm.content.occasions.map { it.occasion to it.status }
         )
         assertEquals(6, vm.content.progress.total, "två doser och fyra tillfällen (HEM-18)")
 
@@ -724,7 +729,7 @@ class TodayViewModelTest {
             Screening("a", today, LocalTime(8, 0), Occasion.BREAKFAST, energy = 6),
             Screening("b", today, LocalTime(9, 0), Occasion.LUNCH, energy = 8),
             Screening("c", LocalDate(2026, 10, 1), LocalTime(8, 0), Occasion.BREAKFAST, energy = 3),
-            Screening("d", LocalDate(2026, 9, 27), LocalTime(8, 0), Occasion.BREAKFAST, energy = 9),
+            Screening("d", LocalDate(2026, 9, 27), LocalTime(8, 0), Occasion.BREAKFAST, energy = 9)
         )
         factory.screenings().batch(screenings).getOrThrow()
         val vm = started(viewModel())
@@ -736,7 +741,6 @@ class TodayViewModelTest {
         runCurrent()
         assertEquals(today, vm.content.energyDays.last())
     }
-
 
     @Test
     fun `episoderna går inte att läsa – Idag visas utan sjukdomskort (HEM-12)`() = runTest(main.dispatcher) {
@@ -962,7 +966,6 @@ class TodayViewModelTest {
     private suspend fun allOccasions() {
         factory.settings().upsert(Settings(reminders = ReminderSettings(screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = true) }))).getOrThrow()
     }
-
 
     private val denied: Flow<Nothing> = flow { throw DataError.PermissionDenied }
 

@@ -16,12 +16,12 @@ fun AppSegmentedChoice(
     options: List<String>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val colors = SegmentedButtonDefaults.colors(
         activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
         activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        inactiveContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+        inactiveContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f)
     )
     SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
         options.forEachIndexed { index, label ->
@@ -30,7 +30,7 @@ fun AppSegmentedChoice(
                 onClick = { onSelect(index) },
                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
                 colors = colors,
-                label = { Text(label, style = AppTypography.pill) },
+                label = { Text(label, style = AppTypography.pill) }
             )
         }
     }

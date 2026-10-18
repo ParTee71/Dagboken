@@ -17,7 +17,7 @@ data class SleepStages(
     val deep: Duration? = null,
     val rem: Duration? = null,
     val light: Duration? = null,
-    val awake: Duration? = null,
+    val awake: Duration? = null
 ) {
     val isEmpty: Boolean get() = deep == null && rem == null && light == null && awake == null
 }
@@ -50,7 +50,7 @@ data class DailyHealth(
     val exerciseDuration: Duration? = null,
     val activeEnergyKcal: Double? = null,
     val distanceMeters: Double? = null,
-    val oxygenSaturationAvg: Double? = null,
+    val oxygenSaturationAvg: Double? = null
 ) {
     /** Ingen mätning alls det här dygnet – en lucka i varje diagram. */
     val isEmpty: Boolean
@@ -81,7 +81,6 @@ data class HealthHistory(val days: List<DailyHealth> = emptyList()) {
          * Historiken för [from]…[to] ur [measured] (ett eller inget värde per datum): varje dygn får sin
          * mätning eller en tom post, i datumordning – samma form oavsett hur glest klockan mätt.
          */
-        fun of(from: LocalDate, to: LocalDate, measured: Map<LocalDate, DailyHealth>): HealthHistory =
-            HealthHistory(datesBetween(from, to).map { date -> measured[date]?.copy(date = date) ?: DailyHealth(date) })
+        fun of(from: LocalDate, to: LocalDate, measured: Map<LocalDate, DailyHealth>): HealthHistory = HealthHistory(datesBetween(from, to).map { date -> measured[date]?.copy(date = date) ?: DailyHealth(date) })
     }
 }

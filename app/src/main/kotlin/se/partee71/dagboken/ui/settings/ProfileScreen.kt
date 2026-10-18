@@ -63,9 +63,10 @@ sealed interface ProfileEvent {
 class ProfileEditViewModel @Inject constructor(
     private val settings: SettingsRepository,
     clock: Clock,
-    timeZone: TimeZone,
+    timeZone: TimeZone
 ) : ViewModel() {
     val editor: EditorState<ProfileForm> = EditorState(ProfileForm(), ProfileForm.validator(plausibleBirthYears(clock.todayIn(timeZone))), loading = true)
+
     // Det lagrade (loader.stored) är det sparningen jämför mot när bara skillnaden ska skrivas.
     private val loader = EditorLoader(editor, viewModelScope, read = { settings.get() }, project = { ProfileForm.of(it.profile) }, showInvalid = true)
 
@@ -75,10 +76,13 @@ class ProfileEditViewModel @Inject constructor(
         when (event) {
             is ProfileEvent.BirthYearChanged ->
                 editor.update(ProfileForm.BIRTH_YEAR) { it.copy(birthYear = event.text.filter(Char::isDigit).take(YEAR_DIGITS)) }
+
             is ProfileEvent.SexChanged -> editor.update { it.copy(sex = event.sex) }
+
             ProfileEvent.Save -> viewModelScope.launch {
                 editor.save { form -> difference.save { it.copy(profile = form.toProfile()) } }
             }
+
             ProfileEvent.Retry -> loader.retry()
         }
     }
@@ -106,7 +110,7 @@ fun ProfileScreen(state: EditorUiState<ProfileForm>, events: EditorEvents, onEve
         events = events,
         onSave = { onEvent(ProfileEvent.Save) },
         onClose = onClose,
-        onRetry = { onEvent(ProfileEvent.Retry) },
+        onRetry = { onEvent(ProfileEvent.Retry) }
     ) {
         AppTextField(
             state.value.birthYear,
@@ -114,7 +118,7 @@ fun ProfileScreen(state: EditorUiState<ProfileForm>, events: EditorEvents, onEve
             stringResource(R.string.profile_birth_year),
             error = state.errorFor(ProfileForm.BIRTH_YEAR)?.let { stringResource(it) },
             helper = stringResource(R.string.profile_birth_year_help),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
         LabeledGroup(stringResource(R.string.profile_sex)) {
             ChoiceChips(SEXES, state.value.sex, { onEvent(ProfileEvent.SexChanged(it)) }, label = { stringResource(it.label()) })

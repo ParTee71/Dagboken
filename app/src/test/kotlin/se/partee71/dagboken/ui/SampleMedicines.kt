@@ -13,7 +13,13 @@ object SampleMedicines {
 
     /** Grunddos 50 mg med en höjning på 25 mg 29 sep – 12 okt 2026 (REC-9, REC-12). */
     val sertralin = Prescription(
-        "s", "Sertralin", "50", "mg", listOf(Slot.MORNING), Schedule.Repeating(), Period(LocalDate(2026, 3, 1)),
-        boosts = listOf(Boost("b", LocalDate(2026, 9, 29), LocalDate(2026, 10, 12), "25", "mg")),
+        "s",
+        "Sertralin",
+        "50",
+        "mg",
+        listOf(Slot.MORNING),
+        Schedule.Repeating(),
+        Period(LocalDate(2026, 3, 1)),
+        boosts = listOf(Boost("b", LocalDate(2026, 9, 29), LocalDate(2026, 10, 12), "25", "mg"))
     )
 }

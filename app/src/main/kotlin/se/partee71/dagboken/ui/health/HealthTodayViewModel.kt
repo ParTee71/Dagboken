@@ -43,7 +43,7 @@ data class HealthTodayUiState(
     val day: DailyHealth? = null,
     val weekDays: ImmutableList<LocalDate> = persistentListOf(),
     val steps: ImmutableList<Float?>? = null,
-    val restingHeartRate: ImmutableList<Float?>? = null,
+    val restingHeartRate: ImmutableList<Float?>? = null
 )
 
 /**
@@ -60,7 +60,7 @@ class HealthTodayViewModel @Inject constructor(
     private val permissions: HealthPermissions,
     selectedDay: SelectedDay,
     clock: Clock,
-    zone: Provider<TimeZone>,
+    zone: Provider<TimeZone>
 ) : ViewModel() {
     private val time = HealthTime(clock, zone, viewModelScope)
 
@@ -82,6 +82,7 @@ class HealthTodayViewModel @Inject constructor(
     val state: StateFlow<HealthTodayUiState?> = health.observedStatus().flatMapLatest { status ->
         when (status) {
             null -> flowOf(null)
+
             HealthStatus.AVAILABLE -> combine(day, week) { (date, day), week ->
                 HealthTodayUiState(
                     status = status,
@@ -89,9 +90,10 @@ class HealthTodayViewModel @Inject constructor(
                     day = day,
                     weekDays = week.days.toImmutableList(),
                     steps = week.history?.let { trendOrNull(it.series { day -> day.steps })?.toImmutableList() },
-                    restingHeartRate = week.history?.let { trendOrNull(it.series { day -> day.restingHeartRate })?.toImmutableList() },
+                    restingHeartRate = week.history?.let { trendOrNull(it.series { day -> day.restingHeartRate })?.toImmutableList() }
                 )
             }
+
             else -> date.map { HealthTodayUiState(status, it) }
         }
     }.stateIn(viewModelScope, healthSharing, null)
@@ -100,5 +102,4 @@ class HealthTodayViewModel @Inject constructor(
 }
 
 /** Måtten med dagen de gäller: medan ett nytt dygn läses (`null`) gäller de den nya dagen. */
-private fun Flow<DailyHealth?>.combineDate(date: Flow<LocalDate>): Flow<Pair<LocalDate, DailyHealth?>> =
-    combine(date) { day, date -> date to day?.takeIf { it.date == date } }
+private fun Flow<DailyHealth?>.combineDate(date: Flow<LocalDate>): Flow<Pair<LocalDate, DailyHealth?>> = combine(date) { day, date -> date to day?.takeIf { it.date == date } }

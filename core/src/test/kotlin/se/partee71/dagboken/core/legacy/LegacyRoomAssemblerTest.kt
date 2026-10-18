@@ -21,8 +21,13 @@ class LegacyRoomAssemblerTest {
 
     /** Arvsfälten som v11 inte har (anteckningarna ligger i `notes`; receptets enda `tidpunkt` är v1) – de blir alltid tomma. */
     private val notInRoomV11 = setOf(
-        "MedicinJson.anteckning", "ReceptJson.anteckning", "ReceptJson.tidpunkt", "FavoritJson.anteckning",
-        "HandelseJson.anteckning", "SjukdomsEpisodJson.anteckning", "SjukdomsIncheckningJson.anteckning",
+        "MedicinJson.anteckning",
+        "ReceptJson.anteckning",
+        "ReceptJson.tidpunkt",
+        "FavoritJson.anteckning",
+        "HandelseJson.anteckning",
+        "SjukdomsEpisodJson.anteckning",
+        "SjukdomsIncheckningJson.anteckning"
     )
 
     @Test
@@ -60,8 +65,8 @@ class LegacyRoomAssemblerTest {
             emptyMap(),
             mapOf(
                 Prefs.AKTIVITET_OPTIONS to """["Promenad","Vila"]""",
-                Prefs.SYMPTOM_OPTIONS to """[{"name":"Yrsel","isFavorite":true,"framtida":1},{"name":"Övrigt"}]""",
-            ),
+                Prefs.SYMPTOM_OPTIONS to """[{"name":"Yrsel","isFavorite":true,"framtida":1},{"name":"Övrigt"}]"""
+            )
         )
         val backup = assembled.backup
         assertEquals(listOf(SymptomOptionBackup("Promenad"), SymptomOptionBackup("Vila")), backup.aktiviteterOptionsV2)
@@ -76,15 +81,15 @@ class LegacyRoomAssemblerTest {
         val assembled = LegacyRoomAssembler.assemble(
             mapOf(
                 LegacyRoomSchema.RECEPT to listOf(
-                    mapOf("id" to "r1", "tidpunkterJson" to "HEMLIGT-inte-json", "dagarJson" to "[1,", "dosperioderJson" to """[{"id":"b"}]"""),
-                ),
+                    mapOf("id" to "r1", "tidpunkterJson" to "HEMLIGT-inte-json", "dagarJson" to "[1,", "dosperioderJson" to """[{"id":"b"}]""")
+                )
             ),
             mapOf(
                 Prefs.AKTIVITET_OPTIONS to "HEMLIGT {",
                 Prefs.SCREENING_EVENT_CONFIGS to """[{"enabled":true}]""",
                 Prefs.MED_NOTIFICATION_CONFIGS to "[1,2]",
-                Prefs.THEME_LIGHT_START to "sju",
-            ),
+                Prefs.THEME_LIGHT_START to "sju"
+            )
         )
         val recept = assembled.backup.medicinRecipes.single()
         assertEquals(emptyList(), recept.tidpunkter)
@@ -97,10 +102,15 @@ class LegacyRoomAssemblerTest {
         // Alternativen läses före tabellerna; varje varning nämner nyckeln eller kolumnen, aldrig värdet.
         assertEquals(
             listOf(
-                Prefs.AKTIVITET_OPTIONS to "alternativlistan", "recept/r1" to "tidpunkterJson", "recept/r1" to "dagarJson", "recept/r1" to "dosperioderJson",
-                Prefs.SCREENING_EVENT_CONFIGS to "listan", Prefs.MED_NOTIFICATION_CONFIGS to "listan", Prefs.THEME_LIGHT_START to "annan typ",
+                Prefs.AKTIVITET_OPTIONS to "alternativlistan",
+                "recept/r1" to "tidpunkterJson",
+                "recept/r1" to "dagarJson",
+                "recept/r1" to "dosperioderJson",
+                Prefs.SCREENING_EVENT_CONFIGS to "listan",
+                Prefs.MED_NOTIFICATION_CONFIGS to "listan",
+                Prefs.THEME_LIGHT_START to "annan typ"
             ),
-            assembled.warnings.map { it.path to it.message.substringBefore(" går").substringBefore(" (").substringBefore(" än").substringAfter("avkoda ").substringAfter("har en ") },
+            assembled.warnings.map { it.path to it.message.substringBefore(" går").substringBefore(" (").substringBefore(" än").substringAfter("avkoda ").substringAfter("har en ") }
         )
         val rendered = assembled.warnings.joinToString()
         assertTrue("HEMLIGT" !in rendered && "sju" !in rendered, rendered)
@@ -112,10 +122,16 @@ class LegacyRoomAssemblerTest {
         val backup = assembled.backup
         assertEquals(
             SettingsBackup(
-                medsNotificationsEnabled = false, themeMode = "auto", themeLightStart = 7, themeDarkStart = 21,
-                isDarkTheme = true, dynamicColor = true, birthYear = null, sex = LegacyDefaults.SEX_UNSPECIFIED,
+                medsNotificationsEnabled = false,
+                themeMode = "auto",
+                themeLightStart = 7,
+                themeDarkStart = 21,
+                isDarkTheme = true,
+                dynamicColor = true,
+                birthYear = null,
+                sex = LegacyDefaults.SEX_UNSPECIFIED
             ),
-            backup.settings,
+            backup.settings
         )
         assertEquals("09:00", backup.periodReminderTime)
         assertNull(backup.sheetsConfig)
@@ -131,7 +147,7 @@ class LegacyRoomAssemblerTest {
     fun `ett blankt temaläge räknas som saknat med varning, och en talkolumn med fel typ läses som 0 med varning`() {
         val assembled = LegacyRoomAssembler.assemble(
             mapOf(LegacyRoomSchema.FAVORITER to listOf(mapOf("id" to "f1", "minTidMellan" to "sex", "isFavorite" to 1L))),
-            mapOf(Prefs.THEME_MODE to " "),
+            mapOf(Prefs.THEME_MODE to " ")
         )
         assertEquals(LegacyDefaults.THEME_MODE, assembled.backup.settings?.themeMode)
         assertEquals(0, assembled.backup.medicinFavoriter.single().minTidMellan)
@@ -139,7 +155,7 @@ class LegacyRoomAssemblerTest {
         // Raderna läses före inställningarna (argumentordningen i BackupJson).
         assertEquals(
             listOf("favoriter/f1" to "minTidMellan har en annan typ", Prefs.THEME_MODE to "tomt värde"),
-            assembled.warnings.map { it.path to it.message.substringBefore(" –").substringBefore(" än") },
+            assembled.warnings.map { it.path to it.message.substringBefore(" –").substringBefore(" än") }
         )
     }
 
@@ -147,7 +163,7 @@ class LegacyRoomAssemblerTest {
     fun `REAL i en talkolumn läses som 0 med varning, och en BLOB i en textkolumn som tom med varning`() {
         val assembled = LegacyRoomAssembler.assemble(
             mapOf(LegacyRoomSchema.FAVORITER to listOf(mapOf("id" to "f1", "namn" to byteArrayOf(1, 2, 3), "minTidMellan" to 3.5, "isFavorite" to 1L, "maxDoserPerDag" to 2L))),
-            emptyMap(),
+            emptyMap()
         )
         val favorite = assembled.backup.medicinFavoriter.single()
         assertEquals(0, favorite.minTidMellan)
@@ -155,7 +171,7 @@ class LegacyRoomAssemblerTest {
         assertEquals(2, favorite.maxDoserPerDag, "INTEGER läses som vanligt")
         assertEquals(
             listOf("favoriter/f1" to "namn är binär (BLOB)", "favoriter/f1" to "minTidMellan har en annan typ"),
-            assembled.warnings.map { it.path to it.message.substringBefore(" –").substringBefore(" än") },
+            assembled.warnings.map { it.path to it.message.substringBefore(" –").substringBefore(" än") }
         )
     }
 

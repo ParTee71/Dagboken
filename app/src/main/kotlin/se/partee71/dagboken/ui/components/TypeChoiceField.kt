@@ -25,7 +25,7 @@ fun TypeChoiceField(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
     error: String? = null,
-    otherLabel: String? = null,
+    otherLabel: String? = null
 ) {
     val more = choices.more.map { it.id to it.name } + listOfNotNull(choices.other?.let { it to otherLabel.orEmpty() })
     val favoriteNames = choices.favorites.associate { it.id to it.name }
@@ -33,7 +33,7 @@ fun TypeChoiceField(
         stringResource(R.string.entry_type),
         modifier,
         helper = if (choices.isEmpty) stringResource(R.string.entry_type_none) else null,
-        error = error,
+        error = error
     ) {
         if (favoriteNames.isNotEmpty()) ChoiceChips(favoriteNames.keys.toList(), selected, onSelect, label = { favoriteNames[it].orEmpty() })
         if (more.isNotEmpty()) {
@@ -44,7 +44,7 @@ fun TypeChoiceField(
                     shown = more.firstOrNull { it.first == selected }?.second.orEmpty(),
                     pickLabel = stringResource(R.string.entry_pick_type),
                     icon = R.drawable.ic_expand_more,
-                    onPick = { open = true },
+                    onPick = { open = true }
                 )
                 AppMenuPopup(more.map { (id, name) -> AppMenuItem(name, { onSelect(id) }) }, expanded = open, onDismiss = { open = false })
             }

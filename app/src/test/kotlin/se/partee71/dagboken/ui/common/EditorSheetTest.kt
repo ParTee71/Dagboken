@@ -48,7 +48,10 @@ class EditorSheetTest {
         sheet.open(Form("lagrad"), Form("lagrad"), "Kvällsmat")
         val open = sheet.shown
         assertFalse(open.editor.state.value.canSave)
-        sheet.save { loaded, value -> written += loaded to value; Result.success(Unit) }
+        sheet.save { loaded, value ->
+            written += loaded to value
+            Result.success(Unit)
+        }
         runCurrent()
         assertTrue(written.isEmpty(), "Spara är inte aktiv")
         sheet.update { it.copy(count = 2) }
@@ -72,7 +75,10 @@ class EditorSheetTest {
         sheet.update { it.copy(count = 1) }
         assertNull(open.error.value, "en ändring tar bort felet")
 
-        sheet.save { loaded, value -> written += loaded to value; Result.success(Unit) }
+        sheet.save { loaded, value ->
+            written += loaded to value
+            Result.success(Unit)
+        }
         runCurrent()
         sheet.assertClosing()
         assertEquals(1, saved)
@@ -118,14 +124,21 @@ class EditorSheetTest {
         var writes = 0
         sheet.open(null, Form("ny"), "")
         val open = sheet.shown
-        sheet.save { _, _ -> writes++; gate.await(); Result.success(Unit) }
+        sheet.save { _, _ ->
+            writes++
+            gate.await()
+            Result.success(Unit)
+        }
         // Utan runCurrent: läget är satt innan save() returnerar.
         assertTrue(open.editor.state.value.saving)
         assertFalse(open.canDismiss())
 
         sheet.close()
         sheet.update { it.copy(count = 9) }
-        sheet.save { _, _ -> writes++; Result.success(Unit) }
+        sheet.save { _, _ ->
+            writes++
+            Result.success(Unit)
+        }
         runCurrent()
         assertSame(open, sheet.current.value, "stängs inte under sparningen")
         assertEquals(Form("ny"), open.editor.value)

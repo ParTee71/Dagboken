@@ -1,11 +1,11 @@
 package se.partee71.dagboken.core.schema
 
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.time.Instant
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import se.partee71.dagboken.core.model.WireEnum
 
 /** Ett enum som i en modell, med lagrat namn; `spruta` finns bara i en "nyare app". */
@@ -19,7 +19,7 @@ class FieldsTest {
         "unit" to "kapsel", "futureUnit" to "spruta", "kotlinName" to "KAPSEL",
         "units" to listOf("st", "spruta", 3, "kapsel"), "date" to "2026-07-04", "badDate" to "4/7",
         "instant" to Instant.fromEpochSeconds(10), "list" to listOf("a", 1, "b", null),
-        "days" to listOf(1L, 7, 0, 8, "3"), "nested" to mapOf("x" to 1, 2 to "icke-sträng-nyckel"),
+        "days" to listOf(1L, 7, 0, 8, "3"), "nested" to mapOf("x" to 1, 2 to "icke-sträng-nyckel")
     )
 
     @Test

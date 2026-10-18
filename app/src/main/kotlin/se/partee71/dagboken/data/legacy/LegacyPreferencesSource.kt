@@ -28,7 +28,7 @@ interface LegacyPreferencesSource {
  */
 class LegacyPreferencesReader @Inject constructor(
     @ApplicationContext private val context: Context,
-    @IoDispatcher private val dispatcher: CoroutineDispatcher,
+    @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : LegacyPreferencesSource {
     override suspend fun read(): Map<String, Any?> = withContext(dispatcher) {
         val file = context.preferencesDataStoreFile(LegacyRoomSchema.PREFERENCES_NAME)

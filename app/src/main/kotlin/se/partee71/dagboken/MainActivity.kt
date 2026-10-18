@@ -36,7 +36,9 @@ class MainActivity : ComponentActivity() {
     private val theme: AppThemeViewModel by viewModels()
 
     @Inject lateinit var reminderSync: ReminderSync
+
     @Inject lateinit var notifications: NotificationHelper
+
     @Inject lateinit var healthPermissions: HealthPermissionsImpl
 
     /** Vad en tryckt påminnelse ska öppna (NOT-9, NOT-11, NOT-12) tills navigationen tagit hand om det. */

@@ -25,7 +25,7 @@ import se.partee71.dagboken.data.common.suspendRunCatching
 /** Credential Manager + Firebase Auth (skill firebase-auth). Loggar aldrig uid eller e-post. */
 @Singleton
 class GoogleAuthRepository @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext context: Context
 ) : AuthRepository {
     private val auth = FirebaseAuth.getInstance()
     private val credentials = CredentialManager.create(context)
@@ -59,5 +59,4 @@ class GoogleAuthRepository @Inject constructor(
     }
 }
 
-private fun FirebaseUser.toAuthUser() =
-    AuthUser(uid, displayName?.takeIf { it.isNotBlank() }, email?.takeIf { it.isNotBlank() }, photoUrl?.toString()?.takeIf { it.isNotBlank() })
+private fun FirebaseUser.toAuthUser() = AuthUser(uid, displayName?.takeIf { it.isNotBlank() }, email?.takeIf { it.isNotBlank() }, photoUrl?.toString()?.takeIf { it.isNotBlank() })

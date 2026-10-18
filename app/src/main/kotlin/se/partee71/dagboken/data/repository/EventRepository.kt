@@ -26,10 +26,10 @@ interface EventRepository : DatedRepository<Event> {
 /** Tunn fasad över samlingen `events` (skill firestore-data-layer). */
 class DefaultEventRepository private constructor(
     private val collection: EntityCollection<Event>,
-    private val clock: Clock,
-) : EventRepository, DatedRepository<Event> by DatedEntries(collection, EventCodec) {
+    private val clock: Clock
+) : EventRepository,
+    DatedRepository<Event> by DatedEntries(collection, EventCodec) {
     @Inject constructor(collections: CollectionFactory, clock: Clock) : this(collections.events(), clock)
 
-    override fun new(date: LocalDate, time: LocalTime): Event =
-        Event(collection.newId(), date = date, time = time, severity = EventRepository.DEFAULT_SEVERITY, createdAt = clock.now())
+    override fun new(date: LocalDate, time: LocalTime): Event = Event(collection.newId(), date = date, time = time, severity = EventRepository.DEFAULT_SEVERITY, createdAt = clock.now())
 }

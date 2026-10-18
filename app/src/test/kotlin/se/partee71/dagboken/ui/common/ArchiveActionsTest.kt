@@ -33,7 +33,7 @@ class ArchiveActionsTest {
             written += id to archived
             result
         },
-        undoFormat = undoFormat,
+        undoFormat = undoFormat
     )
 
     @Test

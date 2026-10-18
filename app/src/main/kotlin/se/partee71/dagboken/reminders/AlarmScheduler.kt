@@ -21,8 +21,8 @@ import se.partee71.dagboken.core.engine.nextAlarm
 import se.partee71.dagboken.core.engine.nextAlarmAt
 import se.partee71.dagboken.core.engine.reminderAlarms
 import se.partee71.dagboken.core.engine.restoredAlarms
-import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Occasion
+import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.data.auth.AuthRepository
 import se.partee71.dagboken.data.common.UserScope
@@ -43,7 +43,7 @@ enum class Rescheduled {
      * Efter en omstart, när inställningarna inte gick att läsa: systemet hade tömt larmen, så de senast schemalagda
      * tiderna lades om (`restoredAlarms`) tills inställningarna går att läsa.
      */
-    RESTORED,
+    RESTORED
 }
 
 /**
@@ -65,7 +65,7 @@ class AlarmScheduler @Inject constructor(
     /** Senast schemalagt och senast utlöst per påminnelse, enhetslokalt (NOT-14). */
     private val ledger: AlarmLedger,
     /** Enhetens tidszon, läst vid varje schemaläggning – en ny zon slår igenom vid nästa. */
-    private val zone: Provider<TimeZone>,
+    private val zone: Provider<TimeZone>
 ) {
     private val alarmManager: AlarmManager = checkNotNull(context.getSystemService(AlarmManager::class.java))
 
@@ -110,7 +110,9 @@ class AlarmScheduler @Inject constructor(
                 cancelAll()
                 return Rescheduled.SIGNED_OUT
             }
+
             Session.UNKNOWN -> null
+
             Session.SIGNED_IN -> readSettings()?.getOrNull()?.reminders
         }
         val exact = canScheduleExactAlarms()
@@ -144,7 +146,9 @@ class AlarmScheduler @Inject constructor(
         val fallback = lastKnownTime?.let { nextAlarmAt(reminder, it, now, zone.get()) }
         val next = when (session()) {
             Session.SIGNED_OUT -> null
+
             Session.UNKNOWN -> fallback
+
             // Lästa inställningar gäller – också när påminnelsen slagits av (inget nytt larm); bara utan svar används fallback.
             Session.SIGNED_IN -> when (val read = readSettings()) {
                 null -> fallback
@@ -177,7 +181,7 @@ class AlarmScheduler @Inject constructor(
             context,
             requestCode(alarm.reminder),
             intent(alarm.reminder).putExtra(ReminderIntents.EXTRA_TIME, alarm.time.toString()),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val at = alarm.at.toEpochMilliseconds()
         val exactSet = exact && try {
@@ -206,9 +210,11 @@ class AlarmScheduler @Inject constructor(
         is Reminder.Med -> Intent(context, MedAlarmReceiver::class.java)
             .setAction(ReminderIntents.ACTION_MED_ALARM)
             .putExtra(ReminderIntents.EXTRA_SLOT, reminder.slot.wire)
+
         is Reminder.Mood -> Intent(context, ScreeningReminderReceiver::class.java)
             .setAction(ReminderIntents.ACTION_MOOD_ALARM)
             .putExtra(ReminderIntents.EXTRA_OCCASION, reminder.occasion.wire)
+
         Reminder.PeriodEnd -> Intent(context, PeriodReminderReceiver::class.java).setAction(ReminderIntents.ACTION_PERIOD_ALARM)
     }
 

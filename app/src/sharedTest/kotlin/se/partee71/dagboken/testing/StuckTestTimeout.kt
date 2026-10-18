@@ -24,9 +24,8 @@ object StuckTestTimeout {
     /** Långt över vad ett test mot emulatorn tar (sekunder), kort mot CI-jobbets gräns. */
     const val DEFAULT_SECONDS = 60L
 
-    fun rule(seconds: Long = DEFAULT_SECONDS): Timeout =
-        Timeout.builder()
-            .withTimeout(seconds, TimeUnit.SECONDS)
-            .withLookingForStuckThread(true)
-            .build()
+    fun rule(seconds: Long = DEFAULT_SECONDS): Timeout = Timeout.builder()
+        .withTimeout(seconds, TimeUnit.SECONDS)
+        .withLookingForStuckThread(true)
+        .build()
 }

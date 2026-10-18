@@ -99,7 +99,7 @@ class PrescriptionFormTest {
             start = "2026-09-14",
             end = "2026-09-21",
             active = false,
-            boosts = listOf(boost("2026-09-16", "2026-09-18", "250"), boost("2026-09-19", null, "100"), boost(null, null, "5")),
+            boosts = listOf(boost("2026-09-16", "2026-09-18", "250"), boost("2026-09-19", null, "100"), boost(null, null, "5"))
         )
         val extended = ended.extendedFrom(day("2026-10-06"))
         assertEquals(Period(day("2026-10-06"), day("2026-10-13")), extended.period)

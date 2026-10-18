@@ -71,7 +71,7 @@ fun IllnessDetailScreen(
     onEvent: (IllnessDetailEvent) -> Unit,
     onBack: () -> Unit,
     onEdit: () -> Unit,
-    onCheckin: (checkinId: String?) -> Unit,
+    onCheckin: (checkinId: String?) -> Unit
 ) {
     val loaded = (state as? DetailUiState.Content)?.value
     val title = loaded?.summary?.episode?.title() ?: stringResource(R.string.log_illness)
@@ -87,7 +87,7 @@ fun IllnessDetailScreen(
         menu = { detail -> if (detail.deleting) emptyList() else listOf(AppMenuItem(delete, { onEvent(IllnessDetailEvent.Delete) }, R.drawable.ic_delete, destructive = true)) },
         onRetry = { onEvent(IllnessDetailEvent.Retry) },
         failure = failure,
-        onErrorShown = { onEvent(IllnessDetailEvent.ErrorShown) },
+        onErrorShown = { onEvent(IllnessDetailEvent.ErrorShown) }
     ) { detail ->
         val summary = detail.summary
         EpisodeCard(detail)
@@ -147,7 +147,7 @@ private fun CheckinCard(checkin: Checkin, detail: IllnessDetail, episodeTitle: S
         status = detail.summary.dayOf(checkin)?.let { day -> { InfoPill(stringResource(R.string.today_illness_day_format, day), tone = Tone.Warning) } },
         note = checkin.note.orEmpty(),
         onEdit = if (busy) null else ({ onCheckin(checkin.id) }),
-        delete = if (busy) null else entryDeleteAction(R.string.diary_subject_checkin, episodeTitle, checkin.date, checkin.time) { onEvent(IllnessDetailEvent.DeleteCheckin(checkin.id)) },
+        delete = if (busy) null else entryDeleteAction(R.string.diary_subject_checkin, episodeTitle, checkin.date, checkin.time) { onEvent(IllnessDetailEvent.DeleteCheckin(checkin.id)) }
     )
 }
 
@@ -170,15 +170,16 @@ private fun Prompt(prompt: IllnessPrompt?, detail: IllnessDetail, title: String,
             stringResource(R.string.illness_finish_message, title),
             stringResource(R.string.illness_finish_confirm),
             onConfirm = { onEvent(IllnessDetailEvent.ConfirmFinish) },
-            onDismiss = dismiss,
+            onDismiss = dismiss
         ) {
             DateField(
                 stringResource(R.string.prescription_end),
                 prompt.end,
                 { onEvent(IllnessDetailEvent.FinishDate(it)) },
-                error = prompt.error?.let { stringResource(it.message) },
+                error = prompt.error?.let { stringResource(it.message) }
             )
         }
+
         is IllnessPrompt.Delete -> {
             val episode = detail.summary.episode
             val subject = episode.start?.let { stringResource(R.string.illness_delete_subject_format, title, periodText(it, episode.end ?: detail.today)) } ?: title
@@ -193,9 +194,10 @@ private fun Prompt(prompt: IllnessPrompt?, detail: IllnessDetail, title: String,
                 stringResource(R.string.delete),
                 onConfirm = { onEvent(IllnessDetailEvent.ConfirmDelete) },
                 onDismiss = dismiss,
-                destructive = true,
+                destructive = true
             )
         }
+
         null -> Unit
     }
 }

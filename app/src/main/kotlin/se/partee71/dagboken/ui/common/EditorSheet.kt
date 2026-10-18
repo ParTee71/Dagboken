@@ -23,7 +23,7 @@ class EditorSheetState<T, C> internal constructor(
     val editor: EditorState<T>,
     val loaded: T?,
     val context: C,
-    scope: CoroutineScope,
+    scope: CoroutineScope
 ) {
     private val _error = MutableStateFlow<Failure?>(null)
     val error: StateFlow<Failure?> = _error.asStateFlow()

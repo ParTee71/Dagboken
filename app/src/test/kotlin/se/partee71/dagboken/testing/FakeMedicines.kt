@@ -17,7 +17,7 @@ class FakeMedicines(text: String = SAMPLE) : MedicineRepository {
             "Alvedon\t500 mg\tMunsönderfallande tablett",
             "Alvedon forte\t1 g\tFilmdragerad tablett",
             "Bricanyl Turbuhaler\t0,5 mg/dos\tInhalationspulver",
-            "Levaxin\t50 mikrogram\tTablett",
+            "Levaxin\t50 mikrogram\tTablett"
         ).joinToString("\n")
     }
 }

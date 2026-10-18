@@ -14,5 +14,4 @@ import se.partee71.dagboken.core.model.ReminderSettings
  * hoppas över (och tas igen i formuläret). En tagen dos och en vid behov-, extra- eller engångsdos behåller sitt lagrade
  * klockslag ([Dose.plannedTime]; en tagen visas med sin tagningstid, MED-14); saknas det gäller tidpunktens.
  */
-fun Dose.scheduledTime(reminders: ReminderSettings): LocalTime =
-    if (status != DoseStatus.TAKEN && isScheduledPrescription) reminders.timeOf(slot) else plannedTime ?: reminders.timeOf(slot)
+fun Dose.scheduledTime(reminders: ReminderSettings): LocalTime = if (status != DoseStatus.TAKEN && isScheduledPrescription) reminders.timeOf(slot) else plannedTime ?: reminders.timeOf(slot)

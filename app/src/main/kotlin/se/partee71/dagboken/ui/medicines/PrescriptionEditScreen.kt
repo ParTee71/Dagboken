@@ -1,7 +1,5 @@
 package se.partee71.dagboken.ui.medicines
 
-import se.partee71.dagboken.ui.components.MEDICINE_UNITS
-import se.partee71.dagboken.ui.components.UnitChoice
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -70,8 +68,8 @@ import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.medicines.MedicineRepository
-import se.partee71.dagboken.di.DefaultDispatcher
 import se.partee71.dagboken.data.repository.PrescriptionRepository
+import se.partee71.dagboken.di.DefaultDispatcher
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorLoader
@@ -95,9 +93,11 @@ import se.partee71.dagboken.ui.components.DateField
 import se.partee71.dagboken.ui.components.EntityEditScreen
 import se.partee71.dagboken.ui.components.FieldError
 import se.partee71.dagboken.ui.components.LabeledGroup
+import se.partee71.dagboken.ui.components.MEDICINE_UNITS
 import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.QuantityStepper
 import se.partee71.dagboken.ui.components.SwitchRow
+import se.partee71.dagboken.ui.components.UnitChoice
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
 
@@ -117,8 +117,7 @@ object PrescriptionField {
 }
 
 /** Ett nytt recept (REC-1, REC-4, REC-7): mg, Morgon, varje dag och tills vidare från [today] – alltid med start. */
-fun newPrescription(today: LocalDate) =
-    Prescription(id = "", unit = MEDICINE_UNITS.first(), slots = listOf(Slot.MORNING), schedule = Schedule.Repeating(), period = Period(today))
+fun newPrescription(today: LocalDate) = Prescription(id = "", unit = MEDICINE_UNITS.first(), slots = listOf(Slot.MORNING), schedule = Schedule.Repeating(), period = Period(today))
 
 /**
  * Namn och minst en tidpunkt krävs (REC-1, REC-6), Veckodagar kräver minst en dag (REC-3), och
@@ -225,7 +224,7 @@ class PrescriptionEditViewModel @AssistedInject constructor(
     clock: Clock,
     zone: Provider<TimeZone>,
     @Assisted private val id: String?,
-    @Assisted private val extend: Boolean,
+    @Assisted private val extend: Boolean
 ) : ViewModel() {
     /** Dagen formuläret räknar förval från – idag när det öppnades. */
     private val today: LocalDate = clock.todayIn(zone.get())
@@ -254,7 +253,7 @@ class PrescriptionEditViewModel @AssistedInject constructor(
         prepare = { stored -> stored.forForm().also { _periodChoice.value = it.period.choice() } },
         showInvalid = true,
         // Förlängningen görs efter varje läsning, också efter "Försök igen", som en ändring som kan sparas.
-        afterLoad = if (extend) ({ extendFromToday() }) else null,
+        afterLoad = if (extend) ({ extendFromToday() }) else null
     )
 
     /** Receptet som det är lagrat; `null` för ett nytt eller innan det lästs. */
@@ -278,43 +277,65 @@ class PrescriptionEditViewModel @AssistedInject constructor(
     fun onEvent(event: PrescriptionEditEvent) {
         when (event) {
             is PrescriptionEditEvent.NameChanged -> editor.update(PrescriptionField.NAME) { it.copy(name = event.name) }
+
             is PrescriptionEditEvent.StrengthChanged -> editor.update { it.copy(strength = event.strength) }
+
             // En okänd form från en nyare app ersätts först när användaren väljer en.
             is PrescriptionEditEvent.FormChosen -> editor.update { it.copy(form = event.form, unknownForm = null) }
+
             is PrescriptionEditEvent.MedicineChosen -> {
                 suggestions.pick(event.entry)
                 editor.update(PrescriptionField.NAME) { it.filledFrom(event.entry) }
             }
+
             is PrescriptionEditEvent.DoseChanged -> rules { it.copy(dose = event.dose) }
+
             // Höjningarna anges alltid i receptets enhet (REC-9).
             is PrescriptionEditEvent.UnitChanged -> editor.update { p -> p.copy(unit = event.unit, boosts = p.boosts.map { it.copy(unit = event.unit) }) }
+
             // Okända tidpunkter (eller Vid behov) visas inte och ändras aldrig härifrån – som en okänd upprepning.
             is PrescriptionEditEvent.SlotToggled -> editor.update(PrescriptionField.SLOTS) { p ->
                 if (p.hasUnknownSlots) p else p.copy(slots = if (event.slot in p.slots) p.slots - event.slot else p.slots + event.slot)
             }
+
             is PrescriptionEditEvent.RepeatChosen -> schedule { it.withChoice(event.choice) }
+
             is PrescriptionEditEvent.DayToggled -> schedule { s ->
                 val days = s.chosenDays()
                 s.withDays(if (event.day in days) days - event.day else days + event.day)
             }
+
             is PrescriptionEditEvent.IntervalChanged -> schedule { it.copy(intervalDays = event.days.coerceAtLeast(MIN_INTERVAL_DAYS)) }
+
             is PrescriptionEditEvent.StartChanged -> rules { p ->
                 p.copy(period = p.period.withStart(event.date, keepLength = _periodChoice.value == PeriodChoice.LENGTH))
             }
+
             is PrescriptionEditEvent.PeriodChosen -> {
                 _periodChoice.value = event.choice
                 rules { it.copy(period = it.period.withChoice(event.choice)) }
             }
+
             is PrescriptionEditEvent.LengthChanged -> rules { it.copy(period = it.period.withLength(event.days)) }
+
             is PrescriptionEditEvent.EndChanged -> rules { it.copy(period = it.period.copy(end = event.date)) }
+
             PrescriptionEditEvent.BoostAdded -> rules { p -> p.nextBoostDefaults(prescriptions.newId(), today)?.let { p.copy(boosts = p.boosts + it) } ?: p }
+
             is PrescriptionEditEvent.BoostRemoved -> rules { p -> p.copy(boosts = p.boosts.filterIndexed { i, _ -> i != event.index }) }
+
             is PrescriptionEditEvent.BoostDoseChanged -> boost(event.index) { it.copy(dose = event.dose) }
+
             is PrescriptionEditEvent.BoostStartChanged -> boost(event.index) { it.copy(start = event.date) }
+
             is PrescriptionEditEvent.BoostEndChanged -> boost(event.index) { it.copy(end = event.date) }
+
             is PrescriptionEditEvent.NoteChanged -> editor.update { it.copy(note = event.note.ifEmpty { null }) }
+
             is PrescriptionEditEvent.ActiveChanged -> editor.update { it.copy(active = event.active) }
+
             PrescriptionEditEvent.Save -> viewModelScope.launch { editor.save(::save) }
+
             PrescriptionEditEvent.Retry -> loader.retry()
         }
     }
@@ -329,19 +350,16 @@ class PrescriptionEditViewModel @AssistedInject constructor(
         editor.update(PrescriptionField.DOSE, PrescriptionField.PERIOD_END, *boosts.toTypedArray(), transform = transform)
     }
 
-    private fun boost(index: Int, transform: (Boost) -> Boost) =
-        rules { p -> p.copy(boosts = p.boosts.mapIndexed { i, b -> if (i == index) transform(b) else b }) }
+    private fun boost(index: Int, transform: (Boost) -> Boost) = rules { p -> p.copy(boosts = p.boosts.mapIndexed { i, b -> if (i == index) transform(b) else b }) }
 
     /** En okänd upprepning ([Schedule.Unknown]) har inga kontroller och ändras aldrig härifrån. */
-    private fun schedule(transform: (Schedule.Repeating) -> Schedule.Repeating) =
-        editor.update(PrescriptionField.DAYS) { p -> (p.schedule as? Schedule.Repeating)?.let { p.copy(schedule = transform(it)) } ?: p }
+    private fun schedule(transform: (Schedule.Repeating) -> Schedule.Repeating) = editor.update(PrescriptionField.DAYS) { p -> (p.schedule as? Schedule.Repeating)?.let { p.copy(schedule = transform(it)) } ?: p }
 
     /**
      * Ett lagrat recept som formuläret visar det: alltid ett startdatum (REC-4), och inga tidpunkter är
      * Morgon (MED-4) – utom när tidpunkterna inte kan visas ([Prescription.hasUnknownSlots]); då står de kvar.
      */
-    private fun Prescription.forForm(): Prescription =
-        withFormStart(today).let { if (it.hasUnknownSlots) it else it.copy(slots = slots.ifEmpty { listOf(Slot.MORNING) }) }
+    private fun Prescription.forForm(): Prescription = withFormStart(today).let { if (it.hasUnknownSlots) it else it.copy(slots = slots.ifEmpty { listOf(Slot.MORNING) }) }
 
     /** Nytt läggs till med sitt id; ett befintligt skriver bara det ändrade – aldrig ett nytt i stället för ett som inte gick att läsa. */
     private suspend fun save(prescription: Prescription): Result<Unit> {
@@ -350,7 +368,7 @@ class PrescriptionEditViewModel @AssistedInject constructor(
             strength = prescription.strength.trim(),
             dose = prescription.dose.trim(),
             note = prescription.note?.trim()?.takeIf { it.isNotEmpty() },
-            boosts = prescription.boosts.map { it.copy(dose = it.dose.trim()) },
+            boosts = prescription.boosts.map { it.copy(dose = it.dose.trim()) }
         )
         if (newId != null) return prescriptions.save(null, trimmed.copy(id = newId, createdAt = createdAt))
         val loaded = stored.value ?: return Result.failure(DataError.NotFound)
@@ -389,7 +407,7 @@ fun PrescriptionEditScreen(
     events: EditorEvents,
     onEvent: (PrescriptionEditEvent) -> Unit,
     onClose: () -> Unit,
-    matches: List<MedicineMatch> = emptyList(),
+    matches: List<MedicineMatch> = emptyList()
 ) {
     val p = state.value
     val errors: Map<String, String> = state.errors.mapValues { (_, message) -> stringResource(message) }
@@ -400,7 +418,7 @@ fun PrescriptionEditScreen(
         events = events,
         onSave = { onEvent(PrescriptionEditEvent.Save) },
         onClose = onClose,
-        onRetry = { onEvent(PrescriptionEditEvent.Retry) },
+        onRetry = { onEvent(PrescriptionEditEvent.Retry) }
     ) {
         MedicineFields(
             name = p.name,
@@ -412,7 +430,7 @@ fun PrescriptionEditScreen(
             onName = { onEvent(PrescriptionEditEvent.NameChanged(it)) },
             onPick = { onEvent(PrescriptionEditEvent.MedicineChosen(it)) },
             onStrength = { onEvent(PrescriptionEditEvent.StrengthChanged(it)) },
-            onForm = { onEvent(PrescriptionEditEvent.FormChosen(it)) },
+            onForm = { onEvent(PrescriptionEditEvent.FormChosen(it)) }
         )
         AppTextField(p.dose, { onEvent(PrescriptionEditEvent.DoseChanged(it)) }, stringResource(R.string.medicine_dose_label), error = error(PrescriptionField.DOSE))
         UnitChoice(p.unit, { onEvent(PrescriptionEditEvent.UnitChanged(it)) })
@@ -426,7 +444,7 @@ fun PrescriptionEditScreen(
                 stringResource(R.string.prescription_active),
                 p.active,
                 { onEvent(PrescriptionEditEvent.ActiveChanged(it)) },
-                subtitle = stringResource(R.string.prescription_active_help),
+                subtitle = stringResource(R.string.prescription_active_help)
             )
         }
     }
@@ -469,9 +487,11 @@ private fun RepeatSection(p: Prescription, daysError: String?, onEvent: (Prescri
     val start = p.period.start
     val helper = when (choice) {
         RepeatChoice.EVERY_DAY -> stringResource(R.string.prescription_repeat_every_day_help)
+
         RepeatChoice.WEEKDAYS -> schedule.chosenDays().let { days ->
             if (days.isEmpty()) stringResource(R.string.prescription_days_help) else stringResource(R.string.prescription_days_chosen_help, weekdaysText(days))
         }
+
         RepeatChoice.INTERVAL -> start?.let {
             stringResource(R.string.prescription_interval_help, DateFormat.short(it), datesText(intervalDaysFrom(it, schedule.intervalDays)))
         }
@@ -482,6 +502,7 @@ private fun RepeatSection(p: Prescription, daysError: String?, onEvent: (Prescri
         AppSegmentedChoice(labels, choices.indexOf(choice), { onEvent(PrescriptionEditEvent.RepeatChosen(choices[it])) })
         when (choice) {
             RepeatChoice.EVERY_DAY -> Unit
+
             RepeatChoice.WEEKDAYS -> ChipRow {
                 val chosen = schedule.chosenDays()
                 DayOfWeek.entries.forEach { day ->
@@ -491,16 +512,17 @@ private fun RepeatSection(p: Prescription, daysError: String?, onEvent: (Prescri
                         selected = day in chosen,
                         onClick = { onEvent(PrescriptionEditEvent.DayToggled(day)) },
                         // TalkBack läser hela namnet ("måndag"), inte förkortningen.
-                        modifier = Modifier.semantics { contentDescription = name },
+                        modifier = Modifier.semantics { contentDescription = name }
                     )
                 }
             }
+
             RepeatChoice.INTERVAL -> QuantityStepper(
                 schedule.intervalDays,
                 { onEvent(PrescriptionEditEvent.IntervalChanged(it)) },
                 stringResource(R.string.prescription_interval_label),
                 range = MIN_INTERVAL_DAYS..maxOf(MAX_INTERVAL_DAYS, schedule.intervalDays),
-                valueText = { days -> repeatText(Schedule.Repeating(Repeat.INTERVAL, intervalDays = days)).replaceFirstChar { it.titlecase() } },
+                valueText = { days -> repeatText(Schedule.Repeating(Repeat.INTERVAL, intervalDays = days)).replaceFirstChar { it.titlecase() } }
             )
         }
     }
@@ -524,6 +546,7 @@ private fun PeriodSection(period: Period, choice: PeriodChoice, endError: String
         AppSegmentedChoice(labels, choices.indexOf(choice), { onEvent(PrescriptionEditEvent.PeriodChosen(choices[it])) })
         when (choice) {
             PeriodChoice.UNTIL_FURTHER_NOTICE -> Unit
+
             PeriodChoice.LENGTH -> {
                 val days = (length ?: 1).coerceAtLeast(1)
                 QuantityStepper(
@@ -531,9 +554,10 @@ private fun PeriodSection(period: Period, choice: PeriodChoice, endError: String
                     { onEvent(PrescriptionEditEvent.LengthChanged(it)) },
                     stringResource(R.string.prescription_length_label),
                     range = 1..maxOf(MAX_PERIOD_DAYS, days),
-                    valueText = { pluralStringResource(R.plurals.prescription_days_count, it, it) },
+                    valueText = { pluralStringResource(R.plurals.prescription_days_count, it, it) }
                 )
             }
+
             PeriodChoice.END_DATE -> DateField(stringResource(R.string.prescription_end), end, { onEvent(PrescriptionEditEvent.EndChanged(it)) }, error = endError)
         }
     }
@@ -552,7 +576,7 @@ private fun BoostsSection(p: Prescription, canAdd: Boolean, errorAt: (Int) -> Pa
             { onEvent(PrescriptionEditEvent.BoostAdded) },
             variant = ButtonVariant.Text,
             icon = R.drawable.ic_add,
-            enabled = canAdd,
+            enabled = canAdd
         )
     }
 }
@@ -578,7 +602,7 @@ private fun BoostCard(p: Prescription, index: Int, boost: Boost, doseError: Stri
                     doseLabel,
                     Modifier.weight(1f).semantics { contentDescription = doseDescription },
                     error = doseError,
-                    suffix = p.unit.ifBlank { null },
+                    suffix = p.unit.ifBlank { null }
                 )
                 AppIconButton(R.drawable.ic_delete, stringResource(R.string.prescription_boost_remove_format, index + 1), { onEvent(PrescriptionEditEvent.BoostRemoved(index)) })
             }
@@ -593,7 +617,7 @@ private fun BoostCard(p: Prescription, index: Int, boost: Boost, doseError: Stri
                 { onEvent(PrescriptionEditEvent.BoostEndChanged(index, it)) },
                 emptyLabel = untilPeriodEnd,
                 onClear = { onEvent(PrescriptionEditEvent.BoostEndChanged(index, null)) },
-                context = which,
+                context = which
             )
             datesError?.let { FieldError(it) }
         }

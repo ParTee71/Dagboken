@@ -29,8 +29,7 @@ interface DayMarks {
 
 /** [DayMarks] i 4.0:s egen DataStore-fil (`dagboken_device`), som överlever processdöd. */
 class DataStoreDayMarks @Inject constructor(private val store: DataStore<Preferences>) : DayMarks {
-    override suspend fun get(key: String): LocalDate? =
-        store.data.first()[preference(key)]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    override suspend fun get(key: String): LocalDate? = store.data.first()[preference(key)]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
 
     override suspend fun set(key: String, day: LocalDate) {
         store.edit { it[preference(key)] = day.toString() }

@@ -32,7 +32,7 @@ data class Dose(
     /** Anteckningen (DAT-7). */
     val note: String? = null,
     /** Styrkan (`"500 mg"`), kopierad med namnet; tom = ej angiven, som alla doser från 3.x. */
-    val strength: String = "",
+    val strength: String = ""
 ) : Identified {
     /** "Alvedon 500 mg" – namn och styrka, tomma delar utelämnade. */
     val displayName: String get() = medicineTitle(name, strength)
@@ -42,7 +42,7 @@ data class Dose(
 enum class DoseStatus(override val wire: String) : WireEnum {
     PLANNED("planned"),
     TAKEN("taken"),
-    SKIPPED("skipped"),
+    SKIPPED("skipped")
 }
 
 /** Dokument-id för doser (DAT-8). */

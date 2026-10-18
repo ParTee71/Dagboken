@@ -23,17 +23,16 @@ sealed interface UserStatus {
  */
 class EnsureUserUseCase @Inject constructor(
     private val directory: UserDirectory,
-    private val clock: Clock,
+    private val clock: Clock
 ) {
-    suspend operator fun invoke(uid: String): Result<UserStatus> =
-        suspendRunCatching({ DataError.Unknown }) {
-            val stored = directory.createIfMissing(uid, initialDocument(clock.now())).getOrThrow()
-            if (Schema.isNewerThanApp(Schema.versionOf(stored[SCHEMA_VERSION]))) {
-                UserStatus.RequiresUpdate(uid)
-            } else {
-                UserStatus.Ready(uid)
-            }
+    suspend operator fun invoke(uid: String): Result<UserStatus> = suspendRunCatching({ DataError.Unknown }) {
+        val stored = directory.createIfMissing(uid, initialDocument(clock.now())).getOrThrow()
+        if (Schema.isNewerThanApp(Schema.versionOf(stored[SCHEMA_VERSION]))) {
+            UserStatus.RequiresUpdate(uid)
+        } else {
+            UserStatus.Ready(uid)
         }
+    }
 
     companion object {
         const val SCHEMA_VERSION = "schemaVersion"

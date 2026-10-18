@@ -53,7 +53,7 @@ fun DagbokenCalendar(
     onDateClick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     today: LocalDate? = null,
-    dimFuture: Boolean = false,
+    dimFuture: Boolean = false
 ) {
     val first = remember(month) { LocalDate(month.year, month.month, 1) }
     val weeks = remember(first) { monthGrid(first) }
@@ -65,7 +65,7 @@ fun DagbokenCalendar(
                 style = AppTypography.sectionTitle,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f).semantics { heading() },
+                modifier = Modifier.weight(1f).semantics { heading() }
             )
             AppIconButton(R.drawable.ic_chevron_right, stringResource(R.string.calendar_next_month), { onMonthChange(first.plus(ONE_MONTH)) })
         }
@@ -76,7 +76,7 @@ fun DagbokenCalendar(
                     style = AppTypography.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -102,7 +102,7 @@ private fun DayCell(day: LocalDate, hasEntries: Boolean, selected: Boolean, isTo
     val description = listOfNotNull(
         DateFormat.display(day),
         stringResource(R.string.date_strip_today).takeIf { isToday },
-        stringResource(R.string.calendar_has_entries).takeIf { hasEntries },
+        stringResource(R.string.calendar_has_entries).takeIf { hasEntries }
     ).joinToString(", ")
     // Tryckytan är hela cellen (kolumnens bredd × 48 dp). I en smal kolumn (under 48 dp, t.ex. på
     // 360 dp breda skärmar) utvidgar Compose tryckytan till 48 dp åt sidorna (NFR-14).
@@ -116,7 +116,7 @@ private fun DayCell(day: LocalDate, hasEntries: Boolean, selected: Boolean, isTo
                 this.selected = selected
             }
             .inactive(future),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         Column(
             Modifier
@@ -124,7 +124,7 @@ private fun DayCell(day: LocalDate, hasEntries: Boolean, selected: Boolean, isTo
                 .clip(AppShapes.row)
                 .then(if (selected) Modifier.background(colors.primary) else Modifier),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(DAY_MARKER_GAP, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(DAY_MARKER_GAP, Alignment.CenterVertically)
         ) {
             Text(day.day.toString(), style = AppTypography.body, color = if (selected) colors.onPrimary else colors.onSurface)
             DayMarkerDot(isToday, hasEntries, selected)

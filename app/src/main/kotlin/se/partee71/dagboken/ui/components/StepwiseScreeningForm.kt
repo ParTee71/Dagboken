@@ -67,7 +67,7 @@ fun StepwiseScreeningForm(
     /** Summan som visas under symptomen ([SymptomLogCard]); standard summan av [symptoms]. */
     somatic: Int = symptoms.somatic,
     state: StepwiseScreeningState = rememberStepwiseScreeningState(symptomOptions),
-    navigation: Boolean = true,
+    navigation: Boolean = true
 ) {
     val steps = state.steps
     val pager = state.pager
@@ -75,7 +75,7 @@ fun StepwiseScreeningForm(
         Text(
             stringResource(R.string.step_format, pager.currentPage + 1, steps.size),
             style = AppTypography.caption,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         HorizontalPager(pager, Modifier.fillMaxWidth(), pageSpacing = Spacing.l, verticalAlignment = Alignment.Top) { page ->
             when (steps.getOrNull(page)) {
@@ -106,8 +106,7 @@ class StepwiseScreeningState internal constructor(internal val pager: PagerState
 }
 
 /** Stegen för ett formulär [withSymptoms] eller utan symptomsteget – energi, känslor, stress och sist symptomen. */
-internal fun screeningSteps(withSymptoms: Boolean): List<ScreeningStep> =
-    ScreeningStep.entries.filter { withSymptoms || it != ScreeningStep.SYMPTOMS }
+internal fun screeningSteps(withSymptoms: Boolean): List<ScreeningStep> = ScreeningStep.entries.filter { withSymptoms || it != ScreeningStep.SYMPTOMS }
 
 /**
  * Steglistan läses om vid varje komposition: laddas symptomlistan sent (3 → 4 steg) står formuläret kvar på steget
@@ -116,7 +115,7 @@ internal fun screeningSteps(withSymptoms: Boolean): List<ScreeningStep> =
 @Composable
 internal fun rememberStepwiseScreeningState(
     symptomOptions: List<Option>,
-    initialStep: ScreeningStep = ScreeningStep.ENERGY,
+    initialStep: ScreeningStep = ScreeningStep.ENERGY
 ): StepwiseScreeningState {
     val steps by rememberUpdatedState(screeningSteps(symptomOptions.isNotEmpty()))
     val pager = rememberPagerState(initialPage = steps.indexOf(initialStep).coerceAtLeast(0), pageCount = { steps.size })
@@ -128,7 +127,10 @@ internal fun rememberStepwiseScreeningState(
 internal fun RowScope.StepwiseScreeningNavigation(state: StepwiseScreeningState, onSave: () -> Unit, saveEnabled: Boolean = true, saving: Boolean = false) {
     val pager = state.pager
     val scope = rememberCoroutineScope()
-    val go = { page: Int -> scope.launch { pager.animateScrollToPage(page) }; Unit }
+    val go = { page: Int ->
+        scope.launch { pager.animateScrollToPage(page) }
+        Unit
+    }
     if (pager.currentPage > 0) AppButton(stringResource(R.string.previous), { go(pager.currentPage - 1) }, variant = ButtonVariant.Text)
     Spacer(Modifier.weight(1f))
     if (pager.currentPage < state.steps.lastIndex) {

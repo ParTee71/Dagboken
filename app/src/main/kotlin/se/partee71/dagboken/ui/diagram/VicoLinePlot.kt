@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.diagram
 
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
@@ -7,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.Dp
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.Zoom
@@ -51,7 +51,7 @@ internal data class PlotStyle(
     val area: Boolean = false,
     val points: Boolean = false,
     /** x för dagens punkt (solgul med ring, HEM-7); `null` = ingen. */
-    val highlightX: Int? = null,
+    val highlightX: Int? = null
 )
 
 /** En kurva i diagrammet: x-värden (index), y-värden och stil. */
@@ -60,8 +60,7 @@ internal data class PlotLine(val xs: List<Int>, val ys: List<Float>, val style: 
 
 internal fun GapFreeRun.toPlotLine(style: PlotStyle) = PlotLine(xs, values, style)
 
-internal fun TrendSegment.toPlotLine(color: Color) =
-    PlotLine(listOf(startX, endX), listOf(startY, endY), PlotStyle(color, dashed = true))
+internal fun TrendSegment.toPlotLine(color: Color) = PlotLine(listOf(startX, endX), listOf(startY, endY), PlotStyle(color, dashed = true))
 
 /**
  * Ritar [lines] på y-axeln [axis] (heltal, TRD-7) över [xCount] x-positioner med glesa
@@ -76,7 +75,7 @@ internal fun VicoLinePlot(
     xLabels: List<String>,
     height: Dp,
     zoomable: Boolean,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val colors = chartColors
     val model = remember(lines) {
@@ -90,9 +89,9 @@ internal fun VicoLinePlot(
                 minX = 0.0,
                 maxX = (xCount - 1).coerceAtLeast(1).toDouble(),
                 minY = axis.range.start.toDouble(),
-                maxY = axis.range.endInclusive.toDouble(),
+                maxY = axis.range.endInclusive.toDouble()
             )
-        },
+        }
     )
     val label = rememberTextComponent(style = chartLabelStyle, margins = Insets(AXIS_LABEL_GAP))
     val yFormatter = remember { CartesianValueFormatter { _, value, _ -> formatChartValue(value.toFloat()) } }
@@ -107,7 +106,7 @@ internal fun VicoLinePlot(
             valueFormatter = yFormatter,
             tick = null,
             guideline = rememberAxisGuidelineComponent(fill = Fill(colors.grid), thickness = GRID_WIDTH),
-            itemPlacer = remember(axis.step) { VerticalAxis.ItemPlacer.step(step = { axis.step.toDouble() }) },
+            itemPlacer = remember(axis.step) { VerticalAxis.ItemPlacer.step(step = { axis.step.toDouble() }) }
         ),
         bottomAxis = HorizontalAxis.rememberBottom(
             line = rememberAxisLineComponent(fill = Fill(colors.axis), thickness = GRID_WIDTH),
@@ -115,11 +114,11 @@ internal fun VicoLinePlot(
             valueFormatter = xFormatter,
             tick = null,
             guideline = null,
-            itemPlacer = remember(xCount) { HorizontalAxis.ItemPlacer.aligned(spacing = { xLabelStep(xCount) }) },
+            itemPlacer = remember(xCount) { HorizontalAxis.ItemPlacer.aligned(spacing = { xLabelStep(xCount) }) }
         ),
         layerPadding = remember { { CartesianLayerPadding(unscalableStart = EDGE_PADDING, unscalableEnd = EDGE_PADDING) } },
         // Ett steg per dag även när luckor gör att de kända x-värdena ligger glesare.
-        getXStep = ONE_DAY_X_STEP,
+        getXStep = ONE_DAY_X_STEP
     )
     CartesianChartHost(
         chart = chart,
@@ -127,7 +126,7 @@ internal fun VicoLinePlot(
         modifier = modifier,
         scrollState = rememberVicoScrollState(scrollEnabled = zoomable),
         zoomState = rememberVicoZoomState(zoomEnabled = zoomable, initialZoom = remember { Zoom.Content }),
-        chartAreaHeight = height,
+        chartAreaHeight = height
     )
 }
 
@@ -140,7 +139,7 @@ private fun PlotStyle.toVicoLine(colors: ChartColors, axis: SmartYAxis): LineCar
     val areaFill = if (area) {
         LineCartesianLayer.AreaFill.single(
             fill = Fill(Brush.verticalGradient(listOf(color.copy(alpha = colors.fillTop.alpha), Color.Transparent))),
-            splitY = { axis.range.start },
+            splitY = { axis.range.start }
         )
     } else {
         null
@@ -151,10 +150,10 @@ private fun PlotStyle.toVicoLine(colors: ChartColors, axis: SmartYAxis): LineCar
             highlight = highlightX?.let {
                 LineCartesianLayer.Point(
                     ShapeComponent(fill = Fill(colors.today), shape = CircleShape, strokeFill = Fill(colors.todayRing), strokeThickness = TODAY_RING_WIDTH),
-                    TODAY_POINT_SIZE,
+                    TODAY_POINT_SIZE
                 )
             },
-            highlightX = highlightX,
+            highlightX = highlightX
         )
     } else {
         null
@@ -164,7 +163,7 @@ private fun PlotStyle.toVicoLine(colors: ChartColors, axis: SmartYAxis): LineCar
         stroke = stroke,
         areaFill = areaFill,
         pointProvider = pointProvider,
-        interpolator = if (dashed) LineCartesianLayer.Interpolator.Sharp else LineCartesianLayer.Interpolator.cubic(),
+        interpolator = if (dashed) LineCartesianLayer.Interpolator.Sharp else LineCartesianLayer.Interpolator.cubic()
     )
 }
 
@@ -175,10 +174,9 @@ private val ONE_DAY_X_STEP: (CartesianChartModel, Double, Double) -> Double = { 
 private data class HighlightPoints(
     private val normal: LineCartesianLayer.Point,
     private val highlight: LineCartesianLayer.Point?,
-    private val highlightX: Int?,
+    private val highlightX: Int?
 ) : LineCartesianLayer.PointProvider {
-    override fun getPoint(entry: LineCartesianLayerModel.Entry, extraStore: ExtraStore): LineCartesianLayer.Point =
-        if (highlight != null && entry.x.roundToInt() == highlightX) highlight else normal
+    override fun getPoint(entry: LineCartesianLayerModel.Entry, extraStore: ExtraStore): LineCartesianLayer.Point = if (highlight != null && entry.x.roundToInt() == highlightX) highlight else normal
 
     override fun getLargestPoint(extraStore: ExtraStore): LineCartesianLayer.Point = highlight ?: normal
 }

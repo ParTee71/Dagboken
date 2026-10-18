@@ -12,7 +12,7 @@ data class Settings(
     val theme: ThemeSettings = ThemeSettings(),
     val reminders: ReminderSettings = ReminderSettings(),
     val profile: Profile = Profile(),
-    val legacy: LegacySettings = LegacySettings(),
+    val legacy: LegacySettings = LegacySettings()
 ) : Identified {
     companion object {
         /** Dokumentets enda tillåtna id (även i `firestore.rules`). */
@@ -29,13 +29,13 @@ data class ThemeSettings(
     /** Timme (0–23) då auto byter till mörkt. */
     val darkStartHour: Int = 21,
     /** 3.x-reglaget för mörkt tema; bevaras även om 4.0 bara läser [mode]. */
-    val isDarkTheme: Boolean = true,
+    val isDarkTheme: Boolean = true
 )
 
 enum class ThemeMode(override val wire: String) : WireEnum {
     LIGHT("light"),
     DARK("dark"),
-    AUTO("auto"),
+    AUTO("auto")
 }
 
 /** Påminnelser (NOT-2, NOT-4, NOT-13, NOT-18). */
@@ -47,7 +47,7 @@ data class ReminderSettings(
     /** En rad per måendetillfälle ([Occasion]), alltid i den ordningen. */
     val screeningOccasions: List<OccasionReminder> = Occasion.entries.map { OccasionReminder(it) },
     /** Klockslaget för periodslutspåminnelsen (NOT-12). */
-    val periodReminderTime: LocalTime = LocalTime(9, 0),
+    val periodReminderTime: LocalTime = LocalTime(9, 0)
 ) {
     /**
      * NOT-18, REC-6: tidpunktens klockslag – det i [medSlots] (den första raden för tidpunkten, som larmen), också när
@@ -61,27 +61,27 @@ data class ReminderSettings(
 data class SlotReminder(
     val slot: Slot,
     val enabled: Boolean = true,
-    val time: LocalTime = slot.defaultTime,
+    val time: LocalTime = slot.defaultTime
 )
 
 /** Måendepåminnelse för ett tillfälle: på/av och klockslag (NOT-4). */
 data class OccasionReminder(
     val occasion: Occasion,
     val enabled: Boolean = false,
-    val time: LocalTime = occasion.defaultTime,
+    val time: LocalTime = occasion.defaultTime
 )
 
 /** Profil för sömnkvalitetens åldersnormer (HLS-11). */
 data class Profile(
     /** Födelseår; `null` = inte angivet. */
     val birthYear: Int? = null,
-    val sex: Sex = Sex.UNSPECIFIED,
+    val sex: Sex = Sex.UNSPECIFIED
 )
 
 enum class Sex(override val wire: String) : WireEnum {
     MALE("male"),
     FEMALE("female"),
-    UNSPECIFIED("unspecified"),
+    UNSPECIFIED("unspecified")
 }
 
 /**
@@ -93,5 +93,5 @@ data class LegacySettings(
     /** 3.x `SettingsBackup.dynamicColor` (Material You av/på). 4.0 har fasta färger (SET-3). */
     val dynamicColor: Boolean? = null,
     /** 3.x `BackupJson.sheetsConfig` – adressen till Sheets-exporten, som inte finns i 4.0 (FUT-2). */
-    val sheetsConfig: String? = null,
+    val sheetsConfig: String? = null
 )

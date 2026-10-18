@@ -14,14 +14,14 @@ import se.partee71.dagboken.data.repository.DefaultIllnessRepository
 import se.partee71.dagboken.data.repository.DefaultOptionsRepository
 import se.partee71.dagboken.data.repository.DefaultPrescriptionRepository
 import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
+import se.partee71.dagboken.data.repository.DefaultScreeningRepository
+import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.data.repository.DoseRepository
 import se.partee71.dagboken.data.repository.EventRepository
 import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
-import se.partee71.dagboken.data.repository.DefaultScreeningRepository
-import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 

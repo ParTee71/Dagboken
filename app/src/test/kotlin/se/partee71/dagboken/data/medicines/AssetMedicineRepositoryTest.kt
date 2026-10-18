@@ -52,7 +52,10 @@ class AssetMedicineRepositoryTest {
         assertEquals(2, calls)
 
         var reads = 0
-        val counted = AssetMedicineRepository(UnconfinedTestDispatcher()) { reads++; "Alvedon\t500 mg\tTablett\n".byteInputStream() }
+        val counted = AssetMedicineRepository(UnconfinedTestDispatcher()) {
+            reads++
+            "Alvedon\t500 mg\tTablett\n".byteInputStream()
+        }
         assertEquals(null, counted.updated())
         assertEquals(null, counted.updated())
         assertEquals(1, reads, "ett läst datum (även null) cachas")

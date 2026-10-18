@@ -72,25 +72,24 @@ class SleepWindows(spans: List<TimeSpan>) {
  * En summerbar mängd under ett intervall (steg, aktiva kalorier, sträcka). Sådana mängder skrivs av flera
  * källor för samma dygn och väljs därför per källa, aldrig summerade över källor (HLS-2, HLS-8).
  */
-sealed interface SummableSample : HealthSample, TimeSpan {
+sealed interface SummableSample :
+    HealthSample,
+    TimeSpan {
     val amount: Double
 }
 
 /** Steg under ett intervall (`StepsRecord`, HLS-2). */
-data class StepSample(override val origin: String, override val start: Instant, override val end: Instant, val count: Long) :
-    SummableSample {
+data class StepSample(override val origin: String, override val start: Instant, override val end: Instant, val count: Long) : SummableSample {
     override val amount: Double get() = count.toDouble()
 }
 
 /** Aktiva kalorier under ett intervall (`ActiveCaloriesBurnedRecord`, HLS-8). */
-data class CaloriesSample(override val origin: String, override val start: Instant, override val end: Instant, val kcal: Double) :
-    SummableSample {
+data class CaloriesSample(override val origin: String, override val start: Instant, override val end: Instant, val kcal: Double) : SummableSample {
     override val amount: Double get() = kcal
 }
 
 /** Sträcka under ett intervall (`DistanceRecord`, HLS-8). */
-data class DistanceSample(override val origin: String, override val start: Instant, override val end: Instant, val meters: Double) :
-    SummableSample {
+data class DistanceSample(override val origin: String, override val start: Instant, override val end: Instant, val meters: Double) : SummableSample {
     override val amount: Double get() = meters
 }
 
@@ -105,7 +104,8 @@ data class OxygenSample(override val origin: String, val time: Instant, val perc
 
 /** Ett träningspass (`ExerciseSessionRecord`, HLS-8) – en diskret händelse, inte en dygnssumma. */
 data class ExerciseSession(override val origin: String, override val start: Instant, override val end: Instant) :
-    HealthSample, TimeSpan
+    HealthSample,
+    TimeSpan
 
 /**
  * Sömnstadiets typ (HLS-8) – Health Connects `SleepSessionRecord.STAGE_TYPE_*` som domänbegrepp; källan
@@ -121,8 +121,9 @@ data class SleepSession(
     override val origin: String,
     override val start: Instant,
     override val end: Instant,
-    val stages: List<SleepStageSlice> = emptyList(),
-) : HealthSample, TimeSpan
+    val stages: List<SleepStageSlice> = emptyList()
+) : HealthSample,
+    TimeSpan
 
 /**
  * Allt som lästs för en period, en lista per posttyp (HLS-12: varje typ läses **en gång** över perioden och
@@ -137,7 +138,7 @@ data class HealthRecords(
     val exercise: List<ExerciseSession> = emptyList(),
     val calories: List<CaloriesSample> = emptyList(),
     val distance: List<DistanceSample> = emptyList(),
-    val oxygen: List<OxygenSample> = emptyList(),
+    val oxygen: List<OxygenSample> = emptyList()
 )
 
 /** Dygnet [this] infaller på i [zone] – zonen är en parameter så att sommartid räknas rätt (HLS-12). */
@@ -150,5 +151,5 @@ fun Instant.dateIn(zone: TimeZone): LocalDate = toLocalDateTime(zone).date
 internal inline fun <T, R : Any> List<T>.perDay(
     zone: TimeZone,
     at: (T) -> Instant,
-    reduce: (List<T>) -> R?,
+    reduce: (List<T>) -> R?
 ): Map<LocalDate, R> = groupBy { at(it).dateIn(zone) }.mapNotNull { (date, day) -> reduce(day)?.let { date to it } }.toMap()

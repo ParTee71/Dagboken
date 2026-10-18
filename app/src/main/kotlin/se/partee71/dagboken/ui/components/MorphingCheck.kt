@@ -37,7 +37,7 @@ internal fun MorphingCheck(checked: Boolean) {
     val progress by animateFloatAsState(
         targetValue = if (checked) 1f else 0f,
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-        label = "kryss",
+        label = "kryss"
     )
     val morph = remember { Morph(MaterialShapes.Circle, MaterialShapes.Cookie9Sided) }
     val color = MaterialTheme.colorScheme.primary
@@ -58,7 +58,7 @@ internal fun MorphingCheck(checked: Boolean) {
             painterResource(R.drawable.ic_check),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(IconSize.row).alpha(progress.coerceIn(0f, 1f)),
+            modifier = Modifier.size(IconSize.row).alpha(progress.coerceIn(0f, 1f))
         )
     }
 }

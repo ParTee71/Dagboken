@@ -8,10 +8,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.schema.OptionCodec
+import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.TestUserScope
 
 class DocumentRulesTest {
@@ -101,8 +101,7 @@ class DocumentRulesTest {
     @Test
     fun `nycklade listor – bara ändrade rader läggs på det lagrade, matchade på nyckeln`() {
         val rows = KeyedList(listOf("reminders", "slots"), key = "slot")
-        fun doc(vararg slots: Pair<String, String>, extra: Any = "x") =
-            mapOf("reminders" to mapOf("slots" to slots.map { (slot, time) -> mapOf("slot" to slot, "time" to time) }, "on" to extra))
+        fun doc(vararg slots: Pair<String, String>, extra: Any = "x") = mapOf("reminders" to mapOf("slots" to slots.map { (slot, time) -> mapOf("slot" to slot, "time" to time) }, "on" to extra))
         val before = doc("morning" to "07:00", "evening" to "19:00")
         val after = doc("morning" to "06:15", "evening" to "19:00", extra = "y")
         val stored = doc("evening" to "20:30", "morning" to "07:00")

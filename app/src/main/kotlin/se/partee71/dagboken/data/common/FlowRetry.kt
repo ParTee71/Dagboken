@@ -21,7 +21,7 @@ fun <T> Flow<T>.retryWithBackoff(
     first: Duration,
     max: Duration,
     retryOn: (Throwable) -> Boolean,
-    beforeRetry: suspend FlowCollector<T>.(Throwable) -> Unit = {},
+    beforeRetry: suspend FlowCollector<T>.(Throwable) -> Unit = {}
 ): Flow<T> = retryWhen { cause, attempt ->
     if (!retryOn(cause)) return@retryWhen false
     beforeRetry(cause)
@@ -30,8 +30,7 @@ fun <T> Flow<T>.retryWithBackoff(
 }
 
 /** Pausen före försök nummer [attempt] (från 0). */
-internal fun backoff(first: Duration, max: Duration, attempt: Long): Duration =
-    (first * (1L shl attempt.coerceAtMost(MAX_DOUBLINGS).toInt()).toDouble()).coerceAtMost(max)
+internal fun backoff(first: Duration, max: Duration, attempt: Long): Duration = (first * (1L shl attempt.coerceAtMost(MAX_DOUBLINGS).toInt()).toDouble()).coerceAtMost(max)
 
 private const val MAX_DOUBLINGS = 16L
 
@@ -73,7 +72,7 @@ fun <T> Flow<T>.withFallback(fallback: T): Flow<T> = flow {
                 delay(backoff(FALLBACK_FIRST_RETRY, FALLBACK_MAX_RETRY, failures++))
                 true
             }
-            .catch { },
+            .catch { }
     )
 }
 

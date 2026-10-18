@@ -37,7 +37,7 @@ import se.partee71.dagboken.di.ApplicationScope
 data class HealthAccess(
     val sdk: HealthSdkStatus,
     val granted: Set<String> = emptySet(),
-    val historySupported: Boolean = false,
+    val historySupported: Boolean = false
 ) {
     /** De valfria måtten som går att ge på enheten – historiken bara där Health Connect stöder den (HLS-9). */
     val optional: Map<OptionalHealthMetric, String> =
@@ -66,7 +66,7 @@ data class HealthAccess(
 @Singleton
 class HealthConnectAccess @Inject constructor(
     private val source: HealthConnectSource,
-    @ApplicationScope scope: CoroutineScope,
+    @ApplicationScope scope: CoroutineScope
 ) {
     private val count = MutableStateFlow(0)
 
@@ -109,7 +109,7 @@ class HealthConnectRepository @Inject constructor(
     private val source: HealthConnectSource,
     private val access: HealthConnectAccess,
     private val clock: Clock,
-    private val zone: Provider<TimeZone>,
+    private val zone: Provider<TimeZone>
 ) : HealthRepository {
 
     /**
@@ -119,7 +119,7 @@ class HealthConnectRepository @Inject constructor(
     override val status: Flow<HealthStatus> = access.current.map { result ->
         result.fold(
             onSuccess = { it.status },
-            onFailure = { error -> if (error == DataError.PermissionDenied) HealthStatus.PERMISSIONS_MISSING else throw error },
+            onFailure = { error -> if (error == DataError.PermissionDenied) HealthStatus.PERMISSIONS_MISSING else throw error }
         )
     }
 

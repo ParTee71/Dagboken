@@ -34,7 +34,7 @@ class TodayScreenshotTest {
         Column(
             Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.m),
-            content = content,
+            content = content
         )
     }
 

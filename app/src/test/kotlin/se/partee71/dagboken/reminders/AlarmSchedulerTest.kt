@@ -5,6 +5,7 @@ import android.content.Intent
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +17,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import kotlin.time.Duration.Companion.minutes
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.plus
@@ -33,10 +33,10 @@ import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.model.Slot
-import se.partee71.dagboken.data.legacy.LegacyMigrationPause
 import se.partee71.dagboken.data.auth.AuthRepository
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.legacy.LegacyMigrationPause
 import se.partee71.dagboken.data.repository.SettingsRepository
 
 /**
@@ -229,7 +229,7 @@ class AlarmSchedulerTest {
             f.context,
             AlarmScheduler.requestCode(Reminder.Mood(Occasion.BREAKFAST)),
             Intent(f.context, ScreeningReminderReceiver::class.java).setAction(ReminderIntents.ACTION_MOOD_ALARM),
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
         assertEquals(null, probe, "PendingIntent avbokad")
     }
@@ -324,8 +324,7 @@ class AlarmSchedulerTest {
         job.cancel()
     }
 
-    private fun sync(scheduler: AlarmScheduler) =
-        ReminderSync(f.user, f.settings, scheduler, NotificationHelper(f.context!!), migrationPause, CoroutineScope(Dispatchers.Unconfined))
+    private fun sync(scheduler: AlarmScheduler) = ReminderSync(f.user, f.settings, scheduler, NotificationHelper(f.context!!), migrationPause, CoroutineScope(Dispatchers.Unconfined))
 
     @Test
     fun `synken schemalägger inget medan migreringens skrivning pågår men avbokar aldrig, och lägger larmen när pausen släpps (OMB-2)`() = runTest {

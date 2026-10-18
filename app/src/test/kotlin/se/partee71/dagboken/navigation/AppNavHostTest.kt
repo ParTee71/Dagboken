@@ -145,7 +145,7 @@ class AppNavHostTest {
                     backStack,
                     { key -> NavEntry(key) { Text("Skärm: ${key::class.simpleName}") } },
                     sync = SyncUiState(writeError = DataError.PermissionDenied),
-                    onSyncEvent = { events += it },
+                    onSyncEvent = { events += it }
                 )
             }
         }
@@ -165,7 +165,7 @@ class AppNavHostTest {
                 AppNavHost(
                     backStack,
                     { key -> NavEntry(key) { AppTopBar("Idag") } },
-                    sync = SyncUiState(pending = true, writeError = DataError.PermissionDenied),
+                    sync = SyncUiState(pending = true, writeError = DataError.PermissionDenied)
                 )
             }
         }

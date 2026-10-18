@@ -39,8 +39,7 @@ class BackupJsonConverterTest {
     fun `v1 - varje dokument och fält blir exakt som i den förväntade exporten`() = assertMatchesExpected("backup-v1")
 
     /** Fält för fält per dokument och sedan hela filen (`LegacyFixtures.assertMatchesExpected`, delad med legacy-läsarens test). */
-    private fun assertMatchesExpected(name: String) =
-        LegacyFixtures.assertMatchesExpected(name, converted(name), BackupJsonConverter.exportedAt(LegacyFixtures.backup(name)))
+    private fun assertMatchesExpected(name: String) = LegacyFixtures.assertMatchesExpected(name, converted(name), BackupJsonConverter.exportedAt(LegacyFixtures.backup(name)))
 
     @Test
     fun `v2 - rapporten räknar dokument per samling och listar varningarna utan innehåll`() {
@@ -50,9 +49,9 @@ class BackupJsonConverterTest {
         assertEquals(
             mapOf(
                 "users" to 1, "settings" to 1, "options" to 13, "prescriptions" to 3, "prnMedicines" to 2, "doses" to 4,
-                "screenings" to 3, "activities" to 2, "events" to 2, "illnessEpisodes" to 2, "checkins" to 2,
+                "screenings" to 3, "activities" to 2, "events" to 2, "illnessEpisodes" to 2, "checkins" to 2
             ),
-            report.counts,
+            report.counts
         )
         assertEquals(emptyList(), report.problems)
         assertEquals(
@@ -68,9 +67,9 @@ class BackupJsonConverterTest {
                 "activities/5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d" to "ett symptomnamn med kommatecken fogades ihop",
                 "illnessEpisodes/8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a" to "notes-posten går före arvsfältet anteckning",
                 "illnessEpisodes/8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a/checkins/a0b1c2d3-e4f5-4a6b-8c7d-9e0f1a2b3c4d" to "ett symptomnamn med kommatecken fogades ihop",
-                "notes" to "1 anteckning(ar) med target ACTIVITY utan sin post",
+                "notes" to "1 anteckning(ar) med target ACTIVITY utan sin post"
             ),
-            report.warnings.map { it.path to it.message.substringBefore(" (").substringBefore(" –") },
+            report.warnings.map { it.path to it.message.substringBefore(" (").substringBefore(" –") }
         )
         val rendered = report.render()
         for (secret in listOf("Regn", "Med frukost", "Med mat", "Hela familjen", "Feber", "veckovis", "Anteckning utan post", "Svamplockning", "Nackspärr", "nacksparr", "Hosta")) {
@@ -98,7 +97,7 @@ class BackupJsonConverterTest {
         val other = assertIs<ConversionResult.Converted>(convert("backup-v2", uid = "annan"))
         assertEquals(
             first.documents.map { it.path.removePrefix("users/${LegacyFixtures.UID}") to ExportFormat.toJson(it.data) },
-            other.documents.map { it.path.removePrefix("users/annan") to ExportFormat.toJson(it.data) },
+            other.documents.map { it.path.removePrefix("users/annan") to ExportFormat.toJson(it.data) }
         )
         assertEquals(first.documents.map { it.path }, first.documents.map { it.path }.sorted(), "sorterade på sökväg")
     }
@@ -151,7 +150,7 @@ class BackupJsonConverterTest {
         assertEquals(LegacyDefaults.SYMPTOM_OPTIONS, defaults.filter { it.kind == OptionKind.SYMPTOM }.map { it.name })
         assertEquals(LegacyDefaults.EVENT_OPTIONS, defaults.filter { it.kind == OptionKind.EVENT }.map { it.name })
         val empty = assertIs<ConversionResult.Converted>(
-            BackupJsonConverter.convert(BackupJson(aktiviteterOptions = emptyList(), symptomOptionsV2 = emptyList(), handelseTypOptions = emptyList()), "u"),
+            BackupJsonConverter.convert(BackupJson(aktiviteterOptions = emptyList(), symptomOptionsV2 = emptyList(), handelseTypOptions = emptyList()), "u")
         )
         assertEquals(emptyList(), empty.data.options)
         assertEquals(1, empty.documents.size, "bara användardokumentet")
@@ -160,12 +159,12 @@ class BackupJsonConverterTest {
     @Test
     fun `inställningar - null i ett 3x-fält skriver inte fältet, och utan inställningar skrivs inget dokument`() {
         val partial = assertIs<ConversionResult.Converted>(
-            BackupJsonConverter.convert(BackupJson(settings = SettingsBackup(themeMode = "light", birthYear = 1980), periodReminderTime = "07:30"), "u"),
+            BackupJsonConverter.convert(BackupJson(settings = SettingsBackup(themeMode = "light", birthYear = 1980), periodReminderTime = "07:30"), "u")
         )
         val doc = partial.documents.single { CollectionNames.collectionOf(it.path) == CollectionNames.SETTINGS }.data
         assertEquals(
             mapOf("theme" to mapOf("mode" to "light"), "reminders" to mapOf("periodReminderTime" to "07:30"), "profile" to mapOf("birthYear" to 1980)),
-            doc,
+            doc
         )
         assertNull(assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(BackupJson(settings = SettingsBackup()), "u")).data.settings)
     }
@@ -176,9 +175,9 @@ class BackupJsonConverterTest {
         val backup = BackupJson(
             aktiviteter = listOf(
                 AktivitetJson(id = "s1", datum = "2026-01-15", tid = "09:00", aktivitet = "Screening", type = "screening"),
-                AktivitetJson(id = "s2", datum = "2026-01-15", tid = "23:30", aktivitet = "Kvällsmat", type = "screening"),
+                AktivitetJson(id = "s2", datum = "2026-01-15", tid = "23:30", aktivitet = "Kvällsmat", type = "screening")
             ),
-            screeningEventConfigs = configs,
+            screeningEventConfigs = configs
         )
         val screenings = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u")).data.screenings.associateBy { it.id }
         assertEquals(Occasion.LUNCH, screenings.getValue("s1").occasion, "11:00 är närmare 09:00 än 06:00")
@@ -187,7 +186,7 @@ class BackupJsonConverterTest {
         assertNull(screenings.getValue("s2").customText)
         assertEquals(
             Occasion.derive("x", LocalTime(9, 0), mapOf(Occasion.BREAKFAST to LocalTime(6, 0), Occasion.LUNCH to LocalTime(11, 0), Occasion.BEDTIME to LocalTime(23, 0))),
-            screenings.getValue("s1").occasion,
+            screenings.getValue("s1").occasion
         )
     }
 
@@ -197,8 +196,8 @@ class BackupJsonConverterTest {
             mediciner = listOf(
                 MedicinJson(id = "recept_r1_2026-01-15_Morgon", datum = "2026-01-15", tid = "07:00", tidpunkt = "Morgon", tagen = true, skipped = true, tagenTid = "07:30", receptId = "r1"),
                 MedicinJson(id = "m2", datum = "2026-01-15", tid = "19:00", tidpunkt = "Kväll", skipped = true),
-                MedicinJson(id = "m3", datum = "2026-01-15", tid = "12:00", tidpunkt = "Vid behov", tagenTid = ""),
-            ),
+                MedicinJson(id = "m3", datum = "2026-01-15", tid = "12:00", tidpunkt = "Vid behov", tagenTid = "")
+            )
         )
         val doses = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u")).data.doses.associateBy { it.id }
         assertEquals(DoseStatus.TAKEN, doses.getValue("recept_r1_2026-01-15_Morgon").status)
@@ -214,8 +213,8 @@ class BackupJsonConverterTest {
         val backup = BackupJson(
             mediciner = listOf(
                 MedicinJson(id = "m1", datum = "2026-01-15", tid = "22:00", tidpunkt = "Natt", tagen = true, tagenTid = "01:30"),
-                MedicinJson(id = "m2", datum = "2026-01-15", tid = "19:00", tidpunkt = "Kväll", tagen = true, tagenTid = "07:30"),
-            ),
+                MedicinJson(id = "m2", datum = "2026-01-15", tid = "19:00", tidpunkt = "Kväll", tagen = true, tagenTid = "07:30")
+            )
         )
         val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u"))
         assertEquals(kotlin.time.Instant.parse("2026-01-15T00:30:00Z"), result.data.doses.first { it.id == "m1" }.takenAt, "värdet ändras inte")
@@ -229,8 +228,8 @@ class BackupJsonConverterTest {
                 ReceptJson(id = "r1", upprepning = "Specifika dagar", dagar = listOf(0, 6)),
                 ReceptJson(id = "r2", upprepning = "var x:e dag", intervalDagar = 5, tidpunkt = "Natt"),
                 ReceptJson(id = "r3", upprepning = "Vardagar"),
-                ReceptJson(id = "r4", upprepning = "helger", tidpunkt = ""),
-            ),
+                ReceptJson(id = "r4", upprepning = "helger", tidpunkt = "")
+            )
         )
         val prescriptions = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u")).data.prescriptions.associateBy { it.id }
         val r1 = assertIs<Schedule.Repeating>(prescriptions.getValue("r1").schedule)
@@ -247,7 +246,7 @@ class BackupJsonConverterTest {
     fun `symptom - 3x wire-formatet med dubbletter som i 3x och Övrigt utan parenteser`() {
         val backup = BackupJson(
             aktiviteter = listOf(AktivitetJson(id = "a1", aktivitet = "Promenad", symptom = "Huvudvärk:1,Huvudvärk:4,Övrigt stel:2,Övrigt:1", somatiska = 7)),
-            symptomOptionsV2 = listOf(SymptomOptionBackup("Huvudvärk")),
+            symptomOptionsV2 = listOf(SymptomOptionBackup("Huvudvärk"))
         )
         val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u"))
         val symptoms = result.data.activities.single().symptoms
@@ -263,7 +262,7 @@ class BackupJsonConverterTest {
     private fun symptomsOf(raw: String, somatiska: Int, vararg options: String): Pair<List<se.partee71.dagboken.core.model.SymptomScore>, List<String>> {
         val backup = BackupJson(
             aktiviteter = listOf(AktivitetJson(id = "a1", aktivitet = "Promenad", symptom = raw, somatiska = somatiska)),
-            symptomOptionsV2 = options.map(::SymptomOptionBackup),
+            symptomOptionsV2 = options.map(::SymptomOptionBackup)
         )
         val result = assertIs<ConversionResult.Converted>(BackupJsonConverter.convert(backup, "u"), raw)
         return result.data.activities.single().symptoms to result.report.warnings.map { it.message }
@@ -308,7 +307,7 @@ class BackupJsonConverterTest {
     @Test
     fun `somatiska - bevaras som legacySomatic när det inte är summan, utan varning, och gäller i trenderna`() {
         fun converted(raw: String, somatiska: Int) = assertIs<ConversionResult.Converted>(
-            BackupJsonConverter.convert(BackupJson(aktiviteter = listOf(AktivitetJson(id = "a1", aktivitet = "Promenad", symptom = raw, somatiska = somatiska))), "u"),
+            BackupJsonConverter.convert(BackupJson(aktiviteter = listOf(AktivitetJson(id = "a1", aktivitet = "Promenad", symptom = raw, somatiska = somatiska))), "u")
         )
         for ((raw, somatiska, expected) in listOf(Triple("a, a", 3, 3), Triple("", 4, 4), Triple("a:9,a a a:9", 2, 2), Triple("Huvudvärk:2,Yrsel:1", 3, null))) {
             val result = converted(raw, somatiska)
@@ -331,12 +330,12 @@ class BackupJsonConverterTest {
     @Test
     fun `timestamp - epok-ms som text (3x doseditorn före 1149a57) blir ögonblicket utan varning`() {
         val result = assertIs<ConversionResult.Converted>(
-            BackupJsonConverter.convert(BackupJson(mediciner = listOf(MedicinJson(id = "m1", datum = "2026-01-15", tid = "07:00", tidpunkt = "Morgon", timestamp = "1768460400000"))), "u"),
+            BackupJsonConverter.convert(BackupJson(mediciner = listOf(MedicinJson(id = "m1", datum = "2026-01-15", tid = "07:00", tidpunkt = "Morgon", timestamp = "1768460400000"))), "u")
         )
         assertEquals(kotlin.time.Instant.fromEpochMilliseconds(1_768_460_400_000), result.data.doses.single().createdAt)
         assertTrue(result.report.warnings.none { "timestamp" in it.message })
         fun dose(timestamp: String) = assertIs<ConversionResult.Converted>(
-            BackupJsonConverter.convert(BackupJson(mediciner = listOf(MedicinJson(id = "m1", datum = "2026-03-29", tid = "02:30", tidpunkt = "Natt", timestamp = timestamp))), "u"),
+            BackupJsonConverter.convert(BackupJson(mediciner = listOf(MedicinJson(id = "m1", datum = "2026-03-29", tid = "02:30", tidpunkt = "Natt", timestamp = timestamp))), "u")
         )
         // Epok-sekunder är inget 3.x-format (hade blivit 1970): dag och klockslag gäller, med varning och form.
         val seconds = dose("1768460400")
@@ -371,11 +370,10 @@ class BackupJsonConverterTest {
 
     @Test
     fun `skapad - datum blir midnatt, ett ögonblick bevaras med varning, annat blir saknat med varning och form`() {
-        fun recept(skapad: String, upprepning: String = "dagligen", startDatum: String = "") =
-            assertIs<ConversionResult.Converted>(
-                BackupJsonConverter.convert(BackupJson(medicinRecipes = listOf(ReceptJson(id = "r1", skapad = skapad, upprepning = upprepning, startDatum = startDatum))), "u"),
-                skapad,
-            ).let { it.data.prescriptions.single().createdAt to it.report.warnings.map { w -> w.message } }
+        fun recept(skapad: String, upprepning: String = "dagligen", startDatum: String = "") = assertIs<ConversionResult.Converted>(
+            BackupJsonConverter.convert(BackupJson(medicinRecipes = listOf(ReceptJson(id = "r1", skapad = skapad, upprepning = upprepning, startDatum = startDatum))), "u"),
+            skapad
+        ).let { it.data.prescriptions.single().createdAt to it.report.warnings.map { w -> w.message } }
         assertEquals(kotlin.time.Instant.parse("2025-11-19T23:00:00Z") to emptyList(), recept("2025-11-20"))
         val (instant, instantWarnings) = recept("2025-11-20T08:15:00.000Z", upprepning = "intervall")
         assertEquals(kotlin.time.Instant.parse("2025-11-20T08:15:00Z"), instant)

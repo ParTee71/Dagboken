@@ -26,7 +26,7 @@ abstract class CollectionTable : CollectionFactory {
     protected abstract fun <T : Identified> create(
         codec: DocCodec<T>,
         name: String,
-        path: (uid: String?) -> String,
+        path: (uid: String?) -> String
     ): EntityCollection<T>
 
     override fun settings() = create(SettingsCodec, Paths.SETTINGS) { Paths.settings(required(it)) }
@@ -47,8 +47,7 @@ abstract class CollectionTable : CollectionFactory {
 
     override fun illnessEpisodes() = create(IllnessEpisodeCodec, Paths.ILLNESS_EPISODES) { Paths.illnessEpisodes(required(it)) }
 
-    override fun checkins(episodeId: String) =
-        create(CheckinCodec, Paths.CHECKINS) { Paths.checkins(required(it), episodeId) }
+    override fun checkins(episodeId: String) = create(CheckinCodec, Paths.CHECKINS) { Paths.checkins(required(it), episodeId) }
 
     /** Sökvägens uid, eller [DataError.NotSignedIn] när ingen är inloggad. */
     protected fun required(uid: String?): String = uid ?: throw DataError.NotSignedIn

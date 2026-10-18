@@ -16,13 +16,12 @@ import androidx.compose.ui.unit.sp
 import se.partee71.dagboken.R
 
 /** En vikt ur ett variabelt typsnitt – samma fil, olika `wght` (DSN-2). */
-private fun variable(font: Int, weight: FontWeight) =
-    Font(font, weight, variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)))
+private fun variable(font: Int, weight: FontWeight) = Font(font, weight, variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)))
 
 /** Fraunces (serif) för rubriker. */
 private val Fraunces = FontFamily(
     variable(R.font.fraunces, FontWeight.Medium),
-    variable(R.font.fraunces, FontWeight.SemiBold),
+    variable(R.font.fraunces, FontWeight.SemiBold)
 )
 
 /** Figtree för brödtext, knappar och etiketter. */
@@ -30,14 +29,12 @@ private val Figtree = FontFamily(
     variable(R.font.figtree, FontWeight.Normal),
     variable(R.font.figtree, FontWeight.Medium),
     variable(R.font.figtree, FontWeight.SemiBold),
-    variable(R.font.figtree, FontWeight.Bold),
+    variable(R.font.figtree, FontWeight.Bold)
 )
 
-private fun serif(size: Int, line: Int, weight: FontWeight = FontWeight.SemiBold, spacing: Double = 0.0) =
-    TextStyle(fontFamily = Fraunces, fontWeight = weight, fontSize = size.sp, lineHeight = line.sp, letterSpacing = spacing.em)
+private fun serif(size: Int, line: Int, weight: FontWeight = FontWeight.SemiBold, spacing: Double = 0.0) = TextStyle(fontFamily = Fraunces, fontWeight = weight, fontSize = size.sp, lineHeight = line.sp, letterSpacing = spacing.em)
 
-private fun sans(size: Int, line: Int, weight: FontWeight) =
-    TextStyle(fontFamily = Figtree, fontWeight = weight, fontSize = size.sp, lineHeight = line.sp)
+private fun sans(size: Int, line: Int, weight: FontWeight) = TextStyle(fontFamily = Figtree, fontWeight = weight, fontSize = size.sp, lineHeight = line.sp)
 
 /** Material 3-typskalan med Fraunces (rubriker) och Figtree (brödtext) – används av [DagbokenTheme]. */
 internal val AppTypeScale = Typography(
@@ -52,7 +49,7 @@ internal val AppTypeScale = Typography(
     bodySmall = sans(13, 18, FontWeight.Medium),
     labelLarge = sans(15, 20, FontWeight.SemiBold),
     labelMedium = sans(13, 16, FontWeight.SemiBold),
-    labelSmall = sans(12, 16, FontWeight.Bold).copy(letterSpacing = 0.05.em),
+    labelSmall = sans(12, 16, FontWeight.Bold).copy(letterSpacing = 0.05.em)
 )
 
 /**

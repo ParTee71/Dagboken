@@ -19,7 +19,7 @@ import se.partee71.dagboken.data.common.suspendRunCatching
  */
 class FirestoreInstance(
     private val io: CoroutineDispatcher,
-    private val create: () -> FirebaseFirestore,
+    private val create: () -> FirebaseFirestore
 ) : LocalCacheCleaner {
     private val lock = Any()
     private var current: FirebaseFirestore? = null
@@ -27,8 +27,7 @@ class FirestoreInstance(
     val db: FirebaseFirestore
         get() = synchronized(lock) { current ?: create().also { current = it } }
 
-    override suspend fun awaitPendingWrites(timeout: Duration): Boolean =
-        // await() ger null även när det lyckas (Task<Void>) – därför ett eget kvitto.
+    override suspend fun awaitPendingWrites(timeout: Duration): Boolean = // await() ger null även när det lyckas (Task<Void>) – därför ett eget kvitto.
         withTimeoutOrNull(timeout) {
             db.waitForPendingWrites().await()
             true

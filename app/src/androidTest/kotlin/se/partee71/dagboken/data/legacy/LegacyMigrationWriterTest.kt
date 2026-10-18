@@ -48,8 +48,7 @@ class LegacyMigrationWriterTest {
             .map { ExportFormat.Document(it.path.replaceFirst("users/uid-legacy", Paths.user(uid)), it.data) }
     }
 
-    private fun matches(expected: Map<String, Any?>, stored: Map<String, Any?>) =
-        expected.all { (field, value) -> ExportFormat.toJson(value) == ExportFormat.toJson(stored[field]) }
+    private fun matches(expected: Map<String, Any?>, stored: Map<String, Any?>) = expected.all { (field, value) -> ExportFormat.toJson(value) == ExportFormat.toJson(stored[field]) }
 
     @Test
     fun dokumenten_skrivs_i_batchar_genom_rules_verifieras_fran_servern_och_skrivs_om_utan_dubbletter() = test {

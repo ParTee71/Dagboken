@@ -35,8 +35,7 @@ object LegacyRoomAssembler {
      * [tables] är raderna per tabellnamn ([LegacyRoomSchema.TABLES]); [preferences] DataStore-nycklarna med
      * sina råa värden; [createdAt] backupfilens metadata (3.x lokal tid utan zon, [createdAt]).
      */
-    fun assemble(tables: Map<String, List<Row>>, preferences: Map<String, Any?>, createdAt: String = ""): LegacyAssembly =
-        Assembly(tables, preferences).run(createdAt)
+    fun assemble(tables: Map<String, List<Row>>, preferences: Map<String, Any?>, createdAt: String = ""): LegacyAssembly = Assembly(tables, preferences).run(createdAt)
 
     /**
      * Antal poster per Room-tabell i en [BackupJson] – det kopian av 3.x-datan jämförs med mot raderna som lästes
@@ -50,13 +49,12 @@ object LegacyRoomAssembler {
         LegacyRoomSchema.HEALTH_EVENTS to backup.handelser.size,
         LegacyRoomSchema.NOTES to backup.notes.size,
         LegacyRoomSchema.SJUKDOMSEPISODER to backup.sjukdomsepisoder.size,
-        LegacyRoomSchema.SJUKDOMS_INCHECKNINGAR to backup.sjukdomsIncheckningar.size,
+        LegacyRoomSchema.SJUKDOMS_INCHECKNINGAR to backup.sjukdomsIncheckningar.size
     )
 
     /** `createdAt` som 3.x skrev det (`LocalDateTime.now()` i ISO utan zon) för ett ögonblick i Europe/Stockholm. */
-    fun createdAt(epochMillis: Long): String =
-        java.time.Instant.ofEpochMilli(epochMillis).atZone(ZoneId.of(LegacyTime.ZONE.id)).toLocalDateTime().withNano(0)
-            .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+    fun createdAt(epochMillis: Long): String = java.time.Instant.ofEpochMilli(epochMillis).atZone(ZoneId.of(LegacyTime.ZONE.id)).toLocalDateTime().withNano(0)
+        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 }
 
 private class Assembly(private val tables: Map<String, List<Row>>, private val prefs: Map<String, Any?>) {
@@ -95,8 +93,8 @@ private class Assembly(private val tables: Map<String, List<Row>>, private val p
                 isDarkTheme = bool(Prefs.IS_DARK_THEME, LegacyDefaults.IS_DARK_THEME),
                 dynamicColor = bool(Prefs.DYNAMIC_COLOR, LegacyDefaults.DYNAMIC_COLOR),
                 birthYear = intOrNull(Prefs.BIRTH_YEAR),
-                sex = sex(),
-            ),
+                sex = sex()
+            )
         )
         return LegacyAssembly(backup, warnings.toList())
     }
@@ -120,7 +118,7 @@ private class Assembly(private val tables: Map<String, List<Row>>, private val p
             aterhamtande = r.bool("aterhamtande", path),
             energitjuv = r.bool("energitjuv", path),
             type = r.text("type", path),
-            spentTime = r.intOrNull("spentTime", path),
+            spentTime = r.intOrNull("spentTime", path)
         )
     }
 
@@ -138,7 +136,7 @@ private class Assembly(private val tables: Map<String, List<Row>>, private val p
             tagen = r.bool("tagen", path),
             receptId = r.textOrNull("receptId", path),
             skipped = r.bool("skipped", path),
-            tagenTid = r.textOrNull("tagenTid", path),
+            tagenTid = r.textOrNull("tagenTid", path)
         )
     }
 
@@ -158,7 +156,7 @@ private class Assembly(private val tables: Map<String, List<Row>>, private val p
             startDatum = r.text(START_DATUM, path),
             slutDatum = r.textOrNull(SLUT_DATUM, path),
             dosperioder = decode(path, "dosperioderJson", r.text("dosperioderJson", path), emptyList<StoredDosperiod>())
-                .map { DosperiodJson(id = it.id, startDatum = it.startDatum, slutDatum = it.slutDatum, dos = it.dos, enhet = it.enhet) },
+                .map { DosperiodJson(id = it.id, startDatum = it.startDatum, slutDatum = it.slutDatum, dos = it.dos, enhet = it.enhet) }
         )
     }
 
@@ -173,7 +171,7 @@ private class Assembly(private val tables: Map<String, List<Row>>, private val p
             minTidMellan = r.int("minTidMellan", path),
             dispenseringsTid = r.text("dispenseringsTid", path),
             maxDoserPerDag = r.int("maxDoserPerDag", path),
-            isFavorite = r.bool("isFavorite", path),
+            isFavorite = r.bool("isFavorite", path)
         )
     }
 
@@ -188,7 +186,7 @@ private class Assembly(private val tables: Map<String, List<Row>>, private val p
             svarighetsgrad = r.int(SVARIGHETSGRAD, path),
             varaktighetMinuter = r.int("varaktighetMinuter", path),
             triggers = r.text("triggers", path),
-            atgarder = r.text("atgarder", path),
+            atgarder = r.text("atgarder", path)
         )
     }
 
@@ -199,7 +197,7 @@ private class Assembly(private val tables: Map<String, List<Row>>, private val p
             typ = r.text(TYP, path),
             startDatum = r.text("start_datum", path),
             slutDatum = r.text("slut_datum", path),
-            timestamp = r.long(TIMESTAMP, path),
+            timestamp = r.long(TIMESTAMP, path)
         )
     }
 
@@ -213,7 +211,7 @@ private class Assembly(private val tables: Map<String, List<Row>>, private val p
             svarighetsgrad = r.int(SVARIGHETSGRAD, path),
             symptom = r.text(SYMPTOM, path),
             somatiska = r.int(SOMATISKA, path),
-            timestamp = r.long(TIMESTAMP, path),
+            timestamp = r.long(TIMESTAMP, path)
         )
     }
 
@@ -260,15 +258,13 @@ private class Assembly(private val tables: Map<String, List<Row>>, private val p
         return defaults.map(::SymptomOptionBackup)
     }
 
-    private fun screeningEventConfigs(): List<ScreeningEventConfigJson> =
-        storedList<StoredReminder>(Prefs.SCREENING_EVENT_CONFIGS)?.map { ScreeningEventConfigJson(enabled = it.enabled, time = it.time) }
-            ?: LegacyDefaults.SCREENING_EVENT_CONFIGS
+    private fun screeningEventConfigs(): List<ScreeningEventConfigJson> = storedList<StoredReminder>(Prefs.SCREENING_EVENT_CONFIGS)?.map { ScreeningEventConfigJson(enabled = it.enabled, time = it.time) }
+        ?: LegacyDefaults.SCREENING_EVENT_CONFIGS
 
     /** Som 3.x `BackupAssembler`: raden får tidpunktens namn ur positionen; en sjunde rad får inget namn. */
-    private fun medNotificationConfigs(): List<MedNotificationConfigJson> =
-        storedList<StoredReminder>(Prefs.MED_NOTIFICATION_CONFIGS)?.mapIndexed { index, config ->
-            MedNotificationConfigJson(tidpunkt = Slot.SCHEDULED.getOrNull(index)?.legacyName.orEmpty(), enabled = config.enabled, time = config.time)
-        } ?: LegacyDefaults.MED_NOTIFICATION_CONFIGS
+    private fun medNotificationConfigs(): List<MedNotificationConfigJson> = storedList<StoredReminder>(Prefs.MED_NOTIFICATION_CONFIGS)?.mapIndexed { index, config ->
+        MedNotificationConfigJson(tidpunkt = Slot.SCHEDULED.getOrNull(index)?.legacyName.orEmpty(), enabled = config.enabled, time = config.time)
+    } ?: LegacyDefaults.MED_NOTIFICATION_CONFIGS
 
     /** `null` = nyckeln saknas eller värdet går inte att läsa (då med varning) – anroparen tar 3.x:s standardlista. */
     private inline fun <reified T> storedList(key: String): List<T>? {
@@ -297,8 +293,7 @@ private class Assembly(private val tables: Map<String, List<Row>>, private val p
     // ── JSON-kolumner och JSON-värden, som 3.x läste dem (`Json { ignoreUnknownKeys = true }`) ──────
 
     /** 3.x `decodeStringList`/`decodeIntList`/`decodeDosperioder`: ett värde som inte går att läsa ger tom lista med varning. */
-    private inline fun <reified T> decode(path: String, column: String, raw: String, fallback: T): T =
-        decodeOrNull<T>(raw) ?: fallback.also { warn(path, "$column går inte att läsa (${raw.length} tecken) – tom lista, som i 3.x") }
+    private inline fun <reified T> decode(path: String, column: String, raw: String, fallback: T): T = decodeOrNull<T>(raw) ?: fallback.also { warn(path, "$column går inte att läsa (${raw.length} tecken) – tom lista, som i 3.x") }
 
     private inline fun <reified T> decodeOrNull(raw: String): T? = runCatching { json.decodeFromString<T>(raw) }.getOrNull()
 
@@ -337,7 +332,7 @@ private data class StoredDosperiod(
     val startDatum: String,
     val slutDatum: String? = null,
     val dos: String,
-    val enhet: String,
+    val enhet: String
 )
 
 /** 3.x `ScreeningEventConfig` och `MedNotificationConfig` (`data/datastore/PreferencesRepository.kt`): båda `{enabled, time}` utan standardvärden. */
@@ -345,4 +340,3 @@ private data class StoredDosperiod(
 private data class StoredReminder(val enabled: Boolean, val time: String)
 
 // SQLite lämnar TEXT som String, INTEGER som Long och NULL som null; en kolumn som saknas läses som NULL.
-

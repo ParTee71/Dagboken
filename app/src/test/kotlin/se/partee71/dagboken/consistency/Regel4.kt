@@ -13,8 +13,7 @@ object Regel4 {
 
     data class Hit(val line: Int, val match: String, val replacement: String, val scope: String)
 
-    fun readResource(name: String): String =
-        checkNotNull(Regel4::class.java.getResource("/$name")) { "$name saknas i testresurserna" }.readText()
+    fun readResource(name: String): String = checkNotNull(Regel4::class.java.getResource("/$name")) { "$name saknas i testresurserna" }.readText()
 
     /** Sektionerad fil: `[namn]` följt av rader; tomma rader och `#`-rader hoppas över. */
     fun parseSections(text: String): Map<String, List<String>> {
@@ -32,28 +31,26 @@ object Regel4 {
         return sections
     }
 
-    fun parsePatterns(text: String): Map<String, List<Rule>> =
-        parseSections(text).mapValues { (_, lines) ->
-            lines.map { line ->
-                val parts = line.split("\t")
-                Rule(Regex(parts[0]), parts.getOrElse(1) { "" })
-            }
+    fun parsePatterns(text: String): Map<String, List<Rule>> = parseSections(text).mapValues { (_, lines) ->
+        lines.map { line ->
+            val parts = line.split("\t")
+            Rule(Regex(parts[0]), parts.getOrElse(1) { "" })
         }
+    }
 
     /** Format per rad: `<sökväg>:<symbol> – <motivering>`. En rad utan symbol eller motivering är ett fel. */
-    fun parseAllowlist(text: String): List<Allowed> =
-        text.lines().mapIndexedNotNull { i, line ->
-            if (line.isBlank() || line.startsWith("#")) return@mapIndexedNotNull null
-            val parts = line.split(Regex("""\s+[–-]\s+"""))
-            val location = parts[0]
-            val idx = location.lastIndexOf(':')
-            val file = if (idx > 0) location.substring(0, idx).trim() else ""
-            val symbol = if (idx > 0) location.substring(idx + 1).trim() else ""
-            require(file.isNotEmpty() && symbol.isNotEmpty() && parts.drop(1).joinToString("").isNotBlank()) {
-                "ui-allowlist.txt rad ${i + 1}: ogiltig rad, formatet är \"<sökväg>:<symbol> – <motivering>\""
-            }
-            Allowed(file, symbol)
+    fun parseAllowlist(text: String): List<Allowed> = text.lines().mapIndexedNotNull { i, line ->
+        if (line.isBlank() || line.startsWith("#")) return@mapIndexedNotNull null
+        val parts = line.split(Regex("""\s+[–-]\s+"""))
+        val location = parts[0]
+        val idx = location.lastIndexOf(':')
+        val file = if (idx > 0) location.substring(0, idx).trim() else ""
+        val symbol = if (idx > 0) location.substring(idx + 1).trim() else ""
+        require(file.isNotEmpty() && symbol.isNotEmpty() && parts.drop(1).joinToString("").isNotBlank()) {
+            "ui-allowlist.txt rad ${i + 1}: ogiltig rad, formatet är \"<sökväg>:<symbol> – <motivering>\""
         }
+        Allowed(file, symbol)
+    }
 
     /** Ett undantag gäller bara träffar vars matchade text och symbolen överlappar – inte hela raden. */
     fun isAllowed(allowlist: List<Allowed>, file: String, match: String): Boolean {
@@ -87,7 +84,7 @@ object Regel4 {
         relPath: String,
         content: String,
         patterns: Map<String, List<Rule>>,
-        allowlist: List<Allowed>,
+        allowlist: List<Allowed>
     ): List<Hit> {
         val active = scopesFor(relPath).filter { it in patterns }
         if (active.isEmpty()) return emptyList()

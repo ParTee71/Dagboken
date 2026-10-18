@@ -28,7 +28,7 @@ internal fun PickerField(
     error: String? = null,
     helper: String? = null,
     emptyLabel: String? = null,
-    contentLabel: String? = null,
+    contentLabel: String? = null
 ) {
     val description = listOf(contentLabel ?: label, shown.ifEmpty { emptyLabel ?: pickLabel }, error.orEmpty()).filter { it.isNotEmpty() }.joinToString(", ")
     Box(modifier) {
@@ -42,13 +42,13 @@ internal fun PickerField(
             helper = helper,
             readOnly = true,
             trailingIcon = icon,
-            valueIsPlaceholder = shown.isEmpty(),
+            valueIsPlaceholder = shown.isEmpty()
         )
         Box(
             Modifier
                 .matchParentSize()
                 .clickable(role = Role.Button, onClickLabel = pickLabel, onClick = onPick)
-                .semantics { contentDescription = description },
+                .semantics { contentDescription = description }
         )
     }
 }

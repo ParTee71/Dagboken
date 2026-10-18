@@ -135,7 +135,7 @@ object DocumentRules {
         val fields: Map<String, Check>,
         val required: Set<String> = emptySet(),
         val closed: Boolean = false,
-        val nullable: Set<String> = emptySet(),
+        val nullable: Set<String> = emptySet()
     )
 
     private fun wires(values: List<WireEnum>) = values.map { it.wire }
@@ -148,8 +148,9 @@ object DocumentRules {
     val SYMPTOM = Shape(
         mapOf("optionId" to Check.AnyText, "score" to Check.Range(SCORE), "customText" to Check.AnyText),
         required = setOf("optionId"),
-        nullable = setOf("score", "customText"),
+        nullable = setOf("score", "customText")
     )
+
     /**
      * `start` och `end` får vara `null` (öppen höjning) men nycklarna måste finnas – rules läser dem utan `get`.
      * Rules släpper dessutom igenom texten `null` som datum (det billiga mönstret i `isBoost`, #294), som
@@ -158,10 +159,10 @@ object DocumentRules {
     val BOOST = Shape(
         mapOf("id" to Check.AnyText, "start" to Check.DateText, "end" to Check.DateText, "dose" to Check.AnyText, "unit" to Check.AnyText),
         required = setOf("id", "dose", "unit"),
-        nullable = setOf("start", "end"),
+        nullable = setOf("start", "end")
     )
     val SCHEDULE = Shape(
-        mapOf("repeat" to Check.OneOf(wires(Repeat.entries)), "days" to Check.IntList(WEEKDAYS, WEEKDAYS.count()), "intervalDays" to Check.Min(0)),
+        mapOf("repeat" to Check.OneOf(wires(Repeat.entries)), "days" to Check.IntList(WEEKDAYS, WEEKDAYS.count()), "intervalDays" to Check.Min(0))
     )
     val PERIOD = Shape(mapOf("start" to Check.DateText, "end" to Check.DateText))
     val THEME = Shape(
@@ -169,20 +170,20 @@ object DocumentRules {
             "mode" to Check.OneOf(wires(ThemeMode.entries)),
             "lightStartHour" to Check.Range(HOUR),
             "darkStartHour" to Check.Range(HOUR),
-            "isDarkTheme" to Check.BoolField,
-        ),
+            "isDarkTheme" to Check.BoolField
+        )
     )
     private fun reminderRow(key: String, values: List<WireEnum>) = Shape(
         mapOf(key to Check.OneOf(wires(values)), "enabled" to Check.BoolField, "time" to Check.ClockText),
-        required = setOf(key, "enabled", "time"),
+        required = setOf(key, "enabled", "time")
     )
     val REMINDERS = Shape(
         mapOf(
             "medsEnabled" to Check.BoolField,
             "medSlots" to Check.ListOf(reminderRow("slot", Slot.SCHEDULED), exact = Slot.SCHEDULED.size),
             "screeningOccasions" to Check.ListOf(reminderRow("occasion", Occasion.entries), exact = Occasion.entries.size),
-            "periodReminderTime" to Check.ClockText,
-        ),
+            "periodReminderTime" to Check.ClockText
+        )
     )
     val PROFILE = Shape(mapOf("birthYear" to Check.IntField, "sex" to Check.OneOf(wires(Sex.entries))))
     val LEGACY = Shape(mapOf("dynamicColor" to Check.BoolField, "sheetsConfig" to Check.LongText))
@@ -197,10 +198,10 @@ object DocumentRules {
             "source" to Check.OneOf(wires(LegacySource.entries)),
             "sourceCreatedAt" to Check.TimestampField,
             "appVersion" to Check.ShortText,
-            "counts" to Check.IntMap(COUNT_COLLECTIONS),
+            "counts" to Check.IntMap(COUNT_COLLECTIONS)
         ),
         required = setOf("completedAt", "source"),
-        closed = true,
+        closed = true
     )
 
     /** Gemensamt för alla dokument under användaren (`validEntry`): anteckningen och namnet. */
@@ -214,19 +215,19 @@ object DocumentRules {
         CollectionNames.USERS to mapOf(
             "schemaVersion" to Check.Min(1),
             "createdAt" to Check.TimestampField,
-            "legacyMigration" to Check.Nested(LEGACY_MIGRATION),
+            "legacyMigration" to Check.Nested(LEGACY_MIGRATION)
         ),
         CollectionNames.SETTINGS to ENTRY + mapOf(
             "theme" to Check.Nested(THEME),
             "reminders" to Check.Nested(REMINDERS),
             "profile" to Check.Nested(PROFILE),
-            "legacy" to Check.Nested(LEGACY),
+            "legacy" to Check.Nested(LEGACY)
         ),
         CollectionNames.OPTIONS to ENTRY + mapOf(
             "kind" to Check.OneOf(wires(OptionKind.entries)),
             "favorite" to Check.BoolField,
             "sortOrder" to Check.IntField,
-            "archived" to Check.BoolField,
+            "archived" to Check.BoolField
         ),
         CollectionNames.PRESCRIPTIONS to ENTRY + mapOf(
             STRENGTH to Check.ShortText,
@@ -238,7 +239,7 @@ object DocumentRules {
             "period" to Check.Nested(PERIOD),
             "boosts" to Check.ListOf(BOOST, max = MAX_BOOSTS),
             "active" to Check.BoolField,
-            "createdAt" to Check.TimestampField,
+            "createdAt" to Check.TimestampField
         ),
         CollectionNames.PRN_MEDICINES to ENTRY + mapOf(
             STRENGTH to Check.ShortText,
@@ -249,7 +250,7 @@ object DocumentRules {
             "minHoursBetween" to Check.Min(0),
             "dispensingTime" to Check.ShortText,
             "maxPerDay" to Check.Min(0),
-            "favorite" to Check.BoolField,
+            "favorite" to Check.BoolField
         ),
         CollectionNames.DOSES to ENTRY + mapOf(
             "date" to Check.DateText,
@@ -262,7 +263,7 @@ object DocumentRules {
             "takenAt" to Check.TimestampField,
             "prescriptionId" to Check.ShortText,
             "prnId" to Check.ShortText,
-            "createdAt" to Check.TimestampField,
+            "createdAt" to Check.TimestampField
         ),
         CollectionNames.SCREENINGS to POST + mapOf(
             "occasion" to Check.OneOf(wires(Occasion.entries)),
@@ -271,7 +272,7 @@ object DocumentRules {
             "stress" to Check.Range(SCORE),
             "symptoms" to Check.ListOf(SYMPTOM, max = MAX_SYMPTOMS),
             "legacySomatic" to Check.Min(0),
-            "feelings" to Check.PatternList(FEELING_TOKEN.pattern, max = MAX_FEELINGS),
+            "feelings" to Check.PatternList(FEELING_TOKEN.pattern, max = MAX_FEELINGS)
         ),
         CollectionNames.ACTIVITIES to POST + mapOf(
             "optionId" to Check.ShortText,
@@ -282,26 +283,26 @@ object DocumentRules {
             "legacySomatic" to Check.Min(0),
             "recovering" to Check.BoolField,
             "drain" to Check.BoolField,
-            "minutes" to Check.Min(0),
+            "minutes" to Check.Min(0)
         ),
         CollectionNames.EVENTS to POST + mapOf(
             "optionId" to Check.ShortText,
             "severity" to Check.Range(SCORE),
             "durationMinutes" to Check.Min(0),
             "triggers" to Check.LongText,
-            "actions" to Check.LongText,
+            "actions" to Check.LongText
         ),
         CollectionNames.ILLNESS_EPISODES to ENTRY + mapOf(
             "type" to Check.ShortText,
             "start" to Check.DateText,
             "end" to Check.DateText,
-            "createdAt" to Check.TimestampField,
+            "createdAt" to Check.TimestampField
         ),
         CollectionNames.CHECKINS to POST + mapOf(
             "severity" to Check.Range(SCORE),
             "symptoms" to Check.ListOf(SYMPTOM, max = MAX_SYMPTOMS),
-            "legacySomatic" to Check.Min(0),
-        ),
+            "legacySomatic" to Check.Min(0)
+        )
     )
 
     /**
@@ -327,8 +328,7 @@ object DocumentRules {
      * `__…__`, inget `/` och högst 1 500 byte – samma kontroll som `hasValidIds` i tools/db gör före en import
      * (båda körs mot `tools/db/test/fixtures/ids.json`).
      */
-    fun isValidId(id: String): Boolean =
-        id.isNotEmpty() && id != "." && id != ".." && !RESERVED_ID.matches(id) && '/' !in id && id.toByteArray(Charsets.UTF_8).size <= MAX_ID_BYTES
+    fun isValidId(id: String): Boolean = id.isNotEmpty() && id != "." && id != ".." && !RESERVED_ID.matches(id) && '/' !in id && id.toByteArray(Charsets.UTF_8).size <= MAX_ID_BYTES
 
     /** **Alla** brott i [doc] mot [collection]s regler (även i nästlade objekt och varje listelement), i fältordning; tom lista = rules godtar dokumentet vid `create`. */
     fun validate(collection: String, doc: Doc): List<Violation> {
@@ -353,21 +353,37 @@ object DocumentRules {
     private fun check(check: Check, value: Any, path: String): List<Violation> {
         val reason: String? = when (check) {
             Check.IntField -> whole(value)
+
             Check.BoolField -> if (value is Boolean) null else type(value, "sant/falskt")
+
             Check.TimestampField -> if (value is Instant) null else type(value, "tidsstämpel")
+
             Check.AnyText -> if (value is String) null else type(value, "text")
+
             Check.ShortText -> text(value, TextLimits.SHORT)
+
             Check.LongText -> text(value, TextLimits.LONG)
+
             Check.DateText -> if (value is String) (if (parseDate(value) == null) "ogiltigt datum" else null) else type(value, "datum")
+
             Check.ClockText -> if (value is String) (if (parseClock(value) == null) "ogiltigt klockslag" else null) else type(value, "klockslag")
+
             is Check.Range -> whole(value) ?: (value as Number).toLong().let { if (it in check.range) null else "utanför intervallet ${check.range}: $it" }
+
             is Check.Min -> whole(value) ?: (value as Number).toLong().let { if (it >= check.min) null else "under ${check.min}: $it" }
+
             is Check.OneOf -> if (value is String) (if (value in check.values) null else "okänt värde (${value.length} tecken)") else type(value, "enum")
+
             is Check.IntList -> list(value, check.max) ?: return elements(value, path) { i, v -> check(Check.Range(check.range), v, "$path[$i]") }
+
             is Check.EnumList -> list(value, check.max) ?: return elements(value, path) { i, v -> check(Check.OneOf(check.values), v, "$path[$i]") }
+
             is Check.PatternList -> list(value, check.max) ?: return elements(value, path) { i, v -> listOfNotNull(token(v, check.pattern)?.let { Violation("$path[$i]", it) }) }
+
             is Check.Nested -> if (value is Map<*, *>) return check(check.shape, asDoc(value), "$path.") else type(value, "objekt")
+
             is Check.IntMap -> if (value is Map<*, *>) return check(Shape(check.keys.associateWith { Check.IntField }, closed = true), asDoc(value), "$path.") else type(value, "objekt")
+
             is Check.ListOf -> list(value, check.max, check.exact) ?: return elements(value, path) { i, element ->
                 if (element is Map<*, *>) check(check.shape, asDoc(element), "$path[$i].") else listOf(Violation("$path[$i]", type(element, "objekt")))
             }
@@ -376,8 +392,7 @@ object DocumentRules {
     }
 
     /** Brotten i varje element; ett `null`-element saknas (rules läser elementen utan `none`). */
-    private fun elements(list: Any, path: String, check: (Int, Any) -> List<Violation>): List<Violation> =
-        (list as List<*>).withIndex().flatMap { (i, element) -> if (element == null) listOf(Violation("$path[$i]", "saknas")) else check(i, element) }
+    private fun elements(list: Any, path: String, check: (Int, Any) -> List<Violation>): List<Violation> = (list as List<*>).withIndex().flatMap { (i, element) -> if (element == null) listOf(Violation("$path[$i]", "saknas")) else check(i, element) }
 
     private fun whole(value: Any): String? = if (value is Int || value is Long) null else type(value, "heltal")
 

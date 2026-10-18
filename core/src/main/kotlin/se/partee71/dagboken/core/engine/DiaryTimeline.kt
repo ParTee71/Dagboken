@@ -153,7 +153,7 @@ data class DiarySources(
     val doses: List<Dose> = emptyList(),
     val events: List<Event> = emptyList(),
     val episodes: List<IllnessEpisode> = emptyList(),
-    val checkins: Map<String, List<Checkin>> = emptyMap(),
+    val checkins: Map<String, List<Checkin>> = emptyMap()
 ) {
     operator fun plus(other: DiarySources): DiarySources = DiarySources(
         screenings + other.screenings,
@@ -161,7 +161,7 @@ data class DiarySources(
         doses + other.doses,
         events + other.events,
         episodes + other.episodes,
-        checkins + other.checkins,
+        checkins + other.checkins
     )
 }
 
@@ -213,8 +213,7 @@ fun dayLabel(date: LocalDate, today: LocalDate): DayLabel = when (date) {
 data class DiaryDay(val date: LocalDate, val label: DayLabel, val entries: List<DiaryEntry>)
 
 /** HIST-1: [entries] (nyast först, [diaryEntries]) per dag, nyaste dagen först; dagar utan poster finns inte. */
-fun diaryDays(entries: List<DiaryEntry>, today: LocalDate): List<DiaryDay> =
-    entries.groupBy { it.date }.map { (date, day) -> DiaryDay(date, dayLabel(date, today), day) }.sortedByDescending { it.date }
+fun diaryDays(entries: List<DiaryEntry>, today: LocalDate): List<DiaryDay> = entries.groupBy { it.date }.map { (date, day) -> DiaryDay(date, dayLabel(date, today), day) }.sortedByDescending { it.date }
 
 /**
  * HIST-8: Dagbokens fönster – [years] år bakåt, förankrat i [anchor] (dagen fönstret skapades) så att årsgränserna
@@ -229,8 +228,7 @@ data class DiaryWindow(val anchor: LocalDate, val years: Int = 1, val today: Loc
     }
 
     /** År [index] bakåt: från dagen efter samma datum [index] + 1 år före [anchor] till och med samma datum [index] år före (år 0: till [today]). */
-    fun year(index: Int): ClosedRange<LocalDate> =
-        anchor.minus(index + 1, DateTimeUnit.YEAR).plus(1, DateTimeUnit.DAY)..(if (index == 0) today else anchor.minus(index, DateTimeUnit.YEAR))
+    fun year(index: Int): ClosedRange<LocalDate> = anchor.minus(index + 1, DateTimeUnit.YEAR).plus(1, DateTimeUnit.DAY)..(if (index == 0) today else anchor.minus(index, DateTimeUnit.YEAR))
 
     /** Fönstrets första dag. */
     val from: LocalDate get() = year(years - 1).start

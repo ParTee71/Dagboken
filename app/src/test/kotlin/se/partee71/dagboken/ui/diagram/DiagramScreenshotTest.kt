@@ -18,6 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.COMPARE_AXIS
 import se.partee71.dagboken.core.engine.IntervalPoint
 import se.partee71.dagboken.core.engine.StackedPoint
@@ -28,7 +29,6 @@ import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.components.AppCard
 import se.partee71.dagboken.ui.components.AppMenuItem
 import se.partee71.dagboken.ui.components.GalleryCharts
-import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
@@ -48,7 +48,7 @@ class DiagramScreenshotTest {
     private fun Sheet(content: @Composable ColumnScope.() -> Unit) {
         Column(
             Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(Spacing.l),
-            verticalArrangement = Arrangement.spacedBy(Spacing.m),
+            verticalArrangement = Arrangement.spacedBy(Spacing.m)
         ) { AppCard(content = content) }
     }
 
@@ -64,7 +64,7 @@ class DiagramScreenshotTest {
                 listOf(ChartSeries("Energi", GalleryCharts.energy)),
                 xLabels = GalleryCharts.days14,
                 previous = listOf(ChartSeries("Energi", GalleryCharts.energyPrevious)),
-                label = "Energi per dag",
+                label = "Energi per dag"
             )
         }
     }
@@ -75,10 +75,10 @@ class DiagramScreenshotTest {
             LineChart(
                 listOf(
                     ChartSeries("Energi", GalleryCharts.energy),
-                    ChartSeries("Stress", listOf(4f, 4f, 5f, 3f, null, 4f, 5f, 6f, null, 4f, 3f, 4f, 3f, 3f), AppColors.swatch(4)),
+                    ChartSeries("Stress", listOf(4f, 4f, 5f, 3f, null, 4f, 5f, 6f, null, 4f, 3f, 4f, 3f, 3f), AppColors.swatch(4))
                 ),
                 xLabels = GalleryCharts.days14,
-                label = "Mående",
+                label = "Mående"
             )
         }
     }
@@ -89,13 +89,13 @@ class DiagramScreenshotTest {
             LineChart(
                 listOf(
                     ChartSeries("Steg · 2 350–11 020 steg", listOf(10f, 35f, null, 100f, 60f, 0f, 45f, 70f, null, 55f, 80f, 65f, 90f, 75f), AppColors.swatch(0)),
-                    ChartSeries("Energi (dag) · 3,5–8 skala", GalleryCharts.energy.map { it?.let { v -> (v - 3.5f) / 4.5f * 100f } }, AppColors.swatch(1)),
+                    ChartSeries("Energi (dag) · 3,5–8 skala", GalleryCharts.energy.map { it?.let { v -> (v - 3.5f) / 4.5f * 100f } }, AppColors.swatch(1))
                 ),
                 xLabels = GalleryCharts.days14,
                 label = "Jämför",
                 axis = COMPARE_AXIS,
                 showCaption = false,
-                footnote = "Varje serie visas 0–100 mot sitt eget lägsta och högsta värde.",
+                footnote = "Varje serie visas 0–100 mot sitt eget lägsta och högsta värde."
             )
         }
     }
@@ -142,7 +142,7 @@ class DiagramScreenshotTest {
                 xLabels = GalleryCharts.days14,
                 label = "Händelser och sjukdom",
                 line = ChartSeries("Incheckningar", GalleryCharts.checkins),
-                bands = GalleryCharts.episodes,
+                bands = GalleryCharts.episodes
             )
         }
     }
@@ -186,7 +186,7 @@ class DiagramScreenshotTest {
     @Test
     fun `CompactDropdownButton - öppen`() = rule.captureScreenLightAndDark(
         "CompactDropdownButton_oppen",
-        open = { onNodeWithText("14 dagar").clickWithoutRipple() },
+        open = { onNodeWithText("14 dagar").clickWithoutRipple() }
     ) {
         Sheet { CompactDropdownButton("14 dagar", periodItems()) }
     }

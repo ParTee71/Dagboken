@@ -8,13 +8,13 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ActivityController
+import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 
 /**
  * Behörighetsporten mot en riktig aktivitet (HLS-3, HLS-14): samtyckesdialogen registreras i `attach` och startas med
@@ -32,8 +32,7 @@ class HealthPermissionsImplTest {
     }
 
     /** En aktivitet som kopplar in porten i `onCreate`-läget, som `MainActivity`. */
-    private fun attached(port: HealthPermissionsImpl): ActivityController<ComponentActivity> =
-        Robolectric.buildActivity(ComponentActivity::class.java).create().also { port.attach(it.get()) }.start().resume()
+    private fun attached(port: HealthPermissionsImpl): ActivityController<ComponentActivity> = Robolectric.buildActivity(ComponentActivity::class.java).create().also { port.attach(it.get()) }.start().resume()
 
     @Test
     fun `attach registrerar dialogen och Ge åtkomst startar den med behörighetsuppsättningen`() = runTest {
@@ -90,6 +89,7 @@ class HealthPermissionsImplTest {
 
         port.requestAccess()
         val started = assertNotNull(shadowOf(controller.get()).nextStartedActivityForResult)
+
         @Suppress("DEPRECATION")
         val requested = started.intent.extras?.keySet()?.flatMap { key -> (started.intent.extras?.get(key) as? Array<*>)?.map { it.toString() }.orEmpty() }.orEmpty().toSet()
         assertEquals(HealthPermissionSet.ALL - HealthPermissionSet.OPTIONAL.getValue(OptionalHealthMetric.HISTORY), requested)

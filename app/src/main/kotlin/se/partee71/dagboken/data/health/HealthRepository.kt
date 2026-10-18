@@ -23,7 +23,7 @@ enum class HealthStatus {
     /** Health Connect finns men kärnbehörigheterna (HLS-3) saknas. */
     PERMISSIONS_MISSING,
 
-    AVAILABLE,
+    AVAILABLE
 }
 
 /**
@@ -54,8 +54,7 @@ interface HealthRepository {
  * (`null`) i stället för att fälla skärmen, och flödet försöker igen (`withFallback`). En gång för Trender,
  * Klocka-gruppens topp och hälsokortet på Idag.
  */
-fun HealthRepository.observedStatus(): Flow<HealthStatus?> =
-    status.map<HealthStatus, HealthStatus?> { it }.withFallback(null).distinctUntilChanged()
+fun HealthRepository.observedStatus(): Flow<HealthStatus?> = status.map<HealthStatus, HealthStatus?> { it }.withFallback(null).distinctUntilChanged()
 
 /**
  * Klockdatan utan Health Connect, för test och förhandsvisningar: klockan är [HealthStatus.UNAVAILABLE], varje dygn

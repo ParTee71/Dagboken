@@ -58,7 +58,7 @@ fun ValueSlider(
     modifier: Modifier = Modifier,
     valueRange: IntRange = 0..10,
     higherIsBetter: Boolean = true,
-    enabled: Boolean = true,
+    enabled: Boolean = true
 ) {
     val level = scaleLevel(value, valueRange, higherIsBetter)
     val levelText = stringResource(level.label)
@@ -91,7 +91,7 @@ fun ValueSlider(
             },
             enabled = enabled,
             thumb = { Thumb(level.color) },
-            track = { GradientTrack(gradient, fraction, anchor) },
+            track = { GradientTrack(gradient, fraction, anchor) }
         )
     }
 }
@@ -104,7 +104,7 @@ private fun Thumb(color: Color) {
             Modifier
                 .size(THUMB)
                 .background(AppColors.extended.card, CircleShape)
-                .border(THUMB_BORDER, color, CircleShape),
+                .border(THUMB_BORDER, color, CircleShape)
         )
     }
 }

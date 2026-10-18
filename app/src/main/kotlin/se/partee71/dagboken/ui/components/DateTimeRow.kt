@@ -23,7 +23,7 @@ fun DateTimeRow(
     onTimeChange: (LocalTime) -> Unit,
     modifier: Modifier = Modifier,
     dateLabel: String = stringResource(R.string.date),
-    timeLabel: String = stringResource(R.string.time),
+    timeLabel: String = stringResource(R.string.time)
 ) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
         DateField(dateLabel, date, onDateChange, Modifier.weight(DATE_WEIGHT))

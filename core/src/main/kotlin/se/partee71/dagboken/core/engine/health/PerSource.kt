@@ -15,8 +15,7 @@ import kotlinx.datetime.TimeZone
  * Connects `COUNT_TOTAL` tappade steg när källorna inte överlappade (HLS-2). `null` utan poster och när summan
  * är noll – en lucka, aldrig en nolla (HLS-12).
  */
-fun mostCompleteSum(samples: List<SummableSample>): Double? =
-    samples.groupBy { it.origin }.values.maxOfOrNull { source -> source.sumOf { it.amount } }?.takeIf { it > 0.0 }
+fun mostCompleteSum(samples: List<SummableSample>): Double? = samples.groupBy { it.origin }.values.maxOfOrNull { source -> source.sumOf { it.amount } }?.takeIf { it > 0.0 }
 
 /** Stegen enligt [mostCompleteSum], i hela steg; `null` utan poster eller med noll steg (en lucka, HLS-12). */
 fun mostCompleteSteps(samples: List<StepSample>): Long? = mostCompleteSum(samples)?.toStepCount()
@@ -28,8 +27,7 @@ internal fun Double.toStepCount(): Long? = roundToLong().takeIf { it > 0 }
  * [mostCompleteSum] **per dygn** (HLS-12): en post hör till dygnet dess starttid faller på, och den mest
  * kompletta källan väljs för varje dygn för sig. Dygn utan poster saknas i kartan.
  */
-fun mostCompleteSumByDay(samples: List<SummableSample>, zone: TimeZone): Map<LocalDate, Double> =
-    samples.perDay(zone, { it.start }, ::mostCompleteSum)
+fun mostCompleteSumByDay(samples: List<SummableSample>, zone: TimeZone): Map<LocalDate, Double> = samples.perDay(zone, { it.start }, ::mostCompleteSum)
 
 /** Antal träningspass och deras sammanlagda tid (HLS-8). */
 data class ExerciseTotals(val sessions: Int, val duration: Duration)
@@ -61,16 +59,13 @@ fun distinctExercise(sessions: List<ExerciseSession>): List<ExerciseSession> {
 }
 
 /** Antal och sammanlagd tid för [distinctExercise] av [sessions]; `null` utan pass. */
-fun mostCompleteExercise(sessions: List<ExerciseSession>): ExerciseTotals? =
-    distinctExercise(sessions).takeIf { it.isNotEmpty() }?.let(::totalsOf)
+fun mostCompleteExercise(sessions: List<ExerciseSession>): ExerciseTotals? = distinctExercise(sessions).takeIf { it.isNotEmpty() }?.let(::totalsOf)
 
-private fun totalsOf(events: List<ExerciseSession>) =
-    ExerciseTotals(sessions = events.size, duration = events.fold(Duration.ZERO) { acc, s -> acc + s.duration })
+private fun totalsOf(events: List<ExerciseSession>) = ExerciseTotals(sessions = events.size, duration = events.fold(Duration.ZERO) { acc, s -> acc + s.duration })
 
 /**
  * [mostCompleteExercise] **per dygn** (HLS-12): passen dedupliceras på tidsöverlapp över **hela perioden**
  * först – samma pass från två källor på var sin sida om midnatt räknas en gång – och fördelas sedan efter
  * starttid; ett pass över midnatt hör till dygnet det började.
  */
-fun mostCompleteExerciseByDay(sessions: List<ExerciseSession>, zone: TimeZone): Map<LocalDate, ExerciseTotals> =
-    distinctExercise(sessions).perDay(zone, { it.start }, ::totalsOf)
+fun mostCompleteExerciseByDay(sessions: List<ExerciseSession>, zone: TimeZone): Map<LocalDate, ExerciseTotals> = distinctExercise(sessions).perDay(zone, { it.start }, ::totalsOf)

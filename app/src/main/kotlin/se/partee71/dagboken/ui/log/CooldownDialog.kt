@@ -25,7 +25,7 @@ fun CooldownDialog(prompt: CooldownPrompt, onConfirm: () -> Unit, onDismiss: () 
         cooldownText(R.string.today_cooldown_message, prompt),
         stringResource(R.string.today_take_anyway),
         onConfirm = onConfirm,
-        onDismiss = onDismiss,
+        onDismiss = onDismiss
     )
 }
 
@@ -37,5 +37,4 @@ fun cooldownText(@StringRes format: Int, prompt: CooldownPrompt): String {
 }
 
 /** Hela timmar och påbörjade minuter – "0h 1m" hellre än "0h 0m" när några sekunder återstår. */
-private fun Duration.hoursAndMinutes(): Pair<Long, Int> =
-    ceil(toDouble(DurationUnit.MINUTES)).toLong().minutes.toComponents { hours, minutes, _, _ -> hours to minutes }
+private fun Duration.hoursAndMinutes(): Pair<Long, Int> = ceil(toDouble(DurationUnit.MINUTES)).toLong().minutes.toComponents { hours, minutes, _, _ -> hours to minutes }

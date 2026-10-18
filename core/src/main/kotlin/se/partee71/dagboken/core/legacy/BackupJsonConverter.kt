@@ -128,7 +128,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             createdAt = backup.createdAt,
             counts = CollectionNames.countsOf(documents.map { it.path }),
             warnings = warnings.toList(),
-            problems = problems.toList(),
+            problems = problems.toList()
         )
         if (report.stopped) return ConversionResult.Stopped(report)
         val data = ConvertedData(settings?.first, options.all(), prescriptions, prnMedicines, doses, screenings, activities, events, episodes, checkins)
@@ -209,8 +209,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
         }
     }.toMap()
 
-    private fun themeMode(path: String, raw: String): ThemeMode =
-        wireValue<ThemeMode>(raw) ?: ThemeMode.AUTO.also { problem(path, "themeMode", unknown(raw)) }
+    private fun themeMode(path: String, raw: String): ThemeMode = wireValue<ThemeMode>(raw) ?: ThemeMode.AUTO.also { problem(path, "themeMode", unknown(raw)) }
 
     private fun sex(path: String, raw: String): Sex = when (raw) {
         LegacyDefaults.SEX_MALE -> Sex.MALE
@@ -235,7 +234,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             SlotReminder(
                 slot,
                 enabled = config?.enabled ?: default.enabled,
-                time = config?.time?.takeIf { it.isNotBlank() }?.let { clock(path, "medNotificationConfigs[$match].time", it) } ?: default.time,
+                time = config?.time?.takeIf { it.isNotBlank() }?.let { clock(path, "medNotificationConfigs[$match].time", it) } ?: default.time
             )
         }
         configs.indices.filterNot { it in used }.forEach { problem(path, "medNotificationConfigs[$it].tidpunkt", "okänd tidpunkt ${unknown(configs[it].tidpunkt)}") }
@@ -254,7 +253,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             OccasionReminder(
                 occasion,
                 enabled = config?.enabled ?: default.enabled,
-                time = config?.time?.takeIf { it.isNotBlank() }?.let { clock(path, "screeningEventConfigs[$index].time", it) } ?: default.time,
+                time = config?.time?.takeIf { it.isNotBlank() }?.let { clock(path, "screeningEventConfigs[$index].time", it) } ?: default.time
             )
         }
     }
@@ -281,7 +280,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             },
             active = r.aktiv,
             createdAt = created(path, r.skapad, intervalFromCreated = repeat == Repeat.INTERVAL && start == null),
-            note = notes.note(LegacyDefaults.NOTE_PRESCRIPTION, r.id, r.anteckning, path),
+            note = notes.note(LegacyDefaults.NOTE_PRESCRIPTION, r.id, r.anteckning, path)
         )
     }
 
@@ -317,8 +316,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     }
 
     /** 3.x 0 = måndag … 6 = söndag → ISO; annat tal har ingen veckodag och stoppar. */
-    private fun weekday(path: String, day: Int): DayOfWeek? =
-        if (day in 0..6) DayOfWeek(day + 1) else null.also { problem(path, "dagar", "ingen veckodag: $day (0–6)") }
+    private fun weekday(path: String, day: Int): DayOfWeek? = if (day in 0..6) DayOfWeek(day + 1) else null.also { problem(path, "dagar", "ingen veckodag: $day (0–6)") }
 
     private fun prnMedicine(f: FavoritJson): PrnMedicine {
         val path = entityPath(CollectionNames.PRN_MEDICINES, f.id)
@@ -333,7 +331,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             dispensingTime = f.dispenseringsTid.ifBlank { null },
             maxPerDay = f.maxDoserPerDag,
             favorite = f.isFavorite,
-            note = notes.note(LegacyDefaults.NOTE_PRN, f.id, f.anteckning, path),
+            note = notes.note(LegacyDefaults.NOTE_PRN, f.id, f.anteckning, path)
         )
     }
 
@@ -356,12 +354,18 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             dose = m.dos,
             unit = m.enhet,
             // Båda sanna är ogiltigt i 3.x; tagen går före.
-            status = if (m.tagen) DoseStatus.TAKEN else if (m.skipped) DoseStatus.SKIPPED else DoseStatus.PLANNED,
+            status = if (m.tagen) {
+                DoseStatus.TAKEN
+            } else if (m.skipped) {
+                DoseStatus.SKIPPED
+            } else {
+                DoseStatus.PLANNED
+            },
             plannedTime = time,
             takenAt = if (takenTime != null && date != null) at(path, "tagenTid", date, takenTime) else null,
             prescriptionId = m.receptId,
             createdAt = createdAt(path, m.timestamp, date, time),
-            note = notes.note(LegacyDefaults.NOTE_MEDICATION, m.id, m.anteckning, path),
+            note = notes.note(LegacyDefaults.NOTE_MEDICATION, m.id, m.anteckning, path)
         )
     }
 
@@ -393,7 +397,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             symptoms = symptoms,
             legacySomatic = legacySomatic(path, a.somatiska, symptoms),
             createdAt = createdAt(path, a.timestamp, date, time),
-            note = notes.note(LegacyDefaults.NOTE_SCREENING, a.id, "", path),
+            note = notes.note(LegacyDefaults.NOTE_SCREENING, a.id, "", path)
         )
     }
 
@@ -421,7 +425,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             drain = a.energitjuv,
             minutes = a.spentTime,
             createdAt = createdAt(path, a.timestamp, date, time),
-            note = notes.note(LegacyDefaults.NOTE_ACTIVITY, a.id, "", path),
+            note = notes.note(LegacyDefaults.NOTE_ACTIVITY, a.id, "", path)
         )
     }
 
@@ -440,7 +444,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             triggers = h.triggers.ifBlank { null },
             actions = h.atgarder.ifBlank { null },
             createdAt = createdAt(path, h.timestamp, date, time),
-            note = notes.note(LegacyDefaults.NOTE_EVENT, h.id, h.anteckning, path),
+            note = notes.note(LegacyDefaults.NOTE_EVENT, h.id, h.anteckning, path)
         )
     }
 
@@ -453,15 +457,14 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             start = date(path, "startDatum", e.startDatum),
             end = date(path, "slutDatum", e.slutDatum),
             createdAt = LegacyTime.epochMillis(e.timestamp),
-            note = notes.note(LegacyDefaults.NOTE_EPISODE, e.id, e.anteckning, path),
+            note = notes.note(LegacyDefaults.NOTE_EPISODE, e.id, e.anteckning, path)
         )
     }
 
     /** En incheckning utan sin episod har ingen sökväg (3.x hade en främmande nyckel) och stoppar. */
-    private fun checkinHasEpisode(i: SjukdomsIncheckningJson, episodeIds: Set<String>): Boolean =
-        (i.episodId in episodeIds).also { found ->
-            if (!found) problem(checkinPath(i.episodId, i.id), "episodId", "episoden finns inte i backupen")
-        }
+    private fun checkinHasEpisode(i: SjukdomsIncheckningJson, episodeIds: Set<String>): Boolean = (i.episodId in episodeIds).also { found ->
+        if (!found) problem(checkinPath(i.episodId, i.id), "episodId", "episoden finns inte i backupen")
+    }
 
     private fun checkin(i: SjukdomsIncheckningJson): Checkin {
         val path = checkinPath(i.episodId, i.id)
@@ -477,7 +480,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             symptoms = symptoms,
             legacySomatic = legacySomatic(path, i.somatiska, symptoms),
             createdAt = LegacyTime.epochMillis(i.timestamp),
-            note = notes.note(LegacyDefaults.NOTE_CHECKIN, i.id, i.anteckning, path),
+            note = notes.note(LegacyDefaults.NOTE_CHECKIN, i.id, i.anteckning, path)
         )
     }
 
@@ -529,11 +532,13 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             val option = options.find(OptionKind.SYMPTOM, name)
             when {
                 option != null -> SymptomScore(option.id, score)
+
                 name.startsWith(LegacyDefaults.OTHER) -> SymptomScore(
                     options.other(OptionKind.SYMPTOM).id,
                     score,
-                    name.removePrefix(LegacyDefaults.OTHER).trim().removeSurrounding("(", ")").ifBlank { null },
+                    name.removePrefix(LegacyDefaults.OTHER).trim().removeSurrounding("(", ")").ifBlank { null }
                 )
+
                 else -> SymptomScore(options.findOrArchived(OptionKind.SYMPTOM, name).id, score)
             }
         }
@@ -553,8 +558,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     }
 
     /** Ett ögonblick med zon som det står, eller dag och klockslag utan zon via [at] (sommartidsbytet rapporteras). */
-    private fun momentAt(path: String, field: String, raw: String): Instant? =
-        LegacyTime.instant(raw) ?: LegacyTime.localDateTime(raw)?.let { at(path, field, it.date, it.time) }
+    private fun momentAt(path: String, field: String, raw: String): Instant? = LegacyTime.instant(raw) ?: LegacyTime.localDateTime(raw)?.let { at(path, field, it.date, it.time) }
 
     /** Heltalet efter sista kolonet, som 3.x `decode` läste det; `null` = delen gick inte att läsa. */
     private fun scoreOf(part: String): Int? = part.lastIndexOf(':').takeIf { it >= 0 }?.let { part.substring(it + 1).trim().toIntOrNull() }
@@ -581,15 +585,12 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     }
 
     /** `yyyy-MM-dd`; tomt → `null`, ogiltigt stoppar. */
-    private fun date(path: String, field: String, raw: String): LocalDate? =
-        raw.takeIf { it.isNotBlank() }?.let { parseDate(it) ?: null.also { problem(path, field, "ogiltigt datum") } }
+    private fun date(path: String, field: String, raw: String): LocalDate? = raw.takeIf { it.isNotBlank() }?.let { parseDate(it) ?: null.also { problem(path, field, "ogiltigt datum") } }
 
     /** `HH:mm`; tomt → `null`, ogiltigt stoppar. */
-    private fun clock(path: String, field: String, raw: String): LocalTime? =
-        raw.takeIf { it.isNotBlank() }?.let { parseClock(it) ?: null.also { problem(path, field, "ogiltigt klockslag") } }
+    private fun clock(path: String, field: String, raw: String): LocalTime? = raw.takeIf { it.isNotBlank() }?.let { parseClock(it) ?: null.also { problem(path, field, "ogiltigt klockslag") } }
 
-    private fun slot(path: String, field: String, raw: String): Slot =
-        Slot.fromLegacyName(raw) ?: Slot.AS_NEEDED.also { problem(path, field, "okänd tidpunkt ${unknown(raw)}") }
+    private fun slot(path: String, field: String, raw: String): Slot = Slot.fromLegacyName(raw) ?: Slot.AS_NEEDED.also { problem(path, field, "okänd tidpunkt ${unknown(raw)}") }
 
     /** Ett värde utanför de kända – bara längden, aldrig värdet (det kan vara vad som helst). */
     private fun unknown(raw: String) = "okänt värde (${raw.length} tecken)"
@@ -640,7 +641,7 @@ private class OptionRegistry(backup: BackupJson, private val warn: (String, Stri
     private val byKind: Map<OptionKind, MutableMap<String, Option>> = mapOf(
         OptionKind.ACTIVITY to seed(OptionKind.ACTIVITY, backup.aktiviteterOptionsV2 ?: backup.aktiviteterOptions?.map(::SymptomOptionBackup) ?: defaults(LegacyDefaults.ACTIVITY_OPTIONS)),
         OptionKind.SYMPTOM to seed(OptionKind.SYMPTOM, backup.symptomOptionsV2 ?: backup.symptomOptions?.map(::SymptomOptionBackup) ?: defaults(LegacyDefaults.SYMPTOM_OPTIONS)),
-        OptionKind.EVENT to seed(OptionKind.EVENT, backup.handelseTypOptions ?: defaults(LegacyDefaults.EVENT_OPTIONS)),
+        OptionKind.EVENT to seed(OptionKind.EVENT, backup.handelseTypOptions ?: defaults(LegacyDefaults.EVENT_OPTIONS))
     )
 
     private fun defaults(names: List<String>) = names.map(::SymptomOptionBackup)
@@ -649,8 +650,11 @@ private class OptionRegistry(backup: BackupJson, private val warn: (String, Stri
     private fun seed(kind: OptionKind, rows: List<SymptomOptionBackup>): MutableMap<String, Option> {
         val options = linkedMapOf<String, Option>()
         rows.forEachIndexed { index, row ->
-            if (row.name in options) warn(reportPath(kind, index), "namnet finns två gånger i ${kind.wire}-listan – det första gäller")
-            else options[row.name] = Option(OptionIds.of(kind, row.name), kind, row.name, favorite = row.isFavorite, sortOrder = index)
+            if (row.name in options) {
+                warn(reportPath(kind, index), "namnet finns två gånger i ${kind.wire}-listan – det första gäller")
+            } else {
+                options[row.name] = Option(OptionIds.of(kind, row.name), kind, row.name, favorite = row.isFavorite, sortOrder = index)
+            }
         }
         return options
     }
@@ -712,9 +716,7 @@ private class NoteIndex(notes: List<NoteJson>, private val warn: (String, String
 }
 
 /** Ett `target` i rapporten: 3.x-konstanten när den är känd, annars bara längden – det kan vara vad som helst. */
-internal fun targetLabel(target: String): String =
-    if (target in LegacyDefaults.NOTE_TARGETS) target else "okänt target (${target.length} tecken)"
+internal fun targetLabel(target: String): String = if (target in LegacyDefaults.NOTE_TARGETS) target else "okänt target (${target.length} tecken)"
 
 /** Ett post-id i rapporten: id:t när det duger som dokument-id (UUID eller `recept_…`), annars bara längden. */
-internal fun idLabel(id: String): String =
-    if (DocumentRules.isValidId(id)) id else "(ogiltigt id, ${id.length} tecken)"
+internal fun idLabel(id: String): String = if (DocumentRules.isValidId(id)) id else "(ogiltigt id, ${id.length} tecken)"

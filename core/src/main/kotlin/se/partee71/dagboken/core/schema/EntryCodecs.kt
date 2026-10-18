@@ -26,7 +26,7 @@ internal fun entryFields(
     date: kotlinx.datetime.LocalDate?,
     time: kotlinx.datetime.LocalTime?,
     createdAt: kotlin.time.Instant?,
-    note: String?,
+    note: String?
 ): Doc = mapOf(DATE to date.encodeDate(), TIME to time.encodeTime(), CREATED_AT to createdAt, NOTE to note)
 
 /** 3.x `somatiska` som avviker från summan (DAT-6) – på måendeloggar, aktiviteter och incheckningar. */
@@ -40,8 +40,7 @@ internal fun Doc.symptoms(): List<SymptomScore> = docs(SYMPTOMS).map {
     SymptomScore(optionId = it.string("optionId"), score = it.intKeepingNull("score"), customText = it.stringOrNull("customText"))
 }
 
-internal fun List<SymptomScore>.encodeSymptoms(): List<Doc> =
-    map { mapOf("optionId" to it.optionId, "score" to it.score, "customText" to it.customText) }
+internal fun List<SymptomScore>.encodeSymptoms(): List<Doc> = map { mapOf("optionId" to it.optionId, "score" to it.score, "customText" to it.customText) }
 
 /** Känslorna på en måendelogg (DAT-14). */
 internal const val FEELINGS = "feelings"
@@ -67,7 +66,7 @@ object OptionCodec : DocCodec<Option> {
         NAME to value.name,
         FAVORITE to value.favorite,
         SORT_ORDER to value.sortOrder,
-        ARCHIVED to value.archived,
+        ARCHIVED to value.archived
     )
 
     override fun decode(id: String, map: Doc) = Option(
@@ -76,7 +75,7 @@ object OptionCodec : DocCodec<Option> {
         name = map.string(NAME),
         favorite = map.bool(FAVORITE),
         sortOrder = map.int(SORT_ORDER),
-        archived = map.bool(ARCHIVED),
+        archived = map.bool(ARCHIVED)
     )
 }
 
@@ -93,7 +92,7 @@ object ScreeningCodec : DatedCodec<Screening> {
         "stress" to value.stress,
         SYMPTOMS to value.symptoms.encodeSymptoms(),
         LEGACY_SOMATIC to value.legacySomatic,
-        FEELINGS to value.feelings.encodeFeelings(),
+        FEELINGS to value.feelings.encodeFeelings()
     )
 
     override fun decode(id: String, map: Doc) = Screening(
@@ -108,7 +107,7 @@ object ScreeningCodec : DatedCodec<Screening> {
         feelings = map.feelings(),
         legacySomatic = map.intOrNull(LEGACY_SOMATIC),
         createdAt = map.instant(CREATED_AT),
-        note = map.stringOrNull(NOTE),
+        note = map.stringOrNull(NOTE)
     )
 }
 
@@ -127,7 +126,7 @@ object ActivityCodec : DatedCodec<Activity> {
         LEGACY_SOMATIC to value.legacySomatic,
         "recovering" to value.recovering,
         "drain" to value.drain,
-        "minutes" to value.minutes,
+        "minutes" to value.minutes
     )
 
     override fun decode(id: String, map: Doc) = Activity(
@@ -144,7 +143,7 @@ object ActivityCodec : DatedCodec<Activity> {
         drain = map.bool("drain"),
         minutes = map.intOrNull("minutes"),
         createdAt = map.instant(CREATED_AT),
-        note = map.stringOrNull(NOTE),
+        note = map.stringOrNull(NOTE)
     )
 }
 
@@ -159,7 +158,7 @@ object EventCodec : DatedCodec<Event> {
         "severity" to value.severity,
         "durationMinutes" to value.durationMinutes,
         "triggers" to value.triggers,
-        "actions" to value.actions,
+        "actions" to value.actions
     )
 
     override fun decode(id: String, map: Doc) = Event(
@@ -172,7 +171,7 @@ object EventCodec : DatedCodec<Event> {
         triggers = map.stringOrNull("triggers"),
         actions = map.stringOrNull("actions"),
         createdAt = map.instant(CREATED_AT),
-        note = map.stringOrNull(NOTE),
+        note = map.stringOrNull(NOTE)
     )
 }
 
@@ -182,7 +181,7 @@ object IllnessEpisodeCodec : DocCodec<IllnessEpisode> {
         "start" to value.start.encodeDate(),
         "end" to value.end.encodeDate(),
         CREATED_AT to value.createdAt,
-        NOTE to value.note,
+        NOTE to value.note
     )
 
     override fun decode(id: String, map: Doc) = IllnessEpisode(
@@ -191,7 +190,7 @@ object IllnessEpisodeCodec : DocCodec<IllnessEpisode> {
         start = map.localDate("start"),
         end = map.localDate("end"),
         createdAt = map.instant(CREATED_AT),
-        note = map.stringOrNull(NOTE),
+        note = map.stringOrNull(NOTE)
     )
 }
 
@@ -200,7 +199,7 @@ object CheckinCodec : DocCodec<Checkin> {
     override fun encode(value: Checkin): Doc = entryFields(value.date, value.time, value.createdAt, value.note) + mapOf(
         "severity" to value.severity,
         SYMPTOMS to value.symptoms.encodeSymptoms(),
-        LEGACY_SOMATIC to value.legacySomatic,
+        LEGACY_SOMATIC to value.legacySomatic
     )
 
     override fun decode(id: String, map: Doc) = Checkin(
@@ -211,6 +210,6 @@ object CheckinCodec : DocCodec<Checkin> {
         symptoms = map.symptoms(),
         legacySomatic = map.intOrNull(LEGACY_SOMATIC),
         createdAt = map.instant(CREATED_AT),
-        note = map.stringOrNull(NOTE),
+        note = map.stringOrNull(NOTE)
     )
 }

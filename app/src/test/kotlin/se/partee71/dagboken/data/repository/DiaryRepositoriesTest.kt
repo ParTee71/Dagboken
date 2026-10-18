@@ -13,21 +13,17 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import org.junit.Test
+import se.partee71.dagboken.core.engine.OTHER_ACTIVITY_ID
 import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.IllnessEpisode
-import se.partee71.dagboken.core.model.Slot
-import se.partee71.dagboken.core.engine.OTHER_ACTIVITY_ID
-import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
-import se.partee71.dagboken.data.common.CollectionFactory
-import se.partee71.dagboken.data.common.DataError
-import se.partee71.dagboken.data.common.EntityCollection
-import se.partee71.dagboken.data.common.historyOnce
+import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.core.schema.ActivityCodec
 import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.DocumentRules
@@ -35,6 +31,10 @@ import se.partee71.dagboken.core.schema.EventCodec
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.TestUserScope
+import se.partee71.dagboken.data.common.CollectionFactory
+import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.common.EntityCollection
+import se.partee71.dagboken.data.common.historyOnce
 import se.partee71.dagboken.data.firestore.Paths
 
 /**
@@ -57,7 +57,7 @@ class DiaryRepositoriesTest {
     @Test
     fun `aktiviteter och händelser läses för ett intervall, båda dagarna inräknade (HIST-8)`() = runTest {
         factory.activities().batch(
-            listOf(Activity("in", day, LocalTime(9, 0)), Activity("kant", LocalDate(2025, 10, 7)), Activity("ute", before)),
+            listOf(Activity("in", day, LocalTime(9, 0)), Activity("kant", LocalDate(2025, 10, 7)), Activity("ute", before))
         ).getOrThrow()
         factory.events().batch(listOf(Event("in", day), Event("ute", before))).getOrThrow()
         assertEquals(setOf("in", "kant"), activities.observeDays(LocalDate(2025, 10, 7), day).first().map { it.id }.toSet())
@@ -84,8 +84,14 @@ class DiaryRepositoriesTest {
     @Test
     fun `en receptdos raderas inte utan markeras överhoppad, så att den inte skapas igen (MED-15, som 3x)`() = runTest {
         val taken = Dose(
-            "recept_levaxin_2026-10-06_Morgon", day, Slot.MORNING, "Levaxin", status = DoseStatus.TAKEN,
-            prescriptionId = "levaxin", takenAt = kotlin.time.Instant.fromEpochSeconds(1_791_000_000), note = "Med frukost",
+            "recept_levaxin_2026-10-06_Morgon",
+            day,
+            Slot.MORNING,
+            "Levaxin",
+            status = DoseStatus.TAKEN,
+            prescriptionId = "levaxin",
+            takenAt = kotlin.time.Instant.fromEpochSeconds(1_791_000_000),
+            note = "Med frukost"
         )
         factory.doses().upsert(taken).getOrThrow()
         factory.store.online = false
@@ -114,15 +120,14 @@ class DiaryRepositoriesTest {
 
     private val uid: String get() = factory.scope.uid.value!!
 
-
     /** Två aktiviteter det senaste året (den senaste: "work", 90 min) och en dagen före årets början. */
     private suspend fun seedRecentActivities() {
         factory.activities().batch(
             listOf(
                 Activity("äldst", LocalDate(2026, 10, 1), LocalTime(9, 0), optionId = "walk", minutes = 30),
                 Activity("senast", LocalDate(2026, 10, 5), LocalTime(18, 0), optionId = "work", minutes = 90, energy = 5, note = "Möte"),
-                Activity("förra året", LocalDate(2025, 10, 5), optionId = "gym", minutes = 60),
-            ),
+                Activity("förra året", LocalDate(2025, 10, 5), optionId = "gym", minutes = 60)
+            )
         ).getOrThrow()
     }
 
@@ -158,10 +163,15 @@ class DiaryRepositoriesTest {
         val activity = activities.new(day, LocalTime(17, 0), today = day).copy(
             optionId = OTHER_ACTIVITY_ID, customText = "Svamplockning", energy = -2, stress = 1,
             symptoms = listOf(SymptomScore("symptom-huvudvark-d55e7d", 1), SymptomScore("symptom-ovrigt-c067e8", 5, "Myggbett")),
-            recovering = true, drain = true, minutes = 45, note = "Regn hela vägen",
+            recovering = true, drain = true, minutes = 45, note = "Regn hela vägen"
         )
         val event = events.new(day, LocalTime(10, 5)).copy(
-            optionId = "event-yrsel-6db696", severity = 7, durationMinutes = 10, triggers = "Snabb uppresning", actions = "Satte mig ner", note = "Första gången",
+            optionId = "event-yrsel-6db696",
+            severity = 7,
+            durationMinutes = 10,
+            triggers = "Snabb uppresning",
+            actions = "Satte mig ner",
+            note = "Första gången"
         )
         assertEquals(EventRepository.DEFAULT_SEVERITY, events.new(day, LocalTime(10, 5)).severity)
         activities.save(null, activity).getOrThrow()

@@ -20,7 +20,7 @@ object RepositoryWrites {
     /** Suspend-funktioner i gränssnitten och extensions som bara läser. */
     val READS = setOf(
         "get", "getAll", "getEpisode", "cached", "cachedBetween", "cachedDates", "confirmed", "confirmedFrom", "awaitWrites",
-        "nextSortOrder", "checkinCount", "missingOn", "plan", "history", "day", "new", "catalog", "updated",
+        "nextSortOrder", "checkinCount", "missingOn", "plan", "history", "day", "new", "catalog", "updated"
     )
 
     /** Typer och fabriker för minnesmottagare vars `.add(`/`.update {`/`.remove(` inte rör datalagret. */

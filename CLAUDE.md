@@ -156,6 +156,7 @@ rapporterar i en tabell (skill **android:implement-issue**, steg 8).
 ./gradlew :app:verifyRoborazziDebug     # jämför skärmdumpar mot referenser
 ./gradlew :app:recordRoborazziDebug     # spela in referenser (bara vid avsiktlig designändring)
 ./gradlew cpdCheck                      # copy-paste-detektor
+./gradlew spotlessApply                 # kodstil (ktlint + compose-rules), före push – inte i CI
 ./gradlew :app:compileDebugKotlin       # kompilera
 node --test '.github/scripts/*.test.mjs' && node --test '.claude/hooks/test/*.test.mjs'                             # dokumentkontroller + hooktest
 node tools/db/stats.mjs                 # databasöversikt (kräver FIREBASE_SERVICE_ACCOUNT)

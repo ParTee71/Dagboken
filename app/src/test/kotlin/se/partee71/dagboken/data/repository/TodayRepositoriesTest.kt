@@ -5,10 +5,10 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
-import kotlin.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -64,7 +64,7 @@ class TodayRepositoriesTest {
         unit = "µg",
         slots = listOf(Slot.MORNING, Slot.EVENING),
         schedule = Schedule.Repeating(),
-        period = Period(start = LocalDate(2026, 1, 1)),
+        period = Period(start = LocalDate(2026, 1, 1))
     )
 
     private val alvedon = PrnMedicine("alvedon", "Alvedon", "500", "mg", minHoursBetween = 4, maxPerDay = 3)

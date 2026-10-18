@@ -16,8 +16,7 @@ import se.partee71.dagboken.core.schema.DocumentRules
 /** Receptformulärets regler (REC-7, REC-9) i 3.x-ordning, och förvalen för en ny höjning. Port av 3.x `ReceptForm.validate()`. */
 class PrescriptionRulesTest {
 
-    private fun rx(dose: String = "500", start: String? = "2026-05-01", end: String? = "2026-05-31", vararg boosts: Boost) =
-        prescription(dose = dose, start = start, end = end, boosts = boosts.toList())
+    private fun rx(dose: String = "500", start: String? = "2026-05-01", end: String? = "2026-05-31", vararg boosts: Boost) = prescription(dose = dose, start = start, end = end, boosts = boosts.toList())
 
     @Test fun `ett recept utan höjningar, och med höjningar i följd, är giltigt`() {
         assertNull(rx().validate())

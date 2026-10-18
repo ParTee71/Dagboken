@@ -63,7 +63,7 @@ fun DateStrip(
     today: LocalDate,
     modifier: Modifier = Modifier,
     datesWithEntries: Set<LocalDate> = emptySet(),
-    todayDone: Boolean = false,
+    todayDone: Boolean = false
 ) {
     val monday = week.weekMonday()
     val previous = monday.minus(ONE_WEEK)
@@ -84,16 +84,24 @@ fun DateStrip(
                             drag > threshold -> change(previous)
                             drag < -threshold && next != null -> change(next)
                         }
-                    },
+                    }
                 ) { _, amount -> drag += amount }
             }
             .semantics {
                 customActions = listOfNotNull(
-                    CustomAccessibilityAction(previousLabel) { change(previous); true },
-                    next?.let { CustomAccessibilityAction(nextLabel) { change(it); true } },
+                    CustomAccessibilityAction(previousLabel) {
+                        change(previous)
+                        true
+                    },
+                    next?.let {
+                        CustomAccessibilityAction(nextLabel) {
+                            change(it)
+                            true
+                        }
+                    }
                 )
             },
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         val days = remember(monday) { List(DAYS_PER_WEEK) { monday.plus(DatePeriod(days = it)) } }
         days.forEach { day ->
@@ -105,7 +113,7 @@ fun DateStrip(
                 hasEntries = day in datesWithEntries,
                 done = todayDone && day == today,
                 onClick = { onSelect(day) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -120,7 +128,7 @@ private fun DayChip(
     hasEntries: Boolean,
     done: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier,
+    modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
     val content = if (selected) colors.onPrimary else colors.onSurface
@@ -128,7 +136,7 @@ private fun DayChip(
     val description = listOfNotNull(
         DateFormat.display(day),
         stringResource(R.string.date_strip_today).takeIf { isToday },
-        stringResource(R.string.calendar_has_entries).takeIf { hasEntries },
+        stringResource(R.string.calendar_has_entries).takeIf { hasEntries }
     ).joinToString(", ")
     val doneLabel = stringResource(R.string.date_strip_done)
     Column(
@@ -144,7 +152,7 @@ private fun DayChip(
             .inactive(future)
             .padding(vertical = Spacing.s),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(DAY_MARKER_GAP),
+        verticalArrangement = Arrangement.spacedBy(DAY_MARKER_GAP)
     ) {
         Column(Modifier.clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally) {
             Text(DateFormat.weekdayShort(day), style = AppTypography.caption, color = muted, textAlign = TextAlign.Center, maxLines = 1)

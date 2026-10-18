@@ -13,7 +13,7 @@ data class SymptomScore(
      */
     val score: Int? = 0,
     /** Egen beskrivning vid "Övrigt" (AKT-6); `null` för vanliga symptom. */
-    val customText: String? = null,
+    val customText: String? = null
 )
 
 /** Summan av poängen – 3.x `somatiska`, som i 4.0 beräknas och aldrig persisteras (DAT-6). */

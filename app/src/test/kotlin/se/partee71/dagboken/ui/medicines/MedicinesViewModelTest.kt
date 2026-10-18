@@ -3,17 +3,17 @@ package se.partee71.dagboken.ui.medicines
 import app.cash.turbine.test
 import app.cash.turbine.testIn
 import app.cash.turbine.turbineScope
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -36,10 +36,10 @@ import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.TestUserScope
 import se.partee71.dagboken.data.common.DataError
-import se.partee71.dagboken.data.repository.testDoses
-import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
 import se.partee71.dagboken.data.repository.PrescriptionRepository
+import se.partee71.dagboken.data.repository.testDoses
+import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.testing.awaitDone
@@ -72,8 +72,7 @@ class MedicinesViewModelTest {
     fun `laddningen avslutar utgångna recept och städar inaktivas planerade doser, inte tagna (REC-8, REC-5)`() = runTest(main.dispatcher) {
         val factory = FakeCollectionFactory()
         factory.prescriptions().batch(listOf(levaxin, paused, stale)).getOrThrow()
-        fun dose(prescription: Prescription, status: DoseStatus) =
-            Dose(DoseIds.prescribed(prescription.id, today, Slot.MORNING), today, Slot.MORNING, prescription.name, status = status, prescriptionId = prescription.id)
+        fun dose(prescription: Prescription, status: DoseStatus) = Dose(DoseIds.prescribed(prescription.id, today, Slot.MORNING), today, Slot.MORNING, prescription.name, status = status, prescriptionId = prescription.id)
         val left = dose(paused, DoseStatus.PLANNED)
         val taken = dose(paused, DoseStatus.TAKEN).copy(id = DoseIds.prescribed(paused.id, today, Slot.EVENING), slot = Slot.EVENING)
         val active = dose(levaxin, DoseStatus.PLANNED)
@@ -141,9 +140,9 @@ class MedicinesViewModelTest {
                 MedicineItem.Recipe(levaxin),
                 MedicineItem.AsNeeded(alvedon),
                 MedicineItem.Recipe(ended, ended = true),
-                MedicineItem.Recipe(stale, ended = true),
+                MedicineItem.Recipe(stale, ended = true)
             ),
-            items,
+            items
         )
     }
 

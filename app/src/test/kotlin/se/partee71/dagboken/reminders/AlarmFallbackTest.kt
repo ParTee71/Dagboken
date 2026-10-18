@@ -40,8 +40,6 @@ class AlarmFallbackTest {
     @Implements(AlarmManager::class)
     class RevokedExactAlarms : ShadowAlarmManager() {
         @Implementation
-        override fun setExactAndAllowWhileIdle(type: Int, triggerAtMillis: Long, operation: PendingIntent) {
-            throw SecurityException("SCHEDULE_EXACT_ALARM")
-        }
+        override fun setExactAndAllowWhileIdle(type: Int, triggerAtMillis: Long, operation: PendingIntent): Unit = throw SecurityException("SCHEDULE_EXACT_ALARM")
     }
 }

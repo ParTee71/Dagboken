@@ -29,13 +29,14 @@ import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.core.engine.CompareKey
 import se.partee71.dagboken.core.engine.IntervalPoint
-import se.partee71.dagboken.core.engine.SLEEP_SCORE_KEY
 import se.partee71.dagboken.core.engine.SLEEP_QUALITY_KEYS
+import se.partee71.dagboken.core.engine.SLEEP_SCORE_KEY
 import se.partee71.dagboken.core.engine.StackedPoint
 import se.partee71.dagboken.core.engine.StressSeries
 import se.partee71.dagboken.core.engine.TrendRange
 import se.partee71.dagboken.core.engine.WATCH_COMPARE_KEYS
 import se.partee71.dagboken.core.engine.WatchMetric
+import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.DailyHealth
@@ -51,7 +52,6 @@ import se.partee71.dagboken.core.model.SleepStages
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
-import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.data.health.FakeHealthPermissions
 import se.partee71.dagboken.data.health.FakeHealthRepository
 import se.partee71.dagboken.data.health.HealthStatus
@@ -92,18 +92,18 @@ class TrendsViewModelTest {
 
     private val screenings = object : ScreeningRepository by DefaultScreeningRepository(factory, clock) {
         private val real = DefaultScreeningRepository(factory, clock)
-        override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Screening>> =
-            real.observeDays(from, to, live).onStart { screeningReads += from..to; screeningLive.add(live) }
+        override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Screening>> = real.observeDays(from, to, live).onStart {
+            screeningReads += from..to
+            screeningLive.add(live)
+        }
     }
     private val activities = object : ActivityRepository by DefaultActivityRepository(factory, clock) {
         private val real = DefaultActivityRepository(factory, clock)
-        override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Activity>> =
-            real.observeDays(from, to, live).onStart { activityReads += from..to }
+        override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Activity>> = real.observeDays(from, to, live).onStart { activityReads += from..to }
     }
     private val events = object : EventRepository by DefaultEventRepository(factory, clock) {
         private val real = DefaultEventRepository(factory, clock)
-        override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Event>> =
-            real.observeDays(from, to, live).onStart { eventReads += from..to }
+        override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Event>> = real.observeDays(from, to, live).onStart { eventReads += from..to }
     }
     private val illnesses = object : IllnessRepository by DefaultIllnessRepository(factory, clock) {
         private val real = DefaultIllnessRepository(factory, clock)
@@ -123,15 +123,14 @@ class TrendsViewModelTest {
             restingHeartRate = 56,
             heartRateAvg = 71,
             sleepDuration = 7.hours + 30.minutes,
-            sleepStages = SleepStages(deep = 1.hours + 15.minutes, rem = 1.hours + 30.minutes, light = 4.hours, awake = 45.minutes),
+            sleepStages = SleepStages(deep = 1.hours + 15.minutes, rem = 1.hours + 30.minutes, light = 4.hours, awake = 45.minutes)
         )
         health.measured[day(3)] = DailyHealth(day(3), steps = 4_100, sleepDuration = 6.hours)
     }
 
     private fun ranges(vararg read: ClosedRange<LocalDate>): List<ClosedRange<LocalDate>> = read.toList()
 
-    private fun mood(id: String, date: LocalDate, energy: Int, occasion: Occasion = Occasion.BREAKFAST, stress: Int = 3, symptoms: List<SymptomScore> = emptyList()) =
-        Screening(id, date, LocalTime(8, 0), occasion, energy = energy, stress = stress, symptoms = symptoms, createdAt = Instant.fromEpochSeconds(1))
+    private fun mood(id: String, date: LocalDate, energy: Int, occasion: Occasion = Occasion.BREAKFAST, stress: Int = 3, symptoms: List<SymptomScore> = emptyList()) = Screening(id, date, LocalTime(8, 0), occasion, energy = energy, stress = stress, symptoms = symptoms, createdAt = Instant.fromEpochSeconds(1))
 
     private suspend fun seed() {
         factory.screenings().batch(
@@ -141,8 +140,8 @@ class TrendsViewModelTest {
                 mood("s3", day(1), 6, symptoms = listOf(SymptomScore("yrsel", 5))),
                 mood("s4", day(40), 5, Occasion.LUNCH),
                 mood("s6", day(10), 7, symptoms = listOf(SymptomScore("yrsel", 8))),
-                mood("s5", day(100), 2, symptoms = listOf(SymptomScore("okand", 2))),
-            ),
+                mood("s5", day(100), 2, symptoms = listOf(SymptomScore("okand", 2)))
+            )
         ).getOrThrow()
         factory.activities().upsert(Activity("a1", day(1), LocalTime(16, 0), optionId = "promenad", stress = 7, recovering = true)).getOrThrow()
         factory.events().batch(listOf(Event("e1", today, severity = 7), Event("e2", day(2), severity = 4), Event("old", day(60), severity = 9))).getOrThrow()

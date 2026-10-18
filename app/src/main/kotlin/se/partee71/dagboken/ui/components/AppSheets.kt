@@ -4,9 +4,9 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
@@ -18,7 +18,7 @@ enum class LogChoice(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Activity(R.string.log_activity, R.drawable.ic_activity),
     Dose(R.string.dose_label, R.drawable.ic_pill),
     Event(R.string.log_event, R.drawable.ic_event),
-    Illness(R.string.log_illness, R.drawable.ic_thermometer),
+    Illness(R.string.log_illness, R.drawable.ic_thermometer)
 }
 
 /** Inställningsarkets rader i ordning (NAV-9) – var och en öppnar en underskärm med tillbakapil. */
@@ -28,7 +28,7 @@ enum class SettingsPage(@StringRes val label: Int, @DrawableRes val icon: Int) {
     Theme(R.string.settings_theme, R.drawable.ic_moon),
     Lists(R.string.settings_lists, R.drawable.ic_list),
     ExportImport(R.string.settings_export_import, R.drawable.ic_download),
-    About(R.string.settings_about, R.drawable.ic_info),
+    About(R.string.settings_about, R.drawable.ic_info)
 }
 
 /**
@@ -45,7 +45,7 @@ fun AccountSheet(
     onOpenGallery: (() -> Unit)?,
     modifier: Modifier = Modifier,
     account: AuthUser? = null,
-    onOpen: ((SettingsPage) -> Unit)? = null,
+    onOpen: ((SettingsPage) -> Unit)? = null
 ) {
     AppBottomSheet(stringResource(R.string.account_title), onDismiss, modifier) {
         account?.let { AccountRow(it) }
@@ -62,7 +62,7 @@ fun AccountSheet(
                     confirmSignOut = false
                     onSignOut()
                 },
-                onDismiss = { confirmSignOut = false },
+                onDismiss = { confirmSignOut = false }
             )
         }
     }
@@ -78,7 +78,7 @@ private fun AccountRow(account: AuthUser) {
         title,
         subtitle = subtitle.joinToString("\n").ifEmpty { null },
         leading = { AccountAvatar(account.name ?: account.email, onClick = null, photoUrl = account.photoUrl) },
-        tinted = true,
+        tinted = true
     )
 }
 
@@ -97,6 +97,6 @@ private fun SheetRow(@StringRes label: Int, @DrawableRes icon: Int, onClick: () 
         // Samma ledande bredd som kontots avatar (och kryssraden), så att titlarna linjerar.
         icon = icon,
         onClick = onClick,
-        navigates = navigates,
+        navigates = navigates
     )
 }

@@ -57,7 +57,7 @@ sealed interface ImportStage {
         /** Bekräftelsedialogen visas. */
         val confirming: Boolean = false,
         /** Poster som redan finns i kontot med samma id men andra värden – de som ersätts (0 = inget ersätts). */
-        val replaced: Int = 0,
+        val replaced: Int = 0
     ) : ImportStage {
         val total: Int get() = counts.values.sum()
 
@@ -125,17 +125,24 @@ class ImportFlow(private val scope: CoroutineScope, private val importer: Legacy
     fun onEvent(event: ImportEvent) {
         when (event) {
             ImportEvent.FromDrive -> step { read(LegacySource.DRIVE) }
+
             is ImportEvent.FileChosen -> {
                 lastFile = event.uri
                 step { read(LegacySource.JSON) }
             }
+
             is ImportEvent.DriveConsent -> if (_state.value is ImportStage.DriveConsent) {
                 if (event.granted) step { read(LegacySource.DRIVE) } else _state.value = ImportStage.Choose
             }
+
             ImportEvent.Import -> review { if (it.canImport) it.copy(confirming = true) else it }
+
             ImportEvent.Dismiss -> review { it.copy(confirming = false) }
+
             ImportEvent.Confirm -> if ((_state.value as? ImportStage.Review)?.confirming == true) plan?.let { step { write(it) } }
+
             ImportEvent.Retry -> retry()
+
             ImportEvent.Reset -> if (!busy) reset()
         }
     }
@@ -174,10 +181,15 @@ class ImportFlow(private val scope: CoroutineScope, private val importer: Legacy
                 plan = read.plan
                 ImportStage.Review(read.plan.source, read.plan.format, read.plan.counts, read.plan.warnings.messages(), replaced = read.plan.replaced)
             }
+
             is ImportRead.Stopped -> ImportStage.Stopped(reportOf(read.report.problems))
+
             ImportRead.NotABackup -> ImportStage.NotABackup
+
             ImportRead.NoDriveBackup -> ImportStage.NoDriveBackup
+
             is ImportRead.NeedsDriveConsent -> ImportStage.DriveConsent(read.consent)
+
             is ImportRead.Failed -> ImportStage.ReadFailed(source, read.error)
         }
     }

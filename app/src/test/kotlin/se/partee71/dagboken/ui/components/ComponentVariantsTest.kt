@@ -2,15 +2,14 @@ package se.partee71.dagboken.ui.components
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -25,6 +24,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.Rule
@@ -59,10 +59,12 @@ class ComponentVariantsTest {
         var skipped = 0
         show {
             CheckRow(
-                "Levaxin 100 µg", false, { changes += it },
+                "Levaxin 100 µg",
+                false,
+                { changes += it },
                 note = "Tas på fastande mage.",
                 menu = listOf(AppMenuItem("Hoppa över", { skipped++ }, R.drawable.ic_close)),
-                below = { InfoPill("Försenat") },
+                below = { InfoPill("Försenat") }
             )
         }
         rule.onNodeWithText("Levaxin 100 µg").assertIsOff().performClick()
@@ -86,9 +88,11 @@ class ComponentVariantsTest {
         var deleted = 0
         show {
             CheckRow(
-                "Ipren 400 mg", true, { changes += it },
+                "Ipren 400 mg",
+                true,
+                { changes += it },
                 menu = listOf(AppMenuItem("Radera", { deleted++ }, R.drawable.ic_delete, destructive = true)),
-                enabled = false,
+                enabled = false
             )
         }
         rule.onNodeWithText("Ipren 400 mg").assertIsOn().assertIsNotEnabled().performClick()
@@ -150,8 +154,12 @@ class ComponentVariantsTest {
         var avatar = 0
         show {
             EntityDetailScreen(
-                DetailUiState.Content("Levaxin"), header = null, onBack = null, title = "God morgon", subtitle = "Söndag 4 oktober · vecka 40",
-                actions = { AppIconButton(R.drawable.ic_person, "Konto och inställningar", { avatar++ }) },
+                DetailUiState.Content("Levaxin"),
+                header = null,
+                onBack = null,
+                title = "God morgon",
+                subtitle = "Söndag 4 oktober · vecka 40",
+                actions = { AppIconButton(R.drawable.ic_person, "Konto och inställningar", { avatar++ }) }
             ) { AppCard { ItemRow(it) } }
         }
         rule.onNodeWithText("God morgon").assertIsDisplayed()
@@ -167,8 +175,13 @@ class ComponentVariantsTest {
             Sheet {
                 AppCard {
                     CheckRow(
-                        "D-vitamin 20 µg", false, {}, subtitle = "Förmiddag · 10:00", note = "Tas med mat.",
-                        menu = listOf(AppMenuItem("Hoppa över", {}, R.drawable.ic_close)), below = { InfoPill("Försenat", tone = Tone.Warning) },
+                        "D-vitamin 20 µg",
+                        false,
+                        {},
+                        subtitle = "Förmiddag · 10:00",
+                        note = "Tas med mat.",
+                        menu = listOf(AppMenuItem("Hoppa över", {}, R.drawable.ic_close)),
+                        below = { InfoPill("Försenat", tone = Tone.Warning) }
                     )
                 }
             }
@@ -205,10 +218,10 @@ class ComponentVariantsTest {
                 listOf(
                     AppMenuItem("Loratadin 10 mg", { picked = "l" }),
                     AppMenuItem("Betapred 0,5 mg", { picked = "b" }, section = "Recept"),
-                    AppMenuItem("Levaxin 100 µg", { picked = "v" }, section = "Recept"),
+                    AppMenuItem("Levaxin 100 µg", { picked = "v" }, section = "Recept")
                 ),
                 expanded = true,
-                onDismiss = {},
+                onDismiss = {}
             )
         }
         rule.onNodeWithText("RECEPT").assertIsDisplayed()

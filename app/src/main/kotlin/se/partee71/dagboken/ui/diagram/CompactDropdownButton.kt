@@ -31,7 +31,7 @@ fun CompactDropdownButton(label: String, items: List<AppMenuItem>, modifier: Mod
             trailingIcon = R.drawable.ic_expand_more,
             role = Role.DropdownList,
             onClickLabel = stringResource(R.string.chart_choose),
-            onClick = { expanded = true },
+            onClick = { expanded = true }
         )
         AppMenuPopup(items, expanded, onDismiss = { expanded = false })
     }

@@ -13,8 +13,7 @@ class StackedBarsTest {
     // Segmentens etiketter hör till appen (färg och text); här räknas index – samma ordning som i 3.x.
     private val segments = listOf("Djup", "REM", "Lätt", "Vaken")
 
-    private fun dominantSegment(points: List<StackedPoint>, labels: List<String>): String? =
-        dominantSegment(points, labels.size)?.let { labels[it] }
+    private fun dominantSegment(points: List<StackedPoint>, labels: List<String>): String? = dominantSegment(points, labels.size)?.let { labels[it] }
 
     private fun night(vararg values: Float?) = StackedPoint(values.toList())
 
@@ -38,8 +37,8 @@ class StackedBarsTest {
             listOf(
                 night(1f, 1f, 4f, 0.5f),
                 night(null, null, null, null),
-                night(2f, 1f, 4f, 1f),
-            ),
+                night(2f, 1f, 4f, 1f)
+            )
         )
         assertEquals(3, totals.size)
         assertEquals(6.5f, totals[0]!!, 0.001f)
@@ -70,9 +69,9 @@ class StackedBarsTest {
         val dominant = dominantSegment(
             listOf(
                 night(1f, 1.5f, 4f, 0.5f),
-                night(1.2f, 1.5f, 4.5f, 0.4f),
+                night(1.2f, 1.5f, 4.5f, 0.4f)
             ),
-            segments,
+            segments
         )
         assertEquals("Lätt", dominant)
     }
@@ -82,9 +81,9 @@ class StackedBarsTest {
             listOf(
                 night(5f, 0f, 0f, 0f),
                 night(5f, 0f, 0f, 0f),
-                night(0f, 0f, 3f, 0f),
+                night(0f, 0f, 3f, 0f)
             ),
-            segments,
+            segments
         )
         assertEquals("Djup", dominant)
     }

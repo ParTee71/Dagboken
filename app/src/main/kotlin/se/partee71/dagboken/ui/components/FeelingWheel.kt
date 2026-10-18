@@ -68,7 +68,7 @@ fun FeelingWheel(selected: Set<String>, onCoreClick: (String) -> Unit, modifier:
                 // Mellanrummen mellan sektorerna och navet stansas ut, så att hjulet ligger på vilken yta som helst.
                 .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
                 .drawBehind { drawWheel(cores, selected, tones) }
-                .pointerInput(cores) { detectTapGestures { position -> coreAt(position, size.width / 2f, HUB_FRACTION)?.let { click(cores[it]) } } },
+                .pointerInput(cores) { detectTapGestures { position -> coreAt(position, size.width / 2f, HUB_FRACTION)?.let { click(cores[it]) } } }
         ) {
             cores.forEachIndexed { index, core ->
                 SectorLabel(core, core in selected, tones, labelOffset(index, diameter / 2 * LABEL_FRACTION)) { click(core) }
@@ -77,7 +77,7 @@ fun FeelingWheel(selected: Set<String>, onCoreClick: (String) -> Unit, modifier:
                 stringResource(R.string.feelings_wheel_center),
                 Modifier.align(Alignment.Center).clearAndSetSemantics {},
                 style = AppTypography.caption,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -90,7 +90,7 @@ private fun BoxScope.SectorLabel(
     isSelected: Boolean,
     tones: FeelingColors,
     offset: Pair<Dp, Dp>,
-    onClick: () -> Unit,
+    onClick: () -> Unit
 ) {
     val name = stringResource(feelingName(core))
     val selectedState = stringResource(R.string.feeling_selected_state)
@@ -106,7 +106,7 @@ private fun BoxScope.SectorLabel(
                 if (isSelected) stateDescription = selectedState
             }
             .padding(horizontal = Spacing.xs),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         Text(
             name,
@@ -114,7 +114,7 @@ private fun BoxScope.SectorLabel(
             style = AppTypography.itemTitle,
             color = if (isSelected) tone.container else tone.content,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 1
         )
     }
 }
@@ -128,7 +128,7 @@ private fun DrawScope.drawWheel(cores: List<String>, selected: Set<String>, tone
             color = if (core in selected) tone.content else tone.container,
             startAngle = START_ANGLE + SWEEP * index,
             sweepAngle = SWEEP,
-            useCenter = true,
+            useCenter = true
         )
     }
     repeat(cores.size) { index ->

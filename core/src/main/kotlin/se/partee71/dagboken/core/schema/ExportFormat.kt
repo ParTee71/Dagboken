@@ -37,26 +37,24 @@ object ExportFormat {
      * Hela filen, indragen med två mellanslag som `tools/db export`. [listKey] [UPDATES] ger en ändringsfil
      * (bara ändrade fält per dokument) som bara `tools/db import --update` läser – aldrig en vanlig import.
      */
-    fun encode(exportedAt: Instant, schemaVersion: Int, documents: List<Document>, listKey: String = DOCUMENTS): String =
-        PRETTY.encodeToString(
-            JsonElement.serializer(),
-            buildJsonObject {
-                put("exportedAt", millis(exportedAt))
-                put(SCHEMA_VERSION, schemaVersion)
-                put(listKey, buildJsonArray { documents.forEach { add(document(it)) } })
-            },
-        )
+    fun encode(exportedAt: Instant, schemaVersion: Int, documents: List<Document>, listKey: String = DOCUMENTS): String = PRETTY.encodeToString(
+        JsonElement.serializer(),
+        buildJsonObject {
+            put("exportedAt", millis(exportedAt))
+            put(SCHEMA_VERSION, schemaVersion)
+            put(listKey, buildJsonArray { documents.forEach { add(document(it)) } })
+        }
+    )
 
     /** Dokumenten i en exportfil. */
     fun decode(text: String): List<Document> = decode(Json.parseToJsonElement(text).jsonObject)
 
     /** Dokumenten i en redan parsad exportfil – importen (BCK-6) läser filen en gång för att känna igen formatet. */
-    fun decode(root: JsonObject): List<Document> =
-        root.getValue(DOCUMENTS).jsonArray.map { element ->
-            val doc = element.jsonObject
-            @Suppress("UNCHECKED_CAST")
-            Document(doc.getValue("path").jsonPrimitive.content, fromJson(doc.getValue("data")) as Doc)
-        }
+    fun decode(root: JsonObject): List<Document> = root.getValue(DOCUMENTS).jsonArray.map { element ->
+        val doc = element.jsonObject
+        @Suppress("UNCHECKED_CAST")
+        Document(doc.getValue("path").jsonPrimitive.content, fromJson(doc.getValue("data")) as Doc)
+    }
 
     /** Ett dokument; ett fel får dokumentets sökväg, aldrig värdet. */
     fun document(document: Document): JsonObject = try {
@@ -71,29 +69,40 @@ object ExportFormat {
     /** Firestore-data (med [Instant] för tidsstämplar) → JSON. Okända typer stoppar exporten. */
     fun toJson(value: Any?): JsonElement = when (value) {
         null -> JsonNull
+
         is String -> JsonPrimitive(value)
+
         is Boolean -> JsonPrimitive(value)
+
         is Int, is Long -> wholeNumber((value as Number).toLong())
+
         is Float, is Double -> decimal((value as Number).toDouble())
+
         is Instant -> buildJsonObject { put(TS, nanos(value)) }
+
         is List<*> -> JsonArray(value.map(::toJson))
+
         is Map<*, *> -> {
             val json = JsonObject(value.entries.associate { (key, item) -> key.toString() to toJson(item) })
             if (value.size == 1 && value.keys.single() in WRAPPED) JsonObject(mapOf(MAP to json)) else json
         }
+
         else -> throw IllegalArgumentException("värdetypen ${value::class.simpleName} stöds inte")
     }
 
     /** JSON → Firestore-data, motsatsen till [toJson]. */
     fun fromJson(element: JsonElement): Any? = when (element) {
         JsonNull -> null
+
         is JsonPrimitive -> when {
             element.isString -> element.content
             element.booleanOrNull != null -> element.booleanOrNull
             element.content.any { it == '.' || it == 'e' || it == 'E' } -> element.content.toDouble()
             else -> element.content.toLong()
         }
+
         is JsonArray -> element.map(::fromJson)
+
         is JsonObject -> {
             val only = element.keys.singleOrNull()
             when {
@@ -133,8 +142,7 @@ object ExportFormat {
     /** `2026-10-02T10:00:00.123Z` – som JavaScripts `toISOString()`. */
     private fun millis(value: Instant): String = "${seconds(value)}.${(value.nanosecondsOfSecond / NANOS_PER_MILLI).toString().padStart(3, '0')}Z"
 
-    private fun seconds(value: Instant): String =
-        SECONDS.format(java.time.Instant.ofEpochSecond(value.epochSeconds).atOffset(ZoneOffset.UTC))
+    private fun seconds(value: Instant): String = SECONDS.format(java.time.Instant.ofEpochSecond(value.epochSeconds).atOffset(ZoneOffset.UTC))
 
     private fun parseNanos(text: String): Instant {
         val match = requireNotNull(TIMESTAMP.matchEntire(text)) { "ogiltig tidsstämpel" }

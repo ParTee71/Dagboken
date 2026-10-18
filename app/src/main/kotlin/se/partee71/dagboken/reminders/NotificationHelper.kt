@@ -9,9 +9,9 @@ import android.content.Context
 import android.content.Intent
 import androidx.annotation.DrawableRes
 import androidx.core.app.NotificationCompat
-import androidx.core.os.bundleOf
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -42,11 +42,11 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
         val system = context.getSystemService(NotificationManager::class.java) ?: return
         system.createNotificationChannel(
             NotificationChannel(CHANNEL_MEDS, context.getString(R.string.notification_channel_meds_name), NotificationManager.IMPORTANCE_DEFAULT)
-                .apply { description = context.getString(R.string.notification_channel_meds_description) },
+                .apply { description = context.getString(R.string.notification_channel_meds_description) }
         )
         system.createNotificationChannel(
             NotificationChannel(CHANNEL_SCREENING, context.getString(R.string.notification_channel_mood_name), NotificationManager.IMPORTANCE_LOW)
-                .apply { description = context.getString(R.string.notification_channel_mood_description) },
+                .apply { description = context.getString(R.string.notification_channel_mood_description) }
         )
     }
 
@@ -73,7 +73,7 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
             .addAction(
                 R.drawable.ic_check,
                 context.getString(R.string.notification_med_action_mark_taken),
-                PendingIntent.getBroadcast(context, REQUEST_MARK_TAKEN_BASE + slot.ordinal, markTaken, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
+                PendingIntent.getBroadcast(context, REQUEST_MARK_TAKEN_BASE + slot.ordinal, markTaken, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             )
             .build()
         notify(medId(slot), notification)
@@ -98,14 +98,17 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
     fun postPeriodReminder(endings: List<PeriodEnding>) {
         val (title, body) = when {
             endings.isEmpty() -> return
+
             endings.size == 1 -> when (val ending = endings.single()) {
                 is PeriodEnding.PrescriptionEnds ->
                     context.getString(R.string.notification_period_prescription_title, ending.name) to
                         context.getString(R.string.notification_period_prescription_text)
+
                 is PeriodEnding.BoostEnds ->
                     context.getString(R.string.notification_period_boost_title, ending.name) to
                         context.getString(R.string.notification_period_boost_text, doseText(ending.newDose, ending.unit))
             }
+
             else -> context.resources.getQuantityString(R.plurals.notification_period_multi_title, endings.size, endings.size) to
                 endings.joinToString(", ") { it.name }
         }

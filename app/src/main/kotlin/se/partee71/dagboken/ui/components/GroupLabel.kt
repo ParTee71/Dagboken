@@ -20,7 +20,7 @@ fun GroupLabel(text: String, modifier: Modifier = Modifier) {
         text.uppercase(),
         style = AppTypography.caption,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.padding(horizontal = Spacing.s).semantics { heading() },
+        modifier = modifier.padding(horizontal = Spacing.s).semantics { heading() }
     )
 }
 
@@ -37,7 +37,7 @@ fun LabeledGroup(
     helper: String? = null,
     error: String? = null,
     helperAbove: Boolean = false,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
         GroupLabel(label)

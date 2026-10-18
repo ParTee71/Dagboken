@@ -65,11 +65,11 @@ fun AppFloatingToolbar(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    action: ToolbarAction? = null,
+    action: ToolbarAction? = null
 ) {
     val colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
         toolbarContainerColor = AppColors.extended.toolbar,
-        toolbarContentColor = AppColors.extended.onToolbar,
+        toolbarContentColor = AppColors.extended.onToolbar
     )
     val tabs: @Composable RowScope.() -> Unit = {
         items.forEachIndexed { index, item ->
@@ -85,12 +85,12 @@ fun AppFloatingToolbar(
                 FloatingToolbarDefaults.StandardFloatingActionButton(
                     onClick = action.onClick,
                     containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
                 ) { Icon(painterResource(action.icon), contentDescription = action.label) }
             },
             modifier = modifier,
             colors = colors,
-            content = tabs,
+            content = tabs
         )
     }
 }
@@ -110,7 +110,7 @@ private fun ToolbarTab(item: ToolbarItem, selected: Boolean, onClick: () -> Unit
             .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec())
             .padding(horizontal = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally)
     ) {
         Icon(painterResource(item.icon), contentDescription = null, tint = content, modifier = Modifier.size(IconSize.row))
         if (selected) Text(item.label, style = AppTypography.button, color = content, maxLines = 1)

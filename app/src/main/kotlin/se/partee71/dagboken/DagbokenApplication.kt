@@ -13,7 +13,9 @@ import se.partee71.dagboken.data.legacy.LegacySessionCapture
  * – mot en worker som inte längre finns – innan avbokningen hunnit ske.
  */
 @HiltAndroidApp
-class DagbokenApplication : Application(), Configuration.Provider {
+class DagbokenApplication :
+    Application(),
+    Configuration.Provider {
     @Inject lateinit var legacySession: LegacySessionCapture
 
     override val workManagerConfiguration: Configuration

@@ -4,19 +4,19 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlinx.datetime.LocalDate
+import org.junit.Test
 import se.partee71.dagboken.core.engine.DiaryEntry
 import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Checkin
-import se.partee71.dagboken.core.model.Event
-import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Dose
+import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.OptionKind
+import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.ui.components.LogChoice
 import se.partee71.dagboken.ui.components.SettingsPage
 import se.partee71.dagboken.ui.log.LogEvent
 import se.partee71.dagboken.ui.log.LogTarget
-import org.junit.Test
 
 /** Varje nyckel har en skärm i `appEntries` – en saknad skulle krascha appen (fallbacken är ett fel). */
 class AppNavigationTest {
@@ -56,7 +56,7 @@ class AppNavigationTest {
         EpisodeNewKey(),
         EpisodeNewKey(LocalDate(2026, 10, 5)),
         CheckinEditKey("flu"),
-        CheckinEditKey("flu", "c1"),
+        CheckinEditKey("flu", "c1")
     ).onEach { key ->
         // Uttömmande: en ny nyckeltyp utan gren här ger ett kompileringsfel.
         when (key) {
@@ -71,7 +71,7 @@ class AppNavigationTest {
     fun `varje rad i inställningsarket öppnar sin underskärm på den aktuella fliken (NAV-9)`() {
         assertEquals(
             listOf(ProfileKey, RemindersKey, ThemeKey, ListsKey, ExportImportKey, AboutKey),
-            SettingsPage.entries.map { it.key },
+            SettingsPage.entries.map { it.key }
         )
         val backStack = AppBackStack()
         backStack.select(TrendsKey)

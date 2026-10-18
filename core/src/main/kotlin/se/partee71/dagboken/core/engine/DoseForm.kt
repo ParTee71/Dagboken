@@ -81,7 +81,7 @@ fun oneOffDose(id: String, date: LocalDate, time: LocalTime, zone: TimeZone, cre
     status = DoseStatus.TAKEN,
     plannedTime = time,
     takenAt = momentOf(date, time, zone),
-    createdAt = createdAt,
+    createdAt = createdAt
 )
 
 /**

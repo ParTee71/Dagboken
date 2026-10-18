@@ -36,11 +36,11 @@ import se.partee71.dagboken.testing.captureLightAndDarkPaused
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.common.ArchiveEvent
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.DetailUiState
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
+import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.Validator
 import se.partee71.dagboken.ui.runEditScreenContract
@@ -82,7 +82,7 @@ class FramesTest {
                     add = null,
                     key = { it.first },
                     group = { ListGroup(it.second, showCount = false) },
-                    footer = { ItemRow("Sidfot") },
+                    footer = { ItemRow("Sidfot") }
                 ) { ItemRow(it.first) }
             }
         }
@@ -117,7 +117,7 @@ class FramesTest {
             "a" to ListGroup("Recept", count = "1 / 2"),
             "b" to ListGroup("Recept"),
             "ö" to ListGroup("Vid behov", columns = 2),
-            "d" to ListGroup("Dolda", collapsible = true),
+            "d" to ListGroup("Dolda", collapsible = true)
         )
         rule.setContent {
             DagbokenTheme {
@@ -131,7 +131,7 @@ class FramesTest {
                     subtitle = "sön 4 okt",
                     header = { ItemRow("Rubrikplats") },
                     subgroup = { row -> ListSubgroup(if (row.second == "b") "Kväll" else "Morgon", AppColors.swatch(0)).takeIf { row.second in setOf("a", "b") } },
-                    archive = ListArchive(showToggle = false),
+                    archive = ListArchive(showToggle = false)
                 ) { ItemRow(it.first) }
             }
         }
@@ -220,9 +220,12 @@ class FramesTest {
         val editor = EditorState("", Validator { if (it.isBlank()) mapOf("name" to R.string.error_not_signed_in) else emptyMap() })
         rule.runEditScreenContract(
             editor = editor,
-            makeInvalid = { update("name") { "x" }; update("name") { "" } },
+            makeInvalid = {
+                update("name") { "x" }
+                update("name") { "" }
+            },
             makeValid = { update("name") { "Promenad" } },
-            invalidMessage = string(R.string.error_not_signed_in),
+            invalidMessage = string(R.string.error_not_signed_in)
         ) { state, events, onSave, onClose ->
             EntityEditScreen("Ny aktivitetstyp", state, events, onSave, onClose) {
                 AppTextField(state.value, { v -> editor.update("name") { v } }, "Namn", error = state.errorFor("name")?.let { string(it) })
@@ -237,9 +240,13 @@ class FramesTest {
         rule.setContent {
             DagbokenTheme {
                 EntityEditScreen(
-                    "Promenad", EditorUiState("Promenad"), EditorEvents.None, {}, {},
+                    "Promenad",
+                    EditorUiState("Promenad"),
+                    EditorEvents.None,
+                    {},
+                    {},
                     onArchive = { archived++ },
-                    delete = DeleteAction("Radera Promenad?", "Det går inte att ångra.") { deleted++ },
+                    delete = DeleteAction("Radera Promenad?", "Det går inte att ångra.") { deleted++ }
                 ) {}
             }
         }
@@ -376,8 +383,12 @@ class FramesTest {
         rule.setContent {
             DagbokenTheme {
                 EntityDetailScreen(
-                    state, header = { DetailHeader(it, "3 incheckningar") }, onBack = {}, onEdit = { edits++ },
-                    menu = { listOf(AppMenuItem("Arkivera", { archived++ })) }, onRetry = { retries++ },
+                    state,
+                    header = { DetailHeader(it, "3 incheckningar") },
+                    onBack = {},
+                    onEdit = { edits++ },
+                    menu = { listOf(AppMenuItem("Arkivera", { archived++ })) },
+                    onRetry = { retries++ }
                 ) { Text("Incheckningar") }
             }
         }
@@ -415,9 +426,12 @@ class FramesTest {
     fun `EntityDetailScreen - innehåll och fel`() {
         captureLightAndDark("EntityDetailScreen_innehall") {
             EntityDetailScreen(
-                DetailUiState.Content("Förkylning"), header = { DetailHeader(it, "sedan fre 2 okt · pågående") }, onBack = {}, onEdit = {},
+                DetailUiState.Content("Förkylning"),
+                header = { DetailHeader(it, "sedan fre 2 okt · pågående") },
+                onBack = {},
+                onEdit = {},
                 menu = { listOf(AppMenuItem("Avsluta episoden", {})) },
-                leading = { Text("🤧", style = AppTypography.headline) },
+                leading = { Text("🤧", style = AppTypography.headline) }
             ) {
                 AppCard {
                     SectionHeader("Incheckningar", icon = R.drawable.ic_thermometer, count = "1")
@@ -439,8 +453,11 @@ class FramesTest {
         var sub by mutableStateOf(true)
         rule.setContent {
             DagbokenTheme {
-                if (sub) UpcomingScreen("Export och import", R.drawable.ic_download, "Kommer snart.", onBack = { back++ })
-                else UpcomingScreen("Idag", R.drawable.ic_sun, "Kommer snart.")
+                if (sub) {
+                    UpcomingScreen("Export och import", R.drawable.ic_download, "Kommer snart.", onBack = { back++ })
+                } else {
+                    UpcomingScreen("Idag", R.drawable.ic_sun, "Kommer snart.")
+                }
             }
         }
         rule.onNodeWithText("Snart här").assertIsDisplayed()

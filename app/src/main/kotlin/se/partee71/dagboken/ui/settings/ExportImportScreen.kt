@@ -52,7 +52,7 @@ fun ExportImportScreen(
     onEvent: (ExportImportEvent) -> Unit,
     exportFileName: () -> String,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val import = { event: ImportEvent -> onEvent(ExportImportEvent.Import(event)) }
     val pickFile = rememberImportLaunchers(state.import, import)
@@ -71,7 +71,7 @@ fun ExportImportScreen(
         title = stringResource(R.string.settings_export_import),
         failure = state.failure,
         onErrorShown = { onEvent(ExportImportEvent.MessageShown) },
-        snackbar = snackbar,
+        snackbar = snackbar
     ) { current ->
         if (current.import == ImportStage.Choose) {
             AppCard {
@@ -80,7 +80,7 @@ fun ExportImportScreen(
                     if (current.exporting) R.string.export_saving else R.string.export_subtitle,
                     R.drawable.ic_download,
                     { export.launch(exportFileName()) },
-                    enabled = !current.busy,
+                    enabled = !current.busy
                 )
                 AppDivider()
                 ChoiceRow(R.string.import_title, R.string.import_note, R.drawable.ic_file, { choosing = true }, enabled = !current.busy)
@@ -100,7 +100,7 @@ fun ExportImportScreen(
                 onFile = {
                     choosing = false
                     pickFile()
-                },
+                }
             )
         }
     }

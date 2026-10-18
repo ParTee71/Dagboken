@@ -6,8 +6,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.Post
-import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.DatedCodec
+import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.data.common.EntityCollection
 import se.partee71.dagboken.data.common.observeDates
 import se.partee71.dagboken.data.common.updateChanged
@@ -54,12 +54,13 @@ interface DayReads<T> {
 class CollectionDays<T : Identified>(private val collection: EntityCollection<T>, private val field: String) : DayReads<T> {
     override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<T>> = collection.observeDates(field, from, to)
 
-    override fun observeDays(from: LocalDate, to: LocalDate, live: Flow<List<ClosedRange<LocalDate>>>): Flow<List<T>> =
-        collection.observeDates(field, from, to, live)
+    override fun observeDays(from: LocalDate, to: LocalDate, live: Flow<List<ClosedRange<LocalDate>>>): Flow<List<T>> = collection.observeDates(field, from, to, live)
 }
 
 /** En samling poster med ett datumfält: läsning per period, formulärets läsning och sparning, och radering – mående, aktiviteter och händelser. */
-interface DatedRepository<T> : EntryStore<T>, DayReads<T>
+interface DatedRepository<T> :
+    EntryStore<T>,
+    DayReads<T>
 
 /**
  * Den enda implementationen av [EntryStore] över en samling – [collection] och dess [codec] (fälten som jämförs
@@ -70,7 +71,7 @@ class StoredEntries<T : Identified>(
     private val collection: EntityCollection<T>,
     private val codec: DocCodec<T>,
     private val createdAt: (T) -> Instant?,
-    private val withId: (T, String) -> T,
+    private val withId: (T, String) -> T
 ) : EntryStore<T> {
     override suspend fun get(id: String): Result<T?> = collection.get(id)
 
@@ -86,13 +87,11 @@ class StoredEntries<T : Identified>(
      * SJ-11: en ändring av [loaded] behåller skapandetiden – [edited] har samma `createdAt` (också `null` för en äldre
      * post utan), annars [IllegalArgumentException]. Också för en ändring som inte går genom [save] (dosens flytt).
      */
-    fun keepsCreatedAt(loaded: T, edited: T): Result<Unit> =
-        if (createdAt(edited) == createdAt(loaded)) Result.success(Unit) else Result.failure(IllegalArgumentException("En ändring behåller skapandetiden"))
+    fun keepsCreatedAt(loaded: T, edited: T): Result<Unit> = if (createdAt(edited) == createdAt(loaded)) Result.success(Unit) else Result.failure(IllegalArgumentException("En ändring behåller skapandetiden"))
 }
 
 /** [StoredEntries] för en post ([Post]): skapandetiden och id:t ur modellen. */
-fun <T : Post<T>> StoredEntries(collection: EntityCollection<T>, codec: DocCodec<T>): StoredEntries<T> =
-    StoredEntries(collection, codec, { it.createdAt }, { post, id -> post.withId(id) })
+fun <T : Post<T>> StoredEntries(collection: EntityCollection<T>, codec: DocCodec<T>): StoredEntries<T> = StoredEntries(collection, codec, { it.createdAt }, { post, id -> post.withId(id) })
 
 /**
  * Ett formulär som bara skapar något nytt ([create]) – vid behov i efterhand, en ny sjukdomsepisod: inget lagrat
@@ -111,4 +110,6 @@ fun <T> creatingStore(create: suspend (T) -> Result<Unit>): EntryStore<T> = obje
  * jämförs vid en ändring). Postens skapandetid och id kommer ur modellen ([Post]).
  */
 class DatedEntries<T : Post<T>>(collection: EntityCollection<T>, codec: DatedCodec<T>) :
-    DatedRepository<T>, EntryStore<T> by StoredEntries(collection, codec), DayReads<T> by CollectionDays(collection, codec.dateField)
+    DatedRepository<T>,
+    EntryStore<T> by StoredEntries(collection, codec),
+    DayReads<T> by CollectionDays(collection, codec.dateField)

@@ -39,7 +39,7 @@ fun UndoSnackbar(
     hostState: SnackbarHostState,
     onUndo: () -> Unit,
     onDismissed: () -> Unit,
-    onRequestDismissed: (UndoRequest) -> Unit = {},
+    onRequestDismissed: (UndoRequest) -> Unit = {}
 ) {
     val message = request?.let { stringResource(it.format, it.name) }
     val action = stringResource(R.string.undo)

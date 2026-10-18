@@ -31,7 +31,7 @@ enum class PrescriptionError {
     BOOST_END_BEFORE_START,
 
     /** REC-9: två höjningar överlappar. */
-    BOOSTS_OVERLAP,
+    BOOSTS_OVERLAP
 }
 
 /**
@@ -58,8 +58,7 @@ fun Prescription.problem(): PrescriptionProblem? {
     // En höjning utan start räknas inte i någon kontroll (som boostFor) – ett migrerat recept med en lös
     // odaterad höjning ska gå att spara. null som slut = tills vidare.
     val dated = boosts.withIndex().filter { it.value.start != null }
-    fun firstWith(error: PrescriptionError, test: (Boost) -> Boolean) =
-        dated.firstOrNull { test(it.value) }?.let { PrescriptionProblem(error, it.index) }
+    fun firstWith(error: PrescriptionError, test: (Boost) -> Boolean) = dated.firstOrNull { test(it.value) }?.let { PrescriptionProblem(error, it.index) }
     firstWith(PrescriptionError.BOOST_WITHOUT_DOSE) { it.dose.isBlank() }?.let { return it }
     if (dated.isNotEmpty() && parseDose(dose) == null) return PrescriptionProblem(PrescriptionError.BASE_DOSE_NOT_NUMERIC)
     firstWith(PrescriptionError.BOOST_NOT_POSITIVE) { (parseDose(it.dose) ?: 0.0) <= 0.0 }?.let { return it }
@@ -76,8 +75,7 @@ fun Prescription.problem(): PrescriptionProblem? {
 private data class BoostRange(val index: Int, val start: LocalDate, val end: LocalDate?)
 
 /** De daterade höjningarnas dagar – en gång för [problem] och [nextBoostDefaults]. */
-private fun Prescription.datedRanges(): List<BoostRange> =
-    boosts.mapIndexedNotNull { index, boost -> boost.start?.let { BoostRange(index, it, boostEnd(boost)) } }
+private fun Prescription.datedRanges(): List<BoostRange> = boosts.mapIndexedNotNull { index, boost -> boost.start?.let { BoostRange(index, it, boostEnd(boost)) } }
 
 /**
  * REC-9: förvalen för en ny höjning med [id] – start dagen efter den senast slutande höjningen (en

@@ -91,8 +91,7 @@ class DefaultOptionsRepository @Inject constructor(collections: CollectionFactor
         return collection.update(option.copy(name = trimmed), setOf(OptionCodec.NAME))
     }
 
-    override suspend fun setFavorite(option: Option, favorite: Boolean): Result<Unit> =
-        collection.update(option.copy(favorite = favorite), setOf(OptionCodec.FAVORITE))
+    override suspend fun setFavorite(option: Option, favorite: Boolean): Result<Unit> = collection.update(option.copy(favorite = favorite), setOf(OptionCodec.FAVORITE))
 
     override suspend fun setArchived(id: String, archived: Boolean): Result<Unit> {
         if (archived) return collection.setArchived(id, true)
@@ -107,8 +106,7 @@ class DefaultOptionsRepository @Inject constructor(collections: CollectionFactor
     private suspend fun restore(option: Option) = collection.update(option.copy(archived = false), setOf(OptionCodec.ARCHIVED))
 
     /** [DuplicateOptionName] om [name] redan står bland de aktiva i listan [kind] (annat än [exceptId]), annars `null`. */
-    private fun List<Option>.duplicateOf(kind: OptionKind, name: String, exceptId: String?): DuplicateOptionName? =
-        if (filter { it.kind == kind }.hasActiveName(name, exceptId)) DuplicateOptionName(name) else null
+    private fun List<Option>.duplicateOf(kind: OptionKind, name: String, exceptId: String?): DuplicateOptionName? = if (filter { it.kind == kind }.hasActiveName(name, exceptId)) DuplicateOptionName(name) else null
 
     private companion object {
         val NEW_OPTION_FIELDS = setOf(listOf(OptionCodec.NAME), listOf(OptionCodec.KIND), listOf(OptionCodec.SORT_ORDER), listOf(OptionCodec.ARCHIVED))

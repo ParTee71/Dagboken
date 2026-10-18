@@ -43,8 +43,7 @@ fun <T : Any> assertEveryFieldDiffersFromDefault(sample: T, defaults: T) {
 }
 
 /** Namnen på fälten där [value] har ett annat värde än [defaults]. */
-fun fieldsDifferingFromDefault(value: Any, defaults: Any): Set<String> =
-    persistedFields(value).filter { it.get(value) != it.get(defaults) }.map { it.name }.toSet()
+fun fieldsDifferingFromDefault(value: Any, defaults: Any): Set<String> = persistedFields(value).filter { it.get(value) != it.get(defaults) }.map { it.name }.toSet()
 
 /** Modellens persisterade fält (alla utom `id`). */
 fun persistedFieldNames(value: Any): Set<String> = persistedFields(value).map { it.name }.toSet()
@@ -81,8 +80,10 @@ fun fieldPaths(doc: Doc, prefix: String = ""): Set<String> = doc.flatMap { (key,
     val path = prefix + key
     when {
         value is Map<*, *> -> fieldPaths(asDoc(value), "$path.") + path
+
         value is List<*> && value.any { it is Map<*, *> } ->
             value.filterIsInstance<Map<*, *>>().flatMap { fieldPaths(asDoc(it), "$path[].") } + path
+
         else -> listOf(path)
     }
 }.toSet()
@@ -105,7 +106,6 @@ fun assertEveryFieldSet(doc: Doc, what: String) {
 }
 
 /** Modellens egna fält i dokumentet: inte `id`, och inte `@Transient` (ett värde som bärs i ett annat fält, t.ex. `Prescription.unknownSlots` i `slots`). */
-private fun persistedFields(value: Any) =
-    value::class.java.declaredFields
-        .filterNot { Modifier.isStatic(it.modifiers) || Modifier.isTransient(it.modifiers) || it.name == "id" }
-        .onEach { it.isAccessible = true }
+private fun persistedFields(value: Any) = value::class.java.declaredFields
+    .filterNot { Modifier.isStatic(it.modifiers) || Modifier.isTransient(it.modifiers) || it.name == "id" }
+    .onEach { it.isAccessible = true }

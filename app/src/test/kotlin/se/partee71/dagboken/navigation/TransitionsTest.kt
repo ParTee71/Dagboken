@@ -56,7 +56,7 @@ class TransitionsTest {
                     @Suppress("UNCHECKED_CAST")
                     ((this as Any) as AnimatedContentTransitionScope<Scene<AppKey>>).spec()
                 },
-                label = "skärmbyte",
+                label = "skärmbyte"
             ) { screen ->
                 Box(Modifier.fillMaxSize().background(if (screen == 0) oldColor else newColor).testTag("skärm $screen"))
             }
@@ -70,7 +70,7 @@ class TransitionsTest {
             oldLeft = rule.onNodeWithTag("skärm 0").getUnclippedBoundsInRoot().left,
             newLeft = rule.onNodeWithTag("skärm 1").getUnclippedBoundsInRoot().left,
             oldPixels = rule.onRoot().pixels(oldColor),
-            newPixels = rule.onRoot().pixels(newColor),
+            newPixels = rule.onRoot().pixels(newColor)
         )
         rule.mainClock.advanceTimeBy(SETTLE_MILLIS)
         rule.waitForIdle()

@@ -65,7 +65,7 @@ fun AppBottomSheet(
     canDismiss: () -> Boolean = { true },
     hide: Boolean = false,
     footer: (@Composable RowScope.() -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     // Inte sparad över ett konfigurationsbyte: efter en rotation är frågan borta och arket står kvar.
     var askDiscard by remember { mutableStateOf(false) }
@@ -77,11 +77,14 @@ fun AppBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true) { target ->
         when {
             target != SheetValue.Hidden || discarding[0] -> true
+
             !allowed() -> false
+
             isDirty -> {
                 askDiscard = true
                 false
             }
+
             else -> true
         }
     }
@@ -98,12 +101,12 @@ fun AppBottomSheet(
         modifier = modifier,
         sheetState = sheetState,
         shape = AppShapes.sheet,
-        containerColor = AppColors.extended.card,
+        containerColor = AppColors.extended.card
     ) {
         if (footer == null) {
             Column(
                 Modifier.fillMaxWidth().padding(start = Spacing.xl, end = Spacing.xl, bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.m),
+                verticalArrangement = Arrangement.spacedBy(Spacing.m)
             ) {
                 Text(title, style = AppTypography.sectionTitle, modifier = Modifier.semantics { heading() })
                 content()
@@ -114,21 +117,21 @@ fun AppBottomSheet(
                 Column(
                     Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
                         .padding(start = Spacing.xl, end = Spacing.xl, bottom = Spacing.m),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.m),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.m)
                 ) {
                     Text(title, style = AppTypography.sectionTitle, modifier = Modifier.semantics { heading() })
                     content()
                 }
                 Column(
                     Modifier.fillMaxWidth().padding(start = Spacing.xl, end = Spacing.xl, bottom = Spacing.xl),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.m),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.m)
                 ) {
                     error?.let { FieldError(stringResource(it.message)) }
                     Row(
                         Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.s),
-                        content = footer,
+                        content = footer
                     )
                 }
             }
@@ -140,7 +143,7 @@ fun AppBottomSheet(
                     askDiscard = false
                     hideThenDismiss()
                 },
-                onDismiss = { askDiscard = false },
+                onDismiss = { askDiscard = false }
             )
         }
     }

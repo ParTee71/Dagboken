@@ -107,7 +107,7 @@ class DocumentRulesTest {
         assertTrue("(!('legacyMigration' in w) || (noLegacyMigrationYet() && isLegacyMigration(d.legacyMigration)))" in body, "markören sätts bara när den saknas")
         assertEquals(
             mapOf("schemaVersion" to Check.Min(1), "createdAt" to Check.TimestampField, "legacyMigration" to Check.Nested(DocumentRules.LEGACY_MIGRATION)),
-            DocumentRules.FIELDS.getValue(CollectionNames.USERS),
+            DocumentRules.FIELDS.getValue(CollectionNames.USERS)
         )
         val marker = functions.getValue("isLegacyMigration")
         assertTrue("m.get('completedAt', null) is timestamp && m.completedAt == request.time" in marker, "serverns tid, aldrig klientens")
@@ -124,18 +124,18 @@ class DocumentRulesTest {
             listOf(
                 DocumentRules.Violation("legacyMigration.counts.doses", "fel typ: String (väntat heltal)"),
                 DocumentRules.Violation("legacyMigration.counts.okänd", "okänt fält"),
-                DocumentRules.Violation("legacyMigration.extra", "okänt fält"),
+                DocumentRules.Violation("legacyMigration.extra", "okänt fält")
             ),
             DocumentRules.validate(
                 CollectionNames.USERS,
-                mapOf("schemaVersion" to 1, "legacyMigration" to mapOf("completedAt" to kotlin.time.Instant.fromEpochSeconds(1), "source" to "room", "counts" to mapOf("doses" to "4", "okänd" to 1), "extra" to 1)),
-            ),
+                mapOf("schemaVersion" to 1, "legacyMigration" to mapOf("completedAt" to kotlin.time.Instant.fromEpochSeconds(1), "source" to "room", "counts" to mapOf("doses" to "4", "okänd" to 1), "extra" to 1))
+            )
         )
         assertEquals(setOf("completedAt", "source"), DocumentRules.LEGACY_MIGRATION.required)
         assertEquals(rulesList("legacySources"), (DocumentRules.LEGACY_MIGRATION.fields.getValue("source") as Check.OneOf).values)
         assertEquals(
             listOf(DocumentRules.Violation("legacyMigration.completedAt", "saknas"), DocumentRules.Violation("legacyMigration.counts", "fel typ: Int (väntat objekt)")),
-            DocumentRules.validate(CollectionNames.USERS, mapOf("schemaVersion" to 1, "legacyMigration" to mapOf("source" to "room", "counts" to 3))),
+            DocumentRules.validate(CollectionNames.USERS, mapOf("schemaVersion" to 1, "legacyMigration" to mapOf("source" to "room", "counts" to 3)))
         )
         assertEquals(listOf(DocumentRules.Violation("schemaVersion", "saknas")), DocumentRules.validate(CollectionNames.USERS, emptyMap()))
         assertEquals(listOf(DocumentRules.Violation("schemaVersion", "under 1: 0")), DocumentRules.validate(CollectionNames.USERS, mapOf("schemaVersion" to 0)))
@@ -191,7 +191,7 @@ class DocumentRulesTest {
         assertEquals(
             "s.optionId is string && string(s.score).matches('$scorePattern') && !(s.score is string) && (s.customText == null || s.customText is string)",
             Regex("""return ([\s\S]*);""").find(symptom)!!.groupValues[1].replace(Regex("""\s+"""), " "),
-            "isSymptom: optionId text, poängen null eller heltal enligt mönstret, fritexten null eller text",
+            "isSymptom: optionId text, poängen null eller heltal enligt mönstret, fritexten null eller text"
         )
         // Mönstret är exakt SCORE (eller null) för det string() ger för ett heltal; decimaltal, bool och tom text träffar inte.
         val score = Regex(scorePattern)
@@ -257,8 +257,12 @@ class DocumentRulesTest {
         assertEquals(listOf(DocumentRules.Violation("feelings[0]", "saknas")), violations(listOf(null)))
         assertEquals(listOf(DocumentRules.Violation("feelings", "fel typ: String (väntat lista)")), violations("glad"))
         // Mönstret är exakt formen codecen skriver (Feeling.token) för katalogens ord.
-        for (core in FeelingCatalog.cores) for (nuance in FeelingCatalog.nuances(core)) for (detail in FeelingCatalog.details(core, nuance)) {
-            assertTrue(DocumentRules.FEELING_TOKEN.matches(Feeling(core, nuance, detail).token), "$core.$nuance.$detail")
+        for (core in FeelingCatalog.cores) {
+            for (nuance in FeelingCatalog.nuances(core)) {
+                for (detail in FeelingCatalog.details(core, nuance)) {
+                    assertTrue(DocumentRules.FEELING_TOKEN.matches(Feeling(core, nuance, detail).token), "$core.$nuance.$detail")
+                }
+            }
         }
     }
 
@@ -288,7 +292,7 @@ class DocumentRulesTest {
         assertEquals(listOf(DocumentRules.Violation("symptoms[1].score", "utanför intervallet 0..10: 11")), violations("symptoms" to symptoms.take(1) + mapOf("optionId" to "s", "score" to 11, "customText" to null)))
         assertEquals(
             listOf(DocumentRules.Violation("symptoms[0].optionId", "saknas"), DocumentRules.Violation("symptoms[0].customText", "saknas")),
-            violations("symptoms" to listOf(mapOf("score" to 1))),
+            violations("symptoms" to listOf(mapOf("score" to 1)))
         )
         assertEquals(emptyList(), violations("symptoms" to listOf(mapOf("optionId" to "s", "score" to null, "customText" to null))))
         assertEquals(listOf(DocumentRules.Violation("symptoms[0]", "fel typ: String (väntat objekt)")), violations("symptoms" to listOf("huvudvärk")))
@@ -320,7 +324,7 @@ class DocumentRulesTest {
         assertEquals(listOf(DocumentRules.Violation("boosts[0].start", "ogiltigt datum")), prescriptionWith("boosts" to listOf(mapOf("id" to "b", "start" to "null", "end" to null, "dose" to "1", "unit" to "mg"))))
         assertEquals(
             listOf("boosts[0].start" to "saknas", "boosts[0].end" to "saknas", "boosts[0].dose" to "saknas").map { (field, problem) -> DocumentRules.Violation(field, problem) }.sortedBy { it.field },
-            prescriptionWith("boosts" to listOf(mapOf("id" to "b", "unit" to "mg"))).sortedBy { it.field },
+            prescriptionWith("boosts" to listOf(mapOf("id" to "b", "unit" to "mg"))).sortedBy { it.field }
         )
         assertEquals(emptyList(), prescriptionWith("createdAt" to Instant.parse("2026-01-01T00:00:00Z"), "schedule" to null, "period" to null))
     }
@@ -347,14 +351,14 @@ class DocumentRulesTest {
                 DocumentRules.Violation("symptoms[0].score", "utanför intervallet 0..10: 11"),
                 DocumentRules.Violation("symptoms[0].customText", "fel typ: Int (väntat text)"),
                 DocumentRules.Violation("symptoms[1].optionId", "saknas"),
-                DocumentRules.Violation("symptoms[1].score", "fel typ: Double (väntat heltal)"),
+                DocumentRules.Violation("symptoms[1].score", "fel typ: Double (väntat heltal)")
             ),
-            DocumentRules.validate(CollectionNames.ACTIVITIES, activity + ("symptoms" to symptoms)),
+            DocumentRules.validate(CollectionNames.ACTIVITIES, activity + ("symptoms" to symptoms))
         )
         val settings = Samples.entry(CollectionNames.SETTINGS).encoded()
         assertEquals(
             listOf(DocumentRules.Violation("theme.mode", "okänt värde (5 tecken)"), DocumentRules.Violation("theme.darkStartHour", "utanför intervallet 0..23: 24")),
-            DocumentRules.validate(CollectionNames.SETTINGS, settings + ("theme" to asDoc(settings["theme"]) + mapOf("mode" to "sepia", "darkStartHour" to 24))),
+            DocumentRules.validate(CollectionNames.SETTINGS, settings + ("theme" to asDoc(settings["theme"]) + mapOf("mode" to "sepia", "darkStartHour" to 24)))
         )
     }
 }

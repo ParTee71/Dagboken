@@ -26,8 +26,8 @@ class SleepStageSummaryTest {
                 slice(SleepStageType.DEEP, 35),
                 slice(SleepStageType.REM, 90),
                 slice(SleepStageType.LIGHT, 240),
-                slice(SleepStageType.AWAKE, 12),
-            ),
+                slice(SleepStageType.AWAKE, 12)
+            )
         )
         assertEquals(75.minutes, stages.deep)
         assertEquals(90.minutes, stages.rem)
@@ -42,7 +42,7 @@ class SleepStageSummaryTest {
 
     @Test fun `awake in bed and out of bed count as awake`() {
         val stages = summarizeSleepStages(
-            listOf(slice(SleepStageType.AWAKE, 5), slice(SleepStageType.AWAKE_IN_BED, 10), slice(SleepStageType.OUT_OF_BED, 3)),
+            listOf(slice(SleepStageType.AWAKE, 5), slice(SleepStageType.AWAKE_IN_BED, 10), slice(SleepStageType.OUT_OF_BED, 3))
         )
         assertEquals(18.minutes, stages.awake)
     }

@@ -47,7 +47,7 @@ data class AppMenuItem(
      * hålls tom när `false`, TalkBack läser den som kryssruta, och menyn står kvar öppen så att flera kan väljas.
      * `null` (standard): ett vanligt val som stänger menyn.
      */
-    val checked: Boolean? = null,
+    val checked: Boolean? = null
 )
 
 /** Menyn bakom "Fler val" (⋮): arkivera, radera, visa arkiverade m.m. */
@@ -67,7 +67,7 @@ internal fun AppMenuPopup(items: List<AppMenuItem>, expanded: Boolean, onDismiss
         expanded = expanded,
         onDismissRequest = onDismiss,
         shape = AppShapes.menu,
-        containerColor = AppColors.extended.card,
+        containerColor = AppColors.extended.card
     ) {
         items.forEachIndexed { index, item ->
             val section = item.section
@@ -79,7 +79,14 @@ internal fun AppMenuPopup(items: List<AppMenuItem>, expanded: Boolean, onDismiss
             val checked = item.checked
             // En kryssrad visar bocken (eller håller platsen tom) och stänger inte menyn – flera kan väljas.
             val icon = if (checked == null) item.icon else R.drawable.ic_check.takeIf { checked }
-            val semantics = if (checked == null) Modifier else Modifier.semantics { role = Role.Checkbox; toggleableState = ToggleableState(checked) }
+            val semantics = if (checked == null) {
+                Modifier
+            } else {
+                Modifier.semantics {
+                    role = Role.Checkbox
+                    toggleableState = ToggleableState(checked)
+                }
+            }
             DropdownMenuItem(
                 text = { Text(item.label, style = AppTypography.body) },
                 onClick = {
@@ -88,7 +95,7 @@ internal fun AppMenuPopup(items: List<AppMenuItem>, expanded: Boolean, onDismiss
                 },
                 modifier = semantics,
                 leadingIcon = if (icon == null && checked == null) null else ({ icon?.let { Icon(painterResource(it), contentDescription = null) } ?: Spacer(Modifier.size(IconSize.control)) }),
-                colors = MenuDefaults.itemColors(textColor = color, leadingIconColor = color),
+                colors = MenuDefaults.itemColors(textColor = color, leadingIconColor = color)
             )
         }
     }

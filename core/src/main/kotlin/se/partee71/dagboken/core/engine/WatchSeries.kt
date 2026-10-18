@@ -30,7 +30,7 @@ enum class WatchMetric(val unit: WatchUnit) {
     EXERCISE(WatchUnit.MINUTES),
     ACTIVE_CALORIES(WatchUnit.KCAL),
     DISTANCE(WatchUnit.KM),
-    OXYGEN_SATURATION(WatchUnit.PERCENT),
+    OXYGEN_SATURATION(WatchUnit.PERCENT)
     ;
 
     /** Måttets värde ett dygn, i måttets enhet; `null` när dygnet saknar det (en lucka, HLS-12). */
@@ -64,8 +64,7 @@ const val WATCH_MAX_DAYS = 365
 fun TrendRange.cappedDays(today: LocalDate): List<LocalDate> = daysEnding(today, days ?: WATCH_MAX_DAYS)
 
 /** Läsningens första dag för ett kapat kort: som [TrendRange.readFrom], men "Allt" börjar [WATCH_MAX_DAYS] dagar bakåt. */
-fun TrendRange.cappedReadFrom(today: LocalDate, withPrevious: Boolean): LocalDate =
-    if (days == null) cappedDays(today).first() else readFrom(today, withPrevious)
+fun TrendRange.cappedReadFrom(today: LocalDate, withPrevious: Boolean): LocalDate = if (days == null) cappedDays(today).first() else readFrom(today, withPrevious)
 
 /**
  * Klockans serier för [metrics] över [days] (TRD-11, TRD-15): ett värde per dag ur [history], `null` där
@@ -94,8 +93,7 @@ val SLEEP_QUALITY_KEYS: List<String> = listOf(SLEEP_SCORE_KEY) + SleepQualityKin
 /**
  * Nätterna i [history] som underlag för sömnkvaliteten (HLS-13), en per dygn med sömnlängd ([DailyHealth.sleepMeasurements]).
  */
-fun sleepMeasurements(history: HealthHistory): List<NightlySleepMeasurements> =
-    history.days.mapNotNull { day -> day.sleepMeasurements()?.let { NightlySleepMeasurements(day.date, it) } }
+fun sleepMeasurements(history: HealthHistory): List<NightlySleepMeasurements> = history.days.mapNotNull { day -> day.sleepMeasurements()?.let { NightlySleepMeasurements(day.date, it) } }
 
 /**
  * Dygnets natt som underlag för sömnkvaliteten (HLS-10): tiden i säng är sömnlängden, vaken tid, djup och REM
@@ -111,7 +109,7 @@ fun DailyHealth.sleepMeasurements(): SleepMeasurements? = sleepDuration?.let { t
         midpointSdMinutes = sleepMidpointSdMinutes,
         meanOxygenSaturation = sleepOxygenSaturation,
         sleepingHeartRate = sleepHeartRate,
-        baselineRestingHeartRate = sleepHeartRateBaseline,
+        baselineRestingHeartRate = sleepHeartRateBaseline
     )
 }
 
@@ -122,12 +120,10 @@ fun DailyHealth.sleepMeasurements(): SleepMeasurements? = sleepDuration?.let { t
  * (`DailyHealth.sleepMidpointSdMinutes`), så historikens längd påverkar inte poängen. `null` utan [age] (ingen poäng
  * mot fel norm) och för en natt som inte går att bedöma.
  */
-fun sleepQualityOn(history: HealthHistory, date: LocalDate, age: Int?, sex: Sex): SleepQuality? =
-    scoreNightlySleep(nightOn(history, date), age, sex).singleOrNull()?.quality
+fun sleepQualityOn(history: HealthHistory, date: LocalDate, age: Int?, sex: Sex): SleepQuality? = scoreNightlySleep(nightOn(history, date), age, sex).singleOrNull()?.quality
 
 /** Varningsraderna för natten som slutade [date] (HLS-10) – också utan födelseår; tom utan natt. */
-fun sleepFlagsOn(history: HealthHistory, date: LocalDate): List<SleepFlag> =
-    nightOn(history, date).singleOrNull()?.measurements?.let(::sleepFlags).orEmpty()
+fun sleepFlagsOn(history: HealthHistory, date: LocalDate): List<SleepFlag> = nightOn(history, date).singleOrNull()?.measurements?.let(::sleepFlags).orEmpty()
 
 private fun nightOn(history: HealthHistory, date: LocalDate) = sleepMeasurements(history).filter { it.date == date }
 

@@ -1,6 +1,5 @@
 package se.partee71.dagboken.ui.settings
 
-import se.partee71.dagboken.data.FixedClock
 import app.cash.turbine.test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -9,8 +8,8 @@ import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -24,13 +23,14 @@ import se.partee71.dagboken.core.model.Settings
 import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.data.FakeCollectionFactory
-import se.partee71.dagboken.data.auth.AuthUser
-import se.partee71.dagboken.data.repository.SettingsRepository
-import se.partee71.dagboken.testing.FakeAuthRepository
+import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.TestUserScope
+import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
+import se.partee71.dagboken.data.repository.SettingsRepository
+import se.partee71.dagboken.testing.FakeAuthRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
@@ -256,7 +256,7 @@ class ThemeViewModelTest {
             Paths.settings("uid-test"),
             Settings.ID,
             mapOf("theme" to mapOf("mode" to "auto", "lightStartHour" to 22L, "darkStartHour" to 6L)),
-            merge = false,
+            merge = false
         )
         val app = AppThemeViewModel(signedIn, settings, FixedClock(at(12))) { TimeZone.UTC }
         app.theme.test {

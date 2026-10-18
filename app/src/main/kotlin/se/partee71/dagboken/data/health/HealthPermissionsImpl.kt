@@ -24,7 +24,7 @@ import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 @Singleton
 class HealthPermissionsImpl @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val access: HealthConnectAccess,
+    private val access: HealthConnectAccess
 ) : HealthPermissions {
     private var launcher: ActivityResultLauncher<Set<String>>? = null
 
@@ -47,7 +47,7 @@ class HealthPermissionsImpl @Inject constructor(
                 override fun onDestroy(owner: LifecycleOwner) {
                     if (launcher === registered) launcher = null
                 }
-            },
+            }
         )
     }
 

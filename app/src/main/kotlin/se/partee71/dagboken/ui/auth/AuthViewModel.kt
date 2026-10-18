@@ -40,7 +40,7 @@ data class AuthUiState(
     val busy: Boolean = false,
     val error: DataError? = null,
     /** Den inloggade – namn, e-post och foto för avataren och inställningsarket, bara i minnet (AUTH-3). */
-    val account: AuthUser? = null,
+    val account: AuthUser? = null
 )
 
 sealed interface AuthEvent {
@@ -58,7 +58,7 @@ class AuthViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val session: UserScope,
     private val ensureUser: EnsureUserUseCase,
-    private val signOutUser: SignOutUseCase,
+    private val signOutUser: SignOutUseCase
 ) : ViewModel() {
 
     private val user: StateFlow<AuthUser?> = auth.authState.stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -150,12 +150,17 @@ class AuthViewModel @Inject constructor(
 
         fun gateOf(user: AuthUser?, version: UserVersion?, unreadable: String?): AuthGate = when {
             user == null -> AuthGate.SignedOut
+
             // Rules nekar läsningen: inloggningsskärmen visar felet och knappen försöker igen.
             unreadable == user.uid -> AuthGate.NeedsUser
+
             // Versionen avgör om appen får visas – vänta på den i stället för att blinka förbi.
             version?.uid != user.uid -> AuthGate.Loading
+
             !version.exists -> AuthGate.NeedsUser
+
             Schema.isNewerThanApp(version.version) -> AuthGate.UpdateRequired
+
             else -> AuthGate.Ready
         }
     }

@@ -14,7 +14,7 @@ enum class TrendRange(val days: Int?) {
     FOURTEEN_DAYS(14),
     MONTH(30),
     THREE_MONTHS(90),
-    ALL(null),
+    ALL(null)
     ;
 
     /** Periodens första dag; för "Allt" [ALL_FROM] – ingen nedre datumgräns, det räknas ur cachen. */
@@ -25,8 +25,7 @@ enum class TrendRange(val days: Int?) {
      * dagar oavsett data; "Allt" går från [earliest] – den första dagen med en post – till idag, och är tom
      * utan poster. En [earliest] efter idag ger bara idag.
      */
-    fun days(today: LocalDate, earliest: LocalDate? = null): List<LocalDate> =
-        if (days != null) daysEnding(today, days) else earliest?.let { datesBetween(minOf(it, today), today) }.orEmpty()
+    fun days(today: LocalDate, earliest: LocalDate? = null): List<LocalDate> = if (days != null) daysEnding(today, days) else earliest?.let { datesBetween(minOf(it, today), today) }.orEmpty()
 
     companion object {
         /** Standardperioden i varje kort (TRD-3). */

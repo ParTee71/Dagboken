@@ -16,11 +16,11 @@ import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.schema.PrescriptionCodec
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.common.DailyGate
-import se.partee71.dagboken.data.common.offlineIsNoOp
 import se.partee71.dagboken.data.common.LatestWins
 import se.partee71.dagboken.data.common.SyncStatus
-import se.partee71.dagboken.di.ApplicationScope
+import se.partee71.dagboken.data.common.offlineIsNoOp
 import se.partee71.dagboken.data.common.updateChanged
+import se.partee71.dagboken.di.ApplicationScope
 
 /**
  * Recepten i samlingen `prescriptions` (REC-1…REC-13). Ett recept skrivs aldrig om i sin helhet härifrån:
@@ -119,7 +119,7 @@ class DefaultPrescriptionRepository @Inject constructor(
     /** [tidyUp] en gång per dag, enhet och konto (#304). */
     private val daily: DailyGate,
     /** Tidpunkternas klockslag för nya doser (NOT-18, `currentReminders` – standardklockslagen när de inte går att läsa). */
-    private val settings: SettingsRepository,
+    private val settings: SettingsRepository
 ) : PrescriptionRepository {
     private val collection = collections.prescriptions()
 
@@ -162,8 +162,7 @@ class DefaultPrescriptionRepository @Inject constructor(
     }
 
     // Inställningarna läses en gång, före låset: om synken skapar doser avgörs först under låset (serverns recept).
-    override suspend fun syncFromServer(prescriptionId: String, today: LocalDate): Result<Unit> =
-        sync(prescriptionId, today, settings.currentReminders()).offlineIsNoOp()
+    override suspend fun syncFromServer(prescriptionId: String, today: LocalDate): Result<Unit> = sync(prescriptionId, today, settings.currentReminders()).offlineIsNoOp()
 
     /**
      * [syncFromServer] med `Offline` kvar som fel, så att [tidyUp] kan sluta vid första. Med
@@ -171,18 +170,17 @@ class DefaultPrescriptionRepository @Inject constructor(
      * är aktivt och utgånget, så att en samtidig återaktivering aldrig skrivs över. Doser som skapas får
      * tidpunkternas klockslag i [reminders] (NOT-18), lästa av anroparen utanför låset.
      */
-    private suspend fun sync(prescriptionId: String, today: LocalDate, reminders: ReminderSettings, endIfExpired: Boolean = false): Result<Unit> =
-        syncs.run(prescriptionId, superseded = Result.success(Unit)) { isCurrent ->
-            // Egna skrivningar (t.ex. reglagets `active`) först till servern, så att läsningen ser dem.
-            collection.awaitWrites().onFailure { return@run Result.failure(it) }
-            var stored = collection.confirmed(prescriptionId).getOrElse { return@run Result.failure(it) }
-                ?: return@run Result.success(Unit)
-            if (endIfExpired && listOf(stored).toDeactivateOn(today).isNotEmpty()) {
-                stored = stored.copy(active = false)
-                collection.update(stored, setOf(PrescriptionCodec.ACTIVE)).onFailure { return@run Result.failure(it) }
-            }
-            doses.syncPrescription(stored, today, reminders, isCurrent)
+    private suspend fun sync(prescriptionId: String, today: LocalDate, reminders: ReminderSettings, endIfExpired: Boolean = false): Result<Unit> = syncs.run(prescriptionId, superseded = Result.success(Unit)) { isCurrent ->
+        // Egna skrivningar (t.ex. reglagets `active`) först till servern, så att läsningen ser dem.
+        collection.awaitWrites().onFailure { return@run Result.failure(it) }
+        var stored = collection.confirmed(prescriptionId).getOrElse { return@run Result.failure(it) }
+            ?: return@run Result.success(Unit)
+        if (endIfExpired && listOf(stored).toDeactivateOn(today).isNotEmpty()) {
+            stored = stored.copy(active = false)
+            collection.update(stored, setOf(PrescriptionCodec.ACTIVE)).onFailure { return@run Result.failure(it) }
         }
+        doses.syncPrescription(stored, today, reminders, isCurrent)
+    }
 
     override suspend fun tidyUp(today: LocalDate): Result<Unit> = daily.runOncePerDay(TIDY_UP, today) { tidy(today) }.offlineIsNoOp()
 

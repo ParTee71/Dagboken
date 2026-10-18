@@ -24,7 +24,7 @@ fun SwitchRow(
     subtitle: String? = null,
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null,
-    inactive: Boolean = false,
+    inactive: Boolean = false
 ) {
     val toggle = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
     ItemRowLayout(
@@ -39,7 +39,7 @@ fun SwitchRow(
             } else {
                 SwitchControl(checked, onCheckedChange, label = title)
             }
-        },
+        }
     )
 }
 

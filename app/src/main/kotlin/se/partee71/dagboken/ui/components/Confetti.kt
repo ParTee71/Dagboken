@@ -68,7 +68,7 @@ private class Piece(
     val spin: Float,
     val round: Boolean,
     val color: Color,
-    val size: Dp,
+    val size: Dp
 )
 
 private fun pieces(seed: Int): List<Piece> {
@@ -83,7 +83,7 @@ private fun pieces(seed: Int): List<Piece> {
             spin = random.nextFloat() * 2f - 1f,
             round = i % 3 == 0,
             color = AppColors.swatch(i),
-            size = (8f + random.nextFloat() * 8f).dp,
+            size = (8f + random.nextFloat() * 8f).dp
         )
     }
 }

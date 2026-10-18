@@ -43,8 +43,7 @@ abstract class AppModule {
         @Provides
         @Singleton
         @ApplicationScope
-        fun applicationScope(@DefaultDispatcher computation: CoroutineDispatcher): CoroutineScope =
-            CoroutineScope(SupervisorJob() + computation)
+        fun applicationScope(@DefaultDispatcher computation: CoroutineDispatcher): CoroutineScope = CoroutineScope(SupervisorJob() + computation)
 
         @Provides
         fun clock(): Clock = Clock.System
@@ -60,8 +59,7 @@ abstract class AppModule {
          */
         @Provides
         @Singleton
-        fun deviceState(@ApplicationContext context: Context): DataStore<Preferences> =
-            PreferenceDataStoreFactory.create { context.preferencesDataStoreFile(DEVICE_STATE_NAME) }
+        fun deviceState(@ApplicationContext context: Context): DataStore<Preferences> = PreferenceDataStoreFactory.create { context.preferencesDataStoreFile(DEVICE_STATE_NAME) }
 
         const val DEVICE_STATE_NAME = "dagboken_device"
     }

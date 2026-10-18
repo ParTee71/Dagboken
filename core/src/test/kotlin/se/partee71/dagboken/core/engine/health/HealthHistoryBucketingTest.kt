@@ -20,11 +20,9 @@ class HealthHistoryBucketingTest {
     private val day2 = LocalDate(2026, 3, 11)
     private val day3 = LocalDate(2026, 3, 12)
 
-    private fun steps(origin: String, date: LocalDate, time: String, count: Long) =
-        at(date, time).let { StepSample(origin, it, it + 1.minutes, count) }
+    private fun steps(origin: String, date: LocalDate, time: String, count: Long) = at(date, time).let { StepSample(origin, it, it + 1.minutes, count) }
 
-    private fun exercise(origin: String, date: LocalDate, time: String, minutes: Int) =
-        at(date, time).let { ExerciseSession(origin, it, it + minutes.minutes) }
+    private fun exercise(origin: String, date: LocalDate, time: String, minutes: Int) = at(date, time).let { ExerciseSession(origin, it, it + minutes.minutes) }
 
     private fun bpm(date: LocalDate, time: String, value: Long) = HeartRateSample("watch", at(date, time), value)
 
@@ -33,7 +31,7 @@ class HealthHistoryBucketingTest {
     @Test fun `samples are bucketed on the day their start time falls on`() {
         val byDay = mostCompleteSumByDay(
             listOf(steps("watch", day1, "08:00", 1000), steps("watch", day1, "18:00", 2000), steps("watch", day2, "09:00", 500)),
-            STOCKHOLM,
+            STOCKHOLM
         )
         assertEquals(3000.0, byDay.getValue(day1), 0.001)
         assertEquals(500.0, byDay.getValue(day2), 0.001)
@@ -51,9 +49,9 @@ class HealthHistoryBucketingTest {
                 steps("phone", day1, "08:00", 4000),
                 steps("watch", day1, "08:00", 6000),
                 steps("watch", day1, "18:00", 3000),
-                steps("phone", day2, "08:00", 2500),
+                steps("phone", day2, "08:00", 2500)
             ),
-            STOCKHOLM,
+            STOCKHOLM
         )
         assertEquals("Klockans 9000 ska vinna, aldrig 13000", 9000.0, byDay.getValue(day1), 0.001)
         assertEquals(2500.0, byDay.getValue(day2), 0.001)
@@ -65,9 +63,9 @@ class HealthHistoryBucketingTest {
                 exercise("phone", day1, "07:00", 20),
                 exercise("watch", day1, "07:00", 45),
                 exercise("watch", day1, "17:00", 30),
-                exercise("watch", day2, "07:00", 15),
+                exercise("watch", day2, "07:00", 15)
             ),
-            STOCKHOLM,
+            STOCKHOLM
         )
         assertEquals(2, byDay.getValue(day1).sessions)
         assertEquals(75.minutes, byDay.getValue(day1).duration)
@@ -79,7 +77,7 @@ class HealthHistoryBucketingTest {
         // Regression för #220.
         val byDay = mostCompleteExerciseByDay(
             listOf(exercise("watch", day1, "07:00", 45), exercise("phone", day1, "12:00", 25)),
-            STOCKHOLM,
+            STOCKHOLM
         )
         assertEquals(2, byDay.getValue(day1).sessions)
         assertEquals(70.minutes, byDay.getValue(day1).duration)
@@ -98,7 +96,7 @@ class HealthHistoryBucketingTest {
             recorded = listOf(RestingHeartRateSample("watch", at(day1, "22:00"), 52)),
             samples = listOf(bpm(day1, "08:00", 70), bpm(day1, "12:00", 90)),
             sleepWindows = emptyList(),
-            zone = STOCKHOLM,
+            zone = STOCKHOLM
         )
         assertEquals(52L, byDay.getValue(day1))
     }
@@ -108,7 +106,7 @@ class HealthHistoryBucketingTest {
             recorded = listOf(RestingHeartRateSample("watch", at(day1, "07:00"), 60), RestingHeartRateSample("watch", at(day1, "22:00"), 54)),
             samples = emptyList(),
             sleepWindows = emptyList(),
-            zone = STOCKHOLM,
+            zone = STOCKHOLM
         )
         assertEquals(54L, byDay.getValue(day1))
     }
@@ -118,7 +116,7 @@ class HealthHistoryBucketingTest {
             recorded = emptyList(),
             samples = (1..40).map { HeartRateSample("watch", at(day1, "08:00") + (it * 60).seconds, 60L + it) },
             sleepWindows = emptyList(),
-            zone = STOCKHOLM,
+            zone = STOCKHOLM
         )
         // Lägsta 5-percentilen av 61..100 → 61 och 62, medel 61,5 → 62.
         assertEquals(62L, byDay.getValue(day1))
@@ -129,7 +127,7 @@ class HealthHistoryBucketingTest {
             recorded = emptyList(),
             samples = listOf(bpm(day1, "03:00", 44), bpm(day1, "09:00", 62), bpm(day1, "15:00", 88)),
             sleepWindows = listOf(TimeWindow(at(day1, "01:00"), at(day1, "06:00"))),
-            zone = STOCKHOLM,
+            zone = STOCKHOLM
         )
         assertEquals(62L, byDay.getValue(day1))
     }
@@ -152,7 +150,7 @@ class HealthHistoryBucketingTest {
     @Test fun `the longest session wins when a night is split in two`() {
         val byDay = longestNightPerDay(
             listOf(night(day1, "22:30", day2, "01:00"), night(day2, "01:30", day2, "07:00", deepMinutes = 60)),
-            STOCKHOLM,
+            STOCKHOLM
         )
         assertEquals(1, byDay.size)
         assertEquals(330.minutes, byDay.getValue(day2).duration)
@@ -175,10 +173,10 @@ class HealthHistoryBucketingTest {
             listOf(
                 OxygenSample("watch", at(day1, "02:00"), 95.0),
                 OxygenSample("watch", at(day1, "03:00"), 93.0),
-                OxygenSample("watch", at(day2, "02:00"), 90.0),
+                OxygenSample("watch", at(day2, "02:00"), 90.0)
             ),
             emptyList(),
-            STOCKHOLM,
+            STOCKHOLM
         )
         assertEquals(94.0, byDay.getValue(day1), 0.001)
         assertEquals(90.0, byDay.getValue(day2), 0.001)
@@ -190,10 +188,10 @@ class HealthHistoryBucketingTest {
             listOf(
                 OxygenSample("watch", at(day1, "23:30"), 94.0),
                 OxygenSample("watch", at(day2, "04:00"), 96.0),
-                OxygenSample("watch", at(day1, "14:00"), 99.0),
+                OxygenSample("watch", at(day1, "14:00"), 99.0)
             ),
             listOf(night(day1, "23:00", day2, "07:00")),
-            STOCKHOLM,
+            STOCKHOLM
         )
         assertEquals(99.0, byDay.getValue(day1), 0.001)
         assertEquals(95.0, byDay.getValue(day2), 0.001)
@@ -203,7 +201,7 @@ class HealthHistoryBucketingTest {
         // Klockan startade 23:50, telefonen 00:05 – samma pass, inte ett per dygn.
         val byDay = mostCompleteExerciseByDay(
             listOf(exercise("watch", day1, "23:50", 50), exercise("phone", day2, "00:05", 20)),
-            STOCKHOLM,
+            STOCKHOLM
         )
         assertEquals(setOf(day1), byDay.keys)
         assertEquals(1, byDay.getValue(day1).sessions)

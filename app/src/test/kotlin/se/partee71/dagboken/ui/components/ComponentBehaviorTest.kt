@@ -4,17 +4,14 @@ import android.text.InputType
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.compose.foundation.layout.Column
-import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.test.assertHeightIsEqualTo
-import androidx.compose.ui.test.assertWidthIsEqualTo
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -23,23 +20,27 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertTouchWidthIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -76,7 +77,7 @@ class ComponentBehaviorTest {
         val types = TypeChoices(
             listOf(Option("walk", OptionKind.ACTIVITY, "Promenad", favorite = true)),
             listOf(Option("rest", OptionKind.ACTIVITY, "Vila")),
-            other = "other",
+            other = "other"
         )
         var selected by mutableStateOf("")
         var choices by mutableStateOf(types)
@@ -187,7 +188,7 @@ class ComponentBehaviorTest {
 
     @Test
     fun `stegaren ökar och minskar inom intervallet och beskriver värdet`() {
-        var value by mutableStateOf(1)
+        var value by mutableIntStateOf(1)
         show { QuantityStepper(value, { value = it }, "dagar", range = 1..2) }
         rule.onNodeWithContentDescription("Minska dagar").assertIsNotEnabled()
         rule.onNodeWithContentDescription("Öka dagar").performClick()
@@ -271,7 +272,12 @@ class ComponentBehaviorTest {
     fun `datumfältet öppnar väljaren och OK behåller valt datum`() {
         var date by mutableStateOf<LocalDate?>(LocalDate(2026, 12, 19))
         var changes = 0
-        show { DateField("Startdatum", date, { date = it; changes++ }) }
+        show {
+            DateField("Startdatum", date, {
+                date = it
+                changes++
+            })
+        }
         rule.onNodeWithContentDescription("Startdatum, lör 19 dec 2026").assertIsDisplayed().performClick()
         rule.onNodeWithText("OK").performClick()
         assertEquals(1, changes)
@@ -322,7 +328,12 @@ class ComponentBehaviorTest {
     fun `tidsfältet öppnar väljaren och OK behåller vald tid`() {
         var time by mutableStateOf(LocalTime(18, 0))
         var changes = 0
-        show { TimeField("Tid", time, { time = it; changes++ }) }
+        show {
+            TimeField("Tid", time, {
+                time = it
+                changes++
+            })
+        }
         rule.onNodeWithContentDescription("Tid, 18:00").assertIsDisplayed().performClick()
         rule.onNodeWithText("OK").performClick()
         assertEquals(1, changes)
@@ -376,7 +387,7 @@ class ComponentBehaviorTest {
     @Test
     fun `valchips och segmentval rapporterar valet`() {
         var chip = 0
-        var segment by mutableStateOf(2)
+        var segment by mutableIntStateOf(2)
         show {
             Column {
                 AppFilterChip("Tablett", false, { chip++ })
@@ -465,14 +476,14 @@ class ComponentBehaviorTest {
 
     @Test
     fun `bottenradens flikar väljs och plusknappen har sin etikett (NAV-8, NAV-10)`() {
-        var selected by mutableStateOf(0)
+        var selected by mutableIntStateOf(0)
         var logged = 0
         show {
             AppFloatingToolbar(
                 listOf(ToolbarItem("Idag", R.drawable.ic_sun), ToolbarItem("Dagbok", R.drawable.ic_book)),
                 selected,
                 { selected = it },
-                action = ToolbarAction("Logga", R.drawable.ic_add) { logged++ },
+                action = ToolbarAction("Logga", R.drawable.ic_add) { logged++ }
             )
         }
         rule.onNodeWithContentDescription("Dagbok").assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)).performClick()

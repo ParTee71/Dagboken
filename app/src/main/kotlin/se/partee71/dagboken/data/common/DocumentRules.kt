@@ -3,8 +3,8 @@ package se.partee71.dagboken.data.common
 import kotlin.time.Instant
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.Sortable
-import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.Doc
+import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.core.schema.SchemaMigrator
 
@@ -77,6 +77,7 @@ fun changedFields(before: Doc, after: Doc): Set<FieldPath> = buildSet {
         when {
             value is Map<*, *> && previous is Map<*, *> ->
                 value.keys.filter { value[it] != previous[it] }.forEach { add(listOf(key, it.toString())) }
+
             value != previous || key !in before -> add(listOf(key))
         }
     }
@@ -130,7 +131,7 @@ fun <T> readDocument(
     version: Int?,
     id: String,
     raw: Doc,
-    migrate: Migrate = SchemaMigrator::migrate,
+    migrate: Migrate = SchemaMigrator::migrate
 ): T {
     val from = version ?: Schema.CURRENT_VERSION
     val doc = if (Schema.isNewerThanApp(from) || from == Schema.CURRENT_VERSION) raw else migrate(from, collection, raw)

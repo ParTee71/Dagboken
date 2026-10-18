@@ -32,7 +32,7 @@ class WatchSeriesTest {
         exerciseDuration = 42.minutes,
         activeEnergyKcal = 512.5,
         distanceMeters = 6_250.0,
-        oxygenSaturationAvg = 96.4,
+        oxygenSaturationAvg = 96.4
     )
     private val history = HealthHistory.of(days.first(), today, mapOf(full.date to full, today to DailyHealth(today, steps = 1_200, sleepDuration = 6.hours)))
 
@@ -50,7 +50,7 @@ class WatchSeriesTest {
             WatchMetric.EXERCISE to 42f,
             WatchMetric.ACTIVE_CALORIES to 512.5f,
             WatchMetric.DISTANCE to 6.25f,
-            WatchMetric.OXYGEN_SATURATION to 96.4f,
+            WatchMetric.OXYGEN_SATURATION to 96.4f
         )
         WatchMetric.entries.forEach { metric ->
             assertEquals(expected.getValue(metric), metric.value(full), metric.name)
