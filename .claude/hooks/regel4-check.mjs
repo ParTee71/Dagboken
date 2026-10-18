@@ -38,7 +38,7 @@ export function parseSections(text) {
   return sections;
 }
 
-/** Tolkar ui-forbidden.txt till { feature: [...], firestore: [...], expressive: [...], vico: [...], dispatchers: [...] }. */
+/** Tolkar ui-forbidden.txt till { feature: [...], firestore: [...], expressive: [...], vico: [...], dispatchers: [...], events: [...] }. */
 export function parsePatterns(text) {
   return Object.fromEntries(
     Object.entries(parseSections(text)).map(([scope, lines]) => [
@@ -85,6 +85,7 @@ export function isAllowed(allowlist, file, match) {
  * - `expressive`: all Kotlin under app/src/main utom ui/theme/ och ui/components/.
  * - `vico`: all Kotlin under app/src/main utom ui/diagram/ (diagrambiblioteket bara i diagrammen).
  * - `dispatchers`: all Kotlin under app/src/main utom di/.
+ * - `events`: all Kotlin under ui/ (även ui/components/, ui/common/ och ui/diagram/).
  */
 export function scopesFor(relPath) {
   const p = relPath.split(path.sep).join('/');
@@ -99,6 +100,7 @@ export function scopesFor(relPath) {
   if (!/\/ui\/(theme|components)\//.test(p)) scopes.push('expressive');
   if (!/\/ui\/diagram\//.test(p)) scopes.push('vico');
   if (!/\/di\//.test(p)) scopes.push('dispatchers');
+  if (/\/ui\//.test(p)) scopes.push('events');
   return scopes;
 }
 
@@ -139,6 +141,7 @@ const SCOPE_TEXT = {
   expressive: 'kod utanför ui/theme/ och ui/components/',
   vico: 'kod utanför ui/diagram/',
   dispatchers: 'kod utanför di/',
+  events: 'kod i ui/',
 };
 
 /** Läser mönster och undantag för ett repo. Kastar vid ogiltig undantagsfil. */

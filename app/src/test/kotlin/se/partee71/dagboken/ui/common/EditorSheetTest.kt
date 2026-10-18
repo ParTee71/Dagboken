@@ -68,6 +68,7 @@ class EditorSheetTest {
         assertEquals(DataError.Offline, open.error.value?.error)
         assertEquals(Failure(DataError.Offline).message, open.error.value?.message, "samma text som EntityEditScreen")
         assertEquals(0, saved)
+        assertNull(open.editor.state.value.failure, "arket har kvitterat sparfelet")
         sheet.update { it.copy(count = 1) }
         assertNull(open.error.value, "en ändring tar bort felet")
 
@@ -75,6 +76,10 @@ class EditorSheetTest {
         runCurrent()
         sheet.assertClosing()
         assertEquals(1, saved)
+        assertFalse(open.editor.state.value.done, "arket har kvitterat att det är sparat")
+        open.editor.update { it.copy(count = 2) }
+        runCurrent()
+        assertEquals(1, saved, "fler tillstånd efter sparat anropar inte onSaved igen")
         assertEquals(listOf<Pair<Form?, Form>>(null to Form("ny", 1)), written)
     }
 

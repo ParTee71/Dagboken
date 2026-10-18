@@ -158,7 +158,7 @@ fun ActivityEditScreen(
     EntityEditScreen(
         title = stringResource(if (form.isNew) R.string.activity_new else R.string.activity_edit),
         state = state,
-        effects = form.effects,
+        events = form.events,
         onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
         delete = if (form.isNew) {

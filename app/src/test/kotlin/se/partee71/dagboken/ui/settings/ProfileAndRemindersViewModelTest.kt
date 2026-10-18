@@ -28,7 +28,8 @@ import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.common.EditorEffect
+import se.partee71.dagboken.testing.awaitDone
+import se.partee71.dagboken.testing.awaitFailure
 
 /** Profil (HLS-11) och Påminnelser (SET-4, NOT-4, NOT-13, NOT-18) – formulären över `settings/app`. */
 class ProfileAndRemindersViewModelTest {
@@ -63,9 +64,10 @@ class ProfileAndRemindersViewModelTest {
             assertTrue(awaitItem().canSave)
             cancelAndIgnoreRemainingEvents()
         }
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(ProfileEvent.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         val stored = settings.get().getOrThrow()
         assertEquals(Profile(1980, Sex.MALE), stored.profile)
@@ -128,9 +130,10 @@ class ProfileAndRemindersViewModelTest {
         vm.onEvent(RemindersEvent.PeriodTimeChanged(LocalTime(8, 0)))
         assertEquals(false, settings.get().getOrThrow().reminders.medsEnabled, "inget sparat före Spara")
 
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(RemindersEvent.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         val stored = settings.get().getOrThrow().reminders
         assertTrue(stored.medsEnabled)
@@ -208,9 +211,10 @@ class ProfileAndRemindersViewModelTest {
         val vm = RemindersEditViewModel(partial)
         vm.onEvent(RemindersEvent.MedsEnabledChanged(true))
         vm.onEvent(RemindersEvent.SlotChanged(SlotReminder(Slot.NIGHT, enabled = false)))
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(RemindersEvent.Save)
-            (awaitItem() as EditorEffect.Failed).failure.let { assertEquals(DataError.Offline, it.error); assertEquals(R.string.error_offline, it.message) }
+            awaitFailure(vm.editor).let { assertEquals(DataError.Offline, it.error); assertEquals(R.string.error_offline, it.message) }
+            cancelAndIgnoreRemainingEvents()
         }
         assertTrue(vm.editor.state.value.isDirty, "inte sparat – Spara går att trycka igen")
         assertTrue(vm.editor.state.value.canSave)

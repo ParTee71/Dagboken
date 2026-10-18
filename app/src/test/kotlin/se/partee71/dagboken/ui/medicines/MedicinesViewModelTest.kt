@@ -42,7 +42,7 @@ import se.partee71.dagboken.data.repository.DefaultPrnMedicineRepository
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.common.EditorEffect
+import se.partee71.dagboken.testing.awaitDone
 import se.partee71.dagboken.ui.common.ListUiState
 
 /** Fliken Mediciner (MEDF-1…MEDF-5, REC-5, FAV-2) och vid behov-formuläret (FAV-1, FAV-4, FAV-5, FAV-7). */
@@ -230,9 +230,10 @@ class MedicinesViewModelTest {
         vm.onEvent(PrnEditEvent.Changed(PrnField.NAME) { it.copy(name = " Alvedon ") })
         vm.onEvent(PrnEditEvent.Changed(PrnField.DOSE) { it.copy(dose = "500") })
         vm.onEvent(PrnEditEvent.Changed(null) { it.copy(unit = "sprut", minHoursBetween = 0, note = "") })
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(PrnEditEvent.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         val saved = factory.prnMedicines().getAll().getOrThrow().single()
         assertEquals(PrnMedicine(saved.id, name = "Alvedon", dose = "500", unit = "sprut", minHoursBetween = 0), saved)
@@ -249,13 +250,14 @@ class MedicinesViewModelTest {
         assertEquals(stored, vm.stored.value)
 
         vm.onEvent(PrnEditEvent.Changed(null) { it.copy(maxPerDay = 4) })
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(PrnEditEvent.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
             assertEquals(stored.copy(maxPerDay = 4), factory.prnMedicines().get(alvedon.id).getOrThrow())
 
             vm.onEvent(PrnEditEvent.Delete)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         assertNull(factory.prnMedicines().get(alvedon.id).getOrThrow())
     }

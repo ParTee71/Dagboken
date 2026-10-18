@@ -19,12 +19,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
-import se.partee71.dagboken.ui.common.EditorEffect
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.EditorUiState
@@ -127,7 +128,7 @@ fun <T> ComposeContentTestRule.runDetailScreenContract(
 /**
  * Kontraktet för en skärm på `EntityEditScreen` + `EditorState` (NFR-10): "Spara" inaktiv tills
  * formuläret är giltigt och ändrat, fältfel efter ändring, "Släng ändringar?" vid bakåt,
- * sparfel som snackbar och tillbaka efter lyckad sparning.
+ * sparfel som snackbar och tillbaka efter lyckad sparning – båda kvitterade i [editor].
  *
  * @param editor formulärets tillstånd; [makeInvalid] och [makeValid] ändrar det som användaren skulle.
  *   Ett formulär där varje värde är giltigt (t.ex. Påminnelser) har ingen [makeInvalid]; då prövas bara
@@ -140,7 +141,7 @@ fun <T> ComposeContentTestRule.runEditScreenContract(
     makeInvalid: (EditorState<T>.() -> Unit)?,
     makeValid: EditorState<T>.() -> Unit,
     invalidMessage: String?,
-    screen: @Composable (state: EditorUiState<T>, effects: Flow<EditorEffect>, onSave: () -> Unit, onClose: () -> Unit) -> Unit,
+    screen: @Composable (state: EditorUiState<T>, events: EditorEvents, onSave: () -> Unit, onClose: () -> Unit) -> Unit,
 ) {
     var saveResult: Result<Unit> = Result.failure(DataError.Offline)
     var closes = 0
@@ -150,7 +151,7 @@ fun <T> ComposeContentTestRule.runEditScreenContract(
         DagbokenTheme {
             val state by editor.state.collectAsState()
             val scope = rememberCoroutineScope()
-            screen(state, editor.effects, { scope.launch { editor.save { saveResult } } }, { closes++ })
+            screen(state, editor, { scope.launch { editor.save { saveResult } } }, { closes++ })
         }
     }
     val saveButton = onNodeWithText(text(R.string.save))
@@ -179,11 +180,13 @@ fun <T> ComposeContentTestRule.runEditScreenContract(
     saveButton.performClick()
     onNodeWithText(text(R.string.error_offline)).assertIsDisplayed()
     assertEquals(0, closes, "sparfel ska inte lämna skärmen")
+    assertNull(editor.state.value.failure, "sparfelet ska kvitteras när snackbaren startats")
 
     saveResult = Result.success(Unit)
     saveButton.performClick()
     waitForIdle()
     assertEquals(1, closes, "lyckad sparning ska gå tillbaka")
+    assertFalse(editor.state.value.done, "klar ska kvitteras när skärmen lämnats")
 
     onNodeWithContentDescription(text(R.string.back)).performClick()
     assertEquals(2, closes, "bakåt utan ändringar ska lämna skärmen direkt")

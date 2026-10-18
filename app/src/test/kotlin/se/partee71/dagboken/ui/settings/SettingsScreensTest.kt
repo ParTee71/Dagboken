@@ -12,8 +12,6 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import kotlin.test.assertEquals
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,7 +26,7 @@ import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.reminders.ReminderAccess
 import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.EditorEffect
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
@@ -59,15 +57,15 @@ class SettingsScreensTest {
             makeInvalid = { update(ProfileForm.BIRTH_YEAR) { it.copy(birthYear = "1800") } },
             makeValid = { update(ProfileForm.BIRTH_YEAR) { it.copy(birthYear = "1971") } },
             invalidMessage = string(R.string.profile_birth_year_invalid),
-        ) { state, effects, onSave, onClose ->
-            ProfileScreen(state, effects, { if (it == ProfileEvent.Save) onSave() }, onClose)
+        ) { state, events, onSave, onClose ->
+            ProfileScreen(state, events, { if (it == ProfileEvent.Save) onSave() }, onClose)
         }
     }
 
     @Test
     fun `Profil - könet väljs med chips i ordningen Kvinna, Man, Ej angivet`() {
         val events = mutableListOf<ProfileEvent>()
-        rule.setContent { DagbokenTheme { ProfileScreen(EditorUiState(ProfileForm("1971", Sex.UNSPECIFIED)), emptyFlow(), { events += it }, {}) } }
+        rule.setContent { DagbokenTheme { ProfileScreen(EditorUiState(ProfileForm("1971", Sex.UNSPECIFIED)), EditorEvents.None, { events += it }, {}) } }
         rule.onNodeWithText("Kvinna").performClick()
         rule.onNodeWithText("Man").performClick()
         rule.onNodeWithText("Ej angivet").assertIsDisplayed()
@@ -82,15 +80,15 @@ class SettingsScreensTest {
             makeInvalid = null,
             makeValid = { update { it.copy(medsEnabled = true) } },
             invalidMessage = null,
-        ) { state, effects, onSave, onClose ->
-            RemindersScreen(state, effects, { if (it == RemindersEvent.Save) onSave() }, onClose)
+        ) { state, events, onSave, onClose ->
+            RemindersScreen(state, events, { if (it == RemindersEvent.Save) onSave() }, onClose)
         }
     }
 
     @Test
     fun `Påminnelser - sex medicintider, fyra måendetillfällen och periodslut (NOT-4, NOT-13, NOT-18)`() {
         val events = mutableListOf<RemindersEvent>()
-        rule.setContent { DagbokenTheme { RemindersScreen(EditorUiState(ReminderSettings()), emptyFlow(), { events += it }, {}) } }
+        rule.setContent { DagbokenTheme { RemindersScreen(EditorUiState(ReminderSettings()), EditorEvents.None, { events += it }, {}) } }
         listOf("Morgon", "Förmiddag", "Eftermiddag", "Kväll", "Natt", "Efter frukost", "Kvällsmat", "Läggdags").forEach {
             rule.onNodeWithText(it).assertExists()
         }
@@ -112,7 +110,7 @@ class SettingsScreensTest {
         rule.setContent {
             DagbokenTheme {
                 RemindersScreen(
-                    EditorUiState(ReminderSettings()), emptyFlow(), {}, {},
+                    EditorUiState(ReminderSettings()), EditorEvents.None, {}, {},
                     access = access,
                     onOpenNotificationSettings = { opened += "notiser" },
                     onOpenExactAlarmSettings = { opened += "exakta" },
@@ -187,8 +185,8 @@ class SettingsScreensTest {
             makeInvalid = { update(OPTION_NAME) { "promenad" } },
             makeValid = { update(OPTION_NAME) { "Cykling" } },
             invalidMessage = string(R.string.option_name_duplicate),
-        ) { state, effects, onSave, onClose ->
-            OptionEditScreen(OptionKind.ACTIVITY, isNew = true, archived = null, state, effects, { if (it == OptionEditEvent.Save) onSave() }, onClose)
+        ) { state, events, onSave, onClose ->
+            OptionEditScreen(OptionKind.ACTIVITY, isNew = true, archived = null, state, events, { if (it == OptionEditEvent.Save) onSave() }, onClose)
         }
         rule.onNodeWithText("Ny aktivitet").assertIsDisplayed()
     }
@@ -218,7 +216,7 @@ class SettingsScreensTest {
 
     @Test
     fun `en nekad dubblett visas som Finns redan i listan – i formuläret och i listan`() {
-        val effects = MutableSharedFlow<EditorEffect>(extraBufferCapacity = 1)
+        var edit by mutableStateOf(EditorUiState("Promenad"))
         var listError by mutableStateOf(ListArchive())
         var showList by mutableStateOf(false)
         rule.setContent {
@@ -226,11 +224,11 @@ class SettingsScreensTest {
                 if (showList) {
                     ListsScreen(ListUiState.Content(persistentListOf(promenad)), OptionKind.ACTIVITY, listError, {}, {}, {}, {})
                 } else {
-                    OptionEditScreen(OptionKind.ACTIVITY, isNew = false, archived = true, EditorUiState("Promenad"), effects, {}, {})
+                    OptionEditScreen(OptionKind.ACTIVITY, isNew = false, archived = true, edit, EditorEvents.None, {}, {})
                 }
             }
         }
-        rule.runOnIdle { effects.tryEmit(EditorEffect.Failed(Failure(DataError.Unknown, R.string.option_name_duplicate))) }
+        rule.runOnIdle { edit = edit.copy(failure = Failure(DataError.Unknown, R.string.option_name_duplicate)) }
         rule.onNodeWithText("Finns redan i listan").assertIsDisplayed()
 
         showList = true

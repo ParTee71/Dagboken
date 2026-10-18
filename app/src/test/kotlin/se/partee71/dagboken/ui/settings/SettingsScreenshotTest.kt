@@ -3,7 +3,6 @@ package se.partee71.dagboken.ui.settings
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Rule
@@ -21,6 +20,7 @@ import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.reminders.ReminderAccess
 import se.partee71.dagboken.ui.common.DetailUiState
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.components.ListArchive
@@ -38,7 +38,7 @@ class SettingsScreenshotTest {
 
     @Test
     fun `Profil`() = rule.captureLightAndDark("Settings_Profil") {
-        ProfileScreen(EditorUiState(ProfileForm("1971", Sex.FEMALE), isDirty = true), emptyFlow(), {}, {})
+        ProfileScreen(EditorUiState(ProfileForm("1971", Sex.FEMALE), isDirty = true), EditorEvents.None, {}, {})
     }
 
     @Test
@@ -49,12 +49,12 @@ class SettingsScreenshotTest {
                 screeningOccasions = r.screeningOccasions.map { if (it.occasion == Occasion.BREAKFAST) it.copy(enabled = true, time = LocalTime(8, 30)) else it },
             )
         }
-        RemindersScreen(EditorUiState(reminders), emptyFlow(), {}, {})
+        RemindersScreen(EditorUiState(reminders), EditorEvents.None, {}, {})
     }
 
     @Test
     fun `Påminnelser - behörigheter saknas`() = rule.captureLightAndDark("Settings_Paminnelser_behorighet") {
-        RemindersScreen(EditorUiState(ReminderSettings(medsEnabled = true)), emptyFlow(), {}, {}, access = ReminderAccess(notifications = false, exactAlarms = false))
+        RemindersScreen(EditorUiState(ReminderSettings(medsEnabled = true)), EditorEvents.None, {}, {}, access = ReminderAccess(notifications = false, exactAlarms = false))
     }
 
     @Test
@@ -85,7 +85,7 @@ class SettingsScreenshotTest {
 
     @Test
     fun `Byt namn`() = rule.captureLightAndDark("Settings_Alternativ_bytnamn") {
-        OptionEditScreen(OptionKind.ACTIVITY, isNew = false, archived = false, EditorUiState("Långpromenad", isDirty = true), emptyFlow(), {}, {})
+        OptionEditScreen(OptionKind.ACTIVITY, isNew = false, archived = false, EditorUiState("Långpromenad", isDirty = true), EditorEvents.None, {}, {})
     }
 
     @Test

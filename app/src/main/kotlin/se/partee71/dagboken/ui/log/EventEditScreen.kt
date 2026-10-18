@@ -133,7 +133,7 @@ fun EventEditScreen(form: EntryForm<Event>, onClose: () -> Unit, eventOptions: L
     EntityEditScreen(
         title = stringResource(if (form.isNew) R.string.event_new else R.string.event_edit),
         state = state,
-        effects = form.effects,
+        events = form.events,
         onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
         delete = if (form.isNew) {

@@ -14,7 +14,6 @@ import androidx.compose.ui.test.performTextReplacement
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -40,6 +39,7 @@ import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.EntryEditEvent
@@ -86,7 +86,7 @@ class DoseAndIllnessScreensTest {
     private val start = EpisodeStart(IllnessEpisode("e", "Influensa", day, createdAt = created), Checkin("c", day, LocalTime(14, 20), severity = 5, createdAt = created))
 
     private fun <T> form(value: T, isNew: Boolean = true, stored: T? = null, onEvent: (EntryEditEvent<T>) -> Unit = {}) =
-        EntryForm(isNew, EditorUiState(value), emptyFlow(), onEvent, stored)
+        EntryForm(isNew, EditorUiState(value), EditorEvents.None, onEvent, stored)
 
     // ── Dos ───────────────────────────────────────────────────────────────
 
@@ -98,8 +98,8 @@ class DoseAndIllnessScreensTest {
             makeInvalid = { update(DoseField.NAME) { it.copy(name = " ") } },
             makeValid = { update(DoseField.NAME) { it.copy(name = "Melatonin") } },
             invalidMessage = "Ange ett namn",
-        ) { state, effects, onSave, onClose ->
-            DoseEditScreen(EntryForm(true, state, effects, { if (it == EntryEditEvent.Save) onSave() }), onClose, DoseMode.NEW, zone)
+        ) { state, events, onSave, onClose ->
+            DoseEditScreen(EntryForm(true, state, events, { if (it == EntryEditEvent.Save) onSave() }), onClose, DoseMode.NEW, zone)
         }
     }
 
@@ -111,8 +111,8 @@ class DoseAndIllnessScreensTest {
             makeInvalid = { update(DoseField.TAKEN_AT) { it.copy(takenAt = now + 30.minutes) } },
             makeValid = { update(DoseField.TAKEN_AT) { it.copy(takenAt = at(yesterday, 22, 0)) } },
             invalidMessage = "Tiden kan inte vara senare än nu.",
-        ) { state, effects, onSave, onClose ->
-            DoseEditScreen(EntryForm(true, state, effects, { if (it == EntryEditEvent.Save) onSave() }), onClose, DoseMode.AS_NEEDED, zone, AsNeededState(alvedon))
+        ) { state, events, onSave, onClose ->
+            DoseEditScreen(EntryForm(true, state, events, { if (it == EntryEditEvent.Save) onSave() }), onClose, DoseMode.AS_NEEDED, zone, AsNeededState(alvedon))
         }
     }
 
@@ -126,8 +126,8 @@ class DoseAndIllnessScreensTest {
             makeInvalid = { update(DoseField.NAME) { it.copy(name = "") } },
             makeValid = { update(DoseField.NAME) { it.copy(name = "Alvedon Forte") } },
             invalidMessage = "Ange ett namn",
-        ) { state, effects, onSave, onClose ->
-            DoseEditScreen(EntryForm(false, state, effects, { if (it == EntryEditEvent.Save) onSave() }, prn), onClose, DoseMode.EDIT, zone)
+        ) { state, events, onSave, onClose ->
+            DoseEditScreen(EntryForm(false, state, events, { if (it == EntryEditEvent.Save) onSave() }, prn), onClose, DoseMode.EDIT, zone)
         }
     }
 
@@ -259,8 +259,8 @@ class DoseAndIllnessScreensTest {
             makeInvalid = { update(IllnessField.TYPE) { it.copy(episode = it.episode.copy(type = "")) } },
             makeValid = { update(IllnessField.TYPE) { it.copy(episode = it.episode.copy(type = "Förkylning")) } },
             invalidMessage = "Ange vilken sjukdom",
-        ) { state, effects, onSave, onClose ->
-            EpisodeNewScreen(EntryForm(true, state, effects, { if (it == EntryEditEvent.Save) onSave() }), onClose, symptoms)
+        ) { state, events, onSave, onClose ->
+            EpisodeNewScreen(EntryForm(true, state, events, { if (it == EntryEditEvent.Save) onSave() }), onClose, symptoms)
         }
     }
 
@@ -273,8 +273,8 @@ class DoseAndIllnessScreensTest {
             makeInvalid = { update(IllnessField.TYPE) { it.copy(type = " ") } },
             makeValid = { update(IllnessField.TYPE) { it.copy(type = "Influensa") } },
             invalidMessage = "Ange vilken sjukdom",
-        ) { state, effects, onSave, onClose ->
-            EpisodeEditScreen(EntryForm(false, state, effects, { if (it == EntryEditEvent.Save) onSave() }, flu), onClose)
+        ) { state, events, onSave, onClose ->
+            EpisodeEditScreen(EntryForm(false, state, events, { if (it == EntryEditEvent.Save) onSave() }, flu), onClose)
         }
     }
 
@@ -298,8 +298,8 @@ class DoseAndIllnessScreensTest {
             makeInvalid = null,
             makeValid = { update { it.copy(severity = 3) } },
             invalidMessage = null,
-        ) { state, effects, onSave, onClose ->
-            CheckinEditScreen(EntryForm(false, state, effects, { if (it == EntryEditEvent.Save) onSave() }, checkin), onClose, flu, symptoms)
+        ) { state, events, onSave, onClose ->
+            CheckinEditScreen(EntryForm(false, state, events, { if (it == EntryEditEvent.Save) onSave() }, checkin), onClose, flu, symptoms)
         }
     }
 

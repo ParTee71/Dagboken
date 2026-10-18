@@ -178,7 +178,7 @@ test('tom eller trasig indata ger exit 0', () => {
 
 test('mönsterfilen har alla scope, giltiga regexar och en ersättning per rad', () => {
   const scopes = parsePatterns(readPatterns());
-  assert.deepEqual(Object.keys(scopes).sort(), ['dispatchers', 'expressive', 'feature', 'firestore', 'vico']);
+  assert.deepEqual(Object.keys(scopes).sort(), ['dispatchers', 'events', 'expressive', 'feature', 'firestore', 'vico']);
   assert.ok(scopes.feature.length >= 30);
   assert.ok(scopes.firestore.length >= 3);
   assert.ok(scopes.vico.length >= 3);

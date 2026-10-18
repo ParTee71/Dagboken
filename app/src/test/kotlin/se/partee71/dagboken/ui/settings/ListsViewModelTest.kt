@@ -23,8 +23,9 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.repository.DefaultOptionsRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
+import se.partee71.dagboken.testing.awaitDone
+import se.partee71.dagboken.testing.awaitFailure
 import se.partee71.dagboken.ui.common.ArchiveEvent
-import se.partee71.dagboken.ui.common.EditorEffect
 import se.partee71.dagboken.ui.common.ListUiState
 
 /** Listor (SET-5, SET-6, SET-9, SET-11, DAT-9): val av lista, stjärna, arkivera/ångra, nytt och namnbyte. */
@@ -89,9 +90,10 @@ class ListsViewModelTest {
         assertEquals(R.string.option_name_missing, vm.editor.state.value.errorFor(OPTION_NAME))
 
         vm.onEvent(OptionEditEvent.NameChanged("Cykling"))
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(OptionEditEvent.Save)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         val id = OptionIds.of(OptionKind.ACTIVITY, "Cykling")
         assertEquals(Option(id, OptionKind.ACTIVITY, "Cykling", sortOrder = 3), options.get(id).getOrThrow())
@@ -135,9 +137,10 @@ class ListsViewModelTest {
     fun `ett alternativ arkiveras och återställs i formulärets meny`() = runTest(main.dispatcher) {
         seed()
         val vm = OptionEditViewModel(repository, OptionKind.ACTIVITY, yoga.id)
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(OptionEditEvent.Archive)
-            assertEquals(EditorEffect.Done, awaitItem())
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
         }
         assertTrue(options.get(yoga.id).getOrThrow()!!.archived)
 
@@ -168,10 +171,11 @@ class ListsViewModelTest {
     fun `Återställ som skulle ge en aktiv dubblett nekas och visas som Finns redan i listan`() = runTest(main.dispatcher) {
         options.batch(listOf(yoga.copy(archived = true), Option("ny-yoga", OptionKind.ACTIVITY, "Yoga"))).getOrThrow()
         val vm = OptionEditViewModel(repository, OptionKind.ACTIVITY, yoga.id)
-        vm.editor.effects.test {
+        vm.editor.state.test {
             vm.onEvent(OptionEditEvent.Restore)
-            val failed = awaitItem() as EditorEffect.Failed
-            assertEquals(R.string.option_name_duplicate, failed.failure.message)
+            val failed = awaitFailure(vm.editor)
+            assertEquals(R.string.option_name_duplicate, failed.message)
+            cancelAndIgnoreRemainingEvents()
         }
         assertTrue(options.get(yoga.id).getOrThrow()!!.archived)
     }

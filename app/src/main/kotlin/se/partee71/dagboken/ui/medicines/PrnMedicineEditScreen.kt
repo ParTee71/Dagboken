@@ -14,7 +14,6 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -27,7 +26,7 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.medicines.MedicineRepository
 import se.partee71.dagboken.di.DefaultDispatcher
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
-import se.partee71.dagboken.ui.common.EditorEffect
+import se.partee71.dagboken.ui.common.EditorEvents
 import se.partee71.dagboken.ui.common.EditorLoader
 import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EditorUiState
@@ -130,7 +129,7 @@ fun PrnMedicineEditRoute(id: String?, onClose: () -> Unit) {
     val viewModel = hiltViewModel<PrnMedicineEditViewModel, PrnMedicineEditViewModel.Factory> { it.create(id) }
     val state by viewModel.editor.state.collectAsStateWithLifecycle()
     val matches by viewModel.suggestions.matches.collectAsStateWithLifecycle()
-    PrnMedicineEditScreen(viewModel.isNew, state, viewModel.editor.effects, viewModel::onEvent, onClose, matches)
+    PrnMedicineEditScreen(viewModel.isNew, state, viewModel.editor, viewModel::onEvent, onClose, matches)
 }
 
 /**
@@ -143,7 +142,7 @@ fun PrnMedicineEditRoute(id: String?, onClose: () -> Unit) {
 fun PrnMedicineEditScreen(
     isNew: Boolean,
     state: EditorUiState<PrnMedicine>,
-    effects: Flow<EditorEffect>,
+    events: EditorEvents,
     onEvent: (PrnEditEvent) -> Unit,
     onClose: () -> Unit,
     matches: List<MedicineMatch> = emptyList(),
@@ -153,7 +152,7 @@ fun PrnMedicineEditScreen(
     EntityEditScreen(
         title = stringResource(if (isNew) R.string.medicines_new_prn else R.string.prn_edit),
         state = state,
-        effects = effects,
+        events = events,
         onSave = { onEvent(PrnEditEvent.Save) },
         onClose = onClose,
         delete = if (isNew) {
