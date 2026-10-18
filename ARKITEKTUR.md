@@ -599,13 +599,15 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
 - **Hooks:** `regel4-check.mjs` + `ui-forbidden.txt`/`ui-allowlist.txt`; `session-start.sh`
   (npm ci för `tools/db`, rapporterar om `FIREBASE_SERVICE_ACCOUNT` finns).
 - **Skills som tas över (G/G\*):** `ci-budget`, `shared-ui-components`, `firestore-data-layer`,
-  `data-safety-backup` (Firestore-versionen), `db-access`, `mockup`, `ui-style` (skrivs om för
-  Papper och teal), `testing-strategy`, `refine-issue`, `implement-issue`, `release`,
-  `android-gradle-logic`, Googles `navigation-3`, `android-intent-security`,
-  `firebase-security-rules-auditor`.
+  `data-safety-backup` (Firestore-versionen), `db-access`, `ui-style` (skrivs om för
+  Papper och teal), `testing-strategy`, `refine-issue`, `implement-issue`, `release`.
 - **Skills som behålls från Dagboken:** `notifications-alarms`, `data-privacy-security`
-  (hälsodataversionen), `accessibility-compose`, `android-dev`, `compose-expert`,
-  `kotlin-coroutines`, `kotlin-flows`, `firebase-auth`.
+  (hälsodataversionen).
+- **Från pluginen `android@claude-android`** (`android:<namn>`, generella): `android-dev`,
+  `compose-expert`, `kotlin-coroutines`, `kotlin-flows`, `navigation-3`, `accessibility-compose`,
+  `android-gradle-logic`, `firebase-auth`, `mockup`, Googles `android-intent-security` och
+  `firebase-security-rules-auditor`. Dagbokens delar av dem, och var repot i dag avviker, står i
+  skill `android-projekt` (`.claude/README.md` → Gemensam plugin).
 - **Nya skills:** `health-connect` (destillerat ur `HealthConnectRepository`, etapp 6), `diagram`
   (ui/diagram-reglerna, TRD-6…18 – byggd i etapp 4.3).
 - **Pensioneras:** `room-migrations`, `android-data-layer`.

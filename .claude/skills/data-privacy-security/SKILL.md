@@ -108,5 +108,5 @@ release-bygget – inte per PR (skill `ci-budget`).
 - [ ] Nya bibliotek har keep-regler så release-minify inte går sönder.
 - [ ] Inga nya/bredare behörigheter utan tydligt behov.
 - [ ] Ny eller ändrad exporterad komponent, notis med `PendingIntent`, extras eller delning:
-  granskad med Googles skill `android-intent-security`.
-- [ ] Ändrade `firestore.rules`: granskade med Googles skill `firebase-security-rules-auditor`.
+  granskad med Googles skill `android:android-intent-security`.
+- [ ] Ändrade `firestore.rules`: granskade med Googles skill `android:firebase-security-rules-auditor`.

@@ -13,9 +13,10 @@ granskar och committar; du skriver koden och testerna och rapporterar ärligt va
 
 1. Läs `CLAUDE.md` (de fem reglerna, mockup-regeln) och den del av `ARKITEKTUR.md` som steget
    gäller. Läs `KRAVLISTA.md` för de krav-ID:n uppdraget nämner.
-2. Ladda de skills som berörs: alltid `android-dev`; UI → `shared-ui-components`, `ui-style`,
-   `compose-expert`, `accessibility-compose`; CI → `ci-budget`; tester → `testing-strategy`;
-   larm → `notifications-alarms`; Gradle → `android-gradle-logic`.
+2. Ladda de skills som berörs: alltid `android:android-dev` (pluginen) och `android-projekt`;
+   UI → `shared-ui-components`, `ui-style`, `android:compose-expert`, `android:accessibility-compose`;
+   CI → `ci-budget`; tester → `testing-strategy`; larm → `notifications-alarms`;
+   Gradle → `android:android-gradle-logic`.
 3. Sök efter befintligt mönster innan du skriver något nytt: `ui/components/`, `ui/common/`,
    `data/common/`, `data/firestore/`, `core/`. Vid en port: läs förlagan i sin helhet
    (repot `ParTee71/ReseApoteket` – lägg till det i sessionen vid behov – eller branchen `legacy`)
@@ -23,7 +24,7 @@ granskar och committar; du skriver koden och testerna och rapporterar ärligt va
 
 ## Regler
 
-- **Ny GUI kräver godkänd mockup** (skill `mockup`). Finns ingen länk i uppdraget: stanna och
+- **Ny GUI kräver godkänd mockup** (skill `android:mockup` och `android-projekt` → "Mockup"). Finns ingen länk i uppdraget: stanna och
   säg det i rapporten i stället för att gissa ett utseende.
 - Feature-kod använder bara delade komponenter och tokens ur `ui/theme`; hooken `regel4-check`
   säger till direkt – rätta innan du går vidare. Behövs en variant: utöka den delade delen med

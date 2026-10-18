@@ -145,7 +145,7 @@ bara får förekomma där. Den ger `FirestoreInstance` – som skapar `FirebaseF
 och nästa anrop får en ny, tom instans med samma inställningar. Låset i `FirestoreInstance` hålls
 under tömningen (ingen ny instans får öppna filerna medan de raderas), men varje steg har en
 tidsgräns på 10 s – hänger Firestore blir det ett fel i stället för en `db` som låser för alltid. Osynkade skrivningar töms aldrig –
-då behålls cachen (skill `firebase-auth`).
+då behålls cachen (skill `android-projekt` → "Inloggning").
 Övriga moduler i `di/` (`AppModule`: app-scope, klocka, DataStore för enhetslokalt tillstånd;
 `AuthModule`).
 
@@ -227,7 +227,7 @@ cachen och synkas när nätet finns; larmen schemaläggs om vid synk, omstart oc
 - **Storlek (TP-12):** text via `nullOrShort`/`nullOrLong` (tak `maxShort()`/`maxLong()` = `TextLimits`
   i `:core`, 200/5 000, hålls lika av `schema.test.mjs`), listor med tak, antal fält via `fieldCount` –
   som typerna bara på fält som skrivs. `AppTextField` har samma tak.
-- Varje rules-ändring granskas med Googles skill `firebase-security-rules-auditor` (rättigheter,
+- Varje rules-ändring granskas med Googles skill `android:firebase-security-rules-auditor` (rättigheter,
   create mot update, typer, storlek, `hasOnly`); dess fynd blir rules-tester. Våra regler ovan går före.
 - Deploy sker från GitHub Actions: `rules.yml` (manuellt, dry-run som standard) och `release.yml`
   (före publiceringen, när de ändrats), båda efter rules-testerna mot emulatorn – aldrig från en PR. Reservväg:

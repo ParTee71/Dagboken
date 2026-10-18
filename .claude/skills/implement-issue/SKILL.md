@@ -39,7 +39,7 @@ En PR i taget, och sessionen har normalt en enda arbetsbranch.
 
 ## Steg 2 – Mockup (ny GUI)
 
-Kräver issuet ny eller tydligt ändrad GUI (tabellen i skill `mockup`) och det finns ingen
+Kräver issuet ny eller tydligt ändrad GUI (tabellen i skill `android:mockup`; mallen i `android-projekt` → "Mockup") och det finns ingen
 godkänd mockup under **Design** → gör mockupen, visa den och **vänta på ok** innan kod.
 
 ## Steg 3 – Återskapa (bugg) / sikta (funktion)

@@ -37,12 +37,8 @@ issue utifrån den här tabellen.
 
 | Skill | När |
 |---|---|
-| `android-dev` | Baslinje för all Android/Kotlin-utveckling (ladda alltid). |
-| `compose-expert` · `kotlin-coroutines` · `kotlin-flows` | Compose-, coroutine- och flow-detaljer. |
-| `android-gradle-logic` | Gradle, version catalog, `:core`/`:app`, `cpdCheck`. |
-| `firebase-auth` | Google-inloggning (Credential Manager + Firebase), krav på inloggning, `users/{uid}`. |
+| `android-projekt` | Dagbokens delar av pluginens `android:`-skills (se nedan) – ladda alltid tillsammans med dem; mockupmallen och mockupens data och skärmdumpar. |
 | `notifications-alarms` | Påminnelser och larm: exakta larm, kanaler, omschemaläggning, schemat ur Firestore-cachen. |
-| `accessibility-compose` | TalkBack, tryckytor, dynamisk text. |
 | `data-privacy-security` | Hälsodata, loggning, EU-region, hemligheter, notiser, minify. |
 | **`data-safety-backup`** | Regel 1 – codecs, schemaversion, export/import, rundtur och 3.x-konverteraren. |
 | **`testing-strategy`** | Regel 2 – testnivåer, kontraktstester, skärmdumpar. |
@@ -50,22 +46,30 @@ issue utifrån den här tabellen.
 | **`shared-ui-components`** | Regel 4 – komponenter, ramar, byggstenar, förbud, kontroller. |
 | **`ci-budget`** | Regel 5 – vad som körs när i CI. |
 | `ui-style` | Designspråket Papper och teal (Material 3 Expressive). |
-| `mockup` | Ny skärm, komponent eller ändrat utseende: mockup före kod. |
 | `diagram` | Diagrammen i `ui/diagram` och diagrammatematiken i `:core/engine` (TRD-6…18, HEM-7, HLS-10/11/13). |
 | `firestore-data-layer` | `FirestoreCollection`, `DocCodec`, repositories, `UserSession`, offline, rules. |
 | `db-access` | Läsa databasen från en Claude-session. |
 | `refine-issue` | Förfina en idé till ett planerat issue (med Design och Återbruk). |
 | `implement-issue` | Genomföra ett issue hela vägen till PR enligt reglerna (med merge-kontroll först). |
 | `release` | Endast vid uttrycklig release. |
-| `firebase-security-rules-auditor` | *Googles (Firebase).* Granska `firestore.rules` – vid varje rules-ändring. |
-| `android-intent-security` | *Googles (Android).* Granska exporterade komponenter, notisers `PendingIntent` och delningens Intents. |
-| `navigation-3` | *Googles (Android).* Referens för Navigation 3: djuplänkar, flera stackar, scener. |
 
-Googles skills är oförändrade kopior (källa, commit och licens i deras `SOURCE.md`); där de
-krockar med projektets regler gäller projektets. Planerad skill (ARKITEKTUR.md): `health-connect`
-tillkommer i etapp 6.
+Elva generella skills kommer från pluginen `android@claude-android` och heter `android:<namn>`
+i sessionen: `android-dev` (baslinje, ladda alltid), `compose-expert`, `kotlin-coroutines`,
+`kotlin-flows`, `navigation-3`, `accessibility-compose`, `android-gradle-logic`, `firebase-auth`,
+`mockup` (mockup före ny GUI) samt Googles `android-intent-security` (manifest, notisers
+`PendingIntent`, delning) och `firebase-security-rules-auditor` (vid varje ändring i `firestore.rules`).
+Pluginen är generell; Dagbokens delar och nuvarande avvikelser står i `android-projekt`, och där
+de krockar gäller projektets regler. Planerad skill (ARKITEKTUR.md): `health-connect` tillkommer i etapp 6.
 
 ## Hooks (`.claude/hooks/`) och inställningar
 
 Hur hookarna, behörigheterna och SDK-skriptet fungerar står i README, avsnittet
 [Utveckling via Claude](../README.md#utveckling-via-claude).
+
+## Gemensam plugin
+
+`.claude/settings.json` slår på pluginen `android@claude-android` från det privata repot
+[ParTee71/claude-android](https://github.com/ParTee71/claude-android) (`extraKnownMarketplaces`
++ `enabledPlugins`), som bär de generella Android-skillsen ovan. Lokalt (Android Studio, CLI)
+installeras den därifrån. Molnsessioner får den via miljöns setup-skript, som klonar repot till
+`/home/user/claude-android`. Repospecifikt hör aldrig hemma i pluginen – det står i `android-projekt`.
