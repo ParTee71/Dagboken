@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import se.partee71.dagboken.ui.theme.Spacing
@@ -17,17 +19,19 @@ import se.partee71.dagboken.ui.theme.Spacing
  */
 @Composable
 fun ChipRow(modifier: Modifier = Modifier, wrap: Boolean = true, content: @Composable () -> Unit) {
+    // Flyttbart, så att chipsens tillstånd följer med om [wrap] byts.
+    val chips = remember(content) { movableContentOf(content) }
     if (wrap) {
         FlowRow(
             modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.s),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) { content() }
+        ) { chips() }
     } else {
         Row(
             modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Spacing.s),
             verticalAlignment = Alignment.CenterVertically
-        ) { content() }
+        ) { chips() }
     }
 }

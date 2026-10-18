@@ -10,6 +10,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
@@ -439,6 +440,37 @@ class ComponentBehaviorTest {
     fun `en rad utan svep har ingen arkivera-åtgärd`() {
         show { SwipeToHide(onHide = {}, enabled = false) { ItemRow("Solkräm", it, onClick = {}) } }
         rule.onNodeWithText("Solkräm").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CustomActions))
+    }
+
+    @Test
+    fun `en rad behåller sitt tillstånd när den arkiveras och inte går att svepa`() {
+        var enabled by mutableStateOf(true)
+        var hidden = 0
+        show {
+            SwipeToHide(onHide = { hidden++ }, enabled = enabled) {
+                var clicks by remember { mutableIntStateOf(0) }
+                ItemRow("Klick $clicks", it, onClick = { clicks++ })
+            }
+        }
+        rule.onNodeWithText("Klick 0").performClick()
+        enabled = false
+        rule.onNodeWithText("Klick 1").assertIsDisplayed().performTouchInput { swipeLeft() }
+        rule.waitForIdle()
+        assertEquals(0, hidden)
+    }
+
+    @Test
+    fun `chipraden behåller chipsens tillstånd när radbrytningen byts`() {
+        var wrap by mutableStateOf(true)
+        show {
+            ChipRow(wrap = wrap) {
+                var clicks by remember { mutableIntStateOf(0) }
+                AppFilterChip("Klick $clicks", false, { clicks++ })
+            }
+        }
+        rule.onNodeWithText("Klick 0").performClick()
+        wrap = false
+        rule.onNodeWithText("Klick 1").assertIsDisplayed()
     }
 
     @Test

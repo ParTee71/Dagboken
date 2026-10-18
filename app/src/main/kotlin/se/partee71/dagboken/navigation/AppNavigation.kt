@@ -114,11 +114,12 @@ fun AppNavigation(
         openedFirst = true
         backStack.push(openFirst)
     }
+    val launchHandled by rememberUpdatedState(onLaunchHandled)
     LaunchedEffect(launch) {
         val target = launch ?: return@LaunchedEffect
         sheet = null
         backStack.open(target, logViewModel::onEvent)
-        onLaunchHandled()
+        launchHandled()
     }
 }
 
