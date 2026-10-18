@@ -212,6 +212,9 @@ undantag bara i `ui-allowlist.txt`. Att hooken och testet tolkar filen likadant 
   `CoroutineDispatcher` med `@IoDispatcher` eller `@DefaultDispatcher` från `di/DispatchersModule`
   (skill `android:kotlin-coroutines`).
 - **ViewModels** som heter `*EditViewModel` och inte exponerar en `EditorState`.
+- **UiState-typer** (data classes som heter `*State` och sealed interfaces `*UiState` i `ui/`)
+  utan `@Immutable` eller `@Stable`. Listor, kartor och mängder i dem är `ImmutableList`/`ImmutableMap`/`ImmutableSet`;
+  modellerna och motorerna från `:core`, `DataError` och datum-/tidstyperna räknas som stabila via `app/compose-stability.conf` (skill `android:compose-expert`).
 - **All kod utom `ui/diagram/`:** diagrambiblioteket Vico (`[vico]`) – ett diagram byggs alltid med
   komponenterna i `ui/diagram`. `ui/diagram` räknas som delad kod (inte feature-kod) och får rita själv.
 - **I `ui/components/` och `ui/diagram/`:** publik komponent utan skärmdump (ljust + mörkt) eller utan plats i

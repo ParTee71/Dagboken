@@ -1,12 +1,20 @@
 package se.partee71.dagboken.ui.today
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlin.time.Clock
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
+import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -154,30 +162,31 @@ data class DayDone(val comparison: DayComparison?, val streak: Int, val playConf
  * visar. [progress] är framstegsraden (HEM-18) och [doseProgress] samma räkning för bara doserna
  * (Mediciner-kortets räknare); [dayDone] är satt i belöningsläget – bara idag och när allt är klart.
  */
+@Immutable
 data class TodayContent(
     val today: LocalDate,
     val date: LocalDate,
     val week: LocalDate,
     val dayPart: DayPart,
-    val datesWithEntries: Set<LocalDate>,
+    val datesWithEntries: ImmutableSet<LocalDate>,
     val progress: DayProgress,
     val todayComplete: Boolean,
     val doseProgress: DayProgress,
     val checklist: DoseChecklist,
     val showDone: Boolean,
     val showUpcoming: Boolean,
-    val prescriptions: Map<String, Prescription>,
+    val prescriptions: ImmutableMap<String, Prescription>,
     val choices: AsNeededChoices,
     val dayDone: DayDone?,
     /** Tidszonen dagen räknades i – tagningstiden visas i den (MED-14). */
     val zone: TimeZone,
     /** Mående-kortet: de aktiverade tillfällena med status (HEM-4, HEM-5, NOT-4). */
-    val occasions: List<OccasionState> = emptyList(),
+    val occasions: ImmutableList<OccasionState> = persistentListOf(),
     /** "Din vecka" (HEM-13): bara idag, en söndag eller måndag, och med underlag. */
     val weekSummary: WeekSummary? = null,
     /** 7-dagarstrenden (HEM-7): dagarna till och med idag och dagsvärdet för var och en (`null` = lucka). */
-    val energyDays: List<LocalDate> = emptyList(),
-    val energy: List<Float?> = emptyList(),
+    val energyDays: ImmutableList<LocalDate> = persistentListOf(),
+    val energy: ImmutableList<Float?> = persistentListOf(),
     /** Pågående sjukdom (HEM-12), eller `null` – också medan den läses. */
     val illness: OngoingIllness? = null,
     /**
@@ -355,21 +364,21 @@ class TodayViewModel @Inject constructor(
         val today: LocalDate,
         val date: LocalDate,
         val week: LocalDate,
-        val datesWithEntries: Set<LocalDate>,
+        val datesWithEntries: ImmutableSet<LocalDate>,
         val progress: DayProgress,
         val todayComplete: Boolean,
         val doseProgress: DayProgress,
         val doses: List<Dose>,
         val toggles: Toggles,
-        val prescriptions: Map<String, Prescription>,
+        val prescriptions: ImmutableMap<String, Prescription>,
         val choices: AsNeededChoices,
         val dayDone: DayDone?,
         val reminders: ReminderSettings,
         /** Måendeloggarna – `occasionStates` väljer den visade dagens (en plats för urvalet). */
         val screenings: List<Screening>,
         val weekEntries: Entries?,
-        val energyDays: List<LocalDate>,
-        val energy: List<Float?>,
+        val energyDays: ImmutableList<LocalDate>,
+        val energy: ImmutableList<Float?>,
         val missingCause: DataError?,
     ) {
         fun at(moment: Moment, illness: Pair<IllnessEpisode, List<Checkin>>?): TodayContent = TodayContent(
@@ -388,7 +397,7 @@ class TodayViewModel @Inject constructor(
             choices = choices,
             dayDone = dayDone,
             zone = moment.zone,
-            occasions = occasionStates(reminders, screenings, date, moment.now.toInstant(moment.zone), moment.zone),
+            occasions = occasionStates(reminders, screenings, date, moment.now.toInstant(moment.zone), moment.zone).toImmutableList(),
             weekSummary = weekEntries?.let { weekSummaryOn(date, moment.now.toInstant(moment.zone), moment.zone, it.screenings, it.doses, reminders) },
             energyDays = energyDays,
             energy = energy,
@@ -421,13 +430,13 @@ class TodayViewModel @Inject constructor(
             today = today,
             date = date,
             week = span.week,
-            datesWithEntries = datesWithEntries(entries.doses, entries.screenings),
+            datesWithEntries = datesWithEntries(entries.doses, entries.screenings).toImmutableSet(),
             progress = progress,
             todayComplete = todayProgress.isComplete,
             doseProgress = dayProgress(date, dayDoses, emptyList(), emptyList()),
             doses = dayDoses,
             toggles = toggles,
-            prescriptions = library.prescriptions.associateBy { it.id },
+            prescriptions = library.prescriptions.associateBy { it.id }.toImmutableMap(),
             choices = asNeededChoices(library.medicines, library.prescriptions, today),
             dayDone = dayDone,
             reminders = library.settings.reminders,
@@ -435,8 +444,8 @@ class TodayViewModel @Inject constructor(
             // HEM-13: bara när idag visas, och bara de två veckorna som jämförs – omräkningen varje minut (doserna
             // förfaller med klockan) går inte igenom hela läsningen. Om den visas avgörs av minutens klocka (`at`).
             weekEntries = if (date == today) entries.since(today.minus(WEEK_SUMMARY_DAYS - 1, DateTimeUnit.DAY)) else null,
-            energyDays = energyDays,
-            energy = dailyEnergyAverages(entries.screenings, energyDays),
+            energyDays = energyDays.toImmutableList(),
+            energy = dailyEnergyAverages(entries.screenings, energyDays).toImmutableList(),
             missingCause = missingCause,
         )
     }

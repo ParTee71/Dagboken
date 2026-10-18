@@ -27,6 +27,7 @@ googleServices           = "4.5.0"
 kotlinxSerialization     = "1.11.0"
 kotlinxDatetime          = "0.8.0"
 kotlinxCoroutines        = "1.11.0"
+kotlinxCollections       = "0.4.0"
 junit                    = "4.13.2"
 robolectric              = "4.17"
 roborazzi                = "1.76.0"
@@ -75,6 +76,7 @@ kotlinx-serialization-json            = { group = "org.jetbrains.kotlinx",      
 kotlinx-datetime                      = { group = "org.jetbrains.kotlinx",       name = "kotlinx-datetime",                  version.ref = "kotlinxDatetime" }
 kotlinx-coroutines-android            = { group = "org.jetbrains.kotlinx",       name = "kotlinx-coroutines-android",        version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-play-services      = { group = "org.jetbrains.kotlinx",       name = "kotlinx-coroutines-play-services",  version.ref = "kotlinxCoroutines" }
+kotlinx-collections-immutable         = { group = "org.jetbrains.kotlinx",       name = "kotlinx-collections-immutable",     version.ref = "kotlinxCollections" }
 kotlinx-coroutines-test               = { group = "org.jetbrains.kotlinx",       name = "kotlinx-coroutines-test",           version.ref = "kotlinxCoroutines" }
 # Diagram: Vicos Compose-modul (bara i ui/diagram, ui-forbidden.txt [vico]). compose-m3 utelämnas med
 # avsikt – den ger bara ett tema ur MaterialTheme.colorScheme; diagrammen tar färgerna ur AppColors.

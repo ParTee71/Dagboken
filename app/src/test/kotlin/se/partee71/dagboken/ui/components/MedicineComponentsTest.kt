@@ -21,6 +21,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.collections.immutable.persistentListOf
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -147,7 +148,7 @@ class MedicineComponentsTest {
         show {
             EntityListScreen(
                 title = "Mediciner",
-                state = ListUiState.Content(listOf("Levaxin", "Sertralin", "Alvedon")),
+                state = ListUiState.Content(persistentListOf("Levaxin", "Sertralin", "Alvedon")),
                 empty = EmptyContent(0, "", ""),
                 add = AddAction("Nytt recept", {}),
                 key = { it },

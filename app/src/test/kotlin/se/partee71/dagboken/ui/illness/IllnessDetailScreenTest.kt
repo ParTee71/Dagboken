@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import kotlin.test.assertEquals
 import kotlin.time.Instant
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Rule
@@ -45,7 +46,7 @@ class IllnessDetailScreenTest {
     val rule = createComposeRule()
 
     private val created = Instant.fromEpochSeconds(1_791_270_000)
-    private val names = mapOf("snuva" to "Snuva", "hosta" to "Hosta", "feber" to "Feber", "trotthet" to "Trötthet")
+    private val names = persistentMapOf("snuva" to "Snuva", "hosta" to "Hosta", "feber" to "Feber", "trotthet" to "Trötthet")
     private val flu = IllnessEpisode("flu", "Förkylning", LocalDate(2026, 10, 1), createdAt = created, note = "Började efter jobbresan.")
 
     private fun checkin(id: String, day: Int, hour: Int, minute: Int, severity: Int, vararg symptoms: Pair<String, Int>, note: String? = null) =

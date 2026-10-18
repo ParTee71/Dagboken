@@ -28,6 +28,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
@@ -599,7 +602,7 @@ private fun Frames(onBack: () -> Unit) {
     Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
         EntityListScreen(
             title = "Aktivitetstyper",
-            state = if (items.isEmpty()) ListUiState.Empty else ListUiState.Content(items),
+            state = if (items.isEmpty()) ListUiState.Empty else ListUiState.Content(items.toImmutableList()),
             empty = EmptyContent(
                 R.drawable.ic_activity,
                 "Inga aktivitetstyper än",
@@ -638,7 +641,7 @@ private fun Frames(onBack: () -> Unit) {
     Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
         EntityListScreen(
             title = "Dagbok",
-            state = ListUiState.Content(listOf("Idag" to "Efter frukost", "Idag" to "Levaxin 100 µg", "Igår" to "Promenad")),
+            state = ListUiState.Content(persistentListOf("Idag" to "Efter frukost", "Idag" to "Levaxin 100 µg", "Igår" to "Promenad")),
             empty = EmptyContent(R.drawable.ic_book, "Inga poster än", "Logga med plusknappen."),
             add = null,
             key = { it.second },
@@ -654,7 +657,7 @@ private fun Frames(onBack: () -> Unit) {
         EntityListScreen(
             title = "Mediciner",
             subtitle = "sön 4 okt",
-            state = ListUiState.Content(grouped),
+            state = ListUiState.Content(grouped.toImmutableList()),
             empty = EmptyContent(R.drawable.ic_pill, "", ""),
             add = AddAction("", {}),
             key = { it.second },
@@ -678,7 +681,7 @@ private fun Frames(onBack: () -> Unit) {
     Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
         EntityEditScreen(
             title = "Ny aktivitetstyp",
-            state = EditorUiState(value = name, errors = if (name.isBlank()) mapOf("name" to R.string.error_unknown) else emptyMap(), isValid = name.isNotBlank(), isDirty = name.isNotEmpty()),
+            state = EditorUiState(value = name, errors = if (name.isBlank()) persistentMapOf("name" to R.string.error_unknown) else persistentMapOf(), isValid = name.isNotBlank(), isDirty = name.isNotEmpty()),
             effects = emptyFlow(),
             onSave = {},
             onClose = onBack,

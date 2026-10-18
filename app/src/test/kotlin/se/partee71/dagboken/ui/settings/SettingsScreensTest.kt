@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import kotlin.test.assertEquals
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Rule
@@ -163,7 +164,7 @@ class SettingsScreensTest {
         rule.onNodeWithText("Symptom").performClick()
         assertEquals(listOf<ListsEvent>(ListsEvent.KindChosen(OptionKind.SYMPTOM)), events)
 
-        state = ListUiState.Content(listOf(promenad))
+        state = ListUiState.Content(persistentListOf(promenad))
         rule.onNodeWithContentDescription("Ta bort Promenad som favorit").performClick()
         rule.onNodeWithText("Promenad").performClick()
         assertEquals(ListsEvent.FavoriteToggled(promenad), events.last())
@@ -173,7 +174,7 @@ class SettingsScreensTest {
     @Test
     fun `Listor - ett arkiverat alternativ har Arkiverad som pill, inte som undertext`() {
         val archived = promenad.copy(archived = true)
-        rule.setContent { DagbokenTheme { ListsScreen(ListUiState.Content(listOf(archived)), OptionKind.ACTIVITY, ListArchive(showing = true), {}, {}, {}, {}) } }
+        rule.setContent { DagbokenTheme { ListsScreen(ListUiState.Content(persistentListOf(archived)), OptionKind.ACTIVITY, ListArchive(showing = true), {}, {}, {}, {}) } }
         rule.onNodeWithText("Arkiverad").assertIsDisplayed()
         rule.onNodeWithText("Promenad").assertIsDisplayed()
     }
@@ -223,7 +224,7 @@ class SettingsScreensTest {
         rule.setContent {
             DagbokenTheme {
                 if (showList) {
-                    ListsScreen(ListUiState.Content(listOf(promenad)), OptionKind.ACTIVITY, listError, {}, {}, {}, {})
+                    ListsScreen(ListUiState.Content(persistentListOf(promenad)), OptionKind.ACTIVITY, listError, {}, {}, {}, {})
                 } else {
                     OptionEditScreen(OptionKind.ACTIVITY, isNew = false, archived = true, EditorUiState("Promenad"), effects, {}, {})
                 }

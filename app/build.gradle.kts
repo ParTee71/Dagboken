@@ -97,6 +97,11 @@ roborazzi {
     outputDir.set(file("src/test/screenshots"))
 }
 
+// Modellerna i :core byggs utan Compose-kompilatorn; filen säger att de är oföränderliga (skill compose-expert).
+composeCompiler {
+    stabilityConfigurationFiles.add(project.layout.projectDirectory.file("compose-stability.conf"))
+}
+
 dependencies {
     implementation(project(":core"))
 
@@ -109,6 +114,7 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.collections.immutable)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

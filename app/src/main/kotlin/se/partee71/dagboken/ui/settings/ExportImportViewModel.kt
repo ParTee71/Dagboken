@@ -1,6 +1,7 @@
 package se.partee71.dagboken.ui.settings
 
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +27,7 @@ import se.partee71.dagboken.ui.migration.ImportStage
  * [exporting] = exporten skrivs (BCK-13). [exported] = antal poster i den sparade filen – snackbaren "Sparade N poster";
  * [failure] = exporten gick inte (snackbar via `DataError.toMessage()`). Båda nollställs med [ExportImportEvent.MessageShown].
  */
+@Immutable
 data class ExportImportUiState(
     val import: ImportStage = ImportStage.Choose,
     val exporting: Boolean = false,

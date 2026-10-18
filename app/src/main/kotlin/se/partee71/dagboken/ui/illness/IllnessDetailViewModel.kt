@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.illness
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -8,6 +9,9 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Provider
 import kotlin.time.Clock
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -43,10 +47,11 @@ import se.partee71.dagboken.ui.common.failureOrNull
  * idag (en pågående episods varaktighet och radera-frågans period) och symptomens namn ur Listor ([symptomNames]).
  * [deleting] = episoden raderas just nu: inga åtgärder (ny incheckning, Redigera, Avsluta, incheckningarnas meny).
  */
+@Immutable
 data class IllnessDetail(
     val summary: IllnessSummary,
     val today: LocalDate,
-    val symptomNames: Map<String, String> = emptyMap(),
+    val symptomNames: ImmutableMap<String, String> = persistentMapOf(),
     val deleting: Boolean = false,
 ) {
     /** SJ-4: "Avsluta episod" finns för en pågående episod som inte börjar efter idag ([endDateError] med idag som slut). */
@@ -106,7 +111,7 @@ class IllnessDetailViewModel @AssistedInject constructor(
 
     private val loader = DetailLoader(
         combine(illnesses.observeEpisode(id), clock.days { zone.get() }, names) { loaded, today, names ->
-            loaded?.let { IllnessDetail(illnessSummary(it.episode, it.checkins, today), today, names) }
+            loaded?.let { IllnessDetail(illnessSummary(it.episode, it.checkins, today), today, names.toImmutableMap()) }
         },
         viewModelScope,
     )

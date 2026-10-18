@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -47,9 +48,9 @@ class ListsViewModelTest {
         seed()
         val vm = ListsViewModel(repository)
         vm.state.test {
-            assertEquals(ListUiState.Content(listOf(promenad, yoga)), expectMostRecentItem())
+            assertEquals(ListUiState.Content(persistentListOf(promenad, yoga)), expectMostRecentItem())
             vm.onEvent(ListsEvent.KindChosen(OptionKind.SYMPTOM))
-            assertEquals(ListUiState.Content(listOf(huvudvark)), awaitItem())
+            assertEquals(ListUiState.Content(persistentListOf(huvudvark)), awaitItem())
             vm.onEvent(ListsEvent.KindChosen(OptionKind.EVENT))
             assertEquals(ListUiState.Empty, awaitItem())
         }

@@ -1,6 +1,7 @@
 package se.partee71.dagboken.ui.auth
 
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +33,7 @@ import se.partee71.dagboken.data.user.EnsureUserUseCase
  */
 enum class AuthGate { Loading, SignedOut, NeedsUser, UpdateRequired, Ready }
 
+@Immutable
 data class AuthUiState(
     val gate: AuthGate = AuthGate.Loading,
     /** Inloggning eller förberedelse av användaren pågår. */

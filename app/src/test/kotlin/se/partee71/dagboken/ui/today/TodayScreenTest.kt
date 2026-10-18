@@ -30,6 +30,10 @@ import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import kotlin.test.assertEquals
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -146,14 +150,14 @@ class TodayScreenTest {
         date = date,
         week = LocalDate(2026, 9, 28),
         dayPart = DayPart.MORNING,
-        datesWithEntries = setOf(LocalDate(2026, 9, 29), LocalDate(2026, 10, 1), LocalDate(2026, 10, 2), today),
+        datesWithEntries = persistentSetOf(LocalDate(2026, 9, 29), LocalDate(2026, 10, 1), LocalDate(2026, 10, 2), today),
         progress = progress,
         todayComplete = dayDone != null,
         doseProgress = DayProgress(doses.count { it.status != DoseStatus.PLANNED }, doses.size),
         checklist = doseChecklist(doses, date, now, zone, reminders),
         showDone = showDone,
         showUpcoming = false,
-        prescriptions = listOf(sertralin, levaxin).associateBy { it.id },
+        prescriptions = listOf(sertralin, levaxin).associateBy { it.id }.toImmutableMap(),
         choices = asNeededChoices(listOf(alvedon, imigran, loratadin), listOf(levaxin, betapred), today),
         dayDone = dayDone,
         zone = zone,
@@ -498,10 +502,10 @@ class TodayScreenTest {
     )
 
     private fun full(date: LocalDate = today, base: TodayContent = content(date = date, showDone = false)) = base.copy(
-        occasions = occasionStates(reminders, listOf(breakfast), date, now, zone),
+        occasions = occasionStates(reminders, listOf(breakfast), date, now, zone).toImmutableList(),
         weekSummary = WeekSummary(EnergyTrend.UP, 86).takeIf { date == today },
-        energyDays = (28..30).map { LocalDate(2026, 9, it) } + (1..4).map { LocalDate(2026, 10, it) },
-        energy = listOf(5.5f, 6f, null, 7f, 6.5f, 5f, 7f),
+        energyDays = ((28..30).map { LocalDate(2026, 9, it) } + (1..4).map { LocalDate(2026, 10, it) }).toImmutableList(),
+        energy = persistentListOf(5.5f, 6f, null, 7f, 6.5f, 5f, 7f),
         illness = OngoingIllness(episode, 4, Checkin("c", LocalDate(2026, 10, 3), LocalTime(20, 0), severity = 4)),
     )
 
@@ -574,7 +578,7 @@ class TodayScreenTest {
 
     @Test
     fun `Mående utan etiketter när bara en grupp har rader (HEM-5)`() {
-        showFull(full().copy(occasions = occasionStates(reminders, emptyList(), today, now, zone)))
+        showFull(full().copy(occasions = occasionStates(reminders, emptyList(), today, now, zone).toImmutableList()))
         rule.onNodeWithText("Mående").performScrollTo()
         rule.onNodeWithText("KVAR IDAG").assertDoesNotExist()
         rule.onNodeWithText("LOGGAT").assertDoesNotExist()
@@ -585,7 +589,7 @@ class TodayScreenTest {
     fun `Mående en tidigare dag – Ej loggat över det ologgade (HEM-5)`() {
         val past = LocalDate(2026, 10, 2)
         val lunch = Screening("s2", past, LocalTime(12, 40), Occasion.LUNCH, energy = 6, stress = 2)
-        showFull(full(past).copy(occasions = occasionStates(reminders, listOf(lunch), past, now, zone)))
+        showFull(full(past).copy(occasions = occasionStates(reminders, listOf(lunch), past, now, zone).toImmutableList()))
         rule.onNodeWithText("Mående").performScrollTo()
         val tops = listOf("EJ LOGGAT", "Efter frukost", "Kvällsmat", "Läggdags", "LOGGAT", "Lunch").map { text ->
             rule.onNodeWithText(text, useUnmergedTree = true).getUnclippedBoundsInRoot().top

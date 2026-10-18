@@ -227,12 +227,12 @@ private fun <T> ListContent(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = SCREEN_MARGIN, end = SCREEN_MARGIN, top = Spacing.xs, bottom = clearance + if (addButton) ADD_BUTTON_CLEARANCE else Spacing.l),
     ) {
-        header?.let { item(key = "list-header") { Box(Modifier.padding(bottom = Spacing.m)) { it() } } }
+        header?.let { item(key = "list-header", contentType = "list-header") { Box(Modifier.padding(bottom = Spacing.m)) { it() } } }
         groups.forEachIndexed { index, (head, rows) ->
-            if (index > 0) item(key = "gap:$index") { Spacer(Modifier.height(Spacing.m)) }
+            if (index > 0) item(key = "gap:$index", contentType = "gap") { Spacer(Modifier.height(Spacing.m)) }
             val open = head == null || !head.collapsible || head.title in expanded
             head?.let {
-                item(key = "header:${it.title}") {
+                item(key = "header:${it.title}", contentType = "group-header") {
                     Segment(it.cards, top = true, bottom = !open, Modifier.animateItem(), first = true) {
                         GroupHeader(it, rows.size, open) { expanded = if (open) expanded - it.title else expanded + it.title }
                     }
@@ -240,7 +240,7 @@ private fun <T> ListContent(
             }
             if (open) groupRows(head, rows, key, subgroup, row)
         }
-        footer?.let { item(key = "list-footer") { Box(Modifier.padding(top = Spacing.m)) { it() } } }
+        footer?.let { item(key = "list-footer", contentType = "list-footer") { Box(Modifier.padding(top = Spacing.m)) { it() } } }
     }
 }
 
@@ -266,11 +266,15 @@ private fun <T> LazyListScope.groupRows(
         val top = head == null && position == 0
         val bottom = position == lines.lastIndex
         when (line) {
-            is Line.Label -> item(key = "sub:${head?.title}:${line.id}") {
+            is Line.Label -> item(key = "sub:${head?.title}:${line.id}", contentType = "subgroup") {
                 Segment(cards, top = top, bottom = bottom, Modifier.animateItem()) { SubgroupLabel(line.subgroup) }
             }
             // Nycklar måste kunna sparas i en Bundle: en rad har sin egen, flera i kolumner en sammansatt sträng.
-            is Line.Rows -> item(key = line.members.singleOrNull()?.let(key) ?: line.members.joinToString("|") { key(it).toString() }) {
+            // contentType efter antal kolumner och kort: Compose återanvänder bara rader med samma uppbyggnad.
+            is Line.Rows -> item(
+                key = line.members.singleOrNull()?.let(key) ?: line.members.joinToString("|") { key(it).toString() },
+                contentType = "rows:$columns:$cards",
+            ) {
                 Segment(cards, top = top, bottom = bottom, Modifier.animateItem()) {
                     if (columns == 1) {
                         row(line.members.single())

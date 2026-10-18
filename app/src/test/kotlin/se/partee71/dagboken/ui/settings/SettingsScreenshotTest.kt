@@ -2,6 +2,7 @@ package se.partee71.dagboken.ui.settings
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -74,7 +75,7 @@ class SettingsScreenshotTest {
             Option("c", OptionKind.ACTIVITY, "Städning", favorite = true),
             Option("d", OptionKind.ACTIVITY, "Simning", archived = true),
         )
-        ListsScreen(ListUiState.Content(options), OptionKind.ACTIVITY, ListArchive(showing = true), {}, {}, {}, {})
+        ListsScreen(ListUiState.Content(options.toImmutableList()), OptionKind.ACTIVITY, ListArchive(showing = true), {}, {}, {}, {})
     }
 
     @Test

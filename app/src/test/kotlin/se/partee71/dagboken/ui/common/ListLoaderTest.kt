@@ -2,6 +2,7 @@ package se.partee71.dagboken.ui.common
 
 import app.cash.turbine.test
 import kotlin.test.assertEquals
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -27,7 +28,7 @@ class ListLoaderTest {
         loader.state.test {
             assertEquals(ListUiState.Error(DataError.Offline), expectMostRecentItem())
             loader.onEvent(ListEvent.Retry)
-            assertEquals(ListUiState.Content(listOf("Solkräm")), expectMostRecentItem())
+            assertEquals(ListUiState.Content(persistentListOf("Solkräm")), expectMostRecentItem())
         }
         assertEquals(2, attempts)
     }
@@ -37,7 +38,7 @@ class ListLoaderTest {
         val source = MutableStateFlow(listOf("Morgonpromenad"))
         val loader = ListLoader(source, backgroundScope)
         loader.state.test {
-            assertEquals(ListUiState.Content(listOf("Morgonpromenad")), expectMostRecentItem())
+            assertEquals(ListUiState.Content(persistentListOf("Morgonpromenad")), expectMostRecentItem())
         }
         advanceTimeBy(STOP_TIMEOUT_MILLIS + 1)
         assertEquals(ListUiState.Loading, loader.state.value)

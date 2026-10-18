@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.sync
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +15,7 @@ import se.partee71.dagboken.data.common.SyncStatus
 import se.partee71.dagboken.ui.common.shownAfter
 
 /** [pending]: ändringar har väntat minst [SyncViewModel.PENDING_DELAY] på servern; [writeError]: en nekad skrivning att visa. */
+@Immutable
 data class SyncUiState(val pending: Boolean = false, val writeError: DataError? = null)
 
 sealed interface SyncEvent {
