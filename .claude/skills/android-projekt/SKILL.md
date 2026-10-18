@@ -1,6 +1,6 @@
 ---
 name: android-projekt
-description: Dagbokens anpassningar av de generella android:-skillsen från pluginen android@claude-android (android-dev, kotlin-coroutines, kotlin-flows, compose-expert, navigation-3, accessibility-compose, android-gradle-logic, firebase-auth, android-intent-security, firebase-security-rules-auditor, mockup). Ladda den alltid tillsammans med en android:-skill – den säger vad som gäller just här och går före pluginens generella råd. Täcker 4.0-ombyggnaden, projektets klasser och mönster, nuvarande avvikelser från pluginen, Gradle-uppsättningen, inloggning med users/{uid}, a11y-detaljer för appens komponenter och mockup-processen med mallens länk. Trigger-ord: Android, Kotlin, ViewModel, Hilt, Compose, coroutine, dispatcher, flöde, StateFlow, händelse, effekt, navigering, flik, Idag, Dagbok, Trender, Mediciner, Health Connect, påminnelser, 3.x-migreringen, tillgänglighet, TalkBack, Gradle, beroende, inloggning, logga in, logga ut, konto, uid, UserSession, EnsureUserUseCase, google-services, SHA-1, manifest, Intent, PendingIntent, firestore.rules, mockup, skiss, ny skärm, ny komponent, Design-canvas.
+description: Dagbokens anpassningar av de generella android:-skillsen från pluginen android@claude-android (android-dev, kotlin-coroutines, kotlin-flows, compose-expert, navigation-3, accessibility-compose, android-gradle-logic, firebase-auth, android-intent-security, firebase-security-rules-auditor, mockup, implement-issue, refine-issue, release). Ladda den alltid tillsammans med en android:-skill – den säger vad som gäller just här och går före pluginens generella råd. Täcker 4.0-ombyggnaden, projektets klasser och mönster, nuvarande avvikelser från pluginen, Gradle-uppsättningen, inloggning med users/{uid}, a11y-detaljer för appens komponenter, mockup-processen med mallens länk, arbetsflödet från issue till PR (repo, lager, byggare/arkitekt, etapper, legacy, OMB-6, /code-review, commit-områden), issuets repodelar (etiketter, testplan, Agent · modell · effort) och releasens repodelar (version.properties, release.yml, rules, läkemedelslistan, schemaVersion). Trigger-ord: Android, Kotlin, ViewModel, Hilt, Compose, coroutine, dispatcher, flöde, StateFlow, händelse, effekt, navigering, flik, Idag, Dagbok, Trender, Mediciner, Health Connect, påminnelser, 3.x-migreringen, tillgänglighet, TalkBack, Gradle, beroende, inloggning, logga in, logga ut, konto, uid, UserSession, EnsureUserUseCase, google-services, SHA-1, manifest, Intent, PendingIntent, firestore.rules, mockup, skiss, ny skärm, ny komponent, Design-canvas, issue, genomför, implementera, kör #N, kör nästa, förfina, planera, etapp, PR, commit, granskning, agent, byggare, arkitekt, modell, effort, release, släpp, ny version, versionshöjning, version.properties, release.yml, läkemedelslistan, bygg APK.
 ---
 
 # Android i Dagboken
@@ -136,7 +136,148 @@ Processen (när, hur, visa och vänta) står i pluginen; det här är Dagbokens 
 - **Finns elementet redan** (katalogen, en byggd skärm eller 3.x-förlagan) → samma komponent och
   beteende; det är ingen designfråga och ställs inte som en.
 - **Tillstånd:** för Idag även belöningsläget när dagen är klar (HEM-19, DSN-4).
-- **Länken** läggs i issuet under rubriken **Design** (skill `refine-issue`); koden skrivs först
-  efter användarens ok (skill `implement-issue`).
+- **Länken** läggs i issuet under rubriken **Design** (skill `android:refine-issue`); koden skrivs
+  först efter användarens ok (skill `android:implement-issue`).
 - **I PR:en:** Roborazzi-skärmdumpar (ljust + mörkt) av det byggda bredvid mockup-länken
   (`./gradlew :app:recordRoborazziDebug` vid avsiktlig designändring); avvikelser förklaras.
+
+## Arbetsflöde (android:implement-issue)
+
+Stegen står i pluginen; det här är Dagbokens delar.
+
+- **Repo:** owner `ParTee71`, repo `Dagboken`, basbranch `master`. Issues och PR:er läses och
+  skrivs med GitHub MCP.
+- **Databasen i tester:** tester i `tools/db` körs bara mot Firebase-emulatorn, aldrig mot den
+  riktiga databasen (skill `data-safety-backup`).
+- **Domänskills:** datalagret → skill `firestore-data-layer`; larm och notiser → skill
+  `notifications-alarms`; diagram → skill `diagram`; hälsodata och loggning → skill
+  `data-privacy-security`.
+- **Ombyggnaden:** ett ombyggnadssteg hör till en etapp i `ARKITEKTUR.md` → "Etapper, modell och
+  effort"; 3.x-förlagan ligger på branchen `legacy`, förlagan från ReseApoteket i dess repo – läs
+  förlagan i sin helhet. Paritetskraven (OMB-6) listas i planen.
+- **Lagerkedjan:** `Compose → ViewModel(StateFlow<UiState>, sealed events + onEvent()) →
+  Repository → FirestoreCollection<T> + DocCodec<T>` under `users/{uid}`, Hilt, fel mappas en gång
+  till `DataError` i `data/common`. En listskärm är en `EntityListScreen`, ett formulär en
+  `EntityEditScreen` + `EditorState` (skill `shared-ui-components`).
+- **Datakedjan** för ett persisterat fält eller en ny samling: default i `:core`-modellen,
+  tolerant `DocCodec`, `firestore.rules`, `tools/db/lib/collections.mjs` och rundturstest – i samma
+  ändring; ett 3.x-fält får dessutom sin plats i 4.0 och konverteraren (`BackupJsonConverter`) sin
+  fixtur med varje fält satt (OMB-3, skill `data-safety-backup`).
+- **Agenter** (ARKITEKTUR.md → "CI, verktyg, skills och agenter"): huvudsessionen orkestrerar och
+  granskar; agenten `byggare` tar portar, komponenter, skärmar på ramarna och CI-filer, agenten
+  `arkitekt` datamodell, codecs, konverteraren, rules, migrering och arkitekturval, `testskrivare`
+  tester på tre eller fler nivåer, `granskare` diffen (steg 8), `ci-doktor` rött CI och
+  `db-inspektor` faktisk data. Går ett steg fel två gånger i rad flyttas det upp en nivå
+  (`byggare` → `arkitekt`, Sonnet → Opus). Saknar issuet **Agent · modell · effort** kompletteras
+  det utifrån etapptabellen (avsnittet Issues nedan).
+- **`/code-review` krävs** (efter `granskare`) när ändringen rör logik i `:core` (motorer,
+  diagrammatematik, konverteraren), datalagret, `firestore.rules`, `tools/db`, larmen eller en
+  delad ram eller komponent (`ui/components`, `ui/diagram`, `ui/common`), eller när diffen är
+  större än ett par filer.
+- **Commit-områden** efter flik, funktion eller lager, t.ex. `idag`, `mående`, `doser`,
+  `mediciner`, `core`, `rules`, `krav`, `claude` – `feat(idag): …`, `fix(doser): …`.
+- **Kommandon:** CLAUDE.md → "Bygg & test" och skill `testing-strategy` → "Innan du anser dig
+  klar". Manifest, resurser, proguard eller byggfiler ändrade → `./gradlew :app:lintDebug
+  :app:assembleRelease` lokalt före push (körs inte i PR-flödet, skill `ci-budget`).
+- **I PR:en:** kravraderna som bockas av (paritetschecklistan, OMB-6), Roborazzi-skärmdumpar
+  (ljust + mörkt) bredvid mockup-länken för GUI, versionen ur `version.properties`, och
+  byggtidseffekten vid nya beroenden.
+- **Emulatortesterna:** jobbet `instrumented` körs i PR:er som rör filtret `instrumented`, och
+  `ci-ok` fäller PR:en om det blir rött eller avbryts; ett överhoppat jobb fäller inte (skill
+  `ci-budget`).
+
+## Issues (android:refine-issue)
+
+- **Repo:** owner `ParTee71`, repo `Dagboken`; dubblettsökning med
+  `mcp__github__search_issues` (`repo:ParTee71/Dagboken <ord>`).
+- **Extra undersökningspunkter:**
+  - **Ombyggnaden:** vilken etapp i `ARKITEKTUR.md` hör det till, och vilken modell och effort
+    anger etapptabellen? Rör det 3.x-paritet: vilka krav är paritetspunkter (OMB-6) och var ligger
+    3.x-koden på branchen `legacy`?
+  - **Beräkning:** berörs en regel som räknas (doser, kylperiod, periodslut, dagens energi,
+    diagram)? Den ligger i `:core` och står i kravlistan (skill `requirements-kravlista`).
+  - **Larm:** påminnelser eller notiser → skill `notifications-alarms`.
+  - **Integritet:** allt är hälsodata; loggas, lagras eller exporteras något → skill
+    `data-privacy-security` (Health Connect-data persisteras aldrig, HLS-5).
+- **Datakedjan i DoD:** modell med default, codec, `firestore.rules`, `tools/db/lib/collections.mjs`
+  och rundturstest, och vid 3.x-data konverteraren med fixtur (OMB-3) – eller "ingen persisterad
+  ändring".
+- **Testplanens nivåer:** `:core` (ren JUnit), `app/src/test` (ViewModel med fakes + Turbine,
+  Robolectric, kontraktstester för ramarna, Roborazzi-skärmdumpar), `tools/db` (rules och rundtur
+  mot Firebase-emulatorn), `app/src/androidTest` (instrumenttester, i Actions).
+- **Verifiering**, exempel: `./gradlew :core:test --tests "*Cooldown*"` eller vilka Roborazzi-bilder
+  som ändras.
+- **Etiketter:** `funktion`, `arkitektur`, `ai-regler`, `ombyggnad`, `prio:1`–`prio:3`, `epic`.
+- **Agent · modell · effort** (obligatoriskt). Utgå från etapptabellen och agenttabellen i
+  `ARKITEKTUR.md` och Modellval i [`.claude/README.md`](../../README.md); standarden är agentens
+  frontmatter:
+
+  | Agent | Tar | Standard |
+  |---|---|---|
+  | `byggare` | portar, komponenter, skärmar på ramarna, CI-filer | Opus · medium |
+  | `arkitekt` | datamodell, codecs, konverteraren, rules, migrering, arkitekturval | Opus · high (Fable vid väldigt komplexa issues) |
+  | `testskrivare` | tester när tre eller fler nivåer berörs | Sonnet · medium |
+  | `granskare` | granskningen i steg 8, alltid med | sessionens modell · medium |
+  | `ci-doktor` | rött CI – startas vid behov, anges inte i förväg | Sonnet · medium |
+  | `db-inspektor` | faktisk data, bara läsning – anges när issuet kräver det | Haiku · low |
+
+  Data, rules och migrering minst `arkitekt` · high. Exempel: `arkitekt` · Fable · high – codecs
+  och rules; `byggare` · Opus · medium – skärmarna.
+
+## Release (android:release)
+
+- **Versionsfilen** är `version.properties` (`versionCode`, `versionName`) i roten, utanför
+  CI-filtren; README:s rad står under "Versionshistorik". Båda höjs och skrivs i funktions-PR:en.
+- **4.0:** första releasen av 4.0 (v4.0.0, #300) gjordes när paritetschecklistan var grön (OMB-6)
+  och grinden OMB-4 passerad. 3.27.0 ligger kvar som tagg och på branchen `legacy` (OMB-1). 4.0
+  behåller `applicationId`, så den installeras som uppdatering ovanpå 3.x och migreringen på
+  enheten (OMB-2) körs vid första start.
+- **Workflow:** `release.yml` (owner `ParTee71`, repo `Dagboken`), jobben:
+  - `gate` (sekunder): commiten ligger på `master`, versionen är `versionName` i
+    `version.properties`, taggen finns inte, secrets finns och `ci-ok` är grönt på commiten –
+    master-pushen har kört alla tester, `cpdCheck`, rules-tester och dokumentkontroller, och de
+    körs inte om. Starta releasen först när CI på `master` är klart, annars stoppar `gate` den.
+  - `build`: lint och det signerade, minifierade bygget i en Gradle-körning, parallellt med
+  - `instrumented` (`instrumented.yml`): hoppas över när sökvägarna i filtret `instrumented` är
+    oförändrade sedan en PR-commit där de var gröna (`.github/scripts/instrumented-paths.mjs`).
+  - `publish`: när båda är gröna – deployar `firestore.rules`, skapar taggen och GitHub Release.
+
+  Det är pluginens regel (testerna körs utom där samma kod redan testats grönt); `release.yml`
+  avviker inte.
+- **Secrets:** `SIGNING_KEYSTORE_BASE64` (keystoren `dagboken.jks`), `SIGNING_STORE_PASSWORD`,
+  `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`, `FIREBASE_RULES_DEPLOYER`. `app/google-services.json`
+  är incheckad och behöver ingen secret.
+- **Rules:** `publish` deployar `firestore.rules` (secret `FIREBASE_RULES_DEPLOYER`) före GitHub
+  Release, bara om de ändrats sedan förra `v*`-taggen; en publicering vars `firestore.rules`
+  skiljer sig från `master` stoppas. Skapades en tagg utan att `publish` lyckades: kör `rules.yml`
+  med `deploy: true` om rules ändrats.
+- **Läkemedelslistan före release (REC-14):** `node tools/medicines/build.mjs` hämtar
+  Läkemedelsverkets senaste lista till `app/src/main/assets/medicines.tsv` (CC BY 4.0; datumet står
+  i filens första rader och visas under Om Dagboken). Körs aldrig i CI. Ändrades filen landar den i
+  en liten PR före releasen – den kör app-testerna och instrumenttesterna (sökvägen ligger under
+  `app/src/`) – med "uppdaterad läkemedelslista" på README-raden, och patch-höjning om versionen
+  inte redan höjts sedan senaste tagg. Trigga releasen när den är mergad och CI på `master` är grönt.
+- **Kravlistan:** inga kvarvarande `*(planerad)*` för byggda funktioner, och TP-kraven matchar
+  SDK-nivåerna i `app/build.gradle.kts`.
+- **Har `schemaVersion` höjts sedan förra releasen:** nämn det tydligt (skill
+  `data-safety-backup`) och be användaren göra detta, i den här ordningen, **innan** release-bygget
+  triggas:
+  1. deploya `firestore.rules` med den nya `maxSchemaVersion()` – kör `rules.yml` med
+     `deploy: true` (`publish` deployar dem också, men stämplingen måste vänta på dem);
+  2. stämpla användaren: `node tools/db/migrate.mjs --to <N> --dry-run`, sedan utan `--dry-run`.
+
+  Äldre appar visar då "Uppdatera appen" (BCK-15) redan innan den nya appen kan skriva ett värde
+  som de skulle läsa fel och skriva tillbaka. Appen stämplar själv bara när inget steg ändrar data
+  (`SchemaMigrator.canStamp`) – och bara om de nya rules redan är deployade. Vänta tills
+  användaren bekräftat båda.
+- **Dispatch:** `workflow_id: release.yml`, `ref: master`,
+  `inputs: { version_name: "<version>", publish_release: "true" }` – `version_name` utan `v`,
+  `publish_release` som sträng (standard `false`). Med `"false"` blir det ett testbygge: bara den
+  signerade APK:n som artifacten `dagboken-v<version>`, ingen tagg, ingen Release och ingen
+  rules-deploy (kräver då inte `FIREBASE_RULES_DEPLOYER`) – t.ex. för att installera ovanpå 3.x och
+  spara kopian (#228). Länka artifacten.
+- **APK:n** heter `Dagboken-<version>-<ÅÅÅÅMMDD-HHMM>.apk`; sammanfattningen börjar
+  `Släppt: Dagboken v<version>` och GitHub Release heter `Dagboken v<version>`.
+- **Lokal reserv:** `./gradlew :app:assembleRelease` kräver `dagboken.jks` i `app/` och
+  signeringslösenord via `local.properties` eller `SIGNING_*`-miljövariabler (skill
+  `data-privacy-security`).

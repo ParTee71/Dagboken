@@ -600,12 +600,14 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
   (npm ci för `tools/db`, rapporterar om `FIREBASE_SERVICE_ACCOUNT` finns).
 - **Skills som tas över (G/G\*):** `ci-budget`, `shared-ui-components`, `firestore-data-layer`,
   `data-safety-backup` (Firestore-versionen), `db-access`, `ui-style` (skrivs om för
-  Papper och teal), `testing-strategy`, `refine-issue`, `implement-issue`, `release`.
+  Papper och teal), `testing-strategy`, `refine-issue`, `implement-issue`, `release` (de tre sista sedan 2026-10-18
+  pluginens `android:`-skills, med Dagbokens delar i `android-projekt`).
 - **Skills som behålls från Dagboken:** `notifications-alarms`, `data-privacy-security`
   (hälsodataversionen).
 - **Från pluginen `android@claude-android`** (`android:<namn>`, generella): `android-dev`,
   `compose-expert`, `kotlin-coroutines`, `kotlin-flows`, `navigation-3`, `accessibility-compose`,
-  `android-gradle-logic`, `firebase-auth`, `mockup`, Googles `android-intent-security` och
+  `android-gradle-logic`, `firebase-auth`, `mockup`, `implement-issue`, `refine-issue`, `release`,
+  Googles `android-intent-security` och
   `firebase-security-rules-auditor`. Dagbokens delar av dem, och var repot i dag avviker, står i
   skill `android-projekt` (`.claude/README.md` → Gemensam plugin).
 - **Nya skills:** `health-connect` (destillerat ur `HealthConnectRepository`, etapp 6), `diagram`

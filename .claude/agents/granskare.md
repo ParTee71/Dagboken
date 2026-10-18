@@ -1,6 +1,6 @@
 ---
 name: granskare
-description: Granskar en diff eller branch i Dagboken mot de fem icke-förhandlingsbara reglerna i CLAUDE.md, mockup-regeln och KRAVLISTA.md, och rapporterar i en fast tabell som är lätt att läsa på telefonen. Använd före varje PR (implement-issue steg 8), när användaren ber om granskning ("granska", "kolla diffen", "är det här okej", "review"), eller efter en större ändring. Läser bara – ändrar aldrig filer.
+description: Granskar en diff eller branch i Dagboken mot de fem icke-förhandlingsbara reglerna i CLAUDE.md, mockup-regeln och KRAVLISTA.md, och rapporterar i en fast tabell som är lätt att läsa på telefonen. Använd före varje PR (android:implement-issue steg 8), när användaren ber om granskning ("granska", "kolla diffen", "är det här okej", "review"), eller efter en större ändring. Läser bara – ändrar aldrig filer.
 tools: Read, Grep, Glob, Bash
 model: inherit
 effort: medium
@@ -56,6 +56,13 @@ filer och kör bara läsande kommandon (`git diff`, `git log`, `git show`, `git 
   `android.yml` ur synk.
 - **Process:** GUI-ändring utan godkänd mockup-länk i issuet eller utan skärmdumpar i PR:en.
   Har issuet en **Verifiering**: står det i PR:en att de kommandona körts, med resultat?
+- **Version:** ändrar diffen appens beteende (`app/src/main/**`, `core/src/main/**`, byggfiler
+  eller `app/src/main/assets/medicines.tsv`) ska den höja versionen (skill `android:release` →
+  Versionshöjning): `versionCode` +1 och `versionName` efter semver i `version.properties`, och en
+  rad för versionen i README:s "Versionshistorik". Är versionen redan höjd sedan senaste tagg
+  (`git describe --tags --abbrev=0`) räcker den om denna PR inte är allvarligare – men raden ska
+  då nämna ändringen. Saknad höjning eller README-rad är ❌ (under 3 Krav); en ren dokument-,
+  test- eller CI-ändring som höjer är ⚠️.
 - **Integritet:** loggning av hälsodata (mående, symptom, doser, anteckningar, sjukdomar) eller
   PII, hemligheter eller nycklar i diffen, bredare behörigheter, Health Connect-data som
   persisteras (HLS-5). Rör diffen `firestore.rules`: gå igenom Googles skill
@@ -71,7 +78,7 @@ filer och kör bara läsande kommandon (`git diff`, `git log`, `git show`, `git 
 |---|---|---|---|
 | 1 Datasäkerhet | ✅ / ⚠️ / ❌ | … | … |
 | 2 Tester | | | |
-| 3 Krav | | | |
+| 3 Krav (och version) | | | |
 | 4 Enhetligt | | | |
 | 5 CI-budget | | | |
 | Mockup | | | |

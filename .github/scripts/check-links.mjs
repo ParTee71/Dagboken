@@ -2,6 +2,8 @@
 // Dokumentkontroll: relativa länkar och nämnda skills/agenter i dokumentationen finns, och
 // tabellerna i .claude/README.md listar exakt de skills och agenter som finns i .claude/.
 // Framåtreferenser till sådant som byggs senare står i link-allowlist.txt (töms allteftersom).
+// Pluginens skills (`android:<namn>`, pluginen android@claude-android) står i plugin-skills.txt –
+// pluginen finns inte i CI, så listan i repot är facit.
 // Kör: node .github/scripts/check-links.mjs  (testas av check-links.test.mjs)
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -11,6 +13,9 @@ import { fileURLToPath } from 'node:url';
 export const ALLOWLIST = '.github/scripts/link-allowlist.txt';
 /** Översikten över skills och agenter (CLAUDE.md länkar hit, så att den filen hålls kort). */
 export const TABLES = '.claude/README.md';
+/** Pluginens skillnamn utan prefix, en per rad (pluginen android@claude-android). */
+export const PLUGIN_SKILLS = '.github/scripts/plugin-skills.txt';
+export const PLUGIN_PREFIX = 'android:';
 
 /** Dokumenten som kontrolleras: rotens md-filer och allt i .claude/ (utom lokala inställningar). */
 export function docFiles(root) {
@@ -36,14 +41,17 @@ export function relativeLinks(markdown) {
     .filter(Boolean);
 }
 
-/** Skill- och agentnamn som nämns i löptext: "skill `x`", "Skill: **x**", "Skills: **a**, **b**", "agenten `x`". */
+/**
+ * Skill- och agentnamn som nämns i löptext: "skill `x`", "Skill: **x**", "Skills: **a**, **b**",
+ * "agenten `x`". Pluginskills behåller prefixet ("skill **android:mockup**" → `android:mockup`).
+ */
 export function mentions(markdown) {
   const skills = new Set();
   const agents = new Set();
-  const name = String.raw`(?:\*\*|\`)([a-z0-9]+(?:-[a-z0-9]+)+|[a-z]{3,})(?:\*\*|\`)`;
+  const name = String.raw`(?:\*\*|\`)((?:android:)?(?:[a-z0-9]+(?:-[a-z0-9]+)+|[a-z]{3,}))(?:\*\*|\`)`;
   for (const m of markdown.matchAll(new RegExp(String.raw`\b[Ss]kill:?\s+${name}`, 'g'))) skills.add(m[1]);
-  for (const m of markdown.matchAll(/\b[Ss]kills:\s+((?:\*\*[a-z0-9-]+\*\*(?:,\s*|\s+och\s+)?)+)/g)) {
-    for (const n of m[1].matchAll(/\*\*([a-z0-9-]+)\*\*/g)) skills.add(n[1]);
+  for (const m of markdown.matchAll(/\b[Ss]kills:\s+((?:\*\*(?:android:)?[a-z0-9-]+\*\*(?:,\s*|\s+och\s+)?)+)/g)) {
+    for (const n of m[1].matchAll(/\*\*((?:android:)?[a-z0-9-]+)\*\*/g)) skills.add(n[1]);
   }
   for (const m of markdown.matchAll(new RegExp(String.raw`\b[Aa]genten\s+${name}`, 'g'))) agents.add(m[1]);
   return { skills, agents };
@@ -60,6 +68,11 @@ export function tableNames(markdown, heading) {
   return names;
 }
 
+/** Namnen i plugin-skills.txt (kommentarer och tomma rader hoppas över). */
+export function parsePluginSkills(text) {
+  return new Set(text.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#')));
+}
+
 function parseAllowlist(text) {
   return new Set(
     text.split('\n').filter((l) => l.trim() && !l.startsWith('#')).map((l) => l.split(/\s+[–-]\s+/)[0].trim()),
@@ -68,7 +81,9 @@ function parseAllowlist(text) {
 
 export function check(root) {
   const allow = existsSync(path.join(root, ALLOWLIST)) ? parseAllowlist(readFileSync(path.join(root, ALLOWLIST), 'utf8')) : new Set();
+  const plugin = existsSync(path.join(root, PLUGIN_SKILLS)) ? parsePluginSkills(readFileSync(path.join(root, PLUGIN_SKILLS), 'utf8')) : new Set();
   const skillExists = (n) => existsSync(path.join(root, '.claude/skills', n, 'SKILL.md'));
+  const mentionedSkillExists = (n) => (n.startsWith(PLUGIN_PREFIX) ? plugin.has(n.slice(PLUGIN_PREFIX.length)) : skillExists(n));
   const agentExists = (n) => existsSync(path.join(root, '.claude/agents', `${n}.md`));
   const problems = [];
   const report = (file, target, what) => {
@@ -81,7 +96,10 @@ export function check(root) {
       if (!existsSync(path.resolve(root, path.dirname(file), target))) report(file, target, `länken ${target} pekar på något som inte finns`);
     }
     const { skills, agents } = mentions(text);
-    for (const s of skills) if (!skillExists(s)) report(file, s, `skill \`${s}\` finns inte i .claude/skills/`);
+    for (const s of skills) {
+      if (mentionedSkillExists(s)) continue;
+      report(file, s, s.startsWith(PLUGIN_PREFIX) ? `skill \`${s}\` finns inte i ${PLUGIN_SKILLS}` : `skill \`${s}\` finns inte i .claude/skills/`);
+    }
     for (const a of agents) if (!agentExists(a)) report(file, a, `agenten \`${a}\` finns inte i .claude/agents/`);
   }
 

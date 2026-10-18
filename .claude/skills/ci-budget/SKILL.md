@@ -36,7 +36,7 @@ resten med `dorny/paths-filter`.
   (composite action `doc-checks`). I samma steg körs testerna för läkemedelslistans byggskript,
   `node --test 'tools/medicines/test/*.test.mjs'` – Node utan beroenden, under en sekund, så de
   får inget eget filter. Själva skriptet (`tools/medicines/build.mjs`) körs aldrig i CI, bara vid
-  release (skill `release`).
+  release (skill `android-projekt` → Release).
 - **`push` till `master`** sätter alla filter till sant – baslinje och cache-uppvärmning.
 - **Gradle build cache** (`org.gradle.caching=true` + `gradle/actions/setup-gradle`) gör
   att oförändrade testtasks blir `FROM-CACHE`/`UP-TO-DATE` även inom en modul. Det kräver
@@ -47,7 +47,10 @@ resten med `dorny/paths-filter`.
 - **Node ≥ 22** pinnas i alla jobb som kör `node --test` (globmönster kräver Node 21+).
 - **Hoppade jobb rapporterar ingen status.** Därför är jobbet `ci-ok`
   (`needs: [changes, gradle, rules, instrumented]`, `if: always()`) det enda obligatoriska
-  statuskravet (NFR-19) – ställs in under branch protection för `master`.
+  statuskravet (NFR-19) – ställs in under branch protection för `master`. Det godtar `success` och
+  `skipped` och fäller allt annat: **körs instrumenttesterna måste de vara gröna för merge** – ett
+  rött eller avbrutet `instrumented` fäller `ci-ok`, ett överhoppat gör det inte (användarens
+  beslut 2026-10-18).
 
 - **`gradle`** kör en enda Gradle-körning: `cpdCheck` plus `:core:test` och/eller app-uppgifterna
   enligt filtren, med `--configuration-cache --continue`. Testrapporter laddas alltid upp;
@@ -63,7 +66,8 @@ resten med `dorny/paths-filter`.
   ändrats sedan förra releasen. Ett fallerat jobb körs om ensamt, aldrig hela releasen.
 - **`quality.yml`** (veckovis) hoppar över om master inte ändrats sedan senaste gröna
   kvalitets- eller releasekörning.
-- **Versionen** står i `version.properties` (utanför filtren): en release-PR kör bara `changes`.
+- **Versionen** står i `version.properties` (utanför filtren) och höjs i funktions-PR:en, så
+  höjningen kostar inga extra jobb och releasen behöver ingen egen PR.
 - Varje jobb debiteras uppåt till hel minut – slå ihop korta steg i ett jobb hellre än att
   lägga till jobb.
 

@@ -5,7 +5,7 @@ description: >-
   höra till projektet, skrivs till en temporär fil och tas bort i samma steg. En riktig deploy
   kräver att firestore.rules är samma som på master. Kör efter
   rules-testerna. Kräver att repot är utcheckat och att setup-tools-db (eller rules-tests, som
-  använder den) redan körts i jobbet (skill release).
+  använder den) redan körts i jobbet (skill android-projekt → Release).
 
 inputs:
   credentials:

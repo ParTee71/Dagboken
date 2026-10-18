@@ -1,11 +1,11 @@
 // Körs med: node --test '.github/scripts/*.test.mjs'
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { check, mentions, relativeLinks, tableNames } from './check-links.mjs';
+import { PLUGIN_SKILLS, check, mentions, parsePluginSkills, relativeLinks, tableNames } from './check-links.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -77,4 +77,27 @@ test('framåtreferens i allowlistan godtas', () => {
     '.github/scripts/link-allowlist.txt': '# x\nARKITEKTUR.md:PLAN.md – #99\n',
   });
   assert.deepEqual(check(dir), []);
+});
+
+test('pluginskills med prefixet android: känns igen och kontrolleras mot listan i repot', () => {
+  const { skills } = mentions('Skill **android:mockup** och skill `android:release`. → Skills: **android:refine-issue**, **ui-style**.');
+  assert.deepEqual([...skills].sort(), ['android:mockup', 'android:refine-issue', 'android:release', 'ui-style'].sort());
+  const dir = makeRepo({
+    '.github/scripts/plugin-skills.txt': '# kommentar\nmockup\nrelease\n',
+    'ARKITEKTUR.md': 'Se skill **android:mockup**, skill `android:release` och skill `android:finns-inte`.',
+  });
+  assert.deepEqual(check(dir), ['ARKITEKTUR.md: skill `android:finns-inte` finns inte i .github/scripts/plugin-skills.txt']);
+});
+
+test('utan listan godtas ingen pluginskill, och en repo-skill räknas inte som pluginens', () => {
+  const dir = makeRepo({ 'ARKITEKTUR.md': 'Skill `android:mockup` och skill `android:ci-budget`.' });
+  assert.equal(check(dir).length, 2);
+});
+
+// Pluginen klonas inte i CI – där hoppas testet över; lokalt hålls listan i takt med klonen.
+const pluginDir = '/home/user/claude-android/plugins/android/skills';
+test('plugin-skills.txt listar exakt pluginens skills', { skip: !existsSync(pluginDir) && 'pluginen är inte klonad' }, () => {
+  const listed = [...parsePluginSkills(readFileSync(path.join(repoRoot, PLUGIN_SKILLS), 'utf8'))].sort();
+  const actual = readdirSync(pluginDir).filter((n) => existsSync(path.join(pluginDir, n, 'SKILL.md'))).sort();
+  assert.deepEqual(listed, actual);
 });

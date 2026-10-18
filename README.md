@@ -66,8 +66,8 @@ cd Dagboken
 
 ### Releasebygge och signering
 
-Releasen byggs och signeras av GitHub Actions (`release.yml`, skill
-[`release`](.claude/skills/release/SKILL.md)) med keystoren och lösenorden från secrets
+Releasen byggs och signeras av GitHub Actions (`release.yml`, pluginens skill
+`android:release`; repots delar: [`android-projekt`](.claude/skills/android-projekt/SKILL.md) → Release) med keystoren och lösenorden från secrets
 (`SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`).
 Lokalt kräver releasebygget `dagboken.jks` i `app/` (git-ignorerad) och lösenorden i
 `local.properties` (git-ignorerad) eller som miljövariabler:
@@ -254,7 +254,8 @@ en 3.x-backup kan fortfarande importeras i appen (BCK-14).
 
 ## Versionshistorik
 
-Versionen höjs i funktions-PR:en; releasen görs via skill [`release`](.claude/skills/release/SKILL.md)); den står i `version.properties`.
+Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via pluginens skill `android:release`
+(repots delar: [`android-projekt`](.claude/skills/android-projekt/SKILL.md) → Release). Versionen står i `version.properties`.
 
 | Version | Innehåll |
 |---|---|
