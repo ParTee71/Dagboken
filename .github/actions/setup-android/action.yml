@@ -1,17 +1,17 @@
 name: Förbered Android-bygge
 description: >-
-  Java 17, Gradle med build cache (skrivs bara från master), Android-plattformen som
+  Java 21 (Robolectric kräver det för SDK 36; koden byggs fortfarande för Java 17), Gradle med build cache (skrivs bara från master), Android-plattformen som
   compileSdk kräver och cache för Robolectrics SDK-jar. Enda stället för dessa steg
   (skill ci-budget). Kräver att repot redan är utcheckat.
 
 runs:
   using: composite
   steps:
-    - name: Java 17
+    - name: Java 21
       uses: actions/setup-java@v4
       with:
         distribution: temurin
-        java-version: '17'
+        java-version: '21'
 
     - name: Gradle (cache skrivs från master, läses i PR)
       uses: gradle/actions/setup-gradle@v4
