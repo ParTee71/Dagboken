@@ -355,7 +355,7 @@ Fel mappas en gång i `data/common/DataError`. Ingen Room i 4.0 utom den läsand
 
 | Inställning | Värde | Var |
 |---|---|---|
-| compileSdk / targetSdk / minSdk | 37 / 35 / 30 | `app/build.gradle.kts` |
+| compileSdk / targetSdk / minSdk | 37 / 36 / 30 | `app/build.gradle.kts` |
 | AGP · Kotlin · Gradle | 9.x · 2.4 · 9.8 | `gradle/libs.versions.toml`, `gradle/wrapper` |
 | Compose BOM · Material 3 | 2026.09 · 1.5 (Expressive, pinnad) | version catalog |
 | Java/JVM | 17 | rotens `build.gradle.kts` (`subprojects`) |

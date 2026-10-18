@@ -6,7 +6,7 @@ description: Dagbokens påminnelse- och larmsystem (medicin, mående och periods
 # Notifikationer & larm
 
 Androids mest felbenägna yta — exakta larm, körningstillstånd och väckning efter
-omstart skiljer sig kraftigt mellan API-nivåer. Projektet kör **minSdk 30, targetSdk 35**,
+omstart skiljer sig kraftigt mellan API-nivåer. Projektet kör **minSdk 30, targetSdk 36**,
 så alla moderna restriktioner gäller. Krav: **NOT-serien (§10)**, särskilt NOT-1–8 och NOT-14;
 TP-8, TP-9.
 

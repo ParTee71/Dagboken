@@ -30,7 +30,7 @@
 
 | ID | Krav |
 |----|------|
-| TP-1 | Android, **minSdk 30** (Android 11), targetSdk 35, compileSdk 37; AGP 9, Kotlin 2.4, Gradle 9 *(4.0 – 3.x: compileSdk 36)*. |
+| TP-1 | Android, **minSdk 30** (Android 11), targetSdk 36 (Android 16), compileSdk 37; AGP 9, Kotlin 2.4, Gradle 9 *(4.0 – 3.x: compileSdk 36)*. |
 | TP-2 | UI byggt med **Jetpack Compose** + **Material 3 Expressive** (`MaterialExpressiveTheme`, `MotionScheme.expressive()`) och **Navigation 3** med en backstack per flik *(4.0 – 3.x: Material 3 + navigation-compose med strängrutter)*. |
 | TP-3 | Arkitektur: **MVVM** med Hilt (DI), repository som single source of truth ovanpå generisk `FirestoreCollection<T>` + `DocCodec<T>`, ViewModels med `StateFlow<UiState>`. Två moduler: `:core` (ren Kotlin/JVM: modeller, codecs, motorer) och `:app` *(4.0)*. |
 | TP-4 | Lagring i **Firestore offline-först** (persistent cache, molnet är källan) under `users/{uid}`; inställningar i dokumentet `settings`. DataStore används bara för enhetslokalt tillstånd (migreringsflagga, senast valda flik, receptstädningens senaste dag per konto – REC-8) i 4.0:s egen fil `dagboken_device` – aldrig i 3.x-filen `dagboken_prefs`, som bara läses av migreringen (OMB-2) *(4.0 – 3.x: Room + DataStore)*. |
