@@ -38,7 +38,7 @@ android {
     defaultConfig {
         applicationId = "se.partee71.dagboken"
         minSdk = 30
-        targetSdk = 35
+        targetSdk = 36
         versionCode = appVersion.getProperty("versionCode").toInt()
         versionName = appVersion.getProperty("versionName")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

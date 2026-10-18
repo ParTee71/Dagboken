@@ -75,7 +75,7 @@ Krav NFR-14 (talbar sammanfattning för diagram, tryckytor ≥ 48 dp även inuti
 
 ## Gradle (android:android-gradle-logic)
 
-Versioner och SDK-nivåer: KRAVLISTA TP-1 (minSdk 30, targetSdk 35, compileSdk 37; AGP 9, Kotlin 2.4,
+Versioner och SDK-nivåer: KRAVLISTA TP-1 (minSdk 30, targetSdk 36, compileSdk 37; AGP 9, Kotlin 2.4,
 Gradle 9) och ARKITEKTUR.md → "Byggkonfiguration". En höjning som ändrar SDK-nivåer uppdaterar TP-1 i samma PR.
 
 | Modul | Plugins | Regel |
