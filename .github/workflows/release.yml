@@ -1,4 +1,4 @@
-# Release (skill release), byggd för få Actions-minuter (skill ci-budget):
+# Release (skill android:release, repots delar i android-projekt → Release), byggd för få Actions-minuter (skill ci-budget):
 # - gate (sekunder): master, version, secrets och att CI redan är grönt på commiten – master-
 #   pushen har kört alla tester och dokumentkontroller; de körs inte om här. Fel stoppar allt.
 # - build: lint och det signerade, minifierade bygget i samma Gradle-körning – parallellt med
@@ -62,7 +62,7 @@ jobs:
           # Release bara från master: dispatch på master, eller en tagg på en commit i master.
           git fetch --no-tags --quiet origin master
           if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
-            echo "::error::Commiten $GITHUB_SHA ligger inte på master – release görs bara från master (skill release)."
+            echo "::error::Commiten $GITHUB_SHA ligger inte på master – release görs bara från master (skill android:release)."
             exit 1
           fi
           in_build="$(sed -n 's/^versionName=//p' version.properties)"
@@ -72,7 +72,7 @@ jobs:
             version="$INPUT_VERSION"; publish="$PUBLISH"
           fi
           if [ "$version" != "$in_build" ]; then
-            echo "::error::Versionen $version skiljer sig från versionName $in_build i version.properties – gör release-commiten först (skill release)."
+            echo "::error::Versionen $version skiljer sig från versionName $in_build i version.properties – versionen höjs i en funktions-PR, mergad före releasen (skill android:release)."
             exit 1
           fi
           tag="v$version"
@@ -103,7 +103,7 @@ jobs:
 
       # Tester, cpdCheck, rules-tester och dokumentkontroller har redan körts av CI på samma
       # commit (master-pushen) – kontrollera resultatet i stället för att köra om dem. Starta
-      # releasen först när CI på master är klart (skill release); annars stannar den här.
+      # releasen först när CI på master är klart (skill android:release); annars stannar den här.
       - name: CI grönt på commiten
         env:
           GH_TOKEN: ${{ github.token }}

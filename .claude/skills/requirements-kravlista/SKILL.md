@@ -87,8 +87,9 @@ görs först när alla är uppfyllda. Varje PR bockar av de krav den uppfyller i
 
 - **README.md** – funktionslistan och versionshistoriken när en funktion tillkommer eller försvinner.
 - **ARKITEKTUR.md** – när ett krav ändrar ett arkitekturbeslut (enda källan för besluten).
-- **Version** – `versionName`/`versionCode` i `version.properties` höjs **bara vid release**,
-  aldrig i en funktions-PR. Releasen görs bara på uttrycklig begäran (skill `release`).
+- **Version** – `versionName`/`versionCode` i `version.properties` och README-raden höjs och
+  skrivs **i funktions-PR:en** (skill `android:release` → Versionshöjning; filen i skill
+  `android-projekt` → Release). Releasen görs bara på uttrycklig begäran och frågar inte om versionen.
 
 ## Checklista
 
@@ -96,6 +97,6 @@ görs först när alla är uppfyllda. Varje PR bockar av de krav den uppfyller i
 - [ ] Nytt ID / redigerat / struket med `~~…~~ *(borttaget)*`; `*(4.0)*`-märkt vid ombyggnad; `*(planerad)*` borttaget när det byggts.
 - [ ] Inga ID:n återanvända eller raderade.
 - [ ] Gemensamma beteenden refererade, inte upprepade.
-- [ ] README uppdaterad om funktionsomfånget ändrats (version höjs vid release).
+- [ ] README uppdaterad om funktionsomfånget ändrats; ändras beteendet är versionen höjd med raden i "Versionshistorik".
 - [ ] Ett test bevisar det nya/ändrade kravet.
 - [ ] Kravets ID står i PR-beskrivningen (paritetschecklistan, OMB-6).

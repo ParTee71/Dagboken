@@ -55,7 +55,7 @@ appens import:  fil (SAF) / Drive → legacy/ImportFile (:core: 3.x via konverte
 - **Lägre** → `SchemaMigrator` lyfter dokumenten vid läsning; skrivning sker i nytt format.
   Versionen hör till användaren, inte till varje dokument, så **varje steg är idempotent** och
   användarens `schemaVersion` höjs av en fullständig migrering av alla dess dokument
-  (`tools/db/migrate.mjs`, i release-ordningen i skill `release`) – aldrig av en vanlig skrivning.
+  (`tools/db/migrate.mjs`, i release-ordningen i skill `android-projekt` → Release) – aldrig av en vanlig skrivning.
   Ändrar inget steg dit några dokument (`SchemaMigrator.canStamp`) stämplar appen själv
   användaren när den öppnas (`UserSession`), så att en äldre app genast ber om uppdatering.
   Ett steg som ändrar data kräver `migrate.mjs`.

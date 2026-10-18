@@ -1,4 +1,4 @@
-# Rules på begäran (skill release): rules-testerna mot emulatorn och sedan firestore.rules mot
+# Rules på begäran (skill android-projekt → Release): rules-testerna mot emulatorn och sedan firestore.rules mot
 # Firebase-projektet – som standard bara en kontroll (--dry-run). Deploy kräver att man kryssar i
 # det, och bara från master. Körs aldrig från en PR eller automatiskt; vid release deployar
 # release.yml.

@@ -1,0 +1,18 @@
+# Skills i pluginen android@claude-android (ParTee71/claude-android, plugins/android/skills/),
+# som sessionen kallar android:<namn>. check-links.mjs godtar "skill `android:<namn>`" bara för
+# namnen här – pluginen klonas inte i CI. Uppdatera listan när pluginen får eller tappar en skill;
+# lokalt jämför check-links.test.mjs den mot /home/user/claude-android när klonen finns.
+accessibility-compose
+android-dev
+android-gradle-logic
+android-intent-security
+compose-expert
+firebase-auth
+firebase-security-rules-auditor
+implement-issue
+kotlin-coroutines
+kotlin-flows
+mockup
+navigation-3
+refine-issue
+release

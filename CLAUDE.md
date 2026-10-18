@@ -45,7 +45,7 @@ får nästa lediga ID, ändrat behåller sitt ID, borttaget stryks med `~~…~~ 
 och det som ändras i ombyggnaden märks *(4.0)*. Gemensamma beteenden beskrivs en gång
 (NFR-15–18, NAV) och refereras. Kravlistan är ombyggnadens paritetschecklista (OMB-6): varje
 PR bockar av sina krav-ID:n. README följer med när funktionsomfånget ändras; `versionName`
-höjs i funktions-PR:en (se PR-flöde); själva releasen görs via skill **release**.
+höjs i funktions-PR:en (se PR-flöde); själva releasen görs via skill **android:release**.
 → Skill: **requirements-kravlista**.
 
 ### 4. Enhetligt och utan dubbelkod
@@ -123,12 +123,12 @@ skärmdumparna i PR:en i skill **android-projekt**.
 ## Innan du anser dig klar
 
 Gå igenom de fem reglerna och mockup-regeln. Agenten `granskare` gör det på diffen och
-rapporterar i en tabell (skill **implement-issue**, steg 8).
+rapporterar i en tabell (skill **android:implement-issue**, steg 8).
 
 ## PR-flöde
 
 - **En PR i taget.** Öppna inte nästa förrän den föregående är mergad (eller uttryckligen
-  stängd/pausad av användaren). Gäller `implement-issue` och manuellt arbete.
+  stängd/pausad av användaren). Gäller `android:implement-issue` och manuellt arbete.
 - **Kontrollera mergen via GitHub** (`pull_request_read`) innan nästa issue påbörjas –
   inte via antagande. Först när den är mergad startas arbetsbranchen om från `origin/master`.
 - PR:er går mot `master`. Kör testerna lokalt först (skill **testing-strategy**), pusha sedan –
@@ -136,7 +136,7 @@ rapporterar i en tabell (skill **implement-issue**, steg 8).
 - **Förbered releasen i funktions-PR:en.** Varje PR som ändrar appens beteende höjer
   versionen i samma ändring (semver, `versionCode`, `version.properties`, README) och skriver
   den i PR-beskrivningen; ren dokument-, test- eller CI-ändring höjer inte. Detaljerna står i
-  skill **release**, "Versionshöjning i funktions-PR:en". Själva releasen körs bara på
+  skill **android:release**, "Versionshöjning i funktions-PR:en". Själva releasen körs bara på
   uttrycklig begäran.
 - **Prenumerera automatiskt** på PR-aktivitet (`subscribe_pr_activity`) så fort en PR
   skapas, utan att fråga. Bevaka tills den är mergad eller stängd: fixa CI-fel, hantera
@@ -146,7 +146,7 @@ rapporterar i en tabell (skill **implement-issue**, steg 8).
   agenten `byggare` tar portar, komponenter, skärmar och CI-filer, agenten `arkitekt` datamodell,
   codecs, konverteraren, rules och migrering. Går ett steg fel två gånger i rad flyttas det upp en nivå.
 - **Modell efter uppgift** för sessionen och varje agent, Opus som standard ([.claude/README.md](.claude/README.md)
-  → Modellval). Varje issue anger **Agent · modell · effort** (skill **refine-issue**) och körs så.
+  → Modellval). Varje issue anger **Agent · modell · effort** (skill **android:refine-issue**) och körs så.
 
 ## Bygg & test
 
