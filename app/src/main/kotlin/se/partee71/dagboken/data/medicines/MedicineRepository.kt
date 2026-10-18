@@ -5,12 +5,13 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.InputStream
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.medicine.MedicineCatalog
+import se.partee71.dagboken.di.IoDispatcher
 
 /** Läkemedelslistan som är inbyggd i appen (REC-14) – läses en gång, sedan ur minnet. */
 interface MedicineRepository {
@@ -25,15 +26,21 @@ interface MedicineRepository {
  * listan tom: formuläret fungerar då som utan förslag. Helt lokalt – inget om sökningar loggas eller skickas (NFR-13).
  */
 @Singleton
-class AssetMedicineRepository internal constructor(private val open: () -> InputStream) : MedicineRepository {
-    @Inject constructor(@ApplicationContext context: Context) : this({ context.assets.open(FILE) })
+class AssetMedicineRepository internal constructor(
+    private val io: CoroutineDispatcher,
+    private val open: () -> InputStream,
+) : MedicineRepository {
+    @Inject constructor(
+        @ApplicationContext context: Context,
+        @IoDispatcher io: CoroutineDispatcher,
+    ) : this(io, { context.assets.open(FILE) })
 
     private val lock = Mutex()
     private var loaded: MedicineCatalog? = null
 
     /** Ett misslyckande ger en tom lista men cachas inte: nästa anrop försöker läsa filen igen. */
     override suspend fun catalog(): MedicineCatalog = lock.withLock {
-        loaded ?: withContext(Dispatchers.IO) {
+        loaded ?: withContext(io) {
             runCatching { open().bufferedReader().use { MedicineCatalog.parse(it.readText()) } }.getOrNull()
         }?.also { loaded = it } ?: MedicineCatalog(null, emptyList())
     }
@@ -47,7 +54,7 @@ class AssetMedicineRepository internal constructor(private val open: () -> Input
     override suspend fun updated(): LocalDate? = lock.withLock {
         loaded?.let { return@withLock it.updated }
         date?.let { return@withLock it.getOrNull() }
-        withContext(Dispatchers.IO) {
+        withContext(io) {
             runCatching { open().bufferedReader().useLines { lines -> MedicineCatalog.parseUpdated(lines.take(HEADER_LINES)) } }
         }.also { if (it.isSuccess) date = it }.getOrNull()
     }

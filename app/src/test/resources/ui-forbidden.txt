@@ -6,6 +6,7 @@
 # [firestore] = all Kotlin under app/src/main utom data/firestore/
 # [expressive] = all Kotlin under app/src/main utom ui/theme/ och ui/components/
 # [vico]      = all Kotlin under app/src/main utom ui/diagram/ (diagrambiblioteket bara i de delade diagrammen)
+# [dispatchers] = all Kotlin under app/src/main utom di/ (skill android:kotlin-coroutines)
 # Tillåtet i feature-kod: Text (med AppTypography-stil), Icon (appens ikoner i res/drawable),
 # Column, Row, Box, Spacer med Spacing, samt allt i ui/components, ui/diagram och ui/common.
 # Importrader kontrolleras inte – [vico] stoppar därför användningen (Vicos typer och remember-funktioner).
@@ -62,3 +63,6 @@
 \b[A-Za-z]*Cartesian[A-Za-z]*\b	ett diagram i ui/diagram (LineChart, SparklineChart …) – Vico bara där
 \b(VerticalAxis|HorizontalAxis|[A-Za-z]*PieChart[A-Za-z]*)\b	ett diagram i ui/diagram (LineChart, SparklineChart …) – Vico bara där
 \brememberVico[A-Za-z]*\b	ett diagram i ui/diagram (LineChart, SparklineChart …) – Vico bara där
+
+[dispatchers]
+\bDispatchers\.(IO|Default|Main|Unconfined)\b	injicerad CoroutineDispatcher (@IoDispatcher/@DefaultDispatcher från di/DispatchersModule)

@@ -4,7 +4,7 @@ import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -17,7 +17,10 @@ import se.partee71.dagboken.data.common.suspendRunCatching
  * referens – efter [clear] får de den nya instansen. [create] bygger och konfigurerar en instans
  * (cache, emulator i tester) och anropas igen efter varje [clear].
  */
-class FirestoreInstance(private val create: () -> FirebaseFirestore) : LocalCacheCleaner {
+class FirestoreInstance(
+    private val io: CoroutineDispatcher,
+    private val create: () -> FirebaseFirestore,
+) : LocalCacheCleaner {
     private val lock = Any()
     private var current: FirebaseFirestore? = null
 
@@ -40,7 +43,7 @@ class FirestoreInstance(private val create: () -> FirebaseFirestore) : LocalCach
      * låsa [db] – och allt som hämtar instansen – för alltid.
      */
     override suspend fun clear(): Result<Unit> = suspendRunCatching(::firestoreError) {
-        withContext(Dispatchers.IO) {
+        withContext(io) {
             synchronized(lock) {
                 val old = current ?: create()
                 current = null

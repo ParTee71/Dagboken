@@ -136,7 +136,7 @@ class FirebaseEmulator : ExternalResource() {
             .build()
 
         /** Som appens: en ny instans mot emulatorn även efter att cachen tömts (AUTH-6). */
-        private fun firestoreOf(app: FirebaseApp, port: Int) = FirestoreInstance {
+        private fun firestoreOf(app: FirebaseApp, port: Int) = FirestoreInstance(Dispatchers.IO) {
             FirebaseFirestore.getInstance(app).apply {
                 useEmulator(HOST, port)
                 check(firestoreSettings.host == "$HOST:$port") { "Testerna får bara köras mot emulatorn" }

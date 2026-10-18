@@ -22,7 +22,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 - Navigation 3 (TP-2), en Activity (`MainActivity`), back stacken är vanligt state i `navigation/`, övergångar en gång i `navigation/Transitions`.
 - Bakgrund: WorkManager (Hilt-worker) bara där något måste köras utan öppen app (TP-7); ingen backup-worker – Firestore synkar själv, veckobackupen körs i GitHub Actions (`tools/db`, BCK-12) och JSON-export finns i appen (BCK-13). 3.x Drive-backup är pensionerad; Drive läses bara av legacy-importen (BCK-14). Påminnelser via AlarmManager (TP-8, skill `notifications-alarms`).
 - Nav-argument tas redan med assisted injection (`@HiltViewModel(assistedFactory = …)`), som pluginen säger.
-- **Nuvarande läge, avviker från pluginen:** targetSdk 35 (pluginen säger 36; compileSdk är 37, TP-1), `material3` pinnad på en alpha (`1.5.0-alpha29`, skälet i katalogen: Expressive är internal i stabila 1.4.0), inga `ImmutableList` i `UiState` (`ListUiState.Content(items: List<T>)`), ingen Spotless/ktlint, ingen Renovate eller Dependabot, ingen Baseline Profile. Tas i egna PR:er senare; ny kod följer pluginen där det går.
+- Bara `di/` nämner `Dispatchers.`; scopet `[dispatchers]` i `ui-forbidden.txt` kontrolleras av `UiConsistencyTest` och hooken. Enhetstester ger `UnconfinedTestDispatcher()` eller `StandardTestDispatcher(testScheduler)`; androidTest får använda `Dispatchers.IO` direkt.
 - Java 17 utan toolchain (samma som CI). Tester JVM först (JUnit, Turbine, Robolectric, Roborazzi), fakes byggda på `FakeCollection<T>` (skill `testing-strategy`).
 
 ## Coroutines (android:kotlin-coroutines)
@@ -30,9 +30,9 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 - Firestore är redan main-safe: `await()` och `snapshots()` blockerar inte – ingen `withContext` runt dem. `FirestoreCollection` är enda stället som anropar Firestore och hanterar fel och `CancellationException`.
 - `suspendRunCatching` finns en gång i `data/common/`; skriv ingen egen variant.
 - `:core` är ren och synkron – inga coroutines eller dispatchers där.
-- `di/AppModule` ger `@IoDispatcher`, `@DefaultDispatcher` och applikationsscopet; de injiceras bl.a. i `UserFile`, `ExportUseCase` och recept- och vid behov-formulären.
+- `di/DispatchersModule` ger `@IoDispatcher` och `@DefaultDispatcher`, `di/AppModule` applikationsscopet; de injiceras bl.a. i `UserFile`, `ExportUseCase`, `AssetMedicineRepository`, `FirestoreInstance`, `AboutViewModel` och recept- och vid behov-formulären.
 - ViewModel-tester använder den delade `MainDispatcherRule` (`testing/`).
-- **Nuvarande läge, avviker från pluginen:** `Dispatchers.` nämns i dag även utanför `di/` – `data/medicines/MedicineRepository.kt` (`withContext(Dispatchers.IO)`, två ställen), `data/firestore/FirestoreInstance.kt` (`clear()`, `withContext(Dispatchers.IO)`) och `AboutViewModel` i `ui/settings/AboutScreen.kt` (`flowOn(Dispatchers.IO)`). Repot ska migrera enligt pluginen (dispatcher injiceras bara där kod väljer en, och bara `di/` nämner `Dispatchers`) i en egen PR senare; ny kod följer pluginen.
+- Bara `di/` nämner `Dispatchers.`; scopet `[dispatchers]` i `ui-forbidden.txt` kontrolleras av `UiConsistencyTest` och hooken. Enhetstester ger `UnconfinedTestDispatcher()` eller `StandardTestDispatcher(testScheduler)`; androidTest får använda `Dispatchers.IO` direkt.
 
 ## Flöden (android:kotlin-flows)
 
@@ -43,7 +43,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 - `Flow<List<T>>.asListUiState()` – gemensam omvandling till `ListUiState<T>` för alla listskärmar; skriv aldrig en egen variant.
 - Inställningar kommer från Firestore-dokumentet `settings` (tema, påminnelser, profil) via sitt repository; DataStore håller bara enhetslokalt tillstånd (TP-4).
 - ViewModels: `stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), …)`.
-- **Nuvarande läge, avviker från pluginen:** fel är redan state med kvittens (t.ex. `AuthEvent.ErrorShown`), men redigeringsramens engångseffekter går via `Channel` – `EditorState.effects` (`Channel(BUFFERED).receiveAsFlow()`, konsumeras av `EntityEditScreen`). Repot ska migrera till händelser i `UiState` enligt pluginen (Googles råd) i en egen PR senare; tills dess följer skärmar ramens nuvarande mönster.
+- Bara `di/` nämner `Dispatchers.`; scopet `[dispatchers]` i `ui-forbidden.txt` kontrolleras av `UiConsistencyTest` och hooken. Enhetstester ger `UnconfinedTestDispatcher()` eller `StandardTestDispatcher(testScheduler)`; androidTest får använda `Dispatchers.IO` direkt.
 
 ## Compose (android:compose-expert)
 

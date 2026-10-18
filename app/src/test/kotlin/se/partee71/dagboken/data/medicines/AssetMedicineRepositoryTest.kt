@@ -4,6 +4,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,7 +19,7 @@ import se.partee71.dagboken.core.model.MedicineForm
 @RunWith(RobolectricTestRunner::class)
 class AssetMedicineRepositoryTest {
 
-    private val repository = AssetMedicineRepository(RuntimeEnvironment.getApplication())
+    private val repository = AssetMedicineRepository(RuntimeEnvironment.getApplication(), UnconfinedTestDispatcher())
 
     @Test
     fun `den inbyggda listan läses med datum, tusentals läkemedel och sökbara namn`() = runTest {
@@ -42,7 +43,7 @@ class AssetMedicineRepositoryTest {
         }
         assertEquals(kotlinx.datetime.LocalDate.parse(header), repository.updated().also { assertNotNull(it) })
         var calls = 0
-        val flaky = AssetMedicineRepository {
+        val flaky = AssetMedicineRepository(UnconfinedTestDispatcher()) {
             if (calls++ == 0) throw java.io.IOException("trasig") else "# updated 2026-10-04\nAlvedon\t500 mg\tTablett\n".byteInputStream()
         }
         assertTrue(flaky.catalog().entries.isEmpty(), "första försöket ger en tom lista")
@@ -51,7 +52,7 @@ class AssetMedicineRepositoryTest {
         assertEquals(2, calls)
 
         var reads = 0
-        val counted = AssetMedicineRepository { reads++; "Alvedon\t500 mg\tTablett\n".byteInputStream() }
+        val counted = AssetMedicineRepository(UnconfinedTestDispatcher()) { reads++; "Alvedon\t500 mg\tTablett\n".byteInputStream() }
         assertEquals(null, counted.updated())
         assertEquals(null, counted.updated())
         assertEquals(1, reads, "ett läst datum (även null) cachas")

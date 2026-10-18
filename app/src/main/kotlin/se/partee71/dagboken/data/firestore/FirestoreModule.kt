@@ -9,11 +9,13 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineDispatcher
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.common.LocalCacheCleaner
 import se.partee71.dagboken.data.common.SyncStatus
 import se.partee71.dagboken.data.common.UserVersionSource
 import se.partee71.dagboken.data.user.UserDirectory
+import se.partee71.dagboken.di.IoDispatcher
 
 /** Firestore-instansen och det som bygger på den. Ligger här – `FirebaseFirestore` får inte finnas utanför `data/firestore`. */
 @Module
@@ -50,7 +52,7 @@ abstract class FirestoreModule {
         /** Samma inställningar även för instansen som skapas efter att cachen tömts. */
         @Provides
         @Singleton
-        fun firestore(): FirestoreInstance = FirestoreInstance {
+        fun firestore(@IoDispatcher io: CoroutineDispatcher): FirestoreInstance = FirestoreInstance(io) {
             FirebaseFirestore.getInstance().apply {
                 firestoreSettings = firestoreSettings {
                     setLocalCacheSettings(persistentCacheSettings { setSizeBytes(CACHE_BYTES) })

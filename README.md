@@ -259,6 +259,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.1.2 | Intern: coroutine-dispatchers injiceras från `di/DispatchersModule`, och bygget och hooken stoppar `Dispatchers.` utanför `di/`. Ingen synlig ändring. |
 | 4.1.1 | **Känslohjulet: första nivån räcker.** Ett tryck på en kärnkänsla i hjulet väljer den direkt ("Lugn"); navet är bara visning, och slår man av nyansen igen står kärnan kvar (#325). |
 | 4.1.0 | **Känslor i måendearket.** Måendearket får steget Känslor mellan Energi och Stress: Willcox känslohjul med sex kärnkänslor, nyanser i rader och precisare ord som chips – ord, inte tal, flera eller inget val, högst sex per logg (#318). **Doserna följer klockslagen i Påminnelser** – dosgenerering, förfallotid, sortering, Nästa dos och avbockning i efterhand använder tidpunktens inställda klockslag (#314). **Mående-kortet på Idag** visar ologgade tillfällen under Kvar idag och loggade under Loggat, med bocken först på raden (#316). |
 | 4.0.2 | **Dagens doser kommer när nätet är tillbaka.** Startades appen utan nät visade Idag inga doser för dagen, och de dök inte upp förrän nästa dag. Nu skapas dagens doser så snart nätet är tillbaka, och Mediciner-kortet säger "Doser saknas" under tiden (#312). Läkemedelslistan är uppdaterad till 2026-10-14. |
