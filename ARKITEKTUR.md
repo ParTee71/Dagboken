@@ -610,19 +610,20 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
   (ui/diagram-reglerna, TRD-6…18 – byggd i etapp 4.3).
 - **Pensioneras:** `room-migrations`, `android-data-layer`.
 - **Agenter** (`.claude/agents/`, läggs i etapp 1-PR:en) med modell och effort i frontmatter, så
-  att huvudsessionen kan delegera varje steg till rätt nivå utan att själv byta modell:
+  att huvudsessionen kan delegera varje steg till rätt nivå:
 
   | Agent | Modell · effort | Används för |
   |---|---|---|
   | `byggare` (ny) | Opus 5.5 · medium | portar, komponenter, skärmar på ramarna, CI-filer |
-  | `arkitekt` (ny) | Fable 5.1 · high | datamodell, codecs, konverterare, rules, migrering |
+  | `arkitekt` (ny) | Opus 5.5 · high (Fable 5.1 vid väldigt komplexa issues) | datamodell, codecs, konverterare, rules, migrering |
   | `testskrivare` | Sonnet 5.5 · medium | tester på tre eller fler nivåer, fixturer |
   | `granskare` | sessionens modell · medium | diffen mot reglerna före varje PR – inte svagare än modellen som skrev koden |
   | `ci-doktor` | Sonnet 5.5 · medium | röd CI, loggar, skärmdumpsdiffar |
   | `db-inspektor` | Haiku 4.5 · low | läsfrågor mot Firestore via `tools/db` |
 
   Regel: går ett steg fel två gånger i rad flyttas det upp en nivå (`byggare` → `arkitekt`,
-  Sonnet → Opus). Huvudsessionen orkestrerar och granskar; den byter aldrig modell själv.
+  Sonnet → Opus). Huvudsessionen orkestrerar och granskar; modellen väljs efter uppgiften
+  (`.claude/README.md` → Modellval).
 - **Kravlistan** behåller sina ID-serier; 3.x-lydelser som ändras står kvar strukna med
   hänvisning. NFR-15–18 (kort- och radstandarden) är mer genomarbetade än ReseApotekets och
   behålls som de är.

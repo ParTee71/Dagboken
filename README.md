@@ -115,7 +115,7 @@ och läsa databasen – utan att nycklar någonsin klistras in i chatten.
   `local.properties`; plattform och build-tools hämtar Gradle själv. Det körs inte
   automatiskt (cirka 470 MB); lägg det i miljöns setup-skript eller be Claude köra det.
 - Hookarna hittar repot både när det är sessionens projektrot och när sessionen har flera
-  repon under en gemensam katalog; Stop-hooken kontrollerar då varje repo.
+  repon under en gemensam katalog; Stop-hooken kontrollerar då varje repo med dess egen hook.
 
 ### Det du ställer in i Claude-miljön (en gång)
 Görs i Claude-appen: miljömenyn i sessionens titelrad → **Edit**. Nya inställningar gäller

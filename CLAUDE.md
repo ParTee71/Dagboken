@@ -144,8 +144,8 @@ rapporterar i en tabell (skill **implement-issue**, steg 8).
 - **Delegera på rätt nivå** (ARKITEKTUR.md → Agenter): huvudsessionen orkestrerar och granskar;
   agenten `byggare` tar portar, komponenter, skärmar och CI-filer, agenten `arkitekt` datamodell,
   codecs, konverteraren, rules och migrering. Går ett steg fel två gånger i rad flyttas det upp en nivå.
-- **Varje issue anger Agent · modell · effort** (skill **refine-issue**), och agenten körs med just
-  den modellen och effort (skill **implement-issue**). Ett issue utan det är inte färdigförfinat.
+- **Modell efter uppgift** för sessionen och varje agent, Opus som standard ([.claude/README.md](.claude/README.md)
+  → Modellval). Varje issue anger **Agent · modell · effort** (skill **refine-issue**) och körs så.
 
 ## Bygg & test
 
