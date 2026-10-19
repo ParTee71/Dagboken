@@ -50,7 +50,7 @@ import se.partee71.dagboken.core.engine.PrnCheck
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.asNeededChoices
 import se.partee71.dagboken.core.engine.checkOffTime
-import se.partee71.dagboken.core.engine.computeFeelingStats
+import se.partee71.dagboken.core.engine.computeFeelingDay
 import se.partee71.dagboken.core.engine.dailyEnergyAverages
 import se.partee71.dagboken.core.engine.datesWithEntries
 import se.partee71.dagboken.core.engine.dayComparison
@@ -457,9 +457,9 @@ class TodayViewModel @Inject constructor(
             energyDays = energyDays.toImmutableList(),
             energy = dailyEnergyAverages(entries.screenings, energyDays).toImmutableList(),
             missingCause = missingCause,
-            // HEM-21: samma räkning som Trenders kort Känslor (`computeFeelingStats`), men bara över den visade dagens
-            // måendeloggar – Idag läser inga aktiviteter (NFR-24).
-            feelings = computeFeelingStats(entries.screenings.filter { it.date == date }.mapNotNull { it.feelingEntry() }).day(date).takeUnless { it.isEmpty }
+            // HEM-21: samma dag som Trenders kort Känslor räknar (`computeFeelingDay`, utan periodens del), men bara ur den
+            // visade dagens måendeloggar – Idag läser inga aktiviteter (NFR-24).
+            feelings = computeFeelingDay(entries.screenings.mapNotNull { it.feelingEntry() }, date).takeUnless { it.isEmpty }
         )
     }
 

@@ -129,6 +129,33 @@ class FeelingStatsTest {
         assertEquals(FeelingRole("glad"), thirdBehind.little)
     }
 
+    @Test fun `lika många på tredje och fjärde plats - ingen lite`() {
+        val tiedTop = computeFeelingStats(listOf(entry("glad", "glad", "glad", "calm", "calm", "calm", "sad", "sad", "scared", "scared"))).summary
+        assertEquals(listOf("glad", "calm"), tiedTop.most.map { it.core })
+        assertNull(tiedTop.little, "ledsen och rädd lika många: ingen av dem är lite")
+        val tiedBelow = computeFeelingStats(listOf(entry("glad", "glad", "glad", "calm", "calm", "sad", "scared"))).summary
+        assertEquals(listOf("glad", "calm"), tiedBelow.most.map { it.core })
+        assertNull(tiedBelow.little, "ledsen och rädd lika många: ingen av dem är lite")
+        assertEquals(4, tiedBelow.coreCount)
+    }
+
+    @Test fun `sole härleds - en handbyggd struktur kan inte motsäga sig`() {
+        assertTrue(FeelingSummary(listOf(FeelingRole("calm")), null, emptyList(), coreCount = 1).sole)
+        assertFalse(FeelingSummary(listOf(FeelingRole("calm"), FeelingRole("glad")), null, emptyList(), coreCount = 1).sole, "två mest")
+        assertFalse(FeelingSummary(listOf(FeelingRole("calm")), FeelingRole("glad"), emptyList(), coreCount = 1).sole, "en lite")
+        assertFalse(FeelingSummary(listOf(FeelingRole("sad")), null, emptyList(), coreCount = 3).sole, "fler kärnor valdes")
+        assertFalse(FeelingSummary.EMPTY.sole)
+    }
+
+    @Test fun `en dag utan periodens räkning - samma dag som i sammanställningen`() {
+        val other = LocalDate(2026, 10, 13)
+        val entries = listOf(entry("calm", "glad"), entry("sad.tired", date = other), entry("calm.grateful", occasion = Occasion.LUNCH))
+        assertEquals(computeFeelingStats(entries).day(day), computeFeelingDay(entries, day))
+        assertEquals(computeFeelingStats(entries).day(other), computeFeelingDay(entries, other))
+        assertEquals(FeelingDay.empty(LocalDate(2026, 10, 15)), computeFeelingDay(entries, LocalDate(2026, 10, 15)))
+        assertTrue(computeFeelingDay(listOf(entry(date = other)), other).isEmpty, "en post utan känslor ger en tom dag")
+    }
+
     @Test fun `ordningarna räknas en gång`() {
         val tally = computeFeelingStats(listOf(entry("sad", "calm", "calm"))).tally
         assertTrue(tally.ranked === tally.ranked)

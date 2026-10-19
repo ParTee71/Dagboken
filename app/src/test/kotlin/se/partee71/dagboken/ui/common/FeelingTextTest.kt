@@ -86,7 +86,7 @@ class FeelingTextTest {
 
     private fun roles(vararg cores: String) = cores.map { FeelingRole(it) }
 
-    private val none = FeelingSummary(emptyList(), null, emptyList())
+    private val none = FeelingSummary.EMPTY
 
     /**
      * Samma strukturer för båda meningarna: 0, 1, 2 och 3+ kärnor, med tillfälle, vana och orörda – och lika många på
@@ -94,13 +94,13 @@ class FeelingTextTest {
      */
     private val cases = listOf(
         none,
-        FeelingSummary(roles("calm"), null, emptyList(), sole = true),
-        FeelingSummary(roles("sad"), null, emptyList()),
-        FeelingSummary(roles("glad", "calm", "sad"), null, emptyList()),
-        FeelingSummary(roles("calm", "glad"), null, emptyList()),
-        FeelingSummary(roles("calm", "glad"), FeelingRole("scared", occasion = Occasion.LUNCH), emptyList()),
-        FeelingSummary(roles("calm", "glad"), FeelingRole("scared", nuance = "anxious", occasion = Occasion.BREAKFAST), listOf("strong")),
-        FeelingSummary(roles("sad", "angry"), FeelingRole("strong"), listOf("glad", "scared"))
+        FeelingSummary(roles("calm"), null, emptyList(), coreCount = 1),
+        FeelingSummary(roles("sad"), null, emptyList(), coreCount = 3),
+        FeelingSummary(roles("glad", "calm", "sad"), null, emptyList(), coreCount = 3),
+        FeelingSummary(roles("calm", "glad"), null, emptyList(), coreCount = 2),
+        FeelingSummary(roles("calm", "glad"), FeelingRole("scared", occasion = Occasion.LUNCH), emptyList(), coreCount = 3),
+        FeelingSummary(roles("calm", "glad"), FeelingRole("scared", nuance = "anxious", occasion = Occasion.BREAKFAST), listOf("strong"), coreCount = 5),
+        FeelingSummary(roles("sad", "angry"), FeelingRole("strong"), listOf("glad", "scared"), coreCount = 4)
     )
 
     @Test
@@ -141,6 +141,22 @@ class FeelingTextTest {
     fun `lika många på andra och tredje plats - bara den vanligaste nämns, ingen lite`() {
         val tie = computeFeelingStats(listOf(FeelingEntry(LocalDate(2026, 10, 14), listOf("sad", "sad", "calm", "glad").map { checkNotNull(Feeling.parse(it)) }))).summary
         assertEquals(listOf("Mest ledsen."), sentences(FeelingSentenceKind.DAY, tie))
+    }
+
+    @Test
+    fun `en handbyggd struktur som säger en kärna men har två mest kraschar inte`() {
+        assertEquals(listOf("Mest lugn och glad."), sentences(FeelingSentenceKind.DAY, FeelingSummary(roles("calm", "glad"), null, emptyList(), coreCount = 1)))
+    }
+
+    @Test
+    fun `stängda läget följer lika-antal-regeln`() {
+        val texts = mutableListOf<String>()
+        rule.setContent { cases.forEach { texts += feelingHighlights(it) } }
+        rule.waitForIdle()
+        assertEquals(
+            listOf("Inga känslor i perioden", "Mest lugn", "Mest ledsen", "Mest glad, lugn och ledsen", "Mest lugn och glad", "Mest lugn och glad", "Mest lugn och glad", "Mest ledsen och arg"),
+            texts.take(cases.size)
+        )
     }
 
     @Test

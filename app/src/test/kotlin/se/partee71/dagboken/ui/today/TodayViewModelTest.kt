@@ -993,17 +993,23 @@ class TodayViewModelTest {
                 Screening("kvall", today, LocalTime(17, 40), Occasion.DINNER, energy = 6, feelings = listOf(Feeling("calm", "grateful"), Feeling("calm"), Feeling("glad", "content"))),
                 Screening("frukost", today, LocalTime(8, 5), Occasion.BREAKFAST, energy = 7, feelings = listOf(Feeling("glad", "creative", "curious"))),
                 Screening("lunch", today, LocalTime(12, 10), Occasion.LUNCH, energy = 4, feelings = listOf(Feeling("scared", "anxious"))),
-                Screening("igar", yesterday, LocalTime(9, 0), Occasion.BREAKFAST, energy = 5)
+                Screening("igar", yesterday, LocalTime(9, 0), Occasion.BREAKFAST, energy = 5, feelings = listOf(Feeling("angry"))),
+                Screening("forrgar", LocalDate(2026, 10, 2), LocalTime(9, 0), Occasion.BREAKFAST, energy = 5)
             )
         ).getOrThrow()
         val vm = started(viewModel())
         val feelings = assertNotNull(vm.content.feelings)
+        assertEquals(0, feelings.tally.of("angry")?.count, "en annan dags känslor räknas inte")
         assertEquals(today, feelings.date)
         assertEquals(listOf("glad.creative.curious", "scared.anxious", "calm.grateful", "calm", "glad.content"), feelings.words.map { it.token }, "efter klockslag, inte i sparordning")
         assertEquals(listOf("glad", "calm"), feelings.summary.most.map { it.core })
         assertEquals(FeelingRole("scared", occasion = Occasion.LUNCH), feelings.summary.little, "den tredje med sitt tillfälle")
 
         vm.onEvent(TodayEvent.SelectDate(yesterday))
+        runCurrent()
+        assertEquals(listOf("angry"), assertNotNull(vm.content.feelings).words.map { it.token }, "gårdagens egna känslor")
+
+        vm.onEvent(TodayEvent.SelectDate(LocalDate(2026, 10, 2)))
         runCurrent()
         assertNull(vm.content.feelings, "en dag utan känslor har inget kort")
     }

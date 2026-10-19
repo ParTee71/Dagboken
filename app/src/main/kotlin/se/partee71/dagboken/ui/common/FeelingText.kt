@@ -168,7 +168,7 @@ enum class FeelingSentenceKind { DAY, PERIOD }
 /**
  * Meningen i ord ur [FeelingSummary] (`computeFeelingStats`, #320) – inga tal. [FeelingSentenceKind.DAY] (Idag): "Mest lugn
  * och glad. Lite rädd vid lunch." – kärnorna i gemener, den tredje med sitt tillfälle när alla dess val hör till ett; bara
- * en vald kärna ([FeelingSummary.sole]) ger "Lugn.".
+ * en vald kärna ([FeelingSummary.sole], härledd – en handbyggd struktur kan inte motsäga sig) ger "Lugn.".
  * [FeelingSentenceKind.PERIOD] (Trender): "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig.
  * Stark har du knappt rört." Inga val ger "Inga känslor loggade." – också minihjulets beskrivning för en tom dag.
  */
@@ -183,8 +183,9 @@ fun feelingSentence(summary: FeelingSummary, kind: FeelingSentenceKind): String 
 }
 
 /**
- * De (upp till) två vanligaste kärnorna i ord, utan tal: "Mest lugn och glad" – Trenders kort Känslor i stängt läge
- * (TRD-14, TRD-22). Inga val ger "Inga känslor i perioden".
+ * De vanligaste kärnorna ([FeelingSummary.most]) i ord, utan tal: "Mest lugn och glad" – Trenders kort Känslor i stängt
+ * läge (TRD-14, TRD-22). Normalt två; vid lika antal samma regel som meningen – alla som delar förstaplatsen, eller bara
+ * den vanligaste när andra platsen delas med tredje ("Mest ledsen"). Inga val ger "Inga känslor i perioden".
  */
 @Composable
 @ReadOnlyComposable

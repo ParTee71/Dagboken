@@ -689,6 +689,24 @@ class TrendsViewModelTest {
     }
 
     @Test
+    fun `ett utfällt Känslor-kort börjar utan vald dag – ihopfällning nollställer, ett annat kort inte (TRD-22)`() = runTest(main.dispatcher) {
+        val vm = feelingsWeek()
+        vm.onEvent(TrendsEvent.SelectFeelingDay(day(3)))
+        vm.onEvent(TrendsEvent.Toggle(TrendCard.ENERGY_DAY))
+        runCurrent()
+        assertEquals(day(3), vm.state.value.feelingDay, "ett annat kort rör inte valet")
+        vm.onEvent(TrendsEvent.Toggle(TrendCard.FEELINGS))
+        runCurrent()
+        assertNull(vm.state.value.feelingDay, "ihopfällt")
+        vm.onEvent(TrendsEvent.Toggle(TrendCard.FEELINGS))
+        runCurrent()
+        assertNull(vm.state.value.feelingDay, "utfällt igen utan vald dag")
+        vm.onEvent(TrendsEvent.SelectFeelingDay(day(3)))
+        runCurrent()
+        assertEquals(day(3), vm.state.value.feelingDay, "samma dag väljs på nytt med ett tryck")
+    }
+
+    @Test
     fun `den valda dagen nollställs när den fallit ur veckan vid midnatt (TRD-22)`() = runTest(main.dispatcher) {
         val vm = feelingsWeek()
         vm.onEvent(TrendsEvent.SelectFeelingDay(day(6)))

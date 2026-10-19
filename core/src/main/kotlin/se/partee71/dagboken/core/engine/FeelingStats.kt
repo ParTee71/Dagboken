@@ -79,19 +79,24 @@ data class FeelingTally(val total: Int, val cores: List<CoreCount>) {
 data class FeelingRole(val core: String, val nuance: String? = null, val occasion: Occasion? = null)
 
 /**
- * Meningens struktur: [most] är de (upp till) två vanligaste kärnorna, [little] den tredje, [untouched] kärnorna utan val
+ * Meningens struktur: [most] är de vanligaste kärnorna (normalt två), [little] den tredje, [untouched] kärnorna utan val
  * när perioden har minst [MIN_PICKS_FOR_UNTOUCHED] val – och bara när de är högst [MAX_UNTOUCHED] (annars säger "mest"
  * redan allt). Meningen påstår ingen skillnad som inte finns: har tredje kärnan lika många val som andra nämns ingen av dem
  * – [most] är då bara den vanligaste ("Mest ledsen.") och [little] `null`; har de tre vanligaste lika många är [most]
- * alla som delar förstaplatsen ("Mest glad, lugn och ledsen."). [sole] när bara en kärna valts – Idag säger då bara
- * kärnan ("Lugn."). Idag använder [most] och [little] med tillfälle, Trender [most], [little] med nyans och [untouched].
+ * alla som delar förstaplatsen ("Mest glad, lugn och ledsen."); och har tredje kärnan lika många som fjärde är [little]
+ * `null` (ingen "lite" som bara råkar komma först i hjulets ordning). [coreCount] är antalet kärnor med minst ett val;
+ * [sole] härleds ur det – bara en kärna valts – och Idag säger då bara kärnan ("Lugn."). Idag använder [most] och [little]
+ * med tillfälle, Trender [most], [little] med nyans och [untouched].
  */
-data class FeelingSummary(val most: List<FeelingRole>, val little: FeelingRole?, val untouched: List<String>, val sole: Boolean = false) {
+data class FeelingSummary(val most: List<FeelingRole>, val little: FeelingRole?, val untouched: List<String>, val coreCount: Int) {
     val isEmpty: Boolean get() = most.isEmpty()
+
+    /** Bara en kärna valts – och strukturen säger detsamma (en "mest", ingen "lite"), så en handbyggd struktur kan inte motsäga sig. */
+    val sole: Boolean get() = coreCount == 1 && most.size == 1 && little == null
 
     companion object {
         /** Inga val: ingen mening. */
-        val EMPTY: FeelingSummary = FeelingSummary(emptyList(), null, emptyList())
+        val EMPTY: FeelingSummary = FeelingSummary(emptyList(), null, emptyList(), coreCount = 0)
     }
 }
 
@@ -120,8 +125,8 @@ data class FeelingStats(val tally: FeelingTally, val summary: FeelingSummary, va
         return dates.map { byDate[it] ?: FeelingDay.empty(it) }
     }
 
-    /** [date]s dag – [FeelingDay.empty] utan poster den dagen. */
-    fun day(date: LocalDate): FeelingDay = alignTo(listOf(date)).single()
+    /** [date]s dag – [FeelingDay.empty] utan poster den dagen. Ett uppslag i [days]. */
+    fun day(date: LocalDate): FeelingDay = days.firstOrNull { it.date == date } ?: FeelingDay.empty(date)
 }
 
 /**
@@ -129,13 +134,25 @@ data class FeelingStats(val tally: FeelingTally, val summary: FeelingSummary, va
  * och grupperar dem per dag en gång: varje dags räkning, mening och ord i tidsordning.
  */
 fun computeFeelingStats(entries: List<FeelingEntry>): FeelingStats {
+    val days = entries.groupBy { it.date }.entries.sortedBy { it.key }.map { (date, ofDay) -> feelingDay(date, ofDay) }
     val tally = tally(entries)
-    val days = entries.groupBy { it.date }.entries.sortedBy { it.key }.map { (date, ofDay) ->
-        val inOrder = ofDay.sortedWith(compareBy(nullsLast()) { it.time })
-        val dayTally = tally(inOrder)
-        FeelingDay(date, dayTally, summaryOf(dayTally, inOrder), inOrder.flatMap { it.feelings }.distinct())
-    }
     return FeelingStats(tally, summaryOf(tally, entries), days)
+}
+
+/**
+ * Bara [date]s dag ur [entries] (poster andra dagar räknas inte) – Idags kort Dagens känslor, utan periodens räkning.
+ * Samma dag som [computeFeelingStats] ger i [FeelingStats.days]; utan poster [FeelingDay.empty].
+ */
+fun computeFeelingDay(entries: List<FeelingEntry>, date: LocalDate): FeelingDay {
+    val ofDay = entries.filter { it.date == date }
+    return if (ofDay.isEmpty()) FeelingDay.empty(date) else feelingDay(date, ofDay)
+}
+
+/** En dags räkning, mening och ord i tidsordning (poster utan klockslag sist, varje ord en gång). */
+private fun feelingDay(date: LocalDate, ofDay: List<FeelingEntry>): FeelingDay {
+    val inOrder = ofDay.sortedWith(compareBy(nullsLast()) { it.time })
+    val dayTally = tally(inOrder)
+    return FeelingDay(date, dayTally, summaryOf(dayTally, inOrder), inOrder.flatMap { it.feelings }.distinct())
 }
 
 private fun tally(entries: List<FeelingEntry>): FeelingTally {
@@ -156,16 +173,16 @@ private fun tally(entries: List<FeelingEntry>): FeelingTally {
 private fun summaryOf(tally: FeelingTally, entries: List<FeelingEntry>): FeelingSummary {
     val ranked = tally.ranked
     // Lika många på tredje som på andra plats: varken andra eller tredje nämns (ingen påhittad skillnad), och delar alla
-    // tre förstaplatsen är "mest" alla som delar den.
+    // tre förstaplatsen är "mest" alla som delar den. "Lite" bara när tredje platsen har fler val än fjärde.
     val tiedAtCut = ranked.size > MOST && ranked[MOST].count == ranked[MOST - 1].count
     val most = if (tiedAtCut) ranked.filter { it.count == ranked.first().count } else ranked.take(MOST)
-    val little = ranked.getOrNull(MOST).takeIf { !tiedAtCut }
+    val little = ranked.getOrNull(MOST)?.takeIf { third -> !tiedAtCut && third.count > (ranked.getOrNull(MOST + 1)?.count ?: 0) }
     val untouched = if (tally.total >= MIN_PICKS_FOR_UNTOUCHED) tally.cores.filter { it.count == 0 }.map { it.core } else emptyList()
     return FeelingSummary(
         most.map { role(it, entries) },
         little?.let { role(it, entries) },
         untouched.takeIf { it.size <= MAX_UNTOUCHED }.orEmpty(),
-        sole = ranked.size == 1
+        coreCount = ranked.size
     )
 }
 

@@ -137,7 +137,7 @@ class FeelingVisualsTest {
     }
 
     @Test
-    fun `veckoraden - en flik per dag med datum och dagens mening, vald läses vald, tryck ger dagen`() {
+    fun `veckoraden - en flik per dag med datum och dagens mening, vald som flikens val, tryck ger dagen`() {
         val chosen = mutableListOf<LocalDate>()
         val sunday = GalleryFeelings.week.last().date
         show { FeelingWeekRow(GalleryFeelings.week, sunday, { chosen += it }) }
@@ -146,7 +146,7 @@ class FeelingVisualsTest {
         assertTrue(tabs.all { it.size.height >= with(rule.density) { TOUCH_TARGET.roundToPx() } }, "minst 48 dp hög")
         val selected = rule.onNode(hasContentDescription("söndag 18 oktober: ", substring = true))
         selected.assertIsSelected()
-        selected.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "vald"))
+        selected.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription)) { "fliken läser valet själv, som datumremsans dagar" }
         val wednesday = rule.onNodeWithContentDescription("onsdag 14 oktober: Inga känslor loggade.")
         wednesday.assertIsNotSelected()
         wednesday.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))

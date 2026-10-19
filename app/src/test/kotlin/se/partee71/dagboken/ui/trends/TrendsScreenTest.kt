@@ -10,6 +10,8 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isNotSelected
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -491,8 +493,8 @@ class TrendsScreenTest {
         list.performScrollToNode(hasText("Rädd › Orolig"))
         listOf("Glad › Kreativ › Nyfiken", "Lugn › Avslappnad", "Rädd › Orolig").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
         rule.onNodeWithText("Tryck på en dag för orden.").assertDoesNotExist()
-        rule.onNode(hasContentDescription("tisdag 6 oktober", substring = true) and SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "vald")).assertExists()
-        rule.onNode(hasContentDescription("måndag 5 oktober", substring = true) and SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription)).assertExists()
+        rule.onNode(hasContentDescription("tisdag 6 oktober", substring = true) and isSelected()).assertExists()
+        rule.onNode(hasContentDescription("måndag 5 oktober", substring = true) and isNotSelected()).assertExists()
     }
 
     @Test

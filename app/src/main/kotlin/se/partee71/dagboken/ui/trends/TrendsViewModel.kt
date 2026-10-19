@@ -477,7 +477,11 @@ class TrendsViewModel @Inject constructor(
         when (event) {
             is TrendsEvent.ShowGroup -> group.value = event.group
 
-            is TrendsEvent.Toggle -> update(event.card) { it.copy(expanded = !it.expanded) }
+            is TrendsEvent.Toggle -> {
+                update(event.card) { it.copy(expanded = !it.expanded) }
+                // Ett utfällt Känslor-kort börjar alltid utan vald dag (TRD-22).
+                if (event.card == TrendCard.FEELINGS) feelingDay.value = null
+            }
 
             is TrendsEvent.SetRange -> {
                 update(event.card) { it.copy(range = event.range) }
@@ -489,7 +493,8 @@ class TrendsViewModel @Inject constructor(
 
             is TrendsEvent.ToggleSeries -> update(event.card) { it.copy(selected = if (event.key in it.selected) it.selected - event.key else it.selected + event.key) }
 
-            is TrendsEvent.SelectFeelingDay -> feelingDay.value = event.date.takeUnless { it == feelingDay.value }
+            // Toggeln utgår från valet som visas: en dag som fallit ur veckan räknas inte som vald (TRD-22).
+            is TrendsEvent.SelectFeelingDay -> feelingDay.value = event.date.takeUnless { it == state.value.feelingDay }
         }
     }
 
