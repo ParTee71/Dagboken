@@ -29,12 +29,10 @@ import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Slot
-import se.partee71.dagboken.core.schema.ActivityCodec
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.common.DailyGate
 import se.partee71.dagboken.data.common.MemoryDayMarks
-import se.partee71.dagboken.data.common.cachedDates
 import se.partee71.dagboken.data.health.FakeHealthPermissions
 import se.partee71.dagboken.data.health.FakeHealthRepository
 import se.partee71.dagboken.data.repository.DefaultActivityRepository
@@ -208,26 +206,11 @@ class ReadBudgetTest {
     }
 
     @Test
-    fun `en ny aktivitet läser förvalen ur cachen – ingenting debiteras när året är täckt (AKT-12, NFR-24)`() = runTest(main.dispatcher) {
+    fun `en ny aktivitet läser ingenting (AKT-12, NFR-24)`() = runTest(main.dispatcher) {
         seed()
-        visit(diaryVm().state)
-        val gap = reads.let { start ->
-            activities.new(today, LocalTime(18, 0), today = today)
-            reads - start
-        }
-        val before = reads
-        val new = activities.new(today, LocalTime(18, 0), today = today)
-        val prefill = reads - before
-        val listened = reads.let { start ->
-            factory.activities().cachedDates(ActivityCodec.DATE, today.minus(365, DateTimeUnit.DAY), today)
-            reads - start
-        }
-
-        assertTrue(new.minutes == 30, "förvalen kommer med (tidsåtgången från den senaste aktiviteten)")
-        // Förvalen söker 365 dagar bakåt, Dagbokens år börjar en dag senare: den dagen hämtas en gång (en läsning).
-        assertTrue(gap <= 1L, "första nya aktiviteten efter Dagbok: $gap läsningar – bara dagen före Dagbokens år")
-        assertTrue(prefill == 0L, "ny aktivitet: $prefill läsningar – året är täckt")
-        assertTrue(listened >= 60, "före #309 kunde varje ny aktivitet kosta året: $listened")
+        val start = reads
+        activities.new(today, LocalTime(18, 0))
+        assertTrue(reads == start, "ny aktivitet: ${reads - start} läsningar – inga förval att läsa")
     }
 
     private companion object {

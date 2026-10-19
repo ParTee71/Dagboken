@@ -4,10 +4,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -20,8 +17,6 @@ import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.IllnessEpisode
-import se.partee71.dagboken.core.model.Option
-import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.core.schema.ActivityCodec
@@ -30,11 +25,6 @@ import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.core.schema.EventCodec
 import se.partee71.dagboken.data.FakeCollectionFactory
 import se.partee71.dagboken.data.FixedClock
-import se.partee71.dagboken.data.TestUserScope
-import se.partee71.dagboken.data.common.CollectionFactory
-import se.partee71.dagboken.data.common.DataError
-import se.partee71.dagboken.data.common.EntityCollection
-import se.partee71.dagboken.data.common.historyOnce
 import se.partee71.dagboken.data.firestore.Paths
 
 /**
@@ -120,47 +110,19 @@ class DiaryRepositoriesTest {
 
     private val uid: String get() = factory.scope.uid.value!!
 
-    /** Två aktiviteter det senaste året (den senaste: "work", 90 min) och en dagen före årets början. */
-    private suspend fun seedRecentActivities() {
-        factory.activities().batch(
-            listOf(
-                Activity("äldst", LocalDate(2026, 10, 1), LocalTime(9, 0), optionId = "walk", minutes = 30),
-                Activity("senast", LocalDate(2026, 10, 5), LocalTime(18, 0), optionId = "work", minutes = 90, energy = 5, note = "Möte"),
-                Activity("förra året", LocalDate(2025, 10, 5), optionId = "gym", minutes = 60)
-            )
-        ).getOrThrow()
-    }
-
     @Test
-    fun `en ny aktivitet får id och skapandetid en gång och den senaste aktivitetens typ och tidsåtgång (AKT-12)`() = runTest {
-        seedRecentActivities()
+    fun `en ny aktivitet får id och skapandetid en gång och inga värden från förra aktiviteten (AKT-12)`() = runTest {
+        factory.activities().upsert(Activity("förra", LocalDate(2026, 10, 5), LocalTime(18, 0), optionId = "work", minutes = 90, energy = 5, note = "Möte")).getOrThrow()
         factory.store.online = false
-        val new = activities.new(day, LocalTime(10, 15), today = day)
-        assertEquals(Activity(new.id, day, LocalTime(10, 15), optionId = "work", minutes = 90, createdAt = clock.now()), new, "bara typ och tidsåtgång")
+        val new = activities.new(day, LocalTime(10, 15))
+        assertEquals(Activity(new.id, day, LocalTime(10, 15), createdAt = clock.now()), new, "bara dag, tid, id och skapandetid")
         assertTrue(new.id.isNotEmpty())
         assertNull(factory.activities().get(new.id).getOrThrow(), "inget sparas förrän formuläret sparas")
-        assertEquals(Activity("x", day, createdAt = clock.now()), activities.new(day, LocalTime(0, 0), today = LocalDate(2024, 1, 1)).copy(id = "x", time = null), "utan tidigare aktivitet: inga förval")
-    }
-
-    @Test
-    fun `förvalen läses i historikläget – samma förval, ur cachen och utan debitering när året är täckt (AKT-12, NFR-24)`() = runTest {
-        seedRecentActivities()
-        factory.store.clearCache()
-        val expected = Activity("x", day, LocalTime(10, 15), optionId = "work", minutes = 90, createdAt = clock.now())
-
-        // Den första läser det cachen har; året hämtas samtidigt en gång (i fejken hinner hämtningen före cachesvaret).
-        activities.new(day, LocalTime(10, 15), today = day)
-        val fetched = factory.store.reads.get()
-        val again = activities.new(day, LocalTime(10, 15), today = day).copy(id = "x")
-
-        assertEquals(2L, fetched, "året hämtat en gång (två aktiviteter), inte posten utanför året")
-        assertEquals(expected, again, "samma förval som förut, ur cachen")
-        assertEquals(fetched, factory.store.reads.get(), "en ny aktivitet debiterar ingenting när året är täckt")
     }
 
     @Test
     fun `aktivitet och händelse med alla fält ifyllda sparas, godtas av rules och läses tillbaka lika (regel 1)`() = runTest {
-        val activity = activities.new(day, LocalTime(17, 0), today = day).copy(
+        val activity = activities.new(day, LocalTime(17, 0)).copy(
             optionId = OTHER_ACTIVITY_ID, customText = "Svamplockning", energy = -2, stress = 1,
             symptoms = listOf(SymptomScore("symptom-huvudvark-d55e7d", 1), SymptomScore("symptom-ovrigt-c067e8", 5, "Myggbett")),
             recovering = true, drain = true, minutes = 45, note = "Regn hela vägen"
@@ -210,47 +172,5 @@ class DiaryRepositoriesTest {
         events.delete("e1").getOrThrow()
         events.save(event, event.copy(severity = 1))
         assertNull(factory.store.read(Paths.events(uid), "e1"), "en raderad händelse återuppstår inte")
-    }
-
-    @Test
-    fun `fallerar historikläsningen blir det inget svar och en ny aktivitet utan förval – direkt, utan att vänta (AKT-12)`() = runTest {
-        seedRecentActivities()
-        val failing = object : EntityCollection<Activity> by factory.activities() {
-            override fun observeHistory(field: String, from: LocalDate, to: LocalDate): Flow<List<Activity>> = flow { throw DataError.Unknown }
-        }
-        val broken = object : CollectionFactory by factory {
-            override fun activities(): EntityCollection<Activity> = failing
-        }
-        val start = testScheduler.currentTime
-        assertNull(failing.historyOnce(ActivityCodec.DATE, before, day, ActivityRepository.PREFILL_WAIT), "ett fel (inte Offline) ger null")
-        val new = DefaultActivityRepository(broken, clock).new(day, LocalTime(10, 0), today = day)
-        assertEquals(Activity(new.id, day, LocalTime(10, 0), createdAt = clock.now()), new)
-        assertEquals(0L, testScheduler.currentTime - start, "ett fel väntar inte ut tidsgränsen")
-    }
-
-    @Test
-    fun `utloggad blir det inget svar och en ny aktivitet utan förval (AKT-12)`() = runTest {
-        seedRecentActivities()
-        (factory.scope as TestUserScope).uid.value = null
-        assertNull(factory.activities().historyOnce(ActivityCodec.DATE, before, day, ActivityRepository.PREFILL_WAIT))
-        val new = activities.new(day, LocalTime(10, 0), today = day)
-        assertEquals(Activity(new.id, day, LocalTime(10, 0), createdAt = clock.now()), new)
-    }
-
-    @Test
-    fun `svarar inte cachen visas en ny aktivitet utan förval efter en kort väntan, och en arkiverad typ förifylls inte (AKT-12)`() = runTest {
-        factory.activities().upsert(Activity("förra", day, LocalTime(9, 0), optionId = "bowling", minutes = 120)).getOrThrow()
-        factory.options().upsert(Option("bowling", OptionKind.ACTIVITY, "Bowling", archived = true)).getOrThrow()
-        assertEquals(null to 120, activities.new(day, LocalTime(10, 0), today = day).let { it.optionId.ifEmpty { null } to it.minutes })
-
-        val silent = object : CollectionFactory by factory {
-            override fun activities(): EntityCollection<Activity> = object : EntityCollection<Activity> by factory.activities() {
-                override fun observeHistory(field: String, from: LocalDate, to: LocalDate): Flow<List<Activity>> = flow { awaitCancellation() }
-            }
-        }
-        val start = testScheduler.currentTime
-        val new = DefaultActivityRepository(silent, clock).new(day, LocalTime(10, 0), today = day)
-        assertEquals(Activity(new.id, day, LocalTime(10, 0), createdAt = clock.now()), new)
-        assertEquals(ActivityRepository.PREFILL_WAIT.inWholeMilliseconds, testScheduler.currentTime - start, "väntar bara den korta stunden")
     }
 }

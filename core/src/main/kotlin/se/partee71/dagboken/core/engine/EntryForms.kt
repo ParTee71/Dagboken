@@ -1,7 +1,6 @@
 package se.partee71.dagboken.core.engine
 
 import se.partee71.dagboken.core.legacy.LegacyDefaults
-import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionIds
 import se.partee71.dagboken.core.model.OptionKind
@@ -34,16 +33,4 @@ fun typeChoices(options: List<Option>, kind: OptionKind, chosen: String, otherId
     val shown = options.filter { it.kind == kind && (!it.archived || it.id == chosen) }.sortedBy { it.sortOrder }
     val more = shown.filterNot { it.favorite }.sortedBy { it.id == otherId }
     return TypeChoices(shown.filter { it.favorite }, more, otherId?.takeIf { id -> shown.none { it.id == id } })
-}
-
-/**
- * AKT-12: en ny aktivitet förifylld med den senast loggades typ (och beskrivning vid "Övrigt") och tidsåtgång –
- * den senaste i den gemensamma ordningen ([latestBy]) bland [recent]. Är typen arkiverad i [options] förifylls
- * ingen typ (den går inte att välja för en ny post), bara tidsåtgången; "Övrigt" finns alltid ([OTHER_ACTIVITY_ID]).
- * Räknas ur posterna varje gång; inget sparas.
- */
-fun Activity.prefilledFrom(recent: List<Activity>, options: List<Option> = emptyList()): Activity {
-    val last = recent.latestBy(Activity::date, Activity::time, Activity::createdAt) ?: return this
-    val archived = last.optionId != OTHER_ACTIVITY_ID && options.any { it.id == last.optionId && it.archived }
-    return if (archived) copy(minutes = last.minutes) else copy(optionId = last.optionId, customText = last.customText, minutes = last.minutes)
 }
