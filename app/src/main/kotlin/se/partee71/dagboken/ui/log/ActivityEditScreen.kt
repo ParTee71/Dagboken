@@ -89,8 +89,7 @@ private val SHOWN_ERRORS = setOf(ActivityField.TYPE, ActivityField.DESCRIPTION, 
 
 /**
  * Ny eller ändrad aktivitet (AKT-1–AKT-9, AKT-11, AKT-12; [id] = `null` för ny). En ny loggas mot [date] (den dag
- * Idag visar, `null` = idag, NAV-10) kl. nu och förifylls med den senast loggade aktivitetens typ och tidsåtgång
- * (`ActivityRepository.new`). Formuläret redigerar modellen själv, så id, skapandetid och okända fält följer med,
+ * Idag visar, `null` = idag, NAV-10) kl. nu, utan förval från tidigare aktiviteter (`ActivityRepository.new`). Formuläret redigerar modellen själv, så id, skapandetid och okända fält följer med,
  * och en ändrad skriver bara ändrade fält (`DatedRepository.save`) – [form] är det delade postformuläret.
  */
 @HiltViewModel(assistedFactory = ActivityEditViewModel.Factory::class)
@@ -110,7 +109,7 @@ class ActivityEditViewModel @AssistedInject constructor(
         placeholder = Activity(""),
         create = {
             val now = clock.nowInMinutes(zone.get())
-            activities.new(date ?: now.date, now.time, today = now.date)
+            activities.new(date ?: now.date, now.time)
         },
         clean = { loaded, value -> value.cleaned(loaded) }
     )

@@ -77,16 +77,16 @@ class LogFormsViewModelTest {
     // ── Aktivitet ─────────────────────────────────────────────────────────
 
     @Test
-    fun `en ny aktivitet loggas mot den visade dagen kl nu och förifylls med senaste typ och tidsåtgång (AKT-12, HEM-14)`() = runTest(main.dispatcher) {
-        factory.activities().upsert(Activity("förra", LocalDate(2026, 10, 4), LocalTime(9, 0), optionId = "walk", minutes = 45, energy = 4)).getOrThrow()
+    fun `en ny aktivitet loggas mot den visade dagen kl nu utan förra aktivitetens värden (AKT-12, HEM-14)`() = runTest(main.dispatcher) {
+        factory.activities().upsert(
+            Activity("förra", LocalDate(2026, 10, 4), LocalTime(9, 0), optionId = "walk", minutes = 45, energy = 4, stress = 3, recovering = true, note = "Skog")
+        ).getOrThrow()
         val vm = activityForm(date = yesterday)
         assertTrue(vm.form.isNew)
         assertEquals(yesterday, vm.value.date)
         assertEquals(LocalTime(14, 20), vm.value.time)
-        assertEquals("walk" to 45, vm.value.optionId to vm.value.minutes)
-        assertEquals(0, vm.value.energy, "bara typ och tidsåtgång förifylls")
-        assertEquals(clock.now(), vm.value.createdAt)
-        assertFalse(vm.editor.state.value.canSave, "förvalen är utgångsläget – Spara först när något ändrats (AKT-9)")
+        assertEquals(Activity(vm.value.id, yesterday, LocalTime(14, 20), createdAt = clock.now()), vm.value, "inget från förra aktiviteten")
+        assertFalse(vm.editor.state.value.canSave, "ingen typ vald (AKT-9)")
         assertEquals(today, activityForm().value.date, "utan dag: idag")
     }
 
