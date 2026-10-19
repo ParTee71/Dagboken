@@ -24,8 +24,8 @@ import se.partee71.dagboken.ui.theme.Spacing
 /**
  * Dagfliken – skelettet för en dag i en veckorad, en gång för [DateStrip]s dagar och [FeelingWeekRow]s dagar (regel 4):
  * en centrerad kolumn minst [TOUCH_TARGET] hög, klippt i [shape], med valfri [background], som är en flik
- * (`Role.Tab`) – vald när [selected], tryck ger [onClick], inte valbar när ![enabled]. [semantics] läggs efter valet:
- * dagens egen beskrivning och det som följer (tonat, inre marginal). Veckodagen skrivs med [DayTabWeekday].
+ * (`Role.Tab`) – vald när [selected], tryck ger [onClick], inte valbar när ![enabled]. [inner] läggs efter valet, innanför
+ * tryckytan: dagens egen semantik, tonat läge och inre marginal. Veckodagen skrivs med [DayTabWeekday].
  */
 @Composable
 internal fun DayTab(
@@ -35,7 +35,7 @@ internal fun DayTab(
     modifier: Modifier = Modifier,
     background: Color? = null,
     enabled: Boolean = true,
-    semantics: Modifier = Modifier,
+    inner: Modifier = Modifier,
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(Spacing.xs),
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -45,15 +45,15 @@ internal fun DayTab(
             .clip(shape)
             .then(if (background != null) Modifier.background(background) else Modifier)
             .selectable(selected = selected, enabled = enabled, role = Role.Tab, onClick = onClick)
-            .then(semantics),
+            .then(inner),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = verticalArrangement,
         content = content
     )
 }
 
-/** Dagflikens veckodag ("mån") – liten text i [color], som standard `onSurfaceVariant`, med valfri [textAlign]. */
+/** Dagflikens veckodag ("mån") – liten text i [color], som standard `onSurfaceVariant`, centrerad. */
 @Composable
-internal fun DayTabWeekday(day: LocalDate, color: Color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign: TextAlign? = null) {
-    Text(DateFormat.weekdayShort(day), style = AppTypography.caption, color = color, textAlign = textAlign, maxLines = 1)
+internal fun DayTabWeekday(day: LocalDate, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Text(DateFormat.weekdayShort(day), style = AppTypography.caption, color = color, textAlign = TextAlign.Center, maxLines = 1)
 }

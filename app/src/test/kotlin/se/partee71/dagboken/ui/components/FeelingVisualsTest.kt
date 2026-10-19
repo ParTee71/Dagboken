@@ -20,6 +20,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
@@ -31,7 +32,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,6 +47,7 @@ import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.ui.diagram.FeelingWordBars
 import se.partee71.dagboken.ui.diagram.FittingWords
 import se.partee71.dagboken.ui.theme.AppColors
+import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 import se.partee71.dagboken.ui.theme.Spacing
@@ -153,6 +157,24 @@ class FeelingVisualsTest {
         wednesday.performClick()
         assertEquals(listOf(LocalDate(2026, 10, 14)), chosen)
         assertEquals(0, rule.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Image)).fetchSemanticsNodes().size, "hjulen läses inte för sig")
+    }
+
+    @Test
+    fun `dagfliken - en flik minst 48 dp hög, inaktiv tar inget tryck, vald läses som val`() {
+        var clicks = 0
+        show {
+            Row {
+                DayTab(selected = true, onClick = { clicks++ }, shape = AppShapes.smallTile, enabled = false, modifier = Modifier.width(48.dp)) { DayTabWeekday(GalleryDay) }
+                DayTab(selected = false, onClick = { clicks++ }, shape = AppShapes.smallTile, background = AppColors.extended.card, modifier = Modifier.width(48.dp)) { DayTabWeekday(GalleryDay.plus(1, DateTimeUnit.DAY)) }
+            }
+        }
+        val tabs = rule.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
+        assertEquals(2, tabs.fetchSemanticsNodes().size)
+        assertTrue(tabs.fetchSemanticsNodes().all { it.size.height >= with(rule.density) { TOUCH_TARGET.roundToPx() } }, "minst 48 dp hög")
+        tabs[0].assertIsSelected().assertIsNotEnabled().performClick()
+        assertEquals(0, clicks, "inaktiv flik tar inget tryck")
+        tabs[1].assertIsNotSelected().performClick()
+        assertEquals(1, clicks)
     }
 
     @Test

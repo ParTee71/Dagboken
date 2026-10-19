@@ -141,7 +141,7 @@ private fun DayChip(
         modifier = modifier,
         background = if (selected) colors.primary else AppColors.extended.card,
         enabled = !future,
-        semantics = Modifier
+        inner = Modifier
             .semantics {
                 contentDescription = description
                 if (done) stateDescription = doneLabel
@@ -151,7 +151,7 @@ private fun DayChip(
         verticalArrangement = Arrangement.spacedBy(DAY_MARKER_GAP)
     ) {
         Column(Modifier.clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally) {
-            DayTabWeekday(day, color = muted, textAlign = TextAlign.Center)
+            DayTabWeekday(day, color = muted)
             Text(day.day.toString(), style = AppTypography.itemTitle, color = content, textAlign = TextAlign.Center, maxLines = 1)
         }
         Box(Modifier.size(IconSize.marker), contentAlignment = Alignment.Center) {

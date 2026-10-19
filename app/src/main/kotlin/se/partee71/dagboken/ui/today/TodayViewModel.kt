@@ -459,7 +459,7 @@ class TodayViewModel @Inject constructor(
             missingCause = missingCause,
             // HEM-21: samma dag som Trenders kort Känslor räknar (`computeFeelingDay`, utan periodens del), men bara ur den
             // visade dagens måendeloggar – Idag läser inga aktiviteter (NFR-24).
-            feelings = computeFeelingDay(entries.screenings.mapNotNull { it.feelingEntry() }, date).takeUnless { it.isEmpty }
+            feelings = computeFeelingDay(entries.screenings.filter { it.date == date }.mapNotNull { it.feelingEntry() }, date).takeUnless { it.isEmpty }
         )
     }
 

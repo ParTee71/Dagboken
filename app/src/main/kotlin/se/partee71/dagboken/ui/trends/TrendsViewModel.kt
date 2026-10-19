@@ -432,7 +432,7 @@ class TrendsViewModel @Inject constructor(
     }
 
     /**
-     * Känslor (TRD-22): samma räkning som Idags Dagens känslor (`computeFeelingStats`), men här över periodens
+     * Känslor (TRD-22): samma räkning per dag som Idags Dagens känslor (`computeFeelingDay`), men här över periodens
      * måendeloggar **och** aktiviteter (Idag bara måendeloggar, HEM-21); veckan bara i 7-dagarsläget – periodens dagar ur
      * samma gruppering per dag.
      */
@@ -494,7 +494,7 @@ class TrendsViewModel @Inject constructor(
             is TrendsEvent.ToggleSeries -> update(event.card) { it.copy(selected = if (event.key in it.selected) it.selected - event.key else it.selected + event.key) }
 
             // Toggeln utgår från valet som visas: en dag som fallit ur veckan räknas inte som vald (TRD-22).
-            is TrendsEvent.SelectFeelingDay -> feelingDay.value = event.date.takeUnless { it == state.value.feelingDay }
+            is TrendsEvent.SelectFeelingDay -> feelingDay.value = event.date.takeUnless { it == feelingDay.value }
         }
     }
 

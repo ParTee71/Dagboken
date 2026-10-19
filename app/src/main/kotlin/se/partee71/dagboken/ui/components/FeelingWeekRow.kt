@@ -38,7 +38,7 @@ private fun WeekDay(day: FeelingDay, selected: Boolean, modifier: Modifier = Mod
         onClick = onClick,
         shape = AppShapes.smallTile,
         modifier = modifier,
-        semantics = Modifier.clearAndSetSemantics { contentDescription = spoken }
+        inner = Modifier.clearAndSetSemantics { contentDescription = spoken }
     ) {
         FeelingMiniWheel(day.tally, sentence, size = FeelingWheelSize.DAY, selected = selected)
         DayTabWeekday(day.date)
