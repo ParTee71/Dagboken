@@ -288,6 +288,7 @@ private fun Diary() {
         below = { InfoPill("Idag 75 mg (+25)") },
     )
     if (deleted) Text("Raderad", style = AppTypography.itemSubtitle)
+    GalleryFeelingCards()
     var expanded by remember { mutableStateOf(true) }
     AppCard {
         Foldout("Mätvärden", expanded, { expanded = !expanded }, summary = "Energi 7 · stress 3") {
@@ -354,6 +355,8 @@ private fun Diary() {
     Label("FeelingPicker")
     var feelings by remember { mutableStateOf(GALLERY_FEELINGS) }
     AppCard { FeelingPicker(feelings, { feelings = it }) }
+    Label("FeelingPills")
+    ChipRow { FeelingPills(GALLERY_POST_FEELINGS) }
     Label("FeelingMiniWheel")
     GalleryMiniWheels()
 }
@@ -452,6 +455,8 @@ private fun Today() {
     AppCard { GalleryOccasionRows() }
     // En tidigare dag: "Ej loggad" utan varningston (HEM-4).
     AppCard { OccasionRow("Lunch", OccasionStatus.NOT_LOGGED, {}, time = "12:00") }
+    // Ett loggat tillfälle med känslor efter energi och stress (HEM-21).
+    AppCard { GalleryOccasionRowWithFeelings() }
     Label("DayDoneCard")
     DayDoneCard(6.8, 0.5, 12, play = celebrate, onConfettiFinished = { celebrate = false })
     AppButton("Fira igen", { celebrate = true }, variant = ButtonVariant.Text)
@@ -569,6 +574,43 @@ internal fun GalleryOccasionRows() {
     OccasionRow("Läggdags", OccasionStatus.UPCOMING, {}, time = "22:00")
 }
 
+/** Ett loggat tillfälle med energi, stress och två känslor (HEM-21, påhittade värden) – för galleriet och skärmdumpen. */
+@Composable
+internal fun GalleryOccasionRowWithFeelings() {
+    OccasionRow(
+        "Kvällsmat",
+        OccasionStatus.LOGGED,
+        {},
+        time = "17:40",
+        values = listOf(OccasionValue("Energi", 6), OccasionValue("Stress", 3, higherIsBetter = false)),
+        feelings = listOf(Feeling("calm", "grateful"), Feeling("glad", "content")),
+        onClick = {},
+    )
+}
+
+/** En måendelogg med två känslor och en aktivitet med fem – tre och "+2" (HIST-10, påhittade värden). */
+@Composable
+internal fun GalleryFeelingCards() {
+    DagbokenEntryCard(
+        "Efter frukost",
+        onClick = {},
+        subtitle = "${DateFormat.time(LocalTime(8, 5))} · Stress 2",
+        accent = scaleLevel(7).color,
+        status = { InfoPill("Energi 7", tone = scaleLevel(7).tone) },
+        onEdit = {},
+        feelings = listOf(Feeling("calm", "grateful"), Feeling("glad", "creative")),
+    )
+    DagbokenEntryCard(
+        "Promenad",
+        onClick = {},
+        subtitle = "${DateFormat.time(LocalTime(16, 0))} · ${durationText(30)}",
+        accent = scaleLevel(4, -10..10).color,
+        status = { InfoPill("+4", tone = scaleLevel(4, -10..10).tone) },
+        onEdit = {},
+        feelings = GALLERY_POST_FEELINGS,
+    )
+}
+
 /** Påhittade symptomalternativ för galleriet och dess skärmdumpar. */
 internal val GALLERY_SYMPTOMS = listOf(
     Option("huvudvark", OptionKind.SYMPTOM, "Huvudvärk", favorite = true),
@@ -576,6 +618,9 @@ internal val GALLERY_SYMPTOMS = listOf(
     Option("yrsel", OptionKind.SYMPTOM, "Yrsel", sortOrder = 2),
     Option("ovrigt", OptionKind.SYMPTOM, "Övrigt", sortOrder = 3),
 )
+
+/** Påhittade känslor på en post: fem, så att tre visas och resten som "+2" (HIST-10). */
+internal val GALLERY_POST_FEELINGS = listOf(Feeling("calm"), Feeling("glad", "content"), Feeling("strong"), Feeling("calm", "grateful"), Feeling("sad"))
 
 /** Påhittade valda känslor för galleriet och dess skärmdumpar – en på varje nivå (kärna, nyans, precisare ord). */
 internal val GALLERY_FEELINGS = listOf(Feeling("calm", "grateful"), Feeling("scared", "anxious", "tense"), Feeling("glad"))

@@ -196,13 +196,11 @@ private fun Details(core: String, nuance: String, selected: List<Feeling>, onCha
 @Composable
 private fun SelectedPills(selected: List<Feeling>, onRemove: (Int) -> Unit) {
     if (selected.isEmpty()) return
-    val tones = AppColors.extended.feelingTones
     ChipRow {
         selected.forEachIndexed { index, feeling ->
             val label = feelingsLabel(feeling)
-            InfoPill(
-                label,
-                colors = tones.forCore(feeling.core),
+            FeelingPill(
+                feeling,
                 onClick = { onRemove(index) },
                 trailingIcon = R.drawable.ic_close,
                 onClickLabel = stringResource(R.string.feelings_remove_format, label)

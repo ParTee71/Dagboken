@@ -43,6 +43,7 @@ import se.partee71.dagboken.core.engine.DayComparison
 import se.partee71.dagboken.core.engine.DayPart
 import se.partee71.dagboken.core.engine.DayProgress
 import se.partee71.dagboken.core.engine.DoseChecklist
+import se.partee71.dagboken.core.engine.FeelingDay
 import se.partee71.dagboken.core.engine.OccasionState
 import se.partee71.dagboken.core.engine.OngoingIllness
 import se.partee71.dagboken.core.engine.PrnCheck
@@ -59,6 +60,8 @@ import se.partee71.dagboken.core.engine.daysEnding
 import se.partee71.dagboken.core.engine.doseChecklist
 import se.partee71.dagboken.core.engine.enabledOccasions
 import se.partee71.dagboken.core.engine.ensureDoses
+import se.partee71.dagboken.core.engine.feelingDay
+import se.partee71.dagboken.core.engine.feelingEntry
 import se.partee71.dagboken.core.engine.isScheduled
 import se.partee71.dagboken.core.engine.isScheduledPrescription
 import se.partee71.dagboken.core.engine.occasionStates
@@ -193,7 +196,12 @@ data class TodayContent(
      * Varför dagens doser som recepten ger saknas efter ett misslyckat `ensureDay` – [DataError.Offline] utan nät (försöks
      * igen medan dagen visas), annars t.ex. slut på molnets kvot – eller `null` när inget saknas (HEM-10, MED-4).
      */
-    val missingCause: DataError? = null
+    val missingCause: DataError? = null,
+    /**
+     * Dagens känslor (HEM-21): räkningen, meningens struktur och orden i tidsordning ur den visade dagens måendeloggar
+     * (inga aktiviteter – ingen ny läsning), eller `null` när dagen saknar känslor – då visas inget kort.
+     */
+    val feelings: FeelingDay? = null
 ) {
     val isToday: Boolean get() = date == today
 
@@ -379,7 +387,8 @@ class TodayViewModel @Inject constructor(
         val weekEntries: Entries?,
         val energyDays: ImmutableList<LocalDate>,
         val energy: ImmutableList<Float?>,
-        val missingCause: DataError?
+        val missingCause: DataError?,
+        val feelings: FeelingDay?
     ) {
         fun at(moment: Moment, illness: Pair<IllnessEpisode, List<Checkin>>?): TodayContent = TodayContent(
             today = today,
@@ -402,7 +411,8 @@ class TodayViewModel @Inject constructor(
             energyDays = energyDays,
             energy = energy,
             illness = illness?.let { (episode, checkins) -> ongoingIllness(episode, checkins, today) },
-            missingCause = missingCause
+            missingCause = missingCause,
+            feelings = feelings
         )
     }
 
@@ -446,7 +456,9 @@ class TodayViewModel @Inject constructor(
             weekEntries = if (date == today) entries.since(today.minus(WEEK_SUMMARY_DAYS - 1, DateTimeUnit.DAY)) else null,
             energyDays = energyDays.toImmutableList(),
             energy = dailyEnergyAverages(entries.screenings, energyDays).toImmutableList(),
-            missingCause = missingCause
+            missingCause = missingCause,
+            // HEM-21: samma räkning som Trenders kort Känslor (`FeelingStats`), över den visade dagens måendeloggar.
+            feelings = feelingDay(entries.screenings.filter { it.date == date }.mapNotNull { it.feelingEntry() }, date).takeUnless { it.isEmpty }
         )
     }
 

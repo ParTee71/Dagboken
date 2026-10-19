@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
@@ -55,6 +56,8 @@ import se.partee71.dagboken.ui.theme.Spacing
  * [inactive] tonar ner en avslutad eller pausad post (inte reglaget, som ska gå att slå på igen).
  * [below] står under titel och undertext, t.ex. pills för dagens dos och period. Med [toggle] står
  * titeln på hela bredden överst och undertexten bredvid kontrollerna, så att titeln inte trycks ihop.
+ * [feelings] (måendelogg och aktivitet, HIST-10) står som pills i kärnans ton på en egen rad under titel, undertext och
+ * [below] – högst tre och därefter "+N" ([FeelingPills]); tom lista ger ingen rad.
  */
 @Composable
 fun DagbokenEntryCard(
@@ -72,7 +75,8 @@ fun DagbokenEntryCard(
     delete: DeleteAction? = null,
     inactive: Boolean = false,
     toggle: EntryToggle? = null,
-    below: (@Composable () -> Unit)? = null
+    below: (@Composable () -> Unit)? = null,
+    feelings: List<Feeling> = emptyList()
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -93,12 +97,23 @@ fun DagbokenEntryCard(
             onMenuOpenChange = { menuOpen = it },
             inactive = inactive,
             toggle = toggle,
-            below = below
+            below = withFeelings(below, feelings)
         )
     }
     if (delete == null) card(modifier) else SwipeToDelete({ confirmDelete = true }, modifier) { card(Modifier) }
     if (delete != null && confirmDelete) {
         DeleteConfirmDialog(delete) { confirmDelete = false }
+    }
+}
+
+/** [below] följt av [feelings] som pills (HIST-10); utan känslor oförändrat. */
+private fun withFeelings(below: (@Composable () -> Unit)?, feelings: List<Feeling>): (@Composable () -> Unit)? {
+    if (feelings.isEmpty()) return below
+    return {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+            below?.invoke()
+            ChipRow { FeelingPills(feelings) }
+        }
     }
 }
 

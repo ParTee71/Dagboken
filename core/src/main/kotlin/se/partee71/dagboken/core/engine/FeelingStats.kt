@@ -106,6 +106,20 @@ fun computeFeelingStats(entries: List<FeelingEntry>): FeelingStats {
     return FeelingStats(tally, summaryOf(tally, entries), days)
 }
 
+/**
+ * En dag för sig: [stats] över dagens poster och dagens [words] i tidsordning (poster utan klockslag sist, varje ord en
+ * gång) – Idags kort Dagens känslor och en dag i Trenders vecka (#320). [isEmpty] när dagen saknar känslor appen känner.
+ */
+data class FeelingDay(val date: LocalDate, val stats: FeelingStats, val words: List<Feeling>) {
+    val isEmpty: Boolean get() = stats.tally.isEmpty
+}
+
+/** [date]s känslor ur [entries] (andra dagar räknas inte) – en [FeelingDay] också för en dag utan poster. */
+fun feelingDay(entries: List<FeelingEntry>, date: LocalDate): FeelingDay {
+    val ofDay = entries.filter { it.date == date }.sortedWith(compareBy(nullsLast()) { it.time })
+    return FeelingDay(date, computeFeelingStats(ofDay), ofDay.flatMap { it.feelings }.distinct())
+}
+
 private fun tally(entries: List<FeelingEntry>): FeelingTally {
     val known = entries.flatMap { it.feelings }.filter { it.core in FeelingCatalog.cores }
     val byCore = known.groupBy { it.core }

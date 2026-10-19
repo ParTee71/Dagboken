@@ -41,6 +41,7 @@ import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.core.model.Event
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
@@ -609,5 +610,67 @@ class TrendsViewModelTest {
             assertEquals(TrendGroup.WATCH, awaitItem().group)
             assertNotNull(vm.state.value.cards[TrendCard.ENERGY_DAY])
         }
+    }
+
+    // ---- Känslor (TRD-19, TRD-22) ----
+
+    @Test
+    fun `Känslor ligger sist i Mående och räknar måendeloggar och aktiviteter i perioden, veckan bara i 7-dagarsläget (TRD-19, TRD-22)`() = runTest(main.dispatcher) {
+        assertEquals(listOf(TrendCard.ENERGY_DAY, TrendCard.ENERGY_OCCASION, TrendCard.STRESS, TrendCard.SYMPTOMS, TrendCard.EVENTS_ILLNESS, TrendCard.FEELINGS), TrendCard.inGroup(TrendGroup.MOOD))
+        factory.screenings().batch(
+            listOf(
+                Screening("f1", today, LocalTime(8, 0), Occasion.BREAKFAST, energy = 6, feelings = listOf(Feeling("calm", "grateful"))),
+                Screening("f2", day(1), LocalTime(12, 0), Occasion.LUNCH, energy = 5, feelings = listOf(Feeling("scared", "anxious"), Feeling("calm"))),
+                Screening("f3", day(20), LocalTime(9, 0), Occasion.BREAKFAST, energy = 5, feelings = listOf(Feeling("glad", "content")))
+            )
+        ).getOrThrow()
+        factory.activities().upsert(Activity("a1", today, LocalTime(7, 0), optionId = "promenad", feelings = listOf(Feeling("glad", "playful")))).getOrThrow()
+        val vm = started()
+        vm.onEvent(TrendsEvent.Toggle(TrendCard.FEELINGS))
+        runCurrent()
+        var data = assertIs<CardData.Feelings>(vm.card(TrendCard.FEELINGS).data)
+        assertEquals(30, data.days.size)
+        assertEquals(5, data.stats.tally.total)
+        assertEquals(2, data.stats.tally.of("glad")?.count, "aktivitetens känsla räknas med")
+        assertEquals(listOf("glad", "calm"), data.stats.summary.most.map { it.core }, "lika många → hjulets ordning")
+        assertTrue(data.week.isEmpty(), "veckan bara i 7-dagarsläget")
+        assertEquals(ranges(day(29)..today), screeningReads)
+        assertEquals(ranges(day(29)..today), activityReads)
+        assertFalse(vm.card(TrendCard.FEELINGS).controls.showsPrevious(TrendCard.FEELINGS), "ingen föregående period (TRD-18)")
+
+        vm.onEvent(TrendsEvent.SetRange(TrendCard.FEELINGS, TrendRange.SEVEN_DAYS))
+        runCurrent()
+        data = assertIs(vm.card(TrendCard.FEELINGS).data)
+        assertEquals(4, data.stats.tally.total, "dag 20 ligger utanför veckan")
+        assertEquals((6 downTo 0).map(::day), data.week.map { it.date })
+        assertEquals(listOf("glad.playful", "calm.grateful"), data.week.last().words.map { it.token }, "aktiviteten kl. 7 före måendeloggen kl. 8")
+        assertEquals(listOf("scared.anxious", "calm"), data.week[5].words.map { it.token })
+        assertTrue(data.week.first().isEmpty)
+    }
+
+    @Test
+    fun `en dag i veckan väljs och avmarkeras (TRD-22)`() = runTest(main.dispatcher) {
+        val vm = started()
+        assertNull(vm.state.value.feelingDay)
+        vm.onEvent(TrendsEvent.SelectFeelingDay(today))
+        runCurrent()
+        assertEquals(today, vm.state.value.feelingDay)
+        vm.onEvent(TrendsEvent.SelectFeelingDay(day(1)))
+        runCurrent()
+        assertEquals(day(1), vm.state.value.feelingDay, "en annan dag byter valet")
+        vm.onEvent(TrendsEvent.SelectFeelingDay(day(1)))
+        runCurrent()
+        assertNull(vm.state.value.feelingDay, "samma dag igen avmarkerar")
+    }
+
+    @Test
+    fun `en period utan känslor är tom – loggar utan känslor räknas inte (TRD-22)`() = runTest(main.dispatcher) {
+        seed()
+        val vm = started()
+        vm.onEvent(TrendsEvent.Toggle(TrendCard.FEELINGS))
+        runCurrent()
+        val data = assertIs<CardData.Feelings>(vm.card(TrendCard.FEELINGS).data)
+        assertTrue(data.isEmpty)
+        assertTrue(data.stats.summary.isEmpty)
     }
 }

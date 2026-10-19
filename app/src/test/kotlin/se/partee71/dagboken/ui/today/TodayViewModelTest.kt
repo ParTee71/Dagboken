@@ -30,6 +30,7 @@ import org.junit.Test
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.Due
 import se.partee71.dagboken.core.engine.EnergyTrend
+import se.partee71.dagboken.core.engine.FeelingRole
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.computeDailyEnergyStats
@@ -37,6 +38,7 @@ import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
@@ -981,5 +983,28 @@ class TodayViewModelTest {
         assertTrue(vm.state.value is DetailUiState.Content)
         assertEquals(2, vm.content.progress.total, "medicinerna visas")
         assertNull(vm.content.illness)
+    }
+
+    @Test
+    fun `Dagens känslor bara när den visade dagens måendeloggar har känslor – orden i tidsordning (HEM-21)`() = runTest(main.dispatcher) {
+        seed()
+        factory.screenings().batch(
+            listOf(
+                Screening("kvall", today, LocalTime(17, 40), Occasion.DINNER, energy = 6, feelings = listOf(Feeling("calm", "grateful"), Feeling("glad", "content"))),
+                Screening("frukost", today, LocalTime(8, 5), Occasion.BREAKFAST, energy = 7, feelings = listOf(Feeling("glad", "creative", "curious"))),
+                Screening("lunch", today, LocalTime(12, 10), Occasion.LUNCH, energy = 4, feelings = listOf(Feeling("scared", "anxious"))),
+                Screening("igar", yesterday, LocalTime(9, 0), Occasion.BREAKFAST, energy = 5)
+            )
+        ).getOrThrow()
+        val vm = started(viewModel())
+        val feelings = assertNotNull(vm.content.feelings)
+        assertEquals(today, feelings.date)
+        assertEquals(listOf("glad.creative.curious", "scared.anxious", "calm.grateful", "glad.content"), feelings.words.map { it.token }, "efter klockslag, inte i sparordning")
+        assertEquals(listOf("glad", "calm"), feelings.stats.summary.most.map { it.core })
+        assertEquals(FeelingRole("scared", occasion = Occasion.LUNCH), feelings.stats.summary.little, "den tredje med sitt tillfälle")
+
+        vm.onEvent(TodayEvent.SelectDate(yesterday))
+        runCurrent()
+        assertNull(vm.content.feelings, "en dag utan känslor har inget kort")
     }
 }

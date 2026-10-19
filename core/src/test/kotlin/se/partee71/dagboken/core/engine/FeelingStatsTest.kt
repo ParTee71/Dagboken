@@ -1,6 +1,7 @@
 package se.partee71.dagboken.core.engine
 
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
@@ -167,5 +168,30 @@ class FeelingStatsTest {
         assertEquals(FeelingEntry(day, listOf(Feeling("scared", "anxious")), LocalTime(12, 10), Occasion.LUNCH), logged.feelingEntry())
         assertNull(logged.copy(date = null).feelingEntry())
         assertEquals(FeelingEntry(day, logged.feelings, LocalTime(9, 0)), logged.toFeelingEntry(LocalTime(9, 0)), "en post utan tillfälle (aktivitet)")
+    }
+
+    @Test fun `en dag för sig - orden i tidsordning, varje ord en gång, andra dagar räknas inte`() {
+        val other = LocalDate(2026, 10, 13)
+        fun at(hour: Int?, vararg tokens: String, date: LocalDate = day) = FeelingEntry(date, tokens.map { checkNotNull(Feeling.parse(it)) }, hour?.let { LocalTime(it, 0) })
+        val entries = listOf(
+            at(18, "calm.grateful", "glad.content"),
+            at(null, "sad.tired"),
+            at(8, "glad.creative.curious"),
+            at(12, "scared.anxious", "calm.grateful"),
+            at(9, "angry", date = other)
+        )
+        val shown = feelingDay(entries, day)
+        assertEquals(day, shown.date)
+        assertEquals(
+            listOf("glad.creative.curious", "scared.anxious", "calm.grateful", "glad.content", "sad.tired"),
+            shown.words.map { it.token },
+            "efter klockslag, utan klockslag sist, ett upprepat ord en gång"
+        )
+        assertEquals(6, shown.stats.tally.total, "räkningen tar varje val, också upprepningen")
+        assertEquals(0, shown.stats.tally.of("angry")?.count, "en annan dag räknas inte")
+        assertFalse(shown.isEmpty)
+        val empty = feelingDay(entries, LocalDate(2026, 10, 15))
+        assertTrue(empty.isEmpty)
+        assertTrue(empty.words.isEmpty())
     }
 }

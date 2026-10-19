@@ -2,14 +2,17 @@ package se.partee71.dagboken.ui.today
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -24,6 +27,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.DayPart
 import se.partee71.dagboken.core.engine.Due
 import se.partee71.dagboken.core.engine.EnergyTrend
+import se.partee71.dagboken.core.engine.FeelingDay
 import se.partee71.dagboken.core.engine.OccasionState
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.core.engine.OngoingIllness
@@ -46,8 +50,10 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.Failure
+import se.partee71.dagboken.ui.common.FeelingSentenceKind
 import se.partee71.dagboken.ui.common.doseText
 import se.partee71.dagboken.ui.common.entryDeleteAction
+import se.partee71.dagboken.ui.common.feelingSentence
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.periodText
@@ -68,6 +74,8 @@ import se.partee71.dagboken.ui.components.DayDoneCard
 import se.partee71.dagboken.ui.components.DeleteConfirmDialog
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.EntityDetailScreen
+import se.partee71.dagboken.ui.components.FeelingMiniWheel
+import se.partee71.dagboken.ui.components.FeelingPill
 import se.partee71.dagboken.ui.components.GroupLabel
 import se.partee71.dagboken.ui.components.InfoPill
 import se.partee71.dagboken.ui.components.ItemRow
@@ -89,6 +97,7 @@ import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.log.LogEvent
 import se.partee71.dagboken.ui.log.OccasionStateRow
 import se.partee71.dagboken.ui.theme.AppColors
+import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
 
@@ -132,7 +141,7 @@ fun TodayRoute(
 /**
  * Fliken Idag (HEM-16) på `EntityDetailScreen` i flikläge: hälsningen och den visade dagen överst med
  * avataren (HEM-1, HEM-2, NAV-9), datumremsan (HEM-14), framstegsraden (HEM-18), i belöningsläget kortet
- * "Allt klart för idag" med konfetti (HEM-19) och sedan korten Mediciner (MED-1–3, MED-5, MED-13) och Vid
+ * "Allt klart för idag" med konfetti (HEM-19), Dagens känslor när dagens måendeloggar har känslor (HEM-21), och sedan korten Mediciner (MED-1–3, MED-5, MED-13) och Vid
  * behov (FAV-2, FAV-11) med Mående emellan (HEM-4, HEM-5), sedan pågående sjukdom (HEM-12), hälsokortet (HEM-15,
  * [health] ur `HealthTodayViewModel`, `null` = ingen klocka) och "Senaste veckan" med steg-, vilopuls- och energitrenden
  * (HEM-17, HEM-7). En söndag eller måndag står "Din vecka" överst (HEM-13). [onHealthEvent] tar hälsokortets "Ge åtkomst".
@@ -215,6 +224,7 @@ private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, lin
             onConfettiFinished = { onEvent(TodayEvent.ConfettiShown) }
         )
     }
+    content.feelings?.let { FeelingsCard(it) }
     MedicinesCard(content, onEvent)
     AsNeededCard(content, onEvent, links)
     MoodCard(content, links.onScreening)
@@ -239,6 +249,26 @@ private fun WeekSummaryCard(summary: WeekSummary) {
                 StatPill(R.drawable.ic_pill, stringResource(R.string.today_week_doses_format, percent), stringResource(R.string.today_week_doses), Modifier.weight(1f))
             }
         }
+    }
+}
+
+/**
+ * Dagens känslor (HEM-21): minihjulet till vänster – TalkBack läser meningen – med titeln och meningen i ord ("Mest lugn
+ * och glad. Lite rädd vid lunch.", samma `FeelingStats` och `feelingSentence` som Trender), under dem dagens ord i
+ * tidsordning som pills i kärnans ton. Bara visning; anroparen visar kortet bara när dagen har känslor.
+ */
+@Composable
+private fun FeelingsCard(day: FeelingDay) {
+    val sentence = feelingSentence(day.stats.summary, FeelingSentenceKind.DAY)
+    AppCard {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.m), verticalAlignment = Alignment.CenterVertically) {
+            FeelingMiniWheel(day.stats.tally, sentence)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                SectionHeader(stringResource(R.string.today_feelings_title))
+                Text(sentence, style = AppTypography.body)
+            }
+        }
+        ChipRow { day.words.forEach { FeelingPill(it) } }
     }
 }
 

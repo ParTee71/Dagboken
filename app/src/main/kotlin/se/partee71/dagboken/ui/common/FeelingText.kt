@@ -181,6 +181,17 @@ fun feelingSentence(summary: FeelingSummary, kind: FeelingSentenceKind): String 
     }
 }
 
+/**
+ * De (upp till) två vanligaste kärnorna i ord, utan tal: "Mest lugn och glad" – Trenders kort Känslor i stängt läge
+ * (TRD-14, TRD-22). Inga val ger "Inga känslor i perioden".
+ */
+@Composable
+@ReadOnlyComposable
+fun feelingHighlights(summary: FeelingSummary): String {
+    if (summary.isEmpty) return stringResource(R.string.feelings_none_in_period)
+    return stringResource(R.string.feeling_highlights_most, andList(summary.most.map { coreName(it.core).lowercase() }))
+}
+
 @Composable
 @ReadOnlyComposable
 private fun daySentence(summary: FeelingSummary): String {

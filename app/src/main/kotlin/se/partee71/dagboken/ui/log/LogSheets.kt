@@ -22,7 +22,7 @@ import se.partee71.dagboken.ui.components.OccasionValue
 /**
  * Ett måendetillfälle som [OccasionRow] – en gång för Idags Mående-kort (HEM-4, HEM-5) och plusknappens
  * tillfällesväljare (HEM-8b): namnet, status, loggens tid (eller tillfällets klockslag) och den senaste loggens
- * energi och stress som chips. [onLog] är "Logga nu" och [onClick] hela raden.
+ * energi och stress som chips följda av dess känslor (HEM-21). [onLog] är "Logga nu" och [onClick] hela raden.
  */
 @Composable
 fun OccasionStateRow(state: OccasionState, onLog: () -> Unit, onClick: () -> Unit) {
@@ -35,6 +35,7 @@ fun OccasionStateRow(state: OccasionState, onLog: () -> Unit, onClick: () -> Uni
         values = latest?.let {
             listOf(OccasionValue(stringResource(R.string.energy), it.energy), OccasionValue(stringResource(R.string.stress), it.stress, higherIsBetter = false))
         }.orEmpty(),
+        feelings = latest?.feelings.orEmpty(),
         onClick = onClick
     )
 }

@@ -77,6 +77,13 @@ class TodayScreenshotTest {
     }
 
     @Test
+    fun `OccasionRow - loggad med känslor`() {
+        captureLightAndDark("OccasionRow_kanslor") {
+            Sheet { AppCard { GalleryOccasionRowWithFeelings() } }
+        }
+    }
+
+    @Test
     fun `DayDoneCard - med och utan underlag`() {
         captureLightAndDark("DayDoneCard_lagen") {
             Sheet {

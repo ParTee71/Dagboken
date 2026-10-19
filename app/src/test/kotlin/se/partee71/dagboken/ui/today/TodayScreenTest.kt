@@ -56,11 +56,13 @@ import se.partee71.dagboken.core.engine.DayComparison
 import se.partee71.dagboken.core.engine.DayPart
 import se.partee71.dagboken.core.engine.DayProgress
 import se.partee71.dagboken.core.engine.EnergyTrend
+import se.partee71.dagboken.core.engine.FeelingEntry
 import se.partee71.dagboken.core.engine.OTHER_SYMPTOM_ID
 import se.partee71.dagboken.core.engine.OngoingIllness
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.asNeededChoices
 import se.partee71.dagboken.core.engine.doseChecklist
+import se.partee71.dagboken.core.engine.feelingDay
 import se.partee71.dagboken.core.engine.occasionStates
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
@@ -456,6 +458,36 @@ class TodayScreenTest {
         rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Error(DataError.Offline), { events += it }, {}) } }
         rule.onNodeWithText("Försök igen").performClick()
         assertEquals(listOf<TodayEvent>(TodayEvent.Retry), events)
+    }
+
+    /** Dagens känslor som i tavla F: frukost, lunch och kvällsmat (HEM-21). */
+    private val feelings = feelingDay(
+        listOf(
+            FeelingEntry(today, listOf(Feeling("glad", "creative", "curious")), LocalTime(8, 5), Occasion.BREAKFAST),
+            FeelingEntry(today, listOf(Feeling("scared", "anxious")), LocalTime(12, 10), Occasion.LUNCH),
+            FeelingEntry(today, listOf(Feeling("calm", "grateful"), Feeling("calm"), Feeling("glad", "content")), LocalTime(17, 40), Occasion.DINNER)
+        ),
+        today
+    )
+
+    @Test
+    fun `Dagens känslor visar minihjulet, meningen och dagens ord i tidsordning (HEM-21)`() {
+        show(content().copy(feelings = feelings))
+        rule.onNodeWithText("Dagens känslor").assertIsDisplayed()
+        rule.onNodeWithText("Mest glad och lugn. Lite rädd vid lunch.").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Mest glad och lugn. Lite rädd vid lunch.").assertIsDisplayed()
+        listOf("Glad › Kreativ › Nyfiken", "Rädd › Orolig", "Lugn › Tacksam", "Lugn", "Glad › Nöjd").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
+    }
+
+    @Test
+    fun `utan känslor i dagens måendeloggar visas inget kort Dagens känslor (HEM-21)`() {
+        show()
+        rule.onNodeWithText("Dagens känslor").assertDoesNotExist()
+    }
+
+    @Test
+    fun `skärmdump - Dagens känslor`() = rule.captureLightAndDark("Today_dagens_kanslor") {
+        TodayScreen(DetailUiState.Content(content().copy(feelings = feelings)), {}, {})
     }
 
     @Test
