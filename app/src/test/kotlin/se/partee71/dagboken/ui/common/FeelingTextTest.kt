@@ -10,10 +10,17 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.FeelingRole
+import se.partee71.dagboken.core.engine.FeelingSummary
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
+import se.partee71.dagboken.core.model.Occasion
+import se.partee71.dagboken.ui.components.GalleryFeelings
 
-/** Känslornas svenska namn och pilltexten (SCR-7, SCR-8) – ett uppslag per token, "Okänd känsla" för det okända. */
+/**
+ * Känslornas svenska namn och pilltexten (SCR-7, SCR-8) – ett uppslag per token, "Okänd känsla" för det okända – och
+ * meningen i ord ur `FeelingSummary` för Idag och Trender (#320) med 0, 1, 2 och 3+ kärnkänslor.
+ */
 @RunWith(RobolectricTestRunner::class)
 class FeelingTextTest {
 
@@ -65,5 +72,69 @@ class FeelingTextTest {
         }
         rule.waitForIdle()
         assertEquals(listOf("Lugn › Tacksam › Ödmjuk", "Lugn › Tacksam", "Rädd", "Okänd känsla"), labels.take(4))
+    }
+
+    private fun sentences(kind: FeelingSentenceKind, vararg summaries: FeelingSummary): List<String> {
+        val texts = mutableListOf<String>()
+        rule.setContent { summaries.forEach { texts += feelingSentence(it, kind) } }
+        rule.waitForIdle()
+        return texts.take(summaries.size)
+    }
+
+    private fun roles(vararg cores: String) = cores.map { FeelingRole(it) }
+
+    private val none = FeelingSummary(emptyList(), null, emptyList())
+
+    /** Samma strukturer för båda meningarna: 0, 1, 2 och 3+ kärnor, med tillfälle, vana och orörda. */
+    private val cases = listOf(
+        none,
+        FeelingSummary(roles("calm"), null, emptyList()),
+        FeelingSummary(roles("calm", "glad"), null, emptyList()),
+        FeelingSummary(roles("calm", "glad"), FeelingRole("scared", occasion = Occasion.LUNCH), emptyList()),
+        FeelingSummary(roles("calm", "glad"), FeelingRole("scared", nuance = "anxious", occasion = Occasion.BREAKFAST), listOf("strong")),
+        FeelingSummary(roles("sad", "angry"), FeelingRole("strong"), listOf("glad", "scared"))
+    )
+
+    @Test
+    fun `dagens mening - 0, 1, 2 och 3+ kärnkänslor, tillfället men inte vana eller orörda`() {
+        assertEquals(
+            listOf(
+                "Inga känslor loggade.",
+                "Lugn.",
+                "Mest lugn och glad.",
+                "Mest lugn och glad. Lite rädd vid lunch.",
+                "Mest lugn och glad. Lite rädd efter frukost.",
+                "Mest ledsen och arg. Lite stark."
+            ),
+            sentences(FeelingSentenceKind.DAY, *cases.toTypedArray())
+        )
+    }
+
+    @Test
+    fun `periodens mening - 0, 1, 2 och 3+ kärnkänslor, vana och orörda men inte tillfället`() {
+        assertEquals(
+            listOf(
+                "Inga känslor loggade.",
+                "Du bor i Lugn.",
+                "Du bor i Lugn och Glad.",
+                "Du bor i Lugn och Glad. Rädd är din tredje hemvist.",
+                "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig. Stark har du knappt rört.",
+                "Du bor i Ledsen och Arg. Stark är din tredje hemvist. Glad och Rädd har du knappt rört."
+            ),
+            sentences(FeelingSentenceKind.PERIOD, *cases.toTypedArray())
+        )
+    }
+
+    @Test
+    fun `galleriets dag ger mockupens mening`() {
+        assertEquals(listOf("Mest glad och lugn. Lite rädd vid lunch."), sentences(FeelingSentenceKind.DAY, GalleryFeelings.day.summary))
+    }
+
+    @Test
+    fun `galleriets period ger mockupens mening`() {
+        assertEquals(
+            listOf("Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig. Stark har du knappt rört."),
+            sentences(FeelingSentenceKind.PERIOD, GalleryFeelings.period.summary)
+        )
     }
 }

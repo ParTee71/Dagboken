@@ -40,7 +40,13 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.TypeChoices
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.data.auth.AuthUser
+import se.partee71.dagboken.core.engine.DayFeelings
+import se.partee71.dagboken.core.engine.FeelingEntry
+import se.partee71.dagboken.core.engine.FeelingStats
+import se.partee71.dagboken.core.engine.FeelingSummary
+import se.partee71.dagboken.core.engine.computeFeelingStats
 import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.SymptomScore
@@ -54,12 +60,15 @@ import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ArchiveEvent
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.durationText
+import se.partee71.dagboken.ui.common.FeelingSentenceKind
+import se.partee71.dagboken.ui.common.feelingSentence
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.scaleLevel
 import se.partee71.dagboken.ui.diagram.ChartBand
 import se.partee71.dagboken.ui.diagram.ChartSeries
 import se.partee71.dagboken.ui.diagram.CompactDropdownButton
+import se.partee71.dagboken.ui.diagram.FeelingWordBars
 import se.partee71.dagboken.ui.diagram.IntervalBarChart
 import se.partee71.dagboken.ui.diagram.LineChart
 import se.partee71.dagboken.ui.diagram.MinMaxCaption
@@ -345,6 +354,74 @@ private fun Diary() {
     Label("FeelingPicker")
     var feelings by remember { mutableStateOf(GALLERY_FEELINGS) }
     AppCard { FeelingPicker(feelings, { feelings = it }) }
+    Label("FeelingMiniWheel")
+    GalleryMiniWheels()
+}
+
+/** Minihjulen i sina tre storlekar med påhittade val: dagens kort, veckans dagar och värmekartan med ord (#320). */
+@Composable
+internal fun GalleryMiniWheels() {
+    val day = GalleryFeelings.day
+    val daySentence = feelingSentence(day.summary, FeelingSentenceKind.DAY)
+    AppCard {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.m), verticalAlignment = Alignment.CenterVertically) {
+            FeelingMiniWheel(day.tally, daySentence)
+            Text(daySentence, style = AppTypography.body)
+        }
+    }
+    AppCard {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            GalleryFeelings.week.forEachIndexed { index, it ->
+                FeelingMiniWheel(it.tally, feelingSentence(GalleryFeelings.weekSummaries[index], FeelingSentenceKind.DAY), size = FeelingWheelSize.DAY, selected = index == GalleryFeelings.week.lastIndex)
+            }
+        }
+    }
+    val period = GalleryFeelings.period
+    val periodSentence = feelingSentence(period.summary, FeelingSentenceKind.PERIOD)
+    AppCard {
+        FeelingMiniWheel(period.tally, periodSentence, size = FeelingWheelSize.HEATMAP, labels = true)
+        Text(periodSentence, style = AppTypography.body)
+    }
+}
+
+/** Påhittade känsloval för galleriet och dess skärmdumpar: en dag på Idag, en vecka och en månad i Trender. */
+internal object GalleryFeelings {
+    private val monday = LocalDate(2026, 10, 12)
+
+    private fun entry(date: LocalDate, vararg tokens: String, occasion: Occasion? = null) = FeelingEntry(date, tokens.mapNotNull(Feeling::parse), occasion = occasion)
+
+    /** "Mest glad och lugn. Lite rädd vid lunch." */
+    val day: FeelingStats = computeFeelingStats(
+        listOf(
+            entry(monday, "glad.creative.curious", occasion = Occasion.BREAKFAST),
+            entry(monday, "scared.anxious", occasion = Occasion.LUNCH),
+            entry(monday, "calm.grateful", "glad.content", occasion = Occasion.DINNER),
+            entry(monday, "calm", occasion = Occasion.BEDTIME),
+        )
+    )
+
+    private val weekEntries: List<FeelingEntry> = listOf(
+        entry(monday, "sad.tired", "scared.anxious"),
+        entry(monday.plus(DatePeriod(days = 1)), "scared.anxious", "angry.irritated", "sad.lonely"),
+        entry(monday.plus(DatePeriod(days = 3)), "calm.relaxed", "glad.hopeful"),
+        entry(monday.plus(DatePeriod(days = 4)), "calm.grateful", "glad.content", "calm.present"),
+        entry(monday.plus(DatePeriod(days = 5)), "glad.playful"),
+        entry(monday.plus(DatePeriod(days = 6)), "calm.grateful", "calm.relaxed", "glad.creative"),
+    )
+
+    /** Mån–sön, en dag utan känslor (onsdag). */
+    val week: List<DayFeelings> = computeFeelingStats(weekEntries).alignTo((0..6).map { monday.plus(DatePeriod(days = it)) })
+    val weekSummaries: List<FeelingSummary> = week.map { day -> computeFeelingStats(weekEntries.filter { it.date == day.date }).summary }
+
+    /** "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig. Stark har du knappt rört." */
+    val period: FeelingStats = computeFeelingStats(
+        List(4) { entry(monday, "calm.grateful", "calm.relaxed", "glad.creative") } +
+            List(3) { entry(monday, "calm.present", "glad.content", "scared.anxious") } +
+            listOf(
+                entry(monday, "scared.anxious.tense", "sad.tired", "glad.hopeful"),
+                entry(monday, "scared.insecure", "sad.lonely", "angry.irritated"),
+            )
+    )
 }
 
 @Composable
@@ -424,6 +501,8 @@ private fun Diagrams() {
             bands = GalleryCharts.episodes,
         )
     }
+    Label("FeelingWordBars")
+    AppCard { FeelingWordBars(GalleryFeelings.period.tally) }
     Label("SparklineChart")
     AppCard { SparklineChart(GalleryCharts.week, xLabels = GalleryCharts.weekdays, label = "Energi senaste veckan", onOpenTrends = {}) }
     Label("MinMaxCaption · tomt läge")

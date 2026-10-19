@@ -255,6 +255,23 @@
     <string name="feeling_scared_inferior_inadequate">Otillräcklig</string>
     <string name="feeling_scared_inferior_small">Liten</string>
 
+    <!-- Känslornas mening och ordträd (#320) – inga tal -->
+    <string name="feeling_sentence_none">Inga känslor loggade.</string>
+    <string name="feeling_sentence_day_only">%1$s.</string>
+    <string name="feeling_sentence_day_most">Mest %1$s.</string>
+    <string name="feeling_sentence_day_little">Lite %1$s.</string>
+    <string name="feeling_sentence_day_little_at">Lite %1$s %2$s.</string>
+    <string name="feeling_sentence_at_breakfast">efter frukost</string>
+    <string name="feeling_sentence_at_lunch">vid lunch</string>
+    <string name="feeling_sentence_at_dinner">vid kvällsmat</string>
+    <string name="feeling_sentence_at_bedtime">vid läggdags</string>
+    <string name="feeling_sentence_period_home">Du bor i %1$s.</string>
+    <string name="feeling_sentence_period_third">%1$s är din tredje hemvist.</string>
+    <string name="feeling_sentence_period_third_habit">%1$s är din tredje hemvist, nästan alltid som %2$s.</string>
+    <string name="feeling_sentence_period_untouched">%1$s har du knappt rört.</string>
+    <string name="feeling_bars_row_format">%1$s: %2$s</string>
+    <string name="feeling_bars_row_none">%1$s, inte vald</string>
+
     <!-- Tidsåtgång (AKT-7) -->
     <string name="duration">Tidsåtgång</string>
     <string name="minutes">minuter</string>
