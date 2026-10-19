@@ -44,7 +44,7 @@ interface HasSymptoms<T : HasSymptoms<T>> {
 }
 
 /**
- * En post med loggade känslor (SCR-7, DAT-14) – måendeloggen: [feelings] ur [FeelingCatalog], högst
+ * En post med loggade känslor (SCR-7, AKT-13, DAT-14) – måendeloggen och aktiviteten: [feelings] ur [FeelingCatalog], högst
  * [FeelingCatalog.MAX_FEELINGS], i vald ordning. Okända tokens bevaras ([Feeling]).
  */
 interface HasFeelings<T : HasFeelings<T>> {

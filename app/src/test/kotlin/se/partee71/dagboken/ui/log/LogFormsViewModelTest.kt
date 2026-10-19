@@ -22,6 +22,7 @@ import se.partee71.dagboken.core.engine.OTHER_ACTIVITY_ID
 import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Event
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
@@ -180,6 +181,30 @@ class LogFormsViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         assertNull(factory.activities().get("a1").getOrThrow())
+    }
+
+    @Test
+    fun `känslorna på en aktivitet läses, sparas som bara feelings och påverkar inte valideringen (AKT-13, DAT-14)`() = runTest(main.dispatcher) {
+        val stored = Activity("a2", yesterday, LocalTime(9, 0), optionId = "walk", feelings = listOf(Feeling("calm", "grateful")), createdAt = Instant.fromEpochSeconds(1_790_000_000))
+        val path = Paths.activities(factory.scope.uid.value!!)
+        factory.store.set(path, "a2", ActivityCodec.encode(stored) + ("feelings" to listOf("calm.grateful", "glad.framtida")), merge = false)
+        val vm = activityForm(id = "a2")
+        assertEquals(listOf(Feeling("calm", "grateful"), Feeling("glad", "framtida")), vm.value.feelings, "okänd känsla läses")
+        vm.change { it.withFeelings(it.feelings + Feeling("glad")) }
+        assertTrue(vm.editor.state.value.canSave)
+        vm.editor.state.test {
+            vm.form.onEvent(EntryEditEvent.Save)
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(listOf("calm.grateful", "glad.framtida", "glad"), factory.store.read(path, "a2")!!["feelings"], "okänd känsla skrivs tillbaka")
+
+        val fresh = activityForm()
+        assertEquals(emptyList(), fresh.value.feelings, "en ny aktivitet börjar utan känslor (AKT-12)")
+        fresh.change { it.withFeelings(listOf(Feeling("glad"))) }
+        assertFalse(fresh.editor.state.value.canSave, "typ krävs fortfarande (AKT-9)")
+        fresh.change(ActivityField.TYPE) { it.copy(optionId = "walk") }
+        assertTrue(fresh.editor.state.value.canSave)
     }
 
     @Test

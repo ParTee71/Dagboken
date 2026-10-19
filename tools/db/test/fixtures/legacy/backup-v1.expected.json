@@ -31,7 +31,8 @@
         "legacySomatic": null,
         "recovering": true,
         "drain": false,
-        "minutes": null
+        "minutes": null,
+        "feelings": []
       }
     },
     {
@@ -51,7 +52,8 @@
         "legacySomatic": null,
         "recovering": false,
         "drain": false,
-        "minutes": null
+        "minutes": null,
+        "feelings": []
       }
     },
     {

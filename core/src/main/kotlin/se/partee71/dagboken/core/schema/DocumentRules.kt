@@ -36,7 +36,7 @@ object DocumentRules {
     /** Högst så många doshöjningar på ett recept (`maxBoosts()`). */
     const val MAX_BOOSTS = 50
 
-    /** Högst så många känslor på en måendelogg (`maxFeelings()`, DAT-14) – [FeelingCatalog.MAX_FEELINGS]. */
+    /** Högst så många känslor på en måendelogg eller aktivitet (`maxFeelings()`, DAT-14) – [FeelingCatalog.MAX_FEELINGS]. */
     const val MAX_FEELINGS = FeelingCatalog.MAX_FEELINGS
 
     /** Nyansens och ordets längd i ett känslotoken (`[a-z]{1,32}` i rules). */
@@ -49,6 +49,9 @@ object DocumentRules {
      * ord hör till kärnan kontrolleras inte: ett okänt token med giltig form bevaras av codecen (som en okänd form).
      */
     val FEELING_TOKEN = Regex("^(${FeelingCatalog.cores.joinToString("|")})(\\.${Feeling.PART.pattern}){0,2}$")
+
+    /** Känslolistan på måendeloggen och aktiviteten (`isFeelings`, DAT-14). */
+    private val FEELINGS = Check.PatternList(FEELING_TOKEN.pattern, max = MAX_FEELINGS)
 
     /**
      * Rules kontrollerar elementen i symptom- och höjningslistorna upp till så här många (`l[0]`…`l[9]`):
@@ -272,7 +275,7 @@ object DocumentRules {
             "stress" to Check.Range(SCORE),
             "symptoms" to Check.ListOf(SYMPTOM, max = MAX_SYMPTOMS),
             "legacySomatic" to Check.Min(0),
-            "feelings" to Check.PatternList(FEELING_TOKEN.pattern, max = MAX_FEELINGS)
+            "feelings" to FEELINGS
         ),
         CollectionNames.ACTIVITIES to POST + mapOf(
             "optionId" to Check.ShortText,
@@ -283,7 +286,8 @@ object DocumentRules {
             "legacySomatic" to Check.Min(0),
             "recovering" to Check.BoolField,
             "drain" to Check.BoolField,
-            "minutes" to Check.Min(0)
+            "minutes" to Check.Min(0),
+            "feelings" to FEELINGS
         ),
         CollectionNames.EVENTS to POST + mapOf(
             "optionId" to Check.ShortText,

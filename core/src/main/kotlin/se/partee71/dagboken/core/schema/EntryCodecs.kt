@@ -42,7 +42,7 @@ internal fun Doc.symptoms(): List<SymptomScore> = docs(SYMPTOMS).map {
 
 internal fun List<SymptomScore>.encodeSymptoms(): List<Doc> = map { mapOf("optionId" to it.optionId, "score" to it.score, "customText" to it.customText) }
 
-/** Känslorna på en måendelogg (DAT-14). */
+/** Känslorna på en måendelogg och en aktivitet (DAT-14). */
 internal const val FEELINGS = "feelings"
 
 /**
@@ -126,7 +126,8 @@ object ActivityCodec : DatedCodec<Activity> {
         LEGACY_SOMATIC to value.legacySomatic,
         "recovering" to value.recovering,
         "drain" to value.drain,
-        "minutes" to value.minutes
+        "minutes" to value.minutes,
+        FEELINGS to value.feelings.encodeFeelings()
     )
 
     override fun decode(id: String, map: Doc) = Activity(
@@ -142,6 +143,7 @@ object ActivityCodec : DatedCodec<Activity> {
         recovering = map.bool("recovering"),
         drain = map.bool("drain"),
         minutes = map.intOrNull("minutes"),
+        feelings = map.feelings(),
         createdAt = map.instant(CREATED_AT),
         note = map.stringOrNull(NOTE)
     )

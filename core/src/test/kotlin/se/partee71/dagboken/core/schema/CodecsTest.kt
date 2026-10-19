@@ -246,6 +246,12 @@ class CodecsTest {
         assertFalse(FeelingCatalog.isKnown(decoded[1]), "okänt token läses men är okänt")
         assertEquals(listOf("glad", "serene.framtida.nytt", "scared.anxious.tense"), ScreeningCodec.encode(ScreeningCodec.decode("s", stored))["feelings"], "okända tokens med giltig form skrivs tillbaka oförändrade")
         assertEquals(listOf(Feeling("glad")), Screening("s").withFeelings(listOf(Feeling("glad"))).feelings)
+        // Aktiviteten (AKT-13) delar fältet och hjälparna med måendeloggen.
+        assertEquals(encoded["feelings"], ActivityCodec.encode(Samples.activity)["feelings"])
+        assertEquals(Samples.activity.feelings, ActivityCodec.decode("a", ActivityCodec.encode(Samples.activity)).feelings)
+        assertEquals(emptyList(), ActivityCodec.decode("a", emptyMap()).feelings, "saknat fält på en aktivitet")
+        assertEquals(listOf("glad", "serene.framtida.nytt", "scared.anxious.tense"), ActivityCodec.encode(ActivityCodec.decode("a", stored))["feelings"], "okända tokens bevaras på en aktivitet")
+        assertEquals(listOf(Feeling("glad")), Activity("a").withFeelings(listOf(Feeling("glad"))).feelings)
         assertEveryFieldDiffersFromDefault(Feeling("calm", "grateful", "moved"), Feeling(""))
         assertEquals(Feeling("glad", "excited"), Feeling.parse("glad.excited"))
         assertNull(Feeling.parse("glad.a.b.c"))

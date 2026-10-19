@@ -138,6 +138,7 @@
     <string name="feeling_selected_state">vald</string>
     <string name="feeling_unknown">Okänd känsla</string>
     <string name="feeling_separator">" › "</string>
+    <string name="feelings_list_separator">" · "</string>
 
     <!-- Ordkatalogen (SCR-8): feeling_<kärna>[_<nyans>[_<precisare ord>]], nycklarna är katalogens tokens -->
     <string name="feeling_glad">Glad</string>
@@ -723,6 +724,9 @@
     <string name="activity_recovering">Återhämtande</string>
     <string name="activity_drain">Energitjuv</string>
     <string name="activity_metrics">Mätvärden</string>
+    <string name="activity_feelings">Känslor</string>
+    <string name="activity_feelings_none">Inga</string>
+    <string name="activity_feelings_title">Vad kände du?</string>
     <string name="activity_metrics_summary_format">%1$s %2$s · %3$s %4$s</string>
     <string name="event_new">Ny händelse</string>
     <string name="event_edit">Redigera händelse</string>

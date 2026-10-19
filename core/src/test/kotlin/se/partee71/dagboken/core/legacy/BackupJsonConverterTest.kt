@@ -8,6 +8,7 @@ import kotlin.test.assertTrue
 import kotlinx.datetime.LocalTime
 import org.junit.Test
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.HasFeelings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OptionIds
 import se.partee71.dagboken.core.model.OptionKind
@@ -117,13 +118,14 @@ class BackupJsonConverterTest {
     }
 
     @Test
-    fun `känslor (DAT-14) fanns inte i 3x - varje måendelogg får en tom lista, som skrivs i exporten`() {
+    fun `känslor (DAT-14) fanns inte i 3x - varje måendelogg och aktivitet får en tom lista, som skrivs i exporten`() {
         for (name in listOf("backup-v2", "backup-v1")) {
             val result = converted(name)
-            val screenings = result.data.screenings
-            assertTrue(screenings.isNotEmpty(), name)
-            for (screening in screenings) assertEquals(emptyList(), screening.feelings, "$name: ${screening.id}")
-            for (document in result.documents.filter { CollectionNames.collectionOf(it.path) == CollectionNames.SCREENINGS }) {
+            val posts: List<HasFeelings<*>> = result.data.screenings + result.data.activities
+            assertTrue(result.data.screenings.isNotEmpty() && result.data.activities.isNotEmpty(), name)
+            for (post in posts) assertEquals(emptyList(), post.feelings, "$name: $post")
+            val withFeelings = setOf(CollectionNames.SCREENINGS, CollectionNames.ACTIVITIES)
+            for (document in result.documents.filter { CollectionNames.collectionOf(it.path) in withFeelings }) {
                 assertEquals(emptyList<Any>(), document.data["feelings"], "$name: ${document.path} skriver fältet, så importen fyller det")
             }
         }
