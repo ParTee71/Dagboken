@@ -100,3 +100,6 @@ internal val MAX_STACK_WIDTH: Dp = 28.dp
 
 /** Dagsvärdets punkt i intervalldiagrammet. */
 internal val INTERVAL_DOT_RADIUS: Dp = 5.dp
+
+/** Ordträdets stapel (`FeelingWordBars`): minsta höjd – växer med texten. */
+internal val WORD_BAR_HEIGHT: Dp = 28.dp

@@ -41,6 +41,7 @@ import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Event
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Screening
@@ -119,6 +120,21 @@ class DiaryScreenTest {
         list.performScrollToNode(hasText("Svårighet 7"))
         list.performScrollToNode(hasText("Sjukdomen började"))
         list.performScrollToNode(hasText("Visa äldre än ett år"))
+    }
+
+    @Test
+    fun `måendeloggen och aktiviteten visar sina känslor som pills, högst tre och sedan +N (HIST-10)`() {
+        val withFeelings = sources.copy(
+            screenings = sources.screenings.map { it.copy(feelings = listOf(Feeling("calm", "grateful"))) },
+            activities = sources.activities.map { it.copy(feelings = listOf(Feeling("strong"), Feeling("glad"), Feeling("sad"), Feeling("calm"), Feeling("angry"))) }
+        )
+        val rows = diaryEntries(withFeelings, zone).filter { it is DiaryEntry.Mood || it is DiaryEntry.Action }.map(::row)
+        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(rows.toImmutableList()), controls, null, {}, {}) } }
+        // Måendeloggen: känslan i kärnans ton; aktiviteten: tre och "+2".
+        rule.onNodeWithText("Lugn › Tacksam", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Ledsen", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Lugn", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithContentDescription("2 känslor till", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test

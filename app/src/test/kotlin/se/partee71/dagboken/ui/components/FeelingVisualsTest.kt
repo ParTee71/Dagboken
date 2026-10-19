@@ -1,0 +1,202 @@
+package se.partee71.dagboken.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import se.partee71.dagboken.core.engine.FeelingEntry
+import se.partee71.dagboken.core.engine.FeelingTally
+import se.partee71.dagboken.core.engine.computeFeelingStats
+import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.testing.captureLightAndDark
+import se.partee71.dagboken.ui.diagram.FeelingWordBars
+import se.partee71.dagboken.ui.diagram.FittingWords
+import se.partee71.dagboken.ui.theme.AppColors
+import se.partee71.dagboken.ui.theme.AppShapes
+import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.dagboken.ui.theme.Spacing
+
+/**
+ * Minihjulet och ordträdet (#320): beskrivningen för TalkBack, fyllnaden efter vikten, ordningen och orden som får plats
+ * – och minihjulets skärmdumpar (tom, en kärna, blandad, med ord). Ordträdets skärmdumpar står i `DiagramScreenshotTest`.
+ */
+@RunWith(RobolectricTestRunner::class)
+class FeelingVisualsTest {
+
+    @get:Rule
+    val rule = createComposeRule()
+
+    private fun show(content: @Composable () -> Unit) = rule.setContent { DagbokenTheme(content = content) }
+
+    private fun tally(vararg tokens: String): FeelingTally = computeFeelingStats(listOf(FeelingEntry(GalleryDay, tokens.mapNotNull(Feeling::parse)))).tally
+
+    @Test
+    fun `minihjulet är en bild som läser meningen, orden i sektorerna läses inte`() {
+        show { FeelingMiniWheel(GalleryFeelings.period.tally, "Du bor i Lugn och Glad.", size = FeelingWheelSize.HEATMAP, labels = true) }
+        rule.onNodeWithContentDescription("Du bor i Lugn och Glad.").assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Image))
+        assertEquals(0, rule.onAllNodesWithText("Tacksam").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `fyllnaden - utan val behållarfärgen, annars mot innehållsfärgen efter vikten`() {
+        val tone = AppColors.lightExtended.feelingTones.calm
+        val counts = tally("calm", "calm", "glad").cores
+        assertEquals(tone.container, fillOf(counts.first { it.core == "strong" }, tone))
+        assertEquals(lerp(tone.container, tone.content, 0.9f), fillOf(counts.first { it.core == "calm" }, tone))
+        assertEquals(lerp(tone.container, tone.content, 0.6f), fillOf(counts.first { it.core == "glad" }, tone), "halva vikten")
+    }
+
+    @Test
+    fun `ordträdet - rad för rad, vanligast först, utan val sist`() {
+        show { FeelingWordBars(GalleryFeelings.period.tally) }
+        rule.onNodeWithContentDescription("Lugn: tacksam, avslappnad, närvarande").assertExists()
+        rule.onNodeWithContentDescription("Glad: kreativ, nöjd, hoppfull").assertExists()
+        rule.onNodeWithContentDescription("Rädd: orolig, osäker").assertExists()
+        rule.onNodeWithContentDescription("Stark, inte vald").assertExists()
+        val order = rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription)).fetchSemanticsNodes()
+            .map { it.config[SemanticsProperties.ContentDescription].single().substringBefore(':').substringBefore(',') }
+        assertEquals(listOf("Lugn", "Glad", "Rädd", "Ledsen", "Arg", "Stark"), order)
+    }
+
+    @Test
+    fun `ordträdet - en kärna utan nyans läses med bara namnet`() {
+        show { FeelingWordBars(tally("calm", "calm.grateful", "sad")) }
+        rule.onNodeWithContentDescription("Ledsen").assertExists()
+        rule.onNodeWithContentDescription("Lugn: tacksam").assertExists()
+    }
+
+    @Test
+    fun `ordträdet - orden som inte får plats hela ritas inte`() {
+        show {
+            Box(Modifier.width(120.dp)) {
+                FittingWords {
+                    Text("tacksam", style = AppTypography.itemSubtitle)
+                    Text("avslappnad", style = AppTypography.itemSubtitle)
+                    Text("omtänksam", style = AppTypography.itemSubtitle)
+                }
+            }
+        }
+        rule.onNodeWithText("tacksam").assertIsDisplayed()
+        rule.onNodeWithText("omtänksam").assertIsNotDisplayed()
+    }
+
+    @Composable
+    private fun Sheet(content: @Composable ColumnScope.() -> Unit) {
+        Column(
+            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(Spacing.l),
+            verticalArrangement = Arrangement.spacedBy(Spacing.m)
+        ) { AppCard(content = content) }
+    }
+
+    @Test
+    fun `FeelingMiniWheel - tom, en kärna och blandad`() = captureLightAndDark("FeelingMiniWheel_tom_en_blandad") {
+        Sheet {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.m)) {
+                FeelingMiniWheel(FeelingTally.EMPTY, "Inga känslor loggade.")
+                FeelingMiniWheel(tally("calm.grateful", "calm"), "Lugn.")
+                FeelingMiniWheel(GalleryFeelings.day.tally, "Mest glad och lugn. Lite rädd vid lunch.")
+            }
+        }
+    }
+
+    @Test
+    fun `FeelingWeekRow - veckan med vald dag`() = captureLightAndDark("FeelingWeekRow_vald_dag") {
+        Sheet { FeelingWeekRow(GalleryFeelings.week, GalleryFeelings.week.last().date, {}) }
+    }
+
+    @Test
+    fun `veckoraden - en flik per dag med datum och dagens mening, vald som flikens val, tryck ger dagen`() {
+        val chosen = mutableListOf<LocalDate>()
+        val sunday = GalleryFeelings.week.last().date
+        show { FeelingWeekRow(GalleryFeelings.week, sunday, { chosen += it }) }
+        val tabs = rule.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)).fetchSemanticsNodes()
+        assertEquals(7, tabs.size)
+        assertTrue(tabs.all { it.size.height >= with(rule.density) { TOUCH_TARGET.roundToPx() } }, "minst 48 dp hög")
+        val selected = rule.onNode(hasContentDescription("söndag 18 oktober: ", substring = true))
+        selected.assertIsSelected()
+        selected.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription)) { "fliken läser valet själv, som datumremsans dagar" }
+        val wednesday = rule.onNodeWithContentDescription("onsdag 14 oktober: Inga känslor loggade.")
+        wednesday.assertIsNotSelected()
+        wednesday.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
+        wednesday.performClick()
+        assertEquals(listOf(LocalDate(2026, 10, 14)), chosen)
+        assertEquals(0, rule.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Image)).fetchSemanticsNodes().size, "hjulen läses inte för sig")
+    }
+
+    @Test
+    fun `dagfliken - en flik minst 48 dp hög, inaktiv tar inget tryck, vald läses som val`() {
+        var clicks = 0
+        show {
+            Row {
+                DayTab(selected = true, onClick = { clicks++ }, shape = AppShapes.smallTile, enabled = false, modifier = Modifier.width(48.dp)) { DayTabWeekday(GalleryDay) }
+                DayTab(selected = false, onClick = { clicks++ }, shape = AppShapes.smallTile, background = AppColors.extended.card, modifier = Modifier.width(48.dp)) { DayTabWeekday(GalleryDay.plus(1, DateTimeUnit.DAY)) }
+            }
+        }
+        val tabs = rule.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
+        assertEquals(2, tabs.fetchSemanticsNodes().size)
+        assertTrue(tabs.fetchSemanticsNodes().all { it.size.height >= with(rule.density) { TOUCH_TARGET.roundToPx() } }, "minst 48 dp hög")
+        tabs[0].assertIsSelected().assertIsNotEnabled().performClick()
+        assertEquals(0, clicks, "inaktiv flik tar inget tryck")
+        tabs[1].assertIsNotSelected().performClick()
+        assertEquals(1, clicks)
+    }
+
+    @Test
+    fun `FeelingPills - högst tre och +N, eller alla med max null`() {
+        val feelings = GALLERY_POST_FEELINGS
+        show {
+            Column {
+                ChipRow { FeelingPills(feelings) }
+                ChipRow { FeelingPills(feelings.drop(1), max = null) }
+            }
+        }
+        assertEquals(1, rule.onAllNodes(hasContentDescription("2 känslor till")).fetchSemanticsNodes().size, "+N bara i raden med tak")
+        assertEquals(1, rule.onAllNodesWithText("Ledsen").fetchSemanticsNodes().size, "den femte bara i raden utan tak")
+        assertEquals(1, rule.onAllNodesWithText("Lugn › Tacksam").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `FeelingMiniWheel - värmekarta med ord`() = captureLightAndDark("FeelingMiniWheel_med_ord") {
+        Sheet { FeelingMiniWheel(GalleryFeelings.period.tally, "Värmekarta", size = FeelingWheelSize.HEATMAP, labels = true) }
+    }
+
+    private companion object {
+        val GalleryDay = LocalDate(2026, 10, 14)
+    }
+}

@@ -290,6 +290,11 @@ private fun EntryCard(row: DiaryRow.Entry, onEvent: (DiaryEvent) -> Unit, onOpen
         status = text.pill?.let { { InfoPill(it, tone = text.tone) } },
         note = entry.note.orEmpty(),
         onEdit = { onOpen(entry) },
+        feelings = when (entry) {
+            is DiaryEntry.Mood -> entry.screening.feelings
+            is DiaryEntry.Action -> entry.activity.feelings
+            else -> emptyList()
+        },
         delete = deleteFormat(entry)?.let { format ->
             // MED-15 (som 3.x): en receptdos markeras överhoppad i stället för att raderas.
             val skips = entry is DiaryEntry.TakenDose && entry.dose.isPrescribed

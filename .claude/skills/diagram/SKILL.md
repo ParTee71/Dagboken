@@ -30,6 +30,7 @@ koden; vid skillnad gäller kravlistan. Vilken komponent som är vilken elementt
 | TRD-18 – föregående period nedtonad på samma x-index, egen trend | `LineChart(previous = …)`; grå med en serie, seriens färg nedtonad med flera |
 | NFR-14 – talbar sammanfattning, tryckytor 48 dp | `ChartSemantics.kt`; `CompactDropdownButton` har 48 dp |
 | HEM-7 – sparkline med dagens punkt, lägst · högst · idag | `SparklineChart` |
+| #320 – känslor som ord, inga tal: ordträd per kärna, längd = vikt mot den vanligaste | `FeelingWordBars` + `computeFeelingStats` (`FeelingStats.kt`); minihjul och värmekarta är `FeelingMiniWheel` i `ui/components`; `WORD_BAR_HEIGHT` i `ChartStyle.kt`; i Trender kortet Känslor (TRD-22) utan periodjämförelse och utan Jämför |
 | HLS-10/11/13 – sömnkvalitet per natt med ålders- och könsnorm | `scoreSleepQuality`, `scoreNightlySleep`, `ageFromBirthYear` – ålder och kön som parametrar, aldrig ur en repository; klockdata persisteras aldrig (HLS-5) |
 
 ## Så används de

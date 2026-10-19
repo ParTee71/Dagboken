@@ -59,6 +59,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.core.engine.OccasionStatus
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.testing.pixels
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
@@ -244,6 +245,34 @@ class TodayComponentsTest {
         assertTrue(energy.left >= title.left && energy.left - title.left <= 16.dp, "värdena i linje med titeln: ${energy.left} vs ${title.left}")
         // Namnet på en rad: lika högt som klockslagets rad, inte två.
         assertTrue(title.bottom - title.top < (time.bottom - time.top) * 2, "namnet på en rad")
+    }
+
+    @Test
+    fun `tillfällesraden - en loggad rad visar känslorna efter energi och stress, högst tre och +N (HEM-21)`() {
+        show {
+            OccasionRow(
+                "Kvällsmat",
+                OccasionStatus.LOGGED,
+                {},
+                time = "17:40",
+                values = listOf(OccasionValue("Energi", 6), OccasionValue("Stress", 3, higherIsBetter = false)),
+                feelings = listOf(Feeling("calm", "grateful"), Feeling("glad", "content"), Feeling("strong"), Feeling("sad"))
+            )
+        }
+        val stress = rule.onNodeWithText("Stress 3", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val first = rule.onNodeWithText("Lugn › Tacksam", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue(first.left >= stress.right || first.top >= stress.bottom, "känslorna efter stressen")
+        rule.onNodeWithText("Glad › Nöjd", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Stark", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Ledsen", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithContentDescription("1 känsla till", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `tillfällesraden - känslorna visas bara på en loggad rad`() {
+        show { OccasionRow("Lunch", OccasionStatus.LATE, {}, time = "12:00", feelings = listOf(Feeling("calm"))) }
+        rule.onNodeWithText("Lugn", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithText("Försenat").assertIsDisplayed()
     }
 
     // ---- DayDoneCard ----

@@ -29,6 +29,7 @@ import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.components.AppCard
 import se.partee71.dagboken.ui.components.AppMenuItem
 import se.partee71.dagboken.ui.components.GalleryCharts
+import se.partee71.dagboken.ui.components.GalleryFeelings
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
@@ -193,6 +194,17 @@ class DiagramScreenshotTest {
 
     private fun periodItems() = listOf("7 dagar", "14 dagar", "Månad", "3 månader", "Allt").map {
         AppMenuItem(it, {}, icon = if (it == "14 dagar") R.drawable.ic_check else null)
+    }
+
+    /** Ordträdet (#320): periodens känslor, vanligast först, Stark utan val sist. */
+    @Test
+    fun `FeelingWordBars - perioden`() = captureLightAndDark("FeelingWordBars_period") {
+        Sheet { FeelingWordBars(GalleryFeelings.period.tally) }
+    }
+
+    @Test
+    fun `FeelingWordBars - stor text`() = captureLightAndDark("FeelingWordBars_stor_text") {
+        LargeText { Sheet { FeelingWordBars(GalleryFeelings.period.tally) } }
     }
 
     @Composable

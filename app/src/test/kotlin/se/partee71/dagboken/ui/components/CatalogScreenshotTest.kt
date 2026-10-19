@@ -310,6 +310,9 @@ class CatalogScreenshotTest {
         captureLightAndDark("FeelingPicker_hjul_med_val") {
             Sheet { AppCard { FeelingPicker(GALLERY_FEELINGS, {}) } }
         }
+        captureLightAndDark("FeelingPills_tre_och_fler") {
+            Sheet { ChipRow { FeelingPills(GALLERY_POST_FEELINGS) } }
+        }
     }
 
     @Test
@@ -361,6 +364,9 @@ class CatalogScreenshotTest {
                     toggle = EntryToggle(false, {}, "Levaxin aktivt")
                 )
             }
+        }
+        captureLightAndDark("DagbokenEntryCard_kanslor") {
+            Sheet { GalleryFeelingCards() }
         }
         captureLightAndDark("NoticeBanner_varning") {
             Sheet {

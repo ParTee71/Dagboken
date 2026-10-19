@@ -29,6 +29,8 @@ import kotlinx.datetime.TimeZone
 import se.partee71.dagboken.core.engine.CompareKey
 import se.partee71.dagboken.core.engine.ComparedSerie
 import se.partee71.dagboken.core.engine.EventIllnessTrend
+import se.partee71.dagboken.core.engine.FeelingDay
+import se.partee71.dagboken.core.engine.FeelingStats
 import se.partee71.dagboken.core.engine.IntervalPoint
 import se.partee71.dagboken.core.engine.SLEEP_METRICS
 import se.partee71.dagboken.core.engine.SLEEP_SCORE_KEY
@@ -42,10 +44,12 @@ import se.partee71.dagboken.core.engine.ageFromBirthYear
 import se.partee71.dagboken.core.engine.cappedDays
 import se.partee71.dagboken.core.engine.cappedReadFrom
 import se.partee71.dagboken.core.engine.compareSeries
+import se.partee71.dagboken.core.engine.computeFeelingStats
 import se.partee71.dagboken.core.engine.dailyEnergyPoints
 import se.partee71.dagboken.core.engine.earliestDate
 import se.partee71.dagboken.core.engine.energyByOccasion
 import se.partee71.dagboken.core.engine.eventIllnessTrend
+import se.partee71.dagboken.core.engine.feelingEntry
 import se.partee71.dagboken.core.engine.hasPreviousPeriod
 import se.partee71.dagboken.core.engine.moodCompareSeries
 import se.partee71.dagboken.core.engine.previousDays
@@ -54,6 +58,7 @@ import se.partee71.dagboken.core.engine.sleepQualitySeries
 import se.partee71.dagboken.core.engine.sleepStagePoints
 import se.partee71.dagboken.core.engine.stressSeries
 import se.partee71.dagboken.core.engine.symptomSeries
+import se.partee71.dagboken.core.engine.toFeelingEntry
 import se.partee71.dagboken.core.engine.watchCompareSeries
 import se.partee71.dagboken.core.engine.watchSeries
 import se.partee71.dagboken.core.model.Activity
@@ -86,7 +91,7 @@ import se.partee71.dagboken.ui.common.days
 enum class TrendGroup { MOOD, WATCH, COMPARE }
 
 /**
- * Korten i Trender (TRD-1, TRD-11, TRD-15–TRD-17, TRD-21), i visningsordning inom sin [group]. Alla kort går på
+ * Korten i Trender (TRD-1, TRD-11, TRD-15–TRD-17, TRD-21, TRD-22), i visningsordning inom sin [group]. Alla kort går på
  * samma maskineri – utfällning, period, serieval, föregående period – och skiljer sig bara i vad de läser och räknar.
  */
 enum class TrendCard(val group: TrendGroup, val hasSeriesPicker: Boolean, val hasPreviousPeriod: Boolean) {
@@ -95,6 +100,9 @@ enum class TrendCard(val group: TrendGroup, val hasSeriesPicker: Boolean, val ha
     STRESS(TrendGroup.MOOD, hasSeriesPicker = true, hasPreviousPeriod = true),
     SYMPTOMS(TrendGroup.MOOD, hasSeriesPicker = true, hasPreviousPeriod = true),
     EVENTS_ILLNESS(TrendGroup.MOOD, hasSeriesPicker = false, hasPreviousPeriod = false),
+
+    /** Känslor (TRD-22): ord och inga tal – varken serieval, föregående period eller Jämför. */
+    FEELINGS(TrendGroup.MOOD, hasSeriesPicker = false, hasPreviousPeriod = false),
     STEPS(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
     HEART_RATE(TrendGroup.WATCH, hasSeriesPicker = true, hasPreviousPeriod = true),
     SLEEP(TrendGroup.WATCH, hasSeriesPicker = true, hasPreviousPeriod = true),
@@ -185,6 +193,14 @@ sealed interface CardData {
     /** Händelser och sjukdom (TRD-21). */
     data class EventsIllness(override val days: List<LocalDate>, val trend: EventIllnessTrend) : CardData
 
+    /**
+     * Känslor (TRD-22): periodens räkning och mening ([stats]) ur måendeloggar och aktiviteter, och i 7-dagarsläget
+     * periodens dagar var för sig ([week], tom annars) med dagens ord i tidsordning.
+     */
+    data class Feelings(override val days: List<LocalDate>, val stats: FeelingStats, val week: List<FeelingDay>) : CardData {
+        val isEmpty: Boolean get() = stats.tally.isEmpty
+    }
+
     /** Sömnstadierna per natt (TRD-16): en stapel per dag i `SLEEP_STAGE_METRICS` ordning. */
     data class Stacked(override val days: List<LocalDate>, val points: List<StackedPoint>) : CardData
 
@@ -213,7 +229,9 @@ data class TrendCardState(val controls: CardControls, val data: CardData? = null
 @Immutable
 data class TrendsUiState(
     val group: TrendGroup = TrendGroup.MOOD,
-    val cards: ImmutableMap<TrendCard, TrendCardState> = TrendCard.entries.associateWith { TrendCardState(CardControls(selected = it.defaultSelection)) }.toImmutableMap()
+    val cards: ImmutableMap<TrendCard, TrendCardState> = TrendCard.entries.associateWith { TrendCardState(CardControls(selected = it.defaultSelection)) }.toImmutableMap(),
+    /** Dagen som är vald i Känslors vecka (TRD-22) – dess ord visas under raden; `null` = ingen. */
+    val feelingDay: LocalDate? = null
 )
 
 sealed interface TrendsEvent {
@@ -230,6 +248,9 @@ sealed interface TrendsEvent {
 
     /** En serie till eller från i kortets serieval (TRD-2). */
     data class ToggleSeries(val card: TrendCard, val key: String) : TrendsEvent
+
+    /** En dag i Känslors vecka (TRD-22): väljer den, eller avmarkerar den valda. */
+    data class SelectFeelingDay(val date: LocalDate) : TrendsEvent
 }
 
 /**
@@ -260,6 +281,7 @@ class TrendsViewModel @Inject constructor(
         .shareIn(viewModelScope, sharing, replay = 1)
 
     private val group = MutableStateFlow(TrendGroup.MOOD)
+    private val feelingDay = MutableStateFlow<LocalDate?>(null)
     private val controls = MutableStateFlow(TrendsUiState().cards.mapValues { it.value.controls })
 
     /** Symptomens namn ur Listor (arkiverade med, SET-11); vid läsfel bara id:n. */
@@ -369,6 +391,8 @@ class TrendsViewModel @Inject constructor(
                 CardData.EventsIllness(days, eventIllnessTrend(e, episodes, checkins, days))
             }
 
+            TrendCard.FEELINGS -> combine(screenings(from, to), activities(from, to)) { s, a -> feelings(period, s, a) }
+
             TrendCard.SLEEP_STAGES -> health(from, to).map { h -> period.days().let { days -> CardData.Stacked(days, sleepStagePoints(h, days)) } }
 
             TrendCard.SLEEP_QUALITY -> combine(health(from, to), profile) { h, p ->
@@ -407,6 +431,19 @@ class TrendsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Känslor (TRD-22): samma räkning per dag som Idags Dagens känslor (`computeFeelingDay`), men här över periodens
+     * måendeloggar **och** aktiviteter (Idag bara måendeloggar, HEM-21); veckan bara i 7-dagarsläget – periodens dagar ur
+     * samma gruppering per dag.
+     */
+    private fun feelings(period: Period, s: List<Screening>, a: List<Activity>): CardData.Feelings {
+        val days = period.days(earliest(s, a))
+        // Läsningen är perioden (kortet har ingen föregående period).
+        val entries = s.mapNotNull { it.feelingEntry() } + a.mapNotNull { it.toFeelingEntry(it.time) }
+        val stats = computeFeelingStats(entries)
+        return CardData.Feelings(days, stats, if (period.controls.range == TrendRange.SEVEN_DAYS) stats.alignTo(days) else emptyList())
+    }
+
     private fun earliest(s: List<Screening>, a: List<Activity>) = earliestDate(s.map { it.date } + a.map { it.date })
 
     /** Ett linjediagram: serierna för perioden och – när tillvalet är på – samma serier för föregående period (TRD-18). */
@@ -430,17 +467,34 @@ class TrendsViewModel @Inject constructor(
 
     private val data: Flow<Map<TrendCard, CardData?>> = combine(TrendCard.entries.map { card -> cardData(card).map { card to it } }) { it.toMap() }
 
-    val state: StateFlow<TrendsUiState> = combine(group, controls, data) { group, controls, data ->
-        TrendsUiState(group, TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) }.toImmutableMap())
+    val state: StateFlow<TrendsUiState> = combine(group, controls, data, feelingDay) { group, controls, data, feelingDay ->
+        // Den valda dagen gäller bara så länge den ligger i veckan som visas – efter midnatt kan den ha fallit ur (TRD-22).
+        val week = (data[TrendCard.FEELINGS] as? CardData.Feelings)?.week.orEmpty()
+        TrendsUiState(group, TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) }.toImmutableMap(), feelingDay?.takeIf { day -> week.any { it.date == day } })
     }.stateIn(viewModelScope, sharing, TrendsUiState())
 
     fun onEvent(event: TrendsEvent) {
         when (event) {
             is TrendsEvent.ShowGroup -> group.value = event.group
-            is TrendsEvent.Toggle -> update(event.card) { it.copy(expanded = !it.expanded) }
-            is TrendsEvent.SetRange -> update(event.card) { it.copy(range = event.range) }
+
+            is TrendsEvent.Toggle -> {
+                update(event.card) { it.copy(expanded = !it.expanded) }
+                // Ett utfällt Känslor-kort börjar alltid utan vald dag (TRD-22).
+                if (event.card == TrendCard.FEELINGS) feelingDay.value = null
+            }
+
+            is TrendsEvent.SetRange -> {
+                update(event.card) { it.copy(range = event.range) }
+                // En ny period för Känslor börjar utan vald dag (TRD-22).
+                if (event.card == TrendCard.FEELINGS) feelingDay.value = null
+            }
+
             is TrendsEvent.SetPrevious -> update(event.card) { it.copy(previous = event.enabled) }
+
             is TrendsEvent.ToggleSeries -> update(event.card) { it.copy(selected = if (event.key in it.selected) it.selected - event.key else it.selected + event.key) }
+
+            // Toggeln utgår från valet som visas: en dag som fallit ur veckan räknas inte som vald (TRD-22).
+            is TrendsEvent.SelectFeelingDay -> feelingDay.value = event.date.takeUnless { it == feelingDay.value }
         }
     }
 

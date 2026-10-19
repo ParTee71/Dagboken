@@ -1,10 +1,17 @@
 package se.partee71.dagboken.ui.trends
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isNotSelected
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -18,6 +25,7 @@ import kotlin.time.Instant
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,13 +35,16 @@ import se.partee71.dagboken.core.engine.CompareKey
 import se.partee71.dagboken.core.engine.ComparedSerie
 import se.partee71.dagboken.core.engine.EpisodeSpan
 import se.partee71.dagboken.core.engine.EventIllnessTrend
+import se.partee71.dagboken.core.engine.FeelingEntry
 import se.partee71.dagboken.core.engine.IntervalPoint
 import se.partee71.dagboken.core.engine.StackedPoint
 import se.partee71.dagboken.core.engine.TrendRange
 import se.partee71.dagboken.core.engine.TrendSerie
 import se.partee71.dagboken.core.engine.WATCH_COMPARE_KEYS
 import se.partee71.dagboken.core.engine.WatchMetric
+import se.partee71.dagboken.core.engine.computeFeelingStats
 import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.time.datesBetween
@@ -135,15 +146,45 @@ class TrendsScreenTest {
         previous = emptyList()
     )
 
+    /**
+     * En vecka med känslor som i tavla G: Lugn och Glad vanligast, Rädd tredje och nästan alltid Orolig, Stark orörd
+     * (onsdag 30 september – tisdag 6 oktober, mående och en aktivitet).
+     */
+    private val week = datesBetween(LocalDate(2026, 9, 30), today)
+    private val feelingEntries = listOf(
+        0 to listOf("calm.grateful", "glad.content"),
+        1 to listOf("scared.anxious"),
+        1 to listOf("sad.tired"),
+        2 to listOf("scared.anxious.tense", "scared.insecure"),
+        3 to listOf("calm.relaxed", "glad.creative.curious"),
+        3 to listOf("calm.grateful"),
+        4 to listOf("calm.present", "glad.hopeful"),
+        4 to listOf("angry.irritated"),
+        5 to listOf("calm.grateful", "glad.content"),
+        5 to listOf("sad.lonely"),
+        6 to listOf("glad.creative.curious", "calm.relaxed"),
+        6 to listOf("scared.anxious")
+    ).mapIndexed { i, (day, tokens) ->
+        val occasion = Occasion.entries[i % Occasion.entries.size]
+        FeelingEntry(week[day], tokens.map { checkNotNull(Feeling.parse(it)) }, LocalTime(8 + i, 0), occasion)
+    }
+    private val feelingsWeek = computeFeelingStats(feelingEntries).let { CardData.Feelings(week, it, it.alignTo(week)) }
+    private val feelingsOpen = closed.with(TrendCard.FEELINGS, CardControls(expanded = true, range = TrendRange.SEVEN_DAYS), feelingsWeek)
+    private val periodSentence = "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig. Stark har du knappt rört."
+
     private fun show(state: TrendsUiState, clock: ClockUiState? = null, onEvent: (TrendsEvent) -> Unit = {}) = rule.setContent { DagbokenTheme { TrendsScreen(state, onEvent, clock = clock) } }
 
     @Test
-    fun `rubriken, grupperna och fem stängda kort utan diagram eller periodväljare (TRD-14, TRD-19)`() {
+    fun `rubriken, grupperna och sex stängda kort utan diagram eller periodväljare (TRD-14, TRD-19)`() {
         val events = mutableListOf<TrendsEvent>()
         show(closed) { events += it }
         rule.onNodeWithText("Trender").assertIsDisplayed()
         listOf("Mående", "Klocka", "Jämför").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
-        listOf("Energi per dag", "Energi per tillfälle", "Stress och belastning", "Symptom", "Händelser och sjukdom").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
+        listOf("Energi per dag", "Energi per tillfälle", "Stress och belastning", "Symptom", "Händelser och sjukdom", "Känslor").forEach {
+            rule.onNode(hasScrollAction()).performScrollToNode(hasText(it))
+            rule.onNodeWithText(it).assertIsDisplayed()
+        }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Energi per dag"))
         rule.onNodeWithText("Månad").assertDoesNotExist()
         rule.onNodeWithText("Föregående period").assertDoesNotExist()
         rule.onNodeWithText("För lite data än").assertDoesNotExist()
@@ -399,7 +440,78 @@ class TrendsScreenTest {
         list.performScrollToNode(hasText("4 händelser · snitt 5,5 · Förkylning 30 sep – pågår"))
     }
 
+    // ── Känslor (TRD-22) ─────────────────────────────────────────────────────
+
+    @Test
+    fun `Känslor stängt visar de två vanligaste kärnorna i ord, eller Inga känslor i perioden (TRD-14, TRD-22)`() {
+        show(closed.with(TrendCard.FEELINGS, CardControls(), feelingsWeek))
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Mest lugn och glad"))
+        rule.onNodeWithText("Mest lugn och glad").assertIsDisplayed()
+        rule.onNodeWithText(periodSentence).assertDoesNotExist()
+    }
+
+    @Test
+    fun `Känslor stängt utan känslor i perioden säger det (TRD-14, TRD-22)`() {
+        show(closed.with(TrendCard.FEELINGS, CardControls(), CardData.Feelings(days, computeFeelingStats(emptyList()), emptyList())))
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Inga känslor i perioden"))
+        rule.onNodeWithText("Inga känslor i perioden").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Känslor öppet – värmekartan läser meningen, veckan med en knapp per dag och ordträdet, utan tal och tillval (TRD-22)`() {
+        val events = mutableListOf<TrendsEvent>()
+        show(feelingsOpen) { events += it }
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasContentDescription(periodSentence))
+        rule.onNodeWithContentDescription(periodSentence).assertIsDisplayed()
+        assertEquals(
+            1,
+            rule.onAllNodes(hasText(periodSentence) or hasContentDescription(periodSentence), useUnmergedTree = true).fetchSemanticsNodes().size,
+            "TalkBack läser periodens mening en gång, på värmekartan"
+        )
+        rule.onNodeWithText("7 dagar").assertIsDisplayed()
+        rule.onNodeWithText("Föregående period").assertDoesNotExist()
+        rule.onNodeWithText("Visa:").assertDoesNotExist()
+        list.performScrollToNode(hasText("Tryck på en dag för orden."))
+        rule.onNodeWithText("VECKAN · ETT HJUL PER DAG").assertIsDisplayed()
+        listOf("ons", "tors", "fre", "lör", "sön", "mån", "tis").forEach { rule.onNodeWithText(it, useUnmergedTree = true).assertExists() }
+        val tuesday = rule.onNode(hasContentDescription("tisdag 6 oktober: Mest glad, lugn och rädd.", substring = true))
+        tuesday.assertExists()
+        tuesday.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
+        tuesday.performClick()
+        assertEquals(listOf<TrendsEvent>(TrendsEvent.SelectFeelingDay(today)), events)
+        list.performScrollToNode(hasText("Längden säger hur ofta, orden i stapeln är nyanserna du valt. Inga tal."))
+        rule.onNodeWithText("ORDTRÄDET").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Lugn: tacksam, avslappnad, närvarande").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Stark, inte vald").assertIsDisplayed()
+    }
+
+    @Test
+    fun `en vald dag i veckan läses vald och visar dagens ord som pills (TRD-22)`() {
+        show(feelingsOpen.copy(feelingDay = today))
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("Rädd › Orolig"))
+        listOf("Glad › Kreativ › Nyfiken", "Lugn › Avslappnad", "Rädd › Orolig").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
+        rule.onNodeWithText("Tryck på en dag för orden.").assertDoesNotExist()
+        rule.onNode(hasContentDescription("tisdag 6 oktober", substring = true) and isSelected()).assertExists()
+        rule.onNode(hasContentDescription("måndag 5 oktober", substring = true) and isNotSelected()).assertExists()
+    }
+
+    @Test
+    fun `Känslor i en period utan känslor visar kortets tomma läge (TRD-22)`() {
+        show(closed.with(TrendCard.FEELINGS, CardControls(expanded = true), CardData.Feelings(days, computeFeelingStats(emptyList()), emptyList())))
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Välj känslor när du loggar mående eller en aktivitet, så syns de här."))
+        rule.onNodeWithText("Inga känslor i perioden").assertIsDisplayed()
+        rule.onNodeWithText("ORDTRÄDET").assertDoesNotExist()
+    }
+
     // ── Skärmdumpar (ljust + mörkt) ──────────────────────────────────────────
+
+    @Test
+    @Config(qualifiers = "w390dp-h1800dp-xxhdpi")
+    fun `skärmdump - Känslor i veckoläget med vald dag`() = rule.captureLightAndDark("Trends_kanslor_vecka") {
+        TrendsScreen(feelingsOpen.copy(feelingDay = today), {})
+    }
 
     @Test
     fun `skärmdump - Mående stängd`() = rule.captureLightAndDark("Trends_maende_stangd") { TrendsScreen(closed, {}) }

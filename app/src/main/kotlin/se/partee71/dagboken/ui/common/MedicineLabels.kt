@@ -65,10 +65,10 @@ fun datesText(dates: List<LocalDate>): String = dates.mapIndexed { i, date ->
     if (next != null && next.month == date.month && next.year == date.year) DateFormat.dayOfMonth(date) else DateFormat.short(date)
 }.joinToString(", ")
 
-/** "a, b och c" – en svensk uppräkning. */
+/** "a, b och c" – en svensk uppräkning (veckodagar, känslornas mening). */
 @Composable
 @ReadOnlyComposable
-private fun andList(items: List<String>): String = when (items.size) {
+internal fun andList(items: List<String>): String = when (items.size) {
     0 -> ""
     1 -> items.single()
     else -> stringResource(R.string.list_and_format, items.dropLast(1).joinToString(", "), items.last())

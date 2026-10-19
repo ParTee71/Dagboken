@@ -14,8 +14,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.COMPARE_AXIS
 import se.partee71.dagboken.core.engine.CompareKey
@@ -40,22 +42,34 @@ import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.DetailUiState
+import se.partee71.dagboken.ui.common.FeelingSentenceKind
 import se.partee71.dagboken.ui.common.distinctSeriesColors
+import se.partee71.dagboken.ui.common.feelingHighlights
+import se.partee71.dagboken.ui.common.feelingSentence
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.qualifiedLabel
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.AccountAvatar
 import se.partee71.dagboken.ui.components.AppCard
+import se.partee71.dagboken.ui.components.AppDivider
 import se.partee71.dagboken.ui.components.AppMenuItem
 import se.partee71.dagboken.ui.components.AppSegmentedChoice
+import se.partee71.dagboken.ui.components.ChipRow
+import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.EntityDetailScreen
+import se.partee71.dagboken.ui.components.FeelingMiniWheel
+import se.partee71.dagboken.ui.components.FeelingPills
+import se.partee71.dagboken.ui.components.FeelingWeekRow
+import se.partee71.dagboken.ui.components.FeelingWheelSize
 import se.partee71.dagboken.ui.components.Foldout
+import se.partee71.dagboken.ui.components.GroupLabel
 import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.components.SwitchRow
 import se.partee71.dagboken.ui.diagram.CHART_SEPARATOR
 import se.partee71.dagboken.ui.diagram.ChartBand
 import se.partee71.dagboken.ui.diagram.ChartSeries
 import se.partee71.dagboken.ui.diagram.CompactDropdownButton
+import se.partee71.dagboken.ui.diagram.FeelingWordBars
 import se.partee71.dagboken.ui.diagram.IntervalBarChart
 import se.partee71.dagboken.ui.diagram.LineChart
 import se.partee71.dagboken.ui.diagram.StackSegment
@@ -126,7 +140,7 @@ fun TrendsScreen(
                 SectionHeader(stringResource(R.string.tab_trends))
             }
         }
-        TrendCard.inGroup(content.group).forEach { card -> TrendCardView(card, content.cards.getValue(card), onEvent) }
+        TrendCard.inGroup(content.group).forEach { card -> TrendCardView(card, content.cards.getValue(card), content.feelingDay, onEvent) }
     }
 }
 
@@ -146,6 +160,7 @@ private val TrendCard.title: Int
         TrendCard.STRESS -> R.string.trends_card_stress
         TrendCard.SYMPTOMS -> R.string.symptoms
         TrendCard.EVENTS_ILLNESS -> R.string.trends_card_events
+        TrendCard.FEELINGS -> R.string.trends_card_feelings
         TrendCard.STEPS -> R.string.trends_card_steps
         TrendCard.HEART_RATE -> R.string.trends_card_heart_rate
         TrendCard.SLEEP -> R.string.trends_card_sleep
@@ -188,10 +203,10 @@ private val TrendRange.label: Int
 /**
  * Ett diagramkort (TRD-14): stängt bara titeln, chevronen och – när kortet lästs – sammanfattningen; utfällt
  * periodväljaren i titelraden (TRD-3), serieval (TRD-12), "Föregående period" (TRD-18), diagrammet och
- * sammanfattningen. Ett stängt kort komponerar inget diagram (TRD-15).
+ * sammanfattningen. Ett stängt kort komponerar inget diagram (TRD-15). [feelingDay] är den valda dagen i Känslors vecka (TRD-22).
  */
 @Composable
-private fun TrendCardView(card: TrendCard, state: TrendCardState, onEvent: (TrendsEvent) -> Unit) {
+private fun TrendCardView(card: TrendCard, state: TrendCardState, feelingDay: LocalDate?, onEvent: (TrendsEvent) -> Unit) {
     val controls = state.controls
     val summary = state.data?.let { summaryText(card, it) }
     AppCard {
@@ -207,7 +222,11 @@ private fun TrendCardView(card: TrendCard, state: TrendCardState, onEvent: (Tren
             val available = (data as? CardData.Lines)?.available ?: (data as? CardData.Compare)?.available
             if (card.hasSeriesPicker && available != null) SeriesPicker(card, available, controls.selected, onEvent)
             if (controls.showsPrevious(card)) SwitchRow(stringResource(R.string.trends_previous_period), controls.previous, { onEvent(TrendsEvent.SetPrevious(card, it)) })
-            if (data != null) Chart(card, data)
+            when (data) {
+                null -> Unit
+                is CardData.Feelings -> FeelingsChart(data, feelingDay) { onEvent(TrendsEvent.SelectFeelingDay(it)) }
+                else -> Chart(card, data)
+            }
             if (summary != null && card == TrendCard.EVENTS_ILLNESS) {
                 Text(summary, style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -371,6 +390,9 @@ private fun Chart(card: TrendCard, data: CardData) {
             )
         }
 
+        // Ritas av TrendCardView med den valda dagen (FeelingsChart).
+        is CardData.Feelings -> Unit
+
         is CardData.EventsIllness -> StackedBarChart(
             points = data.trend.events.map { StackedPoint(listOf(it)) },
             segments = listOf(StackSegment(stringResource(R.string.trends_legend_events), AppColors.tone(Tone.Warning).content)),
@@ -406,6 +428,8 @@ private fun summaryText(card: TrendCard, data: CardData): String? = when (data) 
         else -> pluralStringResource(R.plurals.trends_series_count, data.shown.size, data.shown.size)
     }
 
+    is CardData.Feelings -> feelingHighlights(data.stats.summary)
+
     is CardData.EventsIllness -> {
         val trend = data.trend
         val parts = listOfNotNull(
@@ -414,6 +438,40 @@ private fun summaryText(card: TrendCard, data: CardData): String? = when (data) 
         ) + trend.episodes.map { episodeText(it) }
         parts.takeIf { trend.eventCount > 0 || trend.episodes.isNotEmpty() }?.joinToString(CHART_SEPARATOR)
     }
+}
+
+/**
+ * Känslor (TRD-22), inga tal: värmekartan – minihjulet i full bredd med kärnan och de tre vanligaste nyanserna i varje
+ * sektor – med periodens mening under (samma `FeelingStats` och `feelingSentence` som Idags Dagens känslor), i
+ * 7-dagarsläget veckan med ett minihjul per dag (`FeelingWeekRow`: tryck väljer dagen och visar alla dess ord som
+ * `FeelingPills`, [onSelect]) och sist ordträdet. TalkBack läser periodens mening en gång, på hjulet. En period utan känslor visar kortets tomma läge.
+ */
+@Composable
+private fun FeelingsChart(data: CardData.Feelings, selected: LocalDate?, onSelect: (LocalDate) -> Unit) {
+    if (data.isEmpty) {
+        EmptyState(R.drawable.ic_trend, stringResource(R.string.feelings_none_in_period), stringResource(R.string.trends_feelings_empty_hint), compact = true)
+        return
+    }
+    val sentence = feelingSentence(data.stats.summary, FeelingSentenceKind.PERIOD)
+    GroupLabel(stringResource(R.string.trends_feelings_wheel))
+    // Hjulet läser meningen för TalkBack; den synliga texten är samma mening och läses inte en gång till.
+    FeelingMiniWheel(data.stats.tally, sentence, size = FeelingWheelSize.HEATMAP, labels = true)
+    Text(sentence, Modifier.clearAndSetSemantics {}, style = AppTypography.body)
+    if (data.week.isNotEmpty()) {
+        AppDivider()
+        GroupLabel(stringResource(R.string.trends_feelings_week))
+        FeelingWeekRow(data.week, selected, onSelect)
+        val chosen = data.week.firstOrNull { it.date == selected }
+        when {
+            chosen == null -> Text(stringResource(R.string.trends_feelings_week_hint), style = AppTypography.body)
+            chosen.words.isEmpty() -> Text(feelingSentence(chosen.summary, FeelingSentenceKind.DAY), style = AppTypography.body)
+            else -> ChipRow { FeelingPills(chosen.words, max = null) }
+        }
+    }
+    AppDivider()
+    GroupLabel(stringResource(R.string.trends_feelings_tree))
+    FeelingWordBars(data.stats.tally)
+    Text(stringResource(R.string.trends_feelings_tree_hint), style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 /** "Snitt 6,4 · Trend uppåt" ur en serie – samma formatering som `MinMaxCaption`; `null` utan värden. */

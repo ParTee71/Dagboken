@@ -27,6 +27,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertTouchWidthIsEqualTo
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -167,6 +168,34 @@ class DiaryComponentsTest {
         rule.onNodeWithText("Avbryt").assertDoesNotExist()
         rule.onNodeWithText("Stäng").performClick()
         rule.onNodeWithText("Gick i skogen med hunden.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `postkortets känslor står som pills under titeln, högst tre och sedan +N (HIST-10)`() {
+        show {
+            DagbokenEntryCard(
+                "Promenad",
+                onClick = {},
+                subtitle = "16:00 · 30 min",
+                feelings = listOf(Feeling("calm", "grateful"), Feeling("glad", "content"), Feeling("strong"), Feeling("sad"), Feeling("calm"))
+            )
+        }
+        rule.onNodeWithText("Lugn › Tacksam", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Glad › Nöjd", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Stark", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Ledsen", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithContentDescription("2 känslor till", useUnmergedTree = true).assertIsDisplayed()
+        val subtitle = rule.onNodeWithText("16:00 · 30 min", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val pill = rule.onNodeWithText("Lugn › Tacksam", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue(pill.top >= subtitle.bottom, "känslorna under undertexten")
+    }
+
+    @Test
+    fun `postkort med högst tre känslor har ingen +N-pill`() {
+        show { DagbokenEntryCard("Efter frukost", onClick = {}, feelings = listOf(Feeling("calm", "grateful"), Feeling("glad"))) }
+        rule.onNodeWithText("Lugn › Tacksam", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Glad", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("till", substring = true, useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

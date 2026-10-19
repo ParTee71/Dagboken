@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -40,7 +41,12 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.TypeChoices
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.data.auth.AuthUser
+import se.partee71.dagboken.core.engine.FeelingDay
+import se.partee71.dagboken.core.engine.FeelingEntry
+import se.partee71.dagboken.core.engine.FeelingStats
+import se.partee71.dagboken.core.engine.computeFeelingStats
 import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.SymptomScore
@@ -54,12 +60,15 @@ import se.partee71.dagboken.ui.common.EditorUiState
 import se.partee71.dagboken.ui.common.ArchiveEvent
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.durationText
+import se.partee71.dagboken.ui.common.FeelingSentenceKind
+import se.partee71.dagboken.ui.common.feelingSentence
 import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.scaleLevel
 import se.partee71.dagboken.ui.diagram.ChartBand
 import se.partee71.dagboken.ui.diagram.ChartSeries
 import se.partee71.dagboken.ui.diagram.CompactDropdownButton
+import se.partee71.dagboken.ui.diagram.FeelingWordBars
 import se.partee71.dagboken.ui.diagram.IntervalBarChart
 import se.partee71.dagboken.ui.diagram.LineChart
 import se.partee71.dagboken.ui.diagram.MinMaxCaption
@@ -279,6 +288,7 @@ private fun Diary() {
         below = { InfoPill("Idag 75 mg (+25)") },
     )
     if (deleted) Text("Raderad", style = AppTypography.itemSubtitle)
+    GalleryFeelingCards()
     var expanded by remember { mutableStateOf(true) }
     AppCard {
         Foldout("Mätvärden", expanded, { expanded = !expanded }, summary = "Energi 7 · stress 3") {
@@ -345,6 +355,74 @@ private fun Diary() {
     Label("FeelingPicker")
     var feelings by remember { mutableStateOf(GALLERY_FEELINGS) }
     AppCard { FeelingPicker(feelings, { feelings = it }) }
+    Label("FeelingPills")
+    ChipRow { FeelingPills(GALLERY_POST_FEELINGS) }
+    // Alla, utan "+N" – Idags Dagens känslor och Trenders valda dag.
+    ChipRow { FeelingPills(GALLERY_POST_FEELINGS, max = null) }
+    Label("FeelingMiniWheel")
+    GalleryMiniWheels()
+    Label("FeelingWeekRow")
+    var weekDay by remember { mutableStateOf<LocalDate?>(GalleryFeelings.week.last().date) }
+    AppCard { FeelingWeekRow(GalleryFeelings.week, weekDay, { weekDay = it.takeUnless { day -> day == weekDay } }) }
+}
+
+/** Minihjulen med påhittade val: dagens kort och värmekartan med ord (#320); veckans dagar visar `FeelingWeekRow`. */
+@Composable
+internal fun GalleryMiniWheels() {
+    val day = GalleryFeelings.day
+    val daySentence = feelingSentence(day.summary, FeelingSentenceKind.DAY)
+    // Hjulet läser meningen för TalkBack; texten bredvid är samma mening och läses inte en gång till.
+    AppCard {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.m), verticalAlignment = Alignment.CenterVertically) {
+            FeelingMiniWheel(day.tally, daySentence)
+            Text(daySentence, Modifier.clearAndSetSemantics {}, style = AppTypography.body)
+        }
+    }
+    val period = GalleryFeelings.period
+    val periodSentence = feelingSentence(period.summary, FeelingSentenceKind.PERIOD)
+    AppCard {
+        FeelingMiniWheel(period.tally, periodSentence, size = FeelingWheelSize.HEATMAP, labels = true)
+        Text(periodSentence, Modifier.clearAndSetSemantics {}, style = AppTypography.body)
+    }
+}
+
+/** Påhittade känsloval för galleriet och dess skärmdumpar: en dag på Idag, en vecka och en månad i Trender. */
+internal object GalleryFeelings {
+    private val monday = LocalDate(2026, 10, 12)
+
+    private fun entry(date: LocalDate, vararg tokens: String, occasion: Occasion? = null) = FeelingEntry(date, tokens.mapNotNull(Feeling::parse), occasion = occasion)
+
+    /** "Mest glad och lugn. Lite rädd vid lunch." */
+    val day: FeelingStats = computeFeelingStats(
+        listOf(
+            entry(monday, "glad.creative.curious", occasion = Occasion.BREAKFAST),
+            entry(monday, "scared.anxious", occasion = Occasion.LUNCH),
+            entry(monday, "calm.grateful", "glad.content", occasion = Occasion.DINNER),
+            entry(monday, "calm", occasion = Occasion.BEDTIME),
+        )
+    )
+
+    private val weekEntries: List<FeelingEntry> = listOf(
+        entry(monday, "sad.tired", "scared.anxious"),
+        entry(monday.plus(DatePeriod(days = 1)), "scared.anxious", "angry.irritated", "sad.lonely"),
+        entry(monday.plus(DatePeriod(days = 3)), "calm.relaxed", "glad.hopeful"),
+        entry(monday.plus(DatePeriod(days = 4)), "calm.grateful", "glad.content", "calm.present"),
+        entry(monday.plus(DatePeriod(days = 5)), "glad.playful"),
+        entry(monday.plus(DatePeriod(days = 6)), "calm.grateful", "calm.relaxed", "glad.creative"),
+    )
+
+    /** Mån–sön, en dag utan känslor (onsdag) – samma gruppering per dag som Trenders vecka. */
+    val week: List<FeelingDay> = computeFeelingStats(weekEntries).alignTo((0..6).map { monday.plus(DatePeriod(days = it)) })
+
+    /** "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig. Stark har du knappt rört." */
+    val period: FeelingStats = computeFeelingStats(
+        List(4) { entry(monday, "calm.grateful", "calm.relaxed", "glad.creative") } +
+            List(3) { entry(monday, "calm.present", "glad.content", "scared.anxious") } +
+            listOf(
+                entry(monday, "scared.anxious.tense", "sad.tired", "glad.hopeful"),
+                entry(monday, "scared.insecure", "sad.lonely", "angry.irritated"),
+            )
+    )
 }
 
 @Composable
@@ -375,6 +453,8 @@ private fun Today() {
     AppCard { GalleryOccasionRows() }
     // En tidigare dag: "Ej loggad" utan varningston (HEM-4).
     AppCard { OccasionRow("Lunch", OccasionStatus.NOT_LOGGED, {}, time = "12:00") }
+    // Ett loggat tillfälle med känslor efter energi och stress (HEM-21).
+    AppCard { GalleryOccasionRowWithFeelings() }
     Label("DayDoneCard")
     DayDoneCard(6.8, 0.5, 12, play = celebrate, onConfettiFinished = { celebrate = false })
     AppButton("Fira igen", { celebrate = true }, variant = ButtonVariant.Text)
@@ -424,6 +504,8 @@ private fun Diagrams() {
             bands = GalleryCharts.episodes,
         )
     }
+    Label("FeelingWordBars")
+    AppCard { FeelingWordBars(GalleryFeelings.period.tally) }
     Label("SparklineChart")
     AppCard { SparklineChart(GalleryCharts.week, xLabels = GalleryCharts.weekdays, label = "Energi senaste veckan", onOpenTrends = {}) }
     Label("MinMaxCaption · tomt läge")
@@ -490,6 +572,43 @@ internal fun GalleryOccasionRows() {
     OccasionRow("Läggdags", OccasionStatus.UPCOMING, {}, time = "22:00")
 }
 
+/** Ett loggat tillfälle med energi, stress och två känslor (HEM-21, påhittade värden) – för galleriet och skärmdumpen. */
+@Composable
+internal fun GalleryOccasionRowWithFeelings() {
+    OccasionRow(
+        "Kvällsmat",
+        OccasionStatus.LOGGED,
+        {},
+        time = "17:40",
+        values = listOf(OccasionValue("Energi", 6), OccasionValue("Stress", 3, higherIsBetter = false)),
+        feelings = listOf(Feeling("calm", "grateful"), Feeling("glad", "content")),
+        onClick = {},
+    )
+}
+
+/** En måendelogg med två känslor och en aktivitet med fem – tre och "+2" (HIST-10, påhittade värden). */
+@Composable
+internal fun GalleryFeelingCards() {
+    DagbokenEntryCard(
+        "Efter frukost",
+        onClick = {},
+        subtitle = "${DateFormat.time(LocalTime(8, 5))} · Stress 2",
+        accent = scaleLevel(7).color,
+        status = { InfoPill("Energi 7", tone = scaleLevel(7).tone) },
+        onEdit = {},
+        feelings = listOf(Feeling("calm", "grateful"), Feeling("glad", "creative")),
+    )
+    DagbokenEntryCard(
+        "Promenad",
+        onClick = {},
+        subtitle = "${DateFormat.time(LocalTime(16, 0))} · ${durationText(30)}",
+        accent = scaleLevel(4, -10..10).color,
+        status = { InfoPill("+4", tone = scaleLevel(4, -10..10).tone) },
+        onEdit = {},
+        feelings = GALLERY_POST_FEELINGS,
+    )
+}
+
 /** Påhittade symptomalternativ för galleriet och dess skärmdumpar. */
 internal val GALLERY_SYMPTOMS = listOf(
     Option("huvudvark", OptionKind.SYMPTOM, "Huvudvärk", favorite = true),
@@ -497,6 +616,9 @@ internal val GALLERY_SYMPTOMS = listOf(
     Option("yrsel", OptionKind.SYMPTOM, "Yrsel", sortOrder = 2),
     Option("ovrigt", OptionKind.SYMPTOM, "Övrigt", sortOrder = 3),
 )
+
+/** Påhittade känslor på en post: fem, så att tre visas och resten som "+2" (HIST-10). */
+internal val GALLERY_POST_FEELINGS = listOf(Feeling("calm"), Feeling("glad", "content"), Feeling("strong"), Feeling("calm", "grateful"), Feeling("sad"))
 
 /** Påhittade valda känslor för galleriet och dess skärmdumpar – en på varje nivå (kärna, nyans, precisare ord). */
 internal val GALLERY_FEELINGS = listOf(Feeling("calm", "grateful"), Feeling("scared", "anxious", "tense"), Feeling("glad"))

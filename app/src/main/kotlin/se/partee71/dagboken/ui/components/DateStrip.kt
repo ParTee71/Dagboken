@@ -1,16 +1,13 @@
 package se.partee71.dagboken.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,13 +17,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -139,23 +134,24 @@ private fun DayChip(
         stringResource(R.string.calendar_has_entries).takeIf { hasEntries }
     ).joinToString(", ")
     val doneLabel = stringResource(R.string.date_strip_done)
-    Column(
-        modifier
-            .heightIn(min = TOUCH_TARGET)
-            .clip(AppShapes.row)
-            .background(if (selected) colors.primary else AppColors.extended.card)
-            .selectable(selected = selected, enabled = !future, role = Role.Tab, onClick = onClick)
+    DayTab(
+        selected = selected,
+        onClick = onClick,
+        shape = AppShapes.row,
+        modifier = modifier,
+        background = if (selected) colors.primary else AppColors.extended.card,
+        enabled = !future,
+        inner = Modifier
             .semantics {
                 contentDescription = description
                 if (done) stateDescription = doneLabel
             }
             .inactive(future)
             .padding(vertical = Spacing.s),
-        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(DAY_MARKER_GAP)
     ) {
         Column(Modifier.clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(DateFormat.weekdayShort(day), style = AppTypography.caption, color = muted, textAlign = TextAlign.Center, maxLines = 1)
+            DayTabWeekday(day, color = muted)
             Text(day.day.toString(), style = AppTypography.itemTitle, color = content, textAlign = TextAlign.Center, maxLines = 1)
         }
         Box(Modifier.size(IconSize.marker), contentAlignment = Alignment.Center) {

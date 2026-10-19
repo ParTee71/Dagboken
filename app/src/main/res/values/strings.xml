@@ -256,6 +256,36 @@
     <string name="feeling_scared_inferior_inadequate">Otillräcklig</string>
     <string name="feeling_scared_inferior_small">Liten</string>
 
+    <!-- Känslornas mening och ordträd (#320) – inga tal -->
+    <string name="feeling_sentence_none">Inga känslor loggade.</string>
+    <string name="feeling_sentence_day_only">%1$s.</string>
+    <string name="feeling_sentence_day_most">Mest %1$s.</string>
+    <string name="feeling_sentence_day_little">Lite %1$s.</string>
+    <string name="feeling_sentence_day_little_at">Lite %1$s %2$s.</string>
+    <string name="feeling_sentence_at_breakfast">efter frukost</string>
+    <string name="feeling_sentence_at_lunch">vid lunch</string>
+    <string name="feeling_sentence_at_dinner">vid kvällsmat</string>
+    <string name="feeling_sentence_at_bedtime">vid läggdags</string>
+    <string name="feeling_sentence_period_home">Du bor i %1$s.</string>
+    <string name="feeling_sentence_period_third">%1$s är din tredje hemvist.</string>
+    <string name="feeling_sentence_period_third_habit">%1$s är din tredje hemvist, nästan alltid som %2$s.</string>
+    <string name="feeling_sentence_period_untouched">%1$s har du knappt rört.</string>
+    <string name="feeling_bars_row_format">%1$s: %2$s</string>
+    <string name="feeling_bars_row_none">%1$s, inte vald</string>
+    <string name="feeling_highlights_most">Mest %1$s</string>
+    <string name="feelings_none_in_period">Inga känslor i perioden</string>
+
+    <!-- Dagens känslor på Idag (HEM-21) och kortet Känslor i Trender (TRD-22) -->
+    <string name="today_feelings_title">Dagens känslor</string>
+    <string name="trends_card_feelings">Känslor</string>
+    <string name="trends_feelings_wheel">Hjulet · ju oftare, desto starkare ton</string>
+    <string name="trends_feelings_week">Veckan · ett hjul per dag</string>
+    <string name="trends_feelings_week_hint">Tryck på en dag för orden.</string>
+    <string name="feeling_week_day_format">%1$s: %2$s</string>
+    <string name="trends_feelings_tree">Ordträdet</string>
+    <string name="trends_feelings_tree_hint">Längden säger hur ofta, orden i stapeln är nyanserna du valt. Inga tal.</string>
+    <string name="trends_feelings_empty_hint">Välj känslor när du loggar mående eller en aktivitet, så syns de här.</string>
+
     <!-- Tidsåtgång (AKT-7) -->
     <string name="duration">Tidsåtgång</string>
     <string name="minutes">minuter</string>
@@ -1033,4 +1063,10 @@
     <string name="import_stopped_title">Importen stoppades</string>
     <string name="import_stopped_intro">Något i backupen ryms inte i 4.0 utan att ändras.</string>
     <string name="import_failed_title">Importen avbröts</string>
+    <!-- Känslor på postkort (#320) -->
+    <string name="feelings_more_format">+%1$d</string>
+    <plurals name="feelings_more_description">
+        <item quantity="one">%1$d känsla till</item>
+        <item quantity="other">%1$d känslor till</item>
+    </plurals>
 </resources>

@@ -5,8 +5,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.FeelingRole
+import se.partee71.dagboken.core.engine.FeelingSummary
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
+import se.partee71.dagboken.core.model.Occasion
 
 // Känslornas svenska namn (SCR-8) – enda stället som slår upp ett token i strängarna (regel 4).
 
@@ -158,3 +161,78 @@ private val FEELING_NAMES: Map<String, Int> = mapOf(
     "scared.inferior.inadequate" to R.string.feeling_scared_inferior_inadequate,
     "scared.inferior.small" to R.string.feeling_scared_inferior_small
 )
+
+/** Vilken mening [feelingSentence] skriver: dagens på Idag eller periodens i Trender. */
+enum class FeelingSentenceKind { DAY, PERIOD }
+
+/**
+ * Meningen i ord ur [FeelingSummary] (`computeFeelingStats`, #320) – inga tal. [FeelingSentenceKind.DAY] (Idag): "Mest lugn
+ * och glad. Lite rädd vid lunch." – kärnorna i gemener, den tredje med sitt tillfälle när alla dess val hör till ett; bara
+ * en vald kärna ([FeelingSummary.sole], härledd – en handbyggd struktur kan inte motsäga sig) ger "Lugn.".
+ * [FeelingSentenceKind.PERIOD] (Trender): "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig.
+ * Stark har du knappt rört." Inga val ger "Inga känslor loggade." – också minihjulets beskrivning för en tom dag.
+ */
+@Composable
+@ReadOnlyComposable
+fun feelingSentence(summary: FeelingSummary, kind: FeelingSentenceKind): String {
+    if (summary.isEmpty) return stringResource(R.string.feeling_sentence_none)
+    return when (kind) {
+        FeelingSentenceKind.DAY -> daySentence(summary)
+        FeelingSentenceKind.PERIOD -> periodSentence(summary)
+    }
+}
+
+/**
+ * De vanligaste kärnorna ([FeelingSummary.most]) i ord, utan tal: "Mest lugn och glad" – Trenders kort Känslor i stängt
+ * läge (TRD-14, TRD-22). Normalt två; vid lika antal samma regel som meningen – alla som delar förstaplatsen, eller bara
+ * den vanligaste när andra platsen delas med tredje ("Mest ledsen"). Inga val ger "Inga känslor i perioden".
+ */
+@Composable
+@ReadOnlyComposable
+fun feelingHighlights(summary: FeelingSummary): String {
+    if (summary.isEmpty) return stringResource(R.string.feelings_none_in_period)
+    return stringResource(R.string.feeling_highlights_most, andList(summary.most.map { coreName(it.core).lowercase() }))
+}
+
+@Composable
+@ReadOnlyComposable
+private fun daySentence(summary: FeelingSummary): String {
+    val most = summary.most.map { coreName(it.core).lowercase() }
+    val first = if (summary.sole) {
+        stringResource(R.string.feeling_sentence_day_only, coreName(summary.most.single().core))
+    } else {
+        stringResource(R.string.feeling_sentence_day_most, andList(most))
+    }
+    val little = summary.little?.let { role ->
+        val name = coreName(role.core).lowercase()
+        role.occasion?.let { stringResource(R.string.feeling_sentence_day_little_at, name, stringResource(it.feelingTime())) }
+            ?: stringResource(R.string.feeling_sentence_day_little, name)
+    }
+    return listOfNotNull(first, little).joinToString(" ")
+}
+
+@Composable
+@ReadOnlyComposable
+private fun periodSentence(summary: FeelingSummary): String {
+    val home = stringResource(R.string.feeling_sentence_period_home, andList(summary.most.map { coreName(it.core) }))
+    val third = summary.little?.let { role: FeelingRole ->
+        val name = coreName(role.core)
+        role.nuance?.let { stringResource(R.string.feeling_sentence_period_third_habit, name, stringResource(feelingName(role.core, it))) }
+            ?: stringResource(R.string.feeling_sentence_period_third, name)
+    }
+    val untouched = summary.untouched.takeIf { it.isNotEmpty() }?.let { cores -> stringResource(R.string.feeling_sentence_period_untouched, andList(cores.map { coreName(it) })) }
+    return listOfNotNull(home, third, untouched).joinToString(" ")
+}
+
+@Composable
+@ReadOnlyComposable
+private fun coreName(core: String): String = stringResource(feelingName(core))
+
+/** När på dagen, för meningen ("vid lunch", "efter frukost") – tillfällets namn i [Occasion.label] passar inte efter "vid". */
+@StringRes
+private fun Occasion.feelingTime(): Int = when (this) {
+    Occasion.BREAKFAST -> R.string.feeling_sentence_at_breakfast
+    Occasion.LUNCH -> R.string.feeling_sentence_at_lunch
+    Occasion.DINNER -> R.string.feeling_sentence_at_dinner
+    Occasion.BEDTIME -> R.string.feeling_sentence_at_bedtime
+}
