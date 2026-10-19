@@ -53,20 +53,22 @@ import se.partee71.dagboken.ui.theme.ToneColors
  * ring när den är vald ensam; ett val tas bort via sin pill. "Tillbaka till hjulet" behåller valen.
  * Högst [maxSelected] val: därefter ignoreras nya val och knapparna som skulle lägga till är inaktiva. Vilken kärna
  * som är öppen och vilken nyans som visar sina ord är komponentens eget tillstånd; valen ägs av anroparen
- * ([selected], [onSelectedChange]).
+ * ([selected], [onSelectedChange]). [title] är frågan över hjulet – måendearkets "Vad känner du just nu?" som standard,
+ * aktivitetens "Vad kände du?" (AKT-13).
  */
 @Composable
 fun FeelingPicker(
     selected: List<Feeling>,
     onSelectedChange: (List<Feeling>) -> Unit,
     modifier: Modifier = Modifier,
+    title: String = stringResource(R.string.feelings_title),
     maxSelected: Int = FeelingCatalog.MAX_FEELINGS
 ) {
     var openCore by rememberSaveable { mutableStateOf<String?>(null) }
     var activeNuance by rememberSaveable { mutableStateOf<String?>(null) }
     val full = selected.size >= maxSelected
     val helper = if (full) stringResource(R.string.feelings_max_format, maxSelected) else stringResource(R.string.feelings_help)
-    LabeledGroup(stringResource(R.string.feelings_title), modifier.fillMaxWidth(), helper = helper, helperAbove = true) {
+    LabeledGroup(title, modifier.fillMaxWidth(), helper = helper, helperAbove = true) {
         val core = openCore
         if (core == null) {
             FeelingWheel(selected.mapTo(mutableSetOf()) { it.core }, { opened ->

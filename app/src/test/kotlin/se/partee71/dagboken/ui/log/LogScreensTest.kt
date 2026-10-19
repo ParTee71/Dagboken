@@ -25,6 +25,7 @@ import se.partee71.dagboken.core.engine.OccasionState
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Event
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
@@ -123,6 +124,30 @@ class LogScreensTest {
     }
 
     @Test
+    fun `känslorna är ihopfällda med de valda i stängt läge och väljs med känslohjulet (AKT-13)`() {
+        var value by mutableStateOf(walk)
+        rule.setContent {
+            DagbokenTheme {
+                ActivityEditScreen(form(value) { event -> if (event is EntryEditEvent.Changed) value = event.change(value) }, {}, activityTypes)
+            }
+        }
+        rule.onNodeWithText("Inga").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("VAD KÄNDE DU?").assertDoesNotExist()
+        rule.onNodeWithText("Känslor").performScrollTo().performClick()
+        rule.onNodeWithText("VAD KÄNDE DU?").assertExists()
+        rule.onNodeWithContentDescription("Lugn").performScrollTo().performClick()
+        assertEquals(listOf(Feeling("calm")), value.feelings)
+        assertEquals(walk.copy(feelings = listOf(Feeling("calm"))), value, "bara känslorna ändras")
+    }
+
+    @Test
+    fun `en sparad aktivitet visar sina känslor i stängt läge (AKT-13)`() {
+        val felt = other.copy(feelings = listOf(Feeling("calm", "grateful"), Feeling("glad")))
+        rule.setContent { DagbokenTheme { ActivityEditScreen(form(felt, isNew = false), {}, activityTypes) } }
+        rule.onNodeWithText("Lugn › Tacksam · Glad").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun `en sparad aktivitet raderas efter bekräftelsen med typ och tid (HIST-5)`() {
         val events = mutableListOf<EntryEditEvent<Activity>>()
         // Formuläret visar en ändrad typ; bekräftelsen namnger den lagrade posten.
@@ -214,6 +239,11 @@ class LogScreensTest {
     @Test
     fun `skärmdump - ny aktivitet`() = rule.captureLightAndDark("Log_aktivitet_ny") {
         ActivityEditScreen(form(walk), {}, activityTypes, symptoms)
+    }
+
+    @Test
+    fun `skärmdump - aktivitet med känslor`() = rule.captureLightAndDark("Log_aktivitet_kanslor") {
+        ActivityEditScreen(form(walk.copy(feelings = listOf(Feeling("calm", "grateful"), Feeling("glad"))), isNew = false), {}, activityTypes, symptoms)
     }
 
     @Test

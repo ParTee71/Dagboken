@@ -27,6 +27,7 @@ import se.partee71.dagboken.core.engine.OTHER_SYMPTOM_ID
 import se.partee71.dagboken.core.engine.symptomChoices
 import se.partee71.dagboken.core.engine.typeChoices
 import se.partee71.dagboken.core.model.Activity
+import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.schema.ActivityCodec
@@ -40,6 +41,7 @@ import se.partee71.dagboken.ui.common.EntryEditor
 import se.partee71.dagboken.ui.common.EntryForm
 import se.partee71.dagboken.ui.common.choices
 import se.partee71.dagboken.ui.common.entryDeleteAction
+import se.partee71.dagboken.ui.common.feelingsSummary
 import se.partee71.dagboken.ui.common.hasErrorOutside
 import se.partee71.dagboken.ui.common.nonBlank
 import se.partee71.dagboken.ui.common.nowInMinutes
@@ -53,6 +55,7 @@ import se.partee71.dagboken.ui.components.ChipRow
 import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
 import se.partee71.dagboken.ui.components.EntityEditScreen
+import se.partee71.dagboken.ui.components.FeelingPicker
 import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.SymptomLogCard
@@ -135,10 +138,10 @@ fun ActivityEditRoute(id: String?, date: LocalDate?, onClose: () -> Unit) {
 }
 
 /**
- * Aktivitetsformuläret på `EntityEditScreen` (AKT-1–AKT-9, AKT-11, NFR-10–12): dag och tid, typen – stjärnmärkta
+ * Aktivitetsformuläret på `EntityEditScreen` (AKT-1–AKT-9, AKT-11, AKT-13, NFR-10–12): dag och tid, typen – stjärnmärkta
  * som chips och övriga under "Fler typer", med "Övrigt" sist och dess beskrivning (AKT-2) – Återhämtande och
  * Energitjuv (AKT-3), tidsåtgången (AKT-7), mätvärdena energi −10…+10 och stress 0–10 ihopfällda (AKT-4, AKT-5,
- * AKT-8), symptomen (AKT-6) och anteckningen (AKT-11). En befintlig kan raderas i menyn, efter bekräftelse som
+ * AKT-8), känslorna ihopfällda (AKT-13), symptomen (AKT-6) och anteckningen (AKT-11). En befintlig kan raderas i menyn, efter bekräftelse som
  * namnger den lagrade posten (HIST-5); symptomval som arkiverats står kvar med namn.
  */
 @Composable
@@ -188,6 +191,7 @@ fun ActivityEditScreen(
         }
         DurationRow(a.minutes ?: 0, { minutes -> form.change { it.copy(minutes = minutes) } })
         MetricsCard(a) { change -> form.change(transform = change) }
+        FeelingsCard(a.feelings) { feelings -> form.change { it.withFeelings(feelings) } }
         val symptoms = remember(symptomOptions, form.stored) { symptomChoices(symptomOptions, form.stored?.symptoms.orEmpty()) }
         SymptomLogCard(symptoms, a.symptoms, { scores -> form.change { it.withSymptoms(scores) } }, otherOptionId = OTHER_SYMPTOM_ID, somatic = a.somatic)
         AppCard {
@@ -213,6 +217,18 @@ private fun MetricsCard(a: Activity, change: ((Activity) -> Activity) -> Unit) {
         Foldout(stringResource(R.string.activity_metrics), expanded, { expanded = !expanded }, summary = summary) {
             ValueSlider(energy, a.energy, { value -> change { it.copy(energy = value) } }, valueRange = DocumentRules.ACTIVITY_ENERGY)
             ValueSlider(stress, a.stress, { value -> change { it.copy(stress = value) } }, valueRange = DocumentRules.SCORE, higherIsBetter = false)
+        }
+    }
+}
+
+/** Känslorna (AKT-13): ihopfällda och frivilliga, samma väljare som måendearket (SCR-7) – de valda i stängt läge. */
+@Composable
+private fun FeelingsCard(feelings: List<Feeling>, onChange: (List<Feeling>) -> Unit) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val summary = if (feelings.isEmpty()) stringResource(R.string.activity_feelings_none) else feelingsSummary(feelings)
+    AppCard {
+        Foldout(stringResource(R.string.activity_feelings), expanded, { expanded = !expanded }, summary = summary) {
+            FeelingPicker(feelings, onChange, title = stringResource(R.string.activity_feelings_title))
         }
     }
 }

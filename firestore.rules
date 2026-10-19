@@ -130,7 +130,7 @@ service cloud.firestore {
         7 || (isBoost(l[7]) && (n <= 8 || (isBoost(l[8]) && (n <= 9 || (isBoost(l[9])))))))))))))))))))));
     }
 
-    // Känslorna på en måendelogg (SCR-7, DAT-14): högst maxFeelings() texter `core[.nuance[.detail]]` – kärnan en av de
+    // Känslorna på en måendelogg och en aktivitet (SCR-7, AKT-13, DAT-14): högst maxFeelings() texter `core[.nuance[.detail]]` – kärnan en av de
     // sex i FeelingCatalog (:core), nyans och ord 1–32 gemener a–z (DocumentRules.FEELING_TOKEN, hålls lika av
     // DocumentRulesTest). Katalogtillhörigheten kontrolleras inte: ett okänt token med giltig form bevaras av codecen,
     // som en okänd form. Hela listan prövas med ett mönster över join(' ') – några få uttryck oavsett antal, medan
@@ -316,7 +316,8 @@ service cloud.firestore {
         && (!('legacySomatic' in w) || nullOrMin(d.get('legacySomatic', null), 0))
         && (!('recovering' in w) || nullOrBool(d.get('recovering', null)))
         && (!('drain' in w) || nullOrBool(d.get('drain', null)))
-        && (!('minutes' in w) || nullOrMin(d.get('minutes', null), 0));
+        && (!('minutes' in w) || nullOrMin(d.get('minutes', null), 0))
+        && (!('feelings' in w) || d.get('feelings', null) == null || isFeelings(d.feelings));
     }
 
     function validEvent(d) {

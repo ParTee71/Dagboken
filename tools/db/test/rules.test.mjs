@@ -434,6 +434,11 @@ const invalid = {
     ['symptoms.1.score', 5.5, 'poäng som decimaltal i andra symptomet'],
     ['symptoms.1.customText', 7, 'fritext som tal i andra symptomet'],
     ['symptoms', [{ optionId: 'a', score: 1, customText: null }, { optionId: 'x', customText: null }], 'poäng saknas i andra symptomet'],
+    // Känslor (AKT-13, DAT-14): samma isFeelings som måendeloggen.
+    ['feelings', 'calm', 'känslor som text'],
+    ['feelings', Array.from({ length: 7 }, () => 'glad'), '7 känslor'],
+    ['feelings', ['glad', 'bored'], 'okänd kärna (en nyans)'],
+    ['feelings', [{ core: 'glad' }], 'känsla som objekt'],
   ],
   events: [
     ['severity', 11, 'svårighetsgrad över 10'],
@@ -490,6 +495,7 @@ test('gränsvärdena i intervallen godtas', async () => {
     ['screenings', 'feelings', []], ['screenings', 'feelings', null],
     ['screenings', 'feelings', CORES.map((core, i) => `${core}.${'n'.repeat(i + 1)}.${'o'.repeat(32)}`)],
     ['screenings', 'feelings', ['scared.anxious.tense', 'calm.grateful', 'glad']],
+    ['activities', 'feelings', []], ['activities', 'feelings', null], ['activities', 'feelings', ['calm.relaxed', 'glad']],
     ['screenings', 'feelings', ['glad.framtida.nytt', 'sad.a']],
     // Ett element med mellanslag ser ut som två i join(' ') och släpps igenom av rules; DocumentRules (:core) nekar det.
     ['screenings', 'feelings', ['glad calm']],

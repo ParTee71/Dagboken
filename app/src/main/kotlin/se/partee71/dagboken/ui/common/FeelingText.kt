@@ -36,6 +36,11 @@ fun feelingsLabel(feeling: Feeling): String {
     return levels.map { stringResource(it) }.joinToString(stringResource(R.string.feeling_separator))
 }
 
+/** Valda känslor på en rad (AKT-13): [feelingsLabel] för var och en, åtskilda med " · " – "Lugn › Tacksam · Glad". */
+@Composable
+@ReadOnlyComposable
+fun feelingsSummary(feelings: List<Feeling>): String = feelings.map { feelingsLabel(it) }.joinToString(stringResource(R.string.feelings_list_separator))
+
 /** Token (`core[.nuance[.detail]]`) → namnet i strängarna, för alla 114 ord i [FeelingCatalog] – byggs en gång. */
 private val FEELING_NAMES: Map<String, Int> = mapOf(
     "glad" to R.string.feeling_glad,
