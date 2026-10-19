@@ -267,6 +267,18 @@ class DocumentRulesTest {
     }
 
     @Test
+    fun `känslor på en aktivitet (AKT-13) - samma regel som på måendeloggen`() {
+        val activity = Samples.entry(CollectionNames.ACTIVITIES).encoded()
+        fun violations(value: Any?) = DocumentRules.validate(CollectionNames.ACTIVITIES, activity + ("feelings" to value))
+        assertEquals(emptyList(), violations(listOf("scared.anxious.tense", "calm.grateful", "glad")))
+        assertEquals(emptyList(), violations(emptyList<Any>()))
+        assertEquals(emptyList(), violations(null))
+        assertEquals(listOf(DocumentRules.Violation("feelings", "för många element: 7 (högst 6)")), violations(List(7) { "glad" }))
+        assertEquals(listOf(DocumentRules.Violation("feelings[1]", "ogiltigt token (5 tecken)")), violations(listOf("glad", "bored")))
+        assertEquals(listOf(DocumentRules.Violation("feelings", "fel typ: String (väntat lista)")), violations("glad"))
+    }
+
+    @Test
     fun `tools-db-fixturen (alla samlingar, varje fält) godtas - samma dokument som rules-testet skriver`() {
         for (doc in ExportFormat.decode(File("../tools/db/test/fixtures/user.json").readText())) {
             assertEquals(emptyList(), DocumentRules.validate(CollectionNames.collectionOf(doc.path), doc.data), doc.path)

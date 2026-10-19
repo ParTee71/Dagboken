@@ -63,15 +63,20 @@ data class Activity(
     val drain: Boolean = false,
     /** Tidsåtgång i minuter (AKT-7); `null` = inte angiven. */
     val minutes: Int? = null,
+    /** Känslorna ur ordkatalogen (AKT-13, DAT-14); fanns inte i 3.x – konverteraren ger tom lista. */
+    override val feelings: List<Feeling> = emptyList(),
     override val createdAt: Instant? = null,
     val note: String? = null,
     /** 3.x `somatiska` som inte är summan ([HasSymptoms.legacySomatic]). */
     override val legacySomatic: Int? = null
 ) : Post<Activity>,
-    HasSymptoms<Activity> {
+    HasSymptoms<Activity>,
+    HasFeelings<Activity> {
     override fun withId(id: String): Activity = copy(id = id)
 
     override fun copySymptoms(symptoms: List<SymptomScore>, legacySomatic: Int?): Activity = copy(symptoms = symptoms, legacySomatic = legacySomatic)
+
+    override fun withFeelings(feelings: List<Feeling>): Activity = copy(feelings = feelings)
 }
 
 /** `users/{uid}/events/{id}` – en hälsohändelse. Ersätter 3.x `health_events`. */

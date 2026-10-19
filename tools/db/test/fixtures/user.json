@@ -149,7 +149,7 @@
           { "optionId": "symptom-ovrigt-c067e8", "score": 5, "customText": "Myggbett" }
         ],
         "legacySomatic": null,
-        "recovering": true, "drain": true, "minutes": 45,
+        "recovering": true, "drain": true, "minutes": 45, "feelings": ["calm.relaxed", "glad"],
         "createdAt": { "__ts": "2026-09-21T15:00:00.000000000Z" }, "note": "Regn hela vägen"
       }
     },
@@ -157,7 +157,7 @@
       "path": "users/uid-test/activities/6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e",
       "data": {
         "date": "2026-09-22", "time": "07:30", "optionId": "activity-promenad-c78928", "customText": null, "energy": 4, "stress": 0,
-        "symptoms": [], "legacySomatic": 2, "recovering": false, "drain": false, "minutes": null,
+        "symptoms": [], "legacySomatic": 2, "recovering": false, "drain": false, "minutes": null, "feelings": [],
         "createdAt": { "__ts": "2026-09-22T05:30:00.000000000Z" }, "note": null
       }
     },

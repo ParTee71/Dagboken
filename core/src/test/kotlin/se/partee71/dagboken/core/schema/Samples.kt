@@ -125,7 +125,7 @@ object Samples {
     val activity = Activity(
         id = "a1", date = day, time = LocalTime(17, 0), optionId = "promenad", customText = "Svamplockning",
         energy = -2, stress = 1, symptoms = symptoms, legacySomatic = 3, recovering = true, drain = true, minutes = 45,
-        createdAt = created, note = "Regn"
+        feelings = feelings, createdAt = created, note = "Regn"
     )
 
     val event = Event(
