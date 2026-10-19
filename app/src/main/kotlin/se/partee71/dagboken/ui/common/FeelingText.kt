@@ -167,7 +167,8 @@ enum class FeelingSentenceKind { DAY, PERIOD }
 
 /**
  * Meningen i ord ur [FeelingSummary] (`computeFeelingStats`, #320) – inga tal. [FeelingSentenceKind.DAY] (Idag): "Mest lugn
- * och glad. Lite rädd vid lunch." – kärnorna i gemener, den tredje med sitt tillfälle när alla dess val hör till ett.
+ * och glad. Lite rädd vid lunch." – kärnorna i gemener, den tredje med sitt tillfälle när alla dess val hör till ett; bara
+ * en vald kärna ([FeelingSummary.sole]) ger "Lugn.".
  * [FeelingSentenceKind.PERIOD] (Trender): "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig.
  * Stark har du knappt rört." Inga val ger "Inga känslor loggade." – också minihjulets beskrivning för en tom dag.
  */
@@ -196,7 +197,7 @@ fun feelingHighlights(summary: FeelingSummary): String {
 @ReadOnlyComposable
 private fun daySentence(summary: FeelingSummary): String {
     val most = summary.most.map { coreName(it.core).lowercase() }
-    val first = if (most.size == 1) {
+    val first = if (summary.sole) {
         stringResource(R.string.feeling_sentence_day_only, coreName(summary.most.single().core))
     } else {
         stringResource(R.string.feeling_sentence_day_most, andList(most))

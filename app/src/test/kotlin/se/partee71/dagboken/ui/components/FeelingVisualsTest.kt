@@ -20,10 +20,14 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -128,14 +132,41 @@ class FeelingVisualsTest {
     }
 
     @Test
-    fun `FeelingMiniWheel - veckan med vald dag`() = captureLightAndDark("FeelingMiniWheel_vecka") {
-        Sheet {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                GalleryFeelings.week.forEachIndexed { index, day ->
-                    FeelingMiniWheel(day.tally, day.date.toString(), size = FeelingWheelSize.DAY, selected = index == GalleryFeelings.week.lastIndex)
-                }
+    fun `FeelingWeekRow - veckan med vald dag`() = captureLightAndDark("FeelingWeekRow_vald_dag") {
+        Sheet { FeelingWeekRow(GalleryFeelings.week, GalleryFeelings.week.last().date, {}) }
+    }
+
+    @Test
+    fun `veckoraden - en flik per dag med datum och dagens mening, vald läses vald, tryck ger dagen`() {
+        val chosen = mutableListOf<LocalDate>()
+        val sunday = GalleryFeelings.week.last().date
+        show { FeelingWeekRow(GalleryFeelings.week, sunday, { chosen += it }) }
+        val tabs = rule.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)).fetchSemanticsNodes()
+        assertEquals(7, tabs.size)
+        assertTrue(tabs.all { it.size.height >= with(rule.density) { TOUCH_TARGET.roundToPx() } }, "minst 48 dp hög")
+        val selected = rule.onNode(hasContentDescription("söndag 18 oktober: ", substring = true))
+        selected.assertIsSelected()
+        selected.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "vald"))
+        val wednesday = rule.onNodeWithContentDescription("onsdag 14 oktober: Inga känslor loggade.")
+        wednesday.assertIsNotSelected()
+        wednesday.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
+        wednesday.performClick()
+        assertEquals(listOf(LocalDate(2026, 10, 14)), chosen)
+        assertEquals(0, rule.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Image)).fetchSemanticsNodes().size, "hjulen läses inte för sig")
+    }
+
+    @Test
+    fun `FeelingPills - högst tre och +N, eller alla med max null`() {
+        val feelings = GALLERY_POST_FEELINGS
+        show {
+            Column {
+                ChipRow { FeelingPills(feelings) }
+                ChipRow { FeelingPills(feelings.drop(1), max = null) }
             }
         }
+        assertEquals(1, rule.onAllNodes(hasContentDescription("2 känslor till")).fetchSemanticsNodes().size, "+N bara i raden med tak")
+        assertEquals(1, rule.onAllNodesWithText("Ledsen").fetchSemanticsNodes().size, "den femte bara i raden utan tak")
+        assertEquals(1, rule.onAllNodesWithText("Lugn › Tacksam").fetchSemanticsNodes().size)
     }
 
     @Test

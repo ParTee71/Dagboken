@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -75,7 +76,7 @@ import se.partee71.dagboken.ui.components.DeleteConfirmDialog
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.EntityDetailScreen
 import se.partee71.dagboken.ui.components.FeelingMiniWheel
-import se.partee71.dagboken.ui.components.FeelingPill
+import se.partee71.dagboken.ui.components.FeelingPills
 import se.partee71.dagboken.ui.components.GroupLabel
 import se.partee71.dagboken.ui.components.InfoPill
 import se.partee71.dagboken.ui.components.ItemRow
@@ -253,22 +254,22 @@ private fun WeekSummaryCard(summary: WeekSummary) {
 }
 
 /**
- * Dagens känslor (HEM-21): minihjulet till vänster – TalkBack läser meningen – med titeln och meningen i ord ("Mest lugn
- * och glad. Lite rädd vid lunch.", samma `FeelingStats` och `feelingSentence` som Trender), under dem dagens ord i
- * tidsordning som pills i kärnans ton. Bara visning; anroparen visar kortet bara när dagen har känslor.
+ * Dagens känslor (HEM-21): minihjulet till vänster – TalkBack läser meningen där, en gång – med titeln och meningen i ord
+ * ("Mest lugn och glad. Lite rädd vid lunch.", samma räkning och `feelingSentence` som Trender), under dem alla dagens
+ * ord i tidsordning som `FeelingPills`. Bara visning; anroparen visar kortet bara när dagen har känslor.
  */
 @Composable
 private fun FeelingsCard(day: FeelingDay) {
-    val sentence = feelingSentence(day.stats.summary, FeelingSentenceKind.DAY)
+    val sentence = feelingSentence(day.summary, FeelingSentenceKind.DAY)
     AppCard {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.m), verticalAlignment = Alignment.CenterVertically) {
-            FeelingMiniWheel(day.stats.tally, sentence)
+            FeelingMiniWheel(day.tally, sentence)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 SectionHeader(stringResource(R.string.today_feelings_title))
-                Text(sentence, style = AppTypography.body)
+                Text(sentence, Modifier.clearAndSetSemantics {}, style = AppTypography.body)
             }
         }
-        ChipRow { day.words.forEach { FeelingPill(it) } }
+        ChipRow { FeelingPills(day.words, max = null) }
     }
 }
 

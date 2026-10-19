@@ -16,6 +16,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
@@ -61,8 +63,8 @@ import se.partee71.dagboken.core.engine.OTHER_SYMPTOM_ID
 import se.partee71.dagboken.core.engine.OngoingIllness
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.asNeededChoices
+import se.partee71.dagboken.core.engine.computeFeelingStats
 import se.partee71.dagboken.core.engine.doseChecklist
-import se.partee71.dagboken.core.engine.feelingDay
 import se.partee71.dagboken.core.engine.occasionStates
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
@@ -461,21 +463,25 @@ class TodayScreenTest {
     }
 
     /** Dagens känslor som i tavla F: frukost, lunch och kvällsmat (HEM-21). */
-    private val feelings = feelingDay(
+    private val feelings = computeFeelingStats(
         listOf(
             FeelingEntry(today, listOf(Feeling("glad", "creative", "curious")), LocalTime(8, 5), Occasion.BREAKFAST),
             FeelingEntry(today, listOf(Feeling("scared", "anxious")), LocalTime(12, 10), Occasion.LUNCH),
             FeelingEntry(today, listOf(Feeling("calm", "grateful"), Feeling("calm"), Feeling("glad", "content")), LocalTime(17, 40), Occasion.DINNER)
-        ),
-        today
-    )
+        )
+    ).day(today)
 
     @Test
     fun `Dagens känslor visar minihjulet, meningen och dagens ord i tidsordning (HEM-21)`() {
         show(content().copy(feelings = feelings))
         rule.onNodeWithText("Dagens känslor").assertIsDisplayed()
-        rule.onNodeWithText("Mest glad och lugn. Lite rädd vid lunch.").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Mest glad och lugn. Lite rädd vid lunch.").assertIsDisplayed()
+        val sentence = "Mest glad och lugn. Lite rädd vid lunch."
+        rule.onNodeWithContentDescription(sentence).assertIsDisplayed()
+        assertEquals(
+            1,
+            rule.onAllNodes(hasText(sentence) or hasContentDescription(sentence), useUnmergedTree = true).fetchSemanticsNodes().size,
+            "TalkBack läser meningen en gång, på minihjulet – den synliga texten läses inte igen"
+        )
         listOf("Glad › Kreativ › Nyfiken", "Rädd › Orolig", "Lugn › Tacksam", "Lugn", "Glad › Nöjd").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
     }
 

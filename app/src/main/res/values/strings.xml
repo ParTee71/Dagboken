@@ -281,7 +281,7 @@
     <string name="trends_feelings_wheel">Hjulet · ju oftare, desto starkare ton</string>
     <string name="trends_feelings_week">Veckan · ett hjul per dag</string>
     <string name="trends_feelings_week_hint">Tryck på en dag för orden.</string>
-    <string name="trends_feelings_day_format">%1$s: %2$s</string>
+    <string name="feeling_week_day_format">%1$s: %2$s</string>
     <string name="trends_feelings_tree">Ordträdet</string>
     <string name="trends_feelings_tree_hint">Längden säger hur ofta, orden i stapeln är nyanserna du valt. Inga tal.</string>
     <string name="trends_feelings_empty_hint">Välj känslor när du loggar mående eller en aktivitet, så syns de här.</string>

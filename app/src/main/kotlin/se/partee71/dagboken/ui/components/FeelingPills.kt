@@ -37,13 +37,15 @@ internal fun FeelingPill(
 }
 
 /**
- * En posts känslor som pills för visning – de första [max] som [FeelingPill] i vald ordning, därefter en neutral pill
- * "+N" för resten (TalkBack: "N känslor till"). Läggs i anroparens [ChipRow], efter postens värden; tom lista ger inget.
+ * Känslor som pills för visning – de första [max] som [FeelingPill] i given ordning, därefter en neutral pill "+N" för
+ * resten (TalkBack: "N känslor till"); [max] `null` visar alla (Idags Dagens känslor, Trenders valda dag). Läggs i
+ * anroparens [ChipRow], efter postens värden; tom lista ger inget.
  */
 @Composable
-fun FeelingPills(feelings: List<Feeling>, max: Int = FEELING_PILLS_MAX) {
-    feelings.take(max).forEach { FeelingPill(it) }
-    val rest = feelings.size - max
+fun FeelingPills(feelings: List<Feeling>, max: Int? = FEELING_PILLS_MAX) {
+    val shown = max?.let(feelings::take) ?: feelings
+    shown.forEach { FeelingPill(it) }
+    val rest = feelings.size - shown.size
     if (rest > 0) {
         val description = pluralStringResource(R.plurals.feelings_more_description, rest, rest)
         InfoPill(

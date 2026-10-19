@@ -1,27 +1,20 @@
 package se.partee71.dagboken.ui.trends
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.stateDescription
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.datetime.LocalDate
@@ -29,7 +22,6 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.COMPARE_AXIS
 import se.partee71.dagboken.core.engine.CompareKey
 import se.partee71.dagboken.core.engine.EpisodeSpan
-import se.partee71.dagboken.core.engine.FeelingDay
 import se.partee71.dagboken.core.engine.SLEEP_STAGE_METRICS
 import se.partee71.dagboken.core.engine.SeriesSummary
 import se.partee71.dagboken.core.engine.SleepQualityKind
@@ -66,13 +58,13 @@ import se.partee71.dagboken.ui.components.ChipRow
 import se.partee71.dagboken.ui.components.EmptyState
 import se.partee71.dagboken.ui.components.EntityDetailScreen
 import se.partee71.dagboken.ui.components.FeelingMiniWheel
-import se.partee71.dagboken.ui.components.FeelingPill
+import se.partee71.dagboken.ui.components.FeelingPills
+import se.partee71.dagboken.ui.components.FeelingWeekRow
 import se.partee71.dagboken.ui.components.FeelingWheelSize
 import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.GroupLabel
 import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.components.SwitchRow
-import se.partee71.dagboken.ui.components.TOUCH_TARGET
 import se.partee71.dagboken.ui.diagram.CHART_SEPARATOR
 import se.partee71.dagboken.ui.diagram.ChartBand
 import se.partee71.dagboken.ui.diagram.ChartSeries
@@ -91,7 +83,6 @@ import se.partee71.dagboken.ui.health.ClockViewModel
 import se.partee71.dagboken.ui.health.HealthEvent
 import se.partee71.dagboken.ui.health.HealthTodaySection
 import se.partee71.dagboken.ui.theme.AppColors
-import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
 import se.partee71.dagboken.ui.theme.Tone
@@ -452,8 +443,8 @@ private fun summaryText(card: TrendCard, data: CardData): String? = when (data) 
 /**
  * Känslor (TRD-22), inga tal: värmekartan – minihjulet i full bredd med kärnan och de tre vanligaste nyanserna i varje
  * sektor – med periodens mening under (samma `FeelingStats` och `feelingSentence` som Idags Dagens känslor), i
- * 7-dagarsläget veckan med ett minihjul per dag (tryck väljer dagen och visar dess ord som pills, [onSelect]) och
- * sist ordträdet. En period utan känslor visar kortets tomma läge.
+ * 7-dagarsläget veckan med ett minihjul per dag (`FeelingWeekRow`: tryck väljer dagen och visar alla dess ord som
+ * `FeelingPills`, [onSelect]) och sist ordträdet. TalkBack läser periodens mening en gång, på hjulet. En period utan känslor visar kortets tomma läge.
  */
 @Composable
 private fun FeelingsChart(data: CardData.Feelings, selected: LocalDate?, onSelect: (LocalDate) -> Unit) {
@@ -463,51 +454,24 @@ private fun FeelingsChart(data: CardData.Feelings, selected: LocalDate?, onSelec
     }
     val sentence = feelingSentence(data.stats.summary, FeelingSentenceKind.PERIOD)
     GroupLabel(stringResource(R.string.trends_feelings_wheel))
+    // Hjulet läser meningen för TalkBack; den synliga texten är samma mening och läses inte en gång till.
     FeelingMiniWheel(data.stats.tally, sentence, size = FeelingWheelSize.HEATMAP, labels = true)
-    Text(sentence, style = AppTypography.body)
+    Text(sentence, Modifier.clearAndSetSemantics {}, style = AppTypography.body)
     if (data.week.isNotEmpty()) {
         AppDivider()
         GroupLabel(stringResource(R.string.trends_feelings_week))
-        Row(Modifier.fillMaxWidth()) {
-            data.week.forEach { day -> FeelingWeekDay(day, day.date == selected, Modifier.weight(1f)) { onSelect(day.date) } }
-        }
+        FeelingWeekRow(data.week, selected, onSelect)
         val chosen = data.week.firstOrNull { it.date == selected }
         when {
             chosen == null -> Text(stringResource(R.string.trends_feelings_week_hint), style = AppTypography.body)
-            chosen.words.isEmpty() -> Text(feelingSentence(chosen.stats.summary, FeelingSentenceKind.DAY), style = AppTypography.body)
-            else -> ChipRow { chosen.words.forEach { FeelingPill(it) } }
+            chosen.words.isEmpty() -> Text(feelingSentence(chosen.summary, FeelingSentenceKind.DAY), style = AppTypography.body)
+            else -> ChipRow { FeelingPills(chosen.words, max = null) }
         }
     }
     AppDivider()
     GroupLabel(stringResource(R.string.trends_feelings_tree))
     FeelingWordBars(data.stats.tally)
     Text(stringResource(R.string.trends_feelings_tree_hint), style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-/**
- * En dag i Känslors vecka: minihjulet med veckodagen under; hela kolumnen är en knapp (minst 48 dp hög) som TalkBack läser
- * med datum och dagens mening, och "vald" för den valda dagen (ringen runt hjulet).
- */
-@Composable
-private fun FeelingWeekDay(day: FeelingDay, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val sentence = feelingSentence(day.stats.summary, FeelingSentenceKind.DAY)
-    val spoken = stringResource(R.string.trends_feelings_day_format, DateFormat.weekdayDayAndMonth(day.date), sentence)
-    val chosen = stringResource(R.string.feeling_selected_state)
-    Column(
-        modifier
-            .heightIn(min = TOUCH_TARGET)
-            .clip(AppShapes.smallTile)
-            .clickable(role = Role.Button, onClick = onClick)
-            .clearAndSetSemantics {
-                contentDescription = spoken
-                if (selected) stateDescription = chosen
-            },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-    ) {
-        FeelingMiniWheel(day.stats.tally, sentence, size = FeelingWheelSize.DAY, selected = selected)
-        Text(DateFormat.weekdayShort(day.date), style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-    }
 }
 
 /** "Snitt 6,4 · Trend uppåt" ur en serie – samma formatering som `MinMaxCaption`; `null` utan värden. */

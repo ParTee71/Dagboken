@@ -9,9 +9,10 @@ import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Post
 import se.partee71.dagboken.core.model.Screening
 
-// Känslornas sammanställning (#320): Idags kort Dagens känslor och Trenders kort Känslor bygger på samma räkning,
-// så att de aldrig säger olika saker (som `computeDailyEnergyStats`, HEM-7). Bara tokens och roller – meningen i ord
-// formateras i appen (`ui/common/FeelingText.kt`), som har resurserna. Inga tal visas för känslor.
+// Känslornas sammanställning (#320): Idags kort Dagens känslor och Trenders kort Känslor räknar på samma sätt och
+// skriver samma sorts mening ur samma struktur (som `computeDailyEnergyStats`, HEM-7) – men ur olika källor: Idag bara
+// den visade dagens måendeloggar (NFR-24, HEM-21), Trender periodens måendeloggar och aktiviteter (TRD-22). Bara tokens
+// och roller – meningen i ord formateras i appen (`ui/common/FeelingText.kt`), som har resurserna. Inga tal visas för känslor.
 
 /**
  * En post med känslor som räknas: dagen, valfritt klockslag och måendetillfälle (en aktivitet har inget tillfälle)
@@ -56,11 +57,11 @@ data class CoreCount(
 data class FeelingTally(val total: Int, val cores: List<CoreCount>) {
     val isEmpty: Boolean get() = total == 0
 
-    /** Kärnorna med minst ett val, vanligast först; lika många → hjulets ordning. */
-    val ranked: List<CoreCount> get() = cores.filter { it.count > 0 }.sortedByDescending { it.count }
+    /** Kärnorna med minst ett val, vanligast först; lika många → hjulets ordning. Räknas en gång. */
+    val ranked: List<CoreCount> = cores.filter { it.count > 0 }.sortedByDescending { it.count }
 
-    /** Alla kärnor, vanligast först (lika många → hjulets ordning), de utan val sist – ordträdets rader. */
-    val byCount: List<CoreCount> get() = cores.sortedByDescending { it.count }
+    /** Alla kärnor, vanligast först (lika många → hjulets ordning), de utan val sist – ordträdets rader. Räknas en gång. */
+    val byCount: List<CoreCount> = ranked + cores.filter { it.count == 0 }
 
     /** Kärnans räkning; en okänd kärna → `null`. */
     fun of(core: String): CoreCount? = cores.firstOrNull { it.core == core }
@@ -71,9 +72,6 @@ data class FeelingTally(val total: Int, val cores: List<CoreCount>) {
     }
 }
 
-/** En dags räkning ([FeelingTally]) – Trenders vecka med ett minihjul per dag. */
-data class DayFeelings(val date: LocalDate, val tally: FeelingTally)
-
 /**
  * En kärna i meningen: [nuance] när kärnan valts minst [MIN_HABIT_PICKS] gånger och till minst två tredjedelar med samma
  * nyans ("nästan alltid som Orolig"), [occasion] när alla dess val hör till samma måendetillfälle ("vid lunch").
@@ -81,43 +79,63 @@ data class DayFeelings(val date: LocalDate, val tally: FeelingTally)
 data class FeelingRole(val core: String, val nuance: String? = null, val occasion: Occasion? = null)
 
 /**
- * Meningens struktur: [most] är de (upp till) två vanligaste kärnorna, [little] den tredje (`null` med färre än tre
- * kärnor), [untouched] kärnorna utan val när perioden har minst [MIN_PICKS_FOR_UNTOUCHED] val – och bara när de är
- * högst [MAX_UNTOUCHED] (annars säger "mest" redan allt). Idag använder [most] och [little] med tillfälle, Trender
- * [most], [little] med nyans och [untouched].
+ * Meningens struktur: [most] är de (upp till) två vanligaste kärnorna, [little] den tredje, [untouched] kärnorna utan val
+ * när perioden har minst [MIN_PICKS_FOR_UNTOUCHED] val – och bara när de är högst [MAX_UNTOUCHED] (annars säger "mest"
+ * redan allt). Meningen påstår ingen skillnad som inte finns: har tredje kärnan lika många val som andra nämns ingen av dem
+ * – [most] är då bara den vanligaste ("Mest ledsen.") och [little] `null`; har de tre vanligaste lika många är [most]
+ * alla som delar förstaplatsen ("Mest glad, lugn och ledsen."). [sole] när bara en kärna valts – Idag säger då bara
+ * kärnan ("Lugn."). Idag använder [most] och [little] med tillfälle, Trender [most], [little] med nyans och [untouched].
  */
-data class FeelingSummary(val most: List<FeelingRole>, val little: FeelingRole?, val untouched: List<String>) {
+data class FeelingSummary(val most: List<FeelingRole>, val little: FeelingRole?, val untouched: List<String>, val sole: Boolean = false) {
     val isEmpty: Boolean get() = most.isEmpty()
-}
 
-/** Sammanställningen: räkningen för alla [entries], meningens struktur och fördelningen per dag (stigande datum). */
-data class FeelingStats(val tally: FeelingTally, val summary: FeelingSummary, val days: List<DayFeelings>) {
-    /** Dagsfördelningen utlagd på [days] (t.ex. veckan mån–sön); en dag utan känslor får [FeelingTally.EMPTY]. */
-    fun alignTo(days: List<LocalDate>): List<DayFeelings> {
-        val byDate = this.days.associateBy { it.date }
-        return days.map { byDate[it] ?: DayFeelings(it, FeelingTally.EMPTY) }
+    companion object {
+        /** Inga val: ingen mening. */
+        val EMPTY: FeelingSummary = FeelingSummary(emptyList(), null, emptyList())
     }
 }
 
-/** Räknar känslorna i [entries] – Idag med den visade dagens måendeloggar, Trender med periodens loggar och aktiviteter. */
-fun computeFeelingStats(entries: List<FeelingEntry>): FeelingStats {
-    val tally = tally(entries)
-    val days = entries.groupBy { it.date }.entries.sortedBy { it.key }.map { (date, ofDay) -> DayFeelings(date, tally(ofDay)) }
-    return FeelingStats(tally, summaryOf(tally, entries), days)
+/**
+ * En dag för sig: dagens räkning ([tally]), meningens struktur ([summary]) och dagens [words] i tidsordning (poster utan
+ * klockslag sist, varje ord en gång) – Idags kort Dagens känslor och en dag i Trenders vecka (#320). [isEmpty] när dagen
+ * saknar känslor appen känner.
+ */
+data class FeelingDay(val date: LocalDate, val tally: FeelingTally, val summary: FeelingSummary, val words: List<Feeling>) {
+    val isEmpty: Boolean get() = tally.isEmpty
+
+    companion object {
+        /** En dag utan poster med känslor. */
+        fun empty(date: LocalDate): FeelingDay = FeelingDay(date, FeelingTally.EMPTY, FeelingSummary.EMPTY, emptyList())
+    }
 }
 
 /**
- * En dag för sig: [stats] över dagens poster och dagens [words] i tidsordning (poster utan klockslag sist, varje ord en
- * gång) – Idags kort Dagens känslor och en dag i Trenders vecka (#320). [isEmpty] när dagen saknar känslor appen känner.
+ * Sammanställningen: räkningen för alla poster ([tally]), meningens struktur ([summary]) och dagarna var för sig ([days],
+ * stigande datum, bara dagar med poster) – ur en gruppering per dag.
  */
-data class FeelingDay(val date: LocalDate, val stats: FeelingStats, val words: List<Feeling>) {
-    val isEmpty: Boolean get() = stats.tally.isEmpty
+data class FeelingStats(val tally: FeelingTally, val summary: FeelingSummary, val days: List<FeelingDay>) {
+    /** Dagarna utlagda på [dates] (t.ex. veckan i perioden); en dag utan poster får [FeelingDay.empty]. */
+    fun alignTo(dates: List<LocalDate>): List<FeelingDay> {
+        val byDate = days.associateBy { it.date }
+        return dates.map { byDate[it] ?: FeelingDay.empty(it) }
+    }
+
+    /** [date]s dag – [FeelingDay.empty] utan poster den dagen. */
+    fun day(date: LocalDate): FeelingDay = alignTo(listOf(date)).single()
 }
 
-/** [date]s känslor ur [entries] (andra dagar räknas inte) – en [FeelingDay] också för en dag utan poster. */
-fun feelingDay(entries: List<FeelingEntry>, date: LocalDate): FeelingDay {
-    val ofDay = entries.filter { it.date == date }.sortedWith(compareBy(nullsLast()) { it.time })
-    return FeelingDay(date, computeFeelingStats(ofDay), ofDay.flatMap { it.feelings }.distinct())
+/**
+ * Räknar känslorna i [entries] – Idag med den visade dagens måendeloggar, Trender med periodens loggar och aktiviteter –
+ * och grupperar dem per dag en gång: varje dags räkning, mening och ord i tidsordning.
+ */
+fun computeFeelingStats(entries: List<FeelingEntry>): FeelingStats {
+    val tally = tally(entries)
+    val days = entries.groupBy { it.date }.entries.sortedBy { it.key }.map { (date, ofDay) ->
+        val inOrder = ofDay.sortedWith(compareBy(nullsLast()) { it.time })
+        val dayTally = tally(inOrder)
+        FeelingDay(date, dayTally, summaryOf(dayTally, inOrder), inOrder.flatMap { it.feelings }.distinct())
+    }
+    return FeelingStats(tally, summaryOf(tally, entries), days)
 }
 
 private fun tally(entries: List<FeelingEntry>): FeelingTally {
@@ -136,9 +154,19 @@ private fun tally(entries: List<FeelingEntry>): FeelingTally {
 }
 
 private fun summaryOf(tally: FeelingTally, entries: List<FeelingEntry>): FeelingSummary {
-    val roles = tally.ranked.take(MOST + 1).map { role(it, entries) }
+    val ranked = tally.ranked
+    // Lika många på tredje som på andra plats: varken andra eller tredje nämns (ingen påhittad skillnad), och delar alla
+    // tre förstaplatsen är "mest" alla som delar den.
+    val tiedAtCut = ranked.size > MOST && ranked[MOST].count == ranked[MOST - 1].count
+    val most = if (tiedAtCut) ranked.filter { it.count == ranked.first().count } else ranked.take(MOST)
+    val little = ranked.getOrNull(MOST).takeIf { !tiedAtCut }
     val untouched = if (tally.total >= MIN_PICKS_FOR_UNTOUCHED) tally.cores.filter { it.count == 0 }.map { it.core } else emptyList()
-    return FeelingSummary(roles.take(MOST), roles.getOrNull(MOST), untouched.takeIf { it.size <= MAX_UNTOUCHED }.orEmpty())
+    return FeelingSummary(
+        most.map { role(it, entries) },
+        little?.let { role(it, entries) },
+        untouched.takeIf { it.size <= MAX_UNTOUCHED }.orEmpty(),
+        sole = ranked.size == 1
+    )
 }
 
 private fun role(count: CoreCount, entries: List<FeelingEntry>): FeelingRole {
@@ -152,7 +180,7 @@ private fun fraction(part: Int, whole: Int): Float = if (whole == 0) 0f else par
 /** Så många nyanser skrivs i värmekartans sektor. */
 const val TOP_NUANCES = 3
 
-/** Så många kärnor är "mest"; nästa är "lite". */
+/** Så många kärnor är "mest"; nästa är "lite" (lika många på gränsen: se [FeelingSummary]). */
 private const val MOST = 2
 
 /** "<kärna> knappt rört" sägs först när perioden har så många val … */

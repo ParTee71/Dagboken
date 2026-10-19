@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -40,10 +41,9 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.TypeChoices
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.data.auth.AuthUser
-import se.partee71.dagboken.core.engine.DayFeelings
+import se.partee71.dagboken.core.engine.FeelingDay
 import se.partee71.dagboken.core.engine.FeelingEntry
 import se.partee71.dagboken.core.engine.FeelingStats
-import se.partee71.dagboken.core.engine.FeelingSummary
 import se.partee71.dagboken.core.engine.computeFeelingStats
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Occasion
@@ -357,33 +357,32 @@ private fun Diary() {
     AppCard { FeelingPicker(feelings, { feelings = it }) }
     Label("FeelingPills")
     ChipRow { FeelingPills(GALLERY_POST_FEELINGS) }
+    // Alla, utan "+N" – Idags Dagens känslor och Trenders valda dag.
+    ChipRow { FeelingPills(GALLERY_POST_FEELINGS, max = null) }
     Label("FeelingMiniWheel")
     GalleryMiniWheels()
+    Label("FeelingWeekRow")
+    var weekDay by remember { mutableStateOf<LocalDate?>(GalleryFeelings.week.last().date) }
+    AppCard { FeelingWeekRow(GalleryFeelings.week, weekDay, { weekDay = it.takeUnless { day -> day == weekDay } }) }
 }
 
-/** Minihjulen i sina tre storlekar med påhittade val: dagens kort, veckans dagar och värmekartan med ord (#320). */
+/** Minihjulen med påhittade val: dagens kort och värmekartan med ord (#320); veckans dagar visar `FeelingWeekRow`. */
 @Composable
 internal fun GalleryMiniWheels() {
     val day = GalleryFeelings.day
     val daySentence = feelingSentence(day.summary, FeelingSentenceKind.DAY)
+    // Hjulet läser meningen för TalkBack; texten bredvid är samma mening och läses inte en gång till.
     AppCard {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.m), verticalAlignment = Alignment.CenterVertically) {
             FeelingMiniWheel(day.tally, daySentence)
-            Text(daySentence, style = AppTypography.body)
-        }
-    }
-    AppCard {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            GalleryFeelings.week.forEachIndexed { index, it ->
-                FeelingMiniWheel(it.tally, feelingSentence(GalleryFeelings.weekSummaries[index], FeelingSentenceKind.DAY), size = FeelingWheelSize.DAY, selected = index == GalleryFeelings.week.lastIndex)
-            }
+            Text(daySentence, Modifier.clearAndSetSemantics {}, style = AppTypography.body)
         }
     }
     val period = GalleryFeelings.period
     val periodSentence = feelingSentence(period.summary, FeelingSentenceKind.PERIOD)
     AppCard {
         FeelingMiniWheel(period.tally, periodSentence, size = FeelingWheelSize.HEATMAP, labels = true)
-        Text(periodSentence, style = AppTypography.body)
+        Text(periodSentence, Modifier.clearAndSetSemantics {}, style = AppTypography.body)
     }
 }
 
@@ -412,9 +411,8 @@ internal object GalleryFeelings {
         entry(monday.plus(DatePeriod(days = 6)), "calm.grateful", "calm.relaxed", "glad.creative"),
     )
 
-    /** Mån–sön, en dag utan känslor (onsdag). */
-    val week: List<DayFeelings> = computeFeelingStats(weekEntries).alignTo((0..6).map { monday.plus(DatePeriod(days = it)) })
-    val weekSummaries: List<FeelingSummary> = week.map { day -> computeFeelingStats(weekEntries.filter { it.date == day.date }).summary }
+    /** Mån–sön, en dag utan känslor (onsdag) – samma gruppering per dag som Trenders vecka. */
+    val week: List<FeelingDay> = computeFeelingStats(weekEntries).alignTo((0..6).map { monday.plus(DatePeriod(days = it)) })
 
     /** "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig. Stark har du knappt rört." */
     val period: FeelingStats = computeFeelingStats(

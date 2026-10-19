@@ -28,7 +28,7 @@ class FeelingStatsTest {
         assertEquals(FeelingCatalog.cores, stats.tally.cores.map { it.core })
         assertTrue(stats.tally.cores.all { it.count == 0 && it.share == 0f && it.weight == 0f && it.nuances.isEmpty() })
         assertTrue(stats.tally.ranked.isEmpty())
-        assertEquals(FeelingSummary(emptyList(), null, emptyList()), stats.summary)
+        assertEquals(FeelingSummary.EMPTY, stats.summary)
         assertTrue(stats.summary.isEmpty)
         assertTrue(stats.days.isEmpty())
         assertEquals(FeelingTally.EMPTY, stats.tally)
@@ -79,8 +79,8 @@ class FeelingStatsTest {
         val stats = computeFeelingStats(listOf(entry("scared", "sad", "calm", "glad")))
         assertEquals(listOf("glad", "calm", "sad", "scared"), stats.tally.ranked.map { it.core })
         assertEquals(listOf("glad", "calm", "sad", "scared", "strong", "angry"), stats.tally.byCount.map { it.core })
-        assertEquals(listOf("glad", "calm"), stats.summary.most.map { it.core })
-        assertEquals("sad", stats.summary.little?.core)
+        assertEquals(listOf("glad", "calm", "sad", "scared"), stats.summary.most.map { it.core }, "lika många: meningen väljer ingen ur hjulets ordning")
+        assertNull(stats.summary.little)
     }
 
     @Test fun `okänd kärna räknas inte, okänd nyans räknas bara på kärnan`() {
@@ -109,14 +109,35 @@ class FeelingStatsTest {
         val one = computeFeelingStats(listOf(entry("calm", occasion = Occasion.LUNCH), entry("calm.grateful", occasion = Occasion.LUNCH))).summary
         assertEquals(listOf(FeelingRole("calm", occasion = Occasion.LUNCH)), one.most)
         assertNull(one.little)
+        assertTrue(one.sole, "en enda kärna")
         val two = computeFeelingStats(listOf(entry("calm", "glad"))).summary
         assertEquals(listOf("glad", "calm"), two.most.map { it.core })
         assertNull(two.little)
+        assertFalse(two.sole)
+    }
+
+    @Test fun `lika många på andra och tredje plats - bara den vanligaste är mest, ingen lite`() {
+        val tie = computeFeelingStats(listOf(entry("sad", "sad", "calm", "glad"))).summary
+        assertEquals(listOf(FeelingRole("sad")), tie.most, "glad och lugn lika många: ingen av dem nämns")
+        assertNull(tie.little)
+        assertFalse(tie.sole, "fler kärnor valdes – Idag säger Mest ledsen, inte bara Ledsen")
+        val allEqual = computeFeelingStats(listOf(entry("scared", "sad", "calm", "glad"))).summary
+        assertEquals(listOf("glad", "calm", "sad", "scared"), allEqual.most.map { it.core }, "alla delar förstaplatsen: alla är mest")
+        assertNull(allEqual.little)
+        val thirdBehind = computeFeelingStats(listOf(entry("sad", "sad", "calm", "calm", "glad"))).summary
+        assertEquals(listOf("calm", "sad"), thirdBehind.most.map { it.core }, "färre på tredje: två mest och en lite")
+        assertEquals(FeelingRole("glad"), thirdBehind.little)
+    }
+
+    @Test fun `ordningarna räknas en gång`() {
+        val tally = computeFeelingStats(listOf(entry("sad", "calm", "calm"))).tally
+        assertTrue(tally.ranked === tally.ranked)
+        assertTrue(tally.byCount === tally.byCount)
     }
 
     @Test fun `aktiviteter har inget tillfälle`() {
-        val summary = computeFeelingStats(listOf(entry("calm", "glad", "sad"), entry("sad", occasion = Occasion.LUNCH))).summary
-        assertEquals(FeelingRole("calm"), summary.little, "lika många: hjulets ordning; posten utan tillfälle")
+        val summary = computeFeelingStats(listOf(entry("calm", "glad", "sad", "sad"), entry("sad", "glad", occasion = Occasion.LUNCH))).summary
+        assertEquals(FeelingRole("calm"), summary.little, "posten utan tillfälle")
         assertEquals(FeelingRole("sad"), summary.most[0], "både utan tillfälle och vid lunch → inget tillfälle")
     }
 
@@ -146,21 +167,24 @@ class FeelingStatsTest {
         assertEquals(listOf("strong", "angry"), two.untouched, "hjulets ordning")
     }
 
-    @Test fun `dagsfördelning per datum i stigande ordning och utlagd på veckan`() {
+    @Test fun `dagarna per datum i stigande ordning, var för sig och utlagda på veckan`() {
         val monday = LocalDate(2026, 10, 12)
         val wednesday = LocalDate(2026, 10, 14)
         val stats = computeFeelingStats(listOf(entry("sad", date = wednesday), entry("glad", "glad.content", date = monday), entry("sad.tired", date = wednesday)))
         assertEquals(listOf(monday, wednesday), stats.days.map { it.date })
         assertEquals(2, stats.days[0].tally.of("glad")?.count)
         assertEquals(1f, stats.days[0].tally.of("glad")?.share)
+        assertEquals(listOf(FeelingRole("glad")), stats.days[0].summary.most, "dagens egen mening")
         assertEquals(2, stats.days[1].tally.of("sad")?.count)
         assertEquals(4, stats.tally.total)
         val week = stats.alignTo((0..6).map { LocalDate(2026, 10, 12 + it) })
         assertEquals(7, week.size)
         assertEquals(stats.days[0], week[0])
-        assertEquals(FeelingTally.EMPTY, week[1].tally)
-        assertEquals(LocalDate(2026, 10, 13), week[1].date)
+        assertEquals(FeelingDay.empty(LocalDate(2026, 10, 13)), week[1])
+        assertTrue(week[1].isEmpty)
         assertEquals(stats.days[1], week[2])
+        assertEquals(stats.days[1], stats.day(wednesday))
+        assertEquals(FeelingDay.empty(LocalDate(2026, 10, 15)), stats.day(LocalDate(2026, 10, 15)))
     }
 
     @Test fun `måendeloggen som indata - utan datum hör den inte till någon dag`() {
@@ -180,18 +204,21 @@ class FeelingStatsTest {
             at(12, "scared.anxious", "calm.grateful"),
             at(9, "angry", date = other)
         )
-        val shown = feelingDay(entries, day)
+        val stats = computeFeelingStats(entries)
+        val shown = stats.day(day)
         assertEquals(day, shown.date)
         assertEquals(
             listOf("glad.creative.curious", "scared.anxious", "calm.grateful", "glad.content", "sad.tired"),
             shown.words.map { it.token },
             "efter klockslag, utan klockslag sist, ett upprepat ord en gång"
         )
-        assertEquals(6, shown.stats.tally.total, "räkningen tar varje val, också upprepningen")
-        assertEquals(0, shown.stats.tally.of("angry")?.count, "en annan dag räknas inte")
+        assertEquals(6, shown.tally.total, "räkningen tar varje val, också upprepningen")
+        assertEquals(0, shown.tally.of("angry")?.count, "en annan dag räknas inte")
+        assertEquals(1, stats.day(other).tally.of("angry")?.count)
         assertFalse(shown.isEmpty)
-        val empty = feelingDay(entries, LocalDate(2026, 10, 15))
+        val empty = stats.day(LocalDate(2026, 10, 15))
         assertTrue(empty.isEmpty)
         assertTrue(empty.words.isEmpty())
+        assertTrue(computeFeelingStats(listOf(at(8, date = other))).day(other).isEmpty, "en post utan känslor ger en tom dag")
     }
 }

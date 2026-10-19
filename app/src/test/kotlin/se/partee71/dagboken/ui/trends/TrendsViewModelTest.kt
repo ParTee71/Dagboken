@@ -644,13 +644,23 @@ class TrendsViewModelTest {
         assertEquals(4, data.stats.tally.total, "dag 20 ligger utanför veckan")
         assertEquals((6 downTo 0).map(::day), data.week.map { it.date })
         assertEquals(listOf("glad.playful", "calm.grateful"), data.week.last().words.map { it.token }, "aktiviteten kl. 7 före måendeloggen kl. 8")
+        assertEquals(data.stats.days.last(), data.week.last(), "veckan ur periodens gruppering per dag")
         assertEquals(listOf("scared.anxious", "calm"), data.week[5].words.map { it.token })
         assertTrue(data.week.first().isEmpty)
     }
 
+    /** Känslor utfällt i 7-dagarsläget – veckan visas. */
+    private fun TestScope.feelingsWeek(): TrendsViewModel {
+        val vm = started()
+        vm.onEvent(TrendsEvent.Toggle(TrendCard.FEELINGS))
+        vm.onEvent(TrendsEvent.SetRange(TrendCard.FEELINGS, TrendRange.SEVEN_DAYS))
+        runCurrent()
+        return vm
+    }
+
     @Test
     fun `en dag i veckan väljs och avmarkeras (TRD-22)`() = runTest(main.dispatcher) {
-        val vm = started()
+        val vm = feelingsWeek()
         assertNull(vm.state.value.feelingDay)
         vm.onEvent(TrendsEvent.SelectFeelingDay(today))
         runCurrent()
@@ -661,6 +671,38 @@ class TrendsViewModelTest {
         vm.onEvent(TrendsEvent.SelectFeelingDay(day(1)))
         runCurrent()
         assertNull(vm.state.value.feelingDay, "samma dag igen avmarkerar")
+    }
+
+    @Test
+    fun `den valda dagen nollställs vid periodbyte för Känslor men inte för ett annat kort (TRD-22)`() = runTest(main.dispatcher) {
+        val vm = feelingsWeek()
+        vm.onEvent(TrendsEvent.SelectFeelingDay(day(2)))
+        vm.onEvent(TrendsEvent.SetRange(TrendCard.ENERGY_DAY, TrendRange.FOURTEEN_DAYS))
+        runCurrent()
+        assertEquals(day(2), vm.state.value.feelingDay, "ett annat korts period rör inte valet")
+        vm.onEvent(TrendsEvent.SetRange(TrendCard.FEELINGS, TrendRange.MONTH))
+        runCurrent()
+        assertNull(vm.state.value.feelingDay, "ingen vecka i Månad")
+        vm.onEvent(TrendsEvent.SetRange(TrendCard.FEELINGS, TrendRange.SEVEN_DAYS))
+        runCurrent()
+        assertNull(vm.state.value.feelingDay, "tillbaka i 7 dagar utan vald dag")
+    }
+
+    @Test
+    fun `den valda dagen nollställs när den fallit ur veckan vid midnatt (TRD-22)`() = runTest(main.dispatcher) {
+        val vm = feelingsWeek()
+        vm.onEvent(TrendsEvent.SelectFeelingDay(day(6)))
+        runCurrent()
+        assertEquals(day(6), vm.state.value.feelingDay)
+        val tomorrow = LocalDate(2026, 10, 7)
+        clock.instant = LocalDateTime(tomorrow, LocalTime(0, 1)).toInstant(zone)
+        advanceTimeBy(1.days)
+        runCurrent()
+        assertEquals(tomorrow, assertIs<CardData.Feelings>(vm.card(TrendCard.FEELINGS).data).week.last().date)
+        assertNull(vm.state.value.feelingDay, "veckans första dag har fallit ur")
+        vm.onEvent(TrendsEvent.SelectFeelingDay(today))
+        runCurrent()
+        assertEquals(today, vm.state.value.feelingDay, "igår ligger kvar i veckan och går att välja")
     }
 
     @Test

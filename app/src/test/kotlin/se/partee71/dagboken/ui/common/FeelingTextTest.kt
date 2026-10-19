@@ -5,13 +5,16 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.core.app.ApplicationProvider
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.FeelingEntry
 import se.partee71.dagboken.core.engine.FeelingRole
 import se.partee71.dagboken.core.engine.FeelingSummary
+import se.partee71.dagboken.core.engine.computeFeelingStats
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
 import se.partee71.dagboken.core.model.Occasion
@@ -85,10 +88,15 @@ class FeelingTextTest {
 
     private val none = FeelingSummary(emptyList(), null, emptyList())
 
-    /** Samma strukturer för båda meningarna: 0, 1, 2 och 3+ kärnor, med tillfälle, vana och orörda. */
+    /**
+     * Samma strukturer för båda meningarna: 0, 1, 2 och 3+ kärnor, med tillfälle, vana och orörda – och lika många på
+     * gränsen: en ensam vanligaste med fler kärnor bakom ("Mest ledsen."), tre som delar förstaplatsen.
+     */
     private val cases = listOf(
         none,
-        FeelingSummary(roles("calm"), null, emptyList()),
+        FeelingSummary(roles("calm"), null, emptyList(), sole = true),
+        FeelingSummary(roles("sad"), null, emptyList()),
+        FeelingSummary(roles("glad", "calm", "sad"), null, emptyList()),
         FeelingSummary(roles("calm", "glad"), null, emptyList()),
         FeelingSummary(roles("calm", "glad"), FeelingRole("scared", occasion = Occasion.LUNCH), emptyList()),
         FeelingSummary(roles("calm", "glad"), FeelingRole("scared", nuance = "anxious", occasion = Occasion.BREAKFAST), listOf("strong")),
@@ -101,6 +109,8 @@ class FeelingTextTest {
             listOf(
                 "Inga känslor loggade.",
                 "Lugn.",
+                "Mest ledsen.",
+                "Mest glad, lugn och ledsen.",
                 "Mest lugn och glad.",
                 "Mest lugn och glad. Lite rädd vid lunch.",
                 "Mest lugn och glad. Lite rädd efter frukost.",
@@ -116,6 +126,8 @@ class FeelingTextTest {
             listOf(
                 "Inga känslor loggade.",
                 "Du bor i Lugn.",
+                "Du bor i Ledsen.",
+                "Du bor i Glad, Lugn och Ledsen.",
                 "Du bor i Lugn och Glad.",
                 "Du bor i Lugn och Glad. Rädd är din tredje hemvist.",
                 "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig. Stark har du knappt rört.",
@@ -123,6 +135,12 @@ class FeelingTextTest {
             ),
             sentences(FeelingSentenceKind.PERIOD, *cases.toTypedArray())
         )
+    }
+
+    @Test
+    fun `lika många på andra och tredje plats - bara den vanligaste nämns, ingen lite`() {
+        val tie = computeFeelingStats(listOf(FeelingEntry(LocalDate(2026, 10, 14), listOf("sad", "sad", "calm", "glad").map { checkNotNull(Feeling.parse(it)) }))).summary
+        assertEquals(listOf("Mest ledsen."), sentences(FeelingSentenceKind.DAY, tie))
     }
 
     @Test

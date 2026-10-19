@@ -1,7 +1,9 @@
 package se.partee71.dagboken.ui.trends
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
@@ -39,7 +41,6 @@ import se.partee71.dagboken.core.engine.TrendSerie
 import se.partee71.dagboken.core.engine.WATCH_COMPARE_KEYS
 import se.partee71.dagboken.core.engine.WatchMetric
 import se.partee71.dagboken.core.engine.computeFeelingStats
-import se.partee71.dagboken.core.engine.feelingDay
 import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.IllnessEpisode
@@ -165,7 +166,7 @@ class TrendsScreenTest {
         val occasion = Occasion.entries[i % Occasion.entries.size]
         FeelingEntry(week[day], tokens.map { checkNotNull(Feeling.parse(it)) }, LocalTime(8 + i, 0), occasion)
     }
-    private val feelingsWeek = CardData.Feelings(week, computeFeelingStats(feelingEntries), week.map { feelingDay(feelingEntries, it) })
+    private val feelingsWeek = computeFeelingStats(feelingEntries).let { CardData.Feelings(week, it, it.alignTo(week)) }
     private val feelingsOpen = closed.with(TrendCard.FEELINGS, CardControls(expanded = true, range = TrendRange.SEVEN_DAYS), feelingsWeek)
     private val periodSentence = "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig. Stark har du knappt rört."
 
@@ -459,17 +460,22 @@ class TrendsScreenTest {
         val events = mutableListOf<TrendsEvent>()
         show(feelingsOpen) { events += it }
         val list = rule.onNode(hasScrollAction())
-        list.performScrollToNode(hasText(periodSentence))
-        rule.onNodeWithText(periodSentence).assertIsDisplayed()
-        rule.onNodeWithContentDescription(periodSentence).assertExists()
+        list.performScrollToNode(hasContentDescription(periodSentence))
+        rule.onNodeWithContentDescription(periodSentence).assertIsDisplayed()
+        assertEquals(
+            1,
+            rule.onAllNodes(hasText(periodSentence) or hasContentDescription(periodSentence), useUnmergedTree = true).fetchSemanticsNodes().size,
+            "TalkBack läser periodens mening en gång, på värmekartan"
+        )
         rule.onNodeWithText("7 dagar").assertIsDisplayed()
         rule.onNodeWithText("Föregående period").assertDoesNotExist()
         rule.onNodeWithText("Visa:").assertDoesNotExist()
         list.performScrollToNode(hasText("Tryck på en dag för orden."))
         rule.onNodeWithText("VECKAN · ETT HJUL PER DAG").assertIsDisplayed()
         listOf("ons", "tors", "fre", "lör", "sön", "mån", "tis").forEach { rule.onNodeWithText(it, useUnmergedTree = true).assertExists() }
-        val tuesday = rule.onNode(hasContentDescription("tisdag 6 oktober: Mest glad och lugn.", substring = true))
+        val tuesday = rule.onNode(hasContentDescription("tisdag 6 oktober: Mest glad, lugn och rädd.", substring = true))
         tuesday.assertExists()
+        tuesday.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
         tuesday.performClick()
         assertEquals(listOf<TrendsEvent>(TrendsEvent.SelectFeelingDay(today)), events)
         list.performScrollToNode(hasText("Längden säger hur ofta, orden i stapeln är nyanserna du valt. Inga tal."))

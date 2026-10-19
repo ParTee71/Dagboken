@@ -49,7 +49,6 @@ import se.partee71.dagboken.core.engine.dailyEnergyPoints
 import se.partee71.dagboken.core.engine.earliestDate
 import se.partee71.dagboken.core.engine.energyByOccasion
 import se.partee71.dagboken.core.engine.eventIllnessTrend
-import se.partee71.dagboken.core.engine.feelingDay
 import se.partee71.dagboken.core.engine.feelingEntry
 import se.partee71.dagboken.core.engine.hasPreviousPeriod
 import se.partee71.dagboken.core.engine.moodCompareSeries
@@ -433,15 +432,16 @@ class TrendsViewModel @Inject constructor(
     }
 
     /**
-     * Känslor (TRD-22): samma räkning som Idags Dagens känslor (`FeelingStats`), här över måendeloggar och aktiviteter
-     * i perioden; veckan bara i 7-dagarsläget, en dag per dag i perioden.
+     * Känslor (TRD-22): samma räkning som Idags Dagens känslor (`computeFeelingStats`), men här över periodens
+     * måendeloggar **och** aktiviteter (Idag bara måendeloggar, HEM-21); veckan bara i 7-dagarsläget – periodens dagar ur
+     * samma gruppering per dag.
      */
     private fun feelings(period: Period, s: List<Screening>, a: List<Activity>): CardData.Feelings {
         val days = period.days(earliest(s, a))
         // Läsningen är perioden (kortet har ingen föregående period).
         val entries = s.mapNotNull { it.feelingEntry() } + a.mapNotNull { it.toFeelingEntry(it.time) }
-        val week = if (period.controls.range == TrendRange.SEVEN_DAYS) days.map { feelingDay(entries, it) } else emptyList()
-        return CardData.Feelings(days, computeFeelingStats(entries), week)
+        val stats = computeFeelingStats(entries)
+        return CardData.Feelings(days, stats, if (period.controls.range == TrendRange.SEVEN_DAYS) stats.alignTo(days) else emptyList())
     }
 
     private fun earliest(s: List<Screening>, a: List<Activity>) = earliestDate(s.map { it.date } + a.map { it.date })
@@ -468,16 +468,27 @@ class TrendsViewModel @Inject constructor(
     private val data: Flow<Map<TrendCard, CardData?>> = combine(TrendCard.entries.map { card -> cardData(card).map { card to it } }) { it.toMap() }
 
     val state: StateFlow<TrendsUiState> = combine(group, controls, data, feelingDay) { group, controls, data, feelingDay ->
-        TrendsUiState(group, TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) }.toImmutableMap(), feelingDay)
+        // Den valda dagen gäller bara så länge den ligger i veckan som visas – efter midnatt kan den ha fallit ur (TRD-22).
+        val week = (data[TrendCard.FEELINGS] as? CardData.Feelings)?.week.orEmpty()
+        TrendsUiState(group, TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) }.toImmutableMap(), feelingDay?.takeIf { day -> week.any { it.date == day } })
     }.stateIn(viewModelScope, sharing, TrendsUiState())
 
     fun onEvent(event: TrendsEvent) {
         when (event) {
             is TrendsEvent.ShowGroup -> group.value = event.group
+
             is TrendsEvent.Toggle -> update(event.card) { it.copy(expanded = !it.expanded) }
-            is TrendsEvent.SetRange -> update(event.card) { it.copy(range = event.range) }
+
+            is TrendsEvent.SetRange -> {
+                update(event.card) { it.copy(range = event.range) }
+                // En ny period för Känslor börjar utan vald dag (TRD-22).
+                if (event.card == TrendCard.FEELINGS) feelingDay.value = null
+            }
+
             is TrendsEvent.SetPrevious -> update(event.card) { it.copy(previous = event.enabled) }
+
             is TrendsEvent.ToggleSeries -> update(event.card) { it.copy(selected = if (event.key in it.selected) it.selected - event.key else it.selected + event.key) }
+
             is TrendsEvent.SelectFeelingDay -> feelingDay.value = event.date.takeUnless { it == feelingDay.value }
         }
     }
