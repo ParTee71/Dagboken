@@ -11,7 +11,9 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.ui.common.feelingsLabel
 import se.partee71.dagboken.ui.theme.AppColors
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.theme.Tone
 
 /**
  * En känsla som pill i kärnans ton ("Lugn › Tacksam", `feelingsLabel`) – en gång för känslostegets valda känslor

@@ -8,12 +8,16 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.common.dataError
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.common.asListUiState
 
 class AsListUiStateTest {
 
     @Test
     fun `laddar, sedan innehåll eller tomt`() = runTest {
-        flowOf(emptyList<String>(), listOf("a")).asListUiState().test {
+        flowOf(emptyList<String>(), listOf("a")).asListUiState(AppErrors).test {
             assertEquals(ListUiState.Loading, awaitItem())
             assertEquals(ListUiState.Empty, awaitItem())
             assertEquals(ListUiState.Content(persistentListOf("a")), awaitItem())
@@ -23,14 +27,14 @@ class AsListUiStateTest {
 
     @Test
     fun `fel blir Error med DataError, okända fel som Unknown`() = runTest {
-        flow<List<String>> { throw DataError.PermissionDenied }.asListUiState().test {
+        flow<List<String>> { throw DataError.PermissionDenied }.asListUiState(AppErrors).test {
             assertEquals(ListUiState.Loading, awaitItem())
-            assertEquals(ListUiState.Error(DataError.PermissionDenied), awaitItem())
+            assertEquals(DataError.PermissionDenied, ((awaitItem()) as ListUiState.Error).error.dataError)
             awaitComplete()
         }
-        flow<List<String>> { error("x") }.asListUiState().test {
+        flow<List<String>> { error("x") }.asListUiState(AppErrors).test {
             awaitItem()
-            assertEquals(ListUiState.Error(DataError.Unknown), awaitItem())
+            assertEquals(DataError.Unknown, ((awaitItem()) as ListUiState.Error).error.dataError)
             awaitComplete()
         }
     }

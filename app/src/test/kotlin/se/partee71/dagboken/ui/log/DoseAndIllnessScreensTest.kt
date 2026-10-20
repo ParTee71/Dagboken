@@ -39,13 +39,15 @@ import se.partee71.dagboken.core.model.SlotReminder
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.EditorUiState
+import se.partee71.dagboken.ui.DagbokenContracts
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryForm
-import se.partee71.dagboken.ui.runEditScreenContract
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.testing.runEditScreenContract
 
 /**
  * Plusknappens Dos och Sjukdom (MED-11, MED-15, MED-16, FAV-10, SJ-1, SJ-2, SJ-3, SJ-11, NAV-10): ramens kontrakt per
@@ -91,8 +93,9 @@ class DoseAndIllnessScreensTest {
 
     @Test
     fun `engångsdosen uppfyller redigeringskontraktet (MED-11, NFR-10)`() {
-        val editor = EditorState(oneOff.copy(name = ""), doseValidator({ now }))
+        val editor = EditorState(oneOff.copy(name = ""), doseValidator({ now }), AppErrors)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor,
             makeInvalid = { update(DoseField.NAME) { it.copy(name = " ") } },
             makeValid = { update(DoseField.NAME) { it.copy(name = "Melatonin") } },
@@ -104,8 +107,9 @@ class DoseAndIllnessScreensTest {
 
     @Test
     fun `i efterhand uppfyller redigeringskontraktet – en tid i framtiden går inte att spara (MED-16, NFR-10)`() {
-        val editor = EditorState(later, doseValidator({ now }))
+        val editor = EditorState(later, doseValidator({ now }), AppErrors)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor,
             makeInvalid = { update(DoseField.TAKEN_AT) { it.copy(takenAt = now + 30.minutes) } },
             makeValid = { update(DoseField.TAKEN_AT) { it.copy(takenAt = at(yesterday, 22, 0)) } },
@@ -118,9 +122,10 @@ class DoseAndIllnessScreensTest {
     @Test
     fun `en tagen dos uppfyller redigeringskontraktet (MED-15, NFR-10)`() {
         val prn = later.copy(id = "p", createdAt = created)
-        val editor = EditorState(prn, doseValidator({ now }))
+        val editor = EditorState(prn, doseValidator({ now }), AppErrors)
         editor.load(prn)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor,
             makeInvalid = { update(DoseField.NAME) { it.copy(name = "") } },
             makeValid = { update(DoseField.NAME) { it.copy(name = "Alvedon Forte") } },
@@ -252,8 +257,9 @@ class DoseAndIllnessScreensTest {
 
     @Test
     fun `en ny episod uppfyller redigeringskontraktet – typen krävs (SJ-1, NFR-10)`() {
-        val editor = EditorState(start, episodeStartValidator { day })
+        val editor = EditorState(start, episodeStartValidator { day }, AppErrors)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor,
             makeInvalid = { update(IllnessField.TYPE) { it.copy(episode = it.episode.copy(type = "")) } },
             makeValid = { update(IllnessField.TYPE) { it.copy(episode = it.episode.copy(type = "Förkylning")) } },
@@ -265,9 +271,10 @@ class DoseAndIllnessScreensTest {
 
     @Test
     fun `en episod uppfyller redigeringskontraktet – typen krävs (SJ-12, NFR-10)`() {
-        val editor = EditorState(flu, episodeValidator { day })
+        val editor = EditorState(flu, episodeValidator { day }, AppErrors)
         editor.load(flu)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor,
             makeInvalid = { update(IllnessField.TYPE) { it.copy(type = " ") } },
             makeValid = { update(IllnessField.TYPE) { it.copy(type = "Influensa") } },
@@ -290,9 +297,10 @@ class DoseAndIllnessScreensTest {
 
     @Test
     fun `en incheckning uppfyller redigeringskontraktet (SJ-2, SJ-11, NFR-10)`() {
-        val editor = EditorState(checkin, checkinValidator)
+        val editor = EditorState(checkin, checkinValidator, AppErrors)
         editor.load(checkin)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor,
             makeInvalid = null,
             makeValid = { update { it.copy(severity = 3) } },

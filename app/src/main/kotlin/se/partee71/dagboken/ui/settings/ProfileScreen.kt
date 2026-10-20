@@ -20,16 +20,18 @@ import se.partee71.dagboken.core.engine.plausibleBirthYears
 import se.partee71.dagboken.core.model.Profile
 import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.data.repository.SettingsRepository
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorLoader
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.common.Validator
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.components.AppTextField
-import se.partee71.dagboken.ui.components.ChoiceChips
-import se.partee71.dagboken.ui.components.EntityEditScreen
-import se.partee71.dagboken.ui.components.LabeledGroup
+import se.partee71.dagboken.ui.components.SCREEN_MARGIN
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorLoader
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.common.Validator
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.ChoiceChips
+import se.partee71.ui.components.EntityEditScreen
+import se.partee71.ui.components.LabeledGroup
 
 /** Profilformuläret: födelseåret som det skrivs (tomt = inte angivet) och kön (HLS-11). */
 data class ProfileForm(val birthYear: String = "", val sex: Sex = Sex.UNSPECIFIED) {
@@ -65,7 +67,7 @@ class ProfileEditViewModel @Inject constructor(
     clock: Clock,
     timeZone: TimeZone
 ) : ViewModel() {
-    val editor: EditorState<ProfileForm> = EditorState(ProfileForm(), ProfileForm.validator(plausibleBirthYears(clock.todayIn(timeZone))), loading = true)
+    val editor: EditorState<ProfileForm> = EditorState(ProfileForm(), ProfileForm.validator(plausibleBirthYears(clock.todayIn(timeZone))), AppErrors, loading = true)
 
     // Det lagrade (loader.stored) är det sparningen jämför mot när bara skillnaden ska skrivas.
     private val loader = EditorLoader(editor, viewModelScope, read = { settings.get() }, project = { ProfileForm.of(it.profile) }, showInvalid = true)
@@ -110,7 +112,8 @@ fun ProfileScreen(state: EditorUiState<ProfileForm>, events: EditorEvents, onEve
         events = events,
         onSave = { onEvent(ProfileEvent.Save) },
         onClose = onClose,
-        onRetry = { onEvent(ProfileEvent.Retry) }
+        onRetry = { onEvent(ProfileEvent.Retry) },
+        horizontalMargin = SCREEN_MARGIN
     ) {
         AppTextField(
             state.value.birthYear,

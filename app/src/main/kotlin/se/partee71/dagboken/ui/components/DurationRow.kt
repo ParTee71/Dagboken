@@ -5,6 +5,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.common.durationText
+import se.partee71.ui.components.AppFilterChip
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.QuantityStepper
+import se.partee71.ui.components.QuantityStepperDefaults
 
 /**
  * Tidsåtgång (AKT-7): en [QuantityStepper] i minuter (steg om [step]) och snabbval under, i en
@@ -21,7 +26,7 @@ fun DurationRow(
     label: String = stringResource(R.string.duration)
 ) {
     LabeledGroup(label, modifier, helper = durationText(minutes)) {
-        QuantityStepper(minutes, onMinutesChange, stringResource(R.string.minutes), range = 0..MAX_MINUTES, step = step)
+        QuantityStepper(minutes, onMinutesChange, stringResource(R.string.minutes), range = 0..MAX_MINUTES, step = step, buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
         ChipRow {
             quickPicks.forEach { pick -> AppFilterChip(durationText(pick), selected = pick == minutes, onClick = { onMinutesChange(pick) }) }
         }

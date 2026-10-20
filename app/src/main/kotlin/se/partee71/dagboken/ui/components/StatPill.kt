@@ -23,8 +23,9 @@ import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.IconSize
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /**
  * Mätvärde (HLS-6): ikon, värde ("7 842", `R.string.value_missing` "—" när datapunkten saknas – samma tecken överallt) och etikett ("Steg") i en tonad

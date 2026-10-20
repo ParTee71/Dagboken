@@ -32,11 +32,13 @@ import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.captureLightAndDark
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.runEditScreenContract
+import se.partee71.dagboken.ui.DagbokenContracts
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.testing.runEditScreenContract
 
 /** Receptformuläret: ramens kontrakt, valen och skärmdumpar bredvid mockupens lägen (NFR-20). Påhittad data. */
 @RunWith(RobolectricTestRunner::class)
@@ -59,8 +61,9 @@ class PrescriptionEditScreenTest {
 
     @Test
     fun `receptformuläret uppfyller redigeringskontraktet (NFR-10)`() {
-        val editor = EditorState(newPrescription(today), prescriptionValidator)
+        val editor = EditorState(newPrescription(today), prescriptionValidator, AppErrors)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor,
             makeInvalid = { update(PrescriptionField.NAME) { it.copy(name = " ") } },
             makeValid = { update(PrescriptionField.NAME) { it.copy(name = "Sertralin") } },

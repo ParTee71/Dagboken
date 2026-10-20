@@ -3,9 +3,10 @@ package se.partee71.dagboken.testing
 import app.cash.turbine.Event
 import app.cash.turbine.ReceiveTurbine
 import kotlin.test.fail
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.common.Failure
+import se.partee71.dagboken.ui.common.dataError
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.common.UiError
 
 /**
  * Väntar i formulärets tillstånd (`editor.state.test { … }`) tills formuläret är klart
@@ -15,7 +16,7 @@ import se.partee71.dagboken.ui.common.Failure
 suspend fun <T> ReceiveTurbine<EditorUiState<T>>.awaitDone(events: EditorEvents): EditorUiState<T> {
     while (true) {
         val state = awaitItem()
-        state.failure?.let { fail("sparfel i stället för klart: ${it.error}") }
+        state.failure?.let { fail("sparfel i stället för klart: ${it.dataError}") }
         if (state.done) {
             events.onDoneHandled()
             return state
@@ -27,7 +28,7 @@ suspend fun <T> ReceiveTurbine<EditorUiState<T>>.awaitDone(events: EditorEvents)
  * Väntar tills formuläret har ett sparfel ([EditorUiState.failure]) och kvitterar det som ramen gör
  * ([EditorEvents.onFailureShown]). Klart under tiden fäller testet.
  */
-suspend fun <T> ReceiveTurbine<EditorUiState<T>>.awaitFailure(events: EditorEvents): Failure {
+suspend fun <T> ReceiveTurbine<EditorUiState<T>>.awaitFailure(events: EditorEvents): UiError {
     while (true) {
         val state = awaitItem()
         if (state.done) fail("klart i stället för sparfel")
@@ -41,5 +42,5 @@ suspend fun <T> ReceiveTurbine<EditorUiState<T>>.awaitFailure(events: EditorEven
 /** Varken klart eller sparfel i tillstånden som kommit; avslutar `test`-blocket. */
 suspend fun <T> ReceiveTurbine<EditorUiState<T>>.expectNoEditorEvents() {
     val states = cancelAndConsumeRemainingEvents().filterIsInstance<Event.Item<EditorUiState<T>>>().map { it.value }
-    states.firstOrNull { it.done || it.failure != null }?.let { fail("oväntad händelse: done = ${it.done}, failure = ${it.failure?.error}") }
+    states.firstOrNull { it.done || it.failure != null }?.let { fail("oväntad händelse: done = ${it.done}, failure = ${it.failure?.dataError}") }
 }

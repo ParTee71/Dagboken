@@ -9,6 +9,7 @@ import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.repository.OptionsRepository
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 
 /**
  * Listan [kind] för ett formulärs val (typer och symptom, AKT-1, AKT-6, SCR-2, SET-9) – en gång för alla formulär:

@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.theme.Spacing
 
 /** Hur en rad i teckenförklaringen markeras: punkt (serie), ruta (segment) eller streckad linje (trend). */
 internal enum class LegendMark { Dot, Square, Dashed }

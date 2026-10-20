@@ -21,10 +21,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.data.common.DataError
-import se.partee71.dagboken.ui.components.AppTopBar
 import se.partee71.dagboken.ui.sync.SyncEvent
 import se.partee71.dagboken.ui.sync.SyncUiState
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.components.AppTopBar
 
 /** Navigationsramen: bottenraden med flikar och plusknapp i flikarnas rot, dold på undersidor (NAV-3, NAV-8, NAV-10). */
 @RunWith(RobolectricTestRunner::class)

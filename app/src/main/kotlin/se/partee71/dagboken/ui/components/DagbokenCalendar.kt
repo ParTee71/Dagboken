@@ -34,7 +34,9 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.AppIconButton
+import se.partee71.ui.components.inactive
+import se.partee71.ui.theme.Spacing
 
 /**
  * Månadskalender (HIST-6): månaden som innehåller [month], veckan börjar på måndag. Markeringarna är

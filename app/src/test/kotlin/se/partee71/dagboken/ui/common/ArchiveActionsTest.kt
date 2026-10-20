@@ -16,7 +16,11 @@ import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.components.UndoRequest
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.common.dataError
+import se.partee71.ui.components.ArchiveActions
+import se.partee71.ui.components.ArchiveEvent
+import se.partee71.ui.components.UndoRequest
 
 /** Den delade arkiveringslogiken för listor (SET-5, DAT-9) – listornas egna tester visar den i sitt sammanhang. */
 class ArchiveActionsTest {
@@ -29,6 +33,7 @@ class ArchiveActionsTest {
 
     private fun actions(undoFormat: Int = R.string.archived_format) = ArchiveActions(
         CoroutineScope(main.dispatcher),
+        AppErrors,
         setArchived = { id, archived ->
             written += id to archived
             result
@@ -52,27 +57,27 @@ class ArchiveActionsTest {
         val archive = actions()
         result = Result.failure(DataError.PermissionDenied)
         archive.onEvent(ArchiveEvent.Archive("a", "Promenad"))
-        assertEquals(DataError.PermissionDenied, archive.failure.value?.error)
-        assertEquals(R.string.error_permission_denied, archive.failure.value?.message)
+        assertEquals(DataError.PermissionDenied, archive.error.value?.dataError)
+        assertEquals(R.string.error_permission_denied, archive.error.value?.message)
         assertNull(archive.undo.value)
         archive.onEvent(ArchiveEvent.ErrorShown)
-        assertNull(archive.failure.value)
+        assertNull(archive.error.value)
     }
 
     @Test
     fun `två fel i rad är två händelser, med egen text där den finns`() = runTest {
-        val archive = ArchiveActions(CoroutineScope(main.dispatcher), { _, _ -> result }, errorMessage = { if (it is IllegalStateException) R.string.option_name_duplicate else null })
-        archive.failure.test {
+        val archive = ArchiveActions(CoroutineScope(main.dispatcher), AppErrors, { _, _ -> result }, errorMessage = { if (it is IllegalStateException) R.string.option_name_duplicate else null })
+        archive.error.test {
             assertNull(awaitItem())
             result = Result.failure(DataError.Offline)
             archive.onEvent(ArchiveEvent.Archive("a", "Promenad"))
             archive.onEvent(ArchiveEvent.Archive("b", "Yoga"))
-            assertEquals(DataError.Offline, awaitItem()?.error)
-            assertEquals(DataError.Offline, awaitItem()?.error, "samma fel igen visas igen")
+            assertEquals(DataError.Offline, awaitItem()?.dataError)
+            assertEquals(DataError.Offline, awaitItem()?.dataError, "samma fel igen visas igen")
             result = Result.failure(IllegalStateException("dubblett"))
             archive.onEvent(ArchiveEvent.Archive("c", "Simning"))
             val custom = awaitItem()
-            assertEquals(DataError.Unknown to R.string.option_name_duplicate, custom?.error to custom?.message)
+            assertEquals(DataError.Unknown to R.string.option_name_duplicate, custom?.dataError to custom?.message)
         }
     }
 
@@ -94,7 +99,7 @@ class ArchiveActionsTest {
         val hiding = actions(R.string.color_format)
         hiding.onEvent(ArchiveEvent.Archive("p", "Städning"))
         assertEquals(UndoRequest("p", "Städning", R.string.color_format), hiding.undo.value)
-        hiding.report(DataError.Offline)
-        assertEquals(DataError.Offline, hiding.failure.value?.error)
+        hiding.report(AppErrors.map(DataError.Offline))
+        assertEquals(DataError.Offline, hiding.error.value?.dataError)
     }
 }

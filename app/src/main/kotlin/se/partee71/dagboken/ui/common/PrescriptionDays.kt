@@ -13,6 +13,9 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.retryWithBackoffWhile
 import se.partee71.dagboken.data.common.suspendRunCatching
 import se.partee71.dagboken.data.repository.PrescriptionRepository
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.uiErrorOrNull
 
 /**
  * REC-8, REC-5, REC-10, HEM-10: receptens städning (`PrescriptionRepository.tidyUp`) för varje dag flödet ger – när
@@ -27,7 +30,7 @@ import se.partee71.dagboken.data.repository.PrescriptionRepository
 fun Flow<LocalDate>.tidyingUpEachDay(
     prescriptions: PrescriptionRepository,
     scope: CoroutineScope,
-    onFailure: (Failure) -> Unit = {}
+    onFailure: (UiError) -> Unit = {}
 ): Flow<LocalDate> = onEach { day ->
     scope.launch {
         failureOfAttempt { prescriptions.tidyUp(day) }?.let(onFailure)
@@ -47,19 +50,19 @@ fun Flow<LocalDate>.tidyingUpEachDay(
 fun <T> Flow<T>.attemptingEach(
     scope: CoroutineScope,
     onOffline: (T) -> Unit,
-    onResult: (T, Failure?) -> Unit,
+    onResult: (T, UiError?) -> Unit,
     attempt: suspend (T) -> Result<Unit>
 ): Flow<T> = channelFlow {
     val latest = HashMap<T, Long>()
     var started = 0L
     collectLatest { value ->
         send(value)
-        retryWithBackoffWhile(retryOn = { failure: Failure? -> failure?.error == DataError.Offline }, onRetry = { onOffline(value) }) {
+        retryWithBackoffWhile(retryOn = { failure: UiError? -> failure?.cause == DataError.Offline }, onRetry = { onOffline(value) }) {
             val number = ++started
             latest[value] = number
             scope.async {
                 failureOfAttempt { attempt(value) }.also { failure ->
-                    if (failure?.error != DataError.Offline && latest[value] == number) onResult(value, failure)
+                    if (failure?.cause != DataError.Offline && latest[value] == number) onResult(value, failure)
                 }
             }.await()
         }
@@ -71,4 +74,4 @@ fun <T> Flow<T>.attemptingEach(
  * `null`. Ett kast fångas och visas inte (ett programfel får inte fälla vyn); offline svarar städningen utan fel, och
  * `ensureDay` med [DataError.Offline] (som [attemptingEach] gör om).
  */
-suspend fun failureOfAttempt(action: suspend () -> Result<Unit>): Failure? = suspendRunCatching({ DataError.Unknown }) { action() }.getOrNull()?.failureOrNull()
+suspend fun failureOfAttempt(action: suspend () -> Result<Unit>): UiError? = suspendRunCatching({ DataError.Unknown }) { action() }.getOrNull()?.uiErrorOrNull(AppErrors)

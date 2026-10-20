@@ -26,13 +26,14 @@ import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppMenuItem
 import se.partee71.dagboken.ui.components.GalleryCharts
 import se.partee71.dagboken.ui.components.GalleryFeelings
 import se.partee71.dagboken.ui.theme.AppColors
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /**
  * Skärmdumpar (ljust + mörkt) av diagrammen i mockupens tillstånd (canvasen "Komponenter", avsnitt 7):

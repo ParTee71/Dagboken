@@ -9,7 +9,9 @@
 # [dispatchers] = all Kotlin under app/src/main utom di/ (skill android:kotlin-coroutines)
 # [events]    = all Kotlin under ui/, även ui/components, ui/common och ui/diagram (skill android:kotlin-flows)
 # Tillåtet i feature-kod: Text (med AppTypography-stil), Icon (appens ikoner i res/drawable),
-# Column, Row, Box, Spacer med Spacing, samt allt i ui/components, ui/diagram och ui/common.
+# Column, Row, Box, Spacer med Spacing, samt allt i ui/components, ui/diagram och ui/common – och
+# bibliotekets komponenter och ramar ur android-ui (se.partee71.ui.components, se.partee71.ui.common),
+# märkta *(android-ui)* i shared-ui-components. Ersättningarna nedan pekar på dem.
 # Importrader kontrolleras inte – [vico] stoppar därför användningen (Vicos typer och remember-funktioner).
 # Regexarna ska fungera både i JavaScript och Kotlin (ingen lookbehind).
 

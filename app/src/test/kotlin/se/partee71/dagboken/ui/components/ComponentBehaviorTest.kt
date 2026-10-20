@@ -57,8 +57,42 @@ import se.partee71.dagboken.core.engine.TypeChoices
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.schema.TextLimits
+import se.partee71.dagboken.ui.common.DEFAULT_EMOJIS
+import se.partee71.dagboken.ui.common.swatchLabel
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.components.AddSplitButton
+import se.partee71.ui.components.AppFilterChip
+import se.partee71.ui.components.AppFloatingToolbar
+import se.partee71.ui.components.AppIconButton
+import se.partee71.ui.components.AppMenu
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.AppSegmentedChoice
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.AppTopBar
+import se.partee71.ui.components.CheckRow
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.ChoiceChips
+import se.partee71.ui.components.ColorSwatchPicker
+import se.partee71.ui.components.Confetti
+import se.partee71.ui.components.ConfirmDialog
+import se.partee71.ui.components.DateField
+import se.partee71.ui.components.EmojiPicker
+import se.partee71.ui.components.ExampleChips
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.components.LocalTopBarStatus
+import se.partee71.ui.components.QuantityStepper
+import se.partee71.ui.components.QuantityStepperDefaults
+import se.partee71.ui.components.Suggestion
+import se.partee71.ui.components.SuggestionField
+import se.partee71.ui.components.SwatchMarker
+import se.partee71.ui.components.SwipeToHide
+import se.partee71.ui.components.SwitchRow
+import se.partee71.ui.components.TimeField
+import se.partee71.ui.components.ToolbarAction
+import se.partee71.ui.components.ToolbarItem
+import se.partee71.ui.components.asSplitMenu
 
 /** Beteende och tillgänglighet i katalogens komponenter – en gång här, inte per skärm. */
 @RunWith(RobolectricTestRunner::class)
@@ -190,7 +224,7 @@ class ComponentBehaviorTest {
     @Test
     fun `stegaren ökar och minskar inom intervallet och beskriver värdet`() {
         var value by mutableIntStateOf(1)
-        show { QuantityStepper(value, { value = it }, "dagar", range = 1..2) }
+        show { QuantityStepper(value, { value = it }, "dagar", range = 1..2, buttonSize = QuantityStepperDefaults.TouchTargetButtonSize) }
         rule.onNodeWithContentDescription("Minska dagar").assertIsNotEnabled()
         rule.onNodeWithContentDescription("Öka dagar").performClick()
         assertEquals(2, value)
@@ -200,7 +234,8 @@ class ComponentBehaviorTest {
 
     @Test
     fun `stegarens knappar är 48 dp stora, inte bara i tryckytan (NFR-14)`() {
-        show { QuantityStepper(1, {}, "dagar") }
+        // Dagbokens anrop ger knapparna tryckytans storlek (UiConsistencyTest kontrollerar varje anrop).
+        show { QuantityStepper(1, {}, "dagar", buttonSize = QuantityStepperDefaults.TouchTargetButtonSize) }
         listOf("Minska dagar", "Öka dagar").forEach {
             rule.onNodeWithContentDescription(it).assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
         }
@@ -252,7 +287,7 @@ class ComponentBehaviorTest {
     fun `split-knappen lägger till och pilen öppnar fler val`() {
         var added = 0
         var recalculated = 0
-        show { AddSplitButton("Lägg till", { added++ }, menuItems = listOf(AppMenuItem("Räkna om", { recalculated++ }))) }
+        show { AddSplitButton("Lägg till", { added++ }, menu = listOf(AppMenuItem("Räkna om", { recalculated++ })).asSplitMenu()) }
         rule.onNodeWithText("Lägg till").performClick()
         rule.onNodeWithContentDescription("Fler val").performClick()
         rule.onNodeWithText("Räkna om").performClick()
@@ -405,7 +440,7 @@ class ComponentBehaviorTest {
     @Test
     fun `emojivalet väljer en emoji och läses som ett av flera alternativ`() {
         var emoji by mutableStateOf("🚶")
-        show { EmojiPicker(emoji, { emoji = it }) }
+        show { EmojiPicker(emoji, { emoji = it }, DEFAULT_EMOJIS) }
         rule.onNodeWithContentDescription("🧘").performClick()
         assertEquals("🧘", emoji)
         rule.onNodeWithContentDescription("🧘").assertIsSelected()
@@ -415,7 +450,7 @@ class ComponentBehaviorTest {
     @Test
     fun `färgvalet väljer en färg och läser färgens namn`() {
         var color by mutableStateOf(AppColors.SWATCH_HEX[0])
-        show { ColorSwatchPicker(color, { color = it }) }
+        show { ColorSwatchPicker(AppColors.SWATCH_HEX, color, { color = it }, AppColors::swatch, { swatchLabel(it) }, SwatchMarker.GridRing) }
         rule.onNodeWithContentDescription("Färg: grön").performClick()
         assertEquals(AppColors.SWATCH_HEX[3], color)
         rule.onNodeWithContentDescription("Färg: grön").assertIsSelected()
@@ -423,7 +458,7 @@ class ComponentBehaviorTest {
 
     @Test
     fun `färgvalet känner igen en lagrad färg med små bokstäver och har 48 dp tryckytor`() {
-        show { ColorSwatchPicker(AppColors.SWATCH_HEX[1].lowercase(), {}) }
+        show { ColorSwatchPicker(AppColors.SWATCH_HEX, AppColors.SWATCH_HEX[1].lowercase(), {}, AppColors::swatch, { swatchLabel(it) }, SwatchMarker.GridRing) }
         rule.onNodeWithContentDescription("Färg: solgul").assertIsSelected()
         rule.onNodeWithContentDescription("Färg: solgul").assertTouchHeightIsEqualTo(48.dp).assertTouchWidthIsEqualTo(48.dp)
     }
@@ -489,9 +524,9 @@ class ComponentBehaviorTest {
         val start = x()
         rule.mainClock.autoAdvance = false
         rule.onNodeWithText("Solkräm").performTouchInput { swipeLeft() }
-        rule.mainClock.advanceTimeBy(RESET_DELAY_MILLIS / 2) // undan, men inte tillbaka än
+        rule.mainClock.advanceTimeBy(SWIPE_RESET_MILLIS / 2) // undan, men inte tillbaka än
         assertTrue(x() < start, "raden ska ha svepts åt vänster innan den glider tillbaka")
-        rule.mainClock.advanceTimeBy(RESET_DELAY_MILLIS + SETTLE_MILLIS)
+        rule.mainClock.advanceTimeBy(SWIPE_RESET_MILLIS + SETTLE_MILLIS)
         rule.waitForIdle()
         assertEquals(start, x())
     }
@@ -549,7 +584,7 @@ class ComponentBehaviorTest {
         var indicator by mutableStateOf(SyncIndicator())
         var clicks = 0
         show {
-            CompositionLocalProvider(LocalSyncIndicator provides indicator) {
+            CompositionLocalProvider(LocalTopBarStatus provides syncStatus(indicator)) {
                 AppTopBar("Idag") { AppIconButton(R.drawable.ic_more_vert, "Fler val", {}) }
             }
         }
@@ -564,3 +599,6 @@ class ComponentBehaviorTest {
         rule.onNodeWithContentDescription("Ändringar väntar på att synkas").assertDoesNotExist()
     }
 }
+
+/** Hur länge en svept rad i android-ui:s `SwipeToHide` står undan innan den glider tillbaka (`RESET_DELAY_MILLIS`, internt där). */
+private const val SWIPE_RESET_MILLIS = 1_000L

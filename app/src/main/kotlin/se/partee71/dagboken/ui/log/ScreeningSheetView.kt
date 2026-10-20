@@ -13,10 +13,10 @@ import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.components.AppBottomSheet
 import se.partee71.dagboken.ui.components.StepwiseScreeningForm
 import se.partee71.dagboken.ui.components.StepwiseScreeningNavigation
 import se.partee71.dagboken.ui.components.rememberStepwiseScreeningState
+import se.partee71.ui.components.AppBottomSheet
 
 /**
  * Måendearket (HEM-5, HEM-8b, SCR-1, SCR-2, SCR-7): `StepwiseScreeningForm` i `AppBottomSheet` med tillfällets namn – och

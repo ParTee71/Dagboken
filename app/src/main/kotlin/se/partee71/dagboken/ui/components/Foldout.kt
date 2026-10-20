@@ -31,7 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.theme.Spacing
 
 /**
  * Ihopfällbar sektion (NFR-18) – i ett [AppCard] eller som hela innehållet i ett ihopfällbart

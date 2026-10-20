@@ -34,8 +34,9 @@ import se.partee71.dagboken.data.legacy.LegacyMigrationPlan
 import se.partee71.dagboken.data.legacy.LegacyMigrationUseCase
 import se.partee71.dagboken.data.legacy.LegacyRead
 import se.partee71.dagboken.data.legacy.LegacyWriteOutcome
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.failureOrNull
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.uiErrorOrNull
 
 /** Kopians läge i granskningen (OMB-8) – flytten kan bara starta med [Saved]. */
 sealed interface CopyStep {
@@ -150,7 +151,7 @@ sealed interface MigrationStage {
 
 /** [failure] = bekräftelsen misslyckades – visas som meddelande, knappen kan tryckas igen. */
 @Immutable
-data class MigrationUiState(val stage: MigrationStage = MigrationStage.Checking, val failure: Failure? = null)
+data class MigrationUiState(val stage: MigrationStage = MigrationStage.Checking, val failure: UiError? = null)
 
 sealed interface MigrationEvent {
     /** "Försök igen" – gör om det steg som inte gick: kontrollen, läsningen eller skrivningen. */
@@ -435,7 +436,7 @@ class MigrationViewModel @Inject constructor(
             show(MigrationStage.Aborting)
             when (val result = migration.abort()) {
                 is LegacyAbortOutcome.Done -> read()
-                is LegacyAbortOutcome.Failed -> _state.update { it.copy(stage = from, failure = Failure(result.error)) }
+                is LegacyAbortOutcome.Failed -> _state.update { it.copy(stage = from, failure = AppErrors.map(result.error)) }
             }
         }
     }
@@ -450,7 +451,7 @@ class MigrationViewModel @Inject constructor(
             if (result.isSuccess) {
                 show(MigrationStage.Closed())
             } else {
-                _state.update { it.copy(stage = written, failure = result.failureOrNull()) }
+                _state.update { it.copy(stage = written, failure = result.uiErrorOrNull(AppErrors)) }
             }
         }
     }

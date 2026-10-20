@@ -43,7 +43,8 @@ import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.testing.awaitDone
-import se.partee71.dagboken.ui.common.ListUiState
+import se.partee71.dagboken.ui.common.dataError
+import se.partee71.ui.common.ListUiState
 
 /** Fliken Mediciner (MEDF-1…MEDF-5, REC-5, FAV-2) och vid behov-formuläret (FAV-1, FAV-4, FAV-5, FAV-7). */
 class MedicinesViewModelTest {
@@ -115,7 +116,7 @@ class MedicinesViewModelTest {
         backgroundScope.launch { vm.state.collect {} }
         runCurrent()
         assertTrue(vm.state.value is ListUiState.Content)
-        assertEquals(DataError.QuotaExceeded, vm.failure.value?.error)
+        assertEquals(DataError.QuotaExceeded, vm.failure.value?.dataError)
         assertEquals(R.string.error_quota_exceeded, vm.failure.value?.message)
     }
 
@@ -212,7 +213,7 @@ class MedicinesViewModelTest {
         val factory = FakeCollectionFactory(scope = TestUserScope(version = Schema.CURRENT_VERSION + 1))
         val vm = viewModel(factory)
         vm.onEvent(MedicinesEvent.ActiveChanged(levaxin, false))
-        assertEquals(DataError.UpdateRequired, vm.failure.value?.error)
+        assertEquals(DataError.UpdateRequired, vm.failure.value?.dataError)
         vm.onEvent(MedicinesEvent.ErrorShown)
         assertNull(vm.failure.value)
     }
@@ -264,7 +265,7 @@ class MedicinesViewModelTest {
     @Test
     fun `en vid behov-medicin som inte finns visar läsfel`() = runTest(main.dispatcher) {
         val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(FakeCollectionFactory()), FakeMedicines(), main.dispatcher, "finns-inte")
-        assertEquals(DataError.NotFound, vm.editor.state.value.loadError)
+        assertEquals(DataError.NotFound, vm.editor.state.value.loadError?.dataError)
     }
 
     @Test

@@ -6,6 +6,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import se.partee71.ui.common.shownAfter
 
 class ShownAfterTest {
 

@@ -30,10 +30,12 @@ import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.runDetailScreenContract
+import se.partee71.dagboken.ui.DagbokenContracts
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.UiError
+import se.partee71.ui.testing.runDetailScreenContract
 
 /**
  * Sjukdomsdetaljen (SJ-4, SJ-5, SJ-9, SJ-12, SJ-13, NFR-15/16): ramens kontrakt, det unika och skärmdumpar bredvid
@@ -70,7 +72,7 @@ class IllnessDetailScreenTest {
     )
 
     @Test
-    fun `detaljen uppfyller detaljkontraktet`() = rule.runDetailScreenContract(ongoing, "tors 1 okt 2026") { state, onRetry, onEdit, onBack ->
+    fun `detaljen uppfyller detaljkontraktet`() = rule.runDetailScreenContract(DagbokenContracts, ongoing, "tors 1 okt 2026") { state, onRetry, onEdit, onBack ->
         IllnessDetailScreen(state, null, null, { if (it == IllnessDetailEvent.Retry) onRetry() }, onBack, onEdit, {})
     }
 
@@ -183,7 +185,7 @@ class IllnessDetailScreenTest {
 
     @Test
     fun `ett fel från en åtgärd visas som meddelande (SJ-9)`() {
-        rule.setContent { DagbokenTheme { IllnessDetailScreen(DetailUiState.Content(ongoing), null, Failure(DataError.Offline), {}, {}, {}, {}) } }
+        rule.setContent { DagbokenTheme { IllnessDetailScreen(DetailUiState.Content(ongoing), null, AppErrors.map(DataError.Offline), {}, {}, {}, {}) } }
         rule.onNodeWithText("Ingen anslutning just nu. Det du sparar skickas när nätet är tillbaka.").assertIsDisplayed()
     }
 

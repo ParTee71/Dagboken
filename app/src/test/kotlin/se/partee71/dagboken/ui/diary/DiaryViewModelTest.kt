@@ -49,7 +49,8 @@ import se.partee71.dagboken.data.repository.EventRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.common.ListUiState
+import se.partee71.dagboken.ui.common.dataError
+import se.partee71.ui.common.ListUiState
 
 /**
  * Fliken Dagbok (HIST-1, HIST-2, HIST-5, HIST-6, HIST-7, HIST-8, HIST-9) mot `FakeCollection` och en fast
@@ -329,7 +330,7 @@ class DiaryViewModelTest {
         val event = vm.rows.filterIsInstance<DiaryRow.Entry>().single { it.key == "event:e1" }.entry
         vm.onEvent(DiaryEvent.Delete(event))
         runCurrent()
-        assertEquals(DataError.PermissionDenied, vm.failure.value?.error)
+        assertEquals(DataError.PermissionDenied, vm.failure.value?.dataError)
         vm.onEvent(DiaryEvent.ErrorShown)
         assertNull(vm.failure.value)
     }
@@ -343,7 +344,7 @@ class DiaryViewModelTest {
             override fun observeDays(from: LocalDate, to: LocalDate, live: List<ClosedRange<LocalDate>>): Flow<List<Screening>> = if (fail) flow { throw DataError.Offline } else real.observeDays(from, to, live)
         }
         val vm = started(viewModel(screenings = flaky))
-        assertEquals(ListUiState.Error(DataError.Offline), vm.state.value)
+        assertEquals(DataError.Offline, ((vm.state.value) as ListUiState.Error).error.dataError)
         fail = false
         vm.onEvent(DiaryEvent.Retry)
         runCurrent()

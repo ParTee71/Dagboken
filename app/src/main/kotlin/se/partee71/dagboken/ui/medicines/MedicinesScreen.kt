@@ -44,40 +44,43 @@ import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
-import se.partee71.dagboken.ui.common.ArchiveEvent
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.DateFormat
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.ListEvent
-import se.partee71.dagboken.ui.common.ListLoader
-import se.partee71.dagboken.ui.common.ListUiState
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.days
 import se.partee71.dagboken.ui.common.doseText
-import se.partee71.dagboken.ui.common.failureOrNull
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.periodText
 import se.partee71.dagboken.ui.common.prescriptionSubtitle
 import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.common.tidyingUpEachDay
 import se.partee71.dagboken.ui.components.AccountAvatar
-import se.partee71.dagboken.ui.components.AddAction
-import se.partee71.dagboken.ui.components.AppMenuItem
 import se.partee71.dagboken.ui.components.DagbokenEntryCard
-import se.partee71.dagboken.ui.components.DeleteAction
-import se.partee71.dagboken.ui.components.EmptyContent
-import se.partee71.dagboken.ui.components.EmptyExample
-import se.partee71.dagboken.ui.components.EntityListScreen
 import se.partee71.dagboken.ui.components.EntryToggle
 import se.partee71.dagboken.ui.components.FavoriteStar
-import se.partee71.dagboken.ui.components.GroupLabel
-import se.partee71.dagboken.ui.components.InfoPill
-import se.partee71.dagboken.ui.components.ItemRow
-import se.partee71.dagboken.ui.components.ListArchive
-import se.partee71.dagboken.ui.components.ListGroup
 import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.common.ListEvent
+import se.partee71.ui.common.ListLoader
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.uiErrorOrNull
+import se.partee71.ui.components.AddAction
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.ArchiveEvent
+import se.partee71.ui.components.DeleteAction
+import se.partee71.ui.components.EmptyContent
+import se.partee71.ui.components.EmptyExample
+import se.partee71.ui.components.EntityListScreen
+import se.partee71.ui.components.GroupLabel
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.components.ListArchive
+import se.partee71.ui.components.ListGroup
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /** En rad i fliken Mediciner: ett recept (aktivt, pausat eller avslutat) eller en vid behov-medicin. */
 sealed interface MedicineItem {
@@ -137,13 +140,13 @@ class MedicinesViewModel @Inject constructor(
         clock.days { zone.get() }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), clock.todayIn(zone.get()))
 
     /** Före [tidiedDays], som skriver hit när städningen misslyckas. */
-    private val _failure = MutableStateFlow<Failure?>(null)
-    val failure: StateFlow<Failure?> = _failure.asStateFlow()
+    private val _failure = MutableStateFlow<UiError?>(null)
+    val failure: StateFlow<UiError?> = _failure.asStateFlow()
 
     /** REC-8, REC-5, REC-10: städningen när fliken visas och vid varje ny dag (`tidyingUpEachDay`); fel utom offline visas. */
     private val tidiedDays = today.tidyingUpEachDay(prescriptions, viewModelScope) { _failure.value = it }
 
-    private val loader = ListLoader(combine(prescriptions.observe(), medicines.observe(), tidiedDays) { p, m, day -> medicineItems(p, m, day) }, viewModelScope)
+    private val loader = ListLoader(combine(prescriptions.observe(), medicines.observe(), tidiedDays) { p, m, day -> medicineItems(p, m, day) }, viewModelScope, AppErrors)
     val state: StateFlow<ListUiState<MedicineItem>> = loader.state
 
     /** MEDF-2: periodslut idag och i morgon (NOT-12), bland recepten i listan. */
@@ -163,7 +166,7 @@ class MedicinesViewModel @Inject constructor(
     }
 
     private fun write(action: suspend () -> Result<Unit>) {
-        viewModelScope.launch { action().failureOrNull()?.let { _failure.value = it } }
+        viewModelScope.launch { action().uiErrorOrNull(AppErrors)?.let { _failure.value = it } }
     }
 }
 
@@ -199,7 +202,7 @@ fun MedicinesScreen(
     state: ListUiState<MedicineItem>,
     endings: List<PeriodEnding>,
     today: LocalDate,
-    failure: Failure?,
+    failure: UiError?,
     onEvent: (MedicinesEvent) -> Unit,
     onOpenPrescription: (String?) -> Unit,
     onOpenPrn: (String?) -> Unit,
@@ -210,9 +213,9 @@ fun MedicinesScreen(
     val newPrn = stringResource(R.string.medicines_new_prn)
     val items = (state as? ListUiState.Content)?.items.orEmpty()
     val activeCount = items.count { it is MedicineItem.Recipe && !it.ended && it.prescription.active }
-    val prescriptionsGroup = ListGroup(stringResource(R.string.medicines_prescriptions), tone = Tone.Neutral, count = pluralStringResource(R.plurals.medicines_active_count, activeCount, activeCount), cards = true)
-    val prnGroup = ListGroup(stringResource(R.string.medicines_as_needed), tone = Tone.Neutral)
-    val endedGroup = ListGroup(stringResource(R.string.medicines_ended), tone = Tone.Neutral, collapsible = true, cards = true)
+    val prescriptionsGroup = ListGroup(stringResource(R.string.medicines_prescriptions), tone = Tone.Neutral, count = pluralStringResource(R.plurals.medicines_active_count, activeCount, activeCount), cards = true, columns = 2)
+    val prnGroup = ListGroup(stringResource(R.string.medicines_as_needed), tone = Tone.Neutral, columns = 2)
+    val endedGroup = ListGroup(stringResource(R.string.medicines_ended), tone = Tone.Neutral, collapsible = true, cards = true, columns = 2)
     EntityListScreen(
         title = stringResource(R.string.tab_medicines),
         state = state,
@@ -236,7 +239,7 @@ fun MedicinesScreen(
                 else -> prescriptionsGroup
             }
         },
-        archive = ListArchive(failure = failure, showToggle = false) { if (it == ArchiveEvent.ErrorShown) onEvent(MedicinesEvent.ErrorShown) },
+        archive = ListArchive(error = failure, showToggle = false) { if (it == ArchiveEvent.ErrorShown) onEvent(MedicinesEvent.ErrorShown) },
         actions = { avatar() },
         header = if (endings.isEmpty()) null else ({ EndingsBanner(endings, today) { onOpenPrescription(endings.first().prescriptionId) } })
     ) { item ->

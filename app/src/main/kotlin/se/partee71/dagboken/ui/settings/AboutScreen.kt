@@ -25,14 +25,16 @@ import se.partee71.dagboken.BuildConfig
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.medicines.MedicineRepository
 import se.partee71.dagboken.di.IoDispatcher
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.DateFormat
-import se.partee71.dagboken.ui.common.DetailLoader
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.EntityDetailScreen
 import se.partee71.dagboken.ui.components.Foldout
-import se.partee71.dagboken.ui.components.ItemRow
+import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.ui.common.DetailLoader
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.EntityDetailScreen
+import se.partee71.ui.components.ItemRow
 
 /** Det Om Dagboken visar: versionen, licenstexterna för de bundlade typsnitten (DSN-2) och läkemedelslistans datum (REC-14). */
 data class AboutInfo(val versionName: String, val versionCode: Int, val licenses: String, val medicinesUpdated: LocalDate? = null)
@@ -50,7 +52,8 @@ class AboutViewModel @Inject constructor(
             emit(AboutInfo(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, licenses, medicines.updated()))
         }
             .flowOn(io),
-        viewModelScope
+        viewModelScope,
+        AppErrors
     )
     val state: StateFlow<DetailUiState<AboutInfo>> = loader.state
 
@@ -76,7 +79,8 @@ fun AboutScreen(state: DetailUiState<AboutInfo>, onBack: () -> Unit, onRetry: ()
         header = null,
         onBack = onBack,
         title = stringResource(R.string.settings_about),
-        onRetry = onRetry
+        onRetry = onRetry,
+        sectionGap = SECTION_GAP
     ) { about ->
         AppCard {
             ItemRow(stringResource(R.string.about_version), subtitle = stringResource(R.string.about_build_format, about.versionName, about.versionCode))

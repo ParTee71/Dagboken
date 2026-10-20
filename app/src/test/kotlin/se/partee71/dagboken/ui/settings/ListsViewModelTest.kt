@@ -25,8 +25,9 @@ import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.testing.awaitDone
 import se.partee71.dagboken.testing.awaitFailure
-import se.partee71.dagboken.ui.common.ArchiveEvent
-import se.partee71.dagboken.ui.common.ListUiState
+import se.partee71.dagboken.ui.common.dataError
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.components.ArchiveEvent
 
 /** Listor (SET-5, SET-6, SET-9, SET-11, DAT-9): val av lista, stjärna, arkivera/ångra, nytt och namnbyte. */
 class ListsViewModelTest {
@@ -161,10 +162,10 @@ class ListsViewModelTest {
             vm.archive.onEvent(ArchiveEvent.Undo)
             cancelAndIgnoreRemainingEvents()
         }
-        assertEquals(R.string.option_name_duplicate, vm.archive.failure.value?.message)
+        assertEquals(R.string.option_name_duplicate, vm.archive.error.value?.message)
         assertTrue(options.get(promenad.id).getOrThrow()!!.archived, "inget skrivet")
         vm.archive.onEvent(ArchiveEvent.ErrorShown)
-        assertEquals(null, vm.archive.failure.value)
+        assertEquals(null, vm.archive.error.value)
     }
 
     @Test
@@ -187,13 +188,13 @@ class ListsViewModelTest {
             override suspend fun get(id: String): Result<Option?> = Result.failure(DataError.Offline)
         }
         val vm = OptionEditViewModel(unreadable, OptionKind.ACTIVITY, promenad.id)
-        assertEquals(DataError.Offline, vm.editor.state.value.loadError)
+        assertEquals(DataError.Offline, vm.editor.state.value.loadError?.dataError)
 
         options.upsert(Option("ny", OptionKind.ACTIVITY, "Cykling")).getOrThrow() // listan ändras
         vm.onEvent(OptionEditEvent.NameChanged("Långpromenad"))
         vm.onEvent(OptionEditEvent.Save)
 
-        assertEquals(DataError.Offline, vm.editor.state.value.loadError)
+        assertEquals(DataError.Offline, vm.editor.state.value.loadError?.dataError)
         assertEquals(setOf(promenad.id, yoga.id, huvudvark.id, "ny"), options.getAll().getOrThrow().map { it.id }.toSet())
     }
 
@@ -211,7 +212,7 @@ class ListsViewModelTest {
     fun `ett bestående fel i listan visas som läsfel, och Försök igen läser om`() = runTest(main.dispatcher) {
         val list = ControlledList(Result.failure(DataError.PermissionDenied))
         val vm = OptionEditViewModel(withList(list), OptionKind.ACTIVITY, id = null)
-        assertEquals(DataError.PermissionDenied, vm.editor.state.value.loadError)
+        assertEquals(DataError.PermissionDenied, vm.editor.state.value.loadError?.dataError)
 
         list.result.value = Result.success(listOf(promenad))
         vm.onEvent(OptionEditEvent.Retry)
@@ -227,7 +228,7 @@ class ListsViewModelTest {
         seed()
         val list = ControlledList(Result.failure(DataError.PermissionDenied))
         val vm = OptionEditViewModel(withList(list), OptionKind.ACTIVITY, promenad.id)
-        assertEquals(DataError.PermissionDenied, vm.editor.state.value.loadError)
+        assertEquals(DataError.PermissionDenied, vm.editor.state.value.loadError?.dataError)
         assertEquals(promenad, vm.stored.value, "alternativet lästes")
 
         list.result.value = Result.success(listOf(promenad, yoga))
@@ -243,7 +244,7 @@ class ListsViewModelTest {
         vm.onEvent(OptionEditEvent.NameChanged("Cykling"))
 
         list.result.value = Result.failure(DataError.Offline)
-        assertEquals(DataError.Offline, vm.editor.state.value.loadError)
+        assertEquals(DataError.Offline, vm.editor.state.value.loadError?.dataError)
         list.result.value = Result.success(listOf(promenad))
         vm.onEvent(OptionEditEvent.Retry)
 

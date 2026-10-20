@@ -33,13 +33,15 @@ import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.repository.DuplicateOptionName
 import se.partee71.dagboken.data.repository.OptionsRepository
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorLoader
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.common.Validator
-import se.partee71.dagboken.ui.components.AppTextField
-import se.partee71.dagboken.ui.components.EntityEditScreen
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.components.SCREEN_MARGIN
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorLoader
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.common.Validator
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.EntityEditScreen
 
 /** Fältet i formuläret – namnet är det enda. */
 const val OPTION_NAME = "name"
@@ -95,7 +97,7 @@ class OptionEditViewModel @AssistedInject constructor(
     /** Listans alternativ som valideringen läser – före formuläret, som validerar redan när det skapas. */
     private val latest = MutableStateFlow<List<Option>?>(null)
 
-    val editor: EditorState<String> = EditorState("", optionNameValidator({ latest.value }, id), loading = id != null, errorMessage = ::optionErrorText)
+    val editor: EditorState<String> = EditorState("", optionNameValidator({ latest.value }, id), AppErrors, loading = id != null, errorMessage = ::optionErrorText)
 
     private val listRetries = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
@@ -217,7 +219,8 @@ fun OptionEditScreen(
         onClose = onClose,
         onArchive = if (archived == false) ({ onEvent(OptionEditEvent.Archive) }) else null,
         onRestore = if (archived == true) ({ onEvent(OptionEditEvent.Restore) }) else null,
-        onRetry = { onEvent(OptionEditEvent.Retry) }
+        onRetry = { onEvent(OptionEditEvent.Retry) },
+        horizontalMargin = SCREEN_MARGIN
     ) {
         AppTextField(
             state.value,

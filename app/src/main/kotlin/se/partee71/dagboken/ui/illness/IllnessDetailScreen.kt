@@ -18,29 +18,32 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.ui.common.DateFormat
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.entryDeleteAction
 import se.partee71.dagboken.ui.common.message
 import se.partee71.dagboken.ui.common.nonBlank
 import se.partee71.dagboken.ui.common.periodText
 import se.partee71.dagboken.ui.common.title
-import se.partee71.dagboken.ui.components.AppButton
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppDivider
-import se.partee71.dagboken.ui.components.AppMenuItem
-import se.partee71.dagboken.ui.components.ButtonVariant
-import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DagbokenEntryCard
-import se.partee71.dagboken.ui.components.DateField
-import se.partee71.dagboken.ui.components.EmptyState
-import se.partee71.dagboken.ui.components.EntityDetailScreen
-import se.partee71.dagboken.ui.components.InfoPill
-import se.partee71.dagboken.ui.components.ItemRow
-import se.partee71.dagboken.ui.components.SectionHeader
+import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.UiError
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppDivider
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.ButtonVariant
+import se.partee71.ui.components.ConfirmDialog
+import se.partee71.ui.components.DateField
+import se.partee71.ui.components.EmptyState
+import se.partee71.ui.components.EntityDetailScreen
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.components.SectionHeader
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /**
  * Sjukdomsdetaljen för episoden [id] – underskärm från Dagbok (HIST-9) och Idags pågående sjukdom (HEM-12).
@@ -69,7 +72,7 @@ fun IllnessDetailRoute(id: String, onBack: () -> Unit, onEdit: () -> Unit, onChe
 fun IllnessDetailScreen(
     state: DetailUiState<IllnessDetail>,
     prompt: IllnessPrompt?,
-    failure: Failure?,
+    failure: UiError?,
     onEvent: (IllnessDetailEvent) -> Unit,
     onBack: () -> Unit,
     onEdit: () -> Unit,
@@ -88,8 +91,9 @@ fun IllnessDetailScreen(
         onEdit = onEdit.takeUnless { busy },
         menu = { detail -> if (detail.deleting) emptyList() else listOf(AppMenuItem(delete, { onEvent(IllnessDetailEvent.Delete) }, R.drawable.ic_delete, destructive = true)) },
         onRetry = { onEvent(IllnessDetailEvent.Retry) },
-        failure = failure,
-        onErrorShown = { onEvent(IllnessDetailEvent.ErrorShown) }
+        error = failure,
+        onErrorShown = { onEvent(IllnessDetailEvent.ErrorShown) },
+        sectionGap = SECTION_GAP
     ) { detail ->
         val summary = detail.summary
         EpisodeCard(detail)

@@ -50,9 +50,11 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
-import se.partee71.dagboken.ui.common.ListUiState
-import se.partee71.dagboken.ui.runListScreenContract
+import se.partee71.dagboken.ui.DagbokenContracts
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.testing.runListScreenContract
 
 /**
  * Fliken Dagbok (HIST-1, HIST-2, HIST-3, HIST-5, HIST-6, HIST-7, HIST-8, HIST-9, NFR-15, NFR-16): ramens
@@ -98,7 +100,7 @@ class DiaryScreenTest {
     private val calendar = controls.copy(view = DiaryView.CALENDAR, selected = saturday)
 
     @Test
-    fun `fliken uppfyller listkontraktet utan lägg till`() = rule.runListScreenContract<DiaryRow>(listRows.first(), "Efter frukost", "Inga poster än", null) { state, _, onRetry ->
+    fun `fliken uppfyller listkontraktet utan lägg till`() = rule.runListScreenContract<DiaryRow>(DagbokenContracts, listRows.first(), "Efter frukost", "Inga poster än", null) { state, _, onRetry ->
         DiaryScreen(state, controls, null, { if (it == DiaryEvent.Retry) onRetry() }, {})
     }
 
@@ -254,7 +256,7 @@ class DiaryScreenTest {
 
     @Test
     fun `skärmdump - läsfel`() = rule.captureLightAndDark("Diary_fel") {
-        DiaryScreen(ListUiState.Error(DataError.Offline), controls, null, {}, {})
+        DiaryScreen(ListUiState.Error(AppErrors.map(DataError.Offline)), controls, null, {}, {})
     }
 
     @Test

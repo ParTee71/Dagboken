@@ -53,14 +53,15 @@ import se.partee71.dagboken.data.repository.EventRepository
 import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
-import se.partee71.dagboken.ui.common.DetailLoader
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.ListUiState
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.days
-import se.partee71.dagboken.ui.common.failureOrNull
-import se.partee71.dagboken.ui.common.toListUiState
+import se.partee71.ui.common.DetailLoader
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.toListUiState
+import se.partee71.ui.common.uiErrorOrNull
 
 /** Listvy eller kalendervy (HIST-6). */
 enum class DiaryView { LIST, CALENDAR }
@@ -218,7 +219,8 @@ class DiaryViewModel @Inject constructor(
     /** Posterna räknas **en gång** per läsning (`:core`); laddning, fel och "Försök igen" via den delade [DetailLoader]. */
     private val loader = DetailLoader(
         combine(windowed, illness, names) { (window, sources), illness, names -> Timeline(window, window.within(diaryEntries(sources + illness, zone.get())), names) },
-        viewModelScope
+        viewModelScope,
+        AppErrors
     )
 
     /** Tidslinjen med filtret (HIST-2) – **ett** flöde som både listans rader och kalenderns punkter läser. */
@@ -288,8 +290,8 @@ class DiaryViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, sharing, DiaryControls(anchor))
 
-    private val _failure = MutableStateFlow<Failure?>(null)
-    val failure: StateFlow<Failure?> = _failure.asStateFlow()
+    private val _failure = MutableStateFlow<UiError?>(null)
+    val failure: StateFlow<UiError?> = _failure.asStateFlow()
 
     fun onEvent(event: DiaryEvent) {
         when (event) {
@@ -346,7 +348,7 @@ class DiaryViewModel @Inject constructor(
             is DiaryEntry.CheckIn -> ({ illnesses.deleteCheckin(entry.episode.id, entry.checkin.id) })
             is DiaryEntry.EpisodeStart, is DiaryEntry.EpisodeEnd -> return
         }
-        viewModelScope.launch { action().failureOrNull()?.let { _failure.value = it } }
+        viewModelScope.launch { action().uiErrorOrNull(AppErrors)?.let { _failure.value = it } }
     }
 
     private companion object {

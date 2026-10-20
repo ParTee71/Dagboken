@@ -17,8 +17,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import se.partee71.dagboken.data.health.HealthPermissions
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.minutes
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 
 /** Det skärmarna med klockdata kan be om (HLS-3, HLS-4, HLS-14) – porten [HealthPermissions] gör resten. */
 sealed interface HealthEvent {

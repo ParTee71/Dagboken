@@ -13,11 +13,11 @@ import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.common.title
-import se.partee71.dagboken.ui.components.AppBottomSheet
-import se.partee71.dagboken.ui.components.AppDivider
-import se.partee71.dagboken.ui.components.ItemRow
 import se.partee71.dagboken.ui.components.OccasionRow
 import se.partee71.dagboken.ui.components.OccasionValue
+import se.partee71.ui.components.AppBottomSheet
+import se.partee71.ui.components.AppDivider
+import se.partee71.ui.components.ItemRow
 
 /**
  * Ett måendetillfälle som [OccasionRow] – en gång för Idags Mående-kort (HEM-4, HEM-5) och plusknappens

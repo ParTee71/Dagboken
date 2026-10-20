@@ -21,17 +21,22 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.legacy.AccountCheck
 import se.partee71.dagboken.data.legacy.CopyFailure
 import se.partee71.dagboken.ui.common.DateFormat
-import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.toMessage
-import se.partee71.dagboken.ui.components.AppButton
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppLoading
-import se.partee71.dagboken.ui.components.ButtonVariant
-import se.partee71.dagboken.ui.components.CheckRow
-import se.partee71.dagboken.ui.components.ConfirmDialog
-import se.partee71.dagboken.ui.components.EntityDetailScreen
+import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.dagboken.ui.theme.Positive
+import se.partee71.dagboken.ui.theme.Sun
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppLoading
+import se.partee71.ui.components.ButtonVariant
+import se.partee71.ui.components.CheckRow
+import se.partee71.ui.components.ConfirmDialog
+import se.partee71.ui.components.EntityDetailScreen
+import se.partee71.ui.theme.Tone
 
 /**
  * Startdestinationen före flikarna (NAV-6): startkontrollen för kontot [uid], migreringsskärmen medan en migrering
@@ -77,8 +82,9 @@ fun MigrationScreen(state: MigrationUiState, onEvent: (MigrationEvent) -> Unit, 
         modifier = modifier,
         title = stringResource(fallback?.let { importTitle(it.import) } ?: R.string.migration_title),
         subtitle = fallback?.let { importSubtitle(it.import) } ?: intro(state.stage)?.let { stringResource(it) },
-        failure = state.failure,
-        onErrorShown = { onEvent(MigrationEvent.ErrorShown) }
+        error = state.failure,
+        onErrorShown = { onEvent(MigrationEvent.ErrorShown) },
+        sectionGap = SECTION_GAP
     ) { stage ->
         when (stage) {
             MigrationStage.Reading -> Reading()

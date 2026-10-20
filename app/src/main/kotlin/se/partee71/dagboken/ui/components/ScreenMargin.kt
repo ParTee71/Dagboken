@@ -1,6 +1,6 @@
 package se.partee71.dagboken.ui.components
 
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.theme.Spacing
 
 /**
  * Sidmarginalen i alla ramar (`EntityListScreen`, `EntityEditScreen`, `EntityDetailScreen`) – ett

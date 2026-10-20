@@ -15,13 +15,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.components.AppBottomSheet
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppDivider
-import se.partee71.dagboken.ui.components.EntityDetailScreen
-import se.partee71.dagboken.ui.components.MessageSnackbar
 import se.partee71.dagboken.ui.components.NoticeBanner
+import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.migration.ChoiceRow
 import se.partee71.dagboken.ui.migration.ImportChoiceRows
 import se.partee71.dagboken.ui.migration.ImportEvent
@@ -30,7 +25,14 @@ import se.partee71.dagboken.ui.migration.ImportStageContent
 import se.partee71.dagboken.ui.migration.JSON_MIME
 import se.partee71.dagboken.ui.migration.countText
 import se.partee71.dagboken.ui.migration.rememberImportLaunchers
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.components.AppBottomSheet
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppDivider
+import se.partee71.ui.components.EntityDetailScreen
+import se.partee71.ui.components.MessageSnackbar
+import se.partee71.ui.theme.Tone
 
 /** Export och import med sin ViewModel (SET-8, NAV-9). */
 @Composable
@@ -69,9 +71,10 @@ fun ExportImportScreen(
         onBack = onBack,
         modifier = modifier,
         title = stringResource(R.string.settings_export_import),
-        failure = state.failure,
+        error = state.failure,
         onErrorShown = { onEvent(ExportImportEvent.MessageShown) },
-        snackbar = snackbar
+        snackbar = snackbar,
+        sectionGap = SECTION_GAP
     ) { current ->
         if (current.import == ImportStage.Choose) {
             AppCard {

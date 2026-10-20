@@ -35,10 +35,21 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
-import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.theme.DagbokenTheme
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppFilterChip
+import se.partee71.ui.components.AppIconButton
+import se.partee71.ui.components.AppMenu
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.AppMenuPopup
+import se.partee71.ui.components.CheckRow
+import se.partee71.ui.components.EntityDetailScreen
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /**
  * Parametrarna som Idag (etapp 5.3b) lade till på delade komponenter – standardvärdena bevarar det gamla
@@ -159,7 +170,8 @@ class ComponentVariantsTest {
                 onBack = null,
                 title = "God morgon",
                 subtitle = "Söndag 4 oktober · vecka 40",
-                actions = { AppIconButton(R.drawable.ic_person, "Konto och inställningar", { avatar++ }) }
+                actions = { AppIconButton(R.drawable.ic_person, "Konto och inställningar", { avatar++ }) },
+                sectionGap = SECTION_GAP
             ) { AppCard { ItemRow(it) } }
         }
         rule.onNodeWithText("God morgon").assertIsDisplayed()
@@ -188,7 +200,7 @@ class ComponentVariantsTest {
         }
         captureLightAndDark("ProgressBar_utan_firande") { Sheet { ProgressBar(9, 9, celebrate = false) } }
         captureLightAndDark("EntityDetailScreen_flik") {
-            EntityDetailScreen(DetailUiState.Content("Levaxin 100 µg"), header = null, onBack = null, title = "God morgon", subtitle = "Söndag 4 oktober · vecka 40") {
+            EntityDetailScreen(DetailUiState.Content("Levaxin 100 µg"), header = null, onBack = null, title = "God morgon", subtitle = "Söndag 4 oktober · vecka 40", sectionGap = SECTION_GAP) {
                 AppCard { ItemRow(it, subtitle = "Morgon · 07:00") }
             }
         }

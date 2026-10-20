@@ -8,28 +8,30 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import se.partee71.ui.theme.AppTheme
+import se.partee71.ui.theme.ExtendedColors as ThemeColors
+import se.partee71.ui.theme.Tone
+import se.partee71.ui.theme.ToneColors
 
-/** Färgtoner för pills, sektionsrubriker och kort – en per betydelse (skill `ui-style`, DSN-1). */
-enum class Tone {
-    /** Teal – det markerade, valda och aktiva. */
-    Primary,
+// Appens färgtoner utöver android-ui:s Tone.Primary (teal – det markerade, valda och aktiva): en per
+// betydelse (skill `ui-style`, DSN-1). Färgerna står i ExtendedColors och går till temat som `tones`.
 
-    /** Dämpad – information utan värdering, t.ex. "Synkas…" och typ-pills. */
-    Neutral,
+/** Dämpad – information utan värdering, t.ex. "Synkas…" och typ-pills. */
+val Tone.Companion.Neutral: Tone get() = NEUTRAL
 
-    /** Solgul – gör-något: "Snart", dagens punkt, framstegsraden när dagen är klar. */
-    Sun,
+/** Solgul – gör-något: "Snart", dagens punkt, framstegsraden när dagen är klar. */
+val Tone.Companion.Sun: Tone get() = SUN
 
-    /** Grön – klart och positivt, t.ex. dagen klar. */
-    Positive,
+/** Grön – klart och positivt, t.ex. dagen klar. */
+val Tone.Companion.Positive: Tone get() = POSITIVE
 
-    /** Terrakotta – varning: försenat, periodslut. */
-    Warning
-}
+/** Terrakotta – varning: försenat, periodslut. */
+val Tone.Companion.Warning: Tone get() = WARNING
 
-/** Behållare och innehåll för en [Tone]; innehållet klarar 4,5:1 mot behållaren. */
-@Immutable
-data class ToneColors(val container: Color, val content: Color)
+private val NEUTRAL = Tone("neutral")
+private val SUN = Tone("sun")
+private val POSITIVE = Tone("positive")
+private val WARNING = Tone("warning")
 
 /** Energiskalan (DSN-1): låg, mitt och hög – för diagram och energimarkeringar, inte för text. */
 @Immutable
@@ -94,7 +96,27 @@ data class ExtendedColors(
     val energy: EnergyColors,
     val sleepStages: SleepStageColors,
     val feelingTones: FeelingColors
-)
+) {
+    /** Tonerna per [Tone] – det android-ui:s komponenter (`InfoPill`, `SectionHeader`, `AppCard`) läser. */
+    val tones: Map<Tone, ToneColors>
+        get() = mapOf(
+            Tone.Primary to primaryTone,
+            Tone.Neutral to neutralTone,
+            Tone.Sun to sunTone,
+            Tone.Positive to positiveTone,
+            Tone.Warning to warningTone
+        )
+
+    /** Färgerna som android-ui:s tema behöver (`AppTheme`): kort, radtoning, verktygsrad, toner och konfettins färgserie. */
+    fun forTheme(): ThemeColors = ThemeColors(
+        card = card,
+        rowTint = rowTint,
+        toolbar = toolbar,
+        onToolbar = onToolbar,
+        tones = tones,
+        accents = AppColors.SWATCH_HEX.indices.map { AppColors.swatch(it) }
+    )
+}
 
 /**
  * Den enda paletten (skill `ui-style`, ARKITEKTUR.md → Designspråk "I · Papper och teal"): teal på
@@ -262,16 +284,14 @@ object AppColors {
         @Composable @ReadOnlyComposable
         get() = LocalExtendedColors.current
 
-    /** Färgerna för en [Tone] i aktuellt tema. */
+    /** Färgerna för en [Tone] i aktuellt tema – samma som android-ui:s komponenter läser. */
     @Composable
     @ReadOnlyComposable
-    fun tone(tone: Tone): ToneColors = when (tone) {
-        Tone.Primary -> extended.primaryTone
-        Tone.Neutral -> extended.neutralTone
-        Tone.Sun -> extended.sunTone
-        Tone.Positive -> extended.positiveTone
-        Tone.Warning -> extended.warningTone
-    }
+    fun tone(tone: Tone): ToneColors = AppTheme.tone(tone)
+
+    /** Det ljusa och det mörka temats färger för android-ui (`DagbokenTheme`). */
+    internal val lightTheme: ThemeColors = lightExtended.forTheme()
+    internal val darkTheme: ThemeColors = darkExtended.forTheme()
 }
 
 internal val LocalExtendedColors = staticCompositionLocalOf { AppColors.lightExtended }

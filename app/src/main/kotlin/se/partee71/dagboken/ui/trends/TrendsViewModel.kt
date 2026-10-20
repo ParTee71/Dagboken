@@ -84,8 +84,8 @@ import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.days
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 
 /** Diagramgrupperna i Trender (TRD-19): Mående, Klocka och Jämför. */
 enum class TrendGroup { MOOD, WATCH, COMPARE }

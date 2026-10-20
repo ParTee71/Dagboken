@@ -10,18 +10,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.components.AppButton
-import se.partee71.dagboken.ui.components.AppSnackbarHost
-import se.partee71.dagboken.ui.components.EmptyState
-import se.partee71.dagboken.ui.components.ErrorSnackbar
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppSnackbarHost
+import se.partee71.ui.components.EmptyState
+import se.partee71.ui.components.ErrorSnackbar
+import se.partee71.ui.theme.Spacing
 
 /** Inloggningen (AUTH-1, AUTH-2, AUTH-4). Fel visas som snackbar ovanför knappen; avbrott visas inte alls. */
 @Composable
 fun SignInScreen(state: AuthUiState, onEvent: (AuthEvent) -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
-    ErrorSnackbar(state.error, snackbar) { onEvent(AuthEvent.ErrorShown) }
+    ErrorSnackbar(remember(state.error) { state.error?.let(AppErrors::map) }, snackbar) { onEvent(AuthEvent.ErrorShown) }
     EmptyState(
         icon = R.drawable.ic_book,
         title = stringResource(R.string.app_name),

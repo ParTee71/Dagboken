@@ -10,7 +10,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.theme.Tone
 
 /**
  * Diagrammens utseende på ett ställe (skill `diagram`, Papper och teal): alla färger kommer ur temat

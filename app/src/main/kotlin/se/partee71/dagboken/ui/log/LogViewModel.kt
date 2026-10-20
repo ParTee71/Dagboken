@@ -43,10 +43,10 @@ import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.ui.common.EditorSheetState
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.SelectedDay
 import se.partee71.dagboken.ui.common.minutes
 import se.partee71.dagboken.ui.components.ScreeningStep
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 
 /**
  * Plusknappens tillfällesväljare (HEM-8b, NAV-10): [date] är dagen som loggas, [isToday] om det är idag, och

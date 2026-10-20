@@ -11,6 +11,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.Validator
 
 /**
  * Ett öppet formulär i ett ark: formuläret ([editor], den delade [EditorState]), det sparade värdet [loaded]
@@ -25,8 +29,8 @@ class EditorSheetState<T, C> internal constructor(
     val context: C,
     scope: CoroutineScope
 ) {
-    private val _error = MutableStateFlow<Failure?>(null)
-    val error: StateFlow<Failure?> = _error.asStateFlow()
+    private val _error = MutableStateFlow<UiError?>(null)
+    val error: StateFlow<UiError?> = _error.asStateFlow()
 
     /** En ny post vars sparning misslyckats – osparad tills den sparats eller slängts, också om felet försvinner. */
     private val failedNew = MutableStateFlow(false)
@@ -47,7 +51,7 @@ class EditorSheetState<T, C> internal constructor(
      */
     fun canDismiss(): Boolean = !editor.state.value.saving
 
-    internal fun showError(error: Failure?) {
+    internal fun showError(error: UiError?) {
         _error.value = error
         if (error != null && loaded == null) failedNew.value = true
     }
@@ -81,7 +85,7 @@ class EditorSheet<T, C>(private val scope: CoroutineScope, private val onSaved: 
         job?.cancel()
         val sheetJob = Job(scope.coroutineContext[Job])
         val sheetScope = scope + sheetJob
-        val sheet = EditorSheetState(EditorState(value, validator, saveUnchanged = loaded == null), loaded, context, sheetScope)
+        val sheet = EditorSheetState(EditorState(value, validator, AppErrors, saveUnchanged = loaded == null), loaded, context, sheetScope)
         job = sheetJob
         _current.value = sheet
         sheetScope.launch {

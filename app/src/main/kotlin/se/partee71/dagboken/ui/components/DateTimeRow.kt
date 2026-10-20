@@ -9,7 +9,9 @@ import androidx.compose.ui.res.stringResource
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.DateField
+import se.partee71.ui.components.TimeField
+import se.partee71.ui.theme.Spacing
 
 /**
  * Datum och tid för en post på en rad: [DateField] och [TimeField] bredvid varandra, med samma

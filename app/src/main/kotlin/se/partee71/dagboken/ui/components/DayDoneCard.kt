@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,8 +16,12 @@ import kotlin.math.abs
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Positive
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.Confetti
+import se.partee71.ui.components.SectionHeader
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /**
  * Dagen klar (belöningsläget, HEM-19, DSN-4): ett grönt kort med rubriken "Allt klart för idag" – en
@@ -36,7 +41,7 @@ fun DayDoneCard(
 ) {
     val missing = stringResource(R.string.value_missing)
     Box(modifier) {
-        AppCard(tone = Tone.Positive) {
+        AppCard(tone = Tone.Positive, contentColor = MaterialTheme.colorScheme.onSurface) {
             SectionHeader(stringResource(R.string.day_done_title), icon = R.drawable.ic_check, tone = Tone.Positive)
             Row(Modifier.semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(Spacing.l)) {
                 KeyFigure(averageEnergy?.let(::decimal) ?: missing, stringResource(R.string.day_done_average_energy), Modifier.weight(1f))

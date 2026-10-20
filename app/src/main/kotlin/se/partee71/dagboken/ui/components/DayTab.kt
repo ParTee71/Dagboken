@@ -19,7 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.theme.Spacing
 
 /**
  * Dagfliken – skelettet för en dag i en veckorad, en gång för [DateStrip]s dagar och [FeelingWeekRow]s dagar (regel 4):

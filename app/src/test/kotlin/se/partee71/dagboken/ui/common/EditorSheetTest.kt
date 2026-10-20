@@ -14,6 +14,9 @@ import org.junit.Test
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.MainDispatcherRule
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.common.dataError
+import se.partee71.ui.common.Validator
 
 /** Formulär i ett ark (NFR-10): öppna, ändra, spara, fel och spärren under sparningen – en gång för alla ark. */
 class EditorSheetTest {
@@ -68,8 +71,8 @@ class EditorSheetTest {
         sheet.save { _, _ -> Result.failure(DataError.Offline) }
         runCurrent()
         assertSame(open, sheet.current.value)
-        assertEquals(DataError.Offline, open.error.value?.error)
-        assertEquals(Failure(DataError.Offline).message, open.error.value?.message, "samma text som EntityEditScreen")
+        assertEquals(DataError.Offline, open.error.value?.dataError)
+        assertEquals(AppErrors.map(DataError.Offline).message, open.error.value?.message, "samma text som EntityEditScreen")
         assertEquals(0, saved)
         assertNull(open.editor.state.value.failure, "arket har kvitterat sparfelet")
         sheet.update { it.copy(count = 1) }

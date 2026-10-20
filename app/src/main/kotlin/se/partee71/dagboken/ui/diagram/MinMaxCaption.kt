@@ -15,10 +15,11 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.core.engine.formatChartValue
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.components.InfoPill
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /**
  * Raden under **varje** diagram (TRD-9): datats faktiska lägsta och högsta värde som text – oavsett hur

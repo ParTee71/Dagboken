@@ -35,12 +35,13 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
-import se.partee71.dagboken.ui.common.DetailLoader
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.days
-import se.partee71.dagboken.ui.common.failureOrNull
+import se.partee71.ui.common.DetailLoader
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.uiErrorOrNull
 
 /**
  * Det sjukdomsdetaljen visar: episoden med sina incheckningar, senaste först ([summary], räknad i `:core`), dagen
@@ -113,7 +114,8 @@ class IllnessDetailViewModel @AssistedInject constructor(
         combine(illnesses.observeEpisode(id), clock.days { zone.get() }, names) { loaded, today, names ->
             loaded?.let { IllnessDetail(illnessSummary(it.episode, it.checkins, today), today, names.toImmutableMap()) }
         },
-        viewModelScope
+        viewModelScope,
+        AppErrors
     )
 
     /** En radering pågår: det som visas står kvar tills den är klar, i stället för incheckningar som försvinner och "finns inte". */
@@ -139,8 +141,8 @@ class IllnessDetailViewModel @AssistedInject constructor(
     private val _prompt = MutableStateFlow<IllnessPrompt?>(null)
     val prompt: StateFlow<IllnessPrompt?> = _prompt.asStateFlow()
 
-    private val _failure = MutableStateFlow<Failure?>(null)
-    val failure: StateFlow<Failure?> = _failure.asStateFlow()
+    private val _failure = MutableStateFlow<UiError?>(null)
+    val failure: StateFlow<UiError?> = _failure.asStateFlow()
 
     private val _closed = MutableStateFlow(false)
     val closed: StateFlow<Boolean> = _closed.asStateFlow()
@@ -188,7 +190,7 @@ class IllnessDetailViewModel @AssistedInject constructor(
 
     private fun closeWith(error: DataError) {
         _prompt.value = null
-        _failure.value = Failure(error)
+        _failure.value = AppErrors.map(error)
     }
 
     /** SJ-9: kaskaden kräver nät – offline raderas ingenting och felet visas; lyckad stänger detaljen. */
@@ -202,13 +204,13 @@ class IllnessDetailViewModel @AssistedInject constructor(
                 _closed.value = true
             } else {
                 deleting.value = false
-                _failure.value = result.failureOrNull()
+                _failure.value = result.uiErrorOrNull(AppErrors)
             }
         }
     }
 
     private fun report(action: suspend () -> Result<Unit>) {
-        viewModelScope.launch { action().failureOrNull()?.let { _failure.value = it } }
+        viewModelScope.launch { action().uiErrorOrNull(AppErrors)?.let { _failure.value = it } }
     }
 
     @AssistedFactory

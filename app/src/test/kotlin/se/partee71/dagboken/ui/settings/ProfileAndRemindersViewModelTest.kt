@@ -30,6 +30,7 @@ import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.testing.awaitDone
 import se.partee71.dagboken.testing.awaitFailure
+import se.partee71.dagboken.ui.common.dataError
 
 /** Profil (HLS-11) och Påminnelser (SET-4, NOT-4, NOT-13, NOT-18) – formulären över `settings/app`. */
 class ProfileAndRemindersViewModelTest {
@@ -103,7 +104,7 @@ class ProfileAndRemindersViewModelTest {
     fun `går inställningarna inte att läsa visas läsfelet och Försök igen läser om`() = runTest(main.dispatcher) {
         val scope = TestUserScope(uid = null)
         val vm = ProfileEditViewModel(DefaultSettingsRepository(FakeCollectionFactory(store = factory.store, scope = scope)), FixedClock(), TimeZone.UTC)
-        assertEquals(DataError.NotSignedIn, vm.editor.state.value.loadError)
+        assertEquals(DataError.NotSignedIn, vm.editor.state.value.loadError?.dataError)
 
         scope.uid.value = "uid-test"
         vm.onEvent(ProfileEvent.Retry)
@@ -213,7 +214,7 @@ class ProfileAndRemindersViewModelTest {
         vm.editor.state.test {
             vm.onEvent(RemindersEvent.Save)
             awaitFailure(vm.editor).let {
-                assertEquals(DataError.Offline, it.error)
+                assertEquals(DataError.Offline, it.dataError)
                 assertEquals(R.string.error_offline, it.message)
             }
             cancelAndIgnoreRemainingEvents()
@@ -230,8 +231,8 @@ class ProfileAndRemindersViewModelTest {
         }
         val profile = ProfileEditViewModel(flaky, FixedClock(), TimeZone.UTC)
         val reminders = RemindersEditViewModel(flaky)
-        assertEquals(DataError.Offline, profile.editor.state.value.loadError)
-        assertEquals(DataError.Offline, reminders.editor.state.value.loadError)
+        assertEquals(DataError.Offline, profile.editor.state.value.loadError?.dataError)
+        assertEquals(DataError.Offline, reminders.editor.state.value.loadError?.dataError)
 
         offline = false
         profile.onEvent(ProfileEvent.Retry)

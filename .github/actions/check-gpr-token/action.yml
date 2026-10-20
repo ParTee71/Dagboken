@@ -1,0 +1,19 @@
+# Provar GPR_TOKEN mot android-ui i GitHub Packages, så att en saknad eller felinklistrad secret
+# stoppar på en sekund i stället för efter bygget (skill android:android-gradle-logic, ci-budget).
+name: GPR_TOKEN når android-ui
+description: Stoppar jobbet om GPR_TOKEN inte kan läsa android-ui
+inputs:
+  token:
+    description: secrets.GPR_TOKEN (classic token, read:packages)
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: GPR_TOKEN når android-ui
+      shell: bash
+      env:
+        GPR_TOKEN: ${{ inputs.token }}
+      run: |
+        code=$(curl -s -o /dev/null -w '%{http_code}' -u "x:$GPR_TOKEN" \
+          "https://maven.pkg.github.com/ParTee71/android-ui/se/partee71/ui/ui-theme/maven-metadata.xml")
+        case "$code" in 200|302) ;; *) echo "::error::GPR_TOKEN fungerar inte (HTTP $code) – lägg in secreten på nytt (classic token, read:packages)"; exit 1;; esac

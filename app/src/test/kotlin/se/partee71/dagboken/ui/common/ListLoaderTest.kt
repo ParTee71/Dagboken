@@ -13,6 +13,14 @@ import org.junit.Test
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.common.dataError
+import se.partee71.ui.common.DetailLoader
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.ListEvent
+import se.partee71.ui.common.ListLoader
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 
 class ListLoaderTest {
 
@@ -24,9 +32,9 @@ class ListLoaderTest {
             if (attempts == 1) throw DataError.Offline
             emit(listOf("Solkräm"))
         }
-        val loader = ListLoader(source, backgroundScope)
+        val loader = ListLoader(source, backgroundScope, AppErrors)
         loader.state.test {
-            assertEquals(ListUiState.Error(DataError.Offline), expectMostRecentItem())
+            assertEquals(DataError.Offline, ((expectMostRecentItem()) as ListUiState.Error).error.dataError)
             loader.onEvent(ListEvent.Retry)
             assertEquals(ListUiState.Content(persistentListOf("Solkräm")), expectMostRecentItem())
         }
@@ -36,7 +44,7 @@ class ListLoaderTest {
     @Test
     fun `utan prenumerant går listan tillbaka till laddning - gammal lista visas aldrig`() = runTest(UnconfinedTestDispatcher()) {
         val source = MutableStateFlow(listOf("Morgonpromenad"))
-        val loader = ListLoader(source, backgroundScope)
+        val loader = ListLoader(source, backgroundScope, AppErrors)
         loader.state.test {
             assertEquals(ListUiState.Content(persistentListOf("Morgonpromenad")), expectMostRecentItem())
         }
@@ -55,11 +63,11 @@ class ListLoaderTest {
                 else -> emit("Promenad")
             }
         }
-        val loader = DetailLoader(source, backgroundScope)
+        val loader = DetailLoader(source, backgroundScope, AppErrors)
         loader.state.test {
-            assertEquals(DetailUiState.Error(DataError.Offline), expectMostRecentItem())
+            assertEquals(DataError.Offline, ((expectMostRecentItem()) as DetailUiState.Error).error.dataError)
             loader.retry()
-            assertEquals(DetailUiState.Error(DataError.NotFound), expectMostRecentItem())
+            assertEquals(DataError.NotFound, ((expectMostRecentItem()) as DetailUiState.Error).error.dataError)
             loader.retry()
             assertEquals(DetailUiState.Content("Promenad"), expectMostRecentItem())
         }

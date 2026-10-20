@@ -9,6 +9,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.schema.TextLimits
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.FieldError
 
 /**
  * Anteckningen på en post (DAT-7, AKT-11, SCR-5, SJ-8): en [Foldout] som i stängt läge visar början
@@ -33,7 +36,7 @@ fun NoteField(
             onToggle = { expanded = !expanded },
             summary = note
         ) {
-            AppTextField(note, onNoteChange, label, error = error, singleLine = false)
+            AppTextField(note, onNoteChange, label, error = error, singleLine = false, maxLength = TextLimits.LONG)
         }
         if (!expanded && error != null) FieldError(error)
     }

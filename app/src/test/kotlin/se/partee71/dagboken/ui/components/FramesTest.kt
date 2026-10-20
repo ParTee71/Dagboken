@@ -29,26 +29,51 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureLightAndDarkPaused
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
-import se.partee71.dagboken.ui.common.ArchiveEvent
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.ListUiState
-import se.partee71.dagboken.ui.common.Validator
-import se.partee71.dagboken.ui.runEditScreenContract
-import se.partee71.dagboken.ui.runListScreenContract
+import se.partee71.dagboken.ui.DagbokenContracts
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.common.dataError
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.DagbokenTheme
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Positive
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.Validator
+import se.partee71.ui.components.AddAction
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.ArchiveEvent
+import se.partee71.ui.components.ChoiceChips
+import se.partee71.ui.components.ConfirmDialog
+import se.partee71.ui.components.DeleteAction
+import se.partee71.ui.components.DetailHeader
+import se.partee71.ui.components.EmptyContent
+import se.partee71.ui.components.EntityDetailScreen
+import se.partee71.ui.components.EntityEditScreen
+import se.partee71.ui.components.EntityListScreen
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.ListArchive
+import se.partee71.ui.components.ListGroup
+import se.partee71.ui.components.ListSubgroup
+import se.partee71.ui.components.LoadErrorState
+import se.partee71.ui.components.SectionHeader
+import se.partee71.ui.components.SwitchRow
+import se.partee71.ui.testing.runEditScreenContract
+import se.partee71.ui.testing.runListScreenContract
+import se.partee71.ui.theme.Tone
 
 /** Ramarna testas grundligt en gång här; skärmarna kör bara kontrakten (skill testing-strategy). */
 @RunWith(RobolectricTestRunner::class)
@@ -66,7 +91,7 @@ class FramesTest {
     private fun group(item: Pair<String, String>) = ListGroup(item.second, tone = if (item.second.startsWith("Hemma")) Tone.Positive else Tone.Primary)
 
     @Test
-    fun `EntityListScreen uppfyller listkontraktet`() = rule.runListScreenContract("Promenad", "Promenad", empty.title, add.label) { state, onAdd, onRetry ->
+    fun `EntityListScreen uppfyller listkontraktet`() = rule.runListScreenContract(DagbokenContracts, "Promenad", "Promenad", empty.title, add.label) { state, onAdd, onRetry ->
         EntityListScreen("Aktivitetstyper", state, empty, AddAction(add.label, onAdd), key = { it }, onRetry = onRetry) { ItemRow(it) }
     }
 
@@ -111,7 +136,8 @@ class FramesTest {
     }
 
     @Test
-    fun `undergrupper, två kolumner, en hopfälld grupp och rubrik överst`() {
+    @Config(qualifiers = "w840dp-h1200dp-xxhdpi")
+    fun `undergrupper, två kolumner på en surfplatta, en hopfälld grupp och rubrik överst`() {
         val rows = listOf("A1" to "a", "A2" to "a", "B1" to "b", "Ö1" to "ö", "Ö2" to "ö", "Ö3" to "ö", "D1" to "d")
         val groups = mapOf(
             "a" to ListGroup("Recept", count = "1 / 2"),
@@ -153,6 +179,19 @@ class FramesTest {
     }
 
     @Test
+    fun `på en telefon ryms inte två kolumner om minst 260 dp – raderna står under varandra`() {
+        rule.setContent {
+            DagbokenTheme {
+                EntityListScreen("Mediciner", ListUiState.Content(persistentListOf("Ö1", "Ö2")), empty, add, key = { it }, group = { ListGroup("Vid behov", columns = 2) }) { ItemRow(it) }
+            }
+        }
+        val first = rule.onNodeWithText("Ö1").fetchSemanticsNode().positionInRoot
+        val second = rule.onNodeWithText("Ö2").fetchSemanticsNode().positionInRoot
+        assertEquals(first.x, second.x, "en kolumn: samma vänsterkant")
+        assertTrue(second.y > first.y, "en kolumn: Ö2 under Ö1")
+    }
+
+    @Test
     fun `en utfälld grupp står kvar efter att skärmen återskapats`() {
         val restore = StateRestorationTester(rule)
         restore.setContent {
@@ -176,7 +215,7 @@ class FramesTest {
             }
         }
         rule.onNodeWithText("Filterrad").assertIsDisplayed()
-        state = ListUiState.Error(DataError.Offline)
+        state = ListUiState.Error(AppErrors.map(DataError.Offline))
         rule.onNodeWithText("Filterrad").assertIsDisplayed()
         state = ListUiState.Content(persistentListOf("Promenad"))
         rule.onNodeWithText("Filterrad").assertIsDisplayed()
@@ -193,7 +232,7 @@ class FramesTest {
             }
         }
         repeat(2) {
-            archive = ListArchive(failure = Failure(DataError.Offline))
+            archive = ListArchive(error = AppErrors.map(DataError.Offline))
             rule.waitForIdle()
             rule.onNodeWithText(string(R.string.error_offline)).assertIsDisplayed()
             rule.mainClock.advanceTimeBy(SNACKBAR_GONE_MILLIS)
@@ -217,8 +256,9 @@ class FramesTest {
 
     @Test
     fun `EntityEditScreen uppfyller redigeringskontraktet`() {
-        val editor = EditorState("", Validator { if (it.isBlank()) mapOf("name" to R.string.error_not_signed_in) else emptyMap() })
+        val editor = EditorState("", Validator { if (it.isBlank()) mapOf("name" to R.string.error_not_signed_in) else emptyMap() }, AppErrors)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor = editor,
             makeInvalid = {
                 update("name") { "x" }
@@ -227,7 +267,7 @@ class FramesTest {
             makeValid = { update("name") { "Promenad" } },
             invalidMessage = string(R.string.error_not_signed_in)
         ) { state, events, onSave, onClose ->
-            EntityEditScreen("Ny aktivitetstyp", state, events, onSave, onClose) {
+            EntityEditScreen("Ny aktivitetstyp", state, events, onSave, onClose, horizontalMargin = SCREEN_MARGIN) {
                 AppTextField(state.value, { v -> editor.update("name") { v } }, "Namn", error = state.errorFor("name")?.let { string(it) })
             }
         }
@@ -246,7 +286,8 @@ class FramesTest {
                     {},
                     {},
                     onArchive = { archived++ },
-                    delete = DeleteAction("Radera Promenad?", "Det går inte att ångra.") { deleted++ }
+                    delete = DeleteAction("Radera Promenad?", "Det går inte att ångra.") { deleted++ },
+                    horizontalMargin = SCREEN_MARGIN
                 ) {}
             }
         }
@@ -265,11 +306,11 @@ class FramesTest {
     fun `EntityEditScreen - lyckad sparning går till onSaved, bakåt till onClose`() {
         var saved = 0
         var closed = 0
-        val editor = EditorState("Migrän", Validator { emptyMap() })
+        val editor = EditorState("Migrän", Validator { emptyMap() }, AppErrors)
         rule.setContent {
             DagbokenTheme {
                 val state by editor.state.collectAsState()
-                EntityEditScreen("Ny händelse", state, editor, {}, { closed++ }, onSaved = { saved++ }) {}
+                EntityEditScreen("Ny händelse", state, editor, {}, { closed++ }, onSaved = { saved++ }, horizontalMargin = SCREEN_MARGIN) {}
             }
         }
         rule.runOnIdle { runBlocking { editor.run { Result.success(Unit) } } }
@@ -279,12 +320,12 @@ class FramesTest {
     }
 
     @Test
-    fun `EntityEditScreen - ett sparfel visas med sin Failure-text i snackbaren`() {
-        val editor = EditorState("Migrän", Validator { emptyMap() }, errorMessage = { R.string.option_name_duplicate })
+    fun `EntityEditScreen - ett sparfel visas med sin UiError-text i snackbaren`() {
+        val editor = EditorState("Migrän", Validator { emptyMap() }, AppErrors, errorMessage = { R.string.option_name_duplicate })
         rule.setContent {
             DagbokenTheme {
                 val state by editor.state.collectAsState()
-                EntityEditScreen("Ny händelse", state, editor, {}, {}) {}
+                EntityEditScreen("Ny händelse", state, editor, {}, {}, horizontalMargin = SCREEN_MARGIN) {}
             }
         }
         rule.runOnIdle { runBlocking { editor.run { Result.failure(DataError.Unknown) } } }
@@ -293,20 +334,40 @@ class FramesTest {
     }
 
     @Test
+    fun `EntityEditScreen - samma sparfel två gånger i rad ger två snackbars`() {
+        val editor = EditorState("Migrän", Validator { emptyMap() }, AppErrors)
+        rule.setContent {
+            DagbokenTheme {
+                val state by editor.state.collectAsState()
+                EntityEditScreen("Ny händelse", state, editor, {}, {}, horizontalMargin = SCREEN_MARGIN) {}
+            }
+        }
+        repeat(2) { attempt ->
+            rule.runOnIdle { runBlocking { editor.run { Result.failure(DataError.Offline) } } }
+            rule.waitForIdle()
+            rule.onNodeWithText(string(R.string.error_offline)).assertIsDisplayed()
+            rule.mainClock.advanceTimeBy(SNACKBAR_GONE_MILLIS)
+            rule.waitForIdle()
+            rule.onNodeWithText(string(R.string.error_offline)).assertDoesNotExist()
+            assertNull(editor.state.value.failure, "sparfel ${attempt + 1} är kvitterat")
+        }
+    }
+
+    @Test
     fun `EntityEditScreen kvitterar klar och sparfel – de väntar tills skärmen visas och kommer inte igen efter rotation`() {
-        val editor = EditorState("Migrän", Validator { emptyMap() })
+        val editor = EditorState("Migrän", Validator { emptyMap() }, AppErrors)
         var saved = 0
         var shown by mutableStateOf(false)
         val restoration = StateRestorationTester(rule)
         restoration.setContent {
             DagbokenTheme {
                 val state by editor.state.collectAsState()
-                if (shown) EntityEditScreen("Ny händelse", state, editor, {}, {}, onSaved = { saved++ }) {}
+                if (shown) EntityEditScreen("Ny händelse", state, editor, {}, {}, onSaved = { saved++ }, horizontalMargin = SCREEN_MARGIN) {}
             }
         }
         // Ett sparfel medan skärmen inte visas tappas inte: snackbaren kommer när den visas.
         rule.runOnIdle { runBlocking { editor.run { Result.failure(DataError.Offline) } } }
-        assertEquals(DataError.Offline, editor.state.value.failure?.error)
+        assertEquals(DataError.Offline, editor.state.value.failure?.dataError)
         rule.runOnIdle { shown = true }
         rule.onNodeWithText(string(R.string.error_offline)).assertIsDisplayed()
         assertNull(editor.state.value.failure, "kvitterat när snackbaren startats")
@@ -343,7 +404,7 @@ class FramesTest {
     fun `EntityEditScreen - arkivera med osparade ändringar frågar först (NFR-10)`() {
         var archived = 0
         rule.setContent {
-            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), EditorEvents.None, {}, {}, onArchive = { archived++ }) {} }
+            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), EditorEvents.None, {}, {}, onArchive = { archived++ }, horizontalMargin = SCREEN_MARGIN) {} }
         }
         rule.onNodeWithContentDescription("Fler val").performClick()
         rule.onNodeWithText("Arkivera").performClick()
@@ -357,7 +418,7 @@ class FramesTest {
 
     @Test
     fun `LoadErrorState - något som inte finns längre har inget Försök igen`() {
-        rule.setContent { DagbokenTheme { LoadErrorState("Kunde inte hämta uppgifterna", DataError.NotFound, {}) } }
+        rule.setContent { DagbokenTheme { LoadErrorState("Kunde inte hämta uppgifterna", AppErrors.notFound(), {}) } }
         rule.onNodeWithText("Det finns inte längre", substring = true).assertIsDisplayed()
         rule.onNodeWithText("Försök igen").assertDoesNotExist()
     }
@@ -366,7 +427,7 @@ class FramesTest {
     fun `EntityEditScreen - Återställ i menyn för något arkiverat`() {
         var restored = 0
         rule.setContent {
-            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad"), EditorEvents.None, {}, {}, onRestore = { restored++ }) {} }
+            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad"), EditorEvents.None, {}, {}, onRestore = { restored++ }, horizontalMargin = SCREEN_MARGIN) {} }
         }
         rule.onNodeWithContentDescription("Fler val").performClick()
         rule.onNodeWithText("Arkivera").assertDoesNotExist()
@@ -388,13 +449,14 @@ class FramesTest {
                     onBack = {},
                     onEdit = { edits++ },
                     menu = { listOf(AppMenuItem("Arkivera", { archived++ })) },
-                    onRetry = { retries++ }
+                    onRetry = { retries++ },
+                    sectionGap = SECTION_GAP
                 ) { Text("Incheckningar") }
             }
         }
         rule.onNodeWithContentDescription("Laddar").assertExists()
         rule.onNodeWithContentDescription("Redigera").assertDoesNotExist()
-        state = DetailUiState.Error(DataError.Offline)
+        state = DetailUiState.Error(AppErrors.map(DataError.Offline))
         rule.onNodeWithText("Kunde inte hämta uppgifterna").assertIsDisplayed()
         rule.onNodeWithText("Försök igen").performClick()
         assertEquals(1, retries)
@@ -413,7 +475,7 @@ class FramesTest {
         var back = 0
         rule.setContent {
             DagbokenTheme {
-                EntityDetailScreen(DetailUiState.Content("Förkylning"), header = null, onBack = { back++ }, title = "Tema") { ItemRow(it) }
+                EntityDetailScreen(DetailUiState.Content("Förkylning"), header = null, onBack = { back++ }, title = "Tema", sectionGap = SECTION_GAP) { ItemRow(it) }
             }
         }
         rule.onNodeWithText("Tema").assertIsDisplayed()
@@ -431,7 +493,8 @@ class FramesTest {
                 onBack = {},
                 onEdit = {},
                 menu = { listOf(AppMenuItem("Avsluta episoden", {})) },
-                leading = { Text("🤧", style = AppTypography.headline) }
+                leading = { Text("🤧", style = AppTypography.headline) },
+                sectionGap = SECTION_GAP
             ) {
                 AppCard {
                     SectionHeader("Incheckningar", icon = R.drawable.ic_thermometer, count = "1")
@@ -440,10 +503,10 @@ class FramesTest {
             }
         }
         captureLightAndDark("EntityDetailScreen_fel") {
-            EntityDetailScreen<String>(DetailUiState.Error(DataError.Offline), header = { DetailHeader(it) }, onBack = {}) {}
+            EntityDetailScreen<String>(DetailUiState.Error(AppErrors.map(DataError.Offline)), header = { DetailHeader(it) }, onBack = {}) {}
         }
         captureLightAndDark("EntityDetailScreen_finns_inte") {
-            EntityDetailScreen<String>(DetailUiState.Error(DataError.NotFound), header = { DetailHeader(it) }, onBack = {}) {}
+            EntityDetailScreen<String>(DetailUiState.Error(AppErrors.map(DataError.NotFound)), header = { DetailHeader(it) }, onBack = {}) {}
         }
     }
 
@@ -478,7 +541,7 @@ class FramesTest {
     fun `EntityListScreen - lägen`() {
         rule.captureLightAndDarkPaused("EntityListScreen_laddar") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Loading, empty, add, key = { it }) {} }
         captureLightAndDark("EntityListScreen_tom") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Empty, empty, add, key = { it }) {} }
-        captureLightAndDark("EntityListScreen_fel") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Error(DataError.Offline), empty, add, key = { it }) {} }
+        captureLightAndDark("EntityListScreen_fel") { EntityListScreen<String>("Aktivitetstyper", ListUiState.Error(AppErrors.map(DataError.Offline)), empty, add, key = { it }) {} }
         captureLightAndDark("EntityListScreen_innehall") {
             EntityListScreen("Aktivitetstyper", ListUiState.Content(items.toImmutableList()), empty, add.copy(menu = listOf(AppMenuItem("Visa arkiverade", {}))), key = { it.first }, group = ::group) { ItemRow(it.first, subtitle = "Favorit", navigates = true, onClick = {}) }
         }
@@ -487,13 +550,13 @@ class FramesTest {
     @Test
     fun `EntityEditScreen - ogiltig och giltig`() {
         captureLightAndDark("EntityEditScreen_ogiltig") {
-            EntityEditScreen("Ny aktivitetstyp", EditorUiState("", persistentMapOf("name" to R.string.error_unknown), isValid = false, isDirty = true), EditorEvents.None, {}, {}) {
+            EntityEditScreen("Ny aktivitetstyp", EditorUiState("", persistentMapOf("name" to R.string.error_unknown), isValid = false, isDirty = true), EditorEvents.None, {}, {}, horizontalMargin = SCREEN_MARGIN) {
                 AppTextField("", {}, "Namn", error = "Ange ett namn")
                 LabeledGroup("Sort") { ChoiceChips(listOf("Aktivitet", "Symptom", "Händelse"), "Aktivitet", {}, { it }) }
             }
         }
         captureLightAndDark("EntityEditScreen_giltig") {
-            EntityEditScreen("Ny aktivitetstyp", EditorUiState("Promenad", isValid = true, isDirty = true), EditorEvents.None, {}, {}, onArchive = {}) {
+            EntityEditScreen("Ny aktivitetstyp", EditorUiState("Promenad", isValid = true, isDirty = true), EditorEvents.None, {}, {}, onArchive = {}, horizontalMargin = SCREEN_MARGIN) {
                 AppTextField("Promenad", {}, "Namn")
                 SwitchRow("Favorit", true, {}, subtitle = "Visas först i snabbvalen")
             }
@@ -502,7 +565,7 @@ class FramesTest {
 
     @Test
     fun `EntityEditScreen - släng ändringar`() = rule.captureScreenLightAndDark("EntityEditScreen_slang", open = { onNodeWithContentDescription("Tillbaka").clickWithoutRipple() }) {
-        EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), EditorEvents.None, {}, {}) {
+        EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), EditorEvents.None, {}, {}, horizontalMargin = SCREEN_MARGIN) {
             AppTextField("Promenad 50", {}, "Namn")
         }
     }

@@ -37,9 +37,9 @@ import se.partee71.dagboken.core.engine.IntervalPoint
 import se.partee71.dagboken.core.engine.StackedPoint
 import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.testing.pixels
-import se.partee71.dagboken.ui.components.AppMenuItem
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.components.AppMenuItem
 
 /**
  * Diagrammens beteende och tillgänglighet (etapp 4.3): det gemensamma tomma läget, talbar

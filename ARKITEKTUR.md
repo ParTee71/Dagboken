@@ -289,7 +289,8 @@ importens sammanfattning; ingen av dem har eller behöver en plats i Firestore.
 ## Designspråk · I "Papper och teal"
 
 Lugn dagbokskänsla med luft, en tydlig gör-något-färg och belöning när dagen är klar.
-Tokens i `ui/theme` (`AppColors`, `AppTypography`, `AppShapes`, `Spacing`); feature-kod
+Tokens i `ui/theme` (`AppColors`, `AppTypography`, `AppShapes`) och `Spacing` ur android-ui;
+`DagbokenTheme` ger färger, former och typografi till bibliotekets `AppTheme`. Feature-kod
 hårdkodar aldrig. Värdena nedan är mockupens approximation – kontrast räknas vid implementation.
 
 | Roll | Ljust | Användning |
@@ -325,8 +326,17 @@ hårdkodar aldrig. Värdena nedan är mockupens approximation – kontrast räkn
 | **Från Dagboken 3.x (portas till katalogen)** | `DagbokenEntryCard` → postkortet (NFR-15/16), `Foldout`, `SliderRow` + `GradientSliderRow` → `ValueSlider` (ett reglage, färgat åt båda hållen), `WheelPicker`, `DagbokenCalendar`, `StepwiseScreeningForm`, `SymptomLogCard`, `NoteField`, `StatPill`, `DateTimeRow`, `DurationRow`, `ReminderTimeRow`, hela `ui/diagram` (`LineChartCanvas` → `LineChart` på Vico 3, `IntervalBarChart`, `StackedBarChart`, `MinMaxCaption`, `CompactDropdownButton`, `ChartSemantics`, `SparklineChart`; `SmartYAxis` och `TrendLine` är matematik och ligger i `:core/engine`) |
 | **Nya (NY KOMPONENT i mockupen)** | `DateStrip` (datumremsa), `OccasionRow` (tillfällesrad för mående), `ProgressBar` (framstegsrad), `DayDoneCard` (dagen klar), `AccountAvatar` (avataren som öppnar inställningsarket). `AccountSheet` och `LogMenuSheet` byggdes i etapp 1; diagramgrupperna i Trender (Mående · Klocka · Jämför, TRD-19) är `AppSegmentedChoice` |
 
-Varje komponent: en fil i `ui/components/`, Roborazzi ljust + mörkt, plats i `ComponentGallery`,
-rad i skill `shared-ui-components`. Diagrammatematik (`computeSmartYAxis`, `computeTrendLine`,
+**android-ui (4.2.0, #343, #350, #353):** komponenterna och ramarna i första raden (utom `ComponentGallery`),
+`ExampleChips`, `AppCard`, `PausableRow`, `AppSnackbarHost`, `AppDivider`, `ChoiceGrid`, `ColorSwatchPicker`,
+`EmojiPicker`, `AppFloatingToolbar` och `AddSplitButton`, liksom `EditorState`/`EditorLoader`, `ListUiState`/`ListLoader`,
+`DetailUiState`/`DetailLoader`, `ArchiveActions` och `shownAfter`, kommer nu från biblioteket android-ui
+(Maven `se.partee71.ui:ui-theme`, `ui-components`, `ui-common`, `ui-testing` för kontraktstesterna) – samma
+källa som ReseApoteket. Appen har inga kopior; skillnader uttrycks med bibliotekets parametrar, och
+raderna är märkta *(android-ui)* i skill `shared-ui-components`. Fel blir `UiError` på ett ställe
+(`AppErrors` i `ui/common/AppErrors.kt`).
+
+Varje komponent i appen: en fil i `ui/components/`, Roborazzi ljust + mörkt, plats i `ComponentGallery`,
+rad i skill `shared-ui-components` (bibliotekets komponenter har också skärmdump och plats i galleriet). Diagrammatematik (`computeSmartYAxis`, `computeTrendLine`,
 `computeDailyEnergyStats`, sömnkvalitet) flyttar till `:core`.
 
 ---
@@ -347,7 +357,7 @@ tools/db                  query · get · stats · export · import · migrate �
 ```
 
 Compose → ViewModel (`StateFlow<UiState>`) → Repository → `FirestoreCollection<T>` → Firestore.
-Fel mappas en gång i `data/common/DataError`. Ingen Room i 4.0 utom den läsande legacy-modulen.
+Fel mappas en gång i `data/common/DataError`, och till det som visas (`UiError`) en gång i `ui/common/AppErrors.kt`. Ingen Room i 4.0 utom den läsande legacy-modulen.
 
 ---
 
@@ -361,6 +371,7 @@ Fel mappas en gång i `data/common/DataError`. Ingen Room i 4.0 utom den läsand
 | Java/JVM | 17 | rotens `build.gradle.kts` (`subprojects`) |
 | Testtimeout per task | 4 min | rotens `build.gradle.kts` |
 | cpdCheck-tröskel | 80 tokens, `*Preview.kt` och den ordagranna 3.x-kopian `core/src/test/…/legacy/threex/` (kompatibilitetstestet, OMB-8) undantas | rotens `build.gradle.kts` |
+| android-ui | `androidUi` (0.4.0), GitHub Packages med `GPR_TOKEN` (CI: secret, sessioner: miljön) | version catalog, `settings.gradle.kts` (skill `android:android-gradle-logic`) |
 | Version | `version.properties` (versionCode, versionName) | höjs i funktions-PR:en |
 | google-services | `app/google-services.json` (incheckad); `src/authStub` när den saknas | `app/build.gradle.kts` |
 | Signering | `local.properties` eller env `SIGNING_*` | `app/build.gradle.kts` |

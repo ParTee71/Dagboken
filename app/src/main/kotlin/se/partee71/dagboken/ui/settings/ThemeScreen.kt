@@ -23,14 +23,16 @@ import se.partee71.dagboken.core.engine.hasValidHours
 import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.data.repository.SettingsRepository
-import se.partee71.dagboken.ui.common.DetailLoader
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.failureOrNull
-import se.partee71.dagboken.ui.components.AppSegmentedChoice
-import se.partee71.dagboken.ui.components.EntityDetailScreen
-import se.partee71.dagboken.ui.components.LabeledGroup
-import se.partee71.dagboken.ui.components.TimeField
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.components.SECTION_GAP
+import se.partee71.ui.common.DetailLoader
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.uiErrorOrNull
+import se.partee71.ui.components.AppSegmentedChoice
+import se.partee71.ui.components.EntityDetailScreen
+import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.TimeField
 
 /**
  * Det temaskärmen visar: läget och starttimmarna – de lagrade, eller de användaren just valt när
@@ -69,14 +71,15 @@ class ThemeViewModel @Inject constructor(private val settings: SettingsRepositor
             val hours = picked ?: stored
             ThemeForm(stored.copy(lightStartHour = hours.lightStartHour, darkStartHour = hours.darkStartHour), hoursInvalid = !hours.hasValidHours())
         },
-        viewModelScope
+        viewModelScope,
+        AppErrors
     )
     val state: StateFlow<DetailUiState<ThemeForm>> = loader.state
 
-    private val _failure = MutableStateFlow<Failure?>(null)
+    private val _failure = MutableStateFlow<UiError?>(null)
 
     /** Ett sparfel, tills skärmen visat det; samma fel två gånger i rad är två händelser. */
-    val failure: StateFlow<Failure?> = _failure.asStateFlow()
+    val failure: StateFlow<UiError?> = _failure.asStateFlow()
 
     fun onEvent(event: ThemeEvent) {
         when (event) {
@@ -102,7 +105,7 @@ class ThemeViewModel @Inject constructor(private val settings: SettingsRepositor
 
     private fun write(onFailure: () -> Unit = {}, change: (ThemeSettings) -> ThemeSettings) {
         viewModelScope.launch {
-            settings.update { it.copy(theme = change(it.theme)) }.failureOrNull()?.let {
+            settings.update { it.copy(theme = change(it.theme)) }.uiErrorOrNull(AppErrors)?.let {
                 _failure.value = it
                 onFailure()
             }
@@ -123,7 +126,7 @@ fun ThemeRoute(onBack: () -> Unit, viewModel: ThemeViewModel = hiltViewModel()) 
  * med `TimeField`.
  */
 @Composable
-fun ThemeScreen(state: DetailUiState<ThemeForm>, failure: Failure?, onEvent: (ThemeEvent) -> Unit, onBack: () -> Unit) {
+fun ThemeScreen(state: DetailUiState<ThemeForm>, failure: UiError?, onEvent: (ThemeEvent) -> Unit, onBack: () -> Unit) {
     val title = stringResource(R.string.settings_theme)
     val note = stringResource(R.string.theme_note)
     val modes = listOf(stringResource(R.string.theme_light), stringResource(R.string.theme_dark), stringResource(R.string.theme_auto))
@@ -133,8 +136,9 @@ fun ThemeScreen(state: DetailUiState<ThemeForm>, failure: Failure?, onEvent: (Th
         onBack = onBack,
         title = title,
         onRetry = { onEvent(ThemeEvent.Retry) },
-        failure = failure,
-        onErrorShown = { onEvent(ThemeEvent.ErrorShown) }
+        error = failure,
+        onErrorShown = { onEvent(ThemeEvent.ErrorShown) },
+        sectionGap = SECTION_GAP
     ) { form ->
         val theme = form.theme
         LabeledGroup(stringResource(R.string.theme_mode), helper = note) {

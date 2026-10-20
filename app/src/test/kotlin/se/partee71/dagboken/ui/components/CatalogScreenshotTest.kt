@@ -24,14 +24,62 @@ import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.testing.captureLightAndDark
+import se.partee71.dagboken.ui.common.DEFAULT_EMOJIS
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.scaleLevel
+import se.partee71.dagboken.ui.common.swatchLabel
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.dagboken.ui.theme.Positive
+import se.partee71.dagboken.ui.theme.Sun
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.components.AddSplitButton
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppDivider
+import se.partee71.ui.components.AppFilterChip
+import se.partee71.ui.components.AppFloatingToolbar
+import se.partee71.ui.components.AppIconButton
+import se.partee71.ui.components.AppMenu
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.AppSegmentedChoice
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.AppTopBar
+import se.partee71.ui.components.ButtonVariant
+import se.partee71.ui.components.CheckRow
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.ChoiceChips
+import se.partee71.ui.components.ColorSwatchPicker
+import se.partee71.ui.components.DateField
+import se.partee71.ui.components.DeleteAction
+import se.partee71.ui.components.EmojiPicker
+import se.partee71.ui.components.ExampleChips
+import se.partee71.ui.components.FieldError
+import se.partee71.ui.components.GroupLabel
+import se.partee71.ui.components.IconButtonVariant
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.LocalTopBarStatus
+import se.partee71.ui.components.PausableRow
+import se.partee71.ui.components.QuantityStepper
+import se.partee71.ui.components.QuantityStepperDefaults
+import se.partee71.ui.components.SectionHeader
+import se.partee71.ui.components.Suggestion
+import se.partee71.ui.components.SuggestionField
+import se.partee71.ui.components.SwatchMarker
+import se.partee71.ui.components.SwitchRow
+import se.partee71.ui.components.TimeField
+import se.partee71.ui.components.ToolbarAction
+import se.partee71.ui.components.ToolbarItem
+import se.partee71.ui.components.TopBarSize
+import se.partee71.ui.components.asSplitMenu
+import se.partee71.ui.components.inactive
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /**
  * Skärmdumpar (ljust + mörkt) av katalogens komponenter i vila – en bild per komponent med
@@ -69,7 +117,7 @@ class CatalogScreenshotTest {
         }
         captureLightAndDark("AddSplitButton_varianter") {
             Sheet {
-                AddSplitButton("Lägg till", {}, menuItems = listOf(AppMenuItem("Logga dos i efterhand", {})))
+                AddSplitButton("Lägg till", {}, menu = listOf(AppMenuItem("Logga dos i efterhand", {})).asSplitMenu())
                 AddSplitButton("Nytt recept", {})
             }
         }
@@ -167,9 +215,9 @@ class CatalogScreenshotTest {
         captureLightAndDark("PausableRow_aktiv_och_pausad") {
             Sheet {
                 AppCard {
-                    PausableRow("Levaxin 50 µg", "1 tablett · morgon", "Dagligen", active = true, onClick = {})
+                    PausableRow("Levaxin 50 µg", "1 tablett · morgon", "Dagligen", active = true, onClick = {}, pillTone = Tone.Neutral)
                     AppDivider()
-                    PausableRow("Prednisolon 5 mg", "2 tabletter · morgon", "Kur", active = false, onClick = {})
+                    PausableRow("Prednisolon 5 mg", "2 tabletter · morgon", "Kur", active = false, onClick = {}, pillTone = Tone.Neutral)
                 }
             }
         }
@@ -256,13 +304,13 @@ class CatalogScreenshotTest {
             }
         }
         captureLightAndDark("FieldError_sparfel") { Sheet { FieldError("Ingen anslutning just nu. Det du sparar skickas när nätet är tillbaka.") } }
-        captureLightAndDark("EmojiPicker_val") { Sheet { EmojiPicker("🧘", {}) } }
-        captureLightAndDark("ColorSwatchPicker_val") { Sheet { ColorSwatchPicker(AppColors.SWATCH_HEX[3], {}) } }
+        captureLightAndDark("EmojiPicker_val") { Sheet { EmojiPicker("🧘", {}, DEFAULT_EMOJIS) } }
+        captureLightAndDark("ColorSwatchPicker_val") { Sheet { ColorSwatchPicker(AppColors.SWATCH_HEX, AppColors.SWATCH_HEX[3], {}, AppColors::swatch, { swatchLabel(it) }, SwatchMarker.GridRing) } }
         captureLightAndDark("AppSegmentedChoice_tema") { Sheet { AppSegmentedChoice(listOf("Ljust", "Mörkt", "Auto"), 2, {}) } }
         captureLightAndDark("QuantityStepper_varde") {
             Sheet {
-                QuantityStepper(45, {}, "minuter")
-                QuantityStepper(0, {}, "tabletter", range = 0..9)
+                QuantityStepper(45, {}, "minuter", buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
+                QuantityStepper(0, {}, "tabletter", range = 0..9, buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
             }
         }
     }
@@ -276,7 +324,7 @@ class CatalogScreenshotTest {
             }
         }
         captureLightAndDark("AppTopBar_synk") {
-            CompositionLocalProvider(LocalSyncIndicator provides SyncIndicator(pending = true)) {
+            CompositionLocalProvider(LocalTopBarStatus provides syncStatus(SyncIndicator(pending = true))) {
                 Column(Modifier.background(MaterialTheme.colorScheme.background)) {
                     AppTopBar("Idag") { AppMenu(emptyList()) }
                     AppTopBar("Förkylning", size = TopBarSize.Small, onBack = {}) { AppIconButton(R.drawable.ic_edit, "Redigera", {}) }

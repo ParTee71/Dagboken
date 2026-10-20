@@ -37,7 +37,20 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppDivider
+import se.partee71.ui.components.AppIconButton
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.AppMenuPopup
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.DeleteAction
+import se.partee71.ui.components.DeleteConfirmDialog
+import se.partee71.ui.components.ItemRowText
+import se.partee71.ui.components.NoteIndicator
+import se.partee71.ui.components.SwitchControl
+import se.partee71.ui.components.accentBar
+import se.partee71.ui.components.inactive
+import se.partee71.ui.theme.Spacing
 
 /**
  * Postkortet (NFR-15, NFR-16) – kortet för en sparad post: dos, aktivitet, mående, händelse,
@@ -102,7 +115,7 @@ fun DagbokenEntryCard(
     }
     if (delete == null) card(modifier) else SwipeToDelete({ confirmDelete = true }, modifier) { card(Modifier) }
     if (delete != null && confirmDelete) {
-        DeleteConfirmDialog(delete) { confirmDelete = false }
+        DeleteConfirmDialog(delete, onDismiss = { confirmDelete = false })
     }
 }
 
@@ -146,8 +159,7 @@ private fun EntryCardBody(
     toggle: EntryToggle?,
     below: (@Composable () -> Unit)?
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    AppCard(
+    Box(
         modifier
             .clip(AppShapes.card)
             .combinedClickable(
@@ -156,40 +168,46 @@ private fun EntryCardBody(
                 onLongClick = if (menu.isEmpty()) null else ({ onMenuOpenChange(true) }),
                 onClick = onClick
             )
-            .accentBar(accent)
     ) {
-        // Med reglage blir trailing-delen bred (reglage, anteckning, chevron, ⋮): titeln får då hela
-        // bredden ovanför, och undertexten står bredvid kontrollerna – titeln trycks aldrig ihop.
-        if (toggle != null) RowText(title, null, Modifier.inactive(inactive).padding(start = Spacing.xs))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-            Row(
-                Modifier.weight(1f).inactive(inactive).padding(start = Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.m)
-            ) {
-                leading?.invoke()
-                RowText(title.takeIf { toggle == null }, subtitle)
+        var expanded by rememberSaveable { mutableStateOf(false) }
+        // Ikoner utan egen färg (⋮, chevronen) tar kortets innehållsfärg, även utanför en skärmram.
+        AppCard(contentColor = MaterialTheme.colorScheme.onSurface) {
+            // Med reglage blir trailing-delen bred (reglage, anteckning, chevron, ⋮): titeln får då hela
+            // bredden ovanför, och undertexten står bredvid kontrollerna – titeln trycks aldrig ihop.
+            if (toggle != null) ItemRowText(title, null, Modifier.inactive(inactive).padding(start = Spacing.xs))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                Row(
+                    Modifier.weight(1f).inactive(inactive).padding(start = Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.m)
+                ) {
+                    leading?.invoke()
+                    ItemRowText(title.takeIf { toggle == null }, subtitle)
+                }
+                toggle?.let { SwitchControl(it.checked, it.onCheckedChange, label = it.label) }
+                status?.invoke()
+                NoteIndicator(note, title)
+                if (expandedContent != null) ExpandButton(expanded) { expanded = !expanded }
+                if (menu.isNotEmpty()) {
+                    Box {
+                        AppIconButton(R.drawable.ic_more_vert, stringResource(R.string.more_options), { onMenuOpenChange(true) })
+                        AppMenuPopup(menu, menuOpen, onDismiss = { onMenuOpenChange(false) })
+                    }
+                }
             }
-            toggle?.let { SwitchControl(it.checked, it.onCheckedChange, label = it.label) }
-            status?.invoke()
-            NoteIndicator(note, title)
-            if (expandedContent != null) ExpandButton(expanded) { expanded = !expanded }
-            if (menu.isNotEmpty()) {
-                Box {
-                    AppIconButton(R.drawable.ic_more_vert, stringResource(R.string.more_options), { onMenuOpenChange(true) })
-                    AppMenuPopup(menu, menuOpen, onDismiss = { onMenuOpenChange(false) })
+            below?.let { Box(Modifier.inactive(inactive).padding(start = Spacing.xs)) { it() } }
+            if (expandedContent != null) {
+                ExpandableContent(expanded) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                        AppDivider()
+                        expandedContent()
+                    }
                 }
             }
         }
-        below?.let { Box(Modifier.inactive(inactive).padding(start = Spacing.xs)) { it() } }
-        if (expandedContent != null) {
-            ExpandableContent(expanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                    AppDivider()
-                    expandedContent()
-                }
-            }
-        }
+        // Statusfärgen (NFR-16) ovanpå kortets yta: android-ui:s accentBar ritar bakom det den sitter på, och
+        // kortets yta ritas efter modifieraren – därför ett lager ovanpå kortet, i dess vänsterkant.
+        if (accent != null) Box(Modifier.matchParentSize().accentBar(accent))
     }
 }
 

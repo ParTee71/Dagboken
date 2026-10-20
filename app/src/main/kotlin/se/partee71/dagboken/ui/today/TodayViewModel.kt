@@ -88,20 +88,22 @@ import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.data.repository.currentReminders
-import se.partee71.dagboken.ui.common.DetailLoader
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.SelectedDay
 import se.partee71.dagboken.ui.common.attemptingEach
-import se.partee71.dagboken.ui.common.failureOrNull
+import se.partee71.dagboken.ui.common.dataError
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.minutes
 import se.partee71.dagboken.ui.common.tidyingUpEachDay
 import se.partee71.dagboken.ui.components.DAYS_PER_WEEK
-import se.partee71.dagboken.ui.components.UndoRequest
 import se.partee71.dagboken.ui.components.weekMonday
 import se.partee71.dagboken.ui.log.CooldownPrompt
+import se.partee71.ui.common.DetailLoader
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.uiErrorOrNull
+import se.partee71.ui.components.UndoRequest
 
 sealed interface TodayEvent {
     /** En dag i datumremsan (HEM-14); framtida dagar går inte att välja. */
@@ -237,8 +239,8 @@ class TodayViewModel @Inject constructor(
     }
 
     /** Före flödena nedan, som skriver hit från bakgrundsförsöken (städningen och `ensureDay`). */
-    private val _failure = MutableStateFlow<Failure?>(null)
-    val failure: StateFlow<Failure?> = _failure.asStateFlow()
+    private val _failure = MutableStateFlow<UiError?>(null)
+    val failure: StateFlow<UiError?> = _failure.asStateFlow()
 
     /**
      * Dagarna vars senaste `ensureDay` misslyckades, med orsaken – också utan nät (HEM-10, MED-4): bara då sägs doser
@@ -277,7 +279,7 @@ class TodayViewModel @Inject constructor(
         onOffline = { (date, _) -> failedDays.update { it + (date to DataError.Offline) } },
         onResult = { (date, _), failure ->
             failure?.let { _failure.value = it }
-            failedDays.update { if (failure != null) it + (date to failure.error) else it - date }
+            failedDays.update { if (failure != null) it + (date to failure.dataError) else it - date }
         }
     ) { (date, today) -> prescriptions.ensureDay(date, today) }
 
@@ -348,7 +350,7 @@ class TodayViewModel @Inject constructor(
 
     private fun clock(now: LocalDateTime) = Moment(now, zone.get())
 
-    private val loader = DetailLoader(content, viewModelScope)
+    private val loader = DetailLoader(content, viewModelScope, AppErrors)
     val state: StateFlow<DetailUiState<TodayContent>> = loader.state
 
     private val _cooldown = MutableStateFlow<CooldownPrompt?>(null)
@@ -534,7 +536,7 @@ class TodayViewModel @Inject constructor(
         viewModelScope.launch {
             // MED-14: en tidigare dag bockas av på dosens klockslag (för en planerad receptdos inställningens, NOT-18), inte nu.
             val takenAt = if (status == DoseStatus.TAKEN) dose.checkOffTime(clock.now(), zone.get(), settings.currentReminders()) else null
-            val failure = doses.setStatus(dose, status, takenAt).failureOrNull()
+            val failure = doses.setStatus(dose, status, takenAt).uiErrorOrNull(AppErrors)
             if (failure != null) {
                 _failure.value = failure
                 return@launch
@@ -579,7 +581,7 @@ class TodayViewModel @Inject constructor(
     private fun logAsNeeded(medicine: PrnMedicine, force: Boolean) {
         viewModelScope.launch {
             val result = doses.logAsNeeded(medicine, clock.now(), force)
-            result.failureOrNull()?.let {
+            result.uiErrorOrNull(AppErrors)?.let {
                 _failure.value = it
                 return@launch
             }
@@ -597,7 +599,7 @@ class TodayViewModel @Inject constructor(
     private fun logExtra(prescription: Prescription) {
         viewModelScope.launch {
             val result = doses.logExtraDose(prescription, clock.now())
-            result.failureOrNull()?.let {
+            result.uiErrorOrNull(AppErrors)?.let {
                 _failure.value = it
                 return@launch
             }
@@ -607,7 +609,7 @@ class TodayViewModel @Inject constructor(
     }
 
     private fun write(action: suspend () -> Result<Unit>) {
-        viewModelScope.launch { action().failureOrNull()?.let { _failure.value = it } }
+        viewModelScope.launch { action().uiErrorOrNull(AppErrors)?.let { _failure.value = it } }
     }
 
     private companion object {

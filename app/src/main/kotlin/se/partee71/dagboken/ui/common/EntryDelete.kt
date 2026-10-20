@@ -6,7 +6,7 @@ import androidx.compose.ui.res.stringResource
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.components.DeleteAction
+import se.partee71.ui.components.DeleteAction
 
 /**
  * HIST-5: posten i raderingens bekräftelse – typen ([format], t.ex. "Aktiviteten %1$s, %2$s"), namnet ([title])
