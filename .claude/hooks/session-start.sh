@@ -40,3 +40,8 @@ if [ -d "$sdk/licenses" ]; then
 else
   echo "Android SDK: saknas – installera vid behov med .claude/hooks/install-android-sdk.sh"
 fi
+
+# Maven Central via Googles spegel (429 från repo.maven.apache.org i sessionen).
+mkdir -p "$HOME/.gradle/init.d"
+cp .claude/hooks/maven-central-mirror.init.gradle.kts "$HOME/.gradle/init.d/"
+echo "Gradle: Maven Central via Googles spegel (~/.gradle/init.d/maven-central-mirror.init.gradle.kts)"
