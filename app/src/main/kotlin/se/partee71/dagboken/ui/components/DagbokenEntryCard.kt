@@ -42,7 +42,6 @@ import se.partee71.ui.components.AppDivider
 import se.partee71.ui.components.AppIconButton
 import se.partee71.ui.components.AppMenuItem
 import se.partee71.ui.components.AppMenuPopup
-import se.partee71.ui.components.ChipRow
 import se.partee71.ui.components.DeleteAction
 import se.partee71.ui.components.DeleteConfirmDialog
 import se.partee71.ui.components.ItemRowText
@@ -89,7 +88,9 @@ fun DagbokenEntryCard(
     inactive: Boolean = false,
     toggle: EntryToggle? = null,
     below: (@Composable () -> Unit)? = null,
-    feelings: List<Feeling> = emptyList()
+    feelings: List<Feeling> = emptyList(),
+    /** Styrka och kommentar per känsla (SCR-9, SCR-10) – bara läsning. */
+    feelingExtras: FeelingExtras = FeelingExtras.None
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -110,7 +111,7 @@ fun DagbokenEntryCard(
             onMenuOpenChange = { menuOpen = it },
             inactive = inactive,
             toggle = toggle,
-            below = withFeelings(below, feelings)
+            below = withFeelings(below, feelings, feelingExtras)
         )
     }
     if (delete == null) card(modifier) else SwipeToDelete({ confirmDelete = true }, modifier) { card(Modifier) }
@@ -119,13 +120,13 @@ fun DagbokenEntryCard(
     }
 }
 
-/** [below] följt av [feelings] som pills (HIST-10); utan känslor oförändrat. */
-private fun withFeelings(below: (@Composable () -> Unit)?, feelings: List<Feeling>): (@Composable () -> Unit)? {
+/** [below] följt av [feelings] som pills, med kommentarerna under när de finns (HIST-10, SCR-10); utan känslor oförändrat. */
+private fun withFeelings(below: (@Composable () -> Unit)?, feelings: List<Feeling>, extras: FeelingExtras): (@Composable () -> Unit)? {
     if (feelings.isEmpty()) return below
     return {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
             below?.invoke()
-            ChipRow { FeelingPills(feelings) }
+            FeelingPillsWithNotes(feelings, extras)
         }
     }
 }

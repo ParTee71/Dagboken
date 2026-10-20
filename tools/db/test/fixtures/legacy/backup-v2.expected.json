@@ -42,7 +42,9 @@
         "recovering": true,
         "drain": false,
         "minutes": 45,
-        "feelings": []
+        "feelings": [],
+        "feelingStrengths": {},
+        "feelingNotes": {}
       }
     },
     {
@@ -69,7 +71,9 @@
         "recovering": false,
         "drain": true,
         "minutes": null,
-        "feelings": []
+        "feelings": [],
+        "feelingStrengths": {},
+        "feelingNotes": {}
       }
     },
     {
@@ -542,7 +546,9 @@
           }
         ],
         "legacySomatic": null,
-        "feelings": []
+        "feelings": [],
+        "feelingStrengths": {},
+        "feelingNotes": {}
       }
     },
     {
@@ -566,7 +572,9 @@
           }
         ],
         "legacySomatic": null,
-        "feelings": []
+        "feelings": [],
+        "feelingStrengths": {},
+        "feelingNotes": {}
       }
     },
     {
@@ -595,7 +603,9 @@
           }
         ],
         "legacySomatic": 2,
-        "feelings": []
+        "feelings": [],
+        "feelingStrengths": {},
+        "feelingNotes": {}
       }
     },
     {

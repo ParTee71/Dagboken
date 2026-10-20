@@ -69,7 +69,9 @@ fun StepwiseScreeningForm(
     /** Summan som visas under symptomen ([SymptomLogCard]); standard summan av [symptoms]. */
     somatic: Int = symptoms.somatic,
     state: StepwiseScreeningState = rememberStepwiseScreeningState(symptomOptions),
-    navigation: Boolean = true
+    navigation: Boolean = true,
+    /** Styrka och kommentar per vald känsla i känslosteget (SCR-9, SCR-10); standard ingen av dem. */
+    feelingExtras: FeelingExtras = FeelingExtras.None
 ) {
     val steps = state.steps
     val pager = state.pager
@@ -82,7 +84,7 @@ fun StepwiseScreeningForm(
         HorizontalPager(pager, Modifier.fillMaxWidth(), pageSpacing = Spacing.l, verticalAlignment = Alignment.Top) { page ->
             when (steps.getOrNull(page)) {
                 ScreeningStep.ENERGY -> ValueSlider(stringResource(R.string.energy), energy, onEnergyChange)
-                ScreeningStep.FEELINGS -> FeelingPicker(feelings, onFeelingsChange)
+                ScreeningStep.FEELINGS -> FeelingPicker(feelings, onFeelingsChange, extras = feelingExtras)
                 ScreeningStep.STRESS -> ValueSlider(stringResource(R.string.stress), stress, onStressChange, higherIsBetter = false)
                 ScreeningStep.SYMPTOMS -> SymptomLogCard(symptomOptions, symptoms, onSymptomsChange, otherOptionId = otherOptionId, initiallyExpanded = true, somatic = somatic)
                 null -> Unit

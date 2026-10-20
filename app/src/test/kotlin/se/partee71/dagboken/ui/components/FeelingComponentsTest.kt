@@ -108,10 +108,10 @@ class FeelingComponentsTest {
         rule.onNodeWithContentDescription("Rädd").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
         rule.onNodeWithContentDescription("Orolig").assert(chosen)
         rule.onNodeWithText("Mer precist:").assertIsDisplayed()
-        rule.onNodeWithText("Spänd").performClick()
+        rule.onNodeWithContentDescription("Spänd").performClick()
         assertEquals(listOf(Feeling("scared", "anxious", "tense")), selected)
         rule.onNodeWithText("Rädd › Orolig › Spänd").assertIsDisplayed()
-        rule.onNodeWithText("Spänd").performClick()
+        rule.onNodeWithContentDescription("Spänd").performClick()
         assertEquals(listOf(Feeling("scared", "anxious")), selected, "ett nytt tryck på ordet går tillbaka till nyansen")
         rule.onNodeWithContentDescription("Orolig").performClick()
         assertEquals(listOf(Feeling("scared")), selected, "ett tryck på den aktiva nyansen går tillbaka till kärnan ensam")
@@ -148,7 +148,7 @@ class FeelingComponentsTest {
         rule.onNodeWithContentDescription("Glad").assert(chosen).performClick()
         rule.onNodeWithContentDescription("Upprymd").performClick()
         assertEquals(listOf(Feeling("glad", "excited"), Feeling("calm")), selected)
-        rule.onNodeWithText("Pirrig").performClick()
+        rule.onNodeWithContentDescription("Pirrig").performClick()
         assertEquals(listOf(Feeling("glad", "excited", "giddy"), Feeling("calm")), selected)
         rule.onNodeWithText("Tillbaka till hjulet").performClick()
         rule.onNodeWithContentDescription("Glad").assert(chosen)
@@ -163,7 +163,7 @@ class FeelingComponentsTest {
         picker()
         rule.onNodeWithContentDescription("Lugn").performClick()
         rule.onNodeWithText("Mer precist:").assertIsDisplayed()
-        rule.onNodeWithText("Ödmjuk").performClick()
+        rule.onNodeWithContentDescription("Ödmjuk").performClick()
         assertEquals(listOf(Feeling("glad"), Feeling("calm", "grateful", "humble"), Feeling("scared")), selected, "samma plats i listan")
     }
 
@@ -172,15 +172,15 @@ class FeelingComponentsTest {
         selected = listOf(Feeling("calm", "grateful"), Feeling("glad"), Feeling("calm", "relaxed"))
         picker()
         rule.onNodeWithContentDescription("Lugn").performClick()
-        rule.onNodeWithText("Ödmjuk").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Ödmjuk").assertIsDisplayed()
         rule.onNodeWithContentDescription("Avslappnad").assert(chosen).performClick()
         assertEquals(3, selected.size, "inget togs bort")
-        rule.onNodeWithText("Ödmjuk").assertDoesNotExist()
-        rule.onNodeWithText("Vilsam").performClick()
+        rule.onNodeWithContentDescription("Ödmjuk").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Vilsam").performClick()
         assertEquals(listOf(Feeling("calm", "grateful"), Feeling("glad"), Feeling("calm", "relaxed", "restful")), selected)
         rule.onNodeWithText("Tillbaka till hjulet").performClick()
         rule.onNodeWithContentDescription("Lugn").performClick()
-        rule.onNodeWithText("Ödmjuk").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Ödmjuk").assertIsDisplayed()
     }
 
     @Test
@@ -258,5 +258,21 @@ class FeelingComponentsTest {
                 waitForIdle()
             }
         }) { Sheet { FeelingPicker(selected, { selected = it }) } }
+    }
+
+    /** Styrkans tre intensiteter med prickar och en kommentar (SCR-9, SCR-10): Lugn öppnad med Tacksam tydlig. */
+    @Test
+    @Config(qualifiers = "w360dp-h1200dp-xxhdpi")
+    fun `FeelingPicker - styrka och kommentar på 360 dp`() {
+        var post by mutableStateOf(GALLERY_FEELING_POST)
+        var opened = false
+        rule.captureLightAndDark("FeelingPicker_styrka_kommentar_360dp", settle = {
+            waitForIdle()
+            if (!opened) {
+                onNodeWithContentDescription("Lugn, tydlig").clickWithoutRipple()
+                opened = true
+                waitForIdle()
+            }
+        }) { Sheet { FeelingPicker(post.feelings, { post = post.withFeelings(it) }, extras = FeelingExtras.of(post) { change -> post = change(post) }) } }
     }
 }

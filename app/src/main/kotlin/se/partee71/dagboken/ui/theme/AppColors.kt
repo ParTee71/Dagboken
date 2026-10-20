@@ -8,6 +8,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.ui.theme.AppTheme
 import se.partee71.ui.theme.ExtendedColors as ThemeColors
 import se.partee71.ui.theme.Tone
@@ -60,8 +61,34 @@ data class FeelingColors(
     val angry: ToneColors,
     val scared: ToneColors,
     /** Tonen för en kärna appen inte känner (ett token från en nyare app) – den dämpade tonen ([ExtendedColors.neutralTone]). */
-    val unknown: ToneColors
+    val unknown: ToneColors,
+    /**
+     * Styrkans tre intensiteter per kärna (SCR-9): svag, tydlig och stark i kärnans ton, i `FeelingStrength`s ordning,
+     * nycklade på kärnans token. Text klarar 4,5:1 mot fyllnaden i varje läge (`ThemeContrastTest`); prickarna och
+     * TalkBack bär samma steg, så att färgen aldrig ensam bär betydelsen. En okänd kärna har ingen intensitet.
+     */
+    val strengths: Map<String, List<ToneColors>>
 ) {
+    /**
+     * Tonen för kärnans token (`Feeling.core`) i [strength]s intensitet; ingen styrka (`null`) ger kärnans vanliga ton,
+     * och en okänd kärna får [unknown].
+     */
+    fun forCore(core: String, strength: FeelingStrength?): ToneColors = strength?.let { strengths[core]?.getOrNull(it.ordinal) } ?: forCore(core)
+
+    /**
+     * Färgerna för ett ord i känslohjulet eller väljaren ([ToneColors.container] fyllnaden, [ToneColors.content] texten):
+     * ovalt kärnans ton, valt utan styrka den omvända (fyllt med innehållsfärgen, som idag), valt med styrka
+     * intensiteten ([forCore] med styrka).
+     */
+    fun chosen(core: String, chosen: Boolean, strength: FeelingStrength?): ToneColors {
+        val tone = forCore(core)
+        return when {
+            !chosen -> tone
+            strength != null -> forCore(core, strength)
+            else -> ToneColors(container = tone.content, content = tone.container)
+        }
+    }
+
     /** Tonen för kärnans token (`Feeling.core`); en okänd kärna får [unknown]. */
     fun forCore(core: String): ToneColors = when (core) {
         "glad" -> glad
@@ -228,7 +255,15 @@ object AppColors {
             sad = ToneColors(Color(0xFFDDE5EE), Color(0xFF344B63)),
             angry = ToneColors(Color(0xFFF8DAD5), Color(0xFF8A2A22)),
             scared = ToneColors(Color(0xFFF6E0D5), Color(0xFF7E3A1E)),
-            unknown = lightNeutral
+            unknown = lightNeutral,
+            strengths = mapOf(
+                "glad" to listOf(ToneColors(Color(0xFFD9C392), Color(0xFF6B4A00)), ToneColors(Color(0xFFAD9257), Color(0xFF111111)), ToneColors(Color(0xFF6B4A00), Color(0xFFFDEBC2))),
+                "strong" to listOf(ToneColors(Color(0xFFC5B7D8), Color(0xFF5B3A84)), ToneColors(Color(0xFF9A85B6), Color(0xFF111111)), ToneColors(Color(0xFF5B3A84), Color(0xFFE8E1F4))),
+                "calm" to listOf(ToneColors(Color(0xFFA5C7C1), Color(0xFF111111)), ToneColors(Color(0xFF679B95), Color(0xFF111111)), ToneColors(Color(0xFF0B5A53), Color(0xFFD8EBE6))),
+                "sad" to listOf(ToneColors(Color(0xFFB3BECB), Color(0xFF344B63)), ToneColors(Color(0xFF8090A2), Color(0xFF111111)), ToneColors(Color(0xFF344B63), Color(0xFFDDE5EE))),
+                "angry" to listOf(ToneColors(Color(0xFFDCAEA8), Color(0xFF111111)), ToneColors(Color(0xFFBB7973), Color(0xFF111111)), ToneColors(Color(0xFF8A2A22), Color(0xFFF8DAD5))),
+                "scared" to listOf(ToneColors(Color(0xFFD8B6A7), Color(0xFF111111)), ToneColors(Color(0xFFB48570), Color(0xFF111111)), ToneColors(Color(0xFF7E3A1E), Color(0xFFF6E0D5)))
+            )
         )
     )
 
@@ -252,7 +287,15 @@ object AppColors {
             sad = ToneColors(Color(0xFF2B3440), Color(0xFFD6E2F0)),
             angry = ToneColors(Color(0xFF4A231F), Color(0xFFFFD6D0)),
             scared = ToneColors(Color(0xFF4A2A1C), Color(0xFFFFD9C9)),
-            unknown = darkNeutral
+            unknown = darkNeutral,
+            strengths = mapOf(
+                "glad" to listOf(ToneColors(Color(0xFF826C39), Color(0xFFFFFFFF)), ToneColors(Color(0xFFB39B65), Color(0xFF111111)), ToneColors(Color(0xFFFCE3A8), Color(0xFF5A4414))),
+                "strong" to listOf(ToneColors(Color(0xFF65597C), Color(0xFFE6DAFA)), ToneColors(Color(0xFF998DAE), Color(0xFF111111)), ToneColors(Color(0xFFE6DAFA), Color(0xFF3A2E52))),
+                "calm" to listOf(ToneColors(Color(0xFF466763), Color(0xFFBFEDE6)), ToneColors(Color(0xFF769C97), Color(0xFF111111)), ToneColors(Color(0xFFBFEDE6), Color(0xFF1D3A37))),
+                "sad" to listOf(ToneColors(Color(0xFF56606C), Color(0xFFD6E2F0)), ToneColors(Color(0xFF8994A1), Color(0xFF111111)), ToneColors(Color(0xFFD6E2F0), Color(0xFF2B3440))),
+                "angry" to listOf(ToneColors(Color(0xFF77504B), Color(0xFFFFD6D0)), ToneColors(Color(0xFFAE8580), Color(0xFF111111)), ToneColors(Color(0xFFFFD6D0), Color(0xFF4A231F))),
+                "scared" to listOf(ToneColors(Color(0xFF775647), Color(0xFFFFD9C9)), ToneColors(Color(0xFFAE8A7B), Color(0xFF111111)), ToneColors(Color(0xFFFFD9C9), Color(0xFF4A2A1C)))
+            )
         )
     )
 

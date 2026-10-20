@@ -65,6 +65,8 @@ class DocumentRulesTest {
         "isSymptoms" -> Check.ListOf(DocumentRules.SYMPTOM, max = constant("maxSymptoms"))
         "isBoosts" -> Check.ListOf(DocumentRules.BOOST, max = constant("maxBoosts"))
         "isFeelings" -> Check.PatternList(DocumentRules.FEELING_TOKEN.pattern, max = constant("maxFeelings"))
+        "isFeelingStrengths" -> Check.TokenMap(DocumentRules.FEELING_TOKEN.pattern, constant("maxFeelings"), Check.OneOf(rulesList("feelingStrengths")))
+        "isFeelingNotes" -> Check.TokenMap(DocumentRules.FEELING_TOKEN.pattern, constant("maxFeelings"), Check.ShortText)
         "isSchedule" -> Check.Nested(DocumentRules.SCHEDULE)
         "isPeriod" -> Check.Nested(DocumentRules.PERIOD)
         "isTheme" -> Check.Nested(DocumentRules.THEME)
@@ -165,6 +167,18 @@ class DocumentRulesTest {
         val feelings = functions.getValue("isFeelings")
         assertTrue("l is list && l.size() <= maxFeelings()" in feelings)
         assertTrue("(l.size() == 0 || l.join(' ')" in feelings, "den tomma listan för sig – ett tomt element är inte en tom lista")
+        // Styrka och kommentar (DAT-14, DAT-15), skrivna för uttrycksbudgeten: nycklarna bland de valda känslorna (strängare
+        // än DocumentRules tokenmönster, som codecen ändå uppfyller), styrkeorden, och kommentarerna med ett mönster över
+        // värdena – varje högst SHORT tecken, högst MAX_FEELINGS stycken.
+        for (field in listOf("feelingStrengths", "feelingNotes")) {
+            val function = "is" + field.replaceFirstChar { it.uppercase() }
+            assertTrue("$function(d.$field, d.feelings))" in functions.getValue("validScreening"), "$field prövas mot de valda känslorna")
+            assertTrue(functions.getValue(function).trim().startsWith("return m.keys().hasOnly(f) && "), function)
+        }
+        assertTrue("m.values().hasOnly(feelingStrengths())" in functions.getValue("isFeelingStrengths"))
+        val short = TextLimits.SHORT
+        val notesPattern = "^[^\\u001f]{0,$short}(\\u001f[^\\u001f]{0,$short}){0,${DocumentRules.MAX_FEELINGS - 1}}$"
+        assertTrue("m.values().join('\\u001f').matches('$notesPattern')" in functions.getValue("isFeelingNotes"))
         val token = DocumentRules.FEELING_TOKEN.pattern.removePrefix("^").removeSuffix("$")
         val joined = Regex("""l\.join\(' '\)\.matches\('([^']+)'\)""").find(feelings)!!.groupValues[1].replace("\\\\", "\\")
         assertEquals("^$token( $token){0,${DocumentRules.MAX_FEELINGS - 1}}$", joined, "samma token-mönster som FEELING_TOKEN, högst MAX_FEELINGS element")
@@ -263,6 +277,26 @@ class DocumentRulesTest {
                     assertTrue(DocumentRules.FEELING_TOKEN.matches(Feeling(core, nuance, detail).token), "$core.$nuance.$detail")
                 }
             }
+        }
+    }
+
+    @Test
+    fun `styrka och kommentar per känsla (SCR-9, SCR-10, DAT-15) - token som nyckel, styrkeord och kort text, högst sex`() {
+        for (collection in listOf(CollectionNames.SCREENINGS, CollectionNames.ACTIVITIES)) {
+            val doc = Samples.entry(collection).encoded()
+            fun violations(field: String, value: Any?) = DocumentRules.validate(collection, doc + (field to value))
+            assertEquals(emptyList(), violations("feelingStrengths", mapOf("glad" to "mild", "calm.grateful" to "clear", "scared.anxious.tense" to "strong")))
+            assertEquals(emptyList(), violations("feelingStrengths", emptyMap<String, String>()))
+            assertEquals(emptyList(), violations("feelingNotes", FeelingCatalog.cores.associateWith { "x".repeat(TextLimits.SHORT) }))
+            assertEquals(emptyList(), violations("feelingNotes", null))
+            assertEquals(listOf(DocumentRules.Violation("feelingStrengths{0}", "okänt värde (5 tecken)")), violations("feelingStrengths", mapOf("glad" to "stark")))
+            assertEquals(listOf(DocumentRules.Violation("feelingStrengths{0}", "nyckel: ogiltigt token (5 tecken)")), violations("feelingStrengths", mapOf("bored" to "mild")), "nyckeln nämns inte")
+            assertEquals(listOf(DocumentRules.Violation("feelingStrengths{0}", "nyckel: ogiltigt token (9 tecken)")), violations("feelingStrengths", mapOf("glad calm" to "mild")), "strängare än rules för mellanslag")
+            assertEquals(listOf(DocumentRules.Violation("feelingStrengths", "för många nycklar: 7 (högst 6)")), violations("feelingStrengths", (1..7).associate { "glad.${"n".repeat(it)}" to "mild" }))
+            assertEquals(listOf(DocumentRules.Violation("feelingStrengths", "fel typ: String (väntat objekt)")), violations("feelingStrengths", "mild"))
+            assertEquals(listOf(DocumentRules.Violation("feelingNotes{1}", "för lång text: 201 tecken (högst 200)")), violations("feelingNotes", mapOf("glad" to "ok", "calm" to "x".repeat(201))))
+            assertEquals(listOf(DocumentRules.Violation("feelingNotes{0}", "fel typ: Int (väntat text)")), violations("feelingNotes", mapOf("glad" to 5)))
+            assertEquals(listOf(DocumentRules.Violation("feelingNotes{0}", "saknas")), violations("feelingNotes", mapOf("glad" to null)))
         }
     }
 

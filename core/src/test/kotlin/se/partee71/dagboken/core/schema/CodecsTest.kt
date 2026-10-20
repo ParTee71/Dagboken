@@ -16,6 +16,8 @@ import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
+import se.partee71.dagboken.core.model.FeelingStrength
+import se.partee71.dagboken.core.model.HasFeelings
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.LegacySettings
 import se.partee71.dagboken.core.model.MedicineForm
@@ -256,6 +258,40 @@ class CodecsTest {
         assertEquals(Feeling("glad", "excited"), Feeling.parse("glad.excited"))
         assertNull(Feeling.parse("glad.a.b.c"))
         assertNull(Feeling.parse(""))
+    }
+
+    @Test
+    fun `styrka och kommentar per känsla (SCR-9, SCR-10, DAT-15) - kartor token till värde, bara valda känslor, okänt ord bevaras`() {
+        assertFeelingValues(ScreeningCodec)
+        assertFeelingValues(ActivityCodec)
+        val written = ScreeningCodec.encode(Screening("s", feelings = listOf(Feeling("glad")), feelingStrengths = mapOf("glad" to "mild", "sad" to "strong"), feelingNotes = mapOf("glad" to " Sol ", "sad" to "x")))
+        assertEquals(mapOf("glad" to "mild"), written["feelingStrengths"], "bara valda känslor skrivs")
+        assertEquals(mapOf("glad" to "Sol"), written["feelingNotes"], "trimmad när den lagras")
+        assertEquals(emptyMap<String, String>(), ScreeningCodec.encode(Screening("s"))["feelingStrengths"], "tom karta skrivs, som tom lista")
+        assertEquals(Samples.screening.feelingNotes, ScreeningCodec.decode("s", ScreeningCodec.encode(Samples.screening)).feelingNotes)
+        assertEquals(Samples.activity.feelingStrengths, ActivityCodec.decode("a", ActivityCodec.encode(Samples.activity)).feelingStrengths)
+    }
+
+    /** Samma läsning och skrivning av styrka och kommentar på måendeloggen och aktiviteten. */
+    private fun <T : HasFeelings<T>> assertFeelingValues(codec: DocCodec<T>) {
+        val feelings = listOf("glad", "calm.grateful")
+        fun decode(vararg fields: Pair<String, Any?>) = codec.decode("x", mapOf("feelings" to feelings) + fields)
+        val stored = decode(
+            "feelingStrengths" to mapOf("glad" to "strong", "calm.grateful" to "framtida", "sad" to "mild", "calm" to 3),
+            "feelingNotes" to mapOf("calm.grateful" to "  Promenad i solen ", "glad" to "   ", "sad" to "Föräldralös", "calm" to 5)
+        )
+        assertEquals(mapOf("glad" to "strong", "calm.grateful" to "framtida"), stored.feelingStrengths, "föräldralös nyckel och fel typ hoppas över; okänt ord bevaras")
+        assertEquals(FeelingStrength.STRONG, stored.strengthOf(Feeling("glad")))
+        assertNull(stored.strengthOf(Feeling("calm", "grateful")), "okänt ord är ingen känd styrka")
+        assertEquals(mapOf("calm.grateful" to "Promenad i solen"), stored.feelingNotes, "trimmad; tom och föräldralös hoppas över")
+        val encoded = codec.encode(stored)
+        assertEquals(mapOf("glad" to "strong", "calm.grateful" to "framtida"), encoded["feelingStrengths"], "okänt ord skrivs tillbaka oförändrat")
+        assertEquals(mapOf("calm.grateful" to "Promenad i solen"), encoded["feelingNotes"])
+        val separated = codec.encode(stored.withNote(Feeling("glad"), "Sol\u001fsken"))
+        assertEquals("Solsken", (separated["feelingNotes"] as Map<*, *>)["glad"], "rules avgränsare U+001F tas bort")
+        assertEquals(emptyMap(), decode().feelingStrengths, "saknat fält")
+        assertEquals(emptyMap(), decode("feelingStrengths" to "strong", "feelingNotes" to listOf("x")).feelingNotes, "fel typ läses som inget")
+        assertEquals(emptyMap(), codec.decode("x", mapOf("feelingStrengths" to mapOf("glad" to "mild"))).feelingStrengths, "utan känslor ingen styrka")
     }
 
     @Test

@@ -118,15 +118,21 @@ class BackupJsonConverterTest {
     }
 
     @Test
-    fun `känslor (DAT-14) fanns inte i 3x - varje måendelogg och aktivitet får en tom lista, som skrivs i exporten`() {
+    fun `känslor (DAT-14, DAT-15) fanns inte i 3x - varje måendelogg och aktivitet får tom lista och tomma kartor, som skrivs i exporten`() {
         for (name in listOf("backup-v2", "backup-v1")) {
             val result = converted(name)
             val posts: List<HasFeelings<*>> = result.data.screenings + result.data.activities
             assertTrue(result.data.screenings.isNotEmpty() && result.data.activities.isNotEmpty(), name)
-            for (post in posts) assertEquals(emptyList(), post.feelings, "$name: $post")
+            for (post in posts) {
+                assertEquals(emptyList(), post.feelings, "$name: $post")
+                assertEquals(emptyMap(), post.feelingStrengths, "$name: $post")
+                assertEquals(emptyMap(), post.feelingNotes, "$name: $post")
+            }
             val withFeelings = setOf(CollectionNames.SCREENINGS, CollectionNames.ACTIVITIES)
             for (document in result.documents.filter { CollectionNames.collectionOf(it.path) in withFeelings }) {
                 assertEquals(emptyList<Any>(), document.data["feelings"], "$name: ${document.path} skriver fältet, så importen fyller det")
+                assertEquals(emptyMap<String, Any>(), document.data["feelingStrengths"], "$name: ${document.path}")
+                assertEquals(emptyMap<String, Any>(), document.data["feelingNotes"], "$name: ${document.path}")
             }
         }
     }
@@ -389,7 +395,7 @@ class BackupJsonConverterTest {
 
     private companion object {
         /** Nya fält i 4.0 utan 3.x-motsvarighet (ARKITEKTUR.md → Fältparitet). */
-        val NEW_IN_4_0 = setOf("prnId", "strength", "form", "feelings")
+        val NEW_IN_4_0 = setOf("prnId", "strength", "form", "feelings", "feelingStrengths", "feelingNotes")
     }
 
     @Test

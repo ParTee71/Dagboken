@@ -7,6 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.Test
 import se.partee71.dagboken.core.model.FeelingCatalog
+import se.partee71.dagboken.core.model.FeelingStrength
 
 /** Varje färg som bär text klarar 4,5:1 mot sin bakgrund, i båda temana (skill `ui-style`, DSN-1, DSN-5). */
 class ThemeContrastTest {
@@ -120,6 +121,14 @@ class ThemeContrastTest {
         "känslan $core" to (tone.content to tone.container)
     }
 
+    /** Styrkans tre intensiteter per kärna (SCR-9): texten mot fyllnaden i varje läge. */
+    private fun strengthPairs(extended: ExtendedColors) = FeelingCatalog.cores.flatMap { core ->
+        FeelingStrength.entries.map { strength ->
+            val tone = extended.feelingTones.forCore(core, strength)
+            "känslan $core ${strength.wire}" to (tone.content to tone.container)
+        }
+    }.toMap()
+
     private fun feelingGraphics(extended: ExtendedColors) = FeelingCatalog.cores.associate { core ->
         "vald sektor $core mot kortet" to (extended.feelingTones.forCore(core).content to extended.card)
     }
@@ -129,6 +138,13 @@ class ThemeContrastTest {
         for ((theme, extended) in listOf("ljust" to AppColors.lightExtended, "mörkt" to AppColors.darkExtended)) {
             check(theme, feelingPairs(extended))
             check(theme, feelingGraphics(extended), GRAPHICS_MIN)
+            check(theme, strengthPairs(extended))
+            for (core in FeelingCatalog.cores) {
+                val levels = listOf(extended.feelingTones.forCore(core)) + FeelingStrength.entries.map { extended.feelingTones.forCore(core, it) }
+                assertEquals(4, levels.toSet().size, "$theme $core: fyra olika lägen")
+                assertEquals(extended.feelingTones.forCore(core), extended.feelingTones.forCore(core, null), "$theme $core: ingen styrka = kärnans ton")
+            }
+            assertEquals(extended.neutralTone, extended.feelingTones.forCore("okänd", FeelingStrength.STRONG), "$theme: okänd kärna utan intensitet")
             val tones = FeelingCatalog.cores.map { extended.feelingTones.forCore(it) }
             assertEquals(extended.feelingTones.all, tones, "$theme: hjulets ordning")
             assertEquals(FeelingCatalog.cores.size, tones.toSet().size, "$theme: en egen ton per kärna")

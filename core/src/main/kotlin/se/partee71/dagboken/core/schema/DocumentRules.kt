@@ -4,6 +4,7 @@ import kotlin.time.Instant
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
+import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.LegacySource
 import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Occasion
@@ -53,14 +54,21 @@ object DocumentRules {
     /** Känslolistan på måendeloggen och aktiviteten (`isFeelings`, DAT-14). */
     private val FEELINGS = Check.PatternList(FEELING_TOKEN.pattern, max = MAX_FEELINGS)
 
+    /** Styrka per känsla (`isFeelingStrengths`, SCR-9): token → ett av styrkeorden. */
+    private val FEELING_STRENGTHS = Check.TokenMap(FEELING_TOKEN.pattern, MAX_FEELINGS, Check.OneOf(wires(FeelingStrength.entries)))
+
+    /** Kommentar per känsla (`isFeelingNotes`, SCR-10, DAT-15): token → text upp till [TextLimits.SHORT]. */
+    private val FEELING_NOTES = Check.TokenMap(FEELING_TOKEN.pattern, MAX_FEELINGS, Check.ShortText)
+
     /**
-     * Rules kontrollerar elementen i symptom- och höjningslistorna upp till så här många (`l[0]`…`l[9]`):
+     * Rules kontrollerar elementen i symptom- och höjningslistorna upp till så här många (`l[0]`…`l[6]`):
      * rules kan inte loopa och räknar högst 1 000 uttryck per skrivning. [validate] kontrollerar alla element
      * och är därmed strängare – det rules nekar för elementen nekas här också. Att värsta fallet (alla
      * [MAX_BOOSTS] höjningar med start och slut, alla [MAX_SYMPTOMS] symptom med poäng och fritext, varje fält
-     * fullt) ryms i budgeten med reserv mäts av `tools/db/test/rules.test.mjs` mot emulatorn (#294, #296).
+     * fullt) ryms i budgeten med reserv mäts av `tools/db/test/rules.test.mjs` mot emulatorn (#294, #296). Sänkt
+     * från 10 när styrka och kommentar per känsla tog aktivitetens reserv (#349, #346).
      */
-    const val RULES_CHECKED_ELEMENTS = 10
+    const val RULES_CHECKED_ELEMENTS = 7
 
     /** Stress, svårighetsgrad, måendets energi och symptompoäng. */
     val SCORE: IntRange = 0..10
@@ -118,6 +126,12 @@ object DocumentRules {
 
         /** Lista av texter som var och en matchar [pattern] (ett regex), högst [max] – känslotokens (`isFeelings`). */
         data class PatternList(val pattern: String, val max: Int) : Check
+
+        /**
+         * Objekt per vald känsla (`isFeelingMap`, DAT-14): högst [max] nycklar som var och en matchar [pattern], varje
+         * värde enligt [value] – styrka och kommentar.
+         */
+        data class TokenMap(val pattern: String, val max: Int, val value: Check) : Check
 
         /** Nästlat objekt (`isTheme`, `isSchedule` …). */
         data class Nested(val shape: Shape) : Check
@@ -275,7 +289,9 @@ object DocumentRules {
             "stress" to Check.Range(SCORE),
             "symptoms" to Check.ListOf(SYMPTOM, max = MAX_SYMPTOMS),
             "legacySomatic" to Check.Min(0),
-            "feelings" to FEELINGS
+            "feelings" to FEELINGS,
+            "feelingStrengths" to FEELING_STRENGTHS,
+            "feelingNotes" to FEELING_NOTES
         ),
         CollectionNames.ACTIVITIES to POST + mapOf(
             "optionId" to Check.ShortText,
@@ -287,7 +303,9 @@ object DocumentRules {
             "recovering" to Check.BoolField,
             "drain" to Check.BoolField,
             "minutes" to Check.Min(0),
-            "feelings" to FEELINGS
+            "feelings" to FEELINGS,
+            "feelingStrengths" to FEELING_STRENGTHS,
+            "feelingNotes" to FEELING_NOTES
         ),
         CollectionNames.EVENTS to POST + mapOf(
             "optionId" to Check.ShortText,
@@ -385,6 +403,18 @@ object DocumentRules {
             is Check.PatternList -> list(value, check.max) ?: return elements(value, path) { i, v -> listOfNotNull(token(v, check.pattern)?.let { Violation("$path[$i]", it) }) }
 
             is Check.Nested -> if (value is Map<*, *>) return check(check.shape, asDoc(value), "$path.") else type(value, "objekt")
+
+            is Check.TokenMap -> when {
+                value !is Map<*, *> -> type(value, "objekt")
+
+                value.size > check.max -> "för många nycklar: ${value.size} (högst ${check.max})"
+
+                else -> return asDoc(value).entries.withIndex().flatMap { (i, entry) ->
+                    // Nyckeln är ett token och nämns inte (den kan vara okänd text); platsen i kartan räcker.
+                    val key = token(entry.key, check.pattern)?.let { listOf(Violation("$path{$i}", "nyckel: $it")) }.orEmpty()
+                    key + (entry.value?.let { check(check.value, it, "$path{$i}") } ?: listOf(Violation("$path{$i}", "saknas")))
+                }
+            }
 
             is Check.IntMap -> if (value is Map<*, *>) return check(Shape(check.keys.associateWith { Check.IntField }, closed = true), asDoc(value), "$path.") else type(value, "objekt")
 

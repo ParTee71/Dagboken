@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.common
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
@@ -9,6 +10,7 @@ import se.partee71.dagboken.core.engine.FeelingRole
 import se.partee71.dagboken.core.engine.FeelingSummary
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
+import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.Occasion
 
 // Känslornas svenska namn (SCR-8) – enda stället som slår upp ett token i strängarna (regel 4).
@@ -38,6 +40,27 @@ fun feelingsLabel(feeling: Feeling): String {
     )
     return levels.map { stringResource(it) }.joinToString(stringResource(R.string.feeling_separator))
 }
+
+/** Styrkans namn i ord (SCR-9): "svag", "tydlig", "stark" – det TalkBack läser, eftersom färgen inte får bära steget ensam. */
+@StringRes
+fun strengthName(strength: FeelingStrength): Int = when (strength) {
+    FeelingStrength.MILD -> R.string.feeling_strength_mild
+    FeelingStrength.CLEAR -> R.string.feeling_strength_clear
+    FeelingStrength.STRONG -> R.string.feeling_strength_strong
+}
+
+/** Styrkans prickar (SCR-9): en, två eller tre – samma steg som intensiteten, så att färgen aldrig ensam bär det. */
+@DrawableRes
+fun strengthIcon(strength: FeelingStrength): Int = when (strength) {
+    FeelingStrength.MILD -> R.drawable.ic_strength_1
+    FeelingStrength.CLEAR -> R.drawable.ic_strength_2
+    FeelingStrength.STRONG -> R.drawable.ic_strength_3
+}
+
+/** [text] med styrkan efter ("Tacksam, stark"); utan styrka [text] som den är. */
+@Composable
+@ReadOnlyComposable
+fun withStrength(text: String, strength: FeelingStrength?): String = strength?.let { stringResource(R.string.feeling_with_strength_format, text, stringResource(strengthName(it))) } ?: text
 
 /** Valda känslor på en rad (AKT-13): [feelingsLabel] för var och en, åtskilda med " · " – "Lugn › Tacksam · Glad". */
 @Composable

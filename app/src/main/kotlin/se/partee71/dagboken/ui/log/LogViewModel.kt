@@ -115,6 +115,12 @@ sealed interface LogEvent {
     /** Känslosteget (SCR-7): hela listan efter valet. */
     data class ChangeFeelings(val feelings: List<Feeling>) : LogEvent
 
+    /** Långtryck på det yttersta valda ordet (SCR-9): känslan ett steg starkare. */
+    data class StrongerFeeling(val feeling: Feeling) : LogEvent
+
+    /** Kommentaren till en vald känsla (SCR-10). */
+    data class ChangeFeelingNote(val feeling: Feeling, val note: String) : LogEvent
+
     data class ChangeSymptoms(val symptoms: List<SymptomScore>) : LogEvent
 
     data object SaveScreening : LogEvent
@@ -255,6 +261,10 @@ class LogViewModel @Inject constructor(
             is LogEvent.ChangeStress -> sheet.changeStress(event.stress)
 
             is LogEvent.ChangeFeelings -> sheet.changeFeelings(event.feelings)
+
+            is LogEvent.StrongerFeeling -> sheet.strongerFeeling(event.feeling)
+
+            is LogEvent.ChangeFeelingNote -> sheet.changeFeelingNote(event.feeling, event.note)
 
             is LogEvent.ChangeSymptoms -> sheet.changeSymptoms(event.symptoms)
 

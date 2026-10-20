@@ -13,6 +13,7 @@ import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.common.title
+import se.partee71.dagboken.ui.components.FeelingExtras
 import se.partee71.dagboken.ui.components.OccasionRow
 import se.partee71.dagboken.ui.components.OccasionValue
 import se.partee71.ui.components.AppBottomSheet
@@ -36,7 +37,8 @@ fun OccasionStateRow(state: OccasionState, onLog: () -> Unit, onClick: () -> Uni
             listOf(OccasionValue(stringResource(R.string.energy), it.energy), OccasionValue(stringResource(R.string.stress), it.stress, higherIsBetter = false))
         }.orEmpty(),
         feelings = latest?.feelings.orEmpty(),
-        onClick = onClick
+        onClick = onClick,
+        feelingExtras = latest?.let { FeelingExtras.shown(it) } ?: FeelingExtras.None
     )
 }
 

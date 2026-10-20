@@ -383,7 +383,7 @@ const invalid = {
     ['legacySomatic', '3', '3.x-somatiska som text'],
     ['symptoms', [{ optionId: 7, score: 3, customText: null }], 'optionId som tal'],
     ['symptoms', [{ optionId: 'x', score: 3, customText: 5 }], 'fritext som tal'],
-    ['symptoms', Array.from({ length: 10 }, (_, i) => ({ optionId: `s${i}`, score: i === 9 ? 11 : 1, customText: null })), 'tionde symptomet ogiltigt'],
+    ['symptoms', Array.from({ length: 7 }, (_, i) => ({ optionId: `s${i}`, score: i === 6 ? 11 : 1, customText: null })), 'sjunde symptomet ogiltigt'],
     ['symptoms', Array.from({ length: 51 }, (_, i) => ({ optionId: `s${i}`, score: 1, customText: null })), '51 symptom'],
     // Poängmönstret i isSymptom (#296) träffar texterna nedan; de nekas för att de är texter.
     ['symptoms', [{ optionId: 'x', score: 'null', customText: null }], 'poäng som texten null'],
@@ -420,6 +420,26 @@ const invalid = {
     ['feelings', Array.from({ length: 7 }, () => 'glad'), '7 känslor'],
     ['feelings', [...CORES.slice(0, 5), 'bored'], 'sjätte känslan ogiltig'],
     ['feelings', ['glad', 'calm.7'], 'siffra i andra känslan'],
+    // Styrka och kommentar per känsla (SCR-9, SCR-10, DAT-15): token → styrkeord / text upp till maxShort().
+    ['feelingStrengths', 'strong', 'styrkor som text'],
+    ['feelingStrengths', ['strong'], 'styrkor som lista'],
+    ['feelingStrengths', { glad: 'stark' }, 'okänt styrkeord'],
+    ['feelingStrengths', { glad: 3 }, 'styrka som tal'],
+    ['feelingStrengths', { glad: null }, 'styrka null'],
+    ['feelingStrengths', { bored: 'mild' }, 'nyckel med okänd kärna'],
+    ['feelingStrengths', { sad: 'mild' }, 'nyckel som inte är en vald känsla'],
+    ['feelingStrengths', { 'Glad.x': 'mild' }, 'nyckel med stor bokstav'],
+    ['feelingStrengths', { 'glad.a.b.c': 'mild' }, 'nyckel med fyra delar'],
+    ['feelingStrengths', Object.fromEntries(Array.from({ length: 7 }, (_, i) => [`glad.${'n'.repeat(i + 1)}`, 'mild'])), '7 styrkor'],
+    ['feelingNotes', 'promenad', 'kommentarer som text'],
+    // En kort kommentar som inte är text (`{ glad: 5 }`, `{ glad: null }`) släpper rules igenom – bara storleken prövas,
+    // för budgeten – men DocumentRules nekar den och codecen läser bara texter. En stor sådan nekas av storleken.
+    ['feelingNotes', { glad: [text(LIMIT.short + 1)] }, 'stor kommentar som lista'],
+    ['feelingNotes', { glad: text(LIMIT.short + 1) }, 'för lång kommentar'],
+    ['feelingNotes', { 'calm.grateful': 'ok', 'scared.anxious.tense': 'ok', glad: text(LIMIT.short + 1) }, 'tredje kommentaren för lång'],
+    ['feelingNotes', { sad: 'ok' }, 'nyckel som inte är en vald känsla'],
+    ['feelingNotes', { 'calm.7': 'ok' }, 'nyckel med siffra'],
+    ['feelingNotes', Object.fromEntries(Array.from({ length: 7 }, (_, i) => [`calm.${'n'.repeat(i + 1)}`, 'ok'])), '7 kommentarer'],
   ],
   activities: [
     ['energy', 11, 'energi över 10'],
@@ -439,6 +459,8 @@ const invalid = {
     ['feelings', Array.from({ length: 7 }, () => 'glad'), '7 känslor'],
     ['feelings', ['glad', 'bored'], 'okänd kärna (en nyans)'],
     ['feelings', [{ core: 'glad' }], 'känsla som objekt'],
+    ['feelingStrengths', { glad: 'stark' }, 'okänt styrkeord'],
+    ['feelingNotes', { glad: text(LIMIT.short + 1) }, 'för lång kommentar'],
   ],
   events: [
     ['severity', 11, 'svårighetsgrad över 10'],
@@ -499,6 +521,11 @@ test('gränsvärdena i intervallen godtas', async () => {
     ['screenings', 'feelings', ['glad.framtida.nytt', 'sad.a']],
     // Ett element med mellanslag ser ut som två i join(' ') och släpps igenom av rules; DocumentRules (:core) nekar det.
     ['screenings', 'feelings', ['glad calm']],
+    // Styrka och kommentar (SCR-9, SCR-10) på grunddokumentets valda känslor: tomma, null, alla styrkeord och längsta kommentarer.
+    ['screenings', 'feelingStrengths', {}], ['screenings', 'feelingStrengths', null], ['screenings', 'feelingNotes', {}], ['screenings', 'feelingNotes', null],
+    ['screenings', 'feelingStrengths', { glad: 'mild', 'calm.grateful': 'clear', 'scared.anxious.tense': 'strong' }],
+    ['screenings', 'feelingNotes', { 'calm.grateful': text(LIMIT.short), 'scared.anxious.tense': text(LIMIT.short), glad: text(LIMIT.short) }],
+    ['activities', 'feelingStrengths', { 'calm.relaxed': 'strong' }], ['activities', 'feelingNotes', { 'calm.relaxed': '', glad: 'Sol' }],
     // Ett symptom utan poäng (från 3.x, DAT-6): score null godtas.
     ['screenings', 'symptoms', [{ optionId: 'x', score: null, customText: null }]],
     ['checkins', 'symptoms', [{ optionId: 'x', score: 3, customText: null }, { optionId: 'y', score: null, customText: null }]],
@@ -711,6 +738,9 @@ const post = (v) => ({ name: text(LIMIT.short - v), note: text(LIMIT.long - v), 
 const symptoms = (v) => Array.from({ length: documentRulesConstant('MAX_SYMPTOMS') }, (_, i) => ({ optionId: `s${i}-${v}`, score: 10 - v, customText: `Fritext ${i} ${v}` }));
 /** Alla känslor med kärna, längsta nyans och ord (DAT-14) – maxFeelings() är antalet kärnor. */
 const feelings = (v) => Array.from({ length: feelingCatalogConstant('MAX_FEELINGS') }, (_, i) => `${CORES[i % CORES.length]}.${'n'.repeat(32 - v)}.${'o'.repeat(32 - v)}`);
+/** Styrka och längsta kommentar på varje känsla (SCR-9, SCR-10). */
+const feelingStrengths = (v) => Object.fromEntries(feelings(v).map((token, i) => [token, ['mild', 'clear', 'strong'][(i + v) % 3]]));
+const feelingNotes = (v) => Object.fromEntries(feelings(v).map((token) => [token, text(LIMIT.short - v)]));
 const WORST = {
   prescriptions: {
     rule: 'validPrescription',
@@ -727,7 +757,7 @@ const WORST = {
     rule: 'validScreening',
     build: (v) => ({
       ...post(v), occasion: ['breakfast', 'dinner'][v], customText: text(LIMIT.short - v), energy: 10 - v, stress: 10 - v, symptoms: symptoms(v),
-      legacySomatic: 40 + v, feelings: feelings(v),
+      legacySomatic: 40 + v, feelings: feelings(v), feelingStrengths: feelingStrengths(v), feelingNotes: feelingNotes(v),
     }),
   },
   activities: {
@@ -735,6 +765,7 @@ const WORST = {
     build: (v) => ({
       ...post(v), optionId: text(LIMIT.short - v), customText: text(LIMIT.short - v), energy: -10 + v, stress: 10 - v, symptoms: symptoms(v),
       legacySomatic: 40 + v, recovering: v === 0, drain: v === 0, minutes: 600 + v,
+      feelings: feelings(v), feelingStrengths: feelingStrengths(v), feelingNotes: feelingNotes(v),
     }),
   },
   checkins: {

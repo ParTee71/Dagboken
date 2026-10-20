@@ -37,6 +37,7 @@ import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.AccountAvatar
 import se.partee71.dagboken.ui.components.DagbokenCalendar
 import se.partee71.dagboken.ui.components.DagbokenEntryCard
+import se.partee71.dagboken.ui.components.FeelingExtras
 import se.partee71.dagboken.ui.theme.Neutral
 import se.partee71.dagboken.ui.theme.Warning
 import se.partee71.ui.common.ListUiState
@@ -296,6 +297,11 @@ private fun EntryCard(row: DiaryRow.Entry, onEvent: (DiaryEvent) -> Unit, onOpen
             is DiaryEntry.Mood -> entry.screening.feelings
             is DiaryEntry.Action -> entry.activity.feelings
             else -> emptyList()
+        },
+        feelingExtras = when (entry) {
+            is DiaryEntry.Mood -> FeelingExtras.shown(entry.screening)
+            is DiaryEntry.Action -> FeelingExtras.shown(entry.activity)
+            else -> FeelingExtras.None
         },
         delete = deleteFormat(entry)?.let { format ->
             // MED-15 (som 3.x): en receptdos markeras överhoppad i stället för att raderas.

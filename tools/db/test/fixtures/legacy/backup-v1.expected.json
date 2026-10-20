@@ -32,7 +32,9 @@
         "recovering": true,
         "drain": false,
         "minutes": null,
-        "feelings": []
+        "feelings": [],
+        "feelingStrengths": {},
+        "feelingNotes": {}
       }
     },
     {
@@ -53,7 +55,9 @@
         "recovering": false,
         "drain": false,
         "minutes": null,
-        "feelings": []
+        "feelings": [],
+        "feelingStrengths": {},
+        "feelingNotes": {}
       }
     },
     {
@@ -329,7 +333,9 @@
         "stress": 3,
         "symptoms": [],
         "legacySomatic": null,
-        "feelings": []
+        "feelings": [],
+        "feelingStrengths": {},
+        "feelingNotes": {}
       }
     }
   ]

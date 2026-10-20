@@ -27,7 +27,6 @@ import se.partee71.dagboken.core.engine.OTHER_SYMPTOM_ID
 import se.partee71.dagboken.core.engine.symptomChoices
 import se.partee71.dagboken.core.engine.typeChoices
 import se.partee71.dagboken.core.model.Activity
-import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.schema.ActivityCodec
@@ -49,6 +48,7 @@ import se.partee71.dagboken.ui.common.rulesValidator
 import se.partee71.dagboken.ui.common.scaleValueText
 import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
+import se.partee71.dagboken.ui.components.FeelingExtras
 import se.partee71.dagboken.ui.components.FeelingPicker
 import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.NoteField
@@ -193,7 +193,7 @@ fun ActivityEditScreen(
         }
         DurationRow(a.minutes ?: 0, { minutes -> form.change { it.copy(minutes = minutes) } })
         MetricsCard(a) { change -> form.change(transform = change) }
-        FeelingsCard(a.feelings) { feelings -> form.change { it.withFeelings(feelings) } }
+        FeelingsCard(a) { change -> form.change(transform = change) }
         val symptoms = remember(symptomOptions, form.stored) { symptomChoices(symptomOptions, form.stored?.symptoms.orEmpty()) }
         SymptomLogCard(symptoms, a.symptoms, { scores -> form.change { it.withSymptoms(scores) } }, otherOptionId = OTHER_SYMPTOM_ID, somatic = a.somatic)
         AppCard {
@@ -223,14 +223,22 @@ private fun MetricsCard(a: Activity, change: ((Activity) -> Activity) -> Unit) {
     }
 }
 
-/** Känslorna (AKT-13): ihopfällda och frivilliga, samma väljare som måendearket (SCR-7) – de valda i stängt läge. */
+/**
+ * Känslorna (AKT-13): ihopfällda och frivilliga, samma väljare som måendearket (SCR-7) med styrka och kommentar (SCR-9,
+ * SCR-10) – de valda i stängt läge.
+ */
 @Composable
-private fun FeelingsCard(feelings: List<Feeling>, onChange: (List<Feeling>) -> Unit) {
+private fun FeelingsCard(a: Activity, change: ((Activity) -> Activity) -> Unit) {
     var expanded by rememberSaveable { mutableStateOf(false) }
-    val summary = if (feelings.isEmpty()) stringResource(R.string.activity_feelings_none) else feelingsSummary(feelings)
+    val summary = if (a.feelings.isEmpty()) stringResource(R.string.activity_feelings_none) else feelingsSummary(a.feelings)
     AppCard {
         Foldout(stringResource(R.string.activity_feelings), expanded, { expanded = !expanded }, summary = summary) {
-            FeelingPicker(feelings, onChange, title = stringResource(R.string.activity_feelings_title))
+            FeelingPicker(
+                a.feelings,
+                { feelings -> change { it.withFeelings(feelings) } },
+                title = stringResource(R.string.activity_feelings_title),
+                extras = FeelingExtras.of(a, change)
+            )
         }
     }
 }

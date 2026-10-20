@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Känslans styrka (SCR-9): 3 prick(ar) – samma steg som färgintensiteten, 24 dp -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M4,12m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"
+        android:fillColor="#FF000000" />
+    <path
+        android:pathData="M12,12m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"
+        android:fillColor="#FF000000" />
+    <path
+        android:pathData="M20,12m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"
+        android:fillColor="#FF000000" />
+</vector>

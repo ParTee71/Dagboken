@@ -135,3 +135,59 @@ object FeelingCatalog {
 
     private fun nuanceOf(core: String, nuance: String) = coreOf(core)?.nuances?.firstOrNull { it.token == nuance }
 }
+
+/**
+ * Styrkan på en vald känsla (SCR-9, DAT-14): tre steg i kärnans ton, frivillig – ingen styrka (`null`) är ett giltigt
+ * svar. Lagras som [wire] i `feelingStrengths` (token → ord); ett okänt ord (nyare app) bevaras av codecen.
+ */
+enum class FeelingStrength(override val wire: String) : WireEnum {
+    MILD("mild"),
+    CLEAR("clear"),
+    STRONG("strong");
+
+    companion object {
+        /** Det kända steget för [wire]; `null` för saknat eller okänt ord. */
+        fun of(wire: String?): FeelingStrength? = entries.firstOrNull { it.wire == wire }
+
+        /** Nästa steg i långtryckets cykel: ingen → svag → tydlig → stark → ingen (SCR-9). */
+        fun next(current: FeelingStrength?): FeelingStrength? = when (current) {
+            null -> MILD
+            STRONG -> null
+            else -> entries[current.ordinal + 1]
+        }
+    }
+}
+
+/**
+ * Värden per vald känsla (`feelingStrengths`, `feelingNotes` – DAT-14, DAT-15): en karta från [Feeling.token] till ett
+ * värde, bredvid listan `feelings`. **Enda** stället för reglerna när valen ändras, så att styrka och kommentar följer
+ * samma lista (regel 4).
+ */
+object FeelingValues {
+    /**
+     * [values] efter att valen gått från [before] till [after] (`FeelingPicker` byter ett val på samma plats, tar bort
+     * eller lägger till sist): ett val som byts på sin plats tar med sig värdet till det nya ordet – utom när ordet
+     * **släcks** (valet går tillbaka en nivå, det nya är en början av det gamla) och [keepWhenCoarser] är `false`;
+     * då försvinner värdet (styrkan nollställs, SCR-9). Värden för känslor som inte längre är valda tas bort.
+     */
+    fun <V> carry(before: List<Feeling>, after: List<Feeling>, values: Map<String, V>, keepWhenCoarser: Boolean): Map<String, V> {
+        if (values.isEmpty()) return values
+        val result = values.toMutableMap()
+        if (before.size == after.size) {
+            for (i in before.indices) {
+                val old = before[i].token
+                val new = after[i].token
+                if (old == new || new in values) continue
+                val value = result.remove(old) ?: continue
+                if (keepWhenCoarser || !old.startsWith(new + Feeling.SEPARATOR)) result[new] = value
+            }
+        }
+        return only(after, result)
+    }
+
+    /** [values] begränsad till nycklarna för [feelings] – en nyckel utan vald känsla läses och skrivs inte (DAT-14). */
+    fun <V> only(feelings: List<Feeling>, values: Map<String, V>): Map<String, V> {
+        val tokens = feelings.mapTo(HashSet()) { it.token }
+        return if (values.keys.all { it in tokens }) values else values.filterKeys { it in tokens }
+    }
+}
