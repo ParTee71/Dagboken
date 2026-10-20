@@ -259,6 +259,30 @@ class CodecsTest {
     }
 
     @Test
+    fun `kropp och sammanhang (DAT-15) - tokens, rundtur, saknat fält är tom lista, okänt token bevaras, fel form hoppas över`() {
+        val encoded = ScreeningCodec.encode(Samples.screening)
+        assertEquals(listOf("tense_jaw", "heavy_chest"), encoded[ScreeningCodec.BODY])
+        assertEquals(listOf("sleep", "alone_time"), encoded[ScreeningCodec.CONTEXT])
+        val roundTrip = ScreeningCodec.decode("s", encoded)
+        assertEquals(Samples.screening.body, roundTrip.body)
+        assertEquals(Samples.screening.context, roundTrip.context)
+        for (field in listOf(ScreeningCodec.BODY, ScreeningCodec.CONTEXT)) {
+            fun read(value: Any?): List<String> = ScreeningCodec.decode("s", mapOf(field to value)).let { if (field == ScreeningCodec.BODY) it.body else it.context }
+            assertEquals(emptyList(), read(null), "$field: null")
+            assertEquals(emptyList(), read("sleep"), "$field: fel typ läses som inget")
+            val stored = listOf("sleep", 3, null, "", "Sleep", "tense-jaw", "sömn", "a b", mapOf("t" to "x"), "a".repeat(33), "framtida_ord", "tense_jaw")
+            assertEquals(listOf("sleep", "framtida_ord", "tense_jaw"), read(stored), "$field: ordningen bevaras; tal, null, tomt, versal, bindestreck, å/ä/ö, mellanslag, objekt och för långt hoppas över")
+            val written = ScreeningCodec.encode(ScreeningCodec.decode("s", mapOf(field to stored)))
+            assertEquals(listOf("sleep", "framtida_ord", "tense_jaw"), written[field], "$field: okänt token med giltig form skrivs tillbaka oförändrat")
+        }
+        val missing = ScreeningCodec.decode("s", emptyMap())
+        assertEquals(emptyList(), missing.body, "saknat fält")
+        assertEquals(emptyList(), missing.context, "saknat fält")
+        assertEquals(emptyList<String>(), ScreeningCodec.encode(Screening("s"))[ScreeningCodec.BODY], "tom lista skrivs, så att exporten har fältet")
+        assertEquals(emptyList<String>(), ScreeningCodec.encode(Screening("s"))[ScreeningCodec.CONTEXT])
+    }
+
+    @Test
     fun `ett tomt klockslag eller datum skrivs som null och läses som null`() {
         val encoded = DoseCodec.encode(Dose("d"))
         assertNull(encoded["date"])

@@ -236,7 +236,7 @@ ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här ä
   behandlar `null` som saknat. Se *Skrivningar bevarar okända fält*.
 - **Klockslag** (`time`, påminnelsernas `time`) lagras som `HH:mm`. Byts formatet: höj
   `schemaVersion` och migrera, ändra aldrig formatet tyst.
-- **Listor** (`slots`, `symptoms`, `feelings`, `boosts`) – ordningen bevaras i rundturen.
+- **Listor** (`slots`, `symptoms`, `feelings`, `body`, `context`, `boosts`) – ordningen bevaras i rundturen.
 - **Tidsstämplar och ordning från 3.x** (jfr 3.x-buggen "bevara timestamp för sjukdomsepisoder"):
   faller konverteraren tillbaka på "nu" ska det vara medvetet och testat.
 - **Heltal vs decimaltal:** JSON skiljer dem inte åt – ett decimaltal med heltalsvärde (`2.0`)

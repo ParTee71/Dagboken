@@ -130,17 +130,28 @@ service cloud.firestore {
         7 || (isBoost(l[7]) && (n <= 8 || (isBoost(l[8]) && (n <= 9 || (isBoost(l[9])))))))))))))))))))));
     }
 
-    // Känslorna på en måendelogg och en aktivitet (SCR-7, AKT-13, DAT-14): högst maxFeelings() texter `core[.nuance[.detail]]` – kärnan en av de
+    // Känslorna på en måendelogg och en aktivitet (SCR-7, AKT-13, DAT-14): högst sex texter `core[.nuance[.detail]]` – kärnan en av de
     // sex i FeelingCatalog (:core), nyans och ord 1–32 gemener a–z (DocumentRules.FEELING_TOKEN, hålls lika av
     // DocumentRulesTest). Katalogtillhörigheten kontrolleras inte: ett okänt token med giltig form bevaras av codecen,
     // som en okänd form. Hela listan prövas med ett mönster över join(' ') – några få uttryck oavsett antal, medan
-    // objekt per element inte rymdes i måendeloggens uttrycksbudget (#318). Ett element som inte är text ger fel (nekad);
-    // ett element med mellanslag ('glad calm') ser ut som två och släpps igenom – DocumentRules nekar det. Den tomma
-    // listan prövas för sig, så att ett tomt element ('') inte ser ut som en tom lista.
-    function maxFeelings() { return 6; }
+    // objekt per element inte rymdes i måendeloggens uttrycksbudget (#318). Mönstret är också taket ({0,5}: varje
+    // element ger minst ett token) och typkontrollen: bara en lista har join, och ett element som inte är text ger fel
+    // eller ett ord som inte är någon kärna (nekad). Ett element med mellanslag ('glad calm') ser ut som två och släpps
+    // igenom – DocumentRules nekar det. Den tomma listan prövas för sig, så att ett tomt element ('') inte ser ut som en
+    // tom lista. Tak och typ i mönstret i stället för egna uttryck gav plats åt kroppen och sammanhanget (#321).
     function isFeelings(l) {
-      return l is list && l.size() <= maxFeelings()
-        && (l.size() == 0 || l.join(' ').matches('^(glad|strong|calm|sad|angry|scared)(\\.[a-z]{1,32}){0,2}( (glad|strong|calm|sad|angry|scared)(\\.[a-z]{1,32}){0,2}){0,5}$'));
+      return l == [] || l.join(' ').matches('^(glad|strong|calm|sad|angry|scared)(\\.[a-z]{1,32}){0,2}( (glad|strong|calm|sad|angry|scared)(\\.[a-z]{1,32}){0,2}){0,5}$');
+    }
+
+    // Kroppen och sammanhanget på en måendelogg (DAT-15, `body` och `context`): högst elva texter, var och en 1–32
+    // gemener a–z och _ utom orden true, false och null (TagCatalog.TOKEN i :core, DocumentRules.TAG_TOKEN, hålls lika
+    // av DocumentRulesTest). Katalogtillhörigheten kontrolleras inte: ett okänt token med giltig form bevaras av codecen.
+    // Samma billiga form som isFeelings, med taket ({0,10}) och typen i mönstret: ett sant/falskt- eller null-element
+    // blir ordet true/false/null i join(' '), som mönstret utesluter (RE2 saknar lookahead, därav uppräkningen), ett tal
+    // ger siffror och en lista eller ett objekt fel (nekad). En typkontroll per element (hasAny) rymdes inte i
+    // måendeloggens uttrycksbudget (#321). Ett element med mellanslag ser ut som två – DocumentRules nekar det.
+    function isTags(l) {
+      return l == [] || l.join(' ').matches('^([a-z_]{1,3}|[a-z_]{6,32}|[a-mo-su-z_][a-z_]{3}|t([a-qs-z_][a-z_]{2}|r([a-tv-z_][a-z_]|u[a-df-z_]))|n([a-tv-z_][a-z_]{2}|u([a-km-z_][a-z_]|l[a-km-z_]))|[a-eg-z_][a-z_]{4}|f([b-z_][a-z_]{3}|a([a-km-z_][a-z_]{2}|l([a-rt-z_][a-z_]|s[a-df-z_]))))( ([a-z_]{1,3}|[a-z_]{6,32}|[a-mo-su-z_][a-z_]{3}|t([a-qs-z_][a-z_]{2}|r([a-tv-z_][a-z_]|u[a-df-z_]))|n([a-tv-z_][a-z_]{2}|u([a-km-z_][a-z_]|l[a-km-z_]))|[a-eg-z_][a-z_]{4}|f([b-z_][a-z_]{3}|a([a-km-z_][a-z_]{2}|l([a-rt-z_][a-z_]|s[a-df-z_]))))){0,10}$');
     }
 
     // Receptets upprepning {repeat, days ISO 1–7, intervalDays} och period {start?, end?}.
@@ -302,7 +313,9 @@ service cloud.firestore {
         && (!('stress' in w) || nullOrRange(d.get('stress', null), 0, 10))
         && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms))
         && (!('legacySomatic' in w) || nullOrMin(d.get('legacySomatic', null), 0))
-        && (!('feelings' in w) || d.get('feelings', null) == null || isFeelings(d.feelings));
+        && (!('feelings' in w) || d.get('feelings', null) == null || isFeelings(d.feelings))
+        && (!('body' in w) || d.get('body', null) == null || isTags(d.body))
+        && (!('context' in w) || d.get('context', null) == null || isTags(d.context));
     }
 
     function validActivity(d) {

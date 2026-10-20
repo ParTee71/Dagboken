@@ -81,6 +81,12 @@ fun Doc.instant(key: String): Instant? = this[key] as? Instant
 
 fun Doc.stringList(key: String): List<String> = (this[key] as? List<*>)?.filterIsInstance<String>().orEmpty()
 
+/**
+ * Lista av tokens som var och en matchar [pattern] (DAT-15), i lagrad ordning: element som inte är text eller har annan
+ * form hoppas över; ett okänt token med giltig form läses som det är, så att det skrivs tillbaka oförändrat.
+ */
+fun Doc.tokenList(key: String, pattern: Regex): List<String> = stringList(key).filter(pattern::matches)
+
 /** Veckodagar lagras som ISO-nummer (1 = måndag … 7 = söndag); ogiltiga tal hoppas över. */
 fun Doc.weekdays(key: String): Set<DayOfWeek> = (this[key] as? List<*>)?.filterIsInstance<Number>()?.map { it.toIntClamped() }
     ?.filter { it in 1..7 }?.map { DayOfWeek(it) }?.toSet().orEmpty()

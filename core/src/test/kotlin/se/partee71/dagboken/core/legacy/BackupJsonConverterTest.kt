@@ -20,6 +20,7 @@ import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.ExportFormat
 import se.partee71.dagboken.core.schema.OptionCodec
 import se.partee71.dagboken.core.schema.Samples
+import se.partee71.dagboken.core.schema.ScreeningCodec
 import se.partee71.dagboken.core.schema.fieldPaths
 
 /**
@@ -127,6 +128,22 @@ class BackupJsonConverterTest {
             val withFeelings = setOf(CollectionNames.SCREENINGS, CollectionNames.ACTIVITIES)
             for (document in result.documents.filter { CollectionNames.collectionOf(it.path) in withFeelings }) {
                 assertEquals(emptyList<Any>(), document.data["feelings"], "$name: ${document.path} skriver fältet, så importen fyller det")
+            }
+        }
+    }
+
+    @Test
+    fun `kropp och sammanhang (DAT-15) fanns inte i 3x - varje måendelogg får tomma listor, som skrivs i exporten`() {
+        for (name in listOf("backup-v2", "backup-v1")) {
+            val result = converted(name)
+            assertTrue(result.data.screenings.isNotEmpty(), name)
+            for (screening in result.data.screenings) {
+                assertEquals(emptyList(), screening.body, "$name: ${screening.id}")
+                assertEquals(emptyList(), screening.context, "$name: ${screening.id}")
+            }
+            for (document in result.documents.filter { CollectionNames.collectionOf(it.path) == CollectionNames.SCREENINGS }) {
+                assertEquals(emptyList<Any>(), document.data[ScreeningCodec.BODY], "$name: ${document.path} skriver fältet, så importen fyller det")
+                assertEquals(emptyList<Any>(), document.data[ScreeningCodec.CONTEXT], "$name: ${document.path}")
             }
         }
     }
@@ -389,7 +406,7 @@ class BackupJsonConverterTest {
 
     private companion object {
         /** Nya fält i 4.0 utan 3.x-motsvarighet (ARKITEKTUR.md → Fältparitet). */
-        val NEW_IN_4_0 = setOf("prnId", "strength", "form", "feelings")
+        val NEW_IN_4_0 = setOf("prnId", "strength", "form", "feelings", "body", "context")
     }
 
     @Test

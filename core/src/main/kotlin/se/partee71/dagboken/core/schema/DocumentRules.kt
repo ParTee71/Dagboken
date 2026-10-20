@@ -11,6 +11,7 @@ import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Repeat
 import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.core.model.TagCatalog
 import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.WireEnum
 
@@ -36,7 +37,7 @@ object DocumentRules {
     /** Högst så många doshöjningar på ett recept (`maxBoosts()`). */
     const val MAX_BOOSTS = 50
 
-    /** Högst så många känslor på en måendelogg eller aktivitet (`maxFeelings()`, DAT-14) – [FeelingCatalog.MAX_FEELINGS]. */
+    /** Högst så många känslor på en måendelogg eller aktivitet (`{0,5}` i `isFeelings` mönster, DAT-14) – [FeelingCatalog.MAX_FEELINGS]. */
     const val MAX_FEELINGS = FeelingCatalog.MAX_FEELINGS
 
     /** Nyansens och ordets längd i ett känslotoken (`[a-z]{1,32}` i rules). */
@@ -52,6 +53,19 @@ object DocumentRules {
 
     /** Känslolistan på måendeloggen och aktiviteten (`isFeelings`, DAT-14). */
     private val FEELINGS = Check.PatternList(FEELING_TOKEN.pattern, max = MAX_FEELINGS)
+
+    /** Högst så många tokens i måendeloggens `body` och `context` (`{0,10}` i `isTags` mönster, DAT-15) – [TagCatalog.MAX_TAGS]. */
+    const val MAX_TAGS = TagCatalog.MAX_TAGS
+
+    /**
+     * Ett token i `body`/`context` ([TagCatalog.TOKEN], DAT-15): 1–[TagCatalog.MAX_TOKEN] gemener a–z och `_`, utom
+     * [TagCatalog.RESERVED]. Rules prövar hela listan med samma mönster över `join(' ')` (`isTags`), som känslorna;
+     * katalogtillhörigheten kontrolleras inte – ett okänt token med giltig form bevaras av codecen.
+     */
+    val TAG_TOKEN = Regex("^${TagCatalog.TOKEN.pattern}$")
+
+    /** Kroppens och sammanhangets lista på måendeloggen (`isTags`, DAT-15). */
+    private val TAGS = Check.PatternList(TAG_TOKEN.pattern, max = MAX_TAGS)
 
     /**
      * Rules kontrollerar elementen i symptom- och höjningslistorna upp till så här många (`l[0]`…`l[9]`):
@@ -116,7 +130,7 @@ object DocumentRules {
         /** Lista av enum-namn, högst [max] (`isEnumList`). */
         data class EnumList(val values: List<String>, val max: Int) : Check
 
-        /** Lista av texter som var och en matchar [pattern] (ett regex), högst [max] – känslotokens (`isFeelings`). */
+        /** Lista av texter som var och en matchar [pattern] (ett regex), högst [max] – känslotokens (`isFeelings`), kroppen och sammanhanget (`isTags`). */
         data class PatternList(val pattern: String, val max: Int) : Check
 
         /** Nästlat objekt (`isTheme`, `isSchedule` …). */
@@ -275,7 +289,9 @@ object DocumentRules {
             "stress" to Check.Range(SCORE),
             "symptoms" to Check.ListOf(SYMPTOM, max = MAX_SYMPTOMS),
             "legacySomatic" to Check.Min(0),
-            "feelings" to FEELINGS
+            "feelings" to FEELINGS,
+            ScreeningCodec.BODY to TAGS,
+            ScreeningCodec.CONTEXT to TAGS
         ),
         CollectionNames.ACTIVITIES to POST + mapOf(
             "optionId" to Check.ShortText,

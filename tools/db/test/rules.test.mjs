@@ -8,7 +8,7 @@ import { COLLECTIONS } from '../lib/collections.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
 import { toClient } from './helpers/client.mjs';
 import { Double, restSetAs, rulesTestEnvironment } from './helpers/emulator.mjs';
-import { documentRulesConstant, feelingCatalogConstant, readRepoFile, textLimits } from './helpers/repo.mjs';
+import { documentRulesConstant, feelingCatalogConstant, readRepoFile, tagCatalogConstant, textLimits } from './helpers/repo.mjs';
 
 const OWNER = 'anna';
 /** Textgränserna (TextLimits i :core = maxShort/maxLong i rules) och en text med [n] tecken. */
@@ -17,6 +17,11 @@ const text = (n) => 'x'.repeat(n);
 const user = { schemaVersion: 1, createdAt: Timestamp.fromDate(new Date('2026-09-01T08:00:00Z')) };
 /** Kärnkänslorna (FeelingCatalog.cores = kärnorna i isFeelings mönster, RulesEnumsTest). */
 const CORES = ['glad', 'strong', 'calm', 'sad', 'angry', 'scared'];
+/** Kroppens och sammanhangets tak och tokenlängd (TagCatalog i :core = mönstret i isTags, DAT-15). */
+const MAX_TAGS = tagCatalogConstant('MAX_TAGS');
+const MAX_TOKEN = tagCatalogConstant('MAX_TOKEN');
+/** [n] giltiga tokens med längsta form, olika för [v] (värsta fallet för uttrycksbudgeten). */
+const tags = (n, v = 0) => Array.from({ length: n }, (_, i) => `${'abcdefghijk'[i % 11]}_`.padEnd(MAX_TOKEN - v, 'z'));
 
 /** Den syntetiska fixturen (alla samlingar, varje fält satt). */
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/user.json', import.meta.url), 'utf8'));
@@ -420,6 +425,34 @@ const invalid = {
     ['feelings', Array.from({ length: 7 }, () => 'glad'), '7 känslor'],
     ['feelings', [...CORES.slice(0, 5), 'bored'], 'sjätte känslan ogiltig'],
     ['feelings', ['glad', 'calm.7'], 'siffra i andra känslan'],
+    // Kropp och sammanhang (DAT-15): högst 11 texter, 1–32 gemener a–z och _ – samma isTags för båda fälten.
+    ...['body', 'context'].flatMap((field) => [
+      [field, 'sleep', `${field} som text`],
+      [field, { sleep: true }, `${field} som objekt`],
+      [field, [3], `${field}: token som tal`],
+      [field, [true], `${field}: token som bool`],
+      [field, [null], `${field}: token null`],
+      [field, ['sleep', false], `${field}: token som bool sist`],
+      [field, [1.5], `${field}: token som decimaltal`],
+      [field, [Timestamp.fromDate(new Date('2026-01-01T00:00:00Z'))], `${field}: token som tidsstämpel`],
+      // Ett sant/falskt- eller null-element blir ordet i join(' '), så orden själva är inga tokens (TagCatalog.RESERVED).
+      [field, ['true'], `${field}: ordet true`],
+      [field, ['work', 'false'], `${field}: ordet false`],
+      [field, ['null'], `${field}: ordet null`],
+      [field, [{ token: 'sleep' }], `${field}: token som objekt`],
+      [field, [''], `${field}: tomt token`],
+      [field, ['sleep', ''], `${field}: tomt token sist`],
+      [field, ['Sleep'], `${field}: stor bokstav`],
+      [field, ['tense-jaw'], `${field}: bindestreck`],
+      [field, ['tense.jaw'], `${field}: punkt`],
+      [field, ['sömn'], `${field}: å/ä/ö`],
+      [field, ['work2'], `${field}: siffra`],
+      [field, ['sleep,work'], `${field}: komma`],
+      [field, ['a'.repeat(MAX_TOKEN + 1)], `${field}: token över ${MAX_TOKEN} tecken`],
+      [field, tags(MAX_TAGS + 1), `${field}: ${MAX_TAGS + 1} tokens`],
+      [field, [...tags(MAX_TAGS - 1), 'Fel'], `${field}: elfte tokenet ogiltigt`],
+      [field, [...tags(MAX_TAGS - 1), 'a b'], `${field}: elfte tokenet med mellanslag blir tolv i join`],
+    ]),
   ],
   activities: [
     ['energy', 11, 'energi över 10'],
@@ -499,6 +532,17 @@ test('gränsvärdena i intervallen godtas', async () => {
     ['screenings', 'feelings', ['glad.framtida.nytt', 'sad.a']],
     // Ett element med mellanslag ser ut som två i join(' ') och släpps igenom av rules; DocumentRules (:core) nekar det.
     ['screenings', 'feelings', ['glad calm']],
+    // Kropp och sammanhang (DAT-15): tom, null, hela katalogen, längsta tokens, och okänt token med giltig form (nyare app).
+    ...['body', 'context'].flatMap((field) => [
+      ['screenings', field, []], ['screenings', field, null], ['screenings', field, tags(MAX_TAGS)],
+      ['screenings', field, ['framtida_ord', '_', 'a'.repeat(MAX_TOKEN)]],
+      // Nära de uteslutna orden: andra längder och en avvikande bokstav godtas.
+      ['screenings', field, ['tru', 'truee', 'nul', 'nulls', 'fals', 'falsee', 'trux', 'nuli', 'falsy', 'tr_e']],
+      // Mellanslag ser ut som två tokens i join(' ') och släpps igenom av rules; DocumentRules (:core) nekar det.
+      ['screenings', field, ['tense jaw']],
+    ]),
+    ['screenings', 'body', ['tense_jaw', 'heart_racing', 'stomach_knot', 'heavy_chest', 'restless_legs', 'warm_face', 'headache', 'tired_body', 'light_body', 'warm_soft', 'nothing']],
+    ['screenings', 'context', ['sleep', 'family', 'work', 'health', 'medicines', 'alone_time', 'weather', 'finances', 'friends', 'exercise', 'food']],
     // Ett symptom utan poäng (från 3.x, DAT-6): score null godtas.
     ['screenings', 'symptoms', [{ optionId: 'x', score: null, customText: null }]],
     ['checkins', 'symptoms', [{ optionId: 'x', score: 3, customText: null }, { optionId: 'y', score: null, customText: null }]],
@@ -709,7 +753,7 @@ test('en känsla med okänd kärna (från en nyare app) kan stå kvar vid uppdat
 const at = (v) => Timestamp.fromDate(new Date(Date.UTC(2026, 0, 1 + v)));
 const post = (v) => ({ name: text(LIMIT.short - v), note: text(LIMIT.long - v), date: `2026-03-0${1 + v}`, time: `08:0${v}`, createdAt: at(v) });
 const symptoms = (v) => Array.from({ length: documentRulesConstant('MAX_SYMPTOMS') }, (_, i) => ({ optionId: `s${i}-${v}`, score: 10 - v, customText: `Fritext ${i} ${v}` }));
-/** Alla känslor med kärna, längsta nyans och ord (DAT-14) – maxFeelings() är antalet kärnor. */
+/** Alla känslor med kärna, längsta nyans och ord (DAT-14) – taket i isFeelings är antalet kärnor. */
 const feelings = (v) => Array.from({ length: feelingCatalogConstant('MAX_FEELINGS') }, (_, i) => `${CORES[i % CORES.length]}.${'n'.repeat(32 - v)}.${'o'.repeat(32 - v)}`);
 const WORST = {
   prescriptions: {
@@ -727,7 +771,7 @@ const WORST = {
     rule: 'validScreening',
     build: (v) => ({
       ...post(v), occasion: ['breakfast', 'dinner'][v], customText: text(LIMIT.short - v), energy: 10 - v, stress: 10 - v, symptoms: symptoms(v),
-      legacySomatic: 40 + v, feelings: feelings(v),
+      legacySomatic: 40 + v, feelings: feelings(v), body: tags(MAX_TAGS, v), context: tags(MAX_TAGS, v),
     }),
   },
   activities: {

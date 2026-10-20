@@ -48,7 +48,7 @@ data class Feeling(val core: String, val nuance: String? = null, val detail: Str
  * Ordningen är hjulets ordning (medurs från klockan 12) och bevaras i [cores], [nuances] och [details].
  */
 object FeelingCatalog {
-    /** Högst så många känslor på en logg (`maxFeelings()` i rules, DAT-14). */
+    /** Högst så många känslor på en logg (`isFeelings` i rules, DAT-14). */
     const val MAX_FEELINGS = 6
 
     private class Nuance(val token: String, val details: List<String>)

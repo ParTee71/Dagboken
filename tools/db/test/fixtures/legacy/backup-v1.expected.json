@@ -329,7 +329,9 @@
         "stress": 3,
         "symptoms": [],
         "legacySomatic": null,
-        "feelings": []
+        "feelings": [],
+        "body": [],
+        "context": []
       }
     }
   ]

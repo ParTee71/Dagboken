@@ -19,5 +19,8 @@ export const textLimits = () => ({ short: kotlinConstant('schema/TextLimits.kt',
 /** Ett heltal ur `DocumentRules` i :core (`MAX_BOOSTS` …) – konverterarens gränser, samma som rules. */
 export const documentRulesConstant = (name) => kotlinConstant('schema/DocumentRules.kt', name);
 
-/** Ett heltal ur `FeelingCatalog` i :core (`MAX_FEELINGS`) – `maxFeelings()` i rules (DAT-14). */
+/** Ett heltal ur `FeelingCatalog` i :core (`MAX_FEELINGS`) – taket i `isFeelings` i rules (DAT-14). */
 export const feelingCatalogConstant = (name) => kotlinConstant('model/Feelings.kt', name);
+
+/** Ett heltal ur `TagCatalog` i :core (`MAX_TAGS`, `MAX_TOKEN`) – taket och tokenlängden i `isTags` i rules (DAT-15). */
+export const tagCatalogConstant = (name) => kotlinConstant('model/Sensations.kt', name);

@@ -12,8 +12,11 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
+import se.partee71.dagboken.core.model.BodySensationCatalog
+import se.partee71.dagboken.core.model.ContextTagCatalog
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
+import se.partee71.dagboken.core.model.TagCatalog
 import se.partee71.dagboken.core.schema.DocumentRules.Check
 
 /**
@@ -43,6 +46,12 @@ class DocumentRulesTest {
 
     private fun rulesList(function: String): List<String> = Regex("'([^']*)'").findAll(functions.getValue(function)).map { it.groupValues[1] }.toList()
 
+    /** Mönstret i `l.join(' ').matches('…')` i en funktionskropp, med rules-escapen `\\` som `\`. */
+    private fun joinedPattern(body: String): String = Regex("""l\.join\(' '\)\.matches\('([^']+)'\)""").find(body)!!.groupValues[1].replace("\\\\", "\\")
+
+    /** Taket i ett `join(' ')`-mönster: `…( token){0,n}$` godtar högst n + 1 element (varje element ger minst ett token). */
+    private fun joinedMax(function: String): Int = Regex("""\)\{0,(\d+)}\$$""").find(joinedPattern(functions.getValue(function)))!!.groupValues[1].toInt() + 1
+
     private fun constant(function: String): Int = Regex("""return (\d+);""").find(functions.getValue(function))!!.groupValues[1].toInt()
 
     /** `nullOrX(d.get('f', null), args…)` → kontrollen för toppnivåfält. */
@@ -64,7 +73,8 @@ class DocumentRulesTest {
     private fun nestedCheck(function: String, args: List<String>): Check = when (function) {
         "isSymptoms" -> Check.ListOf(DocumentRules.SYMPTOM, max = constant("maxSymptoms"))
         "isBoosts" -> Check.ListOf(DocumentRules.BOOST, max = constant("maxBoosts"))
-        "isFeelings" -> Check.PatternList(DocumentRules.FEELING_TOKEN.pattern, max = constant("maxFeelings"))
+        "isFeelings" -> Check.PatternList(DocumentRules.FEELING_TOKEN.pattern, max = joinedMax("isFeelings"))
+        "isTags" -> Check.PatternList(DocumentRules.TAG_TOKEN.pattern, max = joinedMax("isTags"))
         "isSchedule" -> Check.Nested(DocumentRules.SCHEDULE)
         "isPeriod" -> Check.Nested(DocumentRules.PERIOD)
         "isTheme" -> Check.Nested(DocumentRules.THEME)
@@ -159,16 +169,19 @@ class DocumentRulesTest {
         assertEquals(constant("maxFields"), DocumentRules.MAX_FIELDS)
         assertEquals(constant("maxSymptoms"), DocumentRules.MAX_SYMPTOMS)
         assertEquals(constant("maxBoosts"), DocumentRules.MAX_BOOSTS)
-        assertEquals(constant("maxFeelings"), DocumentRules.MAX_FEELINGS)
         assertEquals(FeelingCatalog.MAX_FEELINGS, DocumentRules.MAX_FEELINGS)
-        // Känslorna (DAT-14): hela listan prövas med FEELING_TOKEN-mönstret över join(' ') – listan som helhet, tak och typ först.
-        val feelings = functions.getValue("isFeelings")
-        assertTrue("l is list && l.size() <= maxFeelings()" in feelings)
-        assertTrue("(l.size() == 0 || l.join(' ')" in feelings, "den tomma listan för sig – ett tomt element är inte en tom lista")
-        val token = DocumentRules.FEELING_TOKEN.pattern.removePrefix("^").removeSuffix("$")
-        val joined = Regex("""l\.join\(' '\)\.matches\('([^']+)'\)""").find(feelings)!!.groupValues[1].replace("\\\\", "\\")
-        assertEquals("^$token( $token){0,${DocumentRules.MAX_FEELINGS - 1}}$", joined, "samma token-mönster som FEELING_TOKEN, högst MAX_FEELINGS element")
+        // Känslorna (DAT-14) och kroppen och sammanhanget (DAT-15): hela listan prövas med tokenmönstret över join(' '), som
+        // också är taket och typkontrollen; den tomma listan för sig – ett tomt element är inte en tom lista.
+        for ((function, token, max) in listOf(Triple("isFeelings", DocumentRules.FEELING_TOKEN, DocumentRules.MAX_FEELINGS), Triple("isTags", DocumentRules.TAG_TOKEN, DocumentRules.MAX_TAGS))) {
+            val body = functions.getValue(function)
+            assertTrue(body.trim().startsWith("return l == [] || l.join(' ').matches('") && body.trim().endsWith("');"), "$function: bara mönstret")
+            val part = token.pattern.removePrefix("^").removeSuffix("$")
+            assertEquals("^$part( $part){0,${max - 1}}$", joinedPattern(body), "$function: samma token-mönster, högst $max element")
+            assertEquals(max, joinedMax(function), function)
+        }
         assertEquals("^(${FeelingCatalog.cores.joinToString("|")})(\\.[a-z]{1,${DocumentRules.MAX_FEELING_PART}}){0,2}$", DocumentRules.FEELING_TOKEN.pattern)
+        assertEquals(TagCatalog.MAX_TAGS, DocumentRules.MAX_TAGS)
+        assertEquals("^${TagCatalog.TOKEN.pattern}$", DocumentRules.TAG_TOKEN.pattern)
         // Elementkontrollen i rules går till l[RULES_CHECKED_ELEMENTS - 1] i båda listorna, nästlat steg för steg.
         for ((list, element) in listOf("isBoosts" to "isBoost", "isSymptoms" to "isSymptom")) {
             val body = functions.getValue(list)
@@ -263,6 +276,26 @@ class DocumentRulesTest {
                     assertTrue(DocumentRules.FEELING_TOKEN.matches(Feeling(core, nuance, detail).token), "$core.$nuance.$detail")
                 }
             }
+        }
+    }
+
+    @Test
+    fun `kropp och sammanhang (DAT-15) - högst 11 tokens med 1-32 gemener och understreck, okänd form godtas - strängare än rules för mellanslag`() {
+        val screening = Samples.entry(CollectionNames.SCREENINGS).encoded()
+        for (field in listOf(ScreeningCodec.BODY, ScreeningCodec.CONTEXT)) {
+            fun violations(value: Any?) = DocumentRules.validate(CollectionNames.SCREENINGS, screening + (field to value))
+            assertEquals(emptyList(), violations(BodySensationCatalog.tokens), "$field: hela kroppskatalogen")
+            assertEquals(emptyList(), violations(ContextTagCatalog.tokens), "$field: hela sammanhangskatalogen")
+            assertEquals(emptyList(), violations(emptyList<Any>()), field)
+            assertEquals(emptyList(), violations(null), field)
+            assertEquals(emptyList(), violations(listOf("framtida_ord", "a".repeat(TagCatalog.MAX_TOKEN), "_")), "$field: okänt token med giltig form – som codecen bevarar det")
+            assertEquals(listOf(DocumentRules.Violation(field, "för många element: 12 (högst 11)")), violations(List(12) { "sleep" }), field)
+            for (bad in listOf("Sleep", "", "tense-jaw", "tense.jaw", "sömn", "work2", "tense jaw", "a".repeat(TagCatalog.MAX_TOKEN + 1)) + TagCatalog.RESERVED) {
+                assertEquals(listOf(DocumentRules.Violation("$field[1]", "ogiltigt token (${bad.length} tecken)")), violations(listOf("sleep", bad)), "$field: $bad")
+            }
+            assertEquals(listOf(DocumentRules.Violation("$field[0]", "fel typ: Int (väntat text)")), violations(listOf(3)), field)
+            assertEquals(listOf(DocumentRules.Violation("$field[0]", "saknas")), violations(listOf(null)), field)
+            assertEquals(listOf(DocumentRules.Violation(field, "fel typ: String (väntat lista)")), violations("sleep"), field)
         }
     }
 

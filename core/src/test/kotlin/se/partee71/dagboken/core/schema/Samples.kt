@@ -119,7 +119,8 @@ object Samples {
 
     val screening = Screening(
         id = "s1", date = day, time = LocalTime(8, 15), occasion = Occasion.BREAKFAST, customText = "Morgonkoll",
-        energy = 6, stress = 3, symptoms = symptoms, feelings = feelings, legacySomatic = 7, createdAt = created, note = "Sov dåligt"
+        energy = 6, stress = 3, symptoms = symptoms, feelings = feelings, body = listOf("tense_jaw", "heavy_chest"),
+        context = listOf("sleep", "alone_time"), legacySomatic = 7, createdAt = created, note = "Sov dåligt"
     )
 
     val activity = Activity(

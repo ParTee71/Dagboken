@@ -10,6 +10,7 @@ import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.SymptomScore
+import se.partee71.dagboken.core.model.TagCatalog
 
 // Codecs för alternativen och dagbokens poster (ARKITEKTUR.md → Datamodell). Fältnamnen är
 // stabila och engelska; datum `yyyy-MM-dd`, klockslag `HH:mm`, ögonblick som tidsstämpel (DAT-2).
@@ -80,6 +81,10 @@ object OptionCodec : DocCodec<Option> {
 }
 
 object ScreeningCodec : DatedCodec<Screening> {
+    /** Kroppen och sammanhanget (DAT-15): `body: ["tense_jaw"]`, `context: ["sleep"]` – tokens ([TagCatalog.TOKEN]), skrivs hela. */
+    const val BODY = "body"
+    const val CONTEXT = "context"
+
     /** Loggens dag (`yyyy-MM-dd`, sorterbar som text) – avgränsar lyssningen på en dag eller period. */
     const val DATE = se.partee71.dagboken.core.schema.DATE
 
@@ -92,7 +97,9 @@ object ScreeningCodec : DatedCodec<Screening> {
         "stress" to value.stress,
         SYMPTOMS to value.symptoms.encodeSymptoms(),
         LEGACY_SOMATIC to value.legacySomatic,
-        FEELINGS to value.feelings.encodeFeelings()
+        FEELINGS to value.feelings.encodeFeelings(),
+        BODY to value.body,
+        CONTEXT to value.context
     )
 
     override fun decode(id: String, map: Doc) = Screening(
@@ -105,6 +112,8 @@ object ScreeningCodec : DatedCodec<Screening> {
         stress = map.int("stress"),
         symptoms = map.symptoms(),
         feelings = map.feelings(),
+        body = map.tokenList(BODY, TagCatalog.TOKEN),
+        context = map.tokenList(CONTEXT, TagCatalog.TOKEN),
         legacySomatic = map.intOrNull(LEGACY_SOMATIC),
         createdAt = map.instant(CREATED_AT),
         note = map.stringOrNull(NOTE)

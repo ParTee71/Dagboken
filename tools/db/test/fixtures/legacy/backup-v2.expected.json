@@ -542,7 +542,9 @@
           }
         ],
         "legacySomatic": null,
-        "feelings": []
+        "feelings": [],
+        "body": [],
+        "context": []
       }
     },
     {
@@ -566,7 +568,9 @@
           }
         ],
         "legacySomatic": null,
-        "feelings": []
+        "feelings": [],
+        "body": [],
+        "context": []
       }
     },
     {
@@ -595,7 +599,9 @@
           }
         ],
         "legacySomatic": 2,
-        "feelings": []
+        "feelings": [],
+        "body": [],
+        "context": []
       }
     },
     {

@@ -26,6 +26,13 @@ data class Screening(
     override val symptoms: List<SymptomScore> = emptyList(),
     /** Känslorna ur ordkatalogen (SCR-7, DAT-14); fanns inte i 3.x – konverteraren ger tom lista. */
     override val feelings: List<Feeling> = emptyList(),
+    /**
+     * Var det märks i kroppen: tokens ur [BodySensationCatalog], högst [TagCatalog.MAX_TAGS], i katalogens ordning
+     * ([TagCatalog.toggle]); okända tokens bevaras (DAT-15). Fanns inte i 3.x – konverteraren ger tom lista.
+     */
+    val body: List<String> = emptyList(),
+    /** Vad det har med att göra: tokens ur [ContextTagCatalog], som [body] (DAT-15). Fanns inte i 3.x – tom lista. */
+    val context: List<String> = emptyList(),
     override val createdAt: Instant? = null,
     val note: String? = null,
     /** 3.x `somatiska` som inte är summan ([HasSymptoms.legacySomatic]). */
