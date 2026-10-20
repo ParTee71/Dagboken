@@ -3,13 +3,12 @@ name: testing-strategy
 description: Dagbokens testregel (regel 2, NFR-6) — ingen beteendeändring utan tester på rätt nivå(er), och flaky tester är buggar. Ladda denna ALLTID när du lägger till, ändrar eller fixar funktionalitet, en ViewModel, ett use case, en codec, konverteraren, en motor i :core (doser, kylperiod, periodslut, diagrammatematik), ett repository, en composable, en skärmram, larm, en hook eller en bugg. Trigger-ord: test, tester, testa, JUnit, MockK, Turbine, Robolectric, Roborazzi, skärmdump, screenshot, Konsist, UiConsistencyTest, cpdCheck, kontraktstest, FakeCollection, fixtur, emulator, rules-test, rundtur, instrument, androidTest, regression, flaky, instabil, täckning, TDD.
 ---
 
-# Teststrategi: tester på alla nivåer
+# Teststrategi i Dagboken
 
-**Regel:** en ändring av beteende är inte klar förrän tester lagts till eller uppdaterats
-på varje berörd nivå. Befintliga tester **uppdateras** så att de speglar det nya
-beteendet – de tas aldrig bort, `@Ignore`:as eller försvagas för att bli gröna.
-**Ett test som ibland faller är en bugg** – hitta grundorsaken (klocka, ordning, delat
-tillstånd, otestad asynkronitet) och gör det deterministiskt. Kör aldrig bara om.
+**Det generella står i skill `android:testing-strategy`** (pluginen): tester på varje berörd
+nivå, befintliga tester uppdateras och tas aldrig bort, flaky är en bugg, mönstren,
+skärmdumpsreglerna, fallgroparna och anti-mönstren. Här står det som är Dagbokens: nivåerna och
+filtren, hjälparna, emulatorn, skärmdumpsdetaljerna och kommandona.
 
 Krav: NFR-6 (och NFR-serien i övrigt) i KRAVLISTA.md.
 
@@ -82,12 +81,8 @@ svenska meningar i backticks.
 
 ## Projektmönster
 
-- **Fake framför mock för datalagret.** Repositories byggs i test med `FakeCollection`.
-  MockK för samverkande beroenden som inte är datalager.
-- **Injicera dispatcher**; kalla aldrig `Dispatchers.IO` direkt i testbar kod.
-- **Turbine** för `StateFlow`/`Flow`, inte manuell `collect`.
+- Repositories byggs i test med `FakeCollection`.
 - **`:core` är synkron** – testa rena funktioner direkt, inga coroutines.
-- **Nytt konstruktorberoende på en ViewModel** → alla dess tester får beroendet.
 
 ## Tester mot Firebase-emulatorn
 
@@ -143,24 +138,22 @@ node --test '.claude/hooks/test/*.test.mjs'           # hooktest, alltid
 (saknas den: kör `.claude/hooks/install-android-sdk.sh` – det är alltid ok att installera Android SDK och liknande verktyg i sessionen; bara om installationen inte går får CI bekräfta); Firebase-emulatorn kräver Java 21 och `npm ci` i
 `tools/db`. `LC_ALL=C.UTF-8` (testnamn med å/ä/ö) sätts av `.claude/settings.json`. Kör en Gradle-körning i taget. Bara instrumenttesterna kräver Android-emulator
 och körs i Actions (`instrumented.yml`, i PR:er som rör koden de testar). Går ett kommando inte att köra (nät, SDK saknas):
-säg det i PR:en. Vid rött CI – låt agenten `ci-doktor` diagnostisera.
+säg det i PR:en. Vid rött CI – låt agenten `android:ci-doktor` diagnostisera.
 
-## Fallgropar
+## Dagbokens tillägg till anti-mönstren
 
-- **Första Gradle-körningen i en ny session** hämtar Gradle, plattformen och build-tools
-  (flera minuter). Kör den i bakgrunden och fortsätt med annat.
-- **Plattformspaketet heter `android-37.0`**, inte `android-37`, från API 37 – skriptet låter
-  Gradle hämta rätt paket i stället för att gissa namnet.
-- **Två Gradle-körningar samtidigt** låser varandra eller ger förvirrande cachefel – vänta in
-  den första.
-
-## Anti-mönster
-
-- Ta bort, `@Ignore`:a eller försvaga ett rött test för att bli klar.
-- Köra om ett test tills det blir grönt.
 - Blockera utan tidsgräns i en uppställning (`runBlocking`, `Tasks.await`, lås) – en hängning ska
   bli ett rött test med stackar, inte ett CI-jobb som når sin gräns.
-- Testa implementation (interna anrop) i stället för beteende.
-- Skriva om ramens beteende-tester i varje feature i stället för att köra kontraktet.
-- Spela in nya referensbilder för att tysta en diff du inte förstår.
-- Ny funktion utan test "för att den är liten".
+
+## För testskrivaren
+
+Agenten `android:testskrivare` (pluginen) läser det här utöver tabellerna ovan:
+
+- **Läs också** `data-safety-backup` vid data och konverteraren, `notifications-alarms` vid larm,
+  `diagram` vid diagrammatematik.
+- **Hjälparna:** `FakeCollection<T>`, `CollectionContract`, codec-hjälparna, `MainDispatcherRule`,
+  `runListScreenContract`, `runEditScreenContract` och fixturen `tools/db/test/fixtures/user.json`.
+- **Fixturer:** 3.x-backupen byggs med **varje** fält satt (OMB-3). Datum- och dosfall med fasta
+  datum, även kring midnatt; klockan injiceras (`Clock`).
+- **Testdata** är syntetisk – aldrig utdrag ur en riktig backup (hälsodata).
+- **Firestore** bara mot emulatorn (`demo-dagboken`).

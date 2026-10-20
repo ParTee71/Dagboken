@@ -11,10 +11,15 @@ som finns i `.claude/agents/` och `.claude/skills/`.
 |---|---|
 | `byggare` | Portar, komponenter, skärmar på ramarna och CI-filer enligt en klar plan (Opus · medium). |
 | `arkitekt` | Datamodell, codecs, 3.x-konverteraren, rules, migrering och arkitekturval (Opus · high). |
-| `granskare` | Före varje PR: granskar diffen mot de fem reglerna och mockup-regeln, rapporterar i en tabell. |
-| `ci-doktor` | Vid rött CI: läser loggar, skärmdumpsdiffar och CPD-rapporter, föreslår fix. |
-| `testskrivare` | Skriver/utökar tester och fixturer med de delade testhjälparna – när tre eller fler testnivåer berörs. |
 | `db-inspektor` | Svarar på frågor om faktisk data i Firestore, endast läsning (Haiku · low). |
+
+Från pluginen (generella, läser Dagbokens delar ur repot; listade i `.github/scripts/plugin-agents.txt`):
+
+| Agent | När |
+|---|---|
+| `android:granskare` | Före varje PR: granskar diffen mot de fem reglerna och mockup-regeln, rapporterar i en tabell. Dagbokens kontrollpunkter: `android-projekt` → Granskning. |
+| `android:ci-doktor` | Vid rött CI: läser loggar, skärmdumpsdiffar och CPD-rapporter, föreslår fix. Dagbokens felklasser: `ci-budget` → Felklasser. |
+| `android:testskrivare` | Skriver/utökar tester och fixturer – när tre eller fler testnivåer berörs. Dagbokens regler: `testing-strategy` → För testskrivaren. |
 
 ## Modellval
 
@@ -41,21 +46,22 @@ issue utifrån den här tabellen (Dagbokens agenter och etapptabellen: `android-
 | `notifications-alarms` | Påminnelser och larm: exakta larm, kanaler, omschemaläggning, schemat ur Firestore-cachen. |
 | `data-privacy-security` | Hälsodata, loggning, EU-region, hemligheter, notiser, minify. |
 | **`data-safety-backup`** | Regel 1 – codecs, schemaversion, export/import, rundtur och 3.x-konverteraren. |
-| **`testing-strategy`** | Regel 2 – testnivåer, kontraktstester, skärmdumpar. |
+| **`testing-strategy`** | Regel 2 i Dagboken – testnivåer, hjälpare, kontraktstester, skärmdumpar, kommandon. Det generella: `android:testing-strategy`. |
 | **`requirements-kravlista`** | Regel 3 – hålla KRAVLISTA.md aktuell, paritetschecklistan. |
 | **`shared-ui-components`** | Regel 4 – komponenter, ramar, byggstenar, förbud, kontroller. |
-| **`ci-budget`** | Regel 5 – vad som körs när i CI. |
+| **`ci-budget`** | Regel 5 i Dagboken – vad som körs när i CI och felklasser. Det generella: `android:ci-budget`. |
 | `ui-style` | Designspråket Papper och teal (Material 3 Expressive). |
 | `diagram` | Diagrammen i `ui/diagram` och diagrammatematiken i `:core/engine` (TRD-6…18, HEM-7, HLS-10/11/13). |
 | `firestore-data-layer` | `FirestoreCollection`, `DocCodec`, repositories, `UserSession`, offline, rules. |
 | `db-access` | Läsa databasen från en Claude-session. |
 
-Fjorton generella skills kommer från pluginen `android@claude-android` och heter `android:<namn>`
+Sexton generella skills och tre agenter kommer från pluginen `android@claude-android` och heter `android:<namn>`
 i sessionen: `android-dev` (baslinje, ladda alltid), `compose-expert`, `kotlin-coroutines`,
 `kotlin-flows`, `navigation-3`, `accessibility-compose`, `android-gradle-logic`, `firebase-auth`,
 `mockup` (mockup före ny GUI), `refine-issue` (förfina en idé till ett planerat issue),
 `implement-issue` (genomföra ett issue hela vägen till PR, med merge-kontroll först), `release`
-(endast vid uttrycklig release; versionshöjningen i funktions-PR:en) samt Googles `android-intent-security` (manifest, notisers
+(endast vid uttrycklig release; versionshöjningen i funktions-PR:en), `testing-strategy` och `ci-budget`
+(det generella i regel 2 och 5) samt Googles `android-intent-security` (manifest, notisers
 `PendingIntent`, delning) och `firebase-security-rules-auditor` (vid varje ändring i `firestore.rules`).
 Pluginen är generell; Dagbokens delar och nuvarande avvikelser står i `android-projekt`, och där
 de krockar gäller projektets regler. Namnen listas i `.github/scripts/plugin-skills.txt`, som

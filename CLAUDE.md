@@ -122,7 +122,7 @@ skärmdumparna i PR:en i skill **android-projekt**.
 
 ## Innan du anser dig klar
 
-Gå igenom de fem reglerna och mockup-regeln. Agenten `granskare` gör det på diffen och
+Gå igenom de fem reglerna och mockup-regeln. Agenten `android:granskare` (pluginen) gör det på diffen och
 rapporterar i en tabell (skill **android:implement-issue**, steg 8).
 
 ## PR-flöde
@@ -140,7 +140,7 @@ rapporterar i en tabell (skill **android:implement-issue**, steg 8).
   uttrycklig begäran.
 - **Prenumerera automatiskt** på PR-aktivitet (`subscribe_pr_activity`) så fort en PR
   skapas, utan att fråga. Bevaka tills den är mergad eller stängd: fixa CI-fel, hantera
-  granskningskommentarer, schemalägg check-in. Vid rött CI: låt agenten `ci-doktor`
+  granskningskommentarer, schemalägg check-in. Vid rött CI: låt agenten `android:ci-doktor`
   diagnostisera. Avsluta prenumerationen när PR:en är klar.
 - **Delegera på rätt nivå** (ARKITEKTUR.md → Agenter): huvudsessionen orkestrerar och granskar;
   agenten `byggare` tar portar, komponenter, skärmar och CI-filer, agenten `arkitekt` datamodell,
@@ -188,7 +188,7 @@ bara på uttrycklig begäran via `import.mjs`/`migrate.mjs`.
 
 ## Agenter och skills
 
-Agenterna (`byggare`, `arkitekt`, `granskare`, `ci-doktor`, `testskrivare`, `db-inspektor`)
+Agenterna (`byggare`, `arkitekt`, `db-inspektor` och pluginens `android:granskare`, `android:ci-doktor`, `android:testskrivare`)
 och alla skills, med när de används, listas i [.claude/README.md](.claude/README.md). Modell
 och effort står i varje agents frontmatter (ARKITEKTUR.md → Agenter).
 

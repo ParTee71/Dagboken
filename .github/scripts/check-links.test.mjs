@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PLUGIN_SKILLS, check, mentions, parsePluginSkills, relativeLinks, tableNames } from './check-links.mjs';
+import { PLUGIN_AGENTS, PLUGIN_SKILLS, check, mentions, parsePluginSkills, relativeLinks, tableNames } from './check-links.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -99,5 +99,20 @@ const pluginDir = '/home/user/claude-android/plugins/android/skills';
 test('plugin-skills.txt listar exakt pluginens skills', { skip: !existsSync(pluginDir) && 'pluginen är inte klonad' }, () => {
   const listed = [...parsePluginSkills(readFileSync(path.join(repoRoot, PLUGIN_SKILLS), 'utf8'))].sort();
   const actual = readdirSync(pluginDir).filter((n) => existsSync(path.join(pluginDir, n, 'SKILL.md'))).sort();
+  assert.deepEqual(listed, actual);
+});
+
+test('pluginagenter med prefixet android: kontrolleras mot plugin-agents.txt', () => {
+  const dir = makeRepo({
+    '.github/scripts/plugin-agents.txt': '# kommentar\ngranskare\n',
+    'ARKITEKTUR.md': 'Kör agenten `android:granskare` och agenten **android:finns-inte**.',
+  });
+  assert.deepEqual(check(dir), ['ARKITEKTUR.md: agenten `android:finns-inte` finns inte i .github/scripts/plugin-agents.txt']);
+});
+
+const pluginAgentsDir = '/home/user/claude-android/plugins/android/agents';
+test('plugin-agents.txt listar exakt pluginens agenter', { skip: !existsSync(pluginAgentsDir) && 'pluginen är inte klonad' }, () => {
+  const listed = [...parsePluginSkills(readFileSync(path.join(repoRoot, PLUGIN_AGENTS), 'utf8'))].sort();
+  const actual = readdirSync(pluginAgentsDir).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3)).sort();
   assert.deepEqual(listed, actual);
 });
