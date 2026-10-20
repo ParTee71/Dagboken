@@ -93,8 +93,9 @@ Utvecklingen sker mest från telefonen. Claude-sessionen har allt som behövs f�
 och läsa databasen – utan att nycklar någonsin klistras in i chatten.
 
 ### Det som ligger i repot
-- `CLAUDE.md`, skills och agenter i `.claude/` (översikt i [`.claude/README.md`](.claude/README.md); agenterna `byggare`, `arkitekt`, `testskrivare`,
-  `granskare`, `ci-doktor` och `db-inspektor` med modell och effort i frontmatter, ARKITEKTUR.md → Agenter).
+- `CLAUDE.md`, skills och agenter i `.claude/` (översikt i [`.claude/README.md`](.claude/README.md); agenterna `byggare`, `arkitekt` och
+  `db-inspektor` med modell och effort i frontmatter; `granskare`, `ci-doktor` och `testskrivare` kommer från pluginen
+  android@claude-android, ARKITEKTUR.md → Agenter).
 - `.claude/settings.json` förhandsgodkänner utan fråga:
   - läsning av PR:er, CI-status och jobbloggar, och bevakning av PR-aktivitet;
   - schemalagda check-ins och triggers (skapa, ändra, ta bort, köra), så att Claude kan följa

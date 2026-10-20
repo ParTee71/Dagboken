@@ -2,8 +2,8 @@
 // Dokumentkontroll: relativa länkar och nämnda skills/agenter i dokumentationen finns, och
 // tabellerna i .claude/README.md listar exakt de skills och agenter som finns i .claude/.
 // Framåtreferenser till sådant som byggs senare står i link-allowlist.txt (töms allteftersom).
-// Pluginens skills (`android:<namn>`, pluginen android@claude-android) står i plugin-skills.txt –
-// pluginen finns inte i CI, så listan i repot är facit.
+// Pluginens skills och agenter (`android:<namn>`, pluginen android@claude-android) står i
+// plugin-skills.txt och plugin-agents.txt – pluginen finns inte i CI, så listorna i repot är facit.
 // Kör: node .github/scripts/check-links.mjs  (testas av check-links.test.mjs)
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -15,6 +15,8 @@ export const ALLOWLIST = '.github/scripts/link-allowlist.txt';
 export const TABLES = '.claude/README.md';
 /** Pluginens skillnamn utan prefix, en per rad (pluginen android@claude-android). */
 export const PLUGIN_SKILLS = '.github/scripts/plugin-skills.txt';
+/** Pluginens agentnamn utan prefix, en per rad (samma format som plugin-skills.txt). */
+export const PLUGIN_AGENTS = '.github/scripts/plugin-agents.txt';
 export const PLUGIN_PREFIX = 'android:';
 
 /** Dokumenten som kontrolleras: rotens md-filer och allt i .claude/ (utom lokala inställningar). */
@@ -81,10 +83,13 @@ function parseAllowlist(text) {
 
 export function check(root) {
   const allow = existsSync(path.join(root, ALLOWLIST)) ? parseAllowlist(readFileSync(path.join(root, ALLOWLIST), 'utf8')) : new Set();
-  const plugin = existsSync(path.join(root, PLUGIN_SKILLS)) ? parsePluginSkills(readFileSync(path.join(root, PLUGIN_SKILLS), 'utf8')) : new Set();
+  const readList = (file) => (existsSync(path.join(root, file)) ? parsePluginSkills(readFileSync(path.join(root, file), 'utf8')) : new Set());
+  const plugin = readList(PLUGIN_SKILLS);
+  const pluginAgents = readList(PLUGIN_AGENTS);
   const skillExists = (n) => existsSync(path.join(root, '.claude/skills', n, 'SKILL.md'));
   const mentionedSkillExists = (n) => (n.startsWith(PLUGIN_PREFIX) ? plugin.has(n.slice(PLUGIN_PREFIX.length)) : skillExists(n));
   const agentExists = (n) => existsSync(path.join(root, '.claude/agents', `${n}.md`));
+  const mentionedAgentExists = (n) => (n.startsWith(PLUGIN_PREFIX) ? pluginAgents.has(n.slice(PLUGIN_PREFIX.length)) : agentExists(n));
   const problems = [];
   const report = (file, target, what) => {
     if (!allow.has(`${file}:${target}`)) problems.push(`${file}: ${what}`);
@@ -100,7 +105,10 @@ export function check(root) {
       if (mentionedSkillExists(s)) continue;
       report(file, s, s.startsWith(PLUGIN_PREFIX) ? `skill \`${s}\` finns inte i ${PLUGIN_SKILLS}` : `skill \`${s}\` finns inte i .claude/skills/`);
     }
-    for (const a of agents) if (!agentExists(a)) report(file, a, `agenten \`${a}\` finns inte i .claude/agents/`);
+    for (const a of agents) {
+      if (mentionedAgentExists(a)) continue;
+      report(file, a, a.startsWith(PLUGIN_PREFIX) ? `agenten \`${a}\` finns inte i ${PLUGIN_AGENTS}` : `agenten \`${a}\` finns inte i .claude/agents/`);
+    }
   }
 
   const tables = existsSync(path.join(root, TABLES)) ? readFileSync(path.join(root, TABLES), 'utf8') : '';

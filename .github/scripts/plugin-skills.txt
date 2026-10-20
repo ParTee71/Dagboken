@@ -6,6 +6,7 @@ accessibility-compose
 android-dev
 android-gradle-logic
 android-intent-security
+ci-budget
 compose-expert
 firebase-auth
 firebase-security-rules-auditor
@@ -16,3 +17,4 @@ mockup
 navigation-3
 refine-issue
 release
+testing-strategy

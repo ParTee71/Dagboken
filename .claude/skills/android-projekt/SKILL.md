@@ -167,12 +167,12 @@ Stegen står i pluginen; det här är Dagbokens delar.
   fixtur med varje fält satt (OMB-3, skill `data-safety-backup`).
 - **Agenter** (ARKITEKTUR.md → "CI, verktyg, skills och agenter"): huvudsessionen orkestrerar och
   granskar; agenten `byggare` tar portar, komponenter, skärmar på ramarna och CI-filer, agenten
-  `arkitekt` datamodell, codecs, konverteraren, rules, migrering och arkitekturval, `testskrivare`
-  tester på tre eller fler nivåer, `granskare` diffen (steg 8), `ci-doktor` rött CI och
-  `db-inspektor` faktisk data. Går ett steg fel två gånger i rad flyttas det upp en nivå
+  `arkitekt` datamodell, codecs, konverteraren, rules, migrering och arkitekturval, pluginens
+  `android:testskrivare` tester på tre eller fler nivåer, `android:granskare` diffen (steg 8),
+  `android:ci-doktor` rött CI och `db-inspektor` faktisk data. Går ett steg fel två gånger i rad flyttas det upp en nivå
   (`byggare` → `arkitekt`, Sonnet → Opus). Saknar issuet **Agent · modell · effort** kompletteras
   det utifrån etapptabellen (avsnittet Issues nedan).
-- **`/code-review` krävs** (efter `granskare`) när ändringen rör logik i `:core` (motorer,
+- **`/code-review` krävs** (efter `android:granskare`) när ändringen rör logik i `:core` (motorer,
   diagrammatematik, konverteraren), datalagret, `firestore.rules`, `tools/db`, larmen eller en
   delad ram eller komponent (`ui/components`, `ui/diagram`, `ui/common`), eller när diffen är
   större än ett par filer.
@@ -187,6 +187,33 @@ Stegen står i pluginen; det här är Dagbokens delar.
 - **Emulatortesterna:** jobbet `instrumented` körs i PR:er som rör filtret `instrumented`, och
   `ci-ok` fäller PR:en om det blir rött eller avbryts; ett överhoppat jobb fäller inte (skill
   `ci-budget`).
+
+## Granskning (agenten android:granskare)
+
+Pluginens granskare har de generella kontrollpunkterna; de här gäller Dagboken 4.0 (ombyggnaden
+enligt `ARKITEKTUR.md`) i tillägg.
+
+**Läs efter diffen:** persisterad data, codecs, konverteraren, rules → `data-safety-backup`;
+tester → `testing-strategy`; UI, komponenter, ramar, byggstenar → `shared-ui-components`; CI,
+beroenden → `ci-budget`; GUI → avsnittet Mockup här och `ui-style`; hälsodata, loggning,
+hemligheter → `data-privacy-security`; larm och notiser → `notifications-alarms`.
+
+- **Regel 1:** skrivning som inte går via `upsert` med merge, codec som inte skriver alla kända
+  fält; nytt persisterat fält eller ny samling utan default, codec via fälthjälpare,
+  `firestore.rules`, rad i `tools/db/lib/collections.mjs` och rundturstest som asserterar på
+  fältet? Ändring av 3.x-konverteraren (`legacy/BackupJsonConverter`) utan att fixturen med
+  **varje** 3.x-fält satt följer med (OMB-3)? Något 3.x-fält som saknar plats i 4.0-modellen
+  (ADR-001, beslut 11)?
+- **Regel 3:** 3.x-lydelse som ändras utan att stå kvar struken med hänvisning? Gemensamt
+  beteende beskrivet igen i stället för referens (NFR-15–18, NAV)?
+- **Version:** beteende är `app/src/main/**`, `core/src/main/**`, byggfiler och
+  `app/src/main/assets/medicines.tsv`; versionen står i `version.properties`.
+- **Regel 4:** avvikelse från designspråket Papper och teal; postkort eller listrad som bryter
+  NFR-15–18; diagrammatematik eller beräkningar i `:app` som hör hemma i `:core`.
+- **Regel 5:** Android-emulatorn bara i jobbet `instrumented` (filter `instrumented`);
+  Firebase-emulatorn i jobbet `rules` (filter `tools`) är tillåten.
+- **Integritet:** loggning av hälsodata (mående, symptom, doser, anteckningar, sjukdomar),
+  Health Connect-data som persisteras (HLS-5).
 
 ## Issues (android:refine-issue)
 
@@ -218,9 +245,9 @@ Stegen står i pluginen; det här är Dagbokens delar.
   |---|---|---|
   | `byggare` | portar, komponenter, skärmar på ramarna, CI-filer | Opus · medium |
   | `arkitekt` | datamodell, codecs, konverteraren, rules, migrering, arkitekturval | Opus · high (Fable vid väldigt komplexa issues) |
-  | `testskrivare` | tester när tre eller fler nivåer berörs | Sonnet · medium |
-  | `granskare` | granskningen i steg 8, alltid med | sessionens modell · medium |
-  | `ci-doktor` | rött CI – startas vid behov, anges inte i förväg | Sonnet · medium |
+  | `android:testskrivare` | tester när tre eller fler nivåer berörs | Sonnet · medium |
+  | `android:granskare` | granskningen i steg 8, alltid med | sessionens modell · medium |
+  | `android:ci-doktor` | rött CI – startas vid behov, anges inte i förväg | Sonnet · medium |
   | `db-inspektor` | faktisk data, bara läsning – anges när issuet kräver det | Haiku · low |
 
   Data, rules och migrering minst `arkitekt` · high. Exempel: `arkitekt` · Fable · high – codecs

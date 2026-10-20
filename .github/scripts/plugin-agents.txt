@@ -1,0 +1,7 @@
+# Agenter i pluginen android@claude-android (ParTee71/claude-android, plugins/android/agents/),
+# som sessionen kallar android:<namn>. check-links.mjs godtar "agenten `android:<namn>`" bara för
+# namnen här – pluginen klonas inte i CI. Uppdatera listan när pluginen får eller tappar en agent;
+# lokalt jämför check-links.test.mjs den mot /home/user/claude-android när klonen finns.
+ci-doktor
+granskare
+testskrivare

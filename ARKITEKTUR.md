@@ -633,9 +633,9 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
   |---|---|---|
   | `byggare` (ny) | Opus 5.5 · medium | portar, komponenter, skärmar på ramarna, CI-filer |
   | `arkitekt` (ny) | Opus 5.5 · high (Fable 5.1 vid väldigt komplexa issues) | datamodell, codecs, konverterare, rules, migrering |
-  | `testskrivare` | Sonnet 5.5 · medium | tester på tre eller fler nivåer, fixturer |
-  | `granskare` | sessionens modell · medium | diffen mot reglerna före varje PR – inte svagare än modellen som skrev koden |
-  | `ci-doktor` | Sonnet 5.5 · medium | röd CI, loggar, skärmdumpsdiffar |
+  | `android:testskrivare` (pluginen) | Sonnet 5.5 · medium | tester på tre eller fler nivåer, fixturer |
+  | `android:granskare` (pluginen) | sessionens modell · medium | diffen mot reglerna före varje PR – inte svagare än modellen som skrev koden |
+  | `android:ci-doktor` (pluginen) | Sonnet 5.5 · medium | röd CI, loggar, skärmdumpsdiffar |
   | `db-inspektor` | Haiku 4.5 · low | läsfrågor mot Firestore via `tools/db` |
 
   Regel: går ett steg fel två gånger i rad flyttas det upp en nivå (`byggare` → `arkitekt`,
@@ -665,7 +665,7 @@ Byt upp en nivå så fort något går fel två gånger i rad.
 | **6 · Larm, Health Connect, release** | Notiser mot Firestore-cachen (skill `notifications-alarms`), Health Connect-port uppdelad (hälsomotorn i `:core` #276, sedan porten #243 som byter bindningarna för `HealthRepository` och `HealthPermissions` – manifest, behörighetsflöde och läsning; skärmarna från etapp 5 ändras inte), `release.yml`, första release efter grön kravlista. | 3 | Opus · high (larm); Opus · medium (Health Connect); Sonnet · low (release) |
 
 Varje PR: mockup godkänd före GUI, tester på alla berörda nivåer, kravrader avbockade i
-PR-beskrivningen, `granskare` + `/code-review` före push, en PR i taget.
+PR-beskrivningen, `android:granskare` + `/code-review` före push, en PR i taget.
 
 ---
 
