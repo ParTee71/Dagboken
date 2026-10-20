@@ -147,8 +147,8 @@ service cloud.firestore {
     // gemener a–z och _ utom orden true, false och null (TagCatalog.TOKEN i :core, DocumentRules.TAG_TOKEN, hålls lika
     // av DocumentRulesTest). Katalogtillhörigheten kontrolleras inte: ett okänt token med giltig form bevaras av codecen.
     // Samma billiga form som isFeelings, med taket ({0,10}) och typen i mönstret: ett sant/falskt- eller null-element
-    // blir ordet true/false/null i join(' '), som mönstret utesluter (RE2 saknar lookahead, därav uppräkningen), ett tal
-    // ger siffror och en lista eller ett objekt fel (nekad). En typkontroll per element (hasAny) rymdes inte i
+    // blir ordet true/false/null i join(' '), som mönstret utesluter (RE2 saknar lookahead, därav uppräkningen); ett tal,
+    // en lista eller ett objekt nekas också (join felar eller ger tecken utanför mönstret – rules-testet prövar alla). En typkontroll per element (hasAny) rymdes inte i
     // måendeloggens uttrycksbudget (#321). Ett element med mellanslag ser ut som två – DocumentRules nekar det.
     function isTags(l) {
       return l == [] || l.join(' ').matches('^([a-z_]{1,3}|[a-z_]{6,32}|[a-mo-su-z_][a-z_]{3}|t([a-qs-z_][a-z_]{2}|r([a-tv-z_][a-z_]|u[a-df-z_]))|n([a-tv-z_][a-z_]{2}|u([a-km-z_][a-z_]|l[a-km-z_]))|[a-eg-z_][a-z_]{4}|f([b-z_][a-z_]{3}|a([a-km-z_][a-z_]{2}|l([a-rt-z_][a-z_]|s[a-df-z_]))))( ([a-z_]{1,3}|[a-z_]{6,32}|[a-mo-su-z_][a-z_]{3}|t([a-qs-z_][a-z_]{2}|r([a-tv-z_][a-z_]|u[a-df-z_]))|n([a-tv-z_][a-z_]{2}|u([a-km-z_][a-z_]|l[a-km-z_]))|[a-eg-z_][a-z_]{4}|f([b-z_][a-z_]{3}|a([a-km-z_][a-z_]{2}|l([a-rt-z_][a-z_]|s[a-df-z_]))))){0,10}$');

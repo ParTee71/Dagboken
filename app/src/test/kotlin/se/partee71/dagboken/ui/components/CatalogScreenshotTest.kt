@@ -249,7 +249,7 @@ class CatalogScreenshotTest {
         captureLightAndDark("ChoiceChips_val") {
             Sheet { ChoiceChips(listOf("Frukost", "Lunch", "Middag", "Kväll"), "Middag", {}, { it }) }
         }
-        captureLightAndDark("ChoiceChips_flerval") {
+        captureLightAndDark("MultiChoiceChips_flerval") {
             Sheet { MultiChoiceChips(listOf("Sömn", "Familj", "Arbete", "Hälsa", "Väder", "Ekonomi"), setOf("Sömn", "Väder"), onToggle = {}, label = { it }) }
         }
         captureLightAndDark("LabeledGroup_form") {

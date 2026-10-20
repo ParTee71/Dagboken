@@ -80,13 +80,16 @@ object BodySensationCatalog : TagCatalog(
         "tired_body", // Trött i kroppen
         "light_body", // Lätt i kroppen
         "warm_soft", // Varm och mjuk
-        "nothing" // Ingenting särskilt
+        NOTHING_TOKEN // Ingenting särskilt
     ),
-    exclusive = "nothing"
+    exclusive = NOTHING_TOKEN
 ) {
     /** "Ingenting särskilt" – utesluter de andra. */
-    const val NOTHING = "nothing"
+    const val NOTHING = NOTHING_TOKEN
 }
+
+/** Tokenet för "Ingenting särskilt" – skrivet en gång; [BodySensationCatalog.NOTHING] är namnet utåt. */
+private const val NOTHING_TOKEN = "nothing"
 
 /** Sammanhanget kring en måendelogg (`screenings.context`, DAT-15): vad det har med att göra. Resursnyckeln är `context_<token>`. */
 object ContextTagCatalog : TagCatalog(

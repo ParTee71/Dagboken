@@ -28,7 +28,7 @@ fun <T> ChoiceChips(
 @Composable
 fun <T> MultiChoiceChips(
     options: List<T>,
-    selected: Set<T>,
+    selected: Collection<T>,
     onToggle: (T) -> Unit,
     label: @Composable (T) -> String,
     modifier: Modifier = Modifier

@@ -10,7 +10,8 @@ import se.partee71.dagboken.core.model.TagCatalog
 
 /**
  * Namnet på [token] i [catalog] (resursen `body_<token>` respektive `context_<token>`). Bara katalogernas egna tokens
- * visas som val, så ett okänt token (från en nyare app) slås aldrig upp; det ger `null`.
+ * visas som val, så ett okänt token (från en nyare app) slås aldrig upp; det ger `null`, och anroparen visar då
+ * tokenet självt i stället för att krascha. `TagTextTest` bevisar att varje token i katalogerna har ett namn.
  */
 @StringRes
 fun tagName(catalog: TagCatalog, token: String): Int? = when (catalog) {

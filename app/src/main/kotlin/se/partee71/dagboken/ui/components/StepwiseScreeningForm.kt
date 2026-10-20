@@ -87,7 +87,6 @@ fun StepwiseScreeningForm(
             style = AppTypography.caption,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        if (steps.getOrNull(pager.currentPage) == ScreeningStep.BODY_CONTEXT) HelperText(stringResource(R.string.body_context_optional), inset = false)
         HorizontalPager(pager, Modifier.fillMaxWidth(), pageSpacing = Spacing.l, verticalAlignment = Alignment.Top) { page ->
             when (steps.getOrNull(page)) {
                 ScreeningStep.ENERGY -> ValueSlider(stringResource(R.string.energy), energy, onEnergyChange)
@@ -156,6 +155,7 @@ internal fun RowScope.StepwiseScreeningNavigation(state: StepwiseScreeningState,
 @Composable
 private fun BodyContextStep(body: List<String>, onBodyChange: (List<String>) -> Unit, context: List<String>, onContextChange: (List<String>) -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.l)) {
+        HelperText(stringResource(R.string.body_context_optional))
         TagGroup(stringResource(R.string.body_title), BodySensationCatalog, body, onBodyChange)
         TagGroup(stringResource(R.string.context_title), ContextTagCatalog, context, onContextChange)
     }
@@ -166,9 +166,9 @@ private fun TagGroup(title: String, catalog: TagCatalog, selected: List<String>,
     LabeledGroup(title) {
         MultiChoiceChips(
             catalog.tokens,
-            selected.toSet(),
+            selected,
             onToggle = { token -> catalog.toggle(selected, token).takeIf { it != selected }?.let(onChange) },
-            label = { stringResource(checkNotNull(tagName(catalog, it))) }
+            label = { token -> tagName(catalog, token)?.let { stringResource(it) } ?: token }
         )
     }
 }
