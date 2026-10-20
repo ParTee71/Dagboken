@@ -11,6 +11,7 @@ import kotlinx.datetime.TimeZone
 import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Profile
@@ -143,6 +144,27 @@ class ProfileAndRemindersViewModelTest {
         assertEquals(OccasionReminder(Occasion.BEDTIME, enabled = true, time = LocalTime(22, 15)), stored.screeningOccasions.last())
         assertEquals(LocalTime(8, 0), stored.periodReminderTime)
         assertFalse(vm.editor.state.value.isDirty)
+    }
+
+    @Test
+    fun `Stunden är av med 2 minuter som standard, ändras och sparas med Spara (NOT-20)`() = runTest(main.dispatcher) {
+        val vm = RemindersEditViewModel(settings)
+        assertEquals(MomentSettings(enabled = false, seconds = 120, takeover = true, question = true), vm.editor.state.value.value.moment)
+
+        val chosen = MomentSettings(enabled = true, seconds = 45, takeover = false, question = false)
+        vm.onEvent(RemindersEvent.MomentChanged(chosen))
+        assertTrue(vm.editor.state.value.isDirty)
+        assertTrue(vm.editor.state.value.canSave)
+        assertEquals(MomentSettings(), settings.get().getOrThrow().reminders.moment, "inget sparat före Spara")
+
+        vm.editor.state.test {
+            vm.onEvent(RemindersEvent.Save)
+            awaitDone(vm.editor)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(chosen, settings.get().getOrThrow().reminders.moment)
+        assertFalse(vm.editor.state.value.isDirty)
+        assertFalse(RemindersEvent.MomentChanged(chosen).turnsOn(ReminderSettings()), "Stunden begär ingen notisbehörighet – den gäller redan påslagna tillfällen")
     }
 
     private fun otherDevice(group: String, fields: Map<String, Any?>) = factory.store.set(Paths.settings("uid-test"), Settings.ID, mapOf(group to fields), merge = true)

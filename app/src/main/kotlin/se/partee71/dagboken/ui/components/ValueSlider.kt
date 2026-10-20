@@ -52,6 +52,11 @@ import se.partee71.ui.theme.Spacing
  * rött. Går skalan under noll (aktivitetens energi −10…+10) markeras nollan mitt på spåret och den
  * fyllda delen utgår från den. Färgen bär aldrig informationen ensam – text och pill visar samma
  * sak, och TalkBack läser etiketten, värdet och nivån ("Energi, 7, Hög").
+ *
+ * [step] låter reglaget bara stanna på var [step]:e värde från `valueRange.first` (standard varje heltal). En längd
+ * eller ett antal som inte är en skala får [valueText]: värdet skrivs då med den texten ("2 min 15 s"), utan nivåpill,
+ * och spåret är temats primärfärg i stället för energiskalan – TalkBack läser etiketten och texten (Stundens längd,
+ * NOT-20). Utan [valueText] och [step] ser reglaget ut som förut.
  */
 @Composable
 fun ValueSlider(
@@ -61,14 +66,22 @@ fun ValueSlider(
     modifier: Modifier = Modifier,
     valueRange: IntRange = 0..10,
     higherIsBetter: Boolean = true,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    step: Int = 1,
+    valueText: String? = null
 ) {
+    require(step >= 1) { "ValueSlider: step måste vara minst 1" }
     val level = scaleLevel(value, valueRange, higherIsBetter)
     val levelText = stringResource(level.label)
-    val shown = scaleValueText(value, valueRange)
-    val state = stringResource(R.string.scale_value_format, shown, levelText)
+    val shown = valueText ?: scaleValueText(value, valueRange)
+    val state = valueText ?: stringResource(R.string.scale_value_format, shown, levelText)
     val energy = AppColors.extended.energy
-    val gradient = if (higherIsBetter) listOf(energy.low, energy.mid, energy.high) else listOf(energy.high, energy.mid, energy.low)
+    val primary = MaterialTheme.colorScheme.primary
+    val gradient = when {
+        valueText != null -> listOf(primary, primary)
+        higherIsBetter -> listOf(energy.low, energy.mid, energy.high)
+        else -> listOf(energy.high, energy.mid, energy.low)
+    }
     val span = (valueRange.last - valueRange.first).coerceAtLeast(1)
     val fraction = (value.coerceIn(valueRange) - valueRange.first).toFloat() / span
     val anchor = if (valueRange.first < 0 && valueRange.last > 0) -valueRange.first.toFloat() / span else 0f
@@ -78,26 +91,29 @@ fun ValueSlider(
             // Etiketten över en formulärkontroll har en stil överallt: GroupLabel, som i LabeledGroup.
             GroupLabel(label, Modifier.weight(1f))
             Text(shown, style = AppTypography.quantity, color = MaterialTheme.colorScheme.onSurface)
-            InfoPill(levelText, tone = level.tone)
+            if (valueText == null) InfoPill(levelText, tone = level.tone)
         }
-        val slider = remember(span, valueRange.first) {
-            SliderState(value.toFloat(), (span - 1).coerceAtLeast(0), valueRange.first.toFloat()..valueRange.last.toFloat())
+        val slider = remember(span, valueRange.first, step) {
+            SliderState(value.toFloat(), (span / step - 1).coerceAtLeast(0), valueRange.first.toFloat()..valueRange.last.toFloat())
         }
         // Värdet ägs av anroparen; reglaget visar alltid det.
         SideEffect { slider.value = value.toFloat() }
         Slider(
             state = slider,
-            onValueChange = { onValueChange(it.roundToInt().coerceIn(valueRange)) },
+            onValueChange = { onValueChange(snap(it, valueRange, step)) },
             modifier = Modifier.fillMaxWidth().semantics {
                 contentDescription = label
                 stateDescription = state
             },
             enabled = enabled,
-            thumb = { Thumb(level.color) },
+            thumb = { Thumb(if (valueText != null) primary else level.color) },
             track = { GradientTrack(gradient, fraction, anchor) }
         )
     }
 }
+
+/** Reglagets läge [position] som värde: närmaste [step]-steg från `valueRange.first`, inom [valueRange]. */
+private fun snap(position: Float, valueRange: IntRange, step: Int): Int = (valueRange.first + ((position - valueRange.first) / step).roundToInt() * step).coerceIn(valueRange)
 
 /** Tummen: en ring i nivåns färg, i en 48 dp stor yta – så blir hela reglaget minst 48 dp högt (NFR-14). */
 @Composable

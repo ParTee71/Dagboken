@@ -111,7 +111,8 @@ class ReminderActions @Inject constructor(
 
     /**
      * Andra steget: notisen för larmet som utlöstes [firedAt] – medicin (NOT-3, NOT-17: tidpunktens otagna doser,
-     * ingen notis när inget är kvar), mående (NOT-19: uteblir för ett loggat tillfälle) eller periodslut (NOT-12).
+     * ingen notis när inget är kvar), mående (NOT-19: uteblir för ett loggat tillfälle; NOT-20: Stunden när den är på)
+     * eller periodslut (NOT-12).
      */
     suspend fun notify(intent: Intent, firedAt: Instant) {
         when (val reminder = intent.reminder() ?: return) {
@@ -120,7 +121,8 @@ class ReminderActions @Inject constructor(
                 notifications.postMedReminder(reminder.slot, date, content.medDoses(reminder.slot, date).all)
             }
 
-            is Reminder.Mood -> if (content.moodDue(reminder.occasion)) notifications.postMoodReminder(reminder.occasion)
+            // NOT-20: med Stunden på blir tillfällets måendenotis Stunden-notisen (samma id).
+            is Reminder.Mood -> content.moodNotice(reminder.occasion)?.let { notifications.postMoodReminder(reminder.occasion, it.moment, it.takeover) }
 
             Reminder.PeriodEnd -> notifications.postPeriodReminder(content.periodEndings())
         }

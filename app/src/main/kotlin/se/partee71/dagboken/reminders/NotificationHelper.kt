@@ -8,6 +8,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.DrawableRes
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -25,6 +26,7 @@ import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.ui.common.doseText
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.medicineTitle
+import se.partee71.dagboken.ui.moment.MomentActivity
 
 /**
  * Notiskanalerna och påminnelsernas notiser (NOT-1, NOT-9…NOT-12, NOT-17; skill notifications-alarms). Alla
@@ -37,7 +39,10 @@ import se.partee71.dagboken.ui.common.medicineTitle
 class NotificationHelper @Inject constructor(@ApplicationContext private val context: Context) {
     private val manager = NotificationManagerCompat.from(context)
 
-    /** NOT-1: kanalerna – idempotent; anropas vid start och före varje notis. */
+    /**
+     * NOT-1: kanalerna – idempotent; anropas vid start och före varje notis. Stunden (NOT-20) har en egen kanal med hög
+     * prioritet: bara den kan visa helskärm och heads-up (Måendepåminnelser är låg).
+     */
     fun createChannels() {
         val system = context.getSystemService(NotificationManager::class.java) ?: return
         system.createNotificationChannel(
@@ -48,7 +53,18 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
             NotificationChannel(CHANNEL_SCREENING, context.getString(R.string.notification_channel_mood_name), NotificationManager.IMPORTANCE_LOW)
                 .apply { description = context.getString(R.string.notification_channel_mood_description) }
         )
+        system.createNotificationChannel(
+            NotificationChannel(CHANNEL_MOMENT, context.getString(R.string.notification_channel_moment_name), NotificationManager.IMPORTANCE_HIGH)
+                .apply { description = context.getString(R.string.notification_channel_moment_description) }
+        )
     }
+
+    /**
+     * NOT-20: om systemet låter appen visa helskärmsnotiser (behörigheten kan dras in från Android 14) – [reminderAccess].
+     * Utbytbar i test: Robolectric har ingen skugga för `canUseFullScreenIntent`.
+     */
+    @VisibleForTesting
+    internal var canUseFullScreen: () -> Boolean = { context.reminderAccess().fullScreen }
 
     /** Om appen får visa notiser (POST_NOTIFICATIONS från API 33, och inte avstängda i systemet) – [reminderAccess]. */
     fun canPost(): Boolean = context.reminderAccess().notifications
@@ -79,16 +95,35 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
         notify(medId(slot), notification)
     }
 
-    /** NOT-4, NOT-9, NOT-11: måendepåminnelsen för [occasion]; "Logga nu" öppnar Idag med tillfällets måendeark. */
-    fun postMoodReminder(occasion: Occasion) {
+    /**
+     * NOT-4, NOT-9, NOT-11: måendepåminnelsen för [occasion]; "Logga nu" öppnar Idag med tillfällets måendeark. Med
+     * [moment] (NOT-20) är det tillfällets Stunden-notis – samma id, "Logga nu" kvar, plus "Starta Stunden" och tryck som
+     * öppnar `MomentActivity`. Med [takeover] och systemets tillåtelse ([canUseFullScreen]) ligger den i kanalen Stunden
+     * med helskärm (låst eller släckt skärm; annars visar systemet den som heads-up); annars är den en vanlig notis i
+     * kanalen Måendepåminnelser. Notisen stängs inte av ett tryck: Inte nu lämnar den kvar, och "Logga nu"/"Välj
+     * känslor" stänger den när appen öppnats ([dismiss]).
+     */
+    fun postMoodReminder(occasion: Occasion, moment: MomentLaunch? = null, takeover: Boolean = false) {
         val logNow = openApp(ReminderLaunch.MOOD, REQUEST_LOG_MOOD_BASE + occasion.ordinal) { putExtra(ReminderIntents.EXTRA_OCCASION, occasion.wire) }
-        val notification = builder(CHANNEL_SCREENING, R.drawable.ic_mood, R.string.notification_mood_public_title)
-            .setContentTitle(context.getString(R.string.notification_mood_title, context.getString(occasion.label())))
-            .setContentText(context.getString(R.string.notification_mood_text))
-            .setContentIntent(openApp(ReminderLaunch.TODAY, REQUEST_OPEN_MOOD_BASE + occasion.ordinal))
-            .addAction(R.drawable.ic_mood, context.getString(R.string.notification_mood_action_log_now), logNow)
-            .build()
-        notify(moodId(occasion), notification)
+        val notification = if (moment == null) {
+            builder(CHANNEL_SCREENING, R.drawable.ic_mood, R.string.notification_mood_public_title)
+                .setContentTitle(context.getString(R.string.notification_mood_title, context.getString(occasion.label())))
+                .setContentText(context.getString(R.string.notification_mood_text))
+                .setContentIntent(openApp(ReminderLaunch.TODAY, REQUEST_OPEN_MOOD_BASE + occasion.ordinal))
+                .addAction(R.drawable.ic_mood, context.getString(R.string.notification_mood_action_log_now), logNow)
+        } else {
+            val fullScreen = takeover && canUseFullScreen()
+            val start = openMoment(moment)
+            builder(if (fullScreen) CHANNEL_MOMENT else CHANNEL_SCREENING, R.drawable.ic_mood, R.string.notification_moment_public_title)
+                .setContentTitle(context.getString(R.string.notification_moment_title, context.getString(occasion.label())))
+                .setContentText(context.getString(R.string.notification_moment_text))
+                .setContentIntent(start)
+                .setAutoCancel(false)
+                .addAction(R.drawable.ic_mood, context.getString(R.string.notification_moment_action_start), start)
+                .addAction(R.drawable.ic_mood, context.getString(R.string.notification_mood_action_log_now), logNow)
+                .apply { if (fullScreen) setPriority(NotificationCompat.PRIORITY_HIGH).setFullScreenIntent(start, true) }
+        }
+        notify(moodId(occasion), notification.build())
     }
 
     /**
@@ -180,6 +215,15 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
         return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
+    /**
+     * NOT-20: Stunden för [moment] – `MomentActivity` (explicit, inte exporterad) i en egen uppgift; samma
+     * `requestCode` per tillfälle, så att en ny Stunden ersätter den förra.
+     */
+    private fun openMoment(moment: MomentLaunch): PendingIntent {
+        val intent = moment.putInto(Intent(context, MomentActivity::class.java)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return PendingIntent.getActivity(context, REQUEST_MOMENT_BASE + moment.occasion.ordinal, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+
     @SuppressLint("MissingPermission") // canPost() prövar POST_NOTIFICATIONS
     private fun notify(id: Int, notification: Notification) {
         createChannels()
@@ -195,6 +239,7 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
     companion object {
         const val CHANNEL_MEDS = "meds"
         const val CHANNEL_SCREENING = "screening"
+        const val CHANNEL_MOMENT = "moment"
 
         /** Medicinpåminnelsens doslista utan tillägg – grunden när notisen uppdateras ([markTakenFailed]). */
         private const val EXTRA_BASE_TEXT = "se.partee71.dagboken.reminders.BASE_TEXT"
@@ -208,5 +253,6 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
         private const val REQUEST_OPEN_MOOD_BASE = 1_200
         private const val REQUEST_LOG_MOOD_BASE = 1_300
         private const val REQUEST_OPEN_PERIOD = 1_400
+        private const val REQUEST_MOMENT_BASE = 1_500
     }
 }

@@ -1,16 +1,20 @@
 package se.partee71.dagboken.reminders
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalTime
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import se.partee71.dagboken.MainActivity
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.navigation.AppBackStack
@@ -19,7 +23,9 @@ import se.partee71.dagboken.navigation.TodayKey
 import se.partee71.dagboken.navigation.TrendsKey
 import se.partee71.dagboken.navigation.open
 import se.partee71.dagboken.reminders.ReminderIntents.slot
+import se.partee71.dagboken.ui.components.ScreeningStep
 import se.partee71.dagboken.ui.log.LogEvent
+import se.partee71.dagboken.ui.moment.MomentActivity
 
 /**
  * Omstartsmottagaren (NOT-6, NOT-14; port av 3.x `BootReceiverActionsTest`), mottagarna i manifestet och vad en tryckt
@@ -120,5 +126,48 @@ class ReminderIntentsTest {
         backStack.open(ReminderLaunch.LogMood(Occasion.LUNCH), events::add)
         assertEquals(TodayKey, backStack.currentTab)
         assertEquals(listOf<LogEvent>(LogEvent.LogScreening(Occasion.LUNCH, date = null, reminder = null)), events)
+    }
+
+    // ── Stunden (NOT-20) ──
+
+    @Test
+    fun `Stundens aktivitet finns, är inte exporterad och visas ovanpå låsskärmen i en egen uppgift (NOT-20)`() {
+        val info = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_ACTIVITIES)
+        val moment = info.activities.orEmpty().single { it.name == MomentActivity::class.java.name }
+        assertFalse(moment.exported)
+        assertEquals(ActivityInfo.LAUNCH_SINGLE_TASK, moment.launchMode)
+        assertTrue(moment.taskAffinity != context.packageName, "egen uppgift, inte appens")
+        assertTrue(moment.flags and ActivityInfo.FLAG_EXCLUDE_FROM_RECENTS != 0)
+        val requested = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS).requestedPermissions.orEmpty()
+        assertTrue(Manifest.permission.USE_FULL_SCREEN_INTENT in requested)
+    }
+
+    @Test
+    fun `Stundens extras - rundtur, okänt tillfälle ger inget och längden avrundas (NOT-20)`() {
+        val moment = MomentLaunch(Occasion.LUNCH, LocalTime(12, 15), seconds = 75, question = false)
+        assertEquals(moment, MomentLaunch.from(moment.putInto(Intent())))
+
+        assertNull(MomentLaunch.from(null))
+        assertNull(MomentLaunch.from(Intent().putExtra(ReminderIntents.EXTRA_OCCASION, "okänt")))
+        val bare = Intent().putExtra(ReminderIntents.EXTRA_OCCASION, Occasion.BEDTIME.wire)
+        assertEquals(MomentLaunch(Occasion.BEDTIME, Occasion.BEDTIME.defaultTime, MomentSettings.DEFAULT_SECONDS, question = true), MomentLaunch.from(bare), "standardvärden")
+        assertEquals(300, MomentLaunch.from(Intent(bare).putExtra(ReminderIntents.EXTRA_SECONDS, 9_999))?.seconds)
+        assertEquals(105, MomentLaunch.from(Intent(bare).putExtra(ReminderIntents.EXTRA_SECONDS, 100))?.seconds)
+    }
+
+    @Test
+    fun `Välj känslor öppnar tillfällets måendeark på känslosteget, och överlever en rotation (NOT-20, SCR-7)`() {
+        val intent = MomentLaunch(Occasion.DINNER, LocalTime(17, 0)).feelingsIntent(context)
+        assertEquals(MainActivity::class.java.name, intent.component?.className, "explicit")
+        assertEquals(setOf(ReminderIntents.EXTRA_OPEN, ReminderIntents.EXTRA_OCCASION), intent.extras?.keySet(), "inga andra extras")
+        val launch = ReminderLaunch.from(intent)
+        assertEquals(ReminderLaunch.LogMood(Occasion.DINNER, feelings = true), launch)
+        val state = android.os.Bundle()
+        ReminderLaunch.save(launch, state)
+        assertEquals(launch, ReminderLaunch.restore(state))
+
+        val events = mutableListOf<LogEvent>()
+        AppBackStack().apply { select(TrendsKey) }.also { it.open(checkNotNull(launch), events::add) }
+        assertEquals(listOf<LogEvent>(LogEvent.LogScreening(Occasion.DINNER, date = null, reminder = null, initialStep = ScreeningStep.FEELINGS)), events)
     }
 }

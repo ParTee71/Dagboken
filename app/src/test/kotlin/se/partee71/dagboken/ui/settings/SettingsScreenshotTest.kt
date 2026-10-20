@@ -10,6 +10,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
@@ -55,6 +56,16 @@ class SettingsScreenshotTest {
     @Test
     fun `Påminnelser - behörigheter saknas`() = rule.captureLightAndDark("Settings_Paminnelser_behorighet") {
         RemindersScreen(EditorUiState(ReminderSettings(medsEnabled = true)), EditorEvents.None, {}, {}, access = ReminderAccess(notifications = false, exactAlarms = false))
+    }
+
+    /** Hela skärmen ner till Stunden (NOT-20): på, 2 min 15 s, och "Tillåt helskärm" när systemet inte tillåter helskärm. */
+    @Test
+    @Config(qualifiers = "w390dp-h2000dp-xxhdpi")
+    fun `Påminnelser - Stunden utan helskärm`() = rule.captureLightAndDark("Settings_Paminnelser_Stunden") {
+        val reminders = ReminderSettings(moment = MomentSettings(enabled = true, seconds = 135)).let { r ->
+            r.copy(screeningOccasions = r.screeningOccasions.map { it.copy(enabled = it.occasion != Occasion.LUNCH) })
+        }
+        RemindersScreen(EditorUiState(reminders), EditorEvents.None, {}, {}, access = ReminderAccess(fullScreen = false))
     }
 
     @Test

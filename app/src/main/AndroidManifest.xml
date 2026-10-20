@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Stunden (NOT-20): helskärm som en väckarklocka när skärmen är låst eller släckt. Från Android 14 kan den dras
+         in i systeminställningarna – då blir det en vanlig notis (ReminderAccess.fullScreen). -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <!-- Health Connect (TP-10, §19 HLS): bara läsbehörigheter, med samtycke i Health Connects dialog. Uppsättningen
          står en gång i kod (HealthPermissionSet); PrivacyManifestTest håller manifestet lika. Inget blodtryck (4.0). -->
@@ -68,6 +71,18 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
             </intent-filter>
         </activity-alias>
+
+        <!-- Stunden (NOT-20): en egen aktivitet ovanpå låsskärmen som bara visar tillfälle, tid, text och fråga – inte
+             exporterad, startas bara av Stunden-notisens egna PendingIntents. En egen uppgift utanför Senaste, så att
+             den aldrig tar med appens innehåll och en ny Stunden ersätter den öppna (singleTask, onNewIntent). -->
+        <activity
+            android:name=".ui.moment.MomentActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="${applicationId}.moment"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true" />
 
         <!-- WorkManager initieras på begäran (DagbokenApplication är Configuration.Provider): bara avbokningen av 3.x:s
              backupjobb använder den (OMB-2), så den automatiska initieraren tas bort. -->

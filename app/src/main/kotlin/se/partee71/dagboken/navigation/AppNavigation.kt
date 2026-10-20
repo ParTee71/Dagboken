@@ -25,6 +25,7 @@ import se.partee71.dagboken.ui.components.AccountSheet
 import se.partee71.dagboken.ui.components.ComponentGallery
 import se.partee71.dagboken.ui.components.LogChoice
 import se.partee71.dagboken.ui.components.LogMenuSheet
+import se.partee71.dagboken.ui.components.ScreeningStep
 import se.partee71.dagboken.ui.components.SettingsPage
 import se.partee71.dagboken.ui.diary.DiaryRoute
 import se.partee71.dagboken.ui.illness.IllnessDetailRoute
@@ -125,7 +126,8 @@ fun AppNavigation(
 
 /**
  * En tryckt påminnelse (NOT-9, NOT-11, NOT-12): medicin- och måendepåminnelsen öppnar Idag – "Logga nu" dessutom
- * måendearket för tillfället, idag och nu ([onEvent]) – och periodslutet fliken Mediciner.
+ * måendearket för tillfället, idag och nu ([onEvent]), Stundens "Välj känslor" samma ark på känslosteget (NOT-20,
+ * SCR-7) – och periodslutet fliken Mediciner.
  */
 fun AppBackStack.open(launch: ReminderLaunch, onEvent: (LogEvent) -> Unit) {
     when (launch) {
@@ -133,7 +135,8 @@ fun AppBackStack.open(launch: ReminderLaunch, onEvent: (LogEvent) -> Unit) {
 
         is ReminderLaunch.LogMood -> {
             select(TodayKey)
-            onEvent(LogEvent.LogScreening(launch.occasion, date = null, reminder = null))
+            val step = if (launch.feelings) ScreeningStep.FEELINGS else ScreeningStep.ENERGY
+            onEvent(LogEvent.LogScreening(launch.occasion, date = null, reminder = null, initialStep = step))
         }
 
         ReminderLaunch.Medicines -> select(MedicinesKey)

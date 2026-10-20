@@ -15,7 +15,9 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.core.engine.PeriodEnding
 import se.partee71.dagboken.core.engine.SlotDoses
+import se.partee71.dagboken.core.engine.enabledOccasionRows
 import se.partee71.dagboken.core.engine.endingOn
+import se.partee71.dagboken.core.engine.isMoment
 import se.partee71.dagboken.core.engine.moodReminderDue
 import se.partee71.dagboken.core.engine.slotDoses
 import se.partee71.dagboken.core.model.Occasion
@@ -27,8 +29,11 @@ import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 
+/** Måendepåminnelsen som ska visas (NOT-4): med [moment] är den tillfällets Stunden (NOT-20), [takeover] = helskärm. */
+data class MoodNotice(val moment: MomentLaunch? = null, val takeover: Boolean = false)
+
 /**
- * Vad en påminnelse visar när den utlöses, och "Markera tagen" (NOT-3, NOT-10, NOT-12, NOT-17, NOT-19) – läst ur
+ * Vad en påminnelse visar när den utlöses, och "Markera tagen" (NOT-3, NOT-10, NOT-12, NOT-17, NOT-19, NOT-20) – läst ur
  * Firestore-cachen via **samma repositories som UI:t**, offline först; ingen egen Firestore-kod. Beräkningen ligger
  * i `:core` (`slotDoses`, `moodReminderDue`, `endingOn`). En läsning som inte svarar i tid räknas som tom – då
  * postas ingen notis hellre än en felaktig.
@@ -51,10 +56,23 @@ class ReminderContent @Inject constructor(
     }
 
     /** NOT-4, NOT-19: om måendepåminnelsen för [occasion] ska visas – påslagen och inte redan loggad idag. */
-    suspend fun moodDue(occasion: Occasion): Boolean {
-        if (reminders()?.let { r -> r.screeningOccasions.none { it.occasion == occasion && it.enabled } } == true) return false
-        val logged = screenings.observeDay(today()).current() ?: return false
-        return moodReminderDue(occasion, logged)
+    suspend fun moodDue(occasion: Occasion): Boolean = moodNotice(occasion) != null
+
+    /**
+     * NOT-4, NOT-19, NOT-20: måendepåminnelsen för [occasion] – `null` när den inte ska visas ([moodDue]), annars med
+     * Stunden när den är på för tillfället ([isMoment]): tillfällets klockslag, längden och hjälpfrågan, och om den tar
+     * över skärmen. Gick inställningarna inte att läsa blir det en vanlig måendepåminnelse. Inga hälsodata.
+     */
+    suspend fun moodNotice(occasion: Occasion): MoodNotice? {
+        val reminders = reminders()
+        if (reminders?.let { r -> r.screeningOccasions.none { it.occasion == occasion && it.enabled } } == true) return null
+        val logged = screenings.observeDay(today()).current() ?: return null
+        if (!moodReminderDue(occasion, logged)) return null
+        val moment = reminders?.takeIf { it.isMoment(occasion) }?.let { r ->
+            val time = r.enabledOccasionRows.first { it.occasion == occasion }.time
+            MomentLaunch(occasion, time, r.moment.seconds, r.moment.question)
+        }
+        return MoodNotice(moment, takeover = moment != null && reminders?.moment?.takeover == true)
     }
 
     /** NOT-12: de aktiva recepten vars period eller höjning tar slut i morgon; tom = ingen notis. */
