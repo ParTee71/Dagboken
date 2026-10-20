@@ -2,6 +2,7 @@ package se.partee71.dagboken.ui.diagram
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -24,11 +25,14 @@ import androidx.compose.ui.graphics.StrokeCap
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.ui.theme.Spacing
 
-/** Hur en rad i teckenförklaringen markeras: punkt (serie), ruta (segment) eller streckad linje (trend). */
-internal enum class LegendMark { Dot, Square, Dashed }
+/**
+ * Hur en rad i teckenförklaringen markeras: punkt (förra perioden), ruta (segment), streckad linje (trend) eller en
+ * heldragen linje med seriens punktform ([LegendItem.marker], TRD-23).
+ */
+internal enum class LegendMark { Dot, Square, Dashed, Series }
 
 @Immutable
-internal data class LegendItem(val label: String, val color: Color, val mark: LegendMark = LegendMark.Dot)
+internal data class LegendItem(val label: String, val color: Color, val mark: LegendMark = LegendMark.Dot, val marker: PointMarker = PointMarker.Default)
 
 /**
  * Teckenförklaringen under ett diagram (TRD-13, TRD-16, TRD-18): färgen bär aldrig ensam
@@ -59,6 +63,8 @@ private fun Mark(item: LegendItem) {
 
         LegendMark.Square -> Box(Modifier.size(LEGEND_SWATCH).background(item.color, RectangleShape))
 
+        LegendMark.Series -> SeriesMark(item.color, item.marker)
+
         LegendMark.Dashed -> Canvas(Modifier.size(LEGEND_DASH_WIDTH, LEGEND_SWATCH)) {
             drawLine(
                 color = item.color,
@@ -68,6 +74,23 @@ private fun Mark(item: LegendItem) {
                 cap = StrokeCap.Round,
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(TREND_DASH.toPx() / 2, TREND_GAP.toPx()))
             )
+        }
+    }
+}
+
+/** Linjen i seriens färg med seriens punktform i mitten – som kurvan ser ut i diagrammet. */
+@Composable
+private fun SeriesMark(color: Color, marker: PointMarker) {
+    val shape = marker.form.shape
+    Box(Modifier.size(LEGEND_DASH_WIDTH, LEGEND_SWATCH), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.matchParentSize()) {
+            drawLine(color, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), strokeWidth = LINE_WIDTH.toPx(), cap = StrokeCap.Round)
+        }
+        val point = Modifier.size(LEGEND_MARKER)
+        if (marker.hollow) {
+            Box(point.background(chartColors.card, shape).border(HOLLOW_POINT_WIDTH, color, shape))
+        } else {
+            Box(point.background(color, shape))
         }
     }
 }

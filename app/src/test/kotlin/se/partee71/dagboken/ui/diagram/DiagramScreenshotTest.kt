@@ -26,6 +26,7 @@ import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
+import se.partee71.dagboken.ui.components.FourSeriesChart
 import se.partee71.dagboken.ui.components.GalleryCharts
 import se.partee71.dagboken.ui.components.GalleryFeelings
 import se.partee71.dagboken.ui.theme.AppColors
@@ -77,7 +78,7 @@ class DiagramScreenshotTest {
             LineChart(
                 listOf(
                     ChartSeries("Energi", GalleryCharts.energy),
-                    ChartSeries("Stress", listOf(4f, 4f, 5f, 3f, null, 4f, 5f, 6f, null, 4f, 3f, 4f, 3f, 3f), AppColors.swatch(4))
+                    ChartSeries("Stress", listOf(4f, 4f, 5f, 3f, null, 4f, 5f, 6f, null, 4f, 3f, 4f, 3f, 3f), AppColors.extended.chartSeries(4))
                 ),
                 xLabels = GalleryCharts.days14,
                 label = "Mående"
@@ -86,12 +87,17 @@ class DiagramScreenshotTest {
     }
 
     @Test
+    fun `LineChart - fyra serier med varsin punktform`() = captureLightAndDark("LineChart_fyra_serier") {
+        Sheet { FourSeriesChart() }
+    }
+
+    @Test
     fun `LineChart - indexerade serier med fast axel och fotnot (Jämför)`() = captureLightAndDark("LineChart_index") {
         Sheet {
             LineChart(
                 listOf(
-                    ChartSeries("Steg · 2 350–11 020 steg", listOf(10f, 35f, null, 100f, 60f, 0f, 45f, 70f, null, 55f, 80f, 65f, 90f, 75f), AppColors.swatch(0)),
-                    ChartSeries("Energi (dag) · 3,5–8 skala", GalleryCharts.energy.map { it?.let { v -> (v - 3.5f) / 4.5f * 100f } }, AppColors.swatch(1))
+                    ChartSeries("Steg · 2 350–11 020 steg", listOf(10f, 35f, null, 100f, 60f, 0f, 45f, 70f, null, 55f, 80f, 65f, 90f, 75f), AppColors.extended.chartSeries(0)),
+                    ChartSeries("Energi (dag) · 3,5–8 skala", GalleryCharts.energy.map { it?.let { v -> (v - 3.5f) / 4.5f * 100f } }, AppColors.extended.chartSeries(1))
                 ),
                 xLabels = GalleryCharts.days14,
                 label = "Jämför",

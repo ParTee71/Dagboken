@@ -297,7 +297,7 @@ class TrendsScreenTest {
         rule.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText("Djup"))
         val chart = rule.onNodeWithContentDescription("Total:", substring = true)
         assertTrue(chart.pixels(AppColors.lightExtended.sleepStages.deep) > 0, "djupsömnen i Sömnstadiers färg")
-        assertTrue(chart.pixels(AppColors.swatch(0)) > 0, "Total i sin egen färg")
+        assertTrue(chart.pixels(AppColors.lightExtended.chartSeries(1)) > 0, "Total i diagrampalettens nr 2 (bärnsten)")
     }
 
     @Test
@@ -305,7 +305,7 @@ class TrendsScreenTest {
         // Energi (dag) och Steg är båda ensamma (teal) i sina kort – den andra får nästa lediga färg.
         show(compareOpen)
         rule.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText("Steg · 2\u00A0350–11\u00A0020 steg"))
-        val colors = distinctSeriesColors(listOf(null, null), AppColors.light.primary)
+        val colors = distinctSeriesColors(listOf(null, null), AppColors.light.primary, AppColors.lightExtended.chartSeries)
         assertEquals(AppColors.light.primary, colors[0])
         assertTrue(colors[1] != colors[0])
         val chart = rule.onNodeWithContentDescription("Energi (dag)", substring = true)

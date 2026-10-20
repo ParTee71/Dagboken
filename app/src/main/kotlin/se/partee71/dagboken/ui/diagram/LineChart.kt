@@ -21,10 +21,12 @@ import se.partee71.dagboken.ui.theme.AppTypography
 
 /**
  * En dataserie i ett linjediagram: [points] är ett värde per dag (eller natt), `null` där inget
- * loggats – en lucka, aldrig en nolla. [color] `null` = diagrammets kurvfärg (teal).
+ * loggats – en lucka, aldrig en nolla. [color] `null` = diagrammets kurvfärg (teal). [marker] `null` = punktformen efter
+ * seriens plats i diagrammet (TRD-23): fylld cirkel för en ensam serie, annars cirkel, kvadrat, triangel och romb
+ * (ihåliga för serie 5–8).
  */
 @Immutable
-data class ChartSeries(val label: String, val points: List<Float?>, val color: Color? = null)
+data class ChartSeries(val label: String, val points: List<Float?>, val color: Color? = null, val marker: PointMarker? = null)
 
 /**
  * Linjediagram (TRD-6–TRD-10, TRD-13, TRD-18), ritat med Vico: kurvan i seriens färg med svag
@@ -36,7 +38,8 @@ data class ChartSeries(val label: String, val points: List<Float?>, val color: C
  * [previous] är föregående period (TRD-18) på samma x-index (dag 1 mot dag 1), nedtonad med egen
  * trendlinje; anroparen äger tillvalet. Med en serie är trendlinjen solgul och föregående period grå
  * (mockupen); med flera serier får trend och föregående period seriens färg, så att de går att skilja
- * åt – och en teckenförklaring visas.
+ * åt – och en teckenförklaring visas. Med flera serier har varje serie också en egen punktform (TRD-23, `PointMarker`);
+ * alla linjer är heldragna och lika tjocka – streckat är trendens (TRD-13).
  *
  * Under diagrammet står alltid `MinMaxCaption` (TRD-9) över alla visade värden, med snitt och
  * trendpill när diagrammet har en serie. Har ingen serie två kända punkter visas det gemensamma tomma
@@ -62,7 +65,9 @@ fun LineChart(
 ) {
     val colors = chartColors
     val single = series.size == 1
-    val current = series.map { it.copy(color = it.color ?: colors.line) }
+    val current = series.mapIndexed { i, s ->
+        s.copy(color = s.color ?: colors.line, marker = s.marker ?: if (single) PointMarker.Default else PointMarker.forSlot(i))
+    }
     val earlier = previous.mapIndexed { i, s ->
         val base = s.color ?: current.getOrNull(i)?.color ?: colors.line
         s.copy(color = if (single) colors.previous else base.previousPeriod())
@@ -111,7 +116,7 @@ fun LineChart(
  */
 internal fun linePlot(current: List<ChartSeries>, previous: List<ChartSeries>, trendColor: Color?): List<PlotLine> {
     fun curves(series: List<ChartSeries>, points: Boolean, area: Boolean) = series.flatMap { s ->
-        gapFreeRuns(s.points).map { it.toPlotLine(PlotStyle(checkNotNull(s.color), area = area, points = points)) }
+        gapFreeRuns(s.points).map { it.toPlotLine(PlotStyle(checkNotNull(s.color), area = area, points = points, marker = s.marker ?: PointMarker.Default)) }
     }
     fun trends(series: List<ChartSeries>, color: (ChartSeries) -> Color) = series.mapNotNull { s -> trendSegment(s.points)?.toPlotLine(color(s)) }
     return curves(previous, points = false, area = false) +
@@ -126,6 +131,6 @@ private fun lineLegend(
     colors: ChartColors,
     previousFormat: String,
     trendLabel: String
-): List<LegendItem> = current.map { LegendItem(it.label, checkNotNull(it.color)) } +
+): List<LegendItem> = current.map { LegendItem(it.label, checkNotNull(it.color), LegendMark.Series, it.marker ?: PointMarker.Default) } +
     previous.map { LegendItem(previousFormat.format(it.label), checkNotNull(it.color)) } +
     LegendItem(trendLabel, if (current.size == 1) colors.trend else colors.label, LegendMark.Dashed)

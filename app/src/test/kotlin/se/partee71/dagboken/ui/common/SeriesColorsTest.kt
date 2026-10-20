@@ -10,7 +10,7 @@ class SeriesColorsTest {
     private val palette = listOf(Color.Red, Color.Green, Color.Blue)
     private val teal = Color.Cyan
 
-    private fun resolve(preferred: List<Color?>) = distinctSeriesColors(preferred, teal, { palette[it] }, palette.size)
+    private fun resolve(preferred: List<Color?>) = distinctSeriesColors(preferred, teal, palette)
 
     @Test
     fun `varje serie behåller sin egen färg när de inte krockar`() {

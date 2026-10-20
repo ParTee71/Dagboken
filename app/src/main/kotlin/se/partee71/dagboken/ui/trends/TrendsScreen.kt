@@ -305,34 +305,42 @@ private val StressSeries.label: Int
 /**
  * En series färg i sitt eget kort: en ensam serie är teal (`null` = diagrammets kurvfärg); med flera får var och en
  * sin färg ur paletten efter platsen bland kortets serier – utom sömnstadierna, som har samma färger som i
- * Sömnstadier (`sleepStageColors`, TRD-15/TRD-16).
+ * Sömnstadier (`sleepStageColors`, TRD-15/TRD-16). Färgerna kommer ur diagrampaletten (TRD-23); Total i Sömn tar
+ * palettens bärnsten/solgul.
  */
-private fun seriesColor(card: TrendCard, key: String, keys: List<String>, shownCount: Int, stageColors: List<Color>): Color? {
+private fun seriesColor(card: TrendCard, key: String, keys: List<String>, shownCount: Int, colors: ChartPalette): Color? {
     val stage = SLEEP_STAGE_METRICS.indexOfFirst { it.name == key }
     return when {
-        card == TrendCard.SLEEP && stage >= 0 -> stageColors[stage]
-        shownCount > 1 -> AppColors.swatch(keys.indexOf(key).coerceAtLeast(0))
+        card == TrendCard.SLEEP && stage >= 0 -> colors.stages[stage]
+        card == TrendCard.SLEEP && key == WatchMetric.SLEEP_TOTAL.name && shownCount > 1 -> colors.series[SLEEP_TOTAL_SLOT]
+        shownCount > 1 -> colors.series[keys.indexOf(key).coerceAtLeast(0) % colors.series.size]
         else -> null
     }
 }
+
+/** Färgerna ett kort väljer bland: sömnstadiernas ([stages], TRD-16) och diagrampaletten ([series], TRD-23). */
+private class ChartPalette(val stages: List<Color>, val series: List<Color>)
+
+/** Plats i diagrampaletten för Total i Sömn: nr 2, bärnsten/solgul. */
+private const val SLEEP_TOTAL_SLOT = 1
 
 /**
  * Jämför (TRD-17): serien behåller färgen från sitt eget kort, som om det kortet visade alla sina serier – krockar
  * löses av `distinctSeriesColors`. Symptomen räknas bland periodens symptom i menyn, som i Symptom-kortet.
  */
-private fun compareColor(key: String, available: List<String>, stageColors: List<Color>): Color? = when (val parsed = CompareKey.parse(key)) {
-    is CompareKey.EnergyOccasion -> seriesColor(TrendCard.ENERGY_OCCASION, parsed.occasion.wire, Occasion.entries.map { it.wire }, Occasion.entries.size, stageColors)
+private fun compareColor(key: String, available: List<String>, colors: ChartPalette): Color? = when (val parsed = CompareKey.parse(key)) {
+    is CompareKey.EnergyOccasion -> seriesColor(TrendCard.ENERGY_OCCASION, parsed.occasion.wire, Occasion.entries.map { it.wire }, Occasion.entries.size, colors)
 
-    is CompareKey.Stress -> seriesColor(TrendCard.STRESS, parsed.series.name, StressSeries.entries.map { it.name }, StressSeries.entries.size, stageColors)
+    is CompareKey.Stress -> seriesColor(TrendCard.STRESS, parsed.series.name, StressSeries.entries.map { it.name }, StressSeries.entries.size, colors)
 
     is CompareKey.Symptom -> {
         val symptoms = available.filter { CompareKey.parse(it) is CompareKey.Symptom }
-        seriesColor(TrendCard.SYMPTOMS, key, symptoms, symptoms.size, stageColors)
+        seriesColor(TrendCard.SYMPTOMS, key, symptoms, symptoms.size, colors)
     }
 
     is CompareKey.Watch -> {
         val home = TrendCard.entries.first { parsed.metric in it.metrics }
-        seriesColor(home, parsed.metric.name, home.metrics.map { it.name }, home.metrics.size, stageColors)
+        seriesColor(home, parsed.metric.name, home.metrics.map { it.name }, home.metrics.size, colors)
     }
 
     CompareKey.EnergyDay, CompareKey.SleepQuality, null -> null
@@ -346,8 +354,8 @@ private fun Chart(card: TrendCard, data: CardData) {
         is CardData.EnergyDay -> IntervalBarChart(data.points, xLabels = xLabels, label = title)
 
         is CardData.Lines -> {
-            val stageColors = sleepStageColors()
-            val colorOf: (TrendSerie) -> Color? = { serie -> seriesColor(card, serie.key, data.available.map { it.key }, data.shown.size, stageColors) }
+            val palette = ChartPalette(sleepStageColors(), AppColors.extended.chartSeries)
+            val colorOf: (TrendSerie) -> Color? = { serie -> seriesColor(card, serie.key, data.available.map { it.key }, data.shown.size, palette) }
             val names = data.available.associate { it.key to seriesName(card, it) }
             val fallback = stringResource(R.string.symptoms)
             fun chartSeries(series: List<TrendSerie>) = series.map { ChartSeries(names[it.key] ?: fallback, it.points, colorOf(it)) }
@@ -370,7 +378,8 @@ private fun Chart(card: TrendCard, data: CardData) {
 
         is CardData.Compare -> {
             // Varje serie behåller färgen från sitt eget kort, utan krockar; etiketten bär det verkliga spannet med enhet (TRD-17).
-            val colors = distinctSeriesColors(data.shown.map { compareColor(it.key, data.available.map { info -> info.key }, sleepStageColors()) }, MaterialTheme.colorScheme.primary)
+            val palette = ChartPalette(sleepStageColors(), AppColors.extended.chartSeries)
+            val colors = distinctSeriesColors(data.shown.map { compareColor(it.key, data.available.map { info -> info.key }, palette) }, MaterialTheme.colorScheme.primary, palette.series)
             val series = data.shown.mapIndexed { i, serie ->
                 val info = data.available.firstOrNull { it.key == serie.key } ?: SeriesInfo(serie.key, null)
                 val unit = stringResource((CompareKey.parse(serie.key)?.unit ?: WatchUnit.SCALE).label())
