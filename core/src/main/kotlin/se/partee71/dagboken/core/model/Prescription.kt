@@ -34,6 +34,8 @@ data class Prescription(
     val strength: String = "",
     /** Läkemedelsformen; `null` = ej angiven (3.x saknade fältet) eller okänd ([unknownForm]). */
     val form: MedicineForm? = null,
+    /** Stjärnmärkt: snabbval på Idag bredvid vid behov-favoriterna (FAV-12); 3.x saknade fältet. */
+    val favorite: Boolean = false,
     /**
      * Tidpunkter i `slots` som appen inte känner till (t.ex. från en nyare app), som råa lagrade
      * värden: ger inga doser och skrivs tillbaka oförändrade efter de kända – som [Schedule.Unknown].

@@ -12,6 +12,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
@@ -47,9 +48,11 @@ import se.partee71.dagboken.core.engine.DoseChecklist
 import se.partee71.dagboken.core.engine.FeelingDay
 import se.partee71.dagboken.core.engine.OccasionState
 import se.partee71.dagboken.core.engine.OngoingIllness
+import se.partee71.dagboken.core.engine.PrnAvailability
 import se.partee71.dagboken.core.engine.PrnCheck
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.asNeededChoices
+import se.partee71.dagboken.core.engine.availabilityAt
 import se.partee71.dagboken.core.engine.checkOffTime
 import se.partee71.dagboken.core.engine.computeFeelingDay
 import se.partee71.dagboken.core.engine.dailyEnergyAverages
@@ -150,6 +153,9 @@ sealed interface TodayEvent {
     /** Favorit i långtrycksmenyn (FAV-8). */
     data class ToggleFavorite(val medicine: PrnMedicine) : TodayEvent
 
+    /** "Ta bort som favorit" i långtrycksmenyn på ett receptchip (FAV-12). */
+    data class ToggleRecipeFavorite(val prescription: Prescription) : TodayEvent
+
     /** Bekräftat "Radera" i långtrycksmenyn (FAV-3). */
     data class DeleteMedicine(val medicine: PrnMedicine) : TodayEvent
 
@@ -189,6 +195,11 @@ data class TodayContent(
     val showUpcoming: Boolean,
     val prescriptions: ImmutableMap<String, Prescription>,
     val choices: AsNeededChoices,
+    /**
+     * Läget för varje vid behov-medicin (id) vid minutens klocka (FAV-13): bara när idag visas och bara de som inte kan tas
+     * nu – en medicin som saknas här är tillgänglig. Räknas om varje minut, så markeringen går över av sig själv.
+     */
+    val unavailable: ImmutableMap<String, PrnAvailability> = persistentMapOf(),
     val dayDone: DayDone?,
     /** Tidszonen dagen räknades i – tagningstiden visas i den (MED-14). */
     val zone: TimeZone,
@@ -392,6 +403,8 @@ class TodayViewModel @Inject constructor(
         val toggles: Toggles,
         val prescriptions: ImmutableMap<String, Prescription>,
         val choices: AsNeededChoices,
+        /** Dagarna kylperioden och dagsgränsen läser (FAV-13) – bara att räkna med när idag visas. */
+        val checkDoses: List<Dose>,
         val dayDone: DayDone?,
         val reminders: ReminderSettings,
         /** Måendeloggarna – `occasionStates` och `doseChecklist` väljer den visade dagens (en plats för urvalet). */
@@ -402,6 +415,17 @@ class TodayViewModel @Inject constructor(
         val missingCause: DataError?,
         val feelings: FeelingDay?
     ) {
+        /** FAV-13: de vid behov-mediciner som inte går att ta vid [moment] – tomt en tidigare dag. */
+        private fun unavailable(moment: Moment): ImmutableMap<String, PrnAvailability> {
+            // FAV-13: en tidigare dag är chipsen redan tonade (FAV-2) och får ingen extra markering.
+            if (date != today) return persistentMapOf()
+            val at = moment.now.toInstant(moment.zone)
+            return (choices.favorites + choices.others)
+                .associate { it.id to it.availabilityAt(checkDoses, at, moment.zone) }
+                .filterValues { it != PrnAvailability.Ok }
+                .toImmutableMap()
+        }
+
         fun at(moment: Moment, illness: Pair<IllnessEpisode, List<Checkin>>?): TodayContent = TodayContent(
             today = today,
             date = date,
@@ -416,6 +440,7 @@ class TodayViewModel @Inject constructor(
             showUpcoming = toggles.upcoming,
             prescriptions = prescriptions,
             choices = choices,
+            unavailable = unavailable(moment),
             dayDone = dayDone,
             zone = moment.zone,
             occasions = occasionStates(reminders, screenings, date, moment.now.toInstant(moment.zone), moment.zone).toImmutableList(),
@@ -461,6 +486,7 @@ class TodayViewModel @Inject constructor(
             toggles = toggles,
             prescriptions = library.prescriptions.associateBy { it.id }.toImmutableMap(),
             choices = asNeededChoices(library.medicines, library.prescriptions, today),
+            checkDoses = if (date == today) entries.doses else emptyList(),
             dayDone = dayDone,
             reminders = library.settings.reminders,
             screenings = entries.screenings,
@@ -520,6 +546,8 @@ class TodayViewModel @Inject constructor(
             is TodayEvent.LogExtra -> if (viewingToday) logExtra(event.prescription)
 
             is TodayEvent.ToggleFavorite -> write { medicines.setFavorite(event.medicine, !event.medicine.favorite) }
+
+            is TodayEvent.ToggleRecipeFavorite -> write { prescriptions.setFavorite(event.prescription, !event.prescription.favorite) }
 
             is TodayEvent.DeleteMedicine -> write { medicines.delete(event.medicine.id) }
 

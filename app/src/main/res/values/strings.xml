@@ -471,6 +471,13 @@
     <string name="today_undo_skipped_format">%s hoppad över</string>
     <string name="today_more_format">Fler (%1$d)</string>
     <string name="today_more_prescriptions">Recept</string>
+    <string name="today_prn_from">från %s</string>
+    <string name="today_prn_from_tomorrow">från i morgon %s</string>
+    <string name="today_prn_limit_count">%1$d av %2$d idag</string>
+    <string name="today_prn_early_description">%1$s, för tidigt, nästa dos %2$s</string>
+    <string name="today_prn_limit_description">%1$s, dagsgränsen nådd, %2$d av %3$d idag</string>
+    <string name="today_prn_early_supporting">För tidigt · %s</string>
+    <string name="today_prn_limit_supporting">Dagsgräns nådd · %1$d av %2$d</string>
     <string name="today_cooldown_title">För tidigt</string>
     <string name="today_cooldown_message">Du bör vänta %1$sh %2$sm till för %3$s. Vill du ta ändå?</string>
     <string name="today_take_anyway">Ta ändå</string>

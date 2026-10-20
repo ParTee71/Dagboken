@@ -273,6 +273,7 @@ service cloud.firestore {
         && (!('period' in w) || d.get('period', null) == null || isPeriod(d.period))
         && (!('boosts' in w) || d.get('boosts', null) == null || isBoosts(d.boosts))
         && (!('active' in w) || nullOrBool(d.get('active', null)))
+        && (!('favorite' in w) || nullOrBool(d.get('favorite', null)))
         && (!('createdAt' in w) || nullOrTime(d.get('createdAt', null)));
     }
 

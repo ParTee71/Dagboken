@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -43,10 +44,12 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import org.junit.Rule
 import org.junit.Test
@@ -54,6 +57,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.AsNeededChoices
 import se.partee71.dagboken.core.engine.DayComparison
 import se.partee71.dagboken.core.engine.DayPart
 import se.partee71.dagboken.core.engine.DayProgress
@@ -61,6 +65,7 @@ import se.partee71.dagboken.core.engine.EnergyTrend
 import se.partee71.dagboken.core.engine.FeelingEntry
 import se.partee71.dagboken.core.engine.OTHER_SYMPTOM_ID
 import se.partee71.dagboken.core.engine.OngoingIllness
+import se.partee71.dagboken.core.engine.PrnAvailability
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.asNeededChoices
 import se.partee71.dagboken.core.engine.computeFeelingStats
@@ -148,7 +153,9 @@ class TodayScreenTest {
         progress: DayProgress = DayProgress(4, 9),
         showDone: Boolean = true,
         dayDone: DayDone? = null,
-        reminders: ReminderSettings = ReminderSettings()
+        reminders: ReminderSettings = ReminderSettings(),
+        choices: AsNeededChoices = asNeededChoices(listOf(alvedon, imigran, loratadin), listOf(levaxin, betapred), today),
+        unavailable: Map<String, PrnAvailability> = emptyMap()
     ) = TodayContent(
         today = today,
         date = date,
@@ -162,7 +169,8 @@ class TodayScreenTest {
         showDone = showDone,
         showUpcoming = false,
         prescriptions = listOf(sertralin, levaxin).associateBy { it.id }.toImmutableMap(),
-        choices = asNeededChoices(listOf(alvedon, imigran, loratadin), listOf(levaxin, betapred), today),
+        choices = choices,
+        unavailable = unavailable.toImmutableMap(),
         dayDone = dayDone,
         zone = zone
     )
@@ -175,9 +183,10 @@ class TodayScreenTest {
         cooldown: CooldownPrompt? = null,
         notice: TodayNotice? = null,
         onEvent: (TodayEvent) -> Unit = {},
-        onEditPrn: (String) -> Unit = {}
+        onEditPrn: (String) -> Unit = {},
+        onEditPrescription: (String) -> Unit = {}
     ) {
-        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Content(content), onEvent, onEditPrn, cooldown = cooldown, notice = notice) } }
+        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Content(content), onEvent, onEditPrn, cooldown = cooldown, notice = notice, onEditPrescription = onEditPrescription) } }
     }
 
     @Test
@@ -287,6 +296,97 @@ class TodayScreenTest {
         rule.onNodeWithText("Fler (3)").performScrollTo().performClick()
         rule.onNodeWithText("Betapred 0,5 mg").performClick()
         assertEquals(TodayEvent.LogExtra(betapred), events.last())
+    }
+
+    /** TalkBack läser lägets text som chipets tillstånd (FAV-13): ikonen och texten, inte bara färgen. */
+    private fun SemanticsNodeInteraction.assertState(text: String) = assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, text))
+
+    private val starred = betapred.copy(favorite = true, note = "Trappas ned.")
+
+    /** Alvedon i kylperiod till 12:00, Imigran vid dagsgränsen, Betapred (recept) stjärnmärkt – och Loratadin i "Fler" för tidigt till 16:00. */
+    private fun marked() = content(
+        choices = asNeededChoices(listOf(alvedon, imigran, loratadin), listOf(levaxin, starred), today),
+        unavailable = mapOf(
+            alvedon.id to PrnAvailability.Cooldown(at(12, 0)),
+            imigran.id to PrnAvailability.DailyLimit(2, 2),
+            loratadin.id to PrnAvailability.Cooldown(at(16, 0))
+        )
+    )
+
+    @Test
+    fun `ett stjärnmärkt recept är ett chip – tryck loggar extradosen, långtryck ger Redigera, Ta bort som favorit och Visa anteckning (FAV-12, HEM-11)`() {
+        val events = mutableListOf<TodayEvent>()
+        val edited = mutableListOf<String>()
+        show(marked(), onEvent = { events += it }, onEditPrescription = { edited += it })
+        rule.onNodeWithText("Betapred 0,5 mg").performScrollTo().performClick()
+        assertEquals(TodayEvent.LogExtra(starred), events.last())
+
+        rule.onNodeWithText("Betapred 0,5 mg").performTouchInput { longClick() }
+        assertEquals(1, events.size, "långtrycket loggar inget")
+        rule.onNodeWithText("Redigera").performClick()
+        assertEquals(listOf("b"), edited)
+
+        rule.onNodeWithText("Betapred 0,5 mg").performTouchInput { longClick() }
+        assertEquals(0, rule.onAllNodesWithText("Radera").fetchSemanticsNodes().size, "inget Radera på ett recept")
+        assertEquals(0, rule.onAllNodesWithText("Logga i efterhand").fetchSemanticsNodes().size)
+        rule.onNodeWithText("Visa anteckning").performClick()
+        rule.onNodeWithText("Trappas ned.").assertIsDisplayed()
+        rule.onNodeWithText("Stäng").performClick()
+
+        rule.onNodeWithText("Betapred 0,5 mg").performTouchInput { longClick() }
+        rule.onNodeWithText("Ta bort Betapred som favorit").performClick()
+        assertEquals(TodayEvent.ToggleRecipeFavorite(starred), events.last())
+    }
+
+    @Test
+    fun `receptchipen står bland favoriterna och Recept i Fler saknar det stjärnmärkta (FAV-12)`() {
+        show(marked())
+        listOf("Alvedon 500 mg", "Betapred 0,5 mg", "Imigran 50 mg").forEach { rule.onNodeWithText(it).performScrollTo().assertIsDisplayed() }
+        rule.onNodeWithText("Fler (2)").performScrollTo().performClick()
+        assertEquals(1, rule.onAllNodesWithText("Betapred 0,5 mg").fetchSemanticsNodes().size, "receptet står bara som chip, inte också under Recept")
+    }
+
+    @Test
+    fun `kylperioden och dagsgränsen syns i chipet med ikon och text, läses av TalkBack, och trycket fungerar som förut (FAV-13)`() {
+        val events = mutableListOf<TodayEvent>()
+        show(marked(), onEvent = { events += it })
+        rule.onNodeWithText("Alvedon 500 mg").performScrollTo().assertState("Alvedon 500 mg, för tidigt, nästa dos från 12:00").performClick()
+        assertEquals(TodayEvent.LogAsNeeded(alvedon), events.last())
+        rule.onNodeWithText("Imigran 50 mg").performScrollTo().assertState("Imigran 50 mg, dagsgränsen nådd, 2 av 2 idag").performClick()
+        assertEquals(TodayEvent.LogAsNeeded(imigran), events.last())
+    }
+
+    @Test
+    fun `efter midnatt står chipet från i morgon (FAV-13)`() {
+        show(content(unavailable = mapOf(alvedon.id to PrnAvailability.Cooldown(at(1, 10, today.plus(1, DateTimeUnit.DAY))))))
+        rule.onNodeWithText("Alvedon 500 mg").performScrollTo().assertState("Alvedon 500 mg, för tidigt, nästa dos från i morgon 01:10")
+    }
+
+    @Test
+    fun `Fler markerar en sådan rad med undertext i varningston och loggar ändå vid tryck (FAV-13)`() {
+        val events = mutableListOf<TodayEvent>()
+        show(marked(), onEvent = { events += it })
+        rule.onNodeWithText("Fler (2)").performScrollTo().performClick()
+        rule.onNodeWithText("För tidigt · från 16:00").assertIsDisplayed()
+        rule.onNodeWithText("Loratadin 10 mg").performClick()
+        assertEquals(TodayEvent.LogAsNeeded(loratadin), events.last())
+    }
+
+    @Test
+    fun `Fler säger Dagsgräns nådd med antal (FAV-13)`() {
+        show(content(unavailable = mapOf(loratadin.id to PrnAvailability.DailyLimit(3, 3))))
+        rule.onNodeWithText("Fler (3)").performScrollTo().performClick()
+        rule.onNodeWithText("Dagsgräns nådd · 3 av 3").assertIsDisplayed()
+    }
+
+    @Test
+    fun `skärmdump - vid behov med kylperiod, dagsgräns och receptchip`() = rule.captureLightAndDark("Today_vid_behov_markerat") {
+        TodayScreen(DetailUiState.Content(marked().copy(collapsed = persistentSetOf(TodayCard.MEDICINES))), {}, {})
+    }
+
+    @Test
+    fun `skärmdump - Fler med markerad rad`() = rule.captureScreenLightAndDark("Today_fler_markerad", open = { onNodeWithText("Fler (2)").performScrollTo().clickWithoutRipple() }) {
+        TodayScreen(DetailUiState.Content(marked().copy(collapsed = persistentSetOf(TodayCard.MEDICINES))), {}, {})
     }
 
     @Test

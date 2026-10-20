@@ -408,6 +408,7 @@
         },
         "boosts": [],
         "active": false,
+        "favorite": false,
         "createdAt": {
           "__ts": "2025-06-01T09:30:00.000000000Z"
         },
@@ -436,6 +437,7 @@
         },
         "boosts": [],
         "active": true,
+        "favorite": false,
         "createdAt": null,
         "note": null
       }
@@ -482,6 +484,7 @@
           }
         ],
         "active": true,
+        "favorite": false,
         "createdAt": {
           "__ts": "2025-12-31T23:00:00.000000000Z"
         },

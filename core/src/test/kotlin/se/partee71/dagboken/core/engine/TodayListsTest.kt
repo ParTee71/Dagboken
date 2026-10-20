@@ -142,7 +142,7 @@ class TodayListsTest {
         assertEquals(listOf("natt" to Due.PAST), past.shown.map { it.dose.id to it.due })
     }
 
-    // ── Vid behov-kortet (FAV-2, FAV-11) ─────────────────────────────────────
+    // ── Vid behov-kortet (FAV-2, FAV-11, FAV-12) ─────────────────────────────────────
 
     @Test fun `favoriter är snabbval, övriga och aktiva recept i Fler – utan dubbletter på namn`() {
         val alvedon = PrnMedicine("1", "Alvedon", favorite = true)
@@ -175,6 +175,49 @@ class TodayListsTest {
         val without = Prescription("b", "Alvedon", period = Period(day("2026-01-01")))
         assertEquals(emptyList(), asNeededChoices(listOf(PrnMedicine("1", "Alvedon")), listOf(withStrength), today).prescriptions)
         assertEquals(emptyList(), asNeededChoices(listOf(PrnMedicine("1", "alvedon", strength = "500  MG")), listOf(without, withStrength), today).prescriptions)
+    }
+
+    @Test fun `stjärnmärkta recept som gäller dagen är snabbval bland vid behov-favoriterna efter namn, och inte i Fler (FAV-12)`() {
+        val alvedon = PrnMedicine("1", "Alvedon", favorite = true)
+        val loratadin = PrnMedicine("3", "Loratadin")
+        val betapred = Prescription("b", "Betapred", favorite = true)
+        val zyrtec = Prescription("z", "zyrtec", favorite = true, period = Period(day("2026-01-01"), today))
+        val levaxin = Prescription("l", "Levaxin")
+
+        val choices = asNeededChoices(listOf(loratadin, alvedon), listOf(zyrtec, levaxin, betapred), today)
+
+        assertEquals(
+            listOf(AsNeededChip.Medicine(alvedon), AsNeededChip.Recipe(betapred), AsNeededChip.Recipe(zyrtec)),
+            choices.chips,
+            "alla snabbval efter namn, oavsett skiftläge"
+        )
+        assertEquals(listOf(alvedon), choices.favorites)
+        assertEquals(listOf(betapred, zyrtec), choices.favoritePrescriptions)
+        assertEquals(listOf(levaxin), choices.prescriptions, "ett stjärnmärkt recept står inte under Recept")
+        assertEquals(listOf(loratadin), choices.others)
+        assertEquals(2, choices.moreCount)
+    }
+
+    @Test fun `ett stjärnmärkt recept som finns bland vid behov-medicinerna, är inaktivt eller utanför perioden blir inget snabbval (FAV-12)`() {
+        val prn = PrnMedicine("1", "Alvedon", strength = "500 mg")
+        val duplicate = Prescription("a", " ALVEDON", favorite = true)
+        val paused = Prescription("p", "Atarax", active = false, favorite = true)
+        val ended = Prescription("e", "Amoxicillin", favorite = true, period = Period(day("2026-09-01"), day("2026-10-03")))
+        val notStarted = Prescription("n", "Kåvepenin", favorite = true, period = Period(day("2026-10-05")))
+
+        val choices = asNeededChoices(listOf(prn), listOf(duplicate, paused, ended, notStarted), today)
+
+        assertEquals(emptyList(), choices.chips)
+        assertEquals(emptyList(), choices.favoritePrescriptions)
+        assertEquals(emptyList(), choices.prescriptions, "inte heller i Fler")
+    }
+
+    @Test fun `snabbval med samma namn ordnas på id, och vid behov före recept vid samma id`() {
+        val prn = PrnMedicine("x", "Alvedon", favorite = true)
+        val other = Prescription("a", "alvedon", strength = "1 g", favorite = true)
+        val sameId = Prescription("x", "Alvedon", strength = "1 g", favorite = true)
+        val chips = asNeededChoices(listOf(prn.copy(strength = "500 mg")), listOf(sameId, other), today).chips
+        assertEquals(listOf("Recipe a", "Medicine x", "Recipe x"), chips.map { "${it::class.simpleName} ${it.id}" })
     }
 
     // ── Datumremsans punkter (HEM-14) ────────────────────────────────────────

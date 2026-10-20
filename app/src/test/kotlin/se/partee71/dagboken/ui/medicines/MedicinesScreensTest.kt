@@ -102,9 +102,25 @@ class MedicinesScreensTest {
         rule.onNodeWithText("Avaktivera").performClick()
         assertEquals(MedicinesEvent.ActiveChanged(levaxin, false), events.last())
 
+        rule.onNodeWithText("Levaxin 100 µg").performTouchInput { longClick() }
+        rule.onNodeWithText("Markera Levaxin som favorit").performClick()
+        assertEquals(MedicinesEvent.PrescriptionFavoriteToggled(levaxin), events.last())
+
         rule.onNodeWithText("Levaxin 100 µg").performClick()
         rule.onNodeWithText("Kåvepenin slutar i morgon.").performClick()
         assertEquals(listOf<String?>("l", "k"), opened)
+    }
+
+    @Test
+    fun `en stjärnmärkt receptrad har en liten fylld stjärna efter titeln och menyn Ta bort som favorit mellan Avaktivera och Radera (FAV-12, REC-13)`() {
+        val events = mutableListOf<MedicinesEvent>()
+        val starred = levaxin.copy(favorite = true)
+        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(listOf(MedicineItem.Recipe(starred)).toImmutableList()), emptyList(), today, null, { events += it }, {}, {}, {}) } }
+        rule.onNodeWithContentDescription("Favorit").assertIsDisplayed()
+        rule.onNodeWithText("Levaxin 100 µg").performTouchInput { longClick() }
+        listOf("Redigera", "Avaktivera", "Ta bort Levaxin som favorit", "Radera").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
+        rule.onNodeWithText("Ta bort Levaxin som favorit").performClick()
+        assertEquals(MedicinesEvent.PrescriptionFavoriteToggled(starred), events.last())
     }
 
     @Test

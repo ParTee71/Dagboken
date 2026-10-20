@@ -2,18 +2,20 @@ package se.partee71.dagboken.core.engine
 
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.toLocalDateTime
 import org.junit.Test
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Slot
 
 /**
  * Vid behov-doser: kylperiod (FAV-4), dagsgräns (FAV-5), efterhandsloggning (MED-16), dosen som
- * loggas (MED-11) och receptets extrados (FAV-11). Port av 3.x `CheckCooldownUseCaseTest`,
+ * loggas (MED-11), receptets extrados (FAV-11) och läget innan man trycker (FAV-13). Port av 3.x `CheckCooldownUseCaseTest`,
  * `CheckDailyLimitUseCaseTest`, `LogVidBehovDosUseCaseTest` (beräkningen) och `ReceptVidBehovTest`.
  */
 class CooldownTest {
@@ -94,6 +96,51 @@ class CooldownTest {
         // 00:15 svensk tid den 7 maj är fortfarande 6 maj i UTC – det är den svenska dagen som räknas.
         assertEquals(PrnCheck.Allowed, prn(minHoursBetween = 0, maxPerDay = 1).checkDose(doses, at("2026-05-07T00:15"), STOCKHOLM))
         assertEquals(PrnCheck.DailyLimitReached, prn(minHoursBetween = 0, maxPerDay = 1).checkDose(doses, at("2026-05-06T23:45"), STOCKHOLM))
+    }
+
+    // ── Läget innan man trycker (FAV-13) ──────────────────────────────────────
+
+    @Test fun `läget är Ok utan kylperiod, utan tidigare dos och när kylperioden gått ut`() {
+        val now = at("2026-05-06T10:00")
+        assertEquals(PrnAvailability.Ok, prn(minHoursBetween = 0).availabilityAt(listOf(taken("2026-05-06T09:59")), now, STOCKHOLM))
+        assertEquals(PrnAvailability.Ok, prn().availabilityAt(emptyList(), now, STOCKHOLM))
+        assertEquals(PrnAvailability.Ok, prn().availabilityAt(listOf(taken("2026-05-06T06:00")), now, STOCKHOLM), "exakt utgången")
+    }
+
+    @Test fun `under kylperioden är nästa tillåtna tidpunkt den senaste dosen plus kylperioden`() {
+        val doses = listOf(taken("2026-05-06T06:00"), taken("2026-05-06T08:10"))
+        assertEquals(PrnAvailability.Cooldown(at("2026-05-06T12:10")), prn().availabilityAt(doses, at("2026-05-06T10:00"), STOCKHOLM))
+        assertEquals(PrnAvailability.Cooldown(at("2026-05-06T12:10")), prn().availabilityAt(doses, at("2026-05-06T12:09"), STOCKHOLM), "samma tid hela perioden")
+        assertEquals(PrnAvailability.Ok, prn().availabilityAt(doses, at("2026-05-06T12:10"), STOCKHOLM), "markeringen försvinner när tiden passerats")
+    }
+
+    @Test fun `nästa tillåtna tidpunkt kan ligga efter midnatt`() {
+        val next = assertIs<PrnAvailability.Cooldown>(prn().availabilityAt(listOf(taken("2026-05-06T21:10")), at("2026-05-06T22:00"), STOCKHOLM)).nextAllowed
+        assertEquals(at("2026-05-07T01:10"), next)
+        assertEquals(day("2026-05-07"), next.toLocalDateTime(STOCKHOLM).date, "dagen efter – i morgon")
+    }
+
+    @Test fun `nästa tillåtna tidpunkt räknas i verkliga timmar över sommartidsbytet`() {
+        // 29 mars: 01:30 + 4 verkliga timmar = 06:30 lokal tid (klockan ställs fram 02:00 → 03:00); 27 oktober tillbaka: 01:30 + 4 h = 04:30.
+        assertEquals(PrnAvailability.Cooldown(at("2026-03-29T06:30")), prn().availabilityAt(listOf(taken("2026-03-29T01:30")), at("2026-03-29T03:30"), STOCKHOLM))
+        val autumn = assertIs<PrnAvailability.Cooldown>(prn().availabilityAt(listOf(taken("2026-10-25T01:30")), at("2026-10-25T02:30"), STOCKHOLM)).nextAllowed
+        assertEquals(LocalTime(4, 30), autumn.toLocalDateTime(STOCKHOLM).time)
+    }
+
+    @Test fun `dagsgränsen nådd ger antalet tagna idag och gränsen`() {
+        val doses = listOf(taken("2026-05-05T22:00"), taken("2026-05-06T07:00"), taken("2026-05-06T08:00"), taken("2026-05-06T09:00", name = "Ipren"))
+        val now = at("2026-05-06T20:00")
+        assertEquals(PrnAvailability.DailyLimit(taken = 2, limit = 2), prn(maxPerDay = 2).availabilityAt(doses, now, STOCKHOLM))
+        assertEquals(PrnAvailability.Ok, prn(maxPerDay = 3).availabilityAt(doses, now, STOCKHOLM))
+        assertEquals(PrnAvailability.Ok, prn(maxPerDay = 2).availabilityAt(doses, at("2026-05-07T00:05"), STOCKHOLM), "en ny dag, kylperioden ute")
+    }
+
+    @Test fun `dagsgränsen går före kylperioden, som i trycket`() {
+        val doses = listOf(taken("2026-05-06T08:00"), taken("2026-05-06T09:00"))
+        val now = at("2026-05-06T10:00")
+        assertEquals(PrnCheck.DailyLimitReached, prn(maxPerDay = 2).checkDose(doses, now, STOCKHOLM))
+        assertEquals(PrnAvailability.DailyLimit(taken = 2, limit = 2), prn(maxPerDay = 2).availabilityAt(doses, now, STOCKHOLM))
+        assertEquals(PrnAvailability.Cooldown(at("2026-05-06T13:00")), prn(maxPerDay = 3).availabilityAt(doses, now, STOCKHOLM))
     }
 
     // ── Dosen som loggas (MED-11, FAV-11) ─────────────────────────────────────

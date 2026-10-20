@@ -219,6 +219,17 @@ class MedicinesViewModelTest {
     }
 
     @Test
+    fun `stjärnan på ett recept skriver bara favorite och kan tas bort igen (FAV-12, FAV-8)`() = runTest(main.dispatcher) {
+        val factory = FakeCollectionFactory()
+        factory.prescriptions().upsert(levaxin).getOrThrow()
+        val vm = viewModel(factory)
+        vm.onEvent(MedicinesEvent.PrescriptionFavoriteToggled(levaxin))
+        assertEquals(levaxin.copy(favorite = true), factory.prescriptions().get("l").getOrThrow())
+        vm.onEvent(MedicinesEvent.PrescriptionFavoriteToggled(levaxin.copy(favorite = true)))
+        assertEquals(levaxin, factory.prescriptions().get("l").getOrThrow())
+    }
+
+    @Test
     fun `en ny vid behov-medicin kräver namn och dos och sparas med förvalen`() = runTest(main.dispatcher) {
         val factory = FakeCollectionFactory()
         val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(factory), FakeMedicines(), main.dispatcher, id = null)

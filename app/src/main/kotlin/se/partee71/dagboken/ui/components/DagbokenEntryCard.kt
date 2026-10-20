@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
@@ -37,6 +38,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.IconSize
 import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppDivider
 import se.partee71.ui.components.AppIconButton
@@ -90,7 +92,9 @@ fun DagbokenEntryCard(
     below: (@Composable () -> Unit)? = null,
     feelings: List<Feeling> = emptyList(),
     /** Styrka och kommentar per känsla (SCR-9, SCR-10) – bara läsning. */
-    feelingExtras: FeelingExtras = FeelingExtras.None
+    feelingExtras: FeelingExtras = FeelingExtras.None,
+    /** Stjärnmärkt post (FAV-12): en liten fylld stjärna efter titeln – bara en markering, vägen dit är menyn. */
+    favorite: Boolean = false
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -111,7 +115,8 @@ fun DagbokenEntryCard(
             onMenuOpenChange = { menuOpen = it },
             inactive = inactive,
             toggle = toggle,
-            below = withFeelings(below, feelings, feelingExtras)
+            below = withFeelings(below, feelings, feelingExtras),
+            favorite = favorite
         )
     }
     if (delete == null) card(modifier) else SwipeToDelete({ confirmDelete = true }, modifier) { card(Modifier) }
@@ -158,7 +163,8 @@ private fun EntryCardBody(
     onMenuOpenChange: (Boolean) -> Unit,
     inactive: Boolean,
     toggle: EntryToggle?,
-    below: (@Composable () -> Unit)?
+    below: (@Composable () -> Unit)?,
+    favorite: Boolean
 ) {
     Box(
         modifier
@@ -175,7 +181,12 @@ private fun EntryCardBody(
         AppCard(contentColor = MaterialTheme.colorScheme.onSurface) {
             // Med reglage blir trailing-delen bred (reglage, anteckning, chevron, ⋮): titeln får då hela
             // bredden ovanför, och undertexten står bredvid kontrollerna – titeln trycks aldrig ihop.
-            if (toggle != null) ItemRowText(title, null, Modifier.inactive(inactive).padding(start = Spacing.xs))
+            if (toggle != null) {
+                Row(Modifier.inactive(inactive).padding(start = Spacing.xs), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    ItemRowText(title, null, Modifier.weight(1f, fill = false))
+                    if (favorite) FavoriteMark()
+                }
+            }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
                 Row(
                     Modifier.weight(1f).inactive(inactive).padding(start = Spacing.xs),
@@ -184,6 +195,7 @@ private fun EntryCardBody(
                 ) {
                     leading?.invoke()
                     ItemRowText(title.takeIf { toggle == null }, subtitle)
+                    if (favorite && toggle == null) FavoriteMark()
                 }
                 toggle?.let { SwitchControl(it.checked, it.onCheckedChange, label = it.label) }
                 status?.invoke()
@@ -210,6 +222,17 @@ private fun EntryCardBody(
         // kortets yta ritas efter modifieraren – därför ett lager ovanpå kortet, i dess vänsterkant.
         if (accent != null) Box(Modifier.matchParentSize().accentBar(accent))
     }
+}
+
+/** Den lilla fyllda stjärnan efter titeln på en stjärnmärkt post (FAV-12); TalkBack läser "Favorit". */
+@Composable
+private fun FavoriteMark() {
+    Icon(
+        painterResource(R.drawable.ic_star_filled),
+        contentDescription = stringResource(R.string.favorite_on),
+        tint = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.size(IconSize.pill)
+    )
 }
 
 /** Postkortets chevron-knapp (NFR-16): samma etikett som [Foldout]s titelrad, läget som `stateDescription`. */
