@@ -157,7 +157,7 @@ class TodayScreenTest {
         progress = progress,
         todayComplete = dayDone != null,
         doseProgress = DayProgress(doses.count { it.status != DoseStatus.PLANNED }, doses.size),
-        checklist = doseChecklist(doses, date, now, zone, reminders),
+        checklist = doseChecklist(doses, date, now, zone, reminders, screenings = emptyList()),
         showDone = showDone,
         showUpcoming = false,
         prescriptions = listOf(sertralin, levaxin).associateBy { it.id }.toImmutableMap(),

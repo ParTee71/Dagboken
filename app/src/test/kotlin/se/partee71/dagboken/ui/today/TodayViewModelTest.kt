@@ -422,6 +422,22 @@ class TodayViewModelTest {
     }
 
     @Test
+    fun `en dos blir Snart först när måendet före den är loggat (MED-13)`() = runTest(main.dispatcher) {
+        seed()
+        // Kvällen 13:00 ligger inom tre timmar kl. 10:30, men Lunch 12:00 är påmint och inte loggat.
+        val reminders = ReminderSettings(screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = it == Occasion.LUNCH) })
+            .withTime(Slot.EVENING, LocalTime(13, 0))
+        factory.settings().upsert(Settings(reminders = reminders)).getOrThrow()
+        val vm = started(viewModel())
+        assertEquals(listOf(evening() to Due.UPCOMING), vm.content.checklist.upcoming.map { it.dose.id to it.due })
+
+        factory.screenings().batch(listOf(Screening("s", today, LocalTime(10, 15), Occasion.LUNCH, energy = 6))).getOrThrow()
+        runCurrent()
+        assertTrue(vm.content.checklist.upcoming.isEmpty())
+        assertEquals(Due.SOON, vm.content.checklist.shown.single { it.dose.id == evening() }.due)
+    }
+
+    @Test
     fun `en loggad vid behov-dos går inte att bocka ur (FAV-2, FAV-11)`() = runTest(main.dispatcher) {
         seed()
         val vm = started(viewModel())
