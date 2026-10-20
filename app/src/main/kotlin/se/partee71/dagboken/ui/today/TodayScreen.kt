@@ -66,6 +66,7 @@ import se.partee71.dagboken.ui.components.FeelingPills
 import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.ProgressBar
 import se.partee71.dagboken.ui.components.SECTION_GAP
+import se.partee71.dagboken.ui.components.SectionFoldout
 import se.partee71.dagboken.ui.components.StatPill
 import se.partee71.dagboken.ui.health.HealthEvent
 import se.partee71.dagboken.ui.health.HealthTodayCard
@@ -150,7 +151,7 @@ fun TodayRoute(
  * "Allt klart för idag" med konfetti (HEM-19), Dagens känslor när dagens måendeloggar har känslor (HEM-21), och sedan korten Mediciner (MED-1–3, MED-5, MED-13) och Vid
  * behov (FAV-2, FAV-11) med Mående emellan (HEM-4, HEM-5), sedan pågående sjukdom (HEM-12), hälsokortet (HEM-15,
  * [health] ur `HealthTodayViewModel`, `null` = ingen klocka) och "Senaste veckan" med steg-, vilopuls- och energitrenden
- * (HEM-17, HEM-7). En söndag eller måndag står "Din vecka" överst (HEM-13). [onHealthEvent] tar hälsokortets "Ge åtkomst".
+ * (HEM-17, HEM-7). Korten från Mediciner och nedåt fälls ihop på titelraden, utfällda som standard (HEM-22). En söndag eller måndag står "Din vecka" överst (HEM-13). [onHealthEvent] tar hälsokortets "Ge åtkomst".
  * Ångra och bekräftelserna visas i ramens meddelandeyta. [onScreening] öppnar måendearket – samma ark som plusknappen
  * (`LogViewModel`, ovanpå flikarna) – med en ny logg eller en loggad för ändring. [onEditPrn] öppnar vid
  * behov-formuläret från långtrycksmenyn (HEM-11), [onLogLater] dosformuläret för medicinen i efterhand mot den visade
@@ -232,12 +233,14 @@ private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, lin
         )
     }
     content.feelings?.let { FeelingsCard(it) }
-    MedicinesCard(content, onEvent)
-    AsNeededCard(content, onEvent, links)
-    MoodCard(content, links.onScreening)
-    content.illness?.let { illness -> IllnessCard(illness) { links.onOpenIllness(illness.episode.id, content.date) } }
-    health?.let { HealthTodayCard(it, onHealthEvent) }
-    WeekTrendsCard(content.energyDays, content.energy, health, links.onOpenTrends)
+    val open = { card: TodayCard -> card !in content.collapsed }
+    val toggle = { card: TodayCard -> { onEvent(TodayEvent.ToggleCard(card)) } }
+    MedicinesCard(content, onEvent, open(TodayCard.MEDICINES), toggle(TodayCard.MEDICINES))
+    AsNeededCard(content, onEvent, links, open(TodayCard.AS_NEEDED), toggle(TodayCard.AS_NEEDED))
+    MoodCard(content, links.onScreening, open(TodayCard.MOOD), toggle(TodayCard.MOOD))
+    content.illness?.let { illness -> IllnessCard(illness, open(TodayCard.ILLNESS), toggle(TodayCard.ILLNESS)) { links.onOpenIllness(illness.episode.id, content.date) } }
+    health?.let { HealthTodayCard(it, onHealthEvent, open(TodayCard.HEALTH), toggle(TodayCard.HEALTH)) }
+    WeekTrendsCard(content.energyDays, content.energy, health, links.onOpenTrends, open(TodayCard.WEEK_TRENDS), toggle(TodayCard.WEEK_TRENDS))
 }
 
 /** "Din vecka" (HEM-13): energin mot förra veckan ("Energi · Uppåt") och andelen tagna doser – utan doser bara energin. */
@@ -287,20 +290,23 @@ private fun FeelingsCard(day: FeelingDay) {
  * tillfällen visas inget kort.
  */
 @Composable
-private fun MoodCard(content: TodayContent, onScreening: (LogEvent) -> Unit) {
+private fun MoodCard(content: TodayContent, onScreening: (LogEvent) -> Unit, expanded: Boolean, onToggle: () -> Unit) {
     val states = content.occasions
     if (states.isEmpty()) return
     AppCard {
         val logged = states.count { it.status == OccasionStatus.LOGGED }
-        SectionHeader(
+        SectionFoldout(
             stringResource(R.string.log_mood),
+            expanded,
+            onToggle,
             count = stringResource(R.string.today_count_format, logged, states.size),
             tone = if (content.isToday && logged == states.size) Tone.Positive else Tone.Primary
-        )
-        val groups = states.groupedByLogged()
-        val openLabel = if (content.isToday) R.string.occasion_group_remaining else R.string.occasion_group_not_logged
-        MoodGroup(groups.open, stringResource(openLabel).takeIf { groups.bothShown }, content, onScreening)
-        MoodGroup(groups.logged, stringResource(R.string.occasion_group_logged).takeIf { groups.bothShown }, content, onScreening)
+        ) {
+            val groups = states.groupedByLogged()
+            val openLabel = if (content.isToday) R.string.occasion_group_remaining else R.string.occasion_group_not_logged
+            MoodGroup(groups.open, stringResource(openLabel).takeIf { groups.bothShown }, content, onScreening)
+            MoodGroup(groups.logged, stringResource(R.string.occasion_group_logged).takeIf { groups.bothShown }, content, onScreening)
+        }
     }
 }
 
@@ -323,23 +329,24 @@ private fun MoodGroup(states: List<OccasionState>, label: String?, content: Toda
  * (status, NFR-16). Raden öppnar sjukdomsdetaljen ([onOpen], SJ-13), där man checkar in (SJ-2).
  */
 @Composable
-private fun IllnessCard(illness: OngoingIllness, onOpen: () -> Unit) {
+private fun IllnessCard(illness: OngoingIllness, expanded: Boolean, onToggle: () -> Unit, onOpen: () -> Unit) {
     AppCard {
-        SectionHeader(stringResource(R.string.today_illness_title), icon = R.drawable.ic_thermometer, tone = Tone.Warning)
-        val checkin = illness.lastCheckin
-        val checkinDate = checkin?.date
-        ItemRow(
-            title = illness.episode.title(),
-            subtitle = when {
-                checkin == null -> stringResource(R.string.today_illness_no_checkin)
-                checkinDate == null -> stringResource(R.string.today_illness_checkin_undated)
-                else -> stringResource(R.string.today_illness_checkin_format, DateFormat.short(checkinDate))
-            },
-            trailing = illness.day?.let { day -> { InfoPill(stringResource(R.string.today_illness_day_format, day), tone = Tone.Warning) } },
-            accent = AppColors.tone(Tone.Warning).content,
-            onClick = onOpen,
-            navigates = true
-        )
+        SectionFoldout(stringResource(R.string.today_illness_title), expanded, onToggle, icon = R.drawable.ic_thermometer, tone = Tone.Warning) {
+            val checkin = illness.lastCheckin
+            val checkinDate = checkin?.date
+            ItemRow(
+                title = illness.episode.title(),
+                subtitle = when {
+                    checkin == null -> stringResource(R.string.today_illness_no_checkin)
+                    checkinDate == null -> stringResource(R.string.today_illness_checkin_undated)
+                    else -> stringResource(R.string.today_illness_checkin_format, DateFormat.short(checkinDate))
+                },
+                trailing = illness.day?.let { day -> { InfoPill(stringResource(R.string.today_illness_day_format, day), tone = Tone.Warning) } },
+                accent = AppColors.tone(Tone.Warning).content,
+                onClick = onOpen,
+                navigates = true
+            )
+        }
     }
 }
 
@@ -348,60 +355,63 @@ private fun IllnessCard(illness: OngoingIllness, onOpen: () -> Unit) {
  * knapparna som visar och döljer dem med antal. Hela raden växlar tagen; "Hoppa över" i radens meny (MED-3).
  */
 @Composable
-private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit) {
+private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, expanded: Boolean, onToggle: () -> Unit) {
     var skipping by remember { mutableStateOf<Dose?>(null) }
     var deleting by remember { mutableStateOf<Dose?>(null) }
     val list = content.checklist
     AppCard {
         val doses = content.doseProgress
-        SectionHeader(
+        SectionFoldout(
             stringResource(R.string.tab_medicines),
+            expanded,
+            onToggle,
             count = if (doses.total > 0) stringResource(R.string.today_count_format, doses.done, doses.total) else null,
             tone = if (content.isToday && doses.isComplete && !content.dosesMissing) Tone.Positive else Tone.Primary
-        )
-        val rows = list.shown + (if (content.showUpcoming) list.upcoming else emptyList()) +
-            (if (content.showDone) list.done.map { OpenDose(it, null) } else emptyList())
-        // Radens tillstånd (meny, anteckning, krysset) följer dosen när listan ändras.
-        rows.forEach { row -> key(row.dose.id) { DoseRow(row, content, onEvent, onSkip = { skipping = it }, onDelete = { deleting = it }) } }
-        when {
-            // HEM-10, MED-4: doser kunde inte skapas – också när några finns; aldrig "Allt avklarat". Orsaken visas, och när det görs om.
-            content.missingCause != null -> {
-                val offline = content.missingCause == DataError.Offline
-                EmptyState(
-                    R.drawable.ic_warning,
-                    stringResource(R.string.today_medicines_missing_title),
-                    stringResource(if (offline) R.string.today_medicines_missing_offline else content.missingCause.toMessage()),
-                    note = stringResource(if (offline) R.string.today_medicines_missing_offline_retry else R.string.today_medicines_missing_retry),
-                    isError = true,
-                    compact = true
-                )
-            }
-
-            list.isEmpty -> EmptyState(R.drawable.ic_pill, stringResource(R.string.today_medicines_none_title), stringResource(R.string.today_medicines_none), compact = true)
-
-            list.shown.isEmpty() && list.upcoming.isEmpty() && !content.showDone ->
-                EmptyState(R.drawable.ic_check, stringResource(R.string.today_medicines_all_done_title), stringResource(R.string.today_medicines_all_done), compact = true)
-
-            // Allt som återstår ligger mer än tre timmar fram och är dolt (MED-13): säg när nästa dos är – det tidigaste
-            // klockslaget urvalet räknats med (`scheduledTime`; för en receptdos tidpunktens i Påminnelser, NOT-18).
-            rows.isEmpty() && list.upcoming.isNotEmpty() -> list.upcoming.mapNotNull { it.time }.minOrNull()?.let { next ->
-                EmptyState(
-                    R.drawable.ic_clock,
-                    stringResource(R.string.today_next_dose_title),
-                    stringResource(R.string.today_next_dose_format, DateFormat.time(next)),
-                    compact = true
-                )
-            }
-        }
-        if (list.upcoming.isNotEmpty() || list.done.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                if (list.upcoming.isNotEmpty()) {
-                    val label = if (content.showUpcoming) stringResource(R.string.today_hide_upcoming) else stringResource(R.string.today_show_upcoming_format, list.upcoming.size)
-                    AppButton(label, { onEvent(TodayEvent.ToggleUpcoming) }, variant = ButtonVariant.Text, compact = true)
+        ) {
+            val rows = list.shown + (if (content.showUpcoming) list.upcoming else emptyList()) +
+                (if (content.showDone) list.done.map { OpenDose(it, null) } else emptyList())
+            // Radens tillstånd (meny, anteckning, krysset) följer dosen när listan ändras.
+            rows.forEach { row -> key(row.dose.id) { DoseRow(row, content, onEvent, onSkip = { skipping = it }, onDelete = { deleting = it }) } }
+            when {
+                // HEM-10, MED-4: doser kunde inte skapas – också när några finns; aldrig "Allt avklarat". Orsaken visas, och när det görs om.
+                content.missingCause != null -> {
+                    val offline = content.missingCause == DataError.Offline
+                    EmptyState(
+                        R.drawable.ic_warning,
+                        stringResource(R.string.today_medicines_missing_title),
+                        stringResource(if (offline) R.string.today_medicines_missing_offline else content.missingCause.toMessage()),
+                        note = stringResource(if (offline) R.string.today_medicines_missing_offline_retry else R.string.today_medicines_missing_retry),
+                        isError = true,
+                        compact = true
+                    )
                 }
-                if (list.done.isNotEmpty()) {
-                    val label = if (content.showDone) stringResource(R.string.today_hide_done) else stringResource(R.string.today_show_done_format, list.done.size)
-                    AppButton(label, { onEvent(TodayEvent.ToggleDone) }, variant = ButtonVariant.Text, compact = true)
+
+                list.isEmpty -> EmptyState(R.drawable.ic_pill, stringResource(R.string.today_medicines_none_title), stringResource(R.string.today_medicines_none), compact = true)
+
+                list.shown.isEmpty() && list.upcoming.isEmpty() && !content.showDone ->
+                    EmptyState(R.drawable.ic_check, stringResource(R.string.today_medicines_all_done_title), stringResource(R.string.today_medicines_all_done), compact = true)
+
+                // Allt som återstår ligger mer än tre timmar fram och är dolt (MED-13): säg när nästa dos är – det tidigaste
+                // klockslaget urvalet räknats med (`scheduledTime`; för en receptdos tidpunktens i Påminnelser, NOT-18).
+                rows.isEmpty() && list.upcoming.isNotEmpty() -> list.upcoming.mapNotNull { it.time }.minOrNull()?.let { next ->
+                    EmptyState(
+                        R.drawable.ic_clock,
+                        stringResource(R.string.today_next_dose_title),
+                        stringResource(R.string.today_next_dose_format, DateFormat.time(next)),
+                        compact = true
+                    )
+                }
+            }
+            if (list.upcoming.isNotEmpty() || list.done.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                    if (list.upcoming.isNotEmpty()) {
+                        val label = if (content.showUpcoming) stringResource(R.string.today_hide_upcoming) else stringResource(R.string.today_show_upcoming_format, list.upcoming.size)
+                        AppButton(label, { onEvent(TodayEvent.ToggleUpcoming) }, variant = ButtonVariant.Text, compact = true)
+                    }
+                    if (list.done.isNotEmpty()) {
+                        val label = if (content.showDone) stringResource(R.string.today_hide_done) else stringResource(R.string.today_show_done_format, list.done.size)
+                        AppButton(label, { onEvent(TodayEvent.ToggleDone) }, variant = ButtonVariant.Text, compact = true)
+                    }
                 }
             }
         }
@@ -493,7 +503,7 @@ private fun doseSubtitle(dose: Dose, scheduled: LocalTime?, prescription: Prescr
  * behov-mediciner och receptens under "Recept". Utan vid behov-mediciner och recept visas inget kort.
  */
 @Composable
-private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, links: TodayLinks) {
+private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, links: TodayLinks, expanded: Boolean, onToggle: () -> Unit) {
     val choices = content.choices
     if (choices.favorites.isEmpty() && choices.moreCount == 0) return
     var menuFor by remember { mutableStateOf<String?>(null) }
@@ -506,51 +516,52 @@ private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, l
     // nås också med TalkBack (ett inaktivt chip får ingen långtrycksåtgärd).
     val pastDay = if (canLog) Modifier else Modifier.inactive(true).semantics { stateDescription = todayOnly }
     AppCard {
-        SectionHeader(stringResource(R.string.medicines_as_needed))
-        if (!canLog) {
-            NoticeBanner(
-                stringResource(R.string.today_prn_past_day),
-                R.drawable.ic_info,
-                { onEvent(TodayEvent.SelectDate(content.today)) },
-                tone = Tone.Neutral,
-                onClickLabel = stringResource(R.string.today_show_today)
-            )
-        }
-        ChipRow {
-            choices.favorites.forEach { medicine ->
-                Box {
-                    AppFilterChip(
-                        medicineTitle(medicine.displayName, medicine.dose, medicine.unit),
-                        selected = false,
-                        onClick = { if (canLog) onEvent(TodayEvent.LogAsNeeded(medicine)) },
-                        modifier = pastDay,
-                        icon = if (medicine.note.isNullOrBlank()) null else R.drawable.ic_note,
-                        onLongClick = { menuFor = medicine.id },
-                        onLongClickLabel = stringResource(R.string.more_options)
-                    )
-                    val items = medicineMenu(
-                        medicine,
-                        onEvent,
-                        onEdit = { links.onEditPrn(medicine.id) },
-                        onLogLater = { links.onLogLater(medicine.id, content.date) },
-                        onNote = { noteOf = medicine }
-                    ) { deleting = medicine }
-                    AppMenuPopup(items, expanded = menuFor == medicine.id, onDismiss = { menuFor = null })
-                }
+        SectionFoldout(stringResource(R.string.medicines_as_needed), expanded, onToggle) {
+            if (!canLog) {
+                NoticeBanner(
+                    stringResource(R.string.today_prn_past_day),
+                    R.drawable.ic_info,
+                    { onEvent(TodayEvent.SelectDate(content.today)) },
+                    tone = Tone.Neutral,
+                    onClickLabel = stringResource(R.string.today_show_today)
+                )
             }
-            if (choices.moreCount > 0) {
-                Box {
-                    AppFilterChip(
-                        stringResource(R.string.today_more_format, choices.moreCount),
-                        selected = false,
-                        onClick = { if (canLog) moreOpen = true },
-                        modifier = pastDay,
-                        icon = R.drawable.ic_expand_more
-                    )
-                    val recipes = stringResource(R.string.today_more_prescriptions)
-                    val items = choices.others.map { AppMenuItem(medicineTitle(it.displayName, it.dose, it.unit), { onEvent(TodayEvent.LogAsNeeded(it)) }) } +
-                        choices.prescriptions.map { AppMenuItem(medicineTitle(it.displayName, it.doseFor(content.today), it.unit), { onEvent(TodayEvent.LogExtra(it)) }, section = recipes) }
-                    AppMenuPopup(items, expanded = moreOpen, onDismiss = { moreOpen = false })
+            ChipRow {
+                choices.favorites.forEach { medicine ->
+                    Box {
+                        AppFilterChip(
+                            medicineTitle(medicine.displayName, medicine.dose, medicine.unit),
+                            selected = false,
+                            onClick = { if (canLog) onEvent(TodayEvent.LogAsNeeded(medicine)) },
+                            modifier = pastDay,
+                            icon = if (medicine.note.isNullOrBlank()) null else R.drawable.ic_note,
+                            onLongClick = { menuFor = medicine.id },
+                            onLongClickLabel = stringResource(R.string.more_options)
+                        )
+                        val items = medicineMenu(
+                            medicine,
+                            onEvent,
+                            onEdit = { links.onEditPrn(medicine.id) },
+                            onLogLater = { links.onLogLater(medicine.id, content.date) },
+                            onNote = { noteOf = medicine }
+                        ) { deleting = medicine }
+                        AppMenuPopup(items, expanded = menuFor == medicine.id, onDismiss = { menuFor = null })
+                    }
+                }
+                if (choices.moreCount > 0) {
+                    Box {
+                        AppFilterChip(
+                            stringResource(R.string.today_more_format, choices.moreCount),
+                            selected = false,
+                            onClick = { if (canLog) moreOpen = true },
+                            modifier = pastDay,
+                            icon = R.drawable.ic_expand_more
+                        )
+                        val recipes = stringResource(R.string.today_more_prescriptions)
+                        val items = choices.others.map { AppMenuItem(medicineTitle(it.displayName, it.dose, it.unit), { onEvent(TodayEvent.LogAsNeeded(it)) }) } +
+                            choices.prescriptions.map { AppMenuItem(medicineTitle(it.displayName, it.doseFor(content.today), it.unit), { onEvent(TodayEvent.LogExtra(it)) }, section = recipes) }
+                        AppMenuPopup(items, expanded = moreOpen, onDismiss = { moreOpen = false })
+                    }
                 }
             }
         }

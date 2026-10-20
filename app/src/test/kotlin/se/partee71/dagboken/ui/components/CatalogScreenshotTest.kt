@@ -443,6 +443,13 @@ class CatalogScreenshotTest {
                 AppCard { Foldout("Diagram", true, {}, trailing = { InfoPill("30 dagar", tone = Tone.Neutral) }) { Text("Innehållet", style = AppTypography.body) } }
             }
         }
+        captureLightAndDark("SectionFoldout_lagen") {
+            Sheet {
+                AppCard { SectionFoldout("Mediciner", true, {}, icon = R.drawable.ic_pill, count = "3/5", tone = Tone.Positive) { Text("Raderna", style = AppTypography.body) } }
+                AppCard { SectionFoldout("Mediciner", false, {}, icon = R.drawable.ic_pill, count = "3/5", tone = Tone.Positive) { Text("Raderna", style = AppTypography.body) } }
+                AppCard { SectionFoldout("Vid behov", false, {}) { Text("Chips", style = AppTypography.body) } }
+            }
+        }
         captureLightAndDark("ValueSlider_riktningar") {
             Sheet {
                 AppCard {

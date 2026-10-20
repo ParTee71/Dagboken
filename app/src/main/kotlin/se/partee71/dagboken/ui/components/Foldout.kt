@@ -1,5 +1,6 @@
 package se.partee71.dagboken.ui.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -28,10 +29,13 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.ui.components.SectionHeader
 import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /**
  * Ihopfällbar sektion (NFR-18) – i ett [AppCard] eller som hela innehållet i ett ihopfällbart
@@ -50,22 +54,56 @@ fun Foldout(
     modifier: Modifier = Modifier,
     trailing: (@Composable () -> Unit)? = null,
     summary: String? = null,
+    header: (@Composable RowScope.() -> Unit)? = null,
+    contentSpacing: Dp = Spacing.m,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column(modifier) {
         CollapsibleHeader(expanded, onToggle) {
-            Column(Modifier.weight(1f).padding(vertical = Spacing.s)) {
-                Text(title, style = AppTypography.itemTitle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (!expanded && !summary.isNullOrBlank()) {
-                    Text(summary, style = AppTypography.itemSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (header != null) {
+                header()
+            } else {
+                Column(Modifier.weight(1f).padding(vertical = Spacing.s)) {
+                    Text(title, style = AppTypography.itemTitle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (!expanded && !summary.isNullOrBlank()) {
+                        Text(summary, style = AppTypography.itemSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
             trailing?.invoke()
         }
         ExpandableContent(expanded) {
-            Column(Modifier.padding(bottom = Spacing.s), verticalArrangement = Arrangement.spacedBy(Spacing.m), content = content)
+            Column(Modifier.padding(bottom = Spacing.s), verticalArrangement = Arrangement.spacedBy(contentSpacing), content = content)
         }
     }
+}
+
+/**
+ * Rubrikvarianten av [Foldout] för ett sektionskort med bibliotekets `SectionHeader` (NFR-18): ikonrutan, titeln och
+ * räknaren i [countTone] står i titelraden, som också då växlar kortet, med chevronen sist. Stängt visas bara raden –
+ * räknaren talar om läget utan att man fäller ut. Titeln läses som rubrik; resten som i [Foldout].
+ */
+@Composable
+fun SectionFoldout(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    @DrawableRes icon: Int? = null,
+    count: String? = null,
+    tone: Tone = Tone.Primary,
+    countTone: Tone = tone,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Foldout(
+        title,
+        expanded,
+        onToggle,
+        modifier,
+        header = { SectionHeader(title, Modifier.weight(1f), icon = icon, count = count, tone = tone, countTone = countTone) },
+        contentSpacing = Spacing.xs,
+        content = content
+    )
 }
 
 /**

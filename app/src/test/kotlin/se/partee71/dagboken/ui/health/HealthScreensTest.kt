@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
@@ -66,7 +67,7 @@ class HealthScreensTest {
         rule.onNodeWithText("Hälsa").assertIsDisplayed()
         rule.onNodeWithText("7 842").assertIsDisplayed()
         rule.onNodeWithText("58").assertIsDisplayed()
-        rule.onNode(hasClickAction()).assertDoesNotExist()
+        rule.onAllNodes(hasClickAction()).assertCountEquals(1) // bara titelraden som fäller kortet (HEM-22)
         rule.onNodeWithText("Ge åtkomst").assertDoesNotExist()
     }
 

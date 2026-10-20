@@ -12,6 +12,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.collections.immutable.toImmutableSet
@@ -132,6 +133,9 @@ sealed interface TodayEvent {
     /** "Visa kommande"/"Dölj kommande" (MED-13). */
     data object ToggleUpcoming : TodayEvent
 
+    /** Titelraden på ett ihopfällbart kort: fäll ihop ↔ fäll ut (HEM-22, NFR-18). */
+    data class ToggleCard(val card: TodayCard) : TodayEvent
+
     /** Ett vid behov-snabbval eller en vid behov-medicin i Fler (FAV-2, FAV-4, FAV-5). */
     data class LogAsNeeded(val medicine: PrnMedicine) : TodayEvent
 
@@ -158,6 +162,9 @@ sealed interface TodayEvent {
 
     data object Retry : TodayEvent
 }
+
+/** De ihopfällbara korten på Idag (HEM-22) – veckosammanfattningen, datumremsan och "Allt klart" fälls inte. */
+enum class TodayCard { MEDICINES, AS_NEEDED, MOOD, ILLNESS, HEALTH, WEEK_TRENDS }
 
 /** Belöningsläget (HEM-19): dagens jämförelse med igår, dagar i rad (HEM-20) och om konfettin ska falla nu. */
 data class DayDone(val comparison: DayComparison?, val streak: Int, val playConfetti: Boolean)
@@ -203,7 +210,9 @@ data class TodayContent(
      * Dagens känslor (HEM-21): räkningen, meningens struktur och orden i tidsordning ur den visade dagens måendeloggar
      * (inga aktiviteter – ingen ny läsning), eller `null` när dagen saknar känslor – då visas inget kort.
      */
-    val feelings: FeelingDay? = null
+    val feelings: FeelingDay? = null,
+    /** Ihopfällda kort (HEM-22) – tomt = alla utfällda; hålls över dagbyten och persisteras inte. */
+    val collapsed: ImmutableSet<TodayCard> = persistentSetOf()
 ) {
     val isToday: Boolean get() = date == today
 
@@ -261,6 +270,7 @@ class TodayViewModel @Inject constructor(
     private val week = MutableStateFlow<LocalDate?>(null)
     private val showDone = MutableStateFlow(false)
     private val showUpcoming = MutableStateFlow(false)
+    private val collapsed = MutableStateFlow<Set<TodayCard>>(emptySet())
 
     /** Dagen konfettin redan fallit (HEM-19) – en gång per dag, så länge ViewModeln lever. */
     private val celebrated = MutableStateFlow<LocalDate?>(null)
@@ -334,9 +344,9 @@ class TodayViewModel @Inject constructor(
 
     private val library: Flow<Library> = combine(prescriptions.observe(), medicines.observe(), settings.settings, ::Library)
 
-    private data class Toggles(val done: Boolean, val upcoming: Boolean, val celebrated: LocalDate?)
+    private data class Toggles(val done: Boolean, val upcoming: Boolean, val celebrated: LocalDate?, val collapsed: Set<TodayCard>)
 
-    private val toggles = combine(showDone, showUpcoming, celebrated, ::Toggles)
+    private val toggles = combine(showDone, showUpcoming, celebrated, collapsed, ::Toggles)
 
     /** Allt som inte beror på klockslaget räknas en gång per ändring – inte varje minut. */
     private val day: Flow<DayView> = combine(span, entries, library, toggles, failedDays, ::day)
@@ -414,7 +424,8 @@ class TodayViewModel @Inject constructor(
             energy = energy,
             illness = illness?.let { (episode, checkins) -> ongoingIllness(episode, checkins, today) },
             missingCause = missingCause,
-            feelings = feelings
+            feelings = feelings,
+            collapsed = toggles.collapsed.toImmutableSet()
         )
     }
 
@@ -494,6 +505,8 @@ class TodayViewModel @Inject constructor(
             TodayEvent.ToggleDone -> showDone.value = !showDone.value
 
             TodayEvent.ToggleUpcoming -> showUpcoming.value = !showUpcoming.value
+
+            is TodayEvent.ToggleCard -> collapsed.update { if (event.card in it) it - event.card else it + event.card }
 
             is TodayEvent.LogAsNeeded -> if (viewingToday) logAsNeeded(event.medicine, force = false)
 
