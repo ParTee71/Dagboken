@@ -504,7 +504,7 @@ class CatalogScreenshotTest {
         }
         captureLightAndDark("SymptomLogCard_valda") {
             Sheet {
-                SymptomLogCard(GALLERY_SYMPTOMS, listOf(SymptomScore("huvudvark", 4), SymptomScore("ovrigt", 7, "Ont i knät")), {}, otherOptionId = "ovrigt")
+                SymptomLogCard(GALLERY_SYMPTOMS, listOf(SymptomScore("huvudvark", 4), SymptomScore("trotthet", 6), SymptomScore("yrsel", 2), SymptomScore("ovrigt", 7, "Ont i knät")), {}, otherOptionId = "ovrigt")
                 SymptomLogCard(GALLERY_SYMPTOMS, emptyList(), {})
             }
         }

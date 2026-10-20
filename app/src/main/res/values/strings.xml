@@ -125,6 +125,7 @@
     <string name="symptoms">Symptom</string>
     <string name="symptom_other_describe">Beskriv symptomet</string>
     <string name="symptom_sum_format">Summa symptom: %d</string>
+    <string name="symptom_tap_to_change">Tryck på ett valt symptom för att ändra styrkan.</string>
     <string name="symptom_none">Välj de symptom du har – inga valda räknas som 0.</string>
 
     <!-- Känslor (SCR-7, SCR-8): rubrik, hjälptext och väljarens texter -->
