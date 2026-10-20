@@ -1,5 +1,5 @@
 # Läkemedel som säljs i Sverige – Läkemedelsverket, CC BY 4.0 (https://www.lakemedelsverket.se/sv/om-webbplatsen/oppna-data)
-# updated 2026-10-14
+# updated 2026-10-20
 Abacavir/Lamivudine Accord	600 mg/300 mg	Filmdragerad tablett
 Abacavir/Lamivudine Glenmark	600 mg/300 mg	Filmdragerad tablett
 Abacavir/Lamivudine Medical Valley	600 mg/300 mg	Filmdragerad tablett
@@ -14,8 +14,6 @@ Abboticin	250 mg	Filmdragerad tablett
 Abdomin Junior Neutral		Pulver till oral lösning i dospåse
 Abdomin Neutral		Pulver till oral lösning i dospåse
 Abecol	180 mg/43,7 mg	Tuggtablett
-Abetip	10 mg	Filmdragerad tablett
-Abetip	20 mg	Filmdragerad tablett
 Abevmy	25 mg/ml	Koncentrat till infusionsvätska, lösning
 Abilify	1 mg/ml	Oral lösning
 Abilify	5 mg	Tablett
@@ -1729,6 +1727,7 @@ Cometriq	20 mg + 80 mg	Kapsel, hård
 Comirnaty LP.8.1	30 mikrogram/dos	Injektionsvätska, dispersion
 Comirnaty XFG	10 mikrogram/dos	Injektionsvätska, dispersion
 Comirnaty XFG	30 mikrogram/dos	Injektionsvätska, dispersion
+Comirnaty XFG	30 mikrogram/dos	Injektionsvätska, dispersion i förfylld spruta
 Comtess	200 mg	Filmdragerad tablett
 Concerta	18 mg	Depottablett
 Concerta	27 mg	Depottablett
@@ -1828,7 +1827,6 @@ Dabigatran etexilate Krka	150 mg	Kapsel, hård
 Dabigatran etexilate Medical Valley	75 mg	Kapsel, hård
 Dabigatran etexilate Medical Valley	110 mg	Kapsel, hård
 Dabigatran etexilate Medical Valley	150 mg	Kapsel, hård
-Dabigatran etexilate Orion	75 mg	Kapsel, hård
 Dabigatran etexilate Orion	110 mg	Kapsel, hård
 Dabigatran etexilate Orion	150 mg	Kapsel, hård
 Dabigatran etexilate Sandoz	75 mg	Kapsel, hård
@@ -3146,7 +3144,6 @@ Gaviscon		Oral suspension
 Gaviscon		Tuggtablett
 Gazyvaro	1000 mg	Koncentrat till infusionsvätska, lösning
 Gefitinib Accord	250 mg	Filmdragerad tablett
-Gefitinib STADA	250 mg	Filmdragerad tablett
 Gelaspan		Infusionsvätska, lösning
 Gelofusine		Infusionsvätska, lösning
 Gemadol	50 mg	Depotkapsel, hård
@@ -3623,7 +3620,6 @@ Irbesartan/Hydrochlorothiazide STADA	300 mg/25 mg	Filmdragerad tablett
 Irbesartan/Hydrochlorothiazide Teva	300 mg/25 mg	Filmdragerad tablett
 Irbesartan/Hydroklortiazid Actavis	300 mg/12,5 mg	Filmdragerad tablett
 Irbesartan/Hydroklortiazid Actavis	300 mg/25 mg	Filmdragerad tablett
-IRESSA	250 mg	Filmdragerad tablett
 Irinotecan Accord	20 mg/ml	Koncentrat till infusionsvätska, lösning
 Irinotecan Fresenius Kabi	20 mg/ml	Koncentrat till infusionsvätska, lösning
 Irinotecan SUN	1,5 mg/ml	Infusionsvätska, lösning
@@ -3662,6 +3658,7 @@ Isoptin Retard	240 mg	Depottablett
 Isopto-Maxidex	1 mg/ml	Ögondroppar, suspension
 Isotracin	10 mg	Kapsel, mjuk
 Isotracin	20 mg	Kapsel, mjuk
+Isotretinoin Abacus Medicine	10 mg	Kapsel, mjuk
 Isotretinoin Actavis	10 mg	Kapsel, mjuk
 Isotretinoin Actavis	20 mg	Kapsel, mjuk
 Isotretinoin Ebb	10 mg	Kapsel, mjuk
@@ -4328,7 +4325,6 @@ Lopacut	2 mg	Filmdragerad tablett
 Loperamid ABECE	2 mg	Tablett
 Loperamid Apofri	2 mg	Tablett
 Loperamid Brown	2 mg	Kapsel, hård
-Loperamid NET	2 mg	Tablett
 Loperamid Viatris	2 mg	Kapsel, hård
 Loperamide Grindeks	2 mg	Kapsel, hård
 Loperamide Medical Valley	2 mg	Tablett
@@ -4410,6 +4406,7 @@ Lutathera	370 MBq/ml	Infusionsvätska, lösning
 Lutinus	100 mg	Vaginaltablett
 Lutonaze	125 mikrogram + 50 mikrogram/sprayning	Nässpray, suspension
 Luxturna		Koncentrat till injektionsvätska, lösning
+Lydagriks	10 mg/ml	Injektionsvätska, lösning
 Lyfnua	45 mg	Filmdragerad tablett
 Lymecycline Actavis	300 mg	Kapsel, hård
 Lymecyklin Abacus Medicine	300 mg	Kapsel, hård
@@ -4816,7 +4813,6 @@ Mirtazapin Actavis	30 mg	Filmdragerad tablett
 Mirtazapin Actavis	30 mg	Munsönderfallande tablett
 Mirtazapin Actavis	45 mg	Filmdragerad tablett
 Mirtazapin Actavis	45 mg	Munsönderfallande tablett
-Mirtazapin Alternova	15 mg	Filmdragerad tablett
 Mirtazapin Bluefish	15 mg	Munsönderfallande tablett
 Mirtazapin Bluefish	30 mg	Munsönderfallande tablett
 Mirtazapin Bluefish	45 mg	Munsönderfallande tablett
@@ -5496,7 +5492,6 @@ Opfolda	65 mg	Kapsel, hård
 Ophtesic	20 mg/g	Ögongel i endosbehållare
 Ophthajod	50 mg/ml	Ögondroppar, lösning
 Opnol	1 mg/ml	Ögondroppar, lösning i endosbehållare
-Oprixxa	500 mg/150 mg	Filmdragerad tablett
 Oprymea	0,7 mg	Tablett
 Oprymea	0,18 mg	Tablett
 Oprymea	0,26 mg	Depottablett
@@ -5561,6 +5556,7 @@ Otrivin Menthol (utan konserveringsmedel)	1 mg/ml	Nässpray, lösning
 Otrivin utan konserveringsmedel	0,5 mg/ml	Nässpray, lösning
 Otrivin utan konserveringsmedel	1 mg/ml	Nässpray, lösning
 Otulfi	45 mg	Injektionsvätska, lösning
+Otulfi	45 mg	Injektionsvätska, lösning i förfylld injektionspenna
 Otulfi	45 mg	Injektionsvätska, lösning i förfylld spruta
 Otulfi	90 mg	Injektionsvätska, lösning i förfylld injektionspenna
 Otulfi	90 mg	Injektionsvätska, lösning i förfylld spruta
@@ -7362,6 +7358,7 @@ Tapentadol Depot STADA	150 mg	Depottablett
 Tapentadol Depot STADA	200 mg	Depottablett
 Tapentadol Depot STADA	250 mg	Depottablett
 Tapentadol G.L. Pharma	50 mg	Filmdragerad tablett
+Tapimio Depot	50 mg	Depottablett
 Tapin	25 mg/25 mg	Medicinskt plåster
 Tapin	25 mg/g + 25 mg/g	Kräm
 Taptiqom	15 mikrogram/ml+5 mg/ml	Ögondroppar, lösning i endosbehållare
@@ -8199,6 +8196,7 @@ Xofigo	1100 kBq/ml	Injektionsvätska, lösning
 Xofluza	40 mg	Filmdragerad tablett
 Xofluza	80 mg	Filmdragerad tablett
 Xolair	75 mg	Injektionsvätska, lösning i förfylld spruta
+Xolair	150 mg	Injektionsvätska, lösning i förfylld injektionspenna
 Xolair	150 mg	Injektionsvätska, lösning i förfylld spruta
 Xolair	300 mg	Injektionsvätska, lösning i förfylld injektionspenna
 Xonvea	10 mg/10 mg	Enterotablett
@@ -8272,7 +8270,6 @@ Zejula	100 mg	Filmdragerad tablett
 Zejula	100 mg	Kapsel, hård
 Zelboraf	240 mg	Filmdragerad tablett
 Zeltacin	100 mg/ml	Injektions-/infusionsvätska, lösning
-ZEPATIER	50 mg/100 mg	Filmdragerad tablett
 Zeposia	0,23 mg + 0,46 mg	Kapsel, hård
 Zeposia	0,92 mg	Kapsel, hård
 Zeqmelit	4 mg	Munsönderfallande film
