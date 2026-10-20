@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -192,7 +192,7 @@ test('hook-kommandona i settings.json hittar skripten både i repot och från en
 
   const { dir, parent } = makeProject();
   mkdirSync(path.join(dir, '.claude/hooks'), { recursive: true });
-  for (const f of ['regel4-check.mjs', 'session-start.sh']) {
+  for (const f of ['regel4-check.mjs', 'session-start.sh', 'maven-central-mirror.init.gradle.kts']) {
     copyFileSync(path.join(repoRoot, '.claude/hooks', f), path.join(dir, '.claude/hooks', f));
   }
   const file = writeKt(dir, featureFileRel, featureCard);
@@ -204,13 +204,15 @@ test('hook-kommandona i settings.json hittar skripten både i repot och från en
     });
     assert.equal(post.status, 2, `PostToolUse med projektrot ${projectDir}: ${post.stderr}`);
 
+    const home = mkdtempSync(path.join(tmpdir(), 'hem-'));
     const start = spawnSync('bash', ['-c', startCmd], {
-      env: { ...process.env, CLAUDE_PROJECT_DIR: projectDir, CLAUDE_CODE_REMOTE: 'true', FIREBASE_SERVICE_ACCOUNT: '' },
+      env: { ...process.env, CLAUDE_PROJECT_DIR: projectDir, CLAUDE_CODE_REMOTE: 'true', FIREBASE_SERVICE_ACCOUNT: '', HOME: home },
       encoding: 'utf8',
     });
     assert.equal(start.status, 0, start.stderr);
     assert.match(start.stdout, /FIREBASE_SERVICE_ACCOUNT: saknas/);
     assert.doesNotMatch(start.stdout, /eyJ|BEGIN PRIVATE KEY/, 'nyckelinnehåll får aldrig skrivas ut');
+    assert.ok(existsSync(path.join(home, '.gradle/init.d/maven-central-mirror.init.gradle.kts')), 'spegeln för Maven Central');
   }
 
   const none = spawnSync('bash', ['-c', postCmd], {

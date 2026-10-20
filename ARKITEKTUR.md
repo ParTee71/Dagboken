@@ -610,7 +610,9 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
   `release.yml` med grindar. Budget ~8 Actions-minuter per PR; instrumenttester bara när
   berörda sökvägar ändrats. Dagbokens `instrumented.yml` (25–30 min varje PR) pensioneras.
 - **Hooks:** `regel4-check.mjs` + `ui-forbidden.txt`/`ui-allowlist.txt`; `session-start.sh`
-  (npm ci för `tools/db`, rapporterar om `FIREBASE_SERVICE_ACCOUNT` finns).
+  (npm ci för `tools/db`, rapporterar om `FIREBASE_SERVICE_ACCOUNT` finns, lägger
+  `maven-central-mirror.init.gradle.kts` i `~/.gradle/init.d/` så att Gradle i molnsessionen
+  hämtar från Googles spegel av Maven Central i stället för att få 429).
 - **Skills som tas över (G/G\*):** `ci-budget`, `shared-ui-components`, `firestore-data-layer`,
   `data-safety-backup` (Firestore-versionen), `db-access`, `ui-style` (skrivs om för
   Papper och teal), `testing-strategy`, `refine-issue`, `implement-issue`, `release` (de tre sista sedan 2026-10-18
