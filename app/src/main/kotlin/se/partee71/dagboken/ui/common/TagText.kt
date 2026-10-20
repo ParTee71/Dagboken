@@ -10,8 +10,8 @@ import se.partee71.dagboken.core.model.TagCatalog
 
 /**
  * Namnet på [token] i [catalog] (resursen `body_<token>` respektive `context_<token>`). Bara katalogernas egna tokens
- * visas som val, så ett okänt token (från en nyare app) slås aldrig upp; det ger `null`, och anroparen visar då
- * tokenet självt i stället för att krascha. `TagTextTest` bevisar att varje token i katalogerna har ett namn.
+ * visas som val; ett okänt token (från en nyare app) bevaras på loggen men visas inte, och skulle det ändå slås upp ger
+ * det `null` och anroparen visar tokenet i stället för att krascha. `TagTextTest` bevisar att varje token har ett namn.
  */
 @StringRes
 fun tagName(catalog: TagCatalog, token: String): Int? = when (catalog) {
@@ -32,7 +32,7 @@ private val BODY_NAMES: Map<String, Int> = mapOf(
     "tired_body" to R.string.body_tired_body,
     "light_body" to R.string.body_light_body,
     "warm_soft" to R.string.body_warm_soft,
-    "nothing" to R.string.body_nothing
+    BodySensationCatalog.NOTHING to R.string.body_nothing
 )
 
 /** Token → namnet, för alla ord i [ContextTagCatalog]. */
