@@ -117,15 +117,20 @@ object Samples {
     /** Känslor med kärna, nyans och ord satta (DAT-14) – varje fält i elementet har ett värde. */
     private val feelings = listOf(Feeling("scared", "anxious", "tense"), Feeling("calm", "grateful", "moved"))
 
+    /** Styrka och kommentar på var sin känsla (SCR-9, SCR-10). */
+    private val strengths = mapOf("scared.anxious.tense" to "strong")
+    private val notes = mapOf("calm.grateful.moved" to "Promenad i solen")
+
     val screening = Screening(
         id = "s1", date = day, time = LocalTime(8, 15), occasion = Occasion.BREAKFAST, customText = "Morgonkoll",
-        energy = 6, stress = 3, symptoms = symptoms, feelings = feelings, legacySomatic = 7, createdAt = created, note = "Sov dåligt"
+        energy = 6, stress = 3, symptoms = symptoms, feelings = feelings,
+        feelingStrengths = strengths, feelingNotes = notes, legacySomatic = 7, createdAt = created, note = "Sov dåligt"
     )
 
     val activity = Activity(
         id = "a1", date = day, time = LocalTime(17, 0), optionId = "promenad", customText = "Svamplockning",
         energy = -2, stress = 1, symptoms = symptoms, legacySomatic = 3, recovering = true, drain = true, minutes = 45,
-        feelings = feelings, createdAt = created, note = "Regn"
+        feelings = feelings, feelingStrengths = strengths, feelingNotes = notes, createdAt = created, note = "Regn"
     )
 
     val event = Event(

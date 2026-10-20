@@ -22,6 +22,7 @@ import kotlinx.datetime.toInstant
 import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Option
@@ -381,6 +382,34 @@ class MoodSheetTest {
         assertEquals(listOf(Feeling("calm"), Feeling("strong", "proud")), saved.feelings)
         assertEquals(9, saved.energy)
         assertEquals(3, saved.stress)
+        vm.assertSavedAndClosed()
+    }
+
+    @Test
+    fun `en logg öppnas med styrka och kommentar, och långtryck och kommentar sparas (SCR-9, SCR-10, NFR-10)`() = runTest(main.dispatcher) {
+        allOccasions()
+        val feelings = listOf(Feeling("calm", "grateful"), Feeling("sad"))
+        val logged = Screening(
+            "s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, feelings = feelings,
+            feelingStrengths = mapOf("calm.grateful" to "clear"), feelingNotes = mapOf("sad" to "Regn"), createdAt = at(today, 8, 40)
+        )
+        factory.screenings().upsert(logged).getOrThrow()
+        val vm = started()
+        vm.onEvent(LogEvent.EditScreening(logged))
+        val sheet = assertNotNull(vm.screening.value)
+        assertEquals(FeelingStrength.CLEAR, sheet.value.strengthOf(Feeling("calm", "grateful")))
+        assertEquals("Regn", sheet.value.noteOf(Feeling("sad")))
+        assertFalse(sheet.editor.state.value.isDirty)
+
+        vm.onEvent(LogEvent.StrongerFeeling(Feeling("calm", "grateful")))
+        assertTrue(sheet.editor.state.value.isDirty, "ändrad styrka aktiverar Spara")
+        vm.onEvent(LogEvent.StrongerFeeling(Feeling("sad")))
+        vm.onEvent(LogEvent.ChangeFeelingNote(Feeling("calm", "grateful"), " Promenad i solen "))
+        vm.onEvent(LogEvent.ChangeFeelingNote(Feeling("sad"), ""))
+        val saved = saveAndStored(vm)
+        assertEquals(mapOf("calm.grateful" to "strong", "sad" to "mild"), saved.feelingStrengths)
+        assertEquals(mapOf("calm.grateful" to "Promenad i solen"), saved.feelingNotes, "trimmad; tom text tas bort")
+        assertEquals(feelings, saved.feelings)
         vm.assertSavedAndClosed()
     }
 }

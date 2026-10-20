@@ -45,7 +45,9 @@ fun OccasionRow(
     time: String? = null,
     values: List<OccasionValue> = emptyList(),
     feelings: List<Feeling> = emptyList(),
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    /** Styrkan per känsla (SCR-9) på pillsen; kommentarerna visas inte här (SCR-10). */
+    feelingExtras: FeelingExtras = FeelingExtras.None
 ) {
     val logged = status == OccasionStatus.LOGGED
     val pending: Pair<Int, Tone>? = when (status) {
@@ -80,7 +82,7 @@ fun OccasionRow(
                                 tone = scaleLevel(chip.value, higherIsBetter = chip.higherIsBetter).tone
                             )
                         }
-                        FeelingPills(feelings)
+                        FeelingPills(feelings, extras = feelingExtras)
                     }
                 }
             }

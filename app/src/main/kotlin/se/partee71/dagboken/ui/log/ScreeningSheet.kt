@@ -78,6 +78,10 @@ class ScreeningSheet(
 
     fun changeFeelings(feelings: List<Feeling>) = sheet.update(FEELINGS) { it.withFeelings(feelings) }
 
+    fun strongerFeeling(feeling: Feeling) = sheet.update(FEELINGS) { it.withNextStrength(feeling) }
+
+    fun changeFeelingNote(feeling: Feeling, note: String) = sheet.update(FEELINGS) { it.withNote(feeling, note) }
+
     fun changeSymptoms(symptoms: List<SymptomScore>) = sheet.update(SYMPTOMS) { it.withSymptoms(symptoms) }
 
     /** SCR-1: ny logg som den är, ändrad fältvis (`ScreeningRepository.save`). */

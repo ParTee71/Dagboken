@@ -4,6 +4,7 @@ import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.core.model.HasFeelings
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
@@ -54,6 +55,44 @@ internal fun Doc.feelings(): List<Feeling> = stringList(FEELINGS).mapNotNull(Fee
 
 internal fun List<Feeling>.encodeFeelings(): List<String> = map { it.token }
 
+/** Styrka och kommentar per vald känsla (SCR-9, SCR-10, DAT-14, DAT-15) – kartor från token till värde bredvid [FEELINGS]. */
+internal const val FEELING_STRENGTHS = "feelingStrengths"
+internal const val FEELING_NOTES = "feelingNotes"
+
+/**
+ * En karta per vald känsla (`{"calm.grateful": …}`, [FEELING_STRENGTHS], [FEELING_NOTES]): en nyckel som inte är en vald
+ * känsla i [feelings] (föräldralös) och ett värde som [value] inte godtar hoppas över; ett okänt värde som är text bevaras
+ * (nyare app). Saknat fält = tom karta. Samma läsning för båda fälten (regel 4).
+ */
+internal fun Doc.feelingValues(key: String, feelings: List<Feeling>, value: (String) -> String? = { it }): Map<String, String> {
+    val tokens = feelings.mapTo(HashSet()) { it.token }
+    return asDoc(this[key]).mapNotNull { (token, raw) -> (raw as? String)?.let(value)?.takeIf { token in tokens }?.let { token to it } }.toMap()
+}
+
+/** Kartan som den skrivs: bara valda känslor, i valens ordning, värdena genom [value] (`null` = skrivs inte). */
+internal fun Map<String, String>.encodeFeelingValues(feelings: List<Feeling>, value: (String) -> String? = { it }): Map<String, String> = feelings.mapNotNull { f -> this[f.token]?.let(value)?.let { f.token to it } }.toMap()
+
+/**
+ * En kommentar lagras trimmad och aldrig tom (SCR-10), utan enhetsavgränsaren U+001F – rules prövar kommentarerna
+ * hopfogade med den (isFeelingNotes), så den får inte finnas i en kommentar.
+ */
+private fun note(text: String): String? = text.replace(NOTE_SEPARATOR, "").trim().ifEmpty { null }
+
+private const val NOTE_SEPARATOR = "\u001f"
+
+/** `feelings`, `feelingStrengths` och `feelingNotes` som de skrivs – en gång för måendeloggen och aktiviteten. */
+internal fun HasFeelings<*>.encodeFeelingFields(): Doc = mapOf(
+    FEELINGS to feelings.encodeFeelings(),
+    FEELING_STRENGTHS to feelingStrengths.encodeFeelingValues(feelings),
+    FEELING_NOTES to feelingNotes.encodeFeelingValues(feelings, ::note)
+)
+
+/** [post] med fälten ovan lästa ur [map]. */
+internal fun <T : HasFeelings<T>> Doc.decodeFeelingFields(post: T): T {
+    val feelings = feelings()
+    return post.copyFeelings(feelings, feelingValues(FEELING_STRENGTHS, feelings), feelingValues(FEELING_NOTES, feelings, ::note))
+}
+
 object OptionCodec : DocCodec<Option> {
     const val NAME = "name"
     const val KIND = "kind"
@@ -91,9 +130,8 @@ object ScreeningCodec : DatedCodec<Screening> {
         "energy" to value.energy,
         "stress" to value.stress,
         SYMPTOMS to value.symptoms.encodeSymptoms(),
-        LEGACY_SOMATIC to value.legacySomatic,
-        FEELINGS to value.feelings.encodeFeelings()
-    )
+        LEGACY_SOMATIC to value.legacySomatic
+    ) + value.encodeFeelingFields()
 
     override fun decode(id: String, map: Doc) = Screening(
         id = id,
@@ -104,11 +142,10 @@ object ScreeningCodec : DatedCodec<Screening> {
         energy = map.int("energy"),
         stress = map.int("stress"),
         symptoms = map.symptoms(),
-        feelings = map.feelings(),
         legacySomatic = map.intOrNull(LEGACY_SOMATIC),
         createdAt = map.instant(CREATED_AT),
         note = map.stringOrNull(NOTE)
-    )
+    ).let(map::decodeFeelingFields)
 }
 
 object ActivityCodec : DatedCodec<Activity> {
@@ -126,9 +163,8 @@ object ActivityCodec : DatedCodec<Activity> {
         LEGACY_SOMATIC to value.legacySomatic,
         "recovering" to value.recovering,
         "drain" to value.drain,
-        "minutes" to value.minutes,
-        FEELINGS to value.feelings.encodeFeelings()
-    )
+        "minutes" to value.minutes
+    ) + value.encodeFeelingFields()
 
     override fun decode(id: String, map: Doc) = Activity(
         id = id,
@@ -143,10 +179,9 @@ object ActivityCodec : DatedCodec<Activity> {
         recovering = map.bool("recovering"),
         drain = map.bool("drain"),
         minutes = map.intOrNull("minutes"),
-        feelings = map.feelings(),
         createdAt = map.instant(CREATED_AT),
         note = map.stringOrNull(NOTE)
-    )
+    ).let(map::decodeFeelingFields)
 }
 
 object EventCodec : DatedCodec<Event> {

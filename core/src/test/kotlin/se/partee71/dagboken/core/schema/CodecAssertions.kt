@@ -74,11 +74,14 @@ fun <T : Any> assertVariantCodecContract(codec: ValueCodec<T>, variants: List<Pa
 
 /**
  * Fältvägarna i ett kodat dokument, även de nästlade: `theme.mode`, `boosts[].unit` (element i en
- * lista av objekt). Samma notation som paritetstabellen i ARKITEKTUR.md → Datamodell.
+ * lista av objekt). Samma notation som paritetstabellen i ARKITEKTUR.md → Datamodell. En karta vars nycklar är data
+ * (känslotokens, `DocumentRules.Check.TokenMap`) är ett fält, inte ett nästlat objekt.
  */
 fun fieldPaths(doc: Doc, prefix: String = ""): Set<String> = doc.flatMap { (key, value) ->
     val path = prefix + key
     when {
+        value is Map<*, *> && path in TOKEN_MAPS -> listOf(path)
+
         value is Map<*, *> -> fieldPaths(asDoc(value), "$path.") + path
 
         value is List<*> && value.any { it is Map<*, *> } ->
@@ -109,3 +112,6 @@ fun assertEveryFieldSet(doc: Doc, what: String) {
 private fun persistedFields(value: Any) = value::class.java.declaredFields
     .filterNot { Modifier.isStatic(it.modifiers) || Modifier.isTransient(it.modifiers) || it.name == "id" }
     .onEach { it.isAccessible = true }
+
+/** Toppfälten som är kartor med data som nycklar ([DocumentRules.Check.TokenMap]) i någon samling. */
+private val TOKEN_MAPS: Set<String> = DocumentRules.FIELDS.values.flatMap { fields -> fields.filterValues { it is DocumentRules.Check.TokenMap }.keys }.toSet()

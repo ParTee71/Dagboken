@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import org.junit.Test
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.FeelingCatalog
+import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.LegacySource
 import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Occasion
@@ -46,6 +47,7 @@ class RulesEnumsTest {
         assertEquals(wires(MedicineForm.entries), rulesList("medicineForms"))
         // Kärnkänslorna står i isFeelings mönster (DAT-14) – tokens i FeelingCatalog, ingen WireEnum.
         val feelingCores = Regex("""matches\('\^\(([a-z|]+)\)""").find(rules)?.groupValues?.get(1)?.split('|') ?: error("firestore.rules saknar isFeelings mönster")
+        assertEquals(wires(FeelingStrength.entries), rulesList("feelingStrengths"))
         assertEquals(FeelingCatalog.cores, feelingCores)
     }
 

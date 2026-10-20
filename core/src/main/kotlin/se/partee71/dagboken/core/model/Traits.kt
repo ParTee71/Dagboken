@@ -45,13 +45,54 @@ interface HasSymptoms<T : HasSymptoms<T>> {
 
 /**
  * En post med loggade känslor (SCR-7, AKT-13, DAT-14) – måendeloggen och aktiviteten: [feelings] ur [FeelingCatalog], högst
- * [FeelingCatalog.MAX_FEELINGS], i vald ordning. Okända tokens bevaras ([Feeling]).
+ * [FeelingCatalog.MAX_FEELINGS], i vald ordning, och per vald känsla en frivillig styrka ([feelingStrengths], SCR-9) och
+ * kommentar ([feelingNotes], SCR-10), nycklade på [Feeling.token]. Okända tokens och styrkeord bevaras ([Feeling]).
+ * **Enda** stället för reglerna om hur styrka och kommentar följer valen ([FeelingValues]).
  */
 interface HasFeelings<T : HasFeelings<T>> {
     val feelings: List<Feeling>
 
-    /** Posten med [feelings] satta (dataklassens `copy`). */
-    fun withFeelings(feelings: List<Feeling>): T
+    /** Token → styrkeord ([FeelingStrength.wire]); bara valda känslor, saknad nyckel = ingen styrka (SCR-9). */
+    val feelingStrengths: Map<String, String>
+
+    /** Token → kommentar, inte tom; bara valda känslor (SCR-10, DAT-15). Lagras trimmad (codecen). */
+    val feelingNotes: Map<String, String>
+
+    /** Posten med alla tre satta (dataklassens `copy`). */
+    fun copyFeelings(feelings: List<Feeling>, strengths: Map<String, String>, notes: Map<String, String>): T
+
+    /**
+     * Nya val: styrka och kommentar följer ett val som förfinas på sin plats; ett ord som släcks nollställer styrkan men
+     * behåller kommentaren, och en borttagen känsla tar med sig båda (SCR-9, SCR-10).
+     */
+    fun withFeelings(feelings: List<Feeling>): T = copyFeelings(
+        feelings,
+        FeelingValues.carry(this.feelings, feelings, feelingStrengths, keepWhenCoarser = false),
+        FeelingValues.carry(this.feelings, feelings, feelingNotes, keepWhenCoarser = true)
+    )
+
+    /** Den kända styrkan på [feeling]; `null` = ingen (eller ett okänt ord från en nyare app). */
+    fun strengthOf(feeling: Feeling): FeelingStrength? = FeelingStrength.of(feelingStrengths[feeling.token])
+
+    /** [feeling] ett steg starkare i långtryckets cykel (SCR-9); en känsla som inte är vald ändras inte. */
+    fun withNextStrength(feeling: Feeling): T {
+        if (feeling !in feelings) return copyFeelings(feelings, feelingStrengths, feelingNotes)
+        val next = FeelingStrength.next(strengthOf(feeling))
+        val strengths = if (next == null) feelingStrengths - feeling.token else feelingStrengths + (feeling.token to next.wire)
+        return copyFeelings(feelings, strengths, feelingNotes)
+    }
+
+    fun noteOf(feeling: Feeling): String = feelingNotes[feeling.token].orEmpty()
+
+    /**
+     * Kommentaren till [feeling] som den skrivs (codecen trimmar när den lagras, så att ett mellanslag går att skriva); en
+     * tom text tas bort (SCR-10). En känsla som inte är vald ändras inte.
+     */
+    fun withNote(feeling: Feeling, note: String): T {
+        if (feeling !in feelings) return copyFeelings(feelings, feelingStrengths, feelingNotes)
+        val notes = if (note.isBlank()) feelingNotes - feeling.token else feelingNotes + (feeling.token to note)
+        return copyFeelings(feelings, feelingStrengths, notes)
+    }
 }
 
 /**

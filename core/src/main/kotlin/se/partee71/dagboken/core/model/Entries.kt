@@ -26,6 +26,10 @@ data class Screening(
     override val symptoms: List<SymptomScore> = emptyList(),
     /** Känslorna ur ordkatalogen (SCR-7, DAT-14); fanns inte i 3.x – konverteraren ger tom lista. */
     override val feelings: List<Feeling> = emptyList(),
+    /** Styrka per vald känsla (SCR-9, DAT-14); fanns inte i 3.x – tom karta. */
+    override val feelingStrengths: Map<String, String> = emptyMap(),
+    /** Kommentar per vald känsla (SCR-10, DAT-15); fanns inte i 3.x – tom karta. */
+    override val feelingNotes: Map<String, String> = emptyMap(),
     override val createdAt: Instant? = null,
     val note: String? = null,
     /** 3.x `somatiska` som inte är summan ([HasSymptoms.legacySomatic]). */
@@ -37,7 +41,7 @@ data class Screening(
 
     override fun copySymptoms(symptoms: List<SymptomScore>, legacySomatic: Int?): Screening = copy(symptoms = symptoms, legacySomatic = legacySomatic)
 
-    override fun withFeelings(feelings: List<Feeling>): Screening = copy(feelings = feelings)
+    override fun copyFeelings(feelings: List<Feeling>, strengths: Map<String, String>, notes: Map<String, String>): Screening = copy(feelings = feelings, feelingStrengths = strengths, feelingNotes = notes)
 }
 
 /**
@@ -65,6 +69,10 @@ data class Activity(
     val minutes: Int? = null,
     /** Känslorna ur ordkatalogen (AKT-13, DAT-14); fanns inte i 3.x – konverteraren ger tom lista. */
     override val feelings: List<Feeling> = emptyList(),
+    /** Styrka per vald känsla (SCR-9, DAT-14); fanns inte i 3.x – tom karta. */
+    override val feelingStrengths: Map<String, String> = emptyMap(),
+    /** Kommentar per vald känsla (SCR-10, DAT-15); fanns inte i 3.x – tom karta. */
+    override val feelingNotes: Map<String, String> = emptyMap(),
     override val createdAt: Instant? = null,
     val note: String? = null,
     /** 3.x `somatiska` som inte är summan ([HasSymptoms.legacySomatic]). */
@@ -76,7 +84,7 @@ data class Activity(
 
     override fun copySymptoms(symptoms: List<SymptomScore>, legacySomatic: Int?): Activity = copy(symptoms = symptoms, legacySomatic = legacySomatic)
 
-    override fun withFeelings(feelings: List<Feeling>): Activity = copy(feelings = feelings)
+    override fun copyFeelings(feelings: List<Feeling>, strengths: Map<String, String>, notes: Map<String, String>): Activity = copy(feelings = feelings, feelingStrengths = strengths, feelingNotes = notes)
 }
 
 /** `users/{uid}/events/{id}` – en hälsohändelse. Ersätter 3.x `health_events`. */

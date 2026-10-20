@@ -81,7 +81,7 @@ service cloud.firestore {
     function medicineForms() { return ['tablet', 'capsule', 'liquid', 'powder', 'inhaler', 'drops', 'patch', 'other']; }
 
     // Listor av objekt. Rules kan inte loopa och räknar högst 1 000 uttryck per skrivning, så hela
-    // listan kontrolleras som lista med tak, men elementen bara upp till det tionde (nästlat, så att
+    // listan kontrolleras som lista med tak, men elementen bara upp till det sjunde (nästlat, så att
     // resten hoppas över när listan tar slut; DocumentRules.RULES_CHECKED_ELEMENTS). Värsta fallet –
     // alla höjningar med start och slut, alla symptom med poäng och fritext, varje fält fullt – mäts med
     // reserv i rules.test.mjs (#294, #296). Taket är generöst så att en 3.x-post aldrig nekas;
@@ -91,7 +91,7 @@ service cloud.firestore {
     function maxBoosts() { return 50; }
 
     // Ett symptom (DAT-6): {optionId, score 0–10 eller null (utan poäng, från 3.x), customText}, alla nycklar
-    // med. Skrivet för uttrycksbudgeten som isBoost (#296): varje uttryck räknas tio gånger per lista.
+    // med. Skrivet för uttrycksbudgeten som isBoost (#296): varje uttryck räknas sju gånger per lista.
     // - Poängen med ett mönster: string() ger `null` för null, siffrorna för ett heltal, `3.0`/`2.5` för ett
     //   decimaltal och `true` för en bool (ingen träff = nekad); en lista eller ett objekt ger fel (nekad).
     //   Texter ('3', 'null') skulle träffa och nekas med `!(s.score is string)`.
@@ -105,13 +105,11 @@ service cloud.firestore {
       let n = l is list ? l.size() : maxSymptoms() + 1;
       return n <= maxSymptoms()
         && (n <= 0 || (isSymptom(l[0]) && (n <= 1 || (isSymptom(l[1]) && (n <= 2 || (isSymptom(l[2]) && (n <= 3 ||
-        (isSymptom(l[3]) && (n <= 4 || (isSymptom(l[4]) && (n <= 5 || (isSymptom(l[5]) && (n <= 6 || (isSymptom(l[6])
-        && (n <= 7 || (isSymptom(l[7]) && (n <= 8 || (isSymptom(l[8]) && (n <= 9 ||
-        (isSymptom(l[9])))))))))))))))))))));
+        (isSymptom(l[3]) && (n <= 4 || (isSymptom(l[4]) && (n <= 5 || (isSymptom(l[5]) && (n <= 6 || (isSymptom(l[6])))))))))))))));
     }
 
     // En doshöjning (REC-9): {id, start, end, dose, unit}, alla nycklar med. Skriven för uttrycksbudgeten
-    // (#294): tio höjningar med start och slut kontrolleras i varje skrivning, så varje uttryck räknas.
+    // (#294): sju höjningar med start och slut kontrolleras i varje skrivning, så varje uttryck räknas.
     // - `(b.id + b.dose + b.unit) is string`: tre texter. Saknas, null eller annan typ ger fel (nekad)
     //   eller en icke-text (listor, tal).
     // - Datumen med ett mönster: string() ger `null` för null och texten för en text, så paret är
@@ -126,8 +124,7 @@ service cloud.firestore {
       let n = l is list ? l.size() : maxBoosts() + 1;
       return n <= maxBoosts()
         && (n <= 0 || (isBoost(l[0]) && (n <= 1 || (isBoost(l[1]) && (n <= 2 || (isBoost(l[2]) && (n <= 3 ||
-        (isBoost(l[3]) && (n <= 4 || (isBoost(l[4]) && (n <= 5 || (isBoost(l[5]) && (n <= 6 || (isBoost(l[6]) && (n <=
-        7 || (isBoost(l[7]) && (n <= 8 || (isBoost(l[8]) && (n <= 9 || (isBoost(l[9])))))))))))))))))))));
+        (isBoost(l[3]) && (n <= 4 || (isBoost(l[4]) && (n <= 5 || (isBoost(l[5]) && (n <= 6 || (isBoost(l[6])))))))))))))));
     }
 
     // Känslorna på en måendelogg och en aktivitet (SCR-7, AKT-13, DAT-14): högst maxFeelings() texter `core[.nuance[.detail]]` – kärnan en av de
@@ -141,6 +138,22 @@ service cloud.firestore {
     function isFeelings(l) {
       return l is list && l.size() <= maxFeelings()
         && (l.size() == 0 || l.join(' ').matches('^(glad|strong|calm|sad|angry|scared)(\\.[a-z]{1,32}){0,2}( (glad|strong|calm|sad|angry|scared)(\\.[a-z]{1,32}){0,2}){0,5}$'));
+    }
+
+    // Styrka och kommentar per vald känsla (SCR-9, SCR-10, DAT-14, DAT-15): ett objekt token → värde bredvid `feelings` ([f]).
+    // Skrivna för uttrycksbudgeten – måendeloggen och aktiviteten har symptomlistan och känslorna i samma skrivning:
+    // - Nycklarna är valda känslor (`keys().hasOnly(f)`): token och tak följer av isFeelings, och codecen skriver bara
+    //   valda; ett objekt som inte är en karta ger fel (nekad). DocumentRules prövar nycklarna med tokenmönstret.
+    // - Styrkorna är styrkeorden (FeelingStrength i :core).
+    // - Varje kommentar högst maxShort() tecken (200), prövade med ett mönster över värdena hopfogade med enhetsavgränsaren
+    //   U+001F (codecen tar bort den ur en kommentar). Ett värde som inte är text prövas bara på storleken (join() gör det
+    //   till text) – DocumentRules nekar det och codecen läser bara texter, som för elementen efter RULES_CHECKED_ELEMENTS.
+    function feelingStrengths() { return ['mild', 'clear', 'strong']; }
+    function isFeelingStrengths(m, f) {
+      return m.keys().hasOnly(f) && m.values().hasOnly(feelingStrengths());
+    }
+    function isFeelingNotes(m, f) {
+      return m.keys().hasOnly(f) && m.values().join('\u001f').matches('^[^\u001f]{0,200}(\u001f[^\u001f]{0,200}){0,5}$');
     }
 
     // Receptets upprepning {repeat, days ISO 1–7, intervalDays} och period {start?, end?}.
@@ -302,7 +315,9 @@ service cloud.firestore {
         && (!('stress' in w) || nullOrRange(d.get('stress', null), 0, 10))
         && (!('symptoms' in w) || d.get('symptoms', null) == null || isSymptoms(d.symptoms))
         && (!('legacySomatic' in w) || nullOrMin(d.get('legacySomatic', null), 0))
-        && (!('feelings' in w) || d.get('feelings', null) == null || isFeelings(d.feelings));
+        && (!('feelings' in w) || d.get('feelings', null) == null || isFeelings(d.feelings))
+        && (!('feelingStrengths' in w) || d.get('feelingStrengths', null) == null || isFeelingStrengths(d.feelingStrengths, d.feelings))
+        && (!('feelingNotes' in w) || d.get('feelingNotes', null) == null || isFeelingNotes(d.feelingNotes, d.feelings));
     }
 
     function validActivity(d) {
@@ -317,7 +332,9 @@ service cloud.firestore {
         && (!('recovering' in w) || nullOrBool(d.get('recovering', null)))
         && (!('drain' in w) || nullOrBool(d.get('drain', null)))
         && (!('minutes' in w) || nullOrMin(d.get('minutes', null), 0))
-        && (!('feelings' in w) || d.get('feelings', null) == null || isFeelings(d.feelings));
+        && (!('feelings' in w) || d.get('feelings', null) == null || isFeelings(d.feelings))
+        && (!('feelingStrengths' in w) || d.get('feelingStrengths', null) == null || isFeelingStrengths(d.feelingStrengths, d.feelings))
+        && (!('feelingNotes' in w) || d.get('feelingNotes', null) == null || isFeelingNotes(d.feelingNotes, d.feelings));
     }
 
     function validEvent(d) {

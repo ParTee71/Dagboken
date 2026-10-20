@@ -135,6 +135,16 @@
     <string name="feelings_back_to_wheel">Tillbaka till hjulet</string>
     <string name="feelings_remove_format">Ta bort %1$s</string>
     <string name="feelings_max_format">Högst %1$d känslor per logg.</string>
+    <!-- Styrka per känsla (SCR-9): långtryck på det yttersta valda ordet, tre steg -->
+    <string name="feelings_strength_help">Håll in den yttersta valda känslan för att göra den starkare.</string>
+    <string name="feeling_stronger">Starkare</string>
+    <string name="feeling_strength_mild">svag</string>
+    <string name="feeling_strength_clear">tydlig</string>
+    <string name="feeling_strength_strong">stark</string>
+    <string name="feeling_with_strength_format">%1$s, %2$s</string>
+    <!-- Kommentar per känsla (SCR-10) -->
+    <string name="feeling_note_label">Varför? (valfritt)</string>
+    <string name="feeling_note_description_format">Kommentar till %1$s</string>
     <string name="feeling_selected_state">vald</string>
     <string name="feeling_unknown">Okänd känsla</string>
     <string name="feeling_separator">" › "</string>

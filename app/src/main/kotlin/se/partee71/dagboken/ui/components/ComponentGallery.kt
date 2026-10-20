@@ -44,6 +44,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.model.Screening
+import androidx.compose.ui.platform.LocalHapticFeedback
 import se.partee71.dagboken.core.engine.TypeChoices
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.data.auth.AuthUser
@@ -423,8 +425,17 @@ private fun Diary() {
     Label("FeelingPicker")
     var feelings by remember { mutableStateOf(GALLERY_FEELINGS) }
     AppCard { FeelingPicker(feelings, { feelings = it }) }
+    Label("FeelingPicker med styrka och kommentar (FeelingExtras)")
+    var post by remember { mutableStateOf(GALLERY_FEELING_POST) }
+    AppCard { FeelingPicker(post.feelings, { f -> post = post.withFeelings(f) }, extras = FeelingExtras.of(post) { change -> post = change(post) }) }
+    Label("longPressAction")
+    var presses by remember { mutableIntStateOf(0) }
+    val haptic = LocalHapticFeedback.current
+    InfoPill("Håll in: $presses", Modifier.longPressAction("Starkare", haptic) { presses++ }, onClick = {})
     Label("FeelingPills")
     ChipRow { FeelingPills(GALLERY_POST_FEELINGS) }
+    // Styrkans tre intensiteter med prickar (SCR-9).
+    ChipRow { FeelingPills(GALLERY_FEELING_POST.feelings, extras = FeelingExtras.shown(GALLERY_FEELING_POST)) }
     // Alla, utan "+N" – Idags Dagens känslor och Trenders valda dag.
     ChipRow { FeelingPills(GALLERY_POST_FEELINGS, max = null) }
     Label("FeelingMiniWheel")
@@ -654,7 +665,7 @@ internal fun GalleryOccasionRowWithFeelings() {
     )
 }
 
-/** En måendelogg med två känslor och en aktivitet med fem – tre och "+2" (HIST-10, påhittade värden). */
+/** En måendelogg med tre känslor, styrka och en kommentar, och en aktivitet med fem – tre och "+2" (HIST-10, SCR-9, SCR-10, påhittade värden). */
 @Composable
 internal fun GalleryFeelingCards() {
     DagbokenEntryCard(
@@ -664,7 +675,8 @@ internal fun GalleryFeelingCards() {
         accent = scaleLevel(7).color,
         status = { InfoPill("Energi 7", tone = scaleLevel(7).tone) },
         onEdit = {},
-        feelings = listOf(Feeling("calm", "grateful"), Feeling("glad", "creative")),
+        feelings = GALLERY_FEELING_POST.feelings,
+        feelingExtras = FeelingExtras.shown(GALLERY_FEELING_POST),
     )
     DagbokenEntryCard(
         "Promenad",
@@ -689,6 +701,14 @@ internal val GALLERY_SYMPTOMS = listOf(
 internal val GALLERY_POST_FEELINGS = listOf(Feeling("calm"), Feeling("glad", "content"), Feeling("strong"), Feeling("calm", "grateful"), Feeling("sad"))
 
 /** Påhittade valda känslor för galleriet och dess skärmdumpar – en på varje nivå (kärna, nyans, precisare ord). */
+/** Påhittad måendelogg med känslornas tre styrkor och en kommentar (SCR-9, SCR-10). */
+internal val GALLERY_FEELING_POST = Screening(
+    "galleri",
+    feelings = listOf(Feeling("calm", "grateful"), Feeling("scared", "anxious", "tense"), Feeling("glad")),
+    feelingStrengths = mapOf("calm.grateful" to "clear", "scared.anxious.tense" to "strong", "glad" to "mild"),
+    feelingNotes = mapOf("calm.grateful" to "Promenad i solen efter lunchen")
+)
+
 internal val GALLERY_FEELINGS = listOf(Feeling("calm", "grateful"), Feeling("scared", "anxious", "tense"), Feeling("glad"))
 
 @Composable

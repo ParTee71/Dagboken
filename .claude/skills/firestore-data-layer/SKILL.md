@@ -198,7 +198,7 @@ cachen och synkas när nätet finns; larmen schemaläggs om vid synk, omstart oc
   minst ett ogiltigt fall.
 - **Uttrycksbudget:** rules räknar högst 1 000 uttryck per skrivning (över gränsen = `PERMISSION_DENIED`,
   även för giltig data). Listor av objekt (`symptoms`, `boosts`) kontrolleras därför som lista med tak
-  (50), men elementen bara upp till det tionde (`DocumentRules.RULES_CHECKED_ELEMENTS`; `validate`
+  (50), men elementen bara upp till det sjunde (`DocumentRules.RULES_CHECKED_ELEMENTS`; `validate`
   kontrollerar alla och är strängare). Känslorna (`feelings`, tak 6) lagras därför som texter `core[.nuance[.detail]]`
   (`DocumentRules.FEELING_TOKEN`) och prövas hela med ett mönster över `join(' ')` – några få uttryck oavsett antal (#318:
   objekt per element rymdes inte i måendeloggens budget – med alla sex kontrollerade nekades dokumentet). En lista av
@@ -210,7 +210,7 @@ cachen och synkas när nätet finns; larmen schemaläggs om vid synk, omstart oc
   aktivitet och incheckning med 50 symptom med poäng och fritext; varje fält fullt) skrivs mot emulatorn, och
   ett reservtest kräver plats för minst fem fältkontroller till i var och en av de fyra. Uppmätt reserv efter
   #296 (siffrorna står bara här): recept 5, screening 8, aktivitet 5, incheckning 10 – recept och aktivitet
-  ligger på kravet; efter #318 (känslorna som text-tokens, hela listan med ett mönster) screening 6. Nytt fält i en sådan samling → kör det, och blir det rött gör kontrollerna billigare i
+  ligger på kravet; efter #318 (känslorna som text-tokens, hela listan med ett mönster) screening 6. Efter #349/#346 (styrka och kommentar per känsla, nycklarna mot `feelings`, kommentarerna med ett mönster) räckte det inte – aktiviteten, som fick känslorna i #319 utan att `WORST` följde med, låg på 0 – och elementkontrollen sänktes från tio till sju: aktivitet 6, och screening och incheckning högre. Nytt fält i en sådan samling → kör det, och blir det rött gör kontrollerna billigare i
   stället för att sänka reserven. Ny samling med en lista av objekt → lägg den i `WORST`.
 - **Incheckningar** skrivs bara under en episod som finns efter skrivningen (`existsAfter`); en
   batch får slå upp högst 20 befintliga episoder (episoder som skapas i samma batch räknas inte), så

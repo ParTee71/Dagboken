@@ -13,6 +13,7 @@ import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.label
+import se.partee71.dagboken.ui.components.FeelingExtras
 import se.partee71.dagboken.ui.components.StepwiseScreeningForm
 import se.partee71.dagboken.ui.components.StepwiseScreeningNavigation
 import se.partee71.dagboken.ui.components.rememberStepwiseScreeningState
@@ -64,7 +65,13 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
             otherOptionId = OTHER_SYMPTOM_ID,
             somatic = edited.somatic,
             state = steps,
-            navigation = false
+            navigation = false,
+            feelingExtras = FeelingExtras(
+                strengthOf = edited::strengthOf,
+                onStronger = { onEvent(LogEvent.StrongerFeeling(it)) },
+                noteOf = edited::noteOf,
+                onNoteChange = { feeling, note -> onEvent(LogEvent.ChangeFeelingNote(feeling, note)) }
+            )
         )
     }
 }
