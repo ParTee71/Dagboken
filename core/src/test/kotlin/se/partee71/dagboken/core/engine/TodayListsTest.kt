@@ -22,6 +22,16 @@ class TodayListsTest {
 
     private val today = day("2026-10-04")
 
+    /** Inga måendeloggar – med standardinställningarna är inget tillfälle påmint, så bara 3-timmarsfönstret gäller. */
+    private val NO_MOOD = emptyList<Screening>()
+
+    /** Kvällsmat 17:00 och Läggdags 21:00 påminda (NOT-4). */
+    private val EVENING_MOOD = ReminderSettings().let { r ->
+        r.copy(screeningOccasions = r.screeningOccasions.map { it.copy(enabled = it.occasion == Occasion.DINNER || it.occasion == Occasion.BEDTIME) })
+    }
+
+    private fun mood(occasion: Occasion, date: String = "2026-10-04") = Screening("s-${occasion.wire}-$date", day(date), occasion = occasion)
+
     private fun dose(
         id: String,
         slot: Slot,
@@ -59,7 +69,7 @@ class TodayListsTest {
             dose("planeradvidbehov", Slot.AS_NEEDED),
             dose("igar", Slot.MORNING, date = "2026-10-03")
         )
-        val list = doseChecklist(doses, today, at("2026-10-04T10:30"), STOCKHOLM, reminders = ReminderSettings())
+        val list = doseChecklist(doses, today, at("2026-10-04T10:30"), STOCKHOLM, reminders = ReminderSettings(), NO_MOOD)
 
         assertEquals(listOf("morgon2" to Due.LATE, "lunch" to Due.SOON, "planeradvidbehov" to null), list.shown.map { it.dose.id to it.due })
         assertEquals(listOf("morgon", "formiddag", "vidbehov"), list.done.map { it.id })
@@ -68,7 +78,7 @@ class TodayListsTest {
 
     @Test fun `en dos precis tre timmar fram är snart, och det planerade klockslaget går före tidpunktens`() {
         val doses = listOf(dose("kvall", Slot.EVENING), dose("tidig", Slot.EVENING, time = LocalTime(15, 0)))
-        val list = doseChecklist(doses, today, at("2026-10-04T16:00"), STOCKHOLM, reminders = ReminderSettings())
+        val list = doseChecklist(doses, today, at("2026-10-04T16:00"), STOCKHOLM, reminders = ReminderSettings(), NO_MOOD)
         assertEquals(listOf("tidig" to Due.LATE, "kvall" to Due.SOON), list.shown.map { it.dose.id to it.due })
         assertTrue(list.upcoming.isEmpty())
     }
@@ -77,21 +87,21 @@ class TodayListsTest {
         // Natt 23:30 i inställningen (dosen skapades med 22:00): kl. 20:00 är den kommande, inte snart.
         val recipe = dose("a", Slot.NIGHT, time = LocalTime(22, 0)).copy(prescriptionId = "r1")
         val oneOff = dose("b", Slot.NIGHT, time = LocalTime(23, 0))
-        val standard = doseChecklist(listOf(recipe, oneOff), today, at("2026-10-04T20:00"), STOCKHOLM, ReminderSettings())
+        val standard = doseChecklist(listOf(recipe, oneOff), today, at("2026-10-04T20:00"), STOCKHOLM, ReminderSettings(), NO_MOOD)
         assertEquals(listOf(Triple("a", Due.SOON, LocalTime(22, 0)), Triple("b", Due.SOON, LocalTime(23, 0))), standard.shown.map { Triple(it.dose.id, it.due, it.time) })
-        val own = doseChecklist(listOf(recipe, oneOff), today, at("2026-10-04T20:00"), STOCKHOLM, OWN_TIMES)
+        val own = doseChecklist(listOf(recipe, oneOff), today, at("2026-10-04T20:00"), STOCKHOLM, OWN_TIMES, NO_MOOD)
         assertEquals(listOf("b" to Due.SOON), own.shown.map { it.dose.id to it.due })
         assertEquals(listOf(Triple("a", Due.UPCOMING, LocalTime(23, 30))), own.upcoming.map { Triple(it.dose.id, it.due, it.time) })
-        val late = doseChecklist(listOf(recipe, oneOff), today, at("2026-10-04T23:45"), STOCKHOLM, OWN_TIMES)
+        val late = doseChecklist(listOf(recipe, oneOff), today, at("2026-10-04T23:45"), STOCKHOLM, OWN_TIMES, NO_MOOD)
         assertEquals(listOf("b", "a"), late.shown.map { it.dose.id }, "23:00 före 23:30 – inte namnordning")
         val taken = recipe.copy(status = DoseStatus.TAKEN)
-        assertEquals(listOf(taken), doseChecklist(listOf(taken), today, at("2026-10-04T20:00"), STOCKHOLM, OWN_TIMES).done)
-        assertEquals(null, doseChecklist(listOf(dose("v", Slot.AS_NEEDED)), today, at("2026-10-04T20:00"), STOCKHOLM, OWN_TIMES).shown.single().time)
+        assertEquals(listOf(taken), doseChecklist(listOf(taken), today, at("2026-10-04T20:00"), STOCKHOLM, OWN_TIMES, NO_MOOD).done)
+        assertEquals(null, doseChecklist(listOf(dose("v", Slot.AS_NEEDED)), today, at("2026-10-04T20:00"), STOCKHOLM, OWN_TIMES, NO_MOOD).shown.single().time)
     }
 
     @Test fun `en tidigare dag har inga kommande och inget försenat`() {
         val doses = listOf(dose("natt", Slot.NIGHT, date = "2026-10-01"), dose("morgon", Slot.MORNING, date = "2026-10-01"))
-        val list = doseChecklist(doses, day("2026-10-01"), at("2026-10-04T08:00"), STOCKHOLM, reminders = ReminderSettings())
+        val list = doseChecklist(doses, day("2026-10-01"), at("2026-10-04T08:00"), STOCKHOLM, reminders = ReminderSettings(), NO_MOOD)
         assertEquals(listOf("morgon" to Due.PAST, "natt" to Due.PAST), list.shown.map { it.dose.id to it.due })
         assertTrue(list.upcoming.isEmpty())
     }
@@ -103,8 +113,33 @@ class TodayListsTest {
             dose("c", Slot.MORNING, name = "Levaxin"),
             dose("d", Slot.MORNING, name = "Zink", time = LocalTime(6, 0))
         )
-        val list = doseChecklist(doses, today, at("2026-10-04T09:00"), STOCKHOLM, reminders = ReminderSettings())
+        val list = doseChecklist(doses, today, at("2026-10-04T09:00"), STOCKHOLM, reminders = ReminderSettings(), NO_MOOD)
         assertEquals(listOf("d", "c", "a", "b"), list.shown.map { it.dose.id })
+    }
+
+    @Test fun `kvällsdosen är kommande tills Kvällsmat är loggat, och visas alltid när klockslaget är nått (MED-13)`() {
+        val doses = listOf(dose("kvall", Slot.EVENING))
+        val waiting = doseChecklist(doses, today, at("2026-10-04T17:30"), STOCKHOLM, EVENING_MOOD, NO_MOOD)
+        assertEquals(listOf("kvall" to Due.UPCOMING), waiting.upcoming.map { it.dose.id to it.due })
+        assertTrue(waiting.shown.isEmpty())
+        val logged = doseChecklist(doses, today, at("2026-10-04T17:30"), STOCKHOLM, EVENING_MOOD, listOf(mood(Occasion.DINNER)))
+        assertEquals(listOf("kvall" to Due.SOON), logged.shown.map { it.dose.id to it.due })
+        val yesterday = doseChecklist(doses, today, at("2026-10-04T17:30"), STOCKHOLM, EVENING_MOOD, listOf(mood(Occasion.DINNER, "2026-10-03")))
+        assertEquals(listOf("kvall"), yesterday.upcoming.map { it.dose.id }, "gårdagens logg räknas inte")
+        val reached = doseChecklist(doses, today, at("2026-10-04T19:00"), STOCKHOLM, EVENING_MOOD, NO_MOOD)
+        assertEquals(listOf("kvall" to Due.LATE), reached.shown.map { it.dose.id to it.due })
+    }
+
+    @Test fun `nattdosen väntar på Läggdags, inte på Kvällsmat, och utan påmint tillfälle före gäller bara tre timmar`() {
+        val doses = listOf(dose("natt", Slot.NIGHT))
+        val dinnerOnly = doseChecklist(doses, today, at("2026-10-04T21:15"), STOCKHOLM, EVENING_MOOD, listOf(mood(Occasion.DINNER)))
+        assertEquals(listOf("natt"), dinnerOnly.upcoming.map { it.dose.id })
+        val bedtime = doseChecklist(doses, today, at("2026-10-04T21:15"), STOCKHOLM, EVENING_MOOD, listOf(mood(Occasion.BEDTIME)))
+        assertEquals(listOf("natt" to Due.SOON), bedtime.shown.map { it.dose.id to it.due })
+        val morning = doseChecklist(listOf(dose("morgon", Slot.MORNING)), today, at("2026-10-04T05:00"), STOCKHOLM, EVENING_MOOD, NO_MOOD)
+        assertEquals(listOf("morgon" to Due.SOON), morning.shown.map { it.dose.id to it.due }, "inget påmint tillfälle före 07:00")
+        val past = doseChecklist(listOf(dose("natt", Slot.NIGHT, date = "2026-10-01")), day("2026-10-01"), at("2026-10-04T21:15"), STOCKHOLM, EVENING_MOOD, NO_MOOD)
+        assertEquals(listOf("natt" to Due.PAST), past.shown.map { it.dose.id to it.due })
     }
 
     // ── Vid behov-kortet (FAV-2, FAV-11) ─────────────────────────────────────

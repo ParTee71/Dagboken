@@ -56,17 +56,39 @@ data class DoseChecklist(
  * MED-1, MED-5, MED-13: [date]s doser ur [doses] (andra dagar hoppas över) delade och ordnade för
  * Mediciner-kortet. Avklarade ([isDone]) står för sig; en öppen dos med klockslag mer än [SOON_WINDOW] fram
  * idag är kommande, allt annat visas – en tidigare dag har aldrig kommande (`Due.PAST`, HEM-4). Klockslaget
- * är [scheduledTime]: en planerad receptdos följer tidpunktens klockslag i [reminders] (NOT-18).
+ * är [scheduledTime]: en planerad receptdos följer tidpunktens klockslag i [reminders] (NOT-18). En dos inom
+ * [SOON_WINDOW] är "Snart" först när måendet för tillfället före den är loggat i [screenings] ([moodLoggedBefore]),
+ * annars kommande; när klockslaget är nått visas den alltid (MED-13).
  */
-fun doseChecklist(doses: List<Dose>, date: LocalDate, now: Instant, zone: TimeZone, reminders: ReminderSettings): DoseChecklist {
+fun doseChecklist(
+    doses: List<Dose>,
+    date: LocalDate,
+    now: Instant,
+    zone: TimeZone,
+    reminders: ReminderSettings,
+    screenings: List<Screening>
+): DoseChecklist {
     val ordered = doses.filter { it.date == date }.sortedWith(doseOrder(reminders))
     val (done, open) = ordered.partition { it.isDone }
+    val onDate = screenings.filter { it.date == date }
     val withDue = open.map { dose ->
         val time = if (dose.slot == Slot.AS_NEEDED) null else dose.scheduledTime(reminders)
-        OpenDose(dose, time?.let { dueAt(date, it, now, zone) }, time)
+        val due = time?.let { dueAt(date, it, now, zone) }
+        val held = due == Due.SOON && !moodLoggedBefore(time, reminders, onDate)
+        OpenDose(dose, if (held) Due.UPCOMING else due, time)
     }
     val (upcoming, shown) = withDue.partition { it.due == Due.UPCOMING }
     return DoseChecklist(shown = shown, done = done, upcoming = upcoming)
+}
+
+/**
+ * MED-13: om det närmast föregående påminda måendetillfället före [time] (klockslaget i [reminders], strikt före) är loggat
+ * bland [screenings] – Kväll 19:00 väntar på Kvällsmat 17:00, Natt 22:00 på Läggdags 21:00 med standardtider. Inget påmint
+ * tillfälle före räknas som loggat, så att bara 3-timmarsfönstret gäller.
+ */
+private fun moodLoggedBefore(time: LocalTime, reminders: ReminderSettings, screenings: List<Screening>): Boolean {
+    val before = reminders.enabledOccasionRows.filter { it.time < time }.maxByOrNull { it.time } ?: return true
+    return screenings.hasLogged(before.occasion)
 }
 
 /** Tidpunkt (Morgon → Natt → Vid behov), klockslag ([scheduledTime]), namn utan skiftläge och sist id – samma ordning varje gång. */

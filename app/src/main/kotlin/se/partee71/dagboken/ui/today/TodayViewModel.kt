@@ -382,7 +382,7 @@ class TodayViewModel @Inject constructor(
         val choices: AsNeededChoices,
         val dayDone: DayDone?,
         val reminders: ReminderSettings,
-        /** Måendeloggarna – `occasionStates` väljer den visade dagens (en plats för urvalet). */
+        /** Måendeloggarna – `occasionStates` och `doseChecklist` väljer den visade dagens (en plats för urvalet). */
         val screenings: List<Screening>,
         val weekEntries: Entries?,
         val energyDays: ImmutableList<LocalDate>,
@@ -399,7 +399,7 @@ class TodayViewModel @Inject constructor(
             progress = progress,
             todayComplete = todayComplete,
             doseProgress = doseProgress,
-            checklist = doseChecklist(doses, date, moment.now.toInstant(moment.zone), moment.zone, reminders),
+            checklist = doseChecklist(doses, date, moment.now.toInstant(moment.zone), moment.zone, reminders, screenings),
             showDone = toggles.done,
             showUpcoming = toggles.upcoming,
             prescriptions = prescriptions,
