@@ -40,7 +40,7 @@ data class EnergyColors(val low: Color, val mid: Color, val high: Color)
 
 /**
  * Sömnstadierna i det staplade sömndiagrammet (TRD-16): djup, REM, lätt och vaken – bara för grafik,
- * aldrig för text. Djupsömnen är mest mättad; vaken tid är dämpad, inte solgul (solgult är gör-något).
+ * aldrig för text. Djupsömnen är mest mättad; REM är violett och vaken tid varm sand, inte solgul (solgult är gör-något).
  * Alla fyra klarar 3:1 mot kortet i båda temana (WCAG 1.4.11, `ThemeContrastTest`).
  */
 @Immutable
@@ -106,7 +106,7 @@ data class FeelingColors(
 
 /**
  * Appens färger utöver Material 3-rollerna: kort, radtoning, spår, verktygsrad, toner, energiskalan,
- * sömnstadierna och kärnkänslornas toner. [track] är det ofyllda spåret i allt som visar framsteg (framstegsraden, stegprickarna).
+ * sömnstadierna, diagrampaletten ([ExtendedColors.chartSeries]) och kärnkänslornas toner. [track] är det ofyllda spåret i allt som visar framsteg (framstegsraden, stegprickarna).
  */
 @Immutable
 data class ExtendedColors(
@@ -122,8 +122,12 @@ data class ExtendedColors(
     val warningTone: ToneColors,
     val energy: EnergyColors,
     val sleepStages: SleepStageColors,
+    val chartSeries: List<Color>,
     val feelingTones: FeelingColors
 ) {
+    /** Diagrampalettens färg nummer [index] (varvar efter åtta) – serie 1 är kurvans teal, serie 2 bärnsten/solgul. */
+    fun chartSeries(index: Int): Color = chartSeries[Math.floorMod(index, chartSeries.size)]
+
     /** Tonerna per [Tone] – det android-ui:s komponenter (`InfoPill`, `SectionHeader`, `AppCard`) läser. */
     val tones: Map<Tone, ToneColors>
         get() = mapOf(
@@ -235,6 +239,15 @@ object AppColors {
     private val lightNeutral = ToneColors(Color(0xFFEFEADF), Color(0xFF4F4A40))
     private val darkNeutral = ToneColors(Color(0xFF2A3A33), Color(0xFFDCE3DA))
 
+    /**
+     * Diagrampaletten per tema (TRD-23): åtta serier som skiljer sig åt på kortet, i ordningen teal, bärnsten/solgul,
+     * terrakotta/korall, violett, blå, lövgrön, rosa, skiffer. Skild från [SWATCH_HEX], som är det användaren väljer
+     * och som lagras. Var och en klarar 3:1 mot kortet (`ThemeContrastTest`); formen på punkten (`PointMarker`) skiljer
+     * serierna åt också utan färg.
+     */
+    private val LIGHT_CHART_SERIES = listOf(0xFF0B6E66, 0xFFB7791F, 0xFFA4502E, 0xFF7048A8, 0xFF2F6DB5, 0xFF5B8A1E, 0xFFB83A73, 0xFF5E6B78).map { Color(it) }
+    private val DARK_CHART_SERIES = listOf(0xFF7FD3C8, 0xFFF5B631, 0xFFFF8A7A, 0xFFC3A6F0, 0xFF7FB0F0, 0xFFB5D86A, 0xFFF28CC0, 0xFFC9CFD6).map { Color(it) }
+
     val lightExtended = ExtendedColors(
         card = Color(0xFFFFFFFF),
         rowTint = Color(0xFFF4EFE3),
@@ -247,7 +260,8 @@ object AppColors {
         positiveTone = ToneColors(Color(0xFFDCEFE3), Color(0xFF1F5A40)),
         warningTone = ToneColors(Color(0xFFF8E1D6), Color(0xFF7A3519)),
         energy = EnergyColors(low = Color(0xFFB5443A), mid = Color(0xFFC98A1B), high = Color(0xFF2F7D5B)),
-        sleepStages = SleepStageColors(deep = Color(0xFF0B4F49), light = Color(0xFF4E9A90), rem = Color(0xFF3B6EA5), awake = Color(0xFF958B78)),
+        sleepStages = SleepStageColors(deep = Color(0xFF0B4F49), light = Color(0xFF4E9A90), rem = Color(0xFF7048A8), awake = Color(0xFF8A7A55)),
+        chartSeries = LIGHT_CHART_SERIES,
         feelingTones = FeelingColors(
             glad = ToneColors(Color(0xFFFDEBC2), Color(0xFF6B4A00)),
             strong = ToneColors(Color(0xFFE8E1F4), Color(0xFF5B3A84)),
@@ -279,7 +293,8 @@ object AppColors {
         positiveTone = ToneColors(Color(0xFF1C4A35), Color(0xFFC3EBD3)),
         warningTone = ToneColors(Color(0xFF6A2F17), Color(0xFFFFD9C9)),
         energy = EnergyColors(low = Color(0xFFE38A7F), mid = Color(0xFFE9B54F), high = Color(0xFF6CC79A)),
-        sleepStages = SleepStageColors(deep = Color(0xFF7FD3C8), light = Color(0xFF3F8F86), rem = Color(0xFF8FB4E0), awake = Color(0xFF8E897B)),
+        sleepStages = SleepStageColors(deep = Color(0xFF7FD3C8), light = Color(0xFF3F8F86), rem = Color(0xFFC3A6F0), awake = Color(0xFFC9B88F)),
+        chartSeries = DARK_CHART_SERIES,
         feelingTones = FeelingColors(
             glad = ToneColors(Color(0xFF5A4414), Color(0xFFFCE3A8)),
             strong = ToneColors(Color(0xFF3A2E52), Color(0xFFE6DAFA)),

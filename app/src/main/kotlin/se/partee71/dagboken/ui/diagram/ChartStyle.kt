@@ -1,10 +1,14 @@
 package se.partee71.dagboken.ui.diagram
 
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -22,6 +26,8 @@ import se.partee71.ui.theme.Tone
  * - [previous]: föregående period, grå och nedtonad (TRD-18) när diagrammet har en serie.
  * - [today]/[todayRing]: dagens punkt i sparklinen – solgul med mörk ring, som i datumremsan.
  * - [grid], [axis], [label]: värdelinjer, axellinje och axeletiketter.
+ * - [series]: diagrampaletten för diagram med flera serier (TRD-23), skild från färgväljarens valbara färger; [card]
+ *   fyller den ihåliga punkten.
  * - [band]: ett tonat fält över några dagar (en sjukdomsepisod i Händelser och sjukdom, TRD-21) – varningstonens
  *   yta, så svag att staplar och kurva syns igenom.
  */
@@ -36,7 +42,9 @@ internal data class ChartColors(
     val grid: Color,
     val axis: Color,
     val label: Color,
-    val band: Color
+    val band: Color,
+    val card: Color,
+    val series: List<Color>
 )
 
 internal val chartColors: ChartColors
@@ -53,7 +61,9 @@ internal val chartColors: ChartColors
             grid = scheme.outlineVariant,
             axis = scheme.outlineVariant,
             label = scheme.onSurfaceVariant,
-            band = AppColors.tone(Tone.Warning).content.copy(alpha = BAND_ALPHA)
+            band = AppColors.tone(Tone.Warning).content.copy(alpha = BAND_ALPHA),
+            card = AppColors.extended.card,
+            series = AppColors.extended.chartSeries
         )
     }
 
@@ -61,6 +71,47 @@ internal val chartColors: ChartColors
 internal val chartLabelStyle: TextStyle
     @Composable @ReadOnlyComposable
     get() = AppTypography.caption.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+/** Punktens form på en kurva (TRD-23): serie 1–4 i ordningen cirkel, kvadrat, triangel, romb. */
+enum class PointForm(internal val shape: Shape) {
+    Circle(CircleShape),
+    Square(RectangleShape),
+    Triangle(
+        GenericShape { size, _ ->
+            moveTo(size.width / 2f, 0f)
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+    ),
+    Diamond(
+        GenericShape { size, _ ->
+            moveTo(size.width / 2f, 0f)
+            lineTo(size.width, size.height / 2f)
+            lineTo(size.width / 2f, size.height)
+            lineTo(0f, size.height / 2f)
+            close()
+        }
+    )
+}
+
+/**
+ * Punktformen för en serie (TRD-23): [form] och om den är [hollow] (ihålig, fylld med kortets färg). Åtta platser –
+ * fyra former, fyllda för serie 1–4 och ihåliga för 5–8 – så att serierna går att skilja åt också utan färg.
+ * [Default] (fylld cirkel) är en ensam serie.
+ */
+@Immutable
+data class PointMarker(val form: PointForm, val hollow: Boolean = false) {
+    companion object {
+        val Default = PointMarker(PointForm.Circle)
+
+        /** Markören för serie nummer [slot] (0-baserat, varvar efter åtta). */
+        fun forSlot(slot: Int): PointMarker {
+            val i = Math.floorMod(slot, PointForm.entries.size * 2)
+            return PointMarker(PointForm.entries[i % PointForm.entries.size], hollow = i >= PointForm.entries.size)
+        }
+    }
+}
 
 /** En annan series färg på kurvan i ett diagram med flera serier: nedtonad för föregående period. */
 internal fun Color.previousPeriod(): Color = copy(alpha = alpha * PREVIOUS_ALPHA)
@@ -86,6 +137,7 @@ internal val TREND_WIDTH: Dp = 2.dp
 internal val TREND_DASH: Dp = 6.dp
 internal val TREND_GAP: Dp = 4.dp
 internal val POINT_SIZE: Dp = 7.dp
+internal val HOLLOW_POINT_WIDTH: Dp = 1.5.dp
 internal val TODAY_POINT_SIZE: Dp = 11.dp
 internal val TODAY_RING_WIDTH: Dp = 1.5.dp
 internal val GRID_WIDTH: Dp = 1.dp
@@ -93,6 +145,7 @@ internal val AXIS_LABEL_GAP: Dp = 4.dp
 internal val EDGE_PADDING: Dp = 8.dp
 internal val LEGEND_SWATCH: Dp = 10.dp
 internal val LEGEND_DASH_WIDTH: Dp = 16.dp
+internal val LEGEND_MARKER: Dp = 9.dp
 
 /** Stapeldiagrammen: smalaste stapel, bredaste spann (`IntervalBarChart`) och stapel (`StackedBarChart`). */
 internal val MIN_BAR_WIDTH: Dp = 2.dp

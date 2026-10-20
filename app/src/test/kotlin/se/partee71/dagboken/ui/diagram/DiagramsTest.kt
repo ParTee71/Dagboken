@@ -107,7 +107,7 @@ class DiagramsTest {
     @Test
     fun `flera serier har ingen solgul trend utan teckenförklaring per serie`() {
         val stress = listOf(3f, 4f, 4f, null, 5f, 4f, 3f)
-        show { LineChart(listOf(ChartSeries("Energi", energy), ChartSeries("Stress", stress, AppColors.swatch(4))), label = "Mående") }
+        show { LineChart(listOf(ChartSeries("Energi", energy), ChartSeries("Stress", stress, AppColors.extended.chartSeries(4))), label = "Mående") }
         assertEquals(0, chart("Energi:").pixels(AppColors.light.secondary))
         rule.onNodeWithText("Stress").assertIsDisplayed()
         rule.onNodeWithText("Trend").assertIsDisplayed()
@@ -119,7 +119,7 @@ class DiagramsTest {
         val steps = listOf(0f, 50f, null, 100f, 25f, 75f, 50f)
         show {
             LineChart(
-                listOf(ChartSeries("Steg · 2 000–10 000 steg", steps, AppColors.swatch(0)), ChartSeries("Energi · 3–8 skala", energy, AppColors.swatch(1))),
+                listOf(ChartSeries("Steg · 2 000–10 000 steg", steps, AppColors.extended.chartSeries(0)), ChartSeries("Energi · 3–8 skala", energy, AppColors.extended.chartSeries(1))),
                 label = "Jämför",
                 axis = COMPARE_AXIS,
                 showCaption = false,
@@ -147,6 +147,39 @@ class DiagramsTest {
         rule.onNodeWithText("Energi (föregående)").assertIsDisplayed()
         described("Energi (föregående): 7 värden, lägsta 4, högsta 9").assertIsDisplayed()
         rule.onNodeWithText("Lägst 4 · Högst 9 · Snitt 6,4").assertIsDisplayed()
+    }
+
+    @Test
+    fun `punktformen följer seriens plats - fyra former, ihåliga för serie 5 till 8 (TRD-23)`() {
+        val forms = listOf(PointForm.Circle, PointForm.Square, PointForm.Triangle, PointForm.Diamond)
+        assertEquals(forms.map { PointMarker(it) } + forms.map { PointMarker(it, hollow = true) }, (0 until 8).map(PointMarker::forSlot))
+        assertEquals(PointMarker.forSlot(0), PointMarker.forSlot(8))
+        assertEquals(PointMarker(PointForm.Circle), PointMarker.Default)
+    }
+
+    @Test
+    fun `kurvorna får seriens punktform, heldragna och lika tjocka - föregående period utan punkter (TRD-23)`() {
+        val markers = (0 until 3).map(PointMarker::forSlot)
+        val series = markers.mapIndexed { i, m -> ChartSeries("S$i", listOf(1f, 2f, 3f), Color.Red, m) }
+        val lines = linePlot(series, listOf(ChartSeries("S0", listOf(1f, 2f, 3f), Color.Gray)), trendColor = null)
+        val curves = lines.filter { !it.style.dashed }
+        assertEquals(listOf(false, true, true, true), curves.map { it.style.points })
+        assertEquals(markers, curves.filter { it.style.points }.map { it.style.marker })
+    }
+
+    @Test
+    fun `fyra serier ritas var och en i sin palettfärg med teckenförklaring (TRD-23)`() {
+        val colors = (0 until 4).map { AppColors.lightExtended.chartSeries(it) }
+        show {
+            LineChart(
+                colors.mapIndexed { i, c -> ChartSeries("Serie ${i + 1}", listOf(1f + i, 3f, 2f, 4f - i, 3f, 5f), c) },
+                label = "Fyra"
+            )
+        }
+        colors.forEachIndexed { i, c ->
+            rule.onNodeWithText("Serie ${i + 1}").assertIsDisplayed()
+            assertTrue(chart("Serie ${i + 1}:").pixels(c) > 0, "serie ${i + 1} i sin färg")
+        }
     }
 
     @Test

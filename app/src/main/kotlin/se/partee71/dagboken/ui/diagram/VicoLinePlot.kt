@@ -50,6 +50,8 @@ internal data class PlotStyle(
     val dashed: Boolean = false,
     val area: Boolean = false,
     val points: Boolean = false,
+    /** Punktens form (TRD-23); en ensam serie har den fyllda cirkeln. */
+    val marker: PointMarker = PointMarker.Default,
     /** x för dagens punkt (solgul med ring, HEM-7); `null` = ingen. */
     val highlightX: Int? = null
 )
@@ -146,7 +148,7 @@ private fun PlotStyle.toVicoLine(colors: ChartColors, axis: SmartYAxis): LineCar
     }
     val pointProvider = if (points) {
         HighlightPoints(
-            normal = LineCartesianLayer.Point(ShapeComponent(fill = Fill(color), shape = CircleShape), POINT_SIZE),
+            normal = LineCartesianLayer.Point(marker.toShapeComponent(color, colors.card), POINT_SIZE),
             highlight = highlightX?.let {
                 LineCartesianLayer.Point(
                     ShapeComponent(fill = Fill(colors.today), shape = CircleShape, strokeFill = Fill(colors.todayRing), strokeThickness = TODAY_RING_WIDTH),
@@ -165,6 +167,13 @@ private fun PlotStyle.toVicoLine(colors: ChartColors, axis: SmartYAxis): LineCar
         pointProvider = pointProvider,
         interpolator = if (dashed) LineCartesianLayer.Interpolator.Sharp else LineCartesianLayer.Interpolator.cubic()
     )
+}
+
+/** Seriens punkt: fylld i seriens färg, eller ihålig – kortets färg med en ring i seriens färg. */
+private fun PointMarker.toShapeComponent(color: Color, card: Color) = if (hollow) {
+    ShapeComponent(fill = Fill(card), shape = form.shape, strokeFill = Fill(color), strokeThickness = HOLLOW_POINT_WIDTH)
+} else {
+    ShapeComponent(fill = Fill(color), shape = form.shape)
 }
 
 /** x-steget: en dag (eller natt) per steg. */

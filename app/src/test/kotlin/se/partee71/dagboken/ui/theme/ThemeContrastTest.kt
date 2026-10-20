@@ -3,6 +3,8 @@ package se.partee71.dagboken.ui.theme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import kotlin.math.pow
+import kotlin.math.sqrt
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.Test
@@ -103,12 +105,35 @@ class ThemeContrastTest {
         "vaken mot kortet" to (extended.sleepStages.awake to extended.card),
         "låg energi mot kortet" to (extended.energy.low to extended.card),
         "hög energi mot kortet" to (extended.energy.high to extended.card)
-    )
+    ) + extended.chartSeries.mapIndexed { i, c -> "diagramserie ${i + 1} mot kortet" to (c to extended.card) }
 
     @Test
     fun `diagrammen - ljust och mörkt tema`() {
         check("ljust", chartGraphics(AppColors.light, AppColors.lightExtended), GRAPHICS_MIN)
         check("mörkt", chartGraphics(AppColors.dark, AppColors.darkExtended), GRAPHICS_MIN)
+    }
+
+    /** De fyra första serierna i diagrampaletten (TRD-23) går att skilja åt: ingen rödgrön-lik eller nästan lika färg. */
+    @Test
+    fun `diagrampalettens fyra första är parvis distinkta i båda temana`() {
+        listOf(AppColors.lightExtended, AppColors.darkExtended).forEach { extended ->
+            assertEquals(8, extended.chartSeries.size)
+            val first = extended.chartSeries.take(4)
+            for (a in first.indices) {
+                for (b in a + 1 until first.size) {
+                    val distance = sqrt(
+                        ((first[a].red - first[b].red).pow(2) + (first[a].green - first[b].green).pow(2) + (first[a].blue - first[b].blue).pow(2)).toDouble()
+                    )
+                    assertTrue(distance >= SERIES_MIN_DISTANCE, "serie ${a + 1} och ${b + 1} är för lika ($distance)")
+                }
+            }
+        }
+    }
+
+    /** Diagrampaletten är skild från färgväljarens lagrade färger. */
+    @Test
+    fun `diagrampaletten rör inte färgväljarens valbara färger`() {
+        assertEquals(listOf("#0B6E66", "#F5B631", "#A4502E", "#2F7D5B", "#3B6EA5", "#8E5BA8", "#C98A1B", "#B5443A"), AppColors.SWATCH_HEX)
     }
 
     /**
@@ -187,5 +212,8 @@ class ThemeContrastTest {
 
         /** Grafik som bär information (WCAG 1.4.11). */
         const val GRAPHICS_MIN = 3.0
+
+        /** Minsta avstånd i RGB (0–1) mellan två av de fyra första diagramserierna. */
+        const val SERIES_MIN_DISTANCE = 0.15
     }
 }

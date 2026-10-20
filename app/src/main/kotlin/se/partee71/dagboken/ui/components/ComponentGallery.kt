@@ -591,6 +591,8 @@ private fun Diagrams() {
     }
     Label("FeelingWordBars")
     AppCard { FeelingWordBars(GalleryFeelings.period.tally) }
+    Label("LineChart · fyra serier (diagrampalett och punktform, TRD-23)")
+    AppCard { FourSeriesChart() }
     Label("SparklineChart")
     AppCard { SparklineChart(GalleryCharts.week, xLabels = GalleryCharts.weekdays, label = "Energi senaste veckan", onOpenTrends = {}) }
     Label("MinMaxCaption · tomt läge")
@@ -599,6 +601,18 @@ private fun Diagrams() {
 }
 
 /** Påhittade diagramdata för galleriet och dess skärmdumpar – luckor där inget loggats. */
+/** Fyra serier i diagrampaletten med varsin punktform – galleriets rad för flera serier och skärmdumpens underlag. */
+@Composable
+internal fun FourSeriesChart() {
+    val palette = AppColors.extended.chartSeries
+    val names = listOf("Energi", "Stress", "Sömn", "Steg")
+    LineChart(
+        names.mapIndexed { i, name -> ChartSeries(name, GalleryCharts.energy.map { v -> v?.plus((1.5f - i) * 1.2f) }, palette[i]) },
+        xLabels = GalleryCharts.days14,
+        label = "Fyra serier"
+    )
+}
+
 internal object GalleryCharts {
     private val start = LocalDate(2026, 9, 22)
 
