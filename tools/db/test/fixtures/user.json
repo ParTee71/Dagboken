@@ -75,7 +75,7 @@
           { "id": "b-1", "start": "2026-09-01", "end": "2026-09-14", "dose": "0,25", "unit": "mg" },
           { "id": "b-2", "start": "2026-10-01", "end": null, "dose": "1", "unit": "mg" }
         ],
-        "active": false, "createdAt": { "__ts": "2025-12-31T23:00:00.000000000Z" }, "note": "På fastande mage"
+        "active": false, "favorite": true, "createdAt": { "__ts": "2025-12-31T23:00:00.000000000Z" }, "note": "På fastande mage"
       }
     },
     {
@@ -84,7 +84,7 @@
         "name": "D-vitamin", "strength": "", "form": null, "dose": "1 tablett", "unit": "st", "slots": ["morning"],
         "schedule": { "repeat": "daily", "days": [], "intervalDays": 2 },
         "period": { "start": null, "end": null },
-        "boosts": [], "active": true, "createdAt": null, "note": null
+        "boosts": [], "active": true, "favorite": false, "createdAt": null, "note": null
       }
     },
     {

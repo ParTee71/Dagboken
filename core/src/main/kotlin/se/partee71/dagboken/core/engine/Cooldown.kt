@@ -15,7 +15,7 @@ import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Slot
 
-// Vid behov-doser (FAV-4, FAV-5, FAV-11, MED-11, MED-16) – port av 3.x `CheckCooldownUseCase`,
+// Vid behov-doser (FAV-4, FAV-5, FAV-11, FAV-13, MED-11, MED-16) – port av 3.x `CheckCooldownUseCase`,
 // `CheckDailyLimitUseCase` och beräkningsdelen av `LogVidBehovDosUseCase`. Samma regler för
 // snabbvalet på Idag och för loggning i efterhand: allt utvärderas mot ögonblicket [at] dosen gäller.
 
@@ -53,8 +53,11 @@ fun PrnMedicine.cooldownRemaining(doses: Iterable<Dose>, at: Instant): Duration?
     return remaining.takeIf { it.isPositive() }
 }
 
+/** FAV-5: antalet tagna doser av den här medicinen ([isTakenDoseOf]) på [date]. */
+fun PrnMedicine.takenOn(doses: Iterable<Dose>, date: LocalDate): Int = doses.count { it.date == date && isTakenDoseOf(it) }
+
 /** FAV-5: om dagens gräns är nådd på [date] ([PrnMedicine.maxPerDay] 0 = obegränsat). */
-fun PrnMedicine.dailyLimitReached(doses: Iterable<Dose>, date: LocalDate): Boolean = maxPerDay > 0 && doses.count { it.date == date && isTakenDoseOf(it) } >= maxPerDay
+fun PrnMedicine.dailyLimitReached(doses: Iterable<Dose>, date: LocalDate): Boolean = maxPerDay > 0 && takenOn(doses, date) >= maxPerDay
 
 /**
  * Dagarna vars doser [checkDose] behöver se vid [at] (FAV-4, FAV-5, MED-16): från dagen max([PrnMedicine.minHoursBetween],
@@ -82,6 +85,31 @@ fun PrnMedicine.checkDose(doses: Iterable<Dose>, at: Instant, zone: TimeZone, fo
     if (dailyLimitReached(doses, at.toLocalDateTime(zone).date)) return PrnCheck.DailyLimitReached
     if (force) return PrnCheck.Allowed
     return cooldownRemaining(doses, at)?.let(PrnCheck::Cooldown) ?: PrnCheck.Allowed
+}
+
+/**
+ * FAV-13: läget för en vid behov-medicin innan man trycker – samma regler som trycket ([checkDose]: dagsgränsen före
+ * kylperioden), så att markeringen i chipet och i "Fler" aldrig säger något annat än trycket.
+ */
+sealed interface PrnAvailability {
+    /** Dosen kan tas nu. */
+    data object Ok : PrnAvailability
+
+    /** FAV-4: kylperioden pågår; en dos går bra från [nextAllowed] (den senaste tagna dosen + kylperioden, i verkliga timmar). */
+    data class Cooldown(val nextAllowed: Instant) : PrnAvailability
+
+    /** FAV-5: dagens gräns är nådd – [taken] tagna av [limit] på dagen. */
+    data class DailyLimit(val taken: Int, val limit: Int) : PrnAvailability
+}
+
+/**
+ * FAV-13: läget vid [now] ur [doses] (dagarna i [checkDays], som trycket läser), med dagen för [now] i [zone] för
+ * dagsgränsen. Räknas om när [now] går (minutklockan på Idag), så att markeringen försvinner av sig själv.
+ */
+fun PrnMedicine.availabilityAt(doses: Iterable<Dose>, now: Instant, zone: TimeZone): PrnAvailability = when (val check = checkDose(doses, now, zone)) {
+    PrnCheck.Allowed -> PrnAvailability.Ok
+    is PrnCheck.Cooldown -> PrnAvailability.Cooldown(now + check.remaining)
+    PrnCheck.DailyLimitReached -> PrnAvailability.DailyLimit(takenOn(doses, now.toLocalDateTime(zone).date), maxPerDay)
 }
 
 /**

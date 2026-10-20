@@ -308,6 +308,8 @@ const invalid = {
     ['form', 1, 'form som tal'],
     ['dose', 50, 'dosen är text'],
     ['unit', 3, 'enheten är text'],
+    ['favorite', 'ja', 'stjärnan som text'],
+    ['favorite', 1, 'stjärnan som tal'],
     ['slots', ['brunch'], 'okänd tidpunkt'],
     ['slots', 'morning', 'tidpunkter som text'],
     ['schedule', 'daily', 'schema som text'],
@@ -547,6 +549,8 @@ test('gränsvärdena i intervallen godtas', async () => {
     ['prescriptions', 'strength', ''], ['prescriptions', 'strength', text(LIMIT.short)], ['prescriptions', 'form', null],
     ['prnMedicines', 'strength', ''], ['prnMedicines', 'form', null], ['doses', 'strength', text(LIMIT.short)], ['doses', 'strength', null],
     ...['tablet', 'capsule', 'liquid', 'powder', 'inhaler', 'drops', 'patch', 'other'].flatMap((form) => [['prescriptions', 'form', form], ['prnMedicines', 'form', form]]),
+    // Stjärnan på receptet (FAV-12): båda värdena och null (saknat = inte stjärnmärkt).
+    ['prescriptions', 'favorite', true], ['prescriptions', 'favorite', false], ['prescriptions', 'favorite', null],
   ];
   for (const [collection, path, value] of cases) {
     await assertSucceeds(setDoc(mine(...docPath[collection]), toClient(withField(base(collection), path, value))), `${collection}.${path} = ${JSON.stringify(value)}`);
@@ -663,6 +667,21 @@ test('en uppdatering av ett nästlat fält (punktnotation) kontrollerar hela obj
   await assertSucceeds(updateDoc(mine(...docPath.prescriptions), { 'period.end': null }));
 });
 
+test('stjärnan på ett recept (FAV-12) skrivs ensam, också på ett äldre recept utan fältet, men bara som bool och bara av ägaren', async () => {
+  // PrescriptionRepository.setFavorite skriver bara favorite (+ updatedAt) med update, som vid behov-stjärnan (FAV-8).
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users', OWNER, 'prescriptions', 'utan-stjarna'), { name: 'Äldre', active: true, okäntFält: 'från en nyare app' });
+  });
+  const ref = mine('prescriptions', 'utan-stjarna');
+  await assertSucceeds(updateDoc(ref, { favorite: true, updatedAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(ref, { favorite: false }));
+  await assertFails(updateDoc(ref, { favorite: 'ja' }));
+  await assertFails(updateDoc(doc(db('annan'), 'users', OWNER, 'prescriptions', 'utan-stjarna'), { favorite: true }));
+  const stored = (await getDoc(ref)).data();
+  assert.equal(stored.favorite, false);
+  assert.equal(stored['okäntFält'], 'från en nyare app', 'okända fält står kvar');
+});
+
 test('ett recept med okänt schema (Schedule.Unknown från en nyare app) kan uppdateras men inte skapas på nytt', async () => {
   // Codecen skriver tillbaka ett okänt schema oförändrat (DAT-10). Rules kontrollerar bara fält som
   // ändras, så en skrivning som lämnar schemat orört går igenom – men ett nytt dokument med ett
@@ -750,7 +769,7 @@ const WORST = {
       schedule: { repeat: ['custom', 'interval'][v], days: [1, 2, 3, 4, 5, 6, 7].slice(v), intervalDays: 3 + v },
       period: { start: `2026-01-0${1 + v}`, end: `2026-12-3${v}` },
       boosts: Array.from({ length: documentRulesConstant('MAX_BOOSTS') }, (_, i) => ({ id: `b${i}-${v}`, start: `2026-02-0${1 + v}`, end: `2026-02-2${v}`, dose: `${1 + v}`, unit: `mg${v}` })),
-      active: v === 0, createdAt: at(v), note: text(LIMIT.long - v),
+      active: v === 0, favorite: v === 1, createdAt: at(v), note: text(LIMIT.long - v),
     }),
   },
   screenings: {

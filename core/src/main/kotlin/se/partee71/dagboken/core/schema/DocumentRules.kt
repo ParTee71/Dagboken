@@ -256,6 +256,7 @@ object DocumentRules {
             "period" to Check.Nested(PERIOD),
             "boosts" to Check.ListOf(BOOST, max = MAX_BOOSTS),
             "active" to Check.BoolField,
+            "favorite" to Check.BoolField,
             "createdAt" to Check.TimestampField
         ),
         CollectionNames.PRN_MEDICINES to ENTRY + mapOf(

@@ -101,6 +101,26 @@ class MedicineRepositoriesTest {
     }
 
     @Test
+    fun `stjärnan på ett recept skriver bara favorite, rör inga doser och återuppväcker inte ett raderat recept (FAV-12)`() = runTest {
+        // En annan enhet har ändrat dosen; ett fält från en nyare app finns också.
+        factory.store.set(prescriptionsPath(), levaxin.id, PrescriptionCodec.encode(levaxin.copy(dose = "50")) + ("framtidaFält" to "kvar"), merge = false)
+        val before = factory.store.read(prescriptionsPath(), levaxin.id)!!
+        factory.doses().upsert(planned(today, Slot.MORNING)).getOrThrow()
+        val dosesBefore = factory.doses().getAll().getOrThrow()
+
+        prescriptions.setFavorite(levaxin, true).getOrThrow()
+
+        assertEquals(before + ("favorite" to true), factory.store.read(prescriptionsPath(), levaxin.id), "bara favorite skrivs – dosen och det okända fältet står kvar (DAT-11)")
+        assertEquals(dosesBefore, factory.doses().getAll().getOrThrow(), "doserna berörs inte")
+        prescriptions.setFavorite(levaxin.copy(favorite = true), false).getOrThrow()
+        assertEquals(false, factory.prescriptions().get(levaxin.id).getOrThrow()?.favorite)
+
+        prescriptions.delete(levaxin.id).getOrThrow()
+        prescriptions.setFavorite(levaxin, true)
+        assertNull(factory.store.read(prescriptionsPath(), levaxin.id), "ett raderat recept återuppstår inte")
+    }
+
+    @Test
     fun `aktivering skapar dagens saknade doser men skriver aldrig över en tagen (MED-4)`() = runTest {
         factory.prescriptions().upsert(levaxin.copy(active = false)).getOrThrow()
         factory.doses().upsert(planned(today, Slot.MORNING, DoseStatus.TAKEN)).getOrThrow()

@@ -24,6 +24,7 @@ object PrescriptionCodec : DocCodec<Prescription> {
     const val SLOTS = "slots"
     const val PERIOD = "period"
     const val BOOSTS = "boosts"
+    const val FAVORITE = "favorite"
 
     override fun encode(value: Prescription): Doc = mapOf(
         "name" to value.name,
@@ -37,6 +38,7 @@ object PrescriptionCodec : DocCodec<Prescription> {
         PERIOD to PeriodCodec.encode(value.period),
         BOOSTS to value.boosts.map(BoostCodec::encode),
         ACTIVE to value.active,
+        FAVORITE to value.favorite,
         CREATED_AT to value.createdAt,
         NOTE to value.note
     )
@@ -53,6 +55,7 @@ object PrescriptionCodec : DocCodec<Prescription> {
         period = map.nested(PERIOD, PeriodCodec),
         boosts = map.docs(BOOSTS).map(BoostCodec::decode),
         active = map.bool(ACTIVE, default = true),
+        favorite = map.bool(FAVORITE),
         createdAt = map.instant(CREATED_AT),
         note = map.stringOrNull(NOTE),
         unknownSlots = map.unknownWires<Slot>(SLOTS),

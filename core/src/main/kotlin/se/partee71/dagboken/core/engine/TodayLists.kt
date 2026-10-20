@@ -14,7 +14,7 @@ import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Slot
 
-// Idags listor (HEM-1, HEM-14, MED-1, MED-5, MED-13, FAV-2, FAV-11) – urval och ordning en gång, här,
+// Idags listor (HEM-1, HEM-14, MED-1, MED-5, MED-13, FAV-2, FAV-11, FAV-12) – urval och ordning en gång, här,
 // så att fliken Idag bara visar.
 
 /** Hälsningens del av dygnet (HEM-1) – samma timmar som 3.x `greetingRes`. */
@@ -98,16 +98,43 @@ private fun doseOrder(reminders: ReminderSettings): Comparator<Dose> = compareBy
     .thenBy { it.id }
 
 /**
- * Vid behov-kortet på Idag (FAV-2, FAV-11): [favorites] som snabbval, och i "Fler" [others] – de övriga vid
- * behov-medicinerna – och under "Recept" [prescriptions], de aktiva recepten som gäller dagen.
+ * Vid behov-kortet på Idag (FAV-2, FAV-11, FAV-12): [favorites] – de stjärnmärkta vid behov-medicinerna – och
+ * [favoritePrescriptions] – de stjärnmärkta recepten som gäller dagen – som snabbval, tillsammans i [chips]; och i
+ * "Fler" [others] – de övriga vid behov-medicinerna – och under "Recept" [prescriptions], de övriga aktiva recepten som
+ * gäller dagen.
  */
 data class AsNeededChoices(
     val favorites: List<PrnMedicine> = emptyList(),
     val others: List<PrnMedicine> = emptyList(),
-    val prescriptions: List<Prescription> = emptyList()
+    val prescriptions: List<Prescription> = emptyList(),
+    val favoritePrescriptions: List<Prescription> = emptyList()
 ) {
+    /** Snabbvalen (FAV-2, FAV-12): stjärnmärkta vid behov-mediciner och recept tillsammans, efter namn (lika namn på id). */
+    val chips: List<AsNeededChip> get() = (favorites.map(AsNeededChip::Medicine) + favoritePrescriptions.map(AsNeededChip::Recipe)).sortedWith(CHIP_ORDER)
+
     /** Antalet i "Fler" (FAV-2). */
     val moreCount: Int get() = others.size + prescriptions.size
+
+    private companion object {
+        val CHIP_ORDER = compareBy<AsNeededChip, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id }.thenBy { it is AsNeededChip.Recipe }
+    }
+}
+
+/** Ett snabbval i Vid behov-kortet (FAV-2, FAV-12): en vid behov-medicin eller ett stjärnmärkt recept (loggar en extrados, FAV-11). */
+sealed interface AsNeededChip {
+    /** Dokumentets id – unikt bara inom sin samling. */
+    val id: String
+    val name: String
+
+    data class Medicine(val medicine: PrnMedicine) : AsNeededChip {
+        override val id: String get() = medicine.id
+        override val name: String get() = medicine.name
+    }
+
+    data class Recipe(val prescription: Prescription) : AsNeededChip {
+        override val id: String get() = prescription.id
+        override val name: String get() = prescription.name
+    }
 }
 
 /**
@@ -122,9 +149,10 @@ fun sameMedicine(nameA: String, strengthA: String, nameB: String, strengthB: Str
 }
 
 /**
- * FAV-2, FAV-11: delar vid behov-medicinerna på stjärnan, efter namn, och tar med de aktiva recept vars
+ * FAV-2, FAV-11, FAV-12: delar vid behov-medicinerna på stjärnan, efter namn, och tar med de aktiva recept vars
  * period täcker [today] – utom ett recept som redan finns bland vid behov-medicinerna ([sameMedicine]), så att
- * samma medicin aldrig står två gånger. Lika namn ordnas på id.
+ * samma medicin aldrig står två gånger. De stjärnmärkta recepten blir snabbval ([AsNeededChoices.favoritePrescriptions])
+ * och står inte under "Recept". Lika namn ordnas på id.
  */
 fun asNeededChoices(medicines: List<PrnMedicine>, prescriptions: List<Prescription>, today: LocalDate): AsNeededChoices {
     val sorted = medicines.sortedWith(compareBy<PrnMedicine, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id })
@@ -132,7 +160,8 @@ fun asNeededChoices(medicines: List<PrnMedicine>, prescriptions: List<Prescripti
         .filter { p -> p.active && p.period.covers(today) && medicines.none { sameMedicine(it.name, it.strength, p.name, p.strength) } }
         .sortedWith(compareBy<Prescription, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id })
     val (favorites, others) = sorted.partition { it.favorite }
-    return AsNeededChoices(favorites, others, recipes)
+    val (favoriteRecipes, otherRecipes) = recipes.partition { it.favorite }
+    return AsNeededChoices(favorites, others, otherRecipes, favoriteRecipes)
 }
 
 /**

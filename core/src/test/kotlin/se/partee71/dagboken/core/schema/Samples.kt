@@ -86,6 +86,7 @@ object Samples {
         period = Period(start = LocalDate(2026, 1, 1), end = LocalDate(2026, 12, 31)),
         boosts = listOf(boost),
         active = false,
+        favorite = true,
         createdAt = created,
         note = "På fastande mage"
     )

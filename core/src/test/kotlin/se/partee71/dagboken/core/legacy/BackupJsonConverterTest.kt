@@ -110,7 +110,7 @@ class BackupJsonConverterTest {
         for ((collection, docs) in byCollection) {
             val entry = Samples.entry(collection)
             val differing = docs.flatMap { entry.fieldsDifferingFromDefault(it.path.substringAfterLast('/'), it.data) }.toSet()
-            assertEquals(entry.fieldNames() - NEW_IN_4_0, differing, "$collection: fält som ingen 3.x-post fyller")
+            assertEquals(entry.fieldNames() - NEW_IN_4_0 - NEW_IN_4_0_PER_COLLECTION[collection].orEmpty(), differing, "$collection: fält som ingen 3.x-post fyller")
         }
         // Inställningsdokumentet har varje fält som codecen skriver, eftersom v2-fixturen har varje 3.x-inställning.
         val settings = byCollection.getValue(CollectionNames.SETTINGS).single().data
@@ -248,6 +248,7 @@ class BackupJsonConverterTest {
         assertEquals(Repeat.WEEKDAYS, assertIs<Schedule.Repeating>(prescriptions.getValue("r3").schedule).repeat)
         assertEquals(Repeat.WEEKENDS, assertIs<Schedule.Repeating>(prescriptions.getValue("r4").schedule).repeat)
         assertEquals(listOf(Slot.MORNING), prescriptions.getValue("r4").slots, "tom tidpunkt räknas som saknad → Morgon, som 3.x")
+        assertTrue(prescriptions.values.none { it.favorite }, "3.x hade ingen stjärna på recept (FAV-12) – aldrig stjärnmärkt efter flytten")
     }
 
     @Test
@@ -396,6 +397,9 @@ class BackupJsonConverterTest {
     private companion object {
         /** Nya fält i 4.0 utan 3.x-motsvarighet (ARKITEKTUR.md → Fältparitet). */
         val NEW_IN_4_0 = setOf("prnId", "strength", "form", "feelings", "feelingStrengths", "feelingNotes")
+
+        /** Nya fält i 4.0 vars namn i en annan samling har en 3.x-motsvarighet – stjärnan finns på 3.x-favoriten och alternativen, inte på receptet. */
+        val NEW_IN_4_0_PER_COLLECTION = mapOf(CollectionNames.PRESCRIPTIONS to setOf("favorite"))
     }
 
     @Test

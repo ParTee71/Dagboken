@@ -154,6 +154,15 @@ class CodecsTest {
     }
 
     @Test
+    fun `stjärnan på receptet (FAV-12) - saknad, null eller annan typ är inte stjärnmärkt, och skrivs alltid`() {
+        for (stored in listOf(emptyMap(), mapOf("favorite" to null), mapOf("favorite" to "ja"))) {
+            assertEquals(false, PrescriptionCodec.decode("r", stored).favorite, "$stored")
+        }
+        assertEquals(true, PrescriptionCodec.decode("r", mapOf("favorite" to true, "framtidaFält" to 1)).favorite)
+        assertEquals(false, PrescriptionCodec.encode(Prescription("r"))["favorite"], "äldre recept får fältet när de skrivs hela")
+    }
+
+    @Test
     fun `visningsnamnet är namn och styrka, tomma delar utelämnade`() {
         assertEquals("Levaxin 100 mikrogram", prescription.displayName)
         assertEquals("Alvedon 500 mg", Samples.prnMedicine.displayName)

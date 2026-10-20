@@ -24,7 +24,7 @@ import se.partee71.dagboken.di.ApplicationScope
 
 /**
  * Recepten i samlingen `prescriptions` (REC-1…REC-13). Ett recept skrivs aldrig om i sin helhet härifrån:
- * reglaget skriver bara `active`, formuläret bara de fält som ändrats (DAT-10).
+ * reglaget skriver bara `active`, stjärnan bara `favorite`, formuläret bara de fält som ändrats (DAT-10).
  */
 interface PrescriptionRepository {
     fun observe(): Flow<List<Prescription>>
@@ -58,6 +58,13 @@ interface PrescriptionRepository {
      * växling väntar aldrig på den förra synken för att skrivas.
      */
     suspend fun setActive(prescription: Prescription, active: Boolean): Result<Unit>
+
+    /**
+     * FAV-12: stjärnmärker receptet (snabbval på Idag) eller tar bort stjärnan. Bara fältet `favorite` skrivs
+     * (`update`, som vid behov-stjärnan FAV-8 – ett recept som raderats under tiden återuppstår inte). Doserna
+     * berörs inte, så ingen dossynk.
+     */
+    suspend fun setFavorite(prescription: Prescription, favorite: Boolean): Result<Unit>
 
     /**
      * REC-5, REC-10: **den enda vägen** för receptets dossynk – från reglaget, städningen ([tidyUp]) och
@@ -160,6 +167,8 @@ class DefaultPrescriptionRepository @Inject constructor(
         background.launch { daily.forget(TIDY_UP) }
         return syncFromServer(prescription.id, clock.todayIn(zone.get())).also { background.launch { daily.forget(TIDY_UP) } }
     }
+
+    override suspend fun setFavorite(prescription: Prescription, favorite: Boolean): Result<Unit> = collection.update(prescription.copy(favorite = favorite), setOf(PrescriptionCodec.FAVORITE))
 
     // Inställningarna läses en gång, före låset: om synken skapar doser avgörs först under låset (serverns recept).
     override suspend fun syncFromServer(prescriptionId: String, today: LocalDate): Result<Unit> = sync(prescriptionId, today, settings.currentReminders()).offlineIsNoOp()
