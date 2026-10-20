@@ -370,6 +370,12 @@ private fun Diary() {
             ValueSlider("Aktivitetens energi", activity, { activity = it }, valueRange = -10..10)
         }
     }
+    var sectionOpen by remember { mutableStateOf(true) }
+    AppCard {
+        SectionFoldout("Mediciner", sectionOpen, { sectionOpen = !sectionOpen }, icon = R.drawable.ic_pill, count = "3/5", tone = Tone.Positive) {
+            Text("Raderna visas när kortet är utfällt.", style = AppTypography.body)
+        }
+    }
     var symptoms by remember { mutableStateOf(listOf(SymptomScore("huvudvark", 4), SymptomScore("ovrigt", 2, "Ont i knät"))) }
     SymptomLogCard(GALLERY_SYMPTOMS, symptoms, { symptoms = it }, otherOptionId = "ovrigt")
     var note by remember { mutableStateOf("Sov dåligt, vaknade vid fyra.") }

@@ -506,6 +506,27 @@ class TodayViewModelTest {
     }
 
     @Test
+    fun `alla kort är utfällda, ToggleCard fäller ett kort och läget finns kvar vid dagbyte (HEM-22)`() = runTest(main.dispatcher) {
+        seed()
+        val vm = started(viewModel())
+        assertTrue(vm.content.collapsed.isEmpty())
+
+        vm.onEvent(TodayEvent.ToggleCard(TodayCard.MEDICINES))
+        runCurrent()
+        assertEquals(setOf(TodayCard.MEDICINES), vm.content.collapsed)
+
+        vm.onEvent(TodayEvent.ToggleCard(TodayCard.MOOD))
+        vm.onEvent(TodayEvent.SelectDate(yesterday))
+        runCurrent()
+        assertEquals(yesterday, vm.content.date)
+        assertEquals(setOf(TodayCard.MEDICINES, TodayCard.MOOD), vm.content.collapsed, "läget hålls över dagbyte")
+
+        vm.onEvent(TodayEvent.ToggleCard(TodayCard.MEDICINES))
+        runCurrent()
+        assertEquals(setOf(TodayCard.MOOD), vm.content.collapsed, "ett kort fälls ut utan att påverka de andra")
+    }
+
+    @Test
     fun `inom kylperioden frågar snabbvalet, och Ta ändå loggar (FAV-4)`() = runTest(main.dispatcher) {
         seed()
         factory.doses().upsert(Dose("tidigare", today, Slot.AS_NEEDED, "Alvedon", "500", "mg", DoseStatus.TAKEN, takenAt = at(today, 9, 30), prnId = alvedon.id)).getOrThrow()

@@ -50,6 +50,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
@@ -232,6 +233,18 @@ class DiaryComponentsTest {
         rule.onNodeWithText("Reglagen").assertIsDisplayed()
         rule.onNodeWithText("Energi 7").assertDoesNotExist()
         rule.onNodeWithText("Mätvärden").assert(state("Utfälld"))
+    }
+
+    @Test
+    fun `rubrikvarianten behåller räknaren stängd och hela raden växlar (NFR-18, HEM-22)`() {
+        var expanded by mutableStateOf(true)
+        show { SectionFoldout("Mediciner", expanded, { expanded = !expanded }, icon = R.drawable.ic_pill, count = "3/5") { androidx.compose.material3.Text("Raderna") } }
+        rule.onNodeWithText("Raderna").assertIsDisplayed()
+        rule.onNodeWithText("Mediciner").assert(button).assert(state("Utfälld")).assertHeightIsAtLeast(48.dp).performClick()
+        rule.waitForIdle()
+        rule.onNodeWithText("Raderna").assertDoesNotExist()
+        rule.onNodeWithText("3/5").assertIsDisplayed()
+        rule.onNodeWithText("Mediciner").assert(state("Hopfälld"))
     }
 
     @Test

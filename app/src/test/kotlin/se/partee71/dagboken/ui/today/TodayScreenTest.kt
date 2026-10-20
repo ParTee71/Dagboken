@@ -213,6 +213,31 @@ class TodayScreenTest {
     }
 
     @Test
+    fun `titelraden fäller ihop Mediciner, räknaren står kvar och raderna försvinner (HEM-22, NFR-18)`() {
+        var shown by mutableStateOf(content())
+        val events = mutableListOf<TodayEvent>()
+        rule.setContent {
+            DagbokenTheme {
+                TodayScreen(DetailUiState.Content(shown), {
+                    events += it
+                    if (it is TodayEvent.ToggleCard) shown = shown.copy(collapsed = persistentSetOf(it.card))
+                }, {})
+            }
+        }
+        rule.onNodeWithText("Mediciner").assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, androidx.compose.ui.semantics.Role.Button))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Utfälld"))
+        rule.onNodeWithText("D-vitamin 20 µg").assertIsDisplayed()
+        rule.onNodeWithText("Mediciner").performClick()
+        assertEquals(listOf<TodayEvent>(TodayEvent.ToggleCard(TodayCard.MEDICINES)), events)
+        rule.waitForIdle()
+        rule.onNodeWithText("D-vitamin 20 µg").assertDoesNotExist()
+        rule.onNodeWithText("Dölj tagna").assertDoesNotExist()
+        rule.onNodeWithText("2 av 6").assertIsDisplayed()
+        rule.onNodeWithText("Mediciner").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Hopfälld"))
+        rule.onNodeWithText("Vid behov").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Utfälld"))
+    }
+
+    @Test
     fun `knapparna visar och döljer tagna och kommande (MED-5, MED-13)`() {
         val events = mutableListOf<TodayEvent>()
         show(content(showDone = false), onEvent = { events += it })
@@ -817,6 +842,12 @@ class TodayScreenTest {
     @Config(qualifiers = "w390dp-h1800dp-xxhdpi")
     fun `skärmdump - alla kort`() = rule.captureLightAndDark("Today_alla_kort") {
         TodayScreen(DetailUiState.Content(full()), {}, {})
+    }
+
+    @Test
+    @Config(qualifiers = "w390dp-h1800dp-xxhdpi")
+    fun `skärmdump - ihopfällda kort`() = rule.captureLightAndDark("Today_ihopfallda_kort") {
+        TodayScreen(DetailUiState.Content(full().copy(collapsed = persistentSetOf(TodayCard.MEDICINES, TodayCard.MOOD, TodayCard.AS_NEEDED, TodayCard.WEEK_TRENDS))), {}, {})
     }
 
     private val withSymptoms = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH, energy = 6, stress = 4, symptoms = listOf(SymptomScore("h", 4), SymptomScore(OTHER_SYMPTOM_ID, 2, "Ont i knät"))))
