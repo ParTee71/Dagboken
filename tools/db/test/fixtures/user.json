@@ -38,7 +38,8 @@
             { "occasion": "dinner", "enabled": false, "time": "17:30" },
             { "occasion": "bedtime", "enabled": true, "time": "21:45" }
           ],
-          "periodReminderTime": "08:30"
+          "periodReminderTime": "08:30",
+          "moment": { "enabled": true, "seconds": 45, "takeover": false, "question": false }
         },
         "profile": { "birthYear": 1971, "sex": "female" },
         "legacy": { "dynamicColor": true, "sheetsConfig": "https://docs.google.com/spreadsheets/d/syntetiskt-exempel/edit" },

@@ -9,6 +9,7 @@ import kotlinx.datetime.LocalTime
 import org.junit.Test
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.HasFeelings
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OptionIds
 import se.partee71.dagboken.core.model.OptionKind
@@ -20,6 +21,8 @@ import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.ExportFormat
 import se.partee71.dagboken.core.schema.OptionCodec
 import se.partee71.dagboken.core.schema.Samples
+import se.partee71.dagboken.core.schema.SettingsCodec
+import se.partee71.dagboken.core.schema.asDoc
 import se.partee71.dagboken.core.schema.fieldPaths
 
 /**
@@ -112,9 +115,19 @@ class BackupJsonConverterTest {
             val differing = docs.flatMap { entry.fieldsDifferingFromDefault(it.path.substringAfterLast('/'), it.data) }.toSet()
             assertEquals(entry.fieldNames() - NEW_IN_4_0 - NEW_IN_4_0_PER_COLLECTION[collection].orEmpty(), differing, "$collection: fält som ingen 3.x-post fyller")
         }
-        // Inställningsdokumentet har varje fält som codecen skriver, eftersom v2-fixturen har varje 3.x-inställning.
+        // Inställningsdokumentet har varje fält som codecen skriver, eftersom v2-fixturen har varje 3.x-inställning – utom
+        // de nya inställningarna utan 3.x-motsvarighet, som inte skrivs (merge: "rör inte") och läses som standardvärdet.
         val settings = byCollection.getValue(CollectionNames.SETTINGS).single().data
-        assertEquals(fieldPaths(Samples.entry(CollectionNames.SETTINGS).encoded()), fieldPaths(settings))
+        assertEquals(fieldPaths(Samples.entry(CollectionNames.SETTINGS).encoded()) - NEW_SETTINGS_IN_4_0, fieldPaths(settings))
+    }
+
+    @Test
+    fun `Stunden (NOT-20) fanns inte i 3x - modellen får standardvärdet och dokumentet rör inte fältet`() {
+        val result = converted("backup-v2")
+        assertEquals(MomentSettings(), result.data.settings?.reminders?.moment)
+        val settings = result.documents.single { CollectionNames.collectionOf(it.path) == CollectionNames.SETTINGS }.data
+        assertNull(asDoc(settings["reminders"])["moment"], "en import över ett befintligt 4.0-dokument behåller Stunden")
+        assertEquals(MomentSettings(), SettingsCodec.decode("app", settings).reminders.moment, "saknat objekt läses som standard")
     }
 
     @Test
@@ -400,6 +413,9 @@ class BackupJsonConverterTest {
 
         /** Nya fält i 4.0 vars namn i en annan samling har en 3.x-motsvarighet – stjärnan finns på 3.x-favoriten och alternativen, inte på receptet. */
         val NEW_IN_4_0_PER_COLLECTION = mapOf(CollectionNames.PRESCRIPTIONS to setOf("favorite"))
+
+        /** Inställningsfält utan 3.x-motsvarighet (fältvägar i `settings/app`) – konverteraren skriver dem inte. */
+        val NEW_SETTINGS_IN_4_0 = setOf("reminders.moment", "reminders.moment.enabled", "reminders.moment.seconds", "reminders.moment.takeover", "reminders.moment.question")
     }
 
     @Test

@@ -16,6 +16,7 @@ import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.LegacySettings
 import se.partee71.dagboken.core.model.MedicineForm
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Option
@@ -64,7 +65,8 @@ object Samples {
             medsEnabled = true,
             medSlots = Slot.SCHEDULED.mapIndexed { i, slot -> SlotReminder(slot, enabled = false, time = LocalTime(6 + i * 3, 15)) },
             screeningOccasions = Occasion.entries.mapIndexed { i, o -> OccasionReminder(o, enabled = true, time = LocalTime(8 + i * 4, 45)) },
-            periodReminderTime = LocalTime(8, 30)
+            periodReminderTime = LocalTime(8, 30),
+            moment = MomentSettings(enabled = true, seconds = 45, takeover = false, question = false)
         ),
         profile = Profile(birthYear = 1971, sex = Sex.FEMALE),
         legacy = LegacySettings(dynamicColor = false, sheetsConfig = "https://docs.google.com/spreadsheets/d/exempel/edit")

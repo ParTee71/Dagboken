@@ -234,17 +234,39 @@ class DocumentRulesTest {
         val theme = functions.getValue("isTheme")
         assertTrue("m.mode in themeModes()" in theme && "inRange(m.lightStartHour, ${DocumentRules.HOUR.first}, ${DocumentRules.HOUR.last})" in theme && "inRange(m.darkStartHour, 0, 23)" in theme && "m.isDarkTheme is bool" in theme)
         assertEquals(rulesList("themeModes"), (DocumentRules.THEME.fields.getValue("mode") as Check.OneOf).values)
-        val reminder = functions.getValue("isReminder")
-        assertTrue("r.get(key, null) in values && r.get('enabled', null) is bool && isClock(r.get('time', null))" in reminder)
+        // Påminnelseraderna, skrivna för uttrycksbudgeten (#322): nycklarna och reglagen som listor med hasOnly, klockslagen
+        // med CLOCK-mönstret för vart och ett över texterna med mellanslag emellan – en rad per element, exakt antal.
         val medSlots = (DocumentRules.REMINDERS.fields.getValue("medSlots") as Check.ListOf)
         val occasions = (DocumentRules.REMINDERS.fields.getValue("screeningOccasions") as Check.ListOf)
-        assertTrue("l.size() == ${medSlots.exact}" in functions.getValue("isMedSlots") && "isReminder(l[0], 'slot', scheduledSlots())" in functions.getValue("isMedSlots"))
-        assertTrue("l.size() == ${occasions.exact}" in functions.getValue("isOccasions") && "isReminder(l[0], 'occasion', occasions())" in functions.getValue("isOccasions"))
+        val clock = DocumentRules.CLOCK.pattern.removePrefix("^").removeSuffix("$")
+        for ((function, list, key, values) in listOf(
+            RowRules("isMedSlots", medSlots, "slot", "scheduledSlots()"),
+            RowRules("isOccasions", occasions, "occasion", "occasions()")
+        )) {
+            val body = functions.getValue(function).replace(Regex("""\s+"""), " ")
+            val n = requireNotNull(list.exact)
+            val rows = (0 until n)
+            assertTrue("l is list && l.size() == $n" in body, function)
+            assertTrue(rows.joinToString(", ", "[", "]") { "l[$it].$key" } + ".hasOnly($values)" in body, "$function: nycklarna")
+            assertTrue(rows.joinToString(", ", "[", "]") { "l[$it].enabled" } + ".hasOnly([true, false])" in body, "$function: reglagen")
+            assertTrue(rows.joinToString(" + ' ' + ", "(", ")") { "l[$it].time" } + " .matches('^($clock)( $clock){${n - 1}}$')" in body, "$function: klockslagen")
+            assertEquals(setOf(key, "enabled", "time"), list.shape.required, function)
+            assertEquals(mapOf(key to list.shape.fields.getValue(key), "enabled" to Check.BoolField, "time" to Check.ClockText), list.shape.fields, function)
+        }
         assertEquals(rulesList("scheduledSlots"), (medSlots.shape.fields.getValue("slot") as Check.OneOf).values)
         assertEquals(rulesList("occasions"), (occasions.shape.fields.getValue("occasion") as Check.OneOf).values)
-        assertEquals(setOf("slot", "enabled", "time"), medSlots.shape.required)
         val reminders = functions.getValue("isReminders")
         assertTrue("m.medsEnabled is bool" in reminders && "isClock(m.periodReminderTime)" in reminders)
+        // Stunden (NOT-20): bool, bool, bool och längden 15–300 i steg om 15.
+        assertTrue("(none(m, 'moment') || isMoment(m.moment))" in reminders)
+        val moment = functions.getValue("isMoment")
+        val seconds = DocumentRules.MOMENT.fields.getValue("seconds") as Check.Range
+        assertEquals(Check.Range(15..300, step = 15), seconds)
+        assertTrue("(none(m, 'seconds') || (inRange(m.seconds, ${seconds.range.first}, ${seconds.range.last}) && m.seconds % ${seconds.step} == 0))" in moment, "längden")
+        val flags = listOf("enabled", "takeover", "question")
+        assertTrue(flags.joinToString(", ", "[", "]") { "m.get('$it', null)" } + ".hasOnly([true, false, null])" in moment, "reglagen bool, saknade eller null")
+        for (flag in flags) assertEquals(Check.BoolField, DocumentRules.MOMENT.fields.getValue(flag), flag)
+        assertEquals(setOf("enabled", "seconds", "takeover", "question"), DocumentRules.MOMENT.fields.keys)
         val profile = functions.getValue("isProfile")
         assertTrue("m.birthYear is int" in profile && "m.sex in sexes()" in profile)
         assertEquals(rulesList("sexes"), (DocumentRules.PROFILE.fields.getValue("sex") as Check.OneOf).values)
@@ -358,6 +380,14 @@ class DocumentRulesTest {
         val rows = asDoc(settings["reminders"]).docs("screeningOccasions").mapIndexed { i, row -> if (i == 2) row - "time" else row }
         assertEquals(listOf(DocumentRules.Violation("reminders.screeningOccasions[2].time", "saknas")), settingsWith("reminders", "screeningOccasions" to rows))
         assertEquals(listOf(DocumentRules.Violation("legacy.sheetsConfig", "för lång text: 5001 tecken (högst 5000)")), settingsWith("legacy", "sheetsConfig" to "x".repeat(5001)))
+        val moment = asDoc(asDoc(settings["reminders"])["moment"])
+        fun momentWith(change: Pair<String, Any?>) = settingsWith("reminders", "moment" to moment + change)
+        assertEquals(listOf(DocumentRules.Violation("reminders.moment.seconds", "inte i steg om 15: 100")), momentWith("seconds" to 100))
+        assertEquals(listOf(DocumentRules.Violation("reminders.moment.seconds", "utanför intervallet 15..300: 0")), momentWith("seconds" to 0))
+        assertEquals(listOf(DocumentRules.Violation("reminders.moment.seconds", "utanför intervallet 15..300: 315")), momentWith("seconds" to 315))
+        assertEquals(listOf(DocumentRules.Violation("reminders.moment.enabled", "fel typ: String (väntat sant/falskt)")), momentWith("enabled" to "ja"))
+        for (valid in listOf(15, 300, 135L)) assertEquals(emptyList(), momentWith("seconds" to valid), "$valid s")
+        assertEquals(emptyList(), settingsWith("reminders", "moment" to null), "äldre data utan Stunden")
         assertEquals(listOf(DocumentRules.Violation("profile", "fel typ: String (väntat objekt)")), DocumentRules.validate(CollectionNames.SETTINGS, settings + ("profile" to "kvinna")))
 
         val prescription = Samples.entry(CollectionNames.PRESCRIPTIONS).encoded()
@@ -408,3 +438,6 @@ class DocumentRulesTest {
         )
     }
 }
+
+/** En lista påminnelserader i rules: funktionen, listan i [DocumentRules.REMINDERS], radens nyckel och nyckelns värdelista. */
+private data class RowRules(val function: String, val list: Check.ListOf, val key: String, val values: String)
