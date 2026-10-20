@@ -74,7 +74,7 @@ class OverlayScreenshotTest {
     fun `AppBottomSheet - steg med utfällda symptom`() = rule.captureScreenLightAndDark("AppBottomSheet_steg_symptom") {
         val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS, ScreeningStep.SYMPTOMS)
         AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepwiseScreeningNavigation(steps, {}) }) {
-            StepwiseScreeningForm(6, {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, otherOptionId = "ovrigt", state = steps, navigation = false)
+            StepwiseScreeningForm(6, {}, emptyList(), {}, emptyList(), {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, otherOptionId = "ovrigt", state = steps, navigation = false)
         }
     }
 

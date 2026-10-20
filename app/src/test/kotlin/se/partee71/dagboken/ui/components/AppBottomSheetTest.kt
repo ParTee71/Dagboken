@@ -156,11 +156,11 @@ class AppBottomSheetTest {
             DagbokenTheme {
                 val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS, ScreeningStep.SYMPTOMS)
                 AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepwiseScreeningNavigation(steps, { saved++ }) }) {
-                    StepwiseScreeningForm(6, {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, state = steps, navigation = false)
+                    StepwiseScreeningForm(6, {}, emptyList(), {}, emptyList(), {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, state = steps, navigation = false)
                 }
             }
         }
-        rule.onNodeWithText("Steg 4 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 5 av 5").assertIsDisplayed()
         rule.onNodeWithText("Föregående").assertIsDisplayed()
         rule.onNodeWithText("Spara").assertIsDisplayed().performClick()
         assertEquals(1, saved)

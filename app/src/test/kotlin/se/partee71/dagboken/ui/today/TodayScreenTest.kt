@@ -678,21 +678,27 @@ class TodayScreenTest {
     }
 
     @Test
-    fun `arket går i steg och sparar – en tidigare dag står dagen i rubriken (HEM-5, SCR-1, SCR-2)`() {
+    fun `arket går i steg och sparar – en tidigare dag står dagen i rubriken (HEM-5, SCR-1, SCR-2, SCR-9)`() {
         val events = mutableListOf<LogEvent>()
         val past = LocalDate(2026, 10, 2)
         val new = Screening("ny", past, LocalTime(12, 0), Occasion.LUNCH)
         val sheet = sheet(null, new)
         showFull(full(past), screening = sheet, onScreening = { events += it })
         rule.onNodeWithText("Lunch · fre 2 okt 2026").assertIsDisplayed()
-        rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 1 av 5").assertIsDisplayed()
         rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Steg 2 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 2 av 5").assertIsDisplayed()
         rule.onNodeWithContentDescription("Rädd").performClick()
         rule.onNodeWithContentDescription("Orolig").performClick()
         assertEquals(LogEvent.ChangeFeelings(listOf(Feeling("scared", "anxious"))), events.last())
         rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Steg 3 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 3 av 5").assertIsDisplayed()
+        rule.onNodeWithText("Klump i magen").performClick()
+        assertEquals(LogEvent.ChangeBody(listOf("stomach_knot")), events.last())
+        rule.onNodeWithText("Vänner").performScrollTo().performClick()
+        assertEquals(LogEvent.ChangeContext(listOf("friends")), events.last())
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Steg 4 av 5").assertIsDisplayed()
         rule.onNodeWithText("Nästa").performClick()
         rule.onNodeWithText("Övrigt").performClick()
         assertEquals(LogEvent.ChangeSymptoms(listOf(SymptomScore(OTHER_SYMPTOM_ID, 1))), events.last())
@@ -713,9 +719,9 @@ class TodayScreenTest {
         val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
         var options by mutableStateOf(emptyList<Option>())
         rule.setContent { DagbokenTheme { TodayWithSheet(DetailUiState.Content(full()), sheet, options) } }
-        rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
-        options = symptoms
         rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
+        options = symptoms
+        rule.onNodeWithText("Steg 1 av 5").assertIsDisplayed()
     }
 
     @Test
@@ -729,16 +735,16 @@ class TodayScreenTest {
     }
 
     @Test
-    fun `arket står sig när skärmen bakom laddar om eller visar fel – samma rubrik och fyra steg (HEM-5)`() {
+    fun `arket står sig när skärmen bakom laddar om eller visar fel – samma rubrik och fem steg (HEM-5)`() {
         val past = LocalDate(2026, 10, 2)
         val sheet = sheet(null, Screening("ny", past, LocalTime(12, 0), Occasion.LUNCH))
         var state by mutableStateOf<DetailUiState<TodayContent>>(DetailUiState.Content(full(past)))
         rule.setContent { DagbokenTheme { TodayWithSheet(state, sheet) } }
-        rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 1 av 5").assertIsDisplayed()
         for (next in listOf(DetailUiState.Loading, DetailUiState.Error(DataError.Offline))) {
             state = next
             rule.onNodeWithText("Lunch · fre 2 okt 2026").assertIsDisplayed()
-            rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
+            rule.onNodeWithText("Steg 1 av 5").assertIsDisplayed()
         }
     }
 
@@ -762,11 +768,11 @@ class TodayScreenTest {
         rule.waitForIdle()
         Espresso.pressBack()
         rule.onNodeWithText("Släng ändringar?").assertIsDisplayed()
-        rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 1 av 5").assertIsDisplayed()
         assertTrue(events.none { it == LogEvent.CloseScreening })
         rule.onNodeWithText("Fortsätt redigera").performClick()
         rule.onNodeWithText("Släng ändringar?").assertDoesNotExist()
-        rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 1 av 5").assertIsDisplayed()
 
         Espresso.pressBack()
         rule.onNodeWithText("Släng").performClick()
@@ -797,7 +803,7 @@ class TodayScreenTest {
         Espresso.pressBack()
         rule.waitForIdle()
         rule.onNodeWithText("Släng ändringar?").assertDoesNotExist()
-        rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 1 av 5").assertIsDisplayed()
         assertTrue(events.none { it == LogEvent.CloseScreening })
         gate.complete(Result.success(Unit))
         rule.waitForIdle()
@@ -807,7 +813,7 @@ class TodayScreenTest {
     @Test
     fun `en oförändrad logg kan inte sparas, och ett sparfel visas i arket (SCR-1)`() {
         showFull(screening = sheet(breakfast, breakfast).also { it.showError(Failure(DataError.PermissionDenied)) })
-        repeat(3) { rule.onNodeWithText("Nästa").performClick() }
+        repeat(4) { rule.onNodeWithText("Nästa").performClick() }
         rule.onNodeWithText("Spara").assertIsNotEnabled()
         rule.onNodeWithText(ApplicationProvider.getApplicationContext<Context>().getString(DataError.PermissionDenied.toMessage())).assertIsDisplayed()
     }
@@ -819,6 +825,11 @@ class TodayScreenTest {
     }
 
     private val withSymptoms = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH, energy = 6, stress = 4, symptoms = listOf(SymptomScore("h", 4), SymptomScore(OTHER_SYMPTOM_ID, 2, "Ont i knät"))))
+
+    private val withBodyContext = sheet(
+        null,
+        Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH, energy = 6, stress = 4, body = listOf("tense_jaw", "heavy_chest", "tired_body"), context = listOf("sleep", "work"))
+    )
 
     /** Ett ark per test – skapat en gång, inte vid varje komposition (arket har nyckeln `key(sheet)`). */
     private val newLunch = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH, energy = 6, stress = 4))
@@ -834,13 +845,24 @@ class TodayScreenTest {
         TodayWithSheet(DetailUiState.Content(full()), newLunch)
     }
 
+    /** Steg 3 är kropp och sammanhang (SCR-9): utan val och med val, "Ingenting särskilt" ej valt. */
     @Test
     fun `skärmdump - arket steg 3`() = rule.captureScreenLightAndDark("Today_maende_steg3", open = { next(2) }) {
         TodayWithSheet(DetailUiState.Content(full()), withSymptoms)
     }
 
     @Test
+    fun `skärmdump - arket steg 3 med val`() = rule.captureScreenLightAndDark("Today_maende_steg3_val", open = { next(2) }) {
+        TodayWithSheet(DetailUiState.Content(full()), withBodyContext)
+    }
+
+    @Test
     fun `skärmdump - arket steg 4`() = rule.captureScreenLightAndDark("Today_maende_steg4", open = { next(3) }) {
+        TodayWithSheet(DetailUiState.Content(full()), withSymptoms)
+    }
+
+    @Test
+    fun `skärmdump - arket steg 5`() = rule.captureScreenLightAndDark("Today_maende_steg5", open = { next(4) }) {
         TodayWithSheet(DetailUiState.Content(full()), withSymptoms)
     }
 

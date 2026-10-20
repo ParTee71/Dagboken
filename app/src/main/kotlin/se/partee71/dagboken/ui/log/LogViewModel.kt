@@ -115,6 +115,12 @@ sealed interface LogEvent {
     /** Känslosteget (SCR-7): hela listan efter valet. */
     data class ChangeFeelings(val feelings: List<Feeling>) : LogEvent
 
+    /** Kroppssteget (SCR-9): hela listan efter valet, i katalogens ordning (`BodySensationCatalog.toggle`). */
+    data class ChangeBody(val body: List<String>) : LogEvent
+
+    /** Sammanhanget (SCR-9): hela listan efter valet (`ContextTagCatalog.toggle`). */
+    data class ChangeContext(val context: List<String>) : LogEvent
+
     data class ChangeSymptoms(val symptoms: List<SymptomScore>) : LogEvent
 
     data object SaveScreening : LogEvent
@@ -255,6 +261,10 @@ class LogViewModel @Inject constructor(
             is LogEvent.ChangeStress -> sheet.changeStress(event.stress)
 
             is LogEvent.ChangeFeelings -> sheet.changeFeelings(event.feelings)
+
+            is LogEvent.ChangeBody -> sheet.changeBody(event.body)
+
+            is LogEvent.ChangeContext -> sheet.changeContext(event.context)
 
             is LogEvent.ChangeSymptoms -> sheet.changeSymptoms(event.symptoms)
 

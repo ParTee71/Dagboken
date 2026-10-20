@@ -140,6 +140,33 @@
     <string name="feeling_separator">" › "</string>
     <string name="feelings_list_separator">" · "</string>
 
+    <!-- Kropp och sammanhang (SCR-9): rubriker, hjälptext och katalogernas ord – body_<token>, context_<token> -->
+    <string name="body_context_optional">Frivilligt – Nästa går alltid</string>
+    <string name="body_title">Var i kroppen sitter det?</string>
+    <string name="context_title">Vad påverkar mest just nu?</string>
+    <string name="body_tense_jaw">Spänd käke</string>
+    <string name="body_heart_racing">Hjärtklappning</string>
+    <string name="body_stomach_knot">Klump i magen</string>
+    <string name="body_heavy_chest">Tung i bröstet</string>
+    <string name="body_restless_legs">Rastlösa ben</string>
+    <string name="body_warm_face">Varm i ansiktet</string>
+    <string name="body_headache">Huvudvärk</string>
+    <string name="body_tired_body">Trött i kroppen</string>
+    <string name="body_light_body">Lätt i kroppen</string>
+    <string name="body_warm_soft">Varm och mjuk</string>
+    <string name="body_nothing">Ingenting särskilt</string>
+    <string name="context_sleep">Sömn</string>
+    <string name="context_family">Familj</string>
+    <string name="context_work">Arbete</string>
+    <string name="context_health">Hälsa</string>
+    <string name="context_medicines">Mediciner</string>
+    <string name="context_alone_time">Ensamtid</string>
+    <string name="context_weather">Väder</string>
+    <string name="context_finances">Ekonomi</string>
+    <string name="context_friends">Vänner</string>
+    <string name="context_exercise">Motion</string>
+    <string name="context_food">Mat</string>
+
     <!-- Ordkatalogen (SCR-8): feeling_<kärna>[_<nyans>[_<precisare ord>]], nycklarna är katalogens tokens -->
     <string name="feeling_glad">Glad</string>
     <string name="feeling_glad_excited">Upprymd</string>

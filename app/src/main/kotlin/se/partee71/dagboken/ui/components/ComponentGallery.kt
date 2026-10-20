@@ -245,6 +245,10 @@ private fun Fields() {
     LabeledGroup("Form (tryck på valet avmarkerar)") {
         ChoiceChips<Int?>(listOf(0, 1, 2), form, { form = it }, { listOf("Tablett", "Kapsel", "Flytande")[it ?: 0] }, onClear = { form = null })
     }
+    var many by remember { mutableStateOf(setOf("Sömn", "Arbete")) }
+    LabeledGroup("Flerval (tryck växlar)") {
+        MultiChoiceChips(listOf("Sömn", "Familj", "Arbete", "Väder"), many, onToggle = { many = if (it in many) many - it else many + it }, label = { it })
+    }
     FieldError("Ingen anslutning just nu. Det du sparar skickas när nätet är tillbaka.")
     AppFilterChip("Sjukdom", selected = false, onClick = {}, enabled = false)
     AppFilterChip("Alvedon 500 mg", selected = false, onClick = {}, icon = R.drawable.ic_note, onLongClick = {}, onLongClickLabel = "Fler val")
@@ -341,11 +345,14 @@ private fun Diary() {
     Label("StepwiseScreeningForm")
     var energy by remember { mutableIntStateOf(6) }
     var screeningFeelings by remember { mutableStateOf(emptyList<Feeling>()) }
+    var screeningBody by remember { mutableStateOf(emptyList<String>()) }
+    var screeningContext by remember { mutableStateOf(emptyList<String>()) }
     var stress by remember { mutableIntStateOf(4) }
     var screeningSymptoms by remember { mutableStateOf(emptyList<SymptomScore>()) }
     AppCard {
         StepwiseScreeningForm(
-            energy, { energy = it }, screeningFeelings, { screeningFeelings = it }, stress, { stress = it },
+            energy, { energy = it }, screeningFeelings, { screeningFeelings = it },
+            screeningBody, { screeningBody = it }, screeningContext, { screeningContext = it }, stress, { stress = it },
             GALLERY_SYMPTOMS, screeningSymptoms, { screeningSymptoms = it }, onSave = {},
         )
     }

@@ -19,7 +19,7 @@ import se.partee71.dagboken.ui.components.StepwiseScreeningNavigation
 import se.partee71.dagboken.ui.components.rememberStepwiseScreeningState
 
 /**
- * Måendearket (HEM-5, HEM-8b, SCR-1, SCR-2, SCR-7): `StepwiseScreeningForm` i `AppBottomSheet` med tillfällets namn – och
+ * Måendearket (HEM-5, HEM-8b, SCR-1, SCR-2, SCR-7, SCR-9): `StepwiseScreeningForm` i `AppBottomSheet` med tillfällets namn – och
  * dagen när det inte är idag – som rubrik, tagen när arket öppnades ([ScreeningSheetInfo]), så att arket står sig
  * också när skärmen bakom laddar om. Symptomvalen följer [symptomOptions] medan arket är öppet – listans aktiva och
  * de arkiverade som loggen redan har; "Övrigt" får fritext. Formuläret börjar på arkets steg ([ScreeningSheetInfo.initialStep]). Osparade ändringar – eller en ny logg vars sparning
@@ -53,6 +53,10 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
             onEnergyChange = { onEvent(LogEvent.ChangeEnergy(it)) },
             feelings = edited.feelings,
             onFeelingsChange = { onEvent(LogEvent.ChangeFeelings(it)) },
+            body = edited.body,
+            onBodyChange = { onEvent(LogEvent.ChangeBody(it)) },
+            context = edited.context,
+            onContextChange = { onEvent(LogEvent.ChangeContext(it)) },
             stress = edited.stress,
             onStressChange = { onEvent(LogEvent.ChangeStress(it)) },
             symptomOptions = choices,

@@ -23,6 +23,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertTouchWidthIsEqualTo
@@ -322,50 +323,97 @@ class DiaryComponentsTest {
     )
 
     @Test
-    fun `mående i steg - energi, känslor, stress och symptom, Spara på sista steget`() {
+    fun `mående i steg - energi, känslor, kropp och sammanhang, stress och symptom, Spara på sista steget`() {
         var saved = 0
         var energy by mutableIntStateOf(5)
         var feelings by mutableStateOf(emptyList<Feeling>())
         show {
-            StepwiseScreeningForm(energy, { energy = it }, feelings, { feelings = it }, 3, {}, symptoms, emptyList(), {}, onSave = { saved++ })
+            StepwiseScreeningForm(energy, { energy = it }, feelings, { feelings = it }, emptyList(), {}, emptyList(), {}, 3, {}, symptoms, emptyList(), {}, onSave = { saved++ })
         }
-        rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 1 av 5").assertIsDisplayed()
         rule.onNodeWithContentDescription("Energi").assert(state("5, Medel"))
         rule.onNodeWithText("Föregående").assertDoesNotExist()
+        rule.onNodeWithText("Frivilligt – Nästa går alltid").assertDoesNotExist()
         rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Steg 2 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 2 av 5").assertIsDisplayed()
         rule.onNodeWithContentDescription("Lugn").performClick()
         rule.onNodeWithContentDescription("Tacksam").performClick()
         assertEquals(listOf(Feeling("calm", "grateful")), feelings)
         rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Steg 3 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 3 av 5").assertIsDisplayed()
+        rule.onNodeWithText("Frivilligt – Nästa går alltid").assertIsDisplayed()
+        rule.onNodeWithText("VAR I KROPPEN SITTER DET?").assertIsDisplayed()
+        rule.onNodeWithText("VAD PÅVERKAR MEST JUST NU?").assertExists()
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Steg 4 av 5").assertIsDisplayed()
+        rule.onNodeWithText("Frivilligt – Nästa går alltid").assertDoesNotExist()
         rule.onNodeWithContentDescription("Stress").assert(state("3, Lätt"))
         rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Steg 4 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 5 av 5").assertIsDisplayed()
         rule.onNodeWithText("Huvudvärk").assertIsDisplayed()
         rule.onNodeWithText("Spara").performClick()
         assertEquals(1, saved)
         rule.onNodeWithText("Föregående").performClick()
-        rule.onNodeWithText("Steg 3 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 4 av 5").assertIsDisplayed()
     }
 
     @Test
-    fun `mående i steg utan symptomalternativ har tre steg, och inget känsloval går vidare`() {
-        show { StepwiseScreeningForm(5, {}, emptyList(), {}, 3, {}, emptyList(), emptyList(), {}, onSave = {}) }
-        rule.onNodeWithText("Steg 1 av 3").assertIsDisplayed()
-        rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Steg 3 av 3").assertIsDisplayed()
+    fun `mående i steg utan symptomalternativ har fyra steg, och inget känsloval eller kroppsval går vidare (SCR-9)`() {
+        show { StepwiseScreeningForm(5, {}, emptyList(), {}, emptyList(), {}, emptyList(), {}, 3, {}, emptyList(), emptyList(), {}, onSave = {}) }
+        rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
+        repeat(3) { rule.onNodeWithText("Nästa").performClick() }
+        rule.onNodeWithText("Steg 4 av 4").assertIsDisplayed()
         rule.onNodeWithText("Spara").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w390dp-h1800dp-xxhdpi")
+    fun `kropp och sammanhang - Ingenting särskilt utesluter de andra, sammanhanget är fritt flerval i katalogens ordning (SCR-9)`() {
+        var body by mutableStateOf(listOf("headache"))
+        var context by mutableStateOf(emptyList<String>())
+        val changes = mutableListOf<List<String>>()
+        show {
+            val steps = rememberStepwiseScreeningState(emptyList(), ScreeningStep.BODY_CONTEXT)
+            StepwiseScreeningForm(
+                5, {}, emptyList(), {}, body, {
+                    changes += it
+                    body = it
+                }, context, { context = it }, 3, {},
+                emptyList(), emptyList(), {}, onSave = {}, state = steps
+            )
+        }
+        rule.onNodeWithText("Steg 3 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Huvudvärk").assertIsSelected()
+        rule.onNodeWithText("Spänd käke").performClick()
+        assertEquals(listOf("tense_jaw", "headache"), body, "katalogens ordning, inte tryckordningen")
+        rule.onNodeWithText("Ingenting särskilt").performClick()
+        assertEquals(listOf("nothing"), body)
+        rule.onNodeWithText("Huvudvärk").assertIsNotSelected()
+        rule.onNodeWithText("Spänd käke").assertIsNotSelected()
+        rule.onNodeWithText("Hjärtklappning").performClick()
+        assertEquals(listOf("heart_racing"), body, "ett annat val avmarkerar Ingenting särskilt")
+        rule.onNodeWithText("Ingenting särskilt").assertIsNotSelected()
+        rule.onNodeWithText("Hjärtklappning").performClick()
+        assertEquals(emptyList(), body)
+        assertEquals(4, changes.size)
+
+        rule.onNodeWithText("Mat").performClick()
+        rule.onNodeWithText("Sömn").performClick()
+        rule.onNodeWithText("Ensamtid").performClick()
+        assertEquals(listOf("sleep", "alone_time", "food"), context)
+        rule.onNodeWithText("Sömn").assertIsSelected()
+        rule.onNodeWithText("Ensamtid").performClick()
+        assertEquals(listOf("sleep", "food"), context)
+        assertEquals(listOf("nothing"), changes[1], "kroppen ändras inte av sammanhanget")
     }
 
     @Test
     fun `mående i steg börjar på sitt startsteg (SCR-7)`() {
         show {
             val steps = rememberStepwiseScreeningState(symptoms, ScreeningStep.FEELINGS)
-            StepwiseScreeningForm(5, {}, emptyList(), {}, 3, {}, symptoms, emptyList(), {}, onSave = {}, state = steps)
+            StepwiseScreeningForm(5, {}, emptyList(), {}, emptyList(), {}, emptyList(), {}, 3, {}, symptoms, emptyList(), {}, onSave = {}, state = steps)
         }
-        rule.onNodeWithText("Steg 2 av 4").assertIsDisplayed()
+        rule.onNodeWithText("Steg 2 av 5").assertIsDisplayed()
         rule.onNodeWithContentDescription("Glad").assertIsDisplayed()
     }
 
@@ -478,14 +526,13 @@ class DiaryComponentsTest {
     @Test
     fun `mående i steg står kvar på sitt steg när symptomalternativen laddas sent`() {
         var options by mutableStateOf(emptyList<Option>())
-        show { StepwiseScreeningForm(5, {}, emptyList(), {}, 3, {}, options, emptyList(), {}, onSave = {}) }
-        rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Steg 3 av 3").assertIsDisplayed()
-        options = symptoms
-        rule.onNodeWithText("Steg 3 av 4").assertIsDisplayed()
-        rule.onNodeWithText("Nästa").performClick()
+        show { StepwiseScreeningForm(5, {}, emptyList(), {}, emptyList(), {}, emptyList(), {}, 3, {}, options, emptyList(), {}, onSave = {}) }
+        repeat(3) { rule.onNodeWithText("Nästa").performClick() }
         rule.onNodeWithText("Steg 4 av 4").assertIsDisplayed()
+        options = symptoms
+        rule.onNodeWithText("Steg 4 av 5").assertIsDisplayed()
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Steg 5 av 5").assertIsDisplayed()
     }
 
     @Test

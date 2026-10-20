@@ -78,6 +78,10 @@ class ScreeningSheet(
 
     fun changeFeelings(feelings: List<Feeling>) = sheet.update(FEELINGS) { it.withFeelings(feelings) }
 
+    fun changeBody(body: List<String>) = sheet.update(BODY) { it.copy(body = body) }
+
+    fun changeContext(context: List<String>) = sheet.update(CONTEXT) { it.copy(context = context) }
+
     fun changeSymptoms(symptoms: List<SymptomScore>) = sheet.update(SYMPTOMS) { it.withSymptoms(symptoms) }
 
     /** SCR-1: ny logg som den är, ändrad fältvis (`ScreeningRepository.save`). */
@@ -97,6 +101,8 @@ class ScreeningSheet(
         /** Arkets fält (rörda när de ändrats, `EditorState`). */
         const val ENERGY = "energy"
         const val FEELINGS = "feelings"
+        const val BODY = "body"
+        const val CONTEXT = "context"
         const val STRESS = "stress"
         const val SYMPTOMS = "symptoms"
     }

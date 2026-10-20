@@ -24,6 +24,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -107,6 +108,28 @@ class ComponentBehaviorTest {
         withClear = false
         rule.onNodeWithText("A").performClick()
         assertEquals("select A", events.last(), "utan onClear är beteendet som förut")
+    }
+
+    @Test
+    fun `flervalschips - tryck växlar, och varje chip läses med namn, kryssruta och valt eller inte`() {
+        val toggled = mutableListOf<String>()
+        var selected by mutableStateOf(setOf("Sömn"))
+        show {
+            MultiChoiceChips(listOf("Sömn", "Familj", "Arbete"), selected, onToggle = {
+                toggled += it
+                selected = if (it in selected) selected - it else selected + it
+            }, label = { it })
+        }
+        val checkbox = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox)
+        rule.onNodeWithText("Sömn").assertIsSelected().assert(checkbox)
+        rule.onNodeWithText("Familj").assertIsNotSelected().assert(checkbox)
+        rule.onNodeWithText("Familj").performClick()
+        rule.onNodeWithText("Familj").assertIsSelected()
+        rule.onNodeWithText("Sömn").assertIsSelected()
+        rule.onNodeWithText("Sömn").performClick()
+        rule.onNodeWithText("Sömn").assertIsNotSelected()
+        assertEquals(listOf("Familj", "Sömn"), toggled, "varje tryck anropar onToggle med alternativet – valt eller inte")
+        assertEquals(setOf("Familj"), selected)
     }
 
     @Test

@@ -249,6 +249,9 @@ class CatalogScreenshotTest {
         captureLightAndDark("ChoiceChips_val") {
             Sheet { ChoiceChips(listOf("Frukost", "Lunch", "Middag", "Kväll"), "Middag", {}, { it }) }
         }
+        captureLightAndDark("ChoiceChips_flerval") {
+            Sheet { MultiChoiceChips(listOf("Sömn", "Familj", "Arbete", "Hälsa", "Väder", "Ekonomi"), setOf("Sömn", "Väder"), onToggle = {}, label = { it }) }
+        }
         captureLightAndDark("LabeledGroup_form") {
             Sheet {
                 LabeledGroup("Tillfälle") { ChipRow { listOf("Frukost", "Lunch", "Middag").forEachIndexed { i, c -> AppFilterChip(c, i == 0, {}) } } }
@@ -445,7 +448,7 @@ class CatalogScreenshotTest {
             }
         }
         captureLightAndDark("StepwiseScreeningForm_forsta_steget") {
-            Sheet { AppCard { StepwiseScreeningForm(6, {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, emptyList(), {}, onSave = {}) } }
+            Sheet { AppCard { StepwiseScreeningForm(6, {}, emptyList(), {}, emptyList(), {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, emptyList(), {}, onSave = {}) } }
         }
         captureLightAndDark("SymptomLogCard_valda") {
             Sheet {

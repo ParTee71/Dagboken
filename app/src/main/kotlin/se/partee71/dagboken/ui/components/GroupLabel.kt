@@ -51,7 +51,8 @@ fun LabeledGroup(
     }
 }
 
+/** Hjälptexten i komponenterna – under [LabeledGroup], och med [inset] = false i linje med texten ovanför (måendets steg). */
 @Composable
-private fun HelperText(text: String) {
-    Text(text, Modifier.padding(horizontal = Spacing.l), style = AppTypography.itemSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+internal fun HelperText(text: String, modifier: Modifier = Modifier, inset: Boolean = true) {
+    Text(text, modifier.then(if (inset) Modifier.padding(horizontal = Spacing.l) else Modifier), style = AppTypography.itemSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

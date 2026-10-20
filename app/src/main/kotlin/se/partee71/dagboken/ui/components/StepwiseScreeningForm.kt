@@ -28,22 +28,28 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.model.BodySensationCatalog
+import se.partee71.dagboken.core.model.ContextTagCatalog
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.SymptomScore
+import se.partee71.dagboken.core.model.TagCatalog
 import se.partee71.dagboken.core.model.somatic
+import se.partee71.dagboken.ui.common.tagName
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Spacing
 
 /**
- * Mående i steg (HEM-5, SCR-1, SCR-2, SCR-7): energi → känslor → stress → symptom, ett steg i taget med "Steg 1 av 4",
- * stegprickar och Föregående/Nästa; sista steget har Spara. Stegen är en lista ([ScreeningStep], ur
+ * Mående i steg (HEM-5, SCR-1, SCR-2, SCR-7, SCR-9): energi → känslor → kropp och sammanhang → stress → symptom, ett steg i
+ * taget med "Steg 1 av 5", stegprickar och Föregående/Nästa; sista steget har Spara. Stegen är en lista ([ScreeningStep], ur
  * [rememberStepwiseScreeningState]): symptomsteget finns bara när det finns [symptomOptions], och formuläret kan börja
  * på ett annat steg än energin (`initialStep`). Används i arket bakom "Logga nu"; reglagen är [ValueSlider] (energi:
  * högre är bättre, stress: högre är sämre), känslorna [FeelingPicker] (inget val är ett giltigt svar) och symptomen
- * [SymptomLogCard]. Stegen går också att svepa mellan.
+ * [SymptomLogCard]. Kropp och sammanhang är två [MultiChoiceChips] över [BodySensationCatalog] och [ContextTagCatalog]
+ * med hjälptexten "Frivilligt – Nästa går alltid"; vad ett tryck väljer bestämmer katalogens [TagCatalog.toggle] (en
+ * oförändrad lista – ingen ändring – anropar inget). Stegen går också att svepa mellan.
  *
  * [navigation] = false: knapparna ritas inte här utan av [StepwiseScreeningNavigation] med samma [state] – i
  * arkets fasta knapprad (`AppBottomSheet(footer)`, NFR-21), så att de syns också när symptomen är utfällda.
@@ -54,6 +60,10 @@ fun StepwiseScreeningForm(
     onEnergyChange: (Int) -> Unit,
     feelings: List<Feeling>,
     onFeelingsChange: (List<Feeling>) -> Unit,
+    body: List<String>,
+    onBodyChange: (List<String>) -> Unit,
+    context: List<String>,
+    onContextChange: (List<String>) -> Unit,
     stress: Int,
     onStressChange: (Int) -> Unit,
     symptomOptions: List<Option>,
@@ -77,10 +87,12 @@ fun StepwiseScreeningForm(
             style = AppTypography.caption,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        if (steps.getOrNull(pager.currentPage) == ScreeningStep.BODY_CONTEXT) HelperText(stringResource(R.string.body_context_optional), inset = false)
         HorizontalPager(pager, Modifier.fillMaxWidth(), pageSpacing = Spacing.l, verticalAlignment = Alignment.Top) { page ->
             when (steps.getOrNull(page)) {
                 ScreeningStep.ENERGY -> ValueSlider(stringResource(R.string.energy), energy, onEnergyChange)
                 ScreeningStep.FEELINGS -> FeelingPicker(feelings, onFeelingsChange)
+                ScreeningStep.BODY_CONTEXT -> BodyContextStep(body, onBodyChange, context, onContextChange)
                 ScreeningStep.STRESS -> ValueSlider(stringResource(R.string.stress), stress, onStressChange, higherIsBetter = false)
                 ScreeningStep.SYMPTOMS -> SymptomLogCard(symptomOptions, symptoms, onSymptomsChange, otherOptionId = otherOptionId, initiallyExpanded = true, somatic = somatic)
                 null -> Unit
@@ -96,7 +108,7 @@ fun StepwiseScreeningForm(
 }
 
 /** Ett steg i [StepwiseScreeningForm], i formulärets ordning. */
-enum class ScreeningStep { ENERGY, FEELINGS, STRESS, SYMPTOMS }
+enum class ScreeningStep { ENERGY, FEELINGS, BODY_CONTEXT, STRESS, SYMPTOMS }
 
 /** Stegen i [StepwiseScreeningForm]: sidan och steglistan, delat mellan formuläret och dess knapprad. */
 @Stable
@@ -105,11 +117,11 @@ class StepwiseScreeningState internal constructor(internal val pager: PagerState
     val steps: List<ScreeningStep> get() = list()
 }
 
-/** Stegen för ett formulär [withSymptoms] eller utan symptomsteget – energi, känslor, stress och sist symptomen. */
+/** Stegen för ett formulär [withSymptoms] eller utan symptomsteget – energi, känslor, kropp och sammanhang, stress och sist symptomen. */
 internal fun screeningSteps(withSymptoms: Boolean): List<ScreeningStep> = ScreeningStep.entries.filter { withSymptoms || it != ScreeningStep.SYMPTOMS }
 
 /**
- * Steglistan läses om vid varje komposition: laddas symptomlistan sent (3 → 4 steg) står formuläret kvar på steget
+ * Steglistan läses om vid varje komposition: laddas symptomlistan sent (4 → 5 steg) står formuläret kvar på steget
  * användaren är på. Formuläret börjar på [initialStep] (finns det inte – symptomen utan alternativ – på första steget).
  */
 @Composable
@@ -137,6 +149,27 @@ internal fun RowScope.StepwiseScreeningNavigation(state: StepwiseScreeningState,
         AppButton(stringResource(R.string.next), { go(pager.currentPage + 1) }, variant = ButtonVariant.Secondary)
     } else {
         AppButton(stringResource(R.string.save), onSave, enabled = saveEnabled, loading = saving)
+    }
+}
+
+/** Kropp och sammanhang (SCR-9): två frivilliga flerval; växlingen – med "Ingenting särskilt" – är katalogens. */
+@Composable
+private fun BodyContextStep(body: List<String>, onBodyChange: (List<String>) -> Unit, context: List<String>, onContextChange: (List<String>) -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.l)) {
+        TagGroup(stringResource(R.string.body_title), BodySensationCatalog, body, onBodyChange)
+        TagGroup(stringResource(R.string.context_title), ContextTagCatalog, context, onContextChange)
+    }
+}
+
+@Composable
+private fun TagGroup(title: String, catalog: TagCatalog, selected: List<String>, onChange: (List<String>) -> Unit) {
+    LabeledGroup(title) {
+        MultiChoiceChips(
+            catalog.tokens,
+            selected.toSet(),
+            onToggle = { token -> catalog.toggle(selected, token).takeIf { it != selected }?.let(onChange) },
+            label = { stringResource(checkNotNull(tagName(catalog, it))) }
+        )
     }
 }
 

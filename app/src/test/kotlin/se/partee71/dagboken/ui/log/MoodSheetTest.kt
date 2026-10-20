@@ -21,6 +21,8 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.junit.Rule
 import org.junit.Test
+import se.partee71.dagboken.core.model.BodySensationCatalog
+import se.partee71.dagboken.core.model.ContextTagCatalog
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
@@ -47,7 +49,7 @@ import se.partee71.dagboken.ui.components.ScreeningStep
 import se.partee71.dagboken.ui.components.screeningSteps
 
 /**
- * Måendearket (HEM-5, SCR-1, SCR-2, SCR-5, SCR-6, NFR-10) – ett ark för Idag, plusknappen och Dagbok (`LogViewModel`).
+ * Måendearket (HEM-5, SCR-1, SCR-2, SCR-5, SCR-6, SCR-9, NFR-10) – ett ark för Idag, plusknappen och Dagbok (`LogViewModel`).
  * Flyttade hit från `TodayViewModelTest` när Idag började använda samma ark. Fast klocka: söndag 4 oktober 2026
  * kl. 10:30 i Europe/Stockholm.
  */
@@ -313,9 +315,12 @@ class MoodSheetTest {
     // ── Känslor (SCR-7) ──
 
     @Test
-    fun `stegen är energi, känslor, stress och symptom – utan symptomlista tre steg (SCR-7)`() {
-        assertEquals(listOf(ScreeningStep.ENERGY, ScreeningStep.FEELINGS, ScreeningStep.STRESS, ScreeningStep.SYMPTOMS), screeningSteps(withSymptoms = true))
-        assertEquals(listOf(ScreeningStep.ENERGY, ScreeningStep.FEELINGS, ScreeningStep.STRESS), screeningSteps(withSymptoms = false))
+    fun `stegen är energi, känslor, kropp och sammanhang, stress och symptom – utan symptomlista fyra steg (SCR-7, SCR-9)`() {
+        assertEquals(
+            listOf(ScreeningStep.ENERGY, ScreeningStep.FEELINGS, ScreeningStep.BODY_CONTEXT, ScreeningStep.STRESS, ScreeningStep.SYMPTOMS),
+            screeningSteps(withSymptoms = true)
+        )
+        assertEquals(listOf(ScreeningStep.ENERGY, ScreeningStep.FEELINGS, ScreeningStep.BODY_CONTEXT, ScreeningStep.STRESS), screeningSteps(withSymptoms = false))
     }
 
     @Test
@@ -380,6 +385,72 @@ class MoodSheetTest {
         assertEquals(listOf(Feeling("calm"), Feeling("strong", "proud")), saved.feelings)
         assertEquals(9, saved.energy)
         assertEquals(3, saved.stress)
+        vm.assertSavedAndClosed()
+    }
+
+    // ── Kropp och sammanhang (SCR-9) ──
+
+    @Test
+    fun `en ny logg utan kropp och sammanhang sparas med tomma listor – steget är frivilligt (SCR-9)`() = runTest(main.dispatcher) {
+        allOccasions()
+        val vm = started()
+        vm.onEvent(LogEvent.LogScreening(Occasion.LUNCH, null, null))
+        val sheet = assertNotNull(vm.screening.value)
+        assertTrue(sheet.editor.state.value.canSave, "inget val krävs")
+        val saved = saveAndStored(vm)
+        assertEquals(emptyList<String>() to emptyList(), saved.body to saved.context)
+    }
+
+    @Test
+    fun `en ny logg sparas med valen – Ingenting särskilt avmarkerar de andra och tvärtom (SCR-9)`() = runTest(main.dispatcher) {
+        allOccasions()
+        val vm = started()
+        vm.onEvent(LogEvent.LogScreening(Occasion.LUNCH, null, null))
+        // Formuläret växlar med katalogen och skickar hela listan (StepwiseScreeningForm).
+        var body = BodySensationCatalog.toggle(emptyList(), "headache")
+        body = BodySensationCatalog.toggle(body, BodySensationCatalog.NOTHING)
+        vm.onEvent(LogEvent.ChangeBody(body))
+        assertEquals(listOf("nothing"), vm.screening.value?.value?.body)
+        body = BodySensationCatalog.toggle(body, "tired_body")
+        vm.onEvent(LogEvent.ChangeBody(body))
+        vm.onEvent(LogEvent.ChangeContext(ContextTagCatalog.toggle(ContextTagCatalog.toggle(emptyList(), "food"), "sleep")))
+        val saved = saveAndStored(vm)
+        assertEquals(listOf("tired_body"), saved.body)
+        assertEquals(listOf("sleep", "food"), saved.context, "katalogens ordning")
+        vm.assertSavedAndClosed()
+    }
+
+    @Test
+    fun `en logg med kropp och sammanhang öppnas med dem, och en ändring gör arket ändrat – tillbaka gör det oändrat (SCR-9, NFR-10)`() = runTest(main.dispatcher) {
+        allOccasions()
+        val logged = Screening("s", today, LocalTime(8, 40), Occasion.BREAKFAST, energy = 6, body = listOf("heart_racing"), context = listOf("work"), createdAt = at(today, 8, 40))
+        factory.screenings().upsert(logged).getOrThrow()
+        val vm = started()
+        vm.onEvent(LogEvent.EditScreening(logged))
+        val sheet = assertNotNull(vm.screening.value)
+        assertEquals(listOf("heart_racing") to listOf("work"), sheet.value.body to sheet.value.context)
+        assertFalse(sheet.editor.state.value.isDirty)
+
+        vm.onEvent(LogEvent.ChangeBody(listOf("heart_racing", "headache")))
+        assertTrue(sheet.editor.state.value.isDirty)
+        vm.onEvent(LogEvent.ChangeBody(listOf("heart_racing")))
+        assertFalse(sheet.editor.state.value.isDirty, "samma val som loggen har: oändrat")
+        vm.onEvent(LogEvent.ChangeContext(emptyList()))
+        assertTrue(sheet.editor.state.value.isDirty, "alla borttagna är en ändring")
+        assertTrue(sheet.editor.state.value.canSave)
+    }
+
+    @Test
+    fun `bara kropp och sammanhang sparas fältvis – det som ändrats på annat håll står kvar (SCR-1, SCR-9)`() = runTest(main.dispatcher) {
+        val (logged, vm, sheet) = editingLogged()
+        factory.screenings().upsert(logged.copy(energy = 9)).getOrThrow()
+        vm.onEvent(LogEvent.ChangeBody(listOf("light_body", "warm_soft")))
+        vm.onEvent(LogEvent.ChangeContext(listOf("friends")))
+        assertTrue(sheet.editor.state.value.canSave)
+
+        val saved = saveAndStored(vm)
+        assertEquals(listOf("light_body", "warm_soft") to listOf("friends"), saved.body to saved.context)
+        assertEquals(9, saved.energy)
         vm.assertSavedAndClosed()
     }
 }
