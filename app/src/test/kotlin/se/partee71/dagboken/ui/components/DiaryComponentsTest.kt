@@ -28,6 +28,7 @@ import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertTouchWidthIsEqualTo
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -391,22 +392,48 @@ class DiaryComponentsTest {
     }
 
     @Test
-    fun `symptomkortet - ett reglage per valt symptom, egen text vid Övrigt och summan under`() {
+    fun `symptomkortet - ett reglage åt gången för det aktiva symptomet, värdet i chipet och summan under`() {
         var scores by mutableStateOf(listOf(SymptomScore("huvudvark", 4)))
         show { SymptomLogCard(symptoms, scores, { scores = it }, otherOptionId = "ovrigt") }
+        // En befintlig logg öppnas med det första valda aktivt, och chipet visar styrkan.
         rule.onNodeWithContentDescription("Huvudvärk").assert(state("4, Måttlig"))
+        rule.onNode(hasText("Huvudvärk") and hasText("4")).assertIsSelected()
+        rule.onNodeWithText("Tryck på ett valt symptom för att ändra styrkan.").assertIsDisplayed()
         rule.onNodeWithText("Summa symptom: 4").assertIsDisplayed()
+        // Ett nytt symptom väljs med styrka 1 och blir aktivt – bara dess reglage visas.
         rule.onNodeWithText("Övrigt").performClick()
         assertEquals(listOf(SymptomScore("huvudvark", 4), SymptomScore("ovrigt", 1)), scores)
+        rule.onNodeWithContentDescription("Huvudvärk").assertDoesNotExist()
         rule.onNodeWithText("Beskriv symptomet").performTextReplacement("Ont i knät")
         assertEquals("Ont i knät", scores[1].customText)
         rule.onNodeWithContentDescription("Ont i knät").assert(state("1, Lätt"))
+        rule.onNode(hasText("Ont i knät") and hasText("1")).assertIsSelected()
         rule.onNodeWithText("Summa symptom: 5").assertIsDisplayed()
+        // Tryck på ett valt men inte aktivt chip gör det aktivt utan att ändra något.
+        rule.onNodeWithText("Huvudvärk").performClick()
+        assertEquals(listOf("huvudvark", "ovrigt"), scores.map { it.optionId })
+        rule.onNodeWithContentDescription("Huvudvärk").assert(state("4, Måttlig"))
+        rule.onNodeWithText("Beskriv symptomet").assertDoesNotExist()
+        // Tryck på det aktiva avmarkerar det; det senast valda kvarvarande blir aktivt.
         rule.onNodeWithText("Huvudvärk").performClick()
         assertEquals(listOf("ovrigt"), scores.map { it.optionId })
+        rule.onNodeWithContentDescription("Ont i knät").assertIsDisplayed()
         rule.onNodeWithText("Symptom").assert(button).performClick()
         rule.onNodeWithText("Summa symptom: 1").assertIsDisplayed()
         rule.onNodeWithText("Yrsel").assertDoesNotExist()
+    }
+
+    @Test
+    fun `symptomkortet - avmarkera det enda valda visar tomtexten och inget reglage`() {
+        var scores by mutableStateOf(emptyList<SymptomScore>())
+        show { SymptomLogCard(symptoms, scores, { scores = it }, initiallyExpanded = true) }
+        rule.onNodeWithText("Välj de symptom du har – inga valda räknas som 0.").assertIsDisplayed()
+        rule.onNodeWithText("Yrsel").performClick()
+        rule.onNodeWithContentDescription("Yrsel").assert(state("1, Lätt"))
+        rule.onNodeWithText("Yrsel").performClick()
+        assertEquals(emptyList(), scores)
+        rule.onNodeWithContentDescription("Yrsel").assertDoesNotExist()
+        rule.onNodeWithText("Välj de symptom du har – inga valda räknas som 0.").assertIsDisplayed()
     }
 
     @Test
