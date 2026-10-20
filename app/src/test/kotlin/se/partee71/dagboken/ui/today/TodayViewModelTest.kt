@@ -28,10 +28,12 @@ import kotlinx.datetime.toInstant
 import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.AsNeededChip
 import se.partee71.dagboken.core.engine.Due
 import se.partee71.dagboken.core.engine.EnergyTrend
 import se.partee71.dagboken.core.engine.FeelingRole
 import se.partee71.dagboken.core.engine.OccasionStatus
+import se.partee71.dagboken.core.engine.PrnAvailability
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.computeDailyEnergyStats
 import se.partee71.dagboken.core.model.Checkin
@@ -604,6 +606,69 @@ class TodayViewModelTest {
         runCurrent()
         assertNull(factory.prnMedicines().get(alvedon.id).getOrThrow())
         assertEquals(listOf("imigran"), vm.content.choices.favorites.map { it.id })
+    }
+
+    @Test
+    fun `ett stjärnmärkt recept blir ett chip bland favoriterna och lämnar Recept i Fler (FAV-12)`() = runTest(main.dispatcher) {
+        seed()
+        val vm = started(viewModel())
+        assertEquals(listOf("alvedon"), vm.content.choices.chips.map { it.id })
+        assertEquals(listOf(levaxin), vm.content.choices.prescriptions)
+
+        vm.onEvent(TodayEvent.ToggleRecipeFavorite(levaxin))
+        runCurrent()
+        assertEquals(listOf<AsNeededChip>(AsNeededChip.Medicine(alvedon), AsNeededChip.Recipe(levaxin.copy(favorite = true))), vm.content.choices.chips.sortedBy { it.name })
+        assertEquals(emptyList(), vm.content.choices.prescriptions, "ett stjärnmärkt recept står inte under Recept")
+
+        vm.onEvent(TodayEvent.ToggleRecipeFavorite(levaxin.copy(favorite = true)))
+        runCurrent()
+        assertEquals(listOf("alvedon"), vm.content.choices.chips.map { it.id })
+    }
+
+    @Test
+    fun `tryck på ett receptchip loggar en extrados med Ångra (FAV-12, FAV-11)`() = runTest(main.dispatcher) {
+        seed()
+        val vm = started(viewModel())
+        vm.onEvent(TodayEvent.ToggleRecipeFavorite(levaxin))
+        runCurrent()
+        val chip = vm.content.choices.favoritePrescriptions.single()
+        vm.onEvent(TodayEvent.LogExtra(chip))
+        runCurrent()
+        val extra = factory.doses().getAll().getOrThrow().single { it.slot == Slot.AS_NEEDED }
+        assertNull(extra.prescriptionId)
+        assertEquals("100", extra.dose)
+        assertEquals(R.string.today_logged_format, vm.undo.value?.format)
+        assertEquals("Levaxin 100 µg", vm.undo.value?.name)
+        vm.onEvent(TodayEvent.Undo)
+        runCurrent()
+        assertNull(stored(extra.id), "Ångra tar bort extradosen")
+    }
+
+    @Test
+    fun `kylperioden och dagsgränsen markeras och försvinner när minutklockan passerar tiden (FAV-13)`() = runTest(main.dispatcher) {
+        seed()
+        factory.doses().upsert(Dose("alv", today, Slot.AS_NEEDED, "Alvedon", "500", "mg", DoseStatus.TAKEN, takenAt = at(today, 8, 0), prnId = alvedon.id)).getOrThrow()
+        factory.doses().upsert(Dose("imi", today, Slot.AS_NEEDED, "Imigran", "50", "mg", DoseStatus.TAKEN, takenAt = at(today, 7, 0), prnId = imigran.id)).getOrThrow()
+        val vm = started(viewModel())
+        // 10:30: Alvedon (4 h) är tillåten först 12:00, Imigran har nått dagens gräns (1 av 1).
+        assertEquals(PrnAvailability.Cooldown(at(today, 12, 0)), vm.content.unavailable[alvedon.id])
+        assertEquals(PrnAvailability.DailyLimit(1, 1), vm.content.unavailable[imigran.id])
+
+        clock.instant = at(today, 12, 5)
+        advanceTimeBy(2.minutes)
+        assertNull(vm.content.unavailable[alvedon.id], "kylperioden är över – markeringen försvinner av sig själv")
+        assertEquals(PrnAvailability.DailyLimit(1, 1), vm.content.unavailable[imigran.id], "dagsgränsen står kvar till midnatt")
+    }
+
+    @Test
+    fun `en tidigare dag har ingen markering och ett recept markeras aldrig (FAV-13)`() = runTest(main.dispatcher) {
+        seed()
+        factory.doses().upsert(Dose("alv", today, Slot.AS_NEEDED, "Alvedon", "500", "mg", DoseStatus.TAKEN, takenAt = at(today, 10, 0), prnId = alvedon.id)).getOrThrow()
+        val vm = started(viewModel())
+        assertEquals(setOf(alvedon.id), vm.content.unavailable.keys, "recepten saknas bland markeringarna")
+        vm.onEvent(TodayEvent.SelectDate(yesterday))
+        runCurrent()
+        assertEquals(emptyMap(), vm.content.unavailable)
     }
 
     @Test

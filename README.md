@@ -259,6 +259,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.6.0 | **Stjärnmärkta recept på Idag:** ett recept kan stjärnmärkas i Mediciner och ligger då som chip bredvid vid behov-favoriterna – tryck loggar en extrados med dagens dos. **För tidigt syns i förväg:** en vid behov-medicin i kylperiod eller vid dagsgränsen tonas i chipet och i Fler med klock- eller spärrikon och "från 15:40" eller "2 av 2 idag", och markeringen försvinner av sig själv när tiden har gått (#340). |
 | 4.5.0 | **Symptomens styrka utan att scrolla:** valda symptom visar sin styrka i chipet ("Huvudvärk 4"), och ett reglage åt gången står direkt under chipsen för det aktiva symptomet – tryck på ett valt symptom för att ändra dess styrka. Gäller mående, aktivitet och incheckning (#339). |
 | 4.4.0 | **Tydligare serier i Trender:** diagram med flera serier får en egen färgpalett i ljust och mörkt tema med tydligare färger, och varje serie en egen punktform (cirkel, kvadrat, triangel, romb – ihåliga för serie 5–8) som också står i teckenförklaringen. Sömnstadierna får violett REM och sandfärgad Vaken, och Total i Sömn är bärnstensgul (#347). |
 | 4.3.0 | **Idag: ihopfällbara kort.** Korten från Mediciner och nedåt – Mediciner, Vid behov, Mående, Pågående sjukdom, Hälsa idag och Senaste veckan – fälls ihop och ut genom att trycka på titelraden; ihopfällt visas bara ikonen, titeln och räknaren (t.ex. Mediciner 3 av 5). Alla kort är utfällda som standard, och valet står kvar när du byter dag men sparas inte (#348). |

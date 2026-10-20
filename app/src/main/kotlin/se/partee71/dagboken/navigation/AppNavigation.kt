@@ -240,6 +240,8 @@ fun appEntries(
                 account(),
                 onAccount,
                 onEditPrn = { id -> backStack.push(PrnMedicineEditKey(id)) },
+                // FAV-12: Redigera i långtrycksmenyn på ett stjärnmärkt recept.
+                onEditPrescription = { id -> backStack.push(PrescriptionEditKey(id)) },
                 // TRD-5: "Visa i Trender" under Idags 7-dagarstrend byter flik.
                 onOpenTrends = { backStack.select(TrendsKey) },
                 onScreening = onScreening,

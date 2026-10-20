@@ -117,6 +117,7 @@ fun TodayRoute(
     onScreening: (LogEvent) -> Unit,
     onLogLater: (prnId: String, date: LocalDate) -> Unit = { _, _ -> },
     onOpenIllness: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
+    onEditPrescription: (String) -> Unit = {},
     viewModel: TodayViewModel = hiltViewModel(),
     healthViewModel: HealthTodayViewModel = hiltViewModel()
 ) {
@@ -138,6 +139,7 @@ fun TodayRoute(
         onScreening = onScreening,
         onLogLater = onLogLater,
         onOpenIllness = onOpenIllness,
+        onEditPrescription = onEditPrescription,
         health = health,
         onHealthEvent = healthViewModel::onEvent
     ) {
@@ -154,7 +156,7 @@ fun TodayRoute(
  * (HEM-17, HEM-7). Korten från Mediciner och nedåt fälls ihop på titelraden, utfällda som standard (HEM-22). En söndag eller måndag står "Din vecka" överst (HEM-13). [onHealthEvent] tar hälsokortets "Ge åtkomst".
  * Ångra och bekräftelserna visas i ramens meddelandeyta. [onScreening] öppnar måendearket – samma ark som plusknappen
  * (`LogViewModel`, ovanpå flikarna) – med en ny logg eller en loggad för ändring. [onEditPrn] öppnar vid
- * behov-formuläret från långtrycksmenyn (HEM-11), [onLogLater] dosformuläret för medicinen i efterhand mot den visade
+ * behov-formuläret och [onEditPrescription] receptformuläret från långtrycksmenyn (HEM-11, FAV-12), [onLogLater] dosformuläret för medicinen i efterhand mot den visade
  * dagen (FAV-10, MED-16), [onOpenIllness] sjukdomsdetaljen för den pågående sjukdomen med den visade dagen (HEM-12, HEM-14) och [onOpenTrends]
  * fliken Trender (TRD-5).
  */
@@ -172,6 +174,7 @@ fun TodayScreen(
     onScreening: (LogEvent) -> Unit = {},
     onLogLater: (prnId: String, date: LocalDate) -> Unit = { _, _ -> },
     onOpenIllness: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
+    onEditPrescription: (String) -> Unit = {},
     health: HealthTodayUiState? = null,
     onHealthEvent: (HealthEvent) -> Unit = {},
     avatar: @Composable () -> Unit = {}
@@ -198,16 +201,17 @@ fun TodayScreen(
         actions = { avatar() },
         snackbar = snackbar,
         sectionGap = SECTION_GAP
-    ) { TodayCards(it, onEvent, TodayLinks(onEditPrn, onOpenTrends, onScreening, onLogLater, onOpenIllness), health, onHealthEvent) }
+    ) { TodayCards(it, onEvent, TodayLinks(onEditPrn, onOpenTrends, onScreening, onLogLater, onOpenIllness, onEditPrescription), health, onHealthEvent) }
 }
 
 /** Det Idag öppnar utanför fliken – formulär, arket och Trender. */
-private class TodayLinks(
+internal class TodayLinks(
     val onEditPrn: (String) -> Unit,
     val onOpenTrends: () -> Unit,
     val onScreening: (LogEvent) -> Unit,
     val onLogLater: (String, LocalDate) -> Unit,
-    val onOpenIllness: (String, LocalDate) -> Unit
+    val onOpenIllness: (String, LocalDate) -> Unit,
+    val onEditPrescription: (String) -> Unit
 )
 
 @Composable
@@ -496,117 +500,6 @@ private fun doseSubtitle(dose: Dose, scheduled: LocalTime?, prescription: Prescr
     }
     return listOfNotNull(stringResource(dose.slot.label()), time, boost).joinToString(" · ")
 }
-
-/**
- * Vid behov (FAV-2, FAV-11): favoriterna som chips – tryck loggar, långtryck ger Redigera, Favorit, Logga i
- * efterhand, Visa anteckning och Radera (HEM-11, FAV-3, FAV-8, FAV-9, FAV-10) – och "Fler" med övriga vid
- * behov-mediciner och receptens under "Recept". Utan vid behov-mediciner och recept visas inget kort.
- */
-@Composable
-private fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, links: TodayLinks, expanded: Boolean, onToggle: () -> Unit) {
-    val choices = content.choices
-    if (choices.favorites.isEmpty() && choices.moreCount == 0) return
-    var menuFor by remember { mutableStateOf<String?>(null) }
-    var moreOpen by remember { mutableStateOf(false) }
-    var deleting by remember { mutableStateOf<PrnMedicine?>(null) }
-    var noteOf by remember { mutableStateOf<PrnMedicine?>(null) }
-    val canLog = content.isToday
-    val todayOnly = stringResource(R.string.today_prn_today_only)
-    // En tidigare dag: chipen är tonade och trycket gör ingenting, men de är aktiva så att långtrycksmenyn
-    // nås också med TalkBack (ett inaktivt chip får ingen långtrycksåtgärd).
-    val pastDay = if (canLog) Modifier else Modifier.inactive(true).semantics { stateDescription = todayOnly }
-    AppCard {
-        SectionFoldout(stringResource(R.string.medicines_as_needed), expanded, onToggle) {
-            if (!canLog) {
-                NoticeBanner(
-                    stringResource(R.string.today_prn_past_day),
-                    R.drawable.ic_info,
-                    { onEvent(TodayEvent.SelectDate(content.today)) },
-                    tone = Tone.Neutral,
-                    onClickLabel = stringResource(R.string.today_show_today)
-                )
-            }
-            ChipRow {
-                choices.favorites.forEach { medicine ->
-                    Box {
-                        AppFilterChip(
-                            medicineTitle(medicine.displayName, medicine.dose, medicine.unit),
-                            selected = false,
-                            onClick = { if (canLog) onEvent(TodayEvent.LogAsNeeded(medicine)) },
-                            modifier = pastDay,
-                            icon = if (medicine.note.isNullOrBlank()) null else R.drawable.ic_note,
-                            onLongClick = { menuFor = medicine.id },
-                            onLongClickLabel = stringResource(R.string.more_options)
-                        )
-                        val items = medicineMenu(
-                            medicine,
-                            onEvent,
-                            onEdit = { links.onEditPrn(medicine.id) },
-                            onLogLater = { links.onLogLater(medicine.id, content.date) },
-                            onNote = { noteOf = medicine }
-                        ) { deleting = medicine }
-                        AppMenuPopup(items, expanded = menuFor == medicine.id, onDismiss = { menuFor = null })
-                    }
-                }
-                if (choices.moreCount > 0) {
-                    Box {
-                        AppFilterChip(
-                            stringResource(R.string.today_more_format, choices.moreCount),
-                            selected = false,
-                            onClick = { if (canLog) moreOpen = true },
-                            modifier = pastDay,
-                            icon = R.drawable.ic_expand_more
-                        )
-                        val recipes = stringResource(R.string.today_more_prescriptions)
-                        val items = choices.others.map { AppMenuItem(medicineTitle(it.displayName, it.dose, it.unit), { onEvent(TodayEvent.LogAsNeeded(it)) }) } +
-                            choices.prescriptions.map { AppMenuItem(medicineTitle(it.displayName, it.doseFor(content.today), it.unit), { onEvent(TodayEvent.LogExtra(it)) }, section = recipes) }
-                        AppMenuPopup(items, expanded = moreOpen, onDismiss = { moreOpen = false })
-                    }
-                }
-            }
-        }
-    }
-    deleting?.let { medicine ->
-        val close = { deleting = null }
-        ConfirmDialog(
-            stringResource(R.string.delete_named_title, medicine.displayName),
-            stringResource(R.string.prn_delete_message),
-            stringResource(R.string.delete),
-            onConfirm = {
-                close()
-                onEvent(TodayEvent.DeleteMedicine(medicine))
-            },
-            onDismiss = close,
-            destructive = true
-        )
-    }
-    noteOf?.let { medicine ->
-        val close = { noteOf = null }
-        ConfirmDialog(medicine.displayName, medicine.note.orEmpty(), stringResource(R.string.close), onConfirm = close, onDismiss = close, dismissLabel = null)
-    }
-}
-
-/** Långtrycksmenyn på ett snabbval i ordningen Redigera, Favorit, Logga i efterhand, Visa anteckning, Radera sist (NFR-16, HEM-11). */
-@Composable
-private fun medicineMenu(
-    medicine: PrnMedicine,
-    onEvent: (TodayEvent) -> Unit,
-    onEdit: () -> Unit,
-    onLogLater: () -> Unit,
-    onNote: () -> Unit,
-    onDelete: () -> Unit
-): List<AppMenuItem> = listOfNotNull(
-    AppMenuItem(stringResource(R.string.edit), onEdit, R.drawable.ic_edit),
-    AppMenuItem(
-        stringResource(if (medicine.favorite) R.string.favorite_remove else R.string.favorite_add, medicine.displayName),
-        { onEvent(TodayEvent.ToggleFavorite(medicine)) },
-        // Samma ikon som stjärnan i Mediciner (FavoriteStar): fylld = favorit.
-        if (medicine.favorite) R.drawable.ic_star_filled else R.drawable.ic_star
-    ),
-    AppMenuItem(stringResource(R.string.dose_log_later), onLogLater, R.drawable.ic_clock),
-    if (medicine.note.isNullOrBlank()) null else AppMenuItem(stringResource(R.string.note_show), onNote, R.drawable.ic_note),
-    AppMenuItem(stringResource(R.string.delete), onDelete, R.drawable.ic_delete, destructive = true)
-)
 
 private fun DayPart.greeting(): Int = when (this) {
     DayPart.MORNING -> R.string.greeting_morning

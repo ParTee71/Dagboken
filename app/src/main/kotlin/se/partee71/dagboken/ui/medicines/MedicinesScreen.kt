@@ -114,6 +114,9 @@ sealed interface MedicinesEvent {
     /** Stjärnan på en vid behov-medicin (FAV-2, SET-10). */
     data class FavoriteToggled(val medicine: PrnMedicine) : MedicinesEvent
 
+    /** Menyns Lägg till/Ta bort som favorit på ett recept (FAV-12): receptet visas då som chip på Idag. */
+    data class PrescriptionFavoriteToggled(val prescription: Prescription) : MedicinesEvent
+
     data object Retry : MedicinesEvent
 
     data object ErrorShown : MedicinesEvent
@@ -160,6 +163,7 @@ class MedicinesViewModel @Inject constructor(
             is MedicinesEvent.ActiveChanged -> write { prescriptions.setActive(event.prescription, event.active) }
             is MedicinesEvent.DeletePrescription -> write { prescriptions.delete(event.prescription.id) }
             is MedicinesEvent.FavoriteToggled -> write { medicines.setFavorite(event.medicine, !event.medicine.favorite) }
+            is MedicinesEvent.PrescriptionFavoriteToggled -> write { prescriptions.setFavorite(event.prescription, !event.prescription.favorite) }
             MedicinesEvent.Retry -> loader.onEvent(ListEvent.Retry)
             MedicinesEvent.ErrorShown -> _failure.value = null
         }
@@ -305,13 +309,22 @@ private fun PrescriptionCard(item: MedicineItem.Recipe, today: LocalDate, onEven
         actions = if (item.ended) {
             listOf(AppMenuItem(stringResource(R.string.prescription_extend), onExtend, R.drawable.ic_refresh))
         } else {
-            listOf(AppMenuItem(toggleLabel, { onEvent(MedicinesEvent.ActiveChanged(p, !p.active)) }, if (p.active) R.drawable.ic_toggle_off else R.drawable.ic_toggle_on))
+            listOf(
+                AppMenuItem(toggleLabel, { onEvent(MedicinesEvent.ActiveChanged(p, !p.active)) }, if (p.active) R.drawable.ic_toggle_off else R.drawable.ic_toggle_on),
+                // Samma text och ikon som favoritposten i vid behov-menyn på Idag (HEM-11).
+                AppMenuItem(
+                    stringResource(if (p.favorite) R.string.favorite_remove else R.string.favorite_add, p.displayName),
+                    { onEvent(MedicinesEvent.PrescriptionFavoriteToggled(p)) },
+                    if (p.favorite) R.drawable.ic_star_filled else R.drawable.ic_star
+                )
+            )
         },
         delete = DeleteAction(
             stringResource(R.string.delete_named_title, p.displayName),
             stringResource(R.string.medicines_delete_prescription_message)
         ) { onEvent(MedicinesEvent.DeletePrescription(p)) },
         inactive = !active,
+        favorite = p.favorite && !item.ended,
         toggle = if (item.ended) null else EntryToggle(p.active, { onEvent(MedicinesEvent.ActiveChanged(p, it)) }, stringResource(R.string.medicines_active_format, p.displayName)),
         below = if (pills.isEmpty()) {
             null
