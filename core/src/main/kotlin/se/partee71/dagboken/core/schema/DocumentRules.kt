@@ -7,6 +7,7 @@ import se.partee71.dagboken.core.model.FeelingCatalog
 import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.LegacySource
 import se.partee71.dagboken.core.model.MedicineForm
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Repeat
@@ -109,8 +110,8 @@ object DocumentRules {
 
         data object ClockText : Check
 
-        /** Heltal inom [range] (`nullOrRange`). */
-        data class Range(val range: IntRange) : Check
+        /** Heltal inom [range] (`nullOrRange`), när [step] > 1 dessutom delbart med [step] (`v % step == 0`). */
+        data class Range(val range: IntRange, val step: Int = 1) : Check
 
         /** Heltal från [min] (`nullOrMin`). */
         data class Min(val min: Int) : Check
@@ -190,6 +191,20 @@ object DocumentRules {
             "isDarkTheme" to Check.BoolField
         )
     )
+
+    /** Stundens längd i sekunder (NOT-20): [MomentSettings.MIN_SECONDS]–[MomentSettings.MAX_SECONDS] i steg om [MomentSettings.STEP_SECONDS]. */
+    val MOMENT_SECONDS: IntRange = MomentSettings.MIN_SECONDS..MomentSettings.MAX_SECONDS
+
+    /** Stunden (`isMoment`, NOT-20, DAT-11). */
+    val MOMENT = Shape(
+        mapOf(
+            "enabled" to Check.BoolField,
+            "seconds" to Check.Range(MOMENT_SECONDS, step = MomentSettings.STEP_SECONDS),
+            "takeover" to Check.BoolField,
+            "question" to Check.BoolField
+        )
+    )
+
     private fun reminderRow(key: String, values: List<WireEnum>) = Shape(
         mapOf(key to Check.OneOf(wires(values)), "enabled" to Check.BoolField, "time" to Check.ClockText),
         required = setOf(key, "enabled", "time")
@@ -199,7 +214,8 @@ object DocumentRules {
             "medsEnabled" to Check.BoolField,
             "medSlots" to Check.ListOf(reminderRow("slot", Slot.SCHEDULED), exact = Slot.SCHEDULED.size),
             "screeningOccasions" to Check.ListOf(reminderRow("occasion", Occasion.entries), exact = Occasion.entries.size),
-            "periodReminderTime" to Check.ClockText
+            "periodReminderTime" to Check.ClockText,
+            "moment" to Check.Nested(MOMENT)
         )
     )
     val PROFILE = Shape(mapOf("birthYear" to Check.IntField, "sex" to Check.OneOf(wires(Sex.entries))))
@@ -391,7 +407,13 @@ object DocumentRules {
 
             Check.ClockText -> if (value is String) (if (parseClock(value) == null) "ogiltigt klockslag" else null) else type(value, "klockslag")
 
-            is Check.Range -> whole(value) ?: (value as Number).toLong().let { if (it in check.range) null else "utanför intervallet ${check.range}: $it" }
+            is Check.Range -> whole(value) ?: (value as Number).toLong().let {
+                when {
+                    it !in check.range -> "utanför intervallet ${check.range}: $it"
+                    it % check.step != 0L -> "inte i steg om ${check.step}: $it"
+                    else -> null
+                }
+            }
 
             is Check.Min -> whole(value) ?: (value as Number).toLong().let { if (it >= check.min) null else "under ${check.min}: $it" }
 

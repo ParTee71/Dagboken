@@ -21,6 +21,7 @@ import se.partee71.dagboken.core.model.HasFeelings
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.LegacySettings
 import se.partee71.dagboken.core.model.MedicineForm
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Option
@@ -51,6 +52,7 @@ class CodecsTest {
         assertCodecContract(SettingsCodec, Samples.settings, Settings())
         assertEveryFieldDiffersFromDefault(Samples.settings.theme, ThemeSettings())
         assertEveryFieldDiffersFromDefault(Samples.settings.reminders, ReminderSettings())
+        assertEveryFieldDiffersFromDefault(Samples.settings.reminders.moment, MomentSettings())
         assertEveryFieldDiffersFromDefault(Samples.settings.profile, Profile())
         assertEveryFieldDiffersFromDefault(Samples.settings.legacy, LegacySettings())
         Samples.settings.reminders.medSlots.forEach {
@@ -216,6 +218,33 @@ class CodecsTest {
         assertEquals(Occasion.entries, reminders.screeningOccasions.map { it.occasion })
         assertEquals(OccasionReminder(Occasion.BEDTIME, enabled = true, time = LocalTime(22, 30)), reminders.screeningOccasions.last())
         assertEquals(OccasionReminder(Occasion.BREAKFAST), reminders.screeningOccasions.first())
+    }
+
+    @Test
+    fun `Stunden (NOT-20) - saknat objekt ger standardvärdena, trasiga fält sina standardvärden och längden avrundas till närmaste giltiga`() {
+        assertEquals(MomentSettings(), SettingsCodec.decode("app", emptyMap()).reminders.moment)
+        assertEquals(MomentSettings(), SettingsCodec.decode("app", mapOf("reminders" to mapOf("medsEnabled" to true))).reminders.moment, "äldre data utan Stunden")
+        assertEquals(MomentSettings(enabled = false, seconds = 120, takeover = true, question = true), MomentSettings())
+        fun seconds(stored: Any?) = SettingsCodec.decode("app", mapOf("reminders" to mapOf("moment" to mapOf("enabled" to true, "seconds" to stored)))).reminders.moment.seconds
+        assertEquals(45, seconds(45L))
+        assertEquals(15, seconds(0), "under intervallet → kortaste")
+        assertEquals(15, seconds(-30))
+        assertEquals(300, seconds(301), "över intervallet → längsta")
+        assertEquals(300, seconds(Long.MAX_VALUE))
+        assertEquals(105, seconds(100), "mellan stegen → närmaste steg")
+        assertEquals(90, seconds(97))
+        assertEquals(120, seconds(112.5), "halvvägs → uppåt")
+        assertEquals(120, seconds("två minuter"), "inte ett tal → standard")
+        assertEquals(120, seconds(Double.NaN))
+        for (valid in MomentSettings.SECONDS) assertEquals(valid, seconds(valid))
+        val broken = SettingsCodec.decode("app", mapOf("reminders" to mapOf("moment" to mapOf("enabled" to "ja", "takeover" to 0, "question" to false))))
+        assertEquals(MomentSettings(question = false), broken.reminders.moment)
+        assertEquals(MomentSettings(), SettingsCodec.decode("app", mapOf("reminders" to mapOf("moment" to "på"))).reminders.moment)
+        assertEquals(
+            mapOf("enabled" to false, "seconds" to 120, "takeover" to true, "question" to true),
+            asDoc(SettingsCodec.encode(Settings())["reminders"])["moment"],
+            "standardvärdena skrivs ut"
+        )
     }
 
     @Test

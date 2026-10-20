@@ -173,24 +173,36 @@ service cloud.firestore {
         && (none(m, 'darkStartHour') || inRange(m.darkStartHour, 0, 23))
         && (none(m, 'isDarkTheme') || m.isDarkTheme is bool);
     }
-    // En påminnelserad {nyckel, enabled, time}; codecen skriver alltid alla rader och alla fält.
-    function isReminder(r, key, values) {
-      return r is map && r.get(key, null) in values && r.get('enabled', null) is bool && isClock(r.get('time', null));
-    }
+    // Påminnelseraderna {nyckel, enabled, time}; codecen skriver alltid alla rader och alla fält.
+    // Skrivet för uttrycksbudgeten (#322): per lista nycklarna och reglagen som var sin lista med hasOnly och alla
+    // klockslag med ett mönster (isClock för vart och ett) över texterna med mellanslag emellan. En rad som inte är
+    // ett objekt eller saknar ett fält ger fel (nekad); ett klockslag som inte är text kan inte läggas ihop (nekad).
     function isMedSlots(l) {
-      return l is list && l.size() == 6 && isReminder(l[0], 'slot', scheduledSlots()) && isReminder(l[1], 'slot', scheduledSlots())
-        && isReminder(l[2], 'slot', scheduledSlots()) && isReminder(l[3], 'slot', scheduledSlots())
-        && isReminder(l[4], 'slot', scheduledSlots()) && isReminder(l[5], 'slot', scheduledSlots());
+      return l is list && l.size() == 6
+        && [l[0].slot, l[1].slot, l[2].slot, l[3].slot, l[4].slot, l[5].slot].hasOnly(scheduledSlots())
+        && [l[0].enabled, l[1].enabled, l[2].enabled, l[3].enabled, l[4].enabled, l[5].enabled].hasOnly([true, false])
+        && (l[0].time + ' ' + l[1].time + ' ' + l[2].time + ' ' + l[3].time + ' ' + l[4].time + ' ' + l[5].time)
+          .matches('^(([01][0-9]|2[0-3]):[0-5][0-9])( ([01][0-9]|2[0-3]):[0-5][0-9]){5}$');
     }
     function isOccasions(l) {
-      return l is list && l.size() == 4 && isReminder(l[0], 'occasion', occasions()) && isReminder(l[1], 'occasion', occasions())
-        && isReminder(l[2], 'occasion', occasions()) && isReminder(l[3], 'occasion', occasions());
+      return l is list && l.size() == 4
+        && [l[0].occasion, l[1].occasion, l[2].occasion, l[3].occasion].hasOnly(occasions())
+        && [l[0].enabled, l[1].enabled, l[2].enabled, l[3].enabled].hasOnly([true, false])
+        && (l[0].time + ' ' + l[1].time + ' ' + l[2].time + ' ' + l[3].time)
+          .matches('^(([01][0-9]|2[0-3]):[0-5][0-9])( ([01][0-9]|2[0-3]):[0-5][0-9]){3}$');
     }
     function isReminders(m) {
       return m is map && (none(m, 'medsEnabled') || m.medsEnabled is bool)
         && (none(m, 'medSlots') || isMedSlots(m.medSlots))
         && (none(m, 'screeningOccasions') || isOccasions(m.screeningOccasions))
-        && (none(m, 'periodReminderTime') || isClock(m.periodReminderTime));
+        && (none(m, 'periodReminderTime') || isClock(m.periodReminderTime))
+        && (none(m, 'moment') || isMoment(m.moment));
+    }
+    // Stunden (NOT-20, MomentSettings i :core): reglagen bool (eller saknas/null) i en lista med hasOnly, för
+    // uttrycksbudgeten; pausens längd 15–300 sekunder i steg om 15.
+    function isMoment(m) {
+      return m is map && [m.get('enabled', null), m.get('takeover', null), m.get('question', null)].hasOnly([true, false, null])
+        && (none(m, 'seconds') || (inRange(m.seconds, 15, 300) && m.seconds % 15 == 0));
     }
     function isProfile(m) {
       return m is map && (none(m, 'birthYear') || m.birthYear is int) && (none(m, 'sex') || m.sex in sexes());

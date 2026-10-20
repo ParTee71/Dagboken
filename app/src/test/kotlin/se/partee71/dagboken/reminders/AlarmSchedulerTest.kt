@@ -27,6 +27,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowAlarmManager
 import se.partee71.dagboken.core.engine.Reminder
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.ReminderSettings
@@ -78,6 +79,25 @@ class AlarmSchedulerTest {
         }
         // Klockslaget följer med, så att larmet kan läggas om när cachen är tom.
         assertEquals("12:00", shadowOf(alarms.getValue(Reminder.Med(Slot.LUNCH)).operation).savedIntent.getStringExtra(ReminderIntents.EXTRA_TIME))
+    }
+
+    @Test
+    fun `med Stunden på ligger måendelarmen kvar hos samma mottagare, oföränderlig, med tillfället som extra (NOT-20)`() = runTest {
+        ShadowAlarmManager.setCanScheduleExactAlarms(true)
+        f.enable(occasions = setOf(Occasion.LUNCH, Occasion.BEDTIME))
+        f.settings.update { it.copy(reminders = it.reminders.copy(moment = MomentSettings(enabled = true))) }.getOrThrow()
+
+        f.scheduler().rescheduleAll()
+
+        val alarms = f.alarms()
+        assertEquals(setOf(Reminder.Mood(Occasion.LUNCH), Reminder.Mood(Occasion.BEDTIME), Reminder.PeriodEnd), alarms.keys)
+        listOf(Occasion.LUNCH, Occasion.BEDTIME).forEach { occasion ->
+            val operation = shadowOf(alarms.getValue(Reminder.Mood(occasion)).operation)
+            assertTrue(operation.isBroadcast && operation.isImmutable)
+            assertEquals(ScreeningReminderReceiver::class.java.name, operation.savedIntent.component?.className)
+            assertEquals(occasion.wire, operation.savedIntent.getStringExtra(ReminderIntents.EXTRA_OCCASION))
+        }
+        assertEquals(f.at(today, 21, 0).toEpochMilliseconds(), alarms.getValue(Reminder.Mood(Occasion.BEDTIME)).triggerAtTime)
     }
 
     @Test

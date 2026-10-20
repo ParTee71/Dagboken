@@ -41,6 +41,9 @@ import se.partee71.dagboken.data.repository.DefaultScreeningRepository
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
+import se.partee71.dagboken.navigation.AppBackStack
+import se.partee71.dagboken.navigation.open
+import se.partee71.dagboken.reminders.ReminderLaunch
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.SelectedDay
@@ -330,6 +333,17 @@ class MoodSheetTest {
         // Samma uträkning som rememberStepwiseScreeningState gör för startsidan.
         assertEquals(1, screeningSteps(withSymptoms = true).indexOf(initial))
         assertEquals(1, screeningSteps(withSymptoms = false).indexOf(initial))
+    }
+
+    @Test
+    fun `Stundens Välj känslor öppnar rätt tillfälles ark på känslosteget (NOT-20, SCR-7)`() = runTest(main.dispatcher) {
+        allOccasions()
+        val vm = started()
+        AppBackStack().open(ReminderLaunch.LogMood(Occasion.BEDTIME, feelings = true), vm::onEvent)
+        val sheet = assertNotNull(vm.screening.value)
+        assertEquals(Occasion.BEDTIME, sheet.context.occasion)
+        assertEquals(ScreeningStep.FEELINGS, sheet.context.initialStep)
+        assertEquals(Occasion.BEDTIME, sheet.value.occasion)
     }
 
     @Test

@@ -1,10 +1,8 @@
 package se.partee71.dagboken
 
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -30,6 +28,7 @@ import se.partee71.dagboken.ui.settings.AppTheme
 import se.partee71.dagboken.ui.settings.AppThemeViewModel
 import se.partee71.dagboken.ui.settings.isDark
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.dagboken.ui.theme.applySystemBars
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -71,10 +70,7 @@ class MainActivity : ComponentActivity() {
             val opening by launch.collectAsStateWithLifecycle()
             val dark = chosen.isDark(isSystemInDarkTheme())
             // Statusradens ikoner följer appens tema.
-            LaunchedEffect(dark) {
-                val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
-            }
+            LaunchedEffect(dark) { applySystemBars(dark) }
             DagbokenTheme(darkTheme = dark) { AppRoot(launch = opening, onLaunchHandled = { launch.value = null }) }
         }
     }

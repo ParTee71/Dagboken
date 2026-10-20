@@ -286,7 +286,22 @@ const invalid = {
     ['reminders.medSlots.2.enabled', 'yes', 'bool som text'],
     ['reminders.screeningOccasions.0.occasion', 'fika', 'okänt tillfälle'],
     ['reminders.screeningOccasions.3.time', '24:00', 'klockslag efter 23:59'],
+    ['reminders.medSlots.3', 'rad', 'rad som text'],
+    ['reminders.medSlots.4.enabled', null, 'reglage null'],
+    ['reminders.medSlots.5.time', 2200, 'klockslag som tal'],
+    ['reminders.screeningOccasions.1.enabled', 'true', 'bool som text'],
+    ['reminders.screeningOccasions.2.time', '08:00 09:00', 'två klockslag i ett'],
+    ['reminders.screeningOccasions.3', null, 'rad null'],
     ['reminders.periodReminderTime', '25:00', 'klockslag'],
+    ['reminders.moment', 'på', 'Stunden som text'],
+    ['reminders.moment.enabled', 'ja', 'bool som text'],
+    ['reminders.moment.seconds', 100, 'mellan 15-sekundersstegen'],
+    ['reminders.moment.seconds', 0, 'under 15 sekunder'],
+    ['reminders.moment.seconds', 315, 'över 5 minuter'],
+    ['reminders.moment.seconds', 45.5, 'decimaltal'],
+    ['reminders.moment.seconds', '120', 'längd som text'],
+    ['reminders.moment.takeover', 1, 'bool som tal'],
+    ['reminders.moment.question', 'nej', 'bool som text'],
     ['profile.birthYear', '1971', 'år som text'],
     ['profile.sex', 'annat', 'okänt kön'],
     ['legacy', 'material-you', 'grupp som text'],
@@ -544,6 +559,10 @@ test('gränsvärdena i intervallen godtas', async () => {
     ['doses', 'status', 'planned'], ['doses', 'slot', 'asNeeded'], ['activities', 'minutes', 0],
     ['settings', 'legacy', null], ['settings', 'legacy.dynamicColor', null], ['settings', 'legacy.sheetsConfig', null],
     ['settings', 'legacy.dynamicColor', false], ['settings', 'legacy.sheetsConfig', text(LIMIT.long)],
+    // Stunden (NOT-20): gränserna och ett steg mitt i, null och saknat objekt (äldre data), alla tre reglagen.
+    ['settings', 'reminders.moment.seconds', 15], ['settings', 'reminders.moment.seconds', 300], ['settings', 'reminders.moment.seconds', 135],
+    ['settings', 'reminders.moment', null], ['settings', 'reminders.moment', { enabled: false, seconds: 120, takeover: true, question: true }],
+    ['settings', 'reminders.moment.enabled', false], ['settings', 'reminders.moment.takeover', true], ['settings', 'reminders.moment.question', null],
     ['prescriptions', 'note', text(LIMIT.long)], ['prescriptions', 'schedule', null],
     // Styrka och form (REC-1, FAV-1): ej angivna (tom text, null) och alla former godtas.
     ['prescriptions', 'strength', ''], ['prescriptions', 'strength', text(LIMIT.short)], ['prescriptions', 'form', null],
@@ -657,6 +676,8 @@ test('en uppdatering av ett nästlat fält (punktnotation) kontrollerar hela obj
   await assertSucceeds(setDoc(mine('settings', 'app'), toClient(base('settings'))));
   await assertFails(updateDoc(mine('settings', 'app'), { 'theme.mode': 'sepia' }));
   await assertFails(updateDoc(mine('settings', 'app'), { 'reminders.periodReminderTime': '9:00' }));
+  await assertFails(updateDoc(mine('settings', 'app'), { 'reminders.moment.seconds': 100 }));
+  await assertSucceeds(updateDoc(mine('settings', 'app'), { 'reminders.moment.seconds': 105 }));
   await assertFails(updateDoc(mine('settings', 'app'), { 'profile.sex': 'annat' }));
   await assertFails(updateDoc(mine('settings', 'app'), { 'legacy.dynamicColor': 'ja' }));
   await assertFails(updateDoc(mine('settings', 'app'), { 'legacy.sheetsConfig': text(LIMIT.long + 1) }));
@@ -761,6 +782,23 @@ const feelings = (v) => Array.from({ length: feelingCatalogConstant('MAX_FEELING
 const feelingStrengths = (v) => Object.fromEntries(feelings(v).map((token, i) => [token, ['mild', 'clear', 'strong'][(i + v) % 3]]));
 const feelingNotes = (v) => Object.fromEntries(feelings(v).map((token) => [token, text(LIMIT.short - v)]));
 const WORST = {
+  // Inställningarna: inga listor med variabel längd, men tio påminnelserader och Stunden – nära budgeten före #322.
+  settings: {
+    rule: 'validSettings',
+    build: (v) => ({
+      name: text(LIMIT.short - v), note: text(LIMIT.long - v),
+      theme: { mode: ['dark', 'light'][v], lightStartHour: 6 + v, darkStartHour: 22 - v, isDarkTheme: v === 1 },
+      reminders: {
+        medsEnabled: v === 1,
+        medSlots: ['morning', 'midmorning', 'lunch', 'afternoon', 'evening', 'night'].map((slot, i) => ({ slot, enabled: v === 1, time: `0${i}:1${v}` })),
+        screeningOccasions: ['breakfast', 'lunch', 'dinner', 'bedtime'].map((occasion, i) => ({ occasion, enabled: v === 1, time: `1${i}:2${v}` })),
+        periodReminderTime: `0${v}:30`,
+        moment: { enabled: v === 1, seconds: 45 + 15 * v, takeover: v === 0, question: v === 0 },
+      },
+      profile: { birthYear: 1971 + v, sex: ['female', 'male'][v] },
+      legacy: { dynamicColor: v === 1, sheetsConfig: text(LIMIT.long - v) },
+    }),
+  },
   prescriptions: {
     rule: 'validPrescription',
     build: (v) => ({

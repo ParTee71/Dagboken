@@ -1,12 +1,17 @@
 package se.partee71.dagboken.reminders
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import se.partee71.dagboken.MainActivity
 import se.partee71.dagboken.core.engine.Reminder
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Slot
+import se.partee71.dagboken.reminders.ReminderIntents.occasion
+import se.partee71.dagboken.reminders.ReminderIntents.time
 
 // Påminnelsernas Intents – enda stället för actions och extras (skill android-intent-security). Larm och
 // notisåtgärder går bara till appens egna, icke-exporterade mottagare via explicita, oföränderliga
@@ -33,6 +38,12 @@ internal object ReminderIntents {
     /** Vad appen ska öppna ([ReminderLaunch]). */
     const val EXTRA_OPEN = "se.partee71.dagboken.reminders.OPEN"
 
+    /** Stundens längd i sekunder ([MomentLaunch]). */
+    const val EXTRA_SECONDS = "se.partee71.dagboken.reminders.SECONDS"
+
+    /** Om Stunden visar dagens hjälpfråga ([MomentLaunch]). */
+    const val EXTRA_QUESTION = "se.partee71.dagboken.reminders.QUESTION"
+
     fun Intent.slot(): Slot? = getStringExtra(EXTRA_SLOT)?.let { wire -> Slot.SCHEDULED.firstOrNull { it.wire == wire } }
 
     fun Intent.occasion(): Occasion? = getStringExtra(EXTRA_OCCASION)?.let { wire -> Occasion.entries.firstOrNull { it.wire == wire } }
@@ -51,7 +62,48 @@ internal object ReminderIntents {
 }
 
 /**
- * Vad en tryckt notis öppnar i appen (NOT-9, NOT-11, NOT-12). MainActivity är exporterad (startikonen), så
+ * Vad Stunden (NOT-20) visar – tillfället, dess klockslag, pausens längd och om hjälpfrågan visas; inga hälsodata.
+ * `MomentActivity` är inte exporterad, men extras tolkas ändå bara som kända värden: ett okänt tillfälle ger `null`
+ * (aktiviteten stängs), en längd utanför 15 s–5 min avrundas som vid läsning ([MomentSettings.roundSeconds]).
+ */
+data class MomentLaunch(
+    val occasion: Occasion,
+    val time: LocalTime,
+    val seconds: Int = MomentSettings.DEFAULT_SECONDS,
+    val question: Boolean = true
+) {
+    /**
+     * "Välj känslor" (NOT-20, SCR-7): `MainActivity` (explicit) på Idag med tillfällets måendeark på känslosteget –
+     * samma väg som "Logga nu" ([ReminderLaunch.LogMood] med `feelings`), så att notisen stängs när appen öppnas.
+     */
+    fun feelingsIntent(context: Context): Intent = Intent(context, MainActivity::class.java)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        .putExtra(ReminderIntents.EXTRA_OPEN, ReminderLaunch.MOOD_FEELINGS)
+        .putExtra(ReminderIntents.EXTRA_OCCASION, occasion.wire)
+
+    /** Lägger värdena som extras på [intent] – samma nycklar som [from] läser. */
+    fun putInto(intent: Intent): Intent = intent
+        .putExtra(ReminderIntents.EXTRA_OCCASION, occasion.wire)
+        .putExtra(ReminderIntents.EXTRA_TIME, time.toString())
+        .putExtra(ReminderIntents.EXTRA_SECONDS, seconds)
+        .putExtra(ReminderIntents.EXTRA_QUESTION, question)
+
+    companion object {
+        /** Det [intent] beskriver, eller `null` utan känt tillfälle; saknat klockslag = tillfällets standardtid. */
+        fun from(intent: Intent?): MomentLaunch? {
+            val occasion = intent?.occasion() ?: return null
+            return MomentLaunch(
+                occasion,
+                intent.time() ?: occasion.defaultTime,
+                MomentSettings.roundSeconds(intent.getIntExtra(ReminderIntents.EXTRA_SECONDS, MomentSettings.DEFAULT_SECONDS).toDouble()),
+                intent.getBooleanExtra(ReminderIntents.EXTRA_QUESTION, true)
+            )
+        }
+    }
+}
+
+/**
+ * Vad en tryckt notis öppnar i appen (NOT-9, NOT-11, NOT-12, NOT-20). MainActivity är exporterad (startikonen), så
  * vem som helst kan skicka de här extras – därför tolkas bara kända värden, och det värsta en främmande app kan
  * göra är att öppna Idag, måendearket eller Mediciner.
  */
@@ -59,8 +111,11 @@ sealed interface ReminderLaunch {
     /** Idag (NOT-9). */
     data object Today : ReminderLaunch
 
-    /** Idag med måendearket för [occasion] öppet ("Logga nu", NOT-11). */
-    data class LogMood(val occasion: Occasion) : ReminderLaunch
+    /**
+     * Idag med måendearket för [occasion] öppet ("Logga nu", NOT-11) – med [feelings] på känslosteget (SCR-7), som
+     * Stundens "Välj känslor" (NOT-20).
+     */
+    data class LogMood(val occasion: Occasion, val feelings: Boolean = false) : ReminderLaunch
 
     /** Fliken Mediciner (periodslutet, NOT-12). */
     data object Medicines : ReminderLaunch
@@ -68,6 +123,7 @@ sealed interface ReminderLaunch {
     companion object {
         internal const val TODAY = "today"
         internal const val MOOD = "mood"
+        internal const val MOOD_FEELINGS = "mood_feelings"
         internal const val MEDICINES = "medicines"
 
         /**
@@ -100,10 +156,10 @@ sealed interface ReminderLaunch {
         /** Det [save] sparade, eller `null`. */
         fun restore(state: Bundle?): ReminderLaunch? = state?.let { parse(it.getString(ReminderIntents.EXTRA_OPEN), it.getString(ReminderIntents.EXTRA_OCCASION)) }
 
-        /** Bara kända värden; ett okänt tillfälle för "Logga nu" öppnar Idag. */
+        /** Bara kända värden; ett okänt tillfälle för "Logga nu" (eller "Välj känslor") öppnar Idag. */
         private fun parse(open: String?, occasion: String?): ReminderLaunch? = when (open) {
             TODAY -> Today
-            MOOD -> Occasion.entries.firstOrNull { it.wire == occasion }?.let(::LogMood) ?: Today
+            MOOD, MOOD_FEELINGS -> Occasion.entries.firstOrNull { it.wire == occasion }?.let { LogMood(it, feelings = open == MOOD_FEELINGS) } ?: Today
             MEDICINES -> Medicines
             else -> null
         }
@@ -111,7 +167,7 @@ sealed interface ReminderLaunch {
         private val ReminderLaunch.open: String
             get() = when (this) {
                 Today -> TODAY
-                is LogMood -> MOOD
+                is LogMood -> if (feelings) MOOD_FEELINGS else MOOD
                 Medicines -> MEDICINES
             }
     }

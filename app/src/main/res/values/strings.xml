@@ -303,6 +303,9 @@
     <string name="duration_minutes_format">%d min</string>
     <string name="duration_hours_format">%d tim</string>
     <string name="duration_hours_minutes_format">%1$d tim %2$d min</string>
+    <!-- Kortare längder i sekunder (formatDuration, NOT-20): "45 s", "2 min", "2 min 15 s" -->
+    <string name="duration_seconds_format">%d s</string>
+    <string name="duration_minutes_seconds_format">%1$d min %2$d s</string>
     <plurals name="suggestions_count">
         <item quantity="one">%d förslag</item>
         <item quantity="other">%d förslag</item>
@@ -365,6 +368,20 @@
     <string name="reminders_exact_off">Påminnelserna kan komma några minuter sent</string>
     <string name="reminders_exact_off_detail">Tryck och tillåt Alarm och påminnelser för exakta tider.</string>
     <string name="reminders_open_system_settings">Öppna systeminställningarna</string>
+    <!-- Stunden på Påminnelser (NOT-20, NOT-21) -->
+    <string name="reminders_moment">Stunden</string>
+    <plurals name="reminders_moment_subtitle">
+        <item quantity="one">En kort paus före varje måendeincheckning · %d tillfälle</item>
+        <item quantity="other">En kort paus före varje måendeincheckning · %d tillfällen</item>
+    </plurals>
+    <string name="reminders_moment_length">Pausens längd</string>
+    <string name="reminders_moment_takeover">Ta över skärmen</string>
+    <string name="reminders_moment_takeover_subtitle">Helskärm när skärmen är låst eller släckt, annars en notis överst. Av: en vanlig notis med Starta Stunden.</string>
+    <string name="reminders_moment_question">Hjälpfråga</string>
+    <string name="reminders_moment_question_subtitle">En fråga i nutid under rubriken, en ny varje dag</string>
+    <string name="reminders_moment_helper">Gäller alla påslagna måendetillfällen. Android låter ingen app låsa telefonen – du kan alltid lämna Stunden.</string>
+    <string name="reminders_full_screen_off">Tillåt helskärm</string>
+    <string name="reminders_full_screen_off_detail">Utan behörigheten kommer Stunden som en vanlig notis. Tryck för att tillåta helskärm för Dagboken.</string>
 
     <!-- Notiser (NOT-1, NOT-3, NOT-10…NOT-12, NOT-17) – rubrikerna utan hälsoinnehåll visas på låsskärmen -->
     <string name="notification_channel_meds_name">Medicinpåminnelser</string>
@@ -380,6 +397,12 @@
     <string name="notification_mood_public_title">Dags att logga mående</string>
     <string name="notification_mood_text">Hur mår du? Det tar en halv minut.</string>
     <string name="notification_mood_action_log_now">Logga nu</string>
+    <string name="notification_channel_moment_name">Stunden</string>
+    <string name="notification_channel_moment_description">En kort paus i helskärm före måendeincheckningen</string>
+    <string name="notification_moment_title">Stunden – %1$s</string>
+    <string name="notification_moment_public_title">Stunden</string>
+    <string name="notification_moment_text">En kort paus före incheckningen. Vad känner du just nu?</string>
+    <string name="notification_moment_action_start">Starta Stunden</string>
     <string name="notification_period_public_title">En medicinperiod tar slut i morgon</string>
     <string name="notification_period_prescription_title">I morgon är sista dagen med %1$s</string>
     <string name="notification_period_prescription_text">I morgon tas den sista dosen i perioden.</string>
@@ -389,6 +412,51 @@
         <item quantity="one">%1$d medicinperiod tar slut i morgon</item>
         <item quantity="other">%1$d medicinperioder tar slut i morgon</item>
     </plurals>
+
+    <!-- Stunden (NOT-20, NOT-21): helskärmen visar bara tillfälle, tid, text och fråga – inga hälsodata -->
+    <string name="moment_header">Stunden · %1$s %2$s</string>
+    <string name="moment_intro">Lägg ner det du gör. Andas med cirkeln.</string>
+    <string name="moment_remaining">%1$d:%2$02d kvar</string>
+    <string name="moment_remaining_description">%1$s kvar</string>
+    <string name="moment_done">Pausen är klar</string>
+    <string name="moment_helper">Ingen text behövs. Känn efter en stund – orden väljer du sedan.</string>
+    <string name="moment_choose_feelings">Välj känslor</string>
+    <string name="moment_not_now">Inte nu</string>
+    <string name="breathing_in">Andas in</string>
+    <string name="breathing_out">Andas ut</string>
+    <!-- NOT-21: hjälpfrågorna – exakt ReflectionPrompts.COUNT (30), i nutid, om nuet; aldrig om dagen som gått eller orsaker -->
+    <string-array name="moment_prompts">
+        <item>Finns det mer än en känsla? Var i kroppen känns den?</item>
+        <item>Vad är starkast just nu?</item>
+        <item>Är det lätt eller tungt att andas?</item>
+        <item>Hur känns axlarna just nu?</item>
+        <item>Är kroppen spänd eller avslappnad?</item>
+        <item>Var i kroppen märks känslan mest?</item>
+        <item>Är känslan stor eller liten just nu?</item>
+        <item>Känns det varmt eller kallt någonstans i kroppen?</item>
+        <item>Är du rastlös eller stilla just nu?</item>
+        <item>Hur känns det i magen?</item>
+        <item>Vilken färg skulle känslan ha just nu?</item>
+        <item>Är känslan skarp eller mjuk?</item>
+        <item>Hur känns händerna just nu?</item>
+        <item>Är det lugnt eller stökigt inuti?</item>
+        <item>Vad vill kroppen göra just nu?</item>
+        <item>Är tankarna snabba eller långsamma?</item>
+        <item>Hur känns det i bröstet?</item>
+        <item>Är känslan ny eller välbekant?</item>
+        <item>Hur tung känns kroppen just nu?</item>
+        <item>Vad märker du först när du känner efter?</item>
+        <item>Är det något som skaver just nu?</item>
+        <item>Finns det något som känns gott just nu?</item>
+        <item>Hur känns ansiktet – käken, pannan, ögonen?</item>
+        <item>Rör sig känslan, eller står den still?</item>
+        <item>Hur mycket energi finns i kroppen just nu?</item>
+        <item>Är du här, eller någon annanstans i tankarna?</item>
+        <item>Vilket ord ligger närmast just nu?</item>
+        <item>Känns det trångt eller rymligt inuti?</item>
+        <item>Hur känns det att sitta eller stå där du är?</item>
+        <item>Vad händer med känslan när du andas ut?</item>
+    </string-array>
 
     <!-- Medicintidpunkter och måendetillfällen – ui/common/SlotLabels.kt, enda stället (DAT-1, NOT-4) -->
     <string name="slot_morning">Morgon</string>

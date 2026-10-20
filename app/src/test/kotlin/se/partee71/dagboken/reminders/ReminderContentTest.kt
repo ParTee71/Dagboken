@@ -14,6 +14,7 @@ import se.partee71.dagboken.core.engine.plannedDoses
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
@@ -160,5 +161,45 @@ class ReminderContentTest {
         assertTrue(f.content.medDoses(Slot.MORNING, today).isEmpty)
         assertFalse(f.content.moodDue(Occasion.LUNCH))
         assertEquals(emptyList(), f.content.periodEndings())
+    }
+
+    // ── Stunden (NOT-20) ──
+
+    private suspend fun moment(moment: MomentSettings) = f.settings.update { it.copy(reminders = it.reminders.copy(moment = moment)) }.getOrThrow()
+
+    @Test
+    fun `med Stunden på blir tillfällets påminnelse Stunden – med tillfällets klockslag, längden och hjälpfrågan (NOT-20)`() = runTest {
+        f.enable(occasions = setOf(Occasion.LUNCH, Occasion.BEDTIME))
+        moment(MomentSettings(enabled = true, seconds = 45, takeover = true, question = false))
+
+        assertEquals(
+            MoodNotice(MomentLaunch(Occasion.BEDTIME, Occasion.BEDTIME.defaultTime, seconds = 45, question = false), takeover = true),
+            f.content.moodNotice(Occasion.BEDTIME)
+        )
+        moment(MomentSettings(enabled = true, takeover = false))
+        assertEquals(false, f.content.moodNotice(Occasion.LUNCH)?.takeover)
+        assertTrue(f.content.moodDue(Occasion.LUNCH))
+    }
+
+    @Test
+    fun `Stunden av ger en vanlig måendepåminnelse, och ett loggat eller avslaget tillfälle ingen alls (NOT-19, NOT-20)`() = runTest {
+        f.enable(occasions = setOf(Occasion.LUNCH, Occasion.DINNER))
+        assertEquals(MoodNotice(), f.content.moodNotice(Occasion.LUNCH))
+
+        moment(MomentSettings(enabled = true))
+        f.screenings.save(null, f.screenings.new(today, Occasion.LUNCH)).getOrThrow()
+        assertNull(f.content.moodNotice(Occasion.LUNCH), "loggat")
+        assertNull(f.content.moodNotice(Occasion.BEDTIME), "avslaget")
+        assertEquals(Occasion.DINNER, f.content.moodNotice(Occasion.DINNER)?.moment?.occasion)
+    }
+
+    @Test
+    fun `Stundens innehåll är bara tillfälle, klockslag, längd och fråga – inga hälsodata (NOT-20)`() = runTest {
+        f.enable(occasions = setOf(Occasion.LUNCH))
+        moment(MomentSettings(enabled = true))
+        f.screenings.save(null, f.screenings.new(LocalDate(2026, 5, 5), Occasion.LUNCH).copy(energy = 2, note = "Hemligt")).getOrThrow()
+
+        // MomentLaunch har bara de fyra fälten – inget ur loggarna kan följa med till helskärmen eller notisen.
+        assertEquals(MomentLaunch(Occasion.LUNCH, Occasion.LUNCH.defaultTime, MomentSettings.DEFAULT_SECONDS, question = true), f.content.moodNotice(Occasion.LUNCH)?.moment)
     }
 }

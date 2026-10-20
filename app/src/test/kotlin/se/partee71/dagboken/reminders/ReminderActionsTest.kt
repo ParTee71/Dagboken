@@ -24,6 +24,7 @@ import se.partee71.dagboken.core.engine.SlotDoses
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
@@ -167,6 +168,25 @@ class ReminderActionsTest {
         actions.notify(alarm, f.clock.instant)
 
         assertEquals(0, posted().size)
+        assertTrue(Reminder.Mood(Occasion.LUNCH) in f.alarms())
+    }
+
+    @Test
+    fun `ett utlöst måendelarm med Stunden på postar Stunden-notisen för tillfället, larmet är detsamma (NOT-20)`() = runTest {
+        f.enable(occasions = setOf(Occasion.LUNCH))
+        f.settings.update { it.copy(reminders = it.reminders.copy(moment = MomentSettings(enabled = true, seconds = 30, takeover = false))) }.getOrThrow()
+        val scheduler = f.scheduler()
+        val actions = f.actions(scheduler)
+        val alarm = alarmIntent(Reminder.Mood(Occasion.LUNCH), scheduler)
+        assertEquals(ScreeningReminderReceiver::class.java.name, alarm.component?.className, "samma mottagare som måendepåminnelsen")
+
+        actions.scheduleNext(alarm)
+        actions.notify(alarm, f.clock.instant)
+
+        val notification = posted().single()
+        assertEquals("Stunden – Lunch", notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
+        val start = shadowOf(notification.actions.first().actionIntent).savedIntent
+        assertEquals(MomentLaunch(Occasion.LUNCH, Occasion.LUNCH.defaultTime, seconds = 30, question = true), MomentLaunch.from(start))
         assertTrue(Reminder.Mood(Occasion.LUNCH) in f.alarms())
     }
 

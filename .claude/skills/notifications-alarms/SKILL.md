@@ -38,16 +38,17 @@ Paketet `reminders/` i appen (ARKITEKTUR.md → Lager och moduler); tidsberäkni
 | `:core` `AlarmTimes` | `nextDailyAt`, `medAlarmTime`/`nextMedAlarm` (15 min före, `00:00 − 15 = 23:45`), `medReminderDate` – ren, med `now: Instant` och `TimeZone` som parametrar. |
 | `:core` `ReminderPlan` | `Reminder` (`Med(slot)`, `Mood(occasion)`, `PeriodEnd`), `reminderAlarms`/`nextAlarm` ur `ReminderSettings` (`medSlots`, `screeningOccasions`, `periodReminderTime`), `slotDoses` (NOT-3/17), `moodReminderDue` (NOT-19). |
 | `AlarmScheduler` | `@Singleton`, enda stället för larmlogik: `rescheduleAll` (avbokar allt, lägger de påslagna), `rescheduleNext` (en utlöst påminnelse), `cancelAll`. Unik `requestCode` per `Reminder`. |
-| `ReminderContent` | Vad en påminnelse visar och "Markera tagen" – via `SettingsRepository`, `PrescriptionRepository`, `DoseRepository`, `ScreeningRepository`. |
-| `NotificationHelper` | Kanalerna (`CHANNEL_MEDS` default, `CHANNEL_SCREENING` low – "Måendepåminnelser") och notiserna, privata med offentlig version. `markTakenFailed` bygger från grundtexten (idempotent); `dismiss` stänger måendepåminnelsen när "Logga nu" öppnat appen. |
+| `ReminderContent` | Vad en påminnelse visar och "Markera tagen" – via `SettingsRepository`, `PrescriptionRepository`, `DoseRepository`, `ScreeningRepository`; `moodNotice` ger måendepåminnelsen med Stunden (`MoodNotice`, NOT-20). |
+| `NotificationHelper` | Kanalerna (`CHANNEL_MEDS` default, `CHANNEL_SCREENING` low – "Måendepåminnelser", `CHANNEL_MOMENT` high – "Stunden") och notiserna, privata med offentlig version. `markTakenFailed` bygger från grundtexten (idempotent); `dismiss` stänger måendepåminnelsen när "Logga nu" öppnat appen. |
 | `ReminderActions` + mottagarna | `MedAlarmReceiver`, `ScreeningReminderReceiver`, `PeriodReminderReceiver`, `MedActionReceiver`, `BootReceiver` är tunna; vad de gör står i `ReminderActions` (testbart utan Hilt), körs av `ReceiverWork` (`goAsync`, nästa larm först, sedan notisen, under systemets tidsgräns). |
 | `AlarmLedger` | Senast schemalagd och senast utlöst per påminnelse (NOT-14), enhetslokalt, utan innehåll. |
 | `ReminderSync` | Startas från `MainActivity`; lägger om larmen när påminnelseinställningarna ändras i cachen (recept och doser påverkar inte larmen, bara notisens innehåll), avbokar vid utloggning. |
-| `ReminderIntents` / `ReminderLaunch` | Actions och extras (en gång); vad en tryckt notis öppnar (bara kända värden tolkas). |
-| `ReminderAccess` | Behörighetsläget och genvägarna till systeminställningarna (NOT-16). |
+| `ReminderIntents` / `ReminderLaunch` / `MomentLaunch` | Actions och extras (en gång); vad en tryckt notis öppnar (bara kända värden tolkas; `LogMood(feelings)` = känslosteget); vad Stunden visar (tillfälle, klockslag, längd, hjälpfråga). |
+| `ReminderAccess` | Behörighetsläget och genvägarna till systeminställningarna (NOT-16), också helskärm (`fullScreen`, `openFullScreenIntentSettings`, NOT-20). |
+| `ui/moment/MomentActivity` | Stundens helskärm (NOT-20): egen aktivitet, inte exporterad, `singleTask` i egen uppgift utanför Senaste, `setShowWhenLocked`/`setTurnScreenOn`, skärmen tänd under pausen; visar bara `MomentLaunch`. |
 
 Behörigheter i `AndroidManifest.xml`: `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`,
-`RECEIVE_BOOT_COMPLETED`. Alla mottagare `exported="false"`.
+`RECEIVE_BOOT_COMPLETED`, `USE_FULL_SCREEN_INTENT` (Stunden). Alla mottagare och `MomentActivity` `exported="false"`.
 
 ## Icke-förhandlingsbara regler
 
@@ -70,8 +71,21 @@ saknas. Begär det från UI (inte från en receiver) och hantera nekande utan at
 
 ### Notifikationskanaler (NOT-1)
 Kanaler måste skapas (`NotificationHelper.createChannels`) **innan** första notisen och
-är idempotenta. Två kanaler med rätt importance: `CHANNEL_MEDS` = `IMPORTANCE_DEFAULT`,
-`CHANNEL_SCREENING` = `IMPORTANCE_LOW`. Ändra inte importance utan att uppdatera NOT-1.
+är idempotenta. Tre kanaler med rätt importance: `CHANNEL_MEDS` = `IMPORTANCE_DEFAULT`,
+`CHANNEL_SCREENING` = `IMPORTANCE_LOW`, `CHANNEL_MOMENT` = `IMPORTANCE_HIGH` (bara den kan visa helskärm och
+heads-up). Ändra inte importance utan att uppdatera NOT-1.
+
+### Stunden – helskärm före måendeincheckningen (NOT-20, NOT-21)
+- Inget eget larm: måendetillfällets larm (`ReminderPlan`, `isMoment`) är Stunden när den är på. `ReminderAlarm.moment`
+  är bara en markering; mottagaren avgör ur inställningarna när larmet går (`ReminderContent.moodNotice`) – oläsbara
+  inställningar ger en vanlig måendepåminnelse.
+- Samma notis-id per tillfälle som måendepåminnelsen, "Logga nu" kvar, plus "Starta Stunden" och tryck som öppnar
+  `MomentActivity` (explicit, `FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE`, en `requestCode` per tillfälle). Ta över skärmen
+  och `ReminderAccess.fullScreen` (`NotificationManager.canUseFullScreenIntent()`, Android 14+) → kanalen Stunden med
+  `fullScreenIntent`; annars en vanlig notis i kanalen Måendepåminnelser. Notisen stängs inte av tryck (Inte nu lämnar
+  den kvar); "Välj känslor" öppnar `MainActivity` med `LogMood(feelings = true)`, som stänger den (`dismiss`).
+- Helskärmen och notisen visar aldrig hälsodata – bara tillfälle, tid, text och fråga. Appen kan inte låsa telefonen
+  och använder inte låsläge, enhetsadministration eller kioskläge.
 
 ### PendingIntent-flaggor
 `FLAG_IMMUTABLE` är **obligatorisk** (API 31+). Använd `FLAG_UPDATE_CURRENT or

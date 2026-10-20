@@ -6,8 +6,10 @@ import android.app.NotificationManager
 import androidx.core.app.NotificationCompat
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,6 +23,7 @@ import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.reminders.ReminderIntents.date
 import se.partee71.dagboken.reminders.ReminderIntents.slot
+import se.partee71.dagboken.ui.moment.MomentActivity
 
 /**
  * Kanalerna och notiserna (NOT-1, NOT-3, NOT-9…NOT-12, NOT-17): privata på låsskärmen utan hälsoinnehåll i den
@@ -51,12 +54,19 @@ class NotificationHelperTest {
     ).joinToString("\n")
 
     @Test
-    fun `två kanaler med rätt prioritet (NOT-1)`() {
+    fun `tre kanaler med rätt prioritet – Stunden hög (NOT-1, NOT-20)`() {
         helper.createChannels()
         helper.createChannels()
 
         val channels = shadowOf(manager).notificationChannels.associate { it.id to it.importance }
-        assertEquals(mapOf(NotificationHelper.CHANNEL_MEDS to NotificationManager.IMPORTANCE_DEFAULT, NotificationHelper.CHANNEL_SCREENING to NotificationManager.IMPORTANCE_LOW), channels)
+        assertEquals(
+            mapOf(
+                NotificationHelper.CHANNEL_MEDS to NotificationManager.IMPORTANCE_DEFAULT,
+                NotificationHelper.CHANNEL_SCREENING to NotificationManager.IMPORTANCE_LOW,
+                NotificationHelper.CHANNEL_MOMENT to NotificationManager.IMPORTANCE_HIGH
+            ),
+            channels
+        )
     }
 
     @Test
@@ -183,6 +193,72 @@ class NotificationHelperTest {
         helper.postMoodReminder(Occasion.LUNCH)
 
         helper.cancelAll()
+
+        assertEquals(0, posted().size)
+    }
+
+    // ── Stunden (NOT-20) ──
+
+    private val bedtime = MomentLaunch(Occasion.BEDTIME, LocalTime(21, 0), seconds = 45, question = false)
+
+    @Test
+    fun `Stunden med helskärm - samma notis som måendepåminnelsen i kanalen Stunden, helskärmen till MomentActivity (NOT-20)`() {
+        helper.canUseFullScreen = { true }
+        helper.postMoodReminder(Occasion.BEDTIME)
+        helper.postMoodReminder(Occasion.BEDTIME, bedtime, takeover = true)
+
+        val notification = posted().single()
+        assertEquals(NotificationHelper.CHANNEL_MOMENT, notification.channelId)
+        assertEquals("Stunden – Läggdags", notification.extras.getCharSequence(NotificationCompat.EXTRA_TITLE).toString())
+        assertEquals(0, notification.flags and Notification.FLAG_AUTO_CANCEL, "Inte nu lämnar notisen kvar")
+        val fullScreen = shadowOf(checkNotNull(notification.fullScreenIntent))
+        assertTrue(fullScreen.isActivity && fullScreen.isImmutable)
+        assertEquals(MomentActivity::class.java.name, fullScreen.savedIntent.component?.className)
+        assertEquals(bedtime, MomentLaunch.from(fullScreen.savedIntent))
+        assertEquals(listOf("Starta Stunden", "Logga nu"), notification.actions.map { it.title.toString() })
+        assertEquals(bedtime, MomentLaunch.from(shadowOf(notification.actions[0].actionIntent).savedIntent))
+        assertEquals(ReminderLaunch.LogMood(Occasion.BEDTIME), ReminderLaunch.from(shadowOf(notification.actions[1].actionIntent).savedIntent))
+        assertEquals(bedtime, MomentLaunch.from(shadowOf(notification.contentIntent).savedIntent), "tryck öppnar Stunden")
+    }
+
+    @Test
+    fun `Stunden utan Ta över skärmen eller utan tillåtelse - vanlig notis med Starta Stunden (NOT-20)`() {
+        helper.canUseFullScreen = { true }
+        helper.postMoodReminder(Occasion.LUNCH, bedtime.copy(occasion = Occasion.LUNCH), takeover = false)
+        helper.canUseFullScreen = { false }
+        helper.postMoodReminder(Occasion.DINNER, bedtime.copy(occasion = Occasion.DINNER), takeover = true)
+
+        posted().forEach { notification ->
+            assertEquals(NotificationHelper.CHANNEL_SCREENING, notification.channelId)
+            assertNull(notification.fullScreenIntent)
+            assertEquals(listOf("Starta Stunden", "Logga nu"), notification.actions.map { it.title.toString() })
+        }
+        assertEquals(2, posted().size)
+    }
+
+    @Test
+    fun `Stunden-notisen visar inga hälsodata, och på låsskärmen inte ens tillfället (NOT-20)`() {
+        helper.canUseFullScreen = { true }
+        helper.postMoodReminder(Occasion.BEDTIME, bedtime, takeover = true)
+
+        val notification = posted().single()
+        assertEquals(Notification.VISIBILITY_PRIVATE, notification.visibility)
+        assertEquals("Stunden – Läggdags\nEn kort paus före incheckningen. Vad känner du just nu?", notification.text())
+        val public = checkNotNull(notification.publicVersion).text()
+        assertFalse("Läggdags" in public, "inget tillfälle på låsskärmen: $public")
+        val extras = checkNotNull(notification.fullScreenIntent).let { shadowOf(it).savedIntent.extras!! }
+        assertEquals(
+            setOf(ReminderIntents.EXTRA_OCCASION, ReminderIntents.EXTRA_TIME, ReminderIntents.EXTRA_SECONDS, ReminderIntents.EXTRA_QUESTION),
+            extras.keySet(),
+            "bara tillfälle, klockslag, längd och hjälpfrågan"
+        )
+    }
+
+    @Test
+    fun `Välj känslor stänger Stunden-notisen (NOT-11, NOT-20)`() {
+        helper.postMoodReminder(Occasion.BEDTIME, bedtime, takeover = false)
+
+        helper.dismiss(ReminderLaunch.LogMood(Occasion.BEDTIME, feelings = true))
 
         assertEquals(0, posted().size)
     }

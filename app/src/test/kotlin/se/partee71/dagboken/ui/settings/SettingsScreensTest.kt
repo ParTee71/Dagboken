@@ -4,11 +4,17 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
 import kotlin.test.assertEquals
 import kotlinx.collections.immutable.persistentListOf
@@ -17,6 +23,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.model.MomentSettings
+import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.ReminderSettings
@@ -131,6 +139,55 @@ class SettingsScreensTest {
         access = ReminderAccess()
         rule.onNodeWithText(string(R.string.reminders_notifications_off)).assertDoesNotExist()
         rule.onNodeWithText(string(R.string.reminders_exact_off)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `Påminnelser - Stunden slås på, längden i 15-sekunderssteg, Ta över skärmen och Hjälpfråga (NOT-20)`() {
+        val events = mutableListOf<RemindersEvent>()
+        var reminders by mutableStateOf(ReminderSettings().let { r -> r.copy(screeningOccasions = r.screeningOccasions.map { it.copy(enabled = it.occasion != Occasion.LUNCH) }) })
+        rule.setContent {
+            DagbokenTheme {
+                RemindersScreen(EditorUiState(reminders), EditorEvents.None, { event ->
+                    events += event
+                    reminders = event.applyTo(reminders)
+                }, {})
+            }
+        }
+        // Hela raden växlar (NFR-17): undertexten med antalet påslagna tillfällen hör till Stundens reglage.
+        rule.onNodeWithText("En kort paus före varje måendeincheckning · 3 tillfällen").performScrollTo().performClick()
+        assertEquals(RemindersEvent.MomentChanged(MomentSettings(enabled = true)), events.last())
+
+        rule.onNodeWithContentDescription(string(R.string.reminders_moment_length)).performScrollTo()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "2 min"))
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(140f) }
+        assertEquals(135, reminders.moment.seconds, "närmaste 15-steg")
+        rule.onNodeWithContentDescription(string(R.string.reminders_moment_length)).assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "2 min 15 s"))
+
+        rule.onNodeWithText(string(R.string.reminders_moment_takeover)).performScrollTo().performClick()
+        rule.onNodeWithText(string(R.string.reminders_moment_question)).performScrollTo().performClick()
+        assertEquals(MomentSettings(enabled = true, seconds = 135, takeover = false, question = false), reminders.moment)
+    }
+
+    @Test
+    fun `Påminnelser - Tillåt helskärm visas bara när Stunden ska ta över skärmen utan tillåtelse (NOT-20)`() {
+        val opened = mutableListOf<String>()
+        var reminders by mutableStateOf(ReminderSettings(moment = MomentSettings(enabled = true)))
+        var access by mutableStateOf(ReminderAccess(fullScreen = false))
+        rule.setContent {
+            DagbokenTheme {
+                RemindersScreen(EditorUiState(reminders), EditorEvents.None, {}, {}, access = access, onOpenFullScreenSettings = { opened += "helskärm" })
+            }
+        }
+        rule.onNodeWithText(string(R.string.reminders_full_screen_off)).performScrollTo().performClick()
+        assertEquals(listOf("helskärm"), opened)
+
+        reminders = reminders.copy(moment = reminders.moment.copy(takeover = false))
+        rule.onNodeWithText(string(R.string.reminders_full_screen_off)).assertDoesNotExist()
+        reminders = reminders.copy(moment = MomentSettings(enabled = false))
+        rule.onNodeWithText(string(R.string.reminders_full_screen_off)).assertDoesNotExist()
+        reminders = reminders.copy(moment = MomentSettings(enabled = true))
+        access = ReminderAccess()
+        rule.onNodeWithText(string(R.string.reminders_full_screen_off)).assertDoesNotExist()
     }
 
     @Test

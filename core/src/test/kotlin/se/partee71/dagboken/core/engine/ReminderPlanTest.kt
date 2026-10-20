@@ -12,7 +12,9 @@ import org.junit.Test
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
+import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Slot
@@ -67,6 +69,42 @@ class ReminderPlanTest {
             ),
             moods
         )
+    }
+
+    // ── Stunden (NOT-20) ──────────────────────────────────────────────────────
+
+    private val breakfastAndBedtime = ReminderSettings(medsEnabled = true).let { r ->
+        r.copy(screeningOccasions = r.screeningOccasions.map { it.copy(enabled = it.occasion == Occasion.BREAKFAST || it.occasion == Occasion.BEDTIME) })
+    }
+
+    @Test fun `Stunden på märker varje påslaget måendetillfälle och inget annat larm`() {
+        val settings = breakfastAndBedtime.copy(moment = MomentSettings(enabled = true))
+        val all = alarms(settings)
+        assertEquals(listOf(Occasion.BREAKFAST, Occasion.BEDTIME), all.filter { it.moment }.map { (it.reminder as Reminder.Mood).occasion })
+        assertTrue(all.filter { it.reminder !is Reminder.Mood }.none { it.moment }, "medicin- och periodlarmen är aldrig Stunden")
+        assertTrue(Occasion.entries.all { settings.isMoment(it) == (it == Occasion.BREAKFAST || it == Occasion.BEDTIME) })
+    }
+
+    @Test fun `Stunden av märker inget tillfälle, och tiderna är desamma som utan Stunden`() {
+        val off = alarms(breakfastAndBedtime)
+        assertTrue(off.none { it.moment })
+        assertTrue(Occasion.entries.none { breakfastAndBedtime.isMoment(it) })
+        assertEquals(off, alarms(breakfastAndBedtime.copy(moment = MomentSettings(enabled = true))).map { it.copy(moment = false) })
+    }
+
+    @Test fun `ett avstängt tillfälle får ingen Stunden, inte heller i dubblerade rader`() {
+        val settings = breakfastAndBedtime.copy(moment = MomentSettings(enabled = true))
+        assertFalse(settings.isMoment(Occasion.LUNCH))
+        assertNull(nextAlarm(Reminder.Mood(Occasion.LUNCH), settings, now, STOCKHOLM))
+        assertEquals(true, nextAlarm(Reminder.Mood(Occasion.BEDTIME), settings, now, STOCKHOLM)?.moment)
+        // Äldre data: första raden avstängd, den andra påslagen – larmet och Stunden följer samma rad.
+        val duplicated = settings.copy(screeningOccasions = listOf(OccasionReminder(Occasion.DINNER), OccasionReminder(Occasion.DINNER, enabled = true)))
+        assertEquals(listOf(true), alarms(duplicated).filter { it.reminder == Reminder.Mood(Occasion.DINNER) }.map { it.moment })
+    }
+
+    @Test fun `larm utan inställningarna är inte märkta - mottagaren avgör ur inställningarna`() {
+        assertFalse(nextAlarmAt(Reminder.Mood(Occasion.LUNCH), LocalTime(12, 0), now, STOCKHOLM).moment)
+        assertTrue(restoredAlarms(mapOf(Reminder.Mood(Occasion.LUNCH) to at("2026-05-06T12:00")), emptyMap(), now, STOCKHOLM).none { it.moment })
     }
 
     @Test fun `medicinlarmen följer tidpunktens egen tid, inte måendetiderna (NOT-2-regression)`() {

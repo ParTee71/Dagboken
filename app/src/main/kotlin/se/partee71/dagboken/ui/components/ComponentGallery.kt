@@ -68,6 +68,7 @@ import se.partee71.ui.common.EditorUiState
 import se.partee71.ui.components.ArchiveEvent
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.durationText
+import se.partee71.dagboken.ui.common.formatDuration
 import se.partee71.dagboken.ui.common.FeelingSentenceKind
 import se.partee71.dagboken.ui.common.feelingSentence
 import se.partee71.ui.common.ListUiState
@@ -368,6 +369,8 @@ private fun Diary() {
             ValueSlider("Energi", energy, { energy = it })
             ValueSlider("Stress", stress, { stress = it }, higherIsBetter = false)
             ValueSlider("Aktivitetens energi", activity, { activity = it }, valueRange = -10..10)
+            var pause by remember { mutableIntStateOf(135) }
+            ValueSlider("Pausens längd", pause, { pause = it }, valueRange = 15..300, step = 15, valueText = formatDuration(pause))
         }
     }
     var sectionOpen by remember { mutableStateOf(true) }
@@ -540,6 +543,11 @@ private fun Today() {
     AppCard { OccasionRow("Lunch", OccasionStatus.NOT_LOGGED, {}, time = "12:00") }
     // Ett loggat tillfälle med känslor efter energi och stress (HEM-21).
     AppCard { GalleryOccasionRowWithFeelings() }
+    Label("BreathingCircle · med och utan rörelse")
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s), verticalAlignment = Alignment.CenterVertically) {
+        BreathingCircle(size = GALLERY_BREATHING)
+        BreathingCircle(reducedMotion = true, size = GALLERY_BREATHING)
+    }
     Label("DayDoneCard")
     DayDoneCard(6.8, 0.5, 12, play = celebrate, onConfettiFinished = { celebrate = false })
     AppButton("Fira igen", { celebrate = true }, variant = ButtonVariant.Text)
@@ -551,6 +559,7 @@ private fun Today() {
 }
 
 private const val GALLERY_TOTAL = 9
+private val GALLERY_BREATHING = 150.dp
 
 @Composable
 private fun Diagrams() {

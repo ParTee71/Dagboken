@@ -2,6 +2,7 @@ package se.partee71.dagboken.core.schema
 
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.core.model.LegacySettings
+import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Profile
@@ -18,7 +19,9 @@ import se.partee71.dagboken.core.model.WireEnum
  * `settings/app` (DAT-11): grupperna `theme`, `reminders`, `profile` och `legacy` som nästlade
  * objekt, så att en merge-skrivning av en grupp lämnar okända fält i de andra orörda. Påminnelseraderna
  * lagras med sin nyckel (`slot`, `occasion`) och läses på nyckeln, inte på position – en rad som
- * saknas får sitt standardvärde (en codec för båda radtyperna: [ReminderRows]).
+ * saknas får sitt standardvärde (en codec för båda radtyperna: [ReminderRows]). Stunden (`reminders.moment`, NOT-20)
+ * är ett nästlat objekt; saknas det (äldre data, 3.x) gäller [MomentSettings]-standardvärdena, och en längd utanför
+ * 15–300 s eller mellan stegen avrundas till närmaste giltiga ([MomentSettings.roundSeconds]).
  */
 object SettingsCodec : DocCodec<Settings> {
     const val THEME = "theme"
@@ -29,6 +32,9 @@ object SettingsCodec : DocCodec<Settings> {
     /** Påminnelseradernas listor i `reminders`, med radernas nyckel (`slot`, `occasion`). */
     const val MED_SLOTS = "medSlots"
     const val SCREENING_OCCASIONS = "screeningOccasions"
+
+    /** Stunden i `reminders` (NOT-20). */
+    const val MOMENT = "moment"
 
     override fun encode(value: Settings): Doc = mapOf(
         THEME to value.theme.let {
@@ -44,7 +50,8 @@ object SettingsCodec : DocCodec<Settings> {
                 "medsEnabled" to r.medsEnabled,
                 MED_SLOTS to slotRows.encode(r.medSlots),
                 SCREENING_OCCASIONS to occasionRows.encode(r.screeningOccasions),
-                "periodReminderTime" to r.periodReminderTime.encodeTime()
+                "periodReminderTime" to r.periodReminderTime.encodeTime(),
+                MOMENT to r.moment.let { mapOf("enabled" to it.enabled, "seconds" to it.seconds, "takeover" to it.takeover, "question" to it.question) }
             )
         },
         PROFILE to value.profile.let { mapOf("birthYear" to it.birthYear, "sex" to it.sex.encodeWire()) },
@@ -56,6 +63,7 @@ object SettingsCodec : DocCodec<Settings> {
         val reminders = asDoc(map[REMINDERS])
         val profile = asDoc(map[PROFILE])
         val legacy = asDoc(map[LEGACY])
+        val moment = asDoc(reminders[MOMENT])
         val defaults = ReminderSettings()
         return Settings(
             id = id,
@@ -69,7 +77,13 @@ object SettingsCodec : DocCodec<Settings> {
                 medsEnabled = reminders.bool("medsEnabled", defaults.medsEnabled),
                 medSlots = slotRows.decode(reminders.docs(MED_SLOTS)),
                 screeningOccasions = occasionRows.decode(reminders.docs(SCREENING_OCCASIONS)),
-                periodReminderTime = reminders.localTime("periodReminderTime") ?: defaults.periodReminderTime
+                periodReminderTime = reminders.localTime("periodReminderTime") ?: defaults.periodReminderTime,
+                moment = MomentSettings(
+                    enabled = moment.bool("enabled", defaults.moment.enabled),
+                    seconds = (moment["seconds"] as? Number)?.let { MomentSettings.roundSeconds(it.toDouble()) } ?: defaults.moment.seconds,
+                    takeover = moment.bool("takeover", defaults.moment.takeover),
+                    question = moment.bool("question", defaults.moment.question)
+                )
             ),
             profile = Profile(birthYear = profile.intOrNull("birthYear"), sex = profile.wire("sex", Sex.UNSPECIFIED)),
             legacy = LegacySettings(dynamicColor = legacy.boolOrNull(DYNAMIC_COLOR), sheetsConfig = legacy.stringOrNull(SHEETS_CONFIG))
