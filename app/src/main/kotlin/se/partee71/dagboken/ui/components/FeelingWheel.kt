@@ -36,7 +36,7 @@ import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.FeelingColors
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.theme.Spacing
 
 /**
  * Känslohjulet (SCR-7, SCR-8): de sex kärnkänslorna ur [FeelingCatalog] som sektorer runt ett nav, i hjulets ordning

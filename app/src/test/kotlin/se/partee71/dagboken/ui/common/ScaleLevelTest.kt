@@ -3,7 +3,10 @@ package se.partee71.dagboken.ui.common
 import kotlin.test.assertEquals
 import org.junit.Test
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Positive
+import se.partee71.dagboken.ui.theme.Sun
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.theme.Tone
 
 /** Skalans nivå – en indelning för båda riktningarna (AKT-4, AKT-5, AKT-6, SCR-1). */
 class ScaleLevelTest {

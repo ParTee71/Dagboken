@@ -50,7 +50,9 @@ import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.DagbokenTheme
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.theme.Spacing
 
 /**
  * Minihjulet och ordträdet (#320): beskrivningen för TalkBack, fyllnaden efter vikten, ordningen och orden som får plats

@@ -12,13 +12,13 @@ import se.partee71.dagboken.core.engine.WatchMetric
 import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.components.AppButton
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.ButtonVariant
-import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.diagram.SparklineChart
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.ButtonVariant
+import se.partee71.ui.components.SectionHeader
+import se.partee71.ui.theme.Spacing
 
 /**
  * Hälsokortet på Idag (HEM-15, HLS-7): steg och vilopuls för den visade dagen som `StatPill` – "—" när dagen saknar

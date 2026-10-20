@@ -36,8 +36,8 @@ import se.partee71.dagboken.ui.common.feelingName
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.ToneColors
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.ToneColors
 
 /**
  * Minihjulets storlek: [DAY] ett hjul per dag i Trenders vecka, [CARD] i Idags kort Dagens känslor, [HEATMAP] värmekartan

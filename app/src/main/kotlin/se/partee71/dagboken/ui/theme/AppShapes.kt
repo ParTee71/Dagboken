@@ -46,4 +46,16 @@ object AppShapes {
 
     /** Ikonrutan i ett tomt tillstånd – rundare än ett kort, för att den är större. */
     val iconTile: Shape = RoundedCornerShape(40.dp)
+
+    /** Formerna som android-ui:s komponenter läser (`AppTheme`) – samma värden som ovan. */
+    internal val theme = se.partee71.ui.theme.AppShapes(
+        cardRadius = CARD_RADIUS,
+        row = row,
+        pill = pill,
+        field = field,
+        menu = menu,
+        sheet = sheet,
+        smallTile = smallTile,
+        iconTile = iconTile
+    )
 }

@@ -49,8 +49,6 @@ import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.DateFormat
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.Failure
 import se.partee71.dagboken.ui.common.FeelingSentenceKind
 import se.partee71.dagboken.ui.common.doseText
 import se.partee71.dagboken.ui.common.entryDeleteAction
@@ -61,33 +59,14 @@ import se.partee71.dagboken.ui.common.periodText
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.common.toMessage
 import se.partee71.dagboken.ui.components.AccountAvatar
-import se.partee71.dagboken.ui.components.AppButton
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppFilterChip
-import se.partee71.dagboken.ui.components.AppMenuItem
-import se.partee71.dagboken.ui.components.AppMenuPopup
-import se.partee71.dagboken.ui.components.ButtonVariant
-import se.partee71.dagboken.ui.components.CheckRow
-import se.partee71.dagboken.ui.components.ChipRow
-import se.partee71.dagboken.ui.components.ConfirmDialog
 import se.partee71.dagboken.ui.components.DateStrip
 import se.partee71.dagboken.ui.components.DayDoneCard
-import se.partee71.dagboken.ui.components.DeleteConfirmDialog
-import se.partee71.dagboken.ui.components.EmptyState
-import se.partee71.dagboken.ui.components.EntityDetailScreen
 import se.partee71.dagboken.ui.components.FeelingMiniWheel
 import se.partee71.dagboken.ui.components.FeelingPills
-import se.partee71.dagboken.ui.components.GroupLabel
-import se.partee71.dagboken.ui.components.InfoPill
-import se.partee71.dagboken.ui.components.ItemRow
-import se.partee71.dagboken.ui.components.MessageSnackbar
 import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.ProgressBar
-import se.partee71.dagboken.ui.components.SectionHeader
+import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.components.StatPill
-import se.partee71.dagboken.ui.components.UndoRequest
-import se.partee71.dagboken.ui.components.UndoSnackbar
-import se.partee71.dagboken.ui.components.inactive
 import se.partee71.dagboken.ui.health.HealthEvent
 import se.partee71.dagboken.ui.health.HealthTodayCard
 import se.partee71.dagboken.ui.health.HealthTodayUiState
@@ -99,8 +78,34 @@ import se.partee71.dagboken.ui.log.LogEvent
 import se.partee71.dagboken.ui.log.OccasionStateRow
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.dagboken.ui.theme.Positive
+import se.partee71.dagboken.ui.theme.Sun
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.UiError
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppFilterChip
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.AppMenuPopup
+import se.partee71.ui.components.ButtonVariant
+import se.partee71.ui.components.CheckRow
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.ConfirmDialog
+import se.partee71.ui.components.DeleteConfirmDialog
+import se.partee71.ui.components.EmptyState
+import se.partee71.ui.components.EntityDetailScreen
+import se.partee71.ui.components.GroupLabel
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.components.MessageSnackbar
+import se.partee71.ui.components.SectionHeader
+import se.partee71.ui.components.UndoRequest
+import se.partee71.ui.components.UndoSnackbar
+import se.partee71.ui.components.inactive
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 @Composable
 fun TodayRoute(
@@ -158,7 +163,7 @@ fun TodayScreen(
     onEvent: (TodayEvent) -> Unit,
     onEditPrn: (String) -> Unit,
     modifier: Modifier = Modifier,
-    failure: Failure? = null,
+    failure: UiError? = null,
     undo: UndoRequest? = null,
     cooldown: CooldownPrompt? = null,
     notice: TodayNotice? = null,
@@ -187,10 +192,11 @@ fun TodayScreen(
         },
         subtitle = content?.let { stringResource(R.string.today_heading_format, DateFormat.dayAndMonth(it.date), DateFormat.isoWeek(it.date)) },
         onRetry = { onEvent(TodayEvent.Retry) },
-        failure = failure,
+        error = failure,
         onErrorShown = { onEvent(TodayEvent.ErrorShown) },
         actions = { avatar() },
-        snackbar = snackbar
+        snackbar = snackbar,
+        sectionGap = SECTION_GAP
     ) { TodayCards(it, onEvent, TodayLinks(onEditPrn, onOpenTrends, onScreening, onLogLater, onOpenIllness), health, onHealthEvent) }
 }
 

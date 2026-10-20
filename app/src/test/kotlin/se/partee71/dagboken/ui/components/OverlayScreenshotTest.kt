@@ -33,7 +33,23 @@ import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.theme.DagbokenTheme
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.AppBottomSheet
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppMenu
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.AppSnackbarHost
+import se.partee71.ui.components.Confetti
+import se.partee71.ui.components.ConfirmDialog
+import se.partee71.ui.components.DateField
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.components.QuantityStepper
+import se.partee71.ui.components.QuantityStepperDefaults
+import se.partee71.ui.components.SwipeToHide
+import se.partee71.ui.components.UNDO_MILLIS
+import se.partee71.ui.components.UndoRequest
+import se.partee71.ui.components.UndoSnackbar
+import se.partee71.ui.theme.Spacing
 
 /** Komponenter som ritas ovanpå innehållet, i rörelse eller över tid – en regel per test. */
 @RunWith(RobolectricTestRunner::class)
@@ -65,7 +81,7 @@ class OverlayScreenshotTest {
             Spacer(Modifier.weight(1f))
             AppButton("Spara", {})
         }) {
-            QuantityStepper(45, {}, "minuter")
+            QuantityStepper(45, {}, "minuter", buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
         }
     }
 

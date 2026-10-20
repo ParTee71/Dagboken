@@ -43,6 +43,7 @@ import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.SelectedDay
+import se.partee71.dagboken.ui.common.dataError
 import se.partee71.dagboken.ui.components.ScreeningStep
 import se.partee71.dagboken.ui.components.screeningSteps
 
@@ -189,7 +190,7 @@ class MoodSheetTest {
         vm.onEvent(LogEvent.SaveScreening)
         runCurrent()
         val sheet = assertNotNull(vm.screening.value)
-        assertEquals(DataError.PermissionDenied, sheet.error.value?.error)
+        assertEquals(DataError.PermissionDenied, sheet.error.value?.dataError)
         assertFalse(sheet.editor.state.value.saving)
         vm.onEvent(LogEvent.ChangeEnergy(3))
         assertNull(sheet.error.value, "en ändring tar bort felet")

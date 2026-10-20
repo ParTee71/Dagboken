@@ -24,10 +24,7 @@ import se.partee71.dagboken.core.engine.DiaryType
 import se.partee71.dagboken.core.engine.isPrescribed
 import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.data.auth.AuthUser
-import se.partee71.dagboken.ui.common.ArchiveEvent
 import se.partee71.dagboken.ui.common.DateFormat
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.entryDeleteAction
@@ -38,24 +35,29 @@ import se.partee71.dagboken.ui.common.scaleLevel
 import se.partee71.dagboken.ui.common.scaleValueText
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.AccountAvatar
-import se.partee71.dagboken.ui.components.AppButton
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppFilterChip
-import se.partee71.dagboken.ui.components.AppIconButton
-import se.partee71.dagboken.ui.components.AppLoading
-import se.partee71.dagboken.ui.components.ButtonVariant
-import se.partee71.dagboken.ui.components.ChipRow
 import se.partee71.dagboken.ui.components.DagbokenCalendar
 import se.partee71.dagboken.ui.components.DagbokenEntryCard
-import se.partee71.dagboken.ui.components.EmptyContent
-import se.partee71.dagboken.ui.components.EmptyState
-import se.partee71.dagboken.ui.components.EntityListScreen
-import se.partee71.dagboken.ui.components.IconButtonVariant
-import se.partee71.dagboken.ui.components.InfoPill
-import se.partee71.dagboken.ui.components.ListArchive
-import se.partee71.dagboken.ui.components.ListGroup
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.common.UiError
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppFilterChip
+import se.partee71.ui.components.AppIconButton
+import se.partee71.ui.components.AppLoading
+import se.partee71.ui.components.ArchiveEvent
+import se.partee71.ui.components.ButtonVariant
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.EmptyContent
+import se.partee71.ui.components.EmptyState
+import se.partee71.ui.components.EntityListScreen
+import se.partee71.ui.components.IconButtonVariant
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.components.ListArchive
+import se.partee71.ui.components.ListGroup
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 @Composable
 fun DiaryRoute(
@@ -83,7 +85,7 @@ fun DiaryRoute(
 fun DiaryScreen(
     state: ListUiState<DiaryRow>,
     controls: DiaryControls,
-    failure: Failure?,
+    failure: UiError?,
     onEvent: (DiaryEvent) -> Unit,
     onOpen: (DiaryEntry) -> Unit,
     avatar: @Composable () -> Unit = {}
@@ -106,7 +108,7 @@ fun DiaryScreen(
         key = { it.key },
         onRetry = { onEvent(DiaryEvent.Retry) },
         group = dayGroup,
-        archive = ListArchive(failure = failure, showToggle = false) { if (it == ArchiveEvent.ErrorShown) onEvent(DiaryEvent.ErrorShown) },
+        archive = ListArchive(error = failure, showToggle = false) { if (it == ArchiveEvent.ErrorShown) onEvent(DiaryEvent.ErrorShown) },
         actions = {
             ViewButton(DiaryView.LIST, controls.view, R.drawable.ic_list, R.string.diary_view_list, onEvent)
             ViewButton(DiaryView.CALENDAR, controls.view, R.drawable.ic_calendar, R.string.diary_view_calendar, onEvent)

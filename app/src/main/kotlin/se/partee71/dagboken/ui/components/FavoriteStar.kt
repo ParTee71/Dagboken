@@ -6,6 +6,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import se.partee71.dagboken.R
+import se.partee71.ui.components.AppIconButton
 
 /**
  * Stjärnan som markerar [name] som favorit – radens enda inline-direktkontroll (NFR-17): ifylld när

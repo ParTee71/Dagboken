@@ -32,8 +32,9 @@ import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.testing.FakeAuthRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.dagboken.ui.common.dataError
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 
 /** Tema (SET-1, SET-2): direktverkan i inställningarna och i hela appen (`AppThemeViewModel`). */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -97,9 +98,9 @@ class ThemeViewModelTest {
             assertNull(awaitItem())
             scope.setVersion(Int.MAX_VALUE) // nyare data än appen: skrivskyddat
             vm.onEvent(ThemeEvent.ModeChosen(ThemeMode.DARK))
-            assertEquals(DataError.UpdateRequired to R.string.error_update_required, awaitItem()?.let { it.error to it.message })
+            assertEquals(DataError.UpdateRequired to R.string.error_update_required, awaitItem()?.let { it.dataError to it.message })
             vm.onEvent(ThemeEvent.ModeChosen(ThemeMode.LIGHT))
-            assertEquals(DataError.UpdateRequired, awaitItem()?.error, "samma fel igen")
+            assertEquals(DataError.UpdateRequired, awaitItem()?.dataError, "samma fel igen")
             vm.onEvent(ThemeEvent.ErrorShown)
             assertNull(awaitItem())
         }
@@ -190,7 +191,7 @@ class ThemeViewModelTest {
         }
         val vm = ThemeViewModel(failing)
         vm.state.test {
-            assertEquals(DetailUiState.Error(DataError.Offline), expectMostRecentItem())
+            assertEquals(DataError.Offline, ((expectMostRecentItem()) as DetailUiState.Error).error.dataError)
             cancelAndIgnoreRemainingEvents()
         }
     }

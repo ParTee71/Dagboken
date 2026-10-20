@@ -19,8 +19,10 @@ import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.ui.theme.AppColors
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Sun
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /**
  * Skärmdumpar (ljust + mörkt) av Idags nya komponenter i mockupens tillstånd (etapp 4.2, canvasen

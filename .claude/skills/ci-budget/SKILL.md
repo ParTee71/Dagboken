@@ -97,7 +97,11 @@ agenter som finns. Framåtreferenser står i `.github/scripts/link-allowlist.txt
   – en ny push avbryter PR:ens förra körning, men `master`-baslinjen och release-grindarna avbryts aldrig.
 - Robolectric-SDK-jar och Firebase-emulatorn cachas.
 - Gemensamma steg i composite actions (`.github/actions/setup-android`, `doc-checks`,
-  `open-issue-on-failure`, `setup-tools-db`, `rules-tests`, `deploy-rules`) – en ändring, alla flöden.
+  `open-issue-on-failure`, `setup-tools-db`, `rules-tests`, `deploy-rules`, `check-gpr-token`) – en ändring, alla flöden.
+- Varje jobb som kör Gradle mot `:app` löser android-ui ur GitHub Packages: det börjar efter checkout med
+  steget "GPR_TOKEN når android-ui" (composite action `check-gpr-token`, en sekund; skill
+  `android:android-gradle-logic`) och har `GPR_TOKEN: ${{ secrets.GPR_TOKEN }}` på Gradle-steget;
+  `instrumented.yml` får bara den secreten (`secrets: GPR_TOKEN`), inte `inherit`.
 - `:core` utan Android-beroenden kompilerar och testar på sekunder.
 
 ## När du lägger till något

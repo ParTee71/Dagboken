@@ -18,8 +18,8 @@ import se.partee71.dagboken.ui.auth.AuthUiState
 import se.partee71.dagboken.ui.auth.AuthViewModel
 import se.partee71.dagboken.ui.auth.SignInScreen
 import se.partee71.dagboken.ui.auth.UpdateRequiredScreen
-import se.partee71.dagboken.ui.components.AppLoading
 import se.partee71.dagboken.ui.migration.MigrationGate
+import se.partee71.ui.components.AppLoading
 
 /**
  * Appens rot: inloggningen styr vad som visas (AUTH-1, AUTH-6), och efter den startkontrollen för migreringen från

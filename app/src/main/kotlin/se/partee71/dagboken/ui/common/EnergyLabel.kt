@@ -6,7 +6,10 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppColors
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Positive
+import se.partee71.dagboken.ui.theme.Sun
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.theme.Tone
 
 /** Var på skalan ett värde ligger: lägsta, mittersta eller högsta delen. */
 enum class ScaleZone { Low, Mid, High }

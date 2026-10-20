@@ -20,25 +20,29 @@ import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
-import se.partee71.dagboken.data.common.dataError
 import se.partee71.dagboken.data.repository.OptionsRepository
-import se.partee71.dagboken.ui.common.ArchiveActions
-import se.partee71.dagboken.ui.common.ListEvent
-import se.partee71.dagboken.ui.common.ListLoader
-import se.partee71.dagboken.ui.common.ListUiState
-import se.partee71.dagboken.ui.common.collectAsListArchive
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.common.dataError
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.components.AddAction
-import se.partee71.dagboken.ui.components.AppSegmentedChoice
-import se.partee71.dagboken.ui.components.EmptyContent
-import se.partee71.dagboken.ui.components.EntityListScreen
+import se.partee71.dagboken.ui.common.visible
 import se.partee71.dagboken.ui.components.FavoriteStar
-import se.partee71.dagboken.ui.components.InfoPill
-import se.partee71.dagboken.ui.components.ItemRow
-import se.partee71.dagboken.ui.components.ListArchive
-import se.partee71.dagboken.ui.components.SwipeToHide
-import se.partee71.dagboken.ui.components.TopBarSize
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.ui.common.ListEvent
+import se.partee71.ui.common.ListLoader
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.common.uiErrorOrNull
+import se.partee71.ui.components.AddAction
+import se.partee71.ui.components.AppSegmentedChoice
+import se.partee71.ui.components.ArchiveActions
+import se.partee71.ui.components.EmptyContent
+import se.partee71.ui.components.EntityListScreen
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.components.ListArchive
+import se.partee71.ui.components.SwipeToHide
+import se.partee71.ui.components.TopBarSize
+import se.partee71.ui.components.collectAsListArchive
+import se.partee71.ui.theme.Tone
 
 sealed interface ListsEvent {
     /** Vilken lista som visas: Aktiviteter · Symptom · Händelser. */
@@ -61,8 +65,8 @@ class ListsViewModel @Inject constructor(private val options: OptionsRepository)
     private val _kind = MutableStateFlow(OptionKind.ACTIVITY)
     val kind: StateFlow<OptionKind> = _kind.asStateFlow()
 
-    val archive = ArchiveActions(viewModelScope, options::setArchived, errorMessage = ::optionErrorText)
-    private val loader = ListLoader(archive.visible(_kind.flatMapLatest { options.observe(it) }), viewModelScope)
+    val archive = ArchiveActions(viewModelScope, AppErrors, options::setArchived, errorMessage = ::optionErrorText)
+    private val loader = ListLoader(archive.visible(_kind.flatMapLatest { options.observe(it) }), viewModelScope, AppErrors)
     val state: StateFlow<ListUiState<Option>> = loader.state
 
     fun onEvent(event: ListsEvent) {
@@ -70,7 +74,7 @@ class ListsViewModel @Inject constructor(private val options: OptionsRepository)
             is ListsEvent.KindChosen -> _kind.value = event.kind
 
             is ListsEvent.FavoriteToggled -> viewModelScope.launch {
-                options.setFavorite(event.option, !event.option.favorite).dataError()?.let(archive::report)
+                options.setFavorite(event.option, !event.option.favorite).uiErrorOrNull(AppErrors, ::optionErrorText)?.let(archive::report)
             }
 
             ListsEvent.Retry -> loader.onEvent(ListEvent.Retry)

@@ -74,11 +74,12 @@ import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.SelectedDay
+import se.partee71.dagboken.ui.common.dataError
 import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.medicines.MedicinesViewModel
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 
 /**
  * Fliken Idag (HEM-4, HEM-5, HEM-7, HEM-10, HEM-12, HEM-13, HEM-14, HEM-18, HEM-19, SCR-1, SCR-6, MED-1–3, MED-5, MED-13, MED-14, FAV-2–6, FAV-8, FAV-11) mot
@@ -846,7 +847,7 @@ class TodayViewModelTest {
 
         attempt.complete(Unit)
         runCurrent()
-        assertEquals(DataError.QuotaExceeded, vm.failure.value?.error)
+        assertEquals(DataError.QuotaExceeded, vm.failure.value?.dataError)
         assertEquals(R.string.error_quota_exceeded, vm.failure.value?.message)
         assertTrue(vm.content.dosesMissing, "receptet ger doser idag men inga finns")
     }
@@ -858,7 +859,7 @@ class TodayViewModelTest {
             override suspend fun tidyUp(today: LocalDate): Result<Unit> = Result.failure(DataError.QuotaExceeded)
         }
         val vm = started(viewModel(exhausted))
-        assertEquals(DataError.QuotaExceeded, vm.failure.value?.error)
+        assertEquals(DataError.QuotaExceeded, vm.failure.value?.dataError)
         assertFalse(vm.content.dosesMissing, "ensureDay skapade doserna")
     }
 
@@ -973,7 +974,7 @@ class TodayViewModelTest {
         }
         val vm = started(viewModel(exhausted))
         runCurrent()
-        assertEquals(DataError.QuotaExceeded, vm.failure.value?.error)
+        assertEquals(DataError.QuotaExceeded, vm.failure.value?.dataError)
         assertTrue(vm.content.checklist.isEmpty)
         assertFalse(vm.content.dosesMissing)
     }

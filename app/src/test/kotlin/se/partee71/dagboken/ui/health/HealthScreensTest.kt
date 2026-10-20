@@ -43,7 +43,7 @@ import se.partee71.dagboken.core.model.SleepStages
 import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.ui.theme.DagbokenTheme
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.theme.Spacing
 
 /**
  * Hälsokortet och "Senaste veckan" på Idag (HEM-15, HEM-17, HLS-7) och Klocka-gruppens topp med Hälsa idag (TRD-20,

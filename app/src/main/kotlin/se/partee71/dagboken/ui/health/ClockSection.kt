@@ -17,12 +17,16 @@ import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.NoticeBanner
-import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.components.StatPill
 import se.partee71.dagboken.ui.diagram.CHART_SEPARATOR
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.dagboken.ui.theme.Positive
+import se.partee71.dagboken.ui.theme.Sun
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.components.SectionHeader
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /**
  * Health Connect-statusen överst i Trender → Klocka (TRD-20, HLS-3, HLS-4, HLS-14) som `NoticeBanner` i lägets ton:

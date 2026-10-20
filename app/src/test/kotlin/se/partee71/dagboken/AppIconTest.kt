@@ -23,7 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.ui.theme.AppColors
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.theme.Spacing
 
 /**
  * Appikonen "Bladet" (DSN-7): adaptiv med enfärgat temalager, satt i manifestet, och med färger

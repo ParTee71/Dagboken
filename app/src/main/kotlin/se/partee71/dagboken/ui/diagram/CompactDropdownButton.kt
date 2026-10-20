@@ -10,10 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.components.AppMenuItem
-import se.partee71.dagboken.ui.components.AppMenuPopup
-import se.partee71.dagboken.ui.components.InfoPill
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.AppMenuPopup
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.theme.Tone
 
 /**
  * Kompakt rullgardin i ett diagramkorts titelrad (TRD-3, TRD-12): en klickbar `InfoPill` med valt värde

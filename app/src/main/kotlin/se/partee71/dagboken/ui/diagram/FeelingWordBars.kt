@@ -29,7 +29,7 @@ import se.partee71.dagboken.ui.common.feelingName
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.theme.Spacing
 
 /**
  * Ordträdet (#320, Trender → Känslor): en liggande stapel per kärnkänsla, vanligast först (lika → hjulets ordning, utan

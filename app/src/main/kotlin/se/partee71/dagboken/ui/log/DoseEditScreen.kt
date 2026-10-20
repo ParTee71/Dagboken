@@ -58,11 +58,9 @@ import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.data.repository.creatingStore
 import se.partee71.dagboken.data.repository.reminders
-import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryEditor
 import se.partee71.dagboken.ui.common.EntryForm
-import se.partee71.dagboken.ui.common.Validator
 import se.partee71.dagboken.ui.common.entryDeleteAction
 import se.partee71.dagboken.ui.common.hasErrorOutside
 import se.partee71.dagboken.ui.common.label
@@ -72,19 +70,22 @@ import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppTextField
-import se.partee71.dagboken.ui.components.ChoiceChips
-import se.partee71.dagboken.ui.components.DateField
 import se.partee71.dagboken.ui.components.DateTimeRow
-import se.partee71.dagboken.ui.components.EntityEditScreen
-import se.partee71.dagboken.ui.components.FieldError
-import se.partee71.dagboken.ui.components.ItemRow
-import se.partee71.dagboken.ui.components.LabeledGroup
 import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.NoticeBanner
-import se.partee71.dagboken.ui.components.SwitchRow
+import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.dagboken.ui.components.UnitChoice
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.Validator
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.ChoiceChips
+import se.partee71.ui.components.DateField
+import se.partee71.ui.components.EntityEditScreen
+import se.partee71.ui.components.FieldError
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.SwitchRow
 
 /** Fälten i formuläret – codecens namn, så att rules-felen ([rulesValidator]) hamnar på rätt fält. */
 object DoseField {
@@ -369,7 +370,8 @@ fun DoseEditScreen(
             entryDeleteAction(R.string.diary_subject_dose, title, stored.date, stored.shownTime(zone, reminders), skips = stored.isPrescribed) { form.onEvent(EntryEditEvent.Delete) }
         },
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null
+        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
+        horizontalMargin = SCREEN_MARGIN
     ) {
         when {
             mode == DoseMode.AS_NEEDED -> asNeeded.medicine?.let { MedicineInfo(medicineTitle(it.displayName, it.dose, it.unit), prnLimits(it), help = null) }

@@ -124,6 +124,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.android.ui.theme) // android-ui: tema, komponenter och ramar (ARKITEKTUR.md → Komponentkatalog)
+    implementation(libs.android.ui.components)
+    implementation(libs.android.ui.common)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.hilt.android)
@@ -158,6 +161,7 @@ dependencies {
     testImplementation(libs.konsist)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(libs.android.ui.testing) // kontraktstesterna för ramarna (ScreenContracts)
 
     constraints {
         // AGP låser androidTest till appens versioner. När ett testberoende kräver en nyare

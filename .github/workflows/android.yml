@@ -127,10 +127,14 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/check-gpr-token
+        with:
+          token: ${{ secrets.GPR_TOKEN }}
       - uses: ./.github/actions/setup-android
 
       - name: Bygg och testa
         env:
+          GPR_TOKEN: ${{ secrets.GPR_TOKEN }}
           RUN_CORE: ${{ needs.changes.outputs.run_core }}
           RUN_APP: ${{ needs.changes.outputs.run_app }}
           RUN_INSTRUMENTED: ${{ needs.changes.outputs.run_instrumented }}
@@ -204,6 +208,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.run_instrumented == 'true'
     uses: ./.github/workflows/instrumented.yml
+    secrets:
+      GPR_TOKEN: ${{ secrets.GPR_TOKEN }} # android-ui
 
   ci-ok:
     name: ci-ok

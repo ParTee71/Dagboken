@@ -9,7 +9,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.DurationUnit
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.PrnMedicine
-import se.partee71.dagboken.ui.components.ConfirmDialog
+import se.partee71.ui.components.ConfirmDialog
 
 /** "För tidigt" (FAV-4): [remaining] kvar av kylperioden för [medicine]. */
 data class CooldownPrompt(val medicine: PrnMedicine, val remaining: Duration)

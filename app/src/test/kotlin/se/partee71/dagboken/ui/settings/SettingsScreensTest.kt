@@ -25,17 +25,19 @@ import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.reminders.ReminderAccess
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.ListUiState
-import se.partee71.dagboken.ui.common.Validator
-import se.partee71.dagboken.ui.components.ListArchive
-import se.partee71.dagboken.ui.runEditScreenContract
-import se.partee71.dagboken.ui.runListScreenContract
+import se.partee71.dagboken.ui.DagbokenContracts
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.Validator
+import se.partee71.ui.components.ListArchive
+import se.partee71.ui.testing.runEditScreenContract
+import se.partee71.ui.testing.runListScreenContract
 
 /**
  * Inställningsarkets underskärmar (NAV-9): kontrakten för ramarna och det som är unikt för varje
@@ -51,8 +53,9 @@ class SettingsScreensTest {
 
     @Test
     fun `Profil uppfyller redigeringskontraktet (NFR-10)`() {
-        val editor = EditorState(ProfileForm(), ProfileForm.validator(1906..2026))
+        val editor = EditorState(ProfileForm(), ProfileForm.validator(1906..2026), AppErrors)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor = editor,
             makeInvalid = { update(ProfileForm.BIRTH_YEAR) { it.copy(birthYear = "1800") } },
             makeValid = { update(ProfileForm.BIRTH_YEAR) { it.copy(birthYear = "1971") } },
@@ -74,8 +77,9 @@ class SettingsScreensTest {
 
     @Test
     fun `Påminnelser uppfyller redigeringskontraktet – alla värden är giltiga`() {
-        val editor = EditorState(ReminderSettings(), Validator { emptyMap() })
+        val editor = EditorState(ReminderSettings(), Validator { emptyMap() }, AppErrors)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor = editor,
             makeInvalid = null,
             makeValid = { update { it.copy(medsEnabled = true) } },
@@ -151,7 +155,7 @@ class SettingsScreensTest {
     private val promenad = Option("activity-promenad", OptionKind.ACTIVITY, "Promenad", favorite = true)
 
     @Test
-    fun `Listor uppfyller listkontraktet`() = rule.runListScreenContract(promenad, "Promenad", "Inga aktiviteter än", "Ny aktivitet") { state, onAdd, onRetry ->
+    fun `Listor uppfyller listkontraktet`() = rule.runListScreenContract(DagbokenContracts, promenad, "Promenad", "Inga aktiviteter än", "Ny aktivitet") { state, onAdd, onRetry ->
         ListsScreen(state, OptionKind.ACTIVITY, ListArchive(), { if (it == ListsEvent.Retry) onRetry() }, {}, onAdd, {})
     }
 
@@ -182,8 +186,9 @@ class SettingsScreensTest {
 
     @Test
     fun `Nytt alternativ och namnbyte uppfyller redigeringskontraktet`() {
-        val editor = EditorState("", optionNameValidator({ listOf(promenad) }, exceptId = null))
+        val editor = EditorState("", optionNameValidator({ listOf(promenad) }, exceptId = null), AppErrors)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor = editor,
             makeInvalid = { update(OPTION_NAME) { "promenad" } },
             makeValid = { update(OPTION_NAME) { "Cykling" } },
@@ -231,11 +236,11 @@ class SettingsScreensTest {
                 }
             }
         }
-        rule.runOnIdle { edit = edit.copy(failure = Failure(DataError.Unknown, R.string.option_name_duplicate)) }
+        rule.runOnIdle { edit = edit.copy(failure = AppErrors.map(DataError.Unknown).withMessage(R.string.option_name_duplicate)) }
         rule.onNodeWithText("Finns redan i listan").assertIsDisplayed()
 
         showList = true
-        listError = ListArchive(failure = Failure(DataError.Unknown, R.string.option_name_duplicate))
+        listError = ListArchive(error = AppErrors.map(DataError.Unknown).withMessage(R.string.option_name_duplicate))
         rule.onNodeWithText("Finns redan i listan").assertIsDisplayed()
     }
 }

@@ -20,11 +20,11 @@ import se.partee71.dagboken.core.medicine.MedicineMatch
 import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.data.medicines.MedicineRepository
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.components.AppTextField
-import se.partee71.dagboken.ui.components.ChoiceChips
-import se.partee71.dagboken.ui.components.LabeledGroup
-import se.partee71.dagboken.ui.components.Suggestion
-import se.partee71.dagboken.ui.components.SuggestionField
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.ChoiceChips
+import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.Suggestion
+import se.partee71.ui.components.SuggestionField
 
 /**
  * Förslagen på namnfältet i ett nytt recept eller en ny vid behov-medicin (REC-14), gemensamma för båda

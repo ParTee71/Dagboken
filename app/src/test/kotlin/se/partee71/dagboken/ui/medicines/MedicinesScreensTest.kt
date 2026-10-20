@@ -32,16 +32,18 @@ import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
+import se.partee71.dagboken.ui.DagbokenContracts
 import se.partee71.dagboken.ui.SampleMedicines
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.common.ListUiState
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.components.MEDICINE_UNITS
 import se.partee71.dagboken.ui.components.UnitChoice
-import se.partee71.dagboken.ui.runEditScreenContract
-import se.partee71.dagboken.ui.runListScreenContract
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.testing.runEditScreenContract
+import se.partee71.ui.testing.runListScreenContract
 
 /** Fliken Mediciner och vid behov-formuläret (receptformuläret i `PrescriptionEditScreenTest`): ramarnas kontrakt, det unika och skärmdumpar bredvid mockupen (NFR-20). Påhittad data. */
 @RunWith(RobolectricTestRunner::class)
@@ -76,7 +78,7 @@ class MedicinesScreensTest {
     )
 
     @Test
-    fun `fliken uppfyller listkontraktet`() = rule.runListScreenContract(MedicineItem.AsNeeded(alvedon), "Alvedon 500 mg", "Inga mediciner än", "Nytt recept") { state, onAdd, onRetry ->
+    fun `fliken uppfyller listkontraktet`() = rule.runListScreenContract(DagbokenContracts, MedicineItem.AsNeeded(alvedon), "Alvedon 500 mg", "Inga mediciner än", "Nytt recept") { state, onAdd, onRetry ->
         MedicinesScreen(state, emptyList(), today, null, { if (it == MedicinesEvent.Retry) onRetry() }, { if (it == null) onAdd() }, {}, {})
     }
 
@@ -156,8 +158,9 @@ class MedicinesScreensTest {
 
     @Test
     fun `vid behov-formuläret uppfyller redigeringskontraktet (NFR-10)`() {
-        val editor = EditorState(newPrnMedicine(), prnValidator)
+        val editor = EditorState(newPrnMedicine(), prnValidator, AppErrors)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor,
             makeInvalid = { update(PrnField.NAME) { it.copy(name = "") } },
             makeValid = { update(PrnField.NAME, PrnField.DOSE) { it.copy(name = "Alvedon", dose = "500") } },

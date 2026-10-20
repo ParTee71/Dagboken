@@ -29,18 +29,20 @@ import se.partee71.dagboken.reminders.needsNotificationPermission
 import se.partee71.dagboken.reminders.openExactAlarmSettings
 import se.partee71.dagboken.reminders.openNotificationSettings
 import se.partee71.dagboken.reminders.reminderAccess
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorLoader
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.common.Validator
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.EntityEditScreen
-import se.partee71.dagboken.ui.components.LabeledGroup
 import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.ReminderTimeRow
-import se.partee71.dagboken.ui.components.SwitchRow
+import se.partee71.dagboken.ui.components.SCREEN_MARGIN
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorLoader
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.common.Validator
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.EntityEditScreen
+import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.SwitchRow
 
 sealed interface RemindersEvent {
     data class MedsEnabledChanged(val enabled: Boolean) : RemindersEvent
@@ -86,7 +88,7 @@ private fun ReminderSettings.active(): Set<Any> = (if (medsEnabled) medSlots.fil
 @HiltViewModel
 class RemindersEditViewModel @Inject constructor(private val settings: SettingsRepository) : ViewModel() {
     // Varje kombination av reglage och klockslag är giltig – "Spara" följer bara ändrat-läget.
-    val editor: EditorState<ReminderSettings> = EditorState(ReminderSettings(), Validator { emptyMap() }, loading = true)
+    val editor: EditorState<ReminderSettings> = EditorState(ReminderSettings(), Validator { emptyMap() }, AppErrors, loading = true)
 
     // Det lagrade (loader.stored) är det sparningen jämför mot när bara skillnaden ska skrivas.
     private val loader = EditorLoader(editor, viewModelScope, read = { settings.get() }, project = { it.reminders })
@@ -159,7 +161,8 @@ fun RemindersScreen(
         events = events,
         onSave = { onEvent(RemindersEvent.Save) },
         onClose = onClose,
-        onRetry = { onEvent(RemindersEvent.Retry) }
+        onRetry = { onEvent(RemindersEvent.Retry) },
+        horizontalMargin = SCREEN_MARGIN
     ) {
         if (!access.notifications) {
             NoticeBanner(

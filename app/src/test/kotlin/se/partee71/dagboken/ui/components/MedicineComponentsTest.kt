@@ -27,8 +27,16 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import se.partee71.dagboken.ui.common.ListUiState
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.components.AddAction
+import se.partee71.ui.components.EmptyContent
+import se.partee71.ui.components.EntityListScreen
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.components.ListGroup
+import se.partee71.ui.components.QuantityStepper
+import se.partee71.ui.components.QuantityStepperDefaults
+import se.partee71.ui.components.inactive
 
 /**
  * Det som Mediciner lade till i katalogen (#255): favoritstjärnan (andra användningen efter Listor),
@@ -100,7 +108,7 @@ class MedicineComponentsTest {
     @Test
     fun `QuantityStepper visar och läser värdetexten`() {
         var hours by mutableIntStateOf(1)
-        show { QuantityStepper(hours, { hours = it }, "minsta tid mellan doser", valueText = { if (it == 0) "Ingen spärr" else "$it h" }) }
+        show { QuantityStepper(hours, { hours = it }, "minsta tid mellan doser", valueText = { if (it == 0) "Ingen spärr" else "$it h" }, buttonSize = QuantityStepperDefaults.TouchTargetButtonSize) }
         rule.onNodeWithText("1 h").assertIsDisplayed()
         rule.onNodeWithContentDescription("minsta tid mellan doser 1 h").assertIsDisplayed()
         rule.onNodeWithContentDescription("Minska minsta tid mellan doser").performClick()

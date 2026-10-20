@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.SyncStatus
-import se.partee71.dagboken.ui.common.shownAfter
+import se.partee71.ui.common.shownAfter
 
 /** [pending]: ändringar har väntat minst [SyncViewModel.PENDING_DELAY] på servern; [writeError]: en nekad skrivning att visa. */
 @Immutable

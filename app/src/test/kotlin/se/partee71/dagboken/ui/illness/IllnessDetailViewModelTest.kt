@@ -33,8 +33,9 @@ import se.partee71.dagboken.data.repository.DefaultIllnessRepository
 import se.partee71.dagboken.data.repository.DefaultOptionsRepository
 import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.dagboken.ui.common.dataError
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 
 /**
  * Sjukdomsdetaljens ViewModel (SJ-4, SJ-5, SJ-9, SJ-13) mot `FakeCollection` och en fast klocka: tisdag 6 oktober
@@ -91,7 +92,7 @@ class IllnessDetailViewModelTest {
     @Test
     fun `en episod som inte finns är ett läsfel med Försök igen`() = runTest(main.dispatcher) {
         val vm = started("saknas")
-        assertEquals(DetailUiState.Error(DataError.NotFound), vm.state.value)
+        assertEquals(DataError.NotFound, ((vm.state.value) as DetailUiState.Error).error.dataError)
     }
 
     @Test
@@ -213,7 +214,7 @@ class IllnessDetailViewModelTest {
         runCurrent()
         vm.onEvent(IllnessDetailEvent.ConfirmDelete)
         runCurrent()
-        assertEquals(DataError.Offline, vm.failure.value?.error)
+        assertEquals(DataError.Offline, vm.failure.value?.dataError)
         assertFalse(vm.closed.value)
         assertEquals(flu, illnesses.getEpisode("flu").getOrThrow())
         assertEquals(2, illnesses.observeCheckins("flu").first().size)

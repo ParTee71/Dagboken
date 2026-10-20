@@ -11,8 +11,8 @@ import se.partee71.dagboken.core.engine.gapFreeRuns
 import se.partee71.dagboken.core.engine.knownCount
 import se.partee71.dagboken.core.engine.summarize
 import se.partee71.dagboken.core.engine.trendSegment
-import se.partee71.dagboken.ui.components.AppButton
-import se.partee71.dagboken.ui.components.ButtonVariant
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.ButtonVariant
 
 /**
  * Minidiagrammet på Idag (HEM-7, flyttat från 3.x `ui/home`): de senaste dagarnas [points] (`null` =

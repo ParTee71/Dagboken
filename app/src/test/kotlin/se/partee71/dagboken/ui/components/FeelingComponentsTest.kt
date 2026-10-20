@@ -37,7 +37,8 @@ import se.partee71.dagboken.core.model.FeelingCatalog
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.theme.DagbokenTheme
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.theme.Spacing
 
 /**
  * Känslohjulet och känsloväljaren (SCR-7, SCR-8): hjulet som ingång, nyanserna och de precisare orden, ersättning på

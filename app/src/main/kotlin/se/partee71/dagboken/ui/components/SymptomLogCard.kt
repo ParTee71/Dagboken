@@ -18,7 +18,11 @@ import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.core.model.somatic
 import se.partee71.dagboken.ui.common.nonBlank
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppFilterChip
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.theme.Spacing
 
 /**
  * Symptom med gradering 0–10 (AKT-6, SCR-2, SJ-3) – samma kort i aktivitet, mående och incheckning.
@@ -42,7 +46,7 @@ fun SymptomLogCard(
     val sorted = remember(options) { options.sortedWith(compareByDescending<Option> { it.favorite }.thenBy { it.sortOrder }) }
     val names = remember(options) { options.associate { it.id to it.name } }
     val sum = stringResource(R.string.symptom_sum_format, somatic)
-    AppCard(modifier) {
+    AppCard(modifier, contentColor = MaterialTheme.colorScheme.onSurface) {
         Foldout(stringResource(R.string.symptoms), expanded, { expanded = !expanded }, summary = sum.takeIf { scores.isNotEmpty() }) {
             ChipRow {
                 sorted.forEach { option ->

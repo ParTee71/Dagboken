@@ -56,6 +56,7 @@ import se.partee71.dagboken.data.legacy.LegacyRoomRead
 import se.partee71.dagboken.data.legacy.LegacySession
 import se.partee71.dagboken.testing.FakeAuthRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
+import se.partee71.dagboken.ui.common.dataError
 
 /**
  * Migreringens ViewModel (OMB-2, OMB-7, OMB-8, NAV-6) mot det riktiga use caset över migreringens fejkar: ett läge
@@ -364,7 +365,7 @@ class MigrationViewModelTest {
             vm.onEvent(MigrationEvent.Confirm)
             var shown = awaitItem()
             while (shown.failure == null) shown = awaitItem()
-            assertEquals(DataError.Offline, shown.failure?.error)
+            assertEquals(DataError.Offline, shown.failure?.dataError)
             assertEquals(MigrationStage.Written::class, shown.stage::class)
             assertFalse((shown.stage as MigrationStage.Written).confirming)
             vm.onEvent(MigrationEvent.ErrorShown)
@@ -560,7 +561,7 @@ class MigrationViewModelTest {
             next<MigrationStage.Aborting>()
             var shown = awaitItem()
             while (shown.failure == null) shown = awaitItem()
-            assertEquals(DataError.Offline, shown.failure?.error)
+            assertEquals(DataError.Offline, shown.failure?.dataError)
             assertEquals(written, shown.stage)
         }
     }

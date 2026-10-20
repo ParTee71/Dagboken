@@ -16,7 +16,7 @@ import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.StatPill
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.theme.Spacing
 
 /**
  * Ett klockmåtts värde för ett dygn som text (HLS-6, HLS-8): "7 842", "58", "7 tim 12 min", "412 kcal", "5,8 km",

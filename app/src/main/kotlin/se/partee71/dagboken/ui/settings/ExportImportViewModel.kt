@@ -16,11 +16,12 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import se.partee71.dagboken.data.export.ExportUseCase
 import se.partee71.dagboken.data.legacy.LegacyImportUseCase
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.failureOrNull
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.migration.ImportEvent
 import se.partee71.dagboken.ui.migration.ImportFlow
 import se.partee71.dagboken.ui.migration.ImportStage
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.uiErrorOrNull
 
 /**
  * Underskärmen Export och import (SET-8, NAV-9). [import] = importens läge, samma som i första starten (BCK-6, BCK-14);
@@ -32,7 +33,7 @@ data class ExportImportUiState(
     val import: ImportStage = ImportStage.Choose,
     val exporting: Boolean = false,
     val exported: Int? = null,
-    val failure: Failure? = null
+    val failure: UiError? = null
 ) {
     /** Medan något skrivs eller läses går det inte att starta något annat (och raderna är inaktiva). */
     val busy: Boolean get() = exporting || import is ImportStage.Reading || import is ImportStage.Writing
@@ -82,7 +83,7 @@ class ExportImportViewModel @Inject constructor(
         exportJob = viewModelScope.launch {
             _state.update { it.copy(exporting = true, exported = null, failure = null) }
             val result = exporter.export(uri)
-            _state.update { it.copy(exporting = false, exported = result.getOrNull()?.total, failure = result.failureOrNull()) }
+            _state.update { it.copy(exporting = false, exported = result.getOrNull()?.total, failure = result.uiErrorOrNull(AppErrors)) }
         }
     }
 }

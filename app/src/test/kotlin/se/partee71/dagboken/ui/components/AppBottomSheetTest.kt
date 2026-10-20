@@ -17,6 +17,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.components.AppBottomSheet
+import se.partee71.ui.components.AppButton
 
 /**
  * `AppBottomSheet` med ett formulär (NFR-10): med osparade ändringar ([dirty]) stänger varken svep ner, tryck

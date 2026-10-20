@@ -6,8 +6,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.components.AppButton
-import se.partee71.dagboken.ui.components.EmptyState
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.EmptyState
 
 /** Användarens data är sparad med en nyare app: inget visas eller ändras förrän appen uppdaterats. */
 @Composable

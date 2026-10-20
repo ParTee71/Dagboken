@@ -35,7 +35,6 @@ import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.data.repository.ActivityRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
-import se.partee71.dagboken.ui.common.EditorState
 import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryEditor
 import se.partee71.dagboken.ui.common.EntryForm
@@ -48,19 +47,21 @@ import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
 import se.partee71.dagboken.ui.common.scaleValueText
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppFilterChip
-import se.partee71.dagboken.ui.components.AppTextField
-import se.partee71.dagboken.ui.components.ChipRow
 import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
-import se.partee71.dagboken.ui.components.EntityEditScreen
 import se.partee71.dagboken.ui.components.FeelingPicker
 import se.partee71.dagboken.ui.components.Foldout
 import se.partee71.dagboken.ui.components.NoteField
+import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.dagboken.ui.components.SymptomLogCard
 import se.partee71.dagboken.ui.components.TypeChoiceField
 import se.partee71.dagboken.ui.components.ValueSlider
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppFilterChip
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.EntityEditScreen
 
 /** Fälten i formuläret – codecens namn, så att rules-felen ([rulesValidator]) hamnar på rätt fält. */
 object ActivityField {
@@ -171,7 +172,8 @@ fun ActivityEditScreen(
             entryDeleteAction(R.string.diary_subject_activity, shown.customText.nonBlank() ?: typeName, shown.date, shown.time) { form.onEvent(EntryEditEvent.Delete) }
         },
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null
+        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
+        horizontalMargin = SCREEN_MARGIN
     ) {
         a.date?.let { date ->
             DateTimeRow(date, a.time ?: LocalTime(0, 0), { day -> form.change { it.copy(date = day) } }, { time -> form.change { it.copy(time = time) } })

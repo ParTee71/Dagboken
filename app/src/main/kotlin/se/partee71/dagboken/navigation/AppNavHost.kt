@@ -27,20 +27,22 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.components.AppFloatingToolbar
-import se.partee71.dagboken.ui.components.AppSnackbarHost
-import se.partee71.dagboken.ui.components.ErrorSnackbar
-import se.partee71.dagboken.ui.components.FloatingToolbarClearance
-import se.partee71.dagboken.ui.components.LocalBottomClearance
-import se.partee71.dagboken.ui.components.LocalSyncIndicator
-import se.partee71.dagboken.ui.components.MessageSnackbar
-import se.partee71.dagboken.ui.components.NoBottomClearance
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.components.SyncIndicator
-import se.partee71.dagboken.ui.components.ToolbarAction
-import se.partee71.dagboken.ui.components.ToolbarItem
+import se.partee71.dagboken.ui.components.syncStatus
 import se.partee71.dagboken.ui.sync.SyncEvent
 import se.partee71.dagboken.ui.sync.SyncUiState
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.AppFloatingToolbar
+import se.partee71.ui.components.AppSnackbarHost
+import se.partee71.ui.components.ErrorSnackbar
+import se.partee71.ui.components.FloatingToolbarClearance
+import se.partee71.ui.components.LocalBottomClearance
+import se.partee71.ui.components.LocalTopBarStatus
+import se.partee71.ui.components.MessageSnackbar
+import se.partee71.ui.components.NoBottomClearance
+import se.partee71.ui.components.ToolbarAction
+import se.partee71.ui.components.ToolbarItem
+import se.partee71.ui.theme.Spacing
 
 /**
  * Navigationsramen: `NavDisplay` med [Transitions] och bottenraden – de fyra flikarna och
@@ -77,10 +79,12 @@ fun AppNavHost(
             }
         }
     }
-    ErrorSnackbar(sync.writeError, messages, R.string.sync_write_rejected, SnackbarDuration.Long) { onSyncEvent(SyncEvent.WriteErrorShown) }
+    // Ett fel i taget från synkläget; samma nekade skrivning blir samma meddelande tills det visats.
+    val writeError = remember(sync.writeError) { sync.writeError?.let(AppErrors::map) }
+    ErrorSnackbar(writeError, messages, R.string.sync_write_rejected, SnackbarDuration.Long) { onSyncEvent(SyncEvent.WriteErrorShown) }
     MessageSnackbar(message, messages, onShown = onMessageShown)
     Box(modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalBottomClearance provides clearance, LocalSyncIndicator provides indicator) {
+        CompositionLocalProvider(LocalBottomClearance provides clearance, LocalTopBarStatus provides remember(indicator) { syncStatus(indicator) }) {
             NavDisplay(
                 backStack = backStack.entries,
                 onBack = { if (!backStack.pop()) onExit() },

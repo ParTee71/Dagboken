@@ -28,8 +28,8 @@ import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.data.auth.AuthRepository
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.repository.SettingsRepository
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.hours
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 
 /** Appens tema för `MainActivity` (SET-1, DSN-5). */
 sealed interface AppTheme {

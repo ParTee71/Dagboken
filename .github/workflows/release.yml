@@ -150,6 +150,9 @@ jobs:
       apk: ${{ steps.apk.outputs.name }}
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/check-gpr-token
+        with:
+          token: ${{ secrets.GPR_TOKEN }}
 
       - uses: ./.github/actions/setup-android
 
@@ -181,6 +184,7 @@ jobs:
       # är samtidigt beviset att R8 fungerar (NFR-3) – inget eget kvalitetsbygge vid release.
       - name: Lint och signerat release-bygge
         env:
+          GPR_TOKEN: ${{ secrets.GPR_TOKEN }}
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
@@ -236,6 +240,7 @@ jobs:
     needs: gate
     if: needs.gate.outputs.run_instrumented == 'true'
     uses: ./.github/workflows/instrumented.yml
+    secrets: inherit # GPR_TOKEN för android-ui
 
   publish:
     name: publish

@@ -45,7 +45,6 @@ import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.data.repository.testDoses
 import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.testing.MainDispatcherRule
-import se.partee71.dagboken.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.dagboken.ui.common.SelectedDay
 import se.partee71.dagboken.ui.diary.DiaryEvent
 import se.partee71.dagboken.ui.diary.DiaryViewModel
@@ -54,6 +53,7 @@ import se.partee71.dagboken.ui.today.TodayViewModel
 import se.partee71.dagboken.ui.trends.TrendCard
 import se.partee71.dagboken.ui.trends.TrendsEvent
 import se.partee71.dagboken.ui.trends.TrendsViewModel
+import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 
 /**
  * Läsbudgeten (NFR-24) med en dagbok som den som fick slut på Firestores dagskvot: ca 2 000 dokument över tre år (doser

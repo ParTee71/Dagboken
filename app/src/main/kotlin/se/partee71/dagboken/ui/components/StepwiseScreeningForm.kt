@@ -35,7 +35,9 @@ import se.partee71.dagboken.core.model.somatic
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.ButtonVariant
+import se.partee71.ui.theme.Spacing
 
 /**
  * Mående i steg (HEM-5, SCR-1, SCR-2, SCR-7): energi → känslor → stress → symptom, ett steg i taget med "Steg 1 av 4",

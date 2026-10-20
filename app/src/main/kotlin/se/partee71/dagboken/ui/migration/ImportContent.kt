@@ -22,13 +22,15 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.legacy.ImportFormat
 import se.partee71.dagboken.core.model.LegacySource
 import se.partee71.dagboken.ui.common.toMessage
-import se.partee71.dagboken.ui.components.AppButton
-import se.partee71.dagboken.ui.components.AppDivider
-import se.partee71.dagboken.ui.components.AppLoading
-import se.partee71.dagboken.ui.components.ButtonVariant
-import se.partee71.dagboken.ui.components.ConfirmDialog
-import se.partee71.dagboken.ui.components.ItemRow
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.dagboken.ui.theme.Positive
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppDivider
+import se.partee71.ui.components.AppLoading
+import se.partee71.ui.components.ButtonVariant
+import se.partee71.ui.components.ConfirmDialog
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.theme.Tone
 
 /*
  * Importens vy (BCK-6, BCK-14, OMB-5) – **en** gång för första starten utan Room-fil (MigrationScreen, MigrationStage.Fallback)

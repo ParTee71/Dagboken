@@ -38,6 +38,7 @@ import se.partee71.dagboken.data.legacy.FakeRawFirestore
 import se.partee71.dagboken.data.legacy.LegacyImportUseCase
 import se.partee71.dagboken.data.legacy.LegacyMigrationPause
 import se.partee71.dagboken.testing.MainDispatcherRule
+import se.partee71.dagboken.ui.common.dataError
 import se.partee71.dagboken.ui.migration.ImportEvent
 import se.partee71.dagboken.ui.migration.ImportStage
 
@@ -108,7 +109,7 @@ class ExportImportViewModelTest {
             // "Sparar …" kan slås ihop med felet (inget väntar när kön inte når servern) – vänta in slutläget.
             var state = awaitItem()
             while (state.exporting) state = awaitItem()
-            assertEquals(DataError.Offline, state.failure?.error)
+            assertEquals(DataError.Offline, state.failure?.dataError)
             assertNull(state.exported)
         }
         assertTrue(files.files.isEmpty())

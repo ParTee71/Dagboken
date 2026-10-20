@@ -45,6 +45,7 @@ import se.partee71.dagboken.testing.awaitDone
 import se.partee71.dagboken.testing.awaitFailure
 import se.partee71.dagboken.testing.expectNoEditorEvents
 import se.partee71.dagboken.ui.common.EntryEditEvent
+import se.partee71.dagboken.ui.common.dataError
 
 /**
  * Aktivitets-, händelse- och sjukdomsformulären (AKT-1–AKT-12, HAN-1, SJ-1, SJ-2, SJ-11, NFR-10–12) mot `FakeCollection` och en fast klocka:
@@ -210,7 +211,7 @@ class LogFormsViewModelTest {
     @Test
     fun `en aktivitet som inte finns visar läsfel – och sparas aldrig som ny`() = runTest(main.dispatcher) {
         val vm = activityForm(id = "saknas")
-        assertEquals(DataError.NotFound, vm.editor.state.value.loadError)
+        assertEquals(DataError.NotFound, vm.editor.state.value.loadError?.dataError)
         vm.form.onEvent(EntryEditEvent.Save)
         assertTrue(factory.activities().getAll().getOrThrow().isEmpty())
     }
@@ -304,7 +305,7 @@ class LogFormsViewModelTest {
         vm.change(EventField.TYPE) { it.copy(optionId = "migraine") }
         vm.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            assertEquals(DataError.Offline, awaitFailure(vm.editor).error)
+            assertEquals(DataError.Offline, awaitFailure(vm.editor).dataError)
             cancelAndIgnoreRemainingEvents()
         }
         assertTrue(vm.editor.state.value.isDirty)
@@ -408,7 +409,7 @@ class LogFormsViewModelTest {
     @Test
     fun `en ny incheckning skrivs bara under en episod som finns (SJ-2)`() = runTest(main.dispatcher) {
         val missing = checkinForm("saknas")
-        assertEquals(DataError.NotFound, missing.editor.state.value.loadError)
+        assertEquals(DataError.NotFound, missing.editor.state.value.loadError?.dataError)
         missing.form.onEvent(EntryEditEvent.Save)
         assertTrue(factory.checkins("saknas").getAll().getOrThrow().isEmpty())
 
@@ -475,7 +476,7 @@ class LogFormsViewModelTest {
     @Test
     fun `en episod som inte finns kan inte redigeras (SJ-12)`() = runTest(main.dispatcher) {
         val vm = EpisodeEditViewModel(illnesses, clock, { zone }, "saknas")
-        assertEquals(DataError.NotFound, vm.editor.state.value.loadError)
+        assertEquals(DataError.NotFound, vm.editor.state.value.loadError?.dataError)
     }
 
     @Test

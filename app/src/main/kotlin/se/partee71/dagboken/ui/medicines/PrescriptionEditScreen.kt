@@ -70,36 +70,39 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.medicines.MedicineRepository
 import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.di.DefaultDispatcher
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.DateFormat
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorLoader
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.common.Validator
 import se.partee71.dagboken.ui.common.datesText
 import se.partee71.dagboken.ui.common.doseText
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.repeatText
 import se.partee71.dagboken.ui.common.weekdaysText
-import se.partee71.dagboken.ui.components.AppButton
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppFilterChip
-import se.partee71.dagboken.ui.components.AppIconButton
-import se.partee71.dagboken.ui.components.AppSegmentedChoice
-import se.partee71.dagboken.ui.components.AppTextField
-import se.partee71.dagboken.ui.components.ButtonVariant
-import se.partee71.dagboken.ui.components.ChipRow
-import se.partee71.dagboken.ui.components.DateField
-import se.partee71.dagboken.ui.components.EntityEditScreen
-import se.partee71.dagboken.ui.components.FieldError
-import se.partee71.dagboken.ui.components.LabeledGroup
 import se.partee71.dagboken.ui.components.MEDICINE_UNITS
 import se.partee71.dagboken.ui.components.NoteField
-import se.partee71.dagboken.ui.components.QuantityStepper
-import se.partee71.dagboken.ui.components.SwitchRow
+import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.dagboken.ui.components.UnitChoice
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorLoader
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.common.Validator
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppFilterChip
+import se.partee71.ui.components.AppIconButton
+import se.partee71.ui.components.AppSegmentedChoice
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.ButtonVariant
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.DateField
+import se.partee71.ui.components.EntityEditScreen
+import se.partee71.ui.components.FieldError
+import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.QuantityStepper
+import se.partee71.ui.components.QuantityStepperDefaults
+import se.partee71.ui.components.SwitchRow
+import se.partee71.ui.theme.Spacing
 
 /** Fälten i receptformuläret – där ett fel visas. */
 object PrescriptionField {
@@ -235,7 +238,7 @@ class PrescriptionEditViewModel @AssistedInject constructor(
     /** Ett nytt recepts `createdAt`, satt en gång – ett nytt försök efter ett fel skriver inte om den. */
     private val createdAt: Instant? = if (id == null) clock.now() else null
 
-    val editor: EditorState<Prescription> = EditorState(newPrescription(today), prescriptionValidator, loading = id != null)
+    val editor: EditorState<Prescription> = EditorState(newPrescription(today), prescriptionValidator, AppErrors, loading = id != null)
 
     /** Namnförslag ur Läkemedelsverkets lista, bara i ett nytt recept (REC-14). */
     val suggestions = MedicineSuggestions(medicines, enabled = id == null, name = editor.state.map { it.value.name }, scope = viewModelScope, computation = computation)
@@ -418,7 +421,8 @@ fun PrescriptionEditScreen(
         events = events,
         onSave = { onEvent(PrescriptionEditEvent.Save) },
         onClose = onClose,
-        onRetry = { onEvent(PrescriptionEditEvent.Retry) }
+        onRetry = { onEvent(PrescriptionEditEvent.Retry) },
+        horizontalMargin = SCREEN_MARGIN
     ) {
         MedicineFields(
             name = p.name,
@@ -522,7 +526,8 @@ private fun RepeatSection(p: Prescription, daysError: String?, onEvent: (Prescri
                 { onEvent(PrescriptionEditEvent.IntervalChanged(it)) },
                 stringResource(R.string.prescription_interval_label),
                 range = MIN_INTERVAL_DAYS..maxOf(MAX_INTERVAL_DAYS, schedule.intervalDays),
-                valueText = { days -> repeatText(Schedule.Repeating(Repeat.INTERVAL, intervalDays = days)).replaceFirstChar { it.titlecase() } }
+                valueText = { days -> repeatText(Schedule.Repeating(Repeat.INTERVAL, intervalDays = days)).replaceFirstChar { it.titlecase() } },
+                buttonSize = QuantityStepperDefaults.TouchTargetButtonSize
             )
         }
     }
@@ -554,7 +559,8 @@ private fun PeriodSection(period: Period, choice: PeriodChoice, endError: String
                     { onEvent(PrescriptionEditEvent.LengthChanged(it)) },
                     stringResource(R.string.prescription_length_label),
                     range = 1..maxOf(MAX_PERIOD_DAYS, days),
-                    valueText = { pluralStringResource(R.plurals.prescription_days_count, it, it) }
+                    valueText = { pluralStringResource(R.plurals.prescription_days_count, it, it) },
+                    buttonSize = QuantityStepperDefaults.TouchTargetButtonSize
                 )
             }
 

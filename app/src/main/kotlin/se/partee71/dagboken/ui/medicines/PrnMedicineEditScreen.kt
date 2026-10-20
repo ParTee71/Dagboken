@@ -24,20 +24,23 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.medicines.MedicineRepository
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.di.DefaultDispatcher
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorLoader
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.common.Validator
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppTextField
-import se.partee71.dagboken.ui.components.DeleteAction
-import se.partee71.dagboken.ui.components.EntityEditScreen
-import se.partee71.dagboken.ui.components.LabeledGroup
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.components.MEDICINE_UNITS
 import se.partee71.dagboken.ui.components.NoteField
-import se.partee71.dagboken.ui.components.QuantityStepper
+import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.dagboken.ui.components.UnitChoice
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorLoader
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.common.Validator
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.DeleteAction
+import se.partee71.ui.components.EntityEditScreen
+import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.QuantityStepper
+import se.partee71.ui.components.QuantityStepperDefaults
 
 /** Fälten i formuläret. */
 object PrnField {
@@ -85,7 +88,7 @@ class PrnMedicineEditViewModel @AssistedInject constructor(
     @DefaultDispatcher computation: CoroutineDispatcher,
     @Assisted private val id: String?
 ) : ViewModel() {
-    val editor: EditorState<PrnMedicine> = EditorState(newPrnMedicine(), prnValidator, loading = id != null)
+    val editor: EditorState<PrnMedicine> = EditorState(newPrnMedicine(), prnValidator, AppErrors, loading = id != null)
 
     /** Namnförslag ur Läkemedelsverkets lista, bara i en ny medicin (REC-14). */
     val suggestions = MedicineSuggestions(catalog, enabled = id == null, name = editor.state.map { it.value.name }, scope = viewModelScope, computation = computation)
@@ -164,7 +167,8 @@ fun PrnMedicineEditScreen(
         } else {
             DeleteAction(stringResource(R.string.delete_named_title, m.displayName), stringResource(R.string.prn_delete_message)) { onEvent(PrnEditEvent.Delete) }
         },
-        onRetry = { onEvent(PrnEditEvent.Retry) }
+        onRetry = { onEvent(PrnEditEvent.Retry) },
+        horizontalMargin = SCREEN_MARGIN
     ) {
         MedicineFields(
             name = m.name,
@@ -192,7 +196,8 @@ fun PrnMedicineEditScreen(
                 { hours -> change(null) { it.copy(minHoursBetween = hours) } },
                 stringResource(R.string.prn_min_hours_label),
                 range = 0..maxOf(MAX_HOURS, m.minHoursBetween),
-                valueText = { if (it <= 0) stringResource(R.string.prn_no_cooldown) else stringResource(R.string.prn_hours_value, it) }
+                valueText = { if (it <= 0) stringResource(R.string.prn_no_cooldown) else stringResource(R.string.prn_hours_value, it) },
+                buttonSize = QuantityStepperDefaults.TouchTargetButtonSize
             )
         }
         LabeledGroup(stringResource(R.string.prn_max_per_day), helper = stringResource(R.string.prn_max_per_day_help)) {
@@ -201,7 +206,8 @@ fun PrnMedicineEditScreen(
                 { max -> change(null) { it.copy(maxPerDay = max) } },
                 stringResource(R.string.prn_max_per_day_label),
                 range = 0..maxOf(MAX_PER_DAY, m.maxPerDay),
-                valueText = { if (it <= 0) stringResource(R.string.prn_unlimited) else it.toString() }
+                valueText = { if (it <= 0) stringResource(R.string.prn_unlimited) else it.toString() },
+                buttonSize = QuantityStepperDefaults.TouchTargetButtonSize
             )
         }
         AppCard { NoteField(m.note.orEmpty(), { note -> change(null) { it.copy(note = note.ifEmpty { null }) } }) }

@@ -1,5 +1,11 @@
 package se.partee71.dagboken.ui.components
 
+import se.partee71.ui.components.QuantityStepperDefaults
+import se.partee71.ui.components.LocalTopBarStatus
+import se.partee71.ui.components.SwatchMarker
+import se.partee71.ui.components.asSplitMenu
+import se.partee71.dagboken.ui.common.DEFAULT_EMOJIS
+import se.partee71.dagboken.ui.common.AppErrors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,15 +60,15 @@ import se.partee71.dagboken.core.engine.IntervalPoint
 import se.partee71.dagboken.core.engine.StackedPoint
 import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.data.common.DataError
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.common.ArchiveEvent
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.components.ArchiveEvent
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.FeelingSentenceKind
 import se.partee71.dagboken.ui.common.feelingSentence
-import se.partee71.dagboken.ui.common.ListUiState
+import se.partee71.ui.common.ListUiState
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.scaleLevel
 import se.partee71.dagboken.ui.diagram.ChartBand
@@ -78,8 +84,70 @@ import se.partee71.dagboken.ui.diagram.StackedBarChart
 import se.partee71.dagboken.ui.diagram.sleepStageSegments
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Neutral
+import se.partee71.dagboken.ui.theme.Positive
+import se.partee71.dagboken.ui.theme.Sun
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.components.AddAction
+import se.partee71.ui.components.AddSplitButton
+import se.partee71.ui.components.AppBottomSheet
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppDivider
+import se.partee71.ui.components.AppFilterChip
+import se.partee71.ui.components.AppFloatingToolbar
+import se.partee71.ui.components.AppIconButton
+import se.partee71.ui.components.AppLoading
+import se.partee71.ui.components.AppMenu
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.AppSegmentedChoice
+import se.partee71.ui.components.AppSnackbarHost
+import se.partee71.ui.components.AppTextField
+import se.partee71.ui.components.AppTopBar
+import se.partee71.ui.components.ButtonVariant
+import se.partee71.ui.components.CheckRow
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.ChoiceChips
+import se.partee71.ui.components.ColorSwatchPicker
+import se.partee71.ui.components.Confetti
+import se.partee71.ui.components.ConfirmDialog
+import se.partee71.ui.components.DateField
+import se.partee71.ui.components.DeleteAction
+import se.partee71.ui.components.DetailHeader
+import se.partee71.ui.components.EmojiPicker
+import se.partee71.ui.components.EmptyContent
+import se.partee71.ui.components.EmptyExample
+import se.partee71.ui.components.EmptyState
+import se.partee71.ui.components.EntityDetailScreen
+import se.partee71.ui.components.EntityEditScreen
+import se.partee71.ui.components.EntityListScreen
+import se.partee71.ui.components.ExampleChips
+import se.partee71.ui.components.FieldError
+import se.partee71.ui.components.GroupLabel
+import se.partee71.ui.components.IconButtonVariant
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.ListArchive
+import se.partee71.ui.components.ListGroup
+import se.partee71.ui.components.ListSubgroup
+import se.partee71.ui.components.PausableRow
+import se.partee71.ui.components.QuantityStepper
+import se.partee71.ui.components.SectionHeader
+import se.partee71.ui.components.Suggestion
+import se.partee71.ui.components.SuggestionField
+import se.partee71.ui.components.SwipeToHide
+import se.partee71.ui.components.SwitchRow
+import se.partee71.ui.components.TimeField
+import se.partee71.ui.components.ToolbarAction
+import se.partee71.ui.components.ToolbarItem
+import se.partee71.ui.components.TopBarSize
+import se.partee71.ui.components.UndoRequest
+import se.partee71.ui.components.UndoSnackbar
+import se.partee71.ui.components.inactive
+import se.partee71.dagboken.ui.common.swatchLabel
 
 /**
  * Alla komponenter och ramar på en skärm, med riktiga svenska texter (skill
@@ -139,7 +207,7 @@ private fun Buttons() {
             contentDescription = "Fler, med avdelning",
         )
     }
-    AddSplitButton("Lägg till", {}, menuItems = listOf(AppMenuItem("Logga dos i efterhand", {}), AppMenuItem("Visa avslutade", {})))
+    AddSplitButton("Lägg till", {}, menu = listOf(AppMenuItem("Logga dos i efterhand", {}), AppMenuItem("Visa avslutade", {})).asSplitMenu())
     AddSplitButton("Ny vid behov-medicin", {})
 }
 
@@ -174,9 +242,9 @@ private fun Rows() {
             navigates = true,
         )
         AppDivider()
-        PausableRow("Levaxin 50 µg", "1 tablett · morgon", "Dagligen", active = true, onClick = {})
+        PausableRow("Levaxin 50 µg", "1 tablett · morgon", "Dagligen", active = true, onClick = {}, pillTone = Tone.Neutral)
         AppDivider()
-        PausableRow("Prednisolon 5 mg", "2 tabletter · morgon", "Kur", active = false, onClick = {})
+        PausableRow("Prednisolon 5 mg", "2 tabletter · morgon", "Kur", active = false, onClick = {}, pillTone = Tone.Neutral)
         AppDivider()
         CheckRow("Metformin 500 mg", taken, { taken = it }, subtitle = "12:00 · 2 tabletter", trailing = { InfoPill("Lunch", tone = Tone.Neutral) })
         CheckRow("Omega-3", true, {}, subtitle = "08:00 · 2 kapslar")
@@ -250,13 +318,13 @@ private fun Fields() {
     AppFilterChip("Alvedon 500 mg", selected = false, onClick = {}, icon = R.drawable.ic_note, onLongClick = {}, onLongClickLabel = "Fler val")
     ExampleChips(listOf("Promenad", "Yoga", "Städning"), {}, chosen = "Promenad")
     AppSegmentedChoice(listOf("Ljust", "Mörkt", "Auto"), theme, { theme = it })
-    QuantityStepper(minutes, { minutes = it }, "minuter")
+    QuantityStepper(minutes, { minutes = it }, "minuter", buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
     var emoji by remember { mutableStateOf("🚶") }
     var color by remember { mutableStateOf(AppColors.SWATCH_HEX[0]) }
     Label("EmojiPicker")
-    EmojiPicker(emoji, { emoji = it })
+    EmojiPicker(emoji, { emoji = it }, DEFAULT_EMOJIS)
     Label("ColorSwatchPicker")
-    ColorSwatchPicker(color, { color = it })
+    ColorSwatchPicker(AppColors.SWATCH_HEX, color, { color = it }, AppColors::swatch, { swatchLabel(it) }, SwatchMarker.GridRing)
 }
 
 @Composable
@@ -638,7 +706,7 @@ private fun Progress() {
         onSelect = { tab = it },
         action = ToolbarAction("Logga", R.drawable.ic_add) {},
     )
-    CompositionLocalProvider(LocalSyncIndicator provides SyncIndicator(pending = true)) {
+    CompositionLocalProvider(LocalTopBarStatus provides syncStatus(SyncIndicator(pending = true))) {
         AppTopBar("Förkylning", size = TopBarSize.Small, onBack = {})
     }
 }
@@ -692,7 +760,7 @@ private fun Overlays() {
                 AppButton("Spara", { sheet = false })
             },
         ) {
-            QuantityStepper(minutes, { minutes = it }, "minuter")
+            QuantityStepper(minutes, { minutes = it }, "minuter", buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
         }
     }
     when (appSheet) {
@@ -753,7 +821,7 @@ private fun Frames(onBack: () -> Unit) {
     Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
         EntityListScreen<String>(
             title = "Recept",
-            state = ListUiState.Error(DataError.Offline),
+            state = ListUiState.Error(AppErrors.map(DataError.Offline)),
             empty = EmptyContent(R.drawable.ic_pill, "Inga recept än", ""),
             add = AddAction("Nytt recept", {}),
             key = { it },
@@ -796,7 +864,7 @@ private fun Frames(onBack: () -> Unit) {
     }
     Label("EntityDetailScreen – finns inte längre")
     Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
-        EntityDetailScreen<String>(DetailUiState.Error(DataError.NotFound), header = { DetailHeader(it) }, onBack = {}) {}
+        EntityDetailScreen<String>(DetailUiState.Error(AppErrors.notFound()), header = { DetailHeader(it) }, onBack = {}, sectionGap = SECTION_GAP) {}
     }
     Label("EntityEditScreen")
     var name by remember { mutableStateOf("") }
@@ -809,6 +877,7 @@ private fun Frames(onBack: () -> Unit) {
             onClose = onBack,
             onArchive = {},
             delete = DeleteAction("Radera Yoga?", "Aktivitetstypen tas bort för gott. Det går inte att ångra.") {},
+            horizontalMargin = SCREEN_MARGIN,
         ) {
             AppTextField(name, { name = it }, "Namn")
         }
@@ -822,6 +891,7 @@ private fun Frames(onBack: () -> Unit) {
             onEdit = {},
             menu = { listOf(AppMenuItem("Avsluta episoden", {}, R.drawable.ic_check)) },
             leading = { Text("🤧", style = AppTypography.headline) },
+            sectionGap = SECTION_GAP,
         ) {
             AppCard {
                 SectionHeader("Incheckningar", icon = R.drawable.ic_thermometer, count = "1")

@@ -40,7 +40,10 @@ import se.partee71.dagboken.ui.common.scaleLevel
 import se.partee71.dagboken.ui.common.scaleValueText
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.GroupLabel
+import se.partee71.ui.components.InfoPill
+import se.partee71.ui.components.inactive
+import se.partee71.ui.theme.Spacing
 
 /**
  * Det enda reglaget (AKT-4, AKT-5, AKT-6, SCR-1): etikett, värdet som text och nivån som tonad pill

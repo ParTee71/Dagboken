@@ -32,12 +32,13 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.legacy.AccountCheck
-import se.partee71.dagboken.ui.common.Failure
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.migration.MigrationSamples.before
 import se.partee71.dagboken.ui.migration.MigrationSamples.halfway
 import se.partee71.dagboken.ui.migration.MigrationSamples.review
 import se.partee71.dagboken.ui.migration.MigrationSamples.saved
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.common.UiError
 
 /**
  * Migreringsskärmen och startdestinationen (NAV-6, OMB-2, OMB-7, OMB-8): laddning under startkontrollen, skärmen
@@ -57,7 +58,7 @@ class MigrationScreenTest {
 
     private val events = mutableListOf<MigrationEvent>()
 
-    private fun show(stage: MigrationStage, failure: Failure? = null) {
+    private fun show(stage: MigrationStage, failure: UiError? = null) {
         rule.setContent { DagbokenTheme { MigrationScreen(MigrationUiState(stage, failure), { events += it }) } }
     }
 
@@ -221,7 +222,7 @@ class MigrationScreenTest {
 
     @Test
     fun `klar - Bekräfta skickas, och ett fel vid bekräftelsen visas som meddelande`() {
-        show(MigrationStage.Written(before, before), Failure(DataError.Offline))
+        show(MigrationStage.Written(before, before), AppErrors.map(DataError.Offline))
         rule.onNodeWithText(text(R.string.error_offline)).assertIsDisplayed()
         rule.onNodeWithText(text(R.string.migration_confirm)).performScrollTo().assertHeightIsAtLeast(48.dp).performClick()
         assertEquals(MigrationEvent.Confirm, events.last())

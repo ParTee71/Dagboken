@@ -22,12 +22,12 @@ import se.partee71.dagboken.reminders.ReminderAccess
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
-import se.partee71.dagboken.ui.common.DetailUiState
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorUiState
-import se.partee71.dagboken.ui.common.ListUiState
-import se.partee71.dagboken.ui.components.ListArchive
 import se.partee71.dagboken.ui.migration.MigrationSamples
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.common.ListUiState
+import se.partee71.ui.components.ListArchive
 
 /** Inställningsarkets underskärmar i ljust och mörkt (NFR-20: bredvid mockupen i PR:en). Påhittad data. */
 @RunWith(RobolectricTestRunner::class)

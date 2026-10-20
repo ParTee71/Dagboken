@@ -41,7 +41,6 @@ import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.ui.common.DateFormat
-import se.partee71.dagboken.ui.common.DetailUiState
 import se.partee71.dagboken.ui.common.FeelingSentenceKind
 import se.partee71.dagboken.ui.common.distinctSeriesColors
 import se.partee71.dagboken.ui.common.feelingHighlights
@@ -50,21 +49,12 @@ import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.qualifiedLabel
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.AccountAvatar
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppDivider
-import se.partee71.dagboken.ui.components.AppMenuItem
-import se.partee71.dagboken.ui.components.AppSegmentedChoice
-import se.partee71.dagboken.ui.components.ChipRow
-import se.partee71.dagboken.ui.components.EmptyState
-import se.partee71.dagboken.ui.components.EntityDetailScreen
 import se.partee71.dagboken.ui.components.FeelingMiniWheel
 import se.partee71.dagboken.ui.components.FeelingPills
 import se.partee71.dagboken.ui.components.FeelingWeekRow
 import se.partee71.dagboken.ui.components.FeelingWheelSize
 import se.partee71.dagboken.ui.components.Foldout
-import se.partee71.dagboken.ui.components.GroupLabel
-import se.partee71.dagboken.ui.components.SectionHeader
-import se.partee71.dagboken.ui.components.SwitchRow
+import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.diagram.CHART_SEPARATOR
 import se.partee71.dagboken.ui.diagram.ChartBand
 import se.partee71.dagboken.ui.diagram.ChartSeries
@@ -84,8 +74,20 @@ import se.partee71.dagboken.ui.health.HealthEvent
 import se.partee71.dagboken.ui.health.HealthTodaySection
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppDivider
+import se.partee71.ui.components.AppMenuItem
+import se.partee71.ui.components.AppSegmentedChoice
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.EmptyState
+import se.partee71.ui.components.EntityDetailScreen
+import se.partee71.ui.components.GroupLabel
+import se.partee71.ui.components.SectionHeader
+import se.partee71.ui.components.SwitchRow
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 @Composable
 fun TrendsRoute(
@@ -126,7 +128,8 @@ fun TrendsScreen(
         onBack = null,
         modifier = modifier,
         title = stringResource(R.string.tab_trends),
-        actions = { avatar() }
+        actions = { avatar() },
+        sectionGap = SECTION_GAP
     ) { content ->
         AppSegmentedChoice(
             options = TrendGroup.entries.map { stringResource(it.label) },

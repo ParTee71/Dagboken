@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,8 +19,11 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Warning
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /**
  * Ett meddelande överst på en skärm som leder vidare – t.ex. periodsluten i Mediciner (MEDF-2): ett
@@ -47,7 +51,7 @@ fun NoticeBanner(
     // Hela kortet är knappen – utom när åtgärden är en egen knapp under texten.
     val cardClick = onClick.takeIf { action == null }
     val clickable = cardClick?.let { Modifier.clip(AppShapes.card).clickable(onClickLabel = onClickLabel, role = Role.Button, onClick = it) } ?: Modifier
-    AppCard(modifier.then(clickable), tone = tone) {
+    AppCard(modifier.then(clickable), tone = tone, contentColor = MaterialTheme.colorScheme.onSurface) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.m)) {
             Icon(painterResource(icon), contentDescription = null, tint = colors.content)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {

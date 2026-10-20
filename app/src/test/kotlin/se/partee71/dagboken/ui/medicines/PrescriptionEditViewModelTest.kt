@@ -38,6 +38,7 @@ import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.testing.awaitDone
 import se.partee71.dagboken.testing.awaitFailure
+import se.partee71.dagboken.ui.common.dataError
 import se.partee71.dagboken.ui.medicines.PrescriptionEditEvent as Event
 
 /** Receptformuläret (REC-1…REC-10, MEDF-5) mot `FakeCollection`: valen, reglerna, sparningen och dossynken. */
@@ -402,7 +403,7 @@ class PrescriptionEditViewModelTest {
             override suspend fun get(id: String): Result<Prescription?> = if (offline) Result.failure(DataError.Offline) else repository.get(id)
         }
         val vm = viewModel(ended.id, extend = true, prescriptions = flaky)
-        assertEquals(DataError.Offline, vm.editor.state.value.loadError)
+        assertEquals(DataError.Offline, vm.editor.state.value.loadError?.dataError)
 
         offline = false
         vm.onEvent(Event.Retry)
@@ -415,7 +416,7 @@ class PrescriptionEditViewModelTest {
     @Test
     fun `ett recept som inte finns visar läsfel, och förläng gör då ingenting`() = runTest(main.dispatcher) {
         val vm = viewModel("finns-inte", extend = true)
-        assertEquals(DataError.NotFound, vm.editor.state.value.loadError)
+        assertEquals(DataError.NotFound, vm.editor.state.value.loadError?.dataError)
         assertFalse(vm.editor.state.value.isDirty)
     }
 
@@ -432,7 +433,7 @@ class PrescriptionEditViewModelTest {
         vm.onEvent(Event.NameChanged("Sertralin"))
         vm.editor.state.test {
             vm.onEvent(Event.Save)
-            assertEquals(DataError.Unknown, awaitFailure(vm.editor).error)
+            assertEquals(DataError.Unknown, awaitFailure(vm.editor).dataError)
             failSync = false
             vm.onEvent(Event.Save)
             awaitDone(vm.editor)

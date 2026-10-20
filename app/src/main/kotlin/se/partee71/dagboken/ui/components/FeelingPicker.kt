@@ -38,8 +38,14 @@ import se.partee71.dagboken.ui.common.feelingsLabel
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.ToneColors
+import se.partee71.ui.components.AppButton
+import se.partee71.ui.components.AppFilterChip
+import se.partee71.ui.components.ButtonVariant
+import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.inactive
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.ToneColors
 
 /**
  * Känslosteget (SCR-7, variant B2 i #318): rubriken "Vad känner du just nu?" med hjälptext, [FeelingWheel] som ingång

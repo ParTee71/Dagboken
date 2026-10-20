@@ -65,6 +65,8 @@ class UiConsistencyTest {
         // På synfältet krymper tangentbordet den scrollande ytan, så att det fokuserade fältet scrollas fram ovanför
         // det. Efter verticalScroll blir insetet bara utfyllnad i innehållet, och ett fält längst ned kan stå kvar under
         // tangentbordet. Kontrollen gäller modifier-kedjan i koden (kommentarer strippade), inte bara radordningen.
+        // Ramarna kommer från android-ui (*(android-ui)* i shared-ui-components), som prövar kedjan i sin egen kod;
+        // här prövas en ram som appen har själv – en lokal kopia av en bibliotekets ram får samma krav.
         val chains = mapOf(
             // Samma kedja: imePadding() direkt före verticalScroll.
             "EntityEditScreen" to Regex("""\.imePadding\(\)\s*\.\s*verticalScroll\("""),
@@ -74,12 +76,41 @@ class UiConsistencyTest {
         // verticalScroll(…) följt av imePadding() senare i samma kedja, också efter andra led: `.verticalScroll(s).padding(x).imePadding()`.
         val call = """\((?:[^()]|\([^()]*\))*\)"""
         val afterScroll = Regex("""verticalScroll$call(?:\s*\.\s*\w+$call)*\s*\.\s*imePadding\(""")
+        val fromLibrary = libraryRows()
         for ((frame, chain) in chains) {
             val file = production.files.firstOrNull { it.name == frame && it.packagee?.name?.endsWith("ui.components") == true }
-            val text = stripComments(checkNotNull(file) { "$frame saknas i ui/components" }.text)
+            if (file == null) {
+                assertTrue(frame in fromLibrary, "$frame saknas i ui/components och är inte markerad *(android-ui)* i shared-ui-components")
+                continue
+            }
+            val text = stripComments(file.text)
             assertTrue(chain.containsMatchIn(text), "$frame: imePadding() ska ligga på den scrollande ytans synfält, före verticalScroll")
             assertFalse(afterScroll.containsMatchIn(text), "$frame: imePadding() efter verticalScroll är utfyllnad i innehållet")
         }
+    }
+
+    @Test
+    fun `komponenterna från android-ui anropas med Dagbokens parametrar`() {
+        // Där bibliotekets standard skiljer sig från Dagboken anges Dagbokens värde i varje anrop (skill shared-ui-components).
+        val required = mapOf(
+            "QuantityStepper" to "buttonSize = QuantityStepperDefaults.TouchTargetButtonSize", // 48 dp (NFR-14)
+            "EntityEditScreen" to "horizontalMargin = SCREEN_MARGIN",
+            "EntityDetailScreen" to "sectionGap = SECTION_GAP",
+            "PausableRow" to "pillTone = Tone.Neutral"
+        )
+        val problems = required.flatMap { (component, argument) ->
+            val call = Regex("""(?<![\w.])$component\(""")
+            val calls = production.files.flatMap { file ->
+                val text = stripComments(file.text)
+                call.findAll(text).map { file.name to argumentsOf(text, it.range.last) }.toList()
+            }
+            if (calls.isEmpty()) {
+                listOf("hittade inga anrop till $component")
+            } else {
+                calls.filterNot { (_, args) -> argument in args }.map { (name, _) -> "$name: $component($argument)" }
+            }
+        }
+        assertEquals(emptyList(), problems)
     }
 
     @Test
@@ -160,18 +191,25 @@ class UiConsistencyTest {
     }
 
     @Test
-    fun `komponenttabellen i shared-ui-components stämmer med ui-components och ui-diagram`() {
+    fun `komponenttabellen i shared-ui-components stämmer med ui-components, ui-diagram och android-ui`() {
         val inCode = publicComponents("Dokumentdrift")
-        val inTable = documentedComponents()
-        val missingInTable = inCode - inTable
+        val inLibrary = libraryRows()
+        val inTable = documentedComponents() - inLibrary
+        val missingInTable = inCode - inTable - inLibrary
         assertTrue(missingInTable.isEmpty(), "Lägg till raden i shared-ui-components: $missingInTable")
         val missingInCode = inTable - inCode
         assertTrue(missingInCode.isEmpty(), "Ta bort raden i shared-ui-components eller bygg komponenten: $missingInCode")
+        // En rad märkt *(android-ui)* är bibliotekets komponent: ingen lokal kopia i appen, och den finns i biblioteket.
+        val copies = inLibrary intersect inCode
+        assertTrue(copies.isEmpty(), "Lokal kopia av en komponent från android-ui – använd bibliotekets: $copies")
+        val notInLibrary = inLibrary - LibraryComponents.names
+        assertTrue(notInLibrary.isEmpty(), "Märkt *(android-ui)* men finns inte i biblioteket: $notInLibrary")
     }
 
     @Test
     fun `varje publik komponent har skärmdump ljust och mörkt och plats i ComponentGallery`() {
-        val components = publicComponents("Skärmdump/galleri") - "ComponentGallery"
+        // Också bibliotekets komponenter: skärmdumparna visar dem i Dagbokens tema, och galleriet visar dem.
+        val components = publicComponents("Skärmdump/galleri") + libraryRows() - "ComponentGallery"
         val screenshots = File(repoRoot, "app/src/test/screenshots").list().orEmpty().toSet()
         val gallery = galleryText()
         val problems = components.flatMap { name ->
@@ -200,20 +238,41 @@ class UiConsistencyTest {
         return names
     }
 
+    /** Komponentnamnen i kolumn två i tabellerna "Utseende" och "Beteende" (alla rader). */
+    private fun documentedComponents(): Set<String> = tableRows().mapNotNull { componentOf(it) }.toSet()
+
+    /** Raderna märkta *(android-ui)*: komponenten kommer från biblioteket android-ui, inte från appen. */
+    private fun libraryRows(): Set<String> = tableRows().filter { LIBRARY_MARK in it }.mapNotNull { componentOf(it) }.toSet()
+
+    private fun componentOf(row: String): String? = row.split("|").getOrNull(2)?.let { Regex("`(\\w+)`").find(it)?.groupValues?.get(1) }
+
     /**
-     * Komponentnamnen i kolumn två i tabellerna "Utseende" och "Beteende". Saknas tabellerna fäller
-     * testet – annars skulle dokumentdriften tyst sluta kontrolleras.
+     * Tabellraderna i "Utseende" och "Beteende". Saknas tabellerna fäller testet – annars skulle dokumentdriften
+     * tyst sluta kontrolleras.
      */
-    private fun documentedComponents(): Set<String> {
+    private fun tableRows(): List<String> {
         val skill = File(repoRoot, ".claude/skills/shared-ui-components/SKILL.md").readText()
         val hasTables = Regex("""^## (Utseende|Beteende)""", RegexOption.MULTILINE).findAll(skill).count() == 2
         check(hasTables) { "Dokumentdrift: shared-ui-components saknar tabellerna \"Utseende\" och \"Beteende\"" }
         val tables = Regex("""## (Utseende|Beteende)[^\n]*\n(.*?)(?=\n## )""", RegexOption.DOT_MATCHES_ALL)
             .findAll(skill)
             .joinToString("\n") { it.groupValues[2] }
-        return tables.lines()
-            .filter { it.startsWith("|") }
-            .mapNotNull { row -> row.split("|").getOrNull(2)?.let { Regex("`(\\w+)`").find(it)?.groupValues?.get(1) } }
-            .toSet()
+        return tables.lines().filter { it.startsWith("|") }
+    }
+
+    /** Argumenten i anropet vars öppnande parentes står på [open] – till den matchande stängande. */
+    private fun argumentsOf(text: String, open: Int): String {
+        var depth = 0
+        for (i in open until text.length) {
+            when (text[i]) {
+                '(' -> depth++
+                ')' -> if (--depth == 0) return text.substring(open + 1, i)
+            }
+        }
+        return text.substring(open + 1)
+    }
+
+    private companion object {
+        const val LIBRARY_MARK = "*(android-ui)*"
     }
 }

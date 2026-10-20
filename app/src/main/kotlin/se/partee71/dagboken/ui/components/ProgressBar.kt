@@ -26,7 +26,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.theme.Spacing
 
 /**
  * Framstegsraden (HEM-18): hur många av dagens [total] poster som är klara ([done]), som text ("4 av 9

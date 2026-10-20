@@ -14,6 +14,11 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.awaitDone
 import se.partee71.dagboken.testing.awaitFailure
 import se.partee71.dagboken.testing.expectNoEditorEvents
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.common.dataError
+import se.partee71.ui.common.EditorLoader
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.Validator
 
 /** Formulärlogiken bakom `EntityEditScreen` (NFR-10, NFR-12) – testas en gång här, inte per skärm. */
 class EditorStateTest {
@@ -22,7 +27,7 @@ class EditorStateTest {
 
     private val validator = Validator<Form> { form -> if (form.name.isBlank()) mapOf(NAME to R.string.error_unknown) else emptyMap() }
 
-    private fun editor(initial: Form = Form()) = EditorState(initial, validator)
+    private fun editor(initial: Form = Form()) = EditorState(initial, validator, AppErrors)
 
     @Test
     fun `ett nytt formulär är oändrat och kan inte sparas, och felet syns inte än`() {
@@ -53,11 +58,11 @@ class EditorStateTest {
 
     @Test
     fun `saveUnchanged låter ett giltigt nytt objekt sparas utan ändring – standard är att det inte går`() {
-        assertFalse(EditorState(Form("Solkräm"), validator).state.value.canSave, "standard: oförändrat kan inte sparas")
-        val unchanged = EditorState(Form("Solkräm"), validator, saveUnchanged = true)
+        assertFalse(EditorState(Form("Solkräm"), validator, AppErrors).state.value.canSave, "standard: oförändrat kan inte sparas")
+        val unchanged = EditorState(Form("Solkräm"), validator, AppErrors, saveUnchanged = true)
         assertTrue(unchanged.state.value.canSave)
         assertFalse(unchanged.state.value.isDirty, "oförändrat – ingen fråga om att slänga")
-        assertFalse(EditorState(Form(), validator, saveUnchanged = true).state.value.canSave, "ogiltigt sparas ändå inte")
+        assertFalse(EditorState(Form(), validator, AppErrors, saveUnchanged = true).state.value.canSave, "ogiltigt sparas ändå inte")
         unchanged.update(NAME) { it.copy(name = "") }
         assertFalse(unchanged.state.value.canSave)
     }
@@ -107,7 +112,7 @@ class EditorStateTest {
         editor.state.test {
             editor.save { Result.failure(DataError.Offline) }
             awaitFailure(editor).let {
-                assertEquals(DataError.Offline, it.error)
+                assertEquals(DataError.Offline, it.dataError)
                 assertEquals(DataError.Offline.toMessage(), it.message)
             }
             cancelAndIgnoreRemainingEvents()
@@ -122,7 +127,7 @@ class EditorStateTest {
         editor.update(NAME) { it.copy(name = "Solkräm") }
         editor.save { Result.failure(DataError.Offline) }
         editor.update(NOTE) { it.copy(note = "SPF 50") }
-        assertEquals(DataError.Offline, editor.state.value.failure?.error, "ett okvitterat fel tappas inte av en ändring")
+        assertEquals(DataError.Offline, editor.state.value.failure?.dataError, "ett okvitterat fel tappas inte av en ändring")
         editor.onFailureShown()
         assertNull(editor.state.value.failure)
 
@@ -153,7 +158,7 @@ class EditorStateTest {
 
     @Test
     fun `load sätter det lagrade värdet och avslutar laddningen`() {
-        val editor = EditorState(Form(), validator, loading = true)
+        val editor = EditorState(Form(), validator, AppErrors, loading = true)
         assertTrue(editor.state.value.loading)
         assertFalse(editor.state.value.canSave)
         editor.update(NAME) { it.copy(name = "") }
@@ -167,18 +172,18 @@ class EditorStateTest {
 
     @Test
     fun `loadFrom laddar det lagrade, och ett saknat eller oläsbart värde blir läsfel`() = runTest {
-        val editor = EditorState(Form(), validator, loading = true)
+        val editor = EditorState(Form(), validator, AppErrors, loading = true)
         editor.loadFrom({ Result.success(Form("Solkräm")) }) { it.copy(note = "förval") }
         assertEquals(Form("Solkräm", "förval"), editor.state.value.value)
         assertFalse(editor.state.value.loading)
 
-        val missing = EditorState(Form(), validator, loading = true)
+        val missing = EditorState(Form(), validator, AppErrors, loading = true)
         missing.loadFrom({ Result.success(null) })
-        assertEquals(DataError.NotFound, missing.state.value.loadError)
+        assertEquals(DataError.NotFound, missing.state.value.loadError?.dataError)
 
-        val offline = EditorState(Form(), validator, loading = true)
+        val offline = EditorState(Form(), validator, AppErrors, loading = true)
         offline.loadFrom({ Result.failure(DataError.Offline) })
-        assertEquals(DataError.Offline, offline.state.value.loadError)
+        assertEquals(DataError.Offline, offline.state.value.loadError?.dataError)
     }
 
     @Test
@@ -189,7 +194,7 @@ class EditorStateTest {
             awaitDone(editor)
             editor.run { Result.failure(DataError.PermissionDenied) }
             awaitFailure(editor).let {
-                assertEquals(DataError.PermissionDenied, it.error)
+                assertEquals(DataError.PermissionDenied, it.dataError)
                 assertEquals(DataError.PermissionDenied.toMessage(), it.message)
             }
             cancelAndIgnoreRemainingEvents()
@@ -222,7 +227,7 @@ class EditorStateTest {
 
     @Test
     fun `spara medan det lagrade värdet laddas eller inte gick att läsa skriver inget`() = runTest {
-        val editor = EditorState(Form(), validator, loading = true)
+        val editor = EditorState(Form(), validator, AppErrors, loading = true)
         editor.update(NAME) { it.copy(name = "Platshållare") }
         var writes = 0
         editor.save {
@@ -235,8 +240,28 @@ class EditorStateTest {
             writes++
             Result.success(Unit)
         }
-        assertEquals(DataError.Offline, editor.state.value.loadError)
+        assertEquals(DataError.Offline, editor.state.value.loadError?.dataError)
         assertEquals(0, writes)
+    }
+
+    @Test
+    fun `arkivera eller radera medan det lagrade värdet laddas eller inte gick att läsa gör inget – precis som spara`() = runTest {
+        val editor = EditorState(Form(), validator, AppErrors, loading = true)
+        var actions = 0
+        editor.run {
+            actions++
+            Result.success(Unit)
+        }
+        assertTrue(editor.state.value.loading, "laddningen avbryts inte av en åtgärd")
+        assertFalse(editor.state.value.done)
+        editor.loadFailed(DataError.Offline)
+        editor.run {
+            actions++
+            Result.success(Unit)
+        }
+        assertEquals(DataError.Offline, editor.state.value.loadError?.dataError)
+        assertFalse(editor.state.value.done, "ett läsfel stänger inte formuläret")
+        assertEquals(0, actions)
     }
 
     @Test
@@ -284,10 +309,10 @@ class EditorStateTest {
 
     @Test
     fun `ett läsfel avslutar laddningen och Försök igen laddar om`() {
-        val editor = EditorState(Form(), validator, loading = true)
+        val editor = EditorState(Form(), validator, AppErrors, loading = true)
         editor.loadFailed(DataError.Offline)
         assertFalse(editor.state.value.loading)
-        assertEquals(DataError.Offline, editor.state.value.loadError)
+        assertEquals(DataError.Offline, editor.state.value.loadError?.dataError)
         assertFalse(editor.state.value.canSave)
         editor.reload()
         assertTrue(editor.state.value.loading)
@@ -312,13 +337,13 @@ class EditorStateTest {
 
     @Test
     fun `omvalidering och ändringar tar inte bort ett läsfel`() = runTest {
-        val editor = EditorState(Form(), validator, loading = true)
+        val editor = EditorState(Form(), validator, AppErrors, loading = true)
         editor.loadFailed(DataError.Offline)
 
         editor.revalidate()
-        assertEquals(DataError.Offline, editor.state.value.loadError)
+        assertEquals(DataError.Offline, editor.state.value.loadError?.dataError)
         editor.update("name") { it.copy(name = "Promenad") }
-        assertEquals(DataError.Offline, editor.state.value.loadError)
+        assertEquals(DataError.Offline, editor.state.value.loadError?.dataError)
 
         var writes = 0
         editor.save {
@@ -330,7 +355,7 @@ class EditorStateTest {
 
     @Test
     fun `EditorLoader utan projektion lägger det lagrade i formuläret och i stored`() = runTest {
-        val editor = EditorState(Form(), validator, loading = true)
+        val editor = EditorState(Form(), validator, AppErrors, loading = true)
         val loader = EditorLoader(editor, backgroundScope, read = { Result.success(Form("Promenad")) })
         testScheduler.runCurrent()
         assertEquals(Form("Promenad"), editor.state.value.value)
@@ -339,11 +364,11 @@ class EditorStateTest {
 
     @Test
     fun `EditorLoader gör ändringen efter varje lyckad läsning, också efter Försök igen, och inte efter ett läsfel`() = runTest {
-        val editor = EditorState(Form(), validator, loading = true)
+        val editor = EditorState(Form(), validator, AppErrors, loading = true)
         var result: Result<Form?> = Result.failure(DataError.Offline)
         val loader = EditorLoader(editor, backgroundScope, read = { result }, afterLoad = { editor.update { it.copy(note = "ändrad") } })
         testScheduler.runCurrent()
-        assertEquals(DataError.Offline, editor.state.value.loadError)
+        assertEquals(DataError.Offline, editor.state.value.loadError?.dataError)
         assertEquals(Form(), editor.state.value.value)
 
         result = Result.success(Form("Promenad"))
@@ -355,7 +380,7 @@ class EditorStateTest {
 
     @Test
     fun `Försök igen avbryter en pågående läsning – den sena laddas aldrig över den nya och efterarbetet körs en gång`() = runTest {
-        val editor = EditorState(Form(), validator, loading = true)
+        val editor = EditorState(Form(), validator, AppErrors, loading = true)
         val slow = CompletableDeferred<Result<Form?>>()
         var reads = 0
         var afterLoads = 0
@@ -389,7 +414,7 @@ class EditorStateTest {
     @Test
     fun `ett fel som uppstår först vid omvalidering syns när det lagrade ska visa sina fel`() {
         var taken = emptySet<String>()
-        val editor = EditorState(Form(), Validator<Form> { if (it.name in taken) mapOf(NAME to R.string.error_unknown) else emptyMap() })
+        val editor = EditorState(Form(), Validator<Form> { if (it.name in taken) mapOf(NAME to R.string.error_unknown) else emptyMap() }, AppErrors)
         editor.load(Form("Promenad"), showInvalid = true)
         assertTrue(editor.state.value.errors.isEmpty())
         taken = setOf("Promenad")

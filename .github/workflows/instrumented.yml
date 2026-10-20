@@ -6,6 +6,9 @@ name: Instrumenttester
 on:
   workflow_dispatch:
   workflow_call:
+    secrets:
+      GPR_TOKEN:
+        required: true
 
 permissions:
   contents: read
@@ -25,6 +28,9 @@ jobs:
           df -h / | tail -n1
 
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/check-gpr-token
+        with:
+          token: ${{ secrets.GPR_TOKEN }}
       - uses: ./.github/actions/setup-android
 
       # Kontraktstestet för FirestoreCollection kör mot Firebase-emulatorerna (firestore + auth)
@@ -61,6 +67,8 @@ jobs:
       # så att "Fallerade tester" och testrapporten hinner köras.
       - name: Instrumenttester (API 36, samma som targetSdk)
         timeout-minutes: 15
+        env:
+          GPR_TOKEN: ${{ secrets.GPR_TOKEN }}
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 36

@@ -45,6 +45,7 @@ import se.partee71.dagboken.testing.awaitDone
 import se.partee71.dagboken.testing.awaitFailure
 import se.partee71.dagboken.testing.expectNoEditorEvents
 import se.partee71.dagboken.ui.common.EntryEditEvent
+import se.partee71.dagboken.ui.common.dataError
 
 /**
  * Dosformuläret (MED-11, MED-15, MED-16, FAV-4, FAV-5, FAV-10) mot `FakeCollection` och en fast klocka: tisdag 6
@@ -178,7 +179,7 @@ class DoseFormViewModelTest {
         assertEquals(CooldownPrompt(alvedon, 3.hours), vm.cooldown.value)
         vm.editor.state.test {
             vm.confirmCooldown()
-            assertEquals(DataError.Offline, awaitFailure(vm.editor).error)
+            assertEquals(DataError.Offline, awaitFailure(vm.editor).dataError)
             cancelAndIgnoreRemainingEvents()
         }
         vm.form.onEvent(EntryEditEvent.Save)
@@ -205,7 +206,7 @@ class DoseFormViewModelTest {
     @Test
     fun `en medicin som inte finns visar läsfel med Försök igen som skapar på nytt`() = runTest(main.dispatcher) {
         val vm = form(prnId = alvedon.id)
-        assertEquals(DataError.NotFound, vm.editor.state.value.loadError)
+        assertEquals(DataError.NotFound, vm.editor.state.value.loadError?.dataError)
         factory.prnMedicines().upsert(alvedon).getOrThrow()
         vm.form.onEvent(EntryEditEvent.Retry)
         assertNull(vm.editor.state.value.loadError)

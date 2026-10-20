@@ -14,6 +14,12 @@ import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.suspendRunCatching
 import se.partee71.dagboken.data.repository.EntryStore
+import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorLoader
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.common.Validator
 
 /** Det användaren gör i formuläret för en post – samma för alla poster (aktivitet, händelse, dos, episod, incheckning). */
 sealed interface EntryEditEvent<out T> {
@@ -57,7 +63,7 @@ class EntryEditor<T>(
     private var loaded: () -> T? = { null }
 
     /** Laddar tills den sparade posten lästs eller den nya skapats. */
-    val editor: EditorState<T> = EditorState(placeholder, { value -> validator.validate(clean(loaded(), value)) }, loading = true, errorMessage = errorMessage, saveUnchanged = saveUnchanged)
+    val editor: EditorState<T> = EditorState(placeholder, { value -> validator.validate(clean(loaded(), value)) }, AppErrors, loading = true, errorMessage = errorMessage, saveUnchanged = saveUnchanged)
 
     // Ett lagrat värde som rules nekar (t.ex. en text från verktygen över taket) visar sitt fel direkt.
     private val loader = EditorLoader(editor, scope, read = id?.let { id -> { repository.get(id) } }, showInvalid = true)

@@ -39,7 +39,8 @@ import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.IconSize
-import se.partee71.dagboken.ui.theme.Spacing
+import se.partee71.ui.components.inactive
+import se.partee71.ui.theme.Spacing
 
 /**
  * Datumremsan (HEM-14): veckan som innehåller [week] (måndag–söndag) som sju chips med veckodag, datum

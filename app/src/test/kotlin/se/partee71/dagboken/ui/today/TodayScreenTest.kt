@@ -89,17 +89,18 @@ import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.SampleMedicines
-import se.partee71.dagboken.ui.common.DetailUiState
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.EditorSheetState
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.Failure
-import se.partee71.dagboken.ui.common.Validator
 import se.partee71.dagboken.ui.common.toMessage
 import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.log.LogEvent
 import se.partee71.dagboken.ui.log.ScreeningSheetInfo
 import se.partee71.dagboken.ui.log.ScreeningSheetView
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.UiError
+import se.partee71.ui.common.Validator
 
 /**
  * Fliken Idag: det unika beteendet (MED-2, MED-3, MED-5, MED-13, FAV-2, FAV-4, FAV-11, HEM-11, HEM-19) och
@@ -457,7 +458,7 @@ class TodayScreenTest {
     @Test
     fun `ett läsfel visar Försök igen`() {
         val events = mutableListOf<TodayEvent>()
-        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Error(DataError.Offline), { events += it }, {}) } }
+        rule.setContent { DagbokenTheme { TodayScreen(DetailUiState.Error(AppErrors.map(DataError.Offline)), { events += it }, {}) } }
         rule.onNodeWithText("Försök igen").performClick()
         assertEquals(listOf<TodayEvent>(TodayEvent.Retry), events)
     }
@@ -702,7 +703,7 @@ class TodayScreenTest {
 
     /** Ett ark som `EditorSheet` öppnar det: den delade `EditorState` med [value], [loaded] = den sparade loggen. */
     private fun sheet(loaded: Screening?, value: Screening) = EditorSheetState(
-        EditorState(value, Validator { emptyMap() }, saveUnchanged = loaded == null),
+        EditorState(value, Validator { emptyMap() }, AppErrors, saveUnchanged = loaded == null),
         loaded,
         ScreeningSheetInfo(value.occasion, value.date?.takeIf { it != today }),
         CoroutineScope(Dispatchers.Main.immediate)
@@ -735,7 +736,7 @@ class TodayScreenTest {
         var state by mutableStateOf<DetailUiState<TodayContent>>(DetailUiState.Content(full(past)))
         rule.setContent { DagbokenTheme { TodayWithSheet(state, sheet) } }
         rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
-        for (next in listOf(DetailUiState.Loading, DetailUiState.Error(DataError.Offline))) {
+        for (next in listOf(DetailUiState.Loading, DetailUiState.Error(AppErrors.map(DataError.Offline)))) {
             state = next
             rule.onNodeWithText("Lunch · fre 2 okt 2026").assertIsDisplayed()
             rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
@@ -746,7 +747,7 @@ class TodayScreenTest {
     fun `en ny logg vars sparning misslyckades frågar Släng ändringar vid bakåt (NFR-10)`() {
         val events = mutableListOf<LogEvent>()
         val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
-        sheet.showError(Failure(DataError.Offline))
+        sheet.showError(AppErrors.map(DataError.Offline))
         showFull(screening = sheet, onScreening = { events += it })
         Espresso.pressBack()
         rule.onNodeWithText("Släng ändringar?").assertIsDisplayed()
@@ -806,7 +807,7 @@ class TodayScreenTest {
 
     @Test
     fun `en oförändrad logg kan inte sparas, och ett sparfel visas i arket (SCR-1)`() {
-        showFull(screening = sheet(breakfast, breakfast).also { it.showError(Failure(DataError.PermissionDenied)) })
+        showFull(screening = sheet(breakfast, breakfast).also { it.showError(AppErrors.map(DataError.PermissionDenied)) })
         repeat(3) { rule.onNodeWithText("Nästa").performClick() }
         rule.onNodeWithText("Spara").assertIsNotEnabled()
         rule.onNodeWithText(ApplicationProvider.getApplicationContext<Context>().getString(DataError.PermissionDenied.toMessage())).assertIsDisplayed()

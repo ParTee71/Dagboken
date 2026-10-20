@@ -19,16 +19,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.components.AppCard
-import se.partee71.dagboken.ui.components.AppDivider
-import se.partee71.dagboken.ui.components.ItemRow
 import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.ProgressBar
-import se.partee71.dagboken.ui.components.SectionHeader
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.IconSize
-import se.partee71.dagboken.ui.theme.Spacing
-import se.partee71.dagboken.ui.theme.Tone
+import se.partee71.dagboken.ui.theme.Positive
+import se.partee71.dagboken.ui.theme.Sun
+import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppDivider
+import se.partee71.ui.components.ItemRow
+import se.partee71.ui.components.SectionHeader
+import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.Tone
 
 /*
  * Byggstenarna som flytten (MigrationScreen) och importen (ImportContent) delar – en gång (regel 4): kort med

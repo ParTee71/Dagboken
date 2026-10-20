@@ -33,13 +33,15 @@ import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
-import se.partee71.dagboken.ui.common.EditorEvents
-import se.partee71.dagboken.ui.common.EditorState
-import se.partee71.dagboken.ui.common.EditorUiState
+import se.partee71.dagboken.ui.DagbokenContracts
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.EntryForm
-import se.partee71.dagboken.ui.runEditScreenContract
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.common.EditorEvents
+import se.partee71.ui.common.EditorState
+import se.partee71.ui.common.EditorUiState
+import se.partee71.ui.testing.runEditScreenContract
 
 /**
  * Plusknappens formulär (AKT-1–AKT-11, HAN-1, HEM-8b): ramens kontrakt, det som är unikt för formulären och
@@ -83,8 +85,9 @@ class LogScreensTest {
 
     @Test
     fun `aktivitetsformuläret uppfyller redigeringskontraktet (AKT-9, NFR-10)`() {
-        val editor = EditorState(walk.copy(optionId = ""), activityValidator)
+        val editor = EditorState(walk.copy(optionId = ""), activityValidator, AppErrors)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor,
             makeInvalid = { update(ActivityField.TYPE, ActivityField.DESCRIPTION) { it.copy(optionId = OTHER_ACTIVITY_ID) } },
             makeValid = { update(ActivityField.DESCRIPTION) { it.copy(customText = "Svamplockning") } },
@@ -182,8 +185,9 @@ class LogScreensTest {
 
     @Test
     fun `händelseformuläret uppfyller redigeringskontraktet (HAN-1, NFR-10)`() {
-        val editor = EditorState(migraine.copy(optionId = "dizzy"), eventValidator)
+        val editor = EditorState(migraine.copy(optionId = "dizzy"), eventValidator, AppErrors)
         rule.runEditScreenContract(
+            DagbokenContracts,
             editor,
             makeInvalid = { update(EventField.TYPE) { it.copy(optionId = "") } },
             makeValid = { update(EventField.TYPE) { it.copy(optionId = "migraine") } },

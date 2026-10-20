@@ -44,6 +44,7 @@ pmd                      = "7.28.0"
 vico                     = "3.3.1"  # diagram (ui/diagram, TRD-6…18); 3.x använde 2.1.3
 coil                     = "3.6.3"  # profilfotot i AccountAvatar (AUTH-3); 3.x använde Coil 2.7.0
 healthConnect            = "1.1.0"  # klockdatan, read-only (TP-10, HLS-1); senaste stabila, samma som 3.x
+androidUi                = "0.4.0"  # delade UI-biblioteket (ParTee71/android-ui, GitHub Packages): tema, komponenter, ramar
 
 [libraries]
 androidx-core-ktx                     = { group = "androidx.core",               name = "core-ktx",                          version.ref = "coreKtx" }
@@ -90,6 +91,11 @@ coil-compose                          = { group = "io.coil-kt.coil3",           
 coil-network-okhttp                   = { group = "io.coil-kt.coil3",            name = "coil-network-okhttp",               version.ref = "coil" }
 # Health Connect (TP-10, §19 HLS): bara läsning, bara i data/health – ingen Samsung-partner krävs.
 androidx-health-connect               = { group = "androidx.health.connect",     name = "connect-client",                    version.ref = "healthConnect" }
+# Det delade UI-biblioteket (tema, komponenter, ramar, formulär- och listtillstånd) – GitHub Packages (settings.gradle.kts).
+android-ui-theme                      = { group = "se.partee71.ui",              name = "ui-theme",                          version.ref = "androidUi" }
+android-ui-components                 = { group = "se.partee71.ui",              name = "ui-components",                     version.ref = "androidUi" }
+android-ui-common                     = { group = "se.partee71.ui",              name = "ui-common",                         version.ref = "androidUi" }
+android-ui-testing                    = { group = "se.partee71.ui",              name = "ui-testing",                        version.ref = "androidUi" }
 # Test
 junit                                 = { group = "junit",                       name = "junit",                             version.ref = "junit" }
 kotlin-test                           = { group = "org.jetbrains.kotlin",        name = "kotlin-test",                       version.ref = "kotlin" }

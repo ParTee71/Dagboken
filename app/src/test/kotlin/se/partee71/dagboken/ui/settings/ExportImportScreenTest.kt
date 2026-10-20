@@ -24,12 +24,13 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
-import se.partee71.dagboken.ui.common.Failure
+import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.migration.ImportEvent
 import se.partee71.dagboken.ui.migration.ImportStage
 import se.partee71.dagboken.ui.migration.MigrationSamples
 import se.partee71.dagboken.ui.migration.countText
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.common.UiError
 
 /**
  * Export och import (BCK-6, BCK-13, BCK-14, SET-8): "Spara som JSON" öppnar filväljaren med filnamnet och snackbaren
@@ -83,7 +84,7 @@ class ExportImportScreenTest {
 
     @Test
     fun `ett fel vid exporten visas som meddelande`() {
-        show(ExportImportUiState(failure = Failure(DataError.Offline)))
+        show(ExportImportUiState(failure = AppErrors.map(DataError.Offline)))
         rule.waitUntil(5_000) { rule.onAllNodes(hasText(text(R.string.error_offline))).fetchSemanticsNodes().isNotEmpty() }
     }
 
