@@ -146,6 +146,8 @@
     <!-- Kommentar per känsla (SCR-10) -->
     <string name="feeling_note_label">Varför? (valfritt)</string>
     <string name="feeling_note_description_format">Kommentar till %1$s</string>
+    <string name="feeling_note_add">Lägg till varför</string>
+    <string name="feeling_note_add_description_format">Lägg till varför för %1$s</string>
     <string name="feeling_selected_state">vald</string>
     <string name="feeling_unknown">Okänd känsla</string>
     <string name="feeling_separator">" › "</string>
