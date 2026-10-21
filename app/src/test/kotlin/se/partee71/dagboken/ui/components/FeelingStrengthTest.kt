@@ -16,6 +16,8 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -27,6 +29,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,6 +61,11 @@ class FeelingStrengthTest {
     }
 
     private fun stronger(description: String) = rule.onNodeWithContentDescription(description).performTouchInput { longClick() }
+
+    private fun described(prefix: String) = SemanticsMatcher(prefix) { node -> node.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty().any { it.startsWith(prefix) } }
+
+    private val noteFields = described("Kommentar till")
+    private val addNote = described("Lägg till varför")
 
     private fun state(text: String) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, text)
 
@@ -119,16 +127,40 @@ class FeelingStrengthTest {
     }
 
     @Test
-    fun `kommentarsfält per vald känsla - skrivs, läses av TalkBack och försvinner med känslan`() {
+    fun `kommentarsfält per vald känsla - fälls ut, skrivs, läses av TalkBack och försvinner med känslan`() {
         post = Screening("s", feelings = listOf(Feeling("calm", "grateful"), Feeling("glad")))
         picker()
-        rule.onNodeWithContentDescription("Kommentar till Lugn › Tacksam").performTextInput("Promenad")
+        assertEquals(0, rule.onAllNodes(noteFields).fetchSemanticsNodes().size, "hopfällda som standard")
+        rule.onNodeWithContentDescription("Lägg till varför för Lugn › Tacksam").performClick()
+        rule.waitForIdle()
+        assertEquals(emptyMap(), post.feelingNotes, "att fälla ut ändrar inte posten")
+        rule.onNodeWithContentDescription("Kommentar till Lugn › Tacksam").assertIsFocused().performTextInput("Promenad")
         rule.waitForIdle()
         assertEquals(mapOf("calm.grateful" to "Promenad"), post.feelingNotes)
         rule.onNodeWithText("Lugn › Tacksam").performClick()
         rule.waitForIdle()
         assertEquals(emptyMap(), post.feelingNotes)
-        rule.onNodeWithContentDescription("Kommentar till Glad").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.EditableText))
+        rule.onNodeWithContentDescription("Lägg till varför för Glad").assertExists()
+        assertEquals(0, rule.onAllNodes(noteFields).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `en sparad kommentar visas utfälld utan fokus, de andra hopfällda`() {
+        post = Screening("s", feelings = listOf(Feeling("calm", "grateful"), Feeling("glad")), feelingNotes = mapOf("calm.grateful" to "Promenad"))
+        picker()
+        rule.onNodeWithContentDescription("Kommentar till Lugn › Tacksam").assertIsNotFocused().assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.EditableText))
+        rule.onNodeWithContentDescription("Lägg till varför för Glad").assertExists()
+        rule.onNodeWithContentDescription("Lägg till varför för Lugn › Tacksam").assertDoesNotExist()
+    }
+
+    @Test
+    fun `Tillbaka till hjulet står överst i kärnvyn, ovanför navet`() {
+        post = Screening("s", feelings = listOf(Feeling("calm", "grateful"), Feeling("glad"), Feeling("scared", "anxious", "tense")))
+        picker()
+        rule.onNodeWithContentDescription("Lugn").performClick()
+        val back = rule.onNodeWithText("Tillbaka till hjulet").fetchSemanticsNode().boundsInRoot
+        val hub = rule.onNodeWithContentDescription("Lugn").fetchSemanticsNode().boundsInRoot
+        assertTrue(back.bottom <= hub.top, "tillbaka ($back) ska ligga ovanför navet ($hub)")
     }
 
     @Test
@@ -137,8 +169,8 @@ class FeelingStrengthTest {
         show { FeelingPicker(selected, { selected = it }) }
         rule.onNodeWithContentDescription("Lugn").performClick()
         rule.onNodeWithContentDescription("Lugn").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CustomActions))
-        val notes = SemanticsMatcher("kommentarsfält") { node -> node.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty().any { it.startsWith("Kommentar till") } }
-        assertEquals(0, rule.onAllNodes(notes).fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodes(noteFields).fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodes(addNote).fetchSemanticsNodes().size)
     }
 
     @Test

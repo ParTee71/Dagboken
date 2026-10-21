@@ -16,13 +16,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -91,7 +96,7 @@ class FeelingExtras(
  * precisare ord eller en nyans ersätter det grövre valet på samma plats i listan. Tryck på en vald nyans som inte är
  * aktiv gör den aktiv; tryck på den aktiva går tillbaka till kärnan ensam (tas bort om kärnan redan står kvar i ett
  * annat val), och ett nytt tryck på ett valt precisare ord går tillbaka till nyansen. Navet visar kärnan och har en
- * ring när den är vald ensam; ett val tas bort via sin pill. "Tillbaka till hjulet" behåller valen.
+ * ring när den är vald ensam; ett val tas bort via sin pill. "Tillbaka till hjulet" står överst och behåller valen.
  * Högst [maxSelected] val: därefter ignoreras nya val och knapparna som skulle lägga till är inaktiva. Vilken kärna
  * som är öppen och vilken nyans som visar sina ord är komponentens eget tillstånd; valen ägs av anroparen
  * ([selected], [onSelectedChange]). [title] är frågan över hjulet – måendearkets "Vad känner du just nu?" som standard,
@@ -100,7 +105,8 @@ class FeelingExtras(
  * [extras] (SCR-9, SCR-10): **långtryck** på det yttersta valda ordet – navet när bara kärnan är vald, annars nyansen
  * eller det precisare ordet – gör känslan ett steg starkare ([longPressAction], TalkBack-åtgärden "Starkare"); ordet,
  * pillen och hjulets sektor fylls med kärnans ton i styrkans intensitet, med 1–3 prickar, och TalkBack läser styrkan
- * som ord. Under pillsen har varje vald känsla ett enradigt kommentarsfält "Varför? (valfritt)".
+ * som ord. Under pillsen har varje vald känsla en hopfälld kommentar ("Lägg till varför") som fälls ut till ett enradigt
+ * fält "Varför? (valfritt)"; en sparad kommentar visas utfälld.
  */
 @Composable
 fun FeelingPicker(
@@ -130,14 +136,7 @@ fun FeelingPicker(
                 FeelingSelection.selectCore(selected, opened, full)?.let(onSelectedChange)
             }, strengths = strongestPerCore(selected, extras.strengthOf))
         } else {
-            CoreView(core, selected, full, activeNuance?.takeIf { n -> selected.any { it.core == core && it.nuance == n } }, extras) { change ->
-                activeNuance = change.active
-                onSelectedChange(change.selected)
-            }
-        }
-        SelectedPills(selected, extras.strengthOf) { index -> onSelectedChange(selected.filterIndexed { i, _ -> i != index }) }
-        extras.onNoteChange?.let { onNoteChange -> FeelingNotes(selected, extras.noteOf, onNoteChange) }
-        if (core != null) {
+            // Överst, så att vägen tillbaka syns utan scroll hur många känslor som än är valda (#367).
             AppButton(
                 stringResource(R.string.feelings_back_to_wheel),
                 {
@@ -147,7 +146,13 @@ fun FeelingPicker(
                 variant = ButtonVariant.Text,
                 icon = R.drawable.ic_chevron_left
             )
+            CoreView(core, selected, full, activeNuance?.takeIf { n -> selected.any { it.core == core && it.nuance == n } }, extras) { change ->
+                activeNuance = change.active
+                onSelectedChange(change.selected)
+            }
         }
+        SelectedPills(selected, extras.strengthOf) { index -> onSelectedChange(selected.filterIndexed { i, _ -> i != index }) }
+        extras.onNoteChange?.let { onNoteChange -> FeelingNotes(selected, extras.noteOf, onNoteChange) }
     }
 }
 
@@ -312,24 +317,48 @@ private fun SelectedPills(selected: List<Feeling>, strengthOf: (Feeling) -> Feel
     }
 }
 
-/** Ett enradigt kommentarsfält per vald känsla (SCR-10): känslans namn som etikett, "Varför? (valfritt)" i fältet. */
+/**
+ * Kommentaren per vald känsla (SCR-10), hopfälld som standard: känslans namn och "Lägg till varför" på en rad; trycket
+ * fäller ut ett enradigt fält med fokus. En känsla som redan har en kommentar visas utfälld, så att inget sparat göms.
+ */
 @Composable
 private fun FeelingNotes(selected: List<Feeling>, noteOf: (Feeling) -> String, onNoteChange: (Feeling, String) -> Unit) {
-    selected.forEach { feeling ->
-        val label = feelingsLabel(feeling)
-        val description = stringResource(R.string.feeling_note_description_format, label)
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(label, Modifier.clearAndSetSemantics {}, style = AppTypography.itemSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            AppTextField(
-                noteOf(feeling),
-                { onNoteChange(feeling, it) },
-                stringResource(R.string.feeling_note_label),
-                Modifier.semantics { contentDescription = description },
-                singleLine = true,
-                maxLength = TextLimits.SHORT
+    selected.forEach { feeling -> key(feeling) { FeelingNote(feeling, noteOf(feeling)) { onNoteChange(feeling, it) } } }
+}
+
+@Composable
+private fun FeelingNote(feeling: Feeling, note: String, onNoteChange: (String) -> Unit) {
+    val label = feelingsLabel(feeling)
+    var opened by rememberSaveable { mutableStateOf(false) }
+    if (note.isEmpty() && !opened) {
+        val addDescription = stringResource(R.string.feeling_note_add_description_format, label)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, Modifier.weight(1f).clearAndSetSemantics {}, style = AppTypography.itemSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            AppButton(
+                stringResource(R.string.feeling_note_add),
+                { opened = true },
+                Modifier.semantics { contentDescription = addDescription },
+                variant = ButtonVariant.Text,
+                icon = R.drawable.ic_add
             )
         }
+        return
     }
+    val description = stringResource(R.string.feeling_note_description_format, label)
+    val focus = remember { FocusRequester() }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(label, Modifier.clearAndSetSemantics {}, style = AppTypography.itemSubtitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        AppTextField(
+            note,
+            onNoteChange,
+            stringResource(R.string.feeling_note_label),
+            Modifier.focusRequester(focus).semantics { contentDescription = description },
+            singleLine = true,
+            maxLength = TextLimits.SHORT
+        )
+    }
+    // Bara när fältet fälls ut av trycket – en sparad kommentar tar inte fokus när arket öppnas.
+    if (opened && note.isEmpty()) LaunchedEffect(Unit) { focus.requestFocus() }
 }
 
 /**
