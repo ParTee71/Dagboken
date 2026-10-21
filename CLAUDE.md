@@ -5,7 +5,7 @@
 > Kravspecifikation: [KRAVLISTA.md](KRAVLISTA.md) · Arkitektur och ombyggnadsplan: [ARKITEKTUR.md](ARKITEKTUR.md) (ADR-001)
 
 Den här filen gäller vid **varje** ändring, oavsett storlek, både på telefonen och i Android
-Studio; detaljerna ligger som skills i `.claude/skills/`.
+Studio; detaljerna ligger som skills i `.claude/skills/` (i projekttrådar `dagboken:<namn>`).
 
 **Svarslängd:** håll chattsvar minimala. Inga sammanfattningar, ingen upprepning av vad
 som gjordes, inga rubriker/listor om inte nödvändigt. Kod, commits och PR-beskrivningar
