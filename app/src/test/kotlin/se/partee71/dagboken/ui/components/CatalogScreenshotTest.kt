@@ -430,6 +430,18 @@ class CatalogScreenshotTest {
                 }
             }
         }
+        // favoriteMenuItem och FavoriteMark visas på postkortet: märket efter titeln, menyraden i ⋮-menyn (öppnas inte i skärmdumpen).
+        captureLightAndDark("FavoriteMark_lagen") {
+            Sheet {
+                DagbokenEntryCard("Betapred 0,5 mg", onClick = {}, subtitle = "Vid behov", favorite = true, onEdit = {})
+                DagbokenEntryCard("Alvedon 500 mg", onClick = {}, subtitle = "Vid behov", favorite = false, onEdit = {})
+            }
+        }
+        captureLightAndDark("favoriteMenuItem_lagen") {
+            Sheet {
+                DagbokenEntryCard("Betapred 0,5 mg", onClick = {}, subtitle = "Vid behov", actions = listOf(favoriteMenuItem("Betapred", true) {}), favorite = true)
+            }
+        }
         captureLightAndDark("Foldout_lagen") {
             Sheet {
                 AppCard { Foldout("Mätvärden", false, {}, summary = "Energi 7 · stress 3") {} }

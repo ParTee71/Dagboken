@@ -5,11 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,9 +17,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import se.partee71.dagboken.reminders.MomentLaunch
 import se.partee71.dagboken.ui.settings.AppThemeViewModel
-import se.partee71.dagboken.ui.settings.isDark
-import se.partee71.dagboken.ui.theme.DagbokenTheme
-import se.partee71.dagboken.ui.theme.applySystemBars
+import se.partee71.dagboken.ui.settings.setDagbokenContent
 
 /**
  * Stunden i helskärm (NOT-20) – en egen aktivitet, inte `MainActivity`, så att den kan visas ovanpå låsskärmen
@@ -49,23 +43,17 @@ class MomentActivity : ComponentActivity() {
         setShowWhenLocked(true)
         setTurnScreenOn(true)
         if (!show(intent)) return
-        enableEdgeToEdge()
-        setContent {
-            val chosen by theme.theme.collectAsStateWithLifecycle()
+        setDagbokenContent(theme.theme) {
             val current by launch.collectAsStateWithLifecycle()
-            val dark = chosen.isDark(isSystemInDarkTheme())
-            LaunchedEffect(dark) { applySystemBars(dark) }
-            DagbokenTheme(darkTheme = dark) {
-                current?.let { moment ->
-                    MomentRoute(
-                        moment,
-                        today = clock.todayIn(zone.get()),
-                        onChooseFeelings = { chooseFeelings(moment) },
-                        // Bakåt = Inte nu: aktiviteten stängs (standardbeteendet), notisen står kvar.
-                        onNotNow = ::finish,
-                        onPauseDone = { window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
-                    )
-                }
+            current?.let { moment ->
+                MomentRoute(
+                    moment,
+                    today = clock.todayIn(zone.get()),
+                    onChooseFeelings = { chooseFeelings(moment) },
+                    // Bakåt = Inte nu: aktiviteten stängs (standardbeteendet), notisen står kvar.
+                    onNotNow = ::finish,
+                    onPauseDone = { window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+                )
             }
         }
     }

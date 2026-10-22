@@ -257,6 +257,17 @@ private fun Rows() {
         AppDivider()
         var favorite by remember { mutableStateOf(true) }
         ItemRow("Alvedon 500 mg", subtitle = "Minst 4 h mellan · högst 8 per dag", navigates = true, onClick = {}, trailing = { FavoriteStar("Alvedon", favorite, { favorite = !favorite }) })
+        DagbokenEntryCard(
+            "Betapred 0,5 mg",
+            onClick = {},
+            subtitle = "Vid behov",
+            actions = listOf(favoriteMenuItem("Betapred", favorite) { favorite = !favorite }),
+            favorite = favorite
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+            InfoPill("Betapred")
+            FavoriteMark()
+        }
     }
     NoticeBanner("Kåvepenin slutar i morgon. Höjningen av Sertralin slutar i morgon – sedan 50 mg.", R.drawable.ic_bell, {})
     NoticeBanner("Health Connect kopplad", R.drawable.ic_watch, onClick = null, tone = Tone.Positive, detail = "Steg, puls, sömn och sömnkvalitet visas här.")

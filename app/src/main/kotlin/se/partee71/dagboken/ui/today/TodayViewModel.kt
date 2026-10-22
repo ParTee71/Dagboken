@@ -354,16 +354,19 @@ class TodayViewModel @Inject constructor(
 
     private val library: Flow<Library> = combine(prescriptions.observe(), medicines.observe(), settings.settings, ::Library)
 
-    private data class Toggles(val done: Boolean, val upcoming: Boolean, val celebrated: LocalDate?, val collapsed: Set<TodayCard>)
+    private data class Toggles(val done: Boolean, val upcoming: Boolean, val celebrated: LocalDate?)
 
-    private val toggles = combine(showDone, showUpcoming, celebrated, collapsed, ::Toggles)
+    private val toggles = combine(showDone, showUpcoming, celebrated, ::Toggles)
 
     /** Allt som inte beror på klockslaget räknas en gång per ändring – inte varje minut. */
     private val day: Flow<DayView> = combine(span, entries, library, toggles, failedDays, ::day)
 
-    /** Per minut räknas bara det som beror på klockslaget: hälsningen och "Snart"/"Försenat" (MED-13). */
+    /**
+     * Per minut räknas bara det som beror på klockslaget: hälsningen och "Snart"/"Försenat" (MED-13). Hopfällda kort
+     * ([collapsed]) läggs till här – att fälla ihop ett kort räknar inte om dagen.
+     */
     private val content: Flow<TodayContent> =
-        combine(day, now, illness.onStart { emit(null) }) { day, now, illness -> day.at(clock(now), illness) }
+        combine(day, now, illness.onStart { emit(null) }, collapsed) { day, now, illness, collapsed -> day.at(clock(now), illness, collapsed) }
 
     /** Det som beror på klockslaget [now] i tidszonen [zone]. */
     private class Moment(val now: LocalDateTime, val zone: TimeZone)
@@ -425,7 +428,7 @@ class TodayViewModel @Inject constructor(
                 .toImmutableMap()
         }
 
-        fun at(moment: Moment, illness: Pair<IllnessEpisode, List<Checkin>>?): TodayContent = TodayContent(
+        fun at(moment: Moment, illness: Pair<IllnessEpisode, List<Checkin>>?, collapsed: Set<TodayCard>): TodayContent = TodayContent(
             today = today,
             date = date,
             week = week,
@@ -449,7 +452,7 @@ class TodayViewModel @Inject constructor(
             illness = illness?.let { (episode, checkins) -> ongoingIllness(episode, checkins, today) },
             missingCause = missingCause,
             feelings = feelings,
-            collapsed = toggles.collapsed.toImmutableSet()
+            collapsed = collapsed.toImmutableSet()
         )
     }
 

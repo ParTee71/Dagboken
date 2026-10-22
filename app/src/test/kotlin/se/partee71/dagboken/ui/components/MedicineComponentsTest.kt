@@ -27,9 +27,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 import se.partee71.ui.common.ListUiState
 import se.partee71.ui.components.AddAction
+import se.partee71.ui.components.AppMenuItem
 import se.partee71.ui.components.EmptyContent
 import se.partee71.ui.components.EntityListScreen
 import se.partee71.ui.components.InfoPill
@@ -59,6 +61,29 @@ class MedicineComponentsTest {
         rule.onNodeWithContentDescription("Markera Alvedon som favorit").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Inte favorit")).performClick()
         assertTrue(favorite)
         rule.onNodeWithContentDescription("Ta bort Alvedon som favorit").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Favorit"))
+    }
+
+    @Test
+    fun `favoriteMenuItem har samma text och stjärna som FavoriteStar och växlar`() {
+        var toggled = 0
+        var off: AppMenuItem? = null
+        var on: AppMenuItem? = null
+        show {
+            off = favoriteMenuItem("Alvedon", false) { toggled++ }
+            on = favoriteMenuItem("Alvedon", true) { toggled++ }
+        }
+        assertEquals("Markera Alvedon som favorit", off?.label)
+        assertEquals(R.drawable.ic_star, off?.icon)
+        assertEquals("Ta bort Alvedon som favorit", on?.label)
+        assertEquals(R.drawable.ic_star_filled, on?.icon)
+        off?.onClick?.invoke()
+        assertEquals(1, toggled)
+    }
+
+    @Test
+    fun `FavoriteMark läses som Favorit`() {
+        show { FavoriteMark() }
+        rule.onNodeWithContentDescription("Favorit").assertIsDisplayed()
     }
 
     @Test

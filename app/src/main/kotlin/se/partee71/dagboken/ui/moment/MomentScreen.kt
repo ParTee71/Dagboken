@@ -14,8 +14,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -70,7 +72,7 @@ fun MomentRoute(
         occasion = stringResource(launch.occasion.label()),
         time = DateFormat.time(launch.time),
         prompt = if (launch.question) prompts.getOrNull(ReflectionPrompts.indexFor(today)) else null,
-        remainingSeconds = remaining,
+        remainingSeconds = { remaining },
         onChooseFeelings = onChooseFeelings,
         onNotNow = onNotNow
     )
@@ -81,7 +83,8 @@ fun MomentRoute(
  * mitten, knapparna längst ned. Rubriken "Stunden · Läggdags 21:00", uppmaningen, andningscirkeln (`BreathingCircle`, 4-4,
  * vid reducerad rörelse bara texten), nedräkningen ("1:40 kvar"), frågan "Vad känner du just nu?" (samma som
  * känslosteget, SCR-7) med [prompt] under (NOT-21) och hjälptexten. **Välj känslor** är inaktiv tills pausen är klar
- * ([remainingSeconds] = 0) och blir då primär; **Inte nu** stänger alltid. Visar bara tillfälle, tid, text och fråga –
+ * ([remainingSeconds] = 0) och blir då primär; [remainingSeconds] är en lambda som bara nedräkningen läser, så att resten av
+ * skärmen inte räknas om varje sekund; **Inte nu** stänger alltid. Visar bara tillfälle, tid, text och fråga –
  * inga hälsodata.
  */
 @Composable
@@ -89,13 +92,13 @@ fun MomentScreen(
     occasion: String,
     time: String,
     prompt: String?,
-    remainingSeconds: Int,
+    remainingSeconds: () -> Int,
     onChooseFeelings: () -> Unit,
     onNotNow: () -> Unit,
     modifier: Modifier = Modifier,
     reducedMotion: Boolean = rememberReducedMotion()
 ) {
-    val finished = remainingSeconds <= 0
+    val finished by remember { derivedStateOf { remainingSeconds() <= 0 } }
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier
@@ -143,14 +146,15 @@ fun MomentScreen(
 
 /** "1:40 kvar" (TalkBack: "1 min 40 s kvar"), och "Pausen är klar" när den är slut. */
 @Composable
-private fun Countdown(remainingSeconds: Int) {
-    if (remainingSeconds <= 0) {
+private fun Countdown(remainingSeconds: () -> Int) {
+    val remaining = remainingSeconds()
+    if (remaining <= 0) {
         Text(stringResource(R.string.moment_done), style = AppTypography.quantity, color = MaterialTheme.colorScheme.primary)
         return
     }
-    val spoken = stringResource(R.string.moment_remaining_description, formatDuration(remainingSeconds))
+    val spoken = stringResource(R.string.moment_remaining_description, formatDuration(remaining))
     Text(
-        stringResource(R.string.moment_remaining, remainingSeconds / SECONDS_PER_MINUTE, remainingSeconds % SECONDS_PER_MINUTE),
+        stringResource(R.string.moment_remaining, remaining / SECONDS_PER_MINUTE, remaining % SECONDS_PER_MINUTE),
         Modifier.semantics { contentDescription = spoken },
         style = AppTypography.quantity,
         color = MaterialTheme.colorScheme.onSurfaceVariant

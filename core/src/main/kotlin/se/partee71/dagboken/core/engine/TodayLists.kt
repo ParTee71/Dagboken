@@ -127,14 +127,29 @@ sealed interface AsNeededChip : Identified {
     override val id: String
     val name: String
 
+    /** Namn och styrka (receptets eller medicinens `displayName`). */
+    val displayName: String
+
+    /** Anteckningen, om någon. */
+    val note: String?
+
+    /** Nyckel för chipet i UI:t (vilken meny som är öppen): typen ingår, eftersom ett id är unikt bara inom sin samling. */
+    val key: String
+
     data class Medicine(val medicine: PrnMedicine) : AsNeededChip {
         override val id: String get() = medicine.id
         override val name: String get() = medicine.name
+        override val displayName: String get() = medicine.displayName
+        override val note: String? get() = medicine.note
+        override val key: String get() = "medicine:$id"
     }
 
     data class Recipe(val prescription: Prescription) : AsNeededChip {
         override val id: String get() = prescription.id
         override val name: String get() = prescription.name
+        override val displayName: String get() = prescription.displayName
+        override val note: String? get() = prescription.note
+        override val key: String get() = "recipe:$id"
     }
 }
 
