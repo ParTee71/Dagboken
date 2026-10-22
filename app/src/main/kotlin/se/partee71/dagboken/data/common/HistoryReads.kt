@@ -73,15 +73,15 @@ class HistoryCoverage @Inject constructor(
             lock(key).withLock {
                 if (started != generation || !isCurrent()) return@withLock
                 val today = clock.todayIn(zone.get())
-                val coveredFrom = read(key + FROM)
-                val fetchedOn = read(key + ON)
+                val coveredFrom = marks.getOrNull(PREFIX + key + FROM)
+                val fetchedOn = marks.getOrNull(PREFIX + key + ON)
                 val fresh = fetchedOn != null && fetchedOn <= today && fetchedOn > today.minus(REFRESH_DAYS, DateTimeUnit.DAY)
                 when {
                     fresh && coveredFrom != null && from >= coveredFrom -> Unit
 
                     fresh && coveredFrom != null -> {
                         fetch(from, coveredFrom.minus(1, DateTimeUnit.DAY))
-                        record(started, isCurrent) { write(key + FROM, from) }
+                        record(started, isCurrent) { marks.setQuietly(PREFIX + key + FROM, from) }
                     }
 
                     else -> {
@@ -89,8 +89,8 @@ class HistoryCoverage @Inject constructor(
                         fetch(start, null)
                         // Startdagen före hämtdagen: avbryts det mellan dem är täckningen ogiltig och hämtas om.
                         record(started, isCurrent) {
-                            write(key + FROM, start)
-                            write(key + ON, today)
+                            marks.setQuietly(PREFIX + key + FROM, start)
+                            marks.setQuietly(PREFIX + key + ON, today)
                         }
                     }
                 }
@@ -111,12 +111,6 @@ class HistoryCoverage @Inject constructor(
     }
 
     private fun lock(key: String): Mutex = synchronized(locks) { locks.getOrPut(key) { Mutex() } }
-
-    private suspend fun read(key: String): LocalDate? = suspendRunCatching({ DataError.Unknown }) { marks.get(PREFIX + key) }.getOrNull()
-
-    private suspend fun write(key: String, day: LocalDate) {
-        suspendRunCatching({ DataError.Unknown }) { marks.set(PREFIX + key, day) }
-    }
 
     companion object {
         /** Täckningen hämtas om efter så här många dagar (NFR-24). */

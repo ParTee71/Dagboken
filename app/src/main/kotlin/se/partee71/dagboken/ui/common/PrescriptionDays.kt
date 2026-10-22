@@ -74,4 +74,4 @@ fun <T> Flow<T>.attemptingEach(
  * `null`. Ett kast fångas och visas inte (ett programfel får inte fälla vyn); offline svarar städningen utan fel, och
  * `ensureDay` med [DataError.Offline] (som [attemptingEach] gör om).
  */
-suspend fun failureOfAttempt(action: suspend () -> Result<Unit>): UiError? = suspendRunCatching({ DataError.Unknown }) { action() }.getOrNull()?.uiErrorOrNull(AppErrors)
+suspend fun failureOfAttempt(action: suspend () -> Result<Unit>): UiError? = suspendRunCatching { action() }.getOrNull()?.uiErrorOrNull(AppErrors)

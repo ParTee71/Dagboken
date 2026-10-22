@@ -207,8 +207,7 @@ class FirestoreCollection<T : Identified>(
         // Kodas före transaktionen, så att ett okänt fält är ett fel innan något läses.
         val patch = runCatching { fieldsForUpdate(encode(item), fields) }
             .getOrElse { return Result.failure(firestoreError(it)) }
-        return suspendRunCatching(::firestoreError) {
-            scope.writeBlocker()?.let { throw it }
+        return guardedWrite {
             val ref = ref()
             val source = ref.document(from)
             val target = ref.document(item.id)
@@ -242,8 +241,7 @@ class FirestoreCollection<T : Identified>(
     }
 
     /** Atomärt inom varje bit om 500 skrivningar (Firestores gräns), inte över bitar. */
-    private suspend fun commit(operations: () -> List<BatchOp>): Result<Unit> = suspendRunCatching(::firestoreError) {
-        scope.writeBlocker()?.let { throw it }
+    private suspend fun commit(operations: () -> List<BatchOp>): Result<Unit> = guardedWrite {
         val ref = ref()
         operations().chunked(MAX_BATCH).forEach { chunk ->
             val batch = db.batch()
@@ -261,8 +259,7 @@ class FirestoreCollection<T : Identified>(
      * [commits] (som [awaitWrites] väntar in) och i [sync] (ett sent fel syns som skrivfel). Ett
      * dokument som inte går att avkoda fäller inte bitens övriga ([Stored.Unreadable]).
      */
-    private suspend fun transact(ids: Set<String>, decide: (id: String, stored: Stored<T>) -> BatchOp?): Result<Unit> = suspendRunCatching(::firestoreError) {
-        scope.writeBlocker()?.let { throw it }
+    private suspend fun transact(ids: Set<String>, decide: (id: String, stored: Stored<T>) -> BatchOp?): Result<Unit> = guardedWrite {
         val ref = ref()
         ids.chunked(MAX_BATCH).forEach { chunk ->
             val task = db.runTransaction { tx ->
@@ -298,9 +295,14 @@ class FirestoreCollection<T : Identified>(
     private fun decode(id: String, data: Map<String, Any?>) = readDocument(codec, name, scope.currentVersion(), id, fromFirestore(data))
 
     /** Skrivningen läggs i cachen direkt; servern svarar senare (offline först). */
-    private suspend fun write(block: (CollectionReference) -> Task<*>): Result<Unit> = suspendRunCatching(::firestoreError) {
-        scope.writeBlocker()?.let { throw it }
+    private suspend fun write(block: (CollectionReference) -> Task<*>): Result<Unit> = guardedWrite {
         sync.track(block(ref()))
+    }
+
+    /** Varje skrivning: nekas om appen är skrivskyddad ([writeBlocker]), annars [block] med Firestores fel mappade. */
+    private suspend fun <R> guardedWrite(block: suspend () -> R): Result<R> = suspendRunCatching(::firestoreError) {
+        scope.writeBlocker()?.let { throw it }
+        block()
     }
 
     private fun ref(): CollectionReference = db.collection(path(scope.uid.value))

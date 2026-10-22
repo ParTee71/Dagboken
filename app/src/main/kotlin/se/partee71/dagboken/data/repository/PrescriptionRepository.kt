@@ -20,6 +20,7 @@ import se.partee71.dagboken.data.common.LatestWins
 import se.partee71.dagboken.data.common.SyncStatus
 import se.partee71.dagboken.data.common.offlineIsNoOp
 import se.partee71.dagboken.data.common.updateChanged
+import se.partee71.dagboken.data.common.updateFavorite
 import se.partee71.dagboken.di.ApplicationScope
 
 /**
@@ -168,7 +169,7 @@ class DefaultPrescriptionRepository @Inject constructor(
         return syncFromServer(prescription.id, clock.todayIn(zone.get())).also { background.launch { daily.forget(TIDY_UP) } }
     }
 
-    override suspend fun setFavorite(prescription: Prescription, favorite: Boolean): Result<Unit> = collection.update(prescription.copy(favorite = favorite), setOf(PrescriptionCodec.FAVORITE))
+    override suspend fun setFavorite(prescription: Prescription, favorite: Boolean): Result<Unit> = collection.updateFavorite(prescription.copy(favorite = favorite), PrescriptionCodec.FAVORITE)
 
     // Inställningarna läses en gång, före låset: om synken skapar doser avgörs först under låset (serverns recept).
     override suspend fun syncFromServer(prescriptionId: String, today: LocalDate): Result<Unit> = sync(prescriptionId, today, settings.currentReminders()).offlineIsNoOp()

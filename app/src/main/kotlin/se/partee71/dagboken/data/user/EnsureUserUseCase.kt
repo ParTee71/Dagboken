@@ -25,7 +25,7 @@ class EnsureUserUseCase @Inject constructor(
     private val directory: UserDirectory,
     private val clock: Clock
 ) {
-    suspend operator fun invoke(uid: String): Result<UserStatus> = suspendRunCatching({ DataError.Unknown }) {
+    suspend operator fun invoke(uid: String): Result<UserStatus> = suspendRunCatching {
         val stored = directory.createIfMissing(uid, initialDocument(clock.now())).getOrThrow()
         if (Schema.isNewerThanApp(Schema.versionOf(stored[SCHEMA_VERSION]))) {
             UserStatus.RequiresUpdate(uid)

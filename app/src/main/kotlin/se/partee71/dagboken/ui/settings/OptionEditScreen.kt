@@ -31,6 +31,7 @@ import se.partee71.dagboken.core.engine.hasActiveName
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.common.asDataError
 import se.partee71.dagboken.data.repository.DuplicateOptionName
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.ui.common.AppErrors
@@ -113,7 +114,7 @@ class OptionEditViewModel @AssistedInject constructor(
             options.observe(kind)
                 .map<List<Option>, List<Option>?> { it }
                 .catch { error ->
-                    listError.value = error as? DataError ?: DataError.Unknown
+                    listError.value = error.asDataError()
                     emit(null)
                 }
         }

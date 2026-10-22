@@ -37,7 +37,7 @@ class SignOutUseCase @Inject constructor(
         return cleared
     }
 
-    private suspend fun forget(): Result<Unit> = suspendRunCatching({ DataError.Unknown }) { coverage.forgetAll() }
+    private suspend fun forget(): Result<Unit> = suspendRunCatching { coverage.forgetAll() }
 
     private companion object {
         /** Kvitton från servern brukar komma på under en sekund; utloggningen ska inte dröja. */

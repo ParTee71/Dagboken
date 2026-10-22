@@ -6,6 +6,7 @@ import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.schema.PrnMedicineCodec
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.common.updateChanged
+import se.partee71.dagboken.data.common.updateFavorite
 
 /** Vid behov-medicinerna i samlingen `prnMedicines` (FAV-1…FAV-11, MEDF-3, SET-10). */
 interface PrnMedicineRepository {
@@ -42,7 +43,7 @@ class DefaultPrnMedicineRepository @Inject constructor(collections: CollectionFa
 
     override suspend fun save(loaded: PrnMedicine, edited: PrnMedicine): Result<Unit> = collection.updateChanged(PrnMedicineCodec, loaded, edited.copy(id = loaded.id))
 
-    override suspend fun setFavorite(medicine: PrnMedicine, favorite: Boolean): Result<Unit> = collection.update(medicine.copy(favorite = favorite), setOf(PrnMedicineCodec.FAVORITE))
+    override suspend fun setFavorite(medicine: PrnMedicine, favorite: Boolean): Result<Unit> = collection.updateFavorite(medicine.copy(favorite = favorite), PrnMedicineCodec.FAVORITE)
 
     override suspend fun delete(id: String): Result<Unit> = collection.delete(id)
 }

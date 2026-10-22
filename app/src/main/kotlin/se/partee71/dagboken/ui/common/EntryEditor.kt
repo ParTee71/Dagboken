@@ -88,7 +88,7 @@ class EntryEditor<T>(
     private fun createNew() {
         creating?.cancel()
         creating = scope.launch {
-            suspendRunCatching({ it as? DataError ?: DataError.Unknown }) { create() }
+            suspendRunCatching { create() }
                 .onSuccess { editor.load(it) }
                 .onFailure { editor.loadFailed(it as DataError) }
         }

@@ -14,6 +14,7 @@ import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.UserFile
 import se.partee71.dagboken.data.common.UserScope
+import se.partee71.dagboken.data.common.asDataError
 import se.partee71.dagboken.data.common.currentVersion
 import se.partee71.dagboken.data.common.readOrNull
 import se.partee71.dagboken.data.common.writeBlocker

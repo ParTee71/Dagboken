@@ -184,32 +184,28 @@ fun RootSheets(
     onOpen: (SettingsPage) -> Unit = {},
     onLog: (LogChoice) -> Unit = {}
 ) {
+    /** Arket stängs först, sedan görs valet. */
+    fun dismissThen(action: () -> Unit): () -> Unit = {
+        onDismiss()
+        action()
+    }
+
+    fun <A> dismissThen(action: (A) -> Unit): (A) -> Unit = { argument ->
+        onDismiss()
+        action(argument)
+    }
     when (sheet) {
         RootSheet.Account -> AccountSheet(
             onDismiss = onDismiss,
-            onSignOut = {
-                onDismiss()
-                onSignOut()
-            },
-            onOpenGallery = onOpenGallery?.let { open ->
-                {
-                    onDismiss()
-                    open()
-                }
-            },
+            onSignOut = dismissThen(onSignOut),
+            onOpenGallery = onOpenGallery?.let(::dismissThen),
             account = account,
-            onOpen = { page ->
-                onDismiss()
-                onOpen(page)
-            }
+            onOpen = dismissThen(onOpen)
         )
 
         RootSheet.Log -> LogMenuSheet(
             onDismiss = onDismiss,
-            onPick = { choice ->
-                onDismiss()
-                onLog(choice)
-            }
+            onPick = dismissThen(onLog)
         )
 
         null -> Unit
@@ -253,17 +249,17 @@ fun appEntries(
         entry<EpisodeKey> { key ->
             IllnessDetailRoute(
                 key.id,
-                onBack = { backStack.popIfTop(key) },
+                onBack = backStack.closer(key),
                 onEdit = { backStack.push(EpisodeEditKey(key.id)) },
                 onCheckin = { checkinId -> backStack.push(key.checkinKey(checkinId)) }
             )
         }
-        entry<EpisodeEditKey> { key -> EpisodeEditRoute(key.id, onClose = { backStack.popIfTop(key) }) }
-        entry<ActivityEditKey> { key -> ActivityEditRoute(key.id, key.date, onClose = { backStack.popIfTop(key) }) }
-        entry<EventEditKey> { key -> EventEditRoute(key.id, key.date, onClose = { backStack.popIfTop(key) }) }
-        entry<DoseEditKey> { key -> DoseEditRoute(key.id, key.prnId, key.date, onClose = { backStack.popIfTop(key) }) }
-        entry<EpisodeNewKey> { key -> EpisodeNewRoute(key.date, onClose = { backStack.popIfTop(key) }) }
-        entry<CheckinEditKey> { key -> CheckinEditRoute(key.episodeId, key.id, key.date, onClose = { backStack.popIfTop(key) }) }
+        entry<EpisodeEditKey> { key -> EpisodeEditRoute(key.id, onClose = backStack.closer(key)) }
+        entry<ActivityEditKey> { key -> ActivityEditRoute(key.id, key.date, onClose = backStack.closer(key)) }
+        entry<EventEditKey> { key -> EventEditRoute(key.id, key.date, onClose = backStack.closer(key)) }
+        entry<DoseEditKey> { key -> DoseEditRoute(key.id, key.prnId, key.date, onClose = backStack.closer(key)) }
+        entry<EpisodeNewKey> { key -> EpisodeNewRoute(key.date, onClose = backStack.closer(key)) }
+        entry<CheckinEditKey> { key -> CheckinEditRoute(key.episodeId, key.id, key.date, onClose = backStack.closer(key)) }
         entry<TrendsKey> { TrendsRoute(account(), onAccount) }
         entry<MedicinesKey> {
             MedicinesRoute(
@@ -276,20 +272,20 @@ fun appEntries(
                 onLogDose = { onScreening(LogEvent.PickDose(null)) }
             )
         }
-        entry<PrescriptionEditKey> { key -> PrescriptionEditRoute(key.id, key.extend, onClose = { backStack.popIfTop(key) }) }
-        entry<PrnMedicineEditKey> { key -> PrnMedicineEditRoute(key.id, onClose = { backStack.popIfTop(key) }) }
-        entry<ComponentGalleryKey> { key -> ComponentGallery(onBack = { backStack.popIfTop(key) }) }
-        entry<ProfileKey> { key -> ProfileRoute(onClose = { backStack.popIfTop(key) }) }
-        entry<RemindersKey> { key -> RemindersRoute(onClose = { backStack.popIfTop(key) }) }
-        entry<ThemeKey> { key -> ThemeRoute(onBack = { backStack.popIfTop(key) }) }
+        entry<PrescriptionEditKey> { key -> PrescriptionEditRoute(key.id, key.extend, onClose = backStack.closer(key)) }
+        entry<PrnMedicineEditKey> { key -> PrnMedicineEditRoute(key.id, onClose = backStack.closer(key)) }
+        entry<ComponentGalleryKey> { key -> ComponentGallery(onBack = backStack.closer(key)) }
+        entry<ProfileKey> { key -> ProfileRoute(onClose = backStack.closer(key)) }
+        entry<RemindersKey> { key -> RemindersRoute(onClose = backStack.closer(key)) }
+        entry<ThemeKey> { key -> ThemeRoute(onBack = backStack.closer(key)) }
         entry<ListsKey> { key ->
             ListsRoute(
-                onBack = { backStack.popIfTop(key) },
+                onBack = backStack.closer(key),
                 onAdd = { kind -> backStack.push(OptionEditKey(kind)) },
                 onOpen = { option -> backStack.push(OptionEditKey(option.kind, option.id)) }
             )
         }
-        entry<OptionEditKey> { key -> OptionEditRoute(key.kind, key.id, onClose = { backStack.popIfTop(key) }) }
-        entry<ExportImportKey> { key -> ExportImportRoute(onBack = { backStack.popIfTop(key) }) }
-        entry<AboutKey> { key -> AboutRoute(onBack = { backStack.popIfTop(key) }) }
+        entry<OptionEditKey> { key -> OptionEditRoute(key.kind, key.id, onClose = backStack.closer(key)) }
+        entry<ExportImportKey> { key -> ExportImportRoute(onBack = backStack.closer(key)) }
+        entry<AboutKey> { key -> AboutRoute(onBack = backStack.closer(key)) }
     }
