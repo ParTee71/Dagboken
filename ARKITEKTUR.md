@@ -80,9 +80,10 @@ en backstack per flik (`AppBackStack`), skärmbyten i `navigation/Transitions`.
 
 ## Datamodell (Firestore)
 
-Allt under `users/{uid}`; dokumentet bär `schemaVersion`, `createdAt` och, efter migreringen från 3.x,
-markören `legacyMigration` {completedAt, source `room` \| `drive` \| `json`, sourceCreatedAt?, appVersion, counts}
-(`LegacyMigrationCodec`; sätts en gång, OMB-2). Modeller och codecs i `:core` (`core/model`,
+Allt under `users/{uid}`; dokumentet bär `schemaVersion`, `createdAt` och, för konton som migrerades på enheten i
+4.0–4.7, markören `legacyMigration` {completedAt, source `room` \| `drive` \| `json`, sourceCreatedAt?, appVersion, counts}
+(`LegacyMigrationCodec`; sattes en gång, rules oförändrade – ingen kod skriver den sedan 4.8.0, men en befintlig
+markör är persisterad data och godtas, läses och exporteras som förut). Modeller och codecs i `:core` (`core/model`,
 `core/schema/*Codecs.kt`); KDoc på varje fält.
 
 | Samling / dokument | Nyckelfält | Ersätter 3.x |
@@ -352,14 +353,14 @@ rad i skill `shared-ui-components` (bibliotekets komponenter har också skärmdu
                           mot DocumentRules, ConvertBackupMain för grinden OMB-4, ImportFile: importens läsare av 3.x-backup
                           och 4.0-export)
 :app   (Android)          data/common · data/firestore · data/auth · data/health (Health Connect,
-                          read-only) · data/legacy (Room-läsare för migrering, Drive-läsare och import) ·
+                          read-only) · data/legacy (Drive-läsare och import av 3.x-backup/4.0-export) ·
                           data/export (manuell export) · reminders/ ·
                           ui/theme · ui/components · ui/common · ui/<flik> · navigation/
 tools/db                  query · get · stats · export · import · migrate · test/ (rules, roundtrip)
 ```
 
 Compose → ViewModel (`StateFlow<UiState>`) → Repository → `FirestoreCollection<T>` → Firestore.
-Fel mappas en gång i `data/common/DataError`, och till det som visas (`UiError`) en gång i `ui/common/AppErrors.kt`. Ingen Room i 4.0 utom den läsande legacy-modulen.
+Fel mappas en gång i `data/common/DataError`, och till det som visas (`UiError`) en gång i `ui/common/AppErrors.kt`. Ingen Room i 4.0; 3.x:s Room- och DataStore-filer läses inte (sedan 4.8.0) och lämnas orörda.
 
 ---
 
@@ -372,7 +373,7 @@ Fel mappas en gång i `data/common/DataError`, och till det som visas (`UiError`
 | Compose BOM · Material 3 | 2026.09 · 1.5 (Expressive, pinnad) | version catalog |
 | Java/JVM | 17 | rotens `build.gradle.kts` (`subprojects`) |
 | Testtimeout per task | 4 min | rotens `build.gradle.kts` |
-| cpdCheck-tröskel | 80 tokens, `*Preview.kt` och den ordagranna 3.x-kopian `core/src/test/…/legacy/threex/` (kompatibilitetstestet, OMB-8) undantas | rotens `build.gradle.kts` |
+| cpdCheck-tröskel | 80 tokens, `*Preview.kt` och den ordagranna 3.x-kopian `core/src/test/…/legacy/threex/` (`Backup3xCompatibilityTest`) undantas | rotens `build.gradle.kts` |
 | android-ui | `androidUi` (0.4.0), GitHub Packages med `GPR_TOKEN` (CI: secret, sessioner: miljön) | version catalog, `settings.gradle.kts` (skill `android:android-gradle-logic`) |
 | Version | `version.properties` (versionCode, versionName) | höjs i funktions-PR:en |
 | google-services | `app/google-services.json` (incheckad); `src/authStub` när den saknas | `app/build.gradle.kts` |
@@ -449,7 +450,7 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
      stoppar; blank `tidpunkt` räknas som saknad (båda tomma → Morgon). `skapad` → midnatt Stockholm; i annan form
      (bara importerad data, oläslig för 3.x) aldrig stopp: ISO-ögonblick bevaras med varning (och en till när det blir
      intervallets ankare), annat blir `null` med varning och värdets form (`99/99 9999`) – som 3.x, som räknade
-     intervallet från dagens datum. Texten finns kvar i kopian (OMB-8).
+     intervallet från dagens datum. Texten finns kvar i 3.x-backupen.
    - *Inställningar.* Dokumentet innehåller **bara** de fält backupen hade (`null` = "rör inte"; v1 ger inget
      dokument alls); de typade modellerna får 3.x-defaults i övrigt. `medNotificationConfigs` matchas på
      namn, annars på position för rader utan namn (3.x `toMedNotificationConfigs`); en rad utan tidpunkt att
@@ -462,8 +463,8 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
    stopp), importeras via `tools/db import.mjs`, exporteras och jämförs med originalet. Noll
    skillnader krävs (OMB-4). **Mot ett tomt scratch-uid**, aldrig användarens riktiga uid: `import.mjs`
    skriver dokumenten som de är (`set` utan merge), så mot ett befintligt konto skulle `users/{uid}.createdAt`
-   och inställningsfält som backupen saknade försvinna – "`null` = rör inte" gäller bara legacy-läsaren på
-   enheten, som skriver med merge (etapp 3). Körningen, från repots rot och med backupen i den
+   och inställningsfält som backupen saknade försvinna – "`null` = rör inte" gäller bara importen i appen,
+   som skriver med merge (punkt 5). Körningen, från repots rot och med backupen i den
    git-ignorerade `tools/db/`:
    ```bash
    ./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <scratch-uid>"
@@ -477,115 +478,40 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
    fil), 2 = fel argument, ogiltigt uid, saknad infil eller befintlig utfil (skrivs över bara med `--force`).
    Rapportens varningar granskas av användaren innan importen; scratch-användaren raderas efter grinden och
    filerna raderas (skill `data-privacy-security`).
-4. **På enheten** (etapp 3, `data/legacy` + `core/legacy/LegacyRoomAssembler`, OMB-2, OMB-7, OMB-8):
-   - *Startkontroll (NAV-6):* Room-filen `dagboken.db` finns, flaggan för kontot saknas i 4.0:s egen
-     DataStore-fil `dagboken_device` (aldrig 3.x-filen) **och** servern har ingen markör
-     `users/{uid}.legacyMigration`. Finns markören sätts flaggan och ingen migrering erbjuds, oavsett enhetens
-     läge – en omkörning får aldrig skriva över data som 4.0 hunnit ändra. Finns filen avbokas 3.x:s backupjobb
-     (`dagboken_daily_backup`) vid varje start tills det lyckats (flagga per installation i `dagboken_device`, satt
-     först efter lyckad avbokning, oberoende av kontots flagga; fel fångas), och 3.x-sessionens konto sparas vid första
-     starten, så att bekräftelsen kan varna för ett annat konto. Utan nät kan kontrollen inte avgöras (`Offline`).
-   - *Läsning:* `SQLiteDatabase.OPEN_READONLY` (inget Room-beroende), `PRAGMA user_version` måste vara 11 (annars
-     tillståndet "äldre version"), WAL-filen läses utan checkpoint; `dagboken_prefs` via `PreferenceDataStoreFactory`
-     i ett eget scope, en läsning, utan `ReplaceFileCorruptionHandler`. Raderna och nycklarna lämnas råa till
-     `LegacyRoomAssembler` i `:core`, som speglar 3.x `BackupAssembler` fält för fält (JSON-kolumnerna och
-     alternativlistorna i båda 3.x-formerna; ett värde 3.x inte kunde läsa ger 3.x:s standardvärde med varning; ett
-     blankt temaläge räknas som saknat; en talkolumn med fel typ läses som 0 med varning; arvsfälten `anteckning`
-     finns inte i v11 och är tomma). Kontrollsumman över `.db` och `-wal` (inte `-shm`) följer med som filens
-     fingeravtryck. Sedan **samma** konverterare som grinden; "före" = rapportens antal per entitet.
-   - *Obligatorisk kopia (OMB-8):* innan något skrivs sparas 3.x-datan som en 3.x-backupfil (`BackupJson.encode`,
-     format v2, UTF-8 utan BOM) till en fil användaren väljer (SAF) och verifieras **som 3.x-fil**: läses tillbaka
-     och parsas med `BackupJson.parse`, och antalet per entitet jämförs med Room-raderna; i granskningen (med en plan)
-     ska filen också ge exakt planens dokument. Vid ett stopp finns ingen plan och antalet räcker – kopian kan därför
-     sparas även då (kortet "Spara en kopia" finns också i Stopp-läget), medan "Flytta" kräver både en lyckad
-     konvertering och kopian. Kopian sparas på enheten med fingeravtryck, tid, filnamn, antal 3.x-poster och
-     kontrollens version och gäller bara Room-filen som den såg ut då; ändras filen, eller är kopian från en äldre
-     kontroll, krävs en ny kopia. `Backup3xCompatibilityTest` parsar filen med
-     3.27.0:s egna klasser (kopia i testkällan).
-   - *Läget på servern först (återupptagning, OMB-7):* målens id läses direkt från servern (`RawDocuments.documents`:
-     `documentId() in …` i grupper om 30, åtta parallellt – aldrig hela samlingar) och ställs mot **liggaren**
-     (`MigrationLedger`: egen appprivat fil `files/legacy-migration/<uid>.ledger`, bara tillägg per batch –
-     `W sökväg hash` för skrivet med kvitto, `V sökväg hash` för verifierat (hashen över det som skrevs), `M sökväg hash`
-     för avvikande i verifieringen (hashen över serverns felaktiga läge då, eller `MISSING`), `P sökväg hash` för
-     intentionen **före** batchens commit (W först efter kvittot; P ersätter aldrig en tidigare V-/M-rad och tas bort av
-     nästa W/V/M), så att ett skrivet dokument aldrig faller ur liggaren och en skrivning som inte landade aldrig tränger
-     undan det tidigare tillståndet; bara rader med giltigt format (64 hex eller `MISSING`) räknas och ett tillägg börjar
-     på ny rad – läses en gång
-     per körning i ordning, sista raden per sökväg gäller, raderas vid bekräftelsen; inte DataStore, som skriver om hela
-     mängden varje gång; IO-fel → `Failed` med `LEDGER_FAILED`). Likhet avgörs på **ett** sätt: hashen
-     (`MigrationLedger.hashOf`) över den kanoniska formen (`canonical`: nycklar sorterade rekursivt, också i mappar
-     inne i listor som symptom och doshöjningar – Firestore ger dem i godtycklig ordning – begränsade till samlingens
-     **fasta fältmängd** `DocumentRules.fieldTree`), beräknad en gång per dokument: framtida 4.0-fält rör inte utfallet,
-     ett fält som tömts i 3.x är ett nytt 3.x-värde. **Förenklad policy:** så fort liggaren har en rad har flytten börjat
-     – startkontrollen (`isPending`: Room-filen först, sedan liggaren utan serverfråga) och `MigrationGate` visar skärmen
-     tills `confirm()` eller `abort()` är klar, "Inte nu" finns bara före första skrivningen. Bara flyttens egna dokument
-     antecknas: ett som var lika redan före första skrivningen (t.ex. efter en OMB-4-import) får ingen V-rad; en batch
-     som avvisas definitivt stryker sina P-rader (`X`), en timeout lämnar dem. Serverläsningar väntar inte in
-     `waitForPendingWrites` (kan ta en minut); dokument med `metadata.hasPendingWrites` utelämnas och räknas som
-     overifierade. Per sökväg: saknas → skrivs; serverns hash = vår → verifierad
-     (V-rad); antecknad (P/W/V/M) men olika → skrivs om helt inom fältmängden (`withDeletions`) – ändringar under flytten,
-     även från en annan enhet, skyddas inte; aldrig vårt och olika → bara saknade fält (`existing`). Inga `kept`/`removed`.
-     *Avbryt flytten* (`abort()`): raderar exakt liggarens sökvägar (`RawDocumentWriter.deleteBatch`, incheckningar före
-     episoder, ≤ 500 per batch, serverns kvitto), läser tillbaka på id, kräver tomt, rensar sedan liggaren; dokument som
-     fanns före flytten (bara ifyllda, ingen rad) rörs aldrig. Valt framför per-dokument-domar (kept/removed): en regel
-     som går att förklara på skärmen, och ingen risk att felaktig data verifieras som rätt. Jämförelser, hashar och
-     batchplanen körs på `Dispatchers.Default` (injicerad). Valt framför en `writtenIds`-markör på servern: tusentals id:n ryms inte i ett
-     dokument (1 MiB) och skulle kräva egna rules, medan enhetens fil delar öde med Room-filen. **Godtaget kantfall:**
-     en batch som fick timeout kan landa senare; har användaren hunnit radera ett sådant dokument i 4.0 före nästa körning
-     räknas det som "saknas" och skrivs igen. Vid timeout stannar körningen direkt, så inga fler batchar köas.
-   - *Skrivning:* bara det som saknas, råa dokument (`RawDocumentWriter`) med merge i `MigrationBatches` form – högst
-     500 skrivningar och högst 20 episoder per batch, episoden i samma batch som sina incheckningar (`existsAfter`), en
-     episod med fler incheckningar än som ryms delas med episoden först; `users/{uid}` skrivs inte. Varje batch väntar
-     in serverns kvitto (inte offline först, NFR-1); ett fel stannar med Firestores felkod i rapporten
-     (`RESOURCE_EXHAUSTED` → `DataError.QuotaExceeded`, eget meddelande) utan markör och kan göras om.
-   - *Verifiering per id:* de skrivna dokumenten läses tillbaka på id (`RawDocuments` väntar först in enhetens köade
-     skrivningar – `Source.SERVER` säger inget om dem) och hashas inom samlingens fasta fältmängd (fält utanför den, t.ex.
-     framtida 4.0-fält, rör inte utfallet; delvis fyllda dokument jämförs bara på det som fylldes); "efter" = verifierat
-     lika per entitet, före = efter + existing. En avvikelse är ett eget tillstånd med "Försök igen" (skriver om det som
-     skiljer sig)/"Avbryt flytten"; avvikande sökvägar antecknas som `M` med serverns hash.
-   - *Bekräftelse:* markören `legacyMigration {completedAt == request.time, source, sourceCreatedAt, appVersion,
-     counts}` – exakt de fälten (`keys().hasOnly`), `counts` = rapportens "före" med bara kända samlingar som heltal –
-     skrivs **sist** (rules: en gång, aldrig ändrad eller borttagen; `LegacyMigrationCodec`,
-     `DocumentRules.LEGACY_MIGRATION`), flaggan sätts per konto och liggaren raderas. **Idempotent:** nekas eller timar
-     markören ut men finns på servern räknas bekräftelsen som lyckad. Påminnelserna pausas **bara medan `write()` körs**
-     (`LegacyMigrationPause`, i minnet med startvärde av, satt i try/finally) – `ReminderSync` hoppar över ny
-     schemaläggning under pausen och **avbokar aldrig** något; när pausen släpps läggs larmen som vanligt. Inget utfall
-     (fel, avvikelse, skrivet utan bekräftelse), ingen utgång från skärmen och ingen processdöd kan lämna larmen av.
-   - *Kontot:* 3.x-sessionen fångas i `Application.onCreate`, före inloggningsgrinden (`LegacySessionCapture`:
-     `FirebaseAuth.currentUser`, som 3.x:s inloggning bevarats i) och sparas en gång; bekräftelsen visar samma/annat/
-     okänt konto – okänt kräver att e-posten bekräftas uttryckligen. 3.x:s WorkManager-jobb avbokas vid varje start tills det lyckats;
-     WorkManager initieras på begäran (`Configuration.Provider`, startup-initieraren borttagen) eftersom 4.0 inte har
-     några workers och det kvarliggande jobbet inte ska kunna köras före avbokningen.
-     Room-filen och DataStore-filen ändras aldrig och raderas aldrig automatiskt.
-   - *Fallback utan Room-fil (OMB-5, #230):* `isFallbackPending` – ingen Room-fil, ingen flagga för kontot, ingen markör
-     på servern **och inga dokument i datasamlingarna** (`RawDocuments.hasDocuments`, `limit(1)` per samling, parallellt) –
-     visar `MigrationStage.Fallback` med valen Drive, fil och "Börja tomt". Ett konto med 4.0-data (ny telefon) frågas
-     aldrig – flaggan sätts – så att en gammal backup inte skriver över nyare data av misstag. Utan nät släpps användaren
-     in och frågan prövas vid nästa start (ingen 3.x-data väntar på telefonen). "Börja tomt"
-     och en klar import sätter flaggan (`skipFallback`); **ingen markör** skrivs – den betyder att Room-datan flyttats och
-     skulle annars hindra flytten från en telefon som fortfarande har 3.x (valt framför en markör med `source = drive/json`,
-     som också hade tystat frågan på andra enheter). Följd: ett tomt konto frågas en gång per enhet.
+4. **På enheten – borttagen i 4.8.0** (beslut 2026-10-22). Etapp 3 byggde en migrering på enheten (~~OMB-2~~,
+   ~~OMB-5~~, ~~OMB-7~~, ~~OMB-8~~, ~~NAV-6~~): en read-only Room-/DataStore-läsare (`LegacyRoomAssembler`), en
+   startkontroll och migreringsskärm (`MigrationGate`) före flikarna, en obligatorisk 3.x-kopia, en liggare per konto
+   (`MigrationLedger`), markören `users/{uid}.legacyMigration`, pausade påminnelser under skrivningen och avbokning av
+   3.x:s WorkManager-jobb. Allt det är borttaget; 3.x-data läses in med importen (punkt 5). **Det som står kvar för
+   regel 1:** modellen `LegacyMigration`/`LegacySource` (med `room`), `LegacyMigrationCodec`,
+   `DocumentRules.LEGACY_MIGRATION` och regeln i `firestore.rules` är oförändrade, så att en markör som 4.0–4.7 skrev
+   fortsatt godtas, läses och överlever `tools/db export → import`. 3.x:s Room- och DataStore-filer och liggarfiler
+   från 4.0–4.7 ligger kvar orörda i appens privata lagring (de raderas aldrig automatiskt). Följd: WorkManager är
+   inget beroende längre (3.x:s periodiska jobb pekar på en tjänst som inte finns i appen och körs inte).
 5. **Import och export i appen** (#230; legacyimporten behålls minst en version efter 4.0):
    - *En läsare* (`:core/legacy/ImportFile`): `documents` i filen = 4.0-export, annars någon av `BackupJson`:s nycklar =
      3.x-backup (v1 skrev inte `version`); annat = "ingen backup". 3.x går genom `BackupJson.parse` och **den enda**
-     konverteraren (samma dokument som grinden OMB-4 och flytten). En 4.0-export kontrolleras helt innan något skrivs: en
+     konverteraren (samma dokument som grinden OMB-4). En 4.0-export kontrolleras helt innan något skrivs: en
      användare, kända samlingar och djup, giltiga och unika id:n, `DocumentRules` per dokument, varje incheckning med sin
      episod i filen (rules `existsAfter`), `schemaVersion` inte nyare än appens (äldre lyfts med `SchemaMigrator`).
      Sökvägarna flyttas till det inloggade kontot; `users/{uid}` skrivs aldrig (kontots version, `createdAt`, markören).
      Utfallet är alla dokument eller ett stopp med alla fel (rapporten: samling/id eller `options#<plats>`, fält, skäl).
-   - *Källor* (`LegacySource`): Room (flytten, punkt 4), Drive (`DriveRestBackups`: Identity `AuthorizationClient` för
+   - *Källor* (`LegacySource`): Drive (`DriveRestBackups`: Identity `AuthorizationClient` för
      `DRIVE_APPDATA` + REST via `HttpURLConnection`, bara läsning av den senaste `dagboken-backup-*` i `appDataFolder`;
      samtycket begärs först vid importen, ingen token lagras; inget Drive-bibliotek – `play-services-auth` fanns redan
-     transitivt) och fil (SAF, `UserFile`, delad med kopian och exporten).
+     transitivt) och fil (SAF, `UserFile`, delad med exporten). `ROOM` finns kvar bara för befintliga markörer (punkt 4).
    - *Granskning:* efter läsningen väntas enhetens köade skrivningar in (`awaitPendingWrites`, högst en minut, annars
      `Offline`) och kontots läge läses på id; `replaced` = befintliga dokument med samma id och andra värden visas.
    - *Skrivning* (`LegacyImportUseCase.write`): köade skrivningar väntas in igen – en lokal ändring som inte synkats skrivs
      aldrig över – sedan serverns läge på id – lika dokument räknas som klara och skrivs inte –
-     sedan `MigrationBatches` med kvitto per batch och verifiering per id med **samma** räkning och likhet som flytten
-     (`WriteSupport.kt`: `Tally`, `landed` = det skrivna finns på servern i kanonisk form). Samma id ersätts med merge:
+     sedan `MigrationBatches` (högst 500 skrivningar och högst 20 episoder per batch, episoden i samma batch som sina
+     incheckningar, `existsAfter`; `users/{uid}` skrivs inte) med kvitto per batch och verifiering per id
+     (`WriteSupport.kt`: `Tally`, `landed` = det skrivna finns på servern i kanonisk form – `hashOf` över nycklar
+     sorterade rekursivt, också i mappar inne i listor; `codeOf` = Firestores felkod i rapporten). Samma id ersätts med merge:
      filens fält skrivs, fält bara på servern står kvar – importen tar aldrig bort något (valt framför ett fullt utbyte med
      `withDeletions`, som hade raderat framtida fält och inställningar som en 3.x-backup saknar). Ingen kopia, liggare eller
-     markör: en import kan alltid köras om utan dubbletter och har inget att avbryta. Påminnelserna pausas medan den skriver.
+     markör: en import kan alltid köras om utan dubbletter och har inget att avbryta. Påminnelserna pausas inte (sedan
+     4.8.0): `ReminderSync` lägger om larmen när de importerade påminnelseinställningarna når cachen.
    - *Export* (`data/export/ExportUseCase`): `awaitPendingWrites`, sedan hela `users/{uid}` rått från servern i
      `walk.mjs`-ordning (användaren, samlingarna i `Paths`-ordning, incheckningarna efter sin episod) i `ExportFormat` –
      samma fil som `tools/db export`. Health Connect-data finns inte i Firestore och kommer aldrig med (HLS-5).
@@ -594,8 +520,8 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
      kan inte skapa en) kommer inte med i appens export. En collectionGroup-fråga avgränsad till `users/{uid}` prövades:
      rules kan inte binda sökvägen (`{path=**}`) i en fråga ("Variable is not bound in path template"), och en regel utan
      sökvägsvillkor kräver ett ägarfält i varje incheckning – en datamodelländring som inte är värd kantfallet.
-   - *Tillstånd:* `ui/migration/ImportFlow` (`ImportStage`, `ImportEvent`) är importens tillståndsmaskin **en** gång, ägd av
-     `MigrationViewModel` (fallbacken) och `ExportImportViewModel` (Inställningar → Export och import).
+   - *Tillstånd:* `ui/migration/ImportFlow` (`ImportStage`, `ImportEvent`) är importens tillståndsmaskin, ägd av
+     `ExportImportViewModel` (Inställningar → Export och import); vyn är `ImportContent` med byggstenarna i `MigrationParts`.
 6. Firestore-sidan: `schemaVersion` på `users/{uid}`, `SchemaMigrator` i `:core`, `migrate.mjs`
    i `tools/db`; appen vägrar skriva mot en okänd högre version.
 
@@ -661,7 +587,7 @@ Byt upp en nivå så fort något går fel två gånger i rad.
 | **0 · ADR och krav** | Denna fil, KRAVLISTA-justeringar, README-not. | 1 | Fable · high *(klar)* |
 | **1 · Skelett och verkstad** | `:core` + `:app`, versionskatalog, tema-tokens för Papper och teal, `data/common`, `data/firestore`, `ui/common`, ramarna, `navigation/`, `tools/db` (users/{uid}), hooks, `android.yml`, `quality.yml`, `backup.yml`, skills, agenter, CLAUDE.md. Resultat: app som loggar in och visar `ComponentGallery`, CI på budget. | 3 | Opus · medium; CI-filer och rules: Fable · high |
 | **2 · Datamodell och konverterare** | Modeller + codecs för alla samlingar, `settings`, `schemaVersion 1`, `firestore.rules`, `collections.mjs`, rundturstest, `BackupJsonConverter` med full fixtur. **Grind OMB-4.** | 4 | Fable · xhigh (konverterare, rules); Opus · high (codecs) |
-| **3 · Migrering på enheten** | Legacy-Room-läsare, migreringsskärm med räkning och bekräftelse, fallback Drive/JSON, legacyimport i Inställningar. | 2 | Fable · high |
+| **3 · Migrering på enheten** | Legacy-Room-läsare, migreringsskärm med räkning och bekräftelse, fallback Drive/JSON, legacyimport i Inställningar. *(4.8.0: allt utom legacyimporten borttaget, Migrering punkt 4)* | 2 | Fable · high |
 | **4 · Komponenter** | Port av Dagbokens komponenter + de sju nya, mockup per komponent, Roborazzi, galleri, skill-tabell. Diagrammatematik till `:core`. | 3 | Opus · medium; `ui/diagram`: Opus · high |
 | **5 · Flikarna** | Inställningsark → Mediciner → Idag (inkl. belöningsläge) → Dagbok → Trender → formulär, sjukdomsdetalj, Hälsa idag. Use cases till `:core` med sina tester. Hälsa idag (#241) byggs här mot gränssnitten `HealthRepository` och `HealthPermissions` med `UnavailableHealthRepository`/`UnavailableHealthPermissions` bundna (skärmarna visar "Health Connect saknas") och testas mot fejkerna; den riktiga Health Connect-porten kommer i etapp 6. | 8–10 | Opus · high per skärm; Trender och Idag: Fable · high; enkla formulär på ramarna: Sonnet · medium |
 | **6 · Larm, Health Connect, release** | Notiser mot Firestore-cachen (skill `notifications-alarms`), Health Connect-port uppdelad (hälsomotorn i `:core` #276, sedan porten #243 som byter bindningarna för `HealthRepository` och `HealthPermissions` – manifest, behörighetsflöde och läsning; skärmarna från etapp 5 ändras inte), `release.yml`, första release efter grön kravlista. | 3 | Opus · high (larm); Opus · medium (Health Connect); Sonnet · low (release) |

@@ -24,12 +24,11 @@ import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.TestUserScope
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.firestore.Paths
-import se.partee71.dagboken.data.legacy.FakeCopyFile
 import se.partee71.dagboken.data.legacy.FakeDriveBackups
 import se.partee71.dagboken.data.legacy.FakeRawFirestore
+import se.partee71.dagboken.data.legacy.FakeUserFile
 import se.partee71.dagboken.data.legacy.ImportRead
 import se.partee71.dagboken.data.legacy.LegacyImportUseCase
-import se.partee71.dagboken.data.legacy.LegacyMigrationPause
 import se.partee71.dagboken.data.legacy.LegacyWriteOutcome
 
 /**
@@ -54,11 +53,11 @@ class ExportUseCaseTest {
         set("${Paths.user(uid)}/halsa", "idag", mapOf("puls" to 61L), merge = false)
     }
     private val firestore = FakeRawFirestore(store)
-    private val files = FakeCopyFile()
+    private val files = FakeUserFile()
     private val scope = TestUserScope(uid)
     private val dispatcher = StandardTestDispatcher()
     private val exporter = ExportUseCase(firestore, files, scope, clock, dispatcher)
-    private val importer = LegacyImportUseCase(FakeDriveBackups(), files, firestore, firestore, LegacyMigrationPause(), scope, dispatcher)
+    private val importer = LegacyImportUseCase(FakeDriveBackups(), files, firestore, firestore, scope, dispatcher)
     private val uri: Uri = Uri.parse("content://test/dagboken-export-2026-10-07.json")
 
     private fun test(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }

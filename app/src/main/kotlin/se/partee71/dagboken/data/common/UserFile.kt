@@ -11,8 +11,8 @@ import kotlinx.coroutines.withContext
 import se.partee71.dagboken.di.IoDispatcher
 
 /**
- * En fil användaren valt i systemets dokumentväljare (SAF) – ingen lagringsbehörighet: kopian av 3.x-datan (OMB-8),
- * exporten (BCK-13) och filen som importeras (BCK-6). Skriv, läs, namn; aldrig något loggat.
+ * En fil användaren valt i systemets dokumentväljare (SAF) – ingen lagringsbehörighet: exporten (BCK-13) och filen
+ * som importeras (BCK-6). Skriv, läs, namn; aldrig något loggat.
  */
 interface UserFile {
     /** Skriver [text] som UTF-8 utan BOM till [uri]; ett fel kastas. */

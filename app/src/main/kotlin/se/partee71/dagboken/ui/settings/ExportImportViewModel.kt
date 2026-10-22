@@ -24,7 +24,7 @@ import se.partee71.ui.common.UiError
 import se.partee71.ui.common.uiErrorOrNull
 
 /**
- * Underskärmen Export och import (SET-8, NAV-9). [import] = importens läge, samma som i första starten (BCK-6, BCK-14);
+ * Underskärmen Export och import (SET-8, NAV-9). [import] = importens läge (BCK-6, BCK-14);
  * [exporting] = exporten skrivs (BCK-13). [exported] = antal poster i den sparade filen – snackbaren "Sparade N poster";
  * [failure] = exporten gick inte (snackbar via `DataError.toMessage()`). Båda nollställs med [ExportImportEvent.MessageShown].
  */

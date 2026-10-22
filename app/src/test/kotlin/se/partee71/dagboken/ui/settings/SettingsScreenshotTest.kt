@@ -23,7 +23,7 @@ import se.partee71.dagboken.reminders.ReminderAccess
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
-import se.partee71.dagboken.ui.migration.MigrationSamples
+import se.partee71.dagboken.ui.migration.ImportSamples
 import se.partee71.ui.common.DetailUiState
 import se.partee71.ui.common.EditorEvents
 import se.partee71.ui.common.EditorUiState
@@ -125,6 +125,6 @@ class SettingsScreenshotTest {
     @Test
     @Config(qualifiers = "w390dp-h1700dp-xxhdpi")
     fun `Export och import - granska importen`() = rule.captureLightAndDark("Settings_ExportImport_granska") {
-        ExportImportScreen(ExportImportUiState(import = MigrationSamples.importReview), {}, { "dagboken-export-2026-10-08.json" }, onBack = {})
+        ExportImportScreen(ExportImportUiState(import = ImportSamples.importReview), {}, { "dagboken-export-2026-10-08.json" }, onBack = {})
     }
 }

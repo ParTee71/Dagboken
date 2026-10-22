@@ -6,7 +6,7 @@ import org.junit.Test
 import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.ExportFormat
 
-/** Batchformen för migreringen på enheten (OMB-2): högst 500 skrivningar, högst 20 episoder, episoden med sina incheckningar. */
+/** Batchformen för importen på enheten (BCK-14): högst 500 skrivningar, högst 20 episoder, episoden med sina incheckningar. */
 class MigrationBatchesTest {
     private val uid = "u"
 

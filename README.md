@@ -9,7 +9,8 @@ data och påminnelser. **Version 4.0 byggs om på `master`.**
 > **Dagboken 4.0** är byggd på ReseApotekets grund: Firestore offline-först under `users/{uid}` i
 > stället för Room och Drive-backup, fyra flikar, designspråket "Papper och teal", `:core` + `:app`,
 > paths-filtrerad CI på ca 8 Actions-minuter och databasåtkomst från Claude-sessionen med `tools/db`.
-> 3.x-datan migreras på enheten utan förlust (KRAVLISTA §22). Besluten står i
+> 3.x-data läses in med importen av en 3.x-backup (Drive eller fil) i Inställningar → Export och import
+> (BCK-6, BCK-14); migreringen på enheten togs bort i 4.8.0 (KRAVLISTA §22). Besluten står i
 > [ARKITEKTUR.md](ARKITEKTUR.md) (ADR-001). Appen 3.27.0 ligger kvar på branchen `legacy` och taggen `v3.27.0`.
 
 > **Bidrar du (eller en AI-assistent) med kod?** Läs [CLAUDE.md](CLAUDE.md) först. Den
@@ -260,6 +261,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.8.0 | **Migreringen på enheten är borttagen:** 4.0 läser inte längre 3.x:s databas på telefonen vid start, och frågan om import vid första starten är borta – appen öppnar direkt på flikarna. En 3.x-backup (Google Drive eller fil) eller en 4.0-export läses in som förut under Inställningar → Export och import. 3.x-filerna på telefonen lämnas orörda, och en befintlig migreringsmarkör i kontot godtas som förut. |
 | 4.7.1 | **Känslohjulet:** "Tillbaka till hjulet" står överst i kärnvyn och syns utan scroll, och kommentaren per känsla är hopfälld bakom "Lägg till varför" tills man behöver den – en sparad kommentar visas som förut (#367). |
 | 4.7.0 | **Stunden:** en valfri paus före varje måendeincheckning. Måendenotisen får "Starta Stunden", som öppnar en lugn helskärm med andningscirkel, nedräkning och en hjälpfråga om nuet, och "Välj känslor" leder sedan till måendearket. Pausens längd, Ta över skärmen och hjälpfrågan ställs i Påminnelser (#322). Uppdaterad läkemedelslista. |
 | 4.6.0 | **Stjärnmärkta recept på Idag:** ett recept kan stjärnmärkas i Mediciner och ligger då som chip bredvid vid behov-favoriterna – tryck loggar en extrados med dagens dos. **För tidigt syns i förväg:** en vid behov-medicin i kylperiod eller vid dagsgränsen tonas i chipet och i Fler med klock- eller spärrikon och "från 15:40" eller "2 av 2 idag", och markeringen försvinner av sig själv när tiden har gått (#340). |

@@ -46,8 +46,8 @@ anger sökväg eller fält, aldrig värdet) och GitHub Actions-loggar.
 - **Drive-backupen är pensionerad** (BCK-1–5 strukna). Legacyimporten (BCK-14) får läsa en 3.x-backup
   ur användarens `appDataFolder` med minsta scope (`DRIVE_APPDATA`) – aldrig bredare Drive-scope,
   aldrig skrivning till Drive.
-- **Room-filen från 3.x** läses read-only vid migreringen och raderas aldrig automatiskt (OMB-2);
-  den ligger kvar i appens privata lagring.
+- **Room-filen från 3.x** läses inte sedan 4.8.0 (migreringen på enheten är borttagen) och raderas aldrig
+  automatiskt; den ligger kvar i appens privata lagring.
 - **Health Connect-data persisteras inte** – varken i Firestore eller i exporten (HLS-5). Den
   läses live och visas; aldrig i loggar.
 - Androids egen backup och enhetsöverföring är avstängda: `android:allowBackup="false"` och

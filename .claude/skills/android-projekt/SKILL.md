@@ -20,7 +20,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 - Fel mappas en gång till `DataError` med `suspendRunCatching` (`data/common/`): `FirestoreCollection` för data, `AuthRepository` för inloggning. Repositories skickar `Result<T>` vidare; skärmar visar felet med `DataError.toMessage()`; `DataError.Cancelled` är tyst.
 - Ramarna (regel 4): listskärmar `EntityListScreen` + `asListUiState()`, redigering `EntityEditScreen` + `EditorState<T>` – aldrig egna varianter.
 - Navigation 3 (TP-2), en Activity (`MainActivity`), back stacken är vanligt state i `navigation/`, övergångar en gång i `navigation/Transitions`.
-- Bakgrund: WorkManager (Hilt-worker) bara där något måste köras utan öppen app (TP-7); ingen backup-worker – Firestore synkar själv, veckobackupen körs i GitHub Actions (`tools/db`, BCK-12) och JSON-export finns i appen (BCK-13). 3.x Drive-backup är pensionerad; Drive läses bara av legacy-importen (BCK-14). Påminnelser via AlarmManager (TP-8, skill `notifications-alarms`).
+- Bakgrund: WorkManager (Hilt-worker) bara där något måste köras utan öppen app (TP-7) – i dag inget beroende (4.8.0); ingen backup-worker – Firestore synkar själv, veckobackupen körs i GitHub Actions (`tools/db`, BCK-12) och JSON-export finns i appen (BCK-13). 3.x Drive-backup är pensionerad; Drive läses bara av legacy-importen (BCK-14). Påminnelser via AlarmManager (TP-8, skill `notifications-alarms`).
 - Nav-argument tas redan med assisted injection (`@HiltViewModel(assistedFactory = …)`), som pluginen säger.
 - Bara `di/` nämner `Dispatchers.`; scopet `[dispatchers]` i `ui-forbidden.txt` kontrolleras av `UiConsistencyTest` och hooken. Enhetstester ger `UnconfinedTestDispatcher()` eller `StandardTestDispatcher(testScheduler)`; androidTest får använda `Dispatchers.IO` direkt.
 - Kodstil: ktlint 1.8 (stil `android_studio`) med compose-rules via Spotless, bara lokalt och inte i CI (regel 5). Kör `./gradlew spotlessApply` före push; `spotlessCheck` kontrollerar. Reglerna står i `ktlintRules` i rotens `build.gradle.kts`; nya CompositionLocals läggs i `compose_allowed_composition_locals`. **Nuvarande läge, avviker från pluginen:** sju compose-rules-regler som kräver API-ändringar i befintliga komponenter är avstängda där (`parameter-naming`, `lambda-param-event-trailing`, `multiple-emitters-check`, `modifier-naming`, `modifier-missing-check`, `param-order-check`, `vm-forwarding-check`). Rättas i egna PR:er; ny kod följer reglerna där det går.
@@ -61,7 +61,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 Googles referens är generell. Här gäller vår `AppBackStack` (`navigation/AppBackStack.kt`) med en
 stack per flik (Idag · Dagbok · Trender · Mediciner, NAV-8), nycklarna i `navigation/AppKeys.kt`,
 övergångarna i `navigation/Transitions` och Hilt via `hiltViewModel`. Inställningsarket öppnas
-från avataren på alla flikar (NAV-9); migreringsskärmen kan vara startdestination (NAV-6).
+från avataren på alla flikar (NAV-9). Efter inloggningen visas flikarna direkt (ingen migreringsgrind sedan 4.8.0).
 
 ## Tillgänglighet (android:accessibility-compose)
 
@@ -100,7 +100,7 @@ bygger på `request.auth.uid == uid`. Inget hushåll och ingen delning – ett k
 - `AuthRepository` (`data/auth/`), enda implementationen `GoogleAuthRepository` (bunden i `di/AuthModule`), fel mappas i `data/auth/AuthErrors.kt`; tester använder en fake. `AuthUser(uid, name?, email?, photoUrl?)` – namn, e-post och foto visas i avataren och inställningsarket (AUTH-3, SET-7) och hålls bara i minnet.
 - Uppstarten: när `authState` har en användare och `users/{uid}` saknas på servern skapar `EnsureUserUseCase` dokumentet via `UserDirectory.createIfMissing` (bara servern, atomärt, med `schemaVersion` + `createdAt`; Firestore-implementation `FirestoreUserDirectory`). `UserSession` (`data/user/`, implementerar `UserScope`) följer uid.
 - En knapp, ett event `AuthEvent.SignIn(context)`: utloggad → logga in; inloggad utan `users/{uid}` → `gate = NeedsUser`, samma knapp försöker igen. `gate = Loading` tills `schemaVersion` är känd; nyare än appen → `UpdateRequiredScreen` (BCK-15). Fel visas en gång via `AppSnackbarHost`, kvitteras med `AuthEvent.ErrorShown`; `Cancelled` är tyst (AUTH-4).
-- Första start av 4.0 med 3.x-data: inloggning först, sedan migreringsskärmen (OMB-2, OMB-5) som skriver under `users/{uid}`.
+- Första start av 4.0 med 3.x-data: inloggning, sedan flikarna; 3.x-data läses in med importen i Inställningar → Export och import (BCK-6, BCK-14). Migreringen på enheten (~~OMB-2~~, ~~OMB-5~~) togs bort i 4.8.0.
 - Utloggning bara via `SignOutUseCase` (inställningsarket → Konto, bakom `ConfirmDialog`, anropas av `AuthViewModel`): `LocalCacheCleaner.awaitPendingWrites(3 s)`, `AuthRepository.signOut()`, och bara om allt synkat `LocalCacheCleaner.clear()` (`FirestoreInstance`: `terminate()` + `clearPersistence()`); `HistoryCoverage` glöms före och efter. Larmen avbokas och notiserna stängs (AUTH-6, skill `notifications-alarms`). Tester: `SignOutUseCaseTest`, `AuthViewModelTest` med `FakeLocalCacheCleaner` (`testing/UserFixture.kt`), `FirestoreLocalCacheTest` mot emulatorn.
 - Workers och larmmottagare kontrollerar inloggad användare innan de rör data; utloggade gör de inget.
 - Debug-SHA-1 för `dagboken-711d2`: `50:5B:DC:3B:C9:49:F5:96:91:84:F2:23:0F:D1:BE:25:1B:10:7E:59`; release-nyckelns SHA-1 ska också vara registrerad (README → Firebase-setup).
@@ -259,8 +259,8 @@ hemligheter → `data-privacy-security`; larm och notiser → `notifications-ala
   CI-filtren; README:s rad står under "Versionshistorik". Båda höjs och skrivs i funktions-PR:en.
 - **4.0:** första releasen av 4.0 (v4.0.0, #300) gjordes när paritetschecklistan var grön (OMB-6)
   och grinden OMB-4 passerad. 3.27.0 ligger kvar som tagg och på branchen `legacy` (OMB-1). 4.0
-  behåller `applicationId`, så den installeras som uppdatering ovanpå 3.x och migreringen på
-  enheten (OMB-2) körs vid första start.
+  behåller `applicationId`, så den installeras som uppdatering ovanpå 3.x; migreringen på enheten
+  (~~OMB-2~~) togs bort i 4.8.0 – 3.x-data läses in med importen (BCK-14).
 - **Workflow:** `release.yml` (owner `ParTee71`, repo `Dagboken`), jobben:
   - `gate` (sekunder): commiten ligger på `master`, versionen är `versionName` i
     `version.properties`, taggen finns inte, secrets finns och `ci-ok` är grönt på commiten –

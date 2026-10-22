@@ -42,7 +42,7 @@ class BackupJsonConverterTest {
     @Test
     fun `v1 - varje dokument och fält blir exakt som i den förväntade exporten`() = assertMatchesExpected("backup-v1")
 
-    /** Fält för fält per dokument och sedan hela filen (`LegacyFixtures.assertMatchesExpected`, delad med legacy-läsarens test). */
+    /** Fält för fält per dokument och sedan hela filen (`LegacyFixtures.assertMatchesExpected`). */
     private fun assertMatchesExpected(name: String) = LegacyFixtures.assertMatchesExpected(name, converted(name), BackupJsonConverter.exportedAt(LegacyFixtures.backup(name)))
 
     @Test

@@ -94,7 +94,6 @@ class FakeUserDirectory(private val store: FakeStore) : UserDirectory {
 /** Inloggning utan Google: [nextSignIn] bestämmer utfallet, lyckad inloggning sätter användaren. */
 class FakeAuthRepository(initial: AuthUser? = null) : AuthRepository {
     override val authState = MutableStateFlow(initial)
-    override val currentUid: String? get() = authState.value?.uid
     var nextSignIn: Result<AuthUser> = Result.success(AuthUser("uid-anna"))
     var signInCalls = 0
         private set

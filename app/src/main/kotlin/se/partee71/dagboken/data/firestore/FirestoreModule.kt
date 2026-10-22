@@ -37,7 +37,7 @@ abstract class FirestoreModule {
     @Binds
     abstract fun rawDocuments(documents: FirestoreRawDocuments): RawDocuments
 
-    /** Migreringen från 3.x skriver konverterarens dokument rått (OMB-2). */
+    /** Importen skriver filens dokument rått (BCK-6, BCK-14). */
     @Binds
     abstract fun rawWriter(writer: FirestoreRawWriter): RawDocumentWriter
 

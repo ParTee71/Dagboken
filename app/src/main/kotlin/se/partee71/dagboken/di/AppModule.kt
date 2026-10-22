@@ -53,9 +53,8 @@ abstract class AppModule {
         fun timeZone(): TimeZone = TimeZone.currentSystemDefault()
 
         /**
-         * Enhetslokalt tillstånd (TP-4): migreringsflaggan (OMB-2), dagsgrindens senaste dag per konto (#304) och
-         * senare senast valda flik. 4.0:s egen fil – aldrig 3.x-filen `dagboken_prefs`, som migreringen bara läser.
-         * Ett DataStore per fil och process.
+         * Enhetslokalt tillstånd (TP-4): dagsgrindens senaste dag per konto (#304) och senare senast valda flik. 4.0:s
+         * egen fil – aldrig 3.x-filen `dagboken_prefs`. Ett DataStore per fil och process.
          */
         @Provides
         @Singleton

@@ -7,14 +7,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.data.common.UserScope
-import se.partee71.dagboken.data.legacy.LegacyMigrationPause
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.data.repository.reminders
 import se.partee71.dagboken.di.ApplicationScope
@@ -23,8 +21,7 @@ import se.partee71.dagboken.di.ApplicationScope
  * Håller larmen i takt med cachen medan appen kör (NOT-7, NOT-15, AUTH-6; ARKITEKTUR.md → Risker, "Larm tystnar
  * när schemat ligger i cachen"): så länge någon är inloggad läggs alla larm om ([AlarmScheduler.rescheduleAll])
  * när påminnelseinställningarna ändras – från formuläret, från servern (en annan enhet) eller en import – och direkt
- * vid start – men inte medan migreringens skrivning pågår ([LegacyMigrationPause]): då hoppas schemaläggningen över och
- * tas upp när den är klar. Recepten och doserna påverkar inte larmen (bara vad notisen visar, läst när larmet går), så de följs inte. När användaren loggar ut avbokas alla larm och notiserna stängs. Startas en gång
+ * vid start. Recepten och doserna påverkar inte larmen (bara vad notisen visar, läst när larmet går), så de följs inte. När användaren loggar ut avbokas alla larm och notiserna stängs. Startas en gång
  * ([start]); lever i appens scope.
  */
 @Singleton
@@ -34,7 +31,6 @@ class ReminderSync @Inject constructor(
     private val settings: SettingsRepository,
     private val scheduler: AlarmScheduler,
     private val notifications: NotificationHelper,
-    private val migration: LegacyMigrationPause,
     @ApplicationScope private val scope: CoroutineScope
 ) {
     private val started = AtomicBoolean(false)
@@ -51,7 +47,7 @@ class ReminderSync @Inject constructor(
      */
     internal suspend fun run() {
         var signedIn = false
-        combine(user.uid.map { it != null }, migration.paused) { now, paused -> now to paused }.distinctUntilChanged().collectLatest { (now, paused) ->
+        user.uid.map { it != null }.distinctUntilChanged().collectLatest { now ->
             if (!now) {
                 if (signedIn) {
                     scheduler.cancelAll()
@@ -61,9 +57,6 @@ class ReminderSync @Inject constructor(
                 return@collectLatest
             }
             signedIn = true
-            // Medan migreringens skrivning pågår (OMB-2) schemaläggs inget – befintliga larm rörs inte; när pausen släpps
-            // startar insamlingen om och larmen läggs som vanligt.
-            if (paused) return@collectLatest
             reminderSettings().conflate().collect { scheduler.rescheduleAll(known = it) }
         }
     }

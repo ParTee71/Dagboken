@@ -9,10 +9,10 @@ import org.junit.Test
 import se.partee71.dagboken.core.legacy.threex.BackupJson as BackupJson3x
 
 /**
- * Kopian av 3.x-datan som migreringsskärmen sparar (OMB-8) ska kunna läsas av 3.27.0:s egen import: filen parsas
- * här med 3.x:s egna dataklasser och serialiseringsinställningar (`threex/BackupJson3x.kt`, kopierade från branchen
- * `legacy`; `MigrationViewModel.importFromFile` läste filen som UTF-8-text och avkodade med
- * `Json { ignoreUnknownKeys = true }`). Fixturen med alla fält satta ger fältvis likhet efter parse.
+ * En 3.x-backup som `BackupJson.encode` skriver ska kunna läsas av 3.27.0:s egen import: filen parsas här med 3.x:s
+ * egna dataklasser och serialiseringsinställningar (`threex/BackupJson3x.kt`, kopierade från branchen `legacy`;
+ * 3.x:s `MigrationViewModel.importFromFile` läste filen som UTF-8-text och avkodade med `Json { ignoreUnknownKeys = true }`).
+ * Fixturen med alla fält satta ger fältvis likhet efter parse, och konverterarens 3.x-klasser hålls i takt med 3.x:s.
  */
 class Backup3xCompatibilityTest {
 
@@ -35,15 +35,6 @@ class Backup3xCompatibilityTest {
         assertEquals(backup.settings?.themeMode, parsed.settings?.themeMode, name)
         assertEquals(backup.medicinRecipes.flatMap { r -> r.dosperioder.map { it.id to it.slutDatum } }, parsed.medicinRecipes.flatMap { r -> r.dosperioder.map { it.id to it.slutDatum } }, name)
         assertEquals(backup.medNotificationConfigs?.map { it.tidpunkt }, parsed.medNotificationConfigs?.map { it.tidpunkt }, name)
-    }
-
-    @Test
-    fun `kopian ur Room-raderna läses av 3x klasser och parser med varje fält intakt`() {
-        val room = LegacyFixtures.room()
-        val assembled = LegacyRoomAssembler.assemble(room.tables, room.preferences, room.createdAt).backup
-        assertEquals(2, assembled.version, "formatversion v2")
-        assertReadableBy3x(assembled, "room-v11")
-        assertEquals(room.tables.mapValues { it.value.size }, LegacyRoomAssembler.tableCounts(assembled))
     }
 
     @Test

@@ -12,14 +12,16 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureLightAndDarkPaused
 import se.partee71.dagboken.testing.captureScreenLightAndDark
-import se.partee71.dagboken.ui.migration.MigrationSamples.before
-import se.partee71.dagboken.ui.migration.MigrationSamples.halfway
-import se.partee71.dagboken.ui.migration.MigrationSamples.importReview
-import se.partee71.dagboken.ui.migration.MigrationSamples.importStopped
+import se.partee71.dagboken.ui.migration.ImportSamples.before
+import se.partee71.dagboken.ui.migration.ImportSamples.halfway
+import se.partee71.dagboken.ui.migration.ImportSamples.importReview
+import se.partee71.dagboken.ui.migration.ImportSamples.importStopped
+import se.partee71.dagboken.ui.settings.ExportImportScreen
+import se.partee71.dagboken.ui.settings.ExportImportUiState
 
 /**
- * Första starten utan Room-fil och importens lägen (OMB-5, BCK-6, BCK-14) i ljust och mörkt, ett läge per tavla i
- * mockupen (avsnitt 16; NFR-20). Samma vy visas i Export och import ([ImportStageContent]). Påhittad data.
+ * Importens lägen i Export och import (BCK-6, BCK-14) i ljust och mörkt, ett läge per tavla i mockupen (avsnitt 16;
+ * NFR-20). Valen och granskningen står i `SettingsScreenshotTest`. Påhittad data.
  */
 @RunWith(RobolectricTestRunner::class)
 class ImportScreenshotTest {
@@ -28,22 +30,15 @@ class ImportScreenshotTest {
     val rule = createComposeRule()
 
     @Composable
-    private fun content(stage: ImportStage) = MigrationScreen(MigrationUiState(MigrationStage.Fallback(stage)), {})
+    private fun content(stage: ImportStage) = ExportImportScreen(ExportImportUiState(import = stage), {}, { "dagboken-export-2026-10-08.json" }, onBack = {})
 
     private fun capture(name: String, stage: ImportStage) = rule.captureLightAndDark("Import_$name") { content(stage) }
-
-    @Test
-    fun `Välkommen - valen`() = capture("valen", ImportStage.Choose)
 
     @Test
     fun `Ingen backup på Drive`() = capture("ingenDrive", ImportStage.NoDriveBackup)
 
     @Test
     fun `Läser Drive`() = rule.captureLightAndDarkPaused("Import_laser") { content(ImportStage.Reading(LegacySource.DRIVE)) }
-
-    @Test
-    @Config(qualifiers = TALL)
-    fun `Granska`() = capture("granska", importReview)
 
     @Test
     @Config(qualifiers = TALL)

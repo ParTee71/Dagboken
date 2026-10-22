@@ -13,7 +13,7 @@ import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.core.schema.TextLimits
 
 /**
- * Importens läsare (BCK-6, BCK-14, OMB-5): en 3.x-backup v1/v2 ger exakt konverterarens dokument (samma som grinden
+ * Importens läsare (BCK-6, BCK-14): en 3.x-backup v1/v2 ger exakt konverterarens dokument (samma som grinden
  * OMB-4), en 4.0-export i `tools/db`-formatet ger sina dokument under det inloggade kontot med okända fält kvar, och
  * allt som rules inte skulle godta stoppar hela filen med en rapport utan innehåll. Syntetisk data.
  */

@@ -27,12 +27,11 @@ import se.partee71.dagboken.data.legacy.DriveBackups
 import se.partee71.dagboken.data.legacy.DriveRead
 import se.partee71.dagboken.data.legacy.ImportRead
 import se.partee71.dagboken.data.legacy.LegacyImportUseCase
-import se.partee71.dagboken.data.legacy.LegacyMigrationPause
 import se.partee71.dagboken.data.legacy.LegacyWriteOutcome
 import se.partee71.dagboken.testing.StuckTestTimeout
 
 /**
- * Legacyimporten och exporten mot riktig Firestore i emulatorn med rules (BCK-6, BCK-13, BCK-14, BCK-16, OMB-5): en
+ * Legacyimporten och exporten mot riktig Firestore i emulatorn med rules (BCK-6, BCK-13, BCK-14, BCK-16): en
  * 3.x-backup från "Drive" (fejk – inget konto i emulatorn) skrivs av ägaren genom rules och ger grindens dokument,
  * exporten är `tools/db export`-formatet, och export → radera → import → export ger en identisk fil. SAF är en fil i
  * minnet. Syntetisk data (`tools/db/test/fixtures/legacy`).
@@ -74,7 +73,7 @@ class ExportImportRoundTripTest {
         val writer = FirestoreRawWriter(user.firestore)
         val files = MemoryFile()
         val scope = TestUserScope(user.uid)
-        val importer = LegacyImportUseCase(FakeDrive(asset("backup-v2.json")), files, writer, raw, LegacyMigrationPause(), scope, Dispatchers.Default)
+        val importer = LegacyImportUseCase(FakeDrive(asset("backup-v2.json")), files, writer, raw, scope, Dispatchers.Default)
         val exporter = ExportUseCase(raw, files, scope, FixedClock(), Dispatchers.Default)
 
         val plan = assertIs<ImportRead.Ready>(importer.readDrive()).plan

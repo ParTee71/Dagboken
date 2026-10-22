@@ -4,7 +4,7 @@ import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.ExportFormat
 
 /**
- * Batchformen för migreringen på enheten (OMB-2, ARKITEKTUR.md → Risker): konverterarens dokument delas i
+ * Batchformen för importen på enheten (BCK-14, ARKITEKTUR.md → Risker): dokumenten delas i
  * batchar om högst [MAX_WRITES] skrivningar (Firestores gräns) **och** högst [MAX_EPISODES] distinkta
  * episoder, där en episod alltid ligger i samma batch som sina incheckningar – rules kräver att episoden
  * finns efter skrivningen (`existsAfter`) och tillåter högst 20 dokumentuppslag per batch. Ordningen bevaras,

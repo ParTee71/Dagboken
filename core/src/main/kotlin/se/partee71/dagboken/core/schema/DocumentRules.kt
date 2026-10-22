@@ -224,7 +224,10 @@ object DocumentRules {
     /** Samlingarna som migreringsmarkörens `counts` får räkna (`countCollections()`): användarens samlingar och undersamlingen. */
     val COUNT_COLLECTIONS: List<String> = CollectionNames.USER_COLLECTIONS + CollectionNames.CHECKINS
 
-    /** Migreringsmarkören på användardokumentet (`isLegacyMigration`, OMB-2): exakt dessa fält, tid och källa krävs. */
+    /**
+     * Migreringsmarkören på användardokumentet (`isLegacyMigration`): exakt dessa fält, tid och källa krävs. 4.0–4.7
+     * skrev den vid migreringen på enheten (~~OMB-2~~, borttagen i 4.8.0); en befintlig markör ska fortsatt godtas.
+     */
     val LEGACY_MIGRATION = Shape(
         mapOf(
             "completedAt" to Check.TimestampField,
@@ -343,18 +346,6 @@ object DocumentRules {
             "legacySomatic" to Check.Min(0)
         )
     )
-
-    /**
-     * Fälten en samlings codec kan skriva, som träd: en nyckel per fält, med underträd för nästlade objekt
-     * (`theme`, `reminders`, …) och `null` för värden som jämförs hela (text, tal, listor, markörens `counts`). Den fasta
-     * nyckelmängden som migreringens hashar och jämförelser begränsas till (OMB-7) – inte dokumentets egna nycklar, så
-     * att ett fält som tömts i 3.x (nyckeln försvinner) syns som en ändring.
-     */
-    data class FieldTree(val fields: Map<String, FieldTree?>)
-
-    fun fieldTree(collection: String): FieldTree = treeOf(requireNotNull(FIELDS[collection]) { "okänd samling $collection" })
-
-    private fun treeOf(fields: Map<String, Check>): FieldTree = FieldTree(fields.mapValues { (_, check) -> (check as? Check.Nested)?.let { treeOf(it.shape.fields) } })
 
     /** Fält som rules kräver även på toppnivå (läses utan `none`): användardokumentets version. */
     private val REQUIRED: Map<String, Set<String>> = mapOf(CollectionNames.USERS to setOf("schemaVersion"))

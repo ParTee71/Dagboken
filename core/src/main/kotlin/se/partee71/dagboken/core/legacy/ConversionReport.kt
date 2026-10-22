@@ -93,8 +93,8 @@ sealed interface ConversionResult {
         fun exportJson(exportedAt: Instant): String = ExportFormat.encode(exportedAt, Schema.CURRENT_VERSION, documents)
 
         /**
-         * Dokumenten utan `users/{uid}` – det som skrivs på enheten (migreringen OMB-2 och importen BCK-14): användardokumentet
-         * finns sedan inloggningen och bär kontots `schemaVersion`, `createdAt` och markören.
+         * Dokumenten utan `users/{uid}` – det som importen skriver på enheten (BCK-14): användardokumentet finns sedan
+         * inloggningen och bär kontots `schemaVersion` och `createdAt`.
          */
         val accountDocuments: List<ExportFormat.Document> by lazy { documents.filterNot { CollectionNames.collectionOf(it.path) == CollectionNames.USERS } }
     }

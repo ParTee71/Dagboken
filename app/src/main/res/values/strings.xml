@@ -991,102 +991,28 @@
     <string name="unit_percent">%</string>
     <string name="unit_points">poäng</string>
     <string name="unit_scale">skala</string>
-    <!-- Migrering på enheten (OMB-2, OMB-7, OMB-8, NAV-6) – bara antal, aldrig innehåll -->
-    <string name="not_now">Inte nu</string>
-    <string name="migration_title">Flytta din dagbok</string>
-    <string name="migration_intro">Dagboken 3.27 finns på telefonen. Allt flyttas till ditt konto – ingenting raderas här.</string>
-    <string name="migration_reading_title">Läser 3.x-databasen</string>
-    <string name="migration_reading_note">Bara läsning – 3.x-filen ändras inte.</string>
-    <string name="migration_copy_title">Kopia av 3.x-datan</string>
-    <string name="migration_copy_required">Krävs</string>
-    <string name="migration_copy_missing">Krävs innan flytten. Du väljer var filen sparas – med den kan 3.27 läsa tillbaka allt om något går fel.</string>
-    <string name="migration_copy_missing_stopped">Du väljer var filen sparas – med den kan 3.27 läsa tillbaka allt. Flytten väntar tills stoppet är löst.</string>
-    <string name="migration_copy_save">Spara en kopia</string>
-    <string name="migration_copy_checking">Kontrollerar kopian – läser tillbaka och jämför …</string>
-    <string name="migration_copy_verified">Kontrollerad</string>
-    <string name="migration_copy_saved_format">Sparad %1$s · %2$s · kontrollerad</string>
-    <plurals name="migration_posts">
-        <item quantity="one">%s post</item>
-        <item quantity="other">%s poster</item>
-    </plurals>
-    <string name="migration_copy_failed_title">Kopian gick inte att kontrollera</string>
-    <string name="migration_copy_write_failed">Filen gick inte att spara där. Välj en annan plats. Inget har flyttats.</string>
-    <string name="migration_copy_unreadable">Filen kunde inte läsas tillbaka. Inget har flyttats.</string>
-    <string name="migration_copy_count_mismatch">Antalen i filen stämmer inte med 3.x-datan. Inget har flyttats.</string>
-    <string name="migration_copy_differs">Filen ger inte samma data som 3.x-databasen. Inget har flyttats.</string>
-    <string name="migration_copy_state_failed">Kopians läge gick inte att sparas på telefonen. Spara igen.</string>
-    <string name="migration_copy_retry">Spara igen</string>
-    <string name="migration_copy_stale_title">Kopian är inaktuell</string>
-    <string name="migration_copy_stale">3.x-datan har ändrats sedan kopian sparades (%s). Spara en ny kopia innan flytten.</string>
-    <string name="migration_copy_save_new">Spara en ny kopia</string>
-    <string name="migration_account">Flyttas till kontot %s. Stämmer det inte – logga ut och byt konto först.</string>
-    <string name="migration_account_mismatch">Flyttas till kontot %s – ett annat konto än det som var inloggat i 3.x. Stämmer det inte – logga ut och byt konto först.</string>
-    <string name="migration_account_unknown">Flyttas till kontot du är inloggad med. Stämmer det inte – logga ut och byt konto först.</string>
-    <string name="migration_account_check">Flyttas till kontot %s. Det gick inte att se vilket konto 3.x använde – bekräfta att det är rätt konto.</string>
-    <string name="migration_account_check_unknown">Det gick inte att se vilket konto 3.x använde – bekräfta att det är rätt konto.</string>
-    <string name="migration_account_confirm">Ja, flytta till %s</string>
-    <string name="migration_account_confirm_unknown">Ja, flytta till kontot jag är inloggad med</string>
-    <string name="migration_found_title">Det här hittades</string>
-    <string name="migration_found_source">3.x · v11</string>
+    <!-- Importens tabeller och rapporter (BCK-14) – bara antal, aldrig innehåll -->
     <plurals name="migration_warnings">
-        <item quantity="one">%d varning i 3.x-datan – den stoppar inte flytten.</item>
-        <item quantity="other">%d varningar i 3.x-datan – de stoppar inte flytten.</item>
+        <item quantity="one">%d varning i backupen – den stoppar inte importen.</item>
+        <item quantity="other">%d varningar i backupen – de stoppar inte importen.</item>
     </plurals>
     <string name="migration_more">… och %d till</string>
-    <string name="migration_reminders_paused">Påminnelserna pausas medan flytten pågår.</string>
-    <string name="migration_move">Flytta till mitt konto</string>
-    <string name="migration_writing_intro">Låt appen vara öppen. Avbryts flytten kan den köras igen utan dubbletter.</string>
-    <string name="migration_writing_title">Flyttar …</string>
-    <string name="migration_open">Öppna Dagboken</string>
-    <string name="migration_done_intro">Kontrollera siffrorna och bekräfta.</string>
-    <string name="migration_done_title">Allt är flyttat</string>
     <string name="migration_done_verified">Kontrollerat</string>
-    <string name="migration_done_note">Antalet i ditt konto stämmer med 3.x för varje typ. 3.x-filen ligger kvar orörd på telefonen.</string>
-    <plurals name="migration_existing">
-        <item quantity="one">%s post fanns redan med andra värden – bara det som saknades fylldes i.</item>
-        <item quantity="other">%s poster fanns redan med andra värden – bara det som saknades fylldes i.</item>
-    </plurals>
     <string name="migration_reading_server">Läser läget på servern …</string>
-    <string name="migration_confirm">Bekräfta och öppna Dagboken</string>
     <string name="migration_count_change">%1$s → %2$s</string>
     <string name="migration_count_pending">%s → …</string>
     <string name="migration_row_before">%1$s: %2$s</string>
     <string name="migration_row_after">%1$s: %2$s före, %3$s efter</string>
-    <string name="migration_row_pending">%1$s: %2$s före, inte flyttat än</string>
+    <string name="migration_row_pending">%1$s: %2$s före, inte skrivet än</string>
     <string name="migration_row_done">%1$s: %2$s före, %3$s efter, klart</string>
-    <string name="migration_offline_title">Ingen anslutning</string>
-    <string name="migration_offline">Appen behöver nätet för att se om din dagbok redan är flyttad.</string>
-    <string name="migration_check_failed_title">Det gick inte att se om dagboken är flyttad</string>
-    <string name="migration_version_title">Äldre version av 3.x</string>
-    <string name="migration_version">Databasen på telefonen är från en version före 3.27 och kan inte läsas direkt.</string>
-    <string name="migration_version_note">Uppdatera till 3.27 och öppna 4.0 igen, eller importera en 3.x-backup (Drive eller JSON).</string>
-    <string name="migration_import">Importera backup</string>
-    <string name="migration_import_instead">Importera backup i stället</string>
-    <string name="migration_start_empty">Börja tomt</string>
-    <string name="migration_stopped_intro">Något i 3.x-datan ryms inte i 4.0 utan att ändras.</string>
-    <string name="migration_stopped_title">Flytten stoppades</string>
     <string name="migration_report">Rapport (bara antal, aldrig innehåll):</string>
     <string name="migration_report_line">%1$s: %2$d × %3$s – %4$s</string>
     <string name="migration_nothing_written">Inget har skrivits till ditt konto.</string>
-    <string name="migration_untouched_note">3.x-filen är orörd. Du kan försöka igen, importera en 3.x-backup i stället eller börja tomt.</string>
-    <string name="migration_unreadable_title">3.x-datan gick inte att läsa</string>
-    <string name="migration_unreadable">Databasen eller inställningarna från 3.x gick inte att öppna.</string>
-    <string name="migration_not_done_intro">Flytten är inte klar. Försök igen – inget dubbleras.</string>
     <string name="migration_mismatch_title">Allt stämmer inte än</string>
     <string name="migration_mismatch_report">Kontroll mot ditt konto (bara antal):</string>
     <string name="migration_mismatch_line">%1$s: %2$s av %3$s stämmer.</string>
-    <string name="migration_nothing_confirmed">Inget är bekräftat – 3.x-datan och kopian är orörda.</string>
-    <string name="migration_failed_title">Flytten avbröts</string>
     <string name="migration_failed_code">Felkod %1$s · batch %2$d</string>
     <string name="migration_failed_code_only">Felkod %s</string>
-    <string name="migration_started_note">Flytten har börjat. Bekräfta när allt stämmer, eller avbryt så tas det som flyttats bort från kontot igen – 3.x-filen är orörd.</string>
-    <string name="migration_abort">Avbryt flytten</string>
-    <string name="migration_abort_title">Avbryta flytten?</string>
-    <string name="migration_abort_message">Allt som flyttats till ditt konto tas bort igen. 3.x-datan och kopian på telefonen är orörda, och flytten kan göras om senare.</string>
-    <string name="migration_abort_confirm">Ta bort och avbryt</string>
-    <string name="migration_aborting_intro">Det som flyttats tas bort från kontot.</string>
-    <string name="migration_aborting_title">Avbryter flytten …</string>
-    <string name="migration_aborting">Tar bort det som flyttats och kontrollerar mot servern.</string>
     <string name="migration_entity_screenings">Mående-loggar</string>
     <string name="migration_entity_activities">Aktiviteter</string>
     <string name="migration_entity_events">Händelser</string>
@@ -1097,7 +1023,7 @@
     <string name="migration_entity_checkins">Incheckningar</string>
     <string name="migration_entity_settings">Inställningar och listor</string>
 
-    <!-- Export och import (BCK-6, BCK-13, BCK-14, SET-8) och första starten utan Room-fil (OMB-5), mockupen avsnitt 16. -->
+    <!-- Export och import (BCK-6, BCK-13, BCK-14, SET-8), mockupen avsnitt 16. -->
     <string name="export_title">Spara som JSON</string>
     <string name="export_subtitle">Hela dagboken · du väljer var filen sparas</string>
     <string name="export_note">Exporten innehåller allt i ditt konto i samma format som veckobackupen. Health Connect-data ingår aldrig.</string>
@@ -1108,18 +1034,14 @@
     </plurals>
     <string name="import_title">Importera backup</string>
     <string name="import_note">3.x-backup från Drive eller fil, eller en 4.0-export</string>
-    <string name="import_fallback_title">Välkommen till Dagboken</string>
-    <string name="import_fallback_intro">Ingen Dagboken 3.x hittades på telefonen. Har du en backup kan du läsa in den nu – eller senare under Inställningar → Export och import.</string>
     <string name="import_from_drive">Importera från Google Drive</string>
     <string name="import_from_drive_note">Senaste 3.x-backupen i ditt konto</string>
     <string name="import_from_file">Importera från fil</string>
     <string name="import_from_file_note">3.x-backup (.json) eller 4.0-export</string>
-    <string name="import_start_empty_note">En ny dagbok utan gammal data</string>
     <string name="import_reading_drive">Hämtar backupen från Google Drive …</string>
     <string name="import_reading_file">Läser filen …</string>
     <string name="import_reading_note">Bara läsning – ingenting skrivs förrän du bekräftar.</string>
     <string name="import_no_drive_title">Ingen backup på Drive</string>
-    <string name="import_no_drive">Det finns ingen 3.x-backup på Google Drive för det här kontot. Importera från en fil eller börja tomt.</string>
     <string name="import_no_drive_settings">Det finns ingen 3.x-backup på Google Drive för det här kontot. Importera från en fil i stället.</string>
     <string name="import_not_a_backup_title">Filen är ingen backup</string>
     <string name="import_not_a_backup">Välj en 3.x-backup eller en export från Dagboken 4.0. Inget har skrivits.</string>
@@ -1127,8 +1049,6 @@
     <string name="import_read_failed_file">Filen gick inte att öppna. Inget har skrivits.</string>
     <string name="import_choose_other">Välj en annan fil</string>
     <string name="import_review_title">Det här finns i backupen</string>
-    <string name="import_from_source_drive">Från Google Drive</string>
-    <string name="import_from_source_file">Från fil</string>
     <string name="import_source_legacy">3.x · v%d</string>
     <string name="import_source_export">4.0 · v%d</string>
     <string name="import_replaces">Poster med samma id som i ditt konto ersätts. Inget dubbleras.</string>
@@ -1144,12 +1064,10 @@
     </plurals>
     <string name="import_confirm_body">Poster med samma id som redan finns i ditt konto ersätts av backupens version. Övriga poster rörs inte.</string>
     <string name="import_writing_title">Importerar …</string>
-    <string name="import_writing_intro">Låt appen vara öppen. Avbryts importen kan den köras igen utan dubbletter.</string>
     <string name="import_done_title">Importen är klar</string>
     <string name="import_done_note">Antalet i ditt konto stämmer med filen för varje typ.</string>
     <string name="import_done">Klar</string>
     <string name="import_stopped_title">Importen stoppades</string>
-    <string name="import_stopped_intro">Något i backupen ryms inte i 4.0 utan att ändras.</string>
     <string name="import_failed_title">Importen avbröts</string>
     <!-- Känslor på postkort (#320) -->
     <string name="feelings_more_format">+%1$d</string>

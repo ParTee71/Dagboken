@@ -6,9 +6,9 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.schema.CollectionNames
 
 /**
- * En rad på migreringsskärmen (OMB-2): en entitet med sitt svenska namn och de samlingar den räknar – bara antal,
- * aldrig innehåll. Ordningen är skärmens (mockupen, avsnitt 15); inställningarna och alternativlistorna är en rad.
- * Varje samling som migreringen skriver har en rad (`MigrationEntityTest`).
+ * En rad i importens tabeller (BCK-14): en entitet med sitt svenska namn och de samlingar den räknar – bara antal,
+ * aldrig innehåll. Ordningen är mockupens (avsnitt 15); inställningarna och alternativlistorna är en rad. Varje samling
+ * som importen skriver har en rad (`ImportReportTest`).
  */
 enum class MigrationEntity(@param:StringRes val label: Int, val collections: List<String>) {
     SCREENINGS(R.string.migration_entity_screenings, listOf(CollectionNames.SCREENINGS)),
