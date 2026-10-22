@@ -5,16 +5,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import kotlin.math.roundToInt
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.IntervalPoint
-import se.partee71.dagboken.core.engine.computeTrendLine
 import se.partee71.dagboken.core.engine.formatChartValue
 import se.partee71.dagboken.core.engine.intervalAxisFor
+import se.partee71.dagboken.core.engine.seriesStats
 import se.partee71.dagboken.core.engine.summarizeIntervals
-import se.partee71.dagboken.core.engine.trendSegment
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.scaleLevel
 
@@ -38,18 +37,24 @@ fun IntervalBarChart(
     scale: IntRange = 0..10,
     higherIsBetter: Boolean = true
 ) {
-    val summary = summarizeIntervals(points)
-    val direction = computeTrendLine(points.map { it?.value })?.direction
-    val spoken = summary?.let {
-        stringResource(
-            R.string.chart_a11y_interval_summary,
-            label,
-            pluralStringResource(R.plurals.chart_a11y_days, it.count, it.count),
-            formatChartValue(it.min),
-            formatChartValue(it.max),
-            trendSpoken(direction)
-        )
-    }.orEmpty()
+    // Dagsvärdena en gång: trenden räknas på dem och kurvan ritas ur dem (inte i ritlambdan).
+    val values = remember(points) { points.map { it?.value } }
+    val stats = remember(points, values) { seriesStats(values, summarizeIntervals(points)) }
+    val summary = stats.summary
+    val direction = stats.direction
+    val resources = LocalResources.current
+    val spoken = remember(stats, label, resources) {
+        summary?.let {
+            resources.getString(
+                R.string.chart_a11y_interval_summary,
+                label,
+                resources.getQuantityString(R.plurals.chart_a11y_days, it.count, it.count),
+                formatChartValue(it.min),
+                formatChartValue(it.max),
+                trendSpoken(resources, direction)
+            )
+        }.orEmpty()
+    }
     // Dagsvärdets färg ur energiskalan – samma nivågränser som reglagen och chipsen (DSN-1).
     val dayColors = points.map { point -> point?.let { scaleLevel(it.value.roundToInt(), scale, higherIsBetter).color } }
     val curveColor = chartColors.line
@@ -64,8 +69,7 @@ fun IntervalBarChart(
         }
     ) {
         val axis = remember(points) { intervalAxisFor(points) }
-        val trend = remember(points) { trendSegment(points.map { it?.value }) }
-        BarCanvas(points.size, axis, xLabels, trend, resetKey = points to xLabels, description = spoken, barStyle = BarStyle.Span) { viewport, barWidth ->
+        BarCanvas(points.size, axis, xLabels, stats.segment, resetKey = points to xLabels, description = spoken, barStyle = BarStyle.Span) { viewport, barWidth ->
             // Spannen (min–max) underst, rundade i ändarna.
             points.forEachIndexed { i, point ->
                 if (point == null) return@forEachIndexed
@@ -79,7 +83,7 @@ fun IntervalBarChart(
                 )
             }
             // Dagsvärdena som mjuk kurva, bruten vid en lucka (TRD-8), med dagsvärdets punkt överst.
-            drawSmoothCurve(points.map { it?.value }, viewport, curveColor) { i -> dayColors[i] }
+            drawSmoothCurve(values, viewport, curveColor) { i -> dayColors[i] }
         }
     }
 }

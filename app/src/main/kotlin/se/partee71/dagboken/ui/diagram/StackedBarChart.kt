@@ -7,19 +7,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.StackedPoint
-import se.partee71.dagboken.core.engine.computeTrendLine
 import se.partee71.dagboken.core.engine.dominantSegment
 import se.partee71.dagboken.core.engine.formatChartValue
 import se.partee71.dagboken.core.engine.knownCount
+import se.partee71.dagboken.core.engine.seriesStats
 import se.partee71.dagboken.core.engine.stackBases
 import se.partee71.dagboken.core.engine.stackTotals
 import se.partee71.dagboken.core.engine.stackedAxisFor
-import se.partee71.dagboken.core.engine.summarize
-import se.partee71.dagboken.core.engine.trendSegment
 import se.partee71.dagboken.ui.theme.AppColors
 
 /** En del av stapeln — en kategori med sin färg, t.ex. ett sömnstadium (`AppColors.extended.sleepStages`). */
@@ -73,30 +71,35 @@ fun StackedBarChart(
     val colors = chartColors
     val totals = remember(points) { stackTotals(points) }
     val lineValues = line?.points.orEmpty()
-    val summary = summarize(totals)
-    val direction = computeTrendLine(totals)?.direction
-    val dominant = dominantSegment(points, segments.size)?.let { segments[it].label }
-    val barsSpoken = summary?.let {
-        stringResource(
-            R.string.chart_a11y_stacked_summary,
-            label,
-            pluralStringResource(R.plurals.chart_a11y_bars, it.count, it.count),
-            formatChartValue(it.min),
-            formatChartValue(it.max),
-            dominant ?: stringResource(R.string.chart_a11y_no_dominant),
-            trendSpoken(direction)
-        )
+    val stats = remember(totals) { seriesStats(totals) }
+    val lineStats = remember(lineValues) { line?.let { seriesStats(lineValues) } }
+    val summary = stats.summary
+    val direction = stats.direction
+    val resources = LocalResources.current
+    val spoken = remember(points, segments, stats, line, lineStats, label, resources) {
+        val dominant = dominantSegment(points, segments.size)?.let { segments[it].label }
+        val barsSpoken = summary?.let {
+            resources.getString(
+                R.string.chart_a11y_stacked_summary,
+                label,
+                resources.getQuantityString(R.plurals.chart_a11y_bars, it.count, it.count),
+                formatChartValue(it.min),
+                formatChartValue(it.max),
+                dominant ?: resources.getString(R.string.chart_a11y_no_dominant),
+                trendSpoken(resources, direction)
+            )
+        }
+        listOfNotNull(
+            barsSpoken,
+            line?.let { seriesSpoken(resources, it.label, lineStats?.summary, lineStats?.direction) }
+        ).joinToString(". ")
     }
     val lineColor = line?.color ?: colors.line
-    val spoken = listOfNotNull(
-        barsSpoken,
-        line?.let { seriesSpoken(it.label, summarize(it.points), computeTrendLine(it.points)?.direction) }
-    ).joinToString(". ")
     // Raden under diagrammet (TRD-9) gäller en sak i taget: staplarna när de räcker för ett diagram, annars linjen –
     // och med en linje står det vilken ("Händelser: Lägst 4 · Högst 7"). Linjen läses alltid upp som egen serie.
     val barsEnough = knownCount(totals) >= MIN_CHART_POINTS
-    val lineSummary = line?.let { summarize(it.points) }
-    val lineDirection = line?.let { computeTrendLine(it.points)?.direction }
+    val lineSummary = lineStats?.summary
+    val lineDirection = lineStats?.direction
 
     ChartFrame(
         enoughData = barsEnough || knownCount(lineValues) >= MIN_CHART_POINTS,
@@ -119,13 +122,12 @@ fun StackedBarChart(
         }
     ) {
         val axis = remember(points, lineValues) { stackedAxisFor(points, lineValues) }
-        val trend = remember(totals) { trendSegment(totals) }
         val fallback = colors.label
         BarCanvas(
             maxOf(points.size, lineValues.size),
             axis,
             xLabels,
-            trend,
+            stats.segment,
             resetKey = Triple(points, lineValues, xLabels),
             description = spoken,
             barStyle = BarStyle.Stack

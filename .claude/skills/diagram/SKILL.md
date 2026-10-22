@@ -22,7 +22,7 @@ koden; vid skillnad gäller kravlistan. Vilken komponent som är vilken elementt
 | TRD-9 – lägsta och högsta som text under varje diagram, värdelinjer | `MinMaxCaption` ingår i varje diagram; `gridValuesFor` |
 | TRD-10 – tvåfingerzoom och panorering, helt utzoomat från början, nollställs vid periodbyte | Vico `Zoom.Content` i `LineChart`, `ZoomPan` i stapeldiagrammen; nyckel = `xLabels` |
 | TRD-12 – kompakt rullgardin för period och serier | `CompactDropdownButton` (menyn är `AppMenu`s) |
-| TRD-13 – streckad minsta kvadrat-trend per serie, luckor hoppas över | `computeTrendLine`/`trendSegment`; solgul med en serie, seriens färg med flera; seriernas egna linjer är alltid heldragna |
+| TRD-13 – streckad minsta kvadrat-trend per serie, luckor hoppas över | `computeTrendLine`/`trendSegment`; diagrammen och Trender tar sammanfattning, trend och riktning ur `seriesStats` (`remember`ad); solgul med en serie, seriens färg med flera; seriernas egna linjer är alltid heldragna |
 | TRD-15 – luckor ritas aldrig som nollor | `gapFreeRuns` (kurvan bryts), `null` i alla diagramdata |
 | TRD-16 – sömnstadier staplade, saknat segment tar ingen höjd | `StackedBarChart` + `stackBases`; axeln börjar på noll; staplarna ur `sleepStagePoints`, namn och färger i `sleepStageSegments` |
 | TRD-17 – Jämför: varje serie 0–100 mot eget min/max, konstant = 50, luckor kvar | `indexSeries`/`compareSeries`/`CompareKey` i `CompareIndex.kt`; `LineChart(axis = COMPARE_AXIS, showCaption = false, footnote = …)`, legenden bär verkligt spann med enhet |
@@ -41,7 +41,7 @@ koden; vid skillnad gäller kravlistan. Vilken komponent som är vilken elementt
 - **Data:** ett värde per dag/natt i periodens ordning, `null` där inget finns. Lägg dagsvärden på
   dagarna med `alignTo` (dagens energi). Etiketter (`xLabels`) formateras med `DateFormat`.
 - **Färger:** bara ur temat – kurvan är `primary`, trend och dagens punkt `secondary` (solgul),
-  energiskalan via `scaleLevel(...).color`, sömnstadierna `AppColors.extended.sleepStages`, flera serier `AppColors.extended.chartSeries`
+  energiskalan via `scaleLevel(...).color` (zonerna 40/70 % ur `scaleZone` i `:core`), sömnstadierna `AppColors.extended.sleepStages`, flera serier `AppColors.extended.chartSeries`
   (aldrig `AppColors.swatch`, det är färgväljarens).
   Stilvärden (mått, alfa) finns bara i `ChartStyle.kt`.
 - **Kortet runt:** diagramkort i Trender är `Foldout` i `AppCard` (NFR-18, TRD-14); periodväljaren
