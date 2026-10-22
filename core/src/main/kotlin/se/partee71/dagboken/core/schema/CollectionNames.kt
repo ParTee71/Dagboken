@@ -2,7 +2,7 @@ package se.partee71.dagboken.core.schema
 
 /**
  * Samlingarnas namn och sökvägar under `users/{uid}` (ARKITEKTUR.md → Datamodell) för `:core`:
- * konverteraren, exportformatet och valideringen bygger sökvägar med dem. `Paths` i `:app` och
+ * importen, exportformatet och valideringen bygger sökvägar med dem. `Paths` i `:app` och
  * `tools/db/lib/collections.mjs` har samma namn; `tools/db/test/collections.test.mjs` håller de tre lika.
  */
 object CollectionNames {

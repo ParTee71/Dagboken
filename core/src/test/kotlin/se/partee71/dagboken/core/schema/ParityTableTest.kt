@@ -4,11 +4,10 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.Test
-import se.partee71.dagboken.core.legacy.LegacyFixtures
 
 /**
  * Paritetstabellen i ARKITEKTUR.md → Datamodell → "Fältparitet 3.x → 4.0" är kontrollerad
- * (ADR-001, beslut 11; OMB-3): inget 3.x-fält saknar rad, inget 4.0-fält i tabellen saknas i sin
+ * (ADR-001, beslut 11): den visar var 3.x-datan som redan finns i kontona ligger, så inget 3.x-fält saknar rad, inget 4.0-fält i tabellen saknas i sin
  * codec, inget codec-fält saknas i tabellen, och inget fält är utelämnat. *metadata* är reserverat för
  * backupfilens egna fält (`version`, `createdAt`), som beskriver filen och inte användarens data.
  */
@@ -86,9 +85,27 @@ class ParityTableTest {
         val MARKERS = setOf("utelämnas", "beräknas", "sökväg", "metadata")
 
         /**
-         * Varje fält i 3.x `BackupJson` och dess klasser, ur konverterarens egna 3.x-klasser i `:core`
-         * (`legacy/BackupJson.kt`, som speglar branchen `legacy`) – ett nytt fält där kräver en rad här.
+         * Varje fält i 3.x `BackupJson` och dess klasser (branchen `legacy`, `data/migration/BackupJson.kt`, 3.27.0),
+         * per klass i deklarationsordning. Fryst sedan 4.9.0, när konverteraren och dess kopia av klasserna togs bort
+         * (BCK-14): 3.x ändras inte längre, men datan som konverterades ligger kvar i kontona.
          */
-        val LEGACY_FIELDS: List<String> = LegacyFixtures.BACKUP_FIELDS
+        val LEGACY_FIELDS: List<String> = mapOf(
+            "BackupJson" to "version createdAt aktiviteter mediciner medicinRecipes medicinFavoriter aktiviteterOptions symptomOptions " +
+                "aktiviteterOptionsV2 symptomOptionsV2 handelseTypOptions sjukdomsepisoder sjukdomsIncheckningar handelser notes " +
+                "screeningEventConfigs medNotificationConfigs sheetsConfig periodReminderTime settings",
+            "SettingsBackup" to "medsNotificationsEnabled themeMode themeLightStart themeDarkStart isDarkTheme dynamicColor birthYear sex",
+            "AktivitetJson" to "id timestamp datum tid aktivitet energy stress somatiska symptom aterhamtande energitjuv type spentTime",
+            "MedicinJson" to "id timestamp datum tid namn dos enhet tidpunkt tagen skipped tagenTid anteckning receptId",
+            "ReceptJson" to "id namn dos enhet tidpunkter tidpunkt upprepning dagar intervalDagar anteckning aktiv skapad startDatum slutDatum dosperioder",
+            "DosperiodJson" to "id startDatum slutDatum dos enhet",
+            "FavoritJson" to "id namn dos enhet tidpunkt anteckning minTidMellan dispenseringsTid maxDoserPerDag isFavorite",
+            "SjukdomsEpisodJson" to "id typ startDatum slutDatum anteckning timestamp",
+            "SjukdomsIncheckningJson" to "id episodId datum tid svarighetsgrad symptom somatiska anteckning timestamp",
+            "HandelseJson" to "id timestamp datum tid typ svarighetsgrad varaktighetMinuter triggers atgarder anteckning",
+            "NoteJson" to "target entityId text",
+            "ScreeningEventConfigJson" to "enabled time",
+            "MedNotificationConfigJson" to "tidpunkt enabled time",
+            "SymptomOptionBackup" to "name isFavorite"
+        ).flatMap { (klass, fields) -> fields.split(' ').map { "$klass.$it" } }
     }
 }

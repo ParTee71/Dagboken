@@ -34,10 +34,16 @@ enum class OptionKind(override val wire: String) : WireEnum {
 
 /**
  * Dokument-id för alternativ (DAT-13). 3.x-alternativen hade inga id:n (de var namn i listor), så
- * konverteraren och 4.0 ger dem samma deterministiska id ur lista och namn – en upprepad import
+ * 3.x-konverteraren (borttagen i 4.9.0) och 4.0 gav dem samma deterministiska id ur lista och namn – en upprepad import
  * skriver över i stället för att dubblera, och ett namn ger alltid samma id.
  */
 object OptionIds {
+    /**
+     * 3.x:s fasta alternativ för "annat": aktivitetens fritext (AKT-2) och symptomens fritext (AKT-6). Namnet ger id:t
+     * ([of]) som redan ligger i kontona – det får aldrig ändras.
+     */
+    const val OTHER = "Övrigt"
+
     /** Längsta läsbara del (slug) i id:t. */
     const val MAX_SLUG = 32
 

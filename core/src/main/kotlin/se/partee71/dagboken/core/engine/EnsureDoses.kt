@@ -76,7 +76,7 @@ data class EnsurePlan(
 
 /**
  * HEM-10: första dagen receptet kan ha en dos – det senare av skapandedagen (`createdAt` i [HOME_ZONE],
- * samma zon som konverteraren) och periodens start. `null` = varken skapandetid eller start (ingen gräns).
+ * samma zon som konverteraren använde) och periodens start. `null` = varken skapandetid eller start (ingen gräns).
  */
 fun Prescription.firstDoseDay(): LocalDate? = listOfNotNull(createdAt?.toLocalDateTime(HOME_ZONE)?.date, period.start).maxOrNull()
 

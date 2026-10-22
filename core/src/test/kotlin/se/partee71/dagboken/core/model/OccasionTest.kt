@@ -1,45 +1,15 @@
 package se.partee71.dagboken.core.model
 
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlinx.datetime.LocalTime
 import org.junit.Test
 
-/** Härledningen av måltidstillfället för screeningar från 3.x (DAT-12). */
+/** Måendets tillfällen (NOT-4, DAT-12): de lagrade namnen och påminnelsernas standardtider. */
 class OccasionTest {
 
     @Test
-    fun `3x-namnet avgör först, oavsett klockslag`() {
-        assertEquals(Occasion.BREAKFAST, Occasion.derive("Efter frukost", LocalTime(22, 0)))
-        assertEquals(Occasion.LUNCH, Occasion.derive("Lunch", null))
-        assertEquals(Occasion.DINNER, Occasion.derive("Kvällsmat", LocalTime(7, 0)))
-        assertEquals(Occasion.BEDTIME, Occasion.derive("Läggdags", LocalTime(12, 0)))
-    }
-
-    @Test
-    fun `annat namn - närmaste påminnelsetid räknat runt dygnet`() {
-        assertEquals(Occasion.BREAKFAST, Occasion.derive("Screening", LocalTime(9, 59)))
-        assertEquals(Occasion.LUNCH, Occasion.derive("", LocalTime(10, 1)))
-        assertEquals(Occasion.BREAKFAST, Occasion.derive("", LocalTime(10, 0)), "lika nära → det tidigare")
-        assertEquals(Occasion.DINNER, Occasion.derive("", LocalTime(18, 59)))
-        assertEquals(Occasion.BEDTIME, Occasion.derive("", LocalTime(2, 29)), "efter midnatt är närmare läggdags än frukost")
-        assertEquals(Occasion.BREAKFAST, Occasion.derive("", LocalTime(2, 31)))
-    }
-
-    @Test
-    fun `användarens påminnelsetider gäller före standardtiderna`() {
-        val times = mapOf(Occasion.BREAKFAST to LocalTime(6, 0), Occasion.LUNCH to LocalTime(11, 0))
-        assertEquals(Occasion.LUNCH, Occasion.derive("", LocalTime(9, 0), times))
-    }
-
-    @Test
-    fun `utan namn och klockslag finns inget tillfälle`() {
-        assertNull(Occasion.derive("Screening", null))
-    }
-
-    @Test
-    fun `3x-namnen och de lagrade namnen är unika`() {
-        assertEquals(listOf("Efter frukost", "Lunch", "Kvällsmat", "Läggdags"), Occasion.entries.map { it.legacyName })
-        assertEquals(Occasion.entries.size, Occasion.entries.map { it.wire }.toSet().size)
+    fun `de lagrade namnen är unika och standardtiderna ligger i dygnets ordning`() {
+        assertEquals(listOf("breakfast", "lunch", "dinner", "bedtime"), Occasion.entries.map { it.wire })
+        assertEquals(listOf(LocalTime(8, 0), LocalTime(12, 0), LocalTime(17, 0), LocalTime(21, 0)), Occasion.entries.map { it.defaultTime })
     }
 }

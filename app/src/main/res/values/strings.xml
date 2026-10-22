@@ -991,39 +991,34 @@
     <string name="unit_percent">%</string>
     <string name="unit_points">poäng</string>
     <string name="unit_scale">skala</string>
-    <!-- Importens tabeller och rapporter (BCK-14) – bara antal, aldrig innehåll -->
-    <plurals name="migration_warnings">
-        <item quantity="one">%d varning i backupen – den stoppar inte importen.</item>
-        <item quantity="other">%d varningar i backupen – de stoppar inte importen.</item>
-    </plurals>
-    <string name="migration_more">… och %d till</string>
-    <string name="migration_done_verified">Kontrollerat</string>
-    <string name="migration_reading_server">Läser läget på servern …</string>
-    <string name="migration_count_change">%1$s → %2$s</string>
-    <string name="migration_count_pending">%s → …</string>
-    <string name="migration_row_before">%1$s: %2$s</string>
-    <string name="migration_row_after">%1$s: %2$s före, %3$s efter</string>
-    <string name="migration_row_pending">%1$s: %2$s före, inte skrivet än</string>
-    <string name="migration_row_done">%1$s: %2$s före, %3$s efter, klart</string>
-    <string name="migration_report">Rapport (bara antal, aldrig innehåll):</string>
-    <string name="migration_report_line">%1$s: %2$d × %3$s – %4$s</string>
-    <string name="migration_nothing_written">Inget har skrivits till ditt konto.</string>
-    <string name="migration_mismatch_title">Allt stämmer inte än</string>
-    <string name="migration_mismatch_report">Kontroll mot ditt konto (bara antal):</string>
-    <string name="migration_mismatch_line">%1$s: %2$s av %3$s stämmer.</string>
-    <string name="migration_failed_code">Felkod %1$s · batch %2$d</string>
-    <string name="migration_failed_code_only">Felkod %s</string>
-    <string name="migration_entity_screenings">Mående-loggar</string>
-    <string name="migration_entity_activities">Aktiviteter</string>
-    <string name="migration_entity_events">Händelser</string>
-    <string name="migration_entity_doses">Doser</string>
-    <string name="migration_entity_prescriptions">Recept</string>
-    <string name="migration_entity_prn_medicines">Vid behov-mediciner</string>
-    <string name="migration_entity_illness_episodes">Sjukdomsepisoder</string>
-    <string name="migration_entity_checkins">Incheckningar</string>
-    <string name="migration_entity_settings">Inställningar och listor</string>
+    <!-- Importens tabeller och rapporter (BCK-6) – bara antal, aldrig innehåll -->
+    <string name="import_done_verified">Kontrollerat</string>
+    <string name="import_reading_server">Läser läget på servern …</string>
+    <string name="import_count_change">%1$s → %2$s</string>
+    <string name="import_count_pending">%s → …</string>
+    <string name="import_row_before">%1$s: %2$s</string>
+    <string name="import_row_after">%1$s: %2$s före, %3$s efter</string>
+    <string name="import_row_pending">%1$s: %2$s före, inte skrivet än</string>
+    <string name="import_row_done">%1$s: %2$s före, %3$s efter, klart</string>
+    <string name="import_report">Rapport (bara antal, aldrig innehåll):</string>
+    <string name="import_report_line">%1$s: %2$d × %3$s – %4$s</string>
+    <string name="import_nothing_written">Inget har skrivits till ditt konto.</string>
+    <string name="import_mismatch_title">Allt stämmer inte än</string>
+    <string name="import_mismatch_report">Kontroll mot ditt konto (bara antal):</string>
+    <string name="import_mismatch_line">%1$s: %2$s av %3$s stämmer.</string>
+    <string name="import_failed_code">Felkod %1$s · batch %2$d</string>
+    <string name="import_failed_code_only">Felkod %s</string>
+    <string name="import_entity_screenings">Mående-loggar</string>
+    <string name="import_entity_activities">Aktiviteter</string>
+    <string name="import_entity_events">Händelser</string>
+    <string name="import_entity_doses">Doser</string>
+    <string name="import_entity_prescriptions">Recept</string>
+    <string name="import_entity_prn_medicines">Vid behov-mediciner</string>
+    <string name="import_entity_illness_episodes">Sjukdomsepisoder</string>
+    <string name="import_entity_checkins">Incheckningar</string>
+    <string name="import_entity_settings">Inställningar och listor</string>
 
-    <!-- Export och import (BCK-6, BCK-13, BCK-14, SET-8), mockupen avsnitt 16. -->
+    <!-- Export och import (BCK-6, BCK-13, SET-8), mockupen avsnitt 16. -->
     <string name="export_title">Spara som JSON</string>
     <string name="export_subtitle">Hela dagboken · du väljer var filen sparas</string>
     <string name="export_note">Exporten innehåller allt i ditt konto i samma format som veckobackupen. Health Connect-data ingår aldrig.</string>
@@ -1033,23 +1028,15 @@
         <item quantity="other">Sparade %s poster</item>
     </plurals>
     <string name="import_title">Importera backup</string>
-    <string name="import_note">3.x-backup från Drive eller fil, eller en 4.0-export</string>
-    <string name="import_from_drive">Importera från Google Drive</string>
-    <string name="import_from_drive_note">Senaste 3.x-backupen i ditt konto</string>
-    <string name="import_from_file">Importera från fil</string>
-    <string name="import_from_file_note">3.x-backup (.json) eller 4.0-export</string>
-    <string name="import_reading_drive">Hämtar backupen från Google Drive …</string>
+    <string name="import_note">En export från Dagboken 4 (.json) · du väljer filen</string>
     <string name="import_reading_file">Läser filen …</string>
     <string name="import_reading_note">Bara läsning – ingenting skrivs förrän du bekräftar.</string>
-    <string name="import_no_drive_title">Ingen backup på Drive</string>
-    <string name="import_no_drive_settings">Det finns ingen 3.x-backup på Google Drive för det här kontot. Importera från en fil i stället.</string>
     <string name="import_not_a_backup_title">Filen är ingen backup</string>
-    <string name="import_not_a_backup">Välj en 3.x-backup eller en export från Dagboken 4.0. Inget har skrivits.</string>
+    <string name="import_not_a_backup">Välj en export från Dagboken 4 (Spara som JSON). Backuper från 3.x går inte längre att importera. Inget har skrivits.</string>
     <string name="import_read_failed_title">Det gick inte att läsa</string>
     <string name="import_read_failed_file">Filen gick inte att öppna. Inget har skrivits.</string>
     <string name="import_choose_other">Välj en annan fil</string>
     <string name="import_review_title">Det här finns i backupen</string>
-    <string name="import_source_legacy">3.x · v%d</string>
     <string name="import_source_export">4.0 · v%d</string>
     <string name="import_replaces">Poster med samma id som i ditt konto ersätts. Inget dubbleras.</string>
     <plurals name="import_replaces_count">

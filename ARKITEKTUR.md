@@ -33,14 +33,14 @@ paths-filtrerad CI på ~8 minuter och krypterad veckobackup.
 | 1 | **Firestore offline-först är primär lagring.** Telefonen har persistent cache; molnet är källan. | Room + Firestore-spegling (två sanningar); Room som idag (ingen åtkomst från sessionen). |
 | 2 | **Strikt personlig data under `users/{uid}`.** Ingen hushållsmodell, inga medlemslistor. | ReseApotekets `households/{hid}` med `memberUids` (delning "kanske senare"). |
 | 3 | **Google-inloggning krävs.** AUTH-5 ("fungerar utan konto") stryks. | Anonym Firebase-auth som länkas senare. |
-| 4 | **Drive-backupen pensioneras.** Firestore är molnkopian; veckovis krypterad export i GitHub Actions (`backup.yml`) + manuell JSON-export i appen. Drive-import behålls som legacyimport minst en version. | Drive-backup parallellt. |
+| 4 | **Drive-backupen pensioneras.** Firestore är molnkopian; veckovis krypterad export i GitHub Actions (`backup.yml`) + manuell JSON-export i appen. Drive-import behölls som legacyimport till 4.8; *4.9.0: 3.x-importen borttagen (BCK-14, beslut 2026-10-22).* | Drive-backup parallellt. |
 | 5 | **Samma repo, samma `applicationId`, ny kodbas på `master`.** 3.27.0 fryses som tagg och branch `legacy`. Nya appen installeras som uppdatering och kan läsa Room-filen på enheten. | Nytt repo; stegvis ombyggnad i befintlig kod. |
 | 6 | **Fyra flikar: Idag · Dagbok · Trender · Mediciner.** Inställningar i ett ark bakom avataren. Hantera-fliken försvinner. | Fem flikar; Mediciner kvar under Hantera. |
 | 7 | **Idag och Dagbok är två flikar** – göra respektive läsa. | En dagvy med datumremsa. |
 | 8 | **Sjukdomsepisoder hör till Dagbok** (filter, detalj) med pågående episod som kort på Idag. | Egen underyta; under Mediciner. |
 | 9 | **Plusknappen loggar bara** (Mående, Aktivitet, Dos, Händelse, Sjukdom) mot visad dag. Recept och vid behov-mediciner skapas under Mediciner. | Dagens FAB med "Ny favorit" bland loggvalen. |
 | 10 | **Känsla I · Papper och teal** med belöningsläge när dagen är klar (konfetti en gång, solgul framstegsrad, sammanfattningskort). | A–H i canvasen; se avsnittet Designspråk. |
-| 11 | **Ingen data får tappas.** Varje fält i 3.x-schemat har en plats i 4.0-modellen; konverteraren bevisas med fixtur och rundturstest; en riktig backup ska importeras med noll skillnader innan första release. | – |
+| 11 | **Ingen data får tappas.** Varje fält i 3.x-schemat har en plats i 4.0-modellen; konverteraren bevisades med fixtur och rundturstest och en riktig backup importerades med noll skillnader före första release. *4.9.0: konverteraren är borttagen; datan den skrev ligger kvar, och varje fält i den har sin codec, rules och rundtur (Fältparitet nedan).* | – |
 
 ### Konsekvenser
 
@@ -128,15 +128,15 @@ incheckningar behåller sina 3.x-id:n (UUID-strängar). Receptgenererade doser b
 `DoseIds.prescribed`), så att 4.0:s idempotenta generering (MED-4) träffar redan migrerade doser
 och en upprepad import aldrig dubblerar (DAT-8). Alternativen hade inga id:n i 3.x; de får
 deterministiska id:n ur lista och namn med `OptionIds.of(kind, name)` i `:core`, samma regel i
-konverteraren och i 4.0: `"${kind.wire}-${slug}-${hash}"`, där *slug* är namnet NFD-normaliserat utan
+3.x-konverteraren (till 4.8) och i 4.0: `"${kind.wire}-${slug}-${hash}"`, där *slug* är namnet NFD-normaliserat utan
 kombinerande tecken (å/ä/ö → a/a/o), gement, varje tecken utom `a–z` och `0–9` ersatt med `-`, bindestreck hopslagna och trimmade, högst 32
 tecken (`Huvudvärk` → `huvudvark`), och *hash* är de 6 första hex-tecknen av SHA-256 över UTF-8-byten i
 det **exakta** namnet – `Promenad`, `promenad` och `Promenad ` har samma slug men olika id
 (`activity-promenad-c78928`, `activity-promenad-3f4216`, `activity-promenad-967bbc`). Ett nytt
 alternativ i 4.0 får id enligt samma regel; ett namnbyte ändrar inte id:t (SET-11).
 
-**Måltidstillfället** (`screenings.occasion`) fanns inte som fält i 3.x och härleds av
-`Occasion.derive` (DAT-12): 3.x-screeningens namn (`aktivitet`) när det är ett av de fyra
+**Måltidstillfället** (`screenings.occasion`) fanns inte som fält i 3.x och härleddes vid konverteringen
+(DAT-12; `Occasion.derive` och 3.x-namnen på `Occasion` togs bort med konverteraren i 4.9.0): 3.x-screeningens namn (`aktivitet`) när det är ett av de fyra
 tillfällenas namn (`SCREENING_EVENT_LABELS`, samma jämförelse som `isScreeningLoggedFor`), annars
 tillfället vars påminnelsetid ligger närmast klockslaget räknat runt dygnet; namnet bevaras då i
 `customText`.
@@ -147,8 +147,9 @@ och kontrolleras av test.
 
 ### Fältparitet 3.x → 4.0
 
-Varje fält i 3.x `BackupJson` (v1 och v2) och dess klasser har en plats nedan (ADR-001, beslut 11;
-OMB-3). Tabellen är kontrollerad: `ParityTableTest` i `:core` kräver att varje 3.x-fält finns som rad,
+Varje fält i 3.x `BackupJson` (v1 och v2) och dess klasser har en plats nedan (ADR-001, beslut 11).
+Konverteraren som skrev datan är borttagen sedan 4.9.0 (~~OMB-3~~, ~~BCK-14~~); tabellen visar var den konverterade
+3.x-datan i kontona ligger, och listan över 3.x-fält är fryst i `ParityTableTest`. Tabellen är kontrollerad: `ParityTableTest` i `:core` kräver att varje 3.x-fält finns som rad,
 att varje 4.0-fält i kolumn två finns i samlingens codec, att varje codec-fält finns i tabellen eller
 bland de nya fälten nedan, och att **ingen** rad är *utelämnas*. Kolumn två anger samling och fältväg
 (`[]` = element i en lista); *beräknas* och *sökväg* betyder att värdet bevaras utan eget fält. 3.x-värden
@@ -349,13 +350,12 @@ rad i skill `shared-ui-components` (bibliotekets komponenter har också skärmdu
 ```
 :core  (ren Kotlin/JVM)   model/ · time/ (HOME_ZONE, ReadParts) · schema/ (DocCodec, Fields, Schema, SchemaMigrator) · codecs ·
                           engine/ (Dosing, EnsureDoses, Cooldown, PeriodEndings,
-                          PrescriptionRules, DailyEnergyStats, SleepQuality, chart math) · legacy/ (BackupJson → 4.0-konverterare, validering
-                          mot DocumentRules, ConvertBackupMain för grinden OMB-4, ImportFile: importens läsare av 3.x-backup
-                          och 4.0-export)
+                          PrescriptionRules, DailyEnergyStats, SleepQuality, chart math) · importing/ (ImportFile:
+                          importens läsare av en 4.x-export, validering mot DocumentRules; ImportBatches)
 :app   (Android)          data/common · data/firestore · data/auth · data/health (Health Connect,
-                          read-only) · data/legacy (Drive-läsare och import av 3.x-backup/4.0-export) ·
+                          read-only) · data/importing (import av en 4.x-export) ·
                           data/export (manuell export) · reminders/ ·
-                          ui/theme · ui/components · ui/common · ui/<flik> · navigation/
+                          ui/theme · ui/components · ui/common · ui/<flik> · ui/importing · navigation/
 tools/db                  query · get · stats · export · import · migrate · test/ (rules, roundtrip)
 ```
 
@@ -373,7 +373,7 @@ Fel mappas en gång i `data/common/DataError`, och till det som visas (`UiError`
 | Compose BOM · Material 3 | 2026.09 · 1.5 (Expressive, pinnad) | version catalog |
 | Java/JVM | 17 | rotens `build.gradle.kts` (`subprojects`) |
 | Testtimeout per task | 4 min | rotens `build.gradle.kts` |
-| cpdCheck-tröskel | 80 tokens, `*Preview.kt` och den ordagranna 3.x-kopian `core/src/test/…/legacy/threex/` (`Backup3xCompatibilityTest`) undantas | rotens `build.gradle.kts` |
+| cpdCheck-tröskel | 80 tokens, `*Preview.kt` undantas | rotens `build.gradle.kts` |
 | android-ui | `androidUi` (0.4.0), GitHub Packages med `GPR_TOKEN` (CI: secret, sessioner: miljön) | version catalog, `settings.gradle.kts` (skill `android:android-gradle-logic`) |
 | Version | `version.properties` (versionCode, versionName) | höjs i funktions-PR:en |
 | google-services | `app/google-services.json` (incheckad); `src/authStub` när den saknas | `app/build.gradle.kts` |
@@ -385,7 +385,12 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
 
 ## Migrering – ingen data får tappas
 
-1. **Konverterare i `:core`** (`legacy/BackupJsonConverter`): 3.x `BackupJson` (v1 och v2, inklusive
+1. **Konverterare i `:core` – borttagen i 4.9.0** (beslut 2026-10-22, ~~BCK-14~~, ~~OMB-3~~, ~~OMB-4~~). All 3.x-data
+   är flyttad; konverteraren (`legacy/BackupJsonConverter`, `BackupJson`, `LegacyTime`, `ConvertBackupMain`), dess
+   fixturer (`tools/db/test/fixtures/legacy/`) och tester togs bort med importen av 3.x-backuper. Texten nedan står kvar
+   som beskrivning av **hur den konverterade datan i kontona ser ut**; det som fortfarande läser den (codecs,
+   `legacySomatic`, `settings.legacy`, `Slot.legacyName` i dos-id:n, `OptionIds.OTHER`, `LegacyMigration`) är
+   oförändrat och testat mot 4.0-fixturen. Konverteraren tog 3.x `BackupJson` (v1 och v2, inklusive
    arvsfälten `anteckning` på posterna och `tidpunkt` på receptet; klasserna i `legacy/BackupJson.kt` speglar
    3.x fält för fält) → 4.0-dokument enligt paritetstabellen. Fixtur med **varje** fält satt
    (`tools/db/test/fixtures/legacy/backup-v2.json`, plus `backup-v1.json`) och förväntad export
@@ -406,8 +411,8 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
    innehållet) om något inte ryms. Den kapar, avrundar eller hoppar aldrig över ett värde; beslutet om en gräns
    ska höjas tas här och i rules, inte i datan. Valideringen behövs även där rules inte gäller: `tools/db
    import.mjs` skriver med admin-SDK förbi rules, så utan den kunde grinden OMB-4 släppa igenom data som appen
-   sedan inte kan spara om. `tools/db/test/legacy.test.mjs` skriver dessutom varje dokument i de förväntade
-   exporterna som ägaren genom rules, så att valideringen bevisligen motsvarar dem.
+   sedan inte kan spara om. `tools/db/test/legacy.test.mjs` (borttagen i 4.9.0) skrev dessutom varje dokument i de
+   förväntade exporterna som ägaren genom rules, så att valideringen bevisligen motsvarade dem.
    **Val som inte står i paritetstabellen** (alla deterministiska, inga "nu"):
    - *Tider.* Tidszonen är alltid Europe/Stockholm (`legacy/LegacyTime`), aldrig enhetens. `tagenTid` och
      reservvärdet för ett tomt eller ogiltigt `timestamp` (dag + klockslag; utan klockslag midnatt) följer
@@ -459,57 +464,40 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
    - *Användardokumentet* `users/{uid}` skrivs med `schemaVersion = Schema.CURRENT_VERSION` och inget mer
      (`createdAt` sätts aldrig på gissning; `EnsureUserUseCase` skriver inte över ett befintligt dokument).
 2. **Rundtur mot emulatorn** (`tools/db/test/roundtrip.test.mjs`): import → export identiskt.
-3. **Grind före etapp 3:** en riktig Drive-backup konverteras (med valideringen i punkt 1 – noll
-   stopp), importeras via `tools/db import.mjs`, exporteras och jämförs med originalet. Noll
-   skillnader krävs (OMB-4). **Mot ett tomt scratch-uid**, aldrig användarens riktiga uid: `import.mjs`
-   skriver dokumenten som de är (`set` utan merge), så mot ett befintligt konto skulle `users/{uid}.createdAt`
-   och inställningsfält som backupen saknade försvinna – "`null` = rör inte" gäller bara importen i appen,
-   som skriver med merge (punkt 5). Körningen, från repots rot och med backupen i den
-   git-ignorerade `tools/db/`:
-   ```bash
-   ./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <scratch-uid>"
-   node tools/db/import.mjs --in tools/db/export-4.json --dry-run      # kontroll, skriver inget
-   node tools/db/import.mjs --in tools/db/export-4.json                # skrivande nyckel, uttrycklig begäran
-   node tools/db/export.mjs --user <scratch-uid> --out tools/db/export-igen.json
-   node tools/db/compare.mjs --a tools/db/export-4.json --b tools/db/export-igen.json   # exitkod 0 = noll skillnader
-   ```
-   Konverteraren skriver rapporten (antal per samling, varningar – även klockslag som flyttats av
-   sommartidsbytet – och stopp) till stdout utan något innehåll; exitkod 0 = filen skrevs, 1 = stopp (ingen
-   fil), 2 = fel argument, ogiltigt uid, saknad infil eller befintlig utfil (skrivs över bara med `--force`).
-   Rapportens varningar granskas av användaren innan importen; scratch-användaren raderas efter grinden och
-   filerna raderas (skill `data-privacy-security`).
+3. **Grind före etapp 3** (passerad; ~~OMB-4~~ och `:core:convertLegacyBackup` borttagna i 4.9.0): en riktig
+   Drive-backup konverterades med valideringen i punkt 1 (noll stopp), importerades via `tools/db import.mjs` mot ett
+   tomt scratch-uid, exporterades och jämfördes med `compare.mjs` – noll skillnader. Scratch-användaren och filerna
+   raderades efteråt (skill `data-privacy-security`).
 4. **På enheten – borttagen i 4.8.0** (beslut 2026-10-22). Etapp 3 byggde en migrering på enheten (~~OMB-2~~,
    ~~OMB-5~~, ~~OMB-7~~, ~~OMB-8~~, ~~NAV-6~~): en read-only Room-/DataStore-läsare (`LegacyRoomAssembler`), en
    startkontroll och migreringsskärm (`MigrationGate`) före flikarna, en obligatorisk 3.x-kopia, en liggare per konto
    (`MigrationLedger`), markören `users/{uid}.legacyMigration`, pausade påminnelser under skrivningen och avbokning av
-   3.x:s WorkManager-jobb. Allt det är borttaget; 3.x-data läses in med importen (punkt 5). **Det som står kvar för
+   3.x:s WorkManager-jobb. Allt det är borttaget; 3.x-data lästes därefter in med importen av en 3.x-backup (till 4.8). **Det som står kvar för
    regel 1:** modellen `LegacyMigration`/`LegacySource` (med `room`), `LegacyMigrationCodec`,
    `DocumentRules.LEGACY_MIGRATION` och regeln i `firestore.rules` är oförändrade, så att en markör som 4.0–4.7 skrev
    fortsatt godtas, läses och överlever `tools/db export → import`. 3.x:s Room- och DataStore-filer och liggarfiler
    från 4.0–4.7 ligger kvar orörda i appens privata lagring (de raderas aldrig automatiskt). Följd: WorkManager är
    inget beroende längre (3.x:s periodiska jobb pekar på en tjänst som inte finns i appen och körs inte).
-5. **Import och export i appen** (#230; legacyimporten behålls minst en version efter 4.0):
-   - *En läsare* (`:core/legacy/ImportFile`): `documents` i filen = 4.0-export, annars någon av `BackupJson`:s nycklar =
-     3.x-backup (v1 skrev inte `version`); annat = "ingen backup". 3.x går genom `BackupJson.parse` och **den enda**
-     konverteraren (samma dokument som grinden OMB-4). En 4.0-export kontrolleras helt innan något skrivs: en
+5. **Import och export i appen** (#230; 3.x-backuper sedan 4.9.0 inte längre, ~~BCK-14~~):
+   - *En läsare* (`:core/importing/ImportFile`): `documents` i filen = 4.x-export; annat – också en 3.x-backup – =
+     "ingen backup". Exporten kontrolleras helt innan något skrivs: en
      användare, kända samlingar och djup, giltiga och unika id:n, `DocumentRules` per dokument, varje incheckning med sin
      episod i filen (rules `existsAfter`), `schemaVersion` inte nyare än appens (äldre lyfts med `SchemaMigrator`).
      Sökvägarna flyttas till det inloggade kontot; `users/{uid}` skrivs aldrig (kontots version, `createdAt`, markören).
-     Utfallet är alla dokument eller ett stopp med alla fel (rapporten: samling/id eller `options#<plats>`, fält, skäl).
-   - *Källor* (`LegacySource`): Drive (`DriveRestBackups`: Identity `AuthorizationClient` för
-     `DRIVE_APPDATA` + REST via `HttpURLConnection`, bara läsning av den senaste `dagboken-backup-*` i `appDataFolder`;
-     samtycket begärs först vid importen, ingen token lagras; inget Drive-bibliotek – `play-services-auth` fanns redan
-     transitivt) och fil (SAF, `UserFile`, delad med exporten). `ROOM` finns kvar bara för befintliga markörer (punkt 4).
+     Utfallet är alla dokument eller ett stopp med alla fel (`Problem`: samling/id eller `options#<plats>`, fält, skäl).
+   - *Källa:* en fil från dokumentväljaren (SAF, `UserFile`, delad med exporten; "Importera backup" öppnar den direkt).
+     Drive-läsaren (`DriveRestBackups`) och `play-services-auth` togs bort i 4.9.0; inloggningen går via Credential
+     Manager och påverkas inte. `LegacySource` finns kvar bara för befintliga markörer (punkt 4).
    - *Granskning:* efter läsningen väntas enhetens köade skrivningar in (`awaitPendingWrites`, högst en minut, annars
      `Offline`) och kontots läge läses på id; `replaced` = befintliga dokument med samma id och andra värden visas.
-   - *Skrivning* (`LegacyImportUseCase.write`): köade skrivningar väntas in igen – en lokal ändring som inte synkats skrivs
+   - *Skrivning* (`data/importing/ImportUseCase.write`): köade skrivningar väntas in igen – en lokal ändring som inte synkats skrivs
      aldrig över – sedan serverns läge på id – lika dokument räknas som klara och skrivs inte –
-     sedan `MigrationBatches` (högst 500 skrivningar och högst 20 episoder per batch, episoden i samma batch som sina
+     sedan `ImportBatches` (högst 500 skrivningar och högst 20 episoder per batch, episoden i samma batch som sina
      incheckningar, `existsAfter`; `users/{uid}` skrivs inte) med kvitto per batch och verifiering per id
      (`WriteSupport.kt`: `Tally`, `landed` = det skrivna finns på servern i kanonisk form – `hashOf` över nycklar
      sorterade rekursivt, också i mappar inne i listor; `codeOf` = Firestores felkod i rapporten). Samma id ersätts med merge:
      filens fält skrivs, fält bara på servern står kvar – importen tar aldrig bort något (valt framför ett fullt utbyte med
-     `withDeletions`, som hade raderat framtida fält och inställningar som en 3.x-backup saknar). Ingen kopia, liggare eller
+     `withDeletions`, som hade raderat framtida fält och inställningar som en äldre export saknar). Ingen kopia, liggare eller
      markör: en import kan alltid köras om utan dubbletter och har inget att avbryta. Påminnelserna pausas inte (sedan
      4.8.0): `ReminderSync` lägger om larmen när de importerade påminnelseinställningarna når cachen.
    - *Export* (`data/export/ExportUseCase`): `awaitPendingWrites`, sedan hela `users/{uid}` rått från servern i
@@ -520,8 +508,11 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
      kan inte skapa en) kommer inte med i appens export. En collectionGroup-fråga avgränsad till `users/{uid}` prövades:
      rules kan inte binda sökvägen (`{path=**}`) i en fråga ("Variable is not bound in path template"), och en regel utan
      sökvägsvillkor kräver ett ägarfält i varje incheckning – en datamodelländring som inte är värd kantfallet.
-   - *Tillstånd:* `ui/migration/ImportFlow` (`ImportStage`, `ImportEvent`) är importens tillståndsmaskin, ägd av
-     `ExportImportViewModel` (Inställningar → Export och import); vyn är `ImportContent` med byggstenarna i `MigrationParts`.
+   - *Tillstånd:* `ui/importing/ImportFlow` (`ImportStage`, `ImportEvent`) är importens tillståndsmaskin, ägd av
+     `ExportImportViewModel` (Inställningar → Export och import); vyn är `ImportContent` med byggstenarna i `ImportParts`.
+   - *Rundtur:* `ExportUseCaseTest` (fejkar) och `ExportImportRoundTripTest` (emulatorn, rules) importerar 4.0-fixturen
+     `tools/db/test/fixtures/user.json` från ett annat konto och kräver export → radera → import → export identiskt;
+     `tools/db/test/import.test.mjs` prövar batchformen, omkörningen och markören genom rules.
 6. Firestore-sidan: `schemaVersion` på `users/{uid}`, `SchemaMigrator` i `:core`, `migrate.mjs`
    i `tools/db`; appen vägrar skriva mot en okänd högre version.
 
@@ -560,7 +551,7 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
   | Agent | Modell · effort | Används för |
   |---|---|---|
   | `byggare` (ny) | Opus 5.5 · medium | portar, komponenter, skärmar på ramarna, CI-filer |
-  | `arkitekt` (ny) | Opus 5.5 · high (Fable 5.1 vid väldigt komplexa issues) | datamodell, codecs, konverterare, rules, migrering |
+  | `arkitekt` (ny) | Opus 5.5 · high (Fable 5.1 vid väldigt komplexa issues) | datamodell, codecs, importen, rules, migrering |
   | `android:testskrivare` (pluginen) | Sonnet 5.5 · medium | tester på tre eller fler nivåer, fixturer |
   | `android:granskare` (pluginen) | sessionens modell · medium | diffen mot reglerna före varje PR – inte svagare än modellen som skrev koden |
   | `android:ci-doktor` (pluginen) | Sonnet 5.5 · medium | röd CI, loggar, skärmdumpsdiffar |
@@ -586,8 +577,8 @@ Byt upp en nivå så fort något går fel två gånger i rad.
 |---|---|---|---|
 | **0 · ADR och krav** | Denna fil, KRAVLISTA-justeringar, README-not. | 1 | Fable · high *(klar)* |
 | **1 · Skelett och verkstad** | `:core` + `:app`, versionskatalog, tema-tokens för Papper och teal, `data/common`, `data/firestore`, `ui/common`, ramarna, `navigation/`, `tools/db` (users/{uid}), hooks, `android.yml`, `quality.yml`, `backup.yml`, skills, agenter, CLAUDE.md. Resultat: app som loggar in och visar `ComponentGallery`, CI på budget. | 3 | Opus · medium; CI-filer och rules: Fable · high |
-| **2 · Datamodell och konverterare** | Modeller + codecs för alla samlingar, `settings`, `schemaVersion 1`, `firestore.rules`, `collections.mjs`, rundturstest, `BackupJsonConverter` med full fixtur. **Grind OMB-4.** | 4 | Fable · xhigh (konverterare, rules); Opus · high (codecs) |
-| **3 · Migrering på enheten** | Legacy-Room-läsare, migreringsskärm med räkning och bekräftelse, fallback Drive/JSON, legacyimport i Inställningar. *(4.8.0: allt utom legacyimporten borttaget, Migrering punkt 4)* | 2 | Fable · high |
+| **2 · Datamodell och konverterare** | Modeller + codecs för alla samlingar, `settings`, `schemaVersion 1`, `firestore.rules`, `collections.mjs`, rundturstest, `BackupJsonConverter` med full fixtur. **Grind OMB-4.** *(4.9.0: konverteraren borttagen, ~~OMB-3~~/~~OMB-4~~)* | 4 | Fable · xhigh (konverterare, rules); Opus · high (codecs) |
+| **3 · Migrering på enheten** | Legacy-Room-läsare, migreringsskärm med räkning och bekräftelse, fallback Drive/JSON, legacyimport i Inställningar. *(4.8.0: allt utom legacyimporten borttaget, Migrering punkt 4; 4.9.0: legacyimporten borttagen, ~~BCK-14~~)* | 2 | Fable · high |
 | **4 · Komponenter** | Port av Dagbokens komponenter + de sju nya, mockup per komponent, Roborazzi, galleri, skill-tabell. Diagrammatematik till `:core`. | 3 | Opus · medium; `ui/diagram`: Opus · high |
 | **5 · Flikarna** | Inställningsark → Mediciner → Idag (inkl. belöningsläge) → Dagbok → Trender → formulär, sjukdomsdetalj, Hälsa idag. Use cases till `:core` med sina tester. Hälsa idag (#241) byggs här mot gränssnitten `HealthRepository` och `HealthPermissions` med `UnavailableHealthRepository`/`UnavailableHealthPermissions` bundna (skärmarna visar "Health Connect saknas") och testas mot fejkerna; den riktiga Health Connect-porten kommer i etapp 6. | 8–10 | Opus · high per skärm; Trender och Idag: Fable · high; enkla formulär på ramarna: Sonnet · medium |
 | **6 · Larm, Health Connect, release** | Notiser mot Firestore-cachen (skill `notifications-alarms`), Health Connect-port uppdelad (hälsomotorn i `:core` #276, sedan porten #243 som byter bindningarna för `HealthRepository` och `HealthPermissions` – manifest, behörighetsflöde och läsning; skärmarna från etapp 5 ändras inte), `release.yml`, första release efter grön kravlista. | 3 | Opus · high (larm); Opus · medium (Health Connect); Sonnet · low (release) |
@@ -601,8 +592,8 @@ PR-beskrivningen, `android:granskare` + `/code-review` före push, en PR i taget
 
 | Risk | Hantering |
 |---|---|
-| Fält tappas i konverteringen | Fixtur med alla fält (varje 3.x-fält icke-default, varje 4.0-fält fyllt), fältvis jämförelse mot förväntad export, rundtur och rules-skrivning av den i emulatorn, grind OMB-4 med riktig backup, Room-filen behålls. Anteckningar utan sin post är det enda som inte får plats – de räknas i rapporten (Migrering, punkt 1). |
-| 3.x-text längre än rules-gränserna (3.x hade inga) | `TextLimits.LONG` är 5 000 tecken för anteckningar, det enda 3.x-fältet som rimligen kan vara långt. Konverteraren validerar varje dokument mot `TextLimits` och rules-intervallen och stoppar med rapport – kapar aldrig (Migrering, punkt 1). Grinden OMB-4 omfattar valideringen, eftersom admin-importen går förbi rules. Visar en riktig backup längre text höjs gränsen i `TextLimits` och rules i samma PR. |
+| Fält tappas i konverteringen | Fixtur med alla fält (varje 3.x-fält icke-default, varje 4.0-fält fyllt), fältvis jämförelse mot förväntad export, rundtur och rules-skrivning av den i emulatorn, grind OMB-4 med riktig backup, Room-filen behålls. Anteckningar utan sin post är det enda som inte får plats – de räknas i rapporten (Migrering, punkt 1). *(Gällde flytten; konverteraren borttagen i 4.9.0. Det som finns kvar skyddas av codecs, fixturen `user.json` och rundturerna.)* |
+| 3.x-text längre än rules-gränserna (3.x hade inga) | `TextLimits.LONG` är 5 000 tecken för anteckningar, det enda 3.x-fältet som rimligen kan vara långt. Konverteraren validerar varje dokument mot `TextLimits` och rules-intervallen och stoppar med rapport – kapar aldrig (Migrering, punkt 1). Grinden OMB-4 omfattar valideringen, eftersom admin-importen går förbi rules. Visar en riktig backup längre text höjs gränsen i `TextLimits` och rules i samma PR. *(Gällde flytten; 4.x-importen validerar på samma sätt, BCK-6.)* |
 | Rules nekar riktig 3.x-data vid importen på enheten | Rules räknar högst 1 000 uttryck och 20 dokumentuppslag per skrivning: listor av objekt har generösa tak (50 symptom, 50 doshöjningar) och elementen kontrolleras upp till det sjunde (sänkt från tio i #349/#346), billigt nog att värsta-fall-dokumenten (receptet med 50 höjningar med start och slut, screening, aktivitet och incheckning med 50 symptom med poäng och fritext, varje fält fullt) ryms med en reserv på minst fem fältkontroller för var och en av de fyra (recept, screening, aktivitet, incheckning) – mätt i rules-testet (#294, #296); incheckningar kräver sin episod (`existsAfter`) och en batch får slå upp högst 20 befintliga episoder, så importen skriver episoderna i samma batch som sina incheckningar eller delar upp per högst 20 episoder. Rules-testerna täcker gränserna; grinden OMB-4 går via `tools/db` (admin, förbi rules), så importen på enheten (etapp 3) prövar rules mot riktig data. |
 | Spark-planens läsbudget (50 000/dag) | Första synken är en engångskostnad. Därefter lyssnar appen bara på det som visas eller nyss hänt (Idags vecka, Dagboks och Trenders senaste 30 dagar); äldre dagar läses i historikläget ur cachen och hämtas från servern högst en gång per vecka och enhet (NFR-24, #305 – kvoten tog slut med ~2 000 dokument när lyssnare på hela år debiterades vid varje besök). Budgeten provas i `ReadBudgetTest`. |
 | Hälsodata i molnet | EU-region, rules bara för ägaren, krypterad export, ingen PII i loggar (skill `data-privacy-security`). |

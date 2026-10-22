@@ -5,7 +5,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import org.junit.Test
 
-/** Kommandoradens tolkning, delad av `convertLegacyBackup` och `matchMedicines`. */
+/** Kommandoradens tolkning, för `matchMedicines`. */
 class CliArgsTest {
 
     private val flags = setOf("--in", "--out")

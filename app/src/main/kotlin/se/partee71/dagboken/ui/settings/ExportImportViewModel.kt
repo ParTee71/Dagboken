@@ -15,16 +15,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import se.partee71.dagboken.data.export.ExportUseCase
-import se.partee71.dagboken.data.legacy.LegacyImportUseCase
+import se.partee71.dagboken.data.importing.ImportUseCase
 import se.partee71.dagboken.ui.common.AppErrors
-import se.partee71.dagboken.ui.migration.ImportEvent
-import se.partee71.dagboken.ui.migration.ImportFlow
-import se.partee71.dagboken.ui.migration.ImportStage
+import se.partee71.dagboken.ui.importing.ImportEvent
+import se.partee71.dagboken.ui.importing.ImportFlow
+import se.partee71.dagboken.ui.importing.ImportStage
 import se.partee71.ui.common.UiError
 import se.partee71.ui.common.uiErrorOrNull
 
 /**
- * Underskärmen Export och import (SET-8, NAV-9). [import] = importens läge (BCK-6, BCK-14);
+ * Underskärmen Export och import (SET-8, NAV-9). [import] = importens läge (BCK-6);
  * [exporting] = exporten skrivs (BCK-13). [exported] = antal poster i den sparade filen – snackbaren "Sparade N poster";
  * [failure] = exporten gick inte (snackbar via `DataError.toMessage()`). Båda nollställs med [ExportImportEvent.MessageShown].
  */
@@ -50,11 +50,11 @@ sealed interface ExportImportEvent {
     data object MessageShown : ExportImportEvent
 }
 
-/** Export och import i inställningsarket (BCK-13, BCK-14, BCK-6, SET-8). All logik i use casen; loggar ingenting (NFR-13). */
+/** Export och import i inställningsarket (BCK-13, BCK-6, SET-8). All logik i use casen; loggar ingenting (NFR-13). */
 @HiltViewModel
 class ExportImportViewModel @Inject constructor(
     private val exporter: ExportUseCase,
-    importer: LegacyImportUseCase,
+    importer: ImportUseCase,
     private val zone: Provider<TimeZone>
 ) : ViewModel() {
     private val _state = MutableStateFlow(ExportImportUiState())

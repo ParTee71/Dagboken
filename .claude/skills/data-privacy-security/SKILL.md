@@ -17,7 +17,7 @@ Inga `Log.d/i/w/e`, `println` eller `console.log` med symptom, energi, medicinna
 anteckningar, sjukdomar, aktivitetsinnehåll, namn, e-post, uid eller exporterat innehåll. Logga som mest undantagsklass,
 ogenomträngliga ID:n eller antal. Ta bort felsökningsloggar innan du anser dig klar.
 Ingen analytics eller crash-rapportering som skickar innehåll. Släppt app loggar inget alls
-(loggning strippas i release, NFR-13). Samma gäller `tools/db`, konverteraren (felmeddelanden
+(loggning strippas i release, NFR-13). Samma gäller `tools/db`, importens rapport (felmeddelanden
 anger sökväg eller fält, aldrig värdet) och GitHub Actions-loggar.
 
 ### 2. All data i Firestore ligger bakom security rules
@@ -43,9 +43,8 @@ anger sökväg eller fält, aldrig värdet) och GitHub Actions-loggar.
   väljer via dokumentväljaren.
 - Inga andra exportvägar, ingen extern lagring, inga `READ/WRITE_EXTERNAL_STORAGE` eller
   `MANAGE_EXTERNAL_STORAGE`.
-- **Drive-backupen är pensionerad** (BCK-1–5 strukna). Legacyimporten (BCK-14) får läsa en 3.x-backup
-  ur användarens `appDataFolder` med minsta scope (`DRIVE_APPDATA`) – aldrig bredare Drive-scope,
-  aldrig skrivning till Drive.
+- **Drive-backupen är pensionerad** (BCK-1–5 strukna), och sedan 4.9.0 läser appen inte Drive alls
+  (legacyimporten, ~~BCK-14~~, är borttagen). Inget Drive-scope begärs; ett nytt kräver beslut.
 - **Room-filen från 3.x** läses inte sedan 4.8.0 (migreringen på enheten är borttagen) och raderas aldrig
   automatiskt; den ligger kvar i appens privata lagring.
 - **Health Connect-data persisteras inte** – varken i Firestore eller i exporten (HLS-5). Den
@@ -55,12 +54,10 @@ anger sökväg eller fält, aldrig värdet) och GitHub Actions-loggar.
   En ny telefon hämtar datan från Firestore efter inloggning.
 
 - Dekrypterade backuper och exporter läggs bara i `tools/db/` (git-ignorerad) och raderas
-  efter användning. `.gitignore` fångar dessutom `backup*.json` och `export*.json` överallt – enda
-  undantaget är konverterarens syntetiska fixturer i `tools/db/test/fixtures/legacy/`.
+  efter användning. `.gitignore` fångar dessutom `backup*.json` och `export*.json` överallt, utan undantag.
 - **Tester rör aldrig den riktiga databasen** – bara Firebase-emulatorn med projekt-ID
   `demo-dagboken` (skill `data-safety-backup`). Fixturer är syntetiska, aldrig utdrag ur en
-  riktig backup – inte heller ur den backup som används för grinden OMB-4 (den hanteras bara i
-  `tools/db/` och raderas efteråt).
+  riktig backup eller export.
 
 ### 4. Hemligheter får aldrig checkas in eller klistras in
 - Git-ignorerade och aldrig i repot: `*.jks`/`*.keystore` (`dagboken.jks`), `local.properties`,

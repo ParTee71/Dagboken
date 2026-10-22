@@ -36,7 +36,7 @@ node tools/db/query.mjs doses --where date=2026-09-21 --fields slot,status --lim
 node tools/db/query.mjs illnessEpisodes/<eid>/checkins --json   # rå JSON
 node tools/db/get.mjs users/<uid>/settings/app            # ett dokument (full sökväg)
 node tools/db/get.mjs settings/app                        # samma, relativt användaren
-node tools/db/compare.mjs --a <export.json> --b <export.json>   # två exportfiler fältvis (OMB-4), bara sökvägar och fältnamn
+node tools/db/compare.mjs --a <export.json> --b <export.json>   # två exportfiler fältvis, bara sökvägar och fältnamn
 ```
 
 `--where` kan anges flera gånger (likhet); `true`, `false`, `null` och decimaltal tolkas
@@ -65,15 +65,11 @@ node tools/db/migrate.mjs --to <N>                        # schemamigrering (BCK
 - `import --update` läser en ändringsfil (`updates`, t.ex. från `:core:matchMedicines`) och skriver
   bara dess fält med Firestores `update`; ett dokument som saknas hoppas över, inget skapas. En
   vanlig import vägrar en ändringsfil.
-- `import` läser bara 4.0-formatet (`tools/db export`). En 3.x Drive-backup (`BackupJson`)
-  konverteras först av konverteraren i `:core` (OMB-3, BCK-14):
-  `./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <uid>"`
-  (från repots rot; rapporten med antal, varningar och stopp skrivs utan innehåll, exitkod 1 = stopp).
-  Grinden OMB-4 är just den vägen: konvertera → `import --dry-run` → importera → exportera → jämför
-  fältvis med `compare.mjs`, noll skillnader (ARKITEKTUR.md → Migrering, punkt 3). **Alltid mot ett tomt scratch-uid**:
-  `import` skriver dokumenten som de är (ingen merge) och skulle mot ett befintligt konto radera
-  `createdAt` och inställningar som backupen saknade. Backupen, exporten och scratch-användaren raderas
-  efteråt.
+- `import` läser bara 4.x-formatet (`tools/db export`). En 3.x-backup (`BackupJson`) går inte att
+  importera sedan 4.9.0 – konverteraren och `:core:convertLegacyBackup` är borttagna (~~BCK-14~~, ~~OMB-4~~);
+  3.x-datan är redan flyttad. `import` skriver dokumenten som de är (ingen merge) och skulle mot ett befintligt
+  konto radera fält som filen saknar – prova en okänd fil mot ett tomt scratch-uid, och radera filen och
+  scratch-användaren efteråt.
 - Aldrig ad hoc-skrivningar med egna skript eller `node -e`.
 
 ## Integritet (skill `data-privacy-security`)

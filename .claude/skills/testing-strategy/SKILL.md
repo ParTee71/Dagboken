@@ -16,7 +16,7 @@ Krav: NFR-6 (och NFR-serien i övrigt) i KRAVLISTA.md.
 
 | Nivå | Var | Verktyg | CI-filter |
 |---|---|---|---|
-| Domän, codecs, konverteraren, motorer, diagrammatematik | `core/src/test` | JUnit4 + kotlin.test | `core` |
+| Domän, codecs, importens läsare, motorer, diagrammatematik | `core/src/test` | JUnit4 + kotlin.test | `core` |
 | Arkitektur/konsistens + dokumentdrift | `app/src/test` | Konsist (`UiConsistencyTest`) | `app` |
 | Dubbelkod | `core/` + `app/src` | `cpdCheck` | `core`, `app` |
 | Navigation | `app/src/test` | JUnit4 (back stack som lista) | `app` |
@@ -37,7 +37,7 @@ kod ändras.
 | Ändring | Lägg till / uppdatera |
 |---|---|
 | Motor i `:core` (doser, kylperiod, periodslut, dagens energi, sömn, diagrammatematik), validering | `:core`-test med kantfallen från kravlistan (MED, FAV, REC, TRD) – fasta datum, även midnatt och sommartid |
-| Konverteraren 3.x → 4.0 | fixturen med **varje** 3.x-fält satt, fältvis jämförelse (OMB-3, skill `data-safety-backup`) |
+| Importen och 3.x-datan | fixturen `user.json` med **varje** fält satt, filens dokument fältvis; data i 3.x-form (receptdos-id, `legacySomatic`) i motorernas tester (skill `data-safety-backup`) |
 | Larm och notiser | schemaläggning mot `FakeCollection` och fast klocka; omschemaläggning vid synk/boot/uppdatering (skill `notifications-alarms`) |
 | Modell/codec | `assertCodecRoundTrip` + tolerans-hjälparna (skill `data-safety-backup`) |
 | ViewModel | Initialt state, varje event → nytt state, fel-state; Turbine; `MainDispatcherRule` |
@@ -129,7 +129,6 @@ koden i båda riktningar, och att varje publik komponent har skärmdumpar och en
 npx --prefix tools/db firebase emulators:exec --only firestore --project demo-dagboken "npm --prefix tools/db test"  # om tools/db/ eller rules ändrats – bara mot emulatorn
 node --test '.github/scripts/*.test.mjs'              # dokumentkontroller, alltid
 node --test '.claude/hooks/test/*.test.mjs'           # hooktest, alltid
-./gradlew :core:convertLegacyBackup --args="--in tools/db/backup-3x.json --out tools/db/export-4.json --user <uid>"   # vid behov, ingen kontroll: 3.x-backup → 4.0-export (OMB-4), rapport utan innehåll
 ./gradlew :core:matchMedicines --args="--in <export.json> --catalog app/src/main/assets/medicines.tsv --suggest <map.tsv>"   # vid behov, ingen kontroll: styrka och form ur läkemedelslistan (REC-14), rapport utan innehåll
 ```
 
@@ -149,11 +148,11 @@ säg det i PR:en. Vid rött CI – låt agenten `android:ci-doktor` diagnostiser
 
 Agenten `android:testskrivare` (pluginen) läser det här utöver tabellerna ovan:
 
-- **Läs också** `data-safety-backup` vid data och konverteraren, `notifications-alarms` vid larm,
+- **Läs också** `data-safety-backup` vid data, codecs och importen, `notifications-alarms` vid larm,
   `diagram` vid diagrammatematik.
 - **Hjälparna:** `FakeCollection<T>`, `CollectionContract`, codec-hjälparna, `MainDispatcherRule`,
   `runListScreenContract`, `runEditScreenContract` och fixturen `tools/db/test/fixtures/user.json`.
-- **Fixturer:** 3.x-backupen byggs med **varje** fält satt (OMB-3). Datum- och dosfall med fasta
+- **Fixturer:** `user.json` har **varje** fält satt med ett icke-default-värde. Datum- och dosfall med fasta
   datum, även kring midnatt; klockan injiceras (`Clock`).
 - **Testdata** är syntetisk – aldrig utdrag ur en riktig backup (hälsodata).
 - **Firestore** bara mot emulatorn (`demo-dagboken`).

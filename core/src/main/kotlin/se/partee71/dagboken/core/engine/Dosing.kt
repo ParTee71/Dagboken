@@ -48,7 +48,7 @@ fun List<Prescription>.toDeactivateOn(today: LocalDate): List<Prescription> = ac
  *
  * Nya 4.0-recept har alltid [Period.start] – receptformuläret (etapp 5.2c) sätter den, med idag som
  * förval – så skapandedagen gäller bara migrerade och äldre 3.x-recept utan periodstart. Den läses i
- * [HOME_ZONE], samma zon som konverteraren skriver 3.x `skapad` i (midnatt), så att samma recept ger
+ * [HOME_ZONE], samma zon som 3.x-konverteraren (borttagen i 4.9.0) skrev 3.x `skapad` i (midnatt), så att samma recept ger
  * samma dosdagar på alla enheter oavsett enhetens tidszon.
  */
 fun Prescription.intervalAnchor(): LocalDate? = period.start ?: createdAt?.toLocalDateTime(HOME_ZONE)?.date

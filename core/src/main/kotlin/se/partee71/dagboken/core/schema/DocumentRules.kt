@@ -18,14 +18,14 @@ import se.partee71.dagboken.core.model.WireEnum
 
 /**
  * Gränserna och fältkontrollerna i `firestore.rules`, på **ett** ställe i `:core` (ARKITEKTUR.md →
- * Migrering, punkt 1; OMB-3): textgränserna ([TextLimits]), heltalsintervallen, listtaken, enum-listorna
+ * Migrering): textgränserna ([TextLimits]), heltalsintervallen, listtaken, enum-listorna
  * och datum-/klockslagsmönstren, per samling och fält precis som `valid…`-funktionerna i rules.
  * `DocumentRulesTest` läser rules och kräver att tabellen här är densamma.
  *
  * [validate] kontrollerar ett kodat dokument som rules skulle göra vid `create` (alla fält skrivs):
- * saknat fält eller `null` är tillåtet, okända fält får finnas. Konverteraren kör den på varje
- * genererat dokument och stoppar med en rapport – `tools/db import.mjs` skriver förbi rules, så utan den
- * kunde data importeras som appen sedan inte kan spara om. Felen nämner fält och värdets längd eller
+ * saknat fält eller `null` är tillåtet, okända fält får finnas. Importen (`ImportFile`, BCK-6) kör den på
+ * varje dokument i filen och stoppar med en rapport, så att ingen import lämnar data som appen sedan inte kan
+ * spara om. Felen nämner fält och värdets längd eller
  * tal, aldrig textinnehållet (hälsodata).
  */
 object DocumentRules {

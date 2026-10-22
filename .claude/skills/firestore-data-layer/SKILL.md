@@ -22,7 +22,8 @@ dokument), `options`, `prescriptions`, `prnMedicines`, `doses`, `screenings`, `a
 finns i `Paths` och speglas i `tools/db/lib/collections.mjs` – ett test håller dem lika.
 
 > **Ingen Room i 4.0.** 3.x:s Room-fil läses inte sedan 4.8.0 (migreringen på enheten är borttagen) och
-> ligger kvar orörd; 3.x-data kommer in via importen (`data/legacy/LegacyImportUseCase`, BCK-14).
+> ligger kvar orörd; 3.x-datan är redan flyttad (3.x-importen borttagen i 4.9.0). Importen
+> (`data/importing/ImportUseCase`, BCK-6) läser bara en 4.x-export.
 
 ## Lager
 
@@ -154,7 +155,7 @@ då behålls cachen (skill `android-projekt` → "Inloggning").
 `RawDocuments` (aldrig via codecarna – okända fält ska med) längs `Paths` och skriver dem med
 `ExportFormat` i `:core`, samma format som `tools/db export`. Ny samling → med i exporten också;
 exporttestet jämför med `tools/db`:s testdata (`tools/db/test/fixtures/user.json`), som täcker
-alla samlingar. Legacyimporten (BCK-14) går via konverteraren i `:core` (skill `data-safety-backup`).
+alla samlingar. Importen (BCK-6) läser samma format genom `ImportFile` i `:core` (skill `data-safety-backup`).
 
 ### Larm läser cachen
 Påminnelserna (skill `notifications-alarms`) läser schemat ur Firestore-cachen via samma

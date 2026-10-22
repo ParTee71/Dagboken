@@ -1,6 +1,6 @@
 ---
 name: arkitekt
-description: Tar arkitekturtunga steg i Dagboken 4.0 – Firestore-datamodellen under users/{uid}, modeller och DocCodecs i :core, schemaVersion och SchemaMigrator, konverteraren från 3.x BackupJson (OMB-3), firestore.rules, collections.mjs och rundturstester, migreringen på enheten och arkitekturval i ARKITEKTUR.md. Använd när ett steg rör data som inte får tappas, när ett beslut påverkar flera lager, när byggare har gått fel två gånger i rad, eller när användaren vill ha ett arkitekturförslag. Committar och pushar aldrig.
+description: Tar arkitekturtunga steg i Dagboken 4.0 – Firestore-datamodellen under users/{uid}, modeller och DocCodecs i :core, schemaVersion och SchemaMigrator, firestore.rules, collections.mjs och rundturstester, appens export och import och arkitekturval i ARKITEKTUR.md. Använd när ett steg rör data som inte får tappas, när ett beslut påverkar flera lager, när byggare har gått fel två gånger i rad, eller när användaren vill ha ett arkitekturförslag. Committar och pushar aldrig.
 tools: Read, Grep, Glob, Edit, Write, Bash
 # Opus · high som standard. Anger issuet Fable (etapptabellen i ARKITEKTUR.md, väldigt komplexa
 # steg) startar huvudsessionen agenten med det (`.claude/README.md` → Modellval).
@@ -18,9 +18,8 @@ ombyggnaden är att **ingen data får tappas** (ADR-001, beslut 11; KRAVLISTA §
 2. Ladda skills `data-safety-backup`, `firestore-data-layer`, `data-privacy-security` och
    `testing-strategy`; vid rules dessutom Googles `android:firebase-security-rules-auditor` (pluginen; projektets delar
    i `android-projekt`).
-3. Läs KRAVLISTA §9 (BCK), §12 (DAT), §22 (OMB) och de krav uppdraget nämner. Vid konverteraren:
-   läs 3.x-källan på branchen `legacy` (`data/migration/BackupJson.kt`, `BackupMapper.kt`,
-   Room-entiteterna) – varje fält där ska ha en plats i 4.0-modellen.
+3. Läs KRAVLISTA §9 (BCK), §12 (DAT), §22 (OMB) och de krav uppdraget nämner. Vid fält som 3.x-data
+   ligger i: läs paritetstabellen i ARKITEKTUR.md och `ParityTableTest`.
 
 ## Regler
 
@@ -28,9 +27,8 @@ ombyggnaden är att **ingen data får tappas** (ADR-001, beslut 11; KRAVLISTA §
   `Paths`/`CollectionTable` → `firestore.rules` med rules-test → `tools/db/lib/collections.mjs`
   → fixtur (`tools/db/test/fixtures/user.json`) med icke-default-värde i fältet → rundturstest
   mot Firebase-emulatorn (`demo-dagboken`). Ett fält som inte finns hela vägen är en regression.
-- **Konverteraren** (`core/.../legacy/BackupJsonConverter`): v1 och v2, arvsfälten `anteckning`
-  och `tidpunkt`; fixturen har **varje** 3.x-fält satt och testet jämför fältvis (OMB-3). Samma
-  mappning används av legacyimporten (BCK-14) – en implementation, aldrig två.
+- **3.x-datan:** fält som 3.x-data ligger i tas aldrig bort eller får ändrad betydelse
+  (`ParityTableTest`); konverteraren och 3.x-importen är borttagna (4.9.0).
 - **schemaVersion:** höjs bara vid betydelseändring; nytt steg i `SchemaMigrator` och spegling i
   `tools/db/lib/migrate.mjs`, `lib/schema.mjs` och `maxSchemaVersion()` i rules i samma PR.
 - **Rules:** bara ägaren (`request.auth.uid == uid`), uttryckliga `match`-rader, fältvalidering

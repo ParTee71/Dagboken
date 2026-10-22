@@ -6,6 +6,7 @@ import android.provider.OpenableColumns
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import se.partee71.dagboken.di.IoDispatcher
@@ -23,6 +24,15 @@ interface UserFile {
 
     /** Filens namn som användaren ser det (`DISPLAY_NAME`), `null` om det inte går att läsa. */
     suspend fun displayName(uri: Uri): String?
+}
+
+/** Lokala fel (filen) blir `null`; ett avbrott släpps igenom – exporten och importen. */
+internal inline fun <T> readOrNull(block: () -> T): T? = try {
+    block()
+} catch (e: CancellationException) {
+    throw e
+} catch (_: Exception) {
+    null
 }
 
 class ContentResolverUserFile @Inject constructor(

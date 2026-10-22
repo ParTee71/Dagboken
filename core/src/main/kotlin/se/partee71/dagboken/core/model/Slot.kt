@@ -5,7 +5,7 @@ import kotlinx.datetime.LocalTime
 /**
  * Dagens medicintidpunkter i fast ordning (DAT-1) – recept, vid behov-mediciner, doser och
  * medicinpåminnelser. [legacyName] är 3.x-namnet (`tidpunkt`); det ingår i receptdosernas
- * dokument-id ([DoseIds]) och används av konverteraren – det får aldrig innehålla understreck,
+ * dokument-id ([DoseIds]), också i de doser som redan ligger i kontona – det får aldrig ändras eller innehålla understreck,
  * eftersom `syncDoses` känner igen okopplade receptdoser på id-mönstret. [defaultTime] är standardklockslaget
  * (REC-6) – förvalet tills tidpunktens klockslag ställts i påminnelserna; använd [ReminderSettings.timeOf] (NOT-18).
  */
@@ -22,8 +22,5 @@ enum class Slot(override val wire: String, val legacyName: String, val defaultTi
     companion object {
         /** Tidpunkterna med klockslag – de som kan påminna (NOT-18); "Vid behov" påminner inte. */
         val SCHEDULED: List<Slot> = entries - AS_NEEDED
-
-        /** 3.x-namnet → tidpunkten; okänt namn → `null`. */
-        fun fromLegacyName(name: String): Slot? = entries.firstOrNull { it.legacyName == name }
     }
 }

@@ -5,10 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -17,17 +14,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.SECTION_GAP
-import se.partee71.dagboken.ui.migration.ChoiceRow
-import se.partee71.dagboken.ui.migration.ImportChoiceRows
-import se.partee71.dagboken.ui.migration.ImportEvent
-import se.partee71.dagboken.ui.migration.ImportStage
-import se.partee71.dagboken.ui.migration.ImportStageContent
-import se.partee71.dagboken.ui.migration.JSON_MIME
-import se.partee71.dagboken.ui.migration.countText
-import se.partee71.dagboken.ui.migration.rememberImportLaunchers
+import se.partee71.dagboken.ui.importing.ChoiceRow
+import se.partee71.dagboken.ui.importing.ImportEvent
+import se.partee71.dagboken.ui.importing.ImportStage
+import se.partee71.dagboken.ui.importing.ImportStageContent
+import se.partee71.dagboken.ui.importing.JSON_MIME
+import se.partee71.dagboken.ui.importing.countText
+import se.partee71.dagboken.ui.importing.rememberFilePicker
 import se.partee71.dagboken.ui.theme.Neutral
 import se.partee71.ui.common.DetailUiState
-import se.partee71.ui.components.AppBottomSheet
 import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppDivider
 import se.partee71.ui.components.EntityDetailScreen
@@ -42,11 +37,11 @@ fun ExportImportRoute(onBack: () -> Unit, viewModel: ExportImportViewModel = hil
 }
 
 /**
- * Export och import (BCK-6, BCK-13, BCK-14, SET-8; mockupen avsnitt 16): underskärm med liten topprad och ett kort med
+ * Export och import (BCK-6, BCK-13, SET-8; mockupen avsnitt 16): underskärm med liten topprad och ett kort med
  * "Spara som JSON" (dokumentväljaren `CreateDocument` med [exportFileName], sedan snackbaren "Sparade N poster") och
- * "Importera backup" (arket med Google Drive och fil), plus notisen att Health Connect-data aldrig ingår. När en import
- * pågår visas dess läge i stället ([ImportStageContent]). Medan något sparas eller
- * importeras går inget annat att starta.
+ * "Importera backup" (dokumentväljaren `OpenDocument` för en 4.x-export), plus notisen att Health Connect-data aldrig
+ * ingår. När en import pågår visas dess läge i stället ([ImportStageContent]). Medan något sparas eller importeras går
+ * inget annat att starta.
  */
 @Composable
 fun ExportImportScreen(
@@ -57,11 +52,10 @@ fun ExportImportScreen(
     modifier: Modifier = Modifier
 ) {
     val import = { event: ImportEvent -> onEvent(ExportImportEvent.Import(event)) }
-    val pickFile = rememberImportLaunchers(state.import, import)
+    val pickFile = rememberFilePicker(import)
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(JSON_MIME)) { uri ->
         uri?.let { onEvent(ExportImportEvent.ExportChosen(it)) }
     }
-    var choosing by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val saved = state.exported?.let { pluralStringResource(R.plurals.export_saved, it, countText(it)) }
     MessageSnackbar(saved, snackbar, key = state.exported) { onEvent(ExportImportEvent.MessageShown) }
@@ -86,25 +80,11 @@ fun ExportImportScreen(
                     enabled = !current.busy
                 )
                 AppDivider()
-                ChoiceRow(R.string.import_title, R.string.import_note, R.drawable.ic_file, { choosing = true }, enabled = !current.busy)
+                ChoiceRow(R.string.import_title, R.string.import_note, R.drawable.ic_file, pickFile, enabled = !current.busy)
             }
             NoticeBanner(stringResource(R.string.export_note), R.drawable.ic_info, onClick = null, tone = Tone.Neutral)
         } else {
             ImportStageContent(current.import, import, pickFile, stringResource(R.string.import_done), { import(ImportEvent.Reset) })
-        }
-    }
-    if (choosing) {
-        AppBottomSheet(stringResource(R.string.import_title), onDismiss = { choosing = false }) {
-            ImportChoiceRows(
-                onDrive = {
-                    choosing = false
-                    import(ImportEvent.FromDrive)
-                },
-                onFile = {
-                    choosing = false
-                    pickFile()
-                }
-            )
         }
     }
 }

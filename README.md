@@ -9,8 +9,8 @@ data och påminnelser. **Version 4.0 byggs om på `master`.**
 > **Dagboken 4.0** är byggd på ReseApotekets grund: Firestore offline-först under `users/{uid}` i
 > stället för Room och Drive-backup, fyra flikar, designspråket "Papper och teal", `:core` + `:app`,
 > paths-filtrerad CI på ca 8 Actions-minuter och databasåtkomst från Claude-sessionen med `tools/db`.
-> 3.x-data läses in med importen av en 3.x-backup (Drive eller fil) i Inställningar → Export och import
-> (BCK-6, BCK-14); migreringen på enheten togs bort i 4.8.0 (KRAVLISTA §22). Besluten står i
+> 3.x-datan är redan flyttad till Firestore; migreringen på enheten togs bort i 4.8.0 och importen av
+> 3.x-backuper i 4.9.0 (KRAVLISTA §22) – importen läser bara 4.x-exporter (BCK-6). Besluten står i
 > [ARKITEKTUR.md](ARKITEKTUR.md) (ADR-001). Appen 3.27.0 ligger kvar på branchen `legacy` och taggen `v3.27.0`.
 
 > **Bidrar du (eller en AI-assistent) med kod?** Läs [CLAUDE.md](CLAUDE.md) först. Den
@@ -44,7 +44,7 @@ Fyra flikar, ett inställningsark bakom avataren och en plusknapp som loggar mot
 - **Påminnelser** – medicin, mående och periodslut via exakta larm som överlever omstart (NOT).
 - **Data** – inloggning med Google krävs; all data ligger offline-först i Firestore och synkas
   när nätet finns; veckovis krypterad backup i GitHub Actions; export till fil och import av
-  en 3.x-backup (BCK-11–16).
+  en 4.x-export (BCK-11–16).
 
 Funktionerna i 3.27.0 beskrivs i versionshistoriken nedan och i kravlistan på branchen `legacy`.
 
@@ -81,7 +81,7 @@ signing.keyPassword=<lösenord>
 
 ### Arkitektur
 
-`:core` (ren Kotlin/JVM: modeller, codecs, motorer, 3.x-konverteraren) + `:app` (Compose,
+`:core` (ren Kotlin/JVM: modeller, codecs, motorer, importens läsare) + `:app` (Compose,
 Navigation 3, Hilt, Firestore). `Compose → ViewModel (StateFlow<UiState>) → Repository →
 FirestoreCollection<T> → Firestore`. Struktur, datamodell, lager, migrering och etapper:
 [ARKITEKTUR.md](ARKITEKTUR.md). 3.x-strukturen (Room, DataStore, Drive) finns på branchen `legacy`.
@@ -128,7 +128,7 @@ från nästa session.
 | Variabel | Innehåll | När |
 |---|---|---|
 | `FIREBASE_SERVICE_ACCOUNT` | service-account-JSON (rå eller base64) för projektet `dagboken-711d2` med rollen **Cloud Datastore Viewer** (läs) | för att läsa databasen från sessionen |
-| `FIREBASE_SERVICE_ACCOUNT_RW` | samma, men rollen **Cloud Datastore User** | bara när du uttryckligen vill att Claude ska kunna importera/migrera (t.ex. grinden OMB-4) |
+| `FIREBASE_SERVICE_ACCOUNT_RW` | samma, men rollen **Cloud Datastore User** | bara när du uttryckligen vill att Claude ska kunna importera/migrera (`import.mjs`, `migrate.mjs`) |
 | `FIREBASE_PROJECT_ID` | projekt-ID som nyckeln måste höra till | bara om det inte är projektet i `app/google-services.json` (`dagboken-711d2`) |
 
 Nyckeln skapas i Google Cloud Console → IAM → Service accounts → Keys. Filens innehåll kan
@@ -222,8 +222,8 @@ npx --prefix tools/db firebase emulators:exec --only firestore --project demo-da
 
 Firestore är molnkopian (BCK-11). Dessutom exporterar `backup.yml` all data varje måndag
 03:00 UTC (och på begäran: Actions → Backup → Run workflow), krypterar den med gpg och sparar
-`backup.json.gpg` som artifact i 90 dagar (BCK-12). Drive-backupen från 3.x är pensionerad;
-en 3.x-backup kan fortfarande importeras i appen (BCK-14).
+`backup.json.gpg` som artifact i 90 dagar (BCK-12). Drive-backupen från 3.x är pensionerad,
+och sedan 4.9.0 importerar appen inte heller 3.x-backuper (BCK-14 borttaget).
 
 **Inställning (en gång):** skapa en lång lösenfras och lägg den som GitHub-secret
 `BACKUP_PASSPHRASE` **och** i din lösenordshanterare – utan den går backupen inte att öppna.
@@ -261,6 +261,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.9.0 | **Importen av 3.x-backuper är borttagen:** Inställningar → Export och import läser bara exporter från Dagboken 4 (Spara som JSON eller veckobackupen) – "Importera backup" öppnar filväljaren direkt, och valet Google Drive är borta. All data som redan importerats ligger kvar i kontot som förut; en 3.x-fil ger beskedet att den inte går att importera, och inget skrivs. Appen ber inte längre om åtkomst till Google Drive. |
 | 4.8.0 | **Migreringen på enheten är borttagen:** 4.0 läser inte längre 3.x:s databas på telefonen vid start, och frågan om import vid första starten är borta – appen öppnar direkt på flikarna. En 3.x-backup (Google Drive eller fil) eller en 4.0-export läses in som förut under Inställningar → Export och import. 3.x-filerna på telefonen lämnas orörda, och en befintlig migreringsmarkör i kontot godtas som förut. |
 | 4.7.1 | **Känslohjulet:** "Tillbaka till hjulet" står överst i kärnvyn och syns utan scroll, och kommentaren per känsla är hopfälld bakom "Lägg till varför" tills man behöver den – en sparad kommentar visas som förut (#367). |
 | 4.7.0 | **Stunden:** en valfri paus före varje måendeincheckning. Måendenotisen får "Starta Stunden", som öppnar en lugn helskärm med andningscirkel, nedräkning och en hjälpfråga om nuet, och "Välj känslor" leder sedan till måendearket. Pausens längd, Ta över skärmen och hjälpfrågan ställs i Påminnelser (#322). Uppdaterad läkemedelslista. |
