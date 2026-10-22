@@ -14,7 +14,6 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Provider
 import kotlin.time.Clock
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
@@ -52,13 +51,13 @@ import se.partee71.dagboken.ui.common.message
 import se.partee71.dagboken.ui.common.nonBlank
 import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
+import se.partee71.dagboken.ui.common.screenSharing
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.NoteCard
 import se.partee71.dagboken.ui.components.SymptomLogCard
 import se.partee71.dagboken.ui.components.ValueSlider
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.Warning
-import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.ui.common.Validator
 import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppTextField
@@ -282,7 +281,7 @@ class CheckinEditViewModel @AssistedInject constructor(
 
     /** Episoden incheckningen hör till (typ och dag N) – följer den medan formuläret är öppet. */
     val episode: StateFlow<IllnessEpisode?> = illnesses.observeEpisodeOnly(episodeId).withFallback(null)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
+        .stateIn(viewModelScope, screenSharing(forgetWhenStopped = false), null)
 
     /** Symptomen ur Listor (SJ-3) – följer listan medan formuläret är öppet. */
     val symptomOptions: StateFlow<List<Option>> = options.choices(OptionKind.SYMPTOM, viewModelScope)

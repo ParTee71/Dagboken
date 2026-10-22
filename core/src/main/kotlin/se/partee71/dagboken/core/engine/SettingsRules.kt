@@ -1,6 +1,9 @@
 package se.partee71.dagboken.core.engine
 
+import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.Option
+import se.partee71.dagboken.core.model.ReminderSettings
+import se.partee71.dagboken.core.model.SlotReminder
 import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
 
@@ -41,3 +44,23 @@ fun List<Option>.hasActiveName(name: String, exceptId: String? = null): Boolean 
 }
 
 private fun String.normalizedName() = trim().lowercase()
+
+/** NOT-18: raden för [reminder]s tidpunkt ersatt (övriga rader och ordningen orörda). */
+fun ReminderSettings.withSlot(reminder: SlotReminder): ReminderSettings = copy(medSlots = medSlots.map { if (it.slot == reminder.slot) reminder else it })
+
+/** NOT-4: raden för [reminder]s måendetillfälle ersatt (övriga rader och ordningen orörda). */
+fun ReminderSettings.withOccasion(reminder: OccasionReminder): ReminderSettings = copy(screeningOccasions = screeningOccasions.map { if (it.occasion == reminder.occasion) reminder else it })
+
+/**
+ * NOT-16: de påminnelser som skulle ge notiser – påslagna medicintidpunkter (bara när huvudreglaget är på, som
+ * `Slot`) och påslagna måendetillfällen (som `Occasion`).
+ */
+fun ReminderSettings.activeReminders(): Set<Any> = (if (medsEnabled) medSlots.filter { it.enabled }.map { it.slot } else emptyList<Any>()).toSet() +
+    screeningOccasions.filter { it.enabled }.map { it.occasion }
+
+/**
+ * NOT-16: om ändringen till [next] gör en påminnelse **aktiv** som inte var det här – då begärs notisbehörigheten. En
+ * medicintidpunkt som slås på medan huvudreglaget är av, huvudreglaget utan någon påslagen tidpunkt, ett ändrat
+ * klockslag eller något som slås av gör det inte.
+ */
+fun ReminderSettings.turnsOnIn(next: ReminderSettings): Boolean = (next.activeReminders() - activeReminders()).isNotEmpty()

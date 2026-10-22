@@ -12,7 +12,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.time.Clock
-import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import se.partee71.dagboken.R
@@ -20,11 +19,9 @@ import se.partee71.dagboken.core.engine.plausibleBirthYears
 import se.partee71.dagboken.core.model.Profile
 import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.data.repository.SettingsRepository
-import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.ui.common.EditorEvents
-import se.partee71.ui.common.EditorLoader
 import se.partee71.ui.common.EditorState
 import se.partee71.ui.common.EditorUiState
 import se.partee71.ui.common.Validator
@@ -63,16 +60,21 @@ sealed interface ProfileEvent {
 /** Profil i inställningsarket (HLS-11): läser och sparar bara gruppen `profile` i `settings/app`. */
 @HiltViewModel
 class ProfileEditViewModel @Inject constructor(
-    private val settings: SettingsRepository,
+    settings: SettingsRepository,
     clock: Clock,
     timeZone: TimeZone
 ) : ViewModel() {
-    val editor: EditorState<ProfileForm> = EditorState(ProfileForm(), ProfileForm.validator(plausibleBirthYears(clock.todayIn(timeZone))), AppErrors, loading = true)
+    private val form = SettingsEditor(
+        settings,
+        viewModelScope,
+        ProfileForm(),
+        ProfileForm.validator(plausibleBirthYears(clock.todayIn(timeZone))),
+        project = { ProfileForm.of(it.profile) },
+        showInvalid = true,
+        apply = { stored, form -> stored.copy(profile = form.toProfile()) }
+    )
 
-    // Det lagrade (loader.stored) är det sparningen jämför mot när bara skillnaden ska skrivas.
-    private val loader = EditorLoader(editor, viewModelScope, read = { settings.get() }, project = { ProfileForm.of(it.profile) }, showInvalid = true)
-
-    private val difference = SettingsDifference(settings) { loader.stored.value }
+    val editor: EditorState<ProfileForm> = form.editor
 
     fun onEvent(event: ProfileEvent) {
         when (event) {
@@ -81,11 +83,9 @@ class ProfileEditViewModel @Inject constructor(
 
             is ProfileEvent.SexChanged -> editor.update { it.copy(sex = event.sex) }
 
-            ProfileEvent.Save -> viewModelScope.launch {
-                editor.save { form -> difference.save { it.copy(profile = form.toProfile()) } }
-            }
+            ProfileEvent.Save -> form.save()
 
-            ProfileEvent.Retry -> loader.retry()
+            ProfileEvent.Retry -> form.retry()
         }
     }
 

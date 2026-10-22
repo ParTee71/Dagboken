@@ -8,8 +8,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -20,13 +18,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlin.time.Clock
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
@@ -46,11 +40,13 @@ import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.data.repository.PrnMedicineRepository
 import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.DateFormat
+import se.partee71.dagboken.ui.common.WriteFailures
 import se.partee71.dagboken.ui.common.days
 import se.partee71.dagboken.ui.common.doseText
 import se.partee71.dagboken.ui.common.periodText
 import se.partee71.dagboken.ui.common.prescriptionSubtitle
 import se.partee71.dagboken.ui.common.prnLimits
+import se.partee71.dagboken.ui.common.screenSharing
 import se.partee71.dagboken.ui.common.tidyingUpEachDay
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.AccountAvatar
@@ -64,9 +60,7 @@ import se.partee71.dagboken.ui.theme.Warning
 import se.partee71.ui.common.ListEvent
 import se.partee71.ui.common.ListLoader
 import se.partee71.ui.common.ListUiState
-import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.ui.common.UiError
-import se.partee71.ui.common.uiErrorOrNull
 import se.partee71.ui.components.AddAction
 import se.partee71.ui.components.AppMenuItem
 import se.partee71.ui.components.ArchiveEvent
@@ -140,14 +134,14 @@ class MedicinesViewModel @Inject constructor(
      * alla härifrån, så att de aldrig visar olika dagar.
      */
     val today: StateFlow<LocalDate> =
-        clock.days { zone.get() }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), clock.todayIn(zone.get()))
+        clock.days { zone.get() }.stateIn(viewModelScope, screenSharing(forgetWhenStopped = false), clock.todayIn(zone.get()))
 
     /** Före [tidiedDays], som skriver hit när städningen misslyckas. */
-    private val _failure = MutableStateFlow<UiError?>(null)
-    val failure: StateFlow<UiError?> = _failure.asStateFlow()
+    private val failures = WriteFailures(viewModelScope)
+    val failure: StateFlow<UiError?> = failures.failure
 
     /** REC-8, REC-5, REC-10: städningen när fliken visas och vid varje ny dag (`tidyingUpEachDay`); fel utom offline visas. */
-    private val tidiedDays = today.tidyingUpEachDay(prescriptions, viewModelScope) { _failure.value = it }
+    private val tidiedDays = today.tidyingUpEachDay(prescriptions, viewModelScope, failures::report)
 
     private val loader = ListLoader(combine(prescriptions.observe(), medicines.observe(), tidiedDays) { p, m, day -> medicineItems(p, m, day) }, viewModelScope, AppErrors)
     val state: StateFlow<ListUiState<MedicineItem>> = loader.state
@@ -156,21 +150,17 @@ class MedicinesViewModel @Inject constructor(
     val endings: StateFlow<List<PeriodEnding>> = combine(state, today) { state, day ->
         val items = (state as? ListUiState.Content)?.items.orEmpty()
         items.filterIsInstance<MedicineItem.Recipe>().map { it.prescription }.endingSoon(day)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), emptyList())
+    }.stateIn(viewModelScope, screenSharing(forgetWhenStopped = false), emptyList())
 
     fun onEvent(event: MedicinesEvent) {
         when (event) {
-            is MedicinesEvent.ActiveChanged -> write { prescriptions.setActive(event.prescription, event.active) }
-            is MedicinesEvent.DeletePrescription -> write { prescriptions.delete(event.prescription.id) }
-            is MedicinesEvent.FavoriteToggled -> write { medicines.setFavorite(event.medicine, !event.medicine.favorite) }
-            is MedicinesEvent.PrescriptionFavoriteToggled -> write { prescriptions.setFavorite(event.prescription, !event.prescription.favorite) }
+            is MedicinesEvent.ActiveChanged -> failures.write { prescriptions.setActive(event.prescription, event.active) }
+            is MedicinesEvent.DeletePrescription -> failures.write { prescriptions.delete(event.prescription.id) }
+            is MedicinesEvent.FavoriteToggled -> failures.write { medicines.setFavorite(event.medicine, !event.medicine.favorite) }
+            is MedicinesEvent.PrescriptionFavoriteToggled -> failures.write { prescriptions.setFavorite(event.prescription, !event.prescription.favorite) }
             MedicinesEvent.Retry -> loader.onEvent(ListEvent.Retry)
-            MedicinesEvent.ErrorShown -> _failure.value = null
+            MedicinesEvent.ErrorShown -> failures.clear()
         }
-    }
-
-    private fun write(action: suspend () -> Result<Unit>) {
-        viewModelScope.launch { action().uiErrorOrNull(AppErrors)?.let { _failure.value = it } }
     }
 }
 

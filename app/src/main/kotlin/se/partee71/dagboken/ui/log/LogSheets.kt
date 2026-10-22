@@ -51,7 +51,7 @@ fun OccasionStateRow(state: OccasionState, onLog: () -> Unit, onClick: () -> Uni
 fun OccasionPickerSheet(picker: OccasionPicker, onEvent: (LogEvent) -> Unit) {
     val name = stringResource(R.string.log_mood_pick_title)
     val title = if (picker.isToday) name else stringResource(R.string.today_screening_title_day_format, name, DateFormat.display(picker.date))
-    AppBottomSheet(title, onDismiss = { onEvent(LogEvent.ClosePicker) }) {
+    AppBottomSheet(title, onDismiss = { onEvent(LogEvent.ClosePick) }) {
         picker.occasions.forEach { state ->
             key(state.occasion) {
                 val log = { onEvent(LogEvent.LogOccasion(state)) }

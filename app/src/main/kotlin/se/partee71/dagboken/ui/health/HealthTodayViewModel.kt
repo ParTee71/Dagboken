@@ -29,6 +29,7 @@ import se.partee71.dagboken.data.health.HealthRepository
 import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.data.health.observedStatus
 import se.partee71.dagboken.ui.common.SelectedDay
+import se.partee71.dagboken.ui.common.screenSharing
 
 /**
  * Klockan på Idag (HEM-15, HEM-17, HLS-7) i klockans läge [status]. [day] är den valda dagens mått (`null` medan
@@ -96,7 +97,7 @@ class HealthTodayViewModel @Inject constructor(
 
             else -> date.map { HealthTodayUiState(status, it) }
         }
-    }.stateIn(viewModelScope, healthSharing, null)
+    }.stateIn(viewModelScope, screenSharing(), null)
 
     fun onEvent(event: HealthEvent) = permissions.handle(event)
 }

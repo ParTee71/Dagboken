@@ -12,7 +12,6 @@ import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -63,7 +62,6 @@ import se.partee71.dagboken.core.engine.watchCompareSeries
 import se.partee71.dagboken.core.engine.watchSeries
 import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Checkin
-import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.HealthHistory
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
@@ -85,7 +83,8 @@ import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.ui.common.days
-import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.dagboken.ui.common.names
+import se.partee71.dagboken.ui.common.screenSharing
 
 /** Diagramgrupperna i Trender (TRD-19): Mående, Klocka och Jämför. */
 enum class TrendGroup { MOOD, WATCH, COMPARE }
@@ -278,7 +277,7 @@ class TrendsViewModel @Inject constructor(
     /** Dagens datum, igen vid midnatt – då rensas läsningarna som slutade på gårdagen (ingen nyckel lever kvar per dag). */
     private val today: Flow<LocalDate> = clock.days { zone.get() }.distinctUntilChanged()
         .onEach { today -> reads.keys.removeAll { it.second.endInclusive != today } }
-        .shareIn(viewModelScope, sharing, replay = 1)
+        .shareIn(viewModelScope, screenSharing(), replay = 1)
 
     private val group = MutableStateFlow(TrendGroup.MOOD)
     private val feelingDay = MutableStateFlow<LocalDate?>(null)
@@ -286,7 +285,7 @@ class TrendsViewModel @Inject constructor(
 
     /** Symptomens namn ur Listor (arkiverade med, SET-11); vid läsfel bara id:n. */
     private val symptomNames: Flow<Map<String, String>> =
-        options.observe(OptionKind.SYMPTOM).withFallback(emptyList()).map { all -> all.associate { it.id to it.name } }.distinctUntilChanged()
+        options.names(OptionKind.SYMPTOM)
 
     /** Profilen för sömnkvalitetens åldersnormer (HLS-11); utan födelseår blir varje natt en lucka. */
     private val profile: Flow<Profile> = settings.settings.withFallback(Settings()).map { it.profile }.distinctUntilChanged()
@@ -310,7 +309,7 @@ class TrendsViewModel @Inject constructor(
     internal val cachedReads: Int get() = reads.size
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T> shared(source: String, range: ClosedRange<LocalDate>, fallback: T, create: () -> Flow<T>): Flow<T> = reads.getOrPut(source to range) { create().withFallback(fallback).shareIn(viewModelScope, sharing, replay = 1) } as Flow<T>
+    private fun <T> shared(source: String, range: ClosedRange<LocalDate>, fallback: T, create: () -> Flow<T>): Flow<T> = reads.getOrPut(source to range) { create().withFallback(fallback).shareIn(viewModelScope, screenSharing(), replay = 1) } as Flow<T>
 
     /**
      * Dagbokens poster från [from] till [today] (NFR-24), en delad läsning per källa och period: historikläget för hela
@@ -471,7 +470,7 @@ class TrendsViewModel @Inject constructor(
         // Den valda dagen gäller bara så länge den ligger i veckan som visas – efter midnatt kan den ha fallit ur (TRD-22).
         val week = (data[TrendCard.FEELINGS] as? CardData.Feelings)?.week.orEmpty()
         TrendsUiState(group, TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) }.toImmutableMap(), feelingDay?.takeIf { day -> week.any { it.date == day } })
-    }.stateIn(viewModelScope, sharing, TrendsUiState())
+    }.stateIn(viewModelScope, screenSharing(), TrendsUiState())
 
     fun onEvent(event: TrendsEvent) {
         when (event) {
@@ -500,11 +499,6 @@ class TrendsViewModel @Inject constructor(
 
     private fun update(card: TrendCard, change: (CardControls) -> CardControls) {
         controls.value = controls.value + (card to change(controls.value.getValue(card)))
-    }
-
-    private companion object {
-        /** Delade flöden följer skärmen och glömmer sitt senaste värde när de stoppats – Trender öppnas alltid stängt (TRD-14). */
-        val sharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS, replayExpirationMillis = 0)
     }
 }
 
