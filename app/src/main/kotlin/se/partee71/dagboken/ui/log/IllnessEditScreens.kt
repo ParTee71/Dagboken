@@ -60,7 +60,6 @@ import se.partee71.dagboken.ui.components.SymptomLogCard
 import se.partee71.dagboken.ui.components.ValueSlider
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.Warning
-import se.partee71.ui.common.EditorState
 import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.ui.common.Validator
 import se.partee71.ui.components.AppCard
@@ -141,8 +140,6 @@ class EpisodeNewViewModel @AssistedInject constructor(
         },
         clean = { _, value -> value.cleaned() }
     )
-
-    val editor: EditorState<EpisodeStart> = form.editor
 
     /** Symptomen ur Listor (SJ-3) – följer listan medan formuläret är öppet. */
     val symptomOptions: StateFlow<List<Option>> = options.choices(OptionKind.SYMPTOM, viewModelScope)
@@ -238,8 +235,6 @@ class EpisodeEditViewModel @AssistedInject constructor(
         clean = { _, value -> value.cleaned() }
     )
 
-    val editor: EditorState<IllnessEpisode> = form.editor
-
     @AssistedFactory
     interface Factory {
         fun create(id: String): EpisodeEditViewModel
@@ -311,8 +306,6 @@ class CheckinEditViewModel @AssistedInject constructor(
         },
         clean = { _, value -> value.cleaned() }
     )
-
-    val editor: EditorState<Checkin> = form.editor
 
     /** Episoden incheckningen hör till (typ och dag N) – följer den medan formuläret är öppet. */
     val episode: StateFlow<IllnessEpisode?> = illnesses.observeEpisodeOnly(episodeId).withFallback(null)

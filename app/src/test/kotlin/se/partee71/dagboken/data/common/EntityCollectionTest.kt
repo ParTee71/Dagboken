@@ -12,35 +12,16 @@ import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import se.partee71.dagboken.core.model.Identified
-import se.partee71.dagboken.core.model.Option
-import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.Schedule
 import se.partee71.dagboken.core.schema.Doc
 import se.partee71.dagboken.core.schema.DocCodec
 import se.partee71.dagboken.core.schema.PrescriptionCodec
 import se.partee71.dagboken.data.FakeCollectionFactory
-import se.partee71.dagboken.data.TestUserScope
 import se.partee71.dagboken.data.firestore.Paths
 
-/** `nextSortOrder`/`upsertPlaced`: något nytt hamnar sist, och sparandet väntar aldrig på nätet. */
+/** Hjälparna i `EntityCollection.kt`: fältvägar, cacheläsning, `updateChanged`. */
 class EntityCollectionTest {
-
-    @Test
-    fun `något nytt hamnar efter det sista i listan`() = runTest {
-        val items = FakeCollectionFactory().options()
-        items.upsert(Option("a", OptionKind.ACTIVITY, "Promenad", sortOrder = 4)).getOrThrow()
-        items.upsertPlaced(Option("b", OptionKind.ACTIVITY, "Yoga"), isNew = true) { copy(sortOrder = it) }.getOrThrow()
-        assertEquals(5, items.get("b").getOrThrow()?.sortOrder)
-        items.upsertPlaced(Option("b", OptionKind.ACTIVITY, "Yoga", sortOrder = 1), isNew = false) { copy(sortOrder = it) }.getOrThrow()
-        assertEquals(1, items.get("b").getOrThrow()?.sortOrder, "något som redan finns behåller sin plats")
-    }
-
-    @Test
-    fun `utan lista att läsa blir platsen 0 i stället för att vänta`() = runTest {
-        val items = FakeCollectionFactory(scope = TestUserScope(uid = null)).options()
-        assertEquals(0, items.nextSortOrder())
-    }
 
     @Test
     fun `fältvägar är segment – en punkt i en nyckel är ingen väg`() {
@@ -89,19 +70,6 @@ class EntityCollectionTest {
         val wrapped = CancellationException("lyssnaren avslutad").apply { initCause(IllegalStateException("nekad")) }
         val result = firstFromCache<String>({ DataError.PermissionDenied }) { flow { throw wrapped } }
         assertEquals(DataError.PermissionDenied, result.exceptionOrNull())
-    }
-
-    @Test
-    fun `sortOrder väntar högst 2 s på listan och blir då 0`() = runTest {
-        val fake = FakeCollectionFactory().options()
-        fake.upsert(Option("a", OptionKind.ACTIVITY, "Promenad", sortOrder = 4)).getOrThrow()
-        val slow = object : EntityCollection<Option> by fake {
-            override suspend fun cached(): Result<List<Option>> = awaitCancellation()
-        }
-
-        assertEquals(0, slow.nextSortOrder())
-        assertEquals(2_000L, currentTime)
-        assertEquals(5, fake.nextSortOrder())
     }
 
     @Test

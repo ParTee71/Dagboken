@@ -2,9 +2,7 @@ package se.partee71.dagboken.ui.components
 
 import se.partee71.ui.components.QuantityStepperDefaults
 import se.partee71.ui.components.LocalTopBarStatus
-import se.partee71.ui.components.SwatchMarker
 import se.partee71.ui.components.asSplitMenu
-import se.partee71.dagboken.ui.common.DEFAULT_EMOJIS
 import se.partee71.dagboken.ui.common.AppErrors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -113,13 +111,11 @@ import se.partee71.ui.components.ButtonVariant
 import se.partee71.ui.components.CheckRow
 import se.partee71.ui.components.ChipRow
 import se.partee71.ui.components.ChoiceChips
-import se.partee71.ui.components.ColorSwatchPicker
 import se.partee71.ui.components.Confetti
 import se.partee71.ui.components.ConfirmDialog
 import se.partee71.ui.components.DateField
 import se.partee71.ui.components.DeleteAction
 import se.partee71.ui.components.DetailHeader
-import se.partee71.ui.components.EmojiPicker
 import se.partee71.ui.components.EmptyContent
 import se.partee71.ui.components.EmptyExample
 import se.partee71.ui.components.EmptyState
@@ -150,7 +146,6 @@ import se.partee71.ui.components.TopBarSize
 import se.partee71.ui.components.UndoRequest
 import se.partee71.ui.components.UndoSnackbar
 import se.partee71.ui.components.inactive
-import se.partee71.dagboken.ui.common.swatchLabel
 
 /**
  * Alla komponenter och ramar på en skärm, med riktiga svenska texter (skill
@@ -322,12 +317,6 @@ private fun Fields() {
     ExampleChips(listOf("Promenad", "Yoga", "Städning"), {}, chosen = "Promenad")
     AppSegmentedChoice(listOf("Ljust", "Mörkt", "Auto"), theme, { theme = it })
     QuantityStepper(minutes, { minutes = it }, "minuter", buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
-    var emoji by remember { mutableStateOf("🚶") }
-    var color by remember { mutableStateOf(AppColors.SWATCH_HEX[0]) }
-    Label("EmojiPicker")
-    EmojiPicker(emoji, { emoji = it }, DEFAULT_EMOJIS)
-    Label("ColorSwatchPicker")
-    ColorSwatchPicker(AppColors.SWATCH_HEX, color, { color = it }, AppColors::swatch, { swatchLabel(it) }, SwatchMarker.GridRing)
 }
 
 @Composable
@@ -396,9 +385,6 @@ private fun Diary() {
         ReminderTimeRow("Efter frukost", reminderTime, { reminderTime = it }, enabled = reminder, onEnabledChange = { reminder = it })
         ReminderTimeRow("Periodslut", LocalTime(9, 0), {})
     }
-    Label("WheelPicker")
-    var hour by remember { mutableIntStateOf(1) }
-    WheelPicker((0..23).map { it.toString() }, hour, { hour = it }, "timmar")
     Label("StatPill")
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
         StatPill(R.drawable.ic_activity, "7 842", "Steg")
@@ -947,10 +933,6 @@ private fun Frames(onBack: () -> Unit) {
                 ItemRow("sön 4 okt · 08:15", subtitle = "Svårighetsgrad 4 · hosta, snuva", navigates = true, onClick = {})
             }
         }
-    }
-    Label("UpcomingScreen")
-    Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
-        UpcomingScreen("Export och import", R.drawable.ic_download, "Spara en kopia av dagboken eller läs in en tidigare.", onBack = onBack)
     }
 }
 

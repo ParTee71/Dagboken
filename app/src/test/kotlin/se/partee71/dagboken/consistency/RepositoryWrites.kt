@@ -7,7 +7,7 @@ import com.lemonappdev.konsist.api.Konsist
  *
  * - **Skrivmetoder ([writes]):** varje `suspend`-funktion i ett gränssnitt under `data` som heter `*Repository`,
  *   `EntryStore` eller `EntityCollection`, och varje top-level `suspend`-extension under `data` på ett av dem
- *   (`updateChanged`, `upsertPlaced` …) – utom läsningarna i [READS]. En ny skrivning fångas utan ändring här; en ny
+ *   (`updateChanged` …) – utom läsningarna i [READS]. En ny skrivning fångas utan ändring här; en ny
  *   läsning som en läsvy behöver läggs till i [READS].
  * - **Anrop ([callsIn]):** ett skrivnamn som anrop (`.namn(`, `.namn {`) eller referens (`::namn`) på **vilken mottagare
  *   som helst** – också konkreta klasser och kedjor – efter att kommentarer strippats. Undantagna är bara kända
@@ -20,7 +20,7 @@ object RepositoryWrites {
     /** Suspend-funktioner i gränssnitten och extensions som bara läser. */
     val READS = setOf(
         "get", "getAll", "getEpisode", "cached", "cachedBetween", "cachedDates", "confirmed", "confirmedFrom", "awaitWrites",
-        "nextSortOrder", "checkinCount", "missingOn", "plan", "history", "day", "new", "catalog", "updated"
+        "checkinCount", "missingOn", "plan", "history", "day", "new", "catalog", "updated"
     )
 
     /** Typer och fabriker för minnesmottagare vars `.add(`/`.update {`/`.remove(` inte rör datalagret. */

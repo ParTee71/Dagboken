@@ -96,9 +96,9 @@ class ArchiveActionsTest {
     @Test
     fun `samma mekanik döljer en rad med ett eget meddelande, och andra fel visas likadant`() {
         // Vilket formaterat meddelande som helst; appen har ännu ingen egen "dölj"-text.
-        val hiding = actions(R.string.color_format)
+        val hiding = actions(R.string.tab_today)
         hiding.onEvent(ArchiveEvent.Archive("p", "Städning"))
-        assertEquals(UndoRequest("p", "Städning", R.string.color_format), hiding.undo.value)
+        assertEquals(UndoRequest("p", "Städning", R.string.tab_today), hiding.undo.value)
         hiding.report(AppErrors.map(DataError.Offline))
         assertEquals(DataError.Offline, hiding.error.value?.dataError)
     }

@@ -22,7 +22,7 @@ const val MAX_GRID_LINES = 12
 const val MAX_X_LABELS = 6
 
 /**
- * [range] — se [computeSmartYRange]. [step] — avståndet mellan varje "snygg" gridlinje;
+ * [range] — se [computeSmartYAxis]. [step] — avståndet mellan varje "snygg" gridlinje;
  * [range]s ändpunkter är alltid exakta multiplar av [step], så gridlinjer/etiketter ritade
  * vid varje multipel av [step] landar exakt på range-gränserna (garanterar TRD-9).
  */
@@ -33,10 +33,9 @@ data class SmartYAxis(val range: ClosedFloatingPointRange<Float>, val step: Floa
  * att alltid ankra vid 0. Lägger på en marginal och avrundar ut till närmaste "snygga" steg
  * (1/2/5 × 10^n) så ett smalt värdeband (t.ex. 5–8) fyller diagramhöjden och långt-från-noll
  * serier (t.ex. steg ~5000–9000) inte får orimligt många rutnätslinjer.
+ *
+ * Returnerar spannet ([SmartYAxis.range]) och gridlinje-steget (värdelinjerna, TRD-9).
  */
-fun computeSmartYRange(values: List<Float>): ClosedFloatingPointRange<Float> = computeSmartYAxis(values).range
-
-/** Som [computeSmartYRange] men returnerar även gridlinje-steget (värdelinjerna, TRD-9). */
 fun computeSmartYAxis(values: List<Float>): SmartYAxis {
     val finite = values.filter { it.isFinite() }
     if (finite.isEmpty()) return SmartYAxis(FALLBACK_RANGE, FALLBACK_STEP)

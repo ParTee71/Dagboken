@@ -10,6 +10,8 @@ import org.junit.Test
 /** Sömnens mittpunkter per natt – underlaget till regelbundenheten (HLS-10, HLS-13). Portad från 3.x `NightlyMidpointsTest`. */
 class NightlyMidpointsTest {
 
+    private fun nightlyMidpoints(sessions: List<SleepSession>, zone: kotlinx.datetime.TimeZone) = longestNightPerDay(sessions, zone).mapValues { (_, night) -> midpointOf(night, zone) }
+
     private fun midpoints(vararg sessions: SleepSession) = nightlyMidpoints(sessions.toList(), STOCKHOLM).values.toList()
 
     @Test fun `the midpoint sits halfway through the session`() {

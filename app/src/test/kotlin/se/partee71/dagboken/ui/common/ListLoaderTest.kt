@@ -5,13 +5,10 @@ import kotlin.test.assertEquals
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
-import se.partee71.dagboken.core.model.Option
-import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.dataError
@@ -72,15 +69,4 @@ class ListLoaderTest {
             assertEquals(DetailUiState.Content("Promenad"), expectMostRecentItem())
         }
     }
-
-    @Test
-    fun `activeOnly döljer arkiverade`() = runTest {
-        val people = listOf(Option("a", OptionKind.ACTIVITY, "Promenad"), Option("b", OptionKind.ACTIVITY, "Yoga", archived = true))
-        activeOnly(people).test {
-            assertEquals(listOf("Promenad"), awaitItem().map { it.name })
-            awaitComplete()
-        }
-    }
-
-    private fun activeOnly(people: List<Option>) = flowOf(people).activeOnly()
 }

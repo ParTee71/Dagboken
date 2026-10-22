@@ -24,12 +24,10 @@ import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.testing.captureLightAndDark
-import se.partee71.dagboken.ui.common.DEFAULT_EMOJIS
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.scaleLevel
-import se.partee71.dagboken.ui.common.swatchLabel
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Neutral
@@ -52,10 +50,8 @@ import se.partee71.ui.components.ButtonVariant
 import se.partee71.ui.components.CheckRow
 import se.partee71.ui.components.ChipRow
 import se.partee71.ui.components.ChoiceChips
-import se.partee71.ui.components.ColorSwatchPicker
 import se.partee71.ui.components.DateField
 import se.partee71.ui.components.DeleteAction
-import se.partee71.ui.components.EmojiPicker
 import se.partee71.ui.components.ExampleChips
 import se.partee71.ui.components.FieldError
 import se.partee71.ui.components.GroupLabel
@@ -70,7 +66,6 @@ import se.partee71.ui.components.QuantityStepperDefaults
 import se.partee71.ui.components.SectionHeader
 import se.partee71.ui.components.Suggestion
 import se.partee71.ui.components.SuggestionField
-import se.partee71.ui.components.SwatchMarker
 import se.partee71.ui.components.SwitchRow
 import se.partee71.ui.components.TimeField
 import se.partee71.ui.components.ToolbarAction
@@ -304,8 +299,6 @@ class CatalogScreenshotTest {
             }
         }
         captureLightAndDark("FieldError_sparfel") { Sheet { FieldError("Ingen anslutning just nu. Det du sparar skickas när nätet är tillbaka.") } }
-        captureLightAndDark("EmojiPicker_val") { Sheet { EmojiPicker("🧘", {}, DEFAULT_EMOJIS) } }
-        captureLightAndDark("ColorSwatchPicker_val") { Sheet { ColorSwatchPicker(AppColors.SWATCH_HEX, AppColors.SWATCH_HEX[3], {}, AppColors::swatch, { swatchLabel(it) }, SwatchMarker.GridRing) } }
         captureLightAndDark("AppSegmentedChoice_tema") { Sheet { AppSegmentedChoice(listOf("Ljust", "Mörkt", "Auto"), 2, {}) } }
         captureLightAndDark("QuantityStepper_varde") {
             Sheet {
@@ -459,14 +452,6 @@ class CatalogScreenshotTest {
                     ValueSlider("Smärta", 9, {}, higherIsBetter = false)
                     ValueSlider("Aktivitetens energi", -4, {}, valueRange = -10..10)
                     ValueSlider("Aktivitetens energi", 6, {}, valueRange = -10..10, enabled = false)
-                }
-            }
-        }
-        captureLightAndDark("WheelPicker_vald") {
-            Sheet {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.l)) {
-                    WheelPicker((0..23).map { it.toString() }, 1, {}, "timmar")
-                    WheelPicker((0..55 step 5).map { it.toString() }, 6, {}, "minuter")
                 }
             }
         }

@@ -230,23 +230,6 @@ suspend fun <T : Identified> EntityCollection<T>.cachedDates(field: String, from
 fun <T : Sortable> List<T>.sortOrderAfterLast(): Int = maxOfOrNull { it.sortOrder }?.plus(1) ?: 0
 
 /**
- * `sortOrder` för något nytt, så att det hamnar sist i listan – en gång för alla formulär.
- * Läses ur cachen ([EntityCollection.cached]), men väntar högst [SORT_ORDER_WAIT] på servern: går
- * listan inte att läsa i tid hamnar det först (0) i stället för att sparandet hänger – platsen är
- * ingen data som kan tappas.
- */
-suspend fun <T> EntityCollection<T>.nextSortOrder(): Int where T : Identified, T : Sortable {
-    val list = withTimeoutOrNull(SORT_ORDER_WAIT) { cached().getOrNull() } ?: return 0
-    return list.sortOrderAfterLast()
-}
-
-/** Hur länge [nextSortOrder] väntar (ur cachen tar det millisekunder). */
-private val SORT_ORDER_WAIT = 2.seconds
-
-/** Sparar [item]; något nytt ([isNew]) hamnar sist i listan via [placeLast] – samma i alla formulär. */
-suspend fun <T> EntityCollection<T>.upsertPlaced(item: T, isNew: Boolean, placeLast: T.(Int) -> T): Result<Unit> where T : Identified, T : Sortable = upsert(if (isNew) item.placeLast(nextSortOrder()) else item)
-
-/**
  * Skriver bara de toppfält som skiljer [after] från [before] – kodade med [codec] – via
  * [EntityCollection.update]: fält som en annan enhet eller skärm ändrat under tiden (en stjärna, ett
  * fält från en nyare app) skrivs inte tillbaka, och ett dokument som raderats under tiden återuppstår

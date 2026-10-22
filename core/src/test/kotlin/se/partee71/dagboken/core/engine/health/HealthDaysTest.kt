@@ -42,7 +42,7 @@ class HealthDaysTest {
 
     @Test fun `records outside the period are left out`() {
         val history = healthHistory(HealthRecords(steps = listOf(steps("watch", mar27, "10:00", 4000))), mar28, mar29, STOCKHOLM)
-        assertTrue(!history.hasAnyData)
+        assertTrue(history.days.none { !it.isEmpty })
     }
 
     @Test fun `two sources that do not overlap pick the most complete one per day`() {

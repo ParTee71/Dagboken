@@ -15,7 +15,7 @@ import se.partee71.dagboken.core.engine.dayAngle
 import se.partee71.dagboken.core.model.SleepStages
 
 // Sömnen (HLS-8, HLS-12, HLS-13) – portad från 3.x `HealthConnectRepository.kt` (`summarizeSleepStages`,
-// `longestNightPerDay`, `nightlyMidpoints`, `midpointOf`) utan SDK-typer. Spridningen räknas cirkulärt i
+// `longestNightPerDay`, `midpointOf`) utan SDK-typer. Spridningen räknas cirkulärt i
 // `SleepQuality.kt` (`circularSdMinutes`); här det glidande fönstret per natt (`midpointSdByNight`).
 
 /**
@@ -48,13 +48,6 @@ fun longestNightPerDay(sessions: List<SleepSession>, zone: TimeZone): Map<LocalD
 
 /** Fönstrets mittpunkt som klockslag i [zone] – mätt i verklig tid, så en natt över sommartidsbytet blir rätt. */
 fun midpointOf(span: TimeSpan, zone: TimeZone): LocalTime = (span.start + span.duration / 2).toLocalDateTime(zone).time
-
-/**
- * Sömnens mittpunkt per natt (HLS-10, HLS-13), en per dygn enligt [longestNightPerDay] och i datumordning –
- * underlaget till regelbundenheten. Två sessioner samma natt skulle annars se ut som två läggtider och blåsa
- * upp spridningen.
- */
-fun nightlyMidpoints(sessions: List<SleepSession>, zone: TimeZone): Map<LocalDate, LocalTime> = longestNightPerDay(sessions, zone).mapValues { (_, night) -> midpointOf(night, zone) }
 
 /**
  * Regelbundenheten per natt (HLS-10, HLS-13): varje natt i [midpoints] får spridningen i mittpunkten över nätterna

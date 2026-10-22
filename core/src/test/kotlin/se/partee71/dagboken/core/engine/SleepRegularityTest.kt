@@ -1,6 +1,8 @@
 package se.partee71.dagboken.core.engine
 
 import kotlinx.datetime.LocalTime
+import kotlin.math.cos
+import kotlin.math.sin
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -45,3 +47,10 @@ class SleepRegularityTest {
         assertEquals(aroundNoon, aroundMidnight, 0.001)
     }
 }
+
+/** Spridningen i mittpunkterna räknad cirkulärt över en hel lista – oraklet mot det glidande fönstret. */
+internal fun sleepMidpointSdMinutes(midpoints: List<LocalTime>): Double? = circularSdMinutes(
+    midpoints.sumOf { sin(it.dayAngle()) },
+    midpoints.sumOf { cos(it.dayAngle()) },
+    midpoints.size
+)

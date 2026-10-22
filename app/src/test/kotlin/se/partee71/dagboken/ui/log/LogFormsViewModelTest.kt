@@ -69,8 +69,8 @@ class LogFormsViewModelTest {
 
     private fun eventForm(id: String? = null, date: LocalDate? = null) = EventEditViewModel(events, options, clock, { zone }, id, date)
 
-    private val ActivityEditViewModel.value: Activity get() = editor.state.value.value
-    private val EventEditViewModel.value: Event get() = editor.state.value.value
+    private val ActivityEditViewModel.value: Activity get() = form.editor.state.value.value
+    private val EventEditViewModel.value: Event get() = form.editor.state.value.value
 
     private fun ActivityEditViewModel.change(field: String? = null, transform: (Activity) -> Activity) = form.onEvent(EntryEditEvent.Changed(field, transform))
 
@@ -88,7 +88,7 @@ class LogFormsViewModelTest {
         assertEquals(yesterday, vm.value.date)
         assertEquals(LocalTime(14, 20), vm.value.time)
         assertEquals(Activity(vm.value.id, yesterday, LocalTime(14, 20), createdAt = clock.now()), vm.value, "inget från förra aktiviteten")
-        assertFalse(vm.editor.state.value.canSave, "ingen typ vald (AKT-9)")
+        assertFalse(vm.form.editor.state.value.canSave, "ingen typ vald (AKT-9)")
         assertEquals(today, activityForm().value.date, "utan dag: idag")
     }
 
@@ -96,21 +96,21 @@ class LogFormsViewModelTest {
     fun `typ krävs och Övrigt kräver en beskrivning (AKT-2, AKT-9)`() = runTest(main.dispatcher) {
         val vm = activityForm()
         vm.change { it.copy(stress = 3) }
-        assertFalse(vm.editor.state.value.canSave, "ingen typ")
-        vm.editor.state.test {
+        assertFalse(vm.form.editor.state.value.canSave, "ingen typ")
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
             expectNoEditorEvents()
         }
-        assertEquals(R.string.entry_type_missing, vm.editor.state.value.errorFor(ActivityField.TYPE), "felet syns efter sparförsöket")
+        assertEquals(R.string.entry_type_missing, vm.form.editor.state.value.errorFor(ActivityField.TYPE), "felet syns efter sparförsöket")
 
         vm.change(ActivityField.TYPE) { it.copy(optionId = OTHER_ACTIVITY_ID) }
-        assertEquals(R.string.activity_describe_missing, vm.editor.state.value.errorFor(ActivityField.DESCRIPTION))
+        assertEquals(R.string.activity_describe_missing, vm.form.editor.state.value.errorFor(ActivityField.DESCRIPTION))
         vm.change(ActivityField.DESCRIPTION) { it.copy(customText = "  ") }
-        assertFalse(vm.editor.state.value.canSave, "blanksteg är ingen beskrivning")
+        assertFalse(vm.form.editor.state.value.canSave, "blanksteg är ingen beskrivning")
         vm.change(ActivityField.DESCRIPTION) { it.copy(customText = "Svamplockning") }
-        assertTrue(vm.editor.state.value.canSave)
+        assertTrue(vm.form.editor.state.value.canSave)
         vm.change(ActivityField.TYPE) { it.copy(optionId = "walk") }
-        assertNull(vm.editor.state.value.errorFor(ActivityField.DESCRIPTION), "bara Övrigt kräver beskrivning")
+        assertNull(vm.form.editor.state.value.errorFor(ActivityField.DESCRIPTION), "bara Övrigt kräver beskrivning")
     }
 
     @Test
@@ -130,9 +130,9 @@ class LogFormsViewModelTest {
         vm.change(ActivityField.TYPE) { it.copy(optionId = OTHER_ACTIVITY_ID) }
         vm.change(ActivityField.DESCRIPTION) { it.copy(customText = " Svamplockning ") }
         vm.change { it.copy(recovering = true, drain = true, minutes = 90, energy = -3, stress = 2, symptoms = listOf(SymptomScore("h", 4)), note = " Regn ") }
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         val saved = factory.activities().get(id).getOrThrow()
@@ -148,9 +148,9 @@ class LogFormsViewModelTest {
         other.change(ActivityField.TYPE) { it.copy(optionId = OTHER_ACTIVITY_ID) }
         other.change(ActivityField.DESCRIPTION) { it.copy(customText = "Bad") }
         other.change(ActivityField.TYPE) { it.copy(optionId = "walk") }
-        other.editor.state.test {
+        other.form.editor.state.test {
             other.form.onEvent(EntryEditEvent.Save)
-            awaitDone(other.editor)
+            awaitDone(other.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertNull(factory.activities().get(other.value.id).getOrThrow()?.customText, "beskrivningen följer inte med en annan typ")
@@ -164,11 +164,11 @@ class LogFormsViewModelTest {
         val vm = activityForm(id = "a1")
         assertFalse(vm.form.isNew)
         assertEquals(stored, vm.value)
-        assertFalse(vm.editor.state.value.canSave)
+        assertFalse(vm.form.editor.state.value.canSave)
         vm.change { it.copy(energy = 7) }
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         val raw = factory.store.read(path, "a1")!!
@@ -176,9 +176,9 @@ class LogFormsViewModelTest {
         assertEquals("kvar", raw["framtidaFält"])
         assertEquals(stored.copy(energy = 7), factory.activities().get("a1").getOrThrow())
 
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Delete)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertNull(factory.activities().get("a1").getOrThrow())
@@ -192,10 +192,10 @@ class LogFormsViewModelTest {
         val vm = activityForm(id = "a2")
         assertEquals(listOf(Feeling("calm", "grateful"), Feeling("glad", "framtida")), vm.value.feelings, "okänd känsla läses")
         vm.change { it.withFeelings(it.feelings + Feeling("glad")) }
-        assertTrue(vm.editor.state.value.canSave)
-        vm.editor.state.test {
+        assertTrue(vm.form.editor.state.value.canSave)
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(listOf("calm.grateful", "glad.framtida", "glad"), factory.store.read(path, "a2")!!["feelings"], "okänd känsla skrivs tillbaka")
@@ -203,15 +203,15 @@ class LogFormsViewModelTest {
         val fresh = activityForm()
         assertEquals(emptyList(), fresh.value.feelings, "en ny aktivitet börjar utan känslor (AKT-12)")
         fresh.change { it.withFeelings(listOf(Feeling("glad"))) }
-        assertFalse(fresh.editor.state.value.canSave, "typ krävs fortfarande (AKT-9)")
+        assertFalse(fresh.form.editor.state.value.canSave, "typ krävs fortfarande (AKT-9)")
         fresh.change(ActivityField.TYPE) { it.copy(optionId = "walk") }
-        assertTrue(fresh.editor.state.value.canSave)
+        assertTrue(fresh.form.editor.state.value.canSave)
     }
 
     @Test
     fun `en aktivitet som inte finns visar läsfel – och sparas aldrig som ny`() = runTest(main.dispatcher) {
         val vm = activityForm(id = "saknas")
-        assertEquals(DataError.NotFound, vm.editor.state.value.loadError?.dataError)
+        assertEquals(DataError.NotFound, vm.form.editor.state.value.loadError?.dataError)
         vm.form.onEvent(EntryEditEvent.Save)
         assertTrue(factory.activities().getAll().getOrThrow().isEmpty())
     }
@@ -236,16 +236,16 @@ class LogFormsViewModelTest {
         val vm = eventForm(date = yesterday)
         assertEquals(yesterday to LocalTime(14, 20), vm.value.date to vm.value.time)
         assertEquals(EventRepository.DEFAULT_SEVERITY, vm.value.severity)
-        assertFalse(vm.editor.state.value.canSave)
+        assertFalse(vm.form.editor.state.value.canSave)
         vm.change { it.copy(severity = 8) }
-        assertFalse(vm.editor.state.value.canSave, "ingen typ")
+        assertFalse(vm.form.editor.state.value.canSave, "ingen typ")
         vm.change(EventField.TYPE) { it.copy(optionId = "migraine") }
         vm.change(EventField.TRIGGERS) { it.copy(triggers = " Starkt ljus ") }
         vm.change(EventField.ACTIONS) { it.copy(actions = "  ") }
         vm.change { it.copy(durationMinutes = 120, note = "Aura först") }
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(
@@ -263,11 +263,11 @@ class LogFormsViewModelTest {
         val vm = eventForm(id = "e1")
         assertEquals(stored, vm.value)
         vm.change(EventField.TYPE) { it.copy(optionId = "") }
-        assertEquals(R.string.entry_type_missing, vm.editor.state.value.errorFor(EventField.TYPE))
+        assertEquals(R.string.entry_type_missing, vm.form.editor.state.value.errorFor(EventField.TYPE))
         vm.change(EventField.TYPE) { it.copy(optionId = "dizzy") }
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         val raw = factory.store.read(path, "e1")!!
@@ -275,9 +275,9 @@ class LogFormsViewModelTest {
         assertEquals("kvar", raw["framtidaFält"])
         assertEquals(stored.copy(optionId = "dizzy"), factory.events().get("e1").getOrThrow())
 
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Delete)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertNull(factory.events().get("e1").getOrThrow())
@@ -289,10 +289,10 @@ class LogFormsViewModelTest {
         factory.activities().upsert(stored).getOrThrow()
         val vm = activityForm(id = "a1")
         vm.change { it.withSymptoms(it.symptoms.toList()) }
-        assertFalse(vm.editor.state.value.isDirty)
+        assertFalse(vm.form.editor.state.value.isDirty)
         assertEquals(3, vm.value.somatic)
         vm.change { it.withSymptoms(listOf(SymptomScore("h", 2))) }
-        assertTrue(vm.editor.state.value.isDirty)
+        assertTrue(vm.form.editor.state.value.isDirty)
         assertEquals(null to 2, vm.value.legacySomatic to vm.value.somatic)
     }
 
@@ -303,12 +303,12 @@ class LogFormsViewModelTest {
         }
         val vm = EventEditViewModel(failing, options, clock, { zone }, null, null)
         vm.change(EventField.TYPE) { it.copy(optionId = "migraine") }
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            assertEquals(DataError.Offline, awaitFailure(vm.editor).dataError)
+            assertEquals(DataError.Offline, awaitFailure(vm.form.editor).dataError)
             cancelAndIgnoreRemainingEvents()
         }
-        assertTrue(vm.editor.state.value.isDirty)
+        assertTrue(vm.form.editor.state.value.isDirty)
     }
 
     @Test
@@ -316,11 +316,11 @@ class LogFormsViewModelTest {
         val vm = activityForm()
         vm.change(ActivityField.TYPE) { it.copy(optionId = "walk") }
         vm.change(ActivityField.NOTE) { it.copy(note = " ".repeat(10) + "x".repeat(TextLimits.LONG)) }
-        assertNull(vm.editor.state.value.errorFor(ActivityField.NOTE), "trimmad ryms den")
-        assertTrue(vm.editor.state.value.canSave)
+        assertNull(vm.form.editor.state.value.errorFor(ActivityField.NOTE), "trimmad ryms den")
+        assertTrue(vm.form.editor.state.value.canSave)
         vm.change(ActivityField.NOTE) { it.copy(note = "x".repeat(TextLimits.LONG + 1)) }
-        assertEquals(R.string.field_not_savable, vm.editor.state.value.errorFor(ActivityField.NOTE))
-        assertFalse(vm.editor.state.value.canSave)
+        assertEquals(R.string.field_not_savable, vm.form.editor.state.value.errorFor(ActivityField.NOTE))
+        assertFalse(vm.form.editor.state.value.canSave)
     }
 
     @Test
@@ -333,18 +333,18 @@ class LogFormsViewModelTest {
 
         val first = activityForm(id = "a1")
         first.change { it.copy(energy = 3) }
-        first.editor.state.test {
+        first.form.editor.state.test {
             first.form.onEvent(EntryEditEvent.Save)
-            awaitDone(first.editor)
+            awaitDone(first.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals("Med hunden", factory.activities().get("a1").getOrThrow()?.customText)
 
         val second = activityForm(id = "a2")
         second.change(ActivityField.TYPE) { it.copy(optionId = "walk") }
-        second.editor.state.test {
+        second.form.editor.state.test {
             second.form.onEvent(EntryEditEvent.Save)
-            awaitDone(second.editor)
+            awaitDone(second.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertNull(factory.activities().get("a2").getOrThrow()?.customText)
@@ -355,7 +355,7 @@ class LogFormsViewModelTest {
         val stored = Activity("a1", yesterday, LocalTime(9, 0), optionId = "walk", note = "x".repeat(TextLimits.LONG + 1), createdAt = Instant.fromEpochSeconds(1_790_000_000))
         factory.store.set(Paths.activities(factory.scope.uid.value!!), "a1", ActivityCodec.encode(stored), merge = false)
         val vm = activityForm(id = "a1")
-        assertEquals(R.string.field_not_savable, vm.editor.state.value.errorFor(ActivityField.NOTE))
+        assertEquals(R.string.field_not_savable, vm.form.editor.state.value.errorFor(ActivityField.NOTE))
     }
 
     // ── Sjukdom (SJ-1, SJ-2, SJ-3, SJ-8, SJ-11) ──────────────────────────
@@ -371,18 +371,18 @@ class LogFormsViewModelTest {
     @Test
     fun `en ny episod börjar den visade dagen med svårighetsgrad 5, och typen krävs (SJ-1, HEM-14)`() = runTest(main.dispatcher) {
         val vm = episodeForm(date = yesterday)
-        val start = vm.editor.state.value.value
+        val start = vm.form.editor.state.value.value
         assertEquals(yesterday, start.episode.start)
         assertNull(start.episode.end, "pågående")
         assertEquals(yesterday to LocalTime(14, 20), start.checkin.date to start.checkin.time)
         assertEquals(IllnessRepository.DEFAULT_SEVERITY, start.checkin.severity)
         vm.form.onEvent(EntryEditEvent.Changed(null) { it.copy(checkin = it.checkin.copy(severity = 7)) })
-        assertFalse(vm.editor.state.value.canSave, "ingen typ")
-        vm.editor.state.test {
+        assertFalse(vm.form.editor.state.value.canSave, "ingen typ")
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
             expectNoEditorEvents()
         }
-        assertEquals(R.string.illness_type_missing, vm.editor.state.value.errorFor(IllnessField.TYPE))
+        assertEquals(R.string.illness_type_missing, vm.form.editor.state.value.errorFor(IllnessField.TYPE))
         assertTrue(factory.illnessEpisodes().getAll().getOrThrow().isEmpty())
     }
 
@@ -393,12 +393,12 @@ class LogFormsViewModelTest {
         vm.form.onEvent(EntryEditEvent.Changed(null) { it.copy(episode = it.episode.copy(start = yesterday), checkin = it.checkin.copy(date = yesterday)) })
         vm.form.onEvent(EntryEditEvent.Changed(null) { it.copy(checkin = it.checkin.copy(severity = 8, symptoms = listOf(SymptomScore("h", 6)))) })
         vm.form.onEvent(EntryEditEvent.Changed(IllnessField.NOTE) { it.copy(episode = it.episode.copy(note = " Feber ")) })
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
-        val value = vm.editor.state.value.value
+        val value = vm.form.editor.state.value.value
         assertEquals(IllnessEpisode(value.episode.id, "Influensa", yesterday, createdAt = clock.now(), note = "Feber"), illnesses.getEpisode(value.episode.id).getOrThrow())
         assertEquals(
             listOf(Checkin(value.checkin.id, yesterday, LocalTime(14, 20), 8, listOf(SymptomScore("h", 6)), clock.now())),
@@ -409,7 +409,7 @@ class LogFormsViewModelTest {
     @Test
     fun `en ny incheckning skrivs bara under en episod som finns (SJ-2)`() = runTest(main.dispatcher) {
         val missing = checkinForm("saknas")
-        assertEquals(DataError.NotFound, missing.editor.state.value.loadError?.dataError)
+        assertEquals(DataError.NotFound, missing.form.editor.state.value.loadError?.dataError)
         missing.form.onEvent(EntryEditEvent.Save)
         assertTrue(factory.checkins("saknas").getAll().getOrThrow().isEmpty())
 
@@ -418,11 +418,11 @@ class LogFormsViewModelTest {
         backgroundScope.launch { vm.episode.collect {} }
         runCurrent()
         assertEquals(flu, vm.episode.value)
-        assertEquals(yesterday to LocalTime(14, 20), vm.editor.state.value.value.let { it.date to it.time })
+        assertEquals(yesterday to LocalTime(14, 20), vm.form.editor.state.value.value.let { it.date to it.time })
         vm.form.onEvent(EntryEditEvent.Changed(null) { it.copy(severity = 2) })
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(2, illnesses.observeCheckins("flu").first().single().severity)
@@ -435,17 +435,17 @@ class LogFormsViewModelTest {
         factory.checkins("flu").upsert(stored).getOrThrow()
         val vm = checkinForm("flu", id = "c")
         assertFalse(vm.form.isNew)
-        assertEquals(stored, vm.editor.state.value.value)
+        assertEquals(stored, vm.form.editor.state.value.value)
         vm.form.onEvent(EntryEditEvent.Changed(IllnessField.NOTE) { it.copy(note = " Bättre ") })
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(stored.copy(note = "Bättre"), factory.checkins("flu").get("c").getOrThrow())
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Delete)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertNull(factory.checkins("flu").get("c").getOrThrow())
@@ -457,16 +457,16 @@ class LogFormsViewModelTest {
         val ended = flu.copy(end = today, note = "Halsen")
         factory.illnessEpisodes().upsert(ended).getOrThrow()
         val vm = EpisodeEditViewModel(illnesses, clock, { zone }, "flu")
-        assertEquals(ended, vm.editor.state.value.value)
+        assertEquals(ended, vm.form.editor.state.value.value)
         vm.form.onEvent(EntryEditEvent.Changed(IllnessField.START) { it.copy(start = LocalDate(2026, 10, 7)) })
-        assertEquals(R.string.prescription_error_end_before_start, vm.editor.state.value.errorFor(IllnessField.START))
-        assertFalse(vm.editor.state.value.canSave, "starten efter slutet")
+        assertEquals(R.string.prescription_error_end_before_start, vm.form.editor.state.value.errorFor(IllnessField.START))
+        assertFalse(vm.form.editor.state.value.canSave, "starten efter slutet")
         vm.form.onEvent(EntryEditEvent.Changed(IllnessField.START) { it.copy(start = yesterday) })
         vm.form.onEvent(EntryEditEvent.Changed(IllnessField.TYPE) { it.copy(type = " Influensa ") })
         vm.form.onEvent(EntryEditEvent.Changed(IllnessField.NOTE) { it.copy(note = " ") })
-        vm.editor.state.test {
+        vm.form.editor.state.test {
             vm.form.onEvent(EntryEditEvent.Save)
-            awaitDone(vm.editor)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(ended.copy(type = "Influensa", start = yesterday, note = null), illnesses.getEpisode("flu").getOrThrow())
@@ -476,16 +476,16 @@ class LogFormsViewModelTest {
     @Test
     fun `en episod som inte finns kan inte redigeras (SJ-12)`() = runTest(main.dispatcher) {
         val vm = EpisodeEditViewModel(illnesses, clock, { zone }, "saknas")
-        assertEquals(DataError.NotFound, vm.editor.state.value.loadError?.dataError)
+        assertEquals(DataError.NotFound, vm.form.editor.state.value.loadError?.dataError)
     }
 
     @Test
     fun `ett lagrat slutdatum efter idag går inte att spara – samma regel som Avsluta (SJ-4, SJ-12)`() = runTest(main.dispatcher) {
         factory.illnessEpisodes().upsert(flu.copy(end = LocalDate(2026, 10, 9))).getOrThrow()
         val vm = EpisodeEditViewModel(illnesses, clock, { zone }, "flu")
-        assertEquals(R.string.illness_end_after_today, vm.editor.state.value.errorFor(IllnessField.START))
+        assertEquals(R.string.illness_end_after_today, vm.form.editor.state.value.errorFor(IllnessField.START))
         vm.form.onEvent(EntryEditEvent.Changed(IllnessField.TYPE) { it.copy(type = "Influensa") })
-        assertFalse(vm.editor.state.value.canSave)
+        assertFalse(vm.form.editor.state.value.canSave)
     }
 
     @Test

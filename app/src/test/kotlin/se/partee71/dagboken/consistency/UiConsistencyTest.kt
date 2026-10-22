@@ -173,8 +173,8 @@ class UiConsistencyTest {
     fun `redigera-ViewModels exponerar EditorState`() {
         production.classes().withNameEndingWith("EditViewModel").forEach { vm ->
             assertTrue(
-                vm.properties().any { it.type?.name?.startsWith("EditorState") == true },
-                "${vm.name} ska exponera en EditorState (ram EntityEditScreen)"
+                vm.properties().any { it.type?.name?.startsWith("EditorState") == true || (it.name == "form" && !it.hasPrivateModifier && it.text.contains("= EntryEditor(")) },
+                "${vm.name} ska exponera en EditorState, direkt eller via sin EntryEditor (ram EntityEditScreen)"
             )
         }
     }
