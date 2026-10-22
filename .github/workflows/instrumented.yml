@@ -28,34 +28,14 @@ jobs:
           df -h / | tail -n1
 
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/check-gpr-token
+      - uses: ./.github/actions/setup-build
         with:
           token: ${{ secrets.GPR_TOKEN }}
-      - uses: ./.github/actions/setup-android
 
       # Kontraktstestet för FirestoreCollection kör mot Firebase-emulatorerna (firestore + auth)
       # på värddatorn – aldrig mot den riktiga databasen.
-      - name: Node 22 för Firebase-emulatorn
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: tools/db/package-lock.json
-
-      - name: Java 21 (firebase-tools 15 kräver minst 21; bygger även appen)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: firebase-tools
-        run: npm ci --prefix tools/db --ignore-scripts
-
-      - name: Cache för Firebase-emulatorn
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/firebase/emulators
-          key: firebase-emulators-${{ hashFiles('tools/db/package-lock.json') }}
+      - uses: ./.github/actions/setup-tools-db
+      - uses: ./.github/actions/setup-firebase-emulator
 
       - name: KVM
         run: |

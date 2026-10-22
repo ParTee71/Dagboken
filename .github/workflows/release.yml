@@ -150,11 +150,9 @@ jobs:
       apk: ${{ steps.apk.outputs.name }}
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/check-gpr-token
+      - uses: ./.github/actions/setup-build
         with:
           token: ${{ secrets.GPR_TOKEN }}
-
-      - uses: ./.github/actions/setup-android
 
       # app/google-services.json är incheckad i Dagboken (Firebase-klientkonfiguration, ingen
       # hemlighet) – bara keystoren kommer från secrets.
@@ -166,12 +164,7 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          for name in SIGNING_KEYSTORE_BASE64 SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD; do
-            if [ -z "${!name}" ]; then
-              echo "::error::Secret $name saknas – krävs för en release."
-              exit 1
-            fi
-          done
+          # Secrets har redan kontrollerats i gate ("Secrets finns").
           printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 --decode > app/dagboken.jks
           # Äldre PKCS12-format, som AGP:s signering läser utan problem.
           keytool -importkeystore -noprompt \

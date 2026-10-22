@@ -9,6 +9,9 @@ import { collectionOf, userIds, walkUser } from './walk.mjs';
 // Version 1 är 4.0:s första format – inga steg än. Nästa: `1: (collection, doc) => …`.
 export const STEPS = {};
 
+/** Nyckeln i resultatet för användare utan användardokument. */
+export const SKIPPED = 'hoppade över (saknar användardokument)';
+
 /**
  * Migrerar användarna till version [to]: alla dokument lyfts, och användarens schemaVersion höjs
  * först när alla är skrivna. Ger antal migrerade användare per version de lyftes från, och under
@@ -37,7 +40,7 @@ async function migrateUser(db, id, to, { dryRun, steps, result }) {
   // Utan användardokument finns ingen version att utgå från: hoppa över och rapportera,
   // i stället för att stoppa migreringen av alla andra användare.
   if (docs[0]?.path !== `users/${id}`) {
-    result['hoppade över (saknar användardokument)'] = (result['hoppade över (saknar användardokument)'] ?? 0) + 1;
+    result[SKIPPED] = (result[SKIPPED] ?? 0) + 1;
     return;
   }
   const from = versionOf(docs[0].data);

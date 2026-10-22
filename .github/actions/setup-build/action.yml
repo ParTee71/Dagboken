@@ -1,0 +1,17 @@
+name: Förbered bygget
+description: >-
+  Provar GPR_TOKEN mot android-ui (check-gpr-token) och förbereder sedan Android-bygget
+  (setup-android). Enda stället för paret (skill ci-budget). Kräver att repot redan är utcheckat.
+
+inputs:
+  token:
+    description: secrets.GPR_TOKEN (classic token, read:packages)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/check-gpr-token
+      with:
+        token: ${{ inputs.token }}
+    - uses: ./.github/actions/setup-android

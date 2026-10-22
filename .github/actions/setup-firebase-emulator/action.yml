@@ -1,0 +1,20 @@
+name: Firebase-emulatorn
+description: >-
+  Java 21 (firebase-tools 15 kräver minst 21 för emulatorn) och cache för emulatorns nedladdningar.
+  Gemensamt för rules-tests och instrumented.yml (skill ci-budget). Kräver att repot redan är
+  utcheckat och att setup-tools-db har körts.
+
+runs:
+  using: composite
+  steps:
+    - name: Java 21 (firebase-tools 15 kräver minst 21 för emulatorn)
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    - name: Cache för Firebase-emulatorn
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/firebase/emulators
+        key: firebase-emulators-${{ hashFiles('tools/db/package-lock.json') }}
