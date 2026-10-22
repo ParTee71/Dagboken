@@ -7,6 +7,7 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.doseSlots
+import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.Repeat
@@ -16,6 +17,15 @@ import se.partee71.dagboken.core.model.Schedule
 
 /** "Levaxin 100 µg" – namn, dos och enhet; det som saknas utelämnas. */
 fun medicineTitle(name: String, dose: String, unit: String): String = listOf(name, dose, unit).map { it.trim() }.filter { it.isNotEmpty() }.joinToString(" ")
+
+/** "Alvedon 500 mg" – dosens namn (med styrka), dos och enhet ([medicineTitle]). */
+fun Dose.title(): String = medicineTitle(displayName, dose, unit)
+
+/** Vid behov-medicinens namn (med styrka), dos och enhet ([medicineTitle]). */
+fun PrnMedicine.title(): String = medicineTitle(displayName, dose, unit)
+
+/** Receptets namn (med styrka), dos och enhet ([medicineTitle]); [dose] t.ex. dagens dos med höjningen (REC-12). */
+fun Prescription.title(dose: String = this.dose): String = medicineTitle(displayName, dose, unit)
 
 /** "75 mg" – en dos med enhet. */
 fun doseText(dose: String, unit: String): String = medicineTitle("", dose, unit)

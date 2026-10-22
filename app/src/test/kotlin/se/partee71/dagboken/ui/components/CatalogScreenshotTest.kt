@@ -493,11 +493,11 @@ class CatalogScreenshotTest {
                 SymptomLogCard(GALLERY_SYMPTOMS, emptyList(), {})
             }
         }
-        captureLightAndDark("NoteField_lagen") {
+        captureLightAndDark("NoteCard_lagen") {
             Sheet {
-                AppCard { NoteField("", {}) }
-                AppCard { NoteField("Sov dåligt, vaknade vid fyra. Tog en promenad före frukost och mådde bättre efteråt.", {}) }
-                AppCard { NoteField("Sov dåligt.", {}, initiallyExpanded = true) }
+                NoteCard(null, {})
+                NoteCard("Sov dåligt, vaknade vid fyra. Tog en promenad före frukost och mådde bättre efteråt.", {})
+                NoteCard("Sov dåligt.", {}, initiallyExpanded = true)
             }
         }
         captureLightAndDark("StatPill_toner") {
@@ -527,8 +527,8 @@ class CatalogScreenshotTest {
                 TypeChoiceField(TypeChoices(emptyList(), emptyList()), "", {})
             }
         }
-        captureLightAndDark("NoteField_fel") {
-            Sheet { AppCard { NoteField("Sov dåligt.", {}, error = "Värdet går inte att spara – korta eller ändra det") } }
+        captureLightAndDark("NoteCard_fel") {
+            Sheet { NoteCard("Sov dåligt.", {}, error = "Värdet går inte att spara – korta eller ändra det") }
         }
         captureLightAndDark("ReminderTimeRow_lagen") {
             Sheet {

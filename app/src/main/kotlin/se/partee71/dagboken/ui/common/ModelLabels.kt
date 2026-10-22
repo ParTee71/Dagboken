@@ -140,6 +140,11 @@ fun OptionalHealthMetric.label(): Int = when (this) {
 @ReadOnlyComposable
 fun IllnessEpisode.title(): String = type.ifBlank { stringResource(R.string.log_illness) }
 
+/** "Dag 3" – sjukdomens dag N (HEM-12): Idag, Dagbok, sjukdomsdetaljen och incheckningen. */
+@Composable
+@ReadOnlyComposable
+fun illnessDayText(day: Int): String = stringResource(R.string.today_illness_day_format, day)
+
 /** En fritext som namn: `null` när den saknas eller bara är blanksteg – så att namnet ur listan tar över. */
 fun String?.nonBlank(): String? = this?.takeIf { it.isNotBlank() }
 

@@ -38,7 +38,6 @@ import se.partee71.dagboken.core.engine.boostEnd
 import se.partee71.dagboken.core.engine.boostFor
 import se.partee71.dagboken.core.engine.doseFor
 import se.partee71.dagboken.core.engine.groupedByLogged
-import se.partee71.dagboken.core.engine.isPrescribed
 import se.partee71.dagboken.core.engine.isScheduled
 import se.partee71.dagboken.core.engine.isScheduledPrescription
 import se.partee71.dagboken.core.engine.latest
@@ -50,11 +49,11 @@ import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.FeelingSentenceKind
+import se.partee71.dagboken.ui.common.deleteAction
 import se.partee71.dagboken.ui.common.doseText
-import se.partee71.dagboken.ui.common.entryDeleteAction
 import se.partee71.dagboken.ui.common.feelingSentence
+import se.partee71.dagboken.ui.common.illnessDayText
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.periodText
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.common.toMessage
@@ -345,7 +344,7 @@ private fun IllnessCard(illness: OngoingIllness, expanded: Boolean, onToggle: ()
                     checkinDate == null -> stringResource(R.string.today_illness_checkin_undated)
                     else -> stringResource(R.string.today_illness_checkin_format, DateFormat.short(checkinDate))
                 },
-                trailing = illness.day?.let { day -> { InfoPill(stringResource(R.string.today_illness_day_format, day), tone = Tone.Warning) } },
+                trailing = illness.day?.let { day -> { InfoPill(illnessDayText(day), tone = Tone.Warning) } },
                 accent = AppColors.tone(Tone.Warning).content,
                 onClick = onOpen,
                 navigates = true
@@ -425,7 +424,7 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, 
         ConfirmDialog(
             stringResource(R.string.today_skip_title),
             dose.date.let { day ->
-                val title = medicineTitle(dose.displayName, dose.dose, dose.unit)
+                val title = dose.title()
                 if (day == null || day == content.today) stringResource(R.string.today_skip_message, title) else stringResource(R.string.today_skip_message_day, title, DateFormat.display(day))
             },
             stringResource(R.string.today_skip),
@@ -438,14 +437,8 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, 
     }
     deleting?.let { dose ->
         val close = { deleting = null }
-        val action = entryDeleteAction(
-            R.string.diary_subject_dose,
-            medicineTitle(dose.displayName, dose.dose, dose.unit),
-            dose.date,
-            dose.takenAt?.toLocalDateTime(content.zone)?.time,
-            // Samma beslut som `DoseRepository.remove`: en receptdos hoppas över (MED-15).
-            skips = dose.isPrescribed
-        ) { onEvent(TodayEvent.Delete(dose)) }
+        // Samma beslut som `DoseRepository.remove`: en receptdos hoppas över (MED-15).
+        val action = dose.deleteAction(dose.takenAt?.toLocalDateTime(content.zone)?.time) { onEvent(TodayEvent.Delete(dose)) }
         DeleteConfirmDialog(action, close)
     }
 }
@@ -461,7 +454,7 @@ private fun DoseRow(item: OpenDose, content: TodayContent, onEvent: (TodayEvent)
     val skip = stringResource(R.string.today_skip)
     val delete = stringResource(R.string.delete)
     CheckRow(
-        title = medicineTitle(dose.displayName, dose.dose, dose.unit),
+        title = dose.title(),
         checked = dose.status == DoseStatus.TAKEN,
         onCheckedChange = { onEvent(TodayEvent.SetTaken(dose, it)) },
         subtitle = doseSubtitle(dose, item.time, dose.prescriptionId?.let(content.prescriptions::get), content.date, content.zone),

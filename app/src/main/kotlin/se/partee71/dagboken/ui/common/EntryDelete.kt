@@ -6,6 +6,8 @@ import androidx.compose.ui.res.stringResource
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.isPrescribed
+import se.partee71.dagboken.core.model.Dose
 import se.partee71.ui.components.DeleteAction
 
 /**
@@ -30,3 +32,10 @@ fun entryDeleteAction(@StringRes format: Int, title: String, date: LocalDate?, t
     val message = stringResource(if (skips) R.string.diary_delete_skip_message else R.string.diary_delete_message, subject)
     return DeleteAction(stringResource(R.string.diary_delete_title), message, onConfirm)
 }
+
+/**
+ * Raderingen av en dos (MED-15, HIST-5) – Idags doserad och dosformuläret: "Dosen Alvedon 500 mg, 5 okt kl. 09:00"
+ * vid [time]; en receptdos hoppas över i stället (`DoseRepository.remove`/`delete`, MED-3).
+ */
+@Composable
+fun Dose.deleteAction(time: LocalTime?, onConfirm: () -> Unit): DeleteAction = entryDeleteAction(R.string.diary_subject_dose, title(), date, time, skips = isPrescribed, onConfirm = onConfirm)

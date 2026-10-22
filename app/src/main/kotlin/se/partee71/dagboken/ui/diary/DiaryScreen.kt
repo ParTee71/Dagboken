@@ -28,8 +28,8 @@ import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.entryDeleteAction
+import se.partee71.dagboken.ui.common.illnessDayText
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.nonBlank
 import se.partee71.dagboken.ui.common.scaleLevel
 import se.partee71.dagboken.ui.common.scaleValueText
@@ -248,7 +248,7 @@ private fun cardText(row: DiaryRow.Entry): CardText = when (val entry = row.entr
 
     is DiaryEntry.TakenDose -> {
         val d = entry.dose
-        CardText(medicineTitle(d.displayName, d.dose, d.unit), subtitle(entry.time, stringResource(d.slot.label())))
+        CardText(d.title(), subtitle(entry.time, stringResource(d.slot.label())))
     }
 
     is DiaryEntry.Happening -> {
@@ -261,13 +261,13 @@ private fun cardText(row: DiaryRow.Entry): CardText = when (val entry = row.entr
     is DiaryEntry.CheckIn -> CardText(
         entry.episode.title(),
         subtitle(entry.time, stringResource(R.string.diary_subtitle_format, stringResource(R.string.diary_checkin), stringResource(R.string.diary_severity_format, entry.checkin.severity))),
-        entry.day?.let { stringResource(R.string.today_illness_day_format, it) },
+        entry.day?.let { illnessDayText(it) },
         Tone.Warning
     )
 
-    is DiaryEntry.EpisodeStart -> CardText(entry.episode.title(), stringResource(R.string.diary_episode_started), entry.day?.let { stringResource(R.string.today_illness_day_format, it) }, Tone.Warning)
+    is DiaryEntry.EpisodeStart -> CardText(entry.episode.title(), stringResource(R.string.diary_episode_started), entry.day?.let { illnessDayText(it) }, Tone.Warning)
 
-    is DiaryEntry.EpisodeEnd -> CardText(entry.episode.title(), stringResource(R.string.diary_episode_ended), entry.day?.let { stringResource(R.string.today_illness_day_format, it) }, Tone.Warning)
+    is DiaryEntry.EpisodeEnd -> CardText(entry.episode.title(), stringResource(R.string.diary_episode_ended), entry.day?.let { illnessDayText(it) }, Tone.Warning)
 }
 
 /** "08:15 · Mående" – klockslaget först (HIST-7); utan klockslag bara [detail]. */

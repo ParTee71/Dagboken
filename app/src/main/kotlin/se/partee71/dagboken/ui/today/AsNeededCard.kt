@@ -22,7 +22,7 @@ import se.partee71.dagboken.core.engine.doseFor
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.ui.common.DateFormat
-import se.partee71.dagboken.ui.common.medicineTitle
+import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.SectionFoldout
 import se.partee71.dagboken.ui.theme.Neutral
@@ -141,7 +141,7 @@ internal fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, 
                         )
                         val recipes = stringResource(R.string.today_more_prescriptions)
                         val items = choices.others.map { moreItem(it, content, onEvent) } +
-                            choices.prescriptions.map { AppMenuItem(medicineTitle(it.displayName, it.doseFor(content.today), it.unit), { onEvent(TodayEvent.LogExtra(it)) }, section = recipes) }
+                            choices.prescriptions.map { AppMenuItem(it.title(it.doseFor(content.today)), { onEvent(TodayEvent.LogExtra(it)) }, section = recipes) }
                         AppMenuPopup(items, expanded = moreOpen, onDismiss = { moreOpen = false })
                     }
                 }
@@ -171,7 +171,7 @@ internal fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, 
 /** En vid behov-medicin som chip: tryck loggar en dos, markerad om kylperioden pågår eller dagsgränsen är nådd (FAV-13). */
 @Composable
 private fun MedicineChip(medicine: PrnMedicine, content: TodayContent, onEvent: (TodayEvent) -> Unit, pastDay: Modifier = Modifier, onMenu: () -> Unit) {
-    val title = medicineTitle(medicine.displayName, medicine.dose, medicine.unit)
+    val title = medicine.title()
     val mark = prnMark(content.unavailable[medicine.id], content.today, content.zone)
     AppFilterChip(
         title,
@@ -189,7 +189,7 @@ private fun MedicineChip(medicine: PrnMedicine, content: TodayContent, onEvent: 
 @Composable
 private fun RecipeChip(prescription: Prescription, content: TodayContent, onEvent: (TodayEvent) -> Unit, pastDay: Modifier = Modifier, onMenu: () -> Unit) {
     AppFilterChip(
-        medicineTitle(prescription.displayName, prescription.doseFor(content.today), prescription.unit),
+        prescription.title(prescription.doseFor(content.today)),
         selected = false,
         onClick = { if (content.isToday) onEvent(TodayEvent.LogExtra(prescription)) },
         modifier = pastDay,
@@ -204,7 +204,7 @@ private fun RecipeChip(prescription: Prescription, content: TodayContent, onEven
 private fun moreItem(medicine: PrnMedicine, content: TodayContent, onEvent: (TodayEvent) -> Unit): AppMenuItem {
     val mark = prnMark(content.unavailable[medicine.id], content.today, content.zone)
     return AppMenuItem(
-        medicineTitle(medicine.displayName, medicine.dose, medicine.unit),
+        medicine.title(),
         { onEvent(TodayEvent.LogAsNeeded(medicine)) },
         icon = mark?.icon,
         supporting = mark?.supporting,

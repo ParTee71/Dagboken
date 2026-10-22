@@ -54,3 +54,12 @@ private fun <T> Clock.ticks(zone: () -> TimeZone, value: (LocalDateTime) -> T, u
  * av klockan. En gång för alla formulär (aktivitet, händelse, mående, dos, episod, incheckning).
  */
 fun Clock.nowInMinutes(zone: TimeZone): LocalDateTime = now().toLocalDateTime(zone).truncatedToMinute()
+
+/**
+ * Dagen och klockslaget en ny post loggas mot: [date] (den dag skärmen visar, `null` = idag) kl. nu i hela minuter i
+ * [zone] ([nowInMinutes]) – en gång för postformulären (aktivitet, händelse, dos, episod, incheckning; NAV-10, HEM-14).
+ */
+fun Clock.dayAndTime(zone: TimeZone, date: LocalDate?): LocalDateTime {
+    val now = nowInMinutes(zone)
+    return if (date == null) now else LocalDateTime(date, now.time)
+}

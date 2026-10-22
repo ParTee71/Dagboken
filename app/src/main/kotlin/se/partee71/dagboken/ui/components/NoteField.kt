@@ -10,8 +10,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.schema.TextLimits
+import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppTextField
 import se.partee71.ui.components.FieldError
+
+/**
+ * Anteckningskortet i ett formulär (DAT-7, AKT-11, SJ-8, FAV-1, REC-1): ett [AppCard] med [NoteField]. Ingen
+ * anteckning är `null` – ett tömt fält ger `null` via [onNoteChange], så att formuläret aldrig sparar en tom text.
+ * [error] som i [NoteField].
+ */
+@Composable
+fun NoteCard(
+    note: String?,
+    onNoteChange: (String?) -> Unit,
+    modifier: Modifier = Modifier,
+    initiallyExpanded: Boolean = false,
+    error: String? = null
+) {
+    AppCard(modifier) {
+        NoteField(note.orEmpty(), { text -> onNoteChange(text.ifEmpty { null }) }, initiallyExpanded = initiallyExpanded, error = error)
+    }
+}
 
 /**
  * Anteckningen på en post (DAT-7, AKT-11, SCR-5, SJ-8): en [Foldout] som i stängt läge visar början
@@ -20,7 +39,7 @@ import se.partee71.ui.components.FieldError
  * en lagrad text över taket) står under fältet och syns också i stängt läge.
  */
 @Composable
-fun NoteField(
+private fun NoteField(
     note: String,
     onNoteChange: (String) -> Unit,
     modifier: Modifier = Modifier,

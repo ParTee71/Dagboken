@@ -138,7 +138,7 @@ class ComponentBehaviorTest {
 
     @Test
     fun `anteckningens fel syns också i stängt läge`() {
-        show { NoteField("Sov dåligt.", {}, error = "Värdet går inte att spara") }
+        show { NoteCard("Sov dåligt.", {}, error = "Värdet går inte att spara") }
         rule.onNodeWithText("Värdet går inte att spara").assertIsDisplayed()
     }
 

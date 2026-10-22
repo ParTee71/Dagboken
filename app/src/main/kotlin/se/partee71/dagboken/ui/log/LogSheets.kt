@@ -9,8 +9,8 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.OccasionState
 import se.partee71.dagboken.core.engine.latest
 import se.partee71.dagboken.ui.common.DateFormat
+import se.partee71.dagboken.ui.common.illnessDayText
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.FeelingExtras
@@ -72,7 +72,7 @@ fun DosePickerSheet(picker: DosePicker, onClose: () -> Unit, onOpen: (LogTarget)
         picker.medicines.forEach { medicine ->
             key(medicine.id) {
                 ItemRow(
-                    medicineTitle(medicine.displayName, medicine.dose, medicine.unit),
+                    medicine.title(),
                     subtitle = prnLimits(medicine),
                     icon = R.drawable.ic_pill,
                     onClick = { onOpen(LogTarget.AsNeeded(medicine.id, picker.date)) },
@@ -101,7 +101,7 @@ fun IllnessPickerSheet(picker: IllnessPicker, onClose: () -> Unit, onOpen: (LogT
         picker.ongoing?.let { episode ->
             ItemRow(
                 stringResource(R.string.illness_checkin_on_format, episode.title()),
-                subtitle = picker.day?.let { stringResource(R.string.today_illness_day_format, it) },
+                subtitle = picker.day?.let { illnessDayText(it) },
                 icon = R.drawable.ic_thermometer,
                 onClick = { onOpen(LogTarget.Checkin(episode.id, picker.date)) },
                 navigates = true

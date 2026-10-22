@@ -370,8 +370,8 @@ private fun Diary() {
     }
     var symptoms by remember { mutableStateOf(listOf(SymptomScore("huvudvark", 4), SymptomScore("ovrigt", 2, "Ont i knät"))) }
     SymptomLogCard(GALLERY_SYMPTOMS, symptoms, { symptoms = it }, otherOptionId = "ovrigt")
-    var note by remember { mutableStateOf("Sov dåligt, vaknade vid fyra.") }
-    AppCard { NoteField(note, { note = it }) }
+    var note by remember { mutableStateOf<String?>("Sov dåligt, vaknade vid fyra.") }
+    NoteCard(note, { note = it })
     var date by remember { mutableStateOf(LocalDate(2026, 10, 4)) }
     var time by remember { mutableStateOf(LocalTime(8, 30)) }
     DateTimeRow(date, time, { date = it }, { time = it })

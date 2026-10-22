@@ -41,6 +41,7 @@ import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -407,14 +408,15 @@ class DiaryComponentsTest {
     }
 
     @Test
-    fun `anteckningen visar början av texten och skrivs utfälld`() {
-        var note by mutableStateOf("Sov dåligt.")
-        show { NoteField(note, { note = it }) }
+    fun `anteckningen visar början av texten och skrivs utfälld, och ett tömt fält är ingen anteckning`() {
+        var note by mutableStateOf<String?>("Sov dåligt.")
+        show { NoteCard(note, { note = it }) }
         rule.onNodeWithText("Sov dåligt.").assertIsDisplayed()
         rule.onNodeWithText("Anteckning").assert(state("Hopfälld")).performClick()
         rule.onNodeWithText("Sov dåligt.").performTextReplacement("Sov bra.")
         assertEquals("Sov bra.", note)
-        note = ""
+        rule.onNodeWithText("Sov bra.").performTextReplacement("")
+        assertNull(note, "ett tömt fält ger null, aldrig en tom text")
         rule.onNodeWithText("Lägg till en anteckning").assertIsDisplayed()
     }
 

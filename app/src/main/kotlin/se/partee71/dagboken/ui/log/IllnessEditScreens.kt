@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import se.partee71.dagboken.R
@@ -41,21 +40,20 @@ import se.partee71.dagboken.data.repository.EntryStore
 import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.creatingStore
-import se.partee71.dagboken.ui.common.EntryEditEvent
+import se.partee71.dagboken.ui.common.EntryDateTimeRow
+import se.partee71.dagboken.ui.common.EntryEditScreen
 import se.partee71.dagboken.ui.common.EntryEditor
 import se.partee71.dagboken.ui.common.EntryForm
 import se.partee71.dagboken.ui.common.choices
+import se.partee71.dagboken.ui.common.dayAndTime
 import se.partee71.dagboken.ui.common.entryDeleteAction
-import se.partee71.dagboken.ui.common.hasErrorOutside
+import se.partee71.dagboken.ui.common.illnessDayText
 import se.partee71.dagboken.ui.common.message
 import se.partee71.dagboken.ui.common.nonBlank
-import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
 import se.partee71.dagboken.ui.common.title
-import se.partee71.dagboken.ui.components.DateTimeRow
-import se.partee71.dagboken.ui.components.NoteField
-import se.partee71.dagboken.ui.components.SCREEN_MARGIN
+import se.partee71.dagboken.ui.components.NoteCard
 import se.partee71.dagboken.ui.components.SymptomLogCard
 import se.partee71.dagboken.ui.components.ValueSlider
 import se.partee71.dagboken.ui.theme.AppColors
@@ -65,7 +63,6 @@ import se.partee71.ui.common.Validator
 import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppTextField
 import se.partee71.ui.components.DateField
-import se.partee71.ui.components.EntityEditScreen
 import se.partee71.ui.components.InfoPill
 import se.partee71.ui.components.ItemRow
 import se.partee71.ui.theme.Tone
@@ -133,10 +130,9 @@ class EpisodeNewViewModel @AssistedInject constructor(
         episodeStartValidator { clock.todayIn(zone.get()) },
         placeholder = EpisodeStart(IllnessEpisode(""), Checkin("")),
         create = {
-            val now = clock.nowInMinutes(zone.get())
-            val day = date ?: now.date
-            val episode = illnesses.newEpisode(day)
-            EpisodeStart(episode, illnesses.newCheckin(episode.id, day, now.time))
+            val at = clock.dayAndTime(zone.get(), date)
+            val episode = illnesses.newEpisode(at.date)
+            EpisodeStart(episode, illnesses.newCheckin(episode.id, at.date, at.time))
         },
         clean = { _, value -> value.cleaned() }
     )
@@ -160,23 +156,12 @@ fun EpisodeNewRoute(date: LocalDate?, onClose: () -> Unit) {
 /** "Ny sjukdomsepisod" på `EntityEditScreen` (SJ-1, SJ-2, SJ-3, SJ-8, NFR-10–12). */
 @Composable
 fun EpisodeNewScreen(form: EntryForm<EpisodeStart>, onClose: () -> Unit, symptomOptions: List<Option> = emptyList()) {
-    val state = form.state
     val start = form.value
-    val messages = state.errors.mapValues { stringResource(it.value) }
-    EntityEditScreen(
-        title = stringResource(R.string.illness_new),
-        state = state,
-        events = form.events,
-        onSave = { form.onEvent(EntryEditEvent.Save) },
-        onClose = onClose,
-        onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
-        horizontalMargin = SCREEN_MARGIN
-    ) {
+    EntryEditScreen(form, title = stringResource(R.string.illness_new), onClose = onClose, shownErrors = SHOWN_ERRORS) { error ->
         // Den första incheckningen gäller startdagen (som 3.x).
         EpisodeFields(
             start.episode,
-            messages,
+            error,
             change = { field, change -> form.change(field) { it.copy(episode = change(it.episode)) } },
             onStart = { date -> form.change(IllnessField.START) { it.copy(episode = it.episode.copy(start = date), checkin = it.checkin.copy(date = date)) } }
         ) {
@@ -193,7 +178,7 @@ fun EpisodeNewScreen(form: EntryForm<EpisodeStart>, onClose: () -> Unit, symptom
 @Composable
 private fun EpisodeFields(
     episode: IllnessEpisode,
-    messages: Map<String, String>,
+    error: (String) -> String?,
     change: (field: String, (IllnessEpisode) -> IllnessEpisode) -> Unit,
     onStart: (LocalDate) -> Unit = { date -> change(IllnessField.START) { it.copy(start = date) } },
     between: @Composable () -> Unit = {}
@@ -202,14 +187,12 @@ private fun EpisodeFields(
         episode.type,
         { type -> change(IllnessField.TYPE) { it.copy(type = type) } },
         stringResource(R.string.entry_type),
-        error = messages[IllnessField.TYPE],
+        error = error(IllnessField.TYPE),
         helper = stringResource(R.string.illness_type_help)
     )
-    episode.start?.let { day -> DateField(stringResource(R.string.prescription_start), day, onStart, error = messages[IllnessField.START]) }
+    episode.start?.let { day -> DateField(stringResource(R.string.prescription_start), day, onStart, error = error(IllnessField.START)) }
     between()
-    AppCard {
-        NoteField(episode.note.orEmpty(), { note -> change(IllnessField.NOTE) { it.copy(note = note.ifEmpty { null }) } }, error = messages[IllnessField.NOTE])
-    }
+    NoteCard(episode.note, { note -> change(IllnessField.NOTE) { it.copy(note = note) } }, error = error(IllnessField.NOTE))
 }
 
 /**
@@ -263,18 +246,8 @@ fun EpisodeEditRoute(id: String, onClose: () -> Unit) {
 /** "Redigera sjukdomsepisod" på `EntityEditScreen` (SJ-8, SJ-12, NFR-10–12) – samma fält som en ny episod. */
 @Composable
 fun EpisodeEditScreen(form: EntryForm<IllnessEpisode>, onClose: () -> Unit) {
-    val state = form.state
-    EntityEditScreen(
-        title = stringResource(R.string.illness_edit),
-        state = state,
-        events = form.events,
-        onSave = { form.onEvent(EntryEditEvent.Save) },
-        onClose = onClose,
-        onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
-        horizontalMargin = SCREEN_MARGIN
-    ) {
-        EpisodeFields(form.value, state.errors.mapValues { stringResource(it.value) }, change = { field, change -> form.change(field, change) })
+    EntryEditScreen(form, title = stringResource(R.string.illness_edit), onClose = onClose, shownErrors = SHOWN_ERRORS) { error ->
+        EpisodeFields(form.value, error, change = { field, change -> form.change(field, change) })
     }
 }
 
@@ -301,8 +274,8 @@ class CheckinEditViewModel @AssistedInject constructor(
         placeholder = Checkin(""),
         create = {
             illnesses.getEpisode(episodeId).getOrThrow() ?: throw DataError.NotFound
-            val now = clock.nowInMinutes(zone.get())
-            illnesses.newCheckin(episodeId, date ?: now.date, now.time)
+            val at = clock.dayAndTime(zone.get(), date)
+            illnesses.newCheckin(episodeId, at.date, at.time)
         },
         clean = { _, value -> value.cleaned() }
     )
@@ -335,41 +308,26 @@ fun CheckinEditRoute(episodeId: String, id: String?, date: LocalDate?, onClose: 
  */
 @Composable
 fun CheckinEditScreen(form: EntryForm<Checkin>, onClose: () -> Unit, episode: IllnessEpisode?, symptomOptions: List<Option> = emptyList()) {
-    val state = form.state
     val c = form.value
-    val messages = state.errors.mapValues { stringResource(it.value) }
     val episodeTitle = episode?.title() ?: stringResource(R.string.log_illness)
-    EntityEditScreen(
+    EntryEditScreen(
+        form,
         title = stringResource(if (form.isNew) R.string.checkin_new else R.string.checkin_edit),
-        state = state,
-        events = form.events,
-        onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
-        delete = if (form.isNew) {
-            null
-        } else {
-            val shown = form.stored ?: c
-            entryDeleteAction(R.string.diary_subject_checkin, episodeTitle, shown.date, shown.time) { form.onEvent(EntryEditEvent.Delete) }
-        },
-        onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
-        horizontalMargin = SCREEN_MARGIN
-    ) {
+        shownErrors = SHOWN_ERRORS,
+        delete = { shown, onConfirm -> entryDeleteAction(R.string.diary_subject_checkin, episodeTitle, shown.date, shown.time, onConfirm = onConfirm) }
+    ) { error ->
         AppCard {
             val day = c.date?.let { illnessDay(episode?.start, it) }
             ItemRow(
                 episodeTitle,
-                trailing = day?.let { { InfoPill(stringResource(R.string.today_illness_day_format, it), tone = Tone.Warning) } },
+                trailing = day?.let { { InfoPill(illnessDayText(it), tone = Tone.Warning) } },
                 accent = AppColors.tone(Tone.Warning).content
             )
         }
-        c.date?.let { date ->
-            DateTimeRow(date, c.time ?: LocalTime(0, 0), { day -> form.change { it.copy(date = day) } }, { time -> form.change { it.copy(time = time) } })
-        }
+        EntryDateTimeRow(form, c.date, c.time, { copy(date = it) }, { copy(time = it) })
         CheckinValues(c, symptomOptions, form.stored?.symptoms.orEmpty()) { change -> form.change(transform = change) }
-        AppCard {
-            NoteField(c.note.orEmpty(), { note -> form.change(IllnessField.NOTE) { it.copy(note = note.ifEmpty { null }) } }, error = messages[IllnessField.NOTE])
-        }
+        NoteCard(c.note, { note -> form.change(IllnessField.NOTE) { it.copy(note = note) } }, error = error(IllnessField.NOTE))
     }
 }
 

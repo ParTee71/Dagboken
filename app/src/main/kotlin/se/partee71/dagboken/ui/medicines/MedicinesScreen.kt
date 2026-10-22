@@ -48,11 +48,11 @@ import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.days
 import se.partee71.dagboken.ui.common.doseText
-import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.periodText
 import se.partee71.dagboken.ui.common.prescriptionSubtitle
 import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.common.tidyingUpEachDay
+import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.AccountAvatar
 import se.partee71.dagboken.ui.components.DagbokenEntryCard
 import se.partee71.dagboken.ui.components.EntryToggle
@@ -251,7 +251,7 @@ fun MedicinesScreen(
             is MedicineItem.Recipe -> PrescriptionCard(item, today, onEvent, { onExtendPrescription(item.prescription.id) }) { onOpenPrescription(item.prescription.id) }
 
             is MedicineItem.AsNeeded -> ItemRow(
-                medicineTitle(item.medicine.displayName, item.medicine.dose, item.medicine.unit),
+                item.medicine.title(),
                 subtitle = prnLimits(item.medicine),
                 onClick = { onOpenPrn(item.medicine.id) },
                 navigates = true,
@@ -294,7 +294,7 @@ private fun endingText(ending: PeriodEnding, today: LocalDate): String {
 @Composable
 private fun PrescriptionCard(item: MedicineItem.Recipe, today: LocalDate, onEvent: (MedicinesEvent) -> Unit, onExtend: () -> Unit, onOpen: () -> Unit) {
     val p = item.prescription
-    val title = medicineTitle(p.displayName, p.dose, p.unit)
+    val title = p.title()
     val active = p.active && !item.ended
     val toggleLabel = stringResource(if (p.active) R.string.medicines_deactivate else R.string.medicines_activate)
     val pills = prescriptionPills(item, today)

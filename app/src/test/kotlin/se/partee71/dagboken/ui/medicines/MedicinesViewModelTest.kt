@@ -43,6 +43,7 @@ import se.partee71.dagboken.data.repository.testPrescriptions
 import se.partee71.dagboken.testing.FakeMedicines
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.testing.awaitDone
+import se.partee71.dagboken.ui.common.EntryEditEvent
 import se.partee71.dagboken.ui.common.dataError
 import se.partee71.ui.common.ListUiState
 
@@ -233,17 +234,17 @@ class MedicinesViewModelTest {
     fun `en ny vid behov-medicin kräver namn och dos och sparas med förvalen`() = runTest(main.dispatcher) {
         val factory = FakeCollectionFactory()
         val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(factory), FakeMedicines(), main.dispatcher, id = null)
-        assertTrue(vm.isNew)
-        assertFalse(vm.editor.state.value.canSave)
+        assertTrue(vm.form.isNew)
+        assertFalse(vm.form.editor.state.value.canSave)
 
-        vm.onEvent(PrnEditEvent.Changed(PrnField.NAME) { it.copy(name = " ") })
-        assertEquals(R.string.option_name_missing, vm.editor.state.value.errorFor(PrnField.NAME))
-        vm.onEvent(PrnEditEvent.Changed(PrnField.NAME) { it.copy(name = " Alvedon ") })
-        vm.onEvent(PrnEditEvent.Changed(PrnField.DOSE) { it.copy(dose = "500") })
-        vm.onEvent(PrnEditEvent.Changed(null) { it.copy(unit = "sprut", minHoursBetween = 0, note = "") })
-        vm.editor.state.test {
-            vm.onEvent(PrnEditEvent.Save)
-            awaitDone(vm.editor)
+        vm.form.onEvent(EntryEditEvent.Changed<PrnMedicine>(PrnField.NAME) { it.copy(name = " ") })
+        assertEquals(R.string.option_name_missing, vm.form.editor.state.value.errorFor(PrnField.NAME))
+        vm.form.onEvent(EntryEditEvent.Changed<PrnMedicine>(PrnField.NAME) { it.copy(name = " Alvedon ") })
+        vm.form.onEvent(EntryEditEvent.Changed<PrnMedicine>(PrnField.DOSE) { it.copy(dose = "500") })
+        vm.form.onEvent(EntryEditEvent.Changed<PrnMedicine>(null) { it.copy(unit = "sprut", minHoursBetween = 0, note = "") })
+        vm.form.editor.state.test {
+            vm.form.onEvent(EntryEditEvent.Save)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         val saved = factory.prnMedicines().getAll().getOrThrow().single()
@@ -257,17 +258,17 @@ class MedicinesViewModelTest {
         factory.prnMedicines().upsert(stored).getOrThrow()
         val repository = DefaultPrnMedicineRepository(factory)
         val vm = PrnMedicineEditViewModel(repository, FakeMedicines(), main.dispatcher, alvedon.id)
-        assertEquals(stored, vm.editor.state.value.value)
-        assertEquals(stored, vm.stored.value)
+        assertEquals(stored, vm.form.editor.state.value.value)
+        assertEquals(stored, vm.form.stored.value)
 
-        vm.onEvent(PrnEditEvent.Changed(null) { it.copy(maxPerDay = 4) })
-        vm.editor.state.test {
-            vm.onEvent(PrnEditEvent.Save)
-            awaitDone(vm.editor)
+        vm.form.onEvent(EntryEditEvent.Changed<PrnMedicine>(null) { it.copy(maxPerDay = 4) })
+        vm.form.editor.state.test {
+            vm.form.onEvent(EntryEditEvent.Save)
+            awaitDone(vm.form.editor)
             assertEquals(stored.copy(maxPerDay = 4), factory.prnMedicines().get(alvedon.id).getOrThrow())
 
-            vm.onEvent(PrnEditEvent.Delete)
-            awaitDone(vm.editor)
+            vm.form.onEvent(EntryEditEvent.Delete)
+            awaitDone(vm.form.editor)
             cancelAndIgnoreRemainingEvents()
         }
         assertNull(factory.prnMedicines().get(alvedon.id).getOrThrow())
@@ -276,24 +277,24 @@ class MedicinesViewModelTest {
     @Test
     fun `en vid behov-medicin som inte finns visar läsfel`() = runTest(main.dispatcher) {
         val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(FakeCollectionFactory()), FakeMedicines(), main.dispatcher, "finns-inte")
-        assertEquals(DataError.NotFound, vm.editor.state.value.loadError?.dataError)
+        assertEquals(DataError.NotFound, vm.form.editor.state.value.loadError?.dataError)
     }
 
     @Test
     fun `förslag bara i en ny vid behov-medicin, och ett val fyller i fyra fält men lämnar dosen (REC-14)`() = runTest(main.dispatcher) {
         val factory = FakeCollectionFactory()
         val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(factory), FakeMedicines(), main.dispatcher, id = null)
-        vm.onEvent(PrnEditEvent.Changed(PrnField.DOSE) { it.copy(dose = "2") })
-        vm.onEvent(PrnEditEvent.Changed(PrnField.NAME) { it.copy(name = "bricanyl") })
-        vm.onEvent(PrnEditEvent.MedicineChosen(vm.suggestions.matches.value.single().entry))
-        assertEquals(PrnMedicine("", "Bricanyl Turbuhaler", "2", "puff", strength = "0,5 mg/dos", form = MedicineForm.INHALER), vm.editor.state.value.value)
+        vm.form.onEvent(EntryEditEvent.Changed<PrnMedicine>(PrnField.DOSE) { it.copy(dose = "2") })
+        vm.form.onEvent(EntryEditEvent.Changed<PrnMedicine>(PrnField.NAME) { it.copy(name = "bricanyl") })
+        vm.chooseMedicine(vm.suggestions.matches.value.single().entry)
+        assertEquals(PrnMedicine("", "Bricanyl Turbuhaler", "2", "puff", strength = "0,5 mg/dos", form = MedicineForm.INHALER), vm.form.editor.state.value.value)
         assertEquals(emptyList(), vm.suggestions.matches.value, "förslagen stängs efter valet")
-        vm.onEvent(PrnEditEvent.Changed(PrnField.NAME) { it.copy(name = "Bricanyl T") })
+        vm.form.onEvent(EntryEditEvent.Changed<PrnMedicine>(PrnField.NAME) { it.copy(name = "Bricanyl T") })
         assertEquals(1, vm.suggestions.matches.value.size, "och öppnas igen när namnet ändras")
 
         factory.prnMedicines().upsert(alvedon).getOrThrow()
         val existing = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(factory), FakeMedicines(), main.dispatcher, alvedon.id)
-        existing.onEvent(PrnEditEvent.Changed(PrnField.NAME) { it.copy(name = "alvedon") })
+        existing.form.onEvent(EntryEditEvent.Changed<PrnMedicine>(PrnField.NAME) { it.copy(name = "alvedon") })
         assertEquals(emptyList(), existing.suggestions.matches.value, "en befintlig medicin har ett vanligt namnfält")
     }
 }
