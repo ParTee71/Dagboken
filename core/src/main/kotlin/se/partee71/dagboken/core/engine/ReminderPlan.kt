@@ -31,19 +31,17 @@ sealed interface Reminder {
 }
 
 /**
- * Ett larm att schemalägga: [reminder] vid [at]; [time] är inställningens klockslag (tidpunktens, inte larmets).
- * [moment] = måendepåminnelsen är en Stunden (NOT-20, [ReminderSettings.isMoment]) – bara i larm räknade ur
- * inställningarna; ett larm utan dem ([restoredAlarms], [nextAlarmAt]) är `false`, och mottagaren avgör då ur
- * inställningarna när larmet går.
+ * Ett larm att schemalägga: [reminder] vid [at]; [time] är inställningens klockslag (tidpunktens, inte larmets). Om en
+ * måendepåminnelse är en Stunden (NOT-20) avgör mottagaren ur inställningarna när larmet går ([ReminderSettings.isMoment]).
  */
-data class ReminderAlarm(val reminder: Reminder, val time: LocalTime, val at: Instant, val moment: Boolean = false)
+data class ReminderAlarm(val reminder: Reminder, val time: LocalTime, val at: Instant)
 
 /**
  * NOT-2, NOT-4, NOT-12, NOT-18, NOT-20: larmen som ska ligga i AlarmManager efter [now] – de påslagna
  * medicintidpunkterna när huvudreglaget är på (15 min före, [nextMedAlarm]), de påslagna måendetillfällena
  * ([nextDailyAt], passerat → i morgon, NOT-5) och periodslutspåminnelsen, som alltid ligger (notisen postas
  * bara när något tar slut). En tidpunkt eller ett tillfälle som förekommer två gånger (äldre data) ger ett larm,
- * det första radens. När Stunden är på märks varje påslaget måendetillfälles larm som Stunden ([ReminderAlarm.moment]).
+ * det första radens. Stunden har inget eget larm: den är måendetillfällets larm ([isMoment]).
  *
  * NOT-14: ett larm vars tid i dag passerats för högst [grace] sedan ligger kvar på dagens tid – bara om exakt den
  * tiden redan var schemalagd för påminnelsen ([scheduled]) och påminnelsen inte utlösts sedan dess ([firedAt]). Ett
@@ -72,8 +70,7 @@ fun reminderAlarms(
     return rows.map { (reminder, time) ->
         val overdue = nextAlarmAt(reminder, time, now - grace, zone).at
         val keep = grace.isPositive() && overdue <= now && scheduled[reminder] == overdue && firedAt[reminder]?.let { it >= overdue } != true
-        val alarm = if (keep) ReminderAlarm(reminder, time, overdue) else nextAlarmAt(reminder, time, now, zone)
-        alarm.copy(moment = reminder is Reminder.Mood && settings.isMoment(reminder.occasion))
+        if (keep) ReminderAlarm(reminder, time, overdue) else nextAlarmAt(reminder, time, now, zone)
     }
 }
 

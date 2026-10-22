@@ -122,7 +122,7 @@ class ReminderActions @Inject constructor(
             }
 
             // NOT-20: med Stunden på blir tillfällets måendenotis Stunden-notisen (samma id).
-            is Reminder.Mood -> content.moodNotice(reminder.occasion)?.let { notifications.postMoodReminder(reminder.occasion, it.moment, it.takeover) }
+            is Reminder.Mood -> content.moodNotice(reminder.occasion)?.let { notifications.postMoodReminder(reminder.occasion, it.moment) }
 
             Reminder.PeriodEnd -> notifications.postPeriodReminder(content.periodEndings())
         }
@@ -159,44 +159,40 @@ class ReminderActions @Inject constructor(
     }
 }
 
-/** Ett utlöst larm: nästa larm först, sedan notisen (NOT-14). */
-private fun BroadcastReceiver.onAlarm(intent: Intent, action: String, work: ReceiverWork, actions: ReminderActions) {
-    if (intent.action != action) return
-    // Synkront, innan något suspenderar: en omschemaläggning som hinner före mottagarens coroutine ska se larmet som utlöst.
-    actions.markFired(intent)
-    val firedAt = actions.now()
-    work.run(this, first = { actions.scheduleNext(intent) }) { actions.notify(intent, firedAt) }
+/**
+ * Ett utlöst larm (NOT-14): nästa larm först, sedan notisen – en implementation för medicin-, mående- och
+ * periodslutslarmen; varje mottagare tar bara emot sin [action].
+ *
+ * Mottagarna behåller sina klassnamn: ett redan satt larm (`PendingIntent` i AlarmManager) pekar på komponentens namn,
+ * som ingår i Intentets identitet (`filterEquals`). Ett nytt namn skulle göra att larm som ställts före en uppdatering
+ * levereras till en mottagare som inte finns (och tappas), och att avbokningen inte träffar dem (larmet dubbleras).
+ * Namnen och actions är låsta av `AlarmSchedulerTest`.
+ */
+abstract class AlarmReceiver(private val action: String) : BroadcastReceiver() {
+    @Inject lateinit var actions: ReminderActions
+
+    @Inject lateinit var work: ReceiverWork
+
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != action) return
+        // Synkront, innan något suspenderar: en omschemaläggning som hinner före mottagarens coroutine ska se larmet som utlöst.
+        actions.markFired(intent)
+        val firedAt = actions.now()
+        work.run(this, first = { actions.scheduleNext(intent) }) { actions.notify(intent, firedAt) }
+    }
 }
 
 /** NOT-2, NOT-3, NOT-14, NOT-17: medicinpåminnelsen för en tidpunkt. */
 @AndroidEntryPoint
-class MedAlarmReceiver : BroadcastReceiver() {
-    @Inject lateinit var actions: ReminderActions
-
-    @Inject lateinit var work: ReceiverWork
-
-    override fun onReceive(context: Context, intent: Intent) = onAlarm(intent, ReminderIntents.ACTION_MED_ALARM, work, actions)
-}
+class MedAlarmReceiver : AlarmReceiver(ReminderIntents.ACTION_MED_ALARM)
 
 /** NOT-4, NOT-5, NOT-14, NOT-19: måendepåminnelsen för ett tillfälle. */
 @AndroidEntryPoint
-class ScreeningReminderReceiver : BroadcastReceiver() {
-    @Inject lateinit var actions: ReminderActions
-
-    @Inject lateinit var work: ReceiverWork
-
-    override fun onReceive(context: Context, intent: Intent) = onAlarm(intent, ReminderIntents.ACTION_MOOD_ALARM, work, actions)
-}
+class ScreeningReminderReceiver : AlarmReceiver(ReminderIntents.ACTION_MOOD_ALARM)
 
 /** NOT-12, NOT-13, NOT-14: periodslutspåminnelsen. */
 @AndroidEntryPoint
-class PeriodReminderReceiver : BroadcastReceiver() {
-    @Inject lateinit var actions: ReminderActions
-
-    @Inject lateinit var work: ReceiverWork
-
-    override fun onReceive(context: Context, intent: Intent) = onAlarm(intent, ReminderIntents.ACTION_PERIOD_ALARM, work, actions)
-}
+class PeriodReminderReceiver : AlarmReceiver(ReminderIntents.ACTION_PERIOD_ALARM)
 
 /** NOT-10: "Markera tagen" i medicinpåminnelsen, utan att appen öppnas ([ReminderActions.markTaken]). */
 @AndroidEntryPoint

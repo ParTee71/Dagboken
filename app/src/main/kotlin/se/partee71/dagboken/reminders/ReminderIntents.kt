@@ -63,6 +63,7 @@ internal object ReminderIntents {
 
 /**
  * Vad Stunden (NOT-20) visar – tillfället, dess klockslag, pausens längd och om hjälpfrågan visas; inga hälsodata.
+ * [takeover] (helskärm) gäller bara notisen och följer inte med till `MomentActivity` ([putInto], [from]).
  * `MomentActivity` är inte exporterad, men extras tolkas ändå bara som kända värden: ett okänt tillfälle ger `null`
  * (aktiviteten stängs), en längd utanför 15 s–5 min avrundas som vid läsning ([MomentSettings.roundSeconds]).
  */
@@ -70,16 +71,14 @@ data class MomentLaunch(
     val occasion: Occasion,
     val time: LocalTime,
     val seconds: Int = MomentSettings.DEFAULT_SECONDS,
-    val question: Boolean = true
+    val question: Boolean = true,
+    val takeover: Boolean = false
 ) {
     /**
      * "Välj känslor" (NOT-20, SCR-7): `MainActivity` (explicit) på Idag med tillfällets måendeark på känslosteget –
      * samma väg som "Logga nu" ([ReminderLaunch.LogMood] med `feelings`), så att notisen stängs när appen öppnas.
      */
-    fun feelingsIntent(context: Context): Intent = Intent(context, MainActivity::class.java)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        .putExtra(ReminderIntents.EXTRA_OPEN, ReminderLaunch.MOOD_FEELINGS)
-        .putExtra(ReminderIntents.EXTRA_OCCASION, occasion.wire)
+    fun feelingsIntent(context: Context): Intent = openAppIntent(context, ReminderLaunch.MOOD_FEELINGS).putExtra(ReminderIntents.EXTRA_OCCASION, occasion.wire)
 
     /** Lägger värdena som extras på [intent] – samma nycklar som [from] läser. */
     fun putInto(intent: Intent): Intent = intent
@@ -101,6 +100,14 @@ data class MomentLaunch(
         }
     }
 }
+
+/**
+ * Öppnar appen – `MainActivity` (explicit) överst i sin uppgift – med [open] ([ReminderLaunch]): enda stället för
+ * notisernas och Stundens Intent till appen.
+ */
+internal fun openAppIntent(context: Context, open: String): Intent = Intent(context, MainActivity::class.java)
+    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    .putExtra(ReminderIntents.EXTRA_OPEN, open)
 
 /**
  * Vad en tryckt notis öppnar i appen (NOT-9, NOT-11, NOT-12, NOT-20). MainActivity är exporterad (startikonen), så

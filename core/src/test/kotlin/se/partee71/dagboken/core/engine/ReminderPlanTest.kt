@@ -77,34 +77,40 @@ class ReminderPlanTest {
         r.copy(screeningOccasions = r.screeningOccasions.map { it.copy(enabled = it.occasion == Occasion.BREAKFAST || it.occasion == Occasion.BEDTIME) })
     }
 
-    @Test fun `Stunden på märker varje påslaget måendetillfälle och inget annat larm`() {
+    /** Måendetillfällena bland [alarms] som är Stunden enligt [settings]. */
+    private fun moments(alarms: List<ReminderAlarm>, settings: ReminderSettings) = alarms.mapNotNull { (it.reminder as? Reminder.Mood)?.occasion }.filter(settings::isMoment)
+
+    @Test fun `Stunden på gäller varje påslaget måendetillfälle och ändrar inget larm`() {
         val settings = breakfastAndBedtime.copy(moment = MomentSettings(enabled = true))
         val all = alarms(settings)
-        assertEquals(listOf(Occasion.BREAKFAST, Occasion.BEDTIME), all.filter { it.moment }.map { (it.reminder as Reminder.Mood).occasion })
-        assertTrue(all.filter { it.reminder !is Reminder.Mood }.none { it.moment }, "medicin- och periodlarmen är aldrig Stunden")
+        assertEquals(listOf(Occasion.BREAKFAST, Occasion.BEDTIME), moments(all, settings))
+        assertEquals(alarms(breakfastAndBedtime), all, "medicin- och periodlarmen och tiderna är desamma som utan Stunden – inget eget larm")
         assertTrue(Occasion.entries.all { settings.isMoment(it) == (it == Occasion.BREAKFAST || it == Occasion.BEDTIME) })
     }
 
-    @Test fun `Stunden av märker inget tillfälle, och tiderna är desamma som utan Stunden`() {
+    @Test fun `Stunden av gäller inget tillfälle, och tiderna är desamma som utan Stunden`() {
         val off = alarms(breakfastAndBedtime)
-        assertTrue(off.none { it.moment })
+        assertEquals(emptyList(), moments(off, breakfastAndBedtime))
         assertTrue(Occasion.entries.none { breakfastAndBedtime.isMoment(it) })
-        assertEquals(off, alarms(breakfastAndBedtime.copy(moment = MomentSettings(enabled = true))).map { it.copy(moment = false) })
+        assertEquals(off, alarms(breakfastAndBedtime.copy(moment = MomentSettings(enabled = true))))
     }
 
     @Test fun `ett avstängt tillfälle får ingen Stunden, inte heller i dubblerade rader`() {
         val settings = breakfastAndBedtime.copy(moment = MomentSettings(enabled = true))
         assertFalse(settings.isMoment(Occasion.LUNCH))
         assertNull(nextAlarm(Reminder.Mood(Occasion.LUNCH), settings, now, STOCKHOLM))
-        assertEquals(true, nextAlarm(Reminder.Mood(Occasion.BEDTIME), settings, now, STOCKHOLM)?.moment)
+        assertEquals(listOf(Occasion.BEDTIME), listOfNotNull(nextAlarm(Reminder.Mood(Occasion.BEDTIME), settings, now, STOCKHOLM)).let { moments(it, settings) })
         // Äldre data: första raden avstängd, den andra påslagen – larmet och Stunden följer samma rad.
         val duplicated = settings.copy(screeningOccasions = listOf(OccasionReminder(Occasion.DINNER), OccasionReminder(Occasion.DINNER, enabled = true)))
-        assertEquals(listOf(true), alarms(duplicated).filter { it.reminder == Reminder.Mood(Occasion.DINNER) }.map { it.moment })
+        assertEquals(listOf(Occasion.DINNER), moments(alarms(duplicated).filter { it.reminder == Reminder.Mood(Occasion.DINNER) }, duplicated))
     }
 
-    @Test fun `larm utan inställningarna är inte märkta - mottagaren avgör ur inställningarna`() {
-        assertFalse(nextAlarmAt(Reminder.Mood(Occasion.LUNCH), LocalTime(12, 0), now, STOCKHOLM).moment)
-        assertTrue(restoredAlarms(mapOf(Reminder.Mood(Occasion.LUNCH) to at("2026-05-06T12:00")), emptyMap(), now, STOCKHOLM).none { it.moment })
+    @Test fun `larm utan inställningarna är vanliga måendelarm - mottagaren avgör Stunden ur inställningarna`() {
+        assertEquals(ReminderAlarm(Reminder.Mood(Occasion.LUNCH), LocalTime(12, 0), at("2026-05-06T12:00")), nextAlarmAt(Reminder.Mood(Occasion.LUNCH), LocalTime(12, 0), now, STOCKHOLM))
+        assertEquals(
+            listOf(ReminderAlarm(Reminder.Mood(Occasion.LUNCH), LocalTime(12, 0), at("2026-05-06T12:00"))),
+            restoredAlarms(mapOf(Reminder.Mood(Occasion.LUNCH) to at("2026-05-06T12:00")), emptyMap(), now, STOCKHOLM)
+        )
     }
 
     @Test fun `medicinlarmen följer tidpunktens egen tid, inte måendetiderna (NOT-2-regression)`() {

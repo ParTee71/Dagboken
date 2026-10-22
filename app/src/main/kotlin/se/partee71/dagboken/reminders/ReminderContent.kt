@@ -29,8 +29,8 @@ import se.partee71.dagboken.data.repository.PrescriptionRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.data.repository.SettingsRepository
 
-/** Måendepåminnelsen som ska visas (NOT-4): med [moment] är den tillfällets Stunden (NOT-20), [takeover] = helskärm. */
-data class MoodNotice(val moment: MomentLaunch? = null, val takeover: Boolean = false)
+/** Måendepåminnelsen som ska visas (NOT-4): med [moment] är den tillfällets Stunden (NOT-20). */
+data class MoodNotice(val moment: MomentLaunch? = null)
 
 /**
  * Vad en påminnelse visar när den utlöses, och "Markera tagen" (NOT-3, NOT-10, NOT-12, NOT-17, NOT-19, NOT-20) – läst ur
@@ -55,11 +55,9 @@ class ReminderContent @Inject constructor(
         return slotDosesOn(slot, date) ?: SlotDoses()
     }
 
-    /** NOT-4, NOT-19: om måendepåminnelsen för [occasion] ska visas – påslagen och inte redan loggad idag. */
-    suspend fun moodDue(occasion: Occasion): Boolean = moodNotice(occasion) != null
-
     /**
-     * NOT-4, NOT-19, NOT-20: måendepåminnelsen för [occasion] – `null` när den inte ska visas ([moodDue]), annars med
+     * NOT-4, NOT-19, NOT-20: måendepåminnelsen för [occasion] – `null` när den inte ska visas (avslagen eller redan
+     * loggad idag), annars med
      * Stunden när den är på för tillfället ([isMoment]): tillfällets klockslag, längden och hjälpfrågan, och om den tar
      * över skärmen. Gick inställningarna inte att läsa blir det en vanlig måendepåminnelse. Inga hälsodata.
      */
@@ -70,9 +68,9 @@ class ReminderContent @Inject constructor(
         if (!moodReminderDue(occasion, logged)) return null
         val moment = reminders?.takeIf { it.isMoment(occasion) }?.let { r ->
             val time = r.enabledOccasionRows.first { it.occasion == occasion }.time
-            MomentLaunch(occasion, time, r.moment.seconds, r.moment.question)
+            MomentLaunch(occasion, time, r.moment.seconds, r.moment.question, r.moment.takeover)
         }
-        return MoodNotice(moment, takeover = moment != null && reminders?.moment?.takeover == true)
+        return MoodNotice(moment)
     }
 
     /** NOT-12: de aktiva recepten vars period eller höjning tar slut i morgon; tom = ingen notis. */

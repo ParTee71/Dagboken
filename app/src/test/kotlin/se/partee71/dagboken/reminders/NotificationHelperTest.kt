@@ -205,7 +205,7 @@ class NotificationHelperTest {
     fun `Stunden med helskärm - samma notis som måendepåminnelsen i kanalen Stunden, helskärmen till MomentActivity (NOT-20)`() {
         helper.canUseFullScreen = { true }
         helper.postMoodReminder(Occasion.BEDTIME)
-        helper.postMoodReminder(Occasion.BEDTIME, bedtime, takeover = true)
+        helper.postMoodReminder(Occasion.BEDTIME, bedtime.copy(takeover = true))
 
         val notification = posted().single()
         assertEquals(NotificationHelper.CHANNEL_MOMENT, notification.channelId)
@@ -224,9 +224,9 @@ class NotificationHelperTest {
     @Test
     fun `Stunden utan Ta över skärmen eller utan tillåtelse - vanlig notis med Starta Stunden (NOT-20)`() {
         helper.canUseFullScreen = { true }
-        helper.postMoodReminder(Occasion.LUNCH, bedtime.copy(occasion = Occasion.LUNCH), takeover = false)
+        helper.postMoodReminder(Occasion.LUNCH, bedtime.copy(occasion = Occasion.LUNCH))
         helper.canUseFullScreen = { false }
-        helper.postMoodReminder(Occasion.DINNER, bedtime.copy(occasion = Occasion.DINNER), takeover = true)
+        helper.postMoodReminder(Occasion.DINNER, bedtime.copy(occasion = Occasion.DINNER, takeover = true))
 
         posted().forEach { notification ->
             assertEquals(NotificationHelper.CHANNEL_SCREENING, notification.channelId)
@@ -239,7 +239,7 @@ class NotificationHelperTest {
     @Test
     fun `Stunden-notisen visar inga hälsodata, och på låsskärmen inte ens tillfället (NOT-20)`() {
         helper.canUseFullScreen = { true }
-        helper.postMoodReminder(Occasion.BEDTIME, bedtime, takeover = true)
+        helper.postMoodReminder(Occasion.BEDTIME, bedtime.copy(takeover = true))
 
         val notification = posted().single()
         assertEquals(Notification.VISIBILITY_PRIVATE, notification.visibility)
@@ -256,7 +256,7 @@ class NotificationHelperTest {
 
     @Test
     fun `Välj känslor stänger Stunden-notisen (NOT-11, NOT-20)`() {
-        helper.postMoodReminder(Occasion.BEDTIME, bedtime, takeover = false)
+        helper.postMoodReminder(Occasion.BEDTIME, bedtime)
 
         helper.dismiss(ReminderLaunch.LogMood(Occasion.BEDTIME, feelings = true))
 

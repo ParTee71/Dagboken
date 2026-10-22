@@ -17,7 +17,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.datetime.LocalDate
-import se.partee71.dagboken.MainActivity
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.PeriodEnding
 import se.partee71.dagboken.core.model.Dose
@@ -98,12 +97,12 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
     /**
      * NOT-4, NOT-9, NOT-11: måendepåminnelsen för [occasion]; "Logga nu" öppnar Idag med tillfällets måendeark. Med
      * [moment] (NOT-20) är det tillfällets Stunden-notis – samma id, "Logga nu" kvar, plus "Starta Stunden" och tryck som
-     * öppnar `MomentActivity`. Med [takeover] och systemets tillåtelse ([canUseFullScreen]) ligger den i kanalen Stunden
+     * öppnar `MomentActivity`. Med [MomentLaunch.takeover] och systemets tillåtelse ([canUseFullScreen]) ligger den i kanalen Stunden
      * med helskärm (låst eller släckt skärm; annars visar systemet den som heads-up); annars är den en vanlig notis i
      * kanalen Måendepåminnelser. Notisen stängs inte av ett tryck: Inte nu lämnar den kvar, och "Logga nu"/"Välj
      * känslor" stänger den när appen öppnats ([dismiss]).
      */
-    fun postMoodReminder(occasion: Occasion, moment: MomentLaunch? = null, takeover: Boolean = false) {
+    fun postMoodReminder(occasion: Occasion, moment: MomentLaunch? = null) {
         val logNow = openApp(ReminderLaunch.MOOD, REQUEST_LOG_MOOD_BASE + occasion.ordinal) { putExtra(ReminderIntents.EXTRA_OCCASION, occasion.wire) }
         val notification = if (moment == null) {
             builder(CHANNEL_SCREENING, R.drawable.ic_mood, R.string.notification_mood_public_title)
@@ -112,7 +111,7 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
                 .setContentIntent(openApp(ReminderLaunch.TODAY, REQUEST_OPEN_MOOD_BASE + occasion.ordinal))
                 .addAction(R.drawable.ic_mood, context.getString(R.string.notification_mood_action_log_now), logNow)
         } else {
-            val fullScreen = takeover && canUseFullScreen()
+            val fullScreen = moment.takeover && canUseFullScreen()
             val start = openMoment(moment)
             builder(if (fullScreen) CHANNEL_MOMENT else CHANNEL_SCREENING, R.drawable.ic_mood, R.string.notification_moment_public_title)
                 .setContentTitle(context.getString(R.string.notification_moment_title, context.getString(occasion.label())))
@@ -206,12 +205,9 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
             .setAutoCancel(true)
     }
 
-    /** Öppnar appen (MainActivity, explicit) med [open] – Idag, måendearket eller Mediciner ([ReminderLaunch]). */
+    /** [openAppIntent] med [open] – Idag, måendearket eller Mediciner ([ReminderLaunch]) – som notisens PendingIntent. */
     private fun openApp(open: String, requestCode: Int, extras: Intent.() -> Unit = {}): PendingIntent {
-        val intent = Intent(context, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .putExtra(ReminderIntents.EXTRA_OPEN, open)
-            .apply(extras)
+        val intent = openAppIntent(context, open).apply(extras)
         return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
