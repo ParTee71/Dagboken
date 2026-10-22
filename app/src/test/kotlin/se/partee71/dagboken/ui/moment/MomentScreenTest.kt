@@ -2,6 +2,10 @@ package se.partee71.dagboken.ui.moment
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -121,6 +125,24 @@ class MomentScreenTest {
         rule.onNodeWithText("Pausen är klar").assertExists()
         chooseFeelings.assertIsEnabled()
         assertEquals(1, done)
+    }
+
+    @Test
+    fun `en ny Stunden medan en är öppen börjar om nedräkningen och Välj känslor (NOT-20)`() {
+        val first = MomentLaunch(Occasion.LUNCH, LocalTime(12, 0), seconds = 2, question = false)
+        var launch by mutableStateOf(first)
+        show { MomentRoute(launch, today, onChooseFeelings = {}, onNotNow = {}) }
+        rule.mainClock.advanceTimeBy(2_500)
+        chooseFeelings.assertIsEnabled()
+
+        launch = MomentLaunch(Occasion.DINNER, LocalTime(17, 0), seconds = 3, question = false)
+        Snapshot.sendApplyNotifications()
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithText("0:03 kvar").assertExists()
+        chooseFeelings.assertIsNotEnabled()
+
+        rule.mainClock.advanceTimeBy(3_500)
+        chooseFeelings.assertIsEnabled()
     }
 
     // ── Skärmdumpar (tavla H) ──

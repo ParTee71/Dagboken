@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -68,14 +69,17 @@ fun MomentRoute(
         done()
     }
     val prompts = stringArrayResource(R.array.moment_prompts)
-    MomentScreen(
-        occasion = stringResource(launch.occasion.label()),
-        time = DateFormat.time(launch.time),
-        prompt = if (launch.question) prompts.getOrNull(ReflectionPrompts.indexFor(today)) else null,
-        remainingSeconds = { remaining },
-        onChooseFeelings = onChooseFeelings,
-        onNotNow = onNotNow
-    )
+    // En ny Stunden får en ny skärm, så att dess härledda tillstånd ("klar") läser den nya nedräkningen.
+    key(launch) {
+        MomentScreen(
+            occasion = stringResource(launch.occasion.label()),
+            time = DateFormat.time(launch.time),
+            prompt = if (launch.question) prompts.getOrNull(ReflectionPrompts.indexFor(today)) else null,
+            remainingSeconds = { remaining },
+            onChooseFeelings = onChooseFeelings,
+            onNotNow = onNotNow
+        )
+    }
 }
 
 /**
