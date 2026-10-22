@@ -8,13 +8,14 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.SmartYAxis
 import se.partee71.dagboken.core.engine.chartAxisFor
-import se.partee71.dagboken.core.engine.computeTrendLine
 import se.partee71.dagboken.core.engine.gapFreeRuns
 import se.partee71.dagboken.core.engine.knownCount
+import se.partee71.dagboken.core.engine.seriesStats
 import se.partee71.dagboken.core.engine.summarize
 import se.partee71.dagboken.core.engine.trendSegment
 import se.partee71.dagboken.ui.theme.AppTypography
@@ -65,19 +66,27 @@ fun LineChart(
 ) {
     val colors = chartColors
     val single = series.size == 1
-    val current = series.mapIndexed { i, s ->
-        s.copy(color = s.color ?: colors.line, marker = s.marker ?: if (single) PointMarker.Default else PointMarker.forSlot(i))
+    val current = remember(series, colors) {
+        series.mapIndexed { i, s ->
+            s.copy(color = s.color ?: colors.line, marker = s.marker ?: if (single) PointMarker.Default else PointMarker.forSlot(i))
+        }
     }
-    val earlier = previous.mapIndexed { i, s ->
-        val base = s.color ?: current.getOrNull(i)?.color ?: colors.line
-        s.copy(color = if (single) colors.previous else base.previousPeriod())
+    val earlier = remember(previous, current, colors) {
+        previous.mapIndexed { i, s ->
+            val base = s.color ?: current.getOrNull(i)?.color ?: colors.line
+            s.copy(color = if (single) colors.previous else base.previousPeriod())
+        }
     }
     val enough = current.any { knownCount(it.points) >= MIN_CHART_POINTS }
     // "Energi (föregående)": mallen hämtas en gång och fylls i per serie.
     val previousFormat = stringResource(R.string.chart_previous_format)
-    val spoken = (current + earlier.map { it.copy(label = previousFormat.format(it.label)) })
-        .map { seriesSpoken(it.label, summarize(it.points), computeTrendLine(it.points)?.direction) }
-        .joinToString(". ")
+    val stats = remember(current, earlier) { (current + earlier).map { seriesStats(it.points) } }
+    val resources = LocalResources.current
+    val spoken = remember(current, earlier, stats, previousFormat, resources) {
+        (current + earlier.map { it.copy(label = previousFormat.format(it.label)) })
+            .zip(stats) { s, st -> seriesSpoken(resources, s.label, st.summary, st.direction) }
+            .joinToString(". ")
+    }
 
     ChartFrame(
         enoughData = enough,
@@ -88,13 +97,13 @@ fun LineChart(
         footer = {
             if (!single || earlier.isNotEmpty()) ChartLegend(lineLegend(current, earlier, colors, previousFormat, stringResource(R.string.chart_legend_trend)))
             if (footnote != null) Text(footnote, style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            val all = summarize((current + earlier).flatMap { it.points })
+            val all = remember(current, earlier) { summarize((current + earlier).flatMap { it.points }) }
             if (all != null && showCaption) {
                 MinMaxCaption(
                     min = all.min,
                     max = all.max,
-                    average = if (single) summarize(current.single().points)?.average else null,
-                    trend = if (single) computeTrendLine(current.single().points)?.direction else null
+                    average = if (single) stats.first().summary?.average else null,
+                    trend = if (single) stats.first().direction else null
                 )
             }
         }

@@ -44,8 +44,10 @@ fun computeTrendLine(points: List<Float?>): TrendLine? {
 data class TrendSegment(val startX: Int, val startY: Float, val endX: Int, val endY: Float, val line: TrendLine)
 
 /** Trendlinjens ändpunkter för [points], eller `null` med färre än två kända punkter. */
-fun trendSegment(points: List<Float?>): TrendSegment? {
-    val line = computeTrendLine(points) ?: return null
+fun trendSegment(points: List<Float?>): TrendSegment? = computeTrendLine(points)?.let { segmentOf(points, it) }
+
+/** Ändpunkterna för en redan anpassad [line] över [points] – så att `seriesStats` anpassar linjen en gång. */
+internal fun segmentOf(points: List<Float?>, line: TrendLine): TrendSegment {
     val first = points.indexOfFirst { it != null }
     val last = points.indexOfLast { it != null }
     return TrendSegment(first, line.valueAt(first.toFloat()), last, line.valueAt(last.toFloat()), line)

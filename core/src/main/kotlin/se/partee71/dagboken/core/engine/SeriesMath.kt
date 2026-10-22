@@ -14,6 +14,21 @@ fun summarize(points: List<Float?>): SeriesSummary? {
     return SeriesSummary(known.size, known.min(), known.max(), known.average().toFloat(), known.last())
 }
 
+/**
+ * Allt ett diagram räknar ur en serie utöver axeln, räknat en gång (regel 4): sammanfattningen (TRD-9, NFR-14)
+ * och trendlinjen med sin ritade sträcka och riktning (TRD-13). `null`-fälten som i `summarize` och `trendSegment`.
+ */
+data class SeriesStats(val summary: SeriesSummary?, val segment: TrendSegment?) {
+    val trend: TrendLine? get() = segment?.line
+    val direction: TrendDirection? get() = segment?.line?.direction
+}
+
+/**
+ * [summary] och trendlinjen för [points] med en enda anpassning. [summary] kan bytas ut, t.ex. mot
+ * `summarizeIntervals` när trenden räknas på dagsvärdena (TRD-8).
+ */
+fun seriesStats(points: List<Float?>, summary: SeriesSummary? = summarize(points)): SeriesStats = SeriesStats(summary, computeTrendLine(points)?.let { segmentOf(points, it) })
+
 /** Antal kända (icke-`null`) värden – det diagrammens tomma läge räknar på. */
 fun knownCount(points: List<Float?>): Int = points.count { it != null }
 

@@ -3,6 +3,7 @@ package se.partee71.dagboken.ui.common
 import kotlin.test.assertEquals
 import org.junit.Test
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.ScaleZone
 import se.partee71.dagboken.ui.theme.Positive
 import se.partee71.dagboken.ui.theme.Sun
 import se.partee71.dagboken.ui.theme.Warning

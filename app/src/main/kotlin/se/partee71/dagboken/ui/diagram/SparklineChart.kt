@@ -3,14 +3,13 @@ package se.partee71.dagboken.ui.diagram
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.chartAxisFor
-import se.partee71.dagboken.core.engine.computeTrendLine
 import se.partee71.dagboken.core.engine.gapFreeRuns
 import se.partee71.dagboken.core.engine.knownCount
-import se.partee71.dagboken.core.engine.summarize
-import se.partee71.dagboken.core.engine.trendSegment
+import se.partee71.dagboken.core.engine.seriesStats
 import se.partee71.ui.components.AppButton
 import se.partee71.ui.components.ButtonVariant
 
@@ -31,9 +30,11 @@ fun SparklineChart(
     onOpenTrends: (() -> Unit)? = null
 ) {
     val colors = chartColors
-    val summary = summarize(points)
-    val direction = computeTrendLine(points)?.direction
-    val spoken = seriesSpoken(label, summary, direction)
+    val stats = remember(points) { seriesStats(points) }
+    val summary = stats.summary
+    val direction = stats.direction
+    val resources = LocalResources.current
+    val spoken = remember(label, stats, resources) { seriesSpoken(resources, label, summary, direction) }
     ChartFrame(
         enoughData = knownCount(points) >= MIN_CHART_POINTS,
         label = label,
@@ -46,10 +47,10 @@ fun SparklineChart(
             onOpenTrends?.let { AppButton(stringResource(R.string.chart_open_trends), it, variant = ButtonVariant.Text) }
         }
     ) {
-        val lines = remember(points, colors) {
+        val lines = remember(points, stats, colors) {
             val today = points.lastIndex.takeIf { points.lastOrNull() != null }
             gapFreeRuns(points).map { it.toPlotLine(PlotStyle(colors.line, area = true, points = true, highlightX = today)) } +
-                listOfNotNull(trendSegment(points)?.toPlotLine(colors.trend))
+                listOfNotNull(stats.segment?.toPlotLine(colors.trend))
         }
         val axis = remember(points) { chartAxisFor(listOf(points)) }
         VicoLinePlot(

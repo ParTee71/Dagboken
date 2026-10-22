@@ -49,4 +49,33 @@ class SeriesMathTest {
         assertEquals(2, summary.count)
         assertNull(summarizeIntervals(listOf(null)))
     }
+
+    @Test
+    fun `seriesStats ger samma sammanfattning och trend som de enskilda funktionerna`() {
+        val points = listOf(null, 2f, 4f, null, 8f, null)
+        val stats = seriesStats(points)
+        assertEquals(summarize(points), stats.summary)
+        assertEquals(trendSegment(points), stats.segment)
+        assertEquals(computeTrendLine(points), stats.trend)
+        assertEquals(TrendDirection.RISING, stats.direction)
+    }
+
+    @Test
+    fun `seriesStats med för få punkter har sammanfattning men ingen trend`() {
+        val stats = seriesStats(listOf(null, 3f, null))
+        assertEquals(SeriesSummary(count = 1, min = 3f, max = 3f, average = 3f, last = 3f), stats.summary)
+        assertNull(stats.segment)
+        assertNull(stats.trend)
+        assertNull(stats.direction)
+        assertEquals(SeriesStats(null, null), seriesStats(emptyList()))
+    }
+
+    @Test
+    fun `seriesStats tar en egen sammanfattning, trenden räknas på värdena`() {
+        val intervals = listOf(IntervalPoint(1f, 3f, 5f), null, IntervalPoint(4f, 6f, 9f))
+        val stats = seriesStats(intervals.map { it?.value }, summarizeIntervals(intervals))
+        assertEquals(SeriesSummary(count = 2, min = 1f, max = 9f, average = 4.5f, last = 6f), stats.summary)
+        assertEquals(TrendSegment(0, 3f, 2, 6f, computeTrendLine(listOf(3f, null, 6f))!!), stats.segment)
+        assertEquals(TrendDirection.RISING, stats.direction)
+    }
 }

@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,19 +24,17 @@ import se.partee71.dagboken.core.engine.COMPARE_AXIS
 import se.partee71.dagboken.core.engine.CompareKey
 import se.partee71.dagboken.core.engine.EpisodeSpan
 import se.partee71.dagboken.core.engine.SLEEP_STAGE_METRICS
-import se.partee71.dagboken.core.engine.SeriesSummary
+import se.partee71.dagboken.core.engine.SeriesStats
 import se.partee71.dagboken.core.engine.SleepQualityKind
 import se.partee71.dagboken.core.engine.StackedPoint
 import se.partee71.dagboken.core.engine.StressSeries
-import se.partee71.dagboken.core.engine.TrendDirection
 import se.partee71.dagboken.core.engine.TrendRange
 import se.partee71.dagboken.core.engine.TrendSerie
 import se.partee71.dagboken.core.engine.WatchMetric
 import se.partee71.dagboken.core.engine.WatchUnit
-import se.partee71.dagboken.core.engine.computeTrendLine
 import se.partee71.dagboken.core.engine.formatChartValue
+import se.partee71.dagboken.core.engine.seriesStats
 import se.partee71.dagboken.core.engine.stackTotals
-import se.partee71.dagboken.core.engine.summarize
 import se.partee71.dagboken.core.engine.summarizeIntervals
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.data.auth.AuthUser
@@ -212,7 +211,12 @@ private val TrendRange.label: Int
 @Composable
 private fun TrendCardView(card: TrendCard, state: TrendCardState, feelingDay: LocalDate?, onEvent: (TrendsEvent) -> Unit) {
     val controls = state.controls
-    val summary = state.data?.let { summaryText(card, it) }
+    val data = state.data
+    // Serierna kortet erbjuder och deras namn – en gång per kort, för menyn och diagrammet.
+    val available = (data as? CardData.Lines)?.available ?: (data as? CardData.Compare)?.available
+    val names = available?.associate { it.key to seriesName(card, it) }.orEmpty()
+    val stats = remember(data) { data?.let(::cardStats) }
+    val summary = data?.let { summaryText(card, it, stats) }
     AppCard {
         Foldout(
             title = stringResource(card.title),
@@ -221,15 +225,13 @@ private fun TrendCardView(card: TrendCard, state: TrendCardState, feelingDay: Lo
             trailing = if (controls.expanded) ({ RangePicker(card, controls.range, onEvent) }) else null,
             summary = summary
         ) {
-            val data = state.data
             // Serievalet finns först när kortet lästs – en tom meny säger ingenting.
-            val available = (data as? CardData.Lines)?.available ?: (data as? CardData.Compare)?.available
-            if (card.hasSeriesPicker && available != null) SeriesPicker(card, available, controls.selected, onEvent)
+            if (card.hasSeriesPicker && available != null) SeriesPicker(card, available, names, controls.selected, onEvent)
             if (controls.showsPrevious(card)) SwitchRow(stringResource(R.string.trends_previous_period), controls.previous, { onEvent(TrendsEvent.SetPrevious(card, it)) })
             when (data) {
                 null -> Unit
                 is CardData.Feelings -> FeelingsChart(data, feelingDay) { onEvent(TrendsEvent.SelectFeelingDay(it)) }
-                else -> Chart(card, data)
+                else -> Chart(card, data, names)
             }
             if (summary != null && card == TrendCard.EVENTS_ILLNESS) {
                 Text(summary, style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -252,8 +254,7 @@ private fun RangePicker(card: TrendCard, range: TrendRange, onEvent: (TrendsEven
  * avsnitten Mående och Klocka.
  */
 @Composable
-private fun SeriesPicker(card: TrendCard, available: List<SeriesInfo>, selected: Set<String>, onEvent: (TrendsEvent) -> Unit) {
-    val names = available.associate { it.key to seriesName(card, it) }
+private fun SeriesPicker(card: TrendCard, available: List<SeriesInfo>, names: Map<String, String>, selected: Set<String>, onEvent: (TrendsEvent) -> Unit) {
     val chosen = available.filter { it.key in selected }.joinToString(CHART_SEPARATOR) { names.getValue(it.key) }
     val sections = TrendGroup.entries.associateWith { stringResource(it.label) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s), verticalAlignment = Alignment.CenterVertically) {
@@ -322,6 +323,9 @@ private fun seriesColor(card: TrendCard, key: String, keys: List<String>, shownC
 /** Färgerna ett kort väljer bland: sömnstadiernas ([stages], TRD-16) och diagrampaletten ([extended], TRD-23). */
 private class ChartPalette(val stages: List<Color>, val extended: ExtendedColors)
 
+/** Nycklarna till kortets valbara serier i menyns ordning – färgernas platser (`seriesColor`, `compareColor`). */
+private fun availableKeys(available: List<SeriesInfo>): List<String> = available.map { it.key }
+
 /** Plats i diagrampaletten för Total i Sömn: nr 2, bärnsten/solgul. */
 private const val SLEEP_TOTAL_SLOT = 1
 
@@ -347,17 +351,18 @@ private fun compareColor(key: String, available: List<String>, colors: ChartPale
     CompareKey.EnergyDay, CompareKey.SleepQuality, null -> null
 }
 
+/** Kortets diagram; [names] är seriernas namn ur `seriesName`, nycklade på seriens nyckel. */
 @Composable
-private fun Chart(card: TrendCard, data: CardData) {
+private fun Chart(card: TrendCard, data: CardData, names: Map<String, String>) {
     val title = stringResource(card.title)
     val xLabels = data.days.map(DateFormat::short)
+    val palette = ChartPalette(sleepStageColors(), AppColors.extended)
     when (data) {
         is CardData.EnergyDay -> IntervalBarChart(data.points, xLabels = xLabels, label = title)
 
         is CardData.Lines -> {
-            val palette = ChartPalette(sleepStageColors(), AppColors.extended)
-            val colorOf: (TrendSerie) -> Color? = { serie -> seriesColor(card, serie.key, data.available.map { it.key }, data.shown.size, palette) }
-            val names = data.available.associate { it.key to seriesName(card, it) }
+            val keys = availableKeys(data.available)
+            val colorOf: (TrendSerie) -> Color? = { serie -> seriesColor(card, serie.key, keys, data.shown.size, palette) }
             val fallback = stringResource(R.string.symptoms)
             fun chartSeries(series: List<TrendSerie>) = series.map { ChartSeries(names[it.key] ?: fallback, it.points, colorOf(it)) }
             LineChart(
@@ -379,12 +384,12 @@ private fun Chart(card: TrendCard, data: CardData) {
 
         is CardData.Compare -> {
             // Varje serie behåller färgen från sitt eget kort, utan krockar; etiketten bär det verkliga spannet med enhet (TRD-17).
-            val palette = ChartPalette(sleepStageColors(), AppColors.extended)
-            val colors = distinctSeriesColors(data.shown.map { compareColor(it.key, data.available.map { info -> info.key }, palette) }, MaterialTheme.colorScheme.primary, palette.extended.chartSeries)
+            val keys = availableKeys(data.available)
+            val colors = distinctSeriesColors(data.shown.map { compareColor(it.key, keys, palette) }, MaterialTheme.colorScheme.primary, palette.extended.chartSeries)
             val series = data.shown.mapIndexed { i, serie ->
-                val info = data.available.firstOrNull { it.key == serie.key } ?: SeriesInfo(serie.key, null)
+                val name = names[serie.key] ?: seriesName(card, SeriesInfo(serie.key, null))
                 val unit = stringResource((CompareKey.parse(serie.key)?.unit ?: WatchUnit.SCALE).label())
-                val legend = stringResource(R.string.trends_compare_legend_format, seriesName(card, info), formatChartValue(serie.min), formatChartValue(serie.max), unit)
+                val legend = stringResource(R.string.trends_compare_legend_format, name, formatChartValue(serie.min), formatChartValue(serie.max), unit)
                 ChartSeries(legend, serie.points, colors[i])
             }
             val tooFewSelected = data.selectedCount < 2
@@ -424,16 +429,16 @@ private fun Chart(card: TrendCard, data: CardData) {
  * Förkylning 30 sep – pågår" (TRD-21). `null` när det inte finns något att säga.
  */
 @Composable
-private fun summaryText(card: TrendCard, data: CardData): String? = when (data) {
-    is CardData.EnergyDay -> statsText(summarizeIntervals(data.points), computeTrendLine(data.points.map { it?.value })?.direction)
+private fun summaryText(card: TrendCard, data: CardData, stats: SeriesStats?): String? = when (data) {
+    is CardData.EnergyDay -> statsText(stats)
 
     is CardData.Lines -> when (data.shown.size) {
         0 -> if (card.hasSeriesPicker) stringResource(R.string.trends_pick_series) else null
-        1 -> data.shown.single().let { statsText(summarize(it.points), computeTrendLine(it.points)?.direction) }
+        1 -> statsText(stats)
         else -> pluralStringResource(R.plurals.trends_series_count, data.shown.size, data.shown.size)
     }
 
-    is CardData.Stacked -> stackTotals(data.points).let { statsText(summarize(it), computeTrendLine(it)?.direction) }
+    is CardData.Stacked -> statsText(stats)
 
     is CardData.Compare -> when {
         data.selectedCount < 2 -> stringResource(R.string.trends_compare_pick_two)
@@ -487,13 +492,24 @@ private fun FeelingsChart(data: CardData.Feelings, selected: LocalDate?, onSelec
     Text(stringResource(R.string.trends_feelings_tree_hint), style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
+/**
+ * Statistiken bakom sammanfattningen för kort med en serie: dagens energi (trenden på dagsvärdena, TRD-8), ett
+ * linjediagram med en vald serie och sömnstadiernas totaler. `null` för de andra korten.
+ */
+private fun cardStats(data: CardData): SeriesStats? = when (data) {
+    is CardData.EnergyDay -> seriesStats(data.points.map { it?.value }, summarizeIntervals(data.points))
+    is CardData.Lines -> data.shown.singleOrNull()?.let { seriesStats(it.points) }
+    is CardData.Stacked -> seriesStats(stackTotals(data.points))
+    else -> null
+}
+
 /** "Snitt 6,4 · Trend uppåt" ur en serie – samma formatering som `MinMaxCaption`; `null` utan värden. */
 @Composable
-private fun statsText(summary: SeriesSummary?, trend: TrendDirection?): String? {
-    summary ?: return null
+private fun statsText(stats: SeriesStats?): String? {
+    val summary = stats?.summary ?: return null
     return listOfNotNull(
         chartStatText(LocalResources.current, R.string.chart_average, summary.average),
-        trend?.let { stringResource(it.label()) }
+        stats.direction?.let { stringResource(it.label()) }
     ).joinToString(CHART_SEPARATOR)
 }
 
