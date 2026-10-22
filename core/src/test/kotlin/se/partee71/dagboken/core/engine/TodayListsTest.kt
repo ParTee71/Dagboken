@@ -212,6 +212,15 @@ class TodayListsTest {
         assertEquals(emptyList(), choices.prescriptions, "inte heller i Fler")
     }
 
+    @Test fun `ett snabbvals nyckel innehåller typen, så att samma id i två samlingar inte krockar`() {
+        val medicine = AsNeededChip.Medicine(PrnMedicine("x", "Alvedon"))
+        val recipe = AsNeededChip.Recipe(Prescription("x", "Alvedon", favorite = true))
+        assertEquals("medicine:x", medicine.key)
+        assertEquals("recipe:x", recipe.key)
+        assertEquals("Alvedon", medicine.displayName)
+        assertEquals(null, recipe.note)
+    }
+
     @Test fun `snabbval med samma namn ordnas på id, och vid behov före recept vid samma id`() {
         val prn = PrnMedicine("x", "Alvedon", favorite = true)
         val other = Prescription("a", "alvedon", strength = "1 g", favorite = true)

@@ -54,6 +54,7 @@ import se.partee71.dagboken.ui.components.DagbokenEntryCard
 import se.partee71.dagboken.ui.components.EntryToggle
 import se.partee71.dagboken.ui.components.FavoriteStar
 import se.partee71.dagboken.ui.components.NoticeBanner
+import se.partee71.dagboken.ui.components.favoriteMenuItem
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Neutral
 import se.partee71.dagboken.ui.theme.Warning
@@ -301,12 +302,7 @@ private fun PrescriptionCard(item: MedicineItem.Recipe, today: LocalDate, onEven
         } else {
             listOf(
                 AppMenuItem(toggleLabel, { onEvent(MedicinesEvent.ActiveChanged(p, !p.active)) }, if (p.active) R.drawable.ic_toggle_off else R.drawable.ic_toggle_on),
-                // Samma text och ikon som favoritposten i vid behov-menyn på Idag (HEM-11).
-                AppMenuItem(
-                    stringResource(if (p.favorite) R.string.favorite_remove else R.string.favorite_add, p.displayName),
-                    { onEvent(MedicinesEvent.PrescriptionFavoriteToggled(p)) },
-                    if (p.favorite) R.drawable.ic_star_filled else R.drawable.ic_star
-                )
+                favoriteMenuItem(p.displayName, p.favorite) { onEvent(MedicinesEvent.PrescriptionFavoriteToggled(p)) }
             )
         },
         delete = DeleteAction(

@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -25,6 +26,7 @@ import se.partee71.dagboken.core.engine.isPrescribed
 import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.ui.common.DateFormat
+import se.partee71.dagboken.ui.common.ScaleLevel
 import se.partee71.dagboken.ui.common.color
 import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.entryDeleteAction
@@ -227,8 +229,12 @@ private fun ShowOlder(years: Int, loading: Boolean, onEvent: (DiaryEvent) -> Uni
     )
 }
 
-/** Postkortets innehåll per typ: titel, undertext med klockslaget först, värdepill och vänsteraccent. */
-private class CardText(val title: String, val subtitle: String, val pill: String? = null, val tone: Tone = Tone.Neutral)
+/** Postkortets innehåll per typ: titel, undertext med klockslaget först, värdepill (i [tone]) och vänsteraccenten [accent] (NFR-16). */
+private class CardText(val title: String, val subtitle: String, val pill: String? = null, val tone: Tone = Tone.Neutral, val accent: Color? = null)
+
+/** [CardText] med pillens ton och accenten ur skalnivån [level] – nivån räknas en gång per kort. */
+@Composable
+private fun scaledCardText(title: String, subtitle: String, pill: String, level: ScaleLevel) = CardText(title, subtitle, pill, level.tone, level.color)
 
 @Composable
 private fun cardText(row: DiaryRow.Entry): CardText = when (val entry = row.entry) {
@@ -236,14 +242,14 @@ private fun cardText(row: DiaryRow.Entry): CardText = when (val entry = row.entr
         val s = entry.screening
         val title = s.occasion?.let { stringResource(it.label()) } ?: s.customText.nonBlank() ?: stringResource(R.string.log_mood)
         // Typen står i titeln när posten saknar tillfälle; undertexten har stressen, inte "Mående" en gång till.
-        CardText(title, subtitle(entry.time, stringResource(R.string.diary_stress_format, s.stress)), stringResource(R.string.diary_energy_format, scaleValueText(s.energy)), scaleLevel(s.energy).tone)
+        scaledCardText(title, subtitle(entry.time, stringResource(R.string.diary_stress_format, s.stress)), stringResource(R.string.diary_energy_format, scaleValueText(s.energy)), scaleLevel(s.energy))
     }
 
     is DiaryEntry.Action -> {
         val a = entry.activity
         val title = a.customText.nonBlank() ?: row.optionName ?: stringResource(R.string.log_activity)
         val detail = a.minutes?.let { durationText(it) } ?: stringResource(R.string.log_activity)
-        CardText(title, subtitle(entry.time, detail), stringResource(R.string.diary_energy_format, scaleValueText(a.energy, DocumentRules.ACTIVITY_ENERGY)), scaleLevel(a.energy, DocumentRules.ACTIVITY_ENERGY).tone)
+        scaledCardText(title, subtitle(entry.time, detail), stringResource(R.string.diary_energy_format, scaleValueText(a.energy, DocumentRules.ACTIVITY_ENERGY)), scaleLevel(a.energy, DocumentRules.ACTIVITY_ENERGY))
     }
 
     is DiaryEntry.TakenDose -> {
@@ -254,8 +260,7 @@ private fun cardText(row: DiaryRow.Entry): CardText = when (val entry = row.entr
     is DiaryEntry.Happening -> {
         val e = entry.event
         val detail = e.durationMinutes.takeIf { it > 0 }?.let { durationText(it) } ?: stringResource(R.string.log_event)
-        val level = scaleLevel(e.severity, higherIsBetter = false)
-        CardText(row.optionName ?: stringResource(R.string.log_event), subtitle(entry.time, detail), stringResource(R.string.diary_severity_format, e.severity), level.tone)
+        scaledCardText(row.optionName ?: stringResource(R.string.log_event), subtitle(entry.time, detail), stringResource(R.string.diary_severity_format, e.severity), scaleLevel(e.severity, higherIsBetter = false))
     }
 
     is DiaryEntry.CheckIn -> CardText(
@@ -279,17 +284,11 @@ private fun subtitle(time: LocalTime?, detail: String): String = time?.let { str
 private fun EntryCard(row: DiaryRow.Entry, onEvent: (DiaryEvent) -> Unit, onOpen: (DiaryEntry) -> Unit) {
     val entry = row.entry
     val text = cardText(row)
-    val accent = when (entry) {
-        is DiaryEntry.Mood -> scaleLevel(entry.screening.energy).color
-        is DiaryEntry.Action -> scaleLevel(entry.activity.energy, DocumentRules.ACTIVITY_ENERGY).color
-        is DiaryEntry.Happening -> scaleLevel(entry.event.severity, higherIsBetter = false).color
-        else -> null
-    }
     DagbokenEntryCard(
         title = text.title,
         onClick = { onOpen(entry) },
         subtitle = text.subtitle,
-        accent = accent,
+        accent = text.accent,
         status = text.pill?.let { { InfoPill(it, tone = text.tone) } },
         note = entry.note.orEmpty(),
         onEdit = { onOpen(entry) },

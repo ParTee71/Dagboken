@@ -48,7 +48,7 @@ class MomentScreenTest {
     }
 
     private fun screen(remaining: Int, prompt: String? = prompts[0], reducedMotion: Boolean = false, onChoose: () -> Unit = {}, onNotNow: () -> Unit = {}) = show {
-        MomentScreen("Läggdags", "21:00", prompt, remaining, onChoose, onNotNow, reducedMotion = reducedMotion)
+        MomentScreen("Läggdags", "21:00", prompt, { remaining }, onChoose, onNotNow, reducedMotion = reducedMotion)
     }
 
     private val chooseFeelings get() = rule.onNodeWithText(context.getString(R.string.moment_choose_feelings))
@@ -127,16 +127,16 @@ class MomentScreenTest {
 
     @Test
     fun `Stunden - start`() = rule.captureLightAndDarkPaused("Moment_start") {
-        MomentScreen("Läggdags", "21:00", prompts[0], 120, {}, {}, reducedMotion = false)
+        MomentScreen("Läggdags", "21:00", prompts[0], { 120 }, {}, {}, reducedMotion = false)
     }
 
     @Test
     fun `Stunden - mitt i`() = rule.captureLightAndDarkPaused("Moment_mitt_i") {
-        MomentScreen("Läggdags", "21:00", prompts[0], 100, {}, {}, reducedMotion = false)
+        MomentScreen("Läggdags", "21:00", prompts[0], { 100 }, {}, {}, reducedMotion = false)
     }
 
     @Test
     fun `Stunden - klar`() = rule.captureLightAndDarkPaused("Moment_klar") {
-        MomentScreen("Läggdags", "21:00", prompts[0], 0, {}, {}, reducedMotion = false)
+        MomentScreen("Läggdags", "21:00", prompts[0], { 0 }, {}, {}, reducedMotion = false)
     }
 }

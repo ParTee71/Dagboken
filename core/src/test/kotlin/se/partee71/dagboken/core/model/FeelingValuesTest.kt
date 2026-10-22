@@ -28,6 +28,7 @@ class FeelingValuesTest {
         assertEquals(listOf(FeelingStrength.MILD, FeelingStrength.CLEAR, FeelingStrength.STRONG, null), seen)
         assertEquals(emptyMap(), post.feelingStrengths, "tillbaka till ingen tar bort nyckeln")
         assertEquals(post, post.withNextStrength(Feeling("sad")), "en känsla som inte är vald ändras inte")
+        assertEquals(post, post.withNote(Feeling("sad"), "Sol"), "inte heller en kommentar till en känsla som inte är vald")
         val unknown = Screening("s", feelings = listOf(glad), feelingStrengths = mapOf("glad" to "framtida"))
         assertEquals(mapOf("glad" to "mild"), unknown.withNextStrength(glad).feelingStrengths, "ett okänt ord är ingen styrka – nästa steg är svag")
     }

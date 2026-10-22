@@ -1,7 +1,6 @@
 package se.partee71.dagboken.ui.today
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.SnackbarHostState
@@ -16,8 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.datetime.LocalDate
@@ -36,7 +33,6 @@ import se.partee71.dagboken.core.engine.OpenDose
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.boostEnd
 import se.partee71.dagboken.core.engine.boostFor
-import se.partee71.dagboken.core.engine.doseFor
 import se.partee71.dagboken.core.engine.groupedByLogged
 import se.partee71.dagboken.core.engine.isScheduled
 import se.partee71.dagboken.core.engine.isScheduledPrescription
@@ -44,7 +40,6 @@ import se.partee71.dagboken.core.engine.latest
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Prescription
-import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.data.auth.AuthUser
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.DateFormat
@@ -62,7 +57,6 @@ import se.partee71.dagboken.ui.components.DateStrip
 import se.partee71.dagboken.ui.components.DayDoneCard
 import se.partee71.dagboken.ui.components.FeelingMiniWheel
 import se.partee71.dagboken.ui.components.FeelingPills
-import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.ProgressBar
 import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.components.SectionFoldout
@@ -86,9 +80,7 @@ import se.partee71.ui.common.DetailUiState
 import se.partee71.ui.common.UiError
 import se.partee71.ui.components.AppButton
 import se.partee71.ui.components.AppCard
-import se.partee71.ui.components.AppFilterChip
 import se.partee71.ui.components.AppMenuItem
-import se.partee71.ui.components.AppMenuPopup
 import se.partee71.ui.components.ButtonVariant
 import se.partee71.ui.components.CheckRow
 import se.partee71.ui.components.ChipRow
@@ -103,7 +95,6 @@ import se.partee71.ui.components.MessageSnackbar
 import se.partee71.ui.components.SectionHeader
 import se.partee71.ui.components.UndoRequest
 import se.partee71.ui.components.UndoSnackbar
-import se.partee71.ui.components.inactive
 import se.partee71.ui.theme.Spacing
 import se.partee71.ui.theme.Tone
 
@@ -305,7 +296,7 @@ private fun MoodCard(content: TodayContent, onScreening: (LogEvent) -> Unit, exp
             count = stringResource(R.string.today_count_format, logged, states.size),
             tone = if (content.isToday && logged == states.size) Tone.Positive else Tone.Primary
         ) {
-            val groups = states.groupedByLogged()
+            val groups = remember(states) { states.groupedByLogged() }
             val openLabel = if (content.isToday) R.string.occasion_group_remaining else R.string.occasion_group_not_logged
             MoodGroup(groups.open, stringResource(openLabel).takeIf { groups.bothShown }, content, onScreening)
             MoodGroup(groups.logged, stringResource(R.string.occasion_group_logged).takeIf { groups.bothShown }, content, onScreening)
@@ -371,8 +362,10 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, 
             count = if (doses.total > 0) stringResource(R.string.today_count_format, doses.done, doses.total) else null,
             tone = if (content.isToday && doses.isComplete && !content.dosesMissing) Tone.Positive else Tone.Primary
         ) {
-            val rows = list.shown + (if (content.showUpcoming) list.upcoming else emptyList()) +
-                (if (content.showDone) list.done.map { OpenDose(it, null) } else emptyList())
+            val rows = remember(list, content.showUpcoming, content.showDone) {
+                list.shown + (if (content.showUpcoming) list.upcoming else emptyList()) +
+                    (if (content.showDone) list.done.map { OpenDose(it, null) } else emptyList())
+            }
             // Radens tillstånd (meny, anteckning, krysset) följer dosen när listan ändras.
             rows.forEach { row -> key(row.dose.id) { DoseRow(row, content, onEvent, onSkip = { skipping = it }, onDelete = { deleting = it }) } }
             when {

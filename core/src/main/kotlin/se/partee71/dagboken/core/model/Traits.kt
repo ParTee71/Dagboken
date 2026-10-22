@@ -75,11 +75,9 @@ interface HasFeelings<T : HasFeelings<T>> {
     fun strengthOf(feeling: Feeling): FeelingStrength? = FeelingStrength.of(feelingStrengths[feeling.token])
 
     /** [feeling] ett steg starkare i långtryckets cykel (SCR-9); en känsla som inte är vald ändras inte. */
-    fun withNextStrength(feeling: Feeling): T {
-        if (feeling !in feelings) return copyFeelings(feelings, feelingStrengths, feelingNotes)
+    fun withNextStrength(feeling: Feeling): T = update(feeling) {
         val next = FeelingStrength.next(strengthOf(feeling))
-        val strengths = if (next == null) feelingStrengths - feeling.token else feelingStrengths + (feeling.token to next.wire)
-        return copyFeelings(feelings, strengths, feelingNotes)
+        copyFeelings(feelings, if (next == null) feelingStrengths - feeling.token else feelingStrengths + (feeling.token to next.wire), feelingNotes)
     }
 
     fun noteOf(feeling: Feeling): String = feelingNotes[feeling.token].orEmpty()
@@ -88,11 +86,12 @@ interface HasFeelings<T : HasFeelings<T>> {
      * Kommentaren till [feeling] som den skrivs (codecen trimmar när den lagras, så att ett mellanslag går att skriva); en
      * tom text tas bort (SCR-10). En känsla som inte är vald ändras inte.
      */
-    fun withNote(feeling: Feeling, note: String): T {
-        if (feeling !in feelings) return copyFeelings(feelings, feelingStrengths, feelingNotes)
-        val notes = if (note.isBlank()) feelingNotes - feeling.token else feelingNotes + (feeling.token to note)
-        return copyFeelings(feelings, feelingStrengths, notes)
+    fun withNote(feeling: Feeling, note: String): T = update(feeling) {
+        copyFeelings(feelings, feelingStrengths, if (note.isBlank()) feelingNotes - feeling.token else feelingNotes + (feeling.token to note))
     }
+
+    /** [change] för en vald känsla; en känsla som inte är vald ger en oförändrad kopia. */
+    private fun update(feeling: Feeling, change: () -> T): T = if (feeling in feelings) change() else copyFeelings(feelings, feelingStrengths, feelingNotes)
 }
 
 /**
