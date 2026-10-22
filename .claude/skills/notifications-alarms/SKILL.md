@@ -40,7 +40,7 @@ Paketet `reminders/` i appen (ARKITEKTUR.md → Lager och moduler); tidsberäkni
 | `AlarmScheduler` | `@Singleton`, enda stället för larmlogik: `rescheduleAll` (avbokar allt, lägger de påslagna), `rescheduleNext` (en utlöst påminnelse), `cancelAll`. Unik `requestCode` per `Reminder`. |
 | `ReminderContent` | Vad en påminnelse visar och "Markera tagen" – via `SettingsRepository`, `PrescriptionRepository`, `DoseRepository`, `ScreeningRepository`; `moodNotice` ger måendepåminnelsen med Stunden (`MoodNotice`, NOT-20). |
 | `NotificationHelper` | Kanalerna (`CHANNEL_MEDS` default, `CHANNEL_SCREENING` low – "Måendepåminnelser", `CHANNEL_MOMENT` high – "Stunden") och notiserna, privata med offentlig version. `markTakenFailed` bygger från grundtexten (idempotent); `dismiss` stänger måendepåminnelsen när "Logga nu" öppnat appen. |
-| `ReminderActions` + mottagarna | `MedAlarmReceiver`, `ScreeningReminderReceiver`, `PeriodReminderReceiver`, `MedActionReceiver`, `BootReceiver` är tunna; vad de gör står i `ReminderActions` (testbart utan Hilt), körs av `ReceiverWork` (`goAsync`, nästa larm först, sedan notisen, under systemets tidsgräns). |
+| `ReminderActions` + mottagarna | `MedAlarmReceiver`, `ScreeningReminderReceiver`, `PeriodReminderReceiver` (en implementation, `AlarmReceiver`; namnen byts aldrig – redan satta larm pekar på dem), `MedActionReceiver`, `BootReceiver` är tunna; vad de gör står i `ReminderActions` (testbart utan Hilt), körs av `ReceiverWork` (`goAsync`, nästa larm först, sedan notisen, under systemets tidsgräns). |
 | `AlarmLedger` | Senast schemalagd och senast utlöst per påminnelse (NOT-14), enhetslokalt, utan innehåll. |
 | `ReminderSync` | Startas från `MainActivity`; lägger om larmen när påminnelseinställningarna ändras i cachen (recept och doser påverkar inte larmen, bara notisens innehåll), avbokar vid utloggning. |
 | `ReminderIntents` / `ReminderLaunch` / `MomentLaunch` | Actions och extras (en gång); vad en tryckt notis öppnar (bara kända värden tolkas; `LogMood(feelings)` = känslosteget); vad Stunden visar (tillfälle, klockslag, längd, hjälpfråga). |
@@ -76,8 +76,8 @@ Kanaler måste skapas (`NotificationHelper.createChannels`) **innan** första no
 heads-up). Ändra inte importance utan att uppdatera NOT-1.
 
 ### Stunden – helskärm före måendeincheckningen (NOT-20, NOT-21)
-- Inget eget larm: måendetillfällets larm (`ReminderPlan`, `isMoment`) är Stunden när den är på. `ReminderAlarm.moment`
-  är bara en markering; mottagaren avgör ur inställningarna när larmet går (`ReminderContent.moodNotice`) – oläsbara
+- Inget eget larm: måendetillfällets larm (`ReminderPlan`, `isMoment`) är Stunden när den är på. Mottagaren avgör ur
+  inställningarna när larmet går (`ReminderContent.moodNotice`, `MomentLaunch.takeover` = helskärm) – oläsbara
   inställningar ger en vanlig måendepåminnelse.
 - Samma notis-id per tillfälle som måendepåminnelsen, "Logga nu" kvar, plus "Starta Stunden" och tryck som öppnar
   `MomentActivity` (explicit, `FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE`, en `requestCode` per tillfälle). Ta över skärmen

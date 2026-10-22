@@ -146,6 +146,7 @@ class ReminderIntentsTest {
     fun `Stundens extras - rundtur, okänt tillfälle ger inget och längden avrundas (NOT-20)`() {
         val moment = MomentLaunch(Occasion.LUNCH, LocalTime(12, 15), seconds = 75, question = false)
         assertEquals(moment, MomentLaunch.from(moment.putInto(Intent())))
+        assertEquals(moment, MomentLaunch.from(moment.copy(takeover = true).putInto(Intent())), "helskärmen gäller notisen och följer inte med")
 
         assertNull(MomentLaunch.from(null))
         assertNull(MomentLaunch.from(Intent().putExtra(ReminderIntents.EXTRA_OCCASION, "okänt")))

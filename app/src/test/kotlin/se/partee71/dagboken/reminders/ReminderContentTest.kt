@@ -2,6 +2,7 @@ package se.partee71.dagboken.reminders
 
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
@@ -130,9 +131,9 @@ class ReminderContentTest {
         f.enable(occasions = setOf(Occasion.LUNCH, Occasion.DINNER))
         f.screenings.save(null, f.screenings.new(today, Occasion.LUNCH)).getOrThrow()
 
-        assertFalse(f.content.moodDue(Occasion.LUNCH))
-        assertTrue(f.content.moodDue(Occasion.DINNER))
-        assertFalse(f.content.moodDue(Occasion.BEDTIME), "avslaget tillfälle")
+        assertNull(f.content.moodNotice(Occasion.LUNCH))
+        assertNotNull(f.content.moodNotice(Occasion.DINNER))
+        assertNull(f.content.moodNotice(Occasion.BEDTIME), "avslaget tillfälle")
     }
 
     @Test
@@ -140,7 +141,7 @@ class ReminderContentTest {
         f.enable(occasions = setOf(Occasion.LUNCH))
         f.screenings.save(null, f.screenings.new(LocalDate(2026, 5, 5), Occasion.LUNCH)).getOrThrow()
 
-        assertTrue(f.content.moodDue(Occasion.LUNCH))
+        assertNotNull(f.content.moodNotice(Occasion.LUNCH))
     }
 
     @Test
@@ -159,7 +160,7 @@ class ReminderContentTest {
         f.user.uid.value = null
 
         assertTrue(f.content.medDoses(Slot.MORNING, today).isEmpty)
-        assertFalse(f.content.moodDue(Occasion.LUNCH))
+        assertNull(f.content.moodNotice(Occasion.LUNCH))
         assertEquals(emptyList(), f.content.periodEndings())
     }
 
@@ -173,12 +174,12 @@ class ReminderContentTest {
         moment(MomentSettings(enabled = true, seconds = 45, takeover = true, question = false))
 
         assertEquals(
-            MoodNotice(MomentLaunch(Occasion.BEDTIME, Occasion.BEDTIME.defaultTime, seconds = 45, question = false), takeover = true),
+            MoodNotice(MomentLaunch(Occasion.BEDTIME, Occasion.BEDTIME.defaultTime, seconds = 45, question = false, takeover = true)),
             f.content.moodNotice(Occasion.BEDTIME)
         )
         moment(MomentSettings(enabled = true, takeover = false))
-        assertEquals(false, f.content.moodNotice(Occasion.LUNCH)?.takeover)
-        assertTrue(f.content.moodDue(Occasion.LUNCH))
+        assertEquals(false, f.content.moodNotice(Occasion.LUNCH)?.moment?.takeover)
+        assertNotNull(f.content.moodNotice(Occasion.LUNCH))
     }
 
     @Test
@@ -194,12 +195,12 @@ class ReminderContentTest {
     }
 
     @Test
-    fun `Stundens innehåll är bara tillfälle, klockslag, längd och fråga – inga hälsodata (NOT-20)`() = runTest {
+    fun `Stundens innehåll är bara tillfälle, klockslag, längd, fråga och helskärm – inga hälsodata (NOT-20)`() = runTest {
         f.enable(occasions = setOf(Occasion.LUNCH))
         moment(MomentSettings(enabled = true))
         f.screenings.save(null, f.screenings.new(LocalDate(2026, 5, 5), Occasion.LUNCH).copy(energy = 2, note = "Hemligt")).getOrThrow()
 
-        // MomentLaunch har bara de fyra fälten – inget ur loggarna kan följa med till helskärmen eller notisen.
-        assertEquals(MomentLaunch(Occasion.LUNCH, Occasion.LUNCH.defaultTime, MomentSettings.DEFAULT_SECONDS, question = true), f.content.moodNotice(Occasion.LUNCH)?.moment)
+        // MomentLaunch har bara de fyra fälten och helskärmsvalet – inget ur loggarna kan följa med till helskärmen eller notisen.
+        assertEquals(MomentLaunch(Occasion.LUNCH, Occasion.LUNCH.defaultTime, MomentSettings.DEFAULT_SECONDS, question = true, takeover = true), f.content.moodNotice(Occasion.LUNCH)?.moment)
     }
 }

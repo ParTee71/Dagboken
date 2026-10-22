@@ -252,6 +252,37 @@ class AlarmSchedulerTest {
         assertEquals(null, probe, "PendingIntent avbokad")
     }
 
+    /**
+     * Larmets PendingIntent som versionerna före den gemensamma `AlarmReceiver` lade det – mottagarens namn, action och
+     * requestCode som text, inte ur koden, så att ett namnbyte fäller testet.
+     */
+    private fun previousVersionAlarm(reminder: Reminder): PendingIntent? {
+        val (receiver, action, requestCode) = when (reminder) {
+            is Reminder.Med -> Triple("MedAlarmReceiver", "MED_ALARM", 0x7FE0 + reminder.slot.ordinal)
+            is Reminder.Mood -> Triple("ScreeningReminderReceiver", "MOOD_ALARM", 0x7FF0 + reminder.occasion.ordinal)
+            Reminder.PeriodEnd -> Triple("PeriodReminderReceiver", "PERIOD_ALARM", 0x7FD0)
+        }
+        val intent = Intent().setClassName(f.context!!, "se.partee71.dagboken.reminders.$receiver").setAction("se.partee71.dagboken.reminders.$action")
+        return PendingIntent.getBroadcast(f.context, requestCode, intent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
+    }
+
+    @Test
+    fun `larm satta före en appuppdatering är samma larm - de levereras, avbokas och dubbleras inte (NOT-3, NOT-14)`() = runTest {
+        f.enable(slots = Slot.SCHEDULED.toSet(), occasions = Occasion.entries.toSet())
+        val scheduler = f.scheduler()
+        scheduler.rescheduleAll()
+        val alarmManager = shadowOf(f.context!!.getSystemService(android.app.AlarmManager::class.java))
+        AlarmScheduler.ALL.forEach { assertTrue(previousVersionAlarm(it) != null, "samma mottagare, action och requestCode som förut: $it") }
+        assertEquals(AlarmScheduler.ALL.size, alarmManager.scheduledAlarms.size)
+
+        // MY_PACKAGE_REPLACED: allt läggs om – de redan satta larmen ersätts, inget tillkommer.
+        assertEquals(Rescheduled.SCHEDULED, scheduler.rescheduleAll(alarmsCleared = true))
+        assertEquals(AlarmScheduler.ALL.size, alarmManager.scheduledAlarms.size, "inget larm dubblerat")
+
+        scheduler.cancelAll()
+        AlarmScheduler.ALL.forEach { assertEquals(null, previousVersionAlarm(it), "avbokningen träffar också larm från förra versionen: $it") }
+    }
+
     // ── Efter omstart (NOT-6) ─────────────────────────────────────────────────
 
     /** Som en omstart: systemet tömmer AlarmManager, men ledgern finns kvar på disken. */
