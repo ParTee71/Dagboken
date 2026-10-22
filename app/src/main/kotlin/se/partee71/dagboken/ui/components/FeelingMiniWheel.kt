@@ -36,6 +36,7 @@ import se.partee71.dagboken.ui.common.feelingName
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.RING_WIDTH
 import se.partee71.ui.theme.Spacing
 import se.partee71.ui.theme.ToneColors
 
@@ -126,5 +127,4 @@ internal fun fillOf(count: CoreCount, tone: ToneColors): Color = if (count.count
 private const val MIN_FILL = 0.3f
 private const val MAX_FILL = 0.9f
 private const val LABEL_WIDTH_FRACTION = 0.34f
-private val RING_WIDTH = 2.dp
 private val RING_INSET = 3.dp

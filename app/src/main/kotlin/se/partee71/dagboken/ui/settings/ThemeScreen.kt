@@ -24,7 +24,6 @@ import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.ui.common.AppErrors
-import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.ui.common.DetailLoader
 import se.partee71.ui.common.DetailUiState
 import se.partee71.ui.common.UiError
@@ -137,8 +136,7 @@ fun ThemeScreen(state: DetailUiState<ThemeForm>, failure: UiError?, onEvent: (Th
         title = title,
         onRetry = { onEvent(ThemeEvent.Retry) },
         error = failure,
-        onErrorShown = { onEvent(ThemeEvent.ErrorShown) },
-        sectionGap = SECTION_GAP
+        onErrorShown = { onEvent(ThemeEvent.ErrorShown) }
     ) { form ->
         val theme = form.theme
         LabeledGroup(stringResource(R.string.theme_mode), helper = note) {

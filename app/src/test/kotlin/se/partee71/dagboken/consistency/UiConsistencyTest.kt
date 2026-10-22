@@ -93,17 +93,10 @@ class UiConsistencyTest {
     fun `komponenterna från android-ui anropas med Dagbokens parametrar`() {
         // Där bibliotekets standard skiljer sig från Dagboken anges Dagbokens värde i varje anrop (skill shared-ui-components).
         val required = mapOf(
-            "QuantityStepper" to "buttonSize = QuantityStepperDefaults.TouchTargetButtonSize", // 48 dp (NFR-14)
-            "EntityEditScreen" to "horizontalMargin = SCREEN_MARGIN",
-            "EntityDetailScreen" to "sectionGap = SECTION_GAP",
             "PausableRow" to "pillTone = Tone.Neutral"
         )
         val problems = required.flatMap { (component, argument) ->
-            val call = Regex("""(?<![\w.])$component\(""")
-            val calls = production.files.flatMap { file ->
-                val text = stripComments(file.text)
-                call.findAll(text).map { file.name to argumentsOf(text, it.range.last) }.toList()
-            }
+            val calls = callsTo(component)
             if (calls.isEmpty()) {
                 listOf("hittade inga anrop till $component")
             } else {
@@ -111,6 +104,33 @@ class UiConsistencyTest {
             }
         }
         assertEquals(emptyList(), problems)
+    }
+
+    @Test
+    fun `ramarnas och stegarens mått sätts en gång i DagbokenTheme och åsidosätts inte i anropen`() {
+        // Bibliotekets standard är ReseApotekets; Dagbokens värden ges en gång i temat (skill shared-ui-components).
+        val theme = checkNotNull(production.files.firstOrNull { it.name == "Theme" && it.packagee?.name?.endsWith("ui.theme") == true }) { "Theme.kt saknas i ui/theme" }
+        val provided = listOf(
+            "LocalQuantityStepperButtonSize provides QuantityStepperDefaults.TouchTargetButtonSize", // 48 dp (NFR-14)
+            "LocalEditScreenMargin provides Spacing.l",
+            "LocalDetailSectionGap provides Spacing.l"
+        )
+        val themeText = stripComments(theme.text)
+        assertEquals(emptyList(), provided.filterNot { it in themeText }, "DagbokenTheme ska ge måtten")
+        val overrides = mapOf("QuantityStepper" to "buttonSize", "EntityEditScreen" to "horizontalMargin", "EntityDetailScreen" to "sectionGap")
+        val problems = overrides.flatMap { (component, argument) ->
+            val calls = callsTo(component)
+            val named = Regex("""\b$argument\s*=""")
+            if (calls.isEmpty()) {
+                listOf("hittade inga anrop till $component")
+            } else {
+                calls.filter { (_, args) -> named.containsMatchIn(args) }.map { (name, _) -> "$name: $component($argument = …) åsidosätter temats mått" }
+            }
+        }
+        assertEquals(emptyList(), problems)
+        // Måtten når bara skärmar under DagbokenTheme: Compose-roten sätts på ett ställe (setDagbokenContent).
+        val roots = production.files.filter { Regex("""(?<![\w.])setContent\s*[({]""").containsMatchIn(stripComments(it.text)) }.map { it.name }
+        assertEquals(listOf("DagbokenContent"), roots, "setContent bara i setDagbokenContent")
     }
 
     @Test
@@ -258,6 +278,15 @@ class UiConsistencyTest {
             .findAll(skill)
             .joinToString("\n") { it.groupValues[2] }
         return tables.lines().filter { it.startsWith("|") }
+    }
+
+    /** Varje anrop till [component] i produktionskoden: filnamnet och argumenten (utan kommentarer). */
+    private fun callsTo(component: String): List<Pair<String, String>> {
+        val call = Regex("""(?<![\w.])$component\(""")
+        return production.files.flatMap { file ->
+            val text = stripComments(file.text)
+            call.findAll(text).map { file.name to argumentsOf(text, it.range.last) }.toList()
+        }
     }
 
     /** Argumenten i anropet vars öppnande parentes står på [open] – till den matchande stängande. */

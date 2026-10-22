@@ -79,7 +79,6 @@ import se.partee71.dagboken.ui.common.repeatText
 import se.partee71.dagboken.ui.common.weekdaysText
 import se.partee71.dagboken.ui.components.MEDICINE_UNITS
 import se.partee71.dagboken.ui.components.NoteCard
-import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.dagboken.ui.components.UnitChoice
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.ui.common.EditorEvents
@@ -100,7 +99,6 @@ import se.partee71.ui.components.EntityEditScreen
 import se.partee71.ui.components.FieldError
 import se.partee71.ui.components.LabeledGroup
 import se.partee71.ui.components.QuantityStepper
-import se.partee71.ui.components.QuantityStepperDefaults
 import se.partee71.ui.components.SwitchRow
 import se.partee71.ui.theme.Spacing
 
@@ -421,8 +419,7 @@ fun PrescriptionEditScreen(
         events = events,
         onSave = { onEvent(PrescriptionEditEvent.Save) },
         onClose = onClose,
-        onRetry = { onEvent(PrescriptionEditEvent.Retry) },
-        horizontalMargin = SCREEN_MARGIN
+        onRetry = { onEvent(PrescriptionEditEvent.Retry) }
     ) {
         MedicineFields(
             name = p.name,
@@ -526,8 +523,7 @@ private fun RepeatSection(p: Prescription, daysError: String?, onEvent: (Prescri
                 { onEvent(PrescriptionEditEvent.IntervalChanged(it)) },
                 stringResource(R.string.prescription_interval_label),
                 range = MIN_INTERVAL_DAYS..maxOf(MAX_INTERVAL_DAYS, schedule.intervalDays),
-                valueText = { days -> repeatText(Schedule.Repeating(Repeat.INTERVAL, intervalDays = days)).replaceFirstChar { it.titlecase() } },
-                buttonSize = QuantityStepperDefaults.TouchTargetButtonSize
+                valueText = { days -> repeatText(Schedule.Repeating(Repeat.INTERVAL, intervalDays = days)).replaceFirstChar { it.titlecase() } }
             )
         }
     }
@@ -559,8 +555,7 @@ private fun PeriodSection(period: Period, choice: PeriodChoice, endError: String
                     { onEvent(PrescriptionEditEvent.LengthChanged(it)) },
                     stringResource(R.string.prescription_length_label),
                     range = 1..maxOf(MAX_PERIOD_DAYS, days),
-                    valueText = { pluralStringResource(R.plurals.prescription_days_count, it, it) },
-                    buttonSize = QuantityStepperDefaults.TouchTargetButtonSize
+                    valueText = { pluralStringResource(R.plurals.prescription_days_count, it, it) }
                 )
             }
 

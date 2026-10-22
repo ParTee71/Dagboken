@@ -20,7 +20,6 @@ import se.partee71.dagboken.core.model.Profile
 import se.partee71.dagboken.core.model.Sex
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.ui.common.EditorEvents
 import se.partee71.ui.common.EditorState
 import se.partee71.ui.common.EditorUiState
@@ -112,8 +111,7 @@ fun ProfileScreen(state: EditorUiState<ProfileForm>, events: EditorEvents, onEve
         events = events,
         onSave = { onEvent(ProfileEvent.Save) },
         onClose = onClose,
-        onRetry = { onEvent(ProfileEvent.Retry) },
-        horizontalMargin = SCREEN_MARGIN
+        onRetry = { onEvent(ProfileEvent.Retry) }
     ) {
         AppTextField(
             state.value.birthYear,

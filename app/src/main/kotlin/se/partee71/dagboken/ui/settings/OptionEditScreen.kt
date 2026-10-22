@@ -35,7 +35,6 @@ import se.partee71.dagboken.data.common.asDataError
 import se.partee71.dagboken.data.repository.DuplicateOptionName
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.ui.common.AppErrors
-import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.ui.common.EditorEvents
 import se.partee71.ui.common.EditorLoader
 import se.partee71.ui.common.EditorState
@@ -220,8 +219,7 @@ fun OptionEditScreen(
         onClose = onClose,
         onArchive = if (archived == false) ({ onEvent(OptionEditEvent.Archive) }) else null,
         onRestore = if (archived == true) ({ onEvent(OptionEditEvent.Restore) }) else null,
-        onRetry = { onEvent(OptionEditEvent.Retry) },
-        horizontalMargin = SCREEN_MARGIN
+        onRetry = { onEvent(OptionEditEvent.Retry) }
     ) {
         AppTextField(
             state.value,

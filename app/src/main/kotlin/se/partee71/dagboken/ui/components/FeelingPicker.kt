@@ -29,7 +29,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -50,12 +49,15 @@ import se.partee71.dagboken.ui.common.withStrength
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.RING_WIDTH
 import se.partee71.ui.components.AppButton
 import se.partee71.ui.components.AppTextField
 import se.partee71.ui.components.ButtonVariant
 import se.partee71.ui.components.ChipRow
 import se.partee71.ui.components.LabeledGroup
+import se.partee71.ui.components.LongPressSemantics
 import se.partee71.ui.components.inactive
+import se.partee71.ui.components.longPress
 import se.partee71.ui.theme.Spacing
 import se.partee71.ui.theme.ToneColors
 
@@ -103,7 +105,7 @@ class FeelingExtras(
  * aktivitetens "Vad kände du?" (AKT-13).
  *
  * [extras] (SCR-9, SCR-10): **långtryck** på det yttersta valda ordet – navet när bara kärnan är vald, annars nyansen
- * eller det precisare ordet – gör känslan ett steg starkare ([longPressAction], TalkBack-åtgärden "Starkare"); ordet,
+ * eller det precisare ordet – gör känslan ett steg starkare (`longPress`, TalkBack-åtgärden "Starkare"); ordet,
  * pillen och hjulets sektor fylls med kärnans ton i styrkans intensitet, med 1–3 prickar, och TalkBack läser styrkan
  * som ord. Under pillsen har varje vald känsla en hopfälld kommentar ("Lägg till varför") som fälls ut till ett enradigt
  * fält "Varför? (valfritt)"; en sparad kommentar visas utfälld.
@@ -215,7 +217,7 @@ private fun Hub(core: String, colors: ToneColors, chosen: Boolean, strength: Fee
             Modifier.size(HUB_WIDTH, HUB_HEIGHT)
                 .clip(AppShapes.feelingHub)
                 .background(colors.content)
-                .longPressAction(stronger, LocalHapticFeedback.current, onStronger)
+                .longPress(stronger, onStronger, haptic = true, semantics = LongPressSemantics.CustomAction)
                 .semantics {
                     contentDescription = description
                     if (chosen) stateDescription = selectedState
@@ -223,7 +225,7 @@ private fun Hub(core: String, colors: ToneColors, chosen: Boolean, strength: Fee
             contentAlignment = Alignment.Center
         ) {
             // Ringen ligger en bit innanför kanten, så att den syns mot fyllnaden i båda temana.
-            if (chosen) Box(Modifier.matchParentSize().padding(Spacing.xs).border(RING, colors.container, AppShapes.feelingHub))
+            if (chosen) Box(Modifier.matchParentSize().padding(Spacing.xs).border(RING_WIDTH, colors.container, AppShapes.feelingHub))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(name, Modifier.clearAndSetSemantics {}, style = AppTypography.itemTitle, color = colors.container)
                 StrengthDots(strength, colors.container)
@@ -260,7 +262,12 @@ private fun FeelingWord(
             .inactive(!enabled)
             .clip(shape)
             .background(colors.container)
-            .longPressAction(stronger, LocalHapticFeedback.current, outermost?.let { o -> extras.onStronger?.let { { it(o) } } })
+            .longPress(
+                stronger,
+                outermost?.let { o -> extras.onStronger?.let { { it(o) } } },
+                haptic = true,
+                semantics = LongPressSemantics.CustomAction
+            )
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .semantics {
                 contentDescription = description
@@ -408,4 +415,3 @@ private const val COLUMNS = 2
 private val HUB_HEIGHT = 72.dp
 private val HUB_WIDTH = HUB_HEIGHT * 2
 private val NUANCE_HEIGHT = 52.dp
-private val RING = 2.dp

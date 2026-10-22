@@ -26,6 +26,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.TRACK_HEIGHT
 import se.partee71.ui.theme.Spacing
 
 /**
@@ -59,7 +60,7 @@ fun ProgressBar(done: Int, total: Int, modifier: Modifier = Modifier, celebrate:
             style = AppTypography.itemSubtitle,
             color = if (complete) colors.onSurface else colors.onSurfaceVariant
         )
-        Box(Modifier.fillMaxWidth().height(TRACK).clip(AppShapes.pill).background(AppColors.extended.track)) {
+        Box(Modifier.fillMaxWidth().height(TRACK_HEIGHT).clip(AppShapes.pill).background(AppColors.extended.track)) {
             // Fjädern får slå över lite (Expressive) – fyllnaden stannar ändå inom spåret.
             // Solgult ensamt syns för dåligt mot kortet – vid klart får fyllnaden en kontur (ThemeContrastTest).
             val outline = if (complete) Modifier.border(OUTLINE, AppColors.extended.sunTone.content, AppShapes.pill) else Modifier
@@ -68,5 +69,4 @@ fun ProgressBar(done: Int, total: Int, modifier: Modifier = Modifier, celebrate:
     }
 }
 
-private val TRACK = 8.dp
 private val OUTLINE = 1.dp
