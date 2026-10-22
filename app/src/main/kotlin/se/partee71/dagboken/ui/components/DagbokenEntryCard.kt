@@ -1,19 +1,15 @@
 package se.partee71.dagboken.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
@@ -36,7 +31,6 @@ import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.ui.theme.AppShapes
-import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppDivider
 import se.partee71.ui.components.AppIconButton
@@ -46,10 +40,14 @@ import se.partee71.ui.components.DeleteAction
 import se.partee71.ui.components.DeleteConfirmDialog
 import se.partee71.ui.components.ItemRowText
 import se.partee71.ui.components.NoteIndicator
+import se.partee71.ui.components.SwipeBackground
 import se.partee71.ui.components.SwitchControl
 import se.partee71.ui.components.accentBar
+import se.partee71.ui.components.chevronRotation
+import se.partee71.ui.components.expandLabels
 import se.partee71.ui.components.inactive
 import se.partee71.ui.theme.Spacing
+import se.partee71.ui.theme.ToneColors
 
 /**
  * Postkortet (NFR-15, NFR-16) – kortet för en sparad post: dos, aktivitet, mående, händelse,
@@ -246,15 +244,13 @@ private fun SwipeToDelete(onRequest: () -> Unit, modifier: Modifier = Modifier, 
         state = state,
         backgroundContent = {
             // Bara en bild av svepet; åtgärden finns för TalkBack som menyns Radera.
-            Row(
-                Modifier.fillMaxSize().clip(AppShapes.card).background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = Spacing.l).clearAndSetSemantics {},
-                horizontalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val color = MaterialTheme.colorScheme.onErrorContainer
-                Icon(painterResource(R.drawable.ic_delete), contentDescription = null, tint = color)
-                Text(stringResource(R.string.delete), style = AppTypography.button, color = color)
-            }
+            SwipeBackground(
+                stringResource(R.string.delete),
+                R.drawable.ic_delete,
+                Modifier.clearAndSetSemantics {},
+                colors = ToneColors(MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer),
+                shape = AppShapes.card
+            )
         },
         modifier = modifier,
         enableDismissFromStartToEnd = false,

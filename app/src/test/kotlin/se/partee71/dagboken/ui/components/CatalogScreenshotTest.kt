@@ -62,7 +62,6 @@ import se.partee71.ui.components.LabeledGroup
 import se.partee71.ui.components.LocalTopBarStatus
 import se.partee71.ui.components.PausableRow
 import se.partee71.ui.components.QuantityStepper
-import se.partee71.ui.components.QuantityStepperDefaults
 import se.partee71.ui.components.SectionHeader
 import se.partee71.ui.components.Suggestion
 import se.partee71.ui.components.SuggestionField
@@ -302,8 +301,8 @@ class CatalogScreenshotTest {
         captureLightAndDark("AppSegmentedChoice_tema") { Sheet { AppSegmentedChoice(listOf("Ljust", "Mörkt", "Auto"), 2, {}) } }
         captureLightAndDark("QuantityStepper_varde") {
             Sheet {
-                QuantityStepper(45, {}, "minuter", buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
-                QuantityStepper(0, {}, "tabletter", range = 0..9, buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
+                QuantityStepper(45, {}, "minuter")
+                QuantityStepper(0, {}, "tabletter", range = 0..9)
             }
         }
     }

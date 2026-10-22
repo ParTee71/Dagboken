@@ -28,7 +28,6 @@ import se.partee71.dagboken.di.IoDispatcher
 import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.components.Foldout
-import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.ui.common.DetailLoader
 import se.partee71.ui.common.DetailUiState
@@ -79,8 +78,7 @@ fun AboutScreen(state: DetailUiState<AboutInfo>, onBack: () -> Unit, onRetry: ()
         header = null,
         onBack = onBack,
         title = stringResource(R.string.settings_about),
-        onRetry = onRetry,
-        sectionGap = SECTION_GAP
+        onRetry = onRetry
     ) { about ->
         AppCard {
             ItemRow(stringResource(R.string.about_version), subtitle = stringResource(R.string.about_build_format, about.versionName, about.versionCode))

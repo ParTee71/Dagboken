@@ -77,7 +77,6 @@ import se.partee71.ui.components.InfoPill
 import se.partee71.ui.components.ItemRow
 import se.partee71.ui.components.LocalTopBarStatus
 import se.partee71.ui.components.QuantityStepper
-import se.partee71.ui.components.QuantityStepperDefaults
 import se.partee71.ui.components.Suggestion
 import se.partee71.ui.components.SuggestionField
 import se.partee71.ui.components.SwipeToHide
@@ -217,7 +216,7 @@ class ComponentBehaviorTest {
     @Test
     fun `stegaren ökar och minskar inom intervallet och beskriver värdet`() {
         var value by mutableIntStateOf(1)
-        show { QuantityStepper(value, { value = it }, "dagar", range = 1..2, buttonSize = QuantityStepperDefaults.TouchTargetButtonSize) }
+        show { QuantityStepper(value, { value = it }, "dagar", range = 1..2) }
         rule.onNodeWithContentDescription("Minska dagar").assertIsNotEnabled()
         rule.onNodeWithContentDescription("Öka dagar").performClick()
         assertEquals(2, value)
@@ -228,7 +227,7 @@ class ComponentBehaviorTest {
     @Test
     fun `stegarens knappar är 48 dp stora, inte bara i tryckytan (NFR-14)`() {
         // Dagbokens anrop ger knapparna tryckytans storlek (UiConsistencyTest kontrollerar varje anrop).
-        show { QuantityStepper(1, {}, "dagar", buttonSize = QuantityStepperDefaults.TouchTargetButtonSize) }
+        show { QuantityStepper(1, {}, "dagar") }
         listOf("Minska dagar", "Öka dagar").forEach {
             rule.onNodeWithContentDescription(it).assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
         }

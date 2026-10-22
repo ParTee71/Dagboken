@@ -53,7 +53,6 @@ import se.partee71.dagboken.ui.components.FeelingPills
 import se.partee71.dagboken.ui.components.FeelingWeekRow
 import se.partee71.dagboken.ui.components.FeelingWheelSize
 import se.partee71.dagboken.ui.components.Foldout
-import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.diagram.CHART_SEPARATOR
 import se.partee71.dagboken.ui.diagram.ChartBand
 import se.partee71.dagboken.ui.diagram.ChartSeries
@@ -128,8 +127,7 @@ fun TrendsScreen(
         onBack = null,
         modifier = modifier,
         title = stringResource(R.string.tab_trends),
-        actions = { avatar() },
-        sectionGap = SECTION_GAP
+        actions = { avatar() }
     ) { content ->
         AppSegmentedChoice(
             options = TrendGroup.entries.map { stringResource(it.label) },

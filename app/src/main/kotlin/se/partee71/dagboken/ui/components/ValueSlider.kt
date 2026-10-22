@@ -40,6 +40,7 @@ import se.partee71.dagboken.ui.common.scaleLevel
 import se.partee71.dagboken.ui.common.scaleValueText
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.TRACK_HEIGHT
 import se.partee71.ui.components.GroupLabel
 import se.partee71.ui.components.InfoPill
 import se.partee71.ui.components.inactive
@@ -132,7 +133,7 @@ private fun Thumb(color: Color) {
 @Composable
 private fun GradientTrack(colors: List<Color>, fraction: Float, anchor: Float) {
     val zeroMark = MaterialTheme.colorScheme.onSurfaceVariant
-    Canvas(Modifier.fillMaxWidth().height(TRACK)) {
+    Canvas(Modifier.fillMaxWidth().height(TRACK_HEIGHT)) {
         val y = size.height / 2
         val stroke = size.height
         val brush = Brush.horizontalGradient(colors, startX = 0f, endX = size.width)
@@ -149,6 +150,5 @@ private fun GradientTrack(colors: List<Color>, fraction: Float, anchor: Float) {
 
 private val THUMB = 24.dp
 private val THUMB_BORDER = 4.dp
-private val TRACK = 8.dp
 private val ZERO_MARK = 2.dp
 private const val TRACK_ALPHA = 0.3f

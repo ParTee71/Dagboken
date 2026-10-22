@@ -40,7 +40,6 @@ import se.partee71.dagboken.ui.common.formatDuration
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.ReminderTimeRow
-import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.dagboken.ui.components.ValueSlider
 import se.partee71.ui.common.EditorEvents
 import se.partee71.ui.common.EditorState
@@ -171,8 +170,7 @@ fun RemindersScreen(
         events = events,
         onSave = { onEvent(RemindersEvent.Save) },
         onClose = onClose,
-        onRetry = { onEvent(RemindersEvent.Retry) },
-        horizontalMargin = SCREEN_MARGIN
+        onRetry = { onEvent(RemindersEvent.Retry) }
     ) {
         if (!access.notifications) {
             NoticeBanner(

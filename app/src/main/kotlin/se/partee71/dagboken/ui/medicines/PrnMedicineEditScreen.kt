@@ -36,7 +36,6 @@ import se.partee71.ui.components.AppTextField
 import se.partee71.ui.components.DeleteAction
 import se.partee71.ui.components.LabeledGroup
 import se.partee71.ui.components.QuantityStepper
-import se.partee71.ui.components.QuantityStepperDefaults
 
 /** Fälten i formuläret. */
 object PrnField {
@@ -170,8 +169,7 @@ fun PrnMedicineEditScreen(
                 { hours -> change(null) { it.copy(minHoursBetween = hours) } },
                 stringResource(R.string.prn_min_hours_label),
                 range = 0..maxOf(MAX_HOURS, m.minHoursBetween),
-                valueText = { if (it <= 0) stringResource(R.string.prn_no_cooldown) else stringResource(R.string.prn_hours_value, it) },
-                buttonSize = QuantityStepperDefaults.TouchTargetButtonSize
+                valueText = { if (it <= 0) stringResource(R.string.prn_no_cooldown) else stringResource(R.string.prn_hours_value, it) }
             )
         }
         LabeledGroup(stringResource(R.string.prn_max_per_day), helper = stringResource(R.string.prn_max_per_day_help)) {
@@ -180,8 +178,7 @@ fun PrnMedicineEditScreen(
                 { max -> change(null) { it.copy(maxPerDay = max) } },
                 stringResource(R.string.prn_max_per_day_label),
                 range = 0..maxOf(MAX_PER_DAY, m.maxPerDay),
-                valueText = { if (it <= 0) stringResource(R.string.prn_unlimited) else it.toString() },
-                buttonSize = QuantityStepperDefaults.TouchTargetButtonSize
+                valueText = { if (it <= 0) stringResource(R.string.prn_unlimited) else it.toString() }
             )
         }
         NoteCard(m.note, { note -> change(null) { it.copy(note = note) } })

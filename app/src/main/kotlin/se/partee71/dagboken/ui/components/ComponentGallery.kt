@@ -1,6 +1,5 @@
 package se.partee71.dagboken.ui.components
 
-import se.partee71.ui.components.QuantityStepperDefaults
 import se.partee71.ui.components.LocalTopBarStatus
 import se.partee71.ui.components.asSplitMenu
 import se.partee71.dagboken.ui.common.AppErrors
@@ -43,7 +42,6 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Screening
-import androidx.compose.ui.platform.LocalHapticFeedback
 import se.partee71.dagboken.core.engine.TypeChoices
 import se.partee71.dagboken.core.engine.OccasionStatus
 import se.partee71.dagboken.data.auth.AuthUser
@@ -132,6 +130,7 @@ import se.partee71.ui.components.LabeledGroup
 import se.partee71.ui.components.ListArchive
 import se.partee71.ui.components.ListGroup
 import se.partee71.ui.components.ListSubgroup
+import se.partee71.ui.components.LongPressSemantics
 import se.partee71.ui.components.PausableRow
 import se.partee71.ui.components.QuantityStepper
 import se.partee71.ui.components.SectionHeader
@@ -146,6 +145,7 @@ import se.partee71.ui.components.TopBarSize
 import se.partee71.ui.components.UndoRequest
 import se.partee71.ui.components.UndoSnackbar
 import se.partee71.ui.components.inactive
+import se.partee71.ui.components.longPress
 
 /**
  * Alla komponenter och ramar på en skärm, med riktiga svenska texter (skill
@@ -327,7 +327,7 @@ private fun Fields() {
     AppFilterChip("Alvedon 500 mg", selected = false, onClick = {}, icon = R.drawable.ic_note, onLongClick = {}, onLongClickLabel = "Fler val")
     ExampleChips(listOf("Promenad", "Yoga", "Städning"), {}, chosen = "Promenad")
     AppSegmentedChoice(listOf("Ljust", "Mörkt", "Auto"), theme, { theme = it })
-    QuantityStepper(minutes, { minutes = it }, "minuter", buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
+    QuantityStepper(minutes, { minutes = it }, "minuter")
 }
 
 @Composable
@@ -434,10 +434,9 @@ private fun Diary() {
     Label("FeelingPicker med styrka och kommentar (FeelingExtras)")
     var post by remember { mutableStateOf(GALLERY_FEELING_POST) }
     AppCard { FeelingPicker(post.feelings, { f -> post = post.withFeelings(f) }, extras = FeelingExtras.of(post) { change -> post = change(post) }) }
-    Label("longPressAction")
+    Label("longPress (haptik, anpassad åtgärd)")
     var presses by remember { mutableIntStateOf(0) }
-    val haptic = LocalHapticFeedback.current
-    InfoPill("Håll in: $presses", Modifier.longPressAction("Starkare", haptic) { presses++ }, onClick = {})
+    InfoPill("Håll in: $presses", Modifier.longPress("Starkare", { presses++ }, haptic = true, semantics = LongPressSemantics.CustomAction), onClick = {})
     Label("FeelingPills")
     ChipRow { FeelingPills(GALLERY_POST_FEELINGS) }
     // Styrkans tre intensiteter med prickar (SCR-9).
@@ -806,7 +805,7 @@ private fun Overlays() {
                 AppButton("Spara", { sheet = false })
             },
         ) {
-            QuantityStepper(minutes, { minutes = it }, "minuter", buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
+            QuantityStepper(minutes, { minutes = it }, "minuter")
         }
     }
     when (appSheet) {
@@ -910,7 +909,7 @@ private fun Frames(onBack: () -> Unit) {
     }
     Label("EntityDetailScreen – finns inte längre")
     Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
-        EntityDetailScreen<String>(DetailUiState.Error(AppErrors.notFound()), header = { DetailHeader(it) }, onBack = {}, sectionGap = SECTION_GAP) {}
+        EntityDetailScreen<String>(DetailUiState.Error(AppErrors.notFound()), header = { DetailHeader(it) }, onBack = {}) {}
     }
     Label("EntityEditScreen")
     var name by remember { mutableStateOf("") }
@@ -922,8 +921,7 @@ private fun Frames(onBack: () -> Unit) {
             onSave = {},
             onClose = onBack,
             onArchive = {},
-            delete = DeleteAction("Radera Yoga?", "Aktivitetstypen tas bort för gott. Det går inte att ångra.") {},
-            horizontalMargin = SCREEN_MARGIN,
+            delete = DeleteAction("Radera Yoga?", "Aktivitetstypen tas bort för gott. Det går inte att ångra.") {}
         ) {
             AppTextField(name, { name = it }, "Namn")
         }
@@ -936,8 +934,7 @@ private fun Frames(onBack: () -> Unit) {
             onBack = onBack,
             onEdit = {},
             menu = { listOf(AppMenuItem("Avsluta episoden", {}, R.drawable.ic_check)) },
-            leading = { Text("🤧", style = AppTypography.headline) },
-            sectionGap = SECTION_GAP,
+            leading = { Text("🤧", style = AppTypography.headline) }
         ) {
             AppCard {
                 SectionHeader("Incheckningar", icon = R.drawable.ic_thermometer, count = "1")

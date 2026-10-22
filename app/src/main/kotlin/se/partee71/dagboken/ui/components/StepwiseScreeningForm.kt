@@ -35,6 +35,7 @@ import se.partee71.dagboken.core.model.somatic
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.TRACK_HEIGHT
 import se.partee71.ui.components.AppButton
 import se.partee71.ui.components.ButtonVariant
 import se.partee71.ui.theme.Spacing
@@ -150,11 +151,10 @@ private fun StepDots(count: Int, current: Int) {
     Row(Modifier.fillMaxWidth().clearAndSetSemantics {}, horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally)) {
         repeat(count) { index ->
             val active = index == current
-            val width by animateDpAsState(if (active) DOT_ACTIVE else DOT, MaterialTheme.motionScheme.fastSpatialSpec(), label = "stegprick")
-            Box(Modifier.size(width, DOT).background(if (active) MaterialTheme.colorScheme.primary else AppColors.extended.track, AppShapes.pill))
+            val width by animateDpAsState(if (active) DOT_ACTIVE else TRACK_HEIGHT, MaterialTheme.motionScheme.fastSpatialSpec(), label = "stegprick")
+            Box(Modifier.size(width, TRACK_HEIGHT).background(if (active) MaterialTheme.colorScheme.primary else AppColors.extended.track, AppShapes.pill))
         }
     }
 }
 
-private val DOT = 8.dp
 private val DOT_ACTIVE = 20.dp

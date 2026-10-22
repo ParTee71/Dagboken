@@ -27,6 +27,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.common.rememberReducedMotion
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppTypography
+import se.partee71.dagboken.ui.theme.RING_WIDTH
 
 /**
  * Andningscirkeln (Stunden, NOT-20): en cirkel i teal som växer under "Andas in" och krymper under "Andas ut", i
@@ -68,7 +69,7 @@ fun BreathingCircle(
             val edge = MaterialTheme.colorScheme.primary
             Canvas(Modifier.fillMaxSize()) {
                 val outer = this.size.minDimension / 2
-                drawCircle(ring, radius = outer - RING.toPx() / 2, style = Stroke(RING.toPx()))
+                drawCircle(ring, radius = outer - RING_WIDTH.toPx() / 2, style = Stroke(RING_WIDTH.toPx()))
                 val radius = outer * scale.value
                 drawCircle(fill, radius = radius)
                 drawCircle(edge, radius = radius - EDGE.toPx() / 2, style = Stroke(EDGE.toPx()))
@@ -93,5 +94,4 @@ val BREATHING_CIRCLE_SIZE = 220.dp
 
 private const val REST_SCALE = 0.55f
 private const val FULL_SCALE = 0.96f
-private val RING = 2.dp
 private val EDGE = 3.dp

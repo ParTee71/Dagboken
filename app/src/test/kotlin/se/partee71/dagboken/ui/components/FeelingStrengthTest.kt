@@ -4,12 +4,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -39,10 +41,12 @@ import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.ui.theme.DagbokenTheme
+import se.partee71.ui.components.LongPressSemantics
+import se.partee71.ui.components.longPress
 
 /**
  * Styrka och kommentar per känsla i väljaren (SCR-9, SCR-10): långtrycket på det yttersta valda ordet, TalkBack-åtgärden
- * "Starkare", styrkan i ord, att ett släckt ord nollställs, kommentarsfälten – och den delade gesten [longPressAction].
+ * "Starkare", styrkan i ord, att ett släckt ord nollställs, kommentarsfälten – och den delade gesten `longPress` (android-ui) med haptik och anpassad åtgärd.
  * Hög skärm, så att gesterna når orden längst ner i kärnvyn.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -174,7 +178,7 @@ class FeelingStrengthTest {
     }
 
     @Test
-    fun `longPressAction - långtryck kör åtgärden en gång med haptik och inte trycket, kort tryck bara trycket`() {
+    fun `longPress - långtryck kör åtgärden en gång med haptik och inte trycket, kort tryck bara trycket`() {
         var clicks = 0
         var presses = 0
         val haptics = mutableListOf<HapticFeedbackType>()
@@ -184,7 +188,13 @@ class FeelingStrengthTest {
             }
         }
         show {
-            Box(Modifier.size(48.dp).testTag("yta").longPressAction("Starkare", haptic) { presses++ }.clickable { clicks++ })
+            CompositionLocalProvider(LocalHapticFeedback provides haptic) {
+                Box(
+                    Modifier.size(48.dp).testTag("yta")
+                        .longPress("Starkare", { presses++ }, haptic = true, semantics = LongPressSemantics.CustomAction)
+                        .clickable { clicks++ }
+                )
+            }
         }
         rule.onNodeWithTag("yta").performTouchInput { longClick() }
         rule.runOnIdle {

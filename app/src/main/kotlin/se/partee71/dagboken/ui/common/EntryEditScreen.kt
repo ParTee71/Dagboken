@@ -7,7 +7,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.DateTimeRow
-import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.ui.components.DeleteAction
 import se.partee71.ui.components.EntityEditScreen
 
@@ -38,8 +37,7 @@ fun <T> EntryEditScreen(
         onClose = onClose,
         delete = if (form.isNew || delete == null) null else delete(form.stored ?: form.value) { form.onEvent(EntryEditEvent.Delete) },
         onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(shownErrors)) stringResource(R.string.form_not_savable) else null,
-        horizontalMargin = SCREEN_MARGIN
+        formError = if (state.hasErrorOutside(shownErrors)) stringResource(R.string.form_not_savable) else null
     ) {
         content(error)
     }

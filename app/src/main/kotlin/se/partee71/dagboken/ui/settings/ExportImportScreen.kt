@@ -13,7 +13,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
 import se.partee71.dagboken.ui.components.NoticeBanner
-import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.importing.ChoiceRow
 import se.partee71.dagboken.ui.importing.ImportEvent
 import se.partee71.dagboken.ui.importing.ImportStage
@@ -67,8 +66,7 @@ fun ExportImportScreen(
         title = stringResource(R.string.settings_export_import),
         error = state.failure,
         onErrorShown = { onEvent(ExportImportEvent.MessageShown) },
-        snackbar = snackbar,
-        sectionGap = SECTION_GAP
+        snackbar = snackbar
     ) { current ->
         if (current.import == ImportStage.Choose) {
             AppCard {

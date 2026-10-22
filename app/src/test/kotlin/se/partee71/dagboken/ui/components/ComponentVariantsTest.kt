@@ -170,8 +170,7 @@ class ComponentVariantsTest {
                 onBack = null,
                 title = "God morgon",
                 subtitle = "Söndag 4 oktober · vecka 40",
-                actions = { AppIconButton(R.drawable.ic_person, "Konto och inställningar", { avatar++ }) },
-                sectionGap = SECTION_GAP
+                actions = { AppIconButton(R.drawable.ic_person, "Konto och inställningar", { avatar++ }) }
             ) { AppCard { ItemRow(it) } }
         }
         rule.onNodeWithText("God morgon").assertIsDisplayed()
@@ -200,7 +199,7 @@ class ComponentVariantsTest {
         }
         captureLightAndDark("ProgressBar_utan_firande") { Sheet { ProgressBar(9, 9, celebrate = false) } }
         captureLightAndDark("EntityDetailScreen_flik") {
-            EntityDetailScreen(DetailUiState.Content("Levaxin 100 µg"), header = null, onBack = null, title = "God morgon", subtitle = "Söndag 4 oktober · vecka 40", sectionGap = SECTION_GAP) {
+            EntityDetailScreen(DetailUiState.Content("Levaxin 100 µg"), header = null, onBack = null, title = "God morgon", subtitle = "Söndag 4 oktober · vecka 40") {
                 AppCard { ItemRow(it, subtitle = "Morgon · 07:00") }
             }
         }

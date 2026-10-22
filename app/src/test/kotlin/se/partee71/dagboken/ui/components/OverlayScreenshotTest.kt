@@ -44,7 +44,6 @@ import se.partee71.ui.components.ConfirmDialog
 import se.partee71.ui.components.DateField
 import se.partee71.ui.components.ItemRow
 import se.partee71.ui.components.QuantityStepper
-import se.partee71.ui.components.QuantityStepperDefaults
 import se.partee71.ui.components.SwipeToHide
 import se.partee71.ui.components.UNDO_MILLIS
 import se.partee71.ui.components.UndoRequest
@@ -81,7 +80,7 @@ class OverlayScreenshotTest {
             Spacer(Modifier.weight(1f))
             AppButton("Spara", {})
         }) {
-            QuantityStepper(45, {}, "minuter", buttonSize = QuantityStepperDefaults.TouchTargetButtonSize)
+            QuantityStepper(45, {}, "minuter")
         }
     }
 

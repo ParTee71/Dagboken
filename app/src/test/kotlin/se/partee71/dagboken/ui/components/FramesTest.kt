@@ -267,7 +267,7 @@ class FramesTest {
             makeValid = { update("name") { "Promenad" } },
             invalidMessage = string(R.string.error_not_signed_in)
         ) { state, events, onSave, onClose ->
-            EntityEditScreen("Ny aktivitetstyp", state, events, onSave, onClose, horizontalMargin = SCREEN_MARGIN) {
+            EntityEditScreen("Ny aktivitetstyp", state, events, onSave, onClose) {
                 AppTextField(state.value, { v -> editor.update("name") { v } }, "Namn", error = state.errorFor("name")?.let { string(it) })
             }
         }
@@ -286,8 +286,7 @@ class FramesTest {
                     {},
                     {},
                     onArchive = { archived++ },
-                    delete = DeleteAction("Radera Promenad?", "Det går inte att ångra.") { deleted++ },
-                    horizontalMargin = SCREEN_MARGIN
+                    delete = DeleteAction("Radera Promenad?", "Det går inte att ångra.") { deleted++ }
                 ) {}
             }
         }
@@ -310,7 +309,7 @@ class FramesTest {
         rule.setContent {
             DagbokenTheme {
                 val state by editor.state.collectAsState()
-                EntityEditScreen("Ny händelse", state, editor, {}, { closed++ }, onSaved = { saved++ }, horizontalMargin = SCREEN_MARGIN) {}
+                EntityEditScreen("Ny händelse", state, editor, {}, { closed++ }, onSaved = { saved++ }) {}
             }
         }
         rule.runOnIdle { runBlocking { editor.run { Result.success(Unit) } } }
@@ -325,7 +324,7 @@ class FramesTest {
         rule.setContent {
             DagbokenTheme {
                 val state by editor.state.collectAsState()
-                EntityEditScreen("Ny händelse", state, editor, {}, {}, horizontalMargin = SCREEN_MARGIN) {}
+                EntityEditScreen("Ny händelse", state, editor, {}, {}) {}
             }
         }
         rule.runOnIdle { runBlocking { editor.run { Result.failure(DataError.Unknown) } } }
@@ -339,7 +338,7 @@ class FramesTest {
         rule.setContent {
             DagbokenTheme {
                 val state by editor.state.collectAsState()
-                EntityEditScreen("Ny händelse", state, editor, {}, {}, horizontalMargin = SCREEN_MARGIN) {}
+                EntityEditScreen("Ny händelse", state, editor, {}, {}) {}
             }
         }
         repeat(2) { attempt ->
@@ -362,7 +361,7 @@ class FramesTest {
         restoration.setContent {
             DagbokenTheme {
                 val state by editor.state.collectAsState()
-                if (shown) EntityEditScreen("Ny händelse", state, editor, {}, {}, onSaved = { saved++ }, horizontalMargin = SCREEN_MARGIN) {}
+                if (shown) EntityEditScreen("Ny händelse", state, editor, {}, {}, onSaved = { saved++ }) {}
             }
         }
         // Ett sparfel medan skärmen inte visas tappas inte: snackbaren kommer när den visas.
@@ -404,7 +403,7 @@ class FramesTest {
     fun `EntityEditScreen - arkivera med osparade ändringar frågar först (NFR-10)`() {
         var archived = 0
         rule.setContent {
-            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), EditorEvents.None, {}, {}, onArchive = { archived++ }, horizontalMargin = SCREEN_MARGIN) {} }
+            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), EditorEvents.None, {}, {}, onArchive = { archived++ }) {} }
         }
         rule.onNodeWithContentDescription("Fler val").performClick()
         rule.onNodeWithText("Arkivera").performClick()
@@ -427,7 +426,7 @@ class FramesTest {
     fun `EntityEditScreen - Återställ i menyn för något arkiverat`() {
         var restored = 0
         rule.setContent {
-            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad"), EditorEvents.None, {}, {}, onRestore = { restored++ }, horizontalMargin = SCREEN_MARGIN) {} }
+            DagbokenTheme { EntityEditScreen("Promenad", EditorUiState("Promenad"), EditorEvents.None, {}, {}, onRestore = { restored++ }) {} }
         }
         rule.onNodeWithContentDescription("Fler val").performClick()
         rule.onNodeWithText("Arkivera").assertDoesNotExist()
@@ -449,8 +448,7 @@ class FramesTest {
                     onBack = {},
                     onEdit = { edits++ },
                     menu = { listOf(AppMenuItem("Arkivera", { archived++ })) },
-                    onRetry = { retries++ },
-                    sectionGap = SECTION_GAP
+                    onRetry = { retries++ }
                 ) { Text("Incheckningar") }
             }
         }
@@ -475,7 +473,7 @@ class FramesTest {
         var back = 0
         rule.setContent {
             DagbokenTheme {
-                EntityDetailScreen(DetailUiState.Content("Förkylning"), header = null, onBack = { back++ }, title = "Tema", sectionGap = SECTION_GAP) { ItemRow(it) }
+                EntityDetailScreen(DetailUiState.Content("Förkylning"), header = null, onBack = { back++ }, title = "Tema") { ItemRow(it) }
             }
         }
         rule.onNodeWithText("Tema").assertIsDisplayed()
@@ -493,8 +491,7 @@ class FramesTest {
                 onBack = {},
                 onEdit = {},
                 menu = { listOf(AppMenuItem("Avsluta episoden", {})) },
-                leading = { Text("🤧", style = AppTypography.headline) },
-                sectionGap = SECTION_GAP
+                leading = { Text("🤧", style = AppTypography.headline) }
             ) {
                 AppCard {
                     SectionHeader("Incheckningar", icon = R.drawable.ic_thermometer, count = "1")
@@ -523,13 +520,13 @@ class FramesTest {
     @Test
     fun `EntityEditScreen - ogiltig och giltig`() {
         captureLightAndDark("EntityEditScreen_ogiltig") {
-            EntityEditScreen("Ny aktivitetstyp", EditorUiState("", persistentMapOf("name" to R.string.error_unknown), isValid = false, isDirty = true), EditorEvents.None, {}, {}, horizontalMargin = SCREEN_MARGIN) {
+            EntityEditScreen("Ny aktivitetstyp", EditorUiState("", persistentMapOf("name" to R.string.error_unknown), isValid = false, isDirty = true), EditorEvents.None, {}, {}) {
                 AppTextField("", {}, "Namn", error = "Ange ett namn")
                 LabeledGroup("Sort") { ChoiceChips(listOf("Aktivitet", "Symptom", "Händelse"), "Aktivitet", {}, { it }) }
             }
         }
         captureLightAndDark("EntityEditScreen_giltig") {
-            EntityEditScreen("Ny aktivitetstyp", EditorUiState("Promenad", isValid = true, isDirty = true), EditorEvents.None, {}, {}, onArchive = {}, horizontalMargin = SCREEN_MARGIN) {
+            EntityEditScreen("Ny aktivitetstyp", EditorUiState("Promenad", isValid = true, isDirty = true), EditorEvents.None, {}, {}, onArchive = {}) {
                 AppTextField("Promenad", {}, "Namn")
                 SwitchRow("Favorit", true, {}, subtitle = "Visas först i snabbvalen")
             }
@@ -538,7 +535,7 @@ class FramesTest {
 
     @Test
     fun `EntityEditScreen - släng ändringar`() = rule.captureScreenLightAndDark("EntityEditScreen_slang", open = { onNodeWithContentDescription("Tillbaka").clickWithoutRipple() }) {
-        EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), EditorEvents.None, {}, {}, horizontalMargin = SCREEN_MARGIN) {
+        EntityEditScreen("Promenad", EditorUiState("Promenad 50", isValid = true, isDirty = true), EditorEvents.None, {}, {}) {
             AppTextField("Promenad 50", {}, "Namn")
         }
     }

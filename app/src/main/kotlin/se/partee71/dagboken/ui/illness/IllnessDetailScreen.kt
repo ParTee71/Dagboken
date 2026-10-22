@@ -25,7 +25,6 @@ import se.partee71.dagboken.ui.common.nonBlank
 import se.partee71.dagboken.ui.common.periodText
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.DagbokenEntryCard
-import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.Neutral
 import se.partee71.dagboken.ui.theme.Warning
@@ -93,8 +92,7 @@ fun IllnessDetailScreen(
         menu = { detail -> if (detail.deleting) emptyList() else listOf(AppMenuItem(delete, { onEvent(IllnessDetailEvent.Delete) }, R.drawable.ic_delete, destructive = true)) },
         onRetry = { onEvent(IllnessDetailEvent.Retry) },
         error = failure,
-        onErrorShown = { onEvent(IllnessDetailEvent.ErrorShown) },
-        sectionGap = SECTION_GAP
+        onErrorShown = { onEvent(IllnessDetailEvent.ErrorShown) }
     ) { detail ->
         val summary = detail.summary
         EpisodeCard(detail)

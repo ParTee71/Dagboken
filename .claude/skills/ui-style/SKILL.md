@@ -66,10 +66,12 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
 - Kort **22 dp**, chips och knappar **helt rundade** (`pill`), datumremsans chip **18 dp**, ark
   **28 dp** upptill (`sheet`), rader 18 dp, fält 14 dp (DSN-3).
 - `Spacing`: `xs 4 · s 8 · m 12 · l 16 · xl 24 · xxl 32` dp – enda tillåtna avstånden.
-- **Sidmarginal** `l` (16 dp) på varje skärm – ramarna delar den (`SCREEN_MARGIN`).
+- **Sidmarginal** `l` (16 dp) på varje skärm – ramarna delar den (`LocalEditScreenMargin`, satt i `DagbokenTheme`).
 - **Luftigare än ReseApoteket:** mer avstånd mellan kort (`l`) än inuti dem (`m`); ett kort per
   ämne hellre än täta listor.
 - Tryckytor minst **48 dp** i båda riktningarna (NFR-14) – även knappar inuti en sammansatt kontroll.
+- **Spår och ringar:** `TRACK_HEIGHT` (8 dp) för framstegsraden, reglagets spår och stegprickarna, `RING_WIDTH`
+  (2 dp) för ringen kring något valt eller ett mål – båda i `ui/theme/StrokeSize.kt`.
 - **Känsloväljaren** har två egna former: navet är en halv skiva (`AppShapes.feelingHub`) och nyanserna blad
   rundade i två motstående hörn (`AppShapes.feelingNuance`), som i prototypen (#318).
 - **Vald dag** i datumremsa och kalender är fylld teal i radens form (`AppShapes.row`), aldrig en cirkel.

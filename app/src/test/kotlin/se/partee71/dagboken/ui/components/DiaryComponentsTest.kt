@@ -63,7 +63,6 @@ import se.partee71.ui.components.ConfirmDialog
 import se.partee71.ui.components.DeleteAction
 import se.partee71.ui.components.InfoPill
 import se.partee71.ui.components.QuantityStepper
-import se.partee71.ui.components.QuantityStepperDefaults
 import se.partee71.ui.components.inactive
 import se.partee71.ui.theme.Spacing
 
@@ -524,7 +523,7 @@ class DiaryComponentsTest {
     @Test
     fun `stegaren med steg stannar vid intervallets gränser`() {
         var value by mutableIntStateOf(97)
-        show { QuantityStepper(value, { value = it }, "minuter", range = 0..100, step = 5, buttonSize = QuantityStepperDefaults.TouchTargetButtonSize) }
+        show { QuantityStepper(value, { value = it }, "minuter", range = 0..100, step = 5) }
         rule.onNodeWithContentDescription("Öka minuter").performClick()
         assertEquals(100, value)
         rule.onNodeWithContentDescription("Öka minuter").assertIsNotEnabled()

@@ -58,7 +58,6 @@ import se.partee71.dagboken.ui.components.DayDoneCard
 import se.partee71.dagboken.ui.components.FeelingMiniWheel
 import se.partee71.dagboken.ui.components.FeelingPills
 import se.partee71.dagboken.ui.components.ProgressBar
-import se.partee71.dagboken.ui.components.SECTION_GAP
 import se.partee71.dagboken.ui.components.SectionFoldout
 import se.partee71.dagboken.ui.components.StatPill
 import se.partee71.dagboken.ui.health.HealthEvent
@@ -189,8 +188,7 @@ fun TodayScreen(
         error = failure,
         onErrorShown = { onEvent(TodayEvent.ErrorShown) },
         actions = { avatar() },
-        snackbar = snackbar,
-        sectionGap = SECTION_GAP
+        snackbar = snackbar
     ) { TodayCards(it, onEvent, TodayLinks(onEditPrn, onOpenTrends, onScreening, onLogLater, onOpenIllness, onEditPrescription), health, onHealthEvent) }
 }
 
