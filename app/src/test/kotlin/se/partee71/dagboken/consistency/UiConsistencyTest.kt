@@ -117,16 +117,20 @@ class UiConsistencyTest {
         )
         val themeText = stripComments(theme.text)
         assertEquals(emptyList(), provided.filterNot { it in themeText }, "DagbokenTheme ska ge måtten")
-        val overrides = mapOf("QuantityStepper" to "buttonSize =", "EntityEditScreen" to "horizontalMargin =", "EntityDetailScreen" to "sectionGap =")
+        val overrides = mapOf("QuantityStepper" to "buttonSize", "EntityEditScreen" to "horizontalMargin", "EntityDetailScreen" to "sectionGap")
         val problems = overrides.flatMap { (component, argument) ->
             val calls = callsTo(component)
+            val named = Regex("""\b$argument\s*=""")
             if (calls.isEmpty()) {
                 listOf("hittade inga anrop till $component")
             } else {
-                calls.filter { (_, args) -> argument in args }.map { (name, _) -> "$name: $component($argument …) åsidosätter temats mått" }
+                calls.filter { (_, args) -> named.containsMatchIn(args) }.map { (name, _) -> "$name: $component($argument = …) åsidosätter temats mått" }
             }
         }
         assertEquals(emptyList(), problems)
+        // Måtten når bara skärmar under DagbokenTheme: Compose-roten sätts på ett ställe (setDagbokenContent).
+        val roots = production.files.filter { Regex("""(?<![\w.])setContent\s*[({]""").containsMatchIn(stripComments(it.text)) }.map { it.name }
+        assertEquals(listOf("DagbokenContent"), roots, "setContent bara i setDagbokenContent")
     }
 
     @Test
