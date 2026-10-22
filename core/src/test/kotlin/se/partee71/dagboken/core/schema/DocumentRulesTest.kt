@@ -144,19 +144,6 @@ class DocumentRulesTest {
     }
 
     @Test
-    fun `fältträdet per samling är codecens fält med underträd för nästlade objekt`() {
-        val settings = DocumentRules.fieldTree(CollectionNames.SETTINGS)
-        assertEquals(DocumentRules.FIELDS.getValue(CollectionNames.SETTINGS).keys, settings.fields.keys)
-        assertEquals(DocumentRules.THEME.fields.keys, settings.fields.getValue("theme")!!.fields.keys)
-        assertEquals(DocumentRules.REMINDERS.fields.keys, settings.fields.getValue("reminders")!!.fields.keys)
-        assertEquals(null, settings.fields.getValue("reminders")!!.fields.getValue("medSlots"), "listor jämförs hela")
-        val doses = DocumentRules.fieldTree(CollectionNames.DOSES)
-        assertEquals(DocumentRules.FIELDS.getValue(CollectionNames.DOSES).keys, doses.fields.keys)
-        assertTrue(doses.fields.values.all { it == null })
-        assertEquals(null, DocumentRules.fieldTree(CollectionNames.USERS).fields.getValue("legacyMigration")!!.fields.getValue("counts"))
-    }
-
-    @Test
     fun `konstanterna och mönstren är rules`() {
         assertEquals(constant("maxFields"), DocumentRules.MAX_FIELDS)
         assertEquals(constant("maxSymptoms"), DocumentRules.MAX_SYMPTOMS)

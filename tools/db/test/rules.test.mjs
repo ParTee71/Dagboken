@@ -250,7 +250,7 @@ test('fixturens dokument (alla samlingar, varje fält, null och tidsstämplar) g
   const owner = db('uid-test');
   const orphan = documents.filter((d) => d.path.includes('/utan-dokument/'));
   assert.equal(orphan.length, 1, 'fixturen har en incheckning utan episod');
-  // Migreringsmarkörens completedAt måste vara serverns tid (OMB-7) – klienten skriver den som appen gör, med serverTimestamp().
+  // Migreringsmarkörens completedAt måste vara serverns tid (markören från 4.0–4.7) – klienten skriver den som appen gör, med serverTimestamp().
   const asClient = (data) => (data.legacyMigration ? { ...toClient(data), legacyMigration: { ...toClient(data.legacyMigration), completedAt: serverTimestamp() } } : toClient(data));
   for (const { path, data } of documents.filter((d) => !orphan.includes(d))) await assertSucceeds(setDoc(doc(owner, path), asClient(data)));
   // Verktygen kan lagra en föräldralös incheckning (rundturen bevarar den), men appen kan inte skapa en.
@@ -840,7 +840,7 @@ const writeWorst = async (store, collection) => {
 
 test('dokument i värsta fall – alla höjningar med start och slut, alla symptom med poäng och fritext, varje fält fullt – ryms i uttrycksbudgeten (#294)', async () => {
   // Före #294 nekades redan ett recept med tio höjningar med slutdatum (PERMISSION_DENIED: "maximum of
-  // 1000 expressions"), fast DocumentRules och receptformuläret tillät dem – även i 3.x-flytten.
+  // 1000 expressions"), fast DocumentRules och receptformuläret tillät dem – även i 3.x-importen.
   for (const collection of Object.keys(WORST)) await writeWorst(db(OWNER), collection);
 });
 

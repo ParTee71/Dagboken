@@ -5,7 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import java.io.File
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -27,7 +26,7 @@ import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.firestore.Paths
 
 /**
- * Legacyimporten (BCK-6, BCK-14, OMB-5) mot fejkar: en 3.x-backup v1/v2 från fil eller Drive ger exakt grindens
+ * Legacyimporten (BCK-6, BCK-14) mot fejkar: en 3.x-backup v1/v2 från fil eller Drive ger exakt grindens
  * dokument (OMB-4), skrivs i batchar och verifieras, en omkörning skriver inget nytt, samma id ersätts utan att något
  * tas bort, ett batchfel kan göras om, och stopp, fel fil, Drive utan backup eller utan samtycke skriver ingenting.
  * Syntetisk data.
@@ -45,11 +44,10 @@ class LegacyImportUseCaseTest {
     private val store = FakeStore().apply { set(Paths.USERS, uid, mapOf("schemaVersion" to Schema.CURRENT_VERSION), merge = false) }
     private val firestore = FakeRawFirestore(store)
     private val drive = FakeDriveBackups()
-    private val files = FakeCopyFile()
-    private val pause = LegacyMigrationPause()
+    private val files = FakeUserFile()
     private val scope = TestUserScope(uid)
     private val dispatcher = StandardTestDispatcher()
-    private val importer = LegacyImportUseCase(drive, files, firestore, firestore, pause, scope, dispatcher)
+    private val importer = LegacyImportUseCase(drive, files, firestore, firestore, scope, dispatcher)
     private val uri: Uri = Uri.parse("content://test/backup.json")
 
     private fun test(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
@@ -77,7 +75,6 @@ class LegacyImportUseCaseTest {
         assertEquals(plan.counts, outcome.before)
         assertEquals(plan.counts, outcome.after)
         assertEquals(asJson(expected), stored(), "samma dokument som grindens körning")
-        assertFalse(pause.paused.value, "pausen släpps efter skrivningen")
     }
 
     @Test
@@ -88,15 +85,6 @@ class LegacyImportUseCaseTest {
     @Test
     fun `en lokal 3x-backup v1 ger exakt grindens dokument`() = test {
         importsLikeTheGate("backup-v1", 1)
-    }
-
-    @Test
-    fun `påminnelserna pausas medan importen skriver`() = test {
-        val plan = planFromFile(fixture("backup-v2.json"))
-        var pausedDuring = false
-        importer.write(plan) { pausedDuring = pausedDuring || pause.paused.value }
-        assertTrue(pausedDuring)
-        assertFalse(pause.paused.value)
     }
 
     @Test
@@ -133,7 +121,6 @@ class LegacyImportUseCaseTest {
         assertEquals("PERMISSION_DENIED", failed.code)
         assertEquals(0, failed.batch)
         assertTrue(stored().isEmpty())
-        assertFalse(pause.paused.value)
 
         firestore.failAt = null
         assertIs<LegacyWriteOutcome.Verified>(importer.write(plan))

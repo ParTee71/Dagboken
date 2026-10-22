@@ -45,7 +45,7 @@ fun ExportImportRoute(onBack: () -> Unit, viewModel: ExportImportViewModel = hil
  * Export och import (BCK-6, BCK-13, BCK-14, SET-8; mockupen avsnitt 16): underskärm med liten topprad och ett kort med
  * "Spara som JSON" (dokumentväljaren `CreateDocument` med [exportFileName], sedan snackbaren "Sparade N poster") och
  * "Importera backup" (arket med Google Drive och fil), plus notisen att Health Connect-data aldrig ingår. När en import
- * pågår visas dess läge i stället – samma vy som i första starten ([ImportStageContent]). Medan något sparas eller
+ * pågår visas dess läge i stället ([ImportStageContent]). Medan något sparas eller
  * importeras går inget annat att starta.
  */
 @Composable

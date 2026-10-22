@@ -21,8 +21,8 @@ dokument), `options`, `prescriptions`, `prnMedicines`, `doses`, `screenings`, `a
 `ARKITEKTUR.md` → "Datamodell" (DAT-5–DAT-10); fälten och codecs byggs i etapp 2. Sökvägarna
 finns i `Paths` och speglas i `tools/db/lib/collections.mjs` – ett test håller dem lika.
 
-> **Ingen Room i 4.0** utom den läsande legacy-modulen `data/legacy` (Room-läsaren för
-> migreringen på enheten, OMB-2). Den skriver aldrig till Room-filen och raderar den aldrig.
+> **Ingen Room i 4.0.** 3.x:s Room-fil läses inte sedan 4.8.0 (migreringen på enheten är borttagen) och
+> ligger kvar orörd; 3.x-data kommer in via importen (`data/legacy/LegacyImportUseCase`, BCK-14).
 
 ## Lager
 

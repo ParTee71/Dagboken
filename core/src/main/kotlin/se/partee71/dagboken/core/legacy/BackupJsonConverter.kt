@@ -57,8 +57,8 @@ import se.partee71.dagboken.core.schema.wireValue
 
 /**
  * 3.x [BackupJson] (v1 och v2) → 4.0-dokument under `users/{uid}` (ARKITEKTUR.md → Fältparitet och
- * Migrering, punkt 1; OMB-3). **Enda** mappningen från 3.x: legacy-läsaren (OMB-2), legacyimporten
- * (BCK-14) och grinden OMB-4 kör alla den här.
+ * Migrering, punkt 1; OMB-3). **Enda** mappningen från 3.x: legacyimporten (BCK-14), `ConvertBackupMain`
+ * och grinden OMB-4 kör alla den här.
  *
  * - Deterministisk: ingen klocka, dokumenten sorterade på sökväg, alternativ-id via [OptionIds.of].
  * - Id:n bevaras (DAT-13); receptdosernas `recept_…`-id:n oförändrade (DAT-8).
@@ -290,7 +290,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
      * räknades då från dagens datum (`EnsureTodayEntriesUseCase`, `getOrDefault(today)`) och perioden visade texten som
      * den stod. Därför inget stopp: ett ISO-ögonblick (med eller utan zon) bevaras som ögonblicket, med varning; annat
      * blir `null` – samma beteende som 3.x (intervallet utan ankare räknar varje dag som dag 0, `intervalAnchor`) – med
-     * varning och värdets form (aldrig innehåll). Texten finns kvar i den obligatoriska kopian av 3.x-datan (OMB-8).
+     * varning och värdets form (aldrig innehåll). Texten finns kvar i 3.x-backupen.
      * [intervalFromCreated] = receptet har intervall utan startdatum, så skapandedagen blir intervallets ankare i 4.0.
      */
     private fun created(path: String, raw: String, intervalFromCreated: Boolean): Instant? {
@@ -301,7 +301,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
             if (intervalFromCreated) warn(path, "intervallet räknas från skapad – 3.x kunde inte läsa skapad och räknade varje dag som dag 0")
             return moment
         }
-        warn(path, "skapad är inget datum (${LegacyTime.shape(raw)}) – saknas i 4.0, som i 3.x som inte kunde läsa det; finns kvar i kopian av 3.x-datan")
+        warn(path, "skapad är inget datum (${LegacyTime.shape(raw)}) – saknas i 4.0, som i 3.x som inte kunde läsa det; finns kvar i 3.x-backupen")
         return null
     }
 
@@ -598,7 +598,7 @@ private class Conversion(private val backup: BackupJson, private val uid: String
     /**
      * 3.x `timestamp` ([LegacyTime.timestamp]: ISO-ögonblick, epok-ms som text, dag och klockslag utan zon); tomt eller
      * ogiltigt → dag och klockslag i Europe/Stockholm (utan klockslag: midnatt), utan dag `null`. Ett ogiltigt värde ersätts
-     * med varning och värdets form (aldrig innehåll); texten finns kvar i kopian av 3.x-datan.
+     * med varning och värdets form (aldrig innehåll); texten finns kvar i 3.x-backupen.
      */
     private fun createdAt(path: String, iso: String, date: LocalDate?, time: LocalTime?): Instant? {
         (LegacyTime.timestamp(iso) ?: LegacyTime.localDateTime(iso)?.let { at(path, "timestamp", it.date, it.time) })?.let { return it }

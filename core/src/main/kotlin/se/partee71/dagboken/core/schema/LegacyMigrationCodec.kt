@@ -4,9 +4,8 @@ import se.partee71.dagboken.core.model.LegacyMigration
 import se.partee71.dagboken.core.model.LegacySource
 
 /**
- * `users/{uid}.legacyMigration` (OMB-2): nästlat objekt på användardokumentet, byggt av fälthjälparna.
- * `completedAt` sätts av servern (`FieldValue.serverTimestamp()` i `data/firestore`) – codecen skriver
- * värdet den har, `null` innan markören finns.
+ * `users/{uid}.legacyMigration` ([LegacyMigration], skrevs av 4.0–4.7): nästlat objekt på användardokumentet, byggt
+ * av fälthjälparna. `completedAt` sattes av servern (`serverTimestamp`) – codecen skriver värdet den har.
  */
 object LegacyMigrationCodec : ValueCodec<LegacyMigration?> {
     /** Fältet på användardokumentet. */

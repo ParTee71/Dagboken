@@ -1,6 +1,6 @@
 // Kopia av 3.27.0:s egen backupmodell (branchen `legacy`, commit 36b9158,
 // app/src/main/kotlin/se/partee71/dagboken/data/migration/BackupJson.kt) med bytt paketnamn – bara för
-// kompatibilitetstestet Backup3xCompatibilityTest (OMB-8): kopian som migreringsskärmen sparar ska läsas av 3.27.0:s
+// kompatibilitetstestet Backup3xCompatibilityTest: det BackupJson.encode skriver ska läsas av 3.27.0:s
 // "Välj fil" (MigrationViewModel.importFromFile: Json { ignoreUnknownKeys = true }.decodeFromString<BackupJson>).
 // Ändra aldrig här utan att 3.x ändrats – den här filen ÄR 3.x.
 package se.partee71.dagboken.core.legacy.threex

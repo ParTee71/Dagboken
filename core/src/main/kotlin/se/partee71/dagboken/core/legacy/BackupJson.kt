@@ -9,7 +9,7 @@ import kotlinx.serialization.json.Json
 // som 3.x läste den (OMB-3, BCK-14). Version 1 saknar `settings`, tidsstämplar på episoder och
 // V2-listorna och har receptets enda `tidpunkt`; arvsfältet `anteckning` på posterna är från före
 // notes-tabellen. Varje fält här har en rad i ARKITEKTUR.md → Fältparitet (ParityTableTest).
-// Inga Android-beroenden: klasserna används av konverteraren, legacy-läsaren och legacyimporten.
+// Inga Android-beroenden: klasserna används av konverteraren och legacyimporten.
 
 /** Hela backupfilen. `version` 1 eller 2 (`BackupAssembler.BACKUP_FORMAT_VERSION`). */
 @Serializable
@@ -66,8 +66,7 @@ data class BackupJson(
 
         /**
          * Skriver en backupfil som 3.x gjorde (`json.encodeToString(BackupJson.serializer(), …)` med
-         * `ignoreUnknownKeys`, utan standardvärden): 3.27:s "Välj fil" läser den. Kopian av 3.x-datan på
-         * migreringsskärmen (OMB-7) går den här vägen.
+         * `ignoreUnknownKeys`, utan standardvärden): 3.27:s "Välj fil" läser den (`Backup3xCompatibilityTest`).
          */
         fun encode(backup: BackupJson): String = json.encodeToString(serializer(), backup)
 

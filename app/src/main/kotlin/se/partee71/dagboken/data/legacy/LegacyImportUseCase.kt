@@ -24,7 +24,7 @@ import se.partee71.dagboken.data.firestore.RawDocumentWriter
 import se.partee71.dagboken.data.firestore.RawDocuments
 import se.partee71.dagboken.di.DefaultDispatcher
 
-/** Vad läsningen av en importfil gav (BCK-6, BCK-14, OMB-5) – det granskningen visar. Aldrig innehåll. */
+/** Vad läsningen av en importfil gav (BCK-6, BCK-14) – det granskningen visar. Aldrig innehåll. */
 sealed interface ImportRead {
     /** Klart att granska: antal per typ, varningar och dokumenten att skriva. */
     data class Ready(val plan: ImportPlan) : ImportRead
@@ -63,20 +63,47 @@ data class ImportPlan(
 }
 
 /**
- * Importen (BCK-6, BCK-14, OMB-5): en 3.x-backup (Drive eller fil) eller en 4.0-export läses av `ImportFile` i `:core` –
- * den **enda** konverteraren för 3.x – och skrivs efter användarens bekräftelse i `MigrationBatches` form (≤ 500
- * skrivningar, ≤ 20 episoder, episoden med sina incheckningar) med serverns kvitto per batch och verifieras sedan per id,
- * som flytten (OMB-2). **Samma id ersätts** (DAT-13, inga dubbletter): dokumentets fält skrivs med merge; fält som bara
- * finns på servern står kvar – importen tar aldrig bort något. Ett dokument som redan är lika skrivs inte. Ett stopp i
- * filen skriver ingenting; ett fel i en batch stannar och kan göras om utan dubbletter. Ingen markör och ingen liggare:
- * importen kan alltid köras igen och har inget att avbryta. Påminnelserna pausas medan den skriver. Loggar ingenting (NFR-13).
+ * Hur skrivningen gick. [before] är planens antal per entitet; [after] antal dokument som är lika med filens på servern
+ * och verifierade.
+ */
+sealed interface LegacyWriteOutcome {
+    val before: Map<String, Int>
+    val after: Map<String, Int>
+
+    /** Varje dokument är verifierat lika på servern – importen är klar. */
+    data class Verified(override val before: Map<String, Int>, override val after: Map<String, Int>) : LegacyWriteOutcome
+
+    /** Något skrivet dokument saknas eller skiljer sig på servern ([mismatched] per entitet): "Försök igen" skriver om det. */
+    data class Mismatch(override val before: Map<String, Int>, override val after: Map<String, Int>, val mismatched: Map<String, Int>) : LegacyWriteOutcome
+
+    /**
+     * Skrivningen stannade: [error] (texten via `toMessage()`) och felkoden [code] ([codeOf]) för [batch] (index, `null`
+     * utanför batcharna) – aldrig innehåll. [after] är det som var klart när det stannade (verifierat lika och skrivet med
+     * kvitto). "Försök igen" kör om utan dubbletter.
+     */
+    data class Failed(
+        override val before: Map<String, Int>,
+        override val after: Map<String, Int>,
+        val error: DataError,
+        val batch: Int?,
+        val code: String
+    ) : LegacyWriteOutcome
+}
+
+/**
+ * Importen (BCK-6, BCK-14): en 3.x-backup (Drive eller fil) eller en 4.0-export läses av `ImportFile` i `:core` – den
+ * **enda** konverteraren för 3.x – och skrivs efter användarens bekräftelse i `MigrationBatches` form (≤ 500
+ * skrivningar, ≤ 20 episoder, episoden med sina incheckningar) med serverns kvitto per batch och verifieras sedan per id.
+ * **Samma id ersätts** (DAT-13, inga dubbletter): dokumentets fält skrivs med merge; fält som bara finns på servern står
+ * kvar – importen tar aldrig bort något. Ett dokument som redan är lika skrivs inte. Ett stopp i filen skriver ingenting;
+ * ett fel i en batch stannar och kan göras om utan dubbletter. Ingen markör och ingen liggare: importen kan alltid köras
+ * igen och har inget att avbryta. Loggar ingenting (NFR-13).
  */
 class LegacyImportUseCase @Inject constructor(
     private val drive: DriveBackups,
     private val files: UserFile,
     private val writer: RawDocumentWriter,
     private val documents: RawDocuments,
-    private val pause: LegacyMigrationPause,
     private val scope: UserScope,
     @DefaultDispatcher private val computation: CoroutineDispatcher
 ) {
@@ -126,16 +153,14 @@ class LegacyImportUseCase @Inject constructor(
     /**
      * Skriver [plan] efter bekräftelsen. Läser först läget på servern på id (det som redan är lika räknas som klart), skriver
      * resten i batchar och läser tillbaka det skrivna: [LegacyWriteOutcome.Verified] när allt finns, annars
-     * [LegacyWriteOutcome.Mismatch] eller [LegacyWriteOutcome.Failed] (felkod som flytten, aldrig innehåll). [onProgress]
-     * får antal klara per entitet efter varje batch.
+     * [LegacyWriteOutcome.Mismatch] eller [LegacyWriteOutcome.Failed] (felkod, aldrig innehåll). [onProgress] får antal
+     * klara per entitet efter varje batch.
      */
-    suspend fun write(plan: ImportPlan, onProgress: (Map<String, Int>) -> Unit = {}): LegacyWriteOutcome = withContext(computation) {
-        pause.during { writePaused(plan, onProgress) }
-    }
+    suspend fun write(plan: ImportPlan, onProgress: (Map<String, Int>) -> Unit = {}): LegacyWriteOutcome = withContext(computation) { writeChecked(plan, onProgress) }
 
-    private suspend fun writePaused(plan: ImportPlan, onProgress: (Map<String, Int>) -> Unit): LegacyWriteOutcome {
+    private suspend fun writeChecked(plan: ImportPlan, onProgress: (Map<String, Int>) -> Unit): LegacyWriteOutcome {
         val tally = Tally(plan.counts)
-        fun failed(error: DataError, batch: Int? = null) = LegacyWriteOutcome.Failed(plan.counts, tally.doneSoFar(), error, batch, LegacyMigrationUseCase.codeOf(error))
+        fun failed(error: DataError, batch: Int? = null) = LegacyWriteOutcome.Failed(plan.counts, tally.doneSoFar(), error, batch, codeOf(error))
         if (scope.uid.value != plan.uid) return failed(DataError.NotSignedIn)
         scope.writeBlocker()?.let { return failed(it) }
         // Dokumenten är i appens format; ett konto i ett äldre format måste lyftas med migrate.mjs först.

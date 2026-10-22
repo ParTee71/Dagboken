@@ -32,11 +32,10 @@ import se.partee71.dagboken.data.export.ExportUseCase
 import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.legacy.DriveBackupFile
 import se.partee71.dagboken.data.legacy.DriveRead
-import se.partee71.dagboken.data.legacy.FakeCopyFile
 import se.partee71.dagboken.data.legacy.FakeDriveBackups
 import se.partee71.dagboken.data.legacy.FakeRawFirestore
+import se.partee71.dagboken.data.legacy.FakeUserFile
 import se.partee71.dagboken.data.legacy.LegacyImportUseCase
-import se.partee71.dagboken.data.legacy.LegacyMigrationPause
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.common.dataError
 import se.partee71.dagboken.ui.migration.ImportEvent
@@ -62,10 +61,10 @@ class ExportImportViewModelTest {
     private val store = FakeStore().apply { set(Paths.USERS, uid, mapOf("schemaVersion" to Schema.CURRENT_VERSION), merge = false) }
     private val firestore = FakeRawFirestore(store)
     private val drive = FakeDriveBackups()
-    private val files = FakeCopyFile()
+    private val files = FakeUserFile()
     private val scope = TestUserScope(uid)
     private val exporter = ExportUseCase(firestore, files, scope, FixedClock(Instant.parse("2026-10-07T19:14:00Z")), io)
-    private val importer = LegacyImportUseCase(drive, files, firestore, firestore, LegacyMigrationPause(), scope, io)
+    private val importer = LegacyImportUseCase(drive, files, firestore, firestore, scope, io)
     private val fileUri: Uri = Uri.parse("content://test/backup.json")
     private val exportUri: Uri = Uri.parse("content://test/dagboken-export-2026-10-07.json")
 

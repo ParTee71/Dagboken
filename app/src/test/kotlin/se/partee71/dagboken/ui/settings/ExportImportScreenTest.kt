@@ -26,8 +26,8 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.migration.ImportEvent
+import se.partee71.dagboken.ui.migration.ImportSamples
 import se.partee71.dagboken.ui.migration.ImportStage
-import se.partee71.dagboken.ui.migration.MigrationSamples
 import se.partee71.dagboken.ui.migration.countText
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 import se.partee71.ui.common.UiError
@@ -35,7 +35,7 @@ import se.partee71.ui.common.UiError
 /**
  * Export och import (BCK-6, BCK-13, BCK-14, SET-8): "Spara som JSON" öppnar filväljaren med filnamnet och snackbaren
  * "Sparade N poster" följer, "Importera backup" ger valen Drive och fil i ett ark, inget går att starta medan något pågår,
- * och importens lägen är samma vy som i första starten.
+ * och importens lägen visas i stället för raderna.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w390dp-h1700dp-xxhdpi")
@@ -110,19 +110,18 @@ class ExportImportScreenTest {
 
     @Test
     fun `importens lägen visas i stället för raderna, och Klar går tillbaka till valen`() {
-        show(ExportImportUiState(import = MigrationSamples.importReview))
+        show(ExportImportUiState(import = ImportSamples.importReview))
         rule.onNodeWithText(text(R.string.export_title)).assertDoesNotExist()
         rule.onNodeWithText(text(R.string.import_review_title)).assertIsDisplayed()
-        state = ExportImportUiState(import = ImportStage.Done(MigrationSamples.before, MigrationSamples.before))
+        state = ExportImportUiState(import = ImportStage.Done(ImportSamples.before, ImportSamples.before))
         rule.onNodeWithText(text(R.string.import_done)).performClick()
         assertEquals(listOf<ExportImportEvent>(import(ImportEvent.Reset)), events)
     }
 
     @Test
-    fun `ingen backup på Drive i inställningarna - Importera från fil och Avbryt, inget Börja tomt`() {
+    fun `ingen backup på Drive - Importera från fil och Avbryt`() {
         show(ExportImportUiState(import = ImportStage.NoDriveBackup))
         rule.onNodeWithText(text(R.string.import_no_drive_settings)).assertIsDisplayed()
-        rule.onNodeWithText(text(R.string.migration_start_empty)).assertDoesNotExist()
         rule.onNodeWithText(text(R.string.cancel)).performClick()
         assertEquals(listOf<ExportImportEvent>(import(ImportEvent.Reset)), events)
     }

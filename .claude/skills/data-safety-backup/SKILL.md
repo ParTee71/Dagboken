@@ -1,6 +1,6 @@
 ---
 name: data-safety-backup
-description: Dagbokens datasäkerhetsregel (regel 1) — export/import, schemaändringar och migreringen från 3.x får ALDRIG tappa användardata. Ladda denna ALLTID när du lägger till, ändrar eller tar bort persisterad data: ett fält på en modell, en ny Firestore-samling, en DocCodec, schemaVersion, SchemaMigrator, firestore.rules, tools/db (export, import, migrate), backup.yml, konverteraren från 3.x BackupJson, legacy-läsaren för Room eller legacyimporten. Trigger-ord: backup, säkerhetskopia, restore, återställ, export, import, migrering, legacy, 3.x, BackupJson, BackupMapper, konverterare, Room-fil, Drive-backup, schemaversion, schemaVersion, DocCodec, codec, fält, ny samling, collection, Firestore, rundtur, round-trip, datamodell, tools/db, dataförlust, OMB.
+description: Dagbokens datasäkerhetsregel (regel 1) — export/import, schemaändringar och migreringen från 3.x får ALDRIG tappa användardata. Ladda denna ALLTID när du lägger till, ändrar eller tar bort persisterad data: ett fält på en modell, en ny Firestore-samling, en DocCodec, schemaVersion, SchemaMigrator, firestore.rules, tools/db (export, import, migrate), backup.yml, konverteraren från 3.x BackupJson eller legacyimporten. Trigger-ord: backup, säkerhetskopia, restore, återställ, export, import, migrering, legacy, 3.x, BackupJson, BackupMapper, konverterare, Room-fil, Drive-backup, schemaversion, schemaVersion, DocCodec, codec, fält, ny samling, collection, Firestore, rundtur, round-trip, datamodell, tools/db, dataförlust, OMB.
 ---
 
 # Datasäkerhet: codecs, schemaversion, export/import
@@ -12,7 +12,7 @@ i hela kedjan är en regression även om allt kompilerar – datan kan tappas vi
 återställning eller skrivas över av en äldre appversion.
 
 Krav: DAT-, BCK- och OMB-serierna i KRAVLISTA.md (särskilt BCK-9, BCK-11–16, DAT-5–10,
-OMB-2–5). Villkor nummer ett för ombyggnaden: **ingen data får tappas** (ADR-001, beslut 11).
+OMB-3–4). Villkor nummer ett för ombyggnaden: **ingen data får tappas** (ADR-001, beslut 11).
 
 ## Kedjan (var datan passerar)
 
@@ -21,7 +21,7 @@ OMB-2–5). Villkor nummer ett för ombyggnaden: **ingen data får tappas** (ADR
                                                                             │
           tools/db import  ←  backup (gpg-krypterad i Actions)  ←  tools/db export
 
-3.x (Room-fil på enheten / Drive-backup / lokal JSON = BackupJson v1, v2)
+3.x (Drive-backup / lokal JSON = BackupJson v1, v2; Room-filen läses inte sedan 4.8.0)
           → legacy/BackupJsonConverter (:core) → 4.0-dokument → batchar → Firestore
 
 appens export:  Firestore (servern, rått längs Paths) → ExportFormat → fil (SAF)   = tools/db export
@@ -39,11 +39,11 @@ appens import:  fil (SAF) / Drive → legacy/ImportFile (:core: 3.x via konverte
 | Samlingslista | `tools/db/lib/collections.mjs` | Enda listan export/import/query går igenom; testad mot `Paths` och rules |
 | Backup | `.github/workflows/backup.yml` | Veckovis export, krypterad artifact, 90 dagar (BCK-12) |
 | Appens export | `app/.../data/export/ExportUseCase.kt` + `core/.../schema/ExportFormat.kt` + `RawDocuments` (`data/firestore/`) | Export i inställningsarket (BCK-13): `awaitPendingWrites` först, sedan hela `users/{uid}` rått från servern längs `Paths` i `walk.mjs`-ordning – aldrig via codecarna, så att okända fält följer med; samma format som `tools/db export` (`serialize.mjs`, `backup.mjs`). Aldrig Health Connect-data (HLS-5) |
-| Appens import | `core/.../legacy/ImportFile.kt` + `app/.../data/legacy/LegacyImportUseCase.kt`, `DriveBackups.kt` | En läsare för 3.x-backup (Drive eller fil, via **samma** konverterare) och 4.0-export (BCK-6, BCK-14, OMB-5): hela filen kontrolleras mot `DocumentRules` före skrivning, annars stopp med rapport; skrivning med merge i `MigrationBatches` form och verifiering per id med flyttens räkning och likhet (`WriteSupport.kt`). Samma id ersätts, inget tas bort; ingen markör |
-| Konverterare 3.x → 4.0 | `core/.../legacy/BackupJsonConverter.kt` (3.x-klasserna i `legacy/BackupJson.kt`) | `BackupJson` v1 och v2 (inkl. arvsfälten `anteckning` på posterna och `tidpunkt` på receptet) → 4.0-dokument; **enda** mappningen, delad av legacy-läsaren (OMB-2), legacyimporten (BCK-14) och grinden OMB-4. Utfall `Converted` (dokument + rapport) eller `Stopped` (alla fel) |
+| Appens import | `core/.../legacy/ImportFile.kt` + `app/.../data/legacy/LegacyImportUseCase.kt`, `DriveBackups.kt` | En läsare för 3.x-backup (Drive eller fil, via **samma** konverterare) och 4.0-export (BCK-6, BCK-14): hela filen kontrolleras mot `DocumentRules` före skrivning, annars stopp med rapport; råa dokument med merge via `RawDocumentWriter` i `MigrationBatches` form (≤ 500 skrivningar, ≤ 20 episoder, episoden med sina incheckningar) och verifiering per id mot servern (`WriteSupport.kt`: `landed`, `hashOf`). Samma id ersätts, inget tas bort; ingen markör |
+| Konverterare 3.x → 4.0 | `core/.../legacy/BackupJsonConverter.kt` (3.x-klasserna i `legacy/BackupJson.kt`) | `BackupJson` v1 och v2 (inkl. arvsfälten `anteckning` på posterna och `tidpunkt` på receptet) → 4.0-dokument; **enda** mappningen, delad av legacyimporten (BCK-14) och grinden OMB-4. Utfall `Converted` (dokument + rapport) eller `Stopped` (alla fel) |
 | Rules-gränserna i `:core` | `core/.../schema/DocumentRules.kt` | Fält för fält per samling som `valid…` i rules (textgränser, intervall, listtak, enum, datum/klockslag); `DocumentRulesTest` läser rules och kräver likhet. Konverteraren validerar varje dokument mot den |
 | Grinden OMB-4 | `core/.../legacy/ConvertBackupMain.kt`, task `:core:convertLegacyBackup` | 3.x-backup → fil för `tools/db import.mjs`, rapport (antal, varningar, stopp) på stdout utan innehåll; kommandot i skill `testing-strategy` och skill `db-access` |
-| Legacy-läsare | `app/.../data/legacy/` + `core/.../legacy/LegacyRoomAssembler.kt`, `MigrationBatches.kt` | Läser Room-filen (`SQLiteDatabase.OPEN_READONLY`, `user_version` 11, WAL utan checkpoint) och `dagboken_prefs` read-only vid första start (OMB-2); raderna → `LegacyRoomAssembler` (3.x `BackupAssembler` fält för fält) → **samma** konverterare; obligatorisk verifierad 3.x-kopia före flytten (OMB-8); råa dokument med merge i batchar om ≤ 500 skrivningar och ≤ 20 episoder via `RawDocumentWriter`; verifiering per id mot servern; markören `users/{uid}.legacyMigration` sist. Ändrar och raderar aldrig filerna |
+| Migreringsmarkören | `core/.../model/LegacyMigration.kt`, `core/.../schema/LegacyMigrationCodec.kt`, `DocumentRules.LEGACY_MIGRATION`, `firestore.rules` | `users/{uid}.legacyMigration`, skriven av migreringen på enheten i 4.0–4.7 (borttagen i 4.8.0, ~~OMB-2~~). Ingen kod skriver den längre, men den är persisterad data: modell, codec, `DocumentRules` och rules står kvar oförändrade så att en befintlig markör godtas och överlever rundturen |
 
 ## Schemaversion
 
@@ -138,7 +138,7 @@ fält den inte känner till. Den får aldrig radera dem när den sparar:
 | Appens export = tools/db-formatet | `core/.../schema/ExportFormatTest.kt` och appens exporttest mot `tools/db/test/fixtures/user.json` | varje dokument och värde i rundturens testdata kommer ut exakt som `tools/db export` skriver det, alltså läsbart för `tools/db import` |
 | Konverteraren (OMB-3) | `core/src/test/.../legacy/BackupJsonConverterTest.kt` mot `tools/db/test/fixtures/legacy/backup-v2.json` (varje 3.x-fält icke-default, `BackupJsonTest`) och `backup-v1.json`, med `*.expected.json` | konvertera → exportformat → fältvis jämförelse mot förväntat; varje 4.0-fält fyllt; deterministisk. Stoppfallen i `ConverterStopsTest`, sommartiden i `LegacyTimeTest`, kommandoraden i `ConvertBackupCliTest` |
 | Valideringen = rules | `core/src/test/.../schema/DocumentRulesTest.kt` och `tools/db/test/legacy.test.mjs` (emulatorn) | `DocumentRules` är fält för fält `firestore.rules`; de förväntade exporterna godtas av `import.mjs --dry-run`, överlever rundturen och skrivs av ägaren genom rules |
-| Legacy-läsaren (OMB-2, OMB-7, OMB-8) | `core/src/test/.../legacy/LegacyRoomAssemblerTest.kt` mot `tools/db/test/fixtures/legacy/room-v11.json` (varje v11-kolumn satt) → exakt `backup-v2.expected.json`; `MigrationBatchesTest`; `Backup3xCompatibilityTest` (kopian parsad med 3.27.0:s egna klasser); `app/src/test/.../data/legacy/LegacyMigrationUseCaseTest.kt` mot fejkar (startkontroll, kopia, batchar, avbrott och omkörning, avvikelse, markör); `tools/db/test/legacy.test.mjs` (batchformen, upprepad körning, markören genom rules); instrumenttesterna `LegacyRoomReaderTest` (riktig v11-fil i WAL + DataStore-fil, kontrollsumma oförändrad) och `LegacyMigrationWriterTest` (batchar, verifiering och markör mot emulatorn) | samma dokument som konverteraren ger för samma data; före = rapportens antal, efter = verifierade; inga dubbletter; filerna orörda |
+| Importen (BCK-6, BCK-14) | `app/src/test/.../data/legacy/LegacyImportUseCaseTest.kt` mot fejkar (v1/v2 = grindens dokument, batchar, omkörning, batchfel, avvikelse, stopp, Drive) och `WriteSupportTest` (likheten); `MigrationBatchesTest`; `Backup3xCompatibilityTest` (`BackupJson.encode` parsad med 3.27.0:s egna klasser); `tools/db/test/legacy.test.mjs` (batchformen, upprepad körning, importen och markören genom rules); instrumenttestet `ExportImportRoundTripTest` (Drive-backup → grindens dokument, export → radera → import mot emulatorn) | samma dokument som konverteraren ger för samma fil; inga dubbletter; inget tas bort |
 
 Varje persisterat fält ska kunna spåras till minst ett test som **asserterar på fältet**
 med ett icke-default-värde.
@@ -162,8 +162,8 @@ Rundturstestet raderar och importerar data. Därför:
 ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här är reglerna.
 
 1. **En mappning.** `legacy/BackupJsonConverter` i `:core` är enda stället som översätter 3.x till
-   4.0. Legacy-läsaren (Room-filen på enheten) och legacyimporten (Drive-backup/lokal JSON) läser
-   sina källor till `BackupJson`-form och kör samma konverterare – aldrig en egen mappning.
+   4.0. Legacyimporten (Drive-backup/lokal JSON, BCK-14) och grinden OMB-4 läser `BackupJson` och kör samma
+   konverterare – aldrig en egen mappning.
 2. **Varje fält har en plats.** Ett 3.x-fält utan motsvarighet i 4.0-modellen är en blockerare,
    inte en förenkling – även ett som 4.0 inte använder: det bevaras i en `legacy`-grupp
    (`settings.legacy.dynamicColor`, `settings.legacy.sheetsConfig`) och läses aldrig. Inget fält är
@@ -187,37 +187,17 @@ ARKITEKTUR.md → "Migrering – ingen data får tappas" är planen; det här ä
 5. **Bevis före användning:** fixturtestet (OMB-3), rundturen mot emulatorn (BCK-16) och grinden
    OMB-4 – en riktig 3.x-backup konverteras, importeras med `tools/db import.mjs`, exporteras och
    jämförs fältvis med noll skillnader – innan etapp 3 och innan första release.
-6. **Room-filen raderas aldrig automatiskt** (OMB-2). Migreringsskärmen visar antal per entitet
-   före (rapportens) och efter (verifierade på servern) och användaren bekräftar; först då skrivs markören
-   `users/{uid}.legacyMigration` (en gång, rules hindrar ändring och radering) och flaggan på enheten.
-   Startkontrollen frågar servern efter markören före flaggan.
-7. **Kopian är obligatorisk** (OMB-8): ingen skrivning förrän 3.x-datan sparats som 3.x-backupfil och
-   verifierats (parse med `BackupJson.parse`, antal per entitet mot Room och, med en plan, exakt planens dokument) för
-   Room-filen med just den kontrollsumman och dagens kontrollversion. Vid ett stopp finns ingen plan: kopian kan ändå
-   sparas (samma kort i Stopp-läget) och kontrolleras då som 3.x-fil, så att 3.x-datan aldrig hänger på att 4.0 kan
-   läsa den; "Flytta" kräver båda. Filen ska läsas av
-   3.27.0 – `Backup3xCompatibilityTest`.
-8. **Omkörning utan dubbletter och utan att skriva över 4.0-data** (OMB-7): målens läge läses först på id och ställs
-   mot liggaren (egen fil per konto: `P`/`W`/`V`/`M sökväg hash`; P före batchens commit och W efter kvittot, P ersätter
-   aldrig V/M – servern = P-hashen betyder att skrivningen landade; sista W/V/M-raden per sökväg gäller;
-   M = avvikande). Har liggaren en rad har flytten börjat: skärmen tvingas fram tills bekräftat eller avbrutet.
-   Per sökväg: saknas → skrivs; lika → verifierat; antecknad men olika → skrivs om helt (ändringar under flytten,
-   även från en annan enhet, skyddas inte); aldrig vårt och olika → bara saknade fält (`existing`). `abort()` raderar
-   exakt liggarens sökvägar och rör aldrig det som fanns före. Likhet = hashen över den kanoniska formen
-   (`MigrationLedger.hashOf`, sorterade nycklar även i listor) – aldrig en egen jämförelse. Hash och jämförelse inom
-   samlingens fasta fältmängd (`DocumentRules.fieldTree`), en gång per dokument. Antecknat som 4.0 ändrat behålls
-   (`kept`, även bara skrivet), verifierat som 4.0 raderat återskapas inte (`removed`), som 3.x ändrat (servern har ännu
-   vårt värde) uppdateras; aldrig vårt och olika → bara saknade fält (`existing`). Liggarens IO-fel → `LEDGER_FAILED`.
-   Bekräftelsen är idempotent. Batchfel stannar direkt med felkod, aldrig innehåll. Påminnelserna pausas bara medan
-   `write()` körs (`LegacyMigrationPause`, try/finally) och pausen avbokar aldrig larm. 3.x:s backupjobb avbokas vid
-   varje start tills det lyckats (flagga per installation).
-9. **Legacyimporten** (BCK-14) behålls minst en version efter 4.0. Den och 4.0-importen (BCK-6) går genom
+6. **Migreringen på enheten är borttagen** (4.8.0; ~~OMB-2~~, ~~OMB-5~~, ~~OMB-7~~, ~~OMB-8~~, ~~NAV-6~~). 3.x-data
+   kommer in bara genom importen (punkt 7). Det den lämnade efter sig är persisterad data och står kvar: markören
+   `users/{uid}.legacyMigration` (modell, codec, `DocumentRules` och rules oförändrade – en befintlig markör ska
+   fortsatt godtas och överleva rundturen) och 3.x:s Room- och DataStore-filer på telefonen, som aldrig raderas
+   automatiskt. Tas modellen, codecen eller regeln bort är det en regression.
+7. **Legacyimporten** (BCK-14) behålls minst en version efter 4.0. Den och 4.0-importen (BCK-6) går genom
    `ImportFile` – formatet känns igen på filen, aldrig en andra mappning eller en egen validering. Importen skriver
    med merge och tar aldrig bort något (samma id ersätts fält för fält); `users/{uid}` och markören skrivs aldrig.
-   Fallbacken utan Room-fil (OMB-5) sätter bara flaggan på enheten – en markör där skulle tysta flytten från en
-   telefon som fortfarande har 3.x – och frågar aldrig ett konto som redan har data. Importen väntar in enhetens köade
+   Importen väntar in enhetens köade
    skrivningar före varje serverläsning, så att en osynkad lokal ändring aldrig skrivs över. Drive läses bara (inget Drive-bibliotek, ingen lagrad token).
-10. **Appens export = `tools/db export`.** Ett nytt fält eller en ny samling följer med av sig själv (rått längs `Paths`);
+8. **Appens export = `tools/db export`.** Ett nytt fält eller en ny samling följer med av sig själv (rått längs `Paths`);
    en ny undersamling kräver `Paths.SUBCOLLECTIONS` – annars saknas den i appens export. Bevis: `ExportUseCaseTest`
    (export → radera → import → identisk fil) och `ExportImportRoundTripTest` i emulatorn.
 

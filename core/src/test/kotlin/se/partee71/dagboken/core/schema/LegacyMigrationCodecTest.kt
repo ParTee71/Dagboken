@@ -8,7 +8,7 @@ import org.junit.Test
 import se.partee71.dagboken.core.model.LegacyMigration
 import se.partee71.dagboken.core.model.LegacySource
 
-/** Markören `users/{uid}.legacyMigration` (OMB-2): rundtur, tolerans och att fixturens värde läses. */
+/** Markören `users/{uid}.legacyMigration` (skrevs av 4.0–4.7): rundtur, tolerans och att fixturens värde läses. */
 class LegacyMigrationCodecTest {
     private val sample = LegacyMigration(
         completedAt = Instant.fromEpochSeconds(1_790_000_000),

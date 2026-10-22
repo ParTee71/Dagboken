@@ -28,7 +28,7 @@ import se.partee71.dagboken.di.IoDispatcher
 /** En 3.x-backup i Drive:s `appDataFolder` (`dagboken-backup-<yyyyMMdd-HHmm>.json`). Bara id, namn och tid – aldrig innehåll. */
 data class DriveBackupFile(val id: String, val name: String, val createdTime: String)
 
-/** Utfallet av en läsning ur Drive (BCK-14, OMB-5). */
+/** Utfallet av en läsning ur Drive (BCK-14). */
 sealed interface DriveRead {
     /** Den senaste backupen: filens text (läses av `ImportFile`) och dess metadata. */
     data class Found(val file: DriveBackupFile, val text: String) : DriveRead

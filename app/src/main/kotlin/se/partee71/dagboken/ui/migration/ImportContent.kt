@@ -33,9 +33,8 @@ import se.partee71.ui.components.ItemRow
 import se.partee71.ui.theme.Tone
 
 /*
- * Importens vy (BCK-6, BCK-14, OMB-5) – **en** gång för första starten utan Room-fil (MigrationScreen, MigrationStage.Fallback)
- * och Inställningar → Export och import (regel 4). Skärmen äger ramen (rubrik, snackbar); här finns filväljaren,
- * Drive-samtycket, valraderna och ett läge per tavla i mockupen (avsnitt 16). Bara antal, aldrig innehåll.
+ * Importens vy (BCK-6, BCK-14) i Inställningar → Export och import. Skärmen äger ramen (rubrik, snackbar); här finns
+ * filväljaren, Drive-samtycket, valraderna och ett läge per tavla i mockupen (avsnitt 16). Bara antal, aldrig innehåll.
  */
 
 /**
@@ -68,19 +67,12 @@ fun rememberImportLaunchers(stage: ImportStage, onEvent: (ImportEvent) -> Unit):
     return { pick.launch(arrayOf(JSON_MIME)) }
 }
 
-/**
- * Valen "Importera från Google Drive" och "Importera från fil" – och i första starten "Börja tomt" ([onStartEmpty]) –
- * som listrader med ikon och undertext, i den yta de står i (ett kort eller ett ark).
- */
+/** Valen "Importera från Google Drive" och "Importera från fil" som listrader med ikon och undertext, i den yta de står i (arket). */
 @Composable
-fun ImportChoiceRows(onDrive: () -> Unit, onFile: () -> Unit, onStartEmpty: (() -> Unit)? = null) {
+fun ImportChoiceRows(onDrive: () -> Unit, onFile: () -> Unit) {
     ChoiceRow(R.string.import_from_drive, R.string.import_from_drive_note, R.drawable.ic_cloud_upload, onDrive)
     AppDivider()
     ChoiceRow(R.string.import_from_file, R.string.import_from_file_note, R.drawable.ic_file, onFile)
-    if (onStartEmpty != null) {
-        AppDivider()
-        ChoiceRow(R.string.migration_start_empty, R.string.import_start_empty_note, R.drawable.ic_book, onStartEmpty)
-    }
 }
 
 /** Ett val som listrad med ikon, undertext och pil (även i Export och import); [enabled] = `false` tonar ned den. */
@@ -98,19 +90,11 @@ internal fun ChoiceRow(@StringRes title: Int, @StringRes subtitle: Int, @Drawabl
 
 /**
  * Importens läge [stage] efter valen: läsning, granskning med `ConfirmDialog` "Importera N poster?", stopp med rapporten,
- * skrivning, klart, avvikelse och fel – samma kort som flyttens. [onPickFile] öppnar filväljaren; [onStartEmpty] finns bara i
- * första starten ("Börja tomt" utan backup på Drive) och avgör notisens text; [doneLabel]/[onDone] är knappen när importen
- * är klar ("Öppna Dagboken" i första starten, "Klar" i inställningarna). [ImportStage.Choose] visar skärmen själv.
+ * skrivning, klart, avvikelse och fel. [onPickFile] öppnar filväljaren; [doneLabel]/[onDone] är knappen när importen är
+ * klar ("Klar"). [ImportStage.Choose] visar skärmen själv.
  */
 @Composable
-fun ImportStageContent(
-    stage: ImportStage,
-    onEvent: (ImportEvent) -> Unit,
-    onPickFile: () -> Unit,
-    doneLabel: String,
-    onDone: () -> Unit,
-    onStartEmpty: (() -> Unit)? = null
-) {
+fun ImportStageContent(stage: ImportStage, onEvent: (ImportEvent) -> Unit, onPickFile: () -> Unit, doneLabel: String, onDone: () -> Unit) {
     when (stage) {
         ImportStage.Choose -> Unit
 
@@ -119,7 +103,7 @@ fun ImportStageContent(
         // Systemets samtyckesdialog ligger överst; under den fortsätter läsningen av Drive.
         is ImportStage.DriveConsent -> Reading(LegacySource.DRIVE)
 
-        ImportStage.NoDriveBackup -> NoDriveBackup(onEvent, onPickFile, onStartEmpty)
+        ImportStage.NoDriveBackup -> NoDriveBackup(onEvent, onPickFile)
 
         ImportStage.NotABackup -> {
             ProblemCard(stringResource(R.string.import_not_a_backup_title), listOf(stringResource(R.string.import_not_a_backup)))
@@ -147,31 +131,15 @@ fun ImportStageContent(
         }
 
         is ImportStage.Mismatch -> {
-            MismatchCard(stage.before, stage.accounted, stage.mismatched, footer = null)
+            MismatchCard(stage.before, stage.accounted, stage.mismatched)
             RetryOrCancel(onEvent)
         }
 
         is ImportStage.WriteFailed -> {
-            WriteFailedCard(stringResource(R.string.import_failed_title), stringResource(stage.error.toMessage()), stage.batch, stage.code, footer = null)
+            WriteFailedCard(stringResource(R.string.import_failed_title), stringResource(stage.error.toMessage()), stage.batch, stage.code)
             RetryOrCancel(onEvent)
         }
     }
-}
-
-/** Rubriken för importens läge i första starten: valen välkomnar, resten är "Importera backup". */
-@StringRes
-fun importTitle(stage: ImportStage): Int = when (stage) {
-    ImportStage.Choose, ImportStage.NoDriveBackup -> R.string.import_fallback_title
-    else -> R.string.import_title
-}
-
-/** Raden under rubriken i första starten, där läget har en. */
-@Composable
-fun importSubtitle(stage: ImportStage): String? = when (stage) {
-    is ImportStage.Review -> stringResource(if (stage.source == LegacySource.DRIVE) R.string.import_from_source_drive else R.string.import_from_source_file)
-    is ImportStage.Writing -> stringResource(R.string.import_writing_intro)
-    is ImportStage.Stopped -> stringResource(R.string.import_stopped_intro)
-    else -> null
 }
 
 @Composable
@@ -184,17 +152,13 @@ private fun Reading(source: LegacySource) {
 }
 
 @Composable
-private fun NoDriveBackup(onEvent: (ImportEvent) -> Unit, onPickFile: () -> Unit, onStartEmpty: (() -> Unit)?) {
+private fun NoDriveBackup(onEvent: (ImportEvent) -> Unit, onPickFile: () -> Unit) {
     StatusCard(R.drawable.ic_warning, stringResource(R.string.import_no_drive_title)) {
-        Muted(stringResource(if (onStartEmpty != null) R.string.import_no_drive else R.string.import_no_drive_settings))
+        Muted(stringResource(R.string.import_no_drive_settings))
     }
     Actions {
         AppButton(stringResource(R.string.import_from_file), onPickFile, Modifier.fillMaxWidth())
-        if (onStartEmpty != null) {
-            AppButton(stringResource(R.string.migration_start_empty), onStartEmpty, Modifier.fillMaxWidth(), variant = ButtonVariant.Text)
-        } else {
-            Cancel(onEvent)
-        }
+        Cancel(onEvent)
     }
 }
 
@@ -209,7 +173,7 @@ private fun ReadFailed(failed: ImportStage.ReadFailed, onEvent: (ImportEvent) ->
     }
 }
 
-/** Granskningen: samma tabell och kort som flyttens, varningarna, "Poster med samma id ersätts" och bekräftelsen. */
+/** Granskningen: tabellen med antal per typ, varningarna, "Poster med samma id ersätts" och bekräftelsen. */
 @Composable
 private fun Review(review: ImportStage.Review, onEvent: (ImportEvent) -> Unit) {
     val format = when (val format = review.format) {

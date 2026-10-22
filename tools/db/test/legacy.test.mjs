@@ -75,17 +75,17 @@ test('varje konverterat dokument skrivs av ägaren genom rules – valideringen 
   }
 });
 
-// ── Migreringen på enheten (OMB-2, OMB-7): legacy-läsaren skriver konverterarens dokument genom rules ──
-// som klient, i batchar om högst 500 skrivningar och högst 20 episoder, där en episod ligger i samma
-// batch som sina incheckningar (existsAfter), med merge och samma dokument-id:n varje gång (idempotent).
+// ── Batchskrivningen på enheten (BCK-14, DAT-13): importen skriver dokumenten genom rules som klient, i
+// batchar om högst 500 skrivningar och högst 20 episoder, där en episod ligger i samma batch som sina
+// incheckningar (existsAfter), med merge och samma dokument-id:n varje gång (idempotent).
 
 /** Ett dokument i [collectionName] ur v2-exporten, som klientens värden – en giltig mall att skriva många av. */
 const template = (collectionName) => toClient(expected['backup-v2'].documents.find((d) => collectionOf(d.path) === collectionName).data);
 
-/** Antal dokument i samlingen på servern (det legacy-läsaren räknar efter skrivningen). */
+/** Antal dokument i samlingen på servern (det importen räknar efter skrivningen). */
 const countOf = async (store, ...segments) => (await getCountFromServer(collection(store, 'users', UID, ...segments))).data().count;
 
-test('batchformen på enheten: 20 episoder med sina incheckningar i en batch om exakt 500 skrivningar, med merge (OMB-2)', async () => {
+test('batchformen på enheten: 20 episoder med sina incheckningar i en batch om exakt 500 skrivningar, med merge (BCK-14)', async () => {
   await env.clearFirestore();
   const owner = env.authenticatedContext(UID).firestore();
   const episode = template('illnessEpisodes');
@@ -101,7 +101,7 @@ test('batchformen på enheten: 20 episoder med sina incheckningar i en batch om 
   assert.equal(await countOf(owner, 'illnessEpisodes', 'ep19', 'checkins'), 24);
 });
 
-test('upprepad körning (OMB-7, DAT-13): samma dokument-id:n med merge ger inga dubbletter och exakt samma export', async () => {
+test('upprepad körning (DAT-13): samma dokument-id:n med merge ger inga dubbletter och exakt samma export', async () => {
   const db = database();
   await env.clearFirestore();
   const owner = env.authenticatedContext(UID).firestore();
@@ -123,7 +123,7 @@ test('upprepad körning (OMB-7, DAT-13): samma dokument-id:n med merge ger inga 
   }
 });
 
-test('Avbryt flytten (OMB-7): ägaren raderar allt migreringen skrev i en batch – incheckningar och episoder – och en ensam incheckning får skrivas när episoden finns', async () => {
+test('ägaren raderar dokumenten i en batch – incheckningar och episoder – och en ensam incheckning får skrivas när episoden finns', async () => {
   await env.clearFirestore();
   const owner = env.authenticatedContext(UID).firestore();
   const data = expected['backup-v2'];
@@ -134,7 +134,7 @@ test('Avbryt flytten (OMB-7): ägaren raderar allt migreringen skrev i en batch 
   // En incheckning som skrivs om ensam (episoden är redan verifierad på servern) går genom existsAfter.
   const checkin = written.find((d) => collectionOf(d.path) === 'checkins');
   await assertSucceeds(setDoc(doc(owner, checkin.path), toClient(checkin.data), { merge: true }));
-  // Avbryt: exakt liggarens sökvägar (allt utom users/{uid}), incheckningar före episoder.
+  // Radera allt utom users/{uid}, incheckningar före episoder (som rundturen på enhet).
   const paths = written.filter((d) => collectionOf(d.path) !== 'users').map((d) => d.path).sort((a, b) => b.split('/').length - a.split('/').length);
   const erase = writeBatch(owner);
   for (const docPath of paths) erase.delete(doc(owner, docPath));
@@ -144,7 +144,9 @@ test('Avbryt flytten (OMB-7): ägaren raderar allt migreringen skrev i en batch 
   assert.ok((await getDoc(doc(owner, 'users', UID))).exists(), 'användardokumentet rörs aldrig');
 });
 
-test('migreringsmarkören users/{uid}.legacyMigration sätts en gång av ägaren och kan aldrig ändras eller tas bort (OMB-7)', async () => {
+// Migreringsmarkören skrevs av 4.0–4.7 (migreringen på enheten, borttagen i 4.8.0); rules är oförändrade, så en
+// befintlig markör godtas fortsatt och kan aldrig ändras eller tas bort (regel 1).
+test('migreringsmarkören users/{uid}.legacyMigration sätts en gång av ägaren och kan aldrig ändras eller tas bort', async () => {
   await env.clearFirestore();
   const owner = env.authenticatedContext(UID).firestore();
   const me = doc(owner, 'users', UID);
@@ -178,7 +180,7 @@ test('migreringsmarkören users/{uid}.legacyMigration sätts en gång av ägaren
   await assertSucceeds(setDoc(doc(other, 'users', 'ny'), { schemaVersion: 1, legacyMigration: marker }));
 });
 
-// ── Importen i appen (BCK-6, BCK-14, OMB-5): samma batchskrivning som flytten (merge, sökvägsordning), men en
+// ── Importen i appen (BCK-6, BCK-14): samma batchskrivning som ovan (merge, sökvägsordning), men en
 // import ersätter också befintliga dokument med samma id – det ska gå genom rules som en uppdatering.
 
 test('appens import av en 4.0-export: ägaren skriver över dokument med samma id med merge genom rules, och exporten blir filens (BCK-6)', async () => {

@@ -33,8 +33,8 @@ import se.partee71.ui.theme.Spacing
 import se.partee71.ui.theme.Tone
 
 /*
- * Byggstenarna som flytten (MigrationScreen) och importen (ImportContent) delar – en gång (regel 4): kort med
- * ikonruta, rader med antal per entitet, rapportens rader och knappraden. Bara antal, aldrig innehåll.
+ * Importens byggstenar (ImportContent): kort med ikonruta, rader med antal per entitet, rapportens rader och
+ * knappraden. Bara antal, aldrig innehåll.
  */
 
 /** Ett kort med ikonruta och rubrik, valfri statuspill och innehåll. */
@@ -60,7 +60,7 @@ internal fun ProblemCard(title: String, lines: List<String>) {
     }
 }
 
-/** Skrivningen pågår (Mig-Skriver): först "Läser läget på servern …" ([done] = `null`), sedan framsteget per rad. */
+/** Skrivningen pågår: först "Läser läget på servern …" ([done] = `null`), sedan framsteget per rad. */
 @Composable
 internal fun WritingCard(title: String, before: Map<String, Int>, done: Map<String, Int>?) {
     StatusCard(R.drawable.ic_database, title) {
@@ -74,22 +74,22 @@ internal fun WritingCard(title: String, before: Map<String, Int>, done: Map<Stri
     }
 }
 
-/** Allt skrivet och kontrollerat mot servern (Mig-Klar): före → efter med bocken per rad. */
+/** Allt skrivet och kontrollerat mot servern: före → efter med bocken per rad. */
 @Composable
-internal fun DoneCard(title: String, before: Map<String, Int>, after: Map<String, Int>, accounted: Map<String, Int> = after) {
+internal fun DoneCard(title: String, before: Map<String, Int>, after: Map<String, Int>) {
     StatusCard(
         R.drawable.ic_database,
         title,
         count = stringResource(R.string.migration_done_verified),
         countTone = Tone.Positive
     ) {
-        CountRows(before, after, accounted)
+        CountRows(before, after)
     }
 }
 
-/** Kontrollen mot servern stämde inte: rapporten med de entiteter som avviker, [footer] sist. */
+/** Kontrollen mot servern stämde inte: rapporten med de entiteter som avviker. */
 @Composable
-internal fun MismatchCard(before: Map<String, Int>, accounted: Map<String, Int>, mismatched: Map<String, Int>, footer: String?) {
+internal fun MismatchCard(before: Map<String, Int>, accounted: Map<String, Int>, mismatched: Map<String, Int>) {
     val lines = MigrationEntity.entries.filter { entity -> entity.collections.any { it in mismatched } }.map { entity ->
         stringResource(
             R.string.migration_mismatch_line,
@@ -98,15 +98,15 @@ internal fun MismatchCard(before: Map<String, Int>, accounted: Map<String, Int>,
             countText(entity.count(before))
         )
     }
-    ProblemCard(stringResource(R.string.migration_mismatch_title), listOf(stringResource(R.string.migration_mismatch_report)) + lines + listOfNotNull(footer))
+    ProblemCard(stringResource(R.string.migration_mismatch_title), listOf(stringResource(R.string.migration_mismatch_report)) + lines)
 }
 
-/** Skrivningen stannade: felets text, felkoden (med batchnumret när det finns) och [footer] sist. */
+/** Skrivningen stannade: felets text och felkoden (med batchnumret när det finns). */
 @Composable
-internal fun WriteFailedCard(title: String, message: String, batch: Int?, code: String, footer: String?) {
+internal fun WriteFailedCard(title: String, message: String, batch: Int?, code: String) {
     val codeLine = batch?.let { stringResource(R.string.migration_failed_code, code, it + 1) }
         ?: stringResource(R.string.migration_failed_code_only, code)
-    ProblemCard(title, listOf(message, codeLine) + listOfNotNull(footer))
+    ProblemCard(title, listOf(message, codeLine))
 }
 
 /**
@@ -135,24 +135,23 @@ internal fun WarningsNote(warnings: List<String>) {
 }
 
 /**
- * Antal per entitet: bara före ([after] = `null`), eller före → efter med en bock när allt är avklarat och "…" för
- * det som inte flyttats än. Avklarat ([accounted], standard [after]) är efter + behållna + raderade i 4.0 + fanns redan – före =
- * avklarat ger bocken (OMB-7). Varje rad läses som en enhet.
+ * Antal per entitet: bara före ([after] = `null`), eller före → efter med en bock när allt är klart och "…" för det som
+ * inte skrivits än. Varje rad läses som en enhet.
  */
 @Composable
-internal fun CountRows(before: Map<String, Int>, after: Map<String, Int>? = null, accounted: Map<String, Int>? = after) {
+internal fun CountRows(before: Map<String, Int>, after: Map<String, Int>? = null) {
     MigrationEntity.entries.forEachIndexed { index, entity ->
         if (index > 0) AppDivider()
-        CountRow(stringResource(entity.label), entity.count(before), after?.let(entity::count), accounted?.let(entity::count))
+        CountRow(stringResource(entity.label), entity.count(before), after?.let(entity::count))
     }
 }
 
 @Composable
-private fun CountRow(label: String, before: Int, after: Int?, accounted: Int?) {
+private fun CountRow(label: String, before: Int, after: Int?) {
     val from = countText(before)
     val to = after?.let(::countText)
-    val done = accounted != null && accounted == before
-    val waiting = accounted == 0 && before > 0
+    val done = after != null && after == before
+    val waiting = after == 0 && before > 0
     val text = when {
         to == null -> from
         waiting -> stringResource(R.string.migration_count_pending, from)
@@ -181,7 +180,7 @@ internal fun Muted(text: String) {
     Text(text, style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-/** Ett meddelande utan åtgärd (konto, varningar, påminnelser, klart). */
+/** Ett meddelande utan åtgärd (varningar, samma id, klart). */
 @Composable
 internal fun Note(text: String, @DrawableRes icon: Int, tone: Tone, detail: String? = null) {
     NoticeBanner(text, icon, onClick = null, tone = tone, detail = detail)
@@ -200,7 +199,7 @@ internal fun limited(lines: List<String>): List<String> {
     return if (more > 0) shown + stringResource(R.string.migration_more, more) else shown
 }
 
-/** Filtypen i dokumentväljaren (kopian, exporten och importen). */
+/** Filtypen i dokumentväljaren (exporten och importen). */
 internal const val JSON_MIME = "application/json"
 
 private const val MAX_LINES = 5

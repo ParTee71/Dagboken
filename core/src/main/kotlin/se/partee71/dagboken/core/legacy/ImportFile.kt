@@ -41,9 +41,9 @@ sealed interface ImportFileResult {
 }
 
 /**
- * Importens enda läsare av en fil (BCK-6, BCK-14, OMB-5): känner igen formatet och ger dokumenten för det inloggade
- * kontot [uid] – eller ett stopp – innan något skrivs. Samma läsare för Drive-backupen, filen från dokumentväljaren och
- * båda importvägarna (första starten och Inställningar → Export och import).
+ * Importens enda läsare av en fil (BCK-6, BCK-14): känner igen formatet och ger dokumenten för det inloggade kontot
+ * [uid] – eller ett stopp – innan något skrivs. Samma läsare för Drive-backupen och filen från dokumentväljaren
+ * (Inställningar → Export och import).
  *
  * - **4.0-export** (har `documents`): varje dokument ska ligga under **en** användare i en känd samling med giltiga och
  *   unika id:n och klara [DocumentRules] (= `firestore.rules`); en incheckning kräver sin episod i filen (rules
@@ -51,7 +51,7 @@ sealed interface ImportFileResult {
  *   med [SchemaMigrator]. Sökvägarna flyttas till [uid] (exporten kan komma från ett annat konto). Användardokumentet
  *   skrivs aldrig – det bär kontots egen version, `createdAt` och migreringsmarkören. Okända fält följer med (BCK-9).
  * - **3.x-backup** (minst en av 3.x:s datalistor, [LEGACY_DATA_KEYS]): `BackupJson.parse` och den **enda**
- *   konverteraren [BackupJsonConverter] (OMB-3) – samma mappning som migreringen på enheten och grinden OMB-4.
+ *   konverteraren [BackupJsonConverter] (OMB-3) – samma mappning som grinden OMB-4.
  *
  * Rapporten nämner samlingar, id:n, fält och skäl – aldrig innehåll; alternativ anges som plats i filen
  * (`options#3`), eftersom deras id bär namnet.

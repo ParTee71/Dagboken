@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.core.legacy.ImportFormat
+import se.partee71.dagboken.core.legacy.Problem
+import se.partee71.dagboken.core.legacy.Warning
 import se.partee71.dagboken.core.model.LegacySource
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.legacy.ImportPlan
@@ -16,12 +18,15 @@ import se.partee71.dagboken.data.legacy.ImportRead
 import se.partee71.dagboken.data.legacy.LegacyImportUseCase
 import se.partee71.dagboken.data.legacy.LegacyWriteOutcome
 
+/** En rad i en stopprapport (OMB-3): samlingen, fältet och skälet med antal – aldrig innehåll. */
+data class ReportLine(val collection: String, val field: String, val reason: String, val count: Int)
+
 /**
- * Importens lägen (BCK-6, BCK-14, OMB-5), ett per tavla i mockupen (avsnitt 16) – **samma** i första starten utan
- * Room-fil ([MigrationStage.Fallback]) och i Inställningar → Export och import. Bara antal, aldrig innehåll.
+ * Importens lägen (BCK-6, BCK-14) i Inställningar → Export och import, ett per tavla i mockupen (avsnitt 16). Bara
+ * antal, aldrig innehåll.
  */
 sealed interface ImportStage {
-    /** Valen: "Importera från Google Drive", "Importera från fil" (och i första starten "Börja tomt"). */
+    /** Valen: "Importera från Google Drive" och "Importera från fil". */
     data object Choose : ImportStage
 
     /** Drive-backupen eller filen läses och kontrolleras – ingenting skrivs. */
@@ -33,7 +38,7 @@ sealed interface ImportStage {
      */
     data class DriveConsent(val consent: PendingIntent) : ImportStage
 
-    /** Ingen backup på Drive (notisen): "Importera från fil" – och i första starten "Börja tomt". */
+    /** Ingen backup på Drive (notisen): "Importera från fil" eller "Avbryt". */
     data object NoDriveBackup : ImportStage
 
     /** Filen är varken en 3.x-backup eller en 4.0-export: "Välj en annan fil". */
@@ -68,10 +73,10 @@ sealed interface ImportStage {
     /** Filen stoppades (OMB-3): bara rapporten, ingenting skrivet, knappen "Välj en annan fil". */
     data class Stopped(val report: List<ReportLine>) : ImportStage
 
-    /** Skrivningen pågår – samma läge som flyttens (Mig-Skriver); [done] = `null` medan läget på servern läses. */
+    /** Skrivningen pågår; [done] = `null` medan läget på servern läses. */
     data class Writing(val before: Map<String, Int>, val done: Map<String, Int>?) : ImportStage
 
-    /** Allt skrivet och kontrollerat mot servern – samma läge som flyttens (Mig-Klar), utan bekräftelse: importen är klar. */
+    /** Allt skrivet och kontrollerat mot servern: importen är klar. */
     data class Done(val before: Map<String, Int>, val after: Map<String, Int>) : ImportStage
 
     /** Kontrollen mot servern stämde inte: [mismatched] per samling; "Försök igen" skriver om det som saknas. */
@@ -108,8 +113,8 @@ sealed interface ImportEvent {
 }
 
 /**
- * Importens tillståndsmaskin, **en** gång för båda ingångarna (regel 4): ägs av en ViewModel och körs i dess [scope].
- * Planen hålls här och visas bara som antal; all logik ligger i [LegacyImportUseCase]. Ett steg i taget.
+ * Importens tillståndsmaskin: ägs av en ViewModel och körs i dess [scope]. Planen hålls här och visas bara som antal;
+ * all logik ligger i [LegacyImportUseCase]. Ett steg i taget.
  */
 class ImportFlow(private val scope: CoroutineScope, private val importer: LegacyImportUseCase) {
     private val _state = MutableStateFlow<ImportStage>(ImportStage.Choose)
@@ -199,8 +204,26 @@ class ImportFlow(private val scope: CoroutineScope, private val importer: Legacy
         val result = importer.write(plan) { done -> _state.value = ImportStage.Writing(plan.counts, done) }
         _state.value = when (result) {
             is LegacyWriteOutcome.Verified -> ImportStage.Done(result.before, result.after)
-            is LegacyWriteOutcome.Mismatch -> ImportStage.Mismatch(result.before, accounted(result.after, result.existing), result.mismatched)
+            is LegacyWriteOutcome.Mismatch -> ImportStage.Mismatch(result.before, result.after, result.mismatched)
             is LegacyWriteOutcome.Failed -> ImportStage.WriteFailed(result.error, result.batch, result.code)
         }
     }
+}
+
+/** Varningarnas texter, var och en en gång – sökvägen (med dokument-id) visas inte. */
+internal fun List<Warning>.messages(): List<String> = map { it.message }.distinct()
+
+/**
+ * Stopprapporten per typ – samling, fält och skäl med antal; sökvägens id visas inte, och listindex slås ihop
+ * (`symptom[0]`, `symptom[3]` → `symptom[…]`), så att varje typ av fynd står på en rad och alla typer syns.
+ */
+internal fun reportOf(problems: List<Problem>): List<ReportLine> = problems.groupingBy { Triple(reportCollection(it.path), it.field.replace(LIST_INDEX, "[…]"), it.reason) }.eachCount()
+    .map { (key, count) -> ReportLine(key.first, key.second, key.third, count) }
+
+private val LIST_INDEX = Regex("""\[\d+]""")
+
+/** Samlingen i en rapportsökväg: `prescriptions/<id>` → `prescriptions`, `illnessEpisodes/<id>/checkins/<id>` → `checkins`, `options/activity#3` → `options`. */
+internal fun reportCollection(path: String): String {
+    val parts = path.split('/')
+    return if (parts.size >= 2) parts[parts.size - 2] else parts.first().substringBefore('#')
 }

@@ -69,7 +69,7 @@ class BackupJsonTest {
     }
 
     @Test
-    fun `encode skriver en 3x-backup som 3x parser läser tillbaka oförändrad - kopian på migreringsskärmen (OMB-7)`() {
+    fun `encode skriver en 3x-backup som 3x parser läser tillbaka oförändrad`() {
         for (name in listOf("backup-v2", "backup-v1")) {
             val backup = LegacyFixtures.backup(name)
             val text = BackupJson.encode(backup)
@@ -77,9 +77,6 @@ class BackupJsonTest {
             // Som 3.x (`encodeDefaults` av): ett standardvärde skrivs inte – v1:s version 1 utelämnas, v2:s version 2 står först.
             if (backup.version != 1) assertTrue(text.startsWith("{\"version\":${backup.version}"), text.take(20))
         }
-        val room = LegacyFixtures.room()
-        val assembled = LegacyRoomAssembler.assemble(room.tables, room.preferences, room.createdAt).backup
-        assertEquals(assembled, BackupJson.parse(BackupJson.encode(assembled)))
     }
 
     @Test

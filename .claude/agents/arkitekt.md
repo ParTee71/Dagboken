@@ -30,7 +30,7 @@ ombyggnaden är att **ingen data får tappas** (ADR-001, beslut 11; KRAVLISTA §
   mot Firebase-emulatorn (`demo-dagboken`). Ett fält som inte finns hela vägen är en regression.
 - **Konverteraren** (`core/.../legacy/BackupJsonConverter`): v1 och v2, arvsfälten `anteckning`
   och `tidpunkt`; fixturen har **varje** 3.x-fält satt och testet jämför fältvis (OMB-3). Samma
-  mappning används av legacy-läsaren och legacyimporten – en implementation, aldrig två.
+  mappning används av legacyimporten (BCK-14) – en implementation, aldrig två.
 - **schemaVersion:** höjs bara vid betydelseändring; nytt steg i `SchemaMigrator` och spegling i
   `tools/db/lib/migrate.mjs`, `lib/schema.mjs` och `maxSchemaVersion()` i rules i samma PR.
 - **Rules:** bara ägaren (`request.auth.uid == uid`), uttryckliga `match`-rader, fältvalidering
