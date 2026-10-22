@@ -27,6 +27,17 @@ interface DayMarks {
     suspend fun removeStartingWith(prefix: String)
 }
 
+/** Anteckningen som läses/skrivs/tas bort utan att något fel går vidare: en anteckning som inte går att läsa är ingen anteckning. */
+internal suspend fun DayMarks.getOrNull(key: String): LocalDate? = suspendRunCatching { get(key) }.getOrNull()
+
+internal suspend fun DayMarks.setQuietly(key: String, day: LocalDate) {
+    suspendRunCatching { set(key, day) }
+}
+
+internal suspend fun DayMarks.removeQuietly(key: String) {
+    suspendRunCatching { remove(key) }
+}
+
 /** [DayMarks] i 4.0:s egen DataStore-fil (`dagboken_device`), som överlever processdöd. */
 class DataStoreDayMarks @Inject constructor(private val store: DataStore<Preferences>) : DayMarks {
     override suspend fun get(key: String): LocalDate? = store.data.first()[preference(key)]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
@@ -74,10 +85,10 @@ class DailyGate @Inject constructor(private val marks: DayMarks, private val use
         return mutex.withLock {
             // En körning för samma konto och dag avslutades medan det här anropet väntade: dess utfall gäller.
             last?.takeIf { it.key == key && it.day == day && it.number > seen }?.let { return@withLock it.result }
-            if (read(key) == day) return@withLock Result.success(Unit)
+            if (marks.getOrNull(key) == day) return@withLock Result.success(Unit)
             val result = action()
             // Ett kontobyte under körningen: utfallet gäller inte säkert det nya kontot, så ingenting antecknas.
-            if (result.isSuccess && user.uid.value == uid) write(key, day)
+            if (result.isSuccess && user.uid.value == uid) marks.setQuietly(key, day)
             last = Attempt(key, day, finished.incrementAndGet(), result)
             result
         }
@@ -92,14 +103,8 @@ class DailyGate @Inject constructor(private val marks: DayMarks, private val use
         val key = "$name.$uid"
         mutex.withLock {
             if (last?.key == key) last = null
-            suspendRunCatching({ DataError.Unknown }) { marks.remove(key) }
+            marks.removeQuietly(key)
         }
-    }
-
-    private suspend fun read(key: String): LocalDate? = suspendRunCatching({ DataError.Unknown }) { marks.get(key) }.getOrNull()
-
-    private suspend fun write(key: String, day: LocalDate) {
-        suspendRunCatching({ DataError.Unknown }) { marks.set(key, day) }
     }
 
     private class Attempt(val key: String, val day: LocalDate, val number: Long, val result: Result<Unit>)

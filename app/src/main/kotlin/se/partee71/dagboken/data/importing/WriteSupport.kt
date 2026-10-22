@@ -106,5 +106,3 @@ internal class Counter {
 
 /** En läsning från servern med Firestores fel mappade (`Offline`, `PermissionDenied` …). */
 internal suspend fun <T> fromServer(block: suspend () -> T): Result<T> = suspendRunCatching(::firestoreError) { block() }
-
-internal fun Throwable.asDataError(): DataError = this as? DataError ?: DataError.Unknown

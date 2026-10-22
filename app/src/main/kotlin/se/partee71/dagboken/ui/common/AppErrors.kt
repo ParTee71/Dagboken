@@ -1,6 +1,7 @@
 package se.partee71.dagboken.ui.common
 
 import se.partee71.dagboken.data.common.DataError
+import se.partee71.dagboken.data.common.asDataError
 import se.partee71.ui.common.ErrorMapper
 import se.partee71.ui.common.UiError
 
@@ -12,7 +13,7 @@ import se.partee71.ui.common.UiError
  */
 object AppErrors : ErrorMapper {
     override fun map(error: Throwable): UiError {
-        val data = error as? DataError ?: DataError.Unknown
+        val data = error.asDataError()
         return UiError(data, data.toMessage(), retryable = data != DataError.NotFound)
     }
 
@@ -20,4 +21,4 @@ object AppErrors : ErrorMapper {
 }
 
 /** Datalagrets fel bakom ett [UiError] från [AppErrors] – för det som avgörs på felets typ (t.ex. offline). */
-val UiError.dataError: DataError get() = cause as? DataError ?: DataError.Unknown
+val UiError.dataError: DataError get() = cause.asDataError()

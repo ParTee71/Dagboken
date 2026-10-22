@@ -58,6 +58,9 @@ class AppBackStack internal constructor(current: TopLevelKey, stacks: Map<TopLev
         if (entries.last() == key) pop()
     }
 
+    /** [popIfTop] för [key] som återanrop – skärmens `onClose`/`onBack`. */
+    fun closer(key: AppKey): () -> Unit = { popIfTop(key) }
+
     /** Går tillbaka ett steg; `false` om det inte finns något kvar (appen ska stängas). */
     fun pop(): Boolean {
         val stack = stack(currentTab)

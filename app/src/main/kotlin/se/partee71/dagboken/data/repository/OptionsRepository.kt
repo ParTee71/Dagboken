@@ -10,6 +10,7 @@ import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.schema.OptionCodec
 import se.partee71.dagboken.data.common.CollectionFactory
 import se.partee71.dagboken.data.common.sortOrderAfterLast
+import se.partee71.dagboken.data.common.updateFavorite
 
 /**
  * Alternativlistorna – aktivitetstyper, symptom och händelsetyper i samlingen `options` (DAT-9).
@@ -91,7 +92,7 @@ class DefaultOptionsRepository @Inject constructor(collections: CollectionFactor
         return collection.update(option.copy(name = trimmed), setOf(OptionCodec.NAME))
     }
 
-    override suspend fun setFavorite(option: Option, favorite: Boolean): Result<Unit> = collection.update(option.copy(favorite = favorite), setOf(OptionCodec.FAVORITE))
+    override suspend fun setFavorite(option: Option, favorite: Boolean): Result<Unit> = collection.updateFavorite(option.copy(favorite = favorite), OptionCodec.FAVORITE)
 
     override suspend fun setArchived(id: String, archived: Boolean): Result<Unit> {
         if (archived) return collection.setArchived(id, true)

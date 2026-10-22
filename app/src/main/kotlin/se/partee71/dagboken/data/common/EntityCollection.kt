@@ -244,6 +244,9 @@ suspend fun <T : Identified> EntityCollection<T>.updateChanged(codec: DocCodec<T
     return if (changed.isEmpty() && removed.isEmpty()) Result.success(Unit) else update(after, changed, removed)
 }
 
+/** Skriver bara [field] (favoritfältet) av [updated] – stjärnan i listor och på Idag, utan att röra postens övriga fält. */
+suspend fun <T : Identified> EntityCollection<T>.updateFavorite(updated: T, field: String): Result<Unit> = update(updated, setOf(field))
+
 /**
  * [EntityCollection.move] av [before] till [after] (med ett nytt id): det lagrade dokumentet följer med – också
  * fält från en nyare app och fält som en annan enhet ändrat under tiden – och bara de toppfält som skiljer

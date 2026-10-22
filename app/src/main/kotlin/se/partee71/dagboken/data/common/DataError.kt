@@ -38,13 +38,16 @@ sealed class DataError : Exception() {
 fun Result<Unit>.offlineIsNoOp(): Result<Unit> = if (exceptionOrNull() == DataError.Offline) Result.success(Unit) else this
 
 /** Felet i ett misslyckat [Result], eller `null` vid lyckat. */
-fun Result<*>.dataError(): DataError? = exceptionOrNull()?.let { it as? DataError ?: DataError.Unknown }
+fun Result<*>.dataError(): DataError? = exceptionOrNull()?.asDataError()
+
+/** Felet som [DataError]: ett [DataError] som det är, annat som [DataError.Unknown]. */
+fun Throwable.asDataError(): DataError = this as? DataError ?: DataError.Unknown
 
 /**
  * Kör [block] och fångar fel som [DataError] via [mapError] – den enda felhanteringen runt
- * Firestore och inloggning. Avbrott av coroutinen släpps igenom.
+ * Firestore och inloggning (utan [mapError] blir okända fel [DataError.Unknown]). Avbrott av coroutinen släpps igenom.
  */
-suspend fun <T> suspendRunCatching(mapError: (Throwable) -> DataError, block: suspend () -> T): Result<T> = try {
+suspend fun <T> suspendRunCatching(mapError: (Throwable) -> DataError = Throwable::asDataError, block: suspend () -> T): Result<T> = try {
     Result.success(block())
 } catch (e: CancellationException) {
     throw e

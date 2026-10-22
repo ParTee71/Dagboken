@@ -79,5 +79,6 @@ fun <T> Flow<T>.withFallback(fallback: T): Flow<T> = flow {
 /** Fel som inte går över av sig själva medan skärmen är öppen. */
 private val LASTING = setOf(DataError.PermissionDenied, DataError.UpdateRequired, DataError.NotSignedIn, DataError.NotFound)
 
-private val FALLBACK_FIRST_RETRY = 2.seconds
-private val FALLBACK_MAX_RETRY = 60.seconds
+/** Pausen före första och längsta försöket när ett tillägg på en skärm ([withFallback]) eller användarens version ([FirestoreUserVersions]) läses om. */
+val FALLBACK_FIRST_RETRY = 2.seconds
+val FALLBACK_MAX_RETRY = 60.seconds
