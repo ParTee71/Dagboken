@@ -111,7 +111,7 @@ data class AsNeededChoices(
     val favoritePrescriptions: List<Prescription> = emptyList()
 ) {
     /** Snabbvalen (FAV-2, FAV-12): stjärnmärkta vid behov-mediciner och recept tillsammans, efter namn (lika namn på id). */
-    val chips: List<AsNeededChip> get() = (favorites.map(AsNeededChip::Medicine) + favoritePrescriptions.map(AsNeededChip::Recipe)).sortedWith(CHIP_ORDER)
+    val chips: List<AsNeededChip> = (favorites.map(AsNeededChip::Medicine) + favoritePrescriptions.map(AsNeededChip::Recipe)).sortedWith(CHIP_ORDER)
 
     /** Antalet i "Fler" (FAV-2). */
     val moreCount: Int get() = others.size + prescriptions.size
@@ -157,12 +157,13 @@ sealed interface AsNeededChip : Identified {
  * FAV-11: samma medicin = samma namn (utan skiftläge, blanktecken normaliserade) och samma styrka (normaliserad)
  * – eller att någon av styrkorna inte är angiven, så att en medicin utan styrka inte visas bredvid samma med styrka.
  */
-fun sameMedicine(nameA: String, strengthA: String, nameB: String, strengthB: String): Boolean {
-    fun norm(text: String) = text.trim().lowercase().replace(Regex("\\s+"), " ")
-    val a = norm(strengthA)
-    val b = norm(strengthB)
-    return norm(nameA) == norm(nameB) && (a.isEmpty() || b.isEmpty() || a == b)
-}
+fun sameMedicine(nameA: String, strengthA: String, nameB: String, strengthB: String): Boolean = sameMedicineNormalized(normalizedMedicineText(nameA), normalizedMedicineText(strengthA), normalizedMedicineText(nameB), normalizedMedicineText(strengthB))
+
+private val WHITESPACE = Regex("\\s+")
+
+private fun normalizedMedicineText(text: String) = text.trim().lowercase().replace(WHITESPACE, " ")
+
+private fun sameMedicineNormalized(nameA: String, strengthA: String, nameB: String, strengthB: String) = nameA == nameB && (strengthA.isEmpty() || strengthB.isEmpty() || strengthA == strengthB)
 
 /**
  * FAV-2, FAV-11, FAV-12: delar vid behov-medicinerna på stjärnan, efter namn, och tar med de aktiva recept vars
@@ -171,13 +172,22 @@ fun sameMedicine(nameA: String, strengthA: String, nameB: String, strengthB: Str
  * och står inte under "Recept". Lika namn ordnas på id.
  */
 fun asNeededChoices(medicines: List<PrnMedicine>, prescriptions: List<Prescription>, today: LocalDate): AsNeededChoices {
-    val sorted = medicines.sortedWith(nameThenId<PrnMedicine> { it.name })
-    val recipes = prescriptions
-        .filter { p -> p.active && p.period.covers(today) && medicines.none { sameMedicine(it.name, it.strength, p.name, p.strength) } }
-        .sortedWith(nameThenId<Prescription> { it.name })
-    val (favorites, others) = sorted.partition { it.favorite }
-    val (favoriteRecipes, otherRecipes) = recipes.partition { it.favorite }
-    return AsNeededChoices(favorites, others, otherRecipes, favoriteRecipes)
+    val known = medicines.map { normalizedMedicineText(it.name) to normalizedMedicineText(it.strength) }
+    val (favorites, others) = medicines.partition { it.favorite }
+    val (favoriteRecipes, otherRecipes) = prescriptions
+        .filter { p ->
+            p.active && p.period.covers(today) && normalizedMedicineText(p.name).let { name ->
+                val strength = normalizedMedicineText(p.strength)
+                known.none { (knownName, knownStrength) -> sameMedicineNormalized(knownName, knownStrength, name, strength) }
+            }
+        }
+        .partition { it.favorite }
+    return AsNeededChoices(
+        favorites.sortedWith(nameThenId<PrnMedicine> { it.name }),
+        others.sortedWith(nameThenId<PrnMedicine> { it.name }),
+        otherRecipes.sortedWith(nameThenId<Prescription> { it.name }),
+        favoriteRecipes.sortedWith(nameThenId<Prescription> { it.name })
+    )
 }
 
 /**

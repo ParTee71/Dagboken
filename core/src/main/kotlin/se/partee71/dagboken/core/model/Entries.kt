@@ -15,7 +15,7 @@ data class Screening(
     override val id: String,
     override val date: LocalDate? = null,
     val time: LocalTime? = null,
-    /** Måltidstillfället; fanns inte som fält i 3.x och härleds då (DAT-12, [Occasion.derive]). */
+    /** Måltidstillfället; fanns inte som fält i 3.x (DAT-12). */
     val occasion: Occasion? = null,
     /** 3.x-screeningens namn (`aktivitet`) när det inte var ett tillfälles namn; annars `null`. */
     val customText: String? = null,

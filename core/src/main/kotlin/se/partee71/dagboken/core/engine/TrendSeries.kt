@@ -44,11 +44,11 @@ private fun moodEntries(screenings: List<Screening>, activities: List<Activity>)
  * energitjuvar på skalan 0–10 (andel × 10). En dag utan poster är en lucka i alla fyra.
  */
 fun stressSeries(screenings: List<Screening>, activities: List<Activity>, days: List<LocalDate>): List<TrendSerie> {
-    val entries = moodEntries(screenings, activities)
-    fun share(flag: (MoodEntry) -> Boolean) = dailyAverage(entries, days, { it.date }) { if (flag(it)) SCALE_MAX else 0 }
+    val byDay = moodEntries(screenings, activities).groupBy { it.date }
+    fun share(flag: (MoodEntry) -> Boolean) = dailyAverage(byDay, days) { if (flag(it)) SCALE_MAX else 0 }
     return listOf(
-        TrendSerie(StressSeries.STRESS.name, dailyAverage(entries, days, { it.date }, { it.stress })),
-        TrendSerie(StressSeries.SOMATIC.name, dailyAverage(entries, days, { it.date }, { it.somatic })),
+        TrendSerie(StressSeries.STRESS.name, dailyAverage(byDay, days) { it.stress }),
+        TrendSerie(StressSeries.SOMATIC.name, dailyAverage(byDay, days) { it.somatic }),
         TrendSerie(StressSeries.RECOVERING.name, share { it.recovering }),
         TrendSerie(StressSeries.DRAIN.name, share { it.drain })
     )
@@ -64,9 +64,9 @@ fun symptomSeries(screenings: List<Screening>, activities: List<Activity>, days:
     val scored = screenings.flatMap { s -> s.symptoms.mapNotNull { sc -> sc.score?.let { Triple(s.date, sc.optionId, it) } } } +
         activities.flatMap { a -> a.symptoms.mapNotNull { sc -> sc.score?.let { Triple(a.date, sc.optionId, it) } } }
     val period = days.toSet()
-    val inPeriod = scored.filter { it.first in period }
-    return inPeriod.map { it.second }.distinct().sorted().map { id ->
-        TrendSerie(id, dailyAverage(inPeriod.filter { it.second == id }, days, { it.first }, { it.third }))
+    val byId = scored.filter { it.first in period }.groupBy { it.second }
+    return byId.keys.sorted().map { id ->
+        TrendSerie(id, dailyAverage(byId.getValue(id), days, { it.first }, { it.third }))
     }
 }
 
@@ -125,10 +125,10 @@ fun eventIllnessTrend(
 }
 
 /** Dagens snitt av [value] över de av [entries] som hör till dagen, för var och en av [days]; `null` utan poster. */
-private fun <T> dailyAverage(entries: List<T>, days: List<LocalDate>, date: (T) -> LocalDate?, value: (T) -> Int): List<Float?> {
-    val byDay = entries.groupBy(date)
-    return days.map { day -> byDay[day]?.map { value(it) }?.takeIf { it.isNotEmpty() }?.average()?.toFloat() }
-}
+private fun <T> dailyAverage(entries: List<T>, days: List<LocalDate>, date: (T) -> LocalDate?, value: (T) -> Int): List<Float?> = dailyAverage(entries.groupBy(date), days, value)
+
+/** Som ovan över poster som redan är grupperade per dag, så att flera serier delar en gruppering. */
+private fun <T> dailyAverage(byDay: Map<LocalDate?, List<T>>, days: List<LocalDate>, value: (T) -> Int): List<Float?> = days.map { day -> byDay[day]?.map { value(it) }?.takeIf { it.isNotEmpty() }?.average()?.toFloat() }
 
 /** Skalans tak (0–10) för andelarna i Stress och belastning. */
 private const val SCALE_MAX = 10
