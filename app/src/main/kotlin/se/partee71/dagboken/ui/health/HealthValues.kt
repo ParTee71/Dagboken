@@ -13,6 +13,7 @@ import se.partee71.dagboken.core.engine.WatchMetric
 import se.partee71.dagboken.core.engine.WatchUnit
 import se.partee71.dagboken.core.engine.formatChartValue
 import se.partee71.dagboken.core.model.DailyHealth
+import se.partee71.dagboken.core.time.MINUTES_PER_HOUR
 import se.partee71.dagboken.ui.common.durationText
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.StatPill
@@ -53,5 +54,3 @@ internal fun PillRows(metrics: List<Metric>) {
 @Composable
 @ReadOnlyComposable
 private fun withUnit(value: String, unit: WatchUnit): String = stringResource(R.string.value_with_unit_format, value, stringResource(unit.label()))
-
-private const val MINUTES_PER_HOUR = 60

@@ -141,3 +141,9 @@ data class Checkin(
 
     override fun copySymptoms(symptoms: List<SymptomScore>, legacySomatic: Int?): Checkin = copy(symptoms = symptoms, legacySomatic = legacySomatic)
 }
+
+/** Svårighetsgraden på skalan 0–10 (händelse och sjukdomsincheckning). */
+object Severity {
+    /** En ny händelses eller inchecknings svårighetsgrad – mitt på skalan, som 3.x. */
+    const val DEFAULT = 5
+}

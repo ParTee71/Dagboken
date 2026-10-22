@@ -1,8 +1,12 @@
 package se.partee71.dagboken.core.time
 
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.daysUntil
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 
 /**
@@ -21,3 +25,12 @@ fun datesBetween(from: LocalDate, to: LocalDate): List<LocalDate> {
  * så att ett val står kvar som idag över midnatt. En gång för Idag och klockan på Idag.
  */
 fun shownDate(chosen: LocalDate?, today: LocalDate): LocalDate = chosen?.takeIf { it <= today } ?: today
+
+/** Måndagen i veckan som innehåller datumet – veckan börjar på måndag i datumremsan, kalendern och Idag. */
+fun LocalDate.weekMonday(): LocalDate = minus(DatePeriod(days = dayOfWeek.ordinal))
+
+/** Veckans sju dagar, måndag först, för veckan som börjar [monday]. */
+fun weekDays(monday: LocalDate): List<LocalDate> = List(DAYS_PER_WEEK) { monday.plus(it, DateTimeUnit.DAY) }
+
+/** Samma ögonblick avrundat nedåt till hela minuten – sekunder och bråkdelar bort. */
+fun LocalDateTime.truncatedToMinute(): LocalDateTime = LocalDateTime(date, LocalTime(hour, minute))

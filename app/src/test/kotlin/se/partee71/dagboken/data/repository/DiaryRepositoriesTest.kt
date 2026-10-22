@@ -17,6 +17,7 @@ import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.IllnessEpisode
+import se.partee71.dagboken.core.model.Severity
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.core.schema.ActivityCodec
@@ -135,7 +136,7 @@ class DiaryRepositoriesTest {
             actions = "Satte mig ner",
             note = "Första gången"
         )
-        assertEquals(EventRepository.DEFAULT_SEVERITY, events.new(day, LocalTime(10, 5)).severity)
+        assertEquals(Severity.DEFAULT, events.new(day, LocalTime(10, 5)).severity)
         activities.save(null, activity).getOrThrow()
         events.save(null, event).getOrThrow()
         assertEquals(activity, activities.get(activity.id).getOrThrow())

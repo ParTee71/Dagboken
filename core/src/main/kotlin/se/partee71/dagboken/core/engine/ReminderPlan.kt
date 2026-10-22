@@ -123,7 +123,7 @@ fun nextAlarmAt(reminder: Reminder, time: LocalTime, now: Instant, zone: TimeZon
  */
 data class SlotDoses(val stored: List<Dose> = emptyList(), val missing: List<Dose> = emptyList()) {
     /** Alla, i namnordning – det notisen listar. */
-    val all: List<Dose> get() = (stored + missing).sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER, Dose::name).thenBy(Dose::id))
+    val all: List<Dose> get() = (stored + missing).sortedWith(nameThenId(Dose::name))
 
     val isEmpty: Boolean get() = stored.isEmpty() && missing.isEmpty()
 }

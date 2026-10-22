@@ -20,6 +20,10 @@ internal const val DATE = "date"
 internal const val TIME = "time"
 internal const val CREATED_AT = "createdAt"
 internal const val NOTE = "note"
+internal const val NAME = "name"
+internal const val FAVORITE = "favorite"
+internal const val DOSE = "dose"
+internal const val UNIT = "unit"
 internal const val SYMPTOMS = "symptoms"
 
 /** Postens gemensamma fält: dag, klockslag, när den skapades och anteckningen (DAT-7). */
@@ -94,10 +98,10 @@ internal fun <T : HasFeelings<T>> Doc.decodeFeelingFields(post: T): T {
 }
 
 object OptionCodec : DocCodec<Option> {
-    const val NAME = "name"
+    const val NAME = se.partee71.dagboken.core.schema.NAME
     const val KIND = "kind"
     const val SORT_ORDER = "sortOrder"
-    const val FAVORITE = "favorite"
+    const val FAVORITE = se.partee71.dagboken.core.schema.FAVORITE
     const val ARCHIVED = "archived"
 
     override fun encode(value: Option): Doc = mapOf(
@@ -119,9 +123,6 @@ object OptionCodec : DocCodec<Option> {
 }
 
 object ScreeningCodec : DatedCodec<Screening> {
-    /** Loggens dag (`yyyy-MM-dd`, sorterbar som text) – avgränsar lyssningen på en dag eller period. */
-    const val DATE = se.partee71.dagboken.core.schema.DATE
-
     override val dateField: String get() = DATE
 
     override fun encode(value: Screening): Doc = entryFields(value.date, value.time, value.createdAt, value.note) + mapOf(
@@ -149,9 +150,6 @@ object ScreeningCodec : DatedCodec<Screening> {
 }
 
 object ActivityCodec : DatedCodec<Activity> {
-    /** Aktivitetens dag (`yyyy-MM-dd`) – avgränsar Dagbokens lyssning på ett år (HIST-8). */
-    const val DATE = se.partee71.dagboken.core.schema.DATE
-
     override val dateField: String get() = DATE
 
     override fun encode(value: Activity): Doc = entryFields(value.date, value.time, value.createdAt, value.note) + mapOf(
@@ -185,9 +183,6 @@ object ActivityCodec : DatedCodec<Activity> {
 }
 
 object EventCodec : DatedCodec<Event> {
-    /** Händelsens dag (`yyyy-MM-dd`) – avgränsar Dagbokens lyssning på ett år (HIST-8). */
-    const val DATE = se.partee71.dagboken.core.schema.DATE
-
     override val dateField: String get() = DATE
 
     override fun encode(value: Event): Doc = entryFields(value.date, value.time, value.createdAt, value.note) + mapOf(

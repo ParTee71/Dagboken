@@ -18,7 +18,7 @@ import javax.inject.Provider
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
 import se.partee71.dagboken.reminders.MomentLaunch
 import se.partee71.dagboken.ui.settings.AppThemeViewModel
 import se.partee71.dagboken.ui.settings.isDark
@@ -59,7 +59,7 @@ class MomentActivity : ComponentActivity() {
                 current?.let { moment ->
                     MomentRoute(
                         moment,
-                        today = clock.now().toLocalDateTime(zone.get()).date,
+                        today = clock.todayIn(zone.get()),
                         onChooseFeelings = { chooseFeelings(moment) },
                         // Bakåt = Inte nu: aktiviteten stängs (standardbeteendet), notisen står kvar.
                         onNotNow = ::finish,

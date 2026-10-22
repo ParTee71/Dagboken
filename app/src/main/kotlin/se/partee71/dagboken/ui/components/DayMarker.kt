@@ -8,13 +8,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
+import se.partee71.dagboken.R
+import se.partee71.dagboken.core.time.DAYS_PER_WEEK
+import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.theme.AppColors
 
 /**
@@ -43,11 +47,16 @@ private fun Dot(color: Color, ring: Color? = null) {
     Box(ringed.background(color, CircleShape))
 }
 
-/** Måndagen i veckan som innehåller datumet – veckan börjar på måndag i både datumremsan och kalendern. */
-internal fun LocalDate.weekMonday(): LocalDate = minus(DatePeriod(days = dayOfWeek.ordinal))
+internal val ONE_WEEK = DatePeriod(days = DAYS_PER_WEEK)
 
-internal val ONE_WEEK = DatePeriod(days = 7)
-internal const val DAYS_PER_WEEK = 7
+/** Dagens uppläsning i datumremsan och kalendern: datum, "idag", "har poster". */
+@Composable
+@ReadOnlyComposable
+internal fun dayDescription(day: LocalDate, isToday: Boolean, hasEntries: Boolean): String = listOfNotNull(
+    DateFormat.display(day),
+    stringResource(R.string.date_strip_today).takeIf { isToday },
+    stringResource(R.string.calendar_has_entries).takeIf { hasEntries }
+).joinToString(", ")
 
 /** Avståndet mellan dagens siffra och markeringen under den. */
 internal val DAY_MARKER_GAP = 2.dp

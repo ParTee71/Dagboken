@@ -8,6 +8,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.core.model.Dose
+import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.ReminderSettings
@@ -116,14 +117,14 @@ data class AsNeededChoices(
     val moreCount: Int get() = others.size + prescriptions.size
 
     private companion object {
-        val CHIP_ORDER = compareBy<AsNeededChip, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id }.thenBy { it is AsNeededChip.Recipe }
+        val CHIP_ORDER = nameThenId<AsNeededChip> { it.name }.thenBy { it is AsNeededChip.Recipe }
     }
 }
 
 /** Ett snabbval i Vid behov-kortet (FAV-2, FAV-12): en vid behov-medicin eller ett stjärnmärkt recept (loggar en extrados, FAV-11). */
-sealed interface AsNeededChip {
+sealed interface AsNeededChip : Identified {
     /** Dokumentets id – unikt bara inom sin samling. */
-    val id: String
+    override val id: String
     val name: String
 
     data class Medicine(val medicine: PrnMedicine) : AsNeededChip {
@@ -155,10 +156,10 @@ fun sameMedicine(nameA: String, strengthA: String, nameB: String, strengthB: Str
  * och står inte under "Recept". Lika namn ordnas på id.
  */
 fun asNeededChoices(medicines: List<PrnMedicine>, prescriptions: List<Prescription>, today: LocalDate): AsNeededChoices {
-    val sorted = medicines.sortedWith(compareBy<PrnMedicine, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id })
+    val sorted = medicines.sortedWith(nameThenId<PrnMedicine> { it.name })
     val recipes = prescriptions
         .filter { p -> p.active && p.period.covers(today) && medicines.none { sameMedicine(it.name, it.strength, p.name, p.strength) } }
-        .sortedWith(compareBy<Prescription, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id })
+        .sortedWith(nameThenId<Prescription> { it.name })
     val (favorites, others) = sorted.partition { it.favorite }
     val (favoriteRecipes, otherRecipes) = recipes.partition { it.favorite }
     return AsNeededChoices(favorites, others, otherRecipes, favoriteRecipes)

@@ -14,10 +14,13 @@ import se.partee71.dagboken.core.model.SymptomScore
 val OTHER_SYMPTOM_ID: String = OptionIds.of(OptionKind.SYMPTOM, OptionIds.OTHER)
 
 /**
- * Symptomen som går att välja i ett formulär (SCR-2): listans aktiva symptom i listans ordning, och de
- * arkiverade som posten redan har ([chosen]) – så att en ändrad post visar sina symptom med namn.
+ * Symptomen som går att välja i ett formulär (SCR-2): listans aktiva symptom, stjärnmärkta först och sedan i listans
+ * ordning (som favoriterna i [typeChoices]), och de arkiverade som posten redan har ([chosen]) – så att en ändrad post
+ * visar sina symptom med namn.
  */
 fun symptomChoices(options: List<Option>, chosen: List<SymptomScore>): List<Option> {
     val ids = chosen.mapTo(HashSet()) { it.optionId }
-    return options.filter { it.kind == OptionKind.SYMPTOM && (!it.archived || it.id in ids) }
+    return options
+        .filter { it.kind == OptionKind.SYMPTOM && (!it.archived || it.id in ids) }
+        .sortedWith(compareByDescending<Option> { it.favorite }.thenBy { it.sortOrder })
 }

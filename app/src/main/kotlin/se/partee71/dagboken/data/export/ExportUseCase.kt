@@ -11,7 +11,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
 import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.ExportFormat
 import se.partee71.dagboken.core.schema.Schema
@@ -47,7 +47,7 @@ class ExportUseCase @Inject constructor(
     @DefaultDispatcher private val computation: CoroutineDispatcher
 ) {
     /** Förslaget i filväljaren: `dagboken-export-<datum>.json` (datum i [zone]). */
-    fun fileName(zone: TimeZone): String = "$FILE_PREFIX${clock.now().toLocalDateTime(zone).date}.json"
+    fun fileName(zone: TimeZone): String = "$FILE_PREFIX${clock.todayIn(zone)}.json"
 
     /**
      * Läser hela kontot och skriver filen på [uri]. Utan nät `Offline` (köade skrivningar når inte servern, eller

@@ -27,7 +27,7 @@ import se.partee71.ui.theme.Spacing
 
 /**
  * Symptom med gradering 0–10 (AKT-6, SCR-2, SJ-3) – samma kort i aktivitet, mående och incheckning.
- * Ett kort med en [Foldout] (AKT-8): chips för symptomen ([options], stjärnmärkta först) med styrkan i
+ * Ett kort med en [Foldout] (AKT-8): chips för symptomen ([options], i den ordning de kommer – `symptomChoices` lägger stjärnmärkta först) med styrkan i
  * chipet, och ett [ValueSlider] (högre är sämre, grönt → rött) för det **aktiva** symptomet direkt under
  * chipsen: det nyss valda, eller det valda chip man tryckt på. Tryck på det aktiva avmarkerar det; då blir
  * det senast valda kvarvarande aktivt. Alternativet [otherOptionId] ("Övrigt") får ett textfält för egen
@@ -48,7 +48,6 @@ fun SymptomLogCard(
     var expanded by rememberSaveable { mutableStateOf(initiallyExpanded || scores.isNotEmpty()) }
     // Det aktiva symptomet – en befintlig logg öppnas med det första valda aktivt.
     var activeId by rememberSaveable { mutableStateOf(scores.firstOrNull()?.optionId) }
-    val sorted = remember(options) { options.sortedWith(compareByDescending<Option> { it.favorite }.thenBy { it.sortOrder }) }
     val names = remember(options) { options.associate { it.id to it.name } }
     val sum = stringResource(R.string.symptom_sum_format, somatic)
     AppCard(modifier, contentColor = MaterialTheme.colorScheme.onSurface) {
@@ -56,7 +55,7 @@ fun SymptomLogCard(
             // Ett reglage åt gången (SCR-2): det aktiva symptomets reglage står på fast plats under chipsen.
             val active = scores.firstOrNull { it.optionId == activeId } ?: scores.firstOrNull()
             ChipRow {
-                sorted.forEach { option ->
+                options.forEach { option ->
                     val chosen = scores.firstOrNull { it.optionId == option.id }
                     val isActive = chosen != null && chosen.optionId == active?.optionId
                     AppFilterChip(

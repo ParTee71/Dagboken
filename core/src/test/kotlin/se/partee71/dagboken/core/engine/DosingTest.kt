@@ -100,6 +100,11 @@ class DosingTest {
         assertNull(prescription(start = null).intervalAnchor())
     }
 
+    @Test fun `skapandedagen läses i svensk tid och saknas utan skapandetid`() {
+        assertEquals(day("2026-05-03"), prescription(createdAt = at("2026-05-03T00:30")).createdDay())
+        assertNull(prescription(start = null).createdDay())
+    }
+
     // ── Period (REC-7, REC-8) ─────────────────────────────────────────────────
 
     @Test fun `perioden gäller första och sista dagen men inte utanför`() {

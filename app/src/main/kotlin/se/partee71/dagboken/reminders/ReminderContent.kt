@@ -12,7 +12,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
 import se.partee71.dagboken.core.engine.PeriodEnding
 import se.partee71.dagboken.core.engine.SlotDoses
 import se.partee71.dagboken.core.engine.enabledOccasionRows
@@ -108,7 +108,7 @@ class ReminderContent @Inject constructor(
     /** Påminnelseinställningarna, eller `null` när de inte går att läsa i tid – då gäller larmet som det sattes. */
     private suspend fun reminders(): ReminderSettings? = withTimeoutOrNull(SETTINGS_WAIT) { settings.get().getOrNull()?.reminders }
 
-    private fun today(): LocalDate = clock.now().toLocalDateTime(zone.get()).date
+    private fun today(): LocalDate = clock.todayIn(zone.get())
 
     /** Flödets första värde – ur cachen direkt – eller `null` vid fel, utloggad eller inget svar i tid. */
     private suspend fun <T> Flow<T>.current(): T? = withTimeoutOrNull(READ_WAIT) { firstValue() }

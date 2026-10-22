@@ -14,6 +14,7 @@ import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.Repeat
 import se.partee71.dagboken.core.model.Schedule
+import se.partee71.dagboken.core.time.DAYS_PER_WEEK
 import se.partee71.dagboken.core.time.HOME_ZONE
 
 // Receptets kalender och dos (REC-2…REC-4, REC-7…REC-9, REC-11, REC-12) – en gång, här, så att
@@ -51,7 +52,10 @@ fun List<Prescription>.toDeactivateOn(today: LocalDate): List<Prescription> = ac
  * [HOME_ZONE], samma zon som 3.x-konverteraren (borttagen i 4.9.0) skrev 3.x `skapad` i (midnatt), så att samma recept ger
  * samma dosdagar på alla enheter oavsett enhetens tidszon.
  */
-fun Prescription.intervalAnchor(): LocalDate? = period.start ?: createdAt?.toLocalDateTime(HOME_ZONE)?.date
+fun Prescription.intervalAnchor(): LocalDate? = period.start ?: createdDay()
+
+/** Dagen receptet skapades, i [HOME_ZONE] (REC-4, HEM-10) – en gång för intervallankaret och första dosdagen. `null` utan skapandetid. */
+fun Prescription.createdDay(): LocalDate? = createdAt?.toLocalDateTime(HOME_ZONE)?.date
 
 /**
  * REC-2…REC-4: om upprepningen ger en dos på [date]. [anchor] är dagen ett intervall räknas från
@@ -124,8 +128,6 @@ private fun Prescription.doseDayNear(from: LocalDate, forward: Boolean): LocalDa
         .take(DAYS_PER_WEEK)
         .firstOrNull { repeating.appliesOn(it, anchor) }
 }
-
-private const val DAYS_PER_WEEK = 7
 
 /**
  * REC-9, REC-11: doshöjningen som gäller [date], eller `null` när grunddosen gäller. En höjning utan

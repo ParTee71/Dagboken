@@ -29,12 +29,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import se.partee71.dagboken.R
-import se.partee71.dagboken.ui.common.DateFormat
+import se.partee71.dagboken.core.time.weekDays
+import se.partee71.dagboken.core.time.weekMonday
 import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
@@ -99,7 +99,7 @@ fun DateStrip(
             },
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
-        val days = remember(monday) { List(DAYS_PER_WEEK) { monday.plus(DatePeriod(days = it)) } }
+        val days = remember(monday) { weekDays(monday) }
         days.forEach { day ->
             DayChip(
                 day = day,
@@ -129,11 +129,7 @@ private fun DayChip(
     val colors = MaterialTheme.colorScheme
     val content = if (selected) colors.onPrimary else colors.onSurface
     val muted = if (selected) colors.onPrimary else colors.onSurfaceVariant
-    val description = listOfNotNull(
-        DateFormat.display(day),
-        stringResource(R.string.date_strip_today).takeIf { isToday },
-        stringResource(R.string.calendar_has_entries).takeIf { hasEntries }
-    ).joinToString(", ")
+    val description = dayDescription(day, isToday, hasEntries)
     val doneLabel = stringResource(R.string.date_strip_done)
     DayTab(
         selected = selected,

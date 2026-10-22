@@ -31,6 +31,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.time.weekDays
+import se.partee71.dagboken.core.time.weekMonday
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.theme.AppShapes
 import se.partee71.dagboken.ui.theme.AppTypography
@@ -100,12 +102,7 @@ fun DagbokenCalendar(
 @Composable
 private fun DayCell(day: LocalDate, hasEntries: Boolean, selected: Boolean, isToday: Boolean, future: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    // Samma uppläsning som datumremsan: datum, "idag", "har poster".
-    val description = listOfNotNull(
-        DateFormat.display(day),
-        stringResource(R.string.date_strip_today).takeIf { isToday },
-        stringResource(R.string.calendar_has_entries).takeIf { hasEntries }
-    ).joinToString(", ")
+    val description = dayDescription(day, isToday, hasEntries)
     // Tryckytan är hela cellen (kolumnens bredd × 48 dp). I en smal kolumn (under 48 dp, t.ex. på
     // 360 dp breda skärmar) utvidgar Compose tryckytan till 48 dp åt sidorna (NFR-14).
     Box(
@@ -140,7 +137,7 @@ private fun monthGrid(first: LocalDate): List<List<LocalDate>> {
     val next = first.plus(ONE_MONTH)
     return generateSequence(start) { it.plus(ONE_WEEK) }
         .takeWhile { it < next }
-        .map { monday -> List(DAYS_PER_WEEK) { monday.plus(DatePeriod(days = it)) } }
+        .map { monday -> weekDays(monday) }
         .toList()
 }
 

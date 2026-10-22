@@ -9,6 +9,7 @@ import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.core.engine.endDateError
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.IllnessEpisode
+import se.partee71.dagboken.core.model.Severity
 import se.partee71.dagboken.core.schema.CheckinCodec
 import se.partee71.dagboken.core.schema.IllnessEpisodeCodec
 import se.partee71.dagboken.data.common.CollectionFactory
@@ -97,15 +98,12 @@ interface IllnessRepository {
     fun newEpisode(start: LocalDate): IllnessEpisode
 
     /**
-     * En ny, osparad incheckning på [date] kl. [time] med svårighetsgraden [DEFAULT_SEVERITY]: nytt slumpat id och
+     * En ny, osparad incheckning på [date] kl. [time] med svårighetsgraden [Severity.DEFAULT]: nytt slumpat id och
      * `createdAt` = nu, satta **en gång** här. [episodeId] är episoden den skrivs under.
      */
     fun newCheckin(episodeId: String, date: LocalDate, time: LocalTime): Checkin
 
     companion object {
-        /** En ny incheckning svårighetsgrad – mitt på skalan 0–10, som 3.x (och en ny händelse). */
-        const val DEFAULT_SEVERITY = EventRepository.DEFAULT_SEVERITY
-
         /** [deleteEpisode]: högst så många varv "läs serverns incheckningar → radera dem" innan episoden raderas. */
         const val MAX_CASCADE_ROUNDS = 5
     }
@@ -175,5 +173,5 @@ class DefaultIllnessRepository @Inject constructor(private val collections: Coll
 
     override fun newEpisode(start: LocalDate): IllnessEpisode = IllnessEpisode(episodes.newId(), start = start, createdAt = clock.now())
 
-    override fun newCheckin(episodeId: String, date: LocalDate, time: LocalTime): Checkin = Checkin(collections.checkins(episodeId).newId(), date, time, severity = IllnessRepository.DEFAULT_SEVERITY, createdAt = clock.now())
+    override fun newCheckin(episodeId: String, date: LocalDate, time: LocalTime): Checkin = Checkin(collections.checkins(episodeId).newId(), date, time, severity = Severity.DEFAULT, createdAt = clock.now())
 }

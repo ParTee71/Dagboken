@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
@@ -69,7 +69,7 @@ class ScreeningSheet(
     }
 
     /** SCR-1: en sparad logg för ändring – från Idags tillfällesrad eller Dagbok (HIST-3). */
-    fun edit(screening: Screening) = open(screening, screening, clock.now().toLocalDateTime(zone.get()).date)
+    fun edit(screening: Screening) = open(screening, screening, clock.todayIn(zone.get()))
 
     // Id:t och skapandetiden hör till loggen, inte formuläret.
     fun changeEnergy(energy: Int) = sheet.update(ENERGY) { it.copy(energy = energy) }

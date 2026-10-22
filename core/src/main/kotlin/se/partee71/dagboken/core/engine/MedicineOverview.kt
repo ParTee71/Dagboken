@@ -24,10 +24,10 @@ data class MedicineOverview(
  */
 fun medicineOverview(prescriptions: List<Prescription>, medicines: List<PrnMedicine>, today: LocalDate): MedicineOverview {
     val (ended, current) = prescriptions.partition { it.hasExpiredOn(today) }
-    val byName = compareBy<Prescription, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id }
+    val byName = nameThenId<Prescription> { it.name }
     return MedicineOverview(
         current = current.sortedWith(byName),
-        asNeeded = medicines.sortedWith(compareBy<PrnMedicine, String>(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.id }),
+        asNeeded = medicines.sortedWith(nameThenId<PrnMedicine> { it.name }),
         ended = ended.sortedWith(compareByDescending<Prescription> { it.period.end }.then(byName))
     )
 }

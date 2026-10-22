@@ -5,6 +5,7 @@ import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.core.model.HealthHistory
 import se.partee71.dagboken.core.model.Sex
+import se.partee71.dagboken.core.time.MINUTES_PER_HOUR
 
 // Trenders serier i gruppen Klocka (TRD-11, TRD-15, TRD-16, HLS-12, HLS-13) – portade från 3.x
 // `HealthSeriesSpec` och `buildHealthTrend` i `TrenderViewModel`, med en punkt per dag på periodens
@@ -147,7 +148,6 @@ fun sleepQualitySeries(history: HealthHistory, age: Int?, sex: Sex, days: List<L
     }
 }
 
-private fun Duration.hours(): Float = inWholeMinutes / MINUTES_PER_HOUR
+private fun Duration.hours(): Float = inWholeMinutes / MINUTES_PER_HOUR.toFloat()
 
-private const val MINUTES_PER_HOUR = 60f
 private const val METERS_PER_KM = 1000.0
