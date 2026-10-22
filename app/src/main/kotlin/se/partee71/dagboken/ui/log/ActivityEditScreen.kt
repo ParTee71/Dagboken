@@ -19,7 +19,6 @@ import javax.inject.Provider
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.OTHER_ACTIVITY_ID
@@ -34,25 +33,23 @@ import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.DocumentRules
 import se.partee71.dagboken.data.repository.ActivityRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
-import se.partee71.dagboken.ui.common.EntryEditEvent
+import se.partee71.dagboken.ui.common.EntryDateTimeRow
+import se.partee71.dagboken.ui.common.EntryEditScreen
 import se.partee71.dagboken.ui.common.EntryEditor
 import se.partee71.dagboken.ui.common.EntryForm
 import se.partee71.dagboken.ui.common.choices
+import se.partee71.dagboken.ui.common.dayAndTime
 import se.partee71.dagboken.ui.common.entryDeleteAction
 import se.partee71.dagboken.ui.common.feelingsSummary
-import se.partee71.dagboken.ui.common.hasErrorOutside
 import se.partee71.dagboken.ui.common.nonBlank
-import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
 import se.partee71.dagboken.ui.common.scaleValueText
-import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
 import se.partee71.dagboken.ui.components.FeelingExtras
 import se.partee71.dagboken.ui.components.FeelingPicker
 import se.partee71.dagboken.ui.components.Foldout
-import se.partee71.dagboken.ui.components.NoteField
-import se.partee71.dagboken.ui.components.SCREEN_MARGIN
+import se.partee71.dagboken.ui.components.NoteCard
 import se.partee71.dagboken.ui.components.SymptomLogCard
 import se.partee71.dagboken.ui.components.TypeChoiceField
 import se.partee71.dagboken.ui.components.ValueSlider
@@ -60,7 +57,6 @@ import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppFilterChip
 import se.partee71.ui.components.AppTextField
 import se.partee71.ui.components.ChipRow
-import se.partee71.ui.components.EntityEditScreen
 
 /** Fälten i formuläret – codecens namn, så att rules-felen ([rulesValidator]) hamnar på rätt fält. */
 object ActivityField {
@@ -110,10 +106,7 @@ class ActivityEditViewModel @AssistedInject constructor(
         id,
         activityValidator,
         placeholder = Activity(""),
-        create = {
-            val now = clock.nowInMinutes(zone.get())
-            activities.new(date ?: now.date, now.time)
-        },
+        create = { clock.dayAndTime(zone.get(), date).let { activities.new(it.date, it.time) } },
         clean = { loaded, value -> value.cleaned(loaded) }
     )
 
@@ -149,32 +142,20 @@ fun ActivityEditScreen(
     activityOptions: List<Option> = emptyList(),
     symptomOptions: List<Option> = emptyList()
 ) {
-    val state = form.state
     val a = form.value
     val types = remember(activityOptions, a.optionId) { typeChoices(activityOptions, OptionKind.ACTIVITY, a.optionId, OTHER_ACTIVITY_ID) }
     val otherLabel = stringResource(R.string.activity_other)
-    val messages = state.errors.mapValues { stringResource(it.value) }
-    val error: (String) -> String? = messages::get
-    EntityEditScreen(
+    EntryEditScreen(
+        form,
         title = stringResource(if (form.isNew) R.string.activity_new else R.string.activity_edit),
-        state = state,
-        events = form.events,
-        onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
-        delete = if (form.isNew) {
-            null
-        } else {
-            val shown = form.stored ?: a
+        shownErrors = SHOWN_ERRORS,
+        delete = { shown, onConfirm ->
             val typeName = (activityOptions.firstOrNull { it.id == shown.optionId }?.name ?: otherLabel.takeIf { shown.optionId == OTHER_ACTIVITY_ID }).orEmpty()
-            entryDeleteAction(R.string.diary_subject_activity, shown.customText.nonBlank() ?: typeName, shown.date, shown.time) { form.onEvent(EntryEditEvent.Delete) }
-        },
-        onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
-        horizontalMargin = SCREEN_MARGIN
-    ) {
-        a.date?.let { date ->
-            DateTimeRow(date, a.time ?: LocalTime(0, 0), { day -> form.change { it.copy(date = day) } }, { time -> form.change { it.copy(time = time) } })
+            entryDeleteAction(R.string.diary_subject_activity, shown.customText.nonBlank() ?: typeName, shown.date, shown.time, onConfirm = onConfirm)
         }
+    ) { error ->
+        EntryDateTimeRow(form, a.date, a.time, { copy(date = it) }, { copy(time = it) })
         TypeChoiceField(types, a.optionId, { id -> form.change(ActivityField.TYPE) { it.copy(optionId = id) } }, error = error(ActivityField.TYPE), otherLabel = otherLabel)
         if (a.optionId == OTHER_ACTIVITY_ID) {
             AppTextField(
@@ -193,9 +174,7 @@ fun ActivityEditScreen(
         FeelingsCard(a) { change -> form.change(transform = change) }
         val symptoms = remember(symptomOptions, form.stored) { symptomChoices(symptomOptions, form.stored?.symptoms.orEmpty()) }
         SymptomLogCard(symptoms, a.symptoms, { scores -> form.change { it.withSymptoms(scores) } }, otherOptionId = OTHER_SYMPTOM_ID, somatic = a.somatic)
-        AppCard {
-            NoteField(a.note.orEmpty(), { note -> form.change(ActivityField.NOTE) { it.copy(note = note.ifEmpty { null }) } }, error = error(ActivityField.NOTE))
-        }
+        NoteCard(a.note, { note -> form.change(ActivityField.NOTE) { it.copy(note = note) } }, error = error(ActivityField.NOTE))
     }
 }
 

@@ -59,21 +59,20 @@ import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.data.repository.creatingStore
 import se.partee71.dagboken.data.repository.reminders
 import se.partee71.dagboken.ui.common.EntryEditEvent
+import se.partee71.dagboken.ui.common.EntryEditScreen
 import se.partee71.dagboken.ui.common.EntryEditor
 import se.partee71.dagboken.ui.common.EntryForm
-import se.partee71.dagboken.ui.common.entryDeleteAction
-import se.partee71.dagboken.ui.common.hasErrorOutside
+import se.partee71.dagboken.ui.common.dayAndTime
+import se.partee71.dagboken.ui.common.deleteAction
 import se.partee71.dagboken.ui.common.label
-import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.nonBlank
-import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.prnLimits
 import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
+import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.DateTimeRow
-import se.partee71.dagboken.ui.components.NoteField
+import se.partee71.dagboken.ui.components.NoteCard
 import se.partee71.dagboken.ui.components.NoticeBanner
-import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.dagboken.ui.components.UnitChoice
 import se.partee71.ui.common.EditorState
 import se.partee71.ui.common.Validator
@@ -81,7 +80,6 @@ import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppTextField
 import se.partee71.ui.components.ChoiceChips
 import se.partee71.ui.components.DateField
-import se.partee71.ui.components.EntityEditScreen
 import se.partee71.ui.components.FieldError
 import se.partee71.ui.components.ItemRow
 import se.partee71.ui.components.LabeledGroup
@@ -231,14 +229,12 @@ class DoseEditViewModel @AssistedInject constructor(
 
     private suspend fun create(prnId: String?, date: LocalDate?): Dose {
         val zone = zone
-        val now = clock.nowInMinutes(zone)
-        val day = date ?: now.date
-        val time = now.time
-        if (prnId == null) return doses.newOneOff(day, time)
+        val at = clock.dayAndTime(zone, date)
+        if (prnId == null) return doses.newOneOff(at.date, at.time)
         val medicine = medicines.get(prnId).getOrThrow() ?: throw DataError.NotFound
         _medicine.value = medicine
         // Bara formulärets värde: id:t och skapandetiden sätter `logAsNeeded` när dosen skrivs.
-        return medicine.takenDose("", momentOf(day, time, zone), zone)
+        return medicine.takenDose("", momentOf(at.date, at.time, zone), zone)
     }
 
     /** Kontrollen vid den valda tiden, om igen när tiden eller doserna ändras – ett läsfel visar ingen kontroll (sparandet prövar ändå). */
@@ -345,13 +341,10 @@ fun DoseEditScreen(
     asNeeded: AsNeededState = AsNeededState(),
     reminders: ReminderSettings = ReminderSettings()
 ) {
-    val state = form.state
     val d = form.value
-    val stored = form.stored ?: d
-    val prescribed = mode == DoseMode.EDIT && stored.isPrescribed
-    val messages = state.errors.mapValues { stringResource(it.value) }
-    val error: (String) -> String? = messages::get
-    EntityEditScreen(
+    val prescribed = mode == DoseMode.EDIT && (form.stored ?: d).isPrescribed
+    EntryEditScreen(
+        form,
         title = stringResource(
             when (mode) {
                 DoseMode.NEW -> R.string.dose_new
@@ -359,23 +352,13 @@ fun DoseEditScreen(
                 DoseMode.EDIT -> R.string.dose_edit
             }
         ),
-        state = state,
-        events = form.events,
-        onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
-        delete = if (mode != DoseMode.EDIT) {
-            null
-        } else {
-            val title = medicineTitle(stored.displayName, stored.dose, stored.unit)
-            entryDeleteAction(R.string.diary_subject_dose, title, stored.date, stored.shownTime(zone, reminders), skips = stored.isPrescribed) { form.onEvent(EntryEditEvent.Delete) }
-        },
-        onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
-        horizontalMargin = SCREEN_MARGIN
-    ) {
+        shownErrors = SHOWN_ERRORS,
+        delete = { stored, onConfirm -> stored.deleteAction(stored.shownTime(zone, reminders), onConfirm) }
+    ) { error ->
         when {
-            mode == DoseMode.AS_NEEDED -> asNeeded.medicine?.let { MedicineInfo(medicineTitle(it.displayName, it.dose, it.unit), prnLimits(it), help = null) }
-            prescribed -> MedicineInfo(medicineTitle(d.displayName, d.dose, d.unit), stringResource(d.slot.label()), stringResource(R.string.dose_prescribed_help))
+            mode == DoseMode.AS_NEEDED -> asNeeded.medicine?.let { MedicineInfo(it.title(), prnLimits(it), help = null) }
+            prescribed -> MedicineInfo(d.title(), stringResource(d.slot.label()), stringResource(R.string.dose_prescribed_help))
         }
         DayAndTime(form, zone, reminders, timeShown = !prescribed || d.status == DoseStatus.TAKEN, error = error(DoseField.TAKEN_AT))
         if (mode == DoseMode.AS_NEEDED) AsNeededNotice(asNeeded)
@@ -389,9 +372,7 @@ fun DoseEditScreen(
                 subtitle = stringResource(R.string.dose_taken_help)
             )
         }
-        AppCard {
-            NoteField(d.note.orEmpty(), { note -> form.change(DoseField.NOTE) { it.copy(note = note.ifEmpty { null }) } }, error = error(DoseField.NOTE))
-        }
+        NoteCard(d.note, { note -> form.change(DoseField.NOTE) { it.copy(note = note) } }, error = error(DoseField.NOTE))
     }
     asNeeded.cooldown?.let { CooldownDialog(it, asNeeded.onConfirmCooldown, asNeeded.onDismissCooldown) }
 }

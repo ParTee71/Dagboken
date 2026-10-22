@@ -21,6 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.partee71.dagboken.core.engine.PeriodEnding
 import se.partee71.dagboken.core.medicine.MedicineCatalog
+import se.partee71.dagboken.core.medicine.MedicineEntry
 import se.partee71.dagboken.core.model.MedicineForm
 import se.partee71.dagboken.core.model.Period
 import se.partee71.dagboken.core.model.Prescription
@@ -35,6 +36,8 @@ import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.ui.DagbokenContracts
 import se.partee71.dagboken.ui.SampleMedicines
 import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.common.EntryEditEvent
+import se.partee71.dagboken.ui.common.EntryForm
 import se.partee71.dagboken.ui.components.MEDICINE_UNITS
 import se.partee71.dagboken.ui.components.UnitChoice
 import se.partee71.dagboken.ui.theme.DagbokenTheme
@@ -170,6 +173,9 @@ class MedicinesScreensTest {
         assertEquals(emptyList(), events)
     }
 
+    /** Vid behov-formuläret med [value]; en ny är ändrad (som när ett fält fyllts i). */
+    private fun prnForm(value: PrnMedicine, isNew: Boolean = true, onEvent: (EntryEditEvent<PrnMedicine>) -> Unit = {}) = EntryForm(isNew, EditorUiState(value, isDirty = isNew), EditorEvents.None, onEvent)
+
     private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.onAllNodesWithTextCount(text: String) = onAllNodes(androidx.compose.ui.test.hasText(text)).fetchSemanticsNodes().size
 
     @Test
@@ -182,25 +188,25 @@ class MedicinesScreensTest {
             makeValid = { update(PrnField.NAME, PrnField.DOSE) { it.copy(name = "Alvedon", dose = "500") } },
             invalidMessage = "Ange ett namn"
         ) { state, events, onSave, onClose ->
-            PrnMedicineEditScreen(true, state, events, { if (it == PrnEditEvent.Save) onSave() }, onClose)
+            PrnMedicineEditScreen(EntryForm(true, state, events, { if (it == EntryEditEvent.Save) onSave() }), onClose)
         }
     }
 
     @Test
     fun `vid behov-formuläret visar enheter, spärrtid och dagsgräns som text`() {
-        val events = mutableListOf<PrnEditEvent>()
-        rule.setContent { DagbokenTheme { PrnMedicineEditScreen(false, EditorUiState(alvedon.copy(minHoursBetween = 0, maxPerDay = 0, unit = "tablett")), EditorEvents.None, { events += it }, {}) } }
+        val events = mutableListOf<EntryEditEvent<PrnMedicine>>()
+        rule.setContent { DagbokenTheme { PrnMedicineEditScreen(prnForm(alvedon.copy(minHoursBetween = 0, maxPerDay = 0, unit = "tablett"), isNew = false) { events += it }, {}) } }
         rule.onNodeWithText("Ingen spärr").assertIsDisplayed()
         rule.onNodeWithText("Obegränsat").assertIsDisplayed()
         rule.onNodeWithText("tablett").assertIsDisplayed()
         rule.onNodeWithText("sprut").performClick()
-        val change = events.single() as PrnEditEvent.Changed
+        val change = events.single() as EntryEditEvent.Changed
         assertEquals("sprut", change.change(alvedon).unit)
     }
 
     @Test
     fun `en tom lagrad enhet ger inget extra chip och inget val`() {
-        rule.setContent { DagbokenTheme { PrnMedicineEditScreen(false, EditorUiState(alvedon.copy(unit = "")), EditorEvents.None, {}, {}) } }
+        rule.setContent { DagbokenTheme { PrnMedicineEditScreen(prnForm(alvedon.copy(unit = ""), isNew = false), {}) } }
         val chips = rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)).fetchSemanticsNodes()
         assertEquals(MEDICINE_UNITS.size + MedicineForm.entries.size, chips.size, "bara listans enheter och formerna – inget tomt chip")
         assertEquals(0, rule.onAllNodes(isSelected()).fetchSemanticsNodes().size, "inget val markerat")
@@ -231,28 +237,28 @@ class MedicinesScreensTest {
 
     @Test
     fun `skärmdump - ny vid behov-medicin`() = rule.captureLightAndDark("Medicines_vidbehov") {
-        PrnMedicineEditScreen(true, EditorUiState(alvedon.copy(note = "Inte på fastande mage", maxPerDay = 8), isDirty = true), EditorEvents.None, {}, {})
+        PrnMedicineEditScreen(prnForm(alvedon.copy(note = "Inte på fastande mage", maxPerDay = 8)), {})
     }
 
     @Test
     fun `vid behov-formuläret visar förslag i en ny medicin, och ett tryck väljer läkemedlet (REC-14)`() {
-        val events = mutableListOf<PrnEditEvent>()
+        val picked = mutableListOf<MedicineEntry>()
         val matches = MedicineCatalog.parse(FakeMedicines.SAMPLE).search("alv")
-        rule.setContent { DagbokenTheme { PrnMedicineEditScreen(true, EditorUiState(PrnMedicine("", "alv"), isDirty = true), EditorEvents.None, { events += it }, {}, matches) } }
+        rule.setContent { DagbokenTheme { PrnMedicineEditScreen(prnForm(PrnMedicine("", "alv")), {}, matches) { picked += it } } }
         rule.onNodeWithText("Från Läkemedelsverkets lista · fortsätt skriva om ditt inte finns").assertIsDisplayed()
         rule.onAllNodesWithText("Filmdragerad tablett")[0].performClick()
-        assertEquals(PrnEditEvent.MedicineChosen(matches[1].entry), events.last())
+        assertEquals(matches[1].entry, picked.last())
     }
 
     @Test
     fun `skärmdump - ny vid behov-medicin med namnförslag`() = rule.captureLightAndDark("Medicines_vidbehov_forslag") {
         val matches = MedicineCatalog.parse(FakeMedicines.SAMPLE).search("alv")
-        PrnMedicineEditScreen(true, EditorUiState(PrnMedicine("", "alv", "1", "mg", minHoursBetween = 0), isDirty = true), EditorEvents.None, {}, {}, matches)
+        PrnMedicineEditScreen(prnForm(PrnMedicine("", "alv", "1", "mg", minHoursBetween = 0)), {}, matches)
     }
 
     @Test
     fun `skärmdump - spray`() = rule.captureLightAndDark("Medicines_spray") {
-        PrnMedicineEditScreen(true, EditorUiState(PrnMedicine("", "Nasonex", "2", "sprut", minHoursBetween = 0), isDirty = true), EditorEvents.None, {}, {})
+        PrnMedicineEditScreen(prnForm(PrnMedicine("", "Nasonex", "2", "sprut", minHoursBetween = 0)), {})
     }
 
     @Test

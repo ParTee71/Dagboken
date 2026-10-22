@@ -19,6 +19,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.entryDeleteAction
+import se.partee71.dagboken.ui.common.illnessDayText
 import se.partee71.dagboken.ui.common.message
 import se.partee71.dagboken.ui.common.nonBlank
 import se.partee71.dagboken.ui.common.periodText
@@ -150,7 +151,7 @@ private fun CheckinCard(checkin: Checkin, detail: IllnessDetail, episodeTitle: S
         title = checkin.date?.let { DateFormat.weekdayDay(it, capitalized = true) } ?: stringResource(R.string.diary_checkin),
         onClick = { if (!busy) onCheckin(checkin.id) },
         subtitle = checkinSubtitle(checkin, detail.symptomNames, resources),
-        status = detail.summary.dayOf(checkin)?.let { day -> { InfoPill(stringResource(R.string.today_illness_day_format, day), tone = Tone.Warning) } },
+        status = detail.summary.dayOf(checkin)?.let { day -> { InfoPill(illnessDayText(day), tone = Tone.Warning) } },
         note = checkin.note.orEmpty(),
         onEdit = if (busy) null else ({ onCheckin(checkin.id) }),
         delete = if (busy) null else entryDeleteAction(R.string.diary_subject_checkin, episodeTitle, checkin.date, checkin.time) { onEvent(IllnessDetailEvent.DeleteCheckin(checkin.id)) }

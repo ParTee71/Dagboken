@@ -78,7 +78,7 @@ import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.repeatText
 import se.partee71.dagboken.ui.common.weekdaysText
 import se.partee71.dagboken.ui.components.MEDICINE_UNITS
-import se.partee71.dagboken.ui.components.NoteField
+import se.partee71.dagboken.ui.components.NoteCard
 import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.dagboken.ui.components.UnitChoice
 import se.partee71.dagboken.ui.theme.AppTypography
@@ -203,7 +203,7 @@ sealed interface PrescriptionEditEvent {
     /** [date] `null` = till periodens slut (REC-9). */
     data class BoostEndChanged(val index: Int, val date: LocalDate?) : PrescriptionEditEvent
 
-    data class NoteChanged(val note: String) : PrescriptionEditEvent
+    data class NoteChanged(val note: String?) : PrescriptionEditEvent
 
     data class ActiveChanged(val active: Boolean) : PrescriptionEditEvent
 
@@ -333,7 +333,7 @@ class PrescriptionEditViewModel @AssistedInject constructor(
 
             is PrescriptionEditEvent.BoostEndChanged -> boost(event.index) { it.copy(end = event.date) }
 
-            is PrescriptionEditEvent.NoteChanged -> editor.update { it.copy(note = event.note.ifEmpty { null }) }
+            is PrescriptionEditEvent.NoteChanged -> editor.update { it.copy(note = event.note) }
 
             is PrescriptionEditEvent.ActiveChanged -> editor.update { it.copy(active = event.active) }
 
@@ -442,7 +442,7 @@ fun PrescriptionEditScreen(
         RepeatSection(p, error(PrescriptionField.DAYS), onEvent)
         PeriodSection(p.period, periodChoice, error(PrescriptionField.PERIOD_END), onEvent)
         BoostsSection(p, canAddBoost, { index -> error(PrescriptionField.boostDose(index)) to error(PrescriptionField.boostDates(index)) }, onEvent)
-        AppCard { NoteField(p.note.orEmpty(), { onEvent(PrescriptionEditEvent.NoteChanged(it)) }) }
+        NoteCard(p.note, { onEvent(PrescriptionEditEvent.NoteChanged(it)) })
         AppCard {
             SwitchRow(
                 stringResource(R.string.prescription_active),

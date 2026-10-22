@@ -98,9 +98,9 @@ import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.SelectedDay
 import se.partee71.dagboken.ui.common.attemptingEach
 import se.partee71.dagboken.ui.common.dataError
-import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.minutes
 import se.partee71.dagboken.ui.common.tidyingUpEachDay
+import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.ui.common.DetailLoader
 import se.partee71.ui.common.DetailUiState
@@ -591,7 +591,7 @@ class TodayViewModel @Inject constructor(
                 // Bara ångra för just den här dosen blir inaktuellt.
                 if (undoFor == dose.id) clearUndo()
             } else {
-                offerUndo(dose, medicineTitle(dose.displayName, dose.dose, dose.unit), format) { doses.setStatus(dose, dose.status, dose.takenAt) }
+                offerUndo(dose, dose.title(), format) { doses.setStatus(dose, dose.status, dose.takenAt) }
             }
         }
     }
@@ -626,7 +626,7 @@ class TodayViewModel @Inject constructor(
                 _failure.value = it
                 return@launch
             }
-            val title = medicineTitle(medicine.displayName, medicine.dose, medicine.unit)
+            val title = medicine.title()
             val log = result.getOrThrow()
             when (val check = log.check) {
                 PrnCheck.Allowed -> log.dose?.let { dose -> offerUndo(dose, title, R.string.today_logged_format) { doses.remove(dose) } }
@@ -645,7 +645,7 @@ class TodayViewModel @Inject constructor(
                 return@launch
             }
             val dose = result.getOrThrow()
-            offerUndo(dose, medicineTitle(dose.displayName, dose.dose, dose.unit), R.string.today_logged_format) { doses.remove(dose) }
+            offerUndo(dose, dose.title(), R.string.today_logged_format) { doses.remove(dose) }
         }
     }
 

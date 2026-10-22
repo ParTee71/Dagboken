@@ -44,8 +44,9 @@ sealed interface EntryEditEvent<out T> {
  * det lästa ([stored]). [confirmSave] får stoppa ett sparförsök för en fråga först (vid behov i efterhand: "För
  * tidigt", FAV-4) – frågan sparar sedan med ett nytt [EntryEditEvent.Save]. [errorMessage] ger en egen text för ett
  * sparfel som inte är ett `DataError` ([EditorState]); [saveUnchanged] låter en ny post sparas med förvalen (ett
- * riktigt svar, t.ex. vid behov i efterhand kl. nu). Radering stänger formuläret. [scope] är ViewModelns; skärmen
- * får allt som en [EntryForm].
+ * riktigt svar, t.ex. vid behov i efterhand kl. nu). [showInvalid] visar fel i det lagrade direkt (standard; ett
+ * formulär vars validering inte speglar rules, som vid behov-medicinens, väntar tills fältet ändrats). Radering stänger
+ * formuläret. [scope] är ViewModelns; skärmen får allt som en [EntryForm] ([EntryEditScreen]).
  */
 class EntryEditor<T>(
     private val scope: CoroutineScope,
@@ -57,7 +58,8 @@ class EntryEditor<T>(
     private val clean: (loaded: T?, value: T) -> T = { _, value -> value },
     private val confirmSave: (T) -> Boolean = { true },
     errorMessage: (Throwable) -> Int? = { null },
-    saveUnchanged: Boolean = false
+    saveUnchanged: Boolean = false,
+    showInvalid: Boolean = true
 ) {
     /** Det lästa, för valideringen – satt när läsningen finns (formuläret valideras redan när det skapas). */
     private var loaded: () -> T? = { null }
@@ -65,8 +67,8 @@ class EntryEditor<T>(
     /** Laddar tills den sparade posten lästs eller den nya skapats. */
     val editor: EditorState<T> = EditorState(placeholder, { value -> validator.validate(clean(loaded(), value)) }, AppErrors, loading = true, errorMessage = errorMessage, saveUnchanged = saveUnchanged)
 
-    // Ett lagrat värde som rules nekar (t.ex. en text från verktygen över taket) visar sitt fel direkt.
-    private val loader = EditorLoader(editor, scope, read = id?.let { id -> { repository.get(id) } }, showInvalid = true)
+    // Ett lagrat värde som rules nekar (t.ex. en text från verktygen över taket) visar sitt fel direkt ([showInvalid]).
+    private val loader = EditorLoader(editor, scope, read = id?.let { id -> { repository.get(id) } }, showInvalid = showInvalid)
 
     /** Posten som den är lagrad; `null` för en ny eller innan den lästs. */
     val stored: StateFlow<T?> = loader.stored

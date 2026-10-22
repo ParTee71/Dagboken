@@ -16,7 +16,6 @@ import javax.inject.Provider
 import kotlin.time.Clock
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.typeChoices
@@ -29,25 +28,22 @@ import se.partee71.dagboken.core.schema.EventCodec
 import se.partee71.dagboken.core.schema.TextLimits
 import se.partee71.dagboken.data.repository.EventRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
-import se.partee71.dagboken.ui.common.EntryEditEvent
+import se.partee71.dagboken.ui.common.EntryDateTimeRow
+import se.partee71.dagboken.ui.common.EntryEditScreen
 import se.partee71.dagboken.ui.common.EntryEditor
 import se.partee71.dagboken.ui.common.EntryForm
 import se.partee71.dagboken.ui.common.choices
+import se.partee71.dagboken.ui.common.dayAndTime
 import se.partee71.dagboken.ui.common.entryDeleteAction
-import se.partee71.dagboken.ui.common.hasErrorOutside
 import se.partee71.dagboken.ui.common.nonBlank
-import se.partee71.dagboken.ui.common.nowInMinutes
 import se.partee71.dagboken.ui.common.rememberEntryForm
 import se.partee71.dagboken.ui.common.rulesValidator
-import se.partee71.dagboken.ui.components.DateTimeRow
 import se.partee71.dagboken.ui.components.DurationRow
-import se.partee71.dagboken.ui.components.NoteField
-import se.partee71.dagboken.ui.components.SCREEN_MARGIN
+import se.partee71.dagboken.ui.components.NoteCard
 import se.partee71.dagboken.ui.components.TypeChoiceField
 import se.partee71.dagboken.ui.components.ValueSlider
 import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppTextField
-import se.partee71.ui.components.EntityEditScreen
 
 /** Fälten i formuläret – codecens namn, så att rules-felen ([rulesValidator]) hamnar på rätt fält. */
 object EventField {
@@ -93,10 +89,7 @@ class EventEditViewModel @AssistedInject constructor(
         id,
         eventValidator,
         placeholder = Event(""),
-        create = {
-            val now = clock.nowInMinutes(zone.get())
-            events.new(date ?: now.date, now.time)
-        },
+        create = { clock.dayAndTime(zone.get(), date).let { events.new(it.date, it.time) } },
         clean = { _, value -> value.cleaned() }
     )
 
@@ -124,32 +117,20 @@ fun EventEditRoute(id: String?, date: LocalDate?, onClose: () -> Unit) {
  */
 @Composable
 fun EventEditScreen(form: EntryForm<Event>, onClose: () -> Unit, eventOptions: List<Option> = emptyList()) {
-    val state = form.state
     val e = form.value
     val types = remember(eventOptions, e.optionId) { typeChoices(eventOptions, OptionKind.EVENT, e.optionId) }
-    val messages = state.errors.mapValues { stringResource(it.value) }
-    val error: (String) -> String? = messages::get
-    EntityEditScreen(
+    EntryEditScreen(
+        form,
         title = stringResource(if (form.isNew) R.string.event_new else R.string.event_edit),
-        state = state,
-        events = form.events,
-        onSave = { form.onEvent(EntryEditEvent.Save) },
         onClose = onClose,
-        delete = if (form.isNew) {
-            null
-        } else {
-            val shown = form.stored ?: e
+        shownErrors = SHOWN_ERRORS,
+        delete = { shown, onConfirm ->
             val typeName = eventOptions.firstOrNull { it.id == shown.optionId }?.name ?: stringResource(R.string.log_event)
-            entryDeleteAction(R.string.diary_subject_event, typeName, shown.date, shown.time) { form.onEvent(EntryEditEvent.Delete) }
-        },
-        onRetry = { form.onEvent(EntryEditEvent.Retry) },
-        formError = if (state.hasErrorOutside(SHOWN_ERRORS)) stringResource(R.string.form_not_savable) else null,
-        horizontalMargin = SCREEN_MARGIN
-    ) {
-        TypeChoiceField(types, e.optionId, { id -> form.change(EventField.TYPE) { it.copy(optionId = id) } }, error = error(EventField.TYPE))
-        e.date?.let { date ->
-            DateTimeRow(date, e.time ?: LocalTime(0, 0), { day -> form.change { it.copy(date = day) } }, { time -> form.change { it.copy(time = time) } })
+            entryDeleteAction(R.string.diary_subject_event, typeName, shown.date, shown.time, onConfirm = onConfirm)
         }
+    ) { error ->
+        TypeChoiceField(types, e.optionId, { id -> form.change(EventField.TYPE) { it.copy(optionId = id) } }, error = error(EventField.TYPE))
+        EntryDateTimeRow(form, e.date, e.time, { copy(date = it) }, { copy(time = it) })
         AppCard {
             ValueSlider(
                 stringResource(R.string.event_severity),
@@ -178,8 +159,6 @@ fun EventEditScreen(form: EntryForm<Event>, onClose: () -> Unit, eventOptions: L
             singleLine = false,
             maxLength = TextLimits.LONG
         )
-        AppCard {
-            NoteField(e.note.orEmpty(), { note -> form.change(EventField.NOTE) { it.copy(note = note.ifEmpty { null }) } }, error = error(EventField.NOTE))
-        }
+        NoteCard(e.note, { note -> form.change(EventField.NOTE) { it.copy(note = note) } }, error = error(EventField.NOTE))
     }
 }
