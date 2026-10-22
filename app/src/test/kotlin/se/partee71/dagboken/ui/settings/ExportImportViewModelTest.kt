@@ -1,11 +1,8 @@
 package se.partee71.dagboken.ui.settings
 
-import android.app.PendingIntent
-import android.content.Intent
 import android.net.Uri
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
-import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -20,9 +17,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
-import se.partee71.dagboken.core.legacy.ImportFormat
-import se.partee71.dagboken.core.model.LegacySource
 import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.FakeStore
 import se.partee71.dagboken.data.FixedClock
@@ -30,22 +24,19 @@ import se.partee71.dagboken.data.TestUserScope
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.export.ExportUseCase
 import se.partee71.dagboken.data.firestore.Paths
-import se.partee71.dagboken.data.legacy.DriveBackupFile
-import se.partee71.dagboken.data.legacy.DriveRead
-import se.partee71.dagboken.data.legacy.FakeDriveBackups
-import se.partee71.dagboken.data.legacy.FakeRawFirestore
-import se.partee71.dagboken.data.legacy.FakeUserFile
-import se.partee71.dagboken.data.legacy.LegacyImportUseCase
+import se.partee71.dagboken.data.importing.FakeRawFirestore
+import se.partee71.dagboken.data.importing.FakeUserFile
+import se.partee71.dagboken.data.importing.ImportFixtures
+import se.partee71.dagboken.data.importing.ImportUseCase
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.common.dataError
-import se.partee71.dagboken.ui.migration.ImportEvent
-import se.partee71.dagboken.ui.migration.ImportStage
+import se.partee71.dagboken.ui.importing.ImportEvent
+import se.partee71.dagboken.ui.importing.ImportStage
 
 /**
- * Export och import (BCK-6, BCK-13, BCK-14, SET-8) mot de riktiga use casen över fejkarna (Drive och SAF som fejkar):
- * exporten med snackbarens antal och fel, importens lägen från valen via granskningen och bekräftelsen till klar,
- * Drive utan backup, med samtycke (ja och nej) och utan nät, stoppet med "Välj en annan fil", fel fil och "Försök igen"
- * efter ett batchfel. Fast klocka; syntetisk data.
+ * Export och import (BCK-6, BCK-13, SET-8) mot de riktiga use casen över fejkarna (SAF som fejk): exporten med
+ * snackbarens antal och fel, importens lägen från valen via granskningen och bekräftelsen till klar, stoppet med
+ * "Välj en annan fil", fel fil, läsfel med "Försök igen" och "Försök igen" efter ett batchfel. Fast klocka; syntetisk data.
  */
 @RunWith(RobolectricTestRunner::class)
 class ExportImportViewModelTest {
@@ -55,16 +46,14 @@ class ExportImportViewModelTest {
 
     private val uid = "uid-export-import"
     private val io = StandardTestDispatcher(main.dispatcher.scheduler)
-    private val repoRoot = File("").absoluteFile.let { if (it.name == "app") it.parentFile else it }
-    private val backupV2 = File(repoRoot, "tools/db/test/fixtures/legacy/backup-v2.json").readText()
+    private val exportFile = ImportFixtures.exportText
 
     private val store = FakeStore().apply { set(Paths.USERS, uid, mapOf("schemaVersion" to Schema.CURRENT_VERSION), merge = false) }
     private val firestore = FakeRawFirestore(store)
-    private val drive = FakeDriveBackups()
     private val files = FakeUserFile()
     private val scope = TestUserScope(uid)
     private val exporter = ExportUseCase(firestore, files, scope, FixedClock(Instant.parse("2026-10-07T19:14:00Z")), io)
-    private val importer = LegacyImportUseCase(drive, files, firestore, firestore, scope, io)
+    private val importer = ImportUseCase(files, firestore, firestore, scope, io)
     private val fileUri: Uri = Uri.parse("content://test/backup.json")
     private val exportUri: Uri = Uri.parse("content://test/dagboken-export-2026-10-07.json")
 
@@ -116,14 +105,13 @@ class ExportImportViewModelTest {
 
     @Test
     fun `import från fil - granskning, bekräftelse med antal, skrivning och klar, sedan tillbaka till valen`() = test {
-        files.files[fileUri] = backupV2
+        files.files[fileUri] = exportFile
         val vm = viewModel()
         vm.state.test {
             vm.onEvent(ExportImportEvent.Import(ImportEvent.FileChosen(fileUri)))
-            assertEquals(ImportStage.Reading(LegacySource.JSON), next<ImportStage.Reading>())
+            assertEquals(ImportStage.Reading, next<ImportStage.Reading>())
             val review = next<ImportStage.Review>()
-            assertEquals(ImportFormat.Legacy(2), review.format)
-            assertEquals(LegacySource.JSON, review.source)
+            assertEquals(Schema.CURRENT_VERSION, review.schemaVersion)
             assertEquals(2, review.counts["illnessEpisodes"])
             assertTrue(review.canImport)
             assertFalse(review.confirming)
@@ -148,30 +136,16 @@ class ExportImportViewModelTest {
     }
 
     @Test
-    fun `Drive - ingen backup ger notisen, samtycke nej tillbaka till valen, ja läser igen och utan nät Försök igen`() = test {
-        val consent = PendingIntent.getActivity(RuntimeEnvironment.getApplication(), 0, Intent(), PendingIntent.FLAG_IMMUTABLE)
+    fun `en fil som inte går att öppna ger läsfelet, och Försök igen läser samma fil igen`() = test {
         val vm = viewModel()
         vm.state.test {
-            vm.onEvent(ExportImportEvent.Import(ImportEvent.FromDrive))
-            next<ImportStage.NoDriveBackup>()
-
-            drive.read = DriveRead.NeedsConsent(consent)
-            vm.onEvent(ExportImportEvent.Import(ImportEvent.FromDrive))
-            assertEquals(consent, next<ImportStage.DriveConsent>().consent)
-            vm.onEvent(ExportImportEvent.Import(ImportEvent.DriveConsent(granted = false)))
-            next<ImportStage.Choose>()
-
-            vm.onEvent(ExportImportEvent.Import(ImportEvent.FromDrive))
-            next<ImportStage.DriveConsent>()
-            drive.read = DriveRead.Failed(DataError.Offline)
-            vm.onEvent(ExportImportEvent.Import(ImportEvent.DriveConsent(granted = true)))
-            assertEquals(ImportStage.ReadFailed(LegacySource.DRIVE, DataError.Offline), next<ImportStage.ReadFailed>())
-
-            drive.read = DriveRead.Found(DriveBackupFile("id", "dagboken-backup-20260115-2100.json", ""), backupV2)
+            vm.onEvent(ExportImportEvent.Import(ImportEvent.FileChosen(fileUri)))
+            assertEquals(ImportStage.ReadFailed(null), next<ImportStage.ReadFailed>())
+            files.files[fileUri] = exportFile
             vm.onEvent(ExportImportEvent.Import(ImportEvent.Retry))
-            assertEquals(LegacySource.DRIVE, next<ImportStage.Review>().source)
+            next<ImportStage.Review>()
         }
-        assertEquals(5, drive.calls)
+        assertTrue(firestore.batches.isEmpty())
     }
 
     @Test
@@ -192,7 +166,7 @@ class ExportImportViewModelTest {
 
     @Test
     fun `ett batchfel visar felkoden och Försök igen skriver resten utan ny bekräftelse`() = test {
-        files.files[fileUri] = backupV2
+        files.files[fileUri] = exportFile
         firestore.failAt = 0
         val vm = viewModel()
         vm.state.test {

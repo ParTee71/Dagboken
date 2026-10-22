@@ -67,7 +67,7 @@ fun Doc.localTime(key: String): LocalTime? = (this[key] as? String)?.let(::parse
 
 /**
  * `yyyy-MM-dd` → datum; `null` om texten inte är ett giltigt datum (även `2024-02-30`, som rules
- * datummönster godtar men som inte finns). Enda datumtolkningen – codecs och konverteraren delar den.
+ * datummönster godtar men som inte finns). Enda datumtolkningen i codecs och regler.
  */
 fun parseDate(text: String): LocalDate? = text.takeIf { DocumentRules.DATE.matches(it) }?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
 

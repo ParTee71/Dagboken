@@ -9,7 +9,7 @@ data class SymptomScore(
     val optionId: String = "",
     /**
      * Poängen 0–10; `null` = symptomet utan poäng – bara från 3.x, där en symptomtext helt utan `:poäng` (en
-     * namnlista) inte gick att läsa (OMB-3). Räknas som 0 i summan och ger ingen punkt i trenderna; 4.0 skapar aldrig `null`.
+     * namnlista) inte gick att läsa. Räknas som 0 i summan och ger ingen punkt i trenderna; 4.0 skapar aldrig `null`.
      */
     val score: Int? = 0,
     /** Egen beskrivning vid "Övrigt" (AKT-6); `null` för vanliga symptom. */

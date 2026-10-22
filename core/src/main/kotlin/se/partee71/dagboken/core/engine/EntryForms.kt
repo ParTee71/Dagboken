@@ -1,6 +1,5 @@
 package se.partee71.dagboken.core.engine
 
-import se.partee71.dagboken.core.legacy.LegacyDefaults
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionIds
 import se.partee71.dagboken.core.model.OptionKind
@@ -9,9 +8,9 @@ import se.partee71.dagboken.core.model.OptionKind
 
 /**
  * "Övrigt" bland aktivitetstyperna (AKT-2): 3.x:s fasta alternativ för egen beskrivning, med samma id som
- * konverteraren ger det ([OptionIds.of]) – posten sparar typen och beskrivningen i `customText`.
+ * konverteraren gav det ([OptionIds.of]) – posten sparar typen och beskrivningen i `customText`.
  */
-val OTHER_ACTIVITY_ID: String = OptionIds.of(OptionKind.ACTIVITY, LegacyDefaults.OTHER)
+val OTHER_ACTIVITY_ID: String = OptionIds.of(OptionKind.ACTIVITY, OptionIds.OTHER)
 
 /**
  * Typerna i ett formulär: [favorites] som chips och [more] under "Fler typer", båda i listans ordning.

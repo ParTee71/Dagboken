@@ -10,7 +10,7 @@ som finns i `.claude/agents/` och `.claude/skills/`.
 | Agent | När |
 |---|---|
 | `byggare` | Portar, komponenter, skärmar på ramarna och CI-filer enligt en klar plan (Opus · medium). |
-| `arkitekt` | Datamodell, codecs, 3.x-konverteraren, rules, migrering och arkitekturval (Opus · high). |
+| `arkitekt` | Datamodell, codecs, importen, rules, migrering och arkitekturval (Opus · high). |
 | `db-inspektor` | Svarar på frågor om faktisk data i Firestore, endast läsning (Haiku · low). |
 
 Från pluginen (generella, läser Dagbokens delar ur repot; listade i `.github/scripts/plugin-agents.txt`):
@@ -45,7 +45,7 @@ issue utifrån den här tabellen (Dagbokens agenter och etapptabellen: `android-
 | `android-projekt` | Dagbokens delar av pluginens `android:`-skills (se nedan) – ladda alltid tillsammans med dem; mockupmallen och mockupens data och skärmdumpar; avsnitten Arbetsflöde, Issues och Release till `android:implement-issue`, `android:refine-issue` och `android:release`. |
 | `notifications-alarms` | Påminnelser och larm: exakta larm, kanaler, omschemaläggning, schemat ur Firestore-cachen. |
 | `data-privacy-security` | Hälsodata, loggning, EU-region, hemligheter, notiser, minify. |
-| **`data-safety-backup`** | Regel 1 – codecs, schemaversion, export/import, rundtur och 3.x-konverteraren. |
+| **`data-safety-backup`** | Regel 1 – codecs, schemaversion, export/import, rundtur och 3.x-datan som bevaras. |
 | **`testing-strategy`** | Regel 2 i Dagboken – testnivåer, hjälpare, kontraktstester, skärmdumpar, kommandon. Det generella: `android:testing-strategy`. |
 | **`requirements-kravlista`** | Regel 3 – hålla KRAVLISTA.md aktuell, paritetschecklistan. |
 | **`shared-ui-components`** | Regel 4 – komponenter, ramar, byggstenar, förbud, kontroller. |

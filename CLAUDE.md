@@ -26,9 +26,9 @@ Vid **varje** ändring ska du, innan du anser arbetet klart, gå igenom alla fem
 All data i Firestore ska överleva en `tools/db export → import`-rundtur, och appen ska
 tolerera okända fält och äldre `schemaVersion`. Nytt fält eller ny samling → default i
 `:core`-modellen, tolerant `DocCodec`, `firestore.rules`, samlingslistan i
-`tools/db/lib/collections.mjs` och rundturstest – i samma ändring. Varje fält i 3.x-schemat
-har en plats i 4.0-modellen; konverteraren från `BackupJson` bevisas med en fixtur där varje
-fält är satt och med grinden OMB-4.
+`tools/db/lib/collections.mjs` och rundturstest – i samma ändring. 3.x-datan är flyttad: varje fält den ligger i (paritetstabellen
+i ARKITEKTUR.md, `ParityTableTest`) står kvar i modell, codec och rules och tas aldrig bort, och
+fixturen `tools/db/test/fixtures/user.json` har varje fält satt.
 → Skill: **data-safety-backup**. Krav: BCK-, DAT- och OMB-serierna.
 
 ### 2. Tester på alla nivåer
@@ -66,7 +66,7 @@ finns på ett ställe.**
   `DataError.toMessage()`; skärmbyten = `navigation/Transitions`.
 - **Kod i alla lager:** ingen kopierad logik. Firestore via generisk
   `FirestoreCollection<T>` + `DocCodec<T>`; listtillstånd via `asListUiState()`;
-  beräkningar (doser, kylperiod, periodslut, dagens energi, diagrammatematik) och 3.x-konverteraren
+  beräkningar (doser, kylperiod, periodslut, dagens energi, diagrammatematik) och importens läsare
   i `:core`. Två ställen som gör samma sak → bryt ut *innan* det tredje dyker upp.
   Komposition (hjälpklasser, extensions, parametrar) före djupa basklasser. Gäller även
   tester, byggfiler, CI-flöden och `tools/db`.
@@ -144,14 +144,14 @@ rapporterar i en tabell (skill **android:implement-issue**, steg 8).
   diagnostisera. Avsluta prenumerationen när PR:en är klar.
 - **Delegera på rätt nivå** (ARKITEKTUR.md → Agenter): huvudsessionen orkestrerar och granskar;
   agenten `byggare` tar portar, komponenter, skärmar och CI-filer, agenten `arkitekt` datamodell,
-  codecs, konverteraren, rules och migrering. Går ett steg fel två gånger i rad flyttas det upp en nivå.
+  codecs, importen, rules och migrering. Går ett steg fel två gånger i rad flyttas det upp en nivå.
 - **Modell efter uppgift** för sessionen och varje agent, Opus som standard ([.claude/README.md](.claude/README.md)
   → Modellval). Varje issue anger **Agent · modell · effort** (skill **android:refine-issue**) och körs så.
 
 ## Bygg & test
 
 ```bash
-./gradlew :core:test                    # domän, codecs, konverterare, motorer (sekunder, ingen Android SDK)
+./gradlew :core:test                    # domän, codecs, import, motorer (sekunder, ingen Android SDK)
 ./gradlew :app:testDebugUnitTest        # ViewModel, Robolectric-UI, UiConsistencyTest
 ./gradlew :app:verifyRoborazziDebug     # jämför skärmdumpar mot referenser
 ./gradlew :app:recordRoborazziDebug     # spela in referenser (bara vid avsiktlig designändring)
@@ -164,7 +164,7 @@ node tools/db/query.mjs doses           # läs en samling
 ```
 
 Kör det du ändrat lokalt innan varje push, även i telefonsessioner. Emulatortester,
-3.x-konverteraren, läkemedelsmatchningen och Android SDK i sessionen (alltid ok att
+läkemedelsmatchningen och Android SDK i sessionen (alltid ok att
 installera) står i skill **testing-strategy**, "Innan du anser dig klar".
 
 ## Arkitektur i korthet
@@ -174,7 +174,7 @@ Compose → ViewModel (StateFlow<UiState>) → Repository → FirestoreCollectio
                                                          ↑ DocCodec<T> i :core
 ```
 
-`:core` är ren Kotlin/JVM (modeller, codecs, motorer, diagrammatematik, 3.x-konverteraren);
+`:core` är ren Kotlin/JVM (modeller, codecs, motorer, diagrammatematik, importens läsare);
 `:app` är Android-appen med fyra flikar (Idag · Dagbok · Trender · Mediciner). Utseende och gemensamt beteende finns bara i
 `ui/theme`, `ui/components`, `ui/diagram` och `ui/common`; Firestore bara i `data/firestore`; felmappning en
 gång i `data/common`. Struktur, datamodell, lager, migrering och etapper står i

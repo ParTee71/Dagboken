@@ -1,7 +1,7 @@
 package se.partee71.dagboken.core.cli
 
 /**
- * Kommandoradens argument för `:core`-verktygen (`convertLegacyBackup`, `matchMedicines`): flaggor med
+ * Kommandoradens argument för `:core`-verktygen (`matchMedicines`): flaggor med
  * ett värde (`--in fil`) och brytare utan (`--force`). En gemensam tolkning, så att verktygen godtar och
  * nekar likadant.
  */

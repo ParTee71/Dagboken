@@ -24,7 +24,7 @@ data class Screening(
     /** Stress 0–10. */
     val stress: Int = 0,
     override val symptoms: List<SymptomScore> = emptyList(),
-    /** Känslorna ur ordkatalogen (SCR-7, DAT-14); fanns inte i 3.x – konverteraren ger tom lista. */
+    /** Känslorna ur ordkatalogen (SCR-7, DAT-14); fanns inte i 3.x – konverterade poster har tom lista. */
     override val feelings: List<Feeling> = emptyList(),
     /** Styrka per vald känsla (SCR-9, DAT-14); fanns inte i 3.x – tom karta. */
     override val feelingStrengths: Map<String, String> = emptyMap(),
@@ -67,7 +67,7 @@ data class Activity(
     val drain: Boolean = false,
     /** Tidsåtgång i minuter (AKT-7); `null` = inte angiven. */
     val minutes: Int? = null,
-    /** Känslorna ur ordkatalogen (AKT-13, DAT-14); fanns inte i 3.x – konverteraren ger tom lista. */
+    /** Känslorna ur ordkatalogen (AKT-13, DAT-14); fanns inte i 3.x – konverterade poster har tom lista. */
     override val feelings: List<Feeling> = emptyList(),
     /** Styrka per vald känsla (SCR-9, DAT-14); fanns inte i 3.x – tom karta. */
     override val feelingStrengths: Map<String, String> = emptyMap(),

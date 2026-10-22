@@ -16,7 +16,6 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import se.partee71.dagboken.core.legacy.ImportFormat
 import se.partee71.dagboken.core.schema.CollectionNames
 import se.partee71.dagboken.core.schema.ExportFormat
 import se.partee71.dagboken.data.FakeStore
@@ -24,12 +23,11 @@ import se.partee71.dagboken.data.FixedClock
 import se.partee71.dagboken.data.TestUserScope
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.firestore.Paths
-import se.partee71.dagboken.data.legacy.FakeDriveBackups
-import se.partee71.dagboken.data.legacy.FakeRawFirestore
-import se.partee71.dagboken.data.legacy.FakeUserFile
-import se.partee71.dagboken.data.legacy.ImportRead
-import se.partee71.dagboken.data.legacy.LegacyImportUseCase
-import se.partee71.dagboken.data.legacy.LegacyWriteOutcome
+import se.partee71.dagboken.data.importing.FakeRawFirestore
+import se.partee71.dagboken.data.importing.FakeUserFile
+import se.partee71.dagboken.data.importing.ImportRead
+import se.partee71.dagboken.data.importing.ImportUseCase
+import se.partee71.dagboken.data.importing.ImportWriteOutcome
 
 /**
  * Manuell export (BCK-13, HLS-5) och rundturen export → radera → import → export (BCK-6, BCK-16) mot fejkarna: hela
@@ -57,7 +55,7 @@ class ExportUseCaseTest {
     private val scope = TestUserScope(uid)
     private val dispatcher = StandardTestDispatcher()
     private val exporter = ExportUseCase(firestore, files, scope, clock, dispatcher)
-    private val importer = LegacyImportUseCase(FakeDriveBackups(), files, firestore, firestore, scope, dispatcher)
+    private val importer = ImportUseCase(files, firestore, firestore, scope, dispatcher)
     private val uri: Uri = Uri.parse("content://test/dagboken-export-2026-10-07.json")
 
     private fun test(block: suspend TestScope.() -> Unit) = runTest(dispatcher) { block() }
@@ -96,9 +94,9 @@ class ExportUseCaseTest {
         // Radera allt utom användardokumentet (det finns sedan inloggningen och skrivs aldrig av importen).
         store.documents.value = store.documents.value.filterKeys { it == Paths.USERS }
         val plan = assertIs<ImportRead.Ready>(importer.readFile(uri)).plan
-        assertEquals(ImportFormat.Export(1), plan.format)
+        assertEquals(1, plan.schemaVersion)
         assertEquals(fixture.size - 1, plan.total)
-        assertIs<LegacyWriteOutcome.Verified>(importer.write(plan))
+        assertIs<ImportWriteOutcome.Verified>(importer.write(plan))
 
         val again = Uri.parse("content://test/igen.json")
         exporter.export(again).getOrThrow()

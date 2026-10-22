@@ -25,17 +25,17 @@ import org.robolectric.annotation.Config
 import se.partee71.dagboken.R
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.ui.common.AppErrors
-import se.partee71.dagboken.ui.migration.ImportEvent
-import se.partee71.dagboken.ui.migration.ImportSamples
-import se.partee71.dagboken.ui.migration.ImportStage
-import se.partee71.dagboken.ui.migration.countText
+import se.partee71.dagboken.ui.importing.ImportEvent
+import se.partee71.dagboken.ui.importing.ImportSamples
+import se.partee71.dagboken.ui.importing.ImportStage
+import se.partee71.dagboken.ui.importing.countText
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 import se.partee71.ui.common.UiError
 
 /**
- * Export och import (BCK-6, BCK-13, BCK-14, SET-8): "Spara som JSON" öppnar filväljaren med filnamnet och snackbaren
- * "Sparade N poster" följer, "Importera backup" ger valen Drive och fil i ett ark, inget går att starta medan något pågår,
- * och importens lägen visas i stället för raderna.
+ * Export och import (BCK-6, BCK-13, SET-8): "Spara som JSON" öppnar filväljaren med filnamnet och snackbaren
+ * "Sparade N poster" följer, "Importera backup" öppnar dokumentväljaren för JSON direkt, inget går att starta medan något
+ * pågår, och importens lägen visas i stället för raderna.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w390dp-h1700dp-xxhdpi")
@@ -89,15 +89,18 @@ class ExportImportScreenTest {
     }
 
     @Test
-    fun `Importera backup ger valen Drive och fil i ett ark`() {
+    fun `Importera backup öppnar dokumentväljaren för JSON, och filen skickas vidare`() {
         show()
-        rule.onNodeWithText(text(R.string.import_note)).performClick()
-        rule.onNodeWithText(text(R.string.import_from_drive)).performClick()
-        assertEquals(listOf<ExportImportEvent>(import(ImportEvent.FromDrive)), events)
+        rule.onNodeWithText(text(R.string.import_note)).assertIsDisplayed()
         rule.onNodeWithText(text(R.string.import_title)).performClick()
-        rule.onNodeWithText(text(R.string.import_from_file)).performClick()
-        val request = shadowOf(rule.activity).nextStartedActivityForResult
+        val shadow = shadowOf(rule.activity)
+        val request = shadow.nextStartedActivityForResult
         assertEquals(Intent.ACTION_OPEN_DOCUMENT, request.intent.action)
+        assertEquals(listOf("application/json"), request.intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)?.toList())
+        val uri = Uri.parse("content://test/dagboken-export.json")
+        shadow.receiveResult(request.intent, Activity.RESULT_OK, Intent().setData(uri))
+        rule.waitForIdle()
+        assertEquals(listOf<ExportImportEvent>(import(ImportEvent.FileChosen(uri))), events)
     }
 
     @Test
@@ -119,9 +122,9 @@ class ExportImportScreenTest {
     }
 
     @Test
-    fun `ingen backup på Drive - Importera från fil och Avbryt`() {
-        show(ExportImportUiState(import = ImportStage.NoDriveBackup))
-        rule.onNodeWithText(text(R.string.import_no_drive_settings)).assertIsDisplayed()
+    fun `filen är ingen export - Avbryt går tillbaka till raderna`() {
+        show(ExportImportUiState(import = ImportStage.NotABackup))
+        rule.onNodeWithText(text(R.string.import_not_a_backup)).assertIsDisplayed()
         rule.onNodeWithText(text(R.string.cancel)).performClick()
         assertEquals(listOf<ExportImportEvent>(import(ImportEvent.Reset)), events)
     }

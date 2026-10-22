@@ -1,7 +1,6 @@
 package se.partee71.dagboken.ui.settings
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -21,9 +20,7 @@ import se.partee71.dagboken.core.model.ThemeMode
 import se.partee71.dagboken.core.model.ThemeSettings
 import se.partee71.dagboken.reminders.ReminderAccess
 import se.partee71.dagboken.testing.captureLightAndDark
-import se.partee71.dagboken.testing.captureScreenLightAndDark
-import se.partee71.dagboken.testing.clickWithoutRipple
-import se.partee71.dagboken.ui.migration.ImportSamples
+import se.partee71.dagboken.ui.importing.ImportSamples
 import se.partee71.ui.common.DetailUiState
 import se.partee71.ui.common.EditorEvents
 import se.partee71.ui.common.EditorUiState
@@ -112,14 +109,6 @@ class SettingsScreenshotTest {
     @Test
     fun `Export och import - sparar`() = rule.captureLightAndDark("Settings_ExportImport_sparar") {
         ExportImportScreen(ExportImportUiState(exporting = true), {}, { "dagboken-export-2026-10-08.json" }, onBack = {})
-    }
-
-    @Test
-    fun `Export och import - välj varifrån`() = rule.captureScreenLightAndDark(
-        "Settings_ExportImport_ark",
-        open = { onNodeWithText("Importera backup").clickWithoutRipple() }
-    ) {
-        ExportImportScreen(ExportImportUiState(), {}, { "dagboken-export-2026-10-08.json" }, onBack = {})
     }
 
     @Test

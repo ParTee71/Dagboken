@@ -18,11 +18,11 @@ import se.partee71.dagboken.core.schema.Schema
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.UserFile
 import se.partee71.dagboken.data.common.UserScope
+import se.partee71.dagboken.data.common.readOrNull
 import se.partee71.dagboken.data.common.suspendRunCatching
 import se.partee71.dagboken.data.firestore.Paths
 import se.partee71.dagboken.data.firestore.RawDocuments
 import se.partee71.dagboken.data.firestore.firestoreError
-import se.partee71.dagboken.data.legacy.readOrNull
 import se.partee71.dagboken.di.DefaultDispatcher
 
 /** En klar export: antal dokument per samling (`CollectionNames.ALL`-ordning, användardokumentet med) – aldrig innehåll. */

@@ -26,11 +26,11 @@ resten med `dorny/paths-filter`.
 <!-- ci-table:start -->
 | Filter | Sökvägar | Körs |
 |---|---|---|
-| `core` | `core/**`, `tools/db/test/fixtures/**`, `firestore.rules`, `ARKITEKTUR.md` | `:core:test` + allt i raden `app` (appen beror på `:core`; exportformatets och konverterarens tester läser tools/db:s testdata, `RulesEnumsTest` läser `firestore.rules` och `ParityTableTest` paritetstabellen i `ARKITEKTUR.md`) |
+| `core` | `core/**`, `tools/db/test/fixtures/**`, `firestore.rules`, `ARKITEKTUR.md` | `:core:test` + allt i raden `app` (appen beror på `:core`; exportformatets och importens tester läser tools/db:s testdata, `RulesEnumsTest` läser `firestore.rules` och `ParityTableTest` paritetstabellen i `ARKITEKTUR.md`) |
 | `app` | `app/**`, `.claude/skills/shared-ui-components/**` | `:app:testDebugUnitTest` (inkl. `UiConsistencyTest`) + `verifyRoborazziDebug` + `cpdCheck` + `:app:assembleDebugAndroidTest` (kompilerar och dexar instrumenttesterna utan att köra dem – utom när filtret `instrumented` kör dem) |
-| `tools` | `firestore.rules`, `firestore.indexes.json`, `firebase.json`, `tools/db/**`, `app/src/main/kotlin/se/partee71/dagboken/data/firestore/Paths.kt`, `core/src/main/kotlin/se/partee71/dagboken/core/schema/CollectionNames.kt` | rules- och rundturstester (Node) mot Firebase-emulatorn, konverterarens förväntade exporter genom import och rules, och samlingslistan mot `Paths.kt` och `CollectionNames.kt` |
+| `tools` | `firestore.rules`, `firestore.indexes.json`, `firebase.json`, `tools/db/**`, `app/src/main/kotlin/se/partee71/dagboken/data/firestore/Paths.kt`, `core/src/main/kotlin/se/partee71/dagboken/core/schema/CollectionNames.kt` | rules- och rundturstester (Node) mot Firebase-emulatorn och samlingslistan mot `Paths.kt` och `CollectionNames.kt` |
 | `build` | `*.gradle.kts`, `gradle/**`, `gradle.properties`, `build-logic/**`, `.github/**` | allt ovan utom instrumenttesterna (de har egna sökvägar) |
-| `instrumented` | `app/src/**`, `core/src/**`, `tools/db/test/fixtures/legacy/**`, `*.gradle.kts`, `app/build.gradle.kts`, `core/build.gradle.kts`, `gradle/**`, `gradle.properties`, `build-logic/**`, `firestore.rules`, `firebase.json`, `tools/db/package-lock.json`, `.github/workflows/instrumented.yml`, `.github/actions/setup-android/**` | instrumenttesterna på Android-emulator (`instrumented.yml`), bara i PR; då hoppar `gradle` över `assembleDebugAndroidTest`. `release.yml` kör dem inte igen om dessa sökvägar är oförändrade sedan en PR där de var gröna |
+| `instrumented` | `app/src/**`, `core/src/**`, `tools/db/test/fixtures/user.json`, `*.gradle.kts`, `app/build.gradle.kts`, `core/build.gradle.kts`, `gradle/**`, `gradle.properties`, `build-logic/**`, `firestore.rules`, `firebase.json`, `tools/db/package-lock.json`, `.github/workflows/instrumented.yml`, `.github/actions/setup-android/**` | instrumenttesterna på Android-emulator (`instrumented.yml`), bara i PR; då hoppar `gradle` över `assembleDebugAndroidTest`. `release.yml` kör dem inte igen om dessa sökvägar är oförändrade sedan en PR där de var gröna |
 | – | allt annat (`*.md` utom `ARKITEKTUR.md`, `.claude/**`) | bara `changes` med dokumentkontroller |
 <!-- ci-table:end -->
 
@@ -113,4 +113,4 @@ workflows `quality`, `release`, `backup`. Utöver pluginens generella felsorter:
 |---|---|
 | Dokumentkontroll | `ci-budget`-tabellen mot `android.yml`, länkar, skill- och agentnamn (`plugin-skills.txt`, `plugin-agents.txt`) |
 | Rules/rundtur | vilken samling eller vilket fält; saknas den i `collections.mjs`, `Paths.kt` eller rules? |
-| Konverteraren (`:core:test`, `legacy/`) | vilket 3.x-fält som inte kommer fram, eller vilken rad i fixturen som avviker (OMB-3) |
+| Importen (`:core:test` `importing/`, `ImportUseCaseTest`) | vilket dokument eller fält i fixturen `user.json` som stoppar eller avviker |

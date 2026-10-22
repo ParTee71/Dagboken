@@ -258,7 +258,7 @@ test('fixturens dokument (alla samlingar, varje fält, null och tidsstämplar) g
   await assertFails(setDoc(doc(db('annan'), documents[1].path), toClient(documents[1].data)));
 });
 
-test('många poster sparas i en batch (t.ex. importen från 3.x)', async () => {
+test('många poster sparas i en batch (t.ex. importen)', async () => {
   const store = db(OWNER);
   const batch = writeBatch(store);
   for (let i = 0; i < 100; i++) {

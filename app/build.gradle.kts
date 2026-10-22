@@ -75,8 +75,8 @@ android {
         // Kontraktstester som körs både i JVM (mot fakes) och på enhet (mot Firebase-emulatorn).
         getByName("test").kotlin.directories += "src/sharedTest/kotlin"
         getByName("androidTest").kotlin.directories += "src/sharedTest/kotlin"
-        // Rundturen export → import på enhet läser samma syntetiska 3.x-fixturer som :core (BCK-14, OMB-4).
-        getByName("androidTest").assets.directories += "../tools/db/test/fixtures/legacy"
+        // Rundturen export → import på enhet läser samma syntetiska 4.0-fixtur som :core och tools/db (BCK-6, BCK-16).
+        getByName("androidTest").assets.directories += "../tools/db/test/fixtures"
     }
 
     buildFeatures {
@@ -139,9 +139,6 @@ dependencies {
     implementation(libs.credentials)
     implementation(libs.credentials.play.services)
     implementation(libs.googleid)
-    // Identity AuthorizationClient för Drive-scopet vid legacyimporten (BCK-14) – fanns redan transitivt via
-    // credentials-play-services-auth (samma version), nu på kompileringsvägen; inget Drive-bibliotek, REST via HttpURLConnection.
-    implementation(libs.play.services.auth)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.vico.compose) // diagram, bara i ui/diagram (TRD-10 zoom/panorering)
     implementation(libs.coil.compose) // profilfotot i AccountAvatar (AUTH-3)

@@ -16,7 +16,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 - MVVM med `StateFlow<UiState>` och sealed events (TP-3) – byt inte till MVI. Varje skärm har `*ViewModel` + `*UiState`, `@HiltViewModel` på alla.
 - Material 3 Expressive via `ui/theme` i designspråket Papper och teal (skill `ui-style`).
 - Lagring: Firestore med offline-cache under `users/{uid}` (TP-4), all åtkomst via `FirestoreCollection<T>` + `DocCodec<T>` (skill `firestore-data-layer`); repositories är tunna fasader under `UserSession`. Room används **bara** av den skrivskyddade 3.x-läsaren i `data/legacy` (OMB-2). DataStore bara för enhetslokalt tillstånd i filen `dagboken_device`, aldrig i 3.x-filen `dagboken_prefs`.
-- `:core` (ren Kotlin/JVM: modeller, codecs, motorer, diagrammatematik, 3.x-konverteraren) + `:app`. Utseende och gemensamt beteende bara i `ui/theme`, `ui/components`, `ui/diagram`, `ui/common`; Firestore bara i `data/firestore`; Health Connect bara i `data/health` (TP-10, read-only, persisteras aldrig – HLS-5).
+- `:core` (ren Kotlin/JVM: modeller, codecs, motorer, diagrammatematik, importens läsare) + `:app`. Utseende och gemensamt beteende bara i `ui/theme`, `ui/components`, `ui/diagram`, `ui/common`; Firestore bara i `data/firestore`; Health Connect bara i `data/health` (TP-10, read-only, persisteras aldrig – HLS-5).
 - Fel mappas en gång till `DataError` med `suspendRunCatching` (`data/common/`): `FirestoreCollection` för data, `AuthRepository` för inloggning. Repositories skickar `Result<T>` vidare; skärmar visar felet med `DataError.toMessage()`; `DataError.Cancelled` är tyst.
 - Ramarna (regel 4): listskärmar `EntityListScreen` + `asListUiState()`, redigering `EntityEditScreen` + `EditorState<T>` – aldrig egna varianter.
 - Navigation 3 (TP-2), en Activity (`MainActivity`), back stacken är vanligt state i `navigation/`, övergångar en gång i `navigation/Transitions`.
@@ -81,7 +81,7 @@ Gradle 9) och ARKITEKTUR.md → "Byggkonfiguration". En höjning som ändrar SDK
 
 | Modul | Plugins | Regel |
 |---|---|---|
-| `:core` | `kotlin("jvm")`, `kotlin("plugin.serialization")` | Modeller, codecs, motorer, diagrammatematik och 3.x-konverteraren (`BackupJson`). Test `junit`, `kotlin-test`. |
+| `:core` | `kotlin("jvm")`, `kotlin("plugin.serialization")` | Modeller, codecs, motorer, diagrammatematik och importens läsare (`ImportFile`). Test `junit`, `kotlin-test`. |
 | `:app` | `android.application` (AGP 9, inbyggd Kotlin), `kotlin.compose`, `ksp`, `hilt`, `kotlin.serialization`, `google-services` (bara när `app/google-services.json` finns), `roborazzi` | `implementation(project(":core"))`. Material 3 Expressive, Navigation 3, Firestore, Hilt, WorkManager, Health Connect (read-only). Room bara i `data/legacy`. |
 
 - Gemensam konfiguration (Java 17 utan toolchain, kompilatorflaggor, testtimeout, testloggning) en gång i rotens `build.gradle.kts` (`subprojects {}` + `plugins.withId {}`).
@@ -100,7 +100,7 @@ bygger på `request.auth.uid == uid`. Inget hushåll och ingen delning – ett k
 - `AuthRepository` (`data/auth/`), enda implementationen `GoogleAuthRepository` (bunden i `di/AuthModule`), fel mappas i `data/auth/AuthErrors.kt`; tester använder en fake. `AuthUser(uid, name?, email?, photoUrl?)` – namn, e-post och foto visas i avataren och inställningsarket (AUTH-3, SET-7) och hålls bara i minnet.
 - Uppstarten: när `authState` har en användare och `users/{uid}` saknas på servern skapar `EnsureUserUseCase` dokumentet via `UserDirectory.createIfMissing` (bara servern, atomärt, med `schemaVersion` + `createdAt`; Firestore-implementation `FirestoreUserDirectory`). `UserSession` (`data/user/`, implementerar `UserScope`) följer uid.
 - En knapp, ett event `AuthEvent.SignIn(context)`: utloggad → logga in; inloggad utan `users/{uid}` → `gate = NeedsUser`, samma knapp försöker igen. `gate = Loading` tills `schemaVersion` är känd; nyare än appen → `UpdateRequiredScreen` (BCK-15). Fel visas en gång via `AppSnackbarHost`, kvitteras med `AuthEvent.ErrorShown`; `Cancelled` är tyst (AUTH-4).
-- Första start av 4.0 med 3.x-data: inloggning, sedan flikarna; 3.x-data läses in med importen i Inställningar → Export och import (BCK-6, BCK-14). Migreringen på enheten (~~OMB-2~~, ~~OMB-5~~) togs bort i 4.8.0.
+- Första start: inloggning, sedan flikarna; datan finns i Firestore. Migreringen på enheten (~~OMB-2~~, ~~OMB-5~~) togs bort i 4.8.0 och importen av 3.x-backuper (~~BCK-14~~) i 4.9.0; importen i Inställningar → Export och import läser bara en 4.x-export (BCK-6).
 - Utloggning bara via `SignOutUseCase` (inställningsarket → Konto, bakom `ConfirmDialog`, anropas av `AuthViewModel`): `LocalCacheCleaner.awaitPendingWrites(3 s)`, `AuthRepository.signOut()`, och bara om allt synkat `LocalCacheCleaner.clear()` (`FirestoreInstance`: `terminate()` + `clearPersistence()`); `HistoryCoverage` glöms före och efter. Larmen avbokas och notiserna stängs (AUTH-6, skill `notifications-alarms`). Tester: `SignOutUseCaseTest`, `AuthViewModelTest` med `FakeLocalCacheCleaner` (`testing/UserFixture.kt`), `FirestoreLocalCacheTest` mot emulatorn.
 - Workers och larmmottagare kontrollerar inloggad användare innan de rör data; utloggade gör de inget.
 - Debug-SHA-1 för `dagboken-711d2`: `50:5B:DC:3B:C9:49:F5:96:91:84:F2:23:0F:D1:BE:25:1B:10:7E:59`; release-nyckelns SHA-1 ska också vara registrerad (README → Firebase-setup).
@@ -163,17 +163,17 @@ Stegen står i pluginen; det här är Dagbokens delar.
   `EntityEditScreen` + `EditorState` (skill `shared-ui-components`).
 - **Datakedjan** för ett persisterat fält eller en ny samling: default i `:core`-modellen,
   tolerant `DocCodec`, `firestore.rules`, `tools/db/lib/collections.mjs` och rundturstest – i samma
-  ändring; ett 3.x-fält får dessutom sin plats i 4.0 och konverteraren (`BackupJsonConverter`) sin
-  fixtur med varje fält satt (OMB-3, skill `data-safety-backup`).
+  ändring, och fixturen `user.json` med ett icke-default-värde i fältet; ett fält som 3.x-data ligger i
+  (paritetstabellen) tas aldrig bort (skill `data-safety-backup`).
 - **Agenter** (ARKITEKTUR.md → "CI, verktyg, skills och agenter"): huvudsessionen orkestrerar och
   granskar; agenten `byggare` tar portar, komponenter, skärmar på ramarna och CI-filer, agenten
-  `arkitekt` datamodell, codecs, konverteraren, rules, migrering och arkitekturval, pluginens
+  `arkitekt` datamodell, codecs, importen, rules, migrering och arkitekturval, pluginens
   `android:testskrivare` tester på tre eller fler nivåer, `android:granskare` diffen (steg 8),
   `android:ci-doktor` rött CI och `db-inspektor` faktisk data. Går ett steg fel två gånger i rad flyttas det upp en nivå
   (`byggare` → `arkitekt`, Sonnet → Opus). Saknar issuet **Agent · modell · effort** kompletteras
   det utifrån etapptabellen (avsnittet Issues nedan).
 - **`/code-review` krävs** (efter `android:granskare`) när ändringen rör logik i `:core` (motorer,
-  diagrammatematik, konverteraren), datalagret, `firestore.rules`, `tools/db`, larmen eller en
+  diagrammatematik, importens läsare), datalagret, `firestore.rules`, `tools/db`, larmen eller en
   delad ram eller komponent (`ui/components`, `ui/diagram`, `ui/common`), eller när diffen är
   större än ett par filer.
 - **Commit-områden** efter flik, funktion eller lager, t.ex. `idag`, `mående`, `doser`,
@@ -193,7 +193,7 @@ Stegen står i pluginen; det här är Dagbokens delar.
 Pluginens granskare har de generella kontrollpunkterna; de här gäller Dagboken 4.0 (ombyggnaden
 enligt `ARKITEKTUR.md`) i tillägg.
 
-**Läs efter diffen:** persisterad data, codecs, konverteraren, rules → `data-safety-backup`;
+**Läs efter diffen:** persisterad data, codecs, importen, rules → `data-safety-backup`;
 tester → `testing-strategy`; UI, komponenter, ramar, byggstenar → `shared-ui-components`; CI,
 beroenden → `ci-budget`; GUI → avsnittet Mockup här och `ui-style`; hälsodata, loggning,
 hemligheter → `data-privacy-security`; larm och notiser → `notifications-alarms`.
@@ -201,9 +201,8 @@ hemligheter → `data-privacy-security`; larm och notiser → `notifications-ala
 - **Regel 1:** skrivning som inte går via `upsert` med merge, codec som inte skriver alla kända
   fält; nytt persisterat fält eller ny samling utan default, codec via fälthjälpare,
   `firestore.rules`, rad i `tools/db/lib/collections.mjs` och rundturstest som asserterar på
-  fältet? Ändring av 3.x-konverteraren (`legacy/BackupJsonConverter`) utan att fixturen med
-  **varje** 3.x-fält satt följer med (OMB-3)? Något 3.x-fält som saknar plats i 4.0-modellen
-  (ADR-001, beslut 11)?
+  fältet? Ett fält som 3.x-data ligger i (paritetstabellen) som ändras eller tas bort, eller ett
+  nytt fält som saknas bland "Nya fält i 4.0" (`ParityTableTest`, ADR-001, beslut 11)?
 - **Regel 3:** 3.x-lydelse som ändras utan att stå kvar struken med hänvisning? Gemensamt
   beteende beskrivet igen i stället för referens (NFR-15–18, NAV)?
 - **Version:** beteende är `app/src/main/**`, `core/src/main/**`, byggfiler och
@@ -229,8 +228,7 @@ hemligheter → `data-privacy-security`; larm och notiser → `notifications-ala
   - **Integritet:** allt är hälsodata; loggas, lagras eller exporteras något → skill
     `data-privacy-security` (Health Connect-data persisteras aldrig, HLS-5).
 - **Datakedjan i DoD:** modell med default, codec, `firestore.rules`, `tools/db/lib/collections.mjs`
-  och rundturstest, och vid 3.x-data konverteraren med fixtur (OMB-3) – eller "ingen persisterad
-  ändring".
+  och rundturstest med fältet satt i `user.json` – eller "ingen persisterad ändring".
 - **Testplanens nivåer:** `:core` (ren JUnit), `app/src/test` (ViewModel med fakes + Turbine,
   Robolectric, kontraktstester för ramarna, Roborazzi-skärmdumpar), `tools/db` (rules och rundtur
   mot Firebase-emulatorn), `app/src/androidTest` (instrumenttester, i Actions).
@@ -244,7 +242,7 @@ hemligheter → `data-privacy-security`; larm och notiser → `notifications-ala
   | Agent | Tar | Standard |
   |---|---|---|
   | `byggare` | portar, komponenter, skärmar på ramarna, CI-filer | Opus · medium |
-  | `arkitekt` | datamodell, codecs, konverteraren, rules, migrering, arkitekturval | Opus · high (Fable vid väldigt komplexa issues) |
+  | `arkitekt` | datamodell, codecs, importen, rules, migrering, arkitekturval | Opus · high (Fable vid väldigt komplexa issues) |
   | `android:testskrivare` | tester när tre eller fler nivåer berörs | Sonnet · medium |
   | `android:granskare` | granskningen i steg 8, alltid med | sessionens modell · medium |
   | `android:ci-doktor` | rött CI – startas vid behov, anges inte i förväg | Sonnet · medium |
@@ -260,7 +258,7 @@ hemligheter → `data-privacy-security`; larm och notiser → `notifications-ala
 - **4.0:** första releasen av 4.0 (v4.0.0, #300) gjordes när paritetschecklistan var grön (OMB-6)
   och grinden OMB-4 passerad. 3.27.0 ligger kvar som tagg och på branchen `legacy` (OMB-1). 4.0
   behåller `applicationId`, så den installeras som uppdatering ovanpå 3.x; migreringen på enheten
-  (~~OMB-2~~) togs bort i 4.8.0 – 3.x-data läses in med importen (BCK-14).
+  (~~OMB-2~~) togs bort i 4.8.0 och importen av 3.x-backuper (~~BCK-14~~) i 4.9.0.
 - **Workflow:** `release.yml` (owner `ParTee71`, repo `Dagboken`), jobben:
   - `gate` (sekunder): commiten ligger på `master`, versionen är `versionName` i
     `version.properties`, taggen finns inte, secrets finns och `ci-ok` är grönt på commiten –

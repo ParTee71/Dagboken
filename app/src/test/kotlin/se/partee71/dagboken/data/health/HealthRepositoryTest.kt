@@ -71,7 +71,9 @@ class HealthRepositoryTest {
         val models = Regex("\\b(DailyHealth|SleepStages|HealthHistory)\\b")
         val persisting = listOf(
             File(repoRoot, "core/src/main/kotlin/se/partee71/dagboken/core/schema"),
-            File(repoRoot, "core/src/main/kotlin/se/partee71/dagboken/core/legacy"),
+            File(repoRoot, "core/src/main/kotlin/se/partee71/dagboken/core/importing"),
+            File(repoRoot, "app/src/main/kotlin/se/partee71/dagboken/data/importing"),
+            File(repoRoot, "app/src/main/kotlin/se/partee71/dagboken/data/export"),
             File(repoRoot, "app/src/main/kotlin/se/partee71/dagboken/data/firestore"),
             File(repoRoot, "app/src/main/kotlin/se/partee71/dagboken/data/repository"),
             File(repoRoot, "tools/db/lib"),

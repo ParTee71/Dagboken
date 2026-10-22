@@ -19,7 +19,6 @@ class DoseIdsTest {
     @Test
     fun `tidpunkternas 3x-namn och ordning är DAT-1`() {
         assertEquals(listOf("Morgon", "Förmiddag", "Lunch", "Eftermiddag", "Kväll", "Natt", "Vid behov"), Slot.entries.map { it.legacyName })
-        assertEquals(Slot.MIDMORNING, Slot.fromLegacyName("Förmiddag"))
         assertEquals(Slot.entries - Slot.AS_NEEDED, Slot.SCHEDULED)
     }
 

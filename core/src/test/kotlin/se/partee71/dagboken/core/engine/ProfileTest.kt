@@ -9,8 +9,8 @@ import se.partee71.dagboken.core.schema.wireValue
 
 /**
  * Portad från 3.x `domain/model/ProfileTest`: profilvärdena bakom sömnkvalitetens åldersnormer
- * (HLS-11). 3.x-testerna av könets lagringsnycklar: 3.x-nycklarna (`man`/`kvinna`/`ej_angivet`) prövas i
- * `BackupJsonConverterTest` ("kön - alla tre 3x-värden får sitt 4-punkt-0-namn …"), 4.0:s nycklar
+ * (HLS-11). 3.x-testerna av könets lagringsnycklar: 3.x-nycklarna (`man`/`kvinna`/`ej_angivet`) prövades i
+ * konverteraren (borttagen i 4.9.0), 4.0:s nycklar
  * nedan ("4.0:s lagringsnycklar …") och mot `firestore.rules` i `RulesEnumsTest`.
  */
 class ProfileTest {

@@ -61,7 +61,7 @@ jobs:
             instrumented:
               - 'app/src/**'
               - 'core/src/**'
-              - 'tools/db/test/fixtures/legacy/**'
+              - 'tools/db/test/fixtures/user.json'
               - '*.gradle.kts'
               - 'app/build.gradle.kts'
               - 'core/build.gradle.kts'

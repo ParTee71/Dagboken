@@ -18,8 +18,10 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.datetime.TimeZone
+import se.partee71.dagboken.data.common.ContentResolverUserFile
 import se.partee71.dagboken.data.common.DataStoreDayMarks
 import se.partee71.dagboken.data.common.DayMarks
+import se.partee71.dagboken.data.common.UserFile
 import se.partee71.dagboken.data.common.UserScope
 import se.partee71.dagboken.data.user.UserSession
 
@@ -38,6 +40,10 @@ abstract class AppModule {
     /** Dagsgrindens anteckningar (`DailyGate`, #304) i `dagboken_device`. */
     @Binds
     abstract fun dayMarks(marks: DataStoreDayMarks): DayMarks
+
+    /** Filen från dokumentväljaren – exporten (BCK-13) och importen (BCK-6). */
+    @Binds
+    abstract fun userFile(file: ContentResolverUserFile): UserFile
 
     companion object {
         @Provides
