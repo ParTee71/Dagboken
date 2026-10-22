@@ -1,7 +1,9 @@
 package se.partee71.dagboken.core.engine
 
 import kotlin.time.Duration
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.core.model.HealthHistory
 import se.partee71.dagboken.core.model.Sex
@@ -65,7 +67,7 @@ const val WATCH_MAX_DAYS = 365
 fun TrendRange.cappedDays(today: LocalDate): List<LocalDate> = daysEnding(today, days ?: WATCH_MAX_DAYS)
 
 /** Läsningens första dag för ett kapat kort: som [TrendRange.readFrom], men "Allt" börjar [WATCH_MAX_DAYS] dagar bakåt. */
-fun TrendRange.cappedReadFrom(today: LocalDate, withPrevious: Boolean): LocalDate = if (days == null) cappedDays(today).first() else readFrom(today, withPrevious)
+fun TrendRange.cappedReadFrom(today: LocalDate, withPrevious: Boolean): LocalDate = if (days == null) today.minus(WATCH_MAX_DAYS - 1, DateTimeUnit.DAY) else readFrom(today, withPrevious)
 
 /**
  * Klockans serier för [metrics] över [days] (TRD-11, TRD-15): ett värde per dag ur [history], `null` där
@@ -94,7 +96,7 @@ val SLEEP_QUALITY_KEYS: List<String> = listOf(SLEEP_SCORE_KEY) + SleepQualityKin
 /**
  * Nätterna i [history] som underlag för sömnkvaliteten (HLS-13), en per dygn med sömnlängd ([DailyHealth.sleepMeasurements]).
  */
-fun sleepMeasurements(history: HealthHistory): List<NightlySleepMeasurements> = history.days.mapNotNull { day -> day.sleepMeasurements()?.let { NightlySleepMeasurements(day.date, it) } }
+fun sleepMeasurements(history: HealthHistory): List<NightlySleepMeasurements> = history.days.mapNotNull { it.night() }
 
 /**
  * Dygnets natt som underlag för sömnkvaliteten (HLS-10): tiden i säng är sömnlängden, vaken tid, djup och REM
@@ -126,7 +128,9 @@ fun sleepQualityOn(history: HealthHistory, date: LocalDate, age: Int?, sex: Sex)
 /** Varningsraderna för natten som slutade [date] (HLS-10) – också utan födelseår; tom utan natt. */
 fun sleepFlagsOn(history: HealthHistory, date: LocalDate): List<SleepFlag> = nightOn(history, date).singleOrNull()?.measurements?.let(::sleepFlags).orEmpty()
 
-private fun nightOn(history: HealthHistory, date: LocalDate) = sleepMeasurements(history).filter { it.date == date }
+private fun nightOn(history: HealthHistory, date: LocalDate) = history.days.filter { it.date == date }.mapNotNull { it.night() }
+
+private fun DailyHealth.night() = sleepMeasurements()?.let { NightlySleepMeasurements(date, it) }
 
 /**
  * Sömnkvalitet per natt över [days] (TRD-15, HLS-13): poängen ([SLEEP_SCORE_KEY]) och delpoängen i

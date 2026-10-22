@@ -35,4 +35,20 @@ class PreviousPeriodTest {
         assertEquals(LocalDate(2026, 9, 30), TrendRange.SEVEN_DAYS.readFrom(today, withPrevious = false))
         assertEquals(TrendRange.ALL_FROM, TrendRange.ALL.readFrom(today, withPrevious = true))
     }
+
+    @Test
+    fun `läsningens första dag är den föregående periodens första dag för varje period, över årsskiftet också`() {
+        for (day in listOf(today, LocalDate(2026, 1, 3), LocalDate(2024, 3, 1))) {
+            for (range in TrendRange.entries) {
+                val expected = range.previousDays(day)?.first() ?: range.from(day)
+                assertEquals(expected, range.readFrom(day, withPrevious = true))
+            }
+        }
+    }
+
+    @Test
+    fun `kapad läsning för Allt börjar 365 dagar bakåt`() {
+        assertEquals(TrendRange.ALL.cappedDays(today).first(), TrendRange.ALL.cappedReadFrom(today, withPrevious = true))
+        assertEquals(LocalDate(2025, 10, 7), TrendRange.ALL.cappedReadFrom(today, withPrevious = false))
+    }
 }

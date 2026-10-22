@@ -24,4 +24,4 @@ val TrendRange.hasPreviousPeriod: Boolean get() = days != null
  * Periodens läsning: posterna från [from] till och med [today] täcker både den nuvarande perioden och –
  * när [withPrevious] – den föregående, i **en** läsning (TRD-18). "Allt" läser från [TrendRange.ALL_FROM].
  */
-fun TrendRange.readFrom(today: LocalDate, withPrevious: Boolean): LocalDate = if (withPrevious) previousDays(today)?.first() ?: from(today) else from(today)
+fun TrendRange.readFrom(today: LocalDate, withPrevious: Boolean): LocalDate = if (withPrevious && days != null) from(today).minus(days, DateTimeUnit.DAY) else from(today)
