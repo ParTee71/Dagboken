@@ -70,9 +70,6 @@ data class HealthHistory(val days: List<DailyHealth> = emptyList()) {
     /** Ett måtts dygnsvärden som diagramserie – `null` där måttet saknas den dagen. */
     fun series(value: (DailyHealth) -> Number?): List<Float?> = days.map { day -> value(day)?.toFloat() }
 
-    /** Minst ett dygn har någon mätning. */
-    val hasAnyData: Boolean get() = days.any { !it.isEmpty }
-
     companion object {
         /** Perioden [from]…[to] utan en enda mätning – en tom post per dygn (klockan okopplad, HLS-4). */
         fun empty(from: LocalDate, to: LocalDate): HealthHistory = HealthHistory(datesBetween(from, to).map { DailyHealth(it) })

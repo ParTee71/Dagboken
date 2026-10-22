@@ -56,7 +56,6 @@ import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.dagboken.ui.components.SymptomLogCard
 import se.partee71.dagboken.ui.components.TypeChoiceField
 import se.partee71.dagboken.ui.components.ValueSlider
-import se.partee71.ui.common.EditorState
 import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppFilterChip
 import se.partee71.ui.components.AppTextField
@@ -117,8 +116,6 @@ class ActivityEditViewModel @AssistedInject constructor(
         },
         clean = { loaded, value -> value.cleaned(loaded) }
     )
-
-    val editor: EditorState<Activity> = form.editor
 
     /** Aktivitetstyperna och symptomen ur Listor (AKT-1, AKT-6) – följer listorna medan formuläret är öppet. */
     val activityOptions: StateFlow<List<Option>> = options.choices(OptionKind.ACTIVITY, viewModelScope)

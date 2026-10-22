@@ -45,7 +45,6 @@ import se.partee71.dagboken.ui.components.NoteField
 import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.dagboken.ui.components.TypeChoiceField
 import se.partee71.dagboken.ui.components.ValueSlider
-import se.partee71.ui.common.EditorState
 import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppTextField
 import se.partee71.ui.components.EntityEditScreen
@@ -100,8 +99,6 @@ class EventEditViewModel @AssistedInject constructor(
         },
         clean = { _, value -> value.cleaned() }
     )
-
-    val editor: EditorState<Event> = form.editor
 
     /** Händelsetyperna ur Listor (SET-9) – följer listan medan formuläret är öppet. */
     val eventOptions: StateFlow<List<Option>> = options.choices(OptionKind.EVENT, viewModelScope)

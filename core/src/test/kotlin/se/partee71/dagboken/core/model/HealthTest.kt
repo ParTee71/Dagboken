@@ -29,8 +29,8 @@ class HealthTest {
         assertEquals(listOf(1, 2, 3, 4), history.dates.map { it.day })
         assertEquals(listOf(null, 8_000f, null, null), history.series { it.steps })
         assertEquals(listOf(null, 7.5f, null, null), history.series { it.sleepDuration?.inWholeMinutes?.toFloat()?.div(60) })
-        assertTrue(history.hasAnyData)
-        assertFalse(HealthHistory.empty(from, to).hasAnyData)
+        assertTrue(history.days.any { !it.isEmpty })
+        assertFalse(HealthHistory.empty(from, to).days.any { !it.isEmpty })
         assertEquals(4, HealthHistory.empty(from, to).days.size)
         assertEquals(emptyList(), HealthHistory.empty(to, from).days, "baklänges är tomt")
     }

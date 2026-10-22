@@ -313,25 +313,11 @@
         <item quantity="other">%d förslag</item>
     </plurals>
 
-    <!-- Färgval (ColorSwatchPicker) – samma ordning som AppColors.SWATCH_HEX -->
-    <string name="color_format">Färg: %s</string>
-    <string-array name="swatch_color_names">
-        <item>teal</item>
-        <item>solgul</item>
-        <item>terrakotta</item>
-        <item>grön</item>
-        <item>blå</item>
-        <item>lila</item>
-        <item>senap</item>
-        <item>röd</item>
-    </string-array>
-
     <!-- Navigering (NAV-8–11) -->
     <string name="tab_today">Idag</string>
     <string name="tab_diary">Dagbok</string>
     <string name="tab_trends">Trender</string>
     <string name="tab_medicines">Mediciner</string>
-    <string name="tab_upcoming_title">Snart här</string>
 
     <!-- Inställningsarket bakom avataren (NAV-9) -->
     <string name="account_open">Konto och inställningar</string>

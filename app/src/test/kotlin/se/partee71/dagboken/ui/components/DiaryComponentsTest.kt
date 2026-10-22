@@ -39,9 +39,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
-import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
-import kotlin.math.abs
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
@@ -269,34 +267,6 @@ class DiaryComponentsTest {
         rule.onNodeWithContentDescription("Aktivitetens energi").performSemanticsAction(SemanticsActions.SetProgress) { it(-6f) }
         assertEquals(-6, activity)
         rule.onNodeWithContentDescription("Aktivitetens energi").assert(state("−6, Låg")).assertTouchHeightIsEqualTo(48.dp)
-    }
-
-    @Test
-    fun `hjulväljaren läser valt värde och stegar med TalkBack-åtgärderna`() {
-        var index by mutableIntStateOf(2)
-        show { WheelPicker((0..23).map { it.toString() }, index, { index = it }, "timmar") }
-        fun act(label: String) = rule.runOnIdle {
-            rule.onNodeWithContentDescription("timmar").fetchSemanticsNode().config[SemanticsActions.CustomActions].single { it.label == label }.action()
-        }
-        rule.onNodeWithContentDescription("timmar").assert(state("2"))
-        act("Öka timmar")
-        rule.waitForIdle()
-        assertEquals(3, index, "en animerad rullning till det nya värdet rapporterar inte värdena den passerar")
-        rule.onNodeWithContentDescription("timmar").assert(state("3"))
-        act("Minska timmar")
-        rule.waitForIdle()
-        assertEquals(2, index)
-    }
-
-    @Test
-    fun `hjulväljaren rullar tillbaka när anroparen avböjer värdet`() {
-        show { WheelPicker((0..23).map { it.toString() }, 2, {}, "timmar") }
-        rule.onNodeWithContentDescription("timmar").performTouchInput { swipeUp() }
-        rule.waitForIdle()
-        val wheel = rule.onNodeWithContentDescription("timmar").fetchSemanticsNode().boundsInRoot
-        val chosen = rule.onNodeWithText("2", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        assertTrue(abs(wheel.center.y - chosen.center.y) < 2f, "det valda värdet ska stå mitt i hjulet efter ett avböjt val")
-        rule.onNodeWithContentDescription("timmar").assert(state("2"))
     }
 
     @Test

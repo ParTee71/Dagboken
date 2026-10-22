@@ -28,7 +28,6 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
-import androidx.compose.ui.test.assertTouchWidthIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -57,9 +56,6 @@ import se.partee71.dagboken.core.engine.TypeChoices
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
 import se.partee71.dagboken.core.schema.TextLimits
-import se.partee71.dagboken.ui.common.DEFAULT_EMOJIS
-import se.partee71.dagboken.ui.common.swatchLabel
-import se.partee71.dagboken.ui.theme.AppColors
 import se.partee71.dagboken.ui.theme.DagbokenTheme
 import se.partee71.ui.components.AddSplitButton
 import se.partee71.ui.components.AppFilterChip
@@ -73,11 +69,9 @@ import se.partee71.ui.components.AppTopBar
 import se.partee71.ui.components.CheckRow
 import se.partee71.ui.components.ChipRow
 import se.partee71.ui.components.ChoiceChips
-import se.partee71.ui.components.ColorSwatchPicker
 import se.partee71.ui.components.Confetti
 import se.partee71.ui.components.ConfirmDialog
 import se.partee71.ui.components.DateField
-import se.partee71.ui.components.EmojiPicker
 import se.partee71.ui.components.ExampleChips
 import se.partee71.ui.components.InfoPill
 import se.partee71.ui.components.ItemRow
@@ -86,7 +80,6 @@ import se.partee71.ui.components.QuantityStepper
 import se.partee71.ui.components.QuantityStepperDefaults
 import se.partee71.ui.components.Suggestion
 import se.partee71.ui.components.SuggestionField
-import se.partee71.ui.components.SwatchMarker
 import se.partee71.ui.components.SwipeToHide
 import se.partee71.ui.components.SwitchRow
 import se.partee71.ui.components.TimeField
@@ -435,32 +428,6 @@ class ComponentBehaviorTest {
         assertEquals(1, chip)
         assertEquals(1, segment)
         rule.onNodeWithText("Mörkt").assertIsSelected()
-    }
-
-    @Test
-    fun `emojivalet väljer en emoji och läses som ett av flera alternativ`() {
-        var emoji by mutableStateOf("🚶")
-        show { EmojiPicker(emoji, { emoji = it }, DEFAULT_EMOJIS) }
-        rule.onNodeWithContentDescription("🧘").performClick()
-        assertEquals("🧘", emoji)
-        rule.onNodeWithContentDescription("🧘").assertIsSelected()
-        rule.onNodeWithContentDescription("🧘").assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
-    }
-
-    @Test
-    fun `färgvalet väljer en färg och läser färgens namn`() {
-        var color by mutableStateOf(AppColors.SWATCH_HEX[0])
-        show { ColorSwatchPicker(AppColors.SWATCH_HEX, color, { color = it }, AppColors::swatch, { swatchLabel(it) }, SwatchMarker.GridRing) }
-        rule.onNodeWithContentDescription("Färg: grön").performClick()
-        assertEquals(AppColors.SWATCH_HEX[3], color)
-        rule.onNodeWithContentDescription("Färg: grön").assertIsSelected()
-    }
-
-    @Test
-    fun `färgvalet känner igen en lagrad färg med små bokstäver och har 48 dp tryckytor`() {
-        show { ColorSwatchPicker(AppColors.SWATCH_HEX, AppColors.SWATCH_HEX[1].lowercase(), {}, AppColors::swatch, { swatchLabel(it) }, SwatchMarker.GridRing) }
-        rule.onNodeWithContentDescription("Färg: solgul").assertIsSelected()
-        rule.onNodeWithContentDescription("Färg: solgul").assertTouchHeightIsEqualTo(48.dp).assertTouchWidthIsEqualTo(48.dp)
     }
 
     @Test

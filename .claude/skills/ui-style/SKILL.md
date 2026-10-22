@@ -113,8 +113,7 @@ kort-/radstandarden NFR-15–18, aldrig från en enskild skärm.
 - **Linjeikoner** `res/drawable/ic_*`, rundad linje i Material Symbols-rutnätet – samma uppsättning som
   canvasen. **Aldrig emoji som knappikon.**
 - **Ikonstorlekar** bara ur `IconSize` (`ui/theme`), efter var ikonen sitter: `marker` 14 (dagens bock),
-  `pill` 16, `tile` 18 (ikonruta i `SectionHeader`, filterchip), `button` 20, `row` 22 (kryss, mätvärde,
-  flikar), `control` 24 (ikonknappar, menyer – Materials standard), `hero` 56 (tomt tillstånd). En
+  `pill` 16, `row` 22 (kryss, mätvärde, flikar). En
   rubrik med ikon är alltid en `SectionHeader` med ikonruta, även på ett tonat kort (`DayDoneCard`).
 - Emoji bara i innehåll där användaren själv valt dem, och i firandet.
 

@@ -4,7 +4,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import org.junit.Test
-import se.partee71.dagboken.core.schema.DocumentIds
 
 /** Id-regeln för alternativ (DAT-13): `kind-slug-hash`, deterministisk och kollisionssäker. */
 class OptionIdsTest {
@@ -51,10 +50,12 @@ class OptionIdsTest {
         assertTrue(OptionIds.slug("x".repeat(100)).length == OptionIds.MAX_SLUG)
     }
 
+    private val documentId = Regex("[A-Za-z0-9_åäöÅÄÖ-]{1,128}")
+
     @Test
     fun `varje id godtas som dokument-id`() {
         for (name in listOf("Promenad", "Huvudvärk", "ÅÄÖ", "a/b", "..", "x".repeat(200), "😀 Glad")) {
-            for (kind in OptionKind.entries) assertTrue(DocumentIds.isValid(OptionIds.of(kind, name)), "$kind $name")
+            for (kind in OptionKind.entries) assertTrue(OptionIds.of(kind, name).matches(documentId), "$kind $name")
         }
     }
 }

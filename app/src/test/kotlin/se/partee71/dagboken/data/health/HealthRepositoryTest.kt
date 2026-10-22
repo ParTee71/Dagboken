@@ -30,7 +30,7 @@ class HealthRepositoryTest {
         }
         val history = repository.history(from, to).getOrThrow()
         assertEquals(listOf(from, LocalDate(2026, 10, 2), to), history.dates)
-        assertFalse(history.hasAnyData)
+        assertFalse(history.days.any { !it.isEmpty })
         assertTrue(repository.day(to).getOrThrow().isEmpty)
     }
 

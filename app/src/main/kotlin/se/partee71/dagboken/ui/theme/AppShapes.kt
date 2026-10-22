@@ -11,14 +11,6 @@ object AppShapes {
 
     val card: Shape = RoundedCornerShape(CARD_RADIUS)
 
-    /** En bit av ett kort som delas upp i rader (lat lista): rundad bara upptill och/eller nedtill. */
-    fun cardSegment(top: Boolean, bottom: Boolean): Shape = RoundedCornerShape(
-        topStart = if (top) CARD_RADIUS else 0.dp,
-        topEnd = if (top) CARD_RADIUS else 0.dp,
-        bottomStart = if (bottom) CARD_RADIUS else 0.dp,
-        bottomEnd = if (bottom) CARD_RADIUS else 0.dp
-    )
-
     /** Rader och datumremsans chip. */
     val row: Shape = RoundedCornerShape(18.dp)
     val pill: Shape = CircleShape

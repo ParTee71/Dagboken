@@ -117,7 +117,7 @@ class HealthConnectRepositoryTest {
         assertTrue(repository().day(today).getOrThrow().isEmpty)
         source.sdk = HealthSdkStatus.AVAILABLE
         source.granted = HealthPermissionSet.OPTIONAL.values.toSet()
-        assertEquals(false, repository().history(yesterday, today).getOrThrow().hasAnyData)
+        assertEquals(false, repository().history(yesterday, today).getOrThrow().days.any { !it.isEmpty })
         assertEquals(emptyList(), source.reads)
     }
 

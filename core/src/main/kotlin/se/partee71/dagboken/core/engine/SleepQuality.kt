@@ -1,10 +1,8 @@
 package se.partee71.dagboken.core.engine
 
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.roundToInt
-import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.time.Duration
 import kotlinx.datetime.LocalDate
@@ -312,35 +310,12 @@ fun deepSleepBand(age: Int, sex: Sex): ClosedFloatingPointRange<Double> {
  */
 fun wasoTargetMinutes(age: Int): Double = (20.0 + 10.0 * ((age.coerceAtLeast(30) - 30) / 10.0)).coerceAtMost(60.0)
 
-/**
- * Spridningen i sömnens mittpunkt mellan nätterna, i minuter — appens mått på
- * regelbundenhet.
- *
- * Räknas **cirkulärt**: mittpunkterna ligger runt midnatt, och ett rakt medelvärde av
- * klockslag skulle se 23:50 och 00:10 som 12 timmar isär i stället för 20 minuter.
- * Vi lägger därför varje tidpunkt som en enhetsvektor på dygnscirkeln och använder
- * resultantens längd.
- *
- * Kräver minst [MIN_NIGHTS_FOR_REGULARITY] nätter; annars null (komponenten faller
- * bort och vikterna normaliseras om).
- */
-fun sleepMidpointSdMinutes(midpoints: List<LocalTime>): Double? {
-    var sumSin = 0.0
-    var sumCos = 0.0
-    midpoints.forEach { time ->
-        val angle = time.dayAngle()
-        sumSin += sin(angle)
-        sumCos += cos(angle)
-    }
-    return circularSdMinutes(sumSin, sumCos, midpoints.size)
-}
-
 /** Klockslaget som vinkel på dygnscirkeln, i radianer. */
 internal fun LocalTime.dayAngle(): Double = toSecondOfDay() / 60.0 * RADIANS_PER_MINUTE
 
 /**
- * Den cirkulära spridningen i minuter ur summan av [count] enhetsvektorer ([sumSin], [sumCos]) – en gång för
- * [sleepMidpointSdMinutes] och det glidande fönstret i `midpointSdByNight`. `null` under [MIN_NIGHTS_FOR_REGULARITY].
+ * Den cirkulära spridningen i minuter ur summan av [count] enhetsvektorer ([sumSin], [sumCos]) – och används av det glidande fönstret i
+ * `midpointSdByNight`. `null` under [MIN_NIGHTS_FOR_REGULARITY].
  */
 internal fun circularSdMinutes(sumSin: Double, sumCos: Double, count: Int): Double? {
     if (count < MIN_NIGHTS_FOR_REGULARITY) return null

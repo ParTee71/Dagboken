@@ -5,7 +5,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
 import org.junit.Test
-import se.partee71.dagboken.core.schema.DocumentIds
 
 /** Receptdosernas id är 3.x-schemat (MED-4, DAT-8), så att migrerade doser inte dubbleras. */
 class DoseIdsTest {
@@ -23,9 +22,9 @@ class DoseIdsTest {
     }
 
     @Test
-    fun `varje schemalagd receptdos har ett id som djuplänken godtar`() {
+    fun `varje schemalagd receptdos har ett id som är en giltig dokumentsökväg`() {
         for (slot in Slot.SCHEDULED) {
-            assertTrue(DocumentIds.isValid(DoseIds.prescribed("6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a", LocalDate(2026, 12, 31), slot)), slot.name)
+            assertTrue(DoseIds.prescribed("6f1c2a9e-0b7d-4c55-9a43-1f2e3d4c5b6a", LocalDate(2026, 12, 31), slot).matches(Regex("[A-Za-z0-9_åäöÅÄÖ-]{1,128}")), slot.name)
         }
     }
 
