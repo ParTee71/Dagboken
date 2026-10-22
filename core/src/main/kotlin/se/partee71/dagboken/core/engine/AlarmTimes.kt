@@ -10,6 +10,8 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import se.partee71.dagboken.core.time.SECONDS_PER_DAY
+import se.partee71.dagboken.core.time.SECONDS_PER_MINUTE
 
 // När påminnelserna ska utlösas (NOT-2, NOT-5, NOT-12, NOT-14) – port av 3.x `screeningAlarmTriggerMs`
 // och `medAlarmTriggerMs`. Ren beräkning med "nu" och tidszonen som parametrar; schemaläggaren i appen
@@ -47,6 +49,3 @@ fun nextMedAlarm(slotTime: LocalTime, now: Instant, zone: TimeZone, leadMinutes:
  * nås, [leadMinutes] senare. Påminnelsen 23:45 för en tidpunkt 00:00 gäller alltså nästa dags doser.
  */
 fun medReminderDate(firedAt: Instant, zone: TimeZone, leadMinutes: Int = MED_LEAD_MINUTES): LocalDate = (firedAt + leadMinutes.minutes).toLocalDateTime(zone).date
-
-private const val SECONDS_PER_MINUTE = 60
-private const val SECONDS_PER_DAY = 24 * 60 * 60

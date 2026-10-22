@@ -113,7 +113,7 @@ fun xLabelStepFitting(count: Int, labelWidth: Float, plotWidth: Float, gap: Floa
  */
 fun chartAxisFor(series: List<List<Float?>>): SmartYAxis {
     val values = series.flatMap { points ->
-        points.filterNotNull() + trendSegment(points)?.let { listOf(it.startY, it.endY) }.orEmpty()
+        points.filterNotNull() + trendEndpoints(points)
     }
     return computeSmartYAxis(values)
 }
@@ -124,7 +124,7 @@ fun chartAxisFor(series: List<List<Float?>>): SmartYAxis {
  */
 fun intervalAxisFor(points: List<IntervalPoint?>): SmartYAxis {
     val known = points.filterNotNull()
-    val trend = trendSegment(points.map { it?.value })?.let { listOf(it.startY, it.endY) }.orEmpty()
+    val trend = trendEndpoints(points.map { it?.value })
     return computeSmartYAxis(known.flatMap { listOf(it.min, it.max) } + trend)
 }
 
@@ -136,7 +136,7 @@ fun intervalAxisFor(points: List<IntervalPoint?>): SmartYAxis {
  */
 fun stackedAxisFor(points: List<StackedPoint>, line: List<Float?> = emptyList()): SmartYAxis {
     val totals = stackTotals(points)
-    val trend = trendSegment(totals)?.let { listOf(it.startY, it.endY) }.orEmpty()
+    val trend = trendEndpoints(totals)
     // En linje ovanpå staplarna (TRD-21: incheckningarnas svårighet) räknas in i skalan; den ritas utan trend.
     val lineValues = line.filterNotNull()
     val axis = computeSmartYAxis(listOf(0f) + totals.filterNotNull() + trend + lineValues)
@@ -166,3 +166,6 @@ private const val DIGITS_PER_GROUP = 3
 
 /** Ett hårt mellanslag, så att ett tal aldrig bryts mellan tusentalen. */
 private const val NO_BREAK_SPACE = "\u00A0"
+
+/** Trendlinjens ändpunkter i y – med i skalan så att linjen ryms; tom när trenden saknas. */
+private fun trendEndpoints(points: List<Float?>): List<Float> = trendSegment(points)?.let { listOf(it.startY, it.endY) }.orEmpty()

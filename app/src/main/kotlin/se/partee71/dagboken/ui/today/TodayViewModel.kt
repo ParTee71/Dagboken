@@ -81,7 +81,9 @@ import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.core.model.Settings
+import se.partee71.dagboken.core.time.DAYS_PER_WEEK
 import se.partee71.dagboken.core.time.shownDate
+import se.partee71.dagboken.core.time.weekMonday
 import se.partee71.dagboken.data.common.DataError
 import se.partee71.dagboken.data.common.combineByKey
 import se.partee71.dagboken.data.common.withFallback
@@ -99,8 +101,6 @@ import se.partee71.dagboken.ui.common.dataError
 import se.partee71.dagboken.ui.common.medicineTitle
 import se.partee71.dagboken.ui.common.minutes
 import se.partee71.dagboken.ui.common.tidyingUpEachDay
-import se.partee71.dagboken.ui.components.DAYS_PER_WEEK
-import se.partee71.dagboken.ui.components.weekMonday
 import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.ui.common.DetailLoader
 import se.partee71.ui.common.DetailUiState

@@ -128,6 +128,14 @@ class TodayCardsTest {
         assertEquals(listOf(headache, dizzy), symptomChoices(listOf(headache, dizzy, nausea, walk), listOf(SymptomScore("d", 3))))
     }
 
+    @Test fun `stjärnmärkta symptom först, sedan listans ordning`() {
+        val headache = Option("h", OptionKind.SYMPTOM, "Huvudvärk", sortOrder = 0)
+        val dizzy = Option("d", OptionKind.SYMPTOM, "Yrsel", sortOrder = 1, favorite = true)
+        val tired = Option("t", OptionKind.SYMPTOM, "Trötthet", sortOrder = 2)
+        val nausea = Option("n", OptionKind.SYMPTOM, "Illamående", sortOrder = 3, favorite = true)
+        assertEquals(listOf(dizzy, nausea, headache, tired), symptomChoices(listOf(tired, nausea, headache, dizzy), emptyList()))
+    }
+
     @Test fun `Övrigt har samma id som konverteraren ger det`() {
         assertEquals(OptionIds.of(OptionKind.SYMPTOM, "Övrigt"), OTHER_SYMPTOM_ID)
     }

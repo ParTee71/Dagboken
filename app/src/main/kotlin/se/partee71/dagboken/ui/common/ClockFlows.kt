@@ -10,11 +10,13 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import se.partee71.dagboken.core.time.SECONDS_PER_HOUR
+import se.partee71.dagboken.core.time.SECONDS_PER_MINUTE
+import se.partee71.dagboken.core.time.truncatedToMinute
 
 // Tiden som flöden – en gång för alla ViewModels som räknar med "nu" (regel 4). Tidszonen läses vid
 // varje omräkning, så att ett byte av tidszon slår igenom vid nästa tick.
@@ -28,7 +30,7 @@ fun Clock.hours(zone: () -> TimeZone): Flow<Int> = ticks(zone, { it.hour }) { no
  * Klockslaget just nu i hela minuter, och igen vid varje ny minut (Idag: "Snart" och "Försenat",
  * hälsningen och dagbytet vid midnatt kommer ur samma flöde).
  */
-fun Clock.minutes(zone: () -> TimeZone): Flow<LocalDateTime> = ticks(zone, { LocalDateTime(it.date, LocalTime(it.hour, it.minute)) }) { now, _ ->
+fun Clock.minutes(zone: () -> TimeZone): Flow<LocalDateTime> = ticks(zone, LocalDateTime::truncatedToMinute) { now, _ ->
     (SECONDS_PER_MINUTE - now.second).seconds
 }
 
@@ -47,11 +49,8 @@ private fun <T> Clock.ticks(zone: () -> TimeZone, value: (LocalDateTime) -> T, u
     }
 }.distinctUntilChanged()
 
-private const val SECONDS_PER_MINUTE = 60
-private const val SECONDS_PER_HOUR = 3_600
-
 /**
  * Nu i [zone] i hela minuter – dagen och klockslaget en ny post får som förval (NAV-10, HEM-14), ur **en** läsning
  * av klockan. En gång för alla formulär (aktivitet, händelse, mående, dos, episod, incheckning).
  */
-fun Clock.nowInMinutes(zone: TimeZone): LocalDateTime = now().toLocalDateTime(zone).let { LocalDateTime(it.date, LocalTime(it.hour, it.minute)) }
+fun Clock.nowInMinutes(zone: TimeZone): LocalDateTime = now().toLocalDateTime(zone).truncatedToMinute()

@@ -26,6 +26,7 @@ import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
+import se.partee71.dagboken.core.model.Severity
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.core.schema.ActivityCodec
 import se.partee71.dagboken.core.schema.EventCodec
@@ -39,7 +40,6 @@ import se.partee71.dagboken.data.repository.DefaultEventRepository
 import se.partee71.dagboken.data.repository.DefaultIllnessRepository
 import se.partee71.dagboken.data.repository.DefaultOptionsRepository
 import se.partee71.dagboken.data.repository.EventRepository
-import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.testing.awaitDone
 import se.partee71.dagboken.testing.awaitFailure
@@ -235,7 +235,7 @@ class LogFormsViewModelTest {
     fun `en ny händelse loggas mot den visade dagen kl nu med svårighetsgrad 5, och typ krävs (HAN-1, HEM-14)`() = runTest(main.dispatcher) {
         val vm = eventForm(date = yesterday)
         assertEquals(yesterday to LocalTime(14, 20), vm.value.date to vm.value.time)
-        assertEquals(EventRepository.DEFAULT_SEVERITY, vm.value.severity)
+        assertEquals(Severity.DEFAULT, vm.value.severity)
         assertFalse(vm.form.editor.state.value.canSave)
         vm.change { it.copy(severity = 8) }
         assertFalse(vm.form.editor.state.value.canSave, "ingen typ")
@@ -375,7 +375,7 @@ class LogFormsViewModelTest {
         assertEquals(yesterday, start.episode.start)
         assertNull(start.episode.end, "pågående")
         assertEquals(yesterday to LocalTime(14, 20), start.checkin.date to start.checkin.time)
-        assertEquals(IllnessRepository.DEFAULT_SEVERITY, start.checkin.severity)
+        assertEquals(Severity.DEFAULT, start.checkin.severity)
         vm.form.onEvent(EntryEditEvent.Changed(null) { it.copy(checkin = it.checkin.copy(severity = 7)) })
         assertFalse(vm.form.editor.state.value.canSave, "ingen typ")
         vm.form.editor.state.test {

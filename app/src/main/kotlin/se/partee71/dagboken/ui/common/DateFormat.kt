@@ -13,6 +13,8 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.toJavaLocalDate
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.time.MINUTES_PER_HOUR
+import se.partee71.dagboken.core.time.SECONDS_PER_MINUTE
 
 /** Det enda sättet att visa och konvertera datum och tider i UI. */
 object DateFormat {
@@ -97,6 +99,3 @@ private fun twoUnits(value: Int, perLarge: Int, @StringRes small: Int, @StringRe
         else -> stringResource(both, whole, rest)
     }
 }
-
-private const val MINUTES_PER_HOUR = 60
-private const val SECONDS_PER_MINUTE = 60

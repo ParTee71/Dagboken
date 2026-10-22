@@ -22,6 +22,7 @@ import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.ReminderSettings
 import se.partee71.dagboken.core.model.Schedule
+import se.partee71.dagboken.core.model.Severity
 import se.partee71.dagboken.core.model.Slot
 import se.partee71.dagboken.core.model.SymptomScore
 import se.partee71.dagboken.core.schema.CheckinCodec
@@ -187,7 +188,7 @@ class LogRepositoriesTest {
             symptoms = listOf(SymptomScore("symptom-huvudvark-d55e7d", 4), SymptomScore("symptom-ovrigt-c067e8", 3, "Ont i halsen")),
             note = "Feber 38,2"
         )
-        assertEquals(IllnessRepository.DEFAULT_SEVERITY, illnesses.newCheckin(episode.id, day, LocalTime(9, 0)).severity)
+        assertEquals(Severity.DEFAULT, illnesses.newCheckin(episode.id, day, LocalTime(9, 0)).severity)
         assertEquals(clock.now(), episode.createdAt)
         illnesses.startEpisode(episode, first).getOrThrow()
 

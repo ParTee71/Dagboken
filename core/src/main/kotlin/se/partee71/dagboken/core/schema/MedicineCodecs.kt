@@ -24,14 +24,14 @@ object PrescriptionCodec : DocCodec<Prescription> {
     const val SLOTS = "slots"
     const val PERIOD = "period"
     const val BOOSTS = "boosts"
-    const val FAVORITE = "favorite"
+    const val FAVORITE = se.partee71.dagboken.core.schema.FAVORITE
 
     override fun encode(value: Prescription): Doc = mapOf(
-        "name" to value.name,
+        NAME to value.name,
         STRENGTH to value.strength,
         FORM to value.form.encodeWire(value.unknownForm),
-        "dose" to value.dose,
-        "unit" to value.unit,
+        DOSE to value.dose,
+        UNIT to value.unit,
         // Okända tidpunkter (från en nyare app) skrivs tillbaka efter de kända.
         SLOTS to value.slots.encodeWires() + value.unknownSlots,
         "schedule" to ScheduleCodec.encode(value.schedule),
@@ -45,11 +45,11 @@ object PrescriptionCodec : DocCodec<Prescription> {
 
     override fun decode(id: String, map: Doc) = Prescription(
         id = id,
-        name = map.string("name"),
+        name = map.string(NAME),
         strength = map.string(STRENGTH),
         form = map.wireOrNull<MedicineForm>(FORM),
-        dose = map.string("dose"),
-        unit = map.string("unit"),
+        dose = map.string(DOSE),
+        unit = map.string(UNIT),
         slots = map.wireList<Slot>(SLOTS),
         schedule = map.nested("schedule", ScheduleCodec),
         period = map.nested(PERIOD, PeriodCodec),
@@ -99,28 +99,28 @@ object BoostCodec {
         "id" to value.id,
         "start" to value.start.encodeDate(),
         "end" to value.end.encodeDate(),
-        "dose" to value.dose,
-        "unit" to value.unit
+        DOSE to value.dose,
+        UNIT to value.unit
     )
 
     fun decode(map: Doc) = Boost(
         id = map.string("id"),
         start = map.localDate("start"),
         end = map.localDate("end"),
-        dose = map.string("dose"),
-        unit = map.string("unit")
+        dose = map.string(DOSE),
+        unit = map.string(UNIT)
     )
 }
 
 object PrnMedicineCodec : DocCodec<PrnMedicine> {
-    const val FAVORITE = "favorite"
+    const val FAVORITE = se.partee71.dagboken.core.schema.FAVORITE
 
     override fun encode(value: PrnMedicine): Doc = mapOf(
-        "name" to value.name,
+        NAME to value.name,
         STRENGTH to value.strength,
         FORM to value.form.encodeWire(value.unknownForm),
-        "dose" to value.dose,
-        "unit" to value.unit,
+        DOSE to value.dose,
+        UNIT to value.unit,
         "slot" to value.slot.encodeWire(),
         "minHoursBetween" to value.minHoursBetween,
         "dispensingTime" to value.dispensingTime,
@@ -131,11 +131,11 @@ object PrnMedicineCodec : DocCodec<PrnMedicine> {
 
     override fun decode(id: String, map: Doc) = PrnMedicine(
         id = id,
-        name = map.string("name"),
+        name = map.string(NAME),
         strength = map.string(STRENGTH),
         form = map.wireOrNull<MedicineForm>(FORM),
-        dose = map.string("dose"),
-        unit = map.string("unit"),
+        dose = map.string(DOSE),
+        unit = map.string(UNIT),
         slot = map.wire("slot", Slot.AS_NEEDED),
         minHoursBetween = map.int("minHoursBetween", 4),
         dispensingTime = map.stringOrNull("dispensingTime"),
@@ -154,10 +154,10 @@ object DoseCodec : DocCodec<Dose> {
     const val STATUS = "status"
 
     // Fälten som följer receptet när det ändras (REC-10, REC-12).
-    const val NAME = "name"
+    const val NAME = se.partee71.dagboken.core.schema.NAME
     const val STRENGTH = se.partee71.dagboken.core.schema.STRENGTH
-    const val DOSE = "dose"
-    const val UNIT = "unit"
+    const val DOSE = se.partee71.dagboken.core.schema.DOSE
+    const val UNIT = se.partee71.dagboken.core.schema.UNIT
     const val TAKEN_AT = "takenAt"
 
     // Fälten som är givna av en receptdos id (`recept_{prescriptionId}_{date}_{tidpunkt}`, NOT-10).
@@ -187,10 +187,10 @@ object DoseCodec : DocCodec<Dose> {
         id = id,
         date = map.localDate(DATE),
         slot = map.wire(SLOT, Slot.AS_NEEDED),
-        name = map.string("name"),
+        name = map.string(NAME),
         strength = map.string(STRENGTH),
-        dose = map.string("dose"),
-        unit = map.string("unit"),
+        dose = map.string(DOSE),
+        unit = map.string(UNIT),
         status = map.wire(STATUS, DoseStatus.PLANNED),
         plannedTime = map.localTime("plannedTime"),
         takenAt = map.instant(TAKEN_AT),

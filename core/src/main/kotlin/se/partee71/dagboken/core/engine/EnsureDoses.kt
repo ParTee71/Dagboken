@@ -6,7 +6,6 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.core.model.Dose
 import se.partee71.dagboken.core.model.DoseIds
 import se.partee71.dagboken.core.model.DoseStatus
@@ -78,7 +77,7 @@ data class EnsurePlan(
  * HEM-10: första dagen receptet kan ha en dos – det senare av skapandedagen (`createdAt` i [HOME_ZONE],
  * samma zon som konverteraren använde) och periodens start. `null` = varken skapandetid eller start (ingen gräns).
  */
-fun Prescription.firstDoseDay(): LocalDate? = listOfNotNull(createdAt?.toLocalDateTime(HOME_ZONE)?.date, period.start).maxOrNull()
+fun Prescription.firstDoseDay(): LocalDate? = listOfNotNull(createdDay(), period.start).maxOrNull()
 
 /**
  * MED-4, REC-8: dosgenereringen för [date] (idag eller en tidigare dag, HEM-14). [existing] är dagens

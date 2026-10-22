@@ -31,6 +31,7 @@ import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalDate
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.ReflectionPrompts
+import se.partee71.dagboken.core.time.SECONDS_PER_MINUTE
 import se.partee71.dagboken.reminders.MomentLaunch
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.formatDuration
@@ -157,4 +158,3 @@ private fun Countdown(remainingSeconds: Int) {
 }
 
 private const val SECOND_MILLIS = 1_000L
-private const val SECONDS_PER_MINUTE = 60

@@ -8,6 +8,9 @@ import kotlin.time.Duration
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.core.model.Sex
+import se.partee71.dagboken.core.time.MINUTES_PER_DAY
+import se.partee71.dagboken.core.time.MINUTES_PER_HOUR
+import se.partee71.dagboken.core.time.SECONDS_PER_MINUTE
 
 // Sömnkvaliteten (HLS-10, HLS-11, HLS-13) – portad från 3.x `domain/model/SleepQuality.kt` och
 // `Profile.kt` med samma gränsvärden och samma poäng för samma natt. Skillnader mot 3.x: tider är
@@ -178,9 +181,9 @@ fun scoreSleepQuality(
         add(
             component(
                 kind = SleepQualityKind.DURATION,
-                measured = sleepMinutes / 60.0,
+                measured = sleepMinutes / MINUTES_PER_HOUR.toDouble(),
                 // AASM/SRS: ≥7 h. Övre gränsen speglar den U-formade dödlighetskurvan.
-                score = plateau(sleepMinutes / 60.0, zeroLow = 4.0, fullLow = 7.0, fullHigh = 8.5, zeroHigh = 10.0)
+                score = plateau(sleepMinutes / MINUTES_PER_HOUR.toDouble(), zeroLow = 4.0, fullLow = 7.0, fullHigh = 8.5, zeroHigh = 10.0)
             )
         )
 
@@ -311,7 +314,7 @@ fun deepSleepBand(age: Int, sex: Sex): ClosedFloatingPointRange<Double> {
 fun wasoTargetMinutes(age: Int): Double = (20.0 + 10.0 * ((age.coerceAtLeast(30) - 30) / 10.0)).coerceAtMost(60.0)
 
 /** Klockslaget som vinkel på dygnscirkeln, i radianer. */
-internal fun LocalTime.dayAngle(): Double = toSecondOfDay() / 60.0 * RADIANS_PER_MINUTE
+internal fun LocalTime.dayAngle(): Double = toSecondOfDay() / SECONDS_PER_MINUTE.toDouble() * RADIANS_PER_MINUTE
 
 /**
  * Den cirkulära spridningen i minuter ur summan av [count] enhetsvektorer ([sumSin], [sumCos]) – och används av det glidande fönstret i
@@ -333,7 +336,6 @@ const val MIN_NIGHTS_FOR_REGULARITY = 4
 /** Regelbundenheten mäts över så många dygn bakåt, natten själv inräknad (HLS-10, HLS-13). */
 const val REGULARITY_WINDOW_NIGHTS = 14
 
-private const val MINUTES_PER_DAY = 1440.0
 private const val RADIANS_PER_MINUTE = 2.0 * Math.PI / MINUTES_PER_DAY
 
 /**

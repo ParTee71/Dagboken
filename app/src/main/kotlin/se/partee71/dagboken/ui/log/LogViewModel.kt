@@ -22,7 +22,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
 import se.partee71.dagboken.core.engine.OccasionState
 import se.partee71.dagboken.core.engine.asNeededChoices
 import se.partee71.dagboken.core.engine.illnessDay
@@ -237,7 +237,7 @@ class LogViewModel @Inject constructor(
     /** Dagen plusknappen loggar mot (NAV-10, HEM-14): den Idag visar när Idag är vald, annars idag (`null`). */
     fun logDay(onToday: Boolean): LocalDate? = selectedDay.logDay(onToday)
 
-    private fun today(): LocalDate = clock.now().toLocalDateTime(zone.get()).date
+    private fun today(): LocalDate = clock.todayIn(zone.get())
 
     fun onEvent(event: LogEvent) {
         when (event) {
