@@ -13,9 +13,7 @@ import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -24,7 +22,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -54,14 +51,15 @@ import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.data.repository.ScreeningRepository
 import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.common.WriteFailures
 import se.partee71.dagboken.ui.common.days
+import se.partee71.dagboken.ui.common.names
+import se.partee71.dagboken.ui.common.screenSharing
 import se.partee71.ui.common.DetailLoader
 import se.partee71.ui.common.DetailUiState
 import se.partee71.ui.common.ListUiState
-import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.ui.common.UiError
 import se.partee71.ui.common.toListUiState
-import se.partee71.ui.common.uiErrorOrNull
 
 /** Listvy eller kalendervy (HIST-6). */
 enum class DiaryView { LIST, CALENDAR }
@@ -154,7 +152,7 @@ class DiaryViewModel @Inject constructor(
     private val zone: Provider<TimeZone>
 ) : ViewModel() {
     /** Idag ur klockan vid varje prenumeration (inget gammalt startvärde efter en paus), igen vid midnatt. */
-    private val today: Flow<LocalDate> = clock.days { zone.get() }.distinctUntilChanged().shareIn(viewModelScope, sharing, replay = 1)
+    private val today: Flow<LocalDate> = clock.days { zone.get() }.distinctUntilChanged().shareIn(viewModelScope, screenSharing(), replay = 1)
 
     /** Årsgränsernas ankare (HIST-8): dagen ViewModeln skapades – midnatt flyttar bara år 0:s slut. */
     private val anchor: LocalDate = clock.todayIn(zone.get())
@@ -192,7 +190,7 @@ class DiaryViewModel @Inject constructor(
             }
                 // Ett läsfel delas som värde – ett fel i en delad läsning får inte fälla ViewModeln; det kastas i tidslinjen.
                 .catch { emit(Result.failure(it)) }
-                .shareIn(viewModelScope, sharing, replay = 1)
+                .shareIn(viewModelScope, screenSharing(), replay = 1)
         }
     }
 
@@ -209,9 +207,9 @@ class DiaryViewModel @Inject constructor(
 
     /** Namnen på aktiviteter och händelser ur Listor – arkiverade med; ett läsfel ger bara typens namn (`withFallback`). */
     private val names: Flow<Map<String, String>> = combine(
-        options.observe(OptionKind.ACTIVITY).withFallback(emptyList()),
-        options.observe(OptionKind.EVENT).withFallback(emptyList())
-    ) { a, e -> (a + e).associate { it.id to it.name } }.distinctUntilChanged()
+        options.names(OptionKind.ACTIVITY),
+        options.names(OptionKind.EVENT)
+    ) { activities, events -> activities + events }.distinctUntilChanged()
 
     /** Tidslinjen för det lästa fönstret [window] (alla typer) med namnen ur Listor. */
     private data class Timeline(val window: DiaryWindow, val entries: List<DiaryEntry>, val names: Map<String, String>)
@@ -226,7 +224,7 @@ class DiaryViewModel @Inject constructor(
     /** Tidslinjen med filtret (HIST-2) – **ett** flöde som både listans rader och kalenderns punkter läser. */
     private val filtered: StateFlow<DetailUiState<Timeline>> = combine(loader.state, filter) { state, filter ->
         if (state is DetailUiState.Content) DetailUiState.Content(state.value.copy(entries = state.value.entries.shownBy(filter))) else state
-    }.stateIn(viewModelScope, sharing, DetailUiState.Loading)
+    }.stateIn(viewModelScope, screenSharing(), DetailUiState.Loading)
 
     private data class Choice(val view: DiaryView, val selected: LocalDate?, val today: LocalDate)
 
@@ -239,7 +237,7 @@ class DiaryViewModel @Inject constructor(
             is DetailUiState.Error -> ListUiState.Error(state.error)
             is DetailUiState.Content -> rows(state.value, choice).toListUiState()
         }
-    }.stateIn(viewModelScope, sharing, ListUiState.Loading)
+    }.stateIn(viewModelScope, screenSharing(), ListUiState.Loading)
 
     private fun rows(timeline: Timeline, choice: Choice): List<DiaryRow> {
         val today = choice.today
@@ -288,10 +286,10 @@ class DiaryViewModel @Inject constructor(
             years = shown.years,
             loadingOlder = loaded != null && loaded.window.years < shown.years
         )
-    }.stateIn(viewModelScope, sharing, DiaryControls(anchor))
+    }.stateIn(viewModelScope, screenSharing(), DiaryControls(anchor))
 
-    private val _failure = MutableStateFlow<UiError?>(null)
-    val failure: StateFlow<UiError?> = _failure.asStateFlow()
+    private val failures = WriteFailures(viewModelScope)
+    val failure: StateFlow<UiError?> = failures.failure
 
     fun onEvent(event: DiaryEvent) {
         when (event) {
@@ -315,7 +313,7 @@ class DiaryViewModel @Inject constructor(
                 loader.retry()
             }
 
-            DiaryEvent.ErrorShown -> _failure.value = null
+            DiaryEvent.ErrorShown -> failures.clear()
         }
     }
 
@@ -348,11 +346,6 @@ class DiaryViewModel @Inject constructor(
             is DiaryEntry.CheckIn -> ({ illnesses.deleteCheckin(entry.episode.id, entry.checkin.id) })
             is DiaryEntry.EpisodeStart, is DiaryEntry.EpisodeEnd -> return
         }
-        viewModelScope.launch { action().uiErrorOrNull(AppErrors)?.let { _failure.value = it } }
-    }
-
-    private companion object {
-        /** Delade flöden följer skärmen och glömmer sitt senaste värde när de stoppats. */
-        val sharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS, replayExpirationMillis = 0)
+        failures.write(action)
     }
 }

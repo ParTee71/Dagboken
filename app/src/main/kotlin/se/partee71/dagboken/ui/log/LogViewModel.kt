@@ -8,7 +8,6 @@ import javax.inject.Provider
 import kotlin.time.Clock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -45,8 +44,8 @@ import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.SelectedDay
 import se.partee71.dagboken.ui.common.minutes
+import se.partee71.dagboken.ui.common.screenSharing
 import se.partee71.dagboken.ui.components.ScreeningStep
-import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 
 /**
  * Plusknappens tillfällesväljare (HEM-8b, NAV-10): [date] är dagen som loggas, [isToday] om det är idag, och
@@ -103,8 +102,6 @@ sealed interface LogEvent {
         val initialStep: ScreeningStep = ScreeningStep.ENERGY
     ) : LogEvent
 
-    data object ClosePicker : LogEvent
-
     /** En loggad måendepost på Idag eller i Dagbok: arket med loggen för ändring (HEM-5, HIST-3, SCR-1). */
     data class EditScreening(val screening: Screening) : LogEvent
 
@@ -135,7 +132,7 @@ sealed interface LogEvent {
     /** "Sjukdom" i plusknappens meny: sjukdomsvalet mot [date] (`null` = idag). */
     data class PickIllness(val date: LocalDate?) : LogEvent
 
-    /** Dos- eller sjukdomsvalet stängs – med ett val eller utan. */
+    /** Tillfälles-, dos- eller sjukdomsvalet stängs – med ett val eller utan. */
     data object ClosePick : LogEvent
 }
 
@@ -157,35 +154,44 @@ class LogViewModel @Inject constructor(
     private val clock: Clock,
     private val zone: Provider<TimeZone>
 ) : ViewModel() {
-    private val sharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS, replayExpirationMillis = 0)
-
     private val _notice = MutableStateFlow(false)
 
     /** "Mående sparat" ska visas (SCR-3). */
     val notice: StateFlow<Boolean> = _notice.asStateFlow()
 
-    private val sheet = ScreeningSheet(viewModelScope, screenings, options, clock, zone, sharing) { _notice.value = true }
+    private val sheet = ScreeningSheet(viewModelScope, screenings, options, clock, zone, screenSharing()) { _notice.value = true }
 
     /** Måendearket när det är öppet. */
     val screening: StateFlow<EditorSheetState<Screening, ScreeningSheetInfo>?> = sheet.current
 
     val symptomOptions: StateFlow<List<Option>> = sheet.symptomOptions
 
-    /** Väljaren när den är öppen: för en tidigare dag, eller för idag ([PickerFor.date] `null`, som följer midnatt). */
-    private val pickerFor = MutableStateFlow<PickerFor?>(null)
+    /**
+     * Valet som är öppet: tillfälle, dos eller sjukdom, för en tidigare dag eller för idag ([PickFor.date] `null`, som
+     * följer midnatt). Ett i taget; [LogEvent.ClosePick] stänger det.
+     */
+    private val pickFor = MutableStateFlow<PickFor?>(null)
 
-    private data class PickerFor(val date: LocalDate?)
+    private sealed interface PickFor {
+        val date: LocalDate?
+
+        data class Occasion(override val date: LocalDate?) : PickFor
+
+        data class Dose(override val date: LocalDate?) : PickFor
+
+        data class Illness(override val date: LocalDate?) : PickFor
+    }
 
     /** Klockan i hela minuter – delad, så att dagen och status räknas på samma läsning. */
-    private val minutes = clock.minutes { zone.get() }.shareIn(viewModelScope, sharing, replay = 1)
+    private val minutes = clock.minutes { zone.get() }.shareIn(viewModelScope, screenSharing(), replay = 1)
 
     /**
      * Tillfällesväljaren när den är öppen: dagens loggar och påminnelser följs, och status räknas om varje minut
      * ("Snart"/"Försenat", som Idag). Öppnad för idag följer den med över midnatt. Ett läsfel visar tillfällena utan
      * loggar hellre än att fälla väljaren.
      */
-    val picker: StateFlow<OccasionPicker?> = pickerFor.flatMapLatest { target ->
-        if (target == null) {
+    val picker: StateFlow<OccasionPicker?> = pickFor.flatMapLatest { target ->
+        if (target !is PickFor.Occasion) {
             flowOf(null)
         } else {
             val day = minutes.map { target.date ?: it.date }.distinctUntilChanged()
@@ -195,18 +201,7 @@ class LogViewModel @Inject constructor(
                 OccasionPicker(date, date == now.date, occasionChoices(stored.reminders, logs, date, now.toInstant(z), z))
             }
         }
-    }.stateIn(viewModelScope, sharing, null)
-
-    private sealed interface PickFor {
-        val date: LocalDate?
-
-        data class Dose(override val date: LocalDate?) : PickFor
-
-        data class Illness(override val date: LocalDate?) : PickFor
-    }
-
-    /** Dos- eller sjukdomsvalet när det är öppet. */
-    private val pickFor = MutableStateFlow<PickFor?>(null)
+    }.stateIn(viewModelScope, screenSharing(), null)
 
     /** Dosvalet när det är öppet – vid behov-medicinerna följs medan det är öppet; ett läsfel visar bara engångsdosen. */
     val dosePicker: StateFlow<DosePicker?> = pickFor.flatMapLatest { target ->
@@ -218,7 +213,7 @@ class LogViewModel @Inject constructor(
                 DosePicker(target.date, choices.favorites + choices.others)
             }
         }
-    }.stateIn(viewModelScope, sharing, null)
+    }.stateIn(viewModelScope, screenSharing(), null)
 
     /** Sjukdomsvalet när det är öppet: den pågående episoden (`ongoingEpisode`, som Idag) och dag N den dag som loggas. */
     val illnessPicker: StateFlow<IllnessPicker?> = pickFor.flatMapLatest { target ->
@@ -232,7 +227,7 @@ class LogViewModel @Inject constructor(
                 IllnessPicker(target.date, ongoing, illnessDay(ongoing?.start, day))
             }
         }
-    }.stateIn(viewModelScope, sharing, null)
+    }.stateIn(viewModelScope, screenSharing(), null)
 
     /** Dagen plusknappen loggar mot (NAV-10, HEM-14): den Idag visar när Idag är vald, annars idag (`null`). */
     fun logDay(onToday: Boolean): LocalDate? = selectedDay.logDay(onToday)
@@ -241,18 +236,16 @@ class LogViewModel @Inject constructor(
 
     fun onEvent(event: LogEvent) {
         when (event) {
-            is LogEvent.PickOccasion -> pickerFor.value = PickerFor(event.date?.takeUnless { it == today() })
+            is LogEvent.PickOccasion -> pickFor.value = PickFor.Occasion(event.date?.takeUnless { it == today() })
 
             is LogEvent.LogOccasion -> {
                 // Dagen när raden trycks: öppnad för idag är det idag enligt klockan nu, också efter midnatt (som Idag).
-                val target = pickerFor.value ?: return
-                pickerFor.value = null
+                val target = pickFor.value as? PickFor.Occasion ?: return
+                pickFor.value = null
                 sheet.log(event.state.occasion, target.date, event.state.time)
             }
 
             is LogEvent.LogScreening -> sheet.log(event.occasion, event.date, event.reminder, event.initialStep)
-
-            LogEvent.ClosePicker -> pickerFor.value = null
 
             is LogEvent.EditScreening -> sheet.edit(event.screening)
 

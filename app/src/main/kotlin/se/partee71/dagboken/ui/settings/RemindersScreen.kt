@@ -22,6 +22,9 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.enabledOccasions
+import se.partee71.dagboken.core.engine.turnsOnIn
+import se.partee71.dagboken.core.engine.withOccasion
+import se.partee71.dagboken.core.engine.withSlot
 import se.partee71.dagboken.core.model.MomentSettings
 import se.partee71.dagboken.core.model.OccasionReminder
 import se.partee71.dagboken.core.model.ReminderSettings
@@ -33,7 +36,6 @@ import se.partee71.dagboken.reminders.openExactAlarmSettings
 import se.partee71.dagboken.reminders.openFullScreenIntentSettings
 import se.partee71.dagboken.reminders.openNotificationSettings
 import se.partee71.dagboken.reminders.reminderAccess
-import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.formatDuration
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.NoticeBanner
@@ -41,7 +43,6 @@ import se.partee71.dagboken.ui.components.ReminderTimeRow
 import se.partee71.dagboken.ui.components.SCREEN_MARGIN
 import se.partee71.dagboken.ui.components.ValueSlider
 import se.partee71.ui.common.EditorEvents
-import se.partee71.ui.common.EditorLoader
 import se.partee71.ui.common.EditorState
 import se.partee71.ui.common.EditorUiState
 import se.partee71.ui.common.Validator
@@ -73,48 +74,42 @@ sealed interface RemindersEvent {
 /** Formulärets ändring av [current] för händelsen – samma regel för formuläret och för [turnsOn]. */
 fun RemindersEvent.applyTo(current: ReminderSettings): ReminderSettings = when (this) {
     is RemindersEvent.MedsEnabledChanged -> current.copy(medsEnabled = enabled)
-    is RemindersEvent.SlotChanged -> current.copy(medSlots = current.medSlots.map { if (it.slot == reminder.slot) reminder else it })
-    is RemindersEvent.OccasionChanged -> current.copy(screeningOccasions = current.screeningOccasions.map { if (it.occasion == reminder.occasion) reminder else it })
+    is RemindersEvent.SlotChanged -> current.withSlot(reminder)
+    is RemindersEvent.OccasionChanged -> current.withOccasion(reminder)
     is RemindersEvent.PeriodTimeChanged -> current.copy(periodReminderTime = time)
     is RemindersEvent.MomentChanged -> current.copy(moment = moment)
     RemindersEvent.Save, RemindersEvent.Retry -> current
 }
 
-/**
- * NOT-16: om händelsen gör en påminnelse **aktiv** som inte var det i [current] – då begärs notisbehörigheten. En
- * medicintidpunkt som slås på medan huvudreglaget är av, huvudreglaget utan någon påslagen tidpunkt, ett ändrat
- * klockslag eller något som slås av gör det inte.
- */
-fun RemindersEvent.turnsOn(current: ReminderSettings): Boolean = (applyTo(current).active() - current.active()).isNotEmpty()
-
-/** De påminnelser som skulle ge notiser: påslagna medicintider (när huvudreglaget är på) och måendetillfällen. */
-private fun ReminderSettings.active(): Set<Any> = (if (medsEnabled) medSlots.filter { it.enabled }.map { it.slot } else emptyList<Any>()).toSet() +
-    screeningOccasions.filter { it.enabled }.map { it.occasion }
+/** NOT-16: om händelsen gör en påminnelse aktiv som inte var det i [current] (`turnsOnIn`) – då begärs notisbehörigheten. */
+fun RemindersEvent.turnsOn(current: ReminderSettings): Boolean = current.turnsOnIn(applyTo(current))
 
 /**
  * Påminnelser i inställningsarket (SET-4, NOT-4, NOT-13, NOT-18, NOT-20): läser och sparar bara gruppen
  * `reminders` i `settings/app`. Här sparas bara inställningarna; larmen följer dem via `ReminderSync` (NOT-7).
  */
 @HiltViewModel
-class RemindersEditViewModel @Inject constructor(private val settings: SettingsRepository) : ViewModel() {
+class RemindersEditViewModel @Inject constructor(settings: SettingsRepository) : ViewModel() {
     // Varje kombination av reglage och klockslag är giltig – "Spara" följer bara ändrat-läget.
-    val editor: EditorState<ReminderSettings> = EditorState(ReminderSettings(), Validator { emptyMap() }, AppErrors, loading = true)
+    private val form = SettingsEditor(
+        settings,
+        viewModelScope,
+        ReminderSettings(),
+        Validator { emptyMap() },
+        project = { it.reminders },
+        apply = { stored, form -> stored.copy(reminders = form) }
+    )
 
-    // Det lagrade (loader.stored) är det sparningen jämför mot när bara skillnaden ska skrivas.
-    private val loader = EditorLoader(editor, viewModelScope, read = { settings.get() }, project = { it.reminders })
-
-    private val difference = SettingsDifference(settings) { loader.stored.value }
+    val editor: EditorState<ReminderSettings> = form.editor
 
     fun onEvent(event: RemindersEvent) {
         when (event) {
             is RemindersEvent.MedsEnabledChanged, is RemindersEvent.SlotChanged, is RemindersEvent.OccasionChanged,
             is RemindersEvent.PeriodTimeChanged, is RemindersEvent.MomentChanged -> editor.update { event.applyTo(it) }
 
-            RemindersEvent.Save -> viewModelScope.launch {
-                editor.save { form -> difference.save { it.copy(reminders = form) } }
-            }
+            RemindersEvent.Save -> form.save()
 
-            RemindersEvent.Retry -> loader.retry()
+            RemindersEvent.Retry -> form.retry()
         }
     }
 }

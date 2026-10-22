@@ -102,7 +102,7 @@ class LogViewModelTest {
             picker.occasions.map { it.status }
         )
 
-        vm.onEvent(LogEvent.ClosePicker)
+        vm.onEvent(LogEvent.ClosePick)
         runCurrent()
         assertNull(vm.picker.value)
 
@@ -268,5 +268,27 @@ class LogViewModelTest {
         runCurrent()
         assertEquals(IllnessPicker(LocalDate(2026, 10, 2), null, null), vm.illnessPicker.value, "före starten: bara en ny episod")
         assertNull(vm.dosePicker.value, "ett val i taget")
+    }
+
+    @Test
+    fun `tillfälles-, dos- och sjukdomsvalet är ett val i taget som ett ClosePick stänger (NAV-10)`() = runTest(main.dispatcher) {
+        seed()
+        val vm = started()
+        vm.onEvent(LogEvent.PickOccasion(yesterday))
+        runCurrent()
+        assertNotNull(vm.picker.value)
+        vm.onEvent(LogEvent.PickDose(yesterday))
+        runCurrent()
+        assertNull(vm.picker.value, "dosvalet ersätter tillfällesväljaren")
+        assertNotNull(vm.dosePicker.value)
+        vm.onEvent(LogEvent.PickIllness(yesterday))
+        runCurrent()
+        assertNull(vm.dosePicker.value)
+        assertNotNull(vm.illnessPicker.value)
+        vm.onEvent(LogEvent.ClosePick)
+        runCurrent()
+        assertNull(vm.illnessPicker.value)
+        assertNull(vm.picker.value)
+        assertNull(vm.dosePicker.value)
     }
 }

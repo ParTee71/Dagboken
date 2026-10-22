@@ -20,7 +20,6 @@ import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -96,17 +95,17 @@ import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.data.repository.currentReminders
 import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.SelectedDay
+import se.partee71.dagboken.ui.common.WriteFailures
 import se.partee71.dagboken.ui.common.attemptingEach
 import se.partee71.dagboken.ui.common.dataError
 import se.partee71.dagboken.ui.common.minutes
+import se.partee71.dagboken.ui.common.screenSharing
 import se.partee71.dagboken.ui.common.tidyingUpEachDay
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.ui.common.DetailLoader
 import se.partee71.ui.common.DetailUiState
-import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.ui.common.UiError
-import se.partee71.ui.common.uiErrorOrNull
 import se.partee71.ui.components.UndoRequest
 
 sealed interface TodayEvent {
@@ -259,8 +258,8 @@ class TodayViewModel @Inject constructor(
     }
 
     /** Före flödena nedan, som skriver hit från bakgrundsförsöken (städningen och `ensureDay`). */
-    private val _failure = MutableStateFlow<UiError?>(null)
-    val failure: StateFlow<UiError?> = _failure.asStateFlow()
+    private val failures = WriteFailures(viewModelScope)
+    val failure: StateFlow<UiError?> = failures.failure
 
     /**
      * Dagarna vars senaste `ensureDay` misslyckades, med orsaken – också utan nät (HEM-10, MED-4): bara då sägs doser
@@ -270,11 +269,11 @@ class TodayViewModel @Inject constructor(
     private val failedDays = MutableStateFlow<Map<LocalDate, DataError>>(emptyMap())
 
     private val now: Flow<LocalDateTime> =
-        clock.minutes { zone.get() }.shareIn(viewModelScope, sharing, replay = 1)
+        clock.minutes { zone.get() }.shareIn(viewModelScope, screenSharing(), replay = 1)
 
     /** Dagens datum, igen vid midnatt – med städningen vid start och varje ny dag, som i Mediciner. */
     private val today: Flow<LocalDate> =
-        now.map { it.date }.distinctUntilChanged().tidyingUpEachDay(prescriptions, viewModelScope) { _failure.value = it }
+        now.map { it.date }.distinctUntilChanged().tidyingUpEachDay(prescriptions, viewModelScope, failures::report)
 
     /** Vald dag (`null` = idag, även efter midnatt – delad med plusknappen, HEM-14) och visad vecka (`null` = den valda dagens). */
     private val selected = selectedDay.date
@@ -299,7 +298,7 @@ class TodayViewModel @Inject constructor(
         viewModelScope,
         onOffline = { (date, _) -> failedDays.update { it + (date to DataError.Offline) } },
         onResult = { (date, _), failure ->
-            failure?.let { _failure.value = it }
+            failures.report(failure)
             failedDays.update { if (failure != null) it + (date to failure.dataError) else it - date }
         }
     ) { (date, today) -> prescriptions.ensureDay(date, today) }
@@ -324,7 +323,7 @@ class TodayViewModel @Inject constructor(
     /** Delad, så att städningen och `ensureDay` körs en gång per ny dag fast både läsningen och vyn följer den. */
     private val span: Flow<Span> = combine(days, week) { (date, today), shown ->
         Span(date, today, (shown?.takeIf { it <= today } ?: date).weekMonday())
-    }.distinctUntilChanged().shareIn(viewModelScope, sharing, replay = 1)
+    }.distinctUntilChanged().shareIn(viewModelScope, screenSharing(), replay = 1)
 
     /**
      * Perioden i historikläget med lyssnare på det som visas ([Span.live], NFR-24). Ett veckosvep inom perioden byter bara
@@ -521,7 +520,7 @@ class TodayViewModel @Inject constructor(
 
             is TodayEvent.Delete -> if (!event.dose.isScheduledPrescription) {
                 if (undoFor == event.dose.id) clearUndo()
-                write { doses.remove(event.dose) }
+                failures.write { doses.remove(event.dose) }
             }
 
             TodayEvent.Undo -> undo()
@@ -545,15 +544,15 @@ class TodayViewModel @Inject constructor(
 
             is TodayEvent.LogExtra -> if (viewingToday) logExtra(event.prescription)
 
-            is TodayEvent.ToggleFavorite -> write { medicines.setFavorite(event.medicine, !event.medicine.favorite) }
+            is TodayEvent.ToggleFavorite -> failures.write { medicines.setFavorite(event.medicine, !event.medicine.favorite) }
 
-            is TodayEvent.ToggleRecipeFavorite -> write { prescriptions.setFavorite(event.prescription, !event.prescription.favorite) }
+            is TodayEvent.ToggleRecipeFavorite -> failures.write { prescriptions.setFavorite(event.prescription, !event.prescription.favorite) }
 
-            is TodayEvent.DeleteMedicine -> write { medicines.delete(event.medicine.id) }
+            is TodayEvent.DeleteMedicine -> failures.write { medicines.delete(event.medicine.id) }
 
             TodayEvent.ConfettiShown -> celebrated.value = currentContent?.today
 
-            TodayEvent.ErrorShown -> _failure.value = null
+            TodayEvent.ErrorShown -> failures.clear()
 
             TodayEvent.NoticeShown -> _notice.value = null
 
@@ -577,11 +576,7 @@ class TodayViewModel @Inject constructor(
         viewModelScope.launch {
             // MED-14: en tidigare dag bockas av på dosens klockslag (för en planerad receptdos inställningens, NOT-18), inte nu.
             val takenAt = if (status == DoseStatus.TAKEN) dose.checkOffTime(clock.now(), zone.get(), settings.currentReminders()) else null
-            val failure = doses.setStatus(dose, status, takenAt).uiErrorOrNull(AppErrors)
-            if (failure != null) {
-                _failure.value = failure
-                return@launch
-            }
+            if (failures.report(doses.setStatus(dose, status, takenAt))) return@launch
             val format = when (status) {
                 DoseStatus.TAKEN -> R.string.today_undo_taken_format
                 DoseStatus.SKIPPED -> R.string.today_undo_skipped_format
@@ -606,7 +601,7 @@ class TodayViewModel @Inject constructor(
     private fun undo() {
         val action = undoAction ?: return
         clearUndo()
-        write(action)
+        failures.write(action)
     }
 
     private fun clearUndo() {
@@ -622,10 +617,7 @@ class TodayViewModel @Inject constructor(
     private fun logAsNeeded(medicine: PrnMedicine, force: Boolean) {
         viewModelScope.launch {
             val result = doses.logAsNeeded(medicine, clock.now(), force)
-            result.uiErrorOrNull(AppErrors)?.let {
-                _failure.value = it
-                return@launch
-            }
+            if (failures.report(result)) return@launch
             val title = medicine.title()
             val log = result.getOrThrow()
             when (val check = log.check) {
@@ -640,23 +632,13 @@ class TodayViewModel @Inject constructor(
     private fun logExtra(prescription: Prescription) {
         viewModelScope.launch {
             val result = doses.logExtraDose(prescription, clock.now())
-            result.uiErrorOrNull(AppErrors)?.let {
-                _failure.value = it
-                return@launch
-            }
+            if (failures.report(result)) return@launch
             val dose = result.getOrThrow()
             offerUndo(dose, dose.title(), R.string.today_logged_format) { doses.remove(dose) }
         }
     }
 
-    private fun write(action: suspend () -> Result<Unit>) {
-        viewModelScope.launch { action().uiErrorOrNull(AppErrors)?.let { _failure.value = it } }
-    }
-
     private companion object {
-        /** Delade flöden följer skärmen och glömmer sitt senaste värde när de stoppats (en ny dag kan ha börjat). */
-        val sharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS, replayExpirationMillis = 0)
-
         /** Hur långt bakåt dagar i rad räknas (HEM-20) – en längre svit visas som så här många dagar. */
         const val STREAK_DAYS = 90
 

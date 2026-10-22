@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import se.partee71.dagboken.core.engine.REGULARITY_WINDOW_NIGHTS
@@ -40,6 +39,7 @@ import se.partee71.dagboken.data.health.HealthRepository
 import se.partee71.dagboken.data.health.HealthStatus
 import se.partee71.dagboken.data.health.observedStatus
 import se.partee71.dagboken.data.repository.SettingsRepository
+import se.partee71.dagboken.ui.common.screenSharing
 
 /**
  * Klocka-gruppens topp (TRD-20, HLS-4, HLS-6, HLS-8, HLS-10, HLS-11, HLS-14): klockans läge [status] – den enda källan
@@ -112,7 +112,7 @@ class ClockViewModel @Inject constructor(
             HealthStatus.AVAILABLE -> connected
             else -> flowOf(ClockUiState(status))
         }
-    }.stateIn(viewModelScope, healthSharing, null)
+    }.stateIn(viewModelScope, screenSharing(), null)
 
     fun onEvent(event: HealthEvent) = permissions.handle(event)
 }

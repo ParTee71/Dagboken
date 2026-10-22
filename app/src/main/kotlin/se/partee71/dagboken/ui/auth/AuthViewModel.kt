@@ -26,6 +26,7 @@ import se.partee71.dagboken.data.common.UserScope
 import se.partee71.dagboken.data.common.UserVersion
 import se.partee71.dagboken.data.common.dataError
 import se.partee71.dagboken.data.user.EnsureUserUseCase
+import se.partee71.dagboken.ui.common.screenSharing
 
 /**
  * Vad appen visar (AUTH-1, AUTH-6): inloggning, "Uppdatera appen" eller innehållet.
@@ -73,7 +74,7 @@ class AuthViewModel @Inject constructor(
     val state: StateFlow<AuthUiState> =
         combine(gate, signingIn, ensuring, error, user) { gate, signingIn, ensuring, error, user ->
             AuthUiState(gate, busy = signingIn || ensuring, error = error, account = user)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AuthUiState())
+        }.stateIn(viewModelScope, screenSharing(forgetWhenStopped = false), AuthUiState())
 
     init {
         // Utloggad avbryter en pågående förberedelse, så att nästa användare aldrig får den förras fel.
@@ -146,8 +147,6 @@ class AuthViewModel @Inject constructor(
     }
 
     private companion object {
-        const val STOP_TIMEOUT_MS = 5_000L
-
         fun gateOf(user: AuthUser?, version: UserVersion?, unreadable: String?): AuthGate = when {
             user == null -> AuthGate.SignedOut
 

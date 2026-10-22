@@ -5,7 +5,6 @@ import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -18,7 +17,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import se.partee71.dagboken.data.health.HealthPermissions
 import se.partee71.dagboken.ui.common.minutes
-import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.dagboken.ui.common.screenSharing
 
 /** Det skärmarna med klockdata kan be om (HLS-3, HLS-4, HLS-14) – porten [HealthPermissions] gör resten. */
 sealed interface HealthEvent {
@@ -47,7 +46,7 @@ internal data class HealthRead(val date: LocalDate, val minute: LocalDateTime? =
  * (`Clock.minutes`), dagens datum ur den, och läsnycklar som ger idag en ny läsning högst en gång per minut.
  */
 internal class HealthTime(clock: Clock, zone: Provider<TimeZone>, scope: CoroutineScope) {
-    private val now: Flow<LocalDateTime> = clock.minutes { zone.get() }.shareIn(scope, healthSharing, replay = 1)
+    private val now: Flow<LocalDateTime> = clock.minutes { zone.get() }.shareIn(scope, screenSharing(), replay = 1)
 
     /** Dagens datum, igen vid midnatt. */
     val today: Flow<LocalDate> = now.map { it.date }.distinctUntilChanged()
@@ -78,6 +77,3 @@ internal fun <T : Any> Flow<HealthRead>.readEach(read: suspend (LocalDate) -> T)
         }
     }.collect { emit(it) }
 }
-
-/** Skärmarnas klockläsningar följer skärmen och glömmer sitt senaste värde när de stoppats (en ny dag kan ha börjat). */
-internal val healthSharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS, replayExpirationMillis = 0)

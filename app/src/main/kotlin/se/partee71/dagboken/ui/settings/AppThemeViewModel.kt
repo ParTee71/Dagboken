@@ -10,7 +10,6 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -29,7 +28,7 @@ import se.partee71.dagboken.data.auth.AuthRepository
 import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.repository.SettingsRepository
 import se.partee71.dagboken.ui.common.hours
-import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
+import se.partee71.dagboken.ui.common.screenSharing
 
 /** Appens tema för `MainActivity` (SET-1, DSN-5). */
 sealed interface AppTheme {
@@ -91,7 +90,7 @@ class AppThemeViewModel @Inject constructor(
         }
     }
         .onEach { if (it != AppTheme.Loading) known = true }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), AppTheme.Loading)
+        .stateIn(viewModelScope, screenSharing(forgetWhenStopped = false), AppTheme.Loading)
 
     companion object {
         /** Längsta tid startskärmen väntar på temat. */

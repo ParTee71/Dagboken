@@ -14,11 +14,9 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
@@ -36,12 +34,13 @@ import se.partee71.dagboken.data.common.withFallback
 import se.partee71.dagboken.data.repository.IllnessRepository
 import se.partee71.dagboken.data.repository.OptionsRepository
 import se.partee71.dagboken.ui.common.AppErrors
+import se.partee71.dagboken.ui.common.WriteFailures
 import se.partee71.dagboken.ui.common.days
+import se.partee71.dagboken.ui.common.names
+import se.partee71.dagboken.ui.common.screenSharing
 import se.partee71.ui.common.DetailLoader
 import se.partee71.ui.common.DetailUiState
-import se.partee71.ui.common.STOP_TIMEOUT_MILLIS
 import se.partee71.ui.common.UiError
-import se.partee71.ui.common.uiErrorOrNull
 
 /**
  * Det sjukdomsdetaljen visar: episoden med sina incheckningar, senaste först ([summary], räknad i `:core`), dagen
@@ -106,9 +105,7 @@ class IllnessDetailViewModel @AssistedInject constructor(
     @Assisted private val id: String
 ) : ViewModel() {
     /** Symptomens namn – ett läsfel ger bara svårighetsgraden i undertexten (`withFallback`). */
-    private val names: Flow<Map<String, String>> = options.observe(OptionKind.SYMPTOM).withFallback(emptyList())
-        .map { all -> all.associate { it.id to it.name } }
-        .distinctUntilChanged()
+    private val names: Flow<Map<String, String>> = options.names(OptionKind.SYMPTOM)
 
     private val loader = DetailLoader(
         combine(illnesses.observeEpisode(id), clock.days { zone.get() }, names) { loaded, today, names ->
@@ -136,13 +133,13 @@ class IllnessDetailViewModel @AssistedInject constructor(
             }
         }
         .onEach { state -> (state as? DetailUiState.Content)?.let { lastContent = it.value } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS, replayExpirationMillis = 0), DetailUiState.Loading)
+        .stateIn(viewModelScope, screenSharing(), DetailUiState.Loading)
 
     private val _prompt = MutableStateFlow<IllnessPrompt?>(null)
     val prompt: StateFlow<IllnessPrompt?> = _prompt.asStateFlow()
 
-    private val _failure = MutableStateFlow<UiError?>(null)
-    val failure: StateFlow<UiError?> = _failure.asStateFlow()
+    private val failures = WriteFailures(viewModelScope)
+    val failure: StateFlow<UiError?> = failures.failure
 
     private val _closed = MutableStateFlow(false)
     val closed: StateFlow<Boolean> = _closed.asStateFlow()
@@ -155,9 +152,9 @@ class IllnessDetailViewModel @AssistedInject constructor(
             IllnessDetailEvent.Delete -> askDelete()
             IllnessDetailEvent.ConfirmDelete -> delete()
             IllnessDetailEvent.DismissPrompt -> _prompt.value = null
-            is IllnessDetailEvent.DeleteCheckin -> if (!deleting.value) report { illnesses.deleteCheckin(id, event.id) }
+            is IllnessDetailEvent.DeleteCheckin -> if (!deleting.value) failures.write { illnesses.deleteCheckin(id, event.id) }
             IllnessDetailEvent.Retry -> loader.retry()
-            IllnessDetailEvent.ErrorShown -> _failure.value = null
+            IllnessDetailEvent.ErrorShown -> failures.clear()
         }
     }
 
@@ -175,7 +172,7 @@ class IllnessDetailViewModel @AssistedInject constructor(
             return
         }
         _prompt.value = null
-        report { illnesses.finishEpisode(episode, asked.end, detail.today) }
+        failures.write { illnesses.finishEpisode(episode, asked.end, detail.today) }
     }
 
     /** SJ-9: frågan nämner antalet incheckningar på servern; går det inte att räkna (offline), de som visas. */
@@ -190,7 +187,7 @@ class IllnessDetailViewModel @AssistedInject constructor(
 
     private fun closeWith(error: DataError) {
         _prompt.value = null
-        _failure.value = AppErrors.map(error)
+        failures.report(AppErrors.map(error))
     }
 
     /** SJ-9: kaskaden kräver nät – offline raderas ingenting och felet visas; lyckad stänger detaljen. */
@@ -204,13 +201,9 @@ class IllnessDetailViewModel @AssistedInject constructor(
                 _closed.value = true
             } else {
                 deleting.value = false
-                _failure.value = result.uiErrorOrNull(AppErrors)
+                failures.report(result)
             }
         }
-    }
-
-    private fun report(action: suspend () -> Result<Unit>) {
-        viewModelScope.launch { action().uiErrorOrNull(AppErrors)?.let { _failure.value = it } }
     }
 
     @AssistedFactory
