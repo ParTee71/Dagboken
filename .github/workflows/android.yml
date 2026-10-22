@@ -73,6 +73,8 @@ jobs:
               - 'tools/db/package-lock.json'
               - '.github/workflows/instrumented.yml'
               - '.github/actions/setup-android/**'
+              - '.github/actions/setup-build/**'
+              - '.github/actions/setup-firebase-emulator/**'
 
       - name: Vad körs
         id: decide
@@ -127,10 +129,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/check-gpr-token
+      - uses: ./.github/actions/setup-build
         with:
           token: ${{ secrets.GPR_TOKEN }}
-      - uses: ./.github/actions/setup-android
 
       - name: Bygg och testa
         env:

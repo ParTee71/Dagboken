@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { exportData } from '../lib/backup.mjs';
-import { migrateUsers } from '../lib/migrate.mjs';
+import { SKIPPED, migrateUsers } from '../lib/migrate.mjs';
 import { CURRENT_VERSION } from '../lib/schema.mjs';
 import { fixture, seed, useCleanEmulator } from './helpers/emulator.mjs';
 
@@ -109,7 +109,7 @@ test('en användare utan användardokument hoppas över utan att stoppa de andra
   ]);
   const steps = { 1: (_, doc) => doc };
   assert.deepEqual(await migrateUsers(db, 2, { ...v2, steps }), {
-    'hoppade över (saknar användardokument)': 1,
+    [SKIPPED]: 1,
     'användare från v1': 1,
   });
 });

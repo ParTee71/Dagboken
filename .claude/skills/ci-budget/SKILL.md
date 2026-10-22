@@ -30,7 +30,7 @@ resten med `dorny/paths-filter`.
 | `app` | `app/**`, `.claude/skills/shared-ui-components/**` | `:app:testDebugUnitTest` (inkl. `UiConsistencyTest`) + `verifyRoborazziDebug` + `cpdCheck` + `:app:assembleDebugAndroidTest` (kompilerar och dexar instrumenttesterna utan att köra dem – utom när filtret `instrumented` kör dem) |
 | `tools` | `firestore.rules`, `firestore.indexes.json`, `firebase.json`, `tools/db/**`, `app/src/main/kotlin/se/partee71/dagboken/data/firestore/Paths.kt`, `core/src/main/kotlin/se/partee71/dagboken/core/schema/CollectionNames.kt` | rules- och rundturstester (Node) mot Firebase-emulatorn och samlingslistan mot `Paths.kt` och `CollectionNames.kt` |
 | `build` | `*.gradle.kts`, `gradle/**`, `gradle.properties`, `build-logic/**`, `.github/**` | allt ovan utom instrumenttesterna (de har egna sökvägar) |
-| `instrumented` | `app/src/**`, `core/src/**`, `tools/db/test/fixtures/user.json`, `*.gradle.kts`, `app/build.gradle.kts`, `core/build.gradle.kts`, `gradle/**`, `gradle.properties`, `build-logic/**`, `firestore.rules`, `firebase.json`, `tools/db/package-lock.json`, `.github/workflows/instrumented.yml`, `.github/actions/setup-android/**` | instrumenttesterna på Android-emulator (`instrumented.yml`), bara i PR; då hoppar `gradle` över `assembleDebugAndroidTest`. `release.yml` kör dem inte igen om dessa sökvägar är oförändrade sedan en PR där de var gröna |
+| `instrumented` | `app/src/**`, `core/src/**`, `tools/db/test/fixtures/user.json`, `*.gradle.kts`, `app/build.gradle.kts`, `core/build.gradle.kts`, `gradle/**`, `gradle.properties`, `build-logic/**`, `firestore.rules`, `firebase.json`, `tools/db/package-lock.json`, `.github/workflows/instrumented.yml`, `.github/actions/setup-android/**`, `.github/actions/setup-build/**`, `.github/actions/setup-firebase-emulator/**` | instrumenttesterna på Android-emulator (`instrumented.yml`), bara i PR; då hoppar `gradle` över `assembleDebugAndroidTest`. `release.yml` kör dem inte igen om dessa sökvägar är oförändrade sedan en PR där de var gröna |
 | – | allt annat (`*.md` utom `ARKITEKTUR.md`, `.claude/**`) | bara `changes` med dokumentkontroller |
 <!-- ci-table:end -->
 
@@ -95,8 +95,9 @@ agenter som finns. Framåtreferenser står i `.github/scripts/link-allowlist.txt
 
 ## Dagbokens composite actions och token
 
-- Gemensamma steg i composite actions (`.github/actions/setup-android`, `doc-checks`,
-  `open-issue-on-failure`, `setup-tools-db`, `rules-tests`, `deploy-rules`, `check-gpr-token`) – en ändring, alla flöden.
+- Gemensamma steg i composite actions (`.github/actions/setup-build` = `check-gpr-token` + `setup-android`, `doc-checks`,
+  `open-issue-on-failure`, `setup-tools-db`, `setup-firebase-emulator` = Java 21 + emulatorcache,
+  `rules-tests`, `deploy-rules`) – en ändring, alla flöden.
 - Varje jobb som kör Gradle mot `:app` löser android-ui ur GitHub Packages: det börjar efter checkout med
   steget "GPR_TOKEN når android-ui" (composite action `check-gpr-token`, en sekund; skill
   `android:android-gradle-logic`) och har `GPR_TOKEN: ${{ secrets.GPR_TOKEN }}` på Gradle-steget;
