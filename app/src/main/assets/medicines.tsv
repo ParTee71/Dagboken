@@ -1,5 +1,5 @@
 # Läkemedel som säljs i Sverige – Läkemedelsverket, CC BY 4.0 (https://www.lakemedelsverket.se/sv/om-webbplatsen/oppna-data)
-# updated 2026-10-20
+# updated 2026-10-23
 Abacavir/Lamivudine Accord	600 mg/300 mg	Filmdragerad tablett
 Abacavir/Lamivudine Glenmark	600 mg/300 mg	Filmdragerad tablett
 Abacavir/Lamivudine Medical Valley	600 mg/300 mg	Filmdragerad tablett
@@ -2128,7 +2128,6 @@ Dobutamin Hameln	12,5 mg/ml	Koncentrat till infusionsvätska, lösning
 Docetaxel Accord	80 mg/4 ml	Koncentrat till infusionsvätska, lösning
 Docetaxel Accord	160 mg/8 ml	Koncentrat till infusionsvätska, lösning
 Docetaxel Actavis	20 mg/ml	Koncentrat till infusionsvätska, lösning
-DOCETAXEL KABI	160 mg/8 ml	Koncentrat till infusionsvätska, lösning
 Doktacillin		Pulver till injektions-/infusionsvätska, lösning
 Dokusatnatrium/Sorbitol Evolan	1 mg/ml + 250 mg/ml	Rektallösning
 Dolatramyl	100 mg	Depottablett
@@ -2856,7 +2855,6 @@ Fexofenadine Amarox	120 mg	Filmdragerad tablett
 Fexofenadine Amarox	180 mg	Filmdragerad tablett
 Fiasp	100 enheter/ml	Injektionsvätska, lösning
 Fiasp	100 enheter/ml	Injektionsvätska, lösning i cylinderampull
-Fiberform	3,5 g	Granulat i dospåse
 Fibryga	1 g	Pulver och vätska till injektions-/infusionsvätska, lösning
 Ficortril	0,5 %	Ögonsalva
 Filspari	200 mg	Filmdragerad tablett
@@ -4750,6 +4748,9 @@ Microcid	1 %	Kräm
 Microlax		Rektallösning
 Midazolam Accord	5 mg/ml	Injektions-/infusionsvätska, lösning
 Midazolam Accordpharma	1 mg/ml	Injektions- / infusionsvätska, lösning i förfylld spruta
+Midazolam FrostPharma	2,5 mg	Nässpray, lösning i endosbehållare
+Midazolam FrostPharma	3,75 mg	Nässpray, lösning i endosbehållare
+Midazolam FrostPharma	5 mg	Nässpray, lösning i endosbehållare
 Midazolam hameln	1 mg/ml	Injektions-/infusionsvätska, lösning
 Midazolam hameln	5 mg/ml	Injektions-/infusionsvätska, lösning
 Midazolam Kalceks	1 mg/ml	Injektions-/infusionsvätska, lösning
@@ -4817,6 +4818,7 @@ Mirtazapin Bluefish	15 mg	Munsönderfallande tablett
 Mirtazapin Bluefish	30 mg	Munsönderfallande tablett
 Mirtazapin Bluefish	45 mg	Munsönderfallande tablett
 Mirtazapin Ebb	15 mg	Munsönderfallande tablett
+Mirtazapin Ebb	30 mg	Munsönderfallande tablett
 Mirtazapin Ebb	45 mg	Filmdragerad tablett
 Mirtazapin Hexal	30 mg	Filmdragerad tablett
 Mirtazapin Hexal	45 mg	Filmdragerad tablett
@@ -4863,6 +4865,7 @@ Mometasone Teva	1 mg/g	Salva
 Mometasone Teva	50 mikrogram/dos	Nässpray, suspension
 Mommox	50 mikrogram/dos	Nässpray, suspension
 MonoFer	100 mg/ml	Injektions-/infusionsvätska, lösning
+Monoferric	100 mg/ml	Injektions-/infusionsvätska, lösning
 Monoket OD	25 mg	Depotkapsel, hård
 Monoket OD	50 mg	Depotkapsel, hård
 Monoket OD	100 mg	Depotkapsel, hård
