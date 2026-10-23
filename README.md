@@ -261,6 +261,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.9.2 | **Vid behov markeras direkt:** chippet visar "från HH:MM" så fort dosen loggats, inte först vid nästa hela minut (FAV-13). |
 | 4.9.1 | **Stunden börjar om rätt:** kommer en ny Stunden medan en redan är öppen räknas pausen om från början för den nya, och Välj känslor väntar tills den är klar (NOT-20). |
 | 4.9.0 | **Importen av 3.x-backuper är borttagen:** Inställningar → Export och import läser bara exporter från Dagboken 4 (Spara som JSON eller veckobackupen) – "Importera backup" öppnar filväljaren direkt, och valet Google Drive är borta. All data som redan importerats ligger kvar i kontot som förut; en 3.x-fil ger beskedet att den inte går att importera, och inget skrivs. Appen ber inte längre om åtkomst till Google Drive. |
 | 4.8.0 | **Migreringen på enheten är borttagen:** 4.0 läser inte längre 3.x:s databas på telefonen vid start, och frågan om import vid första starten är borta – appen öppnar direkt på flikarna. En 3.x-backup (Google Drive eller fil) eller en 4.0-export läses in som förut under Inställningar → Export och import. 3.x-filerna på telefonen lämnas orörda, och en befintlig migreringsmarkör i kontot godtas som förut. |

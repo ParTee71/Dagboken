@@ -9,6 +9,7 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -658,6 +659,23 @@ class TodayViewModelTest {
         advanceTimeBy(2.minutes)
         assertNull(vm.content.unavailable[alvedon.id], "kylperioden är över – markeringen försvinner av sig själv")
         assertEquals(PrnAvailability.DailyLimit(1, 1), vm.content.unavailable[imigran.id], "dagsgränsen står kvar till midnatt")
+    }
+
+    @Test
+    fun `en vid behov-dos som just loggats markeras direkt, inte först vid nästa minut, och Ångra tar bort markeringen (FAV-13)`() = runTest(main.dispatcher) {
+        seed()
+        // Mitt i en minut: minutklockan står på 10:30, dosen loggas 10:30:40.
+        clock.instant = at(today, 10, 30) + 40.seconds
+        val vm = started(viewModel())
+        assertNull(vm.content.unavailable[alvedon.id])
+
+        vm.onEvent(TodayEvent.LogAsNeeded(alvedon))
+        runCurrent()
+        assertEquals(PrnAvailability.Cooldown(at(today, 14, 30) + 40.seconds), vm.content.unavailable[alvedon.id], "markeringen kommer utan minut-tick")
+
+        vm.onEvent(TodayEvent.Undo)
+        runCurrent()
+        assertNull(vm.content.unavailable[alvedon.id], "Ångra tar bort markeringen direkt")
     }
 
     @Test

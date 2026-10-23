@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import javax.inject.Provider
 import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.ImmutableSet
@@ -368,10 +369,13 @@ class TodayViewModel @Inject constructor(
     private val content: Flow<TodayContent> =
         combine(day, now, illness.onStart { emit(null) }, collapsed) { day, now, illness, collapsed -> day.at(clock(now), illness, collapsed) }
 
-    /** Det som beror på klockslaget [now] i tidszonen [zone]. */
-    private class Moment(val now: LocalDateTime, val zone: TimeZone)
+    /**
+     * Det som beror på klockslaget [now] (hela minuter) i tidszonen [zone]. [exact] är ögonblicket då innehållet räknas om
+     * – kylperioden (FAV-13) jämförs mot det, så att en dos som just loggats räknas direkt och inte först vid nästa minut.
+     */
+    private class Moment(val now: LocalDateTime, val zone: TimeZone, val exact: Instant)
 
-    private fun clock(now: LocalDateTime) = Moment(now, zone.get())
+    private fun clock(now: LocalDateTime) = Moment(now, zone.get(), clock.now())
 
     private val loader = DetailLoader(content, viewModelScope, AppErrors)
     val state: StateFlow<DetailUiState<TodayContent>> = loader.state
@@ -421,7 +425,7 @@ class TodayViewModel @Inject constructor(
         private fun unavailable(moment: Moment): ImmutableMap<String, PrnAvailability> {
             // FAV-13: en tidigare dag är chipsen redan tonade (FAV-2) och får ingen extra markering.
             if (date != today) return persistentMapOf()
-            val at = moment.now.toInstant(moment.zone)
+            val at = moment.exact
             return (choices.favorites + choices.others)
                 .associate { it.id to it.availabilityAt(checkDoses, at, moment.zone) }
                 .filterValues { it != PrnAvailability.Ok }
