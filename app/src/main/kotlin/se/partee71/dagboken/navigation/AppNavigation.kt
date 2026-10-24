@@ -25,7 +25,6 @@ import se.partee71.dagboken.ui.components.AccountSheet
 import se.partee71.dagboken.ui.components.ComponentGallery
 import se.partee71.dagboken.ui.components.LogChoice
 import se.partee71.dagboken.ui.components.LogMenuSheet
-import se.partee71.dagboken.ui.components.ScreeningStep
 import se.partee71.dagboken.ui.components.SettingsPage
 import se.partee71.dagboken.ui.diary.DiaryRoute
 import se.partee71.dagboken.ui.illness.IllnessDetailRoute
@@ -127,8 +126,7 @@ fun AppBackStack.open(launch: ReminderLaunch, onEvent: (LogEvent) -> Unit) {
 
         is ReminderLaunch.LogMood -> {
             select(TodayKey)
-            val step = if (launch.feelings) ScreeningStep.FEELINGS else ScreeningStep.ENERGY
-            onEvent(LogEvent.LogScreening(launch.occasion, date = null, reminder = null, initialStep = step))
+            onEvent(LogEvent.LogScreening(launch.occasion, date = null, reminder = null))
         }
 
         ReminderLaunch.Medicines -> select(MedicinesKey)

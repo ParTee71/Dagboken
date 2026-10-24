@@ -318,31 +318,20 @@ class MoodSheetTest {
     // ── Känslor (SCR-7) ──
 
     @Test
-    fun `stegen är energi, känslor, stress och symptom – utan symptomlista tre steg (SCR-7)`() {
-        assertEquals(listOf(ScreeningStep.ENERGY, ScreeningStep.FEELINGS, ScreeningStep.STRESS, ScreeningStep.SYMPTOMS), screeningSteps(withSymptoms = true))
-        assertEquals(listOf(ScreeningStep.ENERGY, ScreeningStep.FEELINGS, ScreeningStep.STRESS), screeningSteps(withSymptoms = false))
+    fun `stegen är känslor, energi, stress och symptom – utan symptomlista tre steg (SCR-7)`() {
+        assertEquals(listOf(ScreeningStep.FEELINGS, ScreeningStep.ENERGY, ScreeningStep.STRESS, ScreeningStep.SYMPTOMS), screeningSteps(withSymptoms = true))
+        assertEquals(listOf(ScreeningStep.FEELINGS, ScreeningStep.ENERGY, ScreeningStep.STRESS), screeningSteps(withSymptoms = false))
+        assertEquals(ScreeningStep.FEELINGS, screeningSteps(withSymptoms = false).first(), "första steget är känslorna")
     }
 
     @Test
-    fun `Logga nu med känslosteget öppnar arket på känslorna – sidan är känslostegets index (SCR-7)`() = runTest(main.dispatcher) {
+    fun `Stundens Välj känslor öppnar rätt tillfälles ark, som börjar på första steget (NOT-20, SCR-7)`() = runTest(main.dispatcher) {
         allOccasions()
         val vm = started()
-        vm.onEvent(LogEvent.LogScreening(Occasion.LUNCH, null, null, ScreeningStep.FEELINGS))
-        val initial = assertNotNull(vm.screening.value).context.initialStep
-        assertEquals(ScreeningStep.FEELINGS, initial)
-        // Samma uträkning som rememberStepwiseScreeningState gör för startsidan.
-        assertEquals(1, screeningSteps(withSymptoms = true).indexOf(initial))
-        assertEquals(1, screeningSteps(withSymptoms = false).indexOf(initial))
-    }
-
-    @Test
-    fun `Stundens Välj känslor öppnar rätt tillfälles ark på känslosteget (NOT-20, SCR-7)`() = runTest(main.dispatcher) {
-        allOccasions()
-        val vm = started()
-        AppBackStack().open(ReminderLaunch.LogMood(Occasion.BEDTIME, feelings = true), vm::onEvent)
+        AppBackStack().open(ReminderLaunch.LogMood(Occasion.BEDTIME), vm::onEvent)
         val sheet = assertNotNull(vm.screening.value)
         assertEquals(Occasion.BEDTIME, sheet.context.occasion)
-        assertEquals(ScreeningStep.FEELINGS, sheet.context.initialStep)
+        assertEquals(ScreeningSheetInfo(Occasion.BEDTIME, null), sheet.context)
         assertEquals(Occasion.BEDTIME, sheet.value.occasion)
     }
 

@@ -43,7 +43,7 @@ Paketet `reminders/` i appen (ARKITEKTUR.md → Lager och moduler); tidsberäkni
 | `ReminderActions` + mottagarna | `MedAlarmReceiver`, `ScreeningReminderReceiver`, `PeriodReminderReceiver` (en implementation, `AlarmReceiver`; namnen byts aldrig – redan satta larm pekar på dem), `MedActionReceiver`, `BootReceiver` är tunna; vad de gör står i `ReminderActions` (testbart utan Hilt), körs av `ReceiverWork` (`goAsync`, nästa larm först, sedan notisen, under systemets tidsgräns). |
 | `AlarmLedger` | Senast schemalagd och senast utlöst per påminnelse (NOT-14), enhetslokalt, utan innehåll. |
 | `ReminderSync` | Startas från `MainActivity`; lägger om larmen när påminnelseinställningarna ändras i cachen (recept och doser påverkar inte larmen, bara notisens innehåll), avbokar vid utloggning. |
-| `ReminderIntents` / `ReminderLaunch` / `MomentLaunch` | Actions och extras (en gång); vad en tryckt notis öppnar (bara kända värden tolkas; `LogMood(feelings)` = känslosteget); vad Stunden visar (tillfälle, klockslag, längd, hjälpfråga). |
+| `ReminderIntents` / `ReminderLaunch` / `MomentLaunch` | Actions och extras (en gång); vad en tryckt notis öppnar (bara kända värden tolkas; `LogMood` öppnar måendearket på första steget; det gamla värdet `mood_feelings` läses som `LogMood`, skrivs aldrig); vad Stunden visar (tillfälle, klockslag, längd, hjälpfråga). |
 | `ReminderAccess` | Behörighetsläget och genvägarna till systeminställningarna (NOT-16), också helskärm (`fullScreen`, `openFullScreenIntentSettings`, NOT-20). |
 | `ui/moment/MomentActivity` | Stundens helskärm (NOT-20): egen aktivitet, inte exporterad, `singleTask` i egen uppgift utanför Senaste, `setShowWhenLocked`/`setTurnScreenOn`, skärmen tänd under pausen; visar bara `MomentLaunch`. |
 
@@ -83,7 +83,7 @@ heads-up). Ändra inte importance utan att uppdatera NOT-1.
   `MomentActivity` (explicit, `FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE`, en `requestCode` per tillfälle). Ta över skärmen
   och `ReminderAccess.fullScreen` (`NotificationManager.canUseFullScreenIntent()`, Android 14+) → kanalen Stunden med
   `fullScreenIntent`; annars en vanlig notis i kanalen Måendepåminnelser. Notisen stängs inte av tryck (Inte nu lämnar
-  den kvar); "Välj känslor" öppnar `MainActivity` med `LogMood(feelings = true)`, som stänger den (`dismiss`).
+  den kvar); "Välj känslor" öppnar `MainActivity` med `LogMood` (`MomentLaunch.moodIntent`), som stänger den (`dismiss`).
 - Helskärmen och notisen visar aldrig hälsodata – bara tillfälle, tid, text och fråga. Appen kan inte låsa telefonen
   och använder inte låsläge, enhetsadministration eller kioskläge.
 

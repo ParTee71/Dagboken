@@ -23,7 +23,6 @@ import se.partee71.dagboken.navigation.TodayKey
 import se.partee71.dagboken.navigation.TrendsKey
 import se.partee71.dagboken.navigation.open
 import se.partee71.dagboken.reminders.ReminderIntents.slot
-import se.partee71.dagboken.ui.components.ScreeningStep
 import se.partee71.dagboken.ui.log.LogEvent
 import se.partee71.dagboken.ui.moment.MomentActivity
 
@@ -78,6 +77,7 @@ class ReminderIntentsTest {
         assertEquals(ReminderLaunch.Today, launch(ReminderLaunch.TODAY))
         assertEquals(ReminderLaunch.Medicines, launch(ReminderLaunch.MEDICINES))
         assertEquals(ReminderLaunch.LogMood(Occasion.BEDTIME), launch(ReminderLaunch.MOOD, Occasion.BEDTIME.wire))
+        assertEquals(ReminderLaunch.LogMood(Occasion.BEDTIME), launch("mood_feelings", Occasion.BEDTIME.wire), "notiser från före 4.9.4")
         assertEquals(ReminderLaunch.Today, launch(ReminderLaunch.MOOD, "okänt"), "okänt tillfälle: bara Idag")
         assertNull(Intent().putExtra(ReminderIntents.EXTRA_SLOT, Slot.AS_NEEDED.wire).slot(), "vid behov har ingen påminnelse")
     }
@@ -157,18 +157,19 @@ class ReminderIntentsTest {
     }
 
     @Test
-    fun `Välj känslor öppnar tillfällets måendeark på känslosteget, och överlever en rotation (NOT-20, SCR-7)`() {
-        val intent = MomentLaunch(Occasion.DINNER, LocalTime(17, 0)).feelingsIntent(context)
+    fun `Välj känslor öppnar tillfällets måendeark på första steget, och överlever en rotation (NOT-20, SCR-7)`() {
+        val intent = MomentLaunch(Occasion.DINNER, LocalTime(17, 0)).moodIntent(context)
         assertEquals(MainActivity::class.java.name, intent.component?.className, "explicit")
         assertEquals(setOf(ReminderIntents.EXTRA_OPEN, ReminderIntents.EXTRA_OCCASION), intent.extras?.keySet(), "inga andra extras")
         val launch = ReminderLaunch.from(intent)
-        assertEquals(ReminderLaunch.LogMood(Occasion.DINNER, feelings = true), launch)
+        assertEquals(ReminderLaunch.LogMood(Occasion.DINNER), launch)
+        assertEquals(ReminderLaunch.MOOD, intent.getStringExtra(ReminderIntents.EXTRA_OPEN), "det gamla värdet mood_feelings skrivs aldrig")
         val state = android.os.Bundle()
         ReminderLaunch.save(launch, state)
         assertEquals(launch, ReminderLaunch.restore(state))
 
         val events = mutableListOf<LogEvent>()
         AppBackStack().apply { select(TrendsKey) }.also { it.open(checkNotNull(launch), events::add) }
-        assertEquals(listOf<LogEvent>(LogEvent.LogScreening(Occasion.DINNER, date = null, reminder = null, initialStep = ScreeningStep.FEELINGS)), events)
+        assertEquals(listOf<LogEvent>(LogEvent.LogScreening(Occasion.DINNER, date = null, reminder = null)), events)
     }
 }

@@ -77,9 +77,9 @@ class MomentActivity : ComponentActivity() {
         return true
     }
 
-    /** NOT-20, SCR-7: måendearket för tillfället på känslosteget – samma väg som "Logga nu" ([MomentLaunch.feelingsIntent]). */
+    /** NOT-20, SCR-7: måendearket för tillfället (första steget är känslorna) – samma väg som "Logga nu" ([MomentLaunch.moodIntent]). */
     private fun chooseFeelings(moment: MomentLaunch) {
-        val open = moment.feelingsIntent(this)
+        val open = moment.moodIntent(this)
         val keyguard = getSystemService(KeyguardManager::class.java)
         if (keyguard?.isKeyguardLocked == true) {
             keyguard.requestDismissKeyguard(

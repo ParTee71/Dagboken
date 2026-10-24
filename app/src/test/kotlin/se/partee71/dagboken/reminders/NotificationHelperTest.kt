@@ -258,7 +258,7 @@ class NotificationHelperTest {
     fun `Välj känslor stänger Stunden-notisen (NOT-11, NOT-20)`() {
         helper.postMoodReminder(Occasion.BEDTIME, bedtime)
 
-        helper.dismiss(ReminderLaunch.LogMood(Occasion.BEDTIME, feelings = true))
+        helper.dismiss(ReminderLaunch.LogMood(Occasion.BEDTIME))
 
         assertEquals(0, posted().size)
     }

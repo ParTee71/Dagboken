@@ -314,7 +314,7 @@ class DiaryComponentsTest {
     )
 
     @Test
-    fun `mående i steg - energi, känslor, stress och symptom, Spara på sista steget`() {
+    fun `mående i steg - känslor, energi, stress och symptom, Spara på sista steget`() {
         var saved = 0
         var energy by mutableIntStateOf(5)
         var feelings by mutableStateOf(emptyList<Feeling>())
@@ -322,13 +322,14 @@ class DiaryComponentsTest {
             StepwiseScreeningForm(energy, { energy = it }, feelings, { feelings = it }, 3, {}, symptoms, emptyList(), {}, onSave = { saved++ })
         }
         rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Energi").assert(state("5, Medel"))
+        rule.onNodeWithContentDescription("Glad").assertIsDisplayed()
         rule.onNodeWithText("Föregående").assertDoesNotExist()
-        rule.onNodeWithText("Nästa").performClick()
-        rule.onNodeWithText("Steg 2 av 4").assertIsDisplayed()
         rule.onNodeWithContentDescription("Lugn").performClick()
         rule.onNodeWithContentDescription("Tacksam").performClick()
         assertEquals(listOf(Feeling("calm", "grateful")), feelings)
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Steg 2 av 4").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Energi").assert(state("5, Medel"))
         rule.onNodeWithText("Nästa").performClick()
         rule.onNodeWithText("Steg 3 av 4").assertIsDisplayed()
         rule.onNodeWithContentDescription("Stress").assert(state("3, Lätt"))
@@ -352,13 +353,11 @@ class DiaryComponentsTest {
     }
 
     @Test
-    fun `mående i steg börjar på sitt startsteg (SCR-7)`() {
-        show {
-            val steps = rememberStepwiseScreeningState(symptoms, ScreeningStep.FEELINGS)
-            StepwiseScreeningForm(5, {}, emptyList(), {}, 3, {}, symptoms, emptyList(), {}, onSave = {}, state = steps)
-        }
-        rule.onNodeWithText("Steg 2 av 4").assertIsDisplayed()
+    fun `mående i steg börjar på första steget, känslorna (SCR-7)`() {
+        show { StepwiseScreeningForm(5, {}, emptyList(), {}, 3, {}, symptoms, emptyList(), {}, onSave = {}) }
+        rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
         rule.onNodeWithContentDescription("Glad").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Energi").assertDoesNotExist()
     }
 
     @Test
