@@ -41,10 +41,10 @@ import se.partee71.ui.components.ButtonVariant
 import se.partee71.ui.theme.Spacing
 
 /**
- * Mående i steg (HEM-5, SCR-1, SCR-2, SCR-7): energi → känslor → stress → symptom, ett steg i taget med "Steg 1 av 4",
+ * Mående i steg (HEM-5, SCR-1, SCR-2, SCR-7): känslor → energi → stress → symptom, ett steg i taget med "Steg 1 av 4",
  * stegprickar och Föregående/Nästa; sista steget har Spara. Stegen är en lista ([ScreeningStep], ur
- * [rememberStepwiseScreeningState]): symptomsteget finns bara när det finns [symptomOptions], och formuläret kan börja
- * på ett annat steg än energin (`initialStep`). Används i arket bakom "Logga nu"; reglagen är [ValueSlider] (energi:
+ * [rememberStepwiseScreeningState]): symptomsteget finns bara när det finns [symptomOptions]; formuläret börjar alltid på
+ * första steget, känslorna. Används i arket bakom "Logga nu"; reglagen är [ValueSlider] (energi:
  * högre är bättre, stress: högre är sämre), känslorna [FeelingPicker] (inget val är ett giltigt svar) och symptomen
  * [SymptomLogCard]. Stegen går också att svepa mellan.
  *
@@ -101,7 +101,7 @@ fun StepwiseScreeningForm(
 }
 
 /** Ett steg i [StepwiseScreeningForm], i formulärets ordning. */
-enum class ScreeningStep { ENERGY, FEELINGS, STRESS, SYMPTOMS }
+enum class ScreeningStep { FEELINGS, ENERGY, STRESS, SYMPTOMS }
 
 /** Stegen i [StepwiseScreeningForm]: sidan och steglistan, delat mellan formuläret och dess knapprad. */
 @Stable
@@ -110,20 +110,17 @@ class StepwiseScreeningState internal constructor(internal val pager: PagerState
     val steps: List<ScreeningStep> get() = list()
 }
 
-/** Stegen för ett formulär [withSymptoms] eller utan symptomsteget – energi, känslor, stress och sist symptomen. */
+/** Stegen för ett formulär [withSymptoms] eller utan symptomsteget – känslor, energi, stress och sist symptomen. */
 internal fun screeningSteps(withSymptoms: Boolean): List<ScreeningStep> = ScreeningStep.entries.filter { withSymptoms || it != ScreeningStep.SYMPTOMS }
 
 /**
  * Steglistan läses om vid varje komposition: laddas symptomlistan sent (3 → 4 steg) står formuläret kvar på steget
- * användaren är på. Formuläret börjar på [initialStep] (finns det inte – symptomen utan alternativ – på första steget).
+ * användaren är på.
  */
 @Composable
-internal fun rememberStepwiseScreeningState(
-    symptomOptions: List<Option>,
-    initialStep: ScreeningStep = ScreeningStep.ENERGY
-): StepwiseScreeningState {
+internal fun rememberStepwiseScreeningState(symptomOptions: List<Option>): StepwiseScreeningState {
     val steps by rememberUpdatedState(screeningSteps(symptomOptions.isNotEmpty()))
-    val pager = rememberPagerState(initialPage = steps.indexOf(initialStep).coerceAtLeast(0), pageCount = { steps.size })
+    val pager = rememberPagerState(pageCount = { steps.size })
     return remember(pager) { StepwiseScreeningState(pager) { steps } }
 }
 

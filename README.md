@@ -261,6 +261,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.9.4 | **Känslor först i måendearket.** Stegen går nu Känslor → Energi → Stress → Symptom, och Stundens "Välj känslor" öppnar arket på första steget i stället för att hoppa över energin. |
 | 4.9.3 | **android-ui 0.9.2:** rättningar i det delade UI-biblioteket – Ångra får sina 5 s från att meddelandet syns, menyn i redigeringen visas först när posten är läst, och några ovanliga krascher är borta. Utseendet är oförändrat. Uppdaterad läkemedelslista (2026-10-23). |
 | 4.9.2 | **Vid behov markeras direkt:** chippet visar "från HH:MM" så fort dosen loggats, inte först vid nästa hela minut (FAV-13). |
 | 4.9.1 | **Stunden börjar om rätt:** kommer en ny Stunden medan en redan är öppen räknas pausen om från början för den nya, och Välj känslor väntar tills den är klar (NOT-20). |

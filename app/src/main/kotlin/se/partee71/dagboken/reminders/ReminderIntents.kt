@@ -75,10 +75,10 @@ data class MomentLaunch(
     val takeover: Boolean = false
 ) {
     /**
-     * "Välj känslor" (NOT-20, SCR-7): `MainActivity` (explicit) på Idag med tillfällets måendeark på känslosteget –
-     * samma väg som "Logga nu" ([ReminderLaunch.LogMood] med `feelings`), så att notisen stängs när appen öppnas.
+     * "Välj känslor" (NOT-20, SCR-7): `MainActivity` (explicit) på Idag med tillfällets måendeark, som öppnas på första
+     * steget (känslorna) – samma väg som "Logga nu" ([ReminderLaunch.LogMood]), så att notisen stängs när appen öppnas.
      */
-    fun feelingsIntent(context: Context): Intent = openAppIntent(context, ReminderLaunch.MOOD_FEELINGS).putExtra(ReminderIntents.EXTRA_OCCASION, occasion.wire)
+    fun moodIntent(context: Context): Intent = openAppIntent(context, ReminderLaunch.MOOD).putExtra(ReminderIntents.EXTRA_OCCASION, occasion.wire)
 
     /** Lägger värdena som extras på [intent] – samma nycklar som [from] läser. */
     fun putInto(intent: Intent): Intent = intent
@@ -118,11 +118,8 @@ sealed interface ReminderLaunch {
     /** Idag (NOT-9). */
     data object Today : ReminderLaunch
 
-    /**
-     * Idag med måendearket för [occasion] öppet ("Logga nu", NOT-11) – med [feelings] på känslosteget (SCR-7), som
-     * Stundens "Välj känslor" (NOT-20).
-     */
-    data class LogMood(val occasion: Occasion, val feelings: Boolean = false) : ReminderLaunch
+    /** Idag med måendearket för [occasion] öppet ("Logga nu", NOT-11; Stundens "Välj känslor", NOT-20). */
+    data class LogMood(val occasion: Occasion) : ReminderLaunch
 
     /** Fliken Mediciner (periodslutet, NOT-12). */
     data object Medicines : ReminderLaunch
@@ -130,7 +127,7 @@ sealed interface ReminderLaunch {
     companion object {
         internal const val TODAY = "today"
         internal const val MOOD = "mood"
-        internal const val MOOD_FEELINGS = "mood_feelings"
+        private const val MOOD_FEELINGS = "mood_feelings" // läses bara: notiser som lades före 4.9.4; skrivs aldrig
         internal const val MEDICINES = "medicines"
 
         /**
@@ -163,10 +160,10 @@ sealed interface ReminderLaunch {
         /** Det [save] sparade, eller `null`. */
         fun restore(state: Bundle?): ReminderLaunch? = state?.let { parse(it.getString(ReminderIntents.EXTRA_OPEN), it.getString(ReminderIntents.EXTRA_OCCASION)) }
 
-        /** Bara kända värden; ett okänt tillfälle för "Logga nu" (eller "Välj känslor") öppnar Idag. */
+        /** Bara kända värden; ett okänt tillfälle för "Logga nu" öppnar Idag. */
         private fun parse(open: String?, occasion: String?): ReminderLaunch? = when (open) {
             TODAY -> Today
-            MOOD, MOOD_FEELINGS -> Occasion.entries.firstOrNull { it.wire == occasion }?.let { LogMood(it, feelings = open == MOOD_FEELINGS) } ?: Today
+            MOOD, MOOD_FEELINGS -> Occasion.entries.firstOrNull { it.wire == occasion }?.let { LogMood(it) } ?: Today
             MEDICINES -> Medicines
             else -> null
         }
@@ -174,7 +171,7 @@ sealed interface ReminderLaunch {
         private val ReminderLaunch.open: String
             get() = when (this) {
                 Today -> TODAY
-                is LogMood -> if (feelings) MOOD_FEELINGS else MOOD
+                is LogMood -> MOOD
                 Medicines -> MEDICINES
             }
     }

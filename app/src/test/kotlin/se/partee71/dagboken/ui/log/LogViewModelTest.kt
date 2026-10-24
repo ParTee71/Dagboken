@@ -38,7 +38,6 @@ import se.partee71.dagboken.data.repository.DefaultScreeningRepository
 import se.partee71.dagboken.data.repository.DefaultSettingsRepository
 import se.partee71.dagboken.testing.MainDispatcherRule
 import se.partee71.dagboken.ui.common.SelectedDay
-import se.partee71.dagboken.ui.components.ScreeningStep
 
 /**
  * Plusknappens Mående (HEM-8b, NAV-10, SCR-1, SCR-3, SCR-6) och Dagbokens måendepost (HIST-3) mot `FakeCollection`
@@ -163,13 +162,10 @@ class LogViewModelTest {
     }
 
     @Test
-    fun `Logga nu kan öppna arket på ett givet steg (SCR-7)`() = runTest(main.dispatcher) {
+    fun `Logga nu öppnar arket för tillfället, utan eget startsteg (SCR-7)`() = runTest(main.dispatcher) {
         val vm = started()
-        vm.onEvent(LogEvent.LogScreening(Occasion.LUNCH, null, null, ScreeningStep.FEELINGS))
-        assertEquals(ScreeningSheetInfo(Occasion.LUNCH, null, ScreeningStep.FEELINGS), assertNotNull(vm.screening.value).context)
-        vm.onEvent(LogEvent.CloseScreening)
         vm.onEvent(LogEvent.LogScreening(Occasion.LUNCH, null, null))
-        assertEquals(ScreeningStep.ENERGY, assertNotNull(vm.screening.value).context.initialStep, "standard: energin först")
+        assertEquals(ScreeningSheetInfo(Occasion.LUNCH, null), assertNotNull(vm.screening.value).context)
     }
 
     @Test

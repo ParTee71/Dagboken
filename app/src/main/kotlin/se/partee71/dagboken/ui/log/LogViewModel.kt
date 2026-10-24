@@ -45,7 +45,6 @@ import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.SelectedDay
 import se.partee71.dagboken.ui.common.minutes
 import se.partee71.dagboken.ui.common.screenSharing
-import se.partee71.dagboken.ui.components.ScreeningStep
 
 /**
  * Plusknappens tillfällesväljare (HEM-8b, NAV-10): [date] är dagen som loggas, [isToday] om det är idag, och
@@ -93,13 +92,12 @@ sealed interface LogEvent {
 
     /**
      * "Logga nu" eller ett ologgat tillfälle på Idag (HEM-5, SCR-6): en ny logg för [occasion] på [date] (`null` = idag,
-     * då klockslaget nu), en tidigare dag på påminnelsens tid [reminder]; formuläret börjar på [initialStep] (SCR-7).
+     * då klockslaget nu), en tidigare dag på påminnelsens tid [reminder].
      */
     data class LogScreening(
         val occasion: Occasion,
         val date: LocalDate?,
-        val reminder: LocalTime?,
-        val initialStep: ScreeningStep = ScreeningStep.ENERGY
+        val reminder: LocalTime?
     ) : LogEvent
 
     /** En loggad måendepost på Idag eller i Dagbok: arket med loggen för ändring (HEM-5, HIST-3, SCR-1). */
@@ -245,7 +243,7 @@ class LogViewModel @Inject constructor(
                 sheet.log(event.state.occasion, target.date, event.state.time)
             }
 
-            is LogEvent.LogScreening -> sheet.log(event.occasion, event.date, event.reminder, event.initialStep)
+            is LogEvent.LogScreening -> sheet.log(event.occasion, event.date, event.reminder)
 
             is LogEvent.EditScreening -> sheet.edit(event.screening)
 
