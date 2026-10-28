@@ -43,7 +43,7 @@ class MomentActivity : ComponentActivity() {
         setShowWhenLocked(true)
         setTurnScreenOn(true)
         if (!show(intent)) return
-        setDagbokenContent(theme.theme) {
+        setDagbokenContent(theme.theme, lightSystemBarIcons = true) {
             val current by launch.collectAsStateWithLifecycle()
             current?.let { moment ->
                 MomentRoute(

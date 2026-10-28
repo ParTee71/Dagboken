@@ -92,6 +92,11 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
   klara byter rubriken till "Allt klart för idag", framstegsraden blir solgul, `Confetti` faller
   **en gång** per dag och ett grönt sammanfattningskort (`DayDoneCard`) visar snittenergi,
   jämförelse med igår och dagar i rad.
+- **Stundens kvällston** (NOT-20, #391): Stundens helskärm har en egen mörk solnedgångston som inte följer
+  appens ljusa/mörka tema – färgerna är `AppColors.moment` (`MomentColors`), knapparna får dem genom
+  `DagbokenTheme(darkTheme = true)` runt skärmen, och systemfältens ikoner är alltid ljusa. Landskapet är
+  `SunsetBreathing` (sol som andas i 4-4-takt, långsamma kullar); text ligger på kullarna med ≥ 4,5:1.
+  Det är det enda stället där ett helt utseende avviker från temat – nya skärmar följer temat.
 - Skärmbyten: samma rörelse överallt, definierad en gång i `navigation/Transitions`.
 - Rörelse förstärker och blockerar **aldrig** – inga väntetider för att se en animation, och
   systemets "ta bort animationer" respekteras.
