@@ -31,7 +31,7 @@ data class ScreeningSheetInfo(val occasion: Occasion?, val date: LocalDate?)
 /**
  * Måendearket (HEM-5, HEM-8b, SCR-1, SCR-2, SCR-6) – en gång för de två ställen som öppnar det: Idags Mående-kort och
  * plusknappens tillfällesväljare (och Dagbokens måendepost). Formuläret är den delade [EditorSheet]; sparat →
- * [onSaved] (meddelandet "Mående sparat", SCR-3). [scope] är ViewModelns och [sharing] hur symptomlistan följs.
+ * klart-läge i arket (SCR-3), inget meddelande. [scope] är ViewModelns och [sharing] hur symptomlistan följs.
  */
 class ScreeningSheet(
     scope: CoroutineScope,
@@ -39,8 +39,7 @@ class ScreeningSheet(
     options: OptionsRepository,
     private val clock: Clock,
     private val zone: Provider<TimeZone>,
-    sharing: SharingStarted,
-    onSaved: () -> Unit
+    sharing: SharingStarted
 ) {
     /**
      * Symptomlistan (Listor) för arkets val (SCR-2) – följs medan arket är öppet, så att en sen lista ger
@@ -48,7 +47,7 @@ class ScreeningSheet(
      */
     val symptomOptions: StateFlow<List<Option>> = options.choices(OptionKind.SYMPTOM, scope, sharing)
 
-    private val sheet = EditorSheet<Screening, ScreeningSheetInfo>(scope, onSaved)
+    private val sheet = EditorSheet<Screening, ScreeningSheetInfo>(scope)
 
     /** Arket när det är öppet. */
     val current: StateFlow<EditorSheetState<Screening, ScreeningSheetInfo>?> = sheet.current

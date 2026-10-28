@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
@@ -850,7 +851,11 @@ class TodayScreenTest {
         val events = mutableListOf<LogEvent>()
         val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
         showFull(screening = sheet, onScreening = { events += it })
-        rule.runOnIdle { sheet.saved() }
+        rule.runOnIdle {
+            sheet.saved()
+            sheet.hide()
+        }
+        rule.mainClock.advanceTimeBy(2_000)
         rule.waitForIdle()
         assertEquals(LogEvent.CloseScreening, events.last())
     }
@@ -937,6 +942,63 @@ class TodayScreenTest {
         repeat(3) { rule.onNodeWithText("Nästa").performClick() }
         rule.onNodeWithText("Spara").assertIsNotEnabled()
         rule.onNodeWithText(ApplicationProvider.getApplicationContext<Context>().getString(DataError.PermissionDenied.toMessage())).assertIsDisplayed()
+    }
+
+    @Test
+    fun `sparat visar Sparat i knappraden, utan meddelande, och döljer sedan arket efter tiden (SCR-1, SCR-3, NFR-21)`() {
+        val events = mutableListOf<LogEvent>()
+        val sheet = sheet(breakfast, breakfast)
+        showFull(screening = sheet, onScreening = { events += it })
+        sheet.editor.update { it.copy(stress = 6) }
+        repeat(3) { rule.onNodeWithText("Nästa").performClick() }
+        rule.onNodeWithText("Spara").assertIsDisplayed()
+        rule.mainClock.autoAdvance = false
+        rule.runOnIdle { sheet.saved() }
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+        rule.onNodeWithText("Sparat").assertIsDisplayed()
+        rule.onNodeWithText("Spara").assertDoesNotExist()
+        rule.onNodeWithText("Föregående").assertIsNotEnabled()
+        rule.onNodeWithText("Mående sparat").assertDoesNotExist()
+        rule.mainClock.advanceTimeBy(1_000)
+        assertTrue(events.none { it == LogEvent.CloseScreening }, "arket står kvar tills tiden gått (EditorSheet.hiding)")
+        rule.runOnIdle { sheet.hide() }
+        rule.mainClock.advanceTimeBy(2_000)
+        rule.waitForIdle()
+        assertTrue(events.contains(LogEvent.CloseScreening), "arket stängs efter tiden")
+    }
+
+    @Test
+    fun `klart-läget låser formuläret och knappen är ren status (NFR-21)`() {
+        val events = mutableListOf<LogEvent>()
+        val sheet = sheet(breakfast, breakfast)
+        showFull(screening = sheet, onScreening = { events += it })
+        rule.mainClock.autoAdvance = false
+        rule.runOnIdle { sheet.saved() }
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+        events.clear()
+        rule.onNodeWithContentDescription("Rädd").performTouchInput { click() }
+        rule.onNodeWithText("Sparat").performTouchInput { click() }
+        rule.mainClock.advanceTimeByFrame()
+        assertTrue(events.isEmpty(), "inmatning och tryck på Sparat ger inga händelser: $events")
+        rule.onNodeWithText("Sparat").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+    }
+
+    @Test
+    fun `bakåt under klart-läget stänger arket direkt (SCR-1)`() {
+        val events = mutableListOf<LogEvent>()
+        val sheet = sheet(breakfast, breakfast)
+        showFull(screening = sheet, onScreening = { events += it })
+        rule.mainClock.autoAdvance = false
+        rule.runOnIdle { sheet.saved() }
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+        rule.onNodeWithText("Sparat").assertIsDisplayed()
+        Espresso.pressBack()
+        rule.mainClock.advanceTimeBy(500)
+        rule.waitForIdle()
+        assertTrue(events.contains(LogEvent.CloseScreening), "bakåt stänger direkt, utan att vänta ut tiden")
     }
 
     @Test

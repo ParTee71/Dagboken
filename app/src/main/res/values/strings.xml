@@ -28,6 +28,7 @@
 
     <!-- Återkommande texter – används av ramarna och komponenterna, en gång (regel 4) -->
     <string name="save">Spara</string>
+    <string name="saved">Sparat</string>
     <string name="cancel">Avbryt</string>
     <string name="ok">OK</string>
     <string name="back">Tillbaka</string>

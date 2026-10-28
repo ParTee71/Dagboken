@@ -72,7 +72,6 @@ fun AppNavigation(
     logViewModel: LogViewModel = hiltViewModel()
 ) {
     val sync by syncViewModel.state.collectAsStateWithLifecycle()
-    val saved by logViewModel.notice.collectAsStateWithLifecycle()
     val backStack = rememberAppBackStack()
     val activity = LocalActivity.current
     var sheet by rememberSaveable { mutableStateOf<RootSheet?>(null) }
@@ -94,8 +93,6 @@ fun AppNavigation(
         sync = sync,
         onSyncEvent = syncViewModel::onEvent,
         onLog = { sheet = RootSheet.Log },
-        message = if (saved) stringResource(R.string.today_screening_saved) else null,
-        onMessageShown = { logViewModel.onEvent(LogEvent.NoticeShown) },
         // NAV-9: systemets tillbaka från en underskärm i inställningsarket öppnar arket igen, som pilen.
         onPopped = { key -> if (key.isSettingsPage) sheet = RootSheet.Account }
     )

@@ -38,7 +38,6 @@ import se.partee71.ui.components.ErrorSnackbar
 import se.partee71.ui.components.FloatingToolbarClearance
 import se.partee71.ui.components.LocalBottomClearance
 import se.partee71.ui.components.LocalTopBarStatus
-import se.partee71.ui.components.MessageSnackbar
 import se.partee71.ui.components.NoBottomClearance
 import se.partee71.ui.components.ToolbarAction
 import se.partee71.ui.components.ToolbarItem
@@ -49,8 +48,7 @@ import se.partee71.ui.theme.Spacing
  * plusknappen (NAV-8, NAV-10) – som bara syns i en fliks rot (NAV-3). Skärmarna kommer från
  * [entryProvider] (`appEntries` i appen). [onLog] är plusknappen; utan den visas ingen.
  * [sync] ger synkindikatorn i varje skärms toppbar och meddelandet om en nekad skrivning
- * (NFR-22), i appens gemensamma meddelandeyta ovanför bottenraden – där också [message] visas (en bekräftelse från
- * ett ark ovanpå flikarna, t.ex. "Mående sparat" från plusknappen, SCR-3). [onPopped] får skärmen som systemets
+ * (NFR-22), i appens gemensamma meddelandeyta ovanför bottenraden. [onPopped] får skärmen som systemets
  * tillbaka stängde.
  */
 @Composable
@@ -62,8 +60,6 @@ fun AppNavHost(
     sync: SyncUiState = SyncUiState(),
     onSyncEvent: (SyncEvent) -> Unit = {},
     onLog: (() -> Unit)? = null,
-    message: String? = null,
-    onMessageShown: () -> Unit = {},
     onPopped: (AppKey) -> Unit = {}
 ) {
     val toolbar = toolbarItems()
@@ -84,7 +80,6 @@ fun AppNavHost(
     // Ett fel i taget från synkläget; samma nekade skrivning blir samma meddelande tills det visats.
     val writeError = remember(sync.writeError) { sync.writeError?.let(AppErrors::map) }
     ErrorSnackbar(writeError, messages, R.string.sync_write_rejected, SnackbarDuration.Long) { onSyncEvent(SyncEvent.WriteErrorShown) }
-    MessageSnackbar(message, messages, onShown = onMessageShown)
     Box(modifier.fillMaxSize()) {
         CompositionLocalProvider(LocalBottomClearance provides clearance, LocalTopBarStatus provides remember(indicator) { syncStatus(indicator) }) {
             NavDisplay(

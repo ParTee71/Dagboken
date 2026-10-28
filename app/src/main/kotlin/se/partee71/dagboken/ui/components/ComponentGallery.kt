@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -425,6 +426,13 @@ private fun Diary() {
             energy, { energy = it }, screeningFeelings, { screeningFeelings = it }, stress, { stress = it },
             GALLERY_SYMPTOMS, screeningSymptoms, { screeningSymptoms = it }, onSave = {},
         )
+    }
+    Label("StepwiseScreeningNavigation – sista steget, och klart-läge (NFR-21)")
+    val navSteps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS)
+    LaunchedEffect(Unit) { navSteps.pager.scrollToPage(navSteps.steps.lastIndex) }
+    AppCard {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { StepwiseScreeningNavigation(navSteps, {}) }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { StepwiseScreeningNavigation(navSteps, {}, done = true) }
     }
     Label("FeelingWheel")
     var wheel by remember { mutableStateOf(setOf("calm")) }

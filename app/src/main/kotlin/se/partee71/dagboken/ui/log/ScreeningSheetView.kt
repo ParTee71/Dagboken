@@ -3,6 +3,7 @@ package se.partee71.dagboken.ui.log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.partee71.dagboken.R
@@ -12,6 +13,7 @@ import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.EditorSheetState
+import se.partee71.dagboken.ui.common.blockInput
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.FeelingExtras
 import se.partee71.dagboken.ui.components.StepwiseScreeningForm
@@ -25,7 +27,7 @@ import se.partee71.ui.components.AppBottomSheet
  * också när skärmen bakom laddar om. Symptomvalen följer [symptomOptions] medan arket är öppet – listans aktiva och
  * de arkiverade som loggen redan har; "Övrigt" får fritext. Osparade ändringar – eller en ny logg vars sparning
  * misslyckats – frågar "Släng ändringar?" innan arket stängs, och medan det sparas går det inte att stänga
- * (`canDismiss` läser formulärets aktuella läge, NFR-10); ett skrivfel visas i arket. Sparat → arket döljs
+ * (`canDismiss` läser formulärets aktuella läge, NFR-10); ett skrivfel visas i arket. Sparat → klart-läget ("Sparat" i knappraden, SCR-3) en kort stund, sedan döljs arket
  * animerat och stängs. Stegknapparna står i arkets fasta knapprad (NFR-21), så att de syns också med utfällda symptom. Ett enda ark för Idag, plusknappen och Dagbok ([LogSheets], händelserna till `LogViewModel`).
  */
 @Composable
@@ -40,16 +42,19 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
     val title = info.date?.let { stringResource(R.string.today_screening_title_day_format, name, DateFormat.display(it)) } ?: name
     val choices = remember(symptomOptions, sheet.loaded) { symptomChoices(symptomOptions, sheet.loaded?.symptoms.orEmpty()) }
     val steps = rememberStepwiseScreeningState(choices)
+    val hiding by sheet.hiding.collectAsStateWithLifecycle()
+    val savedText = stringResource(R.string.today_screening_saved)
     AppBottomSheet(
         title,
         onDismiss = { onEvent(LogEvent.CloseScreening) },
         error = error,
         dirty = unsaved,
         canDismiss = sheet::canDismiss,
-        hide = closing,
-        footer = { StepwiseScreeningNavigation(steps, { onEvent(LogEvent.SaveScreening) }, state.canSave, state.saving) }
+        hide = hiding,
+        footer = { StepwiseScreeningNavigation(steps, { onEvent(LogEvent.SaveScreening) }, state.canSave, state.saving, done = closing, doneAnnouncement = savedText) }
     ) {
         StepwiseScreeningForm(
+            modifier = Modifier.blockInput(closing),
             energy = edited.energy,
             onEnergyChange = { onEvent(LogEvent.ChangeEnergy(it)) },
             feelings = edited.feelings,
