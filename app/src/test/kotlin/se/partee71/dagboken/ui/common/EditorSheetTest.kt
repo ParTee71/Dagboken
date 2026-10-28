@@ -90,6 +90,25 @@ class EditorSheetTest {
     }
 
     @Test
+    fun `under klart-läget ignoreras ändringar, och en ny post som sparats efter ett sparfel är inte osparad`() = runTest(main.dispatcher) {
+        val sheet = backgroundScope.sheet()
+        sheet.open(null, Form("ny"), "")
+        val open = sheet.shown
+        sheet.save { _, _ -> Result.failure(DataError.Offline) }
+        runCurrent()
+        assertTrue(open.unsaved.value)
+        sheet.save { _, _ -> Result.success(Unit) }
+        runCurrent()
+        runCurrent()
+        assertTrue(open.closing.value)
+        assertFalse(open.unsaved.value, "bakåt i klart-läget frågar inte Släng ändringar")
+        sheet.update { it.copy(count = 5) }
+        runCurrent()
+        assertEquals(Form("ny"), open.editor.value, "en ändring under klart-läget tappas inte tyst – den ignoreras")
+        assertFalse(open.unsaved.value)
+    }
+
+    @Test
     fun `en ny post med sparfel förblir osparad tills den sparats eller slängts – också ändrad fram och tillbaka`() = runTest(main.dispatcher) {
         val sheet = backgroundScope.sheet()
         sheet.open(null, Form("ny"), "")

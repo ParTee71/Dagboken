@@ -58,6 +58,7 @@ class EditorSheetState<T, C> internal constructor(
     }
 
     internal fun saved() {
+        failedNew.value = false
         _closing.value = true
     }
 }
@@ -110,7 +111,7 @@ class EditorSheet<T, C>(private val scope: CoroutineScope) {
      */
     fun update(vararg fields: String, transform: (T) -> T) {
         val sheet = _current.value ?: return
-        if (sheet.editor.state.value.saving) return
+        if (sheet.editor.state.value.saving || sheet.closing.value) return
         sheet.showError(null)
         sheet.editor.update(*fields, transform = transform)
     }
