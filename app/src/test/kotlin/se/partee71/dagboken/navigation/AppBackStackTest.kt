@@ -93,4 +93,18 @@ class AppBackStackTest {
         assertEquals(listOf(TodayKey, TrendsKey), stack.entries)
         assertEquals(TrendsKey, stack.currentTab)
     }
+
+    @Test
+    fun `en stängare kör sitt efteråt bara när skärmen stängdes`() {
+        val stack = AppBackStack()
+        stack.push(ThemeKey)
+        var after = 0
+        val close = stack.closer(ThemeKey) { after++ }
+
+        close()
+        close()
+
+        assertEquals(listOf(TodayKey), stack.entries)
+        assertEquals(1, after)
+    }
 }

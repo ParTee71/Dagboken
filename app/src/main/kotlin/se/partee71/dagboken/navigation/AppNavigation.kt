@@ -82,7 +82,8 @@ fun AppNavigation(
             backStack,
             account = { currentAccount.value },
             onAccount = { sheet = RootSheet.Account },
-            onScreening = logViewModel::onEvent
+            onScreening = logViewModel::onEvent,
+            onSettingsClosed = { sheet = RootSheet.Account }
         )
     }
     AppNavHost(
@@ -94,7 +95,9 @@ fun AppNavigation(
         onSyncEvent = syncViewModel::onEvent,
         onLog = { sheet = RootSheet.Log },
         message = if (saved) stringResource(R.string.today_screening_saved) else null,
-        onMessageShown = { logViewModel.onEvent(LogEvent.NoticeShown) }
+        onMessageShown = { logViewModel.onEvent(LogEvent.NoticeShown) },
+        // NAV-9: systemets tillbaka från en underskärm i inställningsarket öppnar arket igen, som pilen.
+        onPopped = { key -> if (key.isSettingsPage) sheet = RootSheet.Account }
     )
     RootSheets(
         sheet,
@@ -168,6 +171,10 @@ val SettingsPage.key: AppKey
         SettingsPage.About -> AboutKey
     }
 
+/** Om [this] är en underskärm som en rad i inställningsarket öppnar – tillbaka därifrån öppnar arket igen (NAV-9). */
+val AppKey.isSettingsPage: Boolean
+    get() = SettingsPage.entries.any { it.key == this }
+
 /**
  * Det ark som är öppet; varje val stänger arket först. [onOpen] öppnar en underskärm på den aktuella fliken och
  * [onLog] tar emot ett val i plusknappens meny (NAV-10).
@@ -215,13 +222,14 @@ fun RootSheets(
  * till höger (NAV-9) med [account]s namn och foto; [onScreening] öppnar måendearket ovanpå flikarna – från Idag och
  * från en måendepost i Dagbok – ett enda ark (`LogViewModel`), och dosvalet från Mediciner (MEDF-6). En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
  * andra tryck inte stänger skärmen under. Inställningsarkets underskärmar läggs på den aktuella
- * flikens stack.
+ * flikens stack, och när de stängs anropas [onSettingsClosed] (arket öppnas igen, NAV-9).
  */
 fun appEntries(
     backStack: AppBackStack,
     account: () -> AuthUser?,
     onAccount: () -> Unit,
-    onScreening: (LogEvent) -> Unit = {}
+    onScreening: (LogEvent) -> Unit = {},
+    onSettingsClosed: () -> Unit = {}
 ): (AppKey) -> NavEntry<AppKey> = // Varje nyckel har sin skärm (AppKey är förseglad); en saknad är ett programfel.
     entryProvider(fallback = { key -> error("Ingen skärm för $key") }) {
         entry<TodayKey> {
@@ -273,17 +281,17 @@ fun appEntries(
         entry<PrescriptionEditKey> { key -> PrescriptionEditRoute(key.id, key.extend, onClose = backStack.closer(key)) }
         entry<PrnMedicineEditKey> { key -> PrnMedicineEditRoute(key.id, onClose = backStack.closer(key)) }
         entry<ComponentGalleryKey> { key -> ComponentGallery(onBack = backStack.closer(key)) }
-        entry<ProfileKey> { key -> ProfileRoute(onClose = backStack.closer(key)) }
-        entry<RemindersKey> { key -> RemindersRoute(onClose = backStack.closer(key)) }
-        entry<ThemeKey> { key -> ThemeRoute(onBack = backStack.closer(key)) }
+        entry<ProfileKey> { key -> ProfileRoute(onClose = backStack.closer(key, onSettingsClosed)) }
+        entry<RemindersKey> { key -> RemindersRoute(onClose = backStack.closer(key, onSettingsClosed)) }
+        entry<ThemeKey> { key -> ThemeRoute(onBack = backStack.closer(key, onSettingsClosed)) }
         entry<ListsKey> { key ->
             ListsRoute(
-                onBack = backStack.closer(key),
+                onBack = backStack.closer(key, onSettingsClosed),
                 onAdd = { kind -> backStack.push(OptionEditKey(kind)) },
                 onOpen = { option -> backStack.push(OptionEditKey(option.kind, option.id)) }
             )
         }
         entry<OptionEditKey> { key -> OptionEditRoute(key.kind, key.id, onClose = backStack.closer(key)) }
-        entry<ExportImportKey> { key -> ExportImportRoute(onBack = backStack.closer(key)) }
-        entry<AboutKey> { key -> AboutRoute(onBack = backStack.closer(key)) }
+        entry<ExportImportKey> { key -> ExportImportRoute(onBack = backStack.closer(key, onSettingsClosed)) }
+        entry<AboutKey> { key -> AboutRoute(onBack = backStack.closer(key, onSettingsClosed)) }
     }
