@@ -81,6 +81,11 @@ object AppTypography {
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography.titleLarge
 
+    /** Nedräkningen i Stunden (NOT-20): mindre och tunnare än [quantity]. */
+    val countdown: TextStyle
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal)
+
     /** Titeln på en listrad; avstavas i stället för att brytas mitt i ordet i smala kolumner. */
     val itemTitle: TextStyle
         @Composable @ReadOnlyComposable

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -539,10 +540,11 @@ private fun Today() {
     AppCard { OccasionRow("Lunch", OccasionStatus.NOT_LOGGED, {}, time = "12:00") }
     // Ett loggat tillfälle med känslor efter energi och stress (HEM-21).
     AppCard { GalleryOccasionRowWithFeelings() }
-    Label("BreathingCircle · med och utan rörelse")
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s), verticalAlignment = Alignment.CenterVertically) {
-        BreathingCircle(size = GALLERY_BREATHING)
-        BreathingCircle(reducedMotion = true, size = GALLERY_BREATHING)
+    Label("SunsetBreathing · med och utan rörelse, klar")
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+        SunsetBreathing(Modifier.size(GALLERY_SUNSET_WIDTH, GALLERY_SUNSET_HEIGHT))
+        SunsetBreathing(Modifier.size(GALLERY_SUNSET_WIDTH, GALLERY_SUNSET_HEIGHT), reducedMotion = true)
+        SunsetBreathing(Modifier.size(GALLERY_SUNSET_WIDTH, GALLERY_SUNSET_HEIGHT), active = false, reducedMotion = false)
     }
     Label("DayDoneCard")
     DayDoneCard(6.8, 0.5, 12, play = celebrate, onConfettiFinished = { celebrate = false })
@@ -555,7 +557,8 @@ private fun Today() {
 }
 
 private const val GALLERY_TOTAL = 9
-private val GALLERY_BREATHING = 150.dp
+private val GALLERY_SUNSET_WIDTH = 110.dp
+private val GALLERY_SUNSET_HEIGHT = 200.dp
 
 @Composable
 private fun Diagrams() {

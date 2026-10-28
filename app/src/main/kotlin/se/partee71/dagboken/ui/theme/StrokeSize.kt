@@ -8,5 +8,5 @@ import androidx.compose.ui.unit.dp
  */
 val TRACK_HEIGHT = 8.dp
 
-/** Ringen som markerar något valt eller ett mål (känslohjulens val, andningscirkelns mål) – samma bredd överallt. */
+/** Ringen som markerar något valt eller ett mål (känslohjulens val) – samma bredd överallt. */
 val RING_WIDTH = 2.dp

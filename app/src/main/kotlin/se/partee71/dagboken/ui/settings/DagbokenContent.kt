@@ -15,14 +15,14 @@ import se.partee71.dagboken.ui.theme.applySystemBars
 /**
  * Kant till kant och appens tema runt [content] – en gång för appens aktiviteter (`MainActivity`, `MomentActivity`):
  * temavalet i inställningsarket ([theme], SET-1: ljust, mörkt eller auto på klockslag; utloggad följer systemet) slår igenom
- * direkt, och statusradens ikoner följer det.
+ * direkt, och statusradens ikoner följer det – utom med [lightSystemBarIcons] (Stunden, NOT-20, på sin mörka kvällston), då de alltid är ljusa.
  */
-fun ComponentActivity.setDagbokenContent(theme: StateFlow<AppTheme>, content: @Composable () -> Unit) {
+fun ComponentActivity.setDagbokenContent(theme: StateFlow<AppTheme>, lightSystemBarIcons: Boolean = false, content: @Composable () -> Unit) {
     enableEdgeToEdge()
     setContent {
         val chosen by theme.collectAsStateWithLifecycle()
         val dark = chosen.isDark(isSystemInDarkTheme())
-        LaunchedEffect(dark) { applySystemBars(dark) }
+        LaunchedEffect(dark, lightSystemBarIcons) { applySystemBars(dark || lightSystemBarIcons) }
         DagbokenTheme(darkTheme = dark, content = content)
     }
 }

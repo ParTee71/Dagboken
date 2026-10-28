@@ -314,6 +314,20 @@ object AppColors {
         )
     )
 
+    /** Stundens solnedgångston (NOT-20) – oberoende av ljust och mörkt tema. */
+    val moment = MomentColors(
+        sky = listOf(Color(0xFF2E2A3A), Color(0xFF5A3F48), Color(0xFFA4614A), Color(0xFFD99A62)),
+        sunCore = Color(0xFFFCE2B0),
+        sunMid = Color(0xFFF5B65F),
+        sunEdge = Color(0xFFE8955A),
+        hillBack = Color(0xFF3A2A33),
+        hillFront = Color(0xFF2F2430),
+        text = Color(0xFFFBF1E2),
+        textMuted = Color(0xFFE3D2C4),
+        accent = Color(0xFFF5B65F),
+        onSun = Color(0xFF3A2A33)
+    )
+
     /** Färgerna man kan välja bland (`ColorSwatchPicker`) som hex – det som lagras. Harmonierar med paletten. */
     val SWATCH_HEX: List<String> = listOf(
         "#0B6E66",

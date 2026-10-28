@@ -401,7 +401,7 @@
 
     <!-- Stunden (NOT-20, NOT-21): helskärmen visar bara tillfälle, tid, text och fråga – inga hälsodata -->
     <string name="moment_header">Stunden · %1$s %2$s</string>
-    <string name="moment_intro">Lägg ner det du gör. Andas med cirkeln.</string>
+    <string name="moment_intro">Lägg ner det du gör. Andas med solen.</string>
     <string name="moment_remaining">%1$d:%2$02d kvar</string>
     <string name="moment_remaining_description">%1$s kvar</string>
     <string name="moment_done">Pausen är klar</string>
