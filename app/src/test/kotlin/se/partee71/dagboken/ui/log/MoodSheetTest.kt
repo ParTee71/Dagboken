@@ -94,7 +94,7 @@ class MoodSheetTest {
         factory.settings().upsert(Settings(reminders = ReminderSettings(screeningOccasions = Occasion.entries.map { OccasionReminder(it, enabled = true) }))).getOrThrow()
     }
 
-    /** Sparat: arket ska döljas (`closing`), och när skärmen dolt det stängs det (`CloseScreening`). */
+    /** Sparat: arket visar klart-läget (`closing`), och när skärmen dolt det stängs det (`CloseScreening`). */
     private fun LogViewModel.assertSavedAndClosed() {
         assertEquals(true, screening.value?.closing?.value, "arket döljs när det är sparat")
         onEvent(LogEvent.CloseScreening)
@@ -141,7 +141,6 @@ class MoodSheetTest {
         runCurrent()
 
         vm.assertSavedAndClosed()
-        assertTrue(vm.notice.value, "Mående sparat (SCR-3)")
         val saved = storedScreenings().single()
         assertEquals(new.id, saved.id)
         assertEquals(yesterday, saved.date)
@@ -198,7 +197,7 @@ class MoodSheetTest {
         assertFalse(sheet.editor.state.value.saving)
         vm.onEvent(LogEvent.ChangeEnergy(3))
         assertNull(sheet.error.value, "en ändring tar bort felet")
-        assertFalse(vm.notice.value)
+        assertFalse(sheet.closing.value, "ett sparfel ger inget klart-läge")
     }
 
     @Test
@@ -242,7 +241,6 @@ class MoodSheetTest {
         runCurrent()
         vm.assertSavedAndClosed()
         assertEquals(8, storedScreenings().single().energy)
-        assertTrue(vm.notice.value, "Mående sparat (SCR-3)")
 
         // Ett nytt ark efteråt öppnas som vanligt.
         vm.onEvent(LogEvent.LogScreening(Occasion.DINNER, null, null))

@@ -21,7 +21,8 @@ import se.partee71.ui.common.Validator
  * (`null` = nytt) och [context] – det arket visar utöver formuläret (t.ex. rubriken), taget när arket öppnades,
  * så att arket står sig också när skärmen bakom laddar om. [error] är ett skrivfel med samma text som i
  * `EntityEditScreen` (`EditorUiState.failure`), visat i arket (`AppBottomSheet(error)`). [closing] = sparat:
- * arket ska döljas (animerat, `AppBottomSheet(hide)`) och sedan stängas ([EditorSheet.close]).
+ * arket visar klart-läget (`StepwiseScreeningNavigation(done)`), döljs sedan animerat (`AppBottomSheet(hide)`, efter
+ * `SAVED_CONFIRMATION_MILLIS`) och stängs ([EditorSheet.close]).
  */
 class EditorSheetState<T, C> internal constructor(
     val editor: EditorState<T>,
@@ -68,12 +69,12 @@ class EditorSheetState<T, C> internal constructor(
  * - [open] öppnar ett ark; ett nytt objekt ([open] utan sparat värde) får sparas oförändrat (`saveUnchanged`).
  * - [save] markerar formuläret som sparande direkt (synkront), så att arket inte går att stänga eller ändra
  *   under sparningen ([EditorSheetState.canDismiss]); sparningen går fort (Firestore skriver i cachen).
- * - Sparat → [onSaved] och [EditorSheetState.closing]: skärmen döljer arket animerat, som andra stängningar,
- *   och stänger det sedan med [close]. Fel → [EditorSheetState.error] och arket står kvar; en ändring tar bort felet.
+ * - Sparat → [EditorSheetState.closing]: skärmen visar klart-läget en kort stund, döljer arket animerat, som andra
+ *   stängningar, och stänger det sedan med [close]. Fel → [EditorSheetState.error] och arket står kvar; en ändring tar bort felet.
  *
  * [scope] är ViewModelns; [current] är arket som visas, eller `null`.
  */
-class EditorSheet<T, C>(private val scope: CoroutineScope, private val onSaved: () -> Unit) {
+class EditorSheet<T, C>(private val scope: CoroutineScope) {
     private val _current = MutableStateFlow<EditorSheetState<T, C>?>(null)
     val current: StateFlow<EditorSheetState<T, C>?> = _current.asStateFlow()
 
@@ -93,7 +94,6 @@ class EditorSheet<T, C>(private val scope: CoroutineScope, private val onSaved: 
             sheet.editor.state.collect { state ->
                 if (state.done) {
                     sheet.editor.onDoneHandled()
-                    onSaved()
                     sheet.saved()
                 }
                 state.failure?.let { failure ->

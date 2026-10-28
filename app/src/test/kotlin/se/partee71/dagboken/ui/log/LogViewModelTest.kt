@@ -139,7 +139,7 @@ class LogViewModelTest {
     }
 
     @Test
-    fun `sparat stänger arket och visar Mående sparat (SCR-1, SCR-3)`() = runTest(main.dispatcher) {
+    fun `sparat ger klart-läge i arket och sedan stängning, utan meddelande (SCR-1, SCR-3)`() = runTest(main.dispatcher) {
         val vm = started()
         vm.onEvent(LogEvent.PickOccasion(null))
         runCurrent()
@@ -153,12 +153,11 @@ class LogViewModelTest {
         val saved = factory.screenings().getAll().getOrThrow().single()
         assertEquals(Triple(Occasion.BEDTIME, 7, 2), Triple(saved.occasion, saved.energy, saved.stress))
         assertEquals(listOf(Feeling("calm", "grateful"), Feeling("scared")), saved.feelings, "känslorna i ordning (SCR-7)")
-        assertTrue(vm.notice.value)
-        assertTrue(vm.screening.value!!.closing.value)
+        val sheet = vm.screening.value!!
+        assertTrue(sheet.closing.value, "klart-läget visas")
+        assertFalse(sheet.editor.state.value.saving)
         vm.onEvent(LogEvent.CloseScreening)
-        vm.onEvent(LogEvent.NoticeShown)
         assertNull(vm.screening.value)
-        assertFalse(vm.notice.value)
     }
 
     @Test

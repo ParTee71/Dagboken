@@ -26,10 +26,9 @@ class EditorSheetTest {
 
     private data class Form(val name: String, val count: Int = 0)
 
-    private var saved = 0
     private val written = mutableListOf<Pair<Form?, Form>>()
 
-    private fun CoroutineScope.sheet() = EditorSheet<Form, String>(this) { saved++ }
+    private fun CoroutineScope.sheet() = EditorSheet<Form, String>(this)
 
     private val EditorSheet<Form, String>.shown get() = checkNotNull(current.value)
 
@@ -64,7 +63,7 @@ class EditorSheetTest {
     }
 
     @Test
-    fun `sparat döljer och stänger arket och anropar onSaved, fel visas i arket som står kvar`() = runTest(main.dispatcher) {
+    fun `sparat ger klart-läge (closing), döljer och stänger arket, fel visas i arket som står kvar`() = runTest(main.dispatcher) {
         val sheet = backgroundScope.sheet()
         sheet.open(null, Form("ny"), "")
         val open = sheet.shown
@@ -73,7 +72,7 @@ class EditorSheetTest {
         assertSame(open, sheet.current.value)
         assertEquals(DataError.Offline, open.error.value?.dataError)
         assertEquals(AppErrors.map(DataError.Offline).message, open.error.value?.message, "samma text som EntityEditScreen")
-        assertEquals(0, saved)
+        assertFalse(open.closing.value, "ett sparfel ger inget klart-läge")
         assertNull(open.editor.state.value.failure, "arket har kvitterat sparfelet")
         sheet.update { it.copy(count = 1) }
         assertNull(open.error.value, "en ändring tar bort felet")
@@ -84,11 +83,9 @@ class EditorSheetTest {
         }
         runCurrent()
         sheet.assertClosing()
-        assertEquals(1, saved)
         assertFalse(open.editor.state.value.done, "arket har kvitterat att det är sparat")
         open.editor.update { it.copy(count = 2) }
         runCurrent()
-        assertEquals(1, saved, "fler tillstånd efter sparat anropar inte onSaved igen")
         assertEquals(listOf<Pair<Form?, Form>>(null to Form("ny", 1)), written)
     }
 
@@ -150,7 +147,6 @@ class EditorSheetTest {
         gate.complete(Unit)
         runCurrent()
         sheet.assertClosing()
-        assertEquals(1, saved)
     }
 
     @Test

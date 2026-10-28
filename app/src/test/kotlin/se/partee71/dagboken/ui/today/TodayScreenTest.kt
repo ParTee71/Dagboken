@@ -97,6 +97,7 @@ import se.partee71.dagboken.ui.SampleMedicines
 import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.toMessage
+import se.partee71.dagboken.ui.components.SAVED_CONFIRMATION_MILLIS
 import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.log.LogEvent
 import se.partee71.dagboken.ui.log.ScreeningSheetInfo
@@ -851,6 +852,7 @@ class TodayScreenTest {
         val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
         showFull(screening = sheet, onScreening = { events += it })
         rule.runOnIdle { sheet.saved() }
+        rule.mainClock.advanceTimeBy(SAVED_CONFIRMATION_MILLIS + 2_000)
         rule.waitForIdle()
         assertEquals(LogEvent.CloseScreening, events.last())
     }
@@ -937,6 +939,45 @@ class TodayScreenTest {
         repeat(3) { rule.onNodeWithText("Nästa").performClick() }
         rule.onNodeWithText("Spara").assertIsNotEnabled()
         rule.onNodeWithText(ApplicationProvider.getApplicationContext<Context>().getString(DataError.PermissionDenied.toMessage())).assertIsDisplayed()
+    }
+
+    @Test
+    fun `sparat visar Sparat i knappraden, utan meddelande, och döljer sedan arket efter tiden (SCR-1, SCR-3, NFR-21)`() {
+        val events = mutableListOf<LogEvent>()
+        val sheet = sheet(breakfast, breakfast)
+        showFull(screening = sheet, onScreening = { events += it })
+        sheet.editor.update { it.copy(stress = 6) }
+        repeat(3) { rule.onNodeWithText("Nästa").performClick() }
+        rule.onNodeWithText("Spara").assertIsDisplayed()
+        rule.mainClock.autoAdvance = false
+        rule.runOnIdle { sheet.saved() }
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+        rule.onNodeWithText("Sparat").assertIsDisplayed()
+        rule.onNodeWithText("Spara").assertDoesNotExist()
+        rule.onNodeWithText("Föregående").assertIsNotEnabled()
+        rule.onNodeWithText("Mående sparat").assertDoesNotExist()
+        rule.mainClock.advanceTimeBy(SAVED_CONFIRMATION_MILLIS - 100)
+        assertTrue(events.none { it == LogEvent.CloseScreening }, "arket står kvar under klart-läget")
+        rule.mainClock.advanceTimeBy(2_000)
+        rule.waitForIdle()
+        assertTrue(events.contains(LogEvent.CloseScreening), "arket stängs efter tiden")
+    }
+
+    @Test
+    fun `bakåt under klart-läget stänger arket direkt (SCR-1)`() {
+        val events = mutableListOf<LogEvent>()
+        val sheet = sheet(breakfast, breakfast)
+        showFull(screening = sheet, onScreening = { events += it })
+        rule.mainClock.autoAdvance = false
+        rule.runOnIdle { sheet.saved() }
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+        rule.onNodeWithText("Sparat").assertIsDisplayed()
+        Espresso.pressBack()
+        rule.mainClock.advanceTimeBy(500)
+        rule.waitForIdle()
+        assertTrue(events.contains(LogEvent.CloseScreening), "bakåt stänger direkt, utan att vänta ut tiden")
     }
 
     @Test

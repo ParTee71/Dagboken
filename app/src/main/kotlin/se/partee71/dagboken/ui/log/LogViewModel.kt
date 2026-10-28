@@ -122,8 +122,6 @@ sealed interface LogEvent {
 
     data object CloseScreening : LogEvent
 
-    data object NoticeShown : LogEvent
-
     /** "Dos" i plusknappens meny eller "Logga en dos i efterhand" i Mediciner: dosvalet mot [date] (`null` = idag). */
     data class PickDose(val date: LocalDate?) : LogEvent
 
@@ -138,7 +136,7 @@ sealed interface LogEvent {
  * Det plusknappen och Dagbok öppnar ovanpå flikarna (NAV-10, HIST-3): tillfällesväljaren och måendearket – samma
  * ark som på Idag ([ScreeningSheet]) – och dos- och sjukdomsvalen ([dosePicker], [illnessPicker]). [selectedDay] är
  * dagen Idag visar; formulären för aktivitet, händelse, dos, episod och incheckning är egna skärmar. Sparat →
- * "Mående sparat" ([notice], SCR-3).
+ * klart-läge i arket (SCR-3), inget meddelande.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -152,12 +150,7 @@ class LogViewModel @Inject constructor(
     private val clock: Clock,
     private val zone: Provider<TimeZone>
 ) : ViewModel() {
-    private val _notice = MutableStateFlow(false)
-
-    /** "Mående sparat" ska visas (SCR-3). */
-    val notice: StateFlow<Boolean> = _notice.asStateFlow()
-
-    private val sheet = ScreeningSheet(viewModelScope, screenings, options, clock, zone, screenSharing()) { _notice.value = true }
+    private val sheet = ScreeningSheet(viewModelScope, screenings, options, clock, zone, screenSharing())
 
     /** Måendearket när det är öppet. */
     val screening: StateFlow<EditorSheetState<Screening, ScreeningSheetInfo>?> = sheet.current
@@ -262,8 +255,6 @@ class LogViewModel @Inject constructor(
             LogEvent.SaveScreening -> sheet.save()
 
             LogEvent.CloseScreening -> sheet.close()
-
-            LogEvent.NoticeShown -> _notice.value = false
 
             is LogEvent.PickDose -> pickFor.value = PickFor.Dose(event.date?.takeUnless { it == today() })
 

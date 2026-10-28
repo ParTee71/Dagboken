@@ -24,7 +24,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
@@ -124,18 +127,35 @@ internal fun rememberStepwiseScreeningState(symptomOptions: List<Option>): Stepw
     return remember(pager) { StepwiseScreeningState(pager) { steps } }
 }
 
-/** Föregående/Nästa – och Spara på sista steget – för [StepwiseScreeningForm], t.ex. i `AppBottomSheet(footer)`. */
+/** Hur länge klart-läget ("Sparat", NFR-21) visas innan arket döljs. */
+const val SAVED_CONFIRMATION_MILLIS = 700L
+
+/**
+ * Föregående/Nästa – och Spara på sista steget – för [StepwiseScreeningForm], t.ex. i `AppBottomSheet(footer)`.
+ * [done] = klart-läget (NFR-21): Spara byts mot en fylld knapp med bock och [doneText], Föregående är nedtonad, och
+ * [doneAnnouncement] läses upp av skärmläsare (live region). Default `false` = vanliga knappraden.
+ */
 @Composable
-internal fun RowScope.StepwiseScreeningNavigation(state: StepwiseScreeningState, onSave: () -> Unit, saveEnabled: Boolean = true, saving: Boolean = false) {
+internal fun RowScope.StepwiseScreeningNavigation(
+    state: StepwiseScreeningState,
+    onSave: () -> Unit,
+    saveEnabled: Boolean = true,
+    saving: Boolean = false,
+    done: Boolean = false,
+    doneText: String = stringResource(R.string.saved),
+    doneAnnouncement: String = doneText
+) {
     val pager = state.pager
     val scope = rememberCoroutineScope()
     val go = { page: Int ->
         scope.launch { pager.animateScrollToPage(page) }
         Unit
     }
-    if (pager.currentPage > 0) AppButton(stringResource(R.string.previous), { go(pager.currentPage - 1) }, variant = ButtonVariant.Text)
+    if (pager.currentPage > 0) AppButton(stringResource(R.string.previous), { go(pager.currentPage - 1) }, variant = ButtonVariant.Text, enabled = !done)
     Spacer(Modifier.weight(1f))
-    if (pager.currentPage < state.steps.lastIndex) {
+    if (done) {
+        AppButton(doneText, {}, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, icon = R.drawable.ic_check, contentDescription = doneAnnouncement)
+    } else if (pager.currentPage < state.steps.lastIndex) {
         AppButton(stringResource(R.string.next), { go(pager.currentPage + 1) }, variant = ButtonVariant.Secondary)
     } else {
         AppButton(stringResource(R.string.save), onSave, enabled = saveEnabled, loading = saving)

@@ -95,6 +95,16 @@ class OverlayScreenshotTest {
         }
     }
 
+    /** Måendearkets knapprad i klart-läge: bock + "Sparat" i teal, Föregående nedtonad (NFR-21). */
+    @Test
+    fun `AppBottomSheet - klart-läge efter sparat`() = rule.captureScreenLightAndDark("AppBottomSheet_klart") {
+        val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS)
+        LaunchedEffect(Unit) { steps.pager.scrollToPage(steps.steps.lastIndex) }
+        AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepwiseScreeningNavigation(steps, {}, done = true) }) {
+            StepwiseScreeningForm(6, {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, otherOptionId = "ovrigt", state = steps, navigation = false)
+        }
+    }
+
     @Test
     fun `AppMenu - öppen`() = rule.captureScreenLightAndDark("AppMenu_oppen", open = { onNodeWithContentDescription("Fler val").clickWithoutRipple() }) {
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.TopEnd) { AppMenu(menu) }
