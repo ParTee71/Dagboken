@@ -104,8 +104,34 @@ class EditorSheetTest {
         assertFalse(open.unsaved.value, "bakåt i klart-läget frågar inte Släng ändringar")
         sheet.update { it.copy(count = 5) }
         runCurrent()
-        assertEquals(Form("ny"), open.editor.value, "en ändring under klart-läget tappas inte tyst – den ignoreras")
+        assertEquals(Form("ny"), open.editor.value, "EditorSheet ignorerar ändringar under klart-läget (vyn låser formuläret med blockInput)")
         assertFalse(open.unsaved.value)
+    }
+
+    @Test
+    fun `Spara under klart-läget sparar inte en andra gång, och arket döljs efter SAVED_CONFIRMATION_MILLIS`() = runTest(main.dispatcher) {
+        val sheet = backgroundScope.sheet()
+        sheet.open(null, Form("ny"), "")
+        val open = sheet.shown
+        val write: suspend (Form?, Form) -> Result<Unit> = { loaded, value ->
+            written += loaded to value
+            Result.success(Unit)
+        }
+        sheet.save(write)
+        runCurrent()
+        assertTrue(open.closing.value)
+        assertFalse(open.hiding.value, "klart-läget först")
+        sheet.save(write)
+        runCurrent()
+        assertEquals(1, written.size, "en ny post kan inte sparas två gånger")
+        testScheduler.advanceTimeBy(SAVED_CONFIRMATION_MILLIS - 1)
+        runCurrent()
+        assertFalse(open.hiding.value)
+        testScheduler.advanceTimeBy(2)
+        runCurrent()
+        assertTrue(open.hiding.value, "arket döljs när tiden gått")
+        sheet.close()
+        assertNull(sheet.current.value)
     }
 
     @Test

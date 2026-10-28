@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
@@ -97,7 +98,6 @@ import se.partee71.dagboken.ui.SampleMedicines
 import se.partee71.dagboken.ui.common.AppErrors
 import se.partee71.dagboken.ui.common.EditorSheetState
 import se.partee71.dagboken.ui.common.toMessage
-import se.partee71.dagboken.ui.components.SAVED_CONFIRMATION_MILLIS
 import se.partee71.dagboken.ui.log.CooldownPrompt
 import se.partee71.dagboken.ui.log.LogEvent
 import se.partee71.dagboken.ui.log.ScreeningSheetInfo
@@ -851,8 +851,11 @@ class TodayScreenTest {
         val events = mutableListOf<LogEvent>()
         val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
         showFull(screening = sheet, onScreening = { events += it })
-        rule.runOnIdle { sheet.saved() }
-        rule.mainClock.advanceTimeBy(SAVED_CONFIRMATION_MILLIS + 2_000)
+        rule.runOnIdle {
+            sheet.saved()
+            sheet.hide()
+        }
+        rule.mainClock.advanceTimeBy(2_000)
         rule.waitForIdle()
         assertEquals(LogEvent.CloseScreening, events.last())
     }
@@ -957,11 +960,29 @@ class TodayScreenTest {
         rule.onNodeWithText("Spara").assertDoesNotExist()
         rule.onNodeWithText("Föregående").assertIsNotEnabled()
         rule.onNodeWithText("Mående sparat").assertDoesNotExist()
-        rule.mainClock.advanceTimeBy(SAVED_CONFIRMATION_MILLIS - 100)
-        assertTrue(events.none { it == LogEvent.CloseScreening }, "arket står kvar under klart-läget")
+        rule.mainClock.advanceTimeBy(1_000)
+        assertTrue(events.none { it == LogEvent.CloseScreening }, "arket står kvar tills tiden gått (EditorSheet.hiding)")
+        rule.runOnIdle { sheet.hide() }
         rule.mainClock.advanceTimeBy(2_000)
         rule.waitForIdle()
         assertTrue(events.contains(LogEvent.CloseScreening), "arket stängs efter tiden")
+    }
+
+    @Test
+    fun `klart-läget låser formuläret och knappen är ren status (NFR-21)`() {
+        val events = mutableListOf<LogEvent>()
+        val sheet = sheet(breakfast, breakfast)
+        showFull(screening = sheet, onScreening = { events += it })
+        rule.mainClock.autoAdvance = false
+        rule.runOnIdle { sheet.saved() }
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+        events.clear()
+        rule.onNodeWithContentDescription("Rädd").performTouchInput { click() }
+        rule.onNodeWithText("Sparat").performTouchInput { click() }
+        rule.mainClock.advanceTimeByFrame()
+        assertTrue(events.isEmpty(), "inmatning och tryck på Sparat ger inga händelser: $events")
+        rule.onNodeWithText("Sparat").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
     }
 
     @Test

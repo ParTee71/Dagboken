@@ -3,6 +3,7 @@ package se.partee71.dagboken.ui.common
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,13 +17,17 @@ import se.partee71.ui.common.EditorState
 import se.partee71.ui.common.UiError
 import se.partee71.ui.common.Validator
 
+/** Hur länge klart-läget ("Sparat", NFR-21) visas innan arket döljs. */
+const val SAVED_CONFIRMATION_MILLIS = 700L
+
 /**
  * Ett öppet formulär i ett ark: formuläret ([editor], den delade [EditorState]), det sparade värdet [loaded]
  * (`null` = nytt) och [context] – det arket visar utöver formuläret (t.ex. rubriken), taget när arket öppnades,
  * så att arket står sig också när skärmen bakom laddar om. [error] är ett skrivfel med samma text som i
  * `EntityEditScreen` (`EditorUiState.failure`), visat i arket (`AppBottomSheet(error)`). [closing] = sparat:
- * arket visar klart-läget (`StepwiseScreeningNavigation(done)`), döljs sedan animerat (`AppBottomSheet(hide)`, efter
- * `SAVED_CONFIRMATION_MILLIS`) och stängs ([EditorSheet.close]).
+ * arket visar klart-läget (`StepwiseScreeningNavigation(done)`, formuläret låst med `blockInput`); efter
+ * [SAVED_CONFIRMATION_MILLIS] blir [hiding] sant och arket döljs animerat (`AppBottomSheet(hide)`) och stängs sedan
+ * ([EditorSheet.close]).
  */
 class EditorSheetState<T, C> internal constructor(
     val editor: EditorState<T>,
@@ -57,9 +62,16 @@ class EditorSheetState<T, C> internal constructor(
         if (error != null && loaded == null) failedNew.value = true
     }
 
+    private val _hiding = MutableStateFlow(false)
+    val hiding: StateFlow<Boolean> = _hiding.asStateFlow()
+
     internal fun saved() {
         failedNew.value = false
         _closing.value = true
+    }
+
+    internal fun hide() {
+        _hiding.value = true
     }
 }
 
@@ -70,8 +82,9 @@ class EditorSheetState<T, C> internal constructor(
  * - [open] öppnar ett ark; ett nytt objekt ([open] utan sparat värde) får sparas oförändrat (`saveUnchanged`).
  * - [save] markerar formuläret som sparande direkt (synkront), så att arket inte går att stänga eller ändra
  *   under sparningen ([EditorSheetState.canDismiss]); sparningen går fort (Firestore skriver i cachen).
- * - Sparat → [EditorSheetState.closing]: skärmen visar klart-läget en kort stund, döljer arket animerat, som andra
- *   stängningar, och stänger det sedan med [close]. Fel → [EditorSheetState.error] och arket står kvar; en ändring tar bort felet.
+ * - Sparat → [EditorSheetState.closing] (klart-läge; inga fler ändringar eller sparningar), efter
+ *   [SAVED_CONFIRMATION_MILLIS] [EditorSheetState.hiding]: skärmen döljer arket animerat, som andra stängningar,
+ *   och stänger det sedan med [close]. Fel → [EditorSheetState.error] och arket står kvar; en ändring tar bort felet.
  *
  * [scope] är ViewModelns; [current] är arket som visas, eller `null`.
  */
@@ -96,6 +109,10 @@ class EditorSheet<T, C>(private val scope: CoroutineScope) {
                 if (state.done) {
                     sheet.editor.onDoneHandled()
                     sheet.saved()
+                    launch {
+                        delay(SAVED_CONFIRMATION_MILLIS)
+                        sheet.hide()
+                    }
                 }
                 state.failure?.let { failure ->
                     sheet.editor.onFailureShown()
@@ -122,7 +139,7 @@ class EditorSheet<T, C>(private val scope: CoroutineScope) {
      */
     fun save(write: suspend (loaded: T?, value: T) -> Result<Unit>) {
         val sheet = _current.value ?: return
-        if (!sheet.editor.state.value.canSave) return
+        if (!sheet.editor.state.value.canSave || sheet.closing.value) return
         sheet.showError(null)
         scope.launch(start = CoroutineStart.UNDISPATCHED) { sheet.editor.save { write(sheet.loaded, it) } }
     }

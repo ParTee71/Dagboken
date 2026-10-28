@@ -28,6 +28,9 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import se.partee71.dagboken.R
@@ -127,9 +130,6 @@ internal fun rememberStepwiseScreeningState(symptomOptions: List<Option>): Stepw
     return remember(pager) { StepwiseScreeningState(pager) { steps } }
 }
 
-/** Hur länge klart-läget ("Sparat", NFR-21) visas innan arket döljs. */
-const val SAVED_CONFIRMATION_MILLIS = 700L
-
 /**
  * Föregående/Nästa – och Spara på sista steget – för [StepwiseScreeningForm], t.ex. i `AppBottomSheet(footer)`.
  * [done] = klart-läget (NFR-21): Spara byts mot en fylld knapp med bock och [doneText], Föregående är nedtonad, och
@@ -153,12 +153,24 @@ internal fun RowScope.StepwiseScreeningNavigation(
     }
     if (pager.currentPage > 0) AppButton(stringResource(R.string.previous), { go(pager.currentPage - 1) }, variant = ButtonVariant.Text, enabled = !done)
     Spacer(Modifier.weight(1f))
-    if (done) {
-        AppButton(doneText, {}, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, icon = R.drawable.ic_check, contentDescription = doneAnnouncement)
-    } else if (pager.currentPage < state.steps.lastIndex) {
-        AppButton(stringResource(R.string.next), { go(pager.currentPage + 1) }, variant = ButtonVariant.Secondary)
-    } else {
-        AppButton(stringResource(R.string.save), onSave, enabled = saveEnabled, loading = saving)
+    // En och samma live region över lägena: i klart-läget bär den "Sparat" (text) och bekräftelsen (stateDescription),
+    // och knappen under är ren status – ingen knapp för skärmläsare.
+    Box(
+        Modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+            if (done) {
+                text = AnnotatedString(doneText)
+                stateDescription = doneAnnouncement
+            }
+        }
+    ) {
+        if (done) {
+            AppButton(doneText, {}, Modifier.clearAndSetSemantics {}, icon = R.drawable.ic_check)
+        } else if (pager.currentPage < state.steps.lastIndex) {
+            AppButton(stringResource(R.string.next), { go(pager.currentPage + 1) }, variant = ButtonVariant.Secondary)
+        } else {
+            AppButton(stringResource(R.string.save), onSave, enabled = saveEnabled, loading = saving)
+        }
     }
 }
 

@@ -1,14 +1,11 @@
 package se.partee71.dagboken.ui.log
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.OTHER_SYMPTOM_ID
 import se.partee71.dagboken.core.engine.symptomChoices
@@ -16,9 +13,9 @@ import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.Screening
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.EditorSheetState
+import se.partee71.dagboken.ui.common.blockInput
 import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.components.FeelingExtras
-import se.partee71.dagboken.ui.components.SAVED_CONFIRMATION_MILLIS
 import se.partee71.dagboken.ui.components.StepwiseScreeningForm
 import se.partee71.dagboken.ui.components.StepwiseScreeningNavigation
 import se.partee71.dagboken.ui.components.rememberStepwiseScreeningState
@@ -45,14 +42,7 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
     val title = info.date?.let { stringResource(R.string.today_screening_title_day_format, name, DateFormat.display(it)) } ?: name
     val choices = remember(symptomOptions, sheet.loaded) { symptomChoices(symptomOptions, sheet.loaded?.symptoms.orEmpty()) }
     val steps = rememberStepwiseScreeningState(choices)
-    // Sparat: klart-läget en kort stund (NFR-21), sedan döljs arket animerat och stängs.
-    var hide by remember(sheet) { mutableStateOf(false) }
-    LaunchedEffect(closing) {
-        if (closing) {
-            delay(SAVED_CONFIRMATION_MILLIS)
-            hide = true
-        }
-    }
+    val hiding by sheet.hiding.collectAsStateWithLifecycle()
     val savedText = stringResource(R.string.today_screening_saved)
     AppBottomSheet(
         title,
@@ -60,10 +50,11 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
         error = error,
         dirty = unsaved,
         canDismiss = sheet::canDismiss,
-        hide = hide,
+        hide = hiding,
         footer = { StepwiseScreeningNavigation(steps, { onEvent(LogEvent.SaveScreening) }, state.canSave, state.saving, done = closing, doneAnnouncement = savedText) }
     ) {
         StepwiseScreeningForm(
+            modifier = Modifier.blockInput(closing),
             energy = edited.energy,
             onEnergyChange = { onEvent(LogEvent.ChangeEnergy(it)) },
             feelings = edited.feelings,
