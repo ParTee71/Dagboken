@@ -261,6 +261,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.9.5 | **Tillbaka till inställningarna.** Tillbakapilen på en inställningssida (Profil, Påminnelser, Tema, Listor, Export och import, Om Dagboken) öppnar inställningsarket igen i stället för att gå till fliken. |
 | 4.9.4 | **Känslor först i måendearket.** Stegen går nu Känslor → Energi → Stress → Symptom, och Stundens "Välj känslor" öppnar arket på första steget i stället för att hoppa över energin. |
 | 4.9.3 | **android-ui 0.9.2:** rättningar i det delade UI-biblioteket – Ångra får sina 5 s från att meddelandet syns, menyn i redigeringen visas först när posten är läst, och några ovanliga krascher är borta. Utseendet är oförändrat. Uppdaterad läkemedelslista (2026-10-23). |
 | 4.9.2 | **Vid behov markeras direkt:** chippet visar "från HH:MM" så fort dosen loggats, inte först vid nästa hela minut (FAV-13). |

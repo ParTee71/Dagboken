@@ -81,6 +81,11 @@ class AppNavigationTest {
     }
 
     @Test
+    fun `tillbaka från arkets underskärmar öppnar arket igen, inte från skärmarna under dem (NAV-9)`() {
+        assertEquals(SettingsPage.entries.map { it.key }, keys.filter { it.isSettingsPage })
+    }
+
+    @Test
     fun `nycklarna överlever processdöd`() {
         val backStack = AppBackStack()
         backStack.push(OptionEditKey(OptionKind.ACTIVITY, "activity-promenad-c78928"))

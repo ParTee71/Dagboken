@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation3.runtime.NavEntry
+import androidx.test.espresso.Espresso
 import kotlin.test.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -109,6 +110,21 @@ class AppNavHostTest {
         rule.runOnIdle { backStack.pop() }
         rule.runOnIdle { backStack.push(ComponentGalleryKey) }
         rule.onNodeWithText("ComponentGalleryKey: 0").assertIsDisplayed()
+    }
+
+    @Test
+    fun `systemets tillbaka berättar vilken skärm som stängdes (NAV-9)`() {
+        val popped = mutableListOf<AppKey>()
+        rule.setContent {
+            DagbokenTheme {
+                AppNavHost(backStack, { key -> NavEntry(key) { Text("Skärm: ${key::class.simpleName}") } }, onPopped = { popped += it })
+            }
+        }
+        rule.runOnIdle { backStack.push(ThemeKey) }
+        rule.onNodeWithText("Skärm: ThemeKey").assertIsDisplayed()
+        Espresso.pressBack()
+        rule.onNodeWithText("Skärm: TodayKey").assertIsDisplayed()
+        assertEquals(listOf<AppKey>(ThemeKey), popped)
     }
 
     @Test

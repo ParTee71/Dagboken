@@ -54,12 +54,10 @@ class AppBackStack internal constructor(current: TopLevelKey, stacks: Map<TopLev
      * själv. Ett andra anrop (dubbeltryck, eller "klar" efter "släng ändringar") stänger då
      * inte skärmen under.
      */
-    fun popIfTop(key: AppKey) {
-        if (entries.last() == key) pop()
-    }
+    fun popIfTop(key: AppKey): Boolean = entries.last() == key && pop()
 
-    /** [popIfTop] för [key] som återanrop – skärmens `onClose`/`onBack`. */
-    fun closer(key: AppKey): () -> Unit = { popIfTop(key) }
+    /** [popIfTop] för [key] som återanrop – skärmens `onClose`/`onBack`; [then] körs bara om skärmen stängdes. */
+    fun closer(key: AppKey, then: () -> Unit = {}): () -> Unit = { if (popIfTop(key)) then() }
 
     /** Går tillbaka ett steg; `false` om det inte finns något kvar (appen ska stängas). */
     fun pop(): Boolean {

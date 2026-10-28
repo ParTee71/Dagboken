@@ -50,7 +50,8 @@ import se.partee71.ui.theme.Spacing
  * [entryProvider] (`appEntries` i appen). [onLog] är plusknappen; utan den visas ingen.
  * [sync] ger synkindikatorn i varje skärms toppbar och meddelandet om en nekad skrivning
  * (NFR-22), i appens gemensamma meddelandeyta ovanför bottenraden – där också [message] visas (en bekräftelse från
- * ett ark ovanpå flikarna, t.ex. "Mående sparat" från plusknappen, SCR-3).
+ * ett ark ovanpå flikarna, t.ex. "Mående sparat" från plusknappen, SCR-3). [onPopped] får skärmen som systemets
+ * tillbaka stängde.
  */
 @Composable
 fun AppNavHost(
@@ -62,7 +63,8 @@ fun AppNavHost(
     onSyncEvent: (SyncEvent) -> Unit = {},
     onLog: (() -> Unit)? = null,
     message: String? = null,
-    onMessageShown: () -> Unit = {}
+    onMessageShown: () -> Unit = {},
+    onPopped: (AppKey) -> Unit = {}
 ) {
     val toolbar = toolbarItems()
     val logLabel = stringResource(R.string.log_menu_open)
@@ -87,7 +89,10 @@ fun AppNavHost(
         CompositionLocalProvider(LocalBottomClearance provides clearance, LocalTopBarStatus provides remember(indicator) { syncStatus(indicator) }) {
             NavDisplay(
                 backStack = backStack.entries,
-                onBack = { if (!backStack.pop()) onExit() },
+                onBack = {
+                    val top = backStack.entries.last()
+                    if (backStack.pop()) onPopped(top) else onExit()
+                },
                 entryDecorators = listOf(
                     rememberSaveableStateHolderNavEntryDecorator(rememberTabRootStateHolder()),
                     rememberViewModelStoreNavEntryDecorator()
