@@ -1,5 +1,8 @@
 package se.partee71.dagboken.ui.trends
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -45,6 +48,7 @@ import se.partee71.dagboken.core.engine.WatchMetric
 import se.partee71.dagboken.core.engine.computeFeelingStats
 import se.partee71.dagboken.core.engine.health.OptionalHealthMetric
 import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.time.datesBetween
@@ -171,6 +175,29 @@ class TrendsScreenTest {
     private val feelingsWeek = computeFeelingStats(feelingEntries).let { CardData.Feelings(week, it, it.alignTo(week)) }
     private val feelingsOpen = closed.with(TrendCard.FEELINGS, CardControls(expanded = true, range = TrendRange.SEVEN_DAYS), feelingsWeek)
     private val periodSentence = "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig. Stark har du knappt rört."
+
+    /**
+     * Samma vecka med styrkor och sju påhittade kommentarer (#396): Rädd › Orolig oftast stark, en kommentar från en
+     * aktivitet ("Promenad") och två på tisdagen.
+     */
+    private val noteTexts = listOf("Påhittad text ett.", "Påhittad text två.", "Påhittad text tre.", "Påhittad text fyra.", "Påhittad text fem.", "Påhittad text sex.", "Påhittad text sju.")
+    private val ratedEntries = feelingEntries.mapIndexed { i, e ->
+        val first = e.feelings.first()
+        val strength = when (first.core) {
+            "scared" -> FeelingStrength.STRONG
+            "calm" -> FeelingStrength.MILD
+            "glad" -> FeelingStrength.CLEAR
+            else -> null
+        }
+        e.copy(
+            strengths = strength?.let { mapOf(first.token to it) }.orEmpty(),
+            notes = noteTexts.getOrNull(feelingEntries.size - 1 - i)?.takeIf { i >= feelingEntries.size - noteTexts.size }?.let { mapOf(first.token to it) }.orEmpty(),
+            activityType = "promenad".takeIf { i == 8 },
+            occasion = e.occasion.takeIf { i != 8 }
+        )
+    }
+    private val feelingsRated = computeFeelingStats(ratedEntries).let { CardData.Feelings(week, it, it.alignTo(week), mapOf("promenad" to "Promenad")) }
+    private val ratedOpen = closed.with(TrendCard.FEELINGS, CardControls(expanded = true, range = TrendRange.SEVEN_DAYS), feelingsRated)
 
     private fun show(state: TrendsUiState, clock: ClockUiState? = null, onEvent: (TrendsEvent) -> Unit = {}) = rule.setContent { DagbokenTheme { TrendsScreen(state, onEvent, clock = clock) } }
 
@@ -505,12 +532,78 @@ class TrendsScreenTest {
         rule.onNodeWithText("ORDTRÄDET").assertDoesNotExist()
     }
 
+    @Test
+    fun `Känslor med styrka – Starkast i meningen, ordträdet med styrka och teckenförklaring (TRD-22)`() {
+        show(ratedOpen)
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasContentDescription("Starkast kändes Rädd › Orolig.", substring = true))
+        rule.onNodeWithContentDescription("Starkast kändes Rädd › Orolig.", substring = true).assertIsDisplayed()
+        list.performScrollToNode(hasText("Längden säger hur ofta, tonen hur starkt. Orden under stapeln är nyanserna du valt. Inga tal."))
+        rule.onNodeWithContentDescription("Rädd: orolig, osäker, oftast stark").assertExists()
+        rule.onNodeWithContentDescription("Tonen visar styrkan, från ingen styrka till stark").assertExists()
+        rule.onNodeWithText("Längden säger hur ofta, orden i stapeln är nyanserna du valt. Inga tal.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `Varför – fem kommentarer senaste först, Visa fler, och när från tillfälle eller aktivitet (TRD-24)`() {
+        val events = mutableListOf<TrendsEvent>()
+        show(ratedOpen) { events += it }
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("VARFÖR · DET DU SKREV OM DINA KÄNSLOR"))
+        rule.onNodeWithText("VARFÖR · DET DU SKREV OM DINA KÄNSLOR").assertIsDisplayed()
+        noteTexts.take(5).forEach { rule.onNodeWithText(it).assertExists() }
+        noteTexts.drop(5).forEach { rule.onNodeWithText(it).assertDoesNotExist() }
+        rule.onNodeWithText("tis 6 okt · Läggdags").assertExists()
+        rule.onNodeWithText("mån 5 okt · Promenad").assertExists()
+        list.performScrollToNode(hasText("Visa fler"))
+        rule.onNodeWithText("Visa fler").performClick()
+        assertEquals(listOf<TrendsEvent>(TrendsEvent.ShowMoreFeelingNotes), events)
+    }
+
+    @Test
+    fun `Varför med alla visade har ingen Visa fler, och döljs utan kommentarer (TRD-24)`() {
+        var state by mutableStateOf(ratedOpen.copy(feelingNotes = 10))
+        rule.setContent { DagbokenTheme { TrendsScreen(state, {}) } }
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText(noteTexts.last()))
+        rule.onNodeWithText("Visa fler").assertDoesNotExist()
+        state = feelingsOpen
+        rule.waitForIdle()
+        list.performScrollToNode(hasText("ORDTRÄDET"))
+        rule.onNodeWithText("VARFÖR · DET DU SKREV OM DINA KÄNSLOR").assertDoesNotExist()
+    }
+
+    @Test
+    fun `en vald dag med kommentarer visar dem under sina pills, som Dagboks postkort (TRD-22, HIST-10)`() {
+        show(ratedOpen.copy(feelingDay = today, feelingNotes = 0))
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText(noteTexts[0]))
+        rule.onNodeWithText(noteTexts[0]).assertIsDisplayed()
+        rule.onNodeWithText("Glad › Kreativ › Nyfiken").assertIsDisplayed()
+        rule.onNodeWithText("Rädd › Orolig").assertIsDisplayed()
+    }
+
+    @Test
+    fun `stängt Känslor-kort läser inga kommentarer (TRD-24)`() {
+        show(closed.with(TrendCard.FEELINGS, CardControls(), feelingsRated))
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Känslor"))
+        noteTexts.forEach { text ->
+            assertEquals(0, rule.onAllNodes(hasText(text, substring = true) or hasContentDescription(text, substring = true), useUnmergedTree = true).fetchSemanticsNodes().size)
+        }
+    }
+
     // ── Skärmdumpar (ljust + mörkt) ──────────────────────────────────────────
 
     @Test
     @Config(qualifiers = "w390dp-h1800dp-xxhdpi")
     fun `skärmdump - Känslor i veckoläget med vald dag`() = rule.captureLightAndDark("Trends_kanslor_vecka") {
         TrendsScreen(feelingsOpen.copy(feelingDay = today), {})
+    }
+
+    @Test
+    @Config(qualifiers = "w390dp-h2600dp-xxhdpi")
+    fun `skärmdump - Känslor med styrka och kommentarer`() = rule.captureLightAndDark("Trends_kanslor_styrka_kommentarer") {
+        TrendsScreen(ratedOpen.copy(feelingDay = today), {})
     }
 
     @Test

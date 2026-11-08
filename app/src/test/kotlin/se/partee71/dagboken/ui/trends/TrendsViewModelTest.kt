@@ -28,6 +28,7 @@ import kotlinx.datetime.toInstant
 import org.junit.Rule
 import org.junit.Test
 import se.partee71.dagboken.core.engine.CompareKey
+import se.partee71.dagboken.core.engine.FeelingRole
 import se.partee71.dagboken.core.engine.IntervalPoint
 import se.partee71.dagboken.core.engine.SLEEP_QUALITY_KEYS
 import se.partee71.dagboken.core.engine.SLEEP_SCORE_KEY
@@ -42,6 +43,7 @@ import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.DailyHealth
 import se.partee71.dagboken.core.model.Event
 import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.IllnessEpisode
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
@@ -721,6 +723,70 @@ class TrendsViewModelTest {
         vm.onEvent(TrendsEvent.SelectFeelingDay(today))
         runCurrent()
         assertEquals(today, vm.state.value.feelingDay, "igår ligger kvar i veckan och går att välja")
+    }
+
+    @Test
+    fun `styrkor och kommentarer från måendeloggar och aktiviteter, aktivitetens namn ur Listor (TRD-22, TRD-24)`() = runTest(main.dispatcher) {
+        factory.screenings().batch(
+            listOf(
+                Screening(
+                    "s1",
+                    today,
+                    LocalTime(12, 0),
+                    Occasion.LUNCH,
+                    energy = 5,
+                    feelings = listOf(Feeling("scared", "anxious"), Feeling("calm")),
+                    feelingStrengths = mapOf("scared.anxious" to "strong", "calm" to "okänd"),
+                    feelingNotes = mapOf("scared.anxious" to "Påhittad oro.")
+                ),
+                Screening("s2", day(2), LocalTime(8, 0), Occasion.BREAKFAST, energy = 6, feelings = listOf(Feeling("glad")), feelingStrengths = mapOf("glad" to "mild"))
+            )
+        ).getOrThrow()
+        factory.activities().batch(
+            listOf(
+                Activity("a1", day(1), LocalTime(16, 0), optionId = "promenad", feelings = listOf(Feeling("calm", "grateful")), feelingStrengths = mapOf("calm.grateful" to "clear"), feelingNotes = mapOf("calm.grateful" to "Påhittad sol.")),
+                Activity("a2", day(3), LocalTime(9, 0), optionId = "jobb", feelings = listOf(Feeling("sad")))
+            )
+        ).getOrThrow()
+        factory.options().batch(listOf(Option("promenad", OptionKind.ACTIVITY, "Promenad"), Option("jobb", OptionKind.ACTIVITY, "Jobb"))).getOrThrow()
+        val vm = feelingsWeek()
+        val data = assertIs<CardData.Feelings>(vm.card(TrendCard.FEELINGS).data)
+        assertTrue(data.stats.tally.hasStrengths)
+        assertEquals(mapOf(FeelingStrength.STRONG to 1), data.stats.tally.of("scared")?.byStrength)
+        assertEquals(mapOf(FeelingStrength.CLEAR to 1), data.stats.tally.of("calm")?.byStrength, "aktivitetens styrka räknas; okänt styrkeord = ingen")
+        assertEquals(1, data.stats.tally.of("calm")?.unrated)
+        assertEquals(listOf(FeelingRole("scared", "anxious")), data.stats.summary.strongest)
+        assertEquals(listOf("Påhittad oro.", "Påhittad sol."), data.stats.notes.map { it.text }, "senaste först")
+        assertEquals(listOf(null, "promenad"), data.stats.notes.map { it.activityType })
+        assertEquals(mapOf("promenad" to "Promenad"), data.activityNames, "bara kommentarernas aktivitetstyper")
+        assertEquals(mapOf("scared.anxious" to "Påhittad oro."), data.week.last().notes, "veckans dag har sina kommentarer")
+        assertEquals(FeelingStrength.CLEAR, data.week[5].strengths["calm.grateful"])
+    }
+
+    @Test
+    fun `Visa fler ger fem kommentarer till och nollställs vid periodbyte och ihopfällning, inte av ett annat kort (TRD-24)`() = runTest(main.dispatcher) {
+        val vm = feelingsWeek()
+        vm.state.test {
+            assertEquals(FEELING_NOTES_PAGE, awaitItem().feelingNotes)
+            vm.onEvent(TrendsEvent.ShowMoreFeelingNotes)
+            assertEquals(10, awaitItem().feelingNotes)
+            vm.onEvent(TrendsEvent.ShowMoreFeelingNotes)
+            assertEquals(15, awaitItem().feelingNotes)
+            vm.onEvent(TrendsEvent.SetRange(TrendCard.ENERGY_DAY, TrendRange.FOURTEEN_DAYS))
+            vm.onEvent(TrendsEvent.Toggle(TrendCard.STRESS))
+            runCurrent()
+            assertEquals(15, expectMostRecentItem().feelingNotes, "ett annat kort rör inte antalet")
+            vm.onEvent(TrendsEvent.SetRange(TrendCard.FEELINGS, TrendRange.MONTH))
+            runCurrent()
+            assertEquals(FEELING_NOTES_PAGE, expectMostRecentItem().feelingNotes, "ny period")
+            vm.onEvent(TrendsEvent.ShowMoreFeelingNotes)
+            runCurrent()
+            assertEquals(10, expectMostRecentItem().feelingNotes)
+            vm.onEvent(TrendsEvent.Toggle(TrendCard.FEELINGS))
+            runCurrent()
+            assertEquals(FEELING_NOTES_PAGE, expectMostRecentItem().feelingNotes, "ihopfällt")
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test

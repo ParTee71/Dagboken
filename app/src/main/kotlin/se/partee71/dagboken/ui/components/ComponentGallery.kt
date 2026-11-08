@@ -52,6 +52,7 @@ import se.partee71.dagboken.core.engine.FeelingEntry
 import se.partee71.dagboken.core.engine.FeelingStats
 import se.partee71.dagboken.core.engine.computeFeelingStats
 import se.partee71.dagboken.core.model.Feeling
+import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Option
 import se.partee71.dagboken.core.model.OptionKind
@@ -457,7 +458,27 @@ private fun Diary() {
     Label("FeelingWeekRow")
     var weekDay by remember { mutableStateOf<LocalDate?>(GalleryFeelings.week.last().date) }
     AppCard { FeelingWeekRow(GalleryFeelings.week, weekDay, { weekDay = it.takeUnless { day -> day == weekDay } }) }
+    Label("FeelingNoteRow – Trenders Varför (TRD-24)")
+    AppCard { GalleryNoteRows() }
 }
+
+/** Kommentarsraderna med påhittade kommentarer: med styrka, utan styrka och från en aktivitet. */
+@Composable
+internal fun GalleryNoteRows() {
+    GALLERY_NOTE_ROWS.forEachIndexed { i, (feeling, strength, whenText, text) ->
+        if (i > 0) AppDivider()
+        FeelingNoteRow(feeling, strength, whenText, text)
+    }
+}
+
+/** Påhittade kommentarer till känslor (SCR-10) som i mockupen #396. */
+internal data class GalleryNote(val feeling: Feeling, val strength: FeelingStrength?, val whenText: String, val text: String)
+
+internal val GALLERY_NOTE_ROWS = listOf(
+    GalleryNote(Feeling("angry", "frustrated"), FeelingStrength.STRONG, "fre 6 nov · Lunch", "Bussen kom inte och jag missade tiden."),
+    GalleryNote(Feeling("glad", "content"), null, "ons 4 nov · Promenad", "Första gången runt hela sjön sedan förkylningen."),
+    GalleryNote(Feeling("calm", "grateful"), FeelingStrength.MILD, "tis 3 nov · Kvällsmat", "Middag med en vän, skönt att prata."),
+)
 
 /** Minihjulen med påhittade val: dagens kort och värmekartan med ord (#320); veckans dagar visar `FeelingWeekRow`. */
 @Composable
@@ -506,6 +527,28 @@ internal object GalleryFeelings {
 
     /** Mån–sön, en dag utan känslor (onsdag) – samma gruppering per dag som Trenders vecka. */
     val week: List<FeelingDay> = computeFeelingStats(weekEntries).alignTo((0..6).map { monday.plus(DatePeriod(days = it)) })
+
+    private fun rated(vararg picks: Pair<String, FeelingStrength?>, note: Pair<String, String>? = null) = FeelingEntry(
+        monday,
+        picks.mapNotNull { Feeling.parse(it.first) },
+        strengths = picks.mapNotNull { (token, strength) -> strength?.let { token to it } }.toMap(),
+        notes = listOfNotNull(note).toMap()
+    )
+
+    /**
+     * En period med styrkor och kommentarer (SCR-9, SCR-10): Lugn mest utan styrka, Rädd › Orolig oftast stark, Ledsen
+     * bara svag – ordträdets segment och "Starkast kändes Rädd › Orolig.".
+     */
+    val strengths: FeelingStats = computeFeelingStats(
+        List(3) { rated("calm.grateful" to null, "glad.content" to FeelingStrength.MILD) } +
+            List(2) { rated("calm.relaxed" to FeelingStrength.MILD, "glad.content" to FeelingStrength.CLEAR) } +
+            List(3) { rated("scared.anxious" to FeelingStrength.STRONG, note = "scared.anxious" to "Provsvar kommer på måndag.") } +
+            listOf(
+                rated("scared.anxious" to FeelingStrength.CLEAR, "angry.frustrated" to FeelingStrength.STRONG, note = "angry.frustrated" to "Bussen kom inte och jag missade tiden."),
+                rated("calm.grateful" to FeelingStrength.CLEAR, "sad.tired" to FeelingStrength.MILD),
+                rated("angry.frustrated" to null, "calm.present" to FeelingStrength.STRONG),
+            )
+    )
 
     /** "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig. Stark har du knappt rört." */
     val period: FeelingStats = computeFeelingStats(
@@ -607,6 +650,8 @@ private fun Diagrams() {
     }
     Label("FeelingWordBars")
     AppCard { FeelingWordBars(GalleryFeelings.period.tally) }
+    Label("FeelingWordBars · med styrka (#396)")
+    AppCard { FeelingWordBars(GalleryFeelings.strengths.tally, strengths = true) }
     Label("LineChart · fyra serier (diagrampalett och punktform, TRD-23)")
     AppCard { FourSeriesChart() }
     Label("SparklineChart")

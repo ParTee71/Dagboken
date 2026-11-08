@@ -353,6 +353,9 @@ class CatalogScreenshotTest {
         captureLightAndDark("FeelingPills_tre_och_fler") {
             Sheet { ChipRow { FeelingPills(GALLERY_POST_FEELINGS) } }
         }
+        captureLightAndDark("FeelingNoteRow_varfor") {
+            Sheet { AppCard { GalleryNoteRows() } }
+        }
     }
 
     @Test

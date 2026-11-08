@@ -7,12 +7,12 @@ import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Test
+import se.partee71.dagboken.core.model.Activity
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
 import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Screening
-import se.partee71.dagboken.core.model.Activity
 
 /** Känslornas sammanställning (#320): räkning per kärna och nyans, ordningen, meningens struktur och dagarna. */
 class FeelingStatsTest {

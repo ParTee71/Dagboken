@@ -157,3 +157,7 @@ internal val INTERVAL_DOT_RADIUS: Dp = 5.dp
 
 /** Ordträdets stapel (`FeelingWordBars`): minsta höjd – växer med texten. */
 internal val WORD_BAR_HEIGHT: Dp = 28.dp
+
+/** Ordträdets styrkesegment (#396): minsta bredd, så att ett enstaka val syns, och teckenförklaringens ruta. */
+internal val MIN_STRENGTH_SEGMENT: Dp = 6.dp
+internal val LEGEND_STRENGTH_SWATCH: Dp = 18.dp

@@ -193,10 +193,16 @@ sealed interface CardData {
     data class EventsIllness(override val days: List<LocalDate>, val trend: EventIllnessTrend) : CardData
 
     /**
-     * Känslor (TRD-22): periodens räkning och mening ([stats]) ur måendeloggar och aktiviteter, och i 7-dagarsläget
-     * periodens dagar var för sig ([week], tom annars) med dagens ord i tidsordning.
+     * Känslor (TRD-22, TRD-24): periodens räkning och mening ([stats], med styrkor och kommentarer) ur måendeloggar och
+     * aktiviteter, i 7-dagarsläget periodens dagar var för sig ([week], tom annars) med dagens ord i tidsordning, och
+     * namnen ur Listor på aktivitetstyperna som har en kommentar ([activityNames], id → namn) till "Varför".
      */
-    data class Feelings(override val days: List<LocalDate>, val stats: FeelingStats, val week: List<FeelingDay>) : CardData {
+    data class Feelings(
+        override val days: List<LocalDate>,
+        val stats: FeelingStats,
+        val week: List<FeelingDay>,
+        val activityNames: Map<String, String> = emptyMap()
+    ) : CardData {
         val isEmpty: Boolean get() = stats.tally.isEmpty
     }
 
@@ -230,7 +236,9 @@ data class TrendsUiState(
     val group: TrendGroup = TrendGroup.MOOD,
     val cards: ImmutableMap<TrendCard, TrendCardState> = TrendCard.entries.associateWith { TrendCardState(CardControls(selected = it.defaultSelection)) }.toImmutableMap(),
     /** Dagen som är vald i Känslors vecka (TRD-22) – dess ord visas under raden; `null` = ingen. */
-    val feelingDay: LocalDate? = null
+    val feelingDay: LocalDate? = null,
+    /** Hur många av periodens kommentarer Känslors "Varför" visar (TRD-24): fem, fem till per "Visa fler". */
+    val feelingNotes: Int = FEELING_NOTES_PAGE
 )
 
 sealed interface TrendsEvent {
@@ -250,7 +258,13 @@ sealed interface TrendsEvent {
 
     /** En dag i Känslors vecka (TRD-22): väljer den, eller avmarkerar den valda. */
     data class SelectFeelingDay(val date: LocalDate) : TrendsEvent
+
+    /** "Visa fler" i Känslors "Varför" (TRD-24): fem kommentarer till. */
+    data object ShowMoreFeelingNotes : TrendsEvent
 }
+
+/** Så många kommentarer visar "Varför" åt gången (TRD-24). */
+const val FEELING_NOTES_PAGE = 5
 
 /**
  * Fliken Trender (TRD-1–TRD-3, TRD-8, TRD-11, TRD-14–TRD-19, TRD-21): varje kort läser sin egen period – **först
@@ -281,11 +295,16 @@ class TrendsViewModel @Inject constructor(
 
     private val group = MutableStateFlow(TrendGroup.MOOD)
     private val feelingDay = MutableStateFlow<LocalDate?>(null)
+    private val feelingNotes = MutableStateFlow(FEELING_NOTES_PAGE)
     private val controls = MutableStateFlow(TrendsUiState().cards.mapValues { it.value.controls })
 
     /** Symptomens namn ur Listor (arkiverade med, SET-11); vid läsfel bara id:n. */
     private val symptomNames: Flow<Map<String, String>> =
         options.names(OptionKind.SYMPTOM)
+
+    /** Aktiviteternas namn ur Listor (arkiverade med) – när i Känslors "Varför" (TRD-24); vid läsfel inga namn. */
+    private val activityNames: Flow<Map<String, String>> =
+        options.names(OptionKind.ACTIVITY)
 
     /** Profilen för sömnkvalitetens åldersnormer (HLS-11); utan födelseår blir varje natt en lucka. */
     private val profile: Flow<Profile> = settings.settings.withFallback(Settings()).map { it.profile }.distinctUntilChanged()
@@ -390,7 +409,7 @@ class TrendsViewModel @Inject constructor(
                 CardData.EventsIllness(days, eventIllnessTrend(e, episodes, checkins, days))
             }
 
-            TrendCard.FEELINGS -> combine(screenings(from, to), activities(from, to)) { s, a -> feelings(period, s, a) }
+            TrendCard.FEELINGS -> combine(screenings(from, to), activities(from, to), activityNames) { s, a, names -> feelings(period, s, a, names) }
 
             TrendCard.SLEEP_STAGES -> health(from, to).map { h -> period.days().let { days -> CardData.Stacked(days, sleepStagePoints(h, days)) } }
 
@@ -435,12 +454,14 @@ class TrendsViewModel @Inject constructor(
      * måendeloggar **och** aktiviteter (Idag bara måendeloggar, HEM-21); veckan bara i 7-dagarsläget – periodens dagar ur
      * samma gruppering per dag.
      */
-    private fun feelings(period: Period, s: List<Screening>, a: List<Activity>): CardData.Feelings {
+    private fun feelings(period: Period, s: List<Screening>, a: List<Activity>, names: Map<String, String>): CardData.Feelings {
         val days = period.days(earliest(s, a))
         // Läsningen är perioden (kortet har ingen föregående period).
         val entries = s.mapNotNull { it.feelingEntry() } + a.mapNotNull { it.toFeelingEntry(it.time, activityType = it.optionId) }
         val stats = computeFeelingStats(entries)
-        return CardData.Feelings(days, stats, if (period.controls.range == TrendRange.SEVEN_DAYS) stats.alignTo(days) else emptyList())
+        // Bara namnen "Varför" behöver – kommentarernas aktivitetstyper.
+        val used = stats.notes.mapNotNull { it.activityType }.toSet()
+        return CardData.Feelings(days, stats, if (period.controls.range == TrendRange.SEVEN_DAYS) stats.alignTo(days) else emptyList(), names.filterKeys { it in used })
     }
 
     private fun earliest(s: List<Screening>, a: List<Activity>) = earliestDate(s.map { it.date } + a.map { it.date })
@@ -466,10 +487,15 @@ class TrendsViewModel @Inject constructor(
 
     private val data: Flow<Map<TrendCard, CardData?>> = combine(TrendCard.entries.map { card -> cardData(card).map { card to it } }) { it.toMap() }
 
-    val state: StateFlow<TrendsUiState> = combine(group, controls, data, feelingDay) { group, controls, data, feelingDay ->
+    val state: StateFlow<TrendsUiState> = combine(group, controls, data, feelingDay, feelingNotes) { group, controls, data, feelingDay, feelingNotes ->
         // Den valda dagen gäller bara så länge den ligger i veckan som visas – efter midnatt kan den ha fallit ur (TRD-22).
         val week = (data[TrendCard.FEELINGS] as? CardData.Feelings)?.week.orEmpty()
-        TrendsUiState(group, TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) }.toImmutableMap(), feelingDay?.takeIf { day -> week.any { it.date == day } })
+        TrendsUiState(
+            group,
+            TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) }.toImmutableMap(),
+            feelingDay?.takeIf { day -> week.any { it.date == day } },
+            feelingNotes
+        )
     }.stateIn(viewModelScope, screenSharing(), TrendsUiState())
 
     fun onEvent(event: TrendsEvent) {
@@ -478,14 +504,14 @@ class TrendsViewModel @Inject constructor(
 
             is TrendsEvent.Toggle -> {
                 update(event.card) { it.copy(expanded = !it.expanded) }
-                // Ett utfällt Känslor-kort börjar alltid utan vald dag (TRD-22).
-                if (event.card == TrendCard.FEELINGS) feelingDay.value = null
+                // Ett utfällt Känslor-kort börjar alltid utan vald dag och med fem kommentarer (TRD-22, TRD-24).
+                if (event.card == TrendCard.FEELINGS) resetFeelings()
             }
 
             is TrendsEvent.SetRange -> {
                 update(event.card) { it.copy(range = event.range) }
-                // En ny period för Känslor börjar utan vald dag (TRD-22).
-                if (event.card == TrendCard.FEELINGS) feelingDay.value = null
+                // En ny period för Känslor börjar utan vald dag och med fem kommentarer (TRD-22, TRD-24).
+                if (event.card == TrendCard.FEELINGS) resetFeelings()
             }
 
             is TrendsEvent.SetPrevious -> update(event.card) { it.copy(previous = event.enabled) }
@@ -494,7 +520,14 @@ class TrendsViewModel @Inject constructor(
 
             // Toggeln utgår från valet som visas: en dag som fallit ur veckan räknas inte som vald (TRD-22).
             is TrendsEvent.SelectFeelingDay -> feelingDay.value = event.date.takeUnless { it == feelingDay.value }
+
+            TrendsEvent.ShowMoreFeelingNotes -> feelingNotes.value += FEELING_NOTES_PAGE
         }
+    }
+
+    private fun resetFeelings() {
+        feelingDay.value = null
+        feelingNotes.value = FEELING_NOTES_PAGE
     }
 
     private fun update(card: TrendCard, change: (CardControls) -> CardControls) {

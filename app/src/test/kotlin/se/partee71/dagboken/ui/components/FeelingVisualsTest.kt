@@ -24,6 +24,8 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasStateDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -94,6 +96,29 @@ class FeelingVisualsTest {
         val order = rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription)).fetchSemanticsNodes()
             .map { it.config[SemanticsProperties.ContentDescription].single().substringBefore(':').substringBefore(',') }
         assertEquals(listOf("Lugn", "Glad", "Rädd", "Ledsen", "Arg", "Stark"), order)
+    }
+
+    @Test
+    fun `ordträdet med styrka - raden läser den vanligaste styrkan, teckenförklaringen en mening`() {
+        show { FeelingWordBars(GalleryFeelings.strengths.tally, strengths = true) }
+        rule.onNodeWithContentDescription("Rädd: orolig, oftast stark").assertExists()
+        rule.onNodeWithContentDescription("Ledsen: trött, oftast svag").assertExists()
+        rule.onNodeWithContentDescription("Stark, inte vald").assertExists()
+        rule.onNodeWithContentDescription("Tonen visar styrkan, från ingen styrka till stark").assertExists()
+    }
+
+    @Test
+    fun `ordträdet utan styrka har ingen teckenförklaring`() {
+        show { FeelingWordBars(GalleryFeelings.strengths.tally) }
+        rule.onNodeWithContentDescription("Tonen visar styrkan, från ingen styrka till stark").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Rädd: orolig").assertExists()
+    }
+
+    @Test
+    fun `kommentarsraden läses som en enhet - känslan, styrkan, när och texten`() {
+        val note = GALLERY_NOTE_ROWS.first()
+        show { FeelingNoteRow(note.feeling, note.strength, note.whenText, note.text) }
+        rule.onNode(hasText("Arg › Frustrerad") and hasText("fre 6 nov · Lunch") and hasText(note.text) and hasStateDescription("stark")).assertExists()
     }
 
     @Test

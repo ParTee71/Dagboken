@@ -2,12 +2,17 @@ package se.partee71.dagboken.ui.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -73,13 +78,14 @@ fun FeelingPills(feelings: List<Feeling>, max: Int? = FEELING_PILLS_MAX, extras:
 
 /**
  * Postkortets känslor (HIST-10, SCR-10): som [FeelingPills] i en [ChipRow]; har någon av de visade känslorna en
- * kommentar ([FeelingExtras.noteOf]) står i stället varje känsla på en egen rad med sin kommentar under.
+ * kommentar ([FeelingExtras.noteOf]) står i stället varje känsla på en egen rad med sin kommentar under. [max] som i
+ * [FeelingPills] (`null` = alla, Trenders valda dag).
  */
 @Composable
-internal fun FeelingPillsWithNotes(feelings: List<Feeling>, extras: FeelingExtras) {
-    val shown = feelings.take(FEELING_PILLS_MAX)
+internal fun FeelingPillsWithNotes(feelings: List<Feeling>, extras: FeelingExtras, max: Int? = FEELING_PILLS_MAX) {
+    val shown = max?.let(feelings::take) ?: feelings
     if (shown.all { extras.noteOf(it).isBlank() }) {
-        ChipRow { FeelingPills(feelings, extras = extras) }
+        ChipRow { FeelingPills(feelings, max = max, extras = extras) }
         return
     }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
@@ -92,6 +98,21 @@ internal fun FeelingPillsWithNotes(feelings: List<Feeling>, extras: FeelingExtra
             }
         }
         MorePill(feelings.size - shown.size)
+    }
+}
+
+/**
+ * En kommentar till en känsla (SCR-10) som rad – Trenders "Varför" (TRD-24): känslans pill med styrkan ([FeelingPill]),
+ * när till höger ([whenText], "fre 6 nov · Lunch") och kommentaren under. TalkBack läser raden som en enhet.
+ */
+@Composable
+fun FeelingNoteRow(feeling: Feeling, strength: FeelingStrength?, whenText: String, text: String, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) { FeelingPill(feeling, strength = strength) }
+            Text(whenText, style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        }
+        Text(text.trim(), Modifier.padding(start = Spacing.xs), style = AppTypography.body)
     }
 }
 
