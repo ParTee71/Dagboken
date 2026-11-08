@@ -4,6 +4,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
+import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.HasFeelings
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Post
@@ -22,11 +23,32 @@ data class FeelingEntry(
     val date: LocalDate,
     val feelings: List<Feeling>,
     val time: LocalTime? = null,
-    val occasion: Occasion? = null
-)
+    val occasion: Occasion? = null,
+    /** Känslornas styrka (SCR-9) nycklad på [Feeling.token]; saknad nyckel = ingen styrka (också ett okänt styrkeord). */
+    val strengths: Map<String, FeelingStrength> = emptyMap(),
+    /** Känslornas kommentar (SCR-10) nycklad på [Feeling.token]; bara icke-tomma. */
+    val notes: Map<String, String> = emptyMap(),
+    /** Aktivitetstypen (`Activity.optionId`) när posten är en aktivitet; appen skriver namnet. */
+    val activityType: String? = null
+) {
+    fun strengthOf(feeling: Feeling): FeelingStrength? = strengths[feeling.token]
+}
 
-/** Postens känslor som [FeelingEntry] (måendelogg, aktivitet); en post utan datum hör inte till någon dag → `null`. */
-fun <T> T.toFeelingEntry(time: LocalTime? = null, occasion: Occasion? = null): FeelingEntry? where T : Post<T>, T : HasFeelings<T> = date?.let { FeelingEntry(it, feelings, time, occasion) }
+/**
+ * Postens känslor som [FeelingEntry] (måendelogg, aktivitet) med styrka och kommentar; en post utan datum hör inte till
+ * någon dag → `null`. [activityType] sätts för en aktivitet.
+ */
+fun <T> T.toFeelingEntry(time: LocalTime? = null, occasion: Occasion? = null, activityType: String? = null): FeelingEntry? where T : Post<T>, T : HasFeelings<T> = date?.let {
+    FeelingEntry(
+        it,
+        feelings,
+        time,
+        occasion,
+        strengths = feelings.mapNotNull { f -> strengthOf(f)?.let { s -> f.token to s } }.toMap(),
+        notes = feelings.mapNotNull { f -> noteOf(f).takeIf { n -> n.isNotBlank() }?.let { n -> f.token to n } }.toMap(),
+        activityType = activityType
+    )
+}
 
 /** Måendeloggens känslor med dess klockslag och tillfälle; utan datum → `null`. */
 fun Screening.feelingEntry(): FeelingEntry? = toFeelingEntry(time, occasion)
@@ -44,7 +66,11 @@ data class CoreCount(
     val count: Int,
     val share: Float,
     val weight: Float,
-    val nuances: List<NuanceCount>
+    val nuances: List<NuanceCount>,
+    /** Hur många av valen som loggats med respektive styrka (SCR-9) – segmenten i ordträdets stapel. */
+    val byStrength: Map<FeelingStrength, Int> = emptyMap(),
+    /** Hur många av valen som saknar styrka. */
+    val unrated: Int = count
 ) {
     /** De [limit] vanligaste nyanserna, vanligast först – orden i värmekartans sektor och i ordträdets stapel. */
     fun topNuances(limit: Int = TOP_NUANCES): List<String> = nuances.take(limit).map { it.nuance }
@@ -56,6 +82,9 @@ data class CoreCount(
  */
 data class FeelingTally(val total: Int, val cores: List<CoreCount>) {
     val isEmpty: Boolean get() = total == 0
+
+    /** Minst ett val har en styrka – annars ritas ordträdet utan segment. */
+    val hasStrengths: Boolean get() = cores.any { it.byStrength.values.any { n -> n > 0 } }
 
     /** Kärnorna med minst ett val, vanligast först; lika många → hjulets ordning. Räknas en gång. */
     val ranked: List<CoreCount> = cores.filter { it.count > 0 }.sortedByDescending { it.count }
@@ -88,7 +117,18 @@ data class FeelingRole(val core: String, val nuance: String? = null, val occasio
  * [sole] härleds ur det – bara en kärna valts – och Idag säger då bara kärnan ("Lugn."). Idag använder [most] och [little]
  * med tillfälle, Trender [most], [little] med nyans och [untouched].
  */
-data class FeelingSummary(val most: List<FeelingRole>, val little: FeelingRole?, val untouched: List<String>, val coreCount: Int) {
+data class FeelingSummary(
+    val most: List<FeelingRole>,
+    val little: FeelingRole?,
+    val untouched: List<String>,
+    val coreCount: Int,
+    /**
+     * Känslorna (kärna och nyans – detaljen räknas till sin nyans) som oftast loggats *stark*; finns ingen stark de som
+     * oftast loggats *tydlig*; svag räknas inte, och utan stark eller tydlig är listan tom. Lika många → högst två, i
+     * hjulets och katalogens ordning. Bara [FeelingRole.core] och [FeelingRole.nuance] är satta.
+     */
+    val strongest: List<FeelingRole> = emptyList()
+) {
     val isEmpty: Boolean get() = most.isEmpty()
 
     /** Bara en kärna valts – och strukturen säger detsamma (en "mest", ingen "lite"), så en handbyggd struktur kan inte motsäga sig. */
@@ -105,7 +145,16 @@ data class FeelingSummary(val most: List<FeelingRole>, val little: FeelingRole?,
  * klockslag sist, varje ord en gång) – Idags kort Dagens känslor och en dag i Trenders vecka (#320). [isEmpty] när dagen
  * saknar känslor appen känner.
  */
-data class FeelingDay(val date: LocalDate, val tally: FeelingTally, val summary: FeelingSummary, val words: List<Feeling>) {
+data class FeelingDay(
+    val date: LocalDate,
+    val tally: FeelingTally,
+    val summary: FeelingSummary,
+    val words: List<Feeling>,
+    /** Dagens [words] med styrka (SCR-9), token → styrka; ett ord utan styrka saknas. */
+    val strengths: Map<String, FeelingStrength> = emptyMap(),
+    /** Dagens kommentarer (SCR-10), token → text; flera loggar med samma ord → texterna i tidsordning, åtskilda med radbrytning. */
+    val notes: Map<String, String> = emptyMap()
+) {
     val isEmpty: Boolean get() = tally.isEmpty
 
     companion object {
@@ -115,10 +164,33 @@ data class FeelingDay(val date: LocalDate, val tally: FeelingTally, val summary:
 }
 
 /**
+ * En kommentar till en känsla (SCR-10) i perioden – raden i Trenders "Varför". [time] och [occasion] för en måendelogg,
+ * [activityType] för en aktivitet (appen skriver namnet).
+ */
+data class FeelingNote(
+    val feeling: Feeling,
+    val strength: FeelingStrength?,
+    val date: LocalDate,
+    val time: LocalTime?,
+    val occasion: Occasion?,
+    val activityType: String?,
+    val text: String
+)
+
+/**
  * Sammanställningen: räkningen för alla poster ([tally]), meningens struktur ([summary]) och dagarna var för sig ([days],
  * stigande datum, bara dagar med poster) – ur en gruppering per dag.
  */
-data class FeelingStats(val tally: FeelingTally, val summary: FeelingSummary, val days: List<FeelingDay>) {
+data class FeelingStats(
+    val tally: FeelingTally,
+    val summary: FeelingSummary,
+    val days: List<FeelingDay>,
+    /**
+     * Periodens kommentarer, senaste först: senaste dag först, inom dagen senaste klockslag först (poster utan klockslag
+     * räknas som tidigast på dagen); samma tid → senare i inlistan först; inom en post i valets ordning.
+     */
+    val notes: List<FeelingNote> = emptyList()
+) {
     /** Dagarna utlagda på [dates] (t.ex. veckan i perioden); en dag utan poster får [FeelingDay.empty]. */
     fun alignTo(dates: List<LocalDate>): List<FeelingDay> {
         val byDate = days.associateBy { it.date }
@@ -136,7 +208,7 @@ data class FeelingStats(val tally: FeelingTally, val summary: FeelingSummary, va
 fun computeFeelingStats(entries: List<FeelingEntry>): FeelingStats {
     val days = entries.groupBy { it.date }.entries.sortedBy { it.key }.map { (date, ofDay) -> feelingDay(date, ofDay) }
     val tally = tally(entries)
-    return FeelingStats(tally, summaryOf(tally, entries), days)
+    return FeelingStats(tally, summaryOf(tally, entries), days, notesOf(entries))
 }
 
 /**
@@ -152,20 +224,32 @@ fun computeFeelingDay(entries: List<FeelingEntry>, date: LocalDate): FeelingDay 
 private fun feelingDay(date: LocalDate, ofDay: List<FeelingEntry>): FeelingDay {
     val inOrder = ofDay.sortedWith(compareBy(nullsLast()) { it.time })
     val dayTally = tally(inOrder)
-    return FeelingDay(date, dayTally, summaryOf(dayTally, inOrder), inOrder.flatMap { it.feelings }.distinct())
+    val words = inOrder.flatMap { it.feelings }.distinct()
+    val strengths = words.mapNotNull { w -> inOrder.firstNotNullOfOrNull { it.strengthOf(w) }?.let { w.token to it } }.toMap()
+    val notes = words.mapNotNull { w -> inOrder.mapNotNull { it.notes[w.token] }.takeIf { it.isNotEmpty() }?.let { w.token to it.joinToString("\n") } }.toMap()
+    return FeelingDay(date, dayTally, summaryOf(dayTally, inOrder), words, strengths, notes)
 }
 
+private fun notesOf(entries: List<FeelingEntry>): List<FeelingNote> = entries
+    .withIndex()
+    .sortedWith(compareByDescending<IndexedValue<FeelingEntry>> { it.value.date }.thenByDescending { it.value.time ?: LocalTime(0, 0) }.thenByDescending { it.index })
+    .flatMap { (_, e) ->
+        e.feelings.mapNotNull { f -> e.notes[f.token]?.takeIf { it.isNotBlank() }?.let { FeelingNote(f, e.strengthOf(f), e.date, e.time, e.occasion, e.activityType, it) } }
+    }
+
 private fun tally(entries: List<FeelingEntry>): FeelingTally {
-    val known = entries.flatMap { it.feelings }.filter { it.core in FeelingCatalog.cores }
-    val byCore = known.groupBy { it.core }
+    val known = entries.flatMap { e -> e.feelings.map { it to e.strengthOf(it) } }.filter { it.first.core in FeelingCatalog.cores }
+    val byCore = known.groupBy { it.first.core }
     val max = byCore.values.maxOfOrNull { it.size } ?: 0
     val cores = FeelingCatalog.cores.map { core ->
-        val picks = byCore[core].orEmpty()
+        val picked = byCore[core].orEmpty()
+        val picks = picked.map { it.first }
+        val rated = picked.mapNotNull { it.second }.groupingBy { it }.eachCount()
         val nuances = FeelingCatalog.nuances(core)
             .map { nuance -> NuanceCount(nuance, picks.count { it.nuance == nuance }) }
             .filter { it.count > 0 }
             .sortedByDescending { it.count }
-        CoreCount(core, picks.size, fraction(picks.size, known.size), fraction(picks.size, max), nuances)
+        CoreCount(core, picks.size, fraction(picks.size, known.size), fraction(picks.size, max), nuances, rated, picks.size - rated.values.sum())
     }
     return FeelingTally(known.size, cores)
 }
@@ -182,8 +266,23 @@ private fun summaryOf(tally: FeelingTally, entries: List<FeelingEntry>): Feeling
         most.map { role(it, entries) },
         little?.let { role(it, entries) },
         untouched.takeIf { it.size <= MAX_UNTOUCHED }.orEmpty(),
-        coreCount = ranked.size
+        coreCount = ranked.size,
+        strongest = strongestOf(entries)
     )
+}
+
+/** Känslorna (kärna › nyans) som oftast loggats stark, annars tydlig; lika många → högst två i katalogens ordning. */
+private fun strongestOf(entries: List<FeelingEntry>): List<FeelingRole> {
+    val picks = entries.flatMap { e -> e.feelings.mapNotNull { f -> e.strengthOf(f)?.let { f to it } } }.filter { it.first.core in FeelingCatalog.cores }
+    for (level in listOf(FeelingStrength.STRONG, FeelingStrength.CLEAR)) {
+        val counts = picks.filter { it.second == level }.groupingBy { it.first.core to it.first.nuance }.eachCount()
+        val max = counts.values.maxOrNull() ?: continue
+        return counts.filterValues { it == max }.keys
+            .sortedWith(compareBy({ FeelingCatalog.cores.indexOf(it.first) }, { it.second?.let { n -> FeelingCatalog.nuances(it.first).indexOf(n) } ?: -1 }))
+            .take(STRONGEST_MAX)
+            .map { FeelingRole(it.first, it.second) }
+    }
+    return emptyList()
 }
 
 private fun role(count: CoreCount, entries: List<FeelingEntry>): FeelingRole {
@@ -196,6 +295,9 @@ private fun fraction(part: Int, whole: Int): Float = if (whole == 0) 0f else par
 
 /** Så många nyanser skrivs i värmekartans sektor. */
 const val TOP_NUANCES = 3
+
+/** Så många känslor nämns i "Starkast kändes …" vid lika många. */
+private const val STRONGEST_MAX = 2
 
 /** Så många kärnor är "mest"; nästa är "lite" (lika många på gränsen: se [FeelingSummary]). */
 private const val MOST = 2

@@ -438,7 +438,7 @@ class TrendsViewModel @Inject constructor(
     private fun feelings(period: Period, s: List<Screening>, a: List<Activity>): CardData.Feelings {
         val days = period.days(earliest(s, a))
         // Läsningen är perioden (kortet har ingen föregående period).
-        val entries = s.mapNotNull { it.feelingEntry() } + a.mapNotNull { it.toFeelingEntry(it.time) }
+        val entries = s.mapNotNull { it.feelingEntry() } + a.mapNotNull { it.toFeelingEntry(it.time, activityType = it.optionId) }
         val stats = computeFeelingStats(entries)
         return CardData.Feelings(days, stats, if (period.controls.range == TrendRange.SEVEN_DAYS) stats.alignTo(days) else emptyList())
     }

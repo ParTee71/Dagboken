@@ -9,8 +9,10 @@ import kotlinx.datetime.LocalTime
 import org.junit.Test
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
+import se.partee71.dagboken.core.model.FeelingStrength
 import se.partee71.dagboken.core.model.Occasion
 import se.partee71.dagboken.core.model.Screening
+import se.partee71.dagboken.core.model.Activity
 
 /** Känslornas sammanställning (#320): räkning per kärna och nyans, ordningen, meningens struktur och dagarna. */
 class FeelingStatsTest {
@@ -247,5 +249,119 @@ class FeelingStatsTest {
         assertTrue(empty.isEmpty)
         assertTrue(empty.words.isEmpty())
         assertTrue(computeFeelingStats(listOf(at(8, date = other))).day(other).isEmpty, "en post utan känslor ger en tom dag")
+    }
+    // --- Styrka och kommentarer (#396) ---
+
+    private val mild = FeelingStrength.MILD
+    private val clear = FeelingStrength.CLEAR
+    private val strong = FeelingStrength.STRONG
+
+    private fun rated(vararg picks: Pair<String, FeelingStrength?>, date: LocalDate = day, time: LocalTime? = null, notes: Map<String, String> = emptyMap(), activityType: String? = null) = FeelingEntry(
+        date,
+        picks.map { checkNotNull(Feeling.parse(it.first)) },
+        time,
+        strengths = picks.mapNotNull { (t, s) -> s?.let { t to it } }.toMap(),
+        notes = notes,
+        activityType = activityType
+    )
+
+    private fun FeelingStats.strongest() = summary.strongest.map { it.core to it.nuance }
+
+    @Test fun `antal per styrka per kärna, ingen styrka räknas för sig`() {
+        val stats = computeFeelingStats(listOf(rated("scared.anxious" to strong, "scared" to null), rated("scared.insecure" to mild, "calm" to clear), rated("scared.anxious" to strong)))
+        val scared = checkNotNull(stats.tally.of("scared"))
+        assertEquals(4, scared.count)
+        assertEquals(mapOf(strong to 2, mild to 1), scared.byStrength)
+        assertEquals(1, scared.unrated)
+        assertEquals(mapOf(clear to 1), checkNotNull(stats.tally.of("calm")).byStrength)
+        assertTrue(stats.tally.hasStrengths)
+        assertEquals(0, checkNotNull(stats.tally.of("glad")).unrated)
+    }
+
+    @Test fun `utan styrkor - inga segment och alla val ingen styrka`() {
+        val stats = computeFeelingStats(listOf(entry("calm", "calm.grateful")))
+        assertFalse(stats.tally.hasStrengths)
+        assertEquals(2, checkNotNull(stats.tally.of("calm")).unrated)
+        assertTrue(stats.summary.strongest.isEmpty())
+    }
+
+    @Test fun `strongest - stark före tydlig, vanligast vinner`() {
+        val stats = computeFeelingStats(
+            listOf(rated("scared.anxious" to strong), rated("scared.anxious" to strong), rated("angry.frustrated" to strong), rated("calm.grateful" to clear), rated("calm.grateful" to clear), rated("calm.grateful" to clear))
+        )
+        assertEquals(listOf("scared" to "anxious"), stats.strongest())
+    }
+
+    @Test fun `strongest - ingen stark ger tydlig, svag räknas inte`() {
+        val stats = computeFeelingStats(listOf(rated("calm.grateful" to clear), rated("glad.content" to mild), rated("glad.content" to mild), rated("glad.content" to mild)))
+        assertEquals(listOf("calm" to "grateful"), stats.strongest())
+        assertTrue(computeFeelingStats(listOf(rated("glad.content" to mild))).summary.strongest.isEmpty(), "bara svag → ingen mening")
+    }
+
+    @Test fun `strongest - lika antal ger högst två i katalogens ordning`() {
+        val stats = computeFeelingStats(listOf(rated("scared.anxious" to strong), rated("angry.frustrated" to strong)))
+        assertEquals(listOf("angry" to "frustrated", "scared" to "anxious"), stats.strongest())
+        val three = computeFeelingStats(listOf(rated("scared.anxious" to strong), rated("angry.frustrated" to strong), rated("glad.content" to strong)))
+        assertEquals(listOf("glad" to "content", "angry" to "frustrated"), three.strongest())
+    }
+
+    @Test fun `strongest - detaljen räknas till nyansen och en känsla utan nyans har bara kärnan`() {
+        val stats = computeFeelingStats(listOf(rated("scared.anxious.tense" to strong), rated("scared.anxious.overwhelmed" to strong), rated("scared" to strong)))
+        assertEquals(listOf("scared" to "anxious"), stats.strongest())
+        assertEquals(listOf("scared" to null), computeFeelingStats(listOf(rated("scared" to strong))).strongest())
+    }
+
+    @Test fun `okänt styrkeord räknas som ingen styrka`() {
+        val screening = Screening(id = "s", date = day, feelings = listOf(checkNotNull(Feeling.parse("calm"))), feelingStrengths = mapOf("calm" to "mighty"))
+        val entry = checkNotNull(screening.feelingEntry())
+        assertTrue(entry.strengths.isEmpty())
+        val stats = computeFeelingStats(listOf(entry))
+        assertEquals(1, checkNotNull(stats.tally.of("calm")).unrated)
+        assertTrue(stats.summary.strongest.isEmpty())
+    }
+
+    @Test fun `toFeelingEntry tar styrka och kommentar ur posten, aktivitetens typ följer med`() {
+        val calm = checkNotNull(Feeling.parse("calm"))
+        val glad = checkNotNull(Feeling.parse("glad.content"))
+        val activity = Activity(id = "a", date = day, feelings = listOf(calm, glad), feelingStrengths = mapOf("calm" to "strong"), feelingNotes = mapOf("calm" to "Lugnt vid sjön", "glad.content" to ""))
+        val entry = checkNotNull(activity.toFeelingEntry(activityType = "walk"))
+        assertEquals(mapOf("calm" to strong), entry.strengths)
+        assertEquals(mapOf("calm" to "Lugnt vid sjön"), entry.notes)
+        assertEquals("walk", entry.activityType)
+    }
+
+    @Test fun `kommentarer - senaste först, inom dagen senaste klockslag först, utan klockslag tidigast`() {
+        val d1 = LocalDate(2026, 10, 12)
+        val d2 = LocalDate(2026, 10, 14)
+        val stats = computeFeelingStats(
+            listOf(
+                rated("calm" to clear, date = d1, time = LocalTime(8, 0), notes = mapOf("calm" to "A")),
+                rated("sad" to null, date = d2, time = LocalTime(9, 0), notes = mapOf("sad" to "B")),
+                rated("scared.anxious" to strong, date = d2, time = LocalTime(18, 30), notes = mapOf("scared.anxious" to "C"), activityType = "run"),
+                rated("glad" to null, date = d2, notes = mapOf("glad" to "D")),
+                rated("angry" to null, date = d2, time = LocalTime(20, 0))
+            )
+        )
+        assertEquals(listOf("C", "B", "D", "A"), stats.notes.map { it.text })
+        val first = stats.notes.first()
+        assertEquals(Feeling("scared", "anxious"), first.feeling)
+        assertEquals(strong, first.strength)
+        assertEquals(d2, first.date)
+        assertEquals(LocalTime(18, 30), first.time)
+        assertEquals("run", first.activityType)
+        assertTrue(computeFeelingStats(listOf(entry("calm"))).notes.isEmpty())
+    }
+
+    @Test fun `dagen har ordens styrka och kommentar`() {
+        val stats = computeFeelingStats(
+            listOf(
+                rated("calm" to clear, time = LocalTime(8, 0), notes = mapOf("calm" to "Morgon")),
+                rated("calm" to strong, "sad" to null, time = LocalTime(20, 0), notes = mapOf("calm" to "Kväll"))
+            )
+        )
+        val d = stats.day(day)
+        assertEquals(mapOf("calm" to clear), d.strengths, "första loggens styrka i tidsordning")
+        assertEquals(mapOf("calm" to "Morgon\nKväll"), d.notes)
+        assertEquals(d, computeFeelingDay(listOf(rated("calm" to clear, time = LocalTime(8, 0), notes = mapOf("calm" to "Morgon")), rated("calm" to strong, "sad" to null, time = LocalTime(20, 0), notes = mapOf("calm" to "Kväll"))), day))
     }
 }

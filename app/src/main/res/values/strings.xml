@@ -282,6 +282,7 @@
     <string name="feeling_sentence_period_third">%1$s är din tredje hemvist.</string>
     <string name="feeling_sentence_period_third_habit">%1$s är din tredje hemvist, nästan alltid som %2$s.</string>
     <string name="feeling_sentence_period_untouched">%1$s har du knappt rört.</string>
+    <string name="feeling_sentence_period_strongest">Starkast kändes %1$s.</string>
     <string name="feeling_bars_row_format">%1$s: %2$s</string>
     <string name="feeling_bars_row_none">%1$s, inte vald</string>
     <string name="feeling_highlights_most">Mest %1$s</string>

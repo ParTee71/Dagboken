@@ -138,6 +138,30 @@ class FeelingTextTest {
     }
 
     @Test
+    fun `starkast kändes - en, två eller ingen känsla, bara i periodens mening`() {
+        val base = FeelingSummary(roles("calm", "glad"), null, emptyList(), coreCount = 2)
+        val one = base.copy(strongest = listOf(FeelingRole("scared", "anxious")))
+        val two = base.copy(strongest = listOf(FeelingRole("scared", "anxious"), FeelingRole("angry", "frustrated")))
+        val coreOnly = base.copy(strongest = listOf(FeelingRole("angry")))
+        assertEquals(
+            listOf(
+                "Du bor i Lugn och Glad.",
+                "Du bor i Lugn och Glad. Starkast kändes Rädd › Orolig.",
+                "Du bor i Lugn och Glad. Starkast kändes Rädd › Orolig och Arg › Frustrerad.",
+                "Du bor i Lugn och Glad. Starkast kändes Arg."
+            ),
+            sentences(FeelingSentenceKind.PERIOD, base, one, two, coreOnly)
+        )
+    }
+
+    @Test
+    fun `starkast kändes - Idags mening är oförändrad`() {
+        val base = FeelingSummary(roles("calm", "glad"), null, emptyList(), coreCount = 2)
+        val strong = base.copy(strongest = listOf(FeelingRole("scared", "anxious")))
+        assertEquals(listOf("Mest lugn och glad.", "Mest lugn och glad."), sentences(FeelingSentenceKind.DAY, base, strong))
+    }
+
+    @Test
     fun `lika många på andra och tredje plats - bara den vanligaste nämns, ingen lite`() {
         val tie = computeFeelingStats(listOf(FeelingEntry(LocalDate(2026, 10, 14), listOf("sad", "sad", "calm", "glad").map { checkNotNull(Feeling.parse(it)) }))).summary
         assertEquals(listOf("Mest ledsen."), sentences(FeelingSentenceKind.DAY, tie))

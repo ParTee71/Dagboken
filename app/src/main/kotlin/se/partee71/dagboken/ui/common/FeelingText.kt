@@ -193,7 +193,8 @@ enum class FeelingSentenceKind { DAY, PERIOD }
  * och glad. Lite rädd vid lunch." – kärnorna i gemener, den tredje med sitt tillfälle när alla dess val hör till ett; bara
  * en vald kärna ([FeelingSummary.sole], härledd – en handbyggd struktur kan inte motsäga sig) ger "Lugn.".
  * [FeelingSentenceKind.PERIOD] (Trender): "Du bor i Lugn och Glad. Rädd är din tredje hemvist, nästan alltid som Orolig.
- * Stark har du knappt rört." Inga val ger "Inga känslor loggade." – också minihjulets beskrivning för en tom dag.
+ * Stark har du knappt rört. Starkast kändes Rädd › Orolig." – den sista när någon känsla loggats som stark eller tydlig
+ * ([FeelingSummary.strongest], vid lika antal "… och Arg › Frustrerad"). Inga val ger "Inga känslor loggade." – också minihjulets beskrivning för en tom dag.
  */
 @Composable
 @ReadOnlyComposable
@@ -244,8 +245,14 @@ private fun periodSentence(summary: FeelingSummary): String {
             ?: stringResource(R.string.feeling_sentence_period_third, name)
     }
     val untouched = summary.untouched.takeIf { it.isNotEmpty() }?.let { cores -> stringResource(R.string.feeling_sentence_period_untouched, andList(cores.map { coreName(it) })) }
-    return listOfNotNull(home, third, untouched).joinToString(" ")
+    val strongest = summary.strongest.takeIf { it.isNotEmpty() }?.let { roles -> stringResource(R.string.feeling_sentence_period_strongest, andList(roles.map { roleName(it) })) }
+    return listOfNotNull(home, third, untouched, strongest).joinToString(" ")
 }
+
+/** Kärna och nyans som i pillen: "Rädd › Orolig" (bara kärnan utan nyans). */
+@Composable
+@ReadOnlyComposable
+private fun roleName(role: FeelingRole): String = feelingsLabel(Feeling(role.core, role.nuance))
 
 @Composable
 @ReadOnlyComposable
