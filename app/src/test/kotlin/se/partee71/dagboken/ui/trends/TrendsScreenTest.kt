@@ -57,6 +57,7 @@ import se.partee71.dagboken.testing.captureLightAndDark
 import se.partee71.dagboken.testing.captureScreenLightAndDark
 import se.partee71.dagboken.testing.clickWithoutRipple
 import se.partee71.dagboken.testing.pixels
+import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.distinctSeriesColors
 import se.partee71.dagboken.ui.components.GalleryCharts
 import se.partee71.dagboken.ui.health.ClockUiState
@@ -558,6 +559,17 @@ class TrendsScreenTest {
         list.performScrollToNode(hasText("Visa fler"))
         rule.onNodeWithText("Visa fler").performClick()
         assertEquals(listOf<TrendsEvent>(TrendsEvent.ShowMoreFeelingNotes), events)
+    }
+
+    @Test
+    fun `Varför – en kommentar från ett annat år än periodens sista dag har året (TRD-24)`() {
+        val old = LocalDate(week.last().year - 1, 10, 6)
+        val entries = listOf(FeelingEntry(old, listOf(Feeling("calm")), LocalTime(8, 0), Occasion.entries.first(), notes = mapOf("calm" to "Påhittad text i fjol.")))
+        val stats = computeFeelingStats(entries)
+        show(closed.with(TrendCard.FEELINGS, CardControls(expanded = true, range = TrendRange.SEVEN_DAYS), CardData.Feelings(week, stats, stats.alignTo(week))))
+        val list = rule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("Påhittad text i fjol."))
+        rule.onNodeWithText(DateFormat.weekdayDay(old, withYear = true), substring = true).assertExists()
     }
 
     @Test

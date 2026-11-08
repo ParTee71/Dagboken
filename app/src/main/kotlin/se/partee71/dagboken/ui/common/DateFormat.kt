@@ -22,6 +22,7 @@ object DateFormat {
     private val display = DateTimeFormatter.ofPattern("EEE d MMM yyyy", swedish)
     private val short = DateTimeFormatter.ofPattern("d MMM", swedish)
     private val weekdayShortDay = DateTimeFormatter.ofPattern("EEE d MMM", swedish)
+    private val weekdayShortDayYear = DateTimeFormatter.ofPattern("EEE d MMM yyyy", swedish)
     private val monthYear = DateTimeFormatter.ofPattern("LLLL yyyy", swedish)
     private val weekdayName = DateTimeFormatter.ofPattern("EEE", swedish)
     private val weekdayFull = DateTimeFormatter.ofPattern("EEEE", swedish)
@@ -37,9 +38,9 @@ object DateFormat {
 
     /**
      * "tis 6 okt" – en dag i episoden utan år (sjukdomsdetaljens incheckningar och senaste svårighet, SJ-5); [capitalized]
-     * ger "Tis 6 okt" som rubrik på ett postkort.
+     * ger "Tis 6 okt" som rubrik på ett postkort; [withYear] ger "tis 6 okt 2025" för en dag ett annat år (Trenders Varför, TRD-24).
      */
-    fun weekdayDay(date: LocalDate, capitalized: Boolean = false): String = weekdayShortDay.format(date.toJavaLocalDate()).replace(".", "").let { if (capitalized) it.replaceFirstChar { c -> c.titlecase(swedish) } else it }
+    fun weekdayDay(date: LocalDate, capitalized: Boolean = false, withYear: Boolean = false): String = (if (withYear) weekdayShortDayYear else weekdayShortDay).format(date.toJavaLocalDate()).replace(".", "").let { if (capitalized) it.replaceFirstChar { c -> c.titlecase(swedish) } else it }
 
     /** "oktober 2026" – kalenderns rubrik. */
     fun month(date: LocalDate): String = monthYear.format(date.toJavaLocalDate())

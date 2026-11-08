@@ -523,7 +523,8 @@ private fun FeelingNotes(data: CardData.Feelings, shown: Int, onShowMore: () -> 
             else -> null
         }
         // Ett annat år än periodens sista dag (perioden Allt): året med, som på andra ställen.
-        val day = DateFormat.weekdayDay(note.date).let { if (note.date.year != data.days.lastOrNull()?.year) "$it ${note.date.year}" else it }
+        val lastYear = data.days.lastOrNull()?.year
+        val day = DateFormat.weekdayDay(note.date, withYear = lastYear != null && note.date.year != lastYear)
         FeelingNoteRow(note.feeling, note.strength, where?.let { stringResource(R.string.feeling_note_when_format, day, it) } ?: day, note.text)
     }
     if (notes.size > shown) AppButton(stringResource(R.string.trends_feelings_notes_more), onShowMore, variant = ButtonVariant.Text)

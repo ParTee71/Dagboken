@@ -330,7 +330,7 @@ class FeelingStatsTest {
         assertEquals("walk", entry.activityType)
     }
 
-    @Test fun `kommentarer - senaste först, inom dagen senaste klockslag först, utan klockslag tidigast`() {
+    @Test fun `kommentarer - senaste först, inom dagen senaste klockslag först, utan klockslag senast som i dagens ordning`() {
         val d1 = LocalDate(2026, 10, 12)
         val d2 = LocalDate(2026, 10, 14)
         val stats = computeFeelingStats(
@@ -342,8 +342,8 @@ class FeelingStatsTest {
                 rated("angry" to null, date = d2, time = LocalTime(20, 0))
             )
         )
-        assertEquals(listOf("C", "B", "D", "A"), stats.notes.map { it.text })
-        val first = stats.notes.first()
+        assertEquals(listOf("D", "C", "B", "A"), stats.notes.map { it.text })
+        val first = stats.notes.first { it.text == "C" }
         assertEquals(Feeling("scared", "anxious"), first.feeling)
         assertEquals(strong, first.strength)
         assertEquals(d2, first.date)
@@ -365,11 +365,11 @@ class FeelingStatsTest {
         assertEquals(d, computeFeelingDay(listOf(rated("calm" to clear, time = LocalTime(8, 0), notes = mapOf("calm" to "Morgon")), rated("calm" to strong, "sad" to null, time = LocalTime(20, 0), notes = mapOf("calm" to "Kväll"))), day))
     }
 
-    @Test fun `kommentarer - utan klockslag före en logg vid midnatt, oavsett ordningen i indata`() {
+    @Test fun `kommentarer - utan klockslag efter en logg vid midnatt, oavsett ordningen i indata`() {
         val midnight = rated("calm" to null, time = LocalTime(0, 0), notes = mapOf("calm" to "Midnatt"))
         val untimed = rated("sad" to null, notes = mapOf("sad" to "Utan tid"))
-        assertEquals(listOf("Midnatt", "Utan tid"), computeFeelingStats(listOf(untimed, midnight)).notes.map { it.text })
-        assertEquals(listOf("Midnatt", "Utan tid"), computeFeelingStats(listOf(midnight, untimed)).notes.map { it.text })
+        assertEquals(listOf("Utan tid", "Midnatt"), computeFeelingStats(listOf(untimed, midnight)).notes.map { it.text })
+        assertEquals(listOf("Utan tid", "Midnatt"), computeFeelingStats(listOf(midnight, untimed)).notes.map { it.text })
     }
 
     @Test fun `strongest - en okänd nyans räknas på kärnan`() {

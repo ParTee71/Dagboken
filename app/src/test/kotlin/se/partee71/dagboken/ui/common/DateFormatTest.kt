@@ -40,5 +40,6 @@ class DateFormatTest {
         assertEquals("tis 6 okt", DateFormat.weekdayDay(LocalDate(2026, 10, 6)))
         assertEquals("Lör 3 okt", DateFormat.weekdayDay(LocalDate(2026, 10, 3), capitalized = true))
         assertEquals("tors 1 okt", DateFormat.weekdayDay(LocalDate(2026, 10, 1)))
+        assertEquals("mån 6 okt 2025", DateFormat.weekdayDay(LocalDate(2025, 10, 6), withYear = true))
     }
 }

@@ -187,7 +187,7 @@ data class FeelingStats(
     val days: List<FeelingDay>,
     /**
      * Periodens kommentarer, senaste först: senaste dag först, inom dagen senaste klockslag först (poster utan klockslag
-     * räknas som tidigast på dagen); samma tid → senare i inlistan först; inom en post i valets ordning.
+     * räknas som senast på dagen, som i dagens ordning); samma tid → senare i inlistan först; inom en post i valets ordning.
      */
     val notes: List<FeelingNote> = emptyList()
 ) {
@@ -232,7 +232,7 @@ private fun feelingDay(date: LocalDate, ofDay: List<FeelingEntry>): FeelingDay {
 
 private fun notesOf(entries: List<FeelingEntry>): List<FeelingNote> = entries
     .withIndex()
-    .sortedWith(compareByDescending<IndexedValue<FeelingEntry>> { it.value.date }.thenByDescending(nullsFirst()) { it.value.time }.thenByDescending { it.index })
+    .sortedWith(compareByDescending<IndexedValue<FeelingEntry>> { it.value.date }.thenByDescending(nullsLast()) { it.value.time }.thenByDescending { it.index })
     .flatMap { (_, e) ->
         e.feelings.mapNotNull { f -> e.notes[f.token]?.takeIf { it.isNotBlank() }?.let { FeelingNote(f, e.strengthOf(f), e.date, e.time, e.occasion, e.activityType, it) } }
     }
