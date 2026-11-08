@@ -95,7 +95,7 @@ private fun WordBar(count: CoreCount, name: String, nameWidth: Dp) {
 @Composable
 private fun StrengthBar(count: CoreCount, name: String) {
     val words = nuanceWords(count)
-    val dominant = count.byStrength.filterValues { it > 0 }.entries.maxWithOrNull(compareBy({ it.value }, { it.key.ordinal }))?.key
+    val dominant = count.byStrength.filterValues { it > 0 }.entries.maxWithOrNull(compareBy({ it.value }, { it.key.ordinal }))?.takeIf { it.value > count.unrated }?.key
     val spoken = spokenRow(count, name, words, dominant)
     val tones = AppColors.extended.feelingTones
     val segments = listOf(count.unrated to tones.forCore(count.core).container) +

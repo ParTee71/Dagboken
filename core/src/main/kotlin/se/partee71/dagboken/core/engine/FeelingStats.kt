@@ -208,7 +208,7 @@ data class FeelingStats(
 fun computeFeelingStats(entries: List<FeelingEntry>): FeelingStats {
     val days = entries.groupBy { it.date }.entries.sortedBy { it.key }.map { (date, ofDay) -> feelingDay(date, ofDay) }
     val tally = tally(entries)
-    return FeelingStats(tally, summaryOf(tally, entries), days, notesOf(entries))
+    return FeelingStats(tally, summaryOf(tally, entries).copy(strongest = strongestOf(entries)), days, notesOf(entries))
 }
 
 /**
@@ -232,7 +232,7 @@ private fun feelingDay(date: LocalDate, ofDay: List<FeelingEntry>): FeelingDay {
 
 private fun notesOf(entries: List<FeelingEntry>): List<FeelingNote> = entries
     .withIndex()
-    .sortedWith(compareByDescending<IndexedValue<FeelingEntry>> { it.value.date }.thenByDescending { it.value.time ?: LocalTime(0, 0) }.thenByDescending { it.index })
+    .sortedWith(compareByDescending<IndexedValue<FeelingEntry>> { it.value.date }.thenByDescending(nullsFirst()) { it.value.time }.thenByDescending { it.index })
     .flatMap { (_, e) ->
         e.feelings.mapNotNull { f -> e.notes[f.token]?.takeIf { it.isNotBlank() }?.let { FeelingNote(f, e.strengthOf(f), e.date, e.time, e.occasion, e.activityType, it) } }
     }
@@ -266,16 +266,20 @@ private fun summaryOf(tally: FeelingTally, entries: List<FeelingEntry>): Feeling
         most.map { role(it, entries) },
         little?.let { role(it, entries) },
         untouched.takeIf { it.size <= MAX_UNTOUCHED }.orEmpty(),
-        coreCount = ranked.size,
-        strongest = strongestOf(entries)
+        coreCount = ranked.size
     )
 }
 
-/** Känslorna (kärna › nyans) som oftast loggats stark, annars tydlig; lika många → högst två i katalogens ordning. */
+/**
+ * Känslorna (kärna › nyans) som oftast loggats stark, annars tydlig; lika många → högst två i katalogens ordning. Bara
+ * periodens mening använder den, så den räknas en gång för perioden och inte per dag. En nyans katalogen inte känner
+ * (nyare app) räknas på kärnan.
+ */
 private fun strongestOf(entries: List<FeelingEntry>): List<FeelingRole> {
     val picks = entries.flatMap { e -> e.feelings.mapNotNull { f -> e.strengthOf(f)?.let { f to it } } }.filter { it.first.core in FeelingCatalog.cores }
+        .map { (f, s) -> (if (f.nuance == null || f.nuance in FeelingCatalog.nuances(f.core)) f.core to f.nuance else f.core to null) to s }
     for (level in listOf(FeelingStrength.STRONG, FeelingStrength.CLEAR)) {
-        val counts = picks.filter { it.second == level }.groupingBy { it.first.core to it.first.nuance }.eachCount()
+        val counts = picks.filter { it.second == level }.groupingBy { it.first }.eachCount()
         val max = counts.values.maxOrNull() ?: continue
         return counts.filterValues { it == max }.keys
             .sortedWith(compareBy({ FeelingCatalog.cores.indexOf(it.first) }, { it.second?.let { n -> FeelingCatalog.nuances(it.first).indexOf(n) } ?: -1 }))

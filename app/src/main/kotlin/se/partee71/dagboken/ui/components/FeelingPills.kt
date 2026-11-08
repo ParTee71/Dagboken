@@ -22,6 +22,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
 import se.partee71.dagboken.core.model.Feeling
@@ -109,8 +111,9 @@ internal fun FeelingPillsWithNotes(feelings: List<Feeling>, extras: FeelingExtra
 fun FeelingNoteRow(feeling: Feeling, strength: FeelingStrength?, whenText: String, text: String, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { FeelingPill(feeling, strength = strength) }
-            Text(whenText, style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            // Pillen mäts först och behåller sin bredd; "när" tar resten och kortas med "…" (lång aktivitetstyp, stor text).
+            FeelingPill(feeling, strength = strength)
+            Text(whenText, Modifier.weight(1f), style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Text(text.trim(), Modifier.padding(start = Spacing.xs), style = AppTypography.body)
     }

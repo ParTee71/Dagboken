@@ -103,6 +103,7 @@ class FeelingVisualsTest {
         show { FeelingWordBars(GalleryFeelings.strengths.tally, strengths = true) }
         rule.onNodeWithContentDescription("Rädd: orolig, oftast stark").assertExists()
         rule.onNodeWithContentDescription("Ledsen: trött, oftast svag").assertExists()
+        rule.onNodeWithContentDescription("Lugn: tacksam, avslappnad, närvarande").assertExists() // de flesta valen utan styrka – ingen "oftast"
         rule.onNodeWithContentDescription("Stark, inte vald").assertExists()
         rule.onNodeWithContentDescription("Tonen visar styrkan, från ingen styrka till stark").assertExists()
     }

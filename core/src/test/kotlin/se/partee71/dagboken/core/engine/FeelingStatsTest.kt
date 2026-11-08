@@ -364,4 +364,22 @@ class FeelingStatsTest {
         assertEquals(mapOf("calm" to "Morgon\nKväll"), d.notes)
         assertEquals(d, computeFeelingDay(listOf(rated("calm" to clear, time = LocalTime(8, 0), notes = mapOf("calm" to "Morgon")), rated("calm" to strong, "sad" to null, time = LocalTime(20, 0), notes = mapOf("calm" to "Kväll"))), day))
     }
+
+    @Test fun `kommentarer - utan klockslag före en logg vid midnatt, oavsett ordningen i indata`() {
+        val midnight = rated("calm" to null, time = LocalTime(0, 0), notes = mapOf("calm" to "Midnatt"))
+        val untimed = rated("sad" to null, notes = mapOf("sad" to "Utan tid"))
+        assertEquals(listOf("Midnatt", "Utan tid"), computeFeelingStats(listOf(untimed, midnight)).notes.map { it.text })
+        assertEquals(listOf("Midnatt", "Utan tid"), computeFeelingStats(listOf(midnight, untimed)).notes.map { it.text })
+    }
+
+    @Test fun `strongest - en okänd nyans räknas på kärnan`() {
+        val stats = computeFeelingStats(listOf(rated("scared.newnuance" to strong), rated("scared.newnuance" to strong), rated("calm.grateful" to strong)))
+        assertEquals(listOf<Pair<String, String?>>("scared" to null), stats.strongest())
+    }
+
+    @Test fun `strongest räknas bara för perioden, inte per dag`() {
+        val stats = computeFeelingStats(listOf(rated("calm" to strong)))
+        assertEquals(listOf<Pair<String, String?>>("calm" to null), stats.strongest())
+        assertTrue(stats.day(day).summary.strongest.isEmpty())
+    }
 }

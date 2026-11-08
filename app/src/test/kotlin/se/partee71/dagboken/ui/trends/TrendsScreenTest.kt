@@ -601,7 +601,7 @@ class TrendsScreenTest {
     }
 
     @Test
-    @Config(qualifiers = "w390dp-h2600dp-xxhdpi")
+    @Config(qualifiers = "w390dp-h2600dp-xhdpi") // xhdpi: 780 × 5200 px, xxhdpi gav 7800 px och OutOfMemoryError i testets heap
     fun `skärmdump - Känslor med styrka och kommentarer`() = rule.captureLightAndDark("Trends_kanslor_styrka_kommentarer") {
         TrendsScreen(ratedOpen.copy(feelingDay = today), {})
     }
