@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import se.partee71.dagboken.R
+import se.partee71.dagboken.core.engine.FeelingDay
 import se.partee71.dagboken.core.model.Feeling
 import se.partee71.dagboken.core.model.FeelingCatalog
 import se.partee71.dagboken.core.model.FeelingStrength
@@ -86,6 +87,9 @@ class FeelingExtras(
 
         /** Styrka och kommentar ur [post] för visning (postkortet, tillfällesraden) – inget går att ändra. */
         fun shown(post: HasFeelings<*>) = FeelingExtras(strengthOf = post::strengthOf, noteOf = post::noteOf)
+
+        /** Styrka och kommentarer för en dag ur Trenders vecka ([FeelingDay], TRD-22) – bara visning. */
+        fun shown(day: FeelingDay) = FeelingExtras(strengthOf = { day.strengths[it.token] }, noteOf = { day.notes[it.token].orEmpty() })
     }
 }
 

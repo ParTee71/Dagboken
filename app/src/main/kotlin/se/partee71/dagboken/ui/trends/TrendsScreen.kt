@@ -48,8 +48,10 @@ import se.partee71.dagboken.ui.common.label
 import se.partee71.dagboken.ui.common.qualifiedLabel
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.AccountAvatar
+import se.partee71.dagboken.ui.components.FeelingExtras
 import se.partee71.dagboken.ui.components.FeelingMiniWheel
-import se.partee71.dagboken.ui.components.FeelingPills
+import se.partee71.dagboken.ui.components.FeelingNoteRow
+import se.partee71.dagboken.ui.components.FeelingPillsWithNotes
 import se.partee71.dagboken.ui.components.FeelingWeekRow
 import se.partee71.dagboken.ui.components.FeelingWheelSize
 import se.partee71.dagboken.ui.components.Foldout
@@ -75,11 +77,12 @@ import se.partee71.dagboken.ui.theme.AppTypography
 import se.partee71.dagboken.ui.theme.ExtendedColors
 import se.partee71.dagboken.ui.theme.Warning
 import se.partee71.ui.common.DetailUiState
+import se.partee71.ui.components.AppButton
 import se.partee71.ui.components.AppCard
 import se.partee71.ui.components.AppDivider
 import se.partee71.ui.components.AppMenuItem
 import se.partee71.ui.components.AppSegmentedChoice
-import se.partee71.ui.components.ChipRow
+import se.partee71.ui.components.ButtonVariant
 import se.partee71.ui.components.EmptyState
 import se.partee71.ui.components.EntityDetailScreen
 import se.partee71.ui.components.GroupLabel
@@ -141,7 +144,7 @@ fun TrendsScreen(
                 SectionHeader(stringResource(R.string.tab_trends))
             }
         }
-        TrendCard.inGroup(content.group).forEach { card -> TrendCardView(card, content.cards.getValue(card), content.feelingDay, onEvent) }
+        TrendCard.inGroup(content.group).forEach { card -> TrendCardView(card, content.cards.getValue(card), content, onEvent) }
     }
 }
 
@@ -204,10 +207,11 @@ private val TrendRange.label: Int
 /**
  * Ett diagramkort (TRD-14): stängt bara titeln, chevronen och – när kortet lästs – sammanfattningen; utfällt
  * periodväljaren i titelraden (TRD-3), serieval (TRD-12), "Föregående period" (TRD-18), diagrammet och
- * sammanfattningen. Ett stängt kort komponerar inget diagram (TRD-15). [feelingDay] är den valda dagen i Känslors vecka (TRD-22).
+ * sammanfattningen. Ett stängt kort komponerar inget diagram (TRD-15). Ur [screen] läser Känslor den valda dagen i veckan
+ * (TRD-22) och hur många kommentarer "Varför" visar (TRD-24).
  */
 @Composable
-private fun TrendCardView(card: TrendCard, state: TrendCardState, feelingDay: LocalDate?, onEvent: (TrendsEvent) -> Unit) {
+private fun TrendCardView(card: TrendCard, state: TrendCardState, screen: TrendsUiState, onEvent: (TrendsEvent) -> Unit) {
     val controls = state.controls
     val data = state.data
     // Serierna kortet erbjuder och deras namn – en gång per kort, för menyn och diagrammet.
@@ -228,7 +232,7 @@ private fun TrendCardView(card: TrendCard, state: TrendCardState, feelingDay: Lo
             if (controls.showsPrevious(card)) SwitchRow(stringResource(R.string.trends_previous_period), controls.previous, { onEvent(TrendsEvent.SetPrevious(card, it)) })
             when (data) {
                 null -> Unit
-                is CardData.Feelings -> FeelingsChart(data, feelingDay) { onEvent(TrendsEvent.SelectFeelingDay(it)) }
+                is CardData.Feelings -> FeelingsChart(data, screen.feelingDay, screen.feelingNotes, onEvent)
                 else -> Chart(card, data, names)
             }
             if (summary != null && card == TrendCard.EVENTS_ILLNESS) {
@@ -457,13 +461,15 @@ private fun summaryText(card: TrendCard, data: CardData, stats: SeriesStats?): S
 }
 
 /**
- * Känslor (TRD-22), inga tal: värmekartan – minihjulet i full bredd med kärnan och de tre vanligaste nyanserna i varje
- * sektor – med periodens mening under (samma `FeelingStats` och `feelingSentence` som Idags Dagens känslor), i
- * 7-dagarsläget veckan med ett minihjul per dag (`FeelingWeekRow`: tryck väljer dagen och visar alla dess ord som
- * `FeelingPills`, [onSelect]) och sist ordträdet. TalkBack läser periodens mening en gång, på hjulet. En period utan känslor visar kortets tomma läge.
+ * Känslor (TRD-22, TRD-24), inga tal: värmekartan – minihjulet i full bredd med kärnan och de tre vanligaste nyanserna i
+ * varje sektor – med periodens mening under (samma `FeelingStats` och `feelingSentence` som Idags Dagens känslor, med
+ * "Starkast kändes …"), i 7-dagarsläget veckan med ett minihjul per dag (`FeelingWeekRow`: tryck väljer dagen och visar
+ * alla dess ord med styrka och kommentar som Dagboks postkort, `FeelingPillsWithNotes`), ordträdet – med styrkans
+ * segment när perioden har styrkor – och sist "Varför": periodens kommentarer, senaste först, [notesShown] åt gången
+ * med "Visa fler". TalkBack läser periodens mening en gång, på hjulet. En period utan känslor visar kortets tomma läge.
  */
 @Composable
-private fun FeelingsChart(data: CardData.Feelings, selected: LocalDate?, onSelect: (LocalDate) -> Unit) {
+private fun FeelingsChart(data: CardData.Feelings, selected: LocalDate?, notesShown: Int, onEvent: (TrendsEvent) -> Unit) {
     if (data.isEmpty) {
         EmptyState(R.drawable.ic_trend, stringResource(R.string.feelings_none_in_period), stringResource(R.string.trends_feelings_empty_hint), compact = true)
         return
@@ -476,18 +482,52 @@ private fun FeelingsChart(data: CardData.Feelings, selected: LocalDate?, onSelec
     if (data.week.isNotEmpty()) {
         AppDivider()
         GroupLabel(stringResource(R.string.trends_feelings_week))
-        FeelingWeekRow(data.week, selected, onSelect)
+        FeelingWeekRow(data.week, selected, { onEvent(TrendsEvent.SelectFeelingDay(it)) })
         val chosen = data.week.firstOrNull { it.date == selected }
         when {
             chosen == null -> Text(stringResource(R.string.trends_feelings_week_hint), style = AppTypography.body)
             chosen.words.isEmpty() -> Text(feelingSentence(chosen.summary, FeelingSentenceKind.DAY), style = AppTypography.body)
-            else -> ChipRow { FeelingPills(chosen.words, max = null) }
+            else -> FeelingPillsWithNotes(chosen.words, FeelingExtras.shown(chosen), max = null)
         }
     }
     AppDivider()
     GroupLabel(stringResource(R.string.trends_feelings_tree))
-    FeelingWordBars(data.stats.tally)
-    Text(stringResource(R.string.trends_feelings_tree_hint), style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val strengths = data.stats.tally.hasStrengths
+    FeelingWordBars(data.stats.tally, strengths = strengths)
+    Text(
+        stringResource(if (strengths) R.string.trends_feelings_tree_hint_strength else R.string.trends_feelings_tree_hint),
+        style = AppTypography.caption,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    FeelingNotes(data, notesShown, onShowMore = { onEvent(TrendsEvent.ShowMoreFeelingNotes) })
+}
+
+/**
+ * "Varför" (TRD-24): periodens kommentarer, senaste först, de första [shown] som `FeelingNoteRow` med när – "fre 6 nov ·
+ * Lunch" (måendeloggens tillfälle) eller "· Promenad" (aktivitetens namn ur Listor, annars "Aktivitet") – och "Visa fler"
+ * så länge fler finns. Inget utan kommentarer i perioden. Texterna är hälsodata: bara i UI, aldrig loggade.
+ */
+@Composable
+private fun FeelingNotes(data: CardData.Feelings, shown: Int, onShowMore: () -> Unit) {
+    val notes = data.stats.notes
+    if (notes.isEmpty()) return
+    AppDivider()
+    GroupLabel(stringResource(R.string.trends_feelings_notes))
+    notes.take(shown).forEachIndexed { i, note ->
+        if (i > 0) AppDivider()
+        val activity = note.activityType
+        val occasion = note.occasion
+        val where = when {
+            activity != null -> data.activityNames[activity] ?: stringResource(R.string.log_activity)
+            occasion != null -> stringResource(occasion.label())
+            else -> null
+        }
+        // Ett annat år än periodens sista dag (perioden Allt): året med, som på andra ställen.
+        val lastYear = data.days.lastOrNull()?.year
+        val day = DateFormat.weekdayDay(note.date, withYear = lastYear != null && note.date.year != lastYear)
+        FeelingNoteRow(note.feeling, note.strength, where?.let { stringResource(R.string.feeling_note_when_format, day, it) } ?: day, note.text)
+    }
+    if (notes.size > shown) AppButton(stringResource(R.string.trends_feelings_notes_more), onShowMore, variant = ButtonVariant.Text)
 }
 
 /**

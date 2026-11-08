@@ -209,6 +209,12 @@ class DiagramScreenshotTest {
         Sheet { FeelingWordBars(GalleryFeelings.period.tally) }
     }
 
+    /** Ordträdet med styrka (#396): segment i kärnans styrketoner och teckenförklaringen. */
+    @Test
+    fun `FeelingWordBars - med styrka`() = captureLightAndDark("FeelingWordBars_styrka") {
+        Sheet { FeelingWordBars(GalleryFeelings.strengths.tally, strengths = true) }
+    }
+
     @Test
     fun `FeelingWordBars - stor text`() = captureLightAndDark("FeelingWordBars_stor_text") {
         LargeText { Sheet { FeelingWordBars(GalleryFeelings.period.tally) } }

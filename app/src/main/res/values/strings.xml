@@ -282,8 +282,13 @@
     <string name="feeling_sentence_period_third">%1$s är din tredje hemvist.</string>
     <string name="feeling_sentence_period_third_habit">%1$s är din tredje hemvist, nästan alltid som %2$s.</string>
     <string name="feeling_sentence_period_untouched">%1$s har du knappt rört.</string>
+    <string name="feeling_sentence_period_strongest">Starkast kändes %1$s.</string>
     <string name="feeling_bars_row_format">%1$s: %2$s</string>
     <string name="feeling_bars_row_none">%1$s, inte vald</string>
+    <string name="feeling_bars_row_strength">%1$s, oftast %2$s</string>
+    <string name="feeling_bars_legend_none">Ingen styrka</string>
+    <string name="feeling_bars_legend_strong">Stark</string>
+    <string name="feeling_bars_legend_description">Tonen visar styrkan, från ingen styrka till stark</string>
     <string name="feeling_highlights_most">Mest %1$s</string>
     <string name="feelings_none_in_period">Inga känslor i perioden</string>
 
@@ -296,6 +301,10 @@
     <string name="feeling_week_day_format">%1$s: %2$s</string>
     <string name="trends_feelings_tree">Ordträdet</string>
     <string name="trends_feelings_tree_hint">Längden säger hur ofta, orden i stapeln är nyanserna du valt. Inga tal.</string>
+    <string name="trends_feelings_tree_hint_strength">Längden säger hur ofta, tonen hur starkt. Orden under stapeln är nyanserna du valt. Inga tal.</string>
+    <string name="trends_feelings_notes">Varför · det du skrev om dina känslor</string>
+    <string name="trends_feelings_notes_more">Visa fler</string>
+    <string name="feeling_note_when_format">%1$s · %2$s</string>
     <string name="trends_feelings_empty_hint">Välj känslor när du loggar mående eller en aktivitet, så syns de här.</string>
 
     <!-- Tidsåtgång (AKT-7) -->
