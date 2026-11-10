@@ -132,36 +132,22 @@ skärmdumparna i PR:en i skill **android-projekt**.
 ## Innan du anser dig klar
 
 Gå igenom de fem reglerna och mockup-regeln. Agenten `android:granskare` (pluginen) gör det på diffen och
-rapporterar i en tabell (skill **android:implement-issue**, steg 8).
+rapporterar i en tabell (skill **android:arbetsflode** → Granska i rundor).
 
 ## PR-flöde
 
-- **En PR i taget.** Öppna inte nästa förrän den föregående är mergad (eller uttryckligen
-  stängd/pausad av användaren). Gäller `android:implement-issue` och manuellt arbete.
-- **Kontrollera mergen via GitHub** (`pull_request_read`) innan nästa issue påbörjas –
-  inte via antagande. Först när den är mergad startas arbetsbranchen om från `origin/master`.
-- PR:er går mot `master`. Kör testerna lokalt först (skill **testing-strategy**), pusha sedan –
-  GitHub Actions bekräftar.
-- **Förbered releasen i funktions-PR:en.** Varje PR som ändrar appens beteende höjer
-  versionen i samma ändring (semver, `versionCode`, `version.properties`, README) och skriver
-  den i PR-beskrivningen; ren dokument-, test- eller CI-ändring höjer inte. Detaljerna står i
-  skill **android:release**, "Versionshöjning i funktions-PR:en". Själva releasen körs bara på
-  uttrycklig begäran.
-- **Prenumerera automatiskt** på PR-aktivitet (`subscribe_pr_activity`) så fort en PR
-  skapas, utan att fråga. Bevaka tills den är mergad eller stängd: fixa CI-fel, hantera
-  granskningskommentarer, schemalägg check-in. Vid rött CI: låt agenten `android:ci-doktor`
-  diagnostisera. Avsluta prenumerationen när PR:en är klar.
+Stommen – en PR i taget, merge kontrollerad via GitHub, granskning i rundor, en push, bevakning
+till merge, rött CI – står i skill **android:arbetsflode**; Android-delen i
+**android:implement-issue**, när plan och ok krävs i **android:arbetsregler**. PR:er går mot
+`master`. En PR som ändrar appens beteende höjer versionen i samma ändring (skill
+**android:release** → Versionshöjning); själva releasen bara på uttrycklig begäran.
+
 - **Delegera på rätt nivå** (ARKITEKTUR.md → Agenter): huvudsessionen orkestrerar och granskar;
   agenten `dagboken-byggare` tar portar, komponenter, skärmar och CI-filer, agenten `dagboken-arkitekt` datamodell,
   codecs, importen, rules och migrering. Går ett steg fel två gånger i rad flyttas det upp en nivå.
-- **Modellval** för sessionen och varje agent (skill `android:ai-model-choice`, enda källan;
-  agenterna: [.claude/README.md](.claude/README.md) → Modellval):
-  Opus 5.5 (`claude-opus-5-5`) är standard. Fable 5.2 (`claude-fable-5-2`) är ok när det behövs –
-  svår arkitektur eller design, knepiga integrationer, långa agentuppgifter, buggar Opus inte
-  klarat – men försiktigt för kostnadens skull: medium eller high effort, aldrig max eller fast
-  mode. Säg varför och vilken effort innan du byter till Fable 5.2; planera med Fable, genomför
-  med Opus när det går. Fable 5.1 används inte längre.
-  Varje issue anger **Agent · modell · effort** (skill **android:refine-issue**) och körs så.
+- **Modellval** för sessionen och varje agent: skill **android:ai-model-choice** (enda källan) –
+  Opus 5.5 som standard, Fable 5.2 bara med skäl och medium eller high effort. Agenterna:
+  [.claude/README.md](.claude/README.md) → Modellval.
 
 ## Bygg & test
 
