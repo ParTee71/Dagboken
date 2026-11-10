@@ -59,8 +59,8 @@ import se.partee71.ui.theme.ToneColors
  *   alltid med [ConfirmDialog] – samma dialog som menyns Radera, så ingen åtgärd finns bara via svep;
  * - svep från vänster till höger är reserverat och gör ingenting.
  *
- * Trailing-delen har fast ordning: [toggle] (postkortets enda direktkontroll, t.ex. receptets
- * aktiv-reglage – dubbleras som menyval av anroparen), [status] (värdechip), anteckningsikonen när
+ * Trailing-delen har fast ordning: [favoriteStar] (stjärnan, valfri direktkontroll, MEDF-1/MEDF-3 – dubbleras som
+ * menyval av anroparen), [toggle] (t.ex. receptets aktiv-reglage – dubbleras som menyval av anroparen), [status] (värdechip), anteckningsikonen när
  * [note] har text, chevronen när [expandedContent] finns (fäller ut detaljerna), `⋮`. [accent] är
  * en statusfärg i vänsterkanten (energi, aktiv/inaktiv, pågående) – aldrig dekoration – och
  * [inactive] tonar ner en avslutad eller pausad post (inte reglaget, som ska gå att slå på igen).
@@ -90,7 +90,9 @@ fun DagbokenEntryCard(
     /** Styrka och kommentar per känsla (SCR-9, SCR-10) – bara läsning. */
     feelingExtras: FeelingExtras = FeelingExtras.None,
     /** Stjärnmärkt post (FAV-12): en liten fylld stjärna efter titeln – bara en markering, vägen dit är menyn. */
-    favorite: Boolean = false
+    favorite: Boolean = false,
+    /** Stjärnan som direktkontroll (NFR-15): ersätter den lilla [favorite]-markeringen; `null` = oförändrat utseende. */
+    favoriteStar: EntryFavorite? = null
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -112,7 +114,8 @@ fun DagbokenEntryCard(
             inactive = inactive,
             toggle = toggle,
             below = withFeelings(below, feelings, feelingExtras),
-            favorite = favorite
+            favorite = favorite && favoriteStar == null,
+            favoriteStar = favoriteStar
         )
     }
     if (delete == null) card(modifier) else SwipeToDelete({ confirmDelete = true }, modifier) { card(Modifier) }
@@ -131,6 +134,9 @@ private fun withFeelings(below: (@Composable () -> Unit)?, feelings: List<Feelin
         }
     }
 }
+
+/** Postkortets stjärna (MEDF-1, MEDF-3): [name] läses av TalkBack som i [FavoriteStar]. */
+data class EntryFavorite(val name: String, val favorite: Boolean, val onToggle: () -> Unit)
 
 /** Postkortets direktkontroll (NFR-16): ett reglage, läst av TalkBack som [label]. */
 data class EntryToggle(val checked: Boolean, val onCheckedChange: (Boolean) -> Unit, val label: String)
@@ -160,7 +166,8 @@ private fun EntryCardBody(
     inactive: Boolean,
     toggle: EntryToggle?,
     below: (@Composable () -> Unit)?,
-    favorite: Boolean
+    favorite: Boolean,
+    favoriteStar: EntryFavorite?
 ) {
     Box(
         modifier
@@ -193,6 +200,7 @@ private fun EntryCardBody(
                     ItemRowText(title.takeIf { toggle == null }, subtitle)
                     if (favorite && toggle == null) FavoriteMark()
                 }
+                favoriteStar?.let { FavoriteStar(it.name, it.favorite, it.onToggle) }
                 toggle?.let { SwitchControl(it.checked, it.onCheckedChange, label = it.label) }
                 status?.invoke()
                 NoteIndicator(note, title)
