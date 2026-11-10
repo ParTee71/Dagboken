@@ -134,7 +134,7 @@ node --test '.claude/hooks/test/*.test.mjs'           # hooktest, alltid
 
 **Kör kontrollerna lokalt innan varje push** – en röd CI-runda är det dyraste som finns (skill
 `ci-budget`). Gradle körs i sessionen med Android SDK i `/opt/android-sdk`
-(saknas den: kör `.claude/hooks/install-android-sdk.sh` – det är alltid ok att installera Android SDK och liknande verktyg i sessionen; bara om installationen inte går får CI bekräfta); Firebase-emulatorn kräver Java 21 och `npm ci` i
+(saknas den: kör claude-android `scripts/android-sdk.sh` – det är alltid ok att installera Android SDK och liknande verktyg i sessionen; bara om installationen inte går får CI bekräfta); Firebase-emulatorn kräver Java 21 och `npm ci` i
 `tools/db`. `LC_ALL=C.UTF-8` (testnamn med å/ä/ö) sätts av `.claude/settings.json`. Kör en Gradle-körning i taget. Bara instrumenttesterna kräver Android-emulator
 och körs i Actions (`instrumented.yml`, i PR:er som rör koden de testar). Går ett kommando inte att köra (nät, SDK saknas):
 säg det i PR:en. Vid rött CI – låt agenten `android:ci-doktor` diagnostisera.

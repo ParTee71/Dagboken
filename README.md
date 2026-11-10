@@ -107,15 +107,15 @@ och läsa databasen – utan att nycklar någonsin klistras in i chatten.
 - Samma fil hindrar Claude från att öppna nyckelfiler med läsverktyget (keystores, service
   accounts, `.env`) och sätter `LC_ALL=C.UTF-8`, så att svenska tecken i testnamn och
   skärmdumpar blir rätt i molnsessionen.
-- Hooken `session-start.sh` installerar `tools/db` (utan livscykelskript), talar om ifall
-  databasnyckeln finns och om Android SDK finns i sessionen (då kan Gradle köras där).
+- Hooken `session-start.sh` installerar `tools/db` (utan livscykelskript) och talar om ifall
+  databasnyckeln finns. Det gemensamma för Android-repona (SDK och `sdk.dir`, `GPR_TOKEN`, Maven
+  Central-spegeln mot 429) gör pluginens hook `android-start` (claude-android #55).
 - Hooken `regel4-check.mjs` kontrollerar regel 4 direkt efter varje filändring, med samma
   mönster som bygget (`app/src/test/resources/ui-forbidden.txt`).
 - Samma hook körs som Stop-hook innan Claude avslutar en tur: den går igenom alla filer som
   ändrats mot `origin/master` och ber Claude rätta en träff först (högst en gång i följd).
-- `install-android-sdk.sh` installerar Android SDK i `/opt/android-sdk` och pekar ut den i
-  `local.properties`; plattform och build-tools hämtar Gradle själv. Det körs inte
-  automatiskt (cirka 470 MB); lägg det i miljöns setup-skript eller be Claude köra det.
+- Android SDK i molnsessionen installeras av miljöns setup-skript med claude-android
+  `scripts/android-sdk.sh` (README där → Installation).
 - Hookarna hittar repot både när det är sessionens projektrot och när sessionen har flera
   repon under en gemensam katalog; Stop-hooken kontrollerar då varje repo med dess egen hook.
 
