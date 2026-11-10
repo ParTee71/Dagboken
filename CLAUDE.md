@@ -5,7 +5,7 @@
 > Kravspecifikation: [KRAVLISTA.md](KRAVLISTA.md) · Arkitektur och ombyggnadsplan: [ARKITEKTUR.md](ARKITEKTUR.md) (ADR-001)
 
 Den här filen gäller vid **varje** ändring, oavsett storlek, både på telefonen och i Android
-Studio; detaljerna ligger som skills i `.claude/skills/` (i projekttrådar `dagboken:<namn>`).
+Studio; detaljerna ligger som skills i `.claude/skills/` (i projekttrådar `<namn>`, eller `Dagboken:<namn>` när ett annat repo i tråden har en skill med samma namn).
 
 **Svarslängd:** håll chattsvar minimala. Inga sammanfattningar, ingen upprepning av vad
 som gjordes, inga rubriker/listor om inte nödvändigt. Kod, commits och PR-beskrivningar
@@ -152,7 +152,7 @@ rapporterar i en tabell (skill **android:implement-issue**, steg 8).
   granskningskommentarer, schemalägg check-in. Vid rött CI: låt agenten `android:ci-doktor`
   diagnostisera. Avsluta prenumerationen när PR:en är klar.
 - **Delegera på rätt nivå** (ARKITEKTUR.md → Agenter): huvudsessionen orkestrerar och granskar;
-  agenten `byggare` tar portar, komponenter, skärmar och CI-filer, agenten `arkitekt` datamodell,
+  agenten `dagboken-byggare` tar portar, komponenter, skärmar och CI-filer, agenten `dagboken-arkitekt` datamodell,
   codecs, importen, rules och migrering. Går ett steg fel två gånger i rad flyttas det upp en nivå.
 - **Modellval** för sessionen och varje agent (skill `android:ai-model-choice`, enda källan;
   agenterna: [.claude/README.md](.claude/README.md) → Modellval):
@@ -197,13 +197,13 @@ gång i `data/common`. Struktur, datamodell, lager, migrering och etapper står 
 
 ## Databasåtkomst från sessionen
 
-Läs med `tools/db` (skill **db-access**, agent **db-inspektor**); nyckeln ligger i miljön som
+Läs med `tools/db` (skill **db-access**, agent **dagboken-db-inspektor**); nyckeln ligger i miljön som
 `FIREBASE_SERVICE_ACCOUNT` – be aldrig användaren klistra in en nyckel i chatten. Skrivningar
 bara på uttrycklig begäran via `import.mjs`/`migrate.mjs`.
 
 ## Agenter och skills
 
-Agenterna (`byggare`, `arkitekt`, `db-inspektor` och pluginens `android:granskare`, `android:ci-doktor`, `android:testskrivare`)
+Agenterna (`dagboken-byggare`, `dagboken-arkitekt`, `dagboken-db-inspektor` och pluginens `android:granskare`, `android:ci-doktor`, `android:testskrivare`)
 och alla skills, med när de används, listas i [.claude/README.md](.claude/README.md). Modell
 och effort står i varje agents frontmatter (ARKITEKTUR.md → Agenter).
 

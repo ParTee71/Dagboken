@@ -166,11 +166,11 @@ Stegen står i pluginen; det här är Dagbokens delar.
   ändring, och fixturen `user.json` med ett icke-default-värde i fältet; ett fält som 3.x-data ligger i
   (paritetstabellen) tas aldrig bort (skill `data-safety-backup`).
 - **Agenter** (ARKITEKTUR.md → "CI, verktyg, skills och agenter"): huvudsessionen orkestrerar och
-  granskar; agenten `byggare` tar portar, komponenter, skärmar på ramarna och CI-filer, agenten
-  `arkitekt` datamodell, codecs, importen, rules, migrering och arkitekturval, pluginens
+  granskar; agenten `dagboken-byggare` tar portar, komponenter, skärmar på ramarna och CI-filer, agenten
+  `dagboken-arkitekt` datamodell, codecs, importen, rules, migrering och arkitekturval, pluginens
   `android:testskrivare` tester på tre eller fler nivåer, `android:granskare` diffen (steg 8),
-  `android:ci-doktor` rött CI och `db-inspektor` faktisk data. Går ett steg fel två gånger i rad flyttas det upp en nivå
-  (`byggare` → `arkitekt`, Sonnet → Opus). Saknar issuet **Agent · modell · effort** kompletteras
+  `android:ci-doktor` rött CI och `dagboken-db-inspektor` faktisk data. Går ett steg fel två gånger i rad flyttas det upp en nivå
+  (`dagboken-byggare` → `dagboken-arkitekt`, Sonnet → Opus). Saknar issuet **Agent · modell · effort** kompletteras
   det utifrån etapptabellen (avsnittet Issues nedan).
 - **`/code-review` krävs** (efter `android:granskare`) när ändringen rör logik i `:core` (motorer,
   diagrammatematik, importens läsare), datalagret, `firestore.rules`, `tools/db`, larmen eller en
@@ -241,15 +241,15 @@ hemligheter → `data-privacy-security`; larm och notiser → `notifications-ala
 
   | Agent | Tar | Standard |
   |---|---|---|
-  | `byggare` | portar, komponenter, skärmar på ramarna, CI-filer | Opus · medium |
-  | `arkitekt` | datamodell, codecs, importen, rules, migrering, arkitekturval | Opus · high (Fable vid väldigt komplexa issues) |
+  | `dagboken-byggare` | portar, komponenter, skärmar på ramarna, CI-filer | Opus · medium |
+  | `dagboken-arkitekt` | datamodell, codecs, importen, rules, migrering, arkitekturval | Opus · high (Fable vid väldigt komplexa issues) |
   | `android:testskrivare` | tester när tre eller fler nivåer berörs | Sonnet · medium |
   | `android:granskare` | granskningen i steg 8, alltid med | sessionens modell · medium |
   | `android:ci-doktor` | rött CI – startas vid behov, anges inte i förväg | Sonnet · medium |
-  | `db-inspektor` | faktisk data, bara läsning – anges när issuet kräver det | Haiku · low |
+  | `dagboken-db-inspektor` | faktisk data, bara läsning – anges när issuet kräver det | Haiku · low |
 
-  Data, rules och migrering minst `arkitekt` · high. Exempel: `arkitekt` · Fable · high – codecs
-  och rules; `byggare` · Opus · medium – skärmarna.
+  Data, rules och migrering minst `dagboken-arkitekt` · high. Exempel: `dagboken-arkitekt` · Fable · high – codecs
+  och rules; `dagboken-byggare` · Opus · medium – skärmarna.
 
 ## Release (android:release)
 

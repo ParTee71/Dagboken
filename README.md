@@ -94,8 +94,8 @@ Utvecklingen sker mest från telefonen. Claude-sessionen har allt som behövs f�
 och läsa databasen – utan att nycklar någonsin klistras in i chatten.
 
 ### Det som ligger i repot
-- `CLAUDE.md`, skills och agenter i `.claude/` (översikt i [`.claude/README.md`](.claude/README.md); agenterna `byggare`, `arkitekt` och
-  `db-inspektor` med modell och effort i frontmatter; `granskare`, `ci-doktor` och `testskrivare` kommer från pluginen
+- `CLAUDE.md`, skills och agenter i `.claude/` (översikt i [`.claude/README.md`](.claude/README.md); agenterna `dagboken-byggare`, `dagboken-arkitekt` och
+  `dagboken-db-inspektor` med modell och effort i frontmatter; `granskare`, `ci-doktor` och `testskrivare` kommer från pluginen
   android@claude-android, ARKITEKTUR.md → Agenter).
 - `.claude/settings.json` förhandsgodkänner utan fråga:
   - läsning av PR:er, CI-status och jobbloggar, och bevakning av PR-aktivitet;
@@ -147,7 +147,7 @@ rundturstesterna) `storage.googleapis.com`.
    som miljövariabeln `FIREBASE_SERVICE_ACCOUNT` (tabellen ovan).
 2. Tillåt nätverksvärdarna ovan och starta en **ny** session – hooken installerar `tools/db`
    och talar om att nyckeln är satt.
-3. Fråga Claude ("hur många mående-loggar finns från september?") – agenten `db-inspektor`
+3. Fråga Claude ("hur många mående-loggar finns från september?") – agenten `dagboken-db-inspektor`
    använder `tools/db` och visar bara det du frågat om. Själv kan du köra
    `node tools/db/stats.mjs`, `query.mjs <samling>` och `get.mjs <sökväg>` (alla har `--help`).
 

@@ -9,9 +9,9 @@ som finns i `.claude/agents/` och `.claude/skills/`.
 
 | Agent | När |
 |---|---|
-| `byggare` | Portar, komponenter, skärmar på ramarna och CI-filer enligt en klar plan (Opus · medium). |
-| `arkitekt` | Datamodell, codecs, importen, rules, migrering och arkitekturval (Opus · high). |
-| `db-inspektor` | Svarar på frågor om faktisk data i Firestore, endast läsning (Haiku · low). |
+| `dagboken-byggare` | Portar, komponenter, skärmar på ramarna och CI-filer enligt en klar plan (Opus · medium). |
+| `dagboken-arkitekt` | Datamodell, codecs, importen, rules, migrering och arkitekturval (Opus · high). |
+| `dagboken-db-inspektor` | Svarar på frågor om faktisk data i Firestore, endast läsning (Haiku · low). |
 
 Från pluginen (generella, läser Dagbokens delar ur repot; listade i `.github/scripts/plugin-agents.txt`):
 
