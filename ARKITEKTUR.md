@@ -550,14 +550,14 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
 
   | Agent | Modell · effort | Används för |
   |---|---|---|
-  | `byggare` (ny) | Opus 5.5 · medium | portar, komponenter, skärmar på ramarna, CI-filer |
-  | `arkitekt` (ny) | Opus 5.5 · high (Fable 5.2 vid väldigt komplexa issues) | datamodell, codecs, importen, rules, migrering |
+  | `dagboken-byggare` (ny) | Opus 5.5 · medium | portar, komponenter, skärmar på ramarna, CI-filer |
+  | `dagboken-arkitekt` (ny) | Opus 5.5 · high (Fable 5.2 vid väldigt komplexa issues) | datamodell, codecs, importen, rules, migrering |
   | `android:testskrivare` (pluginen) | Sonnet 5.5 · medium | tester på tre eller fler nivåer, fixturer |
   | `android:granskare` (pluginen) | sessionens modell · medium | diffen mot reglerna före varje PR – inte svagare än modellen som skrev koden |
   | `android:ci-doktor` (pluginen) | Sonnet 5.5 · medium | röd CI, loggar, skärmdumpsdiffar |
-  | `db-inspektor` | Haiku 4.5 · low | läsfrågor mot Firestore via `tools/db` |
+  | `dagboken-db-inspektor` | Haiku 4.5 · low | läsfrågor mot Firestore via `tools/db` |
 
-  Regel: går ett steg fel två gånger i rad flyttas det upp en nivå (`byggare` → `arkitekt`,
+  Regel: går ett steg fel två gånger i rad flyttas det upp en nivå (`dagboken-byggare` → `dagboken-arkitekt`,
   Sonnet → Opus). Huvudsessionen orkestrerar och granskar; modellen väljs efter uppgiften
   (`.claude/README.md` → Modellval).
 - **Kravlistan** behåller sina ID-serier; 3.x-lydelser som ändras står kvar strukna med
@@ -570,7 +570,7 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
 
 Grundregel: **Fable high** för allt som rör datamodell, migrering, rules och arkitekturval;
 **Opus 5.5** för skärmar, komponenter och CI-arbete; **Sonnet 5.5** för mekaniska portar med
-färdiga tester och för agenterna; **Haiku 4.5** bara för rena läsfrågor (`db-inspektor`).
+färdiga tester och för agenterna; **Haiku 4.5** bara för rena läsfrågor (`dagboken-db-inspektor`).
 Byt upp en nivå så fort något går fel två gånger i rad. Från 2026-11-10 gäller skill
 `android:ai-model-choice` för nya steg: Opus 5.5 som standard och Fable 5.2 (medium/high) bara med
 skäl – Fable-raderna nedan är etappernas historiska val.

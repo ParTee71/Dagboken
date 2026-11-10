@@ -7,7 +7,7 @@ description: Läsa Dagbokens Firestore-databas (users/{uid}) från en Claude-ses
 
 Firestore nås med Node-verktygen i `tools/db/` (firebase-admin). All data ligger under
 `users/{uid}` (ARKITEKTUR.md → Datamodell) och är hälsodata. För frågor om data – använd
-agenten **`db-inspektor`**, så stannar dokumentinnehållet i agenten och bara svaret kommer
+agenten **`dagboken-db-inspektor`**, så stannar dokumentinnehållet i agenten och bara svaret kommer
 till huvudsessionen. Krav: TP-11.
 
 ## Förutsättningar

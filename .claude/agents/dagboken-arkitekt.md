@@ -1,6 +1,6 @@
 ---
-name: arkitekt
-description: Tar arkitekturtunga steg i Dagboken 4.0 – Firestore-datamodellen under users/{uid}, modeller och DocCodecs i :core, schemaVersion och SchemaMigrator, firestore.rules, collections.mjs och rundturstester, appens export och import och arkitekturval i ARKITEKTUR.md. Använd när ett steg rör data som inte får tappas, när ett beslut påverkar flera lager, när byggare har gått fel två gånger i rad, eller när användaren vill ha ett arkitekturförslag. Committar och pushar aldrig.
+name: dagboken-arkitekt
+description: Tar arkitekturtunga steg i Dagboken 4.0 – Firestore-datamodellen under users/{uid}, modeller och DocCodecs i :core, schemaVersion och SchemaMigrator, firestore.rules, collections.mjs och rundturstester, appens export och import och arkitekturval i ARKITEKTUR.md. Använd när ett steg rör data som inte får tappas, när ett beslut påverkar flera lager, när dagboken-byggare har gått fel två gånger i rad, eller när användaren vill ha ett arkitekturförslag. Committar och pushar aldrig.
 tools: Read, Grep, Glob, Edit, Write, Bash
 # Opus · high som standard. Anger issuet Fable (etapptabellen i ARKITEKTUR.md, väldigt komplexa
 # steg) startar huvudsessionen agenten med det (`.claude/README.md` → Modellval).

@@ -77,7 +77,7 @@ anger sökväg eller fält, aldrig värdet) och GitHub Actions-loggar.
 - Signeringslösenord läses från `local.properties` eller miljövariabler, aldrig hårdkodat.
 
 ### 5. Visa bara det som frågats
-När en Claude-session läser databasen (`tools/db`, agenten `db-inspektor`) visas bara de
+När en Claude-session läser databasen (`tools/db`, agenten `dagboken-db-inspektor`) visas bara de
 fält och dokument frågan gäller – inga fulla dumpar i chatten.
 
 ### 6. Release ska minifieras
