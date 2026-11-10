@@ -35,8 +35,8 @@ resten med `dorny/paths-filter`.
 <!-- ci-table:end -->
 
 - **Dokumentkontrollerna körs alltid** i `changes` (denna tabell mot filtren, länkar och
-  skill-/agentnamn och regel 4-kontrollen): `node --test '.github/scripts/*.test.mjs'` och
-  pluginens `regel4-check.mjs --verify .` (claude-android utcheckat bredvid, några sekunder)
+  skill-/agentnamn och regel 4-kontrollen): pluginens `doc-checks.mjs .` och
+  `regel4-check.mjs --verify .` samt repots `node --test '.github/scripts/*.test.mjs'` (claude-android utcheckat bredvid, några sekunder)
   (composite action `doc-checks`). I samma steg körs testerna för läkemedelslistans byggskript,
   `node --test 'tools/medicines/test/*.test.mjs'` – Node utan beroenden, under en sekund, så de
   får inget eget filter. Själva skriptet (`tools/medicines/build.mjs`) körs aldrig i CI, bara vid
@@ -65,7 +65,7 @@ resten med `dorny/paths-filter`.
   commiten (master-pushen) i stället för att köra om det – och stoppar allt innan något dyrt startar;
   lint och det signerade minifierade bygget går i en Gradle-körning
   (`build`), parallellt med `instrumented.yml` (`workflow_call`) – som hoppas över när koden
-  redan testats grönt i en PR (`.github/scripts/instrumented-paths.mjs`; har en annan PR ändrat
+  redan testats grönt i en PR (pluginens `checks/instrumented-paths.mjs`; har en annan PR ändrat
   samma sökvägar sedan dess körs de igen); rules deployas bara om de
   ändrats sedan förra releasen. Ett fallerat jobb körs om ensamt, aldrig hela releasen.
 - **`quality.yml`** (veckovis) hoppar över om master inte ändrats sedan senaste gröna
@@ -76,9 +76,9 @@ resten med `dorny/paths-filter`.
   lägga till jobb.
 
 ### Dokumentdrift
-`.github/scripts/check-ci-table.mjs` läser tabellen mellan `ci-table`-markeringarna och
+Pluginens dokumentkontroll (`checks/doc-checks.mjs` i claude-android, #59) läser tabellen mellan `ci-table`-markeringarna och
 filtren i `android.yml` och fäller `changes` om de skiljer sig. Ändra alltid båda i samma
-PR. Ny modul = ny rad här **och** nytt filter. `.github/scripts/check-links.mjs` kontrollerar
+PR. Ny modul = ny rad här **och** nytt filter. Samma kontroll prövar
 relativa länkar och nämnda skills/agenter i `CLAUDE.md`, `README.md`, `ARKITEKTUR.md`,
 `KRAVLISTA.md` och `.claude/**`, och att tabellerna i `.claude/README.md` listar exakt de skills och
 agenter som finns. Framåtreferenser står i `.github/scripts/link-allowlist.txt`.
@@ -112,6 +112,6 @@ workflows `quality`, `release`, `backup`. Utöver pluginens generella felsorter:
 
 | Fel | Vad du tar reda på |
 |---|---|
-| Dokumentkontroll | `ci-budget`-tabellen mot `android.yml`, länkar, skill- och agentnamn (`plugin-skills.txt`, `plugin-agents.txt`) |
+| Dokumentkontroll | `ci-budget`-tabellen mot `android.yml`, länkar, skill- och agentnamn (pluginens namn läses ur pluginen) |
 | Rules/rundtur | vilken samling eller vilket fält; saknas den i `collections.mjs`, `Paths.kt` eller rules? |
 | Importen (`:core:test` `importing/`, `ImportUseCaseTest`) | vilket dokument eller fält i fixturen `user.json` som stoppar eller avviker |

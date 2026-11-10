@@ -127,7 +127,8 @@ koden i båda riktningar, och att varje publik komponent har skärmdumpar och en
 ./gradlew spotlessApply                                              # kodstil före push (inte i CI)
 ./gradlew :app:lintDebug :app:assembleRelease         # om manifest, resurser, proguard eller byggfiler ändrats
 npx --prefix tools/db firebase emulators:exec --only firestore --project demo-dagboken "npm --prefix tools/db test"  # om tools/db/ eller rules ändrats – bara mot emulatorn
-node --test '.github/scripts/*.test.mjs'              # dokumentkontroller, alltid
+node <claude-android>/plugins/android/checks/doc-checks.mjs .  # dokumentkontroller, alltid
+node --test '.github/scripts/*.test.mjs'              # repots skripttester, alltid
 node <claude-android>/plugins/android/hooks/regel4-check.mjs --verify .  # regel 4, alltid
 ./gradlew :core:matchMedicines --args="--in <export.json> --catalog app/src/main/assets/medicines.tsv --suggest <map.tsv>"   # vid behov, ingen kontroll: styrka och form ur läkemedelslistan (REC-14), rapport utan innehåll
 ```

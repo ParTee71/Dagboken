@@ -118,13 +118,21 @@ jobs:
 
       # Instrumenttesterna körs i PR:en; samma kod behöver inte testas igen. Jämför bara de
       # sökvägar som startar dem (en källa: filtret instrumented i android.yml).
+      # Filtret läses av pluginens instrumented-paths.mjs (claude-android #59, publikt repo).
+      - name: Pluginen claude-android (instrumented-paths.mjs)
+        uses: actions/checkout@v4
+        with:
+          repository: ParTee71/claude-android
+          path: .claude-android
+          sparse-checkout: plugins/android/checks
+
       - name: Redan instrumenttestat i en PR?
         id: instrumented
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mapfile -t paths < <(node .github/scripts/instrumented-paths.mjs)
+          mapfile -t paths < <(node .claude-android/plugins/android/checks/instrumented-paths.mjs)
           run=true
           shas="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/android.yml/runs?event=pull_request&status=success&per_page=15" \
             --jq '.workflow_runs[].head_sha')" || { echo "::warning::Kunde inte läsa PR-körningarna – instrumenttesterna körs."; shas=""; }

@@ -169,6 +169,7 @@ Dokumentkontrollerna och regel 4-kontrollen kan köras lokalt (`<claude-android>
 pluginens repo, i molnsessioner `/home/user/claude-android` eller `/opt/claude-android`):
 
 ```bash
+node <claude-android>/plugins/android/checks/doc-checks.mjs .
 node --test '.github/scripts/*.test.mjs'
 node <claude-android>/plugins/android/hooks/regel4-check.mjs --verify .
 ```
