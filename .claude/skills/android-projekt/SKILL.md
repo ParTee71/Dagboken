@@ -168,7 +168,7 @@ Stegen står i pluginen; det här är Dagbokens delar.
 - **Agenter** (ARKITEKTUR.md → "CI, verktyg, skills och agenter"): huvudsessionen orkestrerar och
   granskar; agenten `dagboken-byggare` tar portar, komponenter, skärmar på ramarna och CI-filer, agenten
   `dagboken-arkitekt` datamodell, codecs, importen, rules, migrering och arkitekturval, pluginens
-  `android:testskrivare` tester på tre eller fler nivåer, `android:granskare` diffen (steg 8),
+  `android:testskrivare` tester på tre eller fler nivåer, `android:granskare` diffen (Granska i rundor),
   `android:ci-doktor` rött CI och `dagboken-db-inspektor` faktisk data. Går ett steg fel två gånger i rad flyttas det upp en nivå
   (`dagboken-byggare` → `dagboken-arkitekt`, Sonnet → Opus). Saknar issuet **Agent · modell · effort** kompletteras
   det utifrån etapptabellen (avsnittet Issues nedan).
@@ -244,7 +244,7 @@ hemligheter → `data-privacy-security`; larm och notiser → `notifications-ala
   | `dagboken-byggare` | portar, komponenter, skärmar på ramarna, CI-filer | Opus · medium |
   | `dagboken-arkitekt` | datamodell, codecs, importen, rules, migrering, arkitekturval | Opus · high (Fable vid väldigt komplexa issues) |
   | `android:testskrivare` | tester när tre eller fler nivåer berörs | Sonnet · medium |
-  | `android:granskare` | granskningen i steg 8, alltid med | sessionens modell · medium |
+  | `android:granskare` | granskningsrundorna, alltid med | sessionens modell · medium |
   | `android:ci-doktor` | rött CI – startas vid behov, anges inte i förväg | Sonnet · medium |
   | `dagboken-db-inspektor` | faktisk data, bara läsning – anges när issuet kräver det | Haiku · low |
 
