@@ -11,6 +11,15 @@ Studio; detaljerna ligger som skills i `.claude/skills/` (i projekttrådar `dagb
 som gjordes, inga rubriker/listor om inte nödvändigt. Kod, commits och PR-beskrivningar
 skrivs normalt.
 
+**Ärliga svar:** säg emot när Mats har fel, och säg varför. Inget beröm för frågan, inga
+artighetsfraser, inga ursäkter, ingen utfyllnad. Säg vad som är osäkert eller inte kontrollerat.
+Ett nej mjukas inte upp.
+
+**Plan före kod bara för större ändringar:** nytt beteende, flera lager, datamodell eller ett
+vägval → plan i ett issue och Mats ok ("kör" eller `plan-godkänd`). Små fixar och dokument går
+direkt till PR med raden `Liten ändring: <varför>`, och tråden mergar när CI är grön. Osäker →
+större. Skill `android:arbetsregler` är enda källan.
+
 **Ombyggnaden:** `master` bygger Dagboken 4.0 på ReseApotekets grund (`:core` + `:app`,
 Firestore under `users/{uid}`, fyra flikar, designspråket Papper och teal). 3.27.0 ligger på
 branchen `legacy`. Etapper, modell och effort per steg står i [ARKITEKTUR.md](ARKITEKTUR.md);
