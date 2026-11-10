@@ -173,7 +173,8 @@ rapporterar i en tabell (skill **android:implement-issue**, steg 8).
 ./gradlew cpdCheck                      # copy-paste-detektor
 ./gradlew spotlessApply                 # kodstil (ktlint + compose-rules), före push – inte i CI
 ./gradlew :app:compileDebugKotlin       # kompilera
-node --test '.github/scripts/*.test.mjs'                          # dokumentkontroller
+node <claude-android>/plugins/android/checks/doc-checks.mjs .           # dokumentkontroller (pluginen)
+node --test '.github/scripts/*.test.mjs'                          # repots skripttester
 node <claude-android>/plugins/android/hooks/regel4-check.mjs --verify .  # regel 4-kontrollen (pluginen)
 node tools/db/stats.mjs                 # databasöversikt (kräver FIREBASE_SERVICE_ACCOUNT)
 node tools/db/query.mjs doses           # läs en samling

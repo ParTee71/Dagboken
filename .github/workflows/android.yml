@@ -1,5 +1,5 @@
 # PR-flödet (regel 5, skill ci-budget – tabellen där är facit för filtren nedan och
-# kontrolleras av .github/scripts/check-ci-table.mjs). Jobbet `changes` startar alltid och
+# kontrolleras av pluginens checks/doc-checks.mjs, claude-android #59). Jobbet `changes` startar alltid och
 # avgör vad som körs; `ci-ok` är det enda obligatoriska statuskravet.
 name: CI
 

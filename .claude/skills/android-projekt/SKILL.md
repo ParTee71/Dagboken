@@ -266,7 +266,7 @@ hemligheter → `data-privacy-security`; larm och notiser → `notifications-ala
     körs inte om. Starta releasen först när CI på `master` är klart, annars stoppar `gate` den.
   - `build`: lint och det signerade, minifierade bygget i en Gradle-körning, parallellt med
   - `instrumented` (`instrumented.yml`): hoppas över när sökvägarna i filtret `instrumented` är
-    oförändrade sedan en PR-commit där de var gröna (`.github/scripts/instrumented-paths.mjs`).
+    oförändrade sedan en PR-commit där de var gröna (pluginens `checks/instrumented-paths.mjs`).
   - `publish`: när båda är gröna – deployar `firestore.rules`, skapar taggen och GitHub Release.
 
   Det är pluginens regel (testerna körs utom där samma kod redan testats grönt); `release.yml`

@@ -2,7 +2,7 @@
 
 Översikt över agenter och skills i `.claude/`. Reglerna står i [CLAUDE.md](../CLAUDE.md);
 den här filen läses vid behov, så att CLAUDE.md – som laddas vid varje uppgift – hålls kort.
-Dokumentkontrollen (`.github/scripts/check-links.mjs`) kräver att tabellerna listar exakt det
+Dokumentkontrollen (pluginens `checks/doc-checks.mjs`) kräver att tabellerna listar exakt det
 som finns i `.claude/agents/` och `.claude/skills/`.
 
 ## Agenter (`.claude/agents/`)
@@ -13,7 +13,7 @@ som finns i `.claude/agents/` och `.claude/skills/`.
 | `dagboken-arkitekt` | Datamodell, codecs, importen, rules, migrering och arkitekturval (Opus · high). |
 | `dagboken-db-inspektor` | Svarar på frågor om faktisk data i Firestore, endast läsning (Haiku · low). |
 
-Från pluginen (generella, läser Dagbokens delar ur repot; listade i `.github/scripts/plugin-agents.txt`):
+Från pluginen (generella, läser Dagbokens delar ur repot):
 
 | Agent | När |
 |---|---|
@@ -60,8 +60,7 @@ i sessionen: `android-dev` (baslinje, ladda alltid), `compose-expert`, `kotlin-c
 (det generella i regel 2 och 5) samt Googles `android-intent-security` (manifest, notisers
 `PendingIntent`, delning) och `firebase-security-rules-auditor` (vid varje ändring i `firestore.rules`).
 Pluginen är generell; Dagbokens delar och nuvarande avvikelser står i `android-projekt`, och där
-de krockar gäller projektets regler. Namnen listas i `.github/scripts/plugin-skills.txt`, som
-dokumentkontrollen läser i stället för pluginen. Planerad skill (ARKITEKTUR.md): `health-connect` tillkommer i etapp 6.
+de krockar gäller projektets regler. Dokumentkontrollen läser namnen ur pluginen. Planerad skill (ARKITEKTUR.md): `health-connect` tillkommer i etapp 6.
 
 ## Hooks (`.claude/hooks/`) och inställningar
 
