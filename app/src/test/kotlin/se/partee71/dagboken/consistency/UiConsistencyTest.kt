@@ -142,7 +142,7 @@ class UiConsistencyTest {
         assertEquals(emptyList(), RepositoryWrites.callsIn("ui.trends"), "Trender skriver inte till någon datakälla (TRD-4)")
     }
 
-    // De delade exemplen körs med tom allowlist utom sektionen "allowlist" – precis som i hooktestet.
+    // De delade exemplen körs med tom allowlist utom sektionen "allowlist" – precis som i hookens --verify.
 
     @Test
     fun `delade exempel - tillåtna och förbjudna rader tolkas likadant som i hooken`() {

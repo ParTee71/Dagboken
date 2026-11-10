@@ -82,7 +82,7 @@ finns på ett ställe.**
 - **Behövs en variant?** Utöka den delade delen med en parameter vars default bevarar
   nuvarande utseende och beteende. Aldrig en lokal kopia. Ny elementtyp/nytt mönster →
   ny delad del med test, skärmdump och plats i `ComponentGallery`.
-- **Kontrolleras automatiskt:** hooken `regel4-check` ger besked direkt efter varje
+- **Kontrolleras automatiskt:** pluginens hook `regel4-check` ger besked direkt efter varje
   filändring; `UiConsistencyTest` (Konsist) och `cpdCheck` (copy-paste-detektor) fäller
   bygget. Förbjudna mönster finns i en fil (`ui-forbidden.txt`), undantag bara via
   `ui-allowlist.txt` med motivering och användarens ok i PR:en.
@@ -100,7 +100,7 @@ release. Nya beroenden eller moduler får inte fördubbla byggtiden – ange eff
 **Tester körs bara när koden de testar har ändrats.** Ett snabbt jobb avgör utifrån ändrade
 sökvägar vilka testjobb som körs; Gradles build cache hoppar dessutom över oförändrade
 testtasks. På `master` körs allt utom instrumenttesterna, och dokumentkontrollerna (skill-tabeller
-mot kod och workflow, länkar, hooktest) körs alltid. Att slippa köra ett test är aldrig ett
+mot kod och workflow, länkar, regel 4-kontrollen) körs alltid. Att slippa köra ett test är aldrig ett
 skäl att inte skriva det.
 → Skill: **ci-budget** – enda källan för vad som körs när; kontrolleras mot `android.yml`. Krav: NFR-19.
 
@@ -173,7 +173,8 @@ rapporterar i en tabell (skill **android:implement-issue**, steg 8).
 ./gradlew cpdCheck                      # copy-paste-detektor
 ./gradlew spotlessApply                 # kodstil (ktlint + compose-rules), före push – inte i CI
 ./gradlew :app:compileDebugKotlin       # kompilera
-node --test '.github/scripts/*.test.mjs' && node --test '.claude/hooks/test/*.test.mjs'                             # dokumentkontroller + hooktest
+node --test '.github/scripts/*.test.mjs'                          # dokumentkontroller
+node <claude-android>/plugins/android/hooks/regel4-check.mjs --verify .  # regel 4-kontrollen (pluginen)
 node tools/db/stats.mjs                 # databasöversikt (kräver FIREBASE_SERVICE_ACCOUNT)
 node tools/db/query.mjs doses           # läs en samling
 ```

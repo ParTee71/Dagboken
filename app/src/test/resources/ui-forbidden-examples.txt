@@ -1,5 +1,5 @@
-# Exempel på hur ui-forbidden.txt och ui-allowlist.txt ska tolkas – körs av BÅDE hooktestet
-# (.claude/hooks/test/regel4-check.test.mjs) och UiConsistencyTest, så att hooken och
+# Exempel på hur ui-forbidden.txt och ui-allowlist.txt ska tolkas – körs av BÅDE hookens kontroll
+# (pluginens regel4-check.mjs --verify, i CI) och UiConsistencyTest, så att hooken och
 # bygget alltid tolkar filerna likadant. Lägg till ett exempel här när ett mönster ändras.
 # Allt körs med tom allowlist utom sektionen allowlist.
 #

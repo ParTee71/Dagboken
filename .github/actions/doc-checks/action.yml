@@ -2,7 +2,8 @@ name: Dokumentkontroller
 description: >-
   Node 22 och testkommandona som alltid körs (sekunder, inga beroenden):
   dokumentkontrollerna i .github/scripts (CI-tabellen mot filtren, länkar och
-  namn), hooktestet och läkemedelslistans byggskript (tools/medicines). Kräver att repot redan är utcheckat.
+  namn), regel 4-kontrollen (pluginens regel4-check.mjs --verify) och läkemedelslistans
+  byggskript (tools/medicines). Kräver att repot redan är utcheckat.
 
 runs:
   using: composite
@@ -16,9 +17,18 @@ runs:
       shell: bash
       run: node --test '.github/scripts/*.test.mjs'
 
-    - name: Hooktest (regel4-check)
+    # Regel 4-motorn finns i pluginen (claude-android #57, publikt repo); repot har mönster,
+    # undantag, exempel och .claude/regel4.json. --verify prövar dem mot motorn.
+    - name: Pluginen claude-android (regel 4-motorn)
+      uses: actions/checkout@v4
+      with:
+        repository: ParTee71/claude-android
+        path: .claude-android
+        sparse-checkout: plugins/android/hooks
+
+    - name: Regel 4-kontrollen (regel4-check --verify)
       shell: bash
-      run: node --test '.claude/hooks/test/*.test.mjs'
+      run: node .claude-android/plugins/android/hooks/regel4-check.mjs --verify .
 
     - name: Läkemedelslistans byggskript (tools/medicines)
       shell: bash

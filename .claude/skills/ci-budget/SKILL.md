@@ -35,8 +35,8 @@ resten med `dorny/paths-filter`.
 <!-- ci-table:end -->
 
 - **Dokumentkontrollerna körs alltid** i `changes` (denna tabell mot filtren, länkar och
-  skill-/agentnamn, hooktestet), som två kommandon – samma form som de förhandsgodkända:
-  `node --test '.github/scripts/*.test.mjs'` och `node --test '.claude/hooks/test/*.test.mjs'`
+  skill-/agentnamn och regel 4-kontrollen): `node --test '.github/scripts/*.test.mjs'` och
+  pluginens `regel4-check.mjs --verify .` (claude-android utcheckat bredvid, några sekunder)
   (composite action `doc-checks`). I samma steg körs testerna för läkemedelslistans byggskript,
   `node --test 'tools/medicines/test/*.test.mjs'` – Node utan beroenden, under en sekund, så de
   får inget eget filter. Själva skriptet (`tools/medicines/build.mjs`) körs aldrig i CI, bara vid

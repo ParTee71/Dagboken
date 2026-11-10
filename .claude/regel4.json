@@ -1,0 +1,20 @@
+{
+  "$comment": "Regel 4: scope och texter för pluginens regel4-check.mjs (claude-android #57). Mönstren står i app/src/test/resources/ui-forbidden.txt.",
+  "scopes": {
+    "feature": { "text": "feature-kod (ui/<feature>/)", "include": "/ui/", "exclude": "/ui/(components|diagram|theme|common)/" },
+    "firestore": { "text": "kod utanför data/firestore/", "exclude": "/data/firestore/" },
+    "expressive": { "text": "kod utanför ui/theme/ och ui/components/", "exclude": "/ui/(theme|components)/" },
+    "vico": { "text": "kod utanför ui/diagram/", "exclude": "/ui/diagram/" },
+    "dispatchers": { "text": "kod utanför di/", "exclude": "/di/" },
+    "events": { "text": "kod i ui/", "include": "/ui/" }
+  },
+  "hint": "Använd den delade komponenten/ramen/byggstenen (skill shared-ui-components). Behövs en variant: utöka den delade delen med en parameter.",
+  "examples": {
+    "ok": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt", "expect": "ok" },
+    "stopp": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt", "expect": "stopp" },
+    "komponent-ok": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/components/X.kt", "expect": "ok" },
+    "diagram-ok": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/diagram/X.kt", "expect": "ok" },
+    "diagram-stopp": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/components/X.kt", "expect": "stopp" },
+    "allowlist": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt" }
+  }
+}

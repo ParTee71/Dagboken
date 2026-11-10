@@ -24,7 +24,7 @@ Krav: NFR-6 (och NFR-serien i övrigt) i KRAVLISTA.md.
 | Compose-UI | `app/src/test` | Robolectric + `ui-test-junit4` | `app` |
 | Skärmdump | `app/src/test` + `app/src/test/screenshots/` | Roborazzi | `app` |
 | Security rules + rundtur | `tools/db/test` | `node --test`, `@firebase/rules-unit-testing`, Firebase-emulatorn | `tools` |
-| Dokumentkontroller + hooktest | `.github/scripts/`, `.claude/hooks/test/` | `node --test` | alltid |
+| Dokumentkontroller + regel 4-kontrollen | `.github/scripts/`, `.claude/regel4.json` + mönsterfilerna | `node --test`, pluginens `regel4-check.mjs --verify` | alltid |
 | Instrument (inkl. `CollectionContract` mot riktig `FirestoreCollection`) | `app/src/androidTest` | Android-emulator + Firebase-emulatorn | i PR som rör koden de testar (filter `instrumented`, skill `ci-budget`) |
 
 Vilka sökvägar som sätter vilket filter, och vad som körs på `master`, står i skill
@@ -128,7 +128,7 @@ koden i båda riktningar, och att varje publik komponent har skärmdumpar och en
 ./gradlew :app:lintDebug :app:assembleRelease         # om manifest, resurser, proguard eller byggfiler ändrats
 npx --prefix tools/db firebase emulators:exec --only firestore --project demo-dagboken "npm --prefix tools/db test"  # om tools/db/ eller rules ändrats – bara mot emulatorn
 node --test '.github/scripts/*.test.mjs'              # dokumentkontroller, alltid
-node --test '.claude/hooks/test/*.test.mjs'           # hooktest, alltid
+node <claude-android>/plugins/android/hooks/regel4-check.mjs --verify .  # regel 4, alltid
 ./gradlew :core:matchMedicines --args="--in <export.json> --catalog app/src/main/assets/medicines.tsv --suggest <map.tsv>"   # vid behov, ingen kontroll: styrka och form ur läkemedelslistan (REC-14), rapport utan innehåll
 ```
 
