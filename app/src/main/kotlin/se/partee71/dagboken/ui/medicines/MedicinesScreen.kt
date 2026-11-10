@@ -51,8 +51,8 @@ import se.partee71.dagboken.ui.common.tidyingUpEachDay
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.AccountAvatar
 import se.partee71.dagboken.ui.components.DagbokenEntryCard
-import se.partee71.dagboken.ui.components.EntryToggle
 import se.partee71.dagboken.ui.components.EntryFavorite
+import se.partee71.dagboken.ui.components.EntryToggle
 import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.favoriteMenuItem
 import se.partee71.dagboken.ui.theme.AppTypography
@@ -243,7 +243,6 @@ fun MedicinesScreen(
     ) { item ->
         when (item) {
             is MedicineItem.Recipe -> PrescriptionCard(item, today, onEvent, { onExtendPrescription(item.prescription.id) }) { onOpenPrescription(item.prescription.id) }
-
             is MedicineItem.AsNeeded -> PrnCard(item.medicine, onEvent) { onOpenPrn(item.medicine.id) }
         }
     }
