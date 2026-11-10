@@ -68,6 +68,7 @@ import se.partee71.dagboken.core.engine.ensureDoses
 import se.partee71.dagboken.core.engine.feelingEntry
 import se.partee71.dagboken.core.engine.isScheduled
 import se.partee71.dagboken.core.engine.isScheduledPrescription
+import se.partee71.dagboken.core.engine.lastExtraTakenOn
 import se.partee71.dagboken.core.engine.occasionStates
 import se.partee71.dagboken.core.engine.ongoingEpisode
 import se.partee71.dagboken.core.engine.ongoingIllness
@@ -200,6 +201,11 @@ data class TodayContent(
      * nu – en medicin som saknas här är tillgänglig. Räknas om varje minut, så markeringen går över av sig själv.
      */
     val unavailable: ImmutableMap<String, PrnAvailability> = persistentMapOf(),
+    /**
+     * När varje recepts medicin senast togs som extrados idag (recept-id, FAV-13): bara när idag visas och bara de som har en
+     * tagen extrados – ett recept som saknas här har inte tagits idag. Räknas ur doserna, så det slår om direkt vid loggning och Ångra.
+     */
+    val takenToday: ImmutableMap<String, Instant> = persistentMapOf(),
     val dayDone: DayDone?,
     /** Tidszonen dagen räknades i – tagningstiden visas i den (MED-14). */
     val zone: TimeZone,
@@ -432,6 +438,15 @@ class TodayViewModel @Inject constructor(
                 .toImmutableMap()
         }
 
+        /** FAV-13: de recept (snabbval och "Fler") vars medicin tagits som extrados idag – tomt en tidigare dag. */
+        private fun takenToday(): ImmutableMap<String, Instant> {
+            if (date != today) return persistentMapOf()
+            return (choices.favoritePrescriptions + choices.prescriptions)
+                .mapNotNull { p -> p.lastExtraTakenOn(checkDoses, today)?.let { p.id to it } }
+                .toMap()
+                .toImmutableMap()
+        }
+
         fun at(moment: Moment, illness: Pair<IllnessEpisode, List<Checkin>>?, collapsed: Set<TodayCard>): TodayContent = TodayContent(
             today = today,
             date = date,
@@ -447,6 +462,7 @@ class TodayViewModel @Inject constructor(
             prescriptions = prescriptions,
             choices = choices,
             unavailable = unavailable(moment),
+            takenToday = takenToday(),
             dayDone = dayDone,
             zone = moment.zone,
             occasions = occasionStates(reminders, screenings, date, moment.now.toInstant(moment.zone), moment.zone).toImmutableList(),

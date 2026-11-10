@@ -8,6 +8,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import se.partee71.dagboken.core.model.Dose
+import se.partee71.dagboken.core.model.DoseStatus
 import se.partee71.dagboken.core.model.Identified
 import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
@@ -100,7 +101,7 @@ private fun doseOrder(reminders: ReminderSettings): Comparator<Dose> = compareBy
 
 /**
  * Vid behov-kortet på Idag (FAV-2, FAV-11, FAV-12): [favorites] – de stjärnmärkta vid behov-medicinerna – och
- * [favoritePrescriptions] – de stjärnmärkta recepten som gäller dagen – som snabbval, tillsammans i [chips]; och i
+ * [favoritePrescriptions] – de stjärnmärkta recepten – som snabbval, tillsammans i [chips]; och i
  * "Fler" [others] – de övriga vid behov-medicinerna – och under "Recept" [prescriptions], de övriga aktiva recepten som
  * gäller dagen.
  */
@@ -169,19 +170,20 @@ private fun sameMedicineNormalized(nameA: String, strengthA: String, nameB: Stri
  * FAV-2, FAV-11, FAV-12: delar vid behov-medicinerna på stjärnan, efter namn, och tar med de aktiva recept vars
  * period täcker [today] – utom ett recept som redan finns bland vid behov-medicinerna ([sameMedicine]), så att
  * samma medicin aldrig står två gånger. De stjärnmärkta recepten blir snabbval ([AsNeededChoices.favoritePrescriptions])
- * och står inte under "Recept". Lika namn ordnas på id.
+ * oavsett om de är aktiva eller om perioden täcker dagen, och står inte under "Recept". Lika namn ordnas på id.
  */
 fun asNeededChoices(medicines: List<PrnMedicine>, prescriptions: List<Prescription>, today: LocalDate): AsNeededChoices {
     val known = medicines.map { normalizedMedicineText(it.name) to normalizedMedicineText(it.strength) }
     val (favorites, others) = medicines.partition { it.favorite }
     val (favoriteRecipes, otherRecipes) = prescriptions
         .filter { p ->
-            p.active && p.period.covers(today) && normalizedMedicineText(p.name).let { name ->
+            normalizedMedicineText(p.name).let { name ->
                 val strength = normalizedMedicineText(p.strength)
                 known.none { (knownName, knownStrength) -> sameMedicineNormalized(knownName, knownStrength, name, strength) }
             }
         }
         .partition { it.favorite }
+        .let { (favorite, other) -> favorite to other.filter { it.active && it.period.covers(today) } }
     return AsNeededChoices(
         favorites.sortedWith(nameThenId<PrnMedicine> { it.name }),
         others.sortedWith(nameThenId<PrnMedicine> { it.name }),
@@ -189,6 +191,17 @@ fun asNeededChoices(medicines: List<PrnMedicine>, prescriptions: List<Prescripti
         favoriteRecipes.sortedWith(nameThenId<Prescription> { it.name })
     )
 }
+
+/**
+ * FAV-13: när receptets medicin senast togs som extrados på [date] ([Dose.takenMoment]) ur [doses], eller `null` när ingen
+ * är loggad. Bara extradoser räknas (tagna, vid behov och utan receptkoppling, FAV-11) – en planerad receptdos som bockats av
+ * hör till schemat. Samma medicin som [sameMedicine]: namn och styrka, eller att någon styrka saknas.
+ */
+fun Prescription.lastExtraTakenOn(doses: Iterable<Dose>, date: LocalDate): Instant? = doses
+    .filter { it.date == date && it.status == DoseStatus.TAKEN && it.slot == Slot.AS_NEEDED && it.prescriptionId == null && it.prnId == null }
+    .filter { sameMedicine(name, strength, it.name, it.strength) }
+    .mapNotNull { it.takenMoment() }
+    .maxOrNull()
 
 /**
  * HEM-14: dagarna som får en punkt i datumremsan – dagar med en avklarad dos (tagen eller överhoppad,

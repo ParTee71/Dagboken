@@ -264,6 +264,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.12.1 | **Recept markeras som tagna på Idag:** ett stjärnmärkt recept får bockikon och "tagen 14:05" direkt efter tryck (också i Fler) och slår om tillbaka vid Ångra, och ett stjärnmärkt recept syns som chip även när det är inaktivt eller utgånget (FAV-12, FAV-13, #398). |
 | 4.12.0 | **Recept och Vid behov ser likadana ut.** Båda listorna i Mediciner är nu samma sorts kort, och stjärnan för favorit sitter direkt på receptkortet bredvid reglaget – som den redan gjorde på vid behov-medicinerna.
 | 4.11.0 | **Känslornas styrka i Trender.** Kortet Känslor visar nu hur starkt du känt: meningen säger vilken känsla som kändes starkast, ordträdets staplar delas i styrkans toner, veckans valda dag visar styrka och kommentarer, och det nya avsnittet Varför samlar periodens kommentarer, fem åt gången. |
 | 4.10.1 | **Lugnare när måendet sparats.** Måendearkets Spara-knapp blir "✓ Sparat" en kort stund innan arket stängs, och meddelandet "Mående sparat" längst ned är borta, så att botten är lugn efteråt. |
