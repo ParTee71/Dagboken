@@ -526,7 +526,7 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
   `quality.yml` måndagar (lint, release-bygge); `backup.yml` måndagar (krypterad export);
   `release.yml` med grindar. Budget ~8 Actions-minuter per PR; instrumenttester bara när
   berörda sökvägar ändrats. Dagbokens `instrumented.yml` (25–30 min varje PR) pensioneras.
-- **Hooks:** `regel4-check.mjs` + `ui-forbidden.txt`/`ui-allowlist.txt`; `session-start.sh`
+- **Hooks:** pluginens `regel4-check` + `ui-forbidden.txt`/`ui-allowlist.txt`/`.claude/regel4.json`; `session-start.sh`
   (npm ci för `tools/db`, rapporterar om `FIREBASE_SERVICE_ACCOUNT` finns); SDK, `sdk.dir` och
   Maven Central-spegeln sköts av pluginens hook `android-start` (claude-android #55).
 - **Skills som tas över (G/G\*):** `ci-budget`, `shared-ui-components`, `firestore-data-layer`,

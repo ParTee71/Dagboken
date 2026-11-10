@@ -30,7 +30,6 @@
       "Bash(node tools/db/query.mjs:*)",
       "Bash(node tools/db/get.mjs:*)",
       "Bash(node tools/db/stats.mjs:*)",
-      "Bash(node --test '.claude/hooks/test/*.test.mjs')",
       "Bash(node --test '.github/scripts/*.test.mjs')"
     ],
     "deny": [
@@ -48,30 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=$(ls \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/regel4-check.mjs \"$CLAUDE_PROJECT_DIR\"/*/.claude/hooks/regel4-check.mjs 2>/dev/null | head -n1); [ -z \"$f\" ] || \"$(dirname \"$f\")/session-start.sh\""
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "f=$(ls \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/regel4-check.mjs \"$CLAUDE_PROJECT_DIR\"/*/.claude/hooks/regel4-check.mjs 2>/dev/null | head -n1); [ -z \"$f\" ] || node \"$f\"",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "f=$(ls \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/regel4-check.mjs \"$CLAUDE_PROJECT_DIR\"/*/.claude/hooks/regel4-check.mjs 2>/dev/null | head -n1); [ -z \"$f\" ] || node \"$f\" --stop",
-            "timeout": 20
+            "command": "f=$(ls \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.sh \"$CLAUDE_PROJECT_DIR\"/*/.claude/hooks/session-start.sh 2>/dev/null | head -n1); [ -z \"$f\" ] || \"$f\""
           }
         ]
       }

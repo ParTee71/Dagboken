@@ -42,3 +42,4 @@ captures/
 
 # Firebase-emulatorns loggar
 *-debug.log
+.claude-android/

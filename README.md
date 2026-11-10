@@ -102,7 +102,7 @@ och läsa databasen – utan att nycklar någonsin klistras in i chatten.
   - schemalagda check-ins och triggers (skapa, ändra, ta bort, köra), så att Claude kan följa
     upp PR:er utan att du behöver svara;
   - läsande databaskommandon (`tools/db` query, get, stats);
-  - hooktestet och dokumentkontrollerna (`node --test` på de två testkatalogerna).
+  - dokumentkontrollerna (`node --test` på `.github/scripts`).
   Skrivande databaskommandon (`import`, `migrate`) kräver alltid bekräftelse.
 - Samma fil hindrar Claude från att öppna nyckelfiler med läsverktyget (keystores, service
   accounts, `.env`) och sätter `LC_ALL=C.UTF-8`, så att svenska tecken i testnamn och
@@ -110,8 +110,9 @@ och läsa databasen – utan att nycklar någonsin klistras in i chatten.
 - Hooken `session-start.sh` installerar `tools/db` (utan livscykelskript) och talar om ifall
   databasnyckeln finns. Det gemensamma för Android-repona (SDK och `sdk.dir`, `GPR_TOKEN`, Maven
   Central-spegeln mot 429) gör pluginens hook `android-start` (claude-android #55).
-- Hooken `regel4-check.mjs` kontrollerar regel 4 direkt efter varje filändring, med samma
-  mönster som bygget (`app/src/test/resources/ui-forbidden.txt`).
+- Pluginens hook `regel4-check` kontrollerar regel 4 direkt efter varje filändring, med samma
+  mönster som bygget (`app/src/test/resources/ui-forbidden.txt`); repots scope och texter står i
+  `.claude/regel4.json` (claude-android #57).
 - Samma hook körs som Stop-hook innan Claude avslutar en tur: den går igenom alla filer som
   ändrats mot `origin/master` och ber Claude rätta en träff först (högst en gång i följd).
 - Android SDK i molnsessionen installeras av miljöns setup-skript med claude-android
@@ -164,11 +165,12 @@ backupen måndagar (`backup.yml`), rules-deploy på begäran (`rules.yml`) och v
 **Grenskydd (en gång, i GitHub):** Settings → Branches → `master` → kräv statuskontrollen
 `ci-ok`. Gör inte `gradle` eller `rules` obligatoriska – hoppade jobb rapporterar ingen status.
 
-Dokumentkontrollerna och hooktestet kan köras lokalt:
+Dokumentkontrollerna och regel 4-kontrollen kan köras lokalt (`<claude-android>` är klonen av
+pluginens repo, i molnsessioner `/home/user/claude-android` eller `/opt/claude-android`):
 
 ```bash
 node --test '.github/scripts/*.test.mjs'
-node --test '.claude/hooks/test/*.test.mjs'
+node <claude-android>/plugins/android/hooks/regel4-check.mjs --verify .
 ```
 
 ---

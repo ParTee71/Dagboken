@@ -1,5 +1,5 @@
 # Förbjudna mönster för regel 4 – enda källan.
-# Läses av hooken .claude/hooks/regel4-check.mjs och av UiConsistencyTest.
+# Läses av pluginens regel 4-hook (scope i .claude/regel4.json) och av UiConsistencyTest.
 # Format per rad: <regex><TAB><vad som ska användas i stället>
 # [feature]   = Kotlin i ett ui-paket under app/src/main utom ui/components, ui/diagram, ui/theme,
 #               ui/common (även filer direkt under ui/)
