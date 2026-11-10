@@ -4,6 +4,7 @@
 # lokalt jämför check-links.test.mjs den mot /home/user/claude-android när klonen finns.
 accessibility-compose
 ai-model-choice
+arbetsregler
 android-dev
 android-gradle-logic
 android-intent-security
