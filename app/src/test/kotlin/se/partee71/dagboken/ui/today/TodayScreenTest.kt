@@ -24,6 +24,7 @@ import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -156,7 +157,8 @@ class TodayScreenTest {
         dayDone: DayDone? = null,
         reminders: ReminderSettings = ReminderSettings(),
         choices: AsNeededChoices = asNeededChoices(listOf(alvedon, imigran, loratadin), listOf(levaxin, betapred), today),
-        unavailable: Map<String, PrnAvailability> = emptyMap()
+        unavailable: Map<String, PrnAvailability> = emptyMap(),
+        takenToday: Map<String, Instant> = emptyMap()
     ) = TodayContent(
         today = today,
         date = date,
@@ -172,6 +174,7 @@ class TodayScreenTest {
         prescriptions = listOf(sertralin, levaxin).associateBy { it.id }.toImmutableMap(),
         choices = choices,
         unavailable = unavailable.toImmutableMap(),
+        takenToday = takenToday.toImmutableMap(),
         dayDone = dayDone,
         zone = zone
     )
@@ -304,14 +307,18 @@ class TodayScreenTest {
 
     private val starred = betapred.copy(favorite = true, note = "Trappas ned.")
 
-    /** Alvedon i kylperiod till 12:00, Imigran vid dagsgränsen, Betapred (recept) stjärnmärkt – och Loratadin i "Fler" för tidigt till 16:00. */
+    /**
+     * Alvedon i kylperiod till 12:00, Imigran vid dagsgränsen, Betapred (recept) stjärnmärkt och taget 14:05 – och Loratadin i "Fler"
+     * för tidigt till 16:00 och Levaxin (recept) taget 08:30.
+     */
     private fun marked() = content(
         choices = asNeededChoices(listOf(alvedon, imigran, loratadin), listOf(levaxin, starred), today),
         unavailable = mapOf(
             alvedon.id to PrnAvailability.Cooldown(at(12, 0)),
             imigran.id to PrnAvailability.DailyLimit(2, 2),
             loratadin.id to PrnAvailability.Cooldown(at(16, 0))
-        )
+        ),
+        takenToday = mapOf(starred.id to at(14, 5), levaxin.id to at(8, 30))
     )
 
     @Test
@@ -355,6 +362,30 @@ class TodayScreenTest {
         assertEquals(TodayEvent.LogAsNeeded(alvedon), events.last())
         rule.onNodeWithText("Imigran 50 mg").performScrollTo().assertState("Imigran 50 mg, dagsgränsen nådd, 2 av 2 idag").performClick()
         assertEquals(TodayEvent.LogAsNeeded(imigran), events.last())
+    }
+
+    @Test
+    fun `ett recept som tagits idag markeras i chipet med bockikon och tagen-tid, läses av TalkBack, och förblir tryckbart (FAV-13)`() {
+        val events = mutableListOf<TodayEvent>()
+        show(marked(), onEvent = { events += it })
+        rule.onNodeWithText("Betapred 0,5 mg").performScrollTo().assertState("Betapred 0,5 mg, tagen 14:05").performClick()
+        assertEquals(TodayEvent.LogExtra(starred), events.last(), "ingen dialog och ingen dagsgräns för recept")
+    }
+
+    @Test
+    fun `ett recept som inte tagits idag har ingen markering (FAV-13)`() {
+        show(content(choices = marked().choices))
+        rule.onNodeWithText("Betapred 0,5 mg").performScrollTo().assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
+    }
+
+    @Test
+    fun `Fler markerar ett recept som tagits idag med Tagen-tid och loggar ändå vid tryck (FAV-13)`() {
+        val events = mutableListOf<TodayEvent>()
+        show(marked(), onEvent = { events += it })
+        rule.onNodeWithText("Fler (2)").performScrollTo().performClick()
+        rule.onNodeWithText("Tagen 08:30").assertIsDisplayed()
+        rule.onAllNodesWithText("Levaxin 100 µg").onLast().performClick()
+        assertEquals(TodayEvent.LogExtra(levaxin), events.last())
     }
 
     @Test

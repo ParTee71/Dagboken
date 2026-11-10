@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -19,6 +20,7 @@ import se.partee71.dagboken.R
 import se.partee71.dagboken.core.engine.AsNeededChip
 import se.partee71.dagboken.core.engine.PrnAvailability
 import se.partee71.dagboken.core.engine.doseFor
+import se.partee71.dagboken.core.model.Prescription
 import se.partee71.dagboken.core.model.PrnMedicine
 import se.partee71.dagboken.ui.common.DateFormat
 import se.partee71.dagboken.ui.common.title
@@ -71,11 +73,21 @@ private fun prnMark(availability: PrnAvailability?, today: LocalDate, zone: Time
 }
 
 /**
+ * FAV-13: markeringen för ett recept vars medicin tagits som extrados idag – bockikonen med "tagen 14:05" ([takenAt] i [zone]) –
+ * eller `null` när den inte tagits idag. Receptet har varken kylperiod eller dagsgräns, så det förblir tryckbart.
+ */
+@Composable
+private fun takenMark(takenAt: Instant?, zone: TimeZone): PrnMark? {
+    val time = DateFormat.time(takenAt?.toLocalDateTime(zone)?.time ?: return null)
+    return PrnMark(R.drawable.ic_check, stringResource(R.string.today_prn_taken, time), stringResource(R.string.today_prn_taken_supporting, time), R.string.today_prn_taken_description, listOf(time))
+}
+
+/**
  * Vid behov (FAV-2, FAV-11, FAV-12, FAV-13): favoriterna – vid behov-medicinerna och de stjärnmärkta recepten – som
  * chips efter namn. Tryck loggar (en dos respektive en extrados); långtryck ger för en medicin Redigera, Favorit, Logga i
  * efterhand, Visa anteckning och Radera (HEM-11, FAV-3, FAV-8, FAV-9, FAV-10) och för ett recept Redigera, Ta bort som
  * favorit och Visa anteckning. "Fler" har övriga vid behov-mediciner och receptens under "Recept". Det som inte går att
- * ta nu är markerat i chipet och i "Fler" (FAV-13). Utan vid behov-mediciner och recept visas inget kort.
+ * ta nu, och receptet som tagits idag, är markerat i chipet och i "Fler" (FAV-13). Utan vid behov-mediciner och recept visas inget kort.
  */
 @Composable
 internal fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, links: TodayLinks, expanded: Boolean, onToggle: () -> Unit) {
@@ -128,7 +140,7 @@ internal fun AsNeededCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, 
                         )
                         val recipes = stringResource(R.string.today_more_prescriptions)
                         val items = choices.others.map { moreItem(it, content, onEvent) } +
-                            choices.prescriptions.map { AppMenuItem(it.title(it.doseFor(content.today)), { onEvent(TodayEvent.LogExtra(it)) }, section = recipes) }
+                            choices.prescriptions.map { recipeItem(it, content, onEvent, recipes) }
                         AppMenuPopup(items, expanded = moreOpen, onDismiss = { moreOpen = false })
                     }
                 }
@@ -166,7 +178,10 @@ private fun PrnChip(chip: AsNeededChip, content: TodayContent, onEvent: (TodayEv
             log = TodayEvent.LogExtra(chip.prescription)
         }
     }
-    val mark = if (chip is AsNeededChip.Medicine) prnMark(content.unavailable[chip.id], content.today, content.zone) else null
+    val mark = when (chip) {
+        is AsNeededChip.Medicine -> prnMark(content.unavailable[chip.id], content.today, content.zone)
+        is AsNeededChip.Recipe -> takenMark(content.takenToday[chip.id], content.zone)
+    }
     AppFilterChip(
         title,
         selected = false,
@@ -189,6 +204,20 @@ private fun moreItem(medicine: PrnMedicine, content: TodayContent, onEvent: (Tod
         icon = mark?.icon,
         supporting = mark?.supporting,
         supportingTone = mark?.let { Tone.Warning },
+        muted = mark != null
+    )
+}
+
+/** Receptraden i "Fler": markerad med bockikon, dämpad titel och "Tagen 14:05" när medicinen tagits som extrados idag (FAV-13). */
+@Composable
+private fun recipeItem(prescription: Prescription, content: TodayContent, onEvent: (TodayEvent) -> Unit, section: String): AppMenuItem {
+    val mark = takenMark(content.takenToday[prescription.id], content.zone)
+    return AppMenuItem(
+        prescription.title(prescription.doseFor(content.today)),
+        { onEvent(TodayEvent.LogExtra(prescription)) },
+        icon = mark?.icon,
+        section = section,
+        supporting = mark?.supporting,
         muted = mark != null
     )
 }

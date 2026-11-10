@@ -679,14 +679,48 @@ class TodayViewModelTest {
     }
 
     @Test
-    fun `en tidigare dag har ingen markering och ett recept markeras aldrig (FAV-13)`() = runTest(main.dispatcher) {
+    fun `en tidigare dag har ingen markering, och recepten står inte bland kylperioderna (FAV-13)`() = runTest(main.dispatcher) {
         seed()
         factory.doses().upsert(Dose("alv", today, Slot.AS_NEEDED, "Alvedon", "500", "mg", DoseStatus.TAKEN, takenAt = at(today, 10, 0), prnId = alvedon.id)).getOrThrow()
+        factory.doses().upsert(Dose("lev", today, Slot.AS_NEEDED, "Levaxin", "100", "µg", DoseStatus.TAKEN, takenAt = at(today, 9, 0))).getOrThrow()
         val vm = started(viewModel())
         assertEquals(setOf(alvedon.id), vm.content.unavailable.keys, "recepten saknas bland markeringarna")
+        assertEquals(setOf(levaxin.id), vm.content.takenToday.keys)
         vm.onEvent(TodayEvent.SelectDate(yesterday))
         runCurrent()
         assertEquals(emptyMap(), vm.content.unavailable)
+        assertEquals(emptyMap(), vm.content.takenToday, "en tidigare dag har ingen taget-markering")
+    }
+
+    @Test
+    fun `ett stjärnmärkt recept markeras som taget direkt vid tryck, och Ångra tar bort markeringen (FAV-13)`() = runTest(main.dispatcher) {
+        seed()
+        clock.instant = at(today, 10, 30) + 40.seconds
+        val vm = started(viewModel())
+        vm.onEvent(TodayEvent.ToggleRecipeFavorite(levaxin))
+        runCurrent()
+        assertEquals(emptyMap(), vm.content.takenToday)
+
+        vm.onEvent(TodayEvent.LogExtra(vm.content.choices.favoritePrescriptions.single()))
+        runCurrent()
+        assertEquals(mapOf(levaxin.id to at(today, 10, 30) + 40.seconds), vm.content.takenToday, "markeringen kommer utan minut-tick")
+
+        vm.onEvent(TodayEvent.Undo)
+        runCurrent()
+        assertEquals(emptyMap(), vm.content.takenToday, "Ångra tar bort markeringen direkt")
+    }
+
+    @Test
+    fun `ett inaktivt stjärnmärkt recept är ett chip och loggar en extrados som vanligt (FAV-12)`() = runTest(main.dispatcher) {
+        seed()
+        factory.prescriptions().upsert(levaxin.copy(active = false, favorite = true)).getOrThrow()
+        val vm = started(viewModel())
+        val chip = vm.content.choices.favoritePrescriptions.single()
+        assertEquals(levaxin.id, chip.id)
+        assertEquals(emptyList(), vm.content.choices.prescriptions)
+        vm.onEvent(TodayEvent.LogExtra(chip))
+        runCurrent()
+        assertEquals(setOf(levaxin.id), vm.content.takenToday.keys)
     }
 
     @Test

@@ -1,7 +1,10 @@
 package se.partee71.dagboken.core.engine
 
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Test
 import se.partee71.dagboken.core.model.Dose
@@ -198,18 +201,30 @@ class TodayListsTest {
         assertEquals(2, choices.moreCount)
     }
 
-    @Test fun `ett stjärnmärkt recept som finns bland vid behov-medicinerna, är inaktivt eller utanför perioden blir inget snabbval (FAV-12)`() {
+    @Test fun `ett stjärnmärkt recept som finns bland vid behov-medicinerna blir inget snabbval (FAV-12)`() {
         val prn = PrnMedicine("1", "Alvedon", strength = "500 mg")
         val duplicate = Prescription("a", " ALVEDON", favorite = true)
-        val paused = Prescription("p", "Atarax", active = false, favorite = true)
-        val ended = Prescription("e", "Amoxicillin", favorite = true, period = Period(day("2026-09-01"), day("2026-10-03")))
-        val notStarted = Prescription("n", "Kåvepenin", favorite = true, period = Period(day("2026-10-05")))
 
-        val choices = asNeededChoices(listOf(prn), listOf(duplicate, paused, ended, notStarted), today)
+        val choices = asNeededChoices(listOf(prn), listOf(duplicate), today)
 
         assertEquals(emptyList(), choices.chips)
         assertEquals(emptyList(), choices.favoritePrescriptions)
         assertEquals(emptyList(), choices.prescriptions, "inte heller i Fler")
+    }
+
+    @Test fun `ett stjärnmärkt recept är snabbval även när det är inaktivt eller perioden inte täcker dagen, men ostjärnmärkta förblir som förut (FAV-12)`() {
+        val paused = Prescription("p", "Atarax", active = false, favorite = true)
+        val ended = Prescription("e", "Amoxicillin", favorite = true, period = Period(day("2026-09-01"), day("2026-10-03")))
+        val notStarted = Prescription("n", "Kåvepenin", favorite = true, period = Period(day("2026-10-05")))
+        val plainPaused = Prescription("q", "Zyrlex", active = false)
+        val plainEnded = Prescription("f", "Pencillin", period = Period(day("2026-09-01"), day("2026-10-03")))
+
+        val choices = asNeededChoices(emptyList(), listOf(paused, ended, notStarted, plainPaused, plainEnded), today)
+
+        assertEquals(listOf(ended, paused, notStarted), choices.favoritePrescriptions)
+        assertEquals(listOf("Amoxicillin", "Atarax", "Kåvepenin"), choices.chips.map { it.name })
+        assertEquals(emptyList(), choices.prescriptions, "ostjärnmärkta inaktiva eller utgångna recept står inte i Fler")
+        assertEquals(0, choices.moreCount)
     }
 
     @Test fun `ett snabbvals nyckel innehåller typen, så att samma id i två samlingar inte krockar`() {
@@ -227,6 +242,46 @@ class TodayListsTest {
         val sameId = Prescription("x", "Alvedon", strength = "1 g", favorite = true)
         val chips = asNeededChoices(listOf(prn.copy(strength = "500 mg")), listOf(sameId, other), today).chips
         assertEquals(listOf("Recipe a", "Medicine x", "Recipe x"), chips.map { "${it::class.simpleName} ${it.id}" })
+    }
+
+    // ── Taget-läge för recept (FAV-13) ───────────────────────────────────────
+
+    private fun extra(id: String, name: String, strength: String = "", date: LocalDate = today, at: String = "${today}T10:00:00Z", prn: String? = null, rx: String? = null, status: DoseStatus = DoseStatus.TAKEN, slot: Slot = Slot.AS_NEEDED) = Dose(
+        id,
+        date,
+        slot,
+        name,
+        strength = strength,
+        status = status,
+        takenAt = Instant.parse(at),
+        prnId = prn,
+        prescriptionId = rx
+    )
+
+    @Test fun `receptets taget-läge är tiden för den senaste extradosen idag, annars null (FAV-13)`() {
+        val levaxin = Prescription("l", "Levaxin", strength = "100 µg", favorite = true)
+        assertNull(levaxin.lastExtraTakenOn(emptyList(), today), "ingen dos")
+        val one = extra("1", "levaxin", "100 µg", at = "${today}T08:05:00Z")
+        assertEquals(one.takenAt, levaxin.lastExtraTakenOn(listOf(one), today), "en dos, namn utan skiftläge")
+        val later = extra("2", "Levaxin", "100 µg", at = "${today}T14:05:00Z")
+        assertEquals(later.takenAt, levaxin.lastExtraTakenOn(listOf(one, later), today), "flera: senaste tiden")
+    }
+
+    @Test fun `taget-läget gäller bara dagen, samma medicin och extradoser (FAV-13)`() {
+        val levaxin = Prescription("l", "Levaxin", strength = "100 µg", favorite = true)
+        val yesterday = extra("y", "Levaxin", "100 µg", date = LocalDate.parse("2026-10-03"))
+        val otherMedicine = extra("o", "Alvedon", "100 µg")
+        val otherStrength = extra("s", "Levaxin", "50 µg")
+        val planned = extra("p", "Levaxin", "100 µg", rx = "l", slot = Slot.MORNING)
+        val skipped = extra("k", "Levaxin", "100 µg", status = DoseStatus.SKIPPED)
+        val prnDose = extra("n", "Levaxin", "100 µg", prn = "x")
+        assertNull(levaxin.lastExtraTakenOn(listOf(yesterday, otherMedicine, otherStrength, planned, skipped, prnDose), today))
+    }
+
+    @Test fun `en dos utan styrka och ett recept med styrka är samma medicin för taget-läget (FAV-11, FAV-13)`() {
+        val levaxin = Prescription("l", "Levaxin", strength = "100 µg", favorite = true)
+        val old = extra("1", "Levaxin")
+        assertEquals(old.takenAt, levaxin.lastExtraTakenOn(listOf(old), today))
     }
 
     // ── Datumremsans punkter (HEM-14) ────────────────────────────────────────
