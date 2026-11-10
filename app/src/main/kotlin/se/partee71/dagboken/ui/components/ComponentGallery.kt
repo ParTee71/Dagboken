@@ -361,6 +361,15 @@ private fun Diary() {
         toggle = EntryToggle(active, { active = it }, "Sertralin aktivt"),
         below = { InfoPill("Idag 75 mg (+25)") },
     )
+    var starred by remember { mutableStateOf(true) }
+    DagbokenEntryCard(
+        "Alvedon 500 mg",
+        onClick = {},
+        subtitle = "Minst 4 h mellan · högst 8 per dag",
+        accent = MaterialTheme.colorScheme.primary,
+        onEdit = {},
+        favoriteStar = EntryFavorite("Alvedon", starred) { starred = !starred },
+    )
     if (deleted) Text("Raderad", style = AppTypography.itemSubtitle)
     GalleryFeelingCards()
     var expanded by remember { mutableStateOf(true) }

@@ -264,6 +264,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.12.0 | **Recept och Vid behov ser likadana ut.** Båda listorna i Mediciner är nu samma sorts kort, och stjärnan för favorit sitter direkt på receptkortet bredvid reglaget – som den redan gjorde på vid behov-medicinerna.
 | 4.11.0 | **Känslornas styrka i Trender.** Kortet Känslor visar nu hur starkt du känt: meningen säger vilken känsla som kändes starkast, ordträdets staplar delas i styrkans toner, veckans valda dag visar styrka och kommentarer, och det nya avsnittet Varför samlar periodens kommentarer, fem åt gången. |
 | 4.10.1 | **Lugnare när måendet sparats.** Måendearkets Spara-knapp blir "✓ Sparat" en kort stund innan arket stängs, och meddelandet "Mående sparat" längst ned är borta, så att botten är lugn efteråt. |
 | 4.10.0 | **Stunden som solnedgång.** Stundens helskärm får en egen, lugn kvällston oberoende av temat: en sol som andas i takt med "Andas in"/"Andas ut" i stället för cirkeln, långsamt glidande kullar och uppmaningen "Lägg ner det du gör. Andas med solen." Allt står stilla med systemets "Ta bort animationer". |

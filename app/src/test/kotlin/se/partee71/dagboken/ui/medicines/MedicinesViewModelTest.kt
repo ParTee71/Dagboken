@@ -231,6 +231,17 @@ class MedicinesViewModelTest {
     }
 
     @Test
+    fun `stjärnan på en vid behov-medicin skriver bara favorite, och bekräftad radering tar bort den (FAV-8, NFR-15)`() = runTest(main.dispatcher) {
+        val factory = FakeCollectionFactory()
+        factory.prnMedicines().upsert(alvedon).getOrThrow()
+        val vm = viewModel(factory)
+        vm.onEvent(MedicinesEvent.FavoriteToggled(alvedon))
+        assertEquals(alvedon.copy(favorite = true), factory.prnMedicines().get(alvedon.id).getOrThrow())
+        vm.onEvent(MedicinesEvent.DeletePrnMedicine(alvedon))
+        assertNull(factory.prnMedicines().get(alvedon.id).getOrThrow())
+    }
+
+    @Test
     fun `en ny vid behov-medicin kräver namn och dos och sparas med förvalen`() = runTest(main.dispatcher) {
         val factory = FakeCollectionFactory()
         val vm = PrnMedicineEditViewModel(DefaultPrnMedicineRepository(factory), FakeMedicines(), main.dispatcher, id = null)
