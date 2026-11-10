@@ -42,6 +42,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
+import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -158,7 +159,10 @@ class TodayScreenTest {
         reminders: ReminderSettings = ReminderSettings(),
         choices: AsNeededChoices = asNeededChoices(listOf(alvedon, imigran, loratadin), listOf(levaxin, betapred), today),
         unavailable: Map<String, PrnAvailability> = emptyMap(),
-        takenToday: Map<String, Instant> = emptyMap()
+        takenToday: Map<String, Instant> = emptyMap(),
+        projectedIds: Set<String> = emptySet(),
+        dosesPending: Boolean = false,
+        dosesOffline: Boolean = false
     ) = TodayContent(
         today = today,
         date = date,
@@ -175,6 +179,9 @@ class TodayScreenTest {
         choices = choices,
         unavailable = unavailable.toImmutableMap(),
         takenToday = takenToday.toImmutableMap(),
+        projectedIds = projectedIds.toImmutableSet(),
+        dosesPending = dosesPending,
+        dosesOffline = dosesOffline,
         dayDone = dayDone,
         zone = zone
     )
@@ -543,6 +550,50 @@ class TodayScreenTest {
         rule.onNodeWithText("Ingen anslutning just nu, så dagens doser kan inte skapas.").assertIsDisplayed()
         rule.onNodeWithText("Appen försöker igen av sig själv när nätet är tillbaka.").assertIsDisplayed()
         rule.onNodeWithText("Allt avklarat").assertDoesNotExist()
+    }
+
+    @Test
+    fun `utan nät visas de beräknade doserna med en diskret rad, utan Doser saknas och utan meny (HEM-10, MED-4)`() {
+        val events = mutableListOf<TodayEvent>()
+        val projected = listOf(sertralinDose.copy(status = DoseStatus.PLANNED, takenAt = null), levaxinDose.copy(status = DoseStatus.PLANNED, takenAt = null))
+        show(
+            content(projected, showDone = true, progress = DayProgress(0, 2), dosesOffline = true, projectedIds = projected.map { it.id }.toSet()),
+            onEvent = { events += it }
+        )
+        rule.onNodeWithText("Ansluter … doserna sparas när nätet är tillbaka").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Doser saknas").assertDoesNotExist()
+        rule.onNodeWithText("Levaxin 100 µg").performScrollTo().performClick()
+        assertEquals(TodayEvent.SetTaken(projected[1], true), events.last(), "en beräknad dos bockas av som vanligt")
+        rule.onNodeWithText("Levaxin 100 µg").performTouchInput { longClick() }
+        assertEquals(0, rule.onAllNodesWithText("Hoppa över").fetchSemanticsNodes().size, "ingen meny förrän dosen skapats")
+    }
+
+    @Test
+    fun `inget kan visas ännu – laddning i stället för Inga mediciner eller Allt avklarat (HEM-10)`() {
+        show(content(emptyList(), progress = DayProgress(0, 0), showDone = false, dosesPending = true))
+        rule.onNodeWithText("Mediciner").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Inga mediciner den här dagen").assertDoesNotExist()
+        rule.onNodeWithText("Allt avklarat").assertDoesNotExist()
+        rule.onNodeWithText("Doser saknas").assertDoesNotExist()
+    }
+
+    @Test
+    fun `skärmdump - mediciner med beräknade doser utan nät`() = rule.captureLightAndDark("Today_mediciner_offline") {
+        val projected = listOf(sertralinDose.copy(status = DoseStatus.PLANNED, takenAt = null), levaxinDose.copy(status = DoseStatus.PLANNED, takenAt = null))
+        TodayScreen(
+            DetailUiState.Content(content(projected, showDone = true, progress = DayProgress(0, 2), dosesOffline = true, projectedIds = projected.map { it.id }.toSet()).copy(collapsed = persistentSetOf(TodayCard.AS_NEEDED, TodayCard.MOOD, TodayCard.WEEK_TRENDS))),
+            {},
+            {}
+        )
+    }
+
+    @Test
+    fun `skärmdump - mediciner laddar`() = rule.captureLightAndDark("Today_mediciner_laddar") {
+        TodayScreen(
+            DetailUiState.Content(content(emptyList(), progress = DayProgress(0, 0), showDone = false, dosesPending = true).copy(collapsed = persistentSetOf(TodayCard.AS_NEEDED, TodayCard.MOOD, TodayCard.WEEK_TRENDS))),
+            {},
+            {}
+        )
     }
 
     @Test

@@ -50,6 +50,7 @@ import se.partee71.dagboken.core.engine.OccasionState
 import se.partee71.dagboken.core.engine.OngoingIllness
 import se.partee71.dagboken.core.engine.PrnAvailability
 import se.partee71.dagboken.core.engine.PrnCheck
+import se.partee71.dagboken.core.engine.SlotDoses
 import se.partee71.dagboken.core.engine.WeekSummary
 import se.partee71.dagboken.core.engine.asNeededChoices
 import se.partee71.dagboken.core.engine.availabilityAt
@@ -64,7 +65,6 @@ import se.partee71.dagboken.core.engine.dayStreak
 import se.partee71.dagboken.core.engine.daysEnding
 import se.partee71.dagboken.core.engine.doseChecklist
 import se.partee71.dagboken.core.engine.enabledOccasions
-import se.partee71.dagboken.core.engine.ensureDoses
 import se.partee71.dagboken.core.engine.feelingEntry
 import se.partee71.dagboken.core.engine.isScheduled
 import se.partee71.dagboken.core.engine.isScheduledPrescription
@@ -72,6 +72,7 @@ import se.partee71.dagboken.core.engine.lastExtraTakenOn
 import se.partee71.dagboken.core.engine.occasionStates
 import se.partee71.dagboken.core.engine.ongoingEpisode
 import se.partee71.dagboken.core.engine.ongoingIllness
+import se.partee71.dagboken.core.engine.projectedDoses
 import se.partee71.dagboken.core.engine.weekSummaryOn
 import se.partee71.dagboken.core.model.Checkin
 import se.partee71.dagboken.core.model.Dose
@@ -224,6 +225,15 @@ data class TodayContent(
      */
     val missingCause: DataError? = null,
     /**
+     * Id:n för dagens doser som ännu inte finns som dokument utan beräknats ur recepten (HEM-10, MED-4): de visas som vanliga rader
+     * direkt, med menyn dold tills dosen skapats, och ersätts av den riktiga dosen med samma id.
+     */
+    val projectedIds: ImmutableSet<String> = persistentSetOf(),
+    /** Dagen saknar doser lokalt och inget recept är känt ännu medan försöket pågår – kortet visar laddning, inte "Inga mediciner" (HEM-10). */
+    val dosesPending: Boolean = false,
+    /** Utan nät medan beräknade doser väntar på att skapas: en diskret rad säger att de sparas när nätet är tillbaka (HEM-10, inget fel). */
+    val dosesOffline: Boolean = false,
+    /**
      * Dagens känslor (HEM-21): räkningen, meningens struktur och orden i tidsordning ur den visade dagens måendeloggar
      * (inga aktiviteter – ingen ny läsning), eller `null` när dagen saknar känslor – då visas inget kort.
      */
@@ -275,6 +285,9 @@ class TodayViewModel @Inject constructor(
      */
     private val failedDays = MutableStateFlow<Map<LocalDate, DataError>>(emptyMap())
 
+    /** Dagarna vars `ensureDay` pågår och ännu inte gett utfall eller `Offline` (HEM-10): kortet visar laddning bara när inget annat kan visas. */
+    private val attemptingDays = MutableStateFlow<Set<LocalDate>>(emptySet())
+
     private val now: Flow<LocalDateTime> =
         clock.minutes { zone.get() }.shareIn(viewModelScope, screenSharing(), replay = 1)
 
@@ -303,11 +316,16 @@ class TodayViewModel @Inject constructor(
         shownDate(chosen, today) to today
     }.distinctUntilChanged().attemptingEach(
         viewModelScope,
-        onOffline = { (date, _) -> failedDays.update { it + (date to DataError.Offline) } },
+        onOffline = { (date, _) ->
+            attemptingDays.update { it - date }
+            failedDays.update { it + (date to DataError.Offline) }
+        },
         onResult = { (date, _), failure ->
             failures.report(failure)
+            attemptingDays.update { it - date }
             failedDays.update { if (failure != null) it + (date to failure.dataError) else it - date }
-        }
+        },
+        onStart = { (date, _) -> attemptingDays.update { it + date } }
     ) { (date, today) -> prescriptions.ensureDay(date, today) }
 
     private data class Span(val date: LocalDate, val today: LocalDate, val week: LocalDate) {
@@ -361,12 +379,15 @@ class TodayViewModel @Inject constructor(
 
     private val library: Flow<Library> = combine(prescriptions.observe(), medicines.observe(), settings.settings, ::Library)
 
+    /** Utfallet av dagens `ensureDay`-försök per dag: felen ([failed]) och dagarna försöket pågår ([running]). */
+    private data class Attempts(val failed: Map<LocalDate, DataError>, val running: Set<LocalDate>)
+
     private data class Toggles(val done: Boolean, val upcoming: Boolean, val celebrated: LocalDate?)
 
     private val toggles = combine(showDone, showUpcoming, celebrated, ::Toggles)
 
     /** Allt som inte beror på klockslaget räknas en gång per ändring – inte varje minut. */
-    private val day: Flow<DayView> = combine(span, entries, library, toggles, failedDays, ::day)
+    private val day: Flow<DayView> = combine(span, entries, library, toggles, combine(failedDays, attemptingDays, ::Attempts), ::day)
 
     /**
      * Per minut räknas bara det som beror på klockslaget: hälsningen och "Snart"/"Försenat" (MED-13). Hopfällda kort
@@ -425,6 +446,9 @@ class TodayViewModel @Inject constructor(
         val energyDays: ImmutableList<LocalDate>,
         val energy: ImmutableList<Float?>,
         val missingCause: DataError?,
+        val projectedIds: ImmutableSet<String>,
+        val dosesPending: Boolean,
+        val dosesOffline: Boolean,
         val feelings: FeelingDay?
     ) {
         /** FAV-13: de vid behov-mediciner som inte går att ta vid [moment] – tomt en tidigare dag. */
@@ -471,23 +495,35 @@ class TodayViewModel @Inject constructor(
             energy = energy,
             illness = illness?.let { (episode, checkins) -> ongoingIllness(episode, checkins, today) },
             missingCause = missingCause,
+            projectedIds = projectedIds,
+            dosesPending = dosesPending,
+            dosesOffline = dosesOffline,
             feelings = feelings,
             collapsed = collapsed.toImmutableSet()
         )
     }
 
-    private fun day(span: Span, entries: Entries, library: Library, toggles: Toggles, failedDays: Map<LocalDate, DataError>): DayView {
+    private fun day(span: Span, entries: Entries, library: Library, toggles: Toggles, attempts: Attempts): DayView {
         val (date, today) = span.date to span.today
         val occasions = library.settings.reminders.enabledOccasions
-        val dayDoses = entries.doses.filter { it.date == date }
+        val storedDoses = entries.doses.filter { it.date == date }
+        // HEM-10, MED-4: receptdoserna som ännu inte skapats räknas ur receptcachen och visas direkt som vanliga rader – samma
+        // beräkning som `ensureDay` och påminnelsen, så att de riktiga doserna (samma id) ersätter dem utan blinkning eller dubblett.
+        val projected = projectedDoses(library.prescriptions, storedDoses, date, today, zone.get(), library.settings.reminders)
+        val dayDoses = storedDoses + projected
         // HEM-7: de sju senaste dagarna till och med idag, oavsett vilken dag som visas.
         val energyDays = daysEnding(today)
         val progress = dayProgress(date, dayDoses, entries.screenings, occasions)
         val todayProgress = if (date == today) progress else dayProgress(today, entries.doses, entries.screenings, occasions)
-        // HEM-10, MED-4: samma beräkning som `ensureDay` och påminnelsen – efter ett misslyckat försök saknas doser som recepten ger.
-        val missingCause = failedDays[date]?.takeIf { ensureDoses(library.prescriptions, dayDoses, date, today, zone.get(), library.settings.reminders).create.isNotEmpty() }
+        // HEM-10, MED-4: utan nät är det inget fel – de beräknade doserna visas och sparas när nätet är tillbaka. Ett annat fel
+        // (t.ex. slut på molnets kvot) säger att doser saknas.
+        val failure = attempts.failed[date]
+        val missingCause = failure?.takeIf { it != DataError.Offline && projected.isNotEmpty() }
+        val dosesOffline = failure == DataError.Offline && projected.isNotEmpty()
+        // Inget lagrat, inget beräknat och inga recept kända: den kalla cachen kan sakna dem, så kortet väntar på försöket.
+        val dosesPending = date in attempts.running && dayDoses.isEmpty() && library.prescriptions.isEmpty()
         // HEM-19: en dag med saknade doser är inte klar – ingen belöning eller konfetti.
-        val dayDone = if (date == today && progress.isComplete && missingCause == null) {
+        val dayDone = if (date == today && progress.isComplete && missingCause == null && !dosesPending) {
             DayDone(
                 comparison = dayComparison(today, entries.screenings),
                 streak = dayStreak(today, entries.doses, entries.screenings, occasions),
@@ -505,6 +541,7 @@ class TodayViewModel @Inject constructor(
             todayComplete = todayProgress.isComplete,
             doseProgress = dayProgress(date, dayDoses, emptyList(), emptyList()),
             doses = dayDoses,
+            projectedIds = projected.mapTo(HashSet()) { it.id }.toImmutableSet(),
             toggles = toggles,
             prescriptions = library.prescriptions.associateBy { it.id }.toImmutableMap(),
             choices = asNeededChoices(library.medicines, library.prescriptions, today),
@@ -518,6 +555,8 @@ class TodayViewModel @Inject constructor(
             energyDays = energyDays.toImmutableList(),
             energy = dailyEnergyAverages(entries.screenings, energyDays).toImmutableList(),
             missingCause = missingCause,
+            dosesPending = dosesPending,
+            dosesOffline = dosesOffline,
             // HEM-21: samma dag som Trenders kort Känslor räknar (`computeFeelingDay`, utan periodens del), men bara ur den
             // visade dagens måendeloggar – Idag läser inga aktiviteter (NFR-24).
             feelings = computeFeelingDay(entries.screenings.filter { it.date == date }.mapNotNull { it.feelingEntry() }, date).takeUnless { it.isEmpty }
@@ -537,7 +576,9 @@ class TodayViewModel @Inject constructor(
             is TodayEvent.ShowWeek -> week.value = event.monday
 
             // En loggad vid behov- eller extrados bockas inte av – den raderas i radens meny ([TodayEvent.Delete]).
-            is TodayEvent.SetTaken -> if (event.dose.isScheduled) setStatus(event.dose, if (event.taken) DoseStatus.TAKEN else DoseStatus.PLANNED)
+            is TodayEvent.SetTaken -> if (event.dose.isScheduled) {
+                if (event.dose.id in currentContent?.projectedIds.orEmpty()) markProjected(event.dose) else setStatus(event.dose, if (event.taken) DoseStatus.TAKEN else DoseStatus.PLANNED)
+            }
 
             is TodayEvent.Skip -> setStatus(event.dose, DoseStatus.SKIPPED)
 
@@ -611,6 +652,19 @@ class TodayViewModel @Inject constructor(
             } else {
                 offerUndo(dose, dose.title(), format) { doses.setStatus(dose, dose.status, dose.takenAt) }
             }
+        }
+    }
+
+    /**
+     * HEM-10, MED-4: en beräknad dos (ännu inte skapad) bockas av som "Markera tagen" i notisen (NOT-10): [DoseRepository.markTaken]
+     * skriver dosen med dess stabila id i cachen direkt, offline först och utan väntan, och `createIfAbsent` skriver aldrig över den
+     * senare. Ångra återställer den skapade dosen som en vanlig avbockning.
+     */
+    private fun markProjected(dose: Dose) {
+        viewModelScope.launch {
+            val takenAt = dose.checkOffTime(clock.now(), zone.get(), settings.currentReminders())
+            if (failures.report(doses.markTaken(SlotDoses(missing = listOf(dose)), takenAt))) return@launch
+            offerUndo(dose, dose.title(), R.string.today_undo_taken_format) { doses.setStatus(dose, DoseStatus.PLANNED, null) }
         }
     }
 

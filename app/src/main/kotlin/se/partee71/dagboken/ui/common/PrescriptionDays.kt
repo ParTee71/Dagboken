@@ -44,19 +44,22 @@ fun Flow<LocalDate>.tidyingUpEachDay(
  * försök aldrig skriver över ett nyare. Utan nät ([DataError.Offline]) anropas [onOffline] och försöket görs om med
  * växande paus (`retryWithBackoffWhile`) – men bara så länge flödet samlas in (vyn visas) och inget nytt värde kommit;
  * annars gör nästa visning eller värde om det. Ett kast fångas ([failureOfAttempt]). [onOffline] och [onResult] anropas
- * på [scope]s och insamlingens tråd (huvudtråden), som räknar försöken.
+ * på [scope]s och insamlingens tråd (huvudtråden), som räknar försöken. [onStart] anropas när försöken för ett värde börjar
+ * (HEM-10: Idag visar "hämtar" tills det getts ett utfall eller [onOffline]).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 fun <T> Flow<T>.attemptingEach(
     scope: CoroutineScope,
     onOffline: (T) -> Unit,
     onResult: (T, UiError?) -> Unit,
+    onStart: (T) -> Unit = {},
     attempt: suspend (T) -> Result<Unit>
 ): Flow<T> = channelFlow {
     val latest = HashMap<T, Long>()
     var started = 0L
     collectLatest { value ->
         send(value)
+        onStart(value)
         retryWithBackoffWhile(retryOn = { failure: UiError? -> failure?.cause == DataError.Offline }, onRetry = { onOffline(value) }) {
             val number = ++started
             latest[value] = number
