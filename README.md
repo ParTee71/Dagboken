@@ -264,6 +264,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.11.2 | **Morgonens mediciner direkt:** dagens receptdoser visas på Idag så fort appen öppnas, också utan nät, och kan bockas av innan servern skapat dem. Ingen tom ruta, ingen "Allt avklarat" och inget "Doser saknas" för något som löser sig själv – bara en laddningsindikator när inget kan visas och en diskret rad utan nät (HEM-10, MED-4, #400). |
 | 4.11.1 | **Recept markeras som tagna på Idag:** ett stjärnmärkt recept får bockikon och "tagen 14:05" direkt efter tryck (också i Fler) och slår om tillbaka vid Ångra, och ett stjärnmärkt recept syns som chip även när det är inaktivt eller utgånget (FAV-12, FAV-13, #398). |
 | 4.11.0 | **Känslornas styrka i Trender.** Kortet Känslor visar nu hur starkt du känt: meningen säger vilken känsla som kändes starkast, ordträdets staplar delas i styrkans toner, veckans valda dag visar styrka och kommentarer, och det nya avsnittet Varför samlar periodens kommentarer, fem åt gången. |
 | 4.10.1 | **Lugnare när måendet sparats.** Måendearkets Spara-knapp blir "✓ Sparat" en kort stund innan arket stängs, och meddelandet "Mående sparat" längst ned är borta, så att botten är lugn efteråt. |

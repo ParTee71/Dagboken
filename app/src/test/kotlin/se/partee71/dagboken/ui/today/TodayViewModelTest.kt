@@ -979,7 +979,7 @@ class TodayViewModelTest {
             }
         }
         val vm = started(viewModel(exhausted))
-        assertTrue(vm.content.checklist.isEmpty)
+        assertEquals(2, vm.content.doseProgress.total, "recepten ger doser idag: de visas direkt som beräknade (HEM-10)")
         assertFalse(vm.content.dosesMissing, "inte förrän försöket är klart")
         assertNull(vm.failure.value)
 
@@ -987,7 +987,8 @@ class TodayViewModelTest {
         runCurrent()
         assertEquals(DataError.QuotaExceeded, vm.failure.value?.dataError)
         assertEquals(R.string.error_quota_exceeded, vm.failure.value?.message)
-        assertTrue(vm.content.dosesMissing, "receptet ger doser idag men inga finns")
+        assertTrue(vm.content.dosesMissing, "doserna visas men kunde inte skapas")
+        assertEquals(2, vm.content.doseProgress.total)
     }
 
     @Test
@@ -1035,14 +1036,16 @@ class TodayViewModelTest {
     }
 
     @Test
-    fun `utan nät säger kortet varför doserna saknas, och de kommer när nätet är tillbaka utan dagbyte (HEM-10, MED-4)`() = runTest(main.dispatcher) {
+    fun `utan nät visas doserna direkt med en diskret rad, inget fel, och de skapas när nätet är tillbaka utan dagbyte (HEM-10, MED-4)`() = runTest(main.dispatcher) {
         seed()
         factory.store.online = false
         val vm = started(viewModel())
         runCurrent()
         assertNull(vm.failure.value, "inget felmeddelande utan nät")
-        assertTrue(vm.content.checklist.isEmpty)
-        assertEquals(DataError.Offline, vm.content.missingCause, "kortet säger att doserna saknas för att nätet saknas")
+        assertEquals(2, vm.content.doseProgress.total, "de beräknade doserna visas")
+        assertEquals(2, vm.content.projectedIds.size)
+        assertNull(vm.content.missingCause, "Offline är inget fel")
+        assertTrue(vm.content.dosesOffline, "en diskret rad säger att doserna sparas när nätet är tillbaka")
 
         // Morgonen: nätet kommer en stund efter att appen öppnats – Idag försöker igen av sig själv.
         factory.store.online = true
@@ -1051,6 +1054,9 @@ class TodayViewModelTest {
         assertNull(vm.failure.value)
         assertEquals(2, vm.content.progress.total, "dagens doser skapades utan att dagen byttes")
         assertNull(vm.content.missingCause)
+        assertEquals(emptySet(), vm.content.projectedIds, "de riktiga doserna ersatte de beräknade – ingen dubblett")
+        assertFalse(vm.content.dosesOffline)
+        assertEquals(2, vm.content.doseProgress.total)
     }
 
     @Test
@@ -1089,8 +1095,60 @@ class TodayViewModelTest {
         }
         val vm = started(viewModel(pending))
         runCurrent()
-        assertTrue(vm.content.checklist.isEmpty)
+        assertEquals(2, vm.content.doseProgress.total, "beräknade doser visas tills de riktiga når lyssnaren")
         assertFalse(vm.content.dosesMissing)
+    }
+
+    @Test
+    fun `en beräknad dos bockas av som Markera tagen – skapas med sitt stabila id offline, och Ångra återställer den (HEM-10, MED-4, NOT-10)`() = runTest(main.dispatcher) {
+        seed()
+        factory.store.online = false
+        val vm = started(viewModel())
+        runCurrent()
+        val projected = vm.content.checklist.shown.first().dose
+        assertTrue(projected.id in vm.content.projectedIds)
+        assertNull(stored(projected.id), "dosen finns inte som dokument än")
+
+        vm.onEvent(TodayEvent.SetTaken(projected, true))
+        runCurrent()
+        val created = stored(projected.id)!!
+        assertEquals(DoseStatus.TAKEN, created.status)
+        assertEquals(projected.prescriptionId, created.prescriptionId)
+        assertFalse(projected.id in vm.content.projectedIds, "den skapade dosen ersätter den beräknade – ingen dubblett")
+        assertEquals(1, vm.content.checklist.done.count { it.id == projected.id })
+        assertEquals(1, vm.content.progress.done)
+
+        vm.onEvent(TodayEvent.Undo)
+        runCurrent()
+        assertEquals(DoseStatus.PLANNED, stored(projected.id)?.status)
+    }
+
+    @Test
+    fun `kall cache utan recept väntar på försöket med laddning, aldrig Inga mediciner, och dagen är inte klar (HEM-10, HEM-19)`() = runTest(main.dispatcher) {
+        val attempt = CompletableDeferred<Unit>()
+        val slow = object : PrescriptionRepository by testPrescriptions(factory, doses, zone, clock) {
+            override suspend fun tidyUp(today: LocalDate): Result<Unit> = Result.success(Unit)
+            override suspend fun ensureDay(date: LocalDate, today: LocalDate): Result<Unit> {
+                attempt.await()
+                return Result.success(Unit)
+            }
+        }
+        val vm = started(viewModel(slow))
+        assertTrue(vm.content.dosesPending)
+        assertNull(vm.content.dayDone)
+
+        attempt.complete(Unit)
+        runCurrent()
+        assertFalse(vm.content.dosesPending, "försöket gav utfall")
+    }
+
+    @Test
+    fun `med recept i cachen är det aldrig laddning, och utan nät inte heller (HEM-10)`() = runTest(main.dispatcher) {
+        seed()
+        factory.store.online = false
+        val vm = started(viewModel())
+        runCurrent()
+        assertFalse(vm.content.dosesPending)
     }
 
     @Test

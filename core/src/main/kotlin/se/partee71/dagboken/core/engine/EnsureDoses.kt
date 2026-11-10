@@ -105,6 +105,21 @@ fun ensureDoses(
     )
 }
 
+/**
+ * HEM-10, MED-4: dagens receptdoser som ännu inte finns bland [existing] – samma doser, med samma id och fält, som
+ * [ensureDoses] skapar, men utan att något skrivs. Idag visar dem som vanliga rader direkt ur receptcachen medan
+ * servern skapar de riktiga; när en dos med samma id når lyssnaren ersätter den den beräknade (inget ersätts, ingen
+ * dubblett – [ensureDoses] hoppar över varje id som finns).
+ */
+fun projectedDoses(
+    prescriptions: List<Prescription>,
+    existing: Collection<Dose>,
+    date: LocalDate,
+    today: LocalDate,
+    zone: TimeZone,
+    reminders: ReminderSettings
+): List<Dose> = ensureDoses(prescriptions, existing, date, today, zone, reminders).create
+
 /** REC-10: hur receptets doser ska ändras när receptet sparats. */
 data class DoseSync(
     val create: List<Dose> = emptyList(),

@@ -510,6 +510,7 @@
     <string name="today_medicines_none">Inga mediciner den här dagen.</string>
     <string name="today_medicines_all_done_title">Allt avklarat</string>
     <string name="today_medicines_all_done">Alla dagens mediciner är avklarade.</string>
+    <string name="today_medicines_offline_saving">Ansluter … doserna sparas när nätet är tillbaka</string>
     <string name="today_medicines_missing_title">Doser saknas</string>
     <string name="today_medicines_missing_offline">Ingen anslutning just nu, så dagens doser kan inte skapas.</string>
     <string name="today_medicines_missing_offline_retry">Appen försöker igen av sig själv när nätet är tillbaka.</string>

@@ -126,6 +126,22 @@ class EnsureDosesTest {
 
     // ── Dosgenereringen för en dag (MED-4, REC-8) ─────────────────────────────
 
+    @Test fun `beräknade doser är exakt de som genereringen skulle skapa, utan dem som redan finns (HEM-10, MED-4)`() {
+        val p = prescription(id = "r1", slots = listOf(Slot.MORNING, Slot.EVENING))
+        val reminders = ReminderSettings()
+        val created = ensureDoses(listOf(p), emptyList(), today, today, STOCKHOLM, reminders).create
+        assertEquals(created, projectedDoses(listOf(p), emptyList(), today, today, STOCKHOLM, reminders), "samma id och fält")
+
+        val morning = created.first().copy(status = DoseStatus.TAKEN)
+        assertEquals(created.drop(1), projectedDoses(listOf(p), listOf(morning), today, today, STOCKHOLM, reminders), "en dos som finns, vilken status den än har, beräknas inte igen")
+        assertEquals(emptyList(), projectedDoses(listOf(p), created, today, today, STOCKHOLM, reminders))
+    }
+
+    @Test fun `inaktiva recept och recept utanför perioden ger inga beräknade doser (HEM-10)`() {
+        val inactive = prescription(id = "a").copy(active = false)
+        assertEquals(emptyList(), projectedDoses(listOf(inactive), emptyList(), today, today, STOCKHOLM, ReminderSettings()))
+    }
+
     @Test fun `genereringen är idempotent - andra körningen skapar inget`() {
         val p = prescription(slots = listOf(Slot.MORNING, Slot.LUNCH))
         val first = ensure(p)

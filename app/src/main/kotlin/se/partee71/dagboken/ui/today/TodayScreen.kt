@@ -3,6 +3,7 @@ package se.partee71.dagboken.ui.today
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +58,7 @@ import se.partee71.dagboken.ui.components.DateStrip
 import se.partee71.dagboken.ui.components.DayDoneCard
 import se.partee71.dagboken.ui.components.FeelingMiniWheel
 import se.partee71.dagboken.ui.components.FeelingPills
+import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.ProgressBar
 import se.partee71.dagboken.ui.components.SectionFoldout
 import se.partee71.dagboken.ui.components.StatPill
@@ -79,6 +81,7 @@ import se.partee71.ui.common.DetailUiState
 import se.partee71.ui.common.UiError
 import se.partee71.ui.components.AppButton
 import se.partee71.ui.components.AppCard
+import se.partee71.ui.components.AppLoading
 import se.partee71.ui.components.AppMenuItem
 import se.partee71.ui.components.ButtonVariant
 import se.partee71.ui.components.CheckRow
@@ -364,6 +367,10 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, 
                 list.shown + (if (content.showUpcoming) list.upcoming else emptyList()) +
                     (if (content.showDone) list.done.map { OpenDose(it, null) } else emptyList())
             }
+            // HEM-10: utan nät sparas de beräknade doserna när nätet är tillbaka – ingen felyta, bara en diskret rad.
+            if (content.dosesOffline) {
+                NoticeBanner(stringResource(R.string.today_medicines_offline_saving), R.drawable.ic_info, null, tone = Tone.Neutral)
+            }
             // Radens tillstånd (meny, anteckning, krysset) följer dosen när listan ändras.
             rows.forEach { row -> key(row.dose.id) { DoseRow(row, content, onEvent, onSkip = { skipping = it }, onDelete = { deleting = it }) } }
             when {
@@ -379,6 +386,9 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, 
                         compact = true
                     )
                 }
+
+                // HEM-10: inget kan visas ännu (kall cache) – laddning, aldrig "Inga mediciner" för något som löser sig själv.
+                content.dosesPending -> AppLoading(Modifier.padding(vertical = Spacing.xl))
 
                 list.isEmpty -> EmptyState(R.drawable.ic_pill, stringResource(R.string.today_medicines_none_title), stringResource(R.string.today_medicines_none), compact = true)
 
@@ -459,6 +469,9 @@ private fun DoseRow(item: OpenDose, content: TodayContent, onEvent: (TodayEvent)
         enabled = dose.isScheduled,
         menu = when {
             // MED-3: en receptdos i schemat hoppas över; allt annat – vid behov, extrados, engångsdos – raderas.
+            // HEM-10: en beräknad dos finns inte som dokument än – ingen meny förrän den skapats.
+            dose.id in content.projectedIds -> emptyList()
+
             !dose.isScheduledPrescription -> listOf(AppMenuItem(delete, { onDelete(dose) }, R.drawable.ic_delete, destructive = true))
 
             dose.status == DoseStatus.PLANNED -> listOf(AppMenuItem(skip, { onSkip(dose) }, R.drawable.ic_close))
