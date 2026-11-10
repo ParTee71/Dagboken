@@ -51,8 +51,8 @@ import se.partee71.dagboken.ui.common.tidyingUpEachDay
 import se.partee71.dagboken.ui.common.title
 import se.partee71.dagboken.ui.components.AccountAvatar
 import se.partee71.dagboken.ui.components.DagbokenEntryCard
+import se.partee71.dagboken.ui.components.EntryFavorite
 import se.partee71.dagboken.ui.components.EntryToggle
-import se.partee71.dagboken.ui.components.FavoriteStar
 import se.partee71.dagboken.ui.components.NoticeBanner
 import se.partee71.dagboken.ui.components.favoriteMenuItem
 import se.partee71.dagboken.ui.theme.AppTypography
@@ -71,7 +71,6 @@ import se.partee71.ui.components.EmptyExample
 import se.partee71.ui.components.EntityListScreen
 import se.partee71.ui.components.GroupLabel
 import se.partee71.ui.components.InfoPill
-import se.partee71.ui.components.ItemRow
 import se.partee71.ui.components.ListArchive
 import se.partee71.ui.components.ListGroup
 import se.partee71.ui.theme.Spacing
@@ -105,6 +104,9 @@ sealed interface MedicinesEvent {
 
     /** Bekräftad radering av ett recept (NFR-15). */
     data class DeletePrescription(val prescription: Prescription) : MedicinesEvent
+
+    /** Bekräftad radering av en vid behov-medicin (NFR-15); formuläret har kvar sin Radera (FAV-3). */
+    data class DeletePrnMedicine(val medicine: PrnMedicine) : MedicinesEvent
 
     /** Stjärnan på en vid behov-medicin (FAV-2, SET-10). */
     data class FavoriteToggled(val medicine: PrnMedicine) : MedicinesEvent
@@ -157,6 +159,7 @@ class MedicinesViewModel @Inject constructor(
         when (event) {
             is MedicinesEvent.ActiveChanged -> failures.write { prescriptions.setActive(event.prescription, event.active) }
             is MedicinesEvent.DeletePrescription -> failures.write { prescriptions.delete(event.prescription.id) }
+            is MedicinesEvent.DeletePrnMedicine -> failures.write { medicines.delete(event.medicine.id) }
             is MedicinesEvent.FavoriteToggled -> failures.write { medicines.setFavorite(event.medicine, !event.medicine.favorite) }
             is MedicinesEvent.PrescriptionFavoriteToggled -> failures.write { prescriptions.setFavorite(event.prescription, !event.prescription.favorite) }
             MedicinesEvent.Retry -> loader.onEvent(ListEvent.Retry)
@@ -186,8 +189,8 @@ fun MedicinesRoute(
 
 /**
  * Fliken på `EntityListScreen` med stor topprad och avataren (NAV-9), som övriga flikar: periodsluten
- * som banner överst, recepten som postkort (NFR-15/16) med aktiv-reglaget som enda direktkontroll,
- * vid behov-medicinerna som rader med stjärna och pil (NFR-17, som Listor) och de avslutade recepten
+ * som banner överst, recepten som postkort (NFR-15/16) med stjärnan och aktiv-reglaget som direktkontroller,
+ * vid behov-medicinerna som postkort av samma komponent med stjärnan som direktkontroll och de avslutade recepten
  * hopfällda sist med antal (NFR-18). Lägg till = "Nytt recept" med "Ny vid behov-medicin" i pilens meny
  * och "Logga en dos i efterhand" (MEDF-4, MEDF-6). [onOpenPrescription]/[onOpenPrn] öppnar formuläret (`null` =
  * nytt); [onExtendPrescription] öppnar ett avslutat recept förlängt och aktivt (MEDF-5); [onLogDose] dosvalet (MEDF-6).
@@ -209,7 +212,7 @@ fun MedicinesScreen(
     val items = (state as? ListUiState.Content)?.items.orEmpty()
     val activeCount = items.count { it is MedicineItem.Recipe && !it.ended && it.prescription.active }
     val prescriptionsGroup = ListGroup(stringResource(R.string.medicines_prescriptions), tone = Tone.Neutral, count = pluralStringResource(R.plurals.medicines_active_count, activeCount, activeCount), cards = true, columns = 2)
-    val prnGroup = ListGroup(stringResource(R.string.medicines_as_needed), tone = Tone.Neutral, columns = 2)
+    val prnGroup = ListGroup(stringResource(R.string.medicines_as_needed), tone = Tone.Neutral, cards = true, columns = 2)
     val endedGroup = ListGroup(stringResource(R.string.medicines_ended), tone = Tone.Neutral, collapsible = true, cards = true, columns = 2)
     EntityListScreen(
         title = stringResource(R.string.tab_medicines),
@@ -240,16 +243,31 @@ fun MedicinesScreen(
     ) { item ->
         when (item) {
             is MedicineItem.Recipe -> PrescriptionCard(item, today, onEvent, { onExtendPrescription(item.prescription.id) }) { onOpenPrescription(item.prescription.id) }
-
-            is MedicineItem.AsNeeded -> ItemRow(
-                item.medicine.title(),
-                subtitle = prnLimits(item.medicine),
-                onClick = { onOpenPrn(item.medicine.id) },
-                navigates = true,
-                trailing = { FavoriteStar(item.medicine.displayName, item.medicine.favorite, { onEvent(MedicinesEvent.FavoriteToggled(item.medicine)) }) }
-            )
+            is MedicineItem.AsNeeded -> PrnCard(item.medicine, onEvent) { onOpenPrn(item.medicine.id) }
         }
     }
+}
+
+/**
+ * Vid behov-medicinens postkort (MEDF-3, FAV-3, FAV-8, SET-10): namn, styrka och dos som titel, kylperiod och
+ * dagsgräns som undertext, stjärnan som direktkontroll och `⋮`/svep med Radera efter bekräftelse (NFR-15) –
+ * samma kort som receptet. Tryck öppnar formuläret, som också tar bort medicinen.
+ */
+@Composable
+private fun PrnCard(medicine: PrnMedicine, onEvent: (MedicinesEvent) -> Unit, onOpen: () -> Unit) {
+    DagbokenEntryCard(
+        title = medicine.title(),
+        onClick = onOpen,
+        subtitle = prnLimits(medicine),
+        accent = MaterialTheme.colorScheme.primary,
+        onEdit = onOpen,
+        actions = listOf(favoriteMenuItem(medicine.displayName, medicine.favorite) { onEvent(MedicinesEvent.FavoriteToggled(medicine)) }),
+        delete = DeleteAction(
+            stringResource(R.string.delete_named_title, medicine.displayName),
+            stringResource(R.string.prn_delete_message)
+        ) { onEvent(MedicinesEvent.DeletePrnMedicine(medicine)) },
+        favoriteStar = EntryFavorite(medicine.displayName, medicine.favorite) { onEvent(MedicinesEvent.FavoriteToggled(medicine)) }
+    )
 }
 
 /** MEDF-2: periodsluten idag och i morgon – tryck öppnar det första receptet. */
@@ -310,7 +328,7 @@ private fun PrescriptionCard(item: MedicineItem.Recipe, today: LocalDate, onEven
             stringResource(R.string.medicines_delete_prescription_message)
         ) { onEvent(MedicinesEvent.DeletePrescription(p)) },
         inactive = !active,
-        favorite = p.favorite && !item.ended,
+        favoriteStar = if (item.ended) null else EntryFavorite(p.displayName, p.favorite) { onEvent(MedicinesEvent.PrescriptionFavoriteToggled(p)) },
         toggle = if (item.ended) null else EntryToggle(p.active, { onEvent(MedicinesEvent.ActiveChanged(p, it)) }, stringResource(R.string.medicines_active_format, p.displayName)),
         below = if (pills.isEmpty()) {
             null

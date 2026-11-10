@@ -86,6 +86,24 @@ class MedicineComponentsTest {
     }
 
     @Test
+    fun `postkortets stjärna är en egen kontroll med läge, ersätter den lilla markeringen och öppnar inte posten`() {
+        var favorite by mutableStateOf(false)
+        var opened = 0
+        show { DagbokenEntryCard("Alvedon 500 mg", onClick = { opened++ }, favorite = favorite, favoriteStar = EntryFavorite("Alvedon", favorite, { favorite = !favorite })) }
+        rule.onNodeWithContentDescription("Markera Alvedon som favorit").performClick()
+        assertTrue(favorite)
+        assertEquals(0, opened, "stjärnan öppnar inte posten")
+        rule.onNodeWithContentDescription("Ta bort Alvedon som favorit").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Favorit").assertDoesNotExist()
+    }
+
+    @Test
+    fun `utan favoriteStar är postkortet oförändrat med den lilla markeringen`() {
+        show { DagbokenEntryCard("Alvedon 500 mg", onClick = {}, favorite = true) }
+        rule.onNodeWithContentDescription("Favorit").assertIsDisplayed()
+    }
+
+    @Test
     fun `postkortets reglage är en egen växel med etikett, och tryck på kortet öppnar fortfarande`() {
         var active by mutableStateOf(true)
         var opened = 0
