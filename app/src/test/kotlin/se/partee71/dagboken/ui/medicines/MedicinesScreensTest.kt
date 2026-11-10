@@ -115,15 +115,28 @@ class MedicinesScreensTest {
     }
 
     @Test
-    fun `en stjärnmärkt receptrad har en liten fylld stjärna efter titeln och menyn Ta bort som favorit mellan Avaktivera och Radera (FAV-12, REC-13)`() {
+    fun `receptets stjärna är en direktkontroll med läge och växlar, och menyn har Ta bort som favorit mellan Avaktivera och Radera (FAV-12, REC-13, MEDF-1)`() {
         val events = mutableListOf<MedicinesEvent>()
         val starred = levaxin.copy(favorite = true)
         rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(listOf(MedicineItem.Recipe(starred)).toImmutableList()), emptyList(), today, null, { events += it }, {}, {}, {}) } }
-        rule.onNodeWithContentDescription("Favorit").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Ta bort Levaxin som favorit").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Levaxin aktivt").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Favorit").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Ta bort Levaxin som favorit").performClick()
+        assertEquals(MedicinesEvent.PrescriptionFavoriteToggled(starred), events.last())
         rule.onNodeWithText("Levaxin 100 µg").performTouchInput { longClick() }
         listOf("Redigera", "Avaktivera", "Ta bort Levaxin som favorit", "Radera").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
-        rule.onNodeWithText("Ta bort Levaxin som favorit").performClick()
-        assertEquals(MedicinesEvent.PrescriptionFavoriteToggled(starred), events.last())
+    }
+
+    @Test
+    fun `ett ostjärnmärkt recept har tom stjärna som slår på favoriten, och ett avslutat recept har ingen stjärna (MEDF-1, MEDF-5)`() {
+        val events = mutableListOf<MedicinesEvent>()
+        val shown = listOf(MedicineItem.Recipe(levaxin), MedicineItem.Recipe(amoxicillin, ended = true))
+        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(shown.toImmutableList()), emptyList(), today, null, { events += it }, {}, {}, {}) } }
+        rule.onNodeWithContentDescription("Markera Levaxin som favorit").performClick()
+        assertEquals(MedicinesEvent.PrescriptionFavoriteToggled(levaxin), events.last())
+        rule.onNodeWithText("Avslutade recept").performClick()
+        rule.onNodeWithContentDescription("Markera Amoxicillin som favorit").assertDoesNotExist()
     }
 
     @Test
@@ -137,7 +150,7 @@ class MedicinesScreensTest {
     }
 
     @Test
-    fun `stjärnan och raden på en vid behov-medicin har var sin åtgärd (SET-10, NFR-17)`() {
+    fun `vid behov-kortet har stjärna med läge och kortet öppnar formuläret, med undertext som förut (SET-10, MEDF-3, FAV-4, FAV-5, FAV-8)`() {
         val events = mutableListOf<MedicinesEvent>()
         val opened = mutableListOf<String?>()
         val prn = listOf(alvedon, imigran, loratadin).map { MedicineItem.AsNeeded(it) }
@@ -145,10 +158,28 @@ class MedicinesScreensTest {
         rule.onNodeWithText("Minst 4 h mellan · högst 8 per dag").assertIsDisplayed()
         rule.onNodeWithText("Högst 2 per dag").assertIsDisplayed()
         rule.onNodeWithText("Ingen gräns").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Ta bort Alvedon som favorit").assertIsDisplayed()
         rule.onNodeWithContentDescription("Markera Loratadin som favorit").performClick()
         assertEquals(listOf<MedicinesEvent>(MedicinesEvent.FavoriteToggled(loratadin)), events)
         rule.onNodeWithText("Loratadin 10 mg").performClick()
         assertEquals(listOf<String?>("3"), opened)
+    }
+
+    @Test
+    fun `vid behov-kortet har meny med Redigera, favorit och Radera med bekräftelse (NFR-15, FAV-3)`() {
+        val events = mutableListOf<MedicinesEvent>()
+        val opened = mutableListOf<String?>()
+        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(listOf(MedicineItem.AsNeeded(loratadin)).toImmutableList()), emptyList(), today, null, { events += it }, {}, { opened += it }, {}) } }
+        rule.onNodeWithText("Loratadin 10 mg").performTouchInput { longClick() }
+        listOf("Redigera", "Markera Loratadin som favorit", "Radera").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
+        rule.onNodeWithText("Redigera").performClick()
+        assertEquals(listOf<String?>("3"), opened)
+        rule.onNodeWithText("Loratadin 10 mg").performTouchInput { longClick() }
+        rule.onNodeWithText("Radera").performClick()
+        assertEquals(emptyList(), events, "inget raderas före bekräftelsen")
+        rule.onNodeWithText("Radera Loratadin?").assertIsDisplayed()
+        rule.onNodeWithText("Radera", substring = false).performClick()
+        assertEquals(listOf<MedicinesEvent>(MedicinesEvent.DeletePrnMedicine(loratadin)), events)
     }
 
     @Test
