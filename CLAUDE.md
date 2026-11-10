@@ -145,8 +145,14 @@ rapporterar i en tabell (skill **android:implement-issue**, steg 8).
 - **Delegera på rätt nivå** (ARKITEKTUR.md → Agenter): huvudsessionen orkestrerar och granskar;
   agenten `byggare` tar portar, komponenter, skärmar och CI-filer, agenten `arkitekt` datamodell,
   codecs, importen, rules och migrering. Går ett steg fel två gånger i rad flyttas det upp en nivå.
-- **Modell efter uppgift** för sessionen och varje agent, Opus som standard ([.claude/README.md](.claude/README.md)
-  → Modellval). Varje issue anger **Agent · modell · effort** (skill **android:refine-issue**) och körs så.
+- **Modellval** för sessionen och varje agent (skill `android:ai-model-choice`, enda källan;
+  agenterna: [.claude/README.md](.claude/README.md) → Modellval):
+  Opus 5.5 (`claude-opus-5-5`) är standard. Fable 5.2 (`claude-fable-5-2`) är ok när det behövs –
+  svår arkitektur eller design, knepiga integrationer, långa agentuppgifter, buggar Opus inte
+  klarat – men försiktigt för kostnadens skull: medium eller high effort, aldrig max eller fast
+  mode. Säg varför och vilken effort innan du byter till Fable 5.2; planera med Fable, genomför
+  med Opus när det går. Fable 5.1 används inte längre.
+  Varje issue anger **Agent · modell · effort** (skill **android:refine-issue**) och körs så.
 
 ## Bygg & test
 

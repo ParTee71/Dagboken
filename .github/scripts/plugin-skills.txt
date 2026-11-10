@@ -3,6 +3,7 @@
 # namnen här – pluginen klonas inte i CI. Uppdatera listan när pluginen får eller tappar en skill;
 # lokalt jämför check-links.test.mjs den mot /home/user/claude-android när klonen finns.
 accessibility-compose
+ai-model-choice
 android-dev
 android-gradle-logic
 android-intent-security
