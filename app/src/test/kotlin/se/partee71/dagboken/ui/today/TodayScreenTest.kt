@@ -32,6 +32,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import kotlin.test.assertEquals
@@ -421,6 +422,28 @@ class TodayScreenTest {
     @Test
     fun `skärmdump - vid behov med kylperiod, dagsgräns och receptchip`() = rule.captureLightAndDark("Today_vid_behov_markerat") {
         TodayScreen(DetailUiState.Content(marked().copy(collapsed = persistentSetOf(TodayCard.MEDICINES))), {}, {})
+    }
+
+    /** Markeringen får aldrig växa chipet (FAV-13, #413): ett långt receptnamn, taget idag, är lika högt som ett vanligt chip. */
+    private fun longRecipeContent(): TodayContent {
+        val ryaltris = betapred.copy(id = "r", name = "Ryaltris 25 mikrogram/dos + 600 mikrogram/dos", dose = "2", unit = "st", favorite = true)
+        return content(
+            choices = asNeededChoices(listOf(alvedon), listOf(ryaltris), today),
+            takenToday = mapOf(ryaltris.id to at(6, 37))
+        )
+    }
+
+    @Test
+    fun `ett taget recept med långt namn är lika högt som ett vanligt chip (FAV-13)`() {
+        show(longRecipeContent())
+        val plain = rule.onNodeWithText("Alvedon 500 mg").performScrollTo().getUnclippedBoundsInRoot()
+        val taken = rule.onNode(hasText("Ryaltris", substring = true)).performScrollTo().getUnclippedBoundsInRoot()
+        assertEquals(plain.height, taken.height, "chipet växer inte av markeringen")
+    }
+
+    @Test
+    fun `skärmdump - taget recept med långt namn`() = rule.captureLightAndDark("Today_vid_behov_tagen_langt_namn") {
+        TodayScreen(DetailUiState.Content(longRecipeContent().copy(collapsed = persistentSetOf(TodayCard.MEDICINES))), {}, {})
     }
 
     @Test
