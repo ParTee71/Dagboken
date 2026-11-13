@@ -1,6 +1,6 @@
 ---
 name: firestore-data-layer
-description: Dagbokens datalager (4.0) — Firestore offline-först under users/{uid} via generisk FirestoreCollection<T> och DocCodec<T>, tunna repositories, UserSession/UserScope, security rules och FakeCollection i tester. Ladda alltid vid data/firestore, data/repository, data/user, codecs, ny samling, Paths, firestore.rules, offline/synk eller larmens läsning ur cachen. Trigger-ord: Firestore, databas, repository, samling, dokument, codec, offline, synk, synkas, hasPendingWrites, cache, firestore.rules, uid, UserSession, FakeCollection, DataError, Room, DAO.
+description: "Dagbokens datalager (4.0) — Firestore offline-först under users/{uid} via generisk FirestoreCollection<T> och DocCodec<T>, tunna repositories, UserSession/UserScope, security rules och FakeCollection i tester. Ladda alltid vid data/firestore, data/repository, data/user, codecs, ny samling, Paths, firestore.rules, offline/synk eller larmens läsning ur cachen. Trigger-ord: Firestore, databas, repository, samling, dokument, codec, offline, synk, synkas, hasPendingWrites, cache, firestore.rules, uid, UserSession, FakeCollection, DataError, Room, DAO."
 ---
 
 # Datalagret: Firestore

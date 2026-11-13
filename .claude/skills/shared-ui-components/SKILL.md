@@ -1,6 +1,6 @@
 ---
 name: shared-ui-components
-description: Regel 4 i Dagboken (NFR-9) — samma elementtyp ser ut och beter sig likadant överallt och varje sak finns på ett ställe. Enda källan för komponent-, ram- och byggstenstabellerna och förbudslistan. Ladda alltid vid UI, skärmar, komponenter, interaktionsmönster, formulär, listor, beräkningar eller liknande kod på två ställen. Trigger-ord: komponent, skärm, knapp, kort, postkort, sektionskort, listrad, kryss, fält, slider, reglage, datum, tid, väljare, dialog, ark, snackbar, tomt tillstånd, laddning, arkivera, ångra, radera, bekräfta, redigera, spara, validering, dubbelkod, återbruk, EntityListScreen, EntityEditScreen, EditorState, UiConsistencyTest, cpdCheck, allowlist.
+description: "Regel 4 i Dagboken (NFR-9) — samma elementtyp ser ut och beter sig likadant överallt och varje sak finns på ett ställe. Enda källan för komponent-, ram- och byggstenstabellerna och förbudslistan. Ladda alltid vid UI, skärmar, komponenter, interaktionsmönster, formulär, listor, beräkningar eller liknande kod på två ställen. Trigger-ord: komponent, skärm, knapp, kort, postkort, sektionskort, listrad, kryss, fält, slider, reglage, datum, tid, väljare, dialog, ark, snackbar, tomt tillstånd, laddning, arkivera, ångra, radera, bekräfta, redigera, spara, validering, dubbelkod, återbruk, EntityListScreen, EntityEditScreen, EditorState, UiConsistencyTest, cpdCheck, allowlist."
 ---
 
 # Enhetligt och utan dubbelkod

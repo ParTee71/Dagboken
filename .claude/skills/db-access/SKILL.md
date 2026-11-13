@@ -1,6 +1,6 @@
 ---
 name: db-access
-description: Läsa Dagbokens Firestore-databas (users/{uid}) från en Claude-session (telefon/webb) med tools/db. Ladda denna när användaren frågar om faktisk data, vill se vad som ligger i databasen, felsöka data, kontrollera en import från 3.x, köra export/import/migrering eller när FIREBASE_SERVICE_ACCOUNT nämns. Trigger-ord: databasen, vad finns i, visa data, hur många, doser i databasen, mående i databasen, mina loggar, kom importen fram, Firestore-data, query, fråga databasen, tools/db, stats, export, import, migrera, OMB-4, service account, FIREBASE_SERVICE_ACCOUNT, FIREBASE_PROJECT_ID.
+description: "Läsa Dagbokens Firestore-databas (users/{uid}) från en Claude-session (telefon/webb) med tools/db. Ladda denna när användaren frågar om faktisk data, vill se vad som ligger i databasen, felsöka data, kontrollera en import från 3.x, köra export/import/migrering eller när FIREBASE_SERVICE_ACCOUNT nämns. Trigger-ord: databasen, vad finns i, visa data, hur många, doser i databasen, mående i databasen, mina loggar, kom importen fram, Firestore-data, query, fråga databasen, tools/db, stats, export, import, migrera, OMB-4, service account, FIREBASE_SERVICE_ACCOUNT, FIREBASE_PROJECT_ID."
 ---
 
 # Databasåtkomst från sessionen
