@@ -1,6 +1,6 @@
 ---
 name: data-privacy-security
-description: Integritet och säkerhet i Dagboken — mående, symptom, mediciner, doser och anteckningar är hälsodata (GDPR art. 9). Ladda alltid vid loggning, firestore.rules, backup/export/import, 3.x-migreringen, tools/db, Health Connect, notiser, behörigheter, inloggning, hemligheter eller release/minify. Trigger-ord: integritet, säkerhet, GDPR, hälsodata, PII, logga, Log, hemlighet, service account, keystore, BACKUP_PASSPHRASE, EU-region, Drive, Health Connect, notis, låsskärm, R8, ProGuard.
+description: "Integritet och säkerhet i Dagboken — mående, symptom, mediciner, doser och anteckningar är hälsodata (GDPR art. 9). Ladda alltid vid loggning, firestore.rules, backup/export/import, 3.x-migreringen, tools/db, Health Connect, notiser, behörigheter, inloggning, hemligheter eller release/minify. Trigger-ord: integritet, säkerhet, GDPR, hälsodata, PII, logga, Log, hemlighet, service account, keystore, BACKUP_PASSPHRASE, EU-region, Drive, Health Connect, notis, låsskärm, R8, ProGuard."
 ---
 
 # Datasäkerhet & integritet

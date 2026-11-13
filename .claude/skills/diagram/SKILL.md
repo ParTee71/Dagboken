@@ -1,6 +1,6 @@
 ---
 name: diagram
-description: Dagbokens diagram – de delade diagrammen i ui/diagram (LineChart, IntervalBarChart, StackedBarChart, SparklineChart, MinMaxCaption, CompactDropdownButton) och diagrammatematiken i :core/engine (smart y-axel, trendlinje, staplar, dagens energi, sömnkvalitet). Ladda denna när du ritar, ändrar eller använder ett diagram, en trend, en axel, en sparkline eller en sömnpoäng, och tillsammans med shared-ui-components. Trigger-ord: diagram, graf, kurva, linjediagram, stapel, staplat, sparkline, trend, trendlinje, y-axel, axel, rutnät, zoom, panorering, Vico, Canvas, luckor, föregående period, Trender, sömnstadier, sömnkvalitet, dagens energi, MinMaxCaption, computeSmartYAxis, computeTrendLine.
+description: "Dagbokens diagram – de delade diagrammen i ui/diagram (LineChart, IntervalBarChart, StackedBarChart, SparklineChart, MinMaxCaption, CompactDropdownButton) och diagrammatematiken i :core/engine (smart y-axel, trendlinje, staplar, dagens energi, sömnkvalitet). Ladda denna när du ritar, ändrar eller använder ett diagram, en trend, en axel, en sparkline eller en sömnpoäng, och tillsammans med shared-ui-components. Trigger-ord: diagram, graf, kurva, linjediagram, stapel, staplat, sparkline, trend, trendlinje, y-axel, axel, rutnät, zoom, panorering, Vico, Canvas, luckor, föregående period, Trender, sömnstadier, sömnkvalitet, dagens energi, MinMaxCaption, computeSmartYAxis, computeTrendLine."
 ---
 
 # Diagram

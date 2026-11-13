@@ -1,6 +1,6 @@
 ---
 name: requirements-kravlista
-description: Dagbokens kravregel (regel 3) — KRAVLISTA.md ska alltid spegla appens faktiska beteende, och under ombyggnaden till 4.0 är den paritetschecklistan (OMB-6). Ladda denna ALLTID när du lägger till, ändrar eller tar bort synligt beteende, en funktion, en skärm, en flik, en inställning, en beräkning, ett UI-flöde eller en regel för data/backup/migrering/CI. Trigger-ord: krav, kravlista, KRAVLISTA, specifikation, requirement, feature, funktion, beteende, formel, beräkning, paritet, 4.0, ombyggnad, versionsbump, ändra UI, ta bort funktion, NFR, OMB, DSN, MEDF, HIST, TRD.
+description: "Dagbokens kravregel (regel 3) — KRAVLISTA.md ska alltid spegla appens faktiska beteende, och under ombyggnaden till 4.0 är den paritetschecklistan (OMB-6). Ladda denna ALLTID när du lägger till, ändrar eller tar bort synligt beteende, en funktion, en skärm, en flik, en inställning, en beräkning, ett UI-flöde eller en regel för data/backup/migrering/CI. Trigger-ord: krav, kravlista, KRAVLISTA, specifikation, requirement, feature, funktion, beteende, formel, beräkning, paritet, 4.0, ombyggnad, versionsbump, ändra UI, ta bort funktion, NFR, OMB, DSN, MEDF, HIST, TRD."
 ---
 
 # Hålla kraven aktuella (KRAVLISTA.md)

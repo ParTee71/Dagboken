@@ -1,6 +1,6 @@
 ---
 name: testing-strategy
-description: Dagbokens testregel (regel 2, NFR-6) — ingen beteendeändring utan tester på rätt nivå(er), och flaky tester är buggar. Ladda denna ALLTID när du lägger till, ändrar eller fixar funktionalitet, en ViewModel, ett use case, en codec, konverteraren, en motor i :core (doser, kylperiod, periodslut, diagrammatematik), ett repository, en composable, en skärmram, larm, en hook eller en bugg. Trigger-ord: test, tester, testa, JUnit, MockK, Turbine, Robolectric, Roborazzi, skärmdump, screenshot, Konsist, UiConsistencyTest, cpdCheck, kontraktstest, FakeCollection, fixtur, emulator, rules-test, rundtur, instrument, androidTest, regression, flaky, instabil, täckning, TDD.
+description: "Dagbokens testregel (regel 2, NFR-6) — ingen beteendeändring utan tester på rätt nivå(er), och flaky tester är buggar. Ladda denna ALLTID när du lägger till, ändrar eller fixar funktionalitet, en ViewModel, ett use case, en codec, konverteraren, en motor i :core (doser, kylperiod, periodslut, diagrammatematik), ett repository, en composable, en skärmram, larm, en hook eller en bugg. Trigger-ord: test, tester, testa, JUnit, MockK, Turbine, Robolectric, Roborazzi, skärmdump, screenshot, Konsist, UiConsistencyTest, cpdCheck, kontraktstest, FakeCollection, fixtur, emulator, rules-test, rundtur, instrument, androidTest, regression, flaky, instabil, täckning, TDD."
 ---
 
 # Teststrategi i Dagboken

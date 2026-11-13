@@ -1,6 +1,6 @@
 ---
 name: notifications-alarms
-description: Dagbokens påminnelse- och larmsystem (medicin, mående och periodslut) – i 4.0 med schemat ur Firestore-cachen. Ladda denna ALLTID när du rör notifikationer, larm, schemaläggning, bakgrundsväckning eller "Markera tagen" från notisen. Trigger-ord: notifikation, notification, påminnelse, larm, alarm, AlarmManager, AlarmScheduler, NotificationHelper, NotificationChannel, PendingIntent, BroadcastReceiver, BootReceiver, MedAlarmReceiver, ScreeningReminderReceiver, SCHEDULE_EXACT_ALARM, POST_NOTIFICATIONS, BOOT_COMPLETED, exakt larm, Doze, schemalägg.
+description: "Dagbokens påminnelse- och larmsystem (medicin, mående och periodslut) – i 4.0 med schemat ur Firestore-cachen. Ladda denna ALLTID när du rör notifikationer, larm, schemaläggning, bakgrundsväckning eller \"Markera tagen\" från notisen. Trigger-ord: notifikation, notification, påminnelse, larm, alarm, AlarmManager, AlarmScheduler, NotificationHelper, NotificationChannel, PendingIntent, BroadcastReceiver, BootReceiver, MedAlarmReceiver, ScreeningReminderReceiver, SCHEDULE_EXACT_ALARM, POST_NOTIFICATIONS, BOOT_COMPLETED, exakt larm, Doze, schemalägg."
 ---
 
 # Notifikationer & larm
