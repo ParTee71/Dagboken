@@ -19,7 +19,7 @@ granskar och committar; du skriver koden och testerna och rapporterar ärligt va
    Gradle → `android:android-gradle-logic`.
 3. Sök efter befintligt mönster innan du skriver något nytt: `ui/components/`, `ui/common/`,
    `data/common/`, `data/firestore/`, `core/`. Vid en port: läs förlagan i sin helhet
-   (repot `ParTee71/ReseApoteket` – lägg till det i sessionen vid behov – eller branchen `legacy`)
+   (repot `Kodhast/ReseApoteket` – lägg till det i sessionen vid behov – eller branchen `legacy`)
    och ändra inget där.
 
 ## Regler
