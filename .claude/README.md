@@ -70,7 +70,7 @@ Hur hookarna, behörigheterna och SDK-skriptet fungerar står i README, avsnitte
 ## Gemensam plugin
 
 `.claude/settings.json` slår på pluginen `android@claude-android` från det privata repot
-[ParTee71/claude-android](https://github.com/ParTee71/claude-android) (`extraKnownMarketplaces`
+[Kodhast/claude-android](https://github.com/Kodhast/claude-android) (`extraKnownMarketplaces`
 + `enabledPlugins`), som bär de generella Android-skillsen ovan. Lokalt (Android Studio, CLI)
 installeras den därifrån. Molnsessioner får den via miljöns setup-skript, som klonar repot till
 `/home/user/claude-android`. Repospecifikt hör aldrig hemma i pluginen – det står i `android-projekt`.
