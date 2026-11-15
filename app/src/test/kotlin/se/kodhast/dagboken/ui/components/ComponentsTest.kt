@@ -32,6 +32,7 @@ import se.kodhast.ui.components.AppLoading
 import se.kodhast.ui.components.AppSnackbarHost
 import se.kodhast.ui.components.ButtonVariant
 import se.kodhast.ui.components.EmptyState
+import se.kodhast.ui.components.MakerMark
 import se.kodhast.ui.theme.Spacing
 
 /** Beteende och skärmdumpar (ljust + mörkt) för de delade komponenterna. */
@@ -60,6 +61,11 @@ class ComponentsTest {
     @Test
     fun `AppLoading - standard`() = rule.captureLightAndDarkPaused("AppLoading_standard") {
         Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.xxl)) { AppLoading() }
+    }
+
+    @Test
+    fun `MakerMark - signaturen (NAV-9)`() = rule.captureLightAndDark("MakerMark_standard") {
+        Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.l)) { MakerMark() }
     }
 
     @Test
