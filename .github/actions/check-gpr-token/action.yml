@@ -14,14 +14,9 @@ runs:
       env:
         GPR_TOKEN: ${{ inputs.token }}
       run: |
-        # Kodhast först, ParTee71 som reserv – samma ordning som settings.gradle.kts (claude-android #80).
-        codes=""
-        for owner in Kodhast ParTee71; do
-          code=$(curl -s -o /dev/null -w '%{http_code}' -u "x:$GPR_TOKEN" \
-            "https://maven.pkg.github.com/$owner/android-ui/se/partee71/ui/ui-theme/maven-metadata.xml")
-          case "$code" in 200|302) codes=""; break ;; esac
-          codes="$codes $owner:$code"
-        done
-        if [ -n "$codes" ]; then
-          echo "::error::GPR_TOKEN fungerar inte – lägg in secreten på nytt (classic token, read:packages) (HTTP$codes)"; exit 1
-        fi
+        code=$(curl -s -o /dev/null -w '%{http_code}' -u "x:$GPR_TOKEN" \
+          "https://maven.pkg.github.com/Kodhast/android-ui/se/kodhast/ui/ui-theme/maven-metadata.xml")
+        case "$code" in
+          200|302) ;;
+          *) echo "::error::GPR_TOKEN fungerar inte – lägg in secreten på nytt (classic token, read:packages) (HTTP $code)"; exit 1 ;;
+        esac

@@ -1,0 +1,369 @@
+package se.kodhast.dagboken.ui.theme
+
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
+import se.kodhast.dagboken.core.model.FeelingStrength
+import se.kodhast.ui.theme.AppTheme
+import se.kodhast.ui.theme.ExtendedColors as ThemeColors
+import se.kodhast.ui.theme.Tone
+import se.kodhast.ui.theme.ToneColors
+
+// Appens färgtoner utöver android-ui:s Tone.Primary (teal – det markerade, valda och aktiva): en per
+// betydelse (skill `ui-style`, DSN-1). Färgerna står i ExtendedColors och går till temat som `tones`.
+
+/** Dämpad – information utan värdering, t.ex. "Synkas…" och typ-pills. */
+val Tone.Companion.Neutral: Tone get() = NEUTRAL
+
+/** Solgul – gör-något: "Snart", dagens punkt, framstegsraden när dagen är klar. */
+val Tone.Companion.Sun: Tone get() = SUN
+
+/** Grön – klart och positivt, t.ex. dagen klar. */
+val Tone.Companion.Positive: Tone get() = POSITIVE
+
+/** Terrakotta – varning: försenat, periodslut. */
+val Tone.Companion.Warning: Tone get() = WARNING
+
+private val NEUTRAL = Tone("neutral")
+private val SUN = Tone("sun")
+private val POSITIVE = Tone("positive")
+private val WARNING = Tone("warning")
+
+/** Energiskalan (DSN-1): låg, mitt och hög – för diagram och energimarkeringar, inte för text. */
+@Immutable
+data class EnergyColors(val low: Color, val mid: Color, val high: Color)
+
+/**
+ * Sömnstadierna i det staplade sömndiagrammet (TRD-16): djup, REM, lätt och vaken – bara för grafik,
+ * aldrig för text. Djupsömnen är mest mättad; REM är violett och vaken tid varm sand, inte solgul (solgult är gör-något).
+ * Alla fyra klarar 3:1 mot kortet i båda temana (WCAG 1.4.11, `ThemeContrastTest`).
+ */
+@Immutable
+data class SleepStageColors(val deep: Color, val light: Color, val rem: Color, val awake: Color)
+
+/**
+ * Kärnkänslornas toner (SCR-8): en [ToneColors] per kärna i `FeelingCatalog` – Glad solgul, Stark lila, Lugn teal,
+ * Ledsen blågrå, Arg röd och Rädd terrakotta, som i prototypen (#318). Delas av hjulet, väljaren, pills och diagram;
+ * innehållet klarar 4,5:1 mot behållaren i båda temana (`ThemeContrastTest`), så att en vald yta kan fyllas med
+ * innehållsfärgen och bära behållarfärgen som text. Färgen bär aldrig ensam betydelsen – ordet står alltid med.
+ */
+@Immutable
+data class FeelingColors(
+    val glad: ToneColors,
+    val strong: ToneColors,
+    val calm: ToneColors,
+    val sad: ToneColors,
+    val angry: ToneColors,
+    val scared: ToneColors,
+    /** Tonen för en kärna appen inte känner (ett token från en nyare app) – den dämpade tonen ([ExtendedColors.neutralTone]). */
+    val unknown: ToneColors,
+    /**
+     * Styrkans tre intensiteter per kärna (SCR-9): svag, tydlig och stark i kärnans ton, i `FeelingStrength`s ordning,
+     * nycklade på kärnans token. Text klarar 4,5:1 mot fyllnaden i varje läge (`ThemeContrastTest`); prickarna och
+     * TalkBack bär samma steg, så att färgen aldrig ensam bär betydelsen. En okänd kärna har ingen intensitet.
+     */
+    val strengths: Map<String, List<ToneColors>>
+) {
+    /**
+     * Tonen för kärnans token (`Feeling.core`) i [strength]s intensitet; ingen styrka (`null`) ger kärnans vanliga ton,
+     * och en okänd kärna får [unknown].
+     */
+    fun forCore(core: String, strength: FeelingStrength?): ToneColors = strength?.let { strengths[core]?.getOrNull(it.ordinal) } ?: forCore(core)
+
+    /**
+     * Färgerna för ett ord i känslohjulet eller väljaren ([ToneColors.container] fyllnaden, [ToneColors.content] texten):
+     * ovalt kärnans ton, valt utan styrka den omvända (fyllt med innehållsfärgen, som idag), valt med styrka
+     * intensiteten ([forCore] med styrka).
+     */
+    fun chosen(core: String, chosen: Boolean, strength: FeelingStrength?): ToneColors {
+        val tone = forCore(core)
+        return when {
+            !chosen -> tone
+            strength != null -> forCore(core, strength)
+            else -> ToneColors(container = tone.content, content = tone.container)
+        }
+    }
+
+    /** Tonen för kärnans token (`Feeling.core`); en okänd kärna får [unknown]. */
+    fun forCore(core: String): ToneColors = when (core) {
+        "glad" -> glad
+        "strong" -> strong
+        "calm" -> calm
+        "sad" -> sad
+        "angry" -> angry
+        "scared" -> scared
+        else -> unknown
+    }
+
+    /** De sex kärntonerna i hjulets ordning. */
+    val all: List<ToneColors> get() = listOf(glad, strong, calm, sad, angry, scared)
+}
+
+/**
+ * Appens färger utöver Material 3-rollerna: kort, radtoning, spår, verktygsrad, toner, energiskalan,
+ * sömnstadierna, diagrampaletten ([ExtendedColors.chartSeries]) och kärnkänslornas toner. [track] är det ofyllda spåret i allt som visar framsteg (framstegsraden, stegprickarna).
+ */
+@Immutable
+data class ExtendedColors(
+    val card: Color,
+    val rowTint: Color,
+    val track: Color,
+    val toolbar: Color,
+    val onToolbar: Color,
+    val primaryTone: ToneColors,
+    val neutralTone: ToneColors,
+    val sunTone: ToneColors,
+    val positiveTone: ToneColors,
+    val warningTone: ToneColors,
+    val energy: EnergyColors,
+    val sleepStages: SleepStageColors,
+    val chartSeries: List<Color>,
+    val feelingTones: FeelingColors
+) {
+    /** Diagrampalettens färg nummer [index] (varvar efter åtta) – serie 1 är kurvans teal, serie 2 bärnsten/solgul. */
+    fun chartSeries(index: Int): Color = chartSeries[Math.floorMod(index, chartSeries.size)]
+
+    /** Tonerna per [Tone] – det android-ui:s komponenter (`InfoPill`, `SectionHeader`, `AppCard`) läser. */
+    val tones: Map<Tone, ToneColors>
+        get() = mapOf(
+            Tone.Primary to primaryTone,
+            Tone.Neutral to neutralTone,
+            Tone.Sun to sunTone,
+            Tone.Positive to positiveTone,
+            Tone.Warning to warningTone
+        )
+
+    /** Färgerna som android-ui:s tema behöver (`AppTheme`): kort, radtoning, verktygsrad, toner och konfettins färgserie. */
+    fun forTheme(): ThemeColors = ThemeColors(
+        card = card,
+        rowTint = rowTint,
+        toolbar = toolbar,
+        onToolbar = onToolbar,
+        tones = tones,
+        accents = AppColors.SWATCH_HEX.indices.map { AppColors.swatch(it) }
+    )
+}
+
+/**
+ * Den enda paletten (skill `ui-style`, ARKITEKTUR.md → Designspråk "I · Papper och teal"): teal på
+ * papper, solgul som gör-något-färg, terrakotta för varning; mörkt tema med samma roller på djup
+ * skogsgrön botten. Ingen dynamic color – appen har en egen identitet. Kontrasten kontrolleras av
+ * `ThemeContrastTest`. Terrakottan är något mörkare än mockupens `#B85C38` (`#A4502E`), som annars
+ * inte klarar 4,5:1 som text på papper.
+ */
+object AppColors {
+    val light: ColorScheme = lightColorScheme(
+        primary = Color(0xFF0B6E66),
+        onPrimary = Color(0xFFFFFFFF),
+        primaryContainer = Color(0xFFD3EDE9),
+        onPrimaryContainer = Color(0xFF00413C),
+        inversePrimary = Color(0xFF7FD3C8),
+        secondary = Color(0xFFF5B631),
+        onSecondary = Color(0xFF1C1A14),
+        secondaryContainer = Color(0xFFFCEBC4),
+        onSecondaryContainer = Color(0xFF4D3500),
+        tertiary = Color(0xFFA4502E),
+        onTertiary = Color(0xFFFFFFFF),
+        tertiaryContainer = Color(0xFFF8E1D6),
+        onTertiaryContainer = Color(0xFF7A3519),
+        background = Color(0xFFFBF7EE),
+        onBackground = Color(0xFF1C1A14),
+        surface = Color(0xFFFBF7EE),
+        onSurface = Color(0xFF1C1A14),
+        surfaceVariant = Color(0xFFF1EBDD),
+        onSurfaceVariant = Color(0xFF6B655A),
+        surfaceTint = Color(0xFF0B6E66),
+        inverseSurface = Color(0xFF2E2B24),
+        inverseOnSurface = Color(0xFFF3F0E8),
+        error = Color(0xFFB3261E),
+        onError = Color(0xFFFFFFFF),
+        errorContainer = Color(0xFFF9DEDC),
+        onErrorContainer = Color(0xFF8C1D18),
+        outline = Color(0xFF8A8273),
+        outlineVariant = Color(0xFFE6DFCF),
+        scrim = Color(0xFF000000),
+        surfaceBright = Color(0xFFFBF7EE),
+        surfaceDim = Color(0xFFEDE7D9),
+        surfaceContainerLowest = Color(0xFFFFFFFF),
+        surfaceContainerLow = Color(0xFFF7F2E6),
+        surfaceContainer = Color(0xFFFFFFFF),
+        surfaceContainerHigh = Color(0xFFFFFFFF),
+        surfaceContainerHighest = Color(0xFFF1EBDD)
+    )
+
+    val dark: ColorScheme = darkColorScheme(
+        primary = Color(0xFF7FD3C8),
+        onPrimary = Color(0xFF003731),
+        primaryContainer = Color(0xFF0B4F49),
+        onPrimaryContainer = Color(0xFFBFEDE6),
+        inversePrimary = Color(0xFF0B6E66),
+        secondary = Color(0xFFF5B631),
+        onSecondary = Color(0xFF1C1A14),
+        secondaryContainer = Color(0xFF5A4100),
+        onSecondaryContainer = Color(0xFFFCEBC4),
+        tertiary = Color(0xFFF0A27E),
+        onTertiary = Color(0xFF4A1800),
+        tertiaryContainer = Color(0xFF6A2F17),
+        onTertiaryContainer = Color(0xFFFFD9C9),
+        background = Color(0xFF0F1C17),
+        onBackground = Color(0xFFE9EEE7),
+        surface = Color(0xFF0F1C17),
+        onSurface = Color(0xFFE9EEE7),
+        surfaceVariant = Color(0xFF1E3029),
+        onSurfaceVariant = Color(0xFFAEB9AF),
+        surfaceTint = Color(0xFF7FD3C8),
+        inverseSurface = Color(0xFFE9EEE7),
+        inverseOnSurface = Color(0xFF1C2B25),
+        error = Color(0xFFF2B8B5),
+        onError = Color(0xFF601410),
+        errorContainer = Color(0xFF601410),
+        onErrorContainer = Color(0xFFF9DEDC),
+        outline = Color(0xFF7F8C83),
+        outlineVariant = Color(0xFF2C3F37),
+        scrim = Color(0xFF000000),
+        surfaceBright = Color(0xFF243630),
+        surfaceDim = Color(0xFF0F1C17),
+        surfaceContainerLowest = Color(0xFF0A1511),
+        surfaceContainerLow = Color(0xFF14231D),
+        surfaceContainer = Color(0xFF182822),
+        surfaceContainerHigh = Color(0xFF182822),
+        surfaceContainerHighest = Color(0xFF1E3029)
+    )
+
+    /** Dämpad ton – också tonen för en okänd kärnkänsla ([FeelingColors.unknown]). */
+    private val lightNeutral = ToneColors(Color(0xFFEFEADF), Color(0xFF4F4A40))
+    private val darkNeutral = ToneColors(Color(0xFF2A3A33), Color(0xFFDCE3DA))
+
+    /**
+     * Diagrampaletten per tema (TRD-23): åtta serier som skiljer sig åt på kortet, i ordningen teal, bärnsten/solgul,
+     * terrakotta/korall, violett, blå, lövgrön, rosa, skiffer. Skild från [SWATCH_HEX], som är det användaren väljer
+     * och som lagras. Var och en klarar 3:1 mot kortet (`ThemeContrastTest`); formen på punkten (`PointMarker`) skiljer
+     * serierna åt också utan färg.
+     */
+    private val LIGHT_CHART_SERIES = listOf(0xFF0B6E66, 0xFFB7791F, 0xFFA4502E, 0xFF7048A8, 0xFF2F6DB5, 0xFF5B8A1E, 0xFFB83A73, 0xFF5E6B78).map { Color(it) }
+    private val DARK_CHART_SERIES = listOf(0xFF7FD3C8, 0xFFF5B631, 0xFFFF8A7A, 0xFFC3A6F0, 0xFF7FB0F0, 0xFFB5D86A, 0xFFF28CC0, 0xFFC9CFD6).map { Color(it) }
+
+    val lightExtended = ExtendedColors(
+        card = Color(0xFFFFFFFF),
+        rowTint = Color(0xFFF4EFE3),
+        track = Color(0xFFD3EDE9),
+        toolbar = Color(0xFF16302B),
+        onToolbar = Color(0xFFF3F1EA),
+        primaryTone = ToneColors(Color(0xFFD3EDE9), Color(0xFF00413C)),
+        neutralTone = lightNeutral,
+        sunTone = ToneColors(Color(0xFFFCEBC4), Color(0xFF4D3500)),
+        positiveTone = ToneColors(Color(0xFFDCEFE3), Color(0xFF1F5A40)),
+        warningTone = ToneColors(Color(0xFFF8E1D6), Color(0xFF7A3519)),
+        energy = EnergyColors(low = Color(0xFFB5443A), mid = Color(0xFFC98A1B), high = Color(0xFF2F7D5B)),
+        sleepStages = SleepStageColors(deep = Color(0xFF0B4F49), light = Color(0xFF4E9A90), rem = Color(0xFF7048A8), awake = Color(0xFF8A7A55)),
+        chartSeries = LIGHT_CHART_SERIES,
+        feelingTones = FeelingColors(
+            glad = ToneColors(Color(0xFFFDEBC2), Color(0xFF6B4A00)),
+            strong = ToneColors(Color(0xFFE8E1F4), Color(0xFF5B3A84)),
+            calm = ToneColors(Color(0xFFD8EBE6), Color(0xFF0B5A53)),
+            sad = ToneColors(Color(0xFFDDE5EE), Color(0xFF344B63)),
+            angry = ToneColors(Color(0xFFF8DAD5), Color(0xFF8A2A22)),
+            scared = ToneColors(Color(0xFFF6E0D5), Color(0xFF7E3A1E)),
+            unknown = lightNeutral,
+            strengths = mapOf(
+                "glad" to listOf(ToneColors(Color(0xFFD9C392), Color(0xFF6B4A00)), ToneColors(Color(0xFFAD9257), Color(0xFF111111)), ToneColors(Color(0xFF6B4A00), Color(0xFFFDEBC2))),
+                "strong" to listOf(ToneColors(Color(0xFFC5B7D8), Color(0xFF5B3A84)), ToneColors(Color(0xFF9A85B6), Color(0xFF111111)), ToneColors(Color(0xFF5B3A84), Color(0xFFE8E1F4))),
+                "calm" to listOf(ToneColors(Color(0xFFA5C7C1), Color(0xFF111111)), ToneColors(Color(0xFF679B95), Color(0xFF111111)), ToneColors(Color(0xFF0B5A53), Color(0xFFD8EBE6))),
+                "sad" to listOf(ToneColors(Color(0xFFB3BECB), Color(0xFF344B63)), ToneColors(Color(0xFF8090A2), Color(0xFF111111)), ToneColors(Color(0xFF344B63), Color(0xFFDDE5EE))),
+                "angry" to listOf(ToneColors(Color(0xFFDCAEA8), Color(0xFF111111)), ToneColors(Color(0xFFBB7973), Color(0xFF111111)), ToneColors(Color(0xFF8A2A22), Color(0xFFF8DAD5))),
+                "scared" to listOf(ToneColors(Color(0xFFD8B6A7), Color(0xFF111111)), ToneColors(Color(0xFFB48570), Color(0xFF111111)), ToneColors(Color(0xFF7E3A1E), Color(0xFFF6E0D5)))
+            )
+        )
+    )
+
+    val darkExtended = ExtendedColors(
+        card = Color(0xFF182822),
+        rowTint = Color(0xFF1E3029),
+        track = Color(0xFF0B4F49),
+        toolbar = Color(0xFFE9EEE7),
+        onToolbar = Color(0xFF0F1C17),
+        primaryTone = ToneColors(Color(0xFF0B4F49), Color(0xFFBFEDE6)),
+        neutralTone = darkNeutral,
+        sunTone = ToneColors(Color(0xFF5A4100), Color(0xFFFCEBC4)),
+        positiveTone = ToneColors(Color(0xFF1C4A35), Color(0xFFC3EBD3)),
+        warningTone = ToneColors(Color(0xFF6A2F17), Color(0xFFFFD9C9)),
+        energy = EnergyColors(low = Color(0xFFE38A7F), mid = Color(0xFFE9B54F), high = Color(0xFF6CC79A)),
+        sleepStages = SleepStageColors(deep = Color(0xFF7FD3C8), light = Color(0xFF3F8F86), rem = Color(0xFFC3A6F0), awake = Color(0xFFC9B88F)),
+        chartSeries = DARK_CHART_SERIES,
+        feelingTones = FeelingColors(
+            glad = ToneColors(Color(0xFF5A4414), Color(0xFFFCE3A8)),
+            strong = ToneColors(Color(0xFF3A2E52), Color(0xFFE6DAFA)),
+            calm = ToneColors(Color(0xFF1D3A37), Color(0xFFBFEDE6)),
+            sad = ToneColors(Color(0xFF2B3440), Color(0xFFD6E2F0)),
+            angry = ToneColors(Color(0xFF4A231F), Color(0xFFFFD6D0)),
+            scared = ToneColors(Color(0xFF4A2A1C), Color(0xFFFFD9C9)),
+            unknown = darkNeutral,
+            strengths = mapOf(
+                "glad" to listOf(ToneColors(Color(0xFF826C39), Color(0xFFFFFFFF)), ToneColors(Color(0xFFB39B65), Color(0xFF111111)), ToneColors(Color(0xFFFCE3A8), Color(0xFF5A4414))),
+                "strong" to listOf(ToneColors(Color(0xFF65597C), Color(0xFFE6DAFA)), ToneColors(Color(0xFF998DAE), Color(0xFF111111)), ToneColors(Color(0xFFE6DAFA), Color(0xFF3A2E52))),
+                "calm" to listOf(ToneColors(Color(0xFF466763), Color(0xFFBFEDE6)), ToneColors(Color(0xFF769C97), Color(0xFF111111)), ToneColors(Color(0xFFBFEDE6), Color(0xFF1D3A37))),
+                "sad" to listOf(ToneColors(Color(0xFF56606C), Color(0xFFD6E2F0)), ToneColors(Color(0xFF8994A1), Color(0xFF111111)), ToneColors(Color(0xFFD6E2F0), Color(0xFF2B3440))),
+                "angry" to listOf(ToneColors(Color(0xFF77504B), Color(0xFFFFD6D0)), ToneColors(Color(0xFFAE8580), Color(0xFF111111)), ToneColors(Color(0xFFFFD6D0), Color(0xFF4A231F))),
+                "scared" to listOf(ToneColors(Color(0xFF775647), Color(0xFFFFD9C9)), ToneColors(Color(0xFFAE8A7B), Color(0xFF111111)), ToneColors(Color(0xFFFFD9C9), Color(0xFF4A2A1C)))
+            )
+        )
+    )
+
+    /** Stundens solnedgångston (NOT-20) – oberoende av ljust och mörkt tema. */
+    val moment = MomentColors(
+        sky = listOf(Color(0xFF2E2A3A), Color(0xFF5A3F48), Color(0xFFA4614A), Color(0xFFD99A62)),
+        sunCore = Color(0xFFFCE2B0),
+        sunMid = Color(0xFFF5B65F),
+        sunEdge = Color(0xFFE8955A),
+        hillBack = Color(0xFF3A2A33),
+        hillFront = Color(0xFF2F2430),
+        text = Color(0xFFFBF1E2),
+        textMuted = Color(0xFFE3D2C4),
+        accent = Color(0xFFF5B65F),
+        onSun = Color(0xFF3A2A33)
+    )
+
+    /** Färgerna man kan välja bland (`ColorSwatchPicker`) som hex – det som lagras. Harmonierar med paletten. */
+    val SWATCH_HEX: List<String> = listOf(
+        "#0B6E66",
+        "#F5B631",
+        "#A4502E",
+        "#2F7D5B",
+        "#3B6EA5",
+        "#8E5BA8",
+        "#C98A1B",
+        "#B5443A"
+    )
+
+    /** Valbar färg nummer [index] (varvar efter åtta). */
+    fun swatch(index: Int): Color = parse(SWATCH_HEX[Math.floorMod(index, SWATCH_HEX.size)])
+
+    /** Den valbara färgen för ett lagrat hex-värde; ett oläsbart värde ger första förvalet. */
+    fun swatch(hex: String): Color = runCatching { parse(hex) }.getOrElse { swatch(0) }
+
+    private fun parse(hex: String): Color {
+        val digits = hex.removePrefix("#")
+        require(digits.length == 6) { "Förväntade #RRGGBB" }
+        return Color(0xFF000000 or digits.toLong(16))
+    }
+
+    val extended: ExtendedColors
+        @Composable @ReadOnlyComposable
+        get() = LocalExtendedColors.current
+
+    /** Färgerna för en [Tone] i aktuellt tema – samma som android-ui:s komponenter läser. */
+    @Composable
+    @ReadOnlyComposable
+    fun tone(tone: Tone): ToneColors = AppTheme.tone(tone)
+
+    /** Det ljusa och det mörka temats färger för android-ui (`DagbokenTheme`). */
+    internal val lightTheme: ThemeColors = lightExtended.forTheme()
+    internal val darkTheme: ThemeColors = darkExtended.forTheme()
+}
+
+internal val LocalExtendedColors = staticCompositionLocalOf { AppColors.lightExtended }

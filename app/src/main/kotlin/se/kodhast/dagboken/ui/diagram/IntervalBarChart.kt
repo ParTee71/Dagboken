@@ -1,0 +1,89 @@
+package se.kodhast.dagboken.ui.diagram
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
+import kotlin.math.roundToInt
+import se.kodhast.dagboken.R
+import se.kodhast.dagboken.core.engine.IntervalPoint
+import se.kodhast.dagboken.core.engine.formatChartValue
+import se.kodhast.dagboken.core.engine.intervalAxisFor
+import se.kodhast.dagboken.core.engine.seriesStats
+import se.kodhast.dagboken.core.engine.summarizeIntervals
+import se.kodhast.dagboken.ui.common.color
+import se.kodhast.dagboken.ui.common.scaleLevel
+
+/**
+ * Intervall-/spannstapeldiagram (TRD-8, regel 4 – inte energispecifikt): en rundad stapel per dag från
+ * dagens lägsta till högsta värde (35 % opacitet) och en punkt för dagsvärdet, båda i energiskalans färg
+ * för dagsvärdet (`scaleLevel` på [scale], [higherIsBetter]); dagsvärdena förbinds med en mjuk kurva
+ * som bryts vid en dag utan data (`null`). Heltalsaxel med värdelinjer (TRD-7, TRD-9), streckad trend
+ * över dagsvärdena (TRD-13), zoom och panorering (TRD-10) och `MinMaxCaption` under.
+ *
+ * Visas redan med **en** dag med data (TRD-8: "visas alltid när minst en dag har en screening");
+ * utan någon visas det gemensamma tomma läget.
+ */
+@Composable
+fun IntervalBarChart(
+    points: List<IntervalPoint?>,
+    modifier: Modifier = Modifier,
+    xLabels: List<String> = emptyList(),
+    label: String = stringResource(R.string.chart_a11y_default_label),
+    emptyHint: String = stringResource(R.string.chart_empty_hint),
+    scale: IntRange = 0..10,
+    higherIsBetter: Boolean = true
+) {
+    // Dagsvärdena en gång: trenden räknas på dem och kurvan ritas ur dem (inte i ritlambdan).
+    val values = remember(points) { points.map { it?.value } }
+    val stats = remember(points, values) { seriesStats(values, summarizeIntervals(points)) }
+    val summary = stats.summary
+    val direction = stats.direction
+    val resources = LocalResources.current
+    val spoken = remember(stats, label, resources) {
+        summary?.let {
+            resources.getString(
+                R.string.chart_a11y_interval_summary,
+                label,
+                resources.getQuantityString(R.plurals.chart_a11y_days, it.count, it.count),
+                formatChartValue(it.min),
+                formatChartValue(it.max),
+                trendSpoken(resources, direction)
+            )
+        }.orEmpty()
+    }
+    // Dagsvärdets färg ur energiskalan – samma nivågränser som reglagen och chipsen (DSN-1).
+    val dayColors = points.map { point -> point?.let { scaleLevel(it.value.roundToInt(), scale, higherIsBetter).color } }
+    val curveColor = chartColors.line
+
+    ChartFrame(
+        enoughData = summary != null,
+        label = label,
+        emptyHint = emptyHint,
+        modifier = modifier,
+        footer = {
+            if (summary != null) MinMaxCaption(summary.min, summary.max, average = summary.average, trend = direction)
+        }
+    ) {
+        val axis = remember(points) { intervalAxisFor(points) }
+        BarCanvas(points.size, axis, xLabels, stats.segment, resetKey = points to xLabels, description = spoken, barStyle = BarStyle.Span) { viewport, barWidth ->
+            // Spannen (min–max) underst, rundade i ändarna.
+            points.forEachIndexed { i, point ->
+                if (point == null) return@forEachIndexed
+                val x = viewport.xOf(i)
+                drawLine(
+                    color = checkNotNull(dayColors[i]).span(),
+                    start = Offset(x, viewport.yOf(point.max)),
+                    end = Offset(x, viewport.yOf(point.min)),
+                    strokeWidth = barWidth,
+                    cap = StrokeCap.Round
+                )
+            }
+            // Dagsvärdena som mjuk kurva, bruten vid en lucka (TRD-8), med dagsvärdets punkt överst.
+            drawSmoothCurve(values, viewport, curveColor) { i -> dayColors[i] }
+        }
+    }
+}

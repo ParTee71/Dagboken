@@ -1,10 +1,10 @@
-package se.partee71.dagboken.data
+package se.kodhast.dagboken.data
 
 import kotlin.time.Instant
-import se.partee71.dagboken.core.model.Identified
-import se.partee71.dagboken.core.schema.DocCodec
-import se.partee71.dagboken.core.schema.instant
-import se.partee71.dagboken.core.schema.string
+import se.kodhast.dagboken.core.model.Identified
+import se.kodhast.dagboken.core.schema.DocCodec
+import se.kodhast.dagboken.core.schema.instant
+import se.kodhast.dagboken.core.schema.string
 
 /**
  * Testmodellen med `updatedAt` – bara för att `CollectionContract` ska bevisa regeln för fältet mot

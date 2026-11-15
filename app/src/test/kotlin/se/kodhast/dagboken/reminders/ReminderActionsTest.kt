@@ -1,0 +1,294 @@
+package se.kodhast.dagboken.reminders
+
+import android.Manifest
+import android.app.AlarmManager
+import android.app.Notification
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.time.Instant
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
+import se.kodhast.dagboken.core.engine.Reminder
+import se.kodhast.dagboken.core.engine.SlotDoses
+import se.kodhast.dagboken.core.model.Dose
+import se.kodhast.dagboken.core.model.DoseIds
+import se.kodhast.dagboken.core.model.DoseStatus
+import se.kodhast.dagboken.core.model.MomentSettings
+import se.kodhast.dagboken.core.model.Occasion
+import se.kodhast.dagboken.core.model.Period
+import se.kodhast.dagboken.core.model.Prescription
+import se.kodhast.dagboken.core.model.Schedule
+import se.kodhast.dagboken.core.model.Slot
+import se.kodhast.dagboken.core.schema.DoseCodec
+import se.kodhast.dagboken.core.schema.PrescriptionCodec
+import se.kodhast.dagboken.data.common.DataError
+import se.kodhast.dagboken.data.firestore.Paths
+import se.kodhast.dagboken.data.repository.DoseRepository
+import se.kodhast.dagboken.data.repository.PrescriptionRepository
+import se.kodhast.dagboken.testing.AppManifest
+import se.kodhast.dagboken.testing.AppManifest.android
+
+/**
+ * Vad mottagarna gör (NOT-3, NOT-6, NOT-10, NOT-14, NOT-19) – genom [ReminderActions], med Intents som notisen och
+ * schemaläggaren själva bygger, mot Robolectrics AlarmManager och NotificationManager och `FakeCollection`.
+ */
+@RunWith(RobolectricTestRunner::class)
+class ReminderActionsTest {
+
+    private val context = RuntimeEnvironment.getApplication()
+    private val f = ReminderFixture(context)
+    private val manager = context.getSystemService(NotificationManager::class.java)
+    private val today = f.today
+    private val uid get() = checkNotNull(f.user.uid.value)
+
+    private val levaxin = Prescription(
+        "lev",
+        name = "Levaxin",
+        dose = "100",
+        unit = "µg",
+        slots = listOf(Slot.MORNING),
+        schedule = Schedule.Repeating(),
+        period = Period(start = LocalDate(2026, 1, 1))
+    )
+
+    @Before
+    fun setUp() {
+        shadowOf(context).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        f.factory.store.set(Paths.prescriptions(uid), levaxin.id, PrescriptionCodec.encode(levaxin), merge = false)
+    }
+
+    private fun posted(): List<Notification> = shadowOf(manager).allNotifications
+
+    /** Morgonens påminnelse, postad som i appen, och dess "Markera tagen"-Intent. */
+    private suspend fun morningReminderMarkIntent(): Intent {
+        f.enable(slots = setOf(Slot.MORNING))
+        val helper = NotificationHelper(context)
+        helper.postMedReminder(Slot.MORNING, today, f.content.medDoses(Slot.MORNING, today).all)
+        return shadowOf(posted().single().actions.single().actionIntent).savedIntent
+    }
+
+    private fun storedStatus(id: String) = f.factory.store.read(Paths.doses(uid), id)?.get(DoseCodec.STATUS)
+
+    // ── Markera tagen (NOT-10) ────────────────────────────────────────────────
+
+    @Test
+    fun `markera tagen - doserna blir tagna och notisen stängs`() = runTest {
+        val mark = morningReminderMarkIntent()
+
+        f.actions().markTaken(mark)
+
+        assertEquals(DoseStatus.TAKEN.wire, storedStatus(DoseIds.prescribed("lev", today, Slot.MORNING)))
+        assertEquals(0, posted().size)
+    }
+
+    @Test
+    fun `markera tagen - går recepten inte att läsa står notisen kvar med en rad om det`() = runTest {
+        val mark = morningReminderMarkIntent()
+        val silent = object : PrescriptionRepository by f.prescriptions {
+            override fun observe(): Flow<List<Prescription>> = flow { awaitCancellation() }
+        }
+        val content = ReminderContent(f.settings, silent, f.doses, f.screenings, f.clock) { f.zone }
+
+        f.actions(contentSource = content).markTaken(mark)
+
+        val notification = posted().single()
+        assertTrue("Kunde inte markera" in notification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT).toString())
+        assertTrue("Levaxin" in notification.extras.getCharSequence(Notification.EXTRA_BIG_TEXT).toString(), "doserna står kvar")
+        assertEquals(1, notification.actions.size, "Markera tagen finns kvar")
+        assertNull(storedStatus(DoseIds.prescribed("lev", today, Slot.MORNING)))
+    }
+
+    @Test
+    fun `markera tagen - misslyckas skrivningen står notisen kvar med felraden, för alla fel`() = runTest {
+        val mark = morningReminderMarkIntent()
+        for (error in listOf(DataError.NotSignedIn, DataError.PermissionDenied, DataError.Unknown)) {
+            val failing = object : DoseRepository by f.doses {
+                override suspend fun markTaken(doses: SlotDoses, at: Instant): Result<Unit> = Result.failure(error)
+            }
+            val content = ReminderContent(f.settings, f.prescriptions, failing, f.screenings, f.clock) { f.zone }
+
+            f.actions(contentSource = content).markTaken(mark)
+
+            val text = posted().single().extras.getCharSequence(Notification.EXTRA_BIG_TEXT).toString()
+            assertTrue(text.startsWith("Kunde inte markera"), "$error: $text")
+            assertEquals(1, text.lines().count { it.startsWith("Kunde inte markera") }, "$error: en gång")
+        }
+    }
+
+    @Test
+    fun `markera tagen - inget kvar att markera räknas som klart`() = runTest {
+        val mark = morningReminderMarkIntent()
+        val taken = Dose(DoseIds.prescribed("lev", today, Slot.MORNING), date = today, slot = Slot.MORNING, status = DoseStatus.TAKEN, prescriptionId = "lev")
+        f.factory.store.set(Paths.doses(uid), taken.id, DoseCodec.encode(taken), merge = false)
+
+        f.actions().markTaken(mark)
+
+        assertEquals(0, posted().size)
+    }
+
+    // ── Utlösta larm (NOT-3, NOT-14, NOT-19) ──────────────────────────────────
+
+    @Test
+    fun `ett utlöst medicinlarm lägger nästa larm och postar notisen`() = runTest {
+        f.enable(slots = setOf(Slot.MORNING))
+        val scheduler = f.scheduler()
+        val actions = f.actions(scheduler)
+        f.clock.instant = f.at(today, 6, 0)
+        val alarm = alarmIntent(Reminder.Med(Slot.MORNING), scheduler)
+        f.clock.instant = f.at(today, 6, 45)
+
+        actions.scheduleNext(alarm)
+        actions.notify(alarm, f.clock.instant)
+        scheduler.rescheduleAll() // som när synken lägger om efteråt: dagens larm har gått
+
+        assertEquals(f.at(LocalDate(2026, 5, 7), 6, 45).toEpochMilliseconds(), f.alarms().getValue(Reminder.Med(Slot.MORNING)).triggerAtTime)
+        assertEquals("Dags för medicin – Morgon", posted().single().extras.getCharSequence(Notification.EXTRA_TITLE).toString())
+    }
+
+    @Test
+    fun `ett loggat måendetillfälle ger ingen notis, men nästa larm läggs (NOT-19)`() = runTest {
+        f.enable(occasions = setOf(Occasion.LUNCH))
+        f.screenings.save(null, f.screenings.new(today, Occasion.LUNCH)).getOrThrow()
+        val scheduler = f.scheduler()
+        val actions = f.actions(scheduler)
+        val alarm = alarmIntent(Reminder.Mood(Occasion.LUNCH), scheduler)
+
+        actions.scheduleNext(alarm)
+        actions.notify(alarm, f.clock.instant)
+
+        assertEquals(0, posted().size)
+        assertTrue(Reminder.Mood(Occasion.LUNCH) in f.alarms())
+    }
+
+    @Test
+    fun `ett utlöst måendelarm med Stunden på postar Stunden-notisen för tillfället, larmet är detsamma (NOT-20)`() = runTest {
+        f.enable(occasions = setOf(Occasion.LUNCH))
+        f.settings.update { it.copy(reminders = it.reminders.copy(moment = MomentSettings(enabled = true, seconds = 30, takeover = false))) }.getOrThrow()
+        val scheduler = f.scheduler()
+        val actions = f.actions(scheduler)
+        val alarm = alarmIntent(Reminder.Mood(Occasion.LUNCH), scheduler)
+        assertEquals(ScreeningReminderReceiver::class.java.name, alarm.component?.className, "samma mottagare som måendepåminnelsen")
+
+        actions.scheduleNext(alarm)
+        actions.notify(alarm, f.clock.instant)
+
+        val notification = posted().single()
+        assertEquals("Stunden – Lunch", notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
+        val start = shadowOf(notification.actions.first().actionIntent).savedIntent
+        assertEquals(MomentLaunch(Occasion.LUNCH, Occasion.LUNCH.defaultTime, seconds = 30, question = true), MomentLaunch.from(start))
+        assertTrue(Reminder.Mood(Occasion.LUNCH) in f.alarms())
+    }
+
+    /** Larmets Intent som schemaläggaren lägger det. */
+    private suspend fun alarmIntent(reminder: Reminder, scheduler: AlarmScheduler): Intent {
+        scheduler.rescheduleAll()
+        return shadowOf(f.alarms().getValue(reminder).operation).savedIntent
+    }
+
+    // ── Omstart och appuppdatering (NOT-6, NOT-14) ────────────────────────────
+
+    @Test
+    fun `varje omstartsåtgärd lägger om alla larm, andra Intents gör ingenting`() = runTest {
+        f.enable(slots = setOf(Slot.LUNCH))
+        val actions = f.actions()
+        BootReceiver.RESCHEDULE_ACTIONS.forEach { action ->
+            f.scheduler().cancelAll()
+            assertEquals(Rescheduled.SCHEDULED, actions.onSystemEvent(Intent(action)), action)
+            assertEquals(setOf(Reminder.Med(Slot.LUNCH), Reminder.PeriodEnd), f.alarms().keys, action)
+        }
+        f.scheduler().cancelAll()
+        assertNull(actions.onSystemEvent(Intent(Intent.ACTION_SCREEN_ON)))
+        assertNull(actions.onSystemEvent(Intent(ReminderIntents.ACTION_MARK_TAKEN)))
+        assertEquals(emptyMap(), f.alarms())
+    }
+
+    @Test
+    fun `med oläsbara inställningar - omstart och uppdatering lägger tillbaka larmen, övriga åtgärder rör inget (NOT-6)`() = runTest {
+        f.enable(slots = setOf(Slot.LUNCH))
+        f.scheduler().rescheduleAll()
+        val unreadable = object : se.kodhast.dagboken.data.repository.SettingsRepository by f.settings {
+            override suspend fun get(): Result<se.kodhast.dagboken.core.model.Settings> = Result.failure(DataError.Offline)
+        }
+        val actions = f.actions(f.scheduler(unreadable))
+        val alarmManager = context.getSystemService(android.app.AlarmManager::class.java)
+        BootReceiver.RESCHEDULE_ACTIONS.forEach { action ->
+            f.alarms().values.forEach { alarmManager.cancel(checkNotNull(it.operation)) } // systemet har tömt larmen
+            val expected = if (action in setOf(Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED)) Rescheduled.RESTORED else Rescheduled.KEPT
+            assertEquals(expected, actions.onSystemEvent(Intent(action)), action)
+            assertEquals(expected == Rescheduled.RESTORED, Reminder.Med(Slot.LUNCH) in f.alarms(), action)
+        }
+    }
+
+    /**
+     * Larm som versionerna före paketbytet (#418) lade: mottagaren i `se.partee71.dagboken.reminders`. Systemet behåller
+     * appens larm vid en uppdatering, och de levereras till mottagarnas gamla namn (`LegacyNames.kt`), som gör samma
+     * sak som de nya. Att omläggningen tar bort de gamla larmen med samma requestCode prövar `AlarmSchedulerTest`.
+     */
+    @Test
+    fun `efter uppdateringen förbi paketbytet läggs larmen om hos mottagarna i se kodhast - de gamla når de gamla namnen (#418, NOT-14)`() = runTest {
+        f.enable(slots = setOf(Slot.MORNING), occasions = setOf(Occasion.LUNCH))
+        val alarmManager = context.getSystemService(AlarmManager::class.java)
+        val before = listOf("MedAlarmReceiver" to ReminderIntents.ACTION_MED_ALARM, "ScreeningReminderReceiver" to ReminderIntents.ACTION_MOOD_ALARM, "PeriodReminderReceiver" to ReminderIntents.ACTION_PERIOD_ALARM)
+            .mapIndexed { i, (receiver, action) ->
+                val intent = Intent().setClassName(context, "se.partee71.dagboken.reminders.$receiver").setAction(action)
+                PendingIntent.getBroadcast(context, i, intent, PendingIntent.FLAG_IMMUTABLE).also {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, f.at(today, 23).toEpochMilliseconds(), it)
+                }
+            }
+
+        assertEquals(Rescheduled.SCHEDULED, f.actions().onSystemEvent(Intent(Intent.ACTION_MY_PACKAGE_REPLACED)))
+
+        val scheduled = shadowOf(alarmManager).scheduledAlarms.map { checkNotNull(it.operation) }
+        val current = scheduled.filterNot { it in before }.map { shadowOf(it).savedIntent }
+        assertEquals(
+            setOf(MedAlarmReceiver::class, ScreeningReminderReceiver::class, PeriodReminderReceiver::class).map { it.java.name }.toSet(),
+            current.map { checkNotNull(it.component).className }.toSet(),
+            "de nya larmen pekar på mottagarna efter bytet"
+        )
+        current.forEach { intent ->
+            assertTrue(checkNotNull(intent.component).className.startsWith("se.kodhast.dagboken.reminders."))
+            assertEquals(1, context.packageManager.queryBroadcastReceivers(intent, 0).size, "${intent.component} finns i manifestet")
+        }
+        before.map { shadowOf(it).savedIntent }.forEach { old ->
+            val receiver = context.packageManager.queryBroadcastReceivers(old, 0).single().activityInfo
+            assertEquals(checkNotNull(old.component).className, receiver.name, "${old.component} har en mottagare")
+            val current = Class.forName("se.kodhast.dagboken.reminders.${old.component!!.className.substringAfterLast('.')}")
+            assertTrue(current.isAssignableFrom(Class.forName(receiver.name)), "${receiver.name} gör samma sak som ${current.name}")
+        }
+    }
+
+    @Test
+    fun `ett levererat larm registreras direkt - en omschemaläggning före mottagarens coroutine lägger det inte igen`() = runTest {
+        f.enable(slots = setOf(Slot.LUNCH))
+        val scheduler = f.scheduler()
+        val actions = f.actions(scheduler)
+        f.clock.instant = f.at(today, 11, 0)
+        val alarm = alarmIntent(Reminder.Med(Slot.LUNCH), scheduler)
+        f.clock.instant = f.at(today, 11, 45) // larmet levereras
+
+        actions.markFired(alarm) // synkront i onReceive
+        scheduler.rescheduleAll() // ReminderSync hinner före mottagarens coroutine
+
+        assertEquals(f.at(LocalDate(2026, 5, 7), 11, 45).toEpochMilliseconds(), f.alarms().getValue(Reminder.Med(Slot.LUNCH)).triggerAtTime)
+    }
+
+    @Test
+    fun `omstartsmottagarens åtgärder och manifestets intent-filter är samma lista`() {
+        val boot = AppManifest.element("receiver", ".reminders.BootReceiver")
+        val actions = AppManifest.elements("action", boot).map { it.android("name") }.toSet()
+        assertEquals(BootReceiver.RESCHEDULE_ACTIONS, actions)
+    }
+}

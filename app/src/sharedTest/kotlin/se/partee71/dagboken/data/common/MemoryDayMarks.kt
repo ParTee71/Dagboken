@@ -1,4 +1,4 @@
-package se.partee71.dagboken.data.common
+package se.kodhast.dagboken.data.common
 
 import kotlinx.datetime.LocalDate
 

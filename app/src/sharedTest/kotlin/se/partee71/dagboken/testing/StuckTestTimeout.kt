@@ -1,4 +1,4 @@
-package se.partee71.dagboken.testing
+package se.kodhast.dagboken.testing
 
 import java.util.concurrent.TimeUnit
 import org.junit.rules.Timeout

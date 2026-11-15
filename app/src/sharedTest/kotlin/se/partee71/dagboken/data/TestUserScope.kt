@@ -1,9 +1,9 @@
-package se.partee71.dagboken.data
+package se.kodhast.dagboken.data
 
 import kotlinx.coroutines.flow.MutableStateFlow
-import se.partee71.dagboken.core.schema.Schema
-import se.partee71.dagboken.data.common.UserScope
-import se.partee71.dagboken.data.common.UserVersion
+import se.kodhast.dagboken.core.schema.Schema
+import se.kodhast.dagboken.data.common.UserScope
+import se.kodhast.dagboken.data.common.UserVersion
 
 /** En inloggad användare för tester, med styrbar version. */
 class TestUserScope(

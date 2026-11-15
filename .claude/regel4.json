@@ -10,11 +10,11 @@
   },
   "hint": "Använd den delade komponenten/ramen/byggstenen (skill shared-ui-components). Behövs en variant: utöka den delade delen med en parameter.",
   "examples": {
-    "ok": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt", "expect": "ok" },
-    "stopp": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt", "expect": "stopp" },
-    "komponent-ok": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/components/X.kt", "expect": "ok" },
-    "diagram-ok": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/diagram/X.kt", "expect": "ok" },
-    "diagram-stopp": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/components/X.kt", "expect": "stopp" },
-    "allowlist": { "file": "app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt" }
+    "ok": { "file": "app/src/main/kotlin/se/kodhast/dagboken/ui/today/TodayRow.kt", "expect": "ok" },
+    "stopp": { "file": "app/src/main/kotlin/se/kodhast/dagboken/ui/today/TodayRow.kt", "expect": "stopp" },
+    "komponent-ok": { "file": "app/src/main/kotlin/se/kodhast/dagboken/ui/components/X.kt", "expect": "ok" },
+    "diagram-ok": { "file": "app/src/main/kotlin/se/kodhast/dagboken/ui/diagram/X.kt", "expect": "ok" },
+    "diagram-stopp": { "file": "app/src/main/kotlin/se/kodhast/dagboken/ui/components/X.kt", "expect": "stopp" },
+    "allowlist": { "file": "app/src/main/kotlin/se/kodhast/dagboken/ui/today/TodayRow.kt" }
   }
 }

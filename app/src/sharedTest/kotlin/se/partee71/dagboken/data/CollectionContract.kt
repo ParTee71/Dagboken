@@ -1,4 +1,4 @@
-package se.partee71.dagboken.data
+package se.kodhast.dagboken.data
 
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -18,33 +18,33 @@ import kotlinx.datetime.LocalDate
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import se.partee71.dagboken.core.model.Checkin
-import se.partee71.dagboken.core.model.Dose
-import se.partee71.dagboken.core.model.DoseStatus
-import se.partee71.dagboken.core.model.Identified
-import se.partee71.dagboken.core.model.IllnessEpisode
-import se.partee71.dagboken.core.model.Option
-import se.partee71.dagboken.core.model.OptionKind
-import se.partee71.dagboken.core.model.Prescription
-import se.partee71.dagboken.core.model.PrnMedicine
-import se.partee71.dagboken.core.model.Repeat
-import se.partee71.dagboken.core.model.Schedule
-import se.partee71.dagboken.core.schema.CheckinCodec
-import se.partee71.dagboken.core.schema.Doc
-import se.partee71.dagboken.core.schema.DocCodec
-import se.partee71.dagboken.core.schema.DoseCodec
-import se.partee71.dagboken.core.schema.IllnessEpisodeCodec
-import se.partee71.dagboken.core.schema.OptionCodec
-import se.partee71.dagboken.core.schema.PrescriptionCodec
-import se.partee71.dagboken.core.schema.PrnMedicineCodec
-import se.partee71.dagboken.core.schema.Schema
-import se.partee71.dagboken.data.common.DataError
-import se.partee71.dagboken.data.common.EntityCollection
-import se.partee71.dagboken.data.common.FieldMerge
-import se.partee71.dagboken.data.common.TargetExists
-import se.partee71.dagboken.data.common.dataError
-import se.partee71.dagboken.data.firestore.Paths
-import se.partee71.dagboken.testing.StuckTestTimeout
+import se.kodhast.dagboken.core.model.Checkin
+import se.kodhast.dagboken.core.model.Dose
+import se.kodhast.dagboken.core.model.DoseStatus
+import se.kodhast.dagboken.core.model.Identified
+import se.kodhast.dagboken.core.model.IllnessEpisode
+import se.kodhast.dagboken.core.model.Option
+import se.kodhast.dagboken.core.model.OptionKind
+import se.kodhast.dagboken.core.model.Prescription
+import se.kodhast.dagboken.core.model.PrnMedicine
+import se.kodhast.dagboken.core.model.Repeat
+import se.kodhast.dagboken.core.model.Schedule
+import se.kodhast.dagboken.core.schema.CheckinCodec
+import se.kodhast.dagboken.core.schema.Doc
+import se.kodhast.dagboken.core.schema.DocCodec
+import se.kodhast.dagboken.core.schema.DoseCodec
+import se.kodhast.dagboken.core.schema.IllnessEpisodeCodec
+import se.kodhast.dagboken.core.schema.OptionCodec
+import se.kodhast.dagboken.core.schema.PrescriptionCodec
+import se.kodhast.dagboken.core.schema.PrnMedicineCodec
+import se.kodhast.dagboken.core.schema.Schema
+import se.kodhast.dagboken.data.common.DataError
+import se.kodhast.dagboken.data.common.EntityCollection
+import se.kodhast.dagboken.data.common.FieldMerge
+import se.kodhast.dagboken.data.common.TargetExists
+import se.kodhast.dagboken.data.common.dataError
+import se.kodhast.dagboken.data.firestore.Paths
+import se.kodhast.dagboken.testing.StuckTestTimeout
 
 /**
  * Kontraktet för `EntityCollection` (skill firestore-data-layer). Körs mot `FakeCollection` i

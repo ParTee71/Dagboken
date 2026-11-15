@@ -19,7 +19,7 @@ tasks.register<JavaExec>("matchMedicines") {
     group = "migration"
     description = "Föreslår och tillämpar namn, styrka och form ur Läkemedelsverkets lista på en export (REC-1, FAV-1)."
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("se.partee71.dagboken.core.medicine.MatchMedicinesMainKt")
+    mainClass.set("se.kodhast.dagboken.core.medicine.MatchMedicinesMainKt")
     workingDir = rootDir // sökvägarna i --args anges från repots rot
 }
 

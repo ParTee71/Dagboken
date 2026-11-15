@@ -48,16 +48,24 @@
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Dagboken.Splash">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             <!-- Health Connects rationale-handler för Android 13 och äldre (HLS-3): utan den visas ingen samtyckesdialog.
                  Avsiktet bär inga data som appen läser – den öppnar bara appen. -->
             <intent-filter>
                 <action android:name="androidx.health.connect.action.SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
         </activity>
+
+        <!-- Ikonen på hemskärmen bär namnet från före paketbytet (Dagboken #418): en genväg pekar på
+             komponentnamnet, och utan aliaset försvinner den vid uppdateringen. -->
+        <activity-alias
+            android:name="se.partee71.dagboken.MainActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- Samma handler för Android 14 och senare (HLS-3): exporterad, men bara systemet har START_VIEW_PERMISSION_USAGE
              (skill android-intent-security). -->
@@ -84,6 +92,13 @@
             android:showWhenLocked="true"
             android:turnScreenOn="true" />
 
+        <!-- Stunden-notiser från före paketbytet (#418) pekar på det gamla namnet. Inte exporterat, som aktiviteten.
+             Kan tas bort när ingen telefon har en version före 4.12.4. -->
+        <activity-alias
+            android:name="se.partee71.dagboken.ui.moment.MomentActivity"
+            android:exported="false"
+            android:targetActivity=".ui.moment.MomentActivity" />
+
         <!-- Påminnelserna (TP-8, NOT-2…NOT-14): ingen mottagare är exporterad. Larm och notisåtgärder når dem via
              appens egna explicita, oföränderliga PendingIntents; systemets broadcasts nedan är skyddade och
              levereras ändå (skill android-intent-security). -->
@@ -91,6 +106,13 @@
         <receiver android:name=".reminders.ScreeningReminderReceiver" android:exported="false" />
         <receiver android:name=".reminders.PeriodReminderReceiver" android:exported="false" />
         <receiver android:name=".reminders.MedActionReceiver" android:exported="false" />
+        <!-- Klassnamnen från före paketbytet (#418), se se/partee71/dagboken/reminders/LegacyNames.kt: larm och
+             notisknappar från före uppdateringen pekar på dem. Kan tas bort när ingen telefon har en version före
+             4.12.4. BootReceiver behöver inget gammalt namn – systemet når den via sina actions. -->
+        <receiver android:name="se.partee71.dagboken.reminders.MedAlarmReceiver" android:exported="false" />
+        <receiver android:name="se.partee71.dagboken.reminders.ScreeningReminderReceiver" android:exported="false" />
+        <receiver android:name="se.partee71.dagboken.reminders.PeriodReminderReceiver" android:exported="false" />
+        <receiver android:name="se.partee71.dagboken.reminders.MedActionReceiver" android:exported="false" />
         <receiver android:name=".reminders.BootReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
