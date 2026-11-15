@@ -92,6 +92,13 @@
             android:showWhenLocked="true"
             android:turnScreenOn="true" />
 
+        <!-- Stunden-notiser från före paketbytet (#418) pekar på det gamla namnet. Inte exporterat, som aktiviteten.
+             Kan tas bort när ingen telefon har en version före 4.12.4. -->
+        <activity-alias
+            android:name="se.partee71.dagboken.ui.moment.MomentActivity"
+            android:exported="false"
+            android:targetActivity=".ui.moment.MomentActivity" />
+
         <!-- Påminnelserna (TP-8, NOT-2…NOT-14): ingen mottagare är exporterad. Larm och notisåtgärder når dem via
              appens egna explicita, oföränderliga PendingIntents; systemets broadcasts nedan är skyddade och
              levereras ändå (skill android-intent-security). -->
@@ -99,6 +106,13 @@
         <receiver android:name=".reminders.ScreeningReminderReceiver" android:exported="false" />
         <receiver android:name=".reminders.PeriodReminderReceiver" android:exported="false" />
         <receiver android:name=".reminders.MedActionReceiver" android:exported="false" />
+        <!-- Klassnamnen från före paketbytet (#418), se se/partee71/dagboken/reminders/LegacyNames.kt: larm och
+             notisknappar från före uppdateringen pekar på dem. Kan tas bort när ingen telefon har en version före
+             4.12.4. BootReceiver behöver inget gammalt namn – systemet når den via sina actions. -->
+        <receiver android:name="se.partee71.dagboken.reminders.MedAlarmReceiver" android:exported="false" />
+        <receiver android:name="se.partee71.dagboken.reminders.ScreeningReminderReceiver" android:exported="false" />
+        <receiver android:name="se.partee71.dagboken.reminders.PeriodReminderReceiver" android:exported="false" />
+        <receiver android:name="se.partee71.dagboken.reminders.MedActionReceiver" android:exported="false" />
         <receiver android:name=".reminders.BootReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

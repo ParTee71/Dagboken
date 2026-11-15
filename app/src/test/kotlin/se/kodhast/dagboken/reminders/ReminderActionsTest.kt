@@ -1,8 +1,10 @@
 package se.kodhast.dagboken.reminders
 
 import android.Manifest
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Intent
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -227,6 +229,44 @@ class ReminderActionsTest {
             val expected = if (action in setOf(Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED)) Rescheduled.RESTORED else Rescheduled.KEPT
             assertEquals(expected, actions.onSystemEvent(Intent(action)), action)
             assertEquals(expected == Rescheduled.RESTORED, Reminder.Med(Slot.LUNCH) in f.alarms(), action)
+        }
+    }
+
+    /**
+     * Larm som versionerna före paketbytet (#418) lade: mottagaren i `se.partee71.dagboken.reminders`. Systemet behåller
+     * appens larm vid en uppdatering, och avbokningen träffar dem inte (komponenten skiljer) – de levereras till
+     * mottagarnas gamla namn (`LegacyNames.kt`), som gör samma sak som de nya.
+     */
+    @Test
+    fun `efter uppdateringen förbi paketbytet läggs larmen om hos mottagarna i se kodhast - de gamla når de gamla namnen (#418, NOT-14)`() = runTest {
+        f.enable(slots = setOf(Slot.MORNING), occasions = setOf(Occasion.LUNCH))
+        val alarmManager = context.getSystemService(AlarmManager::class.java)
+        val before = listOf("MedAlarmReceiver" to ReminderIntents.ACTION_MED_ALARM, "ScreeningReminderReceiver" to ReminderIntents.ACTION_MOOD_ALARM, "PeriodReminderReceiver" to ReminderIntents.ACTION_PERIOD_ALARM)
+            .mapIndexed { i, (receiver, action) ->
+                val intent = Intent().setClassName(context, "se.partee71.dagboken.reminders.$receiver").setAction(action)
+                PendingIntent.getBroadcast(context, i, intent, PendingIntent.FLAG_IMMUTABLE).also {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, f.at(today, 23).toEpochMilliseconds(), it)
+                }
+            }
+
+        assertEquals(Rescheduled.SCHEDULED, f.actions().onSystemEvent(Intent(Intent.ACTION_MY_PACKAGE_REPLACED)))
+
+        val scheduled = shadowOf(alarmManager).scheduledAlarms.map { checkNotNull(it.operation) }
+        val current = scheduled.filterNot { it in before }.map { shadowOf(it).savedIntent }
+        assertEquals(
+            setOf(MedAlarmReceiver::class, ScreeningReminderReceiver::class, PeriodReminderReceiver::class).map { it.java.name }.toSet(),
+            current.map { checkNotNull(it.component).className }.toSet(),
+            "de nya larmen pekar på mottagarna efter bytet"
+        )
+        current.forEach { intent ->
+            assertTrue(checkNotNull(intent.component).className.startsWith("se.kodhast.dagboken.reminders."))
+            assertEquals(1, context.packageManager.queryBroadcastReceivers(intent, 0).size, "${intent.component} finns i manifestet")
+        }
+        before.map { shadowOf(it).savedIntent }.forEach { old ->
+            val receiver = context.packageManager.queryBroadcastReceivers(old, 0).single().activityInfo
+            assertEquals(checkNotNull(old.component).className, receiver.name, "${old.component} har en mottagare")
+            val current = Class.forName("se.kodhast.dagboken.reminders.${old.component!!.className.substringAfterLast('.')}")
+            assertTrue(current.isAssignableFrom(Class.forName(receiver.name)), "${receiver.name} gör samma sak som ${current.name}")
         }
     }
 

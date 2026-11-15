@@ -253,8 +253,10 @@ class AlarmSchedulerTest {
     }
 
     /**
-     * Larmets PendingIntent som versionerna före den gemensamma `AlarmReceiver` lade det – mottagarens namn, action och
-     * requestCode som text, inte ur koden, så att ett namnbyte fäller testet.
+     * Larmets PendingIntent som versionerna sedan paketbytet (#418) lägger det – mottagarens namn, action och
+     * requestCode som text, inte ur koden, så att ett namnbyte fäller testet. Mottagarna ligger i `se.kodhast`, men
+     * actions behåller det gamla prefixet `se.partee71` ([ReminderIntents]); larm från före #418 täcks av
+     * `ReminderActionsTest`.
      */
     private fun previousVersionAlarm(reminder: Reminder): PendingIntent? {
         val (receiver, action, requestCode) = when (reminder) {
@@ -262,7 +264,7 @@ class AlarmSchedulerTest {
             is Reminder.Mood -> Triple("ScreeningReminderReceiver", "MOOD_ALARM", 0x7FF0 + reminder.occasion.ordinal)
             Reminder.PeriodEnd -> Triple("PeriodReminderReceiver", "PERIOD_ALARM", 0x7FD0)
         }
-        val intent = Intent().setClassName(f.context!!, "se.kodhast.dagboken.reminders.$receiver").setAction("se.kodhast.dagboken.reminders.$action")
+        val intent = Intent().setClassName(f.context!!, "se.kodhast.dagboken.reminders.$receiver").setAction("se.partee71.dagboken.reminders.$action")
         return PendingIntent.getBroadcast(f.context, requestCode, intent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
     }
 

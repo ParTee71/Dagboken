@@ -184,19 +184,19 @@ abstract class AlarmReceiver(private val action: String) : BroadcastReceiver() {
 
 /** NOT-2, NOT-3, NOT-14, NOT-17: medicinpåminnelsen för en tidpunkt. */
 @AndroidEntryPoint
-class MedAlarmReceiver : AlarmReceiver(ReminderIntents.ACTION_MED_ALARM)
+open class MedAlarmReceiver : AlarmReceiver(ReminderIntents.ACTION_MED_ALARM)
 
 /** NOT-4, NOT-5, NOT-14, NOT-19: måendepåminnelsen för ett tillfälle. */
 @AndroidEntryPoint
-class ScreeningReminderReceiver : AlarmReceiver(ReminderIntents.ACTION_MOOD_ALARM)
+open class ScreeningReminderReceiver : AlarmReceiver(ReminderIntents.ACTION_MOOD_ALARM)
 
 /** NOT-12, NOT-13, NOT-14: periodslutspåminnelsen. */
 @AndroidEntryPoint
-class PeriodReminderReceiver : AlarmReceiver(ReminderIntents.ACTION_PERIOD_ALARM)
+open class PeriodReminderReceiver : AlarmReceiver(ReminderIntents.ACTION_PERIOD_ALARM)
 
 /** NOT-10: "Markera tagen" i medicinpåminnelsen, utan att appen öppnas ([ReminderActions.markTaken]). */
 @AndroidEntryPoint
-class MedActionReceiver : BroadcastReceiver() {
+open class MedActionReceiver : BroadcastReceiver() {
     @Inject lateinit var actions: ReminderActions
 
     @Inject lateinit var work: ReceiverWork
