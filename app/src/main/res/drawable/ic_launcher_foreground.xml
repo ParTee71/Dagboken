@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Appikonen "Bladet" (DSN-7): ett pappersark med tre textrader och en solgul trendkurva,
-     och Kodhästs två solgula prickar uppe till vänster. 108 × 108 med motivet inom den säkra zonen (cirkeln med diameter 66 i mitten).
+     och Kodhästs två solgula prickar uppe till vänster. 108 × 108 med motivet inom den säkra zonen
+     (cirkeln med diameter 66 i mitten).
      Färgerna är resurser i values/colors.xml som speglar AppColors. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Bladet skalat 0,8 kring nederkanten och flyttat något ner åt höger, så att prickarna får plats. -->
+    <!-- Bladet skalat 0,72 kring mitten och flyttat något ner åt höger, så att prickarna får plats och
+         arkets hörn håller sig inom säkra zonen (längst ut 32,7 från mitten). -->
     <group
         android:pivotX="54"
-        android:pivotY="86"
-        android:scaleX="0.8"
-        android:scaleY="0.8"
-        android:translateX="5"
-        android:translateY="1">
+        android:pivotY="54"
+        android:scaleX="0.72"
+        android:scaleY="0.72"
+        android:translateX="3"
+        android:translateY="6">
         <path
             android:pathData="M40,22h28a10,10 0 0,1 10,10v44a10,10 0 0,1 -10,10h-28a10,10 0 0,1 -10,-10v-44a10,10 0 0,1 10,-10z"
             android:fillColor="@color/ic_launcher_paper" />
