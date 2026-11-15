@@ -27,7 +27,7 @@ import se.kodhast.ui.theme.Spacing
 
 /**
  * Appikonen "Bladet" (DSN-7): adaptiv med enfärgat temalager, satt i manifestet, och med färger
- * som är resurser lika med temat – inga färgvärden i Kotlin.
+ * som är resurser lika med temat – inga färgvärden i Kotlin. Startskärmens färger och ordmärke (NFR-5) likaså.
  */
 @RunWith(RobolectricTestRunner::class)
 class AppIconTest {
@@ -61,6 +61,30 @@ class AppIconTest {
     @Config(qualifiers = "night")
     fun `fönstrets bakgrund i mörkt läge är det mörka temats`() {
         assertEquals(AppColors.dark.background.toArgb(), context.getColor(R.color.window_background))
+    }
+
+    @Test
+    fun `startskärmens ordmärke har temats färger, inte bibliotekets (NFR-5)`() {
+        assertEquals(AppColors.light.onSurfaceVariant.toArgb(), context.getColor(R.color.kodhast_branding_text))
+        assertEquals(AppColors.light.primary.toArgb(), context.getColor(R.color.kodhast_branding_dots))
+    }
+
+    @Test
+    @Config(qualifiers = "night")
+    fun `startskärmens ordmärke i mörkt läge har det mörka temats färger`() {
+        assertEquals(AppColors.dark.onSurfaceVariant.toArgb(), context.getColor(R.color.kodhast_branding_text))
+        assertEquals(AppColors.dark.primary.toArgb(), context.getColor(R.color.kodhast_branding_dots))
+    }
+
+    @Test
+    @Config(sdk = [31])
+    fun `startskärmen visar Kodhästs ordmärke på Android 12+ (NFR-5)`() {
+        val attrs = context.obtainStyledAttributes(R.style.Theme_Dagboken_Splash, intArrayOf(android.R.attr.windowSplashScreenBrandingImage))
+        try {
+            assertEquals(se.kodhast.ui.components.R.drawable.kodhast_branding, attrs.getResourceId(0, 0))
+        } finally {
+            attrs.recycle()
+        }
     }
 
     @Test

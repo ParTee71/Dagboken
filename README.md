@@ -264,6 +264,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.13.0 | **En kodhäst-app:** Dagboken visar att den kommer från Kodhäst – "En kodhäst-app" under versionen i Om Dagboken, två solgula prickar i appikonen, ordmärket på startskärmen (Android 12+), hästen i tomma lägen, prickar som laddning och framför fyra sektionsrubriker. Allt i appens egna färger och typsnitt (NAV-9, NFR-5, DSN-7, DSN-8, #417). |
 | 4.12.4 | **Nytt paketnamn i koden** (`se.kodhast.dagboken`), inget nytt för användaren: appens id, data, inloggning, påminnelser och hemskärmsikonen är desamma, och larm och notisknappar från före uppdateringen fungerar som förut (#418). |
 | 4.12.3 | **Tagen-chipet växer inte längre:** ett stjärnmärkt recept med långt namn blev en enorm oval med tidstexten bruten tecken för tecken efter tryck. Titeln kortas nu med "…" och markeringen står kvar på en rad (FAV-13, #413). |
 | 4.12.2 | **Morgonens mediciner direkt:** dagens receptdoser visas på Idag så fort appen öppnas, också utan nät, och kan bockas av innan servern skapat dem. Ingen tom ruta, ingen "Allt avklarat" och inget "Doser saknas" för något som löser sig själv – bara en laddningsindikator när inget kan visas och en diskret rad utan nät (HEM-10, MED-4, #400). |

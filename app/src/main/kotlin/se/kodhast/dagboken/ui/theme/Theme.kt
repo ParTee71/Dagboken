@@ -6,6 +6,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import se.kodhast.ui.components.AppBrandStyle
+import se.kodhast.ui.components.LocalAppBrandStyle
 import se.kodhast.ui.components.LocalDetailSectionGap
 import se.kodhast.ui.components.LocalEditScreenMargin
 import se.kodhast.ui.components.LocalItemRowTextGap
@@ -21,7 +23,9 @@ import se.kodhast.ui.theme.Spacing
  * sätts här en gång: sidmarginalen i formulär (`LocalEditScreenMargin`) och avståndet mellan sektionerna i
  * detaljskärmar (`LocalDetailSectionGap`) är båda `Spacing.l`, och stegarens knappar är 48 dp
  * (`LocalQuantityStepperButtonSize`, NFR-14). Ingen dynamic color. [darkTheme] kommer från temavalet i inställningsarket – ljust, mörkt eller auto på klockslag
- * (SET-1, `AppThemeViewModel` i `MainActivity`); utan val (utloggad) följer appen systemet.
+ * (SET-1, `AppThemeViewModel` i `MainActivity`); utan val (utloggad) följer appen systemet. Kodhäst-igenkänningen
+ * (DSN-8) slås på här och bara här: prickar framför sektionsrubriker utan ikonruta, prickarna som laddning och
+ * hästen i fullstora tomma lägen – ritade i appens färger.
  */
 @Composable
 fun DagbokenTheme(
@@ -33,7 +37,8 @@ fun DagbokenTheme(
         LocalItemRowTextGap provides Spacing.xs,
         LocalEditScreenMargin provides Spacing.l,
         LocalDetailSectionGap provides Spacing.l,
-        LocalQuantityStepperButtonSize provides QuantityStepperDefaults.TouchTargetButtonSize
+        LocalQuantityStepperButtonSize provides QuantityStepperDefaults.TouchTargetButtonSize,
+        LocalAppBrandStyle provides BrandStyle
     ) {
         AppTheme(
             colorScheme = if (darkTheme) AppColors.dark else AppColors.light,
@@ -48,3 +53,6 @@ fun DagbokenTheme(
         }
     }
 }
+
+/** Kodhäst-delarna i innehållet (DSN-8), alla tre påslagna. */
+private val BrandStyle = AppBrandStyle(sectionDots = true, dotLoading = true, emptyStateMark = true)
