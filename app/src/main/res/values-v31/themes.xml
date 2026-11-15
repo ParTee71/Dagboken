@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Startskärmen på Android 12+ (NFR-5): som values/themes.xml, plus Kodhästs ordmärke längst ner
+         (android-ui:s kodhast_branding, färgat av kodhast_branding_text/_dots i values/colors.xml och
+         values-night/colors.xml). core-splashscreen har ingen egen egenskap för ordmärket. -->
+    <style name="Theme.Dagboken.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/window_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.Dagboken</item>
+        <item name="android:windowSplashScreenBrandingImage">@drawable/kodhast_branding</item>
+    </style>
+</resources>

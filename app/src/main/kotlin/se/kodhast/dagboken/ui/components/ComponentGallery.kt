@@ -102,6 +102,7 @@ import se.kodhast.ui.components.AppFilterChip
 import se.kodhast.ui.components.AppFloatingToolbar
 import se.kodhast.ui.components.AppIconButton
 import se.kodhast.ui.components.AppLoading
+import se.kodhast.ui.components.MakerMark
 import se.kodhast.ui.components.AppMenu
 import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.AppSegmentedChoice
@@ -804,6 +805,7 @@ internal val GALLERY_FEELINGS = listOf(Feeling("calm", "grateful"), Feeling("sca
 @Composable
 private fun Progress() {
     Box(Modifier.fillMaxWidth().height(96.dp)) { AppLoading() }
+    MakerMark()
     var tab by remember { mutableIntStateOf(0) }
     AppFloatingToolbar(
         items = listOf(

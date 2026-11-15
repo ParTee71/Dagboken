@@ -5,7 +5,8 @@
         <item name="android:windowBackground">@color/window_background</item>
     </style>
 
-    <!-- Startskärmen (NFR-5): appikonen på pappersytan, sedan appens tema. -->
+    <!-- Startskärmen (NFR-5): appikonen på pappersytan, sedan appens tema. Ordmärket längst ner
+         (Android 12+) sätts i values-v31/themes.xml. -->
     <style name="Theme.Dagboken.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/window_background</item>
         <item name="postSplashScreenTheme">@style/Theme.Dagboken</item>

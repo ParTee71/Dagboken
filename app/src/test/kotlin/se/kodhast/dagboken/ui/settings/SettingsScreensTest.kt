@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlinx.collections.immutable.persistentListOf
 import org.junit.Rule
 import org.junit.Test
@@ -262,6 +263,10 @@ class SettingsScreensTest {
         rule.onNodeWithText("Om Dagboken").assertIsDisplayed()
         rule.onNodeWithText("Läkemedelsverket, ons 7 okt 2026 · CC BY 4.0").assertIsDisplayed()
         rule.onNodeWithText("4.0.0 (bygge 400)").assertIsDisplayed()
+        // Kodhästs signatur står under versionen (NAV-9).
+        val version = rule.onNodeWithText("4.0.0 (bygge 400)").fetchSemanticsNode().boundsInRoot
+        val signature = rule.onNodeWithText("En kodhäst-app").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue(signature.top >= version.bottom, "Signaturen ska stå under versionen")
         rule.onNodeWithText("SIL Open Font License").assertDoesNotExist()
         rule.onNodeWithText("Licenser").performClick()
         rule.onNodeWithText("SIL Open Font License").assertExists()

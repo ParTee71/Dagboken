@@ -10,4 +10,9 @@
     <color name="ic_launcher_paper">#FBF7EE</color>
     <color name="ic_launcher_sun">#F5B631</color>
     <color name="ic_launcher_lines">#C9C2B4</color>
+
+    <!-- Kodhästs ordmärke på startskärmen (NFR-5, android-ui:s kodhast_branding): ersätter bibliotekets
+         färger med temats onSurfaceVariant (texten) och primary (prickarna). AppIconTest håller dem lika. -->
+    <color name="kodhast_branding_text">#6B655A</color>
+    <color name="kodhast_branding_dots">#0B6E66</color>
 </resources>
