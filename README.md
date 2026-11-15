@@ -59,7 +59,7 @@ Funktionerna i 3.27.0 beskrivs i versionshistoriken nedan och i kravlistan på b
    Moduler, lager och datamodell: [ARKITEKTUR.md](ARKITEKTUR.md).
 
 ```bash
-git clone https://github.com/ParTee71/Dagboken.git
+git clone https://github.com/Kodhast/Dagboken.git
 cd Dagboken
 ./gradlew :core:test :app:testDebugUnitTest
 ./gradlew :app:assembleDebug

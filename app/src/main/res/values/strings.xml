@@ -13,7 +13,7 @@
     <string name="update_required_message">Din dagbok har sparats med en nyare version av Dagboken. Installera den senaste versionen för att fortsätta.</string>
     <string name="update_required_note">Ingenting i din dagbok ändras förrän appen är uppdaterad.</string>
     <string name="update_required_action">Hämta senaste versionen</string>
-    <string name="releases_url" translatable="false">https://github.com/ParTee71/Dagboken/releases/latest</string>
+    <string name="releases_url" translatable="false">https://github.com/Kodhast/Dagboken/releases/latest</string>
 
     <!-- Felmeddelanden – enda stället (DataError.toMessage) -->
     <string name="error_offline">Ingen anslutning just nu. Det du sparar skickas när nätet är tillbaka.</string>

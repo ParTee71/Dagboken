@@ -147,7 +147,7 @@ Processen (när, hur, visa och vänta) står i pluginen; det här är Dagbokens 
 
 Stegen står i pluginen; det här är Dagbokens delar.
 
-- **Repo:** owner `ParTee71`, repo `Dagboken`, basbranch `master`. Issues och PR:er läses och
+- **Repo:** owner `Kodhast`, repo `Dagboken`, basbranch `master`. Issues och PR:er läses och
   skrivs med GitHub MCP.
 - **Databasen i tester:** tester i `tools/db` körs bara mot Firebase-emulatorn, aldrig mot den
   riktiga databasen (skill `data-safety-backup`).
@@ -216,8 +216,8 @@ hemligheter → `data-privacy-security`; larm och notiser → `notifications-ala
 
 ## Issues (android:refine-issue)
 
-- **Repo:** owner `ParTee71`, repo `Dagboken`; dubblettsökning med
-  `mcp__github__search_issues` (`repo:ParTee71/Dagboken <ord>`).
+- **Repo:** owner `Kodhast`, repo `Dagboken`; dubblettsökning med
+  `mcp__github__search_issues` (`repo:Kodhast/Dagboken <ord>`).
 - **Extra undersökningspunkter:**
   - **Ombyggnaden:** vilken etapp i `ARKITEKTUR.md` hör det till, och vilken modell och effort
     anger etapptabellen? Rör det 3.x-paritet: vilka krav är paritetspunkter (OMB-6) och var ligger
@@ -259,7 +259,7 @@ hemligheter → `data-privacy-security`; larm och notiser → `notifications-ala
   och grinden OMB-4 passerad. 3.27.0 ligger kvar som tagg och på branchen `legacy` (OMB-1). 4.0
   behåller `applicationId`, så den installeras som uppdatering ovanpå 3.x; migreringen på enheten
   (~~OMB-2~~) togs bort i 4.8.0 och importen av 3.x-backuper (~~BCK-14~~) i 4.9.0.
-- **Workflow:** `release.yml` (owner `ParTee71`, repo `Dagboken`), jobben:
+- **Workflow:** `release.yml` (owner `Kodhast`, repo `Dagboken`), jobben:
   - `gate` (sekunder): commiten ligger på `master`, versionen är `versionName` i
     `version.properties`, taggen finns inte, secrets finns och `ci-ok` är grönt på commiten –
     master-pushen har kört alla tester, `cpdCheck`, rules-tester och dokumentkontroller, och de
