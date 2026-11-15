@@ -1,11 +1,11 @@
-package se.partee71.dagboken.data.common
+package se.kodhast.dagboken.data.common
 
 import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.datetime.TimeZone
-import se.partee71.dagboken.data.FixedClock
+import se.kodhast.dagboken.data.FixedClock
 
 /**
  * [HistoryCoverage] i test – en gång för JVM- och instrumenttesterna: dagar i UTC och en egen scope (som appens

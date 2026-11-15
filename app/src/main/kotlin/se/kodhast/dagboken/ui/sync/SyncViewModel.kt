@@ -1,0 +1,43 @@
+package se.kodhast.dagboken.ui.sync
+
+import androidx.compose.runtime.Immutable
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import se.kodhast.dagboken.data.common.DataError
+import se.kodhast.dagboken.data.common.SyncStatus
+import se.kodhast.ui.common.shownAfter
+
+/** [pending]: ändringar har väntat minst [SyncViewModel.PENDING_DELAY] på servern; [writeError]: en nekad skrivning att visa. */
+@Immutable
+data class SyncUiState(val pending: Boolean = false, val writeError: DataError? = null)
+
+sealed interface SyncEvent {
+    /** Felet har visats och kan släppas. */
+    data object WriteErrorShown : SyncEvent
+}
+
+/** Appens synkläge för UI:t (NFR-22): indikatorn i toppraden och meddelandet om en nekad skrivning. */
+@HiltViewModel
+class SyncViewModel @Inject constructor(private val status: SyncStatus) : ViewModel() {
+
+    val state: StateFlow<SyncUiState> = combine(status.syncing.shownAfter(PENDING_DELAY), status.lastWriteError, ::SyncUiState)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, SyncUiState())
+
+    fun onEvent(event: SyncEvent) {
+        when (event) {
+            SyncEvent.WriteErrorShown -> status.clearWriteError()
+        }
+    }
+
+    companion object {
+        /** Så länge en skrivning får vänta innan indikatorn visas – online syns den aldrig. */
+        val PENDING_DELAY = 2.seconds
+    }
+}

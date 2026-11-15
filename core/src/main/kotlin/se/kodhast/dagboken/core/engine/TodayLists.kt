@@ -1,0 +1,222 @@
+package se.kodhast.dagboken.core.engine
+
+import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import se.kodhast.dagboken.core.model.Dose
+import se.kodhast.dagboken.core.model.DoseStatus
+import se.kodhast.dagboken.core.model.Identified
+import se.kodhast.dagboken.core.model.Prescription
+import se.kodhast.dagboken.core.model.PrnMedicine
+import se.kodhast.dagboken.core.model.ReminderSettings
+import se.kodhast.dagboken.core.model.Screening
+import se.kodhast.dagboken.core.model.Slot
+
+// Idags listor (HEM-1, HEM-14, MED-1, MED-5, MED-13, FAV-2, FAV-11, FAV-12) – urval och ordning en gång, här,
+// så att fliken Idag bara visar.
+
+/** Hälsningens del av dygnet (HEM-1) – samma timmar som 3.x `greetingRes`. */
+enum class DayPart { MORNING, AFTERNOON, EVENING, NIGHT }
+
+/** HEM-1: dygnsdelen för timmen [hour] (0–23): morgon 5–11, eftermiddag 12–16, kväll 17–20, annars natt. */
+fun dayPartAt(hour: Int): DayPart = when (hour) {
+    in MORNING_HOURS -> DayPart.MORNING
+    in AFTERNOON_HOURS -> DayPart.AFTERNOON
+    in EVENING_HOURS -> DayPart.EVENING
+    else -> DayPart.NIGHT
+}
+
+private val MORNING_HOURS = 5..11
+private val AFTERNOON_HOURS = 12..16
+private val EVENING_HOURS = 17..20
+
+/**
+ * En dos som inte är avklarad och hur den står mot nu ([dueAt]) vid klockslaget [time] ([scheduledTime]); båda `null` för
+ * vid behov, som inte väntar på ett klockslag.
+ */
+data class OpenDose(val dose: Dose, val due: Due?, val time: LocalTime? = null)
+
+/**
+ * Mediciner-kortet på Idag (MED-1, MED-5, MED-13), varje del i tidpunktsordning (Morgon → Natt → Vid behov).
+ * [shown] är det som är att göra – försenat, snart, vid behov, eller en tidigare dags ej tagna; [done] tagna
+ * och överhoppade (döljs bakom "Visa tagna"); [upcoming] dagens doser mer än [SOON_WINDOW] fram (döljs
+ * bakom "Visa kommande").
+ */
+data class DoseChecklist(
+    val shown: List<OpenDose> = emptyList(),
+    val done: List<Dose> = emptyList(),
+    val upcoming: List<OpenDose> = emptyList()
+) {
+    val isEmpty: Boolean get() = shown.isEmpty() && done.isEmpty() && upcoming.isEmpty()
+}
+
+/**
+ * MED-1, MED-5, MED-13: [date]s doser ur [doses] (andra dagar hoppas över) delade och ordnade för
+ * Mediciner-kortet. Avklarade ([isDone]) står för sig; en öppen dos med klockslag mer än [SOON_WINDOW] fram
+ * idag är kommande, allt annat visas – en tidigare dag har aldrig kommande (`Due.PAST`, HEM-4). Klockslaget
+ * är [scheduledTime]: en planerad receptdos följer tidpunktens klockslag i [reminders] (NOT-18). En dos inom
+ * [SOON_WINDOW] är "Snart" först när måendet för tillfället före den är loggat i [screenings] ([moodLoggedBefore]),
+ * annars kommande; när klockslaget är nått visas den alltid (MED-13).
+ */
+fun doseChecklist(
+    doses: List<Dose>,
+    date: LocalDate,
+    now: Instant,
+    zone: TimeZone,
+    reminders: ReminderSettings,
+    screenings: List<Screening>
+): DoseChecklist {
+    val ordered = doses.filter { it.date == date }.sortedWith(doseOrder(reminders))
+    val (done, open) = ordered.partition { it.isDone }
+    val onDate = screenings.filter { it.date == date }
+    val withDue = open.map { dose ->
+        val time = if (dose.slot == Slot.AS_NEEDED) null else dose.scheduledTime(reminders)
+        val due = time?.let { dueAt(date, it, now, zone) }
+        val held = due == Due.SOON && !moodLoggedBefore(time, reminders, onDate)
+        OpenDose(dose, if (held) Due.UPCOMING else due, time)
+    }
+    val (upcoming, shown) = withDue.partition { it.due == Due.UPCOMING }
+    return DoseChecklist(shown = shown, done = done, upcoming = upcoming)
+}
+
+/**
+ * MED-13: om det närmast föregående påminda måendetillfället före [time] (klockslaget i [reminders], strikt före) är loggat
+ * bland [screenings] – Kväll 19:00 väntar på Kvällsmat 17:00, Natt 22:00 på Läggdags 21:00 med standardtider. Inget påmint
+ * tillfälle före räknas som loggat, så att bara 3-timmarsfönstret gäller.
+ */
+private fun moodLoggedBefore(time: LocalTime, reminders: ReminderSettings, screenings: List<Screening>): Boolean {
+    val before = reminders.enabledOccasionRows.filter { it.time < time }.maxByOrNull { it.time } ?: return true
+    return screenings.hasLogged(before.occasion)
+}
+
+/** Tidpunkt (Morgon → Natt → Vid behov), klockslag ([scheduledTime]), namn utan skiftläge och sist id – samma ordning varje gång. */
+private fun doseOrder(reminders: ReminderSettings): Comparator<Dose> = compareBy<Dose> { it.slot.ordinal }
+    .thenBy { it.scheduledTime(reminders) }
+    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+    .thenBy { it.id }
+
+/**
+ * Vid behov-kortet på Idag (FAV-2, FAV-11, FAV-12): [favorites] – de stjärnmärkta vid behov-medicinerna – och
+ * [favoritePrescriptions] – de stjärnmärkta recepten – som snabbval, tillsammans i [chips]; och i
+ * "Fler" [others] – de övriga vid behov-medicinerna – och under "Recept" [prescriptions], de övriga aktiva recepten som
+ * gäller dagen.
+ */
+data class AsNeededChoices(
+    val favorites: List<PrnMedicine> = emptyList(),
+    val others: List<PrnMedicine> = emptyList(),
+    val prescriptions: List<Prescription> = emptyList(),
+    val favoritePrescriptions: List<Prescription> = emptyList()
+) {
+    /** Snabbvalen (FAV-2, FAV-12): stjärnmärkta vid behov-mediciner och recept tillsammans, efter namn (lika namn på id). */
+    val chips: List<AsNeededChip> = (favorites.map(AsNeededChip::Medicine) + favoritePrescriptions.map(AsNeededChip::Recipe)).sortedWith(CHIP_ORDER)
+
+    /** Antalet i "Fler" (FAV-2). */
+    val moreCount: Int get() = others.size + prescriptions.size
+
+    private companion object {
+        val CHIP_ORDER = nameThenId<AsNeededChip> { it.name }.thenBy { it is AsNeededChip.Recipe }
+    }
+}
+
+/** Ett snabbval i Vid behov-kortet (FAV-2, FAV-12): en vid behov-medicin eller ett stjärnmärkt recept (loggar en extrados, FAV-11). */
+sealed interface AsNeededChip : Identified {
+    /** Dokumentets id – unikt bara inom sin samling. */
+    override val id: String
+    val name: String
+
+    /** Namn och styrka (receptets eller medicinens `displayName`). */
+    val displayName: String
+
+    /** Anteckningen, om någon. */
+    val note: String?
+
+    /** Nyckel för chipet i UI:t (vilken meny som är öppen): typen ingår, eftersom ett id är unikt bara inom sin samling. */
+    val key: String
+
+    data class Medicine(val medicine: PrnMedicine) : AsNeededChip {
+        override val id: String get() = medicine.id
+        override val name: String get() = medicine.name
+        override val displayName: String get() = medicine.displayName
+        override val note: String? get() = medicine.note
+        override val key: String get() = "medicine:$id"
+    }
+
+    data class Recipe(val prescription: Prescription) : AsNeededChip {
+        override val id: String get() = prescription.id
+        override val name: String get() = prescription.name
+        override val displayName: String get() = prescription.displayName
+        override val note: String? get() = prescription.note
+        override val key: String get() = "recipe:$id"
+    }
+}
+
+/**
+ * FAV-11: samma medicin = samma namn (utan skiftläge, blanktecken normaliserade) och samma styrka (normaliserad)
+ * – eller att någon av styrkorna inte är angiven, så att en medicin utan styrka inte visas bredvid samma med styrka.
+ */
+fun sameMedicine(nameA: String, strengthA: String, nameB: String, strengthB: String): Boolean = sameMedicineNormalized(normalizedMedicineText(nameA), normalizedMedicineText(strengthA), normalizedMedicineText(nameB), normalizedMedicineText(strengthB))
+
+private val WHITESPACE = Regex("\\s+")
+
+private fun normalizedMedicineText(text: String) = text.trim().lowercase().replace(WHITESPACE, " ")
+
+private fun sameMedicineNormalized(nameA: String, strengthA: String, nameB: String, strengthB: String) = nameA == nameB && (strengthA.isEmpty() || strengthB.isEmpty() || strengthA == strengthB)
+
+/**
+ * FAV-2, FAV-11, FAV-12: delar vid behov-medicinerna på stjärnan, efter namn, och tar med de aktiva recept vars
+ * period täcker [today] – utom ett recept som redan finns bland vid behov-medicinerna ([sameMedicine]), så att
+ * samma medicin aldrig står två gånger. De stjärnmärkta recepten blir snabbval ([AsNeededChoices.favoritePrescriptions])
+ * oavsett om de är aktiva eller om perioden täcker dagen, och står inte under "Recept". Lika namn ordnas på id.
+ */
+fun asNeededChoices(medicines: List<PrnMedicine>, prescriptions: List<Prescription>, today: LocalDate): AsNeededChoices {
+    val known = medicines.map { normalizedMedicineText(it.name) to normalizedMedicineText(it.strength) }
+    val (favorites, others) = medicines.partition { it.favorite }
+    val (favoriteRecipes, otherRecipes) = prescriptions
+        .filter { p ->
+            normalizedMedicineText(p.name).let { name ->
+                val strength = normalizedMedicineText(p.strength)
+                known.none { (knownName, knownStrength) -> sameMedicineNormalized(knownName, knownStrength, name, strength) }
+            }
+        }
+        .partition { it.favorite }
+        .let { (favorite, other) -> favorite to other.filter { it.active && it.period.covers(today) } }
+    return AsNeededChoices(
+        favorites.sortedWith(nameThenId<PrnMedicine> { it.name }),
+        others.sortedWith(nameThenId<PrnMedicine> { it.name }),
+        otherRecipes.sortedWith(nameThenId<Prescription> { it.name }),
+        favoriteRecipes.sortedWith(nameThenId<Prescription> { it.name })
+    )
+}
+
+/**
+ * FAV-13: när receptets medicin senast togs som extrados på [date] ([Dose.takenMoment]) ur [doses], eller `null` när ingen
+ * är loggad. Bara extradoser räknas (tagna, vid behov och utan receptkoppling, FAV-11) – en planerad receptdos som bockats av
+ * hör till schemat. Samma medicin som [sameMedicine]: namn och styrka, eller att någon styrka saknas.
+ */
+fun Prescription.lastExtraTakenOn(doses: Iterable<Dose>, date: LocalDate): Instant? = doses
+    .filter { it.date == date && it.status == DoseStatus.TAKEN && it.slot == Slot.AS_NEEDED && it.prescriptionId == null && it.prnId == null }
+    .filter { sameMedicine(name, strength, it.name, it.strength) }
+    .mapNotNull { it.takenMoment() }
+    .maxOrNull()
+
+/**
+ * HEM-14: dagarna som får en punkt i datumremsan – dagar med en avklarad dos (tagen eller överhoppad,
+ * [isDone]) eller en måendelogg. En planerad dos som ingen rört är ingen post.
+ */
+fun datesWithEntries(doses: List<Dose>, screenings: List<Screening>): Set<LocalDate> = (doses.filter { it.isDone }.mapNotNull { it.date } + screenings.mapNotNull { it.date }).toSet()
+
+/**
+ * MED-14: tagningstiden när dosen bockas av på Idag vid [now]. Idag (eller en dos utan dag) är det nu; en
+ * tidigare dag – bläddrad till i efterhand (HEM-14) – får dosens klockslag ([scheduledTime], för en planerad receptdos
+ * tidpunktens i [reminders], NOT-18) på sin dag, aldrig senare än [now]. Så hamnar en avbockning i efterhand på rätt dag i
+ * historiken och i kylperioden (FAV-4) i stället för på dagens datum.
+ */
+fun Dose.checkOffTime(now: Instant, zone: TimeZone, reminders: ReminderSettings): Instant {
+    val day = date ?: return now
+    if (day >= now.toLocalDateTime(zone).date) return now
+    return minOf(LocalDateTime(day, scheduledTime(reminders)).toInstant(zone), now)
+}

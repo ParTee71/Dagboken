@@ -45,7 +45,7 @@ spotless {
         // Galleriets formval är Int? (null = inget val) och går inte i mutableIntStateOf.
         suppressLintsFor {
             step = "ktlint"
-            path = "app/src/main/kotlin/se/partee71/dagboken/ui/components/ComponentGallery.kt"
+            path = "app/src/main/kotlin/se/kodhast/dagboken/ui/components/ComponentGallery.kt"
             shortCode = "compose:mutable-state-autoboxing"
         }
     }

@@ -8,7 +8,7 @@ export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 /** En fil i repot, relativt repots rot. */
 export const readRepoFile = (rel) => readFileSync(path.join(repoRoot, rel), 'utf8');
 
-const CORE = 'core/src/main/kotlin/se/partee71/dagboken/core';
+const CORE = 'core/src/main/kotlin/se/kodhast/dagboken/core';
 
 /** Heltalskonstanten `const val [name] = n` i Kotlin-filen [file] under :core. */
 const kotlinConstant = (file, name) => Number(readRepoFile(`${CORE}/${file}`).match(new RegExp(`const val ${name} = (\\d+)`))[1]);

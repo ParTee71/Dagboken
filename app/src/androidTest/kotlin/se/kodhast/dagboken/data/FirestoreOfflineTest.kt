@@ -1,0 +1,128 @@
+package se.kodhast.dagboken.data
+
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.firebase.firestore.Source
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
+import kotlinx.datetime.LocalDate
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import se.kodhast.dagboken.core.model.Dose
+import se.kodhast.dagboken.core.model.DoseStatus
+import se.kodhast.dagboken.core.model.Option
+import se.kodhast.dagboken.core.model.OptionKind
+import se.kodhast.dagboken.core.schema.DoseCodec
+import se.kodhast.dagboken.core.schema.OptionCodec
+import se.kodhast.dagboken.core.schema.Schema
+import se.kodhast.dagboken.data.common.DataError
+import se.kodhast.dagboken.data.common.dataError
+import se.kodhast.dagboken.data.firestore.Paths
+import se.kodhast.dagboken.data.user.EnsureUserUseCase
+import se.kodhast.dagboken.data.user.UserStatus
+import se.kodhast.dagboken.testing.StuckTestTimeout
+
+/**
+ * Offline först, användarens version och första inloggningen, mot riktig Firestore i emulatorn
+ * (NFR-1). Varje användare har sin egen Firestore-instans ([FirebaseEmulator]).
+ */
+@RunWith(AndroidJUnit4::class)
+class FirestoreOfflineTest {
+
+    @get:Rule(order = StuckTestTimeout.OUTERMOST)
+    val timeout = StuckTestTimeout.rule()
+
+    @get:Rule
+    val emulator = FirebaseEmulator()
+
+    private fun test(block: suspend () -> Unit) = runBlocking { withTimeout(20_000) { block() } }
+
+    @Test
+    fun skrivning_offline_lyckas_direkt_syns_lokalt_och_synkas_nar_natet_kommer_tillbaka() = test {
+        val user = emulator.newUser()
+        val sync = FirebaseEmulator.sync()
+        val items = user.collection(TestUserScope(user.uid), OptionCodec, Paths.OPTIONS, { Paths.options(it!!) }, sync = sync)
+        user.db.disableNetwork().await()
+        try {
+            assertTrue(items.upsert(Option("a", OptionKind.ACTIVITY, "Promenad")).isSuccess)
+            assertEquals("Promenad", items.observe("a").first { it != null }?.name)
+            assertTrue(sync.syncing.first { it })
+        } finally {
+            user.db.enableNetwork().await()
+        }
+        sync.syncing.first { !it }
+        val server = user.db.collection(Paths.options(user.uid)).document("a").get(Source.SERVER).await()
+        assertEquals("Promenad", server.getString("name"))
+    }
+
+    @Test
+    fun anvandarens_version_lases_ur_dokumentet_nyare_kraver_uppdatering_och_saknat_dokument_ger_null() = test {
+        val current = emulator.newUser()
+        assertEquals(Schema.FIRST_VERSION, current.versions().schemaVersion(current.uid).first())
+
+        val newer = emulator.newSignedInUser()
+        FirebaseEmulator.seedUserBypassingRules(newer.uid, version = Schema.CURRENT_VERSION + 1)
+        assertEquals(Schema.CURRENT_VERSION + 1, newer.versions().schemaVersion(newer.uid).first())
+        val status = EnsureUserUseCase(newer.directory(), FixedClock())(newer.uid).getOrThrow()
+        assertEquals(UserStatus.RequiresUpdate(newer.uid), status, "en nyare version kräver uppdatering")
+
+        val fresh = emulator.newSignedInUser()
+        assertNull(fresh.versions().schemaVersion(fresh.uid).first())
+    }
+
+    @Test
+    fun forsta_inloggningen_skapar_dokumentet_en_gang_och_skriver_aldrig_over() = test {
+        val user = emulator.newSignedInUser()
+        EnsureUserUseCase(user.directory(), FixedClock())(user.uid).getOrThrow()
+        val created = user.db.document(Paths.user(user.uid)).get(Source.SERVER).await()
+        assertEquals(Schema.CURRENT_VERSION.toLong(), created.getLong("schemaVersion"))
+
+        EnsureUserUseCase(user.directory(), FixedClock(kotlin.time.Instant.fromEpochSeconds(1)))(user.uid).getOrThrow()
+        val again = user.db.document(Paths.user(user.uid)).get(Source.SERVER).await()
+        assertEquals(created.getTimestamp("createdAt"), again.getTimestamp("createdAt"), "ett befintligt dokument skrivs inte över")
+    }
+
+    @Test
+    fun villkorade_skrivningar_och_serverlasning_utan_nat_ger_Offline_och_skriver_inget() = test {
+        // Som första inloggningen: en port utan lyssnare, eftersom transaktioner inte stoppas av
+        // disableNetwork(). Kort väntan, så att fem anrop ryms i testets tidsgräns.
+        val user = emulator.newSignedInUser(firestorePort = FirebaseEmulator.OFFLINE_PORT)
+        val doses = user.collection(TestUserScope(user.uid), DoseCodec, Paths.DOSES, { Paths.doses(it!!) }, serverWait = 2.seconds)
+        val day = LocalDate(2026, 9, 21)
+        val planned = Dose("a", day, name = "Levaxin")
+        doses.upsert(planned).getOrThrow() // bara i cachen – servern nås aldrig
+        // Dagens lyssning svarar ur cachen, och en avbockning (fältvis update) läggs i cachen direkt.
+        val dayDoses = doses.observeBetween(DoseCodec.DATE, day.toString(), day.toString())
+        assertEquals(listOf("a"), dayDoses.first().map { it.id }, "dagens doser ur cachen utan nät")
+        doses.update(planned.copy(status = DoseStatus.TAKEN), setOf(DoseCodec.STATUS, DoseCodec.TAKEN_AT)).getOrThrow()
+        assertEquals(DoseStatus.TAKEN, dayDoses.first { list -> list.any { it.status == DoseStatus.TAKEN } }.single().status)
+
+        assertEquals(DataError.Offline, doses.confirmedFrom(DoseCodec.DATE, day.toString()).dataError())
+        assertEquals(DataError.Offline, doses.createIfAbsent(listOf(Dose("b", day, name = "Ny"))).dataError())
+        assertEquals(DataError.Offline, doses.deleteIf(listOf("a")) { true }.dataError())
+        assertEquals(DataError.Offline, doses.updateIf(listOf(planned.copy(name = "Annat")), setOf(DoseCodec.NAME)) { true }.dataError())
+        assertEquals(DataError.Offline, doses.move("a", planned.copy(id = "c", name = "Flyttad"), setOf(DoseCodec.NAME)).dataError())
+
+        // En samlingsfråga mot cachen kastar inte för saknade dokument (det gör en dokumentläsning)
+        // och tar med väntande lokala skrivningar.
+        val local = user.db.collection(Paths.doses(user.uid)).get(Source.CACHE).await().documents.associateBy { it.id }
+        assertEquals("Levaxin", local["a"]?.getString("name"), "varken raderad eller ändrad av de villkorade")
+        assertFalse("b" in local, "inget skapat, inget i kö")
+        assertFalse("c" in local, "ingen flytt i kö")
+    }
+
+    @Test
+    fun forsta_inloggningen_utan_nat_ger_Offline() = test {
+        // Firestore pekad mot en port utan lyssnare: anslutningen vägras och transaktionen kan
+        // aldrig nå servern. disableNetwork() duger inte – transaktioner går via egen gRPC-kanal.
+        val user = emulator.newSignedInUser(firestorePort = FirebaseEmulator.OFFLINE_PORT)
+        assertEquals(DataError.Offline, EnsureUserUseCase(user.directory(), FixedClock())(user.uid).dataError())
+    }
+}

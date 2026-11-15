@@ -1,0 +1,539 @@
+package se.kodhast.dagboken.ui.trends
+
+import androidx.compose.runtime.Immutable
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import javax.inject.Provider
+import kotlin.time.Clock
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.toImmutableMap
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import se.kodhast.dagboken.core.engine.CompareKey
+import se.kodhast.dagboken.core.engine.ComparedSerie
+import se.kodhast.dagboken.core.engine.EventIllnessTrend
+import se.kodhast.dagboken.core.engine.FeelingDay
+import se.kodhast.dagboken.core.engine.FeelingStats
+import se.kodhast.dagboken.core.engine.IntervalPoint
+import se.kodhast.dagboken.core.engine.SLEEP_METRICS
+import se.kodhast.dagboken.core.engine.SLEEP_SCORE_KEY
+import se.kodhast.dagboken.core.engine.StackedPoint
+import se.kodhast.dagboken.core.engine.StressSeries
+import se.kodhast.dagboken.core.engine.TrendRange
+import se.kodhast.dagboken.core.engine.TrendSerie
+import se.kodhast.dagboken.core.engine.WATCH_COMPARE_KEYS
+import se.kodhast.dagboken.core.engine.WatchMetric
+import se.kodhast.dagboken.core.engine.ageFromBirthYear
+import se.kodhast.dagboken.core.engine.cappedDays
+import se.kodhast.dagboken.core.engine.cappedReadFrom
+import se.kodhast.dagboken.core.engine.compareSeries
+import se.kodhast.dagboken.core.engine.computeFeelingStats
+import se.kodhast.dagboken.core.engine.dailyEnergyPoints
+import se.kodhast.dagboken.core.engine.earliestDate
+import se.kodhast.dagboken.core.engine.energyByOccasion
+import se.kodhast.dagboken.core.engine.eventIllnessTrend
+import se.kodhast.dagboken.core.engine.feelingEntry
+import se.kodhast.dagboken.core.engine.hasPreviousPeriod
+import se.kodhast.dagboken.core.engine.moodCompareSeries
+import se.kodhast.dagboken.core.engine.previousDays
+import se.kodhast.dagboken.core.engine.readFrom
+import se.kodhast.dagboken.core.engine.sleepQualitySeries
+import se.kodhast.dagboken.core.engine.sleepStagePoints
+import se.kodhast.dagboken.core.engine.stressSeries
+import se.kodhast.dagboken.core.engine.symptomSeries
+import se.kodhast.dagboken.core.engine.toFeelingEntry
+import se.kodhast.dagboken.core.engine.watchCompareSeries
+import se.kodhast.dagboken.core.engine.watchSeries
+import se.kodhast.dagboken.core.model.Activity
+import se.kodhast.dagboken.core.model.Checkin
+import se.kodhast.dagboken.core.model.HealthHistory
+import se.kodhast.dagboken.core.model.IllnessEpisode
+import se.kodhast.dagboken.core.model.Occasion
+import se.kodhast.dagboken.core.model.OptionKind
+import se.kodhast.dagboken.core.model.Profile
+import se.kodhast.dagboken.core.model.Screening
+import se.kodhast.dagboken.core.model.Settings
+import se.kodhast.dagboken.core.time.recentDays
+import se.kodhast.dagboken.data.common.combineByKey
+import se.kodhast.dagboken.data.common.withFallback
+import se.kodhast.dagboken.data.health.HealthPermissions
+import se.kodhast.dagboken.data.health.HealthRepository
+import se.kodhast.dagboken.data.health.observedStatus
+import se.kodhast.dagboken.data.repository.ActivityRepository
+import se.kodhast.dagboken.data.repository.DatedRepository
+import se.kodhast.dagboken.data.repository.EventRepository
+import se.kodhast.dagboken.data.repository.IllnessRepository
+import se.kodhast.dagboken.data.repository.OptionsRepository
+import se.kodhast.dagboken.data.repository.ScreeningRepository
+import se.kodhast.dagboken.data.repository.SettingsRepository
+import se.kodhast.dagboken.ui.common.days
+import se.kodhast.dagboken.ui.common.names
+import se.kodhast.dagboken.ui.common.screenSharing
+
+/** Diagramgrupperna i Trender (TRD-19): Mående, Klocka och Jämför. */
+enum class TrendGroup { MOOD, WATCH, COMPARE }
+
+/**
+ * Korten i Trender (TRD-1, TRD-11, TRD-15–TRD-17, TRD-21, TRD-22), i visningsordning inom sin [group]. Alla kort går på
+ * samma maskineri – utfällning, period, serieval, föregående period – och skiljer sig bara i vad de läser och räknar.
+ */
+enum class TrendCard(val group: TrendGroup, val hasSeriesPicker: Boolean, val hasPreviousPeriod: Boolean) {
+    ENERGY_DAY(TrendGroup.MOOD, hasSeriesPicker = false, hasPreviousPeriod = false),
+    ENERGY_OCCASION(TrendGroup.MOOD, hasSeriesPicker = true, hasPreviousPeriod = true),
+    STRESS(TrendGroup.MOOD, hasSeriesPicker = true, hasPreviousPeriod = true),
+    SYMPTOMS(TrendGroup.MOOD, hasSeriesPicker = true, hasPreviousPeriod = true),
+    EVENTS_ILLNESS(TrendGroup.MOOD, hasSeriesPicker = false, hasPreviousPeriod = false),
+
+    /** Känslor (TRD-22): ord och inga tal – varken serieval, föregående period eller Jämför. */
+    FEELINGS(TrendGroup.MOOD, hasSeriesPicker = false, hasPreviousPeriod = false),
+    STEPS(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
+    HEART_RATE(TrendGroup.WATCH, hasSeriesPicker = true, hasPreviousPeriod = true),
+    SLEEP(TrendGroup.WATCH, hasSeriesPicker = true, hasPreviousPeriod = true),
+    SLEEP_STAGES(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = false),
+    SLEEP_QUALITY(TrendGroup.WATCH, hasSeriesPicker = true, hasPreviousPeriod = true),
+    EXERCISE(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
+    CALORIES(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
+    DISTANCE(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
+    OXYGEN(TrendGroup.WATCH, hasSeriesPicker = false, hasPreviousPeriod = true),
+    COMPARE(TrendGroup.COMPARE, hasSeriesPicker = true, hasPreviousPeriod = false)
+    ;
+
+    /**
+     * Serierna som är valda när kortet öppnas första gången (som 3.x): frukost (TRD-1), stress, vilopuls, sömnens
+     * total och sömnkvalitetens poäng; symptomen och Jämför väljs (TRD-17).
+     */
+    val defaultSelection: Set<String>
+        get() = when (this) {
+            ENERGY_OCCASION -> setOf(Occasion.BREAKFAST.wire)
+            STRESS -> setOf(StressSeries.STRESS.name)
+            HEART_RATE -> setOf(WatchMetric.RESTING_HEART_RATE.name)
+            SLEEP -> setOf(WatchMetric.SLEEP_TOTAL.name)
+            SLEEP_QUALITY -> setOf(SLEEP_SCORE_KEY)
+            else -> emptySet()
+        }
+
+    /** Klockan och Jämför läser aldrig längre bakåt än ett år – "Allt" är de senaste 365 dagarna (TRD-15, TRD-17). */
+    val cappedHistory: Boolean get() = group != TrendGroup.MOOD
+
+    /** Klockmåtten ett linjekort i Klocka visar (TRD-11, TRD-15); tomt för övriga kort. */
+    val metrics: List<WatchMetric>
+        get() = when (this) {
+            STEPS -> listOf(WatchMetric.STEPS)
+            HEART_RATE -> listOf(WatchMetric.RESTING_HEART_RATE, WatchMetric.HEART_RATE_AVG)
+            SLEEP -> SLEEP_METRICS
+            EXERCISE -> listOf(WatchMetric.EXERCISE)
+            CALORIES -> listOf(WatchMetric.ACTIVE_CALORIES)
+            DISTANCE -> listOf(WatchMetric.DISTANCE)
+            OXYGEN -> listOf(WatchMetric.OXYGEN_SATURATION)
+            else -> emptyList()
+        }
+
+    companion object {
+        fun inGroup(group: TrendGroup): List<TrendCard> = entries.filter { it.group == group }
+    }
+}
+
+/**
+ * Det användaren styr i ett kort: utfällt (TRD-14, stängt från början), period (TRD-3), "Föregående period"
+ * (TRD-18, av från början) och valda serier (nycklar ur `TrendSerie.key`).
+ */
+data class CardControls(
+    val expanded: Boolean = false,
+    val range: TrendRange = TrendRange.DEFAULT,
+    val previous: Boolean = false,
+    val selected: Set<String> = emptySet()
+) {
+    /** Tillvalet visas bara för kort som kan jämföra och en period som har en föregående (inte "Allt"). */
+    fun showsPrevious(card: TrendCard): Boolean = card.hasPreviousPeriod && range.hasPreviousPeriod
+
+    /** Föregående period ritas när tillvalet är på och finns. */
+    fun comparesPrevious(card: TrendCard): Boolean = previous && showsPrevious(card)
+}
+
+/** En series namn ur Listor (symptomen; `null` också när alternativet saknas); `null` för fasta serier, vars namn skärmen slår upp på nyckeln. */
+data class SeriesInfo(val key: String, val name: String?)
+
+/** Det ett utfällt kort visar – räknat i `:core`, utlagt på periodens [days]. */
+sealed interface CardData {
+    val days: List<LocalDate>
+
+    /** Energi per dag (TRD-8): dagens spann och dagsvärde, `null` = lucka. */
+    data class EnergyDay(override val days: List<LocalDate>, val points: List<IntervalPoint?>) : CardData
+
+    /**
+     * Ett linjediagram (TRD-1, TRD-2, TRD-18): alla serier kortet erbjuder ([available]), de valda ([shown], i
+     * samma ordning) och föregående periods motsvarigheter ([previous], tom när tillvalet är av).
+     * [needsBirthYear]: sömnkvaliteten kan inte räknas förrän födelseåret finns i Profil (HLS-11).
+     */
+    data class Lines(
+        override val days: List<LocalDate>,
+        val available: List<SeriesInfo>,
+        val shown: List<TrendSerie>,
+        val previous: List<TrendSerie>,
+        val needsBirthYear: Boolean = false
+    ) : CardData
+
+    /** Händelser och sjukdom (TRD-21). */
+    data class EventsIllness(override val days: List<LocalDate>, val trend: EventIllnessTrend) : CardData
+
+    /**
+     * Känslor (TRD-22, TRD-24): periodens räkning och mening ([stats], med styrkor och kommentarer) ur måendeloggar och
+     * aktiviteter, i 7-dagarsläget periodens dagar var för sig ([week], tom annars) med dagens ord i tidsordning, och
+     * namnen ur Listor på aktivitetstyperna som har en kommentar ([activityNames], id → namn) till "Varför".
+     */
+    data class Feelings(
+        override val days: List<LocalDate>,
+        val stats: FeelingStats,
+        val week: List<FeelingDay>,
+        val activityNames: Map<String, String> = emptyMap()
+    ) : CardData {
+        val isEmpty: Boolean get() = stats.tally.isEmpty
+    }
+
+    /** Sömnstadierna per natt (TRD-16): en stapel per dag i `SLEEP_STAGE_METRICS` ordning. */
+    data class Stacked(override val days: List<LocalDate>, val points: List<StackedPoint>) : CardData
+
+    /**
+     * Jämför (TRD-17): alla valbara serier ([available], nycklar ur `CompareKey.wire`, också valda utan data så att de
+     * går att avmarkera) och de valda med data, indexerade 0–100 med sitt verkliga min/max ([shown]). [selectedCount]
+     * skiljer "välj minst två" från "för lite data"; [needsBirthYear]: sömnkvaliteten valdes men saknar födelseår (HLS-11).
+     */
+    data class Compare(
+        override val days: List<LocalDate>,
+        val available: List<SeriesInfo>,
+        val shown: List<ComparedSerie>,
+        val selectedCount: Int,
+        val needsBirthYear: Boolean = false
+    ) : CardData
+}
+
+/** Ett korts läge: det användaren styr och – när kortet lästs – datan, som står kvar när det fälls ihop. */
+@Immutable
+data class TrendCardState(val controls: CardControls, val data: CardData? = null)
+
+/**
+ * Trenders grupper och kort. Klockans läge visas inte härifrån: Klocka-sektionens status och Hälsa idag har en enda
+ * källa, `ClockViewModel` (TRD-20); korten visas oavsett läge, stängda.
+ */
+@Immutable
+data class TrendsUiState(
+    val group: TrendGroup = TrendGroup.MOOD,
+    val cards: ImmutableMap<TrendCard, TrendCardState> = TrendCard.entries.associateWith { TrendCardState(CardControls(selected = it.defaultSelection)) }.toImmutableMap(),
+    /** Dagen som är vald i Känslors vecka (TRD-22) – dess ord visas under raden; `null` = ingen. */
+    val feelingDay: LocalDate? = null,
+    /** Hur många av periodens kommentarer Känslors "Varför" visar (TRD-24): fem, fem till per "Visa fler". */
+    val feelingNotes: Int = FEELING_NOTES_PAGE
+)
+
+sealed interface TrendsEvent {
+    data class ShowGroup(val group: TrendGroup) : TrendsEvent
+
+    /** Titelraden: fäll ut eller ihop (TRD-14). */
+    data class Toggle(val card: TrendCard) : TrendsEvent
+
+    /** Kortets period (TRD-3) – zoom och panorering nollställs i diagrammet när x-axeln byts (TRD-10). */
+    data class SetRange(val card: TrendCard, val range: TrendRange) : TrendsEvent
+
+    /** "Föregående period" (TRD-18). */
+    data class SetPrevious(val card: TrendCard, val enabled: Boolean) : TrendsEvent
+
+    /** En serie till eller från i kortets serieval (TRD-2). */
+    data class ToggleSeries(val card: TrendCard, val key: String) : TrendsEvent
+
+    /** En dag i Känslors vecka (TRD-22): väljer den, eller avmarkerar den valda. */
+    data class SelectFeelingDay(val date: LocalDate) : TrendsEvent
+
+    /** "Visa fler" i Känslors "Varför" (TRD-24): fem kommentarer till. */
+    data object ShowMoreFeelingNotes : TrendsEvent
+}
+
+/** Så många kommentarer visar "Varför" åt gången (TRD-24). */
+const val FEELING_NOTES_PAGE = 5
+
+/**
+ * Fliken Trender (TRD-1–TRD-3, TRD-8, TRD-11, TRD-14–TRD-19, TRD-21): varje kort läser sin egen period – **först
+ * när det fällts ut** (TRD-15) – och all matematik görs i `:core` (`TrendSeries`, `WatchSeries`, `CompareIndex`,
+ * `TrendRange`, `PreviousPeriod`). Två kort med samma läsning delar den – också klockans hälsoläsning, som
+ * aldrig persisteras (HLS-5) – och ett kort som fälls ihop slutar läsa men behåller sin senaste data till
+ * sammanfattningen. Läsfel visar tomt läge och försöker igen (`withFallback`). Bara de senaste 30 dagarna lyssnas på;
+ * längre perioder läses i historikläget (NFR-24).
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+@HiltViewModel
+class TrendsViewModel @Inject constructor(
+    private val screenings: ScreeningRepository,
+    private val activities: ActivityRepository,
+    private val events: EventRepository,
+    private val illnesses: IllnessRepository,
+    options: OptionsRepository,
+    private val health: HealthRepository,
+    permissions: HealthPermissions,
+    settings: SettingsRepository,
+    clock: Clock,
+    private val zone: Provider<TimeZone>
+) : ViewModel() {
+    /** Dagens datum, igen vid midnatt – då rensas läsningarna som slutade på gårdagen (ingen nyckel lever kvar per dag). */
+    private val today: Flow<LocalDate> = clock.days { zone.get() }.distinctUntilChanged()
+        .onEach { today -> reads.keys.removeAll { it.second.endInclusive != today } }
+        .shareIn(viewModelScope, screenSharing(), replay = 1)
+
+    private val group = MutableStateFlow(TrendGroup.MOOD)
+    private val feelingDay = MutableStateFlow<LocalDate?>(null)
+    private val feelingNotes = MutableStateFlow(FEELING_NOTES_PAGE)
+    private val controls = MutableStateFlow(TrendsUiState().cards.mapValues { it.value.controls })
+
+    /** Symptomens namn ur Listor (arkiverade med, SET-11); vid läsfel bara id:n. */
+    private val symptomNames: Flow<Map<String, String>> =
+        options.names(OptionKind.SYMPTOM)
+
+    /** Aktiviteternas namn ur Listor (arkiverade med) – när i Känslors "Varför" (TRD-24); vid läsfel inga namn. */
+    private val activityNames: Flow<Map<String, String>> =
+        options.names(OptionKind.ACTIVITY)
+
+    /** Profilen för sömnkvalitetens åldersnormer (HLS-11); utan födelseår blir varje natt en lucka. */
+    private val profile: Flow<Profile> = settings.settings.withFallback(Settings()).map { it.profile }.distinctUntilChanged()
+
+    /**
+     * Klockans läge och de valfria mått som saknar åtkomst (HLS-4, HLS-14) – bara för att läsa om klockkorten när något
+     * av dem ändras (behörighet given eller återkallad i Health Connect); skärmen visar `ClockViewModel`s läge.
+     */
+    private val healthAccess: Flow<String> =
+        combine(health.observedStatus(), permissions.missingOptional.withFallback(null)) { status, missing -> "$status:${missing?.sorted()}" }
+            .distinctUntilChanged()
+
+    /**
+     * Delade läsningar per källa och intervall – två kort med samma period läser en gång, och ett kort som byter
+     * period eller fälls ihop och ut igen prenumererar inte om en läsning som redan går. Nycklarna slutar alltid
+     * på idag, så [today] rensar gårdagens vid midnatt; cachen är därmed aldrig större än antalet aktiva läsningar.
+     */
+    private val reads = mutableMapOf<Pair<String, ClosedRange<LocalDate>>, Flow<*>>()
+
+    /** Antal cachade läsningar – för testet att cachen inte växer över dagbyten. */
+    internal val cachedReads: Int get() = reads.size
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> shared(source: String, range: ClosedRange<LocalDate>, fallback: T, create: () -> Flow<T>): Flow<T> = reads.getOrPut(source to range) { create().withFallback(fallback).shareIn(viewModelScope, screenSharing(), replay = 1) } as Flow<T>
+
+    /**
+     * Dagbokens poster från [from] till [today] (NFR-24), en delad läsning per källa och period: historikläget för hela
+     * perioden och lyssnare bara på de senaste 30 dagarna räknat från idag (`recentDays`, perioden Månad) – aldrig på
+     * föregående periods eller "Allt"s äldre dagar.
+     */
+    private fun <T> dated(source: String, repository: DatedRepository<T>, from: LocalDate, today: LocalDate): Flow<List<T>> = shared(source, from..today, emptyList()) { repository.observeDays(from, today, listOf(recentDays(today))) }
+
+    private fun screenings(from: LocalDate, today: LocalDate) = dated("screenings", screenings, from, today)
+
+    private fun activities(from: LocalDate, today: LocalDate) = dated("activities", activities, from, today)
+
+    private fun events(from: LocalDate, today: LocalDate) = dated("events", events, from, today)
+
+    /**
+     * Klockans dagshistorik för perioden (HLS-12), **en** läsning som delas av alla klockkort och Jämför med samma
+     * period (TRD-15); utan Health Connect bara luckor. Läsningen är nycklad på klockans läge och de valfria
+     * behörigheterna: blir Health Connect tillgängligt (eller en behörighet given eller återkallad) läses perioden om och öppna kort fylls på – också efter ett fel som
+     * annars vore bestående. Inget sparas (HLS-5).
+     */
+    private fun health(from: LocalDate, to: LocalDate): Flow<HealthHistory> = healthAccess.flatMapLatest { access ->
+        // En läsning för ett tidigare läge är inaktuell: tillbaka till samma läge ska läsa om, inte visa den gamla.
+        reads.keys.removeAll { (source, _) -> source.startsWith(HEALTH_READ) && source != "$HEALTH_READ$access" }
+        shared("$HEALTH_READ$access", from..to, HealthHistory.empty(from, to)) { flow { emit(health.history(from, to).getOrThrow()) } }
+    }
+
+    /**
+     * HIST-9-mönstret: alla episoder (en användare har få) med sina incheckningar; incheckningarna lyssnas om bara
+     * när episoderna byts. Oberoende av period, så nyckeln är hela tiden fram till idag – delad av varje
+     * periodbyte och utfällning.
+     */
+    private fun illness(to: LocalDate): Flow<Illness> = shared("illness", TrendRange.ALL_FROM..to, Illness(emptyList(), emptyMap())) {
+        illnesses.observeEpisodes().combineByKey(
+            { episodes -> episodes.map { it.id } },
+            { ids -> if (ids.isEmpty()) flowOf(emptyMap()) else combine(ids.map { id -> illnesses.observeCheckins(id).map { id to it } }) { it.toMap() } }
+        ) { episodes, checkins -> Illness(episodes, checkins) }
+    }
+
+    private data class Illness(val episodes: List<IllnessEpisode>, val checkins: Map<String, List<Checkin>>)
+
+    /**
+     * Perioden ett kort läser och visar: posterna från [from] till idag, x-axeln [days] och föregående periods dagar.
+     * Klockan och Jämför kapar "Allt" vid ett år ([TrendCard.cappedHistory]); dagbokens kort går till första loggen.
+     */
+    private class Period(val card: TrendCard, val controls: CardControls, val today: LocalDate) {
+        private val withPrevious = controls.comparesPrevious(card)
+        val from: LocalDate = if (card.cappedHistory) controls.range.cappedReadFrom(today, withPrevious) else controls.range.readFrom(today, withPrevious)
+        fun days(earliest: LocalDate? = null) = if (card.cappedHistory) controls.range.cappedDays(today) else controls.range.days(today, earliest)
+        val previous: List<LocalDate>? = if (withPrevious) controls.range.previousDays(today) else null
+    }
+
+    /** Kortets data medan det är utfällt; ingenting läses i stängt läge (TRD-15). Det senaste står kvar efter ihopfällning. */
+    private fun cardData(card: TrendCard): Flow<CardData?> = combine(controls.map { it.getValue(card) }.distinctUntilChanged(), today) { c, t -> Period(card, c, t) }
+        .flatMapLatest { period -> if (!period.controls.expanded) flowOf(null) else load(period) }
+        .scan(null as CardData?) { last, next -> next ?: last }
+
+    private fun load(period: Period): Flow<CardData> {
+        val (from, to) = period.from to period.today
+        return when (period.card) {
+            TrendCard.ENERGY_DAY -> screenings(from, to).map { s ->
+                val days = period.days(earliestDate(s.map { it.date }))
+                CardData.EnergyDay(days, dailyEnergyPoints(s, days))
+            }
+
+            TrendCard.ENERGY_OCCASION -> screenings(from, to).map { s -> lines(period, earliestDate(s.map { it.date })) { days -> energyByOccasion(s, days) } }
+
+            TrendCard.STRESS -> combine(screenings(from, to), activities(from, to)) { s, a ->
+                lines(period, earliest(s, a)) { days -> stressSeries(s, a, days) }
+            }
+
+            TrendCard.SYMPTOMS -> combine(screenings(from, to), activities(from, to), symptomNames) { s, a, names ->
+                lines(period, earliest(s, a), names) { days -> symptomSeries(s, a, days) }
+            }
+
+            TrendCard.EVENTS_ILLNESS -> combine(events(from, to), illness(to)) { e, (episodes, checkins) ->
+                val earliest = earliestDate(e.map { it.date } + episodes.map { it.start } + checkins.values.flatten().map { it.date })
+                val days = period.days(earliest)
+                CardData.EventsIllness(days, eventIllnessTrend(e, episodes, checkins, days))
+            }
+
+            TrendCard.FEELINGS -> combine(screenings(from, to), activities(from, to), activityNames) { s, a, names -> feelings(period, s, a, names) }
+
+            TrendCard.SLEEP_STAGES -> health(from, to).map { h -> period.days().let { days -> CardData.Stacked(days, sleepStagePoints(h, days)) } }
+
+            TrendCard.SLEEP_QUALITY -> combine(health(from, to), profile) { h, p ->
+                val age = ageFromBirthYear(p.birthYear, period.today)
+                lines(period, null) { days -> sleepQualitySeries(h, age, p.sex, days) }.copy(needsBirthYear = age == null)
+            }
+
+            TrendCard.STEPS, TrendCard.HEART_RATE, TrendCard.SLEEP, TrendCard.EXERCISE, TrendCard.CALORIES, TrendCard.DISTANCE, TrendCard.OXYGEN ->
+                health(from, to).map { h -> lines(period, null) { days -> watchSeries(h, period.card.metrics, days) } }
+
+            TrendCard.COMPARE -> compare(period)
+        }
+    }
+
+    /**
+     * Jämför (TRD-17): dagbokens serier och klockans i samma kort. Klockan läses bara när någon klockserie är vald
+     * – annars räcker dagbokens läsningar, och Health Connect behöver inte svara för att diagrammet ska ritas.
+     */
+    private fun compare(period: Period): Flow<CardData> {
+        val (from, to) = period.from to period.today
+        val selected = period.controls.selected
+        val watchKeys = selected.mapNotNull { CompareKey.parse(it) }.filter { it.fromWatch }
+        val watch = if (watchKeys.isNotEmpty()) health(from, to) else flowOf(HealthHistory())
+        return combine(screenings(from, to), activities(from, to), symptomNames, watch, profile) { s, a, names, h, p ->
+            val days = period.days()
+            val age = ageFromBirthYear(p.birthYear, period.today)
+            // Bara de valda klockserierna räknas (sömnkvaliteten poängsätts bara när den är vald); dagbokens serier
+            // behövs i sin helhet för menyn (periodens symptom).
+            val mood = moodCompareSeries(s, a, days)
+            val keys = mood.map { it.key } + WATCH_COMPARE_KEYS.map { it.wire }
+            // Ett valt symptom utan data i perioden står kvar i menyn så att det går att avmarkera (som Mående → Symptom).
+            val available = (keys + (selected - keys.toSet()).sorted())
+                .map { key -> SeriesInfo(key, (CompareKey.parse(key) as? CompareKey.Symptom)?.let { names[it.optionId] }) }
+            val chosen = mood.filter { it.key in selected } + watchCompareSeries(h, age, p.sex, days, watchKeys)
+            CardData.Compare(days, available, compareSeries(chosen), selected.size, needsBirthYear = age == null && CompareKey.SleepQuality in watchKeys)
+        }
+    }
+
+    /**
+     * Känslor (TRD-22): samma räkning per dag som Idags Dagens känslor (`computeFeelingDay`), men här över periodens
+     * måendeloggar **och** aktiviteter (Idag bara måendeloggar, HEM-21); veckan bara i 7-dagarsläget – periodens dagar ur
+     * samma gruppering per dag.
+     */
+    private fun feelings(period: Period, s: List<Screening>, a: List<Activity>, names: Map<String, String>): CardData.Feelings {
+        val days = period.days(earliest(s, a))
+        // Läsningen är perioden (kortet har ingen föregående period).
+        val entries = s.mapNotNull { it.feelingEntry() } + a.mapNotNull { it.toFeelingEntry(it.time, activityType = it.optionId) }
+        val stats = computeFeelingStats(entries)
+        // Bara namnen "Varför" behöver – kommentarernas aktivitetstyper.
+        val used = stats.notes.mapNotNull { it.activityType }.toSet()
+        return CardData.Feelings(days, stats, if (period.controls.range == TrendRange.SEVEN_DAYS) stats.alignTo(days) else emptyList(), names.filterKeys { it in used })
+    }
+
+    private fun earliest(s: List<Screening>, a: List<Activity>) = earliestDate(s.map { it.date } + a.map { it.date })
+
+    /** Ett linjediagram: serierna för perioden och – när tillvalet är på – samma serier för föregående period (TRD-18). */
+    private fun lines(period: Period, earliest: LocalDate?, names: Map<String, String> = emptyMap(), series: (List<LocalDate>) -> List<TrendSerie>): CardData.Lines {
+        val days = period.days(earliest)
+        val all = series(days)
+        // Ett kort utan serieval visar alla sina serier (Steg, Träning … har en; Sömnstadier är ett eget kort).
+        val selected = if (period.card.hasSeriesPicker) period.controls.selected else all.map { it.key }.toSet()
+        val keys = all.map { it.key }
+        // Symptomen är dynamiska: periodens symptom kan väljas, namnet kommer ur Listor (saknas det sätter skärmen
+        // ett allmänt namn), och ett valt symptom utan data i perioden står kvar i menyn så att det går att avmarkera.
+        val symptoms = period.card == TrendCard.SYMPTOMS
+        val available = (keys + if (symptoms) (selected - keys.toSet()).sorted() else emptyList())
+            .map { key -> SeriesInfo(key, if (symptoms) names[key] else null) }
+        val shown = all.filter { it.key in selected }
+        // Föregående period visar bara serier som också visas i den nuvarande (samma x-index, samma färg).
+        val current = shown.map { it.key }.toSet()
+        val previous = period.previous?.let { days -> series(days).filter { it.key in current } }.orEmpty()
+        return CardData.Lines(days, available, shown, previous)
+    }
+
+    private val data: Flow<Map<TrendCard, CardData?>> = combine(TrendCard.entries.map { card -> cardData(card).map { card to it } }) { it.toMap() }
+
+    val state: StateFlow<TrendsUiState> = combine(group, controls, data, feelingDay, feelingNotes) { group, controls, data, feelingDay, feelingNotes ->
+        // Den valda dagen gäller bara så länge den ligger i veckan som visas – efter midnatt kan den ha fallit ur (TRD-22).
+        val week = (data[TrendCard.FEELINGS] as? CardData.Feelings)?.week.orEmpty()
+        TrendsUiState(
+            group,
+            TrendCard.entries.associateWith { TrendCardState(controls.getValue(it), data[it]) }.toImmutableMap(),
+            feelingDay?.takeIf { day -> week.any { it.date == day } },
+            feelingNotes
+        )
+    }.stateIn(viewModelScope, screenSharing(), TrendsUiState())
+
+    fun onEvent(event: TrendsEvent) {
+        when (event) {
+            is TrendsEvent.ShowGroup -> group.value = event.group
+
+            is TrendsEvent.Toggle -> {
+                update(event.card) { it.copy(expanded = !it.expanded) }
+                // Ett utfällt Känslor-kort börjar alltid utan vald dag och med fem kommentarer (TRD-22, TRD-24).
+                if (event.card == TrendCard.FEELINGS) resetFeelings()
+            }
+
+            is TrendsEvent.SetRange -> {
+                update(event.card) { it.copy(range = event.range) }
+                // En ny period för Känslor börjar utan vald dag och med fem kommentarer (TRD-22, TRD-24).
+                if (event.card == TrendCard.FEELINGS) resetFeelings()
+            }
+
+            is TrendsEvent.SetPrevious -> update(event.card) { it.copy(previous = event.enabled) }
+
+            is TrendsEvent.ToggleSeries -> update(event.card) { it.copy(selected = if (event.key in it.selected) it.selected - event.key else it.selected + event.key) }
+
+            // Toggeln utgår från valet som visas: en dag som fallit ur veckan räknas inte som vald (TRD-22).
+            is TrendsEvent.SelectFeelingDay -> feelingDay.value = event.date.takeUnless { it == feelingDay.value }
+
+            TrendsEvent.ShowMoreFeelingNotes -> feelingNotes.value += FEELING_NOTES_PAGE
+        }
+    }
+
+    private fun resetFeelings() {
+        feelingDay.value = null
+        feelingNotes.value = FEELING_NOTES_PAGE
+    }
+
+    private fun update(card: TrendCard, change: (CardControls) -> CardControls) {
+        controls.value = controls.value + (card to change(controls.value.getValue(card)))
+    }
+}
+
+/** Nyckelprefixet för klockans läsningar i Trenders cache. */
+private const val HEALTH_READ = "health:"

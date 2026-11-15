@@ -5,8 +5,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { COLLECTIONS } from '../lib/collections.mjs';
 import { readRepoFile as read } from './helpers/repo.mjs';
-const pathsKt = read('app/src/main/kotlin/se/partee71/dagboken/data/firestore/Paths.kt');
-const coreNamesKt = read('core/src/main/kotlin/se/partee71/dagboken/core/schema/CollectionNames.kt');
+const pathsKt = read('app/src/main/kotlin/se/kodhast/dagboken/data/firestore/Paths.kt');
+const coreNamesKt = read('core/src/main/kotlin/se/kodhast/dagboken/core/schema/CollectionNames.kt');
 
 /** Platshållare ({uid}, $episodeId …) jämförs bara till sin position. */
 const normalize = (p) => p.replace(/\$\{?\w+\}?|\{\w+\}/g, '{}');

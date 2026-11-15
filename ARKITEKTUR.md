@@ -334,7 +334,7 @@ hårdkodar aldrig. Värdena nedan är mockupens approximation – kontrast räkn
 `ExampleChips`, `AppCard`, `PausableRow`, `AppSnackbarHost`, `AppDivider`, `ChoiceGrid`, `ColorSwatchPicker`,
 `EmojiPicker`, `AppFloatingToolbar` och `AddSplitButton`, liksom `EditorState`/`EditorLoader`, `ListUiState`/`ListLoader`,
 `DetailUiState`/`DetailLoader`, `ArchiveActions` och `shownAfter`, kommer nu från biblioteket android-ui
-(Maven `se.partee71.ui:ui-theme`, `ui-components`, `ui-common`, `ui-testing` för kontraktstesterna) – samma
+(Maven `se.kodhast.ui:ui-theme`, `ui-components`, `ui-common`, `ui-testing` för kontraktstesterna) – samma
 källa som ReseApoteket. Appen har inga kopior; skillnader uttrycks med bibliotekets parametrar, och
 raderna är märkta *(android-ui)* i skill `shared-ui-components`. Fel blir `UiError` på ett ställe
 (`AppErrors` i `ui/common/AppErrors.kt`).

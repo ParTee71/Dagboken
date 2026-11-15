@@ -5,7 +5,7 @@ import { CURRENT_VERSION, FIRST_VERSION, versionOf } from '../lib/schema.mjs';
 import { STEPS } from '../lib/migrate.mjs';
 import { readRepoFile, textLimits } from './helpers/repo.mjs';
 
-const schemaDir = 'core/src/main/kotlin/se/partee71/dagboken/core/schema';
+const schemaDir = 'core/src/main/kotlin/se/kodhast/dagboken/core/schema';
 const schemaKt = readRepoFile(`${schemaDir}/Schema.kt`);
 const migratorKt = readRepoFile(`${schemaDir}/SchemaMigrator.kt`);
 const constant = (name) => Number(schemaKt.match(new RegExp(`const val ${name} = (\\d+)`))[1]);

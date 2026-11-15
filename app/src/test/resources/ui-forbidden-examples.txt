@@ -3,10 +3,10 @@
 # bygget alltid tolkar filerna likadant. Lägg till ett exempel här när ett mönster ändras.
 # Allt körs med tom allowlist utom sektionen allowlist.
 #
-# ok            = rader som är tillåtna i feature-kod (app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt)
+# ok            = rader som är tillåtna i feature-kod (app/src/main/kotlin/se/kodhast/dagboken/ui/today/TodayRow.kt)
 # stopp         = rader som ska stoppas i feature-kod
-# komponent-ok  = rader som är tillåtna i en delad komponent (app/src/main/kotlin/se/partee71/dagboken/ui/components/X.kt)
-# diagram-ok    = rader som är tillåtna i ett delat diagram (app/src/main/kotlin/se/partee71/dagboken/ui/diagram/X.kt)
+# komponent-ok  = rader som är tillåtna i en delad komponent (app/src/main/kotlin/se/kodhast/dagboken/ui/components/X.kt)
+# diagram-ok    = rader som är tillåtna i ett delat diagram (app/src/main/kotlin/se/kodhast/dagboken/ui/diagram/X.kt)
 # diagram-stopp = Vico-rader som stoppas även i en delad komponent i ui/components (X.kt)
 # scope         = <sökväg><TAB><scope, kommaseparerade; tomt = inga>
 # allowlist     = <allowlist-rad><TAB><kodrad i TodayRow.kt><TAB><ok|stopp>
@@ -107,26 +107,26 @@ VerticalAxis.rememberStart()
 
 [scope]
 README.md	
-app/src/main/kotlin/se/partee71/dagboken/ui/diary/notes.md	
+app/src/main/kotlin/se/kodhast/dagboken/ui/diary/notes.md	
 app/src/test/kotlin/X.kt	
-app/src/main/kotlin/se/partee71/dagboken/data/firestore/FirestoreCollection.kt	expressive,vico,dispatchers
-app/src/main/kotlin/se/partee71/dagboken/ui/theme/Theme.kt	firestore,vico,dispatchers,events
-app/src/main/kotlin/se/partee71/dagboken/ui/common/EditorState.kt	firestore,expressive,vico,dispatchers,events
-app/src/main/kotlin/se/partee71/dagboken/ui/components/screens/EntityListScreen.kt	firestore,vico,dispatchers,events
-app/src/main/kotlin/se/partee71/dagboken/ui/diagram/LineChart.kt	firestore,expressive,dispatchers,events
-app/src/main/kotlin/se/partee71/dagboken/ui/diary/DiaryScreen.kt	feature,firestore,expressive,vico,dispatchers,events
-app/src/main/kotlin/se/partee71/dagboken/ui/AppRoot.kt	feature,firestore,expressive,vico,dispatchers,events
-app/src/main/kotlin/se/partee71/dagboken/di/AppModule.kt	firestore,expressive,vico
-app/src/main/kotlin/se/partee71/dagboken/data/repository/DoseRepository.kt	firestore,expressive,vico,dispatchers
+app/src/main/kotlin/se/kodhast/dagboken/data/firestore/FirestoreCollection.kt	expressive,vico,dispatchers
+app/src/main/kotlin/se/kodhast/dagboken/ui/theme/Theme.kt	firestore,vico,dispatchers,events
+app/src/main/kotlin/se/kodhast/dagboken/ui/common/EditorState.kt	firestore,expressive,vico,dispatchers,events
+app/src/main/kotlin/se/kodhast/dagboken/ui/components/screens/EntityListScreen.kt	firestore,vico,dispatchers,events
+app/src/main/kotlin/se/kodhast/dagboken/ui/diagram/LineChart.kt	firestore,expressive,dispatchers,events
+app/src/main/kotlin/se/kodhast/dagboken/ui/diary/DiaryScreen.kt	feature,firestore,expressive,vico,dispatchers,events
+app/src/main/kotlin/se/kodhast/dagboken/ui/AppRoot.kt	feature,firestore,expressive,vico,dispatchers,events
+app/src/main/kotlin/se/kodhast/dagboken/di/AppModule.kt	firestore,expressive,vico
+app/src/main/kotlin/se/kodhast/dagboken/data/repository/DoseRepository.kt	firestore,expressive,vico,dispatchers
 
 [allowlist]
-app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card( – test	Card(modifier) { }	ok
-app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card( – test	Card(colors = CardDefaults.cardColors(Color.Red)) { }	stopp
-app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card( – test	Button(onClick = {})	stopp
-app/src/main/kotlin/se/partee71/dagboken/ui/diary/DiaryRow.kt:Card( – annan fil	Card(modifier) { }	stopp
-app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Color.Red – test	tint = Color.Red	ok
+app/src/main/kotlin/se/kodhast/dagboken/ui/today/TodayRow.kt:Card( – test	Card(modifier) { }	ok
+app/src/main/kotlin/se/kodhast/dagboken/ui/today/TodayRow.kt:Card( – test	Card(colors = CardDefaults.cardColors(Color.Red)) { }	stopp
+app/src/main/kotlin/se/kodhast/dagboken/ui/today/TodayRow.kt:Card( – test	Button(onClick = {})	stopp
+app/src/main/kotlin/se/kodhast/dagboken/ui/diary/DiaryRow.kt:Card( – annan fil	Card(modifier) { }	stopp
+app/src/main/kotlin/se/kodhast/dagboken/ui/today/TodayRow.kt:Color.Red – test	tint = Color.Red	ok
 
 [allowlist-fel]
-app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt – saknar symbol
-app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card(
-app/src/main/kotlin/se/partee71/dagboken/ui/today/TodayRow.kt:Card( – 
+app/src/main/kotlin/se/kodhast/dagboken/ui/today/TodayRow.kt – saknar symbol
+app/src/main/kotlin/se/kodhast/dagboken/ui/today/TodayRow.kt:Card(
+app/src/main/kotlin/se/kodhast/dagboken/ui/today/TodayRow.kt:Card( – 

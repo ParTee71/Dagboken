@@ -1,0 +1,64 @@
+package se.kodhast.dagboken.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import se.kodhast.dagboken.navigation.AppNavigation
+import se.kodhast.dagboken.reminders.ReminderLaunch
+import se.kodhast.dagboken.ui.auth.AuthEvent
+import se.kodhast.dagboken.ui.auth.AuthGate
+import se.kodhast.dagboken.ui.auth.AuthUiState
+import se.kodhast.dagboken.ui.auth.AuthViewModel
+import se.kodhast.dagboken.ui.auth.SignInScreen
+import se.kodhast.dagboken.ui.auth.UpdateRequiredScreen
+import se.kodhast.ui.components.AppLoading
+
+/**
+ * Appens rot: inloggningen styr vad som visas (AUTH-1, AUTH-6), sedan flikarna. [launch] är vad en tryckt påminnelse
+ * ska öppna (NOT-9, NOT-11, NOT-12) – det görs när dagboken visas, och [onLaunchHandled] anropas sedan.
+ */
+@Composable
+fun AppRoot(
+    modifier: Modifier = Modifier,
+    launch: ReminderLaunch? = null,
+    onLaunchHandled: () -> Unit = {},
+    viewModel: AuthViewModel = hiltViewModel()
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    AppRootContent(state, viewModel::onEvent, modifier) {
+        AppNavigation(
+            state.account,
+            onSignOut = { viewModel.onEvent(AuthEvent.SignOut) },
+            launch = launch,
+            onLaunchHandled = onLaunchHandled
+        )
+    }
+}
+
+/** Appens bakgrund sätts här, en gång; skärmarna ritar ovanpå den. */
+@Composable
+fun AppRootContent(
+    state: AuthUiState,
+    onEvent: (AuthEvent) -> Unit,
+    modifier: Modifier = Modifier,
+    main: @Composable () -> Unit = { AppNavigation(state.account, onSignOut = { onEvent(AuthEvent.SignOut) }) }
+) {
+    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        when (state.gate) {
+            AuthGate.SignedOut, AuthGate.NeedsUser -> SignInScreen(state, onEvent)
+
+            AuthGate.UpdateRequired -> UpdateRequiredScreen()
+
+            // Syns bara en kort stund vid start; hänger något ser användaren att appen arbetar.
+            AuthGate.Loading -> AppLoading()
+
+            AuthGate.Ready -> main()
+        }
+    }
+}

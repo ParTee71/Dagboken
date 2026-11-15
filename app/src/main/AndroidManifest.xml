@@ -48,16 +48,24 @@
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Dagboken.Splash">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             <!-- Health Connects rationale-handler för Android 13 och äldre (HLS-3): utan den visas ingen samtyckesdialog.
                  Avsiktet bär inga data som appen läser – den öppnar bara appen. -->
             <intent-filter>
                 <action android:name="androidx.health.connect.action.SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
         </activity>
+
+        <!-- Ikonen på hemskärmen bär namnet från före paketbytet (Dagboken #418): en genväg pekar på
+             komponentnamnet, och utan aliaset försvinner den vid uppdateringen. -->
+        <activity-alias
+            android:name="se.partee71.dagboken.MainActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- Samma handler för Android 14 och senare (HLS-3): exporterad, men bara systemet har START_VIEW_PERMISSION_USAGE
              (skill android-intent-security). -->

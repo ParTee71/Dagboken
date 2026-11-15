@@ -1,4 +1,4 @@
-package se.partee71.dagboken.data
+package se.kodhast.dagboken.data
 
 import kotlin.time.Clock
 import kotlin.time.Instant

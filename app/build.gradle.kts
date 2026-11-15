@@ -31,10 +31,12 @@ private fun signingValue(key: String) = localProps.getProperty("signing.$key") ?
 private fun String.toScreamingSnake() = replace(Regex("([a-z])([A-Z])"), "$1_$2").uppercase()
 
 android {
-    namespace = "se.partee71.dagboken"
+    namespace = "se.kodhast.dagboken"
     compileSdk = 37
 
     defaultConfig {
+        // Appens id i Play och på telefonen byts inte med paketnamnet (claude-android #80): ett nytt id
+        // vore en ny app, utan data, inloggning eller Health Connect-behörigheter.
         applicationId = "se.partee71.dagboken"
         minSdk = 30
         targetSdk = 36
