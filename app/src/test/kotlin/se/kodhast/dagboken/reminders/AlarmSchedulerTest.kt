@@ -253,18 +253,21 @@ class AlarmSchedulerTest {
     }
 
     /**
-     * Larmets PendingIntent som versionerna sedan paketbytet (#418) lägger det – mottagarens namn, action och
-     * requestCode som text, inte ur koden, så att ett namnbyte fäller testet. Mottagarna ligger i `se.kodhast`, men
-     * actions behåller det gamla prefixet `se.partee71` ([ReminderIntents]); larm från före #418 täcks av
-     * `ReminderActionsTest`.
+     * Larmets PendingIntent som en tidigare version lägger det – mottagarens namn, action och requestCode som text,
+     * inte ur koden, så att ett namnbyte fäller testet. Actions behåller prefixet `se.partee71` ([ReminderIntents]);
+     * mottagarna ligger i `se.kodhast` sedan paketbytet (#418) och i [legacyPackage] före det.
      */
-    private fun previousVersionAlarm(reminder: Reminder): PendingIntent? {
+    private fun alarmIntent(reminder: Reminder, receiverPackage: String): Pair<Intent, Int> {
         val (receiver, action, requestCode) = when (reminder) {
             is Reminder.Med -> Triple("MedAlarmReceiver", "MED_ALARM", 0x7FE0 + reminder.slot.ordinal)
             is Reminder.Mood -> Triple("ScreeningReminderReceiver", "MOOD_ALARM", 0x7FF0 + reminder.occasion.ordinal)
             Reminder.PeriodEnd -> Triple("PeriodReminderReceiver", "PERIOD_ALARM", 0x7FD0)
         }
-        val intent = Intent().setClassName(f.context!!, "se.kodhast.dagboken.reminders.$receiver").setAction("se.partee71.dagboken.reminders.$action")
+        return Intent().setClassName(f.context!!, "$receiverPackage.$receiver").setAction("se.partee71.dagboken.reminders.$action") to requestCode
+    }
+
+    private fun previousVersionAlarm(reminder: Reminder, receiverPackage: String = "se.kodhast.dagboken.reminders"): PendingIntent? {
+        val (intent, requestCode) = alarmIntent(reminder, receiverPackage)
         return PendingIntent.getBroadcast(f.context, requestCode, intent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
     }
 
@@ -283,6 +286,34 @@ class AlarmSchedulerTest {
 
         scheduler.cancelAll()
         AlarmScheduler.ALL.forEach { assertEquals(null, previousVersionAlarm(it), "avbokningen träffar också larm från förra versionen: $it") }
+    }
+
+    private val legacyPackage = "se.partee71.dagboken.reminders"
+
+    /** Ett larm som versionen före paketbytet (#418) ställde, med mottagaren under det gamla namnet. */
+    private fun setLegacyAlarm(reminder: Reminder) {
+        val (intent, requestCode) = alarmIntent(reminder, legacyPackage)
+        val pending = PendingIntent.getBroadcast(f.context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        f.context!!.getSystemService(android.app.AlarmManager::class.java)
+            .set(android.app.AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 3_600_000, pending)
+    }
+
+    @Test
+    fun `larm från före paketbytet ersätts när allt läggs om och avbokas vid utloggning (#418, NOT-3, AUTH-6)`() = runTest {
+        f.enable(slots = Slot.SCHEDULED.toSet(), occasions = Occasion.entries.toSet())
+        AlarmScheduler.ALL.forEach(::setLegacyAlarm)
+        val alarmManager = shadowOf(f.context!!.getSystemService(android.app.AlarmManager::class.java))
+        assertEquals(AlarmScheduler.ALL.size, alarmManager.scheduledAlarms.size)
+
+        // MY_PACKAGE_REPLACED: de gamla larmen tas bort när de nya läggs, inget dubbleras.
+        val scheduler = f.scheduler()
+        assertEquals(Rescheduled.SCHEDULED, scheduler.rescheduleAll(alarmsCleared = true))
+        assertEquals(AlarmScheduler.ALL.size, alarmManager.scheduledAlarms.size, "inget larm dubblerat")
+        AlarmScheduler.ALL.forEach { assertEquals(null, previousVersionAlarm(it, legacyPackage), "det gamla larmet är borta: $it") }
+
+        AlarmScheduler.ALL.forEach(::setLegacyAlarm)
+        scheduler.cancelAll()
+        assertEquals(0, alarmManager.scheduledAlarms.size, "utloggad: inga larm kvar, inte heller gamla")
     }
 
     // ── Efter omstart (NOT-6) ─────────────────────────────────────────────────

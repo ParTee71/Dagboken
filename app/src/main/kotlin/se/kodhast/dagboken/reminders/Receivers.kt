@@ -163,9 +163,9 @@ class ReminderActions @Inject constructor(
  * Ett utlöst larm (NOT-14): nästa larm först, sedan notisen – en implementation för medicin-, mående- och
  * periodslutslarmen; varje mottagare tar bara emot sin [action].
  *
- * Mottagarna behåller sina klassnamn: ett redan satt larm (`PendingIntent` i AlarmManager) pekar på komponentens namn,
- * som ingår i Intentets identitet (`filterEquals`). Ett nytt namn skulle göra att larm som ställts före en uppdatering
- * levereras till en mottagare som inte finns (och tappas), och att avbokningen inte träffar dem (larmet dubbleras).
+ * Ett redan satt larm (`PendingIntent` i AlarmManager) pekar på mottagarens klassnamn, som ingår i Intentets identitet
+ * (`filterEquals`). Därför har mottagarna kvar sina namn från före paketbytet (#418) som subklasser i `LegacyNames.kt`,
+ * så att gamla larm levereras, och [AlarmScheduler] avbokar larm under båda namnen, så att de inte dubbleras.
  * Namnen och actions är låsta av `AlarmSchedulerTest`.
  */
 abstract class AlarmReceiver(private val action: String) : BroadcastReceiver() {

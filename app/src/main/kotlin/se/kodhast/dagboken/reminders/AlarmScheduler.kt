@@ -177,6 +177,7 @@ class AlarmScheduler @Inject constructor(
 
     /** Lägger [alarm] – exakt när [exact] (läst en gång per omschemaläggning), annars inexakt (NOT-8). */
     private fun schedule(alarm: ReminderAlarm, exact: Boolean) {
+        cancelPending(legacyIntent(alarm.reminder), requestCode(alarm.reminder))
         val pending = PendingIntent.getBroadcast(
             context,
             requestCode(alarm.reminder),
@@ -198,11 +199,27 @@ class AlarmScheduler @Inject constructor(
 
     private fun cancel(reminder: Reminder) {
         ledger.clearScheduled(reminder)
-        PendingIntent.getBroadcast(context, requestCode(reminder), intent(reminder), PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
+        cancelPending(intent(reminder), requestCode(reminder))
+        cancelPending(legacyIntent(reminder), requestCode(reminder))
+    }
+
+    private fun cancelPending(intent: Intent, requestCode: Int) {
+        PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
             ?.let { pending ->
                 alarmManager.cancel(pending)
                 pending.cancel()
             }
+    }
+
+    /**
+     * Larmet som det ställdes före paketbytet (#418): samma action och requestCode, men mottagaren under det gamla
+     * paketnamnet. Komponenten ingår i PendingIntentets identitet, så det avbokas för sig – annars ligger det kvar
+     * och utlöses också efter att påminnelsen slagits av eller flyttats. Kan tas bort med `LegacyNames.kt`.
+     */
+    private fun legacyIntent(reminder: Reminder): Intent {
+        val intent = intent(reminder)
+        val name = checkNotNull(intent.component).className.substringAfterLast('.')
+        return intent.setClassName(context, "$LEGACY_PACKAGE.$name")
     }
 
     /** Larmets Intent utan klockslaget – det PendingIntent jämför (action, mottagare); extras skiljer inte larm åt. */
@@ -237,6 +254,9 @@ class AlarmScheduler @Inject constructor(
     private suspend fun readSettings() = withTimeoutOrNull(READ_WAIT) { settings.get() }
 
     companion object {
+        /** Mottagarnas paket före paketbytet (#418), för [legacyIntent]. */
+        private const val LEGACY_PACKAGE = "se.partee71.dagboken.reminders"
+
         /** Varje påminnelse sin `requestCode` – en kollision skulle skriva över ett annat larm. */
         internal fun requestCode(reminder: Reminder): Int = when (reminder) {
             is Reminder.Med -> REQUEST_MED_BASE + reminder.slot.ordinal

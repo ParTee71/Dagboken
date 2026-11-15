@@ -234,8 +234,8 @@ class ReminderActionsTest {
 
     /**
      * Larm som versionerna före paketbytet (#418) lade: mottagaren i `se.partee71.dagboken.reminders`. Systemet behåller
-     * appens larm vid en uppdatering, och avbokningen träffar dem inte (komponenten skiljer) – de levereras till
-     * mottagarnas gamla namn (`LegacyNames.kt`), som gör samma sak som de nya.
+     * appens larm vid en uppdatering, och de levereras till mottagarnas gamla namn (`LegacyNames.kt`), som gör samma
+     * sak som de nya. Att omläggningen tar bort de gamla larmen med samma requestCode prövar `AlarmSchedulerTest`.
      */
     @Test
     fun `efter uppdateringen förbi paketbytet läggs larmen om hos mottagarna i se kodhast - de gamla når de gamla namnen (#418, NOT-14)`() = runTest {

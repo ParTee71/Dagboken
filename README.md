@@ -184,7 +184,7 @@ chatten (skill [`data-privacy-security`](.claude/skills/data-privacy-security/SK
 1. **Projekt:** Firebase-projektet `dagboken-711d2` finns sedan 3.x. Aktivera
    **Authentication → Google** (redan på för 3.x-inloggningen) och skapa **Firestore** i
    production mode i en EU-region (`europe-west`, ARKITEKTUR.md → Konsekvenser). Spark-planen räcker.
-2. **Android-app:** appen `se.kodhast.dagboken` finns; registrera SHA-1 för både debug- och
+2. **Android-app:** appen `se.partee71.dagboken` (applicationId) finns; registrera SHA-1 för både debug- och
    release-nyckeln. `app/google-services.json` är incheckad – ladda ner en ny och ersätt filen
    om SHA-1 eller OAuth-klienter ändras. Ingen GitHub-secret behövs för den.
 3. **Service accounts** (Google Cloud Console → IAM → Service accounts):
@@ -264,7 +264,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
-| 4.12.4 | **Nytt paketnamn i koden** (`se.kodhast.dagboken`), inget nytt för användaren: appens id, data, inloggning, påminnelser och hemskärmsikonen är desamma, och larmen läggs om av sig själva efter uppdateringen (#418). |
+| 4.12.4 | **Nytt paketnamn i koden** (`se.kodhast.dagboken`), inget nytt för användaren: appens id, data, inloggning, påminnelser och hemskärmsikonen är desamma, och larm och notisknappar från före uppdateringen fungerar som förut (#418). |
 | 4.12.3 | **Tagen-chipet växer inte längre:** ett stjärnmärkt recept med långt namn blev en enorm oval med tidstexten bruten tecken för tecken efter tryck. Titeln kortas nu med "…" och markeringen står kvar på en rad (FAV-13, #413). |
 | 4.12.2 | **Morgonens mediciner direkt:** dagens receptdoser visas på Idag så fort appen öppnas, också utan nät, och kan bockas av innan servern skapat dem. Ingen tom ruta, ingen "Allt avklarat" och inget "Doser saknas" för något som löser sig själv – bara en laddningsindikator när inget kan visas och en diskret rad utan nät (HEM-10, MED-4, #400). |
 | 4.12.1 | **Recept markeras som tagna på Idag:** ett stjärnmärkt recept får bockikon och "tagen 14:05" direkt efter tryck (också i Fler) och slår om tillbaka vid Ångra, och ett stjärnmärkt recept syns som chip även när det är inaktivt eller utgånget (FAV-12, FAV-13, #398). |
