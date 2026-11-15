@@ -122,7 +122,7 @@ jobs:
       - name: Pluginen claude-android (instrumented-paths.mjs)
         uses: actions/checkout@v4
         with:
-          repository: ParTee71/claude-android
+          repository: Kodhast/claude-android
           path: .claude-android
           sparse-checkout: plugins/android/checks
 
