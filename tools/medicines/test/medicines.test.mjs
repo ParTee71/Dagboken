@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { crc32, deflateRawSync } from 'node:zlib';
-import { dateOf, findListUrl, format, select } from '../lib/medicines.mjs';
+import { candidateUrls, dateOf, download, findListUrl, format, select } from '../lib/medicines.mjs';
 import { readFirstSheet, unzip } from '../lib/xlsx.mjs';
 
 /** Ett minimalt zip-arkiv – första filen lagrad, resten deflate – som Excel skriver dem. */
@@ -107,4 +107,65 @@ test('adressen och datumet hittas på sidan med öppna data', () => {
   assert.equal(findListUrl('<p>inget</p>'), null);
   assert.equal(dateOf('https://x/Lakemedelsprodukter-2026-10-04.xlsx'), '2026-10-04');
   assert.equal(dateOf('lista.xlsx'), null);
+});
+
+const LIST = (date) => `https://www.lakemedelsverket.se/globalassets/excel/Lakemedelsprodukter-${date}.xlsx`;
+
+test('utan länk prövas dagens datum i svensk tid först, sedan bakåt', () => {
+  // 23:30 UTC den 16:e är redan den 17:e i Sverige.
+  assert.deepEqual(candidateUrls(new Date('2026-11-16T23:30:00Z'), 3),
+    [LIST('2026-11-17'), LIST('2026-11-16'), LIST('2026-11-15')]);
+  assert.deepEqual(candidateUrls(new Date('2026-03-01T10:00:00Z'), 2), [LIST('2026-03-01'), LIST('2026-02-28')]);
+  assert.equal(candidateUrls(new Date('2026-11-16T12:00:00Z')).length, 7);
+});
+
+/** En fake för fetch: svaren per adress, 404 för allt annat, och adresserna i den ordning de hämtades. */
+function fakeFetch(pages) {
+  const calls = [];
+  const fetchFn = async (url) => {
+    calls.push(url);
+    const body = pages[url];
+    return body === undefined
+      ? { ok: false, status: 404 }
+      : { ok: true, status: 200, text: async () => body, arrayBuffer: async () => new TextEncoder().encode(body).buffer };
+  };
+  return { fetchFn, calls };
+}
+
+const PAGE = 'https://www.lakemedelsverket.se/sv/om-webbplatsen/oppna-data';
+const NOW = new Date('2026-11-16T18:00:00Z');
+
+test('länken på sidan går först', async () => {
+  const { fetchFn, calls } = fakeFetch({
+    [PAGE]: '<a href="/globalassets/excel/Lakemedelsprodukter-2026-11-12.xlsx">Alla</a>',
+    [LIST('2026-11-12')]: 'xlsx',
+  });
+  const { name, buf } = await download(fetchFn, NOW);
+  assert.equal(name, LIST('2026-11-12'));
+  assert.equal(buf.toString(), 'xlsx');
+  assert.deepEqual(calls, [PAGE, LIST('2026-11-12')]);
+});
+
+test('utan länk på sidan hittas den senaste filen dag för dag bakåt', async () => {
+  const { fetchFn, calls } = fakeFetch({ [PAGE]: '<p>Öppna data</p>', [LIST('2026-11-15')]: 'xlsx' });
+  const { name } = await download(fetchFn, NOW);
+  assert.equal(name, LIST('2026-11-15'));
+  assert.deepEqual(calls, [PAGE, LIST('2026-11-16'), LIST('2026-11-15')]);
+});
+
+test('hittas ingen fil säger felet vilka adresser som prövades', async () => {
+  const { fetchFn, calls } = fakeFetch({ [PAGE]: '<p>Öppna data</p>' });
+  await assert.rejects(download(fetchFn, NOW), (err) => {
+    assert.match(err.message, /ingen länk på https:\/\/www\.lakemedelsverket\.se\/sv\/om-webbplatsen\/oppna-data/);
+    assert.ok(err.message.includes(LIST('2026-11-16')) && err.message.includes(LIST('2026-11-10')));
+    return true;
+  });
+  assert.equal(calls.length, 1 + 7);
+});
+
+test('ett annat fel än 404 stoppar direkt', async () => {
+  const fetchFn = async (url) => (url === PAGE
+    ? { ok: true, status: 200, text: async () => '' }
+    : { ok: false, status: 503 });
+  await assert.rejects(download(fetchFn, NOW), /Lakemedelsprodukter-2026-11-16\.xlsx: HTTP 503/);
 });
