@@ -368,21 +368,24 @@ object AppColors {
 
     /**
      * Djupet (android-ui `AppDepth`, DSN-1): i ljust en hårfin teal-kant runt korten och skuggor tonade mot mörk teal,
-     * i mörkt en ljus kant och ljuskant som bär djupet medan skuggan knappt syns.
+     * i mörkt en ljus kant och ljuskant som bär djupet medan skuggan knappt syns. Korten får ett svagt skimmer upptill:
+     * teal i ljust, ljus mint i mörkt (#429).
      */
     internal val lightDepth = AppDepth(
         highlight = Color.White.copy(alpha = 0.30f),
         sheen = Color.White.copy(alpha = 0.12f),
         shadow = Color(0xFF00413C).copy(alpha = 0.30f),
         cardEdge = Color(0xFF0B6E66).copy(alpha = 0.10f),
-        cardShadow = Color(0xFF00413C).copy(alpha = 0.16f)
+        cardShadow = Color(0xFF00413C).copy(alpha = 0.16f),
+        cardSheen = Color(0xFF0B6E66).copy(alpha = 0.05f)
     )
     internal val darkDepth = AppDepth(
         highlight = Color.White.copy(alpha = 0.40f),
         sheen = Color.White.copy(alpha = 0.14f),
         shadow = Color.Black.copy(alpha = 0.55f),
         cardEdge = Color.White.copy(alpha = 0.08f),
-        cardShadow = Color.Black.copy(alpha = 0.55f)
+        cardShadow = Color.Black.copy(alpha = 0.55f),
+        cardSheen = Color(0xFFBFEDE6).copy(alpha = 0.05f)
     )
 }
 

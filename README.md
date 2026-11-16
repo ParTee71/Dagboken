@@ -264,6 +264,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.15.0 | **Skimmer på korten:** de vita korten får ett svagt teal-skimmer upptill som tonar ut nedåt (i mörkt ljus mint); tonade kort som meddelanden och "Allt klart" får inget (DSN-1, #429, android-ui 1.5.0). |
 | 4.14.0 | **Djup och tryckkänsla:** knappar, kort, valda chips och flikar, kryss, stegare, växlar, fältet i fokus, meddelanden, menyer och dialoger får en hårfin kant, ljuskant, svagt skimmer och mjuk teal-tonad skugga (i mörkt bär den ljusa kanten djupet), och knappar sjunker in när de trycks. Färgerna är desamma (DSN-1, #427, android-ui 1.4.1). |
 | 4.13.1 | Inloggningen visar appens bok igen i stället för Kodhäst-hästen (DSN-8). |
 | 4.13.0 | **En kodhäst-app:** Dagboken visar att den kommer från Kodhäst – "En kodhäst-app" under versionen i Om Dagboken, två solgula prickar i appikonen, ordmärket på startskärmen (Android 12+), hästen i tomma lägen, prickar som laddning och framför fyra sektionsrubriker. Allt i appens egna färger och typsnitt (NAV-9, NFR-5, DSN-7, DSN-8, #417). |
