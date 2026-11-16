@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Mörkt tema: temats background (djup skogsgrön) i ui/theme/AppColors. -->
+<!-- Mörkt tema: temats background (neutral dimma) i ui/theme/AppColors. -->
 <resources>
-    <color name="window_background">#0F1C17</color>
+    <color name="window_background">#101615</color>
 
     <!-- Ordmärket på startskärmen i mörkt läge: det mörka temats onSurfaceVariant och primary. -->
-    <color name="kodhast_branding_text">#AEB9AF</color>
+    <color name="kodhast_branding_text">#AAB6B3</color>
     <color name="kodhast_branding_dots">#7FD3C8</color>
 </resources>

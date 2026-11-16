@@ -184,7 +184,7 @@ enhetslokala DataStore-nycklarna `migration_done` och `backup_needs_auth` är in
 | `SettingsBackup.themeLightStart` | `settings.theme.lightStartHour` | |
 | `SettingsBackup.themeDarkStart` | `settings.theme.darkStartHour` | |
 | `SettingsBackup.isDarkTheme` | `settings.theme.isDarkTheme` | Bevaras fast 4.0 bara läser `mode`. |
-| `SettingsBackup.dynamicColor` | `settings.legacy.dynamicColor` | Bevaras bara: Papper och teal har fasta färger (SET-3) och värdet används aldrig. `null` = fanns inte. |
+| `SettingsBackup.dynamicColor` | `settings.legacy.dynamicColor` | Bevaras bara: Dimma och teal har fasta färger (SET-3) och värdet används aldrig. `null` = fanns inte. |
 | `SettingsBackup.birthYear` | `settings.profile.birthYear` | |
 | `SettingsBackup.sex` | `settings.profile.sex` | `man`/`kvinna`/`ej_angivet` → `male`/`female`/`unspecified`. |
 | `AktivitetJson.id` | `activities.id`, `screenings.id` | Dokument-id, bevaras (DAT-13). |
@@ -290,7 +290,10 @@ användarens data – de beskriver filen (formatversion och när den skrevs), in
 loggat eller ställt in. `version` väljer v1- eller v2-tolkning i konverteraren och `createdAt` visas i
 importens sammanfattning; ingen av dem har eller behöver en plats i Firestore.
 
-## Designspråk · I "Papper och teal"
+## Designspråk · "Dimma och teal"
+
+Vald som "I · Papper och teal" (beslut 10); grunden byttes från varmt papper till sval dimma i #433
+(4.16.0), eftersom en färgad grund krockade med kortens många färger.
 
 Lugn dagbokskänsla med luft, en tydlig gör-något-färg och belöning när dagen är klar.
 Tokens i `ui/theme` (`AppColors`, `AppTypography`, `AppShapes`) och `Spacing` ur android-ui;
@@ -299,12 +302,12 @@ hårdkodar aldrig. Värdena nedan är mockupens approximation – kontrast räkn
 
 | Roll | Ljust | Användning |
 |---|---|---|
-| Yta | papper `#FBF7EE` | bakgrund |
+| Yta | dimma `#F2F5F5` | bakgrund |
 | Kort | vit, utan kantlinje | alla sektions- och postkort |
 | Primär | teal `#0B6E66` | kryss, knappar, aktiv flik, idag-chip |
 | Gör-något | solgul `#F5B631` (mörk text) | plusknapp, "Snart", punkten för idag, framstegsraden när dagen är klar |
 | Varning | terrakotta `#B85C38` | försenat, periodslut |
-| Text / dämpad | `#1C1A14` / `#6B655A` | brödtext / undertext och avbockat |
+| Text / dämpad | `#1C1A14` / `#5E6866` | brödtext / undertext och avbockat |
 | Energiskala | låg `#B5443A` · mitt `#C98A1B` · hög `#2F7D5B` | diagram, energichips |
 
 - **Typografi:** Fraunces 500/600 för rubriker (serif), Figtree för brödtext. Typsnitten
@@ -314,7 +317,7 @@ hårdkodar aldrig. Värdena nedan är mockupens approximation – kontrast räkn
   som fylls animerat; när alla doser och måendeloggar är klara byter rubriken till "Allt klart
   för idag", framstegsraden blir solgul, konfetti faller **en gång** och ett grönt kort
   sammanfattar dagen (snittenergi, jämförelse med igår, dagar i rad). Rörelse blockerar aldrig.
-- **Mörkt tema** härleds med samma roller (djup skogsgrön botten); kontrast kontrolleras i båda.
+- **Mörkt tema** härleds med samma roller (neutral dimbotten `#101615`); kontrast kontrolleras i båda.
 - **Ikoner:** linjeikoner 24 dp i kontroller, aldrig emoji som knappikon.
 - **Appikon "Bladet" (DSN-7):** adaptiv – teal bakgrund, pappersark med tre grå textrader och en
   solgul trendkurva; enfärgat lager för temaikoner. Färgerna är resurser i `values/colors.xml` som speglar `AppColors`.
@@ -531,7 +534,7 @@ Trösklar och versioner ändras bara här och i filen de pekar på, med motiveri
   Maven Central-spegeln sköts av pluginens hook `android-start` (claude-android #55).
 - **Skills som tas över (G/G\*):** `ci-budget`, `shared-ui-components`, `firestore-data-layer`,
   `data-safety-backup` (Firestore-versionen), `db-access`, `ui-style` (skrivs om för
-  Papper och teal), `testing-strategy`, `refine-issue`, `implement-issue`, `release` (de tre sista sedan 2026-10-18
+  Dimma och teal), `testing-strategy`, `refine-issue`, `implement-issue`, `release` (de tre sista sedan 2026-10-18
   pluginens `android:`-skills, med Dagbokens delar i `android-projekt`).
 - **Skills som behålls från Dagboken:** `notifications-alarms`, `data-privacy-security`
   (hälsodataversionen).

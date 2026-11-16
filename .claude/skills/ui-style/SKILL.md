@@ -1,18 +1,18 @@
 ---
 name: ui-style
-description: "Dagbokens designspråk i 4.0 – känslan \"I · Papper och teal\" (Material 3 Expressive): lugn dagbokskänsla med luft, en tydlig gör-något-färg och belöning när dagen är klar. Ladda denna när du bygger eller ändrar tema, färger, typografi, former, rörelse, texter, ikoner, tomma tillstånd, belöningsläget eller en komponents utseende, och tillsammans med skill android:mockup och android-projekt. Trigger-ord: design, stil, utseende, färg, palett, tema, mörkt läge, ljust läge, papper, teal, solgul, terrakotta, typsnitt, font, Fraunces, Figtree, serif, rundad, hörn, kort, animation, rörelse, fjädrande, Expressive, konfetti, belöning, allt klart, framstegsrad, ikon, emoji, text, formulering, tomt tillstånd, kontrast, snyggt."
+description: "Dagbokens designspråk i 4.0 – känslan \"Dimma och teal\" (Material 3 Expressive): lugn dagbokskänsla med luft, en tydlig gör-något-färg och belöning när dagen är klar. Ladda denna när du bygger eller ändrar tema, färger, typografi, former, rörelse, texter, ikoner, tomma tillstånd, belöningsläget eller en komponents utseende, och tillsammans med skill android:mockup och android-projekt. Trigger-ord: design, stil, utseende, färg, palett, tema, mörkt läge, ljust läge, dimma, papper, teal, solgul, terrakotta, typsnitt, font, Fraunces, Figtree, serif, rundad, hörn, kort, animation, rörelse, fjädrande, Expressive, konfetti, belöning, allt klart, framstegsrad, ikon, emoji, text, formulering, tomt tillstånd, kontrast, snyggt."
 ---
 
-# Designspråket · I "Papper och teal"
+# Designspråket · "Dimma och teal"
 
-**Känsla:** en lugn dagbok med luft. Pappersyta och vita kort utan kantlinje, **en** tydlig
+**Känsla:** en lugn dagbok med luft. En sval, nästan neutral dimyta som låter kortens färger bära, och vita kort, **en** tydlig
 gör-något-färg, och en liten belöning när dagen är klar. Appen används varje dag och ofta när
 man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
 
 **Var saker står (enda källor):**
 - Värden och motiv → `ARKITEKTUR.md` → "Designspråk" (beslut 10 i ADR-001) och KRAVLISTA §23 (DSN-1…6).
 - Referens: Design-canvasen https://claude.ai/artifact/MP2fPHimTk8tAmKkpr3K5t (känsla I, rad 2d,
-  och nyckelskärmarna). Mockupens värden är en approximation – **koden i `ui/theme` är facit**,
+  och nyckelskärmarna); grunden bytt från papper till dimma i #433 (canvas https://claude.ai/artifact/HCxGDYFFqpYor393LExcuo, "fem färgspråk"). Mockupens värden är en approximation – **koden i `ui/theme` är facit**,
   med kontrasten uträknad.
 - Vilken komponent eller ram som används för vad → skill `shared-ui-components`.
 - Exakta Expressive- och Navigation 3-API:er → `VerifiedApisTest` (`app/src/test`), som kompilerar och kör dem, och versionskatalogen `gradle/libs.versions.toml` – gissa aldrig ett API-namn.
@@ -27,18 +27,18 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
 
 | Roll | Ljust | Användning |
 |---|---|---|
-| Yta | papper `#FBF7EE` | bakgrund på alla skärmar |
+| Yta | dimma `#F2F5F5` (mörkt `#101615`) | bakgrund på alla skärmar |
 | Kort | vit, utan kantlinje | alla sektions- och postkort (`AppCard`) |
 | Primär | teal `#0B6E66` | kryss, knappar, aktiv flik, idag-chippet i datumremsan |
 | Gör-något | solgul `#F5B631` med mörk text | plusknappen, "Snart", punkten för idag (alltid med mörk ring – datumremsa, kalender, diagram), framstegsraden när dagen är klar |
 | Varning | terrakotta (`#B85C38` i mockupen, mörkare i koden för kontrast) | försenat, periodslut |
-| Text / dämpad | `#1C1A14` / `#6B655A` | brödtext / undertext och avbockat |
+| Text / dämpad | `#1C1A14` / `#5E6866` | brödtext / undertext och avbockat |
 | Energiskala | låg `#B5443A` · mitt `#C98A1B` · hög `#2F7D5B` | diagram, energichips, postkortets vänsteraccent (NFR-16) |
 | Kärnkänslor | Glad solgul · Stark lila · Lugn teal · Ledsen blågrå · Arg röd · Rädd terrakotta, en `ToneColors` var (`AppColors.extended.feelingTones.forCore`, okänd kärna = dämpad) | hjulet, känsloväljaren, känslopills och diagram (SCR-8); vald = fylld med innehållsfärgen; ordet står alltid med |
 
 - **Kontrast:** varje färg som bär text klarar **4,5:1** mot sin bakgrund (DSN-1) – räkna efter vid
   varje ny nyans, även i mörkt tema. Solgult bär alltid mörk text.
-- **Mörkt tema** härleds med samma roller på djup skogsgrön botten (DSN-5); varje komponent har
+- **Mörkt tema** härleds med samma roller på neutral dimbotten `#101615` (DSN-5); varje komponent har
   Roborazzi-referens ljust + mörkt.
 - **En gör-något-färg:** solgult används sparsamt – bara för det användaren ska göra härnäst eller
   för belöningen. Teal är "det här är valt/klart".

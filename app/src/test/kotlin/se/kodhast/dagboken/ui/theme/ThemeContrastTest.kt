@@ -185,13 +185,14 @@ class ThemeContrastTest {
     }
 
     @Test
-    fun `Papper och teal - mockupens nyckelfärger (ARKITEKTUR-md, Designspråk)`() {
-        assertEquals(Color(0xFFFBF7EE), AppColors.light.background, "papper")
+    fun `Dimma och teal - nyckelfärgerna (ARKITEKTUR-md, Designspråk)`() {
+        assertEquals(Color(0xFFF2F5F5), AppColors.light.background, "dimma")
+        assertEquals(Color(0xFF101615), AppColors.dark.background, "dimma, mörkt")
         assertEquals(Color(0xFFFFFFFF), AppColors.lightExtended.card, "vita kort")
         assertEquals(Color(0xFF0B6E66), AppColors.light.primary, "teal")
         assertEquals(Color(0xFFF5B631), AppColors.light.secondary, "solgul")
         assertEquals(Color(0xFF1C1A14), AppColors.light.onBackground, "text")
-        assertEquals(Color(0xFF6B655A), AppColors.light.onSurfaceVariant, "dämpad")
+        assertEquals(Color(0xFF5E6866), AppColors.light.onSurfaceVariant, "dämpad")
         assertEquals(
             EnergyColors(Color(0xFFB5443A), Color(0xFFC98A1B), Color(0xFF2F7D5B)),
             AppColors.lightExtended.energy,
