@@ -264,7 +264,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
-| 4.16.0 | **Dimma och teal:** bakgrunden byts från varmt papper till en sval, nästan neutral dimma (mörkt: neutral dimbotten i stället för skogsgrön), så att kortens färger bär och teal-skimret passar. Teal, solgul, terrakotta och känslofärgerna är oförändrade (DSN-1, DSN-5, SET-3, #433). |
+| 4.16.0 | **Dimma och teal:** bakgrunden byts från varmt papper till en sval, nästan neutral dimma (mörkt: neutral dimbotten i stället för skogsgrön), så att kortens färger bär och teal-skimret passar. Appikonens ark följer grunden (DSN-7). Teal, solgul, terrakotta och känslofärgerna är oförändrade (DSN-1, DSN-5, SET-3, #433). |
 | 4.15.0 | **Skimmer på korten:** de vita korten får ett svagt teal-skimmer upptill som tonar ut nedåt (i mörkt ljus mint); tonade kort som meddelanden och "Allt klart" får inget (DSN-1, #429, android-ui 1.5.0). Dessutom uppdaterad läkemedelslista (16 nov 2026); listskriptet hittar Läkemedelsverkets fil även när sidan inte längre länkar till den (#430). |
 | 4.14.0 | **Djup och tryckkänsla:** knappar, kort, valda chips och flikar, kryss, stegare, växlar, fältet i fokus, meddelanden, menyer och dialoger får en hårfin kant, ljuskant, svagt skimmer och mjuk teal-tonad skugga (i mörkt bär den ljusa kanten djupet), och knappar sjunker in när de trycks. Färgerna är desamma (DSN-1, #427, android-ui 1.4.1). |
 | 4.13.1 | Inloggningen visar appens bok igen i stället för Kodhäst-hästen (DSN-8). |
