@@ -9,6 +9,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import se.kodhast.dagboken.core.model.FeelingStrength
+import se.kodhast.ui.theme.AppDepth
 import se.kodhast.ui.theme.AppTheme
 import se.kodhast.ui.theme.ExtendedColors as ThemeColors
 import se.kodhast.ui.theme.Tone
@@ -364,6 +365,25 @@ object AppColors {
     /** Det ljusa och det mörka temats färger för android-ui (`DagbokenTheme`). */
     internal val lightTheme: ThemeColors = lightExtended.forTheme()
     internal val darkTheme: ThemeColors = darkExtended.forTheme()
+
+    /**
+     * Djupet (android-ui `AppDepth`, DSN-1): i ljust en hårfin teal-kant runt korten och skuggor tonade mot mörk teal,
+     * i mörkt en ljus kant och ljuskant som bär djupet medan skuggan knappt syns.
+     */
+    internal val lightDepth = AppDepth(
+        highlight = Color.White.copy(alpha = 0.30f),
+        sheen = Color.White.copy(alpha = 0.12f),
+        shadow = Color(0xFF00413C).copy(alpha = 0.30f),
+        cardEdge = Color(0xFF0B6E66).copy(alpha = 0.10f),
+        cardShadow = Color(0xFF00413C).copy(alpha = 0.16f)
+    )
+    internal val darkDepth = AppDepth(
+        highlight = Color.White.copy(alpha = 0.40f),
+        sheen = Color.White.copy(alpha = 0.14f),
+        shadow = Color.Black.copy(alpha = 0.55f),
+        cardEdge = Color.White.copy(alpha = 0.08f),
+        cardShadow = Color.Black.copy(alpha = 0.55f)
+    )
 }
 
 internal val LocalExtendedColors = staticCompositionLocalOf { AppColors.lightExtended }
