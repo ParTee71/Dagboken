@@ -374,7 +374,7 @@ Fel mappas en gång i `data/common/DataError`, och till det som visas (`UiError`
 | Java/JVM | 17 | rotens `build.gradle.kts` (`subprojects`) |
 | Testtimeout per task | 4 min | rotens `build.gradle.kts` |
 | cpdCheck-tröskel | 80 tokens, `*Preview.kt` undantas | rotens `build.gradle.kts` |
-| android-ui | `androidUi` (0.4.0), GitHub Packages med `GPR_TOKEN` (CI: secret, sessioner: miljön) | version catalog, `settings.gradle.kts` (skill `android:android-gradle-logic`) |
+| android-ui | `androidUi` (1.4.1), GitHub Packages med `GPR_TOKEN` (CI: secret, sessioner: miljön) | version catalog, `settings.gradle.kts` (skill `android:android-gradle-logic`) |
 | Version | `version.properties` (versionCode, versionName) | höjs i funktions-PR:en |
 | google-services | `app/google-services.json` (incheckad); `src/authStub` när den saknas | `app/build.gradle.kts` |
 | Signering | `local.properties` eller env `SIGNING_*` | `app/build.gradle.kts` |

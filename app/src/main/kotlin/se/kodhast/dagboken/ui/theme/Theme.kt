@@ -25,7 +25,8 @@ import se.kodhast.ui.theme.Spacing
  * (`LocalQuantityStepperButtonSize`, NFR-14). Ingen dynamic color. [darkTheme] kommer från temavalet i inställningsarket – ljust, mörkt eller auto på klockslag
  * (SET-1, `AppThemeViewModel` i `MainActivity`); utan val (utloggad) följer appen systemet. Kodhäst-igenkänningen
  * (DSN-8) slås på här och bara här: prickar framför sektionsrubriker utan ikonruta, prickarna som laddning och
- * hästen i fullstora tomma lägen – ritade i appens färger.
+ * hästen i fullstora tomma lägen – ritade i appens färger. Djupet (DSN-1) kommer från [AppColors.lightDepth] och
+ * [AppColors.darkDepth]: knappar, kort och det valda får ljuskant, skimmer och tonad skugga och sjunker in vid tryck.
  */
 @Composable
 fun DagbokenTheme(
@@ -45,7 +46,8 @@ fun DagbokenTheme(
             extendedColors = if (darkTheme) AppColors.darkTheme else AppColors.lightTheme,
             shapes = AppShapes.theme,
             typeScale = AppTypeScale,
-            motionScheme = MotionScheme.expressive()
+            motionScheme = MotionScheme.expressive(),
+            depth = if (darkTheme) AppColors.darkDepth else AppColors.lightDepth
         ) {
             // Innehållsfärgen är onSurface också utanför en skärmram, så att AppCard och ikoner utan egen färg
             // får samma färg överallt (android-ui:s AppCard ärver den omgivande).
