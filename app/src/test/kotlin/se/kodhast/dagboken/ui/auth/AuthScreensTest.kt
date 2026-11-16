@@ -2,6 +2,7 @@ package se.kodhast.dagboken.ui.auth
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import kotlin.test.assertEquals
@@ -31,6 +32,19 @@ class AuthScreensTest {
         rule.onNodeWithText("Logga in med Google").performClick()
 
         assertIs<AuthEvent.SignIn>(events.single())
+    }
+
+    @Test
+    fun `inloggningen visar appens bok, inte Kodhäst-hästen`() {
+        rule.setContent { DagbokenTheme { AppRootContent(AuthUiState(AuthGate.SignedOut), {}) } }
+        rule.onNodeWithText("Logga in med Google").assertIsDisplayed()
+        rule.onNodeWithTag(EMPTY_STATE_MARK_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `Uppdatera appen behåller Kodhäst-hästen`() {
+        rule.setContent { DagbokenTheme { AppRootContent(AuthUiState(AuthGate.UpdateRequired), {}) } }
+        rule.onNodeWithTag(EMPTY_STATE_MARK_TAG).assertExists()
     }
 
     @Test
@@ -91,5 +105,8 @@ class AuthScreensTest {
 
         /** Snackbaren har glidit in; två bilder hinns med innan `Short` (4 s) går ut. */
         const val SNACKBAR_VISIBLE_MS = 1_000L
+
+        /** android-ui:s testtagg för hästen i `EmptyState` (intern där, `AppBrandStyle.emptyStateMark`). */
+        const val EMPTY_STATE_MARK_TAG = "empty-state-mark"
     }
 }
