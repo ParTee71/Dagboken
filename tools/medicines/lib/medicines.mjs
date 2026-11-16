@@ -12,6 +12,33 @@ export function findListUrl(html) {
   return path ? new URL(path, SOURCE_PAGE).href : null;
 }
 
+/** Adressen filen ligger på för ett visst datum – den Läkemedelsverket länkade till fram till 2026-10. */
+export const listUrlFor = (date) => new URL(`/globalassets/excel/Lakemedelsprodukter-${date}.xlsx`, SOURCE_PAGE).href;
+
+/** Adresserna att pröva när sidan saknar länk: dagens datum i svensk tid först, sedan bakåt. */
+export function candidateUrls(now, days = 7) {
+  const [y, m, d] = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm' }).format(now).split('-').map(Number);
+  return Array.from({ length: days }, (_, i) =>
+    listUrlFor(new Date(Date.UTC(y, m - 1, d - i)).toISOString().slice(0, 10)));
+}
+
+/**
+ * Hämtar den senaste Excel-filen. Länken på sidan går först; sedan prövas adressen dag för dag bakåt,
+ * eftersom bara den senaste filen ligger kvar. En hämtning i taget.
+ */
+export async function download(fetchFn = fetch, now = new Date()) {
+  const page = await fetchFn(SOURCE_PAGE);
+  if (!page.ok) throw new Error(`${SOURCE_PAGE}: HTTP ${page.status}`);
+  const linked = findListUrl(await page.text());
+  const urls = linked ? [linked] : candidateUrls(now);
+  for (const url of urls) {
+    const file = await fetchFn(url);
+    if (file.ok) return { name: url, buf: Buffer.from(await file.arrayBuffer()) };
+    if (file.status !== 404 || linked) throw new Error(`${url}: HTTP ${file.status}`);
+  }
+  throw new Error(`Hittade ingen lista Lakemedelsprodukter-ÅÅÅÅ-MM-DD.xlsx – ingen länk på ${SOURCE_PAGE}, och 404 på:\n${urls.join('\n')}`);
+}
+
 /** Datumet i bladets namn eller filnamnet, "2026-10-04". */
 export const dateOf = (text) => /\d{4}-\d{2}-\d{2}/.exec(text ?? '')?.[0] ?? null;
 
