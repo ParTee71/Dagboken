@@ -16,7 +16,7 @@ av `UiConsistencyTest` och jämförs med de publika composables i `ui/components
 kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade komponenter*.
 
 > Katalogen kommer från ReseApoteket (ARKITEKTUR.md → Komponentkatalog) och syns i
-> `ComponentGallery`. Utseendet följer Papper och teal (skill `ui-style`); kort- och radstandarden
+> `ComponentGallery`. Utseendet följer Dimma och teal (skill `ui-style`); kort- och radstandarden
 > för postkort, listrader och sektionskort är **NFR-15–18** och går före allt nedan.
 > De exakta API:erna bakom kolumnen *Bygger på* är verifierade i `VerifiedApisTest` (`app/src/test`) – gissa aldrig ett API-namn.
 >

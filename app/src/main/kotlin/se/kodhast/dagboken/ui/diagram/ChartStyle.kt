@@ -18,7 +18,7 @@ import se.kodhast.dagboken.ui.theme.Warning
 import se.kodhast.ui.theme.Tone
 
 /**
- * Diagrammens utseende på ett ställe (skill `diagram`, Papper och teal): alla färger kommer ur temat
+ * Diagrammens utseende på ett ställe (skill `diagram`, Dimma och teal): alla färger kommer ur temat
  * (`MaterialTheme.colorScheme`, `AppColors.extended`), alla mått står här – inget diagram har egna.
  *
  * - [line]: kurvan (teal) med svag gradientfyllning ([fillTop] → genomskinlig) och punkter (TRD-6).

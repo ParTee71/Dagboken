@@ -14,7 +14,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 
 - Dagboken 4.0 byggs om på ReseApotekets grund (ADR-001, ARKITEKTUR.md); 3.27.0 ligger på branchen `legacy`. Vid en port: läs förlagan i sin helhet.
 - MVVM med `StateFlow<UiState>` och sealed events (TP-3) – byt inte till MVI. Varje skärm har `*ViewModel` + `*UiState`, `@HiltViewModel` på alla.
-- Material 3 Expressive via `ui/theme` i designspråket Papper och teal (skill `ui-style`).
+- Material 3 Expressive via `ui/theme` i designspråket Dimma och teal (skill `ui-style`).
 - Lagring: Firestore med offline-cache under `users/{uid}` (TP-4), all åtkomst via `FirestoreCollection<T>` + `DocCodec<T>` (skill `firestore-data-layer`); repositories är tunna fasader under `UserSession`. Room används **bara** av den skrivskyddade 3.x-läsaren i `data/legacy` (OMB-2). DataStore bara för enhetslokalt tillstånd i filen `dagboken_device`, aldrig i 3.x-filen `dagboken_prefs`.
 - `:core` (ren Kotlin/JVM: modeller, codecs, motorer, diagrammatematik, importens läsare) + `:app`. Utseende och gemensamt beteende bara i `ui/theme`, `ui/components`, `ui/diagram`, `ui/common`; Firestore bara i `data/firestore`; Health Connect bara i `data/health` (TP-10, read-only, persisteras aldrig – HLS-5).
 - Fel mappas en gång till `DataError` med `suspendRunCatching` (`data/common/`): `FirestoreCollection` för data, `AuthRepository` för inloggning. Repositories skickar `Result<T>` vidare; skärmar visar felet med `DataError.toMessage()`; `DataError.Cancelled` är tyst.
@@ -49,7 +49,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 
 ## Compose (android:compose-expert)
 
-- Ordning: skill `shared-ui-components` (regel 4) går före allt, sedan `ui-style` (Papper och teal), skill `diagram` för diagram. Skärmdumpar och kontraktstester: `testing-strategy`.
+- Ordning: skill `shared-ui-components` (regel 4) går före allt, sedan `ui-style` (Dimma och teal), skill `diagram` för diagram. Skärmdumpar och kontraktstester: `testing-strategy`.
 - Tema: `MaterialExpressiveTheme`, `MotionScheme.expressive()`, `AppColors`, `AppTypography`, `AppShapes`, `Spacing`. 3.x-paletten "Sunrise Garden" finns inte längre.
 - Expressive- och Nav3-API:er används bara med namn och signaturer som `VerifiedApisTest` (`app/src/test`) bevisar.
 - Inga bildbibliotek i UI:t utom kontots foto (Coil utan diskcache, skill `data-privacy-security`); ikoner är linjeikoner i `res/drawable`.
@@ -126,7 +126,7 @@ Processen (när, hur, visa och vänta) står i pluginen; det här är Dagbokens 
 
 - **Mallen:** https://claude.ai/artifact/MP2fPHimTk8tAmKkpr3K5t – Design-canvasen från
   ombyggnadsintervjun med struktur (fyra flikar, avatarark, plusmeny), datamodell, känslorna A–I
-  och nyckelskärmarna i den valda känslan **I · Papper och teal** (ARKITEKTUR.md → Designspråk).
+  och nyckelskärmarna i den valda känslan **Dimma och teal** (ARKITEKTUR.md → Designspråk).
   Varje mockup startar från den; komponent- och beteendearket läggs till där när katalogen portas.
 - **Facit är det byggda:** `ComponentGallery` och skärmdumparna i `app/src/test/screenshots/`.
   Ändras katalogen uppdateras mallen i samma PR som komponenten.
@@ -207,7 +207,7 @@ hemligheter → `data-privacy-security`; larm och notiser → `notifications-ala
   beteende beskrivet igen i stället för referens (NFR-15–18, NAV)?
 - **Version:** beteende är `app/src/main/**`, `core/src/main/**`, byggfiler och
   `app/src/main/assets/medicines.tsv`; versionen står i `version.properties`.
-- **Regel 4:** avvikelse från designspråket Papper och teal; postkort eller listrad som bryter
+- **Regel 4:** avvikelse från designspråket Dimma och teal; postkort eller listrad som bryter
   NFR-15–18; diagrammatematik eller beräkningar i `:app` som hör hemma i `:core`.
 - **Regel 5:** Android-emulatorn bara i jobbet `instrumented` (filter `instrumented`);
   Firebase-emulatorn i jobbet `rules` (filter `tools`) är tillåten.

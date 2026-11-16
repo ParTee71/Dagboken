@@ -7,7 +7,7 @@ data och påminnelser. **Version 4.0 byggs om på `master`.**
 **Kravspecifikation:** [KRAVLISTA.md](KRAVLISTA.md) · **Arkitektur och ombyggnadsplan:** [ARKITEKTUR.md](ARKITEKTUR.md) · **Utvecklingsregler:** [CLAUDE.md](CLAUDE.md)
 
 > **Dagboken 4.0** är byggd på ReseApotekets grund: Firestore offline-först under `users/{uid}` i
-> stället för Room och Drive-backup, fyra flikar, designspråket "Papper och teal", `:core` + `:app`,
+> stället för Room och Drive-backup, fyra flikar, designspråket "Dimma och teal", `:core` + `:app`,
 > paths-filtrerad CI på ca 8 Actions-minuter och databasåtkomst från Claude-sessionen med `tools/db`.
 > 3.x-datan är redan flyttad till Firestore; migreringen på enheten togs bort i 4.8.0 och importen av
 > 3.x-backuper i 4.9.0 (KRAVLISTA §22) – importen läser bara 4.x-exporter (BCK-6). Besluten står i
@@ -264,6 +264,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.16.0 | **Dimma och teal:** bakgrunden byts från varmt papper till en sval, nästan neutral dimma (mörkt: neutral dimbotten i stället för skogsgrön), så att kortens färger bär och teal-skimret passar. Appikonens ark följer grunden (DSN-7). Teal, solgul, terrakotta och känslofärgerna är oförändrade (DSN-1, DSN-5, SET-3, #433). |
 | 4.15.0 | **Skimmer på korten:** de vita korten får ett svagt teal-skimmer upptill som tonar ut nedåt (i mörkt ljus mint); tonade kort som meddelanden och "Allt klart" får inget (DSN-1, #429, android-ui 1.5.0). Dessutom uppdaterad läkemedelslista (16 nov 2026); listskriptet hittar Läkemedelsverkets fil även när sidan inte längre länkar till den (#430). |
 | 4.14.0 | **Djup och tryckkänsla:** knappar, kort, valda chips och flikar, kryss, stegare, växlar, fältet i fokus, meddelanden, menyer och dialoger får en hårfin kant, ljuskant, svagt skimmer och mjuk teal-tonad skugga (i mörkt bär den ljusa kanten djupet), och knappar sjunker in när de trycks. Färgerna är desamma (DSN-1, #427, android-ui 1.4.1). |
 | 4.13.1 | Inloggningen visar appens bok igen i stället för Kodhäst-hästen (DSN-8). |

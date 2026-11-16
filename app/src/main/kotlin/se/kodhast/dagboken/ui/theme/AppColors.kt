@@ -151,11 +151,11 @@ data class ExtendedColors(
 }
 
 /**
- * Den enda paletten (skill `ui-style`, ARKITEKTUR.md → Designspråk "I · Papper och teal"): teal på
- * papper, solgul som gör-något-färg, terrakotta för varning; mörkt tema med samma roller på djup
- * skogsgrön botten. Ingen dynamic color – appen har en egen identitet. Kontrasten kontrolleras av
+ * Den enda paletten (skill `ui-style`, ARKITEKTUR.md → Designspråk "Dimma och teal"): teal på
+ * sval dimma, solgul som gör-något-färg, terrakotta för varning; mörkt tema med samma roller på
+ * neutral dimbotten (#433). Ingen dynamic color – appen har en egen identitet. Kontrasten kontrolleras av
  * `ThemeContrastTest`. Terrakottan är något mörkare än mockupens `#B85C38` (`#A4502E`), som annars
- * inte klarar 4,5:1 som text på papper.
+ * inte klarar 4,5:1 som text på ytan.
  */
 object AppColors {
     val light: ColorScheme = lightColorScheme(
@@ -172,29 +172,29 @@ object AppColors {
         onTertiary = Color(0xFFFFFFFF),
         tertiaryContainer = Color(0xFFF8E1D6),
         onTertiaryContainer = Color(0xFF7A3519),
-        background = Color(0xFFFBF7EE),
+        background = Color(0xFFF2F5F5),
         onBackground = Color(0xFF1C1A14),
-        surface = Color(0xFFFBF7EE),
+        surface = Color(0xFFF2F5F5),
         onSurface = Color(0xFF1C1A14),
-        surfaceVariant = Color(0xFFF1EBDD),
-        onSurfaceVariant = Color(0xFF6B655A),
+        surfaceVariant = Color(0xFFE6EDEC),
+        onSurfaceVariant = Color(0xFF5E6866),
         surfaceTint = Color(0xFF0B6E66),
-        inverseSurface = Color(0xFF2E2B24),
-        inverseOnSurface = Color(0xFFF3F0E8),
+        inverseSurface = Color(0xFF2A3130),
+        inverseOnSurface = Color(0xFFEEF2F1),
         error = Color(0xFFB3261E),
         onError = Color(0xFFFFFFFF),
         errorContainer = Color(0xFFF9DEDC),
         onErrorContainer = Color(0xFF8C1D18),
-        outline = Color(0xFF8A8273),
-        outlineVariant = Color(0xFFE6DFCF),
+        outline = Color(0xFF7E8987),
+        outlineVariant = Color(0xFFDAE2E1),
         scrim = Color(0xFF000000),
-        surfaceBright = Color(0xFFFBF7EE),
-        surfaceDim = Color(0xFFEDE7D9),
+        surfaceBright = Color(0xFFF2F5F5),
+        surfaceDim = Color(0xFFE3E9E8),
         surfaceContainerLowest = Color(0xFFFFFFFF),
-        surfaceContainerLow = Color(0xFFF7F2E6),
+        surfaceContainerLow = Color(0xFFEEF2F2),
         surfaceContainer = Color(0xFFFFFFFF),
         surfaceContainerHigh = Color(0xFFFFFFFF),
-        surfaceContainerHighest = Color(0xFFF1EBDD)
+        surfaceContainerHighest = Color(0xFFE6EDEC)
     )
 
     val dark: ColorScheme = darkColorScheme(
@@ -211,34 +211,34 @@ object AppColors {
         onTertiary = Color(0xFF4A1800),
         tertiaryContainer = Color(0xFF6A2F17),
         onTertiaryContainer = Color(0xFFFFD9C9),
-        background = Color(0xFF0F1C17),
+        background = Color(0xFF101615),
         onBackground = Color(0xFFE9EEE7),
-        surface = Color(0xFF0F1C17),
+        surface = Color(0xFF101615),
         onSurface = Color(0xFFE9EEE7),
-        surfaceVariant = Color(0xFF1E3029),
-        onSurfaceVariant = Color(0xFFAEB9AF),
+        surfaceVariant = Color(0xFF23302E),
+        onSurfaceVariant = Color(0xFFAAB6B3),
         surfaceTint = Color(0xFF7FD3C8),
         inverseSurface = Color(0xFFE9EEE7),
-        inverseOnSurface = Color(0xFF1C2B25),
+        inverseOnSurface = Color(0xFF1A2321),
         error = Color(0xFFF2B8B5),
         onError = Color(0xFF601410),
         errorContainer = Color(0xFF601410),
         onErrorContainer = Color(0xFFF9DEDC),
-        outline = Color(0xFF7F8C83),
-        outlineVariant = Color(0xFF2C3F37),
+        outline = Color(0xFF7C8986),
+        outlineVariant = Color(0xFF2A3735),
         scrim = Color(0xFF000000),
-        surfaceBright = Color(0xFF243630),
-        surfaceDim = Color(0xFF0F1C17),
-        surfaceContainerLowest = Color(0xFF0A1511),
-        surfaceContainerLow = Color(0xFF14231D),
-        surfaceContainer = Color(0xFF182822),
-        surfaceContainerHigh = Color(0xFF182822),
-        surfaceContainerHighest = Color(0xFF1E3029)
+        surfaceBright = Color(0xFF25302E),
+        surfaceDim = Color(0xFF101615),
+        surfaceContainerLowest = Color(0xFF0A0F0E),
+        surfaceContainerLow = Color(0xFF141C1B),
+        surfaceContainer = Color(0xFF182120),
+        surfaceContainerHigh = Color(0xFF182120),
+        surfaceContainerHighest = Color(0xFF23302E)
     )
 
     /** Dämpad ton – också tonen för en okänd kärnkänsla ([FeelingColors.unknown]). */
-    private val lightNeutral = ToneColors(Color(0xFFEFEADF), Color(0xFF4F4A40))
-    private val darkNeutral = ToneColors(Color(0xFF2A3A33), Color(0xFFDCE3DA))
+    private val lightNeutral = ToneColors(Color(0xFFE6EDEC), Color(0xFF47504E))
+    private val darkNeutral = ToneColors(Color(0xFF2A3735), Color(0xFFDCE3E1))
 
     /**
      * Diagrampaletten per tema (TRD-23): åtta serier som skiljer sig åt på kortet, i ordningen teal, bärnsten/solgul,
@@ -251,7 +251,7 @@ object AppColors {
 
     val lightExtended = ExtendedColors(
         card = Color(0xFFFFFFFF),
-        rowTint = Color(0xFFF4EFE3),
+        rowTint = Color(0xFFEEF3F2),
         track = Color(0xFFD3EDE9),
         toolbar = Color(0xFF16302B),
         onToolbar = Color(0xFFF3F1EA),
@@ -283,11 +283,11 @@ object AppColors {
     )
 
     val darkExtended = ExtendedColors(
-        card = Color(0xFF182822),
-        rowTint = Color(0xFF1E3029),
+        card = Color(0xFF182120),
+        rowTint = Color(0xFF23302E),
         track = Color(0xFF0B4F49),
         toolbar = Color(0xFFE9EEE7),
-        onToolbar = Color(0xFF0F1C17),
+        onToolbar = Color(0xFF101615),
         primaryTone = ToneColors(Color(0xFF0B4F49), Color(0xFFBFEDE6)),
         neutralTone = darkNeutral,
         sunTone = ToneColors(Color(0xFF5A4100), Color(0xFFFCEBC4)),

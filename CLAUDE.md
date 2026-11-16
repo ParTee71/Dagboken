@@ -21,7 +21,7 @@ direkt till PR med raden `Liten ändring: <varför>`, och tråden mergar när CI
 större. Skill `android:arbetsregler` är enda källan.
 
 **Ombyggnaden:** `master` bygger Dagboken 4.0 på ReseApotekets grund (`:core` + `:app`,
-Firestore under `users/{uid}`, fyra flikar, designspråket Papper och teal). 3.27.0 ligger på
+Firestore under `users/{uid}`, fyra flikar, designspråket Dimma och teal). 3.27.0 ligger på
 branchen `legacy`. Etapper, modell och effort per steg står i [ARKITEKTUR.md](ARKITEKTUR.md);
 villkor nummer ett är att **ingen data får tappas** (KRAVLISTA §22, OMB).
 
@@ -66,7 +66,7 @@ finns på ett ställe.**
   `ui/components/` (diagrammen i `ui/diagram/`). Feature-kod anropar aldrig Material 3-komponenter direkt och hårdkodar
   aldrig utseende (`Color(…)`, `RoundedCornerShape(…)`, `fontSize`, `TextStyle`, literala dp
   för hörn/höjd). Färg, form, typografi och avstånd kommer från `ui/theme` (`AppColors`,
-  `AppTypography`, `AppShapes`, `Spacing`) i designspråket Papper och teal.
+  `AppTypography`, `AppShapes`, `Spacing`) i designspråket Dimma och teal.
 - **Beteende:** varje interaktionsmönster finns **en gång**: listskärm (laddning, tomt,
   fel, lista, lägg till) = `EntityListScreen`; redigering (validering, spara aktiveras
   först när giltigt och ändrat, "Släng ändringar?" vid bakåt, fel som snackbar) =

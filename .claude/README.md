@@ -46,7 +46,7 @@ issue utifrån skillen (Dagbokens agenter och etapptabellen: `android-projekt` �
 | **`requirements-kravlista`** | Regel 3 – hålla KRAVLISTA.md aktuell, paritetschecklistan. |
 | **`shared-ui-components`** | Regel 4 – komponenter, ramar, byggstenar, förbud, kontroller. |
 | **`ci-budget`** | Regel 5 i Dagboken – vad som körs när i CI och felklasser. Det generella: `android:ci-budget`. |
-| `ui-style` | Designspråket Papper och teal (Material 3 Expressive). |
+| `ui-style` | Designspråket Dimma och teal (Material 3 Expressive). |
 | `diagram` | Diagrammen i `ui/diagram` och diagrammatematiken i `:core/engine` (TRD-6…18, HEM-7, HLS-10/11/13). |
 | `firestore-data-layer` | `FirestoreCollection`, `DocCodec`, repositories, `UserSession`, offline, rules. |
 | `db-access` | Läsa databasen från en Claude-session. |
