@@ -9,7 +9,8 @@ import se.kodhast.dagboken.data.common.suspendRunCatching
 
 /**
  * Utloggningen (AUTH-2, AUTH-6): Firebase-sessionen och Credential Managers inloggning
- * ([AuthRepository.signOut]), sedan töms den lokala cachen så att nästa konto börjar tomt.
+ * ([AuthRepository.signOut]), sedan tas profilfotot bort från enheten ([ProfilePhotoCache], AUTH-3) och den lokala
+ * cachen töms så att nästa konto börjar tomt.
  *
  * Skrivningar som ännu inte nått servern finns bara i cachen. De får en kort stund att synka
  * före utloggningen (efteråt nekar servern dem); hinner de inte – t.ex. utan nät – behålls
@@ -25,12 +26,16 @@ import se.kodhast.dagboken.data.common.suspendRunCatching
 class SignOutUseCase @Inject constructor(
     private val auth: AuthRepository,
     private val cache: LocalCacheCleaner,
-    private val coverage: HistoryCoverage
+    private val coverage: HistoryCoverage,
+    private val photos: ProfilePhotoCache
 ) {
     suspend operator fun invoke(): Result<Unit> {
         val synced = cache.awaitPendingWrites(SYNC_TIMEOUT)
         val signedOut = auth.signOut()
-        if (!signedOut.isSuccess || !synced) return signedOut
+        if (!signedOut.isSuccess) return signedOut
+        // Profilfotot är ingen data som väntar på servern: det tas alltid bort (AUTH-3); ett fel här är inget för användaren.
+        photos.clear()
+        if (!synced) return signedOut
         forget()
         val cleared = cache.clear()
         forget()

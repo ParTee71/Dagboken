@@ -3,12 +3,15 @@ package se.kodhast.dagboken.ui.medicines
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -45,6 +48,7 @@ import se.kodhast.ui.common.EditorEvents
 import se.kodhast.ui.common.EditorState
 import se.kodhast.ui.common.EditorUiState
 import se.kodhast.ui.common.ListUiState
+import se.kodhast.ui.components.APP_HEADER_TAG
 import se.kodhast.ui.testing.runEditScreenContract
 import se.kodhast.ui.testing.runListScreenContract
 
@@ -79,6 +83,13 @@ class MedicinesScreensTest {
     private val endings = listOf(
         PeriodEnding.PrescriptionEnds("k", "Kåvepenin", LocalDate(2026, 10, 7))
     )
+
+    @Test
+    fun `fliken har Kodhäst-sidhuvudet med flikens namn som rubrik (NAV-12)`() {
+        rule.setContent { DagbokenTheme { MedicinesScreen(ListUiState.Content(listOf(MedicineItem.Recipe(levaxin)).toImmutableList()), emptyList(), today, null, {}, {}, {}, {}) } }
+        rule.onNodeWithTag(APP_HEADER_TAG).assertIsDisplayed()
+        rule.onNode(hasText("Mediciner") and isHeading()).assertIsDisplayed()
+    }
 
     @Test
     fun `fliken uppfyller listkontraktet`() = rule.runListScreenContract(DagbokenContracts, MedicineItem.AsNeeded(alvedon), "Alvedon 500 mg", "Inga mediciner än", "Nytt recept") { state, onAdd, onRetry ->

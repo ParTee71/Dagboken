@@ -9,19 +9,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.TimeZone
 import se.kodhast.dagboken.core.schema.Doc
 import se.kodhast.dagboken.core.schema.Schema
 import se.kodhast.dagboken.data.FakeStore
 import se.kodhast.dagboken.data.FixedClock
 import se.kodhast.dagboken.data.auth.AuthRepository
 import se.kodhast.dagboken.data.auth.AuthUser
+import se.kodhast.dagboken.data.auth.ProfileCheckUseCase
+import se.kodhast.dagboken.data.auth.ProfilePhotoCache
 import se.kodhast.dagboken.data.auth.SignOutUseCase
+import se.kodhast.dagboken.data.common.DailyGate
 import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.data.common.LocalCacheCleaner
 import se.kodhast.dagboken.data.common.MemoryDayMarks
 import se.kodhast.dagboken.data.common.UserVersionSource
 import se.kodhast.dagboken.data.common.testCoverage
 import se.kodhast.dagboken.data.firestore.Paths
+import se.kodhast.dagboken.data.network.NetworkStatus
 import se.kodhast.dagboken.data.user.EnsureUserUseCase
 import se.kodhast.dagboken.data.user.UserDirectory
 import se.kodhast.dagboken.data.user.UserSession
@@ -63,7 +68,12 @@ class UserFixture(scope: CoroutineScope, val auth: FakeAuthRepository = FakeAuth
 
     /** Enhetens anteckningar – historiklägets täckning (NFR-24) ligger här och glöms före tömningen. */
     val marks = MemoryDayMarks()
-    val signOut = SignOutUseCase(auth, cache, testCoverage(marks, clock))
+    val photos = FakeProfilePhotoCache(auth)
+    val signOut = SignOutUseCase(auth, cache, testCoverage(marks, clock), photos)
+
+    /** Om appen har internet – profilkontrollen (AUTH-3) väntar på den. */
+    val network = FakeNetworkStatus()
+    val profileCheck = ProfileCheckUseCase(auth, session, network, DailyGate(marks, session), clock, TimeZone.UTC)
 
     /** Lägger ett användardokument direkt i den fejkade databasen, som om en annan enhet skapat det. */
     fun storeUser(uid: String, doc: Doc = mapOf(EnsureUserUseCase.SCHEMA_VERSION to Schema.CURRENT_VERSION)) = store.set(Paths.USERS, uid, doc, merge = false)
@@ -110,6 +120,31 @@ class FakeAuthRepository(initial: AuthUser? = null) : AuthRepository {
     override suspend fun signOut(): Result<Unit> {
         signOutCalls++
         return nextSignOut.onSuccess { authState.value = null }
+    }
+
+    var nextReload: Result<Unit> = Result.success(Unit)
+    var reloadCalls = 0
+        private set
+
+    override suspend fun reload(): Result<Unit> {
+        reloadCalls++
+        return nextReload
+    }
+}
+
+/** Nätet i tester: [online] sätts av testet. */
+class FakeNetworkStatus(online: Boolean = false) : NetworkStatus {
+    override val online = MutableStateFlow(online)
+}
+
+/** Profilfotots cache: varje tömning loggas med om någon då var inloggad; [nextClear] styr utfallet. */
+class FakeProfilePhotoCache(private val auth: FakeAuthRepository) : ProfilePhotoCache {
+    var nextClear: Result<Unit> = Result.success(Unit)
+    val calls = mutableListOf<String>()
+
+    override suspend fun clear(): Result<Unit> {
+        calls += if (auth.authState.value == null) "clear utloggad" else "clear inloggad"
+        return nextClear
     }
 }
 

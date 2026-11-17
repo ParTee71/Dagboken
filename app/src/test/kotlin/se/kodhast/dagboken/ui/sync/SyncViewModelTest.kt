@@ -11,6 +11,7 @@ import org.junit.Rule
 import org.junit.Test
 import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.data.common.SyncStatus
+import se.kodhast.dagboken.testing.FakeNetworkStatus
 import se.kodhast.dagboken.testing.MainDispatcherRule
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -32,7 +33,8 @@ class SyncViewModelTest {
     }
 
     private val status = FakeSyncStatus()
-    private val viewModel = SyncViewModel(status)
+    private val network = FakeNetworkStatus()
+    private val viewModel = SyncViewModel(status, network)
 
     @Test
     fun `väntande ändringar visas först efter två sekunder (NFR-22)`() = runTest(main.dispatcher) {
@@ -58,5 +60,22 @@ class SyncViewModelTest {
             assertEquals(SyncUiState(), awaitItem())
         }
         assertNull(status.lastWriteError.value)
+    }
+
+    @Test
+    fun `anslutningen följer nätet – pluppen på avataren (NAV-12)`() = runTest(main.dispatcher) {
+        viewModel.state.test {
+            assertEquals(SyncUiState(), awaitItem())
+            network.online.value = true
+            assertEquals(SyncUiState(online = true), awaitItem())
+            network.online.value = false
+            assertEquals(SyncUiState(), awaitItem())
+        }
+    }
+
+    @Test
+    fun `startläget har anslutningen redan, så att pluppen inte blinkar`() = runTest(main.dispatcher) {
+        val online = SyncViewModel(status, FakeNetworkStatus(online = true))
+        assertEquals(SyncUiState(online = true), online.state.value)
     }
 }

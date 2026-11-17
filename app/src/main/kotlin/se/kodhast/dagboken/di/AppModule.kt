@@ -23,6 +23,8 @@ import se.kodhast.dagboken.data.common.DataStoreDayMarks
 import se.kodhast.dagboken.data.common.DayMarks
 import se.kodhast.dagboken.data.common.UserFile
 import se.kodhast.dagboken.data.common.UserScope
+import se.kodhast.dagboken.data.network.ConnectivityMonitor
+import se.kodhast.dagboken.data.network.NetworkStatus
 import se.kodhast.dagboken.data.user.UserSession
 
 /** Scope som lever lika länge som appen – för delade StateFlows. */
@@ -40,6 +42,10 @@ abstract class AppModule {
     /** Dagsgrindens anteckningar (`DailyGate`, #304) i `dagboken_device`. */
     @Binds
     abstract fun dayMarks(marks: DataStoreDayMarks): DayMarks
+
+    /** Om appen har internet (NAV-12, AUTH-3). */
+    @Binds
+    abstract fun networkStatus(monitor: ConnectivityMonitor): NetworkStatus
 
     /** Filen från dokumentväljaren – exporten (BCK-13) och importen (BCK-6). */
     @Binds

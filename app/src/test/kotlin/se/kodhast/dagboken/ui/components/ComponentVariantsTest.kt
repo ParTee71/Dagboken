@@ -161,20 +161,20 @@ class ComponentVariantsTest {
     }
 
     @Test
-    fun `EntityDetailScreen i flikläge - stor rubrik med undertext och actions, ingen tillbakapil`() {
+    fun `EntityDetailScreen i flikläge - sidhuvudet med undertext och actions, ingen tillbakapil (NAV-12)`() {
         var avatar = 0
         show {
             EntityDetailScreen(
                 DetailUiState.Content("Levaxin"),
                 header = null,
                 onBack = null,
-                title = "God morgon",
-                subtitle = "Söndag 4 oktober · vecka 40",
+                title = "Idag",
+                subtitle = "God morgon · söndag 4 oktober · vecka 40",
                 actions = { AppIconButton(R.drawable.ic_person, "Konto och inställningar", { avatar++ }) }
             ) { AppCard { ItemRow(it) } }
         }
-        rule.onNodeWithText("God morgon").assertIsDisplayed()
-        rule.onNodeWithText("Söndag 4 oktober · vecka 40").assertIsDisplayed()
+        rule.onNodeWithText("Idag").assertIsDisplayed()
+        rule.onNodeWithText("God morgon · söndag 4 oktober · vecka 40").assertIsDisplayed()
         rule.onNodeWithContentDescription("Tillbaka").assertDoesNotExist()
         rule.onNodeWithContentDescription("Konto och inställningar").performClick()
         assertEquals(1, avatar)
@@ -199,7 +199,7 @@ class ComponentVariantsTest {
         }
         captureLightAndDark("ProgressBar_utan_firande") { Sheet { ProgressBar(9, 9, celebrate = false) } }
         captureLightAndDark("EntityDetailScreen_flik") {
-            EntityDetailScreen(DetailUiState.Content("Levaxin 100 µg"), header = null, onBack = null, title = "God morgon", subtitle = "Söndag 4 oktober · vecka 40") {
+            EntityDetailScreen(DetailUiState.Content("Levaxin 100 µg"), header = null, onBack = null, title = "Idag", subtitle = "God morgon · söndag 4 oktober · vecka 40") {
                 AppCard { ItemRow(it, subtitle = "Morgon · 07:00") }
             }
         }

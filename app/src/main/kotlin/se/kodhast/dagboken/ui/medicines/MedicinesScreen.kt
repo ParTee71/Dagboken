@@ -35,7 +35,6 @@ import se.kodhast.dagboken.core.engine.medicineOverview
 import se.kodhast.dagboken.core.engine.totalWith
 import se.kodhast.dagboken.core.model.Prescription
 import se.kodhast.dagboken.core.model.PrnMedicine
-import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.data.repository.PrescriptionRepository
 import se.kodhast.dagboken.data.repository.PrnMedicineRepository
 import se.kodhast.dagboken.ui.common.AppErrors
@@ -49,7 +48,6 @@ import se.kodhast.dagboken.ui.common.prnLimits
 import se.kodhast.dagboken.ui.common.screenSharing
 import se.kodhast.dagboken.ui.common.tidyingUpEachDay
 import se.kodhast.dagboken.ui.common.title
-import se.kodhast.dagboken.ui.components.AccountAvatar
 import se.kodhast.dagboken.ui.components.DagbokenEntryCard
 import se.kodhast.dagboken.ui.components.EntryFavorite
 import se.kodhast.dagboken.ui.components.EntryToggle
@@ -170,8 +168,6 @@ class MedicinesViewModel @Inject constructor(
 
 @Composable
 fun MedicinesRoute(
-    account: AuthUser?,
-    onAccount: () -> Unit,
     onOpenPrescription: (String?) -> Unit,
     onOpenPrn: (String?) -> Unit,
     onExtendPrescription: (String) -> Unit,
@@ -182,13 +178,11 @@ fun MedicinesRoute(
     val endings by viewModel.endings.collectAsStateWithLifecycle()
     val failure by viewModel.failure.collectAsStateWithLifecycle()
     val today by viewModel.today.collectAsStateWithLifecycle()
-    MedicinesScreen(state, endings, today, failure, viewModel::onEvent, onOpenPrescription, onOpenPrn, onExtendPrescription, onLogDose) {
-        AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
-    }
+    MedicinesScreen(state, endings, today, failure, viewModel::onEvent, onOpenPrescription, onOpenPrn, onExtendPrescription, onLogDose)
 }
 
 /**
- * Fliken på `EntityListScreen` med stor topprad och avataren (NAV-9), som övriga flikar: periodsluten
+ * Fliken på `EntityListScreen` med sidhuvudet (NAV-12), som övriga flikar: periodsluten
  * som banner överst, recepten som postkort (NFR-15/16) med stjärnan och aktiv-reglaget som direktkontroller,
  * vid behov-medicinerna som postkort av samma komponent med stjärnan som direktkontroll och de avslutade recepten
  * hopfällda sist med antal (NFR-18). Lägg till = "Nytt recept" med "Ny vid behov-medicin" i pilens meny
@@ -205,8 +199,7 @@ fun MedicinesScreen(
     onOpenPrescription: (String?) -> Unit,
     onOpenPrn: (String?) -> Unit,
     onExtendPrescription: (String) -> Unit,
-    onLogDose: () -> Unit = {},
-    avatar: @Composable () -> Unit = {}
+    onLogDose: () -> Unit = {}
 ) {
     val newPrn = stringResource(R.string.medicines_new_prn)
     val items = (state as? ListUiState.Content)?.items.orEmpty()
@@ -238,7 +231,6 @@ fun MedicinesScreen(
             }
         },
         archive = ListArchive(error = failure, showToggle = false) { if (it == ArchiveEvent.ErrorShown) onEvent(MedicinesEvent.ErrorShown) },
-        actions = { avatar() },
         header = if (endings.isEmpty()) null else ({ EndingsBanner(endings, today) { onOpenPrescription(endings.first().prescriptionId) } })
     ) { item ->
         when (item) {

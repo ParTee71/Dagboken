@@ -15,8 +15,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.tasks.await
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.data.common.DataError
@@ -31,11 +33,17 @@ class GoogleAuthRepository @Inject constructor(
     private val credentials = CredentialManager.create(context)
     private val serverClientId = context.getString(R.string.default_web_client_id)
 
-    override val authState: Flow<AuthUser?> = callbackFlow {
-        val listener = FirebaseAuth.AuthStateListener { trySend(it.currentUser?.toAuthUser()) }
-        auth.addAuthStateListener(listener)
-        awaitClose { auth.removeAuthStateListener(listener) }
-    }.distinctUntilChanged()
+    /** Profilen efter [reload] – Firebase meddelar inte lyssnaren när bara profilen ändrats. */
+    private val reloaded = MutableSharedFlow<AuthUser?>(extraBufferCapacity = 1)
+
+    override val authState: Flow<AuthUser?> = merge(
+        callbackFlow {
+            val listener = FirebaseAuth.AuthStateListener { trySend(it.currentUser?.toAuthUser()) }
+            auth.addAuthStateListener(listener)
+            awaitClose { auth.removeAuthStateListener(listener) }
+        },
+        reloaded
+    ).distinctUntilChanged()
 
     override suspend fun signInWithGoogle(activityContext: Context): Result<AuthUser> = suspendRunCatching(::authError) {
         val request = GetCredentialRequest.Builder()
@@ -54,6 +62,13 @@ class GoogleAuthRepository @Inject constructor(
         // Firebase först: sessionen (UserSession) följer uid:t och släpper användarens data direkt.
         auth.signOut()
         credentials.clearCredentialState(ClearCredentialStateRequest())
+    }
+
+    override suspend fun reload(): Result<Unit> = suspendRunCatching(::authError) {
+        val user = auth.currentUser ?: throw DataError.NotSignedIn
+        user.reload().await()
+        // Bara om samma användare fortfarande är inloggad – en utloggning under hämtningen vinner.
+        auth.currentUser?.takeIf { it.uid == user.uid }?.let { reloaded.tryEmit(it.toAuthUser()) }
     }
 }
 

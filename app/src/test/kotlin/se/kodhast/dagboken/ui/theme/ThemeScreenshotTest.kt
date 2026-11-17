@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,11 +23,10 @@ import se.kodhast.dagboken.testing.captureLightAndDark
 import se.kodhast.dagboken.ui.AppRootContent
 import se.kodhast.dagboken.ui.auth.AuthGate
 import se.kodhast.dagboken.ui.auth.AuthUiState
-import se.kodhast.dagboken.ui.components.AccountAvatar
-import se.kodhast.ui.components.AppTopBar
+import se.kodhast.dagboken.ui.components.UserAvatar
+import se.kodhast.ui.components.AppHeader
 import se.kodhast.ui.components.EmptyState
 import se.kodhast.ui.components.LocalBottomClearance
-import se.kodhast.ui.components.TopBarSize
 
 @RunWith(RobolectricTestRunner::class)
 class ThemeScreenshotTest {
@@ -35,16 +36,17 @@ class ThemeScreenshotTest {
     fun `startskärmen i ljust och mörkt tema`() {
         captureLightAndDark("AppRoot_start") {
             AppRootContent(AuthUiState(AuthGate.Ready), {}) {
-                AppNavHost(AppBackStack(), { key -> NavEntry(key) { StartScreen() } }, onLog = {})
+                AppNavHost(AppBackStack(), { key -> NavEntry(key) { StartScreen() } }, onLog = {}, account = { UserAvatar(null, {}) })
             }
         }
     }
 
-    /** En flik med stor rubrik och ett tomt tillstånd – bara något att rama in i temat. */
+    /** En flik med Kodhäst-sidhuvudet (NAV-12) och ett tomt tillstånd – bara något att rama in i temat. */
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun StartScreen() {
         Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-            AppTopBar(stringResource(R.string.tab_today), size = TopBarSize.Large, actions = { AccountAvatar(null, {}) })
+            AppHeader(stringResource(R.string.tab_today), TopAppBarDefaults.exitUntilCollapsedScrollBehavior())
             Box(Modifier.fillMaxSize().padding(bottom = LocalBottomClearance.current), contentAlignment = Alignment.Center) {
                 EmptyState(R.drawable.ic_sun, "Snart här", "Här kommer klockans mått – steg, puls, sömn och mer – med Health Connect-status.")
             }

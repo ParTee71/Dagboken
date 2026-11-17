@@ -14,22 +14,17 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import kotlinx.coroutines.launch
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.ui.common.AppErrors
-import se.kodhast.dagboken.ui.components.SyncIndicator
-import se.kodhast.dagboken.ui.components.syncStatus
 import se.kodhast.dagboken.ui.sync.SyncEvent
 import se.kodhast.dagboken.ui.sync.SyncUiState
 import se.kodhast.ui.components.AppFloatingToolbar
@@ -37,7 +32,8 @@ import se.kodhast.ui.components.AppSnackbarHost
 import se.kodhast.ui.components.ErrorSnackbar
 import se.kodhast.ui.components.FloatingToolbarClearance
 import se.kodhast.ui.components.LocalBottomClearance
-import se.kodhast.ui.components.LocalTopBarStatus
+import se.kodhast.ui.components.LocalTopBarAccount
+import se.kodhast.ui.components.LocalTopBarSyncing
 import se.kodhast.ui.components.NoBottomClearance
 import se.kodhast.ui.components.ToolbarAction
 import se.kodhast.ui.components.ToolbarItem
@@ -47,9 +43,9 @@ import se.kodhast.ui.theme.Spacing
  * Navigationsramen: `NavDisplay` med [Transitions] och bottenraden – de fyra flikarna och
  * plusknappen (NAV-8, NAV-10) – som bara syns i en fliks rot (NAV-3). Skärmarna kommer från
  * [entryProvider] (`appEntries` i appen). [onLog] är plusknappen; utan den visas ingen.
- * [sync] ger synkindikatorn i varje skärms toppbar och meddelandet om en nekad skrivning
- * (NFR-22), i appens gemensamma meddelandeyta ovanför bottenraden. [onPopped] får skärmen som systemets
- * tillbaka stängde.
+ * [sync] ger synkläget – prickarna i flikarnas sidhuvud hoppar medan ändringar väntar – och meddelandet om en nekad
+ * skrivning (NFR-22), i appens gemensamma meddelandeyta ovanför bottenraden. [account] är kontot längst till höger i
+ * flikarnas sidhuvud (NAV-9, NAV-12). [onPopped] får skärmen som systemets tillbaka stängde.
  */
 @Composable
 fun AppNavHost(
@@ -60,28 +56,19 @@ fun AppNavHost(
     sync: SyncUiState = SyncUiState(),
     onSyncEvent: (SyncEvent) -> Unit = {},
     onLog: (() -> Unit)? = null,
-    onPopped: (AppKey) -> Unit = {}
+    onPopped: (AppKey) -> Unit = {},
+    account: @Composable () -> Unit = {}
 ) {
     val toolbar = toolbarItems()
     val logLabel = stringResource(R.string.log_menu_open)
     val action = onLog?.let { ToolbarAction(logLabel, R.drawable.ic_add, it) }
     val clearance = if (backStack.atTopLevel) FloatingToolbarClearance else NoBottomClearance
     val messages = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    val resources = LocalResources.current
-    val indicator = remember(sync.pending, resources) {
-        SyncIndicator(sync.pending) {
-            // Ett meddelande som redan visas (t.ex. en nekad skrivning) får stå kvar; upprepade tryck köar inget.
-            if (messages.currentSnackbarData == null) {
-                scope.launch { messages.showSnackbar(resources.getString(R.string.sync_pending_explained)) }
-            }
-        }
-    }
     // Ett fel i taget från synkläget; samma nekade skrivning blir samma meddelande tills det visats.
     val writeError = remember(sync.writeError) { sync.writeError?.let(AppErrors::map) }
     ErrorSnackbar(writeError, messages, R.string.sync_write_rejected, SnackbarDuration.Long) { onSyncEvent(SyncEvent.WriteErrorShown) }
     Box(modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalBottomClearance provides clearance, LocalTopBarStatus provides remember(indicator) { syncStatus(indicator) }) {
+        CompositionLocalProvider(LocalBottomClearance provides clearance, LocalTopBarSyncing provides sync.pending, LocalTopBarAccount provides account) {
             NavDisplay(
                 backStack = backStack.entries,
                 onBack = {

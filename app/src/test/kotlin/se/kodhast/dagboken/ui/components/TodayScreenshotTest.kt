@@ -2,11 +2,9 @@ package se.kodhast.dagboken.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -17,12 +15,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.kodhast.dagboken.core.engine.OccasionStatus
+import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.testing.captureLightAndDark
-import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.Sun
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.theme.Spacing
-import se.kodhast.ui.theme.Tone
 
 /**
  * Skärmdumpar (ljust + mörkt) av Idags nya komponenter i mockupens tillstånd (etapp 4.2, canvasen
@@ -96,13 +93,13 @@ class TodayScreenshotTest {
     }
 
     @Test
-    fun `AccountAvatar - initialer, foto och utloggad`() {
-        captureLightAndDark("AccountAvatar_lagen") {
+    fun `UserAvatar - ansluten, utan anslutning och utloggad (NAV-12)`() {
+        captureLightAndDark("UserAvatar_lagen") {
             Sheet {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                    AccountAvatar("Anna Berg", {})
-                    AccountAvatar("Anna Berg", {}) { Box(Modifier.fillMaxSize().background(AppColors.tone(Tone.Sun).container)) }
-                    AccountAvatar(null, {})
+                    UserAvatar(AuthUser("uid-anna", "Anna Berg"), {}, online = true)
+                    UserAvatar(AuthUser("uid-anna", "Anna Berg"), {}, online = false)
+                    UserAvatar(null, {})
                 }
             }
         }

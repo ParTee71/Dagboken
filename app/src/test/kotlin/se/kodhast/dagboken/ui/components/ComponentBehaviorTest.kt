@@ -6,7 +6,6 @@ import android.view.inputmethod.EditorInfo
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -14,7 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -65,7 +63,6 @@ import se.kodhast.ui.components.AppMenu
 import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.AppSegmentedChoice
 import se.kodhast.ui.components.AppTextField
-import se.kodhast.ui.components.AppTopBar
 import se.kodhast.ui.components.CheckRow
 import se.kodhast.ui.components.ChipRow
 import se.kodhast.ui.components.ChoiceChips
@@ -75,7 +72,6 @@ import se.kodhast.ui.components.DateField
 import se.kodhast.ui.components.ExampleChips
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ItemRow
-import se.kodhast.ui.components.LocalTopBarStatus
 import se.kodhast.ui.components.QuantityStepper
 import se.kodhast.ui.components.Suggestion
 import se.kodhast.ui.components.SuggestionField
@@ -543,26 +539,6 @@ class ComponentBehaviorTest {
             .assertTouchHeightIsEqualTo(48.dp)
             .performClick()
         assertEquals(1, clicks)
-    }
-
-    @Test
-    fun `toppraden visar synkindikatorn bara när ändringar väntar (NFR-22)`() {
-        var indicator by mutableStateOf(SyncIndicator())
-        var clicks = 0
-        show {
-            CompositionLocalProvider(LocalTopBarStatus provides syncStatus(indicator)) {
-                AppTopBar("Idag") { AppIconButton(R.drawable.ic_more_vert, "Fler val", {}) }
-            }
-        }
-        rule.onNodeWithContentDescription("Ändringar väntar på att synkas").assertDoesNotExist()
-        indicator = SyncIndicator(pending = true) { clicks++ }
-        rule.onNodeWithContentDescription("Ändringar väntar på att synkas")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
-            .performClick()
-        assertEquals(1, clicks)
-        rule.onNodeWithContentDescription("Fler val").assertIsDisplayed()
-        indicator = SyncIndicator()
-        rule.onNodeWithContentDescription("Ändringar väntar på att synkas").assertDoesNotExist()
     }
 }
 

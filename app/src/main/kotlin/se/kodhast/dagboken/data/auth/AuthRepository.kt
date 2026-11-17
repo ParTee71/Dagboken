@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Den inloggade användaren – bara det appen behöver. Namn, e-post och profilfotots adress
  * ([photoUrl]) visas i inställningsarket och avataren (AUTH-3, NAV-9) men hålls bara i minnet:
- * de loggas, sparas och cachas aldrig på disk.
+ * de loggas och sparas aldrig. Själva fotot cachas i appens privata cache, så att det syns utan nät,
+ * och tas bort vid utloggning ([ProfilePhotoCache]).
  */
 data class AuthUser(val uid: String, val name: String? = null, val email: String? = null, val photoUrl: String? = null) {
     /** Inga värden – uid, namn, e-post och foto får aldrig hamna i en logg eller ett felmeddelande (AUTH-3, NFR-13). */
@@ -26,4 +27,10 @@ interface AuthRepository {
      * ut via [SignOutUseCase], som dessutom tömmer den lokala cachen (AUTH-6).
      */
     suspend fun signOut(): Result<Unit>
+
+    /**
+     * Hämtar om den inloggades profil från servern (AUTH-3), så att ett utbytt namn eller foto når [authState].
+     * Utloggad eller utan nät är ett fel (`DataError`).
+     */
+    suspend fun reload(): Result<Unit>
 }

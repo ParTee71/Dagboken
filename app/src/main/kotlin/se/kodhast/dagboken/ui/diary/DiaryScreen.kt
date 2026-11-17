@@ -24,7 +24,6 @@ import se.kodhast.dagboken.core.engine.DiaryEntry
 import se.kodhast.dagboken.core.engine.DiaryType
 import se.kodhast.dagboken.core.engine.isPrescribed
 import se.kodhast.dagboken.core.schema.DocumentRules
-import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.ScaleLevel
 import se.kodhast.dagboken.ui.common.color
@@ -36,7 +35,6 @@ import se.kodhast.dagboken.ui.common.nonBlank
 import se.kodhast.dagboken.ui.common.scaleLevel
 import se.kodhast.dagboken.ui.common.scaleValueText
 import se.kodhast.dagboken.ui.common.title
-import se.kodhast.dagboken.ui.components.AccountAvatar
 import se.kodhast.dagboken.ui.components.DagbokenCalendar
 import se.kodhast.dagboken.ui.components.DagbokenEntryCard
 import se.kodhast.dagboken.ui.components.FeelingExtras
@@ -64,22 +62,18 @@ import se.kodhast.ui.theme.Tone
 
 @Composable
 fun DiaryRoute(
-    account: AuthUser?,
-    onAccount: () -> Unit,
     onOpen: (DiaryEntry) -> Unit,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val controls by viewModel.controls.collectAsStateWithLifecycle()
     val failure by viewModel.failure.collectAsStateWithLifecycle()
-    DiaryScreen(state, controls, failure, viewModel::onEvent, onOpen) {
-        AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
-    }
+    DiaryScreen(state, controls, failure, viewModel::onEvent, onOpen)
 }
 
 /**
- * Fliken Dagbok (HIST-1…HIST-9) på `EntityListScreen`: stor topprad med Listvy och Kalendervy (den valda
- * markerad) och avataren (NAV-9), som övriga flikar; filterchipsen (HIST-2) står fast under rubriken i alla
+ * Fliken Dagbok (HIST-1…HIST-9) på `EntityListScreen`: sidhuvudet (NAV-12) med Listvy och Kalendervy (den valda
+ * markerad) före avataren, som övriga flikar; filterchipsen (HIST-2) står fast under rubriken i alla
  * lägen. Listvyn har en rubrik per dag och "Visa äldre" sist (HIST-8); kalendervyn har kalendern överst och
  * den valda dagens poster under (HIST-6). Posterna är postkort (NFR-15/16) – tryck öppnar ([onOpen]),
  * Redigera och Ta bort i menyn, svep begär radering. Ingen lägg till: plusknappen i verktygsraden loggar.
@@ -90,8 +84,7 @@ fun DiaryScreen(
     controls: DiaryControls,
     failure: UiError?,
     onEvent: (DiaryEvent) -> Unit,
-    onOpen: (DiaryEntry) -> Unit,
-    avatar: @Composable () -> Unit = {}
+    onOpen: (DiaryEntry) -> Unit
 ) {
     val resources = LocalResources.current
     // Rubriken formateras en gång per dag, inte per rad; lambdan är stabil så länge dagen och resurserna är det.
@@ -115,7 +108,6 @@ fun DiaryScreen(
         actions = {
             ViewButton(DiaryView.LIST, controls.view, R.drawable.ic_list, R.string.diary_view_list, onEvent)
             ViewButton(DiaryView.CALENDAR, controls.view, R.drawable.ic_calendar, R.string.diary_view_calendar, onEvent)
-            avatar()
         },
         filter = { FilterChips(controls, onEvent) },
         header = if (calendar) ({ Calendar(controls, onEvent) }) else null,

@@ -13,12 +13,14 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.isNotSelected
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -65,6 +67,7 @@ import se.kodhast.dagboken.ui.health.HealthEvent
 import se.kodhast.dagboken.ui.health.HealthSamples
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
+import se.kodhast.ui.components.APP_HEADER_TAG
 
 /**
  * Fliken Trender (TRD-3, TRD-12, TRD-14, TRD-16–TRD-21, NFR-18): grupperna, de stängda korten, ett utfällt kort med
@@ -201,6 +204,13 @@ class TrendsScreenTest {
     private val ratedOpen = closed.with(TrendCard.FEELINGS, CardControls(expanded = true, range = TrendRange.SEVEN_DAYS), feelingsRated)
 
     private fun show(state: TrendsUiState, clock: ClockUiState? = null, onEvent: (TrendsEvent) -> Unit = {}) = rule.setContent { DagbokenTheme { TrendsScreen(state, onEvent, clock = clock) } }
+
+    @Test
+    fun `fliken har Kodhäst-sidhuvudet med flikens namn som rubrik (NAV-12)`() {
+        rule.setContent { DagbokenTheme { TrendsScreen(closed, {}) } }
+        rule.onNodeWithTag(APP_HEADER_TAG).assertIsDisplayed()
+        rule.onNode(hasText("Trender") and isHeading()).assertIsDisplayed()
+    }
 
     @Test
     fun `rubriken, grupperna och sex stängda kort utan diagram eller periodväljare (TRD-14, TRD-19)`() {
@@ -462,7 +472,8 @@ class TrendsScreenTest {
     fun `händelser och sjukdom ritar staplar, linje och fält med teckenförklaring (TRD-21)`() {
         show(eventsOpen)
         val list = rule.onNode(hasScrollAction())
-        list.performScrollToNode(hasText("Incheckningar"))
+        // Teckenförklaringen står sist i kortet: rulla till dess sista post, så att hela raden syns under sidhuvudet.
+        list.performScrollToNode(hasText("Trend"))
         listOf("Händelser", "Incheckningar", "Förkylning", "Trend").forEach { rule.onNodeWithText(it).assertIsDisplayed() }
         rule.onNodeWithContentDescription("Incheckningar: 6 värden", substring = true).assertIsDisplayed()
         list.performScrollToNode(hasText("4 händelser · snitt 5,5 · Förkylning 30 sep – pågår"))

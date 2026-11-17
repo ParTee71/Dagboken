@@ -87,13 +87,17 @@ keep-regler (kotlinx.serialization, Firestore-modeller, Hilt) får regler i
 release-bygget – inte per PR (skill `ci-budget`).
 
 ### 7. Behörigheter och autentisering
-- Behörigheterna är de i TP-9 (`INTERNET`, `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`,
+- Behörigheterna är de i TP-9 (`INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`,
   `RECEIVE_BOOT_COMPLETED`) plus Health Connects läsbehörigheter (HLS). Nya behörigheter bara vid
   tydligt behov, och de begärs först när de behövs (skill `notifications-alarms`).
 - **Notiser** visar aldrig hälsoinnehåll på låsskärmen: privat synlighet, och medicinnamn eller
   symptom bara i den utfällda notisen när telefonen är upplåst.
 - Inloggning går via `AuthRepository` (Credential Manager + Firebase) – anropa aldrig
   Firebase direkt från UI. Avbruten inloggning är inte ett fel.
+- **Profilfotot** (AUTH-3) är det enda som sparas om kontot på enheten: Coil cachar bilden i appens
+  privata `cacheDir` (säkerhetskopieras inte av Android) så att den syns utan nät, och utloggningen
+  tömmer Coils cache (`ProfilePhotoCache`). Namn, e-post och fotots adress hålls bara i minnet och
+  loggas aldrig. Inga andra bilder från nätet laddas.
 
 ## Checklista
 

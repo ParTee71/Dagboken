@@ -41,7 +41,6 @@ import se.kodhast.dagboken.core.engine.latest
 import se.kodhast.dagboken.core.model.Dose
 import se.kodhast.dagboken.core.model.DoseStatus
 import se.kodhast.dagboken.core.model.Prescription
-import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.FeelingSentenceKind
@@ -53,7 +52,6 @@ import se.kodhast.dagboken.ui.common.label
 import se.kodhast.dagboken.ui.common.periodText
 import se.kodhast.dagboken.ui.common.title
 import se.kodhast.dagboken.ui.common.toMessage
-import se.kodhast.dagboken.ui.components.AccountAvatar
 import se.kodhast.dagboken.ui.components.DateStrip
 import se.kodhast.dagboken.ui.components.DayDoneCard
 import se.kodhast.dagboken.ui.components.FeelingMiniWheel
@@ -102,8 +100,6 @@ import se.kodhast.ui.theme.Tone
 
 @Composable
 fun TodayRoute(
-    account: AuthUser?,
-    onAccount: () -> Unit,
     onEditPrn: (String) -> Unit,
     onOpenTrends: () -> Unit,
     onScreening: (LogEvent) -> Unit,
@@ -134,14 +130,12 @@ fun TodayRoute(
         onEditPrescription = onEditPrescription,
         health = health,
         onHealthEvent = healthViewModel::onEvent
-    ) {
-        AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
-    }
+    )
 }
 
 /**
- * Fliken Idag (HEM-16) på `EntityDetailScreen` i flikläge: hälsningen och den visade dagen överst med
- * avataren (HEM-1, HEM-2, NAV-9), datumremsan (HEM-14), framstegsraden (HEM-18), i belöningsläget kortet
+ * Fliken Idag (HEM-16) på `EntityDetailScreen` i flikläge: sidhuvudet med rubriken Idag och hälsningen (i belöningsläget
+ * "Allt klart för idag") och den visade dagen i undertiteln (HEM-1, HEM-2, NAV-12), datumremsan (HEM-14), framstegsraden (HEM-18), i belöningsläget kortet
  * "Allt klart för idag" med konfetti (HEM-19), Dagens känslor när dagens måendeloggar har känslor (HEM-21), och sedan korten Mediciner (MED-1–3, MED-5, MED-13) och Vid
  * behov (FAV-2, FAV-11) med Mående emellan (HEM-4, HEM-5), sedan pågående sjukdom (HEM-12), hälsokortet (HEM-15,
  * [health] ur `HealthTodayViewModel`, `null` = ingen klocka) och "Senaste veckan" med steg-, vilopuls- och energitrenden
@@ -168,8 +162,7 @@ fun TodayScreen(
     onOpenIllness: (episodeId: String, date: LocalDate) -> Unit = { _, _ -> },
     onEditPrescription: (String) -> Unit = {},
     health: HealthTodayUiState? = null,
-    onHealthEvent: (HealthEvent) -> Unit = {},
-    avatar: @Composable () -> Unit = {}
+    onHealthEvent: (HealthEvent) -> Unit = {}
 ) {
     val snackbar = remember { SnackbarHostState() }
     UndoSnackbar(undo, snackbar, { onEvent(TodayEvent.Undo) }, {}, onRequestDismissed = { onEvent(TodayEvent.UndoDismissed(it.id)) })
@@ -181,16 +174,14 @@ fun TodayScreen(
         header = null,
         onBack = null,
         modifier = modifier,
-        title = when {
-            content == null -> stringResource(R.string.tab_today)
-            content.dayDone != null -> stringResource(R.string.day_done_title)
-            else -> stringResource(content.dayPart.greeting())
+        title = stringResource(R.string.tab_today),
+        subtitle = content?.let {
+            val greeting = stringResource(if (it.dayDone != null) R.string.day_done_title else it.dayPart.greeting())
+            stringResource(R.string.today_heading_format, greeting, DateFormat.weekdayDayAndMonth(it.date), DateFormat.isoWeek(it.date))
         },
-        subtitle = content?.let { stringResource(R.string.today_heading_format, DateFormat.dayAndMonth(it.date), DateFormat.isoWeek(it.date)) },
         onRetry = { onEvent(TodayEvent.Retry) },
         error = failure,
         onErrorShown = { onEvent(TodayEvent.ErrorShown) },
-        actions = { avatar() },
         snackbar = snackbar
     ) { TodayCards(it, onEvent, TodayLinks(onEditPrn, onOpenTrends, onScreening, onLogLater, onOpenIllness, onEditPrescription), health, onHealthEvent) }
 }

@@ -8,9 +8,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
@@ -21,11 +25,15 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.data.common.DataError
+import se.kodhast.dagboken.ui.components.UserAvatar
 import se.kodhast.dagboken.ui.sync.SyncEvent
 import se.kodhast.dagboken.ui.sync.SyncUiState
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
-import se.kodhast.ui.components.AppTopBar
+import se.kodhast.ui.common.DetailUiState
+import se.kodhast.ui.components.APP_HEADER_TAG
+import se.kodhast.ui.components.EntityDetailScreen
 
 /** Navigationsramen: bottenraden med flikar och plusknapp i flikarnas rot, dold på undersidor (NAV-3, NAV-8, NAV-10). */
 @RunWith(RobolectricTestRunner::class)
@@ -138,17 +146,32 @@ class AppNavHostTest {
     }
 
     @Test
-    fun `synkindikatorn syns i skärmens toppbar och förklarar sig vid tryck (NFR-22)`() {
+    fun `flikens sidhuvud har kontot från navigationen och prickarna läser synkläget (NFR-22, NAV-9, NAV-12)`() {
         var sync by mutableStateOf(SyncUiState())
+        var opened = 0
         rule.setContent {
             DagbokenTheme {
-                AppNavHost(backStack, { key -> NavEntry(key) { AppTopBar("Idag") } }, sync = sync)
+                AppNavHost(
+                    backStack,
+                    { key -> NavEntry(key) { EntityDetailScreen(DetailUiState.Content(Unit), header = null, onBack = null, title = "Idag") {} } },
+                    sync = sync,
+                    account = { UserAvatar(AuthUser("uid-anna", "Anna Berg"), { opened++ }, online = sync.online) }
+                )
             }
         }
-        rule.onNodeWithContentDescription("Ändringar väntar på att synkas").assertDoesNotExist()
-        sync = SyncUiState(pending = true)
-        rule.onNodeWithContentDescription("Ändringar väntar på att synkas").performClick()
-        rule.onNodeWithText("Ändringarna är sparade på telefonen och skickas när det finns nät.").assertIsDisplayed()
+        rule.onNodeWithTag(APP_HEADER_TAG).assertIsDisplayed()
+        rule.onNodeWithContentDescription(PENDING).assertDoesNotExist()
+        rule.onNodeWithContentDescription(ACCOUNT).assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Utan anslutning"))
+
+        sync = SyncUiState(pending = true, online = true)
+        rule.onNodeWithContentDescription(PENDING).assertExists()
+        rule.onNodeWithContentDescription(ACCOUNT)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Ansluten"))
+            .performClick()
+        assertEquals(1, opened)
+
+        sync = SyncUiState(online = true)
+        rule.onNodeWithContentDescription(PENDING).assertDoesNotExist()
     }
 
     @Test
@@ -173,26 +196,10 @@ class AppNavHostTest {
         assertEquals(listOf<SyncEvent>(SyncEvent.WriteErrorShown), events)
     }
 
-    @Test
-    fun `tryck på synkindikatorn stänger inte ett felmeddelande som visas`() {
-        rule.mainClock.autoAdvance = false
-        rule.setContent {
-            DagbokenTheme {
-                AppNavHost(
-                    backStack,
-                    { key -> NavEntry(key) { AppTopBar("Idag") } },
-                    sync = SyncUiState(pending = true, writeError = DataError.PermissionDenied)
-                )
-            }
-        }
-        rule.mainClock.advanceTimeBy(SHOWN_MILLIS)
-        rule.onNodeWithContentDescription("Ändringar väntar på att synkas").performClick()
-        rule.mainClock.advanceTimeBy(SHOWN_MILLIS)
-        rule.onNodeWithText("En ändring kunde inte sparas och har ångrats. Du har inte behörighet till de här uppgifterna.").assertIsDisplayed()
-        rule.onNodeWithText("Ändringarna är sparade på telefonen och skickas när det finns nät.").assertDoesNotExist()
-    }
-
     private companion object {
+        /** Prickarnas text för TalkBack i android-ui:s sidhuvud. */
+        const val PENDING = "Ändringar väntar på servern"
+        const val ACCOUNT = "Konto och inställningar"
         const val SHOWN_MILLIS = 500L
         const val LONG_SNACKBAR_MILLIS = 11_000L
     }

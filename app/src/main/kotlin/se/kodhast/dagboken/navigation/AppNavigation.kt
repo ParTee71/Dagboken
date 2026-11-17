@@ -26,6 +26,7 @@ import se.kodhast.dagboken.ui.components.ComponentGallery
 import se.kodhast.dagboken.ui.components.LogChoice
 import se.kodhast.dagboken.ui.components.LogMenuSheet
 import se.kodhast.dagboken.ui.components.SettingsPage
+import se.kodhast.dagboken.ui.components.UserAvatar
 import se.kodhast.dagboken.ui.diary.DiaryRoute
 import se.kodhast.dagboken.ui.illness.IllnessDetailRoute
 import se.kodhast.dagboken.ui.log.ActivityEditRoute
@@ -57,8 +58,8 @@ enum class RootSheet { Account, Log }
 
 /**
  * Appens innehåll efter inloggning: fyra flikar med egna back stackar (NAV-8, NAV-11), synkläget
- * (NFR-22), inställningsarket bakom avataren och loggmenyn bakom plusknappen. [account] är den
- * inloggade (namn, e-post och foto i avataren och arket – bara i minnet, AUTH-3); [onSignOut] loggar ut. [launch]
+ * (NFR-22), inställningsarket bakom avataren i flikarnas sidhuvud (NAV-9, NAV-12, med anslutningspluppen) och loggmenyn
+ * bakom plusknappen. [account] är den inloggade (namn, e-post och foto i avataren och arket, AUTH-3); [onSignOut] loggar ut. [launch]
  * är vad en tryckt påminnelse ska öppna ([open]); när det är gjort anropas [onLaunchHandled].
  */
 @Composable
@@ -75,12 +76,9 @@ fun AppNavigation(
     val backStack = rememberAppBackStack()
     val activity = LocalActivity.current
     var sheet by rememberSaveable { mutableStateOf<RootSheet?>(null) }
-    val currentAccount = rememberUpdatedState(account)
     val entries = remember(backStack) {
         appEntries(
             backStack,
-            account = { currentAccount.value },
-            onAccount = { sheet = RootSheet.Account },
             onScreening = logViewModel::onEvent,
             onSettingsClosed = { sheet = RootSheet.Account }
         )
@@ -94,7 +92,9 @@ fun AppNavigation(
         onSyncEvent = syncViewModel::onEvent,
         onLog = { sheet = RootSheet.Log },
         // NAV-9: systemets tillbaka från en underskärm i inställningsarket öppnar arket igen, som pilen.
-        onPopped = { key -> if (key.isSettingsPage) sheet = RootSheet.Account }
+        onPopped = { key -> if (key.isSettingsPage) sheet = RootSheet.Account },
+        // Samma lambda tills kontot eller anslutningen ändras, så att flikarnas sidhuvud inte ritas om i onödan.
+        account = remember(account, sync.online) { { UserAvatar(account, onClick = { sheet = RootSheet.Account }, online = sync.online) } }
     )
     RootSheets(
         sheet,
@@ -215,24 +215,19 @@ fun RootSheets(
 }
 
 /**
- * Vilken skärm varje nyckel visar – varje nyckel har en (`AppNavigationTest`). [onAccount] är avataren uppe
- * till höger (NAV-9) med [account]s namn och foto; [onScreening] öppnar måendearket ovanpå flikarna – från Idag och
+ * Vilken skärm varje nyckel visar – varje nyckel har en (`AppNavigationTest`). [onScreening] öppnar måendearket ovanpå flikarna – från Idag och
  * från en måendepost i Dagbok – ett enda ark (`LogViewModel`), och dosvalet från Mediciner (MEDF-6). En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
  * andra tryck inte stänger skärmen under. Inställningsarkets underskärmar läggs på den aktuella
  * flikens stack, och när de stängs anropas [onSettingsClosed] (arket öppnas igen, NAV-9).
  */
 fun appEntries(
     backStack: AppBackStack,
-    account: () -> AuthUser?,
-    onAccount: () -> Unit,
     onScreening: (LogEvent) -> Unit = {},
     onSettingsClosed: () -> Unit = {}
 ): (AppKey) -> NavEntry<AppKey> = // Varje nyckel har sin skärm (AppKey är förseglad); en saknad är ett programfel.
     entryProvider(fallback = { key -> error("Ingen skärm för $key") }) {
         entry<TodayKey> {
             TodayRoute(
-                account(),
-                onAccount,
                 onEditPrn = { id -> backStack.push(PrnMedicineEditKey(id)) },
                 // FAV-12: Redigera i långtrycksmenyn på ett stjärnmärkt recept.
                 onEditPrescription = { id -> backStack.push(PrescriptionEditKey(id)) },
@@ -247,7 +242,7 @@ fun appEntries(
         // HIST-3: aktivitet, händelse, dos och incheckning öppnar sina formulär, mående måendearket; episodens start och
         // slut sjukdomsdetaljen (HIST-9).
         entry<DiaryKey> {
-            DiaryRoute(account(), onAccount, onOpen = { entry -> entry.key?.let(backStack::push) ?: (entry as? DiaryEntry.Mood)?.let { onScreening(LogEvent.EditScreening(it.screening)) } })
+            DiaryRoute(onOpen = { entry -> entry.key?.let(backStack::push) ?: (entry as? DiaryEntry.Mood)?.let { onScreening(LogEvent.EditScreening(it.screening)) } })
         }
         entry<EpisodeKey> { key ->
             IllnessDetailRoute(
@@ -263,11 +258,9 @@ fun appEntries(
         entry<DoseEditKey> { key -> DoseEditRoute(key.id, key.prnId, key.date, onClose = backStack.closer(key)) }
         entry<EpisodeNewKey> { key -> EpisodeNewRoute(key.date, onClose = backStack.closer(key)) }
         entry<CheckinEditKey> { key -> CheckinEditRoute(key.episodeId, key.id, key.date, onClose = backStack.closer(key)) }
-        entry<TrendsKey> { TrendsRoute(account(), onAccount) }
+        entry<TrendsKey> { TrendsRoute() }
         entry<MedicinesKey> {
             MedicinesRoute(
-                account(),
-                onAccount,
                 onOpenPrescription = { id -> backStack.push(PrescriptionEditKey(id)) },
                 onOpenPrn = { id -> backStack.push(PrnMedicineEditKey(id)) },
                 onExtendPrescription = { id -> backStack.push(PrescriptionEditKey(id, extend = true)) },
