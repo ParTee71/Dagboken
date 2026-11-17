@@ -73,7 +73,7 @@ class UserFixture(scope: CoroutineScope, val auth: FakeAuthRepository = FakeAuth
 
     /** Om appen har internet – profilkontrollen (AUTH-3) väntar på den. */
     val network = FakeNetworkStatus()
-    val profileCheck = ProfileCheckUseCase(auth, network, DailyGate(marks, session), clock, TimeZone.UTC)
+    val profileCheck = ProfileCheckUseCase(auth, session, network, DailyGate(marks, session), clock, TimeZone.UTC)
 
     /** Lägger ett användardokument direkt i den fejkade databasen, som om en annan enhet skapat det. */
     fun storeUser(uid: String, doc: Doc = mapOf(EnsureUserUseCase.SCHEMA_VERSION to Schema.CURRENT_VERSION)) = store.set(Paths.USERS, uid, doc, merge = false)

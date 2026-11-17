@@ -93,7 +93,8 @@ fun AppNavigation(
         onLog = { sheet = RootSheet.Log },
         // NAV-9: systemets tillbaka från en underskärm i inställningsarket öppnar arket igen, som pilen.
         onPopped = { key -> if (key.isSettingsPage) sheet = RootSheet.Account },
-        account = { UserAvatar(account, onClick = { sheet = RootSheet.Account }, online = sync.online) }
+        // Samma lambda tills kontot eller anslutningen ändras, så att flikarnas sidhuvud inte ritas om i onödan.
+        account = remember(account, sync.online) { { UserAvatar(account, onClick = { sheet = RootSheet.Account }, online = sync.online) } }
     )
     RootSheets(
         sheet,

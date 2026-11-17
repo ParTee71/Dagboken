@@ -34,8 +34,9 @@ sealed interface SyncEvent {
 @HiltViewModel
 class SyncViewModel @Inject constructor(private val status: SyncStatus, network: NetworkStatus) : ViewModel() {
 
+    // Anslutningen är känd direkt: startläget har den, så att pluppen inte blinkar till "Utan anslutning".
     val state: StateFlow<SyncUiState> = combine(status.syncing.shownAfter(PENDING_DELAY), status.lastWriteError, network.online, ::SyncUiState)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, SyncUiState())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, SyncUiState(online = network.online.value))
 
     fun onEvent(event: SyncEvent) {
         when (event) {

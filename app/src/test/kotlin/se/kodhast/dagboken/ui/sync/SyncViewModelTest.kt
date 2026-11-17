@@ -72,4 +72,10 @@ class SyncViewModelTest {
             assertEquals(SyncUiState(), awaitItem())
         }
     }
+
+    @Test
+    fun `startläget har anslutningen redan, så att pluppen inte blinkar`() = runTest(main.dispatcher) {
+        val online = SyncViewModel(status, FakeNetworkStatus(online = true))
+        assertEquals(SyncUiState(online = true), online.state.value)
+    }
 }

@@ -3,14 +3,13 @@ package se.kodhast.dagboken.data.auth
 import javax.inject.Inject
 import kotlin.time.Clock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import se.kodhast.dagboken.data.common.DailyGate
+import se.kodhast.dagboken.data.common.UserScope
 import se.kodhast.dagboken.data.network.NetworkStatus
 
 /**
@@ -21,6 +20,7 @@ import se.kodhast.dagboken.data.network.NetworkStatus
  */
 class ProfileCheckUseCase @Inject constructor(
     private val auth: AuthRepository,
+    private val user: UserScope,
     private val network: NetworkStatus,
     private val daily: DailyGate,
     private val clock: Clock,
@@ -29,9 +29,8 @@ class ProfileCheckUseCase @Inject constructor(
     /** Lyssnar så länge anroparen lever (`AuthViewModel`). */
     @OptIn(ExperimentalCoroutinesApi::class)
     suspend operator fun invoke() {
-        auth.authState
-            .map { it?.uid }
-            .distinctUntilChanged()
+        // Sessionens uid – samma som dagsgrinden läser – så att grinden aldrig ser en utloggad medan kontrollen körs.
+        user.uid
             .flatMapLatest { uid -> if (uid == null) emptyFlow() else network.online.filter { it } }
             .collect { daily.runOncePerDay(NAME, clock.todayIn(zone)) { auth.reload() } }
     }
