@@ -328,7 +328,6 @@
     <string name="tab_medicines">Mediciner</string>
 
     <!-- Inställningsarket bakom avataren (NAV-9) -->
-    <string name="account_open">Konto och inställningar</string>
     <string name="account_title">Inställningar</string>
     <string name="sign_out">Logga ut</string>
     <string name="sign_out_title">Logga ut?</string>
@@ -501,7 +500,7 @@
     <string name="option_archived">Arkiverad</string>
 
     <!-- Idag (HEM-1, HEM-2, HEM-14, HEM-18, HEM-19, MED-1–3, MED-5, MED-13, MED-14, FAV-2–6, FAV-8, FAV-9, FAV-11) -->
-    <string name="today_heading_format">%1$s · vecka %2$d</string>
+    <string name="today_heading_format">%1$s · %2$s · vecka %3$d</string>
     <string name="greeting_morning">God morgon</string>
     <string name="greeting_afternoon">God eftermiddag</string>
     <string name="greeting_evening">God kväll</string>
@@ -837,9 +836,6 @@
     <string name="event_actions_hint">T.ex. vila i mörkt rum eller Alvedon 500 mg</string>
 
     <!-- Synk (NFR-22) -->
-    <string name="sync_pending">Väntar på synk</string>
-    <string name="sync_pending_description">Ändringar väntar på att synkas</string>
-    <string name="sync_pending_explained">Ändringarna är sparade på telefonen och skickas när det finns nät.</string>
     <string name="sync_write_rejected">En ändring kunde inte sparas och har ångrats. %1$s</string>
     <!-- Diagram (TRD-6–18, HEM-7, NFR-14) -->
     <string name="chart_empty_title">För lite data än</string>

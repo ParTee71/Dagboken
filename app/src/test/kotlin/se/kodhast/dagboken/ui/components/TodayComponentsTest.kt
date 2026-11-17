@@ -3,10 +3,7 @@
 package se.kodhast.dagboken.ui.components
 
 import android.content.Context
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -51,7 +48,6 @@ import coil3.request.CachePolicy
 import coil3.request.ErrorResult
 import coil3.request.ImageRequest
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.datetime.LocalDate
 import org.junit.Rule
@@ -60,6 +56,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.kodhast.dagboken.core.engine.OccasionStatus
 import se.kodhast.dagboken.core.model.Feeling
+import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.testing.pixels
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
@@ -309,37 +306,28 @@ class TodayComponentsTest {
         assertEquals(2, finished)
     }
 
-    // ---- AccountAvatar ----
+    // ---- UserAvatar (android-ui:s AccountAvatar med kontots namn och foto) ----
 
     @Test
-    fun `avataren är en 48 dp knapp som läses Konto och inställningar`() {
+    fun `avataren är en 48 dp knapp som läses Konto och inställningar, med anslutningsläget (NAV-9, NAV-12)`() {
         var opened = 0
-        show { AccountAvatar("Anna Berg", { opened++ }) }
+        var online by mutableStateOf(true)
+        show { UserAvatar(AuthUser("uid-anna", "Anna Berg"), { opened++ }, online = online) }
         rule.onNodeWithContentDescription("Konto och inställningar")
             .assert(role(Role.Button))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Ansluten"))
             .assertHasClickAction()
             .assertHeightIsAtLeast(48.dp)
             .assertWidthIsAtLeast(48.dp)
             .performClick()
         assertEquals(1, opened)
+        online = false
+        rule.onNodeWithContentDescription("Konto och inställningar")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Utan anslutning"))
     }
 
     @Test
-    fun `avataren visar fotot i stället för initialerna`() {
-        var photoShown = false
-        show {
-            AccountAvatar("Anna Berg", {}) {
-                photoShown = true
-                Box(Modifier.fillMaxSize().background(AppColors.light.secondary))
-            }
-        }
-        rule.waitForIdle()
-        assertTrue(photoShown)
-        assertTrue(rule.onNodeWithContentDescription("Konto och inställningar").pixels(AppColors.light.secondary) > 0)
-    }
-
-    @Test
-    fun `fotot hämtas bara till minnet och utan foto syns initialerna (AUTH-3)`() {
+    fun `fotot får sparas i appens cache och utan foto syns initialerna (AUTH-3)`() {
         // Ingen riktig nätåtkomst i JVM-testet: en egen ImageLoader fångar requesten och svarar med fel.
         val requests = mutableListOf<ImageRequest>()
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -354,12 +342,12 @@ class TodayComponentsTest {
             }.build()
         )
         try {
-            show { AccountAvatar("Anna Berg", {}, photoUrl = "https://exempel.se/anna.jpg") }
+            show { UserAvatar(AuthUser("uid-anna", "Anna Berg", photoUrl = "https://exempel.se/anna.jpg"), {}) }
             rule.waitUntil(WAIT_MILLIS) { synchronized(requests) { requests.isNotEmpty() } }
             rule.waitForIdle()
             val request = synchronized(requests) { requests.single() }
             assertEquals("https://exempel.se/anna.jpg", request.data)
-            assertEquals(CachePolicy.DISABLED, request.diskCachePolicy, "fotot får aldrig sparas på enheten")
+            assertEquals(CachePolicy.ENABLED, request.diskCachePolicy, "fotot sparas på disk, så att det syns utan nät")
             assertTrue(rule.onNodeWithContentDescription("Konto och inställningar").pixels(AppColors.light.onPrimaryContainer) > 0, "initialerna ritas")
         } finally {
             SingletonImageLoader.reset()
@@ -368,20 +356,9 @@ class TodayComponentsTest {
 
     @Test
     fun `utan onClick är avataren bara en bild som inte läses upp`() {
-        show { AccountAvatar("Anna Berg", onClick = null) }
+        show { UserAvatar(AuthUser("uid-anna", "Anna Berg"), onClick = null) }
         rule.onNodeWithContentDescription("Konto och inställningar").assertDoesNotExist()
         rule.onAllNodes(hasClickAction()).assertCountEquals(0)
-    }
-
-    @Test
-    fun `initialerna tas ur första och sista ordet, utan namn blir det person-ikonen`() {
-        assertEquals("AB", initials("Anna Berg"))
-        assertEquals("AB", initials("  anna maria   berg "))
-        assertEquals("Å", initials("Åsa"))
-        assertEquals("EÖ", initials("Eva (privat) Östlund"))
-        assertNull(initials(""))
-        assertNull(initials("   "))
-        assertNull(initials("123"))
     }
 
     private companion object {

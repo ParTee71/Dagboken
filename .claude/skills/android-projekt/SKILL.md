@@ -52,7 +52,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 - Ordning: skill `shared-ui-components` (regel 4) går före allt, sedan `ui-style` (Dimma och teal), skill `diagram` för diagram. Skärmdumpar och kontraktstester: `testing-strategy`.
 - Tema: `MaterialExpressiveTheme`, `MotionScheme.expressive()`, `AppColors`, `AppTypography`, `AppShapes`, `Spacing`. 3.x-paletten "Sunrise Garden" finns inte längre.
 - Expressive- och Nav3-API:er används bara med namn och signaturer som `VerifiedApisTest` (`app/src/test`) bevisar.
-- Inga bildbibliotek i UI:t utom kontots foto (Coil utan diskcache, skill `data-privacy-security`); ikoner är linjeikoner i `res/drawable`.
+- Inga bildbibliotek i UI:t utom kontots foto (Coil med diskcache i `cacheDir`, töms vid utloggning – AUTH-3, skill `data-privacy-security`); ikoner är linjeikoner i `res/drawable`.
 - Skärmstruktur: `XScreen(vm = hiltViewModel())` samlar state och lämnar till ramen, t.ex. `EntityListScreen(title, state = state.list, row = { PausableRow(…) }, add = AddAction(label, onClick), key = …)` med `vm.onEvent(PrescriptionsEvent.Add)`.
 - Fel, laddning och knappar: `DataError.toMessage()` i snackbar, `AppLoading`, `AppButton(loading = …)`. Sektionskort: `AppCard` + `SectionHeader`, ihopfällbara med `Foldout` (NFR-18). Postkort med `DagbokenEntryCard` enligt NFR-15/16, listrader enligt NFR-17.
 
@@ -61,7 +61,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 Googles referens är generell. Här gäller vår `AppBackStack` (`navigation/AppBackStack.kt`) med en
 stack per flik (Idag · Dagbok · Trender · Mediciner, NAV-8), nycklarna i `navigation/AppKeys.kt`,
 övergångarna i `navigation/Transitions` och Hilt via `hiltViewModel`. Inställningsarket öppnas
-från avataren på alla flikar (NAV-9). Efter inloggningen visas flikarna direkt (ingen migreringsgrind sedan 4.8.0).
+från avataren i flikarnas sidhuvud (NAV-9, NAV-12): navigationen sätter den en gång i `LocalTopBarAccount` (`AppNavigation` → `AppNavHost`), och synkläget i `LocalTopBarSyncing`. Efter inloggningen visas flikarna direkt (ingen migreringsgrind sedan 4.8.0).
 
 ## Tillgänglighet (android:accessibility-compose)
 
@@ -97,11 +97,11 @@ Inloggning är **obligatorisk** (AUTH-6, TP-5; AUTH-5 är struket): inget data l
 bygger på `request.auth.uid == uid`. Inget hushåll och ingen delning – ett konto, en dagbok.
 
 - `AuthViewModel.state.gate`: `Loading | SignedOut | NeedsUser | UpdateRequired | Ready`; `AppRoot` visar `SignInScreen` tills det finns en användare.
-- `AuthRepository` (`data/auth/`), enda implementationen `GoogleAuthRepository` (bunden i `di/AuthModule`), fel mappas i `data/auth/AuthErrors.kt`; tester använder en fake. `AuthUser(uid, name?, email?, photoUrl?)` – namn, e-post och foto visas i avataren och inställningsarket (AUTH-3, SET-7) och hålls bara i minnet.
+- `AuthRepository` (`data/auth/`), enda implementationen `GoogleAuthRepository` (bunden i `di/AuthModule`), fel mappas i `data/auth/AuthErrors.kt`; tester använder en fake. `AuthUser(uid, name?, email?, photoUrl?)` – namn, e-post och foto visas i avataren och inställningsarket (AUTH-3, SET-7) och hålls bara i minnet; fotot cachas på disk (`ProfilePhotoCache`) och kontrolleras mot Google högst en gång per dag när appen är ansluten (`ProfileCheckUseCase`, startas av `AuthViewModel`, `NetworkStatus`/`ConnectivityMonitor` i `data/network`).
 - Uppstarten: när `authState` har en användare och `users/{uid}` saknas på servern skapar `EnsureUserUseCase` dokumentet via `UserDirectory.createIfMissing` (bara servern, atomärt, med `schemaVersion` + `createdAt`; Firestore-implementation `FirestoreUserDirectory`). `UserSession` (`data/user/`, implementerar `UserScope`) följer uid.
 - En knapp, ett event `AuthEvent.SignIn(context)`: utloggad → logga in; inloggad utan `users/{uid}` → `gate = NeedsUser`, samma knapp försöker igen. `gate = Loading` tills `schemaVersion` är känd; nyare än appen → `UpdateRequiredScreen` (BCK-15). Fel visas en gång via `AppSnackbarHost`, kvitteras med `AuthEvent.ErrorShown`; `Cancelled` är tyst (AUTH-4).
 - Första start: inloggning, sedan flikarna; datan finns i Firestore. Migreringen på enheten (~~OMB-2~~, ~~OMB-5~~) togs bort i 4.8.0 och importen av 3.x-backuper (~~BCK-14~~) i 4.9.0; importen i Inställningar → Export och import läser bara en 4.x-export (BCK-6).
-- Utloggning bara via `SignOutUseCase` (inställningsarket → Konto, bakom `ConfirmDialog`, anropas av `AuthViewModel`): `LocalCacheCleaner.awaitPendingWrites(3 s)`, `AuthRepository.signOut()`, och bara om allt synkat `LocalCacheCleaner.clear()` (`FirestoreInstance`: `terminate()` + `clearPersistence()`); `HistoryCoverage` glöms före och efter. Larmen avbokas och notiserna stängs (AUTH-6, skill `notifications-alarms`). Tester: `SignOutUseCaseTest`, `AuthViewModelTest` med `FakeLocalCacheCleaner` (`testing/UserFixture.kt`), `FirestoreLocalCacheTest` mot emulatorn.
+- Utloggning bara via `SignOutUseCase` (inställningsarket → Konto, bakom `ConfirmDialog`, anropas av `AuthViewModel`): `LocalCacheCleaner.awaitPendingWrites(3 s)`, `AuthRepository.signOut()`, profilfotot bort (`ProfilePhotoCache.clear()`), och bara om allt synkat `LocalCacheCleaner.clear()` (`FirestoreInstance`: `terminate()` + `clearPersistence()`); `HistoryCoverage` glöms före och efter. Larmen avbokas och notiserna stängs (AUTH-6, skill `notifications-alarms`). Tester: `SignOutUseCaseTest`, `AuthViewModelTest` med `FakeLocalCacheCleaner` (`testing/UserFixture.kt`), `FirestoreLocalCacheTest` mot emulatorn.
 - Workers och larmmottagare kontrollerar inloggad användare innan de rör data; utloggade gör de inget.
 - Debug-SHA-1 för `dagboken-711d2`: `50:5B:DC:3B:C9:49:F5:96:91:84:F2:23:0F:D1:BE:25:1B:10:7E:59`; release-nyckelns SHA-1 ska också vara registrerad (README → Firebase-setup).
 

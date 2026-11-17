@@ -30,7 +30,7 @@ class AuthViewModelTest {
 
     private val context: Context = RuntimeEnvironment.getApplication()
 
-    private fun TestScope.viewModel(fixture: UserFixture = UserFixture(backgroundScope)) = fixture to AuthViewModel(fixture.auth, fixture.session, fixture.ensureUser, fixture.signOut)
+    private fun TestScope.viewModel(fixture: UserFixture = UserFixture(backgroundScope)) = fixture to AuthViewModel(fixture.auth, fixture.session, fixture.ensureUser, fixture.signOut, fixture.profileCheck)
 
     private suspend fun AuthViewModel.awaitGate(gate: AuthGate) = state.first { it.gate == gate && !it.busy }
 

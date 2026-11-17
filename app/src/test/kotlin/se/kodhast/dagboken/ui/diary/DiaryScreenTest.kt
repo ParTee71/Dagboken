@@ -6,10 +6,12 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -54,6 +56,7 @@ import se.kodhast.dagboken.ui.DagbokenContracts
 import se.kodhast.dagboken.ui.common.AppErrors
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 import se.kodhast.ui.common.ListUiState
+import se.kodhast.ui.components.APP_HEADER_TAG
 import se.kodhast.ui.testing.runListScreenContract
 
 /**
@@ -98,6 +101,13 @@ class DiaryScreenTest {
     private val listRows = diaryDays(entries, today).flatMap { day -> day.entries.map(::row) }
     private val controls = DiaryControls(today, datesWithEntries = persistentSetOf(today, yesterday, saturday))
     private val calendar = controls.copy(view = DiaryView.CALENDAR, selected = saturday)
+
+    @Test
+    fun `fliken har Kodhäst-sidhuvudet med flikens namn som rubrik (NAV-12)`() {
+        rule.setContent { DagbokenTheme { DiaryScreen(ListUiState.Content(listRows.toImmutableList()), controls, null, {}, {}) } }
+        rule.onNodeWithTag(APP_HEADER_TAG).assertIsDisplayed()
+        rule.onNode(hasText("Dagbok") and isHeading()).assertIsDisplayed()
+    }
 
     @Test
     fun `fliken uppfyller listkontraktet utan lägg till`() = rule.runListScreenContract<DiaryRow>(DagbokenContracts, listRows.first(), "Efter frukost", "Inga poster än", null) { state, _, onRetry ->

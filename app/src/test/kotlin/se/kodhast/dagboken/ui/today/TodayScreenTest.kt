@@ -20,12 +20,14 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -110,6 +112,7 @@ import se.kodhast.ui.common.DetailUiState
 import se.kodhast.ui.common.EditorState
 import se.kodhast.ui.common.UiError
 import se.kodhast.ui.common.Validator
+import se.kodhast.ui.components.APP_HEADER_TAG
 
 /**
  * Fliken Idag: det unika beteendet (MED-2, MED-3, MED-5, MED-13, FAV-2, FAV-4, FAV-11, HEM-11, HEM-19) och
@@ -202,10 +205,11 @@ class TodayScreenTest {
     }
 
     @Test
-    fun `rubriken är hälsningen med dagen och veckan, och raderna visar tid, höjning och status (HEM-1, HEM-2, REC-12, MED-13)`() {
+    fun `rubriken är Idag i sidhuvudet med hälsningen, dagen och veckan under, och raderna visar tid, höjning och status (HEM-1, HEM-2, NAV-12, REC-12, MED-13)`() {
         show()
-        rule.onNodeWithText("God morgon").assertIsDisplayed()
-        rule.onNodeWithText("Söndag 4 oktober · vecka 40").assertIsDisplayed()
+        rule.onNodeWithTag(APP_HEADER_TAG).assertIsDisplayed()
+        rule.onNode(hasText("Idag") and isHeading()).assertIsDisplayed()
+        rule.onNodeWithText("God morgon · söndag 4 oktober · vecka 40").assertIsDisplayed()
         rule.onNodeWithText("Morgon · tagen 07:15 · 50 mg + 25 mg höjning t.o.m. 12 okt").assertIsDisplayed()
         rule.onNodeWithText("Förmiddag · 10:00").assertIsDisplayed()
         rule.onNodeWithText("Försenat").assertIsDisplayed()
@@ -475,19 +479,21 @@ class TodayScreenTest {
     fun `datumremsan väljer en dag och en tidigare dag har ingen belöning (HEM-14, HEM-19)`() {
         val events = mutableListOf<TodayEvent>()
         show(content(allTaken, date = LocalDate(2026, 10, 2), progress = DayProgress(9, 9)), onEvent = { events += it })
-        rule.onNodeWithText("God morgon").assertIsDisplayed()
+        rule.onNodeWithText("God morgon · fredag 2 oktober · vecka 40").assertIsDisplayed()
         rule.onNodeWithContentDescription("9 av 9 klara").assertIsDisplayed()
         rule.onNodeWithContentDescription("tors 1 okt 2026, har poster").performClick()
         assertEquals(TodayEvent.SelectDate(LocalDate(2026, 10, 1)), events.last())
     }
 
     @Test
-    fun `belöningsläget byter rubrik och visar sammanfattningen (HEM-19)`() {
+    fun `belöningsläget byter hälsningen under rubriken och visar sammanfattningen (HEM-19)`() {
         show(celebrating)
         rule.onNodeWithText("Alla dagens mediciner är avklarade.").assertIsDisplayed()
         rule.onNodeWithContentDescription("9 av 9 klara, allt klart").assertIsDisplayed()
         rule.onNodeWithText("+1,3").assertIsDisplayed()
-        assertEquals(2, rule.onAllNodesWithText("Allt klart för idag").fetchSemanticsNodes().size, "rubriken och kortet")
+        rule.onNodeWithText("Allt klart för idag · söndag 4 oktober · vecka 40").assertIsDisplayed()
+        rule.onNode(hasText("Idag") and isHeading()).assertIsDisplayed()
+        assertEquals(1, rule.onAllNodesWithText("Allt klart för idag").fetchSemanticsNodes().size, "kortet")
     }
 
     @Test

@@ -1,6 +1,6 @@
 package se.kodhast.dagboken.ui.components
 
-import se.kodhast.ui.components.LocalTopBarStatus
+import se.kodhast.ui.components.AppHeader
 import se.kodhast.ui.components.asSplitMenu
 import se.kodhast.dagboken.ui.common.AppErrors
 import androidx.compose.foundation.layout.Arrangement
@@ -15,9 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
@@ -282,7 +284,7 @@ private fun Rows() {
         InfoPill("Snart", tone = Tone.Sun)
         InfoPill("Försenad", tone = Tone.Warning)
     }
-    InfoPill(stringResource(R.string.sync_pending), tone = Tone.Neutral, icon = R.drawable.ic_cloud_upload, onClick = {})
+    InfoPill("Visa i Trender", tone = Tone.Neutral, icon = R.drawable.ic_trend, onClick = {})
     var filter by remember { mutableIntStateOf(0) }
     ChipRow {
         listOf("Alla", "Mående", "Aktiviteter", "Doser", "Händelser", "Sjukdom").forEachIndexed { i, label ->
@@ -610,14 +612,16 @@ private fun Today() {
     Label("DayDoneCard")
     DayDoneCard(6.8, 0.5, 12, play = celebrate, onConfettiFinished = { celebrate = false })
     AppButton("Fira igen", { celebrate = true }, variant = ButtonVariant.Text)
-    Label("AccountAvatar")
+    Label("UserAvatar · ansluten, utan anslutning, utloggad")
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-        AccountAvatar("Anna Berg", {})
-        AccountAvatar(null, {})
+        UserAvatar(GALLERY_ACCOUNT, {}, online = true)
+        UserAvatar(GALLERY_ACCOUNT, {}, online = false)
+        UserAvatar(null, {})
     }
 }
 
 private const val GALLERY_TOTAL = 9
+private val GALLERY_ACCOUNT = AuthUser("galleri", "Anna Berg", "anna.berg@exempel.se")
 private val GALLERY_SUNSET_WIDTH = 110.dp
 private val GALLERY_SUNSET_HEIGHT = 200.dp
 
@@ -802,6 +806,7 @@ internal val GALLERY_FEELING_POST = Screening(
 
 internal val GALLERY_FEELINGS = listOf(Feeling("calm", "grateful"), Feeling("scared", "anxious", "tense"), Feeling("glad"))
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Progress() {
     Box(Modifier.fillMaxWidth().height(96.dp)) { AppLoading() }
@@ -818,9 +823,15 @@ private fun Progress() {
         onSelect = { tab = it },
         action = ToolbarAction("Logga", R.drawable.ic_add) {},
     )
-    CompositionLocalProvider(LocalTopBarStatus provides syncStatus(SyncIndicator(pending = true))) {
-        AppTopBar("Förkylning", size = TopBarSize.Small, onBack = {})
-    }
+    // Kodhäst-sidhuvudet (NAV-12) medan ändringar väntar: prickarna hoppar, avataren har pluppen.
+    AppHeader(
+        "Idag",
+        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
+        subtitle = "God kväll · tisdag 17 november · vecka 47",
+        syncing = true,
+        account = { UserAvatar(GALLERY_ACCOUNT, {}, online = true) }
+    )
+    AppTopBar("Förkylning", size = TopBarSize.Small, onBack = {})
 }
 
 /** Appens fasta ark som galleriet kan öppna. */
@@ -880,7 +891,7 @@ private fun Overlays() {
             onDismiss = { appSheet = null },
             onSignOut = { appSheet = null },
             onOpenGallery = { appSheet = null },
-            account = AuthUser("galleri", "Anna Berg", "anna.berg@exempel.se"),
+            account = GALLERY_ACCOUNT,
             onOpen = { appSheet = null },
         )
         AppSheet.LogMenu -> LogMenuSheet(onDismiss = { appSheet = null }, onPick = { appSheet = null })

@@ -8,10 +8,11 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -23,6 +24,7 @@ import se.kodhast.dagboken.core.engine.TypeChoices
 import se.kodhast.dagboken.core.model.Option
 import se.kodhast.dagboken.core.model.OptionKind
 import se.kodhast.dagboken.core.model.SymptomScore
+import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.testing.captureLightAndDark
 import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.color
@@ -40,6 +42,7 @@ import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppDivider
 import se.kodhast.ui.components.AppFilterChip
 import se.kodhast.ui.components.AppFloatingToolbar
+import se.kodhast.ui.components.AppHeader
 import se.kodhast.ui.components.AppIconButton
 import se.kodhast.ui.components.AppMenu
 import se.kodhast.ui.components.AppMenuItem
@@ -59,7 +62,6 @@ import se.kodhast.ui.components.IconButtonVariant
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.LabeledGroup
-import se.kodhast.ui.components.LocalTopBarStatus
 import se.kodhast.ui.components.PausableRow
 import se.kodhast.ui.components.QuantityStepper
 import se.kodhast.ui.components.SectionHeader
@@ -307,6 +309,7 @@ class CatalogScreenshotTest {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Test
     fun `navigering`() {
         captureLightAndDark("AppTopBar_storlekar") {
@@ -315,12 +318,15 @@ class CatalogScreenshotTest {
                 AppTopBar("Promenad", size = TopBarSize.Small, onBack = {}) { AppButton("Spara", {}, compact = true) }
             }
         }
-        captureLightAndDark("AppTopBar_synk") {
-            CompositionLocalProvider(LocalTopBarStatus provides syncStatus(SyncIndicator(pending = true))) {
-                Column(Modifier.background(MaterialTheme.colorScheme.background)) {
-                    AppTopBar("Idag") { AppMenu(emptyList()) }
-                    AppTopBar("Förkylning", size = TopBarSize.Small, onBack = {}) { AppIconButton(R.drawable.ic_edit, "Redigera", {}) }
-                }
+        // Kodhäst-sidhuvudet i vila (NAV-12): appens ikon och namn, prickarna före rubriken och kontot med pluppen.
+        captureLightAndDark("AppHeader_vila") {
+            Column(Modifier.background(MaterialTheme.colorScheme.background)) {
+                AppHeader(
+                    "Idag",
+                    TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
+                    subtitle = "God kväll · tisdag 17 november · vecka 47",
+                    account = { UserAvatar(AuthUser("galleri", "Anna Berg"), {}, online = true) }
+                )
             }
         }
         val tabs = listOf(

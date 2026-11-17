@@ -139,14 +139,18 @@ data class ExtendedColors(
             Tone.Warning to warningTone
         )
 
-    /** Färgerna som android-ui:s tema behöver (`AppTheme`): kort, radtoning, verktygsrad, toner och konfettins färgserie. */
+    /**
+     * Färgerna som android-ui:s tema behöver (`AppTheme`): kort, radtoning, verktygsrad, toner, konfettins färgserie och
+     * anslutningspluppen på avataren (NAV-12) i den positiva tonens färg.
+     */
     fun forTheme(): ThemeColors = ThemeColors(
         card = card,
         rowTint = rowTint,
         toolbar = toolbar,
         onToolbar = onToolbar,
         tones = tones,
-        accents = AppColors.SWATCH_HEX.indices.map { AppColors.swatch(it) }
+        accents = AppColors.SWATCH_HEX.indices.map { AppColors.swatch(it) },
+        online = positiveTone.content
     )
 }
 

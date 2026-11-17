@@ -37,7 +37,6 @@ import se.kodhast.dagboken.core.engine.seriesStats
 import se.kodhast.dagboken.core.engine.stackTotals
 import se.kodhast.dagboken.core.engine.summarizeIntervals
 import se.kodhast.dagboken.core.model.Occasion
-import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.data.health.HealthStatus
 import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.FeelingSentenceKind
@@ -47,7 +46,6 @@ import se.kodhast.dagboken.ui.common.feelingSentence
 import se.kodhast.dagboken.ui.common.label
 import se.kodhast.dagboken.ui.common.qualifiedLabel
 import se.kodhast.dagboken.ui.common.title
-import se.kodhast.dagboken.ui.components.AccountAvatar
 import se.kodhast.dagboken.ui.components.FeelingExtras
 import se.kodhast.dagboken.ui.components.FeelingMiniWheel
 import se.kodhast.dagboken.ui.components.FeelingNoteRow
@@ -93,21 +91,17 @@ import se.kodhast.ui.theme.Tone
 
 @Composable
 fun TrendsRoute(
-    account: AuthUser?,
-    onAccount: () -> Unit,
     viewModel: TrendsViewModel = hiltViewModel(),
     clockViewModel: ClockViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Hälsa idag läses bara medan Klocka visas – byter man grupp slutar läsningen (TRD-15).
     val clock = if (state.group == TrendGroup.WATCH) clockViewModel.state.collectAsStateWithLifecycle().value else null
-    TrendsScreen(state, viewModel::onEvent, clock = clock, onClockEvent = clockViewModel::onEvent) {
-        AccountAvatar(account?.name ?: account?.email, onAccount, photoUrl = account?.photoUrl)
-    }
+    TrendsScreen(state, viewModel::onEvent, clock = clock, onClockEvent = clockViewModel::onEvent)
 }
 
 /**
- * Fliken Trender (TRD-19) på `EntityDetailScreen` i flikläge: stor rubrik med avataren (NAV-9) som övriga flikar,
+ * Fliken Trender (TRD-19) på `EntityDetailScreen` i flikläge: sidhuvudet (NAV-12) som övriga flikar,
  * segmentknappen Mående · Klocka · Jämför och, i varje grupp, ett ihopfällbart kort per diagram (TRD-14, NFR-18) med
  * periodväljare, serieval, "Föregående period", diagram och sammanfattning bara i utfällt läge. Klocka har Health
  * Connect-statusen överst ur [clock] – den enda källan för läget (`ClockStatus`: kopplad, ej kopplad, saknas,
@@ -121,16 +115,14 @@ fun TrendsScreen(
     onEvent: (TrendsEvent) -> Unit,
     modifier: Modifier = Modifier,
     clock: ClockUiState? = null,
-    onClockEvent: (HealthEvent) -> Unit = {},
-    avatar: @Composable () -> Unit = {}
+    onClockEvent: (HealthEvent) -> Unit = {}
 ) {
     EntityDetailScreen(
         state = DetailUiState.Content(state),
         header = null,
         onBack = null,
         modifier = modifier,
-        title = stringResource(R.string.tab_trends),
-        actions = { avatar() }
+        title = stringResource(R.string.tab_trends)
     ) { content ->
         AppSegmentedChoice(
             options = TrendGroup.entries.map { stringResource(it.label) },

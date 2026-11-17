@@ -84,4 +84,28 @@ class SignOutUseCaseTest {
         assertEquals(DataError.Unknown, result.dataError())
         assertEquals(null, fixture.auth.authState.value)
     }
+
+    @Test
+    fun `profilfotot tas bort från enheten efter utloggningen, också när cachen behålls (AUTH-3)`() = runTest {
+        val fixture = signedIn(UserFixture(backgroundScope))
+        fixture.cache.synced = false
+
+        fixture.signOut()
+
+        assertEquals(listOf("clear utloggad"), fixture.photos.calls)
+    }
+
+    @Test
+    fun `misslyckad utloggning behåller profilfotot, och ett fel med fotot stoppar inte utloggningen (AUTH-3)`() = runTest {
+        val failed = signedIn(UserFixture(backgroundScope))
+        failed.auth.nextSignOut = Result.failure(DataError.Unknown)
+        failed.signOut()
+        assertEquals(emptyList(), failed.photos.calls)
+
+        val fixture = signedIn(UserFixture(backgroundScope))
+        fixture.photos.nextClear = Result.failure(DataError.Unknown)
+        val result = fixture.signOut()
+        assertEquals(Result.success(Unit), result)
+        assertEquals(1, fixture.cache.clearCalls)
+    }
 }

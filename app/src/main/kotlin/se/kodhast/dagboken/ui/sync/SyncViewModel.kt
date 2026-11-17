@@ -12,22 +12,29 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.data.common.SyncStatus
+import se.kodhast.dagboken.data.network.NetworkStatus
 import se.kodhast.ui.common.shownAfter
 
-/** [pending]: ändringar har väntat minst [SyncViewModel.PENDING_DELAY] på servern; [writeError]: en nekad skrivning att visa. */
+/**
+ * [pending]: ändringar har väntat minst [SyncViewModel.PENDING_DELAY] på servern; [writeError]: en nekad skrivning att visa;
+ * [online]: appen har internet (pluppen på avataren, NAV-12).
+ */
 @Immutable
-data class SyncUiState(val pending: Boolean = false, val writeError: DataError? = null)
+data class SyncUiState(val pending: Boolean = false, val writeError: DataError? = null, val online: Boolean = false)
 
 sealed interface SyncEvent {
     /** Felet har visats och kan släppas. */
     data object WriteErrorShown : SyncEvent
 }
 
-/** Appens synkläge för UI:t (NFR-22): indikatorn i toppraden och meddelandet om en nekad skrivning. */
+/**
+ * Appens synk- och anslutningsläge för UI:t: prickarna i sidhuvudet och meddelandet om en nekad skrivning (NFR-22) och
+ * anslutningspluppen på avataren (NAV-12).
+ */
 @HiltViewModel
-class SyncViewModel @Inject constructor(private val status: SyncStatus) : ViewModel() {
+class SyncViewModel @Inject constructor(private val status: SyncStatus, network: NetworkStatus) : ViewModel() {
 
-    val state: StateFlow<SyncUiState> = combine(status.syncing.shownAfter(PENDING_DELAY), status.lastWriteError, ::SyncUiState)
+    val state: StateFlow<SyncUiState> = combine(status.syncing.shownAfter(PENDING_DELAY), status.lastWriteError, network.online, ::SyncUiState)
         .stateIn(viewModelScope, SharingStarted.Eagerly, SyncUiState())
 
     fun onEvent(event: SyncEvent) {
@@ -37,7 +44,7 @@ class SyncViewModel @Inject constructor(private val status: SyncStatus) : ViewMo
     }
 
     companion object {
-        /** Så länge en skrivning får vänta innan indikatorn visas – online syns den aldrig. */
+        /** Så länge en skrivning får vänta innan prickarna hoppar – online syns det aldrig. */
         val PENDING_DELAY = 2.seconds
     }
 }

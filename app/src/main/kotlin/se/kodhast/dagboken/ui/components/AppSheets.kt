@@ -80,7 +80,7 @@ private fun AccountRow(account: AuthUser) {
     ItemRow(
         title,
         subtitle = subtitle.joinToString("\n").ifEmpty { null },
-        leading = { AccountAvatar(account.name ?: account.email, onClick = null, photoUrl = account.photoUrl) },
+        leading = { UserAvatar(account, onClick = null) },
         tinted = true
     )
 }

@@ -132,7 +132,7 @@ class AppNavigationTest {
 
     @Test
     fun `varje nyckel har en egen skärm`() {
-        val entries = appEntries(AppBackStack(), account = { null }, onAccount = {})
+        val entries = appEntries(AppBackStack())
         // En nyckel utan skärm når fallbacken, som kastar; en med skärm ger sin post.
         keys.forEach { key -> assertNotNull(entries(key)) }
     }

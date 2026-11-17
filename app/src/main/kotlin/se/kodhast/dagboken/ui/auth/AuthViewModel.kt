@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import se.kodhast.dagboken.core.schema.Schema
 import se.kodhast.dagboken.data.auth.AuthRepository
 import se.kodhast.dagboken.data.auth.AuthUser
+import se.kodhast.dagboken.data.auth.ProfileCheckUseCase
 import se.kodhast.dagboken.data.auth.SignOutUseCase
 import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.data.common.UserScope
@@ -59,7 +60,8 @@ class AuthViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val session: UserScope,
     private val ensureUser: EnsureUserUseCase,
-    private val signOutUser: SignOutUseCase
+    private val signOutUser: SignOutUseCase,
+    private val profileCheck: ProfileCheckUseCase
 ) : ViewModel() {
 
     private val user: StateFlow<AuthUser?> = auth.authState.stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -77,6 +79,8 @@ class AuthViewModel @Inject constructor(
         }.stateIn(viewModelScope, screenSharing(forgetWhenStopped = false), AuthUiState())
 
     init {
+        // Profilfotot kontrolleras mot Google vid start och när appen blir ansluten, högst en gång per dag (AUTH-3).
+        viewModelScope.launch { profileCheck() }
         // Utloggad avbryter en pågående förberedelse, så att nästa användare aldrig får den förras fel.
         viewModelScope.launch {
             auth.authState.filter { it == null }.collect { ensureJob?.cancel() }
