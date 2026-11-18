@@ -54,6 +54,7 @@ import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.ChipRow
+import se.kodhast.ui.components.TOUCH_TARGET
 import se.kodhast.ui.theme.Spacing
 
 /**

@@ -24,7 +24,6 @@ import se.kodhast.dagboken.core.engine.DiaryEntry
 import se.kodhast.dagboken.core.engine.DiaryType
 import se.kodhast.dagboken.core.engine.isPrescribed
 import se.kodhast.dagboken.core.schema.DocumentRules
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.ScaleLevel
 import se.kodhast.dagboken.ui.common.color
 import se.kodhast.dagboken.ui.common.durationText
@@ -40,6 +39,7 @@ import se.kodhast.dagboken.ui.components.DagbokenEntryCard
 import se.kodhast.dagboken.ui.components.FeelingExtras
 import se.kodhast.dagboken.ui.theme.Neutral
 import se.kodhast.dagboken.ui.theme.Warning
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.ListUiState
 import se.kodhast.ui.common.UiError
 import se.kodhast.ui.components.AppButton

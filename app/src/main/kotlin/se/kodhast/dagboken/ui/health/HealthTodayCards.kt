@@ -10,10 +10,10 @@ import kotlinx.datetime.LocalDate
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.engine.WatchMetric
 import se.kodhast.dagboken.data.health.HealthStatus
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.label
 import se.kodhast.dagboken.ui.diagram.SparklineChart
 import se.kodhast.dagboken.ui.theme.AppTypography
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.components.AppButton
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.ButtonVariant

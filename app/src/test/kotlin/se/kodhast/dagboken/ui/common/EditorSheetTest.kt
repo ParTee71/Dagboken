@@ -17,6 +17,7 @@ import se.kodhast.dagboken.testing.MainDispatcherRule
 import se.kodhast.dagboken.ui.common.AppErrors
 import se.kodhast.dagboken.ui.common.dataError
 import se.kodhast.ui.common.Validator
+import se.kodhast.ui.components.blockInput
 
 /** Formulär i ett ark (NFR-10): öppna, ändra, spara, fel och spärren under sparningen – en gång för alla ark. */
 class EditorSheetTest {

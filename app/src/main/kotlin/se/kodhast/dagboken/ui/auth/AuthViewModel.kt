@@ -27,7 +27,7 @@ import se.kodhast.dagboken.data.common.UserScope
 import se.kodhast.dagboken.data.common.UserVersion
 import se.kodhast.dagboken.data.common.dataError
 import se.kodhast.dagboken.data.user.EnsureUserUseCase
-import se.kodhast.dagboken.ui.common.screenSharing
+import se.kodhast.ui.common.screenSharing
 
 /**
  * Vad appen visar (AUTH-1, AUTH-6): inloggning, "Uppdatera appen" eller innehållet.

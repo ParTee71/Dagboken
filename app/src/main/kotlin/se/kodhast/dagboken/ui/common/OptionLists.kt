@@ -11,6 +11,7 @@ import se.kodhast.dagboken.core.model.Option
 import se.kodhast.dagboken.core.model.OptionKind
 import se.kodhast.dagboken.data.common.withFallback
 import se.kodhast.dagboken.data.repository.OptionsRepository
+import se.kodhast.ui.common.screenSharing
 
 /**
  * Listan [kind] för ett formulärs val (typer och symptom, AKT-1, AKT-6, SCR-2, SET-9) – en gång för alla formulär:

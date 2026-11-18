@@ -38,14 +38,11 @@ import se.kodhast.dagboken.core.model.PrnMedicine
 import se.kodhast.dagboken.data.repository.PrescriptionRepository
 import se.kodhast.dagboken.data.repository.PrnMedicineRepository
 import se.kodhast.dagboken.ui.common.AppErrors
-import se.kodhast.dagboken.ui.common.DateFormat
-import se.kodhast.dagboken.ui.common.WriteFailures
 import se.kodhast.dagboken.ui.common.days
 import se.kodhast.dagboken.ui.common.doseText
 import se.kodhast.dagboken.ui.common.periodText
 import se.kodhast.dagboken.ui.common.prescriptionSubtitle
 import se.kodhast.dagboken.ui.common.prnLimits
-import se.kodhast.dagboken.ui.common.screenSharing
 import se.kodhast.dagboken.ui.common.tidyingUpEachDay
 import se.kodhast.dagboken.ui.common.title
 import se.kodhast.dagboken.ui.components.DagbokenEntryCard
@@ -56,10 +53,13 @@ import se.kodhast.dagboken.ui.components.favoriteMenuItem
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.Neutral
 import se.kodhast.dagboken.ui.theme.Warning
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.ListEvent
 import se.kodhast.ui.common.ListLoader
 import se.kodhast.ui.common.ListUiState
 import se.kodhast.ui.common.UiError
+import se.kodhast.ui.common.WriteFailures
+import se.kodhast.ui.common.screenSharing
 import se.kodhast.ui.components.AddAction
 import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.ArchiveEvent
@@ -138,7 +138,7 @@ class MedicinesViewModel @Inject constructor(
         clock.days { zone.get() }.stateIn(viewModelScope, screenSharing(forgetWhenStopped = false), clock.todayIn(zone.get()))
 
     /** Före [tidiedDays], som skriver hit när städningen misslyckas. */
-    private val failures = WriteFailures(viewModelScope)
+    private val failures = WriteFailures(viewModelScope, AppErrors)
     val failure: StateFlow<UiError?> = failures.failure
 
     /** REC-8, REC-5, REC-10: städningen när fliken visas och vid varje ny dag (`tidyingUpEachDay`); fel utom offline visas. */

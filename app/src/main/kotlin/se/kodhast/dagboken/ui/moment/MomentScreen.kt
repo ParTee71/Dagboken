@@ -43,16 +43,16 @@ import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.engine.ReflectionPrompts
 import se.kodhast.dagboken.core.time.SECONDS_PER_MINUTE
 import se.kodhast.dagboken.reminders.MomentLaunch
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.formatDuration
 import se.kodhast.dagboken.ui.common.label
-import se.kodhast.dagboken.ui.common.rememberReducedMotion
 import se.kodhast.dagboken.ui.components.SunsetBreathing
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.components.AppButton
 import se.kodhast.ui.components.ButtonVariant
+import se.kodhast.ui.components.rememberReducedMotion
 import se.kodhast.ui.theme.Spacing
 
 /**

@@ -41,9 +41,9 @@ import kotlin.math.sin
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.ui.common.HILL_DRIFT_MILLIS
 import se.kodhast.dagboken.ui.common.rememberBreathPhase
-import se.kodhast.dagboken.ui.common.rememberReducedMotion
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.AppTypography
+import se.kodhast.ui.components.rememberReducedMotion
 
 /**
  * Stundens kvällslandskap (NOT-20): en himmel i vertikal toning, en sol som andas i 4-4-takt ([rememberBreathPhase]) –

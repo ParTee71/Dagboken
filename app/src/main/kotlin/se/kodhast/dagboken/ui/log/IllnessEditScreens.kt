@@ -51,7 +51,6 @@ import se.kodhast.dagboken.ui.common.message
 import se.kodhast.dagboken.ui.common.nonBlank
 import se.kodhast.dagboken.ui.common.rememberEntryForm
 import se.kodhast.dagboken.ui.common.rulesValidator
-import se.kodhast.dagboken.ui.common.screenSharing
 import se.kodhast.dagboken.ui.common.title
 import se.kodhast.dagboken.ui.components.NoteCard
 import se.kodhast.dagboken.ui.components.SymptomLogCard
@@ -59,6 +58,7 @@ import se.kodhast.dagboken.ui.components.ValueSlider
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.Warning
 import se.kodhast.ui.common.Validator
+import se.kodhast.ui.common.screenSharing
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppTextField
 import se.kodhast.ui.components.DateField

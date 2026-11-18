@@ -16,6 +16,7 @@ import se.kodhast.dagboken.ui.common.AppErrors
 import se.kodhast.ui.common.EditorState
 import se.kodhast.ui.common.UiError
 import se.kodhast.ui.common.Validator
+import se.kodhast.ui.components.blockInput
 
 /** Hur länge klart-läget ("Sparat", NFR-21) visas innan arket döljs. */
 const val SAVED_CONFIRMATION_MILLIS = 700L

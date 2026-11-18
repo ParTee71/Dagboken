@@ -67,7 +67,7 @@ från avataren i flikarnas sidhuvud (NAV-9, NAV-12): navigationen sätter den en
 
 Krav NFR-14 (talbar sammanfattning för diagram, tryckytor ≥ 48 dp även inuti sammansatta kontroller), DSN-3.
 
-- Små ikoner får tryckyta via `AppIconButton` (inne i `ui/components`: `Modifier.minimumInteractiveComponentSize()`, `TouchTargets`).
+- Små ikoner får tryckyta via `AppIconButton` (inne i `ui/components`: `Modifier.minimumInteractiveComponentSize()`, `TOUCH_TARGET` från android-ui).
 - Dosens kryssrad: `stateDescription` "tagen"/"ej tagen". Listrader och ihopfällbara sektionskort följer NFR-17/18 (hela raden är tryckytan, chevronen är en ren indikator).
 - `QuantityStepper`: − och + är själva 48 dp. Varje `StatPill` läses som en enhet (värde och etikett); en klickbar `StatPill` (HLS-14) och statusbannerns knappar är minst 48 dp; varje trendrad på Idag har egen talbar sammanfattning.
 - Sliders och graderingar (`ValueSlider`, `SymptomLogCard`) kommunicerar värde och etikett – utöka den delade komponenten om semantiken saknas, aldrig per anropare.

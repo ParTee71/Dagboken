@@ -28,7 +28,7 @@ import se.kodhast.dagboken.data.auth.AuthRepository
 import se.kodhast.dagboken.data.common.withFallback
 import se.kodhast.dagboken.data.repository.SettingsRepository
 import se.kodhast.dagboken.ui.common.hours
-import se.kodhast.dagboken.ui.common.screenSharing
+import se.kodhast.ui.common.screenSharing
 
 /** Appens tema för `MainActivity` (SET-1, DSN-5). */
 sealed interface AppTheme {

@@ -38,7 +38,6 @@ import se.kodhast.dagboken.core.engine.stackTotals
 import se.kodhast.dagboken.core.engine.summarizeIntervals
 import se.kodhast.dagboken.core.model.Occasion
 import se.kodhast.dagboken.data.health.HealthStatus
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.FeelingSentenceKind
 import se.kodhast.dagboken.ui.common.distinctSeriesColors
 import se.kodhast.dagboken.ui.common.feelingHighlights
@@ -73,6 +72,7 @@ import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.ExtendedColors
 import se.kodhast.dagboken.ui.theme.Warning
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.DetailUiState
 import se.kodhast.ui.components.AppButton
 import se.kodhast.ui.components.AppCard

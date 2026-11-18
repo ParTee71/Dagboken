@@ -17,7 +17,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.model.Checkin
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.entryDeleteAction
 import se.kodhast.dagboken.ui.common.illnessDayText
 import se.kodhast.dagboken.ui.common.message
@@ -28,6 +27,7 @@ import se.kodhast.dagboken.ui.components.DagbokenEntryCard
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.Neutral
 import se.kodhast.dagboken.ui.theme.Warning
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.DetailUiState
 import se.kodhast.ui.common.UiError
 import se.kodhast.ui.components.AppButton

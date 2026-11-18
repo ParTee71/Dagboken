@@ -18,8 +18,8 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.time.DAYS_PER_WEEK
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.theme.AppColors
+import se.kodhast.ui.common.DateFormat
 
 /**
  * Dagens markering i `DateStrip` och `DagbokenCalendar` – en form för samma sak (regel 4): [isToday] ger

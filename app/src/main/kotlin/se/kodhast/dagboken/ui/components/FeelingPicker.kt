@@ -57,6 +57,7 @@ import se.kodhast.ui.components.ButtonVariant
 import se.kodhast.ui.components.ChipRow
 import se.kodhast.ui.components.LabeledGroup
 import se.kodhast.ui.components.LongPressSemantics
+import se.kodhast.ui.components.TOUCH_TARGET
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.components.longPress
 import se.kodhast.ui.theme.Spacing

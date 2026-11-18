@@ -11,10 +11,10 @@ import androidx.compose.ui.semantics.contentDescription
 import kotlinx.datetime.LocalDate
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.engine.FeelingDay
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.FeelingSentenceKind
 import se.kodhast.dagboken.ui.common.feelingSentence
 import se.kodhast.dagboken.ui.theme.AppShapes
+import se.kodhast.ui.common.DateFormat
 
 /**
  * Känslornas vecka (TRD-22): ett [FeelingMiniWheel] ([FeelingWheelSize.DAY]) per dag i [days] med veckodagen under, i

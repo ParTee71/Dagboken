@@ -59,7 +59,6 @@ import se.kodhast.dagboken.testing.captureLightAndDark
 import se.kodhast.dagboken.testing.captureScreenLightAndDark
 import se.kodhast.dagboken.testing.clickWithoutRipple
 import se.kodhast.dagboken.testing.pixels
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.distinctSeriesColors
 import se.kodhast.dagboken.ui.components.GalleryCharts
 import se.kodhast.dagboken.ui.health.ClockUiState
@@ -67,6 +66,7 @@ import se.kodhast.dagboken.ui.health.HealthEvent
 import se.kodhast.dagboken.ui.health.HealthSamples
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.components.APP_HEADER_TAG
 
 /**

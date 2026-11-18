@@ -28,8 +28,8 @@ import se.kodhast.dagboken.R
 import se.kodhast.dagboken.data.medicines.MedicineRepository
 import se.kodhast.dagboken.di.IoDispatcher
 import se.kodhast.dagboken.ui.common.AppErrors
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.theme.AppTypography
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.DetailLoader
 import se.kodhast.ui.common.DetailUiState
 import se.kodhast.ui.components.AppCard

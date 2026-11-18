@@ -51,14 +51,14 @@ import se.kodhast.dagboken.data.repository.IllnessRepository
 import se.kodhast.dagboken.data.repository.OptionsRepository
 import se.kodhast.dagboken.data.repository.ScreeningRepository
 import se.kodhast.dagboken.ui.common.AppErrors
-import se.kodhast.dagboken.ui.common.WriteFailures
 import se.kodhast.dagboken.ui.common.days
 import se.kodhast.dagboken.ui.common.names
-import se.kodhast.dagboken.ui.common.screenSharing
 import se.kodhast.ui.common.DetailLoader
 import se.kodhast.ui.common.DetailUiState
 import se.kodhast.ui.common.ListUiState
 import se.kodhast.ui.common.UiError
+import se.kodhast.ui.common.WriteFailures
+import se.kodhast.ui.common.screenSharing
 import se.kodhast.ui.common.toListUiState
 
 /** Listvy eller kalendervy (HIST-6). */
@@ -288,7 +288,7 @@ class DiaryViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, screenSharing(), DiaryControls(anchor))
 
-    private val failures = WriteFailures(viewModelScope)
+    private val failures = WriteFailures(viewModelScope, AppErrors)
     val failure: StateFlow<UiError?> = failures.failure
 
     fun onEvent(event: DiaryEvent) {

@@ -84,7 +84,7 @@ import se.kodhast.dagboken.data.repository.ScreeningRepository
 import se.kodhast.dagboken.data.repository.SettingsRepository
 import se.kodhast.dagboken.ui.common.days
 import se.kodhast.dagboken.ui.common.names
-import se.kodhast.dagboken.ui.common.screenSharing
+import se.kodhast.ui.common.screenSharing
 
 /** Diagramgrupperna i Trender (TRD-19): Mående, Klocka och Jämför. */
 enum class TrendGroup { MOOD, WATCH, COMPARE }

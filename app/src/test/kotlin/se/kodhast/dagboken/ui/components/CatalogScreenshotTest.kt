@@ -26,7 +26,6 @@ import se.kodhast.dagboken.core.model.OptionKind
 import se.kodhast.dagboken.core.model.SymptomScore
 import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.testing.captureLightAndDark
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.color
 import se.kodhast.dagboken.ui.common.durationText
 import se.kodhast.dagboken.ui.common.scaleLevel
@@ -36,6 +35,7 @@ import se.kodhast.dagboken.ui.theme.Neutral
 import se.kodhast.dagboken.ui.theme.Positive
 import se.kodhast.dagboken.ui.theme.Sun
 import se.kodhast.dagboken.ui.theme.Warning
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.components.AddSplitButton
 import se.kodhast.ui.components.AppButton
 import se.kodhast.ui.components.AppCard

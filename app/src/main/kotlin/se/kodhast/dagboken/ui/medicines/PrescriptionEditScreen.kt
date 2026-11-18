@@ -71,7 +71,6 @@ import se.kodhast.dagboken.data.medicines.MedicineRepository
 import se.kodhast.dagboken.data.repository.PrescriptionRepository
 import se.kodhast.dagboken.di.DefaultDispatcher
 import se.kodhast.dagboken.ui.common.AppErrors
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.datesText
 import se.kodhast.dagboken.ui.common.doseText
 import se.kodhast.dagboken.ui.common.label
@@ -81,6 +80,7 @@ import se.kodhast.dagboken.ui.components.MEDICINE_UNITS
 import se.kodhast.dagboken.ui.components.NoteCard
 import se.kodhast.dagboken.ui.components.UnitChoice
 import se.kodhast.dagboken.ui.theme.AppTypography
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.EditorEvents
 import se.kodhast.ui.common.EditorLoader
 import se.kodhast.ui.common.EditorState
