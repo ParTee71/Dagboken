@@ -74,13 +74,7 @@
     <!-- Postkort och anteckning (NFR-15, NFR-16, DAT-7) -->
     <string name="note_show">Visa anteckning</string>
 
-    <!-- Kalender (HIST-6) -->
-    <string name="calendar_previous_month">Föregående månad</string>
-    <string name="calendar_next_month">Nästa månad</string>
-    <string name="calendar_has_entries">har poster</string>
-
     <!-- Datumremsa (HEM-14, HEM-19) -->
-    <string name="date_strip_today">idag</string>
     <string name="date_strip_done">Klar</string>
     <string name="date_strip_previous_week">Föregående vecka</string>
     <string name="date_strip_next_week">Nästa vecka</string>
@@ -664,8 +658,6 @@
     <string name="about_privacy_text">Dagboken sparas i ditt eget konto, i EU. Inget innehåll loggas eller delas, och hälsodata från klockan sparas aldrig.</string>
 
     <!-- Dagbok (HIST-1–HIST-9) -->
-    <string name="diary_view_list">Listvy</string>
-    <string name="diary_view_calendar">Kalendervy</string>
     <string name="diary_filter_all">Alla</string>
     <string name="diary_filter_activity">Aktiviteter</string>
     <string name="diary_filter_dose">Doser</string>
@@ -689,8 +681,6 @@
     <string name="diary_empty_dose">Inga doser än</string>
     <string name="diary_empty_event">Inga händelser än</string>
     <string name="diary_empty_illness">Ingen sjukdom än</string>
-    <string name="diary_day_empty_title">Inga poster den här dagen</string>
-    <string name="diary_day_empty_message">Välj en annan dag i kalendern eller logga med plusknappen.</string>
     <string name="diary_subtitle_format">%1$s · %2$s</string>
     <string name="diary_energy_format">Energi %1$s</string>
     <string name="diary_stress_format">Stress %1$d</string>

@@ -72,6 +72,15 @@ class DiaryTimelineTest {
     }
 
     @Test
+    fun `Välj dag går till dagens första post, annars närmaste äldre dag, annars den äldsta (HIST-6)`() {
+        val entries = diaryEntries(sources, zone)
+        assertEquals(entries.first { it.date == yesterday }, jumpTarget(entries, yesterday))
+        assertEquals(entries.first { it.date == saturday }, jumpTarget(entries, LocalDate(2026, 10, 4)))
+        assertEquals(entries.first { it.date == saturday }, jumpTarget(entries, LocalDate(2026, 9, 1)))
+        assertEquals(null, jumpTarget(emptyList(), today))
+    }
+
+    @Test
     fun `episodens slut är nyast och starten äldst på sin dag, före klockslaget (HIST-9)`() {
         val oneDay = IllnessEpisode("kort", "Migrän", start = today, end = today, createdAt = at(today, 23))
         val entries = diaryEntries(
@@ -137,13 +146,11 @@ class DiaryTimelineTest {
     }
 
     @Test
-    fun `filtret, kalenderns dagar och den valda dagens poster`() {
+    fun `filtret och dagarna med poster`() {
         val entries = diaryEntries(sources, zone)
         val illness = DiaryFilter().toggle(DiaryType.ILLNESS)
         assertEquals(listOf("episode-end:flu", "checkin:flu/c1", "episode-start:flu"), entries.shownBy(illness).map { it.id })
         assertEquals(setOf(today, yesterday, saturday), entries.dates())
-        assertEquals(listOf("event:e1", "dose:old", "episode-start:flu"), entries.on(saturday).map { it.id })
-        assertTrue(entries.on(LocalDate(2026, 10, 4)).isEmpty())
     }
 
     // ── Filterregeln (HIST-2) ────────────────────────────────────────────────

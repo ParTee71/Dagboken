@@ -29,16 +29,21 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import se.kodhast.dagboken.R
+import se.kodhast.dagboken.core.time.DAYS_PER_WEEK
 import se.kodhast.dagboken.core.time.weekDays
 import se.kodhast.dagboken.core.time.weekMonday
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.AppShapes
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.IconSize
+import se.kodhast.ui.components.DAY_MARKER_GAP
+import se.kodhast.ui.components.DayMarkerDot
+import se.kodhast.ui.components.dayDescription
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.theme.Spacing
 
@@ -163,3 +168,5 @@ private fun DayChip(
 
 /** Så långt ett svep måste gå för att byta vecka – kortare dragningar är bara ett tryck som gled. */
 private val SWIPE_THRESHOLD = 48.dp
+
+private val ONE_WEEK = DatePeriod(days = DAYS_PER_WEEK)

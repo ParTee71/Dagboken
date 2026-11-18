@@ -194,11 +194,8 @@ fun diaryEntries(sources: DiarySources, zone: TimeZone): List<DiaryEntry> {
 /** HIST-2: posterna av de typer [filter] visar, i samma ordning. */
 fun List<DiaryEntry>.shownBy(filter: DiaryFilter): List<DiaryEntry> = filter { filter.shows(it.type) }
 
-/** Dagarna med minst en post – kalenderns punkter (HIST-6). */
+/** Dagarna med minst en post – punkterna i Välj dag (HIST-6). */
 fun List<DiaryEntry>.dates(): Set<LocalDate> = mapTo(mutableSetOf()) { it.date }
-
-/** Posterna på [date] (kalenderns valda dag, HIST-6). */
-fun List<DiaryEntry>.on(date: LocalDate): List<DiaryEntry> = filter { it.date == date }
 
 /** Dagsrubrikens slag (HIST-1): "Idag", "Igår" eller bara veckodag och datum. */
 enum class DayLabel { TODAY, YESTERDAY, OTHER }
@@ -214,6 +211,16 @@ data class DiaryDay(val date: LocalDate, val label: DayLabel, val entries: List<
 
 /** HIST-1: [entries] (nyast först, [diaryEntries]) per dag, nyaste dagen först; dagar utan poster finns inte. */
 fun diaryDays(entries: List<DiaryEntry>, today: LocalDate): List<DiaryDay> = entries.groupBy { it.date }.map { (date, day) -> DiaryDay(date, dayLabel(date, today), day) }.sortedByDescending { it.date }
+
+/**
+ * HIST-6: posten Välj dag rullar till för [date] – dagens första post (nyast först, som i listan). En dag utan
+ * poster ger närmaste äldre dag med poster, och finns ingen äldre den äldsta dagen. `null` utan poster.
+ */
+fun jumpTarget(entries: List<DiaryEntry>, date: LocalDate): DiaryEntry? {
+    val days = entries.groupBy { it.date }
+    val day = days.keys.filter { it <= date }.maxOrNull() ?: days.keys.minOrNull() ?: return null
+    return days.getValue(day).first()
+}
 
 /**
  * HIST-8: Dagbokens fönster – [years] år bakåt, förankrat i [anchor] (dagen fönstret skapades) så att årsgränserna
@@ -236,7 +243,7 @@ data class DiaryWindow(val anchor: LocalDate, val years: Int = 1, val today: Loc
     /** Ett år till bakåt (HIST-8). */
     fun older(): DiaryWindow = copy(years = years + 1)
 
-    /** Fönstret med så många år till att [date] ryms (kalenderns månadsbyte bakåt, HIST-6); oförändrat om det redan gör det. */
+    /** Fönstret med så många år till att [date] ryms (Välj dag, HIST-6); oförändrat om det redan gör det. */
     fun covering(date: LocalDate): DiaryWindow {
         var window = this
         while (date < window.from) window = window.older()
