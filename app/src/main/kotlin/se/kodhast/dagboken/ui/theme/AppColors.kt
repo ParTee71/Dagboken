@@ -12,6 +12,7 @@ import se.kodhast.dagboken.core.model.FeelingStrength
 import se.kodhast.ui.theme.AppDepth
 import se.kodhast.ui.theme.AppTheme
 import se.kodhast.ui.theme.ExtendedColors as ThemeColors
+import se.kodhast.ui.theme.ProgressDoneColors
 import se.kodhast.ui.theme.Tone
 import se.kodhast.ui.theme.ToneColors
 
@@ -141,16 +142,20 @@ data class ExtendedColors(
 
     /**
      * Färgerna som android-ui:s tema behöver (`AppTheme`): kort, radtoning, verktygsrad, toner, konfettins färgserie och
-     * anslutningspluppen på avataren (NAV-12) i den positiva tonens färg.
+     * anslutningspluppen på avataren (NAV-12) i den positiva tonens färg. Framstegsraden (`AppProgress`, HEM-18) får
+     * spåret [track] och, när allt är klart, [doneFill] (solgult, `secondary`) med en mörk kontur i solgula tonens
+     * textfärg – solgult ensamt syns för dåligt mot kortet (ThemeContrastTest, HEM-19).
      */
-    fun forTheme(): ThemeColors = ThemeColors(
+    fun forTheme(doneFill: Color): ThemeColors = ThemeColors(
         card = card,
         rowTint = rowTint,
         toolbar = toolbar,
         onToolbar = onToolbar,
         tones = tones,
         accents = AppColors.SWATCH_HEX.indices.map { AppColors.swatch(it) },
-        online = positiveTone.content
+        online = positiveTone.content,
+        track = track,
+        progressDone = ProgressDoneColors(doneFill, outline = sunTone.content)
     )
 }
 
@@ -367,8 +372,8 @@ object AppColors {
     fun tone(tone: Tone): ToneColors = AppTheme.tone(tone)
 
     /** Det ljusa och det mörka temats färger för android-ui (`DagbokenTheme`). */
-    internal val lightTheme: ThemeColors = lightExtended.forTheme()
-    internal val darkTheme: ThemeColors = darkExtended.forTheme()
+    internal val lightTheme: ThemeColors = lightExtended.forTheme(light.secondary)
+    internal val darkTheme: ThemeColors = darkExtended.forTheme(dark.secondary)
 
     /**
      * Djupet (android-ui `AppDepth`, DSN-1): i ljust en hårfin teal-kant runt korten och skuggor tonade mot mörk teal,

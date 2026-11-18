@@ -264,6 +264,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.18.5 | Framstegsraden från android-ui 1.16.0 (#441 del 5): `ProgressBar` är bibliotekets `AppProgress` med Dagbokens texter, och spåret och den solgula klart-färgen med kontur kommer ur temat (`track`, `progressDone`). Inget synligt ändrat. |
 | 4.18.4 | Inställningarnas delar från android-ui 1.15.0 (#441 del 4): kontoraden, Logga ut, Om-kortet och `NoticeBanner` kommer från biblioteket, och notisbehörigheten från `rememberNotificationAccess`. **Synligt:** kontoraden i inställningsarket är inte längre tonad och visar e-posten under namnet utan "Inloggad med Google"; frågan vid Logga ut är likadan i alla appar ("Det du sparat i Dagboken finns kvar …"); Om Dagboken visar "Dagboken" med versionen under (AUTH-2, AUTH-3, NAV-9). |
 | 4.18.3 | Inloggningen från android-ui 1.13.0 (#441 del 3): `SignInScreen`, `UpdateRequiredScreen` och roten `AuthGateHost` kommer från biblioteket, och läget är bibliotekets `AuthGate` (`NeedsUser` heter `NeedsAccount`). `AuthViewModel` och Dagbokens texter stannar. Inget synligt ändrat. |
 | 4.18.2 | Navigationsramen från android-ui 1.12.0 (#441 del 2): `AppBackStack` är bibliotekets `TabBackStack`, skärmbytena `AppTransitions` och ramen `AppNavHost` (ui-navigation); Dagboken behåller flikarna och loggmenyn. `SyncViewModel` mappar en nekad skrivning till `UiError` en gång per fel. Inget synligt ändrat. |
