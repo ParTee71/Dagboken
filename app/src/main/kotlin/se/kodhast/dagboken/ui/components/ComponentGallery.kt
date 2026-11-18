@@ -835,7 +835,7 @@ private fun Progress() {
 }
 
 /** Appens fasta ark som galleriet kan öppna. */
-private enum class AppSheet { Account, LogMenu }
+private enum class AppSheet { Account }
 
 @Composable
 private fun Overlays() {
@@ -852,10 +852,9 @@ private fun Overlays() {
         AppButton("Sheet", { sheet = true }, variant = ButtonVariant.Secondary)
         AppButton("Snackbar", { scope.launch { snackbar.showSnackbar("Ingen anslutning just nu.") } }, variant = ButtonVariant.Secondary)
     }
-    Label("AccountSheet · LogMenuSheet")
+    Label("AccountSheet")
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
         AppButton("Inställningsark", { appSheet = AppSheet.Account }, variant = ButtonVariant.Secondary)
-        AppButton("Loggmeny", { appSheet = AppSheet.LogMenu }, variant = ButtonVariant.Secondary)
     }
     AppButton("Dialog med fält", { fieldDialog = true }, variant = ButtonVariant.Secondary)
     AppButton("Arkivera Yoga", { archived = UndoRequest("yoga", "Yoga") }, variant = ButtonVariant.Text)
@@ -894,7 +893,6 @@ private fun Overlays() {
             account = GALLERY_ACCOUNT,
             onOpen = { appSheet = null },
         )
-        AppSheet.LogMenu -> LogMenuSheet(onDismiss = { appSheet = null }, onPick = { appSheet = null })
         null -> Unit
     }
     EmptyState(R.drawable.ic_book, "Inget loggat än", "Det du loggar med plusknappen hamnar här, dag för dag.") {

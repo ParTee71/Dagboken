@@ -19,7 +19,7 @@ import se.kodhast.dagboken.testing.captureScreenLightAndDark
 import se.kodhast.dagboken.testing.clickWithoutRipple
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 
-/** Appens fasta ark: inställningsarket bakom avataren (NAV-9) och loggmenyn bakom plusknappen (NAV-10). */
+/** Appens fasta ark: inställningsarket bakom avataren (NAV-9). */
 @RunWith(RobolectricTestRunner::class)
 class AppSheetsTest {
 
@@ -34,21 +34,8 @@ class AppSheetsTest {
         onOpenGallery: (() -> Unit)? = null,
         onDismiss: () -> Unit = {},
         account: AuthUser? = anna,
-        onOpen: (SettingsPage) -> Unit = {},
-        onLog: (LogChoice) -> Unit = {}
-    ) = rule.setContent { DagbokenTheme { RootSheets(sheet, onDismiss, onSignOut, onOpenGallery, account, onOpen, onLog) } }
-
-    @Test
-    fun `loggmenyn har exakt fem val i ordning och varje val stänger arket och loggar valet (NAV-10)`() {
-        assertEquals(listOf("Mående", "Aktivitet", "Dos", "Händelse", "Sjukdom"), LogChoice.entries.map { rule.activityString(it.label) })
-        var dismissed = 0
-        val picked = mutableListOf<LogChoice>()
-        show(RootSheet.Log, onDismiss = { dismissed++ }, onLog = { picked += it })
-        LogChoice.entries.forEach { rule.onNodeWithText(rule.activityString(it.label)).assertIsDisplayed() }
-        rule.onNodeWithText("Aktivitet").performClick()
-        assertEquals(1, dismissed)
-        assertEquals(listOf(LogChoice.Activity), picked)
-    }
+        onOpen: (SettingsPage) -> Unit = {}
+    ) = rule.setContent { DagbokenTheme { RootSheets(sheet, onDismiss, onSignOut, onOpenGallery, account, onOpen) } }
 
     @Test
     fun `inställningsarket loggar ut och stänger sig (NAV-9, AUTH-2)`() {
@@ -117,11 +104,6 @@ class AppSheetsTest {
     @Test
     fun `AccountSheet - logga ut frågar först`() = rule.captureScreenLightAndDark("AccountSheet_loggaut", open = { onNodeWithText("Logga ut").clickWithoutRipple() }) {
         AccountSheet(onDismiss = {}, onSignOut = {}, onOpenGallery = null, account = anna, onOpen = {})
-    }
-
-    @Test
-    fun `LogMenuSheet - fem val`() = rule.captureScreenLightAndDark("LogMenuSheet_val") {
-        LogMenuSheet(onDismiss = {}, onPick = {})
     }
 }
 

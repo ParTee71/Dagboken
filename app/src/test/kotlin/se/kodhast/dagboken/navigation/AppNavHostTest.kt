@@ -27,6 +27,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.data.common.DataError
+import se.kodhast.dagboken.testing.captureScreenLightAndDark
+import se.kodhast.dagboken.testing.clickWithoutRipple
+import se.kodhast.dagboken.ui.components.LogChoice
 import se.kodhast.dagboken.ui.components.UserAvatar
 import se.kodhast.dagboken.ui.sync.SyncEvent
 import se.kodhast.dagboken.ui.sync.SyncUiState
@@ -61,17 +64,29 @@ class AppNavHostTest {
     }
 
     @Test
-    fun `plusknappen syns bara när den har en åtgärd och öppnar loggmenyn (NAV-10)`() {
-        var opened = 0
+    fun `plusknappen syns bara när den har en åtgärd och fäller ut loggmenyns fem val (NAV-10)`() {
+        val picked = mutableListOf<LogChoice>()
         rule.setContent {
             DagbokenTheme {
-                AppNavHost(backStack, { key -> NavEntry(key) { Text("Skärm: ${key::class.simpleName}") } }, onLog = { opened++ })
+                AppNavHost(backStack, { key -> NavEntry(key) { Text("Skärm: ${key::class.simpleName}") } }, onLog = { picked += it })
             }
         }
         rule.onNodeWithContentDescription("Logga").performClick()
-        assertEquals(1, opened)
+        // Valen i ordning, ovanför plusknappen (FAB-menyn); ett val stänger menyn och loggar valet.
+        val labels = listOf("Mående", "Aktivitet", "Dos", "Händelse", "Sjukdom")
+        val tops = labels.map { rule.onNodeWithText(it).assertIsDisplayed().fetchSemanticsNode().boundsInRoot.top }
+        assertEquals(tops.sorted(), tops, "valen uppifrån och ned i NAV-10:s ordning")
+        rule.onNodeWithText("Aktivitet").performClick()
+        assertEquals(listOf(LogChoice.Activity), picked)
+        rule.onNodeWithText("Mående").assertDoesNotExist()
         rule.runOnIdle { backStack.push(ComponentGalleryKey) }
         rule.onNodeWithContentDescription("Logga").assertDoesNotExist()
+    }
+
+    /** Plusknappens loggmeny öppen i Dagbokens tema: FAB-menyn med fem val över den tonade bottenraden (NAV-10). */
+    @Test
+    fun `loggmenyn öppen i ljust och mörkt tema`() = rule.captureScreenLightAndDark("AppNavHost_loggmeny", open = { onNodeWithContentDescription("Logga").clickWithoutRipple() }) {
+        AppNavHost(AppBackStack(), { key -> NavEntry(key) { Text("Skärm: ${key::class.simpleName}") } }, onLog = {})
     }
 
     @Test

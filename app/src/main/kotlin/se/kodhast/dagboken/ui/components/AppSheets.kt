@@ -35,7 +35,7 @@ enum class SettingsPage(@StringRes val label: Int, @DrawableRes val icon: Int) {
 }
 
 /**
- * Inställningsarket bakom avataren (NAV-9) – ett av appens två fasta ark, som [LogMenuSheet] byggt
+ * Inställningsarket bakom avataren (NAV-9) – appens fasta ark, byggt
  * på [AppBottomSheet] med en [ItemRow] per val: överst kontot ([account]: foto, namn, e-post och
  * "Inloggad med Google", AUTH-3), sedan en rad per [SettingsPage] som [onOpen] öppnar, i debug-bygget
  * komponentgalleriet ([onOpenGallery] = `null` i release) och sist "Logga ut", som frågar med
@@ -83,14 +83,6 @@ private fun AccountRow(account: AuthUser) {
         leading = { UserAvatar(account, onClick = null) },
         tinted = true
     )
-}
-
-/** Plusknappens loggmeny (NAV-10): exakt fem val. [onPick] får valet. */
-@Composable
-fun LogMenuSheet(onDismiss: () -> Unit, onPick: (LogChoice) -> Unit, modifier: Modifier = Modifier) {
-    AppBottomSheet(stringResource(R.string.log_menu_title), onDismiss, modifier) {
-        LogChoice.entries.forEach { choice -> SheetRow(choice.label, choice.icon, { onPick(choice) }) }
-    }
 }
 
 @Composable
