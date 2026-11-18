@@ -75,9 +75,6 @@
     <string name="note_show">Visa anteckning</string>
 
     <!-- Datumremsa (HEM-14, HEM-19) -->
-    <string name="date_strip_done">Klar</string>
-    <string name="date_strip_previous_week">Föregående vecka</string>
-    <string name="date_strip_next_week">Nästa vecka</string>
 
     <!-- Framstegsrad (HEM-18, HEM-19) -->
     <string name="progress_format">%1$d av %2$d klara</string>
@@ -813,7 +810,6 @@
     <string name="chart_legend_trend">Trend</string>
     <string name="chart_previous_format">%1$s (föregående)</string>
     <string name="chart_open_trends">Visa i Trender</string>
-    <string name="chart_choose">Välj</string>
     <string name="chart_caption_scope_format">%1$s: %2$s</string>
     <string name="chart_a11y_default_label">Diagram</string>
     <string name="chart_a11y_empty">%1$s: för lite data än</string>

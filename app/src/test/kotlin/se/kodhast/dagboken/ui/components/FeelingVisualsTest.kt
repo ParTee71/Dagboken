@@ -49,12 +49,14 @@ import se.kodhast.dagboken.testing.captureLightAndDark
 import se.kodhast.dagboken.ui.diagram.FeelingWordBars
 import se.kodhast.dagboken.ui.diagram.FittingWords
 import se.kodhast.dagboken.ui.theme.AppColors
-import se.kodhast.dagboken.ui.theme.AppShapes
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.ChipRow
+import se.kodhast.ui.components.DayTab
+import se.kodhast.ui.components.DayTabWeekday
 import se.kodhast.ui.components.TOUCH_TARGET
+import se.kodhast.ui.theme.AppTheme
 import se.kodhast.ui.theme.Spacing
 
 /**
@@ -193,8 +195,8 @@ class FeelingVisualsTest {
         var clicks = 0
         show {
             Row {
-                DayTab(selected = true, onClick = { clicks++ }, shape = AppShapes.smallTile, enabled = false, modifier = Modifier.width(48.dp)) { DayTabWeekday(GalleryDay) }
-                DayTab(selected = false, onClick = { clicks++ }, shape = AppShapes.smallTile, background = AppColors.extended.card, modifier = Modifier.width(48.dp)) { DayTabWeekday(GalleryDay.plus(1, DateTimeUnit.DAY)) }
+                DayTab(selected = true, onClick = { clicks++ }, shape = AppTheme.shapes.smallTile, enabled = false, modifier = Modifier.width(48.dp)) { DayTabWeekday(GalleryDay) }
+                DayTab(selected = false, onClick = { clicks++ }, shape = AppTheme.shapes.smallTile, background = AppColors.extended.card, modifier = Modifier.width(48.dp)) { DayTabWeekday(GalleryDay.plus(1, DateTimeUnit.DAY)) }
             }
         }
         val tabs = rule.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))

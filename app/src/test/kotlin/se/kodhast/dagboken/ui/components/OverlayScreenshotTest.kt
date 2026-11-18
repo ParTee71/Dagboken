@@ -45,6 +45,7 @@ import se.kodhast.ui.components.ConfirmDialog
 import se.kodhast.ui.components.DateField
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.QuantityStepper
+import se.kodhast.ui.components.StepNavigation
 import se.kodhast.ui.components.SwipeToHide
 import se.kodhast.ui.components.UNDO_MILLIS
 import se.kodhast.ui.components.UndoRequest
@@ -90,7 +91,7 @@ class OverlayScreenshotTest {
     fun `AppBottomSheet - steg med utfällda symptom`() = rule.captureScreenLightAndDark("AppBottomSheet_steg_symptom") {
         val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS)
         LaunchedEffect(Unit) { steps.pager.scrollToPage(steps.steps.indexOf(ScreeningStep.SYMPTOMS)) }
-        AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepwiseScreeningNavigation(steps, {}) }) {
+        AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepNavigation(steps.pager, {}) }) {
             StepwiseScreeningForm(6, {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, otherOptionId = "ovrigt", state = steps, navigation = false)
         }
     }
@@ -100,7 +101,7 @@ class OverlayScreenshotTest {
     fun `AppBottomSheet - klart-läge efter sparat`() = rule.captureScreenLightAndDark("AppBottomSheet_klart") {
         val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS)
         LaunchedEffect(Unit) { steps.pager.scrollToPage(steps.steps.lastIndex) }
-        AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepwiseScreeningNavigation(steps, {}, done = true) }) {
+        AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepNavigation(steps.pager, {}, done = true) }) {
             StepwiseScreeningForm(6, {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, otherOptionId = "ovrigt", state = steps, navigation = false)
         }
     }

@@ -304,27 +304,6 @@ class DiagramsTest {
         rule.onNodeWithText("Trend oförändrad").assertIsDisplayed()
     }
 
-    // ---- CompactDropdownButton ----
-
-    @Test
-    fun `rullgardinen är en 48 dp-rullgardin som öppnar menyn och väljer`() {
-        var chosen = ""
-        show {
-            CompactDropdownButton(
-                "14 dagar",
-                listOf("7 dagar", "14 dagar", "Allt").map { AppMenuItem(it, { chosen = it }) }
-            )
-        }
-        rule.onNodeWithText("14 dagar")
-            .assertHasClickAction()
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.DropdownList))
-            .assertTouchHeightIsEqualTo(48.dp)
-            .assertWidthIsAtLeast(48.dp)
-            .performClick()
-        rule.onNodeWithText("Allt").assertIsDisplayed().performClick()
-        assertEquals("Allt", chosen)
-    }
-
     // ---- Decimalkomma, tema och zoom ----
 
     @Test

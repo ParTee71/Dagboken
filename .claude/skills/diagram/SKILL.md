@@ -1,6 +1,6 @@
 ---
 name: diagram
-description: "Dagbokens diagram – de delade diagrammen i ui/diagram (LineChart, IntervalBarChart, StackedBarChart, SparklineChart, MinMaxCaption, CompactDropdownButton) och diagrammatematiken i :core/engine (smart y-axel, trendlinje, staplar, dagens energi, sömnkvalitet). Ladda denna när du ritar, ändrar eller använder ett diagram, en trend, en axel, en sparkline eller en sömnpoäng, och tillsammans med shared-ui-components. Trigger-ord: diagram, graf, kurva, linjediagram, stapel, staplat, sparkline, trend, trendlinje, y-axel, axel, rutnät, zoom, panorering, Vico, Canvas, luckor, föregående period, Trender, sömnstadier, sömnkvalitet, dagens energi, MinMaxCaption, computeSmartYAxis, computeTrendLine."
+description: "Dagbokens diagram – de delade diagrammen i ui/diagram (LineChart, IntervalBarChart, StackedBarChart, SparklineChart, MinMaxCaption; rullgardinen är android-ui:s `DropdownPill`) och diagrammatematiken i :core/engine (smart y-axel, trendlinje, staplar, dagens energi, sömnkvalitet). Ladda denna när du ritar, ändrar eller använder ett diagram, en trend, en axel, en sparkline eller en sömnpoäng, och tillsammans med shared-ui-components. Trigger-ord: diagram, graf, kurva, linjediagram, stapel, staplat, sparkline, trend, trendlinje, y-axel, axel, rutnät, zoom, panorering, Vico, Canvas, luckor, föregående period, Trender, sömnstadier, sömnkvalitet, dagens energi, MinMaxCaption, computeSmartYAxis, computeTrendLine."
 ---
 
 # Diagram
@@ -21,7 +21,7 @@ koden; vid skillnad gäller kravlistan. Vilken komponent som är vilken elementt
 | TRD-8 – energi per dag som spann min–max med dagsvärdet markerat | `IntervalBarChart` + `computeDailyEnergyStats`; visas redan med en dag |
 | TRD-9 – lägsta och högsta som text under varje diagram, värdelinjer | `MinMaxCaption` ingår i varje diagram; `gridValuesFor` |
 | TRD-10 – tvåfingerzoom och panorering, helt utzoomat från början, nollställs vid periodbyte | Vico `Zoom.Content` i `LineChart`, `ZoomPan` i stapeldiagrammen; nyckel = `xLabels` |
-| TRD-12 – kompakt rullgardin för period och serier | `CompactDropdownButton` (menyn är `AppMenu`s) |
+| TRD-12 – kompakt rullgardin för period och serier | `DropdownPill` *(android-ui)* (menyn är `AppMenu`s) |
 | TRD-13 – streckad minsta kvadrat-trend per serie, luckor hoppas över | `computeTrendLine`/`trendSegment`; diagrammen och Trender tar sammanfattning, trend och riktning ur `seriesStats` (`remember`ad); solgul med en serie, seriens färg med flera; seriernas egna linjer är alltid heldragna |
 | TRD-15 – luckor ritas aldrig som nollor | `gapFreeRuns` (kurvan bryts), `null` i alla diagramdata |
 | TRD-16 – sömnstadier staplade, saknat segment tar ingen höjd | `StackedBarChart` + `stackBases`; axeln börjar på noll; staplarna ur `sleepStagePoints`, namn och färger i `sleepStageSegments` |
@@ -29,7 +29,7 @@ koden; vid skillnad gäller kravlistan. Vilken komponent som är vilken elementt
 | TRD-11/TRD-15 – klockans serier i måttets enhet, "Allt" kapad vid 365 dagar | `WatchMetric`, `watchSeries`, `sleepQualitySeries`, `TrendRange.cappedDays`/`cappedReadFrom` i `WatchSeries.kt` |
 | TRD-23 – diagrampalett per tema, en punktform per serie | `AppColors.extended.chartSeries` (åtta färger, skild från `SWATCH_HEX`) → `ChartColors.series`; `PointMarker.forSlot(plats)` (cirkel, kvadrat, triangel, romb, ihåliga för 5–8) i `ChartStyle.kt`, ritad av `VicoLinePlot` och i `ChartLegend` (`LegendMark.Series`); en ensam serie har fylld cirkel |
 | TRD-18 – föregående period nedtonad på samma x-index, egen trend | `LineChart(previous = …)`; grå med en serie, seriens färg nedtonad med flera |
-| NFR-14 – talbar sammanfattning, tryckytor 48 dp | `ChartSemantics.kt`; `CompactDropdownButton` har 48 dp |
+| NFR-14 – talbar sammanfattning, tryckytor 48 dp | `ChartSemantics.kt`; `DropdownPill` har 48 dp |
 | HEM-7 – sparkline med dagens punkt, lägst · högst · idag | `SparklineChart` |
 | #320 – känslor som ord, inga tal: ordträd per kärna, längd = vikt mot den vanligaste | `FeelingWordBars` + `computeFeelingStats` (`FeelingStats.kt`); minihjul och värmekarta är `FeelingMiniWheel` i `ui/components`; `WORD_BAR_HEIGHT` i `ChartStyle.kt`; i Trender kortet Känslor (TRD-22) utan periodjämförelse och utan Jämför |
 | HLS-10/11/13 – sömnkvalitet per natt med ålders- och könsnorm | `scoreSleepQuality`, `scoreNightlySleep`, `ageFromBirthYear` – ålder och kön som parametrar, aldrig ur en repository; klockdata persisteras aldrig (HLS-5) |
@@ -45,7 +45,7 @@ koden; vid skillnad gäller kravlistan. Vilken komponent som är vilken elementt
   (aldrig `AppColors.swatch`, det är färgväljarens).
   Stilvärden (mått, alfa) finns bara i `ChartStyle.kt`.
 - **Kortet runt:** diagramkort i Trender är `Foldout` i `AppCard` (NFR-18, TRD-14); periodväljaren
-  (`CompactDropdownButton`) står i titelraden och visas bara utfälld.
+  (`DropdownPill`) står i titelraden och visas bara utfälld.
 - **Vico** (3.x API, `com.patrykandpatrick.vico:compose`) anropas bara i `VicoLinePlot` – mönstret
   `[vico]` i `ui-forbidden.txt` stoppar det överallt utanför `ui/diagram`. Modellen byggs direkt ur
   datan (ingen `CartesianChartModelProducer`): inga asynkrona transaktioner, samma bild varje gång.

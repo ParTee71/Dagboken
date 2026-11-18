@@ -51,7 +51,6 @@ import se.kodhast.dagboken.ui.common.label
 import se.kodhast.dagboken.ui.common.periodText
 import se.kodhast.dagboken.ui.common.title
 import se.kodhast.dagboken.ui.common.toMessage
-import se.kodhast.dagboken.ui.components.DateStrip
 import se.kodhast.dagboken.ui.components.DayDoneCard
 import se.kodhast.dagboken.ui.components.FeelingMiniWheel
 import se.kodhast.dagboken.ui.components.FeelingPills
@@ -82,6 +81,7 @@ import se.kodhast.ui.components.ButtonVariant
 import se.kodhast.ui.components.CheckRow
 import se.kodhast.ui.components.ChipRow
 import se.kodhast.ui.components.ConfirmDialog
+import se.kodhast.ui.components.DateStrip
 import se.kodhast.ui.components.DeleteConfirmDialog
 import se.kodhast.ui.components.EmptyState
 import se.kodhast.ui.components.EntityDetailScreen
@@ -90,6 +90,7 @@ import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.MessageSnackbar
 import se.kodhast.ui.components.NoticeBanner
+import se.kodhast.ui.components.SectionCard
 import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.SectionHeader
 import se.kodhast.ui.components.StatPill
@@ -232,8 +233,7 @@ private fun TodayCards(content: TodayContent, onEvent: (TodayEvent) -> Unit, lin
 /** "Din vecka" (HEM-13): energin mot förra veckan ("Energi · Uppåt") och andelen tagna doser – utan doser bara energin. */
 @Composable
 private fun WeekSummaryCard(summary: WeekSummary) {
-    AppCard {
-        SectionHeader(stringResource(R.string.today_week_title), icon = R.drawable.ic_calendar)
+    SectionCard(stringResource(R.string.today_week_title), icon = R.drawable.ic_calendar) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
             val (trend, tone) = when (summary.energyTrend) {
                 EnergyTrend.UP -> R.string.today_week_energy_up to Tone.Positive

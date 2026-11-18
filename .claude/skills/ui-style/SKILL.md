@@ -16,7 +16,7 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
   med kontrasten uträknad.
 - Vilken komponent eller ram som används för vad → skill `shared-ui-components`.
 - Exakta Expressive- och Navigation 3-API:er → `VerifiedApisTest` (`app/src/test`), som kompilerar och kör dem, och versionskatalogen `gradle/libs.versions.toml` – gissa aldrig ett API-namn.
-- Tokens i kod → `ui/theme` (`AppColors`, `AppTypography`, `AppShapes`, `Spacing`, `IconSize`). Feature-kod
+- Tokens i kod → `ui/theme` (`AppColors`, `AppTypography`) och android-ui (`AppTheme.shapes`, `Spacing`, `IconSize`; `AppShapes` i `ui/theme` är bara känsloväljarens former). Feature-kod
   hårdkodar aldrig färg, form, typografi eller avstånd (regel 4, NFR-9).
 
 ## Tema
@@ -61,20 +61,21 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
 - **Titel och undertext** i listrad och postkort: titeln högst två rader, undertexten hel, med `Spacing.xs`
   emellan (internt `RowText`).
 
-## Former och avstånd (`AppShapes`, `Spacing`)
+## Former och avstånd (`AppTheme.shapes`, `Spacing`)
 
 - Kort **22 dp**, chips och knappar **helt rundade** (`pill`), datumremsans chip **18 dp**, ark
-  **28 dp** upptill (`sheet`), rader 18 dp, fält 14 dp (DSN-3).
+  **28 dp** upptill (`sheet`), rader 18 dp, fält 14 dp (DSN-3) – formerna är android-ui:s, samma i alla appar
+  (Mats 2026-11-18); appen anger inga egna.
 - `Spacing`: `xs 4 · s 8 · m 12 · l 16 · xl 24 · xxl 32` dp – enda tillåtna avstånden.
 - **Sidmarginal** `l` (16 dp) på varje skärm – ramarna delar den (`LocalEditScreenMargin`, satt i `DagbokenTheme`).
 - **Luftigare än ReseApoteket:** mer avstånd mellan kort (`l`) än inuti dem (`m`); ett kort per
   ämne hellre än täta listor.
 - Tryckytor minst **48 dp** i båda riktningarna (NFR-14) – även knappar inuti en sammansatt kontroll.
-- **Spår och ringar:** `TRACK_HEIGHT` (8 dp) för framstegsraden, reglagets spår och stegprickarna, `RING_WIDTH`
-  (2 dp) för ringen kring något valt eller ett mål – båda i `ui/theme/StrokeSize.kt`.
+- **Spår och ringar:** `TRACK_HEIGHT` (8 dp, android-ui) för framstegsraden, reglagets spår och stegprickarna, `RING_WIDTH`
+  (2 dp) för ringen kring något valt eller ett mål – i `ui/theme/StrokeSize.kt`.
 - **Känsloväljaren** har två egna former: navet är en halv skiva (`AppShapes.feelingHub`) och nyanserna blad
   rundade i två motstående hörn (`AppShapes.feelingNuance`), som i prototypen (#318).
-- **Vald dag** i datumremsa och kalender är fylld teal i radens form (`AppShapes.row`), aldrig en cirkel.
+- **Vald dag** i datumremsa och kalender är fylld teal i radens form (`AppTheme.shapes.row`), aldrig en cirkel.
 - **Nedtoning:** en enda, `INACTIVE_ALPHA` (0,55), för det som finns men inte räknas med, det som inte
   går att välja och en avstängd kontroll (även `ValueSlider`). M3:s 0,38 används inte: reglaget ritar
   eget spår och egen tumme, och WCAG undantar avstängda kontroller från kontrastkravet – så samma
@@ -119,8 +120,8 @@ kort-/radstandarden NFR-15–18, aldrig från en enskild skärm.
 
 - **Linjeikoner** `res/drawable/ic_*`, rundad linje i Material Symbols-rutnätet – samma uppsättning som
   canvasen. **Aldrig emoji som knappikon.**
-- **Ikonstorlekar** bara ur `IconSize` (`ui/theme`), efter var ikonen sitter: `marker` 14 (dagens bock),
-  `pill` 16, `row` 22 (kryss, mätvärde, flikar). En
+- **Ikonstorlekar** bara ur `IconSize` (android-ui), efter var ikonen sitter: `marker` 14 (dagens bock),
+  `pill` 16, `small` 18, `button` 20, `row` 22 (kryss, mätvärde, flikar), `standard` 24. En
   rubrik med ikon är alltid en `SectionHeader` med ikonruta, även på ett tonat kort (`DayDoneCard`).
 - Emoji bara i innehåll där användaren själv valt dem, och i firandet.
 

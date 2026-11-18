@@ -22,10 +22,13 @@ import se.kodhast.dagboken.ui.theme.Positive
 import se.kodhast.dagboken.ui.theme.Sun
 import se.kodhast.dagboken.ui.theme.Warning
 import se.kodhast.ui.common.DateFormat
+import se.kodhast.ui.components.LocalDetailSectionGap
 import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.R as UiR
 import se.kodhast.ui.components.SectionHeader
 import se.kodhast.ui.components.StatPill
+import se.kodhast.ui.components.StatPillGrid
+import se.kodhast.ui.components.StatPillItem
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
 
@@ -87,12 +90,15 @@ private fun StatusBanner(title: Int, detail: Int, action: Int, tone: Tone, onCli
 fun HealthTodaySection(state: ClockUiState) {
     val day = state.day
     SectionHeader(stringResource(R.string.health_today_title))
-    PillRows(
+    val rowSpacing = LocalDetailSectionGap.current
+    StatPillGrid(
         listOf(
-            Metric(R.drawable.ic_steps, metricValue(WatchMetric.STEPS, day), stringResource(WatchMetric.STEPS.label())),
-            Metric(R.drawable.ic_heart, metricValue(WatchMetric.HEART_RATE_AVG, day), stringResource(R.string.health_heart_rate_avg)),
-            Metric(R.drawable.ic_heart, metricValue(WatchMetric.RESTING_HEART_RATE, day), stringResource(WatchMetric.RESTING_HEART_RATE.label()))
-        )
+            StatPillItem(R.drawable.ic_steps, metricValue(WatchMetric.STEPS, day), stringResource(WatchMetric.STEPS.label())),
+            StatPillItem(R.drawable.ic_heart, metricValue(WatchMetric.HEART_RATE_AVG, day), stringResource(R.string.health_heart_rate_avg)),
+            StatPillItem(R.drawable.ic_heart, metricValue(WatchMetric.RESTING_HEART_RATE, day), stringResource(WatchMetric.RESTING_HEART_RATE.label()))
+        ),
+        Tone.Neutral,
+        rowSpacing = rowSpacing
     )
     StatPill(R.drawable.ic_moon, metricValue(WatchMetric.SLEEP_TOTAL, day), stringResource(R.string.health_sleep_last_night), Tone.Neutral, Modifier.fillMaxWidth())
     day?.sleepStages?.takeUnless { it.isEmpty }?.let { stages ->
@@ -111,13 +117,15 @@ fun HealthTodaySection(state: ClockUiState) {
         }
     )
     SleepFlagNotices(state.sleepFlags)
-    PillRows(
+    StatPillGrid(
         listOf(
-            Metric(R.drawable.ic_run, metricValue(WatchMetric.EXERCISE, day), stringResource(R.string.health_exercise_today)),
-            Metric(R.drawable.ic_flame, metricValue(WatchMetric.ACTIVE_CALORIES, day), stringResource(WatchMetric.ACTIVE_CALORIES.label())),
-            Metric(R.drawable.ic_route, metricValue(WatchMetric.DISTANCE, day), stringResource(WatchMetric.DISTANCE.label())),
-            Metric(R.drawable.ic_oxygen, metricValue(WatchMetric.OXYGEN_SATURATION, day), stringResource(WatchMetric.OXYGEN_SATURATION.label()))
-        )
+            StatPillItem(R.drawable.ic_run, metricValue(WatchMetric.EXERCISE, day), stringResource(R.string.health_exercise_today)),
+            StatPillItem(R.drawable.ic_flame, metricValue(WatchMetric.ACTIVE_CALORIES, day), stringResource(WatchMetric.ACTIVE_CALORIES.label())),
+            StatPillItem(R.drawable.ic_route, metricValue(WatchMetric.DISTANCE, day), stringResource(WatchMetric.DISTANCE.label())),
+            StatPillItem(R.drawable.ic_oxygen, metricValue(WatchMetric.OXYGEN_SATURATION, day), stringResource(WatchMetric.OXYGEN_SATURATION.label()))
+        ),
+        Tone.Neutral,
+        rowSpacing = rowSpacing
     )
 }
 

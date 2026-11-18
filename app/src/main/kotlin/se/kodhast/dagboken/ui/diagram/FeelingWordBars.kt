@@ -38,8 +38,8 @@ import se.kodhast.dagboken.core.model.FeelingStrength
 import se.kodhast.dagboken.ui.common.feelingName
 import se.kodhast.dagboken.ui.common.strengthName
 import se.kodhast.dagboken.ui.theme.AppColors
-import se.kodhast.dagboken.ui.theme.AppShapes
 import se.kodhast.dagboken.ui.theme.AppTypography
+import se.kodhast.ui.theme.AppTheme
 import se.kodhast.ui.theme.Spacing
 
 /**
@@ -78,7 +78,7 @@ private fun WordBar(count: CoreCount, name: String, nameWidth: Dp) {
                 Modifier.padding(start = Spacing.s)
                     .fillMaxWidth(count.weight)
                     .heightIn(min = WORD_BAR_HEIGHT)
-                    .clip(AppShapes.smallTile)
+                    .clip(AppTheme.shapes.smallTile)
                     .background(tone.container)
                     .padding(horizontal = Spacing.m),
                 contentAlignment = Alignment.CenterStart
@@ -105,7 +105,7 @@ private fun StrengthBar(count: CoreCount, name: String) {
             Box(
                 Modifier.fillMaxWidth(count.weight)
                     .height(WORD_BAR_HEIGHT)
-                    .clip(AppShapes.smallTile)
+                    .clip(AppTheme.shapes.smallTile)
                     .drawBehind { drawSegments(segments.filter { it.first > 0 }, MIN_STRENGTH_SEGMENT.toPx()) }
             )
         }
@@ -149,7 +149,7 @@ private fun StrengthLegend(core: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(none, style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        colors.forEach { Box(Modifier.size(LEGEND_STRENGTH_SWATCH, LEGEND_SWATCH).clip(AppShapes.smallTile).background(it)) }
+        colors.forEach { Box(Modifier.size(LEGEND_STRENGTH_SWATCH, LEGEND_SWATCH).clip(AppTheme.shapes.smallTile).background(it)) }
         Text(strong, style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

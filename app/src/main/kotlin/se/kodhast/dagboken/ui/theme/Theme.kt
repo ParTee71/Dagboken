@@ -23,9 +23,10 @@ import se.kodhast.ui.theme.AppTheme
 import se.kodhast.ui.theme.Spacing
 
 /**
- * Appens tema: android-ui:s `AppTheme` (Material 3 Expressive med fjädrande rörelse) med appens [AppColors],
- * [AppShapes] och [AppTypography] (skill `ui-style`, TP-2, DSN-1–5) – färger, former och typsnitt är appens,
- * biblioteket har inga egna. Listradernas avstånd mellan titel och undertext är `Spacing.xs` (NFR-17). Ramarnas mått
+ * Appens tema: android-ui:s `AppTheme` (Material 3 Expressive med fjädrande rörelse) med appens [AppColors]
+ * och [AppTypography] (skill `ui-style`, TP-2, DSN-1–5) – färger och typsnitt är appens, biblioteket har inga egna.
+ * Formerna är bibliotekets, samma i alla appar (22 dp-kort, `AppTheme.shapes`); bara känsloväljarens former
+ * ([AppShapes]) är appens. Listradernas avstånd mellan titel och undertext är `Spacing.xs` (NFR-17). Ramarnas mått
  * sätts här en gång: sidmarginalen i formulär (`LocalEditScreenMargin`) och avståndet mellan sektionerna i
  * detaljskärmar (`LocalDetailSectionGap`) är båda `Spacing.l`, och stegarens knappar är 48 dp
  * (`LocalQuantityStepperButtonSize`, NFR-14). Ingen dynamic color. [darkTheme] kommer från temavalet i inställningsarket – ljust, mörkt eller auto på klockslag
@@ -52,7 +53,6 @@ fun DagbokenTheme(
         AppTheme(
             colorScheme = if (darkTheme) AppColors.dark else AppColors.light,
             extendedColors = if (darkTheme) AppColors.darkTheme else AppColors.lightTheme,
-            shapes = AppShapes.theme,
             typeScale = AppTypeScale,
             motionScheme = MotionScheme.expressive(),
             depth = if (darkTheme) AppColors.darkDepth else AppColors.lightDepth

@@ -54,7 +54,6 @@ import se.kodhast.dagboken.ui.components.FeelingWheelSize
 import se.kodhast.dagboken.ui.diagram.CHART_SEPARATOR
 import se.kodhast.dagboken.ui.diagram.ChartBand
 import se.kodhast.dagboken.ui.diagram.ChartSeries
-import se.kodhast.dagboken.ui.diagram.CompactDropdownButton
 import se.kodhast.dagboken.ui.diagram.FeelingWordBars
 import se.kodhast.dagboken.ui.diagram.IntervalBarChart
 import se.kodhast.dagboken.ui.diagram.LineChart
@@ -71,6 +70,7 @@ import se.kodhast.dagboken.ui.health.HealthTodaySection
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.ExtendedColors
+import se.kodhast.dagboken.ui.theme.Neutral
 import se.kodhast.dagboken.ui.theme.Warning
 import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.DetailUiState
@@ -80,6 +80,7 @@ import se.kodhast.ui.components.AppDivider
 import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.AppSegmentedChoice
 import se.kodhast.ui.components.ButtonVariant
+import se.kodhast.ui.components.DropdownPill
 import se.kodhast.ui.components.EmptyState
 import se.kodhast.ui.components.EntityDetailScreen
 import se.kodhast.ui.components.Foldout
@@ -240,7 +241,7 @@ private fun RangePicker(card: TrendCard, range: TrendRange, onEvent: (TrendsEven
     val items = TrendRange.entries.map { choice ->
         AppMenuItem(stringResource(choice.label), { onEvent(TrendsEvent.SetRange(card, choice)) }, icon = R.drawable.ic_check.takeIf { choice == range })
     }
-    CompactDropdownButton(stringResource(range.label), items)
+    DropdownPill(stringResource(range.label), items, tone = Tone.Neutral)
 }
 
 /**
@@ -253,12 +254,13 @@ private fun SeriesPicker(card: TrendCard, available: List<SeriesInfo>, names: Ma
     val sections = TrendGroup.entries.associateWith { stringResource(it.label) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s), verticalAlignment = Alignment.CenterVertically) {
         Text(stringResource(R.string.trends_show), style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        CompactDropdownButton(
+        DropdownPill(
             chosen.ifEmpty { stringResource(R.string.trends_no_series) },
             available.map { info ->
                 val section = if (card == TrendCard.COMPARE) sections[if (CompareKey.parse(info.key)?.fromWatch == true) TrendGroup.WATCH else TrendGroup.MOOD] else null
                 AppMenuItem(names.getValue(info.key), { onEvent(TrendsEvent.ToggleSeries(card, info.key)) }, section = section, checked = info.key in selected)
-            }
+            },
+            tone = Tone.Neutral
         )
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -44,6 +45,7 @@ import se.kodhast.dagboken.core.model.SleepStages
 import se.kodhast.dagboken.data.health.HealthStatus
 import se.kodhast.dagboken.testing.captureLightAndDark
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
+import se.kodhast.ui.components.LocalDetailSectionGap
 import se.kodhast.ui.theme.Spacing
 
 /**
@@ -125,11 +127,14 @@ class HealthScreensTest {
 
     @Composable
     private fun Sheet(content: @Composable ColumnScope.() -> Unit) {
-        Column(
-            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(Spacing.l),
-            verticalArrangement = Arrangement.spacedBy(Spacing.m),
-            content = content
-        )
+        // Avståndet mellan blocken, som sektionsavståndet i detaljskärmen (Klocka): mätvärdesraderna följer det.
+        CompositionLocalProvider(LocalDetailSectionGap provides Spacing.m) {
+            Column(
+                Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(Spacing.l),
+                verticalArrangement = Arrangement.spacedBy(Spacing.m),
+                content = content
+            )
+        }
     }
 
     @Test
