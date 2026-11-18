@@ -13,6 +13,7 @@ import se.kodhast.dagboken.core.schema.TextLimits
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppTextField
 import se.kodhast.ui.components.FieldError
+import se.kodhast.ui.components.Foldout
 
 /**
  * Anteckningskortet i ett formulär (DAT-7, AKT-11, SJ-8, FAV-1, REC-1): ett [AppCard] med [NoteField]. Ingen

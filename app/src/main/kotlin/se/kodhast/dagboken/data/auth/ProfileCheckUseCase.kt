@@ -10,7 +10,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import se.kodhast.dagboken.data.common.DailyGate
 import se.kodhast.dagboken.data.common.UserScope
-import se.kodhast.dagboken.data.network.NetworkStatus
+import se.kodhast.ui.account.NetworkStatus
 
 /**
  * Hämtar om den inloggades profil från Firebase (AUTH-3) – så att en ny fotoadress når avataren – när appen startar

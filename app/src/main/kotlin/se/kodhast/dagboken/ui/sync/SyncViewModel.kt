@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.data.common.SyncStatus
-import se.kodhast.dagboken.data.network.NetworkStatus
+import se.kodhast.ui.account.NetworkStatus
 import se.kodhast.ui.common.shownAfter
 
 /**

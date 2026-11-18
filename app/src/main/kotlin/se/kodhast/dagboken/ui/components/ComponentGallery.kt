@@ -1,5 +1,7 @@
 package se.kodhast.dagboken.ui.components
 
+import se.kodhast.ui.components.Foldout
+import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.AppHeader
 import se.kodhast.ui.components.asSplitMenu
 import se.kodhast.dagboken.ui.common.AppErrors

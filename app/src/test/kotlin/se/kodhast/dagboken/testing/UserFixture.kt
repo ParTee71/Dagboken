@@ -17,7 +17,6 @@ import se.kodhast.dagboken.data.FixedClock
 import se.kodhast.dagboken.data.auth.AuthRepository
 import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.data.auth.ProfileCheckUseCase
-import se.kodhast.dagboken.data.auth.ProfilePhotoCache
 import se.kodhast.dagboken.data.auth.SignOutUseCase
 import se.kodhast.dagboken.data.common.DailyGate
 import se.kodhast.dagboken.data.common.DataError
@@ -26,10 +25,11 @@ import se.kodhast.dagboken.data.common.MemoryDayMarks
 import se.kodhast.dagboken.data.common.UserVersionSource
 import se.kodhast.dagboken.data.common.testCoverage
 import se.kodhast.dagboken.data.firestore.Paths
-import se.kodhast.dagboken.data.network.NetworkStatus
 import se.kodhast.dagboken.data.user.EnsureUserUseCase
 import se.kodhast.dagboken.data.user.UserDirectory
 import se.kodhast.dagboken.data.user.UserSession
+import se.kodhast.ui.account.NetworkStatus
+import se.kodhast.ui.account.ProfilePhotoCache
 
 /**
  * Användarkedjan för tester: riktig [UserSession] och [EnsureUserUseCase], fejkad inloggning

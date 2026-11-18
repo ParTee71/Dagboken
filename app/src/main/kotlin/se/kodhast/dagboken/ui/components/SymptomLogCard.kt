@@ -23,6 +23,7 @@ import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppFilterChip
 import se.kodhast.ui.components.AppTextField
 import se.kodhast.ui.components.ChipRow
+import se.kodhast.ui.components.Foldout
 import se.kodhast.ui.theme.Spacing
 
 /**

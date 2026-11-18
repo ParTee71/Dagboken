@@ -38,6 +38,7 @@ import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.AppMenuPopup
 import se.kodhast.ui.components.DeleteAction
 import se.kodhast.ui.components.DeleteConfirmDialog
+import se.kodhast.ui.components.ExpandableContent
 import se.kodhast.ui.components.ItemRowText
 import se.kodhast.ui.components.NoteIndicator
 import se.kodhast.ui.components.SwipeBackground

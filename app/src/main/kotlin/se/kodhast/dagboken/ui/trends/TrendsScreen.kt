@@ -52,7 +52,6 @@ import se.kodhast.dagboken.ui.components.FeelingNoteRow
 import se.kodhast.dagboken.ui.components.FeelingPillsWithNotes
 import se.kodhast.dagboken.ui.components.FeelingWeekRow
 import se.kodhast.dagboken.ui.components.FeelingWheelSize
-import se.kodhast.dagboken.ui.components.Foldout
 import se.kodhast.dagboken.ui.diagram.CHART_SEPARATOR
 import se.kodhast.dagboken.ui.diagram.ChartBand
 import se.kodhast.dagboken.ui.diagram.ChartSeries
@@ -83,6 +82,7 @@ import se.kodhast.ui.components.AppSegmentedChoice
 import se.kodhast.ui.components.ButtonVariant
 import se.kodhast.ui.components.EmptyState
 import se.kodhast.ui.components.EntityDetailScreen
+import se.kodhast.ui.components.Foldout
 import se.kodhast.ui.components.GroupLabel
 import se.kodhast.ui.components.SectionHeader
 import se.kodhast.ui.components.SwitchRow
