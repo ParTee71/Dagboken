@@ -24,7 +24,6 @@ import se.kodhast.dagboken.reminders.ReminderLaunch
 import se.kodhast.dagboken.ui.components.AccountSheet
 import se.kodhast.dagboken.ui.components.ComponentGallery
 import se.kodhast.dagboken.ui.components.LogChoice
-import se.kodhast.dagboken.ui.components.LogMenuSheet
 import se.kodhast.dagboken.ui.components.SettingsPage
 import se.kodhast.dagboken.ui.components.UserAvatar
 import se.kodhast.dagboken.ui.diary.DiaryRoute
@@ -53,13 +52,13 @@ import se.kodhast.dagboken.ui.sync.SyncViewModel
 import se.kodhast.dagboken.ui.today.TodayRoute
 import se.kodhast.dagboken.ui.trends.TrendsRoute
 
-/** Arken som ligger över flikarna: inställningsarket bakom avataren (NAV-9) och loggmenyn bakom plusknappen (NAV-10). */
-enum class RootSheet { Account, Log }
+/** Arket som ligger över flikarna: inställningsarket bakom avataren (NAV-9). Loggmenyn är plusknappens FAB-meny i bottenraden (NAV-10). */
+enum class RootSheet { Account }
 
 /**
  * Appens innehåll efter inloggning: fyra flikar med egna back stackar (NAV-8, NAV-11), synkläget
- * (NFR-22), inställningsarket bakom avataren i flikarnas sidhuvud (NAV-9, NAV-12, med anslutningspluppen) och loggmenyn
- * bakom plusknappen. [account] är den inloggade (namn, e-post och foto i avataren och arket, AUTH-3); [onSignOut] loggar ut. [launch]
+ * (NFR-22), inställningsarket bakom avataren i flikarnas sidhuvud (NAV-9, NAV-12, med anslutningspluppen) och
+ * plusknappens loggmeny (NAV-10). [account] är den inloggade (namn, e-post och foto i avataren och arket, AUTH-3); [onSignOut] loggar ut. [launch]
  * är vad en tryckt påminnelse ska öppna ([open]); när det är gjort anropas [onLaunchHandled].
  */
 @Composable
@@ -90,7 +89,7 @@ fun AppNavigation(
         onExit = { activity?.finish() },
         sync = sync,
         onSyncEvent = syncViewModel::onEvent,
-        onLog = { sheet = RootSheet.Log },
+        onLog = { choice -> backStack.log(choice, logViewModel.logDay(onToday = backStack.currentTab == TodayKey), logViewModel::onEvent) },
         // NAV-9: systemets tillbaka från en underskärm i inställningsarket öppnar arket igen, som pilen.
         onPopped = { key -> if (key.isSettingsPage) sheet = RootSheet.Account },
         // Samma lambda tills kontot eller anslutningen ändras, så att flikarnas sidhuvud inte ritas om i onödan.
@@ -102,8 +101,7 @@ fun AppNavigation(
         onSignOut = onSignOut,
         onOpenGallery = if (BuildConfig.DEBUG) ({ backStack.push(ComponentGalleryKey) }) else null,
         account = account,
-        onOpen = { page -> backStack.push(page.key) },
-        onLog = { choice -> backStack.log(choice, logViewModel.logDay(onToday = backStack.currentTab == TodayKey), logViewModel::onEvent) }
+        onOpen = { page -> backStack.push(page.key) }
     )
     LogSheets(logViewModel, onOpen = { target -> backStack.push(target.key) })
     val launchHandled by rememberUpdatedState(onLaunchHandled)
@@ -173,8 +171,7 @@ val AppKey.isSettingsPage: Boolean
     get() = SettingsPage.entries.any { it.key == this }
 
 /**
- * Det ark som är öppet; varje val stänger arket först. [onOpen] öppnar en underskärm på den aktuella fliken och
- * [onLog] tar emot ett val i plusknappens meny (NAV-10).
+ * Det ark som är öppet; varje val stänger arket först. [onOpen] öppnar en underskärm på den aktuella fliken.
  */
 @Composable
 fun RootSheets(
@@ -183,8 +180,7 @@ fun RootSheets(
     onSignOut: () -> Unit,
     onOpenGallery: (() -> Unit)?,
     account: AuthUser? = null,
-    onOpen: (SettingsPage) -> Unit = {},
-    onLog: (LogChoice) -> Unit = {}
+    onOpen: (SettingsPage) -> Unit = {}
 ) {
     /** Arket stängs först, sedan görs valet. */
     fun dismissThen(action: () -> Unit): () -> Unit = {
@@ -203,11 +199,6 @@ fun RootSheets(
             onOpenGallery = onOpenGallery?.let(::dismissThen),
             account = account,
             onOpen = dismissThen(onOpen)
-        )
-
-        RootSheet.Log -> LogMenuSheet(
-            onDismiss = onDismiss,
-            onPick = dismissThen(onLog)
         )
 
         null -> Unit

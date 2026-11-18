@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.res.stringResource
 import se.kodhast.dagboken.R
+import se.kodhast.ui.components.ActionMenuStyle
 import se.kodhast.ui.components.AppBrandStyle
 import se.kodhast.ui.components.AppIdentity
 import se.kodhast.ui.components.LocalAppBrandStyle
@@ -17,6 +18,7 @@ import se.kodhast.ui.components.LocalEditScreenMargin
 import se.kodhast.ui.components.LocalItemRowTextGap
 import se.kodhast.ui.components.LocalQuantityStepperButtonSize
 import se.kodhast.ui.components.QuantityStepperDefaults
+import se.kodhast.ui.components.ToolbarStyle
 import se.kodhast.ui.theme.AppTheme
 import se.kodhast.ui.theme.Spacing
 
@@ -62,5 +64,12 @@ fun DagbokenTheme(
     }
 }
 
-/** Kodhäst-delarna (DSN-8, NAV-12), alla påslagna. */
-private val BrandStyle = AppBrandStyle(sectionDots = true, dotLoading = true, emptyStateMark = true, headerDots = true)
+/** Kodhäst-delarna (DSN-8, NAV-12), alla påslagna; flikraden i appens ljusa teal och plusknappens val som FAB-meny (NAV-8, NAV-10). */
+private val BrandStyle = AppBrandStyle(
+    sectionDots = true,
+    dotLoading = true,
+    emptyStateMark = true,
+    headerDots = true,
+    toolbarStyle = ToolbarStyle.Tonal,
+    actionMenu = ActionMenuStyle.Fab
+)

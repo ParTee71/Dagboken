@@ -736,7 +736,6 @@
 
     <!-- Plusknappens loggmeny (NAV-10) -->
     <string name="log_menu_open">Logga</string>
-    <string name="log_menu_title">Logga</string>
     <string name="log_mood">Mående</string>
     <string name="log_activity">Aktivitet</string>
     <!-- "Dos" – en gång: loggmenyn och vid behov-formuläret -->

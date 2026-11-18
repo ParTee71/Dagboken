@@ -25,9 +25,11 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.ui.common.AppErrors
+import se.kodhast.dagboken.ui.components.LogChoice
 import se.kodhast.dagboken.ui.sync.SyncEvent
 import se.kodhast.dagboken.ui.sync.SyncUiState
 import se.kodhast.ui.components.AppFloatingToolbar
+import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.AppSnackbarHost
 import se.kodhast.ui.components.ErrorSnackbar
 import se.kodhast.ui.components.FloatingToolbarClearance
@@ -42,7 +44,7 @@ import se.kodhast.ui.theme.Spacing
 /**
  * Navigationsramen: `NavDisplay` med [Transitions] och bottenraden – de fyra flikarna och
  * plusknappen (NAV-8, NAV-10) – som bara syns i en fliks rot (NAV-3). Skärmarna kommer från
- * [entryProvider] (`appEntries` i appen). [onLog] är plusknappen; utan den visas ingen.
+ * [entryProvider] (`appEntries` i appen). [onLog] får plusknappens val (loggmenyn, NAV-10); utan den visas ingen plusknapp.
  * [sync] ger synkläget – prickarna i flikarnas sidhuvud hoppar medan ändringar väntar – och meddelandet om en nekad
  * skrivning (NFR-22), i appens gemensamma meddelandeyta ovanför bottenraden. [account] är kontot längst till höger i
  * flikarnas sidhuvud (NAV-9, NAV-12). [onPopped] får skärmen som systemets tillbaka stängde.
@@ -55,13 +57,13 @@ fun AppNavHost(
     onExit: () -> Unit = {},
     sync: SyncUiState = SyncUiState(),
     onSyncEvent: (SyncEvent) -> Unit = {},
-    onLog: (() -> Unit)? = null,
+    onLog: ((LogChoice) -> Unit)? = null,
     onPopped: (AppKey) -> Unit = {},
     account: @Composable () -> Unit = {}
 ) {
     val toolbar = toolbarItems()
     val logLabel = stringResource(R.string.log_menu_open)
-    val action = onLog?.let { ToolbarAction(logLabel, R.drawable.ic_add, it) }
+    val action = onLog?.let { ToolbarAction(logLabel, R.drawable.ic_add, logMenu(it)) }
     val clearance = if (backStack.atTopLevel) FloatingToolbarClearance else NoBottomClearance
     val messages = remember { SnackbarHostState() }
     // Ett fel i taget från synkläget; samma nekade skrivning blir samma meddelande tills det visats.
@@ -125,6 +127,10 @@ private class TabRootStateHolder(private val holder: SaveableStateHolder) : Save
 private const val TAB_ROOT = "flikrot:"
 
 private fun NavEntry<AppKey>.asTabRootIf(key: AppKey): NavEntry<AppKey> = if (key is TopLevelKey) NavEntry(key, contentKey = TAB_ROOT + key, metadata = metadata) { Content() } else this
+
+/** Plusknappens loggmeny (NAV-10): exakt fem val i ordning, med ikon, som android-ui:s FAB-meny. [onPick] får valet. */
+@Composable
+private fun logMenu(onPick: (LogChoice) -> Unit): List<AppMenuItem> = LogChoice.entries.map { choice -> AppMenuItem(stringResource(choice.label), { onPick(choice) }, icon = choice.icon) }
 
 @Composable
 private fun toolbarItems(): List<ToolbarItem> = listOf(
