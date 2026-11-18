@@ -182,11 +182,13 @@ class DiaryViewModelTest {
         vm.onEvent(DiaryEvent.JumpTo(saturday))
         runCurrent()
         assertEquals("event:e1", vm.controls.value.jump?.key)
+        assertEquals(null, vm.controls.value.jump?.emptyDay, "dagen har poster")
         assertEquals(7, vm.rows.size, "listan visar fortfarande alla dagar")
 
         vm.onEvent(DiaryEvent.JumpTo(LocalDate(2026, 10, 4)))
         runCurrent()
         assertEquals("event:e1", vm.controls.value.jump?.key, "en dag utan poster går till närmaste äldre dag")
+        assertEquals(LocalDate(2026, 10, 4), vm.controls.value.jump?.emptyDay, "och säger att den valda dagen saknar poster")
 
         vm.onEvent(DiaryEvent.Toggle(DiaryType.ACTIVITY))
         runCurrent()

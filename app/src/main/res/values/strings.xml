@@ -1018,4 +1018,6 @@
         <item quantity="one">%1$d känsla till</item>
         <item quantity="other">%1$d känslor till</item>
     </plurals>
+    <!-- Välj dag (HIST-6): den valda dagen saknar poster, listan går till närmaste äldre. -->
+    <string name="diary_jump_empty_day">Inga poster %1$s</string>
 </resources>

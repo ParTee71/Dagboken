@@ -86,7 +86,8 @@ fun DiaryScreen(
         group
     }
     // En ny begäran per val (också samma dag igen); listan släpper den när den rullat dit.
-    val scrollTo = remember(controls.jump) { controls.jump?.let { ListScrollRequest(it.key) } }
+    val emptyDay = controls.jump?.emptyDay?.let { stringResource(R.string.diary_jump_empty_day, DateFormat.weekdayDayAndMonth(it, withYear = it.year != controls.today.year)) }
+    val scrollTo = remember(controls.jump) { controls.jump?.let { ListScrollRequest(it.key, emptyDay) } }
     EntityListScreen(
         title = stringResource(R.string.tab_diary),
         state = state,

@@ -208,7 +208,7 @@ class DiaryScreenTest {
     }
 
     @Test
-    fun `Välj dag rullar listan så att dagens rubrik syns, och listan släpper begäran (HIST-6)`() {
+    fun `Välj dag rullar listan så att dagens rubrik syns, säger när den valda dagen saknar poster, och listan släpper begäran (HIST-6)`() {
         val many = (1..20).flatMap { n ->
             val day = LocalDate(2026, 9, 31 - n)
             listOf(row(DiaryEntry.Action(Activity("a$n", day, LocalTime(12, 0), optionId = "promenad"), day)))
@@ -224,9 +224,10 @@ class DiaryScreenTest {
             }
         }
         rule.onNodeWithText("Tisdag 15 september").assertDoesNotExist()
-        shown = shown.copy(jump = DiaryJump("activity:a16", 1))
+        shown = shown.copy(jump = DiaryJump("activity:a16", 1, emptyDay = LocalDate(2026, 9, 16)))
         rule.waitForIdle()
         rule.onNodeWithText("Tisdag 15 september").assertIsDisplayed()
+        rule.onNodeWithText("Inga poster onsdag 16 september").assertIsDisplayed()
         assertEquals(listOf<DiaryEvent>(DiaryEvent.JumpDone), events)
     }
 

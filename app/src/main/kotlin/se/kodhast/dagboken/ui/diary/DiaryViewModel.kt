@@ -88,8 +88,8 @@ data class DiaryControls(
     val jump: DiaryJump? = null
 )
 
-/** HIST-6: rulla listan till raden [key]; [serial] skiljer två val av samma dag åt. */
-data class DiaryJump(val key: String, val serial: Int)
+/** HIST-6: rulla listan till raden [key]; [serial] skiljer två val av samma dag åt; [emptyDay] är den valda dagen när den saknar poster. */
+data class DiaryJump(val key: String, val serial: Int, val emptyDay: LocalDate? = null)
 
 sealed interface DiaryEvent {
     /** Chippet "Alla" (HIST-2). */
@@ -240,7 +240,7 @@ class DiaryViewModel @Inject constructor(
         val loaded = (filtered as? DetailUiState.Content)?.value
         // Rullningen väntar tills dagens år är inläst; sedan dagens första post, eller närmaste äldre dag.
         val jump = shown.jumpTo?.let { (date, serial) ->
-            loaded?.takeIf { it.window.years >= shown.years }?.let { jumpTarget(it.entries, date) }?.let { DiaryJump(it.id, serial) }
+            loaded?.takeIf { it.window.years >= shown.years }?.let { jumpTarget(it.entries, date) }?.let { DiaryJump(it.id, serial, date.takeIf { day -> day != it.date }) }
         }
         DiaryControls(
             today = today,
