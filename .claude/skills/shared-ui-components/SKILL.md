@@ -119,7 +119,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Komponentöversikt | `ComponentGallery` | Debug-skärm med alla komponenter och ramar i alla tillstånd |
 
 Gemensamt för ramarna: felmeddelanden via `UiError` (mappat en gång av `AppErrors` i `ui/common/AppErrors.kt`, texten ur `DataError.toMessage()`), skärmbyten via
-`navigation/Transitions`, återkommande texter ("Spara", "Släng ändringar?", "Ångra",
+`AppTransitions` *(android-ui)*, återkommande texter ("Spara", "Släng ändringar?", "Ångra",
 "Försök igen") en gång i `strings.xml`.
 
 ## Planerade komponenter (etapp 4)
@@ -177,7 +177,7 @@ canvasen (ARKITEKTUR.md → Komponentkatalog).
 | Visa först efter en fördröjning | `Flow<Boolean>.shownAfter(delay)` från android-ui |
 | Receptens städning per dag | `Flow<LocalDate>.tidyingUpEachDay` i `ui/common/PrescriptionDays.kt` – Mediciner och Idag |
 | Tiden som flöde | `Clock.hours`, `Clock.days` och `Clock.minutes` (Idag: "Snart"/"Försenat", hälsning, midnatt) i `ui/common/ClockFlows.kt`; en ny posts förval "nu i hela minuter" är `Clock.nowInMinutes`, och dagen + klockslaget mot en vald dag `Clock.dayAndTime(zone, date)` (samma fil) |
-| Navigation | `AppKey`, `AppBackStack` (en stack per flik), `AppNavHost`, `Transitions` i `navigation/` |
+| Navigation | `AppKey` och `AppNavHost` (Dagbokens flikar och loggmeny) i `navigation/`; `AppBackStack` = `TabBackStack<AppKey>`, ramen `AppNavHost` och `AppTransitions` *(android-ui, ui-navigation)*; `SyncUiState` *(android-ui, ui-common)* med felet mappat i `SyncViewModel` |
 | Feltyp | `DataError` (`Offline`, `PermissionDenied`, `Cancelled`, `UpdateRequired`, `SignInRejected`, `NotSignedIn`, `NotFound`, `Unknown`) i `data/common/` |
 | Fel till text | `DataError.toMessage()` i `ui/common/` (bara via `AppErrors`) |
 | Lista + data per nyckel ur den | `combineByKey` i `data/common/` |

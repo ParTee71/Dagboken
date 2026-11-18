@@ -97,7 +97,7 @@ man mår dåligt – den ska vara stillsam, tydlig och aldrig stressa.
   `DagbokenTheme(darkTheme = true)` runt skärmen, och systemfältens ikoner är alltid ljusa. Landskapet är
   `SunsetBreathing` (sol som andas i 4-4-takt, långsamma kullar); text ligger på kullarna med ≥ 4,5:1.
   Det är det enda stället där ett helt utseende avviker från temat – nya skärmar följer temat.
-- Skärmbyten: samma rörelse överallt, definierad en gång i `navigation/Transitions`.
+- Skärmbyten: samma rörelse överallt, definierad en gång i android-ui:s `AppTransitions` (ui-navigation).
 - Rörelse förstärker och blockerar **aldrig** – inga väntetider för att se en animation, och
   systemets "ta bort animationer" respekteras.
 

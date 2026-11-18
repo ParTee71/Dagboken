@@ -1,6 +1,5 @@
 package se.kodhast.dagboken.ui.sync
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -9,18 +8,13 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.data.common.SyncStatus
+import se.kodhast.dagboken.ui.common.AppErrors
 import se.kodhast.ui.account.NetworkStatus
+import se.kodhast.ui.common.SyncUiState
 import se.kodhast.ui.common.shownAfter
-
-/**
- * [pending]: ändringar har väntat minst [SyncViewModel.PENDING_DELAY] på servern; [writeError]: en nekad skrivning att visa;
- * [online]: appen har internet (pluppen på avataren, NAV-12).
- */
-@Immutable
-data class SyncUiState(val pending: Boolean = false, val writeError: DataError? = null, val online: Boolean = false)
 
 sealed interface SyncEvent {
     /** Felet har visats och kan släppas. */
@@ -34,8 +28,12 @@ sealed interface SyncEvent {
 @HiltViewModel
 class SyncViewModel @Inject constructor(private val status: SyncStatus, network: NetworkStatus) : ViewModel() {
 
+    // Felet mappas en gång per nytt fel, inte i combine: samma nekade skrivning är då samma UiError medan prickarna och
+    // anslutningen ändras, så att meddelandet inte visas igen (UiError jämförs på identitet).
+    private val writeError = status.lastWriteError.map { it?.let(AppErrors::map) }
+
     // Anslutningen är känd direkt: startläget har den, så att pluppen inte blinkar till "Utan anslutning".
-    val state: StateFlow<SyncUiState> = combine(status.syncing.shownAfter(PENDING_DELAY), status.lastWriteError, network.online, ::SyncUiState)
+    val state: StateFlow<SyncUiState> = combine(status.syncing.shownAfter(PENDING_DELAY), writeError, network.online, ::SyncUiState)
         .stateIn(viewModelScope, SharingStarted.Eagerly, SyncUiState(online = network.online.value))
 
     fun onEvent(event: SyncEvent) {

@@ -98,7 +98,7 @@ class AppNavigationTest {
         backStack.push(EpisodeNewKey(LocalDate(2026, 10, 5)))
         backStack.push(EpisodeKey("flu"))
         backStack.push(EpisodeEditKey("flu"))
-        assertEquals(backStack.entries, AppBackStack.restore(backStack.save()).entries)
+        assertEquals(backStack.entries, restoreAppBackStack(backStack.save()).entries)
     }
 
     @Test

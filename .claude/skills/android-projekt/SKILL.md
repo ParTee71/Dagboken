@@ -19,7 +19,7 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 - `:core` (ren Kotlin/JVM: modeller, codecs, motorer, diagrammatematik, importens läsare) + `:app`. Utseende och gemensamt beteende bara i `ui/theme`, `ui/components`, `ui/diagram`, `ui/common`; Firestore bara i `data/firestore`; Health Connect bara i `data/health` (TP-10, read-only, persisteras aldrig – HLS-5).
 - Fel mappas en gång till `DataError` med `suspendRunCatching` (`data/common/`): `FirestoreCollection` för data, `AuthRepository` för inloggning. Repositories skickar `Result<T>` vidare; skärmar visar felet med `DataError.toMessage()`; `DataError.Cancelled` är tyst.
 - Ramarna (regel 4): listskärmar `EntityListScreen` + `asListUiState()`, redigering `EntityEditScreen` + `EditorState<T>` – aldrig egna varianter.
-- Navigation 3 (TP-2), en Activity (`MainActivity`), back stacken är vanligt state i `navigation/`, övergångar en gång i `navigation/Transitions`.
+- Navigation 3 (TP-2), en Activity (`MainActivity`), back stacken är vanligt state i `navigation/`, övergångar en gång i android-ui:s `AppTransitions` (ui-navigation).
 - Bakgrund: WorkManager (Hilt-worker) bara där något måste köras utan öppen app (TP-7) – i dag inget beroende (4.8.0); ingen backup-worker – Firestore synkar själv, veckobackupen körs i GitHub Actions (`tools/db`, BCK-12) och JSON-export finns i appen (BCK-13). 3.x Drive-backup är pensionerad; Drive läses bara av legacy-importen (BCK-14). Påminnelser via AlarmManager (TP-8, skill `notifications-alarms`).
 - Nav-argument tas redan med assisted injection (`@HiltViewModel(assistedFactory = …)`), som pluginen säger.
 - Bara `di/` nämner `Dispatchers.`; scopet `[dispatchers]` i `ui-forbidden.txt` kontrolleras av `UiConsistencyTest` och hooken. Enhetstester ger `UnconfinedTestDispatcher()` eller `StandardTestDispatcher(testScheduler)`; androidTest får använda `Dispatchers.IO` direkt.
@@ -58,9 +58,9 @@ byggkonfiguration och etapper står bara i [ARKITEKTUR.md](../../../ARKITEKTUR.m
 
 ## Navigation 3 (android:navigation-3)
 
-Googles referens är generell. Här gäller vår `AppBackStack` (`navigation/AppBackStack.kt`) med en
+Googles referens är generell. Här gäller vår `AppBackStack` (`navigation/AppBackStack.kt`, android-ui:s `TabBackStack` med Dagbokens flikar) med en
 stack per flik (Idag · Dagbok · Trender · Mediciner, NAV-8), nycklarna i `navigation/AppKeys.kt`,
-övergångarna i `navigation/Transitions` och Hilt via `hiltViewModel`. Inställningsarket öppnas
+övergångarna i android-ui:s `AppTransitions` och Hilt via `hiltViewModel`. Inställningsarket öppnas
 från avataren i flikarnas sidhuvud (NAV-9, NAV-12): navigationen sätter den en gång i `LocalTopBarAccount` (`AppNavigation` → `AppNavHost`), och synkläget i `LocalTopBarSyncing`. Efter inloggningen visas flikarna direkt (ingen migreringsgrind sedan 4.8.0).
 
 ## Tillgänglighet (android:accessibility-compose)
