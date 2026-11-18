@@ -38,6 +38,7 @@ import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.AppShapes
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.FeelingColors
+import se.kodhast.ui.components.TOUCH_TARGET
 import se.kodhast.ui.theme.Spacing
 
 /**

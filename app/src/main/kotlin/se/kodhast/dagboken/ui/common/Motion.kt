@@ -1,6 +1,5 @@
 package se.kodhast.dagboken.ui.common
 
-import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -11,18 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
-
-/**
- * Om systemets "Ta bort animationer" är på (animationsskalan 0, skill ui-style → Rörelse): då visas rörelse som text
- * eller stillbild i stället för animation (`SunsetBreathing`). Läses när komponenten visas.
- */
-@Composable
-fun rememberReducedMotion(): Boolean {
-    val context = LocalContext.current
-    return remember(context) { Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f }
-}
+import se.kodhast.ui.components.rememberReducedMotion
 
 /** En halv andning – in eller ut – i millisekunder (4-4-takt). */
 const val BREATH_MILLIS = 4_000

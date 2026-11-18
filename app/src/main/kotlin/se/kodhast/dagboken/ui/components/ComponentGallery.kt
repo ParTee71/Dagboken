@@ -69,7 +69,7 @@ import se.kodhast.ui.common.DetailUiState
 import se.kodhast.ui.common.EditorEvents
 import se.kodhast.ui.common.EditorUiState
 import se.kodhast.ui.components.ArchiveEvent
-import se.kodhast.dagboken.ui.common.DateFormat
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.durationText
 import se.kodhast.dagboken.ui.common.formatDuration
 import se.kodhast.dagboken.ui.common.FeelingSentenceKind

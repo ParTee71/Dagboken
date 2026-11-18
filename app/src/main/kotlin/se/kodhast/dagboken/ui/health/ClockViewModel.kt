@@ -39,7 +39,7 @@ import se.kodhast.dagboken.data.health.HealthRepository
 import se.kodhast.dagboken.data.health.HealthStatus
 import se.kodhast.dagboken.data.health.observedStatus
 import se.kodhast.dagboken.data.repository.SettingsRepository
-import se.kodhast.dagboken.ui.common.screenSharing
+import se.kodhast.ui.common.screenSharing
 
 /**
  * Klocka-gruppens topp (TRD-20, HLS-4, HLS-6, HLS-8, HLS-10, HLS-11, HLS-14): klockans läge [status] – den enda källan

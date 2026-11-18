@@ -42,7 +42,6 @@ import se.kodhast.dagboken.core.model.Dose
 import se.kodhast.dagboken.core.model.DoseStatus
 import se.kodhast.dagboken.core.model.Prescription
 import se.kodhast.dagboken.data.common.DataError
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.FeelingSentenceKind
 import se.kodhast.dagboken.ui.common.deleteAction
 import se.kodhast.dagboken.ui.common.doseText
@@ -74,6 +73,7 @@ import se.kodhast.dagboken.ui.theme.Neutral
 import se.kodhast.dagboken.ui.theme.Positive
 import se.kodhast.dagboken.ui.theme.Sun
 import se.kodhast.dagboken.ui.theme.Warning
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.DetailUiState
 import se.kodhast.ui.common.UiError
 import se.kodhast.ui.components.AppButton

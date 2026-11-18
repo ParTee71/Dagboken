@@ -38,6 +38,7 @@ import se.kodhast.dagboken.testing.captureLightAndDark
 import se.kodhast.dagboken.testing.clickWithoutRipple
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 import se.kodhast.ui.components.AppCard
+import se.kodhast.ui.components.TOUCH_TARGET
 import se.kodhast.ui.theme.Spacing
 
 /**

@@ -8,7 +8,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.engine.OccasionState
 import se.kodhast.dagboken.core.engine.latest
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.illnessDayText
 import se.kodhast.dagboken.ui.common.label
 import se.kodhast.dagboken.ui.common.prnLimits
@@ -16,6 +15,7 @@ import se.kodhast.dagboken.ui.common.title
 import se.kodhast.dagboken.ui.components.FeelingExtras
 import se.kodhast.dagboken.ui.components.OccasionRow
 import se.kodhast.dagboken.ui.components.OccasionValue
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.components.AppBottomSheet
 import se.kodhast.ui.components.AppDivider
 import se.kodhast.ui.components.ItemRow

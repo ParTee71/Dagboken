@@ -44,7 +44,7 @@ import se.kodhast.dagboken.data.repository.SettingsRepository
 import se.kodhast.dagboken.ui.common.EditorSheetState
 import se.kodhast.dagboken.ui.common.SelectedDay
 import se.kodhast.dagboken.ui.common.minutes
-import se.kodhast.dagboken.ui.common.screenSharing
+import se.kodhast.ui.common.screenSharing
 
 /**
  * Plusknappens tillfällesväljare (HEM-8b, NAV-10): [date] är dagen som loggas, [isToday] om det är idag, och

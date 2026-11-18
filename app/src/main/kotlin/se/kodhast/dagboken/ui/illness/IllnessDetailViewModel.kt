@@ -34,13 +34,13 @@ import se.kodhast.dagboken.data.common.withFallback
 import se.kodhast.dagboken.data.repository.IllnessRepository
 import se.kodhast.dagboken.data.repository.OptionsRepository
 import se.kodhast.dagboken.ui.common.AppErrors
-import se.kodhast.dagboken.ui.common.WriteFailures
 import se.kodhast.dagboken.ui.common.days
 import se.kodhast.dagboken.ui.common.names
-import se.kodhast.dagboken.ui.common.screenSharing
 import se.kodhast.ui.common.DetailLoader
 import se.kodhast.ui.common.DetailUiState
 import se.kodhast.ui.common.UiError
+import se.kodhast.ui.common.WriteFailures
+import se.kodhast.ui.common.screenSharing
 
 /**
  * Det sjukdomsdetaljen visar: episoden med sina incheckningar, senaste först ([summary], räknad i `:core`), dagen
@@ -138,7 +138,7 @@ class IllnessDetailViewModel @AssistedInject constructor(
     private val _prompt = MutableStateFlow<IllnessPrompt?>(null)
     val prompt: StateFlow<IllnessPrompt?> = _prompt.asStateFlow()
 
-    private val failures = WriteFailures(viewModelScope)
+    private val failures = WriteFailures(viewModelScope, AppErrors)
     val failure: StateFlow<UiError?> = failures.failure
 
     private val _closed = MutableStateFlow(false)

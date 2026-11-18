@@ -33,10 +33,11 @@ import kotlinx.datetime.plus
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.time.weekDays
 import se.kodhast.dagboken.core.time.weekMonday
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.theme.AppShapes
 import se.kodhast.dagboken.ui.theme.AppTypography
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.components.AppIconButton
+import se.kodhast.ui.components.TOUCH_TARGET
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.theme.Spacing
 

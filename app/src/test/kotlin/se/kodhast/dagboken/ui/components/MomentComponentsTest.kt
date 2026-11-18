@@ -51,9 +51,9 @@ import se.kodhast.dagboken.ui.common.BreathPhase
 import se.kodhast.dagboken.ui.common.HILL_DRIFT_MILLIS
 import se.kodhast.dagboken.ui.common.formatDuration
 import se.kodhast.dagboken.ui.common.rememberBreathPhase
-import se.kodhast.dagboken.ui.common.rememberReducedMotion
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 import se.kodhast.ui.components.AppCard
+import se.kodhast.ui.components.rememberReducedMotion
 import se.kodhast.ui.theme.Spacing
 
 /**

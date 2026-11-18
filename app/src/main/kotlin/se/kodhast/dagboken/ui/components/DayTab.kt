@@ -17,8 +17,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import kotlinx.datetime.LocalDate
-import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.theme.AppTypography
+import se.kodhast.ui.common.DateFormat
+import se.kodhast.ui.components.TOUCH_TARGET
 import se.kodhast.ui.theme.Spacing
 
 /**

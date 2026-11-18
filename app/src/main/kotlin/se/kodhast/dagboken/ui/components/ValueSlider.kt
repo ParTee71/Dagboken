@@ -43,6 +43,7 @@ import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.TRACK_HEIGHT
 import se.kodhast.ui.components.GroupLabel
 import se.kodhast.ui.components.InfoPill
+import se.kodhast.ui.components.TOUCH_TARGET
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.theme.Spacing
 

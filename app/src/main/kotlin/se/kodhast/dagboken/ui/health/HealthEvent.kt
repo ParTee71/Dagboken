@@ -17,7 +17,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import se.kodhast.dagboken.data.health.HealthPermissions
 import se.kodhast.dagboken.ui.common.minutes
-import se.kodhast.dagboken.ui.common.screenSharing
+import se.kodhast.ui.common.screenSharing
 
 /** Det skärmarna med klockdata kan be om (HLS-3, HLS-4, HLS-14) – porten [HealthPermissions] gör resten. */
 sealed interface HealthEvent {

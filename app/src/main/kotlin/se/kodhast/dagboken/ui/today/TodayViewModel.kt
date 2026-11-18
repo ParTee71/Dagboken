@@ -98,17 +98,17 @@ import se.kodhast.dagboken.data.repository.SettingsRepository
 import se.kodhast.dagboken.data.repository.currentReminders
 import se.kodhast.dagboken.ui.common.AppErrors
 import se.kodhast.dagboken.ui.common.SelectedDay
-import se.kodhast.dagboken.ui.common.WriteFailures
 import se.kodhast.dagboken.ui.common.attemptingEach
 import se.kodhast.dagboken.ui.common.dataError
 import se.kodhast.dagboken.ui.common.minutes
-import se.kodhast.dagboken.ui.common.screenSharing
 import se.kodhast.dagboken.ui.common.tidyingUpEachDay
 import se.kodhast.dagboken.ui.common.title
 import se.kodhast.dagboken.ui.log.CooldownPrompt
 import se.kodhast.ui.common.DetailLoader
 import se.kodhast.ui.common.DetailUiState
 import se.kodhast.ui.common.UiError
+import se.kodhast.ui.common.WriteFailures
+import se.kodhast.ui.common.screenSharing
 import se.kodhast.ui.components.UndoRequest
 
 sealed interface TodayEvent {
@@ -275,7 +275,7 @@ class TodayViewModel @Inject constructor(
     }
 
     /** Före flödena nedan, som skriver hit från bakgrundsförsöken (städningen och `ensureDay`). */
-    private val failures = WriteFailures(viewModelScope)
+    private val failures = WriteFailures(viewModelScope, AppErrors)
     val failure: StateFlow<UiError?> = failures.failure
 
     /**

@@ -12,6 +12,7 @@ import se.kodhast.dagboken.core.model.Prescription
 import se.kodhast.dagboken.core.model.PrnMedicine
 import se.kodhast.dagboken.core.model.Repeat
 import se.kodhast.dagboken.core.model.Schedule
+import se.kodhast.ui.common.DateFormat
 
 // Medicinernas texter i UI:t – enda stället (regel 4), för Mediciner nu och Idag och påminnelserna sen.
 

@@ -29,7 +29,7 @@ import se.kodhast.dagboken.data.health.HealthRepository
 import se.kodhast.dagboken.data.health.HealthStatus
 import se.kodhast.dagboken.data.health.observedStatus
 import se.kodhast.dagboken.ui.common.SelectedDay
-import se.kodhast.dagboken.ui.common.screenSharing
+import se.kodhast.ui.common.screenSharing
 
 /**
  * Klockan på Idag (HEM-15, HEM-17, HLS-7) i klockans läge [status]. [day] är den valda dagens mått (`null` medan

@@ -24,6 +24,7 @@ import se.kodhast.dagboken.ui.theme.AppShapes
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.IconSize
 import se.kodhast.dagboken.ui.theme.Neutral
+import se.kodhast.ui.components.TOUCH_TARGET
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
 
