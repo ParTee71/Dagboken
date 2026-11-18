@@ -24,7 +24,8 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 > (`se.kodhast.ui.components`, version i `gradle/libs.versions.toml`); appen har ingen egen kopia, och
 > Dagbokens utseende kommer från temat (`DagbokenTheme` → `AppTheme`) och bibliotekets parametrar.
 > `UiConsistencyTest` kräver att en märkt komponent finns i biblioteket och inte i `ui/components`, och
-> att den har skärmdump och plats i `ComponentGallery` som appens egna. En skillnad som saknar parameter
+> att den har skärmdump som appens egna; i galleriet står den i bibliotekets sektioner (android-ui:s
+> `UiConsistencyTest` håller dem fullständiga), och Dagbokens `UiConsistencyTest` kräver plats bara för appens egna. En skillnad som saknar parameter
 > löses i biblioteket – aldrig med en lokal kopia.
 
 ## Utseende: elementtyp → enda tillåtna komponent
@@ -36,7 +37,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Split-knapp "Lägg till ▾" | `AddSplitButton` *(android-ui)* | Expressive split-knapp |
 | Sektionskort / grupperad yta | `AppCard` *(android-ui)* | `AppShapes.card` (22 dp), vit yta utan kantlinje, `Spacing`; `tone` färgar ytan (t.ex. grönt i belöningsläget) |
 | Listrad | `ItemRow` *(android-ui)* | bas för alla listor; titel (högst två rader – långtryck på en avkapad titel visar hela i en bubbla) och undertext (hel) med `ItemRowText`, samma som postkortet; `navigates` ger pil, `done` avbockad stil, `accent` statusfärg (NFR-16, kanten ritas bakom radens innehåll), `inactive` nedtonad, `below` en rad under (`belowAlignsWithTitle` i linje med titeln efter en `LeadingSlot`), `titleHighlight` färgmarkerar en del av titeln, `icon` en dekorativ ikon först i `LeadingSlot` (val i ark och kort: plusknappens meny, inställningsarket, importens val) |
-| Pausbar rad (recept, vid behov-medicin) | `PausableRow` *(android-ui)* | `ItemRow` + typ som `InfoPill` (`pillTone = Tone.Neutral` i Dagboken); pausad nedtonad med "Pausat" |
+| Pausbar rad (recept, vid behov-medicin) | `PausableRow` *(android-ui)* | `ItemRow` + typ som `InfoPill` (`pillTone = Tone.Neutral` om Dagboken använder den; i dag bara i bibliotekets galleri); pausad nedtonad med "Pausat" |
 | Kryssrad | `CheckRow` *(android-ui)* | `ItemRow` + formmorfande kryss (klippt efter pill-formen); hela raden växlar (NFR-17); med `onClick` är krysset en egen knapp och raden öppnar detaljer; `note` ger anteckningsikonen (MED-12), `menu` radens övriga åtgärder på långtryck och `⋮` sist (t.ex. "Hoppa över", MED-3), `below` en rad under texten i linje med titeln (dosens "Försenat"/"Snart"), `enabled = false` visar tillståndet utan växling (en loggad vid behov-dos) |
 | Favoritmarkering | `FavoriteStar` *(android-ui)* | `AppIconButton` med ifylld/tom stjärna; TalkBack säger vad tryck gör ("Markera X som favorit"); radens enda inline-direktkontroll (NFR-17) – Listor och vid behov-medicinerna. Ett favorit-API i FavoriteStar.kt med de två raderna nedan |
 | Favoritrad i en meny | `favoriteMenuItem` *(android-ui)* | `AppMenuItem` med samma text och stjärna som `FavoriteStar` ("Markera/Ta bort X som favorit", tom/ifylld stjärna) – långtrycksmenyn på Idag (HEM-11, FAV-12) och receptkortets åtgärder i Mediciner |
@@ -120,7 +121,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Ångra | `UndoSnackbar` *(android-ui)* | Enda ångra-mekanismen; `onRequestDismissed` säger vilket ångra som gick ut, så att ett nyare inte släpps |
 | Permanent radering | `ConfirmDialog` *(android-ui)* | `destructive = true`; alltid bekräftelse – även efter svep på ett postkort, som fjädrar tillbaka tills dialogen svarat (NFR-15); en `DeleteAction` visas med det interna `DeleteConfirmDialog` (postkortet, `EntityEditScreen`, Idags doserad) |
 | Inloggning och appens rot | `AuthGateHost`, `SignInScreen`, `UpdateRequiredScreen` *(android-ui)* | Läget är `AuthGate` *(android-ui, ui-common)* ur `AuthViewModel`; `AppRootContent` ger skärmarna Dagbokens bok-ikon, texter och release-länk (AUTH-1, AUTH-4, AUTH-6, BCK-15); laddning → `AppLoading`, bakgrunden sätts en gång; galleriet visar ramen i laddningsläget (skärmarna är helskärmar och har egna skärmdumpar) |
-| Komponentöversikt | `ComponentGallery` | Debug-skärm med alla komponenter och ramar i alla tillstånd |
+| Komponentöversikt | `ComponentGallery` | Debug-skärm: android-ui:s `ComponentGallery` (`ui-navigation`) med bibliotekets sektioner i Dagbokens tema och sedan Dagbokens egna (`appSections`: poster, Idag, diagram, inställningsarket) |
 
 Gemensamt för ramarna: felmeddelanden via `UiError` (mappat en gång av `AppErrors` i `ui/common/AppErrors.kt`, texten ur `DataError.toMessage()`), skärmbyten via
 `AppTransitions` *(android-ui)*, återkommande texter ("Spara", "Släng ändringar?", "Ångra",
