@@ -23,9 +23,9 @@ import se.kodhast.dagboken.data.common.DataStoreDayMarks
 import se.kodhast.dagboken.data.common.DayMarks
 import se.kodhast.dagboken.data.common.UserFile
 import se.kodhast.dagboken.data.common.UserScope
-import se.kodhast.dagboken.data.network.ConnectivityMonitor
-import se.kodhast.dagboken.data.network.NetworkStatus
 import se.kodhast.dagboken.data.user.UserSession
+import se.kodhast.ui.account.ConnectivityMonitor
+import se.kodhast.ui.account.NetworkStatus
 
 /** Scope som lever lika länge som appen – för delade StateFlows. */
 @Qualifier
@@ -43,10 +43,6 @@ abstract class AppModule {
     @Binds
     abstract fun dayMarks(marks: DataStoreDayMarks): DayMarks
 
-    /** Om appen har internet (NAV-12, AUTH-3). */
-    @Binds
-    abstract fun networkStatus(monitor: ConnectivityMonitor): NetworkStatus
-
     /** Filen från dokumentväljaren – exporten (BCK-13) och importen (BCK-6). */
     @Binds
     abstract fun userFile(file: ContentResolverUserFile): UserFile
@@ -56,6 +52,11 @@ abstract class AppModule {
         @Singleton
         @ApplicationScope
         fun applicationScope(@DefaultDispatcher computation: CoroutineDispatcher): CoroutineScope = CoroutineScope(SupervisorJob() + computation)
+
+        /** Om appen har internet (NAV-12, AUTH-3) – android-ui:s `ConnectivityMonitor`, en per app. */
+        @Provides
+        @Singleton
+        fun networkStatus(@ApplicationContext context: Context, @ApplicationScope scope: CoroutineScope): NetworkStatus = ConnectivityMonitor(context, scope)
 
         @Provides
         fun clock(): Clock = Clock.System

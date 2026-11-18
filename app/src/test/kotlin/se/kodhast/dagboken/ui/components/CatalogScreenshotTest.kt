@@ -57,6 +57,7 @@ import se.kodhast.ui.components.DateField
 import se.kodhast.ui.components.DeleteAction
 import se.kodhast.ui.components.ExampleChips
 import se.kodhast.ui.components.FieldError
+import se.kodhast.ui.components.Foldout
 import se.kodhast.ui.components.GroupLabel
 import se.kodhast.ui.components.IconButtonVariant
 import se.kodhast.ui.components.InfoPill
@@ -64,6 +65,7 @@ import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.LabeledGroup
 import se.kodhast.ui.components.PausableRow
 import se.kodhast.ui.components.QuantityStepper
+import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.SectionHeader
 import se.kodhast.ui.components.Suggestion
 import se.kodhast.ui.components.SuggestionField

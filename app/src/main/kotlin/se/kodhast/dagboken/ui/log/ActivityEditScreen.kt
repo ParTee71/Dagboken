@@ -48,7 +48,6 @@ import se.kodhast.dagboken.ui.common.scaleValueText
 import se.kodhast.dagboken.ui.components.DurationRow
 import se.kodhast.dagboken.ui.components.FeelingExtras
 import se.kodhast.dagboken.ui.components.FeelingPicker
-import se.kodhast.dagboken.ui.components.Foldout
 import se.kodhast.dagboken.ui.components.NoteCard
 import se.kodhast.dagboken.ui.components.SymptomLogCard
 import se.kodhast.dagboken.ui.components.TypeChoiceField
@@ -57,6 +56,7 @@ import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppFilterChip
 import se.kodhast.ui.components.AppTextField
 import se.kodhast.ui.components.ChipRow
+import se.kodhast.ui.components.Foldout
 
 /** Fälten i formuläret – codecens namn, så att rules-felen ([rulesValidator]) hamnar på rätt fält. */
 object ActivityField {

@@ -58,7 +58,6 @@ import se.kodhast.dagboken.ui.components.FeelingMiniWheel
 import se.kodhast.dagboken.ui.components.FeelingPills
 import se.kodhast.dagboken.ui.components.NoticeBanner
 import se.kodhast.dagboken.ui.components.ProgressBar
-import se.kodhast.dagboken.ui.components.SectionFoldout
 import se.kodhast.dagboken.ui.components.StatPill
 import se.kodhast.dagboken.ui.health.HealthEvent
 import se.kodhast.dagboken.ui.health.HealthTodayCard
@@ -92,6 +91,7 @@ import se.kodhast.ui.components.GroupLabel
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.MessageSnackbar
+import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.SectionHeader
 import se.kodhast.ui.components.UndoRequest
 import se.kodhast.ui.components.UndoSnackbar

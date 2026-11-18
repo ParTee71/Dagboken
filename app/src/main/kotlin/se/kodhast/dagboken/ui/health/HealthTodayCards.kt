@@ -12,12 +12,12 @@ import se.kodhast.dagboken.core.engine.WatchMetric
 import se.kodhast.dagboken.data.health.HealthStatus
 import se.kodhast.dagboken.ui.common.DateFormat
 import se.kodhast.dagboken.ui.common.label
-import se.kodhast.dagboken.ui.components.SectionFoldout
 import se.kodhast.dagboken.ui.diagram.SparklineChart
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.ui.components.AppButton
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.ButtonVariant
+import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.theme.Spacing
 
 /**

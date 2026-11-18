@@ -6,6 +6,7 @@ import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.data.common.HistoryCoverage
 import se.kodhast.dagboken.data.common.LocalCacheCleaner
 import se.kodhast.dagboken.data.common.suspendRunCatching
+import se.kodhast.ui.account.ProfilePhotoCache
 
 /**
  * Utloggningen (AUTH-2, AUTH-6): Firebase-sessionen och Credential Managers inloggning

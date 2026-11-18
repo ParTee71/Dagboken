@@ -143,8 +143,6 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.vico.compose) // diagram, bara i ui/diagram (TRD-10 zoom/panorering)
-    implementation(libs.coil.compose) // profilfotot i UserAvatar (AUTH-3)
-    implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.health.connect) // klockdatan, read-only (TP-10, HLS-1), bara i data/health
     implementation(libs.androidx.datastore.preferences) // enhetslokalt tillstånd (TP-4)
 
@@ -159,6 +157,8 @@ dependencies {
     testImplementation(libs.konsist)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    // Profilfotot laddas av android-ui (Coil); TodayComponentsTest byter Coils bildladdare.
+    testImplementation(libs.coil.compose)
     testImplementation(libs.android.ui.testing) // kontraktstesterna för ramarna (ScreenContracts)
 
     constraints {

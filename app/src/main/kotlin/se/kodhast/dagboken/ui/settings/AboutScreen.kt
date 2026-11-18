@@ -29,12 +29,12 @@ import se.kodhast.dagboken.data.medicines.MedicineRepository
 import se.kodhast.dagboken.di.IoDispatcher
 import se.kodhast.dagboken.ui.common.AppErrors
 import se.kodhast.dagboken.ui.common.DateFormat
-import se.kodhast.dagboken.ui.components.Foldout
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.ui.common.DetailLoader
 import se.kodhast.ui.common.DetailUiState
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.EntityDetailScreen
+import se.kodhast.ui.components.Foldout
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.MakerMark
 import se.kodhast.ui.theme.Spacing
