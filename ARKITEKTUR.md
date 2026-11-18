@@ -74,7 +74,7 @@ Plus (alla)    Loggmeny: Mående · Aktivitet · Dos · Händelse · Sjukdom  �
 
 Formulär (aktivitet, mående, dos, recept, vid behov-medicin, händelse, episod, incheckning)
 byggs på `EntityEditScreen` + `EditorState`; listor på `EntityListScreen`. Navigation 3 med
-en backstack per flik (`AppBackStack`), skärmbyten i `navigation/Transitions`.
+en backstack per flik (`AppBackStack` = android-ui:s `TabBackStack`), skärmbyten i android-ui:s `AppTransitions` (ui-navigation).
 
 ---
 

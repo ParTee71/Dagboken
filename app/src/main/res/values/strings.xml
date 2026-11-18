@@ -835,7 +835,6 @@
     <string name="event_actions_hint">T.ex. vila i mörkt rum eller Alvedon 500 mg</string>
 
     <!-- Synk (NFR-22) -->
-    <string name="sync_write_rejected">En ändring kunde inte sparas och har ångrats. %1$s</string>
     <!-- Diagram (TRD-6–18, HEM-7, NFR-14) -->
     <string name="chart_empty_title">För lite data än</string>
     <string name="chart_empty_hint">Logga några dagar till så syns kurvan här.</string>

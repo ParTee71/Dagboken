@@ -66,7 +66,7 @@ class AppBackStackTest {
         stack.push(ComponentGalleryKey)
         stack.select(MedicinesKey)
         stack.push(ComponentGalleryKey)
-        val restored = AppBackStack.restore(stack.save())
+        val restored = restoreAppBackStack(stack.save())
         assertEquals(stack.entries, restored.entries)
         assertEquals(MedicinesKey, restored.currentTab)
         restored.select(TodayKey)

@@ -1,6 +1,5 @@
 package se.kodhast.dagboken.navigation
 
-import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,7 +72,6 @@ fun AppNavigation(
 ) {
     val sync by syncViewModel.state.collectAsStateWithLifecycle()
     val backStack = rememberAppBackStack()
-    val activity = LocalActivity.current
     var sheet by rememberSaveable { mutableStateOf<RootSheet?>(null) }
     val entries = remember(backStack) {
         appEntries(
@@ -86,7 +84,6 @@ fun AppNavigation(
         backStack,
         entries,
         modifier,
-        onExit = { activity?.finish() },
         sync = sync,
         onSyncEvent = syncViewModel::onEvent,
         onLog = { choice -> backStack.log(choice, logViewModel.logDay(onToday = backStack.currentTab == TodayKey), logViewModel::onEvent) },

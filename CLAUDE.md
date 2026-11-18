@@ -72,7 +72,7 @@ finns på ett ställe.**
   först när giltigt och ändrat, "Släng ändringar?" vid bakåt, fel som snackbar) =
   `EntityEditScreen` + `EditorState`; postkort, listrader och ihopfällbara sektionskort enligt
   NFR-15–18; permanent radering = alltid `ConfirmDialog`; felmeddelanden =
-  `DataError.toMessage()`; skärmbyten = `navigation/Transitions`.
+  `DataError.toMessage()`; skärmbyten = `AppTransitions` (android-ui, via `AppNavHost`).
 - **Kod i alla lager:** ingen kopierad logik. Firestore via generisk
   `FirestoreCollection<T>` + `DocCodec<T>`; listtillstånd via `asListUiState()`;
   beräkningar (doser, kylperiod, periodslut, dagens energi, diagrammatematik) och importens läsare

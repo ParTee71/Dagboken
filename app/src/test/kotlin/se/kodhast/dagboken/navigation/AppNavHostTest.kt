@@ -29,12 +29,13 @@ import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.testing.captureScreenLightAndDark
 import se.kodhast.dagboken.testing.clickWithoutRipple
+import se.kodhast.dagboken.ui.common.AppErrors
 import se.kodhast.dagboken.ui.components.LogChoice
 import se.kodhast.dagboken.ui.components.UserAvatar
 import se.kodhast.dagboken.ui.sync.SyncEvent
-import se.kodhast.dagboken.ui.sync.SyncUiState
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 import se.kodhast.ui.common.DetailUiState
+import se.kodhast.ui.common.SyncUiState
 import se.kodhast.ui.components.APP_HEADER_TAG
 import se.kodhast.ui.components.EntityDetailScreen
 
@@ -198,7 +199,7 @@ class AppNavHostTest {
                 AppNavHost(
                     backStack,
                     { key -> NavEntry(key) { Text("Skärm: ${key::class.simpleName}") } },
-                    sync = SyncUiState(writeError = DataError.PermissionDenied),
+                    sync = SyncUiState(writeError = AppErrors.map(DataError.PermissionDenied)),
                     onSyncEvent = { events += it }
                 )
             }
