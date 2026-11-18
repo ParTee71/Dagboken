@@ -35,10 +35,14 @@ import se.kodhast.ui.components.AddAction
 import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.EmptyContent
 import se.kodhast.ui.components.EntityListScreen
+import se.kodhast.ui.components.FavoriteMark
+import se.kodhast.ui.components.FavoriteStar
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ListGroup
 import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.QuantityStepper
+import se.kodhast.ui.components.R as UiR
+import se.kodhast.ui.components.favoriteMenuItem
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.theme.Tone
 
@@ -55,38 +59,6 @@ class MedicineComponentsTest {
     private fun show(content: @Composable () -> Unit) = rule.setContent { DagbokenTheme(content = content) }
 
     private fun SemanticsNodeInteraction.top() = fetchSemanticsNode().boundsInRoot.top
-
-    @Test
-    fun `FavoriteStar säger vad ett tryck gör och växlar`() {
-        var favorite by mutableStateOf(false)
-        show { FavoriteStar("Alvedon", favorite, { favorite = !favorite }) }
-        rule.onNodeWithContentDescription("Markera Alvedon som favorit").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Inte favorit")).performClick()
-        assertTrue(favorite)
-        rule.onNodeWithContentDescription("Ta bort Alvedon som favorit").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Favorit"))
-    }
-
-    @Test
-    fun `favoriteMenuItem har samma text och stjärna som FavoriteStar och växlar`() {
-        var toggled = 0
-        var off: AppMenuItem? = null
-        var on: AppMenuItem? = null
-        show {
-            off = favoriteMenuItem("Alvedon", false) { toggled++ }
-            on = favoriteMenuItem("Alvedon", true) { toggled++ }
-        }
-        assertEquals("Markera Alvedon som favorit", off?.label)
-        assertEquals(R.drawable.ic_star, off?.icon)
-        assertEquals("Ta bort Alvedon som favorit", on?.label)
-        assertEquals(R.drawable.ic_star_filled, on?.icon)
-        off?.onClick?.invoke()
-        assertEquals(1, toggled)
-    }
-
-    @Test
-    fun `FavoriteMark läses som Favorit`() {
-        show { FavoriteMark() }
-        rule.onNodeWithContentDescription("Favorit").assertIsDisplayed()
-    }
 
     @Test
     fun `postkortets stjärna är en egen kontroll med läge, ersätter den lilla markeringen och öppnar inte posten`() {

@@ -61,12 +61,17 @@ import se.kodhast.dagboken.ui.theme.Warning
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.ConfirmDialog
+import se.kodhast.ui.components.DateTimeRow
 import se.kodhast.ui.components.DeleteAction
+import se.kodhast.ui.components.DurationRow
 import se.kodhast.ui.components.Foldout
 import se.kodhast.ui.components.InfoPill
+import se.kodhast.ui.components.NoteCard
 import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.QuantityStepper
+import se.kodhast.ui.components.ReminderTimeRow
 import se.kodhast.ui.components.SectionFoldout
+import se.kodhast.ui.components.StatPill
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
@@ -411,91 +416,10 @@ class DiaryComponentsTest {
     }
 
     @Test
-    fun `anteckningen visar början av texten och skrivs utfälld, och ett tömt fält är ingen anteckning`() {
-        var note by mutableStateOf<String?>("Sov dåligt.")
-        show { NoteCard(note, { note = it }) }
-        rule.onNodeWithText("Sov dåligt.").assertIsDisplayed()
-        rule.onNodeWithText("Anteckning").assert(state("Hopfälld")).performClick()
-        rule.onNodeWithText("Sov dåligt.").performTextReplacement("Sov bra.")
-        assertEquals("Sov bra.", note)
-        rule.onNodeWithText("Sov bra.").performTextReplacement("")
-        assertNull(note, "ett tömt fält ger null, aldrig en tom text")
-        rule.onNodeWithText("Lägg till en anteckning").assertIsDisplayed()
-    }
-
-    @Test
-    fun `mätvärdet läses som en enhet och är en knapp med 48 dp bara med onClick`() {
-        var clicks = 0
-        show {
-            Column {
-                StatPill(se.kodhast.dagboken.R.drawable.ic_activity, "7 842", "Steg")
-                StatPill(se.kodhast.dagboken.R.drawable.ic_sun, "—", "Sömn", onClick = { clicks++ }, onClickLabel = "Begär åtkomst")
-            }
-        }
-        rule.onNodeWithText("Steg").fetchSemanticsNode().let { node ->
-            assertEquals(null, node.config.getOrNull(SemanticsActions.OnClick))
-        }
-        rule.onNodeWithText("Sömn").assert(button).assertHeightIsAtLeast(48.dp).performClick()
-        assertEquals(1, clicks)
-    }
-
-    @Test
-    fun `ett mätvärde med åtgärd skriver den sist och läser den som åtgärd (HLS-14)`() {
-        var clicks = 0
-        show { StatPill(se.kodhast.dagboken.R.drawable.ic_lock, "2 saknas", "Träning · Syremättnad", onClick = { clicks++ }, action = "Ge åtkomst") }
-        rule.onNodeWithText("Ge åtkomst").assertIsDisplayed()
-        val pill = rule.onNodeWithText("2 saknas").assert(button).assertHeightIsAtLeast(48.dp)
-        assertEquals("Ge åtkomst", pill.fetchSemanticsNode().config[SemanticsActions.OnClick].label)
-        pill.performClick()
-        assertEquals(1, clicks)
-    }
-
-    @Test
-    fun `StatPill med åtgärd men utan onClick fäller – som NoticeBanner`() {
-        kotlin.test.assertFailsWith<IllegalArgumentException> {
-            show { StatPill(se.kodhast.dagboken.R.drawable.ic_lock, "2 saknas", "Träning", action = "Ge åtkomst") }
-        }
-    }
-
-    @Test
     fun `NoticeBanner med åtgärd men utan onClick fäller också`() {
         kotlin.test.assertFailsWith<IllegalArgumentException> {
             show { NoticeBanner("Health Connect saknas", se.kodhast.dagboken.R.drawable.ic_watch, onClick = null, action = "Installera", tone = Tone.Warning) }
         }
-    }
-
-    @Test
-    fun `datum och tid på en rad läses som två fält`() {
-        show { DateTimeRow(LocalDate(2026, 10, 4), LocalTime(8, 30), {}, {}) }
-        rule.onNodeWithContentDescription("Datum, sön 4 okt 2026").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Tid, 08:30").assertIsDisplayed()
-    }
-
-    @Test
-    fun `tidsåtgången stegar om fem minuter och snabbvalen sätter värdet`() {
-        var minutes by mutableIntStateOf(45)
-        show { DurationRow(minutes, { minutes = it }) }
-        rule.onNodeWithContentDescription("Öka minuter").performClick()
-        assertEquals(50, minutes)
-        rule.onNodeWithText("1 tim").performClick()
-        assertEquals(60, minutes)
-        rule.onNodeWithText("1 tim 30 min").performClick()
-        assertEquals(90, minutes)
-    }
-
-    @Test
-    fun `påminnelseraden - raden väljer tid och reglaget slår av och på (NOT-18)`() {
-        var on by mutableStateOf(true)
-        var time by mutableStateOf(LocalTime(8, 0))
-        show { ReminderTimeRow("Efter frukost", time, { time = it }, enabled = on, onEnabledChange = { on = it }) }
-        rule.onNodeWithContentDescription("Efter frukost")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
-            .performClick()
-        assertEquals(false, on)
-        rule.onNodeWithText("08:00").performClick()
-        rule.onNodeWithText("OK").performClick()
-        assertEquals(LocalTime(8, 0), time)
-        assertEquals(false, on)
     }
 
     @Test
@@ -565,27 +489,5 @@ class DiaryComponentsTest {
             (0 until map.width).minOf { x -> (0 until map.height).minOf { y -> map[x, y].red } }
         }
         assertTrue(darkest("Simning") > darkest("Pilates") + 0.2f, "inaktiv titel ska vara nedtonad")
-    }
-
-    @Test
-    fun `en nedtonad påminnelse tonar texten men inte reglaget, som går att slå på (NOT-18)`() {
-        var on by mutableStateOf(false)
-        show {
-            Column {
-                ReminderTimeRow("Natt", LocalTime(22, 0), {}, enabled = on, onEnabledChange = { on = it })
-                ReminderTimeRow("Kväll", LocalTime(19, 0), {}, enabled = true, onEnabledChange = {})
-                ReminderTimeRow("Morgon", LocalTime(7, 0), {}, enabled = true, onEnabledChange = {}, inactive = true)
-            }
-        }
-        fun darkest(text: String) = rule.onNodeWithText(text, useUnmergedTree = true).captureToImage().toPixelMap().let { map ->
-            (0 until map.width).minOf { x -> (0 until map.height).minOf { y -> map[x, y].red } }
-        }
-        assertTrue(darkest("Natt") > darkest("Kväll") + 0.2f, "avslagen påminnelse: texten nedtonad")
-        assertTrue(darkest("Morgon") > darkest("Kväll") + 0.2f, "gruppen av: texten nedtonad")
-        // Reglaget har full kontrast: samma bild som ett reglage i en vanlig rad.
-        val switch = { name: String -> rule.onNodeWithContentDescription(name).captureToImage().toPixelMap().let { m -> List(m.width * m.height) { m[it % m.width, it / m.width] } } }
-        assertEquals(switch("Kväll"), switch("Morgon"), "reglaget tonas inte ned")
-        rule.onNodeWithContentDescription("Natt").assertHasClickAction().performClick()
-        assertEquals(true, on)
     }
 }

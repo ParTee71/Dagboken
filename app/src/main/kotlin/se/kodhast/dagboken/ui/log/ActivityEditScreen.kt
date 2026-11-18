@@ -31,6 +31,7 @@ import se.kodhast.dagboken.core.model.OptionKind
 import se.kodhast.dagboken.core.schema.ActivityCodec
 import se.kodhast.dagboken.core.schema.CollectionNames
 import se.kodhast.dagboken.core.schema.DocumentRules
+import se.kodhast.dagboken.core.schema.TextLimits
 import se.kodhast.dagboken.data.repository.ActivityRepository
 import se.kodhast.dagboken.data.repository.OptionsRepository
 import se.kodhast.dagboken.ui.common.EntryDateTimeRow
@@ -45,10 +46,8 @@ import se.kodhast.dagboken.ui.common.nonBlank
 import se.kodhast.dagboken.ui.common.rememberEntryForm
 import se.kodhast.dagboken.ui.common.rulesValidator
 import se.kodhast.dagboken.ui.common.scaleValueText
-import se.kodhast.dagboken.ui.components.DurationRow
 import se.kodhast.dagboken.ui.components.FeelingExtras
 import se.kodhast.dagboken.ui.components.FeelingPicker
-import se.kodhast.dagboken.ui.components.NoteCard
 import se.kodhast.dagboken.ui.components.SymptomLogCard
 import se.kodhast.dagboken.ui.components.TypeChoiceField
 import se.kodhast.dagboken.ui.components.ValueSlider
@@ -56,7 +55,9 @@ import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppFilterChip
 import se.kodhast.ui.components.AppTextField
 import se.kodhast.ui.components.ChipRow
+import se.kodhast.ui.components.DurationRow
 import se.kodhast.ui.components.Foldout
+import se.kodhast.ui.components.NoteCard
 
 /** Fälten i formuläret – codecens namn, så att rules-felen ([rulesValidator]) hamnar på rätt fält. */
 object ActivityField {
@@ -174,7 +175,7 @@ fun ActivityEditScreen(
         FeelingsCard(a) { change -> form.change(transform = change) }
         val symptoms = remember(symptomOptions, form.stored) { symptomChoices(symptomOptions, form.stored?.symptoms.orEmpty()) }
         SymptomLogCard(symptoms, a.symptoms, { scores -> form.change { it.withSymptoms(scores) } }, otherOptionId = OTHER_SYMPTOM_ID, somatic = a.somatic)
-        NoteCard(a.note, { note -> form.change(ActivityField.NOTE) { it.copy(note = note) } }, error = error(ActivityField.NOTE))
+        NoteCard(a.note, { note -> form.change(ActivityField.NOTE) { it.copy(note = note) } }, error = error(ActivityField.NOTE), maxLength = TextLimits.LONG)
     }
 }
 

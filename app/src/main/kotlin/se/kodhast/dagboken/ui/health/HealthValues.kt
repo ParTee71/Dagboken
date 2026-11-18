@@ -14,10 +14,12 @@ import se.kodhast.dagboken.core.engine.WatchUnit
 import se.kodhast.dagboken.core.engine.formatChartValue
 import se.kodhast.dagboken.core.model.DailyHealth
 import se.kodhast.dagboken.core.time.MINUTES_PER_HOUR
-import se.kodhast.dagboken.ui.common.durationText
 import se.kodhast.dagboken.ui.common.label
-import se.kodhast.dagboken.ui.components.StatPill
+import se.kodhast.dagboken.ui.theme.Neutral
+import se.kodhast.ui.common.DateFormat
+import se.kodhast.ui.components.StatPill
 import se.kodhast.ui.theme.Spacing
+import se.kodhast.ui.theme.Tone
 
 /**
  * Ett klockmåtts värde för ett dygn som text (HLS-6, HLS-8): "7 842", "58", "7 tim 12 min", "412 kcal", "5,8 km",
@@ -30,8 +32,8 @@ internal fun metricValue(metric: WatchMetric, day: DailyHealth?): String {
     val value = day?.let(metric::value) ?: return stringResource(R.string.value_missing)
     return when (metric.unit) {
         WatchUnit.STEPS, WatchUnit.BPM -> formatChartValue(value.roundToInt().toFloat())
-        WatchUnit.HOURS -> durationText((value * MINUTES_PER_HOUR).roundToInt())
-        WatchUnit.MINUTES -> durationText(value.roundToInt())
+        WatchUnit.HOURS -> DateFormat.duration((value * MINUTES_PER_HOUR).roundToInt())
+        WatchUnit.MINUTES -> DateFormat.duration(value.roundToInt())
         WatchUnit.KCAL -> withUnit(formatChartValue(value.roundToInt().toFloat()), metric.unit)
         WatchUnit.KM -> withUnit(formatChartValue(value), metric.unit)
         else -> withUnit(value.roundToInt().toString(), metric.unit)
@@ -46,7 +48,7 @@ internal class Metric(@param:DrawableRes val icon: Int, val value: String, val l
 internal fun PillRows(metrics: List<Metric>) {
     metrics.chunked(2).forEach { row ->
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-            row.forEach { StatPill(it.icon, it.value, it.label, Modifier.weight(1f)) }
+            row.forEach { StatPill(it.icon, it.value, it.label, Tone.Neutral, Modifier.weight(1f)) }
         }
     }
 }

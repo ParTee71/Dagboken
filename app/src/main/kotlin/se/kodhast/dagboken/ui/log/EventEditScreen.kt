@@ -38,12 +38,12 @@ import se.kodhast.dagboken.ui.common.entryDeleteAction
 import se.kodhast.dagboken.ui.common.nonBlank
 import se.kodhast.dagboken.ui.common.rememberEntryForm
 import se.kodhast.dagboken.ui.common.rulesValidator
-import se.kodhast.dagboken.ui.components.DurationRow
-import se.kodhast.dagboken.ui.components.NoteCard
 import se.kodhast.dagboken.ui.components.TypeChoiceField
 import se.kodhast.dagboken.ui.components.ValueSlider
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppTextField
+import se.kodhast.ui.components.DurationRow
+import se.kodhast.ui.components.NoteCard
 
 /** Fälten i formuläret – codecens namn, så att rules-felen ([rulesValidator]) hamnar på rätt fält. */
 object EventField {
@@ -159,6 +159,6 @@ fun EventEditScreen(form: EntryForm<Event>, onClose: () -> Unit, eventOptions: L
             singleLine = false,
             maxLength = TextLimits.LONG
         )
-        NoteCard(e.note, { note -> form.change(EventField.NOTE) { it.copy(note = note) } }, error = error(EventField.NOTE))
+        NoteCard(e.note, { note -> form.change(EventField.NOTE) { it.copy(note = note) } }, error = error(EventField.NOTE), maxLength = TextLimits.LONG)
     }
 }

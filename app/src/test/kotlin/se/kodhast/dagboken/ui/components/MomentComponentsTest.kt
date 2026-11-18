@@ -49,9 +49,9 @@ import se.kodhast.dagboken.ui.common.BREATH_MILLIS
 import se.kodhast.dagboken.ui.common.BREATH_SETTLE_MILLIS
 import se.kodhast.dagboken.ui.common.BreathPhase
 import se.kodhast.dagboken.ui.common.HILL_DRIFT_MILLIS
-import se.kodhast.dagboken.ui.common.formatDuration
 import se.kodhast.dagboken.ui.common.rememberBreathPhase
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.rememberReducedMotion
 import se.kodhast.ui.theme.Spacing
@@ -99,7 +99,7 @@ class MomentComponentsTest {
     @Test
     fun `formatDuration skriver sekunder, hela minuter och minuter med sekunder`() {
         val texts = mutableListOf<String>()
-        show { listOf(15, 45, 60, 120, 135, 300).forEach { texts += formatDuration(it) } }
+        show { listOf(15, 45, 60, 120, 135, 300).forEach { texts += DateFormat.durationSeconds(it) } }
         assertEquals(listOf("15 s", "45 s", "1 min", "2 min", "2 min 15 s", "5 min"), texts)
     }
 
@@ -298,7 +298,7 @@ class MomentComponentsTest {
                 ValueSlider("Pausens längd", value, {
                     value = it
                     seconds = it
-                }, valueRange = 15..300, step = 15, valueText = formatDuration(value))
+                }, valueRange = 15..300, step = 15, valueText = DateFormat.durationSeconds(value))
             }
         }
         val slider = rule.onNodeWithContentDescription("Pausens längd")

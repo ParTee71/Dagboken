@@ -6,7 +6,7 @@ import androidx.compose.ui.res.stringResource
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import se.kodhast.dagboken.R
-import se.kodhast.dagboken.ui.components.DateTimeRow
+import se.kodhast.ui.components.DateTimeRow
 import se.kodhast.ui.components.DeleteAction
 import se.kodhast.ui.components.EntityEditScreen
 

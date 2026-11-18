@@ -20,6 +20,7 @@ import se.kodhast.dagboken.ui.theme.Positive
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.Confetti
 import se.kodhast.ui.components.SectionHeader
+import se.kodhast.ui.components.StatPill
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
 

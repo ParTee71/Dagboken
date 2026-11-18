@@ -50,6 +50,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -101,7 +103,6 @@ import se.kodhast.dagboken.testing.captureScreenLightAndDark
 import se.kodhast.dagboken.testing.clickWithoutRipple
 import se.kodhast.dagboken.ui.SampleMedicines
 import se.kodhast.dagboken.ui.common.AppErrors
-import se.kodhast.dagboken.ui.common.EditorSheetState
 import se.kodhast.dagboken.ui.common.toMessage
 import se.kodhast.dagboken.ui.log.CooldownPrompt
 import se.kodhast.dagboken.ui.log.LogEvent
@@ -109,7 +110,10 @@ import se.kodhast.dagboken.ui.log.ScreeningSheetInfo
 import se.kodhast.dagboken.ui.log.ScreeningSheetView
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 import se.kodhast.ui.common.DetailUiState
+import se.kodhast.ui.common.EditorSheet
+import se.kodhast.ui.common.EditorSheetState
 import se.kodhast.ui.common.EditorState
+import se.kodhast.ui.common.SAVED_CONFIRMATION_MILLIS
 import se.kodhast.ui.common.UiError
 import se.kodhast.ui.common.Validator
 import se.kodhast.ui.components.APP_HEADER_TAG
@@ -939,13 +943,40 @@ class TodayScreenTest {
         assertEquals(LogEvent.SaveScreening, events.last())
     }
 
+    /** Arkets livscykel: bibliotekets `EditorSheet`, med coroutines som testet styr ([sheetTime]: sparat, klart-lägets tid). */
+    private val sheetTime = TestScope(UnconfinedTestDispatcher())
+    private lateinit var sheets: EditorSheet<Screening, ScreeningSheetInfo>
+
     /** Ett ark som `EditorSheet` öppnar det: den delade `EditorState` med [value], [loaded] = den sparade loggen. */
-    private fun sheet(loaded: Screening?, value: Screening) = EditorSheetState(
-        EditorState(value, Validator { emptyMap() }, AppErrors, saveUnchanged = loaded == null),
-        loaded,
-        ScreeningSheetInfo(value.occasion, value.date?.takeIf { it != today }),
-        CoroutineScope(Dispatchers.Main.immediate)
-    )
+    private fun sheet(loaded: Screening?, value: Screening): EditorSheetState<Screening, ScreeningSheetInfo> {
+        sheets = EditorSheet(sheetTime, AppErrors)
+        sheets.open(loaded, value, ScreeningSheetInfo(value.occasion, value.date?.takeIf { it != today }))
+        sheetTime.testScheduler.runCurrent()
+        return checkNotNull(sheets.current.value)
+    }
+
+    /** Sparar arket med [result] – en oförändrad logg ändras först, eftersom bara en ändrad logg går att spara. */
+    private fun EditorSheetState<Screening, ScreeningSheetInfo>.saveWith(result: Result<Unit>) {
+        if (!editor.state.value.canSave) editor.update { it.copy(stress = it.stress % 9 + 1) }
+        sheets.save { _, _ -> result }
+        sheetTime.testScheduler.runCurrent()
+    }
+
+    /** Sparat: arket går till klart-läget. */
+    private fun EditorSheetState<Screening, ScreeningSheetInfo>.saved() = saveWith(Result.success(Unit))
+
+    /** Klart-lägets tid har gått: arket döljs. */
+    private fun EditorSheetState<Screening, ScreeningSheetInfo>.hide() {
+        sheetTime.testScheduler.advanceTimeBy(SAVED_CONFIRMATION_MILLIS)
+        sheetTime.testScheduler.runCurrent()
+    }
+
+    /** Sparningen misslyckades med [error]; formuläret står kvar som det var (en oförändrad logg förblir oförändrad). */
+    private fun EditorSheetState<Screening, ScreeningSheetInfo>.failWith(error: DataError) {
+        val before = editor.state.value.value
+        saveWith(Result.failure(error))
+        editor.update { before }
+    }
 
     @Test
     fun `symptomvalen följer listan medan arket är öppet – en sen lista ger symptomsteget (SCR-2)`() {
@@ -989,7 +1020,7 @@ class TodayScreenTest {
     fun `en ny logg vars sparning misslyckades frågar Släng ändringar vid bakåt (NFR-10)`() {
         val events = mutableListOf<LogEvent>()
         val sheet = sheet(null, Screening("ny", today, LocalTime(10, 30), Occasion.LUNCH))
-        sheet.showError(AppErrors.map(DataError.Offline))
+        sheet.failWith(DataError.Offline)
         showFull(screening = sheet, onScreening = { events += it })
         Espresso.pressBack()
         rule.onNodeWithText("Släng ändringar?").assertIsDisplayed()
@@ -1049,7 +1080,7 @@ class TodayScreenTest {
 
     @Test
     fun `en oförändrad logg kan inte sparas, och ett sparfel visas i arket (SCR-1)`() {
-        showFull(screening = sheet(breakfast, breakfast).also { it.showError(AppErrors.map(DataError.PermissionDenied)) })
+        showFull(screening = sheet(breakfast, breakfast).also { it.failWith(DataError.PermissionDenied) })
         repeat(3) { rule.onNodeWithText("Nästa").performClick() }
         rule.onNodeWithText("Spara").assertIsNotEnabled()
         rule.onNodeWithText(ApplicationProvider.getApplicationContext<Context>().getString(DataError.PermissionDenied.toMessage())).assertIsDisplayed()

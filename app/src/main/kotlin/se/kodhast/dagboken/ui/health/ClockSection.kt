@@ -14,17 +14,18 @@ import se.kodhast.dagboken.core.engine.WatchMetric
 import se.kodhast.dagboken.core.engine.health.OptionalHealthMetric
 import se.kodhast.dagboken.core.model.SleepStages
 import se.kodhast.dagboken.data.health.HealthStatus
-import se.kodhast.dagboken.ui.common.durationText
 import se.kodhast.dagboken.ui.common.label
-import se.kodhast.dagboken.ui.components.StatPill
 import se.kodhast.dagboken.ui.diagram.CHART_SEPARATOR
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.Neutral
 import se.kodhast.dagboken.ui.theme.Positive
 import se.kodhast.dagboken.ui.theme.Sun
 import se.kodhast.dagboken.ui.theme.Warning
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.components.NoticeBanner
+import se.kodhast.ui.components.R as UiR
 import se.kodhast.ui.components.SectionHeader
+import se.kodhast.ui.components.StatPill
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
 
@@ -63,8 +64,8 @@ fun ClockStatus(status: HealthStatus?, missing: Set<OptionalHealthMetric>?, onEv
             R.drawable.ic_lock,
             stringResource(R.string.health_missing_permissions_format, missing.size),
             names.joinToString(CHART_SEPARATOR),
-            Modifier.fillMaxWidth(),
             tone = Tone.Sun,
+            modifier = Modifier.fillMaxWidth(),
             onClick = grant,
             action = stringResource(R.string.health_grant_access)
         )
@@ -93,16 +94,16 @@ fun HealthTodaySection(state: ClockUiState) {
             Metric(R.drawable.ic_heart, metricValue(WatchMetric.RESTING_HEART_RATE, day), stringResource(WatchMetric.RESTING_HEART_RATE.label()))
         )
     )
-    StatPill(R.drawable.ic_moon, metricValue(WatchMetric.SLEEP_TOTAL, day), stringResource(R.string.health_sleep_last_night), Modifier.fillMaxWidth())
+    StatPill(R.drawable.ic_moon, metricValue(WatchMetric.SLEEP_TOTAL, day), stringResource(R.string.health_sleep_last_night), Tone.Neutral, Modifier.fillMaxWidth())
     day?.sleepStages?.takeUnless { it.isEmpty }?.let { stages ->
         Text(stagesText(stages), Modifier.padding(horizontal = Spacing.l), style = AppTypography.caption, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     val score = state.sleepScore
     StatPill(
-        R.drawable.ic_star,
+        UiR.drawable.ic_star,
         score?.toString() ?: stringResource(R.string.value_missing),
         stringResource(if (state.needsBirthYear) R.string.health_sleep_quality_needs_birth_year else R.string.trends_card_sleep_quality),
-        Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         tone = when {
             state.needsBirthYear -> Tone.Sun
             score != null -> Tone.Positive
@@ -149,4 +150,4 @@ private fun stagesText(stages: SleepStages): String {
 }
 
 @Composable
-private fun stageText(metric: WatchMetric, time: Duration): String = stringResource(R.string.chart_stat_format, stringResource(metric.label()), durationText(time.inWholeMinutes.toInt()))
+private fun stageText(metric: WatchMetric, time: Duration): String = stringResource(R.string.chart_stat_format, stringResource(metric.label()), DateFormat.duration(time.inWholeMinutes.toInt()))

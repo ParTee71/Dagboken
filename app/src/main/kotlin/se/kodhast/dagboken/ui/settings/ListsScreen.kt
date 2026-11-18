@@ -25,7 +25,6 @@ import se.kodhast.dagboken.ui.common.AppErrors
 import se.kodhast.dagboken.ui.common.dataError
 import se.kodhast.dagboken.ui.common.label
 import se.kodhast.dagboken.ui.common.visible
-import se.kodhast.dagboken.ui.components.FavoriteStar
 import se.kodhast.dagboken.ui.theme.Neutral
 import se.kodhast.ui.common.ListEvent
 import se.kodhast.ui.common.ListLoader
@@ -36,6 +35,7 @@ import se.kodhast.ui.components.AppSegmentedChoice
 import se.kodhast.ui.components.ArchiveActions
 import se.kodhast.ui.components.EmptyContent
 import se.kodhast.ui.components.EntityListScreen
+import se.kodhast.ui.components.FavoriteStar
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.ListArchive

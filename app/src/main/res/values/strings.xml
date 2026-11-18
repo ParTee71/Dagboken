@@ -50,8 +50,6 @@
     <!-- Ett fält som finns flera gånger på skärmen, för TalkBack: "Startdatum, doshöjning 2" -->
     <string name="field_in_context_format">%1$s, %2$s</string>
     <string name="pick_time">Välj tid</string>
-    <string name="date">Datum</string>
-    <string name="time">Tid</string>
     <string name="expanded">Utfälld</string>
     <string name="collapsed">Hopfälld</string>
     <string name="paused">Pausat</string>
@@ -74,9 +72,7 @@
     <string name="scale_value_format">%1$s, %2$s</string>
 
     <!-- Postkort och anteckning (NFR-15, NFR-16, DAT-7) -->
-    <string name="note">Anteckning</string>
     <string name="note_show">Visa anteckning</string>
-    <string name="note_placeholder">Lägg till en anteckning</string>
 
     <!-- Kalender (HIST-6) -->
     <string name="calendar_previous_month">Föregående månad</string>
@@ -303,15 +299,6 @@
     <string name="feeling_note_when_format">%1$s · %2$s</string>
     <string name="trends_feelings_empty_hint">Välj känslor när du loggar mående eller en aktivitet, så syns de här.</string>
 
-    <!-- Tidsåtgång (AKT-7) -->
-    <string name="duration">Tidsåtgång</string>
-    <string name="minutes">minuter</string>
-    <string name="duration_minutes_format">%d min</string>
-    <string name="duration_hours_format">%d tim</string>
-    <string name="duration_hours_minutes_format">%1$d tim %2$d min</string>
-    <!-- Kortare längder i sekunder (formatDuration, NOT-20): "45 s", "2 min", "2 min 15 s" -->
-    <string name="duration_seconds_format">%d s</string>
-    <string name="duration_minutes_seconds_format">%1$d min %2$d s</string>
     <plurals name="suggestions_count">
         <item quantity="one">%d förslag</item>
         <item quantity="other">%d förslag</item>
@@ -485,10 +472,6 @@
     <string name="option_rename_help">Det nya namnet syns även i det du redan loggat.</string>
     <string name="option_name_missing">Ange ett namn</string>
     <string name="option_name_duplicate">Finns redan i listan</string>
-    <string name="favorite_add">Markera %s som favorit</string>
-    <string name="favorite_remove">Ta bort %s som favorit</string>
-    <string name="favorite_on">Favorit</string>
-    <string name="favorite_off">Inte favorit</string>
     <string name="option_archived">Arkiverad</string>
 
     <!-- Idag (HEM-1, HEM-2, HEM-14, HEM-18, HEM-19, MED-1–3, MED-5, MED-13, MED-14, FAV-2–6, FAV-8, FAV-9, FAV-11) -->

@@ -31,11 +31,10 @@ import se.kodhast.dagboken.reminders.ReminderAccess
 import se.kodhast.dagboken.reminders.openExactAlarmSettings
 import se.kodhast.dagboken.reminders.openFullScreenIntentSettings
 import se.kodhast.dagboken.reminders.reminderAccess
-import se.kodhast.dagboken.ui.common.formatDuration
 import se.kodhast.dagboken.ui.common.label
-import se.kodhast.dagboken.ui.components.ReminderTimeRow
 import se.kodhast.dagboken.ui.components.ValueSlider
 import se.kodhast.dagboken.ui.theme.Warning
+import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.EditorEvents
 import se.kodhast.ui.common.EditorState
 import se.kodhast.ui.common.EditorUiState
@@ -44,6 +43,7 @@ import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.EntityEditScreen
 import se.kodhast.ui.components.LabeledGroup
 import se.kodhast.ui.components.NoticeBanner
+import se.kodhast.ui.components.ReminderTimeRow
 import se.kodhast.ui.components.SwitchRow
 import se.kodhast.ui.components.rememberNotificationAccess
 import se.kodhast.ui.theme.Tone
@@ -268,7 +268,7 @@ private fun MomentSection(reminders: ReminderSettings, access: ReminderAccess, o
                 valueRange = MomentSettings.MIN_SECONDS..MomentSettings.MAX_SECONDS,
                 enabled = moment.enabled,
                 step = MomentSettings.STEP_SECONDS,
-                valueText = formatDuration(moment.seconds)
+                valueText = DateFormat.durationSeconds(moment.seconds)
             )
             SwitchRow(
                 stringResource(R.string.reminders_moment_takeover),

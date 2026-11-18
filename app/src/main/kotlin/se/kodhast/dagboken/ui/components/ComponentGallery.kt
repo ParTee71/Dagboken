@@ -1,8 +1,16 @@
 package se.kodhast.dagboken.ui.components
 
+import se.kodhast.dagboken.core.schema.TextLimits
+import se.kodhast.ui.components.DateTimeRow
+import se.kodhast.ui.components.DurationRow
+import se.kodhast.ui.components.FavoriteMark
+import se.kodhast.ui.components.FavoriteStar
 import se.kodhast.ui.components.Foldout
+import se.kodhast.ui.components.NoteCard
+import se.kodhast.ui.components.ReminderTimeRow
 import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.AppHeader
+import se.kodhast.ui.components.StatPill
 import se.kodhast.ui.components.asSplitMenu
 import se.kodhast.dagboken.ui.common.AppErrors
 import androidx.compose.foundation.layout.Arrangement
@@ -71,8 +79,6 @@ import se.kodhast.ui.common.EditorEvents
 import se.kodhast.ui.common.EditorUiState
 import se.kodhast.ui.components.ArchiveEvent
 import se.kodhast.ui.common.DateFormat
-import se.kodhast.dagboken.ui.common.durationText
-import se.kodhast.dagboken.ui.common.formatDuration
 import se.kodhast.dagboken.ui.common.FeelingSentenceKind
 import se.kodhast.dagboken.ui.common.feelingSentence
 import se.kodhast.ui.common.ListUiState
@@ -91,6 +97,7 @@ import se.kodhast.dagboken.ui.diagram.StackedBarChart
 import se.kodhast.dagboken.ui.diagram.sleepStageSegments
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.AppTypography
+import se.kodhast.ui.components.favoriteMenuItem
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
 import se.kodhast.dagboken.ui.theme.Neutral
@@ -356,7 +363,7 @@ private fun Diary() {
     DagbokenEntryCard(
         "Promenad",
         onClick = {},
-        subtitle = "${DateFormat.time(LocalTime(8, 30))} · ${durationText(45)}",
+        subtitle = "${DateFormat.time(LocalTime(8, 30))} · ${DateFormat.duration(45)}",
         leading = { Text("🚶", style = AppTypography.sectionTitle) },
         accent = scaleLevel(3, -10..10).color,
         status = { InfoPill("+3", tone = Tone.Positive) },
@@ -398,7 +405,7 @@ private fun Diary() {
             ValueSlider("Stress", stress, { stress = it }, higherIsBetter = false)
             ValueSlider("Aktivitetens energi", activity, { activity = it }, valueRange = -10..10)
             var pause by remember { mutableIntStateOf(135) }
-            ValueSlider("Pausens längd", pause, { pause = it }, valueRange = 15..300, step = 15, valueText = formatDuration(pause))
+            ValueSlider("Pausens längd", pause, { pause = it }, valueRange = 15..300, step = 15, valueText = DateFormat.durationSeconds(pause))
         }
     }
     var sectionOpen by remember { mutableStateOf(true) }
@@ -410,7 +417,7 @@ private fun Diary() {
     var symptoms by remember { mutableStateOf(listOf(SymptomScore("huvudvark", 4), SymptomScore("ovrigt", 2, "Ont i knät"))) }
     SymptomLogCard(GALLERY_SYMPTOMS, symptoms, { symptoms = it }, otherOptionId = "ovrigt")
     var note by remember { mutableStateOf<String?>("Sov dåligt, vaknade vid fyra.") }
-    NoteCard(note, { note = it })
+    NoteCard(note, { note = it }, maxLength = TextLimits.LONG)
     var date by remember { mutableStateOf(LocalDate(2026, 10, 4)) }
     var time by remember { mutableStateOf(LocalTime(8, 30)) }
     DateTimeRow(date, time, { date = it }, { time = it })
@@ -426,10 +433,10 @@ private fun Diary() {
     }
     Label("StatPill")
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-        StatPill(R.drawable.ic_activity, "7 842", "Steg")
+        StatPill(R.drawable.ic_activity, "7 842", "Steg", Tone.Neutral)
         StatPill(R.drawable.ic_sun, stringResource(R.string.value_missing), "Sömn", tone = Tone.Primary, onClick = {}, onClickLabel = "Begär åtkomst")
     }
-    StatPill(R.drawable.ic_lock, "2 saknas", "Träning · Syremättnad", Modifier.fillMaxWidth(), tone = Tone.Sun, onClick = {}, action = "Ge åtkomst")
+    StatPill(R.drawable.ic_lock, "2 saknas", "Träning · Syremättnad", Tone.Sun, Modifier.fillMaxWidth(), onClick = {}, action = "Ge åtkomst")
     var month by remember { mutableStateOf(LocalDate(2026, 10, 1)) }
     var picked by remember { mutableStateOf<LocalDate?>(LocalDate(2026, 10, 4)) }
     AppCard {
@@ -789,7 +796,7 @@ internal fun GalleryFeelingCards() {
     DagbokenEntryCard(
         "Promenad",
         onClick = {},
-        subtitle = "${DateFormat.time(LocalTime(16, 0))} · ${durationText(30)}",
+        subtitle = "${DateFormat.time(LocalTime(16, 0))} · ${DateFormat.duration(30)}",
         accent = scaleLevel(4, -10..10).color,
         status = { InfoPill("+4", tone = scaleLevel(4, -10..10).tone) },
         onEdit = {},

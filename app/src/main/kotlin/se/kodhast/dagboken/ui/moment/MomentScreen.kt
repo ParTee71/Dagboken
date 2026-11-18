@@ -43,7 +43,6 @@ import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.engine.ReflectionPrompts
 import se.kodhast.dagboken.core.time.SECONDS_PER_MINUTE
 import se.kodhast.dagboken.reminders.MomentLaunch
-import se.kodhast.dagboken.ui.common.formatDuration
 import se.kodhast.dagboken.ui.common.label
 import se.kodhast.dagboken.ui.components.SunsetBreathing
 import se.kodhast.dagboken.ui.theme.AppColors
@@ -179,7 +178,7 @@ private fun Countdown(remainingSeconds: () -> Int) {
         Text(stringResource(R.string.moment_done), style = AppTypography.countdown, color = colors.accent)
         return
     }
-    val spoken = stringResource(R.string.moment_remaining_description, formatDuration(remaining))
+    val spoken = stringResource(R.string.moment_remaining_description, DateFormat.durationSeconds(remaining))
     Text(
         stringResource(R.string.moment_remaining, remaining / SECONDS_PER_MINUTE, remaining % SECONDS_PER_MINUTE),
         Modifier.semantics { contentDescription = spoken },
